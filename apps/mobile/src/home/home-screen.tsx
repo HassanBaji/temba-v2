@@ -90,6 +90,10 @@ export function HomeScreen() {
     undefined,
     REFETCH_ON_FOREGROUND,
   );
+  const unread = api.notifications.unreadCount.useQuery(
+    undefined,
+    REFETCH_ON_FOREGROUND,
+  );
 
   const upNextSource = {
     data:
@@ -144,6 +148,7 @@ export function HomeScreen() {
     name: user?.fullName ?? user?.firstName ?? user?.username ?? m.common.you,
     imageUri: user?.imageUrl ?? null,
     pendingInviteCount: home.data?.pendingInviteCount ?? 0,
+    unreadNotificationCount: unread.data?.count ?? 0,
     checklist: homeChecklist(
       checklistFrom(user, onboarding.data, locale),
       skipped,
@@ -183,6 +188,7 @@ export function HomeScreen() {
         createGroups.refetch(),
         onboarding.refetch(),
         details.refetch(),
+        unread.refetch(),
         user?.reload(),
       ]),
     [
@@ -196,6 +202,7 @@ export function HomeScreen() {
       createGroups,
       onboarding,
       details,
+      unread,
       user,
     ],
   );

@@ -15,6 +15,8 @@ import {
   footballPlayersAllowedBounds,
   isFootballSideSize,
 } from "@repo/domain/game-shape";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type db } from "#src/db";
 import {
@@ -41,11 +43,12 @@ export const FRIENDLY_SET_SHELL_COUNT = 3;
 export async function createFootballGame(
   database: CreateFriendlyDb,
   input: CreateFootballGameInput,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (!isFootballSideSize(input.sideSize)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Side size must be 5, 6, 7, 8, 9 or 11",
+      message: messagesFor(locale).game.errors.sideSize,
     });
   }
   const bounds = footballPlayersAllowedBounds(input.sideSize);
@@ -56,7 +59,10 @@ export async function createFootballGame(
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `Players allowed must be between ${bounds.min} and ${bounds.max}`,
+      message: messagesFor(locale).game.errors.playersBetween(
+        bounds.min,
+        bounds.max,
+      ),
     });
   }
   await assertGameCreateVenueAndCourt(writeDb(database), {
@@ -64,6 +70,7 @@ export async function createFootballGame(
     venueId: input.venueId,
     courtId: input.courtId,
     sport: "football",
+    locale,
   });
 
   return writeDb(database).transaction(async (tx) => {
@@ -147,12 +154,14 @@ export async function backfillFriendlySetShells(database: CreateFriendlyDb) {
 export async function createFriendlyGame(
   database: CreateFriendlyDb,
   input: CreateFriendlyGameInput,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<CreateFriendlyGameResult> {
   await backfillFriendlySetShells(database);
   await assertGameCreateVenueAndCourt(writeDb(database), {
     groupId: input.groupId ?? undefined,
     venueId: input.venueId,
     courtId: input.courtId,
+    locale,
   });
 
   const durationInMinutes = Math.max(

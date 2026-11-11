@@ -14,8 +14,13 @@ import {
   footballPositionSchema,
   footballRoleSchema,
 } from "@repo/validators/football";
+import { messagesFor } from "@repo/i18n/messages";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import {
+  enforceUserRateLimit,
+  userRateLimits,
+} from "#src/rate-limit/user-rate-limits";
 import { type db } from "#src/db";
 import {
   assertGameOrganizer,
@@ -53,10 +58,11 @@ function refuse(message: string): never {
 function startingLevelFor(
   game: GameRow,
   level: AddPlayerLevel | undefined,
+  locale: Locale = DEFAULT_LOCALE,
 ): UnclaimedPlayerStartingLevel {
   if (isFootballGame(game)) {
     if (level !== undefined && !isFootballPlacement(level)) {
-      refuse("Pick a football Level");
+      refuse(messagesFor(locale).level.errors.pickFootball);
     }
     return {
       sport: "football",
@@ -64,7 +70,7 @@ function startingLevelFor(
     };
   }
   if (level !== undefined && isFootballPlacement(level)) {
-    refuse("Pick a padel Level");
+    refuse(messagesFor(locale).level.errors.pickPadel);
   }
   return { sport: "padel", level: level ?? "not_sure" };
 }
@@ -85,18 +91,18 @@ export async function addPlayerByPhone(
   },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
-  const game = await requireGame(database, args.gameId);
+  const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, locale);
-  await assertGameOrganizer(database, game, args.organizerUserId);
-  assertOrganizerAddFormat(game);
+  await assertGameOrganizer(database, game, args.organizerUserId, locale);
+  assertOrganizerAddFormat(game, locale);
   if (args.football && !isFootballGame(game)) {
-    refuse("Only a football Game takes a role and position");
+    refuse(messagesFor(locale).football.errors.roleOnFootball);
   }
   const football: FootballPlacement | null = isFootballGame(game)
     ? (args.football ?? { role: "outfield", position: null })
     : null;
-  const startingLevel = startingLevelFor(game, args.level);
-  const phoneNumber = requireE164(args.countryIso, args.nationalNumber);
+  const startingLevel = startingLevelFor(game, args.level, locale);
+  const phoneNumber = requireE164(args.countryIso, args.nationalNumber, locale);
   const name = args.name?.trim();
 
   return database.transaction(async (tx) => {
@@ -106,7 +112,7 @@ export async function addPlayerByPhone(
       if (!name) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Enter their name",
+          message: messagesFor(locale).profile.errors.enterTheirName,
         });
       }
       ({ user: player } = await createUnclaimedPlayer(tx, {
@@ -114,6 +120,7 @@ export async function addPlayerByPhone(
         name,
         addedByUserId: args.organizerUserId,
         startingLevel,
+        locale,
       }));
     } else {
       player = resolved.user;
@@ -167,6 +174,7 @@ export const addPlayerByPhoneProcedure = protectedProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    enforceUserRateLimit(userRateLimits.addByPhone, ctx.userId, ctx.locale);
     const appUser = await resolveAppUser(ctx.userId);
     return addPlayerByPhone(ctx.db, {
       ...input,

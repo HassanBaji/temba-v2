@@ -1,14 +1,11 @@
 import { spacing } from "@repo/design-tokens";
-import { completeMatchAction, setLabel } from "@repo/domain/game-copy";
+import { scoreGamesRangeNote } from "@repo/domain/friendly-game-court";
+import { friendlySetGamesInRange } from "@repo/domain/friendly-game-results";
+import { setLabel } from "@repo/domain/game-copy";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 
-import {
-  draftsFromSets,
-  setsToSave,
-  withDraftChange,
-  type ScoreDrafts,
-} from "../game-details/details-model";
+import { digitsOnly } from "../game-details/details-model";
 import { Card } from "../home/card";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
@@ -19,18 +16,40 @@ import { type ScorableMatch } from "./tournament-model";
 
 const BOX_WIDTH = 64;
 
+export type TournamentScore = { slot1GamesWon: number; slot2GamesWon: number };
+
 export type ScoreHandlers = {
   scorePending: boolean;
-  addSetPending: boolean;
-  completePending: boolean;
-  onSave: (matchId: string, payloads: ReturnType<typeof setsToSave>) => void;
-  onAddSet: (matchId: string) => void;
-  onComplete: (
-    matchId: string,
-    payloads: ReturnType<typeof setsToSave>,
-  ) => void;
+  confirmPending: boolean;
+  onSave: (matchId: string, score: TournamentScore) => void;
+  onConfirm: (matchId: string) => void;
 };
 
+type GamesDraft = { slot1: string; slot2: string };
+
+function draftOf(sets: ScorableMatch["sets"]): GamesDraft {
+  const [set] = sets;
+  return {
+    slot1: set?.slot1GamesWon == null ? "" : String(set.slot1GamesWon),
+    slot2: set?.slot2GamesWon == null ? "" : String(set.slot2GamesWon),
+  };
+}
+
+function scoreOf(draft: GamesDraft): TournamentScore | null {
+  if (draft.slot1 === "" || draft.slot2 === "") {
+    return null;
+  }
+  return {
+    slot1GamesWon: Number(draft.slot1),
+    slot2GamesWon: Number(draft.slot2),
+  };
+}
+
+/**
+ * A tournament score is the games each team won, as one Set (ADR-0062), saved
+ * through `games.enterTournamentScore`, which asks the other team to confirm.
+ * That team confirms it through `games.confirmMatchResult`, or corrects it.
+ */
 function MatchScore({
   match,
   handlers,
@@ -40,16 +59,18 @@ function MatchScore({
 }) {
   const locale = useLocale();
   const m = useMessages().mobileTournament.score;
-  const [drafts, setDrafts] = useState<ScoreDrafts>(() =>
-    draftsFromSets(match.sets),
-  );
+  const [draft, setDraft] = useState<GamesDraft>(() => draftOf(match.sets));
   useEffect(() => {
-    setDrafts(draftsFromSets(match.sets));
+    setDraft(draftOf(match.sets));
   }, [match.sets]);
 
-  const busy =
-    handlers.scorePending || handlers.addSetPending || handlers.completePending;
-  const payloads = () => setsToSave(match.sets, drafts);
+  const score = scoreOf(draft);
+  const outOfRange = [draft.slot1, draft.slot2].some(
+    (text) => text !== "" && !friendlySetGamesInRange(Number(text)),
+  );
+  const name = setLabel(0, locale);
+  const busy = handlers.scorePending || handlers.confirmPending;
+  const editable = match.canEnter && !busy;
 
   return (
     <View style={{ gap: 12, padding: spacing.surface }}>
@@ -69,78 +90,66 @@ function MatchScore({
           {match.slot2Label}
         </Text>
       </View>
-      {match.sets.map((set, index) => {
-        const name = setLabel(index, locale);
-        const draft = drafts[set.id] ?? { slot1: "", slot2: "" };
-        return (
-          <View
-            key={set.id}
-            style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
-          >
-            <Text size="meta" tone="muted" style={{ width: 52 }}>
-              {name}
-            </Text>
-            <View style={{ width: BOX_WIDTH }}>
-              <TextField
-                accessibilityLabel={m.box(match.slot1Label, name)}
-                keyboardType="number-pad"
-                maxLength={2}
-                value={draft.slot1}
-                editable={!busy}
-                textAlign="center"
-                onChangeText={(text) =>
-                  setDrafts((current) => withDraftChange(current, set, 1, text))
-                }
-              />
-            </View>
-            <View style={{ width: BOX_WIDTH }}>
-              <TextField
-                accessibilityLabel={m.box(match.slot2Label, name)}
-                keyboardType="number-pad"
-                maxLength={2}
-                value={draft.slot2}
-                editable={!busy}
-                textAlign="center"
-                onChangeText={(text) =>
-                  setDrafts((current) => withDraftChange(current, set, 2, text))
-                }
-              />
-            </View>
-          </View>
-        );
-      })}
-      {match.note ? (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <View style={{ width: BOX_WIDTH }}>
+          <TextField
+            accessibilityLabel={m.box(match.slot1Label, name)}
+            keyboardType="number-pad"
+            maxLength={2}
+            value={draft.slot1}
+            editable={editable}
+            textAlign="center"
+            onChangeText={(text) =>
+              setDraft((current) => ({ ...current, slot1: digitsOnly(text) }))
+            }
+          />
+        </View>
+        <View style={{ width: BOX_WIDTH }}>
+          <TextField
+            accessibilityLabel={m.box(match.slot2Label, name)}
+            keyboardType="number-pad"
+            maxLength={2}
+            value={draft.slot2}
+            editable={editable}
+            textAlign="center"
+            onChangeText={(text) =>
+              setDraft((current) => ({ ...current, slot2: digitsOnly(text) }))
+            }
+          />
+        </View>
+      </View>
+      {outOfRange ? (
+        <Text size="meta" weight="medium" accessibilityRole="alert">
+          {scoreGamesRangeNote(locale)}
+        </Text>
+      ) : match.note ? (
         <Text size="meta" tone="muted" accessibilityRole="alert">
           {match.note}
         </Text>
       ) : null}
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <Button
-          label={m.addASet}
-          variant="outline"
-          size="sm"
-          pending={handlers.addSetPending}
-          disabled={busy}
-          onPress={() => handlers.onAddSet(match.id)}
-        />
-        {match.sets.length > 0 ? (
-          <>
-            <Button
-              label={m.saveScore}
-              size="sm"
-              pending={handlers.scorePending}
-              disabled={busy}
-              onPress={() => handlers.onSave(match.id, payloads())}
-            />
-            <Button
-              label={completeMatchAction(locale)}
-              size="sm"
-              variant="outline"
-              pending={handlers.completePending}
-              disabled={busy}
-              onPress={() => handlers.onComplete(match.id, payloads())}
-            />
-          </>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+        {match.scoreToConfirm ? (
+          <Button
+            label={m.confirmScore(match.scoreToConfirm)}
+            size="sm"
+            pending={handlers.confirmPending}
+            disabled={handlers.scorePending}
+            onPress={() => handlers.onConfirm(match.id)}
+          />
+        ) : null}
+        {match.canEnter ? (
+          <Button
+            label={m.saveScore}
+            size="sm"
+            variant={match.scoreToConfirm ? "outline" : undefined}
+            pending={handlers.scorePending}
+            disabled={score == null || outOfRange || handlers.confirmPending}
+            onPress={() => {
+              if (score) {
+                handlers.onSave(match.id, score);
+              }
+            }}
+          />
         ) : null}
       </View>
     </View>

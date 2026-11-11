@@ -66,10 +66,10 @@ describe("court availability", () => {
   });
 
   it("labels the closed-until time as a clock today and a date otherwise", () => {
-    expect(closedUntilLabel(bahrain(2026, 11, 3, 17), now)).toBe(
+    expect(closedUntilLabel(bahrain(2026, 11, 3, 17), now, "en")).toBe(
       "Closed to 5:00 PM",
     );
-    expect(closedUntilLabel(bahrain(2026, 11, 7, 17), now)).toBe(
+    expect(closedUntilLabel(bahrain(2026, 11, 7, 17), now, "en")).toBe(
       "Closed to Sat 7 Nov",
     );
   });

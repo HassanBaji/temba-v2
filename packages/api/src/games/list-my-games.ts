@@ -17,10 +17,12 @@ import {
   viewerIsParticipantOnRow,
   type HubQueryRow,
 } from "#src/games/helpers/hub-list";
+import { hubGameMayBeLive } from "#src/games/helpers/hub-may-be-live";
 import type { HubListRow } from "#src/games/utils";
 import { filterAndSortMyGamesHubGames } from "#src/home/upcoming-games";
 
 const FOOTBALL_RESULT_DAYS = 14;
+const FOOTBALL_RESULT_MS = FOOTBALL_RESULT_DAYS * 24 * 60 * 60 * 1000;
 
 /**
  * A football Game whose window has passed stays in My Games while its Score
@@ -32,7 +34,7 @@ function footballResultPending(row: HubQueryRow, userId: string, now: Date) {
     return false;
   }
   const age = now.getTime() - row.windowEnd.getTime();
-  if (age > FOOTBALL_RESULT_DAYS * 24 * 60 * 60 * 1000) {
+  if (age > FOOTBALL_RESULT_MS) {
     return false;
   }
   const match = row.matches.find((item) => item.status !== "cancelled");
@@ -76,7 +78,11 @@ export async function listMyGamesHubRows(
   }
   const rows = await queryHubGames(
     database,
-    and(isNull(games.cancelledAt), or(...scope)),
+    and(
+      isNull(games.cancelledAt),
+      or(...scope),
+      hubGameMayBeLive(database, now, FOOTBALL_RESULT_MS),
+    ),
   );
   const candidates = (rows as HubQueryRow[]).map((row) => ({
     ...row,

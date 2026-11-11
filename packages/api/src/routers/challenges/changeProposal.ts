@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
-import { challengeProposals, challenges, teams } from "@repo/db";
+import { challengeProposals, teams } from "@repo/db";
 import {
   isProposalPending,
   proposalExpiresAt,
@@ -12,6 +12,7 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { lockProposalWithChallenge } from "#src/challenges/lock-proposal";
 import { checkProposalTerms } from "#src/challenges/proposal-terms";
 import { type db } from "#src/db";
 import { enqueueAt } from "#src/jobs/enqueue";
@@ -21,6 +22,9 @@ import { userActsForTeam } from "#src/teams/acts-for-team";
 import { protectedProcedure } from "#src/trpc";
 
 type DbClient = typeof db;
+
+/** Each change restarts the 48 hours, so a Proposal cannot hold a Challenge open forever. */
+export const PROPOSAL_MAX_CHANGES = 3;
 
 export const changeProposalInput = z.object({
   proposalId: z.string().uuid(),
@@ -46,9 +50,9 @@ const TEAM_COLUMNS = {
 } as const;
 
 /**
- * Replace a pending Proposal's Venue, Court, start and price in place. The
- * 48 hours start again, the expiry job moves with them, and the posting Team
- * is told again.
+ * Replace a pending Proposal's Venue, Court, start and price in place, up to
+ * `PROPOSAL_MAX_CHANGES` times. The 48 hours start again, the expiry job
+ * moves with them, and the posting Team is told again.
  */
 export async function changeProposal(
   database: DbClient,
@@ -60,17 +64,14 @@ export async function changeProposal(
   const m = messagesFor(locale).challenge;
 
   return database.transaction(async (tx) => {
-    const [proposal] = await tx
-      .select()
-      .from(challengeProposals)
-      .where(eq(challengeProposals.id, input.proposalId))
-      .for("update");
-    if (!proposal) {
+    const locked = await lockProposalWithChallenge(tx, input.proposalId);
+    if (!locked) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: m.errors.proposalNotFound,
       });
     }
+    const { proposal, challenge } = locked;
     const proposingTeam = await tx.query.teams.findFirst({
       where: eq(teams.id, proposal.teamId),
       columns: TEAM_COLUMNS,
@@ -87,11 +88,14 @@ export async function changeProposal(
         message: m.errors.proposalNotPending,
       });
     }
-    const challenge = await tx.query.challenges.findFirst({
-      where: eq(challenges.id, proposal.challengeId),
-    });
     if (challenge?.status !== "open") {
       throw new TRPCError({ code: "BAD_REQUEST", message: m.errors.notOpen });
+    }
+    if (proposal.changeCount >= PROPOSAL_MAX_CHANGES) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: m.errors.changeLimit(PROPOSAL_MAX_CHANGES),
+      });
     }
 
     const courtId = input.courtId ?? null;
@@ -113,6 +117,7 @@ export async function changeProposal(
         startsAt: input.startsAt,
         pricePerPlayerFils: input.pricePerPlayerFils ?? null,
         expiresAt,
+        changeCount: sql`${challengeProposals.changeCount} + 1`,
         updatedAt: now,
       })
       .where(eq(challengeProposals.id, proposal.id));

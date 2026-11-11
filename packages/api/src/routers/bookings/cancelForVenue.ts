@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { managerBookingActions } from "@repo/domain/booking-manager-actions";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -27,8 +29,10 @@ export async function cancelBookingForVenue(
       publicMetadata: Record<string, unknown> | undefined;
     };
     now?: Date;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
 
   return database.transaction(async (tx) => {
@@ -38,8 +42,8 @@ export async function cancelBookingForVenue(
         code: "BAD_REQUEST",
         message:
           booking.status === "confirmed"
-            ? "This Booking has ended. Mark it no-show instead"
-            : "This Booking can no longer be cancelled",
+            ? messagesFor(locale).booking.errors.endedMarkNoShow
+            : messagesFor(locale).booking.errors.cannotCancel,
       });
     }
 
@@ -49,8 +53,9 @@ export async function cancelBookingForVenue(
       actorUserId: args.actor.userId,
       reason: args.reason,
       now,
+      locale,
     });
-    return bookingWithLedger(tx, booking.id);
+    return bookingWithLedger(tx, booking.id, locale);
   });
 }
 
@@ -70,5 +75,6 @@ export const cancelForVenueProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

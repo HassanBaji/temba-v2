@@ -58,6 +58,10 @@
           "savePhotosPermission": "Temba saves result cards and stickers to your photo library."
         }
       ]
-    ]
+    ],
+    "locales": {
+      "en": "./locales/en.json",
+      "ar": "./locales/ar.json"
+    }
   }
 }

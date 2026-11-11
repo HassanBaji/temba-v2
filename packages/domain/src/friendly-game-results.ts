@@ -11,6 +11,10 @@ export function clampFriendlySetGames(value: number) {
   );
 }
 
+export function friendlySetGamesInRange(value: number) {
+  return value >= FRIENDLY_SET_GAMES_MIN && value <= FRIENDLY_SET_GAMES_MAX;
+}
+
 export function stepFriendlySetGames(current: number | null, delta: -1 | 1) {
   return clampFriendlySetGames((current ?? 0) + delta);
 }

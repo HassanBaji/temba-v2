@@ -60,7 +60,6 @@ type ExpectedChallenges =
   | "confirmProposal";
 
 type ExpectedGames =
-  | "hello"
   | "listMyGames"
   | "listMyMatchHistory"
   | "listPublicPickup"
@@ -138,8 +137,7 @@ type ExpectedGames =
   | "inviteLinkByShortCode"
   | "previewInviteLink"
   | "acceptInviteLink"
-  | "joinGroupFromInviteLink"
-  | "getSecretMessage";
+  | "joinGroupFromInviteLink";
 
 type ExpectedGroups =
   | "createLoosePublic"

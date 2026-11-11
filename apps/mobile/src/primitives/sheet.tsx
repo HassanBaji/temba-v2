@@ -1,7 +1,9 @@
 import { radii, sizes, spacing } from "@repo/design-tokens";
 import { X } from "lucide-react-native";
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -40,7 +42,7 @@ export type SheetProps = {
   closeButton?: boolean;
   action?: React.ReactNode;
   tall?: boolean;
-  /** Pinned under the scrolling body of a tall sheet. */
+  /** Pinned under the body: under the scrolling body of a tall sheet. */
   footer?: React.ReactNode;
   keyboardShouldPersistTaps?: ScrollViewProps["keyboardShouldPersistTaps"];
   children: React.ReactNode;
@@ -83,61 +85,68 @@ export function Sheet({
           onPress={onClose}
           style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}
         />
-        <SurfaceToneContext.Provider value="paper">
-          <View
-            accessibilityViewIsModal
-            style={{
-              backgroundColor: colors.sheet,
-              borderTopLeftRadius: radii.sheet,
-              borderTopRightRadius: radii.sheet,
-              paddingTop: PADDING_TOP,
-              paddingHorizontal: spacing.surface,
-              paddingBottom: tall ? 0 : bottomPadding,
-              height: tall
-                ? Math.round(window.height * TALL_HEIGHT_RATIO)
-                : undefined,
-              gap: BLOCK_GAP,
-            }}
-          >
-            <Grabber />
-            {hasHeader ? (
-              <TitleRow
-                title={title}
-                subtitle={subtitle}
-                size={titleSize}
-                trailing={trailing}
-              />
-            ) : null}
-            {tall ? (
-              <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={{
-                  gap: BODY_GAP,
-                  paddingBottom: footer ? spacing.surface : bottomPadding,
-                }}
-                keyboardShouldPersistTaps={keyboardShouldPersistTaps}
-                automaticallyAdjustKeyboardInsets
-              >
-                {children}
-              </ScrollView>
-            ) : (
-              <View style={{ gap: BODY_GAP }}>{children}</View>
-            )}
-            {tall && footer ? (
-              <View
-                style={{
-                  borderTopWidth: hairline,
-                  borderColor: colors.rule,
-                  paddingTop: spacing.compact,
-                  paddingBottom: bottomPadding,
-                  marginTop: -BLOCK_GAP,
-                }}
-              >
-                {footer}
-              </View>
-            ) : null}
-          </View>
-        </SurfaceToneContext.Provider>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          pointerEvents="box-none"
+          style={[styles.lift, { paddingTop: insets.top }]}
+        >
+          <SurfaceToneContext.Provider value="paper">
+            <View
+              accessibilityViewIsModal
+              style={{
+                backgroundColor: colors.sheet,
+                borderTopLeftRadius: radii.sheet,
+                borderTopRightRadius: radii.sheet,
+                paddingTop: PADDING_TOP,
+                paddingHorizontal: spacing.surface,
+                paddingBottom: tall ? 0 : bottomPadding,
+                height: tall
+                  ? Math.round(window.height * TALL_HEIGHT_RATIO)
+                  : undefined,
+                flexShrink: 1,
+                gap: BLOCK_GAP,
+              }}
+            >
+              <Grabber />
+              {hasHeader ? (
+                <TitleRow
+                  title={title}
+                  subtitle={subtitle}
+                  size={titleSize}
+                  trailing={trailing}
+                />
+              ) : null}
+              {tall ? (
+                <ScrollView
+                  style={{ flex: 1 }}
+                  contentContainerStyle={{
+                    gap: BODY_GAP,
+                    paddingBottom: footer ? spacing.surface : bottomPadding,
+                  }}
+                  keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+                >
+                  {children}
+                </ScrollView>
+              ) : (
+                <View style={{ gap: BODY_GAP }}>{children}</View>
+              )}
+              {!tall && footer ? <View>{footer}</View> : null}
+              {tall && footer ? (
+                <View
+                  style={{
+                    borderTopWidth: hairline,
+                    borderColor: colors.rule,
+                    paddingTop: spacing.compact,
+                    paddingBottom: bottomPadding,
+                    marginTop: -BLOCK_GAP,
+                  }}
+                >
+                  {footer}
+                </View>
+              ) : null}
+            </View>
+          </SurfaceToneContext.Provider>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -229,5 +238,6 @@ function TitleRow({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, justifyContent: "flex-end" },
+  root: { flex: 1 },
+  lift: { flex: 1, justifyContent: "flex-end" },
 });

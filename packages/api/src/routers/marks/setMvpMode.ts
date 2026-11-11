@@ -5,6 +5,8 @@ import { z } from "zod";
 import { MatchStatusEnum, games, matches } from "@repo/db";
 
 import { MVP_MODES, type MvpMode } from "@repo/domain/marks";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -20,14 +22,15 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
  */
 export async function setMvpMode(
   database: DbClient,
-  args: { gameId: string; userId: string; mode: MvpMode },
+  args: { gameId: string; userId: string; mode: MvpMode; locale?: Locale },
 ): Promise<{ mode: MvpMode }> {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.userId, locale);
   if (game.format !== "friendly_game" || game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Only a Friendly game has an MVP",
+      message: messagesFor(locale).marks.errors.mvpFriendlyOnly,
     });
   }
 
@@ -42,7 +45,7 @@ export async function setMvpMode(
       if (locked?.status === MatchStatusEnum.COMPLETED) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "The MVP mode is fixed once the score is confirmed",
+          message: messagesFor(locale).marks.errors.mvpModeFixed,
         });
       }
     }
@@ -68,5 +71,6 @@ export const setMvpModeProcedure = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       mode: input.mode,
+      locale: ctx.locale,
     });
   });

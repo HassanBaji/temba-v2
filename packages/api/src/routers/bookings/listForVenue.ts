@@ -18,6 +18,7 @@ import {
   productDaysBetween,
   zonedDateTimeToInstant,
 } from "@repo/domain/product-timezone";
+import { messagesFor } from "@repo/i18n/messages";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -46,7 +47,7 @@ const paymentStatuses = [
   "waived",
 ] as const;
 
-function parseDay(value: string): Date {
+function parseDay(value: string, locale: Locale = DEFAULT_LOCALE): Date {
   const [year, month, day] = value.split("-").map(Number);
   const midnight = zonedDateTimeToInstant({
     year: year ?? Number.NaN,
@@ -54,7 +55,10 @@ function parseDay(value: string): Date {
     day: day ?? Number.NaN,
   });
   if (productDayKey(midnight) !== value) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Not a valid day" });
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).booking.errors.invalidDay,
+    });
   }
   return midnight;
 }
@@ -77,25 +81,29 @@ export async function listBookingsForVenue(
     locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
   await requireVenueManager(database, {
     venueId: args.venueId,
     ...args.actor,
+    locale,
   });
 
-  const rangeStart = parseDay(args.from);
-  const lastDay = parseDay(args.to);
+  const rangeStart = parseDay(args.from, locale);
+  const lastDay = parseDay(args.to, locale);
   const dayCount = productDaysBetween(rangeStart, lastDay) + 1;
   if (dayCount < 1) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "The end day is before the start day",
+      message: messagesFor(locale).booking.errors.endBeforeStart,
     });
   }
   if (dayCount > MAX_BOOKING_RANGE_DAYS) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `Choose at most ${MAX_BOOKING_RANGE_DAYS} days`,
+      message: messagesFor(locale).booking.errors.rangeTooLong(
+        MAX_BOOKING_RANGE_DAYS,
+      ),
     });
   }
   const rangeEnd = addProductDays(lastDay, 1);
@@ -105,7 +113,10 @@ export async function listBookingsForVenue(
     columns: { id: true, slotMinutes: true },
   });
   if (!venue) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).venue.errors.notFound,
+    });
   }
 
   const filters: (SQL | undefined)[] = [

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   gameWaitlist,
+  GroupMemberRoleEnum,
   groupMembers,
   groups,
   user,
@@ -24,11 +25,10 @@ import { addPlayerByPhone as addPlayerToGroup } from "#src/routers/groups/addPla
 import { groupById } from "#src/routers/groups/byId";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
 import {
-  ONLY_UNCLAIMED_RENAMABLE_MESSAGE,
-  RENAME_NOT_ALLOWED_MESSAGE,
   renameUnclaimedPlayer,
   renameUnclaimedPlayerInput,
 } from "#src/routers/users/renameUnclaimedPlayer";
+import { mayRenameUnclaimedPlayer } from "#src/unclaimed-players/may-rename-unclaimed-player";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const HOUR = 60 * 60 * 1000;
@@ -149,7 +149,7 @@ describe("users.renameUnclaimedPlayer", () => {
     }
   });
 
-  it("lets an Organizer of a Game the player is waitlisted on fix the name", async () => {
+  it("refuses an Organizer of a later Game the player is waitlisted on, and lets their adder fix the name there", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const first = await groupGame(db, "Organizer");
@@ -159,13 +159,80 @@ describe("users.renameUnclaimedPlayer", () => {
         .insert(gameWaitlist)
         .values({ gameId: second.gameId, userId: ali });
 
+      const refused = await rejection(
+        renameUnclaimedPlayer(db, {
+          callerUserId: second.organizer,
+          userId: ali,
+          name: "Ali Hassan",
+        }),
+      );
+      expect(refused.code).toBe("FORBIDDEN");
+      expect(refused.message).toBe(
+        "Only an Organizer or Group approver where they were added can edit their name",
+      );
+      expect(await nameOf(db, ali)).toBe("Ally");
+
       await renameUnclaimedPlayer(db, {
-        callerUserId: second.organizer,
+        callerUserId: first.organizer,
         userId: ali,
         name: "Ali Hassan",
       });
-
       expect(await nameOf(db, ali)).toBe("Ali Hassan");
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses a Group approver who added an existing Unclaimed player to their own Group, and lets a co-Organizer of the first Group fix it", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, { name: "Creator" });
+      const coOrganizer = await insertUser(db, { name: "Co organizer" });
+      const stranger = await insertUser(db, { name: "Stranger" });
+      const first = await createLoosePrivate(db, {
+        name: "Thursday padel",
+        sport: "padel",
+        userId: creator,
+      });
+      await db.insert(groupMembers).values({
+        groupId: first.id,
+        userId: coOrganizer,
+        role: GroupMemberRoleEnum.ORGANIZER,
+      });
+      const added = await addPlayerToGroup(db, {
+        groupId: first.id,
+        approverUserId: creator,
+        ...bahrain("36124408"),
+        name: "Ally",
+      });
+      const second = await createLoosePrivate(db, {
+        name: "Stranger padel",
+        sport: "padel",
+        userId: stranger,
+      });
+      const again = await addPlayerToGroup(db, {
+        groupId: second.id,
+        approverUserId: stranger,
+        ...bahrain("36124408"),
+      });
+      expect(again).toMatchObject({ outcome: "added", userId: added.userId });
+
+      const refused = await rejection(
+        renameUnclaimedPlayer(db, {
+          callerUserId: stranger,
+          userId: added.userId,
+          name: "Someone else",
+        }),
+      );
+      expect(refused.code).toBe("FORBIDDEN");
+      expect(await nameOf(db, added.userId)).toBe("Ally");
+
+      await renameUnclaimedPlayer(db, {
+        callerUserId: coOrganizer,
+        userId: added.userId,
+        name: "Ali Hassan",
+      });
+      expect(await nameOf(db, added.userId)).toBe("Ali Hassan");
     } finally {
       await close();
     }
@@ -195,7 +262,9 @@ describe("users.renameUnclaimedPlayer", () => {
         }),
       );
       expect(refused.code).toBe("FORBIDDEN");
-      expect(refused.message).toBe(RENAME_NOT_ALLOWED_MESSAGE);
+      expect(refused.message).toBe(
+        "Only an Organizer or Group approver where they were added can edit their name",
+      );
 
       await renameUnclaimedPlayer(asDb(database), {
         callerUserId: fixture.customer,
@@ -317,7 +386,9 @@ describe("users.renameUnclaimedPlayer", () => {
           }),
         );
         expect(refused.code).toBe("FORBIDDEN");
-        expect(refused.message).toBe(RENAME_NOT_ALLOWED_MESSAGE);
+        expect(refused.message).toBe(
+          "Only an Organizer or Group approver where they were added can edit their name",
+        );
       }
       expect(await nameOf(db, ali)).toBe("Ally");
     } finally {
@@ -352,7 +423,9 @@ describe("users.renameUnclaimedPlayer", () => {
           name: "Ali Hassan",
         }),
       );
-      expect(refused.message).toBe(RENAME_NOT_ALLOWED_MESSAGE);
+      expect(refused.message).toBe(
+        "Only an Organizer or Group approver where they were added can edit their name",
+      );
     } finally {
       await close();
     }
@@ -381,7 +454,9 @@ describe("users.renameUnclaimedPlayer", () => {
         }),
       );
       expect(refused.code).toBe("FORBIDDEN");
-      expect(refused.message).toBe(ONLY_UNCLAIMED_RENAMABLE_MESSAGE);
+      expect(refused.message).toBe(
+        "Only players not on Temba yet can have their name edited",
+      );
       expect(await nameOf(db, ahmed)).toBe("Ahmed Ali");
     } finally {
       await close();
@@ -405,7 +480,9 @@ describe("users.renameUnclaimedPlayer", () => {
           name: "Ali Hassan",
         }),
       );
-      expect(refused.message).toBe(ONLY_UNCLAIMED_RENAMABLE_MESSAGE);
+      expect(refused.message).toBe(
+        "Only players not on Temba yet can have their name edited",
+      );
       expect(await nameOf(db, ali)).toBe("Ally");
     } finally {
       await close();
@@ -435,6 +512,128 @@ describe("users.renameUnclaimedPlayer", () => {
         }),
       );
       expect(unknown.code).toBe("NOT_FOUND");
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("canRename on the rows the rename sheets open from", () => {
+  it("is true on Game details only for an Organizer the door would let fix the name", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const first = await groupGame(db, "Organizer");
+      const ali = await seatAli(db, first);
+      const second = await groupGame(db, "Second organizer");
+      const again = await addPlayerToGame(db, {
+        gameId: second.gameId,
+        organizerUserId: second.organizer,
+        ...bahrain("36124408"),
+        seat: { sideIndex: 2, position: "left" },
+      });
+      expect(again.userId).toBe(ali);
+
+      async function flags(gameId: string, userId: string) {
+        const details = await gameById(db, { gameId, userId });
+        return {
+          seat: details.sides[1]?.left?.canRename,
+          roster: details.registeredPlayers.find((row) => row.id === ali)
+            ?.canRename,
+          door: await mayRenameUnclaimedPlayer(db, {
+            playerId: ali,
+            adderId: first.organizer,
+            callerId: userId,
+          }),
+        };
+      }
+
+      expect(await flags(first.gameId, first.organizer)).toEqual({
+        seat: true,
+        roster: true,
+        door: true,
+      });
+      expect(await flags(first.gameId, first.member)).toEqual({
+        seat: false,
+        roster: false,
+        door: false,
+      });
+      expect(await flags(second.gameId, second.organizer)).toEqual({
+        seat: false,
+        roster: false,
+        door: false,
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it("is true on Group home only for a Group approver the door would let fix the name", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, { name: "Creator" });
+      const coOrganizer = await insertUser(db, { name: "Co organizer" });
+      const stranger = await insertUser(db, { name: "Stranger" });
+      const first = await createLoosePrivate(db, {
+        name: "Thursday padel",
+        sport: "padel",
+        userId: creator,
+      });
+      await db.insert(groupMembers).values({
+        groupId: first.id,
+        userId: coOrganizer,
+        role: GroupMemberRoleEnum.ORGANIZER,
+      });
+      const added = await addPlayerToGroup(db, {
+        groupId: first.id,
+        approverUserId: creator,
+        ...bahrain("36124408"),
+        name: "Ally",
+      });
+      const second = await createLoosePrivate(db, {
+        name: "Stranger padel",
+        sport: "padel",
+        userId: stranger,
+      });
+      await addPlayerToGroup(db, {
+        groupId: second.id,
+        approverUserId: stranger,
+        ...bahrain("36124408"),
+      });
+
+      async function canRename(groupId: string, userId: string) {
+        const home = await groupById(db, { groupId, userId });
+        return home.standing.leaderboard.find(
+          (row) => row.userId === added.userId,
+        )?.canRename;
+      }
+
+      expect(await canRename(first.id, creator)).toBe(true);
+      expect(await canRename(first.id, coOrganizer)).toBe(true);
+      expect(await canRename(second.id, stranger)).toBe(false);
+      expect(
+        await mayRenameUnclaimedPlayer(db, {
+          playerId: added.userId,
+          adderId: creator,
+          callerId: stranger,
+        }),
+      ).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses a player with no adder", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const game = await groupGame(db, "Organizer");
+      const ali = await seatAli(db, game);
+      expect(
+        await mayRenameUnclaimedPlayer(db, {
+          playerId: ali,
+          adderId: null,
+          callerId: game.organizer,
+        }),
+      ).toBe(false);
     } finally {
       await close();
     }

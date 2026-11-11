@@ -6,6 +6,7 @@ import { games, groups, user, venues } from "@repo/db/schema";
 
 import { createGame, createGameInputSchema } from "#src/routers/games/create";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
+import { messagesFor } from "@repo/i18n/messages";
 
 async function insertUser(database: TestDatabase, email: string) {
   const [row] = await database
@@ -96,6 +97,38 @@ describe("createGame Group", () => {
       });
       expect(row?.groupId).toBe(group.id);
       expect(row?.allowSoloRegister).toBe(true);
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses a start more than 15 minutes in the past and allows one just before now", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "create-past@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, { createdBy: owner.id });
+      const now = new Date("2026-11-09T18:00:00.000Z");
+      const at = (minutesBefore: number) => {
+        const windowStart = new Date(now.getTime() - minutesBefore * 60_000);
+        return {
+          createdBy: owner.id,
+          groupId: group.id,
+          isPublic: false,
+          format: "friendly_game" as const,
+          registrationMode: "individual" as const,
+          venueId: venue.id,
+          windowStart,
+          windowEnd: new Date(windowStart.getTime() + 90 * 60_000),
+        };
+      };
+
+      await expect(createGame(db, at(60), { now })).rejects.toThrow(
+        messagesFor("en").game.errors.startInPast,
+      );
+      await expect(createGame(db, at(10), { now })).resolves.toMatchObject({
+        id: expect.any(String),
+      });
     } finally {
       await close();
     }

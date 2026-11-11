@@ -17,6 +17,8 @@ import {
   type SelfDeclareChoice,
   type YouRatingView,
 } from "@repo/domain/level";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -27,11 +29,12 @@ export async function selfDeclareRating(
   userId: string,
   sport: "padel" | "football",
   choice: SelfDeclareChoice,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<YouRatingView> {
   if (await userHasRatedMatch(database, userId, sport)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "You cannot declare a Level after a Rated Match",
+      message: messagesFor(locale).level.errors.declareAfterRated,
     });
   }
 
@@ -42,7 +45,7 @@ export async function selfDeclareRating(
   if (existing) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "You have already declared a Level",
+      message: messagesFor(locale).level.errors.alreadyDeclared,
     });
   }
 
@@ -77,12 +80,12 @@ export async function selfDeclareRating(
       if (await userHasRatedMatch(database, userId, sport)) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "You cannot declare a Level after a Rated Match",
+          message: messagesFor(locale).level.errors.declareAfterRated,
         });
       }
       throw new TRPCError({
         code: "CONFLICT",
-        message: "You have already declared a Level",
+        message: messagesFor(locale).level.errors.alreadyDeclared,
       });
     }
     throw error;
@@ -108,6 +111,7 @@ export const selfDeclare = protectedProcedure
       appUser.id,
       input.sport,
       input.choice,
+      ctx.locale,
     );
     return { rating };
   });

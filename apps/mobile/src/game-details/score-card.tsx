@@ -2,6 +2,7 @@ import { radii, sizes, spacing } from "@repo/design-tokens";
 import { formatAbsoluteDay } from "@repo/domain/format-game-start";
 import {
   scoreDeciderNote,
+  scoreGamesRangeNote,
   scoreLockedLine,
   scoreSetsMeta,
   scoreTeamFirstNames,
@@ -26,6 +27,7 @@ import {
   scoreSetBoxState,
   scoreSetNeverPlayed,
   scoreShowsConfirmations,
+  scoreShownSets,
   type FriendlyScorePhase,
   type SetBoxState,
 } from "@repo/domain/friendly-game-score";
@@ -46,6 +48,7 @@ import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
 import {
   draftsFromSets,
+  draftsOutOfRange,
   setsToSave,
   withDraftChange,
   type ScoreDrafts,
@@ -333,6 +336,8 @@ export function ScoreCard({
   }
 
   const canEnter = scoreCanEnter(phase, match.canScoreSets);
+  const shownSets = scoreShownSets(phase, match.sets);
+  const outOfRange = canEnter && draftsOutOfRange(drafts);
   const hasResult = match.outcome.result !== "none";
   const names = scoreNameByUserId(sides);
   const canConfirm = scoreCanConfirm({
@@ -368,7 +373,7 @@ export function ScoreCard({
           {m.mobileGameDetails.score.title}
         </Text>
         <Text size="meta" tone="muted">
-          {scoreSetsMeta(match.sets.length, locale)}
+          {scoreSetsMeta(shownSets.length, locale)}
         </Text>
       </View>
       <View
@@ -384,7 +389,7 @@ export function ScoreCard({
           style={{ flexDirection: "row", gap: BOX_GAP }}
         >
           <View style={{ flex: 1 }} />
-          {match.sets.map((set, index) => (
+          {shownSets.map((set, index) => (
             <Text
               key={set.id}
               size="eyebrow"
@@ -420,7 +425,7 @@ export function ScoreCard({
                   {scoreTeamFirstNames(side, locale)}
                 </Text>
               </View>
-              {match.sets.map((set, index) => {
+              {shownSets.map((set, index) => {
                 const setName = setLabel(index, locale);
                 const draft = drafts[set.id] ?? { slot1: "", slot2: "" };
                 const state = scoreSetBoxState({
@@ -451,6 +456,12 @@ export function ScoreCard({
           );
         })}
 
+        {outOfRange ? (
+          <Text size="meta" weight="medium" accessibilityRole="alert">
+            {scoreGamesRangeNote(locale)}
+          </Text>
+        ) : null}
+
         {canEnter ? (
           <View
             style={{
@@ -468,6 +479,7 @@ export function ScoreCard({
               label={m.mobileGameDetails.score.save}
               size="sm"
               pending={scorePending}
+              disabled={outOfRange}
               onPress={() => onSaveSets(setsToSave(match.sets, drafts))}
             />
           </View>

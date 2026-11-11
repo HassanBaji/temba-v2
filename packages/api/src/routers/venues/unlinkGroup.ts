@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { protectedProcedure } from "#src/trpc";
@@ -18,13 +20,20 @@ export async function unlinkGroup(
       userId: string;
       publicMetadata: Record<string, unknown> | undefined;
     };
+    locale?: Locale;
   },
 ) {
-  const venue = await requireVenue(database, args.venueId);
-  await requireVenueManager(database, { venueId: venue.id, ...args.actor });
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const venue = await requireVenue(database, args.venueId, locale);
+  await requireVenueManager(database, {
+    venueId: venue.id,
+    ...args.actor,
+    locale,
+  });
   return unlinkGroupFromVenue(database, {
     groupId: args.groupId,
     venueId: venue.id,
+    locale,
   });
 }
 
@@ -39,5 +48,6 @@ export const unlinkGroupProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

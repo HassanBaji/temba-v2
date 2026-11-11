@@ -20,6 +20,7 @@ import {
   venues,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { groupById } from "#src/routers/groups/byId";
 import { deleteGroup } from "#src/routers/groups/delete";
@@ -29,6 +30,8 @@ import { createTeam } from "./create";
 import { setGroupTag } from "./setGroupTag";
 
 type Db = Parameters<typeof setGroupTag>[0];
+
+const CAPTAIN_ONLY = messagesFor("en").team.groupTag.captainOnly;
 
 async function makeUsers(database: TestDatabase, count: number) {
   const rows = await database
@@ -147,7 +150,7 @@ async function withDb(run: (database: TestDatabase, db: Db) => Promise<void>) {
 }
 
 describe("teams.setGroupTag", () => {
-  it("lets a Group Organizer who is not on the Team tag it, and then act for it", async () => {
+  it("refuses a Group Organizer who is not on the Team; once the Captain tags it, the Organizer acts for it", async () => {
     await withDb(async (database, db) => {
       const [captain, owner, appointed] = (await makeUsers(database, 3)) as [
         string,
@@ -165,14 +168,28 @@ describe("teams.setGroupTag", () => {
 
       const before = await teamById(db, { teamId, userId: appointed });
       expect(before.viewerActsForTeam).toBe(false);
-      expect(before.groupTagOptions).toEqual([
-        { id: groupId, name: "Gooz of Arad" },
-      ]);
+      expect(before.groupTagOptions).toEqual([]);
+      for (const userId of [appointed, owner]) {
+        await expect(
+          setGroupTag(db, { teamId, groupId, userId }),
+        ).rejects.toThrow(CAPTAIN_ONLY);
+      }
+      expect(
+        (await database.query.teams.findFirst({ where: eq(teams.id, teamId) }))
+          ?.groupId,
+      ).toBe(null);
 
+      await database
+        .update(groupMembers)
+        .set({ role: GroupMemberRoleEnum.ORGANIZER })
+        .where(eq(groupMembers.userId, captain));
+      expect(
+        (await teamById(db, { teamId, userId: captain })).groupTagOptions,
+      ).toEqual([{ id: groupId, name: "Gooz of Arad" }]);
       const result = await setGroupTag(db, {
         teamId,
         groupId,
-        userId: appointed,
+        userId: captain,
       });
       expect(result.groupTag).toEqual({ id: groupId, name: "Gooz of Arad" });
 
@@ -202,7 +219,7 @@ describe("teams.setGroupTag", () => {
 
       await expect(
         setGroupTag(db, { teamId, groupId, userId: member }),
-      ).rejects.toThrow("Only the Captain or an Organizer of that Group");
+      ).rejects.toThrow(CAPTAIN_ONLY);
 
       await setGroupTag(db, { teamId, groupId, userId: captain });
       await expect(
@@ -211,7 +228,7 @@ describe("teams.setGroupTag", () => {
     });
   });
 
-  it("refuses an Organizer whose Group the Captain is not in, until the Captain joins", async () => {
+  it("refuses an Organizer whose Group the Captain is in, and offers them no tag", async () => {
     await withDb(async (database, db) => {
       const [captain, stranger] = (await makeUsers(database, 2)) as [
         string,
@@ -224,30 +241,18 @@ describe("teams.setGroupTag", () => {
       });
       const teamId = await makeTeam(db, { captain, sport: "football" });
 
+      await database.insert(groupMembers).values({ groupId, userId: captain });
+
       expect(
         (await teamById(db, { teamId, userId: stranger })).groupTagOptions,
       ).toEqual([]);
       await expect(
         setGroupTag(db, { teamId, groupId, userId: stranger }),
-      ).rejects.toThrow(
-        "A Team can only be tagged to a Group its Captain is in",
-      );
+      ).rejects.toThrow(CAPTAIN_ONLY);
       const untouched = await database.query.teams.findFirst({
         where: eq(teams.id, teamId),
       });
       expect(untouched?.groupId).toBe(null);
-
-      await database.insert(groupMembers).values({ groupId, userId: captain });
-
-      expect(
-        (await teamById(db, { teamId, userId: stranger })).groupTagOptions,
-      ).toEqual([{ id: groupId, name: "Stranger FC" }]);
-      const result = await setGroupTag(db, {
-        teamId,
-        groupId,
-        userId: stranger,
-      });
-      expect(result.groupTag).toEqual({ id: groupId, name: "Stranger FC" });
     });
   });
 
@@ -328,7 +333,7 @@ describe("teams.setGroupTag", () => {
       expect(other.groupTagOptions).toEqual([]);
       await expect(
         setGroupTag(db, { teamId, groupId: otherGroupId, userId: otherOwner }),
-      ).rejects.toThrow("Only the Captain or an Organizer of that Group");
+      ).rejects.toThrow(CAPTAIN_ONLY);
 
       await setGroupTag(db, { teamId, groupId: null, userId: owner });
       expect((await teamById(db, { teamId, userId: owner })).groupTag).toBe(

@@ -6,6 +6,7 @@ import { user } from "@repo/db";
 import { slotRefusalMessage } from "@repo/domain/booking-copy";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { evaluateSlot } from "@repo/domain/booking-slots";
+import { messagesFor } from "@repo/i18n/messages";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -53,25 +54,33 @@ export async function createBookingForVenue(
     locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
 
   return database.transaction(async (tx) => {
-    await requireVenueManager(tx, { venueId: args.venueId, ...args.actor });
+    await requireVenueManager(tx, {
+      venueId: args.venueId,
+      ...args.actor,
+      locale,
+    });
 
     const context = await loadVenueSlotContext(tx, args.venueId, now);
     if (!context) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: messagesFor(locale).venue.errors.notFound,
+      });
     }
     if (context.venue.archivedAt !== null) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "This Venue is archived",
+        message: messagesFor(locale).booking.errors.venueArchived,
       });
     }
     if (!context.courts.some((court) => court.id === args.courtId)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "That Court does not belong to this Venue",
+        message: messagesFor(locale).booking.errors.courtNotAtVenue,
       });
     }
 
@@ -81,7 +90,10 @@ export async function createBookingForVenue(
         .from(user)
         .where(eq(user.id, args.holder.userId));
       if (!holder) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: messagesFor(locale).profile.errors.userNotFound,
+        });
       }
     }
 
@@ -101,7 +113,7 @@ export async function createBookingForVenue(
         code: check.reason === "taken" ? "CONFLICT" : "BAD_REQUEST",
         message:
           check.reason === "no_price"
-            ? "No Pricing rule covers that time. Type a price"
+            ? messagesFor(locale).booking.errors.noPricingRule
             : slotRefusalMessage(check.reason, args.locale ?? DEFAULT_LOCALE),
       });
     }
@@ -132,6 +144,7 @@ export async function createBookingForVenue(
         createdAt: now,
         updatedAt: now,
       },
+      locale,
     });
 
     await openPayment(tx, {
@@ -149,11 +162,12 @@ export async function createBookingForVenue(
         actorUserId: args.actor.userId,
         amountFils: priceFils,
         now,
+        locale,
       });
     }
     await enqueue(tx, bookingConfirmedJob(bookingId));
 
-    return bookingWithLedger(tx, bookingId);
+    return bookingWithLedger(tx, bookingId, locale);
   });
 }
 

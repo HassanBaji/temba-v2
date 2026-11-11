@@ -19,8 +19,7 @@ import {
 import { Input } from "~/components/ui/input";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
-import { messagesFor } from "@repo/i18n/messages";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 import {
   controlClass,
@@ -33,7 +32,6 @@ import { NativeSelect } from "./native-select";
 import { sportLabel } from "@repo/domain/sport";
 import {
   ALL_WEEKDAYS,
-  WEEKDAY_SHORT,
   type PricingRuleDraft,
   describeWeekdays,
   draftProblem,
@@ -46,11 +44,14 @@ import {
   withBaseRate,
 } from "./pricing-model";
 
-const CURRENCY = messagesFor(CONSOLE_LOCALE).createGame.price.currency;
-
 const rowGrid = "grid grid-cols-[1.3fr_1fr_1fr_1fr_32px] items-center gap-2.5";
 
 export function RateCard() {
+  const messages = useMessages();
+  const { consoleCourts, consoleShell, common } = messages;
+  const m = consoleCourts.rates;
+  const CURRENCY = messages.createGame.price.currency;
+  const locale = useLocale();
   const venue = useManagedVenue();
   const utils = api.useUtils();
   const saved = React.useMemo(
@@ -67,7 +68,7 @@ export function RateCard() {
 
   const setPricingRules = api.venues.setPricingRules.useMutation({
     onSuccess: async () => {
-      toast.success("Rate card saved");
+      toast.success(m.savedToast);
       setExpandedKey(null);
       await utils.venues.managedById.invalidate({ venueId: venue.id });
     },
@@ -75,15 +76,16 @@ export function RateCard() {
   });
 
   const options = React.useMemo(
-    () => rateTimeOptions(venue.slotMinutes),
-    [venue.slotMinutes],
+    () => rateTimeOptions(venue.slotMinutes, locale),
+    [venue.slotMinutes, locale],
   );
   const busy = setPricingRules.isPending;
   const dirty = !draftsAreEqual(drafts, saved);
-  const problem = drafts.map(draftProblem).find(Boolean) ?? null;
+  const problem =
+    drafts.map((draft) => draftProblem(draft, locale)).find(Boolean) ?? null;
 
   function save(next: PricingRuleDraft[]) {
-    const input = draftsToInput(next);
+    const input = draftsToInput(next, locale);
     if (!input.ok) {
       toast.error(input.message);
       return;
@@ -119,8 +121,8 @@ export function RateCard() {
   }
 
   function applyBaseRate() {
-    const next = withBaseRate(drafts, baseRate);
-    const input = draftsToInput(next);
+    const next = withBaseRate(drafts, baseRate, m.baseRateName);
+    const input = draftsToInput(next, locale);
     if (!input.ok) {
       toast.error(input.message);
       return;
@@ -131,14 +133,15 @@ export function RateCard() {
 
   function courtLabel(courtId: string | null) {
     return courtId
-      ? (venue.courts.find((court) => court.id === courtId)?.name ?? "Court")
-      : "All courts";
+      ? (venue.courts.find((court) => court.id === courtId)?.name ??
+          consoleCourts.court)
+      : consoleCourts.allCourts;
   }
 
   return (
     <ConsoleCard className="flex flex-col overflow-hidden">
       <ConsoleCardHeader
-        title="Rate card, per 60 min"
+        title={m.title}
         action={
           <button
             type="button"
@@ -146,24 +149,23 @@ export function RateCard() {
             disabled={busy}
             onClick={addBand}
           >
-            Add time band
+            {m.addBand}
           </button>
         }
       />
 
       {drafts.length === 0 ? (
         <div className="flex flex-col gap-3 px-5 py-6">
-          <p className="text-meta">No rate card yet.</p>
+          <p className="text-meta">{m.emptyTitle}</p>
           <p className="text-muted-foreground text-meta">
-            Nothing can be booked until a band has a rate. Start with one hourly
-            rate for all days and Courts, then add bands on top.
+            {m.emptyDescription}
           </p>
           <div className="flex items-center gap-2">
             <Input
               className={cn(controlClass, "w-32")}
               inputMode="decimal"
               placeholder="0.000"
-              aria-label={`Base hourly rate in ${CURRENCY}`}
+              aria-label={m.baseRateLabel(CURRENCY)}
               value={baseRate}
               onChange={(event) => setBaseRate(event.target.value)}
             />
@@ -174,7 +176,7 @@ export function RateCard() {
               disabled={busy || baseRate.trim() === ""}
               onClick={applyBaseRate}
             >
-              Use as base rate
+              {m.useAsBase}
             </Button>
           </div>
         </div>
@@ -187,24 +189,24 @@ export function RateCard() {
             )}
             aria-hidden="true"
           >
-            <span>Band</span>
-            <span>Courts</span>
-            <span>{CURRENCY} / 60 min</span>
-            <span>Days</span>
+            <span>{m.columns.band}</span>
+            <span>{m.columns.courts}</span>
+            <span>{m.columns.rate(CURRENCY)}</span>
+            <span>{m.columns.days}</span>
             <span />
           </div>
           <ul className="divide-border divide-y">
             {drafts.map((draft, index) => {
-              const rowProblem = draftProblem(draft);
+              const rowProblem = draftProblem(draft, locale);
               const expanded = expandedKey === draft.key;
-              const name = draft.label.trim() || `Band ${index + 1}`;
+              const name = draft.label.trim() || m.bandFallback(index + 1);
               const editorId = `band-editor-${draft.key}`;
               return (
                 <li key={draft.key} className="px-5 py-3.5">
                   <div className={rowGrid}>
                     <button
                       type="button"
-                      className="rounded-xs text-meta -mx-1 px-1 text-left outline-none focus-visible:ring-2"
+                      className="rounded-xs text-meta -mx-1 px-1 text-start outline-none focus-visible:ring-2"
                       aria-expanded={expanded}
                       aria-controls={editorId}
                       onClick={() =>
@@ -213,7 +215,11 @@ export function RateCard() {
                     >
                       <span className="block truncate">{name}</span>
                       <span className="text-muted-foreground block">
-                        {formatTimeWindow(draft.startMinutes, draft.endMinutes)}
+                        {formatTimeWindow(
+                          draft.startMinutes,
+                          draft.endMinutes,
+                          locale,
+                        )}
                       </span>
                     </button>
                     <span className="text-meta truncate">
@@ -226,14 +232,14 @@ export function RateCard() {
                       )}
                       inputMode="decimal"
                       placeholder="0.000"
-                      aria-label={`${name} hourly rate in ${CURRENCY}`}
+                      aria-label={m.rateLabel(name, CURRENCY)}
                       value={draft.rate}
                       onChange={(event) =>
                         update(draft.key, { rate: event.target.value })
                       }
                     />
                     <span className="text-muted-foreground text-meta">
-                      {describeWeekdays(draft.weekdays)}
+                      {describeWeekdays(draft.weekdays, locale)}
                     </span>
                     <DropdownMenu modal={false}>
                       <DropdownMenuTrigger asChild>
@@ -241,7 +247,7 @@ export function RateCard() {
                           type="button"
                           variant="ghost"
                           size="icon-sm"
-                          aria-label={`${name} actions`}
+                          aria-label={m.bandActions(name)}
                           className="text-muted-foreground hover:bg-wash hover:text-ink rounded-block"
                         >
                           <MoreHorizontal
@@ -260,14 +266,14 @@ export function RateCard() {
                             setExpandedKey(expanded ? null : draft.key)
                           }
                         >
-                          {expanded ? "Done editing" : "Edit band"}
+                          {expanded ? m.doneEditing : m.editBand}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
                           className="text-meta cursor-pointer"
                           onSelect={() => removeBand(draft.key)}
                         >
-                          Remove band
+                          {m.removeBand}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -280,12 +286,12 @@ export function RateCard() {
                     >
                       <label className="flex flex-col gap-1.5">
                         <span className="text-muted-foreground text-eyebrow">
-                          Band name
+                          {m.bandName}
                         </span>
                         <Input
                           className={controlClass}
                           maxLength={60}
-                          placeholder="Peak"
+                          placeholder={m.bandNamePlaceholder}
                           value={draft.label}
                           onChange={(event) =>
                             update(draft.key, { label: event.target.value })
@@ -294,7 +300,7 @@ export function RateCard() {
                       </label>
                       <label className="flex flex-col gap-1.5">
                         <span className="text-muted-foreground text-eyebrow">
-                          Courts
+                          {m.courts}
                         </span>
                         <NativeSelect
                           value={draft.courtId ?? ""}
@@ -304,18 +310,20 @@ export function RateCard() {
                             })
                           }
                         >
-                          <option value="">All courts</option>
+                          <option value="">{consoleCourts.allCourts}</option>
                           {venue.courts.map((court) => (
                             <option key={court.id} value={court.id}>
-                              {court.name} ·{" "}
-                              {sportLabel(court.sport, CONSOLE_LOCALE)}
+                              {m.courtAndSport(
+                                court.name,
+                                sportLabel(court.sport, locale) ?? "",
+                              )}
                             </option>
                           ))}
                         </NativeSelect>
                       </label>
                       <label className="flex flex-col gap-1.5">
                         <span className="text-muted-foreground text-eyebrow">
-                          From
+                          {m.from}
                         </span>
                         <NativeSelect
                           value={draft.startMinutes}
@@ -334,7 +342,7 @@ export function RateCard() {
                       </label>
                       <label className="flex flex-col gap-1.5">
                         <span className="text-muted-foreground text-eyebrow">
-                          To
+                          {m.to}
                         </span>
                         <NativeSelect
                           value={draft.endMinutes}
@@ -353,7 +361,7 @@ export function RateCard() {
                       </label>
                       <div
                         role="group"
-                        aria-label={`${name} days`}
+                        aria-label={m.daysOf(name)}
                         className="col-span-2 flex flex-wrap items-center gap-1.5"
                       >
                         {ALL_WEEKDAYS.map((weekday) => {
@@ -371,7 +379,7 @@ export function RateCard() {
                               )}
                               onClick={() => toggleWeekday(draft, weekday)}
                             >
-                              {WEEKDAY_SHORT[weekday]}
+                              {consoleShell.weekdaysShort[weekday]}
                             </button>
                           );
                         })}
@@ -395,9 +403,7 @@ export function RateCard() {
 
       <footer className="border-border mt-auto flex items-center justify-between gap-4 border-t px-5 py-3.5">
         <p className="text-muted-foreground text-eyebrow">
-          A Booking is charged at the band its start time falls in, for its
-          whole length, even when it runs into the next band. Prices in
-          {" " + CURRENCY}, fils kept.
+          {m.footer(CURRENCY)}
         </p>
         {drafts.length > 0 || dirty ? (
           <Button
@@ -408,10 +414,10 @@ export function RateCard() {
             )}
             disabled={!dirty || Boolean(problem) || busy}
             pending={busy}
-            pendingLabel="Saving…"
+            pendingLabel={common.saving}
             onClick={() => save(drafts)}
           >
-            Save rate card
+            {m.save}
           </Button>
         ) : null}
       </footer>

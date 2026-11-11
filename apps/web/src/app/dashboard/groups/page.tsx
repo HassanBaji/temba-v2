@@ -353,7 +353,7 @@ export default function GroupsIndexPage({
             {groups.error ? (
               <ErrorState
                 title={m.webDashboard.groups.errorTitle}
-                message={groups.error.message}
+                error={groups.error}
                 onRetry={() => {
                   void groups.refetch();
                 }}
@@ -408,7 +408,7 @@ export default function GroupsIndexPage({
             {publicGroups.error ? (
               <ErrorState
                 title={m.webDashboard.groups.publicErrorTitle}
-                message={publicGroups.error.message}
+                error={publicGroups.error}
                 onRetry={() => {
                   void publicGroups.refetch();
                 }}

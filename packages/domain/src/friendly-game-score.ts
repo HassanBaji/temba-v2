@@ -77,6 +77,21 @@ export function scoreSetNeverPlayed(set: FriendlyScoreSet) {
   return set.slot1GamesWon == null && set.slot2GamesWon == null;
 }
 
+/**
+ * The Set columns the score card shows. A final score is the Sets that were
+ * played: an empty Set shell left from entry is no part of it.
+ */
+export function scoreShownSets<T extends FriendlyScoreSet>(
+  phase: FriendlyScorePhase,
+  sets: readonly T[],
+): T[] {
+  if (phase !== "final") {
+    return [...sets];
+  }
+  const played = sets.filter((set) => !scoreSetNeverPlayed(set));
+  return played.length > 0 ? played : [...sets];
+}
+
 export function scoreSetBoxState(input: {
   phase: FriendlyScorePhase;
   neverPlayed: boolean;

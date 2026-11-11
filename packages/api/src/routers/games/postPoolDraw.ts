@@ -22,29 +22,35 @@ import {
   resolveRoundCount,
   TOURNAMENT_TEAM_MIN,
 } from "@repo/domain/tournament-sizing";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import { matchTimes } from "#src/games/helpers/match-times";
+import { lockGame } from "#src/games/lock-rows";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-function occupantName(team: {
-  sideIndex: number | null;
-  players: readonly {
-    gamePlayer: { user: { name: string } | null } | null;
-  }[];
-}) {
+function occupantName(
+  team: {
+    sideIndex: number | null;
+    players: readonly {
+      gamePlayer: { user: { name: string } | null } | null;
+    }[];
+  },
+  locale: Locale = DEFAULT_LOCALE,
+) {
   const name = team.players[0]?.gamePlayer?.user?.name;
   if (name) {
     return name;
   }
   if (team.sideIndex != null) {
-    return `Team ${team.sideIndex}`;
+    return messagesFor(locale).tournament.errors.teamNumber(team.sideIndex);
   }
-  return "Game team";
+  return messagesFor(locale).tournament.gameTeam;
 }
 
 type DrawnSlots = {
@@ -282,30 +288,32 @@ export async function postPoolDraw(
     gameId: string;
     organizerUserId: string;
     rounds?: "all" | "later";
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const roundsLater = args.rounds === "later";
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.organizerUserId);
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.organizerUserId, locale);
 
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot post the group draw on a cancelled Game",
+      message: messagesFor(locale).tournament.errors.postDrawCancelled,
     });
   }
   if (!isDrawnTournament(game.format, game.poolCount, game.tournamentShape)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Post the group draw on a Friendly tournament",
+      message: messagesFor(locale).tournament.errors.postDrawFriendly,
     });
   }
   const knockoutOnly = isKnockoutOnly(game.format, game.tournamentShape);
-  assertPoolDrawNotPosted(game);
+  assertPoolDrawNotPosted(game, locale);
   if (!game.windowStart || !game.windowEnd) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Set the tournament window before posting the group draw",
+      message: messagesFor(locale).tournament.errors.postDrawWindow,
     });
   }
 
@@ -346,15 +354,15 @@ export async function postPoolDraw(
     });
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `Cannot post the group draw while Half teams remain: ${halfTeams
-        .map(occupantName)
-        .join(", ")}`,
+      message: messagesFor(locale).tournament.errors.postHalfTeams(
+        halfTeams.map((team) => occupantName(team, locale)).join(", "),
+      ),
     });
   }
   if (complete.length < TOURNAMENT_TEAM_MIN) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Need at least 4 complete Game teams to post the group draw",
+      message: messagesFor(locale).tournament.errors.postBelowMinimum,
     });
   }
   if (
@@ -365,8 +373,8 @@ export async function postPoolDraw(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: knockoutOnly
-        ? "Draw the knockout before posting"
-        : "Draw the groups before posting",
+        ? messagesFor(locale).tournament.errors.drawKnockoutFirst
+        : messagesFor(locale).tournament.errors.drawGroupsFirst,
     });
   }
 
@@ -389,7 +397,7 @@ export async function postPoolDraw(
   if (courtIds.length < 1) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Record Courts before posting the group draw",
+      message: messagesFor(locale).tournament.errors.postRecordCourts,
     });
   }
 
@@ -418,14 +426,20 @@ export async function postPoolDraw(
   if (scheduled.length < 1) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "The group draw did not produce any Matches",
+      message: messagesFor(locale).tournament.errors.drawNoMatches,
     });
   }
 
   const now = new Date();
   await database.transaction(async (tx) => {
-    const locked = await requireGame(tx, game.id);
-    assertPoolDrawNotPosted(locked);
+    const locked = await lockGame(tx, game.id, locale);
+    assertPoolDrawNotPosted(locked, locale);
+    if (locked.cancelledAt) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: messagesFor(locale).tournament.errors.postDrawCancelled,
+      });
+    }
     for (const match of toInsert) {
       const values = matchTimes({
         startTime: match.startTime,
@@ -474,5 +488,6 @@ export const postPoolDrawProcedure = protectedProcedure
       gameId: input.gameId,
       organizerUserId: appUser.id,
       rounds: input.rounds,
+      locale: ctx.locale,
     });
   });

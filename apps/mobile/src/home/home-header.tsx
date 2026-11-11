@@ -15,20 +15,22 @@ export function HomeHeader({
   dateLine,
   imageUri,
   pendingInviteCount,
-  onInvites,
+  unreadNotificationCount,
+  onNotifications,
 }: {
   name: string;
   dateLine: string;
   imageUri: string | null;
   pendingInviteCount: number;
-  onInvites: () => void;
+  unreadNotificationCount: number;
+  onNotifications: () => void;
 }) {
   const m = useMessages();
   const palette = useTonePalette();
-  const invites =
-    pendingInviteCount === 0
-      ? m.common.invites
-      : m.mobileHome.header.invitesWaiting(pendingInviteCount);
+  const showBadge = pendingInviteCount > 0 || unreadNotificationCount > 0;
+  const label = showBadge
+    ? m.mobileHome.header.notificationsUnread
+    : m.common.notifications;
 
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -49,8 +51,8 @@ export function HomeHeader({
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={invites}
-        onPress={onInvites}
+        accessibilityLabel={label}
+        onPress={onNotifications}
         style={({ pressed }) => ({
           width: sizes.touchTarget,
           height: sizes.touchTarget,
@@ -63,7 +65,7 @@ export function HomeHeader({
         })}
       >
         <Bell size={sizes.iconAction} color={palette.foreground} />
-        {pendingInviteCount > 0 ? (
+        {showBadge ? (
           <View
             style={{
               position: "absolute",

@@ -286,7 +286,7 @@ export function ChallengeAcceptDialog({
               <ErrorState
                 headingLevel={3}
                 title={copy.errorTitle}
-                message={options.error.message}
+                error={options.error}
                 onRetry={() => {
                   void options.refetch();
                 }}

@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDays } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import { use, useState } from "react";
 import { toast } from "sonner";
 
@@ -46,6 +46,7 @@ import { groupSeasonsHref } from "~/lib/dashboard-paths";
 import { cardFrame } from "~/lib/page-layout";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { cn } from "~/lib/utils";
+import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type SeasonList = RouterOutputs["groups"]["listSeasons"];
@@ -307,12 +308,16 @@ export default function NewSeasonPage({
     );
   }
 
+  if (isNotFoundError(seasons.error)) {
+    notFound();
+  }
+
   if (!seasons.data) {
     return (
       <NewSeasonFrame groupId={id} groupName={null}>
         <ErrorState
           title={m.webDashboard.seasons.errorTitle}
-          message={seasons.error?.message}
+          error={seasons.error}
           onRetry={() => {
             void seasons.refetch();
           }}
@@ -325,7 +330,10 @@ export default function NewSeasonPage({
     return (
       <NewSeasonFrame groupId={id} groupName={seasons.data.groupName}>
         <ErrorState
+          refusal="forbidden"
           title={m.webDashboard.seasons.new.ownerOnly}
+          backHref={`/dashboard/groups/${id}`}
+          backLabel={m.webDashboard.backToGroup}
           onRetry={() => {
             void seasons.refetch();
           }}

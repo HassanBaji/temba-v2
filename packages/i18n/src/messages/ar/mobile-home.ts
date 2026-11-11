@@ -170,6 +170,16 @@ export const mobileHome = {
         many: "الدعوات، {n} بانتظارك",
         other: "الدعوات، {n} بانتظارك",
       }),
+    notificationsUnread: "الإشعارات، غير مقروءة",
+  },
+  notifications: {
+    loadFailed: "تعذّر تحميل الإشعارات",
+    empty: {
+      title: "لا توجد إشعارات بعد",
+      description: "عندما ينضم أحد إلى مجموعة أو مباراة تديرها، يظهر ذلك هنا.",
+    },
+    markAllRead: "تحديد الكل كمقروء",
+    unread: "غير مقروء",
   },
   upNext: {
     title: "مبارياتك القادمة",

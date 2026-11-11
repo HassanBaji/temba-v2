@@ -50,6 +50,7 @@ import {
   ScaledCanvas,
 } from "./story-canvas";
 import { StoryCard } from "./story-cards";
+import { useErrorMessage } from "../lib/use-error-message";
 
 type ShareAction = "save" | "share_image" | "copy_link" | "share_message";
 
@@ -80,6 +81,7 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
   const m = useMessages();
   const share = m.mobilePlayer.share;
   const toast = useToast();
+  const errorText = useErrorMessage();
   const [mode, setMode] = useState<ShareMode>("story");
   const [full, setFull] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -196,7 +198,7 @@ export function ShareResultScreen({ gameId }: { gameId: string }) {
     void task()
       .catch((error: unknown) => {
         toast.show(
-          error instanceof Error ? error.message : share.couldNotShare,
+          error instanceof Error ? errorText(error) : share.couldNotShare,
         );
       })
       .finally(() => setPending(null));

@@ -9,6 +9,7 @@ import {
 
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import type { LevelBand } from "@repo/domain/level-bands";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -20,11 +21,12 @@ type DbClient = typeof db;
 
 export async function listJoinRequests(
   database: DbClient,
-  args: { groupId: string; userId: string; now?: Date },
+  args: { groupId: string; userId: string; now?: Date; locale?: Locale },
 ) {
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
 
-  await assertGroupApprover(database, group, args.userId);
+  await assertGroupApprover(database, group, args.userId, locale);
 
   const rows = await database.query.groupJoinRequests.findMany({
     where: and(
@@ -89,5 +91,6 @@ export const listJoinRequestsProcedure = protectedProcedure
     return listJoinRequests(ctx.db, {
       groupId: input.groupId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

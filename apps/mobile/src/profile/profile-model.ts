@@ -11,7 +11,10 @@ import {
   type ResultMarkVariant,
 } from "@repo/domain/result-mark";
 import { SPORTS, type Sport } from "@repo/domain/sport";
-import { WIN_RATE_MIN_MATCHES } from "@repo/domain/win-rate";
+import {
+  shownWinRatePercent,
+  WIN_RATE_MIN_MATCHES,
+} from "@repo/domain/win-rate";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -601,10 +604,7 @@ export function footballTabView(profile: FootballProfile, locale: Locale) {
     rating?.ratedMatchCount === 0 &&
     footballLevelWord(rating.levelBand, locale) !==
       displayBand(rating.levelBand);
-  const winRatePercent =
-    overall.played >= WIN_RATE_MIN_MATCHES
-      ? Math.round((overall.won / overall.played) * 100)
-      : null;
+  const winRatePercent = shownWinRatePercent(overall.won, overall.played);
   const percentOf = (count: number) =>
     overall.played > 0 ? (count / overall.played) * 100 : 0;
 

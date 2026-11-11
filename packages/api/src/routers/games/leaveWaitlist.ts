@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { type Locale } from "@repo/i18n/locale";
+import { type Locale, DEFAULT_LOCALE } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -14,9 +14,10 @@ export async function leaveWaitlist(
   database: DbClient,
   args: { gameId: string; userId: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, args.locale);
-  await leaveWaitlistEntry(database, args.gameId, args.userId);
+  await leaveWaitlistEntry(database, args.gameId, args.userId, locale);
   return { ok: true as const };
 }
 

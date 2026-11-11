@@ -116,7 +116,10 @@ import {
   organizerCanAddPlayer,
 } from "@repo/domain/add-player-by-phone";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
-import { friendlyGameDetailsPlan } from "@repo/domain/friendly-game-details";
+import {
+  friendlyGameDetailsPlan,
+  seatedPlayerCanRename,
+} from "@repo/domain/friendly-game-details";
 import { friendlyGameHeroInput } from "@repo/domain/friendly-game-hero";
 import { friendlyGameHomeTitle } from "@repo/domain/friendly-game-chrome";
 import {
@@ -717,7 +720,7 @@ export default function GameHomePage({
       <DashboardShell title={g.title}>
         <ErrorState
           title={g.errorTitle}
-          message={game.error.message}
+          error={game.error}
           onRetry={() => {
             void game.refetch();
           }}
@@ -1323,7 +1326,10 @@ export default function GameHomePage({
                   viewerUserId={data.viewerUserId}
                   winningGameTeamId={winningGameTeamId}
                   matchResultConfirmation={data.matchResultConfirmation}
-                  isOrganizer={data.isOrganizer}
+                  isOrganizer={
+                    data.matchResultConfirmation?.viewerConfirmsAsOrganizer ??
+                    false
+                  }
                   courtFull={vacantSeatCount === 0}
                   scorePending={scoreSet.isPending}
                   confirmPending={confirmMatchResult.isPending}
@@ -1427,6 +1433,7 @@ export default function GameHomePage({
                 scorePending={scoreSet.isPending}
                 completePending={completeMatch.isPending}
                 cancelPending={cancelMatch.isPending}
+                updatePending={updateMatch.isPending}
                 onScoreSet={(input) =>
                   scoreSet.mutate({
                     gameId: id,
@@ -1564,7 +1571,11 @@ export default function GameHomePage({
               isViewer: selectedPlayer.userId === data.viewerUserId,
             })
           }
-          canRename={data.isOrganizer}
+          canRename={
+            data.isOrganizer &&
+            selectedPlayer != null &&
+            seatedPlayerCanRename(data.sides, selectedPlayer.userId)
+          }
           onOpenChange={(open) => {
             if (!open) {
               setSelectedPlayer(null);

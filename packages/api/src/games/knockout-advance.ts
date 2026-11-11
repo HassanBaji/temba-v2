@@ -25,15 +25,6 @@ type MatchResult = "slot1" | "slot2" | "draw" | "none";
 export function knockoutLevelMessage(locale: Locale) {
   return messagesFor(locale).tournament.knockoutView.decidingSet;
 }
-export const KNOCKOUT_EMPTY_SIDE_MESSAGE =
-  "This Knockout Match has an empty side. Sets open once both teams are in.";
-export const KNOCKOUT_TAKE_BACK_REFUSED_MESSAGE =
-  "The Match this result feeds has started, so this result can no longer be reversed";
-export const POOL_CORRECTION_REFUSED_MESSAGE =
-  "A Knockout Match has started, so this group result can no longer be reversed";
-export const WALKOVER_TEAM_REQUIRED_MESSAGE = "Choose which team goes through";
-export const WALKOVER_TEAM_NOT_ON_MATCH_MESSAGE =
-  "That team is not on this Match";
 
 export function isKnockoutMatch(match: Pick<MatchRow, "knockoutRound">) {
   return match.knockoutRound != null;
@@ -52,6 +43,7 @@ export function assertKnockoutMatchHasBothSides(
     MatchRow,
     "knockoutRound" | "slot1GameTeamId" | "slot2GameTeamId"
   >,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (
     isKnockoutMatch(match) &&
@@ -59,7 +51,7 @@ export function assertKnockoutMatchHasBothSides(
   ) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: KNOCKOUT_EMPTY_SIDE_MESSAGE,
+      message: messagesFor(locale).tournament.errors.knockoutEmptySide,
     });
   }
 }
@@ -131,6 +123,7 @@ export async function advanceKnockoutWinner(
 function knockoutWalkoverGameTeamId(
   match: Pick<MatchRow, "slot1GameTeamId" | "slot2GameTeamId">,
   advancingGameTeamId: string | undefined,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const present = [match.slot1GameTeamId, match.slot2GameTeamId].filter(
     (id): id is string => id != null,
@@ -141,14 +134,14 @@ function knockoutWalkoverGameTeamId(
   if (present.length === 2 && !advancingGameTeamId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: WALKOVER_TEAM_REQUIRED_MESSAGE,
+      message: messagesFor(locale).tournament.errors.walkoverTeamRequired,
     });
   }
   const advancing = advancingGameTeamId ?? present[0];
   if (!advancing || !present.includes(advancing)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: WALKOVER_TEAM_NOT_ON_MATCH_MESSAGE,
+      message: messagesFor(locale).tournament.errors.walkoverTeamNotOnMatch,
     });
   }
   return advancing;
@@ -162,10 +155,12 @@ export async function awardKnockoutWalkover(
   database: DbClient,
   match: MatchRow,
   advancingGameTeamId: string | undefined,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const walkoverGameTeamId = knockoutWalkoverGameTeamId(
     match,
     advancingGameTeamId,
+    locale,
   );
   await database
     .update(matches)
@@ -188,6 +183,7 @@ export async function awardKnockoutWalkover(
 export async function takeBackKnockoutWinner(
   database: DbClient,
   match: MatchRow,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const fed = await lockFedMatch(database, match);
   if (!fed) {
@@ -203,7 +199,7 @@ export async function takeBackKnockoutWinner(
   if (settled || fedSet) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: KNOCKOUT_TAKE_BACK_REFUSED_MESSAGE,
+      message: messagesFor(locale).tournament.errors.knockoutTakeBackRefused,
     });
   }
   await database
@@ -370,6 +366,7 @@ export async function takeBackKnockoutQualifiers(
   database: DbClient,
   game: PlacementGame,
   match: Pick<MatchRow, "knockoutRound">,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (!placesQualifiers(game, match)) {
     return;
@@ -392,7 +389,7 @@ export async function takeBackKnockoutQualifiers(
   if (knockoutSet || knockoutRows.some((row) => row.walkoverGameTeamId)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: POOL_CORRECTION_REFUSED_MESSAGE,
+      message: messagesFor(locale).tournament.errors.poolCorrectionRefused,
     });
   }
 

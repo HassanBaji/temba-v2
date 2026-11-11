@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "esbuild src/index.ts --bundle --platform=node --format=esm --conditions=temba-source --banner:js=\"import{createRequire}from'node:module';const require=createRequire(import.meta.url);\" --outfile=dist/index.js",
-    "dev": "tsx watch --env-file-if-exists=.env --conditions=temba-source src/index.ts",
-    "start": "node --env-file-if-exists=.env dist/index.js",
+    "dev": "NODE_ENV=development tsx watch --env-file-if-exists=.env --conditions=temba-source src/index.ts",
+    "start": "NODE_ENV=production node --env-file-if-exists=.env dist/index.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

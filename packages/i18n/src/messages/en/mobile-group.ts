@@ -195,4 +195,38 @@ export const mobileGroup = {
     noTembaLevel: "no Temba level yet",
     tembaMarker: (label: string) => `Temba ${label}`,
   },
+  seasons: {
+    title: "Seasons",
+    manage: "Manage seasons",
+    setUp: "Set up seasons",
+    loadFailed: "Seasons could not be loaded",
+    empty: "No seasons yet. The standing counts every game ever played.",
+    newSeason: "New season",
+    pointsPerGame: "Points per game",
+    winDrawLoss: "Win, draw, loss",
+    close: {
+      ends: "Ends",
+      leader: "Leader",
+      leaderValue: (name: string, points: number) =>
+        plural("en", points, {
+          one: `${name}, 1 pt`,
+          other: `${name}, {n} pts`,
+        }),
+      nobodyRanked: "Nobody ranked yet",
+      levels: "Levels",
+      unchanged: "Unchanged",
+      confirm: "Close season and lock standing",
+      keepOpen: "Keep it open",
+    },
+    create: {
+      title: "New season",
+      name: "Name",
+      nameRequired: "Give the season a name.",
+      starts: "Starts",
+      ends: "Ends",
+      submit: (name: string) => `Create ${name}`,
+      seasonWord: "season",
+      ownerOnly: "Only the Group owner can open a season",
+    },
+  },
 };

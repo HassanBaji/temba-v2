@@ -4,8 +4,9 @@ import {
   nextHistoryCursor,
 } from "@repo/domain/match-history-card";
 import type { SportFilter } from "@repo/domain/football-hub";
-import { useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { gamesHubTabFromQuery } from "@repo/domain/games-hub-tab";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useMessages } from "../i18n/locale-provider";
 import { Screen } from "../primitives/screen";
@@ -32,7 +33,13 @@ export function GamesScreen() {
   const toast = useToast();
   const m = useMessages();
   const utils = api.useUtils();
-  const [tab, setTab] = useState<GamesTab>("my-games");
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const [tab, setTab] = useState<GamesTab>(gamesHubTabFromQuery(params.tab));
+  useEffect(() => {
+    if (params.tab) {
+      setTab(gamesHubTabFromQuery(params.tab));
+    }
+  }, [params.tab]);
   const [sportFilter, setSportFilter] = useState<SportFilter>("all");
   const [pickerGame, setPickerGame] = useState<HubGameRow | null>(null);
   const [refreshing, setRefreshing] = useState(false);

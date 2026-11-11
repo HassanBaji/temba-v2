@@ -179,7 +179,7 @@ export function PadelTab() {
         variant="inline"
         className="rounded-card px-5"
         title={m.webAuth.you.level.failed}
-        message={active.error.message}
+        error={active.error}
         onRetry={() => {
           void active.refetch();
         }}

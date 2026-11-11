@@ -97,7 +97,7 @@ export async function gameInviteLinkHero(
     orderBy: asc(gamePlayers.createdAt),
   });
   return {
-    sport: game.sport ?? null,
+    sport: game.sport,
     windowStart: game.windowStart,
     windowEnd: game.windowEnd,
     cancelledAt: game.cancelledAt,

@@ -7,7 +7,8 @@
  * need to use are documented accordingly near the end.
  */
 
-import { pickLocale, type Locale } from "@repo/i18n/locale";
+import { DEFAULT_LOCALE, pickLocale, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
@@ -53,13 +54,27 @@ export function requestLocale(headers: Headers): Locale {
  * ZodErrors so that you get typesafety on the frontend if your procedure fails due to validation
  * errors on the backend.
  */
+/**
+ * Development mode is opt-in: only NODE_ENV=development sends stack traces and
+ * internal error messages to clients, and adds the artificial delay.
+ */
+const isDev = process.env.NODE_ENV === "development";
+
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
-  errorFormatter({ shape, error }) {
+  isDev,
+  errorFormatter({ shape, error, ctx }) {
+    const internal = shape.data.code === "INTERNAL_SERVER_ERROR";
+    const data = { ...shape.data };
+    if (!isDev) delete data.stack;
     return {
       ...shape,
+      message:
+        internal && !isDev
+          ? messagesFor(ctx?.locale ?? DEFAULT_LOCALE).common.somethingWentWrong
+          : shape.message,
       data: {
-        ...shape.data,
+        ...data,
         zodError:
           error.cause instanceof ZodError ? error.cause.flatten() : null,
       },
@@ -97,7 +112,7 @@ export const createTRPCRouter = t.router;
 const timingMiddleware = t.middleware(async ({ next, path }) => {
   const start = Date.now();
 
-  if (t._config.isDev) {
+  if (isDev) {
     // artificial delay in dev
     const waitMs = Math.floor(Math.random() * 400) + 100;
     await new Promise((resolve) => setTimeout(resolve, waitMs));
@@ -160,7 +175,7 @@ export const protectedProcedure = baseProcedure.use(({ ctx, next }) => {
  */
 export const operatorProcedure = protectedProcedure.use(
   async ({ ctx, next }) => {
-    await requireOperator(ctx);
+    await requireOperator(ctx, ctx.locale);
     return next();
   },
 );
@@ -172,7 +187,7 @@ export const operatorProcedure = protectedProcedure.use(
  */
 export const levelSetterProcedure = protectedProcedure.use(
   async ({ ctx, next }) => {
-    await requireLevelSetter(ctx);
+    await requireLevelSetter(ctx, ctx.locale);
     return next();
   },
 );

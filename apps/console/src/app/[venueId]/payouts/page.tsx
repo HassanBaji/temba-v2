@@ -3,18 +3,17 @@ import { Wallet } from "lucide-react";
 import { EmptyState } from "~/components/common/empty-state";
 import { ConsolePage } from "~/components/console/console-page";
 import { PageHeader } from "~/components/console/page-header";
+import { getRequestMessages } from "~/lib/request-locale";
 
-export default function Page() {
+export default async function Page() {
+  const m = (await getRequestMessages()).consoleShell.payouts;
   return (
     <ConsolePage>
-      <PageHeader
-        title="Payouts"
-        description="In-app payments settle through Tap. Desk and phone bookings are not in these numbers."
-      />
+      <PageHeader title={m.title} description={m.description} />
       <EmptyState
         icon={Wallet}
-        title="No payouts yet"
-        description="Payouts arrive once provider settlement reporting is wired; in-app payments settle through Tap."
+        title={m.emptyTitle}
+        description={m.emptyDescription}
       />
     </ConsolePage>
   );

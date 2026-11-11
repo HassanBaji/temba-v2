@@ -7,8 +7,9 @@ import { gamePlayers, gameTeamPlayers, gameTeams } from "@repo/db";
 import {
   isPartnerRequiredGame,
   isDrawnTournament,
-  PARTNER_REQUIRED_REFUSAL_MESSAGE,
 } from "@repo/domain/tournament-rounds";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -20,13 +21,11 @@ import type { SeatPosition } from "#src/games/utils";
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-const SAME_POSITION_MESSAGE = "Both Users would play the same Position";
-const NOT_HALF_TEAM_MESSAGE = "Both Game teams must be Half teams";
-
 async function requireHalfTeam(
   database: DbClient,
   gameId: string,
   gameTeamId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const team = await database.query.gameTeams.findFirst({
     where: and(eq(gameTeams.id, gameTeamId), eq(gameTeams.gameId, gameId)),
@@ -39,20 +38,20 @@ async function requireHalfTeam(
   if (!team) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Game team is not on this Game",
+      message: messagesFor(locale).game.errors.gameTeamNotOnGame,
     });
   }
   if (team.players.length !== 1) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: NOT_HALF_TEAM_MESSAGE,
+      message: messagesFor(locale).tournament.errors.notHalfTeams,
     });
   }
   const link = team.players[0];
   if (!link || (link.position !== "left" && link.position !== "right")) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: NOT_HALF_TEAM_MESSAGE,
+      message: messagesFor(locale).tournament.errors.notHalfTeams,
     });
   }
   const player = await database.query.gamePlayers.findFirst({
@@ -62,7 +61,7 @@ async function requireHalfTeam(
   if (!player?.userId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: NOT_HALF_TEAM_MESSAGE,
+      message: messagesFor(locale).tournament.errors.notHalfTeams,
     });
   }
   return {
@@ -81,60 +80,68 @@ export async function mergeHalfTeams(
     secondGameTeamId: string;
     firstPosition: SeatPosition;
     secondPosition: SeatPosition;
+    locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.organizerUserId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.organizerUserId, locale);
 
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot merge Half teams on a cancelled Game",
+      message: messagesFor(locale).tournament.errors.mergeCancelled,
     });
   }
   if (!isDrawnTournament(game.format, game.poolCount, game.tournamentShape)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Merge Half teams on a Friendly tournament",
+      message: messagesFor(locale).tournament.errors.mergeFriendly,
     });
   }
   if (game.registrationMode !== "individual") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Merge Half teams on an individual Friendly tournament",
+      message: messagesFor(locale).tournament.errors.mergeIndividual,
     });
   }
   if (isPartnerRequiredGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+      message: messagesFor(locale).tournament.errors.partnerRequired,
     });
   }
-  assertPoolDrawNotPosted(game);
+  assertPoolDrawNotPosted(game, locale);
 
   if (args.firstGameTeamId === args.secondGameTeamId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Pick two different Half teams",
+      message: messagesFor(locale).tournament.errors.pickTwoHalfTeams,
     });
   }
   if (args.firstPosition === args.secondPosition) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: SAME_POSITION_MESSAGE,
+      message: messagesFor(locale).tournament.halfTeams.samePosition,
     });
   }
 
-  const first = await requireHalfTeam(database, game.id, args.firstGameTeamId);
+  const first = await requireHalfTeam(
+    database,
+    game.id,
+    args.firstGameTeamId,
+    locale,
+  );
   const second = await requireHalfTeam(
     database,
     game.id,
     args.secondGameTeamId,
+    locale,
   );
   if (first.player.userId === second.player.userId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: NOT_HALF_TEAM_MESSAGE,
+      message: messagesFor(locale).tournament.errors.notHalfTeams,
     });
   }
 
@@ -186,5 +193,6 @@ export const mergeHalfTeamsProcedure = protectedProcedure
       secondGameTeamId: input.secondGameTeamId,
       firstPosition: input.firstPosition,
       secondPosition: input.secondPosition,
+      locale: ctx.locale,
     });
   });

@@ -14,6 +14,7 @@
 import { eq, inArray, sql } from "drizzle-orm";
 
 import {
+  MatchStatusEnum,
   bookings,
   gameTeamPlayers,
   games,
@@ -44,6 +45,7 @@ import { createGame } from "#src/routers/games/create";
 import { createInviteLink as createGameInviteLink } from "#src/routers/games/createInviteLink";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
+import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { publishFootballTeams } from "#src/routers/games/publishFootballTeams";
 import { register } from "#src/routers/games/register";
@@ -60,6 +62,7 @@ import { createLoosePublic } from "#src/routers/groups/createLoosePublic";
 import { joinPublic } from "#src/routers/groups/joinPublic";
 import { requestJoin as requestGroupJoin } from "#src/routers/groups/requestJoin";
 import { sendLookupInvite as sendGroupLookupInvite } from "#src/routers/groups/sendLookupInvite";
+import { setOrganizer } from "#src/routers/groups/setOrganizer";
 import { selfDeclareRating } from "#src/routers/ratings/selfDeclare";
 import { confirmProposal } from "#src/routers/challenges/confirmProposal";
 import { nameChallengeSquad } from "#src/routers/games/nameChallengeSquad";
@@ -466,9 +469,6 @@ async function seedVenues() {
 // ---------------------------------------------------------------------------
 
 async function seedBookings(u: Users, v: Venues) {
-  // The graphile_worker schema only exists once the API worker has booted.
-  setJobSink({ add: () => Promise.resolve(), remove: () => Promise.resolve() });
-
   const FRIDAY = 5;
   const now = new Date();
 
@@ -674,6 +674,13 @@ async function seedGroups(u: Users, v: Venues) {
     managerKey: "me",
     groupId: ladder.id,
     creatorKey: "me",
+  });
+  // Lina organises some of the Ladder's Games.
+  await setOrganizer(db, {
+    groupId: ladder.id,
+    approverUserId: u.me!.id,
+    userId: u.lina!.id,
+    organizer: true,
   });
 
   // Club Group Public with Require approval on and pending requests.
@@ -1032,7 +1039,7 @@ async function seedChallenges(u: Users, v: Venues, t: Teams) {
       [4, 6],
       [3, 6],
     ],
-    ["diego"],
+    ["omar", "diego", "yusuf"],
   );
 
   const rematchPostedAt = at(-2, 22);
@@ -1069,7 +1076,7 @@ async function seedChallenges(u: Users, v: Venues, t: Teams) {
       [3, 6],
       [4, 6],
     ],
-    ["me"],
+    ["yusuf", "me", "omar"],
   );
 
   await postChallenge(db, {
@@ -1220,12 +1227,29 @@ async function playFriendly(
       slot2GamesWon: b,
     });
   }
-  for (const key of confirmKeys) {
-    await confirmMatchResult(db, {
-      gameId: game.id,
-      matchId: game.matchId,
-      userId: u[key]!.id,
+  await confirmUntilCompleted(
+    game.id,
+    game.matchId,
+    confirmKeys.map((key) => u[key]!.id),
+  );
+}
+
+/**
+ * Confirm a Match's result as each User in turn. An Organizer's confirmation
+ * completes the Match (ADR-0044), so the ones after it are not needed.
+ */
+async function confirmUntilCompleted(
+  gameId: string,
+  matchId: string,
+  userIds: readonly string[],
+) {
+  for (const userId of userIds) {
+    const match = await db.query.matches.findFirst({
+      where: eq(matches.id, matchId),
+      columns: { status: true },
     });
+    if (match?.status === MatchStatusEnum.COMPLETED) return;
+    await confirmMatchResult(db, { gameId, matchId, userId });
   }
 }
 
@@ -1664,38 +1688,21 @@ async function seedGames(u: Users, g: Groups, v: Venues) {
     await step(`score tournament match ${index + 1}`, async () => {
       const players = await seatedUserIds(match);
       const scorer = players[0]!;
-      let set = await db.query.matchSets.findFirst({
-        where: eq(matchSets.matchId, match.id),
-      });
-      if (!set) {
-        await addSet(db, {
-          gameId: liveTournament.id,
-          matchId: match.id,
-          userId: u.me!.id,
-        });
-        set = await db.query.matchSets.findFirst({
-          where: eq(matchSets.matchId, match.id),
-        });
-      }
       const others = players.filter((id) => id !== u.me!.id);
       const enteredBy = confirm ? scorer : others[0]!;
-      await scoreSet(db, {
+      await enterTournamentScore(db, {
         gameId: liveTournament.id,
         matchId: match.id,
-        setId: set!.id,
         userId: enteredBy,
         slot1GamesWon: score[0],
         slot2GamesWon: score[1],
       });
       if (!confirm) return;
-      for (const id of players) {
-        if (id === enteredBy) continue;
-        await confirmMatchResult(db, {
-          gameId: liveTournament.id,
-          matchId: match.id,
-          userId: id,
-        });
-      }
+      await confirmUntilCompleted(
+        liveTournament.id,
+        match.id,
+        players.filter((id) => id !== enteredBy),
+      );
     });
   }
 
@@ -1934,6 +1941,9 @@ async function seedGroupLinks(u: Users, v: Venues, g: Groups) {
 
 async function main() {
   assertLocalDatabase();
+  // The graphile_worker schema only exists once the API worker has booted, and
+  // Groups, Games and Bookings all enqueue jobs.
+  setJobSink({ add: () => Promise.resolve(), remove: () => Promise.resolve() });
   console.log("Wiping local database…");
   await wipe();
 

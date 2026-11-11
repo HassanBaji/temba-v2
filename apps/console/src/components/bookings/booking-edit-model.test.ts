@@ -37,7 +37,9 @@ describe("editDraftFrom", () => {
 
 describe("editToInput", () => {
   it("sends nothing when nothing changed", () => {
-    expect(editToInput("b", unpaid, editDraftFrom(unpaid), 15_000)).toEqual({
+    expect(
+      editToInput("b", unpaid, editDraftFrom(unpaid), 15_000, "en"),
+    ).toEqual({
       ok: true,
       input: null,
     });
@@ -49,7 +51,7 @@ describe("editToInput", () => {
       courtId: "court-2",
       startMinute: 20 * 60,
     };
-    expect(editToInput("b", unpaid, draft, 18_000)).toEqual({
+    expect(editToInput("b", unpaid, draft, 18_000, "en")).toEqual({
       ok: true,
       input: {
         bookingId: "b",
@@ -62,18 +64,18 @@ describe("editToInput", () => {
 
   it("keeps a paid Booking's price when it moves", () => {
     const draft = { ...editDraftFrom(paid), durationMinutes: 120 };
-    const result = editToInput("b", paid, draft, 20_000);
+    const result = editToInput("b", paid, draft, 20_000, "en");
     expect(result.ok && result.input?.priceFils).toBe(15_000);
   });
 
   it("sends a typed price only when it differs", () => {
     const same = { ...editDraftFrom(unpaid), priceInput: "15.000" };
-    expect(editToInput("b", unpaid, same, 15_000)).toEqual({
+    expect(editToInput("b", unpaid, same, 15_000, "en")).toEqual({
       ok: true,
       input: null,
     });
     const typed = { ...editDraftFrom(unpaid), priceInput: "12" };
-    expect(editToInput("b", unpaid, typed, 15_000)).toEqual({
+    expect(editToInput("b", unpaid, typed, 15_000, "en")).toEqual({
       ok: true,
       input: { bookingId: "b", priceFils: 12_000 },
     });
@@ -81,13 +83,13 @@ describe("editToInput", () => {
 
   it("sets and clears notes", () => {
     const set = { ...editDraftFrom(unpaid), notes: " Pays monthly " };
-    expect(editToInput("b", unpaid, set, 15_000)).toEqual({
+    expect(editToInput("b", unpaid, set, 15_000, "en")).toEqual({
       ok: true,
       input: { bookingId: "b", managerNotes: "Pays monthly" },
     });
     const withNotes = { ...unpaid, managerNotes: "Old" };
     const cleared = { ...editDraftFrom(withNotes), notes: "" };
-    expect(editToInput("b", withNotes, cleared, 15_000)).toEqual({
+    expect(editToInput("b", withNotes, cleared, 15_000, "en")).toEqual({
       ok: true,
       input: { bookingId: "b", managerNotes: null },
     });
@@ -95,7 +97,7 @@ describe("editToInput", () => {
 
   it("asks for a price when a move lands on unpriced time", () => {
     const draft = { ...editDraftFrom(unpaid), startMinute: 22 * 60 };
-    expect(editToInput("b", unpaid, draft, null)).toEqual({
+    expect(editToInput("b", unpaid, draft, null, "en")).toEqual({
       ok: false,
       message: "No rate covers this time. Type a price",
     });

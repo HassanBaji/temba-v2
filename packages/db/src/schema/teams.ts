@@ -1,4 +1,5 @@
 import {
+  index,
   pgTable,
   uuid,
   varchar,
@@ -13,23 +14,29 @@ import { teamInviteLinks } from "./team-invite-links";
 import { teamMemberInvites } from "./team-member-invites";
 import { teamEmailInvites } from "./team-email-invites";
 
-export const teams = pgTable("teams", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: varchar("name", { length: 255 }),
-  imageUrl: varchar("image_url", { length: 255 }),
-  sport: groupSports().notNull().default(GroupSportEnum.PADEL),
-  createdBy: uuid("created_by")
-    .references(() => user.id, { onDelete: "restrict" })
-    .notNull(),
-  groupId: uuid("group_id").references(() => groups.id, {
-    onDelete: "set null",
+export const teams = pgTable(
+  "teams",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 255 }),
+    imageUrl: varchar("image_url", { length: 255 }),
+    sport: groupSports().notNull().default(GroupSportEnum.PADEL),
+    createdBy: uuid("created_by")
+      .references(() => user.id, { onDelete: "restrict" })
+      .notNull(),
+    groupId: uuid("group_id").references(() => groups.id, {
+      onDelete: "set null",
+    }),
+    gamesPlayed: integer("games_played").notNull().default(0),
+    wins: integer("wins").notNull().default(0),
+    losses: integer("losses").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    groupIdx: index("teams_group_id_idx").on(table.groupId),
   }),
-  gamesPlayed: integer("games_played").notNull().default(0),
-  wins: integer("wins").notNull().default(0),
-  losses: integer("losses").notNull().default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+);
 
 export const teamRelations = relations(teams, ({ one, many }) => ({
   createdBy: one(user, { fields: [teams.createdBy], references: [user.id] }),

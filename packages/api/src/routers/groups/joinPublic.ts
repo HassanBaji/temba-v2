@@ -2,7 +2,9 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { groupMembers, GroupTypeEnum } from "@repo/db";
+import { groupMembers } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -15,28 +17,29 @@ type DbClient = typeof db;
 
 export async function joinPublic(
   database: DbClient,
-  args: { groupId: string; userId: string },
+  args: { groupId: string; userId: string; locale?: Locale },
 ) {
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
 
-  if (group.type !== GroupTypeEnum.PUBLIC) {
+  if (group.type !== "public") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Private Groups cannot be joined via the Group URL",
+      message: messagesFor(locale).group.errors.privateNoUrlJoin,
     });
   }
 
   if (await isBlockedFromGroup(database, group.id, args.userId)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "You can't join this Group",
+      message: messagesFor(locale).group.errors.cannotJoin,
     });
   }
 
   if (group.requiresApproval) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Group requires approval. Request to join instead.",
+      message: messagesFor(locale).group.errors.requiresApproval,
     });
   }
 
@@ -50,7 +53,7 @@ export async function joinPublic(
   if (existing) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "You are already a member of this Group",
+      message: messagesFor(locale).group.errors.alreadyMember,
     });
   }
 
@@ -61,12 +64,15 @@ export async function joinPublic(
         groupId: group.id,
         userId: args.userId,
       })
+      .onConflictDoNothing({
+        target: [groupMembers.groupId, groupMembers.userId],
+      })
       .returning();
 
     if (!created) {
       throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to join Group",
+        code: "CONFLICT",
+        message: messagesFor(locale).group.errors.alreadyMember,
       });
     }
 
@@ -83,5 +89,6 @@ export const joinPublicProcedure = protectedProcedure
     return joinPublic(ctx.db, {
       groupId: input.groupId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

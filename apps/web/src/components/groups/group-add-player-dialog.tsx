@@ -26,6 +26,7 @@ import {
 import type { FootballSelfPlacement } from "@repo/domain/football-self-placement";
 import { DEFAULT_CALLING_COUNTRY_ISO } from "@repo/domain/phone-number";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 export function GroupAddPlayerDialog({
   open,
@@ -62,6 +63,7 @@ export function GroupAddPlayerDialog({
   const previewData = completePhone ? (preview.data ?? null) : null;
 
   const add = api.groups.addPlayerByPhone.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async (result) => {
       toast.success(addGroupPlayerDoneToast(result, locale));
       setNational("");

@@ -1,56 +1,54 @@
-export const WEEKDAY_ORDER = [0, 1, 2, 3, 4, 5, 6] as const;
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
-export const WEEKDAY_NAMES = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-] as const;
+export const WEEKDAY_ORDER = [0, 1, 2, 3, 4, 5, 6] as const;
 
 export const MAX_CLOSES_AT_MINUTES = 1800;
 
 export type HoursWindow = { opensAtMinutes: number; closesAtMinutes: number };
 
-export function formatMinutes(minutes: number) {
+export function formatMinutes(minutes: number, locale: Locale) {
   const day = Math.floor(minutes / 1440);
   const inDay = minutes % 1440;
   const clock = `${String(Math.floor(inDay / 60)).padStart(2, "0")}:${String(inDay % 60).padStart(2, "0")}`;
-  return day > 0 ? `${clock} (next day)` : clock;
+  return day > 0
+    ? messagesFor(locale).consoleShell.clock.nextDay(clock)
+    : clock;
 }
 
 /** `7:00 AM`, `11:30 PM`; minutes past midnight wrap onto the next day's clock. */
-export function formatClock(minutes: number) {
+export function formatClock(minutes: number, locale: Locale) {
+  const { am, pm } = messagesFor(locale).consoleShell.clock;
   const inDay = ((minutes % 1440) + 1440) % 1440;
   const hour24 = Math.floor(inDay / 60);
   const minute = inDay % 60;
   const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-  return `${hour12}:${String(minute).padStart(2, "0")} ${hour24 < 12 ? "AM" : "PM"}`;
+  return `${hour12}:${String(minute).padStart(2, "0")} ${hour24 < 12 ? am : pm}`;
 }
 
-export function timeOptions(slotMinutes: number, from = 0) {
+export function timeOptions(slotMinutes: number, locale: Locale, from = 0) {
   const options: { value: number; label: string }[] = [];
   for (
     let minutes = from;
     minutes <= MAX_CLOSES_AT_MINUTES;
     minutes += slotMinutes
   ) {
-    options.push({ value: minutes, label: formatClock(minutes) });
+    options.push({ value: minutes, label: formatClock(minutes, locale) });
   }
   return options;
 }
 
 /** Open hours in a day, summed over its windows: `16h`, `16.5h`. */
-export function formatOpenHours(windows: HoursWindow[]) {
+export function formatOpenHours(windows: HoursWindow[], locale: Locale) {
   const minutes = windows.reduce(
     (total, window) =>
       total + Math.max(0, window.closesAtMinutes - window.opensAtMinutes),
     0,
   );
   const hours = minutes / 60;
-  return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`;
+  return messagesFor(locale).consoleHours.weekly.openHours(
+    Number.isInteger(hours) ? String(hours) : hours.toFixed(1),
+  );
 }
 
 export function hoursAreEqual(a: HoursWindow[], b: HoursWindow[]) {
@@ -78,16 +76,18 @@ export function nextWindowAfter(
 export function windowsProblem(
   windows: HoursWindow[],
   slotMinutes: number,
+  locale: Locale,
 ): string | null {
+  const m = messagesFor(locale).consoleHours.weekly;
   for (const window of windows) {
     if (window.closesAtMinutes <= window.opensAtMinutes) {
-      return "Closing time must be after opening time";
+      return m.closeAfterOpen;
     }
     if (
       window.opensAtMinutes % slotMinutes !== 0 ||
       window.closesAtMinutes % slotMinutes !== 0
     ) {
-      return `Times must fall on the ${slotMinutes}-minute grid`;
+      return m.offGrid(slotMinutes);
     }
   }
   const sorted = [...windows].sort(
@@ -95,10 +95,28 @@ export function windowsProblem(
   );
   for (let index = 1; index < sorted.length; index += 1) {
     if (sorted[index]!.opensAtMinutes < sorted[index - 1]!.closesAtMinutes) {
-      return "Opening windows on the same day must not overlap";
+      return m.overlap;
     }
   }
   return null;
+}
+
+/**
+ * Saves each changed weekday in turn and refreshes even when one fails, so
+ * the weekdays that did save show as saved. The failure is rethrown.
+ */
+export async function saveWeekdays(
+  weekdays: readonly number[],
+  save: (weekday: number) => Promise<unknown>,
+  refresh: () => Promise<unknown>,
+) {
+  try {
+    for (const weekday of weekdays) {
+      await save(weekday);
+    }
+  } finally {
+    await refresh();
+  }
 }
 
 export function productDateTimeInputToInstant(

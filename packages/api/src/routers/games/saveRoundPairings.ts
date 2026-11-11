@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { pairRound, roundProblems } from "@repo/domain/tournament-pairing";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -35,14 +37,16 @@ export async function saveRoundPairings(
     pairings: { slot1GameTeamId: string; slot2GameTeamId: string }[];
     fill: boolean;
     random?: () => number;
+    locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.organizerUserId);
-  assertMakesPoolRounds(game);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.organizerUserId, locale);
+  assertMakesPoolRounds(game, locale);
   const context = await loadTournamentRoundContext(database, game);
-  assertRoundInRange(context, args.roundNumber);
-  assertRoundNotPosted(context, args.roundNumber);
+  assertRoundInRange(context, args.roundNumber, locale);
+  assertRoundNotPosted(context, args.roundNumber, locale);
 
   const [problem] = roundProblems({
     pools: context.pools,
@@ -56,12 +60,12 @@ export async function saveRoundPairings(
       code: "BAD_REQUEST",
       message:
         problem.kind === "pools_differ"
-          ? "Pair two teams from the same Pool"
+          ? messagesFor(locale).tournament.errors.samePool
           : problem.kind === "pool_sits_out"
-            ? "That Pool sits this Round out"
+            ? messagesFor(locale).tournament.errors.poolSitsOut
             : problem.kind === "team_twice"
-              ? "A team plays once a Round"
-              : "That team is not in this tournament",
+              ? messagesFor(locale).tournament.errors.teamOncePerRound
+              : messagesFor(locale).tournament.errors.teamNotInTournament,
     });
   }
 
@@ -111,5 +115,6 @@ export const saveRoundPairingsProcedure = protectedProcedure
       roundNumber: input.roundNumber,
       pairings: input.pairings,
       fill: input.fill,
+      locale: ctx.locale,
     });
   });

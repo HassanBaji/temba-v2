@@ -28,6 +28,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { teamIneligibleReason } from "#src/challenges/challenge-eligibility";
+import { lockProposalWithChallenge } from "#src/challenges/lock-proposal";
 import { checkProposalTerms } from "#src/challenges/proposal-terms";
 import { type db } from "#src/db";
 import {
@@ -199,7 +200,12 @@ function pairSeats(
   });
 }
 
-async function seatPadelPairs(tx: Tx, game: GameRow, pairs: readonly Roster[]) {
+async function seatPadelPairs(
+  tx: Tx,
+  game: GameRow,
+  pairs: readonly Roster[],
+  locale: Locale = DEFAULT_LOCALE,
+) {
   for (const [index, roster] of pairs.entries()) {
     let gameTeamId: string | null = null;
     for (const seat of pairSeats(roster.members)) {
@@ -209,6 +215,8 @@ async function seatPadelPairs(tx: Tx, game: GameRow, pairs: readonly Roster[]) {
         seat.userId,
         index + 1,
         seat.choice,
+        undefined,
+        locale,
       );
       gameTeamId = occupied.id;
     }
@@ -279,22 +287,14 @@ export async function confirmProposal(
   const locale = args.locale ?? DEFAULT_LOCALE;
   const m = messagesFor(locale).challenge;
   return database.transaction(async (tx) => {
-    const [proposal] = await tx
-      .select()
-      .from(challengeProposals)
-      .where(eq(challengeProposals.id, args.proposalId))
-      .for("update");
-    if (!proposal) {
+    const locked = await lockProposalWithChallenge(tx, args.proposalId);
+    if (!locked) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: m.errors.proposalNotFound,
       });
     }
-    const [challenge] = await tx
-      .select()
-      .from(challenges)
-      .where(eq(challenges.id, proposal.challengeId))
-      .for("update");
+    const { proposal, challenge } = locked;
     if (!challenge) {
       throw new TRPCError({ code: "NOT_FOUND", message: m.detail.notFound });
     }
@@ -304,6 +304,15 @@ export async function confirmProposal(
     ]);
     if (!posterTeam || !(await userActsForTeam(tx, posterTeam, args.userId))) {
       throw new TRPCError({ code: "FORBIDDEN", message: m.errors.notActing });
+    }
+    if (
+      proposingTeam &&
+      (await userActsForTeam(tx, proposingTeam, args.userId))
+    ) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: m.errors.confirmOwnProposal,
+      });
     }
     const pendingRows = await tx.query.challengeProposals.findMany({
       where: and(
@@ -333,32 +342,40 @@ export async function confirmProposal(
     const pairs = [poster, proposer];
     let game: GameRow;
     if (challenge.sport === "padel") {
-      ({ game } = await createFriendlyGame(tx, {
-        createdBy: args.userId,
-        groupId: null,
-        venueId: proposal.venueId,
-        courtId: proposal.courtId,
-        windowStart,
-        windowEnd,
-        rated: true,
-        groupRated: false,
-        pricePerPlayerFils: proposal.pricePerPlayerFils,
-      }));
-      await seatPadelPairs(tx, game, pairs);
+      ({ game } = await createFriendlyGame(
+        tx,
+        {
+          createdBy: args.userId,
+          groupId: null,
+          venueId: proposal.venueId,
+          courtId: proposal.courtId,
+          windowStart,
+          windowEnd,
+          rated: true,
+          groupRated: false,
+          pricePerPlayerFils: proposal.pricePerPlayerFils,
+        },
+        locale,
+      ));
+      await seatPadelPairs(tx, game, pairs, locale);
     } else {
       const sideSize =
         challenge.sideSize ?? teamRosterRule("football").completeAt;
-      ({ game } = await createFootballGame(tx, {
-        createdBy: args.userId,
-        groupId: null,
-        venueId: proposal.venueId,
-        courtId: proposal.courtId,
-        windowStart,
-        windowEnd,
-        pricePerPlayerFils: proposal.pricePerPlayerFils,
-        sideSize,
-        playersAllowed: 2 * squadSeatCount(sideSize),
-      }));
+      ({ game } = await createFootballGame(
+        tx,
+        {
+          createdBy: args.userId,
+          groupId: null,
+          venueId: proposal.venueId,
+          courtId: proposal.courtId,
+          windowStart,
+          windowEnd,
+          pricePerPlayerFils: proposal.pricePerPlayerFils,
+          sideSize,
+          playersAllowed: 2 * squadSeatCount(sideSize),
+        },
+        locale,
+      ));
       await openFootballSides(
         tx,
         game,

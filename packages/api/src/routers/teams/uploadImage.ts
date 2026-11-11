@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { teams } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -25,19 +27,21 @@ export async function uploadImage(
     contentType: GroupImageContentType;
     dataBase64: string;
     userId: string;
+    locale?: Locale;
   },
 ) {
-  const team = await requireTeam(database, args.teamId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const team = await requireTeam(database, args.teamId, locale);
 
   if (team.createdBy !== args.userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the Captain can change the Team image",
+      message: messagesFor(locale).team.errors.captainImage,
     });
   }
 
-  const bytes = decodeGroupImageBase64(args.dataBase64);
-  const contentType = assertGroupImageType(bytes, args.contentType);
+  const bytes = decodeGroupImageBase64(args.dataBase64, locale);
+  const contentType = assertGroupImageType(bytes, args.contentType, locale);
   const imageUrl = await uploadTeamImageObject({
     teamId: team.id,
     bytes,
@@ -75,5 +79,6 @@ export const uploadImageProcedure = protectedProcedure
       contentType: input.contentType,
       dataBase64: input.dataBase64,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

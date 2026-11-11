@@ -51,6 +51,7 @@ import {
   parseOptionalCoord,
 } from "@repo/domain/parse-optional-coord";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 export default function VenueHomePage({
   params,
@@ -167,6 +168,7 @@ export default function VenueHomePage({
   });
 
   const deleteCourt = api.venues.deleteCourt.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(v.toast.courtDeleted);
       await utils.venues.byId.invalidate({ id });
@@ -186,6 +188,7 @@ export default function VenueHomePage({
   });
 
   const clearLogo = api.venues.clearLogo.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(v.toast.logoCleared);
       await utils.venues.byId.invalidate({ id });
@@ -193,6 +196,7 @@ export default function VenueHomePage({
   });
 
   const softArchive = api.venues.softArchive.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(v.toast.archived);
       await utils.venues.byId.invalidate({ id });
@@ -262,7 +266,7 @@ export default function VenueHomePage({
       <DashboardShell title={v.title} isSubPage>
         <ErrorState
           title={v.errorTitle}
-          message={venue.error.message}
+          error={venue.error}
           onRetry={() => {
             void venue.refetch();
           }}

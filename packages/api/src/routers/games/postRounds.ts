@@ -5,12 +5,15 @@ import { z } from "zod";
 import { matches, tournamentDraftMatches } from "@repo/db";
 
 import { roundProblems } from "@repo/domain/tournament-pairing";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import { matchTimes } from "#src/games/helpers/match-times";
+import { lockGame } from "#src/games/lock-rows";
 import {
   assertMakesPoolRounds,
   assertRoundInRange,
@@ -27,24 +30,31 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
  */
 export async function postRounds(
   database: DbClient,
-  args: { gameId: string; organizerUserId: string; roundNumbers: number[] },
+  args: {
+    gameId: string;
+    organizerUserId: string;
+    roundNumbers: number[];
+    locale?: Locale;
+  },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.organizerUserId);
-  assertMakesPoolRounds(game);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.organizerUserId, locale);
+  assertMakesPoolRounds(game, locale);
   const context = await loadTournamentRoundContext(database, game);
   const roundNumbers = [...new Set(args.roundNumbers)].sort((a, b) => a - b);
 
   const posting = new Set(roundNumbers);
   const inserts: (typeof matches.$inferInsert)[] = [];
   for (const roundNumber of roundNumbers) {
-    assertRoundInRange(context, roundNumber);
-    assertRoundNotPosted(context, roundNumber);
+    assertRoundInRange(context, roundNumber, locale);
+    assertRoundNotPosted(context, roundNumber, locale);
     for (let earlier = 1; earlier < roundNumber; earlier += 1) {
       if (!posting.has(earlier) && !context.posted.has(earlier)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `Post Round ${earlier} first`,
+          message:
+            messagesFor(locale).tournament.errors.postRoundFirst(earlier),
         });
       }
     }
@@ -59,7 +69,8 @@ export async function postRounds(
     if (problems.length > 0) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: `Round ${roundNumber} is not complete`,
+        message:
+          messagesFor(locale).tournament.errors.roundNotComplete(roundNumber),
       });
     }
     const slots = context.slots.get(roundNumber) ?? [];
@@ -68,7 +79,7 @@ export async function postRounds(
       if (!slot) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Record Courts before posting a Round",
+          message: messagesFor(locale).tournament.errors.roundRecordCourts,
         });
       }
       inserts.push({
@@ -90,6 +101,9 @@ export async function postRounds(
   }
 
   await database.transaction(async (tx) => {
+    // The Game row lock serialises two posts of a Round, and a post with an
+    // undo of the draw, so the check below sees the other's Matches.
+    assertMakesPoolRounds(await lockGame(tx, game.id, locale), locale);
     const already = await tx.query.matches.findFirst({
       where: and(
         eq(matches.gameId, game.id),
@@ -100,7 +114,7 @@ export async function postRounds(
     if (already && already.knockoutRound == null) {
       throw new TRPCError({
         code: "CONFLICT",
-        message: "That Round is already posted",
+        message: messagesFor(locale).tournament.errors.roundAlreadyPosted,
       });
     }
     for (const values of inserts) {
@@ -132,5 +146,6 @@ export const postRoundsProcedure = protectedProcedure
       gameId: input.gameId,
       organizerUserId: appUser.id,
       roundNumbers: input.roundNumbers,
+      locale: ctx.locale,
     });
   });

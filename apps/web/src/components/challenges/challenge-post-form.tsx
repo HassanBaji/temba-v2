@@ -122,7 +122,7 @@ export function ChallengePostForm({
           <ErrorState
             headingLevel={2}
             title={copy.errorTitle}
-            message={options.error.message}
+            error={options.error}
             onRetry={() => {
               void options.refetch();
             }}

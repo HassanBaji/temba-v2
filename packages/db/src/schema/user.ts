@@ -129,6 +129,15 @@ export const user = pgTable(
      */
     addedAt: timestamp("added_at"),
     claimedAt: timestamp("claimed_at"),
+    /** Clerk's `updated_at` of the last user.created / user.updated applied, so an older delivery is ignored. */
+    clerkUpdatedAt: timestamp("clerk_updated_at"),
+    /**
+     * Set when the Clerk account was deleted. The row stays, anonymised, for
+     * the Games and Matches that reference it; `deleted_clerk_id` keeps a late
+     * user.updated for that account from recreating it.
+     */
+    deletedAt: timestamp("deleted_at"),
+    deletedClerkId: text("deleted_clerk_id"),
     createdAt: timestamp("created_at")
       .$defaultFn(() => /* @__PURE__ */ new Date())
       .notNull(),
@@ -138,9 +147,12 @@ export const user = pgTable(
   },
   (table) => ({
     clerkIdIdx: uniqueIndex("user_clerk_id_idx").on(table.clerkId),
+    deletedClerkIdIdx: uniqueIndex("user_deleted_clerk_id_idx").on(
+      table.deletedClerkId,
+    ),
     emailOrPhone: check(
       "user_email_or_phone_number",
-      sql`${table.email} is not null or ${table.phoneNumber} is not null`,
+      sql`${table.email} is not null or ${table.phoneNumber} is not null or ${table.deletedAt} is not null`,
     ),
     unclaimedHasPhone: check(
       "user_unclaimed_has_phone",

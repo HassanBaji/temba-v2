@@ -803,7 +803,7 @@ function NewGameForm() {
       <DashboardShell title={m.webDashboard.games.createAction}>
         <ErrorState
           title={m.webDashboard.groups.errorTitle}
-          message={createGroups.error.message}
+          error={createGroups.error}
           onRetry={() => {
             void createGroups.refetch();
           }}

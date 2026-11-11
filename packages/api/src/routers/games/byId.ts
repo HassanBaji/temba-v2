@@ -48,6 +48,8 @@ import {
   requireGame,
   userPassesJoinGate,
 } from "#src/games/access";
+import { scoredWithOwnDoor } from "#src/games/assert-may-write-sets";
+import { confirmsAsOrganizer } from "#src/games/confirms-as-organizer";
 import {
   homeCarouselPhase,
   type HomeCarouselCandidate,
@@ -63,6 +65,7 @@ import {
   type MatchSlot,
 } from "#src/games/match-result-confirmations";
 import { listGameSeatHolds } from "#src/games/seat-holds";
+import { viewerMayConfirmEnteredScore } from "#src/games/tournament-score";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import {
   isIndividualSeatGame,
@@ -98,9 +101,11 @@ import { toSeasonRow } from "#src/standing/load-group-standing";
 import { MATCH_STATUS } from "@repo/domain/match-status";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
+import { mayRenameUnclaimedPlayer } from "#src/unclaimed-players/may-rename-unclaimed-player";
 
 import { listLevelRangeRequests } from "./listLevelRangeRequests";
 import { gameRatingScope } from "@repo/domain/game-rating-scope";
+import { messagesFor } from "@repo/i18n/messages";
 import { loadTeamDisplayNames } from "#src/challenges/challenge-proposals";
 import { loadChallengeSides } from "#src/games/challenge-squad";
 import { userActsForTeam } from "#src/teams/acts-for-team";
@@ -361,17 +366,19 @@ export async function gameById(
   args: { gameId: string; userId: string; locale?: Locale },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
-  const game = await requireGame(database, args.gameId);
+  const game = await requireGame(database, args.gameId, locale);
 
   if (!(await canViewGame(database, game, args.userId))) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Game not found",
+      message: messagesFor(locale).game.errors.notFound,
     });
   }
 
   const now = new Date();
   const organizer = await isGameOrganizer(database, game, args.userId);
+  const viewerConfirmsAsOrganizer =
+    organizer && (await confirmsAsOrganizer(database, game, args.userId));
   const passesGate = await userPassesJoinGate(database, game, args.userId);
   const alreadyOnGame = await userAlreadyOnGame(database, game.id, args.userId);
   const userCount = await registeredUserCount(database, game.id);
@@ -437,6 +444,7 @@ export async function gameById(
           image: true,
           clerkId: true,
           addedAt: true,
+          addedByUserId: true,
           phoneNumber: true,
         },
       },
@@ -444,20 +452,38 @@ export async function gameById(
     orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
   });
   const playerMarkByUserId = new Map(
-    playerRows.flatMap((row) => {
-      if (!row.user) {
-        return [];
-      }
-      const unclaimed = isUnclaimed(row.user);
-      const phoneMasked =
-        organizer && unclaimed && row.user.phoneNumber
-          ? maskPhone(row.user.phoneNumber)
-          : null;
-      return [[row.user.id, { unclaimed, phoneMasked }] as const];
-    }),
+    await Promise.all(
+      playerRows.flatMap((row) => {
+        const player = row.user;
+        if (!player) {
+          return [];
+        }
+        const unclaimed = isUnclaimed(player);
+        const phoneMasked =
+          organizer && unclaimed && player.phoneNumber
+            ? maskPhone(player.phoneNumber)
+            : null;
+        return [
+          (async () => {
+            const canRename =
+              unclaimed &&
+              (await mayRenameUnclaimedPlayer(database, {
+                playerId: player.id,
+                adderId: player.addedByUserId,
+                callerId: args.userId,
+              }));
+            return [player.id, { unclaimed, phoneMasked, canRename }] as const;
+          })(),
+        ];
+      }),
+    ),
   );
   const playerMark = (userId: string) =>
-    playerMarkByUserId.get(userId) ?? { unclaimed: false, phoneMasked: null };
+    playerMarkByUserId.get(userId) ?? {
+      unclaimed: false,
+      phoneMasked: null,
+      canRename: false,
+    };
 
   const group = game.groupId
     ? await database.query.groups.findFirst({
@@ -591,9 +617,13 @@ export async function gameById(
         ]
       : [],
   );
+  const drawnTournament = isDrawnTournament(
+    game.format,
+    game.poolCount,
+    game.tournamentShape,
+  );
   const sides =
-    isIndividualSeatGame(game) ||
-    isDrawnTournament(game.format, game.poolCount, game.tournamentShape)
+    isIndividualSeatGame(game) || drawnTournament
       ? await listGameSides(database, game)
       : [];
   const canPickSeat =
@@ -630,6 +660,7 @@ export async function gameById(
     ? await listLevelRangeRequests(database, {
         gameId: game.id,
         userId: args.userId,
+        locale,
       })
     : [];
   const pendingSeatHolds = organizer
@@ -717,6 +748,9 @@ export async function gameById(
     // A final Match that not every required player confirmed was confirmed
     // by an Organizer (ADR-0044).
     confirmedByOrganizer: boolean;
+    // Whether the viewer's confirmation is final. A padel Challenge Game's
+    // players organize it but confirm as players.
+    viewerConfirmsAsOrganizer: boolean;
   } | null = null;
 
   let ratingImpact: {
@@ -756,6 +790,7 @@ export async function gameById(
       confirmedAt,
       organizerSides,
       confirmedByOrganizer,
+      viewerConfirmsAsOrganizer,
     };
 
     if (phase === "final") {
@@ -799,6 +834,7 @@ export async function gameById(
         canReportWrongScore = await wrongScoreReversalEligibility(
           database,
           friendlyMatch.id,
+          locale,
         );
       }
     }
@@ -967,12 +1003,20 @@ export async function gameById(
           walkoverGameTeamId: match.walkoverGameTeamId,
           bothSlotsFilled: bothSlotsFilled(match),
           bothSidesComplete: sidesComplete,
-          canAddSet: canWriteSets && (organizer || onSides),
+          canAddSet:
+            canWriteSets && (organizer || onSides) && !scoredWithOwnDoor(game),
           canScoreSets: canWriteSets && sidesComplete && (organizer || onSides),
+          canConfirmScore:
+            drawnTournament &&
+            (await viewerMayConfirmEnteredScore(database, match, {
+              userId: args.userId,
+              organizer,
+              now,
+            })),
           canComplete:
             !frozen &&
             game.format !== "americano" &&
-            (organizer || onSides) &&
+            viewerConfirmsAsOrganizer &&
             sidesComplete &&
             match.sets.length > 0 &&
             outcome.result !== "none" &&

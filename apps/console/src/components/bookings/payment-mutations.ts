@@ -2,21 +2,22 @@
 
 import { toast } from "sonner";
 
+import { useMessages } from "~/components/locale-provider";
 import { api, type RouterOutputs } from "~/trpc/react";
+import type { Messages } from "@repo/i18n/messages";
 
 export type RefundResult = RouterOutputs["bookings"]["recordRefund"];
 
-export const MANUAL_METHODS = [
-  { value: "cash", label: "Cash" },
-  { value: "card", label: "Card" },
-  { value: "benefit", label: "Benefit" },
-  { value: "transfer", label: "Transfer" },
-] as const;
+export const MANUAL_METHODS = ["cash", "card", "benefit", "transfer"] as const;
 
-export type ManualMethod = (typeof MANUAL_METHODS)[number]["value"];
+export type ManualMethod = (typeof MANUAL_METHODS)[number];
 
-function toastMutationError(error: { message: string }) {
-  toast.error(error.message || "Something went wrong. Try again.");
+export function manualMethodOptions(m: Messages["consoleBookings"]) {
+  return MANUAL_METHODS.map((value) => ({ value, label: m.methods[value] }));
+}
+
+export function isManualMethod(value: unknown): value is ManualMethod {
+  return (MANUAL_METHODS as readonly unknown[]).includes(value);
 }
 
 /** Settle and refund doors with the list and the Booking page kept in step. */
@@ -28,8 +29,13 @@ export function usePaymentMutations(
     toastErrors?: boolean;
   } = {},
 ) {
+  const { consoleBookings: m, consoleShell } = useMessages();
   const onError =
-    options.toastErrors === false ? undefined : toastMutationError;
+    options.toastErrors === false
+      ? undefined
+      : (error: { message: string }) => {
+          toast.error(error.message || consoleShell.errors.generic);
+        };
   const utils = api.useUtils();
 
   async function refresh() {
@@ -42,7 +48,7 @@ export function usePaymentMutations(
   const settle = api.bookings.settlePayment.useMutation({
     onSuccess: async () => {
       await refresh();
-      toast.success("Payment updated");
+      toast.success(m.toasts.paymentUpdated);
     },
     onError,
   });
@@ -52,7 +58,9 @@ export function usePaymentMutations(
       options.onRefund?.(result);
       await refresh();
       toast.success(
-        result.refundInProgress ? "Refund requested" : "Refund recorded",
+        result.refundInProgress
+          ? m.toasts.refundRequested
+          : m.toasts.refundRecorded,
       );
     },
     onError,

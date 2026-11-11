@@ -2,7 +2,12 @@ import { eq } from "drizzle-orm";
 
 import { matchResultConfirmations } from "@repo/db";
 
-import { scoreStandsAt } from "@repo/domain/tournament-round-state";
+import { matchOutcome } from "@repo/domain/match-outcome";
+import {
+  scoreStandsAt,
+  tournamentMatchState,
+  type TournamentMatchState,
+} from "@repo/domain/tournament-round-state";
 
 import { type db } from "#src/db";
 import { type GameRow } from "#src/games/access";
@@ -107,4 +112,55 @@ export function seatedSlot(
   userId: string,
 ): MatchSlot | null {
   return slotOfUser(sides, userId);
+}
+
+/**
+ * A pending score waits on the other team; an Organizer who is not playing in
+ * the Match may confirm it in their place (ADR-0062).
+ */
+export function mayConfirmEnteredScore(args: {
+  state: TournamentMatchState | "draft";
+  viewerSlot: MatchSlot | null;
+  enteredSlot: MatchSlot | null;
+  organizer: boolean;
+}) {
+  return (
+    args.state === "awaiting_confirmation" &&
+    ((args.viewerSlot != null && args.enteredSlot !== args.viewerSlot) ||
+      (args.organizer && args.viewerSlot == null))
+  );
+}
+
+export async function viewerMayConfirmEnteredScore(
+  database: DbClient,
+  match: MatchRow & {
+    sets: readonly {
+      slot1GamesWon: number | null;
+      slot2GamesWon: number | null;
+    }[];
+  },
+  args: { userId: string; organizer: boolean; now: Date },
+) {
+  const state = tournamentMatchState({
+    status: match.status,
+    notFinishedAt: match.notFinishedAt,
+    hasResult: matchOutcome(match.sets).result !== "none",
+    startTime: match.startTime,
+    now: args.now,
+  });
+  if (state !== "awaiting_confirmation") {
+    return false;
+  }
+  const sides = await matchSideSeats(database, match);
+  const viewerSlot = slotOfUser(sides, args.userId);
+  if (viewerSlot == null && !args.organizer) {
+    return false;
+  }
+  const entered = await enteredScore(database, match, sides);
+  return mayConfirmEnteredScore({
+    state,
+    viewerSlot,
+    enteredSlot: entered?.slot ?? null,
+    organizer: args.organizer,
+  });
 }

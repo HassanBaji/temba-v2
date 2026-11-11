@@ -78,7 +78,7 @@ export const games = pgTable(
     pricePerPlayerFils: integer("price_per_player_fils"),
     levelMinTenths: integer("level_min_tenths"),
     levelMaxTenths: integer("level_max_tenths"),
-    sport: gameSports("sport").default(GameSportEnum.PADEL),
+    sport: gameSports("sport").notNull().default(GameSportEnum.PADEL),
     sideSize: integer("side_size"),
     footballTeamsMethod: footballTeamsMethods("football_teams_method"),
     /** How the MVP is decided. A new Friendly game writes `vote`; every other format stays `none`. */
@@ -93,7 +93,7 @@ export const games = pgTable(
     mvpSettledAt: timestamp("mvp_settled_at"),
     createdBy: uuid("created_by")
       .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+      .references(() => user.id, { onDelete: "restrict" }),
     cancelledAt: timestamp("cancelled_at"),
     registrationClosedAt: timestamp("registration_closed_at"),
     /** Set on a Challenge Game: the confirmed Challenge it came from. */
@@ -106,6 +106,13 @@ export const games = pgTable(
   },
   (table) => ({
     seasonIdx: index("games_season_id_idx").on(table.seasonId),
+    groupWindowIdx: index("games_group_id_window_start_idx").on(
+      table.groupId,
+      table.windowStart,
+    ),
+    createdByIdx: index("games_created_by_idx").on(table.createdBy),
+    venueIdx: index("games_venue_id_idx").on(table.venueId),
+    challengeIdx: index("games_challenge_id_idx").on(table.challengeId),
     sideSizeCheck: check(
       "games_side_size_check",
       sql`${table.sideSize} is null or ${table.sideSize} in (5, 6, 7, 8, 9, 11)`,

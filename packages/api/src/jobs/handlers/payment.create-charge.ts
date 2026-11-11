@@ -45,10 +45,19 @@ export async function handle(
           id: bookings.id,
           userId: bookings.userId,
           status: bookings.status,
+          holdExpiresAt: bookings.holdExpiresAt,
         })
         .from(bookings)
         .where(eq(bookings.id, payment.bookingId));
       if (booking?.status !== "pending_payment" || !booking.userId) {
+        return;
+      }
+      if (!booking.holdExpiresAt || booking.holdExpiresAt <= now) {
+        await failPayment(tx, {
+          paymentId: payment.id,
+          reason: "The hold ran out before payment could start",
+          now,
+        });
         return;
       }
       const [customer] = await tx

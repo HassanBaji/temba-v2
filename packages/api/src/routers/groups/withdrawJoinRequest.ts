@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { groupJoinRequests } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -13,8 +15,9 @@ type DbClient = typeof db;
 /** The requester takes their own pending join request back, Seat hold included. */
 export async function withdrawJoinRequest(
   database: DbClient,
-  args: { requestId: string; userId: string },
+  args: { requestId: string; userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const request = await database.query.groupJoinRequests.findFirst({
     where: eq(groupJoinRequests.id, args.requestId),
     columns: { id: true, userId: true, status: true, groupId: true },
@@ -22,13 +25,13 @@ export async function withdrawJoinRequest(
   if (request?.userId !== args.userId) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Join request not found",
+      message: messagesFor(locale).group.errors.joinRequestNotFound,
     });
   }
   if (request.status !== "pending") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Join request is not pending",
+      message: messagesFor(locale).group.errors.joinRequestNotPending,
     });
   }
   await database
@@ -44,5 +47,6 @@ export const withdrawJoinRequestProcedure = protectedProcedure
     return withdrawJoinRequest(ctx.db, {
       requestId: input.requestId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

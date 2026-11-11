@@ -2,9 +2,14 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { groupMembers } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import {
+  enforceUserRateLimit,
+  userRateLimits,
+} from "#src/rate-limit/user-rate-limits";
 import { type db } from "#src/db";
 import { requireGroupPhoneAdder } from "#src/groups/helpers/require-group-phone-adder";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
@@ -27,14 +32,17 @@ export async function previewPlayerByPhone(
     approverUserId: string;
     countryIso: string;
     nationalNumber: string;
+    locale?: Locale;
   },
 ): Promise<GroupPhonePlayerPreview> {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const group = await requireGroupPhoneAdder(
     database,
     args.groupId,
     args.approverUserId,
+    locale,
   );
-  const phoneNumber = requireE164(args.countryIso, args.nationalNumber);
+  const phoneNumber = requireE164(args.countryIso, args.nationalNumber, locale);
 
   const resolved = await resolvePhonePlayer(database, phoneNumber);
   if (resolved.kind === "new") {
@@ -68,11 +76,13 @@ export const previewPlayerByPhoneProcedure = protectedProcedure
     }),
   )
   .query(async ({ ctx, input }) => {
+    enforceUserRateLimit(userRateLimits.phonePreview, ctx.userId, ctx.locale);
     const appUser = await resolveAppUser(ctx.userId);
     return previewPlayerByPhone(ctx.db, {
       groupId: input.groupId,
       approverUserId: appUser.id,
       countryIso: input.countryIso,
       nationalNumber: input.nationalNumber,
+      locale: ctx.locale,
     });
   });

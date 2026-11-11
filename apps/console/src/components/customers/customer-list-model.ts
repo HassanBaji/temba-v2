@@ -1,6 +1,7 @@
 import { formatDayMonth, formatWeekday } from "@repo/domain/format-game-start";
 import { productDaysBetween, zonedParts } from "@repo/domain/product-timezone";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 export const CUSTOMER_SORTS = [
   "lastVisit",
@@ -11,13 +12,12 @@ export const CUSTOMER_SORTS = [
 ] as const;
 export type CustomerSort = (typeof CUSTOMER_SORTS)[number];
 
-export const SORT_OPTIONS: readonly { value: CustomerSort; label: string }[] = [
-  { value: "lastVisit", label: "Last booking" },
-  { value: "bookings", label: "Most Bookings" },
-  { value: "noShows", label: "Most no-shows" },
-  { value: "owed", label: "Most owed" },
-  { value: "name", label: "Name" },
-];
+export function sortOptions(
+  locale: Locale,
+): readonly { value: CustomerSort; label: string }[] {
+  const sorts = messagesFor(locale).consoleVenue.customers.sorts;
+  return CUSTOMER_SORTS.map((value) => ({ value, label: sorts[value] }));
+}
 
 export function isCustomerSort(value: string): value is CustomerSort {
   return (CUSTOMER_SORTS as readonly string[]).includes(value);
@@ -28,34 +28,47 @@ type ListedCustomer =
   | { kind: "guest"; phone: string | null };
 
 /** The design's second line: Temba players by handle, Guests by the phone the Venue holds. */
-export function customerSubtitle(customer: ListedCustomer): string {
+export function customerSubtitle(
+  customer: ListedCustomer,
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).consoleVenue.customers;
   if (customer.kind === "guest") {
-    return customer.phone ? `Phone only, ${customer.phone}` : "Phone only";
+    return customer.phone ? m.phoneOnlyWith(customer.phone) : m.phoneOnly;
   }
-  return customer.username ? `Temba, @${customer.username}` : "Temba";
+  return customer.username ? m.tembaWith(`@${customer.username}`) : m.temba;
 }
 
 /** "Today", "Yesterday", "Tomorrow", a weekday within the week, else "4 Oct" (with the year when it differs). */
-export function lastBookingLabel(startsAt: Date, now: Date): string {
+export function lastBookingLabel(
+  startsAt: Date,
+  now: Date,
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).consoleVenue.customers;
   const days = productDaysBetween(now, startsAt);
   if (days === 0) {
-    return "Today";
+    return m.today;
   }
   if (days === -1) {
-    return "Yesterday";
+    return m.yesterday;
   }
   if (days === 1) {
-    return "Tomorrow";
+    return m.tomorrow;
   }
   if (Math.abs(days) < 7) {
-    return formatWeekday(startsAt, "short", CONSOLE_LOCALE);
+    return formatWeekday(startsAt, "short", locale);
   }
-  return formatDayMonth(startsAt, CONSOLE_LOCALE, {
+  return formatDayMonth(startsAt, locale, {
     year: zonedParts(startsAt).year !== zonedParts(now).year,
   });
 }
 
-export function customerCountLabel(total: number, searching: boolean): string {
-  const noun = total === 1 ? "Customer" : "Customers";
-  return searching ? `${total} matching` : `${total} ${noun}`;
+export function customerCountLabel(
+  total: number,
+  searching: boolean,
+  locale: Locale,
+): string {
+  const m = messagesFor(locale).consoleVenue.customers;
+  return searching ? m.matching(total) : m.count(total);
 }

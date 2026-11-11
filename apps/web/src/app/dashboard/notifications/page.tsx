@@ -197,7 +197,7 @@ export default function NotificationsPage() {
       {notifications.error ? (
         <ErrorState
           title={m.webDashboard.notifications.errorTitle}
-          message={notifications.error.message}
+          error={notifications.error}
           onRetry={() => void notifications.refetch()}
         />
       ) : null}

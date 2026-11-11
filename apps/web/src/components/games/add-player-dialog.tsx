@@ -58,6 +58,7 @@ import type { FriendlyGameJoinSeat } from "@repo/domain/friendly-game-cta";
 import { DEFAULT_CALLING_COUNTRY_ISO } from "@repo/domain/phone-number";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 function seatKey(seat: FriendlyGameJoinSeat) {
   return `${seat.sideIndex}:${seat.position}`;
@@ -156,6 +157,7 @@ export function AddPlayerDialog({
   const previewData = completePhone ? (preview.data ?? null) : null;
 
   const add = api.games.addPlayerByPhone.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async (result) => {
       toast.success(addPlayerAddedToast(result.name, locale));
       setNational("");
@@ -192,6 +194,7 @@ export function AddPlayerDialog({
     : [];
 
   const addMembers = api.games.addGroupMembers.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async (result) => {
       toast.success(groupAddedToast(result.added, locale));
       setMemberIds([]);
