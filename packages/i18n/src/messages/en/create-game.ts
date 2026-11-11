@@ -175,6 +175,12 @@ export const createGame = {
     everyoneKeepsSpot: "Everyone who joined keeps their spot.",
     venueLocked: (place: string) => `${place}. Venue can't change.`,
     venueLockedNoPlace: "Venue can't change.",
+    place: {
+      title: "Where",
+      venue: "Venue",
+      venueHint: "A new Venue clears the Court. Pick one there.",
+      clubVenue: "This Club Group plays at its own Venue.",
+    },
     court: {
       title: "Court",
       none: "No Court",
@@ -192,6 +198,7 @@ export const createGame = {
       name: "name",
       dayMoved: "day moved",
       timeChanged: "time changed",
+      venue: "venue moved",
       court: "court changed",
       pitch: "pitch changed",
       players: "players",

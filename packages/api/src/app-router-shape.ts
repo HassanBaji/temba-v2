@@ -111,7 +111,7 @@ type ExpectedGames =
   | "approveLevelRangeRequest"
   | "rejectLevelRangeRequest"
   | "updateCaps"
-  | "updateCourt"
+  | "updatePlace"
   | "listCourts"
   | "addMatch"
   | "updateMatch"

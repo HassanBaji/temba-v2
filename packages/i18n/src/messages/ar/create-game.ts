@@ -209,6 +209,12 @@ export const createGame = {
     everyoneKeepsSpot: "كل من انضم يحتفظ بمكانه.",
     venueLocked: (place: string) => `${place}. لا يمكن تغيير النادي.`,
     venueLockedNoPlace: "لا يمكن تغيير النادي.",
+    place: {
+      title: "المكان",
+      venue: "النادي",
+      venueHint: "تغيير النادي يلغي اختيار الملعب. اختر ملعبًا هناك.",
+      clubVenue: "مجموعة النادي هذه تلعب في ناديها.",
+    },
     court: {
       title: "الملعب",
       none: "بلا ملعب",
@@ -226,6 +232,7 @@ export const createGame = {
       name: "الاسم",
       dayMoved: "تغيّر اليوم",
       timeChanged: "تغيّر الوقت",
+      venue: "تغيّر النادي",
       court: "تغيّر الملعب",
       pitch: "تغيّر الملعب",
       players: "اللاعبون",
