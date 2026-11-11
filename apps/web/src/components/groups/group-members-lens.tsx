@@ -139,7 +139,9 @@ export function GroupMembersLensRow({
               aria-hidden="true"
               className={cn(
                 "font-mono text-[11px] font-normal",
-                chip.selected ? "text-dim" : "text-muted-foreground",
+                chip.selected
+                  ? "text-on-control-muted"
+                  : "text-muted-foreground",
               )}
             >
               {chip.count}

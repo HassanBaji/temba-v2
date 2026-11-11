@@ -131,7 +131,7 @@ function ScorerChip({
         <span
           className={cn(
             "text-[12px]",
-            scored ? "text-dim" : "text-muted-foreground",
+            scored ? "text-on-control-muted" : "text-muted-foreground",
           )}
         >
           {scored ? m.game.played.goals(goals) : team}
@@ -142,7 +142,7 @@ function ScorerChip({
           type="button"
           aria-label={t.takeGoalAway(player.name)}
           onClick={onRemove}
-          className="border-dimrule focus-visible:ring-ring/50 flex h-full items-center border-s px-2 outline-none focus-visible:ring-[3px]"
+          className="border-control-rule focus-visible:ring-ring/50 flex h-full items-center border-s px-2 outline-none focus-visible:ring-[3px]"
         >
           <Minus aria-hidden="true" className="size-3.5" />
         </button>

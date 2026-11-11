@@ -1,31 +1,48 @@
+/**
+ * Palette v2 (ADR-0064). The focused surface is Lifted: one step off the page
+ * (#f4f4f4 with a #e6e6e6 hairline) instead of inverting to black. The
+ * `dim`, `dimrule`, `raised` and `hatchStrokeOnInk` roles are what sits on that
+ * lifted surface; `onControlMuted`, `controlRule`, `controlRaised` and
+ * `hatchStrokeOnControl` are what sits on a solid control.
+ */
 export const colors = {
-  ink: "#0a0a0a",
+  ink: "#000000",
   paper: "#ffffff",
-  rule: "#e5e5e2",
-  wash: "#f5f5f5",
-  // 4.64:1 on wash, 5.10:1 on paper (WCAG AA)
+  rule: "#e6e6e6",
+  // Row highlight: your row in a table or team list.
+  wash: "#f4f4f4",
+  // 4.63:1 on wash and on focus, 5.10:1 on paper (WCAG AA)
   muted: "#6e6e6e",
-  dim: "#8e8e8e",
-  dimrule: "#2e2e2e",
-  raised: "#1c1c1c",
+  // Muted on the lifted surface.
+  dim: "#6e6e6e",
+  // Rule on the lifted surface, and the border of a raised control on it.
+  dimrule: "#e0e0e0",
+  // A control or chip that sits on the lifted surface.
+  raised: "#ffffff",
   // Control boundaries (WCAG 1.4.11): 3.36:1 on paper, 3.06:1 on wash
   inputBorder: "#8c8c8c",
-  surfaceRaised: "#fafaf8",
+  surfaceRaised: "#fafafa",
   // faint (#9a9a9a) is deliberately absent: 2.56:1 on wash
-  hatchStroke: "#dcdcdc",
-  hatchStrokeOnInk: "#333333",
+  hatchStroke: "#e6e6e6",
+  hatchStrokeOnInk: "#d4d4d4",
   // The one colour outside black and white: a destructive action, never chrome.
   danger: "#b42318",
-  // The focused surface (`Surface tone="ink"`) and the text on it.
-  focus: "#0a0a0a",
-  onFocus: "#ffffff",
-  // Primary buttons, the active segment, a selected chip, your own avatar.
-  control: "#0a0a0a",
+  // The focused surface (`Surface tone="ink"`), the text on it and its hairline.
+  focus: "#f4f4f4",
+  onFocus: "#000000",
+  focusEdge: "#e6e6e6",
+  // Solid: primary buttons, the active segment, a selected chip, your own avatar.
+  control: "#000000",
   onControl: "#ffffff",
-  controlEdge: "#0a0a0a",
-  // A control that sits on the focused surface, such as its Vote button.
-  focusControl: "#ffffff",
-  onFocusControl: "#0a0a0a",
+  controlEdge: "#000000",
+  // 6.40:1 on control
+  onControlMuted: "#8e8e8e",
+  controlRule: "#2e2e2e",
+  controlRaised: "#1c1c1c",
+  hatchStrokeOnControl: "#333333",
+  // The solid button on the focused surface, such as its Vote button.
+  focusControl: "#000000",
+  onFocusControl: "#ffffff",
   sheet: "#ffffff",
   scrim: "rgba(10, 10, 10, 0.5)",
 } as const;
@@ -58,9 +75,15 @@ export const darkColors: Palette = {
   danger: "#f97066",
   focus: "#141414",
   onFocus: "#e6e6e6",
+  focusEdge: "#3a3a3a",
   control: "#262626",
   onControl: "#e6e6e6",
   controlEdge: "#3a3a3a",
+  // 4.62:1 on control
+  onControlMuted: "#8e8e8e",
+  controlRule: "#3a3a3a",
+  controlRaised: "#262626",
+  hatchStrokeOnControl: "#3a3a3a",
   focusControl: "#262626",
   onFocusControl: "#e6e6e6",
   sheet: "#0f0f0f",
@@ -71,6 +94,30 @@ export type ColorScheme = "light" | "dark";
 
 export const palettes: Record<ColorScheme, Palette> = {
   light: colors,
+  dark: darkColors,
+};
+
+/**
+ * Light with the focused surface still inverted to black, as before Palette v2
+ * (ADR-0064). The mobile App reads it because its screens use the ink tone for
+ * both the focused surface and solid controls; it moves to `palettes` when
+ * those screens are redrawn, and this goes.
+ */
+export const invertedFocusColors: Palette = {
+  ...colors,
+  dim: "#8e8e8e",
+  dimrule: "#2e2e2e",
+  raised: "#1c1c1c",
+  hatchStrokeOnInk: "#333333",
+  focus: "#000000",
+  onFocus: "#ffffff",
+  focusEdge: "#000000",
+  focusControl: "#ffffff",
+  onFocusControl: "#000000",
+};
+
+export const invertedFocusPalettes: Record<ColorScheme, Palette> = {
+  light: invertedFocusColors,
   dark: darkColors,
 };
 

@@ -65,6 +65,10 @@ _Avoid_: theme (when you mean the choice), dark theme, night mode
 A token named for what it does, not how it looks: `ink`, `paper`, `rule`, `wash`, `focus`, `control`, `sheet`. Each role has one value per Color scheme in `@repo/design-tokens`; screens name roles and never branch on the scheme.
 _Avoid_: black, white (when you mean ink or paper), color name
 
+**Lifted**:
+The focused surface (`focus`): the one card a screen is about, drawn one step off the page in the direction of the Color scheme (`#f4f4f4` on white, `#141414` on black) with a hairline. Distinct from **Solid** (`control`), the black fill of a primary button, a selected control, a won Set or your own chip (ADR-0064).
+_Avoid_: ink card, black card, inverted (for the focused surface)
+
 ### Product
 
 **Venue**:

@@ -30,7 +30,7 @@ export function ConsoleNav({ venueId }: { venueId: string }) {
               "rounded-block flex items-center gap-2.5 p-2.5 text-sm transition-colors",
               current
                 ? "bg-paper text-ink font-semibold"
-                : "text-dim hover:bg-raised hover:text-paper",
+                : "text-on-control-muted hover:bg-control-raised hover:text-paper",
             )}
           >
             <Icon aria-hidden="true" className="size-4" strokeWidth={1.75} />

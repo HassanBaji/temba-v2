@@ -1,5 +1,5 @@
 import {
-  palettes,
+  invertedFocusPalettes,
   radii,
   type ColorScheme,
   type Palette,
@@ -20,7 +20,7 @@ const PREVIEW_MARKS = [false, true, true, false, true, true, false, true];
 
 /** A miniature of one scheme, drawn from that scheme's palette whatever is on. */
 function SchemePreview({ scheme }: { scheme: ColorScheme }) {
-  const c: Palette = palettes[scheme];
+  const c: Palette = invertedFocusPalettes[scheme];
   const bar = (width: number, color: string) => (
     <View
       style={{ width, height: 6, borderRadius: 3, backgroundColor: color }}
@@ -54,8 +54,8 @@ function SchemePreview({ scheme }: { scheme: ColorScheme }) {
           padding: 12,
           gap: 6,
           backgroundColor: c.focus,
-          borderBottomWidth: scheme === "dark" ? hairline : 0,
-          borderBottomColor: c.dimrule,
+          borderBottomWidth: hairline,
+          borderBottomColor: c.focusEdge,
         }}
       >
         {bar(54, c.onFocus)}

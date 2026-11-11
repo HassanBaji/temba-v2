@@ -330,7 +330,12 @@ export function ChallengeAcceptDialog({
                           <CrestTile
                             size="sm"
                             initials={team.initials}
-                            tone={checked ? "ink" : "paper"}
+                            tone="paper"
+                            className={
+                              checked
+                                ? "bg-control-raised border-control-rule border"
+                                : undefined
+                            }
                           />
                           <span className="flex min-w-0 flex-col gap-0.5">
                             <span className="text-body font-semibold leading-tight">
@@ -341,7 +346,7 @@ export function ChallengeAcceptDialog({
                                 className={cn(
                                   "text-eyebrow",
                                   checked
-                                    ? "text-dim"
+                                    ? "text-on-control-muted"
                                     : "text-muted-foreground",
                                 )}
                               >
@@ -465,7 +470,7 @@ export function ChallengeAcceptDialog({
                                 className={cn(
                                   "text-[11px] leading-tight",
                                   checked
-                                    ? "text-dim"
+                                    ? "text-on-control-muted"
                                     : "text-muted-foreground",
                                 )}
                               >

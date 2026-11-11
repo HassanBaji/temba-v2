@@ -25,7 +25,7 @@ export function ChallengeShareButton({
       className={cn(
         "rounded-md",
         tone === "ink"
-          ? "bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus"
+          ? "border-dimrule bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus border"
           : "border-rule text-ink border",
       )}
       onClick={onShare}

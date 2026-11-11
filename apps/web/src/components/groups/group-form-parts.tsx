@@ -96,7 +96,7 @@ export function GroupPhotoTile({
             "text-eyebrow absolute inset-x-0 bottom-0 py-1 text-center font-medium",
             imageUrl
               ? "bg-focus/80 text-on-focus"
-              : "bg-dimrule text-on-control",
+              : "bg-control-raised text-on-control",
           )}
         >
           {label}
@@ -220,7 +220,7 @@ export function SportSegment({
             <span
               className={cn(
                 "text-eyebrow",
-                selected ? "text-dim" : "text-muted-foreground",
+                selected ? "text-on-control-muted" : "text-muted-foreground",
               )}
             >
               {sublabel}
