@@ -1,4 +1,10 @@
-import { bibColors, radii, sizes, spacing } from "@repo/design-tokens";
+import {
+  bibColors,
+  palettes,
+  radii,
+  sizes,
+  spacing,
+} from "@repo/design-tokens";
 import {
   Activity,
   CalendarCheck,
@@ -25,7 +31,7 @@ import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
 import { initialsFor } from "../primitives/initials";
 import { Text } from "../primitives/text";
-import { useColors } from "../theme/theme-provider";
+import { useColors, useColorSchemeName } from "../theme/theme-provider";
 import type { HomeNavTarget } from "./home-target";
 import type {
   CardAction,
@@ -70,16 +76,30 @@ const ACTION_ICONS: Record<CardActionIcon, LucideIcon> = {
   score: PenLine,
 };
 
-/** The Up next card: a lifted surface in both schemes, never the ink card. */
+/**
+ * The lifted roles of Palette v2 (ADR-0066). The rest of the mobile App still
+ * reads the inverted light focus, so Home's card takes these from `palettes`.
+ */
+function useLifted() {
+  const v2 = palettes[useColorSchemeName()];
+  return {
+    card: v2.focus,
+    edge: v2.focusEdge,
+    rule: v2.dimrule,
+    raised: v2.raised,
+  };
+}
+
+/** The Up next card: the lifted focus surface, with one solid button. */
 export function LiftedCard({ children }: { children: React.ReactNode }) {
-  const colors = useColors();
+  const lifted = useLifted();
   return (
     <View
       style={{
-        backgroundColor: colors.lifted,
+        backgroundColor: lifted.card,
         borderRadius: radii.surface,
         borderWidth: hairline,
-        borderColor: colors.rule,
+        borderColor: lifted.edge,
         padding: spacing.compact,
       }}
     >
@@ -111,6 +131,7 @@ function PersonChip({
   size?: number;
 }) {
   const colors = useColors();
+  const lifted = useLifted();
   const solid = person.isViewer;
   return (
     <View
@@ -120,9 +141,9 @@ function PersonChip({
         borderRadius: radii.sm,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: solid ? colors.ink : colors.liftedControl,
+        backgroundColor: solid ? colors.ink : lifted.raised,
         borderWidth: solid ? 0 : hairline,
-        borderColor: colors.rule,
+        borderColor: lifted.rule,
       }}
     >
       <Text
@@ -250,6 +271,7 @@ function PoolBar({ bar }: { bar: readonly ("taken" | "open")[] }) {
 
 function BibSwatch({ bib }: { bib: string }) {
   const colors = useColors();
+  const lifted = useLifted();
   const fill =
     bib in bibColors ? bibColors[bib as keyof typeof bibColors].fill : null;
   return (
@@ -260,7 +282,7 @@ function BibSwatch({ bib }: { bib: string }) {
         width: SWATCH,
         height: SWATCH,
         borderRadius: 3,
-        backgroundColor: fill ?? colors.liftedControl,
+        backgroundColor: fill ?? lifted.raised,
         borderWidth: hairline,
         borderColor: colors.inputBorder,
       }}
@@ -373,6 +395,7 @@ function ActionButton({
   onPress: () => void;
 }) {
   const colors = useColors();
+  const lifted = useLifted();
   const Icon = action.icon ? ACTION_ICONS[action.icon] : null;
   const foreground = primary ? colors.paper : colors.ink;
   return (
@@ -390,9 +413,9 @@ function ActionButton({
         justifyContent: "center",
         gap: 8,
         borderRadius: radii.lg,
-        backgroundColor: primary ? colors.ink : colors.liftedControl,
+        backgroundColor: primary ? colors.ink : lifted.raised,
         borderWidth: primary ? 0 : hairline,
-        borderColor: colors.rule,
+        borderColor: lifted.rule,
         opacity: pressed ? 0.85 : 1,
       })}
     >
@@ -412,6 +435,7 @@ export function UpNextCard({
   onNavigate: Navigate;
 }) {
   const colors = useColors();
+  const lifted = useLifted();
   const locale = useLocale();
   const now = useNow();
   const view = upNextCardView(item, now, locale);
@@ -533,9 +557,9 @@ export function UpNextCard({
               borderRadius: radii.sm,
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: colors.liftedControl,
+              backgroundColor: lifted.raised,
               borderWidth: hairline,
-              borderColor: colors.rule,
+              borderColor: lifted.rule,
             }}
           >
             <StepIcon size={STEP_ICON} color={colors.ink} />

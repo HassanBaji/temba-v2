@@ -199,14 +199,14 @@ export function TournamentPairDrawer({
     >
       <DrawerContent className="mt-0 h-dvh max-h-dvh rounded-none p-0 data-[vaul-drawer-direction=bottom]:mt-0 data-[vaul-drawer-direction=bottom]:max-h-dvh [&>div.bg-muted]:hidden">
         <div className="flex h-full min-h-0 flex-col">
-          <div className="bg-ink text-paper shrink-0 px-[22px] pb-[22px] pt-[22px]">
+          <div className="surface-ink bg-focus text-on-focus border-focus-edge shrink-0 border-b px-[22px] pb-[22px] pt-[22px]">
             <CloseButton
               variant="boxed"
               surface="ink"
               onClick={onClose}
               disabled={busy}
             />
-            <DrawerTitle className="text-paper font-expanded text-display mt-6 leading-none tracking-[-0.03em]">
+            <DrawerTitle className="text-on-focus font-expanded text-display mt-6 leading-none tracking-[-0.03em]">
               {m.pair.title(roundNumber)}
             </DrawerTitle>
             <DrawerDescription className="text-dim text-meta mt-2.5 leading-relaxed">

@@ -352,7 +352,7 @@ function WayCard({
         aria-hidden="true"
         className={cn(
           "inline-flex size-10 shrink-0 items-center justify-center self-start rounded-md",
-          selected ? "bg-raised" : "border-rule border",
+          selected ? "bg-control-raised" : "border-rule border",
         )}
       >
         {icon}
@@ -362,7 +362,7 @@ function WayCard({
         <span
           className={cn(
             "text-meta mt-1 block leading-relaxed",
-            selected ? "text-dim" : "text-muted-foreground",
+            selected ? "text-on-control-muted" : "text-muted-foreground",
           )}
         >
           {body}

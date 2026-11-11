@@ -186,7 +186,7 @@ function ScorerChip({
       </Text>
       <Text
         size="eyebrow"
-        style={{ color: scored ? colors.dim : colors.muted }}
+        style={{ color: scored ? colors.onControlMuted : colors.muted }}
       >
         {scored ? messages.game.played.goals(goals) : team}
       </Text>

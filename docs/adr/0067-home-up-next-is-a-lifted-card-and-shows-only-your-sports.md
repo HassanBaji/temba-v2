@@ -1,7 +1,7 @@
 # Home's Up next is a lifted card and Home shows only your sports
 
-**Status:** accepted. Narrows the "ink marks the one upcoming focus" rule for Home, in the mobile and
-web Apps.
+**Status:** accepted. Builds on [ADR-0066](./0066-the-focused-surface-lifts-in-light-too.md) (Palette
+v2) for Home, in the mobile and web Apps.
 
 Home led with an ink card for the next Game: a black card on a white page in light, and a
 lifted #141414 card in dark. Home v2 rebuilds the screen around a clearer Up next card that says
@@ -10,11 +10,11 @@ under it, and the two schemes drew the same card differently.
 
 ## Decision
 
-- **Up next is a lifted surface in both schemes.** Two Color roles join `@repo/design-tokens`:
-  `lifted` (#f4f4f4 light, #141414 dark) for the card, and `liftedControl` (#ffffff light, #262626
-  dark) for the quiet controls on it. The card's one main button is plain `ink` on `paper`, the only
-  solid thing on it. The web theme exposes them as `bg-lifted` and `bg-lifted-control`. Home no
-  longer uses `Surface tone="ink"`. Other screens keep the ink rule.
+- **Up next is the Palette v2 lifted card.** No new Color roles: the card is `focus` with its
+  `focusEdge` hairline, the quiet controls on it are `raised` with a `dimrule` border, and the one main
+  button is plain `ink` on `paper`, the only solid thing on it. On the web it is `Surface tone="ink"`
+  (`surface-focus`). The rest of the mobile App still reads `invertedFocusPalettes`, so mobile Home
+  takes these roles from `palettes` for the active scheme until the whole App moves over.
 - **One card, four bands.** When (the date said once, the countdown top right), where, who (padel as
   two sides with open seats hatched; football as the pool bar and a count by position, then Black and
   White once teams are made), and one step sentence with Details and a single main button.

@@ -43,7 +43,7 @@ export function PhotoFrame({
 }) {
   const m = useMessages().webUi.shareResult;
   return (
-    <div className="bg-raised relative flex aspect-[9/16] w-full items-center justify-center">
+    <div className="bg-control-raised relative flex aspect-[9/16] w-full items-center justify-center">
       {photoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- a local object URL
         <img
@@ -52,7 +52,7 @@ export function PhotoFrame({
           className="absolute inset-0 size-full object-cover"
         />
       ) : (
-        <div className="text-dim flex flex-col items-center gap-2">
+        <div className="text-on-control-muted flex flex-col items-center gap-2">
           <ImageIcon className="size-7" aria-hidden="true" />
           <span className="text-eyebrow">{m.yourPhoto}</span>
         </div>

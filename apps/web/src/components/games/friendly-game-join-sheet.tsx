@@ -142,19 +142,19 @@ function occupantLevelLabel(occupant: FriendlyGameJoinSheetOccupant | null) {
  * Two-seat mini-diagram on the 02b chooser. Hatch is decoration; the
  * accessible name on the option button carries the meaning.
  */
-function TwoSeatDiagram({ onInk }: { onInk: boolean }) {
+function TwoSeatDiagram({ onControl }: { onControl: boolean }) {
   return (
     <span aria-hidden="true" className="flex w-full gap-1.5">
       <span
         className={cn(
           "h-[26px] flex-1 rounded-md",
-          onInk ? "bg-on-focus" : "bg-ink",
+          onControl ? "bg-on-control" : "bg-ink",
         )}
       />
       <span
         className={cn(
           "h-[26px] flex-1 rounded-md",
-          onInk ? "hatch hatch-on-ink" : "hatch",
+          onControl ? "hatch hatch-on-control" : "hatch",
         )}
       />
     </span>
@@ -182,7 +182,7 @@ function ModeChooser({
         trailing="chevron"
         className="border-ink"
       >
-        <TwoSeatDiagram onInk={false} />
+        <TwoSeatDiagram onControl={false} />
         <SelectCardNote>{joinAlone.note}</SelectCardNote>
       </SelectCard>
 
@@ -194,9 +194,9 @@ function ModeChooser({
         title={joinWithPartner.title}
         description={joinWithPartner.description}
         trailing="chevron"
-        className="hover:bg-dimrule"
+        className="hover:bg-control-raised"
       >
-        <TwoSeatDiagram onInk />
+        <TwoSeatDiagram onControl />
         <SelectCardNote>{joinWithPartner.note}</SelectCardNote>
       </SelectCard>
     </div>

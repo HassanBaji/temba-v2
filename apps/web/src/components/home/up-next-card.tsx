@@ -21,6 +21,7 @@ import Link from "next/link";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { SportGlyph } from "~/components/temba/sport-glyph";
 import { Hatch } from "~/components/ui/hatch";
+import { Surface } from "~/components/ui/surface";
 import { bibColors } from "@repo/design-tokens";
 import {
   gameCardView,
@@ -62,7 +63,7 @@ const ACTION_ICONS: Record<CardActionIcon, LucideIcon> = {
 };
 
 function Rule() {
-  return <hr aria-hidden="true" className="border-rule my-3.5 border-t" />;
+  return <hr aria-hidden="true" className="border-dimrule my-3.5 border-t" />;
 }
 
 function PersonChip({
@@ -80,7 +81,7 @@ function PersonChip({
         large ? "size-[30px]" : "size-7",
         person.isViewer
           ? "bg-ink text-paper"
-          : "border-rule bg-lifted-control text-ink border",
+          : "border-dimrule bg-raised text-on-focus border",
       )}
     >
       {initials(person.name)}
@@ -101,10 +102,10 @@ function SeatRow({ seat }: { seat: CardSeat }) {
         <PersonChip person={seat} />
       ) : (
         <span className="relative flex size-7 shrink-0 items-center justify-center">
-          <Hatch radius="sm" className="absolute inset-0" />
+          <Hatch tone="ink" radius="sm" className="absolute inset-0" />
           <Plus
             aria-hidden="true"
-            className="text-muted-foreground relative size-3.5"
+            className="text-dim relative size-3.5"
           />
         </span>
       )}
@@ -112,12 +113,12 @@ function SeatRow({ seat }: { seat: CardSeat }) {
         <span
           className={cn(
             "text-meta block truncate",
-            seat.filled ? "font-semibold" : "text-muted-foreground",
+            seat.filled ? "font-semibold" : "text-dim",
           )}
         >
           {name}
         </span>
-        <span className="text-eyebrow text-muted-foreground block truncate">
+        <span className="text-eyebrow text-dim block truncate">
           {seat.sideLabel}
         </span>
       </span>
@@ -136,7 +137,7 @@ function WhoHeader({
     <div className="mb-2.5 flex items-baseline justify-between gap-3">
       <p className="text-meta truncate font-semibold">{header}</p>
       {scope ? (
-        <p className="text-meta text-muted-foreground min-w-0 truncate">
+        <p className="text-meta text-dim min-w-0 truncate">
           {scope}
         </p>
       ) : null}
@@ -150,7 +151,7 @@ function BibSwatch({ bib }: { bib: string }) {
   return (
     <span
       aria-hidden="true"
-      className="border-input bg-lifted-control size-3 shrink-0 rounded-[3px] border"
+      className="border-input bg-raised size-3 shrink-0 rounded-[3px] border"
       style={fill ? { backgroundColor: fill } : undefined}
     />
   );
@@ -172,7 +173,7 @@ function Who({ who }: { who: CardWho }) {
               <SeatRow key={seat.key} seat={seat} />
             ))}
           </ul>
-          <span className="text-eyebrow text-muted-foreground">
+          <span className="text-eyebrow text-dim">
             {m.home.upNextCard.vs}
           </span>
           <ul className="flex min-w-0 flex-1 flex-col gap-2">
@@ -195,16 +196,16 @@ function Who({ who }: { who: CardWho }) {
               seat === "taken" ? (
                 <span key={index} className="bg-ink flex-1 rounded-[2px]" />
               ) : (
-                <Hatch key={index} className="flex-1 rounded-[2px]" />
+                <Hatch key={index} tone="ink" className="flex-1 rounded-[2px]" />
               ),
             )}
           </div>
         </div>
         {who.positions.length > 0 ? (
-          <p className="text-eyebrow text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
+          <p className="text-eyebrow text-dim flex flex-wrap gap-x-3 gap-y-1">
             {who.positions.map((count) => (
               <span key={count.label}>
-                <span className="text-ink font-semibold">{count.value}</span>{" "}
+                <span className="text-on-focus font-semibold">{count.value}</span>{" "}
                 {count.label}
               </span>
             ))}
@@ -276,7 +277,7 @@ function ActionLink({
         FOCUS_RING,
         primary
           ? "bg-ink text-paper flex-1"
-          : "border-rule bg-lifted-control text-ink min-w-24 border",
+          : "border-dimrule bg-raised text-on-focus min-w-24 border",
       )}
     >
       {Icon ? <Icon aria-hidden="true" className="size-4" /> : null}
@@ -285,7 +286,7 @@ function ActionLink({
   );
 }
 
-/** The Up next card: a lifted surface in both schemes, never the ink card. */
+/** The Up next card: the lifted focus surface, with one solid button. */
 export function UpNextCard({ item }: { item: UpNextItem }) {
   const locale = useLocale();
   const now = useNow();
@@ -293,7 +294,7 @@ export function UpNextCard({ item }: { item: UpNextItem }) {
   const StepIcon = STEP_ICONS[view.step.icon];
 
   return (
-    <article className="bg-lifted border-rule rounded-xl border p-[18px]">
+    <Surface as="article" tone="ink" radius="surface" className="p-[18px]">
       <Link
         href={gameHref({ kind: "game", gameId: item.game.id })}
         aria-label={view.spoken}
@@ -304,14 +305,14 @@ export function UpNextCard({ item }: { item: UpNextItem }) {
           <p className="text-meta min-w-0 flex-1 truncate">
             <span className="font-semibold">{view.sportName}</span>
             {view.title ? (
-              <span className="text-muted-foreground">{`  ${view.title}`}</span>
+              <span className="text-dim">{`  ${view.title}`}</span>
             ) : null}
           </p>
           {view.countdown ? (
             <p className="text-meta shrink-0 font-semibold">{view.countdown}</p>
           ) : null}
         </div>
-        <p className="text-meta text-muted-foreground mt-3">{view.dateLine}</p>
+        <p className="text-meta text-dim mt-3">{view.dateLine}</p>
         <p className="flex flex-wrap items-baseline gap-x-2">
           <span className="font-expanded text-[52px] tabular-nums leading-none">
             {view.kickoff.time}
@@ -322,7 +323,7 @@ export function UpNextCard({ item }: { item: UpNextItem }) {
             </span>
           ) : null}
           {view.until ? (
-            <span className="text-meta text-muted-foreground">
+            <span className="text-meta text-dim">
               {view.until}
             </span>
           ) : null}
@@ -331,7 +332,7 @@ export function UpNextCard({ item }: { item: UpNextItem }) {
           <p className="mt-1.5 flex min-w-0 items-center gap-1.5">
             <MapPin
               aria-hidden="true"
-              className="text-muted-foreground size-[15px] shrink-0"
+              className="text-dim size-[15px] shrink-0"
             />
             <span dir="auto" className="min-w-0 truncate">
               {view.place}
@@ -346,12 +347,12 @@ export function UpNextCard({ item }: { item: UpNextItem }) {
         ) : null}
         <Rule />
         <div className="flex gap-3">
-          <span className="border-rule bg-lifted-control flex size-8 shrink-0 items-center justify-center rounded-sm border">
+          <span className="border-dimrule bg-raised flex size-8 shrink-0 items-center justify-center rounded-sm border">
             <StepIcon aria-hidden="true" className="size-4" />
           </span>
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="font-semibold">{view.step.title}</span>
-            <span className="text-meta text-muted-foreground">
+            <span className="text-meta text-dim">
               {view.step.body}
             </span>
           </span>
@@ -363,6 +364,6 @@ export function UpNextCard({ item }: { item: UpNextItem }) {
         ) : null}
         <ActionLink action={view.primary} item={item} primary />
       </div>
-    </article>
+    </Surface>
   );
 }

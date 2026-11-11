@@ -58,7 +58,7 @@ export function PlayedGameView({
             <Button
               size="icon"
               variant="ghost"
-              className="bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus rounded-md"
+              className="border-dimrule bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus rounded-md border"
               asChild
             >
               <Link href={href} aria-label={m.game.cta.shareResult}>

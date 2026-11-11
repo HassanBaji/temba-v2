@@ -422,7 +422,7 @@ function TabCount({ count }: { count: number | undefined }) {
   }
 
   return (
-    <span className="text-muted-foreground group-data-[state=active]/tab:text-dim">
+    <span className="text-muted-foreground group-data-[state=active]/tab:text-on-control-muted">
       {count}
     </span>
   );
