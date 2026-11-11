@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  boardTierCell,
   byKeeperThenLevel,
   levelLabel,
   shortName,
@@ -10,33 +11,50 @@ import {
   type BoardPlayer,
 } from "@repo/domain/football-board";
 import type { FootballBib } from "@repo/domain/football-lineup";
+import type { GroupMemberTierCell } from "@repo/domain/group-members-table";
 
 import { UserAvatar } from "~/components/common/user-avatar";
+import { TierCell } from "~/components/groups/tier-fish";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 import { BibChip, bibStyle } from "./football-bibs";
 
-/** A player row in their team's bib colour; the viewer's row is ringed. */
+/** A player's fish on a paper tile, so it reads on any bib colour. */
+export function TierMark({ cell }: { cell: GroupMemberTierCell }) {
+  return (
+    <span className="bg-paper text-ink flex shrink-0 items-center rounded-sm px-1 py-0.5">
+      <TierCell cell={cell} />
+    </span>
+  );
+}
+
+/**
+ * A player row in their team's bib colour; the viewer's row is ringed.
+ * `showTier` puts the player's fish where the Level sits, in a tier Group.
+ */
 export function BibRow({
   player,
   bib,
   trailing,
   onPress,
+  showTier = false,
 }: {
   player: BoardPlayer;
   bib: FootballBib;
   trailing?: React.ReactNode;
   onPress?: () => void;
+  showTier?: boolean;
 }) {
   const m = useMessages();
   const locale = useLocale();
   const name = player.isViewer ? m.common.you : shortName(player.name);
   const code = slotCode(player, locale);
+  const tierCell = showTier ? boardTierCell(player, locale) : null;
   const label = [
     name,
     code,
-    levelLabel(player.levelBand),
+    tierCell ? tierCell.label : levelLabel(player.levelBand),
     player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
   ]
     .filter(Boolean)
@@ -56,9 +74,13 @@ export function BibRow({
       {code ? (
         <span className="font-mono text-[11px] opacity-70">{code}</span>
       ) : null}
-      <span dir="ltr" className="font-expanded text-meta">
-        {levelLabel(player.levelBand)}
-      </span>
+      {tierCell ? (
+        <TierMark cell={tierCell} />
+      ) : (
+        <span dir="ltr" className="font-expanded text-meta">
+          {levelLabel(player.levelBand)}
+        </span>
+      )}
     </>
   );
   const className = cn(

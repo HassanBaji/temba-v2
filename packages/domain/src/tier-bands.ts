@@ -1,7 +1,12 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { TIER_PROVISIONAL_GAMES } from "./tier-points";
+import {
+  TIER_ADJUST_MAX_STEP,
+  TIER_POINTS_START,
+  TIER_PROVISIONAL_GAMES,
+  type TierHintReference,
+} from "./tier-points";
 
 /**
  * A Tier band is a place among a tier Group's ranked members (ADR-0067): the
@@ -221,5 +226,56 @@ function standingOf(row: TierTableRow): TierStanding {
     gamesCounted: row.gamesCounted,
     adjusted: row.adjusted,
     joinedAt: row.joinedAt,
+  };
+}
+
+export type TierHintMember = {
+  points: number;
+  provisional: boolean;
+  /** Null when the member has no football Level to read. */
+  ovr: number | null;
+};
+
+function median(values: readonly number[]) {
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1
+    ? sorted[middle]!
+    : (sorted[middle - 1]! + sorted[middle]!) / 2;
+}
+
+/**
+ * What a start hint is read against. With enough ranked members for fish, it
+ * is their median points, their median OVR and their range of points. With
+ * fewer, places are noise: the start of 1,200, the median OVR of everyone who
+ * has one, and one adjustment either way. Null when nobody has an OVR.
+ */
+export function tierHintReference(
+  members: readonly TierHintMember[],
+): TierHintReference | null {
+  const ranked = members.filter((member) => !member.provisional);
+  const rankedOvrs = ranked.flatMap((member) =>
+    member.ovr == null ? [] : [member.ovr],
+  );
+  if (ranked.length >= TIER_MIN_RANKED && rankedOvrs.length > 0) {
+    const points = ranked.map((member) => member.points);
+    return {
+      medianPoints: median(points),
+      medianOvr: median(rankedOvrs),
+      minPoints: Math.min(...points),
+      maxPoints: Math.max(...points),
+    };
+  }
+  const ovrs = members.flatMap((member) =>
+    member.ovr == null ? [] : [member.ovr],
+  );
+  if (ovrs.length === 0) {
+    return null;
+  }
+  return {
+    medianPoints: TIER_POINTS_START,
+    medianOvr: median(ovrs),
+    minPoints: TIER_POINTS_START - TIER_ADJUST_MAX_STEP,
+    maxPoints: TIER_POINTS_START + TIER_ADJUST_MAX_STEP,
   };
 }

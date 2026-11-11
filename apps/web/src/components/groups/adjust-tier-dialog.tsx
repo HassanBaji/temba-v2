@@ -129,6 +129,19 @@ function AdjustTierForm({
             </Button>
           ))}
         </div>
+        {view.suggestion ? (
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={pending || view.delta === view.suggestion.delta}
+              onClick={() => setDelta(view.suggestion?.delta ?? 0)}
+            >
+              {view.suggestion.label}
+            </Button>
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-meta text-muted-foreground">{copy.orJump}</span>
           {view.jumps.map((jump) => (

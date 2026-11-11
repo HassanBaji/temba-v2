@@ -8,6 +8,7 @@ import {
   TIER_BANDS,
   tierAdjustPreview,
   tierBandLabel,
+  tierHintReference,
   tierTable,
   type TierBand,
   type TierStanding,
@@ -18,6 +19,8 @@ import {
   TIER_ADJUST_MAX_STEP,
   TIER_POINTS_START,
   TIER_PROVISIONAL_GAMES,
+  tierHintFor,
+  tierHintOvr,
 } from "./tier-points";
 
 /** The step buttons of the adjust sheet (screen 2d). */
@@ -51,6 +54,10 @@ export type TierAdjustMember = {
   name: string;
   joinedAt: Date | string | null;
   tier?: GroupMemberTierData | null;
+  /** The member's Temba Level as `groups.byId` shows it, such as "3.4". */
+  level?: string | null;
+  /** A Group Level an Organizer set earlier, which the start hint prefers. */
+  groupLevel?: { level: string } | null;
 };
 
 /**
@@ -73,6 +80,57 @@ export function tierStandingsOf(
         ]
       : [],
   );
+}
+
+function memberOvr(member: TierAdjustMember) {
+  return tierHintOvr({
+    level: member.level == null ? null : Number(member.level),
+    groupLevel:
+      member.groupLevel == null ? null : Number(member.groupLevel.level),
+  });
+}
+
+/**
+ * The start hint for a Provisional member (D13): a move the Organizer can
+ * pick, never written without them. Null for a ranked member, without a
+ * Level to read, or when the hint is where they already are.
+ */
+function startSuggestion(
+  members: readonly TierAdjustMember[],
+  self: TierTableRow,
+  locale: Locale,
+) {
+  if (!self.provisional) {
+    return null;
+  }
+  const member = members.find((entry) => entry.userId === self.userId);
+  const reference = tierHintReference(
+    members.flatMap((entry) =>
+      entry.tier
+        ? [
+            {
+              points: entry.tier.points ?? TIER_POINTS_START,
+              provisional: entry.tier.provisional,
+              ovr: memberOvr(entry),
+            },
+          ]
+        : [],
+    ),
+  );
+  const hint = member ? tierHintFor(memberOvr(member), reference) : null;
+  if (hint == null) {
+    return null;
+  }
+  const delta = clampTierAdjustDelta(hint - self.points, self.points);
+  if (delta === 0) {
+    return null;
+  }
+  return {
+    delta,
+    label: messagesFor(locale).rating.adjust.suggested(
+      formatTierPoints(self.points + delta),
+    ),
+  };
 }
 
 /** Keeps an adjustment within the step limit and above zero points. */
@@ -337,6 +395,7 @@ export function tierAdjustSheet(input: {
             },
           ];
     }),
+    suggestion: startSuggestion(input.members, self, input.locale),
     why: copy.why(firstName(name)),
     reasons: TIER_ADJUST_REASONS.map((value) => ({
       value,

@@ -5,7 +5,10 @@ import {
   TIER_K_PROVISIONAL,
   TIER_POINTS_START,
   tierExpectedScore,
+  tierHintFor,
+  tierHintOvr,
   tierMatchDeltas,
+  tierStartHint,
   type TierMatchPlayer,
   type TierMatchResult,
 } from "./tier-points";
@@ -125,5 +128,59 @@ describe("tierMatchDeltas", () => {
       const total = deltas.reduce((sum, row) => sum + row.resultDelta, 0);
       expect(total, `run ${run}`).toBe(0);
     }
+  });
+});
+
+describe("tierStartHint", () => {
+  const group = {
+    groupMedianPoints: 1201,
+    groupMedianOvr: 65,
+    groupMinPoints: 1064,
+    groupMaxPoints: 1412,
+  };
+
+  it("adds ten points per OVR point above the Group's median", () => {
+    expect(tierStartHint({ ...group, ovr: 71 })).toBe(1261);
+    expect(tierStartHint({ ...group, ovr: 61 })).toBe(1161);
+    expect(tierStartHint({ ...group, ovr: 65 })).toBe(1201);
+  });
+
+  it("stays inside the Group's range", () => {
+    expect(tierStartHint({ ...group, ovr: 99 })).toBe(1412);
+    expect(tierStartHint({ ...group, ovr: 40 })).toBe(1064);
+  });
+
+  it("rounds to a whole point", () => {
+    expect(tierStartHint({ ...group, ovr: 72.45 })).toBe(1276);
+  });
+});
+
+describe("tierHintFor", () => {
+  const reference = {
+    medianPoints: 1200,
+    medianOvr: 60,
+    minPoints: 1000,
+    maxPoints: 1400,
+  };
+
+  it("needs an OVR and a reference", () => {
+    expect(tierHintFor(70, reference)).toBe(1300);
+    expect(tierHintFor(null, reference)).toBeNull();
+    expect(tierHintFor(70, null)).toBeNull();
+  });
+});
+
+describe("tierHintOvr", () => {
+  it("reads the Temba Level as OVR", () => {
+    expect(tierHintOvr({ level: 7, groupLevel: null })).toBe(99);
+  });
+
+  it("prefers a Group Level an Organizer set earlier", () => {
+    expect(tierHintOvr({ level: 7, groupLevel: 0 })).toBe(40);
+  });
+
+  it("is null without a Level", () => {
+    expect(tierHintOvr({ level: null, groupLevel: null })).toBeNull();
+    expect(tierHintOvr({ level: Number.NaN, groupLevel: null })).toBeNull();
   });
 });

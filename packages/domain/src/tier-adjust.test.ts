@@ -189,6 +189,62 @@ describe("tierAdjustSheet (screen 2d)", () => {
   });
 });
 
+describe("tierAdjustSheet start suggestion", () => {
+  const withLevels = THURSDAY.map((entry) => ({
+    ...entry,
+    level: entry.userId === "khalid" ? "3.7" : "3.0",
+    groupLevel: null,
+  }));
+  const view = (
+    members: readonly TierAdjustMember[],
+    userId: string,
+    delta = 0,
+  ) =>
+    tierAdjustSheet({
+      members,
+      userId,
+      delta,
+      reason: null,
+      groupName: "Thursday Football",
+      locale: "en",
+    });
+
+  it("suggests a Provisional member's start from their Temba Level", () => {
+    expect(view(withLevels, "khalid")?.suggestion).toEqual({
+      delta: 60,
+      label: "Suggested from Temba Level: 1,260",
+    });
+  });
+
+  it("prefers a Group Level an Organizer set earlier", () => {
+    const members = withLevels.map((entry) =>
+      entry.userId === "khalid"
+        ? { ...entry, groupLevel: { level: "2.3" } }
+        : entry,
+    );
+    expect(view(members, "khalid")?.suggestion?.delta).toBe(-58);
+  });
+
+  it("suggests nothing for a ranked member or without a Level", () => {
+    expect(view(withLevels, "mahmood")?.suggestion).toBeNull();
+    expect(view(THURSDAY, "khalid")?.suggestion).toBeNull();
+  });
+
+  it("reads in Arabic", () => {
+    const sheet = tierAdjustSheet({
+      members: withLevels,
+      userId: "khalid",
+      delta: 0,
+      reason: null,
+      groupName: "Thursday Football",
+      locale: "ar",
+    });
+    expect(sheet?.suggestion?.label).toBe(
+      "مقترح من مستوى Temba: \u20681,260\u2069",
+    );
+  });
+});
+
 describe("clampTierAdjustDelta", () => {
   it("keeps a move within 400 and above zero points", () => {
     expect(clampTierAdjustDelta(450, 1200)).toBe(400);

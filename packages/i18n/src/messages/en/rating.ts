@@ -57,6 +57,7 @@ export const rating = {
     orJump: "or jump:",
     into: (band: string) => `into ${band}`,
     reset: "Reset",
+    suggested: (points: string) => `Suggested from Temba Level: ${points}`,
     tierAfter: "Tier after the change",
     effect: {
       none: "No change yet. Tiers are places in the group, so when one player moves, someone moves the other way.",

@@ -24,6 +24,12 @@ import {
 } from "./format-game-start";
 import { gameDayStart } from "./game-day";
 import { sideSizeLabel } from "./game-shape";
+import type { GroupMemberTierData } from "./group-data";
+import {
+  formatTierPoints,
+  groupMemberTierView,
+  type GroupMemberTierCell,
+} from "./group-members-table";
 import { formatHomeKickoff } from "./home-countdown";
 import {
   displayLabelFromStoredBand,
@@ -46,6 +52,14 @@ export type BoardPlayer = {
   isViewer: boolean;
   unclaimed?: boolean;
   phoneMasked?: string | null;
+  /**
+   * What Make teams balances on in a tier Group: Tier points, or the start
+   * hint while Provisional. Null elsewhere, and for a viewer who cannot make
+   * teams.
+   */
+  balanceStrength?: number | null;
+  /** The player's Group Tier on a tier Group's Game; null elsewhere. */
+  tier?: GroupMemberTierData | null;
 };
 
 export type Bibs = { slot1: FootballBib; slot2: FootballBib };
@@ -226,6 +240,7 @@ export function balancedSides(
         userId: player.userId,
         role: player.role,
         levelBand: player.levelBand,
+        strength: player.balanceStrength ?? null,
       })),
       random,
     ),
@@ -234,7 +249,7 @@ export function balancedSides(
 
 /**
  * Where the Make teams screen starts: the published split when there is one,
- * otherwise a split by Level.
+ * otherwise a balanced split.
  */
 export function initialTeamsDraft(
   players: readonly BoardPlayer[],
@@ -309,20 +324,34 @@ export function byKeeperThenLevel(a: BoardPlayer, b: BoardPlayer) {
   return strength(b) - strength(a);
 }
 
+/**
+ * Keepers first, then strongest down by what Make teams balances on: the
+ * balance strength when every player has one, otherwise the Level.
+ */
+function byKeeperThenBalance(players: readonly BoardPlayer[]) {
+  if (!players.every((player) => player.balanceStrength != null)) {
+    return byKeeperThenLevel;
+  }
+  return (a: BoardPlayer, b: BoardPlayer) =>
+    Number(b.role === "keeper") - Number(a.role === "keeper") ||
+    (b.balanceStrength ?? 0) - (a.balanceStrength ?? 0);
+}
+
 export function draftSummary(
   draft: TeamsDraft,
   players: readonly BoardPlayer[],
   locale: Locale,
 ) {
+  const order = byKeeperThenBalance(players);
   const slot1 = players
     .filter((player) => draft.sides[player.userId] === 1)
-    .sort(byKeeperThenLevel);
+    .sort(order);
   const slot2 = players
     .filter((player) => draft.sides[player.userId] === 2)
-    .sort(byKeeperThenLevel);
+    .sort(order);
   const unplaced = players
     .filter((player) => !draft.sides[player.userId])
-    .sort(byKeeperThenLevel);
+    .sort(order);
   const names = bibNames(draft.bibs, locale);
   const problem = footballSidesProblem(
     {
@@ -345,11 +374,43 @@ export function draftSummary(
       problem ??
       messagesFor(locale).football.board.everyonePlaced(
         names.slot1,
-        sideAverage(slot1),
+        teamsSideAverage(slot1, locale),
         names.slot2,
-        sideAverage(slot2),
+        teamsSideAverage(slot2, locale),
       ),
   };
+}
+
+/**
+ * A side's mean as Make teams reads it: mean Tier points in a tier Group,
+ * where every player has a balance strength, otherwise the mean Level.
+ */
+export function teamsSideAverage(
+  players: readonly Pick<BoardPlayer, "levelBand" | "balanceStrength">[],
+  locale: Locale,
+) {
+  const strengths = players.flatMap((player) =>
+    player.balanceStrength == null ? [] : [player.balanceStrength],
+  );
+  if (strengths.length === 0 || strengths.length < players.length) {
+    return sideAverage(players);
+  }
+  const mean =
+    strengths.reduce((sum, strength) => sum + strength, 0) / strengths.length;
+  return messagesFor(locale).rating.tier.points(formatTierPoints(mean));
+}
+
+/** The fish, place or Provisional slot beside a player in a tier Group. */
+export function boardTierCell(
+  player: Pick<BoardPlayer, "tier">,
+  locale: Locale,
+): GroupMemberTierCell | null {
+  return (
+    groupMemberTierView(
+      { tier: player.tier ?? null, isOrganizer: false },
+      locale,
+    )?.cell ?? null
+  );
 }
 
 export function sideAverage(

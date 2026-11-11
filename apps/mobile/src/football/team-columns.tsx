@@ -1,15 +1,18 @@
 import { bibColors, radii } from "@repo/design-tokens";
 import { type FootballBib } from "@repo/domain/football-lineup";
+import type { GroupMemberTierCell } from "@repo/domain/group-members-table";
 import { Pressable, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { useTonePalette } from "../primitives/surface-context";
-import { useColorSchemeName } from "../theme/theme-provider";
+import { useColors, useColorSchemeName } from "../theme/theme-provider";
 import { Text } from "../primitives/text";
+import { TierCell } from "../groups/tier-fish";
 import { BibChip } from "./bib-picker";
 import {
+  boardTierCell,
   byKeeperThenLevel,
   levelLabel,
   shortName,
@@ -21,17 +24,39 @@ import {
 
 const ROW_HEIGHT = 44;
 
-/** A player row in their team's bib colour; the viewer's row is ringed. */
+/** A player's fish on a paper tile, so it reads on any bib colour. */
+export function TierMark({ cell }: { cell: GroupMemberTierCell }) {
+  const colors = useColors();
+  return (
+    <View
+      style={{
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+        borderRadius: radii.sm,
+        backgroundColor: colors.paper,
+      }}
+    >
+      <TierCell cell={cell} />
+    </View>
+  );
+}
+
+/**
+ * A player row in their team's bib colour; the viewer's row is ringed.
+ * `showTier` puts the player's fish where the Level sits, in a tier Group.
+ */
 export function BibRow({
   player,
   bib,
   trailing,
   onPress,
+  showTier = false,
 }: {
   player: BoardPlayer;
   bib: FootballBib;
   trailing?: React.ReactNode;
   onPress?: () => void;
+  showTier?: boolean;
 }) {
   const messages = useMessages();
   const locale = useLocale();
@@ -44,10 +69,15 @@ export function BibRow({
   const edge = blendsIn ? palette.muted : fill;
   const name = player.isViewer ? messages.common.you : shortName(player.name);
   const code = slotCode(player, locale);
+  const tierCell = showTier ? boardTierCell(player, locale) : null;
   return (
     <Pressable
       accessibilityRole={onPress ? "button" : undefined}
-      accessibilityLabel={[name, code, levelLabel(player.levelBand)]
+      accessibilityLabel={[
+        name,
+        code,
+        tierCell ? tierCell.label : levelLabel(player.levelBand),
+      ]
         .filter(Boolean)
         .join(messages.tournament.listSeparator)}
       disabled={!onPress}
@@ -78,15 +108,19 @@ export function BibRow({
           {code}
         </Text>
       ) : null}
-      <Text
-        size="meta"
-        width="expanded"
-        weight="bold"
-        ltr
-        style={{ color: on }}
-      >
-        {levelLabel(player.levelBand)}
-      </Text>
+      {tierCell ? (
+        <TierMark cell={tierCell} />
+      ) : (
+        <Text
+          size="meta"
+          width="expanded"
+          weight="bold"
+          ltr
+          style={{ color: on }}
+        >
+          {levelLabel(player.levelBand)}
+        </Text>
+      )}
       {trailing}
     </Pressable>
   );

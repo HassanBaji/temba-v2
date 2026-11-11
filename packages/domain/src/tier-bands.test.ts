@@ -5,6 +5,7 @@ import {
   tierAdjustPreview,
   tierBandCounts,
   tierBandLabel,
+  tierHintReference,
   tierIsProvisional,
   tierTable,
   type TierStanding,
@@ -213,5 +214,57 @@ describe("tierBandLabel", () => {
   it("names the fish in both languages", () => {
     expect(tierBandLabel("kanaad", "en")).toBe("Kanaad");
     expect(tierBandLabel("shark", "ar")).toBe("قرش");
+  });
+});
+
+describe("tierHintReference", () => {
+  const ranked = (points: number, ovr: number | null) => ({
+    points,
+    provisional: false,
+    ovr,
+  });
+  const provisional = (ovr: number | null) => ({
+    points: 1200,
+    provisional: true,
+    ovr,
+  });
+
+  it("reads the ranked members' median points, median OVR and range", () => {
+    expect(
+      tierHintReference([
+        ranked(1412, 80),
+        ranked(1301, 70),
+        ranked(1248, null),
+        ranked(1160, 60),
+        ranked(1064, 50),
+        provisional(99),
+      ]),
+    ).toEqual({
+      medianPoints: 1248,
+      medianOvr: 65,
+      minPoints: 1064,
+      maxPoints: 1412,
+    });
+  });
+
+  it("starts from 1,200 and one adjustment either way below four ranked", () => {
+    expect(
+      tierHintReference([
+        ranked(1230, 70),
+        provisional(60),
+        provisional(50),
+        provisional(null),
+      ]),
+    ).toEqual({
+      medianPoints: 1200,
+      medianOvr: 60,
+      minPoints: 800,
+      maxPoints: 1600,
+    });
+  });
+
+  it("is null when nobody has an OVR", () => {
+    expect(tierHintReference([provisional(null)])).toBeNull();
+    expect(tierHintReference([])).toBeNull();
   });
 });

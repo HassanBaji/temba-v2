@@ -66,6 +66,7 @@ export const rating = {
     orJump: "أو انتقل:",
     into: (band: string) => `إلى ${band}`,
     reset: "إعادة",
+    suggested: (points: string) => `مقترح من مستوى Temba: ${isolate(points)}`,
     tierAfter: "الفئة بعد التغيير",
     effect: {
       none: "لا تغيير بعد. الفئات مراكز في المجموعة، فحين يتحرّك لاعب يتحرّك غيره في الاتجاه الآخر.",

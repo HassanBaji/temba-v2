@@ -209,12 +209,35 @@ export type BalanceCandidate = {
   userId: string;
   role: FootballRole | null;
   levelBand: LevelBand | null;
+  /** Tier points, or the start hint, in a tier Group; null elsewhere. */
+  strength: number | null;
 };
 
 /**
- * Splits a roster into two sides by Level: keepers first, one to a side, then
- * a snake draft from the strongest down (A, B, B, A, A, B, …). `random`
- * breaks ties between equal Levels, so Shuffle gives another even split.
+ * What Make teams balances a player on in a tier Group (D15): their Tier
+ * points, or the start hint their Temba Level gives while they are
+ * Provisional. Null outside a tier Group, where the Level band decides.
+ */
+export function footballBalanceStrength(args: {
+  tierPoints: number | null;
+  tierProvisional: boolean;
+  ovrHint: number | null;
+}) {
+  if (args.tierPoints == null) {
+    return null;
+  }
+  if (args.tierProvisional && args.ovrHint != null) {
+    return args.ovrHint;
+  }
+  return args.tierPoints;
+}
+
+/**
+ * Splits a roster into two sides: keepers first, one to a side, then a snake
+ * draft from the strongest down (A, B, B, A, A, B, …). Strongest is by
+ * strength when every player has one, otherwise by Level band; one scale
+ * never mixes with the other. `random` breaks ties, so Shuffle gives another
+ * even split.
  */
 export function balanceFootballSides(
   players: readonly BalanceCandidate[],
@@ -228,9 +251,10 @@ export function balanceFootballSides(
       .sort((a, b) => a.key - b.key)
       .map((entry) => entry.player);
   }
-  rest = [...rest].sort(
-    (a, b) => levelBandStrength(b.levelBand) - levelBandStrength(a.levelBand),
-  );
+  const byStrength = rest.every((player) => player.strength != null);
+  const strengthOf = (player: BalanceCandidate) =>
+    byStrength ? (player.strength ?? 0) : levelBandStrength(player.levelBand);
+  rest = [...rest].sort((a, b) => strengthOf(b) - strengthOf(a));
   const slot1: string[] = [];
   const slot2: string[] = [];
   [...keepers, ...rest].forEach((player, index) => {

@@ -743,6 +743,8 @@ export function MembersTab({
             name: entry.name ?? m.mobileGroup.unnamedMember,
             joinedAt: entry.joinedAt,
             tier: entry.tier,
+            level: entry.level,
+            groupLevel: entry.groupLevel,
           }))}
           member={
             adjusting

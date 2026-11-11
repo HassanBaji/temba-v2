@@ -6,6 +6,10 @@ import {
   MatchStatusEnum,
   gamePlayers,
   gameTeamPlayers,
+  groupMembers,
+  groupRatings,
+  groupTierPoints,
+  groups,
   matchGoals,
   matchResultConfirmations,
   ratings,
@@ -13,9 +17,19 @@ import {
 
 import {
   DEFAULT_FOOTBALL_BIBS,
+  footballBalanceStrength,
   type FootballBib,
 } from "@repo/domain/football-lineup";
+import { groupHasTier } from "@repo/domain/game-rating-scope";
+import type { GroupMemberTierData } from "@repo/domain/group-data";
+import { displayedLevelFromMu } from "@repo/domain/level";
 import { type LevelBand } from "@repo/domain/level-bands";
+import { tierHintReference, tierTable } from "@repo/domain/tier-bands";
+import {
+  TIER_POINTS_START,
+  tierHintFor,
+  tierHintOvr,
+} from "@repo/domain/tier-points";
 import { squadsReadyForScore } from "@repo/domain/matchday-squad";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
@@ -24,6 +38,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { canViewGame, isGameOrganizer, requireGame } from "#src/games/access";
 import { loadChallengeSides } from "#src/games/challenge-squad";
+import { groupIsVerified } from "#src/groups/group-is-verified";
 import {
   assertFootballGame,
   footballMatch,
@@ -67,10 +82,137 @@ async function sideIndexByUser(
   return bySide;
 }
 
+type BoardTier = {
+  tier: GroupMemberTierData | null;
+  balanceStrength: number;
+};
+
+/**
+ * Each roster player's Group Tier on a tier Group's Game, and what Make teams
+ * balances them on (D15): their Tier points, or while Provisional the start
+ * hint their Temba Level gives against the Group's ranked members. Null
+ * outside a tier Group. A Provisional member's points are shown only to the
+ * viewer themselves and to an Organizer.
+ */
+async function loadBoardTiers(
+  database: DbClient,
+  args: {
+    groupId: string | null;
+    rosterUserIds: readonly string[];
+    viewerUserId: string;
+    viewerOrganizes: boolean;
+  },
+): Promise<Map<string, BoardTier> | null> {
+  if (!args.groupId) {
+    return null;
+  }
+  const group = await database.query.groups.findFirst({
+    where: eq(groups.id, args.groupId),
+    columns: { id: true, sport: true, verifiedAt: true, venueId: true },
+  });
+  if (
+    !group ||
+    !groupHasTier({ sport: group.sport, verified: groupIsVerified(group) })
+  ) {
+    return null;
+  }
+  const members = await database.query.groupMembers.findMany({
+    where: eq(groupMembers.groupId, group.id),
+    columns: { userId: true, createdAt: true },
+  });
+  const rows = await database.query.groupTierPoints.findMany({
+    where: eq(groupTierPoints.groupId, group.id),
+  });
+  const rowByUser = new Map(rows.map((row) => [row.userId, row]));
+  const table = tierTable(
+    members.map((member) => {
+      const row = rowByUser.get(member.userId);
+      return {
+        userId: member.userId,
+        points: row?.points ?? TIER_POINTS_START,
+        gamesCounted: row?.gamesCounted ?? 0,
+        adjusted: row?.confirmedAt != null,
+        joinedAt: member.createdAt,
+      };
+    }),
+  );
+
+  const userIds = [
+    ...new Set([
+      ...args.rosterUserIds,
+      ...members.map((member) => member.userId),
+    ]),
+  ];
+  const levelByUser = new Map<string, number>();
+  const groupLevelByUser = new Map<string, number>();
+  if (userIds.length > 0) {
+    const levelRows = await database.query.ratings.findMany({
+      where: and(
+        inArray(ratings.userId, userIds),
+        eq(ratings.sport, "football"),
+      ),
+      columns: { userId: true, mu: true },
+    });
+    for (const row of levelRows) {
+      levelByUser.set(row.userId, Number(displayedLevelFromMu(row.mu)));
+    }
+    const groupLevelRows = await database.query.groupRatings.findMany({
+      where: and(
+        eq(groupRatings.groupId, group.id),
+        inArray(groupRatings.userId, userIds),
+      ),
+      columns: { userId: true, mu: true },
+    });
+    for (const row of groupLevelRows) {
+      groupLevelByUser.set(row.userId, Number(displayedLevelFromMu(row.mu)));
+    }
+  }
+  const ovrOf = (userId: string) =>
+    tierHintOvr({
+      level: levelByUser.get(userId) ?? null,
+      groupLevel: groupLevelByUser.get(userId) ?? null,
+    });
+  const reference = tierHintReference(
+    table.rows.map((row) => ({
+      points: row.points,
+      provisional: row.provisional,
+      ovr: ovrOf(row.userId),
+    })),
+  );
+
+  const tableRowByUser = new Map(table.rows.map((row) => [row.userId, row]));
+  const byUser = new Map<string, BoardTier>();
+  for (const userId of args.rosterUserIds) {
+    const row = tableRowByUser.get(userId);
+    const provisional = row?.provisional ?? true;
+    const seesPoints =
+      !provisional || args.viewerOrganizes || userId === args.viewerUserId;
+    byUser.set(userId, {
+      tier: row
+        ? {
+            band: row.band,
+            place: row.place,
+            points: seesPoints ? row.points : null,
+            provisional: row.provisional,
+            gamesOfFive: row.gamesOfFive,
+            gamesCounted: row.gamesCounted,
+          }
+        : null,
+      balanceStrength:
+        footballBalanceStrength({
+          tierPoints: row?.points ?? TIER_POINTS_START,
+          tierProvisional: provisional,
+          ovrHint: tierHintFor(ovrOf(userId), reference),
+        }) ?? TIER_POINTS_START,
+    });
+  }
+  return byUser;
+}
+
 /**
  * Everything the football Game screens read beyond `games.byId`: the roster
- * with each player's role, position, Level and team, the two teams and their
- * bibs, the Score with its scorers, and what the viewer may do next.
+ * with each player's role, position, Level, Group Tier and team, the two teams
+ * and their bibs, the Score with its scorers, and what the viewer may do next.
  */
 export async function footballBoard(
   database: DbClient,
@@ -125,6 +267,13 @@ export async function footballBoard(
       levelByUser.set(row.userId, row.levelBand);
     }
   }
+
+  const tierByUser = await loadBoardTiers(database, {
+    groupId: game.groupId,
+    rosterUserIds: userIds,
+    viewerUserId: args.userId,
+    viewerOrganizes: organizer,
+  });
 
   const sides = await footballSides(database, game.id);
   const sideByUser = await sideIndexByUser(database, sides);
@@ -193,6 +342,10 @@ export async function footballBoard(
           role: row.footballRole,
           position: row.footballPosition,
           levelBand: levelByUser.get(row.user.id) ?? null,
+          balanceStrength: organizer
+            ? (tierByUser?.get(row.user.id)?.balanceStrength ?? null)
+            : null,
+          tier: tierByUser?.get(row.user.id)?.tier ?? null,
           sideIndex: sideByUser.get(row.user.id) ?? null,
           goals: goalsByUser.get(row.user.id) ?? 0,
           isViewer: row.user.id === args.userId,

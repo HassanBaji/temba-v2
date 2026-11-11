@@ -1,3 +1,5 @@
+import { ovrFromLevel } from "./football-ovr";
+
 /**
  * Tier points (ADR-0067): a whole number per member of a tier Group, moved
  * once per Match by a result part and a performance part. The constants are
@@ -10,6 +12,7 @@ export const TIER_K_PROVISIONAL = 48;
 export const TIER_SCALE = 400;
 export const TIER_PROVISIONAL_GAMES = 5;
 export const TIER_ADJUST_MAX_STEP = 400;
+export const TIER_HINT_POINTS_PER_OVR = 10;
 
 export type TierMatchResult = "slot1" | "slot2" | "draw";
 
@@ -108,4 +111,60 @@ export function tierMatchDeltas(args: {
     ...side(args.slot1, 1, slot1Mean, slot2Mean),
     ...side(args.slot2, 2, slot2Mean, slot1Mean),
   ];
+}
+
+/** The ranked members a start hint is read against (`tierHintReference`). */
+export type TierHintReference = {
+  medianPoints: number;
+  medianOvr: number;
+  minPoints: number;
+  maxPoints: number;
+};
+
+/**
+ * Where a member's Temba Level suggests their Tier points start: the Group's
+ * median points plus ten per OVR point above the Group's median OVR, kept
+ * inside the Group's range. A suggestion only (D13): nothing writes it
+ * without an Organizer.
+ */
+export function tierStartHint(args: {
+  ovr: number;
+  groupMedianPoints: number;
+  groupMedianOvr: number;
+  groupMinPoints: number;
+  groupMaxPoints: number;
+}) {
+  const raw =
+    args.groupMedianPoints +
+    TIER_HINT_POINTS_PER_OVR * (args.ovr - args.groupMedianOvr);
+  return Math.round(clamp(raw, args.groupMinPoints, args.groupMaxPoints));
+}
+
+/** The hint for a member with this OVR, or null without an OVR or a reference. */
+export function tierHintFor(
+  ovr: number | null,
+  reference: TierHintReference | null,
+) {
+  if (ovr == null || reference == null) {
+    return null;
+  }
+  return tierStartHint({
+    ovr,
+    groupMedianPoints: reference.medianPoints,
+    groupMedianOvr: reference.medianOvr,
+    groupMinPoints: reference.minPoints,
+    groupMaxPoints: reference.maxPoints,
+  });
+}
+
+/**
+ * The OVR a start hint reads: a football Group Level an Organizer set earlier
+ * wins over the Temba Level, and is never copied into Tier points.
+ */
+export function tierHintOvr(levels: {
+  level: number | null;
+  groupLevel: number | null;
+}) {
+  const level = levels.groupLevel ?? levels.level;
+  return level == null || Number.isNaN(level) ? null : ovrFromLevel(level);
 }

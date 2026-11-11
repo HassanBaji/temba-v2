@@ -107,6 +107,17 @@ function PointsPanel({
           </View>
         ))}
       </View>
+      {view.suggestion ? (
+        <View style={{ flexDirection: "row" }}>
+          <Button
+            label={view.suggestion.label}
+            size="sm"
+            variant="outline"
+            disabled={disabled || view.delta === view.suggestion.delta}
+            onPress={() => onDelta(view.suggestion?.delta ?? 0)}
+          />
+        </View>
+      ) : null}
       <View
         style={{
           flexDirection: "row",
