@@ -1,6 +1,6 @@
 # A Standing counts Unrated Games
 
-**Status:** accepted. Amends ADR-0035 and ADR-0040.
+**Status:** accepted. Amends ADR-0035 and ADR-0040. Amendment proposed: [ADR-0066](./0066-a-football-group-that-is-not-verified-has-a-group-tier.md) and [ADR-0067](./0067-tier-points-are-an-additive-ledger-and-a-tier-band-is-a-place.md) give a football Group that is not Verified a Group Tier beside its Standing.
 
 ADR-0035 kept Unrated Games out of a Standing as well as out of Levels, and ADR-0040 did the same for football. So a Group that was not Verified, and every football Group, had no Standing. Their Standing tab sorted members by name under "No Standing in this Group", even though its W-L column already counted those Games. The Verified Group gate protects Temba Levels, which every Group shares. A Standing is a position among one Group's members, so it needs no such gate.
 
