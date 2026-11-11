@@ -3,6 +3,7 @@ import { squadButtonCopy } from "@repo/domain/matchday-squad";
 import { challengeHeroSubLine } from "@repo/domain/challenge-game-details";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
+import { footballReportWrongScoreAction } from "@repo/domain/friendly-game-actions";
 import {
   gameOrganizerRequests,
   gameRequestsVisible,
@@ -27,6 +28,8 @@ import {
   leaveGameConsequence,
   leaveWaitlistAction,
   leaveWaitlistConsequence,
+  reportWrongScoreAction,
+  reportWrongScoreConsequence,
 } from "@repo/domain/game-copy";
 import {
   gameKickConfirmCopy,
@@ -69,7 +72,10 @@ import { useGameMarks } from "../marks/use-game-marks";
 import { PlayedFootballBoard } from "../played-game/played-football-board";
 import { sharePath } from "../played-game/played-friendly-game";
 import { PlayedGameView } from "../played-game/played-game-view";
-import { PlayedMenuSheet } from "../played-game/played-menu-sheet";
+import {
+  PlayedMenuSheet,
+  type PlayedMenuItem,
+} from "../played-game/played-menu-sheet";
 import { PlayedPlayerSheet } from "../played-game/played-player-sheet";
 import { gamePlayersLink } from "../player-profile/game-player-links";
 import { playerPath } from "../player-profile/player-path";
@@ -277,6 +283,14 @@ export function FootballGameDetails({
     onError: failure,
     onSettled: refresh,
   });
+  const reportWrongScore = api.games.reportWrongScore.useMutation({
+    onSuccess: () => toast.show(copy.toast.scoreReopened),
+    onError: failure,
+    onSettled: async () => {
+      await settled();
+      await utils.groups.byId.invalidate();
+    },
+  });
   const editSections = gameEditSectionsFor({
     format: game.format,
     sport: game.sport,
@@ -357,6 +371,15 @@ export function FootballGameDetails({
       description: cancelGameConsequence(model.rosterRows.length, locale),
       confirmLabel: model.organizer?.cancelLabel ?? cancelGameAction(locale),
       onConfirm: () => cancel.mutate({ gameId }),
+    });
+  }
+
+  function askReportWrongScore(matchId: string) {
+    setConfirm({
+      title: copy.confirm.reportWrongScoreTitle,
+      description: reportWrongScoreConsequence(locale),
+      confirmLabel: reportWrongScoreAction(locale),
+      onConfirm: () => reportWrongScore.mutate({ gameId, matchId }),
     });
   }
 
@@ -615,16 +638,31 @@ export function FootballGameDetails({
           locale,
         )
       : null;
-  const playedMenuItems = canAddPlayer
-    ? [
-        {
-          key: "add_player",
-          label: m.group.addPlayer.action,
-          hint: m.group.addPlayer.menuHint,
-          onPress: () => setAddPlayerOpen(true),
-        },
-      ]
-    : [];
+  const playedMatchId = board.data?.match?.id;
+  const wrongScore = footballReportWrongScoreAction(game, locale);
+  const playedMenuItems: PlayedMenuItem[] = [
+    ...(canAddPlayer
+      ? [
+          {
+            key: "add_player",
+            label: m.group.addPlayer.action,
+            hint: m.group.addPlayer.menuHint,
+            onPress: () => setAddPlayerOpen(true),
+          },
+        ]
+      : []),
+    ...(wrongScore && playedMatchId
+      ? [
+          {
+            key: wrongScore.kind,
+            label: wrongScore.label,
+            hint: wrongScore.consequence,
+            disabled: !wrongScore.enabled,
+            onPress: () => askReportWrongScore(playedMatchId),
+          },
+        ]
+      : []),
+  ];
   const refreshAll = () => {
     onRefresh();
     void board.refetch();
@@ -993,7 +1031,8 @@ export function FootballGameDetails({
           leave.isPending ||
           leaveWaitlist.isPending ||
           kick.isPending ||
-          cancel.isPending
+          cancel.isPending ||
+          reportWrongScore.isPending
         }
         onClose={() => setConfirm(null)}
       />

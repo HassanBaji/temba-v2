@@ -2,40 +2,30 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
-  courts,
   games,
   groupMembers,
   groupRatingEvents,
   groupTierEvents,
   groupTierPoints,
-  groups,
   matches,
   ratingEvents,
   user,
-  venues,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 import { type GameRow } from "#src/games/access";
-import { setUpMatch } from "#src/ratings/group-rated-match.test-support";
+import {
+  addMember,
+  footballGame,
+  playScore,
+  setUpMatch,
+  tierEvents,
+  type FootballFixture,
+} from "#src/ratings/group-rated-match.test-support";
 import { applyRatedMatch } from "#src/ratings/apply-rated-match";
 import { completeMatch } from "#src/routers/games/completeMatch";
-import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
-import { createGame } from "#src/routers/games/create";
-import { publishFootballTeams } from "#src/routers/games/publishFootballTeams";
 import { register } from "#src/routers/games/register";
-import { saveFootballScore } from "#src/routers/games/saveFootballScore";
 import { createUnclaimedPlayer } from "#src/unclaimed-players/create-unclaimed-player";
-
-const HOUR = 60 * 60 * 1000;
-const AFTER_KICKOFF = () => new Date(Date.now() + 3 * HOUR);
-
-type Fixture = {
-  db: TestDatabase;
-  organizerId: string;
-  groupId: string;
-  gameId: string;
-};
 
 async function insertUser(database: TestDatabase, name: string) {
   const [row] = await database
@@ -48,77 +38,7 @@ async function insertUser(database: TestDatabase, name: string) {
   return row.id;
 }
 
-async function footballGroup(
-  database: TestDatabase,
-  options: { verified?: boolean } = {},
-) {
-  const organizerId = await insertUser(database, "organizer");
-  const [venue] = await database
-    .insert(venues)
-    .values({
-      name: `Venue ${crypto.randomUUID()}`,
-      city: "Manama",
-      country: "BH",
-    })
-    .returning({ id: venues.id });
-  const [pitch] = await database
-    .insert(courts)
-    .values({ venueId: venue!.id, name: "Pitch 1", sport: "football" })
-    .returning({ id: courts.id });
-  const [group] = await database
-    .insert(groups)
-    .values({
-      name: "Thursday Football",
-      createdBy: organizerId,
-      sport: "football",
-      verifiedAt: options.verified ? new Date() : null,
-    })
-    .returning({ id: groups.id });
-  await database
-    .insert(groupMembers)
-    .values({ groupId: group!.id, userId: organizerId });
-  return {
-    organizerId,
-    groupId: group!.id,
-    venueId: venue!.id,
-    pitchId: pitch!.id,
-  };
-}
-
-async function footballGame(
-  database: TestDatabase,
-  options: { verified?: boolean; rated?: boolean } = {},
-): Promise<Fixture> {
-  const group = await footballGroup(database, options);
-  const windowStart = new Date(Date.now() + HOUR);
-  const created = await createGame(database, {
-    createdBy: group.organizerId,
-    groupId: group.groupId,
-    isPublic: false,
-    format: "friendly_game",
-    registrationMode: "individual",
-    venueId: group.venueId,
-    courtId: group.pitchId,
-    windowStart,
-    windowEnd: new Date(windowStart.getTime() + HOUR),
-    ...(options.rated === false ? { rated: false } : {}),
-  });
-  return {
-    db: database,
-    organizerId: group.organizerId,
-    groupId: group.groupId,
-    gameId: created.id,
-  };
-}
-
-async function addMember(f: Fixture, name: string) {
-  const userId = await insertUser(f.db, name);
-  await f.db.insert(groupMembers).values({ groupId: f.groupId, userId });
-  await register(f.db, { gameId: f.gameId, userId });
-  return userId;
-}
-
-async function addUnclaimed(f: Fixture, phoneNumber: string) {
+async function addUnclaimed(f: FootballFixture, phoneNumber: string) {
   const created = await f.db.transaction((tx) =>
     createUnclaimedPlayer(tx, {
       phoneNumber,
@@ -132,48 +52,6 @@ async function addUnclaimed(f: Fixture, phoneNumber: string) {
     .values({ groupId: f.groupId, userId: created.user.id });
   await register(f.db, { gameId: f.gameId, userId: created.user.id });
   return created.user.id;
-}
-
-async function playScore(
-  f: Fixture,
-  slot1: string[],
-  slot2: string[],
-  score: { slot1: number; slot2: number },
-) {
-  await publishFootballTeams(f.db, {
-    gameId: f.gameId,
-    userId: f.organizerId,
-    method: "manual",
-    bibs: { slot1: "black", slot2: "white" },
-    slot1,
-    slot2,
-  });
-  await saveFootballScore(
-    f.db,
-    {
-      gameId: f.gameId,
-      userId: f.organizerId,
-      slot1Goals: score.slot1,
-      slot2Goals: score.slot2,
-      scorers: [],
-    },
-    AFTER_KICKOFF(),
-  );
-  const match = await f.db.query.matches.findFirst({
-    where: eq(matches.gameId, f.gameId),
-  });
-  await confirmMatchResult(f.db, {
-    gameId: f.gameId,
-    matchId: match!.id,
-    userId: f.organizerId,
-  });
-  return match!.id;
-}
-
-async function tierEvents(database: TestDatabase, matchId: string) {
-  return database.query.groupTierEvents.findMany({
-    where: eq(groupTierEvents.matchId, matchId),
-  });
 }
 
 async function withDb(run: (database: TestDatabase) => Promise<void>) {

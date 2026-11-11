@@ -6,6 +6,8 @@ import {
   groupLevelOverrides,
   groupRatingEvents,
   groupRatings,
+  groupTierEvents,
+  groupTierPoints,
   levelOverrides,
   MatchStatusEnum,
   matches,
@@ -31,6 +33,7 @@ import {
 } from "#src/games/knockout-advance";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
 import { suspendMvp } from "#src/marks/settle-mvp";
+import { rewriteTierBands } from "#src/ratings/apply-tier-match";
 import { wrongScoreReversalEligibility } from "#src/games/wrong-score-reversal";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -114,6 +117,56 @@ async function reverseGroupRatingEvents(
 }
 
 /**
+ * Takes this Match's moves out of Tier points (ADR-0067): each `game` event's
+ * delta is subtracted from the member's points, every tier event of the Match
+ * is deleted, and the Group's fish are re-cut with a `band_change` event for
+ * anyone whose fish moved. The ledger is additive, so later Games and Tier
+ * adjustments stay as they are. A member who left the Group has no points row
+ * to change.
+ */
+async function reverseTierEvents(tx: DbClient, matchId: string, now: Date) {
+  const events = await tx.query.groupTierEvents.findMany({
+    where: and(
+      eq(groupTierEvents.matchId, matchId),
+      eq(groupTierEvents.kind, "game"),
+    ),
+  });
+  const groupId = events[0]?.groupId;
+  if (!groupId) {
+    return;
+  }
+  const rows = await tx
+    .select()
+    .from(groupTierPoints)
+    .where(eq(groupTierPoints.groupId, groupId))
+    .orderBy(groupTierPoints.userId)
+    .for("update");
+  const rowByUser = new Map(rows.map((row) => [row.userId, row]));
+
+  for (const event of events) {
+    const row = rowByUser.get(event.userId);
+    if (!row) {
+      continue;
+    }
+    const [updated] = await tx
+      .update(groupTierPoints)
+      .set({
+        points: row.points - event.delta,
+        gamesCounted: Math.max(0, row.gamesCounted - 1),
+        updatedAt: now,
+      })
+      .where(eq(groupTierPoints.id, row.id))
+      .returning();
+    if (updated) {
+      rowByUser.set(updated.userId, updated);
+    }
+  }
+
+  await tx.delete(groupTierEvents).where(eq(groupTierEvents.matchId, matchId));
+  await rewriteTierBands(tx, { groupId, matchId: null, rowByUser, now });
+}
+
+/**
  * Organizer-only "report a wrong score" reversal — Option A, the gated
  * self-service reversal resolved in
  * `.scratch/game-details-redesign/spec.md` ("Resolved decision") and
@@ -122,7 +175,8 @@ async function reverseGroupRatingEvents(
  * its four seated Users has a later Rated Match of the same kind (Temba, or
  * the same Group's, ADR-0053) — Glicko-2 updates are
  * sequential, so restoring stored before-values would otherwise silently
- * erase legitimate later changes.
+ * erase legitimate later changes. Tier points are additive and are taken
+ * back by subtraction whatever came after (ADR-0067).
  *
  * When eligible, in one transaction: restores each Rating (μ, φ, σ, Level
  * band, last rated time) to the before-values stored on this Match's rating
@@ -248,6 +302,7 @@ export async function reportWrongScore(
 
     await tx.delete(ratingEvents).where(eq(ratingEvents.matchId, locked.id));
     await reverseGroupRatingEvents(tx, locked.id, now);
+    await reverseTierEvents(tx, locked.id, now);
     await tx
       .delete(matchResultConfirmations)
       .where(eq(matchResultConfirmations.matchId, locked.id));

@@ -21,7 +21,8 @@ export type WrongScoreReversalEligibility =
  * before-values is only correct when nothing has been built on top of them
  * since — checked per seated User, not just the caller/viewer. A Match with
  * no rating events (an Unrated Game) has nothing to reverse and just reopens
- * (ADR-0062).
+ * (ADR-0062). Tier points are an additive ledger, so a football Match's tier
+ * events never block: they are subtracted whatever came after (ADR-0067).
  */
 export async function wrongScoreReversalEligibility(
   database: DbClient,

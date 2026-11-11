@@ -8,7 +8,11 @@ import {
 } from "@repo/db";
 
 import { type db } from "#src/db";
-import { tierIsProvisional, tierTable } from "@repo/domain/tier-bands";
+import {
+  tierIsProvisional,
+  tierTable,
+  type TierTable,
+} from "@repo/domain/tier-bands";
 import {
   TIER_POINTS_START,
   tierMatchDeltas,
@@ -148,14 +152,32 @@ export async function applyTierMatch(
     moved.push(delta.userId);
   }
 
-  if (moved.length > 0) {
-    await recordBandChanges(database, {
-      groupId: args.groupId,
-      matchId: args.matchId,
-      moved,
-      rowByUser,
-      now: args.now,
-    });
+  if (moved.length === 0) {
+    return;
+  }
+  const table = await rewriteTierBands(database, {
+    groupId: args.groupId,
+    matchId: args.matchId,
+    rowByUser,
+    now: args.now,
+  });
+  const placeByUser = new Map(table.rows.map((entry) => [entry.userId, entry]));
+  for (const userId of moved) {
+    const entry = placeByUser.get(userId);
+    await database
+      .update(groupTierEvents)
+      .set({
+        bandAfter: entry?.band ?? null,
+        placeAfter: entry?.place ?? null,
+        rankedCount: table.rankedCount,
+      })
+      .where(
+        and(
+          eq(groupTierEvents.userId, userId),
+          eq(groupTierEvents.matchId, args.matchId),
+          eq(groupTierEvents.kind, "game"),
+        ),
+      );
   }
 }
 
@@ -182,19 +204,18 @@ async function sideUserIds(database: DbClient, gameTeamId: string) {
 
 /**
  * Re-cuts the Group's places over its current members and writes a
- * `band_change` event wherever the stored fish differs. Each moved player's
- * `game` event gains the place and band it left them in.
+ * `band_change` event wherever the stored fish differs. `rowByUser` holds the
+ * Group's Tier points rows, locked by the caller.
  */
-async function recordBandChanges(
+export async function rewriteTierBands(
   database: DbClient,
   args: {
     groupId: string;
-    matchId: string;
-    moved: readonly string[];
+    matchId: string | null;
     rowByUser: Map<string, TierPointsRow>;
     now: Date;
   },
-) {
+): Promise<TierTable> {
   const members = await database
     .select({ userId: groupMembers.userId, joinedAt: groupMembers.createdAt })
     .from(groupMembers)
@@ -233,28 +254,14 @@ async function recordBandChanges(
       rankedCount: table.rankedCount,
       createdAt: args.now,
     });
-    await database
+    const [updated] = await database
       .update(groupTierPoints)
       .set({ band: entry.band, updatedAt: args.now })
-      .where(eq(groupTierPoints.id, row.id));
+      .where(eq(groupTierPoints.id, row.id))
+      .returning();
+    if (updated) {
+      args.rowByUser.set(updated.userId, updated);
+    }
   }
-
-  const placeByUser = new Map(table.rows.map((entry) => [entry.userId, entry]));
-  for (const userId of args.moved) {
-    const entry = placeByUser.get(userId);
-    await database
-      .update(groupTierEvents)
-      .set({
-        bandAfter: entry?.band ?? null,
-        placeAfter: entry?.place ?? null,
-        rankedCount: table.rankedCount,
-      })
-      .where(
-        and(
-          eq(groupTierEvents.userId, userId),
-          eq(groupTierEvents.matchId, args.matchId),
-          eq(groupTierEvents.kind, "game"),
-        ),
-      );
-  }
+  return table;
 }
