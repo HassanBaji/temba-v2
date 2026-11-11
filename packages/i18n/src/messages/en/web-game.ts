@@ -183,6 +183,7 @@ export const webGame = {
     stepLabel: {
       name: "Name",
       window: "When",
+      court: "Court",
       caps: "Players",
       price: "Price",
       level: "Level range",

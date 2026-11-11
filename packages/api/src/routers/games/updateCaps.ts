@@ -21,6 +21,7 @@ import {
   type GameRow,
 } from "#src/games/access";
 import { footballSides } from "#src/games/football-lineup";
+import { notify } from "#src/notifications/notify";
 import { promoteWaitlist } from "#src/games/promote-waitlist";
 import {
   firstVacantPosition,
@@ -270,6 +271,14 @@ export async function updateGameCaps(
       locale,
     });
     await promoteIntoRaisedCap(tx, locked, locale);
+    await notify(tx, {
+      type: "game_moved_to_waitlist",
+      recipients: moved.map((userId) => ({ userId, audience: "player" })),
+      excludeUserIds: [args.userId],
+      actorUserId: args.userId,
+      groupId: locked.groupId,
+      gameId: locked.id,
+    });
     return moved;
   });
   return { ok: true as const, movedToWaitlist };

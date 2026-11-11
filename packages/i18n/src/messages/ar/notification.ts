@@ -71,6 +71,13 @@ export const notification = {
       plain(" جهتك في "),
       strong(game),
     ],
+    gameMovedToWaitlist: (actor: string, game: string) => [
+      plain("خفّض "),
+      strong(actor),
+      plain(" عدد اللاعبين في "),
+      strong(game),
+      plain(". أنت الآن في قائمة الانتظار وتستعيد مكانك حين يتوفر"),
+    ],
     matchScoreToConfirm: (actor: string, game: string) => [
       plain("أدخل "),
       strong(actor),

@@ -38,6 +38,7 @@ const saved: GameEditDraft = {
   levelMax: "none",
   roundCount: null,
   seasonId: "s3",
+  courtId: "pitch-1",
 };
 
 const s3: GroupSeasonData = {
@@ -69,6 +70,7 @@ describe("gameEditDraftFrom", () => {
       levelMaxTenths: null,
       roundCount: null,
       seasonId: "s3",
+      recordedCourts: [{ id: "pitch-1" }],
     });
     expect(draft).toEqual({
       customName: "Monday kickabout",
@@ -82,13 +84,37 @@ describe("gameEditDraftFrom", () => {
       levelMax: "none",
       roundCount: null,
       seasonId: "s3",
+      courtId: "pitch-1",
     });
+  });
+
+  it("reads the Court from the live Match before the recorded one", () => {
+    expect(
+      gameEditDraftFrom({
+        name: null,
+        windowStart: null,
+        windowEnd: null,
+        pricePerPlayerFils: null,
+        playersAllowed: 4,
+        sideSize: null,
+        levelMinTenths: null,
+        levelMaxTenths: null,
+        roundCount: null,
+        seasonId: null,
+        matches: [
+          { status: "cancelled", courtId: "old" },
+          { status: "scheduled", courtId: "court-2" },
+        ],
+        recordedCourts: [],
+      }).courtId,
+    ).toBe("court-2");
   });
 
   it("shows the sections a Game needs", () => {
     expect(football).toEqual({
       name: true,
       window: true,
+      court: true,
       caps: true,
       price: true,
       level: false,
@@ -105,12 +131,51 @@ describe("gameEditDraftFrom", () => {
     ).toEqual({
       name: false,
       window: true,
+      court: false,
       caps: false,
       price: true,
       level: true,
       rounds: true,
       season: false,
     });
+  });
+});
+
+describe("Court section", () => {
+  it("locks the Court of a booked or Challenge Game", () => {
+    const base = {
+      format: "friendly_game",
+      sport: "padel",
+      groupId: null,
+      tournamentRounds: false,
+    };
+    expect(gameEditSectionsFor({ ...base, booked: true }).court).toBe(false);
+    expect(gameEditSectionsFor({ ...base, challenge: true }).court).toBe(false);
+    expect(gameEditSectionsFor(base).court).toBe(true);
+  });
+
+  it("sends a Court change after the window and names a football one a pitch", () => {
+    const draft = { ...saved, startTime: "20:00", courtId: "pitch-2" };
+    const plan = gameEditPlan(saved, draft, football, "en");
+    expect(plan.ok && plan.steps.map((step) => step.kind)).toEqual([
+      "window",
+      "court",
+    ]);
+    expect(plan.ok && plan.steps[1]).toEqual({
+      kind: "court",
+      courtId: "pitch-2",
+    });
+    expect(
+      gameEditChangeNote(saved, { ...saved, courtId: null }, football, "en"),
+    ).toBe("Pitch changed");
+    expect(
+      gameEditChangeNote(
+        { ...saved, sideSize: null },
+        { ...saved, sideSize: null, courtId: null },
+        football,
+        "en",
+      ),
+    ).toBe("Court changed");
   });
 });
 

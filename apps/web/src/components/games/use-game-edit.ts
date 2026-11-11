@@ -85,6 +85,13 @@ export function useGameEdit({
   const updateWindow = api.games.updateWindow.useMutation({
     meta: OWN_ERROR_UI,
   });
+  const updateCourt = api.games.updateCourt.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const courts = api.games.listCourts.useQuery(
+    { gameId },
+    { enabled: open && sections.court },
+  );
   const updateCaps = api.games.updateCaps.useMutation({ meta: OWN_ERROR_UI });
   const updatePrice = api.games.updatePricePerPlayer.useMutation({
     meta: OWN_ERROR_UI,
@@ -113,6 +120,9 @@ export function useGameEdit({
           windowEnd: step.windowEnd,
           ...(step.seasonId !== undefined ? { seasonId: step.seasonId } : {}),
         });
+        return 0;
+      case "court":
+        await updateCourt.mutateAsync({ gameId, courtId: step.courtId });
         return 0;
       case "caps": {
         const result = await updateCaps.mutateAsync({
@@ -232,6 +242,11 @@ export function useGameEdit({
     update,
     mvp,
     pickMvpMode,
+    courts: {
+      list: courts.data ?? [],
+      loading: courts.isLoading,
+      error: courts.error?.message ?? null,
+    },
     changed,
     note,
     seasonFix,

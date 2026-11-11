@@ -5,6 +5,7 @@ import {
   asideLabel,
   footballFormatNote,
   footballSideSizeStep,
+  gameEditCourtCopy,
   joinedCountLabel,
   playersAllowedForSideSize,
   playersCapWaitNote,
@@ -181,6 +182,48 @@ function ValueStepper({
         disabled={!canIncrease}
         onPress={onIncrease}
       />
+    </View>
+  );
+}
+
+const NO_COURT = "none";
+
+function CourtSection({
+  edit,
+  error,
+}: {
+  edit: GameEditController;
+  error: string | undefined;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = gameEditCourtCopy(edit.draft.sideSize, locale);
+  const { courts } = edit;
+  return (
+    <View style={{ gap: SECTION_GAP }}>
+      <SectionHead title={copy.title} meta={m.common.optional} />
+      {courts.status === "loading" ? (
+        <Text tone="muted">{copy.loading}</Text>
+      ) : courts.status === "error" ? (
+        <FieldError message={courts.message} />
+      ) : (
+        <ChipGrid
+          label={copy.title}
+          chips={[
+            { value: NO_COURT, label: copy.none },
+            ...courts.value.map((court) => ({
+              value: court.id,
+              label: court.name,
+            })),
+          ]}
+          isSelected={(value) => value === (edit.draft.courtId ?? NO_COURT)}
+          onSelect={(value) =>
+            edit.update({ courtId: value === NO_COURT ? null : value })
+          }
+        />
+      )}
+      <FieldError message={error} />
+      <Hint>{copy.hint}</Hint>
     </View>
   );
 }
@@ -587,7 +630,11 @@ export function GameEditSheet({
       subtitle={
         pickingSeason
           ? null
-          : venueLockedLine(context.venueName, context.courtName, locale)
+          : venueLockedLine(
+              context.venueName,
+              sections.court ? null : context.courtName,
+              locale,
+            )
       }
       action={
         <Button
@@ -685,6 +732,9 @@ export function GameEditSheet({
             <FieldError message={errorFor("window")} />
             <Hint>{editCopy.whenHint}</Hint>
           </View>
+          {sections.court ? (
+            <CourtSection edit={edit} error={errorFor("court")} />
+          ) : null}
           <View style={{ gap: SECTION_GAP }}>
             <SectionHead
               title={sections.caps ? copy.playersAndPrice : copy.price}

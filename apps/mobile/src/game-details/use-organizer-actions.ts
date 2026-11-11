@@ -87,6 +87,8 @@ export function useOrganizerActions({
     sport: game?.sport,
     groupId: game?.groupId ?? null,
     tournamentRounds: false,
+    booked: game?.booking != null,
+    challenge: game?.challenge != null,
   });
   const edit = useGameEdit({
     gameId,
@@ -280,7 +282,8 @@ export function useOrganizerActions({
     editSections,
     editContext: {
       venueName: game?.venue?.name ?? null,
-      courtName: game?.recordedCourts[0]?.name ?? null,
+      courtName:
+        game?.booking?.courtName ?? game?.recordedCourts[0]?.name ?? null,
       groupName: game?.groupName ?? null,
       joined: game?.registeredUserCount ?? 0,
       seasons: game?.groupSeasons ?? [],

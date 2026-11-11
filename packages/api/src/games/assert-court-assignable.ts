@@ -8,7 +8,7 @@ import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type GameRow } from "#src/games/access";
-import { recordedCourtIdsForGame } from "#src/games/helpers/recorded-court-ids-for-game";
+import { recordedCourtPool } from "#src/games/helpers/recorded-court-ids-for-game";
 import { venueForGame } from "#src/games/helpers/venue-for-game";
 import { consult } from "#src/soft-archive";
 import { type db } from "#src/db";
@@ -59,7 +59,7 @@ export async function assertCourtAssignable(
     });
   }
 
-  const recordedCourtIds = await recordedCourtIdsForGame(database, game.id);
+  const recordedCourtIds = await recordedCourtPool(database, game);
   if (recordedCourtIds != null && !recordedCourtIds.includes(courtId)) {
     throw new TRPCError({
       code: "FORBIDDEN",

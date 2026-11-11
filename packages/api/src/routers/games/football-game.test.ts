@@ -10,6 +10,7 @@ import {
   games,
   groups,
   matches,
+  notifications,
   ratings,
   user,
   venues,
@@ -623,6 +624,20 @@ describe("games.updateCaps on a football Game", () => {
         players[11]!.id,
         players[10]!.id,
       ]);
+      const moved = await f.db.query.notifications.findMany({
+        where: and(
+          eq(notifications.gameId, game.id),
+          eq(notifications.type, "game_moved_to_waitlist"),
+        ),
+      });
+      expect(
+        moved.map((row) => [row.recipientUserId, row.actorUserId]).sort(),
+      ).toEqual(
+        [
+          [players[10]!.id, f.organizer.id],
+          [players[11]!.id, f.organizer.id],
+        ].sort(),
+      );
 
       const registered = await f.db.query.gamePlayers.findMany({
         where: eq(gamePlayers.gameId, game.id),
