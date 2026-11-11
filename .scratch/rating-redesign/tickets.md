@@ -1,6 +1,6 @@
 # Rating redesign: implementation tickets
 
-Status: draft 2026-11-11 (Linear ids in the table at the end). Spec: `.scratch/rating-redesign/spec.md`. Decisions: `decisions.md`. Screens: `.scratch/design/ratings/screens.md`, cited by id.
+Status: published to Linear on 2026-11-11 as TEM-439 to TEM-469 (table at the end). Drafted the same day. Spec: `.scratch/rating-redesign/spec.md`. Decisions: `decisions.md`. Screens: `.scratch/design/ratings/screens.md`, cited by id.
 
 Every ticket is a vertical slice: schema, procedure files, domain, both Apps (web and mobile), i18n in `en/` and `ar/`, tests, seed where it helps a hand walk. Each ships green on `pnpm exec turbo run typecheck lint test`. Binding rules for every ticket: one endpoint per file (`.cursor/rules/api-one-endpoint-per-file.mdc`), no thin assemblers, additive API, no renamed procedure paths, every string from `@repo/i18n`, `@repo/domain` stays pure, a new migration per schema change, mobile follows the locked design rules (black and white, `Hatch` means "not yet", one ink `Surface` per screen). Copy says "organizer" where the design says "admin", and "MVP" where it says "man of the match" (decisions D1, D2). Constants are in spec section 8 and are tunable.
 
@@ -706,6 +706,40 @@ RR-18        RR-19        RR-21 ─▶ RR-22 ─▶ RR-23 ─▶ RR-24
 | RR-27 | Match dispute | none |
 | RR-28, RR-29 | Official Rank (reserved), Rating history; "rank" Avoid edits | none |
 
-## Linear issues
+## Linear issues (published 2026-11-11)
 
-Not published yet.
+Team Temba, project "Rankings: Group Elo & Tiers", labels `ready-for-agent` and `Feature`, state Backlog, titled "Ratings RR-n: …". Blockers are native Linear relations. Official Rank is not ticketed; its spec belongs with the project "Temba Competitions & Competitive Tournaments".
+
+| Ticket | Linear id | Blocked by |
+| --- | --- | --- |
+| RR-1 | [TEM-439](https://linear.app/temba-app/issue/TEM-439) | none |
+| RR-2 | [TEM-440](https://linear.app/temba-app/issue/TEM-440) | TEM-439 (RR-1) |
+| RR-3 | [TEM-441](https://linear.app/temba-app/issue/TEM-441) | TEM-439 (RR-1) |
+| RR-4 | [TEM-442](https://linear.app/temba-app/issue/TEM-442) | TEM-441 (RR-3) |
+| RR-5 | [TEM-443](https://linear.app/temba-app/issue/TEM-443) | TEM-439 (RR-1) |
+| RR-6 | [TEM-444](https://linear.app/temba-app/issue/TEM-444) | TEM-439 (RR-1) |
+| RR-7 | [TEM-445](https://linear.app/temba-app/issue/TEM-445) | TEM-439 (RR-1) |
+| RR-8 | [TEM-446](https://linear.app/temba-app/issue/TEM-446) | TEM-445 (RR-7), TEM-440 (RR-2) |
+| RR-9 | [TEM-447](https://linear.app/temba-app/issue/TEM-447) | TEM-446 (RR-8) |
+| RR-10 | [TEM-448](https://linear.app/temba-app/issue/TEM-448) | TEM-447 (RR-9) |
+| RR-11 | [TEM-449](https://linear.app/temba-app/issue/TEM-449) | TEM-448 (RR-10) |
+| RR-12 | [TEM-450](https://linear.app/temba-app/issue/TEM-450) | none |
+| RR-13 | [TEM-451](https://linear.app/temba-app/issue/TEM-451) | TEM-450 (RR-12), TEM-440 (RR-2) |
+| RR-14 | [TEM-452](https://linear.app/temba-app/issue/TEM-452) | TEM-451 (RR-13), TEM-447 (RR-9) |
+| RR-15 | [TEM-453](https://linear.app/temba-app/issue/TEM-453) | TEM-451 (RR-13) |
+| RR-16 | [TEM-454](https://linear.app/temba-app/issue/TEM-454) | TEM-450 (RR-12) |
+| RR-17 | [TEM-455](https://linear.app/temba-app/issue/TEM-455) | TEM-450 (RR-12), TEM-443 (RR-5) |
+| RR-18 | [TEM-456](https://linear.app/temba-app/issue/TEM-456) | none |
+| RR-19 | [TEM-457](https://linear.app/temba-app/issue/TEM-457) | none |
+| RR-20 | [TEM-458](https://linear.app/temba-app/issue/TEM-458) | TEM-439 (RR-1) |
+| RR-21 | [TEM-459](https://linear.app/temba-app/issue/TEM-459) | none |
+| RR-22 | [TEM-460](https://linear.app/temba-app/issue/TEM-460) | TEM-459 (RR-21) |
+| RR-23 | [TEM-461](https://linear.app/temba-app/issue/TEM-461) | TEM-460 (RR-22) |
+| RR-24 | [TEM-462](https://linear.app/temba-app/issue/TEM-462) | TEM-461 (RR-23), TEM-451 (RR-13) |
+| RR-25 | [TEM-463](https://linear.app/temba-app/issue/TEM-463) | TEM-454 (RR-16) |
+| RR-26 | [TEM-464](https://linear.app/temba-app/issue/TEM-464) | TEM-463 (RR-25) |
+| RR-27 | [TEM-465](https://linear.app/temba-app/issue/TEM-465) | TEM-451 (RR-13) |
+| RR-28 | [TEM-466](https://linear.app/temba-app/issue/TEM-466) | TEM-450 (RR-12), TEM-456 (RR-18), TEM-458 (RR-20) |
+| RR-29 | [TEM-467](https://linear.app/temba-app/issue/TEM-467) | TEM-442 (RR-4), TEM-454 (RR-16) |
+| RR-30 | [TEM-468](https://linear.app/temba-app/issue/TEM-468) | TEM-467 (RR-29) |
+| RR-31 | [TEM-469](https://linear.app/temba-app/issue/TEM-469) | TEM-466 (RR-28) |

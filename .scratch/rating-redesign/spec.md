@@ -1,6 +1,6 @@
 # Rating redesign: Group Tier, Temba Level and a reserved Official Rank
 
-Status: draft for the owner's review, 2026-11-11. The owner's eight answers (U1 to U8, section 5.1) are binding. Section 20 lists eleven defaults taken without an answer; each can be overturned before its ticket starts. Decisions are in `decisions.md`; tickets in `tickets.md` and in Linear (project "Rankings: Group Elo & Tiers"). `CONTEXT.md` is unchanged; section 4 lists what the tickets will change. ADR-0065 to ADR-0073 are drafts.
+Status: draft for the owner's review, 2026-11-11. The owner's eight answers (U1 to U8, section 5.1) are binding. Section 20 lists eleven defaults taken without an answer; each can be overturned before its ticket starts. Decisions are in `decisions.md`; tickets in `tickets.md` and in Linear as TEM-439 to TEM-469 (project "Rankings: Group Elo & Tiers"). `CONTEXT.md` is unchanged; section 4 lists what the tickets will change. ADR-0065 to ADR-0073 are drafts.
 
 Design: the owner's "Temba ratings" overview diagram and "Ratings" prototype, in `.scratch/design/ratings/` (`overview.webp`, `Ratings.html`, and their text in `screens.md`). Screens are cited by id (1a to 5c). Their copy is the source of truth for screens and states; where it conflicts with the glossary, `decisions.md` records the call. The numbers on the screens are illustrative.
 
