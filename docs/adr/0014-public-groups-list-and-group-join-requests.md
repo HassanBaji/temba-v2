@@ -1,6 +1,6 @@
 # Public Groups list, and Group join requests that create Community membership
 
-**Status:** accepted; narrowed by [ADR-0055](./0055-community-is-retired-and-a-group-links-to-a-venue.md). Group join requests no longer create a Community membership.
+**Status:** accepted; narrowed by [ADR-0055](./0055-community-is-retired-and-a-group-links-to-a-venue.md). Group join requests no longer create a Community membership. Amendment proposed: [ADR-0071](./0071-a-public-game-at-a-partner-venue-counts-for-temba-level.md) brings the Public tab back for Public Games at a partner Venue.
 
 Play now happens inside Groups. The Games hub no longer shows public pickup, so Users need a way to find a squad. The **Public Groups list** is that surface: live Public padel Groups the viewer is not in — Loose Group Public, and Club Group Public in live Communities, including Community Private.
 

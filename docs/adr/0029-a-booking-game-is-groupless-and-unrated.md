@@ -1,6 +1,6 @@
 # A Booking Game is groupless and unrated
 
-**Status:** accepted.
+**Status:** accepted. Amendment proposed: [ADR-0071](./0071-a-public-game-at-a-partner-venue-counts-for-temba-level.md) adds the Public Game, a groupless Game that counts for Temba Level.
 
 ## Unrated
 
