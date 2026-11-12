@@ -37,6 +37,7 @@ import { mergeHalfTeamsProcedure as mergeHalfTeams } from "./mergeHalfTeams";
 import { moveSeatProcedure as moveSeat } from "./moveSeat";
 import { setSeatSideProcedure as setSeatSide } from "./setSeatSide";
 import { setTeamSidesProcedure as setTeamSides } from "./setTeamSides";
+import { editTeamsProcedure as editTeams } from "./editTeams";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
 import { poolTablesProcedure as poolTables } from "./poolTables";
 import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
@@ -105,6 +106,7 @@ export const gamesRouter = createTRPCRouter({
   moveSeat,
   setSeatSide,
   setTeamSides,
+  editTeams,
   searchPartnerUsers,
   listPartnerSuggestions,
   registerWithPartner,

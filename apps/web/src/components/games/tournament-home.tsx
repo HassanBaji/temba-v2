@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeftRight,
   Ban,
   RotateCcwIcon,
   LockIcon,
@@ -77,6 +78,11 @@ import { cn } from "~/lib/utils";
 
 type GameDetail = TournamentDetails;
 
+type OpenSeatHandler = (
+  seat: { sideIndex: number; position: "left" | "right" },
+  canJoin: boolean,
+) => void;
+
 export function TournamentHome({
   data,
   sharePending,
@@ -106,6 +112,8 @@ export function TournamentHome({
   onKick,
   onKickWaitlist,
   onAddPlayer,
+  onEditTeams,
+  onOpenSeat,
   teamId,
   onTeamIdChange,
   onRegisterTeam,
@@ -146,6 +154,9 @@ export function TournamentHome({
   onKick?: (userId: string) => void;
   onKickWaitlist?: (waitlistId: string) => void;
   onAddPlayer?: () => void;
+  onEditTeams?: () => void;
+  /** The Organizer clicked an open seat; `canJoin` when they could take it too. */
+  onOpenSeat?: OpenSeatHandler;
   teamId: string;
   onTeamIdChange: (teamId: string) => void;
   onRegisterTeam: (teamId: string) => void;
@@ -208,6 +219,7 @@ export function TournamentHome({
         onCancelGame={onCancelGame}
         onKickWaitlist={onKickWaitlist}
         onAddPlayer={onAddPlayer}
+        onEditTeams={onEditTeams}
         undoDraw={
           roundsAsYouGo
             ? {
@@ -347,6 +359,7 @@ export function TournamentHome({
                     }
                   : undefined
               }
+              onOpenSeat={onOpenSeat}
               onInvite={onInvite}
             />
           </>
@@ -430,6 +443,7 @@ function TournamentPredrawTree({
   onDraw,
   onPost,
   onTakeSeat,
+  onOpenSeat,
   onInvite,
   linkToPlayers,
 }: {
@@ -476,6 +490,7 @@ function TournamentPredrawTree({
     sideIndex: number;
     position: "left" | "right";
   }) => void;
+  onOpenSeat?: OpenSeatHandler;
   onInvite?: () => void;
 }) {
   const fieldSize = teamCount ?? sides.length;
@@ -543,6 +558,7 @@ function TournamentPredrawTree({
         viewerUserId={viewerUserId}
         canTakeSeat={canTakeSeat}
         onTakeSeat={onTakeSeat}
+        onOpenSeat={onOpenSeat}
         linkToPlayers={linkToPlayers}
       />
       <TournamentSeatsGrid sides={sides} onInvite={onInvite} />
@@ -819,6 +835,7 @@ function TournamentActionsMenu({
   onCancelGame,
   onKickWaitlist,
   onAddPlayer,
+  onEditTeams,
   undoDraw,
 }: {
   title: string;
@@ -837,6 +854,7 @@ function TournamentActionsMenu({
   onCancelGame?: () => void;
   onKickWaitlist?: (waitlistId: string) => void;
   onAddPlayer?: () => void;
+  onEditTeams?: () => void;
   undoDraw?: { locked: boolean; pending: boolean; onSelect: () => void };
 }) {
   const m = useMessages();
@@ -848,6 +866,15 @@ function TournamentActionsMenu({
       label: m.group.addPlayer.action,
       icon: UserPlusIcon,
       onSelect: onAddPlayer,
+    });
+  }
+  if (onEditTeams) {
+    tools.push({
+      key: "edit_teams",
+      label: m.editTeams.action,
+      hint: m.editTeams.tournamentMenuHint,
+      icon: ArrowLeftRight,
+      onSelect: onEditTeams,
     });
   }
   if (onShare) {

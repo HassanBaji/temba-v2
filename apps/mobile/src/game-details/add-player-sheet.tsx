@@ -63,6 +63,7 @@ export function AddPlayerSheet({
   placement,
   sides,
   initialSeat = null,
+  initialSide = null,
   groupName,
   onAdded,
 }: {
@@ -73,6 +74,8 @@ export function AddPlayerSheet({
   sides: readonly { sideIndex: number; left: NamedSeat; right: NamedSeat }[];
   /** The open spot the Organizer tapped on the court. */
   initialSeat?: FriendlyGameJoinSeat | null;
+  /** The open tournament team the Organizer tapped. */
+  initialSide?: number | null;
   /** The Game's Group; with one, the sheet opens on its members. */
   groupName: string | null;
   onAdded: () => Promise<unknown>;
@@ -106,12 +109,13 @@ export function AddPlayerSheet({
   useEffect(() => {
     if (visible) {
       setPicked(initialSeat);
+      setPickedSide(initialSide);
       setMode(hasGroup ? "group" : "phone");
       setQuery("");
       setMemberIds([]);
       setFootballPicks({});
     }
-  }, [visible, initialSeat, hasGroup]);
+  }, [visible, initialSeat, initialSide, hasGroup]);
 
   const isFootball = placement === "football";
   const inGroupMode = hasGroup && mode === "group";
@@ -127,6 +131,8 @@ export function AddPlayerSheet({
     sideChoices.find((choice) => choice.sideIndex === pickedSide) ??
     sideChoices[0] ??
     null;
+  const tappedSide =
+    sideChoices.find((choice) => choice.sideIndex === pickedSide) ?? null;
   const placed =
     placement === "seat"
       ? seat != null
@@ -183,6 +189,7 @@ export function AddPlayerSheet({
       setMemberIds([]);
       setFootballPicks({});
       setPicked(null);
+      setPickedSide(null);
       await Promise.all([
         utils.games.listGroupMembersToAdd.invalidate({ gameId }),
         utils.games.previewPlayerByPhone.invalidate({ gameId }),
@@ -220,6 +227,7 @@ export function AddPlayerSheet({
         };
       }),
       seat: placement === "seat" ? (picked ?? undefined) : undefined,
+      side: tappedSide ? { sideIndex: tappedSide.sideIndex } : undefined,
     });
   }
 
@@ -257,6 +265,11 @@ export function AddPlayerSheet({
   const groupFooter = (
     <View style={{ gap: 8 }}>
       <FieldError message={addMembers.error?.message} />
+      {tappedSide ? (
+        <Text size="meta" tone="muted">
+          {m.editTeams.openSpot.firstGoesTo(tappedSide.team)}
+        </Text>
+      ) : null}
       {pickedNames ? (
         <Text size="meta" tone="muted" numberOfLines={1}>
           {pickedNames}

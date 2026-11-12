@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeftRight,
   Ban,
   CalendarXIcon,
   FlagIcon,
@@ -61,6 +62,7 @@ export function FriendlyGameMenu({
   onCloseRegistration,
   onReopenRegistration,
   onAddPlayer,
+  onEditTeams,
   onFooterAction,
   onLeaveWaitlist,
 }: {
@@ -73,6 +75,7 @@ export function FriendlyGameMenu({
   onCloseRegistration: () => void;
   onReopenRegistration: () => void;
   onAddPlayer?: () => void;
+  onEditTeams?: () => void;
   onFooterAction: (kind: FriendlyGameFooterActionKind) => void;
   onLeaveWaitlist: () => void;
 }) {
@@ -105,6 +108,15 @@ export function FriendlyGameMenu({
       hint: m.group.addPlayer.menuHint,
       icon: UserPlusIcon,
       onSelect: onAddPlayer,
+    });
+  }
+  if (onEditTeams) {
+    tools.push({
+      key: "edit_teams",
+      label: m.editTeams.action,
+      hint: m.editTeams.gameMenuHint,
+      icon: ArrowLeftRight,
+      onSelect: onEditTeams,
     });
   }
 
