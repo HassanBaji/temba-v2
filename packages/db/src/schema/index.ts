@@ -27,6 +27,7 @@ export * from "./game-courts";
 export * from "./matches";
 export * from "./tournament-draft-matches";
 export * from "./match-result-confirmations";
+export * from "./match-disputes";
 export * from "./game-players";
 export * from "./game-teams";
 export * from "./game-team-players";

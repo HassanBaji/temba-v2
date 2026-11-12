@@ -19,6 +19,7 @@ import { levelOverrides } from "./level-overrides";
 import { markKinds } from "./marks";
 import { challenges } from "./challenges";
 import { groupTierEvents } from "./group-tiers";
+import { matchDisputes } from "./match-disputes";
 
 export const NOTIFICATION_TYPE_VALUES = [
   "group_member_joined",
@@ -54,6 +55,8 @@ export const NOTIFICATION_TYPE_VALUES = [
   "tier_band_changed",
   "performance_ratings_open",
   "performance_ratings_closed",
+  "match_dispute_raised",
+  "match_dispute_decided",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];
@@ -109,6 +112,11 @@ export const notifications = pgTable(
       () => groupTierEvents.id,
       { onDelete: "cascade" },
     ),
+    /** The Match dispute a raised or decided Notification is about. */
+    matchDisputeId: uuid("match_dispute_id").references(
+      () => matchDisputes.id,
+      { onDelete: "cascade" },
+    ),
     viaWaitlist: boolean("via_waitlist").notNull().default(false),
     gameCount: integer("game_count"),
     markKind: markKinds("mark_kind"),
@@ -137,6 +145,9 @@ export const notifications = pgTable(
     challengeIdx: index("notifications_challenge_id_idx").on(table.challengeId),
     groupTierEventIdx: index("notifications_group_tier_event_id_idx").on(
       table.groupTierEventId,
+    ),
+    matchDisputeIdx: index("notifications_match_dispute_id_idx").on(
+      table.matchDisputeId,
     ),
   }),
 );
@@ -180,5 +191,9 @@ export const notificationRelations = relations(notifications, ({ one }) => ({
   groupTierEvent: one(groupTierEvents, {
     fields: [notifications.groupTierEventId],
     references: [groupTierEvents.id],
+  }),
+  matchDispute: one(matchDisputes, {
+    fields: [notifications.matchDisputeId],
+    references: [matchDisputes.id],
   }),
 }));
