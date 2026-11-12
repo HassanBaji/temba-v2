@@ -53,6 +53,7 @@ import {
 } from "@repo/domain/group-members-table";
 import type { GroupLevelOverrideData } from "@repo/domain/group-data";
 import type { LevelBand } from "@repo/domain/level-bands";
+import { formatE164 } from "@repo/domain/phone-number";
 import type { Locale } from "@repo/i18n/locale";
 import {
   levelOverrideCaption,
@@ -78,6 +79,7 @@ type GroupMember = {
   groupLevel?: { level: string } | null;
   unclaimed: boolean;
   phoneMasked: string | null;
+  phoneNumber?: string | null;
   canRename?: boolean;
 };
 
@@ -159,6 +161,7 @@ function SavedBanner({
 
 function MemberActionsMenu({
   name,
+  phoneNumber,
   setLevelHref,
   onSetGroupLevel,
   profileHref,
@@ -168,6 +171,8 @@ function MemberActionsMenu({
   onRemove,
 }: {
   name: string;
+  /** Given to a Group approver, for any member with a number. */
+  phoneNumber?: string;
   setLevelHref?: string;
   onSetGroupLevel?: () => void;
   profileHref?: string;
@@ -180,6 +185,23 @@ function MemberActionsMenu({
   const locale = useLocale();
   return (
     <ActionMenu label={m.webGroup.members.manageName(name)}>
+      {phoneNumber ? (
+        <>
+          <ActionMenuItem asChild>
+            <a href={`tel:${phoneNumber}`}>
+              {m.webGroup.members.callPhone(formatE164(phoneNumber))}
+            </a>
+          </ActionMenuItem>
+          {setLevelHref ||
+          onSetGroupLevel ||
+          profileHref ||
+          organizerAction ||
+          onRename ||
+          onRemove ? (
+            <ActionMenuSeparator />
+          ) : null}
+        </>
+      ) : null}
       {setLevelHref ? (
         <ActionMenuItem asChild>
           <Link href={setLevelHref}>{m.webGroup.members.setLevel}</Link>
@@ -598,7 +620,10 @@ export function GroupMembersTab({
       canRemovePlayers && groupMemberIsRemovable(member) && onRemovePlayer
         ? () => onRemovePlayer(target)
         : undefined;
+    const phoneNumber =
+      !member.isViewer && member.phoneNumber ? member.phoneNumber : undefined;
     if (
+      !phoneNumber &&
       !setLevelHref &&
       !setGroupLevel &&
       !profileHref &&
@@ -611,6 +636,7 @@ export function GroupMembersTab({
     return (
       <MemberActionsMenu
         name={member.name}
+        phoneNumber={phoneNumber}
         setLevelHref={setLevelHref}
         onSetGroupLevel={setGroupLevel}
         profileHref={profileHref}

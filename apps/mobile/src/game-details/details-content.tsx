@@ -12,6 +12,7 @@ import {
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
+import { editTeamsSpotLabel } from "@repo/domain/edit-teams";
 import type { FriendlyGameOrganizerPlan } from "@repo/domain/friendly-game-organizer";
 import {
   friendlyGameVacantSeatAction,
@@ -59,6 +60,8 @@ export type DetailsHandlers = {
   onMove: (sideIndex: number, position: "left" | "right") => void;
   onJoinSeat: (seat: FriendlyGameJoinSeat) => void;
   onAddPlayerAt?: (seat: FriendlyGameJoinSeat) => void;
+  /** An Organizer who could also take the spot picks: add a player, or themselves. */
+  onChooseOpenSpot?: (seat: FriendlyGameJoinSeat, own: "move" | "join") => void;
   onInvite?: () => void;
   onPressPlayer?: (row: PlayedRow) => void;
   onSaveSets: (payloads: ReturnType<typeof setsToSave>) => void;
@@ -91,6 +94,15 @@ function openSeatActionFor(
     const sideLabel = formatGameSideLabel("friendly_game", sideIndex, locale);
     const positionLabel = courtPositionLabel(position, locale);
     const seat = { sideIndex, position };
+    const chooseOpenSpot = handlers.onChooseOpenSpot;
+    if ((action === "move" || action === "join") && chooseOpenSpot) {
+      return {
+        accessibilityLabel: messages.editTeams.openSpot.title(
+          editTeamsSpotLabel("friendly_game", seat, locale),
+        ),
+        onPress: () => chooseOpenSpot(seat, action),
+      };
+    }
     if (action === "move" || action === "join") {
       return {
         accessibilityLabel:

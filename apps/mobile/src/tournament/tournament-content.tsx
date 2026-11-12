@@ -68,6 +68,7 @@ export function TournamentContent({
             organizerView?.active ? organizer?.onCancelMatch : undefined
           }
           onOpenPlayer={handlers.onOpenPlayer}
+          playerOpensActions={handlers.playerOpensActions}
         />
       ) : (
         <PreDrawView game={game} view={view} handlers={handlers} />

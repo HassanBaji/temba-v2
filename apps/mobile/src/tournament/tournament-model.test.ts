@@ -4,7 +4,11 @@ import {
 } from "@repo/domain/tournament-details-fixtures";
 import { describe, expect, it } from "vitest";
 
-import { matchHeading, scorableMatches } from "./tournament-model";
+import {
+  matchHeading,
+  scorableMatches,
+  tournamentPlayer,
+} from "./tournament-model";
 
 const now = new Date("2026-09-20T12:00:00.000Z");
 const pool = createTournamentFixtures(now);
@@ -88,5 +92,36 @@ describe("scorableMatches", () => {
     expect(first && matchHeading(pool.postedMid, first, "ar")).toBe("الجولة 1");
     const [level] = scorableMatches(knockout.knockoutOnlyMid, "ar");
     expect(level?.note).toBe("أضف شوطًا فاصلًا");
+  });
+});
+
+describe("tournamentPlayer", () => {
+  it("finds a seated player with their level", () => {
+    const occupant = pool.postedMid.sides.find((side) => side.left)?.left;
+    if (!occupant) {
+      throw new Error("expected a seated player");
+    }
+    expect(tournamentPlayer(pool.postedMid, occupant.userId)).toMatchObject({
+      userId: occupant.userId,
+      name: occupant.name,
+    });
+  });
+
+  it("falls back to a Game team member when no seat holds them", () => {
+    const member = pool.postedMid.gameTeams[0]?.members[0];
+    if (!member) {
+      throw new Error("expected a Game team member");
+    }
+    const game = { ...pool.postedMid, sides: [] };
+    expect(tournamentPlayer(game, member.id)).toEqual({
+      userId: member.id,
+      name: member.name,
+      image: member.image,
+      level: null,
+    });
+  });
+
+  it("returns null for someone not on the Tournament", () => {
+    expect(tournamentPlayer(pool.postedMid, "nobody")).toBeNull();
   });
 });

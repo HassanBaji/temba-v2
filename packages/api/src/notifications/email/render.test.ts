@@ -136,6 +136,16 @@ describe("renderNotificationEmail", () => {
     expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
   });
 
+  it("sends changed teams to the Game page", () => {
+    const email = render(
+      item({ type: "game_team_changed", audience: "player", game: GAME }),
+    );
+    expect(email.subject).toBe(
+      "Omar Aziz changed the teams on Thursday Padel. See where you play now",
+    );
+    expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
+  });
+
   it("sends a changed side to the Game page", () => {
     const email = render(
       item({ type: "game_side_changed", audience: "player", game: GAME }),

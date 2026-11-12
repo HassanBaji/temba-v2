@@ -45,9 +45,16 @@ export type PreDrawHandlers = {
   teamId: string;
   onTeamIdChange: (teamId: string) => void;
   onTakeSeat: (seat: { sideIndex: number; position: Position }) => void;
+  /** The Organizer tapped an open seat; `canJoin` when they could take it too. */
+  onOpenSeat?: (
+    seat: { sideIndex: number; position: Position },
+    canJoin: boolean,
+  ) => void;
   onRegisterTeam: (teamId: string) => void;
   onRequestLevel: () => void;
   onOpenPlayer?: (userId: string) => void;
+  /** True where tapping the player opens the Organizer's actions, not their profile. */
+  playerOpensActions?: (userId: string) => boolean;
 };
 
 function HeroSeat({
@@ -159,16 +166,21 @@ function SeatTile({
   teamLabel,
   viewerUserId,
   joinable,
+  addable,
   onJoin,
   onOpen,
+  opensActions = false,
 }: {
   occupant: Occupant | null;
   position: Position;
   teamLabel: string;
   viewerUserId: string;
   joinable: boolean;
+  /** The Organizer may add a player here. */
+  addable: boolean;
   onJoin: () => void;
   onOpen?: (userId: string) => void;
+  opensActions?: boolean;
 }) {
   const locale = useLocale();
   const messages = useMessages();
@@ -184,12 +196,16 @@ function SeatTile({
       joinable,
       locale,
     });
+    const pressable = joinable || addable;
     return (
       <Pressable
-        accessibilityRole={joinable ? "button" : undefined}
+        accessibilityRole={pressable ? "button" : undefined}
         accessibilityLabel={label}
+        accessibilityHint={
+          addable ? messages.editTeams.openSpot.addPlayerHint : undefined
+        }
         accessible
-        disabled={!joinable}
+        disabled={!pressable}
         onPress={onJoin}
         style={{
           flex: 1,
@@ -210,7 +226,9 @@ function SeatTile({
             ? position === "left"
               ? m.takeLeft
               : m.takeRight
-            : positionName}
+            : addable
+              ? messages.group.addPlayer.action
+              : positionName}
         </Text>
       </Pressable>
     );
@@ -264,7 +282,9 @@ function SeatTile({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityHint={m.opensProfileHint}
+      accessibilityHint={
+        opensActions ? m.opensPlayerActionsHint : m.opensProfileHint
+      }
       onPress={() => onOpen(occupant.userId)}
       style={({ pressed }) => ({
         flex: 1,
@@ -283,14 +303,18 @@ function TeamRow({
   viewerUserId,
   canTakeSeat,
   onTakeSeat,
+  onOpenSeat,
   onOpenPlayer,
+  playerOpensActions,
 }: {
   row: TournamentTeamRow;
   side: TournamentDetailsSide | null;
   viewerUserId: string;
   canTakeSeat: boolean;
   onTakeSeat: PreDrawHandlers["onTakeSeat"];
+  onOpenSeat: PreDrawHandlers["onOpenSeat"];
   onOpenPlayer: PreDrawHandlers["onOpenPlayer"];
+  playerOpensActions: PreDrawHandlers["playerOpensActions"];
 }) {
   const locale = useLocale();
   const messages = useMessages();
@@ -330,8 +354,17 @@ function TeamRow({
             teamLabel={teamLabel}
             viewerUserId={viewerUserId}
             joinable={joinable && side?.[position] == null}
-            onJoin={() => onTakeSeat({ sideIndex: row.sideIndex, position })}
+            addable={onOpenSeat != null && side?.[position] == null}
+            onJoin={() =>
+              onOpenSeat
+                ? onOpenSeat({ sideIndex: row.sideIndex, position }, joinable)
+                : onTakeSeat({ sideIndex: row.sideIndex, position })
+            }
             onOpen={onOpenPlayer}
+            opensActions={
+              side?.[position] != null &&
+              (playerOpensActions?.(side[position].userId) ?? false)
+            }
           />
         ))}
       </View>
@@ -343,12 +376,16 @@ function TeamsCard({
   game,
   view,
   onTakeSeat,
+  onOpenSeat,
   onOpenPlayer,
+  playerOpensActions,
 }: {
   game: TournamentDetails;
   view: TournamentHomeView;
   onTakeSeat: PreDrawHandlers["onTakeSeat"];
+  onOpenSeat: PreDrawHandlers["onOpenSeat"];
   onOpenPlayer: PreDrawHandlers["onOpenPlayer"];
+  playerOpensActions: PreDrawHandlers["playerOpensActions"];
 }) {
   const locale = useLocale();
   const messages = useMessages();
@@ -370,7 +407,9 @@ function TeamsCard({
         viewerUserId={game.viewerUserId}
         canTakeSeat={view.canTakeSeat}
         onTakeSeat={onTakeSeat}
+        onOpenSeat={onOpenSeat}
         onOpenPlayer={onOpenPlayer}
+        playerOpensActions={playerOpensActions}
       />
     </View>
   );
@@ -628,7 +667,9 @@ export function PreDrawView({
         game={game}
         view={view}
         onTakeSeat={handlers.onTakeSeat}
+        onOpenSeat={handlers.onOpenSeat}
         onOpenPlayer={handlers.onOpenPlayer}
+        playerOpensActions={handlers.playerOpensActions}
       />
       <SeatsCard view={view} />
       <ScheduleCard view={view} venueName={game.venue?.name ?? null} />

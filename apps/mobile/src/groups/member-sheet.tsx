@@ -17,6 +17,7 @@ import type { MemberSheetView } from "./group-home-model";
 export function MemberSheet({
   member,
   onClose,
+  onCall,
   onSetLevel,
   onSetGroupLevel,
   groupLevelHint,
@@ -29,6 +30,7 @@ export function MemberSheet({
 }: {
   member: MemberSheetView | null;
   onClose: () => void;
+  onCall?: (href: string) => void;
   onSetLevel?: () => void;
   onSetGroupLevel?: () => void;
   /** The member's Group Level, shown to an Organizer on that row. */
@@ -41,8 +43,17 @@ export function MemberSheet({
   onRemove?: () => void;
 }) {
   const m = useMessages();
+  const phoneHref = member?.phoneHref;
   const rows = member
     ? [
+        phoneHref && onCall ? (
+          <SheetMenuRow
+            key="call"
+            label={m.mobileGroup.members.sheet.call}
+            hint={member.phone}
+            onPress={() => onCall(phoneHref)}
+          />
+        ) : null,
         onViewProfile ? (
           <SheetMenuRow
             key="profile"
@@ -113,9 +124,9 @@ export function MemberSheet({
                   style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                 >
                   <NotOnTembaMark />
-                  {member.phoneMasked ? (
+                  {member.phone || member.phoneMasked ? (
                     <Text size="meta" tone="muted" ltr>
-                      {member.phoneMasked}
+                      {member.phone ?? member.phoneMasked}
                     </Text>
                   ) : null}
                 </View>

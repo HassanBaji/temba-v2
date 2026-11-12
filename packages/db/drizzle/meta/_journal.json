@@ -715,6 +715,13 @@
       "when": 1794468039842,
       "tag": "0101_game_album_and_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1794479218529,
+      "tag": "0102_game_team_changed",
+      "breakpoints": true
     }
   ]
 }

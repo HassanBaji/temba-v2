@@ -151,6 +151,7 @@ export const mobileGroup = {
     latestSet: (text: string) => `آخر تحديد للمستوى: ${text}`,
     sheet: {
       viewProfile: "عرض الملف",
+      call: "اتصال",
       setLevel: "تحديد المستوى",
       stillProvisional: "ما زال مبدئيًا",
       noLevelMark: "–",

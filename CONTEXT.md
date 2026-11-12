@@ -132,7 +132,7 @@ A Group join request a Group approver rejected with "Reject and block". A blocke
 _Avoid_: ban (when you mean this Group-level refusal)
 
 **Group approver**:
-Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, and make or unmake Appointed Organizers: the Group creator and Appointed Organizers, on a Loose Group and a Club Group alike. Removing a player never removes the Group creator; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once.
+Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, and make or unmake Appointed Organizers: the Group creator and Appointed Organizers, on a Loose Group and a Club Group alike. Removing a player never removes the Group creator; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. A Group approver also sees every member's full phone number, in the member menu on the Members tab, and no one else in the Group does (ADR-0078).
 _Avoid_: organizer (when you mean this write permission), group admin, Group owner (when you mean this permission rather than the one User who owns the Group)
 
 **Group owner**:
@@ -503,6 +503,10 @@ _Avoid_: auto-confirm, timeout, default result
 **Half team**:
 A Game team on a Friendly tournament with one Position taken and the other vacant, before the Pool draw. An organizer may merge two Half teams into one Game team. Distinct from an incomplete Team, which is the persistent partnership with one seat.
 _Avoid_: incomplete Team, solo, single, orphan seat
+
+**Edit teams**:
+The Organizer rewriting who plays where on a padel Friendly game or a Friendly tournament: moving a player to the other Position or another Game team, saved as one line-up (ADR-0077). Allowed on a Friendly game until a score is entered. On a Friendly tournament a Game team with a scored Match, confirmed or still waiting, keeps its two players and may only swap Positions, and after the Pool draw players only swap. Never on a Challenge Game. Distinct from setting a Game team's sides, which only swaps Left and Right inside one full Game team.
+_Avoid_: reseat, reshuffle, team builder
 
 **Pool**:
 One subset of a Friendly tournament's Game teams that plays a round robin against itself — one Pass by default, cut short or played twice by the organizer's Round count. A tournament has one or more Pools, and every Game team sits in exactly one. Not a Group: a Pool lives inside a single tournament, while a Group is a set of people who play Games. Shown to users as _group_.

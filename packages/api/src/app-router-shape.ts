@@ -85,6 +85,7 @@ type ExpectedGames =
   | "moveSeat"
   | "setSeatSide"
   | "setTeamSides"
+  | "editTeams"
   | "searchPartnerUsers"
   | "listPartnerSuggestions"
   | "registerWithPartner"

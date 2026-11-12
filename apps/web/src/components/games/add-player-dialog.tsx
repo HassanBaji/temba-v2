@@ -73,6 +73,7 @@ export function AddPlayerDialog({
   placement,
   sides,
   initialSeat = null,
+  initialSide = null,
   groupName,
   onAdded,
 }: {
@@ -83,6 +84,8 @@ export function AddPlayerDialog({
   sides: readonly { sideIndex: number; left: NamedSeat; right: NamedSeat }[];
   /** The open spot the Organizer clicked on the court. */
   initialSeat?: FriendlyGameJoinSeat | null;
+  /** The open tournament team the Organizer clicked. */
+  initialSide?: number | null;
   /** The Game's Group; with one, the dialog opens on its members. */
   groupName: string | null;
   onAdded: () => Promise<unknown>;
@@ -121,12 +124,13 @@ export function AddPlayerDialog({
   React.useEffect(() => {
     if (open) {
       setPicked(initialSeat);
+      setPickedSide(initialSide);
       setMode(hasGroup ? "group" : "phone");
       setQuery("");
       setMemberIds([]);
       setFootballPicks({});
     }
-  }, [open, initialSeat, hasGroup]);
+  }, [open, initialSeat, initialSide, hasGroup]);
 
   const isFootball = placement === "football";
   const inGroupMode = hasGroup && mode === "group";
@@ -142,6 +146,8 @@ export function AddPlayerDialog({
     sideChoices.find((choice) => choice.sideIndex === pickedSide) ??
     sideChoices[0] ??
     null;
+  const tappedSide =
+    sideChoices.find((choice) => choice.sideIndex === pickedSide) ?? null;
   const placed =
     placement === "seat"
       ? seat != null
@@ -200,6 +206,7 @@ export function AddPlayerDialog({
       setMemberIds([]);
       setFootballPicks({});
       setPicked(null);
+      setPickedSide(null);
       await Promise.all([
         utils.games.listGroupMembersToAdd.invalidate({ gameId }),
         utils.games.previewPlayerByPhone.invalidate({ gameId }),
@@ -238,6 +245,7 @@ export function AddPlayerDialog({
         };
       }),
       seat: placement === "seat" ? (picked ?? undefined) : undefined,
+      side: tappedSide ? { sideIndex: tappedSide.sideIndex } : undefined,
     });
   }
 
@@ -368,6 +376,11 @@ export function AddPlayerDialog({
             <div className="border-rule space-y-2.5 border-t pt-3.5">
               {addMembers.error ? (
                 <FieldError>{addMembers.error.message}</FieldError>
+              ) : null}
+              {tappedSide ? (
+                <p className="text-meta text-muted-foreground">
+                  {m.editTeams.openSpot.firstGoesTo(tappedSide.team)}
+                </p>
               ) : null}
               {pickedNames ? (
                 <p className="text-meta text-muted-foreground truncate">

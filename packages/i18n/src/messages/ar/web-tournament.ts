@@ -8,6 +8,11 @@ export const webTournament = {
   gameActions: "إجراءات المباراة",
   kickName: (name: string) => `أخرِج ${name}`,
   kickFromWaitlist: (name: string) => `أخرِج ${name} من قائمة الانتظار`,
+  player: {
+    openActions: (name: string) => `${name}، افتح إجراءات اللاعب`,
+    level: (level: string) => `المستوى ${isolate(level)}`,
+    viewProfile: "عرض الملف الشخصي",
+  },
   draw: {
     undoing: "جارٍ التراجع…",
     posting: "جارٍ النشر…",

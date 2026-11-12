@@ -103,6 +103,7 @@ export const mobileTournament = {
     takeLeft: "Take left",
     takeRight: "Take right",
     opensProfileHint: "Opens their Player profile",
+    opensPlayerActionsHint: "Opens player actions",
     showFewerTeams: "Show fewer Game teams",
     needCompleteTeam:
       "You need a complete Team whose both partners are allowed on this Game.",
