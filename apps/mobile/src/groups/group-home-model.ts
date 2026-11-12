@@ -30,6 +30,7 @@ import {
   levelOverrideReasonLabel,
 } from "@repo/domain/level-slider";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
+import { formatE164 } from "@repo/domain/phone-number";
 import type { ResultMarkVariant } from "@repo/domain/result-mark";
 import { paddedForm, standingRecordLabel } from "@repo/domain/season-standing";
 import { isolate } from "@repo/i18n/bidi";
@@ -191,6 +192,11 @@ export function memberIsRemovable(
   return canRemovePlayers && groupMemberIsRemovable(entry);
 }
 
+/** A Group approver is sent members' numbers; their own row has nothing to call. */
+export function memberIsCallable(entry: GroupLeaderboardEntryData) {
+  return !entry.isViewer && entry.phoneNumber != null;
+}
+
 export function memberOrganizerAction(
   entry: GroupLeaderboardEntryData,
   canAppointOrganizers: boolean,
@@ -242,7 +248,8 @@ export function memberRowView(
       ((canSetLevel || canSetGroupLevel) && !entry.isViewer) ||
       memberIsRemovable(entry, canRemovePlayers) ||
       memberOrganizerAction(entry, canAppointOrganizers) != null ||
-      (canSetNicknames && !entry.isViewer),
+      memberIsCallable(entry) ||
+      canSetNicknames,
     accessibilityLabel: [
       entry.isViewer ? m.mobileGroup.members.rowYou(spokenName) : spokenName,
       entry.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
@@ -309,6 +316,9 @@ export type MemberSheetView = {
   caption: string | null;
   unclaimed: boolean;
   phoneMasked: string | null;
+  /** The full number, isolated for display, when the viewer may call. */
+  phone: string | null;
+  phoneHref: string | null;
   summary: string;
   letter: string | null;
   level: string | null;
@@ -331,6 +341,7 @@ export function memberSheetView(
   const caption = override
     ? levelOverrideCaption({ ...override, locale })
     : null;
+  const callable = memberIsCallable(entry) ? entry.phoneNumber : null;
   return {
     name,
     nickname: entry.nickname?.name ?? null,
@@ -338,6 +349,8 @@ export function memberSheetView(
     caption: groupMemberTableCaption(entry, locale),
     unclaimed: entry.unclaimed,
     phoneMasked: entry.phoneMasked,
+    phone: callable ? isolate(formatE164(callable)) : null,
+    phoneHref: callable ? `tel:${callable}` : null,
     summary: [caption, m.members.ratedMatches(entry.ratedMatchCount)]
       .filter(Boolean)
       .join(" · "),

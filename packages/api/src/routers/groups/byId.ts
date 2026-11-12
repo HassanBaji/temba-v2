@@ -471,13 +471,14 @@ export async function groupById(
             adderId: row.user.addedByUserId,
             callerId: args.userId,
           }));
+        const phoneNumber = isApprover ? row.user.phoneNumber : null;
         const nickname = visibleMemberNickname(row, {
           userId: args.userId,
           isApprover,
         });
         return [
           row.userId,
-          { unclaimed, phoneMasked, canRename, nickname },
+          { unclaimed, phoneMasked, phoneNumber, canRename, nickname },
         ] as const;
       }),
     ),
@@ -808,6 +809,7 @@ export async function groupById(
         appointedUserIds.has(entry.userId) && entry.userId !== group.createdBy,
       unclaimed: memberMarkByUserId.get(entry.userId)?.unclaimed ?? false,
       phoneMasked: memberMarkByUserId.get(entry.userId)?.phoneMasked ?? null,
+      phoneNumber: memberMarkByUserId.get(entry.userId)?.phoneNumber ?? null,
       canRename: memberMarkByUserId.get(entry.userId)?.canRename ?? false,
       nickname: memberMarkByUserId.get(entry.userId)?.nickname ?? null,
     };

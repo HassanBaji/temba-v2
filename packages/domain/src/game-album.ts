@@ -394,7 +394,7 @@ export function myNotesByMonth(
   for (const note of sorted) {
     const key = productDayKey(note.game.playedAt).slice(0, 7);
     const last = months[months.length - 1];
-    if (last && last.key === key) {
+    if (last?.key === key) {
       last.notes.push(note);
     } else {
       months.push({

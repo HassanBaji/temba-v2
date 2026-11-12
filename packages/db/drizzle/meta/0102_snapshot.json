@@ -1,5 +1,5 @@
 {
-  "id": "bd8328f4-7c31-45b2-90d1-ecd563587fff",
+  "id": "cf4a0724-9b27-499a-8bfb-dcc467ea59c2",
   "prevId": "5e4ba81a-2eeb-4e45-9379-fc8549a01b3a",
   "version": "7",
   "dialect": "postgresql",
@@ -6482,32 +6482,6 @@
           "notNull": true,
           "default": 0
         },
-        "nickname": {
-          "name": "nickname",
-          "type": "varchar(24)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "nickname_visibility": {
-          "name": "nickname_visibility",
-          "type": "member_nickname_visibility",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'approvers'"
-        },
-        "nickname_updated_by_id": {
-          "name": "nickname_updated_by_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "nickname_updated_at": {
-          "name": "nickname_updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -6565,19 +6539,6 @@
             "id"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "group_members_nickname_updated_by_id_user_id_fk": {
-          "name": "group_members_nickname_updated_by_id_user_id_fk",
-          "tableFrom": "group_members",
-          "tableTo": "user",
-          "columnsFrom": [
-            "nickname_updated_by_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -9403,14 +9364,6 @@
         "private"
       ]
     },
-    "public.member_nickname_visibility": {
-      "name": "member_nickname_visibility",
-      "schema": "public",
-      "values": [
-        "approvers",
-        "group"
-      ]
-    },
     "public.challenge_status": {
       "name": "challenge_status",
       "schema": "public",
@@ -9523,7 +9476,8 @@
         "challenge_squad_named",
         "challenge_rematch_nudge",
         "match_score_to_confirm",
-        "game_moved_to_waitlist"
+        "game_moved_to_waitlist",
+        "game_team_changed"
       ]
     }
   },

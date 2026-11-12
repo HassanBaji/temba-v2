@@ -6,6 +6,7 @@ import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import { levelRangeRequestCard } from "@repo/domain/level-range-request";
 import {
   tournamentSeatLabel,
+  type TournamentDetailRow,
   type TournamentDetails,
   type TournamentDetailsSide,
   type TournamentHomeView,
@@ -45,6 +46,11 @@ export type PreDrawHandlers = {
   teamId: string;
   onTeamIdChange: (teamId: string) => void;
   onTakeSeat: (seat: { sideIndex: number; position: Position }) => void;
+  /** The Organizer tapped an open seat; `canJoin` when they could take it too. */
+  onOpenSeat?: (
+    seat: { sideIndex: number; position: Position },
+    canJoin: boolean,
+  ) => void;
   onRegisterTeam: (teamId: string) => void;
   onRequestLevel: () => void;
   onOpenPlayer?: (userId: string) => void;
@@ -161,6 +167,7 @@ function SeatTile({
   teamLabel,
   viewerUserId,
   joinable,
+  addable,
   onJoin,
   onOpen,
   opensActions = false,
@@ -170,6 +177,8 @@ function SeatTile({
   teamLabel: string;
   viewerUserId: string;
   joinable: boolean;
+  /** The Organizer may add a player here. */
+  addable: boolean;
   onJoin: () => void;
   onOpen?: (userId: string) => void;
   opensActions?: boolean;
@@ -188,12 +197,16 @@ function SeatTile({
       joinable,
       locale,
     });
+    const pressable = joinable || addable;
     return (
       <Pressable
-        accessibilityRole={joinable ? "button" : undefined}
+        accessibilityRole={pressable ? "button" : undefined}
         accessibilityLabel={label}
+        accessibilityHint={
+          addable ? messages.editTeams.openSpot.addPlayerHint : undefined
+        }
         accessible
-        disabled={!joinable}
+        disabled={!pressable}
         onPress={onJoin}
         style={{
           flex: 1,
@@ -214,7 +227,9 @@ function SeatTile({
             ? position === "left"
               ? m.takeLeft
               : m.takeRight
-            : positionName}
+            : addable
+              ? messages.group.addPlayer.action
+              : positionName}
         </Text>
       </Pressable>
     );
@@ -289,6 +304,7 @@ function TeamRow({
   viewerUserId,
   canTakeSeat,
   onTakeSeat,
+  onOpenSeat,
   onOpenPlayer,
   playerOpensActions,
 }: {
@@ -297,6 +313,7 @@ function TeamRow({
   viewerUserId: string;
   canTakeSeat: boolean;
   onTakeSeat: PreDrawHandlers["onTakeSeat"];
+  onOpenSeat: PreDrawHandlers["onOpenSeat"];
   onOpenPlayer: PreDrawHandlers["onOpenPlayer"];
   playerOpensActions: PreDrawHandlers["playerOpensActions"];
 }) {
@@ -338,7 +355,12 @@ function TeamRow({
             teamLabel={teamLabel}
             viewerUserId={viewerUserId}
             joinable={joinable && side?.[position] == null}
-            onJoin={() => onTakeSeat({ sideIndex: row.sideIndex, position })}
+            addable={onOpenSeat != null && side?.[position] == null}
+            onJoin={() =>
+              onOpenSeat
+                ? onOpenSeat({ sideIndex: row.sideIndex, position }, joinable)
+                : onTakeSeat({ sideIndex: row.sideIndex, position })
+            }
             onOpen={onOpenPlayer}
             opensActions={
               side?.[position] != null &&
@@ -355,12 +377,14 @@ function TeamsCard({
   game,
   view,
   onTakeSeat,
+  onOpenSeat,
   onOpenPlayer,
   playerOpensActions,
 }: {
   game: TournamentDetails;
   view: TournamentHomeView;
   onTakeSeat: PreDrawHandlers["onTakeSeat"];
+  onOpenSeat: PreDrawHandlers["onOpenSeat"];
   onOpenPlayer: PreDrawHandlers["onOpenPlayer"];
   playerOpensActions: PreDrawHandlers["playerOpensActions"];
 }) {
@@ -384,6 +408,7 @@ function TeamsCard({
         viewerUserId={game.viewerUserId}
         canTakeSeat={view.canTakeSeat}
         onTakeSeat={onTakeSeat}
+        onOpenSeat={onOpenSeat}
         onOpenPlayer={onOpenPlayer}
         playerOpensActions={playerOpensActions}
       />
@@ -535,11 +560,7 @@ function ScheduleCard({
   );
 }
 
-export function DetailRows({
-  rows,
-}: {
-  rows: readonly { label: string; value: string }[];
-}) {
+export function DetailRows({ rows }: { rows: readonly TournamentDetailRow[] }) {
   if (rows.length === 0) {
     return null;
   }
@@ -548,20 +569,26 @@ export function DetailRows({
       {rows.map((row, index) => (
         <View key={`${row.label}-${row.value}`}>
           {index > 0 ? <Hairline /> : null}
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              gap: 12,
-              padding: 16,
-            }}
-          >
-            <Text size="body" tone="muted">
-              {row.label}
-            </Text>
-            <Text size="body" style={{ flexShrink: 1, textAlign: "right" }}>
-              {row.value}
-            </Text>
+          <View style={{ padding: 16, gap: 4 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+            >
+              <Text size="body" tone="muted">
+                {row.label}
+              </Text>
+              <Text size="body" style={{ flexShrink: 1, textAlign: "right" }}>
+                {row.value}
+              </Text>
+            </View>
+            {row.note ? (
+              <Text size="meta" tone="muted">
+                {row.note}
+              </Text>
+            ) : null}
           </View>
         </View>
       ))}
@@ -643,6 +670,7 @@ export function PreDrawView({
         game={game}
         view={view}
         onTakeSeat={handlers.onTakeSeat}
+        onOpenSeat={handlers.onOpenSeat}
         onOpenPlayer={handlers.onOpenPlayer}
         playerOpensActions={handlers.playerOpensActions}
       />

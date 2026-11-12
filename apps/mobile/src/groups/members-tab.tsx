@@ -19,7 +19,7 @@ import {
   levelSliderStartTenths,
 } from "@repo/domain/level-slider";
 import { useState, type ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { Linking, Pressable, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
@@ -36,6 +36,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import {
+  memberIsCallable,
   memberIsRemovable,
   memberList,
   memberOrganizerAction,
@@ -445,6 +446,7 @@ export function MembersTab({
         (canAddPlayers && entry.canRename === true) ||
         memberIsRemovable(entry, canRemovePlayers) ||
         memberOrganizerAction(entry, canAppointOrganizers) != null ||
+        memberIsCallable(entry) ||
         canSetNicknames),
   );
   const viewerEntry = leaderboard.find((entry) => entry.isViewer);
@@ -628,6 +630,7 @@ export function MembersTab({
       <MemberSheet
         member={selected ? memberSheetView(selected, locale, apiOrigin) : null}
         onClose={() => setSelectedUserId(null)}
+        onCall={(href) => void Linking.openURL(href)}
         onSetLevel={
           canSetLevel
             ? () => {

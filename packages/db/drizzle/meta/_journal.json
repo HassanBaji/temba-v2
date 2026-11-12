@@ -719,8 +719,15 @@
     {
       "idx": 102,
       "version": "7",
-      "when": 1794486316040,
-      "tag": "0102_member_nicknames",
+      "when": 1794479218529,
+      "tag": "0102_game_team_changed",
+      "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1794498019002,
+      "tag": "0103_member_nicknames",
       "breakpoints": true
     }
   ]
