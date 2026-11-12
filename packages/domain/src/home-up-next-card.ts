@@ -135,8 +135,12 @@ function isPresent(value: string | null | undefined): value is string {
 }
 
 /** "Today", else the full date: the card says the day once. */
-export function upNextCardDay(startsAt: Date, locale: Locale): string {
-  if (gameDayProximity(startsAt) === "today") {
+export function upNextCardDay(
+  startsAt: Date,
+  now: Date,
+  locale: Locale,
+): string {
+  if (gameDayProximity(startsAt, now) === "today") {
     return messagesFor(locale).home.upNextCard.today;
   }
   return formatGameDay(startsAt, locale, { weekday: "long", month: "long" });
@@ -538,7 +542,7 @@ export function gameCardView(
   const kickoff = formatHomeKickoff(startsAt, locale);
   const title = gameCustomName(game) ?? game.groupName ?? null;
   const place = placeLine(game, locale);
-  const day = upNextCardDay(startsAt, locale);
+  const day = upNextCardDay(startsAt, now, locale);
   const sportName = sportLabel(item.sport, locale) ?? "";
 
   return {
