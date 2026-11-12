@@ -253,6 +253,7 @@ type ExpectedUsers =
   | "profileStats"
   | "playerProfile"
   | "footballProfile"
+  | "memberPhone"
   | "setPreferredPosition"
   | "setName"
   | "completeOnboarding"
