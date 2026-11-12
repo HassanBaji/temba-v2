@@ -28,6 +28,8 @@ export type PlayedGameViewProps = {
   columns: [PlayedColumn, PlayedColumn];
   unplaced?: PlayedRow[];
   facts: PlayedFact[];
+  /** The Match dispute row, under the facts. */
+  dispute?: React.ReactNode;
   refreshing: boolean;
   onRefresh: () => void;
   onShare: () => void;
@@ -45,6 +47,7 @@ export function PlayedGameView({
   columns,
   unplaced,
   facts,
+  dispute,
   refreshing,
   onRefresh,
   onShare,
@@ -77,6 +80,7 @@ export function PlayedGameView({
       />
       {marks}
       <InfoRows rows={facts} />
+      {dispute}
       <View>
         <Button
           label={m.game.cta.shareResult}

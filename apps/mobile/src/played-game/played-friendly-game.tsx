@@ -21,6 +21,7 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { MarksSection } from "../marks/marks-section";
 import { MvpRow } from "../marks/mvp-row";
 import { useGameMarks } from "../marks/use-game-marks";
+import { MatchDisputeSection } from "./match-dispute-section";
 import { PlayedGameView } from "./played-game-view";
 import { PlayedMenuSheet, type PlayedMenuItem } from "./played-menu-sheet";
 import { PlayedPadelBoard } from "./played-padel-board";
@@ -140,6 +141,7 @@ export function PlayedFriendlyGame({
         marks={<MarksSection marks={marks} />}
         columns={model.columns}
         facts={model.facts}
+        dispute={<MatchDisputeSection match={match} />}
         refreshing={refreshing}
         onRefresh={() => {
           onRefresh();

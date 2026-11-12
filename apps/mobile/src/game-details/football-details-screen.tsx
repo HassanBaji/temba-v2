@@ -74,6 +74,7 @@ import { MvpRow } from "../marks/mvp-row";
 import { useGameMarks } from "../marks/use-game-marks";
 import { PlayedFootballBoard } from "../played-game/played-football-board";
 import { sharePath } from "../played-game/played-friendly-game";
+import { MatchDisputeSection } from "../played-game/match-dispute-section";
 import { PlayedGameView } from "../played-game/played-game-view";
 import {
   PlayedMenuSheet,
@@ -737,6 +738,7 @@ export function FootballGameDetails({
       columns={playedModel.columns}
       unplaced={playedModel.unplaced}
       facts={playedModel.facts}
+      dispute={<MatchDisputeSection match={boardMatch} />}
       refreshing={refreshing}
       onRefresh={refreshAll}
       onShare={() => router.push(sharePath(gameId))}
