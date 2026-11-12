@@ -15,7 +15,6 @@ import {
   groupStandingRecordLabel,
   levelCellView,
   viewerMayAdjustTier,
-  viewerMaySetGroupLevel,
 } from "./group-home-chrome";
 
 describe("groupHomeBackTarget", () => {
@@ -260,49 +259,6 @@ describe("groupMemberOrganizerAction", () => {
     assert.equal(
       groupMemberOrganizerAction({ ...player, unclaimed: true }),
       null,
-    );
-  });
-});
-
-describe("viewerMaySetGroupLevel", () => {
-  const viewer = { isViewer: true, isOrganizer: false };
-  const organizer = { isViewer: true, isOrganizer: true };
-
-  it("lets an Organizer of a padel Group set Group Levels", () => {
-    assert.equal(
-      viewerMaySetGroupLevel({
-        sport: "padel",
-        canCreateGame: true,
-        leaderboard: [viewer],
-      }),
-      true,
-    );
-    assert.equal(
-      viewerMaySetGroupLevel({
-        sport: "padel",
-        canCreateGame: false,
-        leaderboard: [organizer],
-      }),
-      true,
-    );
-  });
-
-  it("refuses a member who does not organize, and a football Group", () => {
-    assert.equal(
-      viewerMaySetGroupLevel({
-        sport: "padel",
-        canCreateGame: false,
-        leaderboard: [viewer],
-      }),
-      false,
-    );
-    assert.equal(
-      viewerMaySetGroupLevel({
-        sport: "football",
-        canCreateGame: true,
-        leaderboard: [organizer],
-      }),
-      false,
     );
   });
 });

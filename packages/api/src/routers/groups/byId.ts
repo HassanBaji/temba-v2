@@ -668,6 +668,9 @@ export async function groupById(
     }
   }
 
+  // A padel Group keeps only a Standing (ADR-0066), so it reads no Group
+  // Level. A football Group Level an Organizer set earlier is read only as the
+  // Tier start hint's preferred Level, never shown and never copied.
   const groupLevelByUserId = new Map<
     string,
     {
@@ -677,7 +680,7 @@ export async function groupById(
       provisional: boolean;
     }
   >();
-  if (memberUserIds.length > 0) {
+  if (group.sport === "football" && memberUserIds.length > 0) {
     const groupRatingRows = await database.query.groupRatings.findMany({
       where: and(
         eq(groupRatings.groupId, group.id),
@@ -926,7 +929,11 @@ export async function groupById(
       ovr: rating?.ovr ?? null,
       ratedMatchCount: rating?.ratedMatchCount ?? 0,
       levelOverride: levelOverrideByUserId.get(entry.userId) ?? null,
-      /** The member's Group Level (ADR-0053), null before their first. */
+      /**
+       * Null on padel, whose Group Level is retired (ADR-0066). On football,
+       * a Group Level an Organizer set earlier, read only by the Tier start
+       * hint.
+       */
       groupLevel: groupLevelByUserId.get(entry.userId) ?? null,
       formMarks: groupFormMarks(formMatches, entry.userId, now),
       lastPlayedAt: memberLastPlayedAt(formMatches, entry.userId),

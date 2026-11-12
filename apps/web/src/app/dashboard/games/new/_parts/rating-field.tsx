@@ -3,7 +3,10 @@ import { useLocale } from "~/components/locale-provider";
 import { FieldDescription } from "~/components/ui/field";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { SelectCard } from "~/components/ui/select-card";
-import { createRatingChoice } from "@repo/domain/create-game-flow";
+import {
+  createRatingChoice,
+  createRatingChoiceShown,
+} from "@repo/domain/create-game-flow";
 import type { Sport } from "@repo/domain/sport";
 
 export function RatingField({
@@ -20,6 +23,15 @@ export function RatingField({
   onRated: (rated: boolean) => void;
 }) {
   const locale = useLocale();
+  if (
+    !createRatingChoiceShown({
+      sport: sport ?? "padel",
+      hasGroup: true,
+      groupVerified,
+    })
+  ) {
+    return null;
+  }
   const choice = createRatingChoice({ groupVerified, rated, locale, sport });
   return (
     <section className="flex flex-col gap-3">

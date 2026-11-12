@@ -26,6 +26,7 @@ import { listPublicProcedure as listPublic } from "./listPublic";
 import { listSeasonsProcedure as listSeasons } from "./listSeasons";
 import { mineProcedure as mine } from "./mine";
 import { mineLooseProcedure as mineLoose } from "./mineLoose";
+import { myStandingsProcedure as myStandings } from "./myStandings";
 import { pendingLinkRequestsProcedure as pendingLinkRequests } from "./pendingLinkRequests";
 import { unlinkFromVenueProcedure as unlinkFromVenue } from "./unlinkFromVenue";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
@@ -104,4 +105,5 @@ export const groupsRouter = createTRPCRouter({
   tierHistory,
   ratingSettings,
   updateRatingSettings,
+  myStandings,
 });

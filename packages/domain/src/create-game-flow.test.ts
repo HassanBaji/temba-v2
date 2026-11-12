@@ -1091,10 +1091,26 @@ describe("football create flow", () => {
 });
 
 describe("Rating choice", () => {
-  it("shows for any Game on a Group", () => {
+  it("shows on a Verified Group and a tier Group, not on a padel Group that is not Verified", () => {
+    assert.equal(
+      createRatingChoiceShown({
+        sport: "padel",
+        hasGroup: true,
+        groupVerified: true,
+      }),
+      true,
+    );
+    assert.equal(
+      createRatingChoiceShown({
+        sport: "padel",
+        hasGroup: true,
+        groupVerified: false,
+      }),
+      false,
+    );
     assert.equal(
       createRatingChoiceShown({ sport: "padel", hasGroup: true }),
-      true,
+      false,
     );
     assert.equal(
       createRatingChoiceShown({
@@ -1174,9 +1190,9 @@ describe("Rating choice", () => {
       rated: true,
       locale: "en",
     });
-    assert.equal(loose.scope, "group");
-    assert.equal(loose.options[0]?.description, "Counts for group rating");
-    assert.equal(loose.note, messagesFor("en").you.ratingScope.group_note);
+    assert.equal(loose.scope, "unrated");
+    assert.equal(loose.scopeLabel, "Unrated");
+    assert.equal(loose.note, messagesFor("en").you.ratingScope.unrated_note);
 
     const unrated = createRatingChoice({
       groupVerified: true,
@@ -1216,12 +1232,12 @@ describe("Rating choice", () => {
 
   it("reads in Arabic", () => {
     const choice = createRatingChoice({
-      groupVerified: false,
+      groupVerified: true,
       rated: true,
       locale: "ar",
     });
     assert.equal(choice.title, messagesFor("ar").you.ratingScope.title);
-    assert.equal(choice.scopeLabel, messagesFor("ar").you.ratingScope.group);
+    assert.equal(choice.scopeLabel, messagesFor("ar").you.ratingScope.temba);
   });
 });
 

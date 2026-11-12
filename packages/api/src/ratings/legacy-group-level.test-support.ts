@@ -4,8 +4,13 @@ import { groupRatingEvents, groupRatings, ratings } from "@repo/db";
 
 import { type db } from "#src/db";
 import { isUniqueViolation } from "#src/db/is-unique-violation";
-import { groupRatingStart } from "@repo/domain/group-level";
-import type { RatingGlickoState } from "@repo/domain/level";
+import {
+  INITIAL_PHI,
+  bandFromLevel,
+  initialRatingFromChoice,
+  levelFromMu,
+  type RatingGlickoState,
+} from "@repo/domain/level";
 import {
   rateDoublesMatch,
   type DoublesOutcome,
@@ -13,8 +18,22 @@ import {
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-/** A Group Level reads one Group, so every group rated Match weighs the same. */
-export const GROUP_RATING_WEIGHT = 1;
+const GROUP_RATING_WEIGHT = 1;
+
+/** φ floor of a first Group Level, as the retired writer started one. */
+const GROUP_RATING_START_PHI = 250;
+
+function groupRatingStart(
+  temba: Pick<RatingGlickoState, "mu" | "phi" | "sigma"> | null,
+): RatingGlickoState {
+  const base = temba ?? initialRatingFromChoice("unknown");
+  return {
+    mu: base.mu,
+    phi: Math.min(INITIAL_PHI, Math.max(base.phi, GROUP_RATING_START_PHI)),
+    sigma: base.sigma,
+    levelBand: bandFromLevel(levelFromMu(base.mu)),
+  };
+}
 
 type Slots = {
   slot1: [string, string];
@@ -22,11 +41,11 @@ type Slots = {
 };
 
 /**
- * Group Levels for the four Users of a completed Match on a group rated Game
- * (ADR-0053). A User without one starts from their Temba Rating, Provisional.
- * Idempotent per User+Match.
+ * Writes the Group Level rows a padel Match completed before the Group Level
+ * was retired (ADR-0066) carries: what `applyRatedMatch` used to write on a
+ * group rated Game (ADR-0053). Tests use it to stand in for that history.
  */
-export async function applyGroupRatedMatch(
+export async function writeLegacyGroupLevels(
   database: DbClient,
   args: {
     groupId: string;
@@ -164,4 +183,30 @@ export async function applyGroupRatedMatch(
         set: values,
       });
   }
+}
+
+/** The legacy rows for a `setUpMatch` Match, where a and b beat c and d. */
+export function writeLegacyGroupLevelsFor(
+  database: DbClient,
+  played: {
+    groupId: string;
+    matchId: string;
+    a: { id: string };
+    b: { id: string };
+    c: { id: string };
+    d: { id: string };
+  },
+  now: Date = new Date(),
+) {
+  return writeLegacyGroupLevels(database, {
+    groupId: played.groupId,
+    sport: "padel",
+    matchId: played.matchId,
+    slots: {
+      slot1: [played.a.id, played.b.id],
+      slot2: [played.c.id, played.d.id],
+    },
+    result: "slot1",
+    now,
+  });
 }

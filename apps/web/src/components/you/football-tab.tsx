@@ -11,7 +11,6 @@ import {
   footballRoleView,
 } from "@repo/domain/player-profile-football";
 
-import { DifferenceBox } from "./group-levels-card";
 import { LastTenStrip } from "./last-ten-strip";
 import {
   HeroCard,
@@ -22,15 +21,14 @@ import {
 } from "./level-hero";
 import { PartnersCard } from "./profile-cards";
 import {
-  footballGroupRowView,
   footballHeroStats,
   goalBars,
   recordShares,
   type FootballProfile,
 } from "./you-football-model";
 import { formRecord, lastTenSlots, partnerRows } from "./you-form-model";
-import type { GroupLevelRow, MyProfile } from "./you-hero-model";
-import { InitialsTile, YouCard, YouSection } from "./you-section";
+import type { MyProfile } from "./you-hero-model";
+import { YouCard } from "./you-section";
 
 function GoalsLastTen({ profile }: { profile: FootballProfile }) {
   const m = useMessages();
@@ -176,63 +174,12 @@ function AllTimeRecord({ profile }: { profile: FootballProfile }) {
   );
 }
 
-function FootballGroups({
-  rows,
-  meta,
-}: {
-  rows: readonly GroupLevelRow[];
-  meta: string | null;
-}) {
-  const m = useMessages();
-  const locale = useLocale();
-  if (rows.length === 0) {
-    return null;
-  }
-
-  return (
-    <YouSection
-      title={m.you.groups.title}
-      meta={meta}
-      note={m.you.groups.footballNote}
-    >
-      <YouCard>
-        <ul className="divide-rule divide-y">
-          {rows.map((row) => {
-            const view = footballGroupRowView(row, locale);
-            return (
-              <li
-                key={view.groupId}
-                className="flex items-center gap-3 px-5 py-3"
-              >
-                <InitialsTile text={view.initials} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-body text-ink truncate font-semibold">
-                    {view.name}
-                  </p>
-                  <p className="text-eyebrow text-muted-foreground truncate">
-                    {view.sub}
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  <span className="font-expanded text-body">{view.level}</span>
-                  <DifferenceBox difference={view.difference} />
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </YouCard>
-    </YouSection>
-  );
-}
-
-/** The football profile: Level, goals, Last 10, record, Group Levels, Teammates. */
+/** The football profile: Level, goals, Last 10, record, Teammates. */
 export function FootballTab({ userId }: { userId: string }) {
   const m = useMessages();
   const locale = useLocale();
   const utils = api.useUtils();
   const profile = api.users.footballProfile.useQuery({ userId });
-  const groups = api.ratings.myGroupLevels.useQuery({ sport: "football" });
   const mine = api.users.myProfile.useQuery({ sport: "football" });
   const me = api.ratings.me.useQuery({ sport: "football" });
   const declared = me.data?.rating != null;
@@ -266,7 +213,6 @@ export function FootballTab({ userId }: { userId: string }) {
   const data = profile.data;
   const teammates: MyProfile["partners"] = mine.data?.partners ?? [];
   const lastTen = data.lastMatches;
-  const hero = data.rating ? footballHeroLevelView(data.rating, locale) : null;
 
   return (
     <div className="grid gap-[26px] lg:grid-cols-2 lg:items-start">
@@ -284,10 +230,6 @@ export function FootballTab({ userId }: { userId: string }) {
         <AllTimeRecord profile={data} />
       </div>
       <div className="flex min-w-0 flex-col gap-[26px]">
-        <FootballGroups
-          rows={groups.data ?? []}
-          meta={hero ? m.you.groups.vsGeneral(hero.band, hero.ovr) : null}
-        />
         <PartnersCard
           title={m.you.partners.teammates}
           meta={m.you.partners.mostPlayed}

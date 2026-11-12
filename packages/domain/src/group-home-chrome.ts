@@ -152,23 +152,6 @@ export function groupMemberOrganizerToast(
 }
 
 /**
- * An Organizer of the Group (creator or Appointed Organizer) sets other
- * members' Group Levels (ADR-0053). `canCreateGame` is that check for a viewer
- * outside the Standing; the viewer's own Organizer mark is read too.
- */
-export function viewerMaySetGroupLevel(group: {
-  sport: string | null | undefined;
-  canCreateGame: boolean;
-  leaderboard: readonly { isViewer: boolean; isOrganizer: boolean }[];
-}) {
-  return (
-    groupShowsLevel(group.sport) &&
-    (group.canCreateGame ||
-      group.leaderboard.some((entry) => entry.isViewer && entry.isOrganizer))
-  );
-}
-
-/**
  * An Organizer of a tier Group adjusts other members' Tier points
  * (ADR-0073). The viewer's own Organizer mark is the check: the Group
  * creator or an Appointed Organizer, as the server's.

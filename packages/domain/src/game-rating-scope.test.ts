@@ -35,16 +35,16 @@ describe("ratingFlagsAtCreate", () => {
     rated: true,
   };
 
-  it("rates Temba and Group on a Verified Group", () => {
+  it("moves the Temba Level only for padel on a Verified Group", () => {
     expect(
       ratingFlagsAtCreate({ ...padelOnGroup, groupVerified: true }),
-    ).toEqual({ rated: true, groupRated: true });
+    ).toEqual({ rated: true, groupRated: false });
   });
 
-  it("rates the Group only on a Group that is not Verified", () => {
+  it("is Unrated for padel on a Group that is not Verified", () => {
     expect(
       ratingFlagsAtCreate({ ...padelOnGroup, groupVerified: false }),
-    ).toEqual({ rated: false, groupRated: true });
+    ).toEqual({ rated: false, groupRated: false });
   });
 
   it("rates nothing when the creator chose Unrated", () => {
@@ -125,9 +125,15 @@ describe("groupHasTier", () => {
 });
 
 describe("ratedScopeForGroup", () => {
-  it("is temba on a Verified Group and group otherwise", () => {
+  it("is temba on a Verified Group", () => {
     expect(ratedScopeForGroup(true)).toBe("temba");
-    expect(ratedScopeForGroup(false)).toBe("group");
+    expect(ratedScopeForGroup(true, "football")).toBe("temba");
+  });
+
+  it("is group on a tier Group and unrated on a padel Group that is not Verified", () => {
+    expect(ratedScopeForGroup(false, "football")).toBe("group");
+    expect(ratedScopeForGroup(false, "padel")).toBe("unrated");
+    expect(ratedScopeForGroup(false)).toBe("unrated");
   });
 });
 

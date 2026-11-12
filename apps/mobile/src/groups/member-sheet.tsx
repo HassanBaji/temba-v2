@@ -18,8 +18,6 @@ export function MemberSheet({
   member,
   onClose,
   onSetLevel,
-  onSetGroupLevel,
-  groupLevelHint,
   onViewProfile,
   onAdjustTier,
   onTierHistory,
@@ -32,9 +30,6 @@ export function MemberSheet({
   member: MemberSheetView | null;
   onClose: () => void;
   onSetLevel?: () => void;
-  onSetGroupLevel?: () => void;
-  /** The member's Group Level, shown to an Organizer on that row. */
-  groupLevelHint?: string;
   onViewProfile?: () => void;
   /** An Organizer of a tier Group moves this member's Tier points. */
   onAdjustTier?: () => void;
@@ -86,15 +81,6 @@ export function MemberSheet({
             }
             trailing="chevron"
             onPress={onSetLevel}
-          />
-        ) : null,
-        onSetGroupLevel ? (
-          <SheetMenuRow
-            key="group-level"
-            label={m.you.setGroupLevel.title}
-            hint={groupLevelHint}
-            trailing="chevron"
-            onPress={onSetGroupLevel}
           />
         ) : null,
         organizerLabel && onOrganizerAction ? (

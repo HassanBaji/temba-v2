@@ -1,4 +1,4 @@
-import { formatDayMonth, formatMonth } from "@repo/domain/format-game-start";
+import { formatMonth } from "@repo/domain/format-game-start";
 import { bandFromLevel, formatPadelLevel } from "@repo/domain/level";
 import { zonedParts } from "@repo/domain/product-timezone";
 import { WIN_RATE_MIN_MATCHES } from "@repo/domain/win-rate";
@@ -11,7 +11,6 @@ import { arrowLevel, bandInText, displayBand, monthYear } from "./you-format";
 
 export type MyProfile = RouterOutputs["users"]["myProfile"];
 export type ScopeLevel = NonNullable<MyProfile["level"]>;
-export type GroupLevelRow = RouterOutputs["ratings"]["myGroupLevels"][number];
 
 const BAND_WIDTH = 0.7;
 
@@ -60,96 +59,46 @@ function generalOutlook(level: ScopeLevel, locale: Locale) {
     : `${toNext} ${m.winsToNext(level.winsToNext)}`;
 }
 
-function groupOutlook(level: ScopeLevel, row: GroupLevelRow, locale: Locale) {
-  const m = messagesFor(locale).you.hero;
-  if (row.setBy) {
-    return m.setOn(row.setBy.name, formatDayMonth(row.setBy.at, locale));
-  }
-  if (level.provisional) {
-    return m.groupSettles(level.ratedMatchesRemaining);
-  }
-  if (level.nextBand === null || level.distanceToNext === null) {
-    return m.topBand;
-  }
-  return m.toNextInGroup(
-    level.distanceToNext.toFixed(2),
-    bandInText(displayBand(level.nextBand), locale),
-  );
-}
-
-/**
- * The ink hero for one scope: General reads the Temba Level, a Group reads
- * that Group Level next to its row from `ratings.myGroupLevels`.
- */
+/** The ink hero: the Temba Level. */
 export function heroView(
-  args: {
-    level: ScopeLevel;
-    ratedMatchCount: number;
-    group: GroupLevelRow | null;
-  },
+  args: { level: ScopeLevel; ratedMatchCount: number },
   locale: Locale,
 ): HeroView {
   const m = messagesFor(locale).you.hero;
-  const { level, group } = args;
-  const ratedCount = group ? group.ratedMatchCount : args.ratedMatchCount;
+  const { level, ratedMatchCount: ratedCount } = args;
   const band = displayBand(level.levelBand);
   const rating = formatPadelLevel(level.rating, 2);
-
-  let status: string;
-  if (group?.setBy) {
-    status = m.setByOrganizer;
-  } else if (level.provisional) {
-    status = m.provisionalRated(ratedCount);
-  } else {
-    status = group ? m.groupRated(ratedCount) : m.confirmed(ratedCount);
-  }
-
-  let move: string | null = null;
-  if (group) {
-    move =
-      group.differenceFromGeneral === null
-        ? null
-        : m.vsGeneral(arrowLevel(group.differenceFromGeneral));
-  } else if (level.weekDelta !== null && level.weekDelta !== 0) {
-    move = m.thisWeek(arrowLevel(level.weekDelta));
-  }
+  const status = level.provisional
+    ? m.provisionalRated(ratedCount)
+    : m.confirmed(ratedCount);
+  const move =
+    level.weekDelta !== null && level.weekDelta !== 0
+      ? m.thisWeek(arrowLevel(level.weekDelta))
+      : null;
 
   return {
-    label: group ? m.groupLevel(group.name) : m.generalLevel,
+    label: m.generalLevel,
     status,
     band,
     rating,
     ring: ringFor(level, ratedCount, locale),
     move,
-    outlook: group
-      ? groupOutlook(level, group, locale)
-      : generalOutlook(level, locale),
+    outlook: generalOutlook(level, locale),
     spoken: m.spoken(bandInText(band, locale), rating, status),
   };
 }
 
 export function heroStats(
-  args: { stats: MyProfile["stats"]; group: GroupLevelRow | null },
+  stats: MyProfile["stats"],
   locale: Locale,
 ): HeroStat[] {
   const m = messagesFor(locale).you.hero;
   const none = messagesFor(locale).webYou.noData;
-  const { stats, group } = args;
   const winRate: HeroStat =
     stats.winRatePercent === null
       ? { value: none, label: m.winRateAfter(WIN_RATE_MIN_MATCHES) }
       : { value: `${stats.winRatePercent}%`, label: m.winRate };
   const matches: HeroStat = { value: String(stats.played), label: m.matches };
-
-  if (group) {
-    return [
-      winRate,
-      matches,
-      group.provisional
-        ? { value: none, label: m.unranked }
-        : { value: `#${group.rank}`, label: m.standing(group.rankedCount) },
-    ];
-  }
   const run = stats.run;
   return [
     winRate,
@@ -249,18 +198,13 @@ export function ratingCurve(
 }
 
 /** "Rating, last 24 rated" and "Mar to Nov" over the curve. */
-export function curveCaption(
-  args: { history: ScopeLevel["history"]; groupName: string | null },
-  locale: Locale,
-) {
+export function curveCaption(history: ScopeLevel["history"], locale: Locale) {
   const m = messagesFor(locale).you.hero;
-  const dated = args.history.flatMap((point) => (point.at ? [point.at] : []));
+  const dated = history.flatMap((point) => (point.at ? [point.at] : []));
   const first = dated[0];
   const last = dated[dated.length - 1];
   return {
-    title: args.groupName
-      ? m.graphTitleGroup(args.groupName)
-      : m.graphTitle(dated.length),
+    title: m.graphTitle(dated.length),
     span: first && last ? m.graphSpan(...monthSpan(first, last, locale)) : null,
   };
 }

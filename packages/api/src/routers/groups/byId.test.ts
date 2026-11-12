@@ -15,6 +15,7 @@ import {
   games,
   groupMemberInvites,
   groupMembers,
+  groupRatings,
   groups,
   GroupTypeEnum,
   matchSets,
@@ -702,6 +703,43 @@ describe("groupById standing facts", () => {
         levelBand: null,
         levelProvisional: true,
       });
+    } finally {
+      await close();
+    }
+  });
+
+  it("reads no Group Level on a padel Group, and a football one only for the Tier start hint", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "standing-grouplevel@example.com");
+      const padel = await insertGroup(db, viewer.id);
+      const football = await insertGroup(db, viewer.id, {
+        sport: GroupSportEnum.FOOTBALL,
+      });
+      await db.insert(groupRatings).values(
+        [padel, football].map((group) => ({
+          userId: viewer.id,
+          groupId: group.id,
+          mu: 1500,
+          phi: 100,
+          sigma: 0.06,
+          levelBand: "C2" as const,
+        })),
+      );
+
+      const padelDetail = await groupById(db, {
+        groupId: padel.id,
+        userId: viewer.id,
+        now: NOW,
+      });
+      const footballDetail = await groupById(db, {
+        groupId: football.id,
+        userId: viewer.id,
+        now: NOW,
+      });
+
+      expect(padelDetail.standing.leaderboard[0]?.groupLevel).toBeNull();
+      expect(footballDetail.standing.leaderboard[0]?.groupLevel).not.toBeNull();
     } finally {
       await close();
     }

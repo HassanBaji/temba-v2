@@ -1,4 +1,7 @@
-import { createRatingChoice } from "@repo/domain/create-game-flow";
+import {
+  createRatingChoice,
+  createRatingChoiceShown,
+} from "@repo/domain/create-game-flow";
 import type { Sport } from "@repo/domain/sport";
 import { View } from "react-native";
 
@@ -18,6 +21,15 @@ export function RatingField({
   onRated: (rated: boolean) => void;
 }) {
   const locale = useLocale();
+  if (
+    !createRatingChoiceShown({
+      sport: sport ?? "padel",
+      hasGroup: true,
+      groupVerified,
+    })
+  ) {
+    return null;
+  }
   const choice = createRatingChoice({ groupVerified, rated, locale, sport });
   return (
     <StepSection title={choice.title}>

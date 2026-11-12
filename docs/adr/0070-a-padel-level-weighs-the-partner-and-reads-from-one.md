@@ -18,4 +18,4 @@ ADR-0009 rated each padel player against the mean of the opposing pair and ignor
 - A strong player carrying a weak partner gains more for a win than before, and the weak partner less.
 - Every self-declared D sits below 1.0 and reads 1.00 until they climb.
 - The rating impact on a Game reads the Match's stored rating events, so it follows the formula with no change of its own.
-- A Group Level (ADR-0053) steps through the same `rateDoublesMatch`, so it weighs the partner too.
+- The padel Group Level (ADR-0053) is retired ([ADR-0066](./0066-a-football-group-that-is-not-verified-has-a-group-tier.md)), so no Group Level steps through `rateDoublesMatch`; the Group Level rows written before stay as they were.

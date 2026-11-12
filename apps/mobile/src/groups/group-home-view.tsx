@@ -9,7 +9,6 @@ import {
   groupLevelFace,
   groupShowsLevel,
   viewerMayAdjustTier,
-  viewerMaySetGroupLevel,
   type GroupMemberOrganizerAction,
 } from "@repo/domain/group-home-chrome";
 import {
@@ -93,7 +92,6 @@ export type GroupHomeViewProps = {
   pendingInviteNames?: string[];
   onOpenMember: (userId: string) => void;
   onSetLevel: (userId: string) => void;
-  onSetGroupLevel: (userId: string) => void;
   onOpenTierHistory?: (userId: string) => void;
   saved: SavedLevel | null;
   onDismissSaved: () => void;
@@ -309,15 +307,6 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           })}
           onOpenTierHistory={props.onOpenTierHistory}
           onSetLevel={props.onSetLevel}
-          onSetGroupLevel={
-            viewerMaySetGroupLevel({
-              sport: data.sport,
-              canCreateGame: data.canCreateGame,
-              leaderboard: data.standing.leaderboard,
-            })
-              ? props.onSetGroupLevel
-              : undefined
-          }
           canAddPlayers={data.canAddPlayers}
           onRenameUnclaimed={props.onRenameUnclaimed}
           canRemovePlayers={data.canRemovePlayers}

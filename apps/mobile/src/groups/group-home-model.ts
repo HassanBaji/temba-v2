@@ -206,7 +206,6 @@ export function memberRowView(
   canRemovePlayers = false,
   canAppointOrganizers = false,
   sort: GroupMemberSort = "level",
-  canSetGroupLevel = false,
   canAdjustTier = false,
 ): MemberRowView {
   const m = messagesFor(locale);
@@ -236,7 +235,7 @@ export function memberRowView(
     levelText: entry.level,
     tier,
     selectable:
-      ((canSetLevel || canSetGroupLevel) && !entry.isViewer) ||
+      (canSetLevel && !entry.isViewer) ||
       (canAdjustTier && entry.tier != null && !entry.isViewer) ||
       memberIsRemovable(entry, canRemovePlayers) ||
       memberOrganizerAction(entry, canAppointOrganizers) != null,
@@ -277,7 +276,6 @@ export function memberList(
   canRemovePlayers = false,
   canAppointOrganizers = false,
   lens: MemberLens = LEVEL_ORDER,
-  canSetGroupLevel = false,
   canAdjustTier = false,
 ) {
   const unnamed = messagesFor(locale).mobileGroup.unnamedMember;
@@ -298,7 +296,6 @@ export function memberList(
         canRemovePlayers,
         canAppointOrganizers,
         view.sort,
-        canSetGroupLevel,
         canAdjustTier,
       ),
     ),

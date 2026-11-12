@@ -156,17 +156,19 @@ export function changeFootballPlayersAllowed<
 
 /** A court price split across `players`, rounded up so the cap covers it. */
 /**
- * The Rating choice on create (ADR-0053, ADR-0066, ADR-0069). A Game on a
- * Group rates: padel, football on a tier Group (Tier points) and football on
- * a Verified Group (the Temba Level). A groupless Game skips the choice and
- * stays Unrated.
+ * The Rating choice on create (ADR-0066, ADR-0069). A Game rates on a
+ * Verified Group (the Temba Level) and, on football, on a tier Group (Tier
+ * points). A padel Group that is not Verified keeps only a Standing, so its
+ * Games and every groupless Game skip the choice and stay Unrated.
  */
 export function createRatingChoiceShown(args: {
   sport: Sport;
   hasGroup: boolean;
   groupVerified?: boolean;
 }) {
-  return args.hasGroup;
+  return (
+    args.hasGroup && (args.sport === "football" || args.groupVerified === true)
+  );
 }
 
 /**
@@ -205,7 +207,7 @@ export function createRatingChoice(args: {
   options: readonly CreateRatingOption[];
 } {
   const m = messagesFor(args.locale).you.ratingScope;
-  const ratedScope = ratedScopeForGroup(args.groupVerified);
+  const ratedScope = ratedScopeForGroup(args.groupVerified, args.sport);
   const scope = args.rated ? ratedScope : "unrated";
   const notes: Record<GameRatingScope, string> = {
     temba: tembaRatingScopeNote(args.locale, args.sport),

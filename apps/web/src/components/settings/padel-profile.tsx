@@ -12,7 +12,6 @@ import {
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { displayBand } from "~/components/you/you-format";
-import { groupRowView } from "~/components/you/you-groups-model";
 import { useSetSport } from "~/components/settings/use-set-sport";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api, type RouterOutputs } from "~/trpc/react";
@@ -30,10 +29,8 @@ type Details = RouterOutputs["users"]["profileDetails"];
 
 function LockedLevelCard() {
   const m = useMessages();
-  const locale = useLocale();
   const copy = m.you.padel;
   const profile = api.users.myProfile.useQuery({ sport: "padel" });
-  const groups = api.ratings.myGroupLevels.useQuery({ sport: "padel" });
 
   if (!profile.data) {
     return <Skeleton className="rounded-card h-40 w-full" />;
@@ -67,27 +64,6 @@ function LockedLevelCard() {
         <p className="font-expanded text-h2">{m.you.hero.noLevel}</p>
       )}
       <p className="text-meta text-muted-foreground leading-[1.5]">{note}</p>
-      {groups.data && groups.data.length > 0 ? (
-        <ul className="border-rule flex flex-col gap-1.5 border-t pt-3">
-          {groups.data.map((row) => {
-            const view = groupRowView(row, locale);
-            return (
-              <li
-                key={view.groupId}
-                className="text-meta grid grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_auto] items-baseline gap-3"
-              >
-                <span className="text-ink truncate">{view.name}</span>
-                <span className="text-muted-foreground truncate">
-                  {view.sub}
-                </span>
-                <span dir="ltr" className="text-ink font-semibold tabular-nums">
-                  {view.band} {view.level}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
     </section>
   );
 }

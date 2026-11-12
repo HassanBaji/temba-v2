@@ -224,12 +224,6 @@ export const mobileGroup = {
     savedReason: (reason: string) => `السبب: ${reason}.`,
     dismiss: "إغلاق",
   },
-  setGroupLevel: {
-    groupLevel: (label: string) => `مستوى المجموعة ${label}`,
-    tembaLevel: (label: string) => `مستوى Temba ${label}`,
-    noTembaLevel: "لا مستوى Temba بعد",
-    tembaMarker: (label: string) => `Temba ${label}`,
-  },
   seasons: {
     title: "المواسم",
     manage: "إدارة المواسم",

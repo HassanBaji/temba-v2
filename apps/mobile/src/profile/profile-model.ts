@@ -22,11 +22,9 @@ import { WIN_RATE_MIN_MATCHES } from "@repo/domain/win-rate";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { initialsFor } from "../primitives/initials";
 import type { RouterOutputs } from "../trpc/react";
 
 export type MyProfile = RouterOutputs["users"]["myProfile"];
-export type GroupLevel = RouterOutputs["ratings"]["myGroupLevels"][number];
 export type FootballProfile = RouterOutputs["users"]["footballProfile"];
 
 export const LAST_TEN = 10;
@@ -111,11 +109,7 @@ export type HeroView =
     }
   | { kind: "none"; label: string; stats: HeroStat[] };
 
-function heroStats(
-  profile: MyProfile,
-  group: GroupLevel | null,
-  locale: Locale,
-): HeroStat[] {
+function heroStats(profile: MyProfile, locale: Locale): HeroStat[] {
   const m = messagesFor(locale).you.hero;
   const { stats } = profile;
   const winRate =
@@ -123,15 +117,6 @@ function heroStats(
       ? { value: EMPTY, label: m.winRateAfter(WIN_RATE_MIN_MATCHES) }
       : { value: `${stats.winRatePercent}%`, label: m.winRate };
   const matches = { value: String(stats.played), label: m.matches };
-  if (profile.group) {
-    return [
-      winRate,
-      matches,
-      group
-        ? { value: `#${group.rank}`, label: m.standing(group.rankedCount) }
-        : { value: EMPTY, label: m.unranked },
-    ];
-  }
   const run = stats.run;
   return [
     winRate,
@@ -162,17 +147,11 @@ function curveSpan(
   return from === to ? from : messagesFor(locale).you.hero.graphSpan(from, to);
 }
 
-/** The ink card for the chosen scope: General or one Group. */
-export function heroView(
-  profile: MyProfile,
-  group: GroupLevel | null,
-  locale: Locale,
-): HeroView {
+/** The ink card: the Temba Level. */
+export function heroView(profile: MyProfile, locale: Locale): HeroView {
   const m = messagesFor(locale).you.hero;
-  const label = profile.group
-    ? m.groupLevel(profile.group.name)
-    : m.generalLevel;
-  const stats = heroStats(profile, group, locale);
+  const label = m.generalLevel;
+  const stats = heroStats(profile, locale);
   const level = profile.level;
   if (!level) {
     return { kind: "none", label, stats };
@@ -181,15 +160,9 @@ export function heroView(
   const band = displayBand(level.levelBand);
   const rating = formatPadelLevel(level.rating, 2);
   const rated = profile.ratedMatchCount;
-  const setBy = profile.group ? (group?.setBy ?? null) : null;
-
-  const status = setBy
-    ? m.setByOrganizer
-    : level.provisional
-      ? m.provisionalRated(rated)
-      : profile.group
-        ? m.groupRated(rated)
-        : m.confirmed(rated);
+  const status = level.provisional
+    ? m.provisionalRated(rated)
+    : m.confirmed(rated);
 
   const confirmTotal = rated + level.ratedMatchesRemaining;
   const ring = level.provisional
@@ -204,30 +177,16 @@ export function heroView(
         provisional: false,
       };
 
-  const difference = profile.group
-    ? (group?.differenceFromGeneral ?? null)
-    : null;
-  const movement = profile.group
-    ? difference == null
-      ? null
-      : m.vsGeneral(arrowDelta(difference))
-    : level.weekDelta == null
-      ? null
-      : m.thisWeek(arrowDelta(level.weekDelta));
+  const movement =
+    level.weekDelta == null ? null : m.thisWeek(arrowDelta(level.weekDelta));
 
   const nextBand = level.nextBand ? displayBand(level.nextBand) : null;
   const distance = level.distanceToNext?.toFixed(2) ?? null;
   let outlook: string;
-  if (setBy) {
-    outlook = m.setOn(setBy.name, formatDayMonth(setBy.at, locale));
-  } else if (level.provisional) {
-    outlook = profile.group
-      ? m.groupSettles(level.ratedMatchesRemaining)
-      : m.settles(level.ratedMatchesRemaining);
+  if (level.provisional) {
+    outlook = m.settles(level.ratedMatchesRemaining);
   } else if (!nextBand || !distance) {
     outlook = m.topBand;
-  } else if (profile.group) {
-    outlook = m.toNextInGroup(distance, nextBand);
   } else {
     outlook = level.winsToNext
       ? `${m.toNext(distance, nextBand)} ${m.winsToNext(level.winsToNext)}`
@@ -244,9 +203,7 @@ export function heroView(
     movement,
     outlook,
     curve: {
-      title: profile.group
-        ? m.graphTitleGroup(profile.group.name)
-        : m.graphTitle(Math.max(0, level.history.length - 1)),
+      title: m.graphTitle(Math.max(0, level.history.length - 1)),
       span: curveSpan(level.history, locale),
       values: level.history.map((point) => point.level),
     },
@@ -403,124 +360,6 @@ export function recentRows(
     delta: match.delta == null ? null : signedDelta(match.delta),
     canOpenGame: match.canOpenGame,
   }));
-}
-
-export type GroupLevelRowView = {
-  groupId: string;
-  name: string;
-  initials: string;
-  provisional: boolean;
-  sub: string;
-  band: string;
-  level: string;
-  difference: { label: string; above: boolean } | null;
-};
-
-export function groupLevelRows(
-  groups: readonly GroupLevel[],
-  locale: Locale,
-  levelLabel: (group: GroupLevel) => string = (group) =>
-    group.rating.toFixed(2),
-): GroupLevelRowView[] {
-  const all = messagesFor(locale);
-  const m = all.you.groups;
-  return groups.map((group) => {
-    const difference = group.differenceFromGeneral;
-    return {
-      groupId: group.groupId,
-      name: group.name,
-      initials: initialsFor(group.name),
-      provisional: group.provisional && !group.setBy,
-      sub: group.setBy
-        ? m.setBy(group.setBy.name)
-        : group.provisional
-          ? m.provisionalLeft(group.ratedMatchesRemaining)
-          : m.rankOf(group.rank, group.rankedCount, group.ratedMatchCount),
-      band: displayBand(group.levelBand),
-      level: levelLabel(group),
-      difference:
-        difference == null
-          ? null
-          : {
-              label:
-                rounded(difference) === 0
-                  ? all.mobileYou.same
-                  : signedDelta(difference),
-              above: difference > 0,
-            },
-    };
-  });
-}
-
-export type ScaleView = {
-  ticks: { key: string; label: string; percent: number }[];
-  markers: {
-    key: string;
-    tag: string;
-    percent: number;
-    general: boolean;
-    spoken: string;
-  }[];
-};
-
-const SCALE_MIN_SPAN = 0.5;
-
-/** Where each Group Level sits against General on one line. */
-export function groupScale(
-  generalRating: number | null,
-  groups: readonly GroupLevel[],
-  locale: Locale,
-): ScaleView | null {
-  if (generalRating == null || groups.length === 0) {
-    return null;
-  }
-  const all = messagesFor(locale);
-  const points = [
-    {
-      key: "general",
-      tag: all.you.groups.general,
-      value: generalRating,
-      general: true,
-      name: all.you.scope.general,
-    },
-    ...groups.map((group) => ({
-      key: group.groupId,
-      tag: initialsFor(group.name),
-      value: group.rating,
-      general: false,
-      name: group.name,
-    })),
-  ];
-  const values = points.map((point) => point.value);
-  let low = Math.floor((Math.min(...values) - 0.05) * 10) / 10;
-  let high = Math.ceil((Math.max(...values) + 0.05) * 10) / 10;
-  if (high - low < SCALE_MIN_SPAN) {
-    const grow = (SCALE_MIN_SPAN - (high - low)) / 2;
-    low -= grow;
-    high += grow;
-  }
-  const span = high - low;
-  const percentOf = (value: number) =>
-    Math.max(0, Math.min(100, ((value - low) / span) * 100));
-  const middle = low + span / 2;
-  return {
-    ticks: [low, middle, high].map((value, index) => ({
-      key: `tick-${index}`,
-      label: displayBand(bandFromLevel(value)),
-      percent: percentOf(value),
-    })),
-    markers: points.map((point) => ({
-      key: point.key,
-      tag: point.tag,
-      percent: percentOf(point.value),
-      general: point.general,
-      spoken: all.mobileYou.scaleSpoken(
-        point.name,
-        displayBand(bandFromLevel(point.value)),
-        point.value.toFixed(2),
-      ),
-    })),
-  };
 }
 
 /** Polyline points for the rating curve, oldest to newest along x. */

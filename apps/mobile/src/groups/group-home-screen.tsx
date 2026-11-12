@@ -68,7 +68,6 @@ import { Notice } from "./notice";
 import { TransferOwnershipSheet } from "./transfer-ownership-sheet";
 import {
   savedLevelFromParams,
-  setGroupLevelPath,
   setLevelPath,
   type SavedLevelParams,
 } from "./set-level-model";
@@ -248,10 +247,6 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
 
   const openSetLevelScreen = useCallback(
     (userId: string) => router.push(setLevelPath(groupId, userId)),
-    [router, groupId],
-  );
-  const openSetGroupLevelScreen = useCallback(
-    (userId: string) => router.push(setGroupLevelPath(groupId, userId)),
     [router, groupId],
   );
   const dismissSaved = useCallback(
@@ -471,7 +466,6 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         }
         onOpenMember={(userId) => router.push(playerPath(segments, userId))}
         onSetLevel={openSetLevelScreen}
-        onSetGroupLevel={openSetGroupLevelScreen}
         onOpenTierHistory={(userId) =>
           router.push(groupTierHistoryPath(groupId, userId))
         }

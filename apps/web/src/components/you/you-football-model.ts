@@ -1,5 +1,4 @@
 import { footballSelfPlacementChoices } from "@repo/domain/football-self-placement";
-import { initials } from "@repo/domain/initials";
 import {
   displayLabelFromStoredBand,
   type LevelBand,
@@ -9,9 +8,9 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import type { RouterOutputs } from "~/trpc/react";
 
-import { displayBand, signedLevel } from "./you-format";
+import { displayBand } from "./you-format";
 import { LAST_TEN } from "./you-form-model";
-import type { GroupLevelRow, HeroStat } from "./you-hero-model";
+import type { HeroStat } from "./you-hero-model";
 
 export type FootballProfile = RouterOutputs["users"]["footballProfile"];
 
@@ -79,37 +78,5 @@ export function recordShares(overall: FootballProfile["overall"]) {
     won: Math.round(won * 10) / 10,
     drawn: Math.round(drawn * 10) / 10,
     lost: Math.round((100 - won - drawn) * 10) / 10,
-  };
-}
-
-export type FootballGroupRowView = {
-  groupId: string;
-  initials: string;
-  name: string;
-  sub: string;
-  level: string;
-  difference: { text: string; above: boolean } | null;
-};
-
-export function footballGroupRowView(
-  row: GroupLevelRow,
-  locale: Locale,
-): FootballGroupRowView {
-  const m = messagesFor(locale);
-  const difference = row.differenceFromGeneral;
-  return {
-    groupId: row.groupId,
-    initials: initials(row.name),
-    name: row.name,
-    sub: row.setBy
-      ? m.you.groups.setBy(row.setBy.name)
-      : m.webYou.football.sameAsYours,
-    level: footballLevelLabel(row.levelBand, locale),
-    difference:
-      difference === null
-        ? null
-        : difference === 0
-          ? { text: m.webYou.football.same, above: false }
-          : { text: signedLevel(difference), above: difference > 0 },
   };
 }

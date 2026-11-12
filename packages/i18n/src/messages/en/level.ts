@@ -49,6 +49,8 @@ export const level = {
     alreadyDeclared: "You have already declared a Level",
     groupOrganizerSets: "Only an Organizer of this Group can set a Group Level",
     ownGroupLevel: "You cannot set your own Group Level",
+    groupLevelRetired:
+      "Groups no longer have their own level. Organizers of a football group adjust tier points instead.",
     notGroupMember: "That User is not a member of this Group",
     noSport: "This Group has no sport, so it has no Levels",
     footballFromResults: "Football Levels arrive with results",

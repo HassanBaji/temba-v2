@@ -181,7 +181,6 @@ function SavedBanner({
 function MemberActionsMenu({
   name,
   setLevelHref,
-  onSetGroupLevel,
   profileHref,
   tierHistoryHref,
   onAdjustTier,
@@ -192,7 +191,6 @@ function MemberActionsMenu({
 }: {
   name: string;
   setLevelHref?: string;
-  onSetGroupLevel?: () => void;
   profileHref?: string;
   tierHistoryHref?: string;
   onAdjustTier?: () => void;
@@ -208,11 +206,6 @@ function MemberActionsMenu({
       {setLevelHref ? (
         <ActionMenuItem asChild>
           <Link href={setLevelHref}>{m.webGroup.members.setLevel}</Link>
-        </ActionMenuItem>
-      ) : null}
-      {onSetGroupLevel ? (
-        <ActionMenuItem onSelect={onSetGroupLevel}>
-          {m.you.setGroupLevel.title}
         </ActionMenuItem>
       ) : null}
       {profileHref ? (
@@ -243,7 +236,6 @@ function MemberActionsMenu({
       {onRemove ? (
         <>
           {setLevelHref ||
-          onSetGroupLevel ||
           profileHref ||
           tierHistoryHref ||
           onAdjustTier ||
@@ -537,7 +529,6 @@ export function GroupMembersTab({
   linkToPlayers,
   canInvite,
   canSetLevel,
-  onSetGroupLevel,
   savedUserId,
   onDismissSaved,
   onInvite,
@@ -582,13 +573,6 @@ export function GroupMembersTab({
   linkToPlayers: boolean;
   canInvite: boolean;
   canSetLevel: boolean;
-  /** Given to an Organizer of the Group, who sets members' Group Levels. */
-  onSetGroupLevel?: (member: {
-    userId: string;
-    name: string;
-    level: string | null;
-    groupLevel: string | null;
-  }) => void;
   /** The member whose Level was just set, from the Set Level page. */
   savedUserId: string | null;
   onDismissSaved: () => void;
@@ -615,7 +599,6 @@ export function GroupMembersTab({
     : null;
   const canManage =
     canSetLevel ||
-    onSetGroupLevel != null ||
     canAdjustTier ||
     canAppointOrganizers ||
     canAddPlayers ||
@@ -690,15 +673,6 @@ export function GroupMembersTab({
       ? (groupMemberOrganizerAction(member) ?? undefined)
       : undefined;
     const target = { userId: member.userId, name: member.name };
-    const setGroupLevel =
-      onSetGroupLevel && !member.isViewer
-        ? () =>
-            onSetGroupLevel({
-              ...target,
-              level: member.level,
-              groupLevel: member.groupLevel?.level ?? null,
-            })
-        : undefined;
     const onAdjustTier =
       canAdjustTier && !member.isViewer && member.tier != null
         ? () => setAdjustingUserId(member.userId)
@@ -717,7 +691,6 @@ export function GroupMembersTab({
         : undefined;
     if (
       !setLevelHref &&
-      !setGroupLevel &&
       !profileHref &&
       !tierHistoryHref &&
       !onAdjustTier &&
@@ -731,7 +704,6 @@ export function GroupMembersTab({
       <MemberActionsMenu
         name={member.name}
         setLevelHref={setLevelHref}
-        onSetGroupLevel={setGroupLevel}
         profileHref={profileHref}
         tierHistoryHref={tierHistoryHref}
         onAdjustTier={onAdjustTier}

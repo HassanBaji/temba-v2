@@ -13,10 +13,6 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaimed-player-dialog";
-import {
-  SetGroupLevelDialog,
-  type SetGroupLevelMember,
-} from "~/components/groups/set-group-level-dialog";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { DeleteGroupSheet } from "~/components/groups/delete-group-sheet";
@@ -33,7 +29,6 @@ import {
   groupLevelFace,
   groupShowsLevel,
   viewerMayAdjustTier,
-  viewerMaySetGroupLevel,
 } from "@repo/domain/group-home-chrome";
 import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-menu";
 import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
@@ -155,8 +150,6 @@ export default function GroupHomePage({
     userId: string;
     name: string;
   } | null>(null);
-  const [settingGroupLevel, setSettingGroupLevel] =
-    useState<SetGroupLevelMember | null>(null);
   const [restoreFocus, setRestoreFocus] = useState<"mobile" | "desktop">(
     "desktop",
   );
@@ -533,11 +526,6 @@ export default function GroupHomePage({
   const canShowCreateGame = groupHomeCanShowCreateGame({
     canCreateGame: data.canCreateGame,
   });
-  const canSetGroupLevel = viewerMaySetGroupLevel({
-    sport: data.sport,
-    canCreateGame: data.canCreateGame,
-    leaderboard: data.standing.leaderboard,
-  });
   const canManageInvites = groupHomeCanManageInvites({
     canManageLookupInvites: data.canManageLookupInvites,
     canManageInviteLinks: data.canManageInviteLinks,
@@ -753,9 +741,6 @@ export default function GroupHomePage({
                 groupId={id}
                 canSetLevel={
                   data.viewerCanSetLevel && groupShowsLevel(data.sport)
-                }
-                onSetGroupLevel={
-                  canSetGroupLevel ? setSettingGroupLevel : undefined
                 }
                 showLevel={groupShowsLevel(data.sport, data.verified)}
                 levelFace={groupLevelFace(data.sport)}
@@ -1030,15 +1015,6 @@ export default function GroupHomePage({
           }
         }}
       />
-
-      {canSetGroupLevel ? (
-        <SetGroupLevelDialog
-          groupId={id}
-          groupName={data.name ?? m.webGroup.groupFallback}
-          member={settingGroupLevel}
-          onClose={() => setSettingGroupLevel(null)}
-        />
-      ) : null}
 
       {data.canAddPlayers ? (
         <RenameUnclaimedPlayerDialog

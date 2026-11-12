@@ -8,6 +8,23 @@ export const rating = {
     safi: "Safi",
   },
   provisional: "Provisional",
+  inYourGroups: {
+    title: "In your groups",
+    noTierPadel: "no tier in padel",
+    seasonRecord: (won: number, lost: number) =>
+      `${won} won, ${lost} lost this season`,
+    seasonRecordWithDrawn: (won: number, drawn: number, lost: number) =>
+      `${won} won, ${drawn} drawn, ${lost} lost this season`,
+    record: (won: number, lost: number) => `${won} won, ${lost} lost`,
+    recordWithDrawn: (won: number, drawn: number, lost: number) =>
+      `${won} won, ${drawn} drawn, ${lost} lost`,
+    place: (position: number, of: number) => `#${position} of ${of}`,
+    unranked: "Unranked",
+    spoken: (name: string, place: string, record: string) =>
+      `${name}, ${place}, ${record}`,
+    padelNote:
+      "Pairs rotate, so one honest Level does the balancing. Group games count for won, lost and the group’s season only.",
+  },
   ovrImpact: {
     title: "What moved your OVR",
     move: (before: string, after: string) => `${before} to ${after}`,

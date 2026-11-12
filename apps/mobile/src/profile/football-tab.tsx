@@ -10,20 +10,12 @@ import { Text } from "../primitives/text";
 import { HeroStats } from "./level-hero";
 import { LevelRing } from "./level-ring";
 import {
-  footballLevelWord,
   footballTabView,
-  groupLevelRows,
   partnerRows,
   type FootballProfile,
-  type GroupLevel,
   type MyProfile,
 } from "./profile-model";
-import {
-  LastTenStrip,
-  LevelsByGroup,
-  PartnersCard,
-  SECTION_GAP,
-} from "./profile-sections";
+import { LastTenStrip, PartnersCard, SECTION_GAP } from "./profile-sections";
 
 const BAR_HEIGHT = 56;
 
@@ -115,24 +107,19 @@ function RecordBar({
   );
 }
 
-/** Football: self-placed or set Level, goals, Last 10, record, Group Levels, Teammates. */
+/** Football: self-placed or set Level, goals, Last 10, record, Teammates. */
 export function FootballTab({
   football,
   teammates,
-  groups,
   onOpenPlayer,
 }: {
   football: FootballProfile;
   teammates: MyProfile["partners"];
-  groups: GroupLevel[];
   onOpenPlayer: (userId: string) => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
   const view = footballTabView(football, locale);
-  const rows = groupLevelRows(groups, locale, (group) =>
-    footballLevelWord(group.levelBand, locale),
-  );
 
   return (
     <View style={{ gap: SECTION_GAP }}>
@@ -273,20 +260,6 @@ export function FootballTab({
           ) : null}
         </View>
       </Surface>
-
-      {rows.length > 0 ? (
-        <LevelsByGroup
-          title={m.you.groups.title}
-          meta={
-            view.level
-              ? m.you.groups.vsGeneral(view.level.band, view.level.ovr)
-              : undefined
-          }
-          note={m.you.groups.footballNote}
-          scale={null}
-          rows={rows}
-        />
-      ) : null}
 
       <PartnersCard
         title={m.you.partners.teammates}

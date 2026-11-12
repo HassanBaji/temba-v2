@@ -88,7 +88,7 @@ A set of people who play Games of one sport. Every Group is either a Club Group 
 _Avoid_: Team, lobby, channel, club (when you mean a Group)
 
 **Verified Group**:
-A Group that may host Rated Games and public Games: one an Operator verified, one created by a User with Group creator access, or a Club Group. Every other Group's new Games are private and count for a Group Level only (ADR-0053). A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; a Club Group's verification is derived from its Venue link, not stored.
+A Group that may host Rated Games and public Games: one an Operator verified, one created by a User with Group creator access, or a Club Group. Every other Group's new Games are private. A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; a Club Group's verification is derived from its Venue link, not stored.
 _Avoid_: ranked Group, official Group, premium Group, permitted Group, groupCreator (that is a Clerk key)
 
 **Club Group**:
@@ -669,23 +669,23 @@ A Level that a Level setter or an Operator set by hand, and its audit record: wh
 _Avoid_: manual rating, rating override, Rated Match (an override is not a Match), permanent override
 
 **Rated Match**:
-A completed, non-cancelled Match on a Game that rates, which produced rating events for the Users on its two Game teams: Temba rating events when its Rating scope is `temba`, Group rating events when it is `temba` or `group` on padel. A football Match that counts for Temba Level is a Rated Match too: one rating event per seated player, with its parts, and no Tier points; a tier Group's Match moves Tier points and writes no rating event. A Match on an Unrated Game is never a Rated Match. Copy may say "verified match".
+A completed, non-cancelled Match on a Game that rates, which produced rating events for the Users on its two Game teams: Temba rating events when its Rating scope is `temba`. A padel Match completed before the Group Level was retired may also carry Group rating events. A football Match that counts for Temba Level is a Rated Match too: one rating event per seated player, with its parts, and no Tier points; a tier Group's Match moves Tier points and writes no rating event. A Match on an Unrated Game is never a Rated Match. Copy may say "verified match".
 _Avoid_: ranked Match, scored Match (Sets score a Match; rating is separate)
 
 **Unrated Game**:
-A Game whose completed Matches never produce rating events or move a Level or a Group Level, while still counting towards its Group's Standing and as played, won, lost or drawn in Last 10, All time stats and Win streak. A Game whose creator chose Unrated, a groupless Game (a Booking Game without a Group, legacy rows), and every football Game on neither a tier Group nor a Verified Group. Match result confirmation still applies. Its Rating scope is `unrated`: `games.rated` and `games.group_rated` both false, fixed at create.
+A Game whose completed Matches never produce rating events or move a Level, while still counting towards its Group's Standing and as played, won, lost or drawn in Last 10, All time stats and Win streak. A Game whose creator chose Unrated, a groupless Game (a Booking Game without a Group, legacy rows), every padel Game on a Group that is not Verified (ADR-0066), and every football Game on neither a tier Group nor a Verified Group. Match result confirmation still applies. Its Rating scope is `unrated`: `games.rated` and `games.group_rated` both false, fixed at create.
 _Avoid_: unranked (the user-facing word is "Unrated"), casual, friendly (that is a Game format), practice
 
 **Rating scope**:
-What a Game's completed Matches move, fixed at create (ADR-0053, ADR-0066). One Game feeds one ladder. `temba`, shown "Counts for Temba rating", moves the Temba Level and the Group Level: a padel Game on a Verified Group. On football, shown "Counts for Temba Level", it moves the Temba Level only: a football Game on a Verified Group. `group` moves a ladder of the Group only: on football, shown "Counts for group tier", it moves Tier points (a football Game on a tier Group); on padel, shown "Counts for group rating", the Group Level (a padel Game on a Group that is not Verified). `unrated`, shown "Unrated", moves nothing. The creator may choose Unrated wherever a scope is offered. Pure in `@repo/domain/game-rating-scope`.
+What a Game's completed Matches move, fixed at create (ADR-0066). One Game feeds one ladder. `temba`, shown "Counts for Temba rating", moves the Temba Level: a padel Game on a Verified Group. On football, shown "Counts for Temba Level", it moves the Temba Level only: a football Game on a Verified Group. `group`, shown "Counts for group tier", moves Tier points: a football Game on a tier Group. A padel Game on a Group that is not Verified is `unrated`; one completed before the Group Level was retired keeps `group` and its label "Counts for group rating". `unrated`, shown "Unrated", moves nothing. The creator may choose Unrated wherever a scope is offered, and padel offers no choice on a Group that is not Verified. Pure in `@repo/domain/game-rating-scope`.
 _Avoid_: rated (bare, when the scope matters), ranked, verified game
 
 **Group Level**:
-A User's Level inside one Group, from a Glicko-2 Rating that only that Group's Rated Matches move (`group_ratings`). It starts from the User's Temba Level, Provisional, and an Organizer of the Group may set it as a Group Level override. A football Group Level is the football Level until an Organizer sets one. Distinct from the Temba Level ("General" on the You page), which every Group shares, and from a Standing, which is a position.
+Retired (ADR-0066). Was a User's Level inside one Group, from a Glicko-2 Rating that only that Group's Rated Matches moved (`group_ratings`). No Match writes one now and no screen shows one: a padel Group keeps only a Standing, and a football tier Group has a Group Tier. The rows stay for history, and reporting a wrong score on a padel Match completed before the retirement still restores them.
 _Avoid_: group rating (when you mean the face), local level, club level
 
 **Group Level override**:
-A Group Level an Organizer of the Group set by hand, and its audit record (`group_level_overrides`). Works like a Level override, inside one Group. Never moves the Temba Level.
+Retired with the Group Level (ADR-0066). Was a Group Level an Organizer of the Group set by hand, and its audit record (`group_level_overrides`). `ratings.setGroupLevel` now refuses; the rows stay for history. An Organizer of a tier Group makes a Tier adjustment instead.
 _Avoid_: group rating override
 
 **Group Tier**:

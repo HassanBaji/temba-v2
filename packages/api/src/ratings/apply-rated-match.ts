@@ -16,7 +16,6 @@ import {
   gameRates,
   gameRatesGroup,
 } from "@repo/domain/game-rating-eligibility";
-import { applyGroupRatedMatch } from "#src/ratings/apply-group-rated-match";
 import { applyTierMatch } from "#src/ratings/apply-tier-match";
 import { ratingWeightForGame } from "#src/ratings/game-rating-weight";
 import { openRatingWindow } from "#src/ratings/settle-rating-window";
@@ -188,13 +187,12 @@ async function persistRatedUser(args: {
 
 /**
  * Rate the four Users on a completed Match: their Temba Ratings when the Game
- * is Temba rated, their Group Levels when it is group rated (ADR-0053). A
- * football Match that counts for Temba Level opens its Rating window, whose
- * settling moves every seated player's OVR; on a tier Group it moves their
- * Tier points. Skips
- * when the Match is not a Rated Match (cancelled or Unrated Game, missing
- * sides, not four Users). Idempotent per User+Match. Group Levels go first so
- * a first Group Level starts from the Temba Rating before this Match.
+ * is Temba rated. A football Match that counts for Temba Level opens its
+ * Rating window, whose settling moves every seated player's OVR; on a tier
+ * Group it moves their Tier points. A padel Group Level is retired
+ * (ADR-0066), so a padel Game's group scope moves nothing; its Matches still
+ * count in the Standing. Skips when the Match is not a Rated Match (cancelled
+ * or Unrated Game, missing sides, not four Users). Idempotent per User+Match.
  */
 export async function applyRatedMatch(
   database: DbClient,
@@ -266,33 +264,22 @@ export async function applyRatedMatch(
     return;
   }
 
+  if (!ratesTemba) {
+    return;
+  }
   const slots = await loadSlotUsers(database, match);
   if (!slots) {
     return;
   }
 
-  const sport = ratingSportFromGame(liveGame.sport);
-  const now = new Date();
-  if (ratesGroup && liveGame.groupId) {
-    await applyGroupRatedMatch(database, {
-      groupId: liveGame.groupId,
-      sport,
-      matchId: match.id,
-      slots,
-      result,
-      now,
-    });
-  }
-  if (ratesTemba) {
-    await applyTembaRatedMatch(database, {
-      groupId: liveGame.groupId,
-      sport,
-      matchId: match.id,
-      slots,
-      result,
-      now,
-    });
-  }
+  await applyTembaRatedMatch(database, {
+    groupId: liveGame.groupId,
+    sport: ratingSportFromGame(liveGame.sport),
+    matchId: match.id,
+    slots,
+    result,
+    now: new Date(),
+  });
 }
 
 /**

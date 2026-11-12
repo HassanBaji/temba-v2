@@ -195,7 +195,8 @@ type ExpectedGroups =
   | "adjustTierPoints"
   | "tierHistory"
   | "ratingSettings"
-  | "updateRatingSettings";
+  | "updateRatingSettings"
+  | "myStandings";
 
 type ExpectedMarks =
   | "forGame"

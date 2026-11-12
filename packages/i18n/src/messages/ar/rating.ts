@@ -10,6 +10,23 @@ export const rating = {
     safi: "صافي",
   },
   provisional: "مبدئي",
+  inYourGroups: {
+    title: "في مجموعاتك",
+    noTierPadel: "لا فئات في البادل",
+    seasonRecord: (won: number, lost: number) =>
+      `${won} فوز، ${lost} خسارة هذا الموسم`,
+    seasonRecordWithDrawn: (won: number, drawn: number, lost: number) =>
+      `${won} فوز، ${drawn} تعادل، ${lost} خسارة هذا الموسم`,
+    record: (won: number, lost: number) => `${won} فوز، ${lost} خسارة`,
+    recordWithDrawn: (won: number, drawn: number, lost: number) =>
+      `${won} فوز، ${drawn} تعادل، ${lost} خسارة`,
+    place: (position: number, of: number) => `#${position} من ${of}`,
+    unranked: "بلا ترتيب",
+    spoken: (name: string, place: string, record: string) =>
+      `${name}، ${place}، ${record}`,
+    padelNote:
+      "الأزواج تتبدّل، لذا يتكفّل مستوى واحد صادق بالموازنة. مباريات المجموعة تُحتسب في الفوز والخسارة وموسم المجموعة فقط.",
+  },
   ovrImpact: {
     title: "ما الذي حرّك OVR الخاص بك",
     move: (before: string, after: string) =>

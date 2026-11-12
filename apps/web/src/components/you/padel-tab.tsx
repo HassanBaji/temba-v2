@@ -1,15 +1,14 @@
 "use client";
 
-import { keepPreviousData } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
 import { HomeDeclareLevel } from "~/components/home/home-level-block";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Skeleton } from "~/components/ui/skeleton";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 
-import { GroupLevelsCard } from "./group-levels-card";
+import { InYourGroupsCard } from "./in-your-groups-card";
 import { LastTenStrip } from "./last-ten-strip";
 import {
   HeroCard,
@@ -19,7 +18,6 @@ import {
   LevelHeroSkeleton,
 } from "./level-hero";
 import { PartnersCard, ProfileTiles, RecentMatchesCard } from "./profile-cards";
-import { ScopeChips, type ScopeChip } from "./you-chips";
 import {
   formRecord,
   lastTenSlots,
@@ -27,16 +25,14 @@ import {
   profileTiles,
   recentRows,
 } from "./you-form-model";
-import { displayBand } from "./you-format";
 import {
   curveCaption,
   heroStats,
   heroView,
-  type GroupLevelRow,
   type MyProfile,
 } from "./you-hero-model";
 
-const GENERAL = "general";
+type GroupStanding = RouterOutputs["groups"]["myStandings"][number];
 
 function NoLevelHero({ profile }: { profile: MyProfile }) {
   const m = useMessages();
@@ -48,46 +44,41 @@ function NoLevelHero({ profile }: { profile: MyProfile }) {
         <p className="font-expanded text-h2">{m.you.hero.noLevel}</p>
         <p className="text-dim text-meta">{m.you.hero.noLevelNote}</p>
       </div>
-      <HeroStatsRow
-        stats={heroStats({ stats: profile.stats, group: null }, locale)}
-      />
+      <HeroStatsRow stats={heroStats(profile.stats, locale)} />
     </HeroCard>
   );
 }
 
-function ScopeBody({
+function PadelBody({
   profile,
-  group,
-  groups,
+  standings,
   canSelfDeclare,
 }: {
   profile: MyProfile;
-  group: GroupLevelRow | null;
-  groups: readonly GroupLevelRow[];
+  standings: readonly GroupStanding[];
   canSelfDeclare: boolean;
 }) {
   const m = useMessages();
   const locale = useLocale();
   const level = profile.level;
-  const groupName = group?.name ?? null;
 
   let hero;
   if (level) {
-    const caption = curveCaption({ history: level.history, groupName }, locale);
+    const caption = curveCaption(level.history, locale);
     hero = (
       <LevelHero
         view={heroView(
-          { level, ratedMatchCount: profile.ratedMatchCount, group },
+          { level, ratedMatchCount: profile.ratedMatchCount },
           locale,
         )}
-        stats={heroStats({ stats: profile.stats, group }, locale)}
+        stats={heroStats(profile.stats, locale)}
         curve={{
           levels: level.history.map((point) => point.level),
           ...caption,
         }}
       />
     );
-  } else if (canSelfDeclare && !group) {
+  } else if (canSelfDeclare) {
     hero = <HomeDeclareLevel surface="profile" sport="padel" />;
   } else {
     hero = <NoLevelHero profile={profile} />;
@@ -98,31 +89,21 @@ function ScopeBody({
       <div className="flex min-w-0 flex-col gap-[26px]">
         {hero}
         <LastTenStrip
-          title={
-            groupName ? m.you.form.lastTenIn(groupName) : m.you.form.lastTen
-          }
+          title={m.you.form.lastTen}
           record={formRecord(profile.lastTen, locale)}
           slots={lastTenSlots(profile.lastTen, locale)}
         />
         <ProfileTiles tiles={profileTiles(profile.stats, locale)} />
       </div>
       <div className="flex min-w-0 flex-col gap-[26px]">
-        {group ? null : <GroupLevelsCard general={level} rows={groups} />}
+        <InYourGroupsCard rows={standings} />
         <PartnersCard
           title={m.you.partners.title}
-          meta={
-            groupName
-              ? m.you.partners.inGroup(groupName)
-              : m.you.partners.mostPlayed
-          }
+          meta={m.you.partners.mostPlayed}
           rows={partnerRows(profile.partners, locale)}
         />
         <RecentMatchesCard
-          meta={
-            groupName
-              ? m.you.partners.inGroup(groupName)
-              : m.you.recent.allGroups
-          }
+          meta={m.you.recent.allGroups}
           rows={recentRows(profile.recent, locale)}
         />
       </div>
@@ -145,20 +126,11 @@ function PadelTabSkeleton() {
   );
 }
 
-/** The padel profile: scope chips, then everything read in the chosen scope. */
+/** The padel profile: the Temba Level, form, and where you stand in each Group. */
 export function PadelTab() {
   const m = useMessages();
-  const [scope, setScope] = useState(GENERAL);
-  const groups = api.ratings.myGroupLevels.useQuery({ sport: "padel" });
+  const standings = api.groups.myStandings.useQuery({ sport: "padel" });
   const general = api.users.myProfile.useQuery({ sport: "padel" });
-  const group =
-    scope === GENERAL
-      ? null
-      : (groups.data?.find((row) => row.groupId === scope) ?? null);
-  const scoped = api.users.myProfile.useQuery(
-    { sport: "padel", groupId: group?.groupId },
-    { enabled: group !== null, placeholderData: keepPreviousData },
-  );
   const me = api.ratings.me.useQuery({ sport: "padel" });
   const declared = me.data?.rating != null;
   const refetchGeneral = general.refetch;
@@ -170,53 +142,29 @@ export function PadelTab() {
     }
   }, [declared, general.isSuccess, generalHasLevel, refetchGeneral]);
 
-  const active = group ? scoped : general;
-  const groupRows = groups.data ?? (groups.isError ? [] : null);
+  const standingRows = standings.data ?? (standings.isError ? [] : null);
 
-  if (active.error) {
+  if (general.error) {
     return (
       <ErrorState
         variant="inline"
         className="rounded-card px-5"
         title={m.webAuth.you.level.failed}
-        error={active.error}
+        error={general.error}
         onRetry={() => {
-          void active.refetch();
+          void general.refetch();
         }}
       />
     );
   }
 
-  const chips: ScopeChip[] = [
-    {
-      key: GENERAL,
-      name: m.you.scope.general,
-      band: general.data?.level
-        ? displayBand(general.data.level.levelBand)
-        : m.webYou.noData,
-    },
-    ...(groups.data ?? []).map((row) => ({
-      key: row.groupId,
-      name: row.name,
-      band: displayBand(row.levelBand),
-    })),
-  ];
-
-  return (
-    <div className="flex flex-col gap-[18px]">
-      {chips.length > 1 ? (
-        <ScopeChips chips={chips} value={scope} onSelect={setScope} />
-      ) : null}
-      {active.data && groupRows ? (
-        <ScopeBody
-          profile={active.data}
-          group={group}
-          groups={groupRows}
-          canSelfDeclare={me.data?.canSelfDeclare ?? false}
-        />
-      ) : (
-        <PadelTabSkeleton />
-      )}
-    </div>
+  return general.data && standingRows ? (
+    <PadelBody
+      profile={general.data}
+      standings={standingRows}
+      canSelfDeclare={me.data?.canSelfDeclare ?? false}
+    />
+  ) : (
+    <PadelTabSkeleton />
   );
 }

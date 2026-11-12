@@ -20,10 +20,6 @@ import {
   EllipsisVertical,
   UserRoundPlus,
 } from "lucide-react-native";
-import {
-  levelSliderLabel,
-  levelSliderStartTenths,
-} from "@repo/domain/level-slider";
 import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 
@@ -388,7 +384,6 @@ export function MembersTab({
   canAdjustTier = false,
   onOpenTierHistory,
   onSetLevel,
-  onSetGroupLevel,
   onOpenMember,
   canAddPlayers = false,
   onRenameUnclaimed,
@@ -419,8 +414,6 @@ export function MembersTab({
   /** Points and history (screen 2e), for an Organizer of a tier Group. */
   onOpenTierHistory?: (userId: string) => void;
   onSetLevel: (userId: string) => void;
-  /** Given to an Organizer of the Group, who sets members' Group Levels. */
-  onSetGroupLevel?: (userId: string) => void;
   onOpenMember?: (userId: string) => void;
   canAddPlayers?: boolean;
   onRenameUnclaimed?: (member: { userId: string; name: string }) => void;
@@ -449,10 +442,8 @@ export function MembersTab({
   const [managing, setManaging] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const { lens, setSort, setFilter } = useMemberLens(groupId);
-  const canSetGroupLevel = onSetGroupLevel != null;
   const canManage =
     canSetLevel ||
-    canSetGroupLevel ||
     canAdjustTier ||
     canAddPlayers ||
     canRemovePlayers ||
@@ -470,7 +461,6 @@ export function MembersTab({
     canRemovePlayers,
     canAppointOrganizers,
     { ...lens, showLevel, showTier, canManage, now: new Date() },
-    canSetGroupLevel,
     canAdjustTier,
   );
   const rowWindow = useRowWindow(
@@ -656,23 +646,6 @@ export function MembersTab({
                   onSetLevel(selected.userId);
                 }
               }
-            : undefined
-        }
-        onSetGroupLevel={
-          selected && onSetGroupLevel && !selected.isViewer
-            ? () => {
-                setSelectedUserId(null);
-                onSetGroupLevel(selected.userId);
-              }
-            : undefined
-        }
-        groupLevelHint={
-          selected?.groupLevel
-            ? m.mobileGroup.setGroupLevel.groupLevel(
-                levelSliderLabel(
-                  levelSliderStartTenths(selected.groupLevel.level),
-                ),
-              )
             : undefined
         }
         onTierHistory={
