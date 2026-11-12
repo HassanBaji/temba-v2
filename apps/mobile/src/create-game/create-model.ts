@@ -7,7 +7,9 @@ import {
   changeFootballSideSize,
   changeCreateGroup,
   changeCreateVenue,
+  choosePublicGame,
   createLevelRangeShown,
+  isPublicGameDraft,
   openLevelRange,
   resetCreateBranch,
   selectDurationFinish,
@@ -55,6 +57,7 @@ export type CreateAction =
   | { kind: "selectType"; type: CreateGameTypeId }
   | { kind: "setStep"; step: CreateFlowStep }
   | { kind: "setGroup"; groupId: string; sport?: string | null }
+  | { kind: "choosePublic" }
   | { kind: "setSideSize"; sideSize: number }
   | { kind: "setPlayersAllowed"; playersAllowed: number }
   | { kind: "setVenue"; venueId: string }
@@ -143,6 +146,12 @@ export function createReducer(
             : resetCreateBranch(grouped, "friendly_game", locale),
       };
     }
+    case "choosePublic":
+      return {
+        ...state,
+        sport: DEFAULT_SPORT,
+        draft: choosePublicGame(draft),
+      };
     case "setSideSize":
       return {
         ...state,
@@ -293,6 +302,7 @@ export function advance(
       draft.groupId,
       draft.venueId,
       locale,
+      isPublicGameDraft(draft),
     );
     if (!where.ok) {
       return blockedBy({
@@ -332,7 +342,7 @@ export function continueBlocked(state: CreateState): boolean {
     return state.type === null;
   }
   if (state.step === 2) {
-    return state.draft.groupId === "";
+    return state.draft.groupId === "" && !isPublicGameDraft(state.draft);
   }
   return false;
 }

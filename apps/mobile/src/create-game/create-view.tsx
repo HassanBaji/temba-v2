@@ -1,4 +1,5 @@
 import {
+  isPublicGameDraft,
   type CreateGroupOption,
   type CreateVenuePicker,
 } from "@repo/domain/create-game-flow";
@@ -109,8 +110,9 @@ export function CreateView(props: CreateViewProps) {
     refreshing: props.refreshing,
     onRefresh: props.onRefresh,
   };
+  const publicGame = isPublicGameDraft(draft);
 
-  if (groups.status !== "ready" || groups.value.length === 0) {
+  if (groups.status !== "ready" || (groups.value.length === 0 && !publicGame)) {
     return (
       <StepShell step={null} header={createEntryHeader(locale)} {...shell}>
         {props.children}
@@ -143,6 +145,14 @@ export function CreateView(props: CreateViewProps) {
               {copy.group.noneBody}
             </Text>
             <Button
+              label={m.rating.publicGame.createAction}
+              onPress={() => {
+                props.dispatch({ kind: "selectType", type: "friendly_game" });
+                props.dispatch({ kind: "choosePublic" });
+                props.dispatch({ kind: "setStep", step: 2 });
+              }}
+            />
+            <Button
               label={m.common.back}
               variant="outline"
               onPress={props.onCancel}
@@ -156,7 +166,11 @@ export function CreateView(props: CreateViewProps) {
   const selectedGroup = groups.value.find(
     (group) => group.id === draft.groupId,
   );
-  const groupName = selectedGroup ? groupLabel(selectedGroup, locale) : null;
+  const groupName = selectedGroup
+    ? groupLabel(selectedGroup, locale)
+    : publicGame
+      ? m.rating.publicGame.label
+      : null;
   const groupVerified = selectedGroup?.verified ?? false;
   const pickerData = picker?.status === "ready" ? picker.value : null;
   const venue = pickerData?.venues.find((item) => item.id === draft.venueId);
@@ -183,7 +197,11 @@ export function CreateView(props: CreateViewProps) {
     pickerData.venues.length === 0;
   const summary =
     props.formMessage ??
-    (emptyCatalog ? copy.venue.noneLive : null) ??
+    (emptyCatalog
+      ? publicGame
+        ? m.rating.publicGame.noPartnerVenues
+        : copy.venue.noneLive
+      : null) ??
     (picker?.status === "error" ? picker.message : null);
   const header =
     stepHeader(

@@ -1,9 +1,10 @@
 import { hubGameCardPlan, hubWaitlistJoinCall } from "@repo/domain/game-card";
+import type { GamesHubTab } from "@repo/domain/games-hub-tab";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { isTournamentMatchRow } from "@repo/domain/tournament-card";
 import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 
-export type GamesTab = "my-games" | "history";
+export type GamesTab = GamesHubTab;
 
 export type HubItem =
   | { kind: "match"; key: string; game: HubGameRow }

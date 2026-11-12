@@ -163,18 +163,23 @@ function OvrRangeLine({ draft }: { draft: StepProps["state"]["draft"] }) {
   ) : null;
 }
 
+/** `encouraged` on a Public Game, which strangers join (ADR-0071). */
 export function LevelRangeField({
   sport,
+  encouraged = false,
   ...props
-}: StepProps & { sport?: Sport }) {
+}: StepProps & { sport?: Sport; encouraged?: boolean }) {
   const m = useMessages();
   return (
     <StepSection
       title={m.mobileCreateGame.levelRange.title}
-      note={m.common.optional}
+      note={encouraged ? m.rating.publicGame.levelRangeNote : m.common.optional}
     >
       <LevelRangeRows {...props} />
       {sport === "football" ? <OvrRangeLine draft={props.state.draft} /> : null}
+      {encouraged ? (
+        <HelperNote>{m.rating.publicGame.levelRangeHint}</HelperNote>
+      ) : null}
       <LevelRangeHelper />
     </StepSection>
   );

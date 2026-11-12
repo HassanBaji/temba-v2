@@ -8,6 +8,7 @@ import {
   friendlyTournamentCourtsLabel,
   friendlyTournamentFormatLabel,
   gameTeamOfTwoCopy,
+  isPublicGameDraft,
   parseCreateMatchMinutes,
   priceChipIsSelected,
 } from "@repo/domain/create-game-flow";
@@ -249,7 +250,7 @@ export function GameDetailsStep(props: DetailsProps) {
   return (
     <View style={{ gap: spacing.section }}>
       <CustomNameField {...props} />
-      <LevelRangeField {...props} />
+      <LevelRangeField {...props} encouraged={isPublicGameDraft(draft)} />
       <PriceField {...props} />
       <FriendlyMvpField {...props} />
       <DetailsRatingField {...props} />

@@ -26,7 +26,7 @@ import {
   type SportFilter,
 } from "@repo/domain/football-hub";
 import { hubItems, tabCount, type GamesTab } from "./games-model";
-import { PlayedEmpty, UpcomingEmpty } from "./games-empty";
+import { PlayedEmpty, PublicEmpty, UpcomingEmpty } from "./games-empty";
 import { HistoryCard } from "./history-card";
 import { SeatPickerSheet } from "./seat-picker-sheet";
 import { TournamentCard, TournamentMatchCard } from "./tournament-cards";
@@ -38,6 +38,7 @@ export type GamesViewProps = {
   tab: GamesTab;
   onTabChange: (tab: GamesTab) => void;
   myGames: Slot<HubGameRow[]>;
+  publicGames: Slot<HubGameRow[]>;
   history: Slot<HubHistoryRow[]>;
   historyHasMore: boolean;
   historyLoadingMore: boolean;
@@ -147,17 +148,20 @@ function TabButtons({
   tab,
   onTabChange,
   myGamesCount,
+  publicCount,
   historyCount,
 }: {
   tab: GamesTab;
   onTabChange: (tab: GamesTab) => void;
   myGamesCount: number | null;
+  publicCount: number | null;
   historyCount: number | null;
 }) {
   const m = useMessages().mobileTournament.games;
   const colors = useColors();
   const tabs = [
     { key: "my-games", label: m.upcomingTab, count: myGamesCount },
+    { key: "public", label: m.publicTab, count: publicCount },
     { key: "history", label: m.playedTab, count: historyCount },
   ] as const;
   return (
@@ -250,7 +254,7 @@ function SectionHead({ title, meta }: { title: string; meta: string }) {
 }
 
 export function GamesView(props: GamesViewProps) {
-  const { tab, myGames, history } = props;
+  const { tab, myGames, publicGames, history } = props;
   const m = useMessages();
   const actions: GameCardActions = {
     onOpen: props.onOpen,
@@ -260,6 +264,8 @@ export function GamesView(props: GamesViewProps) {
   };
   const myGamesCount =
     myGames.status === "ready" ? tabCount(myGames.value.length) : null;
+  const publicCount =
+    publicGames.status === "ready" ? tabCount(publicGames.value.length) : null;
   const historyCount =
     history.status === "ready" && !props.historyHasMore
       ? tabCount(history.value.length)
@@ -281,16 +287,40 @@ export function GamesView(props: GamesViewProps) {
         tab={tab}
         onTabChange={props.onTabChange}
         myGamesCount={myGamesCount}
+        publicCount={publicCount}
         historyCount={historyCount}
       />
-      {tab === "my-games" ? (
+      {tab !== "history" ? (
         <SportFilterRow
           filter={props.sportFilter}
           onChange={props.onSportFilterChange}
         />
       ) : null}
       {tab === "my-games" ? (
-        <MyGamesList {...props} actions={actions} />
+        <HubGamesList
+          {...props}
+          games={myGames}
+          actions={actions}
+          empty={
+            <UpcomingEmpty
+              sportFilter={props.sportFilter}
+              onCreate={props.onCreate}
+              onFindGroup={props.onFindGroup}
+            />
+          }
+        />
+      ) : tab === "public" ? (
+        <HubGamesList
+          {...props}
+          games={publicGames}
+          actions={actions}
+          empty={
+            <PublicEmpty
+              sportFilter={props.sportFilter}
+              onCreate={props.onCreate}
+            />
+          }
+        />
       ) : (
         <HistoryList {...props} />
       )}
@@ -307,8 +337,14 @@ export function GamesView(props: GamesViewProps) {
   );
 }
 
-function MyGamesList(props: GamesViewProps & { actions: GameCardActions }) {
-  const { myGames, actions } = props;
+function HubGamesList(
+  props: GamesViewProps & {
+    games: Slot<HubGameRow[]>;
+    actions: GameCardActions;
+    empty: React.ReactNode;
+  },
+) {
+  const { games, actions } = props;
   const now = useNow();
   const locale = useLocale();
   const footballActions: FootballCardActions = {
@@ -316,21 +352,15 @@ function MyGamesList(props: GamesViewProps & { actions: GameCardActions }) {
     onOpen: actions.onOpen,
     onJoinWaitlist: actions.onJoinWaitlist,
   };
-  if (myGames.status === "loading") {
+  if (games.status === "loading") {
     return <ListSkeleton />;
   }
-  if (myGames.status === "error") {
-    return <Failure message={myGames.message} onRetry={props.onRetry} />;
+  if (games.status === "error") {
+    return <Failure message={games.message} onRetry={props.onRetry} />;
   }
-  const rows = filterBySport(myGames.value, props.sportFilter);
+  const rows = filterBySport(games.value, props.sportFilter);
   if (rows.length === 0) {
-    return (
-      <UpcomingEmpty
-        sportFilter={props.sportFilter}
-        onCreate={props.onCreate}
-        onFindGroup={props.onFindGroup}
-      />
-    );
+    return props.empty;
   }
   if (props.sportFilter === "football") {
     return (

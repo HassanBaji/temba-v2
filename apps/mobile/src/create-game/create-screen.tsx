@@ -1,6 +1,7 @@
 import { useUser } from "@clerk/expo";
 import {
   createFlowFirstStep,
+  isPublicGameDraft,
   parseCreateFlowType,
 } from "@repo/domain/create-game-flow";
 import { useRouter } from "expo-router";
@@ -61,9 +62,11 @@ export function CreateGameScreen({
   const groupVerified =
     groups.data?.find((group) => group.id === state.draft.groupId)?.verified ??
     false;
+  const publicGame = isPublicGameDraft(state.draft);
+  const venuesWanted = Boolean(state.draft.groupId) || publicGame;
   const picker = api.games.listCreateVenues.useQuery(
-    { groupId: state.draft.groupId },
-    { ...REFETCH_ON_FOREGROUND, enabled: Boolean(state.draft.groupId) },
+    publicGame ? { publicGame: true } : { groupId: state.draft.groupId },
+    { ...REFETCH_ON_FOREGROUND, enabled: venuesWanted },
   );
   const linkedVenueId = picker.data?.locked
     ? picker.data.venues[0]?.id
@@ -143,7 +146,7 @@ export function CreateGameScreen({
     if (state.step < 4) {
       const result = advance(state, {
         now,
-        venuesPending: Boolean(state.draft.groupId) && picker.isLoading,
+        venuesPending: venuesWanted && picker.isLoading,
         emptyCatalog:
           picker.data !== undefined &&
           !picker.data.locked &&
@@ -177,6 +180,7 @@ export function CreateGameScreen({
     pending,
     state,
     now,
+    venuesWanted,
     picker.isLoading,
     picker.data,
     groupFieldError,
@@ -203,12 +207,12 @@ export function CreateGameScreen({
     try {
       await Promise.all([
         groups.refetch(),
-        state.draft.groupId ? picker.refetch() : Promise.resolve(),
+        venuesWanted ? picker.refetch() : Promise.resolve(),
       ]);
     } finally {
       setRefreshing(false);
     }
-  }, [groups, picker, state.draft.groupId]);
+  }, [groups, picker, venuesWanted]);
 
   const groupError = clientErrors.groupId ?? groupFieldError;
   const errors: FieldErrors = {
@@ -224,7 +228,7 @@ export function CreateGameScreen({
       errors={errors}
       formMessage={formMessage}
       groups={slotOf(groups)}
-      picker={state.draft.groupId ? slotOf(picker) : null}
+      picker={venuesWanted ? slotOf(picker) : null}
       pending={pending}
       dispatch={dispatch}
       onBack={onBack}

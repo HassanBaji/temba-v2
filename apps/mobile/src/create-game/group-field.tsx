@@ -14,7 +14,7 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 
 import { ChipGrid, ChoiceChip, FieldError } from "./chips";
 import { SearchSheet } from "./search-sheet";
-import { StepSection } from "./step-section";
+import { HelperNote, StepSection } from "./step-section";
 import { groupSheetLabel, labelMatchesQuery } from "./venue-sheet";
 
 export function groupLabel(
@@ -31,17 +31,30 @@ export function groupLabel(
   );
 }
 
+/** No Group id is a uuid, so this value never clashes with one. */
+const PUBLIC_CHIP = "public";
+
+/** The Public game chip beside the Groups: a Public Game has no Group. */
+export type PublicGameChoice = {
+  label: string;
+  note: string;
+  selected: boolean;
+  onSelect: () => void;
+};
+
 export function GroupField({
   groups,
   groupId,
   error,
   noneLabel,
+  publicChoice,
   onSelect,
 }: {
   groups: readonly CreateGroupOption[];
   groupId: string;
   error?: string;
   noneLabel?: string;
+  publicChoice?: PublicGameChoice;
   onSelect: (groupId: string) => void;
 }) {
   const locale = useLocale();
@@ -102,9 +115,23 @@ export function GroupField({
               value: group.id,
               label: groupLabel(group, locale),
             })),
+            ...(publicChoice
+              ? [{ value: PUBLIC_CHIP, label: publicChoice.label }]
+              : []),
           ]}
-          isSelected={(id) => id === groupId}
-          onSelect={pick}
+          isSelected={(id) =>
+            id === PUBLIC_CHIP
+              ? publicChoice?.selected === true
+              : id === groupId && publicChoice?.selected !== true
+          }
+          onSelect={(id) => {
+            if (id === PUBLIC_CHIP) {
+              setChanging(false);
+              publicChoice?.onSelect();
+              return;
+            }
+            pick(id);
+          }}
           escape={
             groups.length > VISIBLE_GROUP_CHIP_COUNT
               ? {
@@ -135,6 +162,9 @@ export function GroupField({
         onPick={pick}
         onClose={() => setSheetOpen(false)}
       />
+      {publicChoice?.selected ? (
+        <HelperNote>{publicChoice.note}</HelperNote>
+      ) : null}
       <FieldError message={error} />
     </StepSection>
   );

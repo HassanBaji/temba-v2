@@ -519,3 +519,54 @@ describe("football create flow", () => {
     expect(result.ok && result.request.kind).toBe("friendly_game");
   });
 });
+
+describe("Public game create flow", () => {
+  it("drops the Group, returns to padel and opens Where without one", () => {
+    const football = createReducer(
+      stateAt(2, "friendly_game", fixtures.drafts.gameReview),
+      { kind: "setGroup", groupId: "group-football", sport: "football" },
+    );
+    const chosen = createReducer(football, { kind: "choosePublic" });
+    expect(chosen.sport).toBe("padel");
+    expect(chosen.draft.groupId).toBe("");
+    expect(chosen.draft.venueId).toBe("");
+    expect(chosen.draft.isPublic).toBe(true);
+    expect(continueBlocked(chosen)).toBe(false);
+
+    const noVenue = advance(chosen, context);
+    expect(noVenue.moved).toBe(false);
+    if (!noVenue.moved) {
+      expect(Object.keys(noVenue.errors)).toEqual(["venueId"]);
+    }
+    const placed = createReducer(chosen, {
+      kind: "setVenue",
+      venueId: "venue-partner",
+    });
+    expect(advance(placed, context).moved).toBe(true);
+  });
+
+  it("submits a public Friendly game with no Group, and a Group undoes it", () => {
+    const chosen = createReducer(
+      stateAt(4, "friendly_game", fixtures.drafts.gameReview),
+      { kind: "choosePublic" },
+    );
+    const placed = createReducer(chosen, {
+      kind: "setVenue",
+      venueId: "venue-partner",
+    });
+    const result = submitRequest(placed, NOW, false);
+    expect(result.ok && result.request.kind).toBe("friendly_game");
+    if (result.ok && result.request.kind === "friendly_game") {
+      expect(result.request.input.isPublic).toBe(true);
+      expect("groupId" in result.request.input).toBe(false);
+      expect(result.request.input.venueId).toBe("venue-partner");
+    }
+
+    const grouped = createReducer(placed, {
+      kind: "setGroup",
+      groupId: "group-friends",
+      sport: "padel",
+    });
+    expect(grouped.draft.isPublic).toBe(false);
+  });
+});
