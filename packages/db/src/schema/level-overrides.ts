@@ -6,6 +6,7 @@ import {
   pgTable,
   timestamp,
   uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
 
 import { groupSports } from "./group-enums";
@@ -26,6 +27,20 @@ export const levelOverrideReasons = pgEnum(
   LEVEL_OVERRIDE_REASON_VALUES,
 );
 
+/** Who set a Level override, by the door they used (ADR-0073). */
+export const LEVEL_OVERRIDE_SET_BY_ROLE_VALUES = [
+  "level_setter",
+  "operator",
+  "verifier",
+] as const;
+
+export const levelOverrideSetByRoles = pgEnum(
+  "level_override_set_by_role",
+  LEVEL_OVERRIDE_SET_BY_ROLE_VALUES,
+);
+
+export const LEVEL_OVERRIDE_NOTE_MAX_LENGTH = 280;
+
 export const levelOverrides = pgTable(
   "level_overrides",
   {
@@ -40,7 +55,9 @@ export const levelOverrides = pgTable(
     groupId: uuid("group_id").references(() => groups.id, {
       onDelete: "set null",
     }),
+    setByRole: levelOverrideSetByRoles("set_by_role").notNull(),
     reason: levelOverrideReasons("reason"),
+    note: varchar("note", { length: LEVEL_OVERRIDE_NOTE_MAX_LENGTH }),
     hadRating: boolean("had_rating").notNull(),
     muBefore: doublePrecision("mu_before").notNull(),
     phiBefore: doublePrecision("phi_before").notNull(),

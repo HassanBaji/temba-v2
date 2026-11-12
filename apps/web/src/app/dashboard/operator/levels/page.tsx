@@ -32,7 +32,7 @@ import {
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { formatOvr } from "@repo/domain/football-ovr";
-import { levelSliderLabel } from "@repo/domain/level-slider";
+import { levelSliderLabel, ovrSliderLabel } from "@repo/domain/level-slider";
 import { sportLabel, type Sport } from "@repo/domain/sport";
 import type { Messages } from "@repo/i18n/messages";
 
@@ -90,7 +90,9 @@ export default function OperatorLevelsPage() {
       toast.success(
         o.setToast(
           target?.name ?? o.playerFallback,
-          levelSliderLabel(variables.levelTenths),
+          variables.ovr === undefined
+            ? levelSliderLabel(variables.levelTenths ?? 0)
+            : ovrSliderLabel(variables.ovr),
         ),
       );
       setTarget(null);

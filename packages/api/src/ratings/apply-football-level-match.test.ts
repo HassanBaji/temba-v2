@@ -245,6 +245,7 @@ describe("A counting football Match moves OVR (ADR-0069)", () => {
         userId: a,
         sport: "football",
         setByUserId: f.organizerId,
+        setByRole: "operator",
         hadRating: true,
         muBefore: muFromOvr(65),
         phiBefore: 350,

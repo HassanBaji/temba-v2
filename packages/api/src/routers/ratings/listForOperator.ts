@@ -89,6 +89,7 @@ export async function listForOperator(
               setByName: user.name,
               createdAt: levelOverrides.createdAt,
               reason: levelOverrides.reason,
+              note: levelOverrides.note,
             })
             .from(levelOverrides)
             .innerJoin(user, eq(user.id, levelOverrides.setByUserId))
@@ -148,6 +149,7 @@ export async function listForOperator(
               setByIsViewer: override.setByUserId === args.operatorUserId,
               createdAt: override.createdAt,
               reason: override.reason,
+              note: override.note,
             }
           : null,
       };

@@ -707,6 +707,7 @@ export async function groupById(
       setByIsViewer: boolean;
       createdAt: Date;
       reason: (typeof levelOverrides.$inferSelect)["reason"];
+      note: string | null;
     }
   >();
   if (viewerCanSetLevel && group.sport && memberUserIds.length > 0) {
@@ -717,6 +718,7 @@ export async function groupById(
         setByName: user.name,
         createdAt: levelOverrides.createdAt,
         reason: levelOverrides.reason,
+        note: levelOverrides.note,
       })
       .from(levelOverrides)
       .innerJoin(user, eq(user.id, levelOverrides.setByUserId))
@@ -734,6 +736,7 @@ export async function groupById(
           setByIsViewer: row.setByUserId === args.userId,
           createdAt: row.createdAt,
           reason: row.reason,
+          note: row.note,
         });
       }
     }

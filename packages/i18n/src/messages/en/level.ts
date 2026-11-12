@@ -40,6 +40,8 @@ export const level = {
   },
   overrideCaption: (who: string, when: string) => `Set by ${who}, ${when}`,
   overrideByYou: "you",
+  noReasonGiven: "No reason given",
+  overrideWhyWithNote: (reason: string, note: string) => `${reason}: “${note}”`,
   errors: {
     pickFootball: "Pick a football Level",
     pickPadel: "Pick a padel Level",
@@ -52,5 +54,10 @@ export const level = {
     footballFromResults: "Football Levels arrive with results",
     groupMembersSet: "Only Group members can set a Level",
     ownLevel: "You cannot set your own Level",
+    reasonRequired: "Pick a reason. The player will see it.",
+    levelOrOvr: "Set a Level or an OVR, one of the two",
+    ovrFootballOnly:
+      "OVR is the football Level. Set a padel Level from 0.0 to 7.0",
+    ovrBetween: "OVR must be a whole number from 40 to 99",
   },
 };

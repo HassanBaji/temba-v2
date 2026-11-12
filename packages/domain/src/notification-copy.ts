@@ -5,10 +5,7 @@ import { formatDayMonth, formatGameDay } from "./format-game-start";
 import { gameFormatLabel } from "./game-format-label";
 import { groupDisplayName } from "./group-join";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
-import {
-  levelOverrideReasonLabel,
-  type LevelOverrideReason,
-} from "./level-slider";
+import { levelOverrideWhy, type LevelOverrideReason } from "./level-slider";
 import { formatMarksClose, isMarkKind, markName } from "./marks";
 import { formatTierPoints } from "./group-members-table";
 import { productDaysBetween, zonedParts } from "./product-timezone";
@@ -44,6 +41,7 @@ type NotificationLevelSet = {
   level: string;
   levelBand: LevelBand;
   reason: LevelOverrideReason | null;
+  note?: string | null;
 };
 
 /**
@@ -252,13 +250,13 @@ export function notificationCopy(
     item.audience === "player" &&
     item.levelSet
   ) {
-    const { level, levelBand, reason } = item.levelSet;
+    const { level, levelBand, reason, note } = item.levelSet;
     return {
       title: m.levelSet(
         actorName(item.actor, locale),
         `${displayLabelFromStoredBand(levelBand)} ${level}`,
       ),
-      subline: reason ? levelOverrideReasonLabel(reason, locale) : null,
+      subline: levelOverrideWhy({ reason, note, locale }),
     };
   }
   if (

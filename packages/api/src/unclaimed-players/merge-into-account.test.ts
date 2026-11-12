@@ -622,6 +622,7 @@ describe("mergeIntoAccount", () => {
         userId: people.survivor.id,
         sport: "padel",
         setByUserId: people.organizer.id,
+        setByRole: "operator",
         hadRating: true,
         muBefore: 0,
         phiBefore: 1,

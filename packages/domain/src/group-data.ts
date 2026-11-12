@@ -36,6 +36,7 @@ export type GroupLevelOverrideData = {
   setByIsViewer: boolean;
   createdAt: Date | string;
   reason: LevelOverrideReason | null;
+  note?: string | null;
 };
 
 export type GroupSeasonSummaryData = {

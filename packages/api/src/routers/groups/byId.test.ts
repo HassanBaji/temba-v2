@@ -1192,6 +1192,7 @@ describe("groupById Level setter fields", () => {
         setterUserId: viewer.id,
         targetUserId: member.id,
         levelTenths: 30,
+        reason: "new_to_group",
       });
       await new Promise((resolve) => setTimeout(resolve, 5));
       await setMemberLevel(db, {
@@ -1200,6 +1201,7 @@ describe("groupById Level setter fields", () => {
         targetUserId: member.id,
         levelTenths: 46,
         reason: "plays_above_results",
+        note: "Ready for the B group.",
       });
 
       const asSetter = await groupById(db, {
@@ -1214,6 +1216,7 @@ describe("groupById Level setter fields", () => {
           setByName: "ls-viewer",
           setByIsViewer: true,
           reason: "plays_above_results",
+          note: "Ready for the B group.",
         },
       });
       expect(leaderboardEntry(asSetter, viewer.id)?.levelOverride).toBeNull();

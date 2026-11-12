@@ -43,6 +43,8 @@ export const level = {
   },
   overrideCaption: (who: string, when: string) => `حدّده ${who}، ${when}`,
   overrideByYou: "أنت",
+  noReasonGiven: "دون ذكر سبب",
+  overrideWhyWithNote: (reason: string, note: string) => `${reason}: «${note}»`,
   errors: {
     pickFootball: "اختر مستوى كرة القدم",
     pickPadel: "اختر مستوى البادل",
@@ -55,5 +57,9 @@ export const level = {
     footballFromResults: "مستويات كرة القدم تأتي من النتائج",
     groupMembersSet: "لا يحدد المستوى إلا أعضاء المجموعة",
     ownLevel: "لا يمكنك تحديد مستواك بنفسك",
+    reasonRequired: "اختر سببًا. سيراه اللاعب.",
+    levelOrOvr: "حدّد المستوى أو OVR، واحدًا منهما",
+    ovrFootballOnly: "OVR هو مستوى كرة القدم. حدّد مستوى البادل من 0.0 إلى 7.0",
+    ovrBetween: "يجب أن يكون OVR عددًا صحيحًا من 40 إلى 99",
   },
 } satisfies typeof source;

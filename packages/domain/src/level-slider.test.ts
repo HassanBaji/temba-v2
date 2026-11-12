@@ -11,7 +11,15 @@ import {
   levelSliderLabel,
   levelSliderReadout,
   levelSliderStartTenths,
+  levelOverrideWhy,
+  OVR_SLIDER_TICKS,
+  ovrSliderLabel,
+  ovrSliderReadout,
+  ovrSliderStart,
 } from "./level-slider";
+import { levelFromOvr } from "./football-ovr";
+import { bandFromLevel } from "./level";
+import { displayLabelFromStoredBand } from "./level-bands";
 
 const readout = (tenths: number, currentTenths = 24) =>
   levelSliderReadout({ tenths, currentTenths, locale: "en" });
@@ -200,5 +208,93 @@ describe("levelOverrideCaption", () => {
         now,
       }).startsWith("حدّده أنت، "),
     ).toBe(true);
+  });
+});
+
+describe("OVR slider", () => {
+  it("marks the same letters on the 40 to 99 face", () => {
+    expect(OVR_SLIDER_TICKS.startLabel).toBe("40");
+    expect(OVR_SLIDER_TICKS.endLabel).toBe("99");
+    expect(OVR_SLIDER_TICKS.letters.map((letter) => letter.label)).toEqual([
+      "D",
+      "D+",
+      "C-",
+      "C",
+      "C+",
+      "B-",
+      "B",
+      "B+",
+      "A",
+    ]);
+    expect(OVR_SLIDER_TICKS.edges[0]).toBeCloseTo(51.8, 9);
+  });
+
+  it("labels every whole OVR with the letter the server stores", () => {
+    for (let ovr = 40; ovr <= 99; ovr++) {
+      const letter = displayLabelFromStoredBand(
+        bandFromLevel(levelFromOvr(ovr)),
+      );
+      expect(ovrSliderLabel(ovr)).toBe(`${letter} ${ovr}`);
+    }
+    expect(ovrSliderLabel(72)).toBe("C+ 72");
+    expect(ovrSliderLabel(120)).toBe("A 99");
+  });
+
+  it("reads C+ as 70 to 75, with the way to B-", () => {
+    const view = ovrSliderReadout({ ovr: 72, currentOvr: 68, locale: "en" });
+    expect(view).toMatchObject({
+      displayBand: "C+",
+      levelLabel: "72",
+      deltaLabel: "+4",
+      rung: { label: "C+", lowerLabel: "70", upperLabel: "75" },
+      toNext: { label: "B-", distanceLabel: "4" },
+    });
+    expect(view.percentThroughRung).toBe(42);
+    expect(
+      ovrSliderReadout({ ovr: 65, currentOvr: 68, locale: "en" }).deltaLabel,
+    ).toBe("−3");
+  });
+
+  it("has no next letter at the top", () => {
+    const view = ovrSliderReadout({ ovr: 99, currentOvr: 99, locale: "en" });
+    expect(view.toNext).toBeNull();
+    expect(view.rung.upperLabel).toBe("99");
+    expect(view.percentThroughRung).toBe(100);
+  });
+
+  it("starts from the member's OVR, or Level 3.0's without one", () => {
+    expect(ovrSliderStart("72")).toBe(72);
+    expect(ovrSliderStart(null)).toBe(65);
+  });
+});
+
+describe("levelOverrideWhy", () => {
+  it("gives the reason, and the note in quotes", () => {
+    expect(levelOverrideWhy({ reason: "back_from_injury", locale: "en" })).toBe(
+      "Back from injury",
+    );
+    expect(
+      levelOverrideWhy({
+        reason: "back_from_injury",
+        note: "Two months out.",
+        locale: "en",
+      }),
+    ).toBe("Back from injury: “Two months out.”");
+    expect(
+      levelOverrideWhy({
+        reason: "back_from_injury",
+        note: "Two months out.",
+        locale: "ar",
+      }),
+    ).toBe(`عائد من إصابة: «${isolate("Two months out.")}»`);
+  });
+
+  it("reads an override with no reason as no reason given", () => {
+    expect(levelOverrideWhy({ reason: null, locale: "en" })).toBe(
+      "No reason given",
+    );
+    expect(levelOverrideWhy({ reason: null, locale: "ar" })).toBe(
+      "دون ذكر سبب",
+    );
   });
 });

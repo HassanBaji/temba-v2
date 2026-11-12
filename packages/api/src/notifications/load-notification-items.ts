@@ -2,6 +2,7 @@ import type { DbClient } from "@repo/db";
 import type { SQL } from "drizzle-orm";
 
 import { type NotificationAudience, type NotificationType } from "@repo/db";
+import { formatOvr, ovrFromMu } from "@repo/domain/football-ovr";
 import { displayedLevelFromMu } from "@repo/domain/level";
 import { type LevelBand } from "@repo/domain/level-bands";
 import { type LevelOverrideReason } from "@repo/domain/level-slider";
@@ -37,9 +38,11 @@ export type NotificationItem = {
   /** The recipient is the actor, as on the MVP's own `mvp_decided` row. */
   actorIsRecipient: boolean;
   levelSet: {
+    /** The set Level as its sport shows it: `3.2`, or OVR `72` on football. */
     level: string;
     levelBand: LevelBand;
     reason: LevelOverrideReason | null;
+    note: string | null;
   } | null;
   /** The Tier event a Tier or ratings-closed Notification is about. */
   tier: {
@@ -121,7 +124,13 @@ export async function loadNotificationItems(
         with: { matches: { columns: { completedAt: true } } },
       },
       levelOverride: {
-        columns: { muAfter: true, levelBandAfter: true, reason: true },
+        columns: {
+          sport: true,
+          muAfter: true,
+          levelBandAfter: true,
+          reason: true,
+          note: true,
+        },
       },
       groupTierEvent: {
         columns: {
@@ -163,9 +172,13 @@ export async function loadNotificationItems(
           : null,
         levelSet: levelOverride
           ? {
-              level: displayedLevelFromMu(levelOverride.muAfter),
+              level:
+                levelOverride.sport === "football"
+                  ? formatOvr(ovrFromMu(levelOverride.muAfter))
+                  : displayedLevelFromMu(levelOverride.muAfter),
               levelBand: levelOverride.levelBandAfter,
               reason: levelOverride.reason,
+              note: levelOverride.note,
             }
           : null,
         tier: groupTierEvent ?? null,

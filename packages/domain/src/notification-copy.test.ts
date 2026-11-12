@@ -710,11 +710,25 @@ describe("notificationCopy for a Level set", () => {
     });
   });
 
-  it("has no subline without a reason", () => {
+  it("reads an override from before reasons were required as no reason given", () => {
     assert.equal(
       levelSet({ levelSet: { level: "4.6", levelBand: "B3", reason: null } })
         ?.subline,
-      null,
+      "No reason given",
+    );
+  });
+
+  it("quotes the setter's note after the reason", () => {
+    assert.equal(
+      levelSet({
+        levelSet: {
+          level: "71",
+          levelBand: "C1",
+          reason: "plays_above_results",
+          note: "Assessed over two sessions, plays above 68.",
+        },
+      })?.subline,
+      "Plays above results: “Assessed over two sessions, plays above 68.”",
     );
   });
 
