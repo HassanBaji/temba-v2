@@ -1129,7 +1129,6 @@ export default function GameHomePage({
 
         {usesDrawnTournamentChrome ? (
           <>
-            <GameRatingScopeBlock scope={data.ratingScope} />
             <TournamentHome
               data={data}
               linkToPlayers={gamePlayersLink(data)}

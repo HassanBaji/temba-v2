@@ -255,6 +255,7 @@ export const tournament = {
     groupRow: "Group",
     priceRow: "Price",
     countsForRating: "Counts for rating",
+    groupRatingOnly: "Group rating only",
     youOweRow: "You owe",
     youOweAfterEachMatch: "after each Match",
     inviteAction: "Invite",
