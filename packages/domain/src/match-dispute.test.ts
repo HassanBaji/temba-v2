@@ -41,7 +41,10 @@ describe("matchDisputeView", () => {
   });
 
   it("reads in Arabic", () => {
-    const view = matchDisputeView({ canDispute: true, openDispute: null }, "ar");
+    const view = matchDisputeView(
+      { canDispute: true, openDispute: null },
+      "ar",
+    );
     expect(view).toMatchObject({
       label: messagesFor("ar").rating.dispute.action,
     });
@@ -58,9 +61,9 @@ describe("matchDisputeCanSubmit", () => {
   it("needs a note of up to 280 characters", () => {
     expect(matchDisputeCanSubmit("   ")).toBe(false);
     expect(matchDisputeCanSubmit(" It was 6–4 ")).toBe(true);
-    expect(matchDisputeCanSubmit("x".repeat(MATCH_DISPUTE_NOTE_MAX_LENGTH))).toBe(
-      true,
-    );
+    expect(
+      matchDisputeCanSubmit("x".repeat(MATCH_DISPUTE_NOTE_MAX_LENGTH)),
+    ).toBe(true);
     expect(
       matchDisputeCanSubmit("x".repeat(MATCH_DISPUTE_NOTE_MAX_LENGTH + 1)),
     ).toBe(false);

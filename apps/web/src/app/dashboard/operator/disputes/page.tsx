@@ -90,7 +90,7 @@ export default function OperatorDisputesPage() {
                       </p>
                     </div>
                   </div>
-                  <p className="text-body break-words whitespace-pre-line">
+                  <p className="text-body whitespace-pre-line break-words">
                     <bdi>{dispute.note}</bdi>
                   </p>
                   {reason ? (

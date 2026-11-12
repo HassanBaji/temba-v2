@@ -146,7 +146,10 @@ describe("games.disputeMatchResult", () => {
 
   it("refuses a Match on an Unrated Game", async () => {
     await withDb(async (db) => {
-      const m = await countedPadelMatch(db, { rated: false, groupRated: false });
+      const m = await countedPadelMatch(db, {
+        rated: false,
+        groupRated: false,
+      });
 
       const error = await refusal(
         disputeMatchResult(db, {

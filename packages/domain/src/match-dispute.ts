@@ -53,7 +53,5 @@ export function matchDisputeSheetCopy(locale: Locale) {
 
 export function matchDisputeCanSubmit(note: string) {
   const trimmed = note.trim();
-  return (
-    trimmed.length > 0 && trimmed.length <= MATCH_DISPUTE_NOTE_MAX_LENGTH
-  );
+  return trimmed.length > 0 && trimmed.length <= MATCH_DISPUTE_NOTE_MAX_LENGTH;
 }

@@ -157,9 +157,7 @@ describe("games.decideDispute", () => {
       const events = await db.query.ratingEvents.findMany({
         where: eq(ratingEvents.matchId, matchId),
       });
-      expect(events.map((event) => event.userId).sort()).toEqual(
-        [a, b].sort(),
-      );
+      expect(events.map((event) => event.userId).sort()).toEqual([a, b].sort());
       expect(await ovrOf(db, a)).toBeGreaterThan(70);
 
       const operator = await insertUser(db, "operator");

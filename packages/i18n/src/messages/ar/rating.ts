@@ -687,8 +687,7 @@ export const rating = {
       errorTitle: "تعذّر تحميل الاعتراضات",
       empty: {
         title: "لا اعتراضات مفتوحة",
-        description:
-          "حين يعترض لاعب على نتيجة احتُسبت لمستوى Temba، تظهر هنا.",
+        description: "حين يعترض لاعب على نتيجة احتُسبت لمستوى Temba، تظهر هنا.",
       },
       raisedBy: (name: string, when: string) => `${isolate(name)} · ${when}`,
       openGame: "افتح المباراة",

@@ -109,7 +109,10 @@ export function MatchDisputeRow({
               className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 md:text-body mx-4 min-h-24 resize-none rounded-md border bg-transparent px-3 py-2.5 text-base outline-none focus-visible:ring-[3px] disabled:opacity-50 md:mx-0"
             />
             {dispute.error ? (
-              <p role="alert" className="text-destructive text-meta mx-4 md:mx-0">
+              <p
+                role="alert"
+                className="text-destructive text-meta mx-4 md:mx-0"
+              >
                 {dispute.error.message}
               </p>
             ) : null}
