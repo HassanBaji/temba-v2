@@ -6,7 +6,7 @@ import * as React from "react";
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
 import { useMessages } from "~/components/locale-provider";
 import { ChoiceChip } from "~/components/temba/choice-chip";
-import { FieldError } from "~/components/ui/field";
+import { FieldDescription, FieldError } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import {
@@ -37,15 +37,25 @@ function groupOptionLabel(group: CreateGroup, m: Messages) {
   return `${name} · ${group.venueName}`;
 }
 
+/** The Public game chip beside the Groups: a Public Game has no Group. */
+export type PublicGameChoice = {
+  label: string;
+  note: string;
+  selected: boolean;
+  onSelect: () => void;
+};
+
 function GroupChips({
   groups,
   selectedGroupId,
   labelledBy,
+  publicChoice,
   onSelect,
 }: {
   groups: readonly CreateGroup[];
   selectedGroupId: string;
   labelledBy?: string;
+  publicChoice?: PublicGameChoice;
   onSelect: (groupId: string) => void;
 }) {
   const m = useMessages();
@@ -73,6 +83,21 @@ function GroupChips({
           </ChoiceChip>
         );
       })}
+      {publicChoice ? (
+        <ChoiceChip
+          role="radio"
+          selected={publicChoice.selected}
+          aria-describedby={
+            publicChoice.selected ? "game-group-public-copy" : undefined
+          }
+          onClick={publicChoice.onSelect}
+        >
+          {publicChoice.selected ? (
+            <Check aria-hidden="true" className="size-3.5" />
+          ) : null}
+          {publicChoice.label}
+        </ChoiceChip>
+      ) : null}
     </RovingRadioGroup>
   );
 }
@@ -81,11 +106,13 @@ export function GroupField({
   groups,
   selectedGroupId,
   groupError,
+  publicChoice,
   onGroupId,
 }: {
   groups: readonly CreateGroup[];
   selectedGroupId: string;
   groupError?: string;
+  publicChoice?: PublicGameChoice;
   onGroupId: (groupId: string) => void;
 }) {
   const m = useMessages();
@@ -117,9 +144,15 @@ export function GroupField({
           groups={visibleGroups}
           selectedGroupId={selectedGroupId}
           labelledBy="game-group-label"
+          publicChoice={publicChoice}
           onSelect={onGroupId}
         />
       </div>
+      {publicChoice?.selected ? (
+        <FieldDescription id="game-group-public-copy">
+          {publicChoice.note}
+        </FieldDescription>
+      ) : null}
       {groups.length > VISIBLE_GROUP_CHIP_COUNT ? (
         <ChoiceChip
           dashed

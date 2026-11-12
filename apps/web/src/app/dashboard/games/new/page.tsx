@@ -42,6 +42,9 @@ import {
   resetCreateBranch,
   changeCreateGroup,
   changeCreateVenue,
+  choosePublicGame,
+  isPublicGameDraft,
+  publicGameOffered,
   toggleCreateCourt,
   changeCreateDay,
   createLevelRangeShown,
@@ -216,12 +219,16 @@ function NewGameForm() {
     setDraftRestored(true);
   }, [draftRestored, typeParam]);
 
+  const publicGame =
+    typeParam === "friendly_game" &&
+    isPublicGameDraft({ groupId: selectedGroupId, isPublic });
   const draft: FriendlyGameDraft & { matchMinutes: string } = {
     groupId: selectedGroupId,
     venueId,
     day,
     startTime,
     finishTime,
+    isPublic: publicGame,
     matchMinutes: matchMinutesInput,
   };
   const createGroups = api.games.listCreateGroups.useQuery();
@@ -240,9 +247,10 @@ function NewGameForm() {
   });
   const displayedStep = Math.max(resolvedStep, firstStep) as CreateFlowStep;
   const groupVerified = selectedGroup?.verified ?? false;
+  const venuesWanted = Boolean(selectedGroupId) || publicGame;
   const picker = api.games.listCreateVenues.useQuery(
-    { groupId: selectedGroupId },
-    { enabled: Boolean(selectedGroupId) },
+    publicGame ? { publicGame: true } : { groupId: selectedGroupId },
+    { enabled: venuesWanted },
   );
   const selectedVenue = picker.data?.venues.find(
     (venue) => venue.id === venueId,
@@ -562,7 +570,12 @@ function NewGameForm() {
         focusElement("game-venue");
         return;
       }
-      const where = validateFriendlyGameWhere(selectedGroupId, venueId, locale);
+      const where = validateFriendlyGameWhere(
+        selectedGroupId,
+        venueId,
+        locale,
+        publicGame,
+      );
       if (!where.ok) {
         const message =
           where.field === "groupId" && groupFieldError
@@ -703,6 +716,7 @@ function NewGameForm() {
         levelMax,
         customName,
         rated,
+        isPublic: publicGame,
       },
       session.now,
       locale,
@@ -723,12 +737,13 @@ function NewGameForm() {
   const formError = tournamentBranch
     ? createTournament.error
     : createGame.error;
-  const venueCopy = !selectedGroupId
+  const venueCopy = !venuesWanted
     ? c.pickGroupFirst
     : picker.data
       ? createVenueCopy(picker.data, locale, {
           manyCourts: tournamentBranch,
           sport,
+          publicGame,
         })
       : m.createGame.venue.pick(
           tournamentBranch
@@ -740,7 +755,10 @@ function NewGameForm() {
   const kickoff = friendlyGameKickoff(day, startTime, finishTime, locale);
   const previewLines = friendlyGamePreviewLines({
     day: startTime ? day : "",
-    groupName: selectedGroup?.name ?? selectedGroup?.venueName ?? null,
+    groupName:
+      selectedGroup?.name ??
+      selectedGroup?.venueName ??
+      (publicGame ? m.rating.publicGame.label : null),
     venueName: selectedVenue?.name ?? null,
     courtName:
       courtId !== "none"
@@ -796,7 +814,9 @@ function NewGameForm() {
     levelMax !== LEVEL_BAND_SELECT_NONE;
   const reviewGroupName = selectedGroup
     ? (selectedGroup.name ?? m.group.untitled)
-    : m.invite.kind.group;
+    : publicGame
+      ? m.rating.publicGame.label
+      : m.invite.kind.group;
 
   if (createGroups.isLoading || !draftRestored) {
     return (
@@ -824,7 +844,7 @@ function NewGameForm() {
     );
   }
 
-  if (createGroups.data?.length === 0) {
+  if (createGroups.data?.length === 0 && !publicGame) {
     return (
       <DashboardShell title={m.webDashboard.games.createAction}>
         <EmptyState
@@ -832,9 +852,23 @@ function NewGameForm() {
           title={c.noGroups.title}
           description={c.noGroups.description}
           action={
-            <Button asChild>
-              <Link href="/dashboard/groups/new">{c.noGroups.action}</Link>
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button asChild>
+                <Link href="/dashboard/groups/new">{c.noGroups.action}</Link>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  applyDraft(choosePublicGame(createDraft));
+                  router.push(
+                    createGameFlowHref({ type: "friendly_game", step: 2 }),
+                  );
+                }}
+              >
+                {m.rating.publicGame.createAction}
+              </Button>
+            </div>
           }
         />
       </DashboardShell>
@@ -972,7 +1006,11 @@ function NewGameForm() {
             ref={summaryRef}
             message={
               globalFormErrorMessage(formError) ??
-              (displayedStep === 2 && emptyCatalog ? c.noLiveVenues : null) ??
+              (displayedStep === 2 && emptyCatalog
+                ? publicGame
+                  ? m.rating.publicGame.noPartnerVenues
+                  : c.noLiveVenues
+                : null) ??
               (picker.error ? picker.error.message : null)
             }
           />
@@ -997,7 +1035,7 @@ function NewGameForm() {
               venueCopy={venueCopy}
               venues={picker.data?.venues ?? []}
               venuesLocked={picker.data?.locked === true}
-              venuesPending={Boolean(selectedGroupId) && picker.isLoading}
+              venuesPending={venuesWanted && picker.isLoading}
               venueId={venueId}
               venueError={venueError}
               onVenueId={(nextVenueId) => {
@@ -1192,10 +1230,32 @@ function NewGameForm() {
                 setGroupFieldError(undefined);
                 clearField("groupId");
               }}
+              publicChoice={
+                publicGameOffered(flowType)
+                  ? {
+                      label: m.rating.publicGame.label,
+                      note: m.rating.publicGame.createNote,
+                      selected: publicGame,
+                      onSelect: () => {
+                        applyDraft(choosePublicGame(createDraft));
+                        setGroupFieldError(undefined);
+                        clearField("groupId");
+                        if (typeParam !== "friendly_game") {
+                          router.push(
+                            createGameFlowHref({
+                              type: "friendly_game",
+                              step: 2,
+                            }),
+                          );
+                        }
+                      },
+                    }
+                  : undefined
+              }
               venueCopy={venueCopy}
               venues={picker.data?.venues ?? []}
               venuesLocked={picker.data?.locked === true}
-              venuesPending={Boolean(selectedGroupId) && picker.isLoading}
+              venuesPending={venuesWanted && picker.isLoading}
               venueId={venueId}
               venueError={venueError}
               onVenueId={(nextVenueId) => {

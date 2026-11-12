@@ -6,6 +6,7 @@ import { DayField } from "~/app/dashboard/games/new/_parts/day-field";
 import {
   GroupField,
   type CreateGroup,
+  type PublicGameChoice,
 } from "~/app/dashboard/games/new/_parts/group-field";
 import { LevelBandRow } from "~/app/dashboard/games/new/_parts/level-band-row";
 import { MvpModeField } from "~/app/dashboard/games/new/_parts/mvp-mode-field";
@@ -82,6 +83,7 @@ export function FriendlyGameSteps({
   selectedGroupId,
   groupError,
   onGroupId,
+  publicChoice,
   venueCopy,
   venues,
   venuesLocked,
@@ -135,6 +137,8 @@ export function FriendlyGameSteps({
   selectedGroupId: string;
   groupError?: string;
   onGroupId: (groupId: string) => void;
+  /** Offered on a padel Friendly game: a Public Game has no Group. */
+  publicChoice?: PublicGameChoice;
   venueCopy: string;
   venues: readonly CreateVenue[];
   venuesLocked: boolean;
@@ -237,13 +241,21 @@ export function FriendlyGameSteps({
     rated,
   });
 
+  const publicGame = publicChoice?.selected === true;
   const levelRangeSection = (
     <section className="flex flex-col gap-3">
       <SectionHeading
         id="game-level-label"
         title={c.levelRange}
-        meta={m.common.optional}
+        meta={
+          publicGame ? m.rating.publicGame.levelRangeNote : m.common.optional
+        }
       />
+      {publicGame ? (
+        <FieldDescription>
+          {m.rating.publicGame.levelRangeHint}
+        </FieldDescription>
+      ) : null}
       <LevelBandRow
         id="game-level-min"
         label={c.minimumLevel}
@@ -369,11 +381,15 @@ export function FriendlyGameSteps({
             groups={groups}
             selectedGroupId={selectedGroupId}
             groupError={groupError}
+            publicChoice={publicChoice}
             onGroupId={onGroupId}
           />
 
           <VenueField
-            selectedGroupId={selectedGroupId}
+            unlocked={Boolean(selectedGroupId) || publicGame}
+            emptyCatalogMessage={
+              publicGame ? m.rating.publicGame.noPartnerVenues : undefined
+            }
             venueCopy={venueCopy}
             venues={venues}
             venuesLocked={venuesLocked}

@@ -12,6 +12,7 @@ import { FootballGameCard } from "~/components/games/football-game-card";
 import { GameSummaryCard } from "~/components/games/game-summary-card";
 import {
   GamesHubPlayedEmpty,
+  GamesHubPublicEmpty,
   GamesHubUpcomingEmpty,
 } from "~/components/games/games-hub-empty";
 import { MatchHistoryCard } from "~/components/games/match-history-card";
@@ -416,6 +417,38 @@ function LoadMoreSentinel({
   );
 }
 
+function SportFilterButtons({
+  sportFilter,
+  onSportFilter,
+}: {
+  sportFilter: SportFilter;
+  onSportFilter: (filter: SportFilter) => void;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  return (
+    <div
+      role="radiogroup"
+      aria-label={m.team.sportLabel}
+      className="flex flex-wrap gap-2"
+    >
+      {sportFilters(locale).map((entry) => (
+        <Button
+          key={entry.key}
+          type="button"
+          size="sm"
+          role="radio"
+          aria-checked={entry.key === sportFilter}
+          variant={entry.key === sportFilter ? "default" : "outline"}
+          onClick={() => onSportFilter(entry.key)}
+        >
+          {entry.label}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
 function TabCount({ count }: { count: number | undefined }) {
   if (!count) {
     return null;
@@ -504,12 +537,7 @@ export default function GamesHubPage({
     onError: toastGlobalFormError,
   });
   const [sportFilter, setSportFilter] = React.useState<SportFilter>("all");
-  const noUpcoming =
-    myGames.data != null &&
-    filterBySport(myGames.data, sportFilter).length === 0;
-  const publicGames = api.games.listPublicPickup.useQuery(undefined, {
-    enabled: noUpcoming,
-  });
+  const publicGames = api.games.listPublicPickup.useQuery();
   const openPublicGames = filterBySport(publicGames.data ?? [], sportFilter);
 
   const pendingGameId =
@@ -554,6 +582,10 @@ export default function GamesHubPage({
             {m.webDashboard.games.tabs.upcoming}
             <TabCount count={myGames.data?.length} />
           </TabsTrigger>
+          <TabsTrigger value="public" className="group/tab">
+            {m.webDashboard.games.tabs.public}
+            <TabCount count={publicGames.data?.length} />
+          </TabsTrigger>
           <TabsTrigger value="history" className="group/tab">
             {m.webDashboard.games.tabs.played}
             <TabCount
@@ -562,25 +594,10 @@ export default function GamesHubPage({
           </TabsTrigger>
         </TabsList>
         <TabsContent value="my-games" className="space-y-4">
-          <div
-            role="radiogroup"
-            aria-label={m.team.sportLabel}
-            className="flex flex-wrap gap-2"
-          >
-            {sportFilters(locale).map((entry) => (
-              <Button
-                key={entry.key}
-                type="button"
-                size="sm"
-                role="radio"
-                aria-checked={entry.key === sportFilter}
-                variant={entry.key === sportFilter ? "default" : "outline"}
-                onClick={() => setSportFilter(entry.key)}
-              >
-                {entry.label}
-              </Button>
-            ))}
-          </div>
+          <SportFilterButtons
+            sportFilter={sportFilter}
+            onSportFilter={setSportFilter}
+          />
           <GamesHubTabPanel
             isLoading={myGames.isLoading}
             errorMessage={myGames.error?.message}
@@ -627,6 +644,29 @@ export default function GamesHubPage({
                 <GamesHubUpcomingEmpty sportFilter={sportFilter} />
               </div>
             }
+            onJoinSeat={onJoinSeat}
+            onJoinWaitlist={onJoinWaitlist}
+            onRegister={onRegister}
+            onConfirmScore={(gameId, matchId) =>
+              confirmScore.mutate({ gameId, matchId })
+            }
+            sportFilter={sportFilter}
+            pendingGameId={pendingGameId}
+          />
+        </TabsContent>
+        <TabsContent value="public" className="space-y-4">
+          <SportFilterButtons
+            sportFilter={sportFilter}
+            onSportFilter={setSportFilter}
+          />
+          <GamesHubTabPanel
+            isLoading={publicGames.isLoading}
+            errorMessage={publicGames.error?.message}
+            onRetry={() => {
+              void publicGames.refetch();
+            }}
+            games={publicGames.data}
+            emptyState={<GamesHubPublicEmpty sportFilter={sportFilter} />}
             onJoinSeat={onJoinSeat}
             onJoinWaitlist={onJoinWaitlist}
             onRegister={onRegister}
