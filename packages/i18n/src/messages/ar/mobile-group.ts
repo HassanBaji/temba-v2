@@ -163,10 +163,9 @@ export const mobileGroup = {
     notSet: "غير محدّد",
     addName: "أضف اسمًا",
     addNameFor: (name: string) => `أضف اسمًا لـ${name}`,
-    rowSpoken: (nickname: string, name: string) =>
-      `${nickname}، اسم ${name} في هذه المجموعة`,
     title: "الاسم في هذه المجموعة",
     forMember: (name: string, group: string) => `لـ${name}، في ${group} فقط.`,
+    forYou: (group: string) => `لك، في ${group} فقط.`,
     fieldLabel: "الاسم",
     placeholder: "بماذا تناديه؟",
     counter: (count: number, max: number) => `${count} من ${max}`,
@@ -188,6 +187,8 @@ export const mobileGroup = {
       `لن يرى ${firstName} هذا الاسم. يراه منظّمو المجموعة فقط.`,
     groupNote: (firstName: string) =>
       `سيراه ${firstName} وكل من في المجموعة بجانب اسمه.`,
+    approversNoteSelf: "يرى هذا الاسم منظّمو المجموعة فقط، وأنت منهم.",
+    groupNoteSelf: "سيراه كل من في المجموعة بجانب اسمك.",
     save: (nickname: string) => `احفظ «${nickname}»`,
     typeFirst: "اكتب اسمًا أولًا",
     clear: "امسح الاسم",
@@ -196,6 +197,8 @@ export const mobileGroup = {
     youAre: "اسمك في هذه المجموعة",
     youAreNote:
       "اسم أعطاك إياه منظّمو المجموعة. يراه كل من في المجموعة بجانب اسمك، ولا يظهر في أي مكان آخر.",
+    youAreSpoken: (nickname: string) =>
+      `اسمك في هذه المجموعة ${nickname}. اسم أعطاك إياه منظّمو المجموعة. يراه كل من في المجموعة بجانب اسمك، ولا يظهر في أي مكان آخر.`,
     legend:
       "علامة الوسم تعني اسمًا أعطته هذه المجموعة. يظهر في هذه المجموعة فقط، ولا يتغيّر اسم اللاعب في Temba ولا ملفه.",
   },

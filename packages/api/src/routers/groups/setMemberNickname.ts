@@ -65,7 +65,7 @@ export async function setMemberNickname(
     .update(groupMembers)
     .set({
       nickname,
-      nicknameVisibility: args.visibility,
+      nicknameVisibility: nickname == null ? "approvers" : args.visibility,
       nicknameUpdatedById: args.approverUserId,
       nicknameUpdatedAt: now,
       updatedAt: now,

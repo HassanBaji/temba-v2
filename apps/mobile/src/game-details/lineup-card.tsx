@@ -17,7 +17,7 @@ import { Plus, UserPlus } from "lucide-react-native";
 import { Fragment } from "react";
 import { Pressable, View } from "react-native";
 
-import { NicknameName } from "../groups/nickname-name";
+import { NicknameName } from "../primitives/nickname-name";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -206,9 +206,7 @@ function TakenSeat({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={m.mobileGameDetails.join.nameWithMeta(
-        row.isNickname
-          ? m.mobileGroup.nickname.rowSpoken(name, seat.name)
-          : name,
+        row.isNickname ? m.group.nickname.spoken(name, seat.name) : name,
         subline,
       )}
       onPress={() => onPress(row)}

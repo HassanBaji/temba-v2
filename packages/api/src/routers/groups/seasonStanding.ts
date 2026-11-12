@@ -131,8 +131,8 @@ export async function seasonStanding(
     season ? toSeasonRow(season, now) : null,
   );
   const viewer = {
-    userId: args.userId,
     isApprover: await isGroupApprover(database, group, args.userId),
+    isMember: true,
   };
   const nicknameByUserId = new Map(
     memberRows.map((row) => [row.userId, visibleMemberNickname(row, viewer)]),

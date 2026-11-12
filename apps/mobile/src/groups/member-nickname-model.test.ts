@@ -10,6 +10,7 @@ const member: MemberNicknameTarget = {
   name: "Ahmed S",
   imageUri: null,
   nickname: null,
+  isViewer: false,
 };
 
 function view(
@@ -58,6 +59,19 @@ describe("memberNicknameSheetView", () => {
     );
     expect(view({ visibility: "group" }).note).toBe(
       "Ahmed and everyone else in the Group will see it next to their name.",
+    );
+  });
+
+  it("speaks to an approver naming themselves", () => {
+    const self = { ...member, isViewer: true };
+    expect(view({ member: self }).subtitle).toBe(
+      "For you, in Karbabad Friday Football only.",
+    );
+    expect(view({ member: self }).note).toBe(
+      "Only the Group's Organizers see this name, you included.",
+    );
+    expect(view({ member: self, visibility: "group" }).note).toBe(
+      "Everyone in the Group will see it next to your name.",
     );
   });
 

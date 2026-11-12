@@ -135,11 +135,10 @@ export const mobileGroup = {
     notSet: "Not set",
     addName: "Add name",
     addNameFor: (name: string) => `Add a name for ${name}`,
-    rowSpoken: (nickname: string, name: string) =>
-      `${nickname}, this Group's name for ${name}`,
     title: "Name in this Group",
     forMember: (name: string, group: string) =>
       `For ${name}, in ${group} only.`,
+    forYou: (group: string) => `For you, in ${group} only.`,
     fieldLabel: "Name",
     placeholder: "What do you call them?",
     counter: (count: number, max: number) => `${count} of ${max}`,
@@ -162,6 +161,9 @@ export const mobileGroup = {
       `${firstName} won't see this name. Only the Group's Organizers do.`,
     groupNote: (firstName: string) =>
       `${firstName} and everyone else in the Group will see it next to their name.`,
+    approversNoteSelf:
+      "Only the Group's Organizers see this name, you included.",
+    groupNoteSelf: "Everyone in the Group will see it next to your name.",
     save: (nickname: string) => `Save “${nickname}”`,
     typeFirst: "Type a name first",
     clear: "Clear name",
@@ -170,6 +172,8 @@ export const mobileGroup = {
     youAre: "In this Group you're",
     youAreNote:
       "A name the Group's Organizers gave you. Everyone in this Group sees it next to your name. It isn't shown anywhere else.",
+    youAreSpoken: (nickname: string) =>
+      `In this Group you're ${nickname}. A name the Group's Organizers gave you. Everyone in this Group sees it next to your name. It isn't shown anywhere else.`,
     legend:
       "A tag marks a name this Group gave. It shows in this Group only; the player's Temba name and profile don't change.",
   },

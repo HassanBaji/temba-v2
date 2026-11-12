@@ -50,7 +50,7 @@ import {
   standingStats,
   type StandingRowView,
 } from "./group-home-model";
-import { NicknameName } from "./nickname-name";
+import { NicknameName } from "../primitives/nickname-name";
 import { groupSeasonsPath } from "./groups-model";
 import { Notice } from "./notice";
 

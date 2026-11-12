@@ -736,6 +736,10 @@ export const group = {
         other: "لا يتجاوز {n} حرف",
       }),
   },
+  nickname: {
+    spoken: (nickname: string, name: string) =>
+      `${nickname}، اسم ${name} في هذه المجموعة`,
+  },
   errors: {
     notFound: "المجموعة غير موجودة",
     cannotJoin: "لا يمكنك الانضمام إلى هذه المجموعة",

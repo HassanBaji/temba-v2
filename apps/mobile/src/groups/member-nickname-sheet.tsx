@@ -19,7 +19,7 @@ import { TextField } from "../primitives/text-field";
 import { useToast } from "../primitives/toast";
 import { useColors } from "../theme/theme-provider";
 import { api } from "../trpc/react";
-import { NicknameName } from "./nickname-name";
+import { NicknameName } from "../primitives/nickname-name";
 import {
   memberNicknameSheetView,
   type MemberNicknameTarget,
@@ -40,7 +40,10 @@ function VisibilityOption({
   return (
     <Pressable
       accessibilityRole="radio"
-      accessibilityLabel={`${copy.title}, ${copy.description}`}
+      accessibilityLabel={m.mobileGroup.form.radio(
+        copy.title,
+        copy.description,
+      )}
       accessibilityState={{ checked: selected }}
       onPress={onPress}
       style={({ pressed }) => ({

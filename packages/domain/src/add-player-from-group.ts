@@ -89,12 +89,9 @@ export function groupMemberRows(
           ? footballLabel(groupMemberFootballDefaults(member), locale)
           : null;
       const nickname = member.nickname?.name ?? null;
-      const parts = [
-        nickname ? member.name : null,
-        role,
-        level,
-        blocked ? m.noSpotsLeft : null,
-      ].filter((part): part is string => part != null);
+      const parts = [role, level, blocked ? m.noSpotsLeft : null].filter(
+        (part): part is string => part != null,
+      );
       return {
         userId: member.userId,
         name: nickname ?? member.name,

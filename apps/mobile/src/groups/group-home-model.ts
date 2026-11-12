@@ -110,7 +110,7 @@ export function standingRowView(
   const nickname = entry.isViewer ? null : (entry.nickname?.name ?? null);
   const name = entry.isViewer ? m.common.you : (nickname ?? tembaName);
   const shownName = nickname
-    ? m.mobileGroup.nickname.rowSpoken(nickname, tembaName)
+    ? m.group.nickname.spoken(nickname, tembaName)
     : name;
   const spokenName = entry.unclaimed
     ? m.mobileGroup.standing.nameNotOnTemba(shownName)
@@ -230,7 +230,7 @@ export function memberRowView(
     .filter(Boolean)
     .join(" · ");
   const spokenName = nickname
-    ? m.mobileGroup.nickname.rowSpoken(nickname, tembaName)
+    ? m.group.nickname.spoken(nickname, tembaName)
     : name;
   const level = levelCellView(entry.levelBand, entry.levelProvisional);
   return {

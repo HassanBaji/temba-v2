@@ -59,13 +59,13 @@ async function seed(database: TestDatabase) {
 }
 
 describe("gameMemberNicknames", () => {
-  it("gives an Organizer every nickname on a private Group Game", async () => {
+  it("gives an Organizer every nickname on a Group Game", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await seed(db);
       const names = await gameMemberNicknames(
         db,
-        { groupId: f.groupId, isPublic: false },
+        { groupId: f.groupId },
         f.organizer,
       );
       expect(Object.fromEntries(names)).toEqual({
@@ -83,7 +83,7 @@ describe("gameMemberNicknames", () => {
       const f = await seed(db);
       const names = await gameMemberNicknames(
         db,
-        { groupId: f.groupId, isPublic: false },
+        { groupId: f.groupId },
         f.defender,
       );
       expect([...names.keys()]).toEqual([f.keeper]);
@@ -92,24 +92,15 @@ describe("gameMemberNicknames", () => {
     }
   });
 
-  it("shows none on a public Game, a Game with no Group, or to someone outside the Group", async () => {
+  it("shows none on a Game with no Group, or to someone outside the Group", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await seed(db);
       const sizes = await Promise.all([
-        gameMemberNicknames(
-          db,
-          { groupId: f.groupId, isPublic: true },
-          f.organizer,
-        ),
-        gameMemberNicknames(db, { groupId: null, isPublic: false }, f.creator),
-        gameMemberNicknames(
-          db,
-          { groupId: f.groupId, isPublic: false },
-          f.outsider,
-        ),
+        gameMemberNicknames(db, { groupId: null }, f.creator),
+        gameMemberNicknames(db, { groupId: f.groupId }, f.outsider),
       ]);
-      expect(sizes.map((names) => names.size)).toEqual([0, 0, 0]);
+      expect(sizes.map((names) => names.size)).toEqual([0, 0]);
     } finally {
       await close();
     }

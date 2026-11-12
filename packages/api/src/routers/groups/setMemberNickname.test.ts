@@ -2,7 +2,12 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { groupMembers, GroupMemberRoleEnum, user } from "@repo/db/schema";
+import {
+  groupMembers,
+  GroupMemberRoleEnum,
+  groups,
+  user,
+} from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 import { groupById } from "#src/routers/groups/byId";
@@ -130,6 +135,60 @@ describe("groups.setMemberNickname", () => {
     }
   });
 
+  it("lets an approver name themselves and see their own approvers-only name", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await seed(db);
+      await setMemberNickname(db, {
+        groupId: f.groupId,
+        approverUserId: f.organizer,
+        userId: f.organizer,
+        nickname: "Yousif ref",
+        visibility: "approvers",
+      });
+
+      const expected = { name: "Yousif ref", visibility: "approvers" };
+      expect(
+        await nicknameSeenBy(db, f.groupId, f.organizer, f.organizer),
+      ).toEqual(expected);
+      expect(
+        await nicknameSeenBy(db, f.groupId, f.creator, f.organizer),
+      ).toEqual(expected);
+      expect(
+        await nicknameSeenBy(db, f.groupId, f.member, f.organizer),
+      ).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+
+  it("shows no name, even one set for the whole Group, to someone outside a public Group", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await seed(db);
+      await db
+        .update(groups)
+        .set({ type: "public" })
+        .where(eq(groups.id, f.groupId));
+      await setMemberNickname(db, {
+        groupId: f.groupId,
+        approverUserId: f.creator,
+        userId: f.member,
+        nickname: "Ahmed keeper",
+        visibility: "group",
+      });
+
+      expect(
+        await nicknameSeenBy(db, f.groupId, f.outsider, f.member),
+      ).toBeNull();
+      expect(
+        await nicknameSeenBy(db, f.groupId, f.other, f.member),
+      ).not.toBeNull();
+    } finally {
+      await close();
+    }
+  });
+
   it("shows a name set for the whole Group to every member, the player included", async () => {
     const { db, close } = await createPgliteDb();
     try {
@@ -183,6 +242,13 @@ describe("groups.setMemberNickname", () => {
       expect(
         await nicknameSeenBy(db, f.groupId, f.creator, f.member),
       ).toBeNull();
+      const cleared = await db.query.groupMembers.findFirst({
+        where: and(
+          eq(groupMembers.groupId, f.groupId),
+          eq(groupMembers.userId, f.member),
+        ),
+      });
+      expect(cleared?.nicknameVisibility).toBe("approvers");
     } finally {
       await close();
     }

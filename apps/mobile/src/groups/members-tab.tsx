@@ -48,7 +48,7 @@ import type { MemberNicknameTarget } from "./member-nickname-model";
 import { MemberNicknameSheet } from "./member-nickname-sheet";
 import { MemberSheet } from "./member-sheet";
 import { MemberLensRow, MemberSortSheet } from "./members-lens";
-import { NicknameName } from "./nickname-name";
+import { NicknameName } from "../primitives/nickname-name";
 import { Notice } from "./notice";
 import { useMemberLens } from "./use-member-lens";
 
@@ -226,7 +226,7 @@ function ViewerNicknameCard({
       radius="card"
       style={{ gap: 12, backgroundColor: colors.wash }}
       accessible
-      accessibilityLabel={`${m.mobileGroup.nickname.youAre} ${nickname}. ${m.mobileGroup.nickname.youAreNote}`}
+      accessibilityLabel={m.mobileGroup.nickname.youAreSpoken(nickname)}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Avatar name={name} uri={imageUri} />
@@ -390,9 +390,7 @@ export function MembersTab({
     member: { userId: string; name: string },
     action: GroupMemberOrganizerAction,
   ) => void;
-  /** A Group approver gives members a Member nickname. */
   canSetNicknames?: boolean;
-  /** The Group's name, for the nickname sheet. */
   groupName?: string;
   /** Lookup invites not yet accepted; only an inviter is given them. */
   pendingInviteNames?: string[];
@@ -460,6 +458,7 @@ export function MembersTab({
     name: entry.name ?? m.mobileGroup.unnamedMember,
     imageUri: mediaUrl(entry.image, apiOrigin),
     nickname: entry.nickname ?? null,
+    isViewer: entry.isViewer,
   });
   const openNaming = (userId: string) => {
     const entry = leaderboard.find((row) => row.userId === userId);
@@ -484,7 +483,7 @@ export function MembersTab({
   return (
     <View style={{ gap: 14 }}>
       {top}
-      {viewerEntry?.nickname ? (
+      {viewerEntry?.nickname?.visibility === "group" ? (
         <ViewerNicknameCard
           nickname={viewerEntry.nickname.name}
           name={viewerEntry.name ?? m.mobileGroup.unnamedMember}
@@ -571,10 +570,16 @@ export function MembersTab({
                 managing={isManaging}
                 onOpen={onOpenMember ? () => onOpenMember(row.key) : undefined}
                 onManage={
-                  row.selectable ? () => setSelectedUserId(row.key) : undefined
+                  row.isViewer
+                    ? canSetNicknames && row.nickname != null
+                      ? () => openNaming(row.key)
+                      : undefined
+                    : row.selectable
+                      ? () => setSelectedUserId(row.key)
+                      : undefined
                 }
                 onAddName={
-                  canSetNicknames && !row.isViewer && row.nickname == null
+                  canSetNicknames && row.nickname == null
                     ? () => openNaming(row.key)
                     : undefined
                 }

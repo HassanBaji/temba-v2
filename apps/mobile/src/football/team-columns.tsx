@@ -2,7 +2,7 @@ import { bibColors, radii, sizes } from "@repo/design-tokens";
 import { type FootballBib } from "@repo/domain/football-lineup";
 import { Pressable, View } from "react-native";
 
-import { NicknameName } from "../groups/nickname-name";
+import { NicknameName } from "../primitives/nickname-name";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
@@ -13,7 +13,7 @@ import { BibChip } from "./bib-picker";
 import {
   byKeeperThenLevel,
   levelLabel,
-  rosterName,
+  lineupName,
   sideAverage,
   slotCode,
   type Bibs,
@@ -43,19 +43,12 @@ export function BibRow({
   const blendsIn =
     scheme === "dark" ? bib === "black" : fill === palette.background;
   const edge = blendsIn ? palette.muted : fill;
-  const name = player.isViewer ? messages.common.you : rosterName(player);
-  const isNickname = !player.isViewer && player.nickname != null;
+  const { name, spoken, isNickname } = lineupName(player, locale);
   const code = slotCode(player, locale);
   return (
     <Pressable
       accessibilityRole={onPress ? "button" : undefined}
-      accessibilityLabel={[
-        isNickname
-          ? messages.mobileGroup.nickname.rowSpoken(name, player.name)
-          : name,
-        code,
-        levelLabel(player.levelBand),
-      ]
+      accessibilityLabel={[spoken, code, levelLabel(player.levelBand)]
         .filter(Boolean)
         .join(messages.tournament.listSeparator)}
       disabled={!onPress}

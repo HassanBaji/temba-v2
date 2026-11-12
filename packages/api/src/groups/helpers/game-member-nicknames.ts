@@ -9,12 +9,12 @@ import { visibleMemberNickname } from "#src/groups/helpers/visible-member-nickna
 
 type DbOrTx = DbClient | DbTx;
 
-type GameForNicknames = Pick<typeof games.$inferSelect, "groupId" | "isPublic">;
+type GameForNicknames = Pick<typeof games.$inferSelect, "groupId">;
 
 /**
  * The Member nicknames a viewer may see on a Game's line-ups and team making,
- * by user id. Only a private Game of a Group, and only for a member of that
- * Group: a public Game never shows them.
+ * by user id: only on a Game of a Group, only for a member of that Group, and
+ * only for players who are in it.
  */
 export async function gameMemberNicknames(
   database: DbOrTx,
@@ -22,7 +22,7 @@ export async function gameMemberNicknames(
   viewerUserId: string,
 ): Promise<Map<string, MemberNicknameData>> {
   const nicknames = new Map<string, MemberNicknameData>();
-  if (!game.groupId || game.isPublic) {
+  if (!game.groupId) {
     return nicknames;
   }
   const group = await database.query.groups.findFirst({
@@ -40,8 +40,8 @@ export async function gameMemberNicknames(
     return nicknames;
   }
   const viewer = {
-    userId: viewerUserId,
     isApprover: await isGroupApprover(database, group, viewerUserId),
+    isMember: true,
   };
   for (const row of rows) {
     const nickname = visibleMemberNickname(row, viewer);

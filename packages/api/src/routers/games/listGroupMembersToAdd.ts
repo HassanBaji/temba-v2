@@ -117,10 +117,10 @@ export async function listGroupMembersToAdd(
   );
 
   const viewer = {
-    userId: args.organizerUserId,
     isApprover:
       group != null &&
       (await isGroupApprover(database, group, args.organizerUserId)),
+    isMember: rows.some((row) => row.userId === args.organizerUserId),
   };
   const members = rows
     .map(

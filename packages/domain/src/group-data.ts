@@ -172,7 +172,6 @@ export type GroupHomeData = {
   canAddPlayers: boolean;
   canRemovePlayers: boolean;
   canAppointOrganizers: boolean;
-  /** A Group approver gives members a Member nickname. */
   canSetMemberNicknames: boolean;
   canDelete: boolean;
   viewerCanSetLevel: boolean;

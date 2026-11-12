@@ -12,7 +12,7 @@ import { Check, Phone, UsersRound } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
-import { NicknameName } from "../groups/nickname-name";
+import { NicknameName } from "../primitives/nickname-name";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { NotOnTembaMark } from "../primitives/not-on-temba-mark";

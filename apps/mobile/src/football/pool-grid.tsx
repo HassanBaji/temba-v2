@@ -1,7 +1,7 @@
 import { radii, sizes } from "@repo/design-tokens";
 import { Pressable, View } from "react-native";
 
-import { NicknameName } from "../groups/nickname-name";
+import { NicknameName } from "../primitives/nickname-name";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
@@ -13,7 +13,7 @@ import { useColors } from "../theme/theme-provider";
 import {
   levelLabel,
   poolSections,
-  rosterName,
+  lineupName,
   slotCode,
   type BoardPlayer,
 } from "@repo/domain/football-board";
@@ -65,20 +65,13 @@ function PlayerTile({
   const tone = player.isViewer ? "ink" : "paper";
   const colors = useColors();
   const palette = tonePalette(tone, colors);
-  const name = player.isViewer ? messages.common.you : rosterName(player);
-  const isNickname = !player.isViewer && player.nickname != null;
+  const { name, spoken, isNickname } = lineupName(player, locale);
   const code = slotCode(player, locale);
   return (
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
         accessibilityRole={onPress ? "button" : undefined}
-        accessibilityLabel={[
-          isNickname
-            ? messages.mobileGroup.nickname.rowSpoken(name, player.name)
-            : name,
-          code,
-          levelLabel(player.levelBand),
-        ]
+        accessibilityLabel={[spoken, code, levelLabel(player.levelBand)]
           .filter(Boolean)
           .join(messages.tournament.listSeparator)}
         disabled={!onPress}

@@ -96,7 +96,7 @@ describe("groupMemberRows with Member nicknames", () => {
     member("sh", "Salman H"),
   ];
 
-  it("leads with the nickname and keeps the Temba name on the second line", () => {
+  it("shows the nickname alone, with the Temba name only for the avatar", () => {
     const [row] = groupMemberRows(
       { members: named, query: "", picked: [], openSpots: 3, isFootball: true },
       "en",
@@ -104,7 +104,7 @@ describe("groupMemberRows with Member nicknames", () => {
     assert.equal(row?.name, "Ahmed keeper");
     assert.equal(row?.isNickname, true);
     assert.equal(row?.tembaName, "Ahmed Nasser");
-    assert.equal(row?.meta, "Ahmed Nasser · Goalkeeper");
+    assert.equal(row?.meta, "Goalkeeper");
   });
 
   it("finds a member by either name", () => {

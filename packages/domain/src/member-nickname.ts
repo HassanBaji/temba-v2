@@ -17,22 +17,6 @@ export function normalizeMemberNickname(input: string): string | null {
   return name === "" ? null : name;
 }
 
-/**
- * Whether a viewer may see a member's nickname. An approvers-only name is a
- * working label: never shown to the member it names, even when they are an
- * approver themselves.
- */
-export function memberNicknameIsVisible(input: {
-  visibility: MemberNicknameVisibility;
-  viewerIsApprover: boolean;
-  viewerIsMember: boolean;
-}): boolean {
-  if (input.visibility === "group") {
-    return true;
-  }
-  return input.viewerIsApprover && !input.viewerIsMember;
-}
-
 /** Search on a Group list matches the Temba name and the nickname. */
 export function memberMatchesQuery(
   member: { name: string | null; nickname?: MemberNicknameData | null },

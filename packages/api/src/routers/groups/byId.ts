@@ -473,8 +473,8 @@ export async function groupById(
           }));
         const phoneNumber = isApprover ? row.user.phoneNumber : null;
         const nickname = visibleMemberNickname(row, {
-          userId: args.userId,
           isApprover,
+          isMember: membership !== undefined,
         });
         return [
           row.userId,

@@ -823,7 +823,7 @@ describe("games side size checks", () => {
 });
 
 describe("Member nicknames on a football Group Game", () => {
-  it("shows the nickname on the line-up of a private Game and not of a public one", async () => {
+  it("shows the nickname on the line-up of a Group Game, public or private", async () => {
     await withFootball(async (f) => {
       const keeper = await insertMember(f, "Ahmed Nasser");
       const viewer = await insertMember(f, "Salman H");
@@ -850,7 +850,10 @@ describe("Member nicknames on a football Group Game", () => {
         name: "Ahmed keeper",
         visibility: "group",
       });
-      expect(await nicknameOn(true)).toBeNull();
+      expect(await nicknameOn(true)).toEqual({
+        name: "Ahmed keeper",
+        visibility: "group",
+      });
     });
   });
 });

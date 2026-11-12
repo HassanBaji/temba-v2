@@ -70,12 +70,28 @@ export function shortName(name: string) {
   return last ? `${first} ${nameInitial(last) ?? ""}` : (first ?? name);
 }
 
-/** A line-up name: the Member nickname in full, else the short Temba name. */
-export function rosterName(player: {
-  name: string;
-  nickname?: MemberNicknameData | null;
-}) {
-  return player.nickname?.name ?? shortName(player.name);
+/**
+ * A player's name on a line-up and how a screen reader says it: "You" for
+ * the viewer, else the Member nickname in full, else the short Temba name.
+ */
+export function lineupName(
+  player: Pick<BoardPlayer, "name" | "nickname" | "isViewer">,
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
+  if (player.isViewer) {
+    return { name: m.common.you, spoken: m.common.you, isNickname: false };
+  }
+  const nickname = player.nickname?.name;
+  if (nickname) {
+    return {
+      name: nickname,
+      spoken: m.group.nickname.spoken(nickname, player.name),
+      isNickname: true,
+    };
+  }
+  const name = shortName(player.name);
+  return { name, spoken: name, isNickname: false };
 }
 
 /**

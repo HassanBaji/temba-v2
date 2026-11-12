@@ -2,9 +2,9 @@ import { sizes } from "@repo/design-tokens";
 import { Tag } from "lucide-react-native";
 import { View, type StyleProp, type ViewStyle } from "react-native";
 
-import type { TextWeight } from "../primitives/font-family";
-import { useTonePalette } from "../primitives/surface-context";
-import { Text, type TextSize, type TextTone } from "../primitives/text";
+import type { TextWeight } from "./font-family";
+import { useTonePalette } from "./surface-context";
+import { Text, type TextSize, type TextTone } from "./text";
 
 /**
  * A member's name on a Group list. A Member nickname carries the tag icon, so
