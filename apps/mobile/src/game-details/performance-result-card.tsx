@@ -6,7 +6,7 @@ import {
   type PerformanceResultView,
 } from "@repo/domain/performance-rating";
 import { Star } from "lucide-react-native";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { View } from "react-native";
 
 import { useNow } from "../games/use-now";
@@ -47,8 +47,10 @@ export function PerformanceResultCard({
   );
   const { refetch } = query;
   const windowState = window?.state;
+  const shownState = useRef(windowState);
   useEffect(() => {
-    if (windowState) {
+    if (shownState.current !== windowState) {
+      shownState.current = windowState;
       void refetch();
     }
   }, [windowState, refetch]);

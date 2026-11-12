@@ -1,7 +1,7 @@
 "use client";
 
 import { Star } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { fishSizes } from "@repo/design-tokens/fish";
 import {
@@ -38,8 +38,10 @@ export function PerformanceResultCard({
   );
   const { refetch } = query;
   const windowState = window?.state;
+  const shownState = useRef(windowState);
   useEffect(() => {
-    if (windowState) {
+    if (shownState.current !== windowState) {
+      shownState.current = windowState;
       void refetch();
     }
   }, [windowState, refetch]);
