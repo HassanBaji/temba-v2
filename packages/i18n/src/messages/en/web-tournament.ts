@@ -6,6 +6,11 @@ export const webTournament = {
   gameActions: "Game actions",
   kickName: (name: string) => `Kick ${name}`,
   kickFromWaitlist: (name: string) => `Kick ${name} from the waitlist`,
+  player: {
+    openActions: (name: string) => `${name}, open player actions`,
+    level: (level: string) => `Level ${level}`,
+    viewProfile: "View profile",
+  },
   draw: {
     undoing: "Undoing…",
     posting: "Posting…",
