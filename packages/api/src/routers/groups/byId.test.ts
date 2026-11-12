@@ -15,6 +15,7 @@ import {
   games,
   groupMemberInvites,
   groupMembers,
+  GroupMemberRoleEnum,
   groups,
   GroupTypeEnum,
   matchSets,
@@ -851,6 +852,60 @@ describe("groupById imageUrl", () => {
         "/api/media/group-images/home/image?v=1",
       );
       expect(plainDetail.imageUrl).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("groupById member phone numbers", () => {
+  it("sends every member's number to the creator and Appointed Organizers, and none to a member", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "byid-phone-creator@example.com");
+      const organizer = await insertUser(
+        db,
+        "byid-phone-organizer@example.com",
+      );
+      const member = await insertUser(db, "byid-phone-member@example.com");
+      const silent = await insertUser(db, "byid-phone-silent@example.com");
+      const group = await insertGroup(db, creator.id, {
+        members: [member.id, silent.id],
+      });
+      await db.insert(groupMembers).values({
+        groupId: group.id,
+        userId: organizer.id,
+        role: GroupMemberRoleEnum.ORGANIZER,
+      });
+      for (const [id, phoneNumber] of [
+        [creator.id, "+97336110000"],
+        [organizer.id, "+97336110001"],
+        [member.id, "+97336110002"],
+      ] as const) {
+        await db.update(user).set({ phoneNumber }).where(eq(user.id, id));
+      }
+
+      const phonesSeenBy = async (viewerId: string) =>
+        Object.fromEntries(
+          (
+            await groupById(db, { groupId: group.id, userId: viewerId })
+          ).standing.leaderboard.map((row) => [row.userId, row.phoneNumber]),
+        );
+      const everyNumber = {
+        [creator.id]: "+97336110000",
+        [organizer.id]: "+97336110001",
+        [member.id]: "+97336110002",
+        [silent.id]: null,
+      };
+
+      expect(await phonesSeenBy(creator.id)).toEqual(everyNumber);
+      expect(await phonesSeenBy(organizer.id)).toEqual(everyNumber);
+      expect(Object.values(await phonesSeenBy(member.id))).toEqual([
+        null,
+        null,
+        null,
+        null,
+      ]);
     } finally {
       await close();
     }

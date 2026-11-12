@@ -123,6 +123,7 @@ export const mobileGroup = {
     latestSet: (text: string) => `Latest Level set: ${text}`,
     sheet: {
       viewProfile: "View profile",
+      call: "Call",
       setLevel: "Set Level",
       stillProvisional: "Still Provisional",
       noLevelMark: "–",
