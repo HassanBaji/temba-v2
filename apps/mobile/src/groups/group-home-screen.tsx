@@ -4,7 +4,10 @@ import {
   removePlayerToast,
 } from "@repo/domain/add-player-by-phone";
 import type { GroupHomeData } from "@repo/domain/group-data";
-import type { GroupHomeTab } from "@repo/domain/group-home-tab";
+import {
+  groupHomeTabFromQuery,
+  type GroupHomeTab,
+} from "@repo/domain/group-home-tab";
 import {
   DEFAULT_GROUP_PLAYED_FILTER,
   type GroupPlayedFilter,
@@ -90,11 +93,13 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const locale = useLocale();
   const router = useRouter();
   const segments = useSegments();
-  const params = useLocalSearchParams<SavedLevelParams>();
+  const params = useLocalSearchParams<SavedLevelParams & { tab?: string }>();
   const saved = savedLevelFromParams(params);
   const toast = useToast();
   const utils = api.useUtils();
-  const [tab, setTab] = useState<GroupHomeTab>("standing");
+  const [tab, setTab] = useState<GroupHomeTab>(() =>
+    groupHomeTabFromQuery(params.tab),
+  );
   const [memberQuery, setMemberQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);

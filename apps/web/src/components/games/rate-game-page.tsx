@@ -64,7 +64,7 @@ function Frame({ gameId, children }: { gameId: string; children: ReactNode }) {
   );
 }
 
-function Hero({ hero }: { hero: RateGameView["hero"] }) {
+export function Hero({ hero }: { hero: RateGameView["hero"] }) {
   return (
     <section className="border-rule bg-wash rounded-[16px] border px-[18px] py-4">
       <div className="text-eyebrow flex items-center justify-between gap-2">

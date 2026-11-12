@@ -96,6 +96,7 @@ import { FootballOrganizerCard } from "./football-organizer-card";
 import { RequestsSection } from "./organizer-card";
 import { PerformanceResultCard } from "./performance-result-card";
 import { RateGameCard } from "./rate-game-card";
+import { RatingSummaryCard } from "./rating-summary-card";
 import { GameEditSheet } from "./game-edit-sheet";
 import { challengeInfoRows } from "./challenge-details-card";
 import { NameSquadSheet } from "./name-squad-sheet";
@@ -701,6 +702,11 @@ export function FootballGameDetails({
         <>
           <RateGameCard gameId={gameId} window={game.ratingWindow} />
           <PerformanceResultCard gameId={gameId} window={game.ratingWindow} />
+          <RatingSummaryCard
+            gameId={gameId}
+            window={game.ratingWindow}
+            isOrganizer={game.isOrganizer}
+          />
         </>
       }
       marks={<MarksSection marks={marks} />}

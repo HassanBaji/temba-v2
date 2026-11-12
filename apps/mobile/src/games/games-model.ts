@@ -84,6 +84,11 @@ export function gameRatePath(gameId: string) {
   return `/games/${gameId}/rate`;
 }
 
+/** The Organizer's ratings summary (screen 4d). */
+export function gameRatingSummaryPath(gameId: string) {
+  return `/games/${gameId}/ratings`;
+}
+
 export function tabCount(count: number | undefined) {
   return count != null && count > 0 ? count : null;
 }

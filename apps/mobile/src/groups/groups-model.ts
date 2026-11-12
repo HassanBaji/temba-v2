@@ -28,6 +28,11 @@ export function groupPath(groupId: string) {
   return `/groups/${groupId}`;
 }
 
+/** Group home opened on its Members tab. */
+export function groupMembersPath(groupId: string) {
+  return `/groups/${groupId}?tab=members`;
+}
+
 export function groupSeasonsPath(groupId: string) {
   return { pathname: "/groups/seasons", params: { groupId } } as const;
 }

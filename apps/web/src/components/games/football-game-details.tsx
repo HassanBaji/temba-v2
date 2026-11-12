@@ -46,6 +46,7 @@ import { PlayedFootballBoard } from "~/components/games/played/played-football-b
 import { PlayedGameView } from "~/components/games/played/played-game-view";
 import { PerformanceResultCard } from "~/components/games/performance-result-card";
 import { RateGameCard } from "~/components/games/rate-game-card";
+import { RatingSummaryCard } from "~/components/games/rating-summary-card";
 import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import {
@@ -810,6 +811,11 @@ export function FootballGameDetails({
                 <PerformanceResultCard
                   gameId={gameId}
                   window={game.ratingWindow}
+                />
+                <RatingSummaryCard
+                  gameId={gameId}
+                  window={game.ratingWindow}
+                  isOrganizer={game.isOrganizer}
                 />
               </>
             }

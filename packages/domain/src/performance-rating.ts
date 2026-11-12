@@ -1219,6 +1219,8 @@ export const SUMMARY_PREVIEW_ROWS = 2;
 export type RatingSummaryRow = {
   key: string;
   initials: string;
+  /** The player's own name, where `name` says "You" for the viewer. */
+  playerName: string;
   name: string;
   isViewer: boolean;
   detail: string;
@@ -1348,6 +1350,7 @@ export function performanceRatingSummaryView(
     return {
       key: `${slot}:${index}`,
       initials: initials(player.name),
+      playerName: player.name,
       name,
       isViewer: player.isViewer,
       detail: detail.text,

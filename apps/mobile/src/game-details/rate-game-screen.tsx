@@ -47,7 +47,7 @@ const CELL_GAP = 3;
 const STAR = 32;
 const ICON = 15;
 
-function Hero({ hero }: { hero: RateGameView["hero"] }) {
+export function Hero({ hero }: { hero: RateGameView["hero"] }) {
   return (
     <Surface style={{ gap: 12 }}>
       <View

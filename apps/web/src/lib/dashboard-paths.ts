@@ -173,6 +173,11 @@ export function gameRateHref(gameId: string) {
   return `/dashboard/games/${gameId}/rate`;
 }
 
+/** The Organizer's ratings summary (screen 4d). */
+export function gameRatingSummaryHref(gameId: string) {
+  return `/dashboard/games/${gameId}/ratings`;
+}
+
 export function groupSeasonsHref(groupId: string) {
   return `/dashboard/groups/${groupId}/seasons`;
 }
