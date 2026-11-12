@@ -21,6 +21,8 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 
+import { useTournamentPlayerActions } from "./tournament-player-dialog";
+
 export function TournamentTeamsSection({
   sides,
   viewerUserId,
@@ -161,6 +163,7 @@ function TeamSeat({
 }) {
   const m = useMessages();
   const locale = useLocale();
+  const playerActions = useTournamentPlayerActions();
   const positionName =
     position === "left"
       ? m.tournament.position.left
@@ -188,6 +191,16 @@ function TeamSeat({
     );
   }
 
+  const openActions = playerActions?.canKick(occupant.userId)
+    ? () =>
+        playerActions.open({
+          userId: occupant.userId,
+          name: occupant.name,
+          image: occupant.image ?? null,
+          levelBand: occupant.levelBand,
+        })
+    : undefined;
+
   return (
     <SeatTile
       occupant={{ name: occupant.name, image: occupant.image ?? null }}
@@ -198,7 +211,15 @@ function TeamSeat({
           : null
       }
       caption={positionName}
-      href={linked ? playerProfilePath(occupant.userId) : undefined}
+      label={
+        openActions
+          ? m.webTournament.player.openActions(occupant.name)
+          : undefined
+      }
+      onSelect={openActions}
+      href={
+        linked && !openActions ? playerProfilePath(occupant.userId) : undefined
+      }
     />
   );
 }

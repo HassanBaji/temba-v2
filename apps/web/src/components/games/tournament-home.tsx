@@ -33,6 +33,7 @@ import {
 } from "~/components/games/tournament-draw-drawer";
 import { TournamentHero } from "~/components/games/tournament-hero";
 import { TournamentKnockoutTree } from "~/components/games/tournament-knockout-tree";
+import { TournamentPlayerActionsProvider } from "~/components/games/tournament-player-dialog";
 import {
   TournamentMergeBanner,
   TournamentMergeDrawer,
@@ -196,6 +197,8 @@ export function TournamentHome({
   const canJoin = view.canJoin && Boolean(onJoin);
   const canJoinWaitlist = view.canWaitlist && Boolean(onJoinWaitlist);
   const showJoinBar = canJoin || canJoinWaitlist;
+  const teamPlayers =
+    linkToPlayers || isOrganizerActive ? data.gameTeams : undefined;
 
   const actionsMenu = (ink: boolean) =>
     isOrganizerActive ? (
@@ -208,14 +211,12 @@ export function TournamentHome({
         reopenPending={reopenPending}
         kickPending={kickPending}
         sharePending={sharePending}
-        kickableOccupants={kickableTournamentOccupants(data)}
         waitlist={data.waitlist}
         onShare={drawn ? onShare : undefined}
         onEdit={onEdit}
         onCloseRegistration={onCloseRegistration}
         onReopenRegistration={onReopenRegistration}
         onCancelGame={onCancelGame}
-        onKick={onKick}
         onKickWaitlist={onKickWaitlist}
         onAddPlayer={onAddPlayer}
         onEditTeams={onEditTeams}
@@ -232,166 +233,178 @@ export function TournamentHome({
     ) : null;
 
   return (
-    <div
-      className={cn(
-        "space-y-6",
-        showJoinBar && "max-lg:pb-20",
-        canJoin && canJoinWaitlist && "max-lg:pb-36",
+    <TournamentPlayerActionsProvider
+      enabled={isOrganizerActive}
+      canOpenProfile={linkToPlayers}
+      kickableUserIds={kickableTournamentOccupants(data).map(
+        (occupant) => occupant.userId,
       )}
+      kickPending={kickPending}
+      onKick={onKick}
     >
-      {roundsAsYouGo ? (
-        <>
-          <TournamentDrawnHome
-            data={data}
+      <div
+        className={cn(
+          "space-y-6",
+          showJoinBar && "max-lg:pb-20",
+          canJoin && canJoinWaitlist && "max-lg:pb-36",
+        )}
+      >
+        {roundsAsYouGo ? (
+          <>
+            <TournamentDrawnHome
+              data={data}
+              standings={tournamentStandingsView(data, locale)}
+              backHref={backHref}
+              actions={actionsMenu(true)}
+              gameTeams={teamPlayers}
+              onCancelMatch={
+                isOrganizerActive ? onCancelKnockoutMatch : undefined
+              }
+              preview={roundsPreview}
+            />
+            <ConfirmDialog
+              open={undoOpen}
+              onOpenChange={setUndoOpen}
+              title={m.tournament.poolDraw.undoConfirmTitle}
+              description={m.tournament.poolDraw.undoConfirmCopy}
+              confirmLabel={m.tournament.poolDraw.undoConfirmLabel}
+              pending={undoPending}
+              onConfirm={async () => {
+                try {
+                  await onUndo();
+                } catch {
+                  // The page shows the failure as a toast.
+                }
+              }}
+            />
+            {undoError ? (
+              <p role="alert" className="text-destructive text-meta">
+                {undoError.message}
+              </p>
+            ) : null}
+          </>
+        ) : drawn ? (
+          <TournamentStandingsTree
             standings={tournamentStandingsView(data, locale)}
+            poolTables={data.poolTables}
+            knockout={data.knockout}
+            gameTeams={teamPlayers}
             backHref={backHref}
-            actions={actionsMenu(true)}
-            gameTeams={linkToPlayers ? data.gameTeams : undefined}
+            showUndo={showUndo}
+            undoPending={undoPending}
+            undoError={undoError}
+            onUndo={onUndo}
             onCancelMatch={
               isOrganizerActive ? onCancelKnockoutMatch : undefined
             }
-            preview={roundsPreview}
+            actions={actionsMenu(false)}
           />
-          <ConfirmDialog
-            open={undoOpen}
-            onOpenChange={setUndoOpen}
-            title={m.tournament.poolDraw.undoConfirmTitle}
-            description={m.tournament.poolDraw.undoConfirmCopy}
-            confirmLabel={m.tournament.poolDraw.undoConfirmLabel}
-            pending={undoPending}
-            onConfirm={async () => {
-              try {
-                await onUndo();
-              } catch {
-                // The page shows the failure as a toast.
+        ) : (
+          <>
+            <TournamentHero
+              name={view.hero.name}
+              eyebrow={view.hero.eyebrow}
+              startLine={view.hero.startLine}
+              sizeLine={view.hero.sizeLine}
+              statusLine={view.hero.statusLine}
+              viewerUserId={data.viewerUserId}
+              left={view.viewerSide?.left ?? null}
+              right={view.viewerSide?.right ?? null}
+              showYourTeam={view.seated}
+              backHref={backHref}
+              onShare={onShare}
+              sharePending={sharePending}
+              onInvite={onInvite}
+              actions={actionsMenu(true)}
+            />
+            <TournamentPredrawTree
+              sides={data.sides}
+              viewerUserId={data.viewerUserId}
+              canTakeSeat={view.canTakeSeat}
+              linkToPlayers={linkToPlayers}
+              venueName={data.venue?.name ?? null}
+              schedule={schedule}
+              teamCount={data.teamsAllowed}
+              completeTeams={view.field.full}
+              gameTeams={data.gameTeams}
+              storedRoundCount={data.roundCount}
+              windowStart={data.windowStart}
+              windowEnd={data.windowEnd}
+              matchMinutes={data.matchMinutes}
+              courtNames={data.recordedCourts.map((court) => court.name)}
+              knockoutOnly={view.knockoutOnly}
+              showMergeBanner={showMergeBanner}
+              showMergeEntry={showMergeEntry}
+              showDrawEntry={showDrawEntry}
+              halfTeamCount={halfTeams.length}
+              mergeOpen={mergeOpen}
+              mergePending={mergePending}
+              mergeError={mergeError}
+              drawOpen={drawOpen}
+              drawPending={drawPending}
+              drawError={drawError}
+              postPending={postPending}
+              postError={postError}
+              onOpenMerge={() => setMergeOpen(true)}
+              onMergeOpenChange={setMergeOpen}
+              onMerge={onMerge}
+              onOpenDraw={() => setDrawOpen(true)}
+              onDrawOpenChange={setDrawOpen}
+              onDraw={onDraw}
+              onPost={onPost}
+              onTakeSeat={
+                onJoin
+                  ? (seat) => {
+                      onJoin(seat);
+                    }
+                  : undefined
               }
-            }}
-          />
-          {undoError ? (
-            <p role="alert" className="text-destructive text-meta">
-              {undoError.message}
-            </p>
-          ) : null}
-        </>
-      ) : drawn ? (
-        <TournamentStandingsTree
-          standings={tournamentStandingsView(data, locale)}
-          poolTables={data.poolTables}
-          knockout={data.knockout}
-          gameTeams={linkToPlayers ? data.gameTeams : undefined}
-          backHref={backHref}
-          showUndo={showUndo}
-          undoPending={undoPending}
-          undoError={undoError}
-          onUndo={onUndo}
-          onCancelMatch={isOrganizerActive ? onCancelKnockoutMatch : undefined}
-          actions={actionsMenu(false)}
+              onOpenSeat={onOpenSeat}
+              onInvite={onInvite}
+            />
+          </>
+        )}
+
+        <TournamentDetailRows rows={view.detailRows} />
+        {view.canLeaveGame && onLeaveGame ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11 w-full"
+            disabled={leavePending}
+            onClick={onLeaveGame}
+          >
+            {m.tournament.home.leaveTheSeat}
+          </Button>
+        ) : null}
+        <p className="text-muted-foreground text-meta leading-relaxed">
+          {m.tournament.home.closingLine}
+        </p>
+
+        <TournamentHomeActions
+          joinKind={joinKind}
+          isWaitlisted={data.isWaitlisted}
+          onInvite={isOrganizerActive && drawn ? onInvite : undefined}
+          leavePending={leavePending}
+          eligibleTeams={data.eligibleTeams}
+          teamId={teamId}
+          onTeamIdChange={onTeamIdChange}
+          onRegisterTeam={onRegisterTeam}
+          registerTeamPending={registerTeamPending}
+          onLeaveWaitlist={onLeaveWaitlist}
         />
-      ) : (
-        <>
-          <TournamentHero
-            name={view.hero.name}
-            eyebrow={view.hero.eyebrow}
-            startLine={view.hero.startLine}
-            sizeLine={view.hero.sizeLine}
-            statusLine={view.hero.statusLine}
-            viewerUserId={data.viewerUserId}
-            left={view.viewerSide?.left ?? null}
-            right={view.viewerSide?.right ?? null}
-            showYourTeam={view.seated}
-            backHref={backHref}
-            onShare={onShare}
-            sharePending={sharePending}
-            onInvite={onInvite}
-            actions={actionsMenu(true)}
+
+        <GameLevelRangePanel game={data} />
+
+        {showJoinBar ? (
+          <TournamentJoinBar
+            pending={joinPending}
+            onJoin={canJoin && onJoin ? () => onJoin() : undefined}
+            onJoinWaitlist={canJoinWaitlist ? onJoinWaitlist : undefined}
           />
-          <TournamentPredrawTree
-            sides={data.sides}
-            viewerUserId={data.viewerUserId}
-            canTakeSeat={view.canTakeSeat}
-            linkToPlayers={linkToPlayers}
-            venueName={data.venue?.name ?? null}
-            schedule={schedule}
-            teamCount={data.teamsAllowed}
-            completeTeams={view.field.full}
-            gameTeams={data.gameTeams}
-            storedRoundCount={data.roundCount}
-            windowStart={data.windowStart}
-            windowEnd={data.windowEnd}
-            matchMinutes={data.matchMinutes}
-            courtNames={data.recordedCourts.map((court) => court.name)}
-            knockoutOnly={view.knockoutOnly}
-            showMergeBanner={showMergeBanner}
-            showMergeEntry={showMergeEntry}
-            showDrawEntry={showDrawEntry}
-            halfTeamCount={halfTeams.length}
-            mergeOpen={mergeOpen}
-            mergePending={mergePending}
-            mergeError={mergeError}
-            drawOpen={drawOpen}
-            drawPending={drawPending}
-            drawError={drawError}
-            postPending={postPending}
-            postError={postError}
-            onOpenMerge={() => setMergeOpen(true)}
-            onMergeOpenChange={setMergeOpen}
-            onMerge={onMerge}
-            onOpenDraw={() => setDrawOpen(true)}
-            onDrawOpenChange={setDrawOpen}
-            onDraw={onDraw}
-            onPost={onPost}
-            onTakeSeat={
-              onJoin
-                ? (seat) => {
-                    onJoin(seat);
-                  }
-                : undefined
-            }
-            onOpenSeat={onOpenSeat}
-            onInvite={onInvite}
-          />
-        </>
-      )}
-
-      <TournamentDetailRows rows={view.detailRows} />
-      {view.canLeaveGame && onLeaveGame ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11 w-full"
-          disabled={leavePending}
-          onClick={onLeaveGame}
-        >
-          {m.tournament.home.leaveTheSeat}
-        </Button>
-      ) : null}
-      <p className="text-muted-foreground text-meta leading-relaxed">
-        {m.tournament.home.closingLine}
-      </p>
-
-      <TournamentHomeActions
-        joinKind={joinKind}
-        isWaitlisted={data.isWaitlisted}
-        onInvite={isOrganizerActive && drawn ? onInvite : undefined}
-        leavePending={leavePending}
-        eligibleTeams={data.eligibleTeams}
-        teamId={teamId}
-        onTeamIdChange={onTeamIdChange}
-        onRegisterTeam={onRegisterTeam}
-        registerTeamPending={registerTeamPending}
-        onLeaveWaitlist={onLeaveWaitlist}
-      />
-
-      <GameLevelRangePanel game={data} />
-
-      {showJoinBar ? (
-        <TournamentJoinBar
-          pending={joinPending}
-          onJoin={canJoin && onJoin ? () => onJoin() : undefined}
-          onJoinWaitlist={canJoinWaitlist ? onJoinWaitlist : undefined}
-        />
-      ) : null}
-    </div>
+        ) : null}
+      </div>
+    </TournamentPlayerActionsProvider>
   );
 }
 
@@ -802,7 +815,8 @@ function TournamentHomeActions({
 
 /**
  * Everything behind the ⋮ at the top of a Tournament: the Organizer's tools,
- * then kicks, then cancelling the Game.
+ * then waitlist kicks, then cancelling the Game. Seated players are kicked
+ * from their seat or Game team, not from here.
  */
 function TournamentActionsMenu({
   title,
@@ -813,14 +827,12 @@ function TournamentActionsMenu({
   reopenPending,
   kickPending,
   sharePending,
-  kickableOccupants: kickable,
   waitlist,
   onShare,
   onEdit,
   onCloseRegistration,
   onReopenRegistration,
   onCancelGame,
-  onKick,
   onKickWaitlist,
   onAddPlayer,
   onEditTeams,
@@ -834,14 +846,12 @@ function TournamentActionsMenu({
   reopenPending: boolean;
   kickPending: boolean;
   sharePending: boolean;
-  kickableOccupants: { userId: string; name: string }[];
   waitlist: GameDetail["waitlist"];
   onShare?: () => void;
   onEdit?: () => void;
   onCloseRegistration?: () => void;
   onReopenRegistration?: () => void;
   onCancelGame?: () => void;
-  onKick?: (userId: string) => void;
   onKickWaitlist?: (waitlistId: string) => void;
   onAddPlayer?: () => void;
   onEditTeams?: () => void;
@@ -902,25 +912,15 @@ function TournamentActionsMenu({
     });
   }
 
-  const kicks: GameActionsSheetRow[] = onKick
-    ? [
-        ...kickable.map((occupant) => ({
-          key: `kick-${occupant.userId}`,
-          label: m.webTournament.kickName(occupant.name),
-          icon: UserMinusIcon,
-          tone: "danger" as const,
-          disabled: kickPending,
-          onSelect: () => onKick(occupant.userId),
-        })),
-        ...waitlist.map((entry) => ({
-          key: `kick-waitlist-${entry.id}`,
-          label: m.webTournament.kickFromWaitlist(entry.name),
-          icon: UserMinusIcon,
-          tone: "danger" as const,
-          disabled: kickPending,
-          onSelect: () => onKickWaitlist?.(entry.id),
-        })),
-      ]
+  const kicks: GameActionsSheetRow[] = onKickWaitlist
+    ? waitlist.map((entry) => ({
+        key: `kick-waitlist-${entry.id}`,
+        label: m.webTournament.kickFromWaitlist(entry.name),
+        icon: UserMinusIcon,
+        tone: "danger" as const,
+        disabled: kickPending,
+        onSelect: () => onKickWaitlist(entry.id),
+      }))
     : [];
 
   const undo: GameActionsSheetRow[] = undoDraw

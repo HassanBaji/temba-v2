@@ -53,6 +53,8 @@ export type PreDrawHandlers = {
   onRegisterTeam: (teamId: string) => void;
   onRequestLevel: () => void;
   onOpenPlayer?: (userId: string) => void;
+  /** True where tapping the player opens the Organizer's actions, not their profile. */
+  playerOpensActions?: (userId: string) => boolean;
 };
 
 function HeroSeat({
@@ -167,6 +169,7 @@ function SeatTile({
   addable,
   onJoin,
   onOpen,
+  opensActions = false,
 }: {
   occupant: Occupant | null;
   position: Position;
@@ -177,6 +180,7 @@ function SeatTile({
   addable: boolean;
   onJoin: () => void;
   onOpen?: (userId: string) => void;
+  opensActions?: boolean;
 }) {
   const locale = useLocale();
   const messages = useMessages();
@@ -278,7 +282,9 @@ function SeatTile({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityHint={m.opensProfileHint}
+      accessibilityHint={
+        opensActions ? m.opensPlayerActionsHint : m.opensProfileHint
+      }
       onPress={() => onOpen(occupant.userId)}
       style={({ pressed }) => ({
         flex: 1,
@@ -299,6 +305,7 @@ function TeamRow({
   onTakeSeat,
   onOpenSeat,
   onOpenPlayer,
+  playerOpensActions,
 }: {
   row: TournamentTeamRow;
   side: TournamentDetailsSide | null;
@@ -307,6 +314,7 @@ function TeamRow({
   onTakeSeat: PreDrawHandlers["onTakeSeat"];
   onOpenSeat: PreDrawHandlers["onOpenSeat"];
   onOpenPlayer: PreDrawHandlers["onOpenPlayer"];
+  playerOpensActions: PreDrawHandlers["playerOpensActions"];
 }) {
   const locale = useLocale();
   const messages = useMessages();
@@ -353,6 +361,10 @@ function TeamRow({
                 : onTakeSeat({ sideIndex: row.sideIndex, position })
             }
             onOpen={onOpenPlayer}
+            opensActions={
+              side?.[position] != null &&
+              (playerOpensActions?.(side[position].userId) ?? false)
+            }
           />
         ))}
       </View>
@@ -366,12 +378,14 @@ function TeamsCard({
   onTakeSeat,
   onOpenSeat,
   onOpenPlayer,
+  playerOpensActions,
 }: {
   game: TournamentDetails;
   view: TournamentHomeView;
   onTakeSeat: PreDrawHandlers["onTakeSeat"];
   onOpenSeat: PreDrawHandlers["onOpenSeat"];
   onOpenPlayer: PreDrawHandlers["onOpenPlayer"];
+  playerOpensActions: PreDrawHandlers["playerOpensActions"];
 }) {
   const locale = useLocale();
   const messages = useMessages();
@@ -395,6 +409,7 @@ function TeamsCard({
         onTakeSeat={onTakeSeat}
         onOpenSeat={onOpenSeat}
         onOpenPlayer={onOpenPlayer}
+        playerOpensActions={playerOpensActions}
       />
     </View>
   );
@@ -654,6 +669,7 @@ export function PreDrawView({
         onTakeSeat={handlers.onTakeSeat}
         onOpenSeat={handlers.onOpenSeat}
         onOpenPlayer={handlers.onOpenPlayer}
+        playerOpensActions={handlers.playerOpensActions}
       />
       <SeatsCard view={view} />
       <ScheduleCard view={view} venueName={game.venue?.name ?? null} />

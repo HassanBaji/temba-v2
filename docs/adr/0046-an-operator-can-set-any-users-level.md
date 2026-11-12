@@ -1,6 +1,6 @@
 # An Operator can set any User's Level
 
-**Status:** accepted. Amendment proposed: [ADR-0072](./0072-a-verifier-is-a-per-venue-role.md) lets a Verifier calibrate a Level in either sport.
+**Status:** accepted. Amendment proposed: [ADR-0072](./0072-a-verifier-is-a-per-venue-role.md) lets a Verifier calibrate a Level in either sport. Amended by [ADR-0077](./0077-an-operator-may-set-their-own-level.md): an Operator may set their own Level.
 
 A Level override could only come from a Level setter, inside a Group both people belong to, and only for padel. Temba staff had no way to correct a Level for someone outside their Groups, or to fix a football self-placement that Make teams balances on.
 

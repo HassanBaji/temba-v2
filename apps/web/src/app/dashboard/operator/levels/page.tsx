@@ -166,15 +166,14 @@ export default function OperatorLevelsPage() {
                     />
                     {player.isViewer ? (
                       <Badge variant="secondary">{m.common.you}</Badge>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openSetLevel(player)}
-                      >
-                        {m.webDashboard.setLevel.title}
-                      </Button>
-                    )}
+                    ) : null}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openSetLevel(player)}
+                    >
+                      {m.webDashboard.setLevel.title}
+                    </Button>
                   </div>
                 }
               />
