@@ -46,6 +46,7 @@ import {
 import type { LevelBand } from "@repo/domain/level-bands";
 import { tierTable } from "@repo/domain/tier-bands";
 import { TIER_POINTS_START } from "@repo/domain/tier-points";
+import { wholeOvrFromMu } from "@repo/domain/football-ovr";
 import { levelFromMu } from "@repo/domain/level";
 import { protectedProcedure } from "#src/trpc";
 import { isLevelSetterPublicMetadata } from "#src/auth/require-level-setter";
@@ -631,6 +632,7 @@ export async function groupById(
       levelBand: LevelBand;
       provisional: boolean;
       level: string;
+      ovr: number | null;
       ratedMatchCount: number;
     }
   >();
@@ -660,6 +662,7 @@ export async function groupById(
         levelBand: view.levelBand,
         provisional: view.provisional,
         level: view.level,
+        ovr: group.sport === "football" ? wholeOvrFromMu(row.mu) : null,
         ratedMatchCount: ratedMatchCountByUserId.get(row.userId) ?? 0,
       });
     }
@@ -919,6 +922,8 @@ export async function groupById(
       levelBand: rating?.levelBand ?? null,
       levelProvisional: rating?.provisional ?? true,
       level: rating?.level ?? null,
+      /** The whole-number OVR on a football Group (ADR-0069); null elsewhere. */
+      ovr: rating?.ovr ?? null,
       ratedMatchCount: rating?.ratedMatchCount ?? 0,
       levelOverride: levelOverrideByUserId.get(entry.userId) ?? null,
       /** The member's Group Level (ADR-0053), null before their first. */

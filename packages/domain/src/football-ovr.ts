@@ -1,5 +1,6 @@
 import {
   clampLevel,
+  INITIAL_MU,
   INITIAL_PHI,
   isProvisional,
   levelFromMu,
@@ -51,6 +52,20 @@ export function muFromOvr(ovr: number) {
 /** OVR is always shown as a whole number. */
 export function formatOvr(ovr: number) {
   return String(Math.round(clampOvr(ovr)));
+}
+
+/** The whole-number OVR of a stored μ, as every surface shows it. */
+export function wholeOvrFromMu(mu: number) {
+  return Math.round(ovrFromMu(mu));
+}
+
+/**
+ * What Make teams balances a player on outside a tier Group (D15): their
+ * whole-number OVR, or a new Rating's (Level 3.0, OVR 65) when they have
+ * none, as the Level slider starts.
+ */
+export function ovrBalanceStrength(mu: number | null | undefined) {
+  return wholeOvrFromMu(mu ?? INITIAL_MU);
 }
 
 /** OVR points per counting Match, before the Game's weight and the parts. */

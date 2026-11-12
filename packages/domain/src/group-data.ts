@@ -112,6 +112,8 @@ export type GroupLeaderboardEntryData = GroupStandingRowData & {
   levelBand: LevelBand | null;
   levelProvisional: boolean;
   level: string | null;
+  /** The whole-number OVR on a football Group; null elsewhere. */
+  ovr?: number | null;
   ratedMatchCount: number;
   levelOverride: GroupLevelOverrideData | null;
   groupLevel?: GroupMemberGroupLevelData | null;

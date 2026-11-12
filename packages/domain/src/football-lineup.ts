@@ -205,18 +205,27 @@ export function averageLevelLabel(bands: readonly (LevelBand | null)[]) {
   return band ? displayLabelFromStoredBand(band) : null;
 }
 
+/**
+ * What Make teams balances on (D15): Tier points in a tier Group, OVR in a
+ * Verified Group and in a groupless Game.
+ */
+export type FootballBalanceOn = "tierPoints" | "ovr";
+
 export type BalanceCandidate = {
   userId: string;
   role: FootballRole | null;
   levelBand: LevelBand | null;
-  /** Tier points, or the start hint, in a tier Group; null elsewhere. */
+  /**
+   * Tier points, or the start hint, in a tier Group; OVR elsewhere. Null
+   * when the viewer cannot make teams, where the Level band decides.
+   */
   strength: number | null;
 };
 
 /**
  * What Make teams balances a player on in a tier Group (D15): their Tier
  * points, or the start hint their Temba Level gives while they are
- * Provisional. Null outside a tier Group, where the Level band decides.
+ * Provisional. Null outside a tier Group, where OVR decides.
  */
 export function footballBalanceStrength(args: {
   tierPoints: number | null;

@@ -10,6 +10,7 @@ import {
   groupHomeSportLabel,
   groupMemberOrganizerAction,
   groupMemberOrganizerActionLabel,
+  groupLevelFace,
   groupShowsLevel,
   groupStandingRecordLabel,
   levelCellView,
@@ -178,14 +179,44 @@ describe("levelCellView", () => {
     assert.deepEqual(levelCellView(null, false), bare);
     assert.deepEqual(levelCellView(undefined, false), bare);
     assert.deepEqual(levelCellView(null, true), bare);
+    assert.deepEqual(levelCellView(null, false, 72), bare);
+  });
+
+  it("gives the OVR face with the band when the OVR is given", () => {
+    assert.deepEqual(levelCellView("C1", false, 72.4), {
+      kind: "label",
+      label: "C+ 72",
+    });
+    assert.deepEqual(levelCellView("C3", true, 61), {
+      kind: "provisional",
+      label: "C- 61",
+    });
+    assert.deepEqual(levelCellView("B3", false, null), {
+      kind: "label",
+      label: "B-",
+    });
   });
 });
 
 describe("groupShowsLevel", () => {
-  it("hides the Level on a football Group only", () => {
+  it("hides the Level on a tier Group only", () => {
     assert.equal(groupShowsLevel("football"), false);
+    assert.equal(groupShowsLevel("football", false), false);
     assert.equal(groupShowsLevel("padel"), true);
     assert.equal(groupShowsLevel(null), true);
+  });
+
+  it("shows the Level on a Verified football Group", () => {
+    assert.equal(groupShowsLevel("football", true), true);
+    assert.equal(groupShowsLevel("padel", true), true);
+  });
+});
+
+describe("groupLevelFace", () => {
+  it("reads OVR on football and the Level elsewhere", () => {
+    assert.equal(groupLevelFace("football"), "ovr");
+    assert.equal(groupLevelFace("padel"), "level");
+    assert.equal(groupLevelFace(null), "level");
   });
 });
 

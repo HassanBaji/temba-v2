@@ -12,6 +12,7 @@ import {
   joinActionLabel,
   keeperNote,
   keeperSub,
+  makeTeamsLevelLabel,
   moveAcross,
   placeOn,
   poolLayout,
@@ -261,6 +262,44 @@ describe("teams draft in a tier Group", () => {
       ),
     ).toEqual({ kind: "provisional", label: "Provisional" });
     expect(boardTierCell(player("a"), "en")).toBeNull();
+  });
+});
+
+describe("teams draft outside a tier Group", () => {
+  const ovrPlayers = [
+    player("k1", {
+      role: "keeper",
+      levelBand: "C1",
+      ovr: 72,
+      balanceStrength: 72,
+    }),
+    player("k2", {
+      role: "keeper",
+      levelBand: "C2",
+      ovr: 68,
+      balanceStrength: 68,
+    }),
+    player("a", { levelBand: "D3", ovr: 84, balanceStrength: 84 }),
+    player("b", { levelBand: "A", ovr: 78, balanceStrength: 78 }),
+    player("c", { levelBand: "C1", ovr: 70, balanceStrength: 70 }),
+    player("d", { levelBand: null, ovr: null, balanceStrength: 65 }),
+  ];
+
+  it("splits on OVR and reads each side's mean OVR", () => {
+    const draft = initialTeamsDraft(ovrPlayers, null);
+    expect(draft.sides).toEqual({ k1: 1, k2: 2, a: 2, b: 1, c: 1, d: 2 });
+    const summary = draftSummary(draft, ovrPlayers, "en", "ovr");
+    expect(summary.slot2.map((row) => row.userId)).toEqual(["k2", "a", "d"]);
+    expect(teamsSideAverage(summary.slot1, "en", "ovr")).toBe("OVR 73");
+    expect(summary.note).toBe(
+      "Everyone placed. Black avg OVR 73, White avg OVR 72.",
+    );
+  });
+
+  it("shows the OVR where the Level sits, a dash without one", () => {
+    expect(makeTeamsLevelLabel(ovrPlayers[2]!, "ovr")).toBe("84");
+    expect(makeTeamsLevelLabel(ovrPlayers[5]!, "ovr")).toBe("–");
+    expect(makeTeamsLevelLabel(ovrPlayers[2]!, "tierPoints")).toBe("D");
   });
 });
 

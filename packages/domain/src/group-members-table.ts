@@ -10,18 +10,30 @@ import { TIER_PROVISIONAL_GAMES } from "./tier-points";
 /**
  * The Members tab table (design "Group members" 2a–2f, Seasons revision):
  * one row per member with their overall Level. Highest Level first, a member
- * with no Level last, ties by name. Games played and Matches won live on the
- * Standing tab, not here.
+ * with no Level last, ties by name. On football the Level reads as OVR, and
+ * the whole-number OVR orders the rows, so two members who share a one-decimal
+ * Level still read in the order of the OVR they show. Games played and Matches
+ * won live on the Standing tab, not here.
  */
 
 type SortableMember = {
   name: string | null;
   level: string | null;
+  ovr?: number | null;
 };
 
+function sortValue(value: number | null | undefined) {
+  return value == null || Number.isNaN(value)
+    ? Number.NEGATIVE_INFINITY
+    : value;
+}
+
 function levelValue(member: SortableMember) {
-  const value = member.level == null ? Number.NaN : Number(member.level);
-  return Number.isNaN(value) ? Number.NEGATIVE_INFINITY : value;
+  return sortValue(member.level == null ? null : Number(member.level));
+}
+
+function higherFirst(left: number, right: number) {
+  return left === right ? 0 : right > left ? 1 : -1;
 }
 
 export function sortGroupMembers<T extends SortableMember>(
@@ -29,7 +41,8 @@ export function sortGroupMembers<T extends SortableMember>(
 ): T[] {
   return [...members].sort(
     (left, right) =>
-      levelValue(right) - levelValue(left) ||
+      higherFirst(sortValue(left.ovr), sortValue(right.ovr)) ||
+      higherFirst(levelValue(left), levelValue(right)) ||
       (left.name ?? "").localeCompare(right.name ?? ""),
   );
 }

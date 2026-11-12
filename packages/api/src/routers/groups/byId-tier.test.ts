@@ -5,9 +5,11 @@ import {
   groupTierEvents,
   groupTierPoints,
   groups,
+  ratings,
   user,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
+import { muFromOvr } from "@repo/domain/football-ovr";
 
 import { groupById } from "#src/routers/groups/byId";
 
@@ -154,6 +156,49 @@ describe("groups.byId on a tier Group (screen 2b)", () => {
       expect(
         result.standing.leaderboard.every((entry) => entry.tier === null),
       ).toBe(true);
+    } finally {
+      await close();
+    }
+  });
+
+  it("gives every rated member of a Verified football Group their OVR", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { groupId, ids } = await seedTierGroup(db, { verified: true });
+      await db.insert(ratings).values([
+        {
+          userId: ids.shark!,
+          sport: "football",
+          mu: muFromOvr(72),
+          phi: 150,
+          sigma: 0.06,
+          levelBand: "C1",
+        },
+        {
+          userId: ids.newcomer!,
+          sport: "football",
+          mu: muFromOvr(61.4),
+          phi: 290,
+          sigma: 0.06,
+          levelBand: "C3",
+        },
+      ]);
+      const result = await groupById(db, { groupId, userId: ids.owner! });
+      const entryOf = (userId: string) =>
+        result.standing.leaderboard.find((entry) => entry.userId === userId);
+
+      expect(result.verified).toBe(true);
+      expect(entryOf(ids.shark!)).toMatchObject({
+        ovr: 72,
+        levelBand: "C1",
+        levelProvisional: false,
+        tier: null,
+      });
+      expect(entryOf(ids.newcomer!)).toMatchObject({
+        ovr: 61,
+        levelProvisional: true,
+      });
+      expect(entryOf(ids.silent!)?.ovr).toBeNull();
     } finally {
       await close();
     }

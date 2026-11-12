@@ -18,8 +18,10 @@ import {
 import {
   DEFAULT_FOOTBALL_BIBS,
   footballBalanceStrength,
+  type FootballBalanceOn,
   type FootballBib,
 } from "@repo/domain/football-lineup";
+import { ovrBalanceStrength, wholeOvrFromMu } from "@repo/domain/football-ovr";
 import { groupHasTier } from "@repo/domain/game-rating-scope";
 import type { GroupMemberTierData } from "@repo/domain/group-data";
 import { displayedLevelFromMu } from "@repo/domain/level";
@@ -213,8 +215,10 @@ async function loadBoardTiers(
 
 /**
  * Everything the football Game screens read beyond `games.byId`: the roster
- * with each player's role, position, Level, Group Tier and team, the two teams
- * and their bibs, the Score with its scorers, and what the viewer may do next.
+ * with each player's role, position, Level and OVR, Group Tier and team, the
+ * two teams and their bibs, the Score with its scorers, and what the viewer
+ * may do next. Make teams balances on Tier points in a tier Group and on OVR
+ * on any other Game (D15).
  */
 export async function footballBoard(
   database: DbClient,
@@ -256,17 +260,17 @@ export async function footballBoard(
   });
   const userIds = roster.flatMap((row) => (row.user ? [row.user.id] : []));
 
-  const levelByUser = new Map<string, LevelBand>();
+  const levelByUser = new Map<string, { levelBand: LevelBand; mu: number }>();
   if (userIds.length > 0) {
     const rows = await database.query.ratings.findMany({
       where: and(
         inArray(ratings.userId, userIds),
         eq(ratings.sport, "football"),
       ),
-      columns: { userId: true, levelBand: true },
+      columns: { userId: true, levelBand: true, mu: true },
     });
     for (const row of rows) {
-      levelByUser.set(row.userId, row.levelBand);
+      levelByUser.set(row.userId, { levelBand: row.levelBand, mu: row.mu });
     }
   }
 
@@ -276,6 +280,17 @@ export async function footballBoard(
     viewerUserId: args.userId,
     viewerOrganizes: organizer,
   });
+
+  const balanceOn: FootballBalanceOn = tierByUser ? "tierPoints" : "ovr";
+  const balanceStrengthOf = (userId: string) => {
+    if (!organizer) {
+      return null;
+    }
+    if (tierByUser) {
+      return tierByUser.get(userId)?.balanceStrength ?? null;
+    }
+    return ovrBalanceStrength(levelByUser.get(userId)?.mu);
+  };
 
   const sides = await footballSides(database, game.id);
   const sideByUser = await sideIndexByUser(database, sides);
@@ -336,11 +351,13 @@ export async function footballBoard(
     sideSize: game.sideSize,
     playersAllowed: game.playersAllowed,
     isOrganizer: organizer,
+    balanceOn,
     players: roster.flatMap((row) => {
       if (!row.user) {
         return [];
       }
       const unclaimed = isUnclaimed(row.user);
+      const level = levelByUser.get(row.user.id);
       return [
         {
           userId: row.user.id,
@@ -348,10 +365,9 @@ export async function footballBoard(
           image: row.user.image,
           role: row.footballRole,
           position: row.footballPosition,
-          levelBand: levelByUser.get(row.user.id) ?? null,
-          balanceStrength: organizer
-            ? (tierByUser?.get(row.user.id)?.balanceStrength ?? null)
-            : null,
+          levelBand: level?.levelBand ?? null,
+          ovr: level ? wholeOvrFromMu(level.mu) : null,
+          balanceStrength: balanceStrengthOf(row.user.id),
           tier: tierByUser?.get(row.user.id)?.tier ?? null,
           sideIndex: sideByUser.get(row.user.id) ?? null,
           goals: goalsByUser.get(row.user.id) ?? 0,

@@ -12,11 +12,13 @@ import {
   keeperSeatsLeft,
   KEEPERS_PER_GAME,
   keepersInLine,
+  type FootballBalanceOn,
   type FootballBib,
   type FootballPosition,
   type FootballRole,
   type FootballTeamsMethod,
 } from "./football-lineup";
+import { formatOvr } from "./football-ovr";
 import {
   formatGameDay,
   formatWeekday,
@@ -53,11 +55,13 @@ export type BoardPlayer = {
   unclaimed?: boolean;
   phoneMasked?: string | null;
   /**
-   * What Make teams balances on in a tier Group: Tier points, or the start
-   * hint while Provisional. Null elsewhere, and for a viewer who cannot make
-   * teams.
+   * What Make teams balances on: Tier points, or the start hint while
+   * Provisional, in a tier Group; the OVR elsewhere. Null for a viewer who
+   * cannot make teams.
    */
   balanceStrength?: number | null;
+  /** The whole-number OVR; null without a football Rating. */
+  ovr?: number | null;
   /** The player's Group Tier on a tier Group's Game; null elsewhere. */
   tier?: GroupMemberTierData | null;
 };
@@ -66,6 +70,20 @@ export type Bibs = { slot1: FootballBib; slot2: FootballBib };
 
 export function levelLabel(band: LevelBand | null) {
   return band ? displayLabelFromStoredBand(band) : "–";
+}
+
+/**
+ * What a player row in Make teams shows where the Level sits: the OVR when
+ * the teams balance on it, otherwise the Level band.
+ */
+export function makeTeamsLevelLabel(
+  player: Pick<BoardPlayer, "levelBand" | "ovr">,
+  balanceOn: FootballBalanceOn,
+) {
+  if (balanceOn === "ovr") {
+    return player.ovr == null ? levelLabel(null) : formatOvr(player.ovr);
+  }
+  return levelLabel(player.levelBand);
 }
 
 export function slotCode(
@@ -341,6 +359,7 @@ export function draftSummary(
   draft: TeamsDraft,
   players: readonly BoardPlayer[],
   locale: Locale,
+  balanceOn: FootballBalanceOn = "tierPoints",
 ) {
   const order = byKeeperThenBalance(players);
   const slot1 = players
@@ -374,20 +393,22 @@ export function draftSummary(
       problem ??
       messagesFor(locale).football.board.everyonePlaced(
         names.slot1,
-        teamsSideAverage(slot1, locale),
+        teamsSideAverage(slot1, locale, balanceOn),
         names.slot2,
-        teamsSideAverage(slot2, locale),
+        teamsSideAverage(slot2, locale, balanceOn),
       ),
   };
 }
 
 /**
- * A side's mean as Make teams reads it: mean Tier points in a tier Group,
- * where every player has a balance strength, otherwise the mean Level.
+ * A side's mean as Make teams reads it when every player has a balance
+ * strength: mean Tier points in a tier Group, the mean OVR elsewhere.
+ * Otherwise the mean Level.
  */
 export function teamsSideAverage(
   players: readonly Pick<BoardPlayer, "levelBand" | "balanceStrength">[],
   locale: Locale,
+  balanceOn: FootballBalanceOn = "tierPoints",
 ) {
   const strengths = players.flatMap((player) =>
     player.balanceStrength == null ? [] : [player.balanceStrength],
@@ -397,7 +418,10 @@ export function teamsSideAverage(
   }
   const mean =
     strengths.reduce((sum, strength) => sum + strength, 0) / strengths.length;
-  return messagesFor(locale).rating.tier.points(formatTierPoints(mean));
+  const m = messagesFor(locale).rating;
+  return balanceOn === "ovr"
+    ? m.ovr.value(formatOvr(mean))
+    : m.tier.points(formatTierPoints(mean));
 }
 
 /** The fish, place or Provisional slot beside a player in a tier Group. */

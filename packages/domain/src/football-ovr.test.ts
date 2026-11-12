@@ -12,8 +12,10 @@ import {
   levelFromOvr,
   muFromOvr,
   ovrFromLevel,
+  ovrBalanceStrength,
   ovrFromMu,
   rateFootballMatch,
+  wholeOvrFromMu,
   type FootballMatchPlayer,
 } from "./football-ovr";
 import {
@@ -84,6 +86,15 @@ describe("formatOvr", () => {
     expect(formatOvr(74.5)).toBe("75");
     expect(formatOvr(12)).toBe("40");
     expect(formatOvr(140)).toBe("99");
+  });
+});
+
+describe("ovrBalanceStrength", () => {
+  it("balances on the whole-number OVR, a new Rating's without one", () => {
+    expect(wholeOvrFromMu(muFromOvr(72.4))).toBe(72);
+    expect(ovrBalanceStrength(muFromOvr(83.6))).toBe(84);
+    expect(ovrBalanceStrength(null)).toBe(65);
+    expect(ovrBalanceStrength(undefined)).toBe(65);
   });
 });
 

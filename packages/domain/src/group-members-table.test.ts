@@ -48,6 +48,23 @@ describe("sortGroupMembers", () => {
     sortGroupMembers(members);
     expect(names(members)).toEqual(before);
   });
+
+  it("orders a football Group by the OVR it shows", () => {
+    const football = [
+      { name: "Ali", level: "3.7", ovr: 71 },
+      { name: "Yousif", level: "3.7", ovr: 72 },
+      { name: "Jassim", level: null, ovr: null },
+      { name: "Mahdi", level: "4.1", ovr: 75 },
+      { name: "Aradi", level: "3.7", ovr: 71 },
+    ];
+    expect(names(sortGroupMembers(football))).toEqual([
+      "Mahdi",
+      "Yousif",
+      "Ali",
+      "Aradi",
+      "Jassim",
+    ]);
+  });
 });
 
 describe("groupMemberTableCaption", () => {

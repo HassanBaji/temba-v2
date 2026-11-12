@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { games, groupTierPoints, ratings } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { balancedSides } from "@repo/domain/football-board";
+import { muFromOvr } from "@repo/domain/football-ovr";
 import { muFromLevel } from "@repo/domain/level";
 
 import {
@@ -151,32 +152,64 @@ describe("games.footballBoard on a tier Group", () => {
 });
 
 describe("games.footballBoard outside a tier Group", () => {
-  it("leaves a Verified Group's Game to the Level band", async () => {
+  async function seedOvrRoster(f: FootballFixture) {
+    const ovrs = [84, 78, 72, 61, 55];
+    const rated: string[] = [];
+    for (const [index, ovr] of ovrs.entries()) {
+      const userId = await addMember(f, `rated${index}`);
+      rated.push(userId);
+      await f.db.insert(ratings).values({
+        userId,
+        sport: "football",
+        mu: muFromOvr(ovr),
+        phi: 150,
+        sigma: 0.06,
+        levelBand: "C2",
+      });
+    }
+    const unrated = await addMember(f, "unrated");
+    return { rated, unrated, ovrs };
+  }
+
+  it("balances a Verified Group's Game on OVR for every player", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await footballGame(db, { verified: true });
-      const { ranked } = await seedRoster(f);
+      const { rated, unrated, ovrs } = await seedOvrRoster(f);
       const board = await footballBoard(db, {
         gameId: f.gameId,
         userId: f.organizerId,
       });
 
-      const player = playerOf(board, ranked[0]!);
-      expect(player.tier).toBeNull();
-      expect(player.balanceStrength).toBeNull();
-      expect(Object.keys(balancedSides(board.players))).toHaveLength(
-        board.players.length,
-      );
+      expect(board.balanceOn).toBe("ovr");
+      expect(rated.map((userId) => playerOf(board, userId).ovr)).toEqual(ovrs);
+      expect(
+        rated.map((userId) => playerOf(board, userId).balanceStrength),
+      ).toEqual(ovrs);
+      expect(playerOf(board, unrated)).toMatchObject({
+        ovr: null,
+        balanceStrength: 65,
+        tier: null,
+      });
+      expect(
+        board.players.every(
+          (player) => player.tier === null && player.balanceStrength != null,
+        ),
+      ).toBe(true);
+
+      const sides = balancedSides(board.players);
+      expect(sides[rated[0]!]).not.toBe(sides[rated[1]!]);
+      expect(sides[rated[1]!]).toBe(sides[rated[2]!]);
     } finally {
       await close();
     }
   });
 
-  it("leaves a groupless Game to the Level band", async () => {
+  it("balances a groupless Game on OVR", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await footballGame(db);
-      const { ranked } = await seedRoster(f);
+      const { rated, ovrs } = await seedOvrRoster(f);
       await db
         .update(games)
         .set({ groupId: null })
@@ -186,12 +219,31 @@ describe("games.footballBoard outside a tier Group", () => {
         userId: f.organizerId,
       });
 
+      expect(board.balanceOn).toBe("ovr");
       expect(
-        board.players.every(
-          (player) => player.tier === null && player.balanceStrength === null,
-        ),
+        rated.map((userId) => playerOf(board, userId).balanceStrength),
+      ).toEqual(ovrs);
+      expect(board.players.every((player) => player.tier === null)).toBe(true);
+      expect(playerOf(board, rated[0]!).levelBand).toBe("C2");
+    } finally {
+      await close();
+    }
+  });
+
+  it("gives a player who cannot make teams the OVR but no strength", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await footballGame(db, { verified: true });
+      const { rated } = await seedOvrRoster(f);
+      const asMember = await footballBoard(db, {
+        gameId: f.gameId,
+        userId: rated[3]!,
+      });
+
+      expect(playerOf(asMember, rated[0]!).ovr).toBe(84);
+      expect(
+        asMember.players.every((player) => player.balanceStrength === null),
       ).toBe(true);
-      expect(playerOf(board, ranked[0]!).levelBand).toBe("C2");
     } finally {
       await close();
     }
