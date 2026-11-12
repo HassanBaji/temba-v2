@@ -8,7 +8,20 @@ export const rating = {
     safi: "Safi",
   },
   provisional: "Provisional",
+  ovrImpact: {
+    title: "What moved your OVR",
+    move: (before: string, after: string) => `${before} to ${after}`,
+    result: (percent: number) => `Result ${percent}%`,
+    outcome: {
+      won: (average: string) => `Won, against a side averaging ${average}`,
+      drew: (average: string) => `Drew, against a side averaging ${average}`,
+      lost: (average: string) => `Lost, against a side averaging ${average}`,
+    },
+    spoken: (title: string, delta: string) => `${title}, ${delta} OVR`,
+  },
   scope: {
+    temba: "Counts for Temba Level",
+    tembaNote: "Moves every player’s OVR. A verified group has no group tier.",
     group: "Counts for group tier",
     groupNote:
       "Moves tier points in this group only. Temba levels move in verified groups.",

@@ -22,6 +22,7 @@ import {
   groupMemberInvites,
   groupTierEvents,
   groupTierPoints,
+  groups,
   matchRatingWindows,
   matches,
   matchSets,
@@ -2332,6 +2333,102 @@ async function seedGroupLinks(u: Users, v: Venues, g: Groups) {
   });
 }
 
+/**
+ * Galali Football is a Verified Group on the pitches, so its Games count for
+ * Temba Level at full weight (ADR-0069): last night's 5–3 moved the OVR of
+ * the ten who played (screen 5a), and Saturday's is tagged "Counts for Temba
+ * Level" and open to OVR 64 and up.
+ */
+async function seedVerifiedFootball(u: Users, v: Venues) {
+  const group = await createLoosePublic(db, {
+    name: "Galali Football",
+    description: "Verified pickup games. They move your OVR.",
+    sport: "football",
+    userId: u.me!.id,
+  });
+  await db
+    .update(groups)
+    .set({ verifiedAt: new Date(), venueId: v.pitches.id })
+    .where(eq(groups.id, group.id));
+  const squad = [
+    keeper("ben"),
+    keeper("hana"),
+    outfield("me", "mid"),
+    outfield("omar", "fwd"),
+    outfield("maya", "mid"),
+    outfield("lina", "def"),
+    outfield("diego", "fwd"),
+    outfield("sofia", "mid"),
+    outfield("jonas", "def"),
+    outfield("priya", "fwd"),
+  ];
+  for (const player of squad) {
+    if (player.key === "me") continue;
+    await joinPublic(db, { groupId: group.id, userId: u[player.key]!.id });
+  }
+  const ids = (keys: string[]) => keys.map((key) => u[key]!.id);
+  const game = async (name: string, start: Date, levelMinTenths?: number) => {
+    const created = await createGame(db, {
+      createdBy: u.me!.id,
+      customName: name,
+      groupId: group.id,
+      isPublic: false,
+      format: "friendly_game",
+      registrationMode: "individual",
+      sideSize: 5,
+      playersAllowed: squad.length,
+      windowStart: start,
+      windowEnd: new Date(start.getTime() + 90 * 60 * 1000),
+      venueId: v.pitches.id,
+      courtId: v.pitches.courtIds[0]!,
+      pricePerPlayerFils: 3000,
+      levelMinTenths,
+    });
+    return created.id;
+  };
+
+  const played = await game("Galali five-a-side", at(1, 20));
+  for (const player of squad) {
+    await register(db, {
+      gameId: played,
+      userId: u[player.key]!.id,
+      football: { role: player.role, position: player.position },
+    });
+  }
+  await publishFootballTeams(db, {
+    gameId: played,
+    userId: u.me!.id,
+    method: "manual",
+    bibs: { slot1: "black", slot2: "white" },
+    slot1: ids(["ben", "me", "omar", "maya", "lina"]),
+    slot2: ids(["hana", "diego", "sofia", "jonas", "priya"]),
+  });
+  await moveIntoPast(played, at(-1, 20));
+  await saveFootballScore(db, {
+    gameId: played,
+    userId: u.me!.id,
+    slot1Goals: 5,
+    slot2Goals: 3,
+    scorers: [
+      { userId: u.me!.id, goals: 1 },
+      { userId: u.omar!.id, goals: 3 },
+      { userId: u.maya!.id, goals: 1 },
+      { userId: u.diego!.id, goals: 2 },
+      { userId: u.priya!.id, goals: 1 },
+    ],
+  });
+  const match = await db.query.matches.findFirst({
+    where: eq(matches.gameId, played),
+  });
+  await confirmMatchResult(db, {
+    gameId: played,
+    matchId: match!.id,
+    userId: u.me!.id,
+  });
+
+  await game("Saturday Galali five-a-side", at(3, 18), 28);
+}
+
 async function main() {
   assertLocalDatabase();
   // The graphile_worker schema only exists once the API worker has booted, and
@@ -2346,6 +2443,7 @@ async function main() {
   const t = await step("teams", () => seedTeams(u));
   await step("games", () => seedGames(u, g, v));
   await step("football", () => seedFootball(u, v));
+  await step("verified football", () => seedVerifiedFootball(u, v));
   await step("challenges", () => seedChallenges(u, v, t));
   await step("bookings", () => seedBookings(u, v));
   await step("group links", () => seedGroupLinks(u, v, g));

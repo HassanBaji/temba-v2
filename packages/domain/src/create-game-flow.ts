@@ -48,9 +48,10 @@ import {
 } from "./game-shape";
 import {
   gameRatingScopeLabel,
-  groupHasTier,
   groupRatingScopeNote,
   ratedScopeForGroup,
+  ratingFlagsAtCreate,
+  tembaRatingScopeNote,
   type GameRatingScope,
 } from "./game-rating-scope";
 import { DEFAULT_SPORT, type Sport } from "./sport";
@@ -155,21 +156,34 @@ export function changeFootballPlayersAllowed<
 
 /** A court price split across `players`, rounded up so the cap covers it. */
 /**
- * The Rating choice on create (ADR-0053, ADR-0066). A padel Game on a Group
- * rates, and a football Game on a tier Group moves Tier points; every other
- * Game skips the choice and stays Unrated.
+ * The Rating choice on create (ADR-0053, ADR-0066, ADR-0069). A Game on a
+ * Group rates: padel, football on a tier Group (Tier points) and football on
+ * a Verified Group (the Temba Level). A groupless Game skips the choice and
+ * stays Unrated.
  */
 export function createRatingChoiceShown(args: {
   sport: Sport;
   hasGroup: boolean;
   groupVerified?: boolean;
 }) {
-  if (!args.hasGroup) {
-    return false;
+  return args.hasGroup;
+}
+
+/**
+ * Whether the create flow offers a Level range: always on padel, and on
+ * football only for a Game that counts for Temba Level (ADR-0069), since the
+ * range gates joining on that Level.
+ */
+export function createLevelRangeShown(args: {
+  sport: Sport;
+  hasGroup: boolean;
+  groupVerified: boolean;
+  rated: boolean;
+}) {
+  if (args.sport !== "football") {
+    return true;
   }
-  return args.sport === "football"
-    ? groupHasTier({ sport: args.sport, verified: args.groupVerified ?? false })
-    : true;
+  return ratingFlagsAtCreate(args).rated;
 }
 
 export type CreateRatingOption = {
@@ -194,7 +208,7 @@ export function createRatingChoice(args: {
   const ratedScope = ratedScopeForGroup(args.groupVerified);
   const scope = args.rated ? ratedScope : "unrated";
   const notes: Record<GameRatingScope, string> = {
-    temba: m.temba_note,
+    temba: tembaRatingScopeNote(args.locale, args.sport),
     group: groupRatingScopeNote(args.locale, args.sport),
     unrated: m.unrated_note,
   };

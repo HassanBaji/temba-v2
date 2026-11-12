@@ -201,7 +201,12 @@ async function createFootballGameOnGroup(
       message: messagesFor(locale).football.errors.friendlyOnly,
     });
   }
-  if (input.levelMinTenths != null || input.levelMaxTenths != null) {
+  // A Level range gates who may join on their Temba Level, so only a Game
+  // that counts for it has one (ADR-0069).
+  if (
+    !flags.rated &&
+    (input.levelMinTenths != null || input.levelMaxTenths != null)
+  ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: messagesFor(locale).football.errors.noLevelRange,
@@ -222,6 +227,8 @@ async function createFootballGameOnGroup(
       sideSize,
       playersAllowed: input.playersAllowed ?? 2 * sideSize,
       mvpMode: input.mvpMode,
+      levelMinTenths: input.levelMinTenths ?? null,
+      levelMaxTenths: input.levelMaxTenths ?? null,
       ...flags,
     },
     locale,

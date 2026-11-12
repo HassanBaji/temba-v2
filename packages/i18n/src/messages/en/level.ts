@@ -12,6 +12,10 @@ export const level = {
   rangeTeam: "A Team partner's Level is outside this Game's range",
   andUp: (band: string) => `${band} and up`,
   andUnder: (band: string) => `${band} and under`,
+  ovr: (value: string) => `OVR ${value}`,
+  ovrRange: (min: string, max: string) => `OVR ${min} to ${max}`,
+  ovrAndUp: (min: string) => `OVR ${min} and up`,
+  ovrAndUnder: (max: string) => `OVR ${max} and under`,
   prose: (label: string) => `Level ${label}`,
   gateNoLevel:
     "You don't have a Level yet. Declare one on You, or request to play.",

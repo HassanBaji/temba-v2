@@ -97,6 +97,9 @@ import {
   wrongScoreReversalEligibility,
   type WrongScoreReversalEligibility,
 } from "#src/games/wrong-score-reversal";
+import { sideUserIds } from "#src/ratings/apply-tier-match";
+import { ovrFromMu } from "@repo/domain/football-ovr";
+import { type OvrImpact } from "@repo/domain/game-rating-impact";
 import { groupSeasonRows } from "#src/games/season-link";
 import { toSeasonRow } from "#src/standing/load-group-standing";
 import { MATCH_STATUS } from "@repo/domain/match-status";
@@ -366,6 +369,55 @@ function individualFriendlyGamePhase(args: {
   // same "nobody has entered a result" description still applies, so it
   // resolves to needs_results here too.
   return "needs_results";
+}
+
+/**
+ * What a counting football Match did to the viewer's OVR: the move, its
+ * result part and the other side's mean OVR before the Match (screen 5a).
+ */
+async function footballOvrImpact(
+  database: DbClient,
+  args: {
+    match: { id: string; slot1GameTeamId: string | null };
+    userId: string;
+    event: {
+      muBefore: number;
+      muAfter: number;
+      outcomeScore: number;
+      resultPart: number | null;
+    };
+  },
+): Promise<OvrImpact> {
+  const [events, slot1] = await Promise.all([
+    database.query.ratingEvents.findMany({
+      where: eq(ratingEvents.matchId, args.match.id),
+      columns: { userId: true, muBefore: true },
+    }),
+    args.match.slot1GameTeamId
+      ? sideUserIds(database, args.match.slot1GameTeamId)
+      : Promise.resolve([]),
+  ]);
+  const viewerOnSlot1 = slot1.includes(args.userId);
+  const opponents = events.filter(
+    (event) => slot1.includes(event.userId) !== viewerOnSlot1,
+  );
+  const opponentAverage =
+    opponents.length === 0
+      ? ovrFromMu(args.event.muBefore)
+      : opponents.reduce((sum, event) => sum + ovrFromMu(event.muBefore), 0) /
+        opponents.length;
+  return {
+    before: ovrFromMu(args.event.muBefore),
+    after: ovrFromMu(args.event.muAfter),
+    resultPart: args.event.resultPart ?? 0,
+    outcome:
+      args.event.outcomeScore === 1
+        ? "won"
+        : args.event.outcomeScore === 0
+          ? "lost"
+          : "drew",
+    opponentAverage,
+  };
 }
 
 export async function gameById(
@@ -766,6 +818,8 @@ export async function gameById(
     newLevelBand: LevelBand;
     isProvisional: boolean;
     ratedMatchesRemainingToConfirm: number | null;
+    /** A football Match's move in OVR, by part (ADR-0069). */
+    ovr: OvrImpact | null;
   } | null = null;
 
   // Final-phase-only, organizer-only "Report a wrong score" eligibility read
@@ -807,7 +861,14 @@ export async function gameById(
               eq(ratingEvents.matchId, friendlyMatch.id),
               eq(ratingEvents.userId, args.userId),
             ),
-            columns: { muBefore: true, muAfter: true, phiAfter: true },
+            columns: {
+              muBefore: true,
+              muAfter: true,
+              phiAfter: true,
+              sport: true,
+              outcomeScore: true,
+              resultPart: true,
+            },
           })
         : undefined;
       if (viewerRatingEvent) {
@@ -834,6 +895,14 @@ export async function gameById(
           ratedMatchesRemainingToConfirm: viewerIsProvisional
             ? ratedMatchesRemainingToConfirm(viewerRatingEvent.phiAfter)
             : null,
+          ovr:
+            viewerRatingEvent.sport === "football"
+              ? await footballOvrImpact(database, {
+                  match: friendlyMatch,
+                  userId: args.userId,
+                  event: viewerRatingEvent,
+                })
+              : null,
         };
       }
 

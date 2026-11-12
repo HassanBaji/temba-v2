@@ -13,6 +13,7 @@ import {
   createGameTypeCards,
   createRatingChoice,
   createRatingChoiceShown,
+  createLevelRangeShown,
   applyLevelBoundChange,
   createFlowFirstStep,
   createFlowLaterSteps,
@@ -1090,7 +1091,7 @@ describe("football create flow", () => {
 });
 
 describe("Rating choice", () => {
-  it("shows for a padel Game on a Group and a football Game on a tier Group", () => {
+  it("shows for any Game on a Group", () => {
     assert.equal(
       createRatingChoiceShown({ sport: "padel", hasGroup: true }),
       true,
@@ -1109,7 +1110,7 @@ describe("Rating choice", () => {
         hasGroup: true,
         groupVerified: true,
       }),
-      false,
+      true,
     );
     assert.equal(
       createRatingChoiceShown({ sport: "football", hasGroup: false }),
@@ -1117,6 +1118,31 @@ describe("Rating choice", () => {
     );
     assert.equal(
       createRatingChoiceShown({ sport: "padel", hasGroup: false }),
+      false,
+    );
+  });
+
+  it("offers a Level range on padel, and on football only when the Game counts for Temba Level", () => {
+    const on = { hasGroup: true, rated: true };
+    assert.equal(
+      createLevelRangeShown({ ...on, sport: "padel", groupVerified: false }),
+      true,
+    );
+    assert.equal(
+      createLevelRangeShown({ ...on, sport: "football", groupVerified: true }),
+      true,
+    );
+    assert.equal(
+      createLevelRangeShown({ ...on, sport: "football", groupVerified: false }),
+      false,
+    );
+    assert.equal(
+      createLevelRangeShown({
+        ...on,
+        sport: "football",
+        groupVerified: true,
+        rated: false,
+      }),
       false,
     );
   });
@@ -1173,6 +1199,19 @@ describe("Rating choice", () => {
     assert.equal(choice.scopeLabel, "Counts for group tier");
     assert.equal(choice.options[0]?.description, "Counts for group tier");
     assert.equal(choice.note, messagesFor("en").rating.scope.groupNote);
+  });
+
+  it("describes Rated on a Verified football Group as the Temba Level", () => {
+    const choice = createRatingChoice({
+      groupVerified: true,
+      rated: true,
+      locale: "en",
+      sport: "football",
+    });
+    assert.equal(choice.scope, "temba");
+    assert.equal(choice.scopeLabel, "Counts for Temba Level");
+    assert.equal(choice.options[0]?.description, "Counts for Temba Level");
+    assert.equal(choice.note, messagesFor("en").rating.scope.tembaNote);
   });
 
   it("reads in Arabic", () => {

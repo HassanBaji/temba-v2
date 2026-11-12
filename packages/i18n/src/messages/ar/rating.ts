@@ -10,7 +10,21 @@ export const rating = {
     safi: "صافي",
   },
   provisional: "مبدئي",
+  ovrImpact: {
+    title: "ما الذي حرّك OVR الخاص بك",
+    move: (before: string, after: string) =>
+      `${isolate(before)} إلى ${isolate(after)}`,
+    result: (percent: number) => `النتيجة ${percent}%`,
+    outcome: {
+      won: (average: string) => `فوز، أمام فريق متوسطه ${isolate(average)}`,
+      drew: (average: string) => `تعادل، أمام فريق متوسطه ${isolate(average)}`,
+      lost: (average: string) => `خسارة، أمام فريق متوسطه ${isolate(average)}`,
+    },
+    spoken: (title: string, delta: string) => `${title}، ${isolate(delta)} OVR`,
+  },
   scope: {
+    temba: "تُحتسب لمستوى Temba",
+    tembaNote: "تحرّك OVR لكل لاعب. المجموعة الموثّقة ليس لها فئة.",
     group: "تُحتسب في فئة المجموعة",
     groupNote:
       "تحرّك نقاط الفئة في هذه المجموعة فقط. مستويات Temba تتحرّك في المجموعات الموثّقة.",

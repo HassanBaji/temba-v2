@@ -169,7 +169,8 @@ export const football = {
     notFootball: "Only a football Game has teams and a Score",
     roleOnFootball: "Only a football Game takes a role and position",
     friendlyOnly: "Football Games are Friendly games",
-    noLevelRange: "Football Games have no Level range",
+    noLevelRange:
+      "Only a football Game that counts for Temba Level has a Level range",
     keeperSeatsTaken: "Both keeper seats are taken",
     oneTeamOnly: "A player can be on one team only",
     registeredOnly: "Only registered players can be placed on a team",

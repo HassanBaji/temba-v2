@@ -61,8 +61,13 @@ export function applyIdleInflation(
   return result;
 }
 
+/**
+ * A football Rating's φ only carries Provisional, set from its count of
+ * counting Matches (ADR-0069), so idle time never grows it.
+ */
 export function youRatingViewAfterIdle(
   row: {
+    sport?: string;
     mu: number;
     phi: number;
     sigma: number;
@@ -71,11 +76,14 @@ export function youRatingViewAfterIdle(
   },
   now: Date,
 ): YouRatingView {
-  const inflated = applyIdleInflation(
-    { mu: row.mu, phi: row.phi, sigma: row.sigma },
-    row.lastRatedAt,
-    now,
-  );
+  const inflated =
+    row.sport === "football"
+      ? row
+      : applyIdleInflation(
+          { mu: row.mu, phi: row.phi, sigma: row.sigma },
+          row.lastRatedAt,
+          now,
+        );
   return youRatingViewFromState({
     mu: inflated.mu,
     phi: inflated.phi,

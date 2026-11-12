@@ -60,7 +60,7 @@ describe("footballLevelCardView", () => {
       level: "70",
       provisional: true,
       fillPercent: 0,
-      lines: ["Starting Level", "Football games don't move it yet"],
+      lines: ["Starting Level", "Games that count for Temba Level move it"],
     });
   });
 
@@ -311,7 +311,7 @@ describe("football profile in Arabic", () => {
         "ar",
       ),
     ).toMatchObject({
-      lines: ["المستوى الابتدائي", "مباريات كرة القدم لا تحرّكه بعد"],
+      lines: ["المستوى الابتدائي", "تحرّكه المباريات التي تُحتسب لمستوى Temba"],
     });
   });
 });

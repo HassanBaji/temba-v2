@@ -15,6 +15,11 @@ export const level = {
   rangeTeam: "مستوى أحد شركاء الفريق خارج نطاق هذه المباراة",
   andUp: (band: string) => `${isolate(band)} فما فوق`,
   andUnder: (band: string) => `${isolate(band)} فما دون`,
+  ovr: (value: string) => `OVR ${isolate(value)}`,
+  ovrRange: (min: string, max: string) =>
+    `OVR ${isolate(min)} إلى ${isolate(max)}`,
+  ovrAndUp: (min: string) => `OVR ${isolate(min)} فما فوق`,
+  ovrAndUnder: (max: string) => `OVR ${isolate(max)} فما دون`,
   prose: (label: string) => `المستوى ${label}`,
   gateNoLevel: "ليس لديك مستوى بعد. حدّد واحدًا في «أنت»، أو اطلب اللعب.",
   gate: (range: string, band: string) =>

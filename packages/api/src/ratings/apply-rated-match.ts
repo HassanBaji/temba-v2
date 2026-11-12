@@ -17,6 +17,7 @@ import {
   gameRates,
   gameRatesGroup,
 } from "@repo/domain/game-rating-eligibility";
+import { applyFootballLevelMatch } from "#src/ratings/apply-football-level-match";
 import { applyGroupRatedMatch } from "#src/ratings/apply-group-rated-match";
 import { applyTierMatch } from "#src/ratings/apply-tier-match";
 import { openRatingWindow } from "#src/ratings/settle-rating-window";
@@ -210,7 +211,8 @@ async function persistRatedUser(args: {
 /**
  * Rate the four Users on a completed Match: their Temba Ratings when the Game
  * is Temba rated, their Group Levels when it is group rated (ADR-0053). A
- * football Match moves Tier points instead, for every seated player. Skips
+ * football Match moves every seated player's OVR when it counts for Temba
+ * Level, or their Tier points on a tier Group. Skips
  * when the Match is not a Rated Match (cancelled or Unrated Game, missing
  * sides, not four Users). Idempotent per User+Match. Group Levels go first so
  * a first Group Level starts from the Temba Rating before this Match.
@@ -245,16 +247,26 @@ export async function applyRatedMatch(
   }
 
   if (liveGame.sport === "football") {
-    // A football Game's group scope moves Tier points (ADR-0066); football
-    // has no Glicko-2 step for either Level. With Performance ratings on, the
-    // move waits for the Rating window to settle (ADR-0068).
-    if (
-      ratesGroup &&
-      liveGame.groupId &&
-      match.slot1GameTeamId &&
-      match.slot2GameTeamId
-    ) {
-      const now = new Date();
+    if (!match.slot1GameTeamId || !match.slot2GameTeamId) {
+      return;
+    }
+    const now = new Date();
+    // A football Game that counts for Temba Level moves OVR (ADR-0069).
+    if (ratesTemba) {
+      await applyFootballLevelMatch(database, {
+        matchId: match.id,
+        slot1GameTeamId: match.slot1GameTeamId,
+        slot2GameTeamId: match.slot2GameTeamId,
+        result,
+        weight: await weightForGame(database, liveGame.groupId),
+        now,
+      });
+      return;
+    }
+    // A football Game's group scope moves Tier points (ADR-0066). With
+    // Performance ratings on, the move waits for the Rating window to settle
+    // (ADR-0068).
+    if (ratesGroup && liveGame.groupId) {
       if (
         await openRatingWindow(database, {
           game: { ...game, groupId: liveGame.groupId },

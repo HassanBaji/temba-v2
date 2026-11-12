@@ -161,6 +161,7 @@ function scopeLine(game: Game, locale: Locale): string | null {
     game.levelMinTenths,
     game.levelMaxTenths,
     locale,
+    game.sport,
   );
   const rating =
     scope === "temba"

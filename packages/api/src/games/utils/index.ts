@@ -194,6 +194,9 @@ export type CreateFootballGameInput = {
   /** From `ratingFlagsAtCreate`. Omitted = moves nothing. */
   rated?: boolean;
   groupRated?: boolean;
+  /** Only on a Game that counts for Temba Level (ADR-0069). */
+  levelMinTenths?: number | null;
+  levelMaxTenths?: number | null;
 };
 
 export type CreateFriendlyGameResult = {

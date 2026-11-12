@@ -17,6 +17,7 @@ import { normalizeGameCustomName } from "./game-custom-name";
 import { footballPlayersAllowedBounds, isFootballSideSize } from "./game-shape";
 import { formatGameWindowName, parseRequiredGameWindow } from "./game-window";
 import {
+  LEVEL_BAND_SELECT_NONE,
   levelRangeInvertedMessage,
   parseLevelBandSelectTenths,
   type LevelBandSelectValue,
@@ -109,26 +110,6 @@ function validateWhereAndWhen(
   return { failed: false as const, when };
 }
 
-function validatePrice(
-  draft: Pick<GameFields, "pricePerPlayer">,
-  locale: Locale,
-) {
-  const price = parseOptionalPricePerPlayerFils(draft.pricePerPlayer, locale);
-  if (!price.ok) {
-    return {
-      failed: true as const,
-      issue: {
-        ok: false as const,
-        field: "pricePerPlayerFils",
-        message: price.message,
-        elementId: CREATE_FLOW_FIELD_IDS.pricePerPlayerFils ?? "",
-        step: 4 as const,
-      },
-    };
-  }
-  return { failed: false as const, fils: price.fils };
-}
-
 function validatePriceAndLevel(
   draft: Omit<GameFields, "courtId">,
   locale: Locale,
@@ -218,12 +199,16 @@ export function validateFriendlyGameSubmit(
 export type FootballGameFields = Omit<GameFields, "levelMin" | "levelMax"> & {
   sideSize: number;
   playersAllowed: number;
+  /** Read only when the Game counts for Temba Level (`createLevelRangeShown`). */
+  levelMin?: LevelBandSelectValue;
+  levelMax?: LevelBandSelectValue;
 };
 
 export function validateFootballGameSubmit(
   draft: FootballGameFields,
   now: Date,
   locale: Locale,
+  options: { levelRange?: boolean } = {},
 ) {
   const m = messagesFor(locale).createGame.validation;
   const placed = validateWhereAndWhen(draft, now, locale);
@@ -253,7 +238,18 @@ export function validateFootballGameSubmit(
       step: 4 as const,
     };
   }
-  const priced = validatePrice(draft, locale);
+  const priced = validatePriceAndLevel(
+    {
+      ...draft,
+      levelMin: options.levelRange
+        ? (draft.levelMin ?? LEVEL_BAND_SELECT_NONE)
+        : LEVEL_BAND_SELECT_NONE,
+      levelMax: options.levelRange
+        ? (draft.levelMax ?? LEVEL_BAND_SELECT_NONE)
+        : LEVEL_BAND_SELECT_NONE,
+    },
+    locale,
+  );
   if (priced.failed) {
     return priced.issue;
   }
@@ -279,6 +275,12 @@ export function validateFootballGameSubmit(
       ...ratedInput(draft),
       ...customNameInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
+      ...(priced.levelMinTenths !== null
+        ? { levelMinTenths: priced.levelMinTenths }
+        : {}),
+      ...(priced.levelMaxTenths !== null
+        ? { levelMaxTenths: priced.levelMaxTenths }
+        : {}),
     },
   };
 }

@@ -119,7 +119,7 @@ describe("profileLevelView", () => {
     assert.equal(view.fillPercent, 0);
     assert.equal(
       view.caption,
-      "Starting Level. Football games don’t move it yet",
+      "Starting Level. Games that count for Temba Level move it",
     );
   });
 

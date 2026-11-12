@@ -184,6 +184,36 @@ describe("tenthsToLevelBandSelectValue", () => {
   });
 });
 
+describe("formatLevelRangeLabel on football", () => {
+  it("reads the range in OVR", () => {
+    expect(formatLevelRangeLabel(35, 56, "en", "football")).toBe(
+      "OVR 70 to 87",
+    );
+    expect(formatLevelRangeLabel(35, null, "en", "football")).toBe(
+      "OVR 70 and up",
+    );
+    expect(formatLevelRangeLabel(null, 56, "en", "football")).toBe(
+      "OVR 87 and under",
+    );
+    expect(formatLevelRangeLabel(null, null, "en", "football")).toBeNull();
+    expect(formatLevelRangeProseLabel(35, 56, "en", "football")).toBe(
+      "OVR 70 to 87",
+    );
+  });
+
+  it("tells a player outside it their OVR", () => {
+    expect(
+      formatLevelRangeGateCopy({
+        levelMinTenths: 35,
+        levelMaxTenths: null,
+        viewerLevelTenths: 28,
+        locale: "en",
+        sport: "football",
+      }),
+    ).toBe("This Game is for OVR 70 and up. Your Level is OVR 64.");
+  });
+});
+
 describe("formatLevelRangeLabel", () => {
   it("omits when both bounds are unset", () => {
     expect(formatLevelRangeLabel(null, null, "en")).toBeNull();

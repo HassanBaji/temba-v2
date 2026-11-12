@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
+  ovrImpactView,
   ratingImpactChangeDirection,
   ratingImpactChangeMagnitude,
   ratingImpactStandingSentence,
@@ -194,6 +195,16 @@ describe("ratingScopeTag", () => {
       "Counts for group tier",
     );
   });
+
+  it("tags a football Game that counts for Temba Level", () => {
+    assert.equal(
+      ratingScopeTag(
+        { rated: true, ratingScope: "temba", sport: "football" },
+        "en",
+      ),
+      "Counts for Temba Level",
+    );
+  });
 });
 
 describe("ratingScopeNotice", () => {
@@ -214,5 +225,60 @@ describe("ratingScopeNotice", () => {
       title: "Counts for group tier",
       line: "Moves tier points in this group only. Temba levels move in verified groups.",
     });
+  });
+});
+
+describe("ratingScopeNotice on a football Game that counts", () => {
+  it("says it moves every player's OVR", () => {
+    assert.deepEqual(ratingScopeNotice("temba", "en", "football"), {
+      title: "Counts for Temba Level",
+      line: "Moves every player’s OVR. A verified group has no group tier.",
+    });
+  });
+});
+
+describe("ovrImpactView", () => {
+  const impact = {
+    ovr: {
+      before: 74.2,
+      after: 74.8,
+      resultPart: 0.6,
+      outcome: "won" as const,
+      opponentAverage: 76.3,
+    },
+    newLevelBand: "C1" as const,
+    isProvisional: false,
+    ratedMatchesRemainingToConfirm: null,
+  };
+
+  it("reads screen 5a's result part and the move", () => {
+    const view = ovrImpactView(impact, "en");
+    assert.equal(view.tag, "Counts for Temba Level");
+    assert.equal(view.title, "What moved your OVR");
+    assert.equal(view.aside, "74 to 75");
+    assert.deepEqual(view.rows, [
+      {
+        title: "Result 40%",
+        detail: "Won, against a side averaging 76",
+        delta: "+0.6",
+        spoken: "Result 40%, +0.6 OVR",
+      },
+    ]);
+    assert.equal(view.total.title, "74.2 to 74.8");
+    assert.equal(view.total.delta, "+0.6");
+  });
+
+  it("reads a loss in Arabic", () => {
+    const view = ovrImpactView(
+      {
+        ...impact,
+        ovr: { ...impact.ovr, after: 73.6, resultPart: -0.6, outcome: "lost" },
+        isProvisional: true,
+        ratedMatchesRemainingToConfirm: 3,
+      },
+      "ar",
+    );
+    assert.equal(view.rows[0]?.delta, "−0.6");
+    assert.match(view.rows[0]?.detail ?? "", /خسارة/);
   });
 });

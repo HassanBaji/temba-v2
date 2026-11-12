@@ -34,8 +34,8 @@ export function groupHasTier(group: {
 /**
  * The two stored flags for a new Game. A padel Game on a Group rates its
  * Group Level, and a Verified Group's also moves the Temba Level. A football
- * Game on a tier Group moves Tier points. `rated` is the creator's choice,
- * false for Unrated.
+ * Game on a tier Group moves Tier points, and on a Verified Group the Temba
+ * Level only (ADR-0069). `rated` is the creator's choice, false for Unrated.
  */
 export function ratingFlagsAtCreate(args: {
   hasGroup: boolean;
@@ -44,10 +44,11 @@ export function ratingFlagsAtCreate(args: {
   rated: boolean;
 }): { rated: boolean; groupRated: boolean } {
   if (args.sport === "football") {
-    const tier =
-      args.hasGroup &&
-      groupHasTier({ sport: args.sport, verified: args.groupVerified });
-    return { rated: false, groupRated: tier && args.rated };
+    const counts = args.hasGroup && args.rated;
+    return {
+      rated: counts && args.groupVerified,
+      groupRated: counts && !args.groupVerified,
+    };
   }
   const groupRated = args.hasGroup && args.rated;
   return { rated: groupRated && args.groupVerified, groupRated };
@@ -58,15 +59,15 @@ export function ratedScopeForGroup(groupVerified: boolean): GameRatingScope {
   return groupVerified ? "temba" : "group";
 }
 
-/** The `group` scope reads as a group tier on football. */
+/** On football the `group` scope reads as a group tier, `temba` as the Temba Level. */
 export function gameRatingScopeLabel(
   scope: GameRatingScope,
   locale: Locale,
   sport?: string | null,
 ) {
   const m = messagesFor(locale);
-  if (scope === "group" && sport === "football") {
-    return m.rating.scope.group;
+  if (sport === "football" && scope !== "unrated") {
+    return m.rating.scope[scope];
   }
   return m.you.ratingScope[scope];
 }
@@ -80,4 +81,15 @@ export function groupRatingScopeNote(
   return sport === "football"
     ? m.rating.scope.groupNote
     : m.you.ratingScope.group_note;
+}
+
+/** The line under a `temba` scope, which differs by sport. */
+export function tembaRatingScopeNote(
+  locale: Locale,
+  sport?: string | null,
+): string {
+  const m = messagesFor(locale);
+  return sport === "football"
+    ? m.rating.scope.tembaNote
+    : m.you.ratingScope.temba_note;
 }

@@ -77,12 +77,23 @@ describe("ratingFlagsAtCreate", () => {
     ).toEqual({ rated: false, groupRated: true });
   });
 
-  it("moves nothing for football on a Verified Group", () => {
+  it("moves the Temba Level only for football on a Verified Group", () => {
     expect(
       ratingFlagsAtCreate({
         ...padelOnGroup,
         sport: "football",
         groupVerified: true,
+      }),
+    ).toEqual({ rated: true, groupRated: false });
+  });
+
+  it("moves nothing for football on a Verified Group its creator chose Unrated", () => {
+    expect(
+      ratingFlagsAtCreate({
+        ...padelOnGroup,
+        sport: "football",
+        groupVerified: true,
+        rated: false,
       }),
     ).toEqual({ rated: false, groupRated: false });
   });
@@ -134,5 +145,12 @@ describe("gameRatingScopeLabel", () => {
     expect(gameRatingScopeLabel("group", "en", "padel")).toBe(
       "Counts for group rating",
     );
+  });
+
+  it("names the temba scope the Temba Level on football", () => {
+    expect(gameRatingScopeLabel("temba", "en", "football")).toBe(
+      "Counts for Temba Level",
+    );
+    expect(gameRatingScopeLabel("unrated", "en", "football")).toBe("Unrated");
   });
 });

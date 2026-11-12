@@ -179,6 +179,30 @@ describe("validateFootballGameSubmit", () => {
     }
   });
 
+  it("sends a Level range only on a Game that counts for Temba Level", () => {
+    const draft = { ...football, levelMin: "C+", levelMax: "B" } as const;
+    const ignored = validateFootballGameSubmit(draft, NOW, "en");
+    assert.ok(ignored.ok);
+    if (ignored.ok) {
+      assert.equal("levelMinTenths" in ignored.input, false);
+    }
+    const counting = validateFootballGameSubmit(draft, NOW, "en", {
+      levelRange: true,
+    });
+    assert.ok(counting.ok);
+    if (counting.ok) {
+      assert.equal(counting.input.levelMinTenths, 35);
+      assert.equal(typeof counting.input.levelMaxTenths, "number");
+    }
+    const inverted = validateFootballGameSubmit(
+      { ...football, levelMin: "B", levelMax: "C+" },
+      NOW,
+      "en",
+      { levelRange: true },
+    );
+    assert.equal(inverted.ok, false);
+  });
+
   it("sends only the Unrated choice", () => {
     const unrated = validateFootballGameSubmit(
       { ...football, rated: false },

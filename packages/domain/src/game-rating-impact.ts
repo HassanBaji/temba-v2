@@ -2,8 +2,15 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import {
+  formatOvr,
+  formatOvrDelta,
+  formatOvrPrecise,
+  OVR_PART_WEIGHTS,
+} from "./football-ovr";
+import {
   gameRatingScopeLabel,
   groupRatingScopeNote,
+  tembaRatingScopeNote,
   type GameRatingScope,
 } from "./game-rating-scope";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
@@ -27,7 +34,10 @@ export function ratingScopeOf(game: {
   return game.ratingScope ?? (game.rated ? "temba" : "unrated");
 }
 
-/** The tag a Game card or row carries: its scope, none when Temba rated. */
+/**
+ * The tag a Game card or row carries: its scope, none when a padel Game is
+ * Temba rated. A football Game that counts says so (ADR-0069).
+ */
 export function ratingScopeTag(
   game: {
     rated: boolean;
@@ -37,26 +47,31 @@ export function ratingScopeTag(
   locale: Locale,
 ): string | null {
   const scope = ratingScopeOf(game);
-  return scope === "temba"
+  return scope === "temba" && game.sport !== "football"
     ? null
     : gameRatingScopeLabel(scope, locale, game.sport);
 }
 
-/** The Game details notice for a Game that does not move the Temba Level. */
+/**
+ * The Game details notice for a Game that does not move the Temba Level, and
+ * for a football Game that does.
+ */
 export function ratingScopeNotice(
   scope: GameRatingScope,
   locale: Locale,
   sport?: string | null,
 ): { title: string; line: string } | null {
-  if (scope === "temba") {
+  if (scope === "temba" && sport !== "football") {
     return null;
   }
   return {
     title: gameRatingScopeLabel(scope, locale, sport),
     line:
-      scope === "group"
-        ? groupRatingScopeNote(locale, sport)
-        : messagesFor(locale).game.rating.unratedGameLine,
+      scope === "temba"
+        ? tembaRatingScopeNote(locale, sport)
+        : scope === "group"
+          ? groupRatingScopeNote(locale, sport)
+          : messagesFor(locale).game.rating.unratedGameLine,
   };
 }
 
@@ -136,5 +151,80 @@ export function ratingImpactView(
         : direction === "down"
           ? m.decreasedBy(magnitude)
           : m.unchanged,
+  };
+}
+
+/** What a counting football Match did to the viewer's OVR (screen 5a). */
+export type OvrImpact = {
+  before: number;
+  after: number;
+  resultPart: number;
+  outcome: "won" | "drew" | "lost";
+  /** The other side's mean OVR before the Match. */
+  opponentAverage: number;
+};
+
+export type OvrImpactRow = {
+  title: string;
+  detail: string;
+  delta: string;
+  spoken: string;
+};
+
+export type OvrImpactView = {
+  tag: string;
+  title: string;
+  /** "74 to 75", in whole OVR. */
+  aside: string;
+  rows: OvrImpactRow[];
+  total: OvrImpactRow;
+};
+
+function percentOf(share: number) {
+  return Math.round(share * 100);
+}
+
+/**
+ * Screen 5a's "What moved your OVR": one row per part that moved, then the
+ * move in one decimal with where the Level stands. Only the result part is
+ * written so far; the others join as they are.
+ */
+export function ovrImpactView(
+  impact: {
+    ovr: OvrImpact;
+    newLevelBand: LevelBand;
+    isProvisional: boolean;
+    ratedMatchesRemainingToConfirm: number | null;
+  },
+  locale: Locale,
+): OvrImpactView {
+  const copy = messagesFor(locale).rating.ovrImpact;
+  const { ovr } = impact;
+  const opponents = formatOvr(ovr.opponentAverage);
+  const resultTitle = copy.result(percentOf(OVR_PART_WEIGHTS.result));
+  const resultDelta = formatOvrDelta(ovr.resultPart);
+  const totalTitle = copy.move(
+    formatOvrPrecise(ovr.before),
+    formatOvrPrecise(ovr.after),
+  );
+  const totalDelta = formatOvrDelta(ovr.after - ovr.before);
+  return {
+    tag: gameRatingScopeLabel("temba", locale, "football"),
+    title: copy.title,
+    aside: copy.move(formatOvr(ovr.before), formatOvr(ovr.after)),
+    rows: [
+      {
+        title: resultTitle,
+        detail: copy.outcome[ovr.outcome](opponents),
+        delta: resultDelta,
+        spoken: copy.spoken(resultTitle, resultDelta),
+      },
+    ],
+    total: {
+      title: totalTitle,
+      detail: ratingImpactStandingSentence({ ...impact, locale }),
+      delta: totalDelta,
+      spoken: copy.spoken(totalTitle, totalDelta),
+    },
   };
 }

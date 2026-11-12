@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 
-import { groupRatingEvents, ratingEvents } from "@repo/db";
+import { GroupSportEnum, groupRatingEvents, ratingEvents } from "@repo/db";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
@@ -21,8 +21,9 @@ export type WrongScoreReversalEligibility =
  * before-values is only correct when nothing has been built on top of them
  * since — checked per seated User, not just the caller/viewer. A Match with
  * no rating events (an Unrated Game) has nothing to reverse and just reopens
- * (ADR-0062). Tier points are an additive ledger, so a football Match's tier
- * events never block: they are subtracted whatever came after (ADR-0067).
+ * (ADR-0062). Tier points and a football Level are additive ledgers, so a
+ * football Match's tier and Level events never block: they are subtracted
+ * whatever came after (ADR-0067, ADR-0069).
  */
 export async function wrongScoreReversalEligibility(
   database: DbClient,
@@ -38,6 +39,9 @@ export async function wrongScoreReversalEligibility(
     }),
   ]);
   for (const event of matchEvents) {
+    if (event.sport === GroupSportEnum.FOOTBALL) {
+      continue;
+    }
     const [latest] = await database
       .select({ id: ratingEvents.id })
       .from(ratingEvents)

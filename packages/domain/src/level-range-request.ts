@@ -10,6 +10,8 @@ export type LevelRangeRequestInput = {
   viewerLevelTenths: number | null;
   canRequestLevelRange: boolean;
   levelRangeRequest: { status: string } | null;
+  /** A football Game reads its range in OVR. */
+  sport?: string | null;
 };
 
 export type LevelRangeRequestCard = {
@@ -41,6 +43,7 @@ export function levelRangeRequestCard(
       levelMaxTenths: game.levelMaxTenths,
       viewerLevelTenths: game.viewerLevelTenths,
       locale,
+      sport: game.sport,
     }),
     badge: pending ? "Pending" : rejected ? "Rejected" : null,
     actionLabel: pending ? null : rejected ? m.again : m.title,

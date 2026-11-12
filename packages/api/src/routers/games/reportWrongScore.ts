@@ -1,8 +1,9 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  GroupSportEnum,
   groupLevelOverrides,
   groupRatingEvents,
   groupRatings,
@@ -33,6 +34,7 @@ import {
 } from "#src/games/knockout-advance";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
 import { suspendMvp } from "#src/marks/settle-mvp";
+import { reverseFootballLevelMatch } from "#src/ratings/apply-football-level-match";
 import { rewriteTierBands } from "#src/ratings/apply-tier-match";
 import { suspendRatingWindow } from "#src/ratings/settle-rating-window";
 import { wrongScoreReversalEligibility } from "#src/games/wrong-score-reversal";
@@ -177,7 +179,8 @@ async function reverseTierEvents(tx: DbClient, matchId: string, now: Date) {
  * the same Group's, ADR-0053) — Glicko-2 updates are
  * sequential, so restoring stored before-values would otherwise silently
  * erase legitimate later changes. Tier points are additive and are taken
- * back by subtraction whatever came after (ADR-0067). A Rating window is
+ * back by subtraction whatever came after (ADR-0067), and so is a football
+ * Level (ADR-0069). A Rating window is
  * suspended with its ballots kept, and reopens at the next completion
  * (ADR-0068).
  *
@@ -253,7 +256,10 @@ export async function reportWrongScore(
     await takeBackKnockoutQualifiers(tx, game, locked, locale);
 
     const matchEvents = await tx.query.ratingEvents.findMany({
-      where: eq(ratingEvents.matchId, locked.id),
+      where: and(
+        eq(ratingEvents.matchId, locked.id),
+        ne(ratingEvents.sport, GroupSportEnum.FOOTBALL),
+      ),
     });
 
     const eventUserIds = matchEvents.map((event) => event.userId);
@@ -303,7 +309,15 @@ export async function reportWrongScore(
         );
     }
 
-    await tx.delete(ratingEvents).where(eq(ratingEvents.matchId, locked.id));
+    await tx
+      .delete(ratingEvents)
+      .where(
+        and(
+          eq(ratingEvents.matchId, locked.id),
+          ne(ratingEvents.sport, GroupSportEnum.FOOTBALL),
+        ),
+      );
+    await reverseFootballLevelMatch(tx, locked.id, now);
     await reverseGroupRatingEvents(tx, locked.id, now);
     await reverseTierEvents(tx, locked.id, now);
     await suspendRatingWindow(tx, locked.id, now);

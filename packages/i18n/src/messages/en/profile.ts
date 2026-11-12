@@ -42,7 +42,7 @@ export const profile = {
   },
   football: {
     startingLevel: "Starting Level",
-    startingLevelNote: "Football games don't move it yet",
+    startingLevelNote: "Games that count for Temba Level move it",
     keeper: "Keeper",
     outfield: "Outfield",
     goalsScored: (n: number) =>
@@ -55,7 +55,8 @@ export const profile = {
       down: "Down after the last match",
       held: "Held after the last match",
     },
-    footballStartingCaption: "Starting Level. Football games don’t move it yet",
+    footballStartingCaption:
+      "Starting Level. Games that count for Temba Level move it",
     confirmProgress: (count: number, total: number) =>
       plural("en", total, {
         one: `${count} of about 1 rated game to confirm`,
