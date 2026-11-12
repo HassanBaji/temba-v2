@@ -38,6 +38,7 @@ import { moveSeatProcedure as moveSeat } from "./moveSeat";
 import { setSeatSideProcedure as setSeatSide } from "./setSeatSide";
 import { setTeamSidesProcedure as setTeamSides } from "./setTeamSides";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
+import { performanceRatingSheetProcedure as performanceRatingSheet } from "./performanceRatingSheet";
 import { poolTablesProcedure as poolTables } from "./poolTables";
 import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
 import { enterTournamentScoreProcedure as enterTournamentScore } from "./enterTournamentScore";
@@ -53,6 +54,7 @@ import { previewInviteLinkProcedure as previewInviteLink } from "./previewInvite
 import { previewPlayerByPhoneProcedure as previewPlayerByPhone } from "./previewPlayerByPhone";
 import { publishFootballTeamsProcedure as publishFootballTeams } from "./publishFootballTeams";
 import { registerProcedure as register } from "./register";
+import { submitPerformanceRatingsProcedure as submitPerformanceRatings } from "./submitPerformanceRatings";
 import { registerSeatProcedure as registerSeat } from "./registerSeat";
 import { registerTeamProcedure as registerTeam } from "./registerTeam";
 import { registerWithPartnerProcedure as registerWithPartner } from "./registerWithPartner";
@@ -148,6 +150,8 @@ export const gamesRouter = createTRPCRouter({
   publishFootballTeams,
   saveFootballScore,
   nameChallengeSquad,
+  performanceRatingSheet,
+  submitPerformanceRatings,
   searchLookupUsers,
   sendLookupInvite,
   listLookupInvites,

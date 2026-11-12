@@ -59,6 +59,12 @@ describe("notificationPath", () => {
     );
   });
 
+  it("opens Rate the game when ratings open for the Organizer", () => {
+    expect(
+      notificationPath({ type: "performance_ratings_open", group, game }),
+    ).toBe("/games/x1/rate");
+  });
+
   it("opens the Games history for linked history", () => {
     expect(notificationPath({ type: "history_linked", group: null })).toBe(
       "/games?tab=history",

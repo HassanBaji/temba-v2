@@ -48,6 +48,9 @@ export function notificationEmailDestination(
     challenge?: { id: string } | null;
   },
 ): Destination | null {
+  if (item.type === "performance_ratings_open" && item.game) {
+    return { kind: "game", path: `/dashboard/games/${item.game.id}/rate` };
+  }
   if (
     (item.type === "group_member_joined" ||
       item.type === "level_set" ||

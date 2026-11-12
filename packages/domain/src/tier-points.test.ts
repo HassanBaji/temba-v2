@@ -101,6 +101,22 @@ describe("tierMatchDeltas", () => {
     expect(row!.delta).toBe(18);
   });
 
+  it("moves a player with no settled rating on the whole result step", () => {
+    const [rated, unrated] = tierMatchDeltas({
+      slot1: [
+        player("rated", 1200, { performance: 0 }),
+        player("unrated", 1200),
+      ],
+      slot2: [player("c", 1200), player("d", 1200)],
+      result: "slot1",
+      weight: 0.3,
+    });
+    expect(rated!.resultDelta).toBe(11);
+    expect(rated!.performanceDelta).toBe(0);
+    expect(unrated!.resultDelta).toBe(TIER_K / 2);
+    expect(unrated!.performanceDelta).toBe(0);
+  });
+
   it("clamps the performance score to one either way", () => {
     const [row] = tierMatchDeltas({
       slot1: [player("a", 1200, { performance: 4 })],

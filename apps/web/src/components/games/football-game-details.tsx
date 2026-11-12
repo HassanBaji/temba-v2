@@ -44,6 +44,7 @@ import { FootballScoreCard } from "~/components/games/football-score-card";
 import { TeamColumns } from "~/components/games/football-team-columns";
 import { PlayedFootballBoard } from "~/components/games/played/played-football-board";
 import { PlayedGameView } from "~/components/games/played/played-game-view";
+import { RateGameCard } from "~/components/games/rate-game-card";
 import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import {
@@ -802,6 +803,7 @@ export function FootballGameDetails({
             heroFooter={
               <MvpRow marks={marks} canOpenProfile={canOpenProfiles} />
             }
+            task={<RateGameCard gameId={gameId} window={game.ratingWindow} />}
             marks={<MarksSection marks={marks} />}
             columns={playedModel.columns}
             unplaced={playedModel.unplaced}

@@ -19,6 +19,7 @@ import {
 } from "@repo/domain/game-rating-eligibility";
 import { applyGroupRatedMatch } from "#src/ratings/apply-group-rated-match";
 import { applyTierMatch } from "#src/ratings/apply-tier-match";
+import { openRatingWindow } from "#src/ratings/settle-rating-window";
 import {
   initialRatingFromChoice,
   type LevelBand,
@@ -245,20 +246,31 @@ export async function applyRatedMatch(
 
   if (liveGame.sport === "football") {
     // A football Game's group scope moves Tier points (ADR-0066); football
-    // has no Glicko-2 step for either Level.
+    // has no Glicko-2 step for either Level. With Performance ratings on, the
+    // move waits for the Rating window to settle (ADR-0068).
     if (
       ratesGroup &&
       liveGame.groupId &&
       match.slot1GameTeamId &&
       match.slot2GameTeamId
     ) {
+      const now = new Date();
+      if (
+        await openRatingWindow(database, {
+          game: { ...game, groupId: liveGame.groupId },
+          matchId: match.id,
+          now,
+        })
+      ) {
+        return;
+      }
       await applyTierMatch(database, {
         groupId: liveGame.groupId,
         matchId: match.id,
         slot1GameTeamId: match.slot1GameTeamId,
         slot2GameTeamId: match.slot2GameTeamId,
         result,
-        now: new Date(),
+        now,
       });
     }
     return;

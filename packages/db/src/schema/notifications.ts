@@ -52,6 +52,7 @@ export const NOTIFICATION_TYPE_VALUES = [
   "game_moved_to_waitlist",
   "tier_points_adjusted",
   "tier_band_changed",
+  "performance_ratings_open",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];

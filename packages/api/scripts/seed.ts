@@ -1843,8 +1843,9 @@ async function seedThursdayTier(u: Users, groupId: string) {
  * picker and the score sheet. Each Game is created in the future, filled,
  * then moved so it has kicked off: the score only opens at kick-off.
  * Thursday Football is a tier Group of thirteen where everyone rates at the
- * standard weight (screen 3a); last week's Game moves the Tier points of the
- * ten who played.
+ * standard weight (screen 3a); last week's Game, before ratings were on,
+ * moves the Tier points of the ten who played, and yesterday's waits for the
+ * organizer's ratings.
  */
 async function seedFootball(u: Users, v: Venues) {
   for (const [key, level] of Object.entries(FOOTBALL_LEVELS)) {
@@ -1868,13 +1869,6 @@ async function seedFootball(u: Users, v: Venues) {
     organizer: true,
   });
   await seedThursdayTier(u, group.id);
-  await updateRatingSettings(db, {
-    groupId: group.id,
-    organizerUserId: u.me!.id,
-    mode: "everyone",
-    weightPercent: 30,
-    organizerCountsDouble: false,
-  });
 
   const pitch = v.pitches;
   const footballGame = async (args: {
@@ -2010,6 +2004,65 @@ async function seedFootball(u: Users, v: Venues) {
     matchId: playedMatch!.id,
     userId: u.omar!.id,
   });
+
+  // Played yesterday while the organizer rated: its Rating window is open,
+  // so Sam is asked to rate everyone (screen 4a) before the points move.
+  const setRatings = (mode: "organizer" | "everyone") =>
+    updateRatingSettings(db, {
+      groupId: group.id,
+      organizerUserId: u.me!.id,
+      mode,
+      weightPercent: 30,
+      organizerCountsDouble: false,
+    });
+  await setRatings("organizer");
+  const rated = await footballGame({
+    name: "Yesterday's five-a-side",
+    sideSize: 5,
+    start: at(22, 19),
+    players: [
+      keeper("ben"),
+      keeper("hana"),
+      outfield("me", "mid"),
+      outfield("omar", "fwd"),
+      outfield("maya", "mid"),
+      outfield("lina", "def"),
+      outfield("diego", "fwd"),
+      outfield("sofia", "mid"),
+      outfield("jonas", "def"),
+      outfield("priya", "fwd"),
+    ],
+  });
+  await publishFootballTeams(db, {
+    gameId: rated,
+    userId: u.me!.id,
+    method: "manual",
+    bibs: { slot1: "black", slot2: "white" },
+    slot1: ids(["ben", "me", "omar", "maya", "lina"]),
+    slot2: ids(["hana", "diego", "sofia", "jonas", "priya"]),
+  });
+  await moveIntoPast(rated, at(-1, 19));
+  await saveFootballScore(db, {
+    gameId: rated,
+    userId: u.me!.id,
+    slot1Goals: 5,
+    slot2Goals: 3,
+    scorers: [
+      { userId: u.omar!.id, goals: 3 },
+      { userId: u.maya!.id, goals: 2 },
+      { userId: u.diego!.id, goals: 2 },
+      { userId: u.priya!.id, goals: 1 },
+    ],
+  });
+  const ratedMatch = await db.query.matches.findFirst({
+    where: eq(matches.gameId, rated),
+  });
+  await confirmMatchResult(db, {
+    gameId: rated,
+    matchId: ratedMatch!.id,
+    userId: u.me!.id,
+  });
+  await setRatings("everyone");
 }
 
 // ---------------------------------------------------------------------------

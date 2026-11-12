@@ -69,8 +69,8 @@ function outcomeScore(result: TierMatchResult, slot: 1 | 2) {
 /**
  * One delta per player of a football Match. The expectation is on the mean
  * Tier points of each side; `weight` is the share of the step that comes
- * from Performance ratings (0 when the Group's ratings are Off). No goal
- * margin multiplier.
+ * from Performance ratings (0 when the Group's ratings are Off), and it is 0
+ * for a player whose `performance` is absent. No goal margin multiplier.
  */
 export function tierMatchDeltas(args: {
   slot1: readonly TierMatchPlayer[];
@@ -91,12 +91,14 @@ export function tierMatchDeltas(args: {
     const score = outcomeScore(args.result, slot);
     return players.map((player): TierMatchDelta => {
       const k = player.provisional ? TIER_K_PROVISIONAL : TIER_K;
+      // A player with no settled rating moves on the whole result step.
+      const ownWeight = player.performance == null ? 0 : weight;
       const resultDelta = roundSymmetric(
-        (1 - weight) * k * (score - expectedScore),
+        (1 - ownWeight) * k * (score - expectedScore),
       );
       const performance =
         player.performance == null ? 0 : clamp(player.performance, -1, 1);
-      const performanceDelta = roundSymmetric(weight * k * performance);
+      const performanceDelta = roundSymmetric(ownWeight * k * performance);
       return {
         userId: player.userId,
         slot,

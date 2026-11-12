@@ -310,6 +310,16 @@ export function notificationCopy(
       subline: null,
     };
   }
+  if (
+    item.type === "performance_ratings_open" &&
+    item.audience === "admin" &&
+    item.game
+  ) {
+    return {
+      title: m.performanceRatingsOpen(notificationGameName(item.game, locale)),
+      subline: sub.ratingsOpen,
+    };
+  }
   if (item.type === "mvp_tie_break" && item.audience === "admin" && item.game) {
     return {
       title: m.mvpTieBreak(notificationGameName(item.game, locale)),

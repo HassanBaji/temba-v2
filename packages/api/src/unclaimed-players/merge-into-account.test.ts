@@ -23,6 +23,8 @@ import {
   matchSets,
   matches,
   notifications,
+  performanceRatingResults,
+  performanceRatings,
   ratingEvents,
   ratings,
   user,
@@ -438,6 +440,57 @@ describe("mergeIntoAccount", () => {
           where: eq(marks.matchId, other.matchId),
         }),
       ).toHaveLength(0);
+    } finally {
+      await close();
+    }
+  });
+
+  it("moves the Performance ratings the Unclaimed player received to the account, and drops one between the two", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const people = await seedPeople(db);
+      const gameId = await insertGame(db, people);
+      const { matchId } = await playCompletedMatch(db, {
+        gameId,
+        side1: [people.partner.id, people.unclaimed.id],
+        side2: [people.oppLeft.id, people.oppRight.id],
+      });
+      const otherGameId = await insertGame(db, people);
+      const other = await playCompletedMatch(db, {
+        gameId: otherGameId,
+        side1: [people.survivor.id, people.partner.id],
+        side2: [people.unclaimed.id, people.oppRight.id],
+      });
+      await db.insert(performanceRatings).values([
+        {
+          matchId,
+          raterUserId: people.partner.id,
+          rateeUserId: people.unclaimed.id,
+          value: 8,
+        },
+        {
+          matchId: other.matchId,
+          raterUserId: people.survivor.id,
+          rateeUserId: people.unclaimed.id,
+          value: 5,
+        },
+      ]);
+      await db.insert(performanceRatingResults).values({
+        matchId,
+        userId: people.unclaimed.id,
+        ratingHundredths: 800,
+        ballotsCounted: 1,
+        gameAverageHundredths: 800,
+      });
+
+      await merge(db, people);
+
+      const ballots = await db.query.performanceRatings.findMany();
+      expect(
+        ballots.map((row) => [row.matchId, row.rateeUserId, row.value]),
+      ).toEqual([[matchId, people.survivor.id, 8]]);
+      const results = await db.query.performanceRatingResults.findMany();
+      expect(results.map((row) => row.userId)).toEqual([people.survivor.id]);
     } finally {
       await close();
     }

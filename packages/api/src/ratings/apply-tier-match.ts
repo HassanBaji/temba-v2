@@ -36,11 +36,21 @@ function adjusted(row: TierPointsRow) {
   return row.confirmedAt !== null;
 }
 
+/** A rated player's settled Performance rating, ready for the tier step. */
+export type TierPerformance = {
+  /** Against their usual, centred on the Match, in −1 to 1. */
+  score: number;
+  ratingHundredths: number;
+  usualHundredths: number;
+};
+
 /**
  * Tier points for a completed football Match on a Game that moves them
  * (ADR-0067): one `game` event per seated account holder and Unclaimed player,
- * the result part only until Performance ratings land, then a `band_change`
- * event for every member whose fish moved. Idempotent per User and Match.
+ * then a `band_change` event for every member whose fish moved. A Match with
+ * a Rating window passes the window's `weight` and each rated player's
+ * `performance` (ADR-0068); everyone else moves on the result alone.
+ * Idempotent per User and Match.
  */
 export async function applyTierMatch(
   database: DbClient,
@@ -51,6 +61,8 @@ export async function applyTierMatch(
     slot2GameTeamId: string;
     result: TierMatchResult;
     now: Date;
+    weight?: number;
+    performance?: ReadonlyMap<string, TierPerformance>;
   },
 ): Promise<void> {
   const slot1 = await sideUserIds(database, args.slot1GameTeamId);
@@ -104,6 +116,7 @@ export async function applyTierMatch(
     return {
       userId,
       points: row?.points ?? TIER_POINTS_START,
+      performance: args.performance?.get(userId)?.score ?? null,
       provisional: row
         ? tierIsProvisional({
             gamesCounted: row.gamesCounted,
@@ -116,6 +129,7 @@ export async function applyTierMatch(
     slot1: slot1.map(player),
     slot2: slot2.map(player),
     result: args.result,
+    weight: args.weight ?? 0,
   });
 
   const moved: string[] = [];
@@ -137,6 +151,10 @@ export async function applyTierMatch(
         delta: delta.delta,
         pointsBefore: row.points,
         pointsAfter,
+        ratingHundredths:
+          args.performance?.get(delta.userId)?.ratingHundredths ?? null,
+        usualHundredths:
+          args.performance?.get(delta.userId)?.usualHundredths ?? null,
         expectedScore: delta.expectedScore,
         bandBefore: row.band,
         createdAt: args.now,
@@ -190,7 +208,7 @@ export async function applyTierMatch(
   }
 }
 
-async function sideUserIds(database: DbClient, gameTeamId: string) {
+export async function sideUserIds(database: DbClient, gameTeamId: string) {
   const links = await database.query.gameTeamPlayers.findMany({
     where: eq(gameTeamPlayers.gameTeamId, gameTeamId),
     columns: {},

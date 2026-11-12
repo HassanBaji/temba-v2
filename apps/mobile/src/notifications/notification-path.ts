@@ -1,7 +1,7 @@
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
 
-import { gamePath } from "../games/games-model";
+import { gamePath, gameRatePath } from "../games/games-model";
 import { groupTierHistoryPath } from "../groups/groups-model";
 
 const GROUP_TYPES = new Set([
@@ -53,6 +53,9 @@ export function notificationPath(item: {
   game?: { id: string } | null;
   challenge?: { id: string } | null;
 }): string | null {
+  if (item.game && item.type === "performance_ratings_open") {
+    return gameRatePath(item.game.id);
+  }
   if (item.group && item.type === "tier_points_adjusted") {
     return groupTierHistoryPath(item.group.id);
   }

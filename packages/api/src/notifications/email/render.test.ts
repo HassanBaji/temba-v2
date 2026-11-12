@@ -137,6 +137,16 @@ describe("renderNotificationEmail", () => {
     expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
   });
 
+  it("sends the Organizer to rate the game when ratings open", () => {
+    const email = render(
+      item({ type: "performance_ratings_open", actor: null, game: GAME }),
+    );
+    expect(email.subject).toBe("Rate the players of Thursday Padel");
+    expect(email.html).toContain(
+      `href="${ORIGIN}/dashboard/games/${GAME.id}/rate"`,
+    );
+  });
+
   it("sends a changed side to the Game page", () => {
     const email = render(
       item({ type: "game_side_changed", audience: "player", game: GAME }),

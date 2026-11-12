@@ -34,6 +34,7 @@ import {
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
 import { suspendMvp } from "#src/marks/settle-mvp";
 import { rewriteTierBands } from "#src/ratings/apply-tier-match";
+import { suspendRatingWindow } from "#src/ratings/settle-rating-window";
 import { wrongScoreReversalEligibility } from "#src/games/wrong-score-reversal";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -176,7 +177,9 @@ async function reverseTierEvents(tx: DbClient, matchId: string, now: Date) {
  * the same Group's, ADR-0053) — Glicko-2 updates are
  * sequential, so restoring stored before-values would otherwise silently
  * erase legitimate later changes. Tier points are additive and are taken
- * back by subtraction whatever came after (ADR-0067).
+ * back by subtraction whatever came after (ADR-0067). A Rating window is
+ * suspended with its ballots kept, and reopens at the next completion
+ * (ADR-0068).
  *
  * When eligible, in one transaction: restores each Rating (μ, φ, σ, Level
  * band, last rated time) to the before-values stored on this Match's rating
@@ -303,6 +306,7 @@ export async function reportWrongScore(
     await tx.delete(ratingEvents).where(eq(ratingEvents.matchId, locked.id));
     await reverseGroupRatingEvents(tx, locked.id, now);
     await reverseTierEvents(tx, locked.id, now);
+    await suspendRatingWindow(tx, locked.id, now);
     await tx
       .delete(matchResultConfirmations)
       .where(eq(matchResultConfirmations.matchId, locked.id));

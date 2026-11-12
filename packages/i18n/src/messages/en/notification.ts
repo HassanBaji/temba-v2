@@ -106,6 +106,10 @@ export const notification = {
       strong(game),
     ],
     youAreMvp: (game: string) => [plain("You’re the MVP of "), strong(game)],
+    performanceRatingsOpen: (game: string) => [
+      plain("Rate the players of "),
+      strong(game),
+    ],
     mvpTieBreak: (game: string) => [
       plain("Tied vote on "),
       strong(game),
@@ -251,6 +255,8 @@ export const notification = {
       from: string,
       to: string,
     ) => `${reason}: “${note}” ${from} to ${to}.`,
+    ratingsOpen:
+      "Score everyone 1 to 10 within 24 hours. Points move when you submit.",
     tierPlaces:
       "Tiers are places, so when one player moves, someone moves the other way.",
   },

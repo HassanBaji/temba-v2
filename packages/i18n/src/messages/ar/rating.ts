@@ -262,4 +262,79 @@ export const rating = {
       forbidden: "لا يرى هذه النقاط إلا اللاعب ومنظّمو هذه المجموعة.",
     },
   },
+  performance: {
+    title: "قيّم المباراة",
+    entry: {
+      title: "قيّم المباراة",
+      organizer: (closes: string) =>
+        `امنح كل لاعب من 1 إلى 10. يُغلق ${isolate(closes)}، وبعدها تتحرّك النقاط بالنتيجة وحدها.`,
+      cta: "قيّم",
+    },
+    hero: {
+      final: "نهائية",
+      score: (slot1: number, slot2: number) => isolate(`${slot1}–${slot2}`),
+      line: (place: string, who: string) => `${place}. ${who}`,
+      placeSeparator: "، ",
+      youOrganized: "أنت المنظّم",
+      youPlayedIn: (side: string) => `لعبت مع ${side}`,
+    },
+    heading: "كيف لعبوا؟",
+    side: {
+      won: "فاز",
+      lost: "خسر",
+      drew: "تعادل",
+      ratedOf: (rated: number, of: number) => `قُيّم ${rated} من ${of}`,
+      notRatedYet: (n: number) =>
+        plural("ar", n, {
+          zero: "لا لاعبين",
+          one: "لاعب واحد، لم يُقيَّم بعد",
+          two: "لاعبان، لم يُقيَّما بعد",
+          few: "{n} لاعبين، لم يُقيَّموا بعد",
+          many: "{n} لاعبًا، لم يُقيَّموا بعد",
+          other: "{n} لاعب، لم يُقيَّموا بعد",
+        }),
+      show: (side: string) => `اعرض ${side}`,
+      hide: (side: string) => `أخفِ ${side}`,
+    },
+    you: "أنت",
+    keeper: "حارس",
+    selfNote: "لا تقيّم نفسك. نقاطك تتحرّك بالنتيجة",
+    notRated: "–",
+    cellSpoken: (name: string, value: number) => `${name}، ${value} من 10`,
+    valueSpoken: (name: string, value: number) =>
+      `${name}، تقييمه ${value} من 10`,
+    notRatedSpoken: (name: string) => `${name}، لم يُقيَّم بعد`,
+    mvpSpoken: (name: string) => `اجعل ${name} نجم المباراة`,
+    footnote: (weight: number) =>
+      `6 مباراة عادية. في هذه المجموعة تقييماتك هي جزء الأداء من نقاط الجميع، ${weight}% من الحركة.`,
+    footnoteStar: "النجمة لنجم المباراة.",
+    footer: {
+      ratedOf: (rated: number, of: number) => `قُيّم ${rated} من ${of}`,
+      mvp: (name: string) => `نجم المباراة: ${name}`,
+      noMvp: "لا نجم للمباراة بعد",
+      submit: "أرسل",
+    },
+    submitted: "أُرسلت التقييمات. تحرّكت نقاط الجميع.",
+    closed: {
+      title: "أُغلقت التقييمات",
+      description:
+        "وصلت تقييمات هذه المباراة وتحرّكت نقاطها. لا شيء آخر لتقييمه.",
+    },
+    suspended: {
+      title: "التقييمات متوقّفة",
+      description:
+        "يجري تصحيح النتيجة. تُفتح التقييمات من جديد لمدة 24 ساعة حين تصبح نهائية، وتبقى تقييماتك.",
+    },
+    loadFailed: "تعذّر تحميل التقييمات",
+    errors: {
+      noWindow: "لا تقييمات أداء لهذه المباراة.",
+      closed: "أُغلقت تقييمات هذه المباراة.",
+      organizerOnly: "في هذه المجموعة لا يقيّم إلا منظّم المباراة.",
+      seatedOnly: "لا يقيّم هذه المباراة إلا لاعبوها.",
+      self: "لا يمكنك تقييم نفسك.",
+      notPlayer: "قيّم لاعبي هذه المباراة فقط.",
+      value: "التقييم عدد صحيح من 1 إلى 10.",
+      duplicate: "قيّم كل لاعب مرة واحدة.",
+    },
+  },
 } satisfies typeof source;

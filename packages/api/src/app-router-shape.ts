@@ -126,6 +126,8 @@ type ExpectedGames =
   | "publishFootballTeams"
   | "saveFootballScore"
   | "nameChallengeSquad"
+  | "performanceRatingSheet"
+  | "submitPerformanceRatings"
   | "reportWrongScore"
   | "searchLookupUsers"
   | "sendLookupInvite"

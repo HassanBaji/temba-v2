@@ -248,4 +248,75 @@ export const rating = {
         "Only the player and this group’s organizers can see these points.",
     },
   },
+  performance: {
+    title: "Rate the game",
+    entry: {
+      title: "Rate the game",
+      organizer: (closes: string) =>
+        `Score everyone 1 to 10. Closes ${closes}, then points move on the result alone.`,
+      cta: "Rate",
+    },
+    hero: {
+      final: "Final",
+      score: (slot1: number, slot2: number) => `${slot1}–${slot2}`,
+      line: (place: string, who: string) => `${place}. ${who}`,
+      placeSeparator: ", ",
+      youOrganized: "You organized",
+      youPlayedIn: (side: string) => `You played in ${side}`,
+    },
+    heading: "How did they play?",
+    side: {
+      won: "won",
+      lost: "lost",
+      drew: "drew",
+      ratedOf: (rated: number, of: number) => `${rated} of ${of} rated`,
+      notRatedYet: (n: number) =>
+        plural("en", n, {
+          one: "1 player, not rated yet",
+          other: "{n} players, not rated yet",
+        }),
+      show: (side: string) => `Show ${side}`,
+      hide: (side: string) => `Hide ${side}`,
+    },
+    you: "You",
+    keeper: "Keeper",
+    selfNote: "You don’t rate yourself. Yours moves on the result",
+    notRated: "–",
+    cellSpoken: (name: string, value: number) => `${name}, ${value} of 10`,
+    valueSpoken: (name: string, value: number) =>
+      `${name}, rated ${value} of 10`,
+    notRatedSpoken: (name: string) => `${name}, not rated yet`,
+    mvpSpoken: (name: string) => `Make ${name} the MVP`,
+    footnote: (weight: number) =>
+      `6 is an ordinary game. In this group your ratings are the performance part of everyone’s points, ${weight}% of the move.`,
+    footnoteStar: "The star is the MVP.",
+    footer: {
+      ratedOf: (rated: number, of: number) => `${rated} of ${of} rated`,
+      mvp: (name: string) => `MVP: ${name}`,
+      noMvp: "No MVP yet",
+      submit: "Submit",
+    },
+    submitted: "Ratings sent. Everyone’s points have moved.",
+    closed: {
+      title: "Ratings are closed",
+      description:
+        "This game’s ratings are in, and its points have moved. Nothing more to rate.",
+    },
+    suspended: {
+      title: "Ratings are paused",
+      description:
+        "The score is being corrected. Ratings open again for 24 hours once it is final, and yours are kept.",
+    },
+    loadFailed: "Couldn’t load the ratings",
+    errors: {
+      noWindow: "This game has no performance ratings.",
+      closed: "Ratings for this game are closed.",
+      organizerOnly: "In this group only an organizer of the game rates.",
+      seatedOnly: "Only the players of this game rate it.",
+      self: "You can’t rate yourself.",
+      notPlayer: "Rate only the players of this game.",
+      value: "A rating is a whole number from 1 to 10.",
+      duplicate: "Rate each player once.",
+    },
+  },
 };

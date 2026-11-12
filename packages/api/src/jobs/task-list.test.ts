@@ -95,6 +95,7 @@ describe("task list", () => {
       "payment.process-webhook",
       "payment.refund",
       "proposal.expire",
+      "rating-window.settle",
     ]);
     expect(crontab).toContain("*/15 * * * * booking:reconcile");
   });

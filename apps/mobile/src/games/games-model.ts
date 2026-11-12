@@ -79,6 +79,11 @@ export function footballScorePath(gameId: string) {
   return `/games/${gameId}/score`;
 }
 
+/** Rate the game (screen 4a). */
+export function gameRatePath(gameId: string) {
+  return `/games/${gameId}/rate`;
+}
+
 export function tabCount(count: number | undefined) {
   return count != null && count > 0 ? count : null;
 }

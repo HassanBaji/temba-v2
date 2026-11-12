@@ -571,6 +571,32 @@ describe("notificationCopy for the MVP", () => {
     );
   });
 
+  it("asks the Organizer to rate the players once ratings open", () => {
+    const open = (audience: "admin" | "player", locale: "en" | "ar" = "en") =>
+      notificationCopy(
+        {
+          type: "performance_ratings_open",
+          audience,
+          actor: null,
+          group: null,
+          game,
+        },
+        locale,
+      );
+    assert.equal(
+      open("admin")
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Rate the players of Thursday Padel",
+    );
+    assert.equal(
+      open("admin")?.subline,
+      "Score everyone 1 to 10 within 24 hours. Points move when you submit.",
+    );
+    assert.notEqual(open("admin", "ar"), null);
+    assert.equal(open("player"), null);
+  });
+
   it("returns null without a Game or for the wrong audience", () => {
     assert.equal(mvp({ game: null }), null);
     assert.equal(mvp({ audience: "admin" }), null);

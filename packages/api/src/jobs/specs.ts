@@ -15,6 +15,7 @@ export const JOB = {
   proposalExpire: "proposal.expire",
   challengeSquadDue: "challenge.squad-due",
   scoreStands: "match.score-stands",
+  ratingWindowSettle: "rating-window.settle",
 } as const;
 
 export const MAX_ATTEMPTS = {
@@ -31,6 +32,7 @@ export const MAX_ATTEMPTS = {
   proposalExpire: 5,
   challengeSquadDue: 5,
   scoreStands: 5,
+  ratingWindowSettle: 5,
 } as const;
 
 export const POLL_INTERVAL_SECONDS = { first: 45, second: 90, steady: 120 };
@@ -219,6 +221,21 @@ export function scoreStandsJob(matchId: string): JobSpec {
     key: scoreStandsJobKey(matchId),
     payload: { matchId },
     maxAttempts: MAX_ATTEMPTS.scoreStands,
+    mode: "replace",
+  };
+}
+
+export function ratingWindowSettleJobKey(matchId: string) {
+  return `rating-window:settle:${matchId}`;
+}
+
+/** Settles a football Match's Rating window; enqueued at its `closes_at`. */
+export function ratingWindowSettleJob(matchId: string): JobSpec {
+  return {
+    name: JOB.ratingWindowSettle,
+    key: ratingWindowSettleJobKey(matchId),
+    payload: { matchId },
+    maxAttempts: MAX_ATTEMPTS.ratingWindowSettle,
     mode: "replace",
   };
 }

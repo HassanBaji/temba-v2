@@ -1,7 +1,7 @@
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
 
-import { groupTierHistoryHref } from "~/lib/dashboard-paths";
+import { gameRateHref, groupTierHistoryHref } from "~/lib/dashboard-paths";
 
 export function notificationHref(item: {
   type: string;
@@ -9,6 +9,9 @@ export function notificationHref(item: {
   game?: { id: string } | null;
   challenge?: { id: string } | null;
 }): string | null {
+  if (item.type === "performance_ratings_open" && item.game) {
+    return gameRateHref(item.game.id);
+  }
   if (item.type === "tier_points_adjusted" && item.group) {
     return groupTierHistoryHref(item.group.id);
   }

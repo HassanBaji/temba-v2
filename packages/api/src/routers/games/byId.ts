@@ -14,6 +14,7 @@ import {
   gameTeams,
   gameWaitlist,
   groups,
+  matchRatingWindows,
   matches,
   ratingEvents,
   ratings,
@@ -105,6 +106,12 @@ import { mayRenameUnclaimedPlayer } from "#src/unclaimed-players/may-rename-uncl
 
 import { listLevelRangeRequests } from "./listLevelRangeRequests";
 import { gameRatingScope } from "@repo/domain/game-rating-scope";
+import {
+  ratingWindowState,
+  type RatingWindowMode,
+  type RatingWindowState,
+} from "@repo/domain/performance-rating";
+import { settleRatingWindowIfDue } from "#src/ratings/settle-rating-window";
 import { messagesFor } from "@repo/i18n/messages";
 import { loadTeamDisplayNames } from "#src/challenges/challenge-proposals";
 import { loadChallengeSides } from "#src/games/challenge-squad";
@@ -840,6 +847,39 @@ export async function gameById(
     }
   }
 
+  // A football Match's Rating window (ADR-0068), settled here when its Job
+  // is late, and whether the viewer may rate on it.
+  let ratingWindow: {
+    matchId: string;
+    mode: RatingWindowMode;
+    state: RatingWindowState;
+    closesAt: Date;
+    viewerMayRate: boolean;
+  } | null = null;
+  const footballMatchRow = isFootballGame(game)
+    ? matchRows.find((match) => match.status !== MatchStatusEnum.CANCELLED)
+    : undefined;
+  if (footballMatchRow) {
+    await settleRatingWindowIfDue(database, footballMatchRow.id, now);
+    const window = await database.query.matchRatingWindows.findFirst({
+      where: eq(matchRatingWindows.matchId, footballMatchRow.id),
+    });
+    if (window && window.mode !== "off") {
+      ratingWindow = {
+        matchId: footballMatchRow.id,
+        mode: window.mode,
+        state: ratingWindowState(window, now),
+        closesAt: window.closesAt,
+        viewerMayRate:
+          window.mode === "organizer"
+            ? organizer
+            : (await matchSeatedUserIds(database, footballMatchRow)).includes(
+                args.userId,
+              ),
+      };
+    }
+  }
+
   const registeredPlayers = playerRows.flatMap((row) =>
     row.user
       ? [
@@ -1056,6 +1096,7 @@ export async function gameById(
     phase,
     matchResultConfirmation,
     ratingImpact,
+    ratingWindow,
     canReportWrongScore,
     unseatedPlayers,
     registeredPlayers,

@@ -164,6 +164,15 @@ export function detailBackHref(pathname: string | null): string | undefined {
   return undefined;
 }
 
+export function gameHomeHref(gameId: string) {
+  return `/dashboard/games/${gameId}`;
+}
+
+/** Rate the game (screen 4a). */
+export function gameRateHref(gameId: string) {
+  return `/dashboard/games/${gameId}/rate`;
+}
+
 export function groupSeasonsHref(groupId: string) {
   return `/dashboard/groups/${groupId}/seasons`;
 }

@@ -37,6 +37,8 @@ import {
   matchGoals,
   matchResultConfirmations,
   notifications,
+  performanceRatingResults,
+  performanceRatings,
   ratingEvents,
   ratings,
   session,
@@ -92,6 +94,18 @@ const uniqueUserReferences: UniqueUserReference[] = [
     sameKeys: [marks.matchId, marks.receiverUserId],
   },
   { column: gameMvpVotes.voterUserId, sameKeys: [gameMvpVotes.gameId] },
+  {
+    column: performanceRatings.rateeUserId,
+    sameKeys: [performanceRatings.matchId, performanceRatings.raterUserId],
+  },
+  {
+    column: performanceRatings.raterUserId,
+    sameKeys: [performanceRatings.matchId, performanceRatings.rateeUserId],
+  },
+  {
+    column: performanceRatingResults.userId,
+    sameKeys: [performanceRatingResults.matchId],
+  },
   {
     column: gameInviteLinkConsents.userId,
     sameKeys: [gameInviteLinkConsents.gameInviteLinkId],
@@ -255,6 +269,24 @@ async function dropMvpVotesBetween(tx: DbTx, ids: MergeIds) {
         and(
           eq(gameMvpVotes.voterUserId, ids.mergedUserId),
           eq(gameMvpVotes.candidateUserId, ids.survivorUserId),
+        ),
+      ),
+    );
+}
+
+/** A Performance rating between the two would become one to oneself, which the table refuses. */
+async function dropPerformanceRatingsBetween(tx: DbTx, ids: MergeIds) {
+  await tx
+    .delete(performanceRatings)
+    .where(
+      or(
+        and(
+          eq(performanceRatings.raterUserId, ids.survivorUserId),
+          eq(performanceRatings.rateeUserId, ids.mergedUserId),
+        ),
+        and(
+          eq(performanceRatings.raterUserId, ids.mergedUserId),
+          eq(performanceRatings.rateeUserId, ids.survivorUserId),
         ),
       ),
     );
@@ -606,6 +638,7 @@ export async function mergeIntoAccount(
     await resolveGroupTiers(tx, ids);
     await dropMarksBetween(tx, ids);
     await dropMvpVotesBetween(tx, ids);
+    await dropPerformanceRatingsBetween(tx, ids);
 
     for (const reference of uniqueUserReferences) {
       await dropMergedDuplicates(tx, reference, ids);

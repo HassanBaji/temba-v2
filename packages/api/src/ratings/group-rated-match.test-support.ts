@@ -299,3 +299,28 @@ export async function tierEvents(database: TestDatabase, matchId: string) {
     where: eq(groupTierEvents.matchId, matchId),
   });
 }
+
+/** The Group's Rating settings, as an Organizer would set them (ADR-0068). */
+export async function setRatingSettings(
+  f: FootballFixture,
+  settings: {
+    mode: "off" | "organizer" | "everyone";
+    weightPercent?: number;
+    organizerCountsDouble?: boolean;
+  },
+) {
+  await f.db
+    .update(groups)
+    .set({
+      performanceRatingMode: settings.mode,
+      performanceWeightPercent: settings.weightPercent ?? 30,
+      organizerCountsDouble: settings.organizerCountsDouble ?? false,
+    })
+    .where(eq(groups.id, f.groupId));
+}
+
+/** Seats the Group's Organizer on the fixture's Game as a player. */
+export async function registerOrganizer(f: FootballFixture) {
+  await register(apiDb(f.db), { gameId: f.gameId, userId: f.organizerId });
+  return f.organizerId;
+}

@@ -132,6 +132,10 @@ export const notification = {
       strong(game),
     ],
     youAreMvp: (game: string) => [plain("أنت نجم مباراة "), strong(game)],
+    performanceRatingsOpen: (game: string) => [
+      plain("قيّم لاعبي "),
+      strong(game),
+    ],
     mvpTieBreak: (game: string) => [
       plain("تعادل في التصويت على "),
       strong(game),
@@ -278,6 +282,8 @@ export const notification = {
       from: string,
       to: string,
     ) => `${reason}: «${note}» من ${isolate(from)} إلى ${isolate(to)}.`,
+    ratingsOpen:
+      "امنح كل لاعب من 1 إلى 10 خلال 24 ساعة. تتحرّك النقاط حين ترسلها.",
     tierPlaces: "الفئات مراكز، فحين يتحرّك لاعب يتحرّك غيره في الاتجاه الآخر.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,

@@ -33,6 +33,7 @@ export * from "./game-waitlist";
 export * from "./match-sets";
 export * from "./match-goals";
 export * from "./marks";
+export * from "./performance-ratings";
 export * from "./game-member-invites";
 export * from "./game-invite-links";
 export * from "./game-invite-link-consents";

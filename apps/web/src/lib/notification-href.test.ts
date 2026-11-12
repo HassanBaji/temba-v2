@@ -149,6 +149,17 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens Rate the game when ratings open for the Organizer", () => {
+    assert.equal(
+      notificationHref({
+        type: "performance_ratings_open",
+        group: { id: "g2" },
+        game: { id: "g1" },
+      }),
+      "/dashboard/games/g1/rate",
+    );
+  });
+
   it("opens the Group a Level set was made in", () => {
     assert.equal(
       notificationHref({ type: "level_set", group: { id: "g2" } }),
