@@ -155,7 +155,13 @@ export const disputeMatchResultProcedure = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    const operatorClerkIds = (await ctx.listOperatorClerkIds?.()) ?? [];
+    // The dispute waits on the Operator page whether or not Clerk answers,
+    // so a failed Operator lookup only costs the Notification.
+    const operatorClerkIds =
+      (await ctx.listOperatorClerkIds?.().catch((error: unknown) => {
+        console.error("[disputeMatchResult] Operator lookup failed", error);
+        return [];
+      })) ?? [];
     return disputeMatchResult(ctx.db, {
       matchId: input.matchId,
       userId: appUser.id,
