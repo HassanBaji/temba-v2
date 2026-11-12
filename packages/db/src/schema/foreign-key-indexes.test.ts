@@ -36,6 +36,8 @@ const ALLOWED_UNINDEXED: Record<string, string> = {
   "venues.partner_by": USER_ACTOR,
   "venue_managers.granted_by_user_id": USER_ACTOR,
   "venue_verifiers.granted_by_user_id": USER_ACTOR,
+  "match_verifier_stamps.verifier_user_id": USER_ACTOR,
+  "match_verifier_stamps.venue_id": RARE_PARENT,
   "venue_closures.court_id": RARE_PARENT,
   "venue_closures.created_by_user_id": USER_ACTOR,
   "venue_pricing_rules.court_id": RARE_PARENT,

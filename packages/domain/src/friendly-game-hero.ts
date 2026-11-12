@@ -22,6 +22,8 @@ export type FriendlyGameHeroMatch = {
   startTime: Date | null;
   /** A Public Game's score the other side did not confirm in time (ADR-0071). */
   stoodUnconfirmed?: boolean;
+  /** The Verifier who stamped the score (ADR-0072). */
+  stamp?: { verifierName: string } | null;
   durationInMinutes: number | null;
   slot1GameTeamId: string | null;
   slot2GameTeamId: string | null;

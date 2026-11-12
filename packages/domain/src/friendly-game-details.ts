@@ -45,6 +45,10 @@ export type FriendlyGameDetailsMatch = {
   courtName: string | null;
   status: string | null;
   stoodUnconfirmed?: boolean;
+  /** The Verifier who stamped the score (ADR-0072). */
+  stamp?: { verifierName: string } | null;
+  /** The viewer is a Verifier of the Venue who may stamp it now. */
+  canStamp?: boolean;
   slot1GameTeamId: string | null;
   slot2GameTeamId: string | null;
   canScoreSets: boolean;

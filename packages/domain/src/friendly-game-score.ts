@@ -135,8 +135,14 @@ export function scoreFooterNote(
   confirmedAtLabel: string | null,
   locale: Locale,
   confirmedByOrganizer = false,
+  stampedByName: string | null = null,
 ) {
   const m = messagesFor(locale).game.score;
+  if (phase === "final" && stampedByName) {
+    return messagesFor(locale).rating.verifier.stamp.stampedFinal(
+      stampedByName,
+    );
+  }
   if (phase === "final" && confirmedByOrganizer) {
     return m.confirmedByOrganizer;
   }

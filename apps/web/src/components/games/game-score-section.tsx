@@ -163,10 +163,12 @@ function ScoreFooterNote({
   phase,
   confirmedAtLabel,
   confirmedByOrganizer,
+  stampedByName,
 }: {
   phase: GameScoreSectionPhase;
   confirmedAtLabel: string | null;
   confirmedByOrganizer: boolean;
+  stampedByName: string | null;
 }) {
   const locale = useLocale();
   const { isFinal } = scorePhaseFlags(phase);
@@ -175,6 +177,7 @@ function ScoreFooterNote({
     confirmedAtLabel,
     locale,
     confirmedByOrganizer,
+    stampedByName,
   );
 
   return (
@@ -187,6 +190,33 @@ function ScoreFooterNote({
         )}
       />
       <p className="text-muted-foreground text-meta">{copy}</p>
+    </div>
+  );
+}
+
+/** A Verifier of the Venue, not seated in the Match, stamps its score (ADR-0072). */
+function VerifierStamp({
+  pending,
+  onStamp,
+}: {
+  pending: boolean;
+  onStamp: () => void;
+}) {
+  const m = useMessages();
+  const copy = m.rating.verifier.stamp;
+  return (
+    <div className="border-rule space-y-2 border-t pt-4">
+      <p className="text-muted-foreground text-meta">{copy.note}</p>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={onStamp}
+        pending={pending}
+        pendingLabel={m.common.saving}
+      >
+        {copy.action}
+      </Button>
     </div>
   );
 }
@@ -326,8 +356,10 @@ export function GameScoreSection({
   courtFull,
   scorePending,
   confirmPending,
+  stampPending = false,
   onScoreSet,
   onConfirm,
+  onStamp,
 }: {
   phase: GameScoreSectionPhase;
   match: GameScoreSectionMatch;
@@ -341,12 +373,14 @@ export function GameScoreSection({
   courtFull: boolean;
   scorePending: boolean;
   confirmPending: boolean;
+  stampPending?: boolean;
   onScoreSet: (input: {
     setId: string;
     slot1GamesWon: number;
     slot2GamesWon: number;
   }) => void | Promise<unknown>;
   onConfirm: () => void;
+  onStamp?: () => void;
 }) {
   const locale = useLocale();
   const m = useMessages();
@@ -554,6 +588,10 @@ export function GameScoreSection({
           />
         ) : null}
 
+        {match.canStamp && onStamp ? (
+          <VerifierStamp pending={stampPending} onStamp={onStamp} />
+        ) : null}
+
         {canEnter ? null : (
           <ScoreFooterNote
             phase={phase}
@@ -565,6 +603,7 @@ export function GameScoreSection({
             confirmedByOrganizer={
               matchResultConfirmation?.confirmedByOrganizer ?? false
             }
+            stampedByName={match.stamp?.verifierName ?? null}
           />
         )}
       </div>

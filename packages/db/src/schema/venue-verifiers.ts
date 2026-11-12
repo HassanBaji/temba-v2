@@ -8,6 +8,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { matches } from "./matches";
 import { user } from "./user";
 import { venues } from "./venues";
 
@@ -68,3 +69,41 @@ export const venueVerifierRelations = relations(venueVerifiers, ({ one }) => ({
     relationName: "venueVerifierGrantedBy",
   }),
 }));
+
+/**
+ * A Verifier stamp: a Verifier's final confirmation of a Match at their Venue
+ * as a neutral party (ADR-0072). One per Match. It completes the Match and
+ * changes no weight. The Venue is kept so "Stamped by" still reads after the
+ * role is removed.
+ */
+export const matchVerifierStamps = pgTable("match_verifier_stamps", {
+  matchId: uuid("match_id")
+    .primaryKey()
+    .references(() => matches.id, { onDelete: "cascade" }),
+  verifierUserId: uuid("verifier_user_id")
+    .references(() => user.id, { onDelete: "cascade" })
+    .notNull(),
+  venueId: uuid("venue_id")
+    .references(() => venues.id, { onDelete: "cascade" })
+    .notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const matchVerifierStampRelations = relations(
+  matchVerifierStamps,
+  ({ one }) => ({
+    match: one(matches, {
+      fields: [matchVerifierStamps.matchId],
+      references: [matches.id],
+    }),
+    verifier: one(user, {
+      fields: [matchVerifierStamps.verifierUserId],
+      references: [user.id],
+      relationName: "matchVerifierStampVerifier",
+    }),
+    venue: one(venues, {
+      fields: [matchVerifierStamps.venueId],
+      references: [venues.id],
+    }),
+  }),
+);

@@ -47,8 +47,11 @@ export function FootballScoreCard({
   canConfirmAsOrganizer,
   confirmWindowLine = null,
   confirmPending,
+  canStamp = false,
+  stampPending = false,
   scoreHref,
   onConfirm,
+  onStamp,
 }: {
   bibs: Bibs;
   names: { slot1: string; slot2: string };
@@ -66,8 +69,12 @@ export function FootballScoreCard({
   /** A Public Game's time left for the other side to confirm (ADR-0071). */
   confirmWindowLine?: string | null;
   confirmPending: boolean;
+  /** The viewer is a Verifier of the Venue who may stamp the score (ADR-0072). */
+  canStamp?: boolean;
+  stampPending?: boolean;
   scoreHref: string;
   onConfirm: () => void;
+  onStamp?: () => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -150,6 +157,20 @@ export function FootballScoreCard({
               <p className="text-muted-foreground text-meta">
                 {confirmWindowLine}
               </p>
+            ) : null}
+            {canStamp && onStamp && !completed ? (
+              <div className="space-y-2">
+                <p className="text-muted-foreground text-meta">
+                  {m.rating.verifier.stamp.note}
+                </p>
+                <Button
+                  variant="outline"
+                  pending={stampPending}
+                  onClick={onStamp}
+                >
+                  {m.rating.verifier.stamp.action}
+                </Button>
+              </div>
             ) : null}
           </div>
           {scorers.length > 0 ? (

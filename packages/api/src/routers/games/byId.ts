@@ -17,6 +17,7 @@ import {
   groups,
   matchGoals,
   matchRatingWindows,
+  matchVerifierStamps,
   matches,
   performanceRatingResults,
   performanceRatings,
@@ -74,6 +75,10 @@ import {
   type MatchSlot,
 } from "#src/games/match-result-confirmations";
 import { listGameSeatHolds } from "#src/games/seat-holds";
+import {
+  isVerifierOfVenue,
+  verifierStampRefusal,
+} from "#src/games/verifier-stamp";
 import {
   seatedSlot,
   viewerMayConfirmEnteredScore,
@@ -542,6 +547,54 @@ export async function gameById(
     orderBy: (table, { asc }) => [asc(table.createdAt)],
   });
 
+  // Who stamped each Match, and whether the viewer may stamp one: a Verifier
+  // of the Game's Venue who is not seated in it (ADR-0072).
+  const stampRows =
+    matchRows.length === 0
+      ? []
+      : await database
+          .select({
+            matchId: matchVerifierStamps.matchId,
+            verifierUserId: matchVerifierStamps.verifierUserId,
+            verifierName: user.name,
+            venueName: venues.name,
+            stampedAt: matchVerifierStamps.createdAt,
+          })
+          .from(matchVerifierStamps)
+          .innerJoin(user, eq(user.id, matchVerifierStamps.verifierUserId))
+          .innerJoin(venues, eq(venues.id, matchVerifierStamps.venueId))
+          .where(
+            inArray(
+              matchVerifierStamps.matchId,
+              matchRows.map((match) => match.id),
+            ),
+          );
+  const stampByMatchId = new Map(
+    stampRows.map(({ matchId, ...stamp }) => [matchId, stamp]),
+  );
+  const viewerIsVenueVerifier = await isVerifierOfVenue(
+    database,
+    game.venueId,
+    args.userId,
+  );
+  const viewerMayStamp = async (match: (typeof matchRows)[number]) => {
+    if (
+      !viewerIsVenueVerifier ||
+      (await verifierStampRefusal(database, {
+        game,
+        match,
+        userId: args.userId,
+      })) != null
+    ) {
+      return false;
+    }
+    if (!isPublicGame(game)) {
+      return true;
+    }
+    const closesAt = await publicGameConfirmWindowClosesAt(database, match.id);
+    return closesAt == null || closesAt.getTime() > now.getTime();
+  };
+
   const recordedCourtRows = await database.query.gameCourts.findMany({
     where: eq(gameCourts.gameId, game.id),
     with: {
@@ -925,6 +978,7 @@ export async function gameById(
     const confirmedByOrganizer =
       phase === "final" &&
       !isPublicGame(game) &&
+      !stampByMatchId.has(friendlyMatch.id) &&
       (requiredUserIds.length === 0 ||
         requiredUserIds.some((userId) => !confirmedUserIds.includes(userId)));
     const confirmedAt =
@@ -1228,6 +1282,8 @@ export async function gameById(
           knockoutPosition: match.knockoutPosition,
           status: match.status,
           stoodUnconfirmed: match.stoodUnconfirmedAt != null,
+          stamp: stampByMatchId.get(match.id) ?? null,
+          canStamp: await viewerMayStamp(match),
           courtId: match.courtId,
           courtName: match.court?.name ?? null,
           slot1GameTeamId: match.slot1GameTeamId,

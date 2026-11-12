@@ -120,6 +120,7 @@ type ExpectedGames =
   | "removeSet"
   | "completeMatch"
   | "confirmMatchResult"
+  | "stampMatch"
   | "footballBoard"
   | "resultLink"
   | "setFootballRole"

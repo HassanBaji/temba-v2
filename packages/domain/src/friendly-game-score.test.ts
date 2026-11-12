@@ -146,6 +146,13 @@ describe("score helpers", () => {
     );
   });
 
+  it("names the Verifier who stamped the score", () => {
+    assert.equal(
+      scoreFooterNote("final", "Mon 5 Oct", "en", false, "Sara"),
+      "Stamped by Sara. Nothing else needed.",
+    );
+  });
+
   it("writes the footer note in Arabic", () => {
     assert.equal(
       scoreFooterNote("final", null, "ar", true),

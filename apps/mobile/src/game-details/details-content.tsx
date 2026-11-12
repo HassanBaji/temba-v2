@@ -56,6 +56,7 @@ export type DetailsHandlers = {
   movePending: boolean;
   scorePending: boolean;
   confirmPending: boolean;
+  stampPending?: boolean;
   levelRequestPending: boolean;
   onMove: (sideIndex: number, position: "left" | "right") => void;
   onJoinSeat: (seat: FriendlyGameJoinSeat) => void;
@@ -64,6 +65,7 @@ export type DetailsHandlers = {
   onPressPlayer?: (row: PlayedRow) => void;
   onSaveSets: (payloads: ReturnType<typeof setsToSave>) => void;
   onConfirm: () => void;
+  onStamp?: () => void;
   onRequestLevel: () => void;
 };
 
@@ -196,8 +198,10 @@ export function GameDetailsContent({
           courtFull={vacantSeatCount === 0}
           scorePending={handlers.scorePending}
           confirmPending={handlers.confirmPending}
+          stampPending={handlers.stampPending}
           onSaveSets={handlers.onSaveSets}
           onConfirm={handlers.onConfirm}
+          onStamp={handlers.onStamp}
         />
       ) : null}
       {phase === "final" && game.ratingImpact ? (

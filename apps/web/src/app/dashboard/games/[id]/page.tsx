@@ -517,6 +517,16 @@ export default function GameHomePage({
     },
   });
 
+  const stampMatch = api.games.stampMatch.useMutation({
+    onSuccess: async () => {
+      toast.success(m.rating.verifier.stamp.stamped);
+      await refreshGame();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
   const reportWrongScore = api.games.reportWrongScore.useMutation({
     onSuccess: async () => {
       toast.success(g.toast.scoreReopened);
@@ -1342,6 +1352,7 @@ export default function GameHomePage({
                   courtFull={vacantSeatCount === 0}
                   scorePending={scoreSet.isPending}
                   confirmPending={confirmMatchResult.isPending}
+                  stampPending={stampMatch.isPending}
                   onScoreSet={(input) =>
                     scoreSet.mutateAsync({
                       gameId: id,
@@ -1357,6 +1368,7 @@ export default function GameHomePage({
                       matchId: firstMatch.id,
                     })
                   }
+                  onStamp={() => stampMatch.mutate({ matchId: firstMatch.id })}
                 />
               </div>
             ) : null}

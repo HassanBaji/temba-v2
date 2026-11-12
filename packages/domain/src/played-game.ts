@@ -424,9 +424,13 @@ export function playedPadelModel(
       label: m.confirmed,
       value: input.match.stoodUnconfirmed
         ? messages.rating.publicGame.notInTime
-        : input.confirmation?.confirmedByOrganizer
-          ? m.byTheOrganizer
-          : m.byBothPairs,
+        : input.match.stamp
+          ? messages.rating.verifier.stamp.stampedBy(
+              input.match.stamp.verifierName,
+            )
+          : input.confirmation?.confirmedByOrganizer
+            ? m.byTheOrganizer
+            : m.byBothPairs,
     },
     {
       label: m.format,
@@ -483,6 +487,8 @@ export type PlayedFootballInput = PlayedPlace & {
   ratingImpact: PlayedRatingImpact | null;
   /** A Public Game's score the other side did not confirm in time (ADR-0071). */
   stoodUnconfirmed?: boolean;
+  /** The Verifier who stamped the score (ADR-0072). */
+  stampedByName?: string | null;
 };
 
 export type PlayedFootballModel = {
@@ -619,9 +625,11 @@ export function playedFootballModel(
       label: m.confirmed,
       value: input.stoodUnconfirmed
         ? messages.rating.publicGame.notInTime
-        : input.confirmed.slot1 && input.confirmed.slot2
-          ? m.byBothSides
-          : m.byTheOrganizer,
+        : input.stampedByName
+          ? messages.rating.verifier.stamp.stampedBy(input.stampedByName)
+          : input.confirmed.slot1 && input.confirmed.slot2
+            ? m.byBothSides
+            : m.byTheOrganizer,
     },
     {
       label: m.teams,

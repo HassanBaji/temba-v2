@@ -262,6 +262,11 @@ export function FootballGameDetails({
     onError: failure,
     onSettled: refresh,
   });
+  const stampMatch = api.games.stampMatch.useMutation({
+    onSuccess: () => toast.show(m.rating.verifier.stamp.stamped),
+    onError: failure,
+    onSettled: refresh,
+  });
   const leave = api.games.leave.useMutation({
     onSuccess: () => toast.show(gameToast(locale).left),
     onError: failure,
@@ -632,6 +637,9 @@ export function FootballGameDetails({
   );
 
   const score = board.data?.match?.score ?? null;
+  const boardMatch = game.matches.find(
+    (match) => match.id === board.data?.match?.id,
+  );
   const playedModel =
     teams && names && score && board.data?.match?.status === "completed"
       ? playedFootballModel(
@@ -650,10 +658,8 @@ export function FootballGameDetails({
             groupName: game.groupName,
             rated: game.rated,
             ratingImpact: game.ratingImpact,
-            stoodUnconfirmed: game.matches.some(
-              (match) =>
-                match.id === board.data?.match?.id && match.stoodUnconfirmed,
-            ),
+            stoodUnconfirmed: boardMatch?.stoodUnconfirmed ?? false,
+            stampedByName: boardMatch?.stamp?.verifierName ?? null,
           },
           locale,
         )
@@ -853,11 +859,19 @@ export function FootballGameDetails({
               locale,
             )}
             confirmPending={confirmScore.isPending}
+            canStamp={boardMatch?.canStamp ?? false}
+            stampPending={stampMatch.isPending}
+            stampedByName={boardMatch?.stamp?.verifierName ?? null}
             onEnterScore={() => router.push(scorePath)}
             onConfirm={() => {
               const matchId = board.data?.match?.id;
               if (matchId) {
                 confirmScore.mutate({ gameId, matchId });
+              }
+            }}
+            onStamp={() => {
+              if (boardMatch) {
+                stampMatch.mutate({ matchId: boardMatch.id });
               }
             }}
           />

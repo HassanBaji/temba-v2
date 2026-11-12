@@ -571,6 +571,19 @@ export const rating = {
           "A verifier calibrates a player who played at their venue or belongs to one of its club groups.",
       },
     },
+    stamp: {
+      action: "Stamp the score",
+      note: "As a verifier of this venue. Your stamp is final and completes the match.",
+      stamped: "Score stamped",
+      stampedBy: (name: string) => `Stamped by ${name}`,
+      stampedFinal: (name: string) =>
+        `Stamped by ${name}. Nothing else needed.`,
+      errors: {
+        notVerifier: "Only a verifier of this game’s venue stamps its matches.",
+        seated: "You played in this match, so you can’t stamp it.",
+        cancelled: "A cancelled match can’t be stamped.",
+      },
+    },
   },
   publicGame: {
     label: "Public game",

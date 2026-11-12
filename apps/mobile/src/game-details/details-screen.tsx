@@ -282,6 +282,11 @@ export function GameDetailsScreen({
       await utils.ratings.me.invalidate();
     },
   });
+  const stampMatch = api.games.stampMatch.useMutation({
+    onSuccess: () => toast.show(m.rating.verifier.stamp.stamped),
+    onError: failure,
+    onSettled: refresh,
+  });
   const requestLevel = api.games.requestLevelRange.useMutation({
     onSuccess: () => toast.show(m.level.request.sent),
     onError: failure,
@@ -645,6 +650,7 @@ export function GameDetailsScreen({
     movePending: moveSeat.isPending,
     scorePending: scoreSet.isPending,
     confirmPending: confirmResult.isPending,
+    stampPending: stampMatch.isPending,
     levelRequestPending: requestLevel.isPending,
     onMove: (sideIndex, position) =>
       moveSeat.mutate({ gameId, sideIndex, position }),
@@ -660,6 +666,7 @@ export function GameDetailsScreen({
     onSaveSets: (payloads) => void saveSets(payloads),
     onConfirm: () =>
       firstMatchId && confirmResult.mutate({ gameId, matchId: firstMatchId }),
+    onStamp: () => firstMatchId && stampMatch.mutate({ matchId: firstMatchId }),
     onRequestLevel: () => requestLevel.mutate({ gameId }),
   };
 

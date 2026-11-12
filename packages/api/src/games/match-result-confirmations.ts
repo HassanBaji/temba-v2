@@ -5,6 +5,7 @@ import {
   gameTeams,
   games,
   matchResultConfirmations,
+  matchVerifierStamps,
 } from "@repo/db";
 
 import { isPublicGame } from "@repo/domain/game-rating-scope";
@@ -206,10 +207,11 @@ export async function matchResultConfirmedUserIds(
 
 /**
  * The moment a Match's confirmations were completed: the latest `confirmedAt`
- * among its confirmation rows. `runMatchCompletionEffect` completes and rates
- * a Match in the same transaction as the confirmation that reaches the
- * required count (ADR-0011), so once a Match is `completed`, this timestamp
- * is that completion moment. `null` when the Match has no confirmation rows
+ * among its confirmation rows and its Verifier stamp.
+ * `runMatchCompletionEffect` completes and rates a Match in the same
+ * transaction as the confirmation that reaches the required count
+ * (ADR-0011), so once a Match is `completed`, this timestamp is that
+ * completion moment. `null` when the Match has no confirmation rows
  * yet. Read-only additive helper (game-details redesign, TEM-181) — no new
  * table, just an existing column already written by
  * `recordMatchResultConfirmation`.
@@ -218,17 +220,48 @@ export async function matchResultConfirmationCompletedAt(
   database: DbClient,
   matchId: string,
 ): Promise<Date | null> {
-  const confirmations = await database.query.matchResultConfirmations.findMany({
-    where: eq(matchResultConfirmations.matchId, matchId),
-    columns: { confirmedAt: true },
-  });
-  if (confirmations.length === 0) {
+  const [confirmations, stamp] = await Promise.all([
+    database.query.matchResultConfirmations.findMany({
+      where: eq(matchResultConfirmations.matchId, matchId),
+      columns: { confirmedAt: true },
+    }),
+    matchVerifierStampOf(database, matchId),
+  ]);
+  const moments = [
+    ...confirmations.map((row) => row.confirmedAt),
+    ...(stamp ? [stamp.createdAt] : []),
+  ];
+  if (moments.length === 0) {
     return null;
   }
-  return confirmations.reduce<Date>(
-    (latest, row) => (row.confirmedAt > latest ? row.confirmedAt : latest),
-    confirmations[0]!.confirmedAt,
+  return moments.reduce<Date>(
+    (latest, moment) => (moment > latest ? moment : latest),
+    moments[0]!,
   );
+}
+
+/** A Match's Verifier stamp (ADR-0072), or `null` while it has none. */
+export async function matchVerifierStampOf(
+  database: DbClient,
+  matchId: string,
+) {
+  const stamp = await database.query.matchVerifierStamps.findFirst({
+    where: eq(matchVerifierStamps.matchId, matchId),
+  });
+  return stamp ?? null;
+}
+
+/**
+ * Removes a Match's Verifier stamp: the stamp vouched for one score, so a
+ * Match reopened for a corrected score needs a new one.
+ */
+export async function clearMatchVerifierStamp(
+  database: DbClient,
+  matchId: string,
+): Promise<void> {
+  await database
+    .delete(matchVerifierStamps)
+    .where(eq(matchVerifierStamps.matchId, matchId));
 }
 
 /** The Team bound to each side of a football Challenge Game's Match. */
@@ -356,12 +389,16 @@ export function confirmsBySide(game: {
  * Whether the Match's result is agreed: every seated User with an account on
  * a padel Match's two Game teams, or one player from each side of a football,
  * drawn tournament or Public Game Match. A side with no account holder is
- * agreed by an Organizer's confirmation.
+ * agreed by an Organizer's confirmation. A Verifier stamp is a final
+ * confirmation on its own (ADR-0072).
  */
 export async function matchResultFullyConfirmed(
   database: DbClient,
   match: MatchRow,
 ): Promise<boolean> {
+  if (await matchVerifierStampOf(database, match.id)) {
+    return true;
+  }
   const game = await database.query.games.findFirst({
     where: eq(games.id, match.gameId),
     columns: {

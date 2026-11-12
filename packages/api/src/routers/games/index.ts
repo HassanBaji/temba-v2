@@ -73,6 +73,7 @@ import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupU
 import { searchPartnerUsersProcedure as searchPartnerUsers } from "./searchPartnerUsers";
 import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvite";
 import { setFootballRoleProcedure as setFootballRole } from "./setFootballRole";
+import { stampMatchProcedure as stampMatch } from "./stampMatch";
 import { undoPoolDrawProcedure as undoPoolDraw } from "./undoPoolDraw";
 import { updateCaps } from "./updateCaps";
 import { updateCourt } from "./updateCourt";
@@ -145,6 +146,7 @@ export const gamesRouter = createTRPCRouter({
   removeSet,
   completeMatch,
   confirmMatchResult,
+  stampMatch,
   reportWrongScore,
   footballBoard,
   resultLink,
