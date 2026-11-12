@@ -23,21 +23,23 @@ async function refusal(promise: Promise<unknown>) {
 }
 
 describe("ratings refusals in Arabic", () => {
-  it("refuses an Operator setting their own Level in Arabic", async () => {
+  it("refuses an Operator setting an unknown player's Level in Arabic", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const operatorUserId = randomUUID();
       expect(
         await refusal(
           setLevelAsOperator(db, {
-            operatorUserId,
-            targetUserId: operatorUserId,
+            operatorUserId: randomUUID(),
+            targetUserId: randomUUID(),
             sport: "padel",
             levelTenths: 30,
             locale: "ar",
           }),
         ),
-      ).toEqual({ code: "BAD_REQUEST", message: ar.level.errors.ownLevel });
+      ).toEqual({
+        code: "NOT_FOUND",
+        message: ar.profile.errors.playerNotFound,
+      });
     } finally {
       await close();
     }
