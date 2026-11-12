@@ -125,6 +125,11 @@ export async function applyTierMatch(
         : true,
     };
   };
+  const placeBefore = new Map(
+    (await groupTierTable(database, args.groupId, rowByUser)).rows.map(
+      (entry) => [entry.userId, entry.place],
+    ),
+  );
   const deltas = tierMatchDeltas({
     slot1: slot1.map(player),
     slot2: slot2.map(player),
@@ -157,6 +162,7 @@ export async function applyTierMatch(
           args.performance?.get(delta.userId)?.usualHundredths ?? null,
         expectedScore: delta.expectedScore,
         bandBefore: row.band,
+        placeBefore: placeBefore.get(delta.userId) ?? null,
         createdAt: args.now,
       })
       .onConflictDoNothing()
@@ -229,6 +235,34 @@ export async function sideUserIds(database: DbClient, gameTeamId: string) {
   return [...ids];
 }
 
+/** The Group's places over its current members who hold Tier points. */
+async function groupTierTable(
+  database: DbClient,
+  groupId: string,
+  rowByUser: ReadonlyMap<string, TierPointsRow>,
+) {
+  const members = await database
+    .select({ userId: groupMembers.userId, joinedAt: groupMembers.createdAt })
+    .from(groupMembers)
+    .where(eq(groupMembers.groupId, groupId));
+  return tierTable(
+    members.flatMap((member) => {
+      const row = rowByUser.get(member.userId);
+      return row
+        ? [
+            {
+              userId: row.userId,
+              points: row.points,
+              gamesCounted: row.gamesCounted,
+              adjusted: adjusted(row),
+              joinedAt: member.joinedAt,
+            },
+          ]
+        : [];
+    }),
+  );
+}
+
 /**
  * Re-cuts the Group's places over its current members and writes a
  * `band_change` event wherever the stored fish differs. `rowByUser` holds the
@@ -243,25 +277,7 @@ export async function rewriteTierBands(
     now: Date;
   },
 ): Promise<TierTable & { bandChanges: TierBandChange[] }> {
-  const members = await database
-    .select({ userId: groupMembers.userId, joinedAt: groupMembers.createdAt })
-    .from(groupMembers)
-    .where(eq(groupMembers.groupId, args.groupId));
-  const standings = members.flatMap((member) => {
-    const row = args.rowByUser.get(member.userId);
-    return row
-      ? [
-          {
-            userId: row.userId,
-            points: row.points,
-            gamesCounted: row.gamesCounted,
-            adjusted: adjusted(row),
-            joinedAt: member.joinedAt,
-          },
-        ]
-      : [];
-  });
-  const table = tierTable(standings);
+  const table = await groupTierTable(database, args.groupId, args.rowByUser);
 
   const bandChanges: TierBandChange[] = [];
   for (const entry of table.rows) {

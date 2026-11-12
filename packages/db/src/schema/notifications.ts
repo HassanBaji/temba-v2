@@ -53,6 +53,7 @@ export const NOTIFICATION_TYPE_VALUES = [
   "tier_points_adjusted",
   "tier_band_changed",
   "performance_ratings_open",
+  "performance_ratings_closed",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];

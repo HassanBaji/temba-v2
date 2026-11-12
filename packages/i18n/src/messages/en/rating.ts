@@ -336,6 +336,100 @@ export const rating = {
       description:
         "The score is being corrected. Ratings open again for 24 hours once it is final, and yours are kept.",
     },
+    result: {
+      pending: {
+        title: "Your rating is on its way",
+        everyone: (closes: string) =>
+          `${closes}. Then you see your rating and what it did to your tier points.`,
+        organizer: (closes: string) =>
+          `The organizer rates everyone. You see your rating and what it did to your tier points once they submit, by ${closes} at the latest.`,
+      },
+      game: "Your game",
+      gameOn: (day: string) => `Your game, ${day}`,
+      score: (slot1: string, score: string, slot2: string) =>
+        `${slot1} ${score} ${slot2}`,
+      rating: {
+        ofTen: "of 10",
+        spoken: (rating: string) => `Rated ${rating} of 10`,
+        from: (n: number) =>
+          plural("en", n, {
+            one: "From 1 rating.",
+            other: "From {n} ratings.",
+          }),
+        trimmed: "The highest and lowest were dropped.",
+        double: "The organizer’s counted double.",
+        trimmedAndDouble:
+          "The highest and lowest were dropped; the organizer’s counted double.",
+        average: (rating: string) => `The game’s average was ${rating}.`,
+      },
+      outcome: {
+        won: (score: string) => `Won ${score}`,
+        drew: (score: string) => `Drew ${score}`,
+        lost: (score: string) => `Lost ${score}`,
+        played: "Played",
+        againstStronger: (outcome: string) =>
+          `${outcome} against the stronger side on paper`,
+        againstWeaker: (outcome: string) =>
+          `${outcome} against the weaker side on paper`,
+        againstEven: (outcome: string) =>
+          `${outcome} against an even side on paper`,
+      },
+      points: {
+        title: "What it did to your points",
+        result: "The result",
+        performance: "How you played",
+        againstUsual: (rating: string, usual: string) =>
+          `${rating} against your usual ${usual}`,
+        rated: (rating: string) => `Rated ${rating}`,
+        total: (before: string, after: string) => `${before} to ${after}`,
+        weight: (weight: number) =>
+          `Performance counts for ${weight}% in this group`,
+        spoken: (title: string, delta: string) => `${title}, ${delta} points`,
+      },
+      noRating: {
+        organizerRated:
+          "You rated this game, so yours moved on the result alone.",
+        organizerDidNotRate:
+          "The organizer didn’t rate you, so yours moved on the result alone.",
+        nobody: (min: number) =>
+          `Nobody rated you, and it takes ${min}. Yours moved on the result alone.`,
+        tooFew: (n: number, min: number) =>
+          plural("en", n, {
+            one: `Only 1 player rated you, and it takes ${min}. Yours moved on the result alone.`,
+            other: `Only {n} players rated you, and it takes ${min}. Yours moved on the result alone.`,
+          }),
+      },
+      tier: {
+        title: "Your tier",
+        upFrom: (placeOf: string, before: number) =>
+          `${placeOf}, up from #${before}`,
+        downFrom: (placeOf: string, before: number) =>
+          `${placeOf}, down from #${before}`,
+        still: (band: string) => `Still ${band}.`,
+        upTo: (band: string) => `Up to ${band}.`,
+        downTo: (band: string) => `Down to ${band}.`,
+        nowA: (band: string) => `Now a ${band}.`,
+        toNext: (points: string, band: string) =>
+          `${points} points to ${band}.`,
+        noFish: "No fish until four players are ranked.",
+        provisional:
+          "Your place and fish come after five group games, or sooner if an organizer sets your points.",
+      },
+      mvp: {
+        title: (name: string) => `MVP: ${name}`,
+        you: "You",
+        votes: (votes: number, cast: number) =>
+          plural("en", cast, {
+            one: `${votes} of 1 vote`,
+            other: `${votes} of {n} votes`,
+          }),
+        picked: "Picked by the organizer",
+        tieBreak: "Picked by the organizer after a tied vote",
+        rated: (how: string, rating: string) => `${how}, rated ${rating}`,
+      },
+      footnote:
+        "A group game. It moved your tier points here and nothing else: not your Temba Level, not any Rank.",
+    },
     loadFailed: "Couldn’t load the ratings",
     errors: {
       noWindow: "This game has no performance ratings.",

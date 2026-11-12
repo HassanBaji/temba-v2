@@ -65,6 +65,12 @@ describe("notificationPath", () => {
     ).toBe("/games/x1/rate");
   });
 
+  it("opens the Game when ratings close", () => {
+    expect(
+      notificationPath({ type: "performance_ratings_closed", group, game }),
+    ).toBe("/games/x1");
+  });
+
   it("opens the Games history for linked history", () => {
     expect(notificationPath({ type: "history_linked", group: null })).toBe(
       "/games?tab=history",

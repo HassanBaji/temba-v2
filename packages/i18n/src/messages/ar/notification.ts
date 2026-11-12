@@ -136,6 +136,10 @@ export const notification = {
       plain("قيّم لاعبي "),
       strong(game),
     ],
+    performanceRatingsClosed: (game: string) => [
+      plain("صدرت تقييمات "),
+      strong(game),
+    ],
     mvpTieBreak: (game: string) => [
       plain("تعادل في التصويت على "),
       strong(game),
@@ -287,6 +291,10 @@ export const notification = {
     ratingsOpenEveryone:
       "قيّم زملاءك، والخصوم إن أردت، خلال 24 ساعة. لا أحد يرى من أعطى ماذا.",
     tierPlaces: "الفئات مراكز، فحين يتحرّك لاعب يتحرّك غيره في الاتجاه الآخر.",
+    ratingsClosed: (rating: string, delta: string, points: string) =>
+      `تقييمك ${isolate(rating)}. نقاط الفئة ${isolate(delta)}، والآن ${isolate(points)}.`,
+    ratingsClosedResultOnly: (delta: string, points: string) =>
+      `لا تقييم لك هذه المرة. نقاط الفئة ${isolate(delta)} على النتيجة، والآن ${isolate(points)}.`,
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

@@ -12,8 +12,12 @@ import {
   formatGameDay,
   formatWeekday,
 } from "./format-game-start";
+import { formatTierPoints } from "./group-members-table";
 import { initials } from "./initials";
 import { productDaysBetween } from "./product-timezone";
+import { formatTierDelta } from "./tier-adjust";
+import type { TierBand } from "./tier-bands";
+import { TIER_PROVISIONAL_GAMES } from "./tier-points";
 
 /**
  * Performance ratings (ADR-0068): a 1 to 10 score one player of a football
@@ -658,5 +662,394 @@ export function rateGameEntry(
     description:
       window.mode === "organizer" ? m.organizer(closes) : m.everyone(closes),
     cta: m.cta,
+  };
+}
+
+/** `7.4`: a settled rating, one decimal. */
+export function formatPerformanceRating(hundredths: number) {
+  return (hundredths / 100).toFixed(1);
+}
+
+/** Why a settled window gave the player no performance part. */
+export type NoPerformanceReason =
+  | "organizer_rated"
+  | "organizer_did_not_rate"
+  | "too_few_ballots";
+
+/**
+ * What `games.performanceRatingResult` returns: the closing time, and once
+ * the window has settled the caller's own rating and what it did to their
+ * Tier points (screen 4c). `result` is null before the window settles, for a
+ * viewer who did not play, and for a Match that moved nobody's points.
+ */
+export type PerformanceRatingResultData = {
+  state: "open" | "suspended" | "settled";
+  mode: RatingWindowMode;
+  closesAt: Date | string;
+  played: boolean;
+  result: {
+    groupName: string | null;
+    windowStart: Date | string | null;
+    score: { slot1: number; slot2: number } | null;
+    bibs: { slot1: FootballBib; slot2: FootballBib };
+    viewerSide: 1 | 2;
+    weightPercent: number;
+    rating: {
+      hundredths: number;
+      usualHundredths: number | null;
+      /** Every ballot the player received, before the highest and lowest went. */
+      ballotsReceived: number;
+      trimmed: boolean;
+      organizerCountedDouble: boolean;
+      gameAverageHundredths: number;
+    } | null;
+    noRating: { reason: NoPerformanceReason; ballotsReceived: number } | null;
+    resultDelta: number;
+    performanceDelta: number;
+    delta: number;
+    pointsBefore: number;
+    pointsAfter: number;
+    /** The player's side's expected score, from both sides' mean points. */
+    expectedScore: number | null;
+    tier: {
+      bandBefore: TierBand | null;
+      bandAfter: TierBand | null;
+      placeBefore: number | null;
+      /** Null while Provisional. */
+      placeAfter: number | null;
+      rankedCount: number | null;
+      gamesOfFive: number;
+      /** Set only while the player still holds the place this Match gave. */
+      nextBand: TierBand | null;
+      pointsToNextBand: number | null;
+    };
+    mvp: {
+      name: string;
+      isViewer: boolean;
+      decidedBy: "vote" | "organizer" | "tie_break";
+      votes: { for: number; cast: number } | null;
+      ratingHundredths: number | null;
+    } | null;
+  } | null;
+};
+
+export type PerformanceResultRow = {
+  title: string;
+  detail: string;
+  delta: string;
+  spoken: string;
+};
+
+export type PerformanceResultView =
+  | { kind: "pending"; title: string; description: string }
+  | {
+      kind: "settled";
+      groupName: string | null;
+      gameLine: string;
+      scoreLine: string | null;
+      rating: {
+        value: string;
+        ofTen: string;
+        spoken: string;
+        note: string;
+      } | null;
+      points: {
+        title: string;
+        aside: string | null;
+        rows: [PerformanceResultRow, PerformanceResultRow];
+        total: PerformanceResultRow;
+      };
+      tier: {
+        title: string;
+        aside: string;
+        /** The four fish, lowest first; null while Provisional or too few ranked. */
+        track: { band: TierBand; label: string; current: boolean }[] | null;
+        provisional: boolean;
+        line: string;
+      };
+      mvp: { title: string; detail: string | null } | null;
+      footnote: string;
+    };
+
+function resultOnSide(
+  score: { slot1: number; slot2: number } | null,
+  side: 1 | 2,
+  locale: Locale,
+) {
+  const copy = messagesFor(locale).rating.performance.result.outcome;
+  if (!score) {
+    return copy.played;
+  }
+  const own = side === 1 ? score.slot1 : score.slot2;
+  const other = side === 1 ? score.slot2 : score.slot1;
+  const line = `${own}–${other}`;
+  return own > other
+    ? copy.won(line)
+    : own < other
+      ? copy.lost(line)
+      : copy.drew(line);
+}
+
+function resultDetail(
+  result: NonNullable<PerformanceRatingResultData["result"]>,
+  locale: Locale,
+) {
+  const copy = messagesFor(locale).rating.performance.result.outcome;
+  const outcome = resultOnSide(result.score, result.viewerSide, locale);
+  const expected = result.expectedScore;
+  if (expected == null) {
+    return outcome;
+  }
+  if (expected < 0.5) {
+    return copy.againstStronger(outcome);
+  }
+  if (expected > 0.5) {
+    return copy.againstWeaker(outcome);
+  }
+  return copy.againstEven(outcome);
+}
+
+function ratingNote(
+  rating: NonNullable<
+    NonNullable<PerformanceRatingResultData["result"]>["rating"]
+  >,
+  locale: Locale,
+) {
+  const copy = messagesFor(locale).rating.performance.result.rating;
+  const how =
+    rating.trimmed && rating.organizerCountedDouble
+      ? copy.trimmedAndDouble
+      : rating.trimmed
+        ? copy.trimmed
+        : rating.organizerCountedDouble
+          ? copy.double
+          : null;
+  return [
+    copy.from(rating.ballotsReceived),
+    how,
+    copy.average(formatPerformanceRating(rating.gameAverageHundredths)),
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(" ");
+}
+
+function noRatingDetail(
+  noRating: NonNullable<PerformanceRatingResultData["result"]>["noRating"],
+  locale: Locale,
+) {
+  const copy = messagesFor(locale).rating.performance.result.noRating;
+  if (!noRating) {
+    return copy.organizerDidNotRate;
+  }
+  if (noRating.reason === "organizer_rated") {
+    return copy.organizerRated;
+  }
+  if (noRating.reason === "organizer_did_not_rate") {
+    return copy.organizerDidNotRate;
+  }
+  return noRating.ballotsReceived === 0
+    ? copy.nobody(MIN_BALLOTS)
+    : copy.tooFew(noRating.ballotsReceived, MIN_BALLOTS);
+}
+
+/** Lowest first, as the fish track reads from Safi to the Shark. */
+const TRACK_BANDS: readonly TierBand[] = ["safi", "kanaad", "hamour", "shark"];
+
+function tierView(
+  tier: NonNullable<PerformanceRatingResultData["result"]>["tier"],
+  locale: Locale,
+) {
+  const m = messagesFor(locale).rating;
+  const copy = m.performance.result.tier;
+  if (tier.placeAfter == null) {
+    return {
+      title: copy.title,
+      aside: m.tier.provisionalGames(tier.gamesOfFive, TIER_PROVISIONAL_GAMES),
+      track: null,
+      provisional: true,
+      line: copy.provisional,
+    };
+  }
+  const placeOf = m.adjust.placeOf(tier.placeAfter, tier.rankedCount ?? 0);
+  const before = tier.placeBefore;
+  const aside =
+    before == null || before === tier.placeAfter
+      ? placeOf
+      : before > tier.placeAfter
+        ? copy.upFrom(placeOf, before)
+        : copy.downFrom(placeOf, before);
+  const band = tier.bandAfter;
+  if (!band) {
+    return {
+      title: copy.title,
+      aside,
+      track: null,
+      provisional: false,
+      line: copy.noFish,
+    };
+  }
+  const label = m.bands[band];
+  const from = tier.bandBefore;
+  const moved =
+    from === band
+      ? copy.still(label)
+      : from == null
+        ? copy.nowA(label)
+        : TRACK_BANDS.indexOf(band) > TRACK_BANDS.indexOf(from)
+          ? copy.upTo(label)
+          : copy.downTo(label);
+  const next =
+    tier.nextBand && tier.pointsToNextBand != null
+      ? copy.toNext(
+          formatTierPoints(tier.pointsToNextBand),
+          m.bands[tier.nextBand],
+        )
+      : null;
+  return {
+    title: copy.title,
+    aside,
+    track: TRACK_BANDS.map((entry) => ({
+      band: entry,
+      label: m.bands[entry],
+      current: entry === band,
+    })),
+    provisional: false,
+    line: next ? `${moved} ${next}` : moved,
+  };
+}
+
+function mvpView(
+  mvp: NonNullable<PerformanceRatingResultData["result"]>["mvp"],
+  locale: Locale,
+) {
+  if (!mvp) {
+    return null;
+  }
+  const copy = messagesFor(locale).rating.performance.result.mvp;
+  const how =
+    mvp.decidedBy === "vote" && mvp.votes
+      ? copy.votes(mvp.votes.for, mvp.votes.cast)
+      : mvp.decidedBy === "tie_break"
+        ? copy.tieBreak
+        : copy.picked;
+  const rating =
+    mvp.ratingHundredths == null
+      ? null
+      : formatPerformanceRating(mvp.ratingHundredths);
+  return {
+    title: copy.title(mvp.isViewer ? copy.you : mvp.name),
+    detail: rating ? copy.rated(how, rating) : how,
+  };
+}
+
+/**
+ * Screen 4c on Game details, or the line that says when it will arrive. While
+ * the viewer may still rate, the Rate the game card says when it closes, so
+ * the pending line is left out.
+ */
+export function performanceResultView(
+  data: PerformanceRatingResultData,
+  locale: Locale,
+  options: { viewerMayRate?: boolean; now?: Date } = {},
+): PerformanceResultView | null {
+  const now = options.now ?? new Date();
+  const m = messagesFor(locale).rating.performance;
+  if (!data.played) {
+    return null;
+  }
+  if (data.state === "suspended") {
+    return { kind: "pending", ...m.suspended };
+  }
+  if (data.state === "open") {
+    if (options.viewerMayRate) {
+      return null;
+    }
+    const pending = m.result.pending;
+    return {
+      kind: "pending",
+      title: pending.title,
+      description:
+        data.mode === "organizer"
+          ? pending.organizer(formatRatingWindowClose(data.closesAt, locale))
+          : pending.everyone(closesLine(data.closesAt, now, locale)),
+    };
+  }
+  const result = data.result;
+  if (!result) {
+    return null;
+  }
+  const copy = m.result;
+  const names = {
+    slot1: footballBibName(result.bibs.slot1, 1, locale),
+    slot2: footballBibName(result.bibs.slot2, 2, locale),
+  };
+  const resultRow: PerformanceResultRow = {
+    title: copy.points.result,
+    detail: resultDetail(result, locale),
+    delta: formatTierDelta(result.resultDelta),
+    spoken: copy.points.spoken(
+      copy.points.result,
+      formatTierDelta(result.resultDelta),
+    ),
+  };
+  const performanceRow: PerformanceResultRow = {
+    title: copy.points.performance,
+    detail: result.rating
+      ? result.rating.usualHundredths == null
+        ? copy.points.rated(formatPerformanceRating(result.rating.hundredths))
+        : copy.points.againstUsual(
+            formatPerformanceRating(result.rating.hundredths),
+            formatPerformanceRating(result.rating.usualHundredths),
+          )
+      : noRatingDetail(result.noRating, locale),
+    delta: formatTierDelta(result.performanceDelta),
+    spoken: copy.points.spoken(
+      copy.points.performance,
+      formatTierDelta(result.performanceDelta),
+    ),
+  };
+  const totalTitle = copy.points.total(
+    formatTierPoints(result.pointsBefore),
+    formatTierPoints(result.pointsAfter),
+  );
+  return {
+    kind: "settled",
+    groupName: result.groupName,
+    gameLine: result.windowStart
+      ? copy.gameOn(
+          formatGameDay(result.windowStart, locale, { weekday: "short" }),
+        )
+      : copy.game,
+    scoreLine: result.score
+      ? copy.score(
+          names.slot1,
+          m.hero.score(result.score.slot1, result.score.slot2),
+          names.slot2,
+        )
+      : null,
+    rating: result.rating
+      ? {
+          value: formatPerformanceRating(result.rating.hundredths),
+          ofTen: copy.rating.ofTen,
+          spoken: copy.rating.spoken(
+            formatPerformanceRating(result.rating.hundredths),
+          ),
+          note: ratingNote(result.rating, locale),
+        }
+      : null,
+    points: {
+      title: copy.points.title,
+      aside: result.groupName,
+      rows: [resultRow, performanceRow],
+      total: {
+        title: totalTitle,
+        detail: copy.points.weight(result.weightPercent),
+        delta: formatTierDelta(result.delta),
+        spoken: copy.points.spoken(totalTitle, formatTierDelta(result.delta)),
+      },
+    },
+    tier: tierView(result.tier, locale),
+    mvp: mvpView(result.mvp, locale),
+    footnote: copy.footnote,
   };
 }

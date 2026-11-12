@@ -12,7 +12,9 @@ import {
 import { formatMarksClose, isMarkKind, markName } from "./marks";
 import { formatTierPoints } from "./group-members-table";
 import { productDaysBetween, zonedParts } from "./product-timezone";
+import { formatPerformanceRating } from "./performance-rating";
 import { isTierBand, tierBandLabel } from "./tier-bands";
+import { formatTierDelta } from "./tier-adjust";
 
 export type NotificationTitlePart = { text: string; strong: boolean };
 
@@ -44,11 +46,17 @@ type NotificationLevelSet = {
   reason: LevelOverrideReason | null;
 };
 
-/** The Tier event a `tier_points_adjusted` or `tier_band_changed` row is about. */
+/**
+ * The Tier event a `tier_points_adjusted`, `tier_band_changed` or
+ * `performance_ratings_closed` row is about.
+ */
 type NotificationTier = {
   bandAfter: string | null;
   pointsBefore: number;
   pointsAfter: number;
+  delta?: number;
+  /** The settled Performance rating, in hundredths; null without one. */
+  ratingHundredths?: number | null;
   reason: LevelOverrideReason | null;
   note: string | null;
 };
@@ -319,6 +327,31 @@ export function notificationCopy(
       title: m.performanceRatingsOpen(notificationGameName(item.game, locale)),
       subline:
         item.audience === "admin" ? sub.ratingsOpen : sub.ratingsOpenEveryone,
+    };
+  }
+  if (
+    item.type === "performance_ratings_closed" &&
+    item.audience === "player" &&
+    item.game &&
+    item.tier
+  ) {
+    const { ratingHundredths, pointsBefore, pointsAfter } = item.tier;
+    const delta = formatTierDelta(
+      item.tier.delta ?? pointsAfter - pointsBefore,
+    );
+    const points = formatTierPoints(pointsAfter);
+    return {
+      title: m.performanceRatingsClosed(
+        notificationGameName(item.game, locale),
+      ),
+      subline:
+        ratingHundredths == null
+          ? sub.ratingsClosedResultOnly(delta, points)
+          : sub.ratingsClosed(
+              formatPerformanceRating(ratingHundredths),
+              delta,
+              points,
+            ),
     };
   }
   if (item.type === "mvp_tie_break" && item.audience === "admin" && item.game) {

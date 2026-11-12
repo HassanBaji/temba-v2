@@ -736,6 +736,13 @@
       "when": 1794443723235,
       "tag": "0104_performance_ratings",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1794454555299,
+      "tag": "0105_performance_ratings_closed",
+      "breakpoints": true
     }
   ]
 }

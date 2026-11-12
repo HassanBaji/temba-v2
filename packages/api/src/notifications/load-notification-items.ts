@@ -41,11 +41,14 @@ export type NotificationItem = {
     levelBand: LevelBand;
     reason: LevelOverrideReason | null;
   } | null;
-  /** The Tier adjustment or band change a Tier Notification is about. */
+  /** The Tier event a Tier or ratings-closed Notification is about. */
   tier: {
     bandAfter: TierBand | null;
     pointsBefore: number;
     pointsAfter: number;
+    delta: number;
+    /** The settled Performance rating, in hundredths; null without one. */
+    ratingHundredths: number | null;
     reason: LevelOverrideReason | null;
     note: string | null;
   } | null;
@@ -125,6 +128,8 @@ export async function loadNotificationItems(
           bandAfter: true,
           pointsBefore: true,
           pointsAfter: true,
+          delta: true,
+          ratingHundredths: true,
           reason: true,
           note: true,
         },

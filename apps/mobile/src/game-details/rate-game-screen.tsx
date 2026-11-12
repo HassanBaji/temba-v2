@@ -428,6 +428,7 @@ function RateGameForm({
     toast.show(view.submitted);
     await Promise.all([
       utils.games.performanceRatingSheet.invalidate({ gameId }),
+      utils.games.performanceRatingResult.invalidate({ gameId }),
       utils.games.byId.invalidate({ id: gameId }),
       utils.games.footballBoard.invalidate({ gameId }),
       utils.marks.forGame.invalidate({ gameId }),

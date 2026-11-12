@@ -610,6 +610,61 @@ describe("notificationCopy for the MVP", () => {
     );
   });
 
+  it("tells a player their rating and their points move once ratings close", () => {
+    const closed = (
+      ratingHundredths: number | null,
+      locale: "en" | "ar" = "en",
+    ) =>
+      notificationCopy(
+        {
+          type: "performance_ratings_closed",
+          audience: "player",
+          actor: null,
+          group: null,
+          game,
+          tier: {
+            bandAfter: "kanaad",
+            pointsBefore: 1201,
+            pointsAfter: 1219,
+            delta: 18,
+            ratingHundredths,
+            reason: null,
+            note: null,
+          },
+        },
+        locale,
+      );
+    assert.equal(
+      closed(740)
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Ratings are in for Thursday Padel",
+    );
+    assert.equal(
+      closed(740)?.subline,
+      "You were rated 7.4. Tier points +18, now 1,219.",
+    );
+    assert.equal(
+      closed(null)?.subline,
+      "No rating for you this time. Tier points +18 on the result, now 1,219.",
+    );
+    assert.notEqual(closed(740, "ar"), null);
+    assert.equal(
+      notificationCopy(
+        {
+          type: "performance_ratings_closed",
+          audience: "player",
+          actor: null,
+          group: null,
+          game,
+          tier: null,
+        },
+        "en",
+      ),
+      null,
+    );
+  });
+
   it("returns null without a Game or for the wrong audience", () => {
     assert.equal(mvp({ game: null }), null);
     assert.equal(mvp({ audience: "admin" }), null);

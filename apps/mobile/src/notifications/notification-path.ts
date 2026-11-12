@@ -27,6 +27,7 @@ const GAME_TYPES = new Set([
   "mark_received",
   "mvp_decided",
   "mvp_tie_break",
+  "performance_ratings_closed",
   "group_join_requested",
   "group_join_approved",
   "group_join_declined",

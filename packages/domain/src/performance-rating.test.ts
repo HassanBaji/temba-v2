@@ -7,6 +7,7 @@ import {
   gameAverageRating,
   isPerformanceRatingValue,
   minBallotsFor,
+  performanceResultView,
   performanceScores,
   raterWeight,
   rateGameDraft,
@@ -20,6 +21,7 @@ import {
   toggleDraftMvp,
   usualRating,
   type PerformanceBallot,
+  type PerformanceRatingResultData,
   type RateGameSheet,
 } from "./performance-rating";
 import { tierMatchDeltas } from "./tier-points";
@@ -432,6 +434,261 @@ describe("rateGameEntry", () => {
         { ...window, mode: "everyone", viewerMayRate: false },
         "en",
       ),
+    ).toBeNull();
+  });
+});
+
+describe("performanceResultView (screen 4c)", () => {
+  type Result = NonNullable<PerformanceRatingResultData["result"]>;
+
+  const result: Result = {
+    groupName: "Thursday Football",
+    windowStart: new Date("2026-11-12T16:00:00Z"),
+    score: { slot1: 5, slot2: 3 },
+    bibs: { slot1: "black", slot2: "white" },
+    viewerSide: 1,
+    weightPercent: 30,
+    rating: {
+      hundredths: 740,
+      usualHundredths: 680,
+      ballotsReceived: 11,
+      trimmed: true,
+      organizerCountedDouble: true,
+      gameAverageHundredths: 660,
+    },
+    noRating: null,
+    resultDelta: 12,
+    performanceDelta: 6,
+    delta: 18,
+    pointsBefore: 1201,
+    pointsAfter: 1219,
+    expectedScore: 0.46,
+    tier: {
+      bandBefore: "kanaad",
+      bandAfter: "kanaad",
+      placeBefore: 7,
+      placeAfter: 6,
+      rankedCount: 13,
+      gamesOfFive: 5,
+      nextBand: "hamour",
+      pointsToNextBand: 82,
+    },
+    mvp: {
+      name: "Ali M",
+      isViewer: false,
+      decidedBy: "vote",
+      votes: { for: 6, cast: 11 },
+      ratingHundredths: 860,
+    },
+  };
+
+  const settled = (
+    overrides: Partial<Result> = {},
+  ): PerformanceRatingResultData => ({
+    state: "settled",
+    mode: "everyone",
+    closesAt: new Date("2026-11-13T17:30:00Z"),
+    played: true,
+    result: { ...result, ...overrides },
+  });
+
+  function settledView(
+    data: PerformanceRatingResultData,
+    locale: "en" | "ar" = "en",
+  ) {
+    const view = performanceResultView(data, locale);
+    if (view?.kind !== "settled") {
+      throw new Error("Expected a settled view");
+    }
+    return view;
+  }
+
+  it("reads as the design's screen 4c", () => {
+    const view = settledView(settled());
+    expect(view.gameLine).toBe("Your game, Thu 12 Nov");
+    expect(view.scoreLine).toBe("Black 5–3 White");
+    expect(view.rating).toMatchObject({
+      value: "7.4",
+      ofTen: "of 10",
+      note: "From 11 ratings. The highest and lowest were dropped; the organizer’s counted double. The game’s average was 6.6.",
+    });
+    expect(view.points.aside).toBe("Thursday Football");
+    expect(view.points.rows).toMatchObject([
+      {
+        title: "The result",
+        detail: "Won 5–3 against the stronger side on paper",
+        delta: "+12",
+      },
+      {
+        title: "How you played",
+        detail: "7.4 against your usual 6.8",
+        delta: "+6",
+      },
+    ]);
+    expect(view.points.total).toMatchObject({
+      title: "1,201 to 1,219",
+      detail: "Performance counts for 30% in this group",
+      delta: "+18",
+    });
+    expect(view.tier.aside).toBe("#6 of 13, up from #7");
+    expect(view.tier.line).toBe("Still Kanaad. 82 points to Hamour.");
+    expect(view.tier.track?.map((fish) => [fish.band, fish.current])).toEqual([
+      ["safi", false],
+      ["kanaad", true],
+      ["hamour", false],
+      ["shark", false],
+    ]);
+    expect(view.mvp).toEqual({
+      title: "MVP: Ali M",
+      detail: "6 of 11 votes, rated 8.6",
+    });
+    expect(view.footnote).toBe(
+      "A group game. It moved your tier points here and nothing else: not your Temba Level, not any Rank.",
+    );
+    expect(settledView(settled(), "ar").points.rows).toHaveLength(2);
+  });
+
+  it("shows the two stored parts, which add up to the stored move", () => {
+    const view = settledView(
+      settled({
+        resultDelta: -9,
+        performanceDelta: 4,
+        delta: -5,
+        pointsAfter: 1196,
+      }),
+    );
+    expect(view.points.rows.map((row) => row.delta)).toEqual(["−9", "+4"]);
+    expect(view.points.total.delta).toBe("−5");
+  });
+
+  it("gives a player with no performance part the result part and the reason", () => {
+    const tooFew = settledView(
+      settled({
+        rating: null,
+        noRating: { reason: "too_few_ballots", ballotsReceived: 2 },
+        performanceDelta: 0,
+        delta: 12,
+        pointsAfter: 1213,
+      }),
+    );
+    expect(tooFew.rating).toBeNull();
+    expect(tooFew.points.rows).toMatchObject([
+      { title: "The result", delta: "+12" },
+      {
+        title: "How you played",
+        detail:
+          "Only 2 players rated you, and it takes 3. Yours moved on the result alone.",
+        delta: "0",
+      },
+    ]);
+    expect(tooFew.points.total.delta).toBe("+12");
+
+    const reasons = {
+      organizer_rated:
+        "You rated this game, so yours moved on the result alone.",
+      organizer_did_not_rate:
+        "The organizer didn’t rate you, so yours moved on the result alone.",
+    } as const;
+    for (const [reason, detail] of Object.entries(reasons)) {
+      const view = settledView(
+        settled({
+          rating: null,
+          noRating: {
+            reason: reason as keyof typeof reasons,
+            ballotsReceived: 0,
+          },
+          performanceDelta: 0,
+        }),
+      );
+      expect(view.points.rows[1].detail).toBe(detail);
+    }
+    expect(
+      settledView(
+        settled({
+          rating: null,
+          noRating: { reason: "too_few_ballots", ballotsReceived: 0 },
+        }),
+      ).points.rows[1].detail,
+    ).toBe(
+      "Nobody rated you, and it takes 3. Yours moved on the result alone.",
+    );
+  });
+
+  it("hatches the tier while Provisional, and names a move between fish", () => {
+    const provisional = settledView(
+      settled({
+        tier: {
+          ...result.tier,
+          bandBefore: null,
+          bandAfter: null,
+          placeBefore: null,
+          placeAfter: null,
+          rankedCount: 4,
+          gamesOfFive: 2,
+          nextBand: null,
+          pointsToNextBand: null,
+        },
+      }),
+    );
+    expect(provisional.tier).toMatchObject({
+      aside: "Provisional, 2 of 5 games",
+      track: null,
+      provisional: true,
+    });
+
+    const up = settledView(
+      settled({
+        tier: {
+          ...result.tier,
+          bandAfter: "hamour",
+          nextBand: null,
+          pointsToNextBand: null,
+        },
+      }),
+    );
+    expect(up.tier.line).toBe("Up to Hamour.");
+    const fewRanked = settledView(
+      settled({ tier: { ...result.tier, bandAfter: null, rankedCount: 3 } }),
+    );
+    expect(fewRanked.tier).toMatchObject({
+      track: null,
+      provisional: false,
+      line: "No fish until four players are ranked.",
+    });
+  });
+
+  it("says when the rating arrives while the window is open", () => {
+    const open: PerformanceRatingResultData = {
+      state: "open",
+      mode: "everyone",
+      closesAt: new Date("2026-11-13T17:30:00Z"),
+      played: true,
+      result: null,
+    };
+    const now = new Date("2026-11-12T18:00:00Z");
+    expect(performanceResultView(open, "en", { now })).toEqual({
+      kind: "pending",
+      title: "Your rating is on its way",
+      description:
+        "Closes tomorrow, 8:30 PM. Then you see your rating and what it did to your tier points.",
+    });
+    expect(
+      performanceResultView({ ...open, mode: "organizer" }, "en", { now }),
+    ).toMatchObject({
+      description:
+        "The organizer rates everyone. You see your rating and what it did to your tier points once they submit, by Fri 8:30 PM at the latest.",
+    });
+    expect(
+      performanceResultView(open, "en", { now, viewerMayRate: true }),
+    ).toBeNull();
+    expect(
+      performanceResultView({ ...open, state: "suspended" }, "en"),
+    ).toMatchObject({ kind: "pending", title: "Ratings are paused" });
+  });
+
+  it("shows nothing to a viewer who did not play", () => {
+    expect(
+      performanceResultView({ ...settled(), played: false }, "en"),
     ).toBeNull();
   });
 });

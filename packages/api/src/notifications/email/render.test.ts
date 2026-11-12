@@ -147,6 +147,28 @@ describe("renderNotificationEmail", () => {
     );
   });
 
+  it("sends a player to the Game once ratings close", () => {
+    const email = render(
+      item({
+        type: "performance_ratings_closed",
+        audience: "player",
+        actor: null,
+        game: GAME,
+        tier: {
+          bandAfter: "kanaad",
+          pointsBefore: 1201,
+          pointsAfter: 1219,
+          delta: 18,
+          ratingHundredths: 740,
+          reason: null,
+          note: null,
+        },
+      }),
+    );
+    expect(email.subject).toBe("Ratings are in for Thursday Padel");
+    expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
+  });
+
   it("sends a changed side to the Game page", () => {
     const email = render(
       item({ type: "game_side_changed", audience: "player", game: GAME }),

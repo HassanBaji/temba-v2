@@ -319,7 +319,52 @@ export async function settleRatingWindow(
     .update(matchRatingWindows)
     .set({ settledAt: now, updatedAt: now })
     .where(eq(matchRatingWindows.matchId, matchId));
+  await notifyRatingsClosed(database, {
+    match,
+    gameId: game.id,
+    groupId: game.groupId,
+  });
   return true;
+}
+
+/**
+ * Tells each seated account holder their settled rating and the Tier points
+ * move it made, one row per player, each about their own `game` event.
+ */
+async function notifyRatingsClosed(
+  database: DbClient,
+  args: {
+    match: typeof matches.$inferSelect;
+    gameId: string;
+    groupId: string;
+  },
+) {
+  const accountHolders = new Set(
+    await matchSeatedUserIds(database, args.match),
+  );
+  const events = await database
+    .select({ id: groupTierEvents.id, userId: groupTierEvents.userId })
+    .from(groupTierEvents)
+    .where(
+      and(
+        eq(groupTierEvents.matchId, args.match.id),
+        eq(groupTierEvents.kind, "game"),
+      ),
+    );
+  for (const event of events) {
+    if (!accountHolders.has(event.userId)) {
+      continue;
+    }
+    await notify(database, {
+      type: "performance_ratings_closed",
+      recipients: [{ userId: event.userId, audience: "player" }],
+      excludeUserIds: [],
+      groupId: args.groupId,
+      gameId: args.gameId,
+      groupTierEventId: event.id,
+      dedupeKey: `performance_ratings_closed:${event.id}`,
+    });
+  }
 }
 
 /**

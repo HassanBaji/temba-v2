@@ -38,6 +38,7 @@ import { moveSeatProcedure as moveSeat } from "./moveSeat";
 import { setSeatSideProcedure as setSeatSide } from "./setSeatSide";
 import { setTeamSidesProcedure as setTeamSides } from "./setTeamSides";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
+import { performanceRatingResultProcedure as performanceRatingResult } from "./performanceRatingResult";
 import { performanceRatingSheetProcedure as performanceRatingSheet } from "./performanceRatingSheet";
 import { poolTablesProcedure as poolTables } from "./poolTables";
 import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
@@ -151,6 +152,7 @@ export const gamesRouter = createTRPCRouter({
   saveFootballScore,
   nameChallengeSquad,
   performanceRatingSheet,
+  performanceRatingResult,
   submitPerformanceRatings,
   searchLookupUsers,
   sendLookupInvite,

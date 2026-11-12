@@ -110,6 +110,10 @@ export const notification = {
       plain("Rate the players of "),
       strong(game),
     ],
+    performanceRatingsClosed: (game: string) => [
+      plain("Ratings are in for "),
+      strong(game),
+    ],
     mvpTieBreak: (game: string) => [
       plain("Tied vote on "),
       strong(game),
@@ -261,6 +265,10 @@ export const notification = {
       "Score your teammates and, if you want, opponents, within 24 hours. Nobody sees who gave what.",
     tierPlaces:
       "Tiers are places, so when one player moves, someone moves the other way.",
+    ratingsClosed: (rating: string, delta: string, points: string) =>
+      `You were rated ${rating}. Tier points ${delta}, now ${points}.`,
+    ratingsClosedResultOnly: (delta: string, points: string) =>
+      `No rating for you this time. Tier points ${delta} on the result, now ${points}.`,
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

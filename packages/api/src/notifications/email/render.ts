@@ -75,6 +75,7 @@ export function notificationEmailDestination(
       item.type === "mark_received" ||
       item.type === "mvp_decided" ||
       item.type === "mvp_tie_break" ||
+      item.type === "performance_ratings_closed" ||
       item.type === "group_join_requested" ||
       item.type === "group_join_approved" ||
       item.type === "group_join_declined" ||

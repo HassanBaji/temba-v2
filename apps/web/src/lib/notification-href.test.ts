@@ -160,6 +160,17 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens the Game when ratings close", () => {
+    assert.equal(
+      notificationHref({
+        type: "performance_ratings_closed",
+        group: { id: "g2" },
+        game: { id: "g1" },
+      }),
+      "/dashboard/games/g1",
+    );
+  });
+
   it("opens the Group a Level set was made in", () => {
     assert.equal(
       notificationHref({ type: "level_set", group: { id: "g2" } }),

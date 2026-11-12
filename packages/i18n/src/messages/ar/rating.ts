@@ -358,6 +358,114 @@ export const rating = {
       description:
         "يجري تصحيح النتيجة. تُفتح التقييمات من جديد لمدة 24 ساعة حين تصبح نهائية، وتبقى تقييماتك.",
     },
+    result: {
+      pending: {
+        title: "تقييمك في الطريق",
+        everyone: (closes: string) =>
+          `${closes}. بعدها ترى تقييمك وما فعله بنقاط فئتك.`,
+        organizer: (closes: string) =>
+          `المنظّم يقيّم الجميع. ترى تقييمك وما فعله بنقاط فئتك حين يرسل تقييماته، وفي موعد أقصاه ${isolate(closes)}.`,
+      },
+      game: "مباراتك",
+      gameOn: (day: string) => `مباراتك، ${day}`,
+      score: (slot1: string, score: string, slot2: string) =>
+        `${slot1} ${isolate(score)} ${slot2}`,
+      rating: {
+        ofTen: "من 10",
+        spoken: (rating: string) => `تقييمك ${isolate(rating)} من 10`,
+        from: (n: number) =>
+          plural("ar", n, {
+            zero: "من دون تقييمات.",
+            one: "من تقييم واحد.",
+            two: "من تقييمين.",
+            few: "من {n} تقييمات.",
+            many: "من {n} تقييمًا.",
+            other: "من {n} تقييم.",
+          }),
+        trimmed: "استُبعد الأعلى والأدنى.",
+        double: "واحتُسب تقييم المنظّم مرّتين.",
+        trimmedAndDouble:
+          "استُبعد الأعلى والأدنى، واحتُسب تقييم المنظّم مرّتين.",
+        average: (rating: string) => `متوسط المباراة ${isolate(rating)}.`,
+      },
+      outcome: {
+        won: (score: string) => `فوز ${isolate(score)}`,
+        drew: (score: string) => `تعادل ${isolate(score)}`,
+        lost: (score: string) => `خسارة ${isolate(score)}`,
+        played: "لعبت",
+        againstStronger: (outcome: string) =>
+          `${outcome} أمام الفريق الأقوى على الورق`,
+        againstWeaker: (outcome: string) =>
+          `${outcome} أمام الفريق الأضعف على الورق`,
+        againstEven: (outcome: string) =>
+          `${outcome} أمام فريق مكافئ على الورق`,
+      },
+      points: {
+        title: "ما فعله بنقاطك",
+        result: "النتيجة",
+        performance: "كيف لعبت",
+        againstUsual: (rating: string, usual: string) =>
+          `${isolate(rating)} مقابل معدّلك ${isolate(usual)}`,
+        rated: (rating: string) => `تقييمك ${isolate(rating)}`,
+        total: (before: string, after: string) =>
+          `من ${isolate(before)} إلى ${isolate(after)}`,
+        weight: (weight: number) =>
+          `الأداء ${isolate(`${weight}%`)} من الحركة في هذه المجموعة`,
+        spoken: (title: string, delta: string) =>
+          `${title}، ${isolate(delta)} نقطة`,
+      },
+      noRating: {
+        organizerRated: "قيّمت هذه المباراة، فتحرّكت نقاطك على النتيجة وحدها.",
+        organizerDidNotRate:
+          "لم يقيّمك المنظّم، فتحرّكت نقاطك على النتيجة وحدها.",
+        nobody: (min: number) =>
+          `لم يقيّمك أحد، ويلزم ${min}. تحرّكت نقاطك على النتيجة وحدها.`,
+        tooFew: (n: number, min: number) =>
+          plural("ar", n, {
+            zero: `لم يقيّمك أحد، ويلزم ${min}. تحرّكت نقاطك على النتيجة وحدها.`,
+            one: `قيّمك لاعب واحد فقط، ويلزم ${min}. تحرّكت نقاطك على النتيجة وحدها.`,
+            two: `قيّمك لاعبان فقط، ويلزم ${min}. تحرّكت نقاطك على النتيجة وحدها.`,
+            few: `قيّمك {n} لاعبين فقط، ويلزم ${min}. تحرّكت نقاطك على النتيجة وحدها.`,
+            many: `قيّمك {n} لاعبًا فقط، ويلزم ${min}. تحرّكت نقاطك على النتيجة وحدها.`,
+            other: `قيّمك {n} لاعب فقط، ويلزم ${min}. تحرّكت نقاطك على النتيجة وحدها.`,
+          }),
+      },
+      tier: {
+        title: "فئتك",
+        upFrom: (placeOf: string, before: number) =>
+          `${placeOf}، صعودًا من #${before}`,
+        downFrom: (placeOf: string, before: number) =>
+          `${placeOf}، نزولًا من #${before}`,
+        still: (band: string) => `ما زلت ${band}.`,
+        upTo: (band: string) => `صعدت إلى ${band}.`,
+        downTo: (band: string) => `نزلت إلى ${band}.`,
+        nowA: (band: string) => `صرت ${band}.`,
+        toNext: (points: string, band: string) =>
+          `${isolate(points)} نقطة إلى ${band}.`,
+        noFish: "لا أسماك حتى يُصنَّف أربعة لاعبين.",
+        provisional:
+          "يأتي مركزك وسمكتك بعد خمس مباريات في المجموعة، أو قبل ذلك إن حدّد منظّم نقاطك.",
+      },
+      mvp: {
+        title: (name: string) => `نجم المباراة: ${name}`,
+        you: "أنت",
+        votes: (votes: number, cast: number) =>
+          plural("ar", cast, {
+            zero: `${votes} من دون أصوات`,
+            one: `${votes} من صوت واحد`,
+            two: `${votes} من صوتين`,
+            few: `${votes} من {n} أصوات`,
+            many: `${votes} من {n} صوتًا`,
+            other: `${votes} من {n} صوت`,
+          }),
+        picked: "اختاره المنظّم",
+        tieBreak: "اختاره المنظّم بعد تعادل في التصويت",
+        rated: (how: string, rating: string) =>
+          `${how}، تقييمه ${isolate(rating)}`,
+      },
+      footnote:
+        "مباراة مجموعة. حرّكت نقاط فئتك هنا ولا شيء غيرها: لا مستواك في Temba، ولا أي رتبة.",
+    },
     loadFailed: "تعذّر تحميل التقييمات",
     errors: {
       noWindow: "لا تقييمات أداء لهذه المباراة.",

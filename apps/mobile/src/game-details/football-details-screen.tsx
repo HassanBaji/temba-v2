@@ -94,6 +94,7 @@ import { gameTitle } from "./details-model";
 import { FootballHero, SeatBar } from "./football-hero";
 import { FootballOrganizerCard } from "./football-organizer-card";
 import { RequestsSection } from "./organizer-card";
+import { PerformanceResultCard } from "./performance-result-card";
 import { RateGameCard } from "./rate-game-card";
 import { GameEditSheet } from "./game-edit-sheet";
 import { challengeInfoRows } from "./challenge-details-card";
@@ -696,7 +697,12 @@ export function FootballGameDetails({
           onOpenPlayer={canOpenProfile ? openProfile : undefined}
         />
       }
-      task={<RateGameCard gameId={gameId} window={game.ratingWindow} />}
+      task={
+        <>
+          <RateGameCard gameId={gameId} window={game.ratingWindow} />
+          <PerformanceResultCard gameId={gameId} window={game.ratingWindow} />
+        </>
+      }
       marks={<MarksSection marks={marks} />}
       columns={playedModel.columns}
       unplaced={playedModel.unplaced}

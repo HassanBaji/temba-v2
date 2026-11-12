@@ -100,6 +100,8 @@ export const groupTierEvents = pgTable(
     expectedScore: doublePrecision("expected_score"),
     bandBefore: tierBands("band_before"),
     bandAfter: tierBands("band_after"),
+    /** The place just before a `game` event's Match moved anyone. */
+    placeBefore: integer("place_before"),
     placeAfter: integer("place_after"),
     rankedCount: integer("ranked_count"),
     setByUserId: uuid("set_by_user_id").references(() => user.id, {
