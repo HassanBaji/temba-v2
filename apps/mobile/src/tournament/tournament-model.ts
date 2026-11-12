@@ -1,4 +1,5 @@
 import { gameTeamDisplayName } from "@repo/domain/game-side-label";
+import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import type {
   TournamentDetails,
   TournamentDetailsMatch,
@@ -111,4 +112,44 @@ export function scorableMatches(
         scoreToConfirm: pendingScore(match),
       };
     });
+}
+
+export type TournamentPlayer = {
+  userId: string;
+  name: string;
+  image: string | null;
+  level: string | null;
+};
+
+/** A seated or drawn player on the Tournament, looked up by user id. */
+export function tournamentPlayer(
+  game: Pick<TournamentDetails, "sides" | "gameTeams">,
+  userId: string,
+): TournamentPlayer | null {
+  for (const side of game.sides) {
+    for (const occupant of [side.left, side.right]) {
+      if (occupant?.userId === userId) {
+        return {
+          userId,
+          name: occupant.name,
+          image: occupant.image ?? null,
+          level: occupant.levelBand
+            ? displayLabelFromStoredBand(occupant.levelBand)
+            : null,
+        };
+      }
+    }
+  }
+  for (const team of game.gameTeams) {
+    const member = team.members.find((candidate) => candidate.id === userId);
+    if (member) {
+      return {
+        userId,
+        name: member.name,
+        image: member.image,
+        level: null,
+      };
+    }
+  }
+  return null;
 }

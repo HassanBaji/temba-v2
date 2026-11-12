@@ -23,10 +23,12 @@ export function GameTeamSheet({
   team,
   onClose,
   onOpenPlayer,
+  opensActions,
 }: {
   team: GameTeamSheetTeam | null;
   onClose: () => void;
   onOpenPlayer: (userId: string) => void;
+  opensActions?: (userId: string) => boolean;
 }) {
   const m = useMessages().mobileTournament.predraw;
   return (
@@ -39,7 +41,11 @@ export function GameTeamSheet({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={player.name}
-                accessibilityHint={m.opensProfileHint}
+                accessibilityHint={
+                  opensActions?.(player.id)
+                    ? m.opensPlayerActionsHint
+                    : m.opensProfileHint
+                }
                 onPress={() => {
                   onClose();
                   onOpenPlayer(player.id);

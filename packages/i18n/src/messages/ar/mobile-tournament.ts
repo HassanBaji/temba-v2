@@ -125,6 +125,7 @@ export const mobileTournament = {
     takeLeft: "خذ اليسار",
     takeRight: "خذ اليمين",
     opensProfileHint: "يفتح ملفه الشخصي",
+    opensPlayerActionsHint: "يفتح إجراءات اللاعب",
     showFewerTeams: "عرض فرق أقل",
     needCompleteTeam:
       "تحتاج إلى فريق مكتمل يُسمح لكلا شريكيه باللعب في هذه المباراة.",

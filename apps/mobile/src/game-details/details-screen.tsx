@@ -38,6 +38,7 @@ import {
 import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import { gameInviteAccess } from "@repo/domain/invites";
 import type { PlayedRow } from "@repo/domain/played-game";
+import { kickableTournamentOccupants } from "@repo/domain/tournament-organizer";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 import { useRouter, useSegments } from "expo-router";
 import { useCallback, useState } from "react";
@@ -63,6 +64,11 @@ import { useToast } from "../primitives/toast";
 import { TournamentBar } from "../tournament/tournament-bar";
 import { OrganizerSheets as TournamentOrganizerSheets } from "../tournament/organizer-sheets";
 import { TournamentContent } from "../tournament/tournament-content";
+import {
+  tournamentPlayer,
+  type TournamentPlayer,
+} from "../tournament/tournament-model";
+import { TournamentPlayerSheet } from "../tournament/tournament-player-sheet";
 import { useTournamentOrganizer } from "../tournament/use-tournament-organizer";
 import { api } from "../trpc/react";
 import { AddPlayerSheet } from "./add-player-sheet";
@@ -171,6 +177,8 @@ export function GameDetailsScreen({
   const [inviteOpen, setInviteOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayedRow | null>(null);
+  const [tournamentSelected, setTournamentSelected] =
+    useState<TournamentPlayer | null>(null);
   const [addSeat, setAddSeat] = useState<FriendlyGameJoinSeat | null>(null);
   const shareGame = useShareGame(gameId);
 
@@ -568,6 +576,23 @@ export function GameDetailsScreen({
   if (tournament) {
     const details: TournamentDetails = data;
     const firstTeamId = details.eligibleTeams[0]?.id ?? "";
+    const kickableUserIds = new Set(
+      kickableTournamentOccupants(details).map((occupant) => occupant.userId),
+    );
+    const playerOpensActions = (userId: string) => kickableUserIds.has(userId);
+    const openTournamentPlayer =
+      onOpenPlayer || kickableUserIds.size > 0
+        ? (userId: string) => {
+            const player = playerOpensActions(userId)
+              ? tournamentPlayer(details, userId)
+              : null;
+            if (player) {
+              setTournamentSelected(player);
+            } else {
+              onOpenPlayer?.(userId);
+            }
+          }
+        : undefined;
     return (
       <View style={{ flex: 1 }}>
         <Screen refreshing={refreshing} onRefresh={onRefresh}>
@@ -594,7 +619,8 @@ export function GameDetailsScreen({
                 enterTournamentScore.mutate({ gameId, matchId, ...score }),
               confirmPending: confirmResult.isPending,
               onConfirm: (matchId) => confirmResult.mutate({ gameId, matchId }),
-              onOpenPlayer,
+              onOpenPlayer: openTournamentPlayer,
+              playerOpensActions,
             }}
           />
         </Screen>
@@ -612,6 +638,20 @@ export function GameDetailsScreen({
         <TournamentOrganizerSheets
           {...tournamentOrganizer.sheets}
           game={details}
+        />
+        <TournamentPlayerSheet
+          player={tournamentSelected}
+          canOpenProfile={Boolean(onOpenPlayer)}
+          kickPending={tournamentOrganizer.handlers.kickPending}
+          onClose={() => setTournamentSelected(null)}
+          onOpenProfile={(userId) => {
+            setTournamentSelected(null);
+            onOpenPlayer?.(userId);
+          }}
+          onKick={(userId) => {
+            setTournamentSelected(null);
+            tournamentOrganizer.handlers.onKickPlayer(userId);
+          }}
         />
         {details.isOrganizer ? (
           <AddPlayerSheet
