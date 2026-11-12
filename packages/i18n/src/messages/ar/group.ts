@@ -781,5 +781,13 @@ export const group = {
     standingMembersOnly: "انضم إلى المجموعة لترى ترتيبها",
     approvalPublicOnly: "اشتراط الموافقة للمجموعات العامة فقط",
     imageEmpty: "ملف الصورة فارغ",
+    nicknameTooLong: (max: number) =>
+      plural("ar", max, {
+        one: "لا يتجاوز الاسم حرفًا واحدًا",
+        two: "لا يتجاوز الاسم حرفين",
+        few: "لا يتجاوز الاسم {n} أحرف",
+        many: "لا يتجاوز الاسم {n} حرفًا",
+        other: "لا يتجاوز الاسم {n} حرف",
+      }),
   },
 } satisfies typeof source;

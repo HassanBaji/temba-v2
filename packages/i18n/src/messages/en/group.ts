@@ -642,5 +642,6 @@ export const group = {
     standingMembersOnly: "Join the Group to see its Standing",
     approvalPublicOnly: "Require approval only applies to Public Groups",
     imageEmpty: "Image file is empty",
+    nicknameTooLong: (max: number) => `Keep the name to ${max} characters`,
   },
 };

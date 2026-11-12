@@ -12,6 +12,7 @@ import { Check, Phone, UsersRound } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
+import { NicknameName } from "../groups/nickname-name";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
@@ -237,11 +238,14 @@ function MemberRow({
           opacity: unavailable ? 0.45 : pressed ? 0.6 : 1,
         })}
       >
-        <Avatar name={row.name} uri={image} size="lg" radius={radii.md} />
+        <Avatar
+          name={row.tembaName ?? row.name}
+          uri={image}
+          size="lg"
+          radius={radii.md}
+        />
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <Text weight="semibold" numberOfLines={1}>
-            {row.name}
-          </Text>
+          <NicknameName name={row.name} isNickname={row.isNickname === true} />
           {unclaimed ? <NotOnTembaMark /> : null}
           {row.meta ? (
             <Text size="eyebrow" tone="muted" numberOfLines={1}>

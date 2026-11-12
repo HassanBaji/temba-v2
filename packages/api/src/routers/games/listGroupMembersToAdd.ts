@@ -15,6 +15,7 @@ import type {
 } from "@repo/domain/football-lineup";
 import { isFootballGame } from "@repo/domain/game-shape";
 import type { LevelBand } from "@repo/domain/level-bands";
+import type { MemberNicknameData } from "@repo/domain/member-nickname";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -22,6 +23,8 @@ import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import { assertOrganizerAddFormat } from "#src/games/assert-organizer-add-format";
 import { remainingCapacity } from "#src/games/seats";
+import { isGroupApprover } from "#src/groups/helpers/is-group-approver";
+import { visibleMemberNickname } from "#src/groups/helpers/visible-member-nickname";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db;
@@ -31,6 +34,7 @@ export type GroupMemberToAddStatus = "in_game" | "waitlisted" | null;
 export type GroupMemberToAdd = {
   userId: string;
   name: string;
+  nickname: MemberNicknameData | null;
   image: string | null;
   unclaimed: boolean;
   levelBand: LevelBand | null;
@@ -60,11 +64,11 @@ export async function listGroupMembersToAdd(
 
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, game.groupId),
-    columns: { name: true },
+    columns: { id: true, name: true, createdBy: true },
   });
   const rows = await database.query.groupMembers.findMany({
     where: eq(groupMembers.groupId, game.groupId),
-    columns: { userId: true },
+    columns: { userId: true, nickname: true, nicknameVisibility: true },
     with: {
       user: {
         columns: {
@@ -112,11 +116,18 @@ export async function listGroupMembersToAdd(
     levels.map((row) => [row.userId, row.levelBand]),
   );
 
+  const viewer = {
+    userId: args.organizerUserId,
+    isApprover:
+      group != null &&
+      (await isGroupApprover(database, group, args.organizerUserId)),
+  };
   const members = rows
     .map(
-      ({ user }): GroupMemberToAdd => ({
+      ({ user, ...membership }): GroupMemberToAdd => ({
         userId: user.id,
         name: user.name,
+        nickname: visibleMemberNickname(membership, viewer),
         image: user.image ?? null,
         unclaimed: isUnclaimed(user),
         levelBand: levelByUserId.get(user.id) ?? null,

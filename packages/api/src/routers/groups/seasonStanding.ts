@@ -14,7 +14,9 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
+import { isGroupApprover } from "#src/groups/helpers/is-group-approver";
 import { requireGroup } from "#src/groups/helpers/require-group";
+import { visibleMemberNickname } from "#src/groups/helpers/visible-member-nickname";
 import {
   countCompletedMatches,
   matchesInLens,
@@ -76,7 +78,7 @@ export async function seasonStanding(
   const [memberRows, gameRows] = await Promise.all([
     database.query.groupMembers.findMany({
       where: eq(groupMembers.groupId, group.id),
-      columns: { userId: true },
+      columns: { userId: true, nickname: true, nicknameVisibility: true },
       with: {
         user: {
           columns: { name: true, image: true, clerkId: true, addedAt: true },
@@ -128,6 +130,13 @@ export async function seasonStanding(
     standingMatchesFromGames(gameRows),
     season ? toSeasonRow(season, now) : null,
   );
+  const viewer = {
+    userId: args.userId,
+    isApprover: await isGroupApprover(database, group, args.userId),
+  };
+  const nicknameByUserId = new Map(
+    memberRows.map((row) => [row.userId, visibleMemberNickname(row, viewer)]),
+  );
   const rows = seasonStandingTable(
     matches,
     memberRows.map((row) => ({
@@ -143,7 +152,10 @@ export async function seasonStanding(
   return {
     seasonId: season?.id ?? null,
     season: season ? toSeasonRow(season, now) : null,
-    rows,
+    rows: rows.map((row) => ({
+      ...row,
+      nickname: nicknameByUserId.get(row.userId) ?? null,
+    })),
     gamesCounted: countCompletedMatches(matches),
   };
 }

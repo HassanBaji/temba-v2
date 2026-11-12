@@ -147,6 +147,7 @@ const plainUserReferences: PgColumn[] = [
   gameMvpVotes.candidateUserId,
   gamePhotos.uploaderUserId,
   gameTeamPlayers.sideSetBy,
+  groupMembers.nicknameUpdatedById,
   groups.createdBy,
   groups.verifiedBy,
   groups.deletedBy,

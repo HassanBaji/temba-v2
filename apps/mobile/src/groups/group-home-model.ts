@@ -87,6 +87,8 @@ export type StandingRowView = {
   position: number | null;
   ranked: boolean;
   name: string;
+  /** `name` is this Group's Member nickname for them. */
+  isNickname: boolean;
   played: number;
   wins: number;
   draws: number;
@@ -103,18 +105,22 @@ export function standingRowView(
   locale: Locale,
 ): StandingRowView {
   const m = messagesFor(locale);
-  const name = entry.isViewer
-    ? m.common.you
-    : (entry.name ?? m.mobileGroup.unnamedMember);
-  const spokenName = entry.unclaimed
-    ? m.mobileGroup.standing.nameNotOnTemba(name)
+  const tembaName = entry.name ?? m.mobileGroup.unnamedMember;
+  const nickname = entry.isViewer ? null : (entry.nickname?.name ?? null);
+  const name = entry.isViewer ? m.common.you : (nickname ?? tembaName);
+  const shownName = nickname
+    ? m.mobileGroup.nickname.rowSpoken(nickname, tembaName)
     : name;
+  const spokenName = entry.unclaimed
+    ? m.mobileGroup.standing.nameNotOnTemba(shownName)
+    : shownName;
   const record = standingRecordLabel(entry);
   return {
     key: entry.userId,
     position: entry.position,
     ranked: entry.ranked,
     name,
+    isNickname: nickname != null,
     played: entry.played,
     wins: entry.wins,
     draws: entry.draws,
@@ -150,7 +156,10 @@ export function standingStats(data: GroupHomeData, locale: Locale) {
 
 export type MemberRowView = {
   key: string;
+  /** The Member nickname when the viewer may see one, else the Temba name. */
   name: string;
+  tembaName: string;
+  nickname: string | null;
   imageUri: string | null;
   isViewer: boolean;
   unclaimed: boolean;
@@ -198,22 +207,31 @@ export function memberRowView(
   canAppointOrganizers = false,
   sort: GroupMemberSort = "level",
   canSetGroupLevel = false,
+  canSetNicknames = false,
 ): MemberRowView {
   const m = messagesFor(locale);
-  const name = entry.name ?? m.mobileGroup.unnamedMember;
-  const caption = [
+  const tembaName = entry.name ?? m.mobileGroup.unnamedMember;
+  const nickname = entry.nickname?.name ?? null;
+  const name = nickname ?? tembaName;
+  const details = [
     groupMemberSortCaption(entry, sort, locale),
     entry.phoneMasked ? isolate(entry.phoneMasked) : null,
     canSetLevel && entry.levelOverride
       ? levelOverrideCaption({ ...entry.levelOverride, locale })
       : null,
-  ]
+  ].filter(Boolean);
+  const caption = [nickname ? tembaName : null, ...details]
     .filter(Boolean)
     .join(" · ");
+  const spokenName = nickname
+    ? m.mobileGroup.nickname.rowSpoken(nickname, tembaName)
+    : name;
   const level = levelCellView(entry.levelBand, entry.levelProvisional);
   return {
     key: entry.userId,
     name,
+    tembaName,
+    nickname,
     imageUri: mediaUrl(entry.image, apiOrigin),
     isViewer: entry.isViewer,
     unclaimed: entry.unclaimed,
@@ -223,11 +241,12 @@ export function memberRowView(
     selectable:
       ((canSetLevel || canSetGroupLevel) && !entry.isViewer) ||
       memberIsRemovable(entry, canRemovePlayers) ||
-      memberOrganizerAction(entry, canAppointOrganizers) != null,
+      memberOrganizerAction(entry, canAppointOrganizers) != null ||
+      (canSetNicknames && !entry.isViewer),
     accessibilityLabel: [
-      entry.isViewer ? m.mobileGroup.members.rowYou(name) : name,
+      entry.isViewer ? m.mobileGroup.members.rowYou(spokenName) : spokenName,
       entry.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
-      caption || null,
+      ...details,
       levelSpokenLabel(level, entry.level, locale),
     ]
       .filter(Boolean)
@@ -256,6 +275,7 @@ export function memberList(
   canAppointOrganizers = false,
   lens: MemberLens = LEVEL_ORDER,
   canSetGroupLevel = false,
+  canSetNicknames = false,
 ) {
   const unnamed = messagesFor(locale).mobileGroup.unnamedMember;
   const view = groupMembersLens(
@@ -276,6 +296,7 @@ export function memberList(
         canAppointOrganizers,
         view.sort,
         canSetGroupLevel,
+        canSetNicknames,
       ),
     ),
   };
@@ -283,6 +304,7 @@ export function memberList(
 
 export type MemberSheetView = {
   name: string;
+  nickname: string | null;
   imageUri: string | null;
   caption: string | null;
   unclaimed: boolean;
@@ -311,6 +333,7 @@ export function memberSheetView(
     : null;
   return {
     name,
+    nickname: entry.nickname?.name ?? null,
     imageUri: mediaUrl(entry.image, apiOrigin),
     caption: groupMemberTableCaption(entry, locale),
     unclaimed: entry.unclaimed,

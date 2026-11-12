@@ -90,6 +90,7 @@ import { startOfProductDay } from "@repo/domain/product-timezone";
 import { seasonStandingPosition } from "@repo/domain/season-standing";
 import { canManageSeasons } from "#src/groups/helpers/season-access";
 import { loadGroupStandings } from "#src/standing/load-group-standing";
+import { visibleMemberNickname } from "#src/groups/helpers/visible-member-nickname";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
 import { mayRenameUnclaimedPlayer } from "#src/unclaimed-players/may-rename-unclaimed-player";
@@ -470,7 +471,14 @@ export async function groupById(
             adderId: row.user.addedByUserId,
             callerId: args.userId,
           }));
-        return [row.userId, { unclaimed, phoneMasked, canRename }] as const;
+        const nickname = visibleMemberNickname(row, {
+          userId: args.userId,
+          isApprover,
+        });
+        return [
+          row.userId,
+          { unclaimed, phoneMasked, canRename, nickname },
+        ] as const;
       }),
     ),
   );
@@ -801,6 +809,7 @@ export async function groupById(
       unclaimed: memberMarkByUserId.get(entry.userId)?.unclaimed ?? false,
       phoneMasked: memberMarkByUserId.get(entry.userId)?.phoneMasked ?? null,
       canRename: memberMarkByUserId.get(entry.userId)?.canRename ?? false,
+      nickname: memberMarkByUserId.get(entry.userId)?.nickname ?? null,
     };
   });
 
@@ -879,6 +888,7 @@ export async function groupById(
     canAddPlayers: isApprover,
     canRemovePlayers: isApprover,
     canAppointOrganizers: isApprover,
+    canSetMemberNicknames: isApprover,
     viewerCanSetLevel,
     memberUserIds,
     hasInviteLink: canManageInviteLinks,
