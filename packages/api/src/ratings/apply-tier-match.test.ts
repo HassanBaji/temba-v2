@@ -244,7 +244,7 @@ describe("Tier points on a completed football Match (ADR-0067)", () => {
         await db.query.groupRatingEvents.findMany({
           where: eq(groupRatingEvents.matchId, matchId),
         }),
-      ).toHaveLength(4);
+      ).toHaveLength(0);
       expect(await tierEvents(db, matchId)).toHaveLength(0);
       expect(await db.query.groupTierPoints.findMany()).toHaveLength(0);
     });
