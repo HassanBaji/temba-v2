@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -22,6 +22,7 @@ import { playerMarksPath } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
+import { CalibrateLevelAction } from "./calibrate-level-sheet";
 import { PlayerBackButton } from "./player-header";
 import {
   footballProfileModel,
@@ -120,10 +121,21 @@ export function PlayerProfile({
 
   const played = (entry: Sport) =>
     (entry === "football" ? football.data : padel.data)?.overall.played ?? null;
+  const shown = model.sport === "football" ? football.data : padel.data;
 
   return (
     <PlayerProfileView
       model={model}
+      calibrate={
+        padel.data?.viewerMayCalibrate && shown ? (
+          <CalibrateLevelAction
+            userId={userId}
+            name={shown.player.name}
+            sport={model.sport}
+            rating={shown.rating}
+          />
+        ) : null
+      }
       cabinet={cabinetRowModel(cabinet.data, model.sport, locale)}
       cabinetHref={playerMarksPath(userId, model.sport)}
       switchOptions={sportSwitchView(
@@ -143,12 +155,14 @@ export function PlayerProfile({
  */
 function PlayerProfileView({
   model,
+  calibrate,
   cabinet,
   cabinetHref,
   switchOptions,
   onSelectSport,
 }: {
   model: PlayerProfileModel;
+  calibrate: ReactNode;
   cabinet: CabinetRowModel | null;
   cabinetHref: string;
   switchOptions: ReturnType<typeof sportSwitchView>;
@@ -167,6 +181,7 @@ function PlayerProfileView({
           onSelectSport={onSelectSport}
           level={model.level}
         />
+        {calibrate}
         {cabinet ? <CabinetRow row={cabinet} href={cabinetHref} /> : null}
         {model.early ? (
           <EarlyDaysCard view={model.early} form={model.form} />

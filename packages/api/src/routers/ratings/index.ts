@@ -7,6 +7,7 @@ import { selfDeclare } from "./selfDeclare";
 import { setGroupLevel } from "./setGroupLevel";
 import { setLevel } from "./setLevel";
 import { setLevelAsOperatorProcedure as setLevelAsOperator } from "./setLevelAsOperator";
+import { setLevelAsVerifierProcedure as setLevelAsVerifier } from "./setLevelAsVerifier";
 
 export const ratingsRouter = createTRPCRouter({
   listForOperator,
@@ -16,4 +17,5 @@ export const ratingsRouter = createTRPCRouter({
   setGroupLevel,
   setLevel,
   setLevelAsOperator,
+  setLevelAsVerifier,
 });

@@ -81,6 +81,13 @@ export const notification = {
       plain(" set your Level to "),
       strong(level),
     ],
+    levelCalibrated: (actor: string, venue: string, level: string) => [
+      strong(actor),
+      plain(" ("),
+      strong(venue),
+      plain(") calibrated your Level to "),
+      strong(level),
+    ],
     tierPointsAdjusted: (actor: string, group: string) => [
       strong(actor),
       plain(" adjusted your tier points in "),

@@ -240,6 +240,7 @@ describe("setLevelAsOperator", () => {
         levelBand: "C1",
         reason: "plays_above_results",
         note: "Plays above 68.",
+        venue: null,
       });
       const copy = notificationCopy(item, "en");
       expect(copy?.title.map((part) => part.text).join("")).toBe(

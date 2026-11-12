@@ -612,6 +612,25 @@ export const rating = {
       summaryOrganizerOnly: "لا يرى ملخّص التقييمات إلا منظّم المباراة.",
     },
   },
+  verifier: {
+    kinds: {
+      club_staff: "طاقم النادي",
+      referee: "حكم",
+      coach: "مدرب",
+    },
+    calibrate: {
+      action: "معايرة المستوى",
+      title: (sport: string) => `معايرة مستوى ${sport}`,
+      description: "بصفتك مُوثِّقًا. يرى اللاعب اسمك وناديك وسببك.",
+      saved: (name: string, level: string) =>
+        `تمت معايرة مستوى ${name} إلى ${level}`,
+      notAllowed: {
+        title: "لا يمكنك معايرة مستوى هذا اللاعب",
+        description:
+          "يعاير المُوثِّق مستوى لاعب لعب في ناديه أو ينتمي إلى إحدى مجموعات النادي.",
+      },
+    },
+  },
   publicGame: {
     label: "مباراة عامة",
     createNote:

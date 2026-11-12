@@ -208,6 +208,8 @@ export const mobileGroup = {
     nowMarker: (label: string) => `الآن ${label}`,
     decrease: "خفض المستوى بمقدار 0.1",
     increase: "رفع المستوى بمقدار 0.1",
+    decreaseOvr: "خفض OVR بمقدار 1",
+    increaseOvr: "رفع OVR بمقدار 1",
     reset: "إعادة ضبط",
     why: (name: string) => `لماذا؟ سيرى ${name} هذا.`,
     noteLabel: "ملاحظة",

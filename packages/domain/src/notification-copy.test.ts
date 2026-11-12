@@ -732,6 +732,52 @@ describe("notificationCopy for a Level set", () => {
     );
   });
 
+  it("names the Verifier and their Venue on a calibration", () => {
+    assert.deepEqual(
+      levelSet({
+        actor: { name: "Yaser" },
+        group: null,
+        levelSet: {
+          level: "71",
+          levelBand: "C1",
+          reason: "plays_above_results",
+          venue: { name: "Fantasy FC" },
+        },
+      }),
+      {
+        title: [
+          { text: "Yaser", strong: true },
+          { text: " (", strong: false },
+          { text: "Fantasy FC", strong: true },
+          { text: ") calibrated your Level to ", strong: false },
+          { text: "C+ 71", strong: true },
+        ],
+        subline: "Plays above results",
+      },
+    );
+    assert.equal(
+      notificationCopy(
+        {
+          type: "level_set",
+          audience: "player",
+          actor: { name: "ياسر" },
+          group: null,
+          levelSet: {
+            level: "71",
+            levelBand: "C1",
+            reason: "plays_above_results",
+            venue: { name: "Fantasy FC" },
+          },
+        },
+        "ar",
+      )
+        ?.title.map((part) => part.text)
+        .join("")
+        .includes("Fantasy FC"),
+      true,
+    );
+  });
+
   it("falls back to Someone for a deleted setter", () => {
     assert.equal(
       levelSet({ actor: null })

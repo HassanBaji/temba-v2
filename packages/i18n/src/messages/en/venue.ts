@@ -6,6 +6,7 @@ export const venue = {
     photoNotFound: "Photo not found",
     managerOnly: "Only Venue managers can manage this Venue",
     alreadyManager: "This User already manages this Venue",
+    alreadyVerifier: "This User is already a verifier at this Venue",
     closureEndAfterStart: "A Closure must end after it starts",
     cancelBookingsFirst: "Cancel its Bookings first",
     courtHasHistory: "This Court has Booking history and cannot be deleted",

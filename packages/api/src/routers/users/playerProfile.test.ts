@@ -506,6 +506,7 @@ describe("loadPlayerProfile", () => {
         lastMatches: [],
         partners: [],
         withViewer: null,
+        viewerMayCalibrate: false,
       });
     });
   });

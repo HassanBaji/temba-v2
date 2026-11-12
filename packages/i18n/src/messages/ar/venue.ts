@@ -8,6 +8,7 @@ export const venue = {
     photoNotFound: "الصورة غير موجودة",
     managerOnly: "لا يدير هذا النادي إلا مديروه",
     alreadyManager: "هذا المستخدم يدير هذا النادي بالفعل",
+    alreadyVerifier: "هذا المستخدم مُوثِّق في هذا النادي بالفعل",
     closureEndAfterStart: "يجب أن ينتهي الإغلاق بعد بدايته",
     cancelBookingsFirst: "ألغِ حجوزاته أولًا",
     courtHasHistory: "لهذا الملعب سجل حجوزات ولا يمكن حذفه",

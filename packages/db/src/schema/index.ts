@@ -9,6 +9,7 @@ export * from "./group-tiers";
 export * from "./verification";
 export * from "./venues";
 export * from "./venue-managers";
+export * from "./venue-verifiers";
 export * from "./venue-opening-hours";
 export * from "./venue-closures";
 export * from "./venue-pricing-rules";

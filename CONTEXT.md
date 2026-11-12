@@ -264,12 +264,16 @@ On a padel Friendly game, a User's answer to "which side?" when they take a seat
 _Avoid_: flexible seat, any seat, Preferred Position (that is the profile default), wildcard
 
 **Operator**:
-A Temba staff User. Operators curate Venues and Courts, mark Partner Venues, grant Venue managers, verify Groups, link Loose Groups to Venues directly, and may set any other User's Level in either sport (ADR-0046).
+A Temba staff User. Operators curate Venues and Courts, mark Partner Venues, grant Venue managers and Verifiers, verify Groups, link Loose Groups to Venues directly, and may set any other User's Level in either sport (ADR-0046).
 _Avoid_: Admin, Owner (retired Community roles, ADR-0055), system admin, platform admin, superadmin
 
 **Venue manager**:
 A User granted management of one Venue by an Operator: Venue details, Courts, Opening hours, Closures, Pricing rules, Cancellation policy, Bookings, Payments, Customers, reports and Group link requests for that Venue, from the Venue console. A User may manage many Venues. Not an Operator; an Operator may do everything a Venue manager may. Managing a Venue gives no door on its Club Groups.
 _Avoid_: facility owner, venue admin, Owner, Admin, Operator, staff
+
+**Verifier**:
+A User an Operator granted on one Venue as club staff, a referee or a coach, from the Venue's page on the web App (`venue_verifiers`, ADR-0072). A Verifier may calibrate the Level of another User, in either sport, who has played a completed Match at that Venue or belongs to one of its Club Groups, from that User's Player profile on either App; never their own. A calibration is a Level override that names the Verifier and the Venue. A User may be a Verifier of many Venues; when the player qualifies at several, the oldest grant names the Venue. Removing the role stops further calibrations and keeps the ones made. Not a Venue manager, and not a Level setter.
+_Avoid_: admin, Level setter, coach (the unused `coach` tables), referee as a role name
 
 **Venue photo**:
 A picture of a Venue that a Venue manager uploads from the Venue console, up to ten per Venue. One is the **Main photo**, which fronts the Venue's card in the App's Venue list; one is the **Details photo**, at the top of the Venue screen. They may be the same photo. With no Venue photo, the App shows the Venue logo.
@@ -673,7 +677,7 @@ Per ladder. A Level is Provisional while its Rating's deviation φ is above the 
 _Avoid_: unranked, unrated (a User may already have a Level), PRO (that is a Level band label)
 
 **Level override**:
-A Level that a Level setter or an Operator set by hand, and its audit record: who set it, by which door (`set_by_role`, `level_setter` or `operator`; `verifier` is kept for a Verifier's calibration), a required reason from five, and an optional note of up to 280 characters (ADR-0073). An Operator's has no Group, and on football an Operator sets it as an OVR. The player is told at once, by a Notification that names the setter, the reason and the note. An override from before reasons were required reads "No reason given". It replaces the Rating's μ and makes the Rating confirmed. Later Rated Matches move the Level from there. There is no undo; a mistake is corrected by another Level override. A Level override is displayed like any other Level.
+A Level that a Level setter, an Operator or a Verifier set by hand, and its audit record: who set it, by which door (`set_by_role`: `level_setter`, `operator` or `verifier`), a required reason from five, and an optional note of up to 280 characters (ADR-0073). An Operator's and a Verifier's have no Group, and on football both set it as an OVR. A Verifier's is a calibration ("calibrated" in copy) and records the Venue it was made from (`venue_id`, ADR-0072). The player is told at once, by a Notification that names the setter, the reason and the note, and for a calibration the Venue. An override from before reasons were required reads "No reason given". It replaces the Rating's μ and makes the Rating confirmed. Later Rated Matches move the Level from there. There is no undo; a mistake is corrected by another Level override. A Level override is displayed like any other Level.
 _Avoid_: manual rating, rating override, Rated Match (an override is not a Match), permanent override
 
 **Rated Match**:

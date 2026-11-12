@@ -43,6 +43,8 @@ export type NotificationItem = {
     levelBand: LevelBand;
     reason: LevelOverrideReason | null;
     note: string | null;
+    /** The Venue a Verifier calibrated from; null on every other door. */
+    venue: { id: string; name: string } | null;
   } | null;
   /** The Tier event a Tier or ratings-closed Notification is about. */
   tier: {
@@ -131,6 +133,7 @@ export async function loadNotificationItems(
           reason: true,
           note: true,
         },
+        with: { venue: { columns: { id: true, name: true } } },
       },
       groupTierEvent: {
         columns: {
@@ -179,6 +182,7 @@ export async function loadNotificationItems(
               levelBand: levelOverride.levelBandAfter,
               reason: levelOverride.reason,
               note: levelOverride.note,
+              venue: levelOverride.venue ?? null,
             }
           : null,
         tier: groupTierEvent ?? null,

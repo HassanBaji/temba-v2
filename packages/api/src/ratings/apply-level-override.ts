@@ -17,7 +17,13 @@ import {
   levelFromMu,
   muFromLevel,
 } from "@repo/domain/level";
-import { formatOvr, ovrFromMu } from "@repo/domain/football-ovr";
+import {
+  formatOvr,
+  levelFromOvr,
+  OVR_MAX,
+  OVR_MIN,
+  ovrFromMu,
+} from "@repo/domain/football-ovr";
 import { LEVEL_TENTHS_MAX, LEVEL_TENTHS_MIN } from "@repo/domain/level-range";
 import {
   LEVEL_OVERRIDE_NOTE_MAX,
@@ -47,6 +53,41 @@ export function assertLevelTenths(
       message: messagesFor(locale).level.between,
     });
   }
+}
+
+/**
+ * The Level a hand-set override asked for: a Level in tenths in either sport,
+ * or a football OVR, which is set as the continuous Level it reads back from.
+ */
+export function requestedOverrideLevel(
+  args: { sport: Sport; levelTenths?: number | null; ovr?: number | null },
+  locale: Locale = DEFAULT_LOCALE,
+) {
+  const errors = messagesFor(locale).level.errors;
+  const hasTenths = args.levelTenths != null;
+  const hasOvr = args.ovr != null;
+  if (hasTenths === hasOvr) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: errors.levelOrOvr });
+  }
+  if (args.ovr != null) {
+    if (args.sport !== "football") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: errors.ovrFootballOnly,
+      });
+    }
+    if (
+      !Number.isInteger(args.ovr) ||
+      args.ovr < OVR_MIN ||
+      args.ovr > OVR_MAX
+    ) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: errors.ovrBetween });
+    }
+    return levelFromOvr(args.ovr);
+  }
+  const levelTenths = args.levelTenths ?? 0;
+  assertLevelTenths(levelTenths, locale);
+  return levelTenths / 10;
 }
 
 /** Every new Level override names a reason the player sees (ADR-0073). */
@@ -87,7 +128,8 @@ function assertLevel(level: number, locale: Locale) {
  * football OVR set by hand reads back as itself. Every set appends a
  * `level_overrides` row with who set it, by which door, and why; nothing
  * reads its before-values back. `groupId` is the Group a Level setter set it
- * from, null when an Operator set it.
+ * from, null when an Operator or a Verifier set it; `venueId` is the Venue a
+ * Verifier calibrated from.
  */
 export async function applyLevelOverride(
   database: DbClient,
@@ -97,6 +139,7 @@ export async function applyLevelOverride(
     setByRole: LevelOverrideSetByRole;
     targetUserId: string;
     groupId: string | null;
+    venueId?: string | null;
     level: number;
     reason: LevelOverrideReason;
     note?: string | null;
@@ -148,6 +191,7 @@ export async function applyLevelOverride(
         sport,
         setByUserId: args.setterUserId,
         groupId: args.groupId,
+        venueId: args.venueId ?? null,
         setByRole: args.setByRole,
         reason: args.reason,
         note: levelOverrideNote(args.note),

@@ -85,6 +85,7 @@ import { writePreferredPosition } from "#src/routers/users/setPreferredPosition"
 import { acceptLinkRequest as acceptGroupLinkRequest } from "#src/routers/groups/acceptLinkRequest";
 import { addCourt } from "#src/routers/venues/addCourt";
 import { addManager as addVenueManager } from "#src/routers/venues/addManager";
+import { addVerifier } from "#src/routers/venues/addVerifier";
 import { createVenue } from "#src/routers/venues/create";
 import { sendGroupLinkRequest } from "#src/routers/venues/sendGroupLinkRequest";
 import { setOpeningHours } from "#src/routers/venues/setOpeningHours";
@@ -2581,6 +2582,15 @@ async function main() {
       });
     }
   });
+  // You coach at Padel Central, so a profile of anyone who played there offers "Calibrate level".
+  await step("verifier", () =>
+    addVerifier(db, {
+      venueId: v.central.id,
+      userId: u.me!.id,
+      kind: "coach",
+      grantedByUserId: u.me!.id,
+    }),
+  );
   await step("public game", () => seedPublicGame(u, v));
   await step("public football game", () => seedPublicFootballGame(u, v));
   await step("challenges", () => seedChallenges(u, v, t));

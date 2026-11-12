@@ -20,6 +20,7 @@ import { venueClosures } from "./venue-closures";
 import { venueManagers } from "./venue-managers";
 import { venueOpeningHours } from "./venue-opening-hours";
 import { venuePhotos } from "./venue-photos";
+import { venueVerifiers } from "./venue-verifiers";
 
 type VenueCancellationPolicy = {
   tiers: { hoursBefore: number; refundPercent: number }[];
@@ -104,6 +105,7 @@ export const venueRelations = relations(venues, ({ many }) => ({
   courts: many(courts),
   groups: many(groups),
   managers: many(venueManagers),
+  verifiers: many(venueVerifiers),
   openingHours: many(venueOpeningHours),
   closures: many(venueClosures),
   photos: many(venuePhotos),

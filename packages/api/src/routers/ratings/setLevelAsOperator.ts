@@ -10,10 +10,10 @@ import { notify } from "#src/notifications/notify";
 import {
   applyLevelOverride,
   assertLevelOverrideReason,
-  assertLevelTenths,
+  requestedOverrideLevel,
 } from "#src/ratings/apply-level-override";
 import { operatorProcedure } from "#src/trpc";
-import { levelFromOvr, OVR_MAX, OVR_MIN } from "@repo/domain/football-ovr";
+import { OVR_MAX, OVR_MIN } from "@repo/domain/football-ovr";
 import { LEVEL_TENTHS_MAX, LEVEL_TENTHS_MIN } from "@repo/domain/level-range";
 import {
   LEVEL_OVERRIDE_NOTE_MAX,
@@ -26,41 +26,6 @@ import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-/**
- * The Level an Operator asked for: a Level in tenths in either sport, or a
- * football OVR, which is set as the continuous Level it reads back from.
- */
-function requestedLevel(
-  args: { sport: Sport; levelTenths?: number | null; ovr?: number | null },
-  locale: Locale,
-) {
-  const errors = messagesFor(locale).level.errors;
-  const hasTenths = args.levelTenths != null;
-  const hasOvr = args.ovr != null;
-  if (hasTenths === hasOvr) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: errors.levelOrOvr });
-  }
-  if (args.ovr != null) {
-    if (args.sport !== "football") {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: errors.ovrFootballOnly,
-      });
-    }
-    if (
-      !Number.isInteger(args.ovr) ||
-      args.ovr < OVR_MIN ||
-      args.ovr > OVR_MAX
-    ) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: errors.ovrBetween });
-    }
-    return levelFromOvr(args.ovr);
-  }
-  const levelTenths = args.levelTenths ?? 0;
-  assertLevelTenths(levelTenths, locale);
-  return levelTenths / 10;
-}
 
 /**
  * An Operator sets any other User's Level in either sport, with no Group in
@@ -87,7 +52,7 @@ export async function setLevelAsOperator(
       message: messagesFor(locale).level.errors.ownLevel,
     });
   }
-  const level = requestedLevel(args, locale);
+  const level = requestedOverrideLevel(args, locale);
   const target = await database.query.user.findFirst({
     where: eq(user.id, args.targetUserId),
     columns: { id: true },

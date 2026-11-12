@@ -105,6 +105,14 @@ export const notification = {
       plain(" مستواك عند "),
       strong(level),
     ],
+    levelCalibrated: (actor: string, venue: string, level: string) => [
+      plain("عاير "),
+      strong(actor),
+      plain(" ("),
+      strong(venue),
+      plain(") مستواك عند "),
+      strong(level),
+    ],
     tierPointsAdjusted: (actor: string, group: string) => [
       plain("عدّل "),
       strong(actor),

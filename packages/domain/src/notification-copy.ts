@@ -42,6 +42,8 @@ type NotificationLevelSet = {
   levelBand: LevelBand;
   reason: LevelOverrideReason | null;
   note?: string | null;
+  /** Set when a Verifier calibrated the Level from this Venue. */
+  venue?: { name: string } | null;
 };
 
 /**
@@ -250,12 +252,13 @@ export function notificationCopy(
     item.audience === "player" &&
     item.levelSet
   ) {
-    const { level, levelBand, reason, note } = item.levelSet;
+    const { level, levelBand, reason, note, venue } = item.levelSet;
+    const actor = actorName(item.actor, locale);
+    const shown = `${displayLabelFromStoredBand(levelBand)} ${level}`;
     return {
-      title: m.levelSet(
-        actorName(item.actor, locale),
-        `${displayLabelFromStoredBand(levelBand)} ${level}`,
-      ),
+      title: venue
+        ? m.levelCalibrated(actor, venue.name, shown)
+        : m.levelSet(actor, shown),
       subline: levelOverrideWhy({ reason, note, locale }),
     };
   }

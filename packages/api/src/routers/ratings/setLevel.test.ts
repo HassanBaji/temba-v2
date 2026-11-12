@@ -561,6 +561,7 @@ describe("setMemberLevel", () => {
           levelBand: "B3",
           reason: "back_from_injury",
           note: "Two months out, start him lower.",
+          venue: null,
         });
         const item = items[0];
         if (!item) {

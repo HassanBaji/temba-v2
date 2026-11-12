@@ -65,5 +65,8 @@ export const level = {
     levelOrOvr: "حدّد المستوى أو OVR، واحدًا منهما",
     ovrFootballOnly: "OVR هو مستوى كرة القدم. حدّد مستوى البادل من 0.0 إلى 7.0",
     ovrBetween: "يجب أن يكون OVR عددًا صحيحًا من 40 إلى 99",
+    notVerifier: "وحده المُوثِّق يستطيع معايرة المستوى",
+    notAtVerifierVenue:
+      "يمكنك معايرة مستوى لاعب لعب في ناديك أو ينتمي إلى إحدى مجموعات النادي فقط",
   },
 } satisfies typeof source;

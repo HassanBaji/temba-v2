@@ -1,3 +1,4 @@
+import { relations } from "drizzle-orm";
 import {
   boolean,
   doublePrecision,
@@ -13,6 +14,7 @@ import { groupSports } from "./group-enums";
 import { groups } from "./groups";
 import { ratingLevelBands } from "./ratings";
 import { user } from "./user";
+import { venues } from "./venues";
 
 export const LEVEL_OVERRIDE_REASON_VALUES = [
   "new_to_group",
@@ -56,6 +58,10 @@ export const levelOverrides = pgTable(
       onDelete: "set null",
     }),
     setByRole: levelOverrideSetByRoles("set_by_role").notNull(),
+    /** The Venue a Verifier calibrated from; null on every other door. */
+    venueId: uuid("venue_id").references(() => venues.id, {
+      onDelete: "set null",
+    }),
     reason: levelOverrideReasons("reason"),
     note: varchar("note", { length: LEVEL_OVERRIDE_NOTE_MAX_LENGTH }),
     hadRating: boolean("had_rating").notNull(),
@@ -75,3 +81,10 @@ export const levelOverrides = pgTable(
     ).on(table.userId, table.sport, table.createdAt),
   }),
 );
+
+export const levelOverrideRelations = relations(levelOverrides, ({ one }) => ({
+  venue: one(venues, {
+    fields: [levelOverrides.venueId],
+    references: [venues.id],
+  }),
+}));

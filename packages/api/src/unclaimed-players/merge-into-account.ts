@@ -51,6 +51,7 @@ import {
   userMerges,
   venueClosures,
   venueManagers,
+  venueVerifiers,
   venues,
 } from "@repo/db";
 
@@ -81,6 +82,7 @@ const uniqueUserReferences: UniqueUserReference[] = [
   { column: groupMembers.userId, sameKeys: [groupMembers.groupId] },
   { column: teamMembers.userId, sameKeys: [teamMembers.teamId] },
   { column: venueManagers.userId, sameKeys: [venueManagers.venueId] },
+  { column: venueVerifiers.userId, sameKeys: [venueVerifiers.venueId] },
   {
     column: matchResultConfirmations.userId,
     sameKeys: [matchResultConfirmations.matchId],
@@ -193,6 +195,7 @@ const plainUserReferences: PgColumn[] = [
   groupLinkRequests.decidedBy,
   venues.partnerBy,
   venueManagers.grantedByUserId,
+  venueVerifiers.grantedByUserId,
   venueClosures.createdByUserId,
   bookings.userId,
   bookings.cancelledByUserId,

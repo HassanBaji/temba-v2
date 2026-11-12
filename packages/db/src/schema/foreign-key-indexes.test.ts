@@ -25,6 +25,7 @@ const ALLOWED_UNINDEXED: Record<string, string> = {
   "user_merges.survivor_user_id": USER_OWN,
   "level_overrides.set_by_user_id": USER_ACTOR,
   "level_overrides.group_id": RARE_PARENT,
+  "level_overrides.venue_id": RARE_PARENT,
   "group_rating_events.group_id":
     "Reads lead with user_id (user_id, group_id, created_at); Groups are soft-deleted.",
   "group_level_overrides.group_id":
@@ -34,6 +35,7 @@ const ALLOWED_UNINDEXED: Record<string, string> = {
   "venues.detail_photo_id": RARE_PARENT,
   "venues.partner_by": USER_ACTOR,
   "venue_managers.granted_by_user_id": USER_ACTOR,
+  "venue_verifiers.granted_by_user_id": USER_ACTOR,
   "venue_closures.court_id": RARE_PARENT,
   "venue_closures.created_by_user_id": USER_ACTOR,
   "venue_pricing_rules.court_id": RARE_PARENT,

@@ -63,5 +63,8 @@ export const level = {
     ovrFootballOnly:
       "OVR is the football Level. Set a padel Level from 0.0 to 7.0",
     ovrBetween: "OVR must be a whole number from 40 to 99",
+    notVerifier: "Only a verifier can calibrate a Level",
+    notAtVerifierVenue:
+      "You can calibrate only a player who played at your venue or belongs to one of its club groups",
   },
 };

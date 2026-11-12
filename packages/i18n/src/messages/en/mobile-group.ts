@@ -177,6 +177,8 @@ export const mobileGroup = {
     nowMarker: (label: string) => `Now ${label}`,
     decrease: "Decrease Level by 0.1",
     increase: "Increase Level by 0.1",
+    decreaseOvr: "Decrease OVR by 1",
+    increaseOvr: "Increase OVR by 1",
     reset: "Reset",
     why: (name: string) => `Why? ${name} will see this.`,
     noteLabel: "Note",

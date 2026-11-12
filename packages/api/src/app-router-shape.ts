@@ -220,6 +220,7 @@ type ExpectedRatings =
   | "setLevel"
   | "listForOperator"
   | "setLevelAsOperator"
+  | "setLevelAsVerifier"
   | "myGroupLevels"
   | "setGroupLevel";
 
@@ -286,6 +287,9 @@ type ExpectedVenues =
   | "softArchive"
   | "unarchive"
   | "setPartner"
+  | "addVerifier"
+  | "removeVerifier"
+  | "listVerifiers"
   | "listLinkedGroups"
   | "searchLinkableGroups"
   | "sendGroupLinkRequest"

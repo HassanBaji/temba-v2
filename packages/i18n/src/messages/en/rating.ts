@@ -552,6 +552,26 @@ export const rating = {
         "Only an organizer of this game sees the ratings summary.",
     },
   },
+  verifier: {
+    kinds: {
+      club_staff: "Club staff",
+      referee: "Referee",
+      coach: "Coach",
+    },
+    calibrate: {
+      action: "Calibrate level",
+      title: (sport: string) => `Calibrate ${sport} level`,
+      description:
+        "As a verifier. The player sees your name, your venue and your reason.",
+      saved: (name: string, level: string) =>
+        `${name}’s level is calibrated to ${level}`,
+      notAllowed: {
+        title: "You can’t calibrate this player",
+        description:
+          "A verifier calibrates a player who played at their venue or belongs to one of its club groups.",
+      },
+    },
+  },
   publicGame: {
     label: "Public game",
     createNote:

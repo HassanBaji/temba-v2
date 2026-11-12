@@ -23,6 +23,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { canViewGame } from "#src/games/access";
 import { gameListTime } from "#src/home/upcoming-games";
+import { calibrationVenueFor } from "#src/ratings/verifier-calibration";
 import { summarizeCompletedMatchStats } from "@repo/domain/completed-matches";
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import {
@@ -814,7 +815,7 @@ export async function loadPlayerProfile(
     playerId: player.id,
     visibility: player.matchHistoryVisibility,
   });
-  const [rating, counted] = await Promise.all([
+  const [rating, counted, calibration] = await Promise.all([
     sportRating(database, {
       userId: player.id,
       sport: GroupSportEnum.PADEL,
@@ -823,6 +824,10 @@ export async function loadPlayerProfile(
     historyHidden
       ? Promise.resolve([])
       : loadCountedMatches(database, player.id, GameSportEnum.PADEL),
+    calibrationVenueFor(database, {
+      verifierUserId: args.viewerId,
+      targetUserId: player.id,
+    }),
   ]);
   const [lastMatches, partners, withViewer] = await Promise.all([
     lastMatchesFrom(
@@ -864,6 +869,8 @@ export async function loadPlayerProfile(
     lastMatches,
     partners,
     withViewer,
+    /** The viewer is a Verifier who may calibrate this player's Level, in either sport. */
+    viewerMayCalibrate: calibration.venue !== null,
   };
 }
 

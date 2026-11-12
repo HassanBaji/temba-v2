@@ -16,12 +16,18 @@ import { gamePath } from "../games/games-model";
 import { Notice } from "../groups/notice";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { apiOrigin } from "../lib/api-origin-runtime";
+import { Button } from "../primitives/button";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { api } from "../trpc/react";
 import { cabinetRowModel } from "../marks/cabinet-model";
-import { playerMarksPath, playerMatchesPath, playerPath } from "./player-path";
+import {
+  playerCalibratePath,
+  playerMarksPath,
+  playerMatchesPath,
+  playerPath,
+} from "./player-path";
 import {
   footballProfileState,
   playerProfileState,
@@ -152,6 +158,15 @@ export function PlayerProfileScreen({
         />
       }
     >
+      {padelQuery.data?.viewerMayCalibrate ? (
+        <Button
+          label={m.rating.verifier.calibrate.action}
+          variant="outline"
+          onPress={() =>
+            router.push(playerCalibratePath(segments, userId, sport))
+          }
+        />
+      ) : null}
       <PlayerProfileBody
         model={model}
         cabinet={cabinetRowModel(cabinetQuery.data, sport, locale)}

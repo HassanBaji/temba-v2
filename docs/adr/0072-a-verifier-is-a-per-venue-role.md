@@ -1,6 +1,6 @@
 # A Verifier is a per-Venue role that calibrates Levels and stamps Matches
 
-**Status:** proposed (draft for the owner's review). Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0023](./0023-level-override-is-a-confirmed-glicko-baseline.md) and [ADR-0046](./0046-an-operator-can-set-any-users-level.md). Follows [ADR-0025](./0025-venue-manager-is-a-per-venue-table-role.md).
+**Status:** accepted. Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0023](./0023-level-override-is-a-confirmed-glicko-baseline.md) and [ADR-0046](./0046-an-operator-can-set-any-users-level.md). Follows [ADR-0025](./0025-venue-manager-is-a-per-venue-table-role.md).
 
 The design says a Temba Level is controlled by "Temba admins and verifier roles": club staff, referees and coaches who can assess a new player and vouch for a result. Today only an Operator can set a football Level, and only a Level setter who shares a Group can set a padel one.
 
