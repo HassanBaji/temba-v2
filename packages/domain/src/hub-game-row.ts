@@ -1,3 +1,4 @@
+import type { GameAlbumSummary } from "./game-album";
 import type { GameRatingScope } from "./game-rating-scope";
 import type { MarkKind } from "./marks";
 
@@ -181,4 +182,5 @@ export type HubHistoryRow = {
   viewerIsMvp: boolean;
   /** Set when the history groups a Groups only tournament into one row. */
   myTournament?: MyTournament | null;
+  album?: GameAlbumSummary;
 };

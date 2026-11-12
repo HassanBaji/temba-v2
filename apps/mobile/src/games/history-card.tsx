@@ -7,9 +7,17 @@ import {
 } from "@repo/domain/match-history-card";
 import { markName, type CoinKind } from "@repo/domain/marks";
 import { resultMarkLabel } from "@repo/domain/result-mark";
+import {
+  albumStripTiles,
+  albumSummaryLine,
+  type GameAlbumSummary,
+} from "@repo/domain/game-album";
+import { ArrowRight, Plus } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
+import { CachedImage } from "../primitives/cached-image";
 import { CoinStack } from "../marks/coin-stack";
 import { Avatar } from "../primitives/avatar";
 import { Hairline } from "../primitives/hairline";
@@ -172,12 +180,102 @@ function ResultStrip({
   );
 }
 
+const STRIP_GAP = 4;
+
+/** Six small tiles when the Game has photos, hatched where empty; then the counts and where to go. */
+function AlbumFooter({
+  album,
+  onOpen,
+  onAddPhotos,
+}: {
+  album: GameAlbumSummary;
+  onOpen: () => void;
+  onAddPhotos?: () => void;
+}) {
+  const locale = useLocale();
+  const palette = useTonePalette();
+  const m = useMessages().gameAlbum.played;
+  const withPhotos = album.photoCount > 0;
+  return (
+    <View style={{ paddingHorizontal: INSET, paddingBottom: 12, gap: 10 }}>
+      {withPhotos ? (
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ flexDirection: "row", gap: STRIP_GAP }}
+        >
+          {albumStripTiles(album).map((tile, index) => (
+            <View
+              key={index}
+              style={{
+                flex: 1,
+                aspectRatio: 1,
+                borderRadius: radii.sm,
+                overflow: "hidden",
+              }}
+            >
+              {tile.kind === "photo" ? (
+                <CachedImage
+                  uri={tile.url}
+                  contentFit="cover"
+                  style={{ width: "100%", height: "100%" }}
+                />
+              ) : (
+                <Hatch radius={radii.sm} />
+              )}
+            </View>
+          ))}
+        </View>
+      ) : null}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <Text
+          size="eyebrow"
+          tone="muted"
+          numberOfLines={1}
+          style={{ flexShrink: 1 }}
+        >
+          {albumSummaryLine(album, locale)}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={withPhotos || !onAddPhotos ? onOpen : onAddPhotos}
+          hitSlop={10}
+          style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+        >
+          <Text size="eyebrow" weight="semibold">
+            {withPhotos || !onAddPhotos ? m.open : m.addPhotos}
+          </Text>
+          {withPhotos || !onAddPhotos ? (
+            <ArrowRight
+              size={12}
+              color={palette.foreground}
+              style={mirrorInRtl}
+            />
+          ) : (
+            <Plus size={12} color={palette.foreground} />
+          )}
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 export function HistoryCard({
   row,
   onOpen,
+  onAddPhotos,
 }: {
   row: HubHistoryRow;
   onOpen: (gameId: string) => void;
+  /** Opens the Game with the Add photos sheet up. */
+  onAddPhotos?: (gameId: string) => void;
 }) {
   const locale = useLocale();
   const messages = useMessages();
@@ -286,6 +384,13 @@ export function HistoryCard({
             {model.place}
           </Text>
         </View>
+        {row.album ? (
+          <AlbumFooter
+            album={row.album}
+            onOpen={() => onOpen(row.id)}
+            onAddPhotos={onAddPhotos ? () => onAddPhotos(row.id) : undefined}
+          />
+        ) : null}
       </Pressable>
     </View>
   );

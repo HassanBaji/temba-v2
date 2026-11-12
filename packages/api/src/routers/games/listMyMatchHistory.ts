@@ -1,10 +1,23 @@
 import type { DbClient } from "@repo/db";
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, asc, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 
-import { MatchStatusEnum, gamePlayers, games, marks, matches } from "@repo/db";
+import {
+  MatchStatusEnum,
+  gameNotes,
+  gamePhotos,
+  gamePlayers,
+  games,
+  marks,
+  matches,
+} from "@repo/db";
+import {
+  GAME_ALBUM_SLOTS,
+  type GameAlbumSummary,
+} from "@repo/domain/game-album";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
+import { gamePhotoUrl } from "#src/storage/game-photos";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { matchOutcome } from "@repo/domain/match-outcome";
@@ -62,6 +75,8 @@ export type MatchHistoryRow = {
    * the row's Match fields are its latest scored Match (ADR-0074).
    */
   myTournament: MyTournament | null;
+  /** The Game's Album thumbnails and the notes the viewer can read; set by the Played list. */
+  album?: GameAlbumSummary;
 };
 
 type HistoryRowWithoutMarks = Omit<MatchHistoryRow, "viewerMarks">;
@@ -430,15 +445,62 @@ async function withViewerMarks(
   }));
 }
 
+/** Each row's Album: up to six photos oldest first, and the public notes plus the viewer's own. */
+export async function withAlbumSummaries(
+  database: DbClient,
+  userId: string,
+  rows: MatchHistoryRow[],
+): Promise<MatchHistoryRow[]> {
+  const gameIds = [...new Set(rows.map((row) => row.id))];
+  if (gameIds.length === 0) {
+    return rows;
+  }
+  const [photos, notes] = await Promise.all([
+    database.query.gamePhotos.findMany({
+      where: inArray(gamePhotos.gameId, gameIds),
+      columns: { id: true, gameId: true },
+      orderBy: [asc(gamePhotos.createdAt), asc(gamePhotos.id)],
+    }),
+    database.query.gameNotes.findMany({
+      where: and(
+        inArray(gameNotes.gameId, gameIds),
+        or(
+          eq(gameNotes.visibility, "public"),
+          eq(gameNotes.authorUserId, userId),
+        ),
+      ),
+      columns: { gameId: true },
+    }),
+  ]);
+  const summaries = new Map<string, GameAlbumSummary>(
+    gameIds.map((id) => [id, { photoUrls: [], photoCount: 0, noteCount: 0 }]),
+  );
+  for (const photo of photos) {
+    const summary = summaries.get(photo.gameId)!;
+    summary.photoCount += 1;
+    if (summary.photoUrls.length < GAME_ALBUM_SLOTS) {
+      summary.photoUrls.push(gamePhotoUrl(photo.gameId, photo.id));
+    }
+  }
+  for (const note of notes) {
+    summaries.get(note.gameId)!.noteCount += 1;
+  }
+  return rows.map((row) => ({ ...row, album: summaries.get(row.id) }));
+}
+
 export const listMyMatchHistory = protectedProcedure
   .input(historyPageInput)
   .query(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return listMyMatchHistoryRows(
+    return withAlbumSummaries(
       ctx.db,
       appUser.id,
-      new Date(),
-      input,
-      ctx.locale,
+      await listMyMatchHistoryRows(
+        ctx.db,
+        appUser.id,
+        new Date(),
+        input,
+        ctx.locale,
+      ),
     );
   });

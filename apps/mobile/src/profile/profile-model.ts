@@ -258,7 +258,7 @@ export type FormSlotView = {
   spoken: string;
 };
 
-/** Ten slots, oldest first; the missing ones are "not played" at the old end. */
+/** Ten slots filled from the left, oldest first; the unplayed ones trail on the right. */
 export function lastTenSlots(
   newestFirst: readonly {
     matchId: string;
@@ -278,7 +278,6 @@ export function lastTenSlots(
     }),
   );
   return [
-    ...padding,
     ...shown.map((match): FormSlotView => {
       const outcome = resultMarkLabel(match.outcome, locale);
       const delta = match.delta == null ? null : compactDelta(match.delta);
@@ -295,6 +294,7 @@ export function lastTenSlots(
               ),
       };
     }),
+    ...padding,
   ];
 }
 
@@ -633,21 +633,21 @@ export function footballTabView(profile: FootballProfile, locale: Locale) {
     goals: {
       total: all.mobileYou.goalsInMatch(goalsLastTen),
       bars: [
-        ...Array.from(
-          { length: LAST_TEN - oldestFirst.length },
-          (_, index) => ({
-            key: `empty-${index}`,
-            goals: null as number | null,
-            percent: 0,
-            spoken: resultMarkLabel("not-played", locale),
-          }),
-        ),
         ...oldestFirst.map((match) => ({
           key: match.matchId,
           goals: match.goals,
           percent: (match.goals / maxGoals) * 100,
           spoken: all.mobileYou.goalsInMatch(match.goals),
         })),
+        ...Array.from(
+          { length: LAST_TEN - oldestFirst.length },
+          (_, index) => ({
+            key: `empty-${index}`,
+            goals: null,
+            percent: 0,
+            spoken: resultMarkLabel("not-played", locale),
+          }),
+        ),
       ],
     },
     stats: [
