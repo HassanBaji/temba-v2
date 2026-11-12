@@ -6,6 +6,7 @@ import {
   Building2,
   CalendarClock,
   FileText,
+  Flag,
   KeyRound,
   Mail,
   MailCheck,
@@ -45,6 +46,7 @@ import { footballLevelLabel } from "~/components/you/you-football-model";
 import { bandInText, displayBand } from "~/components/you/you-format";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { OPERATOR_DISPUTES_HREF } from "~/lib/dashboard-paths";
 import { profileTaskHref } from "~/lib/onboarding-step";
 import { cn } from "~/lib/utils";
 import { activeVenueCountLabel } from "@repo/domain/active-venue-count";
@@ -525,6 +527,12 @@ export function SettingsHub() {
                       </span>
                     ) : null
                   }
+                />
+                <SettingsLinkRow
+                  href={OPERATOR_DISPUTES_HREF}
+                  icon={<Flag {...iconProps} />}
+                  title={m.rating.dispute.operator.title}
+                  subtitle={m.rating.dispute.operator.settingsSubtitle}
                 />
               </SettingsSection>
             ) : null}

@@ -1,7 +1,11 @@
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
 
-import { gameRateHref, groupTierHistoryHref } from "~/lib/dashboard-paths";
+import {
+  gameRateHref,
+  groupTierHistoryHref,
+  OPERATOR_DISPUTES_HREF,
+} from "~/lib/dashboard-paths";
 
 export function notificationHref(item: {
   type: string;
@@ -9,6 +13,9 @@ export function notificationHref(item: {
   game?: { id: string } | null;
   challenge?: { id: string } | null;
 }): string | null {
+  if (item.type === "match_dispute_raised") {
+    return OPERATOR_DISPUTES_HREF;
+  }
   if (item.type === "performance_ratings_open" && item.game) {
     return gameRateHref(item.game.id);
   }
@@ -39,6 +46,7 @@ export function notificationHref(item: {
       item.type === "mvp_decided" ||
       item.type === "mvp_tie_break" ||
       item.type === "performance_ratings_closed" ||
+      item.type === "match_dispute_decided" ||
       item.type === "group_join_requested" ||
       item.type === "group_join_approved" ||
       item.type === "group_join_declined" ||

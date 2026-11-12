@@ -26,6 +26,7 @@ import { MarksSection } from "~/components/marks/marks-section";
 import { MvpRow } from "~/components/marks/mvp-row";
 import { useGameMarks } from "~/components/marks/use-game-marks";
 
+import { MatchDisputeRow } from "./match-dispute-row";
 import { PlayedGameView } from "./played-game-view";
 import { PlayedPadelBoard } from "./played-padel-board";
 import { PlayedPlayerDialog } from "./played-player-dialog";
@@ -153,6 +154,7 @@ export function PlayedFriendlyGame({
         marks={<MarksSection marks={marks} />}
         columns={model.columns}
         facts={model.facts}
+        dispute={<MatchDisputeRow match={match} />}
         onPressPlayer={
           linkToPlayers || game.isOrganizer ? setSelected : undefined
         }

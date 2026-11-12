@@ -64,6 +64,9 @@ export function titleFromPath(pathname: string, m: Messages) {
   if (pathname.startsWith("/dashboard/operator/groups")) {
     return m.webUi.nav.verifyGroups;
   }
+  if (pathname.startsWith(OPERATOR_DISPUTES_HREF)) {
+    return m.rating.dispute.operator.title;
+  }
   if (pathname.startsWith("/dashboard/groups/new")) {
     return titles.createGroup;
   }
@@ -167,6 +170,9 @@ export function detailBackHref(pathname: string | null): string | undefined {
 export function gameHomeHref(gameId: string) {
   return `/dashboard/games/${gameId}`;
 }
+
+/** The Operator's open Match disputes. */
+export const OPERATOR_DISPUTES_HREF = "/dashboard/operator/disputes";
 
 /** Rate the game (screen 4a). */
 export function gameRateHref(gameId: string) {

@@ -33,6 +33,8 @@ export type PlayedGameViewProps = {
   columns: [PlayedColumn, PlayedColumn];
   unplaced?: PlayedRow[];
   facts: PlayedFact[];
+  /** The Match dispute row, under the facts. */
+  dispute?: React.ReactNode;
   onPressPlayer?: (row: PlayedRow) => void;
 };
 
@@ -48,6 +50,7 @@ export function PlayedGameView({
   columns,
   unplaced,
   facts,
+  dispute,
   onPressPlayer,
 }: PlayedGameViewProps) {
   const m = useMessages();
@@ -83,6 +86,7 @@ export function PlayedGameView({
       />
       {marks}
       <FootballInfoRows rows={facts} />
+      {dispute}
       <Button size="lg" className="w-full" asChild>
         <Link href={href}>
           <Share aria-hidden="true" />

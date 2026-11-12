@@ -70,6 +70,10 @@ describe("detailBackHref", () => {
     );
   });
 
+  it("titles the Operator Disputes page", () => {
+    assert.equal(titleFromPath("/dashboard/operator/disputes", en), "Disputes");
+  });
+
   it("keeps existing detail back targets", () => {
     assert.equal(detailBackHref("/dashboard/groups/abc"), "/dashboard/groups");
     assert.equal(detailBackHref("/dashboard/venues/abc"), "/dashboard/venues");

@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { MatchStatusEnum, matchDisputes } from "@repo/db";
 
 import { gameRatingScope } from "@repo/domain/game-rating-scope";
+import { MATCH_DISPUTE_DAYS } from "@repo/domain/match-dispute";
 
 import { type db } from "#src/db";
 import { type GameRow } from "#src/games/access";
@@ -10,9 +11,6 @@ import { userIsOnMatchSlots } from "#src/games/user-is-on-match-slots";
 import { type MatchRow } from "#src/games/utils";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-/** How long after a Match completes a seated player may dispute it. */
-export const MATCH_DISPUTE_DAYS = 7;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 

@@ -28,6 +28,8 @@ const GAME_TYPES = new Set([
   "mvp_decided",
   "mvp_tie_break",
   "performance_ratings_closed",
+  "match_dispute_raised",
+  "match_dispute_decided",
   "group_join_requested",
   "group_join_approved",
   "group_join_declined",

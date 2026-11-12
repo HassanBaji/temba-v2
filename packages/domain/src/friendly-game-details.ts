@@ -49,6 +49,10 @@ export type FriendlyGameDetailsMatch = {
   stamp?: { verifierName: string } | null;
   /** The viewer is a Verifier of the Venue who may stamp it now. */
   canStamp?: boolean;
+  /** The viewer is a seated player who may dispute the counted result. */
+  canDispute?: boolean;
+  /** The Match dispute waiting on an Operator. */
+  openDispute?: { raisedByViewer: boolean } | null;
   slot1GameTeamId: string | null;
   slot2GameTeamId: string | null;
   canScoreSets: boolean;

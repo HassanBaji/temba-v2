@@ -9,6 +9,7 @@ import {
   user,
 } from "@repo/db";
 
+import { MATCH_DISPUTE_DAYS } from "@repo/domain/match-dispute";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
@@ -17,7 +18,6 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { requireGame } from "#src/games/access";
 import {
-  MATCH_DISPUTE_DAYS,
   matchDisputeRefusal,
   type MatchDisputeRefusal,
 } from "#src/games/match-dispute";

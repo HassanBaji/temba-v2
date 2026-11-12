@@ -43,6 +43,7 @@ import { PoolSections, SeatBar } from "~/components/games/football-pool-grid";
 import { FootballScoreCard } from "~/components/games/football-score-card";
 import { TeamColumns } from "~/components/games/football-team-columns";
 import { PlayedFootballBoard } from "~/components/games/played/played-football-board";
+import { MatchDisputeRow } from "~/components/games/played/match-dispute-row";
 import { PlayedGameView } from "~/components/games/played/played-game-view";
 import { OvrImpactCard } from "~/components/games/ovr-impact-card";
 import { PerformanceResultCard } from "~/components/games/performance-result-card";
@@ -839,6 +840,7 @@ export function FootballGameDetails({
             columns={playedModel.columns}
             unplaced={playedModel.unplaced}
             facts={playedModel.facts}
+            dispute={<MatchDisputeRow match={boardMatch} />}
             onPressPlayer={
               pressPlayer ? (row) => pressPlayer(row.userId) : undefined
             }
