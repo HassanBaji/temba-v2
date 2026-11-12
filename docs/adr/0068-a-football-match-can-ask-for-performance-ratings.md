@@ -1,6 +1,6 @@
 # A football Match can ask for Performance ratings
 
-**Status:** proposed (draft for the owner's review). Spec: `.scratch/rating-redesign/spec.md`. Amends the Marks window for the MVP on Matches that have a Rating window.
+**Status:** accepted for a tier Group's Rating settings; proposed (draft for the owner's review) for Performance ratings, the Rating window and settling. Spec: `.scratch/rating-redesign/spec.md`. Amends the Marks window for the MVP on Matches that have a Rating window.
 
 A result alone says who won. The owner's design also asks how each player played: a 1 to 10 rating from the people on the pitch, feeding 20 to 50% of a tier move and 30% of an OVR move.
 
