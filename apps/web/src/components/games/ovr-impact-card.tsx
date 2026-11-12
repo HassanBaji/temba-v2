@@ -46,6 +46,9 @@ export function OvrImpactCard({
         ))}
         <OvrRow row={view.total} total />
       </ul>
+      {view.footnote ? (
+        <p className="text-meta text-muted-foreground">{view.footnote}</p>
+      ) : null}
     </section>
   );
 }

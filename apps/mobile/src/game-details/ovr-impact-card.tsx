@@ -58,6 +58,11 @@ export function OvrImpactCard({
         <Hairline />
         <OvrRow row={view.total} total />
       </Surface>
+      {view.footnote ? (
+        <Text size="meta" tone="muted">
+          {view.footnote}
+        </Text>
+      ) : null}
     </View>
   );
 }
