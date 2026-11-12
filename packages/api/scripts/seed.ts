@@ -22,6 +22,7 @@ import {
   groupMemberInvites,
   groupTierEvents,
   groupTierPoints,
+  matchRatingWindows,
   matches,
   matchSets,
   teamMemberInvites,
@@ -67,6 +68,7 @@ import { requestJoin as requestGroupJoin } from "#src/routers/groups/requestJoin
 import { sendLookupInvite as sendGroupLookupInvite } from "#src/routers/groups/sendLookupInvite";
 import { setOrganizer } from "#src/routers/groups/setOrganizer";
 import { updateRatingSettings } from "#src/routers/groups/updateRatingSettings";
+import { settleRatingWindow } from "#src/ratings/settle-rating-window";
 import { selfDeclareRating } from "#src/routers/ratings/selfDeclare";
 import { confirmProposal } from "#src/routers/challenges/confirmProposal";
 import { nameChallengeSquad } from "#src/routers/games/nameChallengeSquad";
@@ -2162,6 +2164,151 @@ async function seedFootball(u: Users, v: Venues) {
       ratings: ratings.map(([key, value]) => ({ userId: u[key]!.id, value })),
     });
   }
+
+  // Played two days ago while everyone rated: its Rating window has closed,
+  // so Sam sees the rating, the two parts of the move and the fish (screen
+  // 4c). Two players rated Jonas, too few for a performance part.
+  const settled = await footballGame({
+    name: "Tuesday five-a-side",
+    sideSize: 5,
+    start: at(24, 19),
+    players: [
+      keeper("ben"),
+      keeper("hana"),
+      outfield("me", "mid"),
+      outfield("omar", "fwd"),
+      outfield("maya", "mid"),
+      outfield("lina", "def"),
+      outfield("diego", "fwd"),
+      outfield("sofia", "mid"),
+      outfield("jonas", "def"),
+      outfield("priya", "fwd"),
+    ],
+  });
+  await publishFootballTeams(db, {
+    gameId: settled,
+    userId: u.me!.id,
+    method: "manual",
+    bibs: { slot1: "black", slot2: "white" },
+    slot1: ids(["ben", "me", "omar", "maya", "lina"]),
+    slot2: ids(["hana", "diego", "sofia", "jonas", "priya"]),
+  });
+  await moveIntoPast(settled, at(-2, 19));
+  await saveFootballScore(db, {
+    gameId: settled,
+    userId: u.me!.id,
+    slot1Goals: 3,
+    slot2Goals: 3,
+    scorers: [
+      { userId: u.me!.id, goals: 1 },
+      { userId: u.omar!.id, goals: 2 },
+      { userId: u.diego!.id, goals: 2 },
+      { userId: u.priya!.id, goals: 1 },
+    ],
+  });
+  const settledMatch = await db.query.matches.findFirst({
+    where: eq(matches.gameId, settled),
+  });
+  await confirmMatchResult(db, {
+    gameId: settled,
+    matchId: settledMatch!.id,
+    userId: u.me!.id,
+  });
+  const settledBallots: [rater: string, ratings: [string, number][]][] = [
+    [
+      "me",
+      [
+        ["omar", 8],
+        ["maya", 7],
+        ["ben", 6],
+        ["diego", 7],
+        ["jonas", 5],
+      ],
+    ],
+    [
+      "omar",
+      [
+        ["me", 8],
+        ["maya", 7],
+        ["lina", 6],
+        ["ben", 7],
+      ],
+    ],
+    [
+      "maya",
+      [
+        ["me", 7],
+        ["omar", 8],
+        ["lina", 6],
+        ["ben", 6],
+      ],
+    ],
+    [
+      "lina",
+      [
+        ["me", 9],
+        ["omar", 7],
+        ["maya", 7],
+        ["ben", 7],
+      ],
+    ],
+    [
+      "ben",
+      [
+        ["me", 6],
+        ["omar", 8],
+        ["maya", 6],
+        ["lina", 7],
+      ],
+    ],
+    [
+      "hana",
+      [
+        ["me", 7],
+        ["diego", 8],
+        ["sofia", 7],
+        ["priya", 6],
+      ],
+    ],
+    [
+      "diego",
+      [
+        ["hana", 7],
+        ["sofia", 6],
+        ["priya", 7],
+        ["jonas", 6],
+      ],
+    ],
+    [
+      "sofia",
+      [
+        ["hana", 6],
+        ["diego", 8],
+        ["priya", 7],
+      ],
+    ],
+    [
+      "priya",
+      [
+        ["hana", 7],
+        ["diego", 7],
+        ["sofia", 7],
+      ],
+    ],
+  ];
+  for (const [rater, ratings] of settledBallots) {
+    await submitPerformanceRatings(db, {
+      gameId: settled,
+      userId: u[rater]!.id,
+      ratings: ratings.map(([key, value]) => ({ userId: u[key]!.id, value })),
+    });
+  }
+  const settledWindow = await db.query.matchRatingWindows.findFirst({
+    where: eq(matchRatingWindows.matchId, settledMatch!.id),
+  });
+  await db.transaction((tx) =>
+    settleRatingWindow(tx, settledMatch!.id, settledWindow!.closesAt),
+  );
 }
 
 // ---------------------------------------------------------------------------
