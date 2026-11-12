@@ -942,6 +942,32 @@ type Teams = Awaited<ReturnType<typeof seedTeams>>;
  * Kings, who won it yesterday, so the two are Rivals at one each; Rally Kings
  * have an open Rematch nudging Smash Brothers for the decider.
  */
+/**
+ * A Public Game at the partner Venue, organized by Omar, with three seats
+ * open to anyone inside its Level range (ADR-0071).
+ */
+async function seedPublicGame(u: Users, v: Venues) {
+  const created = await createGame(db, {
+    createdBy: u.omar!.id,
+    customName: "Open padel at Padel Central",
+    isPublic: true,
+    format: "friendly_game",
+    registrationMode: "individual",
+    windowStart: at(3, 19),
+    windowEnd: at(3, 20, 30),
+    venueId: v.central.id,
+    courtId: v.central.courtIds[0] ?? null,
+    levelMinTenths: 20,
+    levelMaxTenths: 55,
+  });
+  await registerSeat(db, {
+    gameId: created.id,
+    userId: u.omar!.id,
+    sideIndex: 1,
+    position: "right",
+  });
+}
+
 async function seedChallenges(u: Users, v: Venues, t: Teams) {
   const padel = await postChallenge(db, {
     teamId: t.duo.id,
@@ -2487,6 +2513,7 @@ async function main() {
       operatorUserId: u.me!.id,
     }),
   );
+  await step("public game", () => seedPublicGame(u, v));
   await step("challenges", () => seedChallenges(u, v, t));
   await step("bookings", () => seedBookings(u, v));
   await step("group links", () => seedGroupLinks(u, v, g));

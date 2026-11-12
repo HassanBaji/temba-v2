@@ -184,7 +184,7 @@ export async function createFriendlyGame(
         registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
         groupId: input.groupId,
         venueId: input.venueId,
-        isPublic: false,
+        isPublic: input.isPublic ?? false,
         windowStart: input.windowStart,
         windowEnd: input.windowEnd,
         playersAllowed: FRIENDLY_PLAYERS_ALLOWED,

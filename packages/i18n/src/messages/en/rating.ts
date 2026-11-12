@@ -552,4 +552,21 @@ export const rating = {
         "Only an organizer of this game sees the ratings summary.",
     },
   },
+  publicGame: {
+    label: "Public game",
+    createNote:
+      "No group needed. Anyone inside its Level range can join, at a partner venue.",
+    createAction: "Create a public game",
+    levelRangeNote: "Recommended",
+    levelRangeHint:
+      "Strangers join a public game. A Level range keeps it even.",
+    noPartnerVenues: "No partner venues yet, so a public game can’t be made.",
+    hub: {
+      emptyTitle: "No public games right now",
+      emptyLine:
+        "Public games at partner venues show here. Make one and anyone in its Level range can join.",
+      emptySportLine: (sport: string) =>
+        `${sport} public games at partner venues show here. Make one and anyone in its Level range can join.`,
+    },
+  },
 };

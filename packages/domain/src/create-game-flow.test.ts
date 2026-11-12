@@ -61,6 +61,9 @@ import {
   resetCreateBranch,
   selectDurationFinish,
   selectStartSlot,
+  choosePublicGame,
+  isPublicGameDraft,
+  publicGameOffered,
 } from "./create-game-flow";
 import { initialCreateGameDraft } from "./create-game-draft";
 
@@ -1288,6 +1291,78 @@ describe("Arabic copy", () => {
     assert.equal(
       gameTeamOfTwoCopy("6.50", "ar"),
       "13.000 د.ب لفريق من لاعبَين",
+    );
+  });
+});
+
+describe("Public Game on create", () => {
+  it("is offered only on the Friendly game type", () => {
+    assert.equal(publicGameOffered("friendly_game"), true);
+    assert.equal(publicGameOffered("friendly_tournament"), false);
+    assert.equal(publicGameOffered(null), false);
+  });
+
+  it("drops the Group and Venue, and picking a Group undoes it", () => {
+    const draft = {
+      ...initialCreateGameDraft(NOW, "en"),
+      groupId: "group-1",
+      venueId: "venue-1",
+      courtId: "court-1",
+    };
+    const chosen = choosePublicGame(draft);
+    assert.equal(chosen.groupId, "");
+    assert.equal(chosen.venueId, "");
+    assert.equal(chosen.courtId, "none");
+    assert.equal(isPublicGameDraft(chosen), true);
+    assert.equal(
+      isPublicGameDraft(changeCreateGroup(chosen, "group-2")),
+      false,
+    );
+    assert.equal(
+      isPublicGameDraft(resetCreateBranch(chosen, "friendly_game", "en")),
+      false,
+    );
+    assert.equal(
+      isPublicGameDraft(resetCreateBranch(chosen, "friendly_tournament", "en")),
+      false,
+    );
+  });
+
+  it("needs no Group to move past Where, but still a Venue", () => {
+    assert.deepEqual(validateFriendlyGameWhere("", "venue-1", "en", true), {
+      ok: true,
+    });
+    const noVenue = validateFriendlyGameWhere("", "", "en", true);
+    assert.equal(noVenue.ok ? null : noVenue.field, "venueId");
+    const grouped = validateFriendlyGameWhere("", "venue-1", "en");
+    assert.equal(grouped.ok ? null : grouped.field, "groupId");
+    assert.equal(
+      firstIncompleteFriendlyGameStep(
+        { ...emptyDraft, venueId: "venue-1", isPublic: true },
+        NOW,
+      ),
+      3,
+    );
+    assert.equal(
+      firstIncompleteFriendlyGameStep(
+        { ...emptyDraft, venueId: "venue-1" },
+        NOW,
+      ),
+      2,
+    );
+  });
+
+  it("tells the creator only partner Venues host public games", () => {
+    const copy = createVenueCopy(
+      { locked: false, groupKind: "none", venues: [] },
+      "en",
+      { publicGame: true },
+    );
+    assert.equal(
+      copy,
+      messagesFor("en").createGame.venue.pickPartner(
+        messagesFor("en").createGame.venue.courtOptional,
+      ),
     );
   });
 });

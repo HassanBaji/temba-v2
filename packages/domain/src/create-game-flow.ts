@@ -338,7 +338,24 @@ export type FriendlyGameDraft = {
   day: string;
   startTime: string;
   finishTime: string;
+  /** With no Group, the draft is a Public Game. */
+  isPublic?: boolean;
 };
+
+/**
+ * A Public Game is a groupless padel Friendly game at a partner Venue
+ * (ADR-0071), so the create flow offers it only on the Friendly game type.
+ */
+export function publicGameOffered(type: CreateGameTypeId | null) {
+  return type === "friendly_game";
+}
+
+export function isPublicGameDraft(draft: {
+  groupId: string;
+  isPublic?: boolean;
+}) {
+  return !draft.groupId && draft.isPublic === true;
+}
 
 export type CreateFlowFieldIssue = {
   ok: false;
@@ -351,9 +368,10 @@ export function validateFriendlyGameWhere(
   groupId: string,
   venueId: string,
   locale: Locale,
+  publicGame = false,
 ): { ok: true } | CreateFlowFieldIssue {
   const m = messagesFor(locale).createGame.validation;
-  if (!groupId) {
+  if (!groupId && !publicGame) {
     return {
       ok: false,
       field: "groupId",
@@ -486,7 +504,7 @@ export function firstIncompleteFriendlyGameStep(
   draft: FriendlyGameDraft,
   now: Date = new Date(),
 ): 2 | 3 | 4 {
-  if (!draft.groupId || !draft.venueId) {
+  if ((!draft.groupId && !isPublicGameDraft(draft)) || !draft.venueId) {
     return 2;
   }
   if (
@@ -579,7 +597,7 @@ export function createVenueCopy(
     venues: { archivedAt: Date | string | null }[];
   },
   locale: Locale,
-  options?: { manyCourts?: boolean; sport?: Sport },
+  options?: { manyCourts?: boolean; sport?: Sport; publicGame?: boolean },
 ) {
   const m = messagesFor(locale).createGame.venue;
   const football = options?.sport === "football";
@@ -599,7 +617,7 @@ export function createVenueCopy(
     }
     return m.lockedLinked(optional);
   }
-  return m.pick(optional);
+  return options?.publicGame ? m.pickPartner(optional) : m.pick(optional);
 }
 
 export function venueCardMeta(
@@ -1086,7 +1104,12 @@ export function resetCreateBranch(
       allowSoloRegister: true,
     };
   }
-  return { ...draft, courtId: "none", customName: "" };
+  return {
+    ...draft,
+    courtId: "none",
+    customName: "",
+    isPublic: isPublicGameDraft(draft) ? false : draft.isPublic,
+  };
 }
 
 export function changeCreateDay<
@@ -1113,6 +1136,11 @@ export function changeCreateGroup(
     courtIds: [],
     isPublic: false,
   };
+}
+
+/** Picking Public game drops the Group and its Venue: a Public Game has none. */
+export function choosePublicGame(draft: CreateGameDraft): CreateGameDraft {
+  return { ...changeCreateGroup(draft, ""), isPublic: true };
 }
 
 export function changeCreateVenue(

@@ -29,6 +29,7 @@ export const webDashboard = {
     createAction: "Create Game",
     tabs: {
       upcoming: "Upcoming",
+      public: "Public",
       played: "Played",
     },
   },

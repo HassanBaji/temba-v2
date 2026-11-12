@@ -64,17 +64,12 @@ export async function listMyGamesHubRows(
     userId,
     viewer.myTeamIds,
   );
-  const scope = [and(eq(games.isPublic, false), eq(games.createdBy, userId))!];
+  const scope = [eq(games.createdBy, userId)];
   if (viewer.memberGroupIds.size > 0) {
     scope.push(inArray(games.groupId, [...viewer.memberGroupIds]));
   }
   if (participantGameIds.size > 0) {
-    scope.push(
-      and(
-        eq(games.isPublic, false),
-        inArray(games.id, [...participantGameIds]),
-      )!,
-    );
+    scope.push(inArray(games.id, [...participantGameIds]));
   }
   const rows = await queryHubGames(
     database,

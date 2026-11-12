@@ -303,6 +303,10 @@ _Avoid_: reservation, slot (that is the offer, not the reservation), Game, sessi
 A groupless, unrated, private Friendly game created from a confirmed, upcoming Booking by its holder, who is its Organizer. Its Venue, Court and window are the Booking's. Players join through Invite doors. Cancelling the Booking cancels the Game; cancelling the Game keeps the Booking, and the holder may then create a new Game for it. A Booking on a football Court creates a football Game, whose holder chooses the Side size and players allowed. Americano and Friendly tournament are never created from a Booking.
 _Avoid_: booked Game, court Game, reservation Game, Game booking, private Game (that is any Game with `isPublic` off)
 
+**Public Game**:
+A padel Friendly game with no Group, `isPublic` on, at a Partner Venue (ADR-0071). Any User may create one, from the Public game choice in Create Game, which lists only partner Venues that offer padel and encourages a Game Level range. Its creator is its Organizer. Anyone inside its Game Level range may join, alone or with a partner, without joining a Group; a User outside it sees no join action and is refused. It is listed on the Games hub's Public tab for everyone who has not created it or taken a seat or Waitlist place on it, and on My Games for those who have. It is the third groupless kind, beside the Booking Game and the Challenge Game. It counts for Temba Level once one player from each side confirms the score within 24 hours (ADR-0071); until that rule lands it is Unrated.
+_Avoid_: open game, pickup, pickup Game, verified game, public Booking Game
+
 **Slot**:
 One Court, one start on the Venue's grid, one duration and one price, offered to a Customer. Derived from Opening hours, Closures, Pricing rules and occupying Bookings; never stored.
 _Avoid_: Booking (that is the reservation), Position, Match slot, time slot (as an entity), window (that is a Game's registration window)
@@ -344,7 +348,7 @@ A reversible hide of a Venue by an Operator. It hides the Venue from unlocked Ga
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
-The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game and a Challenge Game, which have none; other groupless Games are legacy rows. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group, the Group’s linked Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator and Appointed Organizers. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator, except a Challenge Game's, which are whoever acts for either Team. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration** and a **Side size**; it has no Match until its Organizer publishes the two **Football sides**, which creates its one Match. It comes only from a football Group, a football Court Booking or a confirmed Challenge, whose Challenge Game has its two sides and Match from the start. On a Verified Group it counts for Temba Level and may have a Game Level range, shown in OVR; on a tier Group it moves Tier points; otherwise it is Unrated (ADR-0069). Positions, Game teams and Sets are padel structure.
+The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game, a Challenge Game and a Public Game, which have none; other groupless Games are legacy rows. A groupless Game is private and creator-only, so only its creator may join without an Invite door, unless it is a Public Game. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group, the Group’s linked Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator and Appointed Organizers. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator, except a Challenge Game's, which are whoever acts for either Team. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration** and a **Side size**; it has no Match until its Organizer publishes the two **Football sides**, which creates its one Match. It comes only from a football Group, a football Court Booking or a confirmed Challenge, whose Challenge Game has its two sides and Match from the start. On a Verified Group it counts for Temba Level and may have a Game Level range, shown in OVR; on a tier Group it moves Tier points; otherwise it is Unrated (ADR-0069). Positions, Game teams and Sets are padel structure.
 _Avoid_: Event (when you mean Game), session, match (that is a Match)
 
 **Game day**:
@@ -513,7 +517,7 @@ One Game team's played, won, drawn, and lost counts inside its Pool. Ordered by 
 _Avoid_: score (Sets carry the score), Standing, stats, results
 
 **Friendly game**:
-A Game format with exactly one Match, created with the Game.
+A Game format with exactly one Match, created with the Game. The Booking Game, the Challenge Game and the Public Game are Friendly games with no Group.
 _Avoid_: Single, Friendly tournament, Americano
 
 **Waitlist**:
@@ -677,7 +681,7 @@ A completed, non-cancelled Match on a Game that rates, which produced rating eve
 _Avoid_: ranked Match, scored Match (Sets score a Match; rating is separate)
 
 **Unrated Game**:
-A Game whose completed Matches never produce rating events or move a Level, while still counting towards its Group's Standing and as played, won, lost or drawn in Last 10, All time stats and Win streak. A Game whose creator chose Unrated, a groupless Game (a Booking Game without a Group, legacy rows), every padel Game on a Group that is not Verified (ADR-0066), and every football Game on neither a tier Group nor a Verified Group. Match result confirmation still applies. Its Rating scope is `unrated`: `games.rated` and `games.group_rated` both false, fixed at create.
+A Game whose completed Matches never produce rating events or move a Level, while still counting towards its Group's Standing and as played, won, lost or drawn in Last 10, All time stats and Win streak. A Game whose creator chose Unrated, a groupless Game (a Booking Game without a Group, a Public Game until its confirmation rule lands, legacy rows), every padel Game on a Group that is not Verified (ADR-0066), and every football Game on neither a tier Group nor a Verified Group. Match result confirmation still applies. Its Rating scope is `unrated`: `games.rated` and `games.group_rated` both false, fixed at create.
 _Avoid_: unranked (the user-facing word is "Unrated"), casual, friendly (that is a Game format), practice
 
 **Rating scope**:

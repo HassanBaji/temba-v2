@@ -1,6 +1,6 @@
 # A Public Game at a partner Venue counts for Temba Level
 
-**Status:** proposed (draft for the owner's review). Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0014](./0014-public-groups-list-and-group-join-requests.md), [ADR-0029](./0029-a-booking-game-is-groupless-and-unrated.md), [ADR-0035](./0035-rated-and-public-games-need-a-verified-group.md) and [ADR-0044](./0044-an-organizers-score-confirmation-is-final.md) for this one Game kind.
+**Status:** accepted. Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0014](./0014-public-groups-list-and-group-join-requests.md), [ADR-0029](./0029-a-booking-game-is-groupless-and-unrated.md), [ADR-0035](./0035-rated-and-public-games-need-a-verified-group.md) and [ADR-0044](./0044-an-organizers-score-confirmation-is-final.md) for this one Game kind.
 
 Until now a Level could move only inside a Verified Group or a Challenge Game. A player with no such Group, or a football player with no Team, had no way to earn one. The owner's design adds a second road: a public game, open to anyone, at a partner venue, that both sides confirm.
 

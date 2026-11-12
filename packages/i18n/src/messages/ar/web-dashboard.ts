@@ -30,6 +30,7 @@ export const webDashboard = {
     createAction: "إنشاء مباراة",
     tabs: {
       upcoming: "القادمة",
+      public: "عامة",
       played: "السابقة",
     },
   },

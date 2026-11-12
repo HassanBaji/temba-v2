@@ -157,6 +157,55 @@ const football = {
   playersAllowed: 12,
 } as const;
 
+describe("validateFriendlyGameSubmit Public Game", () => {
+  it("sends no Group, isPublic and no Rating choice", () => {
+    const result = validateFriendlyGameSubmit(
+      {
+        ...game,
+        groupId: "",
+        isPublic: true,
+        rated: false,
+        levelMin: "C",
+        levelMax: "B",
+      },
+      NOW,
+      "en",
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal("groupId" in result.input, false);
+      assert.equal(result.input.isPublic, true);
+      assert.equal("rated" in result.input, false);
+      assert.equal(typeof result.input.levelMinTenths, "number");
+    }
+  });
+
+  it("still asks for a Group when the draft is not public", () => {
+    const result = validateFriendlyGameSubmit(
+      { ...game, groupId: "" },
+      NOW,
+      "en",
+    );
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.field, "groupId");
+      assert.equal(result.step, 2);
+    }
+  });
+
+  it("asks a Public Game for a Venue", () => {
+    const result = validateFriendlyGameSubmit(
+      { ...game, groupId: "", venueId: "", isPublic: true },
+      NOW,
+      "en",
+    );
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.field, "venueId");
+    }
+  });
+});
+
 describe("validateFootballGameSubmit", () => {
   it("sends the side size and cap with no sport, Level range or seats", () => {
     const result = validateFootballGameSubmit(

@@ -97,6 +97,8 @@ export const createGame = {
     lockedLinked: (optional: string) =>
       `النادي هو النادي المرتبط بهذه المجموعة ولا يمكن تغييره. ${optional}`,
     pick: (optional: string) => `اختر ناديًا. ${optional}`,
+    pickPartner: (optional: string) =>
+      `لا تستضيف المباريات العامة إلا النوادي الشريكة. ${optional}`,
     cardMeta: (courts: string, city: string) => `${courts} · ${city}`,
   },
   price: {

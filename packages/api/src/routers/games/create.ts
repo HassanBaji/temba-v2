@@ -1,12 +1,15 @@
 import { TRPCError } from "@trpc/server";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
   GameFormatEnum,
   GameRegistrationModeEnum,
   GameSportEnum,
+  courts,
   gameCourts,
   games,
+  venues,
 } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
@@ -44,6 +47,8 @@ import {
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+type GroupGameInput = CreateGameInput & { groupId: string };
+
 const registrationModeSchema = z.enum(["individual", "team_only"]);
 const createFormatSchema = z.enum([
   "friendly_game",
@@ -55,7 +60,8 @@ export const createGameInputSchema = z
   .object({
     name: z.string().trim().max(255).optional(),
     customName: z.string().trim().max(GAME_CUSTOM_NAME_MAX_LENGTH).optional(),
-    groupId: z.string().uuid({ message: "Pick a Group" }),
+    /** Omitted only for a Public Game (ADR-0071). */
+    groupId: z.string().uuid({ message: "Pick a Group" }).optional(),
     isPublic: z.boolean(),
     /** False makes the Game Unrated (ADR-0053). */
     rated: z.boolean().optional(),
@@ -131,6 +137,13 @@ export const createGameInputSchema = z
     },
   )
   .superRefine((value, ctx) => {
+    if (value.groupId === undefined && !value.isPublic) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Pick a Group",
+        path: ["groupId"],
+      });
+    }
     if (value.format === "friendly_game" && value.courtIds !== undefined) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -191,7 +204,7 @@ function friendlyGameNameFields(
 
 async function createFootballGameOnGroup(
   database: DbClient,
-  input: CreateGameInput,
+  input: GroupGameInput,
   flags: { rated: boolean; groupRated: boolean },
   locale: Locale = DEFAULT_LOCALE,
 ) {
@@ -253,18 +266,106 @@ export async function createGame(
         .startInPast,
     });
   }
-  const created = await createGameOnGroup(database, input, locale);
+  const created = input.groupId
+    ? await createGameOnGroup(
+        database,
+        { ...input, groupId: input.groupId },
+        locale,
+      )
+    : await createPublicGame(database, input, locale);
   await linkNewGameToSeason(database, {
     id: created.id,
-    groupId: input.groupId,
+    groupId: input.groupId ?? null,
     windowStart: input.windowStart,
   });
   return created;
 }
 
-async function createGameOnGroup(
+/**
+ * Only a partner Venue hosts a Public Game, read from the stored mark, never
+ * inferred (ADR-0071). Public Games are padel for now, so the Venue must
+ * offer padel.
+ */
+async function assertPublicGameVenue(
+  database: DbClient,
+  venueId: string,
+  locale: Locale,
+) {
+  const errors = messagesFor(locale).game.errors;
+  const venue = await database.query.venues.findFirst({
+    where: eq(venues.id, venueId),
+    columns: { id: true, partnerAt: true },
+  });
+  if (!venue) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).venue.errors.notFound,
+    });
+  }
+  if (venue.partnerAt === null) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: errors.publicGamePartnerVenue,
+    });
+  }
+  const padelCourt = await database.query.courts.findFirst({
+    where: and(
+      eq(courts.venueId, venueId),
+      eq(courts.sport, GameSportEnum.PADEL),
+    ),
+    columns: { id: true },
+  });
+  if (!padelCourt) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: errors.publicGamePadelVenue,
+    });
+  }
+}
+
+/**
+ * A Public Game: a groupless padel Friendly game at a partner Venue that
+ * anyone inside its Level range may join (ADR-0071). It does not count for
+ * Temba Level yet.
+ */
+async function createPublicGame(
   database: DbClient,
   input: CreateGameInput,
+  locale: Locale,
+) {
+  if (!input.isPublic || input.format !== "friendly_game") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).game.errors.publicGameOnly,
+    });
+  }
+  await assertPublicGameVenue(database, input.venueId, locale);
+  const created = await createFriendlyGame(
+    database,
+    {
+      createdBy: input.createdBy,
+      ...friendlyGameNameFields(input),
+      groupId: null,
+      isPublic: true,
+      venueId: input.venueId,
+      courtId: input.courtId,
+      windowStart: input.windowStart,
+      windowEnd: input.windowEnd,
+      pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+      levelMinTenths: input.levelMinTenths ?? null,
+      levelMaxTenths: input.levelMaxTenths ?? null,
+      rated: false,
+      groupRated: false,
+      mvpMode: input.mvpMode,
+    },
+    locale,
+  );
+  return { id: created.game.id, matchId: created.matchId };
+}
+
+async function createGameOnGroup(
+  database: DbClient,
+  input: GroupGameInput,
   locale: Locale = DEFAULT_LOCALE,
 ) {
   const group = await requireGroup(database, input.groupId, locale);

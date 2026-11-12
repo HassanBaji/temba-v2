@@ -5,6 +5,7 @@ import {
   CREATE_FLOW_FIELD_IDS,
   createShapeHasPools,
   friendlyTournamentSchedule,
+  isPublicGameDraft,
   parseCreateMatchMinutes,
   validateFriendlyGameWhen,
   validateFriendlyGameWhere,
@@ -53,9 +54,14 @@ type GameFields = {
   levelMax: LevelBandSelectValue;
   customName?: string;
   rated?: boolean;
+  /** With no Group, a Public Game (ADR-0071). */
+  isPublic?: boolean;
 };
 
-type TournamentFields = Omit<GameFields, "courtId" | "customName"> & {
+type TournamentFields = Omit<
+  GameFields,
+  "courtId" | "customName" | "isPublic"
+> & {
   courtIds: readonly string[];
   teamCount: number;
   tournamentShape: CreateTournamentShape;
@@ -92,8 +98,14 @@ function validateWhereAndWhen(
   >,
   now: Date,
   locale: Locale,
+  publicGame = false,
 ) {
-  const where = validateFriendlyGameWhere(draft.groupId, draft.venueId, locale);
+  const where = validateFriendlyGameWhere(
+    draft.groupId,
+    draft.venueId,
+    locale,
+    publicGame,
+  );
   if (!where.ok) {
     return { failed: true as const, issue: issueAtStep(where, 2) };
   }
@@ -158,7 +170,8 @@ export function validateFriendlyGameSubmit(
   now: Date,
   locale: Locale,
 ) {
-  const placed = validateWhereAndWhen(draft, now, locale);
+  const publicGame = isPublicGameDraft(draft);
+  const placed = validateWhereAndWhen(draft, now, locale, publicGame);
   if (placed.failed) {
     return placed.issue;
   }
@@ -175,8 +188,8 @@ export function validateFriendlyGameSubmit(
         draft.finishTime,
         locale,
       ),
-      groupId: draft.groupId,
-      isPublic: false,
+      ...(publicGame ? {} : { groupId: draft.groupId }),
+      isPublic: publicGame,
       format: "friendly_game" as const,
       registrationMode: "individual" as const,
       windowStart: placed.when.windowStart,
@@ -184,7 +197,7 @@ export function validateFriendlyGameSubmit(
       venueId: draft.venueId,
       courtId: draft.courtId === "none" ? undefined : draft.courtId,
       ...customNameInput(draft),
-      ...ratedInput(draft),
+      ...(publicGame ? {} : ratedInput(draft)),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }

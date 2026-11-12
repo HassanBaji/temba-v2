@@ -5,6 +5,7 @@ export const mobileTournament = {
     createGame: "Create Game",
     findAGroup: "Find a Group",
     upcomingTab: "Upcoming",
+    publicTab: "Public",
     playedTab: "Played",
     sport: "Sport",
     couldNotLoad: "Games could not be loaded",

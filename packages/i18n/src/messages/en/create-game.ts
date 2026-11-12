@@ -78,6 +78,8 @@ export const createGame = {
     lockedLinked: (optional: string) =>
       `Venue is this Group’s linked Venue and cannot be changed. ${optional}`,
     pick: (optional: string) => `Pick a Venue. ${optional}`,
+    pickPartner: (optional: string) =>
+      `Only partner Venues host public games. ${optional}`,
     cardMeta: (courts: string, city: string) => `${courts} · ${city}`,
   },
   price: {
