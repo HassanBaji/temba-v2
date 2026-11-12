@@ -26,6 +26,7 @@ export function TournamentTeamsSection({
   viewerUserId,
   canTakeSeat,
   onTakeSeat,
+  onOpenSeat,
   linkToPlayers = false,
 }: {
   sides: readonly TournamentHomeSide[];
@@ -36,6 +37,8 @@ export function TournamentTeamsSection({
     sideIndex: number;
     position: "left" | "right";
   }) => void;
+  /** The Organizer clicked an open seat; `canJoin` when they could take it too. */
+  onOpenSeat?: OpenSeatHandler;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -72,6 +75,7 @@ export function TournamentTeamsSection({
             viewerUserId={viewerUserId}
             canTakeSeat={canTakeSeat}
             onTakeSeat={onTakeSeat}
+            onOpenSeat={onOpenSeat}
             linkToPlayers={linkToPlayers}
           />
         ))}
@@ -105,6 +109,7 @@ export function TournamentTeamsSection({
             viewerUserId={viewerUserId}
             canTakeSeat={canTakeSeat}
             onTakeSeat={onTakeSeat}
+            onOpenSeat={onOpenSeat}
             linkToPlayers={linkToPlayers}
           />
         ))}
@@ -116,6 +121,7 @@ export function TournamentTeamsSection({
             viewerUserId={viewerUserId}
             canTakeSeat={canTakeSeat}
             onTakeSeat={onTakeSeat}
+            onOpenSeat={onOpenSeat}
             linkToPlayers={linkToPlayers}
           />
         ))}
@@ -123,6 +129,11 @@ export function TournamentTeamsSection({
     </section>
   );
 }
+
+type OpenSeatHandler = (
+  seat: { sideIndex: number; position: "left" | "right" },
+  canJoin: boolean,
+) => void;
 
 function sideByIndex(sides: readonly TournamentHomeSide[], sideIndex: number) {
   return sides.find((side) => side.sideIndex === sideIndex) ?? null;
@@ -134,6 +145,7 @@ function TeamSeat({
   teamLabel,
   viewerUserId,
   joinable,
+  addable = false,
   onJoin,
   linked,
 }: {
@@ -142,6 +154,8 @@ function TeamSeat({
   teamLabel: string;
   viewerUserId: string;
   joinable: boolean;
+  /** The Organizer may add a player here. */
+  addable?: boolean;
   onJoin?: () => void;
   linked: boolean;
 }) {
@@ -154,17 +168,22 @@ function TeamSeat({
 
   if (!occupant) {
     const canJoin = joinable && onJoin != null;
+    const canAdd = addable && onJoin != null;
     return (
       <SeatTile
         occupant={null}
-        caption={positionName}
-        label={tournamentSeatLabel({
-          position,
-          teamLabel,
-          joinable: canJoin,
-          locale,
-        })}
-        onSelect={canJoin ? onJoin : undefined}
+        caption={canAdd && !canJoin ? m.group.addPlayer.action : positionName}
+        label={
+          canAdd && !canJoin
+            ? m.webDashboard.game.addPlayerTo(teamLabel, positionName)
+            : tournamentSeatLabel({
+                position,
+                teamLabel,
+                joinable: canJoin,
+                locale,
+              })
+        }
+        onSelect={canJoin || canAdd ? onJoin : undefined}
       />
     );
   }
@@ -190,6 +209,7 @@ function TeamRow({
   viewerUserId,
   canTakeSeat,
   onTakeSeat,
+  onOpenSeat,
   linkToPlayers,
 }: {
   row: TournamentTeamRow;
@@ -200,6 +220,7 @@ function TeamRow({
     sideIndex: number;
     position: "left" | "right";
   }) => void;
+  onOpenSeat?: OpenSeatHandler;
   linkToPlayers: boolean;
 }) {
   const m = useMessages();
@@ -210,11 +231,17 @@ function TeamRow({
     locale,
   );
 
+  const canJoin = canTakeSeat && onTakeSeat != null && !row.isViewer;
+
   function join(position: "left" | "right") {
-    if (!canTakeSeat || !onTakeSeat || row.isViewer) {
+    const seat = { sideIndex: row.sideIndex, position };
+    if (onOpenSeat) {
+      onOpenSeat(seat, canJoin);
       return;
     }
-    onTakeSeat({ sideIndex: row.sideIndex, position });
+    if (canJoin) {
+      onTakeSeat?.(seat);
+    }
   }
 
   return (
@@ -246,6 +273,7 @@ function TeamRow({
           teamLabel={teamLabel}
           viewerUserId={viewerUserId}
           joinable={canTakeSeat && !row.isViewer && side?.left == null}
+          addable={onOpenSeat != null && side?.left == null}
           onJoin={
             side?.left == null
               ? () => {
@@ -261,6 +289,7 @@ function TeamRow({
           teamLabel={teamLabel}
           viewerUserId={viewerUserId}
           joinable={canTakeSeat && !row.isViewer && side?.right == null}
+          addable={onOpenSeat != null && side?.right == null}
           onJoin={
             side?.right == null
               ? () => {

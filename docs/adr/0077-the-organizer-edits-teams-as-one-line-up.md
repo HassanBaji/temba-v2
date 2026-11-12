@@ -36,4 +36,4 @@ tools and keeps the line-up itself unchanged for everyone else.
   design's substitute flow needs its own decision on how results and ratings split.
 - The edit board shows Level bands, not a numeric team average, so the design's balance line and
   Balance for me / Even them out shortcuts are not built.
-- Mobile only for now; the web App can call the same door.
+- The Mobile and web Apps share the board logic in `@repo/domain/edit-teams`; each draws its own sheet or dialog.

@@ -73,6 +73,7 @@ export function AddPlayerDialog({
   placement,
   sides,
   initialSeat = null,
+  initialSide = null,
   groupName,
   onAdded,
 }: {
@@ -83,6 +84,8 @@ export function AddPlayerDialog({
   sides: readonly { sideIndex: number; left: NamedSeat; right: NamedSeat }[];
   /** The open spot the Organizer clicked on the court. */
   initialSeat?: FriendlyGameJoinSeat | null;
+  /** The open tournament team the Organizer clicked. */
+  initialSide?: number | null;
   /** The Game's Group; with one, the dialog opens on its members. */
   groupName: string | null;
   onAdded: () => Promise<unknown>;
@@ -121,12 +124,13 @@ export function AddPlayerDialog({
   React.useEffect(() => {
     if (open) {
       setPicked(initialSeat);
+      setPickedSide(initialSide);
       setMode(hasGroup ? "group" : "phone");
       setQuery("");
       setMemberIds([]);
       setFootballPicks({});
     }
-  }, [open, initialSeat, hasGroup]);
+  }, [open, initialSeat, initialSide, hasGroup]);
 
   const isFootball = placement === "football";
   const inGroupMode = hasGroup && mode === "group";
