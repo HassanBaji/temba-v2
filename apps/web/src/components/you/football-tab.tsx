@@ -20,6 +20,7 @@ import {
   LevelHeroSkeleton,
 } from "./level-hero";
 import { PartnersCard } from "./profile-cards";
+import { RatingsLink } from "./ratings-page";
 import {
   footballHeroStats,
   goalBars,
@@ -222,6 +223,7 @@ export function FootballTab({ userId }: { userId: string }) {
         ) : me.data?.canSelfDeclare ? (
           <HomeDeclareLevel surface="profile" sport="football" />
         ) : null}
+        <RatingsLink sport="football" />
         <LastTenStrip
           title={m.you.form.lastTen}
           record={formRecord(lastTen, locale)}

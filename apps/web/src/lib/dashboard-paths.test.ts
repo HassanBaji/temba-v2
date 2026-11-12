@@ -28,6 +28,10 @@ describe("titleFromPath", () => {
     assert.equal(titleFromPath("/dashboard/you/settings", en), "Settings");
   });
 
+  it("titles Ratings for the Ratings page", () => {
+    assert.equal(titleFromPath("/dashboard/you/ratings", en), "Ratings");
+  });
+
   it("titles Profile for the rest of /dashboard/you", () => {
     assert.equal(titleFromPath("/dashboard/you", en), "Profile");
     assert.equal(titleFromPath("/dashboard/you/extra", en), "Profile");
@@ -49,6 +53,10 @@ describe("detailBackHref", () => {
   it("returns Profile for the Settings page", () => {
     assert.equal(detailBackHref("/dashboard/you/settings"), "/dashboard/you");
     assert.equal(detailBackHref("/dashboard/you/settings/"), "/dashboard/you");
+  });
+
+  it("returns Profile for the Ratings page", () => {
+    assert.equal(detailBackHref("/dashboard/you/ratings"), "/dashboard/you");
   });
 
   it("returns Home for the Notifications page", () => {

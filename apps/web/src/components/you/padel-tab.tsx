@@ -18,6 +18,7 @@ import {
   LevelHeroSkeleton,
 } from "./level-hero";
 import { PartnersCard, ProfileTiles, RecentMatchesCard } from "./profile-cards";
+import { RatingsLink } from "./ratings-page";
 import {
   formRecord,
   lastTenSlots,
@@ -88,6 +89,7 @@ function PadelBody({
     <div className="grid gap-[26px] lg:grid-cols-2 lg:items-start">
       <div className="flex min-w-0 flex-col gap-[26px]">
         {hero}
+        <RatingsLink sport="padel" />
         <LastTenStrip
           title={m.you.form.lastTen}
           record={formRecord(profile.lastTen, locale)}
