@@ -4,6 +4,7 @@ import {
   gameEditDraftFrom,
   gameEditPlan,
   gameEditSeasonFix,
+  gameEditVenueChoices,
   type GameEditDraft,
   type GameEditSections,
   type GameEditSource,
@@ -11,12 +12,14 @@ import {
 } from "@repo/domain/game-edit-form";
 import type { GroupSeasonData } from "@repo/domain/group-season";
 import type { MvpMode } from "@repo/domain/marks";
+import { sportOrDefault } from "@repo/domain/sport";
 import { useEffect, useMemo, useState } from "react";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import { gameEditMvp, gameEditMvpChanged } from "./game-edit-mvp";
+import { slotOf } from "../lib/slot-of";
 import { useErrorMessage } from "../lib/use-error-message";
 
 export type GameEditField = GameEditStep["kind"] | "mvp";
@@ -75,6 +78,26 @@ export function useGameEdit({
 
   const updateName = api.games.updateName.useMutation();
   const updateWindow = api.games.updateWindow.useMutation();
+  const updatePlace = api.games.updatePlace.useMutation();
+  const catalog = api.games.listCreateVenues.useQuery(
+    { groupId: game.groupId ?? undefined },
+    { enabled: open && sections.place },
+  );
+  const placeCatalog = slotOf(catalog);
+  const place =
+    placeCatalog.status === "ready"
+      ? {
+          status: "ready" as const,
+          value: {
+            locked: placeCatalog.value.locked,
+            venues: gameEditVenueChoices(
+              placeCatalog.value.venues,
+              sportOrDefault(game.sport),
+              { id: saved.venueId, name: game.venue?.name ?? null },
+            ),
+          },
+        }
+      : placeCatalog;
   const updateCaps = api.games.updateCaps.useMutation();
   const updatePrice = api.games.updatePricePerPlayer.useMutation();
   const updateLevel = api.games.updateLevelRange.useMutation();
@@ -94,6 +117,13 @@ export function useGameEdit({
           windowStart: step.windowStart,
           windowEnd: step.windowEnd,
           ...(step.seasonId !== undefined ? { seasonId: step.seasonId } : {}),
+        });
+        return 0;
+      case "place":
+        await updatePlace.mutateAsync({
+          gameId,
+          venueId: step.venueId,
+          courtId: step.courtId,
         });
         return 0;
       case "caps": {
@@ -216,6 +246,7 @@ export function useGameEdit({
     update,
     mvp,
     pickMvpMode,
+    place,
     changed,
     note,
     seasonFix,

@@ -24,12 +24,21 @@ import {
   FieldLabel,
 } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { cn } from "~/lib/utils";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
 import {
   asideLabel,
   footballFormatNote,
   footballSideSizeStep,
+  gameEditCourtCopy,
+  gamePlaceLine,
   joinedCountLabel,
   playersAllowedForSideSize,
   playersCapWaitNote,
@@ -463,6 +472,98 @@ function SeasonSection({
   );
 }
 
+const NO_COURT = "none";
+
+function PlaceSection({
+  edit,
+  venueName,
+  error,
+}: {
+  edit: GameEditController;
+  venueName: string | null;
+  error: string | undefined;
+}) {
+  const locale = useLocale();
+  const m = useMessages();
+  const placeCopy = m.createGame.edit.place;
+  const copy = gameEditCourtCopy(edit.draft.sideSize, locale);
+  const { draft, update, place } = edit;
+  const venue = place.venues.find((choice) => choice.id === draft.venueId);
+  return (
+    <section className="space-y-3">
+      <SectionHead title={placeCopy.title} />
+      <Field>
+        <FieldLabel htmlFor="edit-venue">{placeCopy.venue}</FieldLabel>
+        {place.locked ? (
+          <>
+            <p id="edit-venue" className="text-body font-medium">
+              {venue?.name ?? venueName}
+            </p>
+            <FieldDescription>{placeCopy.clubVenue}</FieldDescription>
+          </>
+        ) : (
+          <>
+            <Select
+              value={draft.venueId ?? undefined}
+              disabled={place.loading}
+              onValueChange={(venueId) => update({ venueId, courtId: null })}
+            >
+              <SelectTrigger
+                id="edit-venue"
+                className="w-full"
+                aria-describedby="edit-venue-copy"
+              >
+                <SelectValue placeholder={venueName ?? placeCopy.venue} />
+              </SelectTrigger>
+              <SelectContent>
+                {place.venues.map((choice) => (
+                  <SelectItem key={choice.id} value={choice.id}>
+                    {choice.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FieldDescription id="edit-venue-copy">
+              {placeCopy.venueHint}
+            </FieldDescription>
+          </>
+        )}
+      </Field>
+      <Field>
+        <FieldLabel htmlFor="edit-court">{copy.title}</FieldLabel>
+        <Select
+          value={draft.courtId ?? NO_COURT}
+          disabled={place.loading}
+          onValueChange={(value) =>
+            update({ courtId: value === NO_COURT ? null : value })
+          }
+        >
+          <SelectTrigger
+            id="edit-court"
+            className="w-full"
+            aria-invalid={error ? true : undefined}
+            aria-describedby="edit-court-copy"
+          >
+            <SelectValue
+              placeholder={place.loading ? copy.loading : copy.none}
+            />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NO_COURT}>{copy.none}</SelectItem>
+            {(venue?.courts ?? []).map((court) => (
+              <SelectItem key={court.id} value={court.id}>
+                {court.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <FieldDescription id="edit-court-copy">{copy.hint}</FieldDescription>
+        <FieldError id="edit-place-error">{error ?? place.error}</FieldError>
+      </Field>
+    </section>
+  );
+}
+
 function MvpSection({
   mvp,
   onPick,
@@ -598,8 +699,18 @@ export function GameEditDialog({
                 </Button>
               </div>
               <ResponsiveDialogDescription className="flex items-center gap-1.5">
-                <Lock aria-hidden="true" className="size-3.5 shrink-0" />
-                {venueLockedLine(context.venueName, context.courtName, locale)}
+                {sections.place && !edit.place.locked ? (
+                  gamePlaceLine(context.venueName, context.courtName, locale)
+                ) : (
+                  <>
+                    <Lock aria-hidden="true" className="size-3.5 shrink-0" />
+                    {venueLockedLine(
+                      context.venueName,
+                      sections.place ? null : context.courtName,
+                      locale,
+                    )}
+                  </>
+                )}
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
             <form
@@ -663,6 +774,13 @@ export function GameEditDialog({
                   description={m.createGame.edit.whenHint}
                 />
               </section>
+              {sections.place ? (
+                <PlaceSection
+                  edit={edit}
+                  venueName={context.venueName}
+                  error={errorFor("place")}
+                />
+              ) : null}
               <section className="space-y-3">
                 <SectionHead
                   title={

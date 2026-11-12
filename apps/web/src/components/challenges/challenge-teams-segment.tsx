@@ -304,7 +304,12 @@ export function ChallengeTeamsSegment({
                   aria-label={view.accessibilityLabel}
                   className={`${ROW} hover:bg-muted/40 focus-visible:ring-ring/50 outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-inset`}
                 >
-                  <EntityMonogram name={view.title} size="xl" tone="control" />
+                  <EntityMonogram
+                    name={view.title}
+                    image={view.imageUrl}
+                    size="xl"
+                    tone="control"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="text-body font-semibold">{view.title}</p>
                     <p className="text-eyebrow text-muted-foreground mt-0.5">

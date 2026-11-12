@@ -406,6 +406,7 @@ describe("teamCardView", () => {
     expect(teamCardView(football, "en")).toEqual({
       id: "team-1",
       title: "Hidd United",
+      imageUrl: null,
       line: "Football. 12 on the roster. Gooz of Arad's team",
       record: { label: "W–D–L", value: "3–1–2" },
       accessibilityLabel:
@@ -428,6 +429,13 @@ describe("teamCardView", () => {
     );
     expect(view.line).toBe("Padel. Incomplete");
     expect(view.record).toEqual({ label: "W–L", value: "0–0" });
+  });
+
+  it("carries the Team image when it has one", () => {
+    const imageUrl = "https://bucket.example/team-images/team-1/image?v=1";
+    expect(teamCardView({ ...football, imageUrl }, "en").imageUrl).toBe(
+      imageUrl,
+    );
   });
 
   it("writes the card in Arabic", () => {

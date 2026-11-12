@@ -52,7 +52,10 @@ function StoryHead({ typeLine }: { typeLine: string }) {
   return (
     <div className="flex items-center justify-between gap-6">
       <Wordmark mark={56} px={40} />
-      <Label px={22} className="text-dim shrink-0 whitespace-nowrap">
+      <Label
+        px={22}
+        className="text-on-control-muted shrink-0 whitespace-nowrap"
+      >
         {typeLine}
       </Label>
     </div>
@@ -70,7 +73,10 @@ function StoryMvp({ mvp }: { mvp: ResultCardMvp | null }) {
       <Big px={40} className="min-w-0 shrink truncate font-semibold">
         {m.mvp.title(mvp.name)}
       </Big>
-      <Big px={30} className="text-dim min-w-0 shrink-[2] truncate">
+      <Big
+        px={30}
+        className="text-on-control-muted min-w-0 shrink-[2] truncate"
+      >
         {mvp.decidedBy}
       </Big>
     </div>
@@ -85,7 +91,7 @@ function StoryFoot({ card }: { card: ResultCard }) {
           {card.venue}
         </Big>
         {card.when ? (
-          <Big px={30} className="text-dim">
+          <Big px={30} className="text-on-control-muted">
             {card.when}
           </Big>
         ) : null}
@@ -108,17 +114,17 @@ function PadelSide({
   count: number;
   strong: boolean;
 }) {
-  const ink = strong ? colors.paper : colors.dim;
+  const ink = strong ? colors.paper : colors.onControlMuted;
   return (
     <div
-      className="border-dimrule flex items-center gap-10 border-b"
+      className="border-control-rule flex items-center gap-10 border-b"
       style={{ paddingBottom: 36 }}
     >
       <div className="flex min-w-0 flex-1 flex-col" style={{ gap: 14 }}>
         <Label
           px={26}
           tracking={0.14}
-          className={strong ? "text-dim" : "text-muted-foreground"}
+          className={strong ? "text-on-control-muted" : "text-muted-foreground"}
         >
           {word}
         </Label>
@@ -181,7 +187,10 @@ function PadelStory({ card }: { card: PadelResultCard }) {
             >
               {story.storySets}
             </Label>
-            <Label px={24} className="text-dim w-[160px] text-center">
+            <Label
+              px={24}
+              className="text-on-control-muted w-[160px] text-center"
+            >
               {card.winnerShort}
             </Label>
             <Label
@@ -194,14 +203,14 @@ function PadelStory({ card }: { card: PadelResultCard }) {
           {card.setRows.map((row) => (
             <div
               key={row.id}
-              className="bg-raised flex items-center gap-6"
+              className="bg-control-raised flex items-center gap-6"
               style={{ padding: "22px 28px", borderRadius: 20 }}
             >
               <div className="flex flex-1 items-center gap-4">
                 <Label px={28} tracking={0.14}>
                   {row.label}
                 </Label>
-                <Label px={22} className="text-dim">
+                <Label px={22} className="text-on-control-muted">
                   {row.note}
                 </Label>
               </div>
@@ -250,10 +259,10 @@ function FootballScoreRow({
   word: string;
   strong: boolean;
 }) {
-  const ink = strong ? colors.paper : colors.dim;
+  const ink = strong ? colors.paper : colors.onControlMuted;
   return (
     <div
-      className="border-dimrule flex items-center gap-9 border-b"
+      className="border-control-rule flex items-center gap-9 border-b"
       style={{ paddingBottom: 36 }}
     >
       <div className="flex min-w-0 flex-1 items-center gap-[18px]">
@@ -268,7 +277,9 @@ function FootballScoreRow({
           <Label
             px={20}
             tracking={0.14}
-            className={strong ? "text-dim" : "text-muted-foreground"}
+            className={
+              strong ? "text-on-control-muted" : "text-muted-foreground"
+            }
           >
             {word}
           </Label>
@@ -298,7 +309,7 @@ function ScorerSheet({ card }: { card: FootballResultCard }) {
           ? colors.ink
           : scorer.onWinningSide
             ? colors.paper
-            : colors.dim;
+            : colors.onControlMuted;
         return (
           <div
             key={scorer.userId}
@@ -351,14 +362,20 @@ function LineupGrid({
       <Label
         px={26}
         tracking={0.14}
-        className={strong ? "text-dim pb-1" : "text-muted-foreground pb-1"}
+        className={
+          strong ? "text-on-control-muted pb-1" : "text-muted-foreground pb-1"
+        }
       >
         {word}
       </Label>
       <div className="flex flex-wrap" style={{ columnGap: 24, rowGap: 16 }}>
         {people.slice(0, MAX_LINEUP).map((person) => {
           const you = strong && person.isYou;
-          const ink = you ? colors.ink : strong ? colors.paper : colors.dim;
+          const ink = you
+            ? colors.ink
+            : strong
+              ? colors.paper
+              : colors.onControlMuted;
           return (
             <div
               key={person.userId}

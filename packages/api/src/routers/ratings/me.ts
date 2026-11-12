@@ -19,27 +19,40 @@ import {
   progressToNextBand,
   type LevelBand,
 } from "@repo/domain/level";
+import type { LevelHistoryStep } from "@repo/domain/home-level-chart";
 import type { Sport } from "@repo/domain/sport";
 import { sportSchema } from "@repo/validators/sport";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-/** Recent Level changes (Rated Matches and sets) for the home sparkline. */
+/** Recent Level changes (Rated Matches and sets) for the home Trend. */
 const HISTORY_CHANGE_LIMIT = 15;
 
 function ratingSport(sport: Sport): GroupSportEnum {
   return sport === "football" ? GroupSportEnum.FOOTBALL : GroupSportEnum.PADEL;
 }
 
+function stepFromOutcomeScore(outcomeScore: number): LevelHistoryStep {
+  if (outcomeScore > 0.5) {
+    return "won";
+  }
+  return outcomeScore < 0.5 ? "lost" : "drawn";
+}
+
 /**
- * Level points oldest first, and how many of the changes between them came
- * from Rated Matches. Level overrides move the line too but are not Matches.
+ * Level points oldest first, what moved the Level into each point after the
+ * first, and how many of those changes came from Rated Matches. Level
+ * overrides move the line too but are not Matches.
  */
 async function levelHistory(
   database: DbClient,
   userId: string,
   sport: GroupSportEnum,
-): Promise<{ points: string[]; matchCount: number }> {
+): Promise<{
+  points: string[];
+  steps: LevelHistoryStep[];
+  matchCount: number;
+}> {
   const [events, overrides] = await Promise.all([
     database.query.ratingEvents.findMany({
       where: and(
@@ -48,7 +61,13 @@ async function levelHistory(
       ),
       orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
       limit: HISTORY_CHANGE_LIMIT,
-      columns: { id: true, createdAt: true, muBefore: true, muAfter: true },
+      columns: {
+        id: true,
+        createdAt: true,
+        muBefore: true,
+        muAfter: true,
+        outcomeScore: true,
+      },
     }),
     database.query.levelOverrides.findMany({
       where: and(
@@ -61,7 +80,9 @@ async function levelHistory(
     }),
   ]);
 
-  const eventIds = new Set(events.map((event) => event.id));
+  const outcomeById = new Map(
+    events.map((event) => [event.id, event.outcomeScore]),
+  );
   const changes = [...events, ...overrides]
     .sort(
       (a, b) =>
@@ -72,7 +93,7 @@ async function levelHistory(
 
   const first = changes[0];
   if (!first) {
-    return { points: [], matchCount: 0 };
+    return { points: [], steps: [], matchCount: 0 };
   }
 
   return {
@@ -80,7 +101,13 @@ async function levelHistory(
       displayedLevelFromMu(first.muBefore),
       ...changes.map((change) => displayedLevelFromMu(change.muAfter)),
     ],
-    matchCount: changes.filter((change) => eventIds.has(change.id)).length,
+    steps: changes.map((change) => {
+      const outcomeScore = outcomeById.get(change.id);
+      return outcomeScore === undefined
+        ? "set"
+        : stepFromOutcomeScore(outcomeScore);
+    }),
+    matchCount: changes.filter((change) => outcomeById.has(change.id)).length,
   };
 }
 
@@ -101,8 +128,8 @@ async function ratedMatchCount(
  * for display (not persisted). Returns product Level / Level band /
  * Provisional only — never raw Glicko μ/φ/σ. Also includes progress within
  * the current Level band, typical Rated Matches remaining while Provisional,
- * and recent Level history for the home sparkline with the number of Rated
- * Matches inside it.
+ * and recent Level history for the home Trend, with what moved each point
+ * and the number of Rated Matches inside it.
  */
 export async function loadRatingsMe(
   database: DbClient,
@@ -120,6 +147,7 @@ export async function loadRatingsMe(
       progressPercent: null as number | null,
       nextBand: null as LevelBand | null,
       history: [] as string[],
+      historySteps: [] as LevelHistoryStep[],
       historyMatchCount: 0,
       ratedMatchCount: 0,
     };
@@ -140,6 +168,7 @@ export async function loadRatingsMe(
     progressPercent: progress.progressPercent,
     nextBand: progress.nextBand,
     history: history.points,
+    historySteps: history.steps,
     historyMatchCount: history.matchCount,
     ratedMatchCount: matchCount,
   };

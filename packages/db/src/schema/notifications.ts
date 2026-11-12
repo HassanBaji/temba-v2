@@ -48,6 +48,7 @@ export const NOTIFICATION_TYPE_VALUES = [
   "challenge_squad_named",
   "challenge_rematch_nudge",
   "match_score_to_confirm",
+  "game_moved_to_waitlist",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];

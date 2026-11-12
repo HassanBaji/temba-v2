@@ -241,7 +241,9 @@ export function GroupPlayedGames({
             <span
               className={cn(
                 "font-mono text-[11px]",
-                chip.selected ? "text-dim" : "text-muted-foreground",
+                chip.selected
+                  ? "text-on-control-muted"
+                  : "text-muted-foreground",
               )}
             >
               {chip.count}

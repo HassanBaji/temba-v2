@@ -5,6 +5,8 @@ import {
   asideLabel,
   footballFormatNote,
   footballSideSizeStep,
+  gameEditCourtCopy,
+  gamePlaceLine,
   joinedCountLabel,
   playersAllowedForSideSize,
   playersCapWaitNote,
@@ -181,6 +183,81 @@ function ValueStepper({
         disabled={!canIncrease}
         onPress={onIncrease}
       />
+    </View>
+  );
+}
+
+const NO_COURT = "none";
+
+function PlaceSection({
+  edit,
+  venueName,
+  error,
+}: {
+  edit: GameEditController;
+  venueName: string | null;
+  error: string | undefined;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const placeCopy = m.createGame.edit.place;
+  const copy = gameEditCourtCopy(edit.draft.sideSize, locale);
+  const { draft, update, place } = edit;
+  if (place.status !== "ready") {
+    return (
+      <View style={{ gap: SECTION_GAP }}>
+        <SectionHead title={placeCopy.title} />
+        {place.status === "loading" ? (
+          <Text tone="muted">{copy.loading}</Text>
+        ) : (
+          <FieldError message={place.message} />
+        )}
+      </View>
+    );
+  }
+  const { locked, venues } = place.value;
+  const venue = venues.find((choice) => choice.id === draft.venueId);
+  return (
+    <View style={{ gap: SECTION_GAP }}>
+      <SectionHead title={placeCopy.title} />
+      <Text weight="medium">{placeCopy.venue}</Text>
+      {locked ? (
+        <>
+          <Text>{venue?.name ?? venueName ?? ""}</Text>
+          <Hint>{placeCopy.clubVenue}</Hint>
+        </>
+      ) : (
+        <>
+          <ChipGrid
+            label={placeCopy.venue}
+            columns={1}
+            chips={venues.map((choice) => ({
+              value: choice.id,
+              label: choice.name,
+            }))}
+            isSelected={(value) => value === draft.venueId}
+            onSelect={(venueId) => update({ venueId, courtId: null })}
+          />
+          <Hint>{placeCopy.venueHint}</Hint>
+        </>
+      )}
+      <Text weight="medium">{copy.title}</Text>
+      <ChipGrid
+        label={copy.title}
+        chips={[
+          { value: NO_COURT, label: copy.none },
+          ...(venue?.courts ?? []).map((court) => ({
+            value: court.id,
+            label: court.name,
+          })),
+        ]}
+        isSelected={(value) => value === (draft.courtId ?? NO_COURT)}
+        onSelect={(value) =>
+          update({ courtId: value === NO_COURT ? null : value })
+        }
+      />
+      <FieldError message={error} />
+      <Hint>{copy.hint}</Hint>
     </View>
   );
 }
@@ -587,7 +664,14 @@ export function GameEditSheet({
       subtitle={
         pickingSeason
           ? null
-          : venueLockedLine(context.venueName, context.courtName, locale)
+          : sections.place &&
+              !(edit.place.status === "ready" && edit.place.value.locked)
+            ? gamePlaceLine(context.venueName, context.courtName, locale)
+            : venueLockedLine(
+                context.venueName,
+                sections.place ? null : context.courtName,
+                locale,
+              )
       }
       action={
         <Button
@@ -685,6 +769,13 @@ export function GameEditSheet({
             <FieldError message={errorFor("window")} />
             <Hint>{editCopy.whenHint}</Hint>
           </View>
+          {sections.place ? (
+            <PlaceSection
+              edit={edit}
+              venueName={context.venueName}
+              error={errorFor("place")}
+            />
+          ) : null}
           <View style={{ gap: SECTION_GAP }}>
             <SectionHead
               title={sections.caps ? copy.playersAndPrice : copy.price}

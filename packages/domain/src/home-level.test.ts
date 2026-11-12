@@ -10,6 +10,7 @@ const base = {
   provisional: true,
   ratedMatchesRemaining: 4,
   history: ["3.1", "3.2", "3.4"],
+  historySteps: ["won", "won"],
   historyMatchCount: 2,
   progressPercent: 16,
 } as const;

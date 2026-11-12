@@ -52,6 +52,7 @@ export async function loadHome(
     .map((membership) => {
       const groupStanding = standingByGroup.get(membership.groupId);
       const rows = groupStanding?.rows ?? [];
+      const viewerRow = rows.find((row) => row.userId === args.userId);
 
       return {
         groupId: membership.group.id,
@@ -59,6 +60,7 @@ export async function loadHome(
         sport: membership.group.sport as GroupSportEnum | null,
         position: seasonStandingPosition(rows, args.userId),
         memberCount: rows.length,
+        countedGames: viewerRow?.played ?? 0,
       };
     })
     .sort((a, b) =>

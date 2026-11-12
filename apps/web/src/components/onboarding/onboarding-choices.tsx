@@ -16,7 +16,7 @@ function choiceClass(selected: boolean) {
 }
 
 function mutedClass(selected: boolean) {
-  return selected ? "text-dim" : "text-muted-foreground";
+  return selected ? "text-on-control-muted" : "text-muted-foreground";
 }
 
 /** Equal-width tiles with a name and a short line under it, such as Left / backhand side. */

@@ -11,6 +11,11 @@ describe("homePath", () => {
       "/games/g1?intent=results",
     );
     assert.equal(homePath({ kind: "group", groupId: "x" }), "/groups/x");
+    assert.equal(homePath({ kind: "groups" }), "/groups");
+    assert.equal(
+      homePath({ kind: "marks", userId: "u1", sport: "football" }),
+      "/players/u1/marks?sport=football",
+    );
     assert.equal(homePath({ kind: "create-game" }), "/games/new");
     assert.equal(homePath({ kind: "create-group" }), "/groups/new");
     assert.equal(homePath({ kind: "browse-games" }), "/games");

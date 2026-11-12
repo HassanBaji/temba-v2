@@ -11,7 +11,12 @@ import {
 import { completeMatch } from "#src/routers/games/completeMatch";
 import { loadMyGroupLevels } from "#src/routers/ratings/myGroupLevels";
 import { setGroupLevelForMember } from "#src/routers/ratings/setGroupLevel";
-import { loadMyProfile, winsToNextBand } from "#src/routers/users/myProfile";
+import {
+  loadMyProfile,
+  unbeatenRuns,
+  winsToNextBand,
+} from "#src/routers/users/myProfile";
+import type { CountedMatch } from "#src/routers/users/playerProfile";
 import { loadPlayerProfile } from "#src/routers/users/playerProfile";
 import { writeFootballPreferences } from "#src/routers/users/setFootballPreferences";
 import { writeProfileDetails } from "#src/routers/users/setProfileDetails";
@@ -193,6 +198,35 @@ describe("winsToNextBand", () => {
 
   it("is null without a recent win", () => {
     expect(winsToNextBand(3.21, "C2", [-0.03])).toBeNull();
+  });
+});
+
+function footballMatch(us: number, them: number): CountedMatch {
+  return {
+    userSlot: 1,
+    sets: [{ slot1GamesWon: us, slot2GamesWon: them }],
+  } as CountedMatch;
+}
+
+describe("unbeatenRuns", () => {
+  it("counts the run going now and the longest run without a loss", () => {
+    const newest = [
+      footballMatch(2, 2),
+      footballMatch(3, 1),
+      footballMatch(0, 1),
+      footballMatch(1, 0),
+      footballMatch(1, 1),
+      footballMatch(4, 0),
+      footballMatch(0, 2),
+    ];
+    expect(unbeatenRuns(newest)).toEqual({ current: 2, best: 3 });
+  });
+
+  it("is zero when the newest Match was lost", () => {
+    expect(unbeatenRuns([footballMatch(0, 1), footballMatch(2, 0)])).toEqual({
+      current: 0,
+      best: 1,
+    });
   });
 });
 

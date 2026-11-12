@@ -13,7 +13,7 @@ import {
   requireGame,
   type GameRow,
 } from "#src/games/access";
-import { recordedCourtIdsForGame } from "#src/games/helpers/recorded-court-ids-for-game";
+import { recordedCourtPool } from "#src/games/helpers/recorded-court-ids-for-game";
 import { venueForGame } from "#src/games/helpers/venue-for-game";
 import { consult } from "#src/soft-archive";
 
@@ -26,7 +26,7 @@ export async function listAssignableCourts(database: DbClient, game: GameRow) {
   }
 
   const sport = sportOrDefault(game.sport);
-  const recordedCourtIds = await recordedCourtIdsForGame(database, game.id);
+  const recordedCourtIds = await recordedCourtPool(database, game);
   const rows = await database.query.courts.findMany({
     where:
       recordedCourtIds == null

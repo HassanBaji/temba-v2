@@ -39,21 +39,29 @@ function schemeLines(palette: Palette, scheme: ColorScheme): string[] {
     `--on-ink-raised: ${palette.raised};`,
     `--focus: ${palette.focus};`,
     `--on-focus: ${palette.onFocus};`,
+    `--focus-edge: ${palette.focusEdge};`,
     `--control: ${palette.control};`,
     `--on-control: ${palette.onControl};`,
     `--control-edge: ${palette.controlEdge};`,
+    `--on-control-muted: ${palette.onControlMuted};`,
+    `--control-rule: ${palette.controlRule};`,
+    `--control-raised: ${palette.controlRaised};`,
     `--focus-control: ${palette.focusControl};`,
     `--on-focus-control: ${palette.onFocusControl};`,
     `--sheet: ${palette.sheet};`,
     `--scrim: ${palette.scrim};`,
     `--hatch-stroke-paper: ${palette.hatchStroke};`,
     `--hatch-stroke-ink: ${palette.hatchStrokeOnInk};`,
+    `--hatch-stroke-control: ${palette.hatchStrokeOnControl};`,
     `--chart-1: ${palette.ink};`,
     `--sidebar: ${palette.focus};`,
     `--sidebar-foreground: ${palette.onFocus};`,
-    `--sidebar-primary: ${scheme === "light" ? palette.paper : palette.control};`,
-    `--sidebar-primary-foreground: ${scheme === "light" ? palette.ink : palette.onControl};`,
+    `--sidebar-primary: ${palette.control};`,
+    `--sidebar-primary-foreground: ${palette.onControl};`,
     `--sidebar-ring: ${palette.onFocus};`,
+    `--sidebar-accent: ${palette.raised};`,
+    `--sidebar-accent-foreground: ${palette.onFocus};`,
+    `--sidebar-border: ${palette.dimrule};`,
   ];
 }
 
@@ -89,9 +97,13 @@ export function renderThemeCss(): string {
     "--color-raised: var(--on-ink-raised);",
     "--color-focus: var(--focus);",
     "--color-on-focus: var(--on-focus);",
+    "--color-focus-edge: var(--focus-edge);",
     "--color-control: var(--control);",
     "--color-on-control: var(--on-control);",
     "--color-control-edge: var(--control-edge);",
+    "--color-on-control-muted: var(--on-control-muted);",
+    "--color-control-rule: var(--control-rule);",
+    "--color-control-raised: var(--control-raised);",
     "--color-focus-control: var(--focus-control);",
     "--color-on-focus-control: var(--on-focus-control);",
     "--color-sheet: var(--sheet);",
@@ -119,6 +131,11 @@ export function renderThemeCss(): string {
     "--hatch-inset: var(--color-dimrule);",
   ]);
 
+  const hatchOnControlUtility = block("@utility hatch-on-control", [
+    "--hatch-stroke: var(--hatch-stroke-control);",
+    "--hatch-inset: var(--color-control-rule);",
+  ]);
+
   const header =
     "/* Generated from src/tokens.ts by `pnpm --filter @repo/design-tokens generate`. Do not edit. */\n";
 
@@ -131,5 +148,6 @@ export function renderThemeCss(): string {
     expandedUtility,
     hatchUtility,
     hatchOnInkUtility,
+    hatchOnControlUtility,
   ].join("\n");
 }

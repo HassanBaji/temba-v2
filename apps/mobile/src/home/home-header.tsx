@@ -1,9 +1,10 @@
-import { sizes } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { Bell } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
 import { useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
+import { hairline } from "../primitives/hairline-width";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 
@@ -11,12 +12,14 @@ const BADGE = 8;
 
 export function HomeHeader({
   name,
+  dateLine,
   imageUri,
   pendingInviteCount,
   unreadNotificationCount,
   onNotifications,
 }: {
   name: string;
+  dateLine: string;
   imageUri: string | null;
   pendingInviteCount: number;
   unreadNotificationCount: number;
@@ -32,16 +35,20 @@ export function HomeHeader({
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
       <Avatar name={name} uri={imageUri} size="lg" />
-      <Text
-        size="h2"
-        width="expanded"
-        weight="bold"
-        numberOfLines={1}
-        accessibilityRole="header"
-        style={{ flex: 1, minWidth: 0 }}
-      >
-        {name}
-      </Text>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text size="eyebrow" tone="muted" numberOfLines={1}>
+          {dateLine}
+        </Text>
+        <Text
+          size="h2"
+          width="expanded"
+          weight="bold"
+          numberOfLines={1}
+          accessibilityRole="header"
+        >
+          {name}
+        </Text>
+      </View>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={label}
@@ -49,7 +56,9 @@ export function HomeHeader({
         style={({ pressed }) => ({
           width: sizes.touchTarget,
           height: sizes.touchTarget,
-          marginEnd: -10,
+          borderRadius: radii.lg,
+          borderWidth: hairline,
+          borderColor: palette.rule,
           alignItems: "center",
           justifyContent: "center",
           opacity: pressed ? 0.7 : 1,
@@ -60,8 +69,8 @@ export function HomeHeader({
           <View
             style={{
               position: "absolute",
-              top: 11,
-              end: 11,
+              top: 10,
+              end: 10,
               width: BADGE,
               height: BADGE,
               borderRadius: BADGE / 2,

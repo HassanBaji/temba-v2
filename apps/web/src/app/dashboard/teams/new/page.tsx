@@ -1,6 +1,6 @@
 "use client";
 
-import { Phone, Search, Users } from "lucide-react";
+import { Camera, Phone, Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
@@ -24,6 +24,11 @@ import {
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
+import {
+  ENTITY_IMAGE_ACCEPT,
+  entityImageFileError,
+  entityImageUploadInput,
+} from "@repo/domain/entity-image-file";
 import { initials } from "@repo/domain/initials";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import {
@@ -100,6 +105,21 @@ function NewTeamForm() {
   );
   const [adderOpen, setAdderOpen] = React.useState(true);
   const [source, setSource] = React.useState<Source>("phone");
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
+  const [image, setImage] = React.useState<File | null>(null);
+  const [imageError, setImageError] = React.useState<string | null>(null);
+  const previewUrl = React.useMemo(
+    () => (image ? URL.createObjectURL(image) : null),
+    [image],
+  );
+
+  React.useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const me = api.users.profileDetails.useQuery();
   const organized = api.games.listCreateGroups.useQuery();
@@ -125,9 +145,31 @@ function NewTeamForm() {
     locale,
   );
 
+  const uploadImage = api.teams.uploadImage.useMutation();
+
+  async function uploadPickedImage(teamId: string) {
+    if (!image) {
+      return true;
+    }
+    try {
+      const input = await entityImageUploadInput(image, locale);
+      await uploadImage.mutateAsync({
+        teamId,
+        contentType: input.contentType,
+        dataBase64: input.dataBase64,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   const createTeam = api.teams.create.useMutation({
     onSuccess: async (team) => {
-      toast.success(m.team.toast.created);
+      const imageSaved = await uploadPickedImage(team.id);
+      toast.success(
+        imageSaved ? m.team.toast.created : m.team.image.createdWithoutImage,
+      );
       await utils.teams.mine.invalidate();
       if (team.groupTag) {
         await utils.groups.byId.invalidate({ id: team.groupTag.id });
@@ -143,7 +185,22 @@ function NewTeamForm() {
     },
   });
   const nameError = fieldErrorMessage(createTeam.error, "name");
-  const pending = createTeam.isPending;
+  const pending = createTeam.isPending || uploadImage.isPending;
+
+  function onImageFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const next = event.target.files?.[0] ?? null;
+    event.target.value = "";
+    if (!next) {
+      return;
+    }
+    const message = entityImageFileError(next, locale);
+    if (message) {
+      setImageError(message);
+      return;
+    }
+    setImageError(null);
+    setImage(next);
+  }
 
   function changeSport(next: Sport) {
     setSport(next);
@@ -220,16 +277,70 @@ function NewTeamForm() {
                 <h2 className="font-expanded text-title">
                   <label htmlFor={FIELD_IDS.name}>{c.nameTitle}</label>
                 </h2>
-                <div className="mt-3 flex items-center gap-3">
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "rounded-card flex size-[52px] shrink-0 items-center justify-center text-[17px] font-bold tracking-[-0.02em] [font-variation-settings:'wdth'_112,'wght'_700]",
-                      crest ? "bg-control text-on-control" : "hatch",
-                    )}
-                  >
-                    {crest}
-                  </span>
+                <div className="mt-3 flex items-start gap-3">
+                  <div className="flex shrink-0 flex-col items-center gap-1.5">
+                    <button
+                      type="button"
+                      aria-label={
+                        previewUrl ? m.team.image.change : m.team.image.add
+                      }
+                      disabled={pending}
+                      onClick={() => imageInputRef.current?.click()}
+                      className="focus-visible:ring-ring/50 rounded-card relative outline-none hover:opacity-80 focus-visible:ring-[3px] disabled:opacity-50"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "rounded-card flex size-[52px] items-center justify-center overflow-hidden text-[17px] font-bold tracking-[-0.02em] [font-variation-settings:'wdth'_112,'wght'_700]",
+                          previewUrl || crest
+                            ? "bg-control text-on-control"
+                            : "hatch",
+                        )}
+                      >
+                        {previewUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- a local object URL preview
+                          <img
+                            src={previewUrl}
+                            alt=""
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          crest
+                        )}
+                      </span>
+                      {previewUrl ? null : (
+                        <span
+                          aria-hidden="true"
+                          className="border-rule bg-paper text-ink absolute -bottom-1.5 -end-1.5 flex size-[22px] items-center justify-center rounded-full border"
+                        >
+                          <Camera className="size-3" />
+                        </span>
+                      )}
+                    </button>
+                    {image ? (
+                      <button
+                        type="button"
+                        aria-label={m.team.image.remove}
+                        disabled={pending}
+                        onClick={() => {
+                          setImage(null);
+                          setImageError(null);
+                        }}
+                        className="text-eyebrow text-muted-foreground hover:text-ink min-h-6"
+                      >
+                        {m.common.remove}
+                      </button>
+                    ) : null}
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept={ENTITY_IMAGE_ACCEPT}
+                      className="hidden"
+                      tabIndex={-1}
+                      disabled={pending}
+                      onChange={onImageFile}
+                    />
+                  </div>
                   <input
                     id={FIELD_IDS.name}
                     value={name}
@@ -244,7 +355,7 @@ function NewTeamForm() {
                   />
                 </div>
                 <FieldError id="team-name-error" className="mt-1.5">
-                  {nameError}
+                  {nameError ?? imageError}
                 </FieldError>
               </section>
 
@@ -278,7 +389,9 @@ function NewTeamForm() {
                         <span
                           className={cn(
                             "text-[11px] leading-4",
-                            selected ? "text-dim" : "text-muted-foreground",
+                            selected
+                              ? "text-on-control-muted"
+                              : "text-muted-foreground",
                           )}
                         >
                           {choice.detail}

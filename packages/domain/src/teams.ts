@@ -70,6 +70,7 @@ export function teamListRowView(team: TeamListRowInput, locale: Locale) {
 }
 
 export type TeamCardInput = TeamListRowInput & {
+  imageUrl?: string | null;
   rosterCount: number;
   record: HeadToHead;
   groupTag: TeamGroupTagInput | null;
@@ -99,6 +100,7 @@ export function teamCardView(team: TeamCardInput, locale: Locale) {
   return {
     id: team.id,
     title: team.displayName,
+    imageUrl: team.imageUrl ?? null,
     line,
     record: {
       label: squad

@@ -627,7 +627,7 @@ function StandingPreview({
               className={cn(
                 PREVIEW_ROW,
                 "border-rule border-t px-[18px] first:border-t-0",
-                entry.isViewer && "bg-control text-on-control",
+                entry.isViewer && "bg-wash",
                 linkToPlayers && "relative",
               )}
             >
@@ -639,7 +639,7 @@ function StandingPreview({
                   className={cn(
                     "size-7 rounded-lg [&_[data-slot=avatar-fallback]]:rounded-none [&_[data-slot=avatar-fallback]]:text-[11px] [&_[data-slot=avatar-fallback]]:font-semibold",
                     entry.isViewer &&
-                      "[&_[data-slot=avatar-fallback]]:bg-paper [&_[data-slot=avatar-fallback]]:text-ink",
+                      "[&_[data-slot=avatar-fallback]]:bg-control [&_[data-slot=avatar-fallback]]:text-on-control",
                   )}
                 />
                 {linkToPlayers ? (

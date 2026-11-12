@@ -117,7 +117,7 @@ export function ScopeChips({
               dir="ltr"
               className={cn(
                 "font-mono text-[10px]",
-                selected ? "text-dim" : "text-muted-foreground",
+                selected ? "text-on-control-muted" : "text-muted-foreground",
               )}
             >
               {chip.band}

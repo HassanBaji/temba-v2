@@ -126,6 +126,16 @@ describe("renderNotificationEmail", () => {
     expect(seated.html).not.toContain('<p style="margin:0 0 8px;"></p>');
   });
 
+  it("sends a move to the Waitlist to the Game page", () => {
+    const email = render(
+      item({ type: "game_moved_to_waitlist", audience: "player", game: GAME }),
+    );
+    expect(email.subject).toBe(
+      "Omar Aziz lowered the players on Thursday Padel. You're on the Waitlist and get your spot back when one opens",
+    );
+    expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
+  });
+
   it("sends a changed side to the Game page", () => {
     const email = render(
       item({ type: "game_side_changed", audience: "player", game: GAME }),

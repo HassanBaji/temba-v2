@@ -169,6 +169,7 @@ export const webAuth = {
       choose: "Choose a photo",
       saving: "Saving photo…",
       save: "Save photo",
+      unsupportedType: "Photo must be a JPEG, PNG, GIF or WebP image.",
     },
     email: {
       benefits: {
@@ -224,32 +225,12 @@ export const webAuth = {
   },
   home: {
     upNext: "Up next",
-    nothingThisWeek: "Nothing this week",
-    thisWeekCount: (n: number) => `${n} this week`,
-    onNow: "on now",
-    withEmphasis: (emphasis: string) => `, ${emphasis}`,
-    inMinutes: (minutes: number) => `in ${minutes} min`,
-    inHours: (hours: number) => `in ${hours} h`,
-    inHoursMinutes: (hours: number, minutes: number) =>
-      `in ${hours} h ${minutes} min`,
     rosterOf: (registered: number, allowed: number) =>
       `${registered} of ${allowed}`,
     rosterPlayers: (registered: number, allowed: number) =>
       `${registered} of ${allowed} players`,
-    kind: {
-      game: "Game",
-      tournament: "Tournament",
-    },
     toTime: (time: string) => `to ${time}`,
-    nextUpSpoken: (title: string, day: string, time: string) =>
-      `Next up, ${title}, ${day} ${time}`,
-    nextUpSpokenAt: (title: string, day: string, time: string, place: string) =>
-      `Next up, ${title}, ${day} ${time}, ${place}`,
-    details: "Details",
-    allGames: "All games",
     empty: {
-      thisWeek: "This week",
-      free: "Free",
       headline: "Your week\nis open.",
       description: "Join an open game, or start one with your group.",
       findAGame: "Find a game",
@@ -258,9 +239,6 @@ export const webAuth = {
       padel: "Play a rated padel game and your padel Level appears.",
       football: "Play a rated football game and your football Level appears.",
     },
-    levelBandSpoken: "Level band",
-    groupsCount: (n: number) =>
-      plural("en", n, { one: "1 group", other: "{n} groups" }),
     standing: "Standing",
     recentForm: {
       title: "Recent form",

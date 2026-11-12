@@ -22,7 +22,7 @@ function Seat({ seat, tone }: { seat: SeatView; tone: SurfaceTone }) {
       aria-label={seat.accessibilityLabel}
       className={cn(
         "relative flex h-[54px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-1",
-        seat.player && (ink ? "bg-raised" : "bg-wash"),
+        seat.player && (ink ? "border-dimrule bg-raised border" : "bg-wash"),
       )}
     >
       {seat.player ? (

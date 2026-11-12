@@ -1,6 +1,6 @@
 # A Challenge is a request and a Game is the result
 
-**Status:** proposed (draft for the owner's review). The request half landed with posting and the Open board; the Game half landed with the Challenge Game. Amends ADR-0035 for this one Game kind.
+**Status:** proposed (draft for the owner's review). The request half landed with posting and the Open board; the Game half landed with the Challenge Game. Amends ADR-0035 for this one Game kind. Amendment proposed: [ADR-0069](./0069-a-football-level-is-an-ovr-moved-by-four-parts.md) makes a football Challenge Game count for Temba Level.
 
 A Team on Temba has a record it cannot earn: nothing lets it find another Team and play. The owner wants a board where a Team posts what it is looking for, another Team answers with a time and a Venue, and the poster confirms one answer. The question is what the board holds: a Game that waits for an opponent, or something that is not a Game until both Teams agree.
 

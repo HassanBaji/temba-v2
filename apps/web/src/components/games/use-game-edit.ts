@@ -9,6 +9,7 @@ import {
   gameEditDraftFrom,
   gameEditPlan,
   gameEditSeasonFix,
+  gameEditVenueChoices,
   type GameEditDraft,
   type GameEditSections,
   type GameEditSource,
@@ -16,6 +17,7 @@ import {
 } from "@repo/domain/game-edit-form";
 import type { GroupSeasonData } from "@repo/domain/group-season";
 import type { MvpMode } from "@repo/domain/marks";
+import { sportOrDefault } from "@repo/domain/sport";
 import type { Messages } from "@repo/i18n/messages";
 import {
   gameEditMvp,
@@ -85,6 +87,13 @@ export function useGameEdit({
   const updateWindow = api.games.updateWindow.useMutation({
     meta: OWN_ERROR_UI,
   });
+  const updatePlace = api.games.updatePlace.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const catalog = api.games.listCreateVenues.useQuery(
+    { groupId: game.groupId ?? undefined },
+    { enabled: open && sections.place },
+  );
   const updateCaps = api.games.updateCaps.useMutation({ meta: OWN_ERROR_UI });
   const updatePrice = api.games.updatePricePerPlayer.useMutation({
     meta: OWN_ERROR_UI,
@@ -112,6 +121,13 @@ export function useGameEdit({
           windowStart: step.windowStart,
           windowEnd: step.windowEnd,
           ...(step.seasonId !== undefined ? { seasonId: step.seasonId } : {}),
+        });
+        return 0;
+      case "place":
+        await updatePlace.mutateAsync({
+          gameId,
+          venueId: step.venueId,
+          courtId: step.courtId,
         });
         return 0;
       case "caps": {
@@ -232,6 +248,16 @@ export function useGameEdit({
     update,
     mvp,
     pickMvpMode,
+    place: {
+      loading: catalog.isLoading,
+      error: catalog.error?.message ?? null,
+      locked: catalog.data?.locked ?? false,
+      venues: gameEditVenueChoices(
+        catalog.data?.venues ?? [],
+        sportOrDefault(game.sport),
+        { id: saved.venueId, name: game.venue?.name ?? null },
+      ),
+    },
     changed,
     note,
     seasonFix,

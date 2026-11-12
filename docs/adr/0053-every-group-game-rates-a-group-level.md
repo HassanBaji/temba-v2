@@ -1,6 +1,6 @@
 # Every Group Game rates a Group Level
 
-**Status:** accepted. Spec: `.scratch/profile-and-group-levels/spec.md`. Amends ADR-0035; reverses the per-Group rating option ADR-0045 considered and declined.
+**Status:** accepted. Spec: `.scratch/profile-and-group-levels/spec.md`. Amends ADR-0035; reverses the per-Group rating option ADR-0045 considered and declined. Superseded (proposed) by [ADR-0066](./0066-a-football-group-that-is-not-verified-has-a-group-tier.md): Group Level is retired; a football Group that is not Verified has a Group Tier.
 
 ADR-0035 made every Game on a Group that is not Verified an Unrated Game, so its players got no Level from it. Organizers of those Groups, and of Verified ones, want a Level that reads their own Group's results without touching the Temba Level every Group shares.
 

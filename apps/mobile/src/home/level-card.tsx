@@ -1,33 +1,121 @@
-import { radii, spacing } from "@repo/design-tokens";
+import { hatch, spacing } from "@repo/design-tokens";
 import { homeLevelView, type HomeLevelInput } from "@repo/domain/home-level";
+import { gaugeArc } from "@repo/domain/home-level-chart";
+import { nextDistinctDisplayRung } from "@repo/domain/level-bands";
 import { type Sport } from "@repo/domain/sport";
+import { Check } from "lucide-react-native";
+import { useId } from "react";
 import { View } from "react-native";
+import Svg, { Circle, Defs, Pattern, Rect } from "react-native-svg";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
-import { MountFill } from "../primitives/mount-fill";
+import { hatchPatternId } from "../primitives/hatch-pattern-id";
+import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
-import { Card } from "./card";
 import { noLevelCopy, type HomeLevel } from "./home-model";
+import { SectionTitle } from "./section-title";
 
+const GAUGE = 104;
+const VIEWBOX = 120;
+const RADIUS = 50;
+const STROKE = 10;
 const SWATCH = 12;
 const NO_LEVEL_TILE = 74;
+const STATUS_ICON = 14;
 
-function Swatch({ provisional }: { provisional: boolean }) {
+function Gauge({ percent, band }: { percent: number; band: string }) {
   const palette = useTonePalette();
+  const patternId = hatchPatternId(useId());
+  const arc = gaugeArc(percent, RADIUS);
+  const center = VIEWBOX / 2;
   return (
     <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
       style={{
-        width: SWATCH,
-        height: SWATCH,
-        backgroundColor: provisional ? undefined : palette.foreground,
+        width: GAUGE,
+        height: GAUGE,
+        alignItems: "center",
+        justifyContent: "center",
       }}
     >
-      {provisional ? <Hatch radius={2} /> : null}
+      <Svg
+        width={GAUGE}
+        height={GAUGE}
+        viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}
+        style={{ position: "absolute" }}
+      >
+        <Defs>
+          <Pattern
+            id={patternId}
+            patternUnits="userSpaceOnUse"
+            width={hatch.period}
+            height={hatch.period}
+            patternTransform={`rotate(${hatch.angle})`}
+          >
+            <Rect
+              x={0}
+              y={0}
+              width={hatch.period}
+              height={hatch.period}
+              fill={palette.background}
+            />
+            <Rect
+              x={0}
+              y={0}
+              width={hatch.stroke * 1.5}
+              height={hatch.period}
+              fill={palette.hatchStroke}
+            />
+          </Pattern>
+        </Defs>
+        <Circle
+          cx={center}
+          cy={center}
+          r={RADIUS}
+          fill="none"
+          stroke={`url(#${patternId})`}
+          strokeWidth={STROKE}
+        />
+        {arc > 0 ? (
+          <Circle
+            cx={center}
+            cy={center}
+            r={RADIUS}
+            fill="none"
+            stroke={palette.foreground}
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeDasharray={`${arc} ${2 * Math.PI * RADIUS}`}
+            transform={`rotate(-90 ${center} ${center})`}
+          />
+        ) : null}
+      </Svg>
+      <Text size="display" width="expanded" weight="bold" ltr>
+        {band}
+      </Text>
+    </View>
+  );
+}
+
+function Status({ provisional }: { provisional: boolean }) {
+  const m = useMessages();
+  const palette = useTonePalette();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+      {provisional ? (
+        <View style={{ width: SWATCH, height: SWATCH }}>
+          <Hatch radius={2} />
+        </View>
+      ) : (
+        <Check size={STATUS_ICON} color={palette.foreground} />
+      )}
+      <Text size="meta" tone={provisional ? "muted" : "default"}>
+        {provisional
+          ? m.home.levelSection.provisional
+          : m.home.levelSection.confirmed}
+      </Text>
     </View>
   );
 }
@@ -39,10 +127,23 @@ export function LevelCard({
   level: HomeLevel;
   sport: Sport;
 }) {
-  return level.kind === "rated" ? (
-    <RatedLevel input={level.input} sport={sport} />
-  ) : (
-    <NoLevel sport={sport} />
+  const m = useMessages();
+  return (
+    <View style={{ gap: 12 }}>
+      <SectionTitle
+        title={m.home.levelSection.title[sport]}
+        status={
+          level.kind === "rated" ? (
+            <Status provisional={level.input.provisional} />
+          ) : undefined
+        }
+      />
+      {level.kind === "rated" ? (
+        <RatedLevel input={level.input} />
+      ) : (
+        <NoLevel sport={sport} />
+      )}
+    </View>
   );
 }
 
@@ -50,18 +151,10 @@ function NoLevel({ sport }: { sport: Sport }) {
   const m = useMessages();
   const locale = useLocale();
   return (
-    <Card title={m.home.level.heading[sport]}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 20,
-          paddingHorizontal: spacing.surface,
-          paddingBottom: spacing.surface,
-        }}
-      >
+    <Surface>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 20 }}>
         <View style={{ width: NO_LEVEL_TILE, height: NO_LEVEL_TILE }}>
-          <Hatch radius={radii.lg} />
+          <Hatch radius={NO_LEVEL_TILE / 2} />
         </View>
         <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
           <Text size="lead" weight="semibold">
@@ -72,50 +165,58 @@ function NoLevel({ sport }: { sport: Sport }) {
           </Text>
         </View>
       </View>
-    </Card>
+    </Surface>
   );
 }
 
-function RatedLevel({ input, sport }: { input: HomeLevelInput; sport: Sport }) {
+function FooterRow({ children }: { children: React.ReactNode }) {
+  return (
+    <View
+      style={{
+        paddingHorizontal: spacing.surface,
+        paddingVertical: 14,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+function RatedLevel({ input }: { input: HomeLevelInput }) {
   const m = useMessages();
   const locale = useLocale();
-  const palette = useTonePalette();
   const view = homeLevelView(input, locale);
+  const next = nextDistinctDisplayRung(input.band);
+  const percent = view.progress?.percent ?? 100;
+  const copy = m.home.levelSection;
 
   return (
-    <Card title={m.home.level.heading[sport]}>
+    <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
       <View
         style={{
           flexDirection: "row",
-          alignItems: "stretch",
-          gap: 16,
-          paddingHorizontal: spacing.surface,
-          paddingBottom: spacing.surface,
+          alignItems: "center",
+          gap: 20,
+          padding: spacing.surface,
         }}
       >
-        <Text
-          size="levelBand"
-          width="expanded"
-          weight="bold"
-          ltr
-          accessibilityLabel={m.mobileHome.level.bandSpoken(view.displayBand)}
-        >
-          {view.displayBand}
-        </Text>
-        <View style={{ width: 1, backgroundColor: palette.rule }} />
         <View
-          style={{ flex: 1, minWidth: 0, justifyContent: "center", gap: 4 }}
+          accessible
+          accessibilityLabel={
+            next
+              ? copy.gaugeSpoken(view.displayBand, percent, next)
+              : m.mobileHome.level.bandSpoken(view.displayBand)
+          }
         >
-          <View
-            style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}
-          >
-            <Text size="h2" width="expanded" weight="bold">
-              {view.level}
-            </Text>
-            <Text size="meta" tone="muted">
-              {m.home.level.numberLabel}
-            </Text>
-          </View>
+          <Gauge percent={percent} band={view.displayBand} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <Text size="eyebrow" tone="muted">
+            {copy.level}
+          </Text>
+          <Text size="hero" width="expanded" weight="bold">
+            {view.level}
+          </Text>
           {view.change ? (
             <View
               accessible
@@ -124,63 +225,51 @@ function RatedLevel({ input, sport }: { input: HomeLevelInput; sport: Sport }) {
                 view.change.amount,
                 view.change.windowLabel,
               )}
-              style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
-              <Text size="h2" width="expanded" weight="bold">
+              <Text weight="bold" width="expanded">
                 {view.change.signedAmount}
               </Text>
-              <Text size="meta" tone="muted" numberOfLines={1}>
-                {view.change.windowLabel}
+              <Text size="eyebrow" tone="muted" numberOfLines={1}>
+                {copy.lastN(input.historyMatchCount)}
               </Text>
             </View>
           ) : null}
         </View>
       </View>
       <Hairline />
-      {view.progress ? (
+      <FooterRow>
         <View
           style={{
-            paddingHorizontal: spacing.surface,
-            paddingTop: 14,
-            paddingBottom: 16,
-            gap: 8,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            gap: 12,
           }}
         >
           <Text size="meta" tone="muted">
-            {view.progress.label}
+            {next ? copy.nextBand : copy.topBand}
           </Text>
-          <MountFill
-            percent={view.progress.percent}
-            hatched={view.provisional}
-          />
+          {next ? (
+            <Text size="meta" tone="muted" numberOfLines={1}>
+              <Text size="meta" width="expanded" weight="bold" ltr>
+                {next}
+              </Text>
+              {copy.nextBandValue(percent)}
+            </Text>
+          ) : null}
         </View>
-      ) : (
-        <View
-          style={{ paddingHorizontal: spacing.surface, paddingVertical: 12 }}
-        >
-          <Text size="meta">{m.profile.level.topBand}</Text>
-        </View>
-      )}
-      <Hairline />
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "flex-start",
-          gap: 8,
-          paddingHorizontal: spacing.surface,
-          paddingVertical: 12,
-        }}
-      >
-        <View style={{ paddingTop: 3 }}>
-          <Swatch provisional={view.provisional} />
-        </View>
-        <Text size="meta" style={{ flex: 1 }}>
-          <Text size="meta" weight="semibold">
-            {view.legend.lead}
-          </Text>
-          {view.legend.rest}
-        </Text>
-      </View>
-    </Card>
+      </FooterRow>
+      {view.provisional ? (
+        <>
+          <Hairline />
+          <FooterRow>
+            <Text size="meta" tone="muted">
+              {copy.confirmsIn(Math.max(1, input.ratedMatchesRemaining))}
+            </Text>
+          </FooterRow>
+        </>
+      ) : null}
+    </Surface>
   );
 }

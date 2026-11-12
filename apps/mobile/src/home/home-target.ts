@@ -4,17 +4,22 @@ import type { ProfileTaskId } from "@repo/domain/profile-checklist";
 import type { Sport } from "@repo/domain/sport";
 
 import { bookingGamePath, bookingPath } from "../booking/booking-model";
+import { playerMarksPath } from "../player-profile/player-path";
 import { sportQuery } from "../booking/book-sport";
 import {
   COMPLETE_PROFILE_PATH,
   profileTaskPath,
 } from "../profile-tasks/profile-tasks-model";
 
+const HOME_TAB = ["(home)"];
+
 export type HomeNavTarget =
   | HomeTarget
   | HomeNoGamesCreateAction["target"]
   | { kind: "browse-games" }
   | { kind: "group"; groupId: string }
+  | { kind: "groups" }
+  | { kind: "marks"; userId: string; sport: Sport }
   | { kind: "booking"; bookingId: string }
   | { kind: "booking-payment"; bookingId: string }
   | { kind: "booking-game"; bookingId: string }
@@ -32,6 +37,10 @@ export function homePath(target: HomeNavTarget): string {
         : `/games/${target.gameId}`;
     case "group":
       return `/groups/${target.groupId}`;
+    case "groups":
+      return "/groups";
+    case "marks":
+      return playerMarksPath(HOME_TAB, target.userId, target.sport);
     case "create-game":
       return "/games/new";
     case "create-group":

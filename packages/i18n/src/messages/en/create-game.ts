@@ -171,15 +171,36 @@ export const createGame = {
     whenHint:
       "Today or later, 30-minute steps. For today only upcoming times are listed.",
     playersAndPriceHint:
-      "Dropping players below the number joined moves the latest joiners to the waiting list. They get a spot back if someone leaves. Price changes apply to players who join from now on.",
+      "Dropping players below the number joined moves the latest joiners to the waiting list and lets them know. They get a spot back if someone leaves. Price changes apply to players who join from now on.",
     everyoneKeepsSpot: "Everyone who joined keeps their spot.",
     venueLocked: (place: string) => `${place}. Venue can't change.`,
     venueLockedNoPlace: "Venue can't change.",
+    place: {
+      title: "Where",
+      venue: "Venue",
+      venueHint: "A new Venue clears the Court. Pick one there.",
+      clubVenue: "This Club Group plays at its own Venue.",
+    },
+    court: {
+      title: "Court",
+      none: "No Court",
+      loading: "Loading Courts…",
+      hint: "Courts at this Venue only.",
+    },
+    pitch: {
+      title: "Pitch",
+      none: "No Pitch",
+      loading: "Loading Pitches…",
+      hint: "Pitches at this Venue only.",
+    },
     windowIncomplete: "Pick a day, a start time and a finish time",
     change: {
       name: "name",
       dayMoved: "day moved",
       timeChanged: "time changed",
+      venue: "venue moved",
+      court: "court changed",
+      pitch: "pitch changed",
       players: "players",
       aside: "a-side",
       price: "price",

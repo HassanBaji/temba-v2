@@ -192,7 +192,9 @@ export function TeamCreatePhoneLookup({
                           <span
                             className={cn(
                               "text-[10px] leading-3",
-                              selected ? "text-dim" : "text-muted-foreground",
+                              selected
+                                ? "text-on-control-muted"
+                                : "text-muted-foreground",
                             )}
                           >
                             {choice.name}

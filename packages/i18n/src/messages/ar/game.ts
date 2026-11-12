@@ -683,6 +683,7 @@ export const game = {
     matchOnCancelledGame: "لا يمكن تعديل مباريات مباراة ملغاة",
     matchCancelledEdit: "لا يمكن تعديل مباراة ملغاة",
     courtEditFriendlyOnly: "تعديل الملعب وحده متاح في المباراة الودية",
+    courtFromBooking: "ملعب هذه المباراة من حجزها. عدّل الحجز لتغييره",
     friendlyNoTimes: "لا يمكن تغيير الأوقات أو الأماكن في مباراة ودية",
     sideFull: "هذه الجهة ممتلئة",
     playerAlreadyOn: (name: string) =>

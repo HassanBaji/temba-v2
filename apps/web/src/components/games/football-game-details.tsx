@@ -274,6 +274,8 @@ export function FootballGameDetails({
     sport: game.sport,
     groupId: game.groupId,
     tournamentRounds: false,
+    booked: game.booking != null,
+    challenge: game.challenge != null,
   });
   const edit = useGameEdit({
     gameId,
@@ -1015,7 +1017,8 @@ export function FootballGameDetails({
           sections={editSections}
           context={{
             venueName: game.venue?.name ?? null,
-            courtName: game.recordedCourts[0]?.name ?? null,
+            courtName:
+              game.booking?.courtName ?? game.recordedCourts[0]?.name ?? null,
             groupName: game.groupName,
             joined: game.registeredUserCount,
             seasons: game.groupSeasons,

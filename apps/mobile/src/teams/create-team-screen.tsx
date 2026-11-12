@@ -17,6 +17,8 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 
+import type { PickedImage } from "../groups/group-image";
+import { pickGroupImage } from "../groups/pick-group-image";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { splitTrpcFormError } from "../lib/form-error";
 import { Button } from "../primitives/button";
@@ -33,6 +35,8 @@ import { CreateTeamView, type CreateTeamSource } from "./create-team-view";
 import { TEAMS_PATH, teamPath } from "./teams-model";
 
 const CANCEL_WIDTH = 104;
+
+type Picked = { uri: string; upload: PickedImage & { ok: true } };
 
 export function CreateTeamScreen({ groupId }: { groupId: string | null }) {
   const router = useRouter();
@@ -55,6 +59,8 @@ export function CreateTeamScreen({ groupId }: { groupId: string | null }) {
   const [source, setSource] = useState<CreateTeamSource>("phone");
   const [nameError, setNameError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [picked, setPicked] = useState<Picked | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const me = api.users.profileDetails.useQuery();
   const organized = api.games.listCreateGroups.useQuery();
@@ -80,9 +86,30 @@ export function CreateTeamScreen({ groupId }: { groupId: string | null }) {
     locale,
   );
 
+  const uploadImage = api.teams.uploadImage.useMutation();
+
+  async function uploadPickedImage(teamId: string) {
+    if (!picked) {
+      return true;
+    }
+    try {
+      await uploadImage.mutateAsync({
+        teamId,
+        contentType: picked.upload.contentType,
+        dataBase64: picked.upload.dataBase64,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   const create = api.teams.create.useMutation({
     onSuccess: async (team) => {
-      toast.show(m.team.toast.created);
+      const imageSaved = await uploadPickedImage(team.id);
+      toast.show(
+        imageSaved ? m.team.toast.created : m.team.image.createdWithoutImage,
+      );
       await utils.teams.mine.invalidate();
       if (team.groupTag) {
         await utils.groups.byId.invalidate({ id: team.groupTag.id });
@@ -103,7 +130,7 @@ export function CreateTeamScreen({ groupId }: { groupId: string | null }) {
       );
     },
   });
-  const pending = create.isPending;
+  const pending = create.isPending || uploadImage.isPending;
 
   function submit() {
     if (pending) {
@@ -114,6 +141,19 @@ export function CreateTeamScreen({ groupId }: { groupId: string | null }) {
     create.mutate(
       rosterDraftCreateInput({ name, sport, groupId: tagGroupId }, fitted),
     );
+  }
+
+  async function pickImage() {
+    const result = await pickGroupImage(locale);
+    if (!result) {
+      return;
+    }
+    if (!result.image.ok) {
+      setImageError(result.image.error);
+      return;
+    }
+    setImageError(null);
+    setPicked({ uri: result.uri, upload: result.image });
   }
 
   function leaveGroupMode() {
@@ -214,6 +254,13 @@ export function CreateTeamScreen({ groupId }: { groupId: string | null }) {
           name={name}
           onNameChange={setName}
           nameError={nameError}
+          imageUri={picked?.uri ?? null}
+          imageError={imageError}
+          onPickImage={() => void pickImage()}
+          onClearImage={() => {
+            setPicked(null);
+            setImageError(null);
+          }}
           sport={sport}
           onSportChange={(next) => {
             setSport(next);

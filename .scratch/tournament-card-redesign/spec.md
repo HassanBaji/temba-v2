@@ -5,6 +5,10 @@ Design: claude.ai design project `fea56e1b-5966-4cbb-981f-15fe74a0c7fc`, file
 (`#tournament-card`, directions `#1a` and `#1b`). A local copy of the imported file is at
 `.scratch/design-import/friendly-tournaments-flow.html` (refreshed for this spec).
 
+**Superseded in part (Nov 2026):** on the Games tab, a posted Groups only tournament is now one
+card in Upcoming and in Played, with its Rounds inside it (ADR-0074). Variant B below still
+describes Home's per-Match rows and knockout tournaments in My Games.
+
 Builds on `.scratch/friendly-tournament-redesign/spec.md` (tournament detail surface) and
 `.scratch/tournament-round-count/spec.md` (resolved Round count). Does not reopen ADR-0017,
 ADR-0018 or ADR-0019: a drawn tournament still expands into one hub row per Pool Match the

@@ -1,4 +1,4 @@
-import { colors, darkColors } from "@repo/design-tokens";
+import { colors, darkColors, invertedFocusColors } from "@repo/design-tokens";
 import { describe, expect, it } from "vitest";
 
 import { tonePalette } from "./tone-palette";
@@ -14,12 +14,12 @@ describe("tonePalette", () => {
   });
 
   it("inverts the focused surface in light", () => {
-    expect(tonePalette("ink", colors)).toMatchObject({
+    expect(tonePalette("ink", invertedFocusColors)).toMatchObject({
       background: colors.ink,
       foreground: colors.paper,
-      muted: colors.dim,
-      rule: colors.dimrule,
-      hatchStroke: colors.hatchStrokeOnInk,
+      muted: invertedFocusColors.dim,
+      rule: invertedFocusColors.dimrule,
+      hatchStroke: invertedFocusColors.hatchStrokeOnInk,
     });
   });
 

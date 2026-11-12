@@ -157,7 +157,7 @@ describe("coinToneColors", () => {
     expect(coinToneColors("mvp", "earned")).toEqual({
       disc: "#ffc233",
       shade: "#c98f0a",
-      ink: "#0a0a0a",
+      ink: "#000000",
       paper: "#ffffff",
     });
   });
@@ -179,15 +179,15 @@ describe("coinToneColors", () => {
   it("draws a not-yet glyph in the surface's greys", () => {
     expect(coinToneColors("clutch", "notYet")).toEqual({
       disc: null,
-      shade: "#e5e5e2",
+      shade: "#e6e6e6",
       ink: "#6e6e6e",
       paper: "#ffffff",
     });
     expect(coinToneColors("clutch", "notYet", "ink")).toEqual({
       disc: null,
-      shade: "#2e2e2e",
-      ink: "#8e8e8e",
-      paper: "#0a0a0a",
+      shade: "#e0e0e0",
+      ink: "#6e6e6e",
+      paper: "#f4f4f4",
     });
   });
 

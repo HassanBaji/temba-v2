@@ -584,6 +584,8 @@ export default function GameHomePage({
     sport: data?.sport,
     groupId: data?.groupId ?? null,
     tournamentRounds: data?.format === "friendly_tournament",
+    booked: data?.booking != null,
+    challenge: data?.challenge != null,
   });
   const edit = useGameEdit({
     gameId: id,
@@ -853,7 +855,7 @@ export default function GameHomePage({
           size="icon"
           variant="ghost"
           aria-label={g.shareGame}
-          className="bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus rounded-md"
+          className="border-dimrule bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus rounded-md border"
           onClick={
             shareLink === "invite_link" ? shareInviteLink : shareGamePage
           }
@@ -1478,7 +1480,8 @@ export default function GameHomePage({
           sections={{ ...editSections, rounds: roundsPlan != null }}
           context={{
             venueName: data.venue?.name ?? null,
-            courtName: data.recordedCourts[0]?.name ?? null,
+            courtName:
+              data.booking?.courtName ?? data.recordedCourts[0]?.name ?? null,
             groupName: data.groupName,
             joined: data.registeredUserCount,
             seasons: data.groupSeasons,

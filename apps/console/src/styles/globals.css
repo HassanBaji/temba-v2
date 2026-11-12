@@ -119,7 +119,7 @@
   letter-spacing: 0 !important;
 }
 
-@source inline("font-expanded hatch hatch-on-ink");
+@source inline("font-expanded hatch hatch-on-ink hatch-on-control");
 
 /* Black-surface scope: the default --ring is near-black and ~1:1 on ink, so
    every ring-ring / outline-ring / border-ring inside reads light (WCAG 2.4.7). */

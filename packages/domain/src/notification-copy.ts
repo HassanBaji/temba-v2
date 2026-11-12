@@ -192,6 +192,19 @@ export function notificationCopy(
     };
   }
   if (
+    item.type === "game_moved_to_waitlist" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: m.gameMovedToWaitlist(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (
     item.type === "game_seated_by_organizer" &&
     item.audience === "player" &&
     item.game

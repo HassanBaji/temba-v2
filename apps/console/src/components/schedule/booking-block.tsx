@@ -22,7 +22,7 @@ export function bookingTimeLabel(booking: VenueBooking, locale: Locale) {
 }
 
 const TONE_CLASS: Record<BlockTone, { block: string; detail: string }> = {
-  ink: { block: "bg-ink text-paper", detail: "text-dim" },
+  ink: { block: "bg-ink text-paper", detail: "text-on-control-muted" },
   outline: {
     block: "bg-paper text-ink border-ink border",
     detail: "text-muted-foreground",

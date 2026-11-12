@@ -2,9 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
-  startsInLabel,
   upNextDayLabel,
-  upNextHeroDay,
   upNextItems,
   upNextRowView,
   upNextWeekLabel,
@@ -71,8 +69,8 @@ describe("upNextWeekLabel", () => {
   it("counts what starts in the coming seven days", () => {
     const later = game({ id: "later", startTime: new Date("2026-11-09") });
     const items = upNextItems([game(), later]);
-    assert.equal(upNextWeekLabel(items, NOW, "en"), "1 this week");
-    assert.equal(upNextWeekLabel([], NOW, "en"), "Nothing this week");
+    assert.equal(upNextWeekLabel(items, NOW, "en"), "1 of 1 this week");
+    assert.equal(upNextWeekLabel([], NOW, "en"), "nothing this week");
   });
 });
 
@@ -89,46 +87,6 @@ describe("day labels", () => {
     assert.equal(
       upNextDayLabel(new Date("2026-11-05T15:00:00Z"), NOW, "en"),
       "5 Nov",
-    );
-  });
-
-  it("says Tonight for an evening start today, then Tomorrow", () => {
-    assert.equal(
-      upNextHeroDay(new Date("2026-10-26T10:00:00Z"), NOW, "en"),
-      "Today",
-    );
-    assert.equal(
-      upNextHeroDay(new Date("2026-10-26T16:00:00Z"), NOW, "en"),
-      "Tonight",
-    );
-    assert.equal(
-      upNextHeroDay(new Date("2026-10-27T10:00:00Z"), NOW, "en"),
-      "Tomorrow",
-    );
-  });
-
-  it("counts down inside the coming day", () => {
-    const end = new Date("2026-10-26T12:00:00Z");
-    assert.equal(
-      startsInLabel(new Date("2026-10-26T09:40:00Z"), end, NOW, "en"),
-      "in 40 min",
-    );
-    assert.equal(
-      startsInLabel(new Date("2026-10-26T11:15:00Z"), end, NOW, "en"),
-      "in 2 h 15 min",
-    );
-    assert.equal(
-      startsInLabel(new Date("2026-10-26T08:00:00Z"), end, NOW, "en"),
-      "on now",
-    );
-    assert.equal(
-      startsInLabel(
-        new Date("2026-10-28T09:00:00Z"),
-        new Date("2026-10-28T10:00:00Z"),
-        NOW,
-        "en",
-      ),
-      null,
     );
   });
 });

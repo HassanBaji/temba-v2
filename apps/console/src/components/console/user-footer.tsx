@@ -28,19 +28,21 @@ export function UserFooter({ webOrigin }: { webOrigin?: string }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="surface-ink hover:bg-raised focus-visible:ring-ring/50 rounded-block mt-auto flex w-full items-center gap-2.5 p-2.5 text-start outline-none focus-visible:ring-[3px]"
+        className="surface-ink hover:bg-control-raised focus-visible:ring-ring/50 rounded-block mt-auto flex w-full items-center gap-2.5 p-2.5 text-start outline-none focus-visible:ring-[3px]"
         aria-label={m.label}
       >
-        <span className="border-dimrule rounded-block flex size-[30px] shrink-0 items-center justify-center border text-xs font-semibold">
+        <span className="border-control-rule rounded-block flex size-[30px] shrink-0 items-center justify-center border text-xs font-semibold">
           {initials(name)}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[13px]">{name}</span>
-          <span className="text-dim block text-[11px]">{role}</span>
+          <span className="text-on-control-muted block text-[11px]">
+            {role}
+          </span>
         </span>
         <ChevronsUpDown
           aria-hidden="true"
-          className="text-dim size-3.5 shrink-0"
+          className="text-on-control-muted size-3.5 shrink-0"
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="top" className="w-[212px]">

@@ -1,11 +1,17 @@
 import { hubGameCardPlan, hubWaitlistJoinCall } from "@repo/domain/game-card";
-import type { HubGameRow } from "@repo/domain/hub-game-row";
+import type { HubGameRow, MyTournament } from "@repo/domain/hub-game-row";
 import { isTournamentMatchRow } from "@repo/domain/tournament-card";
+import { isTournamentGamesCardRow } from "@repo/domain/tournament-games-card";
 import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 
 export type GamesTab = "my-games" | "history";
 
 export type HubItem =
+  | {
+      kind: "my-tournament";
+      key: string;
+      game: HubGameRow & { myTournament: MyTournament };
+    }
   | { kind: "match"; key: string; game: HubGameRow }
   | { kind: "football"; key: string; game: HubGameRow }
   | { kind: "tournament"; key: string; game: HubGameRow }
@@ -18,6 +24,13 @@ export type HubItem =
 
 export function hubItems(rows: readonly HubGameRow[]): HubItem[] {
   return rows.map((game) => {
+    if (isTournamentGamesCardRow(game)) {
+      return {
+        kind: "my-tournament",
+        key: game.id,
+        game: { ...game, myTournament: game.myTournament },
+      };
+    }
     if (isTournamentMatchRow(game)) {
       return { kind: "match", key: game.matchId ?? game.id, game };
     }

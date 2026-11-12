@@ -68,7 +68,9 @@ function PlayerTile({
           <span
             className={cn(
               "font-mono text-[11px]",
-              player.isViewer ? "text-dim" : "text-muted-foreground",
+              player.isViewer
+                ? "text-on-control-muted"
+                : "text-muted-foreground",
             )}
           >
             {code}

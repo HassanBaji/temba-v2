@@ -360,7 +360,11 @@ export function CreateTeamPhoneLookup({
                         <Text
                           size="eyebrow"
                           tone="muted"
-                          style={selected ? { color: colors.dim } : undefined}
+                          style={
+                            selected
+                              ? { color: colors.onControlMuted }
+                              : undefined
+                          }
                         >
                           {choice.name}
                         </Text>

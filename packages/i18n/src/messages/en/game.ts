@@ -600,6 +600,8 @@ export const game = {
     matchOnCancelledGame: "Cannot edit a Match on a cancelled Game",
     matchCancelledEdit: "Cannot edit a cancelled Match",
     courtEditFriendlyOnly: "Court-only Match edit is for Friendly game",
+    courtFromBooking:
+      "This Game's Court comes from its Booking. Change the Booking to move it",
     friendlyNoTimes: "Cannot change times or slots on a Friendly game",
     sideFull: "That side is full",
     playerAlreadyOn: (name: string) => `${name} is already on this Game`,

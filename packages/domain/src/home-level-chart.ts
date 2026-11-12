@@ -1,6 +1,9 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+/** What moved the Level into a history point: a Rated Match outcome or a set. */
+export type LevelHistoryStep = "won" | "drawn" | "lost" | "set";
+
 export const HOME_CHART_WIDTH = 100;
 export const HOME_CHART_HEIGHT = 58;
 
@@ -79,4 +82,9 @@ export function levelChangeView(
   return delta > 0
     ? { direction: "up", amount, spoken: m.up }
     : { direction: "down", amount, spoken: m.down };
+}
+
+/** The length of a ring of `radius` already run toward the next band. */
+export function gaugeArc(percent: number, radius: number): number {
+  return (Math.max(0, Math.min(100, percent)) / 100) * 2 * Math.PI * radius;
 }
