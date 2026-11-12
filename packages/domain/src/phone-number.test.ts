@@ -6,7 +6,7 @@ import {
   assembleE164,
   callingCountryName,
   countryFlagEmoji,
-  formatE164,
+  displayPhone,
   formatInternationalNumber,
   formatNationalNumber,
   nationalDigits,
@@ -142,14 +142,14 @@ describe("formatInternationalNumber", () => {
   });
 });
 
-describe("formatE164", () => {
+describe("displayPhone", () => {
   it("groups a stored number by its country", () => {
-    assert.equal(formatE164("+97336124408"), "+973 3612 4408");
-    assert.equal(formatE164("+971501234567"), "+971 50 123 4567");
+    assert.equal(displayPhone("+97336124408"), "+973 3612 4408");
+    assert.equal(displayPhone("+971501234567"), "+971 50 123 4567");
   });
 
   it("leaves a number from an unlisted country as stored", () => {
-    assert.equal(formatE164("+447700900123"), "+447700900123");
+    assert.equal(displayPhone("+447700900123"), "+447700900123");
   });
 });
 

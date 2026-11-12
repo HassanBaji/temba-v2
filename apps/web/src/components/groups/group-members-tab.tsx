@@ -38,6 +38,7 @@ import {
 import { cardFrame } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 import {
+  groupMemberCallableNumber,
   groupMemberOrganizerAction,
   groupMemberOrganizerActionLabel,
   type GroupMemberOrganizerAction,
@@ -53,7 +54,7 @@ import {
 } from "@repo/domain/group-members-table";
 import type { GroupLevelOverrideData } from "@repo/domain/group-data";
 import type { LevelBand } from "@repo/domain/level-bands";
-import { formatE164 } from "@repo/domain/phone-number";
+import { displayPhone } from "@repo/domain/phone-number";
 import type { Locale } from "@repo/i18n/locale";
 import {
   levelOverrideCaption,
@@ -79,7 +80,7 @@ type GroupMember = {
   groupLevel?: { level: string } | null;
   unclaimed: boolean;
   phoneMasked: string | null;
-  phoneNumber?: string | null;
+  phoneNumber: string | null;
   canRename?: boolean;
 };
 
@@ -189,7 +190,7 @@ function MemberActionsMenu({
         <>
           <ActionMenuItem asChild>
             <a href={`tel:${phoneNumber}`}>
-              {m.webGroup.members.callPhone(formatE164(phoneNumber))}
+              {m.webGroup.members.callPhone(displayPhone(phoneNumber))}
             </a>
           </ActionMenuItem>
           {setLevelHref ||
@@ -620,8 +621,7 @@ export function GroupMembersTab({
       canRemovePlayers && groupMemberIsRemovable(member) && onRemovePlayer
         ? () => onRemovePlayer(target)
         : undefined;
-    const phoneNumber =
-      !member.isViewer && member.phoneNumber ? member.phoneNumber : undefined;
+    const phoneNumber = groupMemberCallableNumber(member) ?? undefined;
     if (
       !phoneNumber &&
       !setLevelHref &&

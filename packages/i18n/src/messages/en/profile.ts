@@ -136,6 +136,9 @@ export const profile = {
     ) => `${label}, ${before} to ${after}, ${delta}`,
   },
   playerPage: {
+    phoneLabel: "Phone",
+    phoneNote: "Only the Organizers of this player's Groups see this.",
+    callPhone: (name: string, phone: string) => `Call ${name} on ${phone}`,
     subtitlePositionVenue: (position: string, venue: string) =>
       `${position}, plays at ${venue}`,
     subtitleVenue: (venue: string) => `Plays at ${venue}`,

@@ -5,6 +5,7 @@ import {
   isFootballPosition,
   isFootballRole,
 } from "@repo/domain/football-lineup";
+import { displayPhone } from "@repo/domain/phone-number";
 import { playWindowsSummary } from "@repo/domain/profile-details";
 import { LOCALES, LOCALE_LABELS } from "@repo/i18n/locale";
 import { useRouter } from "expo-router";
@@ -53,12 +54,7 @@ import {
 import { TEAMS_PATH } from "../teams/teams-model";
 import { useAppearance, useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
-import {
-  displayPhone,
-  footballSportSub,
-  hasDetails,
-  padelSportSub,
-} from "./settings-model";
+import { footballSportSub, hasDetails, padelSportSub } from "./settings-model";
 import {
   CountBadge,
   Segmented,

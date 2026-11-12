@@ -28,6 +28,7 @@ import {
   padelProfileModel,
   type PlayerProfileModel,
 } from "./player-profile-model";
+import { PlayerPhoneCard } from "./player-phone-card";
 import { PLAYER_HERO_BLEED, PlayerProfileHero } from "./player-profile-hero";
 import {
   EarlyDaysCard,
@@ -90,6 +91,7 @@ export function PlayerProfile({
   );
   const profile = sport === "football" ? football : padel;
   const cabinet = api.marks.cabinet.useQuery({ userId });
+  const memberPhone = api.users.memberPhone.useQuery({ userId });
 
   if (isNotFoundError(profile.error)) {
     return <PlayerProfileRefused />;
@@ -126,6 +128,7 @@ export function PlayerProfile({
       model={model}
       cabinet={cabinetRowModel(cabinet.data, model.sport, locale)}
       cabinetHref={playerMarksPath(userId, model.sport)}
+      phoneNumber={memberPhone.data?.phoneNumber ?? null}
       switchOptions={sportSwitchView(
         model.sports.map((entry) => ({ sport: entry, played: played(entry) })),
         model.sport,
@@ -145,12 +148,14 @@ function PlayerProfileView({
   model,
   cabinet,
   cabinetHref,
+  phoneNumber,
   switchOptions,
   onSelectSport,
 }: {
   model: PlayerProfileModel;
   cabinet: CabinetRowModel | null;
   cabinetHref: string;
+  phoneNumber: string | null;
   switchOptions: ReturnType<typeof sportSwitchView>;
   onSelectSport: (sport: Sport) => void;
 }) {
@@ -167,6 +172,9 @@ function PlayerProfileView({
           onSelectSport={onSelectSport}
           level={model.level}
         />
+        {phoneNumber ? (
+          <PlayerPhoneCard name={model.name} phoneNumber={phoneNumber} />
+        ) : null}
         {cabinet ? <CabinetRow row={cabinet} href={cabinetHref} /> : null}
         {model.early ? (
           <EarlyDaysCard view={model.early} form={model.form} />

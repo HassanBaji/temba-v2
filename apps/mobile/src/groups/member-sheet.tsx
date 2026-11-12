@@ -124,9 +124,9 @@ export function MemberSheet({
                   style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                 >
                   <NotOnTembaMark />
-                  {member.phone || member.phoneMasked ? (
+                  {member.phoneMasked && !member.phone ? (
                     <Text size="meta" tone="muted" ltr>
-                      {member.phone ?? member.phoneMasked}
+                      {member.phoneMasked}
                     </Text>
                   ) : null}
                 </View>

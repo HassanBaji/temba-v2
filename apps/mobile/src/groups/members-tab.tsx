@@ -1,6 +1,7 @@
 import { radii, sizes } from "@repo/design-tokens";
 import type { GroupLeaderboardEntryData } from "@repo/domain/group-data";
 import {
+  groupMemberCallableNumber,
   groupMemberOrganizerActionHint,
   groupMemberOrganizerActionLabel,
   type GroupMemberOrganizerAction,
@@ -35,7 +36,6 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import {
-  memberIsCallable,
   memberIsRemovable,
   memberList,
   memberOrganizerAction,
@@ -360,7 +360,7 @@ export function MembersTab({
         (canAddPlayers && entry.canRename === true) ||
         memberIsRemovable(entry, canRemovePlayers) ||
         memberOrganizerAction(entry, canAppointOrganizers) != null ||
-        memberIsCallable(entry)),
+        groupMemberCallableNumber(entry) != null),
   );
   const organizerAction = selected
     ? memberOrganizerAction(selected, canAppointOrganizers)
