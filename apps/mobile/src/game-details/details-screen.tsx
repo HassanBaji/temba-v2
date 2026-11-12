@@ -70,6 +70,7 @@ import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { TournamentBar } from "../tournament/tournament-bar";
 import { OrganizerSheets as TournamentOrganizerSheets } from "../tournament/organizer-sheets";
+import { TournamentAlbum } from "../tournament/tournament-album";
 import { TournamentContent } from "../tournament/tournament-content";
 import {
   tournamentPlayer,
@@ -612,10 +613,22 @@ export function GameDetailsScreen({
         : undefined;
     return (
       <View style={{ flex: 1 }}>
-        <Screen refreshing={refreshing} onRefresh={onRefresh}>
+        <Screen
+          refreshing={refreshing}
+          onRefresh={() => {
+            void utils.gameAlbum.forGame.invalidate({ gameId });
+            return onRefresh();
+          }}
+        >
           {inviteEntry}
           <TournamentContent
             game={details}
+            album={
+              <TournamentAlbum
+                game={details}
+                openAdd={intent === "addPhotos"}
+              />
+            }
             organizer={{
               card: tournamentOrganizer.handlers,
               onCancelMatch: tournamentOrganizer.openWalkover,

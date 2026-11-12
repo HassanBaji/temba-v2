@@ -87,6 +87,7 @@ export function TournamentDrawnHome({
   standings,
   backHref,
   actions,
+  album,
   details,
   gameTeams,
   onCancelMatch,
@@ -96,6 +97,8 @@ export function TournamentDrawnHome({
   standings: TournamentStandingsView;
   backHref: string;
   actions?: React.ReactNode;
+  /** Album and Notes, under the tabs and above Share. */
+  album?: React.ReactNode;
   details?: React.ReactNode;
   gameTeams?: GameDetail["gameTeams"];
   onCancelMatch?: (place: KnockoutMatchPlace) => void;
@@ -333,6 +336,7 @@ export function TournamentDrawnHome({
         ) : null}
       </Tabs>
 
+      {album ? <div className="pt-[26px] empty:hidden">{album}</div> : null}
       {finished ? (
         <div className="pt-6">
           <FinishedShareLink gameId={data.id} label={finished.shareLabel} />

@@ -5,6 +5,7 @@ import {
 } from "@repo/domain/tournament-details";
 import { tournamentOrganizerView } from "@repo/domain/tournament-organizer";
 import type { KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
+import type { ReactNode } from "react";
 import { View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
@@ -37,10 +38,13 @@ export function TournamentContent({
   game,
   handlers,
   organizer,
+  album,
 }: {
   game: TournamentDetails;
   handlers: TournamentHandlers;
   organizer?: TournamentOrganizerHandlers;
+  /** Album and Notes, under the scores and above the details. */
+  album?: ReactNode;
 }) {
   const locale = useLocale();
   const m = useMessages().mobileTournament.content;
@@ -79,6 +83,7 @@ export function TournamentContent({
         />
       ) : null}
       <ScoreMatchesCard matches={matches} handlers={handlers} />
+      {album}
       <TournamentTail
         view={view}
         leavePending={handlers.leavePending}

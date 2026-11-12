@@ -12,7 +12,15 @@ vi.mock("#src/storage/s3", () => ({
 
 import { eq } from "drizzle-orm";
 
-import { gamePhotos } from "@repo/db/schema";
+import {
+  MatchStatusEnum,
+  courts,
+  gamePhotos,
+  groups,
+  matches,
+  user,
+  venues,
+} from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 import { type db } from "#src/db";
@@ -28,6 +36,10 @@ import { forGame } from "#src/routers/gameAlbum/forGame";
 import { myNotes } from "#src/routers/gameAlbum/myNotes";
 import { removePhoto } from "#src/routers/gameAlbum/removePhoto";
 import { saveNote } from "#src/routers/gameAlbum/saveNote";
+import { createTournament } from "#src/routers/games/createTournament";
+import { drawPools } from "#src/routers/games/drawPools";
+import { postPoolDraw } from "#src/routers/games/postPoolDraw";
+import { registerSeat } from "#src/routers/games/registerSeat";
 import {
   listMyMatchHistoryRows,
   withAlbumSummaries,
@@ -92,6 +104,100 @@ function albumFor(
   return forGame(asDb(database), { gameId: game.gameId, userId });
 }
 
+async function insertTournamentUser(database: TestDatabase, name: string) {
+  const [row] = await database
+    .insert(user)
+    .values({ name, email: `${name.toLowerCase()}@example.com` })
+    .returning({ id: user.id });
+  if (!row) {
+    throw new Error("Failed to insert user");
+  }
+  return row;
+}
+
+/**
+ * A posted Pool tournament of four complete teams, organized by a User with
+ * no seat, with every Match still to play.
+ */
+async function postedTournament(database: TestDatabase) {
+  const organizer = await insertTournamentUser(database, "Organizer");
+  const players = [];
+  for (const name of [
+    "Ali",
+    "Bo",
+    "Khalid",
+    "Noor",
+    "Sara",
+    "Omar",
+    "Dana",
+    "Reem",
+  ]) {
+    players.push(await insertTournamentUser(database, name));
+  }
+  const [venue] = await database
+    .insert(venues)
+    .values({ name: "Padel Hub", city: "Manama", country: "BH" })
+    .returning({ id: venues.id });
+  const [court] = await database
+    .insert(courts)
+    .values({ venueId: venue!.id, name: "Court 1" })
+    .returning({ id: courts.id });
+  const [group] = await database
+    .insert(groups)
+    .values({
+      name: "Sunday padel",
+      createdBy: organizer.id,
+      verifiedAt: new Date(),
+    })
+    .returning({ id: groups.id });
+  const windowStart = new Date(Date.now() + DAY);
+  const created = await createTournament(asDb(database), {
+    createdBy: organizer.id,
+    name: "Sunday Social",
+    groupId: group!.id,
+    isPublic: true,
+    registrationMode: "individual",
+    teamCount: 4,
+    poolCount: 1,
+    venueId: venue!.id,
+    courtIds: [court!.id],
+    matchMinutes: 30,
+    windowStart,
+    windowEnd: new Date(windowStart.getTime() + 4 * 60 * 60 * 1000),
+  });
+  for (const [index, player] of players.entries()) {
+    await registerSeat(asDb(database), {
+      gameId: created.id,
+      userId: player.id,
+      sideIndex: Math.floor(index / 2) + 1,
+      position: index % 2 === 0 ? "left" : "right",
+    });
+  }
+  await drawPools(asDb(database), {
+    gameId: created.id,
+    organizerUserId: organizer.id,
+    shuffle: (items) => [...items],
+  });
+  await postPoolDraw(asDb(database), {
+    gameId: created.id,
+    organizerUserId: organizer.id,
+  });
+  return { gameId: created.id, organizer, players };
+}
+
+async function completeFirstMatch(database: TestDatabase, gameId: string) {
+  const match = await database.query.matches.findFirst({
+    where: eq(matches.gameId, gameId),
+  });
+  if (!match) {
+    throw new Error("Expected a posted Match");
+  }
+  await database
+    .update(matches)
+    .set({ status: MatchStatusEnum.COMPLETED })
+    .where(eq(matches.id, match.id));
+}
+
 describe("gameAlbum", () => {
   recordJobs();
 
@@ -109,6 +215,59 @@ describe("gameAlbum", () => {
         "The album opens once the game is played",
       );
       expect(putS3Object).not.toHaveBeenCalled();
+    });
+  });
+
+  it("gives a tournament one Album for the day once a Match is final", async () => {
+    await withDb(async (database) => {
+      const tournament = await postedTournament(database);
+      const [ali, , khalid] = tournament.players;
+      const shut = await forGame(asDb(database), {
+        gameId: tournament.gameId,
+        userId: ali!.id,
+      });
+      expect(shut.open).toBe(false);
+
+      await completeFirstMatch(database, tournament.gameId);
+      await addPhoto(asDb(database), {
+        gameId: tournament.gameId,
+        userId: khalid!.id,
+        contentType: "image/png",
+        dataBase64: PNG_BASE64,
+      });
+      await saveNote(asDb(database), {
+        gameId: tournament.gameId,
+        userId: khalid!.id,
+        body: "Lost the final on a tie-break",
+        visibility: "public",
+      });
+
+      const album = await forGame(asDb(database), {
+        gameId: tournament.gameId,
+        userId: ali!.id,
+      });
+      expect(album.open).toBe(true);
+      expect(album.viewer).toMatchObject({
+        isPlayer: true,
+        canAddPhotos: true,
+        canWriteNote: true,
+      });
+      expect(album.photos).toHaveLength(1);
+      expect(album.notes.shared.map((note) => note.body)).toEqual([
+        "Lost the final on a tie-break",
+      ]);
+      expect(album.readers).toHaveLength(7);
+
+      const organizerView = await forGame(asDb(database), {
+        gameId: tournament.gameId,
+        userId: tournament.organizer.id,
+      });
+      expect(organizerView.viewer).toMatchObject({
+        isPlayer: false,
+        isOrganizer: true,
+        canAddPhotos: false,
+      });
+      expect(organizerView.notes.shared).toEqual([]);
     });
   });
 

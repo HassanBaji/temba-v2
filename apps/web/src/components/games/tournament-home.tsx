@@ -19,6 +19,7 @@ import {
   ACTION_MENU_INK_BOXED_TRIGGER,
   ACTION_MENU_PAPER_BOXED_TRIGGER,
 } from "~/components/common/action-menu";
+import { GameAlbumSections } from "~/components/game-album/game-album-sections";
 import {
   GameActionsSheet,
   type GameActionsSheetRow,
@@ -76,6 +77,7 @@ import {
   tournamentOrganizerView,
 } from "@repo/domain/tournament-organizer";
 import { type TournamentHomeJoinKind } from "@repo/domain/tournament-home";
+import { playedDateLine, playedVenueLine } from "@repo/domain/played-game";
 import {
   hasDraftKnockoutDraw,
   type KnockoutMatchPlace,
@@ -191,6 +193,14 @@ export function TournamentHome({
   const view = tournamentHomeView(data, locale);
   const { partnerRequired, joinKind, drawn, schedule } = view;
   const finished = tournamentFinishedView(data, locale);
+  const album = drawn ? (
+    <GameAlbumSections
+      gameId={data.id}
+      enabled={roundsPreview == null}
+      place={playedVenueLine({ ...data, courtName: null }, locale) ?? ""}
+      context={playedDateLine(data.windowStart, locale)}
+    />
+  ) : null;
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
   const organizer = tournamentOrganizerView(data, {
     drawn,
@@ -265,6 +275,7 @@ export function TournamentHome({
               standings={tournamentStandingsView(data, locale)}
               backHref={backHref}
               actions={actionsMenu(!finished)}
+              album={album}
               gameTeams={teamPlayers}
               onCancelMatch={
                 isOrganizerActive ? onCancelKnockoutMatch : undefined
@@ -296,6 +307,7 @@ export function TournamentHome({
           <TournamentStandingsTree
             gameId={data.id}
             finished={finished}
+            album={album}
             standings={tournamentStandingsView(data, locale)}
             poolTables={data.poolTables}
             knockout={data.knockout}
@@ -589,6 +601,7 @@ function TournamentPredrawTree({
 function TournamentStandingsTree({
   gameId,
   finished,
+  album,
   standings,
   poolTables,
   knockout,
@@ -603,6 +616,7 @@ function TournamentStandingsTree({
 }: {
   gameId: string;
   finished: TournamentFinishedView | null;
+  album: ReactNode;
   standings: TournamentStandingsView;
   poolTables: GameDetail["poolTables"];
   knockout: GameDetail["knockout"];
@@ -683,6 +697,7 @@ function TournamentStandingsTree({
           onUndo={onUndo}
         />
       ) : null}
+      {album}
       {finished ? (
         <FinishedShareLink gameId={gameId} label={finished.shareLabel} />
       ) : null}
