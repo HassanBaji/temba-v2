@@ -658,7 +658,7 @@ _Avoid_: feed, inbox (when you mean this page), activity log, Home
 
 **Standing**:
 A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). It counts every completed Match of the Group's Games, Rated or Unrated, padel or football (ADR-0045), scoring win 3, draw 1, loss 0 to every player on the side. Ties break on wins, then head-to-head, then set difference (padel) or score difference (football), then fewer games played. A member with no result in the lens is listed Unranked, below the ranked rows, without a position; one result is enough to hold a rank. When the Group has a Season, the Standing reads the Season's window; the All-time lens reads every Match. A Standing is a position among others, so it is never a Level, a Level band, a Rating or a Group Tier.
-_Avoid_: ranking, leaderboard position (when you mean this entity), player standing (Level, Recent form and All time are not a Standing), rank, Pool table (that ranks Game teams inside a tournament Pool)
+_Avoid_: ranking, leaderboard position (when you mean this entity), player standing (Level, Recent form and All time are not a Standing), rank (reserved for Official Rank), Pool table (that ranks Game teams inside a tournament Pool)
 
 **Season**:
 An optional date window the Group owner (or Owner and Admin on a Club Group) sets on a Group, inclusive on both product-timezone days. A Group Game links to at most one Season of its Group, and the Standing for a Season reads the completed Matches of the Games linked to it (ADR-0050); a Game with no Season is a friendly that updates Levels but no Standing. A new Game starts in the open Season that holds its day; an Organizer may link, move or unlink it in Edit game while the Season holds the game day and no score is confirmed. A Season is Upcoming before its first day, Active until its last day, and Closed after it or once closed early, which moves its last day to the closing day; closing re-homes its Games that start after the close, later that day included. Seasons never overlap. A Level is never reset by a Season. The Standing tab opens on the Active Season, else the next one to start, else the latest Closed one, else All-time.
@@ -666,11 +666,11 @@ _Avoid_: league, campaign, term, period (when you mean this entity), reset (a Se
 
 **Rating**:
 A User’s sport-keyed skill state (μ, φ, σ). Not shown raw in the App. A padel Rating moves by Glicko-2; a football Rating moves by the OVR step, the sum of its parts in OVR points (only the result part so far), and its φ only carries Provisional, set from the count of counting Matches, so idle time never grows it (ADR-0069).
-_Avoid_: ELO, Elo, player rating (when you mean this entity), rank (that is leaderboard position)
+_Avoid_: ELO, Elo, player rating (when you mean this entity), rank (reserved for Official Rank)
 
 **Level**:
 The continuous 0.0–7.0 skill state derived from a Rating’s μ. Product copy says Temba Level. Padel shows it from 1.0 to 7.0, the scale padel players know: a stored Level below 1.0 reads 1.0, a floor on the face only, so bands, Game Level range and Level wanted still compare the stored Level in tenths. Home, the You page hero and the Player profile show two decimals ("3.45"); dense lists keep one (ADR-0070). A padel Rated Match moves it pair against pair: each player's expectation weighs their partner as well as the other pair, and each moves by their own φ (ADR-0070). Football shows it as OVR.
-_Avoid_: rank, ELO, Level band (that is the discrete label)
+_Avoid_: rank (reserved for Official Rank), ELO, Level band (that is the discrete label)
 
 **OVR**:
 The football face of a Level, 40 to 99, shown as a whole number: `40 + 59 × Level / 7` on the stored μ, so no Rating row is rewritten (ADR-0069). The Level bands apply unchanged, 5.9 OVR each (C+ is 69.5 to 75.4). Home, the You page, the Player profile, Team Level and the Operator's Player Levels page show a football Level as OVR with its band.
@@ -678,7 +678,7 @@ _Avoid_: overall (in copy), football rating
 
 **Level band**:
 The discrete skill label D–D+–C-–C–C+–B-–B–B+–A–PRO (PRO highest) shown in the App, derived from Level with hysteresis. PRO is reserved for an elite override and is not assigned from Level.
-_Avoid_: rank, Level 1–5 (redesign artefact, not product), ELO, D3–A (stored thirds, not the product face)
+_Avoid_: rank (reserved for Official Rank), Level 1–5 (redesign artefact, not product), ELO, D3–A (stored thirds, not the product face)
 
 **Provisional**:
 Per ladder. A Level is Provisional while its Rating's deviation φ is above the product threshold (confidence still settling); a Level override clears it. A football Level is Provisional until its fifth counting Match and confirmed after it. A Group Tier is Provisional for the member's first five Group Games or until an Organizer adjusts their Tier points: no fish, a hatched slot, Tier points shown only to them and the Group's Organizers, and not counted when places are cut.
@@ -739,6 +739,10 @@ _Avoid_: voting period, Marks window
 **Rating history**:
 The list of everything that moved a User's Group Tier, newest first (ADR-0073): each Game with its result part and performance part, and each Tier adjustment with the Organizer's name, the reason and the note. A read over `group_tier_events`, not a table of its own; band changes are not lines in it. In a Group it is "Points and history" (`groups.tierHistory`), which only the member and the Group's Organizers may read.
 _Avoid_: activity, audit log, feed
+
+**Official Rank** (reserved):
+What a football Team or a padel player has won in official tournaments and divisions, shown as a #position with points (ADR-0065). Fed only by official results, and nobody can edit it. A later spec designs it: today only its slot exists, on the Ratings screen opened from the You page, hatched ("not yet"), reading "Coming with official tournaments" and never a number.
+_Avoid_: Standing, Level, ranking (for a Standing)
 
 **Match history visibility**:
 Who sees a User's form, stats and partners on their Player profile: everyone who may open it (default), Group members, or only them. A viewer it excludes sees Level and Preferred Position only.
