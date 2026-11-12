@@ -112,7 +112,7 @@ export function bookingCardView(
   const startsAt = new Date(booking.startsAt);
   const endsAt = new Date(booking.endsAt);
   const kickoff = formatHomeKickoff(startsAt, locale);
-  const day = upNextCardDay(startsAt, locale);
+  const day = upNextCardDay(startsAt, now, locale);
   const place = m.home.comingUp.parts([booking.venue.name, booking.court.name]);
   return {
     key: item.key,
