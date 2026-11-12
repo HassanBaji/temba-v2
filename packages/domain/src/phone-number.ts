@@ -203,7 +203,7 @@ export function parseE164(e164: string): {
 }
 
 /** `+973 3612 4408` from `+97336124408`; an unknown country stays as stored. */
-export function formatE164(e164: string): string {
+export function displayPhone(e164: string): string {
   const parsed = parseE164(e164);
   return parsed ? formatInternationalNumber(parsed.iso, parsed.national) : e164;
 }

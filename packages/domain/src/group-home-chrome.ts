@@ -108,6 +108,14 @@ export function groupMemberIsRemovable(member: {
   return !member.isOrganizer || member.isAppointedOrganizer;
 }
 
+/** The number a Group approver may call; a viewer's own row has none. */
+export function groupMemberCallableNumber(member: {
+  isViewer: boolean;
+  phoneNumber: string | null;
+}) {
+  return member.isViewer ? null : member.phoneNumber;
+}
+
 /**
  * Only an Appointed Organizer can be dismissed: the Group creator is an
  * Organizer by role, and an Unclaimed player cannot sign in to organize.

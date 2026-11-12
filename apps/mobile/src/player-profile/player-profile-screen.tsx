@@ -27,6 +27,7 @@ import {
   playerProfileState,
   type ProfileMatchRow,
 } from "./player-profile-model";
+import { PlayerPhoneRow } from "./player-phone-row";
 import { PlayerProfileBody } from "./player-profile-view";
 import { ProfileHero } from "./profile-hero";
 
@@ -63,6 +64,8 @@ export function PlayerProfileScreen({
     { userId },
     REFETCH_ON_FOREGROUND,
   );
+  const memberPhoneQuery = api.users.memberPhone.useQuery({ userId });
+  const phoneNumber = memberPhoneQuery.data?.phoneNumber ?? null;
   const query = sport === "football" ? footballQuery : padelQuery;
   const state =
     sport === "football"
@@ -76,11 +79,18 @@ export function PlayerProfileScreen({
         padelQuery.refetch(),
         footballEnabled ? footballQuery.refetch() : null,
         cabinetQuery.refetch(),
+        memberPhoneQuery.refetch(),
       ]);
     } finally {
       setRefreshing(false);
     }
-  }, [padelQuery, footballQuery, footballEnabled, cabinetQuery]);
+  }, [
+    padelQuery,
+    footballQuery,
+    footballEnabled,
+    cabinetQuery,
+    memberPhoneQuery,
+  ]);
 
   const header = <ScreenHeader nav="back" fallback={FALLBACK} />;
 
@@ -152,6 +162,9 @@ export function PlayerProfileScreen({
         />
       }
     >
+      {phoneNumber ? (
+        <PlayerPhoneRow name={model.name} phoneNumber={phoneNumber} />
+      ) : null}
       <PlayerProfileBody
         model={model}
         cabinet={cabinetRowModel(cabinetQuery.data, sport, locale)}

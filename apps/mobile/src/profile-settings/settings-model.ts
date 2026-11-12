@@ -4,10 +4,6 @@ import type {
   FootballRole,
 } from "@repo/domain/football-lineup";
 import type { LevelBand } from "@repo/domain/level";
-import {
-  formatInternationalNumber,
-  parseE164,
-} from "@repo/domain/phone-number";
 import { preferredPositionProfileLine } from "@repo/domain/preferred-position";
 import {
   ageGroupLabel,
@@ -144,12 +140,6 @@ export function readBirthDate(
     value,
     othersSee: m.othersSee(ageGroupLabel(ageOn(value, today), locale)),
   };
-}
-
-/** "+973 3612 4408" from the stored E.164 number. */
-export function displayPhone(e164: string): string {
-  const parsed = parseE164(e164);
-  return parsed ? formatInternationalNumber(parsed.iso, parsed.national) : e164;
 }
 
 export type FootballSavePlan =

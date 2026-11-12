@@ -8,6 +8,7 @@ import {
   groupHomeMetaLine,
   groupHomeShowsMemberSearch,
   groupHomeSportLabel,
+  groupMemberCallableNumber,
   groupMemberOrganizerAction,
   groupMemberOrganizerActionLabel,
   groupShowsLevel,
@@ -271,6 +272,21 @@ describe("viewerMaySetGroupLevel", () => {
         leaderboard: [organizer],
       }),
       false,
+    );
+  });
+});
+
+describe("groupMemberCallableNumber", () => {
+  it("is the member's number, except on the viewer's own row", () => {
+    const member = { isViewer: false, phoneNumber: "+97336124408" };
+    assert.equal(groupMemberCallableNumber(member), "+97336124408");
+    assert.equal(
+      groupMemberCallableNumber({ ...member, isViewer: true }),
+      null,
+    );
+    assert.equal(
+      groupMemberCallableNumber({ ...member, phoneNumber: null }),
+      null,
     );
   });
 });

@@ -171,6 +171,10 @@ export const profile = {
     ) => `${label}، من ${before} إلى ${after}، ${delta}`,
   },
   playerPage: {
+    phoneLabel: "الهاتف",
+    phoneNote: "لا يرى هذا الرقم إلا منظّمو مجموعات هذا اللاعب.",
+    callPhone: (name: string, phone: string) =>
+      `اتصال بـ ${name} على ${isolate(phone)}`,
     subtitlePositionVenue: (position: string, venue: string) =>
       `${position}، يلعب في ${venue}`,
     subtitleVenue: (venue: string) => `يلعب في ${venue}`,

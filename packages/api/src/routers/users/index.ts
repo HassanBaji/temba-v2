@@ -4,6 +4,7 @@ import { completeOnboarding } from "./completeOnboarding";
 import { footballProfile } from "./footballProfile";
 import { home } from "./home";
 import { onboardingState } from "./onboardingState";
+import { memberPhone } from "./memberPhone";
 import { playerProfile } from "./playerProfile";
 import { profileDetails } from "./profileDetails";
 import { profileStats } from "./profileStats";
@@ -26,6 +27,7 @@ export const usersRouter = createTRPCRouter({
   profileStats,
   playerProfile,
   footballProfile,
+  memberPhone,
   setPreferredPosition,
   setName,
   completeOnboarding,

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   birthDateParts,
-  displayPhone,
   footballSavePlan,
   footballSportSub,
   hasDetails,
@@ -98,13 +97,6 @@ describe("birth date", () => {
       kind: "invalid",
       message: "You must be 16 or older to use Temba.",
     });
-  });
-});
-
-describe("displayPhone", () => {
-  it("spaces a known number and leaves anything else as stored", () => {
-    expect(displayPhone("+97336124408")).toBe("+973 3612 4408");
-    expect(displayPhone("12345")).toBe("12345");
   });
 });
 

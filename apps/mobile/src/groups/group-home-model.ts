@@ -7,6 +7,7 @@ import {
   groupHomeMetaLine,
   levelCellView,
   type LevelCellView,
+  groupMemberCallableNumber,
   groupMemberOrganizerAction,
   groupMemberIsRemovable,
 } from "@repo/domain/group-home-chrome";
@@ -30,7 +31,7 @@ import {
   levelOverrideReasonLabel,
 } from "@repo/domain/level-slider";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
-import { formatE164 } from "@repo/domain/phone-number";
+import { displayPhone } from "@repo/domain/phone-number";
 import type { ResultMarkVariant } from "@repo/domain/result-mark";
 import { paddedForm, standingRecordLabel } from "@repo/domain/season-standing";
 import { isolate } from "@repo/i18n/bidi";
@@ -183,11 +184,6 @@ export function memberIsRemovable(
   return canRemovePlayers && groupMemberIsRemovable(entry);
 }
 
-/** A Group approver is sent members' numbers; their own row has nothing to call. */
-export function memberIsCallable(entry: GroupLeaderboardEntryData) {
-  return !entry.isViewer && entry.phoneNumber != null;
-}
-
 export function memberOrganizerAction(
   entry: GroupLeaderboardEntryData,
   canAppointOrganizers: boolean,
@@ -230,7 +226,7 @@ export function memberRowView(
       ((canSetLevel || canSetGroupLevel) && !entry.isViewer) ||
       memberIsRemovable(entry, canRemovePlayers) ||
       memberOrganizerAction(entry, canAppointOrganizers) != null ||
-      memberIsCallable(entry),
+      groupMemberCallableNumber(entry) != null,
     accessibilityLabel: [
       entry.isViewer ? m.mobileGroup.members.rowYou(name) : name,
       entry.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
@@ -319,15 +315,15 @@ export function memberSheetView(
   const caption = override
     ? levelOverrideCaption({ ...override, locale })
     : null;
-  const callable = memberIsCallable(entry) ? entry.phoneNumber : null;
+  const callableNumber = groupMemberCallableNumber(entry);
   return {
     name,
     imageUri: mediaUrl(entry.image, apiOrigin),
     caption: groupMemberTableCaption(entry, locale),
     unclaimed: entry.unclaimed,
     phoneMasked: entry.phoneMasked,
-    phone: callable ? isolate(formatE164(callable)) : null,
-    phoneHref: callable ? `tel:${callable}` : null,
+    phone: callableNumber ? isolate(displayPhone(callableNumber)) : null,
+    phoneHref: callableNumber ? `tel:${callableNumber}` : null,
     summary: [caption, m.members.ratedMatches(entry.ratedMatchCount)]
       .filter(Boolean)
       .join(" · "),

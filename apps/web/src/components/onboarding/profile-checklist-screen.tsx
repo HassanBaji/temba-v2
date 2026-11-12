@@ -15,10 +15,10 @@ import {
 import { TaskMarker } from "~/components/onboarding/task-marker";
 import { Button } from "~/components/ui/button";
 import { profileTaskHref } from "~/lib/onboarding-step";
-import { formatPhoneForDisplay } from "~/lib/phone-display";
 import { profileChecklistInputFrom } from "~/lib/profile-checklist-input";
 import { cn } from "~/lib/utils";
 import { initials } from "@repo/domain/initials";
+import { displayPhone } from "@repo/domain/phone-number";
 import {
   checklistBlurb,
   checklistCountLabel,
@@ -324,7 +324,11 @@ function LoadedChecklist({
     <Checklist
       list={list}
       name={name}
-      phone={formatPhoneForDisplay(user.primaryPhoneNumber?.phoneNumber)}
+      phone={
+        user.primaryPhoneNumber?.phoneNumber
+          ? displayPhone(user.primaryPhoneNumber.phoneNumber)
+          : null
+      }
       redirectUrl={redirectUrl}
       redirectTo={redirectTo}
     />

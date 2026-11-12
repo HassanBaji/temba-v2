@@ -172,11 +172,11 @@ export const TERMS_SECTIONS: TermsSection[] = [
       },
       {
         label: "5.7",
-        text: "Groups. Group admins may set their own house rules, accept or remove members, and manage group standings, provided those rules do not conflict with these Terms.",
+        text: 'Groups. A group\'s creator and the organizers they appoint ("group organizers") may set their own house rules, accept or remove members, and manage group standings, provided those rules do not conflict with these Terms.',
       },
       {
         label: "5.8",
-        text: "Contacting group members. A group's creator and its organizers can see the phone number of every member of that group, so they can reach players about games, schedules and changes. They may use those numbers only to organize play in that group. They must not share them with anyone else, add them to other lists or chats without the member's agreement, or use them for any purpose listed in 6.2. If you do not want a group's organizers to see your number, you can leave the group.",
+        text: "Contacting group members. Group organizers can see the phone number of every member of their group, so they can reach players about games, schedules and changes. They may use those numbers only to organize play in that group. They must not share them with anyone else, add them to other lists or chats without the member's agreement, or use them for any purpose listed in 6.2. If you do not want a group's organizers to see your number, you can leave the group.",
       },
     ],
   },
@@ -328,7 +328,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
       },
       {
         label: "10.4",
-        text: "Who sees it. Other players see your public profile and results. Organizers of games you join see what they need to run the game. The creator and organizers of each group you belong to see your phone number, as described in 5.8. Other players do not see your phone number. We share data with service providers that host Temba, send messages or process payments, with venues for bookings you make, and with authorities where the law requires.",
+        text: "Who sees it. Other players see your public profile and results. Organizers of games you join see what they need to run the game. The group organizers of each group you belong to see your phone number, as described in 5.8; other members of your groups do not. We share data with service providers that host Temba, send messages or process payments, with venues for bookings you make, and with authorities where the law requires.",
       },
       {
         label: "10.5",
