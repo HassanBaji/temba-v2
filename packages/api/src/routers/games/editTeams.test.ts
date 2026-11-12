@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
+  gameTeams,
   games,
   groups,
   matchSets,
@@ -11,7 +12,12 @@ import {
   venues,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
+import { canEditTeams } from "@repo/domain/edit-teams";
 import { messagesFor } from "@repo/i18n/messages";
+
+import { padelMatchup, withDb } from "#src/challenges/challenges.test-support";
+import { confirmProposal } from "#src/routers/challenges/confirmProposal";
+import { proposeOnChallenge } from "#src/routers/challenges/propose";
 
 import { createFriendlyGame } from "#src/games/create-friendly";
 import { gameById } from "#src/routers/games/byId";
@@ -301,6 +307,106 @@ describe("editTeams on a padel Friendly game", () => {
   });
 });
 
+describe("editTeams and Either side", () => {
+  it("settles a moved player's side as set by the Organizer and leaves the others", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const hassan = await insertUser(db, "Hassan");
+      const khalid = await insertUser(db, "Khalid");
+      const dana = await insertUser(db, "Dana");
+      const game = await insertFriendly(db, hassan.id);
+      await registerSeat(db, {
+        gameId: game.id,
+        userId: khalid.id,
+        sideIndex: 1,
+        position: "either",
+      });
+      await registerSeat(db, {
+        gameId: game.id,
+        userId: dana.id,
+        sideIndex: 1,
+        position: "either",
+      });
+      const before = await lineup(db, game.id, hassan.id);
+      const mover = before[0]!.right!;
+      const stayer = before[0]!.left!;
+
+      await editTeams(db, {
+        gameId: game.id,
+        organizerUserId: hassan.id,
+        notifyPlayers: false,
+        seats: [
+          { userId: stayer, sideIndex: 1, position: "left" },
+          { userId: mover, sideIndex: 2, position: "left" },
+        ],
+      });
+
+      const links = await db.query.gameTeamPlayers.findMany({
+        columns: { eitherSide: true, sideSetBy: true },
+        with: { gamePlayer: { columns: { userId: true } } },
+      });
+      const flags = (userId: string) => {
+        const link = links.find((row) => row.gamePlayer.userId === userId);
+        return { eitherSide: link?.eitherSide, sideSetBy: link?.sideSetBy };
+      };
+      expect(flags(mover)).toEqual({
+        eitherSide: false,
+        sideSetBy: hassan.id,
+      });
+      expect(flags(stayer)).toEqual({ eitherSide: true, sideSetBy: null });
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("editTeams on a Challenge Game", () => {
+  it("is not offered, and the door refuses", async () => {
+    const hour = 60 * 60 * 1000;
+    const sentAt = new Date(Date.now() - 2 * hour);
+    await withDb(async ({ database, db }) => {
+      const match = await padelMatchup(database, sentAt);
+      const { id: proposalId } = await proposeOnChallenge(db, {
+        challengeId: match.challenge.id,
+        teamId: match.riffa.id,
+        venueId: match.venue.id,
+        courtId: match.court.id,
+        startsAt: new Date(Date.now() + 48 * hour),
+        userId: match.proposer.rafi,
+        now: sentAt,
+      });
+      const { gameId } = await confirmProposal(db, {
+        proposalId,
+        userId: match.poster.ali,
+        now: sentAt,
+      });
+      const details = await gameById(db, {
+        gameId,
+        userId: match.poster.ali,
+      });
+      expect(details.isOrganizer).toBe(true);
+      expect(canEditTeams(details)).toBe(false);
+
+      const seats = details.sides.flatMap((side) =>
+        (["left", "right"] as const).flatMap((position) => {
+          const occupant = side[position];
+          return occupant
+            ? [{ userId: occupant.userId, sideIndex: side.sideIndex, position }]
+            : [];
+        }),
+      );
+      await expect(
+        editTeams(db, {
+          gameId,
+          organizerUserId: match.poster.ali,
+          notifyPlayers: false,
+          seats,
+        }),
+      ).rejects.toThrow(m.challenge.errors.setByChallenge);
+    });
+  });
+});
+
 describe("editTeams on a Friendly tournament", () => {
   beforeAll(() => {
     vi.useFakeTimers({ toFake: ["Date"] });
@@ -409,6 +515,86 @@ describe("editTeams on a Friendly tournament", () => {
       });
       const after = await lineup(db, t.gameId, t.hassan.id);
       expect(after[0]).toMatchObject({ left: t.khalid.id, right: t.hassan.id });
+    } finally {
+      await close();
+    }
+  });
+
+  it("splits a pair onto an empty team and removes a team a move emptied", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const t = await tournamentWithTwoPairs(db);
+      const teamCount = async () =>
+        (
+          await db.query.gameTeams.findMany({
+            where: eq(gameTeams.gameId, t.gameId),
+            columns: { id: true },
+          })
+        ).length;
+      expect(await teamCount()).toBe(2);
+
+      await editTeams(db, {
+        gameId: t.gameId,
+        organizerUserId: t.hassan.id,
+        notifyPlayers: false,
+        seats: [
+          { userId: t.hassan.id, sideIndex: 1, position: "left" },
+          { userId: t.khalid.id, sideIndex: 1, position: "right" },
+          { userId: t.layla.id, sideIndex: 2, position: "left" },
+          { userId: t.mariam.id, sideIndex: 3, position: "left" },
+        ],
+      });
+      expect(await teamCount()).toBe(3);
+
+      await editTeams(db, {
+        gameId: t.gameId,
+        organizerUserId: t.hassan.id,
+        notifyPlayers: false,
+        seats: [
+          { userId: t.hassan.id, sideIndex: 1, position: "left" },
+          { userId: t.khalid.id, sideIndex: 1, position: "right" },
+          { userId: t.mariam.id, sideIndex: 3, position: "left" },
+          { userId: t.layla.id, sideIndex: 3, position: "right" },
+        ],
+      });
+      expect(await teamCount()).toBe(2);
+      const after = await lineup(db, t.gameId, t.hassan.id);
+      expect(after[1]).toMatchObject({ gameTeamId: null, left: null });
+      expect(after[2]).toMatchObject({
+        left: t.mariam.id,
+        right: t.layla.id,
+      });
+      const links = await db.query.gameTeamPlayers.findMany({
+        columns: { id: true },
+      });
+      expect(links).toHaveLength(4);
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses a move that leaves a Half team where pairs are required", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const t = await tournamentWithTwoPairs(db);
+      await db
+        .update(games)
+        .set({ allowSoloRegister: false })
+        .where(eq(games.id, t.gameId));
+
+      await expect(
+        editTeams(db, {
+          gameId: t.gameId,
+          organizerUserId: t.hassan.id,
+          notifyPlayers: false,
+          seats: [
+            { userId: t.hassan.id, sideIndex: 1, position: "left" },
+            { userId: t.khalid.id, sideIndex: 1, position: "right" },
+            { userId: t.layla.id, sideIndex: 2, position: "left" },
+            { userId: t.mariam.id, sideIndex: 3, position: "left" },
+          ],
+        }),
+      ).rejects.toThrow(m.editTeams.refused.halfSide);
     } finally {
       await close();
     }

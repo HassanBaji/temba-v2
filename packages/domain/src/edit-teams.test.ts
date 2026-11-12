@@ -323,6 +323,7 @@ describe("canEditTeams", () => {
     expect(canEditTeams({ ...base, sport: "football" })).toBe(false);
     expect(canEditTeams({ ...base, format: "americano" })).toBe(false);
     expect(canEditTeams({ ...base, cancelledAt: new Date() })).toBe(false);
+    expect(canEditTeams({ ...base, isChallengeGame: true })).toBe(false);
     expect(
       canEditTeams({ ...base, sides: [{ left: khalid, right: null }] }),
     ).toBe(false);

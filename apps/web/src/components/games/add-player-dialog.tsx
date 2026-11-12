@@ -146,6 +146,8 @@ export function AddPlayerDialog({
     sideChoices.find((choice) => choice.sideIndex === pickedSide) ??
     sideChoices[0] ??
     null;
+  const tappedSide =
+    sideChoices.find((choice) => choice.sideIndex === pickedSide) ?? null;
   const placed =
     placement === "seat"
       ? seat != null
@@ -204,6 +206,7 @@ export function AddPlayerDialog({
       setMemberIds([]);
       setFootballPicks({});
       setPicked(null);
+      setPickedSide(null);
       await Promise.all([
         utils.games.listGroupMembersToAdd.invalidate({ gameId }),
         utils.games.previewPlayerByPhone.invalidate({ gameId }),
@@ -242,6 +245,7 @@ export function AddPlayerDialog({
         };
       }),
       seat: placement === "seat" ? (picked ?? undefined) : undefined,
+      side: tappedSide ? { sideIndex: tappedSide.sideIndex } : undefined,
     });
   }
 
@@ -372,6 +376,11 @@ export function AddPlayerDialog({
             <div className="border-rule space-y-2.5 border-t pt-3.5">
               {addMembers.error ? (
                 <FieldError>{addMembers.error.message}</FieldError>
+              ) : null}
+              {tappedSide ? (
+                <p className="text-meta text-muted-foreground">
+                  {m.editTeams.openSpot.firstGoesTo(tappedSide.team)}
+                </p>
               ) : null}
               {pickedNames ? (
                 <p className="text-meta text-muted-foreground truncate">

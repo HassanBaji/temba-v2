@@ -131,6 +131,8 @@ export function AddPlayerSheet({
     sideChoices.find((choice) => choice.sideIndex === pickedSide) ??
     sideChoices[0] ??
     null;
+  const tappedSide =
+    sideChoices.find((choice) => choice.sideIndex === pickedSide) ?? null;
   const placed =
     placement === "seat"
       ? seat != null
@@ -187,6 +189,7 @@ export function AddPlayerSheet({
       setMemberIds([]);
       setFootballPicks({});
       setPicked(null);
+      setPickedSide(null);
       await Promise.all([
         utils.games.listGroupMembersToAdd.invalidate({ gameId }),
         utils.games.previewPlayerByPhone.invalidate({ gameId }),
@@ -224,6 +227,7 @@ export function AddPlayerSheet({
         };
       }),
       seat: placement === "seat" ? (picked ?? undefined) : undefined,
+      side: tappedSide ? { sideIndex: tappedSide.sideIndex } : undefined,
     });
   }
 
@@ -261,6 +265,11 @@ export function AddPlayerSheet({
   const groupFooter = (
     <View style={{ gap: 8 }}>
       <FieldError message={addMembers.error?.message} />
+      {tappedSide ? (
+        <Text size="meta" tone="muted">
+          {m.editTeams.openSpot.firstGoesTo(tappedSide.team)}
+        </Text>
+      ) : null}
       {pickedNames ? (
         <Text size="meta" tone="muted" numberOfLines={1}>
           {pickedNames}

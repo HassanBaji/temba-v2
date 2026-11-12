@@ -505,7 +505,7 @@ A Game team on a Friendly tournament with one Position taken and the other vacan
 _Avoid_: incomplete Team, solo, single, orphan seat
 
 **Edit teams**:
-The Organizer rewriting who plays where on a padel Friendly game or a Friendly tournament: moving a player to the other Position or another Game team, saved as one line-up (ADR-0077). Allowed on a Friendly game until a score is entered. On a Friendly tournament a Game team that played a completed Match keeps its two players and may only swap Positions, and after the Pool draw players only swap. Distinct from setting a Game team's sides, which only swaps Left and Right inside one full Game team.
+The Organizer rewriting who plays where on a padel Friendly game or a Friendly tournament: moving a player to the other Position or another Game team, saved as one line-up (ADR-0077). Allowed on a Friendly game until a score is entered. On a Friendly tournament a Game team with a scored Match, confirmed or still waiting, keeps its two players and may only swap Positions, and after the Pool draw players only swap. Never on a Challenge Game. Distinct from setting a Game team's sides, which only swaps Left and Right inside one full Game team.
 _Avoid_: reseat, reshuffle, team builder
 
 **Pool**:

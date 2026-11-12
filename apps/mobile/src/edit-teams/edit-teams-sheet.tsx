@@ -203,7 +203,8 @@ function TeamBlock({
           />
         ) : null}
       </View>
-      <View style={{ flexDirection: "row", gap: 8 }}>
+      {/* Physical on purpose: Left and Right are court sides. */}
+      <View style={{ flexDirection: "row", gap: 8, direction: "ltr" }}>
         {POSITIONS.map((position) => {
           const spot = { sideIndex: side.sideIndex, position };
           const player = side[position];
@@ -246,7 +247,10 @@ function MoveRow({
   return (
     <View
       accessible
-      accessibilityLabel={`${name}, ${m.editTeams.movedLine(from, to)}`}
+      accessibilityLabel={m.editTeams.playerSr(
+        name,
+        m.editTeams.movedLine(from, to),
+      )}
       style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
     >
       <Avatar name={move.player.name} uri={move.player.image} size="sm" />

@@ -1,9 +1,10 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, inArray, or } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
-import { gameTeamPlayers, gameTeams, matches, MatchStatusEnum } from "@repo/db";
+import { gameTeamPlayers, gameTeams, matches } from "@repo/db";
 
+import { matchHasScore, playedGameTeamIds } from "@repo/domain/edit-teams";
 import { isRosterRegistrationGame } from "@repo/domain/game-shape";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
@@ -51,18 +52,22 @@ function assertEditableFormat(game: GameRow, locale: Locale) {
   }
 }
 
-async function assertNoScoreYet(tx: Tx, game: GameRow, locale: Locale) {
-  if (game.format !== "friendly_game") {
-    return;
-  }
-  const rows = await tx.query.matches.findMany({
-    where: eq(matches.gameId, game.id),
-    columns: { status: true },
+/**
+ * The Game's Matches, locked so a score being written is seen: a score
+ * waiting to be confirmed becomes its pair's result.
+ */
+async function lockedMatches(tx: Tx, gameId: string) {
+  await tx
+    .select({ id: matches.id })
+    .from(matches)
+    .where(eq(matches.gameId, gameId))
+    .orderBy(matches.id)
+    .for("update");
+  return tx.query.matches.findMany({
+    where: eq(matches.gameId, gameId),
+    columns: { status: true, slot1GameTeamId: true, slot2GameTeamId: true },
     with: { sets: { columns: { slot1GamesWon: true, slot2GamesWon: true } } },
   });
-  if (rows.some(hasScore)) {
-    refuse("FORBIDDEN", messagesFor(locale).editTeams.errors.scoreIn);
-  }
 }
 
 async function currentSeats(tx: Tx, gameId: string) {
@@ -101,37 +106,6 @@ async function currentSeats(tx: Tx, gameId: string) {
     }
   }
   return { seats, teamIdBySide };
-}
-
-function hasScore(match: {
-  status: string | null;
-  sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
-}) {
-  if (match.status === MatchStatusEnum.COMPLETED) {
-    return true;
-  }
-  return (
-    match.status !== MatchStatusEnum.CANCELLED &&
-    match.sets.some(
-      (set) => set.slot1GamesWon != null || set.slot2GamesWon != null,
-    )
-  );
-}
-
-/** A score waiting to be confirmed counts: it becomes this pair's result. */
-async function sitsOnScoredMatch(tx: Tx, gameId: string, gameTeamId: string) {
-  const rows = await tx.query.matches.findMany({
-    where: and(
-      eq(matches.gameId, gameId),
-      or(
-        eq(matches.slot1GameTeamId, gameTeamId),
-        eq(matches.slot2GameTeamId, gameTeamId),
-      ),
-    ),
-    columns: { status: true },
-    with: { sets: { columns: { slot1GamesWon: true, slot2GamesWon: true } } },
-  });
-  return rows.some(hasScore);
 }
 
 function assertSameLineup(
@@ -184,12 +158,12 @@ function sameMembers(a: Set<string> | undefined, b: Set<string> | undefined) {
  * theirs. After a posted draw no side gains or loses a player, and a
  * partner-required tournament never ends with a Half team.
  */
-async function assertAllowedChanges(
-  tx: Tx,
+function assertAllowedChanges(
   game: GameRow,
   current: readonly CurrentSeat[],
   next: readonly Seat[],
   teamIdBySide: Map<number, string>,
+  scoredGameTeamIds: Set<string>,
   locale: Locale,
 ) {
   const refused = messagesFor(locale).editTeams.refused;
@@ -203,7 +177,7 @@ async function assertAllowedChanges(
       continue;
     }
     const gameTeamId = teamIdBySide.get(sideIndex);
-    if (gameTeamId && (await sitsOnScoredMatch(tx, game.id, gameTeamId))) {
+    if (gameTeamId && scoredGameTeamIds.has(gameTeamId)) {
       refuse("FORBIDDEN", refused.locked);
     }
     if (isPoolDrawPosted(game) && (was?.size ?? 0) !== (now?.size ?? 0)) {
@@ -264,15 +238,18 @@ export async function editTeams(
   return database.transaction(async (tx) => {
     const game = await lockGameForAdmit(tx, found.id, locale);
     assertEditableFormat(game, locale);
-    await assertNoScoreYet(tx, game, locale);
+    const matchRows = await lockedMatches(tx, game.id);
+    if (game.format === "friendly_game" && matchRows.some(matchHasScore)) {
+      refuse("FORBIDDEN", messagesFor(locale).editTeams.errors.scoreIn);
+    }
     const { seats: current, teamIdBySide } = await currentSeats(tx, game.id);
     assertSameLineup(game, current, args.seats, locale);
-    await assertAllowedChanges(
-      tx,
+    assertAllowedChanges(
       game,
       current,
       args.seats,
       teamIdBySide,
+      playedGameTeamIds(matchRows),
       locale,
     );
 
@@ -305,7 +282,7 @@ export async function editTeams(
         seat.sideIndex,
         teamIdBySide,
       );
-      await tx
+      const [moved] = await tx
         .update(gameTeamPlayers)
         .set({
           gameTeamId,
@@ -314,7 +291,12 @@ export async function editTeams(
           sideSetBy: args.organizerUserId,
           updatedAt: now,
         })
-        .where(eq(gameTeamPlayers.id, was.linkId));
+        .where(eq(gameTeamPlayers.id, was.linkId))
+        .returning({ id: gameTeamPlayers.id });
+      // A player who moved or left meanwhile no longer has this seat row.
+      if (!moved) {
+        refuse("CONFLICT", messagesFor(locale).editTeams.errors.lineupChanged);
+      }
     }
 
     // Only the sides this edit emptied: a Game team left empty after a

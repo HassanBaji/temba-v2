@@ -19,16 +19,22 @@ tools and keeps the line-up itself unchanged for everyone else.
 - **Who and when.** The Organizer (the Game's Organizers, as everywhere else), on a padel Friendly
   game until a score is entered, and on a Friendly tournament while it is not cancelled. Individual
   registration only: a team-only Game's sides are persistent Teams.
-- **What locks on a tournament.** A Game team that played a completed Match keeps its two players,
-  because the result is theirs; its sides can still swap. Once the Pool draw is posted no side gains
-  or loses a player, so only swaps between teams are allowed. A tournament that does not allow
-  registering alone never ends a move with a Half team.
+- **What locks on a tournament.** A Game team with a scored Match keeps its two players, because
+  the result is theirs; its sides can still swap. A score still waiting to be confirmed counts: it
+  stands on its own after ten minutes (ADR-0062) and would otherwise become the result of a pair that
+  did not play it. Once the Pool draw is posted no side gains or loses a player, so only swaps
+  between teams are allowed, and a Game team left empty after the draw keeps its row and Matches. A
+  tournament that does not allow registering alone never ends a move with a Half team.
+- **The door reads the score under the Match locks.** It locks the Game, then its Matches, so a
+  score being written is seen before the line-up is checked.
+- **Not on a Challenge Game.** Its sides are the two Teams' squads.
 - **Moved seats are set by the Organizer.** A moved player's seat loses Either side and records the
   Organizer in `side_set_by`, like setting a Game team's sides.
 - **Telling the players is the Organizer's choice, on by default.** Everyone whose spot changed,
   except the Organizer, gets a `game_team_changed` Notification (new enum value, migration 0102).
 - **Adding at an open spot.** An Organizer who taps an open spot gets Add a player for that spot. If
-  they could also take or move to it themselves, a short menu offers both.
+  they could also take or move to it themselves, a short menu offers both. On a tournament the first
+  player added goes to the tapped team, from the Group list as well as by phone.
 
 ## Consequences
 

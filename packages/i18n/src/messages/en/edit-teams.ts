@@ -115,6 +115,8 @@ export const editTeams = {
     addPlayerHint: "Seat someone yourself, from the group or by phone",
     join: "Take this spot yourself",
     move: "Move here yourself",
+    firstGoesTo: (team: string) =>
+      `The first player you pick goes to ${team}. The rest fill the next open spots.`,
   },
   errors: {
     format: "Teams can be edited on padel games and friendly tournaments",

@@ -65,7 +65,8 @@ type SourceMatch = {
   sets: readonly SourceSet[];
 };
 
-function hasScore(match: Pick<SourceMatch, "status" | "sets">) {
+/** Completed, or scored and still waiting to be confirmed. */
+export function matchHasScore(match: Pick<SourceMatch, "status" | "sets">) {
   if (match.status === "completed") {
     return true;
   }
@@ -86,7 +87,7 @@ const POSITIONS: readonly EditTeamsPosition[] = ["left", "right"];
 export function playedGameTeamIds(matches: readonly SourceMatch[]) {
   const ids = new Set<string>();
   for (const match of matches) {
-    if (!hasScore(match)) {
+    if (!matchHasScore(match)) {
       continue;
     }
     if (match.slot1GameTeamId) {
@@ -372,6 +373,8 @@ export function canEditTeams(game: {
   format: string;
   sport: string | null;
   registrationMode: string;
+  /** A Challenge Game's sides are its two Teams' squads. */
+  isChallengeGame?: boolean;
   sides: readonly { left: unknown; right: unknown }[];
   matches: readonly {
     status: string | null;
@@ -381,7 +384,7 @@ export function canEditTeams(game: {
     }[];
   }[];
 }) {
-  if (!game.isOrganizer || game.cancelledAt) {
+  if (!game.isOrganizer || game.cancelledAt || game.isChallengeGame) {
     return false;
   }
   if (game.registrationMode !== "individual" || game.sport === "football") {
@@ -400,5 +403,5 @@ export function canEditTeams(game: {
   if (game.format !== "friendly_game") {
     return false;
   }
-  return !game.matches.some(hasScore);
+  return !game.matches.some(matchHasScore);
 }

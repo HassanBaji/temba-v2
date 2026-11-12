@@ -723,7 +723,7 @@ export function GameDetailsScreen({
 
   const details: FriendlyGameDetails = data;
   const canAddAtSeat = organizer.plan?.canAddPlayer ?? false;
-  const editsTeams = canEditTeams(details);
+  const editsTeams = canEditTeams(data);
   function addPlayerAt(seat: FriendlyGameJoinSeat) {
     setAddSeat(seat);
     organizer.handlers.onAddPlayer();
