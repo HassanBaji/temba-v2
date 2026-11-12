@@ -99,6 +99,7 @@ import {
 import { groupSeasonRows } from "#src/games/season-link";
 import { toSeasonRow } from "#src/standing/load-group-standing";
 import { MATCH_STATUS } from "@repo/domain/match-status";
+import { gameMemberNicknames } from "#src/groups/helpers/game-member-nicknames";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
 import { mayRenameUnclaimedPlayer } from "#src/unclaimed-players/may-rename-unclaimed-player";
@@ -451,6 +452,11 @@ export async function gameById(
     },
     orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
   });
+  const nicknameByUserId = await gameMemberNicknames(
+    database,
+    game,
+    args.userId,
+  );
   const playerMarkByUserId = new Map(
     await Promise.all(
       playerRows.flatMap((row) => {
@@ -472,7 +478,11 @@ export async function gameById(
                 adderId: player.addedByUserId,
                 callerId: args.userId,
               }));
-            return [player.id, { unclaimed, phoneMasked, canRename }] as const;
+            const nickname = nicknameByUserId.get(player.id) ?? null;
+            return [
+              player.id,
+              { unclaimed, phoneMasked, canRename, nickname },
+            ] as const;
           })(),
         ];
       }),
@@ -483,6 +493,7 @@ export async function gameById(
       unclaimed: false,
       phoneMasked: null,
       canRename: false,
+      nickname: nicknameByUserId.get(userId) ?? null,
     };
 
   const group = game.groupId

@@ -17,6 +17,7 @@ import { Plus, UserPlus } from "lucide-react-native";
 import { Fragment } from "react";
 import { Pressable, View } from "react-native";
 
+import { NicknameName } from "../groups/nickname-name";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -46,22 +47,33 @@ function SeatLabels({
   subline,
   strong,
   unclaimed = false,
+  isNickname = false,
 }: {
   title: string;
   subline: string;
   strong: boolean;
   unclaimed?: boolean;
+  isNickname?: boolean;
 }) {
   return (
     <View style={{ alignItems: "center", maxWidth: "100%", gap: 2 }}>
-      <Text
-        size="body"
-        weight={strong ? "semibold" : "medium"}
-        numberOfLines={1}
-        style={{ textAlign: "center" }}
-      >
-        {title}
-      </Text>
+      {isNickname ? (
+        <NicknameName
+          name={title}
+          isNickname
+          size="body"
+          weight={strong ? "semibold" : "medium"}
+        />
+      ) : (
+        <Text
+          size="body"
+          weight={strong ? "semibold" : "medium"}
+          numberOfLines={1}
+          style={{ textAlign: "center" }}
+        >
+          {title}
+        </Text>
+      )}
       {unclaimed ? <NotOnTembaMark /> : null}
       <Text size="meta" tone="muted" numberOfLines={1}>
         {subline}
@@ -174,6 +186,7 @@ function TakenSeat({
         subline={subline}
         strong={row.isYou}
         unclaimed={row.unclaimed}
+        isNickname={row.isNickname === true}
       />
     </>
   );
@@ -192,7 +205,12 @@ function TakenSeat({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={m.mobileGameDetails.join.nameWithMeta(name, subline)}
+      accessibilityLabel={m.mobileGameDetails.join.nameWithMeta(
+        row.isNickname
+          ? m.mobileGroup.nickname.rowSpoken(name, seat.name)
+          : name,
+        subline,
+      )}
       onPress={() => onPress(row)}
       style={({ pressed }) => [cell, { opacity: pressed ? 0.6 : 1 }]}
     >

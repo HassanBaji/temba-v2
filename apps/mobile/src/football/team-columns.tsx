@@ -1,7 +1,8 @@
-import { bibColors, radii } from "@repo/design-tokens";
+import { bibColors, radii, sizes } from "@repo/design-tokens";
 import { type FootballBib } from "@repo/domain/football-lineup";
 import { Pressable, View } from "react-native";
 
+import { NicknameName } from "../groups/nickname-name";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
@@ -12,7 +13,7 @@ import { BibChip } from "./bib-picker";
 import {
   byKeeperThenLevel,
   levelLabel,
-  shortName,
+  rosterName,
   sideAverage,
   slotCode,
   type Bibs,
@@ -42,12 +43,19 @@ export function BibRow({
   const blendsIn =
     scheme === "dark" ? bib === "black" : fill === palette.background;
   const edge = blendsIn ? palette.muted : fill;
-  const name = player.isViewer ? messages.common.you : shortName(player.name);
+  const name = player.isViewer ? messages.common.you : rosterName(player);
+  const isNickname = !player.isViewer && player.nickname != null;
   const code = slotCode(player, locale);
   return (
     <Pressable
       accessibilityRole={onPress ? "button" : undefined}
-      accessibilityLabel={[name, code, levelLabel(player.levelBand)]
+      accessibilityLabel={[
+        isNickname
+          ? messages.mobileGroup.nickname.rowSpoken(name, player.name)
+          : name,
+        code,
+        levelLabel(player.levelBand),
+      ]
         .filter(Boolean)
         .join(messages.tournament.listSeparator)}
       disabled={!onPress}
@@ -65,14 +73,15 @@ export function BibRow({
       }}
     >
       <Avatar name={player.name} uri={player.image} size="sm" />
-      <Text
+      <NicknameName
+        name={name}
+        isNickname={isNickname}
         size="meta"
         weight={player.isViewer ? "semibold" : "regular"}
-        numberOfLines={1}
-        style={{ flex: 1, color: on }}
-      >
-        {name}
-      </Text>
+        iconSize={sizes.iconRow - 4}
+        color={on}
+        style={{ flex: 1 }}
+      />
       {code ? (
         <Text size="eyebrow" mono style={{ color: on, opacity: 0.7 }}>
           {code}

@@ -17,6 +17,7 @@ export function NicknameName({
   weight = "semibold",
   tone,
   iconSize = sizes.iconRow - 2,
+  color,
   style,
 }: {
   name: string;
@@ -25,6 +26,8 @@ export function NicknameName({
   weight?: TextWeight;
   tone?: TextTone;
   iconSize?: number;
+  /** For a row that sets its own ink, such as a bib-coloured team row. */
+  color?: string;
   style?: StyleProp<ViewStyle>;
 }) {
   const palette = useTonePalette();
@@ -44,7 +47,9 @@ export function NicknameName({
       {isNickname ? (
         <Tag
           size={iconSize}
-          color={tone === "muted" ? palette.muted : palette.foreground}
+          color={
+            color ?? (tone === "muted" ? palette.muted : palette.foreground)
+          }
         />
       ) : null}
       <Text
@@ -52,7 +57,7 @@ export function NicknameName({
         weight={weight}
         tone={tone}
         numberOfLines={1}
-        style={{ flexShrink: 1 }}
+        style={{ flexShrink: 1, color }}
       >
         {name}
       </Text>

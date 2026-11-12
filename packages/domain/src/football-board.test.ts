@@ -15,6 +15,7 @@ import {
   poolLayout,
   poolSections,
   removeGoal,
+  rosterName,
   scorersNote,
   scorersPayload,
   shortName,
@@ -310,5 +311,17 @@ describe("footballHeroLines", () => {
     expect(
       footballHeroLines({ ...input, scored: true }, at(120), "ar").status,
     ).toBe("لُعبت");
+  });
+});
+
+describe("rosterName", () => {
+  it("reads the Member nickname in full, else the short Temba name", () => {
+    expect(rosterName({ name: "Ahmed Nasser" })).toBe("Ahmed N");
+    expect(
+      rosterName({
+        name: "Ahmed Nasser",
+        nickname: { name: "Ahmed keeper", visibility: "approvers" },
+      }),
+    ).toBe("Ahmed keeper");
   });
 });

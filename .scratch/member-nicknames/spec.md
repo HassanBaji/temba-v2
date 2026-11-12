@@ -23,6 +23,7 @@ Columns on `group_members` (migration `0102_member_nicknames`): `nickname varcha
 
 - `groups.setMemberNickname({ groupId, userId, nickname | null, visibility })`: Group approvers only. New procedure, additive.
 - `nickname: { name, visibility } | null` added to `groups.byId` leaderboard rows, `groups.seasonStanding` rows and `games.listGroupMembersToAdd` members. `groups.byId` also gains `canSetMemberNicknames`.
+- On a Game: `nickname` on every player row of `games.byId` (seats, registered and unseated players, Game Team members) and on `games.footballBoard` players. Only a private Game of a Group, and only for a viewer who is a member of that Group (`gameMemberNicknames`); a public Game, a Game with no Group, or a viewer outside the Group gets none.
 
 ## Where it shows (mobile)
 
@@ -30,8 +31,10 @@ Columns on `group_members` (migration `0102_member_nicknames`): `nickname varcha
 - Name in this Group sheet: name field with counter, live preview row, Who sees it, Save and Clear name.
 - Standing (all lenses): the nickname with the tag icon.
 - Game Add players: nickname first, Temba name in the meta line, search matches both.
+- Line-ups: padel court seats and the football pool tiles and team columns show the nickname in full with the tag icon (the viewer's own seat stays "You"). Avatars keep the Temba name's initials.
+- Team making: each row shows the nickname with the tag icon and the Temba name under it.
+- Share images, the score screen and the player sheet keep Temba names.
 
 ## Not yet
 
-- Game line-ups and team making still show Temba names: `games.byId` does not read nicknames.
-- The web App gets the fields through shared types; only its Add players dialog shows the nickname (as plain text). No web editor.
+- The web App gets the fields through shared types: its Add players dialog shows the nickname as plain text, and its padel line-up shows it with the tag icon. No web editor.

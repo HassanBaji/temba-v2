@@ -1,7 +1,7 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { levelLabel, shortName } from "./football-board";
+import { levelLabel, rosterName, shortName } from "./football-board";
 import type { FriendlyGameDetailsSeat } from "./friendly-game-details";
 import {
   friendlyGameViewerPerspective,
@@ -60,7 +60,8 @@ export function courtSeatRow(
   const isYou = seat.userId === viewerUserId;
   return {
     userId: seat.userId,
-    name: isYou ? messagesFor(locale).common.you : shortName(seat.name),
+    name: isYou ? messagesFor(locale).common.you : rosterName(seat),
+    isNickname: !isYou && seat.nickname != null,
     fullName: seat.name,
     image: seat.image,
     isYou,

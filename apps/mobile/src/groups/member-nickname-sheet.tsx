@@ -102,6 +102,8 @@ export function MemberNicknameSheet({
         utils.groups.byId.invalidate({ id: groupId }),
         utils.groups.seasonStanding.invalidate({ groupId }),
         utils.games.listGroupMembersToAdd.invalidate(),
+        utils.games.byId.invalidate(),
+        utils.games.footballBoard.invalidate(),
       ]);
       onClose();
     },

@@ -30,6 +30,7 @@ import {
   LEVEL_BANDS,
   type LevelBand,
 } from "./level-bands";
+import type { MemberNicknameData } from "./member-nickname";
 import { nameInitial } from "./player-name";
 
 export type Side = 1 | 2;
@@ -37,6 +38,8 @@ export type Side = 1 | 2;
 export type BoardPlayer = {
   userId: string;
   name: string;
+  /** The Member nickname on a private Group Game, when the viewer may see it. */
+  nickname?: MemberNicknameData | null;
   image: string | null;
   role: FootballRole | null;
   position: FootballPosition | null;
@@ -65,6 +68,14 @@ export function shortName(name: string) {
   const [first, ...rest] = name.trim().split(/\s+/);
   const last = rest[rest.length - 1];
   return last ? `${first} ${nameInitial(last) ?? ""}` : (first ?? name);
+}
+
+/** A line-up name: the Member nickname in full, else the short Temba name. */
+export function rosterName(player: {
+  name: string;
+  nickname?: MemberNicknameData | null;
+}) {
+  return player.nickname?.name ?? shortName(player.name);
 }
 
 /**

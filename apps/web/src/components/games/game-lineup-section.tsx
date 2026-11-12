@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, Plus, UserPlus } from "lucide-react";
+import { ArrowLeftRight, Plus, Tag, UserPlus } from "lucide-react";
 import { Fragment } from "react";
 
 import {
@@ -40,21 +40,24 @@ function SeatLabels({
   subline,
   strong,
   unclaimed = false,
+  isNickname = false,
 }: {
   title: string;
   subline: string;
   strong: boolean;
   unclaimed?: boolean;
+  isNickname?: boolean;
 }) {
   return (
     <span className="flex max-w-full flex-col items-center gap-0.5">
       <span
         className={cn(
-          "max-w-full truncate text-sm",
+          "flex max-w-full items-center gap-1 text-sm",
           strong ? "font-semibold" : "font-medium",
         )}
       >
-        {title}
+        {isNickname ? <Tag aria-hidden className="size-3 shrink-0" /> : null}
+        <span className="truncate">{title}</span>
       </span>
       {unclaimed ? <NotOnTembaTag /> : null}
       <span className="text-muted-foreground text-meta max-w-full truncate">
@@ -152,6 +155,7 @@ function TakenSeat({
         subline={subline}
         strong={row.isYou}
         unclaimed={row.unclaimed}
+        isNickname={row.isNickname === true}
       />
     </>
   );
