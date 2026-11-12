@@ -4,7 +4,11 @@ import {
   footballRoleView,
 } from "@repo/domain/player-profile-football";
 import { formatDayMonth, formatMonth } from "@repo/domain/format-game-start";
-import { bandFromLevel, type LevelBand } from "@repo/domain/level";
+import {
+  bandFromLevel,
+  formatPadelLevel,
+  type LevelBand,
+} from "@repo/domain/level";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import { homeAreaLabel } from "@repo/domain/profile-details";
 import { zonedParts } from "@repo/domain/product-timezone";
@@ -175,7 +179,7 @@ export function heroView(
   }
 
   const band = displayBand(level.levelBand);
-  const rating = level.rating.toFixed(2);
+  const rating = formatPadelLevel(level.rating, 2);
   const rated = profile.ratedMatchCount;
   const setBy = profile.group ? (group?.setBy ?? null) : null;
 

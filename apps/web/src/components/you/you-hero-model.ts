@@ -1,5 +1,5 @@
 import { formatDayMonth, formatMonth } from "@repo/domain/format-game-start";
-import { bandFromLevel } from "@repo/domain/level";
+import { bandFromLevel, formatPadelLevel } from "@repo/domain/level";
 import { zonedParts } from "@repo/domain/product-timezone";
 import { WIN_RATE_MIN_MATCHES } from "@repo/domain/win-rate";
 import type { Locale } from "@repo/i18n/locale";
@@ -93,7 +93,7 @@ export function heroView(
   const { level, group } = args;
   const ratedCount = group ? group.ratedMatchCount : args.ratedMatchCount;
   const band = displayBand(level.levelBand);
-  const rating = level.rating.toFixed(2);
+  const rating = formatPadelLevel(level.rating, 2);
 
   let status: string;
   if (group?.setBy) {

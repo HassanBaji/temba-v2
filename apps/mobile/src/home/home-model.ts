@@ -63,6 +63,7 @@ export function levelFromApi(data: ApiRating): HomeLevel {
       ovr: data.ovr,
       band: data.rating.levelBand,
       level: data.rating.level,
+      levelValue: data.levelValue,
       provisional: data.rating.provisional,
       ratedMatchesRemaining: data.rating.ratedMatchesRemaining,
       history: data.history,

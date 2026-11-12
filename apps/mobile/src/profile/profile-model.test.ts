@@ -142,6 +142,18 @@ describe("heroView", () => {
     );
   });
 
+  it("reads a padel Level below 1.0 as 1.00", () => {
+    const base = profile();
+    const view = heroView(
+      profile({ level: { ...base.level!, rating: 0.35, levelBand: "D3" } }),
+      null,
+      "en",
+    );
+    if (view.kind !== "rated") throw new Error("Expected a rated Level");
+    assert.equal(view.rating, "1.00");
+    assert.equal(view.band, "D");
+  });
+
   it("counts toward confirming while Provisional", () => {
     const base = profile();
     const view = heroView(

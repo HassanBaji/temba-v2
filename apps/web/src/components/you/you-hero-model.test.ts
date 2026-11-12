@@ -81,6 +81,19 @@ describe("heroView", () => {
     );
   });
 
+  it("reads a padel Level below 1.0 as 1.00", () => {
+    const view = heroView(
+      {
+        level: level({ rating: 0.35, levelBand: "D3" }),
+        ratedMatchCount: 24,
+        group: null,
+      },
+      "en",
+    );
+    expect(view.rating).toBe("1.00");
+    expect(view.band).toBe("D");
+  });
+
   it("counts toward confirming a Provisional Level", () => {
     const view = heroView(
       {
