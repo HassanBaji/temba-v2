@@ -430,6 +430,54 @@ export const rating = {
       footnote:
         "A group game. It moved your tier points here and nothing else: not your Temba Level, not any Rank.",
     },
+    summary: {
+      title: "Ratings are in",
+      entry: {
+        title: "Ratings are in",
+        description:
+          "Each player’s rating and points move, and who changed tier.",
+        cta: "See",
+      },
+      pending: {
+        title: "Ratings are still open",
+        description: (closes: string) =>
+          `${closes}. Then each player’s rating and points move are here.`,
+      },
+      line: (rated: string, closed: string) =>
+        `${rated}. Window closed ${closed}`,
+      organizerRated: "Rated by the organizer",
+      organizerDidNotRate: "The organizer didn’t rate",
+      columns: "rating, points",
+      more: (n: number) => `${n} more`,
+      row: {
+        mvp: "MVP",
+        upTo: (band: string) => `Up to ${band}`,
+        downTo: (band: string) => `Down to ${band}`,
+        nowA: (band: string) => `Now a ${band}`,
+        ratings: (n: number) =>
+          plural("en", n, { one: "1 rating", other: "{n} ratings" }),
+        notRated: "Not rated",
+        ratedSpoken: (rating: string) => `rated ${rating}`,
+        notRatedSpoken: "no rating",
+        pointsSpoken: (points: string) => `${points} points`,
+        spokenSeparator: ", ",
+      },
+      outliers: {
+        title: (n: number) =>
+          plural("en", n, {
+            one: "One rater counted for less",
+            other: "{n} raters counted for less",
+          }),
+        description:
+          "Their ratings were far from everyone else’s for the third game running. Names stay private, even from you.",
+      },
+      footer: {
+        title: "Something look wrong?",
+        description: "Adjust a player from Members, Manage",
+        cta: "Members",
+      },
+      loadFailed: "Couldn’t load the ratings summary",
+    },
     loadFailed: "Couldn’t load the ratings",
     errors: {
       noWindow: "This game has no performance ratings.",
@@ -440,6 +488,8 @@ export const rating = {
       notPlayer: "Rate only the players of this game.",
       value: "A rating is a whole number from 1 to 10.",
       duplicate: "Rate each player once.",
+      summaryOrganizerOnly:
+        "Only an organizer of this game sees the ratings summary.",
     },
   },
 };

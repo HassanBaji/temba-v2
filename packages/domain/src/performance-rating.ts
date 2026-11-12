@@ -35,6 +35,9 @@ export const TRIM_FROM_BALLOTS = 5;
 export const USUAL_PRIOR_GAMES = 3;
 export const USUAL_RECENT_GAMES = 10;
 export const ORGANIZER_DOUBLE_WEIGHT = 2;
+export const OUTLIER_MEAN_DISTANCE = 2;
+export const OUTLIER_GAMES_RUNNING = 3;
+export const OUTLIER_WEIGHT_FACTOR = 0.5;
 
 export const PERFORMANCE_RATING_VALUES: readonly number[] = Array.from(
   { length: PERFORMANCE_RATING_MAX - PERFORMANCE_RATING_MIN + 1 },
@@ -117,24 +120,25 @@ function byValueThenRater(left: PerformanceBallot, right: PerformanceBallot) {
   );
 }
 
-/**
- * Each rated player's settled rating: the weighted mean of their ballots,
- * dropping the highest and the lowest from five ballots up. A player with
- * fewer ballots than the mode needs has no settled rating. A ballot to
- * oneself never counts; a rater missing from `raterWeights` weighs 1.
- */
-export function settlePerformanceRatings(
+function isCountedBallot(
+  ballot: PerformanceBallot,
+  raterWeights: ReadonlyMap<string, number>,
+) {
+  return (
+    ballot.raterUserId !== ballot.rateeUserId &&
+    isPerformanceRatingValue(ballot.value) &&
+    (raterWeights.get(ballot.raterUserId) ?? 1) > 0
+  );
+}
+
+function settleAtWeights(
   ballots: readonly PerformanceBallot[],
-  raterWeights: ReadonlyMap<string, number> = new Map(),
-  options: { mode: RatingWindowMode } = { mode: "everyone" },
+  raterWeights: ReadonlyMap<string, number>,
+  mode: RatingWindowMode,
 ): SettledPerformanceRating[] {
   const byRatee = new Map<string, PerformanceBallot[]>();
   for (const ballot of ballots) {
-    if (
-      ballot.raterUserId === ballot.rateeUserId ||
-      !isPerformanceRatingValue(ballot.value) ||
-      (raterWeights.get(ballot.raterUserId) ?? 1) <= 0
-    ) {
+    if (!isCountedBallot(ballot, raterWeights)) {
       continue;
     }
     const list = byRatee.get(ballot.rateeUserId) ?? [];
@@ -144,7 +148,7 @@ export function settlePerformanceRatings(
 
   const settled: SettledPerformanceRating[] = [];
   for (const [userId, list] of byRatee) {
-    if (list.length < minBallotsFor(options.mode)) {
+    if (list.length < minBallotsFor(mode)) {
       continue;
     }
     const sorted = [...list].sort(byValueThenRater);
@@ -164,6 +168,124 @@ export function settlePerformanceRatings(
     });
   }
   return settled.sort((left, right) => left.userId.localeCompare(right.userId));
+}
+
+/**
+ * Each rater's mean distance from the settled ratings of the players they
+ * rated. A rater none of whose players settled has no distance.
+ */
+export function raterDistances(
+  ballots: readonly PerformanceBallot[],
+  settled: readonly Pick<SettledPerformanceRating, "userId" | "rating">[],
+): Map<string, number> {
+  const ratingOf = new Map(settled.map((row) => [row.userId, row.rating]));
+  const totals = new Map<string, { sum: number; count: number }>();
+  for (const ballot of ballots) {
+    const rating = ratingOf.get(ballot.rateeUserId);
+    if (
+      rating === undefined ||
+      ballot.raterUserId === ballot.rateeUserId ||
+      !isPerformanceRatingValue(ballot.value)
+    ) {
+      continue;
+    }
+    const total = totals.get(ballot.raterUserId) ?? { sum: 0, count: 0 };
+    total.sum += Math.abs(ballot.value - rating);
+    total.count += 1;
+    totals.set(ballot.raterUserId, total);
+  }
+  return new Map(
+    [...totals].map(([raterUserId, total]) => [
+      raterUserId,
+      total.sum / total.count,
+    ]),
+  );
+}
+
+/**
+ * Each rater's mean distance in their previous Matches, newest first; null
+ * for a Match where none of the players they rated settled.
+ */
+export type PreviousRaterDistances = ReadonlyMap<
+  string,
+  readonly (number | null)[]
+>;
+
+function isFar(distance: number | null | undefined) {
+  return distance != null && distance > OUTLIER_MEAN_DISTANCE;
+}
+
+/**
+ * The raters whose ratings were far from the settled ones in this Match and
+ * in each of their previous two (D19). This Match's distance is measured
+ * against the ratings as they settle at full weight. Derived from the
+ * ballots every time, so there is no record of who.
+ */
+export function outlierRaterIds(
+  ballots: readonly PerformanceBallot[],
+  raterWeights: ReadonlyMap<string, number>,
+  options: {
+    mode: RatingWindowMode;
+    previousDistances: PreviousRaterDistances;
+  },
+): Set<string> {
+  const counted = ballots.filter((ballot) =>
+    isCountedBallot(ballot, raterWeights),
+  );
+  const distances = raterDistances(
+    counted,
+    settleAtWeights(counted, raterWeights, options.mode),
+  );
+  const outliers = new Set<string>();
+  for (const [raterUserId, distance] of distances) {
+    const earlier = (options.previousDistances.get(raterUserId) ?? []).slice(
+      0,
+      OUTLIER_GAMES_RUNNING - 1,
+    );
+    if (
+      isFar(distance) &&
+      earlier.length === OUTLIER_GAMES_RUNNING - 1 &&
+      earlier.every(isFar)
+    ) {
+      outliers.add(raterUserId);
+    }
+  }
+  return outliers;
+}
+
+/**
+ * Each rated player's settled rating: the weighted mean of their ballots,
+ * dropping the highest and the lowest from five ballots up. A player with
+ * fewer ballots than the mode needs has no settled rating. A ballot to
+ * oneself never counts; a rater missing from `raterWeights` weighs 1. Given
+ * the raters' previous distances, an outlier rater's weight is halved.
+ */
+export function settlePerformanceRatings(
+  ballots: readonly PerformanceBallot[],
+  raterWeights: ReadonlyMap<string, number> = new Map(),
+  options: {
+    mode: RatingWindowMode;
+    previousDistances?: PreviousRaterDistances;
+  } = { mode: "everyone" },
+): SettledPerformanceRating[] {
+  if (!options.previousDistances) {
+    return settleAtWeights(ballots, raterWeights, options.mode);
+  }
+  const outliers = outlierRaterIds(ballots, raterWeights, {
+    mode: options.mode,
+    previousDistances: options.previousDistances,
+  });
+  if (outliers.size === 0) {
+    return settleAtWeights(ballots, raterWeights, options.mode);
+  }
+  const weights = new Map(raterWeights);
+  for (const raterUserId of outliers) {
+    weights.set(
+      raterUserId,
+      (raterWeights.get(raterUserId) ?? 1) * OUTLIER_WEIGHT_FACTOR,
+    );
+  }
+  return settleAtWeights(ballots, weights, options.mode);
 }
 
 /** The mean settled rating of a Match, or null when nobody was rated. */
@@ -1052,4 +1174,251 @@ export function performanceResultView(
     mvp: mvpView(result.mvp, locale),
     footnote: copy.footnote,
   };
+}
+
+/** A player row of what `games.performanceRatingSummary` returns; no ids, and never who gave what. */
+export type PerformanceRatingSummaryPlayer = {
+  name: string;
+  isViewer: boolean;
+  ratingHundredths: number | null;
+  /** Ballots that counted for the player, before the highest and lowest went. */
+  ballotsReceived: number;
+  /** Null when the Match moved nobody's points. */
+  delta: number | null;
+  bandBefore: TierBand | null;
+  bandAfter: TierBand | null;
+  isMvp: boolean;
+};
+
+/**
+ * What `games.performanceRatingSummary` returns to an Organizer of the Game
+ * (screen 4d). `summary` is null until the window settles. It counts the
+ * raters who counted for less and never says which.
+ */
+export type PerformanceRatingSummaryData = {
+  state: "open" | "suspended" | "settled";
+  mode: RatingWindowMode;
+  closesAt: Date | string;
+  summary: {
+    groupId: string;
+    groupName: string | null;
+    closedAt: Date | string;
+    score: { slot1: number; slot2: number } | null;
+    bibs: { slot1: FootballBib; slot2: FootballBib };
+    viewerSide: 1 | 2 | null;
+    progress: { raters: number; players: number };
+    slot1: PerformanceRatingSummaryPlayer[];
+    slot2: PerformanceRatingSummaryPlayer[];
+    ratersCountedForLess: number;
+  } | null;
+};
+
+/** Rows a side other than the first shows before "N more". */
+export const SUMMARY_PREVIEW_ROWS = 2;
+
+export type RatingSummaryRow = {
+  key: string;
+  initials: string;
+  name: string;
+  isViewer: boolean;
+  detail: string;
+  /** The MVP and a change of fish stand out. */
+  detailStrong: boolean;
+  rating: string;
+  points: string | null;
+  spoken: string;
+};
+
+export type RatingSummarySide = {
+  slot: 1 | 2;
+  bib: FootballBib;
+  name: string;
+  aside: string;
+  rows: RatingSummaryRow[];
+  /** How many rows show until "N more" is pressed; null shows them all. */
+  previewCount: number | null;
+  moreLabel: string | null;
+};
+
+export type PerformanceRatingSummaryView =
+  | { kind: "pending"; title: string; description: string }
+  | {
+      kind: "settled";
+      groupId: string;
+      hero: RateGameView["hero"];
+      sides: RatingSummarySide[];
+      outliers: { title: string; description: string } | null;
+      footer: { title: string; description: string; cta: string };
+    };
+
+function summaryDetail(player: PerformanceRatingSummaryPlayer, locale: Locale) {
+  const m = messagesFor(locale).rating;
+  const copy = m.performance.summary.row;
+  if (player.isMvp) {
+    return { text: copy.mvp, strong: true };
+  }
+  const { bandBefore, bandAfter } = player;
+  if (bandAfter && bandBefore !== bandAfter) {
+    const label = m.bands[bandAfter];
+    const text = !bandBefore
+      ? copy.nowA(label)
+      : TRACK_BANDS.indexOf(bandAfter) > TRACK_BANDS.indexOf(bandBefore)
+        ? copy.upTo(label)
+        : copy.downTo(label);
+    return { text, strong: true };
+  }
+  return {
+    text:
+      player.ballotsReceived > 0
+        ? copy.ratings(player.ballotsReceived)
+        : copy.notRated,
+    strong: false,
+  };
+}
+
+function byRatingThenName(
+  left: PerformanceRatingSummaryPlayer,
+  right: PerformanceRatingSummaryPlayer,
+) {
+  if (left.ratingHundredths !== right.ratingHundredths) {
+    if (left.ratingHundredths === null) {
+      return 1;
+    }
+    if (right.ratingHundredths === null) {
+      return -1;
+    }
+    return right.ratingHundredths - left.ratingHundredths;
+  }
+  return left.name.localeCompare(right.name);
+}
+
+/**
+ * Screen 4d, the Organizer's summary: each side's players by rating, with
+ * their points move and any change of fish, how many rated, and a line when
+ * raters counted for less, without saying who.
+ */
+export function performanceRatingSummaryView(
+  data: PerformanceRatingSummaryData,
+  locale: Locale,
+  now: Date = new Date(),
+): PerformanceRatingSummaryView {
+  const messages = messagesFor(locale);
+  const m = messages.rating.performance;
+  const copy = m.summary;
+  if (data.state === "suspended") {
+    return { kind: "pending", ...m.suspended };
+  }
+  const summary = data.summary;
+  if (data.state === "open" || !summary) {
+    return {
+      kind: "pending",
+      title: copy.pending.title,
+      description: copy.pending.description(
+        data.mode === "organizer"
+          ? formatRatingWindowClose(data.closesAt, locale)
+          : closesLine(data.closesAt, now, locale),
+      ),
+    };
+  }
+
+  const names = {
+    slot1: footballBibName(summary.bibs.slot1, 1, locale),
+    slot2: footballBibName(summary.bibs.slot2, 2, locale),
+  };
+  const firstSlot: 1 | 2 = summary.viewerSide ?? 1;
+  const rated =
+    data.mode === "everyone"
+      ? m.side.ratedOf(summary.progress.raters, summary.progress.players)
+      : summary.progress.raters > 0
+        ? copy.organizerRated
+        : copy.organizerDidNotRate;
+
+  const row = (
+    player: PerformanceRatingSummaryPlayer,
+    index: number,
+    slot: 1 | 2,
+  ): RatingSummaryRow => {
+    const detail = summaryDetail(player, locale);
+    const name = player.isViewer ? m.you : player.name;
+    const rating =
+      player.ratingHundredths === null
+        ? null
+        : formatPerformanceRating(player.ratingHundredths);
+    const points = player.delta === null ? null : formatTierDelta(player.delta);
+    return {
+      key: `${slot}:${index}`,
+      initials: initials(player.name),
+      name,
+      isViewer: player.isViewer,
+      detail: detail.text,
+      detailStrong: detail.strong,
+      rating: rating ?? m.notRated,
+      points,
+      spoken: [
+        name,
+        detail.text,
+        rating ? copy.row.ratedSpoken(rating) : copy.row.notRatedSpoken,
+        points ? copy.row.pointsSpoken(points) : null,
+      ]
+        .filter((part): part is string => Boolean(part))
+        .join(copy.row.spokenSeparator),
+    };
+  };
+
+  const side = (slot: 1 | 2): RatingSummarySide => {
+    const players = [...(slot === 1 ? summary.slot1 : summary.slot2)].sort(
+      byRatingThenName,
+    );
+    const rows = players.map((player, index) => row(player, index, slot));
+    const preview =
+      slot !== firstSlot && rows.length > SUMMARY_PREVIEW_ROWS + 1
+        ? SUMMARY_PREVIEW_ROWS
+        : null;
+    return {
+      slot,
+      bib: slot === 1 ? summary.bibs.slot1 : summary.bibs.slot2,
+      name: slot === 1 ? names.slot1 : names.slot2,
+      aside: copy.columns,
+      rows,
+      previewCount: preview,
+      moreLabel: preview === null ? null : copy.more(rows.length - preview),
+    };
+  };
+
+  return {
+    kind: "settled",
+    groupId: summary.groupId,
+    hero: {
+      sport: messages.common.football,
+      groupName: summary.groupName,
+      status: m.hero.final,
+      slot1: { bib: summary.bibs.slot1, name: names.slot1 },
+      slot2: { bib: summary.bibs.slot2, name: names.slot2 },
+      score: summary.score
+        ? m.hero.score(summary.score.slot1, summary.score.slot2)
+        : null,
+      line: copy.line(rated, formatRatingWindowClose(summary.closedAt, locale)),
+    },
+    sides: firstSlot === 1 ? [side(1), side(2)] : [side(2), side(1)],
+    outliers:
+      summary.ratersCountedForLess > 0
+        ? {
+            title: copy.outliers.title(summary.ratersCountedForLess),
+            description: copy.outliers.description,
+          }
+        : null,
+    footer: copy.footer,
+  };
+}
+
+/** The card on a played Game that opens screen 4d for an Organizer, once the window has settled. */
+export function ratingSummaryEntry(
+  window: { state: RatingWindowState } | null,
+  isOrganizer: boolean,
+  locale: Locale,
+) {
+  if (!window || !isOrganizer || window.state !== "settled") {
+    return null;
+  }
+  return messagesFor(locale).rating.performance.summary.entry;
 }

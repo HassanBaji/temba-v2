@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, lte, ne, sql } from "drizzle-orm";
 
 import {
   MatchStatusEnum,
@@ -20,10 +20,14 @@ import {
   raterWeight,
   ratingWindowClosesAt,
   ratingWindowState,
+  raterDistances,
   settlePerformanceRatings,
   toHundredths,
   usualRating,
+  OUTLIER_GAMES_RUNNING,
   USUAL_RECENT_GAMES,
+  type PerformanceBallot,
+  type PreviousRaterDistances,
 } from "@repo/domain/performance-rating";
 
 import { type db } from "#src/db";
@@ -173,6 +177,150 @@ async function pastGroupRatings(
 }
 
 /**
+ * The ballots a Rating window counts and each rater's weight: from a seated
+ * player when everyone rates, from an Organizer of the Game when the
+ * Organizer rates, about a seated player.
+ */
+export async function countedBallots(
+  database: DbClient,
+  args: {
+    match: Pick<
+      typeof matches.$inferSelect,
+      "id" | "slot1GameTeamId" | "slot2GameTeamId"
+    >;
+    game: Pick<GameRow, "id" | "groupId" | "createdBy" | "challengeId">;
+    window: Pick<MatchRatingWindow, "mode" | "organizerCountsDouble">;
+  },
+): Promise<{
+  ballots: PerformanceBallot[];
+  weights: Map<string, number>;
+  raters: Set<string>;
+}> {
+  const { match, window } = args;
+  const mode = window.mode === "organizer" ? "organizer" : "everyone";
+  const seated = new Set([
+    ...(match.slot1GameTeamId
+      ? await sideUserIds(database, match.slot1GameTeamId)
+      : []),
+    ...(match.slot2GameTeamId
+      ? await sideUserIds(database, match.slot2GameTeamId)
+      : []),
+  ]);
+  const organizerIds = new Set(await gameAdminUserIds(database, args.game));
+  const ballots = (
+    await database
+      .select({
+        raterUserId: performanceRatings.raterUserId,
+        rateeUserId: performanceRatings.rateeUserId,
+        value: performanceRatings.value,
+      })
+      .from(performanceRatings)
+      .where(eq(performanceRatings.matchId, match.id))
+  ).filter(
+    (ballot) =>
+      seated.has(ballot.rateeUserId) &&
+      (mode === "everyone"
+        ? seated.has(ballot.raterUserId)
+        : organizerIds.has(ballot.raterUserId)),
+  );
+  const raters = new Set(ballots.map((ballot) => ballot.raterUserId));
+  const weights = new Map(
+    [...raters].map((raterUserId) => [
+      raterUserId,
+      raterWeight({
+        mode,
+        organizerCountsDouble: window.organizerCountsDouble,
+        raterIsOrganizer: organizerIds.has(raterUserId),
+      }),
+    ]),
+  );
+  return { ballots, weights, raters };
+}
+
+/**
+ * Each rater's mean distance from the settled ratings in their previous two
+ * Matches before this one, newest first: Matches they rated whose window had
+ * settled by `settledBefore`. Read from the stored ballots and results.
+ */
+export async function previousRaterDistances(
+  database: DbClient,
+  args: {
+    match: Pick<typeof matches.$inferSelect, "id" | "completedAt">;
+    raterUserIds: readonly string[];
+    settledBefore: Date;
+  },
+): Promise<PreviousRaterDistances> {
+  const distances = new Map<string, (number | null)[]>();
+  for (const raterUserId of args.raterUserIds) {
+    const previous = await database
+      .selectDistinct({
+        matchId: performanceRatings.matchId,
+        completedAt: matches.completedAt,
+      })
+      .from(performanceRatings)
+      .innerJoin(
+        matchRatingWindows,
+        eq(matchRatingWindows.matchId, performanceRatings.matchId),
+      )
+      .innerJoin(matches, eq(matches.id, performanceRatings.matchId))
+      .where(
+        and(
+          eq(performanceRatings.raterUserId, raterUserId),
+          ne(performanceRatings.matchId, args.match.id),
+          lte(matchRatingWindows.settledAt, args.settledBefore),
+          args.match.completedAt
+            ? sql`${matches.completedAt} < ${args.match.completedAt}`
+            : undefined,
+        ),
+      )
+      .orderBy(desc(matches.completedAt))
+      .limit(OUTLIER_GAMES_RUNNING - 1);
+    const row: (number | null)[] = [];
+    for (const { matchId } of previous) {
+      const ballots = await database
+        .select({
+          raterUserId: performanceRatings.raterUserId,
+          rateeUserId: performanceRatings.rateeUserId,
+          value: performanceRatings.value,
+        })
+        .from(performanceRatings)
+        .where(
+          and(
+            eq(performanceRatings.matchId, matchId),
+            eq(performanceRatings.raterUserId, raterUserId),
+          ),
+        );
+      const results = await database
+        .select({
+          userId: performanceRatingResults.userId,
+          ratingHundredths: performanceRatingResults.ratingHundredths,
+        })
+        .from(performanceRatingResults)
+        .where(
+          and(
+            eq(performanceRatingResults.matchId, matchId),
+            inArray(
+              performanceRatingResults.userId,
+              ballots.map((ballot) => ballot.rateeUserId),
+            ),
+          ),
+        );
+      row.push(
+        raterDistances(
+          ballots,
+          results.map((result) => ({
+            userId: result.userId,
+            rating: fromHundredths(result.ratingHundredths),
+          })),
+        ).get(raterUserId) ?? null,
+      );
+    }
+    distances.set(raterUserId, row);
+  }
+  return distances;
+}
+
+/**
  * Settles a Rating window: writes each rated player's result, then the Tier
  * points move with its performance part. In Organizer mode the Organizers who
  * rated move on the result alone, and only an Organizer's ballots count. A
@@ -222,42 +370,20 @@ export async function settleRatingWindow(
     return false;
   }
   const mode = window.mode;
-
-  const seated = new Set([
-    ...(await sideUserIds(database, match.slot1GameTeamId)),
-    ...(await sideUserIds(database, match.slot2GameTeamId)),
-  ]);
-  const organizerIds = new Set(await gameAdminUserIds(database, game));
-  const ballots = (
-    await database
-      .select({
-        raterUserId: performanceRatings.raterUserId,
-        rateeUserId: performanceRatings.rateeUserId,
-        value: performanceRatings.value,
-      })
-      .from(performanceRatings)
-      .where(eq(performanceRatings.matchId, matchId))
-  ).filter(
-    (ballot) =>
-      seated.has(ballot.rateeUserId) &&
-      (mode === "everyone"
-        ? seated.has(ballot.raterUserId)
-        : organizerIds.has(ballot.raterUserId)),
-  );
-  const raters = new Set(ballots.map((ballot) => ballot.raterUserId));
-  const weights = new Map(
-    [...raters].map((raterUserId) => [
-      raterUserId,
-      raterWeight({
-        mode,
-        organizerCountsDouble: window.organizerCountsDouble,
-        raterIsOrganizer: organizerIds.has(raterUserId),
-      }),
-    ]),
-  );
-  const settled = settlePerformanceRatings(ballots, weights, { mode }).filter(
-    (row) => mode === "everyone" || !raters.has(row.userId),
-  );
+  const { ballots, weights, raters } = await countedBallots(database, {
+    match,
+    game,
+    window,
+  });
+  const previousDistances = await previousRaterDistances(database, {
+    match,
+    raterUserIds: [...raters],
+    settledBefore: now,
+  });
+  const settled = settlePerformanceRatings(ballots, weights, {
+    mode,
+    previousDistances,
+  }).filter((row) => mode === "everyone" || !raters.has(row.userId));
   const average = gameAverageRating(settled);
 
   await database

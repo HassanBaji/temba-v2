@@ -40,6 +40,7 @@ import { setTeamSidesProcedure as setTeamSides } from "./setTeamSides";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
 import { performanceRatingResultProcedure as performanceRatingResult } from "./performanceRatingResult";
 import { performanceRatingSheetProcedure as performanceRatingSheet } from "./performanceRatingSheet";
+import { performanceRatingSummaryProcedure as performanceRatingSummary } from "./performanceRatingSummary";
 import { poolTablesProcedure as poolTables } from "./poolTables";
 import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
 import { enterTournamentScoreProcedure as enterTournamentScore } from "./enterTournamentScore";
@@ -153,6 +154,7 @@ export const gamesRouter = createTRPCRouter({
   nameChallengeSquad,
   performanceRatingSheet,
   performanceRatingResult,
+  performanceRatingSummary,
   submitPerformanceRatings,
   searchLookupUsers,
   sendLookupInvite,

@@ -466,6 +466,72 @@ export const rating = {
       footnote:
         "مباراة مجموعة. حرّكت نقاط فئتك هنا ولا شيء غيرها: لا مستواك في Temba، ولا أي رتبة.",
     },
+    summary: {
+      title: "وصلت التقييمات",
+      entry: {
+        title: "وصلت التقييمات",
+        description: "تقييم كل لاعب وحركة نقاطه، ومن تغيّرت فئته.",
+        cta: "اعرض",
+      },
+      pending: {
+        title: "التقييمات ما زالت مفتوحة",
+        description: (closes: string) =>
+          `${closes}. بعدها تجد هنا تقييم كل لاعب وحركة نقاطه.`,
+      },
+      line: (rated: string, closed: string) =>
+        `${rated}. أُغلقت النافذة ${isolate(closed)}`,
+      organizerRated: "قيّمها المنظّم",
+      organizerDidNotRate: "لم يقيّم المنظّم",
+      columns: "التقييم، النقاط",
+      more: (n: number) =>
+        plural("ar", n, {
+          zero: "لا مزيد",
+          one: "واحد آخر",
+          two: "اثنان آخران",
+          few: "{n} آخرين",
+          many: "{n} آخرين",
+          other: "{n} آخرين",
+        }),
+      row: {
+        mvp: "نجم المباراة",
+        upTo: (band: string) => `صعد إلى ${band}`,
+        downTo: (band: string) => `نزل إلى ${band}`,
+        nowA: (band: string) => `صار ${band}`,
+        ratings: (n: number) =>
+          plural("ar", n, {
+            zero: "لا تقييمات",
+            one: "تقييم واحد",
+            two: "تقييمان",
+            few: "{n} تقييمات",
+            many: "{n} تقييمًا",
+            other: "{n} تقييم",
+          }),
+        notRated: "لم يُقيَّم",
+        ratedSpoken: (rating: string) => `تقييمه ${isolate(rating)}`,
+        notRatedSpoken: "بلا تقييم",
+        pointsSpoken: (points: string) => `${isolate(points)} نقطة`,
+        spokenSeparator: "، ",
+      },
+      outliers: {
+        title: (n: number) =>
+          plural("ar", n, {
+            zero: "لم يُخفَّف وزن أي مقيّم",
+            one: "احتُسب مقيّم واحد بوزن أقل",
+            two: "احتُسب مقيّمان بوزن أقل",
+            few: "احتُسب {n} مقيّمين بوزن أقل",
+            many: "احتُسب {n} مقيّمًا بوزن أقل",
+            other: "احتُسب {n} مقيّم بوزن أقل",
+          }),
+        description:
+          "ابتعدت تقييماتهم عن تقييمات الجميع للمباراة الثالثة على التوالي. تبقى الأسماء سرّية، حتى عنك.",
+      },
+      footer: {
+        title: "هل يبدو شيء خاطئًا؟",
+        description: "عدّل لاعبًا من الأعضاء، إدارة",
+        cta: "الأعضاء",
+      },
+      loadFailed: "تعذّر تحميل ملخّص التقييمات",
+    },
     loadFailed: "تعذّر تحميل التقييمات",
     errors: {
       noWindow: "لا تقييمات أداء لهذه المباراة.",
@@ -476,6 +542,7 @@ export const rating = {
       notPlayer: "قيّم لاعبي هذه المباراة فقط.",
       value: "التقييم عدد صحيح من 1 إلى 10.",
       duplicate: "قيّم كل لاعب مرة واحدة.",
+      summaryOrganizerOnly: "لا يرى ملخّص التقييمات إلا منظّم المباراة.",
     },
   },
 } satisfies typeof source;

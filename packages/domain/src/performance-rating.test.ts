@@ -3,17 +3,22 @@ import { describe, expect, it } from "vitest";
 import {
   MIN_BALLOTS,
   ORGANIZER_DOUBLE_WEIGHT,
+  OUTLIER_WEIGHT_FACTOR,
   RATING_WINDOW_HOURS,
   gameAverageRating,
   isPerformanceRatingValue,
   minBallotsFor,
+  outlierRaterIds,
+  performanceRatingSummaryView,
   performanceResultView,
   performanceScores,
+  raterDistances,
   raterWeight,
   rateGameDraft,
   rateGameEntry,
   rateGameSubmission,
   rateGameView,
+  ratingSummaryEntry,
   ratingWindowClosesAt,
   ratingWindowState,
   setDraftRating,
@@ -22,6 +27,8 @@ import {
   usualRating,
   type PerformanceBallot,
   type PerformanceRatingResultData,
+  type PerformanceRatingSummaryData,
+  type PerformanceRatingSummaryPlayer,
   type RateGameSheet,
 } from "./performance-rating";
 import { tierMatchDeltas } from "./tier-points";
@@ -127,6 +134,108 @@ describe("settlePerformanceRatings", () => {
   it("averages the game over the rated players", () => {
     expect(gameAverageRating([])).toBeNull();
     expect(gameAverageRating([{ rating: 7 }, { rating: 6 }])).toBe(6.5);
+  });
+});
+
+describe("an outlier rater (D19)", () => {
+  const players = ["a", "b", "c", "d"];
+  const usual: Record<string, number> = { r1: 6, r2: 7, r3: 8 };
+
+  /** r1, r2 and r3 give 6, 7 and 8; x gives everyone a 1. */
+  function oneGame(): PerformanceBallot[] {
+    return players.flatMap((rateeUserId) => [
+      ...Object.entries(usual).map(([raterUserId, value]) => ({
+        raterUserId,
+        rateeUserId,
+        value,
+      })),
+      { raterUserId: "x", rateeUserId, value: 1 },
+    ]);
+  }
+
+  it("measures each rater's mean distance from the settled ratings", () => {
+    const distances = raterDistances(oneGame(), [
+      { userId: "a", rating: 5.5 },
+      { userId: "b", rating: 5.5 },
+    ]);
+    expect(distances.get("x")).toBeCloseTo(4.5, 10);
+    expect(distances.get("r2")).toBeCloseTo(1.5, 10);
+    expect(raterDistances(oneGame(), []).size).toBe(0);
+  });
+
+  it("gave 1s where everyone else gave 6 to 8, three games running, and weighs 0.5 in the third", () => {
+    const game = oneGame();
+    const fullWeight = settlePerformanceRatings(game, new Map(), {
+      mode: "everyone",
+      previousDistances: new Map(),
+    });
+    expect(fullWeight[0]!.rating).toBeCloseTo(5.5, 10);
+
+    const firstDistance = raterDistances(game, fullWeight).get("x")!;
+    expect(firstDistance).toBeGreaterThan(2);
+
+    const second = new Map([["x", [firstDistance]]]);
+    expect(
+      outlierRaterIds(game, new Map(), {
+        mode: "everyone",
+        previousDistances: second,
+      }).size,
+    ).toBe(0);
+    expect(
+      settlePerformanceRatings(game, new Map(), {
+        mode: "everyone",
+        previousDistances: second,
+      })[0]!.rating,
+    ).toBeCloseTo(5.5, 10);
+
+    const third = new Map([["x", [firstDistance, firstDistance]]]);
+    expect([
+      ...outlierRaterIds(game, new Map(), {
+        mode: "everyone",
+        previousDistances: third,
+      }),
+    ]).toEqual(["x"]);
+    const halved = settlePerformanceRatings(game, new Map(), {
+      mode: "everyone",
+      previousDistances: third,
+    });
+    const weight = OUTLIER_WEIGHT_FACTOR;
+    expect(halved[0]!.rating).toBeCloseTo(
+      (6 + 7 + 8 + weight * 1) / (3 + weight),
+      10,
+    );
+    expect(halved[0]!.ballotsCounted).toBe(4);
+  });
+
+  it("is not an outlier when one of the three games was close", () => {
+    const game = oneGame();
+    expect(
+      outlierRaterIds(game, new Map(), {
+        mode: "everyone",
+        previousDistances: new Map([["x", [4.5, 1.5]]]),
+      }).size,
+    ).toBe(0);
+    expect(
+      outlierRaterIds(game, new Map(), {
+        mode: "everyone",
+        previousDistances: new Map([["x", [4.5, null]]]),
+      }).size,
+    ).toBe(0);
+    expect(
+      outlierRaterIds(game, new Map(), {
+        mode: "everyone",
+        previousDistances: new Map([["r1", [4.5, 4.5]]]),
+      }).size,
+    ).toBe(0);
+  });
+
+  it("halves an organizer's double weight to one", () => {
+    const game = oneGame();
+    const [row] = settlePerformanceRatings(game, new Map([["x", 2]]), {
+      mode: "everyone",
+      previousDistances: new Map([["x", [4.5, 4.5]]]),
+    });
+    expect(row!.rating).toBeCloseTo((6 + 7 + 8 + 1) / 4, 10);
   });
 });
 
@@ -690,5 +799,160 @@ describe("performanceResultView (screen 4c)", () => {
     expect(
       performanceResultView({ ...settled(), played: false }, "en"),
     ).toBeNull();
+  });
+});
+
+describe("performanceRatingSummaryView (screen 4d)", () => {
+  const closesAt = new Date("2026-11-13T17:30:00Z");
+
+  function player(
+    name: string,
+    rating: number | null,
+    delta: number,
+    extra: Partial<PerformanceRatingSummaryPlayer> = {},
+  ): PerformanceRatingSummaryPlayer {
+    return {
+      name,
+      isViewer: false,
+      ratingHundredths: rating,
+      ballotsReceived: rating === null ? 1 : 11,
+      delta,
+      bandBefore: "kanaad",
+      bandAfter: "kanaad",
+      isMvp: false,
+      ...extra,
+    };
+  }
+
+  const data: PerformanceRatingSummaryData = {
+    state: "settled",
+    mode: "everyone",
+    closesAt,
+    summary: {
+      groupId: "group",
+      groupName: "Thursday Football",
+      closedAt: closesAt,
+      score: { slot1: 5, slot2: 3 },
+      bibs: { slot1: "black", slot2: "white" },
+      viewerSide: 1,
+      progress: { raters: 12, players: 14 },
+      slot1: [
+        player("Hussain H", 740, 18, { isViewer: true }),
+        player("Ali M", 860, 24, { isMvp: true }),
+        player("Noor S", 620, 12, { bandBefore: "safi" }),
+      ],
+      slot2: [
+        player("Salman R", 690, -8, { bandAfter: "safi" }),
+        player("Jassim H", 780, -2),
+        player("Omar", null, -1),
+        player("Faisal", 600, -4),
+      ],
+      ratersCountedForLess: 1,
+    },
+  };
+
+  it("lists each side by rating, with the MVP, a change of fish and the points move", () => {
+    const view = performanceRatingSummaryView(data, "en");
+    if (view.kind !== "settled") {
+      throw new Error("Expected the settled summary");
+    }
+    expect(view.hero.score).toBe("5–3");
+    expect(view.hero.line).toBe("12 of 14 rated. Window closed Fri 8:30 PM");
+    const [black, white] = view.sides;
+    expect(
+      black!.rows.map((row) => [row.name, row.detail, row.rating, row.points]),
+    ).toEqual([
+      ["Ali M", "MVP", "8.6", "+24"],
+      ["You", "11 ratings", "7.4", "+18"],
+      ["Noor S", "Up to Kanaad", "6.2", "+12"],
+    ]);
+    expect(black!.rows[0]!.detailStrong).toBe(true);
+    expect(black!.rows[1]!.initials).toBe("HH");
+    expect(black!.aside).toBe("rating, points");
+    expect(black!.previewCount).toBeNull();
+    expect(
+      white!.rows.map((row) => [row.name, row.detail, row.rating]),
+    ).toEqual([
+      ["Jassim H", "11 ratings", "7.8"],
+      ["Salman R", "Down to Safi", "6.9"],
+      ["Faisal", "11 ratings", "6.0"],
+      ["Omar", "1 rating", "–"],
+    ]);
+    expect(white!.rows[0]!.points).toBe("−2");
+    expect(white!.previewCount).toBe(2);
+    expect(white!.moreLabel).toBe("2 more");
+    expect(view.outliers).toEqual({
+      title: "One rater counted for less",
+      description:
+        "Their ratings were far from everyone else’s for the third game running. Names stay private, even from you.",
+    });
+    expect(view.footer).toEqual({
+      title: "Something look wrong?",
+      description: "Adjust a player from Members, Manage",
+      cta: "Members",
+    });
+  });
+
+  it("says nothing about raters when none counted for less, and counts more than one", () => {
+    const none = performanceRatingSummaryView(
+      { ...data, summary: { ...data.summary!, ratersCountedForLess: 0 } },
+      "en",
+    );
+    expect(none.kind === "settled" && none.outliers).toBeNull();
+    const two = performanceRatingSummaryView(
+      { ...data, summary: { ...data.summary!, ratersCountedForLess: 2 } },
+      "en",
+    );
+    expect(two.kind === "settled" && two.outliers?.title).toBe(
+      "2 raters counted for less",
+    );
+  });
+
+  it("says whether the organizer rated when the Organizer rates", () => {
+    const view = performanceRatingSummaryView(
+      {
+        ...data,
+        mode: "organizer",
+        summary: { ...data.summary!, progress: { raters: 1, players: 14 } },
+      },
+      "en",
+    );
+    expect(view.kind === "settled" && view.hero.line).toBe(
+      "Rated by the organizer. Window closed Fri 8:30 PM",
+    );
+  });
+
+  it("before the window settles, says when it closes", () => {
+    const view = performanceRatingSummaryView(
+      { state: "open", mode: "organizer", closesAt, summary: null },
+      "en",
+    );
+    expect(view).toEqual({
+      kind: "pending",
+      title: "Ratings are still open",
+      description:
+        "Fri 8:30 PM. Then each player’s rating and points move are here.",
+    });
+  });
+
+  it("speaks in Arabic", () => {
+    const view = performanceRatingSummaryView(data, "ar");
+    expect(view.kind === "settled" && view.outliers?.title).toBe(
+      "احتُسب مقيّم واحد بوزن أقل",
+    );
+  });
+});
+
+describe("ratingSummaryEntry", () => {
+  it("opens screen 4d for an Organizer once the window has settled", () => {
+    expect(ratingSummaryEntry({ state: "settled" }, true, "en")).toEqual({
+      title: "Ratings are in",
+      description:
+        "Each player’s rating and points move, and who changed tier.",
+      cta: "See",
+    });
+    expect(ratingSummaryEntry({ state: "settled" }, false, "en")).toBeNull();
+    expect(ratingSummaryEntry({ state: "open" }, true, "en")).toBeNull();
+    expect(ratingSummaryEntry(null, true, "en")).toBeNull();
   });
 });

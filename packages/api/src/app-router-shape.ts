@@ -128,6 +128,7 @@ type ExpectedGames =
   | "nameChallengeSquad"
   | "performanceRatingSheet"
   | "performanceRatingResult"
+  | "performanceRatingSummary"
   | "submitPerformanceRatings"
   | "reportWrongScore"
   | "searchLookupUsers"
