@@ -37,17 +37,22 @@ export function ratingScopeOf(game: {
 
 /**
  * The tag a Game card or row carries: its scope, none when a padel Game is
- * Temba rated. A football Game that counts says so (ADR-0069).
+ * Temba rated. A football Game that counts says so (ADR-0069), and so does a
+ * Public Game, which counts only once both sides confirm (ADR-0071).
  */
 export function ratingScopeTag(
   game: {
     rated: boolean;
     ratingScope?: GameRatingScope | null;
     sport?: string | null;
+    publicGame?: boolean;
   },
   locale: Locale,
 ): string | null {
   const scope = ratingScopeOf(game);
+  if (scope === "temba" && game.publicGame) {
+    return messagesFor(locale).rating.scope.temba;
+  }
   return scope === "temba" && game.sport !== "football"
     ? null
     : gameRatingScopeLabel(scope, locale, game.sport);
@@ -55,13 +60,18 @@ export function ratingScopeTag(
 
 /**
  * The Game details notice for a Game that does not move the Temba Level, and
- * for a football Game that does.
+ * for a football Game or a Public Game that does.
  */
 export function ratingScopeNotice(
   scope: GameRatingScope,
   locale: Locale,
   sport?: string | null,
+  publicGame = false,
 ): { title: string; line: string } | null {
+  if (scope === "temba" && publicGame) {
+    const m = messagesFor(locale).rating;
+    return { title: m.scope.temba, line: m.publicGame.countsNote };
+  }
   if (scope === "temba" && sport !== "football") {
     return null;
   }

@@ -325,8 +325,8 @@ async function assertPublicGameVenue(
 
 /**
  * A Public Game: a groupless padel Friendly game at a partner Venue that
- * anyone inside its Level range may join (ADR-0071). It does not count for
- * Temba Level yet.
+ * anyone inside its Level range may join (ADR-0071). It counts for Temba
+ * Level once one player from each side confirms its score within 24 hours.
  */
 async function createPublicGame(
   database: DbClient,
@@ -354,8 +354,13 @@ async function createPublicGame(
       pricePerPlayerFils: input.pricePerPlayerFils ?? null,
       levelMinTenths: input.levelMinTenths ?? null,
       levelMaxTenths: input.levelMaxTenths ?? null,
-      rated: false,
-      groupRated: false,
+      ...ratingFlagsAtCreate({
+        hasGroup: false,
+        groupVerified: false,
+        sport: "padel",
+        rated: true,
+        isPublic: true,
+      }),
       mvpMode: input.mvpMode,
     },
     locale,

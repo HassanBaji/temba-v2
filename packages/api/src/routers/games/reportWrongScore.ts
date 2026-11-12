@@ -336,6 +336,7 @@ export async function reportWrongScore(
       .set({
         status: MatchStatusEnum.PENDING,
         completedAt: null,
+        stoodUnconfirmedAt: null,
         updatedAt: now,
       })
       .where(eq(matches.id, locked.id));

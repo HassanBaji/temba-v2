@@ -944,9 +944,48 @@ type Teams = Awaited<ReturnType<typeof seedTeams>>;
  */
 /**
  * A Public Game at the partner Venue, organized by Omar, with three seats
- * open to anyone inside its Level range (ADR-0071).
+ * open to anyone inside its Level range (ADR-0071). A second one finished a
+ * few hours ago: Omar entered the score and you have the rest of the 24
+ * hours to confirm it for your side, or it stands and does not count.
  */
 async function seedPublicGame(u: Users, v: Venues) {
+  const played = await createGame(db, {
+    createdBy: u.omar!.id,
+    customName: "Public padel, waiting on you",
+    isPublic: true,
+    format: "friendly_game",
+    registrationMode: "individual",
+    windowStart: at(1, 19),
+    windowEnd: at(1, 20, 30),
+    venueId: v.central.id,
+    courtId: v.central.courtIds[0] ?? null,
+  });
+  const seats = [
+    { key: "omar", side: 1, position: "right" },
+    { key: "maya", side: 1, position: "left" },
+    { key: "me", side: 2, position: "right" },
+    { key: "tom", side: 2, position: "left" },
+  ] as const;
+  for (const seat of seats) {
+    await registerSeat(db, {
+      gameId: played.id,
+      userId: u[seat.key]!.id,
+      sideIndex: seat.side,
+      position: seat.position,
+    });
+  }
+  await moveIntoPast(played.id, new Date(Date.now() - 3 * 60 * 60 * 1000));
+  await playFriendly(
+    u,
+    { id: played.id, matchId: played.matchId! },
+    "omar",
+    [
+      [6, 4],
+      [6, 3],
+    ],
+    [],
+  );
+
   const created = await createGame(db, {
     createdBy: u.omar!.id,
     customName: "Open padel at Padel Central",

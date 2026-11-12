@@ -4,6 +4,7 @@ import {
   gameRatingScope,
   gameRatingScopeLabel,
   groupHasTier,
+  isPublicGame,
   ratedScopeForGroup,
   ratingFlagsAtCreate,
 } from "./game-rating-scope";
@@ -112,6 +113,28 @@ describe("ratingFlagsAtCreate", () => {
       rated: false,
       groupRated: false,
     });
+  });
+});
+
+describe("ratingFlagsAtCreate for a Public Game", () => {
+  it("moves the Temba Level, with no Group", () => {
+    expect(
+      ratingFlagsAtCreate({
+        hasGroup: false,
+        groupVerified: false,
+        sport: "padel",
+        rated: false,
+        isPublic: true,
+      }),
+    ).toEqual({ rated: true, groupRated: false });
+  });
+});
+
+describe("isPublicGame", () => {
+  it("is a public Game with no Group", () => {
+    expect(isPublicGame({ isPublic: true, groupId: null })).toBe(true);
+    expect(isPublicGame({ isPublic: true, groupId: "group-1" })).toBe(false);
+    expect(isPublicGame({ isPublic: false, groupId: null })).toBe(false);
   });
 });
 

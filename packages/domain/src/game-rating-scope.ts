@@ -23,6 +23,17 @@ export function gameRatingScope(game: {
   return game.groupRated ? "group" : "unrated";
 }
 
+/**
+ * A Public Game is a Friendly game with no Group that anyone in its Level
+ * range may join (ADR-0071). A public tournament on a Group is not one.
+ */
+export function isPublicGame(game: {
+  isPublic?: boolean | null;
+  groupId: string | null;
+}) {
+  return game.isPublic === true && game.groupId == null;
+}
+
 /** A tier Group is a football Group that is not Verified (ADR-0066). */
 export function groupHasTier(group: {
   sport: string | null | undefined;
@@ -35,7 +46,8 @@ export function groupHasTier(group: {
  * The two stored flags for a new Game. A padel Game on a Verified Group moves
  * the Temba Level, and on any other Group is Unrated: padel Groups keep only a
  * Standing (ADR-0066). A football Game on a tier Group moves Tier points, and
- * on a Verified Group the Temba Level only (ADR-0069). `rated` is the
+ * on a Verified Group the Temba Level only (ADR-0069). A Public Game moves
+ * the Temba Level once both sides confirm (ADR-0071). `rated` is the
  * creator's choice, false for Unrated.
  */
 export function ratingFlagsAtCreate(args: {
@@ -43,7 +55,11 @@ export function ratingFlagsAtCreate(args: {
   groupVerified: boolean;
   sport: Sport;
   rated: boolean;
+  isPublic?: boolean;
 }): { rated: boolean; groupRated: boolean } {
+  if (args.isPublic) {
+    return { rated: true, groupRated: false };
+  }
   if (args.sport === "football") {
     const counts = args.hasGroup && args.rated;
     return {

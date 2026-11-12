@@ -621,6 +621,32 @@ export const rating = {
     levelRangeHint:
       "ينضم غرباء إلى المباراة العامة. نطاق المستوى يُبقيها متكافئة.",
     noPartnerVenues: "لا نوادٍ شريكة بعد، لذا لا يمكن إنشاء مباراة عامة.",
+    countsNote:
+      "يؤكد الفريقان النتيجة خلال 24 ساعة. وإن لم يحدث، تبقى النتيجة ولا تُحتسب.",
+    confirmWindow: {
+      hours: (n: number) =>
+        plural("ar", n, {
+          one: "ساعة",
+          two: "ساعتان",
+          few: "{n} ساعات",
+          many: "{n} ساعة",
+          other: "{n} ساعة",
+        }),
+      minutes: (n: number) =>
+        plural("ar", n, {
+          one: "دقيقة",
+          two: "دقيقتان",
+          few: "{n} دقائق",
+          many: "{n} دقيقة",
+          other: "{n} دقيقة",
+        }),
+      yours: (left: string) =>
+        `بقي ${left} للتأكيد. إن لم يؤكد فريقك، تبقى النتيجة ولا تُحتسب لمستوى Temba.`,
+      theirs: (left: string) =>
+        `بقي ${left} ليؤكد الفريق الآخر. إن لم يؤكد، تبقى النتيجة ولا تُحتسب لمستوى Temba.`,
+    },
+    stood: "لم تُؤكَّد في الوقت. لم تُحتسب.",
+    notInTime: "ليس في الوقت",
     hub: {
       emptyTitle: "لا مباريات عامة الآن",
       emptyLine:

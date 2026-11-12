@@ -14,6 +14,7 @@ import {
   knockoutLevelMessage,
   knockoutMatchIsLevel,
 } from "#src/games/knockout-advance";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import { messagesFor } from "@repo/i18n/messages";
 import {
@@ -24,6 +25,7 @@ import {
   matchSideSeats,
   matchSlotsActedFor,
   matchSlotsConfirmed,
+  publicGameConfirmWindowClosesAt,
   type MatchSlot,
 } from "#src/games/match-result-confirmations";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
@@ -67,7 +69,9 @@ async function sideAlreadyAgreed(
  * padel Challenge Game organize it but confirm as players, and on a football
  * Challenge Game that counts for Temba Level whoever acts for a Team
  * confirms for that Team's side only, so the Match waits for the other
- * Team (ADR-0069). `slot` is kept for
+ * Team (ADR-0069). On a Public Game one player from each side confirms and
+ * nobody's word is final; a confirmation after the 24 hours lets the score
+ * stand without counting (ADR-0071). `slot` is kept for
  * clients that still name the side an Organizer confirms for; it is refused
  * from anyone else. The Match must already have a result and must not be
  * cancelled. Idempotent per Match+User: a repeat changes nothing, and a
@@ -82,9 +86,11 @@ export async function confirmMatchResult(
     userId: string;
     slot?: MatchSlot;
     locale?: Locale;
+    now?: Date;
   },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
+  const now = args.now ?? new Date();
   const game = await requireGame(database, args.gameId, locale);
   const match = await requireMatchOnGame(
     database,
@@ -148,6 +154,16 @@ export async function confirmMatchResult(
       code: "FORBIDDEN",
       message: knockoutLevelMessage(args.locale ?? DEFAULT_LOCALE),
     });
+  }
+
+  if (isPublicGame(game)) {
+    const closesAt = await publicGameConfirmWindowClosesAt(database, match.id);
+    if (closesAt && closesAt.getTime() <= now.getTime()) {
+      await runMatchCompletionEffect(database, game, match.id, {
+        stoodUnconfirmed: true,
+      });
+      return { ok: true as const };
+    }
   }
 
   if (

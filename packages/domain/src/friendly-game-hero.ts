@@ -20,6 +20,8 @@ export type FriendlyGameHeroPhase =
 
 export type FriendlyGameHeroMatch = {
   startTime: Date | null;
+  /** A Public Game's score the other side did not confirm in time (ADR-0071). */
+  stoodUnconfirmed?: boolean;
   durationInMinutes: number | null;
   slot1GameTeamId: string | null;
   slot2GameTeamId: string | null;

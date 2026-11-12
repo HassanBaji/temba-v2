@@ -118,7 +118,7 @@ describe("Public Game create", () => {
         isPublic: true,
         sport: "padel",
         format: "friendly_game",
-        rated: false,
+        rated: true,
         groupRated: false,
         levelMinTenths: 30,
         levelMaxTenths: 45,

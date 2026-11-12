@@ -238,6 +238,22 @@ describe("ratingScopeNotice on a football Game that counts", () => {
   });
 });
 
+describe("a Public Game's Rating scope", () => {
+  it("is tagged as counting for Temba Level once both sides confirm", () => {
+    assert.equal(
+      ratingScopeTag(
+        { rated: true, ratingScope: "temba", sport: "padel", publicGame: true },
+        "en",
+      ),
+      "Counts for Temba Level",
+    );
+    assert.deepEqual(ratingScopeNotice("temba", "en", "padel", true), {
+      title: "Counts for Temba Level",
+      line: "Both sides confirm the score within 24 hours. If not, it stands and doesn’t count.",
+    });
+  });
+});
+
 describe("ovrImpactView", () => {
   const resultOnly = {
     ovr: {

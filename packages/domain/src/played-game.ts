@@ -279,6 +279,7 @@ export type PlayedPadelInput = PlayedPlace & {
   groupName: string | null;
   rated: boolean;
   ratingScope?: GameRatingScope;
+  publicGame?: boolean;
   ratingImpact: PlayedRatingImpact | null;
   confirmation: { confirmedByOrganizer?: boolean } | null;
 };
@@ -387,8 +388,9 @@ export function playedPadelModel(
   const you: PlayedYouLine | null = viewerSide
     ? {
         line: partner ? m.playedWith(shortName(partner.name)) : m.playedAlone,
-        ratingLine:
-          scope === "group"
+        ratingLine: input.match.stoodUnconfirmed
+          ? messages.rating.publicGame.stood
+          : scope === "group"
             ? gameRatingScopeLabel(scope, locale)
             : playedRatingLine(input.rated, input.ratingImpact, locale),
         tag: youTag(youWord),
@@ -420,9 +422,11 @@ export function playedPadelModel(
     ...(input.groupName ? [{ label: m.group, value: input.groupName }] : []),
     {
       label: m.confirmed,
-      value: input.confirmation?.confirmedByOrganizer
-        ? m.byTheOrganizer
-        : m.byBothPairs,
+      value: input.match.stoodUnconfirmed
+        ? messages.rating.publicGame.notInTime
+        : input.confirmation?.confirmedByOrganizer
+          ? m.byTheOrganizer
+          : m.byBothPairs,
     },
     {
       label: m.format,
@@ -430,7 +434,10 @@ export function playedPadelModel(
     },
     {
       label: messages.you.ratingScope.title,
-      value: gameRatingScopeLabel(scope, locale),
+      value:
+        input.publicGame && scope === "temba"
+          ? messages.rating.scope.temba
+          : gameRatingScopeLabel(scope, locale),
     },
   ];
 

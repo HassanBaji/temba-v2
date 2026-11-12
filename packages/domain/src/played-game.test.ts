@@ -134,6 +134,32 @@ describe("playedPadelModel", () => {
     ]);
   });
 
+  it("says a Public Game's unconfirmed score stood and did not count", () => {
+    const stood = playedPadelModel(
+      {
+        ...place,
+        sides,
+        viewerUserId: VIEWER,
+        match: { ...match, stoodUnconfirmed: true },
+        groupName: null,
+        rated: true,
+        publicGame: true,
+        ratingImpact: null,
+        confirmation: { confirmedByOrganizer: false },
+      },
+      "en",
+    );
+    assert.equal(
+      stood.you?.ratingLine,
+      "Not confirmed in time. It did not count.",
+    );
+    assert.deepEqual(stood.facts, [
+      { label: "Confirmed", value: "Not in time" },
+      { label: "Format", value: "3 sets" },
+      { label: "Rating", value: "Counts for Temba Level" },
+    ]);
+  });
+
   it("names a group rated Match by its Rating scope", () => {
     const group = playedPadelModel(
       {

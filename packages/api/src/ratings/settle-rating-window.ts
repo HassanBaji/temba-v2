@@ -392,7 +392,7 @@ export async function previousRaterDistances(
 async function applySettledLevelMatch(
   database: DbClient,
   args: {
-    game: { id: string; groupId: string | null };
+    game: { id: string; groupId: string | null; isPublic: boolean };
     matchId: string;
     slot1GameTeamId: string;
     slot2GameTeamId: string;
@@ -416,7 +416,7 @@ async function applySettledLevelMatch(
       where: eq(gamePlayers.gameId, args.game.id),
       columns: { userId: true, footballRole: true, footballPosition: true },
     }),
-    ratingWeightForGame(database, args.game.groupId),
+    ratingWeightForGame(database, args.game),
   ]);
   await applyFootballLevelMatch(database, {
     matchId: args.matchId,
@@ -493,6 +493,7 @@ export async function settleRatingWindow(
     columns: {
       id: true,
       groupId: true,
+      isPublic: true,
       createdBy: true,
       challengeId: true,
       rated: true,

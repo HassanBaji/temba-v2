@@ -7,6 +7,7 @@ import {
   matchResultConfirmations,
 } from "@repo/db";
 
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { isFootballGame } from "@repo/domain/game-shape";
 import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 
@@ -332,17 +333,20 @@ export async function matchSlotsConfirmed(
 }
 
 /**
- * One player from each side agrees a football Match and a drawn tournament's
- * Match (ADR-0062): the team that entered the score, then one tap from the
- * other team.
+ * One player from each side agrees a football Match, a drawn tournament's
+ * Match (ADR-0062) and a Public Game's Match (ADR-0071): the side that
+ * entered the score, then one tap from the other side.
  */
 export function confirmsBySide(game: {
   sport: string | null;
   format: string;
   poolCount: number | null;
   tournamentShape: string | null;
+  isPublic: boolean;
+  groupId: string | null;
 }) {
   return (
+    isPublicGame(game) ||
     isFootballGame(game) ||
     isDrawnTournament(game.format, game.poolCount, game.tournamentShape)
   );
@@ -350,9 +354,9 @@ export function confirmsBySide(game: {
 
 /**
  * Whether the Match's result is agreed: every seated User with an account on
- * a padel Match's two Game teams, or one player from each side of a football
- * or drawn tournament Match. A side with no account holder is agreed by an
- * Organizer's confirmation.
+ * a padel Match's two Game teams, or one player from each side of a football,
+ * drawn tournament or Public Game Match. A side with no account holder is
+ * agreed by an Organizer's confirmation.
  */
 export async function matchResultFullyConfirmed(
   database: DbClient,
@@ -365,6 +369,8 @@ export async function matchResultFullyConfirmed(
       format: true,
       poolCount: true,
       tournamentShape: true,
+      isPublic: true,
+      groupId: true,
     },
   });
   if (game && confirmsBySide(game)) {
@@ -383,4 +389,29 @@ export async function matchResultFullyConfirmed(
       ? side.userIds.some((userId) => confirmedUserIds.has(userId))
       : side.accountHolderIds.every((userId) => confirmedUserIds.has(userId)),
   );
+}
+
+export const PUBLIC_GAME_CONFIRM_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * When a Public Game's entered score stands unconfirmed: 24 hours after it
+ * was entered (ADR-0071). A changed score keeps only its enterer's
+ * confirmation, so the earliest one left is the entry. `null` while the
+ * Match has no confirmation.
+ */
+export async function publicGameConfirmWindowClosesAt(
+  database: DbClient,
+  matchId: string,
+): Promise<Date | null> {
+  const confirmations = await database.query.matchResultConfirmations.findMany({
+    where: eq(matchResultConfirmations.matchId, matchId),
+    columns: { confirmedAt: true },
+  });
+  if (confirmations.length === 0) {
+    return null;
+  }
+  const enteredAt = Math.min(
+    ...confirmations.map((row) => row.confirmedAt.getTime()),
+  );
+  return new Date(enteredAt + PUBLIC_GAME_CONFIRM_WINDOW_MS);
 }

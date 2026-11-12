@@ -68,10 +68,16 @@ import {
   matchOrganizerSides,
   matchResultConfirmedUserIds,
   matchSeatedUserIds,
+  matchSideSeats,
+  matchSlotsConfirmed,
+  publicGameConfirmWindowClosesAt,
   type MatchSlot,
 } from "#src/games/match-result-confirmations";
 import { listGameSeatHolds } from "#src/games/seat-holds";
-import { viewerMayConfirmEnteredScore } from "#src/games/tournament-score";
+import {
+  seatedSlot,
+  viewerMayConfirmEnteredScore,
+} from "#src/games/tournament-score";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import {
   isIndividualSeatGame,
@@ -113,7 +119,7 @@ import { maskPhone } from "#src/unclaimed-players/mask-phone";
 import { mayRenameUnclaimedPlayer } from "#src/unclaimed-players/may-rename-unclaimed-player";
 
 import { listLevelRangeRequests } from "./listLevelRangeRequests";
-import { gameRatingScope } from "@repo/domain/game-rating-scope";
+import { gameRatingScope, isPublicGame } from "@repo/domain/game-rating-scope";
 import {
   ratingWindowState,
   type RatingWindowMode,
@@ -918,6 +924,7 @@ export async function gameById(
       ]);
     const confirmedByOrganizer =
       phase === "final" &&
+      !isPublicGame(game) &&
       (requiredUserIds.length === 0 ||
         requiredUserIds.some((userId) => !confirmedUserIds.includes(userId)));
     const confirmedAt =
@@ -997,6 +1004,39 @@ export async function gameById(
           locale,
         );
       }
+    }
+  }
+
+  // A Public Game's entered score waits 24 hours for the other side, then
+  // stands without counting (ADR-0071).
+  let confirmWindow: {
+    matchId: string;
+    closesAt: Date;
+    viewerMayConfirm: boolean;
+  } | null = null;
+  if (
+    isPublicGame(game) &&
+    friendlyMatch?.status === MatchStatusEnum.PENDING &&
+    friendlyMatch.notFinishedAt == null &&
+    matchOutcome(friendlyMatch.sets).result !== "none"
+  ) {
+    const closesAt = await publicGameConfirmWindowClosesAt(
+      database,
+      friendlyMatch.id,
+    );
+    if (closesAt) {
+      const [sides, agreed] = await Promise.all([
+        matchSideSeats(database, friendlyMatch),
+        matchSlotsConfirmed(database, friendlyMatch),
+      ]);
+      const viewerSlot = seatedSlot(sides, args.userId);
+      confirmWindow = {
+        matchId: friendlyMatch.id,
+        closesAt,
+        viewerMayConfirm:
+          viewerSlot != null &&
+          !(viewerSlot === 1 ? agreed.slot1 : agreed.slot2),
+      };
     }
   }
 
@@ -1187,6 +1227,7 @@ export async function gameById(
           knockoutRound: match.knockoutRound,
           knockoutPosition: match.knockoutPosition,
           status: match.status,
+          stoodUnconfirmed: match.stoodUnconfirmedAt != null,
           courtId: match.courtId,
           courtName: match.court?.name ?? null,
           slot1GameTeamId: match.slot1GameTeamId,
@@ -1248,6 +1289,7 @@ export async function gameById(
     matchResultConfirmation,
     ratingImpact,
     ratingWindow,
+    confirmWindow,
     canReportWrongScore,
     unseatedPlayers,
     registeredPlayers,

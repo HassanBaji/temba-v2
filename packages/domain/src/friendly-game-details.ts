@@ -44,6 +44,7 @@ export type FriendlyGameDetailsMatch = {
   durationInMinutes: number | null;
   courtName: string | null;
   status: string | null;
+  stoodUnconfirmed?: boolean;
   slot1GameTeamId: string | null;
   slot2GameTeamId: string | null;
   canScoreSets: boolean;
@@ -127,6 +128,8 @@ export type FriendlyGameDetails = {
   matchResultConfirmation: FriendlyGameDetailsConfirmation | null;
   rated: boolean;
   ratingScope?: GameRatingScope;
+  isPublic?: boolean;
+  confirmWindow?: { closesAt: Date; viewerMayConfirm: boolean } | null;
   booking?: FriendlyGameDetailsBooking | null;
   ratingImpact: FriendlyGameDetailsRatingImpact | null;
   canReportWrongScore: { eligible: boolean; reason?: string } | null;

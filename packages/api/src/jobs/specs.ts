@@ -16,6 +16,7 @@ export const JOB = {
   challengeSquadDue: "challenge.squad-due",
   scoreStands: "match.score-stands",
   ratingWindowSettle: "rating-window.settle",
+  confirmWindow: "match.confirm-window",
 } as const;
 
 export const MAX_ATTEMPTS = {
@@ -33,6 +34,7 @@ export const MAX_ATTEMPTS = {
   challengeSquadDue: 5,
   scoreStands: 5,
   ratingWindowSettle: 5,
+  confirmWindow: 5,
 } as const;
 
 export const POLL_INTERVAL_SECONDS = { first: 45, second: 90, steady: 120 };
@@ -236,6 +238,21 @@ export function ratingWindowSettleJob(matchId: string): JobSpec {
     key: ratingWindowSettleJobKey(matchId),
     payload: { matchId },
     maxAttempts: MAX_ATTEMPTS.ratingWindowSettle,
+    mode: "replace",
+  };
+}
+
+export function confirmWindowJobKey(matchId: string) {
+  return `match:confirm-window:${matchId}`;
+}
+
+/** Completes a Public Game's Match whose score the other side did not confirm; enqueued at entry plus 24 hours. */
+export function confirmWindowJob(matchId: string): JobSpec {
+  return {
+    name: JOB.confirmWindow,
+    key: confirmWindowJobKey(matchId),
+    payload: { matchId },
+    maxAttempts: MAX_ATTEMPTS.confirmWindow,
     mode: "replace",
   };
 }

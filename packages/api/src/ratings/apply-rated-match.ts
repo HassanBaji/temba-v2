@@ -209,6 +209,7 @@ export async function applyRatedMatch(
     columns: {
       cancelledAt: true,
       groupId: true,
+      isPublic: true,
       sport: true,
       rated: true,
       groupRated: true,
@@ -273,7 +274,7 @@ export async function applyRatedMatch(
   }
 
   await applyTembaRatedMatch(database, {
-    groupId: liveGame.groupId,
+    game: liveGame,
     sport: ratingSportFromGame(liveGame.sport),
     matchId: match.id,
     slots,
@@ -289,7 +290,7 @@ export async function applyRatedMatch(
 async function applyTembaRatedMatch(
   database: DbClient,
   args: {
-    groupId: string | null;
+    game: { groupId: string | null; isPublic: boolean };
     sport: "padel" | "football";
     matchId: string;
     slots: SlotUsers;
@@ -300,7 +301,7 @@ async function applyTembaRatedMatch(
   const { sport, slots, now } = args;
   const match = { id: args.matchId };
   const result = args.result;
-  const weight = await ratingWeightForGame(database, args.groupId);
+  const weight = await ratingWeightForGame(database, args.game);
   const userIds = [...slots.slot1, ...slots.slot2];
 
   const existingEvents = await database.query.ratingEvents.findMany({

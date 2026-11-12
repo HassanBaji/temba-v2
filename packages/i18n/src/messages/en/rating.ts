@@ -561,6 +561,20 @@ export const rating = {
     levelRangeHint:
       "Strangers join a public game. A Level range keeps it even.",
     noPartnerVenues: "No partner venues yet, so a public game can’t be made.",
+    countsNote:
+      "Both sides confirm the score within 24 hours. If not, it stands and doesn’t count.",
+    confirmWindow: {
+      hours: (n: number) =>
+        plural("en", n, { one: "1 hour", other: "{n} hours" }),
+      minutes: (n: number) =>
+        plural("en", n, { one: "1 minute", other: "{n} minutes" }),
+      yours: (left: string) =>
+        `${left} left to confirm. If your side doesn’t, the score stands and doesn’t count for Temba Level.`,
+      theirs: (left: string) =>
+        `${left} left for the other side to confirm. If they don’t, the score stands and doesn’t count for Temba Level.`,
+    },
+    stood: "Not confirmed in time. It did not count.",
+    notInTime: "Not in time",
     hub: {
       emptyTitle: "No public games right now",
       emptyLine:
