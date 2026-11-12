@@ -119,6 +119,7 @@ export type TournamentPlayer = {
   name: string;
   image: string | null;
   level: string | null;
+  guest: boolean;
 };
 
 /** A seated or drawn player on the Tournament, looked up by user id. */
@@ -136,6 +137,7 @@ export function tournamentPlayer(
           level: occupant.levelBand
             ? displayLabelFromStoredBand(occupant.levelBand)
             : null,
+          guest: "guest" in occupant && occupant.guest === true,
         };
       }
     }
@@ -148,6 +150,7 @@ export function tournamentPlayer(
         name: member.name,
         image: member.image,
         level: null,
+        guest: "guest" in member && member.guest === true,
       };
     }
   }

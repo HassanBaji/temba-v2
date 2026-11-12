@@ -4,6 +4,7 @@ import { View } from "react-native";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
+import { GuestMark } from "../primitives/guest-mark";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
 import type { TournamentPlayer } from "./tournament-model";
@@ -31,11 +32,17 @@ export function TournamentPlayerSheet({
       {player ? (
         <View style={{ gap: 16 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <Avatar name={player.name} uri={player.image} size="lg" />
+            <Avatar
+              name={player.name}
+              uri={player.image}
+              size="lg"
+              guest={player.guest}
+            />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text size="lead" weight="semibold" numberOfLines={1}>
                 {player.name}
               </Text>
+              {player.guest ? <GuestMark /> : null}
               {player.level ? (
                 <Text size="meta" tone="muted" numberOfLines={1}>
                   {m.mobilePlayer.played.levelLine(player.level)}
@@ -44,7 +51,7 @@ export function TournamentPlayerSheet({
             </View>
           </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {canOpenProfile ? (
+            {canOpenProfile && !player.guest ? (
               <Button
                 label={m.mobilePlayer.played.viewProfile}
                 variant="outline"

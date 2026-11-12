@@ -180,6 +180,7 @@ export function GameDetailsScreen({
   const [renaming, setRenaming] = useState<{
     userId: string;
     name: string;
+    guest?: boolean;
   } | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -569,8 +570,18 @@ export function GameDetailsScreen({
     );
   }
 
+  const guestIds = new Set(
+    data.registeredPlayers
+      .filter((player) => player.guest)
+      .map((player) => player.id),
+  );
   const onOpenPlayer = gamePlayersLink(data)
-    ? (userId: string) => router.push(playerPath(segments, userId))
+    ? (userId: string) => {
+        if (guestIds.has(userId)) {
+          return;
+        }
+        router.push(playerPath(segments, userId));
+      }
     : undefined;
 
   if (football) {

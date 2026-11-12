@@ -59,7 +59,12 @@ function AvatarStack({ team }: { team: HistoryTeamRow }) {
             borderColor: palette.background,
           }}
         >
-          <Avatar name={member.name} uri={member.image} size="sm" />
+          <Avatar
+            name={member.name}
+            uri={member.image}
+            size="sm"
+            guest={member.guest === true}
+          />
         </View>
       ))}
     </View>

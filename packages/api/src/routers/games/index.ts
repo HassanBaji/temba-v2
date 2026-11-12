@@ -4,6 +4,7 @@ import { acceptInviteLinkProcedure as acceptInviteLink } from "./acceptInviteLin
 import { acceptLookupInviteProcedure as acceptLookupInvite } from "./acceptLookupInvite";
 import { addGroupMembersProcedure as addGroupMembers } from "./addGroupMembers";
 import { addMatchProcedure as addMatch } from "./addMatch";
+import { addGuestPlayerProcedure as addGuestPlayer } from "./addGuestPlayer";
 import { addPlayerByPhoneProcedure as addPlayerByPhone } from "./addPlayerByPhone";
 import { addSetProcedure as addSet } from "./addSet";
 import { approveLevelRangeRequestProcedure as approveLevelRangeRequest } from "./approveLevelRangeRequest";
@@ -117,6 +118,7 @@ export const gamesRouter = createTRPCRouter({
   kick,
   previewPlayerByPhone,
   addPlayerByPhone,
+  addGuestPlayer,
   listGroupMembersToAdd,
   addGroupMembers,
   closeRegistration,

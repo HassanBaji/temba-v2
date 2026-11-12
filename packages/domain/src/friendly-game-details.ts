@@ -11,13 +11,17 @@ import {
 import { viewerSidePartnerName } from "./friendly-game-partner";
 import type { GameRatingScope } from "./game-rating-scope";
 import type { LevelBand } from "./level-bands";
+import type { MemberNicknameData } from "./member-nickname";
 
 export type FriendlyGameDetailsSeat = {
   userId: string;
   name: string;
+  /** The Member nickname on a private Group Game, when the viewer may see it. */
+  nickname?: MemberNicknameData | null;
   image: string | null;
   levelBand: LevelBand | null;
   unclaimed?: boolean;
+  guest?: boolean;
   phoneMasked?: string | null;
   /** The viewer may fix this Unclaimed player's name here. */
   canRename?: boolean;

@@ -22,6 +22,7 @@ export function MemberSheet({
   onSetGroupLevel,
   groupLevelHint,
   onViewProfile,
+  onNickname,
   organizerLabel,
   organizerHint,
   onOrganizerAction,
@@ -36,6 +37,8 @@ export function MemberSheet({
   /** The member's Group Level, shown to an Organizer on that row. */
   groupLevelHint?: string;
   onViewProfile?: () => void;
+  /** Opens "Name in this Group" (design "Group names" 1b). */
+  onNickname?: () => void;
   organizerLabel?: string;
   organizerHint?: string;
   onOrganizerAction?: () => void;
@@ -60,6 +63,16 @@ export function MemberSheet({
             label={m.mobileGroup.members.sheet.viewProfile}
             trailing="chevron"
             onPress={onViewProfile}
+          />
+        ) : null,
+        onNickname ? (
+          <SheetMenuRow
+            key="nickname"
+            label={m.mobileGroup.nickname.menuLabel}
+            hint={m.mobileGroup.nickname.menuHint}
+            value={member.nickname ?? m.mobileGroup.nickname.notSet}
+            trailing="chevron"
+            onPress={onNickname}
           />
         ) : null,
         onSetLevel ? (

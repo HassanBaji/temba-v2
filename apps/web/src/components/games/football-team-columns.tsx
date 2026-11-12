@@ -1,9 +1,10 @@
 "use client";
 
+import { Tag as TagIcon } from "lucide-react";
 import {
   byKeeperThenLevel,
   levelLabel,
-  shortName,
+  lineupName,
   sideAverage,
   slotCode,
   type Bibs,
@@ -31,27 +32,37 @@ export function BibRow({
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const name = player.isViewer ? m.common.you : shortName(player.name);
+  const { name, spoken, isNickname } = lineupName(player, locale);
   const code = slotCode(player, locale);
   const label = [
-    name,
+    spoken,
     code,
     levelLabel(player.levelBand),
     player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
+    player.guest ? m.group.addPlayer.guest.tag : null,
   ]
     .filter(Boolean)
     .join(m.tournament.listSeparator);
   const body = (
     <>
-      <UserAvatar name={player.name} image={player.image} size="sm" />
+      <UserAvatar
+        name={player.name}
+        image={player.image}
+        size="sm"
+        guest={player.guest}
+      />
       <span
-        dir="auto"
         className={cn(
-          "text-meta min-w-0 flex-1 truncate [text-align:match-parent]",
+          "text-meta flex min-w-0 flex-1 items-center gap-1",
           player.isViewer && "font-semibold",
         )}
       >
-        {name}
+        {isNickname ? (
+          <TagIcon aria-hidden className="size-3 shrink-0" />
+        ) : null}
+        <span dir="auto" className="truncate [text-align:match-parent]">
+          {name}
+        </span>
       </span>
       {code ? (
         <span className="font-mono text-[11px] opacity-70">{code}</span>
@@ -63,7 +74,7 @@ export function BibRow({
   );
   const className = cn(
     "flex h-11 min-w-0 items-center gap-1.5 rounded-md border px-2 text-start",
-    player.unclaimed && "border-dashed",
+    (Boolean(player.unclaimed) || Boolean(player.guest)) && "border-dashed",
     player.isViewer &&
       "ring-current ring-2 ring-offset-1 ring-offset-transparent",
   );

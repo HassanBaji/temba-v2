@@ -75,6 +75,24 @@ describe("courtSeatRow", () => {
     assert.equal(row.unclaimed, false);
     assert.equal(courtSeatName(row, "en"), "Hassan B (You)");
   });
+
+  it("names a seat by its Member nickname, but never the viewer's own", () => {
+    const seat = {
+      userId: "u2",
+      name: "Ahmed Nasser",
+      nickname: { name: "Ahmed keeper", visibility: "group" as const },
+      image: null,
+      levelBand: null,
+    };
+    const other = courtSeatRow(seat, "right", "u1", "en");
+    assert.equal(other.name, "Ahmed keeper");
+    assert.equal(other.isNickname, true);
+    assert.equal(other.fullName, "Ahmed Nasser");
+
+    const own = courtSeatRow(seat, "right", "u2", "en");
+    assert.equal(own.name, "You");
+    assert.equal(own.isNickname, false);
+  });
 });
 
 describe("courtFigures", () => {

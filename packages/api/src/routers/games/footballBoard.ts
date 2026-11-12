@@ -36,6 +36,8 @@ import {
   matchOrganizerSides,
   matchSlotsConfirmed,
 } from "#src/games/match-result-confirmations";
+import { guestStandInBand } from "@repo/domain/guest-player";
+import { gameMemberNicknames } from "#src/groups/helpers/game-member-nicknames";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
 
@@ -105,6 +107,7 @@ export async function footballBoard(
           clerkId: true,
           addedAt: true,
           phoneNumber: true,
+          guestAt: true,
         },
       },
     },
@@ -126,6 +129,14 @@ export async function footballBoard(
     }
   }
 
+  const guestBand = guestStandInBand(
+    roster.flatMap((row) =>
+      row.user?.guestAt === null
+        ? [levelByUser.get(row.user.id) ?? null]
+        : [],
+    ),
+  );
+  const nicknameByUser = await gameMemberNicknames(database, game, args.userId);
   const sides = await footballSides(database, game.id);
   const sideByUser = await sideIndexByUser(database, sides);
   const match = await footballMatch(database, game.id);
@@ -184,19 +195,22 @@ export async function footballBoard(
       if (!row.user) {
         return [];
       }
-      const unclaimed = isUnclaimed(row.user);
+      const guest = row.user.guestAt !== null;
+      const unclaimed = isUnclaimed(row.user) && !guest;
       return [
         {
           userId: row.user.id,
           name: row.user.name,
+          nickname: nicknameByUser.get(row.user.id) ?? null,
           image: row.user.image,
           role: row.footballRole,
           position: row.footballPosition,
-          levelBand: levelByUser.get(row.user.id) ?? null,
+          levelBand: guest ? guestBand : (levelByUser.get(row.user.id) ?? null),
           sideIndex: sideByUser.get(row.user.id) ?? null,
           goals: goalsByUser.get(row.user.id) ?? 0,
           isViewer: row.user.id === args.userId,
           unclaimed,
+          guest,
           phoneMasked:
             organizer && unclaimed && row.user.phoneNumber
               ? maskPhone(row.user.phoneNumber)

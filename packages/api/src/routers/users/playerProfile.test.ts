@@ -865,6 +865,7 @@ describe("loadPlayerProfile", () => {
           levelBand: "B3",
           level: "4.3",
           provisional: false,
+          guest: false,
         },
         {
           userId: people.right.id,
@@ -873,6 +874,7 @@ describe("loadPlayerProfile", () => {
           levelBand: null,
           level: null,
           provisional: false,
+          guest: false,
         },
       ]);
       expect(newest?.slot2.map((player) => player.userId)).toEqual([

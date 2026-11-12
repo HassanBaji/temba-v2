@@ -147,6 +147,7 @@ const plainUserReferences: PgColumn[] = [
   gameMvpVotes.candidateUserId,
   gamePhotos.uploaderUserId,
   gameTeamPlayers.sideSetBy,
+  groupMembers.nicknameUpdatedById,
   groups.createdBy,
   groups.verifiedBy,
   groups.deletedBy,
@@ -216,6 +217,26 @@ async function dropMergedDuplicates(
         where ${aliased("kept", reference.column)} = ${ids.survivorUserId}
           and ${sql.join([...sameKeys, ...unused], sql` and `)}
       )
+  `);
+}
+
+/**
+ * Where both are in a Group, the merged player's membership row is dropped;
+ * its Member nickname moves to the survivor's row unless that has one.
+ */
+async function keepMergedNicknames(tx: DbTx, ids: MergeIds) {
+  await tx.execute(sql`
+    update ${groupMembers} as ${sql.identifier("kept")}
+    set ${sql.identifier(groupMembers.nickname.name)} = ${aliased("dropped", groupMembers.nickname)},
+      ${sql.identifier(groupMembers.nicknameVisibility.name)} = ${aliased("dropped", groupMembers.nicknameVisibility)},
+      ${sql.identifier(groupMembers.nicknameUpdatedById.name)} = ${aliased("dropped", groupMembers.nicknameUpdatedById)},
+      ${sql.identifier(groupMembers.nicknameUpdatedAt.name)} = ${aliased("dropped", groupMembers.nicknameUpdatedAt)}
+    from ${groupMembers} as ${sql.identifier("dropped")}
+    where ${aliased("kept", groupMembers.userId)} = ${ids.survivorUserId}
+      and ${aliased("dropped", groupMembers.userId)} = ${ids.mergedUserId}
+      and ${aliased("kept", groupMembers.groupId)} = ${aliased("dropped", groupMembers.groupId)}
+      and ${aliased("kept", groupMembers.nickname)} is null
+      and ${aliased("dropped", groupMembers.nickname)} is not null
   `);
 }
 
@@ -548,6 +569,7 @@ export async function mergeIntoAccount(
     await resolveGroupRatings(tx, ids);
     await dropMarksBetween(tx, ids);
     await dropMvpVotesBetween(tx, ids);
+    await keepMergedNicknames(tx, ids);
 
     for (const reference of uniqueUserReferences) {
       await dropMergedDuplicates(tx, reference, ids);

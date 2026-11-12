@@ -135,10 +135,12 @@ function sharedModel(
 ) {
   const hasSwitch = data.sports.length > 1;
   const early = isEarlyDays(options.played);
-  const rows = partnerRowsView(data.partners, options.sport, locale).map((row) => ({
-    ...row,
-    image: mediaUrl(row.image, apiOrigin),
-  }));
+  const rows = partnerRowsView(data.partners, options.sport, locale).map(
+    (row) => ({
+      ...row,
+      image: mediaUrl(row.image, apiOrigin),
+    }),
+  );
   return {
     sport: options.sport,
     sports: data.sports,

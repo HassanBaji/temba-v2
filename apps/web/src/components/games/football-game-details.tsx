@@ -145,6 +145,7 @@ export function FootballGameDetails({
   const [renaming, setRenaming] = React.useState<{
     userId: string;
     name: string;
+    guest?: boolean;
   } | null>(null);
   const [squadTeamId, setSquadTeamId] = React.useState<string | null>(null);
   const autoJoined = React.useRef(false);
@@ -388,7 +389,7 @@ export function FootballGameDetails({
     const player = players.find((row) => row.userId === userId);
     if (player && organizer && !player.isViewer) {
       setSelected(player);
-    } else if (canOpenProfiles) {
+    } else if (canOpenProfiles && !player?.guest) {
       router.push(playerProfilePath(userId, "football"));
     }
   }

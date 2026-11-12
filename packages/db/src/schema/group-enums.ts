@@ -6,6 +6,10 @@ export const groupMemberRoles = pgEnum("group_member_role", [
   "member",
   "organizer",
 ]);
+export const memberNicknameVisibilities = pgEnum("member_nickname_visibility", [
+  "approvers",
+  "group",
+]);
 
 export enum GroupTypeEnum {
   PUBLIC = "public",

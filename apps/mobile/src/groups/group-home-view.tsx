@@ -310,6 +310,8 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           onRemovePlayer={props.onRemovePlayer}
           canAppointOrganizers={data.canAppointOrganizers}
           onOrganizerAction={props.onOrganizerAction}
+          canSetNicknames={data.canSetMemberNicknames}
+          groupName={header.name}
           pendingInviteNames={props.pendingInviteNames}
           onOpenInvites={onInvite}
           onAddPlayer={props.onAddPlayer}

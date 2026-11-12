@@ -135,6 +135,10 @@ _Avoid_: ban (when you mean this Group-level refusal)
 Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, and make or unmake Appointed Organizers: the Group creator and Appointed Organizers, on a Loose Group and a Club Group alike. Removing a player never removes the Group creator; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. A Group approver also sees every member's full phone number, in the member menu on the Members tab, and no one else in the Group does (ADR-0078).
 _Avoid_: organizer (when you mean this write permission), group admin, Group owner (when you mean this permission rather than the one User who owns the Group)
 
+**Member nickname**:
+A name a Group approver gives a member, belonging to that one Group: a nickname ("Abu Ali") or a tag that tells players apart ("Ahmed keeper"). One per member per Group, up to 24 characters; any Group approver may set, change or clear it, their own included, and the last editor is recorded. It shows with a tag icon on that Group's Members list (above the Temba name), Standing and Add players lists, and on the line-ups and team making of the Group's Games; search matches both names. Who sees it is set per name: Organizers only (the default, a working label for Group approvers that a member who is not one never sees, even about themselves) or Everyone in the Group (the member sees it too, with nothing to accept or remove). Nobody outside the Group sees it: not on the player's profile, in other Groups or in Challenges. Stored on `group_members`.
+_Avoid_: Group name (that is the Group's own name), alias, display name
+
 **Group owner**:
 The one User a Group belongs to: its creator, until ownership is transferred. Who may edit the Group (name, sport until the first Game, visibility, Require approval, photo, Invite link reset), transfer ownership, delete it and, on a Club Group, unlink it from its Venue. The owner cannot Leave; they transfer ownership or delete the Group first. A Group approver is not an owner.
 _Avoid_: creator (in UI copy), admin
@@ -577,12 +581,16 @@ An approved Game Level range request, or an Organizer Lookup invite, that except
 _Avoid_: auto-admit, Game admit, exception (as the name of the entity), Lookup invite (that is a door that grants this)
 
 **User**:
-A person on Temba. Almost every User has a Temba account; the exception is an Unclaimed player, who has a phone and a name but no account yet.
+A person on Temba. Almost every User has a Temba account; the exceptions are an Unclaimed player, who has a phone and a name but no account yet, and a Guest player, who has only a name.
 _Avoid_: player (when you mean User), member (when you mean a Group member)
+
+**Guest player**:
+Someone an Organizer seated on one Game by name only: no phone, no account, no Rating. A User row marked as a guest, so every rule for a User without an account applies (never searched, notified or a required confirmer). On a Rated Match they play at the mean Level of the Users with an account in it, whose Levels move as usual; their own never exists. Shown with a dashed avatar and the word Guest, at the mean Level band of the other players. One per add, never claimed (ADR-0079).
+_Avoid_: Guest (that is a Booking holder without an account), Unclaimed player (that one has a phone and can be claimed), placeholder, ghost, ringer
 
 **Unclaimed player**:
 A User an Organizer or Group approver added by phone and name, with no Temba account yet. They are seated, rated and shown like any User, marked "Not on Temba yet", but never found by Lookup invite or Partner search and never sent a Notification. One per phone. While unclaimed, an Organizer or Group approver of a Game or Group they are on may correct the name, when the User who added them also organizes that Game or Group; the phone never changes, so a wrong number is fixed by removing and adding them again. Signing up with that phone, verified, claims the row and its history; an existing account that verifies the phone later absorbs it (ADR-0042).
-_Avoid_: Guest (that is a Booking holder without an account), placeholder, ghost, manual User, invitee
+_Avoid_: Guest (that is a Booking holder without an account), Guest player (name only, no phone), placeholder, ghost, manual User, invitee
 
 **Onboarding questionnaire**:
 The sports, Level and side questions, now one Profile task ("Pick your sports and level") on the Profile checklist rather than a gate (ADR-0049). It first asks which **Sports played**, then padel (Level band and Preferred Position) and football (Football role, Preferred football position and a **Football self-placement**) for each picked sport, and saves every answer in one call. **Either** and **Not sure** (which starts padel at D+) are the low-commitment answers. Users who predate it are complete without answering.

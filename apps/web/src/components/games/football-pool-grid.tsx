@@ -1,9 +1,10 @@
 "use client";
 
+import { Tag as TagIcon } from "lucide-react";
 import {
   levelLabel,
   poolSections,
-  shortName,
+  lineupName,
   slotCode,
   type BoardPlayer,
 } from "@repo/domain/football-board";
@@ -34,7 +35,7 @@ function PlayerTile({
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const name = player.isViewer ? m.common.you : shortName(player.name);
+  const { name, spoken, isNickname } = lineupName(player, locale);
   const code = slotCode(player, locale);
   const Tag = onPress ? "button" : "div";
   return (
@@ -42,10 +43,11 @@ function PlayerTile({
       type={onPress ? "button" : undefined}
       onClick={onPress ? () => onPress(player.userId) : undefined}
       aria-label={[
-        name,
+        spoken,
         code,
         levelLabel(player.levelBand),
         player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
+        player.guest ? m.group.addPlayer.guest.tag : null,
       ]
         .filter(Boolean)
         .join(m.tournament.listSeparator)}
@@ -54,12 +56,18 @@ function PlayerTile({
         player.isViewer
           ? "bg-control text-on-control border-control-edge"
           : "bg-paper border-rule",
-        player.unclaimed && "border-ink border-dashed",
+        (Boolean(player.unclaimed) || Boolean(player.guest)) &&
+          "border-ink border-dashed",
         onPress && !player.isViewer && "hover:bg-wash",
       )}
     >
       <span className="flex items-center justify-between">
-        <UserAvatar name={player.name} image={player.image} size="sm" />
+        <UserAvatar
+          name={player.name}
+          image={player.image}
+          size="sm"
+          guest={player.guest}
+        />
         {player.role === "keeper" ? (
           <span className="bg-control text-on-control rounded-[4px] px-1 font-mono text-[11px]">
             {code}
@@ -78,8 +86,13 @@ function PlayerTile({
         ) : null}
       </span>
       <span className="flex items-baseline justify-between gap-1">
-        <span dir="auto" className="truncate text-[12px]">
-          {name}
+        <span className="flex min-w-0 items-center gap-1 text-[12px]">
+          {isNickname ? (
+            <TagIcon aria-hidden className="size-3 shrink-0" />
+          ) : null}
+          <span dir="auto" className="truncate">
+            {name}
+          </span>
         </span>
         <span dir="ltr" className="font-expanded text-meta">
           {levelLabel(player.levelBand)}

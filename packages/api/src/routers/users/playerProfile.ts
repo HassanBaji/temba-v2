@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, count, eq, inArray, or } from "drizzle-orm";
+import { and, count, eq, inArray, isNotNull, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
@@ -105,6 +105,14 @@ export async function mayViewPlayer(
 ): Promise<boolean> {
   if (args.viewerId === args.playerId) {
     return true;
+  }
+  // A Guest player is a name on one Game, with no profile to open (ADR-0079).
+  const guest = await database.query.user.findFirst({
+    where: and(eq(user.id, args.playerId), isNotNull(user.guestAt)),
+    columns: { id: true },
+  });
+  if (guest) {
+    return false;
   }
 
   const viewerMember = alias(groupMembers, "viewer_member");
@@ -363,7 +371,9 @@ export async function teamPlayers(
             gamePlayer: {
               columns: {},
               with: {
-                user: { columns: { id: true, name: true, image: true } },
+                user: {
+                  columns: { id: true, name: true, image: true, guestAt: true },
+                },
               },
             },
           },
@@ -390,13 +400,19 @@ export async function teamPlayers(
       levelBand: level?.levelBand ?? null,
       level: level?.level ?? null,
       provisional: level?.provisional ?? false,
+      guest: person.user.guestAt !== null,
     });
     byTeam.set(person.teamId, players);
   }
   return byTeam;
 }
 
-export type TeamPlayer = { userId: string; name: string; image: string | null };
+export type TeamPlayer = {
+  userId: string;
+  name: string;
+  image: string | null;
+  guest?: boolean;
+};
 
 const PARTNER_COUNT = 3;
 
@@ -420,7 +436,7 @@ export function partnersFrom(
   for (const match of matches) {
     const outcome = ownerOutcome(match);
     for (const player of playersOf(match.slotTeamIds[match.userSlot])) {
-      if (player.userId === userId) {
+      if (player.userId === userId || player.guest) {
         continue;
       }
       const entry = partners.get(player.userId) ?? {

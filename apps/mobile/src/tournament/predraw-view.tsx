@@ -6,6 +6,7 @@ import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import { levelRangeRequestCard } from "@repo/domain/level-range-request";
 import {
   tournamentSeatLabel,
+  type TournamentDetailRow,
   type TournamentDetails,
   type TournamentDetailsSide,
   type TournamentHomeView,
@@ -90,7 +91,11 @@ function HeroSeat({
         minHeight: 64,
       }}
     >
-      <Avatar name={occupant.name} uri={occupant.image} />
+      <Avatar
+        name={occupant.name}
+        uri={occupant.image}
+        guest={occupant.guest === true}
+      />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text size="body" numberOfLines={1}>
           {isViewer ? messages.common.you : occupant.name}
@@ -261,7 +266,12 @@ function SeatTile({
         borderColor: palette.rule,
       }}
     >
-      <Avatar name={occupant.name} uri={occupant.image} size="sm" />
+      <Avatar
+        name={occupant.name}
+        uri={occupant.image}
+        size="sm"
+        guest={occupant.guest === true}
+      />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text size="meta" weight="medium" numberOfLines={1}>
           {occupant.userId === viewerUserId
@@ -559,11 +569,7 @@ function ScheduleCard({
   );
 }
 
-export function DetailRows({
-  rows,
-}: {
-  rows: readonly { label: string; value: string }[];
-}) {
+export function DetailRows({ rows }: { rows: readonly TournamentDetailRow[] }) {
   if (rows.length === 0) {
     return null;
   }
@@ -572,20 +578,26 @@ export function DetailRows({
       {rows.map((row, index) => (
         <View key={`${row.label}-${row.value}`}>
           {index > 0 ? <Hairline /> : null}
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              gap: 12,
-              padding: 16,
-            }}
-          >
-            <Text size="body" tone="muted">
-              {row.label}
-            </Text>
-            <Text size="body" style={{ flexShrink: 1, textAlign: "right" }}>
-              {row.value}
-            </Text>
+          <View style={{ padding: 16, gap: 4 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+            >
+              <Text size="body" tone="muted">
+                {row.label}
+              </Text>
+              <Text size="body" style={{ flexShrink: 1, textAlign: "right" }}>
+                {row.value}
+              </Text>
+            </View>
+            {row.note ? (
+              <Text size="meta" tone="muted">
+                {row.note}
+              </Text>
+            ) : null}
           </View>
         </View>
       ))}

@@ -547,6 +547,20 @@ export const group = {
     renameDescription:
       "Their phone stays the same. If the number is wrong, remove them and add them again.",
     renamedToast: (name: string) => `Name changed to ${name}`,
+    guest: {
+      tab: "Guest",
+      description:
+        "A guest plays this game by name only. No phone, no account.",
+      nameLabel: "Name",
+      levelNote:
+        "Their level counts as the average of the other players in each match, and only real players' levels move.",
+      submit: (name: string) =>
+        name ? `Add ${name} as a guest` : "Add as a guest",
+      addedToast: (name: string) => `${name} added as a guest`,
+      tag: "Guest",
+      nameGuest: (name: string) => `${name}, guest`,
+      renameDescription: "What they're called in this game.",
+    },
     fromGroup: {
       tab: "From group",
       phoneTab: "By phone",
@@ -593,6 +607,10 @@ export const group = {
     firstRequired: "Enter your first name",
     lastRequired: "Enter your last name",
     tooLong: (max: number) => `Keep it under ${max} characters`,
+  },
+  nickname: {
+    spoken: (nickname: string, name: string) =>
+      `${nickname}, this Group's name for ${name}`,
   },
   errors: {
     notFound: "Group not found",
@@ -642,5 +660,6 @@ export const group = {
     standingMembersOnly: "Join the Group to see its Standing",
     approvalPublicOnly: "Require approval only applies to Public Groups",
     imageEmpty: "Image file is empty",
+    nicknameTooLong: (max: number) => `Keep the name to ${max} characters`,
   },
 };
