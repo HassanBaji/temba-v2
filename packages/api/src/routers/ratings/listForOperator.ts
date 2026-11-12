@@ -17,6 +17,7 @@ import {
 } from "#src/invites/search-lookup-users";
 import { operatorProcedure } from "#src/trpc";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
+import { ovrFromMu } from "@repo/domain/football-ovr";
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import type { Sport } from "@repo/domain/sport";
 import { sportSchema } from "@repo/validators/sport";
@@ -101,7 +102,16 @@ export async function listForOperator(
         ]);
 
   const ratingByUserId = new Map(
-    ratingRows.map((row) => [row.userId, youRatingViewAfterIdle(row, now)]),
+    ratingRows.map((row) => [
+      row.userId,
+      {
+        ...youRatingViewAfterIdle(row, now),
+        ovr:
+          sport === GroupSportEnum.FOOTBALL
+            ? Math.round(ovrFromMu(row.mu))
+            : null,
+      },
+    ]),
   );
   const ratedMatchCountByUserId = new Map(
     matchCountRows.map((row) => [row.userId, Number(row.ratedMatchCount)]),
@@ -129,6 +139,7 @@ export async function listForOperator(
         isViewer: row.id === args.operatorUserId,
         level: rating?.level ?? null,
         levelBand: rating?.levelBand ?? null,
+        ovr: rating?.ovr ?? null,
         levelProvisional: rating?.provisional ?? true,
         ratedMatchCount: ratedMatchCountByUserId.get(row.id) ?? 0,
         levelOverride: override

@@ -154,19 +154,42 @@ export function FootballTab({
           ) : null}
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-          <LevelRing percent={view.winRate.percent ?? 0}>
-            <Text size="title" width="expanded" weight="bold">
-              {view.winRate.value}
-            </Text>
-            <Text size="eyebrow" tone="muted">
-              {view.winRate.label}
-            </Text>
-          </LevelRing>
+          {view.level ? (
+            <View
+              accessible
+              accessibilityLabel={m.rating.ovr.value(view.level.ovr)}
+            >
+              <LevelRing percent={view.level.ringPercent}>
+                <Text size="h1Lg" width="expanded" weight="bold">
+                  {view.level.ovr}
+                </Text>
+                <Text size="eyebrow" tone="muted">
+                  {view.level.ovrLabel}
+                </Text>
+              </LevelRing>
+            </View>
+          ) : null}
           <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-            <Text size="h2" width="expanded" weight="bold" numberOfLines={1}>
-              {view.level?.word ?? m.you.hero.noLevel}
+            <Text
+              size="h2"
+              width="expanded"
+              weight="bold"
+              numberOfLines={1}
+              ltr={view.level != null}
+            >
+              {view.level?.band ?? m.you.hero.noLevel}
             </Text>
+            {view.level?.placement ? (
+              <Text size="meta" tone="muted">
+                {view.level.placement}
+              </Text>
+            ) : null}
             <Text size="meta">{view.roleLine}</Text>
+            {view.level ? (
+              <Text size="eyebrow" tone="muted">
+                {view.level.progress}
+              </Text>
+            ) : null}
             <Text size="eyebrow" tone="muted">
               {m.you.football.adjustNote}
             </Text>
@@ -256,7 +279,7 @@ export function FootballTab({
           title={m.you.groups.title}
           meta={
             view.level
-              ? m.you.groups.vsGeneral(view.level.band, view.level.level)
+              ? m.you.groups.vsGeneral(view.level.band, view.level.ovr)
               : undefined
           }
           note={m.you.groups.footballNote}

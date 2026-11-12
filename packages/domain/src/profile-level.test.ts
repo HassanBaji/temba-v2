@@ -128,6 +128,24 @@ describe("profileLevelView", () => {
     assert.equal(view.caption, "16% of the way to C+");
   });
 
+  it("reads a football Level as OVR and a padel one as the Level", () => {
+    assert.equal(
+      profileLevelView(
+        { ...base, sport: "football", ovr: 72, ratedMatchCount: 0 },
+        "en",
+      ).level,
+      "72",
+    );
+    assert.equal(
+      profileLevelView({ ...base, sport: "football", ovr: 74 }, "en").level,
+      "74",
+    );
+    assert.equal(
+      profileLevelView({ ...base, ovr: 74 }, "en").level,
+      base.level,
+    );
+  });
+
   it("clamps the fill into 0 to 100", () => {
     assert.equal(
       profileLevelView({ ...base, progressPercent: 140 }, "en").fillPercent,

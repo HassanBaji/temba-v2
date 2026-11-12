@@ -378,9 +378,10 @@ describe("football", () => {
       ],
     } as unknown as FootballProfile;
     const view = footballTabView(football, "en");
-    assert.equal(view.level?.word, "Competitive");
+    assert.equal(view.level?.placement, "Competitive");
     assert.equal(view.level?.status, "Self-placed");
-    assert.equal(view.winRate.value, "55%");
+    assert.equal(view.level?.ovr, "72");
+    assert.equal(view.level?.band, "C+");
     assert.equal(view.goals.total, "2 goals");
     assert.equal(view.goals.bars.length, 10);
     assert.equal(view.goals.bars[9]?.goals, 2);

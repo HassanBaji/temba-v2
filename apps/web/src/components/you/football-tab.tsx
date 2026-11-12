@@ -6,8 +6,10 @@ import { ErrorState } from "~/components/common/error-state";
 import { HomeDeclareLevel } from "~/components/home/home-level-block";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { api } from "~/trpc/react";
-import { footballRoleView } from "@repo/domain/player-profile-football";
-import { shownWinRatePercent } from "@repo/domain/win-rate";
+import {
+  footballHeroLevelView,
+  footballRoleView,
+} from "@repo/domain/player-profile-football";
 
 import { DifferenceBox } from "./group-levels-card";
 import { LastTenStrip } from "./last-ten-strip";
@@ -22,7 +24,6 @@ import { PartnersCard } from "./profile-cards";
 import {
   footballGroupRowView,
   footballHeroStats,
-  footballLevelLabel,
   goalBars,
   recordShares,
   type FootballProfile,
@@ -76,31 +77,47 @@ function FootballHero({ profile }: { profile: FootballProfile }) {
   if (!rating) {
     return null;
   }
-  const winRate = shownWinRatePercent(
-    profile.overall.won,
-    profile.overall.played,
-  );
-  const levelLabel = footballLevelLabel(rating.levelBand, locale);
+  const level = footballHeroLevelView(rating, locale);
   const role = footballRoleView(profile.role, locale);
 
   return (
     <HeroCard>
       <HeroTopLine
         label={m.you.football.level}
-        status={rating.ratedMatchCount === 0 ? m.you.football.selfPlaced : null}
+        status={level.placement ? m.you.football.selfPlaced : null}
       />
       <div className="flex items-center gap-5">
-        <HeroRing percent={winRate ?? 0}>
-          <span className="font-expanded text-[28px] tabular-nums leading-none">
-            {winRate === null ? m.webYou.noData : `${winRate}%`}
+        <span className="sr-only">{level.spoken}</span>
+        <HeroRing percent={level.ringPercent}>
+          <span
+            aria-hidden="true"
+            className="font-expanded text-[28px] tabular-nums leading-none"
+          >
+            {level.ovr}
           </span>
-          <span className="text-dim mt-1 text-[10px] leading-tight">
-            {m.you.hero.winRate}
+          <span
+            aria-hidden="true"
+            className="text-dim mt-1 text-[10px] leading-tight"
+          >
+            {level.ovrLabel}
           </span>
         </HeroRing>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <p className="font-expanded text-[28px] leading-none">{levelLabel}</p>
+          <p
+            aria-hidden="true"
+            className="font-expanded text-[28px] leading-none"
+          >
+            <bdi dir="ltr">{level.band}</bdi>
+          </p>
+          {level.placement ? (
+            <p aria-hidden="true" className="text-dim text-meta">
+              {level.placement}
+            </p>
+          ) : null}
           <p className="text-meta font-semibold">{role.label}</p>
+          <p aria-hidden="true" className="text-dim text-eyebrow leading-[1.5]">
+            {level.progress}
+          </p>
           <p className="text-dim text-eyebrow leading-[1.5]">
             {m.you.football.adjustNote}
           </p>
@@ -161,10 +178,10 @@ function AllTimeRecord({ profile }: { profile: FootballProfile }) {
 
 function FootballGroups({
   rows,
-  levelLabel,
+  meta,
 }: {
   rows: readonly GroupLevelRow[];
-  levelLabel: string | null;
+  meta: string | null;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -175,7 +192,7 @@ function FootballGroups({
   return (
     <YouSection
       title={m.you.groups.title}
-      meta={levelLabel ? m.you.groups.vsGeneral(levelLabel, "").trim() : null}
+      meta={meta}
       note={m.you.groups.footballNote}
     >
       <YouCard>
@@ -249,6 +266,7 @@ export function FootballTab({ userId }: { userId: string }) {
   const data = profile.data;
   const teammates: MyProfile["partners"] = mine.data?.partners ?? [];
   const lastTen = data.lastMatches;
+  const hero = data.rating ? footballHeroLevelView(data.rating, locale) : null;
 
   return (
     <div className="grid gap-[26px] lg:grid-cols-2 lg:items-start">
@@ -268,11 +286,7 @@ export function FootballTab({ userId }: { userId: string }) {
       <div className="flex min-w-0 flex-col gap-[26px]">
         <FootballGroups
           rows={groups.data ?? []}
-          levelLabel={
-            data.rating
-              ? footballLevelLabel(data.rating.levelBand, locale)
-              : null
-          }
+          meta={hero ? m.you.groups.vsGeneral(hero.band, hero.ovr) : null}
         />
         <PartnersCard
           title={m.you.partners.teammates}

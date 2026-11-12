@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { levelFromOvr } from "./football-ovr";
+import { BAND_MIDPOINTS } from "./level";
 import {
+  footballHeroLevelView,
   footballLastTenSummary,
   footballLevelCardView,
   footballMatchRowView,
@@ -40,7 +43,7 @@ describe("footballLevelCardView", () => {
     });
   });
 
-  it("shows the starting Level, hatched, while football Games are Unrated", () => {
+  it("shows the starting Level as OVR, hatched, while no football Match has rated", () => {
     const view = footballLevelCardView(
       {
         levelBand: "C1",
@@ -54,7 +57,7 @@ describe("footballLevelCardView", () => {
     expect(view).toMatchObject({
       kind: "rated",
       displayBand: "C+",
-      level: "3.6",
+      level: "70",
       provisional: true,
       fillPercent: 0,
       lines: ["Starting Level", "Football games don't move it yet"],
@@ -73,6 +76,89 @@ describe("footballLevelCardView", () => {
       "en",
     );
     expect(view.kind === "rated" && view.lines).not.toContain("Starting Level");
+  });
+
+  it("reads an OVR of 74 as C+, on its way to B-", () => {
+    const view = footballLevelCardView(
+      {
+        levelBand: "C1",
+        levelValue: levelFromOvr(74),
+        provisional: false,
+        ratedMatchCount: 6,
+        ratedMatchesRemaining: 0,
+      },
+      "en",
+    );
+    expect(view).toMatchObject({
+      kind: "rated",
+      displayBand: "C+",
+      level: "74",
+      fillPercent: 76,
+      lines: ["Confirmed, 6 rated matches", "2 to B- · 76% through C+"],
+    });
+  });
+});
+
+describe("footballHeroLevelView", () => {
+  it("reads each self-placement as its starting OVR, the placement word as the caption", () => {
+    const placed = (
+      levelBand: "D3" | "C3" | "C1" | "B3",
+    ): Parameters<typeof footballHeroLevelView>[0] => ({
+      levelBand,
+      levelValue: BAND_MIDPOINTS[levelBand],
+      provisional: true,
+      ratedMatchCount: 0,
+      ratedMatchesRemaining: 5,
+    });
+    expect(
+      (["D3", "C3", "C1", "B3"] as const).map((band) => {
+        const view = footballHeroLevelView(placed(band), "en");
+        return [view.ovr, view.placement];
+      }),
+    ).toEqual([
+      ["43", "Beginner"],
+      ["61", "Casual"],
+      ["72", "Competitive"],
+      ["78", "Pro"],
+    ]);
+  });
+
+  it("rings an OVR of 74 as C+ on its way to B-, without the placement word once a Match counts", () => {
+    expect(
+      footballHeroLevelView(
+        {
+          levelBand: "C1",
+          levelValue: levelFromOvr(74),
+          provisional: false,
+          ratedMatchCount: 6,
+          ratedMatchesRemaining: 0,
+        },
+        "en",
+      ),
+    ).toEqual({
+      ovr: "74",
+      ovrLabel: "OVR",
+      band: "C+",
+      ringPercent: 76,
+      progress: "76% of the way to B-",
+      placement: null,
+      spoken: "OVR 74, band C+. 76% of the way to B-",
+    });
+  });
+
+  it("fills the ring at the top band", () => {
+    const view = footballHeroLevelView(
+      {
+        levelBand: "A",
+        levelValue: 6.8,
+        provisional: false,
+        ratedMatchCount: 9,
+        ratedMatchesRemaining: 0,
+      },
+      "ar",
+    );
+    expect(view.ringPercent).toBe(100);
+    expect(view.placement).toBeNull();
   });
 });
 

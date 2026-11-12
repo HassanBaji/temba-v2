@@ -1,6 +1,6 @@
 # A football Level is an OVR moved by four parts
 
-**Status:** proposed (draft for the owner's review). Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0009](./0009-glicko-2-user-ratings.md), [ADR-0039](./0039-a-football-game-is-a-roster-with-sides-picked-later.md), [ADR-0040](./0040-football-sides-score-and-goals.md) and [ADR-0061](./0061-a-challenge-is-a-request-and-a-game-is-the-result.md) for football.
+**Status:** accepted for the OVR face; proposed (draft for the owner's review) for the four-part step and what counts. Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0009](./0009-glicko-2-user-ratings.md), [ADR-0039](./0039-a-football-game-is-a-roster-with-sides-picked-later.md), [ADR-0040](./0040-football-sides-score-and-goals.md) and [ADR-0061](./0061-a-challenge-is-a-request-and-a-game-is-the-result.md) for football.
 
 Football was never rated: ADR-0039 and ADR-0040 left "football rating" as future work, and a football Level was the word a player chose at sign-up. The owner's design gives football a Temba Level that reads as OVR 40 to 99 and moves on four things a player recognises.
 

@@ -13,7 +13,7 @@ import {
   type MatchOutcome,
   type ResultMarkVariant,
 } from "./result-mark";
-import { sportLabel } from "./sport";
+import { sportLabel, sportOrDefault } from "./sport";
 import { teamLevel } from "./team-level";
 import {
   headToHeadLine,
@@ -98,7 +98,10 @@ function sinceLine(createdAt: Date | string, locale: Locale) {
 function heroSubtitle(data: TeamDetailInput, locale: Locale) {
   const m = messagesFor(locale).team;
   const sport = sportLabel(data.sport, locale);
-  const level = teamLevel(data.members.map((member) => member.level));
+  const level = teamLevel(
+    data.members.map((member) => member.level),
+    sportOrDefault(data.sport),
+  );
   const lead =
     sport && level ? m.detail.sportLevel(sport, level.band) : (sport ?? null);
   const groupName = data.groupTag?.name?.trim();

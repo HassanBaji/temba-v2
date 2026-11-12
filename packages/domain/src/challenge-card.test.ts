@@ -74,6 +74,22 @@ describe("challengeCardView", () => {
     expect(view.canAccept).toBe(false);
   });
 
+  it("reads a football Team Level as the mean OVR", () => {
+    const view = challengeCardView(
+      card({
+        team: {
+          ...card().team,
+          teamLevel: { level: "3.9", band: "C+", ovr: 72 },
+        },
+      }),
+      "en",
+      now,
+    );
+    expect(view.sportLine).toBe(
+      "Football, 6-a-side, avg OVR 72. Wants C to B-",
+    );
+  });
+
   it("reads a padel card without a Team Level or Level wanted", () => {
     const view = challengeCardView(
       card({

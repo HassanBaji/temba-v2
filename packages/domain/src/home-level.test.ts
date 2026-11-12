@@ -112,4 +112,32 @@ describe("homeLevelView", () => {
     assert.equal(view.change?.windowLabel, "في آخر مباراتين");
     assert.equal(view.progress?.label, `16% نحو ${isolate("C+")}`);
   });
+
+  it("reads a football Level as OVR: 74 is band C+ on its way to B−", () => {
+    const view = homeLevelView(
+      {
+        sport: "football",
+        ovr: 74,
+        band: "C1",
+        level: "4.0",
+        provisional: false,
+        ratedMatchesRemaining: 0,
+        history: ["72", "73", "74"],
+        historyMatchCount: 2,
+        progressPercent: 76,
+      },
+      "en",
+    );
+    assert.equal(view.numberLabel, "OVR");
+    assert.equal(view.level, "74");
+    assert.equal(view.displayBand, "C+");
+    assert.equal(view.progress?.label, "76% of the way to B-");
+    assert.equal(view.change?.signedAmount, isolate("+2"));
+  });
+
+  it("keeps the padel Level face", () => {
+    const view = homeLevelView({ ...base, ovr: 61 }, "en");
+    assert.equal(view.numberLabel, "Level");
+    assert.equal(view.level, "3.4");
+  });
 });

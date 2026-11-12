@@ -251,7 +251,7 @@ function RatedLevel({ input }: { input: HomeLevelInput }) {
         </View>
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Text size="eyebrow" tone="muted">
-            {copy.level}
+            {view.numberLabel}
           </Text>
           <Text size="hero" width="expanded" weight="bold">
             {view.level}

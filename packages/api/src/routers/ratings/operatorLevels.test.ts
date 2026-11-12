@@ -193,6 +193,7 @@ describe("listForOperator", () => {
       expect(amira).toMatchObject({
         userId: rated.id,
         level: "5.2",
+        ovr: null,
         levelProvisional: false,
         levelOverride: { setByIsViewer: true, reason: null },
       });
@@ -212,7 +213,24 @@ describe("listForOperator", () => {
       expect(football.items[0]).toMatchObject({
         userId: rated.id,
         level: null,
+        ovr: null,
         levelOverride: null,
+      });
+
+      await setLevelAsOperator(db, {
+        operatorUserId: operator.id,
+        targetUserId: unrated.id,
+        sport: "football",
+        levelTenths: 40,
+      });
+      const footballAfter = await listForOperator(db, {
+        sport: "football",
+        operatorUserId: operator.id,
+      });
+      expect(footballAfter.items[1]).toMatchObject({
+        userId: unrated.id,
+        levelBand: "C1",
+        ovr: 74,
       });
     } finally {
       await close();

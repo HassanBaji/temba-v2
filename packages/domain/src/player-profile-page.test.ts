@@ -1,6 +1,8 @@
 import { isolate } from "@repo/i18n/bidi";
 import { describe, expect, it } from "vitest";
 
+import { levelFromOvr } from "./football-ovr";
+import { BAND_MIDPOINTS } from "./level";
 import {
   earlyDaysView,
   footballPositionView,
@@ -129,6 +131,40 @@ describe("profileLevelView", () => {
       trail: null,
       percent: 0,
       hatched: true,
+    });
+  });
+
+  it("reads a football Level as OVR: a self-placed Competitive is 72, an OVR of 74 is C+ on its way to B-", () => {
+    expect(
+      profileLevelView(
+        {
+          levelBand: "C1",
+          levelValue: BAND_MIDPOINTS.C1,
+          provisional: true,
+          ratedMatchCount: 0,
+          ratedMatchesRemaining: 5,
+        },
+        { sport: "football", hasSwitch: false, trend: null },
+        "en",
+      ),
+    ).toMatchObject({ band: "C+", level: "72" });
+    expect(
+      profileLevelView(
+        {
+          levelBand: "C1",
+          levelValue: levelFromOvr(74),
+          provisional: false,
+          ratedMatchCount: 6,
+          ratedMatchesRemaining: 0,
+        },
+        { sport: "football", hasSwitch: true, trend: null },
+        "en",
+      ),
+    ).toMatchObject({
+      band: "C+",
+      level: "74",
+      lead: "2 to B-",
+      trail: "76% of the way",
     });
   });
 

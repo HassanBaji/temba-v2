@@ -236,7 +236,7 @@ The wins–losses (wins–draws–losses in football) between a Team and one Riv
 _Avoid_: H2H (in product copy), series, rivalry score
 
 **Team Level**:
-The mean displayed Level, in tenths, of a Team's Roster members who hold a Rating for the Team's sport, shown as a Level band and the mean ("C, avg 2.8"). A Team with no rated member has no Team Level. Used by the Challenge Level wanted gate. Never a Rating.
+The mean displayed Level, in tenths, of a Team's Roster members who hold a Rating for the Team's sport, shown as a Level band and the mean ("C, avg 2.8"). A football Team shows the mean of its members' OVRs ("C+, avg OVR 72"). A Team with no rated member has no Team Level. Used by the Challenge Level wanted gate, which still compares tenths. Never a Rating.
 _Avoid_: team rating, average rank, squad level
 
 **Team roster rule**:
@@ -585,7 +585,7 @@ The sports a User told the Onboarding questionnaire they play: padel, football o
 _Avoid_: favourite sports, interests
 
 **Football self-placement**:
-A new football player's own starting Level, picked as Beginner, Casual, Competitive or Pro instead of a letter. Each declares the football Level that Make teams balances on (D, C, C+ or B; never A) until football results rate. One time, like the padel Level declaration.
+A new football player's own starting Level, picked as Beginner, Casual, Competitive or Pro instead of a letter. Each declares the football Level that Make teams balances on (D, C, C+ or B; never A) until football results rate, and states the OVR it starts at: 43, 61, 72 and 78. The You page keeps the word as a caption under the OVR until a Match counts. One time, like the padel Level declaration.
 _Avoid_: football rating (when you mean the self-placed start), skill level
 
 **Home**:
@@ -649,8 +649,12 @@ A User’s sport-keyed Glicko-2 skill state (μ, φ, σ). Not shown raw in the A
 _Avoid_: ELO, Elo, player rating (when you mean this entity), rank (that is leaderboard position)
 
 **Level**:
-The continuous 0.0–7.0 skill face derived from a Rating’s μ (one decimal in the App).
+The continuous 0.0–7.0 skill face derived from a Rating’s μ (one decimal in the App). Product copy says Temba Level. Padel shows it as the Level; football shows it as OVR.
 _Avoid_: rank, ELO, Level band (that is the discrete label)
+
+**OVR**:
+The football face of a Level, 40 to 99, shown as a whole number: `40 + 59 × Level / 7` on the stored μ, so no Rating row is rewritten (ADR-0069). The Level bands apply unchanged, 5.9 OVR each (C+ is 69.5 to 75.4). Home, the You page, the Player profile, Team Level and the Operator's Player Levels page show a football Level as OVR with its band.
+_Avoid_: overall (in copy), football rating
 
 **Level band**:
 The discrete skill label D–D+–C-–C–C+–B-–B–B+–A–PRO (PRO highest) shown in the App, derived from Level with hysteresis. PRO is reserved for an elite override and is not assigned from Level.

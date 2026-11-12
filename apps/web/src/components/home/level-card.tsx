@@ -188,7 +188,9 @@ function RatedLevel({ input }: { input: HomeLevelInput }) {
           <Gauge percent={percent} band={view.displayBand} />
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <p className="text-eyebrow text-muted-foreground">{copy.level}</p>
+          <p className="text-eyebrow text-muted-foreground">
+            {view.numberLabel}
+          </p>
           <p className="font-expanded text-hero tabular-nums leading-none">
             {view.level}
           </p>

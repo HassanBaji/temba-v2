@@ -1,6 +1,7 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { formatOvr } from "./football-ovr";
 import {
   displayLabelFromStoredBand,
   nextDistinctDisplayRung,
@@ -56,8 +57,10 @@ export function lastMatchMovement(
 }
 
 export type ProfileLevelInput = {
-  /** Padel unless asked. */
+  /** Padel unless asked. Football reads its Level as OVR. */
   sport?: Sport;
+  /** The whole-number OVR, on football. */
+  ovr?: number | null;
   band: LevelBand;
   level: string;
   provisional: boolean;
@@ -84,10 +87,14 @@ export function profileLevelView(
   locale: Locale,
 ): ProfileLevelView {
   const m = messagesFor(locale).profile.level;
+  const level =
+    input.sport === "football" && input.ovr != null
+      ? formatOvr(input.ovr)
+      : input.level;
   if (input.sport === "football" && input.ratedMatchCount === 0) {
     return {
       displayBand: displayLabelFromStoredBand(input.band),
-      level: input.level,
+      level,
       provisional: true,
       movement: null,
       movementLabel: null,
@@ -114,7 +121,7 @@ export function profileLevelView(
 
   return {
     displayBand: displayLabelFromStoredBand(input.band),
-    level: input.level,
+    level,
     provisional: input.provisional,
     movement,
     movementLabel: movement ? m.movement[movement] : null,

@@ -143,7 +143,7 @@ async function recheck(
       ),
     );
   }
-  const levels = await loadTeamLevels(tx, [proposer.team], now);
+  const levels = await loadTeamLevels(tx, [proposer.team]);
   const reason = teamIneligibleReason(
     challenge,
     new Set(poster.members.map((member) => member.userId)),

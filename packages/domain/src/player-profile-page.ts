@@ -2,7 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatDayMonth, formatMonth } from "./format-game-start";
-import { formatLevel } from "./level";
+import { levelFaceFor } from "./football-ovr";
 import {
   displayLabelFromStoredBand,
   nextDistinctDisplayRung,
@@ -24,6 +24,7 @@ import {
 import {
   distanceToNextRung,
   percentThroughDisplayBand,
+  shownLevel,
   type PlayerLevelInput,
 } from "./player-profile-level";
 import { levelChangeLabel, LAST_TEN_SIZE } from "./player-profile-matches";
@@ -176,9 +177,10 @@ function clampPercent(value: number) {
 }
 
 /**
- * The Level block in the hero. A football Level that no rated Match has moved
- * is the starting one and its track is hatched; otherwise both sports read
- * the same: Provisional while confirming, then the distance to the next band.
+ * The Level block in the hero. A football Level reads as OVR, and one that no
+ * rated Match has moved is the starting one and its track is hatched;
+ * otherwise both sports read the same: Provisional while confirming, then the
+ * distance to the next band.
  */
 export function profileLevelView(
   input: PlayerLevelInput | null,
@@ -201,8 +203,9 @@ export function profileLevelView(
     };
   }
 
+  const face = levelFaceFor(options.sport);
   const band = displayLabelFromStoredBand(input.levelBand);
-  const level = formatLevel(input.levelValue);
+  const level = shownLevel(input.levelValue, face);
   const shape = (
     parts: Pick<
       Extract<ProfileLevelView, { kind: "level" }>,
@@ -276,7 +279,7 @@ export function profileLevelView(
   return shape({
     status: m.confirmed,
     statusDetail,
-    lead: m.toNext(distanceToNextRung(input.levelValue, next), next),
+    lead: m.toNext(distanceToNextRung(input.levelValue, next, face), next),
     trail: m.ofTheWay(percent),
     percent,
     hatched: false,

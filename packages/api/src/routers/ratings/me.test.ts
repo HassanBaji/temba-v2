@@ -13,10 +13,12 @@ import {
 } from "@repo/db/schema";
 
 import { loadRatingsMe } from "#src/routers/ratings/me";
+import { levelFromOvr, muFromOvr } from "@repo/domain/football-ovr";
 import {
   INITIAL_PHI,
   INITIAL_SIGMA,
   displayedLevelFromMu,
+  muFromBand,
   muFromLevel,
 } from "@repo/domain/level";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
@@ -274,6 +276,103 @@ describe("loadRatingsMe by sport", () => {
       });
       expect(football.rating?.levelBand).toBe("C1");
       expect(football.ratedMatchCount).toBe(0);
+    } finally {
+      await close();
+    }
+  });
+
+  it("reads a football Level as OVR, with its band and the progress to the next", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "ratings-me-ovr@example.com");
+      await db.insert(ratings).values({
+        userId: viewer.id,
+        sport: GroupSportEnum.FOOTBALL,
+        mu: muFromOvr(74),
+        phi: 150,
+        sigma: INITIAL_SIGMA,
+        levelBand: "C1",
+      });
+
+      const football = await loadRatingsMe(db, {
+        userId: viewer.id,
+        sport: "football",
+      });
+      expect(football.face).toBe("ovr");
+      expect(football.ovr).toBe(74);
+      expect(football.rating?.levelBand).toBe("C1");
+      expect(football.nextBand).toBe("B3");
+      expect(football.progressPercent).toBe(
+        Math.round(((levelFromOvr(74) - 3.5) / 0.7) * 100),
+      );
+
+      const padel = await loadRatingsMe(db, { userId: viewer.id });
+      expect(padel.face).toBe("level");
+      expect(padel.ovr).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+
+  it("reads a self-placed Competitive as OVR 72", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "ratings-me-ovr-placed@example.com");
+      await db.insert(ratings).values({
+        userId: viewer.id,
+        sport: GroupSportEnum.FOOTBALL,
+        mu: muFromBand("C1"),
+        phi: INITIAL_PHI,
+        sigma: INITIAL_SIGMA,
+        levelBand: "C1",
+      });
+
+      const football = await loadRatingsMe(db, {
+        userId: viewer.id,
+        sport: "football",
+      });
+      expect(football.ovr).toBe(72);
+      expect(football.history).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("draws the football history in OVR", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "ratings-me-ovr-history@example.com");
+      const setter = await insertUser(db, "ratings-me-ovr-setter@example.com");
+      await db.insert(levelOverrides).values({
+        userId: viewer.id,
+        sport: GroupSportEnum.FOOTBALL,
+        setByUserId: setter.id,
+        hadRating: true,
+        muBefore: muFromBand("C1"),
+        phiBefore: INITIAL_PHI,
+        sigmaBefore: INITIAL_SIGMA,
+        levelBandBefore: "C1",
+        muAfter: muFromOvr(74),
+        phiAfter: 150,
+        sigmaAfter: INITIAL_SIGMA,
+        levelBandAfter: "C1",
+      });
+      await db.insert(ratings).values({
+        userId: viewer.id,
+        sport: GroupSportEnum.FOOTBALL,
+        mu: muFromOvr(74),
+        phi: 150,
+        sigma: INITIAL_SIGMA,
+        levelBand: "C1",
+      });
+
+      const football = await loadRatingsMe(db, {
+        userId: viewer.id,
+        sport: "football",
+      });
+      expect(football.history).toEqual(["72", "74"]);
+      expect(football.history.at(-1)).toBe(String(football.ovr));
+      expect(football.historyMatchCount).toBe(0);
     } finally {
       await close();
     }

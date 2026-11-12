@@ -2,6 +2,7 @@ import { isolate } from "@repo/i18n/bidi";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { formatOvr } from "./football-ovr";
 import {
   levelChangeView,
   parseLevelHistory,
@@ -12,8 +13,13 @@ import {
   nextDistinctDisplayRung,
   type LevelBand,
 } from "./level-bands";
+import type { Sport } from "./sport";
 
 export type HomeLevelInput = {
+  /** Padel unless asked. Football reads its Level as OVR. */
+  sport?: Sport;
+  /** The whole-number OVR from `ratings.me`; the history is in OVR too. */
+  ovr?: number | null;
   band: LevelBand;
   level: string;
   provisional: boolean;
@@ -26,6 +32,8 @@ export type HomeLevelInput = {
 
 export type HomeLevelView = {
   displayBand: string;
+  /** "Level", or "OVR" on football. */
+  numberLabel: string;
   level: string;
   change: {
     direction: LevelChangeDirection;
@@ -50,10 +58,15 @@ export function homeLevelView(
   input: HomeLevelInput,
   locale: Locale,
 ): HomeLevelView {
-  const m = messagesFor(locale).home.level;
+  const all = messagesFor(locale);
+  const m = all.home.level;
+  const ovr =
+    input.sport === "football" && input.ovr != null ? input.ovr : null;
   const parsed = parseLevelHistory(input.history);
   const matchCount = input.historyMatchCount;
-  const changeView = parsed ? levelChangeView(parsed.delta, locale) : null;
+  const changeView = parsed
+    ? levelChangeView(parsed.delta, locale, ovr == null ? 1 : 0)
+    : null;
   const change =
     changeView && matchCount > 0
       ? {
@@ -75,7 +88,9 @@ export function homeLevelView(
 
   return {
     displayBand: displayLabelFromStoredBand(input.band),
-    level: input.level,
+    numberLabel:
+      ovr == null ? all.home.levelSection.level : all.rating.ovr.label,
+    level: ovr == null ? input.level : formatOvr(ovr),
     change,
     provisional: input.provisional,
     progress:

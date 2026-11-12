@@ -262,6 +262,19 @@ export const rating = {
       forbidden: "لا يرى هذه النقاط إلا اللاعب ومنظّمو هذه المجموعة.",
     },
   },
+  ovr: {
+    label: "OVR",
+    value: (ovr: string) => `${isolate("OVR")} ${isolate(ovr)}`,
+    startsAt: (description: string, ovr: string) =>
+      `${description} تبدأ عند ${isolate("OVR")} ${isolate(ovr)}.`,
+    member: (band: string, ovr: string) =>
+      `${isolate(band)}، ${isolate("OVR")} ${isolate(ovr)}`,
+    team: (band: string, ovr: string) =>
+      `${isolate(band)}، بمعدل ${isolate("OVR")} ${isolate(ovr)}`,
+    avg: (ovr: string) => `بمعدل ${isolate("OVR")} ${isolate(ovr)}`,
+    heroSpoken: (ovr: string, band: string, detail: string) =>
+      `${isolate("OVR")} ${isolate(ovr)}، الفئة ${isolate(band)}. ${detail}`,
+  },
   performance: {
     title: "قيّم المباراة",
     entry: {

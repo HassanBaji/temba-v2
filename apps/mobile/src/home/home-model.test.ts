@@ -9,6 +9,8 @@ type ApiRating = RouterOutputs["ratings"]["me"];
 describe("levelFromApi", () => {
   it("has no Level before the first Rating in a sport", () => {
     const data = {
+      face: "level",
+      ovr: null,
       rating: null,
       canSelfDeclare: true,
       progressPercent: null,
@@ -42,6 +44,26 @@ describe("levelFromApi", () => {
     assert.equal(level.input.level, "2.8");
     assert.equal(level.input.progressPercent, 1);
     assert.equal(level.input.historyMatchCount, 1);
+  });
+
+  it("carries the football OVR", () => {
+    const data = {
+      face: "ovr",
+      ovr: 72,
+      rating: {
+        levelBand: "C1",
+        level: "3.9",
+        provisional: true,
+        ratedMatchesRemaining: 5,
+      },
+      progressPercent: 50,
+      history: [],
+      historyMatchCount: 0,
+    } as unknown as ApiRating;
+    const level = levelFromApi(data);
+    if (level.kind !== "rated") throw new Error("Expected a rated Level");
+    assert.equal(level.input.sport, "football");
+    assert.equal(level.input.ovr, 72);
   });
 });
 

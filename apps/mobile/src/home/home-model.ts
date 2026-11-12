@@ -59,6 +59,8 @@ export function levelFromApi(data: ApiRating): HomeLevel {
   return {
     kind: "rated",
     input: {
+      sport: data.face === "ovr" ? "football" : "padel",
+      ovr: data.ovr,
       band: data.rating.levelBand,
       level: data.rating.level,
       provisional: data.rating.provisional,

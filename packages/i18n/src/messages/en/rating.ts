@@ -248,6 +248,17 @@ export const rating = {
         "Only the player and this group’s organizers can see these points.",
     },
   },
+  ovr: {
+    label: "OVR",
+    value: (ovr: string) => `OVR ${ovr}`,
+    startsAt: (description: string, ovr: string) =>
+      `${description} Starts at OVR ${ovr}.`,
+    member: (band: string, ovr: string) => `${band}, OVR ${ovr}`,
+    team: (band: string, ovr: string) => `${band}, avg OVR ${ovr}`,
+    avg: (ovr: string) => `avg OVR ${ovr}`,
+    heroSpoken: (ovr: string, band: string, detail: string) =>
+      `OVR ${ovr}, band ${band}. ${detail}`,
+  },
   performance: {
     title: "Rate the game",
     entry: {

@@ -31,6 +31,7 @@ import {
 } from "~/components/ui/sheet";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
+import { formatOvr } from "@repo/domain/football-ovr";
 import { levelSliderLabel } from "@repo/domain/level-slider";
 import { sportLabel, type Sport } from "@repo/domain/sport";
 import type { Messages } from "@repo/i18n/messages";
@@ -160,7 +161,11 @@ export default function OperatorLevelsPage() {
                   <div className="flex items-center gap-3">
                     <LevelCell
                       band={player.levelBand}
-                      level={player.level}
+                      level={
+                        player.ovr == null
+                          ? player.level
+                          : formatOvr(player.ovr)
+                      }
                       provisional={player.levelProvisional}
                       className="w-16 shrink-0"
                     />

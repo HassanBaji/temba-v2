@@ -1,5 +1,8 @@
 import { footballSelfPlacementChoices } from "@repo/domain/football-self-placement";
-import { footballRoleView } from "@repo/domain/player-profile-football";
+import {
+  footballHeroLevelView,
+  footballRoleView,
+} from "@repo/domain/player-profile-football";
 import { formatDayMonth, formatMonth } from "@repo/domain/format-game-start";
 import { bandFromLevel, type LevelBand } from "@repo/domain/level";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
@@ -11,10 +14,7 @@ import {
   type ResultMarkVariant,
 } from "@repo/domain/result-mark";
 import { SPORTS, type Sport } from "@repo/domain/sport";
-import {
-  shownWinRatePercent,
-  WIN_RATE_MIN_MATCHES,
-} from "@repo/domain/win-rate";
+import { WIN_RATE_MIN_MATCHES } from "@repo/domain/win-rate";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -600,36 +600,15 @@ export function footballTabView(profile: FootballProfile, locale: Locale) {
     (total, match) => total + match.goals,
     0,
   );
-  const selfPlaced =
-    rating?.ratedMatchCount === 0 &&
-    footballLevelWord(rating.levelBand, locale) !==
-      displayBand(rating.levelBand);
-  const winRatePercent = shownWinRatePercent(overall.won, overall.played);
+  const hero = rating ? footballHeroLevelView(rating, locale) : null;
   const percentOf = (count: number) =>
     overall.played > 0 ? (count / overall.played) * 100 : 0;
 
   return {
-    level: rating
-      ? {
-          word: footballLevelWord(rating.levelBand, locale),
-          band: displayBand(rating.levelBand),
-          level: rating.level,
-          status: selfPlaced ? m.football.selfPlaced : null,
-        }
+    level: hero
+      ? { ...hero, status: hero.placement ? m.football.selfPlaced : null }
       : null,
     roleLine: footballRoleView(profile.role, locale).label,
-    winRate:
-      winRatePercent == null
-        ? {
-            percent: null,
-            value: EMPTY,
-            label: m.hero.winRateAfter(WIN_RATE_MIN_MATCHES),
-          }
-        : {
-            percent: winRatePercent,
-            value: `${winRatePercent}%`,
-            label: m.hero.winRate,
-          },
     goals: {
       total: all.mobileYou.goalsInMatch(goalsLastTen),
       bars: [

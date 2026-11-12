@@ -12,6 +12,12 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { userHasRatedMatch } from "#src/ratings/has-rated-match";
+import {
+  formatOvr,
+  levelFaceFor,
+  ovrFromMu,
+  type LevelFace,
+} from "@repo/domain/football-ovr";
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import {
   displayedLevelFromMu,
@@ -31,14 +37,20 @@ function ratingSport(sport: Sport): GroupSportEnum {
   return sport === "football" ? GroupSportEnum.FOOTBALL : GroupSportEnum.PADEL;
 }
 
+function shownOnFace(face: LevelFace, mu: number) {
+  return face === "ovr" ? formatOvr(ovrFromMu(mu)) : displayedLevelFromMu(mu);
+}
+
 /**
- * Level points oldest first, and how many of the changes between them came
- * from Rated Matches. Level overrides move the line too but are not Matches.
+ * Level points oldest first, on the sport's face (OVR on football), and how
+ * many of the changes between them came from Rated Matches. Level overrides
+ * move the line too but are not Matches.
  */
 async function levelHistory(
   database: DbClient,
   userId: string,
   sport: GroupSportEnum,
+  face: LevelFace,
 ): Promise<{ points: string[]; matchCount: number }> {
   const [events, overrides] = await Promise.all([
     database.query.ratingEvents.findMany({
@@ -77,8 +89,8 @@ async function levelHistory(
 
   return {
     points: [
-      displayedLevelFromMu(first.muBefore),
-      ...changes.map((change) => displayedLevelFromMu(change.muAfter)),
+      shownOnFace(face, first.muBefore),
+      ...changes.map((change) => shownOnFace(face, change.muAfter)),
     ],
     matchCount: changes.filter((change) => eventIds.has(change.id)).length,
   };
@@ -102,12 +114,14 @@ async function ratedMatchCount(
  * Provisional only — never raw Glicko μ/φ/σ. Also includes progress within
  * the current Level band, typical Rated Matches remaining while Provisional,
  * and recent Level history for the home sparkline with the number of Rated
- * Matches inside it.
+ * Matches inside it. `face` says how the sport shows its Level; on football
+ * `ovr` is the whole-number OVR and the history is in OVR (ADR-0069).
  */
 export async function loadRatingsMe(
   database: DbClient,
   args: { userId: string; sport?: Sport },
 ) {
+  const face = levelFaceFor(args.sport ?? "padel");
   const sport = ratingSport(args.sport ?? "padel");
   const row = await database.query.ratings.findFirst({
     where: and(eq(ratings.userId, args.userId), eq(ratings.sport, sport)),
@@ -115,6 +129,8 @@ export async function loadRatingsMe(
 
   if (!row) {
     return {
+      face,
+      ovr: null as number | null,
       rating: null,
       canSelfDeclare: !(await userHasRatedMatch(database, args.userId, sport)),
       progressPercent: null as number | null,
@@ -130,11 +146,13 @@ export async function loadRatingsMe(
   // as the displayed product number.
   const progress = progressToNextBand(levelFromMu(row.mu), rating.levelBand);
   const [history, matchCount] = await Promise.all([
-    levelHistory(database, args.userId, sport),
+    levelHistory(database, args.userId, sport, face),
     ratedMatchCount(database, args.userId, sport),
   ]);
 
   return {
+    face,
+    ovr: face === "ovr" ? Math.round(ovrFromMu(row.mu)) : null,
     rating,
     canSelfDeclare: false,
     progressPercent: progress.progressPercent,
