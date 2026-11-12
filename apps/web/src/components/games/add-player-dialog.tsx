@@ -298,7 +298,7 @@ export function AddPlayerDialog({
           <Tabs
             value={mode}
             onValueChange={(next) => setMode(next as AddPlayerMode)}
-            className="px-4 md:px-0"
+            className="px-4 pb-4 md:px-0 md:pb-0"
           >
             <TabsList
               aria-label={m.group.addPlayer.fromGroup.modes}
