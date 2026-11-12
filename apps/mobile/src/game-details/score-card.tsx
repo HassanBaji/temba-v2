@@ -16,6 +16,7 @@ import {
   organizerConfirmNote,
   scoreCanConfirm,
   scoreCanEnter,
+  scoreConfirmWindowLine,
   scoreConfirmationRows,
   scoreFooterNote,
   scoreGamesWonForSide,
@@ -29,6 +30,7 @@ import {
   scoreShowsConfirmations,
   scoreShownSets,
   type FriendlyScorePhase,
+  type ScoreConfirmWindow,
   type SetBoxState,
 } from "@repo/domain/friendly-game-score";
 import { setLabel } from "@repo/domain/game-copy";
@@ -37,6 +39,7 @@ import { Lock } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 
+import { useNow } from "../games/use-now";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -185,6 +188,7 @@ function Confirmations({
   organizerCanConfirm,
   confirmPending,
   onConfirm,
+  windowLine,
 }: {
   confirmation: FriendlyGameDetailsConfirmation;
   viewerUserId: string;
@@ -193,6 +197,7 @@ function Confirmations({
   organizerCanConfirm: boolean;
   confirmPending: boolean;
   onConfirm: () => void;
+  windowLine: string | null;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -230,6 +235,11 @@ function Confirmations({
           {line}
         </Text>
       ))}
+      {windowLine ? (
+        <Text size="meta" tone="muted">
+          {windowLine}
+        </Text>
+      ) : null}
       {organizerCanConfirm || canConfirm ? (
         <View style={{ flexDirection: "row" }}>
           <Button
@@ -302,6 +312,7 @@ export function ScoreCard({
   viewerUserId,
   winningGameTeamId,
   confirmation,
+  confirmWindow = null,
   isOrganizer,
   courtFull,
   scorePending,
@@ -315,6 +326,8 @@ export function ScoreCard({
   viewerUserId: string;
   winningGameTeamId: string | null;
   confirmation: FriendlyGameDetailsConfirmation | null;
+  /** A Public Game's 24 hours for the other side (ADR-0071). */
+  confirmWindow?: ScoreConfirmWindow | null;
   isOrganizer: boolean;
   courtFull: boolean;
   scorePending: boolean;
@@ -330,6 +343,7 @@ export function ScoreCard({
   useEffect(() => {
     setDrafts(draftsFromSets(match.sets));
   }, [match.sets]);
+  const now = useNow();
 
   if (scorePhaseFlags(phase).isUpcoming) {
     return <LockedScore courtFull={courtFull} />;
@@ -345,6 +359,7 @@ export function ScoreCard({
     hasResult,
     phase,
     viewerUserId,
+    confirmWindow,
   });
   const organizerCanConfirm = scoreOrganizerCanConfirm({
     confirmation,
@@ -495,6 +510,7 @@ export function ScoreCard({
             organizerCanConfirm={organizerCanConfirm}
             confirmPending={confirmPending}
             onConfirm={onConfirm}
+            windowLine={scoreConfirmWindowLine(confirmWindow, now, locale)}
           />
         ) : null}
 

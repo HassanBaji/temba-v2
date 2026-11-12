@@ -27,6 +27,7 @@ import {
   organizerConfirmNote,
   scoreCanConfirm,
   scoreCanEnter,
+  scoreConfirmWindowLine,
   scoreConfirmationRows,
   scoreFooterNote,
   scoreGamesWonForSide,
@@ -41,8 +42,10 @@ import {
   scoreShownSets,
   scorePhaseFlags,
   type FriendlyScorePhase,
+  type ScoreConfirmWindow,
   type SetBoxState,
 } from "@repo/domain/friendly-game-score";
+import { useNow } from "~/hooks/use-now";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -196,6 +199,7 @@ function MatchResultConfirmations({
   organizerCanConfirm,
   confirmPending,
   onConfirm,
+  windowLine,
 }: {
   confirmation: GameScoreSectionConfirmation;
   viewerUserId: string;
@@ -204,6 +208,7 @@ function MatchResultConfirmations({
   organizerCanConfirm: boolean;
   confirmPending: boolean;
   onConfirm: () => void;
+  windowLine: string | null;
 }) {
   const locale = useLocale();
   const m = useMessages();
@@ -238,6 +243,9 @@ function MatchResultConfirmations({
           {line}
         </p>
       ))}
+      {windowLine ? (
+        <p className="text-muted-foreground text-meta">{windowLine}</p>
+      ) : null}
       {organizerCanConfirm ? (
         <div className="space-y-2">
           <Button
@@ -313,6 +321,7 @@ export function GameScoreSection({
   viewerUserId,
   winningGameTeamId,
   matchResultConfirmation,
+  confirmWindow = null,
   isOrganizer,
   courtFull,
   scorePending,
@@ -326,6 +335,8 @@ export function GameScoreSection({
   viewerUserId: string;
   winningGameTeamId: string | null;
   matchResultConfirmation: GameScoreSectionConfirmation | null;
+  /** A Public Game's 24 hours for the other side (ADR-0071). */
+  confirmWindow?: ScoreConfirmWindow | null;
   isOrganizer: boolean;
   courtFull: boolean;
   scorePending: boolean;
@@ -341,6 +352,7 @@ export function GameScoreSection({
   const m = useMessages();
   const [drafts, setDrafts] = React.useState<Record<string, SetDraft>>({});
   const [capped, setCapped] = React.useState(false);
+  const now = useNow();
 
   React.useEffect(() => {
     const next: Record<string, SetDraft> = {};
@@ -386,6 +398,7 @@ export function GameScoreSection({
     hasResult,
     phase,
     viewerUserId,
+    confirmWindow,
   });
   const organizerCanConfirm = scoreOrganizerCanConfirm({
     confirmation: matchResultConfirmation,
@@ -537,6 +550,7 @@ export function GameScoreSection({
             organizerCanConfirm={organizerCanConfirm}
             confirmPending={confirmPending}
             onConfirm={onConfirm}
+            windowLine={scoreConfirmWindowLine(confirmWindow, now, locale)}
           />
         ) : null}
 

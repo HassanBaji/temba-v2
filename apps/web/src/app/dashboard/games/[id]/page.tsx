@@ -61,6 +61,7 @@ import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { useGameEdit } from "~/components/games/use-game-edit";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import {
   cancelGameConsequence,
@@ -1275,6 +1276,7 @@ export default function GameHomePage({
               <GameRatingScopeBlock
                 scope={data.ratingScope}
                 sport={data.sport}
+                publicGame={isPublicGame(data)}
               />
             )}
             <GameLineupSection
@@ -1332,6 +1334,7 @@ export default function GameHomePage({
                   viewerUserId={data.viewerUserId}
                   winningGameTeamId={winningGameTeamId}
                   matchResultConfirmation={data.matchResultConfirmation}
+                  confirmWindow={data.confirmWindow}
                   isOrganizer={
                     data.matchResultConfirmation?.viewerConfirmsAsOrganizer ??
                     false

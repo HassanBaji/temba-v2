@@ -324,6 +324,7 @@ export function GameSummaryCard({
   courtName,
   rated = true,
   ratingScope,
+  publicGame = false,
   challenge = false,
 }: {
   name: string | null;
@@ -363,6 +364,8 @@ export function GameSummaryCard({
   courtName?: string | null;
   rated?: boolean;
   ratingScope?: GameRatingScope;
+  /** A Public Game is tagged as counting for Temba Level (ADR-0071). */
+  publicGame?: boolean;
   /** A Challenge Game carries the CHALLENGE marker. */
   challenge?: boolean;
 }) {
@@ -372,7 +375,10 @@ export function GameSummaryCard({
   const [startAtPartner, setStartAtPartner] = React.useState(false);
   const [now, setNow] = React.useState(() => new Date());
   const startDate = startTime instanceof Date ? startTime : new Date(startTime);
-  const ratingTag = ratingScopeTag({ rated, ratingScope, sport }, locale);
+  const ratingTag = ratingScopeTag(
+    { rated, ratingScope, sport, publicGame },
+    locale,
+  );
 
   React.useEffect(() => {
     const timer = window.setInterval(() => {

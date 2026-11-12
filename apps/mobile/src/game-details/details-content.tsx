@@ -1,3 +1,4 @@
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import {
   friendlyGameDetailsPlan,
   type FriendlyGameDetails,
@@ -157,7 +158,11 @@ export function GameDetailsContent({
       {game.booking ? (
         <BookedCard booking={game.booking} ratingScope={ratingScopeOf(game)} />
       ) : (
-        <RatingScopeCard scope={ratingScopeOf(game)} sport={game.sport} />
+        <RatingScopeCard
+          scope={ratingScopeOf(game)}
+          sport={game.sport}
+          publicGame={isPublicGame(game)}
+        />
       )}
       {levelCard ? (
         <LevelRequestCard
@@ -184,6 +189,7 @@ export function GameDetailsContent({
           viewerUserId={game.viewerUserId}
           winningGameTeamId={plan.winningGameTeamId}
           confirmation={game.matchResultConfirmation}
+          confirmWindow={game.confirmWindow}
           isOrganizer={
             game.matchResultConfirmation?.viewerConfirmsAsOrganizer ?? false
           }

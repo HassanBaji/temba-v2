@@ -1,3 +1,4 @@
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
 import {
@@ -72,6 +73,7 @@ export function PlayedFriendlyGame({
           groupName: game.groupName,
           rated: game.rated,
           ratingScope: game.ratingScope,
+          publicGame: isPublicGame(game),
           ratingImpact: game.ratingImpact,
           confirmation: game.matchResultConfirmation,
         },

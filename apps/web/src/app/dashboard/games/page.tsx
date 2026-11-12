@@ -25,6 +25,7 @@ import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import {
   filterBySport,
   footballSections,
@@ -275,6 +276,7 @@ function GamesHubTabPanel({
             courtName={game.courtName}
             rated={game.rated}
             ratingScope={game.ratingScope}
+            publicGame={isPublicGame(game)}
             challenge={challenge}
             onJoinSeat={(sideIndex, position) => {
               onJoinSeat(game.id, sideIndex, position);
