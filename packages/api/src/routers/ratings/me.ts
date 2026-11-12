@@ -33,6 +33,9 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 /** Recent Level changes (Rated Matches and sets) for the home sparkline. */
 const HISTORY_CHANGE_LIMIT = 15;
 
+/** The Ratings screen's "+2 last 8": the counting Matches the change spans. */
+const CHANGE_OVER_LAST_MATCHES = 8;
+
 function ratingSport(sport: Sport): GroupSportEnum {
   return sport === "football" ? GroupSportEnum.FOOTBALL : GroupSportEnum.PADEL;
 }
@@ -96,6 +99,50 @@ async function levelHistory(
   };
 }
 
+function faceValue(face: LevelFace, mu: number) {
+  return face === "ovr" ? ovrFromMu(mu) : levelFromMu(mu);
+}
+
+/**
+ * What the last eight counting Matches did to the Level, on the sport's face
+ * (OVR points on football, Level on padel), and the face after each, oldest
+ * first, for the sparkline beside it. A Level override between them is not a
+ * Match, so it moves neither.
+ */
+async function changeOverLast(
+  database: DbClient,
+  userId: string,
+  sport: GroupSportEnum,
+  face: LevelFace,
+): Promise<{ matches: number; delta: number; points: number[] } | null> {
+  const newestFirst = await database.query.ratingEvents.findMany({
+    where: and(eq(ratingEvents.userId, userId), eq(ratingEvents.sport, sport)),
+    orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
+    limit: CHANGE_OVER_LAST_MATCHES,
+    columns: { muBefore: true, muAfter: true },
+  });
+  const events = [...newestFirst].reverse();
+  const first = events[0];
+  if (!first) {
+    return null;
+  }
+  const steps = events.map(
+    (event) => faceValue(face, event.muAfter) - faceValue(face, event.muBefore),
+  );
+  let running = faceValue(face, first.muBefore);
+  return {
+    matches: events.length,
+    delta: steps.reduce((total, step) => total + step, 0),
+    points: [
+      running,
+      ...steps.map((step) => {
+        running += step;
+        return running;
+      }),
+    ],
+  };
+}
+
 async function ratedMatchCount(
   database: DbClient,
   userId: string,
@@ -117,6 +164,8 @@ async function ratedMatchCount(
  * Matches inside it. `face` says how the sport shows its Level; on football
  * `ovr` is the whole-number OVR and the history is in OVR (ADR-0069).
  * `levelValue` is the continuous Level padel shows from 1.00 (ADR-0070).
+ * `changeOverLast` is what the last eight counting Matches moved it, on the
+ * face, for the Ratings screen.
  */
 export async function loadRatingsMe(
   database: DbClient,
@@ -140,6 +189,7 @@ export async function loadRatingsMe(
       history: [] as string[],
       historyMatchCount: 0,
       ratedMatchCount: 0,
+      changeOverLast: null as Awaited<ReturnType<typeof changeOverLast>>,
     };
   }
 
@@ -148,9 +198,10 @@ export async function loadRatingsMe(
   // as the displayed product number.
   const levelValue = levelFromMu(row.mu);
   const progress = progressToNextBand(levelValue, rating.levelBand);
-  const [history, matchCount] = await Promise.all([
+  const [history, matchCount, change] = await Promise.all([
     levelHistory(database, args.userId, sport, face),
     ratedMatchCount(database, args.userId, sport),
+    changeOverLast(database, args.userId, sport, face),
   ]);
 
   return {
@@ -164,6 +215,7 @@ export async function loadRatingsMe(
     history: history.points,
     historyMatchCount: history.matchCount,
     ratedMatchCount: matchCount,
+    changeOverLast: change,
   };
 }
 

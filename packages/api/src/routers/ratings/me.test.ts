@@ -91,6 +91,8 @@ async function insertRatingEvent(
     matchId: string;
     sport?: (typeof GroupSportEnum)[keyof typeof GroupSportEnum];
     createdAt?: Date;
+    muBefore?: number;
+    muAfter?: number;
   },
 ) {
   await database.insert(ratingEvents).values({
@@ -99,10 +101,10 @@ async function insertRatingEvent(
     matchId: args.matchId,
     outcomeScore: 1,
     weight: 1,
-    muBefore: muFromLevel(3.2),
+    muBefore: args.muBefore ?? muFromLevel(3.2),
     phiBefore: INITIAL_PHI,
     sigmaBefore: INITIAL_SIGMA,
-    muAfter: muFromLevel(3.3),
+    muAfter: args.muAfter ?? muFromLevel(3.3),
     phiAfter: INITIAL_PHI,
     sigmaAfter: INITIAL_SIGMA,
     createdAt: args.createdAt,
@@ -377,6 +379,113 @@ describe("loadRatingsMe by sport", () => {
       expect(football.history).toEqual(["72", "74"]);
       expect(football.history.at(-1)).toBe(String(football.ovr));
       expect(football.historyMatchCount).toBe(0);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("loadRatingsMe changeOverLast", () => {
+  it("is null without a counting Match", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "ratings-me-change-none@example.com");
+      await insertPadelRating(db, viewer.id);
+      const result = await loadRatingsMe(db, { userId: viewer.id });
+      expect(result.changeOverLast).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+
+  it("sums the last eight padel Matches on the Level face, oldest point first", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(
+        db,
+        "ratings-me-change-padel@example.com",
+      );
+      await insertPadelRating(db, viewer.id);
+      const matchRows = await insertGameWithMatches(db, viewer.id, 10);
+      for (const [index, match] of matchRows.entries()) {
+        await insertRatingEvent(db, {
+          userId: viewer.id,
+          matchId: match.id,
+          createdAt: new Date(Date.UTC(2026, 1, 1 + index)),
+          muBefore: muFromLevel(3 + index * 0.05),
+          muAfter: muFromLevel(3 + (index + 1) * 0.05),
+        });
+      }
+
+      const result = await loadRatingsMe(db, { userId: viewer.id });
+      expect(result.changeOverLast?.matches).toBe(8);
+      expect(result.changeOverLast?.delta).toBeCloseTo(0.4, 10);
+      expect(result.changeOverLast?.points).toHaveLength(9);
+      expect(result.changeOverLast?.points[0]).toBeCloseTo(3.1, 10);
+      expect(result.changeOverLast?.points.at(-1)).toBeCloseTo(3.5, 10);
+    } finally {
+      await close();
+    }
+  });
+
+  it("reads football in OVR points and leaves a Level override out", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "ratings-me-change-ovr@example.com");
+      const setter = await insertUser(
+        db,
+        "ratings-me-change-setter@example.com",
+      );
+      await db.insert(ratings).values({
+        userId: viewer.id,
+        sport: GroupSportEnum.FOOTBALL,
+        mu: muFromOvr(80),
+        phi: 150,
+        sigma: INITIAL_SIGMA,
+        levelBand: "B3",
+      });
+      const [first, second] = await insertGameWithMatches(db, viewer.id, 2);
+      await insertRatingEvent(db, {
+        userId: viewer.id,
+        matchId: first!.id,
+        sport: GroupSportEnum.FOOTBALL,
+        createdAt: new Date(Date.UTC(2026, 1, 1)),
+        muBefore: muFromOvr(72),
+        muAfter: muFromOvr(73),
+      });
+      await db.insert(levelOverrides).values({
+        userId: viewer.id,
+        sport: GroupSportEnum.FOOTBALL,
+        setByUserId: setter.id,
+        setByRole: "operator",
+        hadRating: true,
+        muBefore: muFromOvr(73),
+        phiBefore: 150,
+        sigmaBefore: INITIAL_SIGMA,
+        levelBandBefore: "C1",
+        muAfter: muFromOvr(78),
+        phiAfter: 150,
+        sigmaAfter: INITIAL_SIGMA,
+        levelBandAfter: "B3",
+        createdAt: new Date(Date.UTC(2026, 1, 2)),
+      });
+      await insertRatingEvent(db, {
+        userId: viewer.id,
+        matchId: second!.id,
+        sport: GroupSportEnum.FOOTBALL,
+        createdAt: new Date(Date.UTC(2026, 1, 3)),
+        muBefore: muFromOvr(78),
+        muAfter: muFromOvr(80),
+      });
+
+      const football = await loadRatingsMe(db, {
+        userId: viewer.id,
+        sport: "football",
+      });
+      expect(football.changeOverLast?.matches).toBe(2);
+      expect(football.changeOverLast?.delta).toBeCloseTo(3, 10);
+      const padel = await loadRatingsMe(db, { userId: viewer.id });
+      expect(padel.changeOverLast).toBeNull();
     } finally {
       await close();
     }

@@ -3,6 +3,7 @@ import { createTRPCRouter } from "#src/trpc";
 import { listForOperatorProcedure as listForOperator } from "./listForOperator";
 import { me } from "./me";
 import { myGroupLevels } from "./myGroupLevels";
+import { myGroupTiersProcedure as myGroupTiers } from "./myGroupTiers";
 import { selfDeclare } from "./selfDeclare";
 import { setGroupLevel } from "./setGroupLevel";
 import { setLevel } from "./setLevel";
@@ -13,6 +14,7 @@ export const ratingsRouter = createTRPCRouter({
   listForOperator,
   me,
   myGroupLevels,
+  myGroupTiers,
   selfDeclare,
   setGroupLevel,
   setLevel,
