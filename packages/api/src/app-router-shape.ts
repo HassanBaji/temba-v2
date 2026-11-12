@@ -189,7 +189,9 @@ type ExpectedGroups =
   | "closeSeason"
   | "seasonStanding"
   | "adjustTierPoints"
-  | "tierHistory";
+  | "tierHistory"
+  | "ratingSettings"
+  | "updateRatingSettings";
 
 type ExpectedMarks =
   | "forGame"

@@ -1,5 +1,6 @@
 import type { FootballBib } from "./football-lineup";
 import type { GroupPlayedCounts } from "./group-played-filter";
+import type { GroupRatingSettings } from "./group-rating-settings";
 import type { HubGameRow } from "./hub-game-row";
 import type { LevelBand } from "./level-bands";
 import type { LevelOverrideReason } from "./level-slider";
@@ -189,6 +190,8 @@ export type GroupHomeData = {
   tierSummary?: GroupTierSummaryData | null;
   /** How ratings work in a tier Group; null on any other Group. */
   ratingSettingsLine?: string | null;
+  /** The Rating settings, for an Organizer of a tier Group only. */
+  ratingSettings?: GroupRatingSettings | null;
   venue: { id: string; name: string } | null;
   pendingLinkRequestCount: number | null;
   canUnlinkFromVenue: boolean;

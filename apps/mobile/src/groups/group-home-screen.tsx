@@ -26,6 +26,7 @@ import {
   type GroupMenuItem,
 } from "@repo/domain/group-settings";
 import { groupMemberOrganizerToast } from "@repo/domain/group-home-chrome";
+import { ratingSettingsSummary } from "@repo/domain/group-rating-settings";
 import {
   groupLeaveVenueConfirm,
   groupLeftVenueToast,
@@ -59,7 +60,7 @@ import { groupEditPath } from "./group-edit-model";
 import { RequestJoinSheet } from "./request-join-sheet";
 import { groupHomeHeader } from "./group-home-model";
 import { GroupHomeView } from "./group-home-view";
-import { groupTierHistoryPath } from "./groups-model";
+import { groupRatingSettingsPath, groupTierHistoryPath } from "./groups-model";
 import { Notice } from "./notice";
 import { TransferOwnershipSheet } from "./transfer-ownership-sheet";
 import {
@@ -336,6 +337,9 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
       case "copy_link":
         void inviteLink.copy();
         return;
+      case "rating_settings":
+        router.push(groupRatingSettingsPath(groupId));
+        return;
       case "leave":
         if (data.isOwner && data.isLoose) {
           askOwnerLeave();
@@ -399,6 +403,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
             canEdit: data.canEdit,
             canInvite: groupHomeCanManageInvites(data),
             canCopyLink: data.canManageInviteLinks,
+            canChangeRatingSettings: data.ratingSettings != null,
           }),
           roleLine: groupMenuRoleLine({
             isOwner: data.isOwner,
@@ -411,6 +416,9 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
             isLoose: data.isLoose,
             locale,
           }),
+          ratingSettingsHint: data.ratingSettings
+            ? ratingSettingsSummary(data.ratingSettings, locale)
+            : null,
           copyPending: inviteLink.copyPending,
           onOpen: () => setMenuOpen(true),
           onPick: pickMenuItem,

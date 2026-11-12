@@ -722,6 +722,13 @@
       "when": 1794428594585,
       "tag": "0102_tier_adjustment_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1794440761399,
+      "tag": "0103_group_rating_settings",
+      "breakpoints": true
     }
   ]
 }

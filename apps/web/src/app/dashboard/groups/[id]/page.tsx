@@ -97,6 +97,7 @@ import {
   groupMenuRoleLine,
   groupSeasonCount,
 } from "@repo/domain/group-settings";
+import { ratingSettingsSummary } from "@repo/domain/group-rating-settings";
 import { groupInviteClipboardText } from "@repo/domain/group-invite-share-message";
 import { groupLookupNote } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
@@ -561,6 +562,7 @@ export default function GroupHomePage({
     canUnlinkVenue: data.canUnlinkFromVenue,
     canManageSeasons: data.canManageSeasons,
     canEdit: data.canEdit,
+    canChangeRatingSettings: data.ratingSettings != null,
   });
   const leaveConfirm = groupLeaveConfirm(groupName, locale);
   const leaveVenueConfirm = groupLeaveVenueConfirm(
@@ -590,6 +592,11 @@ export default function GroupHomePage({
         isLoose: data.isLoose,
         locale,
       })}
+      ratingSettingsHint={
+        data.ratingSettings
+          ? ratingSettingsSummary(data.ratingSettings, locale)
+          : null
+      }
       venueName={data.venue?.name ?? null}
       triggerRef={
         which === "mobile" ? mobileMenuTriggerRef : desktopMenuTriggerRef

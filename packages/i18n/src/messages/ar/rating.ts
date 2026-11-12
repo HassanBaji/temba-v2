@@ -48,6 +48,86 @@ export const rating = {
   },
   settingsLine: {
     resultsOnly: "النتائج فقط: تتحرّك نقاط الفئة بالفوز والتعادل والخسارة.",
+    organizer: (weight: number) =>
+      `بعد كل مباراة يقيّم المنظّم كل لاعب، وذلك ${weight}% من الحركة.`,
+    everyone: (weight: number) =>
+      `بعد كل مباراة يقيّم الجميع، والمعدّل ${weight}% من الحركة.`,
+    everyoneDouble: (weight: number) =>
+      `بعد كل مباراة يقيّم الجميع، والمعدّل ${weight}% من الحركة، ويُحتسب تقييم المنظّم مرتين.`,
+  },
+  settings: {
+    title: "إعدادات التقييم",
+    menuRow: "إعدادات التقييم",
+    summary: {
+      off: "متوقّف، النتيجة وحدها تحرّك النقاط",
+      organizer: (weight: string) =>
+        `يقيّم المنظّم بعد المباراة، بوزن ${weight}`,
+      everyone: (weight: string) => `يقيّم الجميع بعد المباراة، بوزن ${weight}`,
+    },
+    afterEachGame: "بعد كل مباراة",
+    performanceRatings: "تقييمات الأداء",
+    modes: {
+      off: {
+        title: "متوقّف",
+        description: "النتيجة وحدها تحرّك النقاط.",
+      },
+      organizer: {
+        title: "يقيّم المنظّم",
+        description: "شخص واحد يعطي الجميع من 1 إلى 10 بعد المباراة.",
+      },
+      everyone: {
+        title: "يقيّم الجميع",
+        description: "كل لاعب يقيّم زملاءه والخصوم. تبقى مخفية 24 ساعة.",
+      },
+    },
+    howMuch: "كم يُحتسب",
+    weights: {
+      light: "خفيف",
+      standard: "عادي",
+      heavy: "ثقيل",
+    },
+    weightName: {
+      light: "خفيف",
+      standard: "عادي",
+      heavy: "ثقيل",
+    },
+    resultShare: "النتيجة",
+    performanceShare: "كيف لعبت",
+    percent: (value: number) => `${value}%`,
+    splitSpoken: (result: number, performance: number) =>
+      `${result}% النتيجة، ${performance}% كيف لعبت`,
+    weightNote: {
+      light:
+        "دفعة صغيرة. المباراة الرائعة في الفريق الخاسر تخفّف الخسارة قليلًا.",
+      standard:
+        "الافتراضي. المباراة الرائعة في الفريق الخاسر قد تلغي معظم الخسارة.",
+      heavy: "مناصفة. اللعب الجيد يهمّ بقدر الفوز؛ الأفضل مع مقيّمين صادقين.",
+    },
+    fairness: "الحفاظ على العدل",
+    countsDouble: "تقييم المنظّم يُحتسب مرتين",
+    countsDoubleHint: "الشخص الوحيد الذي شاهد المباراة كلها",
+    alwaysOn:
+      "مفعّل دائمًا: لا أحد يقيّم نفسه، ويُستبعد أعلى تقييم وأدناه، وتبقى التقييمات مخفية 24 ساعة، والمقيّم البعيد دائمًا عن البقية يُحتسب أقل.",
+    manualChanges: "التغييرات اليدوية",
+    whoCanAdjust: "من يعدّل",
+    organizersOnly: "المنظّمون فقط",
+    reason: "السبب",
+    alwaysRequired: "مطلوب دائمًا",
+    shownToPlayer: "يظهر للاعب",
+    inTheirHistory: "نعم، في سجله",
+    appliesFromNextGame: (line: string) =>
+      `${line} تسري التغييرات من المباراة القادمة.`,
+    save: "حفظ",
+    savedToast: "حُفظت إعدادات التقييم",
+    loadFailed: "تعذّر تحميل إعدادات التقييم",
+    readOnly: "منظّمو المجموعة وحدهم يغيّرون إعدادات التقييم.",
+    errors: {
+      organizerOnly: "منظّمو هذه المجموعة وحدهم يغيّرون إعدادات التقييم.",
+      noTier:
+        "لا فئات في هذه المجموعة، فلا إعدادات تقييم لها. الفئات لمجموعات كرة القدم غير الموثّقة.",
+      notMember: "أعضاء هذه المجموعة وحدهم يرون إعدادات التقييم.",
+      weight: "اختر وزنًا من 20 أو 30 أو 50%.",
+    },
   },
   adjust: {
     menuRow: "تعديل التقييم",

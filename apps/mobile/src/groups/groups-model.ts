@@ -41,6 +41,14 @@ export function groupTierHistoryPath(groupId: string, userId?: string) {
   return `/groups/tier-history?${query.toString()}`;
 }
 
+/** Rating settings of a tier Group (screen 3b). */
+export function groupRatingSettingsPath(groupId: string) {
+  return {
+    pathname: "/groups/rating-settings",
+    params: { groupId },
+  } as const;
+}
+
 export function groupNewSeasonPath(groupId: string) {
   return { pathname: "/groups/new-season", params: { groupId } } as const;
 }

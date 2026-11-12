@@ -40,6 +40,89 @@ export const rating = {
   },
   settingsLine: {
     resultsOnly: "Results only: tier points move on wins, draws and losses.",
+    organizer: (weight: number) =>
+      `After each game the organizer rates every player, and that is ${weight}% of the move.`,
+    everyone: (weight: number) =>
+      `After each game everyone rates, and the average is ${weight}% of the move.`,
+    everyoneDouble: (weight: number) =>
+      `After each game everyone rates, and the average is ${weight}% of the move, with the organizer counted twice.`,
+  },
+  settings: {
+    title: "Rating settings",
+    menuRow: "Rating settings",
+    summary: {
+      off: "Off, only the result moves points",
+      organizer: (weight: string) =>
+        `The organizer rates after a game, ${weight} weight`,
+      everyone: (weight: string) =>
+        `Everyone rates after a game, ${weight} weight`,
+    },
+    afterEachGame: "After each game",
+    performanceRatings: "performance ratings",
+    modes: {
+      off: {
+        title: "Off",
+        description: "Only the result moves points.",
+      },
+      organizer: {
+        title: "The organizer rates",
+        description: "One person scores everyone 1 to 10 after the game.",
+      },
+      everyone: {
+        title: "Everyone rates",
+        description:
+          "Each player scores teammates and opponents. Hidden for 24 hours.",
+      },
+    },
+    howMuch: "How much it counts",
+    weights: {
+      light: "Light",
+      standard: "Standard",
+      heavy: "Heavy",
+    },
+    weightName: {
+      light: "light",
+      standard: "standard",
+      heavy: "heavy",
+    },
+    resultShare: "the result",
+    performanceShare: "how you played",
+    percent: (value: number) => `${value}%`,
+    splitSpoken: (result: number, performance: number) =>
+      `${result}% the result, ${performance}% how you played`,
+    weightNote: {
+      light:
+        "A nudge. A great game on the losing side softens the loss a little.",
+      standard:
+        "The default. A great game on the losing side can cancel most of the loss.",
+      heavy:
+        "Half and half. Playing well matters as much as winning; best with honest raters.",
+    },
+    fairness: "Keeping it fair",
+    countsDouble: "Organizer’s rating counts double",
+    countsDoubleHint: "The one person who watched the whole game",
+    alwaysOn:
+      "Always on: nobody rates themselves, the highest and lowest rating are dropped, ratings stay hidden for 24 hours, and a rater who is always far from the rest counts for less.",
+    manualChanges: "Manual changes",
+    whoCanAdjust: "Who can adjust",
+    organizersOnly: "Organizers only",
+    reason: "Reason",
+    alwaysRequired: "Always required",
+    shownToPlayer: "Shown to the player",
+    inTheirHistory: "Yes, in their history",
+    appliesFromNextGame: (line: string) =>
+      `${line} Changes apply from the next game.`,
+    save: "Save",
+    savedToast: "Rating settings saved",
+    loadFailed: "Couldn’t load rating settings",
+    readOnly: "Only the group’s organizers change rating settings.",
+    errors: {
+      organizerOnly: "Only this group’s organizers change rating settings.",
+      noTier:
+        "This group has no tiers, so it has no rating settings. Tiers are for football groups that are not verified.",
+      notMember: "Only members of this group see its rating settings.",
+      weight: "Pick a weight of 20, 30 or 50%.",
+    },
   },
   adjust: {
     menuRow: "Adjust rating",

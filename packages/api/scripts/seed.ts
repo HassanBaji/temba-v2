@@ -65,6 +65,7 @@ import { joinPublic } from "#src/routers/groups/joinPublic";
 import { requestJoin as requestGroupJoin } from "#src/routers/groups/requestJoin";
 import { sendLookupInvite as sendGroupLookupInvite } from "#src/routers/groups/sendLookupInvite";
 import { setOrganizer } from "#src/routers/groups/setOrganizer";
+import { updateRatingSettings } from "#src/routers/groups/updateRatingSettings";
 import { selfDeclareRating } from "#src/routers/ratings/selfDeclare";
 import { confirmProposal } from "#src/routers/challenges/confirmProposal";
 import { nameChallengeSquad } from "#src/routers/games/nameChallengeSquad";
@@ -1841,8 +1842,9 @@ async function seedThursdayTier(u: Users, groupId: string) {
  * Sam organizes all three Games, so signing in as `me` reaches the team
  * picker and the score sheet. Each Game is created in the future, filled,
  * then moved so it has kicked off: the score only opens at kick-off.
- * Thursday Football is a tier Group of thirteen; last week's Game moves the
- * Tier points of the ten who played.
+ * Thursday Football is a tier Group of thirteen where everyone rates at the
+ * standard weight (screen 3a); last week's Game moves the Tier points of the
+ * ten who played.
  */
 async function seedFootball(u: Users, v: Venues) {
   for (const [key, level] of Object.entries(FOOTBALL_LEVELS)) {
@@ -1866,6 +1868,13 @@ async function seedFootball(u: Users, v: Venues) {
     organizer: true,
   });
   await seedThursdayTier(u, group.id);
+  await updateRatingSettings(db, {
+    groupId: group.id,
+    organizerUserId: u.me!.id,
+    mode: "everyone",
+    weightPercent: 30,
+    organizerCountsDouble: false,
+  });
 
   const pitch = v.pitches;
   const footballGame = async (args: {

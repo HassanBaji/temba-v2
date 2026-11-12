@@ -12,7 +12,6 @@ import {
 import { z } from "zod";
 
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
-import { messagesFor } from "@repo/i18n/messages";
 
 import {
   games,
@@ -40,6 +39,10 @@ import type {
   GroupTierSummaryData,
 } from "@repo/domain/group-data";
 import { groupHasTier } from "@repo/domain/game-rating-scope";
+import {
+  ratingSettingsLine,
+  type GroupRatingSettings,
+} from "@repo/domain/group-rating-settings";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { tierTable } from "@repo/domain/tier-bands";
 import { TIER_POINTS_START } from "@repo/domain/tier-points";
@@ -582,6 +585,11 @@ export async function groupById(
     sport: group.sport,
     verified: groupIsVerified(group),
   });
+  const groupRatingSettings: GroupRatingSettings = {
+    mode: group.performanceRatingMode,
+    weightPercent: group.performanceWeightPercent,
+    organizerCountsDouble: group.organizerCountsDouble,
+  };
   const groupTiers = hasTier
     ? await loadGroupTiers(database, {
         groupId: group.id,
@@ -987,8 +995,13 @@ export async function groupById(
     tierSummary: groupTiers?.summary ?? null,
     /** How ratings work in a tier Group, read-only under Standing (screen 3a). */
     ratingSettingsLine: hasTier
-      ? messagesFor(locale).rating.settingsLine.resultsOnly
+      ? ratingSettingsLine(groupRatingSettings, locale)
       : null,
+    /** Set only for an Organizer of a tier Group, who may change them. */
+    ratingSettings:
+      hasTier && (group.createdBy === args.userId || viewerIsAppointedOrganizer)
+        ? groupRatingSettings
+        : null,
     venue: venue ? { id: venue.id, name: venue.name } : null,
     pendingLinkRequestCount,
     canUnlinkFromVenue,

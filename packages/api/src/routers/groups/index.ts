@@ -32,6 +32,7 @@ import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pending
 import { inviteLinkByShortCodeProcedure as inviteLinkByShortCode } from "./inviteLinkByShortCode";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
 import { previewPlayerByPhoneProcedure as previewPlayerByPhone } from "./previewPlayerByPhone";
+import { ratingSettingsProcedure as ratingSettings } from "./ratingSettings";
 import { rejectJoinRequestProcedure as rejectJoinRequest } from "./rejectJoinRequest";
 import { removePlayerProcedure as removePlayer } from "./removePlayer";
 import { removeUnclaimedPlayerProcedure as removeUnclaimedPlayer } from "./removeUnclaimedPlayer";
@@ -47,6 +48,7 @@ import { tierHistoryProcedure as tierHistory } from "./tierHistory";
 import { transferOwnershipProcedure as transferOwnership } from "./transferOwnership";
 import { setRequiresApprovalProcedure as setRequiresApproval } from "./setRequiresApproval";
 import { undoJoinRequestDecisionProcedure as undoJoinRequestDecision } from "./undoJoinRequestDecision";
+import { updateRatingSettingsProcedure as updateRatingSettings } from "./updateRatingSettings";
 import { uploadImageProcedure as uploadImage } from "./uploadImage";
 import { withdrawJoinRequestProcedure as withdrawJoinRequest } from "./withdrawJoinRequest";
 
@@ -100,4 +102,6 @@ export const groupsRouter = createTRPCRouter({
   seasonStanding,
   adjustTierPoints,
   tierHistory,
+  ratingSettings,
+  updateRatingSettings,
 });

@@ -172,6 +172,15 @@ export function groupEditHref(groupId: string) {
   return `/dashboard/groups/${groupId}/edit`;
 }
 
+export function groupHomeHref(groupId: string) {
+  return `/dashboard/groups/${groupId}`;
+}
+
+/** Rating settings of a tier Group (screen 3b). */
+export function groupRatingSettingsHref(groupId: string) {
+  return `/dashboard/groups/${groupId}/rating-settings`;
+}
+
 export function groupNewSeasonHref(groupId: string) {
   return `/dashboard/groups/${groupId}/seasons/new`;
 }
