@@ -10,6 +10,7 @@ import { ArrowLeft, ArrowRight, Shuffle } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
+import { NicknameName } from "../primitives/nickname-name";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
 import { Avatar } from "../primitives/avatar";
@@ -44,6 +45,11 @@ import { BibRow } from "./team-columns";
 
 const BAR_HEIGHT = 6;
 const SWATCH_BUTTON = 34;
+
+/** The Member nickname when the viewer may see one, else the full Temba name. */
+function teamsName(player: Pick<BoardPlayer, "name" | "nickname">) {
+  return player.nickname?.name ?? player.name;
+}
 
 function MethodToggle({
   method,
@@ -224,7 +230,7 @@ function LevelColumns({
               <ArrowButton
                 side={side}
                 bib={bib}
-                name={player.name}
+                name={teamsName(player)}
                 onPress={() => onMove(player.userId)}
               />
             }
@@ -328,9 +334,12 @@ function ManualRow({
     >
       <Avatar name={player.name} uri={player.image} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ color: on }}>
-          {player.isViewer ? messages.common.you : player.name}
-        </Text>
+        <NicknameName
+          name={player.isViewer ? messages.common.you : teamsName(player)}
+          isNickname={!player.isViewer && player.nickname != null}
+          weight="regular"
+          color={on}
+        />
         {code ? (
           <Text size="eyebrow" mono style={{ color: on, opacity: 0.7 }}>
             {code}
@@ -343,13 +352,13 @@ function ManualRow({
       <SwatchButton
         bib={draft.bibs.slot1}
         selected={side === 1}
-        label={m.putIn(player.name, names.slot1)}
+        label={m.putIn(teamsName(player), names.slot1)}
         onPress={() => onPlace(1)}
       />
       <SwatchButton
         bib={draft.bibs.slot2}
         selected={side === 2}
-        label={m.putIn(player.name, names.slot2)}
+        label={m.putIn(teamsName(player), names.slot2)}
         onPress={() => onPlace(2)}
       />
     </View>

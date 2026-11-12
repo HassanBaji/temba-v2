@@ -4,12 +4,15 @@ import { messagesFor } from "@repo/i18n/messages";
 import type { AddPlayerFootballPosition } from "./add-player-by-phone";
 import { footballPositionChoices, type FootballRole } from "./football-lineup";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
+import { memberMatchesQuery, type MemberNicknameData } from "./member-nickname";
 
 export type AddPlayerMode = "group" | "phone";
 
 export type GroupMemberToAdd = {
   userId: string;
   name: string;
+  /** The Member nickname, when the organizer may see it. */
+  nickname?: MemberNicknameData | null;
   levelBand: LevelBand | null;
   footballRole: FootballRole | null;
   footballPosition: Exclude<AddPlayerFootballPosition, "none"> | null;
@@ -23,7 +26,11 @@ export type GroupMemberFootballPick = {
 
 export type GroupMemberRowView = {
   userId: string;
+  /** The Member nickname when there is one, else the Temba name. */
   name: string;
+  /** Marks `name` as this Group's name for the member. */
+  isNickname?: boolean;
+  tembaName?: string;
   meta: string;
   /** "In game" or "On waitlist"; such a member cannot be picked. */
   status: string | null;
@@ -40,11 +47,6 @@ export function groupMemberFootballDefaults(
     role: member.footballRole ?? "outfield",
     position: member.footballPosition ?? "none",
   };
-}
-
-function matchesQuery(name: string, query: string) {
-  const needle = query.trim().toLocaleLowerCase();
-  return needle === "" || name.toLocaleLowerCase().includes(needle);
 }
 
 function footballLabel(pick: GroupMemberFootballPick, locale: Locale): string {
@@ -74,7 +76,7 @@ export function groupMemberRows(
   const m = messagesFor(locale).group.addPlayer.fromGroup;
   const full = input.picked.length >= input.openSpots;
   return input.members
-    .filter((member) => matchesQuery(member.name, input.query))
+    .filter((member) => memberMatchesQuery(member, input.query))
     .sort((a, b) => Number(a.status != null) - Number(b.status != null))
     .map((member) => {
       const selected = input.picked.includes(member.userId);
@@ -86,12 +88,15 @@ export function groupMemberRows(
         input.isFootball && !selected
           ? footballLabel(groupMemberFootballDefaults(member), locale)
           : null;
+      const nickname = member.nickname?.name ?? null;
       const parts = [role, level, blocked ? m.noSpotsLeft : null].filter(
         (part): part is string => part != null,
       );
       return {
         userId: member.userId,
-        name: member.name,
+        name: nickname ?? member.name,
+        isNickname: nickname != null,
+        tembaName: member.name,
         meta: parts.join(" · "),
         status:
           member.status === "in_game"
@@ -133,15 +138,20 @@ export function groupAddActionLabel(pickedCount: number, locale: Locale) {
   return pickedCount === 0 ? m.select : m.addCount(pickedCount);
 }
 
-/** First names of the picks, in the order they were picked. */
+/** Nicknames or first names of the picks, in the order they were picked. */
 export function groupPickedNames(
-  members: readonly Pick<GroupMemberToAdd, "userId" | "name">[],
+  members: readonly Pick<GroupMemberToAdd, "userId" | "name" | "nickname">[],
   picked: readonly string[],
   locale: Locale,
 ): string {
-  const byId = new Map(members.map((member) => [member.userId, member.name]));
+  const byId = new Map(
+    members.map((member) => [
+      member.userId,
+      member.nickname?.name ?? member.name.trim().split(/\s+/)[0],
+    ]),
+  );
   return picked
-    .map((userId) => byId.get(userId)?.trim().split(/\s+/)[0])
+    .map((userId) => byId.get(userId))
     .filter((name): name is string => Boolean(name))
     .join(messagesFor(locale).group.addPlayer.fromGroup.listSeparator);
 }

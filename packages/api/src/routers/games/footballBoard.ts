@@ -36,6 +36,7 @@ import {
   matchOrganizerSides,
   matchSlotsConfirmed,
 } from "#src/games/match-result-confirmations";
+import { gameMemberNicknames } from "#src/groups/helpers/game-member-nicknames";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
 
@@ -126,6 +127,7 @@ export async function footballBoard(
     }
   }
 
+  const nicknameByUser = await gameMemberNicknames(database, game, args.userId);
   const sides = await footballSides(database, game.id);
   const sideByUser = await sideIndexByUser(database, sides);
   const match = await footballMatch(database, game.id);
@@ -189,6 +191,7 @@ export async function footballBoard(
         {
           userId: row.user.id,
           name: row.user.name,
+          nickname: nicknameByUser.get(row.user.id) ?? null,
           image: row.user.image,
           role: row.footballRole,
           position: row.footballPosition,

@@ -139,7 +139,7 @@ function MemberRow({
         )}
       >
         <UserAvatar
-          name={row.name}
+          name={row.tembaName ?? row.name}
           image={image}
           size="lg"
           className="rounded-md"

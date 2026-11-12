@@ -25,6 +25,8 @@ import { acceptInviteLink } from "#src/routers/games/acceptInviteLink";
 import { createInviteLink } from "#src/routers/games/createInviteLink";
 import { previewInviteLink } from "#src/routers/games/previewInviteLink";
 import { gameById } from "#src/routers/games/byId";
+import { footballBoard } from "#src/routers/games/footballBoard";
+import { setMemberNickname } from "#src/routers/groups/setMemberNickname";
 import { kick } from "#src/routers/games/kick";
 import { leaveGame } from "#src/routers/games/leave";
 import { listAssignableCourts } from "#src/routers/games/listCourts";
@@ -816,6 +818,42 @@ describe("games side size checks", () => {
       await f.db
         .insert(games)
         .values({ ...base, sport: "football", sideSize: 11 });
+    });
+  });
+});
+
+describe("Member nicknames on a football Group Game", () => {
+  it("shows the nickname on the line-up of a Group Game, public or private", async () => {
+    await withFootball(async (f) => {
+      const keeper = await insertMember(f, "Ahmed Nasser");
+      const viewer = await insertMember(f, "Salman H");
+      await setMemberNickname(f.db, {
+        groupId: f.group.id,
+        approverUserId: f.organizer.id,
+        userId: keeper.id,
+        nickname: "Ahmed keeper",
+        visibility: "group",
+      });
+      const nicknameOn = async (isPublic: boolean) => {
+        const game = await createFootball(f);
+        await f.db.update(games).set({ isPublic }).where(eq(games.id, game.id));
+        await register(f.db, { gameId: game.id, userId: keeper.id });
+        const board = await footballBoard(f.db, {
+          gameId: game.id,
+          userId: viewer.id,
+        });
+        return board.players.find((player) => player.userId === keeper.id)
+          ?.nickname;
+      };
+
+      expect(await nicknameOn(false)).toEqual({
+        name: "Ahmed keeper",
+        visibility: "group",
+      });
+      expect(await nicknameOn(true)).toEqual({
+        name: "Ahmed keeper",
+        visibility: "group",
+      });
     });
   });
 });

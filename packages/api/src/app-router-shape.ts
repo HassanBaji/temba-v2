@@ -185,6 +185,7 @@ type ExpectedGroups =
   | "addPlayerByPhone"
   | "removeUnclaimedPlayer"
   | "removePlayer"
+  | "setMemberNickname"
   | "setOrganizer"
   | "listSeasons"
   | "createSeason"
