@@ -91,7 +91,14 @@ describe("editTeamsTap", () => {
         { sideIndex: 1, gameTeamId: "t1", left: khalid, right: hassan },
         { sideIndex: 2, gameTeamId: "t2", left: dana, right: ahmed },
       ],
-      [{ status: "completed", slot1GameTeamId: "t1", slot2GameTeamId: null }],
+      [
+        {
+          status: "completed",
+          slot1GameTeamId: "t1",
+          slot2GameTeamId: null,
+          sets: [],
+        },
+      ],
     );
     expect(sides[0]?.locked).toBe(true);
     const across = editTeamsTap(
@@ -225,13 +232,52 @@ describe("editTeamsSpotLabel", () => {
 });
 
 describe("playedGameTeamIds", () => {
-  it("collects both slots of completed Matches only", () => {
+  const scored = [{ slot1GamesWon: 6, slot2GamesWon: 3 }];
+  const blank = [{ slot1GamesWon: null, slot2GamesWon: null }];
+
+  it("collects both slots of completed Matches", () => {
     expect(
       playedGameTeamIds([
-        { status: "completed", slot1GameTeamId: "a", slot2GameTeamId: "b" },
-        { status: "scheduled", slot1GameTeamId: "c", slot2GameTeamId: "d" },
+        {
+          status: "completed",
+          slot1GameTeamId: "a",
+          slot2GameTeamId: "b",
+          sets: scored,
+        },
+        {
+          status: "scheduled",
+          slot1GameTeamId: "c",
+          slot2GameTeamId: "d",
+          sets: blank,
+        },
       ]),
     ).toEqual(new Set(["a", "b"]));
+  });
+
+  it("counts a score that is still waiting to be confirmed", () => {
+    expect(
+      playedGameTeamIds([
+        {
+          status: "pending",
+          slot1GameTeamId: "a",
+          slot2GameTeamId: "b",
+          sets: scored,
+        },
+      ]),
+    ).toEqual(new Set(["a", "b"]));
+  });
+
+  it("ignores a cancelled Match that kept its Sets", () => {
+    expect(
+      playedGameTeamIds([
+        {
+          status: "cancelled",
+          slot1GameTeamId: "a",
+          slot2GameTeamId: "b",
+          sets: scored,
+        },
+      ]),
+    ).toEqual(new Set());
   });
 });
 

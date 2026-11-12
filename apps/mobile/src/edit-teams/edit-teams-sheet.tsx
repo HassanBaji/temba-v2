@@ -340,30 +340,41 @@ export function EditTeamsSheet({
   }
 
   const boardFooter = (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text size="meta" weight="semibold">
-          {moves.length === 0
-            ? copy.noChangesTitle
-            : copy.changesTitle(moves.length)}
+    <View style={{ gap: 10 }}>
+      {notice ? (
+        <Text
+          size="meta"
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+        >
+          {notice}
         </Text>
-        <Text size="eyebrow" tone="muted">
-          {moves.length === 0
-            ? isGame
-              ? copy.noChangesGame
-              : copy.noChangesTournament
-            : copy.changesSubline}
-        </Text>
+      ) : null}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text size="meta" weight="semibold">
+            {moves.length === 0
+              ? copy.noChangesTitle
+              : copy.changesTitle(moves.length)}
+          </Text>
+          <Text size="eyebrow" tone="muted">
+            {moves.length === 0
+              ? isGame
+                ? copy.noChangesGame
+                : copy.noChangesTournament
+              : copy.changesSubline}
+          </Text>
+        </View>
+        <Button
+          label={copy.save}
+          disabled={moves.length === 0}
+          onPress={() => {
+            save.reset();
+            setSelected(null);
+            setConfirming(true);
+          }}
+        />
       </View>
-      <Button
-        label={copy.save}
-        disabled={moves.length === 0}
-        onPress={() => {
-          save.reset();
-          setSelected(null);
-          setConfirming(true);
-        }}
-      />
     </View>
   );
 
@@ -507,15 +518,6 @@ export function EditTeamsSheet({
           ) : (
             <View style={{ gap: 20 }}>{board.map(teamBlock)}</View>
           )}
-          {notice ? (
-            <Text
-              size="meta"
-              accessibilityRole="alert"
-              accessibilityLiveRegion="polite"
-            >
-              {notice}
-            </Text>
-          ) : null}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <Text size="eyebrow" tone="muted" style={{ flex: 1 }}>
               {isGame ? copy.untilScore : copy.roundsKeepSlots}

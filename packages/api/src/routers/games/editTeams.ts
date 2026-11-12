@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 
-import { gameTeamPlayers, gameTeams, matches } from "@repo/db";
+import { gameTeamPlayers, gameTeams, matches, MatchStatusEnum } from "@repo/db";
 
 import { isRosterRegistrationGame } from "@repo/domain/game-shape";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
@@ -21,11 +21,7 @@ import {
 } from "#src/games/access";
 import { isPoolDrawPosted } from "#src/games/assert-pool-draw-not-posted";
 import { clearMatchSlotsForGameTeam } from "#src/games/clear-match-slots-for-game-team";
-import {
-  setFriendlyMatchSlotForSide,
-  sideCount,
-  sitsOnCompletedMatch,
-} from "#src/games/seats";
+import { setFriendlyMatchSlotForSide, sideCount } from "#src/games/seats";
 import type { SeatPosition } from "#src/games/utils";
 import { notify } from "#src/notifications/notify";
 
@@ -64,14 +60,7 @@ async function assertNoScoreYet(tx: Tx, game: GameRow, locale: Locale) {
     columns: { status: true },
     with: { sets: { columns: { slot1GamesWon: true, slot2GamesWon: true } } },
   });
-  const scored = rows.some(
-    (match) =>
-      match.status === "completed" ||
-      match.sets.some(
-        (set) => set.slot1GamesWon != null || set.slot2GamesWon != null,
-      ),
-  );
-  if (scored) {
+  if (rows.some(hasScore)) {
     refuse("FORBIDDEN", messagesFor(locale).editTeams.errors.scoreIn);
   }
 }
@@ -112,6 +101,37 @@ async function currentSeats(tx: Tx, gameId: string) {
     }
   }
   return { seats, teamIdBySide };
+}
+
+function hasScore(match: {
+  status: string | null;
+  sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
+}) {
+  if (match.status === MatchStatusEnum.COMPLETED) {
+    return true;
+  }
+  return (
+    match.status !== MatchStatusEnum.CANCELLED &&
+    match.sets.some(
+      (set) => set.slot1GamesWon != null || set.slot2GamesWon != null,
+    )
+  );
+}
+
+/** A score waiting to be confirmed counts: it becomes this pair's result. */
+async function sitsOnScoredMatch(tx: Tx, gameId: string, gameTeamId: string) {
+  const rows = await tx.query.matches.findMany({
+    where: and(
+      eq(matches.gameId, gameId),
+      or(
+        eq(matches.slot1GameTeamId, gameTeamId),
+        eq(matches.slot2GameTeamId, gameTeamId),
+      ),
+    ),
+    columns: { status: true },
+    with: { sets: { columns: { slot1GamesWon: true, slot2GamesWon: true } } },
+  });
+  return rows.some(hasScore);
 }
 
 function assertSameLineup(
@@ -160,9 +180,9 @@ function sameMembers(a: Set<string> | undefined, b: Set<string> | undefined) {
 }
 
 /**
- * A Game team that played a completed Match keeps its two players: the
- * result is theirs. After a posted draw no side gains or loses a player, and
- * a partner-required tournament never ends with a Half team.
+ * A Game team with a scored Match keeps its two players: the result is
+ * theirs. After a posted draw no side gains or loses a player, and a
+ * partner-required tournament never ends with a Half team.
  */
 async function assertAllowedChanges(
   tx: Tx,
@@ -183,7 +203,7 @@ async function assertAllowedChanges(
       continue;
     }
     const gameTeamId = teamIdBySide.get(sideIndex);
-    if (gameTeamId && (await sitsOnCompletedMatch(tx, game.id, gameTeamId))) {
+    if (gameTeamId && (await sitsOnScoredMatch(tx, game.id, gameTeamId))) {
       refuse("FORBIDDEN", refused.locked);
     }
     if (isPoolDrawPosted(game) && (was?.size ?? 0) !== (now?.size ?? 0)) {
@@ -297,9 +317,16 @@ export async function editTeams(
         .where(eq(gameTeamPlayers.id, was.linkId));
     }
 
+    // Only the sides this edit emptied: a Game team left empty after a
+    // posted draw still holds its Matches.
     const occupiedSides = new Set(args.seats.map((seat) => seat.sideIndex));
+    const emptied = new Set(
+      current
+        .map((seat) => seat.sideIndex)
+        .filter((sideIndex) => !occupiedSides.has(sideIndex)),
+    );
     for (const [sideIndex, gameTeamId] of teamIdBySide) {
-      if (occupiedSides.has(sideIndex)) {
+      if (!emptied.has(sideIndex)) {
         continue;
       }
       await clearMatchSlotsForGameTeam(tx, gameTeamId);

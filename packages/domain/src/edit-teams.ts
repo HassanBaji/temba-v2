@@ -18,7 +18,7 @@ export type EditTeamsPlayer = {
 
 export type EditTeamsSide = {
   sideIndex: number;
-  /** Played a completed Match: its two players stay together. */
+  /** Has a scored Match: its two players stay together. */
   locked: boolean;
   left: EditTeamsPlayer | null;
   right: EditTeamsPlayer | null;
@@ -53,19 +53,40 @@ type SourceSide = {
   right: EditTeamsPlayer | null;
 };
 
+type SourceSet = {
+  slot1GamesWon: number | null;
+  slot2GamesWon: number | null;
+};
+
 type SourceMatch = {
   status: string | null;
   slot1GameTeamId: string | null;
   slot2GameTeamId: string | null;
+  sets: readonly SourceSet[];
 };
+
+function hasScore(match: Pick<SourceMatch, "status" | "sets">) {
+  if (match.status === "completed") {
+    return true;
+  }
+  return (
+    match.status !== "cancelled" &&
+    match.sets.some(
+      (set) => set.slot1GamesWon != null || set.slot2GamesWon != null,
+    )
+  );
+}
 
 const POSITIONS: readonly EditTeamsPosition[] = ["left", "right"];
 
-/** Game teams that played a completed Match. Their result belongs to the pair. */
+/**
+ * Game teams with a scored Match, confirmed or still waiting: the result
+ * belongs to the pair.
+ */
 export function playedGameTeamIds(matches: readonly SourceMatch[]) {
   const ids = new Set<string>();
   for (const match of matches) {
-    if (match.status !== "completed") {
+    if (!hasScore(match)) {
       continue;
     }
     if (match.slot1GameTeamId) {
@@ -379,11 +400,5 @@ export function canEditTeams(game: {
   if (game.format !== "friendly_game") {
     return false;
   }
-  return !game.matches.some(
-    (match) =>
-      match.status === "completed" ||
-      match.sets.some(
-        (set) => set.slot1GamesWon != null || set.slot2GamesWon != null,
-      ),
-  );
+  return !game.matches.some(hasScore);
 }

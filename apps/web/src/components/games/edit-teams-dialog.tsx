@@ -440,9 +440,6 @@ export function EditTeamsDialog({
               ) : (
                 <div className="space-y-5">{board.map(teamBlock)}</div>
               )}
-              <p aria-live="polite" role="status" className="text-meta">
-                {notice}
-              </p>
               <div className="flex items-center gap-3">
                 <p className="text-eyebrow text-muted-foreground flex-1">
                   {isGame ? copy.untilScore : copy.roundsKeepSlots}
@@ -459,6 +456,13 @@ export function EditTeamsDialog({
                 ) : null}
               </div>
             </div>
+            <p
+              aria-live="polite"
+              role="status"
+              className={cn("text-meta", !notice && "sr-only")}
+            >
+              {notice}
+            </p>
             <div className="border-rule flex items-center gap-3 border-t pt-4">
               <div className="min-w-0 flex-1">
                 <p className="text-meta font-semibold">
