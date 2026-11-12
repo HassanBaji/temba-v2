@@ -243,10 +243,14 @@ export function gameInviteAccess(game: {
   cancelledAt: Date | string | null;
   registrationMode: string;
   partnerRequired: boolean;
+  /** A finished tournament: nobody is left to invite. */
+  over?: boolean;
 }) {
-  const canManage = game.friendlyChrome
-    ? friendlyGameCanMintInvite(game)
-    : Boolean(game.isOrganizer && !game.cancelledAt);
+  const canManage =
+    !game.over &&
+    (game.friendlyChrome
+      ? friendlyGameCanMintInvite(game)
+      : Boolean(game.isOrganizer && !game.cancelledAt));
   const canSendLookup =
     canManage && game.registrationMode !== "team_only" && !game.partnerRequired;
   return { canManage, canSendLookup };

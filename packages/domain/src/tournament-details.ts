@@ -401,9 +401,10 @@ export function tournamentHomeView(
         })
       : [];
   const canJoin = joinKind === "join";
+  const drawn = isTournamentStandingsView(game.drawPostedAt);
 
   return {
-    drawn: isTournamentStandingsView(game.drawPostedAt),
+    drawn,
     knockoutOnly,
     thenKnockout,
     partnerRequired,
@@ -449,7 +450,9 @@ export function tournamentHomeView(
       totalFils,
       locale,
     }),
+    // The API refuses a leave once the draw is posted.
     canLeaveGame:
+      !drawn &&
       (game.isSeated || game.isRegistered) &&
       game.canLeave &&
       !game.isWaitlisted,

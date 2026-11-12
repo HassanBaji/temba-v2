@@ -41,6 +41,7 @@ import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import { gameInviteAccess } from "@repo/domain/invites";
 import type { PlayedRow } from "@repo/domain/played-game";
 import { kickableTournamentOccupants } from "@repo/domain/tournament-organizer";
+import { isTournamentFinished } from "@repo/domain/tournament-finished";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 import { useRouter, useSegments } from "expo-router";
 import { ArrowLeftRight, LogIn, UserPlus } from "lucide-react-native";
@@ -70,6 +71,7 @@ import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { TournamentBar } from "../tournament/tournament-bar";
 import { OrganizerSheets as TournamentOrganizerSheets } from "../tournament/organizer-sheets";
+import { TournamentAlbum } from "../tournament/tournament-album";
 import { TournamentContent } from "../tournament/tournament-content";
 import {
   tournamentPlayer,
@@ -440,6 +442,7 @@ export function GameDetailsScreen({
         cancelledAt: data.cancelledAt,
         registrationMode: data.registrationMode,
         partnerRequired: isPartnerRequiredGame(data),
+        over: isTournamentFinished(data),
       })
     : null;
   const shareContext = data
@@ -623,10 +626,22 @@ export function GameDetailsScreen({
         : undefined;
     return (
       <View style={{ flex: 1 }}>
-        <Screen refreshing={refreshing} onRefresh={onRefresh}>
+        <Screen
+          refreshing={refreshing}
+          onRefresh={() => {
+            void utils.gameAlbum.forGame.invalidate({ gameId });
+            return onRefresh();
+          }}
+        >
           {inviteEntry}
           <TournamentContent
             game={details}
+            album={
+              <TournamentAlbum
+                game={details}
+                openAdd={intent === "addPhotos"}
+              />
+            }
             organizer={{
               card: tournamentOrganizer.handlers,
               onCancelMatch: tournamentOrganizer.openWalkover,
