@@ -60,7 +60,10 @@ export function courtSeatRow(
   const isYou = seat.userId === viewerUserId;
   return {
     userId: seat.userId,
-    name: isYou ? messagesFor(locale).common.you : shortName(seat.name),
+    name: isYou
+      ? messagesFor(locale).common.you
+      : (seat.nickname?.name ?? shortName(seat.name)),
+    isNickname: !isYou && seat.nickname != null,
     fullName: seat.name,
     image: seat.image,
     isYou,

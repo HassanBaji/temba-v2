@@ -84,6 +84,54 @@ describe("groupMemberRows", () => {
   });
 });
 
+describe("groupMemberRows with Member nicknames", () => {
+  const named = [
+    member("an", "Ahmed Nasser", {
+      footballRole: "keeper",
+      nickname: { name: "Ahmed keeper", visibility: "approvers" },
+    }),
+    member("ab", "Ahmed Buhazza", {
+      nickname: { name: "Abu Ali", visibility: "group" },
+    }),
+    member("sh", "Salman H"),
+  ];
+
+  it("shows the nickname alone, with the Temba name only for the avatar", () => {
+    const [row] = groupMemberRows(
+      { members: named, query: "", picked: [], openSpots: 3, isFootball: true },
+      "en",
+    );
+    assert.equal(row?.name, "Ahmed keeper");
+    assert.equal(row?.isNickname, true);
+    assert.equal(row?.tembaName, "Ahmed Nasser");
+    assert.equal(row?.meta, "Goalkeeper");
+  });
+
+  it("finds a member by either name", () => {
+    const rows = groupMemberRows(
+      {
+        members: named,
+        query: "ahmed",
+        picked: [],
+        openSpots: 3,
+        isFootball: false,
+      },
+      "en",
+    );
+    assert.deepEqual(
+      rows.map((row) => row.userId),
+      ["an", "ab"],
+    );
+  });
+
+  it("names a nicknamed pick by the nickname", () => {
+    assert.equal(
+      groupPickedNames(named, ["an", "sh"], "en"),
+      "Ahmed keeper, Salman",
+    );
+  });
+});
+
 describe("toggleGroupMemberPick", () => {
   it("adds up to the open spots and always removes", () => {
     assert.deepEqual(toggleGroupMemberPick([], "a", 1), ["a"]);

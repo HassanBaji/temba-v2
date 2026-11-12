@@ -608,6 +608,10 @@ export const group = {
     lastRequired: "Enter your last name",
     tooLong: (max: number) => `Keep it under ${max} characters`,
   },
+  nickname: {
+    spoken: (nickname: string, name: string) =>
+      `${nickname}, this Group's name for ${name}`,
+  },
   errors: {
     notFound: "Group not found",
     cannotJoin: "You can't join this Group",
@@ -656,5 +660,6 @@ export const group = {
     standingMembersOnly: "Join the Group to see its Standing",
     approvalPublicOnly: "Require approval only applies to Public Groups",
     imageEmpty: "Image file is empty",
+    nicknameTooLong: (max: number) => `Keep the name to ${max} characters`,
   },
 };

@@ -1,6 +1,7 @@
-import { radii } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { Pressable, View } from "react-native";
 
+import { NicknameName } from "../primitives/nickname-name";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
@@ -12,7 +13,7 @@ import { useColors } from "../theme/theme-provider";
 import {
   levelLabel,
   poolSections,
-  shortName,
+  lineupName,
   slotCode,
   type BoardPlayer,
 } from "@repo/domain/football-board";
@@ -64,14 +65,14 @@ function PlayerTile({
   const tone = player.isViewer ? "ink" : "paper";
   const colors = useColors();
   const palette = tonePalette(tone, colors);
-  const name = player.isViewer ? messages.common.you : shortName(player.name);
+  const { name, spoken, isNickname } = lineupName(player, locale);
   const code = slotCode(player, locale);
   return (
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
         accessibilityRole={onPress ? "button" : undefined}
         accessibilityLabel={[
-          name,
+          spoken,
           code,
           levelLabel(player.levelBand),
           player.guest ? messages.group.addPlayer.guest.tag : null,
@@ -116,9 +117,13 @@ function PlayerTile({
             gap: 4,
           }}
         >
-          <Text size="eyebrow" numberOfLines={1} style={{ flexShrink: 1 }}>
-            {name}
-          </Text>
+          <NicknameName
+            name={name}
+            isNickname={isNickname}
+            size="eyebrow"
+            weight="regular"
+            iconSize={sizes.iconRow - 4}
+          />
           <Text size="meta" width="expanded" weight="bold" ltr>
             {levelLabel(player.levelBand)}
           </Text>

@@ -539,14 +539,11 @@ export function GroupMembersTab({
     canAddPlayers ||
     canRemovePlayers;
   const isManaging = canManage && managing;
-  const view = groupMembersLens(members, {
-    ...lens,
-    query,
-    showLevel,
-    canManage,
-    now: new Date(),
-    locale,
-  });
+  // The web members table shows no Member nicknames, so search must not match them.
+  const view = groupMembersLens(
+    members.map((member) => ({ ...member, nickname: null })),
+    { ...lens, query, showLevel, canManage, now: new Date(), locale },
+  );
   const showSearch = view.showControls;
   const visible = view.rows;
   const columnCount = 1 + (showLevel ? 1 : 0) + (isManaging ? 1 : 0);

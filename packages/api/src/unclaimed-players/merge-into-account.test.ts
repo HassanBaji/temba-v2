@@ -1,4 +1,4 @@
-import { getTableName, eq, inArray } from "drizzle-orm";
+import { and, getTableName, eq, inArray } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -529,6 +529,55 @@ describe("mergeIntoAccount", () => {
       expect(
         standing.find((row) => row.userId === people.survivor.id),
       ).toMatchObject({ played: 2, wins: 2, points: 6 });
+    } finally {
+      await close();
+    }
+  });
+
+  it("same Group: the Unclaimed player's Member nickname moves to the account's membership unless it has one", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const people = await seedPeople(db);
+      const named = await insertGroup(db, people);
+      const alreadyNamed = await insertGroup(db, people);
+      const editedAt = new Date("2026-11-01T10:00:00Z");
+      for (const groupId of [named, alreadyNamed]) {
+        await db.insert(groupMembers).values([
+          { groupId, userId: people.survivor.id },
+          {
+            groupId,
+            userId: people.unclaimed.id,
+            nickname: "Ahmed keeper",
+            nicknameVisibility: "group",
+            nicknameUpdatedById: people.partner.id,
+            nicknameUpdatedAt: editedAt,
+          },
+        ]);
+      }
+      await db
+        .update(groupMembers)
+        .set({ nickname: "Abu Ali" })
+        .where(
+          and(
+            eq(groupMembers.groupId, alreadyNamed),
+            eq(groupMembers.userId, people.survivor.id),
+          ),
+        );
+
+      await merge(db, people);
+
+      const kept = await db.query.groupMembers.findMany({
+        where: eq(groupMembers.userId, people.survivor.id),
+      });
+      expect(kept.find((row) => row.groupId === named)).toMatchObject({
+        nickname: "Ahmed keeper",
+        nicknameVisibility: "group",
+        nicknameUpdatedById: people.partner.id,
+        nicknameUpdatedAt: editedAt,
+      });
+      expect(kept.find((row) => row.groupId === alreadyNamed)?.nickname).toBe(
+        "Abu Ali",
+      );
     } finally {
       await close();
     }

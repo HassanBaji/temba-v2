@@ -5,6 +5,7 @@ import type { LevelBand } from "./level-bands";
 import type { LevelOverrideReason } from "./level-slider";
 import type { MatchSlotMember } from "./match-slots";
 import type { FormMark } from "./member-form-marks";
+import type { MemberNicknameData } from "./member-nickname";
 import type { ResultMarkVariant } from "./result-mark";
 
 export type GroupMineRowData = {
@@ -49,6 +50,8 @@ export type GroupStandingRowData = {
   userId: string;
   name: string | null;
   image: string | null;
+  /** The Member nickname, when the viewer may see it. */
+  nickname?: MemberNicknameData | null;
   /** 1-based among ranked rows; `null` while unranked. */
   position: number | null;
   ranked: boolean;
@@ -169,6 +172,7 @@ export type GroupHomeData = {
   canAddPlayers: boolean;
   canRemovePlayers: boolean;
   canAppointOrganizers: boolean;
+  canSetMemberNicknames: boolean;
   canDelete: boolean;
   viewerCanSetLevel: boolean;
   type: "public" | "private" | null;

@@ -17,6 +17,7 @@ import { Plus, UserPlus } from "lucide-react-native";
 import { Fragment } from "react";
 import { Pressable, View } from "react-native";
 
+import { NicknameName } from "../primitives/nickname-name";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -48,23 +49,34 @@ function SeatLabels({
   strong,
   unclaimed = false,
   guest = false,
+  isNickname = false,
 }: {
   title: string;
   subline: string;
   strong: boolean;
   unclaimed?: boolean;
   guest?: boolean;
+  isNickname?: boolean;
 }) {
   return (
     <View style={{ alignItems: "center", maxWidth: "100%", gap: 2 }}>
-      <Text
-        size="body"
-        weight={strong ? "semibold" : "medium"}
-        numberOfLines={1}
-        style={{ textAlign: "center" }}
-      >
-        {title}
-      </Text>
+      {isNickname ? (
+        <NicknameName
+          name={title}
+          isNickname
+          size="body"
+          weight={strong ? "semibold" : "medium"}
+        />
+      ) : (
+        <Text
+          size="body"
+          weight={strong ? "semibold" : "medium"}
+          numberOfLines={1}
+          style={{ textAlign: "center" }}
+        >
+          {title}
+        </Text>
+      )}
       {unclaimed ? <NotOnTembaMark /> : null}
       {guest ? <GuestMark /> : null}
       <Text size="meta" tone="muted" numberOfLines={1}>
@@ -181,6 +193,7 @@ function TakenSeat({
         strong={row.isYou}
         unclaimed={row.unclaimed}
         guest={row.guest}
+        isNickname={row.isNickname === true}
       />
     </>
   );
@@ -199,7 +212,10 @@ function TakenSeat({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={m.mobileGameDetails.join.nameWithMeta(name, subline)}
+      accessibilityLabel={m.mobileGameDetails.join.nameWithMeta(
+        row.isNickname ? m.group.nickname.spoken(name, seat.name) : name,
+        subline,
+      )}
       onPress={() => onPress(row)}
       style={({ pressed }) => [cell, { opacity: pressed ? 0.6 : 1 }]}
     >

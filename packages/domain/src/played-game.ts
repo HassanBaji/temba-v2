@@ -33,8 +33,10 @@ export type PlayedWord = "Won" | "Lost" | "Draw";
 
 export type PlayedRow = {
   userId: string;
-  /** "You" for the viewer, otherwise the short name. */
+  /** "You" for the viewer, otherwise the Member nickname or the short name. */
   name: string;
+  /** `name` is this Group's Member nickname for them. */
+  isNickname?: boolean;
   fullName: string;
   image: string | null;
   isYou: boolean;

@@ -749,6 +749,10 @@ export const group = {
         other: "لا يتجاوز {n} حرف",
       }),
   },
+  nickname: {
+    spoken: (nickname: string, name: string) =>
+      `${nickname}، اسم ${name} في هذه المجموعة`,
+  },
   errors: {
     notFound: "المجموعة غير موجودة",
     cannotJoin: "لا يمكنك الانضمام إلى هذه المجموعة",
@@ -794,5 +798,13 @@ export const group = {
     standingMembersOnly: "انضم إلى المجموعة لترى ترتيبها",
     approvalPublicOnly: "اشتراط الموافقة للمجموعات العامة فقط",
     imageEmpty: "ملف الصورة فارغ",
+    nicknameTooLong: (max: number) =>
+      plural("ar", max, {
+        one: "لا يتجاوز الاسم حرفًا واحدًا",
+        two: "لا يتجاوز الاسم حرفين",
+        few: "لا يتجاوز الاسم {n} أحرف",
+        many: "لا يتجاوز الاسم {n} حرفًا",
+        other: "لا يتجاوز الاسم {n} حرف",
+      }),
   },
 } satisfies typeof source;

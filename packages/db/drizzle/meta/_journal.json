@@ -726,8 +726,15 @@
     {
       "idx": 103,
       "version": "7",
-      "when": 1794497813449,
-      "tag": "0103_guest_players",
+      "when": 1794498019002,
+      "tag": "0103_member_nicknames",
+      "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1794500887003,
+      "tag": "0104_guest_players",
       "breakpoints": true
     }
   ]

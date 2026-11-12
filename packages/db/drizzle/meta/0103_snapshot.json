@@ -1,5 +1,5 @@
 {
-  "id": "ff6b3ec7-d619-4484-abb1-84f502ab24ac",
+  "id": "eda31768-e5e4-4a42-a79a-3375617cec4f",
   "prevId": "cf4a0724-9b27-499a-8bfb-dcc467ea59c2",
   "version": "7",
   "dialect": "postgresql",
@@ -407,12 +407,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "guest_at": {
-          "name": "guest_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
         "clerk_updated_at": {
           "name": "clerk_updated_at",
           "type": "timestamp",
@@ -519,15 +513,11 @@
       "checkConstraints": {
         "user_email_or_phone_number": {
           "name": "user_email_or_phone_number",
-          "value": "\"user\".\"email\" is not null or \"user\".\"phone_number\" is not null or \"user\".\"deleted_at\" is not null or \"user\".\"guest_at\" is not null"
+          "value": "\"user\".\"email\" is not null or \"user\".\"phone_number\" is not null or \"user\".\"deleted_at\" is not null"
         },
         "user_unclaimed_has_phone": {
           "name": "user_unclaimed_has_phone",
-          "value": "\"user\".\"added_at\" is null or \"user\".\"clerk_id\" is not null or \"user\".\"phone_number\" is not null or \"user\".\"guest_at\" is not null"
-        },
-        "user_guest_has_no_account": {
-          "name": "user_guest_has_no_account",
-          "value": "\"user\".\"guest_at\" is null or (\"user\".\"clerk_id\" is null and \"user\".\"added_at\" is not null and \"user\".\"phone_number\" is null and \"user\".\"email\" is null)"
+          "value": "\"user\".\"added_at\" is null or \"user\".\"clerk_id\" is not null or \"user\".\"phone_number\" is not null"
         }
       },
       "isRLSEnabled": false
@@ -6492,6 +6482,32 @@
           "notNull": true,
           "default": 0
         },
+        "nickname": {
+          "name": "nickname",
+          "type": "varchar(24)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nickname_visibility": {
+          "name": "nickname_visibility",
+          "type": "member_nickname_visibility",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'approvers'"
+        },
+        "nickname_updated_by_id": {
+          "name": "nickname_updated_by_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nickname_updated_at": {
+          "name": "nickname_updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -6549,6 +6565,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "group_members_nickname_updated_by_id_user_id_fk": {
+          "name": "group_members_nickname_updated_by_id_user_id_fk",
+          "tableFrom": "group_members",
+          "tableTo": "user",
+          "columnsFrom": [
+            "nickname_updated_by_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -9372,6 +9401,14 @@
       "values": [
         "public",
         "private"
+      ]
+    },
+    "public.member_nickname_visibility": {
+      "name": "member_nickname_visibility",
+      "schema": "public",
+      "values": [
+        "approvers",
+        "group"
       ]
     },
     "public.challenge_status": {

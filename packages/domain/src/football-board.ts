@@ -30,6 +30,7 @@ import {
   LEVEL_BANDS,
   type LevelBand,
 } from "./level-bands";
+import type { MemberNicknameData } from "./member-nickname";
 import { nameInitial } from "./player-name";
 
 export type Side = 1 | 2;
@@ -37,6 +38,8 @@ export type Side = 1 | 2;
 export type BoardPlayer = {
   userId: string;
   name: string;
+  /** The Member nickname on a private Group Game, when the viewer may see it. */
+  nickname?: MemberNicknameData | null;
   image: string | null;
   role: FootballRole | null;
   position: FootballPosition | null;
@@ -66,6 +69,30 @@ export function shortName(name: string) {
   const [first, ...rest] = name.trim().split(/\s+/);
   const last = rest[rest.length - 1];
   return last ? `${first} ${nameInitial(last) ?? ""}` : (first ?? name);
+}
+
+/**
+ * A player's name on a line-up and how a screen reader says it: "You" for
+ * the viewer, else the Member nickname in full, else the short Temba name.
+ */
+export function lineupName(
+  player: Pick<BoardPlayer, "name" | "nickname" | "isViewer">,
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
+  if (player.isViewer) {
+    return { name: m.common.you, spoken: m.common.you, isNickname: false };
+  }
+  const nickname = player.nickname?.name;
+  if (nickname) {
+    return {
+      name: nickname,
+      spoken: m.group.nickname.spoken(nickname, player.name),
+      isNickname: true,
+    };
+  }
+  const name = shortName(player.name);
+  return { name, spoken: name, isNickname: false };
 }
 
 /**

@@ -1,9 +1,10 @@
 "use client";
 
+import { Tag as TagIcon } from "lucide-react";
 import {
   byKeeperThenLevel,
   levelLabel,
-  shortName,
+  lineupName,
   sideAverage,
   slotCode,
   type Bibs,
@@ -31,10 +32,10 @@ export function BibRow({
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const name = player.isViewer ? m.common.you : shortName(player.name);
+  const { name, spoken, isNickname } = lineupName(player, locale);
   const code = slotCode(player, locale);
   const label = [
-    name,
+    spoken,
     code,
     levelLabel(player.levelBand),
     player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
@@ -51,13 +52,17 @@ export function BibRow({
         guest={player.guest}
       />
       <span
-        dir="auto"
         className={cn(
-          "text-meta min-w-0 flex-1 truncate [text-align:match-parent]",
+          "text-meta flex min-w-0 flex-1 items-center gap-1",
           player.isViewer && "font-semibold",
         )}
       >
-        {name}
+        {isNickname ? (
+          <TagIcon aria-hidden className="size-3 shrink-0" />
+        ) : null}
+        <span dir="auto" className="truncate [text-align:match-parent]">
+          {name}
+        </span>
       </span>
       {code ? (
         <span className="font-mono text-[11px] opacity-70">{code}</span>
