@@ -19,6 +19,7 @@ import {
   ACTION_MENU_INK_BOXED_TRIGGER,
   ACTION_MENU_PAPER_BOXED_TRIGGER,
 } from "~/components/common/action-menu";
+import { GameAlbumSections } from "~/components/game-album/game-album-sections";
 import {
   GameActionsSheet,
   type GameActionsSheetRow,
@@ -31,6 +32,10 @@ import {
   TournamentDrawEntry,
   TournamentUndoPoolDraw,
 } from "~/components/games/tournament-draw-drawer";
+import {
+  FinishedShareLink,
+  TournamentFinishedHeader,
+} from "~/components/games/tournament-finished-parts";
 import { TournamentHero } from "~/components/games/tournament-hero";
 import { TournamentKnockoutTree } from "~/components/games/tournament-knockout-tree";
 import { TournamentPlayerActionsProvider } from "~/components/games/tournament-player-dialog";
@@ -64,10 +69,15 @@ import {
   type TournamentStandingsView,
 } from "@repo/domain/tournament-details";
 import {
+  tournamentFinishedView,
+  type TournamentFinishedView,
+} from "@repo/domain/tournament-finished";
+import {
   kickableTournamentOccupants,
   tournamentOrganizerView,
 } from "@repo/domain/tournament-organizer";
 import { type TournamentHomeJoinKind } from "@repo/domain/tournament-home";
+import { playedDateLine, playedVenueLine } from "@repo/domain/played-game";
 import {
   hasDraftKnockoutDraw,
   type KnockoutMatchPlace,
@@ -182,6 +192,15 @@ export function TournamentHome({
   const backHref = detailBackHref(usePathname()) ?? "/dashboard/games";
   const view = tournamentHomeView(data, locale);
   const { partnerRequired, joinKind, drawn, schedule } = view;
+  const finished = tournamentFinishedView(data, locale);
+  const album = drawn ? (
+    <GameAlbumSections
+      gameId={data.id}
+      enabled={roundsPreview == null}
+      place={playedVenueLine({ ...data, courtName: null }, locale) ?? ""}
+      context={playedDateLine(data.windowStart, locale)}
+    />
+  ) : null;
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
   const organizer = tournamentOrganizerView(data, {
     drawn,
@@ -212,10 +231,10 @@ export function TournamentHome({
         kickPending={kickPending}
         sharePending={sharePending}
         waitlist={data.waitlist}
-        onShare={drawn ? onShare : undefined}
+        onShare={drawn && !finished ? onShare : undefined}
         onEdit={onEdit}
-        onCloseRegistration={onCloseRegistration}
-        onReopenRegistration={onReopenRegistration}
+        onCloseRegistration={finished ? undefined : onCloseRegistration}
+        onReopenRegistration={finished ? undefined : onReopenRegistration}
         onCancelGame={onCancelGame}
         onKickWaitlist={onKickWaitlist}
         onAddPlayer={onAddPlayer}
@@ -254,8 +273,10 @@ export function TournamentHome({
             <TournamentDrawnHome
               data={data}
               standings={tournamentStandingsView(data, locale)}
+              finished={finished}
               backHref={backHref}
-              actions={actionsMenu(true)}
+              actions={actionsMenu(!finished)}
+              album={album}
               gameTeams={teamPlayers}
               onCancelMatch={
                 isOrganizerActive ? onCancelKnockoutMatch : undefined
@@ -285,6 +306,9 @@ export function TournamentHome({
           </>
         ) : drawn ? (
           <TournamentStandingsTree
+            gameId={data.id}
+            finished={finished}
+            album={album}
             standings={tournamentStandingsView(data, locale)}
             poolTables={data.poolTables}
             knockout={data.knockout}
@@ -377,14 +401,18 @@ export function TournamentHome({
             {m.tournament.home.leaveTheSeat}
           </Button>
         ) : null}
-        <p className="text-muted-foreground text-meta leading-relaxed">
-          {m.tournament.home.closingLine}
-        </p>
+        {finished ? null : (
+          <p className="text-muted-foreground text-meta leading-relaxed">
+            {m.tournament.home.closingLine}
+          </p>
+        )}
 
         <TournamentHomeActions
           joinKind={joinKind}
           isWaitlisted={data.isWaitlisted}
-          onInvite={isOrganizerActive && drawn ? onInvite : undefined}
+          onInvite={
+            isOrganizerActive && drawn && !finished ? onInvite : undefined
+          }
           leavePending={leavePending}
           eligibleTeams={data.eligibleTeams}
           teamId={teamId}
@@ -572,6 +600,9 @@ function TournamentPredrawTree({
 }
 
 function TournamentStandingsTree({
+  gameId,
+  finished,
+  album,
   standings,
   poolTables,
   knockout,
@@ -584,6 +615,9 @@ function TournamentStandingsTree({
   onCancelMatch,
   actions,
 }: {
+  gameId: string;
+  finished: TournamentFinishedView | null;
+  album: ReactNode;
   standings: TournamentStandingsView;
   poolTables: GameDetail["poolTables"];
   knockout: GameDetail["knockout"];
@@ -600,16 +634,26 @@ function TournamentStandingsTree({
   return (
     <div className="space-y-6">
       <div>
-        <TournamentStandingsHeader
-          actions={actions}
-          name={standings.name}
-          roundsPlayed={standings.roundsPlayed}
-          finished={standings.finished}
-          backHref={backHref}
-          heading={standings.heading}
-          lead={standings.lead}
-          championLine={standings.championLine}
-        />
+        {finished ? (
+          <TournamentFinishedHeader
+            view={finished}
+            gameId={gameId}
+            backHref={backHref}
+            chip={null}
+            actions={actions}
+          />
+        ) : (
+          <TournamentStandingsHeader
+            actions={actions}
+            name={standings.name}
+            roundsPlayed={standings.roundsPlayed}
+            finished={standings.finished}
+            backHref={backHref}
+            heading={standings.heading}
+            lead={standings.lead}
+            championLine={standings.championLine}
+          />
+        )}
         {standings.showKnockoutTree && knockout ? (
           <div className="pt-[18px]">
             <TournamentKnockoutTree
@@ -658,6 +702,10 @@ function TournamentStandingsTree({
           undoError={undoError}
           onUndo={onUndo}
         />
+      ) : null}
+      {album}
+      {finished ? (
+        <FinishedShareLink gameId={gameId} label={finished.share.label} />
       ) : null}
     </div>
   );
@@ -886,23 +934,23 @@ function TournamentActionsMenu({
       onSelect: onShare,
     });
   }
-  tools.push(
-    registrationClosed
-      ? {
-          key: "reopen_registration",
-          label: m.game.action.reopenRegistration,
-          icon: LockOpenIcon,
-          disabled: reopenPending,
-          onSelect: onReopenRegistration,
-        }
-      : {
-          key: "close_registration",
-          label: m.game.action.closeRegistration,
-          icon: LockIcon,
-          disabled: closePending,
-          onSelect: onCloseRegistration,
-        },
-  );
+  if (registrationClosed && onReopenRegistration) {
+    tools.push({
+      key: "reopen_registration",
+      label: m.game.action.reopenRegistration,
+      icon: LockOpenIcon,
+      disabled: reopenPending,
+      onSelect: onReopenRegistration,
+    });
+  } else if (!registrationClosed && onCloseRegistration) {
+    tools.push({
+      key: "close_registration",
+      label: m.game.action.closeRegistration,
+      icon: LockIcon,
+      disabled: closePending,
+      onSelect: onCloseRegistration,
+    });
+  }
   if (onEdit) {
     tools.push({
       key: "edit",
