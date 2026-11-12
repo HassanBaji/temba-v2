@@ -1,4 +1,14 @@
-import { and, desc, eq, inArray, isNotNull, lte, ne, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  lt,
+  lte,
+  ne,
+  sql,
+} from "drizzle-orm";
 
 import {
   MatchStatusEnum,
@@ -269,7 +279,7 @@ export async function previousRaterDistances(
           ne(performanceRatings.matchId, args.match.id),
           lte(matchRatingWindows.settledAt, args.settledBefore),
           args.match.completedAt
-            ? sql`${matches.completedAt} < ${args.match.completedAt}`
+            ? lt(matches.completedAt, args.match.completedAt)
             : undefined,
         ),
       )
