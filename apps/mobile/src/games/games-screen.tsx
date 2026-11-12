@@ -15,6 +15,7 @@ import { api } from "../trpc/react";
 import type { Slot } from "../home/home-model";
 import { slotOf } from "../lib/slot-of";
 import {
+  addPhotosPath,
   footballJoinPath,
   footballScorePath,
   gamePath,
@@ -105,6 +106,7 @@ export function GamesScreen() {
         pickerGame={pickerGame}
         onOpenPicker={setPickerGame}
         onOpen={(gameId) => router.push(gamePath(gameId))}
+        onAddPhotos={(gameId) => router.push(addPhotosPath(gameId))}
         onJoinSeat={(gameId, sideIndex, position) =>
           join(seatJoinRequest(gameId, sideIndex, position))
         }

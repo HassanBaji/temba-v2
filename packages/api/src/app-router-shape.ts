@@ -14,6 +14,7 @@ type AssertTrue<T extends true> = T;
 type ExpectedTopLevel =
   | "bookings"
   | "challenges"
+  | "gameAlbum"
   | "games"
   | "groups"
   | "marks"
@@ -189,6 +190,14 @@ type ExpectedGroups =
   | "closeSeason"
   | "seasonStanding";
 
+type ExpectedGameAlbum =
+  | "forGame"
+  | "addPhoto"
+  | "removePhoto"
+  | "saveNote"
+  | "deleteNote"
+  | "myNotes";
+
 type ExpectedMarks =
   | "forGame"
   | "give"
@@ -304,6 +313,9 @@ type _Challenges = AssertTrue<
 >;
 type _Games = AssertTrue<Equal<keyof RouterInputs["games"], ExpectedGames>>;
 type _Groups = AssertTrue<Equal<keyof RouterInputs["groups"], ExpectedGroups>>;
+type _GameAlbum = AssertTrue<
+  Equal<keyof RouterInputs["gameAlbum"], ExpectedGameAlbum>
+>;
 type _Marks = AssertTrue<Equal<keyof RouterInputs["marks"], ExpectedMarks>>;
 type _Notifications = AssertTrue<
   Equal<keyof RouterInputs["notifications"], ExpectedNotifications>
@@ -321,6 +333,7 @@ export type AppRouterShapeChecks = [
   _Challenges,
   _Games,
   _Groups,
+  _GameAlbum,
   _Marks,
   _Notifications,
   _Ratings,

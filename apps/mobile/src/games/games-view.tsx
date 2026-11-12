@@ -51,6 +51,8 @@ export type GamesViewProps = {
   pickerGame: HubGameRow | null;
   onOpenPicker: (game: HubGameRow | null) => void;
   onOpen: (gameId: string) => void;
+  /** A Played card's Add photos: the Game with the Add photos sheet up. */
+  onAddPhotos?: (gameId: string) => void;
   onJoinSeat: (
     gameId: string,
     sideIndex: number,
@@ -435,7 +437,12 @@ function HistoryList(props: GamesViewProps) {
             onOpen={() => props.onOpen(row.id)}
           />
         ) : (
-          <HistoryCard key={row.matchId} row={row} onOpen={props.onOpen} />
+          <HistoryCard
+            key={row.matchId}
+            row={row}
+            onOpen={props.onOpen}
+            onAddPhotos={props.onAddPhotos}
+          />
         ),
       )}
       {props.historyLoadMoreFailed ? (

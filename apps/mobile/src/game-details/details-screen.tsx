@@ -558,6 +558,7 @@ export function GameDetailsScreen({
         gameId={gameId}
         game={data}
         openJoin={intent === "join"}
+        openAddPhotos={intent === "addPhotos"}
         refreshing={refreshing}
         onRefresh={onRefresh}
       />
@@ -728,6 +729,7 @@ export function GameDetailsScreen({
           organizer={organizer}
           onOpenPlayer={onOpenPlayer}
           onRenameUnclaimed={details.isOrganizer ? setRenaming : undefined}
+          openAddPhotos={intent === "addPhotos"}
         />
       ) : (
         <>

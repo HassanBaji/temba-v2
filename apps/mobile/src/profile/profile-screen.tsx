@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ScrollView, View } from "react-native";
 
+import { MyNotesRow } from "../game-album/my-notes-row";
 import { gamePath } from "../games/games-model";
 import { Block } from "../home/slot-block";
 import { useLocale, useMessages } from "../i18n/locale-provider";
@@ -226,6 +227,7 @@ export function ProfileScreen() {
         onEdit={() => open("/profile/details")}
         onSettings={() => open("/profile/settings")}
       />
+      <MyNotesRow onOpen={() => open("/profile/notes")} />
       <Block
         slot={slotOf(details)}
         title={m.common.profile}
