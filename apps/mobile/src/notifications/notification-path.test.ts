@@ -65,6 +65,12 @@ describe("notificationPath", () => {
     ).toBe("/games/x1/rate");
   });
 
+  it("opens the Game for a Match dispute, raised or decided", () => {
+    for (const type of ["match_dispute_raised", "match_dispute_decided"]) {
+      expect(notificationPath({ type, group: null, game })).toBe("/games/x1");
+    }
+  });
+
   it("opens the Game when ratings close", () => {
     expect(
       notificationPath({ type: "performance_ratings_closed", group, game }),

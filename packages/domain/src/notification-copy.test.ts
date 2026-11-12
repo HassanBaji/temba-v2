@@ -610,6 +610,62 @@ describe("notificationCopy for the MVP", () => {
     );
   });
 
+  it("tells an Operator who disputed which result, with the note", () => {
+    const raised = notificationCopy(
+      {
+        type: "match_dispute_raised",
+        audience: "admin",
+        actor: { name: "Diego" },
+        group: null,
+        game,
+        dispute: { status: "open", note: "It finished 4–3" },
+      },
+      "en",
+    );
+    assert.equal(
+      raised?.title.map((part) => part.text).join(""),
+      "Diego disputed the result of Thursday Padel",
+    );
+    assert.equal(raised?.subline, "It finished 4–3");
+  });
+
+  it("tells the player and the Organizers how an Operator decided", () => {
+    const decided = (
+      status: string,
+      actorIsRecipient: boolean,
+      locale: "en" | "ar" = "en",
+    ) =>
+      notificationCopy(
+        {
+          type: "match_dispute_decided",
+          audience: actorIsRecipient ? "player" : "admin",
+          actor: { name: "Diego" },
+          actorIsRecipient,
+          group: null,
+          game,
+          dispute: { status, note: "It finished 4–3" },
+        },
+        locale,
+      );
+    const text = (copy: ReturnType<typeof decided>) =>
+      copy?.title.map((part) => part.text).join("");
+    assert.equal(
+      text(decided("upheld", true)),
+      "Temba upheld your dispute on Thursday Padel",
+    );
+    assert.equal(
+      decided("upheld", true)?.subline,
+      "The score is open again. Enter the right one.",
+    );
+    assert.equal(
+      text(decided("dismissed", false)),
+      "Temba dismissed Diego’s dispute on Thursday Padel",
+    );
+    assert.equal(decided("dismissed", false)?.subline, "The result stands.");
+    assert.notEqual(decided("upheld", false, "ar"), null);
+    assert.equal(decided("open", true), null);
+  });
+
   it("tells a player their rating and their points move once ratings close", () => {
     const closed = (
       ratingHundredths: number | null,

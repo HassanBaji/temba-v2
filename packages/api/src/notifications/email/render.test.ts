@@ -284,6 +284,27 @@ describe("renderNotificationEmail", () => {
     }
   });
 
+  it("sends a raised Match dispute to the Operator Disputes page and a decided one to the Game", () => {
+    const raised = render(
+      item({
+        type: "match_dispute_raised",
+        game: GAME,
+        dispute: { status: "open", note: "It finished 4–3" },
+      }),
+    );
+    expect(raised.html).toContain(
+      `href="${ORIGIN}/dashboard/operator/disputes"`,
+    );
+    expect(raised.text).toContain("It finished 4–3");
+    expect(
+      notificationEmailDestination({
+        type: "match_dispute_decided",
+        group: null,
+        game: GAME,
+      }),
+    ).toEqual({ kind: "game", path: `/dashboard/games/${GAME.id}` });
+  });
+
   it("renders Arabic right-to-left from the Arabic catalog", () => {
     const email = render(
       item({ type: "group_member_joined", group: GROUP }),

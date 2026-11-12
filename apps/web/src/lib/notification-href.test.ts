@@ -160,6 +160,25 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens the Operator Disputes page for a raised dispute, and the Game once decided", () => {
+    assert.equal(
+      notificationHref({
+        type: "match_dispute_raised",
+        group: null,
+        game: { id: "g1" },
+      }),
+      "/dashboard/operator/disputes",
+    );
+    assert.equal(
+      notificationHref({
+        type: "match_dispute_decided",
+        group: null,
+        game: { id: "g1" },
+      }),
+      "/dashboard/games/g1",
+    );
+  });
+
   it("opens the Game when ratings close", () => {
     assert.equal(
       notificationHref({
