@@ -340,7 +340,7 @@ A reversible hide of a Venue by an Operator. It hides the Venue from unlocked Ga
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
-The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game and a Challenge Game, which have none; other groupless Games are legacy rows. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group, the Group’s linked Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator and Appointed Organizers. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator, except a Challenge Game's, which are whoever acts for either Team. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration** and a **Side size**; it has no Match until its Organizer publishes the two **Football sides**, which creates its one Match. It is Unrated and comes only from a football Group, a football Court Booking or a confirmed Challenge, whose Challenge Game has its two sides and Match from the start. Positions, Game teams and Sets are padel structure.
+The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game and a Challenge Game, which have none; other groupless Games are legacy rows. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group, the Group’s linked Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator and Appointed Organizers. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator, except a Challenge Game's, which are whoever acts for either Team. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration** and a **Side size**; it has no Match until its Organizer publishes the two **Football sides**, which creates its one Match. It comes only from a football Group, a football Court Booking or a confirmed Challenge, whose Challenge Game has its two sides and Match from the start. On a Verified Group it counts for Temba Level and may have a Game Level range, shown in OVR; on a tier Group it moves Tier points; otherwise it is Unrated (ADR-0069). Positions, Game teams and Sets are padel structure.
 _Avoid_: Event (when you mean Game), session, match (that is a Match)
 
 **Game day**:
@@ -645,7 +645,7 @@ An optional date window the Group owner (or Owner and Admin on a Club Group) set
 _Avoid_: league, campaign, term, period (when you mean this entity), reset (a Season does not reset Levels)
 
 **Rating**:
-A User’s sport-keyed Glicko-2 skill state (μ, φ, σ). Not shown raw in the App.
+A User’s sport-keyed skill state (μ, φ, σ). Not shown raw in the App. A padel Rating moves by Glicko-2; a football Rating moves by the OVR step, the sum of its parts in OVR points (only the result part so far), and its φ only carries Provisional, set from the count of counting Matches, so idle time never grows it (ADR-0069).
 _Avoid_: ELO, Elo, player rating (when you mean this entity), rank (that is leaderboard position)
 
 **Level**:
@@ -661,7 +661,7 @@ The discrete skill label D–D+–C-–C–C+–B-–B–B+–A–PRO (PRO highe
 _Avoid_: rank, Level 1–5 (redesign artefact, not product), ELO, D3–A (stored thirds, not the product face)
 
 **Provisional**:
-Per ladder. A Level is Provisional while its Rating's deviation φ is above the product threshold (confidence still settling); a Level override clears it. A Group Tier is Provisional for the member's first five Group Games or until an Organizer adjusts their Tier points: no fish, a hatched slot, Tier points shown only to them and the Group's Organizers, and not counted when places are cut.
+Per ladder. A Level is Provisional while its Rating's deviation φ is above the product threshold (confidence still settling); a Level override clears it. A football Level is Provisional until its fifth counting Match and confirmed after it. A Group Tier is Provisional for the member's first five Group Games or until an Organizer adjusts their Tier points: no fish, a hatched slot, Tier points shown only to them and the Group's Organizers, and not counted when places are cut.
 _Avoid_: unranked, unrated (a User may already have a Level), PRO (that is a Level band label)
 
 **Level override**:
@@ -669,15 +669,15 @@ A Level that a Level setter or an Operator set by hand, and its audit record. An
 _Avoid_: manual rating, rating override, Rated Match (an override is not a Match), permanent override
 
 **Rated Match**:
-A completed, non-cancelled Match on a Game that rates, which produced rating events for the Users on its two Game teams: Temba rating events when its Rating scope is `temba`, Group rating events when it is `temba` or `group`. A Match on an Unrated Game is never a Rated Match.
+A completed, non-cancelled Match on a Game that rates, which produced rating events for the Users on its two Game teams: Temba rating events when its Rating scope is `temba`, Group rating events when it is `temba` or `group` on padel. A football Match that counts for Temba Level is a Rated Match too: one rating event per seated player, with its parts, and no Tier points; a tier Group's Match moves Tier points and writes no rating event. A Match on an Unrated Game is never a Rated Match. Copy may say "verified match".
 _Avoid_: ranked Match, scored Match (Sets score a Match; rating is separate)
 
 **Unrated Game**:
-A Game whose completed Matches never produce rating events or move a Level or a Group Level, while still counting towards its Group's Standing and as played, won, lost or drawn in Last 10, All time stats and Win streak. A Game whose creator chose Unrated, a groupless Game (a Booking Game without a Group, legacy rows), and every football Game outside a tier Group. Match result confirmation still applies. Its Rating scope is `unrated`: `games.rated` and `games.group_rated` both false, fixed at create.
+A Game whose completed Matches never produce rating events or move a Level or a Group Level, while still counting towards its Group's Standing and as played, won, lost or drawn in Last 10, All time stats and Win streak. A Game whose creator chose Unrated, a groupless Game (a Booking Game without a Group, legacy rows), and every football Game on neither a tier Group nor a Verified Group. Match result confirmation still applies. Its Rating scope is `unrated`: `games.rated` and `games.group_rated` both false, fixed at create.
 _Avoid_: unranked (the user-facing word is "Unrated"), casual, friendly (that is a Game format), practice
 
 **Rating scope**:
-What a Game's completed Matches move, fixed at create (ADR-0053, ADR-0066). One Game feeds one ladder. `temba`, shown "Counts for Temba rating", moves the Temba Level and the Group Level: a padel Game on a Verified Group. `group` moves a ladder of the Group only: on football, shown "Counts for group tier", it moves Tier points (a football Game on a tier Group); on padel, shown "Counts for group rating", the Group Level (a padel Game on a Group that is not Verified). `unrated`, shown "Unrated", moves nothing. The creator may choose Unrated wherever a scope is offered. Pure in `@repo/domain/game-rating-scope`.
+What a Game's completed Matches move, fixed at create (ADR-0053, ADR-0066). One Game feeds one ladder. `temba`, shown "Counts for Temba rating", moves the Temba Level and the Group Level: a padel Game on a Verified Group. On football, shown "Counts for Temba Level", it moves the Temba Level only: a football Game on a Verified Group. `group` moves a ladder of the Group only: on football, shown "Counts for group tier", it moves Tier points (a football Game on a tier Group); on padel, shown "Counts for group rating", the Group Level (a padel Game on a Group that is not Verified). `unrated`, shown "Unrated", moves nothing. The creator may choose Unrated wherever a scope is offered. Pure in `@repo/domain/game-rating-scope`.
 _Avoid_: rated (bare, when the scope matters), ranked, verified game
 
 **Group Level**:
