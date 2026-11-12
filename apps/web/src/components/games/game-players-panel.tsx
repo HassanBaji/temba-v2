@@ -17,7 +17,7 @@ import { LookupUserSelect } from "~/components/invites/lookup-user-select";
 import type { LookupUserSearchRow } from "@repo/api/types";
 import { Section } from "~/components/layout/section";
 import { useLocale, useMessages } from "~/components/locale-provider";
-import { NotOnTembaTag } from "~/components/temba/seat";
+import { GuestTag, NotOnTembaTag } from "~/components/temba/seat";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
@@ -69,7 +69,14 @@ function RosterPlayerRow({
   const canRename = onRename != null && player.canRename;
   return (
     <ListRow
-      leading={<UserAvatar name={player.name} image={player.image} size="lg" />}
+      leading={
+        <UserAvatar
+          name={player.name}
+          image={player.image}
+          size="lg"
+          guest={player.guest}
+        />
+      }
       title={
         <>
           {player.name}
@@ -81,6 +88,11 @@ function RosterPlayerRow({
           {player.unclaimed ? (
             <span className="ms-2 inline-flex align-middle">
               <NotOnTembaTag />
+            </span>
+          ) : null}
+          {player.guest ? (
+            <span className="ms-2 inline-flex align-middle">
+              <GuestTag />
             </span>
           ) : null}
         </>

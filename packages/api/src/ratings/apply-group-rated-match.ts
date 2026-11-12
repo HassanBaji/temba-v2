@@ -5,6 +5,7 @@ import { groupRatingEvents, groupRatings, ratings } from "@repo/db";
 import { type db } from "#src/db";
 import { isUniqueViolation } from "#src/db/is-unique-violation";
 import { groupRatingStart } from "@repo/domain/group-level";
+import { withGuestStandIns } from "#src/ratings/guest-stand-ins";
 import type { RatingGlickoState } from "@repo/domain/level";
 import {
   rateDoublesMatch,
@@ -24,7 +25,8 @@ type Slots = {
 /**
  * Group Levels for the four Users of a completed Match on a group rated Game
  * (ADR-0053). A User without one starts from their Temba Rating, Provisional.
- * Idempotent per User+Match.
+ * A Guest player plays at the mean of the others and gets no Group Level
+ * (ADR-0079). Idempotent per User+Match.
  */
 export async function applyGroupRatedMatch(
   database: DbClient,
@@ -33,6 +35,7 @@ export async function applyGroupRatedMatch(
     sport: "padel" | "football";
     matchId: string;
     slots: Slots;
+    guestIds: ReadonlySet<string>;
     result: DoublesOutcome;
     now: Date;
   },
@@ -88,10 +91,10 @@ export async function applyGroupRatedMatch(
     }
     return groupRatingStart(tembaByUser.get(userId) ?? null);
   };
-  const playerInput = (userId: string) => ({
+  const playerInput = withGuestStandIns(userIds, args.guestIds, (userId) => ({
     state: stateOf(userId),
     lastRatedAt: groupRowByUser.get(userId)?.lastRatedAt,
-  });
+  }));
 
   const rated = rateDoublesMatch({
     slot1: [playerInput(args.slots.slot1[0]), playerInput(args.slots.slot1[1])],
@@ -109,7 +112,7 @@ export async function applyGroupRatedMatch(
   ];
 
   for (const player of players) {
-    if (alreadyRated.has(player.userId)) {
+    if (alreadyRated.has(player.userId) || args.guestIds.has(player.userId)) {
       continue;
     }
     const { before, after, score, levelBand } = player;

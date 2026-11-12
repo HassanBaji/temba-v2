@@ -38,12 +38,18 @@ export function BibRow({
     code,
     levelLabel(player.levelBand),
     player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
+    player.guest ? m.group.addPlayer.guest.tag : null,
   ]
     .filter(Boolean)
     .join(m.tournament.listSeparator);
   const body = (
     <>
-      <UserAvatar name={player.name} image={player.image} size="sm" />
+      <UserAvatar
+        name={player.name}
+        image={player.image}
+        size="sm"
+        guest={player.guest}
+      />
       <span
         dir="auto"
         className={cn(
@@ -63,7 +69,7 @@ export function BibRow({
   );
   const className = cn(
     "flex h-11 min-w-0 items-center gap-1.5 rounded-md border px-2 text-start",
-    player.unclaimed && "border-dashed",
+    (Boolean(player.unclaimed) || Boolean(player.guest)) && "border-dashed",
     player.isViewer &&
       "ring-current ring-2 ring-offset-1 ring-offset-transparent",
   );

@@ -228,6 +228,7 @@ export default function GameHomePage({
   const [renaming, setRenaming] = React.useState<{
     userId: string;
     name: string;
+    guest?: boolean;
   } | null>(null);
   const [cancelGameOpen, setCancelGameOpen] = React.useState(false);
   const [leaveGameOpen, setLeaveGameOpen] = React.useState(false);

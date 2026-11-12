@@ -21,7 +21,7 @@ import {
 import type { PlayedRow } from "@repo/domain/played-game";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
-import { NotOnTembaTag } from "~/components/temba/seat";
+import { GuestTag, NotOnTembaTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
@@ -40,11 +40,13 @@ function SeatLabels({
   subline,
   strong,
   unclaimed = false,
+  guest = false,
 }: {
   title: string;
   subline: string;
   strong: boolean;
   unclaimed?: boolean;
+  guest?: boolean;
 }) {
   return (
     <span className="flex max-w-full flex-col items-center gap-0.5">
@@ -57,6 +59,7 @@ function SeatLabels({
         {title}
       </span>
       {unclaimed ? <NotOnTembaTag /> : null}
+      {guest ? <GuestTag /> : null}
       <span className="text-muted-foreground text-meta max-w-full truncate">
         {subline}
       </span>
@@ -140,6 +143,7 @@ function TakenSeat({
       <UserAvatar
         name={seat.name}
         image={seat.image}
+        guest={row.guest}
         className={cn(
           "size-[52px] [&_[data-slot=avatar-fallback]]:text-base [&_[data-slot=avatar-fallback]]:font-bold",
           row.isYou
@@ -152,6 +156,7 @@ function TakenSeat({
         subline={subline}
         strong={row.isYou}
         unclaimed={row.unclaimed}
+        guest={row.guest}
       />
     </>
   );
@@ -274,7 +279,7 @@ function SideHalf({
               seat={seat}
               position={position}
               viewerUserId={viewerUserId}
-              onPress={onPressPlayer}
+              onPress={seat.guest && !isOrganizer ? undefined : onPressPlayer}
             />
           ) : (
             <OpenSeat

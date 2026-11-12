@@ -180,6 +180,7 @@ export function GameDetailsScreen({
   const [renaming, setRenaming] = useState<{
     userId: string;
     name: string;
+    guest?: boolean;
   } | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);

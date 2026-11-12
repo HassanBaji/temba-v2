@@ -326,7 +326,7 @@ function ManualRow({
         borderColor: bib ? bibEdge(fill, colors, scheme) : colors.inputBorder,
       }}
     >
-      <Avatar name={player.name} uri={player.image} />
+      <Avatar name={player.name} uri={player.image} guest={player.guest} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text numberOfLines={1} style={{ color: on }}>
           {player.isViewer ? messages.common.you : player.name}

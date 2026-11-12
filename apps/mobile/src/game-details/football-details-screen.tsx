@@ -392,7 +392,7 @@ export function FootballGameDetails({
     const player = players.find((row) => row.userId === userId);
     if (player && model.organizer && !player.isViewer) {
       setSelected(player);
-    } else if (canOpenProfile) {
+    } else if (canOpenProfile && !player?.guest) {
       openProfile(userId);
     }
   };

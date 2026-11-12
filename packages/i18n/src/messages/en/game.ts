@@ -606,6 +606,7 @@ export const game = {
     sideFull: "That side is full",
     playerAlreadyOn: (name: string) => `${name} is already on this Game`,
     playerWaitlisted: (name: string) => `${name} is on the waitlist`,
+    guestNotAdded: "Couldn't add the guest. Try again.",
     sideNotOnGame: "That side is not on this Game",
     sideHasUser: "That side already has a User",
     positionOccupied: "That Position is occupied",

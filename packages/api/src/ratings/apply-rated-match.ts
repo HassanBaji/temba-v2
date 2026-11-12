@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
 
 import {
   gameTeamPlayers,
@@ -7,6 +7,7 @@ import {
   MatchStatusEnum,
   ratingEvents,
   ratings,
+  user,
 } from "@repo/db";
 
 import { type db } from "#src/db";
@@ -18,6 +19,7 @@ import {
   gameRatesGroup,
 } from "@repo/domain/game-rating-eligibility";
 import { applyGroupRatedMatch } from "#src/ratings/apply-group-rated-match";
+import { withGuestStandIns } from "#src/ratings/guest-stand-ins";
 import {
   initialRatingFromChoice,
   type LevelBand,
@@ -119,6 +121,20 @@ async function loadSlotUsers(
   return { slot1, slot2 };
 }
 
+async function loadGuestIds(
+  database: DbClient,
+  slots: SlotUsers,
+): Promise<Set<string>> {
+  const rows = await database.query.user.findMany({
+    where: and(
+      inArray(user.id, [...slots.slot1, ...slots.slot2]),
+      isNotNull(user.guestAt),
+    ),
+    columns: { id: true },
+  });
+  return new Set(rows.map((row) => row.id));
+}
+
 async function weightForGame(
   database: DbClient,
   groupId: string | null,
@@ -209,8 +225,10 @@ async function persistRatedUser(args: {
  * Rate the four Users on a completed Match: their Temba Ratings when the Game
  * is Temba rated, their Group Levels when it is group rated (ADR-0053). Skips
  * when the Match is not a Rated Match (cancelled or Unrated Game, missing
- * sides, not four Users). Idempotent per User+Match. Group Levels go first so
- * a first Group Level starts from the Temba Rating before this Match.
+ * sides, not four Users, or four Guest players). A Guest player plays at the
+ * mean of the others and is never rated (ADR-0079). Idempotent per
+ * User+Match. Group Levels go first so a first Group Level starts from the
+ * Temba Rating before this Match.
  */
 export async function applyRatedMatch(
   database: DbClient,
@@ -245,6 +263,10 @@ export async function applyRatedMatch(
   if (!slots) {
     return;
   }
+  const guestIds = await loadGuestIds(database, slots);
+  if (guestIds.size === 4) {
+    return;
+  }
 
   const sport = ratingSportFromGame(liveGame.sport);
   const now = new Date();
@@ -254,6 +276,7 @@ export async function applyRatedMatch(
       sport,
       matchId: match.id,
       slots,
+      guestIds,
       result,
       now,
     });
@@ -264,6 +287,7 @@ export async function applyRatedMatch(
       sport,
       matchId: match.id,
       slots,
+      guestIds,
       result,
       now,
     });
@@ -281,11 +305,12 @@ async function applyTembaRatedMatch(
     sport: "padel" | "football";
     matchId: string;
     slots: SlotUsers;
+    guestIds: ReadonlySet<string>;
     result: RatedMatchOutcome;
     now: Date;
   },
 ): Promise<void> {
-  const { sport, slots, now } = args;
+  const { sport, slots, guestIds, now } = args;
   const match = { id: args.matchId };
   const result = args.result;
   const weight = await weightForGame(database, args.groupId);
@@ -310,10 +335,10 @@ async function applyTembaRatedMatch(
     .for("update");
   const rowByUser = new Map(existingRows.map((row) => [row.userId, row]));
 
-  const playerInput = (userId: string) => ({
+  const playerInput = withGuestStandIns(userIds, guestIds, (userId) => ({
     state: snapshotState(rowByUser.get(userId)),
     lastRatedAt: rowByUser.get(userId)?.lastRatedAt,
-  });
+  }));
   const rated = rateDoublesMatch({
     slot1: [playerInput(slots.slot1[0]), playerInput(slots.slot1[1])],
     slot2: [playerInput(slots.slot2[0]), playerInput(slots.slot2[1])],
@@ -330,7 +355,7 @@ async function applyTembaRatedMatch(
   ];
 
   for (const player of players) {
-    if (alreadyRated.has(player.userId)) {
+    if (alreadyRated.has(player.userId) || guestIds.has(player.userId)) {
       continue;
     }
 

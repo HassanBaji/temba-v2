@@ -577,12 +577,16 @@ An approved Game Level range request, or an Organizer Lookup invite, that except
 _Avoid_: auto-admit, Game admit, exception (as the name of the entity), Lookup invite (that is a door that grants this)
 
 **User**:
-A person on Temba. Almost every User has a Temba account; the exception is an Unclaimed player, who has a phone and a name but no account yet.
+A person on Temba. Almost every User has a Temba account; the exceptions are an Unclaimed player, who has a phone and a name but no account yet, and a Guest player, who has only a name.
 _Avoid_: player (when you mean User), member (when you mean a Group member)
+
+**Guest player**:
+Someone an Organizer seated on one Game by name only: no phone, no account, no Rating. A User row marked as a guest, so every rule for a User without an account applies (never searched, notified or a required confirmer). On a Rated Match they play at the mean Level of the Users with an account in it, whose Levels move as usual; their own never exists. Shown with a dashed avatar and the word Guest, at the mean Level band of the other players. One per add, never claimed (ADR-0079).
+_Avoid_: Guest (that is a Booking holder without an account), Unclaimed player (that one has a phone and can be claimed), placeholder, ghost, ringer
 
 **Unclaimed player**:
 A User an Organizer or Group approver added by phone and name, with no Temba account yet. They are seated, rated and shown like any User, marked "Not on Temba yet", but never found by Lookup invite or Partner search and never sent a Notification. One per phone. While unclaimed, an Organizer or Group approver of a Game or Group they are on may correct the name, when the User who added them also organizes that Game or Group; the phone never changes, so a wrong number is fixed by removing and adding them again. Signing up with that phone, verified, claims the row and its history; an existing account that verifies the phone later absorbs it (ADR-0042).
-_Avoid_: Guest (that is a Booking holder without an account), placeholder, ghost, manual User, invitee
+_Avoid_: Guest (that is a Booking holder without an account), Guest player (name only, no phone), placeholder, ghost, manual User, invitee
 
 **Onboarding questionnaire**:
 The sports, Level and side questions, now one Profile task ("Pick your sports and level") on the Profile checklist rather than a gate (ADR-0049). It first asks which **Sports played**, then padel (Level band and Preferred Position) and football (Football role, Preferred football position and a **Football self-placement**) for each picked sport, and saves every answer in one call. **Either** and **Not sure** (which starts padel at D+) are the low-commitment answers. Users who predate it are complete without answering.

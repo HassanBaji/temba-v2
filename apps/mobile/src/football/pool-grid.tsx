@@ -70,7 +70,12 @@ function PlayerTile({
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
         accessibilityRole={onPress ? "button" : undefined}
-        accessibilityLabel={[name, code, levelLabel(player.levelBand)]
+        accessibilityLabel={[
+          name,
+          code,
+          levelLabel(player.levelBand),
+          player.guest ? messages.group.addPlayer.guest.tag : null,
+        ]
           .filter(Boolean)
           .join(messages.tournament.listSeparator)}
         disabled={!onPress}
@@ -95,7 +100,12 @@ function PlayerTile({
             justifyContent: "space-between",
           }}
         >
-          <Avatar name={player.name} uri={player.image} size="sm" />
+          <Avatar
+            name={player.name}
+            uri={player.image}
+            size="sm"
+            guest={player.guest}
+          />
           <CodeTag code={code} keeper={player.role === "keeper"} />
         </View>
         <View

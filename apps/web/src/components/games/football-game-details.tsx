@@ -145,6 +145,7 @@ export function FootballGameDetails({
   const [renaming, setRenaming] = React.useState<{
     userId: string;
     name: string;
+    guest?: boolean;
   } | null>(null);
   const [squadTeamId, setSquadTeamId] = React.useState<string | null>(null);
   const autoJoined = React.useRef(false);

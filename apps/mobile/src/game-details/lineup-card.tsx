@@ -22,6 +22,7 @@ import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
+import { GuestMark } from "../primitives/guest-mark";
 import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
 import { Surface } from "../primitives/surface";
 import {
@@ -46,11 +47,13 @@ function SeatLabels({
   subline,
   strong,
   unclaimed = false,
+  guest = false,
 }: {
   title: string;
   subline: string;
   strong: boolean;
   unclaimed?: boolean;
+  guest?: boolean;
 }) {
   return (
     <View style={{ alignItems: "center", maxWidth: "100%", gap: 2 }}>
@@ -63,6 +66,7 @@ function SeatLabels({
         {title}
       </Text>
       {unclaimed ? <NotOnTembaMark /> : null}
+      {guest ? <GuestMark /> : null}
       <Text size="meta" tone="muted" numberOfLines={1}>
         {subline}
       </Text>
@@ -159,7 +163,9 @@ function TakenSeat({
     seat.levelBand,
     locale,
   );
-  const avatar = <Avatar name={seat.name} uri={seat.image} size="court" />;
+  const avatar = (
+    <Avatar name={seat.name} uri={seat.image} size="court" guest={row.guest} />
+  );
   const body = (
     <>
       {row.isYou ? (
@@ -174,6 +180,7 @@ function TakenSeat({
         subline={subline}
         strong={row.isYou}
         unclaimed={row.unclaimed}
+        guest={row.guest}
       />
     </>
   );
@@ -208,6 +215,7 @@ function SideHalf({
   busy,
   openSeatAction,
   onPressPlayer,
+  isOrganizer,
 }: {
   side: FriendlyGameDetailsSide;
   labelBelow: boolean;
@@ -218,6 +226,7 @@ function SideHalf({
     position: Position,
   ) => OpenSeatAction | null;
   onPressPlayer: ((row: PlayedRow) => void) | undefined;
+  isOrganizer: boolean;
 }) {
   const locale = useLocale();
   const palette = useTonePalette();
@@ -254,7 +263,9 @@ function SideHalf({
                   seat={seat}
                   position={position}
                   viewerUserId={viewerUserId}
-                  onPress={onPressPlayer}
+                  onPress={
+                    seat.guest && !isOrganizer ? undefined : onPressPlayer
+                  }
                 />
               ) : (
                 <OpenSeat
@@ -322,6 +333,7 @@ export function LineupCard({
   openSeatAction,
   onInvite,
   onPressPlayer,
+  isOrganizer = false,
 }: {
   sides: FriendlyGameDetailsSide[];
   viewerUserId: string;
@@ -334,6 +346,8 @@ export function LineupCard({
   ) => OpenSeatAction | null;
   onInvite?: () => void;
   onPressPlayer?: (row: PlayedRow) => void;
+  /** A guest seat opens only for an Organizer. */
+  isOrganizer?: boolean;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -395,6 +409,7 @@ export function LineupCard({
                 busy={busy}
                 openSeatAction={openSeatAction}
                 onPressPlayer={onPressPlayer}
+                isOrganizer={isOrganizer}
               />
             </Fragment>
           ))}

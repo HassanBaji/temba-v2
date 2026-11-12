@@ -69,6 +69,15 @@ export function NotOnTembaTag() {
   );
 }
 
+export function GuestTag() {
+  const m = useMessages();
+  return (
+    <span className="border-ink text-ink shrink-0 rounded-full border border-dashed px-1.5 py-px text-[10px] font-medium">
+      {m.group.addPlayer.guest.tag}
+    </span>
+  );
+}
+
 const SEAT_AVATAR_SIZE = {
   md: "size-10",
   lg: "size-[42px]",

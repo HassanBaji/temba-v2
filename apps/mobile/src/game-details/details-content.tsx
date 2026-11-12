@@ -187,6 +187,7 @@ export function GameDetailsContent({
         openSeatAction={openSeatActionFor(game, handlers, m, locale)}
         onInvite={canInvite ? handlers.onInvite : undefined}
         onPressPlayer={handlers.onPressPlayer}
+        isOrganizer={game.isOrganizer}
       />
       {live && firstMatch ? (
         <ScoreCard

@@ -45,6 +45,7 @@ export type BoardPlayer = {
   goals: number;
   isViewer: boolean;
   unclaimed?: boolean;
+  guest?: boolean;
   phoneMasked?: string | null;
 };
 

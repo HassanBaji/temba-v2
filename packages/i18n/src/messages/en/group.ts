@@ -547,6 +547,20 @@ export const group = {
     renameDescription:
       "Their phone stays the same. If the number is wrong, remove them and add them again.",
     renamedToast: (name: string) => `Name changed to ${name}`,
+    guest: {
+      tab: "Guest",
+      description:
+        "A guest plays this game by name only. No phone, no account.",
+      nameLabel: "Name",
+      levelNote:
+        "Their level counts as the average of the other players in each match, and only real players' levels move.",
+      submit: (name: string) =>
+        name ? `Add ${name} as a guest` : "Add as a guest",
+      addedToast: (name: string) => `${name} added as a guest`,
+      tag: "Guest",
+      nameGuest: (name: string) => `${name}, guest`,
+      renameDescription: "What they're called in this game.",
+    },
     fromGroup: {
       tab: "From group",
       phoneTab: "By phone",

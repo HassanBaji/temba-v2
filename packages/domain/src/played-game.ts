@@ -44,6 +44,8 @@ export type PlayedRow = {
   /** "2 goals" on football, nothing on padel. */
   trailing: string | null;
   unclaimed: boolean;
+  /** A Guest player: a name only, nothing opens on tap for players. */
+  guest: boolean;
   phoneMasked: string | null;
 };
 
@@ -322,6 +324,7 @@ function padelRows(
         level: levelLabel(seat.levelBand),
         trailing: null,
         unclaimed: Boolean(seat.unclaimed),
+        guest: Boolean(seat.guest),
         phoneMasked: seat.phoneMasked ?? null,
       },
     ];
@@ -508,6 +511,7 @@ function footballRow(player: BoardPlayer, locale: Locale): PlayedRow {
     level: levelLabel(player.levelBand),
     trailing: player.goals > 0 ? goalsLabel(player.goals, locale) : null,
     unclaimed: Boolean(player.unclaimed),
+    guest: Boolean(player.guest),
     phoneMasked: player.phoneMasked ?? null,
   };
 }
