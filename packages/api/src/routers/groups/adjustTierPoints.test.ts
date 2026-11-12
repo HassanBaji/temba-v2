@@ -372,6 +372,8 @@ describe("groups.adjustTierPoints", () => {
         bandAfter: "hamour",
         pointsBefore: 1248,
         pointsAfter: 1310,
+        delta: 62,
+        ratingHundredths: null,
         reason: "plays_above_results",
         note: null,
       });
