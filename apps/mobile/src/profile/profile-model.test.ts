@@ -197,7 +197,7 @@ describe("heroView", () => {
 });
 
 describe("lastTenSlots", () => {
-  it("puts the oldest first and pads the old end with not played", () => {
+  it("fills from the left, oldest first, and pads the right with not played", () => {
     const slots = lastTenSlots(
       [
         { matchId: "m2", outcome: "won", delta: 0.04 },
@@ -206,10 +206,11 @@ describe("lastTenSlots", () => {
       "en",
     );
     assert.equal(slots.length, 10);
-    assert.equal(slots[0]?.variant, "not-played");
-    assert.equal(slots[8]?.variant, "lost");
-    assert.equal(slots[8]?.delta, "−.03");
-    assert.equal(slots[9]?.variant, "won");
+    assert.equal(slots[0]?.variant, "lost");
+    assert.equal(slots[0]?.delta, "−.03");
+    assert.equal(slots[1]?.variant, "won");
+    assert.equal(slots[2]?.variant, "not-played");
+    assert.equal(slots[9]?.variant, "not-played");
   });
 
   it("counts the record with draws only when there are some", () => {
@@ -383,7 +384,9 @@ describe("football", () => {
     assert.equal(view.winRate.value, "55%");
     assert.equal(view.goals.total, "2 goals");
     assert.equal(view.goals.bars.length, 10);
-    assert.equal(view.goals.bars[9]?.goals, 2);
+    assert.equal(view.goals.bars[0]?.goals, 0);
+    assert.equal(view.goals.bars[1]?.goals, 2);
+    assert.equal(view.goals.bars[2]?.goals, null);
     assert.equal(view.stats[2]?.value, "0.64");
     assert.equal(view.lastTenRecord, "1 won, 0 lost, 1 drawn");
     assert.equal(view.allTime.bestRun, "Best run 3");
