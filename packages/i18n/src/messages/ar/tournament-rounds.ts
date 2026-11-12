@@ -37,6 +37,24 @@ const points = (count: number) =>
     other: "{n} نقطة",
   });
 
+const pointsLong = points;
+const PLACE_WORDS = [
+  "الأول",
+  "الثاني",
+  "الثالث",
+  "الرابع",
+  "الخامس",
+  "السادس",
+  "السابع",
+  "الثامن",
+  "التاسع",
+  "العاشر",
+];
+
+function placeWord(place: number) {
+  return PLACE_WORDS[place - 1] ?? `رقم ${place}`;
+}
+
 export const tournamentRounds = {
   tabs: {
     label: "أقسام البطولة",
@@ -269,6 +287,77 @@ export const tournamentRounds = {
   undo: {
     action: "تراجع عن القرعة",
     locked: "تراجع عن القرعة (ليس بعد وصول نتيجة)",
+  },
+  finished: {
+    dateLine: (day: string) => `انتهت، ${day}`,
+    summary: (
+      venue: string | null,
+      teamCount: number,
+      roundCount: number | null,
+      group: string | null,
+    ) => {
+      const size =
+        roundCount != null
+          ? `${teams(teamCount)}، ${rounds(roundCount)}`
+          : teams(teamCount);
+      const tail = group ? `${size}، ${group}` : size;
+      return venue ? `${venue}. ${tail}` : tail;
+    },
+    podiumLabel: "صدارة الترتيب",
+    wonTheDay: "بطل اليوم",
+    wonPool: (pool: string) => `بطل ${pool}`,
+    wonTheFinal: "فاز بالنهائي",
+    runnerUp: "الوصيف",
+    place: (place: number) => `المركز ${placeWord(place)}`,
+    placeInPool: (place: string, pool: string) => `${place} في ${pool}`,
+    record: (won: number, drawn: number, lost: number, points: number) =>
+      `${won}–${drawn}–${lost}، ${pointsLong(points)}`,
+    behind: (record: string, points: number) =>
+      `${record}، بفارق ${pointsLong(points)}`,
+    you: (partner: string | null) => (partner ? `أنت و${partner}` : "أنت"),
+    placeWithPoints: (place: string, points: number) =>
+      `${place}، ${pointsLong(points)}`,
+    resultsLabel: (summary: string) => `نتائجك: ${summary}`,
+    finalNote: (ties: string) => `نهائي. ${ties}`,
+    yourGamesTitle: (count: number) =>
+      plural("ar", count, {
+        one: "مباراتك",
+        two: "مباراتاك",
+        few: "مبارياتك الـ{n}",
+        many: "مبارياتك الـ{n}",
+        other: "مبارياتك الـ{n}",
+      }),
+    gamesForAgainst: (scored: number, conceded: number) =>
+      `${scored} شوطًا لك، ${conceded} عليك`,
+    allScoresIn: (count: number) =>
+      plural("ar", count, {
+        one: "وصلت النتيجة",
+        two: "وصلت النتيجتان",
+        few: "وصلت النتائج الـ{n} كلها",
+        many: "وصلت النتائج الـ{n} كلها",
+        other: "وصلت النتائج الـ{n} كلها",
+      }),
+    canStillFix: "الترتيب نهائي. ما زال بإمكانك تصحيح أي نتيجة أدناه.",
+    resultsPosted: "الترتيب نهائي.",
+    shareYourDay: "شارك يومك",
+    shareTable: "شارك الترتيب النهائي",
+  },
+  shareCard: {
+    title: "شارك النتيجة",
+    tag: "بطولة",
+    eyebrow: (name: string, day: string | null, venue: string | null) =>
+      [day ? `${name}، ${day}` : name, venue].filter(Boolean).join(". "),
+    ordinal: (place: number) => placeWord(place),
+    ofTeams: (count: number) => `من ${teams(count)}`,
+    inPool: (pool: string) => `في ${pool}`,
+    wonTheDay: "بطل اليوم",
+    record: (won: number, drawn: number, lost: number, points: number) =>
+      `${won} فوز، ${drawn} تعادل، ${lost} خسارة. ${pointsLong(points)}`,
+    imageLabel: (placing: string, team: string) =>
+      `بطاقة النتيجة: ${placing}، ${team}`,
+    message: (name: string, placing: string, team: string) =>
+      `${name}: ${team} في المركز ${placing}`,
+    format: "PNG بمقاس 1080 × 1080",
   },
   loadFailed: "تعذّر تحميل الجولات",
 } satisfies typeof source;

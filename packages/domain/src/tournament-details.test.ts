@@ -56,6 +56,13 @@ describe("tournamentHomeView", () => {
     assert.equal(view.viewerSide?.left?.userId, "user-viewer");
   });
 
+  it("drops the leave action once the draw is posted", () => {
+    for (const game of [pool.postedMid, pool.finished]) {
+      const seated = { ...game, isSeated: true, canLeave: true };
+      assert.equal(tournamentHomeView(seated, "en").canLeaveGame, false);
+    }
+  });
+
   it("marks a posted draw as drawn", () => {
     assert.equal(tournamentHomeView(pool.postedMid, "en").drawn, true);
   });

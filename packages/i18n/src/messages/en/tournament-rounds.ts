@@ -6,6 +6,31 @@ const rounds = (count: number) =>
   plural("en", count, { one: "1 Round", other: "{n} Rounds" });
 const points = (count: number) =>
   plural("en", count, { one: "1 pt", other: "{n} pts" });
+const pointsLong = (count: number) =>
+  plural("en", count, { one: "1 point", other: "{n} points" });
+const teamsWord = (count: number) =>
+  plural("en", count, { one: "1 team", other: "{n} teams" });
+const PLACE_WORDS = [
+  "First",
+  "Second",
+  "Third",
+  "Fourth",
+  "Fifth",
+  "Sixth",
+  "Seventh",
+  "Eighth",
+  "Ninth",
+  "Tenth",
+];
+
+function ordinal(place: number) {
+  const mod100 = place % 100;
+  if (mod100 >= 11 && mod100 <= 13) {
+    return `${place}th`;
+  }
+  const suffix = ["th", "st", "nd", "rd"][place % 10] ?? "th";
+  return `${place}${suffix}`;
+}
 
 export const tournamentRounds = {
   tabs: {
@@ -250,6 +275,68 @@ export const tournamentRounds = {
   undo: {
     action: "Undo the draw",
     locked: "Undo the draw (not once a score is in)",
+  },
+  finished: {
+    dateLine: (day: string) => `Finished, ${day}`,
+    summary: (
+      venue: string | null,
+      teamCount: number,
+      roundCount: number | null,
+      group: string | null,
+    ) => {
+      const size =
+        roundCount != null
+          ? `${teamsWord(teamCount)}, ${rounds(roundCount)}`
+          : teamsWord(teamCount);
+      const tail = group ? `${size}, ${group}` : size;
+      return venue ? `${venue}. ${tail}` : tail;
+    },
+    podiumLabel: "Top of the table",
+    wonTheDay: "Won the day",
+    wonPool: (pool: string) => `Won ${pool}`,
+    wonTheFinal: "Won the final",
+    runnerUp: "Runner-up",
+    place: (place: number) => PLACE_WORDS[place - 1] ?? ordinal(place),
+    placeInPool: (place: string, pool: string) => `${place} in ${pool}`,
+    record: (won: number, drawn: number, lost: number, points: number) =>
+      `${won}–${drawn}–${lost}, ${pointsLong(points)}`,
+    behind: (record: string, points: number) =>
+      `${record}, ${pointsLong(points)} behind`,
+    you: (partner: string | null) => (partner ? `You & ${partner}` : "You"),
+    placeWithPoints: (place: string, points: number) =>
+      `${place}, ${pointsLong(points)}`,
+    resultsLabel: (summary: string) => `Your results: ${summary}`,
+    finalNote: (ties: string) => `Final. ${ties}`,
+    yourGamesTitle: (count: number) =>
+      plural("en", count, { one: "Your game", other: "Your {n} games" }),
+    gamesForAgainst: (scored: number, conceded: number) =>
+      `${scored} games for, ${conceded} against`,
+    allScoresIn: (count: number) =>
+      plural("en", count, {
+        one: "The score is in",
+        other: "All {n} scores are in",
+      }),
+    canStillFix: "The table is final. You can still fix a score below.",
+    resultsPosted: "The table is final.",
+    shareYourDay: "Share your day",
+    shareTable: "Share the final table",
+  },
+  shareCard: {
+    title: "Share the result",
+    tag: "Tournament",
+    eyebrow: (name: string, day: string | null, venue: string | null) =>
+      [day ? `${name}, ${day}` : name, venue].filter(Boolean).join(". "),
+    ordinal,
+    ofTeams: (count: number) => `of ${teamsWord(count)}`,
+    inPool: (pool: string) => `in ${pool}`,
+    wonTheDay: "won the day",
+    record: (won: number, drawn: number, lost: number, points: number) =>
+      `${won} won, ${drawn} drawn, ${lost} lost. ${pointsLong(points)}`,
+    imageLabel: (placing: string, team: string) =>
+      `Result card: ${placing}, ${team}`,
+    message: (name: string, placing: string, team: string) =>
+      `${name}: ${team} finished ${placing}`,
+    format: "1080 × 1080 PNG",
   },
   loadFailed: "The Rounds could not be loaded",
 };

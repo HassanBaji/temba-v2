@@ -12,6 +12,7 @@ import {
   groupsThenKnockoutReviewValue,
 } from "@repo/domain/tournament-knockout";
 import { type KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
+import { tournamentFinishedView } from "@repo/domain/tournament-finished";
 import { poolLabel } from "@repo/domain/tournament-pool-draw";
 
 import { PageTitle } from "~/components/layout/page-title";
@@ -22,6 +23,11 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
+import {
+  FinishedScoresNote,
+  FinishedShareLink,
+  TournamentFinishedHeader,
+} from "./tournament-finished-parts";
 import { TournamentKnockoutTree } from "./tournament-knockout-tree";
 import { TournamentPairDrawer } from "./tournament-pair-drawer";
 import {
@@ -157,6 +163,14 @@ export function TournamentDrawnHome({
       ? poolLabel(viewerPool, locale)
       : null;
   const eyebrow = [data.name, data.venue?.name].filter(Boolean).join(", ");
+  const finished = tournamentFinishedView(data, locale);
+  const confirmedScores =
+    rounds?.rounds.reduce(
+      (count, round) =>
+        count +
+        round.matches.filter((match) => match.state === "confirmed").length,
+      0,
+    ) ?? 0;
 
   const titles: Record<Tab, string> = {
     teams: m.tabs.teams,
@@ -173,40 +187,52 @@ export function TournamentDrawnHome({
 
   return (
     <div>
-      <Surface
-        as="header"
-        tone="ink"
-        className={cn("pb-[22px] pt-[22px] md:-mt-6", pageBleed)}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <BackButton variant="boxed" surface="ink" href={backHref} />
-          <div className="flex items-center gap-2">
-            {chip ? (
-              <span className="border-dimrule text-dim text-eyebrow rounded-sm border px-2 py-1 uppercase tracking-[0.1em]">
-                {chip}
-              </span>
-            ) : null}
-            {actions}
+      {finished ? (
+        <TournamentFinishedHeader
+          view={finished}
+          gameId={data.id}
+          backHref={backHref}
+          chip={chip}
+          actions={actions}
+        />
+      ) : (
+        <Surface
+          as="header"
+          tone="ink"
+          className={cn("pb-[22px] pt-[22px] md:-mt-6", pageBleed)}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <BackButton variant="boxed" surface="ink" href={backHref} />
+            <div className="flex items-center gap-2">
+              {chip ? (
+                <span className="border-dimrule text-dim text-eyebrow rounded-sm border px-2 py-1 uppercase tracking-[0.1em]">
+                  {chip}
+                </span>
+              ) : null}
+              {actions}
+            </div>
           </div>
-        </div>
-        <div className="text-dim text-meta mt-7 flex items-baseline justify-between gap-3">
-          <p className="min-w-0 truncate">{eyebrow}</p>
-          {data.windowStart ? (
-            <p className="shrink-0">
-              {formatAbsoluteDay(data.windowStart, locale)}
+          <div className="text-dim text-meta mt-7 flex items-baseline justify-between gap-3">
+            <p className="min-w-0 truncate">{eyebrow}</p>
+            {data.windowStart ? (
+              <p className="shrink-0">
+                {formatAbsoluteDay(data.windowStart, locale)}
+              </p>
+            ) : null}
+          </div>
+          <PageTitle variant="hero" className="mt-1.5">
+            {titles[tab]}
+          </PageTitle>
+          <p className="text-dim text-meta mt-2 leading-relaxed">
+            {leads[tab]}
+          </p>
+          {standings.championLine ? (
+            <p className="text-body mt-2 font-semibold">
+              {standings.championLine}
             </p>
           ) : null}
-        </div>
-        <PageTitle variant="hero" className="mt-1.5">
-          {titles[tab]}
-        </PageTitle>
-        <p className="text-dim text-meta mt-2 leading-relaxed">{leads[tab]}</p>
-        {standings.championLine ? (
-          <p className="text-body mt-2 font-semibold">
-            {standings.championLine}
-          </p>
-        ) : null}
-      </Surface>
+        </Surface>
+      )}
 
       <Tabs
         value={tab}
@@ -227,6 +253,7 @@ export function TournamentDrawnHome({
         </TabsList>
 
         {rounds &&
+        !finished &&
         (tab === "standings" || (tab === "rounds" && !choosingWay)) ? (
           <div className="pt-[18px]">
             <RoundProgressStrip
@@ -253,6 +280,14 @@ export function TournamentDrawnHome({
           {details ? <div className="pt-6">{details}</div> : null}
         </TabsContent>
         <TabsContent value="rounds" className="pt-[22px]">
+          {finished && rounds?.isOrganizer ? (
+            <div className="pb-[22px]">
+              <FinishedScoresNote
+                scoreCount={confirmedScores}
+                canFix={!data.cancelledAt}
+              />
+            </div>
+          ) : null}
           {rounds ? (
             <TournamentRoundsTab
               gameId={data.id}
@@ -278,6 +313,7 @@ export function TournamentDrawnHome({
               teams={teams}
               viewerUserId={data.viewerUserId}
               onEnterScore={setScoreTarget}
+              finished={finished}
             />
           ) : null}
         </TabsContent>
@@ -296,6 +332,12 @@ export function TournamentDrawnHome({
           </TabsContent>
         ) : null}
       </Tabs>
+
+      {finished ? (
+        <div className="pt-6">
+          <FinishedShareLink gameId={data.id} label={finished.shareLabel} />
+        </div>
+      ) : null}
 
       {rounds ? (
         <>

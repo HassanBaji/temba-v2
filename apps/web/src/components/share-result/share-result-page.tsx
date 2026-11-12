@@ -7,6 +7,7 @@ import {
 } from "@repo/domain/game-result-share";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
+import { isDrawnTournamentDetails } from "@repo/domain/tournament-details";
 import type { Messages } from "@repo/i18n/messages";
 import { toPng } from "html-to-image";
 import {
@@ -21,7 +22,6 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import * as React from "react";
-import { toast } from "sonner";
 
 import { ErrorState } from "~/components/common/error-state";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -29,11 +29,6 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import {
-  copyLinkFailedMessage,
-  copyTextWhenReady,
-  shareOrCopyLink,
-} from "~/lib/share-link";
 import { api } from "~/trpc/react";
 
 import {
@@ -46,9 +41,10 @@ import { ActionTile, ActionTileRow } from "./share-actions";
 import { PhotoFrame, PreviewMeta, PreviewWell } from "./share-preview";
 import { Sticker } from "./stickers";
 import { StoryCard } from "./story-cards";
+import { TournamentShareResult } from "./tournament-share-result";
+import { useShareImage } from "./use-share-image";
 
 type ShareMode = "story" | "sticker";
-type ShareAction = "save" | "share_image" | "copy_link" | "share_message";
 
 type ShareModeCopy = {
   /** The mono line under the preview: what the file is. */
@@ -72,18 +68,6 @@ function shareModeCopy(
         save: m.savePng,
         note: m.stickerNote,
       };
-}
-
-function downloadDataUrl(dataUrl: string, name: string) {
-  const anchor = document.createElement("a");
-  anchor.href = dataUrl;
-  anchor.download = name;
-  anchor.click();
-}
-
-async function fileFromDataUrl(dataUrl: string, name: string) {
-  const blob = await (await fetch(dataUrl)).blob();
-  return new File([blob], name, { type: "image/png" });
 }
 
 /** A photo the viewer picked, held as an object URL for as long as it shows. */
@@ -126,7 +110,6 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   const m = messages.webUi.shareResult;
   const [mode, setMode] = React.useState<ShareMode>("story");
   const [full, setFull] = React.useState(false);
-  const [pending, setPending] = React.useState<ShareAction | null>(null);
   const storyRef = React.useRef<HTMLDivElement | null>(null);
   const stickerRef = React.useRef<HTMLDivElement | null>(null);
   const photo = usePickedPhoto();
@@ -153,6 +136,30 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
     [game.data, board.data, football, marks.data, locale],
   );
   const url = link.data?.url ?? null;
+  const fileName = `temba-result-${mode}.png`;
+
+  async function capture() {
+    const node = mode === "story" ? storyRef.current : stickerRef.current;
+    if (!node) {
+      throw new Error(m.notReady);
+    }
+    return toPng(node, {
+      pixelRatio: 1,
+      width: mode === "story" ? STORY_WIDTH : STICKER_WIDTH,
+      height: mode === "story" ? STORY_HEIGHT : node.offsetHeight,
+      cacheBust: true,
+      style: { transform: "none" },
+    });
+  }
+
+  const share = useShareImage({
+    capture,
+    fileName,
+    url,
+    message: () =>
+      card ? formatResultShareMessage(card, url ?? "", locale) : (url ?? ""),
+  });
+  const { pending } = share;
   const gameHref = `/dashboard/games/${gameId}`;
   const doneAction = (
     <Button variant="ghost" className="font-semibold" asChild>
@@ -162,6 +169,16 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
 
   if (isNotFoundError(game.error)) {
     notFound();
+  }
+  if (game.data && isDrawnTournamentDetails(game.data)) {
+    return (
+      <TournamentShareResult
+        game={game.data}
+        url={url}
+        doneAction={doneAction}
+        onRetry={() => void game.refetch()}
+      />
+    );
   }
   if (game.error || (football && board.error)) {
     return (
@@ -201,81 +218,6 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   }
 
   const copy = shareModeCopy(mode, m, messages.common.save);
-  const fileName = `temba-result-${mode}.png`;
-
-  async function capture() {
-    const node = mode === "story" ? storyRef.current : stickerRef.current;
-    if (!node) {
-      throw new Error(m.notReady);
-    }
-    return toPng(node, {
-      pixelRatio: 1,
-      width: mode === "story" ? STORY_WIDTH : STICKER_WIDTH,
-      height: mode === "story" ? STORY_HEIGHT : node.offsetHeight,
-      cacheBust: true,
-      style: { transform: "none" },
-    });
-  }
-
-  function run(action: ShareAction, task: () => Promise<void>) {
-    if (pending) {
-      return;
-    }
-    setPending(action);
-    void task()
-      .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : m.shareFailed);
-      })
-      .finally(() => setPending(null));
-  }
-
-  const saveImage = () =>
-    run("save", async () => {
-      downloadDataUrl(await capture(), fileName);
-    });
-
-  const shareImage = () =>
-    run("share_image", async () => {
-      const file = await fileFromDataUrl(await capture(), fileName);
-      if (
-        typeof navigator.share === "function" &&
-        navigator.canShare?.({ files: [file] })
-      ) {
-        try {
-          await navigator.share({ files: [file] });
-          return;
-        } catch (error) {
-          if (error instanceof Error && error.name === "AbortError") {
-            return;
-          }
-        }
-      }
-      downloadDataUrl(URL.createObjectURL(file), fileName);
-    });
-
-  const copyLink = () =>
-    run("copy_link", async () => {
-      if (!url) {
-        toast.error(m.linkLoading);
-        return;
-      }
-      try {
-        await copyTextWhenReady(Promise.resolve(url));
-        toast.success(m.linkCopied);
-      } catch {
-        toast.error(copyLinkFailedMessage(locale));
-      }
-    });
-
-  const shareMessage = () =>
-    run("share_message", async () => {
-      const outcome = await shareOrCopyLink({
-        text: formatResultShareMessage(card, url ?? "", locale),
-      });
-      if (outcome === "copied") {
-        toast.success(m.messageCopied);
-      }
-    });
 
   const sticker = (
     <ScaledCanvas canvasRef={stickerRef} canvasWidth={STICKER_WIDTH}>
@@ -336,7 +278,7 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
             className="w-full"
             pending={pending === "share_image"}
             disabled={pending != null}
-            onClick={shareImage}
+            onClick={share.shareImage}
           >
             <Share aria-hidden="true" />
             {copy.share}
@@ -347,21 +289,21 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
               icon={ImageDown}
               pending={pending === "save"}
               disabled={pending != null}
-              onClick={saveImage}
+              onClick={share.save}
             />
             <ActionTile
               label={m.copyLink}
               icon={LinkIcon}
               pending={pending === "copy_link"}
               disabled={pending != null || !url}
-              onClick={copyLink}
+              onClick={share.copyLink}
             />
             <ActionTile
               label={m.message}
               icon={MessageCircle}
               pending={pending === "share_message"}
               disabled={pending != null}
-              onClick={shareMessage}
+              onClick={share.shareMessage}
             />
           </ActionTileRow>
         </div>
