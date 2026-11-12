@@ -186,6 +186,27 @@ describe("games.disputeMatchResult", () => {
     });
   });
 
+  it("refuses a score that stood without the other side, which never counted", async () => {
+    await withDb(async (db) => {
+      const m = await countedPadelMatch(db);
+      await db
+        .update(matches)
+        .set({ stoodUnconfirmedAt: m.completedAt })
+        .where(eq(matches.id, m.matchId));
+
+      const error = await refusal(
+        disputeMatchResult(db, {
+          matchId: m.matchId,
+          userId: m.c.id,
+          note: "Wrong",
+          operatorUserIds: [],
+        }),
+      );
+      expect(error.code).toBe("PRECONDITION_FAILED");
+      expect(error.message).toBe(errors.notCounted);
+    });
+  });
+
   it("refuses a second open dispute on the same Match", async () => {
     await withDb(async (db) => {
       const m = await countedPadelMatch(db);
