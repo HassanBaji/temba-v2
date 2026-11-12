@@ -44,6 +44,7 @@ import {
   changeCreateVenue,
   toggleCreateCourt,
   changeCreateDay,
+  createLevelRangeShown,
   parseCreateMatchMinutes,
   validateFriendlyGameWhen,
   validateFriendlyGameWhere,
@@ -668,9 +669,19 @@ function NewGameForm() {
           playersAllowed,
           customName,
           rated,
+          levelMin,
+          levelMax,
         },
         session.now,
         locale,
+        {
+          levelRange: createLevelRangeShown({
+            sport: "football",
+            hasGroup: Boolean(selectedGroupId),
+            groupVerified,
+            rated,
+          }),
+        },
       );
       if (!footballResult.ok) {
         reportSubmitIssue(footballResult);

@@ -2,6 +2,7 @@ import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { squadButtonCopy } from "@repo/domain/matchday-squad";
 import { challengeHeroSubLine } from "@repo/domain/challenge-game-details";
 import { gameCustomName } from "@repo/domain/game-custom-name";
+import { ratingScopeOf, ratingScopeTag } from "@repo/domain/game-rating-impact";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import { footballReportWrongScoreAction } from "@repo/domain/friendly-game-actions";
 import {
@@ -94,6 +95,7 @@ import { gameTitle } from "./details-model";
 import { FootballHero, SeatBar } from "./football-hero";
 import { FootballOrganizerCard } from "./football-organizer-card";
 import { RequestsSection } from "./organizer-card";
+import { OvrImpactCard } from "./ovr-impact-card";
 import { PerformanceResultCard } from "./performance-result-card";
 import { RateGameCard } from "./rate-game-card";
 import { RatingSummaryCard } from "./rating-summary-card";
@@ -700,6 +702,7 @@ export function FootballGameDetails({
       }
       task={
         <>
+          <OvrImpactCard ratingImpact={game.ratingImpact} />
           <RateGameCard gameId={gameId} window={game.ratingWindow} />
           <PerformanceResultCard gameId={gameId} window={game.ratingWindow} />
           <RatingSummaryCard
@@ -732,7 +735,13 @@ export function FootballGameDetails({
         <FootballHero
           tone={model.hero.tone}
           lines={lines}
-          tag={challenge ? m.challenge.gameDetails.tag : undefined}
+          tag={
+            challenge
+              ? m.challenge.gameDetails.tag
+              : ratingScopeOf(game) === "temba"
+                ? (ratingScopeTag(game, locale) ?? undefined)
+                : undefined
+          }
           actions={
             challenge && !game.cancelledAt ? (
               <HeaderIconButton

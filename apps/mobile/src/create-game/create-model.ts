@@ -7,6 +7,7 @@ import {
   changeFootballSideSize,
   changeCreateGroup,
   changeCreateVenue,
+  createLevelRangeShown,
   openLevelRange,
   resetCreateBranch,
   selectDurationFinish,
@@ -389,7 +390,14 @@ export function submitRequest(
       : issueResult(result);
   }
   if (state.sport === "football") {
-    const football = validateFootballGameSubmit(state.draft, now, locale);
+    const football = validateFootballGameSubmit(state.draft, now, locale, {
+      levelRange: createLevelRangeShown({
+        sport: "football",
+        hasGroup: Boolean(state.draft.groupId),
+        groupVerified,
+        rated: state.draft.rated,
+      }),
+    });
     return football.ok
       ? {
           ok: true,

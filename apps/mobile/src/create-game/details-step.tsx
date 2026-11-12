@@ -3,6 +3,7 @@ import {
   createFlowPriceChips,
   createFlowSeatsLabel,
   createRatingChoice,
+  createLevelRangeShown,
   createRatingChoiceShown,
   friendlyTournamentCourtsLabel,
   friendlyTournamentFormatLabel,
@@ -146,10 +147,16 @@ function customNameReviewRows(customName: string, locale: Locale): ReviewRow[] {
 export function FootballDetailsStep(props: DetailsProps) {
   const { state, groupName, picker } = props;
   const { draft } = state;
-  const tierShown = createRatingChoiceShown({
+  const ratingShown = createRatingChoiceShown({
     sport: "football",
     hasGroup: Boolean(draft.groupId),
     groupVerified: props.groupVerified,
+  });
+  const levelRangeShown = createLevelRangeShown({
+    sport: "football",
+    hasGroup: Boolean(draft.groupId),
+    groupVerified: props.groupVerified,
+    rated: draft.rated,
   });
   const locale = useLocale();
   const m = useMessages();
@@ -165,9 +172,10 @@ export function FootballDetailsStep(props: DetailsProps) {
     <View style={{ gap: spacing.section }}>
       <CustomNameField {...props} />
       <FootballSizeFields {...props} />
+      {ratingShown ? <DetailsRatingField {...props} sport="football" /> : null}
+      {levelRangeShown ? <LevelRangeField {...props} sport="football" /> : null}
       <PriceField {...props} />
       <FriendlyMvpField {...props} />
-      {tierShown ? <DetailsRatingField {...props} sport="football" /> : null}
       <ReviewCard
         rows={[
           ...customNameReviewRows(draft.customName, locale),
@@ -183,7 +191,7 @@ export function FootballDetailsStep(props: DetailsProps) {
             label: review.size,
             value: createFlowSeatsLabel("football", draft, locale),
           },
-          tierShown
+          ratingShown
             ? ratingReviewRow(props, locale, "football")
             : { label: review.rating, value: unratedLabel(locale) },
           ...mvpReviewRows(state.mvpMode, locale),

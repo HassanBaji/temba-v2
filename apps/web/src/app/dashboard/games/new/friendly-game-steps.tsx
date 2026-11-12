@@ -24,7 +24,9 @@ import { FieldDescription, FieldError } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import {
+  formatLevelRangeLabel,
   LEVEL_BAND_SELECT_NONE,
+  parseLevelBandSelectTenths,
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
@@ -43,6 +45,7 @@ import {
   openLevelRange,
   previewStartSlots,
   priceChipIsSelected,
+  createLevelRangeShown,
   createRatingChoice,
   createRatingChoiceShown,
   visibleCreateCourts,
@@ -219,6 +222,108 @@ export function FriendlyGameSteps({
     locale,
     sport,
   });
+  const ovrRangeLabel = football
+    ? formatLevelRangeLabel(
+        parseLevelBandSelectTenths(levelMin, "min"),
+        parseLevelBandSelectTenths(levelMax, "max"),
+        locale,
+        "football",
+      )
+    : null;
+  const levelRangeShown = createLevelRangeShown({
+    sport,
+    hasGroup: Boolean(selectedGroupId),
+    groupVerified,
+    rated,
+  });
+
+  const levelRangeSection = (
+    <section className="flex flex-col gap-3">
+      <SectionHeading
+        id="game-level-label"
+        title={c.levelRange}
+        meta={m.common.optional}
+      />
+      <LevelBandRow
+        id="game-level-min"
+        label={c.minimumLevel}
+        bound="min"
+        value={levelMin}
+        other={levelMax}
+        invalid={Boolean(levelMinError)}
+        describedBy={
+          levelMinError ? "game-level-min-error" : "game-level-range-copy"
+        }
+        onSelect={(band) => {
+          onLevelRange(
+            applyLevelBoundChange(
+              { min: levelMin, max: levelMax },
+              "min",
+              band,
+            ),
+          );
+        }}
+      />
+      <FieldError id="game-level-min-error">{levelMinError}</FieldError>
+      <LevelBandRow
+        id="game-level-max"
+        label={c.maximumLevel}
+        bound="max"
+        value={levelMax}
+        other={levelMin}
+        invalid={Boolean(levelMaxError)}
+        describedBy={
+          levelMaxError ? "game-level-max-error" : "game-level-range-copy"
+        }
+        onSelect={(band) => {
+          onLevelRange(
+            applyLevelBoundChange(
+              { min: levelMin, max: levelMax },
+              "max",
+              band,
+            ),
+          );
+        }}
+      />
+      <div className="text-body flex items-center justify-between gap-3">
+        <p className="text-muted-foreground">
+          {levelOpen ? (
+            c.openToAnyone
+          ) : (
+            <>
+              {c.minimum}{" "}
+              <span className="text-foreground font-semibold">
+                {levelMin === LEVEL_BAND_SELECT_NONE ? c.openBound : levelMin}
+              </span>
+              {" · "}
+              {c.maximum}{" "}
+              <span className="text-foreground font-semibold">
+                {levelMax === LEVEL_BAND_SELECT_NONE ? c.openBound : levelMax}
+              </span>
+            </>
+          )}
+        </p>
+        {levelOpen ? null : (
+          <button
+            type="button"
+            className="text-muted-foreground focus-visible:ring-ring/50 inline-flex min-h-11 items-center underline outline-none focus-visible:ring-[3px]"
+            onClick={() => {
+              onLevelRange(openLevelRange());
+            }}
+          >
+            {c.openToAnyone}
+          </button>
+        )}
+      </div>
+      {ovrRangeLabel ? (
+        <p className="text-meta font-semibold">{ovrRangeLabel}</p>
+      ) : null}
+      <FieldDescription id="game-level-range-copy">
+        {m.level.rangeFieldDescription}
+      </FieldDescription>
+      <FieldError id="game-level-max-error">{levelMaxError}</FieldError>
+    </section>
+  );
 
   function selectDay(next: string) {
     onDay(next);
@@ -569,104 +674,10 @@ export function FriendlyGameSteps({
                   </p>
                 }
               />
+              {levelRangeShown ? levelRangeSection : null}
             </>
           ) : (
-            <>
-              <section className="flex flex-col gap-3">
-                <SectionHeading
-                  id="game-level-label"
-                  title={c.levelRange}
-                  meta={m.common.optional}
-                />
-                <LevelBandRow
-                  id="game-level-min"
-                  label={c.minimumLevel}
-                  bound="min"
-                  value={levelMin}
-                  other={levelMax}
-                  invalid={Boolean(levelMinError)}
-                  describedBy={
-                    levelMinError
-                      ? "game-level-min-error"
-                      : "game-level-range-copy"
-                  }
-                  onSelect={(band) => {
-                    onLevelRange(
-                      applyLevelBoundChange(
-                        { min: levelMin, max: levelMax },
-                        "min",
-                        band,
-                      ),
-                    );
-                  }}
-                />
-                <FieldError id="game-level-min-error">
-                  {levelMinError}
-                </FieldError>
-                <LevelBandRow
-                  id="game-level-max"
-                  label={c.maximumLevel}
-                  bound="max"
-                  value={levelMax}
-                  other={levelMin}
-                  invalid={Boolean(levelMaxError)}
-                  describedBy={
-                    levelMaxError
-                      ? "game-level-max-error"
-                      : "game-level-range-copy"
-                  }
-                  onSelect={(band) => {
-                    onLevelRange(
-                      applyLevelBoundChange(
-                        { min: levelMin, max: levelMax },
-                        "max",
-                        band,
-                      ),
-                    );
-                  }}
-                />
-                <div className="text-body flex items-center justify-between gap-3">
-                  <p className="text-muted-foreground">
-                    {levelOpen ? (
-                      c.openToAnyone
-                    ) : (
-                      <>
-                        {c.minimum}{" "}
-                        <span className="text-foreground font-semibold">
-                          {levelMin === LEVEL_BAND_SELECT_NONE
-                            ? c.openBound
-                            : levelMin}
-                        </span>
-                        {" · "}
-                        {c.maximum}{" "}
-                        <span className="text-foreground font-semibold">
-                          {levelMax === LEVEL_BAND_SELECT_NONE
-                            ? c.openBound
-                            : levelMax}
-                        </span>
-                      </>
-                    )}
-                  </p>
-                  {levelOpen ? null : (
-                    <button
-                      type="button"
-                      className="text-muted-foreground focus-visible:ring-ring/50 inline-flex min-h-11 items-center underline outline-none focus-visible:ring-[3px]"
-                      onClick={() => {
-                        onLevelRange(openLevelRange());
-                      }}
-                    >
-                      {c.openToAnyone}
-                    </button>
-                  )}
-                </div>
-                <FieldDescription id="game-level-range-copy">
-                  {m.level.rangeFieldDescription}
-                </FieldDescription>
-                <FieldError id="game-level-max-error">
-                  {levelMaxError}
-                </FieldError>
-              </section>
-            </>
+            levelRangeSection
           )}
 
           <section className="flex flex-col gap-3">

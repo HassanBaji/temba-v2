@@ -31,6 +31,7 @@ type GameDetail = Pick<
   TournamentDetails,
   | "id"
   | "isOrganizer"
+  | "sport"
   | "levelMinTenths"
   | "levelMaxTenths"
   | "viewerLevelTenths"

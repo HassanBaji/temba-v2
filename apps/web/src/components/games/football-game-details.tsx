@@ -44,6 +44,7 @@ import { FootballScoreCard } from "~/components/games/football-score-card";
 import { TeamColumns } from "~/components/games/football-team-columns";
 import { PlayedFootballBoard } from "~/components/games/played/played-football-board";
 import { PlayedGameView } from "~/components/games/played/played-game-view";
+import { OvrImpactCard } from "~/components/games/ovr-impact-card";
 import { PerformanceResultCard } from "~/components/games/performance-result-card";
 import { RateGameCard } from "~/components/games/rate-game-card";
 import { RatingSummaryCard } from "~/components/games/rating-summary-card";
@@ -114,6 +115,7 @@ import { gameInviteAccess } from "@repo/domain/invites";
 import { gameIsPlayed, playedFootballModel } from "@repo/domain/played-game";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { gameCustomName, gameDisplayName } from "@repo/domain/game-custom-name";
+import { ratingScopeOf, ratingScopeTag } from "@repo/domain/game-rating-impact";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
@@ -807,6 +809,7 @@ export function FootballGameDetails({
             }
             task={
               <>
+                <OvrImpactCard ratingImpact={game.ratingImpact} />
                 <RateGameCard gameId={gameId} window={game.ratingWindow} />
                 <PerformanceResultCard
                   gameId={gameId}
@@ -831,7 +834,13 @@ export function FootballGameDetails({
           <FootballGameHeroCard
             tone={model.hero.tone}
             lines={lines}
-            tag={challenge ? m.challenge.gameDetails.tag : undefined}
+            tag={
+              challenge
+                ? m.challenge.gameDetails.tag
+                : ratingScopeOf(game) === "temba"
+                  ? (ratingScopeTag(game, locale) ?? undefined)
+                  : undefined
+            }
             actions={
               challenge && !game.cancelledAt ? (
                 <>
