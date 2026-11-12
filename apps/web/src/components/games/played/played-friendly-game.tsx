@@ -19,6 +19,7 @@ import { FlagIcon, UserPlusIcon } from "lucide-react";
 import * as React from "react";
 
 import { ACTION_MENU_INK_BOXED_TRIGGER } from "~/components/common/action-menu";
+import { GameAlbumSections } from "~/components/game-album/game-album-sections";
 import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { MarksSection } from "~/components/marks/marks-section";
@@ -149,6 +150,13 @@ export function PlayedFriendlyGame({
         }
         heroFooter={<MvpRow marks={marks} canOpenProfile={linkToPlayers} />}
         marks={<MarksSection marks={marks} />}
+        album={
+          <GameAlbumSections
+            gameId={gameId}
+            place={model.venueLine ?? ""}
+            context={model.dateLine}
+          />
+        }
         columns={model.columns}
         facts={model.facts}
         onPressPlayer={
