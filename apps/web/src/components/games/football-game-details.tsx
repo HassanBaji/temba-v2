@@ -389,7 +389,7 @@ export function FootballGameDetails({
     const player = players.find((row) => row.userId === userId);
     if (player && organizer && !player.isViewer) {
       setSelected(player);
-    } else if (canOpenProfiles) {
+    } else if (canOpenProfiles && !player?.guest) {
       router.push(playerProfilePath(userId, "football"));
     }
   }

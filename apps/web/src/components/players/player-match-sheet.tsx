@@ -38,14 +38,14 @@ function TeamRow({ team }: { team: PlayerMatchSheetView["teams"][number] }) {
   return (
     <div className="flex items-center gap-3 px-5 py-1.5">
       <ul className="min-w-0 flex-1">
-        {team.players.map((player) => (
-          <li key={player.userId}>
-            <Link
-              href={playerProfilePath(player.userId)}
-              aria-label={player.accessibilityLabel}
-              className="hover:bg-wash -mx-2 flex min-h-11 items-center gap-2.5 rounded-md px-2 transition-colors"
-            >
-              <UserAvatar name={player.name} image={player.image} />
+        {team.players.map((player) => {
+          const face = (
+            <>
+              <UserAvatar
+                name={player.name}
+                image={player.image}
+                guest={player.guest}
+              />
               <span className="text-body min-w-0 truncate">{player.name}</span>
               {player.level ? (
                 <span className="text-meta text-muted-foreground shrink-0 tabular-nums">
@@ -54,9 +54,29 @@ function TeamRow({ team }: { team: PlayerMatchSheetView["teams"][number] }) {
               ) : (
                 <Hatch className="h-5 w-11 shrink-0 rounded-sm" />
               )}
-            </Link>
-          </li>
-        ))}
+            </>
+          );
+          return (
+            <li key={player.userId}>
+              {player.guest ? (
+                <div
+                  aria-label={player.accessibilityLabel}
+                  className="-mx-2 flex min-h-11 items-center gap-2.5 px-2"
+                >
+                  {face}
+                </div>
+              ) : (
+                <Link
+                  href={playerProfilePath(player.userId)}
+                  aria-label={player.accessibilityLabel}
+                  className="hover:bg-wash -mx-2 flex min-h-11 items-center gap-2.5 rounded-md px-2 transition-colors"
+                >
+                  {face}
+                </Link>
+              )}
+            </li>
+          );
+        })}
       </ul>
       <div
         aria-label={m.webUi.player.sets(

@@ -91,6 +91,7 @@ export function SeatRow({
   title,
   isViewer = false,
   unclaimed = false,
+  guest = false,
   phoneMasked,
   subline,
   trailing,
@@ -104,6 +105,7 @@ export function SeatRow({
   title?: React.ReactNode;
   isViewer?: boolean;
   unclaimed?: boolean;
+  guest?: boolean;
   phoneMasked?: string | null;
   subline?: React.ReactNode;
   trailing?: React.ReactNode;
@@ -116,6 +118,7 @@ export function SeatRow({
         <UserAvatar
           name={occupant.name}
           image={occupant.image}
+          guest={guest}
           className={cn(SEAT_AVATAR_SIZE[size], "shrink-0")}
         />
       ) : (
@@ -129,6 +132,7 @@ export function SeatRow({
             </p>
             {isViewer ? <YouTag /> : null}
             {unclaimed ? <NotOnTembaTag /> : null}
+            {guest ? <GuestTag /> : null}
           </div>
         ) : null}
         {phoneMasked ? (

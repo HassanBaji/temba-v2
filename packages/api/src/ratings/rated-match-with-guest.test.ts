@@ -17,9 +17,12 @@ import {
 import { createFriendlyGame } from "#src/games/create-friendly";
 import { addGuestPlayer } from "#src/routers/games/addGuestPlayer";
 import { completeMatch } from "#src/routers/games/completeMatch";
+import { loadMatchParticipants } from "#src/marks/match-participants";
+import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
 import { registerSeat } from "#src/routers/games/registerSeat";
+import { mayViewPlayer } from "#src/routers/users/playerProfile";
 import { scoreSet } from "#src/routers/games/scoreSet";
-import { guestStandInState } from "@repo/domain/guest-player";
+import { guestStandInState } from "#src/ratings/guest-stand-ins";
 import { muFromLevel, type RatingGlickoState } from "@repo/domain/level";
 import { rateDoublesMatch } from "@repo/domain/rate-doubles-match";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
@@ -231,6 +234,47 @@ describe("a Rated Match with a Guest player", () => {
       expect(events.map((event) => event.userId).sort()).toEqual(
         [f.organizer.id, f.khalid.id, f.ahmed.id].sort(),
       );
+    } finally {
+      await close();
+    }
+  });
+
+  it("shows the guest by name in history, with no profile and no Marks", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await setUpGuestMatch(db);
+      await completeMatch(db, {
+        gameId: f.gameId,
+        matchId: f.matchId,
+        userId: f.organizer.id,
+      });
+
+      const [row] = await listMyMatchHistoryRows(db, f.organizer.id);
+      const opponents = row?.slot2Members ?? [];
+      expect(opponents.find((member) => member.id === f.guestId)).toMatchObject(
+        { name: "Fahad", guest: true },
+      );
+      expect(opponents.find((member) => member.id === f.ahmed.id)?.guest).toBe(
+        false,
+      );
+
+      await expect(
+        mayViewPlayer(db, { viewerId: f.organizer.id, playerId: f.guestId }),
+      ).resolves.toBe(false);
+      await expect(
+        mayViewPlayer(db, { viewerId: f.organizer.id, playerId: f.ahmed.id }),
+      ).resolves.toBe(true);
+
+      const match = await db.query.matches.findFirst({
+        where: eq(matches.id, f.matchId),
+      });
+      const participants = await loadMatchParticipants(db, match!, {
+        id: f.gameId,
+        sport: "padel",
+      });
+      expect(
+        participants.map((participant) => participant.userId).sort(),
+      ).toEqual([f.organizer.id, f.khalid.id, f.ahmed.id].sort());
     } finally {
       await close();
     }

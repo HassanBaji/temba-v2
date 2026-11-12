@@ -61,7 +61,11 @@ export function GameTeamPlayersSheet({
               {team.players.map((player) => {
                 const face = (
                   <>
-                    <UserAvatar name={player.name} image={player.image} />
+                    <UserAvatar
+                      name={player.name}
+                      image={player.image}
+                      guest={player.guest}
+                    />
                     <span className="text-body min-w-0 truncate">
                       {player.name}
                     </span>
@@ -81,13 +85,14 @@ export function GameTeamPlayersSheet({
                             userId: player.id,
                             name: player.name,
                             image: player.image,
+                            guest: player.guest,
                           });
                         }}
                         className={cn(ROW, INTERACTIVE_ROW)}
                       >
                         {face}
                       </button>
-                    ) : canOpenProfile ? (
+                    ) : canOpenProfile && !player.guest ? (
                       <Link
                         href={playerProfilePath(player.id)}
                         className={cn(ROW, INTERACTIVE_ROW)}

@@ -652,7 +652,14 @@ export async function groupById(
                   gamePlayer: {
                     columns: { userId: true },
                     with: {
-                      user: { columns: { id: true, name: true, image: true } },
+                      user: {
+                        columns: {
+                          id: true,
+                          name: true,
+                          image: true,
+                          guestAt: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -668,7 +675,14 @@ export async function groupById(
                   gamePlayer: {
                     columns: { userId: true },
                     with: {
-                      user: { columns: { id: true, name: true, image: true } },
+                      user: {
+                        columns: {
+                          id: true,
+                          name: true,
+                          image: true,
+                          guestAt: true,
+                        },
+                      },
                     },
                   },
                 },
