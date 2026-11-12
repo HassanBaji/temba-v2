@@ -121,6 +121,31 @@ export const notification = {
       plain("Ratings are in for "),
       strong(game),
     ],
+    matchDisputeRaised: (actor: string, game: string) => [
+      strong(actor),
+      plain(" disputed the result of "),
+      strong(game),
+    ],
+    matchDisputeUpheld: (game: string) => [
+      plain("Temba upheld your dispute on "),
+      strong(game),
+    ],
+    matchDisputeUpheldFor: (actor: string, game: string) => [
+      plain("Temba upheld "),
+      strong(actor),
+      plain("’s dispute on "),
+      strong(game),
+    ],
+    matchDisputeDismissed: (game: string) => [
+      plain("Temba dismissed your dispute on "),
+      strong(game),
+    ],
+    matchDisputeDismissedFor: (actor: string, game: string) => [
+      plain("Temba dismissed "),
+      strong(actor),
+      plain("’s dispute on "),
+      strong(game),
+    ],
     mvpTieBreak: (game: string) => [
       plain("Tied vote on "),
       strong(game),
@@ -276,6 +301,8 @@ export const notification = {
       `You were rated ${rating}. Tier points ${delta}, now ${points}.`,
     ratingsClosedResultOnly: (delta: string, points: string) =>
       `No rating for you this time. Tier points ${delta} on the result, now ${points}.`,
+    disputeUpheld: "The score is open again. Enter the right one.",
+    disputeDismissed: "The result stands.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

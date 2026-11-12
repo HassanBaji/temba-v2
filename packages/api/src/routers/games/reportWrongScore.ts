@@ -200,7 +200,14 @@ async function reverseTierEvents(tx: DbClient, matchId: string, now: Date) {
  */
 export async function reportWrongScore(
   database: DbClient,
-  args: { gameId: string; matchId: string; userId: string; locale?: Locale },
+  args: {
+    gameId: string;
+    matchId: string;
+    userId: string;
+    locale?: Locale;
+    /** An Operator upholding a Match dispute, checked by that door. */
+    asOperator?: boolean;
+  },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId, locale);
@@ -210,7 +217,9 @@ export async function reportWrongScore(
     args.matchId,
     locale,
   );
-  await assertGameOrganizer(database, game, args.userId, locale);
+  if (!args.asOperator) {
+    await assertGameOrganizer(database, game, args.userId, locale);
+  }
   // A football Challenge Game is Unrated, so nothing needs reversing: the
   // report clears its Score, which reopens both squads (ADR-0060).
   const clearsScore = game.challengeId != null && isFootballGame(game);

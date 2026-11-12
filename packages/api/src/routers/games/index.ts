@@ -16,6 +16,8 @@ import { confirmMatchResultProcedure as confirmMatchResult } from "./confirmMatc
 import { create } from "./create";
 import { createInviteLinkProcedure as createInviteLink } from "./createInviteLink";
 import { createTournamentProcedure as createTournament } from "./createTournament";
+import { decideDisputeProcedure as decideDispute } from "./decideDispute";
+import { disputeMatchResultProcedure as disputeMatchResult } from "./disputeMatchResult";
 import { drawPoolsProcedure as drawPools } from "./drawPools";
 import { footballBoardProcedure as footballBoard } from "./footballBoard";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
@@ -26,6 +28,7 @@ import { leaveWaitlistProcedure as leaveWaitlist } from "./leaveWaitlist";
 import { listCourtsProcedure as listCourts } from "./listCourts";
 import { listCreateGroupsProcedure as listCreateGroups } from "./listCreateGroups";
 import { listCreateVenues } from "./listCreateVenues";
+import { listDisputesForOperatorProcedure as listDisputesForOperator } from "./listDisputesForOperator";
 import { listGroupMembersToAddProcedure as listGroupMembersToAdd } from "./listGroupMembersToAdd";
 import { listLevelRangeRequestsProcedure as listLevelRangeRequests } from "./listLevelRangeRequests";
 import { listLookupInvitesProcedure as listLookupInvites } from "./listLookupInvites";
@@ -147,6 +150,9 @@ export const gamesRouter = createTRPCRouter({
   completeMatch,
   confirmMatchResult,
   stampMatch,
+  disputeMatchResult,
+  listDisputesForOperator,
+  decideDispute,
   reportWrongScore,
   footballBoard,
   resultLink,

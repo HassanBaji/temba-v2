@@ -148,6 +148,32 @@ export const notification = {
       plain("صدرت تقييمات "),
       strong(game),
     ],
+    matchDisputeRaised: (actor: string, game: string) => [
+      plain("اعترض "),
+      strong(actor),
+      plain(" على نتيجة "),
+      strong(game),
+    ],
+    matchDisputeUpheld: (game: string) => [
+      plain("قبل Temba اعتراضك على "),
+      strong(game),
+    ],
+    matchDisputeUpheldFor: (actor: string, game: string) => [
+      plain("قبل Temba اعتراض "),
+      strong(actor),
+      plain(" على "),
+      strong(game),
+    ],
+    matchDisputeDismissed: (game: string) => [
+      plain("رفض Temba اعتراضك على "),
+      strong(game),
+    ],
+    matchDisputeDismissedFor: (actor: string, game: string) => [
+      plain("رفض Temba اعتراض "),
+      strong(actor),
+      plain(" على "),
+      strong(game),
+    ],
     mvpTieBreak: (game: string) => [
       plain("تعادل في التصويت على "),
       strong(game),
@@ -303,6 +329,8 @@ export const notification = {
       `تقييمك ${isolate(rating)}. نقاط الفئة ${isolate(delta)}، والآن ${isolate(points)}.`,
     ratingsClosedResultOnly: (delta: string, points: string) =>
       `لا تقييم لك هذه المرة. نقاط الفئة ${isolate(delta)} على النتيجة، والآن ${isolate(points)}.`,
+    disputeUpheld: "النتيجة مفتوحة من جديد. أدخل النتيجة الصحيحة.",
+    disputeDismissed: "تبقى النتيجة.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

@@ -585,6 +585,62 @@ export const rating = {
       },
     },
   },
+  dispute: {
+    action: "Dispute this result",
+    hint: "Think the result is wrong? Tell Temba, and an operator decides.",
+    sheetTitle: "Dispute this result",
+    sheetDescription: (days: number) =>
+      plural("en", days, {
+        one: "For a result that counted for Temba Level, within 1 day of the game. If an operator agrees, the score opens again and its Level moves are taken back.",
+        other:
+          "For a result that counted for Temba Level, within {n} days of the game. If an operator agrees, the score opens again and its Level moves are taken back.",
+      }),
+    noteLabel: "What’s wrong",
+    notePlaceholder: "The score was 6–4, 3–6, 6–2",
+    submit: "Send to Temba",
+    sent: "Dispute sent. Temba will decide.",
+    openByViewer: "You disputed this result. Temba will decide.",
+    openByOther: "A player disputed this result. Temba will decide.",
+    errors: {
+      notCounted: "Only a result that counted for Temba Level can be disputed.",
+      notSeated: "Only a player of this match can dispute it.",
+      notCompleted: "Only a finished match can be disputed.",
+      tooLate: (days: number) =>
+        plural("en", days, {
+          one: "A result can be disputed for 1 day after the game.",
+          other: "A result can be disputed for {n} days after the game.",
+        }),
+      alreadyOpen: "This result is already disputed. Temba will decide.",
+      note: "Say what’s wrong, in 280 characters or fewer.",
+      notFound: "Dispute not found.",
+      decided: "This dispute is already decided.",
+    },
+    operator: {
+      title: "Disputes",
+      description:
+        "Results players say are wrong. Upholding opens the score again and takes back its Level moves.",
+      settingsSubtitle: "Results players say are wrong",
+      errorTitle: "Couldn’t load disputes",
+      empty: {
+        title: "No open disputes",
+        description:
+          "When a player disputes a result that counted for Temba Level, it shows here.",
+      },
+      raisedBy: (name: string, when: string) => `${name} · ${when}`,
+      openGame: "Open game",
+      uphold: "Uphold",
+      dismiss: "Dismiss",
+      upholdTitle: "Uphold this dispute?",
+      upholdDescription:
+        "The score opens again and its Level moves are taken back. The players enter the right score.",
+      dismissTitle: "Dismiss this dispute?",
+      dismissDescription:
+        "The result stands. The player and the game’s organizers are told.",
+      upheld: "Dispute upheld. The score is open again.",
+      dismissed: "Dispute dismissed. The result stands.",
+      notCompleted: "The score is already open again.",
+    },
+  },
   publicGame: {
     label: "Public game",
     createNote:
