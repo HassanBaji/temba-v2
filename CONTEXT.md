@@ -260,7 +260,7 @@ On a padel Friendly game, a User's answer to "which side?" when they take a seat
 _Avoid_: flexible seat, any seat, Preferred Position (that is the profile default), wildcard
 
 **Operator**:
-A Temba staff User. Operators curate Venues and Courts, grant Venue managers, verify Groups, link Loose Groups to Venues directly, and may set any other User's Level in either sport (ADR-0046).
+A Temba staff User. Operators curate Venues and Courts, grant Venue managers, verify Groups, link Loose Groups to Venues directly, and may set any User's Level in either sport, their own included (ADR-0046, ADR-0077).
 _Avoid_: Admin, Owner (retired Community roles, ADR-0055), system admin, platform admin, superadmin
 
 **Venue manager**:
