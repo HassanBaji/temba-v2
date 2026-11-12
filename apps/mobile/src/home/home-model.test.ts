@@ -11,6 +11,7 @@ describe("levelFromApi", () => {
     const data = {
       face: "level",
       ovr: null,
+      levelValue: null,
       rating: null,
       canSelfDeclare: true,
       progressPercent: null,
