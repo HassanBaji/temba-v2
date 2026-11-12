@@ -226,6 +226,7 @@ type ExpectedRatings =
   | "setLevelAsOperator"
   | "setLevelAsVerifier"
   | "myGroupLevels"
+  | "myGroupTiers"
   | "setGroupLevel";
 
 type ExpectedTeams =

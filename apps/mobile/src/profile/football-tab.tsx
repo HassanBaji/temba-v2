@@ -16,6 +16,7 @@ import {
   type MyProfile,
 } from "./profile-model";
 import { LastTenStrip, PartnersCard, SECTION_GAP } from "./profile-sections";
+import { RatingsLink } from "./ratings-screen";
 
 const BAR_HEIGHT = 56;
 
@@ -112,10 +113,12 @@ export function FootballTab({
   football,
   teammates,
   onOpenPlayer,
+  onOpenRatings,
 }: {
   football: FootballProfile;
   teammates: MyProfile["partners"];
   onOpenPlayer: (userId: string) => void;
+  onOpenRatings: () => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -202,6 +205,8 @@ export function FootballTab({
         <Hairline />
         <HeroStats stats={view.stats} />
       </Surface>
+
+      <RatingsLink sport="football" onOpen={onOpenRatings} />
 
       <LastTenStrip
         title={m.you.form.lastTen}

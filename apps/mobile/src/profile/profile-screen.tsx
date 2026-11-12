@@ -21,6 +21,7 @@ import { api } from "../trpc/react";
 import { FootballTab } from "./football-tab";
 import { LevelHero } from "./level-hero";
 import { ProfileHeader } from "./profile-header";
+import { RatingsLink, ratingsPath } from "./ratings-screen";
 import {
   headerLine,
   heroView,
@@ -53,12 +54,14 @@ function PadelProfile({
   onOpenGroup,
   onOpenPlayer,
   onOpenGame,
+  onOpenRatings,
 }: {
   profile: MyProfile;
   standings: readonly GroupStandingData[];
   onOpenGroup: (groupId: string) => void;
   onOpenPlayer: (userId: string) => void;
   onOpenGame: (gameId: string) => void;
+  onOpenRatings: () => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -69,6 +72,7 @@ function PadelProfile({
   return (
     <View style={{ gap: SECTION_GAP }}>
       <LevelHero view={hero} />
+      <RatingsLink sport="padel" onOpen={onOpenRatings} />
       {groupRows.length > 0 ? (
         <InYourGroups
           title={m.rating.inYourGroups.title}
@@ -253,6 +257,7 @@ export function ProfileScreen() {
                       onOpenGroup={(groupId) => open(groupPath(groupId))}
                       onOpenPlayer={openPlayer}
                       onOpenGame={(gameId) => open(gamePath(gameId))}
+                      onOpenRatings={() => open(ratingsPath("padel"))}
                     />
                   )}
                 </Block>
@@ -268,6 +273,7 @@ export function ProfileScreen() {
                       football={data}
                       teammates={teammates.data?.partners ?? []}
                       onOpenPlayer={openPlayer}
+                      onOpenRatings={() => open(ratingsPath("football"))}
                     />
                   )}
                 </Block>

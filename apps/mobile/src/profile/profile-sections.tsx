@@ -80,7 +80,7 @@ export function InYourGroups({
 }: {
   title: string;
   meta: string;
-  note: string;
+  note?: string | null;
   rows: InYourGroupsRow[];
   onOpenGroup: (groupId: string) => void;
 }) {
@@ -96,9 +96,11 @@ export function InYourGroups({
           />
         ))}
       </ListCard>
-      <Text size="eyebrow" tone="muted">
-        {note}
-      </Text>
+      {note ? (
+        <Text size="eyebrow" tone="muted">
+          {note}
+        </Text>
+      ) : null}
     </View>
   );
 }
