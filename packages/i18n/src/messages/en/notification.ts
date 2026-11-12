@@ -257,6 +257,8 @@ export const notification = {
     ) => `${reason}: “${note}” ${from} to ${to}.`,
     ratingsOpen:
       "Score everyone 1 to 10 within 24 hours. Points move when you submit.",
+    ratingsOpenEveryone:
+      "Score your teammates and, if you want, opponents, within 24 hours. Nobody sees who gave what.",
     tierPlaces:
       "Tiers are places, so when one player moves, someone moves the other way.",
   },

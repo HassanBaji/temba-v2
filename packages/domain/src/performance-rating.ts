@@ -13,6 +13,7 @@ import {
   formatWeekday,
 } from "./format-game-start";
 import { initials } from "./initials";
+import { productDaysBetween } from "./product-timezone";
 
 /**
  * Performance ratings (ADR-0068): a 1 to 10 score one player of a football
@@ -245,6 +246,8 @@ export type RateGameSheet = {
   slot2: RateGamePlayer[];
   /** The viewer's own ballots; nobody else's are ever sent. */
   ratings: { userId: string; value: number }[];
+  /** How many of the seated account holders have rated, never who gave what. */
+  progress: { raters: number; players: number };
   mvp: { pickable: boolean; userId: string | null };
 };
 
@@ -337,7 +340,8 @@ export type RateGameSide = {
   slot: 1 | 2;
   bib: FootballBib;
   name: string;
-  result: string | null;
+  /** Beside the open side's name: the result, or "your side" when everyone rates. */
+  aside: string | null;
   ratedLine: string;
   collapsedLine: string;
   showLabel: string;
@@ -363,6 +367,8 @@ export type RateGameView = {
     score: string | null;
     line: string | null;
   };
+  /** When everyone rates: when the window closes, and how many have rated. */
+  privacy: { title: string; description: string } | null;
   heading: string;
   headingAside: string;
   sides: RateGameSide[];
@@ -370,6 +376,7 @@ export type RateGameView = {
   footer: { title: string; subline: string | null; submit: string };
   notice: { title: string; description: string } | null;
   canSubmit: boolean;
+  submitted: string;
 };
 
 function playerDetail(player: RateGamePlayer, locale: Locale) {
@@ -408,24 +415,58 @@ function heroLine(
   ]
     .filter((part): part is string => Boolean(part))
     .join(m.placeSeparator);
-  const who = sheet.viewerIsOrganizer
-    ? m.youOrganized
-    : bibName
-      ? m.youPlayedIn(bibName)
-      : null;
+  const who =
+    sheet.mode === "organizer" && sheet.viewerIsOrganizer
+      ? m.youOrganized
+      : bibName
+        ? m.youPlayedIn(bibName)
+        : null;
   if (!place) {
     return who;
   }
   return who ? m.line(place, who) : place;
 }
 
+/** `Closes tomorrow, 8:30 PM`, on the product clock. */
+function closesLine(closesAt: Date | string, now: Date, locale: Locale) {
+  const m = messagesFor(locale).rating.performance.everyone;
+  const clock = formatGameClock(closesAt, locale);
+  const days = productDaysBetween(now, new Date(closesAt));
+  if (days <= 0) {
+    return m.closesToday(clock);
+  }
+  if (days === 1) {
+    return m.closesTomorrow(clock);
+  }
+  return m.closesOn(formatWeekday(closesAt, "short", locale), clock);
+}
+
+/** `hidden until tomorrow`, or the clock when it closes today. */
+function hiddenUntil(closesAt: Date | string, now: Date, locale: Locale) {
+  const m = messagesFor(locale).rating.performance.everyone.footer;
+  const days = productDaysBetween(now, new Date(closesAt));
+  if (days <= 0) {
+    return formatGameClock(closesAt, locale);
+  }
+  if (days === 1) {
+    return m.untilTomorrow;
+  }
+  return formatWeekday(closesAt, "short", locale);
+}
+
+/**
+ * Screen 4a when the Organizer rates everyone, screen 4b when everyone rates
+ * their teammates and, if they want, their opponents.
+ */
 export function rateGameView(
   sheet: RateGameSheet,
   draft: RateGameDraft,
   locale: Locale,
+  now: Date = new Date(),
 ): RateGameView {
   const messages = messagesFor(locale);
   const m = messages.rating.performance;
+  const everyone = sheet.mode === "everyone";
   const names = {
     slot1: footballBibName(sheet.bibs.slot1, 1, locale),
     slot2: footballBibName(sheet.bibs.slot2, 2, locale),
@@ -479,16 +520,23 @@ export function rateGameView(
       (player) => draft.values[player.userId] !== undefined,
     ).length;
     const name = slot === 1 ? names.slot1 : names.slot2;
+    const ownSide = slot === sheet.viewerSide;
     return {
       slot,
       bib: slot === 1 ? sheet.bibs.slot1 : sheet.bibs.slot2,
       name,
-      result: sideResult(sheet.score, slot, locale),
+      aside: everyone
+        ? ownSide
+          ? m.everyone.yourSide
+          : m.everyone.optional
+        : sideResult(sheet.score, slot, locale),
       ratedLine: m.side.ratedOf(rated, rateable.length),
       collapsedLine:
-        rated === 0
-          ? m.side.notRatedYet(rateable.length)
-          : m.side.ratedOf(rated, rateable.length),
+        rated > 0
+          ? m.side.ratedOf(rated, rateable.length)
+          : everyone && !ownSide
+            ? m.everyone.opponentsOptional(rateable.length)
+            : m.side.notRatedYet(rateable.length),
       showLabel: m.side.show(name),
       hideLabel: m.side.hide(name),
       openByDefault: slot === firstSlot,
@@ -498,7 +546,7 @@ export function rateGameView(
             initials: initials(viewer.name),
             name: m.you,
             playerName: viewer.name,
-            note: m.selfNote,
+            note: everyone ? m.everyone.selfNote : m.selfNote,
           }
         : null,
     };
@@ -533,21 +581,44 @@ export function rateGameView(
         locale,
       ),
     },
-    heading: m.heading,
+    privacy: everyone
+      ? {
+          title: closesLine(sheet.closesAt, now, locale),
+          description: m.everyone.privacy(
+            sheet.progress.raters,
+            sheet.progress.players,
+          ),
+        }
+      : null,
+    heading: everyone ? m.everyone.heading : m.heading,
     headingAside: sides[0]!.ratedLine,
     sides,
-    footnote: sheet.mvp.pickable
-      ? `${m.footnote(sheet.weightPercent)} ${m.footnoteStar}`
-      : m.footnote(sheet.weightPercent),
-    footer: {
-      title: m.footer.ratedOf(ratedCount, rateable.length),
-      subline: mvpName
-        ? m.footer.mvp(mvpName)
-        : sheet.mvp.pickable
-          ? m.footer.noMvp
-          : null,
-      submit: m.footer.submit,
-    },
+    footnote: everyone
+      ? m.everyone.footnote
+      : sheet.mvp.pickable
+        ? `${m.footnote(sheet.weightPercent)} ${m.footnoteStar}`
+        : m.footnote(sheet.weightPercent),
+    footer: everyone
+      ? {
+          title:
+            ratedCount === 0
+              ? m.everyone.footer.nothingYet
+              : m.everyone.footer.hiddenUntil(
+                  ratedCount,
+                  hiddenUntil(sheet.closesAt, now, locale),
+                ),
+          subline: m.everyone.footer.change,
+          submit: m.everyone.footer.send,
+        }
+      : {
+          title: m.footer.ratedOf(ratedCount, rateable.length),
+          subline: mvpName
+            ? m.footer.mvp(mvpName)
+            : sheet.mvp.pickable
+              ? m.footer.noMvp
+              : null,
+          submit: m.footer.submit,
+        },
     notice:
       sheet.state === "settled"
         ? m.closed
@@ -555,6 +626,7 @@ export function rateGameView(
           ? m.suspended
           : null,
     canSubmit: open,
+    submitted: everyone ? m.everyone.submitted : m.submitted,
   };
 }
 
@@ -566,7 +638,7 @@ export function formatRatingWindowClose(
   return `${formatWeekday(closesAt, "short", locale)} ${formatGameClock(closesAt, locale)}`;
 }
 
-/** The card on a played Game that opens screen 4a, while the viewer may rate. */
+/** The card on a played Game that opens screen 4a or 4b, while the viewer may rate. */
 export function rateGameEntry(
   window: {
     mode: RatingWindowMode;
@@ -576,18 +648,15 @@ export function rateGameEntry(
   } | null,
   locale: Locale,
 ) {
-  if (
-    !window ||
-    !window.viewerMayRate ||
-    window.state !== "open" ||
-    window.mode !== "organizer"
-  ) {
+  if (!window || !window.viewerMayRate || window.state !== "open") {
     return null;
   }
   const m = messagesFor(locale).rating.performance.entry;
+  const closes = formatRatingWindowClose(window.closesAt, locale);
   return {
     title: m.title,
-    description: m.organizer(formatRatingWindowClose(window.closesAt, locale)),
+    description:
+      window.mode === "organizer" ? m.organizer(closes) : m.everyone(closes),
     cta: m.cta,
   };
 }

@@ -28,6 +28,7 @@ import {
 
 import { type db } from "#src/db";
 import { gameAdminUserIds, type GameRow } from "#src/games/access";
+import { matchSeatedUserIds } from "#src/games/match-result-confirmations";
 import { enqueueAt, removeJob } from "#src/jobs/enqueue";
 import {
   ratingWindowSettleJob,
@@ -50,7 +51,9 @@ export type MatchRatingWindow = typeof matchRatingWindows.$inferSelect;
  * points move: the move waits for the window to settle. The window snapshots
  * the settings, so a later change applies from the next Game. A window a
  * wrong-score report suspended reopens for a fresh 24 hours with its
- * snapshot and its ballots. Returns whether the Match has a window.
+ * snapshot and its ballots. The Organizers, or when everyone rates every
+ * seated account holder, are asked to rate. Returns whether the Match has a
+ * window.
  */
 export async function openRatingWindow(
   database: DbClient,
@@ -113,18 +116,36 @@ export async function openRatingWindow(
   }
 
   await enqueueAt(database, ratingWindowSettleJob(args.matchId), closesAt);
-  if (window.mode === "organizer") {
-    const adminIds = await gameAdminUserIds(database, args.game);
-    await notify(database, {
-      type: "performance_ratings_open",
-      recipients: adminIds.map((userId) => ({ userId, audience: "admin" })),
-      excludeUserIds: [],
-      groupId: args.game.groupId,
-      gameId: args.game.id,
-      dedupeKey: `performance_ratings_open:${args.matchId}:${closesAt.getTime()}`,
-    });
-  }
+  const recipients =
+    window.mode === "organizer"
+      ? (await gameAdminUserIds(database, args.game)).map((userId) => ({
+          userId,
+          audience: "admin" as const,
+        }))
+      : await seatedRecipients(database, args.matchId);
+  await notify(database, {
+    type: "performance_ratings_open",
+    recipients,
+    excludeUserIds: [],
+    groupId: args.game.groupId,
+    gameId: args.game.id,
+    dedupeKey: `performance_ratings_open:${args.matchId}:${closesAt.getTime()}`,
+  });
   return true;
+}
+
+/** When everyone rates, every seated account holder is asked to rate. */
+async function seatedRecipients(database: DbClient, matchId: string) {
+  const match = await database.query.matches.findFirst({
+    where: eq(matches.id, matchId),
+  });
+  if (!match) {
+    return [];
+  }
+  return (await matchSeatedUserIds(database, match)).map((userId) => ({
+    userId,
+    audience: "player" as const,
+  }));
 }
 
 /** The player's last settled ratings in this Group, newest first, for their usual. */

@@ -254,6 +254,8 @@ export const rating = {
       title: "Rate the game",
       organizer: (closes: string) =>
         `Score everyone 1 to 10. Closes ${closes}, then points move on the result alone.`,
+      everyone: (closes: string) =>
+        `Score your teammates and, if you want, opponents. Nobody sees who gave what. Closes ${closes}.`,
       cta: "Rate",
     },
     hero: {
@@ -297,6 +299,33 @@ export const rating = {
       submit: "Submit",
     },
     submitted: "Ratings sent. Everyone’s points have moved.",
+    everyone: {
+      heading: "Your teammates",
+      closesToday: (clock: string) => `Closes today, ${clock}`,
+      closesTomorrow: (clock: string) => `Closes tomorrow, ${clock}`,
+      closesOn: (day: string, clock: string) => `Closes ${day}, ${clock}`,
+      privacy: (raters: number, players: number) =>
+        `Nobody sees who gave what. ${raters} of ${players} have rated so far`,
+      yourSide: "your side",
+      optional: "optional",
+      opponentsOptional: (n: number) =>
+        plural("en", n, {
+          one: "1 opponent, optional",
+          other: "{n} opponents, optional",
+        }),
+      selfNote: "You can’t rate yourself",
+      footnote:
+        "Rate who you saw; leave the rest blank. A blank is not a zero.",
+      footer: {
+        nothingYet: "Nothing rated yet",
+        hiddenUntil: (rated: number, until: string) =>
+          `${rated} rated, hidden until ${until}`,
+        untilTomorrow: "tomorrow",
+        change: "You can change them until it closes",
+        send: "Send",
+      },
+      submitted: "Ratings sent. You can change them until it closes.",
+    },
     closed: {
       title: "Ratings are closed",
       description:

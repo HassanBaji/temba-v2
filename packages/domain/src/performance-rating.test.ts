@@ -227,6 +227,7 @@ function sheet(overrides: Partial<RateGameSheet> = {}): RateGameSheet {
       },
     ],
     ratings: [],
+    progress: { raters: 0, players: 4 },
     mvp: { pickable: true, userId: null },
     ...overrides,
   };
@@ -245,7 +246,7 @@ describe("rateGameView", () => {
     );
     const [black, white] = view.sides;
     expect(black!.name).toBe("Black");
-    expect(black!.result).toBe("won");
+    expect(black!.aside).toBe("won");
     expect(black!.openByDefault).toBe(true);
     expect(black!.rows.map((row) => row.userId)).toEqual(["ali", "hussain"]);
     expect(black!.self?.note).toBe(
@@ -255,7 +256,7 @@ describe("rateGameView", () => {
     expect(black!.rows[0]!.detail).toBe("Forward");
     expect(black!.rows[1]!.detail).toBe("Keeper");
     expect(black!.rows[1]!.valueLabel).toBe("–");
-    expect(white!.result).toBe("lost");
+    expect(white!.aside).toBe("lost");
     expect(white!.openByDefault).toBe(false);
     expect(white!.collapsedLine).toBe("1 player, not rated yet");
     expect(view.headingAside).toBe("1 of 2 rated");
@@ -266,6 +267,8 @@ describe("rateGameView", () => {
     );
     expect(view.canSubmit).toBe(true);
     expect(view.notice).toBeNull();
+    expect(view.privacy).toBeNull();
+    expect(view.submitted).toBe("Ratings sent. Everyone’s points have moved.");
   });
 
   it("marks the cells below the pick and clears a pick tapped twice", () => {
@@ -325,6 +328,76 @@ describe("rateGameView", () => {
   });
 });
 
+describe("rateGameView when everyone rates (screen 4b)", () => {
+  const now = new Date("2026-11-12T19:00:00Z");
+  const everyone = (overrides: Partial<RateGameSheet> = {}) =>
+    sheet({
+      mode: "everyone",
+      progress: { raters: 5, players: 14 },
+      mvp: { pickable: false, userId: null },
+      ...overrides,
+    });
+
+  it("leads with teammates, keeps opponents optional and hides who gave what", () => {
+    const input = everyone();
+    const view = rateGameView(input, rateGameDraft(input), "en", now);
+    expect(view.hero.line).toBe(
+      "Thu 12 Nov, Galali Soccer Complex. You played in Black",
+    );
+    expect(view.privacy).toEqual({
+      title: "Closes tomorrow, 8:30 PM",
+      description: "Nobody sees who gave what. 5 of 14 have rated so far",
+    });
+    expect(view.heading).toBe("Your teammates");
+    expect(view.headingAside).toBe("0 of 2 rated");
+    const [black, white] = view.sides;
+    expect(black!.aside).toBe("your side");
+    expect(black!.openByDefault).toBe(true);
+    expect(black!.self?.note).toBe("You can’t rate yourself");
+    expect(black!.rows.every((row) => row.star === null)).toBe(true);
+    expect(white!.openByDefault).toBe(false);
+    expect(white!.aside).toBe("optional");
+    expect(white!.collapsedLine).toBe("1 opponent, optional");
+    expect(view.footnote).toBe(
+      "Rate who you saw; leave the rest blank. A blank is not a zero.",
+    );
+    expect(view.footer).toEqual({
+      title: "Nothing rated yet",
+      subline: "You can change them until it closes",
+      submit: "Send",
+    });
+    expect(view.submitted).toBe(
+      "Ratings sent. You can change them until it closes.",
+    );
+  });
+
+  it("counts what the viewer rated, hidden until the window closes", () => {
+    const input = everyone({ ratings: [{ userId: "jassim", value: 7 }] });
+    const draft = setDraftRating(rateGameDraft(input), "ali", 8);
+    const view = rateGameView(input, draft, "en", now);
+    expect(view.footer.title).toBe("2 rated, hidden until tomorrow");
+    expect(view.sides[1]!.collapsedLine).toBe("1 of 1 rated");
+    const sameDay = rateGameView(
+      input,
+      draft,
+      "en",
+      new Date("2026-11-13T10:00:00Z"),
+    );
+    expect(sameDay.privacy?.title).toBe("Closes today, 8:30 PM");
+    expect(sameDay.footer.title).toBe("2 rated, hidden until 8:30 PM");
+    expect(rateGameView(input, draft, "ar", now).privacy).not.toBeNull();
+  });
+
+  it("does not count a blank: a rating tapped twice is left out of the submit", () => {
+    const input = everyone({ ratings: [{ userId: "ali", value: 7 }] });
+    const blanked = setDraftRating(rateGameDraft(input), "ali", 7);
+    expect(rateGameSubmission(blanked, input).ratings).toEqual([]);
+    expect(rateGameView(input, blanked, "en", now).footer.title).toBe(
+      "Nothing rated yet",
+    );
+  });
+});
+
 describe("rateGameEntry", () => {
   const window = {
     mode: "organizer" as const,
@@ -346,6 +419,19 @@ describe("rateGameEntry", () => {
     expect(rateGameEntry(null, "en")).toBeNull();
     expect(rateGameEntry({ ...window, viewerMayRate: false }, "en")).toBeNull();
     expect(rateGameEntry({ ...window, state: "settled" }, "en")).toBeNull();
-    expect(rateGameEntry({ ...window, mode: "everyone" }, "en")).toBeNull();
+  });
+
+  it("invites a seated player when everyone rates", () => {
+    expect(
+      rateGameEntry({ ...window, mode: "everyone" }, "en")?.description,
+    ).toBe(
+      "Score your teammates and, if you want, opponents. Nobody sees who gave what. Closes Fri 8:30 PM.",
+    );
+    expect(
+      rateGameEntry(
+        { ...window, mode: "everyone", viewerMayRate: false },
+        "en",
+      ),
+    ).toBeNull();
   });
 });

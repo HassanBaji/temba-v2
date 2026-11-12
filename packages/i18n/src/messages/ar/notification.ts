@@ -284,6 +284,8 @@ export const notification = {
     ) => `${reason}: «${note}» من ${isolate(from)} إلى ${isolate(to)}.`,
     ratingsOpen:
       "امنح كل لاعب من 1 إلى 10 خلال 24 ساعة. تتحرّك النقاط حين ترسلها.",
+    ratingsOpenEveryone:
+      "قيّم زملاءك، والخصوم إن أردت، خلال 24 ساعة. لا أحد يرى من أعطى ماذا.",
     tierPlaces: "الفئات مراكز، فحين يتحرّك لاعب يتحرّك غيره في الاتجاه الآخر.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,

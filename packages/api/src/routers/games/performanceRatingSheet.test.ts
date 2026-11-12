@@ -14,6 +14,7 @@ import {
   setRatingSettings,
 } from "#src/ratings/group-rated-match.test-support";
 
+import { gameById } from "./byId";
 import { performanceRatingSheet } from "./performanceRatingSheet";
 import { submitPerformanceRatings } from "./submitPerformanceRatings";
 
@@ -72,6 +73,7 @@ describe("games.performanceRatingSheet (screen 4a)", () => {
         viewerSide: 1,
         viewerIsOrganizer: true,
         ratings: [],
+        progress: { raters: 1, players: 3 },
         mvp: { pickable: true, userId: null },
       });
       expect(sheet.slot1.map((row) => [row.userId, row.isViewer])).toEqual(
@@ -122,6 +124,107 @@ describe("games.performanceRatingSheet (screen 4a)", () => {
       });
       expect(sheet.viewerSide).toBeNull();
       expect(sheet.mvp.pickable).toBe(false);
+    });
+  });
+});
+
+describe("games.performanceRatingSheet when everyone rates (screen 4b)", () => {
+  recordJobs();
+
+  it("gives each seated player their own ballots and how many have rated, never anyone else's", async () => {
+    await withDb(async (db) => {
+      const f = await footballGame(db);
+      await setRatingSettings(f, {
+        mode: "everyone",
+        organizerCountsDouble: true,
+      });
+      await db
+        .update(games)
+        .set({ mvpMode: "organizer" })
+        .where(eq(games.id, f.gameId));
+      const o = await registerOrganizer(f);
+      const a = await addMember(f, "a");
+      const b = await addMember(f, "b");
+      const c = await addMember(f, "c");
+      await playScore(f, [o, a], [b, c], { slot1: 5, slot2: 3 });
+      await submitPerformanceRatings(db, {
+        gameId: f.gameId,
+        userId: a,
+        ratings: [
+          { userId: b, value: 4 },
+          { userId: c, value: 9 },
+        ],
+      });
+      await submitPerformanceRatings(db, {
+        gameId: f.gameId,
+        userId: b,
+        ratings: [{ userId: a, value: 7 }],
+      });
+
+      const forA = await performanceRatingSheet(db, {
+        gameId: f.gameId,
+        userId: a,
+      });
+      expect(forA).toMatchObject({
+        mode: "everyone",
+        state: "open",
+        viewerSide: 1,
+        progress: { raters: 2, players: 4 },
+        mvp: { pickable: false },
+      });
+      expect(forA.ratings).toEqual(
+        expect.arrayContaining([
+          { userId: b, value: 4 },
+          { userId: c, value: 9 },
+        ]),
+      );
+      expect(forA.ratings).toHaveLength(2);
+
+      const forC = await performanceRatingSheet(db, {
+        gameId: f.gameId,
+        userId: c,
+      });
+      expect(forC.ratings).toEqual([]);
+      expect(forC.progress).toEqual({ raters: 2, players: 4 });
+
+      const forOrganizer = await performanceRatingSheet(db, {
+        gameId: f.gameId,
+        userId: o,
+      });
+      expect(forOrganizer.viewerIsOrganizer).toBe(true);
+      expect(forOrganizer.ratings).toEqual([]);
+      expect(forOrganizer.mvp.pickable).toBe(false);
+
+      const game = await gameById(db, { gameId: f.gameId, userId: o });
+      expect(Object.keys(game.ratingWindow ?? {}).sort()).toEqual(
+        ["closesAt", "matchId", "mode", "state", "viewerMayRate"].sort(),
+      );
+      expect(JSON.stringify(game)).not.toContain('"value":9');
+    });
+  });
+
+  it("is for the seated players only, not an Organizer who did not play", async () => {
+    await withDb(async (db) => {
+      const f = await footballGame(db);
+      await setRatingSettings(f, { mode: "everyone" });
+      const a = await addMember(f, "a");
+      const b = await addMember(f, "b");
+      await playScore(f, [a], [b], { slot1: 1, slot2: 0 });
+      const organizer = await refusal(
+        performanceRatingSheet(db, { gameId: f.gameId, userId: f.organizerId }),
+      );
+      expect(organizer.code).toBe("FORBIDDEN");
+      const game = await gameById(db, {
+        gameId: f.gameId,
+        userId: f.organizerId,
+      });
+      expect(game.ratingWindow?.viewerMayRate).toBe(false);
+      const player = await gameById(db, { gameId: f.gameId, userId: a });
+      expect(player.ratingWindow).toMatchObject({
+        mode: "everyone",
+        state: "open",
+        viewerMayRate: true,
+      });
     });
   });
 });

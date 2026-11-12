@@ -12,7 +12,13 @@ import {
   type RateGameView,
 } from "@repo/domain/performance-rating";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronDown, ChevronUp, Lock, Star } from "lucide-react-native";
+import {
+  ChevronDown,
+  ChevronUp,
+  EyeOff,
+  Lock,
+  Star,
+} from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
@@ -105,6 +111,42 @@ function Hero({ hero }: { hero: RateGameView["hero"] }) {
           {hero.line}
         </Text>
       ) : null}
+    </Surface>
+  );
+}
+
+function PrivacyPanel({
+  privacy,
+}: {
+  privacy: NonNullable<RateGameView["privacy"]>;
+}) {
+  const colors = useColors();
+  return (
+    <Surface
+      accessible
+      style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
+    >
+      <View
+        style={{
+          width: STAR,
+          height: STAR,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: radii.md,
+          borderWidth: hairline,
+          borderColor: colors.rule,
+        }}
+      >
+        <EyeOff size={16} color={colors.ink} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text size="meta" weight="semibold">
+          {privacy.title}
+        </Text>
+        <Text size="eyebrow" tone="muted">
+          {privacy.description}
+        </Text>
+      </View>
     </Surface>
   );
 }
@@ -315,9 +357,9 @@ function SideBlock({
         ) : (
           <View style={{ flex: 1 }} />
         )}
-        {open && side.result ? (
+        {open && side.aside ? (
           <Text size="eyebrow" tone="muted">
-            {side.result}
+            {side.aside}
           </Text>
         ) : null}
         <Chevron size={16} color={colors.ink} />
@@ -383,7 +425,7 @@ function RateGameForm({
       toast.show(error instanceof Error ? error.message : m.common.tryAgain);
       return;
     }
-    toast.show(m.rating.performance.submitted);
+    toast.show(view.submitted);
     await Promise.all([
       utils.games.performanceRatingSheet.invalidate({ gameId }),
       utils.games.byId.invalidate({ id: gameId }),
@@ -430,6 +472,9 @@ function RateGameForm({
     >
       {header}
       <Hero hero={view.hero} />
+      {view.privacy && !view.notice ? (
+        <PrivacyPanel privacy={view.privacy} />
+      ) : null}
       {view.notice ? (
         <Notice
           title={view.notice.title}
@@ -482,9 +527,11 @@ function RateGameForm({
 }
 
 /**
- * Rate the game (screen 4a): in Organizer mode the Organizer scores every
+ * Rate the game. Screen 4a: in Organizer mode the Organizer scores every
  * player 1 to 10 and stars the MVP; Submit closes the Rating window and
- * everyone's Tier points move.
+ * everyone's Tier points move. Screen 4b: when everyone rates, a player
+ * scores teammates and, if they want, opponents, and may change them until
+ * the window closes.
  */
 export function RateGameScreen({ gameId }: { gameId: string }) {
   const m = useMessages();

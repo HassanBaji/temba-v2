@@ -143,6 +143,30 @@ describe("Rating windows (ADR-0068)", () => {
     });
   });
 
+  it("when everyone rates, asks every seated account holder and not an Organizer who did not play", async () => {
+    await withDb(async (db) => {
+      const f = await footballGame(db);
+      await setRatingSettings(f, { mode: "everyone" });
+      const a = await addMember(f, "a");
+      const b = await addMember(f, "b");
+      const c = await addMember(f, "c");
+      await playScore(f, [a, b], [c], { slot1: 2, slot2: 0 });
+      const sent = await db.query.notifications.findMany({
+        where: eq(notifications.type, "performance_ratings_open"),
+      });
+      expect(
+        sent.map((row) => [row.recipientUserId, row.audience]).sort(),
+      ).toEqual(
+        [
+          [a, "player"],
+          [b, "player"],
+          [c, "player"],
+        ].sort(),
+      );
+      expect(sent.every((row) => row.gameId === f.gameId)).toBe(true);
+    });
+  });
+
   it("after 24 hours with no submit, everyone moves on the result alone", async () => {
     await withDb(async (db) => {
       const { matchId } = await playedGame(db, { mode: "organizer" });

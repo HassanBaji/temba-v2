@@ -57,6 +57,7 @@ import { requestLevelRange } from "#src/routers/games/requestLevelRange";
 import { saveFootballScore } from "#src/routers/games/saveFootballScore";
 import { scoreSet } from "#src/routers/games/scoreSet";
 import { sendLookupInvite as sendGameLookupInvite } from "#src/routers/games/sendLookupInvite";
+import { submitPerformanceRatings } from "#src/routers/games/submitPerformanceRatings";
 import { acceptLookupInvite as acceptGroupLookupInvite } from "#src/routers/groups/acceptLookupInvite";
 import { createInviteLink as createGroupInviteLink } from "#src/routers/groups/createInviteLink";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
@@ -1844,8 +1845,8 @@ async function seedThursdayTier(u: Users, groupId: string) {
  * then moved so it has kicked off: the score only opens at kick-off.
  * Thursday Football is a tier Group of thirteen where everyone rates at the
  * standard weight (screen 3a); last week's Game, before ratings were on,
- * moves the Tier points of the ten who played, and yesterday's waits for the
- * organizer's ratings.
+ * moves the Tier points of the ten who played, yesterday's waits for the
+ * organizer's ratings, and this afternoon's is open for everyone to rate.
  */
 async function seedFootball(u: Users, v: Venues) {
   for (const [key, level] of Object.entries(FOOTBALL_LEVELS)) {
@@ -2063,6 +2064,104 @@ async function seedFootball(u: Users, v: Venues) {
     userId: u.me!.id,
   });
   await setRatings("everyone");
+
+  // Played this afternoon while everyone rates: its Rating window is open, five
+  // of the ten have rated, and Sam has not yet (screen 4b).
+  const everyoneRates = await footballGame({
+    name: "Afternoon five-a-side",
+    sideSize: 5,
+    start: at(23, 19),
+    players: [
+      keeper("ben"),
+      keeper("hana"),
+      outfield("me", "mid"),
+      outfield("omar", "fwd"),
+      outfield("maya", "mid"),
+      outfield("lina", "def"),
+      outfield("diego", "fwd"),
+      outfield("sofia", "mid"),
+      outfield("jonas", "def"),
+      outfield("priya", "fwd"),
+    ],
+  });
+  await publishFootballTeams(db, {
+    gameId: everyoneRates,
+    userId: u.me!.id,
+    method: "manual",
+    bibs: { slot1: "black", slot2: "white" },
+    slot1: ids(["ben", "me", "omar", "maya", "lina"]),
+    slot2: ids(["hana", "diego", "sofia", "jonas", "priya"]),
+  });
+  await moveIntoPast(everyoneRates, new Date(Date.now() - 3 * 60 * 60 * 1000));
+  await saveFootballScore(db, {
+    gameId: everyoneRates,
+    userId: u.me!.id,
+    slot1Goals: 4,
+    slot2Goals: 2,
+    scorers: [
+      { userId: u.omar!.id, goals: 2 },
+      { userId: u.maya!.id, goals: 2 },
+      { userId: u.diego!.id, goals: 2 },
+    ],
+  });
+  const everyoneMatch = await db.query.matches.findFirst({
+    where: eq(matches.gameId, everyoneRates),
+  });
+  await confirmMatchResult(db, {
+    gameId: everyoneRates,
+    matchId: everyoneMatch!.id,
+    userId: u.me!.id,
+  });
+  const ballots: [rater: string, ratings: [string, number][]][] = [
+    [
+      "omar",
+      [
+        ["maya", 8],
+        ["me", 7],
+        ["lina", 6],
+        ["diego", 7],
+      ],
+    ],
+    [
+      "maya",
+      [
+        ["omar", 9],
+        ["me", 7],
+        ["ben", 6],
+      ],
+    ],
+    [
+      "hana",
+      [
+        ["diego", 8],
+        ["sofia", 7],
+        ["omar", 8],
+      ],
+    ],
+    [
+      "diego",
+      [
+        ["hana", 7],
+        ["jonas", 6],
+        ["omar", 7],
+      ],
+    ],
+    [
+      "sofia",
+      [
+        ["diego", 8],
+        ["priya", 6],
+        ["me", 6],
+      ],
+    ],
+  ];
+  for (const [rater, ratings] of ballots) {
+    await submitPerformanceRatings(db, {
+      gameId: everyoneRates,
+      userId: u[rater]!.id,
+      ratings: ratings.map(([key, value]) => ({ userId: u[key]!.id, value })),
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------

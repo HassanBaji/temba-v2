@@ -594,7 +594,20 @@ describe("notificationCopy for the MVP", () => {
       "Score everyone 1 to 10 within 24 hours. Points move when you submit.",
     );
     assert.notEqual(open("admin", "ar"), null);
-    assert.equal(open("player"), null);
+    assert.equal(
+      open("player")
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Rate the players of Thursday Padel",
+    );
+    assert.equal(
+      open("player")?.subline,
+      "Score your teammates and, if you want, opponents, within 24 hours. Nobody sees who gave what.",
+    );
+    assert.notEqual(
+      open("player", "ar")?.subline,
+      open("admin", "ar")?.subline,
+    );
   });
 
   it("returns null without a Game or for the wrong audience", () => {

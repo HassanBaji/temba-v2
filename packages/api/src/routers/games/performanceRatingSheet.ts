@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, countDistinct, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -29,17 +29,20 @@ import {
   footballScoreOf,
   footballScoreSet,
 } from "#src/games/football-lineup";
+import { matchSeatedUserIds } from "#src/games/match-result-confirmations";
 import { loadMatchParticipants } from "#src/marks/match-participants";
 import { settleRatingWindowIfDue } from "#src/ratings/settle-rating-window";
 
 type DbClient = typeof db;
 
 /**
- * What the viewer rates on a football Match with a Rating window (screen 4a):
- * the players of both sides, the viewer's own ballots and whether the star
- * may pick the MVP. In Organizer mode only an Organizer of the Game reads it;
- * when everyone rates, a seated player. Nobody else's ballots are sent. A
- * window past its close is settled first.
+ * What the viewer rates on a football Match with a Rating window (screens 4a
+ * and 4b): the players of both sides, the viewer's own ballots, how many of
+ * the seated account holders have rated and, in Organizer mode, whether the
+ * star may pick the MVP. In Organizer mode only an Organizer of the Game
+ * reads it; when everyone rates, a seated player. Nobody else's ballots are
+ * sent, and the count never says who rated what. A window past its close is
+ * settled first.
  */
 export async function performanceRatingSheet(
   database: DbClient,
@@ -116,6 +119,21 @@ export async function performanceRatingSheet(
         columns: { name: true },
       })
     : undefined;
+  const accountHolderIds = await matchSeatedUserIds(database, match);
+  const seatedIds = participants.map((row) => row.userId);
+  const [raterCount] =
+    accountHolderIds.length > 0 && seatedIds.length > 0
+      ? await database
+          .select({ raters: countDistinct(performanceRatings.raterUserId) })
+          .from(performanceRatings)
+          .where(
+            and(
+              eq(performanceRatings.matchId, match.id),
+              inArray(performanceRatings.raterUserId, accountHolderIds),
+              inArray(performanceRatings.rateeUserId, seatedIds),
+            ),
+          )
+      : [];
   const score = footballScoreOf(await footballScoreSet(database, match.id));
   const state = ratingWindowState(window, now);
 
@@ -153,8 +171,13 @@ export async function performanceRatingSheet(
       userId: row.rateeUserId,
       value: row.value,
     })),
+    progress: {
+      raters: raterCount?.raters ?? 0,
+      players: accountHolderIds.length,
+    },
     mvp: {
       pickable:
+        window.mode === "organizer" &&
         organizer &&
         game.mvpMode === "organizer" &&
         game.mvpSettledAt === null &&

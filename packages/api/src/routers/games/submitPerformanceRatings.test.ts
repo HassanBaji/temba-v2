@@ -2,7 +2,11 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { matchRatingWindows, performanceRatings } from "@repo/db/schema";
+import {
+  matchRatingWindows,
+  performanceRatingResults,
+  performanceRatings,
+} from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 import {
@@ -21,6 +25,7 @@ import {
   setRatingSettings,
   tierEvents,
 } from "#src/ratings/group-rated-match.test-support";
+import { settleRatingWindow } from "#src/ratings/settle-rating-window";
 
 import { submitPerformanceRatings } from "./submitPerformanceRatings";
 
@@ -239,6 +244,171 @@ describe("games.submitPerformanceRatings when everyone rates", () => {
         }),
       );
       expect(outsider.code).toBe("FORBIDDEN");
+    });
+  });
+});
+
+describe("games.submitPerformanceRatings when everyone rates: settling (ADR-0068)", () => {
+  recordJobs();
+
+  async function rateAs(
+    database: TestDatabase,
+    gameId: string,
+    raterUserId: string,
+    ratings: [ratee: string, value: number][],
+  ) {
+    await submitPerformanceRatings(database, {
+      gameId,
+      userId: raterUserId,
+      ratings: ratings.map(([userId, value]) => ({ userId, value })),
+    });
+  }
+
+  async function settle(database: TestDatabase, matchId: string) {
+    const window = await database.query.matchRatingWindows.findFirst({
+      where: eq(matchRatingWindows.matchId, matchId),
+    });
+    expect(await settleRatingWindow(database, matchId, window!.closesAt)).toBe(
+      true,
+    );
+  }
+
+  async function settledRatings(database: TestDatabase, matchId: string) {
+    const rows = await database.query.performanceRatingResults.findMany({
+      where: eq(performanceRatingResults.matchId, matchId),
+    });
+    return new Map(rows.map((row) => [row.userId, row]));
+  }
+
+  it("gives two ballots no performance part, and drops the highest and lowest of five", async () => {
+    await withDb(async (db) => {
+      const f = await footballGame(db);
+      await setRatingSettings(f, { mode: "everyone", weightPercent: 30 });
+      const o = await registerOrganizer(f);
+      const a = await addMember(f, "a");
+      const b = await addMember(f, "b");
+      const c = await addMember(f, "c");
+      const d = await addMember(f, "d");
+      const e = await addMember(f, "e");
+      const g = await addMember(f, "g");
+      const matchId = await playScore(f, [o, a, b, g], [c, d, e], {
+        slot1: 2,
+        slot2: 1,
+      });
+
+      await rateAs(db, f.gameId, b, [
+        [a, 9],
+        [d, 7],
+      ]);
+      await rateAs(db, f.gameId, c, [
+        [a, 9],
+        [d, 8],
+      ]);
+      await rateAs(db, f.gameId, o, [[d, 2]]);
+      await rateAs(db, f.gameId, a, [[d, 6]]);
+      await rateAs(db, f.gameId, e, [[d, 10]]);
+      await settle(db, matchId);
+
+      const results = await settledRatings(db, matchId);
+      expect(results.has(a)).toBe(false);
+      expect(results.get(d)).toMatchObject({
+        ratingHundredths: 700,
+        ballotsCounted: 3,
+      });
+      const events = new Map(
+        (await tierEvents(db, matchId)).map((event) => [event.userId, event]),
+      );
+      expect(events.get(a)).toMatchObject({
+        ratingHundredths: null,
+        performanceDelta: 0,
+      });
+      expect(events.get(d)!.ratingHundredths).toBe(700);
+    });
+  });
+
+  it("an Organizer's 9 among 6, 6 and 7 counts for more with the double setting on", async () => {
+    await withDb(async (db) => {
+      const settledFor = async (organizerCountsDouble: boolean) => {
+        const f = await footballGame(db);
+        await setRatingSettings(f, { mode: "everyone", organizerCountsDouble });
+        const o = await registerOrganizer(f);
+        const a = await addMember(f, "a");
+        const b = await addMember(f, "b");
+        const c = await addMember(f, "c");
+        const d = await addMember(f, "d");
+        const matchId = await playScore(f, [o, a, b], [c, d], {
+          slot1: 1,
+          slot2: 1,
+        });
+        await rateAs(db, f.gameId, o, [[d, 9]]);
+        await rateAs(db, f.gameId, a, [[d, 6]]);
+        await rateAs(db, f.gameId, b, [[d, 6]]);
+        await rateAs(db, f.gameId, c, [[d, 7]]);
+        await settle(db, matchId);
+        return (await settledRatings(db, matchId)).get(d)!.ratingHundredths;
+      };
+
+      const off = await settledFor(false);
+      const on = await settledFor(true);
+      expect(off).toBe(700);
+      expect(on).toBe(740);
+      expect(on).toBeGreaterThan(off);
+    });
+  });
+
+  it("does not count a blank as a ballot", async () => {
+    await withDb(async (db) => {
+      const f = await footballGame(db);
+      await setRatingSettings(f, { mode: "everyone" });
+      const a = await addMember(f, "a");
+      const b = await addMember(f, "b");
+      const c = await addMember(f, "c");
+      const d = await addMember(f, "d");
+      const matchId = await playScore(f, [a, b], [c, d], {
+        slot1: 1,
+        slot2: 0,
+      });
+      await rateAs(db, f.gameId, a, [
+        [d, 8],
+        [b, 7],
+      ]);
+      await rateAs(db, f.gameId, b, [[d, 6]]);
+      await rateAs(db, f.gameId, c, [[d, 7]]);
+      await rateAs(db, f.gameId, a, [[b, 7]]);
+
+      const toD = await db.query.performanceRatings.findMany({
+        where: eq(performanceRatings.rateeUserId, d),
+      });
+      expect(toD.map((row) => row.raterUserId).sort()).toEqual([b, c].sort());
+      await settle(db, matchId);
+      expect((await settledRatings(db, matchId)).has(d)).toBe(false);
+    });
+  });
+
+  it("lets a player change their ratings until the window closes, then refuses", async () => {
+    await withDb(async (db) => {
+      const f = await footballGame(db);
+      await setRatingSettings(f, { mode: "everyone" });
+      const a = await addMember(f, "a");
+      const b = await addMember(f, "b");
+      const matchId = await playScore(f, [a], [b], { slot1: 1, slot2: 0 });
+      await rateAs(db, f.gameId, a, [[b, 6]]);
+      await rateAs(db, f.gameId, a, [[b, 8]]);
+      const window = await db.query.matchRatingWindows.findFirst({
+        where: eq(matchRatingWindows.matchId, matchId),
+      });
+      const closed = await refusal(
+        submitPerformanceRatings(
+          db,
+          { gameId: f.gameId, userId: a, ratings: [{ userId: b, value: 9 }] },
+          window!.closesAt,
+        ),
+      );
+      expect(closed.code).toBe("CONFLICT");
+      const ballots = await db.query.performanceRatings.findMany({
+        where: eq(performanceRatings.matchId, matchId),
+      });
+      expect(ballots.map((row) => row.value)).toEqual([8]);
     });
   });
 });

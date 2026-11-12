@@ -312,12 +312,13 @@ export function notificationCopy(
   }
   if (
     item.type === "performance_ratings_open" &&
-    item.audience === "admin" &&
+    (item.audience === "admin" || item.audience === "player") &&
     item.game
   ) {
     return {
       title: m.performanceRatingsOpen(notificationGameName(item.game, locale)),
-      subline: sub.ratingsOpen,
+      subline:
+        item.audience === "admin" ? sub.ratingsOpen : sub.ratingsOpenEveryone,
     };
   }
   if (item.type === "mvp_tie_break" && item.audience === "admin" && item.game) {

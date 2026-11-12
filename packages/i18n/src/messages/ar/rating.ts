@@ -268,6 +268,8 @@ export const rating = {
       title: "قيّم المباراة",
       organizer: (closes: string) =>
         `امنح كل لاعب من 1 إلى 10. يُغلق ${isolate(closes)}، وبعدها تتحرّك النقاط بالنتيجة وحدها.`,
+      everyone: (closes: string) =>
+        `قيّم زملاءك، والخصوم إن أردت. لا أحد يرى من أعطى ماذا. يُغلق ${isolate(closes)}.`,
       cta: "قيّم",
     },
     hero: {
@@ -315,6 +317,37 @@ export const rating = {
       submit: "أرسل",
     },
     submitted: "أُرسلت التقييمات. تحرّكت نقاط الجميع.",
+    everyone: {
+      heading: "زملاؤك",
+      closesToday: (clock: string) => `يُغلق اليوم، ${isolate(clock)}`,
+      closesTomorrow: (clock: string) => `يُغلق غدًا، ${isolate(clock)}`,
+      closesOn: (day: string, clock: string) =>
+        `يُغلق ${day}، ${isolate(clock)}`,
+      privacy: (raters: number, players: number) =>
+        `لا أحد يرى من أعطى ماذا. قيّم ${raters} من ${players} حتى الآن`,
+      yourSide: "فريقك",
+      optional: "اختياري",
+      opponentsOptional: (n: number) =>
+        plural("ar", n, {
+          zero: "لا خصوم",
+          one: "خصم واحد، اختياري",
+          two: "خصمان، اختياري",
+          few: "{n} خصوم، اختياري",
+          many: "{n} خصمًا، اختياري",
+          other: "{n} خصم، اختياري",
+        }),
+      selfNote: "لا يمكنك تقييم نفسك",
+      footnote: "قيّم من رأيته، واترك الباقي فارغًا. الفراغ ليس صفرًا.",
+      footer: {
+        nothingYet: "لم تقيّم أحدًا بعد",
+        hiddenUntil: (rated: number, until: string) =>
+          `قيّمت ${rated}، مخفية حتى ${isolate(until)}`,
+        untilTomorrow: "الغد",
+        change: "يمكنك تغييرها حتى يُغلق",
+        send: "أرسل",
+      },
+      submitted: "أُرسلت التقييمات. يمكنك تغييرها حتى يُغلق.",
+    },
     closed: {
       title: "أُغلقت التقييمات",
       description:

@@ -16,6 +16,7 @@ import {
 import {
   ChevronDownIcon,
   ChevronUpIcon,
+  EyeOffIcon,
   LockIcon,
   StarIcon,
 } from "lucide-react";
@@ -97,6 +98,26 @@ function Hero({ hero }: { hero: RateGameView["hero"] }) {
           {hero.line}
         </p>
       ) : null}
+    </section>
+  );
+}
+
+function PrivacyPanel({
+  privacy,
+}: {
+  privacy: NonNullable<RateGameView["privacy"]>;
+}) {
+  return (
+    <section className="border-rule flex items-center gap-3 rounded-[16px] border px-4 py-3">
+      <span className="border-rule flex size-8 shrink-0 items-center justify-center rounded-[10px] border">
+        <EyeOffIcon aria-hidden="true" className="size-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-meta font-semibold">{privacy.title}</p>
+        <p className="text-eyebrow text-muted-foreground">
+          {privacy.description}
+        </p>
+      </div>
     </section>
   );
 }
@@ -226,9 +247,9 @@ function SideBlock({
         <span className="text-muted-foreground min-w-0 flex-1 truncate">
           {open ? null : side.collapsedLine}
         </span>
-        {open && side.result ? (
+        {open && side.aside ? (
           <span className="text-eyebrow text-muted-foreground">
-            {side.result}
+            {side.aside}
           </span>
         ) : null}
         <Chevron aria-hidden="true" className="size-4" />
@@ -281,7 +302,7 @@ function RateGameForm({ gameId, sheet }: { gameId: string; sheet: Sheet }) {
       toast.error(error instanceof Error ? error.message : m.common.tryAgain);
       return;
     }
-    toast.success(m.rating.performance.submitted);
+    toast.success(view.submitted);
     await Promise.all([
       utils.games.performanceRatingSheet.invalidate({ gameId }),
       utils.games.byId.invalidate({ id: gameId }),
@@ -294,6 +315,9 @@ function RateGameForm({ gameId, sheet }: { gameId: string; sheet: Sheet }) {
   return (
     <>
       <Hero hero={view.hero} />
+      {view.privacy && !view.notice ? (
+        <PrivacyPanel privacy={view.privacy} />
+      ) : null}
       {view.notice ? (
         <section className="border-rule rounded-[16px] border px-[22px] py-5">
           <p className="text-lead font-semibold">{view.notice.title}</p>
@@ -361,9 +385,11 @@ function RateGameForm({ gameId, sheet }: { gameId: string; sheet: Sheet }) {
 }
 
 /**
- * Rate the game (screen 4a): in Organizer mode the Organizer scores every
+ * Rate the game. Screen 4a: in Organizer mode the Organizer scores every
  * player 1 to 10 and stars the MVP; Submit closes the Rating window and
- * everyone's Tier points move.
+ * everyone's Tier points move. Screen 4b: when everyone rates, a player
+ * scores teammates and, if they want, opponents, and may change them until
+ * the window closes.
  */
 export function RateGamePage({ gameId }: { gameId: string }) {
   const m = useMessages();
