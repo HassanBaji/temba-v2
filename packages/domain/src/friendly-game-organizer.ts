@@ -1,5 +1,4 @@
 import type { Locale } from "@repo/i18n/locale";
-import { messagesFor } from "@repo/i18n/messages";
 
 import { organizerCanAddPlayer } from "./add-player-by-phone";
 import { friendlyGameOverflowItems } from "./friendly-game-cta";
