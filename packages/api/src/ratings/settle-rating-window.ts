@@ -393,10 +393,9 @@ async function applySettledLevelMatch(
   database: DbClient,
   args: {
     game: { id: string; groupId: string | null };
-    match: typeof matches.$inferSelect & {
-      slot1GameTeamId: string;
-      slot2GameTeamId: string;
-    };
+    matchId: string;
+    slot1GameTeamId: string;
+    slot2GameTeamId: string;
     result: "slot1" | "slot2" | "draw";
     score: { slot1: number; slot2: number } | null;
     performance: ReadonlyMap<string, number>;
@@ -410,7 +409,7 @@ async function applySettledLevelMatch(
       columns: { mvpUserId: true, mvpDecidedBy: true, mvpSettledAt: true },
     }),
     database.query.matchGoals.findMany({
-      where: eq(matchGoals.matchId, args.match.id),
+      where: eq(matchGoals.matchId, args.matchId),
       columns: { userId: true, goals: true },
     }),
     database.query.gamePlayers.findMany({
@@ -420,9 +419,9 @@ async function applySettledLevelMatch(
     ratingWeightForGame(database, args.game.groupId),
   ]);
   await applyFootballLevelMatch(database, {
-    matchId: args.match.id,
-    slot1GameTeamId: args.match.slot1GameTeamId,
-    slot2GameTeamId: args.match.slot2GameTeamId,
+    matchId: args.matchId,
+    slot1GameTeamId: args.slot1GameTeamId,
+    slot2GameTeamId: args.slot2GameTeamId,
     result: args.result,
     weight,
     now: args.now,
@@ -570,11 +569,9 @@ export async function settleRatingWindow(
     if (outcome.result !== "none" && gameRates(game)) {
       await applySettledLevelMatch(database, {
         game,
-        match: {
-          ...match,
-          slot1GameTeamId: match.slot1GameTeamId,
-          slot2GameTeamId: match.slot2GameTeamId,
-        },
+        matchId,
+        slot1GameTeamId: match.slot1GameTeamId,
+        slot2GameTeamId: match.slot2GameTeamId,
         result: outcome.result,
         score: footballScoreOf(sets[0] ?? null),
         performance: scores,

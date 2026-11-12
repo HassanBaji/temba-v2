@@ -97,6 +97,7 @@ describe("games.performanceRatingResult (screen 4c)", () => {
         mode: "organizer",
         closesAt: window.closesAt,
         played: true,
+        countsForLevel: false,
         result: null,
       });
     });
