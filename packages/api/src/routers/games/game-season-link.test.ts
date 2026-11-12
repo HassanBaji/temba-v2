@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   GamePositionEnum,
@@ -179,6 +179,15 @@ async function completeMatch(f: Fixture, gameId: string) {
 }
 
 describe("a Game's Season link", () => {
+  // gameById reads the clock itself; freeze Date only so PGlite's timers still run.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("starts in the Season that holds the game day and reads it on byId", async () => {
     const f = await fixture();
     try {
@@ -280,6 +289,7 @@ describe("a Game's Season link", () => {
         gameId,
         userId: f.owner.id,
         name: "Sun 7:00 PM - 8:30 PM",
+        now: NOW,
       };
 
       await expect(
