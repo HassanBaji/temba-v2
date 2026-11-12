@@ -29,7 +29,7 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 
 import {
   ScaledCanvas,
@@ -104,7 +104,22 @@ function usePickedPhoto() {
   return { url, input, pick: () => inputRef.current?.click() };
 }
 
-export function ShareResultPage({ gameId }: { gameId: string }) {
+type ShareGame = RouterOutputs["games"]["byId"];
+
+/** A Game's result as a story or a sticker, with the share doors under it. */
+function GameShareResult({
+  gameId,
+  game,
+  url,
+  doneAction,
+  onRetryGame,
+}: {
+  gameId: string;
+  game: ShareGame;
+  url: string | null;
+  doneAction: React.ReactNode;
+  onRetryGame: () => void;
+}) {
   const locale = useLocale();
   const messages = useMessages();
   const m = messages.webUi.shareResult;
@@ -114,28 +129,23 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
   const stickerRef = React.useRef<HTMLDivElement | null>(null);
   const photo = usePickedPhoto();
 
-  const game = api.games.byId.useQuery({ id: gameId });
-  const football = game.data != null && isFootballRosterGame(game.data);
+  const football = isFootballRosterGame(game);
   const board = api.games.footballBoard.useQuery(
     { gameId },
     { enabled: football },
   );
-  const link = api.games.resultLink.useQuery({ gameId });
   const marks = api.marks.forGame.useQuery({ gameId });
 
   const card = React.useMemo(
     () =>
-      game.data
-        ? resultShareCard(
-            game.data,
-            football ? (board.data ?? null) : null,
-            locale,
-            resultCardMvp(marks.data, locale),
-          )
-        : null,
-    [game.data, board.data, football, marks.data, locale],
+      resultShareCard(
+        game,
+        football ? (board.data ?? null) : null,
+        locale,
+        resultCardMvp(marks.data, locale),
+      ),
+    [game, board.data, football, marks.data, locale],
   );
-  const url = link.data?.url ?? null;
   const fileName = `temba-result-${mode}.png`;
 
   async function capture() {
@@ -160,41 +170,19 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
       card ? formatResultShareMessage(card, url ?? "", locale) : (url ?? ""),
   });
   const { pending } = share;
-  const gameHref = `/dashboard/games/${gameId}`;
-  const doneAction = (
-    <Button variant="ghost" className="font-semibold" asChild>
-      <Link href={gameHref}>{messages.common.done}</Link>
-    </Button>
-  );
 
-  if (isNotFoundError(game.error)) {
-    notFound();
-  }
-  if (game.data && isDrawnTournamentDetails(game.data)) {
-    return (
-      <TournamentShareResult
-        game={game.data}
-        url={url}
-        doneAction={doneAction}
-        onRetry={() => void game.refetch()}
-      />
-    );
-  }
-  if (game.error || (football && board.error)) {
+  if (football && board.error) {
     return (
       <DashboardShell title={m.title} action={doneAction} isSubPage>
         <ErrorState
           title={m.loadError}
-          message={game.error?.message ?? board.error?.message}
-          onRetry={() => {
-            void game.refetch();
-            void board.refetch();
-          }}
+          message={board.error.message}
+          onRetry={() => void board.refetch()}
         />
       </DashboardShell>
     );
   }
-  if (!game.data || (football && !board.data) || marks.isLoading) {
+  if ((football && !board.data) || marks.isLoading) {
     return (
       <DashboardShell title={m.title} action={doneAction} isSubPage>
         <GameDetailsSkeleton />
@@ -209,7 +197,7 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
           message={m.noResultMessage}
           retryLabel={m.checkAgain}
           onRetry={() => {
-            void game.refetch();
+            onRetryGame();
             void board.refetch();
           }}
         />
@@ -309,5 +297,64 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
         </div>
       </div>
     </DashboardShell>
+  );
+}
+
+/**
+ * Loads the Game once, then draws a Game result or, for a drawn Friendly
+ * tournament, the tournament's card.
+ */
+export function ShareResultPage({ gameId }: { gameId: string }) {
+  const messages = useMessages();
+  const m = messages.webUi.shareResult;
+  const game = api.games.byId.useQuery({ id: gameId });
+  const link = api.games.resultLink.useQuery({ gameId });
+  const url = link.data?.url ?? null;
+  const doneAction = (
+    <Button variant="ghost" className="font-semibold" asChild>
+      <Link href={`/dashboard/games/${gameId}`}>{messages.common.done}</Link>
+    </Button>
+  );
+  const retry = () => void game.refetch();
+
+  if (isNotFoundError(game.error)) {
+    notFound();
+  }
+  if (game.error) {
+    return (
+      <DashboardShell title={m.title} action={doneAction} isSubPage>
+        <ErrorState
+          title={m.loadError}
+          message={game.error.message}
+          onRetry={retry}
+        />
+      </DashboardShell>
+    );
+  }
+  if (!game.data) {
+    return (
+      <DashboardShell title={m.title} action={doneAction} isSubPage>
+        <GameDetailsSkeleton />
+      </DashboardShell>
+    );
+  }
+  if (isDrawnTournamentDetails(game.data)) {
+    return (
+      <TournamentShareResult
+        game={game.data}
+        url={url}
+        doneAction={doneAction}
+        onRetry={retry}
+      />
+    );
+  }
+  return (
+    <GameShareResult
+      gameId={gameId}
+      game={game.data}
+      url={url}
+      doneAction={doneAction}
+      onRetryGame={retry}
+    />
   );
 }

@@ -166,8 +166,15 @@ export function TournamentPreviewStates({
       </div>
       <section className="space-y-4">
         <h2 className="text-title font-semibold">Finished share card</h2>
-        <div className="max-w-column w-full">
-          <ShareCardPreview data={fixtures.finished} />
+        <div className="grid items-start gap-10 lg:grid-cols-2">
+          <div className="max-w-column w-full" data-preview="share-placing">
+            <ShareCardPreview data={fixtures.finished} />
+          </div>
+          <div className="max-w-column w-full" data-preview="share-table">
+            <ShareCardPreview
+              data={{ ...fixtures.finished, isOrganizer: true }}
+            />
+          </div>
         </div>
       </section>
       <section className="space-y-4">

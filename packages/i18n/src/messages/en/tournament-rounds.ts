@@ -10,6 +10,12 @@ const pointsLong = (count: number) =>
   plural("en", count, { one: "1 point", other: "{n} points" });
 const teamsWord = (count: number) =>
   plural("en", count, { one: "1 team", other: "{n} teams" });
+type TeamRecord = {
+  won: number;
+  drawn: number;
+  lost: number;
+  points: number;
+};
 const PLACE_WORDS = [
   "First",
   "Second",
@@ -294,35 +300,36 @@ export const tournamentRounds = {
     podiumLabel: "Top of the table",
     wonTheDay: "Won the day",
     wonPool: (pool: string) => `Won ${pool}`,
-    wonTheFinal: "Won the final",
+    champion: "Champion",
+    wonTheFinal: "Won the Final",
     runnerUp: "Runner-up",
+    outIn: (round: string) => `Out in the ${round}`,
     place: (place: number) => PLACE_WORDS[place - 1] ?? ordinal(place),
     placeInPool: (place: string, pool: string) => `${place} in ${pool}`,
-    record: (won: number, drawn: number, lost: number, points: number) =>
-      `${won}–${drawn}–${lost}, ${pointsLong(points)}`,
+    record: (record: TeamRecord) =>
+      `${record.won}–${record.drawn}–${record.lost}, ${pointsLong(record.points)}`,
     behind: (record: string, points: number) =>
       `${record}, ${pointsLong(points)} behind`,
     you: (partner: string | null) => (partner ? `You & ${partner}` : "You"),
     placeWithPoints: (place: string, points: number) =>
       `${place}, ${pointsLong(points)}`,
     resultsLabel: (summary: string) => `Your results: ${summary}`,
-    finalNote: (ties: string) => `Final. ${ties}`,
-    yourGamesTitle: (count: number) =>
-      plural("en", count, { one: "Your game", other: "Your {n} games" }),
+    finalNote: (ties: string) => `Final table. ${ties}`,
+    yourMatchesTitle: (count: number) =>
+      plural("en", count, { one: "Your Match", other: "Your {n} Matches" }),
     gamesForAgainst: (scored: number, conceded: number) =>
-      `${scored} games for, ${conceded} against`,
+      `${games(scored)} for, ${conceded} against`,
+    lostToWinners: (round: number) => `Round ${round}, lost to the winners`,
     allScoresIn: (count: number) =>
       plural("en", count, {
         one: "The score is in",
         other: "All {n} scores are in",
       }),
     canStillFix: "The table is final. You can still fix a score below.",
-    resultsPosted: "The table is final.",
     shareYourDay: "Share your day",
     shareTable: "Share the final table",
   },
   shareCard: {
-    title: "Share the result",
     tag: "Tournament",
     eyebrow: (name: string, day: string | null, venue: string | null) =>
       [day ? `${name}, ${day}` : name, venue].filter(Boolean).join(". "),
@@ -330,12 +337,24 @@ export const tournamentRounds = {
     ofTeams: (count: number) => `of ${teamsWord(count)}`,
     inPool: (pool: string) => `in ${pool}`,
     wonTheDay: "won the day",
-    record: (won: number, drawn: number, lost: number, points: number) =>
-      `${won} won, ${drawn} drawn, ${lost} lost. ${pointsLong(points)}`,
-    imageLabel: (placing: string, team: string) =>
-      `Result card: ${placing}, ${team}`,
-    message: (name: string, placing: string, team: string) =>
-      `${name}: ${team} finished ${placing}`,
+    champion: "Champion",
+    record: (record: TeamRecord) =>
+      `${record.won} won, ${record.drawn} drawn, ${record.lost} lost. ${pointsLong(record.points)}`,
+    placingLine: (placing: string, note: string) => `${placing} ${note}`,
+    imageLabel: (placingLine: string, team: string) =>
+      `Result card: ${placingLine}, ${team}`,
+    message: (name: string, placingLine: string, team: string) =>
+      `${name}: ${team}, ${placingLine}`,
+    tableTitle: "Final table",
+    poolWinnersTitle: "Group winners",
+    finalTitle: "The Final",
+    points,
+    tableLine: (place: string, team: string, points: string | null) =>
+      points ? `${place}. ${team}, ${points}` : `${place}. ${team}`,
+    tableImageLabel: (name: string, title: string) =>
+      `Result card: ${name}, ${title}`,
+    tableMessage: (name: string, title: string, lines: string) =>
+      `${name}, ${title}\n${lines}`,
     format: "1080 × 1080 PNG",
   },
   loadFailed: "The Rounds could not be loaded",

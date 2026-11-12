@@ -41,6 +41,7 @@ import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import { gameInviteAccess } from "@repo/domain/invites";
 import type { PlayedRow } from "@repo/domain/played-game";
 import { kickableTournamentOccupants } from "@repo/domain/tournament-organizer";
+import { isTournamentFinished } from "@repo/domain/tournament-finished";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 import { useRouter, useSegments } from "expo-router";
 import { ArrowLeftRight, LogIn, UserPlus } from "lucide-react-native";
@@ -440,6 +441,7 @@ export function GameDetailsScreen({
         cancelledAt: data.cancelledAt,
         registrationMode: data.registrationMode,
         partnerRequired: isPartnerRequiredGame(data),
+        over: isTournamentFinished(data),
       })
     : null;
   const shareContext = data

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, X, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ShareIcon, X, type LucideIcon } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
 import type { MouseEvent, MouseEventHandler } from "react";
 
@@ -163,4 +163,15 @@ export function BackButton({ label, ...props }: NavIconButtonProps) {
 export function CloseButton({ label, ...props }: NavIconButtonProps) {
   const m = useMessages();
   return <NavIconButton icon={X} label={label ?? m.common.close} {...props} />;
+}
+
+export function ShareButton({ label, ...props }: NavIconButtonProps) {
+  const m = useMessages();
+  return (
+    <NavIconButton
+      icon={ShareIcon}
+      label={label ?? m.common.share}
+      {...props}
+    />
+  );
 }

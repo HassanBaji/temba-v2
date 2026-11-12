@@ -33,8 +33,8 @@ import {
   TournamentUndoPoolDraw,
 } from "~/components/games/tournament-draw-drawer";
 import {
-  FinishedPodium,
   FinishedShareLink,
+  TournamentFinishedHeader,
 } from "~/components/games/tournament-finished-parts";
 import { TournamentHero } from "~/components/games/tournament-hero";
 import { TournamentKnockoutTree } from "~/components/games/tournament-knockout-tree";
@@ -233,8 +233,8 @@ export function TournamentHome({
         waitlist={data.waitlist}
         onShare={drawn && !finished ? onShare : undefined}
         onEdit={onEdit}
-        onCloseRegistration={onCloseRegistration}
-        onReopenRegistration={onReopenRegistration}
+        onCloseRegistration={finished ? undefined : onCloseRegistration}
+        onReopenRegistration={finished ? undefined : onReopenRegistration}
         onCancelGame={onCancelGame}
         onKickWaitlist={onKickWaitlist}
         onAddPlayer={onAddPlayer}
@@ -273,6 +273,7 @@ export function TournamentHome({
             <TournamentDrawnHome
               data={data}
               standings={tournamentStandingsView(data, locale)}
+              finished={finished}
               backHref={backHref}
               actions={actionsMenu(!finished)}
               album={album}
@@ -633,21 +634,26 @@ function TournamentStandingsTree({
   return (
     <div className="space-y-6">
       <div>
-        <TournamentStandingsHeader
-          actions={actions}
-          name={standings.name}
-          roundsPlayed={standings.roundsPlayed}
-          finished={standings.finished}
-          backHref={backHref}
-          heading={standings.heading}
-          lead={standings.lead}
-          championLine={finished ? null : standings.championLine}
-        />
-        {finished && finished.podium.length > 0 ? (
-          <div className="pt-[18px]">
-            <FinishedPodium view={finished} />
-          </div>
-        ) : null}
+        {finished ? (
+          <TournamentFinishedHeader
+            view={finished}
+            gameId={gameId}
+            backHref={backHref}
+            chip={null}
+            actions={actions}
+          />
+        ) : (
+          <TournamentStandingsHeader
+            actions={actions}
+            name={standings.name}
+            roundsPlayed={standings.roundsPlayed}
+            finished={standings.finished}
+            backHref={backHref}
+            heading={standings.heading}
+            lead={standings.lead}
+            championLine={standings.championLine}
+          />
+        )}
         {standings.showKnockoutTree && knockout ? (
           <div className="pt-[18px]">
             <TournamentKnockoutTree
@@ -699,7 +705,7 @@ function TournamentStandingsTree({
       ) : null}
       {album}
       {finished ? (
-        <FinishedShareLink gameId={gameId} label={finished.shareLabel} />
+        <FinishedShareLink gameId={gameId} label={finished.share.label} />
       ) : null}
     </div>
   );
@@ -928,23 +934,23 @@ function TournamentActionsMenu({
       onSelect: onShare,
     });
   }
-  tools.push(
-    registrationClosed
-      ? {
-          key: "reopen_registration",
-          label: m.game.action.reopenRegistration,
-          icon: LockOpenIcon,
-          disabled: reopenPending,
-          onSelect: onReopenRegistration,
-        }
-      : {
-          key: "close_registration",
-          label: m.game.action.closeRegistration,
-          icon: LockIcon,
-          disabled: closePending,
-          onSelect: onCloseRegistration,
-        },
-  );
+  if (registrationClosed && onReopenRegistration) {
+    tools.push({
+      key: "reopen_registration",
+      label: m.game.action.reopenRegistration,
+      icon: LockOpenIcon,
+      disabled: reopenPending,
+      onSelect: onReopenRegistration,
+    });
+  } else if (!registrationClosed && onCloseRegistration) {
+    tools.push({
+      key: "close_registration",
+      label: m.game.action.closeRegistration,
+      icon: LockIcon,
+      disabled: closePending,
+      onSelect: onCloseRegistration,
+    });
+  }
   if (onEdit) {
     tools.push({
       key: "edit",

@@ -12,11 +12,13 @@ import {
   groupsThenKnockoutReviewValue,
 } from "@repo/domain/tournament-knockout";
 import { type KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
-import { tournamentFinishedView } from "@repo/domain/tournament-finished";
+import {
+  confirmedMatchCount,
+  type TournamentFinishedView,
+} from "@repo/domain/tournament-finished";
 import { poolLabel } from "@repo/domain/tournament-pool-draw";
 
 import { PageTitle } from "~/components/layout/page-title";
-import { BackButton } from "~/components/ui/nav-icon-button";
 import { Surface } from "~/components/ui/surface";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -28,6 +30,7 @@ import {
   FinishedShareLink,
   TournamentFinishedHeader,
 } from "./tournament-finished-parts";
+import { TournamentHeaderBar } from "./tournament-header-bar";
 import { TournamentKnockoutTree } from "./tournament-knockout-tree";
 import { TournamentPairDrawer } from "./tournament-pair-drawer";
 import {
@@ -85,6 +88,7 @@ function roundsLead(
 export function TournamentDrawnHome({
   data,
   standings,
+  finished,
   backHref,
   actions,
   album,
@@ -95,6 +99,8 @@ export function TournamentDrawnHome({
 }: {
   data: GameDetail;
   standings: TournamentStandingsView;
+  /** The finished view once the day is over; null while it runs. */
+  finished: TournamentFinishedView | null;
   backHref: string;
   actions?: React.ReactNode;
   /** Album and Notes, under the tabs and above Share. */
@@ -166,14 +172,6 @@ export function TournamentDrawnHome({
       ? poolLabel(viewerPool, locale)
       : null;
   const eyebrow = [data.name, data.venue?.name].filter(Boolean).join(", ");
-  const finished = tournamentFinishedView(data, locale);
-  const confirmedScores =
-    rounds?.rounds.reduce(
-      (count, round) =>
-        count +
-        round.matches.filter((match) => match.state === "confirmed").length,
-      0,
-    ) ?? 0;
 
   const titles: Record<Tab, string> = {
     teams: m.tabs.teams,
@@ -204,17 +202,9 @@ export function TournamentDrawnHome({
           tone="ink"
           className={cn("pb-[22px] pt-[22px] md:-mt-6", pageBleed)}
         >
-          <div className="flex items-center justify-between gap-3">
-            <BackButton variant="boxed" surface="ink" href={backHref} />
-            <div className="flex items-center gap-2">
-              {chip ? (
-                <span className="border-dimrule text-dim text-eyebrow rounded-sm border px-2 py-1 uppercase tracking-[0.1em]">
-                  {chip}
-                </span>
-              ) : null}
-              {actions}
-            </div>
-          </div>
+          <TournamentHeaderBar surface="ink" backHref={backHref} chip={chip}>
+            {actions}
+          </TournamentHeaderBar>
           <div className="text-dim text-meta mt-7 flex items-baseline justify-between gap-3">
             <p className="min-w-0 truncate">{eyebrow}</p>
             {data.windowStart ? (
@@ -286,8 +276,7 @@ export function TournamentDrawnHome({
           {finished && rounds?.isOrganizer ? (
             <div className="pb-[22px]">
               <FinishedScoresNote
-                scoreCount={confirmedScores}
-                canFix={!data.cancelledAt}
+                scoreCount={confirmedMatchCount(rounds.rounds)}
               />
             </div>
           ) : null}
@@ -339,7 +328,7 @@ export function TournamentDrawnHome({
       {album ? <div className="pt-[26px] empty:hidden">{album}</div> : null}
       {finished ? (
         <div className="pt-6">
-          <FinishedShareLink gameId={data.id} label={finished.shareLabel} />
+          <FinishedShareLink gameId={data.id} label={finished.share.label} />
         </div>
       ) : null}
 

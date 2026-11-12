@@ -137,6 +137,7 @@ import {
   tournamentInviteLandingOpensPartnerSheet,
   tournamentLeaveOrKickConfirmCopy,
 } from "@repo/domain/tournament-join";
+import { isTournamentFinished } from "@repo/domain/tournament-finished";
 import { tournamentRoundsPlan } from "@repo/domain/tournament-organizer";
 import {
   isPartnerRequiredGame,
@@ -647,6 +648,7 @@ export default function GameHomePage({
         cancelledAt: data.cancelledAt,
         registrationMode: data.registrationMode,
         partnerRequired: isPartnerRequiredGame(data),
+        over: isTournamentFinished(data),
       })
     : { canManage: false, canSendLookup: false };
   const canMintInvite = data ? friendlyGameCanMintInvite(data) : false;

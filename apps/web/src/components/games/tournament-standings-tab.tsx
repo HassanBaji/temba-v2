@@ -39,16 +39,16 @@ function statValue(value: number | null) {
 
 function PoolTable({
   rows,
-  finished,
-  final,
+  poolFinished,
+  dayOver,
   qualifiers,
   teams,
   viewerUserId,
 }: {
   rows: PoolRow[];
-  finished: boolean;
+  poolFinished: boolean;
   /** The whole day is over: rank 1 is marked and P drops out. */
-  final: boolean;
+  dayOver: boolean;
   qualifiers: number | null;
   teams: ReadonlyMap<string, RoundsTeam>;
   viewerUserId: string;
@@ -57,7 +57,7 @@ function PoolTable({
   const m = messages.standings;
   const anyPlayed = rows.some((row) => row.played != null);
   const stats = (row: PoolRow) =>
-    final
+    dayOver
       ? [row.won, row.drawn, row.lost]
       : [row.played, row.won, row.drawn, row.lost];
   return (
@@ -72,7 +72,7 @@ function PoolTable({
               <th scope="col" className="px-2 py-3 text-start font-normal">
                 {m.team}
               </th>
-              {final ? null : (
+              {dayOver ? null : (
                 <th scope="col" className={cn(STAT, "font-normal")}>
                   <abbr title={m.playedLong} className="no-underline">
                     {m.played}
@@ -118,7 +118,7 @@ function PoolTable({
                     )}
                   >
                     <td className="text-muted-foreground text-meta py-3 ps-4 tabular-nums">
-                      {final && row.position === 1 ? (
+                      {dayOver && row.position === 1 ? (
                         <>
                           <PlaceChip place={1} />
                           <span className="sr-only">{row.position}</span>
@@ -132,7 +132,7 @@ function PoolTable({
                         <TeamMark team={team} isViewer={row.isViewer} />
                         <TeamNames team={team} viewerUserId={viewerUserId} />
                       </span>
-                      {finished && row.isWinner && !final ? (
+                      {poolFinished && row.isWinner && !dayOver ? (
                         <span className="text-meta text-muted-foreground ms-[46px] block">
                           {m.winner}
                         </span>
@@ -162,7 +162,7 @@ function PoolTable({
                   </tr>
                   {lineAfter ? (
                     <tr aria-hidden="true">
-                      <td colSpan={final ? 6 : 7} className="px-4 py-0">
+                      <td colSpan={dayOver ? 6 : 7} className="px-4 py-0">
                         <div className="text-muted-foreground flex items-center gap-2 text-[11px]">
                           <span className="border-rule flex-1 border-t border-dashed" />
                           {m.throughLine}
@@ -178,7 +178,7 @@ function PoolTable({
         </table>
       </div>
       <p className="text-muted-foreground text-meta mt-2.5 leading-relaxed">
-        {final
+        {dayOver
           ? messages.finished.finalNote(m.ties)
           : anyPlayed
             ? m.ties
@@ -238,14 +238,14 @@ export function TournamentYourRoundsList({
   teams,
   viewerUserId,
   onEnterScore,
-  finishedGames = null,
+  viewerDay = null,
 }: {
   data: TournamentRoundsData;
   teams: ReadonlyMap<string, RoundsTeam>;
   viewerUserId: string;
   onEnterScore: (target: ScoreSheetTarget) => void;
   /** Once the day is over the heading counts games for and against. */
-  finishedGames?: TournamentFinishedView["viewerGames"];
+  viewerDay?: TournamentFinishedView["viewerDay"];
 }) {
   const m = useMessages().tournamentRounds;
   const locale = useLocale();
@@ -274,15 +274,15 @@ export function TournamentYourRoundsList({
           id="your-rounds-heading"
           className="font-expanded text-title tracking-[-0.03em]"
         >
-          {finishedGames
-            ? m.finished.yourGamesTitle(finishedGames.count)
+          {viewerDay
+            ? m.finished.yourMatchesTitle(viewerDay.matchCount)
             : m.yourRounds.title}
         </h2>
         <p className="text-muted-foreground text-meta">
-          {finishedGames
+          {viewerDay
             ? m.finished.gamesForAgainst(
-                finishedGames.scored,
-                finishedGames.conceded,
+                viewerDay.gamesFor,
+                viewerDay.gamesAgainst,
               )
             : m.yourRounds.meta(played, data.roundCount)}
         </p>
@@ -293,16 +293,21 @@ export function TournamentYourRoundsList({
             match.slot1GameTeamId === viewerTeamId
               ? (1 as const)
               : (2 as const);
-          const opponent = teams.get(
-            viewerSlot === 1 ? match.slot2GameTeamId : match.slot1GameTeamId,
-          );
-          const row = yourRoundLine(
+          const opponentId =
+            viewerSlot === 1 ? match.slot2GameTeamId : match.slot1GameTeamId;
+          const opponent = teams.get(opponentId);
+          const line = yourRoundLine(
             roundNumber,
             match,
             viewerSlot,
             m.yourRounds,
             locale,
           );
+          const row =
+            line.mark === "lost" &&
+            viewerDay?.poolWinnerGameTeamId === opponentId
+              ? { ...line, line: m.finished.lostToWinners(roundNumber) }
+              : line;
           const upcoming =
             match.state === "scheduled" || match.state === "on_court";
           return (
@@ -404,8 +409,8 @@ export function TournamentStandingsTab({
     <PoolTable
       key={pool.poolIndex}
       rows={pool.rows}
-      finished={pool.finished}
-      final={finished != null}
+      poolFinished={pool.finished}
+      dayOver={finished != null}
       qualifiers={qualifiers}
       teams={teams}
       viewerUserId={viewerUserId}
@@ -445,7 +450,7 @@ export function TournamentStandingsTab({
           teams={teams}
           viewerUserId={viewerUserId}
           onEnterScore={onEnterScore}
-          finishedGames={finished?.viewerGames ?? null}
+          viewerDay={finished?.viewerDay ?? null}
         />
       ) : null}
     </div>

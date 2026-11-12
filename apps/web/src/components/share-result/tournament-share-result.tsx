@@ -81,7 +81,7 @@ export function TournamentShareResult({
 
   if (!card) {
     return (
-      <DashboardShell title={copy.title} action={doneAction} isSubPage>
+      <DashboardShell title={m.title} action={doneAction} isSubPage>
         <ErrorState
           title={m.noResultTitle}
           message={m.noResultMessage}
@@ -93,7 +93,7 @@ export function TournamentShareResult({
   }
 
   return (
-    <DashboardShell title={copy.title} action={doneAction} isSubPage>
+    <DashboardShell title={m.title} action={doneAction} isSubPage>
       <div className="mx-auto max-w-[520px] space-y-5">
         <div className="space-y-2.5">
           <PreviewWell full={full}>

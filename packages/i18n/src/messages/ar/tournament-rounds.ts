@@ -38,6 +38,49 @@ const points = (count: number) =>
   });
 
 const pointsLong = points;
+const gamesWon = (count: number) =>
+  plural("ar", count, {
+    zero: "لا أشواط",
+    one: "شوط واحد",
+    two: "شوطان",
+    few: "{n} أشواط",
+    many: "{n} شوطًا",
+    other: "{n} شوط",
+  });
+const wins = (count: number) =>
+  plural("ar", count, {
+    zero: "لا فوز",
+    one: "فوز واحد",
+    two: "فوزان",
+    few: "{n} انتصارات",
+    many: "{n} انتصارًا",
+    other: "{n} انتصار",
+  });
+const draws = (count: number) =>
+  plural("ar", count, {
+    zero: "لا تعادل",
+    one: "تعادل واحد",
+    two: "تعادلان",
+    few: "{n} تعادلات",
+    many: "{n} تعادلًا",
+    other: "{n} تعادل",
+  });
+const losses = (count: number) =>
+  plural("ar", count, {
+    zero: "لا خسارة",
+    one: "خسارة واحدة",
+    two: "خسارتان",
+    few: "{n} خسارات",
+    many: "{n} خسارة",
+    other: "{n} خسارة",
+  });
+
+type TeamRecord = {
+  won: number;
+  drawn: number;
+  lost: number;
+  points: number;
+};
 const PLACE_WORDS = [
   "الأول",
   "الثاني",
@@ -304,22 +347,24 @@ export const tournamentRounds = {
       return venue ? `${venue}. ${tail}` : tail;
     },
     podiumLabel: "صدارة الترتيب",
-    wonTheDay: "بطل اليوم",
-    wonPool: (pool: string) => `بطل ${pool}`,
+    wonTheDay: "تصدّر اليوم",
+    wonPool: (pool: string) => `تصدّر ${pool}`,
+    champion: "البطل",
     wonTheFinal: "فاز بالنهائي",
     runnerUp: "الوصيف",
+    outIn: (round: string) => `خرج في ${round}`,
     place: (place: number) => `المركز ${placeWord(place)}`,
     placeInPool: (place: string, pool: string) => `${place} في ${pool}`,
-    record: (won: number, drawn: number, lost: number, points: number) =>
-      `${won}–${drawn}–${lost}، ${pointsLong(points)}`,
+    record: (record: TeamRecord) =>
+      `${record.won}–${record.drawn}–${record.lost}، ${pointsLong(record.points)}`,
     behind: (record: string, points: number) =>
       `${record}، بفارق ${pointsLong(points)}`,
     you: (partner: string | null) => (partner ? `أنت و${partner}` : "أنت"),
     placeWithPoints: (place: string, points: number) =>
       `${place}، ${pointsLong(points)}`,
     resultsLabel: (summary: string) => `نتائجك: ${summary}`,
-    finalNote: (ties: string) => `نهائي. ${ties}`,
-    yourGamesTitle: (count: number) =>
+    finalNote: (ties: string) => `الترتيب النهائي. ${ties}`,
+    yourMatchesTitle: (count: number) =>
       plural("ar", count, {
         one: "مباراتك",
         two: "مباراتاك",
@@ -328,7 +373,8 @@ export const tournamentRounds = {
         other: "مبارياتك الـ{n}",
       }),
     gamesForAgainst: (scored: number, conceded: number) =>
-      `${scored} شوطًا لك، ${conceded} عليك`,
+      `${gamesWon(scored)} لك، ${conceded} عليك`,
+    lostToWinners: (round: number) => `الجولة ${round}، خسارة أمام المتصدرين`,
     allScoresIn: (count: number) =>
       plural("ar", count, {
         one: "وصلت النتيجة",
@@ -338,25 +384,35 @@ export const tournamentRounds = {
         other: "وصلت النتائج الـ{n} كلها",
       }),
     canStillFix: "الترتيب نهائي. ما زال بإمكانك تصحيح أي نتيجة أدناه.",
-    resultsPosted: "الترتيب نهائي.",
     shareYourDay: "شارك يومك",
     shareTable: "شارك الترتيب النهائي",
   },
   shareCard: {
-    title: "شارك النتيجة",
     tag: "بطولة",
     eyebrow: (name: string, day: string | null, venue: string | null) =>
       [day ? `${name}، ${day}` : name, venue].filter(Boolean).join(". "),
     ordinal: (place: number) => placeWord(place),
     ofTeams: (count: number) => `من ${teams(count)}`,
     inPool: (pool: string) => `في ${pool}`,
-    wonTheDay: "بطل اليوم",
-    record: (won: number, drawn: number, lost: number, points: number) =>
-      `${won} فوز، ${drawn} تعادل، ${lost} خسارة. ${pointsLong(points)}`,
-    imageLabel: (placing: string, team: string) =>
-      `بطاقة النتيجة: ${placing}، ${team}`,
-    message: (name: string, placing: string, team: string) =>
-      `${name}: ${team} في المركز ${placing}`,
+    wonTheDay: "تصدّر اليوم",
+    champion: "البطل",
+    record: (record: TeamRecord) =>
+      `${wins(record.won)}، ${draws(record.drawn)}، ${losses(record.lost)}. ${pointsLong(record.points)}`,
+    placingLine: (placing: string, note: string) => `${placing}، ${note}`,
+    imageLabel: (placingLine: string, team: string) =>
+      `بطاقة النتيجة: ${placingLine}، ${team}`,
+    message: (name: string, placingLine: string, team: string) =>
+      `${name}: ${team}، ${placingLine}`,
+    tableTitle: "الترتيب النهائي",
+    poolWinnersTitle: "متصدرو المجموعات",
+    finalTitle: "النهائي",
+    points,
+    tableLine: (place: string, team: string, points: string | null) =>
+      points ? `${place}. ${team}، ${points}` : `${place}. ${team}`,
+    tableImageLabel: (name: string, title: string) =>
+      `بطاقة النتيجة: ${name}، ${title}`,
+    tableMessage: (name: string, title: string, lines: string) =>
+      `${name}، ${title}\n${lines}`,
     format: "PNG بمقاس 1080 × 1080",
   },
   loadFailed: "تعذّر تحميل الجولات",

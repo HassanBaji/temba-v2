@@ -4,7 +4,6 @@ import { CheckIcon, ShareIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { initials } from "@repo/domain/initials";
 import type {
   FinishedPodiumRow,
   TournamentFinishedView,
@@ -13,29 +12,29 @@ import type {
 import { PageTitle } from "~/components/layout/page-title";
 import { ResultMark } from "~/components/temba/result-mark";
 import { buttonVariants } from "~/components/ui/button";
-import { BackButton } from "~/components/ui/nav-icon-button";
+import { ShareButton } from "~/components/ui/nav-icon-button";
 import { Surface } from "~/components/ui/surface";
 import { useMessages } from "~/components/locale-provider";
 import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
-import { ROUND_CARD } from "./tournament-round-parts";
+import { shareResultHref } from "./played/played-game-view";
+import { TournamentHeaderBar } from "./tournament-header-bar";
+import { InitialsMark, ROUND_CARD } from "./tournament-round-parts";
 
-const ACTION_BOX =
-  "border-rule text-ink focus-visible:ring-ring/50 inline-flex size-11 shrink-0 items-center justify-center rounded-md border outline-none focus-visible:ring-[3px]";
-
-export function tournamentShareHref(gameId: string) {
-  return `/dashboard/games/${gameId}/share`;
-}
-
-/** Rank 1 is a solid chip; every other place is outlined. */
+/** Rank 1 is a solid chip; every other place is outlined; a knockout exit has none. */
 export function PlaceChip({
   place,
   className,
 }: {
-  place: number;
+  place: number | null;
   className?: string;
 }) {
+  if (place == null) {
+    return (
+      <span aria-hidden="true" className={cn("size-6 shrink-0", className)} />
+    );
+  }
   return (
     <span
       aria-hidden="true"
@@ -50,20 +49,6 @@ export function PlaceChip({
   );
 }
 
-function PodiumMark({ name, isViewer }: { name: string; isViewer: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "text-meta inline-flex size-11 shrink-0 items-center justify-center rounded-md border font-semibold",
-        isViewer ? "bg-ink text-paper border-ink" : "border-rule bg-paper",
-      )}
-    >
-      {initials(name)}
-    </span>
-  );
-}
-
 function PodiumRow({ row }: { row: FinishedPodiumRow }) {
   return (
     <li
@@ -73,17 +58,21 @@ function PodiumRow({ row }: { row: FinishedPodiumRow }) {
       )}
     >
       <PlaceChip place={row.place} />
-      <PodiumMark name={row.markName} isViewer={row.isViewer} />
+      <InitialsMark
+        name={row.markName}
+        isViewer={row.isViewer}
+        className="text-meta size-11"
+      />
       <div className="min-w-0 flex-1">
-        <p className="text-muted-foreground text-meta">{row.eyebrow}</p>
+        <p className="text-muted-foreground text-meta">{row.smallLine}</p>
         <p
           dir="auto"
           className="text-[16px] font-semibold leading-snug tracking-[-0.01em]"
         >
-          {row.title}
+          {row.mainLine}
         </p>
-        {row.meta ? (
-          <p className="text-muted-foreground text-meta">{row.meta}</p>
+        {row.detailLine ? (
+          <p className="text-muted-foreground text-meta">{row.detailLine}</p>
         ) : null}
       </div>
       {row.results.length > 0 ? (
@@ -143,24 +132,15 @@ export function TournamentFinishedHeader({
       tone="paper"
       className={cn("pb-[22px] pt-[22px] md:-mt-6", pageBleed)}
     >
-      <div className="flex items-center justify-between gap-3">
-        <BackButton variant="boxed" surface="paper" href={backHref} />
-        <div className="flex items-center gap-2">
-          {chip ? (
-            <span className="border-rule text-muted-foreground text-eyebrow rounded-sm border px-2 py-1 uppercase tracking-[0.1em]">
-              {chip}
-            </span>
-          ) : null}
-          <Link
-            href={tournamentShareHref(gameId)}
-            aria-label={view.shareLabel}
-            className={ACTION_BOX}
-          >
-            <ShareIcon aria-hidden="true" className="size-[18px]" />
-          </Link>
-          {actions}
-        </div>
-      </div>
+      <TournamentHeaderBar surface="paper" backHref={backHref} chip={chip}>
+        <ShareButton
+          variant="boxed"
+          surface="paper"
+          href={shareResultHref(gameId)}
+          label={view.share.label}
+        />
+        {actions}
+      </TournamentHeaderBar>
       {view.dateLine ? (
         <p className="text-muted-foreground text-meta mt-7">{view.dateLine}</p>
       ) : null}
@@ -188,11 +168,8 @@ export function FinishedShareLink({
 }) {
   return (
     <Link
-      href={tournamentShareHref(gameId)}
-      className={cn(
-        buttonVariants({ size: "lg" }),
-        "bg-ink text-paper border-ink hover:bg-ink/90 w-full font-semibold",
-      )}
+      href={shareResultHref(gameId)}
+      className={cn(buttonVariants({ size: "lg" }), "w-full font-semibold")}
     >
       <ShareIcon aria-hidden="true" className="size-[18px]" />
       {label}
@@ -201,13 +178,7 @@ export function FinishedShareLink({
 }
 
 /** The Organizer's line on the Rounds tab once every score is in. */
-export function FinishedScoresNote({
-  scoreCount,
-  canFix,
-}: {
-  scoreCount: number;
-  canFix: boolean;
-}) {
+export function FinishedScoresNote({ scoreCount }: { scoreCount: number }) {
   const m = useMessages().tournamentRounds.finished;
   return (
     <div className="border-ink rounded-card flex items-center gap-3 border px-4 py-3.5">
@@ -219,9 +190,7 @@ export function FinishedScoresNote({
       </span>
       <div className="min-w-0">
         <p className="text-body font-semibold">{m.allScoresIn(scoreCount)}</p>
-        <p className="text-muted-foreground text-meta">
-          {canFix ? m.canStillFix : m.resultsPosted}
-        </p>
+        <p className="text-muted-foreground text-meta">{m.canStillFix}</p>
       </div>
     </div>
   );
