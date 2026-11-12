@@ -264,7 +264,7 @@ On a padel Friendly game, a User's answer to "which side?" when they take a seat
 _Avoid_: flexible seat, any seat, Preferred Position (that is the profile default), wildcard
 
 **Operator**:
-A Temba staff User. Operators curate Venues and Courts, mark Partner Venues, grant Venue managers and Verifiers, verify Groups, link Loose Groups to Venues directly, and may set any other User's Level in either sport (ADR-0046).
+A Temba staff User. Operators curate Venues and Courts, mark Partner Venues, grant Venue managers and Verifiers, verify Groups, link Loose Groups to Venues directly, may set any other User's Level in either sport (ADR-0046), and decide Match disputes.
 _Avoid_: Admin, Owner (retired Community roles, ADR-0055), system admin, platform admin, superadmin
 
 **Venue manager**:
@@ -399,6 +399,10 @@ _Avoid_: Game, Match, game (the padel/tennis point-unit inside a set; not a Temb
 **Match result**:
 A completed Match's outcome for one User: won, lost, or draw. A draw is equal Set wins on both sides; Glicko-2 scores it 0.5. A draw is played, not won, so Played never equals Won plus Lost.
 _Avoid_: score (Sets carry the score), win rate (that is a derived percentage), outcome (when you mean this entity)
+
+**Match dispute**:
+A seated player's claim that a Match that counted for Temba Level is wrong, with a note of up to 280 characters, raised from Game details on either App within seven days of the Match's completion (`match_disputes`). A Match on an Unrated or tier Game, and a Public Game's score that stood without the other side, never counted, so they cannot be disputed. One open dispute per Match. Every Operator is told, and an Operator upholds or dismisses it from the Disputes page on the Web App. Upholding runs the wrong-score reversal as the Operator and returns the Match to `pending`: a football Match's OVR and Tier events are subtracted, and a padel Match follows the same rule as reporting a wrong score, so a later Rated Match of a seated player refuses it, with that reason, and the dispute stays open. Dismissing leaves the result. Either way the player and the Game's Organizers are told.
+_Avoid_: report a wrong score (that is the Organizer's door), appeal, complaint
 
 **Match result confirmation**:
 A seated User's acknowledgement that a Match's entered Sets are correct. The User who enters the Set that first produces a Match result is confirmed automatically; a Match only reaches completed, and only then rates, once every seated User with an account on its two Game teams has confirmed. An Unclaimed player never confirms: a side whose seated Users are all Unclaimed players is confirmed by an Organizer's confirmation for that side, which a changed score clears like any other. A football Match needs one player from each side, read the same way. An Organizer's confirmation is final: it completes the Match without waiting on the players (ADR-0044). A Public Game's Match needs one account holder from each side and nobody's confirmation is final; the other side has 24 hours from the score's entry, a changed score restarts them, and when they run out the score stands without counting (ADR-0071). A Verifier stamp is final on any Match, a Public Game's included (ADR-0072). Entering a score is never a final confirmation, even for an Organizer.
@@ -633,7 +637,7 @@ The idempotency identifier of a Job, such as `booking:expire:<bookingId>`. Enque
 _Avoid_: job id, dedupe key (that is the Notification column)
 
 **Notification**:
-An in-app record that tells one User that something happened on a Group or Game they run, including a Group join request or a Level range request waiting on them; that a Game they played on has finished; that an Organizer seated them on a Game; that a Level setter or an Operator set their Level, and why; that a Group approver or Organizer decided their request, by name; that a Captain invited them to a Team (the Lookup invite stays the thing they accept); that a Challenge or Proposal of a Team they act for was answered, confirmed, declined, passed over or expired, or that a squad is still to name a day before kick-off; or, once, that signing up claimed the Games an Unclaimed player played under their number. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Not a push message, not an invite; its email copy is the Notification email.
+An in-app record that tells one User that something happened on a Group or Game they run, including a Group join request or a Level range request waiting on them; that a Game they played on has finished; that an Organizer seated them on a Game; that a Level setter or an Operator set their Level, and why; that a Group approver or Organizer decided their request, by name; that a Captain invited them to a Team (the Lookup invite stays the thing they accept); that a Challenge or Proposal of a Team they act for was answered, confirmed, declined, passed over or expired, or that a squad is still to name a day before kick-off; that a player disputed a counted Match (to Operators) or that an Operator decided a Match dispute (to the player and the Game's Organizers); or, once, that signing up claimed the Games an Unclaimed player played under their number. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Not a push message, not an invite; its email copy is the Notification email.
 _Avoid_: alert, activity, feed item, message, Lookup invite (that is an actionable invitation)
 
 **Notification email**:

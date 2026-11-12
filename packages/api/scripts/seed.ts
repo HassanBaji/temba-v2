@@ -48,6 +48,7 @@ import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { createGame } from "#src/routers/games/create";
 import { createInviteLink as createGameInviteLink } from "#src/routers/games/createInviteLink";
 import { createTournament } from "#src/routers/games/createTournament";
+import { disputeMatchResult } from "#src/routers/games/disputeMatchResult";
 import { drawPools } from "#src/routers/games/drawPools";
 import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
@@ -2449,7 +2450,8 @@ async function seedGroupLinks(u: Users, v: Venues, g: Groups) {
  * Galali Football is a Verified Group on the pitches, so its Games count for
  * Temba Level at full weight (ADR-0069): last night's 5–3 was rated by the
  * ten who played and voted Omar MVP, and its settled Rating window moved
- * their OVR by four parts (screen 5a). Saturday's is tagged "Counts for
+ * their OVR by four parts (screen 5a). Diego disputes that result, so it
+ * waits on the Operator Disputes page. Saturday's is tagged "Counts for
  * Temba Level" and open to OVR 64 and up.
  */
 async function seedVerifiedFootball(u: Users, v: Venues) {
@@ -2571,6 +2573,12 @@ async function seedVerifiedFootball(u: Users, v: Venues) {
   await db.transaction((tx) =>
     settleRatingWindow(tx, match!.id, window!.closesAt),
   );
+  await disputeMatchResult(db, {
+    matchId: match!.id,
+    userId: u.diego!.id,
+    note: "It finished 4–3. Omar’s third goal came after the final whistle.",
+    operatorUserIds: [u.me!.id],
+  });
 
   await game("Saturday Galali five-a-side", at(3, 18), 28);
 }
