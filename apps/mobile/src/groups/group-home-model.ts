@@ -29,7 +29,7 @@ import {
 } from "@repo/domain/group-members-table";
 import {
   levelOverrideCaption,
-  levelOverrideReasonLabel,
+  levelOverrideWhy,
 } from "@repo/domain/level-slider";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import type { ResultMarkVariant } from "@repo/domain/result-mark";
@@ -341,13 +341,12 @@ export function memberSheetView(
     provisionalNote: entry.levelProvisional
       ? m.members.provisionalNote(firstName(name))
       : null,
-    latestSet: caption
-      ? override?.reason
+    latestSet:
+      caption && override
         ? m.members.latestSetWithReason(
             caption,
-            levelOverrideReasonLabel(override.reason, locale),
+            levelOverrideWhy({ ...override, locale }),
           )
-        : caption
-      : null,
+        : null,
   };
 }

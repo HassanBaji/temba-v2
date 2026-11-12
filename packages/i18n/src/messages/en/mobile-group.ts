@@ -178,7 +178,10 @@ export const mobileGroup = {
     decrease: "Decrease Level by 0.1",
     increase: "Increase Level by 0.1",
     reset: "Reset",
-    reason: "Reason",
+    why: (name: string) => `Why? ${name} will see this.`,
+    noteLabel: "Note",
+    notePlaceholder: "Add a note (optional)",
+    pickReason: "Pick a reason to save",
     note: "A Level you set counts as confirmed. Rated Matches keep moving it from here.",
     noteProvisional: (firstName: string) =>
       `${firstName} will no longer be Provisional, and setting again will not change that.`,

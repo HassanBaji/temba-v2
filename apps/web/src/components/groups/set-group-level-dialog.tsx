@@ -95,9 +95,9 @@ function SetGroupLevelForm({
       </div>
 
       <LevelSlider
-        tenths={tenths}
-        currentTenths={startTenths}
-        onTenthsChange={setTenths}
+        value={tenths}
+        currentValue={startTenths}
+        onValueChange={setTenths}
         currentLabel={
           !member.groupLevel && member.level
             ? m.webGroup.setGroupLevel.tembaMarker(startLabel)

@@ -257,6 +257,24 @@ describe("memberSheetView", () => {
     expect(view.summary).toMatch(/ · 1 Rated Match$/);
   });
 
+  it("quotes the note, and reads an old set with no reason as no reason given", () => {
+    expect(
+      memberSheetView(
+        {
+          ...entry,
+          levelOverride: { ...entry.levelOverride, note: "Two months out." },
+        },
+        "en",
+      ).latestSet,
+    ).toMatch(/\. Back from injury: “Two months out\.”$/);
+    expect(
+      memberSheetView(
+        { ...entry, levelOverride: { ...entry.levelOverride, reason: null } },
+        "en",
+      ).latestSet,
+    ).toMatch(/^Set by Sara K, .*\. No reason given$/);
+  });
+
   it("omits the Provisional note and latest set when there are none", () => {
     const view = memberSheetView(
       {

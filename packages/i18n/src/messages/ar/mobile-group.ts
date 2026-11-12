@@ -209,7 +209,10 @@ export const mobileGroup = {
     decrease: "خفض المستوى بمقدار 0.1",
     increase: "رفع المستوى بمقدار 0.1",
     reset: "إعادة ضبط",
-    reason: "السبب",
+    why: (name: string) => `لماذا؟ سيرى ${name} هذا.`,
+    noteLabel: "ملاحظة",
+    notePlaceholder: "أضف ملاحظة (اختياري)",
+    pickReason: "اختر سببًا للحفظ",
     note: "المستوى الذي تحدده يُعدّ مؤكدًا. تواصل المباريات المصنّفة تحريكه من هنا.",
     noteProvisional: (firstName: string) =>
       `لن يعود ${firstName} مبدئيًا، ولن يغيّر التحديد مجددًا ذلك.`,

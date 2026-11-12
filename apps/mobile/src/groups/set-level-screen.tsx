@@ -1,6 +1,7 @@
 import { sizes } from "@repo/design-tokens";
 import {
   clampLevelTenths,
+  LEVEL_OVERRIDE_NOTE_MAX,
   LEVEL_OVERRIDE_REASONS,
   LEVEL_SLIDER_TICKS,
   levelOverrideReasonLabel,
@@ -26,9 +27,11 @@ import { Skeleton } from "../primitives/skeleton";
 import { Slider } from "../primitives/slider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { TextField } from "../primitives/text-field";
 import { useColors } from "../theme/theme-provider";
 import { api } from "../trpc/react";
 import { Notice } from "./notice";
+import { firstName } from "./group-home-model";
 import { groupPath } from "./groups-model";
 import {
   savedLevelPath,
@@ -211,6 +214,9 @@ function SetLevelForm({
   const utils = api.useUtils();
   const [tenths, setTenths] = useState(view.currentTenths);
   const [reason, setReason] = useState<LevelOverrideReason | null>(null);
+  const [note, setNote] = useState("");
+  const why = copy.why(firstName(view.name));
+  const unchanged = setLevelUnchanged(view, tenths);
 
   const setLevel = api.ratings.setLevel.useMutation({
     onSuccess: async () => {
@@ -235,18 +241,26 @@ function SetLevelForm({
         <View style={{ flex: 1, gap: 10 }}>
           <Text>{view.note}</Text>
           <Button
-            label={setLevelConfirmLabel(tenths, locale)}
+            label={
+              reason === null && !unchanged
+                ? copy.pickReason
+                : setLevelConfirmLabel(tenths, locale)
+            }
             size="lg"
-            disabled={setLevelUnchanged(view, tenths)}
+            disabled={unchanged || reason === null}
             pending={setLevel.isPending}
-            onPress={() =>
+            onPress={() => {
+              if (!reason) {
+                return;
+              }
               setLevel.mutate({
                 groupId,
                 userId: view.userId,
                 levelTenths: tenths,
-                reason: reason ?? undefined,
-              })
-            }
+                reason,
+                note: note.trim() || undefined,
+              });
+            }}
           />
         </View>
       }
@@ -265,15 +279,23 @@ function SetLevelForm({
       />
 
       <View style={{ gap: 8 }}>
-        <Text weight="semibold">{copy.reason}</Text>
+        <Text weight="semibold">{why}</Text>
         <ChipGrid
-          label={copy.reason}
+          label={why}
           chips={reasonChips.map((chip) => ({
             ...chip,
             disabled: setLevel.isPending,
           }))}
           isSelected={(value) => reason === value}
           onSelect={(value) => setReason(reason === value ? null : value)}
+        />
+        <TextField
+          accessibilityLabel={copy.noteLabel}
+          placeholder={copy.notePlaceholder}
+          value={note}
+          onChangeText={setNote}
+          maxLength={LEVEL_OVERRIDE_NOTE_MAX}
+          editable={!setLevel.isPending}
         />
       </View>
 

@@ -263,7 +263,7 @@ describe("OVR slider", () => {
   });
 
   it("starts from the member's OVR, or Level 3.0's without one", () => {
-    expect(ovrSliderStart("72")).toBe(72);
+    expect(ovrSliderStart(72)).toBe(72);
     expect(ovrSliderStart(null)).toBe(65);
   });
 });

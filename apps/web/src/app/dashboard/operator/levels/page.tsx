@@ -31,7 +31,7 @@ import {
 } from "~/components/ui/sheet";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
-import { formatOvr } from "@repo/domain/football-ovr";
+import { formatOvr, levelFaceFor } from "@repo/domain/football-ovr";
 import { levelSliderLabel, ovrSliderLabel } from "@repo/domain/level-slider";
 import { sportLabel, type Sport } from "@repo/domain/sport";
 import type { Messages } from "@repo/i18n/messages";
@@ -223,14 +223,18 @@ export default function OperatorLevelsPage() {
               <SetLevelFields
                 key={`${target.userId}:${sport}`}
                 member={target}
+                face={levelFaceFor(sport)}
                 pending={setLevel.isPending}
                 error={setLevel.error}
-                onSubmit={({ levelTenths, reason }) =>
+                onSubmit={({ value, reason, note }) =>
                   setLevel.mutate({
                     userId: target.userId,
                     sport,
-                    levelTenths,
+                    ...(sport === "football"
+                      ? { ovr: value }
+                      : { levelTenths: value }),
                     reason,
+                    note,
                   })
                 }
               />

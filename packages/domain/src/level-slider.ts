@@ -158,10 +158,8 @@ export function clampOvrInput(value: number): number {
 }
 
 /** Where the OVR slider starts: the member's OVR, or Level 3.0's without one. */
-export function ovrSliderStart(ovr: string | null): number {
-  return clampOvrInput(
-    ovr ? Number(ovr) : ovrFromLevel(LEVEL_SLIDER_DEFAULT_TENTHS / 10),
-  );
+export function ovrSliderStart(ovr: number | null): number {
+  return clampOvrInput(ovr ?? ovrFromLevel(LEVEL_SLIDER_DEFAULT_TENTHS / 10));
 }
 
 /** The rung a whole OVR stores into, by the same band table the server uses. */
