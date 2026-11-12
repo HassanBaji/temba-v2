@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 
-import { GroupSportEnum, groupRatingEvents, ratingEvents } from "@repo/db";
+import { groupRatingEvents, ratingEvents } from "@repo/db";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
@@ -39,7 +39,7 @@ export async function wrongScoreReversalEligibility(
     }),
   ]);
   for (const event of matchEvents) {
-    if (event.sport === GroupSportEnum.FOOTBALL) {
+    if (event.sport === "football") {
       continue;
     }
     const [latest] = await database
