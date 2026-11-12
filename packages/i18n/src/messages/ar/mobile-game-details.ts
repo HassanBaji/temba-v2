@@ -137,7 +137,7 @@ export const mobileGameDetails = {
     step: {
       name: "الاسم",
       window: "الوقت",
-      court: "الملعب",
+      place: "المكان",
       caps: "اللاعبون",
       price: "السعر",
       level: "نطاق المستوى",

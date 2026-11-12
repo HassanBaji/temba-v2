@@ -71,7 +71,7 @@ import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvit
 import { setFootballRoleProcedure as setFootballRole } from "./setFootballRole";
 import { undoPoolDrawProcedure as undoPoolDraw } from "./undoPoolDraw";
 import { updateCaps } from "./updateCaps";
-import { updateCourt } from "./updateCourt";
+import { updatePlace } from "./updatePlace";
 import { updateLevelRange } from "./updateLevelRange";
 import { updateMatchProcedure as updateMatch } from "./updateMatch";
 import { updateName } from "./updateName";
@@ -132,7 +132,7 @@ export const gamesRouter = createTRPCRouter({
   approveLevelRangeRequest,
   rejectLevelRangeRequest,
   updateCaps,
-  updateCourt,
+  updatePlace,
   listCourts,
   addMatch,
   updateMatch,

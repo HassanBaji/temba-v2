@@ -204,7 +204,7 @@ export const webGame = {
     stepLabel: {
       name: "الاسم",
       window: "الموعد",
-      court: "الملعب",
+      place: "المكان",
       caps: "اللاعبون",
       price: "السعر",
       level: "نطاق المستوى",

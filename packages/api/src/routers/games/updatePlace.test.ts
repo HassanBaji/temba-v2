@@ -16,7 +16,7 @@ import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 import { createGame } from "#src/routers/games/create";
 import { listAssignableCourts } from "#src/routers/games/listCourts";
-import { updateGameCourt } from "#src/routers/games/updateCourt";
+import { updateGamePlace } from "#src/routers/games/updatePlace";
 
 async function insertUser(database: TestDatabase, name: string) {
   const [row] = await database
@@ -42,6 +42,30 @@ async function insertCourt(
     throw new Error("Failed to insert court");
   }
   return row.id;
+}
+
+async function insertVenue(database: TestDatabase, archived = false) {
+  const [row] = await database
+    .insert(venues)
+    .values({
+      name: `Venue ${crypto.randomUUID()}`,
+      city: "Manama",
+      country: "BH",
+      archivedAt: archived ? new Date() : null,
+    })
+    .returning({ id: venues.id });
+  if (!row) {
+    throw new Error("Failed to insert venue");
+  }
+  return row.id;
+}
+
+async function venueOf(database: TestDatabase, gameId: string) {
+  const row = await database.query.games.findFirst({
+    where: eq(games.id, gameId),
+    columns: { venueId: true },
+  });
+  return row?.venueId;
 }
 
 async function withVenue(
@@ -71,8 +95,8 @@ async function withVenue(
       .insert(groups)
       .values({ name: "Group", createdBy: organizer.id, sport })
       .returning({ id: groups.id });
-    if (!venue || !group) {
-      throw new Error("Failed to insert Venue or Group");
+    if (!group) {
+      throw new Error("Failed to insert Group");
     }
     await db
       .insert(groupMembers)
@@ -135,21 +159,23 @@ async function recordedCourtIds(database: TestDatabase, gameId: string) {
   return rows.map((row) => row.courtId);
 }
 
-describe("games.updateCourt", () => {
+describe("games.updatePlace", () => {
   it("moves a padel Friendly game's Match to another Court and back to none", async () => {
     await withVenue("padel", async (f) => {
       const game = await createFriendly(f);
       expect(await matchCourtIds(f.db, game.id)).toEqual([f.first]);
 
-      await updateGameCourt(f.db, {
+      await updateGamePlace(f.db, {
         gameId: game.id,
+        venueId: f.venueId,
         userId: f.organizer.id,
         courtId: f.second,
       });
       expect(await matchCourtIds(f.db, game.id)).toEqual([f.second]);
 
-      await updateGameCourt(f.db, {
+      await updateGamePlace(f.db, {
         gameId: game.id,
+        venueId: f.venueId,
         userId: f.organizer.id,
         courtId: null,
       });
@@ -166,15 +192,17 @@ describe("games.updateCourt", () => {
         [f.first, f.second].sort(),
       );
 
-      await updateGameCourt(f.db, {
+      await updateGamePlace(f.db, {
         gameId: game.id,
+        venueId: f.venueId,
         userId: f.organizer.id,
         courtId: f.second,
       });
       expect(await recordedCourtIds(f.db, game.id)).toEqual([f.second]);
 
-      await updateGameCourt(f.db, {
+      await updateGamePlace(f.db, {
         gameId: game.id,
+        venueId: f.venueId,
         userId: f.organizer.id,
         courtId: null,
       });
@@ -186,8 +214,9 @@ describe("games.updateCourt", () => {
     await withVenue("padel", async (f) => {
       const game = await createFriendly(f);
       await expect(
-        updateGameCourt(f.db, {
+        updateGamePlace(f.db, {
           gameId: game.id,
+          venueId: f.venueId,
           userId: f.organizer.id,
           courtId: f.otherSport,
         }),
@@ -201,8 +230,9 @@ describe("games.updateCourt", () => {
       const game = await createFriendly(f);
       const stranger = await insertUser(f.db, "stranger");
       await expect(
-        updateGameCourt(f.db, {
+        updateGamePlace(f.db, {
           gameId: game.id,
+          venueId: f.venueId,
           userId: stranger.id,
           courtId: f.second,
         }),
@@ -230,12 +260,109 @@ describe("games.updateCourt", () => {
         gameId: game.id,
       });
       await expect(
-        updateGameCourt(f.db, {
+        updateGamePlace(f.db, {
           gameId: game.id,
+          venueId: f.venueId,
           userId: f.organizer.id,
           courtId: f.second,
         }),
       ).rejects.toThrow("This Game's Court comes from its Booking");
+      expect(await matchCourtIds(f.db, game.id)).toEqual([f.first]);
+    });
+  });
+
+  it("moves a padel Friendly game to a Court at another Venue", async () => {
+    await withVenue("padel", async (f) => {
+      const game = await createFriendly(f);
+      const elsewhere = await insertVenue(f.db);
+      const court = await insertCourt(f.db, elsewhere, "padel");
+
+      await updateGamePlace(f.db, {
+        gameId: game.id,
+        userId: f.organizer.id,
+        venueId: elsewhere,
+        courtId: court,
+      });
+      expect(await venueOf(f.db, game.id)).toBe(elsewhere);
+      expect(await matchCourtIds(f.db, game.id)).toEqual([court]);
+    });
+  });
+
+  it("moves a football Friendly game and its Pitch to another Venue", async () => {
+    await withVenue("football", async (f) => {
+      const game = await createFriendly(f);
+      const elsewhere = await insertVenue(f.db);
+      const pitch = await insertCourt(f.db, elsewhere, "football");
+
+      await updateGamePlace(f.db, {
+        gameId: game.id,
+        userId: f.organizer.id,
+        venueId: elsewhere,
+        courtId: pitch,
+      });
+      expect(await venueOf(f.db, game.id)).toBe(elsewhere);
+      expect(await recordedCourtIds(f.db, game.id)).toEqual([pitch]);
+    });
+  });
+
+  it("refuses a Court that is not at the new Venue, or an archived Venue", async () => {
+    await withVenue("padel", async (f) => {
+      const game = await createFriendly(f);
+      const elsewhere = await insertVenue(f.db);
+      await expect(
+        updateGamePlace(f.db, {
+          gameId: game.id,
+          userId: f.organizer.id,
+          venueId: elsewhere,
+          courtId: f.second,
+        }),
+      ).rejects.toThrow();
+      const archived = await insertVenue(f.db, true);
+      await expect(
+        updateGamePlace(f.db, {
+          gameId: game.id,
+          userId: f.organizer.id,
+          venueId: archived,
+          courtId: null,
+        }),
+      ).rejects.toThrow();
+      expect(await venueOf(f.db, game.id)).toBe(f.venueId);
+      expect(await matchCourtIds(f.db, game.id)).toEqual([f.first]);
+    });
+  });
+
+  it("keeps a Club Group's Game at the Group's Venue", async () => {
+    await withVenue("padel", async (f) => {
+      await f.db
+        .update(groups)
+        .set({ venueId: f.venueId })
+        .where(eq(groups.id, f.groupId));
+      const game = await createFriendly(f);
+      const elsewhere = await insertVenue(f.db);
+      await expect(
+        updateGamePlace(f.db, {
+          gameId: game.id,
+          userId: f.organizer.id,
+          venueId: elsewhere,
+          courtId: null,
+        }),
+      ).rejects.toThrow();
+      expect(await venueOf(f.db, game.id)).toBe(f.venueId);
+    });
+  });
+
+  it("refuses a Game that has been played", async () => {
+    await withVenue("padel", async (f) => {
+      const game = await createFriendly(f);
+      await expect(
+        updateGamePlace(f.db, {
+          gameId: game.id,
+          userId: f.organizer.id,
+          venueId: f.venueId,
+          courtId: f.second,
+          now: new Date(game.windowEnd!.getTime() + 60 * 1000),
+        }),
+      ).rejects.toThrow("This Game has been played");
       expect(await matchCourtIds(f.db, game.id)).toEqual([f.first]);
     });
   });
