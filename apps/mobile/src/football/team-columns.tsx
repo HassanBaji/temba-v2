@@ -1,5 +1,8 @@
 import { bibColors, radii } from "@repo/design-tokens";
-import { type FootballBib } from "@repo/domain/football-lineup";
+import {
+  type FootballBalanceOn,
+  type FootballBib,
+} from "@repo/domain/football-lineup";
 import type { GroupMemberTierCell } from "@repo/domain/group-members-table";
 import { Pressable, View } from "react-native";
 
@@ -15,6 +18,7 @@ import {
   boardTierCell,
   byKeeperThenLevel,
   levelLabel,
+  makeTeamsLevelLabel,
   shortName,
   sideAverage,
   slotCode,
@@ -43,7 +47,8 @@ export function TierMark({ cell }: { cell: GroupMemberTierCell }) {
 
 /**
  * A player row in their team's bib colour; the viewer's row is ringed.
- * `showTier` puts the player's fish where the Level sits, in a tier Group.
+ * `showTier` puts the player's fish where the Level sits, in a tier Group;
+ * `balanceOn` shows the OVR there when Make teams balances on it.
  */
 export function BibRow({
   player,
@@ -51,12 +56,14 @@ export function BibRow({
   trailing,
   onPress,
   showTier = false,
+  balanceOn,
 }: {
   player: BoardPlayer;
   bib: FootballBib;
   trailing?: React.ReactNode;
   onPress?: () => void;
   showTier?: boolean;
+  balanceOn?: FootballBalanceOn;
 }) {
   const messages = useMessages();
   const locale = useLocale();
@@ -70,14 +77,13 @@ export function BibRow({
   const name = player.isViewer ? messages.common.you : shortName(player.name);
   const code = slotCode(player, locale);
   const tierCell = showTier ? boardTierCell(player, locale) : null;
+  const level = balanceOn
+    ? makeTeamsLevelLabel(player, balanceOn)
+    : levelLabel(player.levelBand);
   return (
     <Pressable
       accessibilityRole={onPress ? "button" : undefined}
-      accessibilityLabel={[
-        name,
-        code,
-        tierCell ? tierCell.label : levelLabel(player.levelBand),
-      ]
+      accessibilityLabel={[name, code, tierCell ? tierCell.label : level]
         .filter(Boolean)
         .join(messages.tournament.listSeparator)}
       disabled={!onPress}
@@ -118,7 +124,7 @@ export function BibRow({
           ltr
           style={{ color: on }}
         >
-          {levelLabel(player.levelBand)}
+          {level}
         </Text>
       )}
       {trailing}

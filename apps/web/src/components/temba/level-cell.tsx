@@ -20,6 +20,7 @@ import { cn } from "~/lib/utils";
 export function LevelCell({
   band,
   level,
+  ovr,
   provisional = false,
   onInk = false,
   className,
@@ -28,13 +29,15 @@ export function LevelCell({
   band: LevelBand | null | undefined;
   /** The one-decimal Level. Shown beside the letter when given. */
   level?: string | null;
+  /** The football face: the label reads `C+ 72` (ADR-0069). */
+  ovr?: number | null;
   provisional?: boolean;
   /** Set on an inverted (`bg-ink`) row so the hatch reads on black. */
   onInk?: boolean;
   className?: string;
 }) {
   const m = useMessages();
-  const view = levelCellView(band, provisional);
+  const view = levelCellView(band, provisional, ovr);
   const text =
     view.label && level ? `${view.label} ${level}` : (view.label ?? null);
 

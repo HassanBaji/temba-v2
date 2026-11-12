@@ -6,6 +6,7 @@ import {
   groupHomeCanShowCreateGame,
 } from "@repo/domain/group-home-cta";
 import {
+  groupLevelFace,
   groupShowsLevel,
   viewerMayAdjustTier,
   viewerMaySetGroupLevel,
@@ -298,7 +299,8 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           }
           apiOrigin={props.apiOrigin}
           canSetLevel={data.viewerCanSetLevel && groupShowsLevel(data.sport)}
-          showLevel={groupShowsLevel(data.sport)}
+          showLevel={groupShowsLevel(data.sport, data.verified)}
+          levelFace={groupLevelFace(data.sport)}
           tierSummary={data.hasTier ? (data.tierSummary ?? null) : null}
           groupName={groupDisplayName(data.name, locale)}
           canAdjustTier={viewerMayAdjustTier({

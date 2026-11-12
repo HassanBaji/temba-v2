@@ -388,6 +388,7 @@ export function draftSummary(
     unplaced,
     names,
     teamSize,
+    balanceOn,
     problem,
     note:
       problem ??

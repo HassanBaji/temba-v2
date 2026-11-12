@@ -134,6 +134,49 @@ describe("memberList", () => {
   });
 });
 
+describe("memberList on a Verified football Group", () => {
+  const leaderboard = home.member.standing.leaderboard;
+  const football = [
+    {
+      ...leaderboard[0]!,
+      userId: "ali",
+      name: "Ali",
+      levelBand: "C1" as const,
+      levelProvisional: false,
+      level: "3.7",
+      ovr: 71,
+    },
+    {
+      ...leaderboard[0]!,
+      userId: "yousif",
+      name: "Yousif",
+      levelBand: "C1" as const,
+      levelProvisional: false,
+      level: "3.7",
+      ovr: 72,
+    },
+    {
+      ...leaderboard[0]!,
+      userId: "noor",
+      name: "Noor",
+      levelBand: "C3" as const,
+      levelProvisional: true,
+      level: "2.5",
+      ovr: 61,
+    },
+  ];
+
+  it("reads each Level as OVR with its band, the highest OVR first", () => {
+    const rows = memberList(football, "", ORIGIN, "en").rows;
+    expect(rows.map((row) => row.key)).toEqual(["yousif", "ali", "noor"]);
+    expect(rows[0]!.level).toEqual({ kind: "label", label: "C+ 72" });
+    expect(rows[0]!.accessibilityLabel).toContain("Level C+ 72");
+    expect(rows[0]!.accessibilityLabel).not.toContain("3.7");
+    expect(rows[2]!.level).toEqual({ kind: "provisional", label: "C- 61" });
+    expect(rows[2]!.accessibilityLabel).toContain("C- 61");
+  });
+});
+
 describe("memberList for a Level setter", () => {
   const leaderboard = home.member.standing.leaderboard;
   const withSet = {

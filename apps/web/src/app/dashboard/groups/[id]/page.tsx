@@ -30,6 +30,7 @@ import { VenueLinkRequestActions } from "~/components/groups/venue-link-request-
 import { GroupHomeChrome } from "~/components/groups/group-home-chrome";
 import {
   groupMemberOrganizerToast,
+  groupLevelFace,
   groupShowsLevel,
   viewerMayAdjustTier,
   viewerMaySetGroupLevel,
@@ -756,7 +757,8 @@ export default function GroupHomePage({
                 onSetGroupLevel={
                   canSetGroupLevel ? setSettingGroupLevel : undefined
                 }
-                showLevel={groupShowsLevel(data.sport)}
+                showLevel={groupShowsLevel(data.sport, data.verified)}
+                levelFace={groupLevelFace(data.sport)}
                 tierSummary={data.hasTier ? data.tierSummary : null}
                 groupName={data.name ?? m.webGroup.groupFallback}
                 canAdjustTier={viewerMayAdjustTier({
@@ -779,6 +781,7 @@ export default function GroupHomePage({
                   levelBand: entry.levelBand,
                   levelProvisional: entry.levelProvisional,
                   level: entry.level,
+                  ovr: entry.ovr,
                   ratedMatchCount: entry.ratedMatchCount,
                   levelOverride: entry.levelOverride,
                   groupLevel: entry.groupLevel,

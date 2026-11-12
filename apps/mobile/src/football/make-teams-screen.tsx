@@ -2,6 +2,7 @@ import { bibColors, radii } from "@repo/design-tokens";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import {
   FOOTBALL_TEAMS_METHODS,
+  type FootballBalanceOn,
   type FootballBib,
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
@@ -31,7 +32,7 @@ import {
   draftSummary,
   initialTeamsDraft,
   keeperWord,
-  levelLabel,
+  makeTeamsLevelLabel,
   moveAcross,
   placeOn,
   slotCode,
@@ -145,7 +146,7 @@ function BalanceCard({
           <Text weight="semibold">{name}</Text>
           <Text size="meta" tone="muted" style={{ flex: 1 }}>
             {m.avgAndKeepers(
-              teamsSideAverage(members, locale),
+              teamsSideAverage(members, locale, summary.balanceOn),
               keeperWord(members, locale),
             )}
           </Text>
@@ -225,6 +226,7 @@ function LevelColumns({
             player={player}
             bib={bib}
             showTier
+            balanceOn={summary.balanceOn}
             trailing={
               <ArrowButton
                 side={side}
@@ -298,11 +300,13 @@ function ManualRow({
   player,
   draft,
   names,
+  balanceOn,
   onPlace,
 }: {
   player: BoardPlayer;
   draft: TeamsDraft;
   names: { slot1: string; slot2: string };
+  balanceOn: FootballBalanceOn;
   onPlace: (side: Side) => void;
 }) {
   const colors = useColors();
@@ -347,7 +351,7 @@ function ManualRow({
         <TierMark cell={tierCell} />
       ) : (
         <Text weight="bold" width="expanded" ltr style={{ color: on }}>
-          {levelLabel(player.levelBand)}
+          {makeTeamsLevelLabel(player, balanceOn)}
         </Text>
       )}
       <SwatchButton
@@ -401,6 +405,7 @@ function ManualLists({
             player={player}
             draft={draft}
             names={summary.names}
+            balanceOn={summary.balanceOn}
             onPlace={(side) => onPlace(player.userId, side)}
           />
         ))}
@@ -470,7 +475,9 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
   const fallback = `/games/${gameId}` as Href;
   const players = board.data?.players ?? [];
   const sideSize = game.data?.sideSize ?? null;
-  const summary = draft ? draftSummary(draft, players, locale) : null;
+  const summary = draft
+    ? draftSummary(draft, players, locale, board.data?.balanceOn)
+    : null;
 
   if (board.error || (board.data && !board.data.viewer.canMakeTeams)) {
     return (

@@ -7,7 +7,7 @@ import {
   draftSummary,
   initialTeamsDraft,
   keeperWord,
-  levelLabel,
+  makeTeamsLevelLabel,
   moveAcross,
   placeOn,
   slotCode,
@@ -19,6 +19,7 @@ import {
 } from "@repo/domain/football-board";
 import {
   FOOTBALL_TEAMS_METHODS,
+  type FootballBalanceOn,
   type FootballBib,
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
@@ -108,7 +109,7 @@ function BalanceCard({
           <span className="font-semibold">{name}</span>
           <span className="text-muted-foreground text-meta flex-1">
             {t.avgAndKeepers(
-              teamsSideAverage(members, locale),
+              teamsSideAverage(members, locale, summary.balanceOn),
               keeperWord(members, locale),
             )}
           </span>
@@ -164,6 +165,7 @@ function LevelColumns({
               player={player}
               bib={bib}
               showTier
+              balanceOn={summary.balanceOn}
               trailing={
                 <button
                   type="button"
@@ -236,11 +238,13 @@ function ManualRow({
   player,
   draft,
   names,
+  balanceOn,
   onPlace,
 }: {
   player: BoardPlayer;
   draft: TeamsDraft;
   names: { slot1: string; slot2: string };
+  balanceOn: FootballBalanceOn;
   onPlace: (side: Side) => void;
 }) {
   const m = useMessages();
@@ -271,7 +275,7 @@ function ManualRow({
         <TierMark cell={tierCell} />
       ) : (
         <span dir="ltr" className="font-expanded">
-          {levelLabel(player.levelBand)}
+          {makeTeamsLevelLabel(player, balanceOn)}
         </span>
       )}
       <SwatchButton
@@ -320,6 +324,7 @@ function ManualLists({
               player={player}
               draft={draft}
               names={summary.names}
+              balanceOn={summary.balanceOn}
               onPlace={(side) => onPlace(player.userId, side)}
             />
           ))}
@@ -401,7 +406,9 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
   });
 
   const players = board.data?.players ?? [];
-  const summary = draft ? draftSummary(draft, players, locale) : null;
+  const summary = draft
+    ? draftSummary(draft, players, locale, board.data?.balanceOn)
+    : null;
   const back = (
     <Button variant="outline" asChild>
       <Link href={gameHref}>{m.webTournament.backToGame}</Link>

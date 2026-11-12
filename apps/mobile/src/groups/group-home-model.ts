@@ -165,17 +165,22 @@ export type MemberRowView = {
   accessibilityLabel: string;
 };
 
+/** The OVR face already carries its number; the Level face adds the Level. */
 function levelSpokenLabel(
   view: LevelCellView,
   levelText: string | null,
   locale: Locale,
+  carriesValue = false,
 ) {
   const m = messagesFor(locale).mobileGroup.members;
   if (view.kind === "label") {
     return m.levelSpoken(levelText ? `${view.label} ${levelText}` : view.label);
   }
-  return view.label && levelText
-    ? m.levelSpokenProvisional(`${view.label} ${levelText}`)
+  if (view.label && levelText) {
+    return m.levelSpokenProvisional(`${view.label} ${levelText}`);
+  }
+  return view.label && carriesValue
+    ? m.levelSpokenProvisional(view.label)
     : m.levelStillProvisional;
 }
 
@@ -218,7 +223,8 @@ export function memberRowView(
   ]
     .filter(Boolean)
     .join(" · ");
-  const level = levelCellView(entry.levelBand, entry.levelProvisional);
+  const ovr = entry.ovr ?? null;
+  const level = levelCellView(entry.levelBand, entry.levelProvisional, ovr);
   return {
     key: entry.userId,
     name,
@@ -242,7 +248,9 @@ export function memberRowView(
         ? sort === "tier"
           ? tier.pointsSpoken
           : tier.spoken
-        : levelSpokenLabel(level, entry.level, locale),
+        : ovr == null
+          ? levelSpokenLabel(level, entry.level, locale)
+          : levelSpokenLabel(level, null, locale, true),
     ]
       .filter(Boolean)
       .join(". "),

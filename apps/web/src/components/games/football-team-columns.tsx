@@ -4,13 +4,17 @@ import {
   boardTierCell,
   byKeeperThenLevel,
   levelLabel,
+  makeTeamsLevelLabel,
   shortName,
   sideAverage,
   slotCode,
   type Bibs,
   type BoardPlayer,
 } from "@repo/domain/football-board";
-import type { FootballBib } from "@repo/domain/football-lineup";
+import type {
+  FootballBalanceOn,
+  FootballBib,
+} from "@repo/domain/football-lineup";
 import type { GroupMemberTierCell } from "@repo/domain/group-members-table";
 
 import { UserAvatar } from "~/components/common/user-avatar";
@@ -31,7 +35,8 @@ export function TierMark({ cell }: { cell: GroupMemberTierCell }) {
 
 /**
  * A player row in their team's bib colour; the viewer's row is ringed.
- * `showTier` puts the player's fish where the Level sits, in a tier Group.
+ * `showTier` puts the player's fish where the Level sits, in a tier Group;
+ * `balanceOn` shows the OVR there when Make teams balances on it.
  */
 export function BibRow({
   player,
@@ -39,22 +44,27 @@ export function BibRow({
   trailing,
   onPress,
   showTier = false,
+  balanceOn,
 }: {
   player: BoardPlayer;
   bib: FootballBib;
   trailing?: React.ReactNode;
   onPress?: () => void;
   showTier?: boolean;
+  balanceOn?: FootballBalanceOn;
 }) {
   const m = useMessages();
   const locale = useLocale();
   const name = player.isViewer ? m.common.you : shortName(player.name);
   const code = slotCode(player, locale);
   const tierCell = showTier ? boardTierCell(player, locale) : null;
+  const level = balanceOn
+    ? makeTeamsLevelLabel(player, balanceOn)
+    : levelLabel(player.levelBand);
   const label = [
     name,
     code,
-    tierCell ? tierCell.label : levelLabel(player.levelBand),
+    tierCell ? tierCell.label : level,
     player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
   ]
     .filter(Boolean)
@@ -78,7 +88,7 @@ export function BibRow({
         <TierMark cell={tierCell} />
       ) : (
         <span dir="ltr" className="font-expanded text-meta">
-          {levelLabel(player.levelBand)}
+          {level}
         </span>
       )}
     </>

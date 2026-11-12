@@ -62,6 +62,7 @@ import type {
   GroupMemberTierData,
   GroupTierSummaryData,
 } from "@repo/domain/group-data";
+import type { LevelFace } from "@repo/domain/football-ovr";
 import type { LevelBand } from "@repo/domain/level-bands";
 import type { Locale } from "@repo/i18n/locale";
 import {
@@ -83,6 +84,7 @@ type GroupMember = {
   levelBand: LevelBand | null;
   levelProvisional: boolean;
   level: string | null;
+  ovr?: number | null;
   ratedMatchCount: number;
   levelOverride: GroupLevelOverrideData | null;
   groupLevel?: { level: string } | null;
@@ -259,6 +261,8 @@ function MemberActionsMenu({
 }
 
 const COL_LEVEL = "w-14 px-0";
+/** `C+ 72`: the band and the OVR, on a Verified football Group. */
+const COL_OVR = "w-16 px-0";
 const COL_TIER = "w-14 ps-4 pe-0";
 const COL_POINTS = "w-16 pe-4 ps-0 text-end";
 const COL_ACTION = "w-11 px-0";
@@ -293,6 +297,7 @@ function GroupMemberRow({
   member,
   canSetLevel,
   showLevel,
+  levelFace,
   managing,
   sort,
   profileHref,
@@ -301,6 +306,7 @@ function GroupMemberRow({
   member: GroupMember;
   canSetLevel: boolean;
   showLevel: boolean;
+  levelFace: LevelFace;
   managing: boolean;
   sort: GroupMemberSort;
   profileHref?: string;
@@ -365,9 +371,10 @@ function GroupMemberRow({
           {tier.points}
         </td>
       ) : showLevel ? (
-        <td className={COL_LEVEL}>
+        <td className={levelFace === "ovr" ? COL_OVR : COL_LEVEL}>
           <LevelCell
             band={member.levelBand}
+            ovr={levelFace === "ovr" ? member.ovr : null}
             provisional={member.levelProvisional}
             className="text-meta justify-center text-center font-mono"
           />
@@ -542,6 +549,7 @@ export function GroupMembersTab({
   canAppointOrganizers = false,
   onOrganizerAction,
   showLevel = true,
+  levelFace = "level",
   tierSummary,
   groupName = "",
   canAdjustTier = false,
@@ -552,6 +560,8 @@ export function GroupMembersTab({
   afterTable,
 }: {
   showLevel?: boolean;
+  /** OVR on a Verified football Group (ADR-0069). */
+  levelFace?: LevelFace;
   /** A tier Group's Members (screen 2b): fish, points and the Shark. */
   tierSummary?: GroupTierSummaryData | null;
   groupName?: string;
@@ -820,11 +830,13 @@ export function GroupMembersTab({
                     scope="col"
                     title={m.common.level}
                     className={cn(
-                      COL_LEVEL,
+                      levelFace === "ovr" ? COL_OVR : COL_LEVEL,
                       "text-eyebrow text-muted-foreground h-10 text-center font-normal",
                     )}
                   >
-                    {m.webGroup.members.levelAbbrev}
+                    {levelFace === "ovr"
+                      ? m.rating.ovr.label
+                      : m.webGroup.members.levelAbbrev}
                   </th>
                 ) : null}
                 {isManaging ? (
@@ -864,6 +876,7 @@ export function GroupMembersTab({
                     member={member}
                     canSetLevel={canSetLevel}
                     showLevel={showLevel}
+                    levelFace={levelFace}
                     managing={isManaging}
                     sort={view.sort}
                     profileHref={

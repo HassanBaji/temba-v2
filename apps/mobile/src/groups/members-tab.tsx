@@ -3,6 +3,7 @@ import type {
   GroupLeaderboardEntryData,
   GroupTierSummaryData,
 } from "@repo/domain/group-data";
+import type { LevelFace } from "@repo/domain/football-ovr";
 import {
   groupMemberOrganizerActionHint,
   groupMemberOrganizerActionLabel,
@@ -56,6 +57,8 @@ import { TierCell, TierFish } from "./tier-fish";
 import { useMemberLens } from "./use-member-lens";
 
 const LEVEL_WIDTH = 52;
+/** `C+ 72`: the band and the OVR, on a Verified football Group. */
+const OVR_WIDTH = 64;
 const TIER_WIDTH = 44;
 const POINTS_WIDTH = 52;
 const ACTION_WIDTH = 44;
@@ -84,12 +87,14 @@ function YouMark() {
 function MemberRow({
   row,
   showLevel,
+  levelFace,
   managing,
   onOpen,
   onManage,
 }: {
   row: MemberRowView;
   showLevel: boolean;
+  levelFace: LevelFace;
   managing: boolean;
   onOpen?: () => void;
   onManage?: () => void;
@@ -130,7 +135,12 @@ function MemberRow({
           {tier.points}
         </Text>
       ) : showLevel ? (
-        <View style={{ width: LEVEL_WIDTH, alignItems: "center" }}>
+        <View
+          style={{
+            width: levelFace === "ovr" ? OVR_WIDTH : LEVEL_WIDTH,
+            alignItems: "center",
+          }}
+        >
           <LevelCell view={row.level} />
         </View>
       ) : null}
@@ -202,11 +212,13 @@ function MemberRow({
 function TableHeader({
   managing,
   showLevel,
+  levelFace,
   showTier,
   countLine,
 }: {
   managing: boolean;
   showLevel: boolean;
+  levelFace: LevelFace;
   showTier: boolean;
   countLine: string;
 }) {
@@ -254,9 +266,14 @@ function TableHeader({
           tone="muted"
           mono
           accessibilityLabel={m.common.level}
-          style={{ width: LEVEL_WIDTH, textAlign: "center" }}
+          style={{
+            width: levelFace === "ovr" ? OVR_WIDTH : LEVEL_WIDTH,
+            textAlign: "center",
+          }}
         >
-          {m.mobileGroup.members.columnLevel}
+          {levelFace === "ovr"
+            ? m.rating.ovr.label
+            : m.mobileGroup.members.columnLevel}
         </Text>
       ) : null}
       {managing ? <View style={{ width: ACTION_WIDTH }} /> : null}
@@ -365,6 +382,7 @@ export function MembersTab({
   apiOrigin,
   canSetLevel,
   showLevel = true,
+  levelFace = "level",
   tierSummary,
   groupName = "",
   canAdjustTier = false,
@@ -391,6 +409,8 @@ export function MembersTab({
   apiOrigin: string;
   canSetLevel: boolean;
   showLevel?: boolean;
+  /** OVR on a Verified football Group (ADR-0069). */
+  levelFace?: LevelFace;
   /** A tier Group's Members (screen 2b): fish, points and the Shark. */
   tierSummary?: GroupTierSummaryData | null;
   groupName?: string;
@@ -537,6 +557,7 @@ export function MembersTab({
         <TableHeader
           managing={isManaging}
           showLevel={showLevel}
+          levelFace={levelFace}
           showTier={showTier}
           countLine={list.countLine}
         />
@@ -571,6 +592,7 @@ export function MembersTab({
               <MemberRow
                 row={row}
                 showLevel={showLevel}
+                levelFace={levelFace}
                 managing={isManaging}
                 onOpen={onOpenMember ? () => onOpenMember(row.key) : undefined}
                 onManage={
