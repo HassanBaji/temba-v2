@@ -325,16 +325,21 @@ function VenueCard({
   const locale = useLocale();
   const open = venue.todayOpen.length > 0;
   const price = formatBookingPriceFils(venue.fromHourlyRateFils, locale);
+  const cardLabel = m.mobileBooking.venues.cardLabel(
+    venue.name,
+    venue.city,
+    price,
+    openToLabel(venue.todayOpen, locale),
+  );
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={m.mobileBooking.venues.cardLabel(
-        venue.name,
-        venue.city,
-        price,
-        openToLabel(venue.todayOpen, locale),
-      )}
+      accessibilityLabel={
+        venue.isPartner
+          ? m.mobileBooking.venues.partnerCardLabel(cardLabel)
+          : cardLabel
+      }
       onPress={onPress}
       style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
     >
@@ -400,6 +405,14 @@ function VenueCard({
               {"  /  "}
             </Text>
             {courtCountLabel(venue.courtCount, locale, sport)}
+            {venue.isPartner ? (
+              <>
+                <Text size="eyebrow" style={{ color: colors.rule }}>
+                  {"  /  "}
+                </Text>
+                <Text size="eyebrow">{m.mobileBooking.venues.partner}</Text>
+              </>
+            ) : null}
           </Text>
         </View>
       </Surface>

@@ -322,6 +322,15 @@ export const webDashboard = {
     softArchiveAction: "Soft-archive",
     unarchiveAction: "Unarchive",
     softArchivedBadge: "Soft-archived",
+    partner: {
+      title: "Partner venue",
+      description:
+        "A partner Venue hosts Public Games, which count for Temba Level.",
+      badge: "Partner",
+      archivedNote: "Unarchive this Venue to make it a partner.",
+      onToast: "Marked as a partner Venue",
+      offToast: "No longer a partner Venue",
+    },
     logoReadError: "Logo could not be read",
     unarchiving: "Unarchiving…",
     toast: {

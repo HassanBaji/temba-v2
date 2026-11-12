@@ -353,6 +353,15 @@ export const webDashboard = {
     softArchiveAction: "أرشفة",
     unarchiveAction: "إلغاء الأرشفة",
     softArchivedBadge: "مؤرشف",
+    partner: {
+      title: "نادٍ شريك",
+      description:
+        "يستضيف النادي الشريك المباريات العامة، وهي تُحتسب لمستوى Temba.",
+      badge: "شريك",
+      archivedNote: "ألغِ أرشفة هذا النادي لتجعله شريكًا.",
+      onToast: "صار النادي ناديًا شريكًا",
+      offToast: "لم يعد النادي ناديًا شريكًا",
+    },
     logoReadError: "تعذّرت قراءة الشعار",
     unarchiving: "جارٍ إلغاء الأرشفة…",
     toast: {
