@@ -285,7 +285,7 @@ export function ShareResultPage({ gameId }: { gameId: string }) {
 
   return (
     <DashboardShell title={m.title} action={doneAction} isSubPage>
-      <div className="mx-auto max-w-[520px] space-y-5 max-md:pt-4">
+      <div className="mx-auto max-w-[520px] space-y-5">
         <Tabs
           value={mode}
           onValueChange={(value) => setMode(value as ShareMode)}
