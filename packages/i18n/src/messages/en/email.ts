@@ -6,6 +6,7 @@ export const email = {
     history: "See your Games",
     teams: "Open your Teams",
     challenges: "Open Challenges",
+    disputes: "Open disputes",
   },
   inGroup: (group: string) => `In ${group}`,
   footer: {

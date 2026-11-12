@@ -36,6 +36,7 @@ function item(
     game: null,
     levelSet: null,
     tier: null,
+    dispute: null,
     ...overrides,
   };
 }

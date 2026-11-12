@@ -23,12 +23,13 @@ export type NotificationEmailInput = Pick<
   | "game"
   | "levelSet"
   | "tier"
+  | "dispute"
 >;
 
 export type NotificationEmail = { subject: string; html: string; text: string };
 
 type Destination = {
-  kind: "game" | "group" | "history" | "teams" | "challenges";
+  kind: "game" | "group" | "history" | "teams" | "challenges" | "disputes";
   path: string;
 };
 
@@ -48,6 +49,9 @@ export function notificationEmailDestination(
     challenge?: { id: string } | null;
   },
 ): Destination | null {
+  if (item.type === "match_dispute_raised") {
+    return { kind: "disputes", path: "/dashboard/operator/disputes" };
+  }
   if (item.type === "performance_ratings_open" && item.game) {
     return { kind: "game", path: `/dashboard/games/${item.game.id}/rate` };
   }
@@ -76,6 +80,7 @@ export function notificationEmailDestination(
       item.type === "mvp_decided" ||
       item.type === "mvp_tie_break" ||
       item.type === "performance_ratings_closed" ||
+      item.type === "match_dispute_decided" ||
       item.type === "group_join_requested" ||
       item.type === "group_join_approved" ||
       item.type === "group_join_declined" ||

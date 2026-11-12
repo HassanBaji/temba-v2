@@ -15,6 +15,7 @@ import {
   gameWaitlist,
   games,
   groups,
+  matchDisputes,
   matchGoals,
   matchRatingWindows,
   matchVerifierStamps,
@@ -79,6 +80,7 @@ import {
   isVerifierOfVenue,
   verifierStampRefusal,
 } from "#src/games/verifier-stamp";
+import { matchDisputeRefusal } from "#src/games/match-dispute";
 import {
   seatedSlot,
   viewerMayConfirmEnteredScore,
@@ -594,6 +596,50 @@ export async function gameById(
     const closesAt = await publicGameConfirmWindowClosesAt(database, match.id);
     return closesAt == null || closesAt.getTime() > now.getTime();
   };
+
+  // The open Match dispute on each Match, and whether the viewer may raise
+  // one: a seated player of a Match that counted for Temba Level, within
+  // seven days of its completion.
+  const openDisputeRows =
+    matchRows.length === 0
+      ? []
+      : await database
+          .select({
+            matchId: matchDisputes.matchId,
+            raisedByUserId: matchDisputes.raisedByUserId,
+            createdAt: matchDisputes.createdAt,
+          })
+          .from(matchDisputes)
+          .where(
+            and(
+              inArray(
+                matchDisputes.matchId,
+                matchRows.map((match) => match.id),
+              ),
+              eq(matchDisputes.status, "open"),
+            ),
+          );
+  const openDisputeByMatchId = new Map(
+    openDisputeRows.map((row) => [row.matchId, row]),
+  );
+  const openDisputeOf = (matchId: string) => {
+    const dispute = openDisputeByMatchId.get(matchId);
+    return dispute
+      ? {
+          raisedByViewer: dispute.raisedByUserId === args.userId,
+          createdAt: dispute.createdAt,
+        }
+      : null;
+  };
+  const viewerMayDispute = async (match: (typeof matchRows)[number]) =>
+    match.status === MatchStatusEnum.COMPLETED &&
+    !openDisputeByMatchId.has(match.id) &&
+    (await matchDisputeRefusal(database, {
+      game,
+      match,
+      userId: args.userId,
+      now,
+    })) == null;
 
   const recordedCourtRows = await database.query.gameCourts.findMany({
     where: eq(gameCourts.gameId, game.id),
@@ -1284,6 +1330,8 @@ export async function gameById(
           stoodUnconfirmed: match.stoodUnconfirmedAt != null,
           stamp: stampByMatchId.get(match.id) ?? null,
           canStamp: await viewerMayStamp(match),
+          openDispute: openDisputeOf(match.id),
+          canDispute: await viewerMayDispute(match),
           courtId: match.courtId,
           courtName: match.court?.name ?? null,
           slot1GameTeamId: match.slot1GameTeamId,

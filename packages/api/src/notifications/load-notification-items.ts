@@ -1,7 +1,11 @@
 import type { DbClient } from "@repo/db";
 import type { SQL } from "drizzle-orm";
 
-import { type NotificationAudience, type NotificationType } from "@repo/db";
+import {
+  type MatchDisputeStatus,
+  type NotificationAudience,
+  type NotificationType,
+} from "@repo/db";
 import { formatOvr, ovrFromMu } from "@repo/domain/football-ovr";
 import { displayedLevelFromMu } from "@repo/domain/level";
 import { type LevelBand } from "@repo/domain/level-bands";
@@ -57,6 +61,8 @@ export type NotificationItem = {
     reason: LevelOverrideReason | null;
     note: string | null;
   } | null;
+  /** The Match dispute a raised or decided Notification is about. */
+  dispute: { status: MatchDisputeStatus; note: string } | null;
 };
 
 export type LoadedNotification = {
@@ -146,6 +152,7 @@ export async function loadNotificationItems(
           note: true,
         },
       },
+      matchDispute: { columns: { status: true, note: true } },
     },
   });
 
@@ -153,6 +160,7 @@ export async function loadNotificationItems(
     ({
       levelOverride,
       groupTierEvent,
+      matchDispute,
       game,
       recipientUserId,
       emailedAt,
@@ -186,6 +194,7 @@ export async function loadNotificationItems(
             }
           : null,
         tier: groupTierEvent ?? null,
+        dispute: matchDispute ?? null,
       },
     }),
   );

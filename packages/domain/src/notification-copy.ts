@@ -32,6 +32,7 @@ export type NotificationCopyInput = {
   gameCount?: number | null;
   levelSet?: NotificationLevelSet | null;
   tier?: NotificationTier | null;
+  dispute?: NotificationDispute | null;
   markKind?: string | null;
   /** The recipient is the actor, as on the MVP's own `mvp_decided` row. */
   actorIsRecipient?: boolean;
@@ -59,6 +60,12 @@ type NotificationTier = {
   ratingHundredths?: number | null;
   reason: LevelOverrideReason | null;
   note: string | null;
+};
+
+/** The Match dispute a raised or decided Notification is about. */
+type NotificationDispute = {
+  status: string;
+  note: string;
 };
 
 type NotificationGame = {
@@ -353,6 +360,44 @@ export function notificationCopy(
               delta,
               points,
             ),
+    };
+  }
+  if (
+    item.type === "match_dispute_raised" &&
+    item.audience === "admin" &&
+    item.game &&
+    item.dispute
+  ) {
+    return {
+      title: m.matchDisputeRaised(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: userName(item.dispute.note, locale),
+    };
+  }
+  if (
+    item.type === "match_dispute_decided" &&
+    (item.audience === "admin" || item.audience === "player") &&
+    item.game &&
+    (item.dispute?.status === "upheld" || item.dispute?.status === "dismissed")
+  ) {
+    const game = notificationGameName(item.game, locale);
+    const actor = actorName(item.actor, locale);
+    const upheld = item.dispute.status === "upheld";
+    if (item.actorIsRecipient) {
+      return {
+        title: upheld
+          ? m.matchDisputeUpheld(game)
+          : m.matchDisputeDismissed(game),
+        subline: upheld ? sub.disputeUpheld : sub.disputeDismissed,
+      };
+    }
+    return {
+      title: upheld
+        ? m.matchDisputeUpheldFor(actor, game)
+        : m.matchDisputeDismissedFor(actor, game),
+      subline: upheld ? sub.disputeUpheld : sub.disputeDismissed,
     };
   }
   if (item.type === "mvp_tie_break" && item.audience === "admin" && item.game) {
