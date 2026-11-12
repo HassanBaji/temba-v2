@@ -27,6 +27,65 @@ export const rating = {
     padelNote:
       "الأزواج تتبدّل، لذا يتكفّل مستوى واحد صادق بالموازنة. مباريات المجموعة تُحتسب في الفوز والخسارة وموسم المجموعة فقط.",
   },
+  screen: {
+    title: "التصنيفات",
+    sport: "الرياضة",
+    open: {
+      title: "التصنيفات",
+      football: "مستوى Temba وفئة المجموعة والرتبة الرسمية",
+      padel: "مستوى Temba والرتبة الرسمية",
+    },
+    loadFailed: "تعذّر تحميل تصنيفاتك",
+    level: {
+      title: "مستوى Temba",
+      confirmed: "مؤكد",
+      provisional: "مبدئي",
+      number: "المستوى",
+      lastCount: (n: number) => `آخر ${n}`,
+      changeSpoken: (delta: string, n: number) =>
+        plural("ar", n, {
+          one: `${isolate(delta)} في آخر مباراة`,
+          two: `${isolate(delta)} في آخر مباراتين`,
+          few: `${isolate(delta)} في آخر {n} مباريات`,
+          many: `${isolate(delta)} في آخر {n} مباراة`,
+          other: `${isolate(delta)} في آخر {n} مباراة`,
+        }),
+      nextBand: "الفئة التالية",
+      ofTheWay: (percent: number) => `، ${percent}% من الطريق`,
+      topBand: "أعلى فئة",
+      toConfirm: "حتى التأكيد",
+      confirmCount: (done: number, total: number) =>
+        `${done} من ${total} مباريات`,
+      noLevel: "لا يوجد مستوى بعد",
+      noLevelFootball: "العب مباراة تُحتسب لمستوى Temba لتحصل على OVR.",
+      noLevelPadel: "العب مباراة تُحتسب لمستوى Temba لتحصل على مستوى.",
+      noteFootball:
+        "مدى جودتك، في المباريات الموثّقة فقط. يمتد OVR من 40 إلى 99 ولا يُعاد ضبطه أبدًا.",
+      notePadel:
+        "مقياس 1.0 إلى 7.0 الذي يعرفه لاعبو البادل. يتحرّك في المباريات الموثّقة، ويزن شريكك وخصومك.",
+      spoken: (band: string, level: string, status: string) =>
+        `مستوى Temba ${isolate(level)}، الفئة ${isolate(band)}. ${status}`,
+    },
+    tier: {
+      title: "فئة المجموعة",
+      count: (n: number) =>
+        plural("ar", n, {
+          one: "مجموعة واحدة",
+          two: "مجموعتان",
+          few: "{n} مجموعات",
+          many: "{n} مجموعة",
+          other: "{n} مجموعة",
+        }),
+      bandPlace: (band: string, place: string) => `${band}، ${isolate(place)}`,
+      note: "موقعك في كل مجموعة. تحدّده مباريات تلك المجموعة ومنظّموها؛ ولا يمسّ مستواك أبدًا.",
+    },
+    verifiedGroups: "موثّقة، بلا فئات",
+    official: {
+      title: "الرتبة الرسمية",
+      coming: "قادمة مع البطولات الرسمية",
+      note: "ما فزت به رسميًا. نتائج البطولات والدرجات فقط؛ ولا يستطيع أحد تعديلها.",
+    },
+  },
   ovrImpact: {
     title: "ما الذي حرّك OVR الخاص بك",
     move: (before: string, after: string) =>

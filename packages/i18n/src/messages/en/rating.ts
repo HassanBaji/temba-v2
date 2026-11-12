@@ -25,6 +25,56 @@ export const rating = {
     padelNote:
       "Pairs rotate, so one honest Level does the balancing. Group games count for won, lost and the group’s season only.",
   },
+  screen: {
+    title: "Ratings",
+    sport: "Sport",
+    open: {
+      title: "Ratings",
+      football: "Temba Level, group tier and official rank",
+      padel: "Temba Level and official rank",
+    },
+    loadFailed: "Couldn’t load your ratings",
+    level: {
+      title: "Temba Level",
+      confirmed: "Confirmed",
+      provisional: "Provisional",
+      number: "Level",
+      lastCount: (n: number) => `last ${n}`,
+      changeSpoken: (delta: string, n: number) =>
+        plural("en", n, {
+          one: `${delta} over the last match`,
+          other: `${delta} over the last {n} matches`,
+        }),
+      nextBand: "Next band",
+      ofTheWay: (percent: number) => `, ${percent}% of the way`,
+      topBand: "Top band",
+      toConfirm: "To confirm",
+      confirmCount: (done: number, total: number) =>
+        `${done} of ${total} matches`,
+      noLevel: "No level yet",
+      noLevelFootball: "Play a game that counts for Temba Level to get an OVR.",
+      noLevelPadel: "Play a match that counts for Temba Level to get a Level.",
+      noteFootball:
+        "How good you are, on verified matches only. OVR runs 40 to 99 and never resets.",
+      notePadel:
+        "The 1.0 to 7.0 scale padel players already know. Moves on verified matches, weighing your partner and opponents.",
+      spoken: (band: string, level: string, status: string) =>
+        `Temba Level ${level}, band ${band}. ${status}`,
+    },
+    tier: {
+      title: "Group tier",
+      count: (n: number) =>
+        plural("en", n, { one: "1 group", other: "{n} groups" }),
+      bandPlace: (band: string, place: string) => `${band}, ${place}`,
+      note: "Where you stand in each group. Set by that group’s own games and its organizers; it never touches your Level.",
+    },
+    verifiedGroups: "verified, no tier",
+    official: {
+      title: "Official rank",
+      coming: "Coming with official tournaments",
+      note: "What you’ve won, officially. Tournament and division results only; nobody can edit it.",
+    },
+  },
   ovrImpact: {
     title: "What moved your OVR",
     move: (before: string, after: string) => `${before} to ${after}`,
