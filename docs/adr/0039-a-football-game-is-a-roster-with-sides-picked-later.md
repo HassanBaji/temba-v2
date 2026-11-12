@@ -1,6 +1,6 @@
 # A football Game is a roster with sides picked later
 
-**Status:** accepted.
+**Status:** accepted. Amendment proposed: [ADR-0069](./0069-a-football-level-is-an-ovr-moved-by-four-parts.md) lets a football Game count for Temba Level.
 
 A football Game registers Users against a cap with no Position (Roster registration, the path Americano already uses), carries a Side size, and in v1 has no Match and is Unrated. When results ship, an Organizer picks two sides, the Game gets its one Match, and the Score is that Match's one Set, so that win, loss, draw, confirmation, Standing, Last 10 and the rating step stay unchanged readers.
 

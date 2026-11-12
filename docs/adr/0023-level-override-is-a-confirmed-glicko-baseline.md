@@ -1,6 +1,6 @@
 # A Level override is a confirmed Glicko-2 baseline
 
-**Status:** accepted. ADR-0022 is reserved by the in-app Notifications spec.
+**Status:** accepted. ADR-0022 is reserved by the in-app Notifications spec. Amendments proposed: [ADR-0072](./0072-a-verifier-is-a-per-venue-role.md) adds the Verifier as a setter, and [ADR-0073](./0073-every-manual-rating-change-carries-who-and-why.md) makes the reason required and adds a note.
 
 Some Users know a player's level better than results do, so trusted Users need to set a Level by hand. We store the set Level as a new Glicko-2 baseline: μ from the chosen Level, φ lowered to at most 150 so the Rating is confirmed, and σ kept. Rated Matches keep stepping from it. Each set is an append-only `level_overrides` row with before and after values. There is no undo; a mistake is corrected by setting again. A wrong-score reversal does not touch the Rating of a player whose Level was set after that Match: the set is their baseline.
 

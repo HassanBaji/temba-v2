@@ -1,16 +1,12 @@
 import { hatch, spacing } from "@repo/design-tokens";
 import { homeLevelView, type HomeLevelInput } from "@repo/domain/home-level";
-import {
-  gaugeArc,
-  parseLevelHistory,
-  sparklinePoints,
-} from "@repo/domain/home-level-chart";
+import { gaugeArc } from "@repo/domain/home-level-chart";
 import { nextDistinctDisplayRung } from "@repo/domain/level-bands";
 import { type Sport } from "@repo/domain/sport";
 import { Check } from "lucide-react-native";
 import { useId } from "react";
 import { View } from "react-native";
-import Svg, { Circle, Defs, Pattern, Polyline, Rect } from "react-native-svg";
+import Svg, { Circle, Defs, Pattern, Rect } from "react-native-svg";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
@@ -26,8 +22,6 @@ const GAUGE = 104;
 const VIEWBOX = 120;
 const RADIUS = 50;
 const STROKE = 10;
-const SPARK_WIDTH = 60;
-const SPARK_HEIGHT = 18;
 const SWATCH = 12;
 const NO_LEVEL_TILE = 74;
 const STATUS_ICON = 14;
@@ -102,38 +96,6 @@ function Gauge({ percent, band }: { percent: number; band: string }) {
         {band}
       </Text>
     </View>
-  );
-}
-
-function Sparkline({ values }: { values: readonly number[] }) {
-  const palette = useTonePalette();
-  const points = sparklinePoints(values, SPARK_WIDTH - 4, SPARK_HEIGHT - 4);
-  if (!points) {
-    return null;
-  }
-  const last = points.split(" ").at(-1)?.split(",").map(Number) ?? [0, 0];
-  return (
-    <Svg
-      width={SPARK_WIDTH}
-      height={SPARK_HEIGHT}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    >
-      <Polyline
-        points={points}
-        fill="none"
-        stroke={palette.foreground}
-        strokeWidth={1.5}
-        strokeLinejoin="round"
-        transform="translate(2 2)"
-      />
-      <Circle
-        cx={(last[0] ?? 0) + 2}
-        cy={(last[1] ?? 0) + 2}
-        r={2.5}
-        fill={palette.foreground}
-      />
-    </Svg>
   );
 }
 
@@ -225,7 +187,6 @@ function RatedLevel({ input }: { input: HomeLevelInput }) {
   const locale = useLocale();
   const view = homeLevelView(input, locale);
   const next = nextDistinctDisplayRung(input.band);
-  const values = parseLevelHistory(input.history)?.values ?? [];
   const percent = view.progress?.percent ?? 100;
   const copy = m.home.levelSection;
 
@@ -266,7 +227,6 @@ function RatedLevel({ input }: { input: HomeLevelInput }) {
               )}
               style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
-              <Sparkline values={values} />
               <Text weight="bold" width="expanded">
                 {view.change.signedAmount}
               </Text>

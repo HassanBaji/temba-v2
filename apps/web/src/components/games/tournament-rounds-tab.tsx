@@ -336,7 +336,9 @@ function WayCard({
     <label
       className={cn(
         "rounded-card has-focus-visible:ring-ring/50 has-focus-visible:ring-[3px] has-disabled:opacity-60 flex w-full cursor-pointer items-center gap-4 border p-5 text-start",
-        selected ? "bg-ink text-paper border-ink" : "border-rule bg-paper",
+        selected
+          ? "border-ink bg-control text-on-control"
+          : "border-rule bg-paper text-ink hover:bg-wash",
       )}
     >
       <input
@@ -351,8 +353,8 @@ function WayCard({
       <span
         aria-hidden="true"
         className={cn(
-          "inline-flex size-10 shrink-0 items-center justify-center self-start rounded-md",
-          selected ? "bg-control-raised" : "border-rule border",
+          "inline-flex size-10 shrink-0 items-center justify-center self-start rounded-md border",
+          selected ? "border-control-rule bg-control-raised" : "border-rule",
         )}
       >
         {icon}
@@ -372,10 +374,12 @@ function WayCard({
         aria-hidden="true"
         className={cn(
           "inline-flex size-6 shrink-0 items-center justify-center rounded-full border",
-          selected ? "bg-paper border-paper" : "border-rule",
+          selected ? "bg-on-control border-on-control" : "border-rule",
         )}
       >
-        {selected ? <span className="bg-ink size-2.5 rounded-full" /> : null}
+        {selected ? (
+          <span className="bg-control size-2.5 rounded-full" />
+        ) : null}
       </span>
     </label>
   );

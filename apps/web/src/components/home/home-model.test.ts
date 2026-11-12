@@ -22,6 +22,7 @@ describe("levelFromApi", () => {
       progressPercent: null,
       nextBand: null,
       history: [],
+      historySteps: [],
       historyMatchCount: 0,
       ratedMatchCount: 0,
     } as ApiRating;
@@ -42,6 +43,7 @@ describe("levelFromApi", () => {
       },
       progressPercent: 1,
       history: ["3.2", "2.8"],
+      historySteps: ["lost"],
       historyMatchCount: 1,
     } as unknown as ApiRating;
     const level = levelFromApi(data);
@@ -50,6 +52,7 @@ describe("levelFromApi", () => {
     assert.equal(level.input.level, "2.8");
     assert.equal(level.input.progressPercent, 1);
     assert.equal(level.input.historyMatchCount, 1);
+    assert.deepEqual(level.input.historySteps, ["lost"]);
   });
 });
 

@@ -17,6 +17,7 @@ import { HomeStanding } from "~/components/home/home-standing";
 import { LatestRow } from "~/components/home/latest-row";
 import { LevelCard } from "~/components/home/level-card";
 import { RecentFormCard } from "~/components/home/recent-form-card";
+import { TrendCard } from "~/components/home/trend-card";
 import { SportSwitch } from "~/components/home/sport-switch";
 import { StatsCard } from "~/components/home/stats-card";
 import { UpNextCard } from "~/components/home/up-next-card";
@@ -199,6 +200,9 @@ export default function HomePage() {
           >
             {(value) => <LevelCard level={value} sport={sport} />}
           </HomeBlock>
+          {level.status === "ready" && level.value.kind === "rated" ? (
+            <TrendCard input={level.value.input} />
+          ) : null}
           <HomeBlock
             slot={recentForm}
             title={m.home.lastTen.title}
