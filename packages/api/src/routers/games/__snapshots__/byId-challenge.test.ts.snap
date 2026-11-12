@@ -26,6 +26,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "members": [
         {
           "canRename": false,
+          "guest": false,
           "id": "<id 4>",
           "image": null,
           "name": "Owner",
@@ -35,6 +36,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
         },
         {
           "canRename": false,
+          "guest": false,
           "id": "<id 11>",
           "image": null,
           "name": "Bea",
@@ -54,6 +56,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "members": [
         {
           "canRename": false,
+          "guest": false,
           "id": "<id 12>",
           "image": null,
           "name": "Cal",
@@ -161,6 +164,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "registeredPlayers": [
     {
       "canRename": false,
+      "guest": false,
       "id": "<id 4>",
       "image": null,
       "name": "Owner",
@@ -169,6 +173,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     },
     {
       "canRename": false,
+      "guest": false,
       "id": "<id 11>",
       "image": null,
       "name": "Bea",
@@ -177,6 +182,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     },
     {
       "canRename": false,
+      "guest": false,
       "id": "<id 12>",
       "image": null,
       "name": "Cal",
@@ -200,6 +206,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "left": {
         "canRename": false,
         "eitherSide": false,
+        "guest": false,
         "image": null,
         "levelBand": null,
         "name": "Owner",
@@ -211,6 +218,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "right": {
         "canRename": false,
         "eitherSide": false,
+        "guest": false,
         "image": null,
         "levelBand": null,
         "name": "Bea",
@@ -226,6 +234,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "left": {
         "canRename": false,
         "eitherSide": false,
+        "guest": false,
         "image": null,
         "levelBand": null,
         "name": "Cal",
@@ -288,6 +297,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "members": [
         {
           "canRename": false,
+          "guest": false,
           "id": "<id 4>",
           "image": null,
           "name": "Owner",
@@ -297,6 +307,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
         },
         {
           "canRename": false,
+          "guest": false,
           "id": "<id 12>",
           "image": null,
           "name": "Bea",
@@ -316,6 +327,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "members": [
         {
           "canRename": false,
+          "guest": false,
           "id": "<id 13>",
           "image": null,
           "name": "Cal",
@@ -423,6 +435,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "registeredPlayers": [
     {
       "canRename": false,
+      "guest": false,
       "id": "<id 4>",
       "image": null,
       "name": "Owner",
@@ -431,6 +444,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     },
     {
       "canRename": false,
+      "guest": false,
       "id": "<id 12>",
       "image": null,
       "name": "Bea",
@@ -439,6 +453,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     },
     {
       "canRename": false,
+      "guest": false,
       "id": "<id 13>",
       "image": null,
       "name": "Cal",
@@ -462,6 +477,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "left": {
         "canRename": false,
         "eitherSide": false,
+        "guest": false,
         "image": null,
         "levelBand": null,
         "name": "Owner",
@@ -473,6 +489,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "right": {
         "canRename": false,
         "eitherSide": false,
+        "guest": false,
         "image": null,
         "levelBand": null,
         "name": "Bea",
@@ -488,6 +505,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       "left": {
         "canRename": false,
         "eitherSide": false,
+        "guest": false,
         "image": null,
         "levelBand": null,
         "name": "Cal",
@@ -583,6 +601,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "registeredPlayers": [
     {
       "canRename": false,
+      "guest": false,
       "id": "<id 5>",
       "image": null,
       "name": "Bea",
@@ -591,6 +610,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     },
     {
       "canRename": false,
+      "guest": false,
       "id": "<id 6>",
       "image": null,
       "name": "Cal",
@@ -609,6 +629,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     "users": [
       {
         "canRename": false,
+        "guest": false,
         "id": "<id 5>",
         "image": null,
         "name": "Bea",
@@ -617,6 +638,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       },
       {
         "canRename": false,
+        "guest": false,
         "id": "<id 6>",
         "image": null,
         "name": "Cal",
@@ -636,6 +658,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "unseatedPlayers": [
     {
       "canRename": false,
+      "guest": false,
       "id": "<id 5>",
       "image": null,
       "name": "Bea",
@@ -644,6 +667,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     },
     {
       "canRename": false,
+      "guest": false,
       "id": "<id 6>",
       "image": null,
       "name": "Cal",
@@ -730,6 +754,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "registeredPlayers": [
     {
       "canRename": false,
+      "guest": false,
       "id": "<id 5>",
       "image": null,
       "name": "Bea",
@@ -738,6 +763,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     },
     {
       "canRename": false,
+      "guest": false,
       "id": "<id 6>",
       "image": null,
       "name": "Cal",
@@ -756,6 +782,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     "users": [
       {
         "canRename": false,
+        "guest": false,
         "id": "<id 5>",
         "image": null,
         "name": "Bea",
@@ -764,6 +791,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
       },
       {
         "canRename": false,
+        "guest": false,
         "id": "<id 6>",
         "image": null,
         "name": "Cal",
@@ -783,6 +811,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "unseatedPlayers": [
     {
       "canRename": false,
+      "guest": false,
       "id": "<id 5>",
       "image": null,
       "name": "Bea",
@@ -791,6 +820,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
     },
     {
       "canRename": false,
+      "guest": false,
       "id": "<id 6>",
       "image": null,
       "name": "Cal",

@@ -91,7 +91,11 @@ function HeroSeat({
         minHeight: 64,
       }}
     >
-      <Avatar name={occupant.name} uri={occupant.image} />
+      <Avatar
+        name={occupant.name}
+        uri={occupant.image}
+        guest={occupant.guest === true}
+      />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text size="body" numberOfLines={1}>
           {isViewer ? messages.common.you : occupant.name}
@@ -262,7 +266,12 @@ function SeatTile({
         borderColor: palette.rule,
       }}
     >
-      <Avatar name={occupant.name} uri={occupant.image} size="sm" />
+      <Avatar
+        name={occupant.name}
+        uri={occupant.image}
+        size="sm"
+        guest={occupant.guest === true}
+      />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text size="meta" weight="medium" numberOfLines={1}>
           {occupant.userId === viewerUserId

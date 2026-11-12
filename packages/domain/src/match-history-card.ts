@@ -14,6 +14,7 @@ export type HistoryMember = {
   name: string;
   image: string | null;
   isViewer: boolean;
+  guest?: boolean;
 };
 
 export type HistoryRowInput = {
