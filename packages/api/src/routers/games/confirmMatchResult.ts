@@ -22,6 +22,7 @@ import {
   matchResultConfirmedUserIds,
   matchResultFullyConfirmed,
   matchSideSeats,
+  matchSlotsActedFor,
   matchSlotsConfirmed,
   type MatchSlot,
 } from "#src/games/match-result-confirmations";
@@ -36,23 +37,26 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 /**
  * On a Match agreed by one player from each side, a side that already agreed
  * has nothing to add: another tap from it must not move the moment its score
- * stands from (ADR-0062).
+ * stands from (ADR-0062). The User's sides are the one they are seated on
+ * and, on a football Challenge Game, those whose Team they act for.
  */
 async function sideAlreadyAgreed(
   database: DbClient,
   game: GameRow,
   match: MatchRow,
   userId: string,
+  actedFor: readonly MatchSlot[],
 ) {
   if (!confirmsBySide(game)) {
     return false;
   }
-  const slot = seatedSlot(await matchSideSeats(database, match), userId);
-  if (slot == null) {
+  const seated = seatedSlot(await matchSideSeats(database, match), userId);
+  const slots = new Set([...(seated == null ? [] : [seated]), ...actedFor]);
+  if (slots.size === 0) {
     return false;
   }
   const agreed = await matchSlotsConfirmed(database, match);
-  return slot === 1 ? agreed.slot1 : agreed.slot2;
+  return [...slots].every((slot) => (slot === 1 ? agreed.slot1 : agreed.slot2));
 }
 
 /**
@@ -60,7 +64,10 @@ async function sideAlreadyAgreed(
  * A seated User confirms for themselves, and the Match completes once the
  * result is agreed. An Organizer's confirmation is final: it completes the
  * Match at once, without waiting on the players (ADR-0044); the players of a
- * padel Challenge Game organize it but confirm as players. `slot` is kept for
+ * padel Challenge Game organize it but confirm as players, and on a football
+ * Challenge Game that counts for Temba Level whoever acts for a Team
+ * confirms for that Team's side only, so the Match waits for the other
+ * Team (ADR-0069). `slot` is kept for
  * clients that still name the side an Organizer confirms for; it is refused
  * from anyone else. The Match must already have a result and must not be
  * cancelled. Idempotent per Match+User: a repeat changes nothing, and a
@@ -96,9 +103,13 @@ export async function confirmMatchResult(
     userIsOnMatchSlots(database, match, args.userId),
     confirmsAsOrganizer(database, game, args.userId),
   ]);
+  const actedFor = organizer
+    ? []
+    : await matchSlotsActedFor(database, match, args.userId);
+  const confirmsForSide = seated || actedFor.length > 0;
   if (match.status === MatchStatusEnum.COMPLETED) {
     const confirmed = await matchResultConfirmedUserIds(database, match.id);
-    if (organizer || (seated && confirmed.includes(args.userId))) {
+    if (organizer || (confirmsForSide && confirmed.includes(args.userId))) {
       return { ok: true as const };
     }
     throw new TRPCError({
@@ -113,7 +124,7 @@ export async function confirmMatchResult(
         message: messagesFor(locale).game.errors.confirmForSideOrganizer,
       });
     }
-    if (!seated) {
+    if (!confirmsForSide) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: messagesFor(locale).game.errors.confirmSeatedOrOrganizer,
@@ -140,8 +151,8 @@ export async function confirmMatchResult(
   }
 
   if (
-    seated &&
-    !(await sideAlreadyAgreed(database, game, match, args.userId))
+    confirmsForSide &&
+    !(await sideAlreadyAgreed(database, game, match, args.userId, actedFor))
   ) {
     await keepMatchResultConfirmation(database, match.id, args.userId);
   }

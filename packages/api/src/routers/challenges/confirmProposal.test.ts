@@ -9,6 +9,7 @@ import {
   gameTeams,
   groups,
   matches,
+  matchRatingWindows,
   matchSets,
   notifications,
   ratingEvents,
@@ -37,8 +38,10 @@ import {
   proposalExpireJobKey,
 } from "#src/jobs/specs";
 import { gameById } from "#src/routers/games/byId";
+import { completeMatch } from "#src/routers/games/completeMatch";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { footballBoard } from "#src/routers/games/footballBoard";
+import { nameChallengeSquad } from "#src/routers/games/nameChallengeSquad";
 import { saveFootballScore } from "#src/routers/games/saveFootballScore";
 import { scoreSet } from "#src/routers/games/scoreSet";
 import { teamById } from "#src/routers/teams/byId";
@@ -313,7 +316,8 @@ describe("challenges.confirmProposal", () => {
         sport: "football",
         sideSize: 6,
         playersAllowed: 18,
-        rated: false,
+        rated: true,
+        groupRated: false,
         groupId: null,
         challengeId: match.challenge.id,
         registrationClosedAt: sentAt,
@@ -392,6 +396,145 @@ describe("challenges.confirmProposal", () => {
           }),
         ),
       ).toEqual({ code: "BAD_REQUEST", message: "Name both squads first" });
+    });
+  });
+
+  describe("a football Challenge Game's score", () => {
+    /**
+     * Hidd confirms Arad's Proposal and each Captain names a squad without
+     * themselves, so neither Captain is seated; Hidd's Captain enters 2-1.
+     */
+    async function scored(fixture: Fixture) {
+      const match = await footballMatchup(fixture.database, sentAt, {
+        sideSize: 5,
+        roster: 7,
+      });
+      const { id: proposalId } = await proposeOnChallenge(fixture.db, {
+        challengeId: match.challenge.id,
+        teamId: match.arad.id,
+        venueId: match.venue.id,
+        startsAt: kickOff,
+        userId: match.aradIds[0]!,
+        now: sentAt,
+      });
+      const { gameId } = await confirmProposal(fixture.db, {
+        proposalId,
+        userId: match.hiddIds[0]!,
+        now: sentAt,
+      });
+      for (const [team, ids] of [
+        [match.hidd, match.hiddIds],
+        [match.arad, match.aradIds],
+      ] as const) {
+        await nameChallengeSquad(fixture.db, {
+          gameId,
+          teamId: team.id,
+          userIds: ids.slice(1, 6),
+          userId: ids[0]!,
+        });
+      }
+      await saveFootballScore(fixture.db, {
+        gameId,
+        userId: match.hiddIds[0]!,
+        slot1Goals: 2,
+        slot2Goals: 1,
+        scorers: [],
+      });
+      const gameMatch = await fixture.database.query.matches.findFirst({
+        where: eq(matches.gameId, gameId),
+      });
+      const confirm = (userId: string) =>
+        confirmMatchResult(fixture.db, {
+          gameId,
+          matchId: gameMatch!.id,
+          userId,
+        });
+      const status = async () =>
+        (
+          await fixture.database.query.matches.findFirst({
+            where: eq(matches.id, gameMatch!.id),
+          })
+        )?.status;
+      return { match, gameId, matchId: gameMatch!.id, confirm, status };
+    }
+
+    it("waits for a confirmation from each Team, then opens the Rating window that moves OVR", async () => {
+      await withDb(async (fixture) => {
+        const { match, gameId, matchId, confirm, status } =
+          await scored(fixture);
+        const [hiddCaptain, hiddPlayer] = match.hiddIds;
+        const aradCaptain = match.aradIds[0]!;
+
+        const captainBoard = await footballBoard(fixture.db, {
+          gameId,
+          userId: hiddCaptain!,
+        });
+        expect(captainBoard.viewer).toMatchObject({
+          canConfirm: true,
+          canConfirmAsOrganizer: false,
+          canConfirmForSlots: [],
+        });
+
+        await confirm(hiddCaptain!);
+        await confirm(hiddPlayer!);
+        expect(await status()).toBe("pending");
+        const waiting = await footballBoard(fixture.db, {
+          gameId,
+          userId: hiddCaptain!,
+        });
+        expect(waiting.match?.confirmed).toEqual({
+          slot1: true,
+          slot2: false,
+        });
+        expect(waiting.viewer.canConfirm).toBe(false);
+        expect(
+          await refusal(
+            completeMatch(fixture.db, {
+              gameId,
+              matchId,
+              userId: hiddCaptain!,
+            }),
+          ),
+        ).toMatchObject({ code: "FORBIDDEN" });
+        expect(
+          await fixture.database.query.matchRatingWindows.findMany(),
+        ).toHaveLength(0);
+
+        await confirm(aradCaptain);
+        expect(await status()).toBe("completed");
+        expect(
+          await fixture.database.query.matchRatingWindows.findFirst({
+            where: eq(matchRatingWindows.matchId, matchId),
+          }),
+        ).toMatchObject({ mode: "everyone", countsForLevel: true });
+      });
+    });
+
+    it("refuses someone who neither plays nor acts for a Team", async () => {
+      await withDb(async (fixture) => {
+        const { match, confirm, status } = await scored(fixture);
+        expect(await refusal(confirm(match.hiddIds[6]!))).toMatchObject({
+          code: "FORBIDDEN",
+        });
+        expect(await status()).toBe("pending");
+      });
+    });
+
+    it("keeps an older Unrated football Challenge Game's Captain final", async () => {
+      await withDb(async (fixture) => {
+        const { match, gameId, confirm, status } = await scored(fixture);
+        await fixture.database
+          .update(games)
+          .set({ rated: false })
+          .where(eq(games.id, gameId));
+
+        await confirm(match.hiddIds[0]!);
+
+        expect(await status()).toBe("completed");
+        expect(
+          await fixture.database.query.matchRatingWindows.findMany(),
+        ).toHaveLength(0);
+      });
     });
   });
 

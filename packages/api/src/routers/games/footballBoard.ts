@@ -37,6 +37,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { canViewGame, isGameOrganizer, requireGame } from "#src/games/access";
+import { confirmsAsOrganizer } from "#src/games/confirms-as-organizer";
 import { loadChallengeSides } from "#src/games/challenge-squad";
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import {
@@ -49,6 +50,7 @@ import {
 } from "#src/games/football-lineup";
 import {
   matchOrganizerSides,
+  matchSlotsActedFor,
   matchSlotsConfirmed,
 } from "#src/games/match-result-confirmations";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
@@ -304,6 +306,14 @@ export async function footballBoard(
     : [];
 
   const viewerSide = sideByUser.get(args.userId) ?? null;
+  const confirmsFinal =
+    organizer && (await confirmsAsOrganizer(database, game, args.userId));
+  const viewerSlots = new Set([
+    ...(viewerSide != null ? [viewerSide] : []),
+    ...(match && !confirmsFinal
+      ? await matchSlotsActedFor(database, match, args.userId)
+      : []),
+  ]);
   const published = sides.slot1 != null && sides.slot2 != null && match != null;
   const challengeSides = await loadChallengeSides(database, game);
   const squadsReady =
@@ -314,12 +324,9 @@ export async function footballBoard(
   const viewerConfirmed = confirmations.some(
     (row) => row.userId === args.userId,
   );
-  const viewerSideConfirmed =
-    viewerSide === 1
-      ? slotsConfirmed.slot1
-      : viewerSide === 2
-        ? slotsConfirmed.slot2
-        : false;
+  const viewerSidesConfirmed = [...viewerSlots].every((slot) =>
+    slot === 1 ? slotsConfirmed.slot1 : slotsConfirmed.slot2,
+  );
   const bib = (side: { bib: FootballBib | null } | null, index: 1 | 2) =>
     side?.bib ??
     (index === 1 ? DEFAULT_FOOTBALL_BIBS.slot1 : DEFAULT_FOOTBALL_BIBS.slot2);
@@ -390,12 +397,12 @@ export async function footballBoard(
       canConfirm:
         live &&
         score != null &&
-        viewerSide != null &&
+        viewerSlots.size > 0 &&
         !viewerConfirmed &&
-        !viewerSideConfirmed,
-      canConfirmAsOrganizer: organizer && live && score != null,
+        !viewerSidesConfirmed,
+      canConfirmAsOrganizer: confirmsFinal && live && score != null,
       canConfirmForSlots:
-        organizer && live && score != null
+        confirmsFinal && live && score != null
           ? organizerSides.flatMap((side) =>
               side.confirmed ? [] : [side.slot],
             )

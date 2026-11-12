@@ -1,12 +1,18 @@
 import { and, eq, inArray, ne } from "drizzle-orm";
 
-import { gameTeamPlayers, games, matchResultConfirmations } from "@repo/db";
+import {
+  gameTeamPlayers,
+  gameTeams,
+  games,
+  matchResultConfirmations,
+} from "@repo/db";
 
 import { isFootballGame } from "@repo/domain/game-shape";
 import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 
 import { type db } from "#src/db";
 import { type MatchRow } from "#src/games/utils";
+import { type TeamForActing, userActsForTeam } from "#src/teams/acts-for-team";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -224,21 +230,92 @@ export async function matchResultConfirmationCompletedAt(
   );
 }
 
+/** The Team bound to each side of a football Challenge Game's Match. */
+async function challengeSideTeams(
+  database: DbClient,
+  match: MatchRow,
+): Promise<{ slot: MatchSlot; team: TeamForActing }[]> {
+  const game = await database.query.games.findFirst({
+    where: eq(games.id, match.gameId),
+    columns: { sport: true, challengeId: true },
+  });
+  if (!game?.challengeId || !isFootballGame(game)) {
+    return [];
+  }
+  const slots = [
+    { slot: 1 as const, gameTeamId: match.slot1GameTeamId },
+    { slot: 2 as const, gameTeamId: match.slot2GameTeamId },
+  ];
+  const gameTeamIds = slots.flatMap((entry) =>
+    entry.gameTeamId ? [entry.gameTeamId] : [],
+  );
+  if (gameTeamIds.length === 0) {
+    return [];
+  }
+  const rows = await database.query.gameTeams.findMany({
+    where: inArray(gameTeams.id, gameTeamIds),
+    columns: { id: true },
+    with: {
+      team: {
+        columns: { id: true, sport: true, createdBy: true, groupId: true },
+      },
+    },
+  });
+  return slots.flatMap(({ slot, gameTeamId }) => {
+    const team = rows.find((row) => row.id === gameTeamId)?.team;
+    return team ? [{ slot, team }] : [];
+  });
+}
+
+/**
+ * The sides of a football Challenge Game's Match whose Team the User acts
+ * for. The Captain, or an Organizer of the Team's tagged Group, confirms for
+ * that side whether or not they are named to it, and for that side only.
+ */
+export async function matchSlotsActedFor(
+  database: DbClient,
+  match: MatchRow,
+  userId: string,
+): Promise<MatchSlot[]> {
+  const slots: MatchSlot[] = [];
+  for (const side of await challengeSideTeams(database, match)) {
+    if (await userActsForTeam(database, side.team, userId)) {
+      slots.push(side.slot);
+    }
+  }
+  return slots;
+}
+
 /**
  * The sides of a Match whose players have confirmed its result, by slot.
  * A football Match is agreed once one player from each side confirms; a side
- * with no account holder counts once an Organizer confirms for it.
+ * with no account holder counts once an Organizer confirms for it. On a
+ * football Challenge Game a side also counts once someone who acts for its
+ * Team confirms.
  */
 export async function matchSlotsConfirmed(
   database: DbClient,
   match: MatchRow,
 ): Promise<{ slot1: boolean; slot2: boolean }> {
-  const [sides, confirmedUserIds] = await Promise.all([
+  const [sides, confirmedUserIds, teamSides] = await Promise.all([
     matchSideSeats(database, match),
     matchResultConfirmedUserIds(database, match.id),
+    challengeSideTeams(database, match),
   ]);
   const confirmed = new Set(confirmedUserIds);
-  const slotConfirmed = (slot: MatchSlot) => {
+  const actedFor = async (slot: MatchSlot) => {
+    const team = teamSides.find((entry) => entry.slot === slot)?.team;
+    if (!team) {
+      return false;
+    }
+    for (const userId of confirmed) {
+      if (await userActsForTeam(database, team, userId)) {
+        return true;
+      }
+    }
+    return false;
+  };
+  const slotConfirmed = async (slot: MatchSlot) => {
     const side = sides.find((entry) => entry.slot === slot);
     if (!side) {
       return false;
@@ -246,9 +323,12 @@ export async function matchSlotsConfirmed(
     const confirmers = sideHasNoAccountHolder(side)
       ? side.userIds
       : side.accountHolderIds;
-    return confirmers.some((userId) => confirmed.has(userId));
+    return (
+      confirmers.some((userId) => confirmed.has(userId)) ||
+      (await actedFor(slot))
+    );
   };
-  return { slot1: slotConfirmed(1), slot2: slotConfirmed(2) };
+  return { slot1: await slotConfirmed(1), slot2: await slotConfirmed(2) };
 }
 
 /**

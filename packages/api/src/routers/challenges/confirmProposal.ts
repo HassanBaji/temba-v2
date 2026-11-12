@@ -275,9 +275,10 @@ async function openFootballSides(
  * "Confirm, make it a game": the posting Team confirms one pending Proposal.
  * Every propose rule is read again for both Teams, then, in one transaction,
  * the Challenge Game is created with no Group, registration closed and both
- * Game teams bound to the Teams. Padel is Rated with both pairs seated;
- * football is Unrated with two empty sides of `side + 3` seats, the one Match
- * and its Score shell. The other pending Proposals are passed over and told.
+ * Game teams bound to the Teams. Both count for Temba Level. Padel seats
+ * both pairs; football opens two empty sides of `side + 3` seats, the one
+ * Match and its Score shell, and moves OVR once each Team confirms the score
+ * (ADR-0069). The other pending Proposals are passed over and told.
  */
 export async function confirmProposal(
   database: DbClient,
@@ -373,6 +374,8 @@ export async function confirmProposal(
           pricePerPlayerFils: proposal.pricePerPlayerFils,
           sideSize,
           playersAllowed: 2 * squadSeatCount(sideSize),
+          rated: true,
+          groupRated: false,
         },
         locale,
       ));
