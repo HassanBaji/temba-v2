@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { MyNotesLink } from "~/components/game-album/my-notes-link";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { cabinetRowModel } from "~/components/marks/cabinet-model";
 import { CabinetRow } from "~/components/marks/cabinet-row";
@@ -72,6 +73,7 @@ export default function YouPage() {
               homeArea={details.data.homeArea}
               memberSince={details.data.createdAt}
             />
+            <MyNotesLink />
             {sport === null ? (
               <SetUpSportCard />
             ) : (

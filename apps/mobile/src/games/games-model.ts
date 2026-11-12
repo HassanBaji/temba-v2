@@ -84,6 +84,10 @@ export function gamePath(gameId: string) {
   return `/games/${gameId}`;
 }
 
+export function addPhotosPath(gameId: string) {
+  return `/games/${gameId}?intent=addPhotos`;
+}
+
 export function footballJoinPath(gameId: string) {
   return `/games/${gameId}?intent=join`;
 }

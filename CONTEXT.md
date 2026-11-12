@@ -400,6 +400,18 @@ _Avoid_: badge, trophy, award, honor (bare), ResultMark or form mark (those are 
 A Mark that teases rather than praises: Mr Fumble and Sayed Malek. Counts like any Mark on the Game screen. Its receiver may hide every Roast from their Player profile with one setting; hidden Roasts still show to everyone who can open that Game.
 _Avoid_: negative mark, penalty, insult
 
+**Album**:
+Up to six photos on a Game once a score is final, added by its players and shown to them only, each with who added it. Whoever added a photo removes it; an Organizer removes any. A social gets one Album for the whole day (ADR-0076).
+_Avoid_: gallery, feed, photo wall, media
+
+**Game note**:
+A player's one note on a Game whose score is final: how it felt, what to work on, who to play again. Public is read by the players of that Game; private is read by its author alone, and the others cannot tell it exists. Written and edited for thirty days after the Game. Not a comment thread: no replies, no likes (ADR-0076).
+_Avoid_: comment, review, post, journal entry
+
+**Your notes**:
+The profile page listing every Game note the viewer wrote, private and shared, grouped by month with each Game's result and score. Only its owner sees it.
+_Avoid_: journal (in code), diary, notebook
+
 **Marks window**:
 The 48 hours after a Match's completion during which Marks are given and the MVP is decided. Anchored on the Match's completion moment, suspended by a wrong-score report, restarted by the next completion. The vote may close earlier when everyone has voted; the window never does. Closed by a Job and by the read-time rule. Judged by the server clock.
 _Avoid_: voting period, deadline, grace period

@@ -708,6 +708,13 @@
       "when": 1794417132523,
       "tag": "0100_game_moved_to_waitlist",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1794468039842,
+      "tag": "0101_game_album_and_notes",
+      "breakpoints": true
     }
   ]
 }
