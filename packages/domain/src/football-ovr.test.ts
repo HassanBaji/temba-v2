@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  footballGoalsRole,
+  footballGoalsScores,
+  footballMvpScores,
   footballPhiAfterMatches,
   formatOvr,
   formatOvrDelta,
@@ -229,6 +232,229 @@ describe("rateFootballMatch", () => {
         weight: 1,
       }),
     ).toEqual([]);
+  });
+});
+
+const PARTS = [
+  "resultPart",
+  "performancePart",
+  "goalsPart",
+  "mvpPart",
+] as const;
+
+function seededRandom(seed: number) {
+  let state = seed;
+  return () => {
+    state = (state * 16807) % 2147483647;
+    return state / 2147483647;
+  };
+}
+
+describe("rateFootballMatch with all four parts", () => {
+  it("keeps each of the four parts zero-sum across the Match (property)", () => {
+    const random = seededRandom(42);
+    const pick = <T>(values: readonly T[]) =>
+      values[Math.floor(random() * values.length)]!;
+    const roles = ["keeper", "def", "mid", "fwd"] as const;
+    for (let run = 0; run < 300; run++) {
+      const side = (prefix: string, size: number) =>
+        Array.from({ length: size }, (_, index) => ({
+          userId: `${prefix}${index}`,
+          mu: muFromOvr(40 + random() * 59),
+          phi: random() < 0.3 ? INITIAL_PHI : CONFIRMED_PHI,
+          goals: Math.floor(random() * 3),
+          goalsRole: pick(roles),
+          performance: random() < 0.25 ? null : random() * 2 - 1,
+        }));
+      const slot1 = side("a", 1 + Math.floor(random() * 7));
+      const slot2 = side("b", 1 + Math.floor(random() * 7));
+      const named = (players: typeof slot1) =>
+        players.reduce((sum, player) => sum + player.goals, 0);
+      const score = {
+        slot1: named(slot1) + Math.floor(random() * 2),
+        slot2: named(slot2) + Math.floor(random() * 2),
+      };
+      const everyone = [...slot1, ...slot2];
+      const moves = rateFootballMatch({
+        slot1,
+        slot2,
+        outcome: pick(["slot1", "slot2", "draw"] as const),
+        weight: pick([1, 0.5]),
+        score,
+        votedMvpUserId: random() < 0.7 ? pick(everyone).userId : null,
+      });
+      expect(moves).toHaveLength(everyone.length);
+      for (const part of PARTS) {
+        expect(moves.reduce((sum, move) => sum + move[part], 0)).toBeCloseTo(
+          0,
+          9,
+        );
+      }
+    }
+  });
+
+  it("adds the four parts to the move", () => {
+    const moves = rateFootballMatch({
+      slot1: players("a", [70, 72]).map((player, index) => ({
+        ...player,
+        goals: index === 0 ? 2 : 0,
+        performance: index === 0 ? 0.5 : -0.2,
+      })),
+      slot2: players("b", [71, 73]).map((player) => ({
+        ...player,
+        goals: player.userId === "b0" ? 1 : 0,
+        performance: 0,
+      })),
+      outcome: "slot1",
+      weight: 1,
+      score: { slot1: 2, slot2: 1 },
+      votedMvpUserId: "a0",
+    });
+    for (const move of moves) {
+      expect(move.ovrAfter - move.ovrBefore).toBeCloseTo(
+        move.resultPart + move.performancePart + move.goalsPart + move.mvpPart,
+        10,
+      );
+    }
+    const star = moves.find((move) => move.userId === "a0")!;
+    expect(star.performancePart).toBeGreaterThan(0);
+    expect(star.goalsPart).toBeGreaterThan(0);
+    expect(star.mvpPart).toBeCloseTo(0.3);
+  });
+
+  it("scores no MVP part without a voted MVP", () => {
+    for (const votedMvpUserId of [null, undefined, "not-on-the-match"]) {
+      const moves = rateFootballMatch({
+        slot1: players("a", [70, 70]),
+        slot2: players("b", [70, 70]),
+        outcome: "slot1",
+        weight: 1,
+        votedMvpUserId,
+      });
+      expect(moves.every((move) => move.mvpPart === 0)).toBe(true);
+    }
+  });
+
+  it("gives a voted MVP +K × weight × 0.1 against an even field, the rest share the minus", () => {
+    const moves = rateFootballMatch({
+      slot1: players("a", [70, 70]),
+      slot2: players("b", [70, 70]),
+      outcome: "draw",
+      weight: 1,
+      votedMvpUserId: "b1",
+    });
+    expect(moves.find((move) => move.userId === "b1")?.mvpPart).toBeCloseTo(
+      0.3,
+    );
+    expect(moves.find((move) => move.userId === "a0")?.mvpPart).toBeCloseTo(
+      -0.1,
+    );
+  });
+
+  it("leaves a player with no settled rating at 0 and keeps the rated ones zero-sum", () => {
+    const moves = rateFootballMatch({
+      slot1: [
+        { ...players("a", [70])[0]!, performance: 0.6 },
+        { ...players("c", [70])[0]!, performance: null },
+      ],
+      slot2: [
+        { ...players("b", [70], INITIAL_PHI)[0]!, performance: -0.6 },
+        players("d", [70])[0]!,
+      ],
+      outcome: "draw",
+      weight: 1,
+    });
+    expect(moves.find((move) => move.userId === "c0")?.performancePart).toBe(0);
+    expect(moves.find((move) => move.userId === "d0")?.performancePart).toBe(0);
+    expect(
+      moves.reduce((sum, move) => sum + move.performancePart, 0),
+    ).toBeCloseTo(0, 10);
+    expect(
+      moves.find((move) => move.userId === "a0")?.performancePart,
+    ).toBeGreaterThan(0);
+  });
+
+  it("takes more from the keeper than a forward on a side that conceded more than half the goals", () => {
+    const slot1 = players("a", [70, 70, 70]).map((player, index) => ({
+      ...player,
+      goalsRole: (["keeper", "fwd", "mid"] as const)[index],
+    }));
+    const slot2 = players("b", [70, 70, 70]).map((player, index) => ({
+      ...player,
+      goals: index === 0 ? 4 : 0,
+      goalsRole: (["fwd", "keeper", "def"] as const)[index],
+    }));
+    const moves = rateFootballMatch({
+      slot1: [
+        { ...slot1[0]!, goals: 0 },
+        { ...slot1[1]!, goals: 1 },
+        slot1[2]!,
+      ],
+      slot2,
+      outcome: "slot2",
+      weight: 1,
+      score: { slot1: 1, slot2: 4 },
+    });
+    const keeper = moves.find((move) => move.userId === "a0")!;
+    const forward = moves.find((move) => move.userId === "a1")!;
+    expect(keeper.goalsPart).toBeLessThan(0);
+    expect(keeper.goalsPart).toBeLessThan(forward.goalsPart);
+
+    const sameGoals = rateFootballMatch({
+      slot1: [
+        { ...slot1[0]!, goals: 0 },
+        { ...slot1[1]!, goals: 0 },
+      ],
+      slot2: players("b", [70, 70]).map((player) => ({
+        ...player,
+        goals: player.userId === "b0" ? 10 : 0,
+      })),
+      outcome: "slot2",
+      weight: 1,
+      score: { slot1: 0, slot2: 10 },
+    });
+    expect(
+      sameGoals.find((move) => move.userId === "a0")!.goalsPart,
+    ).toBeLessThan(sameGoals.find((move) => move.userId === "a1")!.goalsPart);
+  });
+});
+
+describe("footballGoalsScores", () => {
+  it("puts the keeper of a side that conceded everything at −1 and scores a goalless Match 0", () => {
+    const scores = footballGoalsScores(
+      [
+        { userId: "k", side: 1, goals: 0, goalsRole: "keeper" },
+        { userId: "f", side: 1, goals: 0, goalsRole: "fwd" },
+        { userId: "s", side: 2, goals: 3, goalsRole: "fwd" },
+        { userId: "t", side: 2, goals: 0, goalsRole: "mid" },
+      ],
+      { slot1: 0, slot2: 3 },
+    );
+    expect(scores.get("k")).toBe(-1);
+    expect(scores.get("f")).toBeCloseTo((-0.75 - 0.2 * 1.5) / 1.5);
+    expect(scores.get("s")).toBe(1);
+    expect(
+      footballGoalsScores([{ userId: "k", side: 1 }], {
+        slot1: 0,
+        slot2: 0,
+      }).size,
+    ).toBe(0);
+  });
+});
+
+describe("footballGoalsRole", () => {
+  it("weighs a keeper as a keeper and an outfield player by Position, midfield when unset", () => {
+    expect(footballGoalsRole("keeper", "fwd")).toBe("keeper");
+    expect(footballGoalsRole("outfield", "def")).toBe("def");
+    expect(footballGoalsRole(null, null)).toBe("mid");
+  });
+});
+
+describe("footballMvpScores", () => {
+  it("is +1 for the MVP and −1 / (n − 1) for each other player", () => {
+    const scores = footballMvpScores(["a", "b", "c", "d", "e"], "c");
+    expect(scores.get("c")).toBe(1);
+    expect(scores.get("a")).toBe(-0.25);
   });
 });
 

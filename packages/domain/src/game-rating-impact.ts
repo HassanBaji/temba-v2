@@ -14,6 +14,7 @@ import {
   type GameRatingScope,
 } from "./game-rating-scope";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
+import { formatPerformanceRating, MIN_BALLOTS } from "./performance-rating";
 
 export function unratedLabel(locale: Locale) {
   return messagesFor(locale).common.unrated;
@@ -162,6 +163,22 @@ export type OvrImpact = {
   outcome: "won" | "drew" | "lost";
   /** The other side's mean OVR before the Match. */
   opponentAverage: number;
+  /**
+   * The four parts of the move, in OVR points. A part is null on a Match
+   * counted before it was written.
+   */
+  parts: {
+    result: number;
+    performance: number | null;
+    goals: number | null;
+    mvp: number | null;
+  };
+  /** The viewer's settled rating and how many ratings they received; null without one. */
+  rating: { hundredths: number; ballots: number } | null;
+  /** The viewer's own goals and their side's goals conceded. */
+  goals: { scored: number; conceded: number } | null;
+  /** Whether the viewer, someone else or nobody was voted MVP. */
+  mvp: "you" | "other" | "none";
 };
 
 export type OvrImpactRow = {
@@ -178,6 +195,8 @@ export type OvrImpactView = {
   aside: string;
   rows: OvrImpactRow[];
   total: OvrImpactRow;
+  /** "Keeping ratings honest", once the ratings are part of the move. */
+  footnote: string | null;
 };
 
 function percentOf(share: number) {
@@ -185,9 +204,34 @@ function percentOf(share: number) {
 }
 
 /**
- * Screen 5a's "What moved your OVR": one row per part that moved, then the
- * move in one decimal with where the Level stands. Only the result part is
- * written so far; the others join as they are.
+ * Each part in tenths of OVR, rounded so the shown parts add up to the shown
+ * move: a part's rounding is nudged by a tenth, largest remainder first,
+ * until the sum is the move in tenths.
+ */
+export function shownOvrParts(parts: readonly number[], move: number) {
+  const target = Math.round(move * 10);
+  const tenths = parts.map((part) => Math.round(part * 10));
+  let gap = target - tenths.reduce((sum, value) => sum + value, 0);
+  const remainders = parts.map((part, index) => part * 10 - tenths[index]!);
+  while (gap !== 0 && parts.length > 0) {
+    const step = gap > 0 ? 1 : -1;
+    let pick = 0;
+    for (let index = 1; index < parts.length; index++) {
+      if (step * remainders[index]! > step * remainders[pick]!) {
+        pick = index;
+      }
+    }
+    tenths[pick]! += step;
+    remainders[pick]! -= step;
+    gap -= step;
+  }
+  return tenths.map((value) => value / 10);
+}
+
+/**
+ * Screen 5a's "What moved your OVR": one row per part the Match wrote, then
+ * the move in one decimal with where the Level stands. The shown parts add
+ * up to the shown move.
  */
 export function ovrImpactView(
   impact: {
@@ -200,31 +244,76 @@ export function ovrImpactView(
 ): OvrImpactView {
   const copy = messagesFor(locale).rating.ovrImpact;
   const { ovr } = impact;
+  const move = ovr.after - ovr.before;
   const opponents = formatOvr(ovr.opponentAverage);
-  const resultTitle = copy.result(percentOf(OVR_PART_WEIGHTS.result));
-  const resultDelta = formatOvrDelta(ovr.resultPart);
+
+  const rows: { title: string; detail: string; part: number }[] = [
+    {
+      title: copy.result(percentOf(OVR_PART_WEIGHTS.result)),
+      detail: copy.outcome[ovr.outcome](opponents),
+      part: ovr.parts.result,
+    },
+  ];
+  if (ovr.parts.performance !== null) {
+    rows.push({
+      title: copy.ratings(percentOf(OVR_PART_WEIGHTS.performance)),
+      detail: ovr.rating
+        ? copy.ratingFrom(
+            formatPerformanceRating(ovr.rating.hundredths),
+            ovr.rating.ballots,
+          )
+        : copy.noRating(MIN_BALLOTS),
+      part: ovr.parts.performance,
+    });
+  }
+  if (ovr.parts.goals !== null) {
+    rows.push({
+      title: copy.goals(percentOf(OVR_PART_WEIGHTS.goals)),
+      detail: copy.goalsLine(ovr.goals?.scored ?? 0, ovr.goals?.conceded ?? 0),
+      part: ovr.parts.goals,
+    });
+  }
+  if (ovr.parts.mvp !== null) {
+    rows.push({
+      title: copy.mvp(percentOf(OVR_PART_WEIGHTS.mvp)),
+      detail:
+        ovr.mvp === "you"
+          ? copy.mvpYou
+          : ovr.mvp === "other"
+            ? copy.mvpOther
+            : copy.mvpNone,
+      part: ovr.parts.mvp,
+    });
+  }
+  const shown = shownOvrParts(
+    rows.map((row) => row.part),
+    move,
+  );
+
   const totalTitle = copy.move(
     formatOvrPrecise(ovr.before),
     formatOvrPrecise(ovr.after),
   );
-  const totalDelta = formatOvrDelta(ovr.after - ovr.before);
+  const totalDelta = formatOvrDelta(move);
   return {
     tag: gameRatingScopeLabel("temba", locale, "football"),
     title: copy.title,
     aside: copy.move(formatOvr(ovr.before), formatOvr(ovr.after)),
-    rows: [
-      {
-        title: resultTitle,
-        detail: copy.outcome[ovr.outcome](opponents),
-        delta: resultDelta,
-        spoken: copy.spoken(resultTitle, resultDelta),
-      },
-    ],
+    rows: rows.map((row, index) => {
+      const delta = formatOvrDelta(shown[index] ?? 0);
+      return {
+        title: row.title,
+        detail: row.detail,
+        delta,
+        spoken: copy.spoken(row.title, delta),
+      };
+    }),
     total: {
       title: totalTitle,
       detail: ratingImpactStandingSentence({ ...impact, locale }),
       delta: totalDelta,
       spoken: copy.spoken(totalTitle, totalDelta),
     },
+    footnote: ovr.parts.performance === null ? null : copy.honest,
   };
 }

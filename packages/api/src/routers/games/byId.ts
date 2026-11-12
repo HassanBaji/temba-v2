@@ -13,9 +13,13 @@ import {
   gamePlayers,
   gameTeams,
   gameWaitlist,
+  games,
   groups,
+  matchGoals,
   matchRatingWindows,
   matches,
+  performanceRatingResults,
+  performanceRatings,
   ratingEvents,
   ratings,
   teamMembers,
@@ -50,6 +54,7 @@ import {
   userPassesJoinGate,
 } from "#src/games/access";
 import { scoredWithOwnDoor } from "#src/games/assert-may-write-sets";
+import { footballScoreOf } from "#src/games/football-lineup";
 import { confirmsAsOrganizer } from "#src/games/confirms-as-organizer";
 import {
   homeCarouselPhase,
@@ -372,23 +377,34 @@ function individualFriendlyGamePhase(args: {
 }
 
 /**
- * What a counting football Match did to the viewer's OVR: the move, its
- * result part and the other side's mean OVR before the Match (screen 5a).
+ * What a counting football Match did to the viewer's OVR (screen 5a): the
+ * move and its four parts, the other side's mean OVR before the Match, the
+ * viewer's settled rating and how many ratings they received, their goals
+ * and their side's goals conceded, and whether they were voted MVP.
  */
 async function footballOvrImpact(
   database: DbClient,
   args: {
-    match: { id: string; slot1GameTeamId: string | null };
+    gameId: string;
+    match: {
+      id: string;
+      slot1GameTeamId: string | null;
+      slot2GameTeamId: string | null;
+      sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
+    };
     userId: string;
     event: {
       muBefore: number;
       muAfter: number;
       outcomeScore: number;
       resultPart: number | null;
+      performancePart: number | null;
+      goalsPart: number | null;
+      mvpPart: number | null;
     };
   },
 ): Promise<OvrImpact> {
-  const [events, slot1] = await Promise.all([
+  const [events, slot1, slot2, own, received, goals, game] = await Promise.all([
     database.query.ratingEvents.findMany({
       where: eq(ratingEvents.matchId, args.match.id),
       columns: { userId: true, muBefore: true },
@@ -396,6 +412,36 @@ async function footballOvrImpact(
     args.match.slot1GameTeamId
       ? sideUserIds(database, args.match.slot1GameTeamId)
       : Promise.resolve([]),
+    args.match.slot2GameTeamId
+      ? sideUserIds(database, args.match.slot2GameTeamId)
+      : Promise.resolve([]),
+    database.query.performanceRatingResults.findFirst({
+      where: and(
+        eq(performanceRatingResults.matchId, args.match.id),
+        eq(performanceRatingResults.userId, args.userId),
+      ),
+      columns: { ratingHundredths: true },
+    }),
+    database
+      .select({ raterUserId: performanceRatings.raterUserId })
+      .from(performanceRatings)
+      .where(
+        and(
+          eq(performanceRatings.matchId, args.match.id),
+          eq(performanceRatings.rateeUserId, args.userId),
+        ),
+      ),
+    database.query.matchGoals.findFirst({
+      where: and(
+        eq(matchGoals.matchId, args.match.id),
+        eq(matchGoals.userId, args.userId),
+      ),
+      columns: { goals: true },
+    }),
+    database.query.games.findFirst({
+      where: eq(games.id, args.gameId),
+      columns: { mvpUserId: true, mvpDecidedBy: true, mvpSettledAt: true },
+    }),
   ]);
   const viewerOnSlot1 = slot1.includes(args.userId);
   const opponents = events.filter(
@@ -406,10 +452,15 @@ async function footballOvrImpact(
       ? ovrFromMu(args.event.muBefore)
       : opponents.reduce((sum, event) => sum + ovrFromMu(event.muBefore), 0) /
         opponents.length;
+  const seated = new Set([...slot1, ...slot2]);
+  const score = footballScoreOf(args.match.sets[0] ?? null);
+  const votedMvp =
+    game?.mvpSettledAt && game.mvpDecidedBy === "vote" ? game.mvpUserId : null;
+  const resultPart = args.event.resultPart ?? 0;
   return {
     before: ovrFromMu(args.event.muBefore),
     after: ovrFromMu(args.event.muAfter),
-    resultPart: args.event.resultPart ?? 0,
+    resultPart,
     outcome:
       args.event.outcomeScore === 1
         ? "won"
@@ -417,6 +468,26 @@ async function footballOvrImpact(
           ? "lost"
           : "drew",
     opponentAverage,
+    parts: {
+      result: resultPart,
+      performance: args.event.performancePart,
+      goals: args.event.goalsPart,
+      mvp: args.event.mvpPart,
+    },
+    rating: own
+      ? {
+          hundredths: own.ratingHundredths,
+          ballots: received.filter((ballot) => seated.has(ballot.raterUserId))
+            .length,
+        }
+      : null,
+    goals: score
+      ? {
+          scored: goals?.goals ?? 0,
+          conceded: viewerOnSlot1 ? score.slot2 : score.slot1,
+        }
+      : null,
+    mvp: !votedMvp ? "none" : votedMvp === args.userId ? "you" : "other",
   };
 }
 
@@ -829,6 +900,15 @@ export async function gameById(
   // decision"), read-only here.
   let canReportWrongScore: WrongScoreReversalEligibility | null = null;
 
+  // A football Match's Rating window (ADR-0068), settled here when its Job
+  // is late, before the move it writes is read.
+  const footballMatchRow = isFootballGame(game)
+    ? matchRows.find((match) => match.status !== MatchStatusEnum.CANCELLED)
+    : undefined;
+  if (footballMatchRow) {
+    await settleRatingWindowIfDue(database, footballMatchRow.id, now);
+  }
+
   if (isIndividualFriendlyGame && friendlyMatch) {
     const [requiredUserIds, confirmedUserIds, organizerSides] =
       await Promise.all([
@@ -868,6 +948,9 @@ export async function gameById(
               sport: true,
               outcomeScore: true,
               resultPart: true,
+              performancePart: true,
+              goalsPart: true,
+              mvpPart: true,
             },
           })
         : undefined;
@@ -898,6 +981,7 @@ export async function gameById(
           ovr:
             viewerRatingEvent.sport === "football"
               ? await footballOvrImpact(database, {
+                  gameId: game.id,
                   match: friendlyMatch,
                   userId: args.userId,
                   event: viewerRatingEvent,
@@ -916,20 +1000,17 @@ export async function gameById(
     }
   }
 
-  // A football Match's Rating window (ADR-0068), settled here when its Job
-  // is late, and whether the viewer may rate on it.
+  // The football Match's Rating window and whether the viewer may rate on
+  // it. One that counts for Temba Level moves OVR when it settles.
   let ratingWindow: {
     matchId: string;
     mode: RatingWindowMode;
     state: RatingWindowState;
     closesAt: Date;
     viewerMayRate: boolean;
+    countsForLevel: boolean;
   } | null = null;
-  const footballMatchRow = isFootballGame(game)
-    ? matchRows.find((match) => match.status !== MatchStatusEnum.CANCELLED)
-    : undefined;
   if (footballMatchRow) {
-    await settleRatingWindowIfDue(database, footballMatchRow.id, now);
     const window = await database.query.matchRatingWindows.findFirst({
       where: eq(matchRatingWindows.matchId, footballMatchRow.id),
     });
@@ -939,6 +1020,7 @@ export async function gameById(
         mode: window.mode,
         state: ratingWindowState(window, now),
         closesAt: window.closesAt,
+        countsForLevel: window.countsForLevel,
         viewerMayRate:
           window.mode === "organizer"
             ? organizer

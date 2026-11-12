@@ -60,6 +60,7 @@ import { saveFootballScore } from "#src/routers/games/saveFootballScore";
 import { scoreSet } from "#src/routers/games/scoreSet";
 import { sendLookupInvite as sendGameLookupInvite } from "#src/routers/games/sendLookupInvite";
 import { submitPerformanceRatings } from "#src/routers/games/submitPerformanceRatings";
+import { castMvpVote } from "#src/routers/marks/castMvpVote";
 import { acceptLookupInvite as acceptGroupLookupInvite } from "#src/routers/groups/acceptLookupInvite";
 import { createInviteLink as createGroupInviteLink } from "#src/routers/groups/createInviteLink";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
@@ -2335,9 +2336,10 @@ async function seedGroupLinks(u: Users, v: Venues, g: Groups) {
 
 /**
  * Galali Football is a Verified Group on the pitches, so its Games count for
- * Temba Level at full weight (ADR-0069): last night's 5–3 moved the OVR of
- * the ten who played (screen 5a), and Saturday's is tagged "Counts for Temba
- * Level" and open to OVR 64 and up.
+ * Temba Level at full weight (ADR-0069): last night's 5–3 was rated by the
+ * ten who played and voted Omar MVP, and its settled Rating window moved
+ * their OVR by four parts (screen 5a). Saturday's is tagged "Counts for
+ * Temba Level" and open to OVR 64 and up.
  */
 async function seedVerifiedFootball(u: Users, v: Venues) {
   const group = await createLoosePublic(db, {
@@ -2404,6 +2406,7 @@ async function seedVerifiedFootball(u: Users, v: Venues) {
     slot2: ids(["hana", "diego", "sofia", "jonas", "priya"]),
   });
   await moveIntoPast(played, at(-1, 20));
+  await db.update(games).set({ mvpMode: "vote" }).where(eq(games.id, played));
   await saveFootballScore(db, {
     gameId: played,
     userId: u.me!.id,
@@ -2425,6 +2428,38 @@ async function seedVerifiedFootball(u: Users, v: Venues) {
     matchId: match!.id,
     userId: u.me!.id,
   });
+  const ratingOf: Record<string, number> = {
+    omar: 9,
+    me: 8,
+    maya: 7,
+    diego: 7,
+    hana: 7,
+  };
+  for (const rater of squad) {
+    await submitPerformanceRatings(db, {
+      gameId: played,
+      userId: u[rater.key]!.id,
+      ratings: squad
+        .filter((ratee) => ratee.key !== rater.key)
+        .map((ratee) => ({
+          userId: u[ratee.key]!.id,
+          value: ratingOf[ratee.key] ?? 6,
+        })),
+    });
+  }
+  for (const voter of ["ben", "me", "maya", "lina", "hana", "jonas"]) {
+    await castMvpVote(db, {
+      gameId: played,
+      userId: u[voter]!.id,
+      candidateUserId: u.omar!.id,
+    });
+  }
+  const window = await db.query.matchRatingWindows.findFirst({
+    where: eq(matchRatingWindows.matchId, match!.id),
+  });
+  await db.transaction((tx) =>
+    settleRatingWindow(tx, match!.id, window!.closesAt),
+  );
 
   await game("Saturday Galali five-a-side", at(3, 18), 28);
 }

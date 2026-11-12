@@ -2,11 +2,12 @@ import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { marks } from "@repo/db";
+import { MatchStatusEnum, marks } from "@repo/db";
 
 import {
   MARK_KINDS,
   gameMvpView,
+  marksWindow,
   remainingMarks,
   type GameMarks,
   type MarkKind,
@@ -45,8 +46,10 @@ function receivedKinds(receiverUserId: string, rows: GameMarks["marks"]) {
 /**
  * The Marks on a Game, for the Game screen: the window, who sat on which
  * side, every mark with its giver, what the viewer may still give, and the
- * MVP. Visible to anyone who may open the Game, roasts included. Once the
- * window has closed, a read settles an MVP the Job has not settled yet.
+ * MVP, whose own window closes with the Rating window on a Match that counts
+ * for Temba Level. Visible to anyone who may open the Game, roasts included.
+ * Once the MVP's window has closed, a read settles an MVP the Job has not
+ * settled yet.
  */
 export async function forGame(
   database: DbClient,
@@ -75,7 +78,10 @@ export async function forGame(
     participants,
     now,
   });
-  const windowState = question.window;
+  const windowState =
+    match?.status === MatchStatusEnum.COMPLETED
+      ? marksWindow(match.completedAt, now)
+      : null;
   const mvp = gameMvpView({
     question,
     stored: {

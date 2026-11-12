@@ -21,6 +21,27 @@ export const rating = {
       lost: (average: string) => `خسارة، أمام فريق متوسطه ${isolate(average)}`,
     },
     spoken: (title: string, delta: string) => `${title}، ${isolate(delta)} OVR`,
+    ratings: (percent: number) => `تقييمات اللاعبين ${percent}%`,
+    ratingFrom: (rating: string, ballots: number) =>
+      plural("ar", ballots, {
+        zero: `${isolate(rating)} بلا تقييمات من الزملاء والمنافسين`,
+        one: `${isolate(rating)} من زميل أو منافس واحد`,
+        two: `${isolate(rating)} من زميلين أو منافسين`,
+        few: `${isolate(rating)} من {n} زملاء ومنافسين`,
+        many: `${isolate(rating)} من {n} زميلًا ومنافسًا`,
+        other: `${isolate(rating)} من {n} زميل ومنافس`,
+      }),
+    noRating: (min: number) =>
+      `أقل من ${min} تقييمات هذه المرة، لذا هذا الجزء صفر`,
+    goals: (percent: number) => `الأهداف ${percent}%`,
+    goalsLine: (scored: number, conceded: number) =>
+      `سجّلت ${scored}، واستقبل فريقك ${conceded} أثناء لعبك. الأهداف المستقبَلة تزن أكثر في الخط الخلفي`,
+    mvp: (percent: number) => `نجم المباراة ${percent}%`,
+    mvpYou: "اختارك اللاعبون نجمًا للمباراة",
+    mvpOther: "ليس هذه المرة. الأوسمة الأخرى لا تحرّك OVR",
+    mvpNone: "لم يُصوَّت لنجم المباراة. وحده النجم المختار بالتصويت يحرّك OVR",
+    honest:
+      "لتبقى التقييمات نزيهة: لا تقيّم نفسك، ويُستبعد الأعلى والأدنى، وتبقى مخفية حتى تُغلق نافذة الـ24 ساعة، وفي المباريات الموثّقة فقط.",
   },
   scope: {
     temba: "تُحتسب لمستوى Temba",
@@ -390,6 +411,8 @@ export const rating = {
         title: "تقييمك في الطريق",
         everyone: (closes: string) =>
           `${closes}. بعدها ترى تقييمك وما فعله بنقاط فئتك.`,
+        everyoneOvr: (closes: string) =>
+          `${closes}. بعدها ترى تقييمك وما الذي حرّك OVR الخاص بك.`,
         organizer: (closes: string) =>
           `المنظّم يقيّم الجميع. ترى تقييمك وما فعله بنقاط فئتك حين يرسل تقييماته، وفي موعد أقصاه ${isolate(closes)}.`,
       },

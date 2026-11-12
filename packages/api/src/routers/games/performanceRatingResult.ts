@@ -97,6 +97,7 @@ export async function performanceRatingResult(
     mode: window.mode,
     closesAt: window.closesAt,
     played,
+    countsForLevel: window.countsForLevel,
     result: null,
   };
   if (state !== "settled" || !played || !game.groupId) {

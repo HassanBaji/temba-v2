@@ -3,8 +3,8 @@ import { eq } from "drizzle-orm";
 import { MatchStatusEnum, gameMvpVotes, games, matches } from "@repo/db";
 
 import {
-  marksWindow,
   mvpOutcome,
+  mvpWindow,
   type MvpPick,
   type MvpQuestion,
   type MvpVote,
@@ -32,11 +32,32 @@ function storedPick(
     : null;
 }
 
+/**
+ * A football Game that counts for Temba Level writes OVR's MVP part when its
+ * Rating window settles, so its MVP closes with that window (D21).
+ */
+function closesWithRatingWindow(game: Pick<GameRow, "sport" | "rated">) {
+  return game.sport === "football" && game.rated;
+}
+
+function gameMvpWindow(
+  game: Pick<GameRow, "sport" | "rated">,
+  match: Pick<MatchRow, "status" | "completedAt"> | null,
+  now: Date,
+) {
+  return match?.status === MatchStatusEnum.COMPLETED
+    ? mvpWindow(match.completedAt, now, closesWithRatingWindow(game))
+    : null;
+}
+
 /** A Game's MVP question on its Match, judged by the server clock at `now`. */
 export async function mvpQuestion(
   database: DbClient,
   args: {
-    game: Pick<GameRow, "id" | "mvpMode" | "mvpUserId" | "mvpDecidedBy">;
+    game: Pick<
+      GameRow,
+      "id" | "mvpMode" | "mvpUserId" | "mvpDecidedBy" | "sport" | "rated"
+    >;
     match: MatchRow | null;
     participants: MatchParticipant[];
     now: Date;
@@ -54,10 +75,7 @@ export async function mvpQuestion(
       : [];
   return {
     mode: args.game.mvpMode,
-    window:
-      args.match?.status === MatchStatusEnum.COMPLETED
-        ? marksWindow(args.match.completedAt, args.now)
-        : null,
+    window: gameMvpWindow(args.game, args.match, args.now),
     participants: args.participants,
     votes,
     pick: storedPick(args.game),
@@ -161,20 +179,19 @@ export async function settleMvp(
 }
 
 /**
- * The read-time fallback for a late or failed Job: once the window has closed,
- * a read settles the MVP so nobody sees "pending" past the close.
+ * The read-time fallback for a late or failed Job: once the MVP's window has
+ * closed, a read settles the MVP so nobody sees "pending" past the close.
  */
 export async function settleMvpIfDue(
   database: DbClient,
-  game: Pick<GameRow, "id" | "mvpMode" | "mvpSettledAt">,
+  game: Pick<GameRow, "id" | "mvpMode" | "mvpSettledAt" | "sport" | "rated">,
   match: MatchRow | null,
   now: Date,
 ): Promise<boolean> {
   if (
     game.mvpMode === "none" ||
     game.mvpSettledAt ||
-    match?.status !== MatchStatusEnum.COMPLETED ||
-    marksWindow(match.completedAt, now)?.state !== "closed"
+    gameMvpWindow(game, match, now)?.state !== "closed"
   ) {
     return false;
   }
@@ -182,7 +199,7 @@ export async function settleMvpIfDue(
 }
 
 /**
- * Called by both completion paths: the Job settles the MVP when the window
+ * Called by both completion paths: the Job settles the MVP when its window
  * closes. A Match completing again after a wrong score may find that everyone
  * has already voted, and then the vote settles at once as it would have.
  */
@@ -193,9 +210,11 @@ export async function scheduleMvpSettle(
 ): Promise<void> {
   const game = await tx.query.games.findFirst({
     where: eq(games.id, gameId),
-    columns: { format: true, mvpMode: true },
+    columns: { format: true, mvpMode: true, sport: true, rated: true },
   });
-  const window = marksWindow(completedAt, completedAt);
+  const window = game
+    ? mvpWindow(completedAt, completedAt, closesWithRatingWindow(game))
+    : null;
   if (
     !game ||
     !window ||

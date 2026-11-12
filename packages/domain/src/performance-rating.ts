@@ -809,6 +809,8 @@ export type PerformanceRatingResultData = {
   mode: RatingWindowMode;
   closesAt: Date | string;
   played: boolean;
+  /** The window moves OVR, shown on the Game as "What moved your OVR", not here. */
+  countsForLevel?: boolean;
   result: {
     groupName: string | null;
     windowStart: Date | string | null;
@@ -1093,7 +1095,9 @@ export function performanceResultView(
       description:
         data.mode === "organizer"
           ? pending.organizer(formatRatingWindowClose(data.closesAt, locale))
-          : pending.everyone(closesLine(data.closesAt, now, locale)),
+          : data.countsForLevel
+            ? pending.everyoneOvr(closesLine(data.closesAt, now, locale))
+            : pending.everyone(closesLine(data.closesAt, now, locale)),
     };
   }
   const result = data.result;

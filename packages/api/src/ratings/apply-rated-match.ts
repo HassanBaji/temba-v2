@@ -3,7 +3,6 @@ import { and, eq, inArray } from "drizzle-orm";
 import {
   gameTeamPlayers,
   games,
-  groups,
   MatchStatusEnum,
   ratingEvents,
   ratings,
@@ -17,9 +16,9 @@ import {
   gameRates,
   gameRatesGroup,
 } from "@repo/domain/game-rating-eligibility";
-import { applyFootballLevelMatch } from "#src/ratings/apply-football-level-match";
 import { applyGroupRatedMatch } from "#src/ratings/apply-group-rated-match";
 import { applyTierMatch } from "#src/ratings/apply-tier-match";
+import { ratingWeightForGame } from "#src/ratings/game-rating-weight";
 import { openRatingWindow } from "#src/ratings/settle-rating-window";
 import {
   initialRatingFromChoice,
@@ -41,14 +40,13 @@ type MatchRow = {
   slot2GameTeamId: string | null;
 };
 
-export const CLUB_GROUP_RATING_WEIGHT = 1;
-export const LOOSE_OR_GROUPLESS_RATING_WEIGHT = 0.5;
+export {
+  CLUB_GROUP_RATING_WEIGHT,
+  LOOSE_OR_GROUPLESS_RATING_WEIGHT,
+  type RatedMatchWeight,
+} from "#src/ratings/game-rating-weight";
 
 export type RatedMatchOutcome = DoublesOutcome;
-
-export type RatedMatchWeight =
-  | typeof CLUB_GROUP_RATING_WEIGHT
-  | typeof LOOSE_OR_GROUPLESS_RATING_WEIGHT;
 
 export type SlotUsers = {
   slot1: [string, string];
@@ -122,26 +120,6 @@ async function loadSlotUsers(
   return { slot1, slot2 };
 }
 
-async function weightForGame(
-  database: DbClient,
-  groupId: string | null,
-): Promise<RatedMatchWeight> {
-  if (!groupId) {
-    return LOOSE_OR_GROUPLESS_RATING_WEIGHT;
-  }
-
-  const group = await database.query.groups.findFirst({
-    where: eq(groups.id, groupId),
-    columns: { venueId: true },
-  });
-
-  if (group?.venueId) {
-    return CLUB_GROUP_RATING_WEIGHT;
-  }
-
-  return LOOSE_OR_GROUPLESS_RATING_WEIGHT;
-}
-
 function snapshotState(
   row:
     | {
@@ -211,8 +189,9 @@ async function persistRatedUser(args: {
 /**
  * Rate the four Users on a completed Match: their Temba Ratings when the Game
  * is Temba rated, their Group Levels when it is group rated (ADR-0053). A
- * football Match moves every seated player's OVR when it counts for Temba
- * Level, or their Tier points on a tier Group. Skips
+ * football Match that counts for Temba Level opens its Rating window, whose
+ * settling moves every seated player's OVR; on a tier Group it moves their
+ * Tier points. Skips
  * when the Match is not a Rated Match (cancelled or Unrated Game, missing
  * sides, not four Users). Idempotent per User+Match. Group Levels go first so
  * a first Group Level starts from the Temba Rating before this Match.
@@ -251,15 +230,14 @@ export async function applyRatedMatch(
       return;
     }
     const now = new Date();
-    // A football Game that counts for Temba Level moves OVR (ADR-0069).
+    // A football Game that counts for Temba Level moves OVR by four parts,
+    // written when its Rating window settles (ADR-0069).
     if (ratesTemba) {
-      await applyFootballLevelMatch(database, {
+      await openRatingWindow(database, {
+        game: { ...game, groupId: liveGame.groupId },
         matchId: match.id,
-        slot1GameTeamId: match.slot1GameTeamId,
-        slot2GameTeamId: match.slot2GameTeamId,
-        result,
-        weight: await weightForGame(database, liveGame.groupId),
         now,
+        countsForLevel: true,
       });
       return;
     }
@@ -335,7 +313,7 @@ async function applyTembaRatedMatch(
   const { sport, slots, now } = args;
   const match = { id: args.matchId };
   const result = args.result;
-  const weight = await weightForGame(database, args.groupId);
+  const weight = await ratingWeightForGame(database, args.groupId);
   const userIds = [...slots.slot1, ...slots.slot2];
 
   const existingEvents = await database.query.ratingEvents.findMany({

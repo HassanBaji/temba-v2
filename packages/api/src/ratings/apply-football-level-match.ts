@@ -14,6 +14,7 @@ import {
   muFromOvr,
   ovrFromMu,
   rateFootballMatch,
+  type FootballGoalsRole,
   type FootballOutcome,
 } from "@repo/domain/football-ovr";
 import {
@@ -81,12 +82,12 @@ export function footballPhi(counted: number, overridden: boolean) {
 }
 
 /**
- * The Temba Level move of a completed football Match on a Game that counts
- * for it (ADR-0069): one `rating_events` row per seated account holder and
- * Unclaimed player, with its result part, and the OVR step on their football
- * Rating. φ is set from the count of counting Matches, so a player is
- * Provisional until their fifth; idle time never grows it. Idempotent per
- * User and Match.
+ * The Temba Level move of a football Match on a Game that counts for it,
+ * written when its Rating window settles (ADR-0069): one `rating_events` row
+ * per seated account holder and Unclaimed player, with its four parts, and
+ * the OVR step on their football Rating. φ is set from the count of counting
+ * Matches, so a player is Provisional until their fifth; idle time never
+ * grows it. Idempotent per User and Match.
  */
 export async function applyFootballLevelMatch(
   database: DbClient,
@@ -97,6 +98,13 @@ export async function applyFootballLevelMatch(
     result: FootballOutcome;
     weight: number;
     now: Date;
+    score: { slot1: number; slot2: number } | null;
+    /** Own named goals by User. */
+    goals: ReadonlyMap<string, number>;
+    goalsRoles: ReadonlyMap<string, FootballGoalsRole>;
+    /** The Performance-rating score of each player with a settled rating. */
+    performance: ReadonlyMap<string, number>;
+    votedMvpUserId: string | null;
   },
 ): Promise<void> {
   const slot1 = await sideUserIds(database, args.slot1GameTeamId);
@@ -148,13 +156,22 @@ export async function applyFootballLevelMatch(
 
   const player = (userId: string) => {
     const row = rowByUser.get(userId);
-    return { userId, mu: row?.mu ?? start.mu, phi: row?.phi ?? start.phi };
+    return {
+      userId,
+      mu: row?.mu ?? start.mu,
+      phi: row?.phi ?? start.phi,
+      goals: args.goals.get(userId) ?? 0,
+      goalsRole: args.goalsRoles.get(userId),
+      performance: args.performance.get(userId) ?? null,
+    };
   };
   const moves = rateFootballMatch({
     slot1: slot1.map(player),
     slot2: slot2.map(player),
     outcome: args.result,
     weight: args.weight,
+    score: args.score,
+    votedMvpUserId: args.votedMvpUserId,
   });
 
   for (const move of moves) {
@@ -184,6 +201,9 @@ export async function applyFootballLevelMatch(
         levelBandBefore: row.levelBand,
         lastRatedAtBefore: row.lastRatedAt,
         resultPart: move.resultPart,
+        performancePart: move.performancePart,
+        goalsPart: move.goalsPart,
+        mvpPart: move.mvpPart,
         createdAt: args.now,
       })
       .onConflictDoNothing({

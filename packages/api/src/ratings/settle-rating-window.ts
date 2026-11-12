@@ -12,9 +12,11 @@ import {
 
 import {
   MatchStatusEnum,
+  gamePlayers,
   games,
   groupTierEvents,
   groups,
+  matchGoals,
   matchRatingWindows,
   matchSets,
   matches,
@@ -22,6 +24,8 @@ import {
   performanceRatings,
 } from "@repo/db";
 
+import { footballGoalsRole, OVR_PART_WEIGHTS } from "@repo/domain/football-ovr";
+import { gameRates } from "@repo/domain/game-rating-eligibility";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import {
   fromHundredths,
@@ -42,18 +46,22 @@ import {
 
 import { type db } from "#src/db";
 import { gameAdminUserIds, type GameRow } from "#src/games/access";
+import { footballScoreOf } from "#src/games/football-lineup";
 import { matchSeatedUserIds } from "#src/games/match-result-confirmations";
 import { enqueueAt, removeJob } from "#src/jobs/enqueue";
 import {
   ratingWindowSettleJob,
   ratingWindowSettleJobKey,
 } from "#src/jobs/specs";
+import { settleMvp } from "#src/marks/settle-mvp";
 import { notify } from "#src/notifications/notify";
+import { applyFootballLevelMatch } from "#src/ratings/apply-football-level-match";
 import {
   applyTierMatch,
   sideUserIds,
   type TierPerformance,
 } from "#src/ratings/apply-tier-match";
+import { ratingWeightForGame } from "#src/ratings/game-rating-weight";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -63,11 +71,12 @@ export type MatchRatingWindow = typeof matchRatingWindows.$inferSelect;
  * Opens the Rating window of a football Match completing on a tier Group
  * whose Rating settings are not Off (ADR-0068), instead of writing its Tier
  * points move: the move waits for the window to settle. The window snapshots
- * the settings, so a later change applies from the next Game. A window a
- * wrong-score report suspended reopens for a fresh 24 hours with its
- * snapshot and its ballots. The Organizers, or when everyone rates every
- * seated account holder, are asked to rate. Returns whether the Match has a
- * window.
+ * the settings, so a later change applies from the next Game. A Match that
+ * counts for Temba Level always opens one, in Everyone mode at OVR's fixed
+ * weight, and its OVR move waits for it (ADR-0069). A window a wrong-score
+ * report suspended reopens for a fresh 24 hours with its snapshot and its
+ * ballots. The Organizers, or when everyone rates every seated account
+ * holder, are asked to rate. Returns whether the Match has a window.
  */
 export async function openRatingWindow(
   database: DbClient,
@@ -75,9 +84,11 @@ export async function openRatingWindow(
     game: Pick<GameRow, "id" | "groupId" | "createdBy" | "challengeId">;
     matchId: string;
     now: Date;
+    countsForLevel?: boolean;
   },
 ): Promise<boolean> {
-  if (!args.game.groupId) {
+  const countsForLevel = args.countsForLevel ?? false;
+  if (!args.game.groupId && !countsForLevel) {
     return false;
   }
   const closesAt = ratingWindowClosesAt(args.now);
@@ -99,7 +110,21 @@ export async function openRatingWindow(
       })
       .where(eq(matchRatingWindows.matchId, args.matchId))
       .returning();
-  } else {
+  } else if (countsForLevel) {
+    [window] = await database
+      .insert(matchRatingWindows)
+      .values({
+        matchId: args.matchId,
+        closesAt,
+        mode: "everyone",
+        weightPercent: Math.round(OVR_PART_WEIGHTS.performance * 100),
+        organizerCountsDouble: false,
+        countsForLevel: true,
+        createdAt: args.now,
+        updatedAt: args.now,
+      })
+      .returning();
+  } else if (args.game.groupId) {
     const group = await database.query.groups.findFirst({
       where: eq(groups.id, args.game.groupId),
       columns: {
@@ -184,6 +209,34 @@ async function pastGroupRatings(
   return rows.flatMap((row) =>
     row.ratingHundredths == null ? [] : [fromHundredths(row.ratingHundredths)],
   );
+}
+
+/**
+ * The player's last settled ratings on Matches that counted for Temba Level,
+ * newest first, for their usual on OVR's ratings part.
+ */
+async function pastLevelRatings(
+  database: DbClient,
+  args: { userId: string; matchId: string },
+) {
+  const rows = await database
+    .select({ ratingHundredths: performanceRatingResults.ratingHundredths })
+    .from(performanceRatingResults)
+    .innerJoin(
+      matchRatingWindows,
+      eq(matchRatingWindows.matchId, performanceRatingResults.matchId),
+    )
+    .where(
+      and(
+        eq(performanceRatingResults.userId, args.userId),
+        ne(performanceRatingResults.matchId, args.matchId),
+        eq(matchRatingWindows.countsForLevel, true),
+        isNotNull(matchRatingWindows.settledAt),
+      ),
+    )
+    .orderBy(desc(performanceRatingResults.createdAt))
+    .limit(USUAL_RECENT_GAMES);
+  return rows.map((row) => fromHundredths(row.ratingHundredths));
 }
 
 /**
@@ -331,11 +384,75 @@ export async function previousRaterDistances(
 }
 
 /**
+ * The OVR move of a Match that counts for Temba Level, once its Rating window
+ * settles (ADR-0069): the MVP is settled first, since it closes with the
+ * window (D21), and only an MVP decided by vote moves OVR; goals come from
+ * the Scorers and the Score, weighed by each player's Football role.
+ */
+async function applySettledLevelMatch(
+  database: DbClient,
+  args: {
+    game: { id: string; groupId: string | null };
+    match: typeof matches.$inferSelect & {
+      slot1GameTeamId: string;
+      slot2GameTeamId: string;
+    };
+    result: "slot1" | "slot2" | "draw";
+    score: { slot1: number; slot2: number } | null;
+    performance: ReadonlyMap<string, number>;
+    now: Date;
+  },
+) {
+  await settleMvp(database, args.game.id, args.now);
+  const [mvp, goals, seats, weight] = await Promise.all([
+    database.query.games.findFirst({
+      where: eq(games.id, args.game.id),
+      columns: { mvpUserId: true, mvpDecidedBy: true, mvpSettledAt: true },
+    }),
+    database.query.matchGoals.findMany({
+      where: eq(matchGoals.matchId, args.match.id),
+      columns: { userId: true, goals: true },
+    }),
+    database.query.gamePlayers.findMany({
+      where: eq(gamePlayers.gameId, args.game.id),
+      columns: { userId: true, footballRole: true, footballPosition: true },
+    }),
+    ratingWeightForGame(database, args.game.groupId),
+  ]);
+  await applyFootballLevelMatch(database, {
+    matchId: args.match.id,
+    slot1GameTeamId: args.match.slot1GameTeamId,
+    slot2GameTeamId: args.match.slot2GameTeamId,
+    result: args.result,
+    weight,
+    now: args.now,
+    score: args.score,
+    goals: new Map(goals.map((row) => [row.userId, row.goals])),
+    goalsRoles: new Map(
+      seats.flatMap((seat) =>
+        seat.userId
+          ? [
+              [
+                seat.userId,
+                footballGoalsRole(seat.footballRole, seat.footballPosition),
+              ] as const,
+            ]
+          : [],
+      ),
+    ),
+    performance: args.performance,
+    votedMvpUserId:
+      mvp?.mvpSettledAt && mvp.mvpDecidedBy === "vote" ? mvp.mvpUserId : null,
+  });
+}
+
+/**
  * Settles a Rating window: writes each rated player's result, then the Tier
- * points move with its performance part. In Organizer mode the Organizers who
- * rated move on the result alone, and only an Organizer's ballots count. A
- * player nobody rated, or with fewer ballots than the mode needs, moves on
- * the result alone. Idempotent on `settled_at`; a suspended window waits for
+ * points move with its performance part, or on a Match that counts for Temba
+ * Level the OVR move with all four parts. In Organizer mode the Organizers
+ * who rated move on the result alone, and only an Organizer's ballots count.
+ * A player nobody rated, or with fewer ballots than the mode needs, has no
+ * performance part. Idempotent on `settled_at`; a suspended window waits for
  * the next completion. Without `force` it settles only once `closes_at` has
  * passed. Returns whether this call settled it.
  */
@@ -374,11 +491,19 @@ export async function settleRatingWindow(
   }
   const game = await database.query.games.findFirst({
     where: eq(games.id, match.gameId),
-    columns: { id: true, groupId: true, createdBy: true, challengeId: true },
+    columns: {
+      id: true,
+      groupId: true,
+      createdBy: true,
+      challengeId: true,
+      rated: true,
+      cancelledAt: true,
+    },
   });
-  if (!game?.groupId) {
+  if (!game || (!window.countsForLevel && !game.groupId)) {
     return false;
   }
+  const groupId = game.groupId;
   const mode = window.mode;
   const { ballots, weights, raters } = await countedBallots(database, {
     match,
@@ -414,11 +539,14 @@ export async function settleRatingWindow(
 
   const withUsual = [];
   for (const row of settled) {
-    const past = await pastGroupRatings(database, {
-      groupId: game.groupId,
-      userId: row.userId,
-      matchId,
-    });
+    const past =
+      window.countsForLevel || !groupId
+        ? await pastLevelRatings(database, { userId: row.userId, matchId })
+        : await pastGroupRatings(database, {
+            groupId,
+            userId: row.userId,
+            matchId,
+          });
     withUsual.push({ ...row, usual: usualRating(past) });
   }
   const scores = performanceScores(withUsual);
@@ -438,9 +566,24 @@ export async function settleRatingWindow(
     columns: { slot1GamesWon: true, slot2GamesWon: true },
   });
   const outcome = matchOutcome(sets);
-  if (outcome.result !== "none") {
+  if (window.countsForLevel) {
+    if (outcome.result !== "none" && gameRates(game)) {
+      await applySettledLevelMatch(database, {
+        game,
+        match: {
+          ...match,
+          slot1GameTeamId: match.slot1GameTeamId,
+          slot2GameTeamId: match.slot2GameTeamId,
+        },
+        result: outcome.result,
+        score: footballScoreOf(sets[0] ?? null),
+        performance: scores,
+        now,
+      });
+    }
+  } else if (outcome.result !== "none" && groupId) {
     await applyTierMatch(database, {
-      groupId: game.groupId,
+      groupId,
       matchId,
       slot1GameTeamId: match.slot1GameTeamId,
       slot2GameTeamId: match.slot2GameTeamId,
@@ -455,11 +598,9 @@ export async function settleRatingWindow(
     .update(matchRatingWindows)
     .set({ settledAt: now, updatedAt: now })
     .where(eq(matchRatingWindows.matchId, matchId));
-  await notifyRatingsClosed(database, {
-    match,
-    gameId: game.id,
-    groupId: game.groupId,
-  });
+  if (groupId && !window.countsForLevel) {
+    await notifyRatingsClosed(database, { match, gameId: game.id, groupId });
+  }
   return true;
 }
 

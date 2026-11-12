@@ -20,6 +20,7 @@ import {
   marksClosedCopy,
   marksClosesCopy,
   marksWindow,
+  mvpWindow,
   remainingMarks,
   type GivenMark,
   type MarkKind,
@@ -50,6 +51,29 @@ describe("marksWindow", () => {
       opensAt: COMPLETED_AT,
       closesAt,
     });
+  });
+});
+
+describe("mvpWindow", () => {
+  it("closes with the 24-hour Rating window on a Match that counts for Temba Level", () => {
+    const window = mvpWindow(COMPLETED_AT, COMPLETED_AT, true);
+    expect(window?.closesAt).toEqual(
+      new Date(COMPLETED_AT.getTime() + 24 * HOUR),
+    );
+    expect(
+      mvpWindow(
+        COMPLETED_AT,
+        new Date(COMPLETED_AT.getTime() + 24 * HOUR),
+        true,
+      )?.state,
+    ).toBe("closed");
+  });
+
+  it("is the Marks window on any other Match", () => {
+    expect(mvpWindow(COMPLETED_AT, COMPLETED_AT, false)).toEqual(
+      marksWindow(COMPLETED_AT, COMPLETED_AT),
+    );
+    expect(mvpWindow(null, COMPLETED_AT, true)).toBeNull();
   });
 });
 

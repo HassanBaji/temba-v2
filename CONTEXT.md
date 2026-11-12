@@ -369,7 +369,7 @@ The colour a Football side wears: black, white, red, dark blue, light blue, gree
 On a football Match, the goals each Football side scored, stored as the Match's one Set. A player on either side or an Organizer enters it from kick-off; it is agreed once one player from each side confirms, or as soon as an Organizer confirms. A changed Score asks again.
 
 **Scorer**:
-A player named with the goals they scored in a football Match. Optional, and never more goals than their side's Score. Goals are a player fact, not a rating input.
+A player named with the goals they scored in a football Match. Optional, and never more goals than their side's Score. On a Match that counts for Temba Level a player's own goals, and their side's goals conceded weighed by Football role, are OVR's goals part (ADR-0069), so a changed list of who scored asks the other side again, as a changed Score does.
 _Avoid_: format (that is Friendly game, Americano or Friendly tournament), team size, a-side (bare)
 
 **Match**:
@@ -401,11 +401,11 @@ A Mark that teases rather than praises: Mr Fumble and Sayed Malek. Counts like a
 _Avoid_: negative mark, penalty, insult
 
 **Marks window**:
-The 48 hours after a Match's completion during which Marks are given and the MVP is decided. Anchored on the Match's completion moment, suspended by a wrong-score report, restarted by the next completion. The vote may close earlier when everyone has voted; the window never does. Closed by a Job and by the read-time rule. Judged by the server clock.
+The 48 hours after a Match's completion during which Marks are given and the MVP is decided. On a Match that counts for Temba Level the MVP closes with its 24-hour Rating window instead; Marks keep the 48 hours. Anchored on the Match's completion moment, suspended by a wrong-score report, restarted by the next completion. The vote may close earlier when everyone has voted; the window never does. Closed by a Job and by the read-time rule. Judged by the server clock.
 _Avoid_: voting period, deadline, grace period
 
 **MVP**:
-The one player of a Friendly game named most valuable after the score, decided the way its MVP mode says. A vote is one per seated account holder, for any other participant, hidden until it closes; a tie goes to the Organizer; no pick by the close means no MVP. Shown on the Played game, the Result card and the cabinet with the gold coin. Not a Mark: nobody gives it.
+The one player of a Friendly game named most valuable after the score, decided the way its MVP mode says. A vote is one per seated account holder, for any other participant, hidden until it closes; a tie goes to the Organizer; no pick by the close means no MVP. On a Match that counts for Temba Level it closes with the Rating window, and an MVP decided by vote is OVR's MVP part; one an Organizer picked or broke a tie for moves nothing. Shown on the Played game, the Result card and the cabinet with the gold coin. Not a Mark: nobody gives it.
 _Avoid_: man of the match, player of the game, best player, star (bare)
 
 **MVP mode**:
@@ -713,7 +713,7 @@ A 1 to 10 score for how a player played a football Match on a tier Group, given 
 _Avoid_: player rating (bare), Mark, score, vote (that is the MVP's)
 
 **Rating window**:
-The 24 hours after a football Match completes on a tier Group whose Rating settings are not Off, in which Performance ratings are given (`match_rating_windows`, ADR-0068). Opened at completion with a snapshot of the Rating settings, and the Tier points move waits for it. In Organizer mode the Organizer's submit closes it at once and the Organizer is told when it opens; when everyone rates, every seated account holder is told. Otherwise it closes at 24 hours, by the `rating-window.settle` Job or on the next read when the Job is late, and with no ratings everyone moves on the result alone. A wrong-score report suspends it and keeps the ballots; the next completion reopens it for a fresh 24 hours. A Match with no window, such as one in Off mode, writes its move at completion.
+The 24 hours after a football Match completes on a tier Group whose Rating settings are not Off, in which Performance ratings are given (`match_rating_windows`, ADR-0068). Opened at completion with a snapshot of the Rating settings, and the Tier points move waits for it. A football Match that counts for Temba Level always opens one, in Everyone mode, and its OVR move with all four parts waits for it. In Organizer mode the Organizer's submit closes it at once and the Organizer is told when it opens; when everyone rates, every seated account holder is told. Otherwise it closes at 24 hours, by the `rating-window.settle` Job or on the next read when the Job is late, and with no ratings everyone moves on the result alone. A wrong-score report suspends it and keeps the ballots; the next completion reopens it for a fresh 24 hours. A Match with no window, such as one in Off mode, writes its move at completion.
 _Avoid_: voting period, Marks window
 
 **Rating history**:

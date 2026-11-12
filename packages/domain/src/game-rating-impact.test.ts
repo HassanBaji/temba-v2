@@ -10,6 +10,7 @@ import {
   ratingScopeNotice,
   ratingScopeOf,
   ratingScopeTag,
+  shownOvrParts,
   unratedLabel,
 } from "./game-rating-impact";
 
@@ -238,21 +239,25 @@ describe("ratingScopeNotice on a football Game that counts", () => {
 });
 
 describe("ovrImpactView", () => {
-  const impact = {
+  const resultOnly = {
     ovr: {
       before: 74.2,
       after: 74.8,
       resultPart: 0.6,
       outcome: "won" as const,
       opponentAverage: 76.3,
+      parts: { result: 0.6, performance: null, goals: null, mvp: null },
+      rating: null,
+      goals: null,
+      mvp: "none" as const,
     },
     newLevelBand: "C1" as const,
     isProvisional: false,
     ratedMatchesRemainingToConfirm: null,
   };
 
-  it("reads screen 5a's result part and the move", () => {
-    const view = ovrImpactView(impact, "en");
+  it("reads a Match counted on the result alone with one row and no footnote", () => {
+    const view = ovrImpactView(resultOnly, "en");
     assert.equal(view.tag, "Counts for Temba Level");
     assert.equal(view.title, "What moved your OVR");
     assert.equal(view.aside, "74 to 75");
@@ -266,13 +271,103 @@ describe("ovrImpactView", () => {
     ]);
     assert.equal(view.total.title, "74.2 to 74.8");
     assert.equal(view.total.delta, "+0.6");
+    assert.equal(view.footnote, null);
   });
 
-  it("reads a loss in Arabic", () => {
+  const fourParts = {
+    ...resultOnly,
+    ovr: {
+      ...resultOnly.ovr,
+      before: 74.2,
+      after: 75.0,
+      parts: { result: 0.6, performance: 0.3, goals: -0.1, mvp: 0 },
+      rating: { hundredths: 780, ballots: 12 },
+      goals: { scored: 1, conceded: 3 },
+      mvp: "other" as const,
+    },
+  };
+
+  it("reads screen 5a's four parts and the honest line", () => {
+    const view = ovrImpactView(fourParts, "en");
+    assert.deepEqual(
+      view.rows.map((row) => [row.title, row.detail, row.delta]),
+      [
+        ["Result 40%", "Won, against a side averaging 76", "+0.6"],
+        ["Player ratings 30%", "7.8 from 12 teammates and opponents", "+0.3"],
+        [
+          "Goals 20%",
+          "1 scored, 3 conceded while you played. Conceded weighs more at the back",
+          "−0.1",
+        ],
+        ["MVP 10%", "Not this time. Other marks don’t move OVR", "0"],
+      ],
+    );
+    assert.equal(view.total.title, "74.2 to 75.0");
+    assert.equal(view.total.delta, "+0.8");
+    assert.match(view.footnote ?? "", /^Keeping ratings honest/);
+  });
+
+  it("says why a part is 0 without a rating and who was voted MVP", () => {
     const view = ovrImpactView(
       {
-        ...impact,
-        ovr: { ...impact.ovr, after: 73.6, resultPart: -0.6, outcome: "lost" },
+        ...fourParts,
+        ovr: {
+          ...fourParts.ovr,
+          after: 75.2,
+          parts: { result: 0.6, performance: 0, goals: -0.1, mvp: 0.5 },
+          rating: null,
+          mvp: "you",
+        },
+      },
+      "en",
+    );
+    assert.equal(
+      view.rows[1]?.detail,
+      "Fewer than 3 ratings this time, so this part is 0",
+    );
+    assert.equal(view.rows[3]?.detail, "Voted MVP by the players");
+    const none = ovrImpactView(
+      { ...fourParts, ovr: { ...fourParts.ovr, mvp: "none" } },
+      "en",
+    );
+    assert.equal(
+      none.rows[3]?.detail,
+      "No MVP was voted. Only a voted MVP moves OVR",
+    );
+  });
+
+  it("shows parts that add up to the shown move", () => {
+    const view = ovrImpactView(
+      {
+        ...fourParts,
+        ovr: {
+          ...fourParts.ovr,
+          before: 70,
+          after: 70.98,
+          parts: { result: 0.64, performance: 0.34, goals: 0.04, mvp: -0.04 },
+        },
+      },
+      "en",
+    );
+    const tenths = (delta: string) =>
+      Math.round(Number(delta.replace("−", "-")) * 10);
+    assert.equal(
+      view.rows.reduce((sum, row) => sum + tenths(row.delta), 0),
+      tenths(view.total.delta),
+    );
+  });
+
+  it("reads a loss and the parts in Arabic", () => {
+    const view = ovrImpactView(
+      {
+        ...fourParts,
+        ovr: {
+          ...fourParts.ovr,
+          after: 73.6,
+          resultPart: -0.6,
+          outcome: "lost",
+          parts: { result: -0.6, performance: 0, goals: 0, mvp: 0 },
+        },
         isProvisional: true,
         ratedMatchesRemainingToConfirm: 3,
       },
@@ -280,5 +375,34 @@ describe("ovrImpactView", () => {
     );
     assert.equal(view.rows[0]?.delta, "−0.6");
     assert.match(view.rows[0]?.detail ?? "", /خسارة/);
+    assert.match(view.rows[1]?.title ?? "", /تقييمات اللاعبين/);
+    assert.match(view.footnote ?? "", /نزيهة/);
+  });
+});
+
+describe("shownOvrParts", () => {
+  it("rounds each part to a tenth and nudges the largest remainders to meet the move", () => {
+    assert.deepEqual(shownOvrParts([0.62, 0.34], 0.96), [0.6, 0.4]);
+    assert.deepEqual(
+      shownOvrParts([0.6, 0.3, -0.1, 0], 0.8),
+      [0.6, 0.3, -0.1, 0],
+    );
+  });
+
+  it("always adds up to the move in tenths", () => {
+    let seed = 7;
+    const random = () => {
+      seed = (seed * 16807) % 2147483647;
+      return seed / 2147483647;
+    };
+    for (let run = 0; run < 500; run++) {
+      const parts = Array.from({ length: 4 }, () => (random() - 0.5) * 3);
+      const move = parts.reduce((sum, part) => sum + part, 0);
+      const shown = shownOvrParts(parts, move);
+      assert.equal(
+        Math.round(shown.reduce((sum, part) => sum + part, 0) * 10) + 0,
+        Math.round(move * 10) + 0,
+      );
+    }
   });
 });

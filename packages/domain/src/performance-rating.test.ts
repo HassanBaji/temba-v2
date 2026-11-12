@@ -788,6 +788,12 @@ describe("performanceResultView (screen 4c)", () => {
         "The organizer rates everyone. You see your rating and what it did to your tier points once they submit, by Fri 8:30 PM at the latest.",
     });
     expect(
+      performanceResultView({ ...open, countsForLevel: true }, "en", { now }),
+    ).toMatchObject({
+      description:
+        "Closes tomorrow, 8:30 PM. Then you see your rating and what moved your OVR.",
+    });
+    expect(
       performanceResultView(open, "en", { now, viewerMayRate: true }),
     ).toBeNull();
     expect(

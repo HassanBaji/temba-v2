@@ -3,6 +3,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import type { FootballBib } from "./football-lineup";
 import { formatGameClock, formatWeekday } from "./format-game-start";
+import { RATING_WINDOW_HOURS } from "./performance-rating";
 import type { Sport } from "./sport";
 
 /** The twelve givable kinds, in display order: teammate, anyone, opponent. */
@@ -88,12 +89,35 @@ export function marksWindow(
   completedAt: Date | null,
   now: Date,
 ): MarksWindow | null {
+  return windowFor(completedAt, now, MARKS_WINDOW_HOURS);
+}
+
+/**
+ * The MVP's window. On a Match that counts for Temba Level it closes with
+ * the 24-hour Rating window, because OVR's MVP part is written then (D21);
+ * on any other Match it is the Marks window.
+ */
+export function mvpWindow(
+  completedAt: Date | null,
+  now: Date,
+  closesWithRatingWindow: boolean,
+): MarksWindow | null {
+  return windowFor(
+    completedAt,
+    now,
+    closesWithRatingWindow ? RATING_WINDOW_HOURS : MARKS_WINDOW_HOURS,
+  );
+}
+
+function windowFor(
+  completedAt: Date | null,
+  now: Date,
+  hours: number,
+): MarksWindow | null {
   if (!completedAt) {
     return null;
   }
-  const closesAt = new Date(
-    completedAt.getTime() + MARKS_WINDOW_HOURS * MS_PER_HOUR,
-  );
+  const closesAt = new Date(completedAt.getTime() + hours * MS_PER_HOUR);
   return {
     state: now.getTime() < closesAt.getTime() ? "open" : "closed",
     opensAt: completedAt,

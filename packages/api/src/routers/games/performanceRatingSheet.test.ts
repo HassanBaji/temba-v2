@@ -197,7 +197,14 @@ describe("games.performanceRatingSheet when everyone rates (screen 4b)", () => {
 
       const game = await gameById(db, { gameId: f.gameId, userId: o });
       expect(Object.keys(game.ratingWindow ?? {}).sort()).toEqual(
-        ["closesAt", "matchId", "mode", "state", "viewerMayRate"].sort(),
+        [
+          "closesAt",
+          "countsForLevel",
+          "matchId",
+          "mode",
+          "state",
+          "viewerMayRate",
+        ].sort(),
       );
       expect(JSON.stringify(game)).not.toContain('"value":9');
     });

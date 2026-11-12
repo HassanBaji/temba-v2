@@ -9,6 +9,7 @@ import {
   groupMembers,
   groupTierEvents,
   groups,
+  matchRatingWindows,
   matches,
   user,
   venues,
@@ -22,6 +23,7 @@ import { publishFootballTeams } from "#src/routers/games/publishFootballTeams";
 import { register } from "#src/routers/games/register";
 import { saveFootballScore } from "#src/routers/games/saveFootballScore";
 import { scoreSet } from "#src/routers/games/scoreSet";
+import { settleRatingWindow } from "#src/ratings/settle-rating-window";
 
 type Player = Awaited<ReturnType<typeof insertUser>>;
 
@@ -323,4 +325,30 @@ export async function setRatingSettings(
 export async function registerOrganizer(f: FootballFixture) {
   await register(apiDb(f.db), { gameId: f.gameId, userId: f.organizerId });
   return f.organizerId;
+}
+
+/** Settles a Match's Rating window at its close, as the Job would. */
+export async function closeRatingWindow(
+  database: TestDatabase,
+  matchId: string,
+) {
+  const window = await database.query.matchRatingWindows.findFirst({
+    where: eq(matchRatingWindows.matchId, matchId),
+  });
+  if (!window) {
+    throw new Error("The Match has no Rating window");
+  }
+  return settleRatingWindow(apiDb(database), matchId, window.closesAt);
+}
+
+/** Plays the Score, then settles the Rating window it opened. */
+export async function playAndSettle(
+  f: FootballFixture,
+  slot1: string[],
+  slot2: string[],
+  score: { slot1: number; slot2: number },
+) {
+  const matchId = await playScore(f, slot1, slot2, score);
+  await closeRatingWindow(f.db, matchId);
+  return matchId;
 }

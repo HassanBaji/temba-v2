@@ -5,6 +5,11 @@ import {
   levelFromMu,
   muFromLevel,
 } from "./level";
+import {
+  DEFAULT_FOOTBALL_POSITION,
+  type FootballPosition,
+  type FootballRole,
+} from "./football-lineup";
 import type { Sport } from "./sport";
 
 /**
@@ -80,10 +85,33 @@ export function footballPhiAfterMatches(counted: number) {
 
 export type FootballOutcome = "slot1" | "slot2" | "draw";
 
+/** How much a player answers for the goals their side concedes. */
+export type FootballGoalsRole = "keeper" | FootballPosition;
+
+export const OVR_GOALS_ROLE_WEIGHTS: Record<FootballGoalsRole, number> = {
+  keeper: 1,
+  def: 0.75,
+  mid: 0.4,
+  fwd: 0.2,
+};
+
+/** A keeper answers as a keeper; an outfield player by Position, midfield when unset. */
+export function footballGoalsRole(
+  role: FootballRole | null | undefined,
+  position: FootballPosition | null | undefined,
+): FootballGoalsRole {
+  return role === "keeper" ? "keeper" : (position ?? DEFAULT_FOOTBALL_POSITION);
+}
+
 export type FootballMatchPlayer = {
   userId: string;
   mu: number;
   phi: number;
+  /** Own named goals. */
+  goals?: number;
+  goalsRole?: FootballGoalsRole;
+  /** The Performance-rating score in −1 to 1; absent or null without a settled rating. */
+  performance?: number | null;
 };
 
 export type FootballMatchMove = {
@@ -94,8 +122,11 @@ export type FootballMatchMove = {
   expected: number;
   ovrBefore: number;
   ovrAfter: number;
-  /** In OVR points. */
+  /** Each part in OVR points; together they make the move before the clamp. */
   resultPart: number;
+  performancePart: number;
+  goalsPart: number;
+  mvpPart: number;
 };
 
 function sideScore(outcome: FootballOutcome, side: 1 | 2): 0 | 0.5 | 1 {
@@ -112,27 +143,128 @@ function meanOvr(players: readonly FootballMatchPlayer[]) {
   );
 }
 
+function clampScore(value: number) {
+  return Math.min(1, Math.max(-1, value));
+}
+
 export function footballExpectedScore(ownMean: number, otherMean: number) {
   return 1 / (1 + 10 ** ((otherMean - ownMean) / OVR_RESULT_SCALE));
 }
 
 /**
- * The OVR step of a counting football Match (ADR-0069). This version moves
- * the result part only: `K × weight × 0.4 × (S − E)`, K 6 while Provisional.
- * Each side's raw parts are scaled so both sides carry the same total, which
- * keeps the part zero-sum when the sides differ in size or mix Provisional
- * players; with even sides of confirmed players nothing is scaled. OVR is
- * clamped to 40 to 99.
+ * The goals score of each player, in −1 to 1 (spec 20.7, no minutes): own
+ * named goals against the Match's mean per player, minus the side's goals
+ * conceded against half the Match total, the conceded part weighed by
+ * Football role. Both are counted in halves of the Match total, so a side
+ * that concedes every goal puts its keeper at −1. A goalless Match scores 0.
+ */
+export function footballGoalsScores(
+  players: readonly {
+    userId: string;
+    side: 1 | 2;
+    goals?: number;
+    goalsRole?: FootballGoalsRole;
+  }[],
+  score: { slot1: number; slot2: number },
+): Map<string, number> {
+  const half = (score.slot1 + score.slot2) / 2;
+  const scores = new Map<string, number>();
+  if (half <= 0 || players.length === 0) {
+    return scores;
+  }
+  const meanNamed =
+    players.reduce((sum, player) => sum + (player.goals ?? 0), 0) /
+    players.length;
+  for (const player of players) {
+    const conceded = player.side === 1 ? score.slot2 : score.slot1;
+    const roleWeight =
+      OVR_GOALS_ROLE_WEIGHTS[player.goalsRole ?? DEFAULT_FOOTBALL_POSITION];
+    scores.set(
+      player.userId,
+      clampScore(
+        ((player.goals ?? 0) - meanNamed - roleWeight * (conceded - half)) /
+          half,
+      ),
+    );
+  }
+  return scores;
+}
+
+/**
+ * The MVP score: +1 for an MVP decided by vote, `−1 / (n − 1)` for each
+ * other player. No MVP, or one not on the Match, scores nobody.
+ */
+export function footballMvpScores(
+  userIds: readonly string[],
+  votedMvpUserId: string | null | undefined,
+): Map<string, number> {
+  const scores = new Map<string, number>();
+  if (!votedMvpUserId || !userIds.includes(votedMvpUserId)) {
+    return scores;
+  }
+  const others = userIds.length - 1;
+  for (const userId of userIds) {
+    scores.set(userId, userId === votedMvpUserId ? 1 : -1 / others);
+  }
+  return scores;
+}
+
+/**
+ * One part in OVR points: `K × weight × share × (score − m)`, where `m` is
+ * the K-weighted mean score of the players the part counts, so the part sums
+ * to zero across the Match even when Provisional players move twice as far.
+ * A player the part does not count gets 0, and nobody else takes up their
+ * share.
+ */
+function zeroSumPart(
+  entries: readonly { userId: string; k: number }[],
+  scores: ReadonlyMap<string, number>,
+  scale: number,
+): Map<string, number> {
+  const counted = entries.filter((entry) => scores.has(entry.userId));
+  const weights = counted.reduce((sum, entry) => sum + entry.k, 0);
+  const parts = new Map<string, number>();
+  if (weights === 0) {
+    return parts;
+  }
+  const mean =
+    counted.reduce(
+      (sum, entry) => sum + entry.k * (scores.get(entry.userId) ?? 0),
+      0,
+    ) / weights;
+  for (const entry of counted) {
+    parts.set(
+      entry.userId,
+      entry.k * scale * ((scores.get(entry.userId) ?? 0) - mean),
+    );
+  }
+  return parts;
+}
+
+/**
+ * The OVR step of a counting football Match (ADR-0069), written when its
+ * Rating window settles: `K × weight × (0.4 × result + 0.3 × ratings + 0.2 ×
+ * goals + 0.1 × MVP)`, K 6 while Provisional. Each part sums to zero across
+ * the Match, so the mean OVR cannot drift. For the result part each side's
+ * raw parts are scaled so both sides carry the same total; with even sides of
+ * confirmed players nothing is scaled. The other three parts are centred on
+ * the players they count. A part with no input (no score, no settled rating,
+ * no MVP decided by vote) is 0. OVR is clamped to 40 to 99.
  */
 export function rateFootballMatch(input: {
   slot1: readonly FootballMatchPlayer[];
   slot2: readonly FootballMatchPlayer[];
   outcome: FootballOutcome;
   weight: number;
+  /** The Match's Score; without it the goals part is 0. */
+  score?: { slot1: number; slot2: number } | null;
+  votedMvpUserId?: string | null;
 }): FootballMatchMove[] {
   if (input.slot1.length === 0 || input.slot2.length === 0) {
     return [];
   }
+  const kOf = (player: FootballMatchPlayer) =>
+    isProvisional(player.phi) ? OVR_K_PROVISIONAL : OVR_K;
   const means = { 1: meanOvr(input.slot1), 2: meanOvr(input.slot2) };
   const sides = (
     [
@@ -148,7 +280,7 @@ export function rateFootballMatch(input: {
     const raw = players.map((player) => ({
       player,
       part:
-        (isProvisional(player.phi) ? OVR_K_PROVISIONAL : OVR_K) *
+        kOf(player) *
         input.weight *
         OVR_PART_WEIGHTS.result *
         (score - expected),
@@ -158,9 +290,58 @@ export function rateFootballMatch(input: {
   });
   const transfer = sides.reduce((sum, side) => sum + side.total, 0) / 2;
 
+  const seated = [
+    ...input.slot1.map((player) => ({ player, side: 1 as const })),
+    ...input.slot2.map((player) => ({ player, side: 2 as const })),
+  ];
+  const entries = seated.map(({ player }) => ({
+    userId: player.userId,
+    k: kOf(player),
+  }));
+  const performanceScores = new Map(
+    seated.flatMap(({ player }) =>
+      player.performance == null
+        ? []
+        : [[player.userId, clampScore(player.performance)] as const],
+    ),
+  );
+  const goalsScores = input.score
+    ? footballGoalsScores(
+        seated.map(({ player, side }) => ({
+          userId: player.userId,
+          side,
+          goals: player.goals,
+          goalsRole: player.goalsRole,
+        })),
+        input.score,
+      )
+    : new Map<string, number>();
+  const mvpScores = footballMvpScores(
+    entries.map((entry) => entry.userId),
+    input.votedMvpUserId,
+  );
+  const performance = zeroSumPart(
+    entries,
+    performanceScores,
+    input.weight * OVR_PART_WEIGHTS.performance,
+  );
+  const goals = zeroSumPart(
+    entries,
+    goalsScores,
+    input.weight * OVR_PART_WEIGHTS.goals,
+  );
+  const mvp = zeroSumPart(
+    entries,
+    mvpScores,
+    input.weight * OVR_PART_WEIGHTS.mvp,
+  );
+
   return sides.flatMap(({ side, score, expected, raw, total }) =>
     raw.map(({ player, part }) => {
       const resultPart = total > 0 ? (part * transfer) / total : 0;
+      const performancePart = performance.get(player.userId) ?? 0;
+      const goalsPart = goals.get(player.userId) ?? 0;
+      const mvpPart = mvp.get(player.userId) ?? 0;
       const ovrBefore = ovrFromMu(player.mu);
       return {
         userId: player.userId,
@@ -168,8 +349,13 @@ export function rateFootballMatch(input: {
         score,
         expected,
         ovrBefore,
-        ovrAfter: clampOvr(ovrBefore + resultPart),
+        ovrAfter: clampOvr(
+          ovrBefore + resultPart + performancePart + goalsPart + mvpPart,
+        ),
         resultPart,
+        performancePart,
+        goalsPart,
+        mvpPart,
       };
     }),
   );

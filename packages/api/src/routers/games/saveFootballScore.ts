@@ -59,6 +59,22 @@ async function sideUserIds(database: DbClient, gameTeamId: string) {
   );
 }
 
+function sameScorers(
+  stored: readonly { userId: string; goals: number }[],
+  next: readonly { userId: string; goals: number }[],
+) {
+  const goalsOf = (rows: readonly { userId: string; goals: number }[]) =>
+    new Map(
+      rows.filter((row) => row.goals > 0).map((row) => [row.userId, row.goals]),
+    );
+  const before = goalsOf(stored);
+  const after = goalsOf(next);
+  return (
+    before.size === after.size &&
+    [...after].every(([userId, goals]) => before.get(userId) === goals)
+  );
+}
+
 type ScoreArgs = {
   gameId: string;
   userId: string;
@@ -145,6 +161,14 @@ async function checkAndWriteScore(
   const scoreChanged =
     existing?.slot1GamesWon !== args.slot1Goals ||
     existing.slot2GamesWon !== args.slot2Goals;
+  // Goals feed OVR (ADR-0069), so who scored is part of what both sides agree.
+  const scorersChanged = !sameScorers(
+    await database.query.matchGoals.findMany({
+      where: eq(matchGoals.matchId, match.id),
+      columns: { userId: true, goals: true },
+    }),
+    args.scorers,
+  );
 
   await database.transaction(async (tx) => {
     if (existing) {
@@ -175,7 +199,7 @@ async function checkAndWriteScore(
         })),
       );
     }
-    if (scoreChanged) {
+    if (scoreChanged || scorersChanged) {
       await clearMatchResultConfirmationsExceptUser(tx, match.id, args.userId);
     }
     if (onSide) {
@@ -189,7 +213,8 @@ async function checkAndWriteScore(
  * Saves a football Match's Score (stored as its one Set, goals as games won)
  * and, optionally, who scored. A player on either side or an Organizer may
  * enter it once the Game has kicked off. The player who enters a Score
- * confirms it for their side; a changed Score asks the other side again.
+ * confirms it for their side; a changed Score or a changed list of who
+ * scored asks the other side again.
  * On a Challenge Game the Game row is locked first, as `nameChallengeSquad`
  * locks it, so a squad save and a first Score cannot both pass their checks.
  */

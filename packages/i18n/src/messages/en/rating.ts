@@ -18,6 +18,23 @@ export const rating = {
       lost: (average: string) => `Lost, against a side averaging ${average}`,
     },
     spoken: (title: string, delta: string) => `${title}, ${delta} OVR`,
+    ratings: (percent: number) => `Player ratings ${percent}%`,
+    ratingFrom: (rating: string, ballots: number) =>
+      plural("en", ballots, {
+        one: `${rating} from 1 teammate or opponent`,
+        other: `${rating} from {n} teammates and opponents`,
+      }),
+    noRating: (min: number) =>
+      `Fewer than ${min} ratings this time, so this part is 0`,
+    goals: (percent: number) => `Goals ${percent}%`,
+    goalsLine: (scored: number, conceded: number) =>
+      `${scored} scored, ${conceded} conceded while you played. Conceded weighs more at the back`,
+    mvp: (percent: number) => `MVP ${percent}%`,
+    mvpYou: "Voted MVP by the players",
+    mvpOther: "Not this time. Other marks don’t move OVR",
+    mvpNone: "No MVP was voted. Only a voted MVP moves OVR",
+    honest:
+      "Keeping ratings honest: no rating yourself, highest and lowest dropped, hidden until the 24-hour window closes, verified games only.",
   },
   scope: {
     temba: "Counts for Temba Level",
@@ -365,6 +382,8 @@ export const rating = {
         title: "Your rating is on its way",
         everyone: (closes: string) =>
           `${closes}. Then you see your rating and what it did to your tier points.`,
+        everyoneOvr: (closes: string) =>
+          `${closes}. Then you see your rating and what moved your OVR.`,
         organizer: (closes: string) =>
           `The organizer rates everyone. You see your rating and what it did to your tier points once they submit, by ${closes} at the latest.`,
       },
