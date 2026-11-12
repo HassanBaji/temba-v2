@@ -649,7 +649,7 @@ A User’s sport-keyed skill state (μ, φ, σ). Not shown raw in the App. A pad
 _Avoid_: ELO, Elo, player rating (when you mean this entity), rank (that is leaderboard position)
 
 **Level**:
-The continuous 0.0–7.0 skill state derived from a Rating’s μ. Product copy says Temba Level. Padel shows it from 1.0 to 7.0, the scale padel players know: a stored Level below 1.0 reads 1.0, a floor on the face only, so bands, Game Level range and Level wanted still compare the stored Level in tenths. Home, the You page hero and the Player profile show two decimals ("3.45"); dense lists keep one (ADR-0070). Football shows it as OVR.
+The continuous 0.0–7.0 skill state derived from a Rating’s μ. Product copy says Temba Level. Padel shows it from 1.0 to 7.0, the scale padel players know: a stored Level below 1.0 reads 1.0, a floor on the face only, so bands, Game Level range and Level wanted still compare the stored Level in tenths. Home, the You page hero and the Player profile show two decimals ("3.45"); dense lists keep one (ADR-0070). A padel Rated Match moves it pair against pair: each player's expectation weighs their partner as well as the other pair, and each moves by their own φ (ADR-0070). Football shows it as OVR.
 _Avoid_: rank, ELO, Level band (that is the discrete label)
 
 **OVR**:
