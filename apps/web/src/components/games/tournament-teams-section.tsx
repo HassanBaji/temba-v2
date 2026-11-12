@@ -198,6 +198,7 @@ function TeamSeat({
           name: occupant.name,
           image: occupant.image ?? null,
           levelBand: occupant.levelBand,
+          guest: occupant.guest,
         })
     : undefined;
 
@@ -218,7 +219,9 @@ function TeamSeat({
       }
       onSelect={openActions}
       href={
-        linked && !openActions ? playerProfilePath(occupant.userId) : undefined
+        linked && !openActions && !occupant.guest
+          ? playerProfilePath(occupant.userId)
+          : undefined
       }
     />
   );

@@ -18,7 +18,7 @@ export function RenamePlayerSheet({
   player,
   onClose,
 }: {
-  player: { userId: string; name: string } | null;
+  player: { userId: string; name: string; guest?: boolean } | null;
   onClose: () => void;
 }) {
   const m = useMessages();
@@ -60,7 +60,11 @@ export function RenamePlayerSheet({
       visible={player != null}
       onClose={close}
       title={m.group.addPlayer.renameAction}
-      subtitle={m.group.addPlayer.renameDescription}
+      subtitle={
+        player?.guest
+          ? m.group.addPlayer.guest.renameDescription
+          : m.group.addPlayer.renameDescription
+      }
       keyboardShouldPersistTaps="handled"
       footer={
         <View style={{ gap: 8 }}>

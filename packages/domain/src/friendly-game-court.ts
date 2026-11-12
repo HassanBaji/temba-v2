@@ -71,6 +71,7 @@ export function courtSeatRow(
     level: levelLabel(seat.levelBand),
     trailing: null,
     unclaimed: Boolean(seat.unclaimed),
+    guest: Boolean(seat.guest),
     phoneMasked: seat.phoneMasked ?? null,
   };
 }

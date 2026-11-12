@@ -44,6 +44,7 @@ function PlayerRow({
   const look = rowLook(row, fill);
   const label = [
     row.isYou ? m.game.score.youSuffix(row.fullName) : row.fullName,
+    row.guest ? m.group.addPlayer.guest.tag : null,
     row.meta,
     m.level.prose(row.level),
     row.trailing,
@@ -52,7 +53,12 @@ function PlayerRow({
     .join(m.tournament.listSeparator);
   const body = (
     <>
-      <UserAvatar name={row.fullName} image={row.image} size="sm" />
+      <UserAvatar
+        name={row.fullName}
+        image={row.image}
+        size="sm"
+        guest={row.guest}
+      />
       <span className="min-w-0 flex-1 leading-[1.15]">
         <span
           className={cn(
@@ -82,7 +88,7 @@ function PlayerRow({
     "flex h-12 w-full min-w-0 items-center gap-2 rounded-[10px] border px-2 text-start",
     look.className,
   );
-  return onPress ? (
+  return onPress && !row.guest ? (
     <button
       type="button"
       aria-label={label}

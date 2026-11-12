@@ -118,6 +118,7 @@ describe("tournamentPlayer", () => {
       name: member.name,
       image: member.image,
       level: null,
+      guest: false,
     });
   });
 

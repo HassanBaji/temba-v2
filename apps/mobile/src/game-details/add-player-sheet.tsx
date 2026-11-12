@@ -16,6 +16,7 @@ import {
   type AddPlayerFootballPosition,
   type AddPlayerLevel,
   type AddPlayerPlacement,
+  UNCLAIMED_PLAYER_NAME_MAX_LENGTH,
 } from "@repo/domain/add-player-by-phone";
 import {
   groupAddActionLabel,
@@ -26,7 +27,6 @@ import {
   groupPickedNames,
   groupSpotsLine,
   toggleGroupMemberPick,
-  type AddPlayerMode,
   type GroupMemberFootballPick,
 } from "@repo/domain/add-player-from-group";
 import type { FootballRole } from "@repo/domain/football-lineup";
@@ -42,9 +42,14 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
+import { TextField } from "../primitives/text-field";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
-import { AddPlayerModeSwitch, GroupMemberList } from "./add-player-group-list";
+import {
+  AddPlayerModeSwitch,
+  GroupMemberList,
+  type AddPlayerSheetMode,
+} from "./add-player-group-list";
 import {
   AddPlayerIdentityFields,
   AddPlayerSection,
@@ -99,7 +104,13 @@ export function AddPlayerSheet({
   const [picked, setPicked] = useState<FriendlyGameJoinSeat | null>(null);
   const [pickedSide, setPickedSide] = useState<number | null>(null);
   const hasGroup = groupName != null;
-  const [mode, setMode] = useState<AddPlayerMode>(hasGroup ? "group" : "phone");
+  const [mode, setMode] = useState<AddPlayerSheetMode>(
+    hasGroup ? "group" : "phone",
+  );
+  const modes: readonly AddPlayerSheetMode[] = hasGroup
+    ? ["group", "phone", "guest"]
+    : ["phone", "guest"];
+  const [guestName, setGuestName] = useState("");
   const [query, setQuery] = useState("");
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [footballPicks, setFootballPicks] = useState<
@@ -111,6 +122,7 @@ export function AddPlayerSheet({
       setPicked(initialSeat);
       setPickedSide(initialSide);
       setMode(hasGroup ? "group" : "phone");
+      setGuestName("");
       setQuery("");
       setMemberIds([]);
       setFootballPicks({});
@@ -119,6 +131,7 @@ export function AddPlayerSheet({
 
   const isFootball = placement === "football";
   const inGroupMode = hasGroup && mode === "group";
+  const inGuestMode = mode === "guest";
   const seatChoices =
     placement === "seat" ? addPlayerSeatChoices(sides, locale) : [];
   const seat =
@@ -159,6 +172,18 @@ export function AddPlayerSheet({
       setPicked(null);
       await Promise.all([
         utils.games.previewPlayerByPhone.invalidate({ gameId }),
+        onAdded(),
+      ]);
+    },
+  });
+
+  const addGuest = api.games.addGuestPlayer.useMutation({
+    onSuccess: async (result) => {
+      toast.show(m.group.addPlayer.guest.addedToast(result.name));
+      setGuestName("");
+      setPicked(null);
+      await Promise.all([
+        utils.games.listGroupMembersToAdd.invalidate({ gameId }),
         onAdded(),
       ]);
     },
@@ -231,9 +256,26 @@ export function AddPlayerSheet({
     });
   }
 
-  const pending = add.isPending || addMembers.isPending;
+  const pending = add.isPending || addMembers.isPending || addGuest.isPending;
+  const placementDisabled = add.isPending || addGuest.isPending;
   const canSubmit =
     !pending && addPlayerCanSubmit({ preview: previewData, name, placed });
+  const canSubmitGuest = !pending && placed && guestName.trim().length > 0;
+
+  function submitGuest() {
+    if (!canSubmitGuest) {
+      return;
+    }
+    addGuest.mutate({
+      gameId,
+      name: guestName.trim(),
+      seat: seat ?? undefined,
+      side: side ? { sideIndex: side.sideIndex } : undefined,
+      football: isFootball
+        ? addPlayerFootballInput(role, footballPosition)
+        : undefined,
+    });
+  }
 
   function submit() {
     if (!canSubmit) {
@@ -256,6 +298,7 @@ export function AddPlayerSheet({
   function close() {
     add.reset();
     addMembers.reset();
+    addGuest.reset();
     onClose();
   }
 
@@ -293,13 +336,26 @@ export function AddPlayerSheet({
       subtitle={
         inGroupMode
           ? m.group.addPlayer.fromGroup.description
-          : m.group.addPlayer.description
+          : inGuestMode
+            ? m.group.addPlayer.guest.description
+            : m.group.addPlayer.description
       }
       tall
       keyboardShouldPersistTaps="handled"
       footer={
         inGroupMode ? (
           groupFooter
+        ) : inGuestMode ? (
+          <View style={{ gap: 8 }}>
+            <FieldError message={addGuest.error?.message} />
+            <Button
+              label={m.group.addPlayer.guest.submit(guestName.trim())}
+              size="lg"
+              pending={addGuest.isPending}
+              disabled={!canSubmitGuest}
+              onPress={submitGuest}
+            />
+          </View>
         ) : (
           <View style={{ gap: 8 }}>
             <FieldError message={add.error?.message} />
@@ -314,7 +370,7 @@ export function AddPlayerSheet({
         )
       }
     >
-      {hasGroup ? <AddPlayerModeSwitch mode={mode} onChange={setMode} /> : null}
+      <AddPlayerModeSwitch mode={mode} modes={modes} onChange={setMode} />
       {inGroupMode ? (
         <GroupMemberList
           query={query}
@@ -356,32 +412,49 @@ export function AddPlayerSheet({
         />
       ) : (
         <>
-          <AddPlayerIdentityFields
-            countryIso={countryIso}
-            national={national}
-            onCountryIsoChange={setCountryIso}
-            onNationalChange={setNational}
-            complete={completePhone != null}
-            preview={
-              previewData
-                ? {
-                    line: addPlayerPreviewLine(previewData, locale),
-                    kind: previewData.kind,
-                    phoneMasked: previewData.phoneMasked,
-                  }
-                : null
-            }
-            previewError={preview.error?.message}
-            previewFetching={preview.isFetching}
-            name={name}
-            onNameChange={setName}
-            isFootball={isFootball}
-            level={level}
-            onLevelChange={setLevel}
-            footballLevel={footballLevel}
-            onFootballLevelChange={setFootballLevel}
-            disabled={add.isPending}
-          />
+          {inGuestMode ? (
+            <>
+              <TextField
+                label={m.group.addPlayer.guest.nameLabel}
+                value={guestName}
+                maxLength={UNCLAIMED_PLAYER_NAME_MAX_LENGTH}
+                autoCapitalize="words"
+                autoComplete="off"
+                editable={!addGuest.isPending}
+                onChangeText={setGuestName}
+              />
+              <Text size="meta" tone="muted">
+                {m.group.addPlayer.guest.levelNote}
+              </Text>
+            </>
+          ) : (
+            <AddPlayerIdentityFields
+              countryIso={countryIso}
+              national={national}
+              onCountryIsoChange={setCountryIso}
+              onNationalChange={setNational}
+              complete={completePhone != null}
+              preview={
+                previewData
+                  ? {
+                      line: addPlayerPreviewLine(previewData, locale),
+                      kind: previewData.kind,
+                      phoneMasked: previewData.phoneMasked,
+                    }
+                  : null
+              }
+              previewError={preview.error?.message}
+              previewFetching={preview.isFetching}
+              name={name}
+              onNameChange={setName}
+              isFootball={isFootball}
+              level={level}
+              onLevelChange={setLevel}
+              footballLevel={footballLevel}
+              onFootballLevelChange={setFootballLevel}
+              disabled={add.isPending}
+            />
+          )}
 
           {isFootball ? (
             <>
@@ -391,7 +464,7 @@ export function AddPlayerSheet({
                   choices={addPlayerFootballRoleChoices(locale)}
                   value={role}
                   onSelect={setRole}
-                  disabled={add.isPending}
+                  disabled={placementDisabled}
                 />
               </AddPlayerSection>
               {role === "outfield" ? (
@@ -403,7 +476,7 @@ export function AddPlayerSheet({
                     choices={addPlayerFootballPositionChoices(locale)}
                     value={footballPosition}
                     onSelect={setFootballPosition}
-                    disabled={add.isPending}
+                    disabled={placementDisabled}
                   />
                 </AddPlayerSection>
               ) : null}
@@ -422,7 +495,7 @@ export function AddPlayerSheet({
                   }))}
                   value={String(side.sideIndex)}
                   onSelect={(key) => setPickedSide(Number(key))}
-                  disabled={add.isPending}
+                  disabled={placementDisabled}
                 />
               ) : (
                 <Text size="meta" tone="muted">
@@ -449,7 +522,7 @@ export function AddPlayerSheet({
                         ?.seat ?? null,
                     )
                   }
-                  disabled={add.isPending}
+                  disabled={placementDisabled}
                 />
               ) : (
                 <Text size="meta" tone="muted">

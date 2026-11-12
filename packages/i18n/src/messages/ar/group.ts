@@ -666,6 +666,19 @@ export const group = {
     renameDescription:
       "يبقى هاتفه كما هو. إن كان الرقم خاطئًا، أزله ثم أضفه مجددًا.",
     renamedToast: (name: string) => `تغيّر الاسم إلى ${name}`,
+    guest: {
+      tab: "ضيف",
+      description: "يلعب الضيف هذه المباراة باسمه فقط. دون هاتف ودون حساب.",
+      nameLabel: "الاسم",
+      levelNote:
+        "يُحتسب مستواه كمتوسط مستوى اللاعبين الآخرين في كل مباراة، ولا تتغير إلا مستويات اللاعبين الحقيقيين.",
+      submit: (name: string) =>
+        name ? `إضافة ${isolate(name)} كضيف` : "إضافة كضيف",
+      addedToast: (name: string) => `أُضيف ${isolate(name)} كضيف`,
+      tag: "ضيف",
+      nameGuest: (name: string) => `${isolate(name)}، ضيف`,
+      renameDescription: "اسمه في هذه المباراة.",
+    },
     fromGroup: {
       tab: "من المجموعة",
       phoneTab: "بالهاتف",

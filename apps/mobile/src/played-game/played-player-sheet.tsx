@@ -30,7 +30,7 @@ export function PlayedPlayerSheet({
   onClose: () => void;
   onOpenProfile: (userId: string) => void;
   onKick: (userId: string) => void;
-  onRename: (player: { userId: string; name: string }) => void;
+  onRename: (player: { userId: string; name: string; guest: boolean }) => void;
 }) {
   const locale = useLocale();
   const m = useMessages();
@@ -40,6 +40,7 @@ export function PlayedPlayerSheet({
     ? m.profile.matches.spokenParts(
         [
           player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
+          player.guest ? m.group.addPlayer.guest.tag : null,
           player.phoneMasked ? isolate(player.phoneMasked) : null,
           player.meta,
           m.mobilePlayer.played.levelLine(player.level),
@@ -52,7 +53,12 @@ export function PlayedPlayerSheet({
       {player ? (
         <View style={{ gap: 16 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <Avatar name={player.fullName} uri={player.image} size="lg" />
+            <Avatar
+              name={player.fullName}
+              uri={player.image}
+              size="lg"
+              guest={player.guest}
+            />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text size="lead" weight="semibold" numberOfLines={1}>
                 {player.fullName}
@@ -63,14 +69,14 @@ export function PlayedPlayerSheet({
             </View>
           </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {canOpenProfile ? (
+            {canOpenProfile && !player.guest ? (
               <Button
                 label={m.mobilePlayer.played.viewProfile}
                 variant="outline"
                 onPress={() => onOpenProfile(player.userId)}
               />
             ) : null}
-            {canRename && player.unclaimed ? (
+            {canRename && (player.unclaimed || player.guest) ? (
               <Button
                 label={renameAction}
                 accessibilityLabel={m.mobilePlayer.played.renameSpoken(
@@ -79,7 +85,11 @@ export function PlayedPlayerSheet({
                 )}
                 variant="outline"
                 onPress={() =>
-                  onRename({ userId: player.userId, name: player.fullName })
+                  onRename({
+                    userId: player.userId,
+                    name: player.fullName,
+                    guest: player.guest,
+                  })
                 }
               />
             ) : null}

@@ -41,8 +41,20 @@ describe("gameTeamPlayers", () => {
 
   it("lists both players of a Game team", () => {
     expect(gameTeamPlayers(gameTeams, "team-1")).toEqual([
-      { id: "u1", name: "Sofia L", image: null },
-      { id: "u2", name: "Adam R", image: "https://img/u2" },
+      { id: "u1", name: "Sofia L", image: null, guest: false },
+      { id: "u2", name: "Adam R", image: "https://img/u2", guest: false },
+    ]);
+  });
+
+  it("keeps a Guest player's mark", () => {
+    const withGuest = [
+      {
+        id: "team-3",
+        members: [{ id: "g1", name: "Fahad", image: null, guest: true }],
+      },
+    ];
+    expect(gameTeamPlayers(withGuest, "team-3")).toEqual([
+      { id: "g1", name: "Fahad", image: null, guest: true },
     ]);
   });
 

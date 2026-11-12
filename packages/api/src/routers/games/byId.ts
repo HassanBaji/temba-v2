@@ -99,6 +99,7 @@ import {
 import { groupSeasonRows } from "#src/games/season-link";
 import { toSeasonRow } from "#src/standing/load-group-standing";
 import { MATCH_STATUS } from "@repo/domain/match-status";
+import { guestStandInBand } from "@repo/domain/guest-player";
 import { gameMemberNicknames } from "#src/groups/helpers/game-member-nicknames";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
@@ -447,6 +448,7 @@ export async function gameById(
           addedAt: true,
           addedByUserId: true,
           phoneNumber: true,
+          guestAt: true,
         },
       },
     },
@@ -464,7 +466,8 @@ export async function gameById(
         if (!player) {
           return [];
         }
-        const unclaimed = isUnclaimed(player);
+        const guest = player.guestAt !== null;
+        const unclaimed = isUnclaimed(player) && !guest;
         const phoneMasked =
           organizer && unclaimed && player.phoneNumber
             ? maskPhone(player.phoneNumber)
@@ -472,7 +475,7 @@ export async function gameById(
         return [
           (async () => {
             const canRename =
-              unclaimed &&
+              (unclaimed || guest) &&
               (await mayRenameUnclaimedPlayer(database, {
                 playerId: player.id,
                 adderId: player.addedByUserId,
@@ -481,7 +484,7 @@ export async function gameById(
             const nickname = nicknameByUserId.get(player.id) ?? null;
             return [
               player.id,
-              { unclaimed, phoneMasked, canRename, nickname },
+              { unclaimed, guest, phoneMasked, canRename, nickname },
             ] as const;
           })(),
         ];
@@ -491,6 +494,7 @@ export async function gameById(
   const playerMark = (userId: string) =>
     playerMarkByUserId.get(userId) ?? {
       unclaimed: false,
+      guest: false,
       phoneMasked: null,
       canRename: false,
       nickname: nicknameByUserId.get(userId) ?? null,
@@ -705,11 +709,18 @@ export async function gameById(
       levelBandByUserId.set(row.userId, row.levelBand);
     }
   }
+  const guestBand = guestStandInBand(
+    seatedOccupantUserIds
+      .filter((userId) => !playerMark(userId).guest)
+      .map((userId) => levelBandByUserId.get(userId) ?? null),
+  );
   const withLevelBand = (occupant: SeatOccupant | null) =>
     occupant
       ? {
           ...occupant,
-          levelBand: levelBandByUserId.get(occupant.userId) ?? null,
+          levelBand: playerMark(occupant.userId).guest
+            ? guestBand
+            : (levelBandByUserId.get(occupant.userId) ?? null),
           ...playerMark(occupant.userId),
         }
       : null;

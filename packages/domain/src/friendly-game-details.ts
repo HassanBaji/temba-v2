@@ -21,6 +21,7 @@ export type FriendlyGameDetailsSeat = {
   image: string | null;
   levelBand: LevelBand | null;
   unclaimed?: boolean;
+  guest?: boolean;
   phoneMasked?: string | null;
   /** The viewer may fix this Unclaimed player's name here. */
   canRename?: boolean;

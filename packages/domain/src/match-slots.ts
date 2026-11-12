@@ -71,6 +71,8 @@ export type MatchSlotMember = {
   image: string | null;
   /** Marks the signed-in User's own seat, so cards can label it "You". */
   isViewer: boolean;
+  /** A Guest player: a name only, with no profile to open. */
+  guest?: boolean;
 };
 
 /** A slot's Game team with its seated Users — `null` before the draw. */
@@ -78,7 +80,12 @@ export type MatchSlotTeam = {
   players: readonly {
     position: string | null;
     gamePlayer: {
-      user: { id: string; name: string; image: string | null } | null;
+      user: {
+        id: string;
+        name: string;
+        image: string | null;
+        guestAt?: Date | null;
+      } | null;
     } | null;
   }[];
 } | null;
@@ -108,6 +115,7 @@ export function slotMembers(
       name: occupant.name,
       image: occupant.image,
       isViewer: occupant.id === viewerUserId,
+      guest: occupant.guestAt != null,
     });
   }
   return members;
