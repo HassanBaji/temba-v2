@@ -1,6 +1,6 @@
 # A padel Level weighs the partner and reads from 1.0
 
-**Status:** proposed (draft for the owner's review). Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0009](./0009-glicko-2-user-ratings.md).
+**Status:** accepted for the face; proposed (draft for the owner's review) for the partner weighting. Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0009](./0009-glicko-2-user-ratings.md).
 
 ADR-0009 rated each padel player against the mean of the opposing pair and ignored the partner. A weak player beside a strong partner was then expected to lose, and gained a full step for a win their partner earned. The owner's design also asks for "the 1.0 to 7.0 scale padel players already know", with two decimals.
 
@@ -8,7 +8,7 @@ ADR-0009 rated each padel player against the mean of the opposing pair and ignor
 
 - **The expectation is pair against pair.** In `rateDoublesMatch` each player's opponent is shifted by half the gap to their partner, so both partners share one expected score. Each still moves by their own φ, so a Provisional player moves further than a confirmed partner.
 - **New Matches only.** Nothing is replayed.
-- **The face starts at 1.0.** A stored Level below 1.0 is shown as 1.0. Two decimals on the Ratings screen and the profile hero, one in dense lists.
+- **The face starts at 1.0.** A stored Level below 1.0 is shown as 1.0 (`formatPadelLevel`). Two decimals on the Ratings screen, the profile hero, the Home Level card and the Player profile; one in dense lists.
 - **Storage is unchanged**: μ, the ten bands, tenths in Game Level range and Level wanted, the Club and non-Club weights, idle inflation and the reversal rule.
 
 **Considered Options**: remapping the whole scale to 1.0 to 7.0 (every stored range and band edge would move); TrueSkill or a team rating (ADR-0009 already declined it as over-scope); a partner weight below one (kept as a constant, `DOUBLES_PARTNER_WEIGHT`, defaulting to 1).

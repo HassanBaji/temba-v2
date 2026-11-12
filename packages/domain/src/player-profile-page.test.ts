@@ -108,12 +108,26 @@ describe("profileLevelView", () => {
       status: "Confirmed",
       statusDetail: "31 rated matches",
       band: "B",
-      level: "4.2",
+      level: "4.20",
       trend: "+0.2 since Sep",
       hatched: false,
     });
     expect(view.kind === "level" && view.lead).toMatch(/ to B\+$/);
     expect(view.kind === "level" && view.trail).toMatch(/% of the way$/);
+  });
+
+  it("reads a padel Level from 1.00 with two decimals", () => {
+    const options = { sport: "padel" as const, hasSwitch: true, trend: null };
+    const shown = (levelValue: number) => {
+      const view = profileLevelView(
+        { ...confirmed, levelValue },
+        options,
+        "en",
+      );
+      return view.kind === "level" ? view.level : null;
+    };
+    expect(shown(3.449)).toBe("3.45");
+    expect(shown(0.35)).toBe("1.00");
   });
 
   it("reads an unrated football Level as the starting one, hatched", () => {

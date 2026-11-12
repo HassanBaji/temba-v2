@@ -29,7 +29,7 @@ describe("playerLevelCardView", () => {
     ).toMatchObject({
       kind: "rated",
       displayBand: "C",
-      level: "3.4",
+      level: "3.42",
       provisional: true,
       lines: ["3 of about 5 rated games to confirm"],
       fillPercent: 60,
@@ -49,7 +49,7 @@ describe("playerLevelCardView", () => {
   it("measures distance and progress on the display band when Confirmed", () => {
     expect(playerLevelCardView(fixtures.confirmed.rating, "en")).toMatchObject({
       displayBand: "B-",
-      level: "4.8",
+      level: "4.79",
       provisional: false,
       lines: ["Confirmed, 64 rated matches", "0.2 to B · 84% through B-"],
       fillPercent: 84,
@@ -84,7 +84,7 @@ describe("playerLevelCardView", () => {
       "en",
     );
     expect(view).toMatchObject({
-      level: "5.7",
+      level: "5.68",
       lines: ["Confirmed, 10 rated matches", "0.1 to B+ · 100% through B"],
       fillPercent: 100,
     });
@@ -94,7 +94,7 @@ describe("playerLevelCardView", () => {
     expect(playerLevelCardView(fixtures.hysteresis.rating, "en")).toMatchObject(
       {
         displayBand: "B-",
-        level: "4.2",
+        level: "4.15",
         lines: ["Confirmed, 40 rated matches", "0.9 to B · 0% through B-"],
         fillPercent: 0,
       },
@@ -127,14 +127,29 @@ describe("playerLevelCardView", () => {
     expect(playerLevelCardView(fixtures.topBand.rating, "ar")).toMatchObject({
       lines: ["مؤكد، 120 مباراة مصنّفة", "أعلى فئة مستوى"],
       accessibilityLabel:
-        "المستوى A 6.8. مؤكد، 120 مباراة مصنّفة. أعلى فئة مستوى",
+        "المستوى A 6.81. مؤكد، 120 مباراة مصنّفة. أعلى فئة مستوى",
     });
+  });
+
+  it("reads a padel Level below 1.0 as 1.00", () => {
+    expect(
+      playerLevelCardView(
+        {
+          levelBand: "D3",
+          levelValue: 0.35,
+          provisional: true,
+          ratedMatchCount: 0,
+          ratedMatchesRemaining: 5,
+        },
+        "en",
+      ),
+    ).toMatchObject({ displayBand: "D", level: "1.00" });
   });
 
   it("fills the top band and says so", () => {
     expect(playerLevelCardView(fixtures.topBand.rating, "en")).toMatchObject({
       displayBand: "A",
-      level: "6.8",
+      level: "6.81",
       lines: ["Confirmed, 120 rated matches", "Top Level band"],
       fillPercent: 100,
     });

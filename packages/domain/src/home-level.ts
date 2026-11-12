@@ -3,6 +3,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatOvr } from "./football-ovr";
+import { formatPadelLevel } from "./level";
 import {
   levelChangeView,
   parseLevelHistory,
@@ -22,6 +23,8 @@ export type HomeLevelInput = {
   ovr?: number | null;
   band: LevelBand;
   level: string;
+  /** The continuous Level from `ratings.me`; padel shows it from 1.00 to 7.00. */
+  levelValue?: number | null;
   provisional: boolean;
   ratedMatchesRemaining: number;
   history: readonly string[];
@@ -53,6 +56,16 @@ const SIGN: Record<LevelChangeDirection, string> = {
   down: "\u2212",
   none: "",
 };
+
+function shownHomeLevel(input: HomeLevelInput, ovr: number | null) {
+  if (ovr != null) {
+    return formatOvr(ovr);
+  }
+  if (input.sport !== "football" && input.levelValue != null) {
+    return formatPadelLevel(input.levelValue, 2);
+  }
+  return input.level;
+}
 
 export function homeLevelView(
   input: HomeLevelInput,
@@ -90,7 +103,7 @@ export function homeLevelView(
     displayBand: displayLabelFromStoredBand(input.band),
     numberLabel:
       ovr == null ? all.home.levelSection.level : all.rating.ovr.label,
-    level: ovr == null ? input.level : formatOvr(ovr),
+    level: shownHomeLevel(input, ovr),
     change,
     provisional: input.provisional,
     progress:

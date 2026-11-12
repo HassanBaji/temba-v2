@@ -116,6 +116,7 @@ async function ratedMatchCount(
  * and recent Level history for the home sparkline with the number of Rated
  * Matches inside it. `face` says how the sport shows its Level; on football
  * `ovr` is the whole-number OVR and the history is in OVR (ADR-0069).
+ * `levelValue` is the continuous Level padel shows from 1.00 (ADR-0070).
  */
 export async function loadRatingsMe(
   database: DbClient,
@@ -131,6 +132,7 @@ export async function loadRatingsMe(
     return {
       face,
       ovr: null as number | null,
+      levelValue: null as number | null,
       rating: null,
       canSelfDeclare: !(await userHasRatedMatch(database, args.userId, sport)),
       progressPercent: null as number | null,
@@ -144,7 +146,8 @@ export async function loadRatingsMe(
   const rating = youRatingViewAfterIdle(row, new Date());
   // Idle inflation does not change μ; progress uses the same continuous Level
   // as the displayed product number.
-  const progress = progressToNextBand(levelFromMu(row.mu), rating.levelBand);
+  const levelValue = levelFromMu(row.mu);
+  const progress = progressToNextBand(levelValue, rating.levelBand);
   const [history, matchCount] = await Promise.all([
     levelHistory(database, args.userId, sport, face),
     ratedMatchCount(database, args.userId, sport),
@@ -153,6 +156,7 @@ export async function loadRatingsMe(
   return {
     face,
     ovr: face === "ovr" ? Math.round(ovrFromMu(row.mu)) : null,
+    levelValue,
     rating,
     canSelfDeclare: false,
     progressPercent: progress.progressPercent,

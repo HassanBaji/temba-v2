@@ -6,7 +6,7 @@ import {
   BAND_LOWER_HUNDREDTHS,
   BAND_UPPER_HUNDREDTHS,
   clampLevel,
-  formatLevel,
+  formatPadelLevel,
 } from "./level";
 import {
   LEVEL_BANDS,
@@ -94,11 +94,11 @@ export function distanceToNextRung(
   return (tenths / 10).toFixed(1);
 }
 
-/** The Level as its face shows it: "3.9", or the OVR "72". */
+/** The Level as its face shows it: the padel "3.92", or the OVR "72". */
 export function shownLevel(levelValue: number, face: LevelFace = "level") {
   return face === "ovr"
     ? formatOvr(ovrFromLevel(levelValue))
-    : formatLevel(levelValue);
+    : formatPadelLevel(levelValue, 2);
 }
 
 export function playerLevelCardView(

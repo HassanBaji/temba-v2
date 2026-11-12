@@ -135,6 +135,34 @@ describe("homeLevelView", () => {
     assert.equal(view.change?.signedAmount, isolate("+2"));
   });
 
+  it("reads a padel Level from 1.00 to 7.00 with two decimals", () => {
+    assert.equal(
+      homeLevelView({ ...base, levelValue: 3.449 }, "en").level,
+      "3.45",
+    );
+    const floored = homeLevelView(
+      { ...base, band: "D3", level: "0.4", levelValue: 0.35 },
+      "en",
+    );
+    assert.equal(floored.level, "1.00");
+    assert.equal(floored.displayBand, "D");
+  });
+
+  it("keeps a football Level as OVR when it has a continuous Level", () => {
+    const view = homeLevelView(
+      {
+        ...base,
+        sport: "football",
+        ovr: 74,
+        band: "C1",
+        level: "4.0",
+        levelValue: 4.02,
+      },
+      "en",
+    );
+    assert.equal(view.level, "74");
+  });
+
   it("keeps the padel Level face", () => {
     const view = homeLevelView({ ...base, ovr: 61 }, "en");
     assert.equal(view.numberLabel, "Level");

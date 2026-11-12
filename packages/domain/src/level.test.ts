@@ -13,12 +13,33 @@ import {
   RATED_MATCHES_TO_CONFIRM,
   bandFromLevel,
   bandWithHysteresis,
+  formatPadelLevel,
   confirmedPhiForOverride,
   initialRatingFromChoice,
   levelFromMu,
   progressToNextBand,
   ratedMatchesRemainingToConfirm,
 } from "./level";
+
+describe("formatPadelLevel", () => {
+  it("floors the face at 1.0 and keeps the stored value below it", () => {
+    expect(formatPadelLevel(0.35, 2)).toBe("1.00");
+    expect(formatPadelLevel(0, 1)).toBe("1.0");
+    expect(formatPadelLevel(0.96, 2)).toBe("1.00");
+  });
+
+  it("shows two decimals on the hero and one in dense lists", () => {
+    expect(formatPadelLevel(3.449, 2)).toBe("3.45");
+    expect(formatPadelLevel(3.449, 1)).toBe("3.4");
+    expect(formatPadelLevel(1.005, 2)).toBe("1.01");
+  });
+
+  it("tops out at 7.0", () => {
+    expect(formatPadelLevel(7, 2)).toBe("7.00");
+    expect(formatPadelLevel(6.999, 2)).toBe("7.00");
+    expect(formatPadelLevel(9, 1)).toBe("7.0");
+  });
+});
 
 describe("bandFromLevel", () => {
   it("still uses stored D3…A, not display letters", () => {

@@ -116,6 +116,7 @@ describe("loadRatingsMe ratedMatchCount", () => {
       const viewer = await insertUser(db, "ratings-me-none@example.com");
       const result = await loadRatingsMe(db, { userId: viewer.id });
       expect(result.rating).toBeNull();
+      expect(result.levelValue).toBeNull();
       expect(result.ratedMatchCount).toBe(0);
     } finally {
       await close();
@@ -129,6 +130,7 @@ describe("loadRatingsMe ratedMatchCount", () => {
       await insertPadelRating(db, viewer.id);
       const result = await loadRatingsMe(db, { userId: viewer.id });
       expect(result.rating).not.toBeNull();
+      expect(result.levelValue).toBeCloseTo(3.2, 10);
       expect(result.ratedMatchCount).toBe(0);
       expect(result.history).toEqual([]);
     } finally {

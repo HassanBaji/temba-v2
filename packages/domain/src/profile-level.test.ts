@@ -146,6 +146,24 @@ describe("profileLevelView", () => {
     );
   });
 
+  it("reads a padel Level from 1.00 to 7.00 with two decimals", () => {
+    assert.equal(
+      profileLevelView({ ...base, levelValue: 3.449 }, "en").level,
+      "3.45",
+    );
+    assert.equal(
+      profileLevelView({ ...base, levelValue: 0.35 }, "en").level,
+      "1.00",
+    );
+    assert.equal(
+      profileLevelView(
+        { ...base, sport: "football", ovr: 74, levelValue: 4.02 },
+        "en",
+      ).level,
+      "74",
+    );
+  });
+
   it("clamps the fill into 0 to 100", () => {
     assert.equal(
       profileLevelView({ ...base, progressPercent: 140 }, "en").fillPercent,

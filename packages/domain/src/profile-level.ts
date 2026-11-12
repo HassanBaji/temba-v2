@@ -2,6 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatOvr } from "./football-ovr";
+import { formatPadelLevel } from "./level";
 import {
   displayLabelFromStoredBand,
   nextDistinctDisplayRung,
@@ -63,6 +64,8 @@ export type ProfileLevelInput = {
   ovr?: number | null;
   band: LevelBand;
   level: string;
+  /** The continuous Level; padel shows it from 1.00 to 7.00. */
+  levelValue?: number | null;
   provisional: boolean;
   ratedMatchCount: number;
   ratedMatchesRemaining: number;
@@ -88,9 +91,13 @@ export function profileLevelView(
 ): ProfileLevelView {
   const m = messagesFor(locale).profile.level;
   const level =
-    input.sport === "football" && input.ovr != null
-      ? formatOvr(input.ovr)
-      : input.level;
+    input.sport === "football"
+      ? input.ovr != null
+        ? formatOvr(input.ovr)
+        : input.level
+      : input.levelValue != null
+        ? formatPadelLevel(input.levelValue, 2)
+        : input.level;
   if (input.sport === "football" && input.ratedMatchCount === 0) {
     return {
       displayBand: displayLabelFromStoredBand(input.band),

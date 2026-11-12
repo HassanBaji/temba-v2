@@ -84,6 +84,17 @@ export function formatLevel(level: number): string {
   return (clampedTenths / 10).toFixed(1);
 }
 
+/**
+ * The padel face of a Level (ADR-0070): the 1.0 to 7.0 scale padel players
+ * know. A stored Level below 1.0 reads 1.0; the stored value is unchanged.
+ * Two decimals on the hero, one in dense lists.
+ */
+export function formatPadelLevel(level: number, decimals: 1 | 2): string {
+  const scale = 10 ** decimals;
+  const shown = Math.max(1, clampLevel(level));
+  return (Math.round(shown * scale + 1e-8) / scale).toFixed(decimals);
+}
+
 export function displayedLevelFromMu(mu: number): string {
   return formatLevel(levelFromMu(mu));
 }
