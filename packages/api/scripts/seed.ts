@@ -88,6 +88,7 @@ import { addManager as addVenueManager } from "#src/routers/venues/addManager";
 import { createVenue } from "#src/routers/venues/create";
 import { sendGroupLinkRequest } from "#src/routers/venues/sendGroupLinkRequest";
 import { setOpeningHours } from "#src/routers/venues/setOpeningHours";
+import { setPartner } from "#src/routers/venues/setPartner";
 import { setPricingRules } from "#src/routers/venues/setPricingRules";
 import { softArchive as softArchiveVenue } from "#src/routers/venues/softArchive";
 import { updateBookingSettings } from "#src/routers/venues/updateBookingSettings";
@@ -2479,6 +2480,13 @@ async function main() {
   await step("games", () => seedGames(u, g, v));
   await step("football", () => seedFootball(u, v));
   await step("verified football", () => seedVerifiedFootball(u, v));
+  await step("partner venues", () =>
+    setPartner(db, {
+      venueId: v.central.id,
+      partner: true,
+      operatorUserId: u.me!.id,
+    }),
+  );
   await step("challenges", () => seedChallenges(u, v, t));
   await step("bookings", () => seedBookings(u, v));
   await step("group links", () => seedGroupLinks(u, v, g));

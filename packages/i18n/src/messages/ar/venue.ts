@@ -72,6 +72,7 @@ export const venue = {
     pricingOffGrid: (slotMinutes: number) =>
       `قواعد التسعير ليست على فواصل ${slotMinutes} دقيقة. عدّلها أولًا.`,
     archivedNoBookings: "لا يقبل النادي المؤرشف حجوزات",
+    archivedNoPartner: "لا يمكن أن يكون النادي المؤرشف ناديًا شريكًا",
     addCourtFirst: "أضف ملعبًا قبل قبول الحجوزات",
     invalidCancellationPolicy: "سياسة الإلغاء غير صالحة",
   },

@@ -32,6 +32,7 @@ const ALLOWED_UNINDEXED: Record<string, string> = {
   "group_level_overrides.set_by_user_id": USER_ACTOR,
   "venues.cover_photo_id": RARE_PARENT,
   "venues.detail_photo_id": RARE_PARENT,
+  "venues.partner_by": USER_ACTOR,
   "venue_managers.granted_by_user_id": USER_ACTOR,
   "venue_closures.court_id": RARE_PARENT,
   "venue_closures.created_by_user_id": USER_ACTOR,

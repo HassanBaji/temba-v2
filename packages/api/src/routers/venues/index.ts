@@ -25,6 +25,7 @@ import { sendGroupLinkRequestProcedure as sendGroupLinkRequest } from "./sendGro
 import { unlinkGroupProcedure as unlinkGroup } from "./unlinkGroup";
 import { setDisplayPhotosProcedure as setDisplayPhotos } from "./setDisplayPhotos";
 import { setOpeningHoursProcedure as setOpeningHours } from "./setOpeningHours";
+import { setPartnerProcedure as setPartner } from "./setPartner";
 import { setPricingRulesProcedure as setPricingRules } from "./setPricingRules";
 import { softArchiveProcedure as softArchive } from "./softArchive";
 import { unarchiveProcedure as unarchive } from "./unarchive";
@@ -63,6 +64,7 @@ export const venuesRouter = createTRPCRouter({
   setDisplayPhotos,
   softArchive,
   unarchive,
+  setPartner,
   listLinkedGroups,
   searchLinkableGroups,
   sendGroupLinkRequest,

@@ -285,6 +285,7 @@ type ExpectedVenues =
   | "setDisplayPhotos"
   | "softArchive"
   | "unarchive"
+  | "setPartner"
   | "listLinkedGroups"
   | "searchLinkableGroups"
   | "sendGroupLinkRequest"

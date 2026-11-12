@@ -83,6 +83,10 @@ _Avoid_: Venue, pitch (as the entity name; football product copy may say pitch),
 The one sport a Court is for: padel or football. A Venue offers a sport when at least one of its Courts has it. Set by a Venue manager or Operator; changing it never changes a Booking. Product copy calls a football Court a pitch; the entity is still a Court.
 _Avoid_: Venue sport, Venue sports (there is no Venue-level list), pitch (as the entity name), field
 
+**Partner Venue**:
+A Venue an Operator marked as a partner, from the Venue's page on the web App. Stored as `venues.partner_at` and `partner_by`, never inferred from Venue managers, Bookings or linked Groups. Only a partner Venue hosts Public Games, which count for Temba Level (ADR-0071). An archived Venue cannot become one; taking the mark away is always allowed. Venue rows show the mark on both Apps.
+_Avoid_: partner club, featured Venue, official Venue, verified Venue (Verified is a Group's word)
+
 **Group**:
 A set of people who play Games of one sport. Every Group is either a Club Group or a Loose Group.
 _Avoid_: Team, lobby, channel, club (when you mean a Group)
@@ -260,7 +264,7 @@ On a padel Friendly game, a User's answer to "which side?" when they take a seat
 _Avoid_: flexible seat, any seat, Preferred Position (that is the profile default), wildcard
 
 **Operator**:
-A Temba staff User. Operators curate Venues and Courts, grant Venue managers, verify Groups, link Loose Groups to Venues directly, and may set any other User's Level in either sport (ADR-0046).
+A Temba staff User. Operators curate Venues and Courts, mark Partner Venues, grant Venue managers, verify Groups, link Loose Groups to Venues directly, and may set any other User's Level in either sport (ADR-0046).
 _Avoid_: Admin, Owner (retired Community roles, ADR-0055), system admin, platform admin, superadmin
 
 **Venue manager**:

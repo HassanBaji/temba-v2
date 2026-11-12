@@ -51,6 +51,7 @@ import {
   userMerges,
   venueClosures,
   venueManagers,
+  venues,
 } from "@repo/db";
 
 import { type db } from "#src/db";
@@ -190,6 +191,7 @@ const plainUserReferences: PgColumn[] = [
   gameLevelRangeRequests.decidedBy,
   groupLinkRequests.requestedBy,
   groupLinkRequests.decidedBy,
+  venues.partnerBy,
   venueManagers.grantedByUserId,
   venueClosures.createdByUserId,
   bookings.userId,

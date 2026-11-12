@@ -59,6 +59,7 @@ export const venue = {
     pricingOffGrid: (slotMinutes: number) =>
       `Pricing rules are not on the ${slotMinutes}-minute grid. Adjust them first.`,
     archivedNoBookings: "An archived Venue cannot accept bookings",
+    archivedNoPartner: "An archived Venue cannot be a partner Venue",
     addCourtFirst: "Add a Court before accepting bookings",
     invalidCancellationPolicy: "Invalid Cancellation policy",
   },

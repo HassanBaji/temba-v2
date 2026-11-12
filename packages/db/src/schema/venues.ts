@@ -15,6 +15,7 @@ import {
 
 import { courts } from "./courts";
 import { groups } from "./groups";
+import { user } from "./user";
 import { venueClosures } from "./venue-closures";
 import { venueManagers } from "./venue-managers";
 import { venueOpeningHours } from "./venue-opening-hours";
@@ -69,6 +70,11 @@ export const venues = pgTable(
         sql`'{"tiers":[{"hoursBefore":24,"refundPercent":100}],"lateRefundPercent":0,"customerCancelUntilMinutes":0}'::jsonb`,
       ),
     archivedAt: timestamp("archived_at"),
+    /** Set by an Operator; only a partner Venue hosts Public Games (ADR-0071). */
+    partnerAt: timestamp("partner_at"),
+    partnerBy: uuid("partner_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
