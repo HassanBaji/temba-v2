@@ -481,6 +481,8 @@ export type PlayedFootballInput = PlayedPlace & {
   groupName: string | null;
   rated: boolean;
   ratingImpact: PlayedRatingImpact | null;
+  /** A Public Game's score the other side did not confirm in time (ADR-0071). */
+  stoodUnconfirmed?: boolean;
 };
 
 export type PlayedFootballModel = {
@@ -585,7 +587,9 @@ export function playedFootballModel(
             const code = slotCode(viewer, locale);
             return code ? m.playedCodeFor(code, team) : m.playedFor(team);
           })(),
-          ratingLine: playedRatingLine(input.rated, input.ratingImpact, locale),
+          ratingLine: input.stoodUnconfirmed
+            ? messages.rating.publicGame.stood
+            : playedRatingLine(input.rated, input.ratingImpact, locale),
           tag: youTag(youWord),
           won: viewerWon,
         }
@@ -613,8 +617,9 @@ export function playedFootballModel(
       : []),
     {
       label: m.confirmed,
-      value:
-        input.confirmed.slot1 && input.confirmed.slot2
+      value: input.stoodUnconfirmed
+        ? messages.rating.publicGame.notInTime
+        : input.confirmed.slot1 && input.confirmed.slot2
           ? m.byBothSides
           : m.byTheOrganizer,
     },
@@ -628,7 +633,10 @@ export function playedFootballModel(
     },
     {
       label: m.countsForRatingLabel,
-      value: input.rated ? messages.common.yes : messages.common.no,
+      value:
+        input.rated && !input.stoodUnconfirmed
+          ? messages.common.yes
+          : messages.common.no,
     },
   ];
 

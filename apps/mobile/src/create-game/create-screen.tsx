@@ -65,7 +65,9 @@ export function CreateGameScreen({
   const publicGame = isPublicGameDraft(state.draft);
   const venuesWanted = Boolean(state.draft.groupId) || publicGame;
   const picker = api.games.listCreateVenues.useQuery(
-    publicGame ? { publicGame: true } : { groupId: state.draft.groupId },
+    publicGame
+      ? { publicGame: true, sport: state.sport }
+      : { groupId: state.draft.groupId },
     { ...REFETCH_ON_FOREGROUND, enabled: venuesWanted },
   );
   const linkedVenueId = picker.data?.locked

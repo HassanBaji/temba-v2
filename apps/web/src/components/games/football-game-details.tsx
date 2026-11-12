@@ -101,6 +101,7 @@ import {
   reportWrongScoreConsequence,
 } from "@repo/domain/game-copy";
 import { footballReportWrongScoreAction } from "@repo/domain/friendly-game-actions";
+import { scoreConfirmWindowLine } from "@repo/domain/friendly-game-score";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { squadButtonCopy } from "@repo/domain/matchday-squad";
 import { challengeHeroSubLine } from "@repo/domain/challenge-game-details";
@@ -646,6 +647,10 @@ export function FootballGameDetails({
             groupName: game.groupName,
             rated: game.rated,
             ratingImpact: game.ratingImpact,
+            stoodUnconfirmed: game.matches.some(
+              (match) =>
+                match.id === board.data?.match?.id && match.stoodUnconfirmed,
+            ),
           },
           locale,
         )
@@ -926,6 +931,11 @@ export function FootballGameDetails({
             canConfirmAsOrganizer={
               board.data?.viewer.canConfirmAsOrganizer ?? false
             }
+            confirmWindowLine={scoreConfirmWindowLine(
+              game.confirmWindow,
+              now,
+              locale,
+            )}
             confirmPending={confirmScore.isPending}
             scoreHref={scoreHref}
             onConfirm={() => {

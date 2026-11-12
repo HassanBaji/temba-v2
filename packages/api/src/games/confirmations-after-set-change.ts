@@ -30,7 +30,7 @@ type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
  * Job that lets it stand, and a Notification to each of their account
  * holders (ADR-0071).
  */
-async function askOtherSideToConfirm(
+export async function askOtherSideToConfirm(
   tx: Tx,
   args: { game: GameRow; match: MatchRow; userId: string },
 ) {

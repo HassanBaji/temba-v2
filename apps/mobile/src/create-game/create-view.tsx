@@ -199,7 +199,9 @@ export function CreateView(props: CreateViewProps) {
     props.formMessage ??
     (emptyCatalog
       ? publicGame
-        ? m.rating.publicGame.noPartnerVenues
+        ? state.sport === "football"
+          ? m.rating.publicGame.noPartnerPitches
+          : m.rating.publicGame.noPartnerVenues
         : copy.venue.noneLive
       : null) ??
     (picker?.status === "error" ? picker.message : null);

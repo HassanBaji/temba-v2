@@ -45,6 +45,7 @@ export function FootballScoreCard({
   canEnterScore,
   canConfirm,
   canConfirmAsOrganizer,
+  confirmWindowLine = null,
   confirmPending,
   scoreHref,
   onConfirm,
@@ -62,6 +63,8 @@ export function FootballScoreCard({
   canEnterScore: boolean;
   canConfirm: boolean;
   canConfirmAsOrganizer: boolean;
+  /** A Public Game's time left for the other side to confirm (ADR-0071). */
+  confirmWindowLine?: string | null;
   confirmPending: boolean;
   scoreHref: string;
   onConfirm: () => void;
@@ -141,6 +144,11 @@ export function FootballScoreCard({
             {canConfirmAsOrganizer ? (
               <p className="text-muted-foreground text-meta">
                 {m.game.score.organizerConfirmNote}
+              </p>
+            ) : null}
+            {confirmWindowLine && !completed ? (
+              <p className="text-muted-foreground text-meta">
+                {confirmWindowLine}
               </p>
             ) : null}
           </div>

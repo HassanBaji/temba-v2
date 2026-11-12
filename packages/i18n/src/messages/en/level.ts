@@ -22,6 +22,8 @@ export const level = {
   gate: (range: string, band: string) =>
     `This Game is for ${range}. Your Level is ${band}.`,
   gateRangeFallback: "this Game's range",
+  gateNoOvr: (range: string) =>
+    `This Game is for ${range}. You don't have a football OVR yet, so you're outside it. Declare a football Level on You, or request to play.`,
   request: {
     title: "Request to play",
     sent: "Request sent",

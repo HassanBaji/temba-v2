@@ -570,3 +570,49 @@ describe("Public game create flow", () => {
     expect(grouped.draft.isPublic).toBe(false);
   });
 });
+
+describe("football Public game create flow", () => {
+  it("picks football, drops the Venue and submits a public football Game with its OVR range", () => {
+    const chosen = createReducer(
+      stateAt(2, "friendly_game", fixtures.drafts.gameReview),
+      { kind: "choosePublic" },
+    );
+    const placed = createReducer(chosen, {
+      kind: "setVenue",
+      venueId: "venue-partner",
+    });
+    const football = createReducer(placed, {
+      kind: "setPublicSport",
+      sport: "football",
+    });
+    expect(football.sport).toBe("football");
+    expect(football.draft.publicSport).toBe("football");
+    expect(football.draft.venueId).toBe("");
+
+    const ready = [
+      { kind: "setVenue", venueId: "venue-pitch" },
+      { kind: "setLevelBound", bound: "min", value: "C+" },
+      { kind: "setStep", step: 4 },
+    ] as const;
+    const state = ready.reduce(createReducer, football);
+    const result = submitRequest(state, NOW, false);
+    expect(result.ok && result.request.kind).toBe("football_game");
+    if (result.ok && result.request.kind === "football_game") {
+      expect(result.request.input).toMatchObject({
+        isPublic: true,
+        sport: "football",
+        venueId: "venue-pitch",
+        levelMinTenths: 35,
+      });
+      expect("groupId" in result.request.input).toBe(false);
+      expect("rated" in result.request.input).toBe(false);
+    }
+
+    const padel = createReducer(state, {
+      kind: "setPublicSport",
+      sport: "padel",
+    });
+    expect(padel.sport).toBe("padel");
+    expect(createReducer(padel, { kind: "choosePublic" }).sport).toBe("padel");
+  });
+});

@@ -83,7 +83,7 @@ export async function createFootballGame(
         registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
         groupId: input.groupId,
         venueId: input.venueId,
-        isPublic: false,
+        isPublic: input.isPublic ?? false,
         windowStart: input.windowStart,
         windowEnd: input.windowEnd,
         playersAllowed: input.playersAllowed,

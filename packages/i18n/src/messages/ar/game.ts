@@ -626,6 +626,8 @@ export const game = {
     publicGameOnly: "المباراة بلا مجموعة يجب أن تكون مباراة ودية عامة",
     publicGamePartnerVenue: "يجب أن تكون المباراة العامة في نادٍ شريك",
     publicGamePadelVenue: "تحتاج المباراة العامة إلى نادٍ فيه ملاعب بادل",
+    publicGameFootballVenue: "تحتاج المباراة العامة إلى نادٍ فيه ملعب كرة قدم",
+    publicGameSportOnly: "المباراة العامة وحدها تختار رياضتها",
     gameTeamNotOnGame: "هذا الفريق ليس في هذه المباراة",
     americanoNoSets: "لا أشواط في الأمريكانو حاليًا",
     setsCancelledMatch: "لا يمكن تغيير الأشواط في مباراة ملغاة",

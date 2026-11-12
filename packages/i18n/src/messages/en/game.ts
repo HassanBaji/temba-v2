@@ -537,6 +537,9 @@ export const game = {
     publicGameOnly: "A Game without a Group must be a public Friendly game",
     publicGamePartnerVenue: "A public game must be at a partner Venue",
     publicGamePadelVenue: "A public game needs a Venue with padel Courts",
+    publicGameFootballVenue:
+      "A public game needs a Venue with a football pitch",
+    publicGameSportOnly: "Only a public game picks its sport",
     gameTeamNotOnGame: "Game team is not on this Game",
     americanoNoSets: "Americano has no Sets this slice",
     setsCancelledMatch: "Cannot change Sets on a cancelled Match",

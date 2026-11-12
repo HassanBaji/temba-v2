@@ -136,11 +136,17 @@ export function PublicEmpty({
             importantForAccessibility="no-hide-descendants"
             style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}
           >
-            {Array.from({ length: gamesHubEmptySeats("padel") }, (_, index) => (
-              <View key={index} style={{ width: SEAT_SIZE, height: SEAT_SIZE }}>
-                <Hatch radius={radii.sm} />
-              </View>
-            ))}
+            {Array.from(
+              { length: gamesHubEmptySeats(sportFilter) },
+              (_, index) => (
+                <View
+                  key={index}
+                  style={{ width: SEAT_SIZE, height: SEAT_SIZE }}
+                >
+                  <Hatch radius={radii.sm} />
+                </View>
+              ),
+            )}
           </View>
           <EmptyHeading
             title={publicGamesEmptyTitle(locale)}

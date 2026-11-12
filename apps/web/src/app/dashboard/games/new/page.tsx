@@ -43,6 +43,8 @@ import {
   changeCreateGroup,
   changeCreateVenue,
   choosePublicGame,
+  choosePublicGameSport,
+  createDraftSport,
   isPublicGameDraft,
   publicGameOffered,
   toggleCreateCourt,
@@ -97,7 +99,7 @@ import {
   TOURNAMENT_DEFAULT_TEAM_COUNT,
 } from "@repo/domain/tournament-sizing";
 import type { MvpMode } from "@repo/domain/marks";
-import { sportOrDefault } from "@repo/domain/sport";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { api } from "~/trpc/react";
 
 type FormFailure = Parameters<typeof focusFormFailure>[0];
@@ -162,6 +164,7 @@ function NewGameForm() {
   const [customName, setCustomName] = React.useState("");
   const [preferLevelRange, setPreferLevelRange] = React.useState(false);
   const [isPublic, setIsPublic] = React.useState(false);
+  const [publicSport, setPublicSport] = React.useState<Sport>(DEFAULT_SPORT);
   const [allowSoloRegister, setAllowSoloRegister] = React.useState(true);
   const [sideSize, setSideSize] = React.useState(
     () => initialCreateGameDraft(session.now, locale).sideSize,
@@ -200,6 +203,7 @@ function NewGameForm() {
     setNameTouched(next.nameTouched);
     setCustomName(next.customName);
     setIsPublic(next.isPublic);
+    setPublicSport(next.publicSport);
     setAllowSoloRegister(next.allowSoloRegister);
     setSideSize(next.sideSize);
     setPlayersAllowed(next.playersAllowed);
@@ -235,7 +239,10 @@ function NewGameForm() {
   const selectedGroup = createGroups.data?.find(
     (group) => group.id === selectedGroupId,
   );
-  const sport = sportOrDefault(selectedGroup?.sport);
+  const sport = createDraftSport(
+    { groupId: selectedGroupId, isPublic: publicGame, publicSport },
+    selectedGroup?.sport,
+  );
   const football = sport === "football";
   const firstStep = createFlowFirstStep(sport);
   const flowType = football ? "friendly_game" : typeParam;
@@ -249,7 +256,7 @@ function NewGameForm() {
   const groupVerified = selectedGroup?.verified ?? false;
   const venuesWanted = Boolean(selectedGroupId) || publicGame;
   const picker = api.games.listCreateVenues.useQuery(
-    publicGame ? { publicGame: true } : { groupId: selectedGroupId },
+    publicGame ? { publicGame: true, sport } : { groupId: selectedGroupId },
     { enabled: venuesWanted },
   );
   const selectedVenue = picker.data?.venues.find(
@@ -306,6 +313,7 @@ function NewGameForm() {
     nameTouched,
     customName,
     isPublic,
+    publicSport,
     allowSoloRegister,
     sideSize,
     playersAllowed,
@@ -684,6 +692,7 @@ function NewGameForm() {
           rated,
           levelMin,
           levelMax,
+          isPublic: publicGame,
         },
         session.now,
         locale,
@@ -693,6 +702,7 @@ function NewGameForm() {
             hasGroup: Boolean(selectedGroupId),
             groupVerified,
             rated,
+            isPublic: publicGame,
           }),
         },
       );
@@ -1008,7 +1018,9 @@ function NewGameForm() {
               globalFormErrorMessage(formError) ??
               (displayedStep === 2 && emptyCatalog
                 ? publicGame
-                  ? m.rating.publicGame.noPartnerVenues
+                  ? football
+                    ? m.rating.publicGame.noPartnerPitches
+                    : m.rating.publicGame.noPartnerVenues
                   : c.noLiveVenues
                 : null) ??
               (picker.error ? picker.error.message : null)
@@ -1236,6 +1248,11 @@ function NewGameForm() {
                       label: m.rating.publicGame.label,
                       note: m.rating.publicGame.createNote,
                       selected: publicGame,
+                      sport,
+                      onSport: (next) => {
+                        applyDraft(choosePublicGameSport(createDraft, next));
+                        clearField("venueId");
+                      },
                       onSelect: () => {
                         applyDraft(choosePublicGame(createDraft));
                         setGroupFieldError(undefined);

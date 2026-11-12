@@ -561,6 +561,9 @@ export const rating = {
     levelRangeHint:
       "Strangers join a public game. A Level range keeps it even.",
     noPartnerVenues: "No partner venues yet, so a public game can’t be made.",
+    noPartnerPitches:
+      "No partner venues with a football pitch yet, so a public football game can’t be made.",
+    sport: "Sport",
     countsNote:
       "Both sides confirm the score within 24 hours. If not, it stands and doesn’t count.",
     confirmWindow: {

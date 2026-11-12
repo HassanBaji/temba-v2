@@ -9,6 +9,7 @@ import {
   matchGoals,
   matchSets,
 } from "@repo/db";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { squadsReadyForScore } from "@repo/domain/matchday-squad";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
@@ -33,8 +34,10 @@ import {
   footballScoreSet,
   footballSides,
 } from "#src/games/football-lineup";
+import { askOtherSideToConfirm } from "#src/games/confirmations-after-set-change";
 import {
   clearMatchResultConfirmationsExceptUser,
+  keepMatchResultConfirmation,
   matchResultFullyConfirmed,
   recordMatchResultConfirmation,
 } from "#src/games/match-result-confirmations";
@@ -199,10 +202,20 @@ async function checkAndWriteScore(
         })),
       );
     }
-    if (scoreChanged || scorersChanged) {
+    const changed = scoreChanged || scorersChanged;
+    if (changed) {
       await clearMatchResultConfirmationsExceptUser(tx, match.id, args.userId);
     }
-    if (onSide) {
+    if (isPublicGame(game)) {
+      // The enterer is confirmed and the other side's 24 hours start; the
+      // same Score saved again moves neither (ADR-0071).
+      if (changed) {
+        await recordMatchResultConfirmation(tx, match.id, args.userId);
+        await askOtherSideToConfirm(tx, { game, match, userId: args.userId });
+      } else if (onSide) {
+        await keepMatchResultConfirmation(tx, match.id, args.userId);
+      }
+    } else if (onSide) {
       await recordMatchResultConfirmation(tx, match.id, args.userId);
     }
   });
@@ -214,7 +227,8 @@ async function checkAndWriteScore(
  * and, optionally, who scored. A player on either side or an Organizer may
  * enter it once the Game has kicked off. The player who enters a Score
  * confirms it for their side; a changed Score or a changed list of who
- * scored asks the other side again.
+ * scored asks the other side again. On a Public Game that also restarts the
+ * other side's 24 hours to confirm.
  * On a Challenge Game the Game row is locked first, as `nameChallengeSquad`
  * locks it, so a squad save and a first Score cannot both pass their checks.
  */

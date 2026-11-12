@@ -104,6 +104,8 @@ export type FootballScoreCardProps = {
   canEnterScore: boolean;
   canConfirm: boolean;
   canConfirmAsOrganizer: boolean;
+  /** A Public Game's time left for the other side to confirm (ADR-0071). */
+  confirmWindowLine?: string | null;
   confirmPending: boolean;
   onEnterScore: () => void;
   onConfirm: () => void;
@@ -209,6 +211,11 @@ export function FootballScoreCard(props: FootballScoreCardProps) {
         {props.canConfirmAsOrganizer ? (
           <Text size="meta" tone="muted">
             {organizerConfirmNote(locale)}
+          </Text>
+        ) : null}
+        {props.confirmWindowLine && !completed ? (
+          <Text size="meta" tone="muted">
+            {props.confirmWindowLine}
           </Text>
         ) : null}
       </View>

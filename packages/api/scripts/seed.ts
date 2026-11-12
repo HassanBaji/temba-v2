@@ -1007,6 +1007,33 @@ async function seedPublicGame(u: Users, v: Venues) {
   });
 }
 
+/**
+ * A football Public Game on the partner pitches, organized by Tom, open to
+ * anyone from OVR 64 to 86 (ADR-0071). Its sides are made once it fills, and
+ * its score counts for Temba Level once a player from each side confirms.
+ */
+async function seedPublicFootballGame(u: Users, v: Venues) {
+  const created = await createGame(db, {
+    createdBy: u.tom!.id,
+    customName: "Public five-a-side",
+    isPublic: true,
+    sport: "football",
+    format: "friendly_game",
+    registrationMode: "individual",
+    windowStart: at(2, 20),
+    windowEnd: at(2, 21),
+    venueId: v.pitches.id,
+    courtId: v.pitches.courtIds[0] ?? null,
+    sideSize: 5,
+    playersAllowed: 10,
+    levelMinTenths: 28,
+    levelMaxTenths: 55,
+  });
+  for (const key of ["tom", "diego", "leo"]) {
+    await register(db, { gameId: created.id, userId: u[key]!.id });
+  }
+}
+
 async function seedChallenges(u: Users, v: Venues, t: Teams) {
   const padel = await postChallenge(db, {
     teamId: t.duo.id,
@@ -2545,14 +2572,17 @@ async function main() {
   await step("games", () => seedGames(u, g, v));
   await step("football", () => seedFootball(u, v));
   await step("verified football", () => seedVerifiedFootball(u, v));
-  await step("partner venues", () =>
-    setPartner(db, {
-      venueId: v.central.id,
-      partner: true,
-      operatorUserId: u.me!.id,
-    }),
-  );
+  await step("partner venues", async () => {
+    for (const venueId of [v.central.id, v.pitches.id]) {
+      await setPartner(db, {
+        venueId,
+        partner: true,
+        operatorUserId: u.me!.id,
+      });
+    }
+  });
   await step("public game", () => seedPublicGame(u, v));
+  await step("public football game", () => seedPublicFootballGame(u, v));
   await step("challenges", () => seedChallenges(u, v, t));
   await step("bookings", () => seedBookings(u, v));
   await step("group links", () => seedGroupLinks(u, v, g));

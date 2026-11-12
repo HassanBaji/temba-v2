@@ -206,6 +206,46 @@ describe("validateFriendlyGameSubmit Public Game", () => {
   });
 });
 
+describe("validateFootballGameSubmit Public Game", () => {
+  it("sends football with no Group, isPublic, the OVR range and no Rating choice", () => {
+    const result = validateFootballGameSubmit(
+      {
+        ...football,
+        groupId: "",
+        isPublic: true,
+        rated: false,
+        levelMin: "C+",
+        levelMax: "B",
+      },
+      NOW,
+      "en",
+      { levelRange: true },
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal("groupId" in result.input, false);
+      assert.equal(result.input.isPublic, true);
+      assert.equal(
+        "sport" in result.input ? result.input.sport : null,
+        "football",
+      );
+      assert.equal("rated" in result.input, false);
+      assert.equal(result.input.sideSize, 5);
+      assert.equal(result.input.levelMinTenths, 35);
+      assert.equal(result.input.levelMaxTenths, 55);
+    }
+  });
+
+  it("still needs a Venue", () => {
+    const result = validateFootballGameSubmit(
+      { ...football, groupId: "", venueId: "", isPublic: true },
+      NOW,
+      "en",
+    );
+    assert.equal(result.ok ? null : result.field, "venueId");
+  });
+});
+
 describe("validateFootballGameSubmit", () => {
   it("sends the side size and cap with no sport, Level range or seats", () => {
     const result = validateFootballGameSubmit(

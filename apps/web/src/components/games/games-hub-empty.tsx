@@ -101,7 +101,7 @@ export function GamesHubPublicEmpty({
       <section className={cardFrame}>
         <div className="flex flex-col gap-[18px] p-5">
           <div aria-hidden="true" className="flex flex-wrap gap-1.5">
-            {Array.from({ length: gamesHubEmptySeats("padel") }, (_, i) => (
+            {Array.from({ length: gamesHubEmptySeats(sportFilter) }, (_, i) => (
               <span key={i} className="hatch size-[34px] rounded-[9px]" />
             ))}
           </div>

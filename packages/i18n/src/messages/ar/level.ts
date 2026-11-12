@@ -25,6 +25,8 @@ export const level = {
   gate: (range: string, band: string) =>
     `هذه المباراة مخصصة لمن هم في ${range}. مستواك ${isolate(band)}.`,
   gateRangeFallback: "نطاق هذه المباراة",
+  gateNoOvr: (range: string) =>
+    `هذه المباراة مخصصة لمن هم في ${range}. ليس لديك OVR في كرة القدم بعد، لذا أنت خارج النطاق. حدّد مستواك في كرة القدم في «أنت»، أو اطلب اللعب.`,
   request: {
     title: "طلب اللعب",
     sent: "أُرسل الطلب",

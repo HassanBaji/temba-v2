@@ -81,6 +81,8 @@ export function WhereStep({
                 note: m.rating.publicGame.createNote,
                 selected: publicGame,
                 onSelect: () => dispatch({ kind: "choosePublic" }),
+                sport: state.sport,
+                onSport: (sport) => dispatch({ kind: "setPublicSport", sport }),
               }
             : undefined
         }

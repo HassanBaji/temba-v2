@@ -63,6 +63,7 @@ import {
   upcomingGameWindowFinishSlots,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
+import { gameRatingScopeLabel } from "@repo/domain/game-rating-scope";
 import { mvpModeCopy, type MvpMode } from "@repo/domain/marks";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 
@@ -137,7 +138,7 @@ export function FriendlyGameSteps({
   selectedGroupId: string;
   groupError?: string;
   onGroupId: (groupId: string) => void;
-  /** Offered on a padel Friendly game: a Public Game has no Group. */
+  /** Offered on a Friendly game: a Public Game has no Group. */
   publicChoice?: PublicGameChoice;
   venueCopy: string;
   venues: readonly CreateVenue[];
@@ -234,14 +235,14 @@ export function FriendlyGameSteps({
         "football",
       )
     : null;
+  const publicGame = publicChoice?.selected === true;
   const levelRangeShown = createLevelRangeShown({
     sport,
     hasGroup: Boolean(selectedGroupId),
     groupVerified,
     rated,
+    isPublic: publicGame,
   });
-
-  const publicGame = publicChoice?.selected === true;
   const levelRangeSection = (
     <section className="flex flex-col gap-3">
       <SectionHeading
@@ -388,7 +389,11 @@ export function FriendlyGameSteps({
           <VenueField
             unlocked={Boolean(selectedGroupId) || publicGame}
             emptyCatalogMessage={
-              publicGame ? m.rating.publicGame.noPartnerVenues : undefined
+              publicGame
+                ? football
+                  ? m.rating.publicGame.noPartnerPitches
+                  : m.rating.publicGame.noPartnerVenues
+                : undefined
             }
             venueCopy={venueCopy}
             venues={venues}
@@ -770,7 +775,11 @@ export function FriendlyGameSteps({
             />
             <ReviewRow
               label={ratingChoice.title}
-              value={ratingChoice.scopeLabel}
+              value={
+                publicGame
+                  ? gameRatingScopeLabel("temba", locale, sport)
+                  : ratingChoice.scopeLabel
+              }
             />
             <ReviewRow
               label={m.createGame.mvp.title}

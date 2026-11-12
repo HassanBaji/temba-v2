@@ -212,6 +212,29 @@ describe("formatLevelRangeLabel on football", () => {
       }),
     ).toBe("This Game is for OVR 70 and up. Your Level is OVR 64.");
   });
+
+  it("tells a player with no football Rating they are outside it", () => {
+    expect(
+      formatLevelRangeGateCopy({
+        levelMinTenths: 35,
+        levelMaxTenths: 56,
+        viewerLevelTenths: null,
+        locale: "en",
+        sport: "football",
+      }),
+    ).toBe(
+      "This Game is for OVR 70 to 87. You don't have a football OVR yet, so you're outside it. Declare a football Level on You, or request to play.",
+    );
+    expect(
+      formatLevelRangeGateCopy({
+        levelMinTenths: 35,
+        levelMaxTenths: null,
+        viewerLevelTenths: null,
+        locale: "ar",
+        sport: "football",
+      }),
+    ).toContain("ليس لديك OVR في كرة القدم بعد");
+  });
 });
 
 describe("formatLevelRangeLabel", () => {

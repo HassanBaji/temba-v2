@@ -224,7 +224,8 @@ export function validateFootballGameSubmit(
   options: { levelRange?: boolean } = {},
 ) {
   const m = messagesFor(locale).createGame.validation;
-  const placed = validateWhereAndWhen(draft, now, locale);
+  const publicGame = isPublicGameDraft(draft);
+  const placed = validateWhereAndWhen(draft, now, locale, publicGame);
   if (placed.failed) {
     return placed.issue;
   }
@@ -275,8 +276,10 @@ export function validateFootballGameSubmit(
         draft.finishTime,
         locale,
       ),
-      groupId: draft.groupId,
-      isPublic: false,
+      ...(publicGame
+        ? { sport: "football" as const }
+        : { groupId: draft.groupId }),
+      isPublic: publicGame,
       format: "friendly_game" as const,
       registrationMode: "individual" as const,
       windowStart: placed.when.windowStart,
@@ -285,7 +288,7 @@ export function validateFootballGameSubmit(
       courtId: draft.courtId === "none" ? undefined : draft.courtId,
       sideSize: draft.sideSize,
       playersAllowed: draft.playersAllowed,
-      ...ratedInput(draft),
+      ...(publicGame ? {} : ratedInput(draft)),
       ...customNameInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
       ...(priced.levelMinTenths !== null

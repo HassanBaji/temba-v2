@@ -333,6 +333,40 @@ describe("playedFootballModel", () => {
     "en",
   );
 
+  it("says a football Public Game's unconfirmed score stood and did not count", () => {
+    const stood = playedFootballModel(
+      {
+        windowStart: new Date("2026-11-02T16:00:00.000Z"),
+        windowEnd: new Date("2026-11-02T17:30:00.000Z"),
+        venue: { name: "Fantasy FC", city: "Arad" },
+        courtName: "Pitch 2",
+        players: footballPlayers,
+        bibs: { slot1: "black", slot2: "white" },
+        score: { slot1: 6, slot2: 7 },
+        confirmed: { slot1: true, slot2: false },
+        enteredByName: "Nematulla Said",
+        teamsMethod: "manual",
+        sideSize: 6,
+        groupName: null,
+        rated: true,
+        ratingImpact: null,
+        stoodUnconfirmed: true,
+      },
+      "en",
+    );
+    assert.equal(
+      stood.you?.ratingLine,
+      "Not confirmed in time. It did not count.",
+    );
+    const fact = (label: string) =>
+      stood.facts.find((row) => row.label === label)?.value;
+    assert.equal(fact("Confirmed"), "Not in time");
+    assert.equal(
+      fact(messagesFor("en").game.played.countsForRatingLabel),
+      "No",
+    );
+  });
+
   it("scores both teams and names the winner", () => {
     assert.equal(model.dateLine, "Played, Mon 2 Nov");
     assert.equal(model.tag, "6-A-SIDE");

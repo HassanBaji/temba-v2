@@ -54,7 +54,7 @@ import {
   tembaRatingScopeNote,
   type GameRatingScope,
 } from "./game-rating-scope";
-import { DEFAULT_SPORT, type Sport } from "./sport";
+import { DEFAULT_SPORT, SPORTS, sportOrDefault, type Sport } from "./sport";
 
 export const CREATE_FLOW_STEP_COUNT = 4;
 
@@ -181,6 +181,7 @@ export function createLevelRangeShown(args: {
   hasGroup: boolean;
   groupVerified: boolean;
   rated: boolean;
+  isPublic?: boolean;
 }) {
   if (args.sport !== "football") {
     return true;
@@ -343,8 +344,8 @@ export type FriendlyGameDraft = {
 };
 
 /**
- * A Public Game is a groupless padel Friendly game at a partner Venue
- * (ADR-0071), so the create flow offers it only on the Friendly game type.
+ * A Public Game is a groupless Friendly game at a partner Venue (ADR-0071),
+ * so the create flow offers it only on the Friendly game type.
  */
 export function publicGameOffered(type: CreateGameTypeId | null) {
   return type === "friendly_game";
@@ -1141,6 +1142,46 @@ export function changeCreateGroup(
 /** Picking Public game drops the Group and its Venue: a Public Game has none. */
 export function choosePublicGame(draft: CreateGameDraft): CreateGameDraft {
   return { ...changeCreateGroup(draft, ""), isPublic: true };
+}
+
+/**
+ * A Public Game's sport is the creator's pick. The partner Venues on offer
+ * depend on it, so a new sport drops the Venue and its Court.
+ */
+export function choosePublicGameSport(
+  draft: CreateGameDraft,
+  sport: Sport,
+): CreateGameDraft {
+  if (sport === draft.publicSport) {
+    return draft;
+  }
+  return {
+    ...draft,
+    publicSport: sport,
+    venueId: "",
+    courtId: "none",
+    courtIds: [],
+  };
+}
+
+/** The sport being created: a Public Game's pick, else the Group's. */
+export function createDraftSport(
+  draft: Pick<CreateGameDraft, "groupId" | "isPublic" | "publicSport">,
+  groupSport: string | null | undefined,
+): Sport {
+  return isPublicGameDraft(draft)
+    ? draft.publicSport
+    : sportOrDefault(groupSport);
+}
+
+/** The sport chips under the Public game choice. */
+export function publicGameSportOptions(selected: Sport, locale: Locale) {
+  const m = messagesFor(locale).common;
+  return SPORTS.map((sport) => ({
+    sport,
+    label: m[sport],
+    selected: sport === selected,
+  }));
 }
 
 export function changeCreateVenue(

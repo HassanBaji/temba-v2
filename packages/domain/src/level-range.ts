@@ -288,9 +288,6 @@ export function formatLevelRangeGateCopy(args: {
   sport?: string | null;
 }): string {
   const m = messagesFor(args.locale).level;
-  if (args.viewerLevelTenths == null) {
-    return m.gateNoLevel;
-  }
   const range =
     formatLevelRangeProseLabel(
       args.levelMinTenths,
@@ -298,6 +295,11 @@ export function formatLevelRangeGateCopy(args: {
       args.locale,
       args.sport,
     ) ?? m.gateRangeFallback;
+  if (args.viewerLevelTenths == null) {
+    // A padel Level does not count on a football Game: with no football
+    // Rating the player is outside any OVR range.
+    return args.sport === "football" ? m.gateNoOvr(range) : m.gateNoLevel;
+  }
   return m.gate(
     range,
     args.sport === "football"

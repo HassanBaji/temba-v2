@@ -38,6 +38,8 @@ import {
   type GameKickRequest,
 } from "@repo/domain/game-kick-confirm";
 import { gameInviteAccess } from "@repo/domain/invites";
+import { levelRangeRequestCard } from "@repo/domain/level-range-request";
+import { scoreConfirmWindowLine } from "@repo/domain/friendly-game-score";
 import {
   gameIsPlayed,
   playedFootballModel,
@@ -100,6 +102,7 @@ import { PerformanceResultCard } from "./performance-result-card";
 import { RateGameCard } from "./rate-game-card";
 import { RatingSummaryCard } from "./rating-summary-card";
 import { GameEditSheet } from "./game-edit-sheet";
+import { LevelRequestCard } from "./level-request-card";
 import { challengeInfoRows } from "./challenge-details-card";
 import { NameSquadSheet } from "./name-squad-sheet";
 import { ChallengeSquads } from "./squad-grid";
@@ -288,6 +291,14 @@ export function FootballGameDetails({
     onError: failure,
     onSettled: refresh,
   });
+  const requestLevel = api.games.requestLevelRange.useMutation({
+    onSuccess: () => toast.show(m.level.request.sent),
+    onError: failure,
+    onSettled: refresh,
+  });
+  const levelCard = game.cancelledAt
+    ? null
+    : levelRangeRequestCard(game, locale);
   const reportWrongScore = api.games.reportWrongScore.useMutation({
     onSuccess: () => toast.show(copy.toast.scoreReopened),
     onError: failure,
@@ -639,6 +650,10 @@ export function FootballGameDetails({
             groupName: game.groupName,
             rated: game.rated,
             ratingImpact: game.ratingImpact,
+            stoodUnconfirmed: game.matches.some(
+              (match) =>
+                match.id === board.data?.match?.id && match.stoodUnconfirmed,
+            ),
           },
           locale,
         )
@@ -785,6 +800,13 @@ export function FootballGameDetails({
         {requests ? (
           <RequestsSection requests={requests} decisions={decisions} />
         ) : null}
+        {levelCard ? (
+          <LevelRequestCard
+            card={levelCard}
+            pending={requestLevel.isPending}
+            onRequest={() => requestLevel.mutate({ gameId })}
+          />
+        ) : null}
         {board.error ? (
           <Surface accessibilityRole="alert" style={{ gap: 8 }}>
             <Text weight="semibold">{copy.football.lineupLoadFailed}</Text>
@@ -825,6 +847,11 @@ export function FootballGameDetails({
             canConfirmAsOrganizer={
               board.data?.viewer.canConfirmAsOrganizer ?? false
             }
+            confirmWindowLine={scoreConfirmWindowLine(
+              game.confirmWindow,
+              now,
+              locale,
+            )}
             confirmPending={confirmScore.isPending}
             onEnterScore={() => router.push(scorePath)}
             onConfirm={() => {

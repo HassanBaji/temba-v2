@@ -1,8 +1,10 @@
 import {
+  publicGameSportOptions,
   VISIBLE_GROUP_CHIP_COUNT,
   visibleCreateGroups,
   type CreateGroupOption,
 } from "@repo/domain/create-game-flow";
+import type { Sport } from "@repo/domain/sport";
 import { Search } from "lucide-react-native";
 import { useState } from "react";
 import { View } from "react-native";
@@ -11,6 +13,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
+import { Text } from "../primitives/text";
 
 import { ChipGrid, ChoiceChip, FieldError } from "./chips";
 import { SearchSheet } from "./search-sheet";
@@ -34,13 +37,41 @@ export function groupLabel(
 /** No Group id is a uuid, so this value never clashes with one. */
 const PUBLIC_CHIP = "public";
 
-/** The Public game chip beside the Groups: a Public Game has no Group. */
+/**
+ * The Public game chip beside the Groups: a Public Game has no Group, so it
+ * also takes the sport a Group would have given it.
+ */
 export type PublicGameChoice = {
   label: string;
   note: string;
   selected: boolean;
   onSelect: () => void;
+  sport: Sport;
+  onSport: (sport: Sport) => void;
 };
+
+function PublicGameSportRow({ choice }: { choice: PublicGameChoice }) {
+  const locale = useLocale();
+  const m = useMessages();
+  const options = publicGameSportOptions(choice.sport, locale);
+  return (
+    <View style={{ gap: 8 }}>
+      <Text size="meta" tone="muted">
+        {m.rating.publicGame.sport}
+      </Text>
+      <ChipGrid
+        label={m.rating.publicGame.sport}
+        columns={options.length}
+        chips={options.map((option) => ({
+          value: option.sport,
+          label: option.label,
+        }))}
+        isSelected={(sport) => sport === choice.sport}
+        onSelect={choice.onSport}
+      />
+    </View>
+  );
+}
 
 export function GroupField({
   groups,
@@ -163,7 +194,10 @@ export function GroupField({
         onClose={() => setSheetOpen(false)}
       />
       {publicChoice?.selected ? (
-        <HelperNote>{publicChoice.note}</HelperNote>
+        <>
+          <HelperNote>{publicChoice.note}</HelperNote>
+          <PublicGameSportRow choice={publicChoice} />
+        </>
       ) : null}
       <FieldError message={error} />
     </StepSection>

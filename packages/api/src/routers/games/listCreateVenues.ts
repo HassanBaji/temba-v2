@@ -5,7 +5,8 @@ import { z } from "zod";
 
 import { gamePlayers, games, venues } from "@repo/db";
 
-import { sportOrDefault, type Sport } from "@repo/domain/sport";
+import { DEFAULT_SPORT, sportOrDefault, type Sport } from "@repo/domain/sport";
+import { sportSchema } from "@repo/validators/sport";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
@@ -188,8 +189,8 @@ export async function listRecentCourtIds(
 
 /**
  * The Venues a Game may be created at. With `publicGame` and no Group, only
- * partner Venues that offer padel: a Public Game is a padel Game at a partner
- * Venue (ADR-0071).
+ * partner Venues that offer the Public Game's sport, padel unless `sport`
+ * says otherwise (ADR-0071).
  */
 export async function listCreateVenuesForUser(
   database: DbOrTx,
@@ -197,12 +198,13 @@ export async function listCreateVenuesForUser(
     userId: string;
     groupId?: string;
     publicGame?: boolean;
+    sport?: Sport;
     locale?: Locale;
   },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const publicGame = !args.groupId && args.publicGame === true;
-  let sport: Sport | null = publicGame ? "padel" : null;
+  let sport: Sport | null = publicGame ? (args.sport ?? DEFAULT_SPORT) : null;
   if (args.groupId) {
     const group = await requireGroup(database, args.groupId, locale);
     await assertMayCreateGameOnGroup(database, group, args.userId, locale);
@@ -220,6 +222,8 @@ export const listCreateVenues = protectedProcedure
     z.object({
       groupId: z.string().uuid().optional(),
       publicGame: z.boolean().optional(),
+      /** A Public Game's sport. Omitted = padel. */
+      sport: sportSchema.optional(),
     }),
   )
   .query(async ({ ctx, input }) => {
@@ -228,6 +232,7 @@ export const listCreateVenues = protectedProcedure
       userId: appUser.id,
       groupId: input.groupId,
       publicGame: input.publicGame,
+      sport: input.sport,
       locale: ctx.locale,
     });
   });

@@ -62,7 +62,10 @@ import {
   selectDurationFinish,
   selectStartSlot,
   choosePublicGame,
+  choosePublicGameSport,
+  createDraftSport,
   isPublicGameDraft,
+  publicGameSportOptions,
   publicGameOffered,
 } from "./create-game-flow";
 import { initialCreateGameDraft } from "./create-game-draft";
@@ -1291,6 +1294,55 @@ describe("Arabic copy", () => {
     assert.equal(
       gameTeamOfTwoCopy("6.50", "ar"),
       "13.000 د.ب لفريق من لاعبَين",
+    );
+  });
+});
+
+describe("Public Game sport", () => {
+  it("is padel until the creator picks football, which drops the Venue", () => {
+    const draft = {
+      ...choosePublicGame(initialCreateGameDraft(NOW, "en")),
+      venueId: "venue-1",
+      courtId: "court-1",
+    };
+    assert.equal(createDraftSport(draft, null), "padel");
+    const football = choosePublicGameSport(draft, "football");
+    assert.equal(createDraftSport(football, null), "football");
+    assert.equal(football.venueId, "");
+    assert.equal(football.courtId, "none");
+    assert.equal(choosePublicGameSport(football, "football"), football);
+    assert.equal(
+      createDraftSport(changeCreateGroup(football, "group-1"), "padel"),
+      "padel",
+    );
+  });
+
+  it("offers padel and football, marking the pick", () => {
+    assert.deepEqual(publicGameSportOptions("football", "en"), [
+      { sport: "padel", label: "Padel", selected: false },
+      { sport: "football", label: "Football", selected: true },
+    ]);
+  });
+
+  it("offers a Level range on a football Public Game", () => {
+    assert.equal(
+      createLevelRangeShown({
+        sport: "football",
+        hasGroup: false,
+        groupVerified: false,
+        rated: true,
+        isPublic: true,
+      }),
+      true,
+    );
+    assert.equal(
+      createLevelRangeShown({
+        sport: "football",
+        hasGroup: false,
+        groupVerified: false,
+        rated: true,
+      }),
+      false,
     );
   });
 });

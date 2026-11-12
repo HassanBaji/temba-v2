@@ -37,7 +37,8 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_FOOTBALL_SIDE_SIZE } from "@repo/domain/game-shape";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
-import { sportOrDefault } from "@repo/domain/sport";
+import { DEFAULT_SPORT, sportOrDefault, type Sport } from "@repo/domain/sport";
+import { sportSchema } from "@repo/validators/sport";
 import { ratingFlagsAtCreate } from "@repo/domain/game-rating-scope";
 import { MVP_MODES } from "@repo/domain/marks";
 import {
@@ -63,6 +64,8 @@ export const createGameInputSchema = z
     /** Omitted only for a Public Game (ADR-0071). */
     groupId: z.string().uuid({ message: "Pick a Group" }).optional(),
     isPublic: z.boolean(),
+    /** A Public Game's sport; a Group's Game takes its Group's. Omitted = padel. */
+    sport: sportSchema.optional(),
     /** False makes the Game Unrated (ADR-0053). */
     rated: z.boolean().optional(),
     format: createFormatSchema.default("friendly_game"),
@@ -142,6 +145,13 @@ export const createGameInputSchema = z
         code: z.ZodIssueCode.custom,
         message: "Pick a Group",
         path: ["groupId"],
+      });
+    }
+    if (value.groupId !== undefined && value.sport !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: messagesFor(DEFAULT_LOCALE).game.errors.publicGameSportOnly,
+        path: ["sport"],
       });
     }
     if (value.format === "friendly_game" && value.courtIds !== undefined) {
@@ -283,12 +293,12 @@ export async function createGame(
 
 /**
  * Only a partner Venue hosts a Public Game, read from the stored mark, never
- * inferred (ADR-0071). Public Games are padel for now, so the Venue must
- * offer padel.
+ * inferred (ADR-0071), and it must offer the Game's sport.
  */
 async function assertPublicGameVenue(
   database: DbClient,
   venueId: string,
+  sport: Sport,
   locale: Locale,
 ) {
   const errors = messagesFor(locale).game.errors;
@@ -308,25 +318,26 @@ async function assertPublicGameVenue(
       message: errors.publicGamePartnerVenue,
     });
   }
-  const padelCourt = await database.query.courts.findFirst({
-    where: and(
-      eq(courts.venueId, venueId),
-      eq(courts.sport, GameSportEnum.PADEL),
-    ),
+  const court = await database.query.courts.findFirst({
+    where: and(eq(courts.venueId, venueId), eq(courts.sport, sport)),
     columns: { id: true },
   });
-  if (!padelCourt) {
+  if (!court) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: errors.publicGamePadelVenue,
+      message:
+        sport === "football"
+          ? errors.publicGameFootballVenue
+          : errors.publicGamePadelVenue,
     });
   }
 }
 
 /**
- * A Public Game: a groupless padel Friendly game at a partner Venue that
- * anyone inside its Level range may join (ADR-0071). It counts for Temba
- * Level once one player from each side confirms its score within 24 hours.
+ * A Public Game: a groupless Friendly game at a partner Venue that anyone
+ * inside its Level range may join (ADR-0071). It counts for Temba Level once
+ * one player from each side confirms its score within 24 hours. A football
+ * one keeps the usual side size and reads its Level range in OVR.
  */
 async function createPublicGame(
   database: DbClient,
@@ -339,7 +350,40 @@ async function createPublicGame(
       message: messagesFor(locale).game.errors.publicGameOnly,
     });
   }
-  await assertPublicGameVenue(database, input.venueId, locale);
+  const sport = input.sport ?? DEFAULT_SPORT;
+  await assertPublicGameVenue(database, input.venueId, sport, locale);
+  const flags = ratingFlagsAtCreate({
+    hasGroup: false,
+    groupVerified: false,
+    sport,
+    rated: true,
+    isPublic: true,
+  });
+  if (sport === "football") {
+    const sideSize = input.sideSize ?? DEFAULT_FOOTBALL_SIDE_SIZE;
+    const created = await createFootballGame(
+      database,
+      {
+        createdBy: input.createdBy,
+        ...friendlyGameNameFields(input),
+        groupId: null,
+        isPublic: true,
+        venueId: input.venueId,
+        courtId: input.courtId,
+        windowStart: input.windowStart,
+        windowEnd: input.windowEnd,
+        pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+        sideSize,
+        playersAllowed: input.playersAllowed ?? 2 * sideSize,
+        mvpMode: input.mvpMode,
+        levelMinTenths: input.levelMinTenths ?? null,
+        levelMaxTenths: input.levelMaxTenths ?? null,
+        ...flags,
+      },
+      locale,
+    );
+    return { id: created.game.id, matchId: null as string | null };
+  }
   const created = await createFriendlyGame(
     database,
     {
@@ -354,13 +398,7 @@ async function createPublicGame(
       pricePerPlayerFils: input.pricePerPlayerFils ?? null,
       levelMinTenths: input.levelMinTenths ?? null,
       levelMaxTenths: input.levelMaxTenths ?? null,
-      ...ratingFlagsAtCreate({
-        hasGroup: false,
-        groupVerified: false,
-        sport: "padel",
-        rated: true,
-        isPublic: true,
-      }),
+      ...flags,
       mvpMode: input.mvpMode,
     },
     locale,
