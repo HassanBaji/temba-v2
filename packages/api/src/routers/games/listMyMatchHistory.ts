@@ -2,7 +2,8 @@ import type { DbClient } from "@repo/db";
 import { and, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 
-import { MatchStatusEnum, gamePlayers, marks, matches } from "@repo/db";
+import { MatchStatusEnum, gamePlayers, games, marks, matches } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -22,6 +23,13 @@ import {
   type GameRatingScope,
 } from "@repo/domain/game-rating-scope";
 import { MARK_KINDS, type MarkKind } from "@repo/domain/marks";
+import type { MyTournament } from "@repo/domain/hub-game-row";
+import { hasKnockout, hasPools } from "@repo/domain/tournament-rounds";
+import {
+  myTournamentFromRow,
+  queryHubGames,
+  type HubQueryRow,
+} from "#src/games/helpers/hub-list";
 
 export type MatchHistoryMember = MatchSlotMember;
 
@@ -49,6 +57,11 @@ export type MatchHistoryRow = {
   viewerMarks: MarkKind[];
   /** The viewer is this Game's settled MVP. */
   viewerIsMvp: boolean;
+  /**
+   * Set when `groupTournaments` folds a Groups only tournament into one row:
+   * the row's Match fields are its latest scored Match (ADR-0074).
+   */
+  myTournament: MyTournament | null;
 };
 
 type HistoryRowWithoutMarks = Omit<MatchHistoryRow, "viewerMarks">;
@@ -59,6 +72,8 @@ const historyPageInput = z
   .object({
     limit: z.number().int().min(1).max(100).default(DEFAULT_PAGE_SIZE),
     sport: sportSchema.optional(),
+    /** One row per Groups only tournament, once it is no longer live (ADR-0074). */
+    groupTournaments: z.boolean().optional(),
     cursor: z
       .object({ displayTime: z.date(), matchId: z.string().uuid() })
       .optional(),
@@ -71,7 +86,8 @@ export type MatchHistoryPage = z.infer<typeof historyPageInput>;
  * Past Matches the signed-in User sat on via a completed Match slot.
  * Soft-archived Club Group Games are included when they otherwise qualify.
  * Friendly games appear once the Game is no longer live, one row per Game.
- * Friendly tournament Pool Matches appear as they complete, one row each.
+ * Friendly tournament Pool Matches appear as they complete, one row each,
+ * unless `groupTournaments` asks for one row per Groups only tournament.
  * Americano is excluded this slice.
  */
 export async function listMyMatchHistoryRows(
@@ -79,6 +95,7 @@ export async function listMyMatchHistoryRows(
   userId: string,
   now: Date = new Date(),
   page?: MatchHistoryPage,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<MatchHistoryRow[]> {
   const myPlayerRows = await database.query.gamePlayers.findMany({
     where: eq(gamePlayers.userId, userId),
@@ -124,6 +141,8 @@ export async function listMyMatchHistoryRows(
           format: true,
           sport: true,
           groupId: true,
+          poolCount: true,
+          tournamentShape: true,
           cancelledAt: true,
           windowStart: true,
           windowEnd: true,
@@ -198,7 +217,7 @@ export async function listMyMatchHistoryRows(
     byGameId.set(match.game.id, list);
   }
 
-  const rows: HistoryRowWithoutMarks[] = [];
+  const rows: HistoryRowDraft[] = [];
   for (const gameMatches of byGameId.values()) {
     const game = gameMatches[0]?.game;
     if (!game) {
@@ -220,8 +239,12 @@ export async function listMyMatchHistoryRows(
     if (page?.sport && page.sport !== sport) {
       continue;
     }
+    const grouped =
+      page?.groupTournaments === true &&
+      hasPools(game.format, game.poolCount) &&
+      !hasKnockout(game.format, game.tournamentShape);
     if (
-      game.format === "friendly_game" &&
+      (game.format === "friendly_game" || grouped) &&
       isGameLive(
         {
           id: game.id,
@@ -270,7 +293,7 @@ export async function listMyMatchHistoryRows(
       return b.match.createdAt.getTime() - a.match.createdAt.getTime();
     });
     const chosenMatches =
-      game.format === "friendly_tournament"
+      game.format === "friendly_tournament" && !grouped
         ? candidates
         : candidates.slice(0, 1);
     const venueName = game.venue?.name;
@@ -298,6 +321,7 @@ export async function listMyMatchHistoryRows(
         rated: game.rated,
         ratingScope: gameRatingScope(game),
         viewerIsMvp: game.mvpSettledAt != null && game.mvpUserId === userId,
+        groupedTournament: grouped,
       });
     }
   }
@@ -310,7 +334,41 @@ export async function listMyMatchHistoryRows(
     return a.matchId < b.matchId ? 1 : a.matchId > b.matchId ? -1 : 0;
   });
 
-  return withViewerMarks(database, userId, pageOf(rows, page));
+  const pageRows = pageOf(rows, page);
+  return withViewerMarks(
+    database,
+    userId,
+    await withMyTournaments(database, userId, locale, pageRows),
+  );
+}
+
+type HistoryRowDraft = Omit<HistoryRowWithoutMarks, "myTournament"> & {
+  groupedTournament: boolean;
+};
+
+async function withMyTournaments(
+  database: DbClient,
+  userId: string,
+  locale: Locale,
+  rows: HistoryRowDraft[],
+): Promise<HistoryRowWithoutMarks[]> {
+  const gameIds = rows.flatMap((row) =>
+    row.groupedTournament ? [row.id] : [],
+  );
+  const hubRows =
+    gameIds.length === 0
+      ? []
+      : ((await queryHubGames(
+          database,
+          inArray(games.id, gameIds),
+        )) as HubQueryRow[]);
+  const byGameId = new Map(
+    hubRows.map((row) => [row.id, myTournamentFromRow(row, userId, locale)]),
+  );
+  return rows.map(({ groupedTournament, ...row }) => ({
+    ...row,
+    myTournament: groupedTournament ? (byGameId.get(row.id) ?? null) : null,
+  }));
 }
 
 function pageOf<Row extends { displayTime: Date; matchId: string }>(
@@ -376,5 +434,11 @@ export const listMyMatchHistory = protectedProcedure
   .input(historyPageInput)
   .query(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return listMyMatchHistoryRows(ctx.db, appUser.id, new Date(), input);
+    return listMyMatchHistoryRows(
+      ctx.db,
+      appUser.id,
+      new Date(),
+      input,
+      ctx.locale,
+    );
   });

@@ -52,11 +52,20 @@ function footballResultPending(row: HubQueryRow, userId: string, now: Date) {
   );
 }
 
+export type ListMyGamesOptions = {
+  /**
+   * Keep a posted Groups only tournament the viewer plays in as one row
+   * (the Games list, ADR-0074) instead of one row per open Pool Match (Home).
+   */
+  groupTournaments?: boolean;
+};
+
 export async function listMyGamesHubRows(
   database: DbClient,
   userId: string,
   now: Date = new Date(),
   locale: Locale = DEFAULT_LOCALE,
+  options: ListMyGamesOptions = {},
 ): Promise<HubListRow[]> {
   const viewer = await viewerHubContext(database, userId, locale);
   const participantGameIds = await participantGameIdsForViewer(
@@ -111,7 +120,7 @@ export async function listMyGamesHubRows(
   return sortExpandedHubListRows(
     hubRows.flatMap((row) => {
       const source = byId.get(row.id);
-      if (!source) {
+      if (!source || (options.groupTournaments && row.myTournament)) {
         return [row];
       }
       return expandDrawnTournamentHubRows(source, row, viewer);

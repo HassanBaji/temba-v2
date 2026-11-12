@@ -496,6 +496,83 @@ export const tournament = {
     viewKnockout: "View knockout",
     viewGroup: "View group",
   },
+  gamesCard: {
+    roundOfCount: (roundNumber: number, roundCount: number) =>
+      `round ${roundNumber} of ${roundCount}`,
+    allRoundsPlayed: "All rounds played",
+    dayLine: (relativeDay: string, day: string) => `${relativeDay}, ${day}`,
+    untilClock: (clock: string) => `to ${clock}`,
+    courtsCount: (n: number) =>
+      plural("en", n, { one: "1 court", other: "{n} courts" }),
+    groupPlace: (label: string, place: string, size: number) =>
+      `Group ${label}, ${place} of ${size}`,
+    groupPlaceSoFar: (label: string, place: string, size: number) =>
+      `Group ${label}, ${place} of ${size} so far`,
+    yourRounds: "Your rounds",
+    roundsTonight: (n: number) => `${n} tonight`,
+    roundsCount: (n: number) =>
+      plural("en", n, { one: "1 round", other: "{n} rounds" }),
+    playedWon: (played: number, won: number) => `${played} played, ${won} won`,
+    next: "Next",
+    onCourt: "On court",
+    noScore: "no score",
+    cancelled: "Cancelled",
+    withCourt: (line: string, court: string) => `${line}, ${court}`,
+    firstUp: (opponent: string) => `First up: ${opponent}`,
+    nextUp: (opponent: string) => `Next: ${opponent}`,
+    playing: (opponent: string) => `Playing ${opponent}`,
+    firstUpBody: (rounds: number) =>
+      plural("en", rounds, {
+        one: "One round, one card for the whole night. Scores go in from here.",
+        other:
+          "{n} rounds, one card for the whole night. Scores go in from here.",
+      }),
+    roundsToGo: (n: number) =>
+      plural("en", n, { one: "1 round to go.", other: "{n} rounds to go." }),
+    playingBody: "Enter the score when you finish.",
+    playingBodyThenNext: (opponent: string) =>
+      `Enter the score when you finish. ${opponent} are next.`,
+    playingBodyThenNextOnCourt: (opponent: string, court: string) =>
+      `Enter the score when you finish. ${opponent} are next, on ${court}.`,
+    details: "Details",
+    viewTournament: "View tournament",
+    tournament: "Tournament",
+    enterScore: "Enter score",
+    place: (n: number) => {
+      const mod100 = n % 100;
+      const mod10 = n % 10;
+      if (mod100 >= 11 && mod100 <= 13) {
+        return `${n}th`;
+      }
+      return `${n}${mod10 === 1 ? "st" : mod10 === 2 ? "nd" : mod10 === 3 ? "rd" : "th"}`;
+    },
+    ofTeams: (size: number) => `of ${teamsWord(size)}`,
+    ofTeamsInGroup: (size: number, label: string) =>
+      `of ${size} in group ${label}`,
+    soFar: "so far",
+    withPartner: (name: string) => `with ${name}`,
+    record: (won: number, drawn: number, lost: number) =>
+      drawn > 0
+        ? `${won} won, ${drawn} drawn, ${lost} lost.`
+        : `${won} won, ${lost} lost.`,
+    wonIt: (pair: string) => `${pair} won it`,
+    noScoreYet: (n: number) =>
+      plural("en", n, {
+        one: "One round has no score yet",
+        other: "{n} rounds have no score yet",
+      }),
+    roundHasNoScore: (round: string) => `${round} has no score`,
+    roundsHaveNoScore: (n: number) => `${n} rounds have no score`,
+    addScore: "Add the score",
+    cellWon: (score: string) => (score ? `won ${score}` : "won"),
+    cellLost: (score: string) => (score ? `lost ${score}` : "lost"),
+    cellDrew: (score: string) => (score ? `drew ${score}` : "drew"),
+    cellLabel: (round: string, state: string, opponent: string) =>
+      opponent
+        ? `${round}, ${state}, against ${opponent}`
+        : `${round}, ${state}`,
+    later: "later",
+  },
   details: {
     fallbackName: "Tournament",
     minutes: (n: number) => `${n} min`,

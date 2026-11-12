@@ -45,11 +45,11 @@ export function GamesScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const myGames = api.games.listMyGames.useQuery(
-    undefined,
+    { groupTournaments: true },
     REFETCH_ON_FOREGROUND,
   );
   const history = api.games.listMyMatchHistory.useInfiniteQuery(
-    { limit: HISTORY_PAGE_SIZE },
+    { limit: HISTORY_PAGE_SIZE, groupTournaments: true },
     { ...REFETCH_ON_FOREGROUND, getNextPageParam: nextHistoryCursor },
   );
   const historyRows = useMemo(() => history.data?.pages.flat(), [history.data]);
