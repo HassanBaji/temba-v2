@@ -410,6 +410,8 @@ export const challenge = {
       title: "Make it a game?",
       description:
         "The Game is created with both Teams on it. The other proposals are passed over and told.",
+      descriptionFootball:
+        "The Game is created with both Teams on it and counts for Temba Level once someone from each Team confirms the score. The other proposals are passed over and told.",
       confirm: "Confirm, make it a game",
     },
     confirmed: "It's a game",
@@ -575,6 +577,8 @@ export const challenge = {
     countsForLine: {
       padel: "Both teams' records, the players named and rating",
       football: "Both teams' records and the players named",
+      footballLevel:
+        "Both teams' records, the players named and Temba Level, once each team confirms the score",
     },
     costSplitWays: (n: number) => `Split ${n} ways, pay at the venue`,
     squadsTitle: "Squads",

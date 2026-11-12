@@ -758,6 +758,7 @@ export function GameDetailsScreen({
               <ChallengeDetailsCard
                 challenge={data.challenge}
                 sport={data.sport}
+                rated={data.rated}
               />
             ) : null}
             <GameDetailsContent

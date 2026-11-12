@@ -398,6 +398,15 @@ export function challengeProposalFootnote(sport: string, locale: Locale) {
   return sport === "football" ? m.football : m.padel;
 }
 
+/** The "Make it a game?" line: a football Game also says when it counts for Temba Level. */
+export function challengeConfirmSheetDescription(
+  sport: string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).challenge.proposal.confirmSheet;
+  return sport === "football" ? m.descriptionFootball : m.description;
+}
+
 export type ChallengeConfirmedInput = {
   sport: string;
   startsAt: Instant;

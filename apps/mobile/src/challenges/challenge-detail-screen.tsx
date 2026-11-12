@@ -3,6 +3,7 @@ import { acceptTeamToPropose } from "@repo/domain/challenge-accept";
 import { challengeCardView } from "@repo/domain/challenge-card";
 import {
   challengeConfirmedView,
+  challengeConfirmSheetDescription,
   challengeDetailFooter,
   challengeDetailRows,
   challengeDetailStatusLine,
@@ -446,7 +447,10 @@ export function ChallengeDetailScreen({
             onConfirm={(proposal) =>
               setConfirm({
                 title: m.challenge.proposal.confirmSheet.title,
-                description: m.challenge.proposal.confirmSheet.description,
+                description: challengeConfirmSheetDescription(
+                  data.sport,
+                  locale,
+                ),
                 details: [proposal.team.displayName],
                 confirmLabel: m.challenge.proposal.confirmSheet.confirm,
                 onConfirm: () =>

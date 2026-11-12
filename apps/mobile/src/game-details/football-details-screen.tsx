@@ -467,7 +467,7 @@ export function FootballGameDetails({
     },
   ];
   const infoRows = challenge
-    ? challengeInfoRows(challenge, game.sport, locale)
+    ? challengeInfoRows(challenge, game.sport, game.rated, locale)
     : gameInfoRows;
   const squadSide = challenge?.sides.find(
     (side) => side.teamId === squadTeamId,

@@ -1263,6 +1263,7 @@ export default function GameHomePage({
               <ChallengeDetailsBlock
                 challenge={data.challenge}
                 sport={data.sport}
+                rated={data.rated}
               />
             ) : null}
             {data.booking ? (

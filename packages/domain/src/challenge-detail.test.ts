@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   challengeAgoLine,
   challengeConfirmedView,
+  challengeConfirmSheetDescription,
   challengeDetailFooter,
   challengeDetailRows,
   challengeDetailStatusLine,
@@ -246,5 +247,16 @@ describe("the confirmed state", () => {
       ["Court", "Book it: Padel Point Riffa, Court 2"],
       ["Cost", "Split four ways, pay at the venue"],
     ]);
+  });
+});
+
+describe("challengeConfirmSheetDescription", () => {
+  it("says a football Game counts for Temba Level once each Team confirms", () => {
+    expect(challengeConfirmSheetDescription("football", "en")).toBe(
+      "The Game is created with both Teams on it and counts for Temba Level once someone from each Team confirms the score. The other proposals are passed over and told.",
+    );
+    expect(challengeConfirmSheetDescription("padel", "en")).toBe(
+      "The Game is created with both Teams on it. The other proposals are passed over and told.",
+    );
   });
 });
