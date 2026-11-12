@@ -71,6 +71,13 @@ export const notification = {
       plain(" جهتك في "),
       strong(game),
     ],
+    gameTeamChanged: (actor: string, game: string) => [
+      plain("غيّر "),
+      strong(actor),
+      plain(" الفرق في "),
+      strong(game),
+      plain(". اطّلع على مكانك الجديد"),
+    ],
     gameMovedToWaitlist: (actor: string, game: string) => [
       plain("خفّض "),
       strong(actor),

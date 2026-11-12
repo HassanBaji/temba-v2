@@ -48,6 +48,7 @@ import { consoleHours } from "./console-hours";
 import { consoleVenue } from "./console-venue";
 import { venue } from "./venue";
 import { gameAlbum } from "./game-album";
+import { editTeams } from "./edit-teams";
 
 import type { en } from "../en/index";
 
@@ -104,4 +105,5 @@ export const ar: Messages = {
   consoleVenue,
   venue,
   gameAlbum,
+  editTeams,
 };

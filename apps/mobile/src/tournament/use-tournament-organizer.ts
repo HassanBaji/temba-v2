@@ -45,6 +45,7 @@ export function useTournamentOrganizer({
   const [sheet, setSheet] = useState<TournamentSheet>(null);
   const [roundCount, setRoundCount] = useState<number | null>(null);
   const [addPlayerOpen, setAddPlayerOpen] = useState(false);
+  const [editTeamsOpen, setEditTeamsOpen] = useState(false);
 
   const failure = (error: { message: string }) => toast.show(error.message);
   const settled = async () => {
@@ -167,6 +168,7 @@ export function useTournamentOrganizer({
     onKickPlayer: (userId) => askKick({ userId }),
     onKickWaitlist: (waitlistId) => askKick({ waitlistId }),
     onAddPlayer: () => setAddPlayerOpen(true),
+    onEditTeams: () => setEditTeamsOpen(true),
   };
 
   const sheets: Omit<OrganizerSheetsProps, "game"> = {
@@ -211,7 +213,12 @@ export function useTournamentOrganizer({
     openWalkover,
     addPlayer: {
       open: addPlayerOpen,
+      onOpen: () => setAddPlayerOpen(true),
       onClose: () => setAddPlayerOpen(false),
+    },
+    editTeams: {
+      open: editTeamsOpen,
+      onClose: () => setEditTeamsOpen(false),
     },
     confirmPending: undo.isPending || kick.isPending,
   };

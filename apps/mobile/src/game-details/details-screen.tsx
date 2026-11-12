@@ -1,3 +1,5 @@
+import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
+import { canEditTeams, editTeamsSpotLabel } from "@repo/domain/edit-teams";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
@@ -40,17 +42,22 @@ import { gameInviteAccess } from "@repo/domain/invites";
 import type { PlayedRow } from "@repo/domain/played-game";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 import { useRouter, useSegments } from "expo-router";
+import { ArrowLeftRight, LogIn, UserPlus } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { Linking, Platform, View } from "react-native";
 
 import { directionsUrl } from "../booking/booking-model";
+import { EditTeamsSheet } from "../edit-teams/edit-teams-sheet";
 import { useNow } from "../games/use-now";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { InviteEntry } from "../invites/invite-entry";
 import { slotOf } from "../lib/slot-of";
 import { PlayedFriendlyGame } from "../played-game/played-friendly-game";
-import { PlayedMenuSheet } from "../played-game/played-menu-sheet";
+import {
+  PlayedMenuSheet,
+  type PlayedMenuItem,
+} from "../played-game/played-menu-sheet";
 import { PlayedPlayerSheet } from "../played-game/played-player-sheet";
 import { gamePlayersLink } from "../player-profile/game-player-links";
 import { playerPath } from "../player-profile/player-path";
@@ -172,6 +179,12 @@ export function GameDetailsScreen({
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayedRow | null>(null);
   const [addSeat, setAddSeat] = useState<FriendlyGameJoinSeat | null>(null);
+  const [openSpot, setOpenSpot] = useState<{
+    seat: FriendlyGameJoinSeat;
+    own: "move" | "join";
+  } | null>(null);
+  const [editTeamsOpen, setEditTeamsOpen] = useState(false);
+  const [addSide, setAddSide] = useState<number | null>(null);
   const shareGame = useShareGame(gameId);
 
   const game = api.games.byId.useQuery({ id: gameId }, REFETCH_ON_FOREGROUND);
@@ -567,6 +580,10 @@ export function GameDetailsScreen({
 
   if (tournament) {
     const details: TournamentDetails = data;
+    const addPlayerToSide = (sideIndex: number) => {
+      setAddSide(sideIndex);
+      tournamentOrganizer.addPlayer.onOpen();
+    };
     const firstTeamId = details.eligibleTeams[0]?.id ?? "";
     return (
       <View style={{ flex: 1 }}>
@@ -585,6 +602,15 @@ export function GameDetailsScreen({
               teamId: teamId || firstTeamId,
               onTeamIdChange: setTeamId,
               onTakeSeat: (seat) => openJoin(seat),
+              onOpenSeat: organizerCanAddPlayer(details)
+                ? (seat, canJoin) => {
+                    if (canJoin) {
+                      setOpenSpot({ seat, own: "join" });
+                      return;
+                    }
+                    addPlayerToSide(seat.sideIndex);
+                  }
+                : undefined,
               onRegisterTeam: (id) =>
                 registerTeam.mutate({ gameId, teamId: id }),
               onRequestLevel: () => requestLevel.mutate({ gameId }),
@@ -614,15 +640,71 @@ export function GameDetailsScreen({
           game={details}
         />
         {details.isOrganizer ? (
-          <AddPlayerSheet
-            visible={tournamentOrganizer.addPlayer.open}
-            onClose={tournamentOrganizer.addPlayer.onClose}
-            gameId={gameId}
-            placement="side"
-            sides={details.sides}
-            groupName={details.groupName}
-            onAdded={refresh}
-          />
+          <>
+            <AddPlayerSheet
+              visible={tournamentOrganizer.addPlayer.open}
+              onClose={() => {
+                setAddSide(null);
+                tournamentOrganizer.addPlayer.onClose();
+              }}
+              gameId={gameId}
+              placement="side"
+              sides={details.sides}
+              initialSide={addSide}
+              groupName={details.groupName}
+              onAdded={refresh}
+            />
+            <EditTeamsSheet
+              visible={
+                tournamentOrganizer.editTeams.open && canEditTeams(details)
+              }
+              onClose={tournamentOrganizer.editTeams.onClose}
+              gameId={gameId}
+              format="friendly_tournament"
+              sides={details.sides}
+              matches={details.matches}
+              rules={{
+                fullSidesOnly: isPartnerRequiredGame(details),
+                fixedSides: details.drawPostedAt != null,
+              }}
+              viewerUserId={details.viewerUserId}
+              onSaved={refresh}
+            />
+            <PlayedMenuSheet
+              visible={openSpot != null}
+              title={
+                openSpot
+                  ? m.editTeams.openSpot.title(
+                      editTeamsSpotLabel(
+                        "friendly_tournament",
+                        openSpot.seat,
+                        locale,
+                      ),
+                    )
+                  : ""
+              }
+              items={
+                openSpot
+                  ? [
+                      {
+                        key: "add_player",
+                        label: m.editTeams.openSpot.addPlayer,
+                        hint: m.editTeams.openSpot.addPlayerHint,
+                        icon: UserPlus,
+                        onPress: () => addPlayerToSide(openSpot.seat.sideIndex),
+                      },
+                      {
+                        key: "join",
+                        label: m.editTeams.openSpot.join,
+                        icon: LogIn,
+                        onPress: () => openJoin(openSpot.seat),
+                      },
+                    ]
+                  : []
+              }
+              onClose={() => setOpenSpot(null)}
+            />
+          </>
         ) : null}
       </View>
     );
@@ -641,6 +723,45 @@ export function GameDetailsScreen({
 
   const details: FriendlyGameDetails = data;
   const canAddAtSeat = organizer.plan?.canAddPlayer ?? false;
+  const editsTeams = canEditTeams(details);
+  function addPlayerAt(seat: FriendlyGameJoinSeat) {
+    setAddSeat(seat);
+    organizer.handlers.onAddPlayer();
+  }
+  function openSpotItems(): PlayedMenuItem[] {
+    if (!openSpot) {
+      return [];
+    }
+    const { seat, own } = openSpot;
+    const spotCopy = m.editTeams.openSpot;
+    return [
+      {
+        key: "add_player",
+        label: spotCopy.addPlayer,
+        hint: spotCopy.addPlayerHint,
+        icon: UserPlus,
+        onPress: () => addPlayerAt(seat),
+      },
+      own === "join"
+        ? {
+            key: "join",
+            label: spotCopy.join,
+            icon: LogIn,
+            onPress: () => openJoin(seat),
+          }
+        : {
+            key: "move",
+            label: spotCopy.move,
+            icon: ArrowLeftRight,
+            onPress: () =>
+              moveSeat.mutate({
+                gameId,
+                sideIndex: seat.sideIndex,
+                position: seat.position,
+              }),
+          },
+    ];
+  }
   const canTapPlayers = Boolean(onOpenPlayer) || organizer.plan != null;
   const handlers: DetailsHandlers = {
     movePending: moveSeat.isPending,
@@ -650,11 +771,9 @@ export function GameDetailsScreen({
     onMove: (sideIndex, position) =>
       moveSeat.mutate({ gameId, sideIndex, position }),
     onJoinSeat: (seat) => openJoin(seat),
-    onAddPlayerAt: canAddAtSeat
-      ? (seat) => {
-          setAddSeat(seat);
-          organizer.handlers.onAddPlayer();
-        }
+    onAddPlayerAt: canAddAtSeat ? addPlayerAt : undefined,
+    onChooseOpenSpot: canAddAtSeat
+      ? (seat, own) => setOpenSpot({ seat, own })
       : undefined,
     onInvite: inviteAccess?.canManage ? () => setInviteOpen(true) : undefined,
     onPressPlayer: canTapPlayers ? setSelectedPlayer : undefined,
@@ -688,6 +807,7 @@ export function GameDetailsScreen({
       }
       organizer.onFooterAction(kind);
     },
+    onEditTeams: editsTeams ? () => setEditTeamsOpen(true) : undefined,
     messages: m,
     locale,
   });
@@ -789,6 +909,29 @@ export function GameDetailsScreen({
       {organizer.plan ? (
         <>
           <OrganizerSheets {...organizer.sheets} />
+          <EditTeamsSheet
+            visible={editTeamsOpen && editsTeams}
+            onClose={() => setEditTeamsOpen(false)}
+            gameId={gameId}
+            format="friendly_game"
+            sides={details.sides}
+            matches={details.matches}
+            rules={{ fullSidesOnly: false, fixedSides: false }}
+            viewerUserId={details.viewerUserId}
+            onSaved={refresh}
+          />
+          <PlayedMenuSheet
+            visible={openSpot != null}
+            title={
+              openSpot
+                ? m.editTeams.openSpot.title(
+                    editTeamsSpotLabel("friendly_game", openSpot.seat, locale),
+                  )
+                : ""
+            }
+            items={openSpotItems()}
+            onClose={() => setOpenSpot(null)}
+          />
           <AddPlayerSheet
             visible={organizer.addPlayer.open}
             onClose={() => {

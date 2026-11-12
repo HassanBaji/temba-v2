@@ -298,6 +298,30 @@ describe("notificationCopy for an Organizer's add", () => {
       },
     );
   });
+
+  it("tells a Player the Organizer changed the teams", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          type: "game_team_changed",
+          audience: "player",
+          actor: { name: "Sara" },
+          group: { name: "Night Crew" },
+          game,
+        },
+        "en",
+      ),
+      {
+        title: [
+          { text: "Sara", strong: true },
+          { text: " changed the teams on ", strong: false },
+          { text: "Thursday Padel", strong: true },
+          { text: ". See where you play now", strong: false },
+        ],
+        subline: null,
+      },
+    );
+  });
 });
 
 describe("notificationCopy for a claimed history", () => {

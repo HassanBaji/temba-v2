@@ -1,5 +1,6 @@
 import { spacing } from "@repo/design-tokens";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
+import { canEditTeams } from "@repo/domain/edit-teams";
 import { kickAction } from "@repo/domain/game-copy";
 import type {
   TournamentDetails,
@@ -42,6 +43,7 @@ export type OrganizerCardHandlers = {
   onKickPlayer: (userId: string) => void;
   onKickWaitlist: (waitlistId: string) => void;
   onAddPlayer: () => void;
+  onEditTeams: () => void;
 };
 
 function Block({ children }: { children: React.ReactNode }) {
@@ -173,6 +175,23 @@ export function OrganizerCard({
             variant="outline"
             pending={handlers.undoPending}
             onPress={handlers.onUndo}
+          />
+        </Action>
+      </Block>,
+    );
+  }
+
+  if (canEditTeams(game)) {
+    blocks.push(
+      <Block key="edit-teams">
+        <Text size="meta" tone="muted">
+          {messages.editTeams.tournamentCardCopy}
+        </Text>
+        <Action>
+          <Button
+            label={messages.editTeams.action}
+            variant="outline"
+            onPress={handlers.onEditTeams}
           />
         </Action>
       </Block>,

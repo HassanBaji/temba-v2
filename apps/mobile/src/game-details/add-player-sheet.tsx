@@ -63,6 +63,7 @@ export function AddPlayerSheet({
   placement,
   sides,
   initialSeat = null,
+  initialSide = null,
   groupName,
   onAdded,
 }: {
@@ -73,6 +74,8 @@ export function AddPlayerSheet({
   sides: readonly { sideIndex: number; left: NamedSeat; right: NamedSeat }[];
   /** The open spot the Organizer tapped on the court. */
   initialSeat?: FriendlyGameJoinSeat | null;
+  /** The open tournament team the Organizer tapped. */
+  initialSide?: number | null;
   /** The Game's Group; with one, the sheet opens on its members. */
   groupName: string | null;
   onAdded: () => Promise<unknown>;
@@ -106,12 +109,13 @@ export function AddPlayerSheet({
   useEffect(() => {
     if (visible) {
       setPicked(initialSeat);
+      setPickedSide(initialSide);
       setMode(hasGroup ? "group" : "phone");
       setQuery("");
       setMemberIds([]);
       setFootballPicks({});
     }
-  }, [visible, initialSeat, hasGroup]);
+  }, [visible, initialSeat, initialSide, hasGroup]);
 
   const isFootball = placement === "football";
   const inGroupMode = hasGroup && mode === "group";
