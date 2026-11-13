@@ -34,9 +34,11 @@ import {
 import { matchSeatedUserIds } from "#src/games/match-result-confirmations";
 import { loadMatchParticipants } from "#src/marks/match-participants";
 import { mvpQuestion } from "#src/marks/settle-mvp";
-import { sideUserIds } from "#src/ratings/apply-tier-match";
 import { loadGroupTierTable } from "#src/ratings/group-tier-table";
-import { settleRatingWindowIfDue } from "#src/ratings/settle-rating-window";
+import {
+  countedBallots,
+  settleRatingWindowIfDue,
+} from "#src/ratings/settle-rating-window";
 
 type DbClient = typeof db;
 
@@ -120,32 +122,10 @@ export async function performanceRatingResult(
     results.map((row) => [row.userId, row.ratingHundredths]),
   );
 
-  // The same ballots settling counted: from a seated player when everyone
-  // rates, from an Organizer of the Game when the Organizer rates.
-  const seated = new Set([
-    ...(match.slot1GameTeamId
-      ? await sideUserIds(database, match.slot1GameTeamId)
-      : []),
-    ...(match.slot2GameTeamId
-      ? await sideUserIds(database, match.slot2GameTeamId)
-      : []),
-  ]);
   const organizerIds = new Set(await gameAdminUserIds(database, game));
-  const countsFrom = (raterUserId: string) =>
-    window.mode === "everyone"
-      ? seated.has(raterUserId)
-      : organizerIds.has(raterUserId);
   const received = (
-    await database
-      .select({ raterUserId: performanceRatings.raterUserId })
-      .from(performanceRatings)
-      .where(
-        and(
-          eq(performanceRatings.matchId, match.id),
-          eq(performanceRatings.rateeUserId, args.userId),
-        ),
-      )
-  ).filter((ballot) => countsFrom(ballot.raterUserId));
+    await countedBallots(database, { match, game, window })
+  ).ballots.filter((ballot) => ballot.rateeUserId === args.userId);
 
   let noRating: {
     reason: NoPerformanceReason;
