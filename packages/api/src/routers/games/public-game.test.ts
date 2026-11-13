@@ -176,7 +176,7 @@ describe("Public Game create", () => {
       expect(parsed.success).toBe(false);
       expect(
         parsed.success ? undefined : parsed.error.flatten().fieldErrors.groupId,
-      ).toBeDefined();
+      ).toEqual([messagesFor("en").createGame.validation.pickGroup]);
 
       await expect(
         createGame(db, {

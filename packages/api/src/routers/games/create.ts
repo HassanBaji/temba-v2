@@ -50,6 +50,10 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 type GroupGameInput = CreateGameInput & { groupId: string };
 
+// The input schema is parsed before the request Locale is known, so its
+// issues read in the default Locale.
+const PICK_GROUP = messagesFor(DEFAULT_LOCALE).createGame.validation.pickGroup;
+
 const registrationModeSchema = z.enum(["individual", "team_only"]);
 const createFormatSchema = z.enum([
   "friendly_game",
@@ -62,7 +66,7 @@ export const createGameInputSchema = z
     name: z.string().trim().max(255).optional(),
     customName: z.string().trim().max(GAME_CUSTOM_NAME_MAX_LENGTH).optional(),
     /** Omitted only for a Public Game (ADR-0071). */
-    groupId: z.string().uuid({ message: "Pick a Group" }).optional(),
+    groupId: z.string().uuid({ message: PICK_GROUP }).optional(),
     isPublic: z.boolean(),
     /** A Public Game's sport; a Group's Game takes its Group's. Omitted = padel. */
     sport: sportSchema.optional(),
@@ -143,7 +147,7 @@ export const createGameInputSchema = z
     if (value.groupId === undefined && !value.isPublic) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Pick a Group",
+        message: PICK_GROUP,
         path: ["groupId"],
       });
     }
