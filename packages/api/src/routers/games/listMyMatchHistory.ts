@@ -2,7 +2,13 @@ import type { DbClient } from "@repo/db";
 import { and, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 
-import { MatchStatusEnum, gamePlayers, marks, matches } from "@repo/db";
+import {
+  MatchStatusEnum,
+  gamePlayers,
+  marks,
+  matches,
+  ratingEvents,
+} from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -49,9 +55,17 @@ export type MatchHistoryRow = {
   viewerMarks: MarkKind[];
   /** The viewer is this Game's settled MVP. */
   viewerIsMvp: boolean;
+  /**
+   * What this Match moved the viewer's Temba Level, when it counted for it.
+   * Null on a tier Game or an Unrated Game, which never move a Level.
+   */
+  levelMove: { muBefore: number; muAfter: number } | null;
 };
 
-type HistoryRowWithoutMarks = Omit<MatchHistoryRow, "viewerMarks">;
+type HistoryRowWithoutMarks = Omit<
+  MatchHistoryRow,
+  "viewerMarks" | "levelMove"
+>;
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -310,7 +324,11 @@ export async function listMyMatchHistoryRows(
     return a.matchId < b.matchId ? 1 : a.matchId > b.matchId ? -1 : 0;
   });
 
-  return withViewerMarks(database, userId, pageOf(rows, page));
+  return withLevelMoves(
+    database,
+    userId,
+    await withViewerMarks(database, userId, pageOf(rows, page)),
+  );
 }
 
 function pageOf<Row extends { displayTime: Date; matchId: string }>(
@@ -339,7 +357,7 @@ async function withViewerMarks(
   database: DbClient,
   userId: string,
   rows: HistoryRowWithoutMarks[],
-): Promise<MatchHistoryRow[]> {
+): Promise<Omit<MatchHistoryRow, "levelMove">[]> {
   const received =
     rows.length === 0
       ? []
@@ -369,6 +387,36 @@ async function withViewerMarks(
           MARK_KINDS.indexOf(leftKind) - MARK_KINDS.indexOf(rightKind),
       )
       .map(([kind]) => kind),
+  }));
+}
+
+async function withLevelMoves(
+  database: DbClient,
+  userId: string,
+  rows: Omit<MatchHistoryRow, "levelMove">[],
+): Promise<MatchHistoryRow[]> {
+  const events =
+    rows.length === 0
+      ? []
+      : await database.query.ratingEvents.findMany({
+          where: and(
+            eq(ratingEvents.userId, userId),
+            inArray(
+              ratingEvents.matchId,
+              rows.map((row) => row.matchId),
+            ),
+          ),
+          columns: { matchId: true, muBefore: true, muAfter: true },
+        });
+  const byMatch = new Map(
+    events.map((event) => [
+      event.matchId,
+      { muBefore: event.muBefore, muAfter: event.muAfter },
+    ]),
+  );
+  return rows.map((row) => ({
+    ...row,
+    levelMove: byMatch.get(row.matchId) ?? null,
   }));
 }
 

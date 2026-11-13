@@ -400,6 +400,19 @@ function levelDelta(sport: Sport, before: number, after: number) {
   return amount;
 }
 
+/** A Level move on the sport's face: "+1" in OVR, "−0.04" on padel. */
+export function levelMoveDelta(
+  sport: Sport,
+  muBefore: number,
+  muAfter: number,
+) {
+  return levelDelta(
+    sport,
+    levelFace(sport, muBefore),
+    levelFace(sport, muAfter),
+  );
+}
+
 function setsLine(sets: { own: number; opponent: number }[], locale: Locale) {
   const m = messagesFor(locale).rating;
   return sets

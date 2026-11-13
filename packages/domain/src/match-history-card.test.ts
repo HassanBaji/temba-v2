@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
+import { muFromOvr } from "./football-ovr";
+import { muFromLevel } from "./level";
 import {
   HISTORY_PAGE_SIZE,
   historyCoins,
+  historyLevelChange,
   historyTeamLabel,
   matchHistoryCardModel,
   nextHistoryCursor,
@@ -295,5 +298,64 @@ describe("historyCoins", () => {
       ["mvp", "clutch", "dynamo"],
     );
     assert.deepEqual(historyCoins(row({ viewerIsMvp: true })), ["mvp"]);
+  });
+});
+
+describe("historyLevelChange", () => {
+  const football = {
+    sport: "football",
+    groupName: null,
+    venue: { name: "Galali" },
+    scoredSets: [{ slot1GamesWon: 5, slot2GamesWon: 3 }],
+  } as const;
+
+  it("reads a football Match that counted as its OVR change, after the scope", () => {
+    const counted = row({
+      ...football,
+      ratingScope: "temba",
+      levelMove: { muBefore: muFromOvr(73), muAfter: muFromOvr(74) },
+    });
+    assert.equal(historyLevelChange(counted, "en"), "OVR +1");
+    const model = matchHistoryCardModel(counted, "en");
+    assert.equal(model.place, "Galali · Counts for Temba Level · OVR +1");
+    assert.ok(model.meta.endsWith(" · Counts for Temba Level · OVR +1"));
+  });
+
+  it("shows no change on a tier Game", () => {
+    const tier = row({
+      ...football,
+      rated: false,
+      ratingScope: "group",
+      levelMove: null,
+    });
+    assert.equal(historyLevelChange(tier, "en"), null);
+    assert.equal(
+      matchHistoryCardModel(tier, "en").place,
+      "Galali · Counts for group tier",
+    );
+  });
+
+  it("reads a padel Match that counted on the Level face, to two decimals", () => {
+    const counted = row({
+      ratingScope: "temba",
+      levelMove: { muBefore: muFromLevel(3.49), muAfter: muFromLevel(3.45) },
+    });
+    assert.equal(historyLevelChange(counted, "en"), "Level −0.04");
+    assert.equal(
+      matchHistoryCardModel(counted, "en").place,
+      "Padelhuset · Level −0.04",
+    );
+  });
+
+  it("reads in Arabic", () => {
+    const counted = row({
+      ...football,
+      ratingScope: "temba",
+      levelMove: { muBefore: muFromOvr(74), muAfter: muFromOvr(72) },
+    });
+    assert.equal(
+      historyLevelChange(counted, "ar"),
+      `${isolate("OVR")} ${isolate("−2")}`,
+    );
   });
 });
