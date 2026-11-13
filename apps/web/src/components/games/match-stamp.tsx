@@ -27,6 +27,7 @@ export function useMatchStamping(game: {
       await Promise.all([
         utils.games.byId.invalidate({ id: game.id }),
         utils.games.tournamentRounds.invalidate({ gameId: game.id }),
+        utils.games.listMatchesToStamp.invalidate(),
       ]);
     },
     onError: (error) => {

@@ -266,7 +266,8 @@ export function FootballGameDetails({
   const stampMatch = api.games.stampMatch.useMutation({
     onSuccess: () => toast.show(m.rating.verifier.stamp.stamped),
     onError: failure,
-    onSettled: refresh,
+    onSettled: () =>
+      Promise.all([refresh(), utils.games.listMatchesToStamp.invalidate()]),
   });
   const leave = api.games.leave.useMutation({
     onSuccess: () => toast.show(gameToast(locale).left),

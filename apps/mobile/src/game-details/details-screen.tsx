@@ -285,7 +285,8 @@ export function GameDetailsScreen({
   const stampMatch = api.games.stampMatch.useMutation({
     onSuccess: () => toast.show(m.rating.verifier.stamp.stamped),
     onError: failure,
-    onSettled: refresh,
+    onSettled: () =>
+      Promise.all([refresh(), utils.games.listMatchesToStamp.invalidate()]),
   });
   const requestLevel = api.games.requestLevelRange.useMutation({
     onSuccess: () => toast.show(m.level.request.sent),

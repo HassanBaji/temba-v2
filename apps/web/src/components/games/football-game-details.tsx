@@ -245,7 +245,10 @@ export function FootballGameDetails({
   const stampMatch = api.games.stampMatch.useMutation({
     onSuccess: async () => {
       toast.success(m.rating.verifier.stamp.stamped);
-      await refreshGame();
+      await Promise.all([
+        refreshGame(),
+        utils.games.listMatchesToStamp.invalidate(),
+      ]);
     },
     onError,
   });
