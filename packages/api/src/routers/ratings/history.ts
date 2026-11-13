@@ -1,15 +1,4 @@
-import {
-  and,
-  desc,
-  eq,
-  inArray,
-  lt,
-  lte,
-  or,
-  sql,
-  type SQL,
-} from "drizzle-orm";
-import { type AnyPgColumn } from "drizzle-orm/pg-core";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -33,6 +22,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { levelConfirmations } from "#src/ratings/level-confirmed";
+import { olderThanShown, shownAt, shownAtIso } from "#src/ratings/shown-at";
 import {
   ratingHistoryMatches,
   setsFromSideOf,
@@ -80,39 +70,6 @@ function afterCursor(entry: Keyed, cursor: RatingHistoryCursor | undefined) {
       },
       entry,
     ) < 0
-  );
-}
-
-/**
- * A row's time cut to the millisecond a JavaScript Date holds. The stored
- * time has microseconds, and rows one transaction writes share it, so keying
- * the cursor on the cut time keeps the three sources and the cursor in one
- * order.
- */
-function shownAt(column: AnyPgColumn) {
-  return sql`date_trunc('milliseconds', ${column})`;
-}
-
-function shownAtIso(column: AnyPgColumn) {
-  return sql<string>`to_char(${shownAt(column)}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`;
-}
-
-/** Rows past the cursor; `andAt` keeps the cursor's own row as well. */
-function olderThan(
-  columns: { createdAt: AnyPgColumn; id: AnyPgColumn },
-  cursor: RatingHistoryCursor | undefined,
-  andAt = false,
-): SQL | undefined {
-  if (!cursor) {
-    return undefined;
-  }
-  const at = cursor.createdAt.toISOString();
-  return or(
-    lt(shownAt(columns.createdAt), at),
-    and(
-      eq(shownAt(columns.createdAt), at),
-      (andAt ? lte : lt)(columns.id, cursor.id),
-    ),
   );
 }
 
@@ -167,7 +124,7 @@ export async function ratingHistory(
             and(
               eq(ratingEvents.userId, userId),
               sport ? eq(ratingEvents.sport, sport) : undefined,
-              olderThan(ratingEvents, cursor, cursor?.milestone),
+              olderThanShown(ratingEvents, cursor, cursor?.milestone),
             ),
           )
           .orderBy(desc(shownAt(ratingEvents.createdAt)), desc(ratingEvents.id))
@@ -186,7 +143,7 @@ export async function ratingHistory(
             and(
               eq(levelOverrides.userId, userId),
               sport ? eq(levelOverrides.sport, sport) : undefined,
-              olderThan(levelOverrides, cursor),
+              olderThanShown(levelOverrides, cursor),
             ),
           )
           .orderBy(
@@ -208,7 +165,7 @@ export async function ratingHistory(
             and(
               eq(groupTierEvents.userId, userId),
               sport ? eq(groups.sport, sport) : undefined,
-              olderThan(groupTierEvents, cursor),
+              olderThanShown(groupTierEvents, cursor),
             ),
           )
           .orderBy(

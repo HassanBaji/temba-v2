@@ -32,6 +32,7 @@ import type { Sport } from "@repo/domain/sport";
 
 import { type db } from "#src/db";
 import { notify } from "#src/notifications/notify";
+import { shownAt } from "#src/ratings/shown-at";
 
 type DbClient = typeof db | DbTx | AnyDbClient;
 
@@ -45,10 +46,6 @@ export type LevelConfirmation = {
   /** Counting Matches in the sport up to and including this one. */
   matchesCounted: number;
 };
-
-function shownAt(column: typeof ratingEvents.createdAt) {
-  return sql`date_trunc('milliseconds', ${column})`;
-}
 
 /**
  * A padel `rating_events` row counts towards confirming the Level when its
