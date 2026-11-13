@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
+import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { Section } from "~/components/layout/section";
 import { useMessages } from "~/components/locale-provider";
@@ -19,21 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { useDebouncedValue } from "~/hooks/use-debounced-value";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 type VerifierKind = RouterOutputs["venues"]["listVerifiers"][number]["kind"];
 
 const KINDS: readonly VerifierKind[] = ["club_staff", "referee", "coach"];
-
-function useDebouncedValue(value: string, delayMs: number) {
-  const [debounced, setDebounced] = React.useState(value);
-  React.useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timer);
-  }, [value, delayMs]);
-  return debounced;
-}
 
 /** The Operator's Verifiers list on a Venue page (ADR-0072). */
 export function VenueVerifiersSection({ venueId }: { venueId: string }) {
@@ -94,6 +87,8 @@ export function VenueVerifiersSection({ venueId }: { venueId: string }) {
         />
       ) : null}
 
+      {verifiers.isLoading ? <ListPageSkeleton rows={2} /> : null}
+
       {verifiers.data && current.length === 0 ? (
         <p className="text-body text-muted-foreground">{m.none}</p>
       ) : null}
@@ -132,43 +127,50 @@ export function VenueVerifiersSection({ venueId }: { venueId: string }) {
         </RowList>
       ) : null}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <Field className="min-w-0 flex-1">
-          <FieldLabel htmlFor="venue-verifier-search">{m.addLabel}</FieldLabel>
-          <Input
-            id="venue-verifier-search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={m.searchPlaceholder}
-            maxLength={100}
-            autoComplete="off"
-          />
-        </Field>
-        <Field className="sm:w-44">
-          <FieldLabel htmlFor="venue-verifier-kind">{m.kindLabel}</FieldLabel>
-          <Select
-            value={kind}
-            onValueChange={(next) => setKind(next as VerifierKind)}
-          >
-            <SelectTrigger id="venue-verifier-kind" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {KINDS.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {kinds[value]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-      </div>
+      {verifiers.data ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <Field className="min-w-0 flex-1">
+            <FieldLabel htmlFor="venue-verifier-search">
+              {m.addLabel}
+            </FieldLabel>
+            <Input
+              id="venue-verifier-search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={m.searchPlaceholder}
+              maxLength={100}
+              autoComplete="off"
+            />
+          </Field>
+          <Field className="sm:w-44">
+            <FieldLabel htmlFor="venue-verifier-kind">{m.kindLabel}</FieldLabel>
+            <Select
+              value={kind}
+              onValueChange={(next) => setKind(next as VerifierKind)}
+            >
+              <SelectTrigger id="venue-verifier-kind" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {KINDS.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {kinds[value]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
+      ) : null}
 
-      {debouncedQuery.length > 0 && search.data && candidates.length === 0 ? (
+      {verifiers.data &&
+      debouncedQuery.length > 0 &&
+      search.data &&
+      candidates.length === 0 ? (
         <p className="text-body text-muted-foreground">{m.noUsers}</p>
       ) : null}
 
-      {candidates.length > 0 ? (
+      {verifiers.data && candidates.length > 0 ? (
         <RowList>
           {candidates.map((candidate) => (
             <ListRow
