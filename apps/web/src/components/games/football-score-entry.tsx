@@ -7,7 +7,7 @@ import {
   scorersNote,
   scorersPayload,
   shortName,
-  sideAverage,
+  sideOvrAverage,
   type Bibs,
   type BoardPlayer,
   type ScoreDraft,
@@ -58,6 +58,7 @@ function SideStepper({
   onStep: (delta: -1 | 1) => void;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   const t = m.webTournament.footballScore;
   return (
     <div className="flex flex-1 flex-col items-center gap-2.5 py-5">
@@ -91,7 +92,7 @@ function SideStepper({
         </Button>
       </div>
       <span className="text-muted-foreground text-meta">
-        {m.game.played.avg(sideAverage(members))}
+        {m.game.played.avg(sideOvrAverage(members, locale))}
       </span>
     </div>
   );

@@ -6,7 +6,7 @@ import {
   levelLabel,
   makeTeamsLevelLabel,
   shortName,
-  sideAverage,
+  sideOvrAverage,
   slotCode,
   type Bibs,
   type BoardPlayer,
@@ -123,27 +123,36 @@ export function BibRow({
   );
 }
 
+/**
+ * A published side's heading. The mean reads in OVR, and is left out in a
+ * tier Group, where the rows show fish and points are not everyone's to see.
+ */
 export function TeamHeader({
   bib,
   name,
   players,
+  balanceOn,
   muted = "text-muted-foreground",
 }: {
   bib: FootballBib;
   name: string;
   players: readonly BoardPlayer[];
+  balanceOn: FootballBalanceOn;
   muted?: string;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   return (
     <div className="flex items-center justify-between gap-1.5">
       <span className="text-meta flex items-center gap-1.5 font-semibold">
         <BibChip bib={bib} className="size-3.5" />
         {name}
       </span>
-      <span className={cn("text-[12px]", muted)}>
-        {m.game.played.avg(sideAverage(players))}
-      </span>
+      {balanceOn === "ovr" ? (
+        <span className={cn("text-[12px] tabular-nums", muted)}>
+          {m.game.played.avg(sideOvrAverage(players, locale))}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -154,17 +163,22 @@ export function sideMembers(players: readonly BoardPlayer[], side: 1 | 2) {
     .sort(byKeeperThenLevel);
 }
 
-/** The two published teams side by side. */
+/**
+ * The two published teams side by side. A row shows the player's OVR, or
+ * their fish in a tier Group, as Make teams does.
+ */
 export function TeamColumns({
   players,
   bibs,
   names,
+  balanceOn,
   muted,
   onOpenPlayer,
 }: {
   players: readonly BoardPlayer[];
   bibs: Bibs;
   names: { slot1: string; slot2: string };
+  balanceOn: FootballBalanceOn;
   muted?: string;
   onOpenPlayer?: (userId: string) => void;
 }) {
@@ -178,6 +192,7 @@ export function TeamColumns({
           bib={bib}
           name={side === 1 ? names.slot1 : names.slot2}
           players={members}
+          balanceOn={balanceOn}
           muted={muted}
         />
         <ul className="space-y-2">
@@ -186,6 +201,8 @@ export function TeamColumns({
               <BibRow
                 player={player}
                 bib={bib}
+                showTier={balanceOn === "tierPoints"}
+                balanceOn={balanceOn}
                 onPress={
                   onOpenPlayer ? () => onOpenPlayer(player.userId) : undefined
                 }

@@ -439,10 +439,26 @@ export function boardTierCell(
   );
 }
 
-export function sideAverage(
-  players: readonly Pick<BoardPlayer, "levelBand">[],
-) {
+function sideAverage(players: readonly Pick<BoardPlayer, "levelBand">[]) {
   return averageLevelLabel(players.map((player) => player.levelBand)) ?? "–";
+}
+
+/**
+ * A side's mean OVR, "OVR 72", over its players with a football Rating; a
+ * dash when none has one.
+ */
+export function sideOvrAverage(
+  players: readonly Pick<BoardPlayer, "ovr">[],
+  locale: Locale,
+) {
+  const known = players.flatMap((player) =>
+    player.ovr == null ? [] : [player.ovr],
+  );
+  if (known.length === 0) {
+    return "–";
+  }
+  const mean = known.reduce((sum, ovr) => sum + ovr, 0) / known.length;
+  return messagesFor(locale).rating.ovr.value(formatOvr(mean));
 }
 
 export function keeperWord(

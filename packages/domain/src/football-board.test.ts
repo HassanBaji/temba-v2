@@ -22,6 +22,7 @@ import {
   scorersPayload,
   shortName,
   switchMethod,
+  sideOvrAverage,
   teamsSideAverage,
   viewerSideLine,
   type BoardPlayer,
@@ -294,6 +295,11 @@ describe("teams draft outside a tier Group", () => {
     expect(summary.note).toBe(
       "Everyone placed. Black avg OVR 73, White avg OVR 72.",
     );
+  });
+
+  it("reads a published side's mean OVR over the players who have one", () => {
+    expect(sideOvrAverage(ovrPlayers.slice(2), "en")).toBe("OVR 77");
+    expect(sideOvrAverage([{ ovr: null }], "en")).toBe("–");
   });
 
   it("shows the OVR where the Level sits, a dash without one", () => {

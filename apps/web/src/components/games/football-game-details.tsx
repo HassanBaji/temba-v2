@@ -566,6 +566,7 @@ export function FootballGameDetails({
           players={players}
           bibs={teams.bibs}
           names={names}
+          balanceOn={board.data?.balanceOn ?? "ovr"}
           muted={heroMuted}
           onOpenPlayer={pressPlayer}
         />

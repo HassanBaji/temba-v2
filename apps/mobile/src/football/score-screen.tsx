@@ -37,7 +37,7 @@ import {
   scorersNote,
   scorersPayload,
   shortName,
-  sideAverage,
+  sideOvrAverage,
   type Bibs,
   type BoardPlayer,
   type ScoreDraft,
@@ -94,6 +94,7 @@ function SideStepper({
   onStep: (delta: -1 | 1) => void;
 }) {
   const messages = useMessages();
+  const locale = useLocale();
   const m = messages.mobileTournament.scoreScreen;
   return (
     <View
@@ -126,7 +127,7 @@ function SideStepper({
         />
       </View>
       <Text size="meta" tone="muted">
-        {messages.game.played.avg(sideAverage(members))}
+        {messages.game.played.avg(sideOvrAverage(members, locale))}
       </Text>
     </View>
   );

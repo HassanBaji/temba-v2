@@ -6,7 +6,7 @@ import {
   bibNames,
   levelLabel,
   shortName,
-  sideAverage,
+  sideOvrAverage,
   slotCode,
   type Bibs,
   type BoardPlayer,
@@ -563,7 +563,7 @@ export function playedFootballModel(
   ): PlayedFootballSide => ({
     name: index === 1 ? names.slot1 : names.slot2,
     bib: index === 1 ? input.bibs.slot1 : input.bibs.slot2,
-    average: m.avg(sideAverage(players)),
+    average: m.avg(sideOvrAverage(players, locale)),
     score: index === 1 ? input.score.slot1 : input.score.slot2,
     won,
   });

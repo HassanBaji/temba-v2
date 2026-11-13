@@ -20,7 +20,7 @@ import {
   levelLabel,
   makeTeamsLevelLabel,
   shortName,
-  sideAverage,
+  sideOvrAverage,
   slotCode,
   type Bibs,
   type BoardPlayer,
@@ -132,16 +132,23 @@ export function BibRow({
   );
 }
 
+/**
+ * A published side's heading. The mean reads in OVR, and is left out in a
+ * tier Group, where the rows show fish and points are not everyone's to see.
+ */
 export function TeamHeader({
   bib,
   name,
   players,
+  balanceOn,
 }: {
   bib: FootballBib;
   name: string;
   players: readonly BoardPlayer[];
+  balanceOn: FootballBalanceOn;
 }) {
   const messages = useMessages();
+  const locale = useLocale();
   return (
     <View
       style={{
@@ -157,23 +164,30 @@ export function TeamHeader({
           {name}
         </Text>
       </View>
-      <Text size="eyebrow" tone="muted">
-        {messages.game.played.avg(sideAverage(players))}
-      </Text>
+      {balanceOn === "ovr" ? (
+        <Text size="eyebrow" tone="muted">
+          {messages.game.played.avg(sideOvrAverage(players, locale))}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
-/** The two published teams side by side. */
+/**
+ * The two published teams side by side. A row shows the player's OVR, or
+ * their fish in a tier Group, as Make teams does.
+ */
 export function TeamColumns({
   players,
   bibs,
   names,
+  balanceOn,
   onOpenPlayer,
 }: {
   players: readonly BoardPlayer[];
   bibs: Bibs;
   names: { slot1: string; slot2: string };
+  balanceOn: FootballBalanceOn;
   onOpenPlayer?: (userId: string) => void;
 }) {
   const m = useMessages().mobileTournament.card;
@@ -190,12 +204,15 @@ export function TeamColumns({
           bib={bib}
           name={index === 1 ? names.slot1 : names.slot2}
           players={members}
+          balanceOn={balanceOn}
         />
         {members.map((player) => (
           <BibRow
             key={player.userId}
             player={player}
             bib={bib}
+            showTier={balanceOn === "tierPoints"}
+            balanceOn={balanceOn}
             onPress={
               onOpenPlayer ? () => onOpenPlayer(player.userId) : undefined
             }
