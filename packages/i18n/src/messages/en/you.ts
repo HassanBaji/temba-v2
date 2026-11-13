@@ -4,13 +4,13 @@ import { plural } from "../../plural";
 export const you = {
   ratingScope: {
     temba: "Counts for Temba rating",
-    group: "Counts for group rating",
+    group: "Did not count for Temba Level",
     unrated: "Unrated",
     title: "Rating",
     rated: "Rated",
     temba_note: "Moves everyone's Temba level.",
     group_note:
-      "Moves levels in this group only. Temba levels move in verified groups.",
+      "It counted for a group level, which padel no longer has. It moved no Temba Level.",
     unrated_note: "Results count in the standings, but no level moves.",
   },
   header: {
@@ -22,7 +22,7 @@ export const you = {
     addSport: (sport: string) => `Add ${sport}`,
   },
   hero: {
-    generalLevel: "General level",
+    generalLevel: "Temba Level",
     confirmed: (n: number) =>
       plural("en", n, {
         one: "Confirmed · 1 rated",
@@ -47,9 +47,9 @@ export const you = {
       }),
     settles: (n: number) =>
       plural("en", n, {
-        one: "Your level settles after about 1 more rated match. Until then it moves faster.",
+        one: "Your level settles after 1 more rated match in a verified group. Until then it moves faster.",
         other:
-          "Your level settles after about {n} more rated matches. Until then it moves faster.",
+          "Your level settles after {n} more rated matches in a verified group. Until then it moves faster.",
       }),
     topBand: "Top level band.",
     graphTitle: (n: number) =>
@@ -142,7 +142,7 @@ export const you = {
     sportProfiles: "Sport profiles",
     notSetUp: "Not set up",
     setUp: "Set up",
-    padelSub: (level: string, side: string) => `${level} general · ${side}`,
+    padelSub: (level: string, side: string) => `${level} · ${side}`,
     padelSubNoLevel: (side: string) => `No level yet · ${side}`,
     footballSub: (level: string, role: string) => `${level} · ${role}`,
     account: "Account",
@@ -240,7 +240,7 @@ export const you = {
   padel: {
     title: "Padel profile",
     level: "Level",
-    general: "general",
+    general: "Temba Level",
     lockNote:
       "Set by your rated results. It moves after every rated match and can no longer be declared by hand.",
     lockNoteProvisional:

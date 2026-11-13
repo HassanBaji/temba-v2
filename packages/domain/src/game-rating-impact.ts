@@ -17,6 +17,7 @@ import {
 } from "./game-rating-scope";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import { formatPerformanceRating, MIN_BALLOTS } from "./performance-rating";
+import type { Sport } from "./sport";
 
 export function unratedLabel(locale: Locale) {
   return messagesFor(locale).common.unrated;
@@ -114,9 +115,9 @@ export function ratingImpactChangeDirection(
  * Provisional/confirmed phrasing conventions already shipped on Home
  * (`.scratch/home-level-redesign/spec.md` §3.4, `home-level-block.tsx`)
  * rather than inventing new copy:
- * - "about" a remaining-games count, never a hard promise — the count is a
- *   linear estimate in φ that can rise after idle-inflation (ADR-0009), so
- *   promising an exact number is a support thread waiting to happen.
+ * - the remaining count is exact, and which Matches it counts differs by
+ *   sport: counting Matches on football (ADR-0069), Rated Matches in a
+ *   Verified Group on padel (ADR-0074).
  * - "confirms"/"confirmed", never "locks in".
  *
  * The Level band renders through the shipped display remap (D / D+ / C /
@@ -127,6 +128,8 @@ export function ratingImpactStandingSentence(args: {
   newLevelBand: LevelBand;
   isProvisional: boolean;
   ratedMatchesRemainingToConfirm: number | null;
+  /** Which Matches confirm a Level differs by sport (ADR-0069, ADR-0074). */
+  sport: Sport;
   locale: Locale;
 }): string {
   const m = messagesFor(args.locale).game.rating;
@@ -134,7 +137,7 @@ export function ratingImpactStandingSentence(args: {
 
   if (args.isProvisional) {
     const remaining = Math.max(1, args.ratedMatchesRemainingToConfirm ?? 1);
-    return m.stillProvisional(bandLabel, remaining);
+    return m.stillProvisional[args.sport](bandLabel, remaining);
   }
 
   return m.stillConfirmed(bandLabel);
@@ -157,7 +160,11 @@ export function ratingImpactView(
     direction,
     magnitude,
     newLevelLabel: ratingImpact.newLevel.toFixed(1),
-    sentence: ratingImpactStandingSentence({ ...ratingImpact, locale }),
+    sentence: ratingImpactStandingSentence({
+      ...ratingImpact,
+      sport: "padel",
+      locale,
+    }),
     directionText:
       direction === "up"
         ? m.increasedBy(magnitude)
@@ -374,7 +381,11 @@ export function ovrImpactView(
     })),
     total: {
       title: totalTitle,
-      detail: ratingImpactStandingSentence({ ...impact, locale }),
+      detail: ratingImpactStandingSentence({
+        ...impact,
+        sport: "football",
+        locale,
+      }),
       delta: totalDelta,
       spoken: copy.spoken(totalTitle, totalDelta),
     },

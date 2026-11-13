@@ -27,7 +27,7 @@ describe("hasDetails", () => {
 describe("sport rows", () => {
   it("reads padel with its general Level and side", () => {
     expect(padelSportSub({ levelBand: "C1", rating: 3.21 }, "left", "en")).toBe(
-      "C+ 3.21 general · Left side",
+      "C+ 3.21 · Left side",
     );
     expect(padelSportSub(null, null, "en")).toBe("No level yet · Not set");
   });

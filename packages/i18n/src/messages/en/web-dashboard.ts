@@ -278,7 +278,7 @@ export const webDashboard = {
       removeConfirm: {
         title: (name: string) => `Remove verification from ${name}?`,
         description:
-          "Existing Games keep their rating and public settings. New Games in this Group will count for the group rating only and be private.",
+          "Existing Games keep their rating and public settings. New Games in this Group will not count for Temba Level and will be private.",
       },
     },
     levels: {
@@ -388,7 +388,7 @@ export const webDashboard = {
       unlinkConfirm: {
         title: (group: string) => `Unlink ${group}?`,
         description: (group: string) =>
-          `${group} becomes a Loose Group again. New Games will count for the group rating only, unless an Operator has verified it. Past Games and members stay as they are.`,
+          `${group} becomes a Loose Group again. New Games will not count for Temba Level, unless an Operator has verified it. Past Games and members stay as they are.`,
         confirmLabel: "Unlink Group",
       },
       unlinkedToast: (group: string) => `${group} unlinked`,

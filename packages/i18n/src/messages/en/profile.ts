@@ -59,8 +59,8 @@ export const profile = {
       "Starting Level. Games that count for Temba Level move it",
     confirmProgress: (count: number, total: number) =>
       plural("en", total, {
-        one: `${count} of about 1 rated game to confirm`,
-        other: `${count} of about {n} rated games to confirm`,
+        one: `${count} of 1 match to confirm`,
+        other: `${count} of {n} matches to confirm`,
       }),
     topBand: "Top Level band",
     progressTo: (percent: number, next: string) =>

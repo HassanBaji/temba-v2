@@ -65,11 +65,13 @@ describe("bookingGameReviewRows", () => {
       { label: "Rating", value: "Counts for Temba rating" },
     ]);
     expect(
-      bookingGameReviewRows(booking, "en", undefined, {
-        name: "Thursday padel",
-        ratingScope: "group",
-      }).at(-1),
-    ).toEqual({ label: "Rating", value: "Counts for group rating" });
+      bookingGameReviewRows(
+        { ...booking, court: { name: "Pitch 1", sport: "football" } },
+        "en",
+        undefined,
+        { name: "Thursday football", ratingScope: "group" },
+      ).at(-1),
+    ).toEqual({ label: "Rating", value: "Counts for group tier" });
     expect(
       bookingGameReviewRows(booking, "en", undefined, {
         name: "Thursday padel",

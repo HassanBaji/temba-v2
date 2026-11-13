@@ -480,7 +480,7 @@ export const rating = {
       title: {
         verifier: "معايرة المستوى من مُوثِّق",
         operator: "تحديد المستوى من مشغّل",
-        level_setter: "تحديد المستوى من مخوَّل بتحديده",
+        level_setter: "تغيير المستوى من مخوَّل بتحديده",
       },
       detail: (sport: string, from: string, to: string) =>
         `${sport}، من ${isolate(from)} إلى ${isolate(to)}`,

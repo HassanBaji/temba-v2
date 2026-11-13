@@ -163,7 +163,9 @@ describe("ratedScopeForGroup", () => {
 describe("gameRatingScopeLabel", () => {
   it("names each scope", () => {
     expect(gameRatingScopeLabel("temba", "en")).toBe("Counts for Temba rating");
-    expect(gameRatingScopeLabel("group", "en")).toBe("Counts for group rating");
+    expect(gameRatingScopeLabel("group", "en")).toBe(
+      "Did not count for Temba Level",
+    );
     expect(gameRatingScopeLabel("unrated", "en")).toBe("Unrated");
   });
 
@@ -172,7 +174,7 @@ describe("gameRatingScopeLabel", () => {
       "Counts for group tier",
     );
     expect(gameRatingScopeLabel("group", "en", "padel")).toBe(
-      "Counts for group rating",
+      "Did not count for Temba Level",
     );
   });
 

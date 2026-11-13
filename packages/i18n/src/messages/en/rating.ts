@@ -413,7 +413,7 @@ export const rating = {
       title: {
         verifier: "Level calibrated by a verifier",
         operator: "Level set by an operator",
-        level_setter: "Level set by a level setter",
+        level_setter: "Level changed by a level setter",
       },
       detail: (sport: string, from: string, to: string) =>
         `${sport}, ${from} to ${to}`,

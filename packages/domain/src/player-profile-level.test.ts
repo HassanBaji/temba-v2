@@ -31,7 +31,7 @@ describe("playerLevelCardView", () => {
       displayBand: "C",
       level: "3.42",
       provisional: true,
-      lines: ["3 of about 5 rated games to confirm"],
+      lines: ["3 of 5 matches to confirm"],
       fillPercent: 60,
     });
   });
@@ -41,7 +41,7 @@ describe("playerLevelCardView", () => {
       playerLevelCardView(fixtures.selfDeclared.rating, "en"),
     ).toMatchObject({
       provisional: true,
-      lines: ["0 of about 5 rated games to confirm"],
+      lines: ["0 of 5 matches to confirm"],
       fillPercent: 0,
     });
   });

@@ -253,7 +253,7 @@ export const group = {
     leaveVenueConfirm: {
       title: (venue: string) => `Unlink from ${venue}?`,
       description: (group: string) =>
-        `${group} becomes a Loose Group again. New Games will count for the group rating only, unless an Operator has verified the Group.`,
+        `${group} becomes a Loose Group again. New Games will not count for Temba Level, unless an Operator has verified the Group.`,
       confirmLabel: "Unlink",
       cancelLabel: "Stay linked",
       pendingLabel: "Unlinking…",
@@ -266,7 +266,7 @@ export const group = {
     venueUnlinkConfirm: {
       title: (group: string) => `Unlink ${group}?`,
       description: (group: string) =>
-        `${group} is no longer linked to your Venue and becomes a Loose Group. New Games will count for the group rating only, unless an Operator has verified it. Past Games and members stay as they are.`,
+        `${group} is no longer linked to your Venue and becomes a Loose Group. New Games will not count for Temba Level, unless an Operator has verified it. Past Games and members stay as they are.`,
       confirmLabel: "Unlink Group",
       cancelLabel: "Keep linked",
     },

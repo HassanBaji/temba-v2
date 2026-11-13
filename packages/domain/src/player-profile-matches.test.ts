@@ -161,10 +161,10 @@ describe("playerMatchRowView", () => {
       "en",
     );
     expect(row.unrated).toBe(false);
-    expect(row.ratingTag).toBe("Counts for group rating");
-    expect(row.accessibilityLabel.endsWith("Counts for group rating")).toBe(
-      true,
-    );
+    expect(row.ratingTag).toBe("Did not count for Temba Level");
+    expect(
+      row.accessibilityLabel.endsWith("Did not count for Temba Level"),
+    ).toBe(true);
   });
 
   it("reads Set scores from the owner's side when they sat in slot 2", () => {

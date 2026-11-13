@@ -38,7 +38,7 @@ export function hasDetails(details: {
   );
 }
 
-/** "C+ 3.21 general · Left side", or "No level yet · Left side". */
+/** "C+ 3.21 · Left side", or "No level yet · Left side". */
 export function padelSportSub(
   level: { levelBand: LevelBand; rating: number } | null,
   preferredPosition: string | null,

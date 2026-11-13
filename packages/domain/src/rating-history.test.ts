@@ -391,7 +391,7 @@ describe("ratingHistoryLine", () => {
         VIEWER,
         "en",
       ).title,
-    ).toBe("Level set by a level setter");
+    ).toBe("Level changed by a level setter");
   });
 
   it("reads an Organizer's Tier adjustment with who, why and the note", () => {

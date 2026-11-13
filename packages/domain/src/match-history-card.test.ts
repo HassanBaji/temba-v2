@@ -67,8 +67,8 @@ describe("matchHistoryCardModel unrated mark", () => {
       "en",
     );
     assert.equal(model.unrated, false);
-    assert.ok(model.meta.endsWith(" · Counts for group rating"));
-    assert.ok(model.place.endsWith(" · Counts for group rating"));
+    assert.ok(model.meta.endsWith(" · Did not count for Temba Level"));
+    assert.ok(model.place.endsWith(" · Did not count for Temba Level"));
   });
 
   it("leaves a Temba rated Match unmarked", () => {

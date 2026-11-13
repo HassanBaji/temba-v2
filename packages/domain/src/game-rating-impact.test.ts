@@ -44,27 +44,43 @@ describe("ratingImpactChangeDirection", () => {
 });
 
 describe("ratingImpactStandingSentence", () => {
-  it("uses 'about' and 'confirms', never a hard promise, while Provisional", () => {
+  it("says exactly which Matches still confirm a padel Level while Provisional", () => {
     const sentence = ratingImpactStandingSentence({
       newLevelBand: "C2",
       isProvisional: true,
       ratedMatchesRemainingToConfirm: 4,
+      sport: "padel",
       locale: "en",
     });
     assert.equal(
       sentence,
-      "Still C. About 4 more rated games and your level confirms.",
+      "Still C. 4 more rated matches in a verified group and your level confirms.",
     );
   });
 
-  it("uses singular 'game' when exactly one remains", () => {
+  it("uses the singular when exactly one remains", () => {
     const sentence = ratingImpactStandingSentence({
       newLevelBand: "C2",
       isProvisional: true,
       ratedMatchesRemainingToConfirm: 1,
+      sport: "padel",
       locale: "en",
     });
-    assert.match(sentence, /1 more rated game and/);
+    assert.match(sentence, /1 more rated match in a verified group and/);
+  });
+
+  it("counts verified Matches on football", () => {
+    const sentence = ratingImpactStandingSentence({
+      newLevelBand: "C2",
+      isProvisional: true,
+      ratedMatchesRemainingToConfirm: 2,
+      sport: "football",
+      locale: "en",
+    });
+    assert.equal(
+      sentence,
+      "Still C. 2 more verified matches and your level confirms.",
+    );
   });
 
   it("floors a missing remaining-count at 1 rather than reading '0 more'", () => {
@@ -72,9 +88,10 @@ describe("ratingImpactStandingSentence", () => {
       newLevelBand: "D1",
       isProvisional: true,
       ratedMatchesRemainingToConfirm: null,
+      sport: "padel",
       locale: "en",
     });
-    assert.match(sentence, /1 more rated game and/);
+    assert.match(sentence, /1 more rated match in a verified group and/);
   });
 
   it("never says 'locks in' once confirmed", () => {
@@ -82,6 +99,7 @@ describe("ratingImpactStandingSentence", () => {
       newLevelBand: "B1",
       isProvisional: false,
       ratedMatchesRemainingToConfirm: null,
+      sport: "padel",
       locale: "en",
     });
     assert.doesNotMatch(sentence, /locks in/i);
@@ -93,6 +111,7 @@ describe("ratingImpactStandingSentence", () => {
       newLevelBand: "D2",
       isProvisional: false,
       ratedMatchesRemainingToConfirm: null,
+      sport: "padel",
       locale: "en",
     });
     assert.match(sentence, /^Still D\. /);
@@ -124,7 +143,7 @@ describe("ratingImpactView", () => {
     assert.equal(view.directionText, "ارتفع المستوى بمقدار 0.2");
     assert.equal(
       view.sentence,
-      "ما زلت C. نحو مباراتين مصنّفتين أخريين ويتأكد مستواك.",
+      "ما زلت C. مباراتان مصنّفتان أخريان في مجموعة موثّقة ويتأكد مستواك.",
     );
   });
 
@@ -149,7 +168,7 @@ describe("ratingImpactView", () => {
         },
         "en",
       ).sentence,
-      /About 3 more rated games/,
+      /3 more rated matches in a verified group/,
     );
   });
 });
@@ -179,7 +198,7 @@ describe("ratingScopeTag", () => {
     );
     assert.equal(
       ratingScopeTag({ rated: false, ratingScope: "group" }, "en"),
-      "Counts for group rating",
+      "Did not count for Temba Level",
     );
     assert.equal(
       ratingScopeTag({ rated: false, ratingScope: "unrated" }, "en"),
@@ -213,8 +232,8 @@ describe("ratingScopeNotice", () => {
   it("explains a group rated or Unrated Game and stays out of a Temba one", () => {
     assert.equal(ratingScopeNotice("temba", "en"), null);
     assert.deepEqual(ratingScopeNotice("group", "en"), {
-      title: "Counts for group rating",
-      line: "Moves levels in this group only. Temba levels move in verified groups.",
+      title: "Did not count for Temba Level",
+      line: "It counted for a group level, which padel no longer has. It moved no Temba Level.",
     });
     assert.deepEqual(ratingScopeNotice("unrated", "en"), {
       title: "Unrated",

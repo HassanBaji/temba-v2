@@ -47,7 +47,7 @@ function stats(
 describe("heroView", () => {
   it("reads a confirmed General Level", () => {
     const view = heroView({ level: level(), ratedMatchCount: 24 }, "en");
-    expect(view.label).toBe("General level");
+    expect(view.label).toBe("Temba Level");
     expect(view.status).toBe("Confirmed · 24 rated");
     expect(view.band).toBe("C+");
     expect(view.rating).toBe("3.91");

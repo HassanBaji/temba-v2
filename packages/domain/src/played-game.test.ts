@@ -193,10 +193,10 @@ describe("playedPadelModel", () => {
       },
       "en",
     );
-    assert.equal(group.you?.ratingLine, "Counts for group rating");
+    assert.equal(group.you?.ratingLine, "Did not count for Temba Level");
     assert.deepEqual(group.facts.at(-1), {
       label: "Rating",
-      value: "Counts for group rating",
+      value: "Did not count for Temba Level",
     });
   });
 

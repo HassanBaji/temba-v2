@@ -46,14 +46,14 @@ describe("confirmationProgressCaption", () => {
   it("says what the confirmation bar measures", () => {
     assert.equal(
       confirmationProgressCaption(2, "en"),
-      "3 of about 5 rated games to confirm",
+      "3 of 5 matches to confirm",
     );
   });
 
   it("counts out of five whatever else was played", () => {
     assert.equal(
       confirmationProgressCaption(5, "en"),
-      "0 of about 5 rated games to confirm",
+      "0 of 5 matches to confirm",
     );
   });
 });
@@ -89,7 +89,7 @@ describe("profileLevelView", () => {
       "en",
     );
     assert.equal(view.fillPercent, 60);
-    assert.equal(view.caption, "3 of about 5 rated games to confirm");
+    assert.equal(view.caption, "3 of 5 matches to confirm");
   });
 
   it("counts only the Matches that confirm, not every rated one", () => {
@@ -103,7 +103,7 @@ describe("profileLevelView", () => {
       "en",
     );
     assert.equal(view.fillPercent, 40);
-    assert.equal(view.caption, "2 of about 5 rated games to confirm");
+    assert.equal(view.caption, "2 of 5 matches to confirm");
   });
 
   it("reads an unrated football Level as the starting one", () => {
@@ -187,7 +187,7 @@ describe("profileLevelView", () => {
     );
     assert.equal(
       confirmationProgressCaption(2, "ar"),
-      "3 من 5 مباريات مصنّفة لتأكيد مستواك",
+      "3 من 5 مباريات لتأكيد مستواك",
     );
     assert.equal(
       profileLevelView({ ...base, history: ["3.5", "3.1"] }, "ar")
