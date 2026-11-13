@@ -272,11 +272,11 @@ A User granted management of one Venue by an Operator: Venue details, Courts, Op
 _Avoid_: facility owner, venue admin, Owner, Admin, Operator, staff
 
 **Verifier**:
-A User an Operator granted on one Venue as club staff, a referee or a coach, from the Venue's page on the web App (`venue_verifiers`, ADR-0072). A Verifier may calibrate the Level of another User, in either sport, who has played a completed Match at that Venue or belongs to one of its Club Groups, from that User's Player profile on either App; never their own. A calibration is a Level override that names the Verifier and the Venue. A User may be a Verifier of many Venues; when the player qualifies at several, the oldest grant names the Venue. Removing the role stops further calibrations and keeps the ones made. A Verifier may also give a Verifier stamp. Not a Venue manager, and not a Level setter.
+A User an Operator granted on one Venue as club staff, a referee or a coach, from the Venue's page on the web App (`venue_verifiers`, ADR-0072). A Verifier may calibrate the Level of another User, in either sport, who has played a completed Match at that Venue or belongs to one of its Club Groups, from that User's Player profile on either App; never their own. A calibration is a Level override that names the Verifier and the Venue. A User may be a Verifier of many Venues; when the player qualifies at several, the oldest grant names the Venue. Removing the role stops further calibrations and keeps the ones made. A Verifier may also give a Verifier stamp. A Verifier may open the Player profile of every User they may calibrate, and Game details of every Game at their Venue, even a private one, to stamp its Matches; they gain no other door on that Game. You lists their Matches to stamp on either App. Not a Venue manager, and not a Level setter.
 _Avoid_: admin, Level setter, coach (the unused `coach` tables), referee as a role name
 
 **Verifier stamp**:
-A Verifier's mark on a Match at their Venue that they are not seated in, given from Game details on either App once its score is entered (`match_verifier_stamps`, ADR-0072). It is a final confirmation by a neutral party: the Match completes at once and rates as the players' agreement would, at the Game's own weight, so on a Public Game it counts even when only one side confirmed. One per Match, shown as "Stamped by". Optional. A Match reopened for a wrong score loses its stamp. After a Public Game's 24 hours, a stamp lets the score stand without counting, as a late confirmation does.
+A Verifier's mark on a Match at their Venue that they are not seated in, given from Game details on either App once its score is entered, on a Friendly game, a football Game, or a tournament's Round or Knockout Match (`match_verifier_stamps`, ADR-0072). It is a final confirmation by a neutral party: the Match completes at once and rates as the players' agreement would, at the Game's own weight, so on a Public Game it counts even when only one side confirmed. One per Match, shown as "Stamped by". Optional. A Match reopened for a wrong score loses its stamp. After a Public Game's 24 hours, a stamp lets the score stand without counting, as a late confirmation does.
 _Avoid_: verified match, approval, verify
 
 **Venue photo**:
@@ -613,7 +613,7 @@ The signed-in User’s landing dashboard after login. It shows that User’s Gam
 _Avoid_: feed, lobby, dashboard (when you mean this surface)
 
 **Player profile**:
-A read-only page about one User, with a Padel / Football switch: for each sport their Level, Win streaks, preferred position, All time stats and Last 10. It opens on football from a football Game, or when the User plays football only. Football results are Unrated, so the football Level is the starting one and football goals count in All time. Visible to that User and to every User who shares a Group or a Game with them. Distinct from You, which is the signed-in User's own page with settings.
+A read-only page about one User, with a Padel / Football switch: for each sport their Level, Win streaks, preferred position, All time stats and Last 10. It opens on football from a football Game, or when the User plays football only. Football results are Unrated, so the football Level is the starting one and football goals count in All time. Visible to that User, to every User who shares a Group or a Game with them, and to a Verifier who may calibrate them (ADR-0072). Distinct from You, which is the signed-in User's own page with settings.
 _Avoid_: public profile, player card, user page
 
 **Last 10**:

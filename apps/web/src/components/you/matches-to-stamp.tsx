@@ -49,7 +49,9 @@ export function MatchesToStamp() {
                 <span className="text-meta text-muted-foreground truncate">
                   {m.line(
                     row.venueName,
-                    row.startsAt ? formatAbsoluteDay(row.startsAt, locale) : null,
+                    row.startsAt
+                      ? formatAbsoluteDay(row.startsAt, locale)
+                      : null,
                   )}
                 </span>
               </span>
