@@ -34,10 +34,7 @@ async function setOperator(clerkIds: string[], isOperator: boolean) {
     .update(user)
     .set({ isOperator })
     .where(
-      and(
-        inArray(user.clerkId, clerkIds),
-        eq(user.isOperator, !isOperator),
-      ),
+      and(inArray(user.clerkId, clerkIds), eq(user.isOperator, !isOperator)),
     )
     .returning({ id: user.id });
   return rows.length;

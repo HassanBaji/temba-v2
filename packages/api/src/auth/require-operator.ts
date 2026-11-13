@@ -9,8 +9,9 @@ export function isOperatorPublicMetadata(
 }
 
 /**
- * Clerk `publicMetadata.operator` is the Operator check. No User role column
- * and no in-app grant or revoke.
+ * Clerk `publicMetadata.operator` is the Operator check, with no in-app grant
+ * or revoke. `user.is_operator` is only a copy for finding Operators
+ * (ADR-0075), never this check.
  */
 export async function requireOperator(
   ctx: {
