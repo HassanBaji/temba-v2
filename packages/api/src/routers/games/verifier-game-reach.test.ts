@@ -14,9 +14,11 @@ import {
   venues,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
+import { MARK_KINDS } from "@repo/domain/marks";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { gameById } from "#src/routers/games/byId";
+import { completeMatch } from "#src/routers/games/completeMatch";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { listMatchesToStamp } from "#src/routers/games/listMatchesToStamp";
 import { seatedPublicGame } from "#src/routers/games/public-game.test-support";
@@ -24,6 +26,8 @@ import { registerSeat } from "#src/routers/games/registerSeat";
 import { scoreSet } from "#src/routers/games/scoreSet";
 import { stampMatch } from "#src/routers/games/stampMatch";
 import { updateGameName } from "#src/routers/games/updateName";
+import { forGame as marksForGame } from "#src/routers/marks/forGame";
+import { give as giveMark } from "#src/routers/marks/give";
 import { mayViewPlayer } from "#src/routers/users/playerProfile";
 
 const errors = messagesFor("en").game.errors;
@@ -239,12 +243,39 @@ describe("games.byId for a Verifier (ADR-0072)", () => {
           customName: "Renamed",
         }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(
+        completeMatch(db, {
+          gameId: g.gameId,
+          matchId: g.matchId,
+          userId: verifier,
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
 
       const match = await db.query.matches.findFirst({
         where: eq(matches.id, g.matchId),
         columns: { status: true },
       });
       expect(match?.status).toBe(MatchStatusEnum.PENDING);
+    });
+  });
+
+  it("keeps Marks closed to a Verifier who only stamps", async () => {
+    await withDb(async (db) => {
+      const g = await enteredGroupGame(db);
+      const verifier = await verifierAt(db, g.venueId);
+      await stampMatch(db, { matchId: g.matchId, userId: verifier });
+
+      await expect(
+        marksForGame(db, { gameId: g.gameId, userId: verifier }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      await expect(
+        giveMark(db, {
+          gameId: g.gameId,
+          userId: verifier,
+          receiverUserId: g.b,
+          kind: MARK_KINDS[0],
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
     });
   });
 });
