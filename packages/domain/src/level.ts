@@ -24,7 +24,7 @@ export const LEVEL_OVERRIDE_PHI = 150;
 export const RATED_MATCHES_TO_CONFIRM = 5;
 
 /**
- * What confirms a padel Level (ADR-0074): its Rated Matches in a Verified
+ * What confirms a padel Level (ADR-0080): its Rated Matches in a Verified
  * Group, or any Level override. Matches elsewhere move the Level but do not
  * count.
  */

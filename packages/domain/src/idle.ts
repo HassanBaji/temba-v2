@@ -64,7 +64,7 @@ export function applyIdleInflation(
 /**
  * A Rating read with idle φ growth, so its Provisional follows φ: what a
  * retired Group Level shows. A Temba Level's Provisional is `tembaLevelView`'s
- * (ADR-0074). A football Rating's φ only carries Provisional, set from its
+ * (ADR-0080). A football Rating's φ only carries Provisional, set from its
  * count of counting Matches (ADR-0069), so idle time never grows it.
  */
 export function youRatingViewAfterIdle(

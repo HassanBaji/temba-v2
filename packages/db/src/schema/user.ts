@@ -134,7 +134,7 @@ export const user = pgTable(
     /**
      * A copy of Clerk's `publicMetadata.operator`, written by the Clerk user
      * webhook, so Notifications can find every Operator. Never an
-     * authorization check: Operator doors read the session (ADR-0075).
+     * authorization check: Operator doors read the session (ADR-0081).
      */
     isOperator: boolean("is_operator").notNull().default(false),
     /**

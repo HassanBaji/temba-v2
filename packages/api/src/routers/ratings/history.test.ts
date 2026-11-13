@@ -332,7 +332,7 @@ describe("ratings.history (screen 1c)", () => {
         day: 1,
       });
       // Padel's φ crosses at the fourth Match, but the Level confirms on the
-      // fifth Rated Match in a Verified Group (ADR-0074).
+      // fifth Rated Match in a Verified Group (ADR-0080).
       const padel = await ratedMatches(db, {
         gameId: f.gameId,
         userId: p,

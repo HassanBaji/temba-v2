@@ -1,7 +1,7 @@
 /**
  * Copies Clerk's `publicMetadata.operator` onto `user.is_operator` for every
  * Clerk User, once, for the accounts Clerk has not sent a user.updated for
- * since the column shipped (ADR-0075). After that the Clerk webhook keeps the
+ * since the column shipped (ADR-0081). After that the Clerk webhook keeps the
  * column in step. Safe to rerun: each run writes what Clerk says now.
  *
  * Needs CLERK_SECRET_KEY and DATABASE_URL (read from .env if present).

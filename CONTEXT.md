@@ -264,7 +264,7 @@ On a padel Friendly game, a User's answer to "which side?" when they take a seat
 _Avoid_: flexible seat, any seat, Preferred Position (that is the profile default), wildcard
 
 **Operator**:
-A Temba staff User. Operators curate Venues and Courts, mark Partner Venues, grant Venue managers and Verifiers, verify Groups, link Loose Groups to Venues directly, may set any other User's Level in either sport (ADR-0046), and decide Match disputes. Being an Operator is Clerk's `publicMetadata.operator` flag, read from the session for every Operator door. The Clerk webhook copies it onto `user.is_operator`, the directory a Notification to every Operator (such as a raised Match dispute) reads (ADR-0075); the copy is never the check.
+A Temba staff User. Operators curate Venues and Courts, mark Partner Venues, grant Venue managers and Verifiers, verify Groups, link Loose Groups to Venues directly, may set any other User's Level in either sport (ADR-0046), and decide Match disputes. Being an Operator is Clerk's `publicMetadata.operator` flag, read from the session for every Operator door. The Clerk webhook copies it onto `user.is_operator`, the directory a Notification to every Operator (such as a raised Match dispute) reads (ADR-0081); the copy is never the check.
 _Avoid_: Admin, Owner (retired Community roles, ADR-0055), system admin, platform admin, superadmin
 
 **Venue manager**:
@@ -681,7 +681,7 @@ The discrete skill label D–D+–C-–C–C+–B-–B–B+–A–PRO (PRO highe
 _Avoid_: rank (reserved for Official Rank), Level 1–5 (redesign artefact, not product), ELO, D3–A (stored thirds, not the product face)
 
 **Provisional**:
-Per ladder. A padel Level is Provisional until its fifth Rated Match in a Verified Group (a Game on a Group, which is stored rated only on a Verified Group) and confirmed after it; Public Games, Challenge Games and a reversed Match do not count, though they move the Level (ADR-0074). A football Level is Provisional until its fifth counting Match and confirmed after it. A Level override confirms either at once. Idle time never makes a confirmed Level Provisional again. A retired padel Group Level is Provisional while its φ is above the product threshold. A Group Tier is Provisional for the member's first five Group Games or until an Organizer adjusts their Tier points: no fish, a hatched slot, Tier points shown only to them and the Group's Organizers, and not counted when places are cut.
+Per ladder. A padel Level is Provisional until its fifth Rated Match in a Verified Group (a Game on a Group, which is stored rated only on a Verified Group) and confirmed after it; Public Games, Challenge Games and a reversed Match do not count, though they move the Level (ADR-0080). A football Level is Provisional until its fifth counting Match and confirmed after it. A Level override confirms either at once. Idle time never makes a confirmed Level Provisional again. A retired padel Group Level is Provisional while its φ is above the product threshold. A Group Tier is Provisional for the member's first five Group Games or until an Organizer adjusts their Tier points: no fish, a hatched slot, Tier points shown only to them and the Group's Organizers, and not counted when places are cut.
 _Avoid_: unranked, unrated (a User may already have a Level), PRO (that is a Level band label)
 
 **Level override**:

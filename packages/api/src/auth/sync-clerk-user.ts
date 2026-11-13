@@ -192,7 +192,7 @@ function clerkStoredImage(clerkUser: ClerkUserPayload): string | null {
  *
  * `is_operator` follows `public_metadata.operator` on every delivery, so
  * granting or revoking Operator in Clerk reaches the directory Notifications
- * read (ADR-0075).
+ * read (ADR-0081).
  *
  * A delivery older than the last one applied, or for a deleted account,
  * changes nothing and returns the row as it is.

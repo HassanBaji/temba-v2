@@ -119,7 +119,7 @@ export function ratingImpactChangeDirection(
  * rather than inventing new copy:
  * - the remaining count is exact, and which Matches it counts differs by
  *   sport: counting Matches on football (ADR-0069), Rated Matches in a
- *   Verified Group on padel (ADR-0074).
+ *   Verified Group on padel (ADR-0080).
  * - "confirms"/"confirmed", never "locks in".
  *
  * The Level band renders through the shipped display remap (D / D+ / C /
@@ -130,7 +130,7 @@ export function ratingImpactStandingSentence(args: {
   newLevelBand: LevelBand;
   isProvisional: boolean;
   ratedMatchesRemainingToConfirm: number | null;
-  /** Which Matches confirm a Level differs by sport (ADR-0069, ADR-0074). */
+  /** Which Matches confirm a Level differs by sport (ADR-0069, ADR-0080). */
   sport: Sport;
   locale: Locale;
 }): string {

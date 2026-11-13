@@ -549,7 +549,7 @@ describe("groupById standing facts", () => {
         levelBand: "B1",
         phi: 100,
       });
-      // A Level override confirms the Level (ADR-0074).
+      // A Level override confirms the Level (ADR-0080).
       await applyLevelOverride(
         db as unknown as Parameters<typeof applyLevelOverride>[0],
         {
