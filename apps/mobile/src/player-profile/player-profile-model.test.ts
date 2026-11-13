@@ -7,6 +7,7 @@ import {
   footballProfileState,
   playerProfileModel,
   playerProfileState,
+  sharedTierView,
 } from "./player-profile-model";
 
 const ORIGIN = "https://api.example.com";
@@ -286,5 +287,44 @@ describe("footballProfileState", () => {
       footballProfileState({ data: FOOTBALL, error: null }, ORIGIN, "en")
         .status,
     ).toBe("ready");
+  });
+});
+
+describe("sharedTierView", () => {
+  const data = {
+    player: { name: "Mahmood Ali", isViewer: false },
+    sharedGroupTiers: [
+      {
+        groupId: "t1",
+        name: "Thursday Football",
+        imageUrl: null,
+        memberCount: 13,
+        rankedCount: 11,
+        band: "kanaad" as const,
+        place: 6,
+        points: 1201,
+        provisional: false,
+        gamesOfFive: 5,
+      },
+    ],
+  } as unknown as Parameters<typeof sharedTierView>[1];
+
+  it("draws the fish only on football", () => {
+    expect(sharedTierView("football", data, "en")?.rows[0]?.caption).toBe(
+      "Kanaad, #6 of 13",
+    );
+    expect(sharedTierView("padel", data, "en")).toBeNull();
+  });
+
+  it("draws nothing when the viewer shares no tier Group", () => {
+    expect(
+      sharedTierView(
+        "football",
+        { ...data!, sharedGroupTiers: [] } as Parameters<
+          typeof sharedTierView
+        >[1],
+        "en",
+      ),
+    ).toBeNull();
   });
 });

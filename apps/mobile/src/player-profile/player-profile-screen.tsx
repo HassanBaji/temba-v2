@@ -13,6 +13,7 @@ import {
 import { useCallback, useState } from "react";
 
 import { gamePath } from "../games/games-model";
+import { groupPath } from "../groups/groups-model";
 import { Notice } from "../groups/notice";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { apiOrigin } from "../lib/api-origin-runtime";
@@ -31,6 +32,7 @@ import {
 import {
   footballProfileState,
   playerProfileState,
+  sharedTierView,
   type ProfileMatchRow,
 } from "./player-profile-model";
 import { PlayerProfileBody } from "./player-profile-view";
@@ -170,9 +172,11 @@ export function PlayerProfileScreen({
       <PlayerProfileBody
         model={model}
         cabinet={cabinetRowModel(cabinetQuery.data, sport, locale)}
+        tier={sharedTierView(sport, padelQuery.data, locale)}
         onOpenCabinet={() =>
           router.push(playerMarksPath(segments, userId, sport))
         }
+        onOpenGroup={(groupId) => router.push(groupPath(groupId))}
         onOpenRow={onOpenRow}
         onOpenPlayer={(playerId) =>
           router.push(playerPath(segments, playerId, sport))

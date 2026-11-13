@@ -103,7 +103,8 @@ export type MyGroupTierData = {
   memberCount: number;
   band: TierBand | null;
   place: number | null;
-  points: number;
+  /** Null when the reader may not see a Provisional member's points. */
+  points: number | null;
   provisional: boolean;
   gamesOfFive: number;
 };
@@ -312,7 +313,7 @@ export function ratingsTierRows(
       }
     }
     const points =
-      row.provisional || row.place == null
+      row.provisional || row.place == null || row.points == null
         ? null
         : formatTierPoints(row.points);
     return {

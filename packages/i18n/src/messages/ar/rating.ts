@@ -86,6 +86,22 @@ export const rating = {
       note: "ما فزت به رسميًا. نتائج البطولات والدرجات فقط؛ ولا يستطيع أحد تعديلها.",
     },
   },
+  profileTier: {
+    shared: (n: number) =>
+      plural("ar", n, {
+        one: "مجموعة مشتركة واحدة",
+        two: "مجموعتان مشتركتان",
+        few: "{n} مجموعات مشتركة",
+        many: "{n} مجموعة مشتركة",
+        other: "{n} مجموعة مشتركة",
+      }),
+    note: (name: string) =>
+      `موقع ${name} في المجموعات التي تجمعكما. تحدّده مباريات كل مجموعة ومنظّموها؛ ولا يمسّ مستواه أبدًا.`,
+  },
+  matchHistory: {
+    ovr: (delta: string) => `${isolate("OVR")} ${isolate(delta)}`,
+    level: (delta: string) => `المستوى ${isolate(delta)}`,
+  },
   ovrImpact: {
     title: "ما الذي حرّك OVR الخاص بك",
     move: (before: string, after: string) =>

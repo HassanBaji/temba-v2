@@ -75,6 +75,19 @@ export const rating = {
       note: "What you’ve won, officially. Tournament and division results only; nobody can edit it.",
     },
   },
+  profileTier: {
+    shared: (n: number) =>
+      plural("en", n, {
+        one: "1 shared group",
+        other: "{n} shared groups",
+      }),
+    note: (name: string) =>
+      `Where ${name} stands in the groups you’re both in. Set by each group’s own games and its organizers; it never touches their Level.`,
+  },
+  matchHistory: {
+    ovr: (delta: string) => `OVR ${delta}`,
+    level: (delta: string) => `Level ${delta}`,
+  },
   ovrImpact: {
     title: "What moved your OVR",
     move: (before: string, after: string) => `${before} to ${after}`,

@@ -33,6 +33,11 @@ import {
   confirmationFraction,
   confirmationProgressCaption,
 } from "./profile-level";
+import {
+  ratingsTierRows,
+  type MyGroupTierData,
+  type RatingsTierRow,
+} from "./ratings-screen";
 import type { MatchOutcome, ResultMarkVariant } from "./result-mark";
 import type { Sport } from "./sport";
 import { formatWinRate, WIN_RATE_MIN_MATCHES } from "./win-rate";
@@ -737,4 +742,37 @@ export function partnerRowsView(
       spoken: m.spoken(partner.name, partner.won, partner.lost, percent),
     };
   });
+}
+
+export type ProfileTierView = {
+  title: string;
+  meta: string;
+  rows: RatingsTierRow[];
+  note: string;
+};
+
+/**
+ * "Group tier" on a football Player profile: the player's fish in each tier
+ * Group the viewer shares with them, as the Ratings screen draws its own
+ * (screen 1a). None when they share no tier Group.
+ */
+export function profileTierView(
+  rows: readonly MyGroupTierData[],
+  options: { playerName: string; isViewer: boolean },
+  locale: Locale,
+): ProfileTierView | null {
+  if (rows.length === 0) {
+    return null;
+  }
+  const m = messagesFor(locale).rating;
+  return {
+    title: m.screen.tier.title,
+    meta: options.isViewer
+      ? m.screen.tier.count(rows.length)
+      : m.profileTier.shared(rows.length),
+    rows: ratingsTierRows(rows, locale),
+    note: options.isViewer
+      ? m.screen.tier.note
+      : m.profileTier.note(firstName(options.playerName)),
+  };
 }

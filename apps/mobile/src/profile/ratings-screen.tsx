@@ -227,7 +227,7 @@ function TierItem({
   );
 }
 
-function TierSection({
+export function TierSection({
   tier,
   onOpenGroup,
 }: {

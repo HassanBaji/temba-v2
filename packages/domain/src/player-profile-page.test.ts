@@ -15,6 +15,7 @@ import {
   profileHeroSubtitle,
   profileLevelView,
   profileStreaksView,
+  profileTierView,
   sportSwitchView,
   withViewerView,
 } from "./player-profile-page";
@@ -432,5 +433,73 @@ describe("records in Arabic", () => {
         "ar",
       )[1]?.value,
     ).toBe(isolate("14–4–6"));
+  });
+});
+
+describe("profileTierView", () => {
+  const kanaad = {
+    groupId: "t1",
+    name: "Thursday Football",
+    memberCount: 13,
+    band: "kanaad" as const,
+    place: 6,
+    points: 1201,
+    provisional: false,
+    gamesOfFive: 5,
+  };
+
+  it("shows nothing when the viewer shares no tier Group", () => {
+    expect(
+      profileTierView([], { playerName: "Mahmood Ali", isViewer: false }, "en"),
+    ).toBeNull();
+  });
+
+  it("draws the player's fish in each shared tier Group, as screen 1a does", () => {
+    const view = profileTierView(
+      [
+        kanaad,
+        {
+          ...kanaad,
+          groupId: "t2",
+          name: "Gooz of Arad",
+          band: null,
+          place: null,
+          points: null,
+          provisional: true,
+          gamesOfFive: 2,
+        },
+      ],
+      { playerName: "Mahmood Ali", isViewer: false },
+      "en",
+    );
+    expect(view).toMatchObject({
+      title: "Group tier",
+      meta: "2 shared groups",
+      note: "Where Mahmood stands in the groups you’re both in. Set by each group’s own games and its organizers; it never touches their Level.",
+    });
+    expect(view?.rows[0]).toMatchObject({
+      cell: { kind: "fish", band: "kanaad" },
+      caption: "Kanaad, #6 of 13",
+      points: "1,201",
+    });
+    expect(view?.rows[1]).toMatchObject({
+      cell: { kind: "provisional" },
+      caption: "Provisional, 2 of 5 games",
+      points: null,
+    });
+  });
+
+  it("reads as the player's own on their own profile, and in Arabic", () => {
+    expect(
+      profileTierView([kanaad], { playerName: "Mahmood", isViewer: true }, "en")
+        ?.meta,
+    ).toBe("1 group");
+    const ar = profileTierView(
+      [kanaad],
+      { playerName: "Mahmood", isViewer: false },
+      "ar",
+    );
+    expect(ar?.meta).toBe("مجموعة مشتركة واحدة");
+    expect(ar?.rows[0]?.caption).toBe(`كنعد، ${isolate("#6 من 13")}`);
   });
 });

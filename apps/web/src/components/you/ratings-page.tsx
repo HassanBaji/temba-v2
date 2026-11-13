@@ -169,7 +169,7 @@ function LevelSection({ view }: { view: RatingsLevelView }) {
   );
 }
 
-function TierSection({
+export function TierSection({
   tier,
 }: {
   tier: NonNullable<RatingsScreenView["tier"]>;
