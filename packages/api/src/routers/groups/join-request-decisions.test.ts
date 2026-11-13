@@ -17,7 +17,7 @@ import {
   venues,
 } from "@repo/db/schema";
 
-import { youRatingViewAfterIdle } from "@repo/domain/idle";
+import { tembaLevelView, UNCONFIRMED_PADEL } from "@repo/domain/level";
 import { createFriendlyGame } from "#src/games/create-friendly";
 import { acceptInviteLink } from "#src/routers/groups/acceptInviteLink";
 import { approveJoinRequest } from "#src/routers/groups/approveJoinRequest";
@@ -487,9 +487,8 @@ describe("group join request decisions", () => {
       const listed = await listJoinRequests(db, {
         groupId: group.id,
         userId: creator.id,
-        now,
       });
-      const view = youRatingViewAfterIdle(rating, now);
+      const view = tembaLevelView(rating, UNCONFIRMED_PADEL);
       expect(listed).toHaveLength(2);
       expect(listed[0]).toMatchObject({
         user: { id: rated.id },

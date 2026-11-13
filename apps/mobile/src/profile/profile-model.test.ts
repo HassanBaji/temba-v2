@@ -131,7 +131,7 @@ describe("heroView", () => {
     assert.equal(view.band, "D");
   });
 
-  it("counts toward confirming while Provisional", () => {
+  it("counts the confirming Matches out of five while Provisional", () => {
     const base = profile();
     const view = heroView(
       profile({
@@ -142,8 +142,8 @@ describe("heroView", () => {
       "en",
     );
     if (view.kind !== "rated") throw new Error("expected rated");
-    assert.equal(view.ring.label, "3 of 6 to confirm");
-    assert.equal(view.ring.percent, 50);
+    assert.equal(view.ring.label, "2 of 5 to confirm");
+    assert.equal(view.ring.percent, 40);
     assert.match(view.outlook, /about 3 more rated matches/);
     assert.equal(view.stats[0]?.label, "win rate after 5");
   });

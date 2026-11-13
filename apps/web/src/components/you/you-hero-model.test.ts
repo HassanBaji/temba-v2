@@ -70,7 +70,7 @@ describe("heroView", () => {
     expect(view.band).toBe("D");
   });
 
-  it("counts toward confirming a Provisional Level", () => {
+  it("counts the confirming Matches of a Provisional Level out of five", () => {
     const view = heroView(
       {
         level: level({
@@ -83,7 +83,7 @@ describe("heroView", () => {
       "en",
     );
     expect(view.status).toBe("Provisional · 3 rated");
-    expect(view.ring).toEqual({ percent: 50, label: "3 of 6 to confirm" });
+    expect(view.ring).toEqual({ percent: 40, label: "2 of 5 to confirm" });
     expect(view.move).toBeNull();
     expect(view.outlook).toContain("about 3 more rated matches");
   });
