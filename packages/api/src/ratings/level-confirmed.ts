@@ -1,5 +1,15 @@
-import { and, asc, eq, gt, inArray, lte, sql } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
+import {
+  and,
+  asc,
+  count,
+  eq,
+  gt,
+  inArray,
+  lt,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 
 import { matches, ratingEvents } from "@repo/db";
 import { PROVISIONAL_PHI_THRESHOLD } from "@repo/domain/level";
@@ -29,8 +39,8 @@ function shownAt(column: typeof ratingEvents.createdAt) {
  * Where each User's Level was confirmed in a sport, derived from the ledger
  * (ADR-0073): the first counting Match that took φ out of Provisional, which
  * is when the hatched track clears. On football that is the fifth counting
- * Match. At most one per User and sport whatever φ does later, and none when
- * a Level override confirmed it first.
+ * Match. At most one per User and sport whatever φ does later, and none
+ * while a Level override keeps the Level confirmed.
  */
 export async function levelConfirmations(
   database: DbClient,
@@ -40,21 +50,14 @@ export async function levelConfirmations(
   if (userIds.length === 0) {
     return [];
   }
-  const earlier = alias(ratingEvents, "earlier");
-  return database
+  const firsts = await database
     .selectDistinctOn([ratingEvents.userId, ratingEvents.sport], {
       eventId: ratingEvents.id,
       userId: ratingEvents.userId,
       sport: ratingEvents.sport,
       matchId: ratingEvents.matchId,
       muAfter: ratingEvents.muAfter,
-      matchesCounted: sql<number>`(
-        select count(*)::int from ${earlier}
-        where ${earlier.userId} = ${ratingEvents.userId}
-          and ${earlier.sport} = ${ratingEvents.sport}
-          and (date_trunc('milliseconds', ${earlier.createdAt}), ${earlier.id})
-            <= (${shownAt(ratingEvents.createdAt)}, ${ratingEvents.id})
-      )`.mapWith(Number),
+      shownAt: sql<string>`to_char(${shownAt(ratingEvents.createdAt)}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`,
     })
     .from(ratingEvents)
     .where(
@@ -71,6 +74,28 @@ export async function levelConfirmations(
       asc(shownAt(ratingEvents.createdAt)),
       asc(ratingEvents.id),
     );
+
+  return Promise.all(
+    firsts.map(async ({ shownAt: at, ...first }) => {
+      const [row] = await database
+        .select({ counted: count() })
+        .from(ratingEvents)
+        .where(
+          and(
+            eq(ratingEvents.userId, first.userId),
+            eq(ratingEvents.sport, first.sport),
+            or(
+              lt(shownAt(ratingEvents.createdAt), at),
+              and(
+                eq(shownAt(ratingEvents.createdAt), at),
+                lte(ratingEvents.id, first.eventId),
+              ),
+            ),
+          ),
+        );
+      return { ...first, matchesCounted: row?.counted ?? 0 };
+    }),
+  );
 }
 
 /**

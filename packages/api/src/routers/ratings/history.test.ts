@@ -4,11 +4,16 @@ import { describe, expect, it } from "vitest";
 import {
   groupTierEvents,
   levelOverrides,
+  matches,
   ratingEvents,
   venues,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
-import { ratingHistoryLine } from "@repo/domain/rating-history";
+import { muFromOvr } from "@repo/domain/football-ovr";
+import {
+  ratingHistoryLine,
+  type RatingHistoryItemData,
+} from "@repo/domain/rating-history";
 
 import {
   addMember,
@@ -107,18 +112,66 @@ async function history(database: TestDatabase) {
 async function allPages(
   database: TestDatabase,
   args: Omit<Parameters<typeof ratingHistory>[1], "cursor">,
+  key: (entry: RatingHistoryItemData) => string = (entry) => entry.id,
 ) {
   const ids: string[] = [];
   let cursor: Parameters<typeof ratingHistory>[1]["cursor"];
   for (let page = 0; page < 50; page += 1) {
     const result = await ratingHistory(apiDb(database), { ...args, cursor });
-    ids.push(...result.entries.map((entry) => entry.id));
+    ids.push(...result.entries.map(key));
     if (!result.nextCursor) {
       return ids;
     }
     cursor = result.nextCursor;
   }
   throw new Error("The cursor never ran out");
+}
+
+function kindAndId(entry: RatingHistoryItemData) {
+  return `${entry.kind}:${entry.id}`;
+}
+
+/**
+ * Rated Matches for `userId` written straight to `rating_events`, one a day
+ * from `day`, each with the φ it took the Level from and to.
+ */
+async function ratedMatches(
+  database: TestDatabase,
+  args: {
+    gameId: string;
+    userId: string;
+    sport: "padel" | "football";
+    phis: [number, number][];
+    day: number;
+  },
+) {
+  const ids: string[] = [];
+  for (const [index, [phiBefore, phiAfter]] of args.phis.entries()) {
+    const [match] = await database
+      .insert(matches)
+      .values({ gameId: args.gameId })
+      .returning({ id: matches.id });
+    const day = String(args.day + index).padStart(2, "0");
+    const [event] = await database
+      .insert(ratingEvents)
+      .values({
+        userId: args.userId,
+        sport: args.sport,
+        matchId: match!.id,
+        outcomeScore: 1,
+        weight: 1,
+        muBefore: muFromOvr(60 + index),
+        phiBefore,
+        sigmaBefore: 0.06,
+        muAfter: muFromOvr(61 + index),
+        phiAfter,
+        sigmaAfter: 0.06,
+        createdAt: at(`2026-09-${day} 09:00:00.250`),
+      })
+      .returning({ id: ratingEvents.id });
+    ids.push(event!.id);
+  }
+  return ids;
 }
 
 describe("ratings.history (screen 1c)", () => {
@@ -257,6 +310,185 @@ describe("ratings.history (screen 1c)", () => {
       expect(input.parse({ ladder: "all", userId: a })).toEqual({
         ladder: "all",
       });
+    });
+  });
+
+  it("marks Level confirmed once per sport, just before the Match that took it out of Provisional, and pages across it", async () => {
+    await withDb(async (db) => {
+      const f = await footballGame(db);
+      const p = await addMember(f, "Parveen");
+      const football = await ratedMatches(db, {
+        gameId: f.gameId,
+        userId: p,
+        sport: "football",
+        phis: [
+          [350, 320],
+          [320, 290],
+          [290, 260],
+          [260, 230],
+          [230, 150],
+          [150, 150],
+        ],
+        day: 1,
+      });
+      // Padel's φ crosses at the fourth Match, idles back over the line and
+      // crosses again: only the first counts.
+      const padel = await ratedMatches(db, {
+        gameId: f.gameId,
+        userId: p,
+        sport: "padel",
+        phis: [
+          [350, 290],
+          [290, 250],
+          [250, 215],
+          [215, 196],
+          [230, 205],
+          [205, 192],
+        ],
+        day: 10,
+      });
+
+      const whole = await ratingHistory(apiDb(db), {
+        userId: p,
+        ladder: "level",
+      });
+      const expected = [
+        ...[...padel].reverse().flatMap((id) =>
+          id === padel[3]
+            ? [`level_confirmed:${id}`, `level_match:${id}`]
+            : [`level_match:${id}`],
+        ),
+        ...[...football].reverse().flatMap((id) =>
+          id === football[4]
+            ? [`level_confirmed:${id}`, `level_match:${id}`]
+            : [`level_match:${id}`],
+        ),
+      ];
+      expect(whole.entries.map(kindAndId)).toEqual(expected);
+
+      const confirmed = whole.entries.filter(
+        (entry) => entry.kind === "level_confirmed",
+      );
+      expect(confirmed).toEqual([
+        {
+          kind: "level_confirmed",
+          id: padel[3],
+          at: new Date("2026-09-13T09:00:00.250Z"),
+          sport: "padel",
+          muAfter: muFromOvr(64),
+          matchesCounted: 4,
+        },
+        {
+          kind: "level_confirmed",
+          id: football[4],
+          at: new Date("2026-09-05T09:00:00.250Z"),
+          sport: "football",
+          muAfter: muFromOvr(65),
+          matchesCounted: 5,
+        },
+      ]);
+      expect(ratingHistoryLine(confirmed[1]!, p, "en")).toMatchObject({
+        title: "Level confirmed",
+        detail: "Fifth verified match. The track is no longer hatched",
+        delta: "65",
+        after: "set",
+      });
+
+      for (let limit = 1; limit <= expected.length; limit += 1) {
+        expect(
+          await allPages(db, { userId: p, ladder: "level", limit }, kindAndId),
+        ).toEqual(expected);
+      }
+      expect(
+        await allPages(
+          db,
+          { userId: p, ladder: "all", sport: "football", limit: 1 },
+          kindAndId,
+        ),
+      ).toEqual(expected.slice(-7));
+      expect(
+        (await ratingHistory(apiDb(db), { userId: p, ladder: "tier" })).entries,
+      ).toEqual([]);
+    });
+  });
+
+  it("has no Level confirmed row when a Level override confirmed it first", async () => {
+    await withDb(async (db) => {
+      const { a } = await history(db);
+      const f = await footballGame(db);
+      await ratedMatches(db, {
+        gameId: f.gameId,
+        userId: a,
+        sport: "football",
+        phis: [
+          [150, 150],
+          [150, 150],
+        ],
+        day: 20,
+      });
+      const result = await ratingHistory(apiDb(db), {
+        userId: a,
+        ladder: "all",
+      });
+      expect(result.entries.some((entry) => entry.kind === "level_confirmed"))
+        .toBe(false);
+    });
+  });
+
+  it("shows a change of fish an adjustment of someone else caused in the moved player's history", async () => {
+    await withDb(async (db) => {
+      const f = await footballGame(db);
+      const members = await Promise.all(
+        ["Ali", "Bader", "Cyrus", "Dana"].map((name) => addMember(f, name)),
+      );
+      const [ali, , , dana] = members;
+      const start = Date.parse("2026-10-01T09:00:00Z");
+      for (const [index, [userId, points]] of [
+        [members[0]!, 1350],
+        [members[1]!, 1300],
+        [members[2]!, 1250],
+        [members[3]!, 1100],
+      ].entries()) {
+        await adjustTierPoints(apiDb(db), {
+          groupId: f.groupId,
+          organizerUserId: f.organizerId,
+          userId: userId as string,
+          points: points as number,
+          reason: "new_to_group",
+          now: new Date(start + index * 60_000),
+        });
+      }
+      await adjustTierPoints(apiDb(db), {
+        groupId: f.groupId,
+        organizerUserId: f.organizerId,
+        userId: dana!,
+        points: 1450,
+        reason: "plays_above_results",
+        now: new Date(start + 10 * 60_000),
+      });
+
+      const ofAli = await ratingHistory(apiDb(db), {
+        userId: ali!,
+        ladder: "tier",
+      });
+      const [latest] = ofAli.entries;
+      expect(latest).toMatchObject({
+        kind: "tier_band",
+        bandBefore: "shark",
+        bandAfter: "kanaad",
+        place: 2,
+        rankedCount: 4,
+        points: 1350,
+      });
+      expect(ratingHistoryLine(latest!, ali!, "en")).toMatchObject({
+        title: "Down to Kanaad",
+        detail: "Thursday Football, now #2 of 4",
+        delta: "tier",
+        after: "1,350",
+      });
+      expect(
+        ofAli.entries.filter((entry) => entry.kind === "tier_adjustment"),
+      ).toHaveLength(1);
     });
   });
 
