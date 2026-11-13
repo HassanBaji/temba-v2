@@ -5,6 +5,7 @@ import type { UserWebhookEvent } from "@clerk/backend/webhooks";
 import { gamePlayers, user } from "@repo/db";
 import { userDisplayName } from "@repo/domain/user-display-name";
 
+import { isOperatorPublicMetadata } from "#src/auth/require-operator";
 import { type db } from "#src/db";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { mergeIntoAccount } from "#src/unclaimed-players/merge-into-account";
@@ -189,6 +190,10 @@ function clerkStoredImage(clerkUser: ClerkUserPayload): string | null {
  * instead of dropping the phone. The same holds for email: only a verified
  * one links a row, and one another row holds is dropped.
  *
+ * `is_operator` follows `public_metadata.operator` on every delivery, so
+ * granting or revoking Operator in Clerk reaches the directory Notifications
+ * read (ADR-0075).
+ *
  * A delivery older than the last one applied, or for a deleted account,
  * changes nothing and returns the row as it is.
  */
@@ -219,6 +224,7 @@ export async function upsertUserFromClerk(
     : false;
   const image = clerkStoredImage(clerkUser);
   const updatedAt = clerkUpdatedAt(clerkUser);
+  const isOperator = isOperatorPublicMetadata(clerkUser.public_metadata);
 
   const deleted = await database.query.user.findFirst({
     where: eq(user.deletedClerkId, clerkId),
@@ -314,6 +320,7 @@ export async function upsertUserFromClerk(
           phoneNumber: nextPhoneNumber,
           phoneNumberVerified: nextPhoneVerified,
           image,
+          isOperator,
           ...(claiming ? { claimedAt: now } : {}),
           ...(updatedAt ? { clerkUpdatedAt: updatedAt } : {}),
           updatedAt: now,
@@ -358,6 +365,7 @@ export async function upsertUserFromClerk(
       phoneNumberVerified:
         insertPhoneNumber === phoneNumber ? phoneNumberVerified : false,
       image,
+      isOperator,
       clerkUpdatedAt: updatedAt,
     })
     .returning();
