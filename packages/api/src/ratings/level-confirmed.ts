@@ -69,7 +69,7 @@ const padelVerifiedEvent = and(
 );
 
 /**
- * What confirms each User's padel Level (ADR-0070): their Rated Matches in a
+ * What confirms each User's padel Level (ADR-0074): their Rated Matches in a
  * Verified Group and whether a Level override was ever set, as of `asOf` when
  * given. A reversed Match's events are gone, so it no longer counts. The one
  * read every padel Provisional goes through.
