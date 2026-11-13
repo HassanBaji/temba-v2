@@ -10,6 +10,7 @@ export const level = {
   rangeOutsideParty: "A User's Level is outside this Game's range",
   rangePartner: "That User's Level is outside this Game's range",
   rangeTeam: "A Team partner's Level is outside this Game's range",
+  range: (min: string, max: string) => `${min} to ${max}`,
   andUp: (band: string) => `${band} and up`,
   andUnder: (band: string) => `${band} and under`,
   ovr: (value: string) => `OVR ${value}`,

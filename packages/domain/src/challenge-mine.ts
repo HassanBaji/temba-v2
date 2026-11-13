@@ -175,7 +175,12 @@ export function challengeMinePostedView(
   const line = copy.tab.mine.postedLine(
     challengeDaysLine(input.days, input.timings, locale),
     challengeVenuesLine(input.venues, locale),
-    challengeLevelWanted(input.levelMinTenths, input.levelMaxTenths, locale),
+    challengeLevelWanted(
+      input.levelMinTenths,
+      input.levelMaxTenths,
+      locale,
+      input.sport,
+    ),
   );
   const proposalsLine = copy.tab.mine.proposalCount(input.proposalCount);
   const daysLeftLine = copy.card.daysLeft(

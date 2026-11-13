@@ -17,6 +17,7 @@ import {
   type AssignableDisplayLevelBand,
 } from "./level-bands";
 import {
+  formatLevelRangeFaceLabel,
   isLevelBand,
   LEVEL_BAND_SELECT_NONE,
   parseLevelBandSelectTenths,
@@ -758,36 +759,27 @@ export function challengeLevelTap(
   return span(index, index);
 }
 
-function levelRangeText(
-  min: string | null,
-  max: string | null,
+/**
+ * The picked bands as the sport reads a Level, beside the Level wanted
+ * heading: "OVR 64 to 80" on football, "2.8 to 4.8" on padel; "Any level"
+ * for none.
+ */
+export function challengeLevelHint(
+  range: ChallengeLevelRange,
   locale: Locale,
+  sport?: string | null,
 ) {
-  const copy = messagesFor(locale).challenge.post;
-  if (min && max) {
-    return min === max ? min : copy.levelRange(min, max);
-  }
-  if (min) {
-    return copy.levelAndUp(min);
-  }
-  if (max) {
-    return copy.levelAndUnder(max);
-  }
-  return null;
-}
-
-/** "C to B-" beside the Level wanted heading; "Any level" for none. */
-export function challengeLevelHint(range: ChallengeLevelRange, locale: Locale) {
   const picked = rangeIndexes(range);
   const bands = ASSIGNABLE_DISPLAY_LEVEL_BANDS;
+  const low = picked ? bands[picked.low] : undefined;
+  const high = picked ? bands[picked.high] : undefined;
   return (
-    (picked
-      ? levelRangeText(
-          bands[picked.low] ?? null,
-          bands[picked.high] ?? null,
-          locale,
-        )
-      : null) ?? messagesFor(locale).challenge.post.anyLevel
+    formatLevelRangeFaceLabel(
+      low ? parseLevelBandSelectTenths(low, "min") : null,
+      high ? parseLevelBandSelectTenths(high, "max") : null,
+      locale,
+      sport,
+    ) ?? messagesFor(locale).challenge.post.anyLevel
   );
 }
 
@@ -800,12 +792,6 @@ export function challengeSlotLabel(slot: Date, now: Date, locale: Locale) {
     );
   }
   return formatGameStart(slot, locale);
-}
-
-function tenthsBand(tenths: number | null) {
-  return tenths == null
-    ? null
-    : displayLabelFromStoredBand(tenthsToLevelBand(tenths));
 }
 
 /** The review list: Team, Format, who sees it, how long, how Proposals work. */
@@ -822,10 +808,11 @@ export function challengeReviewRows(
   const copy = m.challenge.review;
   const football = team.sport === "football";
   const cities = [...new Set(venues.map((venue) => venue.city.trim()))];
-  const level = levelRangeText(
-    tenthsBand(input.levelMinTenths),
-    tenthsBand(input.levelMaxTenths),
+  const level = formatLevelRangeFaceLabel(
+    input.levelMinTenths,
+    input.levelMaxTenths,
     locale,
+    team.sport,
   );
   const narrowed = [
     level,

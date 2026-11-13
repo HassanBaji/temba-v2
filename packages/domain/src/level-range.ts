@@ -2,6 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatOvr, ovrFromLevel } from "./football-ovr";
+import { formatPadelLevel } from "./level";
 import {
   displayLabelFromStoredBand,
   isAssignableDisplayLevelBand,
@@ -223,6 +224,36 @@ function formatOvrRangeLabel(
   }
   if (max) {
     return m.ovrAndUnder(max);
+  }
+  return null;
+}
+
+/**
+ * A Level range as its sport reads a Level: "OVR 60 to 72" on football, and
+ * the padel Level to one decimal, "2.8 to 4.8". Null when neither end is set.
+ */
+export function formatLevelRangeFaceLabel(
+  levelMinTenths: number | null | undefined,
+  levelMaxTenths: number | null | undefined,
+  locale: Locale,
+  sport?: string | null,
+): string | null {
+  if (sport === "football") {
+    return formatOvrRangeLabel(levelMinTenths, levelMaxTenths, locale);
+  }
+  const m = messagesFor(locale).level;
+  const min =
+    levelMinTenths == null ? null : formatPadelLevel(levelMinTenths / 10, 1);
+  const max =
+    levelMaxTenths == null ? null : formatPadelLevel(levelMaxTenths / 10, 1);
+  if (min && max) {
+    return min === max ? min : m.range(min, max);
+  }
+  if (min) {
+    return m.andUp(min);
+  }
+  if (max) {
+    return m.andUnder(max);
   }
   return null;
 }

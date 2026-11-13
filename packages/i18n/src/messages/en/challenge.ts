@@ -165,10 +165,7 @@ export const challenge = {
     partSeparator: ", ",
     avg: (level: string) => `avg ${level}`,
     sportLine: (parts: string, wants: string) => `${parts}. ${wants}`,
-    wants: (min: string, max: string) => `Wants ${min} to ${max}`,
-    wantsOnly: (band: string) => `Wants ${band}`,
-    wantsAndUp: (band: string) => `Wants ${band} and up`,
-    wantsAndUnder: (band: string) => `Wants ${band} and under`,
+    wants: (range: string) => `Wants ${range}`,
     anyLevel: "Open to any level",
     anyVenue: "Any venue",
     proposals: (n: number) =>
@@ -261,9 +258,6 @@ export const challenge = {
     addSlot: "Add slot",
     removeSlot: (slot: string) => `Remove ${slot}`,
     level: "Level wanted",
-    levelRange: (min: string, max: string) => `${min} to ${max}`,
-    levelAndUp: (band: string) => `${band} and up`,
-    levelAndUnder: (band: string) => `${band} and under`,
     anyLevel: "Any level",
     note: "A line about you",
     noteShown: "Shown on the card",
@@ -614,9 +608,6 @@ export const challenge = {
       posted: "Posted",
     },
     level: {
-      range: (min: string, max: string) => `${min} to ${max}`,
-      andUp: (band: string) => `${band} and up`,
-      andUnder: (band: string) => `${band} and under`,
       any: "Any level",
     },
     timingRanges: {

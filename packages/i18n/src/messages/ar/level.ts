@@ -13,6 +13,7 @@ export const level = {
   rangeOutsideParty: "مستوى أحد المستخدمين خارج نطاق هذه المباراة",
   rangePartner: "مستوى ذلك المستخدم خارج نطاق هذه المباراة",
   rangeTeam: "مستوى أحد شركاء الفريق خارج نطاق هذه المباراة",
+  range: (min: string, max: string) => `من ${isolate(min)} إلى ${isolate(max)}`,
   andUp: (band: string) => `${isolate(band)} فما فوق`,
   andUnder: (band: string) => `${isolate(band)} فما دون`,
   ovr: (value: string) => `OVR ${isolate(value)}`,

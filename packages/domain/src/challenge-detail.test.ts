@@ -133,18 +133,19 @@ describe("the details list", () => {
       "en",
     );
     expect(rows.map((row) => [row.label, row.value])).toEqual([
-      ["Level wanted", challengeLevelValue(30, 39, "en")],
+      ["Level wanted", "3.0 to 3.9"],
       ["Preferred venues", "Padel Point Riffa, Ace Padel"],
       ["Days", "Tue, Thu"],
       ["Timings", "Evenings, after 6 PM"],
       ["Record", "Riffa Rackets 5–4"],
       ["Posted", "Wed 4 Nov, by Khalid A"],
     ]);
-    expect(challengeLevelValue(30, 39, "en")).toMatch(/ to /);
+    expect(challengeLevelValue(30, 39, "en", "football")).toBe("OVR 65 to 73");
   });
 
   it("reads open bounds and no bounds", () => {
-    expect(challengeLevelValue(null, null, "en")).toBe("Any level");
+    expect(challengeLevelValue(null, null, "en", "padel")).toBe("Any level");
+    expect(challengeLevelValue(42, null, "en", "padel")).toBe("4.2 and up");
     expect(challengeTimingsValue([], "en")).toBe("Any time");
     expect(challengeTimingsValue(["morning", "evening"], "en")).toBe(
       "Mornings, Evenings",
