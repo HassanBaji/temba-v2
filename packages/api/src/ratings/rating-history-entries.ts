@@ -1,6 +1,6 @@
 import { inArray } from "drizzle-orm";
 
-import { groupTierEvents, matches, user } from "@repo/db";
+import { matches, user, type groupTierEvents } from "@repo/db";
 import type { RatingHistoryEntryData } from "@repo/domain/rating-history";
 import {
   scoredSetsFromMatch,
