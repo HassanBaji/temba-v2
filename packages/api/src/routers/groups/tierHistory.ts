@@ -2,14 +2,12 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
 import { z } from "zod";
 
-import { groupMembers, groupTierEvents, groupTierPoints, user } from "@repo/db";
+import { groupTierEvents, user } from "@repo/db";
 import { groupHasTier } from "@repo/domain/game-rating-scope";
 import type {
   TierHistoryData,
   TierHistoryStandingData,
 } from "@repo/domain/rating-history";
-import { tierTable } from "@repo/domain/tier-bands";
-import { TIER_POINTS_START } from "@repo/domain/tier-points";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
@@ -20,6 +18,7 @@ import { isGroupMember } from "#src/games/access";
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import { mayOrganizeGroupGames } from "#src/groups/helpers/may-organize-group-games";
 import { requireGroup } from "#src/groups/helpers/require-group";
+import { loadGroupTierTable } from "#src/ratings/group-tier-table";
 import { tierHistoryEntries } from "#src/ratings/rating-history-entries";
 
 type DbClient = typeof db;
@@ -144,30 +143,7 @@ async function memberStanding(
   groupId: string,
   userId: string,
 ): Promise<TierHistoryStandingData | null> {
-  const members = await database
-    .select({ userId: groupMembers.userId, joinedAt: groupMembers.createdAt })
-    .from(groupMembers)
-    .where(eq(groupMembers.groupId, groupId));
-  if (!members.some((entry) => entry.userId === userId)) {
-    return null;
-  }
-  const points = await database
-    .select()
-    .from(groupTierPoints)
-    .where(eq(groupTierPoints.groupId, groupId));
-  const rowByUser = new Map(points.map((row) => [row.userId, row]));
-  const table = tierTable(
-    members.map((entry) => {
-      const row = rowByUser.get(entry.userId);
-      return {
-        userId: entry.userId,
-        points: row?.points ?? TIER_POINTS_START,
-        gamesCounted: row?.gamesCounted ?? 0,
-        adjusted: row?.confirmedAt != null,
-        joinedAt: entry.joinedAt,
-      };
-    }),
-  );
+  const { table } = await loadGroupTierTable(database, groupId);
   const self = table.rows.find((row) => row.userId === userId);
   if (!self) {
     return null;

@@ -3,9 +3,7 @@ import { and, count, eq, lte } from "drizzle-orm";
 import { z } from "zod";
 
 import {
-  groupMembers,
   groupTierEvents,
-  groupTierPoints,
   groups,
   matchRatingWindows,
   performanceRatingResults,
@@ -19,11 +17,7 @@ import {
   type NoPerformanceReason,
   type PerformanceRatingResultData,
 } from "@repo/domain/performance-rating";
-import { tierTable } from "@repo/domain/tier-bands";
-import {
-  TIER_POINTS_START,
-  TIER_PROVISIONAL_GAMES,
-} from "@repo/domain/tier-points";
+import { TIER_PROVISIONAL_GAMES } from "@repo/domain/tier-points";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
@@ -41,6 +35,7 @@ import { matchSeatedUserIds } from "#src/games/match-result-confirmations";
 import { loadMatchParticipants } from "#src/marks/match-participants";
 import { mvpQuestion } from "#src/marks/settle-mvp";
 import { sideUserIds } from "#src/ratings/apply-tier-match";
+import { loadGroupTierTable } from "#src/ratings/group-tier-table";
 import { settleRatingWindowIfDue } from "#src/ratings/settle-rating-window";
 
 type DbClient = typeof db;
@@ -199,27 +194,9 @@ export async function performanceRatingResult(
 
   // "N points to the next band" is about today, so it is said only while the
   // player still holds the points and the fish this Match gave them.
-  const members = await database
-    .select({ userId: groupMembers.userId, joinedAt: groupMembers.createdAt })
-    .from(groupMembers)
-    .where(eq(groupMembers.groupId, event.groupId));
-  const pointsRows = await database
-    .select()
-    .from(groupTierPoints)
-    .where(eq(groupTierPoints.groupId, event.groupId));
-  const pointsByUser = new Map(pointsRows.map((row) => [row.userId, row]));
-  const today = tierTable(
-    members.map((member) => {
-      const row = pointsByUser.get(member.userId);
-      return {
-        userId: member.userId,
-        points: row?.points ?? TIER_POINTS_START,
-        gamesCounted: row?.gamesCounted ?? 0,
-        adjusted: row?.confirmedAt != null,
-        joinedAt: member.joinedAt,
-      };
-    }),
-  ).rows.find((row) => row.userId === args.userId);
+  const today = (
+    await loadGroupTierTable(database, event.groupId)
+  ).table.rows.find((row) => row.userId === args.userId);
   const stillHeld =
     today?.points === event.pointsAfter && today.band === event.bandAfter;
 

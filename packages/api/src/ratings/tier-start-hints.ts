@@ -1,25 +1,18 @@
 import { and, eq, inArray } from "drizzle-orm";
 
-import {
-  groupMembers,
-  groupRatings,
-  ratings,
-  type groupTierPoints,
-} from "@repo/db";
+import { groupMembers, groupRatings, ratings } from "@repo/db";
 
 import { displayedLevelFromMu } from "@repo/domain/level";
-import { tierHintReference, tierTable } from "@repo/domain/tier-bands";
-import {
-  TIER_POINTS_START,
-  tierHintFor,
-  tierHintOvr,
-} from "@repo/domain/tier-points";
+import { tierHintReference } from "@repo/domain/tier-bands";
+import { tierHintFor, tierHintOvr } from "@repo/domain/tier-points";
 
 import { type db } from "#src/db";
+import {
+  groupTierTable,
+  type TierPointsRow,
+} from "#src/ratings/group-tier-table";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-type TierPointsRow = typeof groupTierPoints.$inferSelect;
 
 /**
  * Each User's start hint in a tier Group (spec 8.1, D13): where their
@@ -40,18 +33,7 @@ export async function tierStartHints(
     .select({ userId: groupMembers.userId, joinedAt: groupMembers.createdAt })
     .from(groupMembers)
     .where(eq(groupMembers.groupId, args.groupId));
-  const table = tierTable(
-    members.map((member) => {
-      const row = args.rowByUser.get(member.userId);
-      return {
-        userId: member.userId,
-        points: row?.points ?? TIER_POINTS_START,
-        gamesCounted: row?.gamesCounted ?? 0,
-        adjusted: row?.confirmedAt != null,
-        joinedAt: member.joinedAt,
-      };
-    }),
-  );
+  const table = groupTierTable(members, (userId) => args.rowByUser.get(userId));
 
   const userIds = [
     ...new Set([...args.userIds, ...members.map((member) => member.userId)]),

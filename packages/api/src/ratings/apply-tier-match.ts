@@ -9,6 +9,10 @@ import {
 
 import { type db } from "#src/db";
 import { notify } from "#src/notifications/notify";
+import {
+  tierStanding,
+  type TierPointsRow,
+} from "#src/ratings/group-tier-table";
 import { tierStartHints } from "#src/ratings/tier-start-hints";
 import {
   tierIsProvisional,
@@ -23,8 +27,6 @@ import {
 } from "@repo/domain/tier-points";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-type TierPointsRow = typeof groupTierPoints.$inferSelect;
 
 export type TierBandChange = {
   userId: string;
@@ -268,17 +270,7 @@ async function groupTierTable(
   return tierTable(
     members.flatMap((member) => {
       const row = rowByUser.get(member.userId);
-      return row
-        ? [
-            {
-              userId: row.userId,
-              points: row.points,
-              gamesCounted: row.gamesCounted,
-              adjusted: adjusted(row),
-              joinedAt: member.joinedAt,
-            },
-          ]
-        : [];
+      return row ? [tierStanding(member, row)] : [];
     }),
   );
 }

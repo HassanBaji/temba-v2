@@ -6,8 +6,6 @@ import {
   MatchStatusEnum,
   gamePlayers,
   gameTeamPlayers,
-  groupMembers,
-  groupTierPoints,
   groups,
   matchGoals,
   matchResultConfirmations,
@@ -24,7 +22,6 @@ import { ovrBalanceStrength, wholeOvrFromMu } from "@repo/domain/football-ovr";
 import { groupHasTier } from "@repo/domain/game-rating-scope";
 import type { GroupMemberTierData } from "@repo/domain/group-data";
 import { type LevelBand } from "@repo/domain/level-bands";
-import { tierTable } from "@repo/domain/tier-bands";
 import { TIER_POINTS_START } from "@repo/domain/tier-points";
 import { squadsReadyForScore } from "@repo/domain/matchday-squad";
 import { messagesFor } from "@repo/i18n/messages";
@@ -37,6 +34,10 @@ import { gameReach } from "#src/games/verifier-stamp";
 import { confirmsAsOrganizer } from "#src/games/confirms-as-organizer";
 import { loadChallengeSides } from "#src/games/challenge-squad";
 import { groupIsVerified } from "#src/groups/group-is-verified";
+import {
+  loadGroupTierTable,
+  tierPointsShownTo,
+} from "#src/ratings/group-tier-table";
 import { tierStartHints } from "#src/ratings/tier-start-hints";
 import {
   assertFootballGame,
@@ -116,26 +117,7 @@ async function loadBoardTiers(
   ) {
     return null;
   }
-  const members = await database.query.groupMembers.findMany({
-    where: eq(groupMembers.groupId, group.id),
-    columns: { userId: true, createdAt: true },
-  });
-  const rows = await database.query.groupTierPoints.findMany({
-    where: eq(groupTierPoints.groupId, group.id),
-  });
-  const rowByUser = new Map(rows.map((row) => [row.userId, row]));
-  const table = tierTable(
-    members.map((member) => {
-      const row = rowByUser.get(member.userId);
-      return {
-        userId: member.userId,
-        points: row?.points ?? TIER_POINTS_START,
-        gamesCounted: row?.gamesCounted ?? 0,
-        adjusted: row?.confirmedAt != null,
-        joinedAt: member.createdAt,
-      };
-    }),
-  );
+  const { table, rowByUser } = await loadGroupTierTable(database, group.id);
 
   const startHint = await tierStartHints(database, {
     groupId: group.id,
@@ -143,19 +125,21 @@ async function loadBoardTiers(
     userIds: args.rosterUserIds,
   });
 
+  const viewer = {
+    userId: args.viewerUserId,
+    organizes: args.viewerOrganizes,
+  };
   const tableRowByUser = new Map(table.rows.map((row) => [row.userId, row]));
   const byUser = new Map<string, BoardTier>();
   for (const userId of args.rosterUserIds) {
     const row = tableRowByUser.get(userId);
     const provisional = row?.provisional ?? true;
-    const seesPoints =
-      !provisional || args.viewerOrganizes || userId === args.viewerUserId;
     byUser.set(userId, {
       tier: row
         ? {
             band: row.band,
             place: row.place,
-            points: seesPoints ? row.points : null,
+            points: tierPointsShownTo(row, viewer),
             provisional: row.provisional,
             gamesOfFive: row.gamesOfFive,
             gamesCounted: row.gamesCounted,

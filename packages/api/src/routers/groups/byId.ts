@@ -44,8 +44,6 @@ import {
   type GroupRatingSettings,
 } from "@repo/domain/group-rating-settings";
 import type { LevelBand } from "@repo/domain/level-bands";
-import { tierTable } from "@repo/domain/tier-bands";
-import { TIER_POINTS_START } from "@repo/domain/tier-points";
 import { wholeOvrFromMu } from "@repo/domain/football-ovr";
 import { levelFromMu } from "@repo/domain/level";
 import { protectedProcedure } from "#src/trpc";
@@ -76,6 +74,10 @@ import {
   type MatchSlotMember,
 } from "@repo/domain/match-slots";
 import { groupIsVerified } from "#src/groups/group-is-verified";
+import {
+  groupTierTable,
+  tierPointsShownTo,
+} from "#src/ratings/group-tier-table";
 import { tembaLevelViews } from "#src/ratings/level-confirmed";
 import {
   appointedOrganizerUserIds,
@@ -367,29 +369,24 @@ async function loadGroupTiers(
           ),
         });
   const rowByUser = new Map(rows.map((row) => [row.userId, row]));
-  const table = tierTable(
-    args.members.map((member) => {
-      const row = rowByUser.get(member.userId);
-      return {
-        userId: member.userId,
-        points: row?.points ?? TIER_POINTS_START,
-        gamesCounted: row?.gamesCounted ?? 0,
-        adjusted: row?.confirmedAt != null,
-        joinedAt: member.createdAt,
-      };
-    }),
+  const table = groupTierTable(
+    args.members.map((member) => ({
+      userId: member.userId,
+      joinedAt: member.createdAt,
+    })),
+    (userId) => rowByUser.get(userId),
   );
 
+  const viewer = {
+    userId: args.viewerUserId,
+    organizes: args.viewerOrganizes,
+  };
   const tierByUserId = new Map<string, GroupMemberTierData>();
   for (const row of table.rows) {
-    const seesPoints =
-      !row.provisional ||
-      args.viewerOrganizes ||
-      row.userId === args.viewerUserId;
     tierByUserId.set(row.userId, {
       band: row.band,
       place: row.place,
-      points: seesPoints ? row.points : null,
+      points: tierPointsShownTo(row, viewer),
       provisional: row.provisional,
       gamesOfFive: row.gamesOfFive,
       gamesCounted: row.gamesCounted,

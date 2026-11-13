@@ -12,8 +12,8 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import { groupHasTier } from "@repo/domain/game-rating-scope";
-import { tierTable, type TierBand } from "@repo/domain/tier-bands";
-import { TIER_POINTS_START } from "@repo/domain/tier-points";
+import { groupTierTable } from "#src/ratings/group-tier-table";
+import { type TierBand } from "@repo/domain/tier-bands";
 
 export type MyGroupTierRow = {
   groupId: string;
@@ -91,17 +91,8 @@ export async function myGroupTiers(
       const groupMembersHere = members.filter(
         (member) => member.groupId === group.groupId,
       );
-      const table = tierTable(
-        groupMembersHere.map((member) => {
-          const row = pointsByKey.get(`${group.groupId}:${member.userId}`);
-          return {
-            userId: member.userId,
-            points: row?.points ?? TIER_POINTS_START,
-            gamesCounted: row?.gamesCounted ?? 0,
-            adjusted: row?.confirmedAt != null,
-            joinedAt: member.joinedAt,
-          };
-        }),
+      const table = groupTierTable(groupMembersHere, (userId) =>
+        pointsByKey.get(`${group.groupId}:${userId}`),
       );
       const self = table.rows.find((row) => row.userId === args.userId);
       if (!self) {
