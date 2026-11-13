@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql, type SQL } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -27,6 +27,10 @@ type ApiDb = Parameters<typeof tierHistory>[0];
 
 function apiDb(database: TestDatabase) {
   return database as unknown as ApiDb;
+}
+
+function at(stamp: string): SQL {
+  return sql`${sql.raw(`'${stamp}'`)}::timestamp`;
 }
 
 async function withDb(run: (database: TestDatabase) => Promise<void>) {
@@ -237,6 +241,66 @@ describe("groups.tierHistory (screen 2e)", () => {
       });
       expect(rest.entries.map((entry) => entry.kind)).toEqual(["tier_game"]);
       expect(rest.nextCursor).toBeNull();
+    });
+  });
+
+  it("pages at every limit without skipping rows one transaction wrote", async () => {
+    await withDb(async (db) => {
+      const { f, a } = await playedGroup(db);
+      const events = await db.query.groupTierEvents.findMany({
+        where: and(
+          eq(groupTierEvents.groupId, f.groupId),
+          eq(groupTierEvents.userId, a),
+        ),
+      });
+      const adjustment = events.find((event) => event.kind === "adjustment")!;
+      const [earlier, later] = events
+        .filter((event) => event.kind === "game")
+        .sort((x, y) => x.createdAt.getTime() - y.createdAt.getTime());
+
+      // The adjustment and the later Game share one microsecond, as rows one
+      // transaction writes do, so the id alone orders them.
+      for (const event of [adjustment, later!]) {
+        await db
+          .update(groupTierEvents)
+          .set({ createdAt: at("2026-10-04 09:00:00.123456") })
+          .where(eq(groupTierEvents.id, event.id));
+      }
+      await db
+        .update(groupTierEvents)
+        .set({ createdAt: at("2026-10-03 09:00:00.5") })
+        .where(eq(groupTierEvents.id, earlier!.id));
+
+      const tied = [adjustment.id, later!.id].sort().reverse();
+      const expected = [...tied, earlier!.id];
+      for (let limit = 1; limit <= expected.length; limit += 1) {
+        const ids: string[] = [];
+        let cursor: Parameters<typeof tierHistory>[1]["cursor"];
+        do {
+          const page = await tierHistory(apiDb(db), {
+            groupId: f.groupId,
+            viewerUserId: a,
+            limit,
+            cursor,
+          });
+          ids.push(...page.entries.map((entry) => entry.id));
+          cursor = page.nextCursor ?? undefined;
+        } while (cursor && ids.length <= expected.length);
+        expect(ids, `limit ${limit}`).toEqual(expected);
+      }
+
+      // A released client's cursor is the row's time as a Date and its id.
+      const first = await db.query.groupTierEvents.findFirst({
+        where: eq(groupTierEvents.id, tied[0]!),
+      });
+      const afterFirst = await tierHistory(apiDb(db), {
+        groupId: f.groupId,
+        viewerUserId: a,
+        cursor: { createdAt: first!.createdAt, id: first!.id },
+      });
+      expect(afterFirst.entries.map((entry) => entry.id)).toEqual(
+        expected.slice(1),
+      );
     });
   });
 

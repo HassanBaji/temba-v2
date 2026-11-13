@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { groupTierEvents, user } from "@repo/db";
@@ -20,11 +20,16 @@ import { mayOrganizeGroupGames } from "#src/groups/helpers/may-organize-group-ga
 import { requireGroup } from "#src/groups/helpers/require-group";
 import { loadGroupTierTable } from "#src/ratings/group-tier-table";
 import { tierHistoryEntries } from "#src/ratings/rating-history-entries";
+import { olderThanShown, shownAt, shownAtIso } from "#src/ratings/shown-at";
 
 type DbClient = typeof db;
 
 const DEFAULT_PAGE_SIZE = 20;
 
+/**
+ * Where a page ended: the last row's time, cut to the millisecond, and its
+ * id. The shape a released client already sends.
+ */
 export type TierHistoryCursor = { createdAt: Date; id: string };
 
 /**
@@ -80,25 +85,20 @@ export async function tierHistory(
   const limit = args.limit ?? DEFAULT_PAGE_SIZE;
   const { cursor } = args;
   const rows = await database
-    .select()
+    .select({
+      event: groupTierEvents,
+      shownAt: shownAtIso(groupTierEvents.createdAt),
+    })
     .from(groupTierEvents)
     .where(
       and(
         eq(groupTierEvents.groupId, group.id),
         eq(groupTierEvents.userId, userId),
         inArray(groupTierEvents.kind, ["game", "adjustment"]),
-        cursor
-          ? or(
-              lt(groupTierEvents.createdAt, cursor.createdAt),
-              and(
-                eq(groupTierEvents.createdAt, cursor.createdAt),
-                lt(groupTierEvents.id, cursor.id),
-              ),
-            )
-          : undefined,
+        olderThanShown(groupTierEvents, cursor),
       ),
     )
-    .orderBy(desc(groupTierEvents.createdAt), desc(groupTierEvents.id))
+    .orderBy(desc(shownAt(groupTierEvents.createdAt)), desc(groupTierEvents.id))
     .limit(limit + 1);
   if (
     !isViewer &&
@@ -129,10 +129,14 @@ export async function tierHistory(
       isViewer,
     },
     tier: hasTier ? await memberStanding(database, group.id, userId) : null,
-    entries: await tierHistoryEntries(database, userId, page),
+    entries: await tierHistoryEntries(
+      database,
+      userId,
+      page.map((row) => row.event),
+    ),
     nextCursor:
       rows.length > limit && last
-        ? { createdAt: last.createdAt, id: last.id }
+        ? { createdAt: new Date(last.shownAt), id: last.event.id }
         : null,
   };
 }
