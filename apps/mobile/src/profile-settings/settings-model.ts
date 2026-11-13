@@ -8,6 +8,7 @@ import {
   formatInternationalNumber,
   parseE164,
 } from "@repo/domain/phone-number";
+import { shownLevel } from "@repo/domain/player-profile-level";
 import { preferredPositionProfileLine } from "@repo/domain/preferred-position";
 import {
   ageGroupLabel,
@@ -22,7 +23,7 @@ import {
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { displayBand, footballLevelWord } from "../profile/profile-model";
+import { displayBand } from "../profile/profile-model";
 
 /** Others see an age group; Your details counts as done once these are set. */
 export function hasDetails(details: {
@@ -54,16 +55,17 @@ export function padelSportSub(
     : m.you.settings.padelSubNoLevel(side);
 }
 
-/** "Competitive · Midfield". */
+/** "OVR 72 · Midfield", or "No level yet · Midfield". */
 export function footballSportSub(
-  levelBand: LevelBand | null,
+  levelValue: number | null,
   role: { role: FootballRole | null; position: FootballPosition | null },
   locale: Locale,
 ): string {
   const m = messagesFor(locale);
-  const level = levelBand
-    ? footballLevelWord(levelBand, locale)
-    : m.you.hero.noLevel;
+  const level =
+    levelValue == null
+      ? m.you.hero.noLevel
+      : m.rating.ovr.value(shownLevel(levelValue, "ovr"));
   return m.you.settings.footballSub(
     level,
     footballRoleView(role, locale).label,

@@ -2,21 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   footballHeroStats,
-  footballLevelLabel,
   goalBars,
   recordShares,
 } from "./you-football-model";
-
-describe("footballLevelLabel", () => {
-  it("reads a self-placement rung as its word", () => {
-    expect(footballLevelLabel("C1", "en")).toBe("Competitive");
-    expect(footballLevelLabel("D3", "en")).toBe("Beginner");
-  });
-
-  it("reads any other band as its letter", () => {
-    expect(footballLevelLabel("B2", "en")).toBe("B");
-  });
-});
 
 describe("goalBars", () => {
   it("runs oldest to latest, scaled to the best Match", () => {

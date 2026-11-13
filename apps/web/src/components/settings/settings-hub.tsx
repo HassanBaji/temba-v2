@@ -42,7 +42,6 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { Switch } from "~/components/ui/switch";
 import { profileAvatarClassName } from "~/components/you/you-header";
 import { SPORT_SETTINGS_HREF } from "~/components/you/you-chips";
-import { footballLevelLabel } from "~/components/you/you-football-model";
 import { bandInText, displayBand } from "~/components/you/you-format";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
@@ -195,9 +194,11 @@ function SportProfiles({ details }: { details: Details }) {
   const side = preferredPositionLabel(details.preferredPosition, locale);
   const padelLevel = padel.data?.level ?? null;
   const footballRating = football.data?.rating ?? null;
-  const footballLevel = footballRating
-    ? footballLevelLabel(footballRating.levelBand, locale)
-    : m.you.hero.noLevel;
+  const footballOvr = football.data?.ovr;
+  const footballLevel =
+    footballOvr != null
+      ? m.rating.ovr.value(String(footballOvr))
+      : m.you.hero.noLevel;
   const role = footballRoleView(
     {
       role: details.preferredFootballRole,

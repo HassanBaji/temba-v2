@@ -5,7 +5,6 @@ import {
   arrowDelta,
   compactDelta,
   curvePoints,
-  footballLevelWord,
   footballTabView,
   headerLine,
   heroView,
@@ -248,11 +247,6 @@ describe("curvePoints", () => {
 });
 
 describe("football", () => {
-  it("reads a placement band as its word", () => {
-    assert.equal(footballLevelWord("C1", "en"), "Competitive");
-    assert.equal(footballLevelWord("B2", "en"), "B");
-  });
-
   it("builds the tab from the football profile", () => {
     const football = {
       player: { id: "u1", name: "Hassan Haji", image: null, isViewer: true },

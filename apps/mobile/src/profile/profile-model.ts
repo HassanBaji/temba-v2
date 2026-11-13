@@ -1,4 +1,3 @@
-import { footballSelfPlacementChoices } from "@repo/domain/football-self-placement";
 import {
   footballHeroLevelView,
   footballRoleView,
@@ -419,19 +418,6 @@ export function pathLength(points: readonly { x: number; y: number }[]) {
     }
   }
   return length;
-}
-
-/**
- * Football reads as the self-placement word ("Competitive") while the Level
- * still sits on a placement band, and as the band letter once it has moved.
- */
-export function footballLevelWord(band: LevelBand, locale: Locale): string {
-  const display = displayBand(band);
-  return (
-    footballSelfPlacementChoices(locale).find(
-      (choice) => choice.band === display,
-    )?.label ?? display
-  );
 }
 
 export function footballTabView(profile: FootballProfile, locale: Locale) {

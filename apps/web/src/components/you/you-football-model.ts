@@ -1,32 +1,12 @@
-import { footballSelfPlacementChoices } from "@repo/domain/football-self-placement";
-import {
-  displayLabelFromStoredBand,
-  type LevelBand,
-} from "@repo/domain/level-bands";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import type { RouterOutputs } from "~/trpc/react";
 
-import { displayBand } from "./you-format";
 import { LAST_TEN } from "./you-form-model";
 import type { HeroStat } from "./you-hero-model";
 
 export type FootballProfile = RouterOutputs["users"]["footballProfile"];
-
-/**
- * A football Level reads as the self-placement word it sits on (Casual,
- * Competitive …), and as the band letter once results or an Organizer move
- * it off those rungs.
- */
-export function footballLevelLabel(band: LevelBand, locale: Locale): string {
-  const display = displayLabelFromStoredBand(band);
-  return (
-    footballSelfPlacementChoices(locale).find(
-      (choice) => choice.band === display,
-    )?.label ?? displayBand(band)
-  );
-}
 
 export type GoalBar = { key: string; goals: number | null; height: number };
 

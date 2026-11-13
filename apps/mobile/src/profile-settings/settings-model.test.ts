@@ -1,3 +1,4 @@
+import { levelFromOvr } from "@repo/domain/football-ovr";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -31,10 +32,17 @@ describe("sport rows", () => {
     expect(padelSportSub(null, null, "en")).toBe("No level yet · Not set");
   });
 
-  it("reads football with its placement word and role", () => {
+  it("reads football with its OVR and role", () => {
     expect(
-      footballSportSub("C1", { role: "keeper", position: null }, "en"),
-    ).toBe("Competitive · Keeper");
+      footballSportSub(
+        levelFromOvr(72),
+        { role: "keeper", position: null },
+        "en",
+      ),
+    ).toBe("OVR 72 · Keeper");
+    expect(
+      footballSportSub(null, { role: "keeper", position: null }, "en"),
+    ).toBe("No level yet · Keeper");
   });
 });
 
