@@ -243,6 +243,7 @@ export async function performanceRatingResult(
         placeBefore: event.placeBefore,
         placeAfter,
         rankedCount: event.rankedCount,
+        memberCount: event.memberCount,
         gamesOfFive: Math.min(gamesSoFar?.games ?? 0, TIER_PROVISIONAL_GAMES),
         nextBand: stillHeld ? today.nextBand : null,
         pointsToNextBand: stillHeld ? today.pointsToNextBand : null,

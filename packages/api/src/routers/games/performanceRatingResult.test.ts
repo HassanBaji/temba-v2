@@ -198,6 +198,7 @@ describe("games.performanceRatingResult (screen 4c)", () => {
         placeBefore: 4,
         placeAfter: stored.placeAfter,
         rankedCount: 5,
+        memberCount: 5,
         bandAfter: stored.bandAfter,
       });
       expect(tier.placeAfter).not.toBeNull();

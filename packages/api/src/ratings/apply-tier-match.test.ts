@@ -338,6 +338,7 @@ describe("Tier points on a completed football Match (ADR-0067)", () => {
         bandAfter: "shark",
         placeAfter: 1,
         rankedCount: 4,
+        memberCount: 5,
       });
       const stored = await db.query.groupTierPoints.findFirst({
         where: eq(groupTierPoints.userId, p2),

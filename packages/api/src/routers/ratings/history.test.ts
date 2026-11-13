@@ -483,11 +483,12 @@ describe("ratings.history (screen 1c)", () => {
         bandAfter: "kanaad",
         place: 2,
         rankedCount: 4,
+        memberCount: 5,
         points: 1350,
       });
       expect(ratingHistoryLine(latest!, ali!, "en")).toMatchObject({
         title: "Down to Kanaad",
-        detail: "Thursday Football, now #2 of 4",
+        detail: "Thursday Football, now #2 of 5",
         delta: "tier",
         after: "1,350",
       });

@@ -148,7 +148,7 @@ export async function applyTierMatch(
     };
   };
   const placeBefore = new Map(
-    (await groupTierTable(database, args.groupId, rowByUser)).rows.map(
+    (await groupTierTable(database, args.groupId, rowByUser)).table.rows.map(
       (entry) => [entry.userId, entry.place],
     ),
   );
@@ -225,6 +225,7 @@ export async function applyTierMatch(
         bandAfter: entry?.band ?? null,
         placeAfter: entry?.place ?? null,
         rankedCount: table.rankedCount,
+        memberCount: table.memberCount,
       })
       .where(
         and(
@@ -267,12 +268,15 @@ async function groupTierTable(
     .select({ userId: groupMembers.userId, joinedAt: groupMembers.createdAt })
     .from(groupMembers)
     .where(eq(groupMembers.groupId, groupId));
-  return tierTable(
-    members.flatMap((member) => {
-      const row = rowByUser.get(member.userId);
-      return row ? [tierStanding(member, row)] : [];
-    }),
-  );
+  return {
+    table: tierTable(
+      members.flatMap((member) => {
+        const row = rowByUser.get(member.userId);
+        return row ? [tierStanding(member, row)] : [];
+      }),
+    ),
+    memberCount: members.length,
+  };
 }
 
 /**
@@ -294,8 +298,12 @@ export async function rewriteTierBands(
     /** Members this write already tells another way. */
     toldAnotherWay?: readonly string[];
   },
-): Promise<TierTable & { bandChanges: TierBandChange[] }> {
-  const table = await groupTierTable(database, args.groupId, args.rowByUser);
+): Promise<TierTable & { memberCount: number; bandChanges: TierBandChange[] }> {
+  const { table, memberCount } = await groupTierTable(
+    database,
+    args.groupId,
+    args.rowByUser,
+  );
 
   const bandChanges: TierBandChange[] = [];
   for (const entry of table.rows) {
@@ -316,6 +324,7 @@ export async function rewriteTierBands(
         bandAfter: entry.band,
         placeAfter: entry.place,
         rankedCount: table.rankedCount,
+        memberCount,
         createdAt: args.now,
       })
       .returning({ id: groupTierEvents.id });
@@ -342,7 +351,7 @@ export async function rewriteTierBands(
     actorUserId: args.actorUserId ?? null,
     toldAnotherWay: args.toldAnotherWay ?? [],
   });
-  return { ...table, bandChanges };
+  return { ...table, memberCount, bandChanges };
 }
 
 /**

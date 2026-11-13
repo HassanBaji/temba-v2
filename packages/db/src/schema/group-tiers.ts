@@ -104,6 +104,8 @@ export const groupTierEvents = pgTable(
     placeBefore: integer("place_before"),
     placeAfter: integer("place_after"),
     rankedCount: integer("ranked_count"),
+    /** The Group's members when the place was cut: the "of" a place is read against. */
+    memberCount: integer("member_count"),
     setByUserId: uuid("set_by_user_id").references(() => user.id, {
       onDelete: "restrict",
     }),

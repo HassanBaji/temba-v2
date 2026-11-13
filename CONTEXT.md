@@ -717,7 +717,7 @@ The number behind a Group Tier (`group_tier_points`). Starts at 1,200 and moves 
 _Avoid_: Elo, group Elo, rating points, Standing points
 
 **Tier band**:
-Shark, Hamour, Kanaad or Safi, shown as a fish. A place, not a threshold: the Shark is first, Hamour the next 15% of the other ranked members, Kanaad the next 35%, Safi the rest. Only members out of Provisional are ranked, and there are no fish until four are. A member whose fish moves is told once per write (`tier_band_changed`), whether a Game settling, a wrong-score reversal or another member's Tier adjustment moved it; a member left with no fish is not told. Pure in `@repo/domain/tier-bands`.
+Shark, Hamour, Kanaad or Safi, shown as a fish. A place, not a threshold: the Shark is first, Hamour the next 15% of the other ranked members, Kanaad the next 35%, Safi the rest. Only members out of Provisional are ranked, and there are no fish until four are. A place is shown against the Group's member count ("#6 of 13" in a Group of 13 with two still Provisional), wherever it is shown; an event keeps the count from when its place was cut. A member whose fish moves is told once per write (`tier_band_changed`), whether a Game settling, a wrong-score reversal or another member's Tier adjustment moved it; a member left with no fish is not told. Pure in `@repo/domain/tier-bands`.
 _Avoid_: badge, rank, Level band, league
 
 **Tier adjustment**:

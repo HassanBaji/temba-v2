@@ -164,6 +164,7 @@ export async function adjustTierPoints(
         bandAfter: self?.band ?? null,
         placeAfter: self?.place ?? null,
         rankedCount: table.rankedCount,
+        memberCount: table.memberCount,
       })
       .where(eq(groupTierEvents.id, event.id));
 
@@ -183,6 +184,7 @@ export async function adjustTierPoints(
       place: self?.place ?? null,
       band: self?.band ?? null,
       rankedCount: table.rankedCount,
+      memberCount: table.memberCount,
       provisional: self?.provisional ?? false,
     };
   });

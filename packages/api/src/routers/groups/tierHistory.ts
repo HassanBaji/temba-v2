@@ -147,7 +147,7 @@ async function memberStanding(
   groupId: string,
   userId: string,
 ): Promise<TierHistoryStandingData | null> {
-  const { table } = await loadGroupTierTable(database, groupId);
+  const { members, table } = await loadGroupTierTable(database, groupId);
   const self = table.rows.find((row) => row.userId === userId);
   if (!self) {
     return null;
@@ -156,6 +156,7 @@ async function memberStanding(
     band: self.band,
     place: self.place,
     rankedCount: table.rankedCount,
+    memberCount: members.length,
     points: self.points,
     provisional: self.provisional,
     gamesOfFive: self.gamesOfFive,

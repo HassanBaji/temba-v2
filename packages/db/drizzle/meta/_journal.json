@@ -820,6 +820,13 @@
       "when": 1794577794434,
       "tag": "0116_match_dispute_superseded",
       "breakpoints": true
+    },
+    {
+      "idx": 117,
+      "version": "7",
+      "when": 1794588828114,
+      "tag": "0117_tier_event_member_count",
+      "breakpoints": true
     }
   ]
 }

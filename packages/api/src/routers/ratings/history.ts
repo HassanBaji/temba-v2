@@ -377,6 +377,7 @@ export async function ratingHistory(
           bandAfter: event.bandAfter,
           place: event.placeAfter,
           rankedCount: event.rankedCount,
+          memberCount: event.memberCount,
           points: event.pointsAfter,
         },
       ];

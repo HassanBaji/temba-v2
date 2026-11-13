@@ -270,6 +270,7 @@ describe("groups.adjustTierPoints", () => {
         place: 4,
         band: "kanaad",
         rankedCount: 12,
+        memberCount: 13,
       });
 
       const row = await pointsRow(db, groupId, khalid);
@@ -309,6 +310,7 @@ describe("groups.adjustTierPoints", () => {
         bandAfter: "kanaad",
         placeAfter: 4,
         rankedCount: 12,
+        memberCount: 13,
         setByUserId: owner,
         reason: "new_to_group",
         note: "Plays Div 1 on Mondays",

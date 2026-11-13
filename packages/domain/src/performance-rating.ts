@@ -842,6 +842,8 @@ export type PerformanceRatingResultData = {
       /** Null while Provisional. */
       placeAfter: number | null;
       rankedCount: number | null;
+      /** The Group's members when the place was cut: the "of" beside it. */
+      memberCount: number | null;
       gamesOfFive: number;
       /** Set only while the player still holds the place this Match gave. */
       nextBand: TierBand | null;
@@ -994,7 +996,10 @@ function tierView(
       line: copy.provisional,
     };
   }
-  const placeOf = m.adjust.placeOf(tier.placeAfter, tier.rankedCount ?? 0);
+  const placeOf = m.adjust.placeOf(
+    tier.placeAfter,
+    tier.memberCount ?? tier.rankedCount ?? 0,
+  );
   const before = tier.placeBefore;
   const aside =
     before == null || before === tier.placeAfter

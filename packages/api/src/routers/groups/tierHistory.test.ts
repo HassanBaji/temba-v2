@@ -140,6 +140,9 @@ describe("groups.tierHistory (screen 2e)", () => {
         points: latest!.pointsAfter,
         gamesCounted: 2,
         provisional: false,
+        place: 1,
+        rankedCount: 1,
+        memberCount: 5,
       });
       expect(history.nextCursor).toBeNull();
     });

@@ -60,6 +60,8 @@ export type TierHistoryStandingData = {
   /** Null while Provisional. */
   place: number | null;
   rankedCount: number;
+  /** Everyone in the Group, Provisional members too: the "of" beside a place. */
+  memberCount: number;
   points: number;
   provisional: boolean;
   gamesOfFive: number;
@@ -224,7 +226,7 @@ export function tierHistoryScreen(
         TIER_PROVISIONAL_GAMES,
       );
     } else {
-      const placeOf = m.adjust.placeOf(tier.place, tier.rankedCount);
+      const placeOf = m.adjust.placeOf(tier.place, tier.memberCount);
       standing = bandLabel ? m.adjust.nowRanked(bandLabel, placeOf) : placeOf;
     }
   }
@@ -339,6 +341,8 @@ export type RatingHistoryItemData =
       bandAfter: TierBand | null;
       place: number | null;
       rankedCount: number | null;
+      /** The Group's members when the place was cut: the "of" beside it. */
+      memberCount: number | null;
       points: number;
     };
 
@@ -572,12 +576,10 @@ export function ratingHistoryLine(
         label: band ? tierBandLabel(band, locale) : null,
       };
       title = bandTitle(item, locale) ?? group;
+      const of = item.memberCount ?? item.rankedCount;
       detail =
-        item.place != null && item.rankedCount != null
-          ? m.tier.bandDetail(
-              group,
-              all.rating.adjust.placeOf(item.place, item.rankedCount),
-            )
+        item.place != null && of != null
+          ? m.tier.bandDetail(group, all.rating.adjust.placeOf(item.place, of))
           : group;
       delta = m.tier.bandDelta;
       after = formatTierPoints(item.points);

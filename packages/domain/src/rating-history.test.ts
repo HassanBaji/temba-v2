@@ -149,7 +149,8 @@ function data(overrides: Partial<TierHistoryData> = {}): TierHistoryData {
     tier: {
       band: "kanaad",
       place: 4,
-      rankedCount: 13,
+      rankedCount: 11,
+      memberCount: 13,
       points: 1248,
       provisional: false,
       gamesOfFive: 5,
@@ -192,6 +193,7 @@ describe("tierHistoryScreen", () => {
           band: null,
           place: null,
           rankedCount: 11,
+          memberCount: 13,
           points: 1212,
           provisional: true,
           gamesOfFive: 3,
@@ -215,6 +217,7 @@ describe("tierHistoryScreen", () => {
           band: null,
           place: 2,
           rankedCount: 3,
+          memberCount: 5,
           points: 1210,
           provisional: false,
           gamesOfFive: 5,
@@ -226,7 +229,7 @@ describe("tierHistoryScreen", () => {
       "hussain",
       "en",
     );
-    expect(screen.header.standing).toBe("#2 of 3");
+    expect(screen.header.standing).toBe("#2 of 5");
     expect(screen.header.bandLabel).toBeNull();
   });
 
@@ -420,7 +423,11 @@ describe("ratingHistoryLine", () => {
       after: "1,219",
     });
 
-    const band = (bandBefore: TierBand | null, bandAfter: TierBand | null) =>
+    const band = (
+      bandBefore: TierBand | null,
+      bandAfter: TierBand | null,
+      memberCount: number | null = 22,
+    ) =>
       ratingHistoryLine(
         item({
           kind: "tier_band",
@@ -430,7 +437,8 @@ describe("ratingHistoryLine", () => {
           bandBefore,
           bandAfter,
           place: 3,
-          rankedCount: 22,
+          rankedCount: 19,
+          memberCount,
           points: 1318,
         }),
         VIEWER,
@@ -442,6 +450,9 @@ describe("ratingHistoryLine", () => {
       delta: "tier",
       after: "1,318",
     });
+    expect(band("kanaad", "hamour", null).detail).toBe(
+      "Karbabad Friday Football, now #3 of 19",
+    );
     expect(band("hamour", "kanaad").title).toBe("Down to Kanaad");
     expect(band(null, "safi").title).toBe("Now a Safi");
     expect(band("safi", null).title).toBe("No longer a Safi");

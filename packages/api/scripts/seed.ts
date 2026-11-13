@@ -1942,6 +1942,7 @@ async function seedThursdayTier(u: Users, groupId: string) {
     bandAfter: "shark",
     placeAfter: 1,
     rankedCount: table.rankedCount,
+    memberCount: table.rows.length,
     createdAt: new Date(Date.now() - 36 * DAY),
   });
   // A manual change, so Points and history shows who and why.
