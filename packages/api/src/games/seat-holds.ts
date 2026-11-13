@@ -13,7 +13,6 @@ import {
   type GroupJoinRequestHeldSeat,
 } from "@repo/db";
 
-import { isProvisional } from "@repo/domain/level";
 
 import { type db } from "#src/db";
 import {
@@ -34,6 +33,7 @@ import {
   userAllowedByLevelRange,
 } from "#src/games/user-allowed-by-level-range";
 import { isGroupApprover } from "#src/groups/helpers/is-group-approver";
+import { readTembaLevelView } from "#src/ratings/level-confirmed";
 
 type DbOrTx = DbReader | DbTx;
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -84,7 +84,6 @@ export async function listGameSeatHolds(
           eq(ratings.userId, row.userId),
           eq(ratings.sport, ratingSport),
         ),
-        columns: { phi: true },
       });
       return {
         id: row.id,
@@ -99,7 +98,9 @@ export async function listGameSeatHolds(
           row.userId,
           game.sport,
         ),
-        provisional: rating ? isProvisional(rating.phi) : false,
+        provisional: rating
+          ? (await readTembaLevelView(database, rating)).provisional
+          : false,
       };
     }),
   );

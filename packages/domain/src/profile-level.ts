@@ -2,7 +2,11 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatOvr } from "./football-ovr";
-import { formatPadelLevel } from "./level";
+import {
+  formatPadelLevel,
+  matchesTowardConfirming,
+  RATED_MATCHES_TO_CONFIRM,
+} from "./level";
 import {
   displayLabelFromStoredBand,
   nextDistinctDisplayRung,
@@ -10,26 +14,19 @@ import {
 } from "./level-bands";
 import type { Sport } from "./sport";
 
-export function confirmationFraction(
-  ratedMatchCount: number,
-  ratedMatchesRemaining: number,
-): number {
-  const denom = ratedMatchCount + ratedMatchesRemaining;
-  if (denom <= 0) {
-    return 0;
-  }
-  return ratedMatchCount / denom;
+export function confirmationFraction(ratedMatchesRemaining: number): number {
+  return (
+    matchesTowardConfirming(ratedMatchesRemaining) / RATED_MATCHES_TO_CONFIRM
+  );
 }
 
 export function confirmationProgressCaption(
-  ratedMatchCount: number,
   ratedMatchesRemaining: number,
   locale: Locale,
 ): string {
-  const total = ratedMatchCount + ratedMatchesRemaining;
   return messagesFor(locale).profile.level.confirmProgress(
-    ratedMatchCount,
-    total,
+    matchesTowardConfirming(ratedMatchesRemaining),
+    RATED_MATCHES_TO_CONFIRM,
   );
 }
 
@@ -113,10 +110,7 @@ export function profileLevelView(
   const displayNext = nextDistinctDisplayRung(input.band);
   const fillPercent = clampPercent(
     input.provisional
-      ? confirmationFraction(
-          input.ratedMatchCount,
-          input.ratedMatchesRemaining,
-        ) * 100
+      ? confirmationFraction(input.ratedMatchesRemaining) * 100
       : (input.progressPercent ?? 0),
   );
   const progressCaption =
@@ -135,11 +129,7 @@ export function profileLevelView(
     atTopBand: !input.provisional && displayNext == null,
     fillPercent,
     caption: input.provisional
-      ? confirmationProgressCaption(
-          input.ratedMatchCount,
-          input.ratedMatchesRemaining,
-          locale,
-        )
+      ? confirmationProgressCaption(input.ratedMatchesRemaining, locale)
       : progressCaption,
   };
 }

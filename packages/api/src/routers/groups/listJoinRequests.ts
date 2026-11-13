@@ -7,7 +7,6 @@ import {
   ratings,
 } from "@repo/db";
 
-import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
@@ -16,12 +15,13 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGroupApprover } from "#src/groups/helpers/is-group-approver";
 import { requireGroup } from "#src/groups/helpers/require-group";
+import { tembaLevelViews } from "#src/ratings/level-confirmed";
 
 type DbClient = typeof db;
 
 export async function listJoinRequests(
   database: DbClient,
-  args: { groupId: string; userId: string; now?: Date; locale?: Locale },
+  args: { groupId: string; userId: string; locale?: Locale },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const group = await requireGroup(database, args.groupId, locale);
@@ -44,7 +44,6 @@ export async function listJoinRequests(
     orderBy: (table, { asc }) => [asc(table.createdAt)],
   });
 
-  const now = args.now ?? new Date();
   const requesterIds = rows.map((row) => row.userId);
   const levelByUserId = new Map<
     string,
@@ -57,8 +56,9 @@ export async function listJoinRequests(
         inArray(ratings.userId, requesterIds),
       ),
     });
+    const levelView = await tembaLevelViews(database, ratingRows);
     for (const row of ratingRows) {
-      const view = youRatingViewAfterIdle(row, now);
+      const view = levelView(row);
       levelByUserId.set(row.userId, {
         levelBand: view.levelBand,
         provisional: view.provisional,

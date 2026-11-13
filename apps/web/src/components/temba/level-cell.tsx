@@ -11,9 +11,10 @@ import { cn } from "~/lib/utils";
  *
  * With a `level`, the label reads "C+ 3.8", and a Provisional member shows it
  * on the hatch. Without one (the Standing tab), a Provisional member is a bare
- * hatch. Hatched means the Rating is still **Provisional**
- * (`isProvisional(phi)`, ADR-0009), or the member has no `ratings` row for the
- * Group's sport. It is not a match-count rule.
+ * hatch. Hatched means the Level is still **Provisional** (`tembaLevelView`:
+ * fewer than five Rated Matches in a Verified Group on padel, five counting
+ * Matches on football, and no Level override), or the member has no `ratings`
+ * row for the Group's sport.
  *
  * Distinct from `LevelBandBadge`, which is the badge form used elsewhere.
  */

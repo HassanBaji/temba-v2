@@ -126,7 +126,6 @@ export async function loadFootballProfile(
     sportRating(database, {
       userId: player.id,
       sport: GroupSportEnum.FOOTBALL,
-      now,
     }),
     historyHidden
       ? Promise.resolve([])

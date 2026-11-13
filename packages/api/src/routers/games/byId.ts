@@ -106,8 +106,8 @@ import {
   bandFromLevel,
   bandWithHysteresis,
   formatLevel,
-  isProvisional,
   levelFromMu,
+  padelMatchesRemainingToConfirm,
   ratedMatchesRemainingToConfirm,
   type LevelBand,
 } from "@repo/domain/level";
@@ -116,6 +116,7 @@ import {
   type WrongScoreReversalEligibility,
 } from "#src/games/wrong-score-reversal";
 import { sideUserIds } from "#src/ratings/apply-tier-match";
+import { padelConfirmations } from "#src/ratings/level-confirmed";
 import { ovrFromMu } from "@repo/domain/football-ovr";
 import { type OvrImpact } from "@repo/domain/game-rating-impact";
 import { groupSeasonRows } from "#src/games/season-link";
@@ -1053,6 +1054,7 @@ export async function gameById(
               muAfter: true,
               phiAfter: true,
               sport: true,
+              createdAt: true,
               outcomeScore: true,
               resultPart: true,
               performancePart: true,
@@ -1076,15 +1078,23 @@ export async function gameById(
           afterLevel,
           bandFromLevel(beforeLevel),
         );
-        const viewerIsProvisional = isProvisional(viewerRatingEvent.phiAfter);
+        const remaining =
+          viewerRatingEvent.sport === "football"
+            ? ratedMatchesRemainingToConfirm(viewerRatingEvent.phiAfter)
+            : padelMatchesRemainingToConfirm(
+                (
+                  await padelConfirmations(database, {
+                    userIds: [args.userId],
+                    asOf: viewerRatingEvent.createdAt,
+                  })
+                )(args.userId),
+              );
         ratingImpact = {
           levelChange,
           newLevel,
           newLevelBand,
-          isProvisional: viewerIsProvisional,
-          ratedMatchesRemainingToConfirm: viewerIsProvisional
-            ? ratedMatchesRemainingToConfirm(viewerRatingEvent.phiAfter)
-            : null,
+          isProvisional: remaining > 0,
+          ratedMatchesRemainingToConfirm: remaining > 0 ? remaining : null,
           ovr:
             viewerRatingEvent.sport === "football"
               ? await footballOvrImpact(database, {

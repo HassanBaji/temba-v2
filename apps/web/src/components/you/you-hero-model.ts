@@ -1,5 +1,10 @@
 import { formatMonth } from "@repo/domain/format-game-start";
-import { bandFromLevel, formatPadelLevel } from "@repo/domain/level";
+import {
+  bandFromLevel,
+  formatPadelLevel,
+  matchesTowardConfirming,
+  RATED_MATCHES_TO_CONFIRM,
+} from "@repo/domain/level";
 import { zonedParts } from "@repo/domain/product-timezone";
 import { WIN_RATE_MIN_MATCHES } from "@repo/domain/win-rate";
 import type { Locale } from "@repo/i18n/locale";
@@ -27,13 +32,13 @@ export type HeroView = {
   spoken: string;
 };
 
-function ringFor(level: ScopeLevel, ratedCount: number, locale: Locale) {
+function ringFor(level: ScopeLevel, locale: Locale) {
   const m = messagesFor(locale).you.hero;
   if (level.provisional) {
-    const total = ratedCount + level.ratedMatchesRemaining;
+    const toward = matchesTowardConfirming(level.ratedMatchesRemaining);
     return {
-      percent: total === 0 ? 0 : Math.round((ratedCount / total) * 100),
-      label: m.toConfirm(ratedCount, total),
+      percent: Math.round((toward / RATED_MATCHES_TO_CONFIRM) * 100),
+      label: m.toConfirm(toward, RATED_MATCHES_TO_CONFIRM),
     };
   }
   return {
@@ -81,7 +86,7 @@ export function heroView(
     status,
     band,
     rating,
-    ring: ringFor(level, ratedCount, locale),
+    ring: ringFor(level, locale),
     move,
     outlook: generalOutlook(level, locale),
     spoken: m.spoken(bandInText(band, locale), rating, status),

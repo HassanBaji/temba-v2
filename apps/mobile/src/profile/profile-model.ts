@@ -7,6 +7,8 @@ import { formatDayMonth, formatMonth } from "@repo/domain/format-game-start";
 import {
   bandFromLevel,
   formatPadelLevel,
+  matchesTowardConfirming,
+  RATED_MATCHES_TO_CONFIRM,
   type LevelBand,
 } from "@repo/domain/level";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
@@ -164,11 +166,11 @@ export function heroView(profile: MyProfile, locale: Locale): HeroView {
     ? m.provisionalRated(rated)
     : m.confirmed(rated);
 
-  const confirmTotal = rated + level.ratedMatchesRemaining;
+  const toward = matchesTowardConfirming(level.ratedMatchesRemaining);
   const ring = level.provisional
     ? {
-        percent: confirmTotal > 0 ? (rated / confirmTotal) * 100 : 0,
-        label: m.toConfirm(rated, confirmTotal),
+        percent: (toward / RATED_MATCHES_TO_CONFIRM) * 100,
+        label: m.toConfirm(toward, RATED_MATCHES_TO_CONFIRM),
         provisional: true,
       }
     : {

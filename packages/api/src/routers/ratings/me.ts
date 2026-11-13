@@ -12,13 +12,13 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { userHasRatedMatch } from "#src/ratings/has-rated-match";
+import { readTembaLevelView } from "#src/ratings/level-confirmed";
 import {
   formatOvr,
   levelFaceFor,
   ovrFromMu,
   type LevelFace,
 } from "@repo/domain/football-ovr";
-import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import {
   displayedLevelFromMu,
   levelFromMu,
@@ -156,10 +156,10 @@ async function ratedMatchCount(
 }
 
 /**
- * Current Rating in one sport (padel unless asked) for the signed-in User. Idle RD inflation is applied
- * for display (not persisted). Returns product Level / Level band /
- * Provisional only — never raw Glicko μ/φ/σ. Also includes progress within
- * the current Level band, typical Rated Matches remaining while Provisional,
+ * Current Rating in one sport (padel unless asked) for the signed-in User.
+ * Returns product Level / Level band / Provisional only — never raw Glicko
+ * μ/φ/σ. Also includes progress within the current Level band, the Rated
+ * Matches that still confirm it while Provisional,
  * and recent Level history for the home sparkline with the number of Rated
  * Matches inside it. `face` says how the sport shows its Level; on football
  * `ovr` is the whole-number OVR and the history is in OVR (ADR-0069).
@@ -193,9 +193,7 @@ export async function loadRatingsMe(
     };
   }
 
-  const rating = youRatingViewAfterIdle(row, new Date());
-  // Idle inflation does not change μ; progress uses the same continuous Level
-  // as the displayed product number.
+  const rating = await readTembaLevelView(database, row);
   const levelValue = levelFromMu(row.mu);
   const progress = progressToNextBand(levelValue, rating.levelBand);
   const [history, matchCount, change] = await Promise.all([

@@ -23,18 +23,22 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { canViewGame } from "#src/games/access";
 import { gameListTime } from "#src/home/upcoming-games";
+import {
+  readTembaLevelView,
+  tembaLevelViews,
+} from "#src/ratings/level-confirmed";
 import { calibrationVenueFor } from "#src/ratings/verifier-calibration";
 import {
   myGroupTiers,
   type MyGroupTierRow,
 } from "#src/routers/ratings/myGroupTiers";
 import { summarizeCompletedMatchStats } from "@repo/domain/completed-matches";
-import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import {
   bandFromLevel,
   bandWithHysteresis,
   formatLevel,
   levelFromMu,
+  type YouRatingView,
 } from "@repo/domain/level";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import { outcomeForSlot, userSlotOnMatch } from "@repo/domain/match-slots";
@@ -329,13 +333,9 @@ export function usualVenue(newest: readonly Pick<CountedMatch, "venue">[]) {
 }
 
 /** Each player's current padel Level, read the way their own profile reads it. */
-async function currentLevels(
-  database: DbClient,
-  userIds: readonly string[],
-  now: Date,
-) {
+async function currentLevels(database: DbClient, userIds: readonly string[]) {
   if (userIds.length === 0) {
-    return new Map<string, ReturnType<typeof youRatingViewAfterIdle>>();
+    return new Map<string, YouRatingView>();
   }
   const rows = await database.query.ratings.findMany({
     where: and(
@@ -343,15 +343,13 @@ async function currentLevels(
       eq(ratings.sport, GroupSportEnum.PADEL),
     ),
   });
-  return new Map(
-    rows.map((row) => [row.userId, youRatingViewAfterIdle(row, now)]),
-  );
+  const view = await tembaLevelViews(database, rows);
+  return new Map(rows.map((row) => [row.userId, view(row)]));
 }
 
 export async function teamPlayers(
   database: DbClient,
   teamIds: readonly string[],
-  now: Date,
 ) {
   const links =
     teamIds.length === 0
@@ -381,7 +379,6 @@ export async function teamPlayers(
   const levels = await currentLevels(
     database,
     [...new Set(people.map((person) => person.user.id))],
-    now,
   );
 
   const byTeam = new Map<string, PlayerMatchPlayer[]>();
@@ -474,7 +471,7 @@ export async function mostPlayedPartners(
       }),
     ),
   ];
-  const players = await teamPlayers(database, ownTeamIds, args.now);
+  const players = await teamPlayers(database, ownTeamIds);
   return partnersFrom(args.playerId, counted, (teamId) =>
     teamId ? (players.get(teamId) ?? []) : [],
   );
@@ -696,7 +693,7 @@ async function lastMatchesFrom(
     ),
   );
   const [players, ratingByMatch, openable] = await Promise.all([
-    teamPlayers(database, teamIds, args.now),
+    teamPlayers(database, teamIds),
     ratingChanges(
       database,
       args.playerId,
@@ -809,9 +806,9 @@ function playedSideCounts(counted: readonly CountedMatch[]) {
 
 export async function sportRating(
   database: DbClient,
-  args: { userId: string; sport: GroupSportEnum; now: Date },
+  args: { userId: string; sport: GroupSportEnum },
 ) {
-  const { userId, sport, now } = args;
+  const { userId, sport } = args;
   const row = await database.query.ratings.findFirst({
     where: and(eq(ratings.userId, userId), eq(ratings.sport, sport)),
   });
@@ -822,7 +819,7 @@ export async function sportRating(
     .select({ ratedMatchCount: count() })
     .from(ratingEvents)
     .where(and(eq(ratingEvents.userId, userId), eq(ratingEvents.sport, sport)));
-  const view = youRatingViewAfterIdle(row, now);
+  const view = await readTembaLevelView(database, row);
   return {
     level: view.level,
     levelBand: view.levelBand,
@@ -866,7 +863,6 @@ export async function loadPlayerProfile(
     sportRating(database, {
       userId: player.id,
       sport: GroupSportEnum.PADEL,
-      now,
     }),
     historyHidden
       ? Promise.resolve([])

@@ -16,9 +16,9 @@ import {
   lookupUserTextFilter,
 } from "#src/invites/search-lookup-users";
 import { operatorProcedure } from "#src/trpc";
+import { tembaLevelViews } from "#src/ratings/level-confirmed";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { ovrFromMu } from "@repo/domain/football-ovr";
-import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import type { Sport } from "@repo/domain/sport";
 import { sportSchema } from "@repo/validators/sport";
 
@@ -36,14 +36,12 @@ export async function listForOperator(
     query?: string;
     cursor?: number;
     limit?: number;
-    now?: Date;
   },
 ) {
   const sport =
     args.sport === "football" ? GroupSportEnum.FOOTBALL : GroupSportEnum.PADEL;
   const offset = args.cursor ?? 0;
   const limit = args.limit ?? OPERATOR_PLAYERS_PAGE_SIZE;
-  const now = args.now ?? new Date();
 
   const rows = await database.query.user.findMany({
     where: lookupUserTextFilter(classifyLookupQuery(args.query ?? "")),
@@ -102,11 +100,12 @@ export async function listForOperator(
             .orderBy(desc(levelOverrides.createdAt), desc(levelOverrides.id)),
         ]);
 
+  const levelView = await tembaLevelViews(database, ratingRows);
   const ratingByUserId = new Map(
     ratingRows.map((row) => [
       row.userId,
       {
-        ...youRatingViewAfterIdle(row, now),
+        ...levelView(row),
         ovr:
           sport === GroupSportEnum.FOOTBALL
             ? Math.round(ovrFromMu(row.mu))

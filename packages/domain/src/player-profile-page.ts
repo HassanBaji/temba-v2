@@ -251,17 +251,10 @@ export function profileLevelView(
     return shape({
       status: m.provisional,
       statusDetail,
-      lead: confirmationProgressCaption(
-        input.ratedMatchCount,
-        input.ratedMatchesRemaining,
-        locale,
-      ),
+      lead: confirmationProgressCaption(input.ratedMatchesRemaining, locale),
       trail: null,
       percent: clampPercent(
-        confirmationFraction(
-          input.ratedMatchCount,
-          input.ratedMatchesRemaining,
-        ) * 100,
+        confirmationFraction(input.ratedMatchesRemaining) * 100,
       ),
       hatched: true,
       trend: options.trend,

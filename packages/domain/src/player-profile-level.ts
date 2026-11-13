@@ -121,19 +121,12 @@ export function playerLevelCardView(
   };
 
   if (input.provisional) {
-    const caption = confirmationProgressCaption(
-      input.ratedMatchCount,
-      input.ratedMatchesRemaining,
-      locale,
-    );
+    const caption = confirmationProgressCaption(input.ratedMatchesRemaining, locale);
     return {
       ...base,
       lines: [caption],
       fillPercent: clampPercent(
-        confirmationFraction(
-          input.ratedMatchCount,
-          input.ratedMatchesRemaining,
-        ) * 100,
+        confirmationFraction(input.ratedMatchesRemaining) * 100,
       ),
       accessibilityLabel: m.levelCard.spokenProvisional(
         displayBand,

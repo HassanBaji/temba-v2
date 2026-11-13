@@ -7,7 +7,11 @@ import {
   type GroupMemberTierCell,
 } from "./group-members-table";
 import { initials } from "./initials";
-import { formatPadelLevel } from "./level";
+import {
+  formatPadelLevel,
+  matchesTowardConfirming,
+  RATED_MATCHES_TO_CONFIRM,
+} from "./level";
 import {
   displayLabelFromStoredBand,
   nextDistinctDisplayRung,
@@ -216,13 +220,11 @@ export function ratingsLevelView(
   let ringPercent: number;
   let footer: { label: string; value: string | null; detail: string | null };
   if (rating.provisional) {
-    const total = data.ratedMatchCount + rating.ratedMatchesRemaining;
-    ringPercent = clampPercent(
-      total > 0 ? (data.ratedMatchCount / total) * 100 : 0,
-    );
+    const toward = matchesTowardConfirming(rating.ratedMatchesRemaining);
+    ringPercent = clampPercent((toward / RATED_MATCHES_TO_CONFIRM) * 100);
     footer = {
       label: m.toConfirm,
-      value: m.confirmCount(data.ratedMatchCount, total),
+      value: m.confirmCount(toward, RATED_MATCHES_TO_CONFIRM),
       detail: null,
     };
   } else {

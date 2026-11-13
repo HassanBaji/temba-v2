@@ -76,6 +76,7 @@ import {
   type MatchSlotMember,
 } from "@repo/domain/match-slots";
 import { groupIsVerified } from "#src/groups/group-is-verified";
+import { tembaLevelViews } from "#src/ratings/level-confirmed";
 import {
   appointedOrganizerUserIds,
   isAppointedOrganizer,
@@ -656,8 +657,9 @@ export async function groupById(
     const ratedMatchCountByUserId = new Map(
       matchCountRows.map((row) => [row.userId, Number(row.ratedMatchCount)]),
     );
+    const levelView = await tembaLevelViews(database, ratingRows);
     for (const row of ratingRows) {
-      const view = youRatingViewAfterIdle(row, now);
+      const view = levelView(row);
       ratingByUserId.set(row.userId, {
         levelBand: view.levelBand,
         provisional: view.provisional,
