@@ -83,6 +83,19 @@ describe("notificationPath", () => {
     );
   });
 
+  it("opens Ratings on the sport whose Level was confirmed", () => {
+    expect(
+      notificationPath({
+        type: "level_confirmed",
+        group: null,
+        game: { id: "x1", sport: "football" },
+      }),
+    ).toBe("/profile/ratings?sport=football");
+    expect(
+      notificationPath({ type: "level_confirmed", group: null, game: null }),
+    ).toBeNull();
+  });
+
   it("has no target when the subject is missing or the type is unknown", () => {
     expect(notificationPath({ type: "game_finished", group: null })).toBeNull();
     expect(

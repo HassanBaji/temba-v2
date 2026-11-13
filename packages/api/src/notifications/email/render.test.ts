@@ -305,6 +305,22 @@ describe("renderNotificationEmail", () => {
     ).toEqual({ kind: "game", path: `/dashboard/games/${GAME.id}` });
   });
 
+  it("sends a confirmed Level to the Ratings page on its sport", () => {
+    const email = render(
+      item({
+        type: "level_confirmed",
+        audience: "player",
+        actor: null,
+        game: { ...GAME, sport: "football" },
+      }),
+    );
+    expect(email.subject).toBe("Your Football Level is confirmed");
+    expect(email.html).toContain(
+      `href="${ORIGIN}/dashboard/you/ratings?sport=football"`,
+    );
+    expect(email.html).toContain("Open your ratings");
+  });
+
   it("renders Arabic right-to-left from the Arabic catalog", () => {
     const email = render(
       item({ type: "group_member_joined", group: GROUP }),

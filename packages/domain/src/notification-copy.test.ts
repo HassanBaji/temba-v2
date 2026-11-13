@@ -1431,3 +1431,67 @@ describe("notificationCopy for a Tier adjustment", () => {
     assert.equal(copy?.title[1]?.text, "قرش");
   });
 });
+
+describe("notificationCopy: a confirmed Level", () => {
+  const game = (sport: string | null) => ({
+    name: null,
+    format: "friendly_game",
+    sport,
+    windowStart: null,
+  });
+
+  it("names the sport whose Level the Match confirmed", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          type: "level_confirmed",
+          audience: "player",
+          actor: null,
+          group: null,
+          game: game("football"),
+        },
+        "en",
+      ),
+      {
+        title: [
+          { text: "Your ", strong: false },
+          { text: "Football", strong: true },
+          { text: " Level is confirmed", strong: false },
+        ],
+        subline:
+          "The track is no longer hatched. It keeps moving on verified matches.",
+      },
+    );
+    assert.equal(
+      notificationCopy(
+        {
+          type: "level_confirmed",
+          audience: "player",
+          actor: null,
+          group: null,
+          game: game("padel"),
+        },
+        "ar",
+      )?.title[1]?.text,
+      "بادل",
+    );
+  });
+
+  it("returns null without the Game's sport", () => {
+    for (const value of [null, undefined]) {
+      assert.equal(
+        notificationCopy(
+          {
+            type: "level_confirmed",
+            audience: "player",
+            actor: null,
+            group: null,
+            game: value === null ? game(null) : null,
+          },
+          "en",
+        ),
+        null,
+      );
+    }
+  });
+});

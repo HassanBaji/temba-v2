@@ -447,6 +447,54 @@ describe("ratingHistoryLine", () => {
     expect(band("safi", null).title).toBe("No longer a Safi");
   });
 
+  it("marks the Match that confirmed a Level as a milestone", () => {
+    const confirmed = item({
+      kind: "level_confirmed",
+      id: "fifth-match",
+      at: THU_29_OCT,
+      sport: "football",
+      muAfter: muFromOvr(72),
+      matchesCounted: 5,
+    });
+    const line = ratingHistoryLine(confirmed, VIEWER, "en");
+    expect(line).toMatchObject({
+      key: "fifth-match:confirmed",
+      icon: { kind: "level" },
+      title: "Level confirmed",
+      detail: "Fifth verified match. The track is no longer hatched",
+      byline: null,
+      delta: "72",
+      after: "set",
+      valueSpoken: "Confirmed at 72",
+      spoken:
+        "Level confirmed. Fifth verified match. The track is no longer hatched. Confirmed at 72",
+    });
+    expect(line.key).not.toBe(
+      ratingHistoryLine({ ...LEVEL_MATCH, id: "fifth-match" }, VIEWER, "en")
+        .key,
+    );
+
+    const padel = ratingHistoryLine(
+      item({
+        ...confirmed,
+        sport: "padel",
+        muAfter: muFromLevel(3.45),
+        matchesCounted: 7,
+      }),
+      VIEWER,
+      "en",
+    );
+    expect(padel).toMatchObject({
+      detail: "After 7 verified matches. The track is no longer hatched",
+      delta: "3.45",
+      after: "set",
+    });
+    expect(ratingHistoryLine(confirmed, VIEWER, "ar")).toMatchObject({
+      title: "تأكّد المستوى",
+      after: "ثابت",
+    });
+  });
+
   it("speaks the whole line and has Arabic copy", () => {
     expect(ratingHistoryLine(CALIBRATION, VIEWER, "en").spoken).toBe(
       "Level calibrated by a verifier. Football, 68 to 71. Coach Yaser (Fantasy FC), Playing above this: “Assessed over two sessions, plays above 68.”. +3, now 71",

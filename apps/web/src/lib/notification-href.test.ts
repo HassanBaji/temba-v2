@@ -198,6 +198,25 @@ describe("notificationHref", () => {
     assert.equal(notificationHref({ type: "level_set", group: null }), null);
   });
 
+  it("opens Ratings on the sport whose Level was confirmed", () => {
+    assert.equal(
+      notificationHref({
+        type: "level_confirmed",
+        group: null,
+        game: { id: "g1", sport: "padel" },
+      }),
+      "/dashboard/you/ratings?sport=padel",
+    );
+    assert.equal(
+      notificationHref({
+        type: "level_confirmed",
+        group: null,
+        game: { id: "g1", sport: null },
+      }),
+      null,
+    );
+  });
+
   it("has no target without a Group or for a type it does not know", () => {
     assert.equal(
       notificationHref({ type: "group_member_joined", group: null }),
