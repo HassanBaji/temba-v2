@@ -331,8 +331,8 @@ describe("ratings.history (screen 1c)", () => {
         ],
         day: 1,
       });
-      // Padel's φ crosses at the fourth Match, idles back over the line and
-      // crosses again: only the first counts.
+      // Padel's φ crosses at the fourth Match, but the Level confirms on the
+      // fifth Rated Match in a Verified Group (ADR-0074).
       const padel = await ratedMatches(db, {
         gameId: f.gameId,
         userId: p,
@@ -356,7 +356,7 @@ describe("ratings.history (screen 1c)", () => {
         ...[...padel]
           .reverse()
           .flatMap((id) =>
-            id === padel[3]
+            id === padel[4]
               ? [`level_confirmed:${id}`, `level_match:${id}`]
               : [`level_match:${id}`],
           ),
@@ -376,11 +376,11 @@ describe("ratings.history (screen 1c)", () => {
       expect(confirmed).toEqual([
         {
           kind: "level_confirmed",
-          id: padel[3],
-          at: new Date("2026-09-13T09:00:00.250Z"),
+          id: padel[4],
+          at: new Date("2026-09-14T09:00:00.250Z"),
           sport: "padel",
-          muAfter: muFromOvr(64),
-          matchesCounted: 4,
+          muAfter: muFromOvr(65),
+          matchesCounted: 5,
         },
         {
           kind: "level_confirmed",
