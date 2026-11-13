@@ -1,7 +1,9 @@
 import type { DbClient } from "@repo/db";
-import type { SQL } from "drizzle-orm";
+import { and, eq, inArray, type SQL } from "drizzle-orm";
 
 import {
+  performanceRatingResults,
+  ratingEvents,
   type MatchDisputeStatus,
   type NotificationAudience,
   type NotificationType,
@@ -61,6 +63,16 @@ export type NotificationItem = {
     reason: LevelOverrideReason | null;
     note: string | null;
   } | null;
+  /**
+   * The OVR move a ratings-closed Notification is about, on a Match that
+   * counts for Temba Level; null on a tier Match, and once it is reversed.
+   */
+  ovrMove: {
+    before: number;
+    after: number;
+    /** The settled Performance rating, in hundredths; null without one. */
+    ratingHundredths: number | null;
+  } | null;
   /** The Match dispute a raised or decided Notification is about. */
   dispute: { status: MatchDisputeStatus; note: string } | null;
 };
@@ -87,6 +99,69 @@ function openMarksClosesAt(
     game.matches.find((match) => match.completedAt)?.completedAt ?? null;
   const marks = marksWindow(completedAt, now);
   return marks?.state === "open" ? marks.closesAt : null;
+}
+
+/**
+ * The OVR move and settled rating of each User on each Match, read from the
+ * Match's rating events: what a ratings-closed Notification says on a Match
+ * that counts for Temba Level. A reversed Match has none.
+ */
+async function levelRatingsClosedMoves(
+  database: DbClient,
+  pairs: readonly { userId: string; matchId: string }[],
+) {
+  const moves = new Map<string, NonNullable<NotificationItem["ovrMove"]>>();
+  const key = (userId: string, matchId: string) => `${userId}:${matchId}`;
+  if (pairs.length > 0) {
+    const userIds = [...new Set(pairs.map((pair) => pair.userId))];
+    const matchIds = [...new Set(pairs.map((pair) => pair.matchId))];
+    const [events, results] = await Promise.all([
+      database
+        .select({
+          userId: ratingEvents.userId,
+          matchId: ratingEvents.matchId,
+          muBefore: ratingEvents.muBefore,
+          muAfter: ratingEvents.muAfter,
+        })
+        .from(ratingEvents)
+        .where(
+          and(
+            eq(ratingEvents.sport, "football"),
+            inArray(ratingEvents.userId, userIds),
+            inArray(ratingEvents.matchId, matchIds),
+          ),
+        ),
+      database
+        .select({
+          userId: performanceRatingResults.userId,
+          matchId: performanceRatingResults.matchId,
+          ratingHundredths: performanceRatingResults.ratingHundredths,
+        })
+        .from(performanceRatingResults)
+        .where(
+          and(
+            inArray(performanceRatingResults.userId, userIds),
+            inArray(performanceRatingResults.matchId, matchIds),
+          ),
+        ),
+    ]);
+    const ratingOf = new Map(
+      results.map((row) => [
+        key(row.userId, row.matchId),
+        row.ratingHundredths,
+      ]),
+    );
+    for (const event of events) {
+      moves.set(key(event.userId, event.matchId), {
+        before: ovrFromMu(event.muBefore),
+        after: ovrFromMu(event.muAfter),
+        ratingHundredths:
+          ratingOf.get(key(event.userId, event.matchId)) ?? null,
+      });
+    }
+  }
+  return (userId: string, matchId: string) =>
+    moves.get(key(userId, matchId)) ?? null;
 }
 
 /**
@@ -129,7 +204,7 @@ export async function loadNotificationItems(
           windowStart: true,
           cancelledAt: true,
         },
-        with: { matches: { columns: { completedAt: true } } },
+        with: { matches: { columns: { id: true, completedAt: true } } },
       },
       levelOverride: {
         columns: {
@@ -155,6 +230,20 @@ export async function loadNotificationItems(
       matchDispute: { columns: { status: true, note: true } },
     },
   });
+
+  const ovrMoveOf = await levelRatingsClosedMoves(
+    database,
+    rows.flatMap((row) =>
+      row.type === "performance_ratings_closed" &&
+      row.game &&
+      !row.groupTierEvent
+        ? row.game.matches.map((match) => ({
+            userId: row.recipientUserId,
+            matchId: match.id,
+          }))
+        : [],
+    ),
+  );
 
   return rows.map(
     ({
@@ -194,6 +283,13 @@ export async function loadNotificationItems(
             }
           : null,
         tier: groupTierEvent ?? null,
+        ovrMove:
+          item.type === "performance_ratings_closed" && game && !groupTierEvent
+            ? (game.matches.flatMap((match) => {
+                const move = ovrMoveOf(recipientUserId, match.id);
+                return move ? [move] : [];
+              })[0] ?? null)
+            : null,
         dispute: matchDispute ?? null,
       },
     }),

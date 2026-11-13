@@ -22,6 +22,7 @@ import {
   matches,
   performanceRatingResults,
   performanceRatings,
+  ratingEvents,
 } from "@repo/db";
 
 import { footballGoalsRole, OVR_PART_WEIGHTS } from "@repo/domain/football-ovr";
@@ -598,10 +599,56 @@ export async function settleRatingWindow(
     .set({ settledAt: now, updatedAt: now })
     .where(eq(matchRatingWindows.matchId, matchId));
   await settleMvp(database, game.id, now);
-  if (groupId && !window.countsForLevel) {
+  if (window.countsForLevel) {
+    await notifyLevelRatingsClosed(database, {
+      match,
+      gameId: game.id,
+      groupId,
+    });
+  } else if (groupId) {
     await notifyRatingsClosed(database, { match, gameId: game.id, groupId });
   }
   return true;
+}
+
+/**
+ * Tells each seated account holder their settled rating and the OVR move it
+ * made on a Match that counts for Temba Level, one row per player, each
+ * about their own rating event.
+ */
+async function notifyLevelRatingsClosed(
+  database: DbClient,
+  args: {
+    match: typeof matches.$inferSelect;
+    gameId: string;
+    groupId: string | null;
+  },
+) {
+  const accountHolders = new Set(
+    await matchSeatedUserIds(database, args.match),
+  );
+  const events = await database
+    .select({ id: ratingEvents.id, userId: ratingEvents.userId })
+    .from(ratingEvents)
+    .where(
+      and(
+        eq(ratingEvents.matchId, args.match.id),
+        eq(ratingEvents.sport, "football"),
+      ),
+    );
+  for (const event of events) {
+    if (!accountHolders.has(event.userId)) {
+      continue;
+    }
+    await notify(database, {
+      type: "performance_ratings_closed",
+      recipients: [{ userId: event.userId, audience: "player" }],
+      excludeUserIds: [],
+      groupId: args.groupId,
+      gameId: args.gameId,
+      dedupeKey: `performance_ratings_closed:${event.id}`,
+    });
+  }
 }
 
 /**

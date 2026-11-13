@@ -748,6 +748,37 @@ describe("notificationCopy for the MVP", () => {
     );
   });
 
+  it("tells a player their rating and their OVR move once ratings close on a Match that counts", () => {
+    const closed = (
+      ratingHundredths: number | null,
+      locale: "en" | "ar" = "en",
+    ) =>
+      notificationCopy(
+        {
+          type: "performance_ratings_closed",
+          audience: "player",
+          actor: null,
+          group: null,
+          game,
+          tier: null,
+          ovrMove: { before: 74.2, after: 75, ratingHundredths },
+        },
+        locale,
+      );
+    assert.equal(
+      closed(780)
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Ratings are in for Thursday Padel",
+    );
+    assert.equal(closed(780)?.subline, "You were rated 7.8. OVR +0.8, now 75.");
+    assert.equal(
+      closed(null)?.subline,
+      "No rating for you this time. OVR +0.8, now 75.",
+    );
+    assert.match(closed(780, "ar")?.subline ?? "", /تقييمك/);
+  });
+
   it("returns null without a Game or for the wrong audience", () => {
     assert.equal(mvp({ game: null }), null);
     assert.equal(mvp({ audience: "admin" }), null);

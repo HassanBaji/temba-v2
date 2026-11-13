@@ -179,11 +179,19 @@ describe("notificationHref", () => {
     );
   });
 
-  it("opens the Game when ratings close", () => {
+  it("opens the Game when ratings close, on a Group's Game or one with no Group", () => {
     assert.equal(
       notificationHref({
         type: "performance_ratings_closed",
         group: { id: "g2" },
+        game: { id: "g1" },
+      }),
+      "/dashboard/games/g1",
+    );
+    assert.equal(
+      notificationHref({
+        type: "performance_ratings_closed",
+        group: null,
         game: { id: "g1" },
       }),
       "/dashboard/games/g1",

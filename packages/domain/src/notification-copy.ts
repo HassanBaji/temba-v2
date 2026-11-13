@@ -1,6 +1,7 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { formatOvr, formatOvrDelta } from "./football-ovr";
 import { formatDayMonth, formatGameDay } from "./format-game-start";
 import { gameFormatLabel } from "./game-format-label";
 import { groupDisplayName } from "./group-join";
@@ -33,6 +34,7 @@ export type NotificationCopyInput = {
   gameCount?: number | null;
   levelSet?: NotificationLevelSet | null;
   tier?: NotificationTier | null;
+  ovrMove?: NotificationOvrMove | null;
   dispute?: NotificationDispute | null;
   markKind?: string | null;
   /** The recipient is the actor, as on the MVP's own `mvp_decided` row. */
@@ -61,6 +63,17 @@ type NotificationTier = {
   ratingHundredths?: number | null;
   reason: LevelOverrideReason | null;
   note: string | null;
+};
+
+/**
+ * The OVR move a `performance_ratings_closed` row is about, on a Match that
+ * counts for Temba Level.
+ */
+type NotificationOvrMove = {
+  before: number;
+  after: number;
+  /** The settled Performance rating, in hundredths; null without one. */
+  ratingHundredths: number | null;
 };
 
 /** The Match dispute a raised or decided Notification is about. */
@@ -372,6 +385,29 @@ export function notificationCopy(
               formatPerformanceRating(ratingHundredths),
               delta,
               points,
+            ),
+    };
+  }
+  if (
+    item.type === "performance_ratings_closed" &&
+    item.audience === "player" &&
+    item.game &&
+    item.ovrMove
+  ) {
+    const { ratingHundredths, before, after } = item.ovrMove;
+    const delta = formatOvrDelta(after - before);
+    const ovr = formatOvr(after);
+    return {
+      title: m.performanceRatingsClosed(
+        notificationGameName(item.game, locale),
+      ),
+      subline:
+        ratingHundredths == null
+          ? sub.ratingsClosedOvrNoRating(delta, ovr)
+          : sub.ratingsClosedOvr(
+              formatPerformanceRating(ratingHundredths),
+              delta,
+              ovr,
             ),
     };
   }

@@ -71,9 +71,16 @@ describe("notificationPath", () => {
     }
   });
 
-  it("opens the Game when ratings close", () => {
+  it("opens the Game when ratings close, on a Group's Game or one with no Group", () => {
     expect(
       notificationPath({ type: "performance_ratings_closed", group, game }),
+    ).toBe("/games/x1");
+    expect(
+      notificationPath({
+        type: "performance_ratings_closed",
+        group: null,
+        game,
+      }),
     ).toBe("/games/x1");
   });
 

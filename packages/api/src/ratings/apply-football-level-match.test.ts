@@ -9,14 +9,21 @@ import {
   levelOverrides,
   matchRatingWindows,
   matches,
+  notifications,
   performanceRatings,
   ratingEvents,
   ratings,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
-import { muFromOvr, ovrFromMu } from "@repo/domain/football-ovr";
+import {
+  formatOvr,
+  formatOvrDelta,
+  muFromOvr,
+  ovrFromMu,
+} from "@repo/domain/football-ovr";
 import { ovrImpactView } from "@repo/domain/game-rating-impact";
+import { notificationCopy } from "@repo/domain/notification-copy";
 import {
   isProvisional,
   ratedMatchesRemainingToConfirm,
@@ -36,6 +43,7 @@ import { gameById } from "#src/routers/games/byId";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { publishFootballTeams } from "#src/routers/games/publishFootballTeams";
 import { register } from "#src/routers/games/register";
+import { listNotifications } from "#src/routers/notifications/list";
 import { saveFootballScore } from "#src/routers/games/saveFootballScore";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
 
@@ -623,6 +631,86 @@ describe("A counting football Match's Rating window (ADR-0069)", () => {
       );
       const other = await gameById(db, { gameId: f.gameId, userId: white[1]! });
       expect(other.ratingImpact?.ovr?.mvp).toBe("other");
+    });
+  });
+
+  it("tells each seated account holder their rating and OVR move once, when the window settles", async () => {
+    await withDb(async (db) => {
+      const f = await clubFootballGame(db);
+      const everyone = [
+        await addMember(f, "a"),
+        await addMember(f, "b"),
+        await addMember(f, "c"),
+        await addMember(f, "d"),
+      ];
+      for (const userId of everyone) {
+        await setOvr(db, userId, 72);
+      }
+      const [a, b, c, d] = everyone as [string, string, string, string];
+      const matchId = await playScore(f, [a, b], [c, d], {
+        slot1: 2,
+        slot2: 1,
+      });
+      await rateAll(db, matchId, everyone, (ratee) => (ratee === a ? 9 : 6), [
+        a,
+        b,
+      ]);
+      const closed = () =>
+        db.query.notifications.findMany({
+          where: eq(notifications.type, "performance_ratings_closed"),
+        });
+      expect(await closed()).toHaveLength(0);
+
+      await closeRatingWindow(db, matchId);
+      const sent = await closed();
+      expect(sent.map((row) => row.recipientUserId).sort()).toEqual(
+        [...everyone].sort(),
+      );
+      const events = await eventsOf(db, matchId);
+      for (const row of sent) {
+        expect(row).toMatchObject({
+          audience: "player",
+          gameId: f.gameId,
+          groupId: f.groupId,
+          groupTierEventId: null,
+          dedupeKey: `performance_ratings_closed:${
+            events.find((event) => event.userId === row.recipientUserId)!.id
+          }`,
+        });
+      }
+
+      const event = events.find((row) => row.userId === a)!;
+      const { items } = await listNotifications(db, { userId: a });
+      const item = items.find(
+        (row) => row.type === "performance_ratings_closed",
+      )!;
+      expect(item.tier).toBeNull();
+      expect(item.ovrMove?.ratingHundredths).toBe(900);
+      expect(item.ovrMove?.before).toBeCloseTo(ovrFromMu(event.muBefore));
+      expect(item.ovrMove?.after).toBeCloseTo(ovrFromMu(event.muAfter));
+      expect(notificationCopy(item, "en")?.subline).toBe(
+        `You were rated 9.0. OVR ${formatOvrDelta(
+          ovrFromMu(event.muAfter) - ovrFromMu(event.muBefore),
+        )}, now ${formatOvr(ovrFromMu(event.muAfter))}.`,
+      );
+      const unrated = (await listNotifications(db, { userId: c })).items.find(
+        (row) => row.type === "performance_ratings_closed",
+      )!;
+      expect(unrated.ovrMove?.ratingHundredths).toBeNull();
+      expect(notificationCopy(unrated, "en")?.subline).toMatch(
+        /^No rating for you this time\. OVR /,
+      );
+
+      await reportWrongScore(db, {
+        gameId: f.gameId,
+        matchId,
+        userId: f.organizerId,
+      });
+      const reversed = (await listNotifications(db, { userId: a })).items.find(
+        (row) => row.type === "performance_ratings_closed",
+      )!;
+      expect(reversed.ovrMove).toBeNull();
+      expect(notificationCopy(reversed, "en")).toBeNull();
     });
   });
 

@@ -36,6 +36,7 @@ function item(
     game: null,
     levelSet: null,
     tier: null,
+    ovrMove: null,
     dispute: null,
     ...overrides,
   };
@@ -167,6 +168,21 @@ describe("renderNotificationEmail", () => {
       }),
     );
     expect(email.subject).toBe("Ratings are in for Thursday Padel");
+    expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
+  });
+
+  it("sends a player to the Game once ratings close on a Game with no Group", () => {
+    const email = render(
+      item({
+        type: "performance_ratings_closed",
+        audience: "player",
+        actor: null,
+        game: GAME,
+        ovrMove: { before: 74.2, after: 75, ratingHundredths: 780 },
+      }),
+    );
+    expect(email.subject).toBe("Ratings are in for Thursday Padel");
+    expect(email.text).toContain("You were rated 7.8. OVR +0.8, now 75.");
     expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
   });
 

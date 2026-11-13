@@ -341,6 +341,10 @@ export const notification = {
       `تقييمك ${isolate(rating)}. نقاط الفئة ${isolate(delta)}، والآن ${isolate(points)}.`,
     ratingsClosedResultOnly: (delta: string, points: string) =>
       `لا تقييم لك هذه المرة. نقاط الفئة ${isolate(delta)} على النتيجة، والآن ${isolate(points)}.`,
+    ratingsClosedOvr: (rating: string, delta: string, ovr: string) =>
+      `تقييمك ${isolate(rating)}. OVR ${isolate(delta)}، والآن ${isolate(ovr)}.`,
+    ratingsClosedOvrNoRating: (delta: string, ovr: string) =>
+      `لا تقييم لك هذه المرة. OVR ${isolate(delta)}، والآن ${isolate(ovr)}.`,
     disputeUpheld: "النتيجة مفتوحة من جديد. أدخل النتيجة الصحيحة.",
     disputeDismissed: "تبقى النتيجة.",
     disputeSuperseded:

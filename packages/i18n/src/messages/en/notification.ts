@@ -313,6 +313,10 @@ export const notification = {
       `You were rated ${rating}. Tier points ${delta}, now ${points}.`,
     ratingsClosedResultOnly: (delta: string, points: string) =>
       `No rating for you this time. Tier points ${delta} on the result, now ${points}.`,
+    ratingsClosedOvr: (rating: string, delta: string, ovr: string) =>
+      `You were rated ${rating}. OVR ${delta}, now ${ovr}.`,
+    ratingsClosedOvrNoRating: (delta: string, ovr: string) =>
+      `No rating for you this time. OVR ${delta}, now ${ovr}.`,
     disputeUpheld: "The score is open again. Enter the right one.",
     disputeDismissed: "The result stands.",
     disputeSuperseded:
