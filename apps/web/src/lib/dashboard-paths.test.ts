@@ -32,6 +32,13 @@ describe("titleFromPath", () => {
     assert.equal(titleFromPath("/dashboard/you/ratings", en), "Ratings");
   });
 
+  it("titles Rating history for its page", () => {
+    assert.equal(
+      titleFromPath("/dashboard/you/ratings/history", en),
+      "Rating history",
+    );
+  });
+
   it("titles Profile for the rest of /dashboard/you", () => {
     assert.equal(titleFromPath("/dashboard/you", en), "Profile");
     assert.equal(titleFromPath("/dashboard/you/extra", en), "Profile");
@@ -57,6 +64,13 @@ describe("detailBackHref", () => {
 
   it("returns Profile for the Ratings page", () => {
     assert.equal(detailBackHref("/dashboard/you/ratings"), "/dashboard/you");
+  });
+
+  it("returns Ratings for the Rating history page", () => {
+    assert.equal(
+      detailBackHref("/dashboard/you/ratings/history"),
+      "/dashboard/you/ratings",
+    );
   });
 
   it("returns Home for the Notifications page", () => {

@@ -9,10 +9,16 @@ const PLAYER_MARKS = /^\/dashboard\/players\/([^/]+)\/marks\/?$/;
 const PLAYER_MARK = /^\/dashboard\/players\/([^/]+)\/marks\/([^/]+)\/?$/;
 
 const YOU_RATINGS_HREF = "/dashboard/you/ratings";
+const YOU_RATING_HISTORY_HREF = `${YOU_RATINGS_HREF}/history`;
 
 /** Ratings (screens 1a, 1b), opened on `sport`. */
 export function youRatingsHref(sport: Sport) {
   return `${YOU_RATINGS_HREF}?sport=${sport}`;
+}
+
+/** Rating history (screen 1c), opened on `sport`. */
+export function youRatingHistoryHref(sport: Sport) {
+  return `${YOU_RATING_HISTORY_HREF}?sport=${sport}`;
 }
 
 /** The Player profile, opened on `sport` when given. */
@@ -58,6 +64,9 @@ export function titleFromPath(pathname: string, m: Messages) {
   }
   if (pathname.startsWith("/dashboard/you/settings")) {
     return m.common.settings;
+  }
+  if (pathname.startsWith(YOU_RATING_HISTORY_HREF)) {
+    return m.rating.ratingHistory.title;
   }
   if (pathname.startsWith(YOU_RATINGS_HREF)) {
     return m.rating.screen.title;
@@ -143,6 +152,9 @@ export function pageHidesMobileTopBar(pathname: string) {
 export function detailBackHref(pathname: string | null): string | undefined {
   if (!pathname) {
     return undefined;
+  }
+  if (pathname.startsWith(YOU_RATING_HISTORY_HREF)) {
+    return YOU_RATINGS_HREF;
   }
   if (
     pathname.startsWith("/dashboard/you/settings") ||

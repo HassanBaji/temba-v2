@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, History } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -17,7 +17,11 @@ import { Hatch } from "~/components/ui/hatch";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { Skeleton } from "~/components/ui/skeleton";
-import { groupHomeHref, youRatingsHref } from "~/lib/dashboard-paths";
+import {
+  groupHomeHref,
+  youRatingHistoryHref,
+  youRatingsHref,
+} from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 import {
@@ -325,7 +329,17 @@ export function RatingsPage({ initialSport }: { initialSport: Sport }) {
             href="/dashboard/you"
             label={m.webDashboard.settings.backToProfile}
           />
-          <PageTitle className="text-ink">{m.rating.screen.title}</PageTitle>
+          <PageTitle className="text-ink min-w-0 flex-1">
+            {m.rating.screen.title}
+          </PageTitle>
+          <Link
+            href={youRatingHistoryHref(sport)}
+            aria-label={m.rating.ratingHistory.open}
+            title={m.rating.ratingHistory.open}
+            className="border-rule text-ink hover:bg-wash focus-visible:ring-ring/50 flex size-11 shrink-0 items-center justify-center rounded-md border outline-none transition-colors focus-visible:ring-[3px]"
+          >
+            <History aria-hidden="true" className="size-5" />
+          </Link>
         </header>
         <SportSwitch value={sport} onSelect={setSport} />
         {failed?.error ? (
