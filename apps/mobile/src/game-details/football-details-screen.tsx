@@ -768,10 +768,10 @@ export function FootballGameDetails({
           tone={model.hero.tone}
           lines={lines}
           tag={
-            challenge
-              ? m.challenge.gameDetails.tag
-              : ratingScopeOf(game) === "temba"
-                ? (ratingScopeTag(game, locale) ?? undefined)
+            ratingScopeOf(game) === "temba"
+              ? (ratingScopeTag(game, locale) ?? undefined)
+              : challenge
+                ? m.challenge.gameDetails.tag
                 : undefined
           }
           actions={
