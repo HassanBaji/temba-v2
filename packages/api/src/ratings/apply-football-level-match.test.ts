@@ -16,6 +16,7 @@ import {
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 import { muFromOvr, ovrFromMu } from "@repo/domain/football-ovr";
+import { ovrImpactView } from "@repo/domain/game-rating-impact";
 import {
   isProvisional,
   ratedMatchesRemainingToConfirm,
@@ -420,6 +421,47 @@ describe("Game details on a counting football Match", () => {
       const loser = await gameById(db, { gameId: f.gameId, userId: b });
       expect(loser.ratingImpact?.ovr?.outcome).toBe("lost");
       expect(loser.ratingImpact?.ovr?.opponentAverage).toBeCloseTo(74);
+    });
+  });
+
+  it("shows a move cut at the 40 floor as the parts earned and what the floor held back", async () => {
+    await withDb(async (db) => {
+      const f = await clubFootballGame(db);
+      const a = await addMember(f, "a");
+      const b = await addMember(f, "b");
+      await setOvr(db, a, 40.2);
+      await setOvr(db, b, 40.2);
+      const matchId = await playAndSettle(f, [a], [b], { slot1: 0, slot2: 4 });
+
+      const event = (await eventsOf(db, matchId)).find(
+        (row) => row.userId === a,
+      )!;
+      expect(ovrFromMu(event.muAfter)).toBeCloseTo(40);
+      expect(partsOf(event)).toBeLessThan(-0.5);
+
+      const detail = await gameById(db, { gameId: f.gameId, userId: a });
+      const impact = detail.ratingImpact!;
+      expect(impact.ovr!.after - impact.ovr!.before).toBeCloseTo(-0.2);
+      const view = ovrImpactView({ ...impact, ovr: impact.ovr! }, "en");
+      const tenths = (delta: string) =>
+        Math.round(Number(delta.replace("−", "-")) * 10);
+      const held = view.rows.at(-1)!;
+      expect(held.title).toBe("Held at 40");
+      expect(tenths(held.delta)).toBeGreaterThan(0);
+      const parts = view.rows.slice(0, -1);
+      expect(parts.map((row) => tenths(row.delta))).toEqual(
+        [
+          event.resultPart,
+          event.performancePart,
+          event.goalsPart,
+          event.mvpPart,
+        ].map((part) => Math.round((part ?? 0) * 10) + 0),
+      );
+      expect(parts.every((row) => tenths(row.delta) <= 0)).toBe(true);
+      expect(view.total.delta).toBe("−0.2");
+      expect(view.rows.reduce((sum, row) => sum + tenths(row.delta), 0)).toBe(
+        tenths(view.total.delta),
+      );
     });
   });
 });

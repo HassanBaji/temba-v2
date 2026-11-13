@@ -113,6 +113,11 @@ export const rating = {
     mvpYou: "Voted MVP by the players",
     mvpOther: "Not this time. Other marks don’t move OVR",
     mvpNone: "No MVP was voted. Only a voted MVP moves OVR",
+    heldAt: (bound: string) => `Held at ${bound}`,
+    heldFloor: (bound: string) =>
+      `OVR does not go below ${bound}, so the rest of this drop was not taken`,
+    heldCeiling: (bound: string) =>
+      `OVR does not go above ${bound}, so the rest of this rise was not added`,
     honest:
       "Keeping ratings honest: no rating yourself, highest and lowest dropped, hidden until the 24-hour window closes, verified games only.",
   },

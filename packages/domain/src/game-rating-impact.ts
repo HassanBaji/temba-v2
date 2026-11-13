@@ -5,6 +5,8 @@ import {
   formatOvr,
   formatOvrDelta,
   formatOvrPrecise,
+  OVR_MAX,
+  OVR_MIN,
   OVR_PART_WEIGHTS,
 } from "./football-ovr";
 import {
@@ -215,33 +217,68 @@ function percentOf(share: number) {
 
 /**
  * Each part in tenths of OVR, rounded so the shown parts add up to the shown
- * move: a part's rounding is nudged by a tenth, largest remainder first,
- * until the sum is the move in tenths.
+ * move. What rounding leaves over goes to the part with the largest size, and
+ * no part is ever shown with a sign the player did not earn: a part gives up
+ * tenths only down to zero, then the next largest takes the rest.
  */
 export function shownOvrParts(parts: readonly number[], move: number) {
-  const target = Math.round(move * 10);
   const tenths = parts.map((part) => Math.round(part * 10));
-  let gap = target - tenths.reduce((sum, value) => sum + value, 0);
-  const remainders = parts.map((part, index) => part * 10 - tenths[index]!);
-  while (gap !== 0 && parts.length > 0) {
-    const step = gap > 0 ? 1 : -1;
-    let pick = 0;
-    for (let index = 1; index < parts.length; index++) {
-      if (step * remainders[index]! > step * remainders[pick]!) {
-        pick = index;
-      }
+  let gap =
+    Math.round(move * 10) - tenths.reduce((sum, value) => sum + value, 0);
+  const largestFirst = parts
+    .map((_, index) => index)
+    .sort((a, b) => Math.abs(parts[b]!) - Math.abs(parts[a]!));
+  for (const index of largestFirst) {
+    if (gap === 0) {
+      break;
     }
-    tenths[pick]! += step;
-    remainders[pick]! -= step;
+    const part = parts[index]!;
+    if (part === 0) {
+      continue;
+    }
+    const step =
+      Math.sign(part) === Math.sign(gap)
+        ? gap
+        : Math.sign(gap) * Math.min(Math.abs(gap), Math.abs(tenths[index]!));
+    tenths[index]! += step;
     gap -= step;
   }
-  return tenths.map((value) => value / 10);
+  return tenths.map((value) => value / 10 + 0);
+}
+
+const OVR_BOUND_TOLERANCE = 1e-6;
+
+/**
+ * Where OVR's 40 floor or 99 ceiling cut a move short: the stored parts are
+ * what the player earned, and the stored move is what OVR had room for.
+ * Null when the move was not cut by at least a tenth.
+ */
+export function ovrMoveHeldAt(
+  ovr: Pick<OvrImpact, "before" | "after" | "parts">,
+) {
+  const earned =
+    ovr.parts.result +
+    (ovr.parts.performance ?? 0) +
+    (ovr.parts.goals ?? 0) +
+    (ovr.parts.mvp ?? 0);
+  const heldBack = ovr.after - ovr.before - earned;
+  if (Math.round(Math.abs(heldBack) * 10) === 0) {
+    return null;
+  }
+  if (heldBack > 0 && ovr.after <= OVR_MIN + OVR_BOUND_TOLERANCE) {
+    return OVR_MIN;
+  }
+  if (heldBack < 0 && ovr.after >= OVR_MAX - OVR_BOUND_TOLERANCE) {
+    return OVR_MAX;
+  }
+  return null;
 }
 
 /**
  * Screen 5a's "What moved your OVR": one row per part the Match wrote, then
- * the move in one decimal with where the Level stands. The shown parts add
- * up to the shown move.
+ * the move in one decimal with where the Level stands. The shown rows add up
+ * to the shown move. A move cut at the 40 floor or the 99 ceiling shows each
+ * part as earned and one more row for what the bound held back.
  */
 export function ovrImpactView(
   impact: {
@@ -295,29 +332,46 @@ export function ovrImpactView(
       part: ovr.parts.mvp,
     });
   }
-  const shown = shownOvrParts(
-    rows.map((row) => row.part),
-    move,
-  );
+  const earned = rows.map((row) => row.part);
+  const heldAt = ovrMoveHeldAt(ovr);
+  const asEarned = earned.map((part) => Math.round(part * 10) / 10);
+  const heldBack =
+    (Math.round(move * 10) -
+      asEarned.reduce((sum, part) => sum + Math.round(part * 10), 0)) /
+    10;
+  const held =
+    heldAt !== null && Math.sign(heldBack) === (heldAt === OVR_MIN ? 1 : -1)
+      ? { at: heldAt, amount: heldBack }
+      : null;
+  const shown = held ? asEarned : shownOvrParts(earned, move);
 
   const totalTitle = copy.move(
     formatOvrPrecise(ovr.before),
     formatOvrPrecise(ovr.after),
   );
   const totalDelta = formatOvrDelta(move);
+  const shownRows = rows.map((row, index) => ({
+    title: row.title,
+    detail: row.detail,
+    delta: formatOvrDelta(shown[index] ?? 0),
+  }));
+  if (held) {
+    const bound = formatOvr(held.at);
+    shownRows.push({
+      title: copy.heldAt(bound),
+      detail:
+        held.at === OVR_MIN ? copy.heldFloor(bound) : copy.heldCeiling(bound),
+      delta: formatOvrDelta(held.amount),
+    });
+  }
   return {
     tag: gameRatingScopeLabel("temba", locale, "football"),
     title: copy.title,
     aside: copy.move(formatOvr(ovr.before), formatOvr(ovr.after)),
-    rows: rows.map((row, index) => {
-      const delta = formatOvrDelta(shown[index] ?? 0);
-      return {
-        title: row.title,
-        detail: row.detail,
-        delta,
-        spoken: copy.spoken(row.title, delta),
-      };
-    }),
+    rows: shownRows.map((row) => ({
+      ...row,
+      spoken: copy.spoken(row.title, row.delta),
+    })),
     total: {
       title: totalTitle,
       detail: ratingImpactStandingSentence({ ...impact, locale }),

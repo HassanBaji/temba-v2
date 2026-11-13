@@ -10,6 +10,7 @@ import {
   ratingScopeNotice,
   ratingScopeOf,
   ratingScopeTag,
+  ovrMoveHeldAt,
   shownOvrParts,
   unratedLabel,
 } from "./game-rating-impact";
@@ -396,29 +397,168 @@ describe("ovrImpactView", () => {
   });
 });
 
+describe("ovrImpactView at the 40 floor and the 99 ceiling", () => {
+  const base = {
+    ovr: {
+      before: 40.5,
+      after: 40,
+      resultPart: -1.2,
+      outcome: "lost" as const,
+      opponentAverage: 52,
+      parts: { result: -1.2, performance: -1.8, goals: -1.2, mvp: -0.1 },
+      rating: { hundredths: 410, ballots: 6 },
+      goals: { scored: 0, conceded: 5 },
+      mvp: "other" as const,
+    },
+    newLevelBand: "D3" as const,
+    isProvisional: true,
+    ratedMatchesRemainingToConfirm: 2,
+  };
+  const tenths = (delta: string) =>
+    Math.round(Number(delta.replace("−", "-")) * 10);
+
+  it("shows each part as earned and what the floor held back", () => {
+    const view = ovrImpactView(base, "en");
+    assert.deepEqual(
+      view.rows.map((row) => [row.title, row.delta]),
+      [
+        ["Result 40%", "−1.2"],
+        ["Player ratings 30%", "−1.8"],
+        ["Goals 20%", "−1.2"],
+        ["MVP 10%", "−0.1"],
+        ["Held at 40", "+3.8"],
+      ],
+    );
+    assert.equal(
+      view.rows[4]?.detail,
+      "OVR does not go below 40, so the rest of this drop was not taken",
+    );
+    assert.equal(view.rows[4]?.spoken, "Held at 40, +3.8 OVR");
+    assert.equal(view.total.delta, "−0.5");
+    assert.equal(
+      view.rows.reduce((sum, row) => sum + tenths(row.delta), 0),
+      tenths(view.total.delta),
+    );
+  });
+
+  it("shows what the ceiling held back from a rise", () => {
+    const view = ovrImpactView(
+      {
+        ...base,
+        ovr: {
+          ...base.ovr,
+          before: 98.6,
+          after: 99,
+          resultPart: 0.9,
+          outcome: "won",
+          parts: { result: 0.9, performance: 0.3, goals: 0, mvp: 0.5 },
+        },
+      },
+      "en",
+    );
+    assert.deepEqual(
+      view.rows.map((row) => [row.title, row.delta]),
+      [
+        ["Result 40%", "+0.9"],
+        ["Player ratings 30%", "+0.3"],
+        ["Goals 20%", "0"],
+        ["MVP 10%", "+0.5"],
+        ["Held at 99", "−1.3"],
+      ],
+    );
+    assert.equal(
+      view.rows[4]?.detail,
+      "OVR does not go above 99, so the rest of this rise was not added",
+    );
+    assert.equal(view.total.delta, "+0.4");
+  });
+
+  it("adds no held row to a move that reaches the floor without being cut", () => {
+    const view = ovrImpactView(
+      {
+        ...base,
+        ovr: {
+          ...base.ovr,
+          before: 40.6,
+          parts: { result: -0.6, performance: 0, goals: 0, mvp: 0 },
+        },
+      },
+      "en",
+    );
+    assert.deepEqual(
+      view.rows.map((row) => row.delta),
+      ["−0.6", "0", "0", "0"],
+    );
+  });
+
+  it("reads the held row in Arabic", () => {
+    const view = ovrImpactView(base, "ar");
+    assert.match(view.rows[4]?.title ?? "", /ثابت عند/);
+    assert.match(view.rows[4]?.detail ?? "", /لا ينزل/);
+  });
+});
+
+describe("ovrMoveHeldAt", () => {
+  const parts = { result: -1, performance: -1, goals: null, mvp: null };
+
+  it("names the bound that cut the move", () => {
+    assert.equal(ovrMoveHeldAt({ before: 41, after: 40, parts }), 40);
+    assert.equal(
+      ovrMoveHeldAt({
+        before: 98,
+        after: 99,
+        parts: { ...parts, result: 2, performance: 1 },
+      }),
+      99,
+    );
+  });
+
+  it("is null when the parts make the whole move, or the cut is under a tenth", () => {
+    assert.equal(ovrMoveHeldAt({ before: 42, after: 40, parts }), null);
+    assert.equal(ovrMoveHeldAt({ before: 41.97, after: 40, parts }), null);
+    assert.equal(ovrMoveHeldAt({ before: 60, after: 58, parts }), null);
+  });
+});
+
 describe("shownOvrParts", () => {
-  it("rounds each part to a tenth and nudges the largest remainders to meet the move", () => {
-    assert.deepEqual(shownOvrParts([0.62, 0.34], 0.96), [0.6, 0.4]);
+  it("rounds each part to a tenth and gives what rounding leaves to the largest part", () => {
+    assert.deepEqual(shownOvrParts([0.62, 0.34], 0.96), [0.7, 0.3]);
     assert.deepEqual(
       shownOvrParts([0.6, 0.3, -0.1, 0], 0.8),
       [0.6, 0.3, -0.1, 0],
     );
   });
 
-  it("always adds up to the move in tenths", () => {
+  it("never turns a part against its sign", () => {
+    assert.deepEqual(
+      shownOvrParts([0.04, -0.035, -0.035, -0.035], -0.065),
+      [0, -0.1, 0, 0],
+    );
+    assert.deepEqual(
+      shownOvrParts([0.05, 0.05, 0.05, 0.05], 0.2),
+      [0, 0, 0.1, 0.1],
+    );
+  });
+
+  it("always adds up to the move in tenths and keeps every sign", () => {
     let seed = 7;
     const random = () => {
       seed = (seed * 16807) % 2147483647;
       return seed / 2147483647;
     };
-    for (let run = 0; run < 500; run++) {
-      const parts = Array.from({ length: 4 }, () => (random() - 0.5) * 3);
+    for (let run = 0; run < 2000; run++) {
+      const spread = run % 2 === 0 ? 3 : 0.3;
+      const parts = Array.from({ length: 4 }, () => (random() - 0.5) * spread);
       const move = parts.reduce((sum, part) => sum + part, 0);
       const shown = shownOvrParts(parts, move);
       assert.equal(
         Math.round(shown.reduce((sum, part) => sum + part, 0) * 10) + 0,
         Math.round(move * 10) + 0,
       );
+      shown.forEach((part, index) => {
+        assert.ok(part * parts[index]! >= 0);
+        assert.ok(Math.abs(part - parts[index]!) < 0.3);
+      });
     }
   });
 });
