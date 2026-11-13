@@ -32,20 +32,25 @@ export async function isVerifierOfVenue(
   return Boolean(grant);
 }
 
+export type GameReach = "view" | "stamp_only";
+
 /**
- * Whether the User may open the Game: everyone `canViewGame` admits, and a
- * Verifier of its Venue, who opens it to stamp its Matches (ADR-0072). Every
- * write door keeps its own check, so this grants nothing beyond the stamp.
+ * How far the User reaches into the Game's read doors: `view` for everyone
+ * `canViewGame` admits, `stamp_only` for a Verifier of its Venue it does not
+ * admit, who opens the Game to stamp its Matches (ADR-0072), `null` for
+ * nobody else. Every write door keeps its own check.
  */
-export async function canViewGameOrStamp(
+export async function gameReach(
   database: DbClient,
   game: GameRow,
   userId: string,
-): Promise<boolean> {
-  return (
-    (await canViewGame(database, game, userId)) ||
-    isVerifierOfVenue(database, game.venueId, userId)
-  );
+): Promise<GameReach | null> {
+  if (await canViewGame(database, game, userId)) {
+    return "view";
+  }
+  return (await isVerifierOfVenue(database, game.venueId, userId))
+    ? "stamp_only"
+    : null;
 }
 
 export type VerifierStampRefusal =

@@ -64,8 +64,8 @@ const notFound = (locale: Locale) =>
 
 /**
  * A viewer may see a Player profile when they are that User, share a
- * current Group membership or a Game seat with them, or is a Verifier who may
- * calibrate them (ADR-0072). Everything else, including an unknown User,
+ * current Group membership or a Game seat with them, or are a Verifier who
+ * may calibrate them (ADR-0072). Everything else, including an unknown User,
  * reads as not found.
  */
 async function sharesGroup(

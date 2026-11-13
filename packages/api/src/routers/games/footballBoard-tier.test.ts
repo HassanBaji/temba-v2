@@ -1,7 +1,13 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { games, groupTierPoints, ratings } from "@repo/db/schema";
+import {
+  games,
+  groupTierPoints,
+  ratings,
+  venueVerifiers,
+  venues,
+} from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { balancedSides } from "@repo/domain/football-board";
 import { muFromOvr } from "@repo/domain/football-ovr";
@@ -10,6 +16,7 @@ import { muFromLevel } from "@repo/domain/level";
 import {
   addMember,
   footballGame,
+  insertUser,
   type FootballFixture,
 } from "#src/ratings/group-rated-match.test-support";
 import { footballBoard } from "#src/routers/games/footballBoard";
@@ -145,6 +152,68 @@ describe("games.footballBoard on a tier Group", () => {
         userId: newcomer,
       });
       expect(playerOf(asNewcomer, newcomer).tier?.points).toBe(1200);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("games.footballBoard for a Verifier (ADR-0072)", () => {
+  it("opens a private Group Game at the Verifier's Venue without the Group's tiers or anything to do", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await footballGame(db);
+      const { ranked } = await seedRoster(f);
+      const verifier = await insertUser(db, "verifier");
+      await db
+        .insert(venueVerifiers)
+        .values({ venueId: f.venueId, userId: verifier.id, kind: "referee" });
+
+      const board = await footballBoard(db, {
+        gameId: f.gameId,
+        userId: verifier.id,
+      });
+
+      expect(board.players.map((player) => player.userId)).toEqual(
+        expect.arrayContaining(ranked),
+      );
+      expect(
+        board.players.every(
+          (player) => player.tier === null && player.balanceStrength === null,
+        ),
+      ).toBe(true);
+      expect(board.isOrganizer).toBe(false);
+      expect(board.viewer).toEqual({
+        sideIndex: null,
+        canMakeTeams: false,
+        canEnterScore: false,
+        canConfirm: false,
+        canConfirmAsOrganizer: false,
+        canConfirmForSlots: [],
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it("stays closed to a Verifier of another Venue", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await footballGame(db);
+      const [elsewhere] = await db
+        .insert(venues)
+        .values({ name: "Elsewhere", city: "Manama", country: "BH" })
+        .returning({ id: venues.id });
+      const verifier = await insertUser(db, "verifier");
+      await db.insert(venueVerifiers).values({
+        venueId: elsewhere!.id,
+        userId: verifier.id,
+        kind: "referee",
+      });
+
+      await expect(
+        footballBoard(db, { gameId: f.gameId, userId: verifier.id }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
     } finally {
       await close();
     }

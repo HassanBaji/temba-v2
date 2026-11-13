@@ -46,7 +46,6 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import {
-  canViewGame,
   getRegistrationStatus,
   isGameOrganizer,
   isGroupMember,
@@ -76,7 +75,11 @@ import {
   type MatchSlot,
 } from "#src/games/match-result-confirmations";
 import { listGameSeatHolds } from "#src/games/seat-holds";
-import { isVerifierOfVenue, mayStampNow } from "#src/games/verifier-stamp";
+import {
+  gameReach,
+  isVerifierOfVenue,
+  mayStampNow,
+} from "#src/games/verifier-stamp";
 import { matchDisputeRefusal } from "#src/games/match-dispute";
 import {
   seatedSlot,
@@ -114,6 +117,7 @@ import {
 } from "#src/games/wrong-score-reversal";
 import { sideUserIds } from "#src/ratings/apply-tier-match";
 import { padelConfirmations } from "#src/ratings/level-confirmed";
+import { mayCalibrateAll } from "#src/ratings/verifier-calibration";
 import { ovrFromMu } from "@repo/domain/football-ovr";
 import { type OvrImpact } from "@repo/domain/game-rating-impact";
 import { groupSeasonRows } from "#src/games/season-link";
@@ -509,18 +513,16 @@ export async function gameById(
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId, locale);
 
-  // A Verifier of the Game's Venue opens it to stamp, and asks for nothing
-  // else on it (ADR-0072).
-  const viewsToStampOnly = !(await canViewGame(database, game, args.userId));
-  if (
-    viewsToStampOnly &&
-    !(await isVerifierOfVenue(database, game.venueId, args.userId))
-  ) {
+  const reach = await gameReach(database, game, args.userId);
+  if (!reach) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: messagesFor(locale).game.errors.notFound,
     });
   }
+  // A Verifier of the Game's Venue who opens it only to stamp reads the
+  // line-up and the scores, and is offered nothing else on it (ADR-0072).
+  const viewsToStampOnly = reach === "stamp_only";
 
   const now = new Date();
   const organizer = await isGameOrganizer(database, game, args.userId);
@@ -709,6 +711,16 @@ export async function gameById(
       phoneMasked: null,
       canRename: false,
     };
+  // A Verifier opens the Player profiles of a Game whose players they may
+  // all calibrate, such as one with a completed Match (ADR-0072).
+  const viewerMayCalibratePlayers =
+    viewerIsVenueVerifier &&
+    (await mayCalibrateAll(database, {
+      verifierUserId: args.userId,
+      playerUserIds: playerRows.flatMap((row) =>
+        row.user ? [row.user.id] : [],
+      ),
+    }));
 
   const group = game.groupId
     ? await database.query.groups.findFirst({
@@ -1227,7 +1239,7 @@ export async function gameById(
     groupName: group?.name ?? null,
     seasonId: game.seasonId,
     season,
-    groupSeasons,
+    groupSeasons: viewsToStampOnly ? [] : groupSeasons,
     canChangeSeason: organizer && !game.cancelledAt && !scoreConfirmed,
     venueId: game.venueId,
     venue: venue
@@ -1282,6 +1294,7 @@ export async function gameById(
       : false,
     viewerUserId: args.userId,
     isRegistered: alreadyOnGame,
+    viewerMayCalibratePlayers,
     isSeated,
     isWaitlisted,
     waitlistPlace,
@@ -1293,7 +1306,7 @@ export async function gameById(
     canLeave: alreadyOnGame || isWaitlisted,
     registeredUserCount: userCount,
     registeredTeamCount: teamCount,
-    waitlist: waitlistRows.map((row) => ({
+    waitlist: (viewsToStampOnly ? [] : waitlistRows).map((row) => ({
       id: row.id,
       userId: row.userId,
       teamId: row.teamId,

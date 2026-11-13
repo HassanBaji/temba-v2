@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   MatchStatusEnum,
+  gameWaitlist,
   games,
   groupMembers,
+  groupSeasons,
   groups,
   matches,
   user,
@@ -22,6 +24,7 @@ import { registerSeat } from "#src/routers/games/registerSeat";
 import { scoreSet } from "#src/routers/games/scoreSet";
 import { stampMatch } from "#src/routers/games/stampMatch";
 import { updateGameName } from "#src/routers/games/updateName";
+import { mayViewPlayer } from "#src/routers/users/playerProfile";
 
 const errors = messagesFor("en").game.errors;
 
@@ -123,6 +126,66 @@ describe("games.byId for a Verifier (ADR-0072)", () => {
         columns: { status: true },
       });
       expect(match?.status).toBe(MatchStatusEnum.COMPLETED);
+    });
+  });
+
+  it("keeps the waitlist and the Group's Seasons from a Verifier who only stamps", async () => {
+    await withDb(async (db) => {
+      const g = await enteredGroupGame(db);
+      const verifier = await verifierAt(db, g.venueId);
+      const waiting = await insertUser(db, "Waiting");
+      await db
+        .insert(gameWaitlist)
+        .values({ gameId: g.gameId, userId: waiting });
+      const game = await db.query.games.findFirst({
+        where: eq(games.id, g.gameId),
+        columns: { groupId: true },
+      });
+      await db.insert(groupSeasons).values({
+        groupId: game!.groupId!,
+        name: "Autumn",
+        startsOn: "2026-09-01",
+        endsOn: "2026-12-01",
+        createdBy: g.creator,
+      });
+
+      const asMember = await gameById(db, { gameId: g.gameId, userId: g.b });
+      expect(asMember.waitlist.map((row) => row.userId)).toEqual([waiting]);
+      expect(asMember.groupSeasons).toHaveLength(1);
+
+      const asVerifier = await gameById(db, {
+        gameId: g.gameId,
+        userId: verifier,
+      });
+      expect(asVerifier.waitlist).toEqual([]);
+      expect(asVerifier.groupSeasons).toEqual([]);
+      expect(asVerifier.registeredPlayers.map((row) => row.id)).toEqual(
+        expect.arrayContaining([g.creator, g.b, g.c, g.d]),
+      );
+    });
+  });
+
+  it("links the players to their profiles once the Verifier may calibrate them all", async () => {
+    await withDb(async (db) => {
+      const g = await enteredGroupGame(db);
+      const verifier = await verifierAt(db, g.venueId);
+      const view = () => gameById(db, { gameId: g.gameId, userId: verifier });
+
+      expect((await view()).viewerMayCalibratePlayers).toBe(false);
+      await expect(
+        mayViewPlayer(db, { viewerId: verifier, playerId: g.b }),
+      ).resolves.toBe(false);
+
+      await stampMatch(db, { matchId: g.matchId, userId: verifier });
+
+      expect((await view()).viewerMayCalibratePlayers).toBe(true);
+      for (const playerId of [g.creator, g.b, g.c, g.d]) {
+        await expect(
+          mayViewPlayer(db, { viewerId: verifier, playerId }),
+        ).resolves.toBe(true);
+      }
+      const asPlayer = await gameById(db, { gameId: g.gameId, userId: g.b });
+      expect(asPlayer.viewerMayCalibratePlayers).toBe(false);
     });
   });
 

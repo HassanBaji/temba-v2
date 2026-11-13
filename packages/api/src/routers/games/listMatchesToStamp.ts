@@ -20,7 +20,10 @@ import { mayStampNow } from "#src/games/verifier-stamp";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-const CANDIDATE_LIMIT = 40;
+const LIST_LIMIT = 40;
+// Read past the list's length: a candidate the Verifier sits in, or whose
+// Public Game window closed, is dropped after the query.
+const CANDIDATE_LIMIT = 200;
 
 export type MatchToStamp = {
   matchId: string;
@@ -34,7 +37,8 @@ export type MatchToStamp = {
 /**
  * The Matches a Verifier may stamp now (ADR-0072): pending Matches with a
  * score entered, in live Games at the Venues where they hold the role, that
- * they are not seated in. Newest first. Empty for a User who is no Verifier.
+ * they are not seated in. Newest first, forty at most. Empty for a User who is
+ * no Verifier.
  */
 export async function listMatchesToStamp(
   database: DbClient,
@@ -80,6 +84,9 @@ export async function listMatchesToStamp(
 
   const rows: MatchToStamp[] = [];
   for (const { match, game, venueName } of candidates) {
+    if (rows.length === LIST_LIMIT) {
+      break;
+    }
     if (
       await mayStampNow(database, { game, match, userId: args.userId, now })
     ) {

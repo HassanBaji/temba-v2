@@ -39,7 +39,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { isGameOrganizer, requireGame } from "#src/games/access";
-import { canViewGameOrStamp } from "#src/games/verifier-stamp";
+import { gameReach } from "#src/games/verifier-stamp";
 import { confirmsAsOrganizer } from "#src/games/confirms-as-organizer";
 import { loadChallengeSides } from "#src/games/challenge-squad";
 import { groupIsVerified } from "#src/groups/group-is-verified";
@@ -228,7 +228,8 @@ export async function footballBoard(
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId, locale);
-  if (!(await canViewGameOrStamp(database, game, args.userId))) {
+  const reach = await gameReach(database, game, args.userId);
+  if (!reach) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: messagesFor(locale).game.errors.notFound,
@@ -275,12 +276,17 @@ export async function footballBoard(
     }
   }
 
-  const tierByUser = await loadBoardTiers(database, {
-    groupId: game.groupId,
-    rosterUserIds: userIds,
-    viewerUserId: args.userId,
-    viewerOrganizes: organizer,
-  });
+  // Group Tier is the Group's own; a Verifier who opens the Game only to
+  // stamp it reads the teams and the Score (ADR-0072).
+  const tierByUser =
+    reach === "stamp_only"
+      ? null
+      : await loadBoardTiers(database, {
+          groupId: game.groupId,
+          rosterUserIds: userIds,
+          viewerUserId: args.userId,
+          viewerOrganizes: organizer,
+        });
 
   const balanceOn: FootballBalanceOn = tierByUser ? "tierPoints" : "ovr";
   const balanceStrengthOf = (userId: string) => {

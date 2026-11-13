@@ -21,7 +21,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { isGameOrganizer, requireGame } from "#src/games/access";
-import { canViewGameOrStamp } from "#src/games/verifier-stamp";
+import { gameReach } from "#src/games/verifier-stamp";
 import {
   assertMakesPoolRounds,
   loadTournamentRoundContext,
@@ -85,7 +85,7 @@ export async function tournamentRounds(
   const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
   const game = await requireGame(database, args.gameId, locale);
-  if (!(await canViewGameOrStamp(database, game, args.userId))) {
+  if (!(await gameReach(database, game, args.userId))) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: messagesFor(locale).game.errors.notFound,
