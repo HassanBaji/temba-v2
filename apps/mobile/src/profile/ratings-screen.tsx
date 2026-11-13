@@ -10,12 +10,11 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { History } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
-import Svg, { Circle, Path } from "react-native-svg";
 
 import { groupPath } from "../groups/groups-model";
+import { Sparkline } from "../home/level-card";
 import { Notice } from "../groups/notice";
-import { TierCell } from "../groups/tier-fish";
-import { isLayoutRtl } from "../i18n/rtl";
+import { TIER_WIDTH, TierCell } from "../groups/tier-fish";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Segmented, SettingsRow } from "../profile-settings/settings-rows";
 import { Hairline } from "../primitives/hairline";
@@ -30,11 +29,8 @@ import { api } from "../trpc/react";
 import { LevelRing } from "./level-ring";
 import { ratingHistoryPath } from "./ratings-path";
 import { SectionHead } from "./profile-parts";
-import { curvePoints, pathFor } from "./profile-model";
 import { InYourGroups, SECTION_GAP } from "./profile-sections";
 
-const SPARK_WIDTH = 64;
-const SPARK_HEIGHT = 22;
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
 /** The way from the You page hero to the Ratings screen. */
@@ -55,31 +51,6 @@ export function RatingsLink({
         onPress={onOpen}
       />
     </Surface>
-  );
-}
-
-function Sparkline({ values }: { values: number[] }) {
-  const palette = useTonePalette();
-  const points = curvePoints(values, SPARK_WIDTH, SPARK_HEIGHT, {
-    pad: 4,
-    mirrored: isLayoutRtl(),
-  });
-  const last = points[points.length - 1];
-  if (points.length < 2 || !last) {
-    return null;
-  }
-  return (
-    <Svg width={SPARK_WIDTH} height={SPARK_HEIGHT}>
-      <Path
-        d={pathFor(points)}
-        fill="none"
-        stroke={palette.foreground}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Circle cx={last.x} cy={last.y} r={2.8} fill={palette.foreground} />
-    </Svg>
   );
 }
 
@@ -207,7 +178,7 @@ function TierItem({
         backgroundColor: pressed ? palette.wash : palette.background,
       })}
     >
-      <View style={{ width: 44, alignItems: "center" }}>
+      <View style={{ width: TIER_WIDTH, alignItems: "center" }}>
         <TierCell cell={row.cell} />
       </View>
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>

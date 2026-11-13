@@ -80,7 +80,14 @@ function Gauge({ percent, band }: { percent: number; band: string }) {
   );
 }
 
-function Sparkline({ values }: { values: readonly number[] }) {
+/** A Level's recent run, newest last along the reading direction. */
+export function Sparkline({
+  values,
+  className,
+}: {
+  values: readonly number[];
+  className?: string;
+}) {
   const points = sparklinePoints(values, SPARK_WIDTH - 4, SPARK_HEIGHT - 4);
   if (!points) {
     return null;
@@ -91,17 +98,17 @@ function Sparkline({ values }: { values: readonly number[] }) {
       aria-hidden="true"
       width={SPARK_WIDTH}
       height={SPARK_HEIGHT}
-      className="shrink-0"
+      className={cn("text-ink shrink-0 rtl:-scale-x-100", className)}
     >
       <g transform="translate(2 2)">
         <polyline
           points={points}
           fill="none"
+          stroke="currentColor"
           strokeWidth={1.5}
           strokeLinejoin="round"
-          className="stroke-ink"
         />
-        <circle cx={x} cy={y} r={2.5} className="fill-ink" />
+        <circle cx={x} cy={y} r={2.5} fill="currentColor" />
       </g>
     </svg>
   );

@@ -51,6 +51,12 @@ export function TierFish({
   );
 }
 
+/** How faint a band's fish is when the member is not in that band. */
+export const DIMMED_FISH = 0.18;
+
+/** The width a row keeps for its `TierCell`, so the cells line up down a list. */
+export const TIER_WIDTH = 44;
+
 /** The Tier column of a Members row: a fish, a place, or "not yet". */
 export function TierCell({ cell }: { cell: GroupMemberTierCell }) {
   const { width, height } = fishSizes.row;

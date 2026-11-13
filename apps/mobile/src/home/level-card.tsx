@@ -101,7 +101,8 @@ function Gauge({ percent, band }: { percent: number; band: string }) {
   );
 }
 
-function Sparkline({ values }: { values: readonly number[] }) {
+/** A Level's recent run, newest last along the reading direction. */
+export function Sparkline({ values }: { values: readonly number[] }) {
   const palette = useTonePalette();
   const points = sparklinePoints(values, SPARK_WIDTH - 4, SPARK_HEIGHT - 4);
   if (!points) {
@@ -112,6 +113,7 @@ function Sparkline({ values }: { values: readonly number[] }) {
     <Svg
       width={SPARK_WIDTH}
       height={SPARK_HEIGHT}
+      style={mirrorInRtl}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >

@@ -16,6 +16,7 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
+import { gameHomeHref } from "~/lib/dashboard-paths";
 import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
@@ -122,7 +123,7 @@ export default function OperatorDisputesPage() {
                       {o.dismiss}
                     </Button>
                     <Button size="sm" variant="ghost" asChild>
-                      <Link href={`/dashboard/games/${dispute.game.id}`}>
+                      <Link href={gameHomeHref(dispute.game.id)}>
                         {o.openGame}
                       </Link>
                     </Button>

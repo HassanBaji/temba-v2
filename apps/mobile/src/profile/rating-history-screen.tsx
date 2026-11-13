@@ -1,4 +1,5 @@
 import { radii, sizes, spacing } from "@repo/design-tokens";
+import { fishSizes } from "@repo/design-tokens/fish";
 import {
   ratingHistoryScreen,
   type RatingHistoryIcon,
@@ -40,7 +41,7 @@ function LineIcon({ icon }: { icon: RatingHistoryIcon }) {
       icon.band && icon.label ? (
         <TierFish band={icon.band} label={icon.label} />
       ) : (
-        <View style={{ width: 27, height: 16 }}>
+        <View style={fishSizes.row}>
           <Hatch />
         </View>
       );
@@ -56,7 +57,7 @@ function LineIcon({ icon }: { icon: RatingHistoryIcon }) {
         paddingHorizontal: icon.kind === "tier" ? 4 : 0,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: radii.card - 3,
+        borderRadius: radii.md,
         borderWidth: hairline,
         borderColor: colors.rule,
       }}

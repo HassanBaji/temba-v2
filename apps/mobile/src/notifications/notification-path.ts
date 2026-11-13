@@ -4,6 +4,7 @@ import { isSport } from "@repo/domain/sport";
 
 import { gamePath, gameRatePath } from "../games/games-model";
 import { groupTierHistoryPath } from "../groups/groups-model";
+import { ratingsPath } from "../profile/ratings-path";
 
 const GROUP_TYPES = new Set([
   "group_member_joined",
@@ -59,7 +60,7 @@ export function notificationPath(item: {
 }): string | null {
   const sport = item.game?.sport;
   if (item.type === "level_confirmed" && isSport(sport)) {
-    return `/profile/ratings?sport=${sport}`;
+    return ratingsPath(sport);
   }
   if (item.game && item.type === "performance_ratings_open") {
     return gameRatePath(item.game.id);

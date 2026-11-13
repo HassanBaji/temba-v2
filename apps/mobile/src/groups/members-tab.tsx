@@ -49,13 +49,12 @@ import { LevelCell } from "./level-cell";
 import { MemberSheet } from "./member-sheet";
 import { MemberLensRow, MemberSortSheet } from "./members-lens";
 import { Notice } from "./notice";
-import { TierCell, TierFish } from "./tier-fish";
+import { TIER_WIDTH, TierCell, TierFish } from "./tier-fish";
 import { useMemberLens } from "./use-member-lens";
 
 const LEVEL_WIDTH = 52;
 /** `C+ 72`: the band and the OVR, on a Verified football Group. */
 const OVR_WIDTH = 64;
-const TIER_WIDTH = 44;
 const POINTS_WIDTH = 52;
 const ACTION_WIDTH = 44;
 const ROW_PADDING_START = 16;

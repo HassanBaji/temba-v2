@@ -6,9 +6,9 @@ import { useEffect, useRef } from "react";
 import { fishSizes } from "@repo/design-tokens/fish";
 import {
   performanceResultView,
-  type PerformanceResultRow,
   type PerformanceResultView,
 } from "@repo/domain/performance-rating";
+import { ImpactRow } from "~/components/games/impact-row";
 import { TierFish } from "~/components/groups/tier-fish";
 import { useLocale } from "~/components/locale-provider";
 import { Hatch } from "~/components/ui/hatch";
@@ -101,9 +101,9 @@ function SettledResult({ view }: { view: SettledView }) {
       <Section title={view.points.title} aside={view.points.aside}>
         <ul className="border-rule divide-rule bg-paper divide-y overflow-hidden rounded-[14px] border">
           {view.points.rows.map((row) => (
-            <PointsRow key={row.title} row={row} />
+            <ImpactRow key={row.title} row={row} />
           ))}
-          <PointsRow row={view.points.total} total />
+          <ImpactRow row={view.points.total} total />
         </ul>
       </Section>
 
@@ -156,38 +156,6 @@ function Section({
       </div>
       {children}
     </section>
-  );
-}
-
-function PointsRow({
-  row,
-  total = false,
-}: {
-  row: PerformanceResultRow;
-  total?: boolean;
-}) {
-  return (
-    <li
-      className={cn(
-        "flex items-center gap-3 px-4 py-[13px]",
-        total && "bg-wash py-3.5",
-      )}
-    >
-      <div className="min-w-0 flex-1">
-        <p className="font-semibold">{row.title}</p>
-        <p className="text-meta text-muted-foreground">{row.detail}</p>
-      </div>
-      <span className="sr-only">{row.spoken}</span>
-      <span
-        aria-hidden="true"
-        className={cn(
-          "font-expanded shrink-0 font-bold tabular-nums tracking-[-0.03em]",
-          total ? "text-h2" : "text-lead",
-        )}
-      >
-        {row.delta}
-      </span>
-    </li>
   );
 }
 

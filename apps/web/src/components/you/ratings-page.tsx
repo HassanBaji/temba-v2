@@ -7,11 +7,8 @@ import { useState } from "react";
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { TierCell } from "~/components/groups/tier-fish";
-import {
-  useLocale,
-  useMessages,
-  useTextDirection,
-} from "~/components/locale-provider";
+import { Sparkline } from "~/components/home/level-card";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { PageTitle } from "~/components/layout/page-title";
 import { Hatch } from "~/components/ui/hatch";
 import { BackButton } from "~/components/ui/nav-icon-button";
@@ -35,10 +32,6 @@ import { InYourGroupsList } from "./in-your-groups-card";
 import { HeroCard, HeroRing } from "./level-hero";
 import { YouCard, YouSection } from "./you-section";
 
-const SPARK_WIDTH = 64;
-const SPARK_HEIGHT = 22;
-const SPARK_PAD = 4;
-
 /** The way from the You page hero to the Ratings page. */
 export function RatingsLink({ sport }: { sport: Sport }) {
   const m = useMessages();
@@ -61,49 +54,6 @@ export function RatingsLink({ sport }: { sport: Sport }) {
         className="text-muted-foreground size-4 shrink-0 rtl:-scale-x-100"
       />
     </Link>
-  );
-}
-
-function sparkPoints(values: readonly number[], rtl: boolean) {
-  const min = Math.min(...values);
-  const span = Math.max(...values) - min;
-  return values.map((value, index) => {
-    const along =
-      SPARK_PAD +
-      (index / Math.max(1, values.length - 1)) * (SPARK_WIDTH - SPARK_PAD * 2);
-    const normalized = span === 0 ? 0.5 : (value - min) / span;
-    return {
-      x: rtl ? SPARK_WIDTH - along : along,
-      y: SPARK_PAD + (1 - normalized) * (SPARK_HEIGHT - SPARK_PAD * 2),
-    };
-  });
-}
-
-function Sparkline({ values }: { values: readonly number[] }) {
-  const { rtl } = useTextDirection();
-  if (values.length < 2) {
-    return null;
-  }
-  const points = sparkPoints(values, rtl);
-  const last = points[points.length - 1]!;
-  return (
-    <svg
-      aria-hidden="true"
-      width={SPARK_WIDTH}
-      height={SPARK_HEIGHT}
-      viewBox={`0 0 ${SPARK_WIDTH} ${SPARK_HEIGHT}`}
-      className="block shrink-0"
-    >
-      <polyline
-        points={points.map((point) => `${point.x},${point.y}`).join(" ")}
-        fill="none"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="stroke-on-focus"
-      />
-      <circle cx={last.x} cy={last.y} r="2.8" className="fill-on-focus" />
-    </svg>
   );
 }
 
@@ -139,7 +89,10 @@ function LevelSection({ view }: { view: RatingsLevelView }) {
             </span>
             {view.change ? (
               <span className="mt-2.5 flex items-center gap-2">
-                <Sparkline values={view.change.points} />
+                <Sparkline
+                  values={view.change.points}
+                  className="text-on-focus"
+                />
                 <bdi dir="ltr" className="font-expanded text-body tabular-nums">
                   {view.change.delta}
                 </bdi>

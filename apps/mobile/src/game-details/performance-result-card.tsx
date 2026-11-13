@@ -2,7 +2,6 @@ import { radii, spacing } from "@repo/design-tokens";
 import { fishSizes } from "@repo/design-tokens/fish";
 import {
   performanceResultView,
-  type PerformanceResultRow,
   type PerformanceResultView,
 } from "@repo/domain/performance-rating";
 import { Star } from "lucide-react-native";
@@ -10,7 +9,7 @@ import { useEffect, useRef } from "react";
 import { View } from "react-native";
 
 import { useNow } from "../games/use-now";
-import { TierFish } from "../groups/tier-fish";
+import { DIMMED_FISH, TierFish } from "../groups/tier-fish";
 import { useLocale } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
@@ -19,11 +18,11 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
+import { ImpactRow } from "./impact-row";
 
 type RatingWindow = RouterOutputs["games"]["byId"]["ratingWindow"];
 type SettledView = Extract<PerformanceResultView, { kind: "settled" }>;
 
-const DIMMED_FISH = 0.18;
 const MVP_TILE = 36;
 const MVP_ICON = 16;
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
@@ -123,11 +122,11 @@ function SettledResult({ view }: { view: SettledView }) {
           {view.points.rows.map((row, index) => (
             <View key={row.title}>
               {index > 0 ? <Hairline /> : null}
-              <PointsRow row={row} />
+              <ImpactRow row={row} />
             </View>
           ))}
           <Hairline />
-          <PointsRow row={view.points.total} total />
+          <ImpactRow row={view.points.total} total />
         </Surface>
       </Section>
 
@@ -178,40 +177,6 @@ function Section({
         ) : null}
       </View>
       {children}
-    </View>
-  );
-}
-
-function PointsRow({
-  row,
-  total = false,
-}: {
-  row: PerformanceResultRow;
-  total?: boolean;
-}) {
-  const colors = useColors();
-  return (
-    <View
-      accessible
-      accessibilityLabel={`${row.spoken}. ${row.detail}`}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 13,
-        backgroundColor: total ? colors.wash : undefined,
-      }}
-    >
-      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text weight="semibold">{row.title}</Text>
-        <Text size="meta" tone="muted">
-          {row.detail}
-        </Text>
-      </View>
-      <Text size={total ? "h2" : "lead"} weight="bold" width="expanded">
-        {row.delta}
-      </Text>
     </View>
   );
 }

@@ -1,15 +1,12 @@
-import {
-  ovrImpactView,
-  type OvrImpactRow,
-} from "@repo/domain/game-rating-impact";
+import { ovrImpactView } from "@repo/domain/game-rating-impact";
 import { View } from "react-native";
 
 import { useLocale } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
-import { useColors } from "../theme/theme-provider";
 import { type RouterOutputs } from "../trpc/react";
+import { ImpactRow } from "./impact-row";
 
 type RatingImpact = RouterOutputs["games"]["byId"]["ratingImpact"];
 
@@ -52,51 +49,17 @@ export function OvrImpactCard({
         {view.rows.map((row, index) => (
           <View key={row.title}>
             {index > 0 ? <Hairline /> : null}
-            <OvrRow row={row} />
+            <ImpactRow row={row} />
           </View>
         ))}
         <Hairline />
-        <OvrRow row={view.total} total />
+        <ImpactRow row={view.total} total />
       </Surface>
       {view.footnote ? (
         <Text size="meta" tone="muted">
           {view.footnote}
         </Text>
       ) : null}
-    </View>
-  );
-}
-
-function OvrRow({
-  row,
-  total = false,
-}: {
-  row: OvrImpactRow;
-  total?: boolean;
-}) {
-  const colors = useColors();
-  return (
-    <View
-      accessible
-      accessibilityLabel={`${row.spoken}. ${row.detail}`}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 13,
-        backgroundColor: total ? colors.wash : undefined,
-      }}
-    >
-      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text weight="semibold">{row.title}</Text>
-        <Text size="meta" tone="muted">
-          {row.detail}
-        </Text>
-      </View>
-      <Text size={total ? "h2" : "lead"} weight="bold" width="expanded">
-        {row.delta}
-      </Text>
     </View>
   );
 }

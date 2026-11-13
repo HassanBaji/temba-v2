@@ -23,9 +23,7 @@ import { useToast } from "../primitives/toast";
 import { useColors } from "../theme/theme-provider";
 import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api } from "../trpc/react";
-import { TierFish } from "./tier-fish";
-
-const DIMMED_FISH = 0.18;
+import { DIMMED_FISH, TierFish } from "./tier-fish";
 
 function PointsPanel({
   view,
