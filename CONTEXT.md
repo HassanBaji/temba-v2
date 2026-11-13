@@ -264,7 +264,7 @@ On a padel Friendly game, a User's answer to "which side?" when they take a seat
 _Avoid_: flexible seat, any seat, Preferred Position (that is the profile default), wildcard
 
 **Operator**:
-A Temba staff User. Operators curate Venues and Courts, mark Partner Venues, grant Venue managers and Verifiers, verify Groups, link Loose Groups to Venues directly, may set any other User's Level in either sport (ADR-0046), and decide Match disputes.
+A Temba staff User. Operators curate Venues and Courts, mark Partner Venues, grant Venue managers and Verifiers, verify Groups, link Loose Groups to Venues directly, may set any other User's Level in either sport (ADR-0046), and decide Match disputes. Being an Operator is Clerk's `publicMetadata.operator` flag, read from the session for every Operator door. The Clerk webhook copies it onto `user.is_operator`, the directory a Notification to every Operator (such as a raised Match dispute) reads (ADR-0075); the copy is never the check.
 _Avoid_: Admin, Owner (retired Community roles, ADR-0055), system admin, platform admin, superadmin
 
 **Venue manager**:

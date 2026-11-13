@@ -1,6 +1,6 @@
 # An Operator can set any User's Level
 
-**Status:** accepted. Amendment proposed: [ADR-0072](./0072-a-verifier-is-a-per-venue-role.md) lets a Verifier calibrate a Level in either sport.
+**Status:** accepted. Amendment proposed: [ADR-0072](./0072-a-verifier-is-a-per-venue-role.md) lets a Verifier calibrate a Level in either sport. Amended by [ADR-0075](./0075-operators-are-mirrored-onto-users-by-the-clerk-webhook.md): Operators are found through a mirrored column.
 
 A Level override could only come from a Level setter, inside a Group both people belong to, and only for padel. Temba staff had no way to correct a Level for someone outside their Groups, or to fix a football self-placement that Make teams balances on.
 
@@ -14,4 +14,4 @@ A Level override could only come from a Level setter, inside a Group both people
 ## Consequences
 
 - A football Level an Operator sets stays put until football results rate, since football Games are Unrated.
-- Operators stay a Clerk `publicMetadata.operator` flag; nothing is granted in the App.
+- Operators stay a Clerk `publicMetadata.operator` flag; nothing is granted in the App. The Clerk webhook mirrors it onto `user.is_operator` so Notifications can find Operators ([ADR-0075](./0075-operators-are-mirrored-onto-users-by-the-clerk-webhook.md)).
