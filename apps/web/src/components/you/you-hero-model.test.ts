@@ -85,7 +85,9 @@ describe("heroView", () => {
     expect(view.status).toBe("Provisional · 3 rated");
     expect(view.ring).toEqual({ percent: 40, label: "2 of 5 to confirm" });
     expect(view.move).toBeNull();
-    expect(view.outlook).toContain("about 3 more rated matches");
+    expect(view.outlook).toContain(
+      "after 3 more rated matches in a verified group",
+    );
   });
 
   it("names the top band without a distance", () => {

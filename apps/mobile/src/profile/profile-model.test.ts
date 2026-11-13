@@ -143,7 +143,10 @@ describe("heroView", () => {
     if (view.kind !== "rated") throw new Error("expected rated");
     assert.equal(view.ring.label, "2 of 5 to confirm");
     assert.equal(view.ring.percent, 40);
-    assert.match(view.outlook, /about 3 more rated matches/);
+    assert.match(
+      view.outlook,
+      /after 3 more rated matches in a verified group/,
+    );
     assert.equal(view.stats[0]?.label, "win rate after 5");
   });
 
