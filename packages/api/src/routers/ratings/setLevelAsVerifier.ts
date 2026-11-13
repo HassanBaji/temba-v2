@@ -9,7 +9,6 @@ import { type db } from "#src/db";
 import { notify } from "#src/notifications/notify";
 import {
   applyLevelOverride,
-  assertLevelOverrideReason,
   requestedOverrideLevel,
 } from "#src/ratings/apply-level-override";
 import { calibrationVenueFor } from "#src/ratings/verifier-calibration";
@@ -42,7 +41,7 @@ export async function setLevelAsVerifier(
     sport: Sport;
     levelTenths?: number | null;
     ovr?: number | null;
-    reason?: LevelOverrideReason | null;
+    reason: LevelOverrideReason;
     note?: string | null;
     locale?: Locale;
   },
@@ -73,8 +72,6 @@ export async function setLevelAsVerifier(
       message: isVerifier ? errors.notAtVerifierVenue : errors.notVerifier,
     });
   }
-  const reason = args.reason;
-  assertLevelOverrideReason(reason, locale);
 
   return database.transaction(async (tx) => {
     const result = await applyLevelOverride(tx, {
@@ -85,7 +82,7 @@ export async function setLevelAsVerifier(
       groupId: null,
       venueId: venue.id,
       level,
-      reason,
+      reason: args.reason,
       note: args.note,
       locale,
     });
@@ -100,22 +97,22 @@ export async function setLevelAsVerifier(
   });
 }
 
+export const setLevelAsVerifierInputSchema = z.object({
+  userId: z.string().uuid(),
+  sport: sportSchema,
+  levelTenths: z
+    .number()
+    .int()
+    .min(LEVEL_TENTHS_MIN)
+    .max(LEVEL_TENTHS_MAX)
+    .optional(),
+  ovr: z.number().int().min(OVR_MIN).max(OVR_MAX).optional(),
+  reason: z.enum(LEVEL_OVERRIDE_REASONS),
+  note: z.string().trim().max(LEVEL_OVERRIDE_NOTE_MAX).optional(),
+});
+
 export const setLevelAsVerifierProcedure = protectedProcedure
-  .input(
-    z.object({
-      userId: z.string().uuid(),
-      sport: sportSchema,
-      levelTenths: z
-        .number()
-        .int()
-        .min(LEVEL_TENTHS_MIN)
-        .max(LEVEL_TENTHS_MAX)
-        .optional(),
-      ovr: z.number().int().min(OVR_MIN).max(OVR_MAX).optional(),
-      reason: z.enum(LEVEL_OVERRIDE_REASONS).optional(),
-      note: z.string().trim().max(LEVEL_OVERRIDE_NOTE_MAX).optional(),
-    }),
-  )
+  .input(setLevelAsVerifierInputSchema)
   .mutation(async ({ ctx, input }) => {
     const verifier = await resolveAppUser(ctx.userId);
     return setLevelAsVerifier(ctx.db, {

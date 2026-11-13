@@ -19,7 +19,10 @@ import {
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 import { listNotifications } from "#src/routers/notifications/list";
-import { setLevelAsVerifier } from "#src/routers/ratings/setLevelAsVerifier";
+import {
+  setLevelAsVerifier,
+  setLevelAsVerifierInputSchema,
+} from "#src/routers/ratings/setLevelAsVerifier";
 import { loadPlayerProfile } from "#src/routers/users/playerProfile";
 import { addVerifier } from "#src/routers/venues/addVerifier";
 import { listVerifiers } from "#src/routers/venues/listVerifiers";
@@ -266,22 +269,22 @@ describe("setLevelAsVerifier", () => {
     }
   });
 
-  it("refuses a save with no reason", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const { verifier, player, venueA } = await setUp(db);
-      await playAt(db, { venueId: venueA.id, playerIds: [player.id] });
-      await expect(
-        setLevelAsVerifier(db, {
-          verifierUserId: verifier.id,
-          targetUserId: player.id,
-          sport: "padel",
-          levelTenths: 45,
-        }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    } finally {
-      await close();
-    }
+  it("refuses input with no reason at the boundary", () => {
+    const input = {
+      userId: crypto.randomUUID(),
+      sport: "padel",
+      levelTenths: 45,
+    };
+    const parsed = setLevelAsVerifierInputSchema.safeParse(input);
+    expect(
+      parsed.success ? undefined : parsed.error.flatten().fieldErrors.reason,
+    ).toBeDefined();
+    expect(
+      setLevelAsVerifierInputSchema.safeParse({
+        ...input,
+        reason: "new_to_group",
+      }).success,
+    ).toBe(true);
   });
 
   it("calibrates a padel Level of a player who played at the Venue and tells them who and where", async () => {
