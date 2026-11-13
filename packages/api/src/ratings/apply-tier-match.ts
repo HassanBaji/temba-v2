@@ -8,6 +8,7 @@ import {
 } from "@repo/db";
 
 import { type db } from "#src/db";
+import { tierStartHints } from "#src/ratings/tier-start-hints";
 import {
   tierIsProvisional,
   tierTable,
@@ -111,11 +112,29 @@ export async function applyTierMatch(
     .for("update");
   const rowByUser = new Map(rows.map((row) => [row.userId, row]));
 
+  // A player whose Tier points have not started counts as their start hint
+  // when the sides are weighed (spec 8.1). The hint is never written: their
+  // row still moves from 1,200 (D13).
+  const notStarted = (userId: string) => {
+    const row = rowByUser.get(userId);
+    return !row || (row.gamesCounted === 0 && !adjusted(row));
+  };
+  const startHint = seated.some(notStarted)
+    ? await tierStartHints(database, {
+        groupId: args.groupId,
+        rowByUser,
+        userIds: seated,
+      })
+    : null;
+
   const player = (userId: string) => {
     const row = rowByUser.get(userId);
     return {
       userId,
-      points: row?.points ?? TIER_POINTS_START,
+      points:
+        (notStarted(userId) ? startHint?.(userId) : null) ??
+        row?.points ??
+        TIER_POINTS_START,
       performance: args.performance?.get(userId)?.score ?? null,
       provisional: row
         ? tierIsProvisional({

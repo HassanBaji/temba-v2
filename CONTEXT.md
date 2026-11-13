@@ -713,7 +713,7 @@ A football Group member's strength inside one tier Group, a football Group that 
 _Avoid_: group level, group rating, local level, badge
 
 **Tier points**:
-The number behind a Group Tier (`group_tier_points`). Starts at 1,200 and moves once per Match by a result part, an expected-score step on the mean Tier points of the two Football sides, and a performance part; an Organizer may adjust it. Every move is an event in an append-only ledger (`group_tier_events`). Carries across Seasons (ADR-0067). Leaving or being removed from the Group deletes the member's points; the events stay, and a member who comes back starts again at 1,200, Provisional.
+The number behind a Group Tier (`group_tier_points`). Starts at 1,200 and moves once per Match by a result part, an expected-score step on the mean Tier points of the two Football sides, and a performance part; an Organizer may adjust it. A player whose points have not started (no counted Game and no Tier adjustment) is weighed in that mean as their start hint, the one Make teams places them by; the hint is never written, so their points still move from 1,200. Every move is an event in an append-only ledger (`group_tier_events`). Carries across Seasons (ADR-0067). Leaving or being removed from the Group deletes the member's points; the events stay, and a member who comes back starts again at 1,200, Provisional. Reversing a Match from before they left does not touch the points they hold now.
 _Avoid_: Elo, group Elo, rating points, Standing points
 
 **Tier band**:

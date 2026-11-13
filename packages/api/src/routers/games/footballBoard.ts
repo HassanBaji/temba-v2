@@ -7,7 +7,6 @@ import {
   gamePlayers,
   gameTeamPlayers,
   groupMembers,
-  groupRatings,
   groupTierPoints,
   groups,
   matchGoals,
@@ -24,14 +23,9 @@ import {
 import { ovrBalanceStrength, wholeOvrFromMu } from "@repo/domain/football-ovr";
 import { groupHasTier } from "@repo/domain/game-rating-scope";
 import type { GroupMemberTierData } from "@repo/domain/group-data";
-import { displayedLevelFromMu } from "@repo/domain/level";
 import { type LevelBand } from "@repo/domain/level-bands";
-import { tierHintReference, tierTable } from "@repo/domain/tier-bands";
-import {
-  TIER_POINTS_START,
-  tierHintFor,
-  tierHintOvr,
-} from "@repo/domain/tier-points";
+import { tierTable } from "@repo/domain/tier-bands";
+import { TIER_POINTS_START } from "@repo/domain/tier-points";
 import { squadsReadyForScore } from "@repo/domain/matchday-squad";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
@@ -43,6 +37,7 @@ import { gameReach } from "#src/games/verifier-stamp";
 import { confirmsAsOrganizer } from "#src/games/confirms-as-organizer";
 import { loadChallengeSides } from "#src/games/challenge-squad";
 import { groupIsVerified } from "#src/groups/group-is-verified";
+import { tierStartHints } from "#src/ratings/tier-start-hints";
 import {
   assertFootballGame,
   footballMatch,
@@ -142,48 +137,11 @@ async function loadBoardTiers(
     }),
   );
 
-  const userIds = [
-    ...new Set([
-      ...args.rosterUserIds,
-      ...members.map((member) => member.userId),
-    ]),
-  ];
-  const levelByUser = new Map<string, number>();
-  const groupLevelByUser = new Map<string, number>();
-  if (userIds.length > 0) {
-    const levelRows = await database.query.ratings.findMany({
-      where: and(
-        inArray(ratings.userId, userIds),
-        eq(ratings.sport, "football"),
-      ),
-      columns: { userId: true, mu: true },
-    });
-    for (const row of levelRows) {
-      levelByUser.set(row.userId, Number(displayedLevelFromMu(row.mu)));
-    }
-    const groupLevelRows = await database.query.groupRatings.findMany({
-      where: and(
-        eq(groupRatings.groupId, group.id),
-        inArray(groupRatings.userId, userIds),
-      ),
-      columns: { userId: true, mu: true },
-    });
-    for (const row of groupLevelRows) {
-      groupLevelByUser.set(row.userId, Number(displayedLevelFromMu(row.mu)));
-    }
-  }
-  const ovrOf = (userId: string) =>
-    tierHintOvr({
-      level: levelByUser.get(userId) ?? null,
-      groupLevel: groupLevelByUser.get(userId) ?? null,
-    });
-  const reference = tierHintReference(
-    table.rows.map((row) => ({
-      points: row.points,
-      provisional: row.provisional,
-      ovr: ovrOf(row.userId),
-    })),
-  );
+  const startHint = await tierStartHints(database, {
+    groupId: group.id,
+    rowByUser,
+    userIds: args.rosterUserIds,
+  });
 
   const tableRowByUser = new Map(table.rows.map((row) => [row.userId, row]));
   const byUser = new Map<string, BoardTier>();
@@ -207,7 +165,7 @@ async function loadBoardTiers(
         footballBalanceStrength({
           tierPoints: row?.points ?? TIER_POINTS_START,
           tierProvisional: provisional,
-          ovrHint: tierHintFor(ovrOf(userId), reference),
+          ovrHint: startHint(userId),
         }) ?? TIER_POINTS_START,
     });
   }

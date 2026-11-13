@@ -9,9 +9,15 @@ import {
   groupTierPoints,
   matches,
   ratingEvents,
+  ratings,
   user,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
+
+import { ovrFromLevel } from "@repo/domain/football-ovr";
+import { muFromLevel } from "@repo/domain/level";
+import { tierHintReference } from "@repo/domain/tier-bands";
+import { tierExpectedScore, tierHintFor } from "@repo/domain/tier-points";
 
 import { type GameRow } from "#src/games/access";
 import {
@@ -24,6 +30,10 @@ import {
 } from "#src/ratings/group-rated-match.test-support";
 import { applyRatedMatch } from "#src/ratings/apply-rated-match";
 import { completeMatch } from "#src/routers/games/completeMatch";
+import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
+import { footballBoard } from "#src/routers/games/footballBoard";
+import { reportWrongScore } from "#src/routers/games/reportWrongScore";
+import { saveFootballScore } from "#src/routers/games/saveFootballScore";
 import { register } from "#src/routers/games/register";
 import { createUnclaimedPlayer } from "#src/unclaimed-players/create-unclaimed-player";
 
@@ -52,6 +62,21 @@ async function addUnclaimed(f: FootballFixture, phoneNumber: string) {
     .values({ groupId: f.groupId, userId: created.user.id });
   await register(f.db, { gameId: f.gameId, userId: created.user.id });
   return created.user.id;
+}
+
+async function setFootballLevel(
+  database: TestDatabase,
+  userId: string,
+  level: number,
+) {
+  await database.insert(ratings).values({
+    userId,
+    sport: "football",
+    mu: muFromLevel(level),
+    phi: 150,
+    sigma: 0.06,
+    levelBand: "C1",
+  });
 }
 
 async function withDb(run: (database: TestDatabase) => Promise<void>) {
@@ -121,6 +146,106 @@ describe("Tier points on a completed football Match (ADR-0067)", () => {
           where: eq(groupRatingEvents.matchId, matchId),
         }),
       ).toHaveLength(0);
+    });
+  });
+
+  it("weighs a player with no Tier points as their start hint, and still starts their points at 1,200", async () => {
+    await withDb(async (db) => {
+      const f = await footballGame(db);
+      const levels = [4, 3.5, 3, 2.5];
+      const points = [1300, 1250, 1200, 1100];
+      const ranked: string[] = [];
+      for (const [index, level] of levels.entries()) {
+        const seated = index === 1 || index === 2;
+        const userId = seated
+          ? await addMember(f, `ranked${index}`)
+          : await insertUser(db, `ranked${index}`);
+        if (!seated) {
+          await db.insert(groupMembers).values({ groupId: f.groupId, userId });
+        }
+        ranked.push(userId);
+        await setFootballLevel(db, userId, level);
+        await db.insert(groupTierPoints).values({
+          groupId: f.groupId,
+          userId,
+          points: points[index]!,
+          gamesCounted: 9,
+        });
+      }
+      const newcomer = await addMember(f, "newcomer");
+      await setFootballLevel(db, newcomer, 4);
+      const noLevel = await addMember(f, "noLevel");
+
+      const hint = tierHintFor(
+        ovrFromLevel(4),
+        tierHintReference(
+          levels.map((level, index) => ({
+            points: points[index]!,
+            provisional: false,
+            ovr: ovrFromLevel(level),
+          })),
+        ),
+      )!;
+      expect(hint).toBeGreaterThan(1250);
+      const board = await footballBoard(db, {
+        gameId: f.gameId,
+        userId: f.organizerId,
+      });
+      expect(
+        board.players.find((player) => player.userId === newcomer)
+          ?.balanceStrength,
+      ).toBe(hint);
+
+      const matchId = await playScore(
+        f,
+        [newcomer, noLevel],
+        [ranked[1]!, ranked[2]!],
+        { slot1: 1, slot2: 0 },
+      );
+      const events = new Map(
+        (await tierEvents(db, matchId))
+          .filter((event) => event.kind === "game")
+          .map((event) => [event.userId, event]),
+      );
+      const expected = tierExpectedScore((hint + 1200) / 2, (1250 + 1200) / 2);
+      expect(expected).toBeGreaterThan(0.5);
+      expect(events.get(newcomer)?.expectedScore).toBeCloseTo(expected, 10);
+      expect(events.get(ranked[1]!)?.expectedScore).toBeCloseTo(
+        1 - expected,
+        10,
+      );
+      for (const userId of [newcomer, noLevel]) {
+        const event = events.get(userId)!;
+        expect(event.pointsBefore).toBe(1200);
+        expect(event.pointsAfter).toBe(1200 + event.delta);
+      }
+
+      await reportWrongScore(db, {
+        gameId: f.gameId,
+        matchId,
+        userId: f.organizerId,
+      });
+      await saveFootballScore(
+        db,
+        {
+          gameId: f.gameId,
+          userId: f.organizerId,
+          slot1Goals: 2,
+          slot2Goals: 0,
+          scorers: [],
+        },
+        new Date(f.kickoff.getTime() + 2 * 60 * 60 * 1000),
+      );
+      await confirmMatchResult(db, {
+        gameId: f.gameId,
+        matchId,
+        userId: f.organizerId,
+      });
+      const again = (await tierEvents(db, matchId)).find(
+        (event) => event.kind === "game" && event.userId === newcomer,
+      );
+      expect(again?.expectedScore).toBeCloseTo(expected, 10);
+      expect(again?.pointsBefore).toBe(1200);
     });
   });
 
