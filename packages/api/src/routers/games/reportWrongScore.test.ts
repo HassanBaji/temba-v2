@@ -667,6 +667,7 @@ describe("Level override and the wrong-score reversal", () => {
       setterUserId: args.setterId,
       targetUserId: args.targetId,
       levelTenths: args.levelTenths,
+      reason: "correcting_a_mistake",
     });
   }
 

@@ -220,7 +220,7 @@ export const football = {
     notFootball: "الفرق والنتيجة لمباريات كرة القدم فقط",
     roleOnFootball: "الدور والمركز لمباريات كرة القدم فقط",
     friendlyOnly: "مباريات كرة القدم ودية",
-    noLevelRange: "لا نطاق مستوى لمباريات كرة القدم",
+    noLevelRange: "نطاق المستوى فقط لمباراة كرة قدم تُحتسب لمستوى Temba",
     keeperSeatsTaken: "مكانا حارس المرمى مشغولان",
     oneTeamOnly: "يكون اللاعب في فريق واحد فقط",
     registeredOnly: "لا يوضع في الفرق إلا اللاعبون المسجّلون",

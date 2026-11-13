@@ -6,6 +6,7 @@ export const mobileTournament = {
     createGame: "إنشاء مباراة",
     findAGroup: "ابحث عن مجموعة",
     upcomingTab: "القادمة",
+    publicTab: "عامة",
     playedTab: "السابقة",
     sport: "الرياضة",
     couldNotLoad: "تعذّر تحميل المباريات",

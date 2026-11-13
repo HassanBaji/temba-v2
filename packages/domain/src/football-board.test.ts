@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   addGoal,
+  balancedSides,
+  boardTierCell,
   confirmationLine,
   draftSummary,
   footballHeroLines,
@@ -10,6 +12,7 @@ import {
   joinActionLabel,
   keeperNote,
   keeperSub,
+  makeTeamsLevelLabel,
   moveAcross,
   placeOn,
   poolLayout,
@@ -20,6 +23,8 @@ import {
   scorersPayload,
   shortName,
   switchMethod,
+  sideOvrAverage,
+  teamsSideAverage,
   viewerSideLine,
   type BoardPlayer,
 } from "./football-board";
@@ -187,6 +192,121 @@ describe("teams draft", () => {
     expect(draftSummary(done, players, "en").note).toBe(
       "Everyone placed. Black avg B, White avg B-.",
     );
+  });
+});
+
+describe("teams draft in a tier Group", () => {
+  const tierPlayers = [
+    player("k1", { role: "keeper", levelBand: "A", balanceStrength: 1180 }),
+    player("k2", { role: "keeper", levelBand: "D3", balanceStrength: 1214 }),
+    player("a", { levelBand: "D3", balanceStrength: 1412 }),
+    player("b", { levelBand: "D3", balanceStrength: 1356 }),
+    player("c", { levelBand: "A", balanceStrength: 1301 }),
+    player("d", { levelBand: "A", balanceStrength: 1248 }),
+  ];
+
+  it("splits on balance strength, not on the Level band", () => {
+    expect(balancedSides(tierPlayers)).toEqual({
+      k1: 1,
+      k2: 2,
+      a: 2,
+      b: 1,
+      c: 1,
+      d: 2,
+    });
+  });
+
+  it("lists each side strongest down and reads its mean in points", () => {
+    const draft = initialTeamsDraft(tierPlayers, null);
+    const summary = draftSummary(draft, tierPlayers, "en");
+    expect(summary.slot1.map((row) => row.userId)).toEqual(["k1", "b", "c"]);
+    expect(summary.slot2.map((row) => row.userId)).toEqual(["k2", "a", "d"]);
+    expect(teamsSideAverage(summary.slot1, "en")).toBe("1,279 points");
+    expect(summary.note).toBe(
+      "Everyone placed. Black avg 1,279 points, White avg 1,291 points.",
+    );
+  });
+
+  it("reads the Level when any player has no strength", () => {
+    expect(
+      teamsSideAverage(
+        [
+          player("a", { levelBand: "B1", balanceStrength: 1300 }),
+          player("b", { levelBand: "B1" }),
+        ],
+        "en",
+      ),
+    ).toBe("B+");
+  });
+
+  it("puts the fish, the place or a Provisional slot beside a player", () => {
+    const tier = {
+      band: "hamour" as const,
+      place: 2,
+      points: 1356,
+      provisional: false,
+      gamesOfFive: 5,
+    };
+    expect(boardTierCell(player("a", { tier }), "en")).toEqual({
+      kind: "fish",
+      band: "hamour",
+      label: "Hamour",
+    });
+    expect(
+      boardTierCell(player("a", { tier: { ...tier, band: null } }), "en"),
+    ).toEqual({ kind: "place", label: "#2" });
+    expect(
+      boardTierCell(
+        player("a", {
+          tier: { ...tier, band: null, place: null, provisional: true },
+        }),
+        "en",
+      ),
+    ).toEqual({ kind: "provisional", label: "Provisional" });
+    expect(boardTierCell(player("a"), "en")).toBeNull();
+  });
+});
+
+describe("teams draft outside a tier Group", () => {
+  const ovrPlayers = [
+    player("k1", {
+      role: "keeper",
+      levelBand: "C1",
+      ovr: 72,
+      balanceStrength: 72,
+    }),
+    player("k2", {
+      role: "keeper",
+      levelBand: "C2",
+      ovr: 68,
+      balanceStrength: 68,
+    }),
+    player("a", { levelBand: "D3", ovr: 84, balanceStrength: 84 }),
+    player("b", { levelBand: "A", ovr: 78, balanceStrength: 78 }),
+    player("c", { levelBand: "C1", ovr: 70, balanceStrength: 70 }),
+    player("d", { levelBand: null, ovr: null, balanceStrength: 65 }),
+  ];
+
+  it("splits on OVR and reads each side's mean OVR", () => {
+    const draft = initialTeamsDraft(ovrPlayers, null);
+    expect(draft.sides).toEqual({ k1: 1, k2: 2, a: 2, b: 1, c: 1, d: 2 });
+    const summary = draftSummary(draft, ovrPlayers, "en", "ovr");
+    expect(summary.slot2.map((row) => row.userId)).toEqual(["k2", "a", "d"]);
+    expect(teamsSideAverage(summary.slot1, "en", "ovr")).toBe("OVR 73");
+    expect(summary.note).toBe(
+      "Everyone placed. Black avg OVR 73, White avg OVR 72.",
+    );
+  });
+
+  it("reads a published side's mean OVR over the players who have one", () => {
+    expect(sideOvrAverage(ovrPlayers.slice(2), "en")).toBe("OVR 77");
+    expect(sideOvrAverage([{ ovr: null }], "en")).toBe("–");
+  });
+
+  it("shows the OVR where the Level sits, a dash without one", () => {
+    expect(makeTeamsLevelLabel(ovrPlayers[2]!, "ovr")).toBe("84");
+    expect(makeTeamsLevelLabel(ovrPlayers[5]!, "ovr")).toBe("–");
+    expect(makeTeamsLevelLabel(ovrPlayers[2]!, "tierPoints")).toBe("D");
   });
 });
 

@@ -1,6 +1,7 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { formatOvr, type LevelFace } from "./football-ovr";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import { formatMonth } from "./format-game-start";
 import { memberCountLabel } from "./member-count-label";
@@ -151,19 +152,17 @@ export function groupMemberOrganizerToast(
 }
 
 /**
- * An Organizer of the Group (creator or Appointed Organizer) sets other
- * members' Group Levels (ADR-0053). `canCreateGame` is that check for a viewer
- * outside the Standing; the viewer's own Organizer mark is read too.
+ * An Organizer of a tier Group adjusts other members' Tier points
+ * (ADR-0073). The viewer's own Organizer mark is the check: the Group
+ * creator or an Appointed Organizer, as the server's.
  */
-export function viewerMaySetGroupLevel(group: {
-  sport: string | null | undefined;
-  canCreateGame: boolean;
+export function viewerMayAdjustTier(group: {
+  hasTier: boolean | undefined;
   leaderboard: readonly { isViewer: boolean; isOrganizer: boolean }[];
 }) {
   return (
-    groupShowsLevel(group.sport) &&
-    (group.canCreateGame ||
-      group.leaderboard.some((entry) => entry.isViewer && entry.isOrganizer))
+    group.hasTier === true &&
+    group.leaderboard.some((entry) => entry.isViewer && entry.isOrganizer)
   );
 }
 
@@ -180,22 +179,36 @@ export type LevelCellView =
  * The Level column: the band label, or the hatched Provisional placeholder
  * when the Rating is still Provisional (ADR-0009) or the member has no Rating
  * for the Group's sport. A Provisional member with a band still carries its
- * letter, for the Members tab to draw on the hatch.
+ * letter, for the Members tab to draw on the hatch. Given the member's OVR,
+ * the label is the football face, `C+ 72` (ADR-0069).
  */
 export function levelCellView(
   band: LevelBand | null | undefined,
   provisional: boolean,
+  ovr?: number | null,
 ): LevelCellView {
   if (!band) {
     return { kind: "provisional", label: null };
   }
-  const label = displayLabelFromStoredBand(band);
+  const letter = displayLabelFromStoredBand(band);
+  const label = ovr == null ? letter : `${letter} ${formatOvr(ovr)}`;
   return provisional
     ? { kind: "provisional", label }
     : { kind: "label", label };
 }
 
-/** A football Group has no Level until football results and Ratings exist. */
-export function groupShowsLevel(sport: string | null | undefined) {
-  return sport !== "football";
+/**
+ * A tier Group shows fish instead of a Level (ADR-0066); a Verified football
+ * Group shows the Level as OVR.
+ */
+export function groupShowsLevel(
+  sport: string | null | undefined,
+  verified = false,
+) {
+  return sport !== "football" || verified;
+}
+
+/** How a Group's Level column reads: OVR on football, the Level otherwise. */
+export function groupLevelFace(sport: string | null | undefined): LevelFace {
+  return sport === "football" ? "ovr" : "level";
 }

@@ -13,8 +13,15 @@ import {
   gamePlayers,
   gameTeams,
   gameWaitlist,
+  games,
   groups,
+  matchDisputes,
+  matchGoals,
+  matchRatingWindows,
+  matchVerifierStamps,
   matches,
+  performanceRatingResults,
+  performanceRatings,
   ratingEvents,
   ratings,
   teamMembers,
@@ -39,7 +46,6 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import {
-  canViewGame,
   getRegistrationStatus,
   isGameOrganizer,
   isGroupMember,
@@ -49,6 +55,7 @@ import {
   userPassesJoinGate,
 } from "#src/games/access";
 import { scoredWithOwnDoor } from "#src/games/assert-may-write-sets";
+import { footballScoreOf } from "#src/games/football-lineup";
 import { confirmsAsOrganizer } from "#src/games/confirms-as-organizer";
 import {
   homeCarouselPhase,
@@ -62,10 +69,22 @@ import {
   matchOrganizerSides,
   matchResultConfirmedUserIds,
   matchSeatedUserIds,
+  matchSideSeats,
+  matchSlotsConfirmed,
+  publicGameConfirmWindowClosesAt,
   type MatchSlot,
 } from "#src/games/match-result-confirmations";
 import { listGameSeatHolds } from "#src/games/seat-holds";
-import { viewerMayConfirmEnteredScore } from "#src/games/tournament-score";
+import {
+  gameReach,
+  isVerifierOfVenue,
+  mayStampNow,
+} from "#src/games/verifier-stamp";
+import { matchDisputeRefusal } from "#src/games/match-dispute";
+import {
+  seatedSlot,
+  viewerMayConfirmEnteredScore,
+} from "#src/games/tournament-score";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
 import {
   isIndividualSeatGame,
@@ -87,8 +106,8 @@ import {
   bandFromLevel,
   bandWithHysteresis,
   formatLevel,
-  isProvisional,
   levelFromMu,
+  padelMatchesRemainingToConfirm,
   ratedMatchesRemainingToConfirm,
   type LevelBand,
 } from "@repo/domain/level";
@@ -96,6 +115,12 @@ import {
   wrongScoreReversalEligibility,
   type WrongScoreReversalEligibility,
 } from "#src/games/wrong-score-reversal";
+import { votedMvpUserId } from "#src/marks/settle-mvp";
+import { sideUserIds } from "#src/ratings/apply-tier-match";
+import { padelConfirmations } from "#src/ratings/level-confirmed";
+import { mayCalibrateAll } from "#src/ratings/verifier-calibration";
+import { ovrFromMu } from "@repo/domain/football-ovr";
+import { type OvrImpact } from "@repo/domain/game-rating-impact";
 import { groupSeasonRows } from "#src/games/season-link";
 import { toSeasonRow } from "#src/standing/load-group-standing";
 import { MATCH_STATUS } from "@repo/domain/match-status";
@@ -106,7 +131,13 @@ import { maskPhone } from "#src/unclaimed-players/mask-phone";
 import { mayRenameUnclaimedPlayer } from "#src/unclaimed-players/may-rename-unclaimed-player";
 
 import { listLevelRangeRequests } from "./listLevelRangeRequests";
-import { gameRatingScope } from "@repo/domain/game-rating-scope";
+import { gameRatingScope, isPublicGame } from "@repo/domain/game-rating-scope";
+import {
+  ratingWindowState,
+  type RatingWindowMode,
+  type RatingWindowState,
+} from "@repo/domain/performance-rating";
+import { settleRatingWindowIfDue } from "#src/ratings/settle-rating-window";
 import { messagesFor } from "@repo/i18n/messages";
 import { loadTeamDisplayNames } from "#src/challenges/challenge-proposals";
 import { loadChallengeSides } from "#src/games/challenge-squad";
@@ -363,6 +394,120 @@ function individualFriendlyGamePhase(args: {
   return "needs_results";
 }
 
+/**
+ * What a counting football Match did to the viewer's OVR: the
+ * move and its four parts, the other side's mean OVR before the Match, the
+ * viewer's settled rating and how many ratings they received, their goals
+ * and their side's goals conceded, and whether they were voted MVP.
+ */
+async function footballOvrImpact(
+  database: DbClient,
+  args: {
+    gameId: string;
+    match: {
+      id: string;
+      slot1GameTeamId: string | null;
+      slot2GameTeamId: string | null;
+      sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
+    };
+    userId: string;
+    event: {
+      muBefore: number;
+      muAfter: number;
+      outcomeScore: number;
+      resultPart: number | null;
+      performancePart: number | null;
+      goalsPart: number | null;
+      mvpPart: number | null;
+    };
+  },
+): Promise<OvrImpact> {
+  const [events, slot1, slot2, own, received, goals, game] = await Promise.all([
+    database.query.ratingEvents.findMany({
+      where: eq(ratingEvents.matchId, args.match.id),
+      columns: { userId: true, muBefore: true },
+    }),
+    args.match.slot1GameTeamId
+      ? sideUserIds(database, args.match.slot1GameTeamId)
+      : Promise.resolve([]),
+    args.match.slot2GameTeamId
+      ? sideUserIds(database, args.match.slot2GameTeamId)
+      : Promise.resolve([]),
+    database.query.performanceRatingResults.findFirst({
+      where: and(
+        eq(performanceRatingResults.matchId, args.match.id),
+        eq(performanceRatingResults.userId, args.userId),
+      ),
+      columns: { ratingHundredths: true },
+    }),
+    database
+      .select({ raterUserId: performanceRatings.raterUserId })
+      .from(performanceRatings)
+      .where(
+        and(
+          eq(performanceRatings.matchId, args.match.id),
+          eq(performanceRatings.rateeUserId, args.userId),
+        ),
+      ),
+    database.query.matchGoals.findFirst({
+      where: and(
+        eq(matchGoals.matchId, args.match.id),
+        eq(matchGoals.userId, args.userId),
+      ),
+      columns: { goals: true },
+    }),
+    database.query.games.findFirst({
+      where: eq(games.id, args.gameId),
+      columns: { mvpUserId: true, mvpDecidedBy: true, mvpSettledAt: true },
+    }),
+  ]);
+  const viewerOnSlot1 = slot1.includes(args.userId);
+  const opponents = events.filter(
+    (event) => slot1.includes(event.userId) !== viewerOnSlot1,
+  );
+  const opponentAverage =
+    opponents.length === 0
+      ? ovrFromMu(args.event.muBefore)
+      : opponents.reduce((sum, event) => sum + ovrFromMu(event.muBefore), 0) /
+        opponents.length;
+  const seated = new Set([...slot1, ...slot2]);
+  const score = footballScoreOf(args.match.sets[0] ?? null);
+  const votedMvp = votedMvpUserId(game);
+  const resultPart = args.event.resultPart ?? 0;
+  return {
+    before: ovrFromMu(args.event.muBefore),
+    after: ovrFromMu(args.event.muAfter),
+    resultPart,
+    outcome:
+      args.event.outcomeScore === 1
+        ? "won"
+        : args.event.outcomeScore === 0
+          ? "lost"
+          : "drew",
+    opponentAverage,
+    parts: {
+      result: resultPart,
+      performance: args.event.performancePart,
+      goals: args.event.goalsPart,
+      mvp: args.event.mvpPart,
+    },
+    rating: own
+      ? {
+          hundredths: own.ratingHundredths,
+          ballots: received.filter((ballot) => seated.has(ballot.raterUserId))
+            .length,
+        }
+      : null,
+    goals: score
+      ? {
+          scored: goals?.goals ?? 0,
+          conceded: viewerOnSlot1 ? score.slot2 : score.slot1,
+        }
+      : null,
+    mvp: !votedMvp ? "none" : votedMvp === args.userId ? "you" : "other",
+  };
+}
+
 export async function gameById(
   database: DbClient,
   args: { gameId: string; userId: string; locale?: Locale },
@@ -370,12 +515,16 @@ export async function gameById(
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId, locale);
 
-  if (!(await canViewGame(database, game, args.userId))) {
+  const reach = await gameReach(database, game, args.userId);
+  if (!reach) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: messagesFor(locale).game.errors.notFound,
     });
   }
+  // A Verifier of the Game's Venue who opens it only to stamp reads the
+  // line-up and the scores, and is offered nothing else on it (ADR-0072).
+  const viewsToStampOnly = reach === "stamp_only";
 
   const now = new Date();
   const organizer = await isGameOrganizer(database, game, args.userId);
@@ -407,6 +556,84 @@ export async function gameById(
     },
     orderBy: (table, { asc }) => [asc(table.createdAt)],
   });
+
+  // Who stamped each Match, and whether the viewer may stamp one: a Verifier
+  // of the Game's Venue who is not seated in it (ADR-0072).
+  const stampRows =
+    matchRows.length === 0
+      ? []
+      : await database
+          .select({
+            matchId: matchVerifierStamps.matchId,
+            verifierUserId: matchVerifierStamps.verifierUserId,
+            verifierName: user.name,
+            venueName: venues.name,
+            stampedAt: matchVerifierStamps.createdAt,
+          })
+          .from(matchVerifierStamps)
+          .innerJoin(user, eq(user.id, matchVerifierStamps.verifierUserId))
+          .innerJoin(venues, eq(venues.id, matchVerifierStamps.venueId))
+          .where(
+            inArray(
+              matchVerifierStamps.matchId,
+              matchRows.map((match) => match.id),
+            ),
+          );
+  const stampByMatchId = new Map(
+    stampRows.map(({ matchId, ...stamp }) => [matchId, stamp]),
+  );
+  const viewerIsVenueVerifier = await isVerifierOfVenue(
+    database,
+    game.venueId,
+    args.userId,
+  );
+  const viewerMayStamp = async (match: (typeof matchRows)[number]) =>
+    viewerIsVenueVerifier &&
+    (await mayStampNow(database, { game, match, userId: args.userId, now }));
+
+  // The open Match dispute on each Match, and whether the viewer may raise
+  // one: a seated player of a Match that counted for Temba Level, within
+  // seven days of its completion.
+  const openDisputeRows =
+    matchRows.length === 0
+      ? []
+      : await database
+          .select({
+            matchId: matchDisputes.matchId,
+            raisedByUserId: matchDisputes.raisedByUserId,
+            createdAt: matchDisputes.createdAt,
+          })
+          .from(matchDisputes)
+          .where(
+            and(
+              inArray(
+                matchDisputes.matchId,
+                matchRows.map((match) => match.id),
+              ),
+              eq(matchDisputes.status, "open"),
+            ),
+          );
+  const openDisputeByMatchId = new Map(
+    openDisputeRows.map((row) => [row.matchId, row]),
+  );
+  const openDisputeOf = (matchId: string) => {
+    const dispute = openDisputeByMatchId.get(matchId);
+    return dispute
+      ? {
+          raisedByViewer: dispute.raisedByUserId === args.userId,
+          createdAt: dispute.createdAt,
+        }
+      : null;
+  };
+  const viewerMayDispute = async (match: (typeof matchRows)[number]) =>
+    match.status === MatchStatusEnum.COMPLETED &&
+    !openDisputeByMatchId.has(match.id) &&
+    (await matchDisputeRefusal(database, {
+      game,
+      match,
+      userId: args.userId,
+      now,
+    })) == null;
 
   const recordedCourtRows = await database.query.gameCourts.findMany({
     where: eq(gameCourts.gameId, game.id),
@@ -499,6 +726,16 @@ export async function gameById(
       canRename: false,
       nickname: nicknameByUserId.get(userId) ?? null,
     };
+  // A Verifier opens the Player profiles of a Game whose players they may
+  // all calibrate, such as one with a completed Match (ADR-0072).
+  const viewerMayCalibratePlayers =
+    viewerIsVenueVerifier &&
+    (await mayCalibrateAll(database, {
+      verifierUserId: args.userId,
+      playerUserIds: playerRows.flatMap((row) =>
+        row.user ? [row.user.id] : [],
+      ),
+    }));
 
   const group = game.groupId
     ? await database.query.groups.findFirst({
@@ -778,9 +1015,13 @@ export async function gameById(
   let ratingImpact: {
     levelChange: number;
     newLevel: number;
+    muBefore: number;
+    muAfter: number;
     newLevelBand: LevelBand;
     isProvisional: boolean;
     ratedMatchesRemainingToConfirm: number | null;
+    /** A football Match's move in OVR, by part (ADR-0069). */
+    ovr: OvrImpact | null;
   } | null = null;
 
   // Final-phase-only, organizer-only "Report a wrong score" eligibility read
@@ -789,6 +1030,15 @@ export async function gameById(
   // enforces (Option A, `.scratch/game-details-redesign/spec.md` "Resolved
   // decision"), read-only here.
   let canReportWrongScore: WrongScoreReversalEligibility | null = null;
+
+  // A football Match's Rating window (ADR-0068), settled here when its Job
+  // is late, before the move it writes is read.
+  const footballMatchRow = isFootballGame(game)
+    ? matchRows.find((match) => match.status !== MatchStatusEnum.CANCELLED)
+    : undefined;
+  if (footballMatchRow) {
+    await settleRatingWindowIfDue(database, footballMatchRow.id, now);
+  }
 
   if (isIndividualFriendlyGame && friendlyMatch) {
     const [requiredUserIds, confirmedUserIds, organizerSides] =
@@ -799,6 +1049,8 @@ export async function gameById(
       ]);
     const confirmedByOrganizer =
       phase === "final" &&
+      !isPublicGame(game) &&
+      !stampByMatchId.has(friendlyMatch.id) &&
       (requiredUserIds.length === 0 ||
         requiredUserIds.some((userId) => !confirmedUserIds.includes(userId)));
     const confirmedAt =
@@ -822,7 +1074,18 @@ export async function gameById(
               eq(ratingEvents.matchId, friendlyMatch.id),
               eq(ratingEvents.userId, args.userId),
             ),
-            columns: { muBefore: true, muAfter: true, phiAfter: true },
+            columns: {
+              muBefore: true,
+              muAfter: true,
+              phiAfter: true,
+              sport: true,
+              createdAt: true,
+              outcomeScore: true,
+              resultPart: true,
+              performancePart: true,
+              goalsPart: true,
+              mvpPart: true,
+            },
           })
         : undefined;
       if (viewerRatingEvent) {
@@ -840,15 +1103,34 @@ export async function gameById(
           afterLevel,
           bandFromLevel(beforeLevel),
         );
-        const viewerIsProvisional = isProvisional(viewerRatingEvent.phiAfter);
+        const remaining =
+          viewerRatingEvent.sport === "football"
+            ? ratedMatchesRemainingToConfirm(viewerRatingEvent.phiAfter)
+            : padelMatchesRemainingToConfirm(
+                (
+                  await padelConfirmations(database, {
+                    userIds: [args.userId],
+                    asOf: viewerRatingEvent.createdAt,
+                  })
+                )(args.userId),
+              );
         ratingImpact = {
           levelChange,
           newLevel,
+          muBefore: viewerRatingEvent.muBefore,
+          muAfter: viewerRatingEvent.muAfter,
           newLevelBand,
-          isProvisional: viewerIsProvisional,
-          ratedMatchesRemainingToConfirm: viewerIsProvisional
-            ? ratedMatchesRemainingToConfirm(viewerRatingEvent.phiAfter)
-            : null,
+          isProvisional: remaining > 0,
+          ratedMatchesRemainingToConfirm: remaining > 0 ? remaining : null,
+          ovr:
+            viewerRatingEvent.sport === "football"
+              ? await footballOvrImpact(database, {
+                  gameId: game.id,
+                  match: friendlyMatch,
+                  userId: args.userId,
+                  event: viewerRatingEvent,
+                })
+              : null,
         };
       }
 
@@ -859,6 +1141,70 @@ export async function gameById(
           locale,
         );
       }
+    }
+  }
+
+  // A Public Game's entered score waits 24 hours for the other side, then
+  // stands without counting (ADR-0071).
+  let confirmWindow: {
+    matchId: string;
+    closesAt: Date;
+    viewerMayConfirm: boolean;
+  } | null = null;
+  if (
+    isPublicGame(game) &&
+    friendlyMatch?.status === MatchStatusEnum.PENDING &&
+    friendlyMatch.notFinishedAt == null &&
+    matchOutcome(friendlyMatch.sets).result !== "none"
+  ) {
+    const closesAt = await publicGameConfirmWindowClosesAt(
+      database,
+      friendlyMatch.id,
+    );
+    if (closesAt) {
+      const [sides, agreed] = await Promise.all([
+        matchSideSeats(database, friendlyMatch),
+        matchSlotsConfirmed(database, friendlyMatch),
+      ]);
+      const viewerSlot = seatedSlot(sides, args.userId);
+      confirmWindow = {
+        matchId: friendlyMatch.id,
+        closesAt,
+        viewerMayConfirm:
+          viewerSlot != null &&
+          !(viewerSlot === 1 ? agreed.slot1 : agreed.slot2),
+      };
+    }
+  }
+
+  // The football Match's Rating window and whether the viewer may rate on
+  // it. One that counts for Temba Level moves OVR when it settles.
+  let ratingWindow: {
+    matchId: string;
+    mode: RatingWindowMode;
+    state: RatingWindowState;
+    closesAt: Date;
+    viewerMayRate: boolean;
+    countsForLevel: boolean;
+  } | null = null;
+  if (footballMatchRow) {
+    const window = await database.query.matchRatingWindows.findFirst({
+      where: eq(matchRatingWindows.matchId, footballMatchRow.id),
+    });
+    if (window && window.mode !== "off") {
+      ratingWindow = {
+        matchId: footballMatchRow.id,
+        mode: window.mode,
+        state: ratingWindowState(window, now),
+        closesAt: window.closesAt,
+        countsForLevel: window.countsForLevel,
+        viewerMayRate:
+          window.mode === "organizer"
+            ? organizer
+            : (await matchSeatedUserIds(database, footballMatchRow)).includes(
+                args.userId,
+              ),
+      };
     }
   }
 
@@ -919,7 +1265,7 @@ export async function gameById(
     groupName: group?.name ?? null,
     seasonId: game.seasonId,
     season,
-    groupSeasons,
+    groupSeasons: viewsToStampOnly ? [] : groupSeasons,
     canChangeSeason: organizer && !game.cancelledAt && !scoreConfirmed,
     venueId: game.venueId,
     venue: venue
@@ -974,6 +1320,7 @@ export async function gameById(
       : false,
     viewerUserId: args.userId,
     isRegistered: alreadyOnGame,
+    viewerMayCalibratePlayers,
     isSeated,
     isWaitlisted,
     waitlistPlace,
@@ -985,7 +1332,7 @@ export async function gameById(
     canLeave: alreadyOnGame || isWaitlisted,
     registeredUserCount: userCount,
     registeredTeamCount: teamCount,
-    waitlist: waitlistRows.map((row) => ({
+    waitlist: (viewsToStampOnly ? [] : waitlistRows).map((row) => ({
       id: row.id,
       userId: row.userId,
       teamId: row.teamId,
@@ -1018,6 +1365,11 @@ export async function gameById(
           knockoutRound: match.knockoutRound,
           knockoutPosition: match.knockoutPosition,
           status: match.status,
+          stoodUnconfirmed: match.stoodUnconfirmedAt != null,
+          stamp: stampByMatchId.get(match.id) ?? null,
+          canStamp: await viewerMayStamp(match),
+          openDispute: openDisputeOf(match.id),
+          canDispute: await viewerMayDispute(match),
           courtId: match.courtId,
           courtName: match.court?.name ?? null,
           slot1GameTeamId: match.slot1GameTeamId,
@@ -1078,6 +1430,8 @@ export async function gameById(
     phase,
     matchResultConfirmation,
     ratingImpact,
+    ratingWindow,
+    confirmWindow,
     canReportWrongScore,
     unseatedPlayers,
     registeredPlayers,
@@ -1102,6 +1456,7 @@ export async function gameById(
       }),
     eligibleTeams,
     ...levelRange,
+    canRequestLevelRange: levelRange.canRequestLevelRange && !viewsToStampOnly,
     pendingLevelRangeRequests,
     pendingSeatHolds,
     poolTables: computePoolTables({

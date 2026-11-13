@@ -3,9 +3,12 @@ import { isLevelBoundDisabled } from "@repo/domain/create-game-flow";
 import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "@repo/domain/level-bands";
 import { isolate } from "@repo/i18n/bidi";
 import {
+  formatLevelRangeLabel,
   LEVEL_BAND_SELECT_NONE,
+  parseLevelBandSelectTenths,
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
+import type { Sport } from "@repo/domain/sport";
 import { Pressable, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
@@ -144,14 +147,39 @@ export function LevelRangeHelper() {
   return <HelperNote>{copy.helper}</HelperNote>;
 }
 
-export function LevelRangeField(props: StepProps) {
+/** A football Game's range read in OVR, under the band chips. */
+function OvrRangeLine({ draft }: { draft: StepProps["state"]["draft"] }) {
+  const locale = useLocale();
+  const label = formatLevelRangeLabel(
+    parseLevelBandSelectTenths(draft.levelMin, "min"),
+    parseLevelBandSelectTenths(draft.levelMax, "max"),
+    locale,
+    "football",
+  );
+  return label ? (
+    <Text size="meta" weight="semibold">
+      {label}
+    </Text>
+  ) : null;
+}
+
+/** `encouraged` on a Public Game, which strangers join (ADR-0071). */
+export function LevelRangeField({
+  sport,
+  encouraged = false,
+  ...props
+}: StepProps & { sport?: Sport; encouraged?: boolean }) {
   const m = useMessages();
   return (
     <StepSection
       title={m.mobileCreateGame.levelRange.title}
-      note={m.common.optional}
+      note={encouraged ? m.rating.publicGame.levelRangeNote : m.common.optional}
     >
       <LevelRangeRows {...props} />
+      {sport === "football" ? <OvrRangeLine draft={props.state.draft} /> : null}
+      {encouraged ? (
+        <HelperNote>{m.rating.publicGame.levelRangeHint}</HelperNote>
+      ) : null}
       <LevelRangeHelper />
     </StepSection>
   );

@@ -6,7 +6,7 @@ import {
   bibNames,
   levelLabel,
   shortName,
-  sideAverage,
+  sideOvrAverage,
   slotCode,
   type Bibs,
   type BoardPlayer,
@@ -283,6 +283,7 @@ export type PlayedPadelInput = PlayedPlace & {
   groupName: string | null;
   rated: boolean;
   ratingScope?: GameRatingScope;
+  publicGame?: boolean;
   ratingImpact: PlayedRatingImpact | null;
   confirmation: { confirmedByOrganizer?: boolean } | null;
 };
@@ -392,8 +393,9 @@ export function playedPadelModel(
   const you: PlayedYouLine | null = viewerSide
     ? {
         line: partner ? m.playedWith(shortName(partner.name)) : m.playedAlone,
-        ratingLine:
-          scope === "group"
+        ratingLine: input.match.stoodUnconfirmed
+          ? messages.rating.publicGame.stood
+          : scope === "group"
             ? gameRatingScopeLabel(scope, locale)
             : playedRatingLine(input.rated, input.ratingImpact, locale),
         tag: youTag(youWord),
@@ -425,9 +427,15 @@ export function playedPadelModel(
     ...(input.groupName ? [{ label: m.group, value: input.groupName }] : []),
     {
       label: m.confirmed,
-      value: input.confirmation?.confirmedByOrganizer
-        ? m.byTheOrganizer
-        : m.byBothPairs,
+      value: input.match.stoodUnconfirmed
+        ? messages.rating.publicGame.notInTime
+        : input.match.stamp
+          ? messages.rating.verifier.stamp.stampedBy(
+              input.match.stamp.verifierName,
+            )
+          : input.confirmation?.confirmedByOrganizer
+            ? m.byTheOrganizer
+            : m.byBothPairs,
     },
     {
       label: m.format,
@@ -435,7 +443,10 @@ export function playedPadelModel(
     },
     {
       label: messages.you.ratingScope.title,
-      value: gameRatingScopeLabel(scope, locale),
+      value:
+        input.publicGame && scope === "temba"
+          ? messages.rating.scope.temba
+          : gameRatingScopeLabel(scope, locale),
     },
   ];
 
@@ -479,6 +490,10 @@ export type PlayedFootballInput = PlayedPlace & {
   groupName: string | null;
   rated: boolean;
   ratingImpact: PlayedRatingImpact | null;
+  /** A Public Game's score the other side did not confirm in time (ADR-0071). */
+  stoodUnconfirmed?: boolean;
+  /** The Verifier who stamped the score (ADR-0072). */
+  stampedByName?: string | null;
 };
 
 export type PlayedFootballModel = {
@@ -554,7 +569,7 @@ export function playedFootballModel(
   ): PlayedFootballSide => ({
     name: index === 1 ? names.slot1 : names.slot2,
     bib: index === 1 ? input.bibs.slot1 : input.bibs.slot2,
-    average: m.avg(sideAverage(players)),
+    average: m.avg(sideOvrAverage(players, locale)),
     score: index === 1 ? input.score.slot1 : input.score.slot2,
     won,
   });
@@ -584,7 +599,9 @@ export function playedFootballModel(
             const code = slotCode(viewer, locale);
             return code ? m.playedCodeFor(code, team) : m.playedFor(team);
           })(),
-          ratingLine: playedRatingLine(input.rated, input.ratingImpact, locale),
+          ratingLine: input.stoodUnconfirmed
+            ? messages.rating.publicGame.stood
+            : playedRatingLine(input.rated, input.ratingImpact, locale),
           tag: youTag(youWord),
           won: viewerWon,
         }
@@ -612,10 +629,13 @@ export function playedFootballModel(
       : []),
     {
       label: m.confirmed,
-      value:
-        input.confirmed.slot1 && input.confirmed.slot2
-          ? m.byBothSides
-          : m.byTheOrganizer,
+      value: input.stoodUnconfirmed
+        ? messages.rating.publicGame.notInTime
+        : input.stampedByName
+          ? messages.rating.verifier.stamp.stampedBy(input.stampedByName)
+          : input.confirmed.slot1 && input.confirmed.slot2
+            ? m.byBothSides
+            : m.byTheOrganizer,
     },
     {
       label: m.teams,
@@ -627,7 +647,10 @@ export function playedFootballModel(
     },
     {
       label: m.countsForRatingLabel,
-      value: input.rated ? messages.common.yes : messages.common.no,
+      value:
+        input.rated && !input.stoodUnconfirmed
+          ? messages.common.yes
+          : messages.common.no,
     },
   ];
 

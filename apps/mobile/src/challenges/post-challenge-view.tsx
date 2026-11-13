@@ -299,7 +299,7 @@ export function PostChallengeForm(props: PostChallengeFormProps) {
 
       <PostChallengeSection
         title={copy.level}
-        hint={challengeLevelHint(levelRange, locale)}
+        hint={challengeLevelHint(levelRange, locale, team?.sport)}
         error={props.errors.level}
       >
         <PostChallengeGrid label={copy.level} columns={6} multiple>

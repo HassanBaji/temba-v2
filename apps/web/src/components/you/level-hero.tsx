@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { hatch } from "@repo/design-tokens";
+import { useEffect, useId, useState, type ReactNode } from "react";
 
 import { useMessages, useTextDirection } from "~/components/locale-provider";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -44,14 +45,20 @@ export function HeroTopLine({
   );
 }
 
-/** The progress ring; it draws in once on mount unless motion is reduced. */
+/**
+ * The progress ring; it draws in once on mount unless motion is reduced.
+ * `hatched` draws the track as "not yet", for a Provisional Level.
+ */
 export function HeroRing({
   percent,
+  hatched = false,
   children,
 }: {
   percent: number;
+  hatched?: boolean;
   children: ReactNode;
 }) {
+  const patternId = `ring-hatch-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const [drawn, setDrawn] = useState(false);
   useEffect(() => {
     setDrawn(true);
@@ -65,13 +72,31 @@ export function HeroRing({
         aria-hidden="true"
         className="block size-full -rotate-90 rtl:-scale-x-100"
       >
+        {hatched ? (
+          <defs>
+            <pattern
+              id={patternId}
+              patternUnits="userSpaceOnUse"
+              width={hatch.period}
+              height={hatch.period}
+              patternTransform={`rotate(${hatch.angle})`}
+            >
+              <rect
+                width={hatch.stroke}
+                height={hatch.period}
+                style={{ fill: "var(--hatch-stroke-ink)" }}
+              />
+            </pattern>
+          </defs>
+        ) : null}
         <circle
           cx="60"
           cy="60"
           r={RING_RADIUS}
           fill="none"
           strokeWidth="8"
-          className="stroke-dimrule"
+          className={hatched ? undefined : "stroke-dimrule"}
+          stroke={hatched ? `url(#${patternId})` : undefined}
         />
         <circle
           cx="60"

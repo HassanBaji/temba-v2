@@ -165,11 +165,12 @@ function scopeLine(game: Game, locale: Locale): string | null {
     game.levelMinTenths,
     game.levelMaxTenths,
     locale,
+    game.sport,
   );
   const rating =
     scope === "temba"
       ? m.you.ratingScope.rated
-      : gameRatingScopeLabel(scope, locale);
+      : gameRatingScopeLabel(scope, locale, game.sport);
   return m.home.upNextCard.scope([rating, range].filter(isPresent));
 }
 

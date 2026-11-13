@@ -2,115 +2,96 @@ import assert from "node:assert/strict";
 import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
-import { homeLevelView } from "./home-level";
+import { levelFromOvr } from "./football-ovr";
+import { homeLevelView, type HomeLevelInput } from "./home-level";
+import { ratingsLevelView } from "./ratings-screen";
 
-const base = {
-  band: "C2",
-  level: "3.4",
-  provisional: true,
-  ratedMatchesRemaining: 4,
-  history: ["3.1", "3.2", "3.4"],
+const football: HomeLevelInput = {
+  sport: "football",
+  face: "ovr",
+  levelValue: levelFromOvr(74),
+  rating: { levelBand: "C1", provisional: false, ratedMatchesRemaining: 0 },
+  ratedMatchCount: 12,
+  changeOverLast: { matches: 8, delta: 2.2, points: [72, 72.6, 74.2] },
+  history: ["72", "73", "74"],
   historySteps: ["won", "won"],
   historyMatchCount: 2,
-  progressPercent: 16,
-} as const;
+};
+
+const padel: HomeLevelInput = {
+  sport: "padel",
+  face: "level",
+  levelValue: 3.449,
+  rating: { levelBand: "C2", provisional: true, ratedMatchesRemaining: 3 },
+  ratedMatchCount: 2,
+  changeOverLast: { matches: 2, delta: -0.15, points: [3.6, 3.5, 3.45] },
+  history: ["3.60", "3.50", "3.45"],
+  historySteps: ["lost", "lost"],
+  historyMatchCount: 2,
+};
 
 describe("homeLevelView", () => {
-  it("shows the collapsed display letter, never the stored band", () => {
-    assert.equal(homeLevelView(base, "en").displayBand, "C");
-    assert.equal(
-      homeLevelView({ ...base, band: "C1" }, "en").displayBand,
-      "C+",
-    );
-  });
-
-  it("reads the change over the rated Matches in the window", () => {
-    assert.deepEqual(homeLevelView(base, "en").change, {
-      direction: "up",
-      amount: "0.3",
-      signedAmount: isolate("+0.3"),
-      spoken: "Up",
-      windowLabel: "in the last 2 matches",
+  it("reads a football Level as screen 1a: Level 74, band C+, +2 over the last 8", () => {
+    const view = homeLevelView(football, "en");
+    assert.ok(view);
+    assert.equal(view.numberLabel, "Level");
+    assert.equal(view.level, "74");
+    assert.equal(view.displayBand, "C+");
+    assert.equal(view.status, "Confirmed");
+    assert.deepEqual(view.change, {
+      signedAmount: isolate("+2"),
+      caption: "last 8",
+      points: [72, 72.6, 74.2],
     });
-    assert.equal(
-      homeLevelView(
-        { ...base, history: ["3.1", "3.2"], historyMatchCount: 1 },
-        "en",
-      ).change?.windowLabel,
-      "in the last match",
-    );
+    assert.equal(view.footer.label, "Next band");
+    assert.equal(view.footer.value, "B-");
   });
 
-  it("counts Rated Matches only, not Level sets, in the window", () => {
-    const view = homeLevelView(
-      { ...base, history: ["3.2", "2.9", "2.8"], historyMatchCount: 2 },
-      "ar",
-    );
-    assert.equal(view.change?.signedAmount, isolate("\u22120.4"));
-    assert.equal(view.change?.windowLabel, "في آخر مباراتين");
-    assert.equal(
-      homeLevelView(
-        { ...base, history: ["3.1", "4.0", "4.2"], historyMatchCount: 1 },
-        "en",
-      ).change?.windowLabel,
-      "in the last match",
-    );
+  it("says what the Ratings screen says", () => {
+    const view = homeLevelView(football, "en");
+    const ratings = ratingsLevelView(football, "football", "en");
+    assert.ok(view);
+    assert.equal(ratings.kind, "rated");
+    if (ratings.kind !== "rated") return;
+    assert.equal(view.level, ratings.number);
+    assert.equal(view.percent, ratings.ringPercent);
+    assert.deepEqual(view.footer, ratings.footer);
+    assert.equal(view.spoken, ratings.spoken);
   });
 
-  it("has no change line without a rated Match in the history", () => {
+  it("reads padel to two decimals, and a Provisional Level by the count to confirm", () => {
+    const view = homeLevelView(padel, "en");
+    assert.ok(view);
+    assert.equal(view.level, "3.45");
+    assert.equal(view.displayBand, "C");
+    assert.equal(view.provisional, true);
+    assert.equal(view.status, "Provisional");
+    assert.equal(view.change?.signedAmount, isolate("−0.15"));
+    assert.deepEqual(view.footer, {
+      label: "To confirm",
+      value: "2 of 5 matches",
+      detail: null,
+    });
+    assert.equal(view.percent, 40);
+  });
+
+  it("has no change line before a counting Match", () => {
+    const view = homeLevelView({ ...football, changeOverLast: null }, "en");
+    assert.equal(view?.change, null);
+  });
+
+  it("has no Level before the first Rating", () => {
     assert.equal(
-      homeLevelView({ ...base, history: ["3.4"], historyMatchCount: 0 }, "en")
-        .change,
+      homeLevelView({ ...football, rating: null, levelValue: null }, "en"),
       null,
     );
-    assert.equal(
-      homeLevelView(
-        { ...base, history: ["3.1", "4.0"], historyMatchCount: 0 },
-        "en",
-      ).change,
-      null,
-    );
-    assert.equal(homeLevelView({ ...base, history: [] }, "en").change, null);
   });
 
-  it("clamps and words the progress toward the next rung", () => {
-    assert.deepEqual(homeLevelView(base, "en").progress, {
-      percent: 16,
-      label: "16% of the way to C+",
-    });
-    assert.equal(
-      homeLevelView({ ...base, progressPercent: 140 }, "en").progress?.percent,
-      100,
-    );
-    assert.equal(
-      homeLevelView({ ...base, progressPercent: null }, "en").progress?.percent,
-      0,
-    );
-  });
-
-  it("drops the progress track at the top band", () => {
-    assert.equal(homeLevelView({ ...base, band: "A" }, "en").progress, null);
-  });
-
-  it("explains Provisional and confirmed Levels", () => {
-    const provisional = homeLevelView(base, "en").legend;
-    assert.equal(provisional.lead, "Provisional Level.");
-    assert.match(provisional.rest, /about 4 more rated games/);
-    assert.match(
-      homeLevelView({ ...base, ratedMatchesRemaining: 1 }, "en").legend.rest,
-      /1 more rated game and/,
-    );
-    assert.equal(
-      homeLevelView({ ...base, provisional: false }, "en").legend.lead,
-      "Level confirmed.",
-    );
-  });
-
-  it("reads the Level card in Arabic", () => {
-    const view = homeLevelView(base, "ar");
-    assert.equal(view.legend.lead, "مستواك مبدئي.");
-    assert.equal(view.legend.rest, " العب 4 مباريات مصنّفة أخرى لتأكيده.");
-    assert.equal(view.change?.windowLabel, "في آخر مباراتين");
-    assert.equal(view.progress?.label, `16% نحو ${isolate("C+")}`);
+  it("reads in Arabic", () => {
+    const view = homeLevelView(football, "ar");
+    assert.ok(view);
+    assert.equal(view.numberLabel, "المستوى");
+    assert.equal(view.status, "مؤكد");
+    assert.equal(view.change?.caption, "آخر 8");
   });
 });

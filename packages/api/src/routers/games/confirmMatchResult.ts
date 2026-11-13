@@ -9,11 +9,13 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { requireGame, type GameRow } from "#src/games/access";
+import { keepPublicGameConfirmation } from "#src/games/confirmations-after-set-change";
 import { confirmsAsOrganizer } from "#src/games/confirms-as-organizer";
 import {
   knockoutLevelMessage,
   knockoutMatchIsLevel,
 } from "#src/games/knockout-advance";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import { messagesFor } from "@repo/i18n/messages";
 import {
@@ -22,11 +24,15 @@ import {
   matchResultConfirmedUserIds,
   matchResultFullyConfirmed,
   matchSideSeats,
+  matchSlotsActedFor,
   matchSlotsConfirmed,
   type MatchSlot,
 } from "#src/games/match-result-confirmations";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
-import { runMatchCompletionEffect } from "#src/games/run-match-completion-effect";
+import {
+  runMatchCompletionEffect,
+  standUnconfirmedIfConfirmWindowClosed,
+} from "#src/games/run-match-completion-effect";
 import { seatedSlot } from "#src/games/tournament-score";
 import { userIsOnMatchSlots } from "#src/games/user-is-on-match-slots";
 import { type MatchRow } from "#src/games/utils";
@@ -36,23 +42,27 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 /**
  * On a Match agreed by one player from each side, a side that already agreed
  * has nothing to add: another tap from it must not move the moment its score
- * stands from (ADR-0062).
+ * stands from (ADR-0062). The User's side is the one they are seated on or,
+ * on a football Challenge Game they are not named to, each side whose Team
+ * they act for.
  */
 async function sideAlreadyAgreed(
   database: DbClient,
   game: GameRow,
   match: MatchRow,
   userId: string,
+  actedFor: readonly MatchSlot[],
 ) {
   if (!confirmsBySide(game)) {
     return false;
   }
-  const slot = seatedSlot(await matchSideSeats(database, match), userId);
-  if (slot == null) {
+  const seated = seatedSlot(await matchSideSeats(database, match), userId);
+  const slots = seated == null ? actedFor : [seated];
+  if (slots.length === 0) {
     return false;
   }
   const agreed = await matchSlotsConfirmed(database, match);
-  return slot === 1 ? agreed.slot1 : agreed.slot2;
+  return slots.every((slot) => (slot === 1 ? agreed.slot1 : agreed.slot2));
 }
 
 /**
@@ -60,7 +70,14 @@ async function sideAlreadyAgreed(
  * A seated User confirms for themselves, and the Match completes once the
  * result is agreed. An Organizer's confirmation is final: it completes the
  * Match at once, without waiting on the players (ADR-0044); the players of a
- * padel Challenge Game organize it but confirm as players. `slot` is kept for
+ * padel Challenge Game organize it but confirm as players, and on a football
+ * Challenge Game that counts for Temba Level whoever acts for a Team
+ * confirms for that Team's side only, and someone who acts for both Teams
+ * for one side, so the Match waits for a second User on the other Team
+ * (ADR-0069). On a Public Game one player from each side confirms and
+ * nobody's word is final; the first confirmation on a reopened Match starts
+ * the other side's 24 hours, and a confirmation after them lets the score
+ * stand without counting (ADR-0071). `slot` is kept for
  * clients that still name the side an Organizer confirms for; it is refused
  * from anyone else. The Match must already have a result and must not be
  * cancelled. Idempotent per Match+User: a repeat changes nothing, and a
@@ -75,9 +92,11 @@ export async function confirmMatchResult(
     userId: string;
     slot?: MatchSlot;
     locale?: Locale;
+    now?: Date;
   },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
+  const now = args.now ?? new Date();
   const game = await requireGame(database, args.gameId, locale);
   const match = await requireMatchOnGame(
     database,
@@ -96,9 +115,13 @@ export async function confirmMatchResult(
     userIsOnMatchSlots(database, match, args.userId),
     confirmsAsOrganizer(database, game, args.userId),
   ]);
+  const actedFor = organizer
+    ? []
+    : await matchSlotsActedFor(database, match, args.userId);
+  const confirmsForSide = seated || actedFor.length > 0;
   if (match.status === MatchStatusEnum.COMPLETED) {
     const confirmed = await matchResultConfirmedUserIds(database, match.id);
-    if (organizer || (seated && confirmed.includes(args.userId))) {
+    if (organizer || (confirmsForSide && confirmed.includes(args.userId))) {
       return { ok: true as const };
     }
     throw new TRPCError({
@@ -113,7 +136,7 @@ export async function confirmMatchResult(
         message: messagesFor(locale).game.errors.confirmForSideOrganizer,
       });
     }
-    if (!seated) {
+    if (!confirmsForSide) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: messagesFor(locale).game.errors.confirmSeatedOrOrganizer,
@@ -140,10 +163,22 @@ export async function confirmMatchResult(
   }
 
   if (
-    seated &&
-    !(await sideAlreadyAgreed(database, game, match, args.userId))
+    await standUnconfirmedIfConfirmWindowClosed(database, game, match.id, now)
   ) {
-    await keepMatchResultConfirmation(database, match.id, args.userId);
+    return { ok: true as const };
+  }
+
+  if (
+    confirmsForSide &&
+    !(await sideAlreadyAgreed(database, game, match, args.userId, actedFor))
+  ) {
+    if (isPublicGame(game)) {
+      await database.transaction((tx) =>
+        keepPublicGameConfirmation(tx, { game, match, userId: args.userId }),
+      );
+    } else {
+      await keepMatchResultConfirmation(database, match.id, args.userId);
+    }
   }
 
   if (organizer || (await matchResultFullyConfirmed(database, match))) {

@@ -1,24 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  footballGroupRowView,
   footballHeroStats,
-  footballLevelLabel,
   goalBars,
   recordShares,
 } from "./you-football-model";
-import type { GroupLevelRow } from "./you-hero-model";
-
-describe("footballLevelLabel", () => {
-  it("reads a self-placement rung as its word", () => {
-    expect(footballLevelLabel("C1", "en")).toBe("Competitive");
-    expect(footballLevelLabel("D3", "en")).toBe("Beginner");
-  });
-
-  it("reads any other band as its letter", () => {
-    expect(footballLevelLabel("B2", "en")).toBe("B");
-  });
-});
 
 describe("goalBars", () => {
   it("runs oldest to latest, scaled to the best Match", () => {
@@ -67,43 +53,5 @@ describe("recordShares", () => {
       drawn: 0,
       lost: 0,
     });
-  });
-});
-
-describe("footballGroupRowView", () => {
-  const row: GroupLevelRow = {
-    groupId: "g",
-    name: "Karbabad 5s",
-    imageUrl: null,
-    level: "4.6",
-    rating: 4.61,
-    levelBand: "B3",
-    provisional: false,
-    ratedMatchesRemaining: 0,
-    ratedMatchCount: 0,
-    rank: 1,
-    rankedCount: 8,
-    differenceFromGeneral: 0.7,
-    setBy: { name: "Ali R", at: new Date() },
-  };
-
-  it("names the Organizer and the step above", () => {
-    expect(footballGroupRowView(row, "en")).toEqual({
-      groupId: "g",
-      initials: "K5",
-      name: "Karbabad 5s",
-      sub: "Set by Ali R, organizer",
-      level: "Pro",
-      difference: { text: "+0.70", above: true },
-    });
-  });
-
-  it("reads an untouched Group Level as the same as yours", () => {
-    const view = footballGroupRowView(
-      { ...row, setBy: null, levelBand: "C1", differenceFromGeneral: 0 },
-      "en",
-    );
-    expect(view.sub).toBe("Same as yours");
-    expect(view.difference).toEqual({ text: "Same", above: false });
   });
 });

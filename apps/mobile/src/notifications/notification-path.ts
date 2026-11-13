@@ -1,9 +1,16 @@
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
+import { isSport } from "@repo/domain/sport";
 
-import { gamePath } from "../games/games-model";
+import { gamePath, gameRatePath } from "../games/games-model";
+import { groupTierHistoryPath } from "../groups/groups-model";
+import { ratingsPath } from "../profile/ratings-path";
 
-const GROUP_TYPES = new Set(["group_member_joined", "level_set"]);
+const GROUP_TYPES = new Set([
+  "group_member_joined",
+  "level_set",
+  "tier_band_changed",
+]);
 
 const GROUP_JOIN_TYPES = new Set([
   "group_join_requested",
@@ -23,6 +30,9 @@ const GAME_TYPES = new Set([
   "mark_received",
   "mvp_decided",
   "mvp_tie_break",
+  "performance_ratings_closed",
+  "match_dispute_raised",
+  "match_dispute_decided",
   "group_join_requested",
   "group_join_approved",
   "group_join_declined",
@@ -46,9 +56,19 @@ const CHALLENGE_TYPES = new Set([
 export function notificationPath(item: {
   type: string;
   group: { id: string } | null;
-  game?: { id: string } | null;
+  game?: { id: string; sport?: string | null } | null;
   challenge?: { id: string } | null;
 }): string | null {
+  const sport = item.game?.sport;
+  if (item.type === "level_confirmed" && isSport(sport)) {
+    return ratingsPath(sport);
+  }
+  if (item.game && item.type === "performance_ratings_open") {
+    return gameRatePath(item.game.id);
+  }
+  if (item.group && item.type === "tier_points_adjusted") {
+    return groupTierHistoryPath(item.group.id);
+  }
   if (
     item.group &&
     (GROUP_TYPES.has(item.type) ||

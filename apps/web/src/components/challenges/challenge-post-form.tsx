@@ -415,7 +415,7 @@ export function ChallengePostForm({
 
           <ChallengePostSection
             title={copy.level}
-            hint={challengeLevelHint(levelRange, locale)}
+            hint={challengeLevelHint(levelRange, locale, team?.sport)}
             error={errors.level}
           >
             <ChallengePostGrid label={copy.level} columns={6} multiple>

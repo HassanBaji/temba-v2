@@ -91,6 +91,8 @@ export type TournamentDetailsMatch = {
   canScoreSets: boolean;
   /** The viewer may confirm the other team's pending score (ADR-0062). */
   canConfirmScore: boolean;
+  /** The viewer is a Verifier who may stamp the entered score (ADR-0072). */
+  canStamp?: boolean;
   canComplete: boolean;
   outcome: {
     slot1SetWins: number;
@@ -265,7 +267,7 @@ function ratingDetailRow(
   const m = messagesFor(locale);
   const value = {
     temba: m.common.yes,
-    group: m.tournament.home.groupRatingOnly,
+    group: m.common.no,
     unrated: m.common.no,
   }[scope];
   const note = ratingScopeNotice(scope, locale)?.line;

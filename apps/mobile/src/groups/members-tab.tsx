@@ -1,5 +1,9 @@
 import { radii, sizes } from "@repo/design-tokens";
-import type { GroupLeaderboardEntryData } from "@repo/domain/group-data";
+import type {
+  GroupLeaderboardEntryData,
+  GroupTierSummaryData,
+} from "@repo/domain/group-data";
+import type { LevelFace } from "@repo/domain/football-ovr";
 import {
   groupMemberOrganizerActionHint,
   groupMemberOrganizerActionLabel,
@@ -8,16 +12,14 @@ import {
 import {
   groupMembersLegend,
   groupPendingInvitesTitle,
+  groupTierProvisionalLine,
+  groupTierSharkCard,
 } from "@repo/domain/group-members-table";
 import {
   ChevronRight,
   EllipsisVertical,
   UserRoundPlus,
 } from "lucide-react-native";
-import {
-  levelSliderLabel,
-  levelSliderStartTenths,
-} from "@repo/domain/level-slider";
 import { useState, type ReactNode } from "react";
 import { Linking, Pressable, View } from "react-native";
 
@@ -43,6 +45,7 @@ import {
   memberSheetView,
   type MemberRowView,
 } from "./group-home-model";
+import { AdjustTierSheet } from "./adjust-tier-sheet";
 import { LevelCell } from "./level-cell";
 import type { MemberNicknameTarget } from "./member-nickname-model";
 import { MemberNicknameSheet } from "./member-nickname-sheet";
@@ -50,9 +53,13 @@ import { MemberSheet } from "./member-sheet";
 import { MemberLensRow, MemberSortSheet } from "./members-lens";
 import { NicknameName } from "../primitives/nickname-name";
 import { Notice } from "./notice";
+import { TIER_WIDTH, TierCell, TierFish } from "./tier-fish";
 import { useMemberLens } from "./use-member-lens";
 
 const LEVEL_WIDTH = 52;
+/** `C+ 72`: the band and the OVR, on a Verified football Group. */
+const OVR_WIDTH = 64;
+const POINTS_WIDTH = 52;
 const ACTION_WIDTH = 44;
 const ROW_PADDING_START = 16;
 const ROW_PADDING_END = 10;
@@ -106,6 +113,7 @@ function AddNameButton({
 function MemberRow({
   row,
   showLevel,
+  levelFace,
   managing,
   onOpen,
   onManage,
@@ -113,6 +121,7 @@ function MemberRow({
 }: {
   row: MemberRowView;
   showLevel: boolean;
+  levelFace: LevelFace;
   managing: boolean;
   onOpen?: () => void;
   onManage?: () => void;
@@ -121,9 +130,16 @@ function MemberRow({
 }) {
   const m = useMessages();
   const colors = useColors();
+  const tier = row.tier;
   const content = (
     <>
-      <Avatar name={row.tembaName} uri={row.imageUri} />
+      {tier ? (
+        <View style={{ width: TIER_WIDTH, alignItems: "center" }}>
+          <TierCell cell={tier.cell} />
+        </View>
+      ) : (
+        <Avatar name={row.tembaName} uri={row.imageUri} />
+      )}
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
           <NicknameName name={row.name} isNickname={row.nickname != null} />
@@ -136,8 +152,22 @@ function MemberRow({
           </Text>
         ) : null}
       </View>
-      {showLevel ? (
-        <View style={{ width: LEVEL_WIDTH, alignItems: "center" }}>
+      {tier ? (
+        <Text
+          size={tier.pointsMuted ? "eyebrow" : "body"}
+          weight={tier.pointsMuted ? "regular" : "bold"}
+          tone={tier.pointsMuted ? "muted" : undefined}
+          style={{ width: POINTS_WIDTH, textAlign: "right" }}
+        >
+          {tier.points}
+        </Text>
+      ) : showLevel ? (
+        <View
+          style={{
+            width: levelFace === "ovr" ? OVR_WIDTH : LEVEL_WIDTH,
+            alignItems: "center",
+          }}
+        >
           <LevelCell view={row.level} />
         </View>
       ) : null}
@@ -254,14 +284,19 @@ function ViewerNicknameCard({
 function TableHeader({
   managing,
   showLevel,
+  levelFace,
+  showTier,
   countLine,
 }: {
   managing: boolean;
   showLevel: boolean;
+  levelFace: LevelFace;
+  showTier: boolean;
   countLine: string;
 }) {
   const m = useMessages();
   const colors = useColors();
+  const tierCopy = m.rating.tier;
   return (
     <View
       style={{
@@ -274,24 +309,90 @@ function TableHeader({
         backgroundColor: colors.wash,
       }}
     >
+      {showTier ? (
+        <Text
+          size="eyebrow"
+          tone="muted"
+          style={{ width: TIER_WIDTH, textAlign: "center" }}
+        >
+          {tierCopy.columnTier}
+        </Text>
+      ) : null}
       <Text size="eyebrow" tone="muted" style={{ flex: 1 }}>
-        {m.mobileGroup.members.columnMember}
+        {showTier ? tierCopy.columnPlayer : m.mobileGroup.members.columnMember}
       </Text>
       <Text size="eyebrow" tone="muted" mono>
         {countLine}
       </Text>
-      {showLevel ? (
+      {showTier ? (
+        <Text
+          size="eyebrow"
+          tone="muted"
+          style={{ width: POINTS_WIDTH, textAlign: "right" }}
+        >
+          {tierCopy.columnPoints}
+        </Text>
+      ) : showLevel ? (
         <Text
           size="eyebrow"
           tone="muted"
           mono
           accessibilityLabel={m.common.level}
-          style={{ width: LEVEL_WIDTH, textAlign: "center" }}
+          style={{
+            width: levelFace === "ovr" ? OVR_WIDTH : LEVEL_WIDTH,
+            textAlign: "center",
+          }}
         >
-          {m.mobileGroup.members.columnLevel}
+          {levelFace === "ovr"
+            ? m.rating.ovr.label
+            : m.mobileGroup.members.columnLevel}
         </Text>
       ) : null}
       {managing ? <View style={{ width: ACTION_WIDTH }} /> : null}
+    </View>
+  );
+}
+
+function SharkCard({ summary }: { summary: GroupTierSummaryData | null }) {
+  const locale = useLocale();
+  const colors = useColors();
+  const card = groupTierSharkCard(summary, new Date(), locale);
+  if (!card) {
+    return null;
+  }
+  return (
+    <View
+      accessible
+      accessibilityLabel={[card.title, card.name, card.line].join(". ")}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 16,
+        paddingHorizontal: 20,
+        paddingVertical: 18,
+        borderRadius: radii.card,
+        borderWidth: hairline,
+        borderColor: colors.rule,
+        backgroundColor: colors.wash,
+      }}
+    >
+      <TierFish
+        band="shark"
+        label={card.fishLabel}
+        size="card"
+        cutout={colors.wash}
+      />
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <Text size="eyebrow" tone="muted">
+          {card.title}
+        </Text>
+        <Text size="title" weight="bold" width="expanded" numberOfLines={1}>
+          {card.name}
+        </Text>
+        <Text size="meta" tone="muted">
+          {card.line}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -353,8 +454,12 @@ export function MembersTab({
   apiOrigin,
   canSetLevel,
   showLevel = true,
+  levelFace = "level",
+  tierSummary,
+  groupName = "",
+  canAdjustTier = false,
+  onOpenTierHistory,
   onSetLevel,
-  onSetGroupLevel,
   onOpenMember,
   canAddPlayers = false,
   onRenameUnclaimed,
@@ -363,7 +468,6 @@ export function MembersTab({
   canAppointOrganizers = false,
   onOrganizerAction,
   canSetNicknames = false,
-  groupName = "",
   pendingInviteNames = [],
   onOpenInvites,
   onAddPlayer,
@@ -377,9 +481,16 @@ export function MembersTab({
   apiOrigin: string;
   canSetLevel: boolean;
   showLevel?: boolean;
+  /** OVR on a Verified football Group (ADR-0069). */
+  levelFace?: LevelFace;
+  /** A tier Group's Members: fish, points and the Shark. */
+  tierSummary?: GroupTierSummaryData | null;
+  groupName?: string;
+  /** An Organizer of a tier Group adjusts members' Tier points. */
+  canAdjustTier?: boolean;
+  /** Points and history, for an Organizer of a tier Group. */
+  onOpenTierHistory?: (userId: string) => void;
   onSetLevel: (userId: string) => void;
-  /** Given to an Organizer of the Group, who sets members' Group Levels. */
-  onSetGroupLevel?: (userId: string) => void;
   onOpenMember?: (userId: string) => void;
   canAddPlayers?: boolean;
   onRenameUnclaimed?: (member: { userId: string; name: string }) => void;
@@ -391,7 +502,6 @@ export function MembersTab({
     action: GroupMemberOrganizerAction,
   ) => void;
   canSetNicknames?: boolean;
-  groupName?: string;
   /** Lookup invites not yet accepted; only an inviter is given them. */
   pendingInviteNames?: string[];
   onOpenInvites?: () => void;
@@ -406,20 +516,22 @@ export function MembersTab({
   const m = useMessages();
   const colors = useColors();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [adjustingUserId, setAdjustingUserId] = useState<string | null>(null);
   const [managing, setManaging] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [naming, setNaming] = useState<MemberNicknameTarget | null>(null);
   const { lens, setSort, setFilter } = useMemberLens(groupId);
-  const canSetGroupLevel = onSetGroupLevel != null;
   const canManage =
     canSetLevel ||
-    canSetGroupLevel ||
+    canAdjustTier ||
     canAddPlayers ||
     canRemovePlayers ||
     canAppointOrganizers ||
     canSetNicknames;
   const isManaging = canManage && managing;
-  const legend = groupMembersLegend({ showLevel, locale });
+  const showTier = tierSummary != null;
+  const legend = groupMembersLegend({ showLevel, showTier, locale });
+  const provisionalLine = groupTierProvisionalLine(tierSummary, locale);
   const list = memberList(
     leaderboard,
     query,
@@ -428,8 +540,8 @@ export function MembersTab({
     canSetLevel,
     canRemovePlayers,
     canAppointOrganizers,
-    { ...lens, showLevel, canManage, now: new Date() },
-    canSetGroupLevel,
+    { ...lens, showLevel, showTier, canManage, now: new Date() },
+    canAdjustTier,
     canSetNicknames,
   );
   const rowWindow = useRowWindow(
@@ -441,6 +553,7 @@ export function MembersTab({
       entry.userId === selectedUserId &&
       !entry.isViewer &&
       (canSetLevel ||
+        (canAdjustTier && entry.tier != null) ||
         (canAddPlayers && entry.canRename === true) ||
         memberIsRemovable(entry, canRemovePlayers) ||
         memberOrganizerAction(entry, canAppointOrganizers) != null ||
@@ -469,6 +582,14 @@ export function MembersTab({
   const organizerAction = selected
     ? memberOrganizerAction(selected, canAppointOrganizers)
     : null;
+  const adjusting = canAdjustTier
+    ? leaderboard.find(
+        (entry) =>
+          entry.userId === adjustingUserId &&
+          !entry.isViewer &&
+          entry.tier != null,
+      )
+    : undefined;
 
   if (list.isEmpty) {
     return (
@@ -483,6 +604,7 @@ export function MembersTab({
   return (
     <View style={{ gap: 14 }}>
       {top}
+      {showTier ? <SharkCard summary={tierSummary} /> : null}
       {viewerEntry?.nickname?.visibility === "group" ? (
         <ViewerNicknameCard
           nickname={viewerEntry.nickname.name}
@@ -534,6 +656,8 @@ export function MembersTab({
         <TableHeader
           managing={isManaging}
           showLevel={showLevel}
+          levelFace={levelFace}
+          showTier={showTier}
           countLine={list.countLine}
         />
         {list.rows.length === 0 ? (
@@ -567,6 +691,7 @@ export function MembersTab({
               <MemberRow
                 row={row}
                 showLevel={showLevel}
+                levelFace={levelFace}
                 managing={isManaging}
                 onOpen={onOpenMember ? () => onOpenMember(row.key) : undefined}
                 onManage={
@@ -615,6 +740,11 @@ export function MembersTab({
                   {m.mobileGroup.nickname.legend}
                 </Text>
               ) : null}
+              {provisionalLine ? (
+                <Text size="eyebrow" weight="semibold">
+                  {provisionalLine}
+                </Text>
+              ) : null}
             </View>
           </>
         ) : null}
@@ -646,21 +776,23 @@ export function MembersTab({
               }
             : undefined
         }
-        onSetGroupLevel={
-          selected && onSetGroupLevel && !selected.isViewer
+        onTierHistory={
+          selected &&
+          canAdjustTier &&
+          selected.tier != null &&
+          onOpenTierHistory
             ? () => {
                 setSelectedUserId(null);
-                onSetGroupLevel(selected.userId);
+                onOpenTierHistory(selected.userId);
               }
             : undefined
         }
-        groupLevelHint={
-          selected?.groupLevel
-            ? m.mobileGroup.setGroupLevel.groupLevel(
-                levelSliderLabel(
-                  levelSliderStartTenths(selected.groupLevel.level),
-                ),
-              )
+        onAdjustTier={
+          selected && canAdjustTier && selected.tier != null
+            ? () => {
+                setSelectedUserId(null);
+                setAdjustingUserId(selected.userId);
+              }
             : undefined
         }
         onNickname={
@@ -733,6 +865,29 @@ export function MembersTab({
             : undefined
         }
       />
+      {canAdjustTier ? (
+        <AdjustTierSheet
+          groupId={groupId}
+          groupName={groupName}
+          members={leaderboard.map((entry) => ({
+            userId: entry.userId,
+            name: entry.name ?? m.mobileGroup.unnamedMember,
+            joinedAt: entry.joinedAt,
+            tier: entry.tier,
+            level: entry.level,
+            groupLevel: entry.groupLevel,
+          }))}
+          member={
+            adjusting
+              ? {
+                  userId: adjusting.userId,
+                  imageUri: mediaUrl(adjusting.image, apiOrigin),
+                }
+              : null
+          }
+          onClose={() => setAdjustingUserId(null)}
+        />
+      ) : null}
       <MemberNicknameSheet
         groupId={groupId}
         groupName={groupName}

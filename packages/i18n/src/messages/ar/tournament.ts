@@ -285,7 +285,6 @@ export const tournament = {
     groupRow: "المجموعة",
     priceRow: "السعر",
     countsForRating: "تُحتسب في التصنيف",
-    groupRatingOnly: "تصنيف المجموعة فقط",
     youOweRow: "عليك دفع",
     youOweAfterEachMatch: "بعد كل مباراة",
     inviteAction: "دعوة",

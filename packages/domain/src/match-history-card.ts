@@ -7,7 +7,8 @@ import type { GameRatingScope } from "./game-rating-scope";
 import { formatRelativeDay } from "./format-game-start";
 import type { CoinKind, MarkKind } from "./marks";
 import { shortPlayerName } from "./player-name";
-import { sportLabel } from "./sport";
+import { levelMoveDelta } from "./rating-history";
+import { sportLabel, sportOrDefault } from "./sport";
 
 export type HistoryMember = {
   id: string;
@@ -36,6 +37,8 @@ export type HistoryRowInput = {
   ratingScope?: GameRatingScope;
   viewerMarks?: readonly MarkKind[];
   viewerIsMvp?: boolean;
+  /** What the Match moved the viewer's Temba Level; none unless it counted. */
+  levelMove?: { muBefore: number; muAfter: number } | null;
 };
 
 export const HISTORY_PAGE_SIZE = 20;
@@ -122,9 +125,29 @@ function historyPlace(row: HistoryRowInput, locale: Locale) {
     : venueName;
 }
 
+/**
+ * "OVR +1" on football, "Level +0.04" on padel: what a Match that counted
+ * moved the viewer's Temba Level. A tier Game or an Unrated Game has none.
+ */
+export function historyLevelChange(row: HistoryRowInput, locale: Locale) {
+  if (!row.levelMove) {
+    return null;
+  }
+  const sport = sportOrDefault(row.sport);
+  const delta = levelMoveDelta(
+    sport,
+    row.levelMove.muBefore,
+    row.levelMove.muAfter,
+  );
+  const m = messagesFor(locale).rating.matchHistory;
+  return sport === "football" ? m.ovr(delta) : m.level(delta);
+}
+
 function ratingScopeSuffix(row: HistoryRowInput, line: string, locale: Locale) {
-  const tag = ratingScopeTag(row, locale);
-  return tag ? messagesFor(locale).game.history.withUnrated(line, tag) : line;
+  const join = messagesFor(locale).game.history.withUnrated;
+  return [ratingScopeTag(row, locale), historyLevelChange(row, locale)]
+    .filter((part): part is string => part != null)
+    .reduce(join, line);
 }
 
 export function historyMeta(row: HistoryRowInput, locale: Locale) {

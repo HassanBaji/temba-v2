@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/tokens.ts",
     "./marks": "./src/marks.ts",
+    "./fish": "./src/fish.ts",
     "./theme.css": "./theme.css"
   },
   "scripts": {

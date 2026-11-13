@@ -8,12 +8,13 @@ import {
   MATCH_HISTORY_VISIBILITIES,
   type MatchHistoryVisibility,
 } from "@repo/domain/profile-details";
+import { formatPadelLevel } from "@repo/domain/level";
 import { Lock } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { Block } from "../home/slot-block";
-import { useLocale, useMessages } from "../i18n/locale-provider";
+import { useMessages } from "../i18n/locale-provider";
 import { slotOf } from "../lib/slot-of";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
@@ -22,7 +23,7 @@ import { ScreenHeader, useLeaveScreen } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
-import { displayBand, groupLevelRows } from "../profile/profile-model";
+import { displayBand } from "../profile/profile-model";
 import { useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
 import { Segmented } from "./settings-rows";
@@ -52,17 +53,11 @@ function LockedLevel({ setUp }: { setUp: boolean }) {
   const m = useMessages();
   const colors = useColors();
   const p = m.you.padel;
-  const locale = useLocale();
   const profile = api.users.myProfile.useQuery(
     { sport: "padel" },
     { enabled: setUp },
   );
-  const groups = api.ratings.myGroupLevels.useQuery(
-    { sport: "padel" },
-    { enabled: setUp },
-  );
   const level = profile.data?.level ?? null;
-  const rows = groupLevelRows(groups.data ?? [], locale);
 
   return (
     <Surface radius="card" style={{ gap: 14 }}>
@@ -84,7 +79,7 @@ function LockedLevel({ setUp }: { setUp: boolean }) {
             {displayBand(level.levelBand)}
           </Text>
           <Text size="title" weight="bold" style={{ flex: 1 }}>
-            {level.rating.toFixed(2)}
+            {formatPadelLevel(level.rating, 2)}
           </Text>
           <Text size="eyebrow" tone="muted">
             {p.general}
@@ -102,43 +97,6 @@ function LockedLevel({ setUp }: { setUp: boolean }) {
             : p.lockNote
           : p.lockNoteNone}
       </Text>
-      {rows.length > 0 ? (
-        <>
-          <Hairline />
-          <View style={{ gap: 8 }}>
-            {rows.map((row) => (
-              <View
-                key={row.groupId}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "baseline",
-                  gap: 10,
-                }}
-              >
-                <Text
-                  size="eyebrow"
-                  weight="semibold"
-                  numberOfLines={1}
-                  style={{ flex: 2 }}
-                >
-                  {row.name}
-                </Text>
-                <Text
-                  size="eyebrow"
-                  tone="muted"
-                  numberOfLines={1}
-                  style={{ flex: 3 }}
-                >
-                  {row.sub}
-                </Text>
-                <Text size="eyebrow" weight="semibold">
-                  {`${row.band} ${row.level}`}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </>
-      ) : null}
     </Surface>
   );
 }

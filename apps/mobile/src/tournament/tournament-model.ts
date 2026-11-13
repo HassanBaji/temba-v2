@@ -23,6 +23,8 @@ export type ScorableMatch = {
   canEnter: boolean;
   /** The other team's pending score, for the viewer to confirm (ADR-0062). */
   scoreToConfirm: string | null;
+  /** The viewer is a Verifier who may stamp the entered score (ADR-0072). */
+  canStamp: boolean;
 };
 
 function pendingScore(match: TournamentDetailsMatch) {
@@ -96,7 +98,12 @@ export function scorableMatches(
 ): ScorableMatch[] {
   const decidingSet = messagesFor(locale).tournament.knockoutView.decidingSet;
   return game.matches
-    .filter((match) => match.canScoreSets || pendingScore(match) != null)
+    .filter(
+      (match) =>
+        match.canScoreSets ||
+        pendingScore(match) != null ||
+        match.canStamp === true,
+    )
     .map((match) => {
       const needsDecidingSet =
         match.knockoutRound != null && match.outcome.result === "draw";
@@ -110,6 +117,7 @@ export function scorableMatches(
         note: needsDecidingSet ? decidingSet : null,
         canEnter: match.canScoreSets,
         scoreToConfirm: pendingScore(match),
+        canStamp: match.canStamp === true,
       };
     });
 }

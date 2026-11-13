@@ -54,3 +54,12 @@ export function playerMarkPath(
 ) {
   return `${playerPath(segments, userId)}/marks/${kind}?sport=${sport}`;
 }
+
+/** A Verifier's "Calibrate level" for the player, in one sport. */
+export function playerCalibratePath(
+  segments: readonly string[],
+  userId: string,
+  sport: Sport,
+) {
+  return `${playerPath(segments, userId)}/calibrate?sport=${sport}`;
+}

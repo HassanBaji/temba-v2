@@ -1,12 +1,16 @@
 import { useUser } from "@clerk/expo";
+import {
+  inYourGroupsRows,
+  type GroupStandingData,
+} from "@repo/domain/ratings-screen";
 import type { Sport } from "@repo/domain/sport";
-import { keepPreviousData } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 
 import { MyNotesRow } from "../game-album/my-notes-row";
 import { gamePath } from "../games/games-model";
+import { groupPath } from "../groups/groups-model";
 import { Block } from "../home/slot-block";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { slotOf } from "../lib/slot-of";
@@ -17,11 +21,11 @@ import { Screen } from "../primitives/screen";
 import { api } from "../trpc/react";
 import { FootballTab } from "./football-tab";
 import { LevelHero } from "./level-hero";
+import { MatchesToStamp } from "./matches-to-stamp";
 import { ProfileHeader } from "./profile-header";
+import { ratingsPath } from "./ratings-path";
+import { RatingsLink } from "./ratings-screen";
 import {
-  displayBand,
-  groupLevelRows,
-  groupScale,
   headerLine,
   heroView,
   lastTenRecord,
@@ -31,13 +35,12 @@ import {
   sportChips,
   sportProfilePath,
   tilesView,
-  type GroupLevel,
   type MyProfile,
 } from "./profile-model";
 import { Chip } from "./profile-parts";
 import {
+  InYourGroups,
   LastTenStrip,
-  LevelsByGroup,
   PartnersCard,
   RecentMatches,
   SECTION_GAP,
@@ -48,50 +51,42 @@ import { SetupSportCard } from "./setup-sport-card";
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 const PROFILE_TAB = ["profile"];
 
-function PadelScope({
+function PadelProfile({
   profile,
-  groups,
+  standings,
   onOpenGroup,
   onOpenPlayer,
   onOpenGame,
+  onOpenRatings,
 }: {
   profile: MyProfile;
-  groups: GroupLevel[];
+  standings: readonly GroupStandingData[];
   onOpenGroup: (groupId: string) => void;
   onOpenPlayer: (userId: string) => void;
   onOpenGame: (gameId: string) => void;
+  onOpenRatings: () => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const group = profile.group
-    ? (groups.find((row) => row.groupId === profile.group?.id) ?? null)
-    : null;
-  const hero = heroView(profile, group, locale);
-  const general = profile.group ? null : profile.level;
+  const hero = heroView(profile, locale);
   const tiles = tilesView(profile.stats, locale);
+  const groupRows = inYourGroupsRows(standings, locale);
 
   return (
     <View style={{ gap: SECTION_GAP }}>
       <LevelHero view={hero} />
-      {general && groups.length > 0 ? (
-        <LevelsByGroup
-          title={m.you.groups.title}
-          meta={m.you.groups.vsGeneral(
-            displayBand(general.levelBand),
-            general.rating.toFixed(2),
-          )}
-          note={m.you.groups.note}
-          scale={groupScale(general.rating, groups, locale)}
-          rows={groupLevelRows(groups, locale)}
+      <RatingsLink sport="padel" onOpen={onOpenRatings} />
+      {groupRows.length > 0 ? (
+        <InYourGroups
+          title={m.rating.inYourGroups.title}
+          meta={m.rating.inYourGroups.noTierPadel}
+          note={m.rating.inYourGroups.padelNote}
+          rows={groupRows}
           onOpenGroup={onOpenGroup}
         />
       ) : null}
       <LastTenStrip
-        title={
-          profile.group
-            ? m.you.form.lastTenIn(profile.group.name)
-            : m.you.form.lastTen
-        }
+        title={m.you.form.lastTen}
         record={lastTenRecord(profile.lastTen, locale)}
         slots={lastTenSlots(profile.lastTen, locale)}
       />
@@ -109,18 +104,14 @@ function PadelScope({
       </View>
       <PartnersCard
         title={m.you.partners.title}
-        meta={
-          profile.group
-            ? m.you.partners.inGroup(profile.group.name)
-            : m.you.partners.mostPlayed
-        }
+        meta={m.you.partners.mostPlayed}
         rows={partnerRows(profile.partners, "padel", locale)}
         empty={m.you.partners.empty}
         onOpen={onOpenPlayer}
       />
       <RecentMatches
         title={m.you.recent.title}
-        meta={profile.group ? profile.group.name : m.you.recent.allGroups}
+        meta={m.you.recent.allGroups}
         rows={recentRows(profile.recent, locale)}
         onOpenGame={onOpenGame}
       />
@@ -135,7 +126,6 @@ export function ProfileScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [chosenSport, setChosenSport] = useState<Sport | null>(null);
-  const [chosenGroupId, setChosenGroupId] = useState<string | null>(null);
 
   const details = api.users.profileDetails.useQuery(
     undefined,
@@ -147,23 +137,13 @@ export function ProfileScreen() {
       ? chosenSport
       : (setUp[0] ?? null);
 
-  const groupLevels = api.ratings.myGroupLevels.useQuery(
-    { sport: sport ?? "padel" },
-    { ...REFETCH_ON_FOREGROUND, enabled: sport !== null },
+  const standings = api.groups.myStandings.useQuery(
+    { sport: "padel" },
+    { ...REFETCH_ON_FOREGROUND, enabled: sport === "padel" },
   );
-  const groups = groupLevels.data ?? [];
-  const groupId =
-    sport === "padel" && groups.some((row) => row.groupId === chosenGroupId)
-      ? (chosenGroupId ?? undefined)
-      : undefined;
-
   const padel = api.users.myProfile.useQuery(
-    { sport: "padel", groupId },
-    {
-      ...REFETCH_ON_FOREGROUND,
-      enabled: sport === "padel",
-      placeholderData: keepPreviousData,
-    },
+    { sport: "padel" },
+    { ...REFETCH_ON_FOREGROUND, enabled: sport === "padel" },
   );
   const football = api.users.footballProfile.useQuery(
     { userId: details.data?.id ?? "" },
@@ -180,19 +160,34 @@ export function ProfileScreen() {
     { userId: details.data?.id ?? "" },
     { ...REFETCH_ON_FOREGROUND, enabled: sport !== null && !!details.data },
   );
+  const toStamp = api.games.listMatchesToStamp.useQuery(
+    undefined,
+    REFETCH_ON_FOREGROUND,
+  );
 
   const refetchAll = useCallback(
     () =>
       Promise.all([
         details.refetch(),
-        sport ? groupLevels.refetch() : null,
+        sport === "padel" ? standings.refetch() : null,
         sport === "padel" ? padel.refetch() : null,
         sport === "football" ? football.refetch() : null,
         sport === "football" ? teammates.refetch() : null,
         sport ? cabinet.refetch() : null,
+        toStamp.refetch(),
         user?.reload(),
       ]),
-    [details, sport, groupLevels, padel, football, teammates, cabinet, user],
+    [
+      details,
+      sport,
+      standings,
+      padel,
+      football,
+      teammates,
+      cabinet,
+      toStamp,
+      user,
+    ],
   );
 
   const onRefresh = useCallback(async () => {
@@ -226,6 +221,10 @@ export function ProfileScreen() {
         line={details.data ? headerLine(details.data, locale) : null}
         onEdit={() => open("/profile/details")}
         onSettings={() => open("/profile/settings")}
+      />
+      <MatchesToStamp
+        rows={toStamp.data ?? []}
+        onOpenGame={(gameId) => open(gamePath(gameId))}
       />
       <MyNotesRow onOpen={() => open("/profile/notes")} />
       <Block
@@ -263,37 +262,6 @@ export function ProfileScreen() {
                     />
                   ))}
                 </View>
-                {sport === "padel" && groups.length > 0 ? (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ gap: 8 }}
-                  >
-                    <Chip
-                      label={m.you.scope.general}
-                      meta={
-                        padel.data?.level && !padel.data.group
-                          ? displayBand(padel.data.level.levelBand)
-                          : undefined
-                      }
-                      selected={groupId === undefined}
-                      onPress={() => setChosenGroupId(null)}
-                    />
-                    {groups.map((row) => (
-                      <Chip
-                        key={row.groupId}
-                        label={row.name}
-                        meta={displayBand(row.levelBand)}
-                        accessibilityLabel={m.you.scope.chipSpoken(
-                          row.name,
-                          displayBand(row.levelBand),
-                        )}
-                        selected={groupId === row.groupId}
-                        onPress={() => setChosenGroupId(row.groupId)}
-                      />
-                    ))}
-                  </ScrollView>
-                ) : null}
               </View>
               {cabinetRow ? (
                 <CabinetRow row={cabinetRow} onOpen={openCabinet} />
@@ -306,12 +274,13 @@ export function ProfileScreen() {
                   onRetry={() => void padel.refetch()}
                 >
                   {(profile) => (
-                    <PadelScope
+                    <PadelProfile
                       profile={profile}
-                      groups={groups}
-                      onOpenGroup={setChosenGroupId}
+                      standings={standings.data ?? []}
+                      onOpenGroup={(groupId) => open(groupPath(groupId))}
                       onOpenPlayer={openPlayer}
                       onOpenGame={(gameId) => open(gamePath(gameId))}
+                      onOpenRatings={() => open(ratingsPath("padel"))}
                     />
                   )}
                 </Block>
@@ -326,8 +295,8 @@ export function ProfileScreen() {
                     <FootballTab
                       football={data}
                       teammates={teammates.data?.partners ?? []}
-                      groups={groups}
                       onOpenPlayer={openPlayer}
+                      onOpenRatings={() => open(ratingsPath("football"))}
                     />
                   )}
                 </Block>

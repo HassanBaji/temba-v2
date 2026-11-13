@@ -217,7 +217,7 @@ describe("a Rated Match with a Guest player", () => {
     }
   });
 
-  it("moves Group Levels for the players with an account only", async () => {
+  it("moves no Group Level, a padel Group Level being retired (ADR-0066)", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const f = await setUpGuestMatch(db, { groupRated: true });
@@ -231,9 +231,7 @@ describe("a Rated Match with a Guest player", () => {
       const events = await db.query.groupRatingEvents.findMany({
         where: eq(groupRatingEvents.matchId, f.matchId),
       });
-      expect(events.map((event) => event.userId).sort()).toEqual(
-        [f.organizer.id, f.khalid.id, f.ahmed.id].sort(),
-      );
+      expect(events).toHaveLength(0);
     } finally {
       await close();
     }

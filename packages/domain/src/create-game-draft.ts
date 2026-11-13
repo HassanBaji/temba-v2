@@ -16,6 +16,7 @@ import {
   LEVEL_BAND_SELECT_NONE,
   type LevelBandSelectValue,
 } from "./level-range";
+import { DEFAULT_SPORT, isSport, type Sport } from "./sport";
 import {
   DEFAULT_QUALIFIERS_PER_POOL,
   defaultPoolCount,
@@ -44,6 +45,8 @@ export type CreateGameDraft = {
   nameTouched: boolean;
   customName: string;
   isPublic: boolean;
+  /** A Public Game has no Group to take its sport from, so the creator picks it. */
+  publicSport: Sport;
   allowSoloRegister: boolean;
   sideSize: number;
   playersAllowed: number;
@@ -91,6 +94,7 @@ export function initialCreateGameDraft(
     nameTouched: false,
     customName: "",
     isPublic: false,
+    publicSport: DEFAULT_SPORT,
     allowSoloRegister: true,
     sideSize: DEFAULT_FOOTBALL_SIDE_SIZE,
     playersAllowed: 2 * DEFAULT_FOOTBALL_SIDE_SIZE,
@@ -126,6 +130,7 @@ export function serializeCreateGameDraft(draft: CreateGameDraft) {
     nameTouched: draft.nameTouched,
     customName: draft.customName,
     isPublic: draft.isPublic,
+    publicSport: draft.publicSport,
     allowSoloRegister: draft.allowSoloRegister,
     sideSize: draft.sideSize,
     playersAllowed: draft.playersAllowed,
@@ -180,6 +185,8 @@ export function parseCreateGameDraft(
       : record.playersAllowed;
   const customName = record.customName === undefined ? "" : record.customName;
   const rated = record.rated === undefined ? true : record.rated;
+  const publicSport =
+    record.publicSport === undefined ? DEFAULT_SPORT : record.publicSport;
   const strings = [
     "groupId",
     "venueId",
@@ -214,6 +221,7 @@ export function parseCreateGameDraft(
     !isCount(playersAllowed) ||
     typeof customName !== "string" ||
     typeof rated !== "boolean" ||
+    !isSport(publicSport) ||
     parseDateInputValue(record.day as string) === undefined
   ) {
     return null;
@@ -240,6 +248,7 @@ export function parseCreateGameDraft(
     nameTouched: record.nameTouched as boolean,
     customName,
     isPublic: record.isPublic as boolean,
+    publicSport,
     allowSoloRegister: record.allowSoloRegister as boolean,
     sideSize,
     playersAllowed,

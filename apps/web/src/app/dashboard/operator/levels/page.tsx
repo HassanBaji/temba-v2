@@ -29,9 +29,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from "~/components/ui/sheet";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
-import { levelSliderLabel } from "@repo/domain/level-slider";
+import { formatOvr, levelFaceFor } from "@repo/domain/football-ovr";
+import { levelSliderLabel, ovrSliderLabel } from "@repo/domain/level-slider";
 import { sportLabel, type Sport } from "@repo/domain/sport";
 import type { Messages } from "@repo/i18n/messages";
 
@@ -89,11 +91,16 @@ export default function OperatorLevelsPage() {
       toast.success(
         o.setToast(
           target?.name ?? o.playerFallback,
-          levelSliderLabel(variables.levelTenths),
+          variables.ovr === undefined
+            ? levelSliderLabel(variables.levelTenths ?? 0)
+            : ovrSliderLabel(variables.ovr),
         ),
       );
       setTarget(null);
-      await utils.ratings.listForOperator.invalidate();
+      await Promise.all([
+        utils.ratings.listForOperator.invalidate(),
+        invalidateRatingReads(utils),
+      ]);
     },
   });
 
@@ -160,7 +167,11 @@ export default function OperatorLevelsPage() {
                   <div className="flex items-center gap-3">
                     <LevelCell
                       band={player.levelBand}
-                      level={player.level}
+                      level={
+                        player.ovr == null
+                          ? player.level
+                          : formatOvr(player.ovr)
+                      }
                       provisional={player.levelProvisional}
                       className="w-16 shrink-0"
                     />
@@ -215,14 +226,18 @@ export default function OperatorLevelsPage() {
               <SetLevelFields
                 key={`${target.userId}:${sport}`}
                 member={target}
+                face={levelFaceFor(sport)}
                 pending={setLevel.isPending}
                 error={setLevel.error}
-                onSubmit={({ levelTenths, reason }) =>
+                onSubmit={({ value, reason, note }) =>
                   setLevel.mutate({
                     userId: target.userId,
                     sport,
-                    levelTenths,
+                    ...(sport === "football"
+                      ? { ovr: value }
+                      : { levelTenths: value }),
                     reason,
+                    note,
                   })
                 }
               />

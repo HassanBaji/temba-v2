@@ -6,7 +6,6 @@ import {
   heroStats,
   heroView,
   ratingCurve,
-  type GroupLevelRow,
   type MyProfile,
   type ScopeLevel,
 } from "./you-hero-model";
@@ -29,25 +28,6 @@ function level(overrides: Partial<ScopeLevel> = {}): ScopeLevel {
   };
 }
 
-function groupRow(overrides: Partial<GroupLevelRow> = {}): GroupLevelRow {
-  return {
-    groupId: "g1",
-    name: "Tuesday Crew",
-    imageUrl: null,
-    level: "4.1",
-    rating: 4.08,
-    levelBand: "C1",
-    provisional: false,
-    ratedMatchesRemaining: 0,
-    ratedMatchCount: 10,
-    rank: 3,
-    rankedCount: 14,
-    differenceFromGeneral: 0.17,
-    setBy: null,
-    ...overrides,
-  };
-}
-
 function stats(
   overrides: Partial<MyProfile["stats"]> = {},
 ): MyProfile["stats"] {
@@ -66,11 +46,8 @@ function stats(
 
 describe("heroView", () => {
   it("reads a confirmed General Level", () => {
-    const view = heroView(
-      { level: level(), ratedMatchCount: 24, group: null },
-      "en",
-    );
-    expect(view.label).toBe("General level");
+    const view = heroView({ level: level(), ratedMatchCount: 24 }, "en");
+    expect(view.label).toBe("Temba Level");
     expect(view.status).toBe("Confirmed · 24 rated");
     expect(view.band).toBe("C+");
     expect(view.rating).toBe("3.91");
@@ -81,7 +58,19 @@ describe("heroView", () => {
     );
   });
 
-  it("counts toward confirming a Provisional Level", () => {
+  it("reads a padel Level below 1.0 as 1.00", () => {
+    const view = heroView(
+      {
+        level: level({ rating: 0.35, levelBand: "D3" }),
+        ratedMatchCount: 24,
+      },
+      "en",
+    );
+    expect(view.rating).toBe("1.00");
+    expect(view.band).toBe("D");
+  });
+
+  it("counts the confirming Matches of a Provisional Level out of five", () => {
     const view = heroView(
       {
         level: level({
@@ -90,14 +79,15 @@ describe("heroView", () => {
           weekDelta: null,
         }),
         ratedMatchCount: 3,
-        group: null,
       },
       "en",
     );
     expect(view.status).toBe("Provisional · 3 rated");
-    expect(view.ring).toEqual({ percent: 50, label: "3 of 6 to confirm" });
+    expect(view.ring).toEqual({ percent: 40, label: "2 of 5 to confirm" });
     expect(view.move).toBeNull();
-    expect(view.outlook).toContain("about 3 more rated matches");
+    expect(view.outlook).toContain(
+      "after 3 more rated matches in a verified group",
+    );
   });
 
   it("names the top band without a distance", () => {
@@ -105,51 +95,16 @@ describe("heroView", () => {
       {
         level: level({ levelBand: "A", nextBand: null, distanceToNext: null }),
         ratedMatchCount: 40,
-        group: null,
       },
       "en",
     );
     expect(view.outlook).toBe("Top level band.");
   });
-
-  it("reads a Group Level against General", () => {
-    const view = heroView(
-      {
-        level: level({ winsToNext: null }),
-        ratedMatchCount: 99,
-        group: groupRow(),
-      },
-      "en",
-    );
-    expect(view.label).toBe("Tuesday Crew level");
-    expect(view.status).toBe("Group level · 10 rated");
-    expect(view.move).toBe("▲ 0.17 vs general");
-    expect(view.outlook).toBe("0.29 to B− in this group.");
-  });
-
-  it("says who set a Group Level", () => {
-    const view = heroView(
-      {
-        level: level(),
-        ratedMatchCount: 0,
-        group: groupRow({
-          differenceFromGeneral: -0.26,
-          setBy: { name: "Jaber B", at: new Date("2026-10-12T09:00:00Z") },
-        }),
-      },
-      "en",
-    );
-    expect(view.status).toBe("Set by organizer");
-    expect(view.move).toBe("▼ 0.26 vs general");
-    expect(view.outlook).toBe(
-      "Jaber B set this on 12 Oct. Results in this group move it from there.",
-    );
-  });
 });
 
 describe("heroStats", () => {
   it("shows win rate, matches and the current run for General", () => {
-    expect(heroStats({ stats: stats(), group: null }, "en")).toEqual([
+    expect(heroStats(stats(), "en")).toEqual([
       { value: "58%", label: "win rate" },
       { value: "24", label: "matches" },
       { value: "W3", label: "streak" },
@@ -158,27 +113,11 @@ describe("heroStats", () => {
 
   it("waits for five Matches before a win rate", () => {
     const [winRate, , streak] = heroStats(
-      {
-        stats: stats({ played: 3, winRatePercent: null, run: null }),
-        group: null,
-      },
+      stats({ played: 3, winRatePercent: null, run: null }),
       "en",
     );
     expect(winRate).toEqual({ value: "—", label: "win rate after 5" });
     expect(streak?.value).toBe("—");
-  });
-
-  it("shows the rank in a Group, or unranked while Provisional", () => {
-    expect(heroStats({ stats: stats(), group: groupRow() }, "en")[2]).toEqual({
-      value: "#3",
-      label: "of 14 in standings",
-    });
-    expect(
-      heroStats(
-        { stats: stats(), group: groupRow({ provisional: true }) },
-        "en",
-      )[2],
-    ).toEqual({ value: "—", label: "unranked" });
   });
 });
 
@@ -213,14 +152,11 @@ describe("bandRange", () => {
 describe("curveCaption", () => {
   it("counts the rated points and spans their months", () => {
     const caption = curveCaption(
-      {
-        history: [
-          { level: 3, at: null },
-          { level: 3.1, at: new Date("2026-03-04T10:00:00Z") },
-          { level: 3.2, at: new Date("2026-11-02T10:00:00Z") },
-        ],
-        groupName: null,
-      },
+      [
+        { level: 3, at: null },
+        { level: 3.1, at: new Date("2026-03-04T10:00:00Z") },
+        { level: 3.2, at: new Date("2026-11-02T10:00:00Z") },
+      ],
       "en",
     );
     expect(caption).toEqual({

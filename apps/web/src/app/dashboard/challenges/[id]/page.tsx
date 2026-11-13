@@ -30,6 +30,7 @@ import { acceptTeamToPropose } from "@repo/domain/challenge-accept";
 import { challengeCardView } from "@repo/domain/challenge-card";
 import {
   challengeConfirmedView,
+  challengeConfirmSheetDescription,
   challengeDetailFooter,
   challengeDetailRows,
   challengeDetailStatusLine,
@@ -312,7 +313,7 @@ export default function ChallengePage({
           }
         }}
         title={proposalCopy.confirmSheet.title}
-        description={proposalCopy.confirmSheet.description}
+        description={challengeConfirmSheetDescription(data.sport, locale)}
         confirmLabel={proposalCopy.confirmSheet.confirm}
         pending={confirmProposal.isPending}
         onConfirm={async () => {

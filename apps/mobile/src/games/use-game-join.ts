@@ -16,6 +16,7 @@ export function useGameJoin() {
     () =>
       Promise.all([
         utils.games.listMyGames.invalidate(),
+        utils.games.listPublicPickup.invalidate(),
         utils.games.listMyMatchHistory.invalidate(),
         utils.users.home.invalidate(),
         utils.games.byId.invalidate(),

@@ -102,6 +102,7 @@ function whereAndWhenLines(
     input.levelMinTenths,
     input.levelMaxTenths,
     input.locale,
+    input.football ? "football" : "padel",
   );
   if (levelRange) {
     lines.push(messagesFor(input.locale).createGame.share.level(levelRange));

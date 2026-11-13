@@ -7,6 +7,7 @@ import type { RouterOutputs } from "~/trpc/react";
 import {
   footballProfileModel,
   padelProfileModel,
+  sharedTierView,
 } from "./player-profile-model";
 
 const fixtures = createPlayerProfileFixtures();
@@ -28,6 +29,7 @@ const FOOTBALL: RouterOutputs["users"]["footballProfile"] = {
       outcome: "won",
       score: { us: 18, them: 9 },
       goals: 1,
+      levelMove: null,
       game: {
         name: null,
         hasCustomName: false,
@@ -45,6 +47,7 @@ const FOOTBALL: RouterOutputs["users"]["footballProfile"] = {
       outcome: "lost",
       score: { us: 9, them: 12 },
       goals: 0,
+      levelMove: null,
       game: {
         name: null,
         hasCustomName: false,
@@ -105,5 +108,38 @@ describe("footballProfileModel", () => {
       empty: "No games together yet.",
       groups: "Both in Gooz of Arad",
     });
+  });
+});
+
+describe("sharedTierView", () => {
+  const data = {
+    player: { name: "Mahmood Ali", isViewer: false },
+    sharedGroupTiers: [
+      {
+        groupId: "t1",
+        name: "Thursday Football",
+        imageUrl: null,
+        memberCount: 13,
+        rankedCount: 11,
+        band: "kanaad" as const,
+        place: 6,
+        points: 1201,
+        provisional: false,
+        gamesOfFive: 5,
+      },
+    ],
+  } as unknown as NonNullable<Parameters<typeof sharedTierView>[1]>;
+
+  it("draws the fish only on football", () => {
+    expect(sharedTierView("football", data, "en")?.rows[0]?.caption).toBe(
+      "Kanaad, #6 of 13",
+    );
+    expect(sharedTierView("padel", data, "en")).toBeNull();
+  });
+
+  it("draws nothing when the viewer shares no tier Group", () => {
+    expect(
+      sharedTierView("football", { ...data, sharedGroupTiers: [] }, "en"),
+    ).toBeNull();
   });
 });

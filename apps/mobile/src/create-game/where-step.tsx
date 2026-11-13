@@ -1,5 +1,9 @@
 import { radii, spacing } from "@repo/design-tokens";
-import { visibleCreateCourts } from "@repo/domain/create-game-flow";
+import {
+  isPublicGameDraft,
+  publicGameOffered,
+  visibleCreateCourts,
+} from "@repo/domain/create-game-flow";
 import { courtFace } from "@repo/domain/court-sport-copy";
 import {
   playersInPairsLine,
@@ -55,6 +59,7 @@ export function WhereStep({
             : [draft.courtId],
       );
   const moreCourts = !courtsExpanded && courts.length > visibleCourts.length;
+  const publicGame = isPublicGameDraft(draft);
 
   return (
     <View style={{ gap: spacing.section }}>
@@ -69,10 +74,23 @@ export function WhereStep({
             sport: groups.find((group) => group.id === groupId)?.sport,
           })
         }
+        publicChoice={
+          publicGameOffered(state.type)
+            ? {
+                label: m.rating.publicGame.label,
+                note: m.rating.publicGame.createNote,
+                selected: publicGame,
+                onSelect: () => dispatch({ kind: "choosePublic" }),
+                sport: state.sport,
+                onSport: (sport) => dispatch({ kind: "setPublicSport", sport }),
+              }
+            : undefined
+        }
       />
 
       <VenueField
-        groupId={draft.groupId}
+        unlocked={Boolean(draft.groupId) || publicGame}
+        publicGame={publicGame}
         picker={picker}
         venueId={draft.venueId}
         manyCourts={tournament}

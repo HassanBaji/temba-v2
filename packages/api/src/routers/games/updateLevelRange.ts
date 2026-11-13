@@ -37,6 +37,17 @@ async function updateGameLevelRangeOnGame(
     });
   }
 
+  if (
+    game.sport === "football" &&
+    !game.rated &&
+    (levelMinTenths != null || levelMaxTenths != null)
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).football.errors.noLevelRange,
+    });
+  }
+
   const now = new Date();
   await database
     .update(games)

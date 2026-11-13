@@ -1,5 +1,6 @@
 import type { FootballBib } from "./football-lineup";
 import type { GroupPlayedCounts } from "./group-played-filter";
+import type { GroupRatingSettings } from "./group-rating-settings";
 import type { HubGameRow } from "./hub-game-row";
 import type { LevelBand } from "./level-bands";
 import type { LevelOverrideReason } from "./level-slider";
@@ -7,6 +8,7 @@ import type { MatchSlotMember } from "./match-slots";
 import type { FormMark } from "./member-form-marks";
 import type { MemberNicknameData } from "./member-nickname";
 import type { ResultMarkVariant } from "./result-mark";
+import type { TierBand } from "./tier-bands";
 
 export type GroupMineRowData = {
   id: string;
@@ -35,6 +37,7 @@ export type GroupLevelOverrideData = {
   setByIsViewer: boolean;
   createdAt: Date | string;
   reason: LevelOverrideReason | null;
+  note?: string | null;
 };
 
 export type GroupSeasonSummaryData = {
@@ -82,18 +85,46 @@ export type GroupMemberGroupLevelData = {
   provisional: boolean;
 };
 
+/** A member's Group Tier in a tier Group (ADR-0067). */
+export type GroupMemberTierData = {
+  band: TierBand | null;
+  place: number | null;
+  /** Null while Provisional, unless the viewer is the member or an Organizer. */
+  points: number | null;
+  provisional: boolean;
+  gamesOfFive: number;
+  /** Every tier Game counted, which breaks a tie on points. */
+  gamesCounted?: number;
+};
+
+export type GroupTierSummaryData = {
+  shark: {
+    userId: string;
+    name: string;
+    points: number;
+    /** When they last became the Shark; null when no change is recorded. */
+    since: Date | string | null;
+  } | null;
+  rankedCount: number;
+  provisionalCount: number;
+};
+
 export type GroupLeaderboardEntryData = GroupStandingRowData & {
   isOrganizer: boolean;
   isAppointedOrganizer: boolean;
   levelBand: LevelBand | null;
   levelProvisional: boolean;
   level: string | null;
+  /** The whole-number OVR on a football Group; null elsewhere. */
+  ovr?: number | null;
   ratedMatchCount: number;
   levelOverride: GroupLevelOverrideData | null;
   groupLevel?: GroupMemberGroupLevelData | null;
   formMarks: FormMark[];
   /** The member's latest completed Match in this Group; null before one. */
   lastPlayedAt: Date | string | null;
+  /** Set on every member of a tier Group, absent elsewhere. */
+  tier?: GroupMemberTierData | null;
   joinedAt: Date | string | null;
   unclaimed: boolean;
   phoneMasked: string | null;
@@ -162,6 +193,13 @@ export type GroupHomeData = {
   canCreateGame: boolean;
   requiresApproval: boolean;
   verified: boolean;
+  /** A football Group that is not Verified (ADR-0066). */
+  hasTier?: boolean;
+  tierSummary?: GroupTierSummaryData | null;
+  /** How ratings work in a tier Group; null on any other Group. */
+  ratingSettingsLine?: string | null;
+  /** The Rating settings, for an Organizer of a tier Group only. */
+  ratingSettings?: GroupRatingSettings | null;
   venue: { id: string; name: string } | null;
   pendingLinkRequestCount: number | null;
   canUnlinkFromVenue: boolean;

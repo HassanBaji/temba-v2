@@ -11,15 +11,17 @@ import { cn } from "~/lib/utils";
  *
  * With a `level`, the label reads "C+ 3.8", and a Provisional member shows it
  * on the hatch. Without one (the Standing tab), a Provisional member is a bare
- * hatch. Hatched means the Rating is still **Provisional**
- * (`isProvisional(phi)`, ADR-0009), or the member has no `ratings` row for the
- * Group's sport. It is not a match-count rule.
+ * hatch. Hatched means the Level is still **Provisional** (`tembaLevelView`:
+ * fewer than five Rated Matches in a Verified Group on padel, five counting
+ * Matches on football, and no Level override), or the member has no `ratings`
+ * row for the Group's sport.
  *
  * Distinct from `LevelBandBadge`, which is the badge form used elsewhere.
  */
 export function LevelCell({
   band,
   level,
+  ovr,
   provisional = false,
   onInk = false,
   className,
@@ -28,13 +30,15 @@ export function LevelCell({
   band: LevelBand | null | undefined;
   /** The one-decimal Level. Shown beside the letter when given. */
   level?: string | null;
+  /** The football face: the label reads `C+ 72` (ADR-0069). */
+  ovr?: number | null;
   provisional?: boolean;
   /** Set on an inverted (`bg-ink`) row so the hatch reads on black. */
   onInk?: boolean;
   className?: string;
 }) {
   const m = useMessages();
-  const view = levelCellView(band, provisional);
+  const view = levelCellView(band, provisional, ovr);
   const text =
     view.label && level ? `${view.label} ${level}` : (view.label ?? null);
 

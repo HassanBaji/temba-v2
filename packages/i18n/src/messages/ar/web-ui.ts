@@ -144,6 +144,28 @@ export const webUi = {
     addedToast: "أُضيف مدير النادي",
     removedToast: "أُزيل مدير النادي",
   },
+  venueVerifiers: {
+    title: "المُوثِّقون",
+    description:
+      "طاقم النادي والحكام والمدربون الذين يمكنهم معايرة مستوى اللاعب هنا. المشغّلون وحدهم يمنحونهم الصلاحية أو يسحبونها.",
+    loadError: "تعذّر تحميل المُوثِّقين",
+    none: "لا مُوثِّقين بعد.",
+    kindLabel: "الدور",
+    removeNamed: (name: string) => `إزالة ${name}`,
+    addLabel: "إضافة مُوثِّق",
+    searchPlaceholder: "ابحث بالاسم أو الهاتف أو البريد الإلكتروني",
+    noUsers: "لم يُعثر على مستخدمين.",
+    addNamed: (name: string, kind: string) => `إضافة ${name} بصفة ${kind}`,
+    adding: "جارٍ الإضافة…",
+    add: "إضافة",
+    removeTitle: (name: string) => `إزالة ${name}؟`,
+    thisUser: "هذا المستخدم",
+    removeDescription:
+      "لن يتمكن بعد الآن من معايرة المستويات هنا. تبقى المستويات التي حدّدها في سجل كل لاعب.",
+    removeConfirm: "إزالة المُوثِّق",
+    addedToast: "أُضيف المُوثِّق",
+    removedToast: "أُزيل المُوثِّق",
+  },
   shareResult: {
     title: "مشاركة النتيجة",
     loadError: "تعذّر تحميل النتيجة",

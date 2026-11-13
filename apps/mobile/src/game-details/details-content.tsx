@@ -1,3 +1,4 @@
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import {
   friendlyGameDetailsPlan,
   type FriendlyGameDetails,
@@ -56,6 +57,7 @@ export type DetailsHandlers = {
   movePending: boolean;
   scorePending: boolean;
   confirmPending: boolean;
+  stampPending?: boolean;
   levelRequestPending: boolean;
   onMove: (sideIndex: number, position: "left" | "right") => void;
   onJoinSeat: (seat: FriendlyGameJoinSeat) => void;
@@ -66,6 +68,7 @@ export type DetailsHandlers = {
   onPressPlayer?: (row: PlayedRow) => void;
   onSaveSets: (payloads: ReturnType<typeof setsToSave>) => void;
   onConfirm: () => void;
+  onStamp?: () => void;
   onRequestLevel: () => void;
 };
 
@@ -169,7 +172,11 @@ export function GameDetailsContent({
       {game.booking ? (
         <BookedCard booking={game.booking} ratingScope={ratingScopeOf(game)} />
       ) : (
-        <RatingScopeCard scope={ratingScopeOf(game)} />
+        <RatingScopeCard
+          scope={ratingScopeOf(game)}
+          sport={game.sport}
+          publicGame={isPublicGame(game)}
+        />
       )}
       {levelCard ? (
         <LevelRequestCard
@@ -197,14 +204,17 @@ export function GameDetailsContent({
           viewerUserId={game.viewerUserId}
           winningGameTeamId={plan.winningGameTeamId}
           confirmation={game.matchResultConfirmation}
+          confirmWindow={game.confirmWindow}
           isOrganizer={
             game.matchResultConfirmation?.viewerConfirmsAsOrganizer ?? false
           }
           courtFull={vacantSeatCount === 0}
           scorePending={handlers.scorePending}
           confirmPending={handlers.confirmPending}
+          stampPending={handlers.stampPending}
           onSaveSets={handlers.onSaveSets}
           onConfirm={handlers.onConfirm}
+          onStamp={handlers.onStamp}
         />
       ) : null}
       {phase === "final" && game.ratingImpact ? (

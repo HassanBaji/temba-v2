@@ -1,14 +1,14 @@
 import { hatch, spacing } from "@repo/design-tokens";
-import { homeLevelView, type HomeLevelInput } from "@repo/domain/home-level";
-import { gaugeArc } from "@repo/domain/home-level-chart";
-import { nextDistinctDisplayRung } from "@repo/domain/level-bands";
+import { homeLevelView, type HomeLevelView } from "@repo/domain/home-level";
+import { gaugeArc, sparklinePoints } from "@repo/domain/home-level-chart";
 import { type Sport } from "@repo/domain/sport";
-import { Check } from "lucide-react-native";
+import { Check, ChevronRight } from "lucide-react-native";
 import { useId } from "react";
-import { View } from "react-native";
-import Svg, { Circle, Defs, Pattern, Rect } from "react-native-svg";
+import { Pressable, View } from "react-native";
+import Svg, { Circle, Defs, Pattern, Polyline, Rect } from "react-native-svg";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
 import { hatchPatternId } from "../primitives/hatch-pattern-id";
@@ -22,6 +22,8 @@ const GAUGE = 104;
 const VIEWBOX = 120;
 const RADIUS = 50;
 const STROKE = 10;
+const SPARK_WIDTH = 60;
+const SPARK_HEIGHT = 18;
 const SWATCH = 12;
 const NO_LEVEL_TILE = 74;
 const STATUS_ICON = 14;
@@ -99,8 +101,47 @@ function Gauge({ percent, band }: { percent: number; band: string }) {
   );
 }
 
-function Status({ provisional }: { provisional: boolean }) {
-  const m = useMessages();
+/** A Level's recent run, newest last along the reading direction. */
+export function Sparkline({ values }: { values: readonly number[] }) {
+  const palette = useTonePalette();
+  const points = sparklinePoints(values, SPARK_WIDTH - 4, SPARK_HEIGHT - 4);
+  if (!points) {
+    return null;
+  }
+  const last = points.split(" ").at(-1)?.split(",").map(Number) ?? [0, 0];
+  return (
+    <Svg
+      width={SPARK_WIDTH}
+      height={SPARK_HEIGHT}
+      style={mirrorInRtl}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      <Polyline
+        points={points}
+        fill="none"
+        stroke={palette.foreground}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        transform="translate(2 2)"
+      />
+      <Circle
+        cx={(last[0] ?? 0) + 2}
+        cy={(last[1] ?? 0) + 2}
+        r={2.5}
+        fill={palette.foreground}
+      />
+    </Svg>
+  );
+}
+
+function Status({
+  provisional,
+  label,
+}: {
+  provisional: boolean;
+  label: string;
+}) {
   const palette = useTonePalette();
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -112,9 +153,7 @@ function Status({ provisional }: { provisional: boolean }) {
         <Check size={STATUS_ICON} color={palette.foreground} />
       )}
       <Text size="meta" tone={provisional ? "muted" : "default"}>
-        {provisional
-          ? m.home.levelSection.provisional
-          : m.home.levelSection.confirmed}
+        {label}
       </Text>
     </View>
   );
@@ -123,26 +162,35 @@ function Status({ provisional }: { provisional: boolean }) {
 export function LevelCard({
   level,
   sport,
+  onOpen,
 }: {
   level: HomeLevel;
   sport: Sport;
+  onOpen: () => void;
 }) {
   const m = useMessages();
+  const locale = useLocale();
+  const view =
+    level.kind === "rated" ? homeLevelView(level.input, locale) : null;
   return (
     <View style={{ gap: 12 }}>
       <SectionTitle
         title={m.home.levelSection.title[sport]}
         status={
-          level.kind === "rated" ? (
-            <Status provisional={level.input.provisional} />
+          view ? (
+            <Status provisional={view.provisional} label={view.status} />
           ) : undefined
         }
       />
-      {level.kind === "rated" ? (
-        <RatedLevel input={level.input} />
-      ) : (
-        <NoLevel sport={sport} />
-      )}
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={view?.spoken}
+        accessibilityHint={m.home.levelSection.opensRatings}
+        onPress={onOpen}
+        style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+      >
+        {view ? <RatedLevel view={view} /> : <NoLevel sport={sport} />}
+      </Pressable>
     </View>
   );
 }
@@ -169,27 +217,8 @@ function NoLevel({ sport }: { sport: Sport }) {
   );
 }
 
-function FooterRow({ children }: { children: React.ReactNode }) {
-  return (
-    <View
-      style={{
-        paddingHorizontal: spacing.surface,
-        paddingVertical: 14,
-      }}
-    >
-      {children}
-    </View>
-  );
-}
-
-function RatedLevel({ input }: { input: HomeLevelInput }) {
-  const m = useMessages();
-  const locale = useLocale();
-  const view = homeLevelView(input, locale);
-  const next = nextDistinctDisplayRung(input.band);
-  const percent = view.progress?.percent ?? 100;
-  const copy = m.home.levelSection;
-
+function RatedLevel({ view }: { view: HomeLevelView }) {
+  const palette = useTonePalette();
   return (
     <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
       <View
@@ -200,76 +229,62 @@ function RatedLevel({ input }: { input: HomeLevelInput }) {
           padding: spacing.surface,
         }}
       >
-        <View
-          accessible
-          accessibilityLabel={
-            next
-              ? copy.gaugeSpoken(view.displayBand, percent, next)
-              : m.mobileHome.level.bandSpoken(view.displayBand)
-          }
-        >
-          <Gauge percent={percent} band={view.displayBand} />
-        </View>
+        <Gauge percent={view.percent} band={view.displayBand} />
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Text size="eyebrow" tone="muted">
-            {copy.level}
+            {view.numberLabel}
           </Text>
           <Text size="hero" width="expanded" weight="bold">
             {view.level}
           </Text>
           {view.change ? (
             <View
-              accessible
-              accessibilityLabel={m.mobileHome.level.changeSpoken(
-                view.change.spoken,
-                view.change.amount,
-                view.change.windowLabel,
-              )}
               style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
               <Text weight="bold" width="expanded">
                 {view.change.signedAmount}
               </Text>
               <Text size="eyebrow" tone="muted" numberOfLines={1}>
-                {copy.lastN(input.historyMatchCount)}
+                {view.change.caption}
               </Text>
             </View>
           ) : null}
         </View>
       </View>
       <Hairline />
-      <FooterRow>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            gap: 12,
-          }}
-        >
-          <Text size="meta" tone="muted">
-            {next ? copy.nextBand : copy.topBand}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          paddingHorizontal: spacing.surface,
+          paddingVertical: 14,
+        }}
+      >
+        <Text size="meta" tone="muted" style={{ flexShrink: 0 }}>
+          {view.footer.label}
+        </Text>
+        {view.footer.value ? (
+          <Text
+            size="meta"
+            tone="muted"
+            numberOfLines={1}
+            style={{ flex: 1, minWidth: 0, textAlign: "right" }}
+          >
+            <Text size="meta" width="expanded" weight="bold" ltr>
+              {view.footer.value}
+            </Text>
+            {view.footer.detail ?? ""}
           </Text>
-          {next ? (
-            <Text size="meta" tone="muted" numberOfLines={1}>
-              <Text size="meta" width="expanded" weight="bold" ltr>
-                {next}
-              </Text>
-              {copy.nextBandValue(percent)}
-            </Text>
-          ) : null}
-        </View>
-      </FooterRow>
-      {view.provisional ? (
-        <>
-          <Hairline />
-          <FooterRow>
-            <Text size="meta" tone="muted">
-              {copy.confirmsIn(Math.max(1, input.ratedMatchesRemaining))}
-            </Text>
-          </FooterRow>
-        </>
-      ) : null}
+        ) : (
+          <View style={{ flex: 1 }} />
+        )}
+        <ChevronRight
+          size={STATUS_ICON}
+          color={palette.foreground}
+          style={mirrorInRtl}
+        />
+      </View>
     </Surface>
   );
 }

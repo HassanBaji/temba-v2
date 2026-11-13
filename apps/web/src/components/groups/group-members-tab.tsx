@@ -16,6 +16,8 @@ import {
   useMemberLens,
 } from "~/components/groups/group-members-lens";
 import { LinkedTableRow } from "~/components/common/linked-table-row";
+import { AdjustTierDialog } from "~/components/groups/adjust-tier-dialog";
+import { TierCell, TierFish } from "~/components/groups/tier-fish";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -33,6 +35,7 @@ import { Input } from "~/components/ui/input";
 import { Surface } from "~/components/ui/surface";
 import {
   groupMemberSetLevelHref,
+  groupTierHistoryHref,
   playerProfilePath,
 } from "~/lib/dashboard-paths";
 import { cardFrame } from "~/lib/page-layout";
@@ -45,13 +48,21 @@ import {
 } from "@repo/domain/group-home-chrome";
 import {
   groupMemberSortCaption,
+  groupMemberTierView,
   groupMembersLegend,
   groupMembersLens,
   groupPendingInviteCaption,
   groupPendingInvitesTitle,
+  groupTierProvisionalLine,
+  groupTierSharkCard,
   type GroupMemberSort,
 } from "@repo/domain/group-members-table";
-import type { GroupLevelOverrideData } from "@repo/domain/group-data";
+import type {
+  GroupLevelOverrideData,
+  GroupMemberTierData,
+  GroupTierSummaryData,
+} from "@repo/domain/group-data";
+import type { LevelFace } from "@repo/domain/football-ovr";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { formatE164 } from "@repo/domain/phone-number";
 import type { Locale } from "@repo/i18n/locale";
@@ -74,9 +85,11 @@ type GroupMember = {
   levelBand: LevelBand | null;
   levelProvisional: boolean;
   level: string | null;
+  ovr?: number | null;
   ratedMatchCount: number;
   levelOverride: GroupLevelOverrideData | null;
   groupLevel?: { level: string } | null;
+  tier?: GroupMemberTierData | null;
   unclaimed: boolean;
   phoneMasked: string | null;
   phoneNumber?: string | null;
@@ -100,6 +113,13 @@ function savedLevelOf(member: GroupMember | undefined): SavedLevel | null {
   };
 }
 
+function adjustingMember(members: GroupMember[], userId: string | null) {
+  const member = members.find(
+    (entry) => entry.userId === userId && !entry.isViewer && entry.tier,
+  );
+  return member ? { userId: member.userId, image: member.image } : null;
+}
+
 export type GroupPendingInvite = {
   id: string;
   name: string;
@@ -112,8 +132,9 @@ function memberCaption(
   sort: GroupMemberSort,
   locale: Locale,
 ) {
+  const tier = sort === "tier" ? groupMemberTierView(member, locale) : null;
   const parts = [
-    groupMemberSortCaption(member, sort, locale),
+    tier ? tier.caption : groupMemberSortCaption(member, sort, locale),
     member.phoneMasked,
     canSetLevel && member.levelOverride
       ? levelOverrideCaption({ ...member.levelOverride, locale })
@@ -163,8 +184,9 @@ function MemberActionsMenu({
   name,
   phoneNumber,
   setLevelHref,
-  onSetGroupLevel,
   profileHref,
+  tierHistoryHref,
+  onAdjustTier,
   organizerAction,
   onOrganizerAction,
   onRename,
@@ -174,8 +196,9 @@ function MemberActionsMenu({
   /** Given to a Group approver, for any member with a number. */
   phoneNumber?: string;
   setLevelHref?: string;
-  onSetGroupLevel?: () => void;
   profileHref?: string;
+  tierHistoryHref?: string;
+  onAdjustTier?: () => void;
   organizerAction?: GroupMemberOrganizerAction;
   onOrganizerAction?: () => void;
   onRename?: () => void;
@@ -193,8 +216,9 @@ function MemberActionsMenu({
             </a>
           </ActionMenuItem>
           {setLevelHref ||
-          onSetGroupLevel ||
           profileHref ||
+          tierHistoryHref ||
+          onAdjustTier ||
           organizerAction ||
           onRename ||
           onRemove ? (
@@ -207,14 +231,19 @@ function MemberActionsMenu({
           <Link href={setLevelHref}>{m.webGroup.members.setLevel}</Link>
         </ActionMenuItem>
       ) : null}
-      {onSetGroupLevel ? (
-        <ActionMenuItem onSelect={onSetGroupLevel}>
-          {m.you.setGroupLevel.title}
-        </ActionMenuItem>
-      ) : null}
       {profileHref ? (
         <ActionMenuItem asChild>
           <Link href={profileHref}>{m.webGroup.viewProfile}</Link>
+        </ActionMenuItem>
+      ) : null}
+      {tierHistoryHref ? (
+        <ActionMenuItem asChild>
+          <Link href={tierHistoryHref}>{m.rating.history.menuRow}</Link>
+        </ActionMenuItem>
+      ) : null}
+      {onAdjustTier ? (
+        <ActionMenuItem onSelect={onAdjustTier}>
+          {m.rating.adjust.menuRow}
         </ActionMenuItem>
       ) : null}
       {organizerAction && onOrganizerAction ? (
@@ -230,8 +259,9 @@ function MemberActionsMenu({
       {onRemove ? (
         <>
           {setLevelHref ||
-          onSetGroupLevel ||
           profileHref ||
+          tierHistoryHref ||
+          onAdjustTier ||
           organizerAction ||
           onRename ? (
             <ActionMenuSeparator />
@@ -246,12 +276,43 @@ function MemberActionsMenu({
 }
 
 const COL_LEVEL = "w-14 px-0";
+/** `C+ 72`: the band and the OVR, on a Verified football Group. */
+const COL_OVR = "w-16 px-0";
+const COL_TIER = "w-14 ps-4 pe-0";
+const COL_POINTS = "w-16 pe-4 ps-0 text-end";
 const COL_ACTION = "w-11 px-0";
+
+function SharkCard({ summary }: { summary: GroupTierSummaryData }) {
+  const locale = useLocale();
+  const card = groupTierSharkCard(summary, new Date(), locale);
+  if (!card) {
+    return null;
+  }
+  return (
+    <section
+      aria-label={card.title}
+      className="border-rule rounded-card bg-wash flex items-center gap-4 border px-5 py-[18px]"
+    >
+      <TierFish
+        band="shark"
+        label={card.fishLabel}
+        size="card"
+        cutout="var(--color-wash)"
+      />
+      <div className="min-w-0 flex-1">
+        <p className="text-eyebrow text-muted-foreground">{card.title}</p>
+        <p className="text-h2 truncate font-bold tracking-tight">{card.name}</p>
+        <p className="text-meta text-muted-foreground mt-0.5">{card.line}</p>
+      </div>
+    </section>
+  );
+}
 
 function GroupMemberRow({
   member,
   canSetLevel,
   showLevel,
+  levelFace,
   managing,
   sort,
   profileHref,
@@ -260,6 +321,7 @@ function GroupMemberRow({
   member: GroupMember;
   canSetLevel: boolean;
   showLevel: boolean;
+  levelFace: LevelFace;
   managing: boolean;
   sort: GroupMemberSort;
   profileHref?: string;
@@ -267,16 +329,26 @@ function GroupMemberRow({
 }) {
   const locale = useLocale();
   const caption = memberCaption(member, canSetLevel, sort, locale);
+  const tier = groupMemberTierView(member, locale);
   const linkHref = managing ? undefined : profileHref;
   const cells = (
     <>
-      <td className="py-3 pe-2 ps-4">
+      {tier ? (
+        <td className={COL_TIER}>
+          <span className="flex justify-center">
+            <TierCell cell={tier.cell} />
+          </span>
+        </td>
+      ) : null}
+      <td className={cn("py-3 pe-2", tier ? "ps-3" : "ps-4")}>
         <span className="flex min-w-0 items-center gap-2.5">
-          <UserAvatar
-            name={member.name}
-            image={member.image}
-            className="size-8 shrink-0"
-          />
+          {tier ? null : (
+            <UserAvatar
+              name={member.name}
+              image={member.image}
+              className="size-8 shrink-0"
+            />
+          )}
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="flex min-w-0 items-center gap-1.5">
               {linkHref ? (
@@ -302,10 +374,22 @@ function GroupMemberRow({
           </span>
         </span>
       </td>
-      {showLevel ? (
-        <td className={COL_LEVEL}>
+      {tier ? (
+        <td
+          className={cn(
+            COL_POINTS,
+            tier.pointsMuted
+              ? "text-eyebrow text-muted-foreground"
+              : "text-body font-bold tabular-nums",
+          )}
+        >
+          {tier.points}
+        </td>
+      ) : showLevel ? (
+        <td className={levelFace === "ovr" ? COL_OVR : COL_LEVEL}>
           <LevelCell
             band={member.levelBand}
+            ovr={levelFace === "ovr" ? member.ovr : null}
             provisional={member.levelProvisional}
             className="text-meta justify-center text-center font-mono"
           />
@@ -468,7 +552,6 @@ export function GroupMembersTab({
   linkToPlayers,
   canInvite,
   canSetLevel,
-  onSetGroupLevel,
   savedUserId,
   onDismissSaved,
   onInvite,
@@ -480,6 +563,10 @@ export function GroupMembersTab({
   canAppointOrganizers = false,
   onOrganizerAction,
   showLevel = true,
+  levelFace = "level",
+  tierSummary,
+  groupName = "",
+  canAdjustTier = false,
   pendingInvites = [],
   revokeInvitePendingId,
   onRevokeInvite,
@@ -487,6 +574,13 @@ export function GroupMembersTab({
   afterTable,
 }: {
   showLevel?: boolean;
+  /** OVR on a Verified football Group (ADR-0069). */
+  levelFace?: LevelFace;
+  /** A tier Group's Members: fish, points and the Shark. */
+  tierSummary?: GroupTierSummaryData | null;
+  groupName?: string;
+  /** An Organizer of a tier Group adjusts members' Tier points. */
+  canAdjustTier?: boolean;
   canAppointOrganizers?: boolean;
   onOrganizerAction?: (
     member: { userId: string; name: string },
@@ -502,13 +596,6 @@ export function GroupMembersTab({
   linkToPlayers: boolean;
   canInvite: boolean;
   canSetLevel: boolean;
-  /** Given to an Organizer of the Group, who sets members' Group Levels. */
-  onSetGroupLevel?: (member: {
-    userId: string;
-    name: string;
-    level: string | null;
-    groupLevel: string | null;
-  }) => void;
   /** The member whose Level was just set, from the Set Level page. */
   savedUserId: string | null;
   onDismissSaved: () => void;
@@ -528,26 +615,31 @@ export function GroupMembersTab({
   const [managing, setManaging] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  const [adjustingUserId, setAdjustingUserId] = useState<string | null>(null);
   const { lens, setSort, setFilter } = useMemberLens(groupId);
   const saved = canSetLevel
     ? savedLevelOf(members.find((member) => member.userId === savedUserId))
     : null;
   const canManage =
     canSetLevel ||
-    onSetGroupLevel != null ||
+    canAdjustTier ||
     canAppointOrganizers ||
     canAddPlayers ||
     canRemovePlayers;
   const isManaging = canManage && managing;
+  const showTier = tierSummary != null;
   // The web members table shows no Member nicknames, so search must not match them.
   const view = groupMembersLens(
     members.map((member) => ({ ...member, nickname: null })),
-    { ...lens, query, showLevel, canManage, now: new Date(), locale },
+    { ...lens, query, showLevel, showTier, canManage, now: new Date(), locale },
   );
   const showSearch = view.showControls;
   const visible = view.rows;
-  const columnCount = 1 + (showLevel ? 1 : 0) + (isManaging ? 1 : 0);
-  const legend = groupMembersLegend({ showLevel, locale });
+  const columnCount = showTier
+    ? 3 + (isManaging ? 1 : 0)
+    : 1 + (showLevel ? 1 : 0) + (isManaging ? 1 : 0);
+  const legend = groupMembersLegend({ showLevel, showTier, locale });
+  const provisionalLine = groupTierProvisionalLine(tierSummary, locale);
   const addPlayerButton =
     canAddPlayers && onAddPlayer ? (
       <Button
@@ -600,14 +692,13 @@ export function GroupMembersTab({
       ? (groupMemberOrganizerAction(member) ?? undefined)
       : undefined;
     const target = { userId: member.userId, name: member.name };
-    const setGroupLevel =
-      onSetGroupLevel && !member.isViewer
-        ? () =>
-            onSetGroupLevel({
-              ...target,
-              level: member.level,
-              groupLevel: member.groupLevel?.level ?? null,
-            })
+    const onAdjustTier =
+      canAdjustTier && !member.isViewer && member.tier != null
+        ? () => setAdjustingUserId(member.userId)
+        : undefined;
+    const tierHistoryHref =
+      canAdjustTier && !member.isViewer && member.tier != null
+        ? groupTierHistoryHref(groupId, member.userId)
         : undefined;
     const onRename =
       canAddPlayers && member.canRename === true && onRenameUnclaimed
@@ -622,8 +713,9 @@ export function GroupMembersTab({
     if (
       !phoneNumber &&
       !setLevelHref &&
-      !setGroupLevel &&
       !profileHref &&
+      !tierHistoryHref &&
+      !onAdjustTier &&
       !organizerAction &&
       !onRename &&
       !onRemove
@@ -635,8 +727,9 @@ export function GroupMembersTab({
         name={member.name}
         phoneNumber={phoneNumber}
         setLevelHref={setLevelHref}
-        onSetGroupLevel={setGroupLevel}
         profileHref={profileHref}
+        tierHistoryHref={tierHistoryHref}
+        onAdjustTier={onAdjustTier}
         organizerAction={organizerAction}
         onOrganizerAction={
           organizerAction && onOrganizerAction
@@ -653,6 +746,7 @@ export function GroupMembersTab({
     <div className="flex flex-col gap-[26px]">
       {saved ? <SavedBanner saved={saved} onDismiss={onDismissSaved} /> : null}
       {top}
+      {tierSummary ? <SharkCard summary={tierSummary} /> : null}
 
       <div className="flex flex-col gap-3.5">
         {showSearch || manageButton ? (
@@ -689,27 +783,55 @@ export function GroupMembersTab({
             </caption>
             <thead className="bg-wash">
               <tr>
+                {showTier ? (
+                  <th
+                    scope="col"
+                    className={cn(
+                      COL_TIER,
+                      "text-eyebrow text-muted-foreground h-10 text-center font-normal",
+                    )}
+                  >
+                    {m.rating.tier.columnTier}
+                  </th>
+                ) : null}
                 <th
                   scope="col"
-                  className="text-eyebrow text-muted-foreground py-0 pe-2.5 ps-4 text-start font-normal"
+                  className={cn(
+                    "text-eyebrow text-muted-foreground py-0 pe-2.5 text-start font-normal",
+                    showTier ? "ps-3" : "ps-4",
+                  )}
                 >
                   <span className="flex items-center justify-between gap-2">
-                    {m.webGroup.members.memberColumn}
+                    {showTier
+                      ? m.rating.tier.columnPlayer
+                      : m.webGroup.members.memberColumn}
                     <span className="font-mono text-[11px]">
                       {view.countLine}
                     </span>
                   </span>
                 </th>
-                {showLevel ? (
+                {showTier ? (
+                  <th
+                    scope="col"
+                    className={cn(
+                      COL_POINTS,
+                      "text-eyebrow text-muted-foreground h-10 font-normal",
+                    )}
+                  >
+                    {m.rating.tier.columnPoints}
+                  </th>
+                ) : showLevel ? (
                   <th
                     scope="col"
                     title={m.common.level}
                     className={cn(
-                      COL_LEVEL,
+                      levelFace === "ovr" ? COL_OVR : COL_LEVEL,
                       "text-eyebrow text-muted-foreground h-10 text-center font-normal",
                     )}
                   >
-                    {m.webGroup.members.levelAbbrev}
+                    {levelFace === "ovr"
+                      ? m.rating.ovr.label
+                      : m.webGroup.members.levelAbbrev}
                   </th>
                 ) : null}
                 {isManaging ? (
@@ -749,6 +871,7 @@ export function GroupMembersTab({
                     member={member}
                     canSetLevel={canSetLevel}
                     showLevel={showLevel}
+                    levelFace={levelFace}
                     managing={isManaging}
                     sort={view.sort}
                     profileHref={
@@ -763,9 +886,12 @@ export function GroupMembersTab({
             </tbody>
           </table>
           {legend ? (
-            <p className="border-rule text-eyebrow text-muted-foreground border-t px-[18px] py-3">
-              {legend}
-            </p>
+            <div className="border-rule flex flex-col gap-1.5 border-t px-[18px] py-3">
+              <p className="text-eyebrow text-muted-foreground">{legend}</p>
+              {provisionalLine ? (
+                <p className="text-eyebrow font-semibold">{provisionalLine}</p>
+              ) : null}
+            </div>
           ) : null}
         </div>
 
@@ -778,6 +904,16 @@ export function GroupMembersTab({
           />
         ) : null}
       </div>
+
+      {canAdjustTier ? (
+        <AdjustTierDialog
+          groupId={groupId}
+          groupName={groupName}
+          members={members}
+          target={adjustingMember(members, adjustingUserId)}
+          onClose={() => setAdjustingUserId(null)}
+        />
+      ) : null}
 
       <GroupMembersSortDialog
         open={sortOpen}

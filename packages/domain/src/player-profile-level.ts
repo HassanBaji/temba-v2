@@ -1,11 +1,12 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { formatOvr, ovrFromLevel, type LevelFace } from "./football-ovr";
 import {
   BAND_LOWER_HUNDREDTHS,
   BAND_UPPER_HUNDREDTHS,
   clampLevel,
-  formatLevel,
+  formatPadelLevel,
 } from "./level";
 import {
   LEVEL_BANDS,
@@ -73,13 +74,19 @@ export function percentThroughDisplayBand(levelValue: number, band: LevelBand) {
   return clampPercent(((hundredths(levelValue) - lower) / width) * 100);
 }
 
+/** "0.3" on the Level face, "2" on OVR. */
 export function distanceToNextRung(
   levelValue: number,
   next: AssignableDisplayLevelBand,
+  face: LevelFace = "level",
 ) {
   const target =
     BAND_LOWER_HUNDREDTHS[storedBandFromDisplayLabel(next)] +
     HYSTERESIS_HUNDREDTHS;
+  if (face === "ovr") {
+    const ovr = ovrFromLevel(target / 100) - ovrFromLevel(levelValue);
+    return String(Math.max(1, Math.round(ovr)));
+  }
   const tenths = Math.max(
     1,
     Math.round((target - hundredths(levelValue)) / 10),
@@ -87,9 +94,17 @@ export function distanceToNextRung(
   return (tenths / 10).toFixed(1);
 }
 
+/** The Level as its face shows it: the padel "3.92", or the OVR "72". */
+export function shownLevel(levelValue: number, face: LevelFace = "level") {
+  return face === "ovr"
+    ? formatOvr(ovrFromLevel(levelValue))
+    : formatPadelLevel(levelValue, 2);
+}
+
 export function playerLevelCardView(
   input: PlayerLevelInput | null,
   locale: Locale,
+  face: LevelFace = "level",
 ): PlayerLevelCardView {
   const m = messagesFor(locale).profile;
   if (!input) {
@@ -97,7 +112,7 @@ export function playerLevelCardView(
   }
 
   const displayBand = displayLabelFromStoredBand(input.levelBand);
-  const level = formatLevel(input.levelValue);
+  const level = shownLevel(input.levelValue, face);
   const base = {
     kind: "rated" as const,
     displayBand,
@@ -107,7 +122,6 @@ export function playerLevelCardView(
 
   if (input.provisional) {
     const caption = confirmationProgressCaption(
-      input.ratedMatchCount,
       input.ratedMatchesRemaining,
       locale,
     );
@@ -115,10 +129,7 @@ export function playerLevelCardView(
       ...base,
       lines: [caption],
       fillPercent: clampPercent(
-        confirmationFraction(
-          input.ratedMatchCount,
-          input.ratedMatchesRemaining,
-        ) * 100,
+        confirmationFraction(input.ratedMatchesRemaining) * 100,
       ),
       accessibilityLabel: m.levelCard.spokenProvisional(
         displayBand,
@@ -148,7 +159,7 @@ export function playerLevelCardView(
   const lines = [
     confirmed,
     m.levelCard.distanceProgress(
-      distanceToNextRung(input.levelValue, next),
+      distanceToNextRung(input.levelValue, next, face),
       next,
       percent,
       displayBand,

@@ -38,6 +38,7 @@ import { registerSeat } from "#src/routers/games/registerSeat";
 import { registerWithPartner } from "#src/routers/games/registerWithPartner";
 import { setMemberLevel } from "#src/routers/ratings/setLevel";
 import { updateGameCaps } from "#src/routers/games/updateCaps";
+import { updateGameLevelRange } from "#src/routers/games/updateLevelRange";
 import {
   isHomeCarouselAtCap,
   isHomeCarouselNeedsResults,
@@ -212,6 +213,48 @@ describe("games.create on a football Group", () => {
     });
   });
 
+  it("counts for Temba Level on a Verified Group, with a Level range", async () => {
+    await withFootball(async (f) => {
+      await f.db
+        .update(groups)
+        .set({ verifiedAt: new Date() })
+        .where(eq(groups.id, f.group.id));
+      const game = await createFootball(f, {
+        levelMinTenths: 35,
+        levelMaxTenths: 49,
+      });
+      expect(game).toMatchObject({
+        rated: true,
+        groupRated: false,
+        levelMinTenths: 35,
+        levelMaxTenths: 49,
+      });
+      const unrated = await createFootball(f, { rated: false });
+      expect(unrated).toMatchObject({ rated: false, groupRated: false });
+      await expect(
+        createFootball(f, { rated: false, levelMinTenths: 35 }),
+      ).rejects.toThrow("counts for Temba Level has a Level range");
+      await expect(
+        updateGameLevelRange(f.db, {
+          gameId: unrated.id,
+          userId: f.organizer.id,
+          levelMinTenths: 35,
+          levelMaxTenths: null,
+        }),
+      ).rejects.toThrow("counts for Temba Level has a Level range");
+      await updateGameLevelRange(f.db, {
+        gameId: game.id,
+        userId: f.organizer.id,
+        levelMinTenths: 42,
+        levelMaxTenths: null,
+      });
+      const updated = await f.db.query.games.findFirst({
+        where: eq(games.id, game.id),
+      });
+      expect(updated?.levelMinTenths).toBe(42);
+    });
+  });
+
   it("takes side size and cap within bounds", async () => {
     await withFootball(async (f) => {
       const game = await createFootball(f, { sideSize: 7, playersAllowed: 16 });
@@ -232,7 +275,7 @@ describe("games.create on a football Group", () => {
   it("refuses a Level range, a padel Court, Americano and a tournament", async () => {
     await withFootball(async (f) => {
       await expect(createFootball(f, { levelMinTenths: 10 })).rejects.toThrow(
-        "no Level range",
+        "counts for Temba Level has a Level range",
       );
       await expect(
         createFootball(f, { courtId: f.padelCourtId }),

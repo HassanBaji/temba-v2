@@ -595,6 +595,214 @@ describe("notificationCopy for the MVP", () => {
     );
   });
 
+  it("asks the Organizer to rate the players once ratings open", () => {
+    const open = (audience: "admin" | "player", locale: "en" | "ar" = "en") =>
+      notificationCopy(
+        {
+          type: "performance_ratings_open",
+          audience,
+          actor: null,
+          group: null,
+          game,
+        },
+        locale,
+      );
+    assert.equal(
+      open("admin")
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Rate the players of Thursday Padel",
+    );
+    assert.equal(
+      open("admin")?.subline,
+      "Score everyone 1 to 10 within 24 hours. Points move when you submit.",
+    );
+    assert.notEqual(open("admin", "ar"), null);
+    assert.equal(
+      open("player")
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Rate the players of Thursday Padel",
+    );
+    assert.equal(
+      open("player")?.subline,
+      "Score your teammates and, if you want, opponents, within 24 hours. Nobody sees who gave what.",
+    );
+    assert.notEqual(
+      open("player", "ar")?.subline,
+      open("admin", "ar")?.subline,
+    );
+  });
+
+  it("tells an Operator who disputed which result, with the note", () => {
+    const raised = notificationCopy(
+      {
+        type: "match_dispute_raised",
+        audience: "admin",
+        actor: { name: "Diego" },
+        group: null,
+        game,
+        dispute: { status: "open", note: "It finished 4–3" },
+      },
+      "en",
+    );
+    assert.equal(
+      raised?.title.map((part) => part.text).join(""),
+      "Diego disputed the result of Thursday Padel",
+    );
+    assert.equal(raised?.subline, "It finished 4–3");
+  });
+
+  it("tells the player and the Organizers how an Operator decided", () => {
+    const decided = (
+      status: string,
+      actorIsRecipient: boolean,
+      locale: "en" | "ar" = "en",
+    ) =>
+      notificationCopy(
+        {
+          type: "match_dispute_decided",
+          audience: actorIsRecipient ? "player" : "admin",
+          actor: { name: "Diego" },
+          actorIsRecipient,
+          group: null,
+          game,
+          dispute: { status, note: "It finished 4–3" },
+        },
+        locale,
+      );
+    const text = (copy: ReturnType<typeof decided>) =>
+      copy?.title.map((part) => part.text).join("");
+    assert.equal(
+      text(decided("upheld", true)),
+      "Temba upheld your dispute on Thursday Padel",
+    );
+    assert.equal(
+      decided("upheld", true)?.subline,
+      "The score is open again. Enter the right one.",
+    );
+    assert.equal(
+      text(decided("dismissed", false)),
+      "Temba dismissed Diego’s dispute on Thursday Padel",
+    );
+    assert.equal(decided("dismissed", false)?.subline, "The result stands.");
+    assert.notEqual(decided("upheld", false, "ar"), null);
+    assert.equal(decided("open", true), null);
+  });
+
+  it("tells the player an Organizer reopened the score their dispute was on", () => {
+    const superseded = (locale: "en" | "ar") =>
+      notificationCopy(
+        {
+          type: "match_dispute_decided",
+          audience: "player",
+          actor: { name: "Omar" },
+          actorIsRecipient: false,
+          group: null,
+          game,
+          dispute: { status: "superseded", note: "It finished 4–3" },
+        },
+        locale,
+      );
+    assert.equal(
+      superseded("en")
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Omar reopened the score of Thursday Padel",
+    );
+    assert.equal(
+      superseded("en")?.subline,
+      "Your dispute is closed. If the new result is wrong too, you can dispute it.",
+    );
+    assert.notEqual(superseded("ar"), null);
+  });
+
+  it("tells a player their rating and their points move once ratings close", () => {
+    const closed = (
+      ratingHundredths: number | null,
+      locale: "en" | "ar" = "en",
+    ) =>
+      notificationCopy(
+        {
+          type: "performance_ratings_closed",
+          audience: "player",
+          actor: null,
+          group: null,
+          game,
+          tier: {
+            bandAfter: "kanaad",
+            pointsBefore: 1201,
+            pointsAfter: 1219,
+            delta: 18,
+            ratingHundredths,
+            reason: null,
+            note: null,
+          },
+        },
+        locale,
+      );
+    assert.equal(
+      closed(740)
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Ratings are in for Thursday Padel",
+    );
+    assert.equal(
+      closed(740)?.subline,
+      "You were rated 7.4. Tier points +18, now 1,219.",
+    );
+    assert.equal(
+      closed(null)?.subline,
+      "No rating for you this time. Tier points +18 on the result, now 1,219.",
+    );
+    assert.notEqual(closed(740, "ar"), null);
+    assert.equal(
+      notificationCopy(
+        {
+          type: "performance_ratings_closed",
+          audience: "player",
+          actor: null,
+          group: null,
+          game,
+          tier: null,
+        },
+        "en",
+      ),
+      null,
+    );
+  });
+
+  it("tells a player their rating and their OVR move once ratings close on a Match that counts", () => {
+    const closed = (
+      ratingHundredths: number | null,
+      locale: "en" | "ar" = "en",
+    ) =>
+      notificationCopy(
+        {
+          type: "performance_ratings_closed",
+          audience: "player",
+          actor: null,
+          group: null,
+          game,
+          tier: null,
+          ovrMove: { before: 74.2, after: 75, ratingHundredths },
+        },
+        locale,
+      );
+    assert.equal(
+      closed(780)
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Ratings are in for Thursday Padel",
+    );
+    assert.equal(closed(780)?.subline, "You were rated 7.8. OVR +0.8, now 75.");
+    assert.equal(
+      closed(null)?.subline,
+      "No rating for you this time. OVR +0.8, now 75.",
+    );
+    assert.match(closed(780, "ar")?.subline ?? "", /تقييمك/);
+  });
+
   it("returns null without a Game or for the wrong audience", () => {
     assert.equal(mvp({ game: null }), null);
     assert.equal(mvp({ audience: "admin" }), null);
@@ -640,11 +848,71 @@ describe("notificationCopy for a Level set", () => {
     });
   });
 
-  it("has no subline without a reason", () => {
+  it("reads an override from before reasons were required as no reason given", () => {
     assert.equal(
       levelSet({ levelSet: { level: "4.6", levelBand: "B3", reason: null } })
         ?.subline,
-      null,
+      "No reason given",
+    );
+  });
+
+  it("quotes the setter's note after the reason", () => {
+    assert.equal(
+      levelSet({
+        levelSet: {
+          level: "71",
+          levelBand: "C1",
+          reason: "plays_above_results",
+          note: "Assessed over two sessions, plays above 68.",
+        },
+      })?.subline,
+      "Plays above results: “Assessed over two sessions, plays above 68.”",
+    );
+  });
+
+  it("names the Verifier and their Venue on a calibration", () => {
+    assert.deepEqual(
+      levelSet({
+        actor: { name: "Yaser" },
+        group: null,
+        levelSet: {
+          level: "71",
+          levelBand: "C1",
+          reason: "plays_above_results",
+          venue: { name: "Fantasy FC" },
+        },
+      }),
+      {
+        title: [
+          { text: "Yaser", strong: true },
+          { text: " (", strong: false },
+          { text: "Fantasy FC", strong: true },
+          { text: ") calibrated your Level to ", strong: false },
+          { text: "C+ 71", strong: true },
+        ],
+        subline: "Plays above results",
+      },
+    );
+    assert.equal(
+      notificationCopy(
+        {
+          type: "level_set",
+          audience: "player",
+          actor: { name: "ياسر" },
+          group: null,
+          levelSet: {
+            level: "71",
+            levelBand: "C1",
+            reason: "plays_above_results",
+            venue: { name: "Fantasy FC" },
+          },
+        },
+        "ar",
+      )
+        ?.title.map((part) => part.text)
+        .join("")
+        .includes("Fantasy FC"),
+      true,
     );
   });
 
@@ -1137,5 +1405,175 @@ describe("notificationCopy for a Proposal", () => {
       )?.subline,
       "Accept it to propose a time and a venue.",
     );
+  });
+});
+
+describe("notificationCopy for a Tier adjustment", () => {
+  const tier = {
+    bandAfter: "hamour",
+    pointsBefore: 1248,
+    pointsAfter: 1310,
+    reason: "correcting_a_mistake" as const,
+    note: null,
+  };
+
+  it("names the Organizer and the Group, with the reason and the move", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          type: "tier_points_adjusted",
+          audience: "player",
+          actor: { name: "Hussain A" },
+          group: { name: "Thursday Football" },
+          tier,
+        },
+        "en",
+      ),
+      {
+        title: [
+          { text: "Hussain A", strong: true },
+          { text: " adjusted your tier points in ", strong: false },
+          { text: "Thursday Football", strong: true },
+        ],
+        subline: "Fixing a mistake. 1,248 to 1,310.",
+      },
+    );
+  });
+
+  it("quotes the Organizer's note", () => {
+    assert.equal(
+      notificationCopy(
+        {
+          type: "tier_points_adjusted",
+          audience: "player",
+          actor: { name: "Hussain A" },
+          group: { name: "Thursday Football" },
+          tier: { ...tier, note: "Plays Div 1" },
+        },
+        "en",
+      )?.subline,
+      "Fixing a mistake: “Plays Div 1” 1,248 to 1,310.",
+    );
+  });
+
+  it("tells a player their fish moved", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          type: "tier_band_changed",
+          audience: "player",
+          actor: { name: "Hussain A" },
+          group: { name: "Thursday Football" },
+          tier: { ...tier, bandAfter: "kanaad", reason: null },
+        },
+        "en",
+      ),
+      {
+        title: [
+          { text: "You’re now a ", strong: false },
+          { text: "Kanaad", strong: true },
+          { text: " in ", strong: false },
+          { text: "Thursday Football", strong: true },
+        ],
+        subline:
+          "Tiers are places, so when one player moves, someone moves the other way.",
+      },
+    );
+  });
+
+  it("returns null without the Tier event", () => {
+    for (const type of ["tier_points_adjusted", "tier_band_changed"]) {
+      assert.equal(
+        notificationCopy(
+          {
+            type,
+            audience: "player",
+            actor: null,
+            group: { name: "Thursday Football" },
+            tier: null,
+          },
+          "en",
+        ),
+        null,
+      );
+    }
+  });
+
+  it("reads in Arabic", () => {
+    const copy = notificationCopy(
+      {
+        type: "tier_band_changed",
+        audience: "player",
+        actor: null,
+        group: { name: "Thursday Football" },
+        tier: { ...tier, bandAfter: "shark" },
+      },
+      "ar",
+    );
+    assert.equal(copy?.title[1]?.text, "قرش");
+  });
+});
+
+describe("notificationCopy: a confirmed Level", () => {
+  const game = (sport: string | null) => ({
+    name: null,
+    format: "friendly_game",
+    sport,
+    windowStart: null,
+  });
+
+  it("names the sport whose Level the Match confirmed", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          type: "level_confirmed",
+          audience: "player",
+          actor: null,
+          group: null,
+          game: game("football"),
+        },
+        "en",
+      ),
+      {
+        title: [
+          { text: "Your ", strong: false },
+          { text: "Football", strong: true },
+          { text: " Level is confirmed", strong: false },
+        ],
+        subline:
+          "The track is no longer hatched. It keeps moving on verified matches.",
+      },
+    );
+    assert.equal(
+      notificationCopy(
+        {
+          type: "level_confirmed",
+          audience: "player",
+          actor: null,
+          group: null,
+          game: game("padel"),
+        },
+        "ar",
+      )?.title[1]?.text,
+      "بادل",
+    );
+  });
+
+  it("returns null without the Game's sport", () => {
+    for (const value of [null, undefined]) {
+      assert.equal(
+        notificationCopy(
+          {
+            type: "level_confirmed",
+            audience: "player",
+            actor: null,
+            group: null,
+            game: value === null ? game(null) : null,
+          },
+          "en",
+        ),
+        null,
+      );
+    }
   });
 });

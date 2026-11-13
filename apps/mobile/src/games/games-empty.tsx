@@ -8,6 +8,8 @@ import {
   gamesHubEmptyLine,
   gamesHubEmptySeats,
   gamesHubEmptyTitle,
+  publicGamesEmptyLine,
+  publicGamesEmptyTitle,
 } from "@repo/domain/games-hub-empty-states";
 import { Users } from "lucide-react-native";
 import { View } from "react-native";
@@ -108,6 +110,51 @@ export function UpcomingEmpty({
           onPress={onFindGroup}
         />
       </View>
+    </View>
+  );
+}
+
+/**
+ * The Public tab with no Public Game to show: an open Game drawn with every
+ * seat hatched, and the way to make one.
+ */
+export function PublicEmpty({
+  sportFilter,
+  onCreate,
+}: {
+  sportFilter: SportFilter;
+  onCreate: () => void;
+}) {
+  const locale = useLocale();
+  const m = useMessages().mobileTournament.games;
+  return (
+    <View style={{ gap: spacing.compact }}>
+      <Surface padded={false} style={{ overflow: "hidden" }}>
+        <View style={{ padding: spacing.surface, gap: spacing.compact }}>
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}
+          >
+            {Array.from(
+              { length: gamesHubEmptySeats(sportFilter) },
+              (_, index) => (
+                <View
+                  key={index}
+                  style={{ width: SEAT_SIZE, height: SEAT_SIZE }}
+                >
+                  <Hatch radius={radii.sm} />
+                </View>
+              ),
+            )}
+          </View>
+          <EmptyHeading
+            title={publicGamesEmptyTitle(locale)}
+            line={publicGamesEmptyLine(sportFilter, locale)}
+          />
+        </View>
+      </Surface>
+      <Button label={m.createGame} size="lg" onPress={onCreate} />
     </View>
   );
 }

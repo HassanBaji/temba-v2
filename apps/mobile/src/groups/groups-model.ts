@@ -28,8 +28,29 @@ export function groupPath(groupId: string) {
   return `/groups/${groupId}`;
 }
 
+/** Group home opened on its Members tab. */
+export function groupMembersPath(groupId: string) {
+  return `/groups/${groupId}?tab=members`;
+}
+
 export function groupSeasonsPath(groupId: string) {
   return { pathname: "/groups/seasons", params: { groupId } } as const;
+}
+
+/** Points and history; without `userId`, the viewer's own. */
+export function groupTierHistoryPath(groupId: string, userId?: string) {
+  const query = new URLSearchParams({ groupId });
+  if (userId) {
+    query.set("userId", userId);
+  }
+  return `/groups/tier-history?${query.toString()}`;
+}
+
+export function groupRatingSettingsPath(groupId: string) {
+  return {
+    pathname: "/groups/rating-settings",
+    params: { groupId },
+  } as const;
 }
 
 export function groupNewSeasonPath(groupId: string) {

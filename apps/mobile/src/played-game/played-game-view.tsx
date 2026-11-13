@@ -21,6 +21,8 @@ export type PlayedGameViewProps = {
   board: React.ReactNode;
   /** The MVP row, last in the hero. */
   heroFooter?: React.ReactNode;
+  /** A task that closes soon, such as Rate the game, first under the hero. */
+  task?: React.ReactNode;
   /** The marks rows, between the columns and the facts. */
   marks?: React.ReactNode;
   /** Album and Notes, between the facts and Share. */
@@ -28,6 +30,8 @@ export type PlayedGameViewProps = {
   columns: [PlayedColumn, PlayedColumn];
   unplaced?: PlayedRow[];
   facts: PlayedFact[];
+  /** The Match dispute row, under the facts. */
+  dispute?: React.ReactNode;
   refreshing: boolean;
   onRefresh: () => void;
   onShare: () => void;
@@ -40,11 +44,13 @@ export function PlayedGameView({
   hero,
   board,
   heroFooter,
+  task,
   marks,
   album,
   columns,
   unplaced,
   facts,
+  dispute,
   refreshing,
   onRefresh,
   onShare,
@@ -69,6 +75,7 @@ export function PlayedGameView({
         </PlayedHero>
       }
     >
+      {task}
       <PlayedColumns
         columns={columns}
         unplaced={unplaced}
@@ -76,6 +83,7 @@ export function PlayedGameView({
       />
       {marks}
       <InfoRows rows={facts} />
+      {dispute}
       {album}
       <View>
         <Button

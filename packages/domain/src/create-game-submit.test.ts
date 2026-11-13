@@ -157,6 +157,95 @@ const football = {
   playersAllowed: 12,
 } as const;
 
+describe("validateFriendlyGameSubmit Public Game", () => {
+  it("sends no Group, isPublic and no Rating choice", () => {
+    const result = validateFriendlyGameSubmit(
+      {
+        ...game,
+        groupId: "",
+        isPublic: true,
+        rated: false,
+        levelMin: "C",
+        levelMax: "B",
+      },
+      NOW,
+      "en",
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal("groupId" in result.input, false);
+      assert.equal(result.input.isPublic, true);
+      assert.equal("rated" in result.input, false);
+      assert.equal(typeof result.input.levelMinTenths, "number");
+    }
+  });
+
+  it("still asks for a Group when the draft is not public", () => {
+    const result = validateFriendlyGameSubmit(
+      { ...game, groupId: "" },
+      NOW,
+      "en",
+    );
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.field, "groupId");
+      assert.equal(result.step, 2);
+    }
+  });
+
+  it("asks a Public Game for a Venue", () => {
+    const result = validateFriendlyGameSubmit(
+      { ...game, groupId: "", venueId: "", isPublic: true },
+      NOW,
+      "en",
+    );
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.field, "venueId");
+    }
+  });
+});
+
+describe("validateFootballGameSubmit Public Game", () => {
+  it("sends football with no Group, isPublic, the OVR range and no Rating choice", () => {
+    const result = validateFootballGameSubmit(
+      {
+        ...football,
+        groupId: "",
+        isPublic: true,
+        rated: false,
+        levelMin: "C+",
+        levelMax: "B",
+      },
+      NOW,
+      "en",
+      { levelRange: true },
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal("groupId" in result.input, false);
+      assert.equal(result.input.isPublic, true);
+      assert.equal(
+        "sport" in result.input ? result.input.sport : null,
+        "football",
+      );
+      assert.equal("rated" in result.input, false);
+      assert.equal(result.input.sideSize, 5);
+      assert.equal(result.input.levelMinTenths, 35);
+      assert.equal(result.input.levelMaxTenths, 55);
+    }
+  });
+
+  it("still needs a Venue", () => {
+    const result = validateFootballGameSubmit(
+      { ...football, groupId: "", venueId: "", isPublic: true },
+      NOW,
+      "en",
+    );
+    assert.equal(result.ok ? null : result.field, "venueId");
+  });
+});
+
 describe("validateFootballGameSubmit", () => {
   it("sends the side size and cap with no sport, Level range or seats", () => {
     const result = validateFootballGameSubmit(
@@ -176,6 +265,48 @@ describe("validateFootballGameSubmit", () => {
       assert.equal("sport" in result.input, false);
       assert.equal("levelMinTenths" in result.input, false);
       assert.equal("levelMaxTenths" in result.input, false);
+    }
+  });
+
+  it("sends a Level range only on a Game that counts for Temba Level", () => {
+    const draft = { ...football, levelMin: "C+", levelMax: "B" } as const;
+    const ignored = validateFootballGameSubmit(draft, NOW, "en");
+    assert.ok(ignored.ok);
+    if (ignored.ok) {
+      assert.equal("levelMinTenths" in ignored.input, false);
+    }
+    const counting = validateFootballGameSubmit(draft, NOW, "en", {
+      levelRange: true,
+    });
+    assert.ok(counting.ok);
+    if (counting.ok) {
+      assert.equal(counting.input.levelMinTenths, 35);
+      assert.equal(typeof counting.input.levelMaxTenths, "number");
+    }
+    const inverted = validateFootballGameSubmit(
+      { ...football, levelMin: "B", levelMax: "C+" },
+      NOW,
+      "en",
+      { levelRange: true },
+    );
+    assert.equal(inverted.ok, false);
+  });
+
+  it("sends only the Unrated choice", () => {
+    const unrated = validateFootballGameSubmit(
+      { ...football, rated: false },
+      NOW,
+      "en",
+    );
+    const rated = validateFootballGameSubmit(
+      { ...football, rated: true },
+      NOW,
+      "en",
+    );
+    assert.ok(unrated.ok && rated.ok);
+    if (unrated.ok && rated.ok) {
+      assert.equal(unrated.input.rated, false);
+      assert.equal("rated" in rated.input, false);
     }
   });
 

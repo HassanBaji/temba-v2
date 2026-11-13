@@ -7,7 +7,7 @@ import {
   scorersNote,
   scorersPayload,
   shortName,
-  sideAverage,
+  sideOvrAverage,
   type Bibs,
   type BoardPlayer,
   type ScoreDraft,
@@ -37,6 +37,7 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
@@ -57,6 +58,7 @@ function SideStepper({
   onStep: (delta: -1 | 1) => void;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   const t = m.webTournament.footballScore;
   return (
     <div className="flex flex-1 flex-col items-center gap-2.5 py-5">
@@ -90,7 +92,7 @@ function SideStepper({
         </Button>
       </div>
       <span className="text-muted-foreground text-meta">
-        {m.game.played.avg(sideAverage(members))}
+        {m.game.played.avg(sideOvrAverage(members, locale))}
       </span>
     </div>
   );
@@ -202,6 +204,7 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
         utils.games.footballBoard.invalidate({ gameId }),
         utils.games.byId.invalidate({ id: gameId }),
         utils.games.listMyGames.invalidate(),
+        invalidateRatingReads(utils),
       ]);
       router.push(gameHref);
     },

@@ -10,14 +10,21 @@ export const level = {
   rangeOutsideParty: "A User's Level is outside this Game's range",
   rangePartner: "That User's Level is outside this Game's range",
   rangeTeam: "A Team partner's Level is outside this Game's range",
+  range: (min: string, max: string) => `${min} to ${max}`,
   andUp: (band: string) => `${band} and up`,
   andUnder: (band: string) => `${band} and under`,
+  ovr: (value: string) => `OVR ${value}`,
+  ovrRange: (min: string, max: string) => `OVR ${min} to ${max}`,
+  ovrAndUp: (min: string) => `OVR ${min} and up`,
+  ovrAndUnder: (max: string) => `OVR ${max} and under`,
   prose: (label: string) => `Level ${label}`,
   gateNoLevel:
     "You don't have a Level yet. Declare one on You, or request to play.",
   gate: (range: string, band: string) =>
     `This Game is for ${range}. Your Level is ${band}.`,
   gateRangeFallback: "this Game's range",
+  gateNoOvr: (range: string) =>
+    `This Game is for ${range}. You don't have a football OVR yet, so you're outside it. Declare a football Level on You, or request to play.`,
   request: {
     title: "Request to play",
     sent: "Request sent",
@@ -36,6 +43,8 @@ export const level = {
   },
   overrideCaption: (who: string, when: string) => `Set by ${who}, ${when}`,
   overrideByYou: "you",
+  noReasonGiven: "No reason given",
+  overrideWhyWithNote: (reason: string, note: string) => `${reason}: “${note}”`,
   errors: {
     pickFootball: "Pick a football Level",
     pickPadel: "Pick a padel Level",
@@ -43,10 +52,20 @@ export const level = {
     alreadyDeclared: "You have already declared a Level",
     groupOrganizerSets: "Only an Organizer of this Group can set a Group Level",
     ownGroupLevel: "You cannot set your own Group Level",
+    groupLevelRetired:
+      "Groups no longer have their own level. Organizers of a football group adjust tier points instead.",
     notGroupMember: "That User is not a member of this Group",
     noSport: "This Group has no sport, so it has no Levels",
     footballFromResults: "Football Levels arrive with results",
     groupMembersSet: "Only Group members can set a Level",
     ownLevel: "You cannot set your own Level",
+    reasonRequired: "Pick a reason. The player will see it.",
+    levelOrOvr: "Set a Level or an OVR, one of the two",
+    ovrFootballOnly:
+      "OVR is the football Level. Set a padel Level from 0.0 to 7.0",
+    ovrBetween: "OVR must be a whole number from 40 to 99",
+    notVerifier: "Only a verifier can calibrate a Level",
+    notAtVerifierVenue:
+      "You can calibrate only a player who played at your venue or belongs to one of its club groups",
   },
 };

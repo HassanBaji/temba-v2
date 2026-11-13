@@ -1,6 +1,8 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { formatOvr, ovrFromLevel } from "./football-ovr";
+import { formatPadelLevel } from "./level";
 import {
   displayLabelFromStoredBand,
   isAssignableDisplayLevelBand,
@@ -197,11 +199,75 @@ export function parseLevelBandSelectTenths(
   return null;
 }
 
-export function formatLevelRangeLabel(
+/** A Level range bound in OVR, for a football Game (ADR-0069). */
+function ovrOfTenths(tenths: number) {
+  const clamped = Math.min(
+    LEVEL_TENTHS_MAX,
+    Math.max(LEVEL_TENTHS_MIN, tenths),
+  );
+  return formatOvr(ovrFromLevel(clamped / 10));
+}
+
+function formatOvrRangeLabel(
   levelMinTenths: number | null | undefined,
   levelMaxTenths: number | null | undefined,
   locale: Locale,
 ): string | null {
+  const m = messagesFor(locale).level;
+  const min = levelMinTenths == null ? null : ovrOfTenths(levelMinTenths);
+  const max = levelMaxTenths == null ? null : ovrOfTenths(levelMaxTenths);
+  if (min && max) {
+    return min === max ? m.ovr(min) : m.ovrRange(min, max);
+  }
+  if (min) {
+    return m.ovrAndUp(min);
+  }
+  if (max) {
+    return m.ovrAndUnder(max);
+  }
+  return null;
+}
+
+/**
+ * A Level range as its sport reads a Level: "OVR 60 to 72" on football, and
+ * the padel Level to one decimal, "2.8 to 4.8". Null when neither end is set.
+ */
+export function formatLevelRangeFaceLabel(
+  levelMinTenths: number | null | undefined,
+  levelMaxTenths: number | null | undefined,
+  locale: Locale,
+  sport?: string | null,
+): string | null {
+  if (sport === "football") {
+    return formatOvrRangeLabel(levelMinTenths, levelMaxTenths, locale);
+  }
+  const m = messagesFor(locale).level;
+  const min =
+    levelMinTenths == null ? null : formatPadelLevel(levelMinTenths / 10, 1);
+  const max =
+    levelMaxTenths == null ? null : formatPadelLevel(levelMaxTenths / 10, 1);
+  if (min && max) {
+    return min === max ? min : m.range(min, max);
+  }
+  if (min) {
+    return m.andUp(min);
+  }
+  if (max) {
+    return m.andUnder(max);
+  }
+  return null;
+}
+
+/** A Game's Level range: in Level bands, and in OVR on football. */
+export function formatLevelRangeLabel(
+  levelMinTenths: number | null | undefined,
+  levelMaxTenths: number | null | undefined,
+  locale: Locale,
+  sport?: string | null,
+): string | null {
+  if (sport === "football") {
+    return formatOvrRangeLabel(levelMinTenths, levelMaxTenths, locale);
+  }
   const messages = messagesFor(locale);
   const m = messages.level;
   const minLabel =
@@ -231,9 +297,18 @@ export function formatLevelRangeProseLabel(
   levelMinTenths: number | null | undefined,
   levelMaxTenths: number | null | undefined,
   locale: Locale,
+  sport?: string | null,
 ): string | null {
-  const label = formatLevelRangeLabel(levelMinTenths, levelMaxTenths, locale);
-  return label ? messagesFor(locale).level.prose(label) : null;
+  const label = formatLevelRangeLabel(
+    levelMinTenths,
+    levelMaxTenths,
+    locale,
+    sport,
+  );
+  if (!label) {
+    return null;
+  }
+  return sport === "football" ? label : messagesFor(locale).level.prose(label);
 }
 
 export function formatLevelRangeGateCopy(args: {
@@ -241,19 +316,25 @@ export function formatLevelRangeGateCopy(args: {
   levelMaxTenths: number | null | undefined;
   viewerLevelTenths: number | null | undefined;
   locale: Locale;
+  sport?: string | null;
 }): string {
   const m = messagesFor(args.locale).level;
-  if (args.viewerLevelTenths == null) {
-    return m.gateNoLevel;
-  }
   const range =
     formatLevelRangeProseLabel(
       args.levelMinTenths,
       args.levelMaxTenths,
       args.locale,
+      args.sport,
     ) ?? m.gateRangeFallback;
+  if (args.viewerLevelTenths == null) {
+    // A padel Level does not count on a football Game: with no football
+    // Rating the player is outside any OVR range.
+    return args.sport === "football" ? m.gateNoOvr(range) : m.gateNoLevel;
+  }
   return m.gate(
     range,
-    displayLabelFromStoredBand(tenthsToLevelBand(args.viewerLevelTenths)),
+    args.sport === "football"
+      ? m.ovr(ovrOfTenths(args.viewerLevelTenths))
+      : displayLabelFromStoredBand(tenthsToLevelBand(args.viewerLevelTenths)),
   );
 }

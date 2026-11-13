@@ -12,7 +12,7 @@ import {
   type MatchOutcome,
   type ResultMarkVariant,
 } from "./result-mark";
-import type { Sport } from "./sport";
+import { sportOrDefault, type Sport } from "./sport";
 import { teamAvatarPeople } from "./team-avatar-people";
 import { teamLevelLabel } from "./team-level";
 import {
@@ -407,6 +407,7 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
     badges,
     teamLevel: teamLevelLabel(
       data.members.map((member) => member.level),
+      sportOrDefault(data.sport),
       locale,
     ),
     people: data.members.map((member) => ({

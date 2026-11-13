@@ -7,6 +7,10 @@ import {
   changeFootballSideSize,
   changeCreateGroup,
   changeCreateVenue,
+  choosePublicGame,
+  choosePublicGameSport,
+  createLevelRangeShown,
+  isPublicGameDraft,
   openLevelRange,
   resetCreateBranch,
   selectDurationFinish,
@@ -54,6 +58,8 @@ export type CreateAction =
   | { kind: "selectType"; type: CreateGameTypeId }
   | { kind: "setStep"; step: CreateFlowStep }
   | { kind: "setGroup"; groupId: string; sport?: string | null }
+  | { kind: "choosePublic" }
+  | { kind: "setPublicSport"; sport: Sport }
   | { kind: "setSideSize"; sideSize: number }
   | { kind: "setPlayersAllowed"; playersAllowed: number }
   | { kind: "setVenue"; venueId: string }
@@ -142,6 +148,16 @@ export function createReducer(
             : resetCreateBranch(grouped, "friendly_game", locale),
       };
     }
+    case "choosePublic": {
+      const chosen = choosePublicGame(draft);
+      return { ...state, sport: chosen.publicSport, draft: chosen };
+    }
+    case "setPublicSport":
+      return {
+        ...state,
+        sport: action.sport,
+        draft: choosePublicGameSport(draft, action.sport),
+      };
     case "setSideSize":
       return {
         ...state,
@@ -292,6 +308,7 @@ export function advance(
       draft.groupId,
       draft.venueId,
       locale,
+      isPublicGameDraft(draft),
     );
     if (!where.ok) {
       return blockedBy({
@@ -331,7 +348,7 @@ export function continueBlocked(state: CreateState): boolean {
     return state.type === null;
   }
   if (state.step === 2) {
-    return state.draft.groupId === "";
+    return state.draft.groupId === "" && !isPublicGameDraft(state.draft);
   }
   return false;
 }
@@ -389,7 +406,15 @@ export function submitRequest(
       : issueResult(result);
   }
   if (state.sport === "football") {
-    const football = validateFootballGameSubmit(state.draft, now, locale);
+    const football = validateFootballGameSubmit(state.draft, now, locale, {
+      levelRange: createLevelRangeShown({
+        sport: "football",
+        hasGroup: Boolean(state.draft.groupId),
+        groupVerified,
+        rated: state.draft.rated,
+        isPublic: isPublicGameDraft(state.draft),
+      }),
+    });
     return football.ok
       ? {
           ok: true,

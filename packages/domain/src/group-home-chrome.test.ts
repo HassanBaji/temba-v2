@@ -10,10 +10,11 @@ import {
   groupHomeSportLabel,
   groupMemberOrganizerAction,
   groupMemberOrganizerActionLabel,
+  groupLevelFace,
   groupShowsLevel,
   groupStandingRecordLabel,
   levelCellView,
-  viewerMaySetGroupLevel,
+  viewerMayAdjustTier,
 } from "./group-home-chrome";
 
 describe("groupHomeBackTarget", () => {
@@ -177,14 +178,44 @@ describe("levelCellView", () => {
     assert.deepEqual(levelCellView(null, false), bare);
     assert.deepEqual(levelCellView(undefined, false), bare);
     assert.deepEqual(levelCellView(null, true), bare);
+    assert.deepEqual(levelCellView(null, false, 72), bare);
+  });
+
+  it("gives the OVR face with the band when the OVR is given", () => {
+    assert.deepEqual(levelCellView("C1", false, 72.4), {
+      kind: "label",
+      label: "C+ 72",
+    });
+    assert.deepEqual(levelCellView("C3", true, 61), {
+      kind: "provisional",
+      label: "C- 61",
+    });
+    assert.deepEqual(levelCellView("B3", false, null), {
+      kind: "label",
+      label: "B-",
+    });
   });
 });
 
 describe("groupShowsLevel", () => {
-  it("hides the Level on a football Group only", () => {
+  it("hides the Level on a tier Group only", () => {
     assert.equal(groupShowsLevel("football"), false);
+    assert.equal(groupShowsLevel("football", false), false);
     assert.equal(groupShowsLevel("padel"), true);
     assert.equal(groupShowsLevel(null), true);
+  });
+
+  it("shows the Level on a Verified football Group", () => {
+    assert.equal(groupShowsLevel("football", true), true);
+    assert.equal(groupShowsLevel("padel", true), true);
+  });
+});
+
+describe("groupLevelFace", () => {
+  it("reads OVR on football and the Level elsewhere", () => {
+    assert.equal(groupLevelFace("football"), "ovr");
+    assert.equal(groupLevelFace("padel"), "level");
+    assert.equal(groupLevelFace(null), "level");
   });
 });
 
@@ -232,44 +263,20 @@ describe("groupMemberOrganizerAction", () => {
   });
 });
 
-describe("viewerMaySetGroupLevel", () => {
-  const viewer = { isViewer: true, isOrganizer: false };
-  const organizer = { isViewer: true, isOrganizer: true };
-
-  it("lets an Organizer of a padel Group set Group Levels", () => {
+describe("viewerMayAdjustTier", () => {
+  it("lets an Organizer of a tier Group adjust Tier points", () => {
+    const organizer = { isViewer: true, isOrganizer: true };
+    const member = { isViewer: true, isOrganizer: false };
     assert.equal(
-      viewerMaySetGroupLevel({
-        sport: "padel",
-        canCreateGame: true,
-        leaderboard: [viewer],
-      }),
+      viewerMayAdjustTier({ hasTier: true, leaderboard: [organizer] }),
       true,
     );
     assert.equal(
-      viewerMaySetGroupLevel({
-        sport: "padel",
-        canCreateGame: false,
-        leaderboard: [organizer],
-      }),
-      true,
-    );
-  });
-
-  it("refuses a member who does not organize, and a football Group", () => {
-    assert.equal(
-      viewerMaySetGroupLevel({
-        sport: "padel",
-        canCreateGame: false,
-        leaderboard: [viewer],
-      }),
+      viewerMayAdjustTier({ hasTier: true, leaderboard: [member] }),
       false,
     );
     assert.equal(
-      viewerMaySetGroupLevel({
-        sport: "football",
-        canCreateGame: true,
-        leaderboard: [organizer],
-      }),
+      viewerMayAdjustTier({ hasTier: false, leaderboard: [organizer] }),
       false,
     );
   });

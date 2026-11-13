@@ -3,6 +3,7 @@ import { createGroupFixtures } from "@repo/domain/group-fixtures";
 
 import {
   groupNewSeasonPath,
+  groupRatingSettingsPath,
   groupPath,
   groupRowView,
   groupSeasonsPath,
@@ -118,6 +119,15 @@ describe("groupSeasonsPath", () => {
     });
     expect(groupNewSeasonPath("g1")).toEqual({
       pathname: "/groups/new-season",
+      params: { groupId: "g1" },
+    });
+  });
+});
+
+describe("groupRatingSettingsPath", () => {
+  it("opens the Group's Rating settings", () => {
+    expect(groupRatingSettingsPath("g1")).toEqual({
+      pathname: "/groups/rating-settings",
       params: { groupId: "g1" },
     });
   });

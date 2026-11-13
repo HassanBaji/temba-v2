@@ -157,19 +157,17 @@ export const webGroup = {
       `${percent}% من ${isolate(band)}`,
     decrease: "خفض المستوى بمقدار 0.1",
     increase: "رفع المستوى بمقدار 0.1",
+    decreaseOvr: "خفض OVR بمقدار 1",
+    increaseOvr: "رفع OVR بمقدار 1",
     reset: "إعادة ضبط",
-    reason: "السبب",
+    why: (name: string) => `لماذا؟ سيرى ${isolate(name)} هذا.`,
+    noteLabel: "ملاحظة",
+    notePlaceholder: "أضف ملاحظة (اختياري)",
+    pickReason: "اختر سببًا للحفظ",
     confirmedNote:
       "المستوى الذي تحدده يُعدّ مؤكدًا. تواصل المباريات المصنّفة تحريكه من هنا.",
     provisionalNote: (name: string) =>
       `لن يبقى ${name} مبدئيًا، ولن يغيّر التحديد مجددًا ذلك.`,
     setTo: (level: string) => `تحديد إلى ${isolate(level)}`,
-  },
-  setGroupLevel: {
-    current: (level: string) => `مستواه في المجموعة الآن، ${level}`,
-    tembaMarker: (level: string) => `Temba ${level}`,
-    startsFrom: (level: string) => `يبدأ من مستوى Temba لديه، ${level}`,
-    startsFromDefault: "لا مستوى Temba بعد، لذا يبدأ من 3.0",
-    level: "مستوى المجموعة",
   },
 } satisfies typeof source;

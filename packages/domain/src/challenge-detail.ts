@@ -17,8 +17,7 @@ import {
   formatGameStart,
 } from "./format-game-start";
 import { initials } from "./initials";
-import { displayLabelFromStoredBand } from "./level-bands";
-import { tenthsToLevelBand } from "./level-range";
+import { formatLevelRangeFaceLabel } from "./level-range";
 import { shortPlayerName } from "./player-name";
 import { formatPricePerPlayerFils } from "./price-per-player";
 import { sportLabel } from "./sport";
@@ -137,29 +136,17 @@ export function challengeDetailStatusLine(
   }
 }
 
-function bandLabel(tenths: number) {
-  return displayLabelFromStoredBand(tenthsToLevelBand(tenths));
-}
-
-/** "C to B−", "B and up", "Any level". */
+/** "OVR 60 to 72" on football, "2.8 and up" on padel, "Any level". */
 export function challengeLevelValue(
   levelMinTenths: number | null,
   levelMaxTenths: number | null,
   locale: Locale,
+  sport: string,
 ) {
-  const m = messagesFor(locale).challenge.detailScreen.level;
-  const min = levelMinTenths == null ? null : bandLabel(levelMinTenths);
-  const max = levelMaxTenths == null ? null : bandLabel(levelMaxTenths);
-  if (min && max) {
-    return min === max ? min : m.range(min, max);
-  }
-  if (min) {
-    return m.andUp(min);
-  }
-  if (max) {
-    return m.andUnder(max);
-  }
-  return m.any;
+  return (
+    formatLevelRangeFaceLabel(levelMinTenths, levelMaxTenths, locale, sport) ??
+    messagesFor(locale).challenge.detailScreen.level.any
+  );
 }
 
 function sameSet(
@@ -253,6 +240,7 @@ export function challengeDetailRows(
         input.levelMinTenths,
         input.levelMaxTenths,
         locale,
+        input.sport,
       ),
     },
     {
@@ -396,6 +384,15 @@ export type ChallengeProposalCardView = ReturnType<
 export function challengeProposalFootnote(sport: string, locale: Locale) {
   const m = messagesFor(locale).challenge.detailScreen.proposal.footnote;
   return sport === "football" ? m.football : m.padel;
+}
+
+/** The "Make it a game?" line: a football Game also says when it counts for Temba Level. */
+export function challengeConfirmSheetDescription(
+  sport: string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).challenge.proposal.confirmSheet;
+  return sport === "football" ? m.descriptionFootball : m.description;
 }
 
 export type ChallengeConfirmedInput = {

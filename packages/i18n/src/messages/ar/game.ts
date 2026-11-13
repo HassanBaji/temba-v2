@@ -334,14 +334,24 @@ export const game = {
   },
   rating: {
     unratedGameLine: "هذه المباراة لا تغيّر مستوى أحد.",
-    stillProvisional: (band: string, remaining: number) =>
-      `ما زلت ${band}. ${plural("ar", remaining, {
-        one: "نحو مباراة مصنّفة واحدة أخرى ويتأكد مستواك.",
-        two: "نحو مباراتين مصنّفتين أخريين ويتأكد مستواك.",
-        few: "نحو {n} مباريات مصنّفة أخرى ويتأكد مستواك.",
-        many: "نحو {n} مباراة مصنّفة أخرى ويتأكد مستواك.",
-        other: "نحو {n} مباراة مصنّفة أخرى ويتأكد مستواك.",
-      })}`,
+    stillProvisional: {
+      padel: (band: string, remaining: number) =>
+        `ما زلت ${band}. ${plural("ar", remaining, {
+          one: "مباراة مصنّفة واحدة أخرى في مجموعة موثّقة ويتأكد مستواك.",
+          two: "مباراتان مصنّفتان أخريان في مجموعة موثّقة ويتأكد مستواك.",
+          few: "{n} مباريات مصنّفة أخرى في مجموعة موثّقة ويتأكد مستواك.",
+          many: "{n} مباراة مصنّفة أخرى في مجموعة موثّقة ويتأكد مستواك.",
+          other: "{n} مباراة مصنّفة أخرى في مجموعة موثّقة ويتأكد مستواك.",
+        })}`,
+      football: (band: string, remaining: number) =>
+        `ما زلت ${band}. ${plural("ar", remaining, {
+          one: "مباراة موثّقة واحدة أخرى ويتأكد مستواك.",
+          two: "مباراتان موثّقتان أخريان ويتأكد مستواك.",
+          few: "{n} مباريات موثّقة أخرى ويتأكد مستواك.",
+          many: "{n} مباراة موثّقة أخرى ويتأكد مستواك.",
+          other: "{n} مباراة موثّقة أخرى ويتأكد مستواك.",
+        })}`,
+    },
     stillConfirmed: (band: string) =>
       `ما زلت ${band}. مستواك مؤكد — يتحرك مع كل مباراة مصنّفة تلعبها.`,
     increasedBy: (magnitude: string) => `ارتفع المستوى بمقدار ${magnitude}`,
@@ -623,6 +633,11 @@ export const game = {
     courtNotSelectedVenue: "يجب أن يكون الملعب تابعًا للنادي المختار",
     pickFootballPitch: "اختر ملعب كرة قدم",
     padelCourtRequired: "يجب أن يكون الملعب ملعب بادل",
+    publicGameOnly: "المباراة بلا مجموعة يجب أن تكون مباراة ودية عامة",
+    publicGamePartnerVenue: "يجب أن تكون المباراة العامة في نادٍ شريك",
+    publicGamePadelVenue: "تحتاج المباراة العامة إلى نادٍ فيه ملاعب بادل",
+    publicGameFootballVenue: "تحتاج المباراة العامة إلى نادٍ فيه ملعب كرة قدم",
+    publicGameSportOnly: "المباراة العامة وحدها تختار رياضتها",
     gameTeamNotOnGame: "هذا الفريق ليس في هذه المباراة",
     americanoNoSets: "لا أشواط في الأمريكانو حاليًا",
     setsCancelledMatch: "لا يمكن تغيير الأشواط في مباراة ملغاة",

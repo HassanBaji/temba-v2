@@ -134,6 +134,50 @@ describe("playedPadelModel", () => {
     ]);
   });
 
+  it("says a Public Game's unconfirmed score stood and did not count", () => {
+    const stood = playedPadelModel(
+      {
+        ...place,
+        sides,
+        viewerUserId: VIEWER,
+        match: { ...match, stoodUnconfirmed: true },
+        groupName: null,
+        rated: true,
+        publicGame: true,
+        ratingImpact: null,
+        confirmation: { confirmedByOrganizer: false },
+      },
+      "en",
+    );
+    assert.equal(
+      stood.you?.ratingLine,
+      "Not confirmed in time. It did not count.",
+    );
+    assert.deepEqual(stood.facts, [
+      { label: "Confirmed", value: "Not in time" },
+      { label: "Format", value: "3 sets" },
+      { label: "Rating", value: "Counts for Temba Level" },
+    ]);
+  });
+
+  it("names the Verifier who stamped the score", () => {
+    const stamped = playedPadelModel(
+      {
+        ...place,
+        sides,
+        viewerUserId: VIEWER,
+        match: { ...match, stamp: { verifierName: "Sara Ali" } },
+        groupName: null,
+        rated: true,
+        publicGame: true,
+        ratingImpact: null,
+        confirmation: { confirmedByOrganizer: false },
+      },
+      "en",
+    );
+    assert.equal(stamped.facts[0]?.value, "Stamped by Sara Ali");
+  });
+
   it("names a group rated Match by its Rating scope", () => {
     const group = playedPadelModel(
       {
@@ -149,10 +193,10 @@ describe("playedPadelModel", () => {
       },
       "en",
     );
-    assert.equal(group.you?.ratingLine, "Counts for group rating");
+    assert.equal(group.you?.ratingLine, "Did not count for Temba Level");
     assert.deepEqual(group.facts.at(-1), {
       label: "Rating",
-      value: "Counts for group rating",
+      value: "Did not count for Temba Level",
     });
   });
 
@@ -306,6 +350,67 @@ describe("playedFootballModel", () => {
     },
     "en",
   );
+
+  it("says a football Public Game's unconfirmed score stood and did not count", () => {
+    const stood = playedFootballModel(
+      {
+        windowStart: new Date("2026-11-02T16:00:00.000Z"),
+        windowEnd: new Date("2026-11-02T17:30:00.000Z"),
+        venue: { name: "Fantasy FC", city: "Arad" },
+        courtName: "Pitch 2",
+        players: footballPlayers,
+        bibs: { slot1: "black", slot2: "white" },
+        score: { slot1: 6, slot2: 7 },
+        confirmed: { slot1: true, slot2: false },
+        enteredByName: "Nematulla Said",
+        teamsMethod: "manual",
+        sideSize: 6,
+        groupName: null,
+        rated: true,
+        ratingImpact: null,
+        stoodUnconfirmed: true,
+      },
+      "en",
+    );
+    assert.equal(
+      stood.you?.ratingLine,
+      "Not confirmed in time. It did not count.",
+    );
+    const fact = (label: string) =>
+      stood.facts.find((row) => row.label === label)?.value;
+    assert.equal(fact("Confirmed"), "Not in time");
+    assert.equal(
+      fact(messagesFor("en").game.played.countsForRatingLabel),
+      "No",
+    );
+  });
+
+  it("names the Verifier who stamped a football score", () => {
+    const stamped = playedFootballModel(
+      {
+        windowStart: new Date("2026-11-02T16:00:00.000Z"),
+        windowEnd: new Date("2026-11-02T17:30:00.000Z"),
+        venue: { name: "Fantasy FC", city: "Arad" },
+        courtName: "Pitch 2",
+        players: footballPlayers,
+        bibs: { slot1: "black", slot2: "white" },
+        score: { slot1: 6, slot2: 7 },
+        confirmed: { slot1: true, slot2: false },
+        enteredByName: "Nematulla Said",
+        teamsMethod: "manual",
+        sideSize: 6,
+        groupName: null,
+        rated: true,
+        ratingImpact: null,
+        stampedByName: "Sara Ali",
+      },
+      "en",
+    );
+    assert.equal(
+      stamped.facts.find((row) => row.label === "Confirmed")?.value,
+      "Stamped by Sara Ali",
+    );
+  });
 
   it("scores both teams and names the winner", () => {
     assert.equal(model.dateLine, "Played, Mon 2 Nov");

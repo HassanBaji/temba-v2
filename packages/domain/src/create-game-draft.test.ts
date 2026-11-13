@@ -115,6 +115,32 @@ describe("create game draft", () => {
     );
   });
 
+  it("round-trips a Public Game's sport and reads an older draft as padel", () => {
+    assert.equal(initialCreateGameDraft(now, "en").publicSport, "padel");
+    const draft = {
+      ...filledDraft(),
+      isPublic: true,
+      publicSport: "football" as const,
+    };
+    assert.deepEqual(
+      parseCreateGameDraft(serializeCreateGameDraft(draft)),
+      draft,
+    );
+    const stored = JSON.parse(serializeCreateGameDraft(draft)) as Record<
+      string,
+      unknown
+    >;
+    assert.equal(
+      parseCreateGameDraft(JSON.stringify({ ...stored, publicSport: "golf" })),
+      null,
+    );
+    delete stored.publicSport;
+    assert.equal(
+      parseCreateGameDraft(JSON.stringify(stored))?.publicSport,
+      "padel",
+    );
+  });
+
   it("starts at 5-a-side with ten players and reads an older draft the same way", () => {
     const initial = initialCreateGameDraft(now, "en");
     assert.equal(initial.sideSize, 5);

@@ -11,14 +11,17 @@ import {
   type ChallengeTiming,
   type ChallengeWeekday,
 } from "./challenge-form";
+import { formatOvr } from "./football-ovr";
 import { formatGameDay, formatGameStart } from "./format-game-start";
 import { sideSizeLabel } from "./game-shape";
 import {
   ASSIGNABLE_DISPLAY_LEVEL_BANDS,
-  displayLabelFromStoredBand,
   type AssignableDisplayLevelBand,
 } from "./level-bands";
-import { parseLevelBandSelectTenths, tenthsToLevelBand } from "./level-range";
+import {
+  formatLevelRangeFaceLabel,
+  parseLevelBandSelectTenths,
+} from "./level-range";
 import { squadCounterLine, type SquadState } from "./matchday-squad";
 import { formatPricePerPlayerFils } from "./price-per-player";
 import { SPORTS, sportLabel, type Sport } from "./sport";
@@ -66,7 +69,7 @@ export type ChallengeCardInput = {
   team: {
     displayName: string;
     rosterCount: number;
-    teamLevel: { level: string; band?: string } | null;
+    teamLevel: { level: string; band?: string; ovr?: number | null } | null;
     members: readonly { name: string | null }[];
   };
   viewer: { ineligibleReason: ChallengeIneligibleReason | null };
@@ -75,33 +78,39 @@ export type ChallengeCardInput = {
   viewerTeamIsNudged?: boolean;
 };
 
-function bandLabel(tenths: number) {
-  return displayLabelFromStoredBand(tenthsToLevelBand(tenths));
-}
-
-/** "Wants C to B-", "Wants B and up", or "Open to any level". */
+/**
+ * The Level wanted as the sport reads a Level: "Wants OVR 60 to 72",
+ * "Wants 2.8 and up", or "Open to any level".
+ */
 export function challengeLevelWanted(
   levelMinTenths: number | null,
   levelMaxTenths: number | null,
   locale: Locale,
+  sport: string,
 ) {
   const m = messagesFor(locale).challenge.card;
-  const min = levelMinTenths == null ? null : bandLabel(levelMinTenths);
-  const max = levelMaxTenths == null ? null : bandLabel(levelMaxTenths);
-  if (min && max) {
-    return min === max ? m.wantsOnly(min) : m.wants(min, max);
-  }
-  if (min) {
-    return m.wantsAndUp(min);
-  }
-  if (max) {
-    return m.wantsAndUnder(max);
-  }
-  return m.anyLevel;
+  const range = formatLevelRangeFaceLabel(
+    levelMinTenths,
+    levelMaxTenths,
+    locale,
+    sport,
+  );
+  return range ? m.wants(range) : m.anyLevel;
+}
+
+/** "avg 2.8", or "avg OVR 72" for a football Team. */
+function teamAverage(
+  level: { level: string; ovr?: number | null },
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
+  return level.ovr == null
+    ? m.challenge.card.avg(level.level)
+    : m.rating.ovr.avg(formatOvr(level.ovr));
 }
 
 /**
- * "Football, 6-a-side, avg 2.8, 12 on the roster. Wants C to B-". The board
+ * "Football, 6-a-side, avg OVR 72, 12 on the roster. Wants C to B-". The board
  * leaves the Roster count out; the post form's review keeps it.
  */
 export function challengeSportLine(
@@ -119,14 +128,17 @@ export function challengeSportLine(
     football && input.sideSize != null
       ? sideSizeLabel(input.sideSize, locale)
       : null,
-    input.team.teamLevel
-      ? m.challenge.card.avg(input.team.teamLevel.level)
-      : null,
+    input.team.teamLevel ? teamAverage(input.team.teamLevel, locale) : null,
     football && withRoster ? m.team.onRoster(input.team.rosterCount) : null,
   ].filter((part): part is string => part != null);
   return m.challenge.card.sportLine(
     parts.join(m.challenge.card.partSeparator),
-    challengeLevelWanted(input.levelMinTenths, input.levelMaxTenths, locale),
+    challengeLevelWanted(
+      input.levelMinTenths,
+      input.levelMaxTenths,
+      locale,
+      input.sport,
+    ),
   );
 }
 

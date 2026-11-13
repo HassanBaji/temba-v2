@@ -87,6 +87,29 @@ export const notification = {
       plain(" set your Level to "),
       strong(level),
     ],
+    levelCalibrated: (actor: string, venue: string, level: string) => [
+      strong(actor),
+      plain(" ("),
+      strong(venue),
+      plain(") calibrated your Level to "),
+      strong(level),
+    ],
+    tierPointsAdjusted: (actor: string, group: string) => [
+      strong(actor),
+      plain(" adjusted your tier points in "),
+      strong(group),
+    ],
+    tierBandChanged: (band: string, group: string) => [
+      plain("You’re now a "),
+      strong(band),
+      plain(" in "),
+      strong(group),
+    ],
+    levelConfirmed: (sport: string) => [
+      plain("Your "),
+      strong(sport),
+      plain(" Level is confirmed"),
+    ],
     gameFinished: (game: string) => [strong(game), plain(" has finished")],
     markReceived: (actor: string, kind: string, game: string) => [
       strong(actor),
@@ -101,6 +124,44 @@ export const notification = {
       strong(game),
     ],
     youAreMvp: (game: string) => [plain("You’re the MVP of "), strong(game)],
+    performanceRatingsOpen: (game: string) => [
+      plain("Rate the players of "),
+      strong(game),
+    ],
+    performanceRatingsClosed: (game: string) => [
+      plain("Ratings are in for "),
+      strong(game),
+    ],
+    matchDisputeRaised: (actor: string, game: string) => [
+      strong(actor),
+      plain(" disputed the result of "),
+      strong(game),
+    ],
+    matchDisputeUpheld: (game: string) => [
+      plain("Temba upheld your dispute on "),
+      strong(game),
+    ],
+    matchDisputeUpheldFor: (actor: string, game: string) => [
+      plain("Temba upheld "),
+      strong(actor),
+      plain("’s dispute on "),
+      strong(game),
+    ],
+    matchDisputeDismissed: (game: string) => [
+      plain("Temba dismissed your dispute on "),
+      strong(game),
+    ],
+    matchDisputeDismissedFor: (actor: string, game: string) => [
+      plain("Temba dismissed "),
+      strong(actor),
+      plain("’s dispute on "),
+      strong(game),
+    ],
+    matchDisputeSuperseded: (actor: string, game: string) => [
+      strong(actor),
+      plain(" reopened the score of "),
+      strong(game),
+    ],
     mvpTieBreak: (game: string) => [
       plain("Tied vote on "),
       strong(game),
@@ -238,6 +299,34 @@ export const notification = {
     kickOffTomorrow: "Kick-off is in 24 hours.",
     seeWhoIsNamed: "See the Game and who else is named.",
     acceptRematch: "Accept it to propose a time and a venue.",
+    tierAdjusted: (reason: string, from: string, to: string) =>
+      `${reason}. ${from} to ${to}.`,
+    tierAdjustedWithNote: (
+      reason: string,
+      note: string,
+      from: string,
+      to: string,
+    ) => `${reason}: “${note}” ${from} to ${to}.`,
+    ratingsOpen:
+      "Score everyone 1 to 10 within 24 hours. Points move when you submit.",
+    ratingsOpenEveryone:
+      "Score your teammates and, if you want, opponents, within 24 hours. Nobody sees who gave what.",
+    tierPlaces:
+      "Tiers are places, so when one player moves, someone moves the other way.",
+    levelConfirmed:
+      "The track is no longer hatched. It keeps moving on verified matches.",
+    ratingsClosed: (rating: string, delta: string, points: string) =>
+      `You were rated ${rating}. Tier points ${delta}, now ${points}.`,
+    ratingsClosedResultOnly: (delta: string, points: string) =>
+      `No rating for you this time. Tier points ${delta} on the result, now ${points}.`,
+    ratingsClosedOvr: (rating: string, delta: string, ovr: string) =>
+      `You were rated ${rating}. OVR ${delta}, now ${ovr}.`,
+    ratingsClosedOvrNoRating: (delta: string, ovr: string) =>
+      `No rating for you this time. OVR ${delta}, now ${ovr}.`,
+    disputeUpheld: "The score is open again. Enter the right one.",
+    disputeDismissed: "The result stands.",
+    disputeSuperseded:
+      "Your dispute is closed. If the new result is wrong too, you can dispute it.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

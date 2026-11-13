@@ -2,7 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatDayMonth, formatMonth } from "./format-game-start";
-import { formatLevel } from "./level";
+import { levelFaceFor } from "./football-ovr";
 import {
   displayLabelFromStoredBand,
   nextDistinctDisplayRung,
@@ -24,14 +24,21 @@ import {
 import {
   distanceToNextRung,
   percentThroughDisplayBand,
+  shownLevel,
   type PlayerLevelInput,
 } from "./player-profile-level";
-import { levelChangeLabel, LAST_TEN_SIZE } from "./player-profile-matches";
+import { LAST_TEN_SIZE } from "./player-profile-matches";
 import { preferredPositionProfileLine } from "./preferred-position";
+import { formatLevelMoveSteps, levelMoveSteps } from "./rating-history";
 import {
   confirmationFraction,
   confirmationProgressCaption,
 } from "./profile-level";
+import {
+  ratingsTierRows,
+  type MyGroupTierData,
+  type RatingsTierRow,
+} from "./ratings-screen";
 import type { MatchOutcome, ResultMarkVariant } from "./result-mark";
 import type { Sport } from "./sport";
 import { formatWinRate, WIN_RATE_MIN_MATCHES } from "./win-rate";
@@ -146,11 +153,11 @@ export type ProfileLevelView =
       spoken: string;
     };
 
-/** "+0.2 since Sep": the sum of the rated changes in the Last 10. */
+/** "+0.24 since Sep": the sum of the rated changes in the Last 10. */
 export function levelTrendSince(
   newestFirst: readonly {
     playedAt: Date | string;
-    rating: { levelChange: number } | null;
+    rating: { muBefore: number; muAfter: number } | null;
   }[],
   locale: Locale,
 ) {
@@ -163,10 +170,14 @@ export function levelTrendSince(
   if (!oldest) {
     return null;
   }
-  const sum = rated.reduce((total, match) => total + match.levelChange, 0);
+  const steps = rated.reduce(
+    (total, match) =>
+      total + levelMoveSteps("padel", match.muBefore, match.muAfter),
+    0,
+  );
   const all = messagesFor(locale);
   return all.profile.playerPage.trendSince(
-    all.common.isolate(levelChangeLabel(sum)),
+    all.common.isolate(formatLevelMoveSteps("padel", steps)),
     formatMonth(oldest.playedAt, "short", locale),
   );
 }
@@ -176,9 +187,10 @@ function clampPercent(value: number) {
 }
 
 /**
- * The Level block in the hero. A football Level that no rated Match has moved
- * is the starting one and its track is hatched; otherwise both sports read
- * the same: Provisional while confirming, then the distance to the next band.
+ * The Level block in the hero. A football Level reads as OVR, and one that no
+ * rated Match has moved is the starting one and its track is hatched;
+ * otherwise both sports read the same: Provisional while confirming, then the
+ * distance to the next band.
  */
 export function profileLevelView(
   input: PlayerLevelInput | null,
@@ -201,8 +213,9 @@ export function profileLevelView(
     };
   }
 
+  const face = levelFaceFor(options.sport);
   const band = displayLabelFromStoredBand(input.levelBand);
-  const level = formatLevel(input.levelValue);
+  const level = shownLevel(input.levelValue, face);
   const shape = (
     parts: Pick<
       Extract<ProfileLevelView, { kind: "level" }>,
@@ -243,17 +256,10 @@ export function profileLevelView(
     return shape({
       status: m.provisional,
       statusDetail,
-      lead: confirmationProgressCaption(
-        input.ratedMatchCount,
-        input.ratedMatchesRemaining,
-        locale,
-      ),
+      lead: confirmationProgressCaption(input.ratedMatchesRemaining, locale),
       trail: null,
       percent: clampPercent(
-        confirmationFraction(
-          input.ratedMatchCount,
-          input.ratedMatchesRemaining,
-        ) * 100,
+        confirmationFraction(input.ratedMatchesRemaining) * 100,
       ),
       hatched: true,
       trend: options.trend,
@@ -276,7 +282,7 @@ export function profileLevelView(
   return shape({
     status: m.confirmed,
     statusDetail,
-    lead: m.toNext(distanceToNextRung(input.levelValue, next), next),
+    lead: m.toNext(distanceToNextRung(input.levelValue, next, face), next),
     trail: m.ofTheWay(percent),
     percent,
     hatched: false,
@@ -734,4 +740,37 @@ export function partnerRowsView(
       spoken: m.spoken(partner.name, partner.won, partner.lost, percent),
     };
   });
+}
+
+export type ProfileTierView = {
+  title: string;
+  meta: string;
+  rows: RatingsTierRow[];
+  note: string;
+};
+
+/**
+ * "Group tier" on a football Player profile: the player's fish in each tier
+ * Group the viewer shares with them, as the Ratings screen draws its own.
+ * None when they share no tier Group.
+ */
+export function profileTierView(
+  rows: readonly MyGroupTierData[],
+  options: { playerName: string; isViewer: boolean },
+  locale: Locale,
+): ProfileTierView | null {
+  if (rows.length === 0) {
+    return null;
+  }
+  const m = messagesFor(locale).rating;
+  return {
+    title: m.screen.tier.title,
+    meta: options.isViewer
+      ? m.screen.tier.count(rows.length)
+      : m.profileTier.shared(rows.length),
+    rows: ratingsTierRows(rows, locale),
+    note: options.isViewer
+      ? m.screen.tier.note
+      : m.profileTier.note(firstName(options.playerName)),
+  };
 }

@@ -58,7 +58,7 @@ export const profile = {
   },
   football: {
     startingLevel: "المستوى الابتدائي",
-    startingLevelNote: "مباريات كرة القدم لا تحرّكه بعد",
+    startingLevelNote: "تحرّكه المباريات التي تُحتسب لمستوى Temba",
     keeper: "حارس",
     outfield: "لاعب ميدان",
     goalsScored: (n: number) =>
@@ -78,14 +78,14 @@ export const profile = {
       held: "ثابت بعد آخر مباراة",
     },
     footballStartingCaption:
-      "المستوى الابتدائي. مباريات كرة القدم لا تحرّكه بعد",
+      "المستوى الابتدائي. تحرّكه المباريات التي تُحتسب لمستوى Temba",
     confirmProgress: (count: number, total: number) =>
       plural("ar", total, {
-        one: `${count} من مباراة مصنّفة واحدة لتأكيد مستواك`,
-        two: `${count} من مباراتين مصنّفتين لتأكيد مستواك`,
-        few: `${count} من {n} مباريات مصنّفة لتأكيد مستواك`,
-        many: `${count} من {n} مباراة مصنّفة لتأكيد مستواك`,
-        other: `${count} من {n} مباراة مصنّفة لتأكيد مستواك`,
+        one: `${count} من مباراة واحدة لتأكيد مستواك`,
+        two: `${count} من مباراتين لتأكيد مستواك`,
+        few: `${count} من {n} مباريات لتأكيد مستواك`,
+        many: `${count} من {n} مباراة لتأكيد مستواك`,
+        other: `${count} من {n} مباراة لتأكيد مستواك`,
       }),
     topBand: "أعلى فئة مستوى",
     progressTo: (percent: number, next: string) =>

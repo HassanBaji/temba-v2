@@ -30,7 +30,8 @@ const SKELETON_ROWS = 2;
 const LIST_ROW_PADDING = { paddingVertical: 16, paddingHorizontal: 18 };
 
 export function VenueField({
-  groupId,
+  unlocked,
+  publicGame = false,
   picker,
   venueId,
   manyCourts,
@@ -39,7 +40,9 @@ export function VenueField({
   initialSheetQuery,
   onSelect,
 }: {
-  groupId: string;
+  unlocked: boolean;
+  /** A Public Game: the picker holds partner Venues only. */
+  publicGame?: boolean;
   picker: Slot<CreateVenuePicker> | null;
   venueId: string;
   manyCourts: boolean;
@@ -52,15 +55,15 @@ export function VenueField({
   const m = useMessages();
   const [sheetOpen, setSheetOpen] = useState(initialSheetQuery !== undefined);
   const ready = picker?.status === "ready" ? picker.value : null;
-  const unlocked = ready !== null && !ready.locked && ready.venues.length > 0;
+  const listed = ready !== null && !ready.locked && ready.venues.length > 0;
 
   return (
     <StepSection
       title={m.mobileCreateGame.venue.title}
-      locked={!groupId}
-      note={unlocked ? m.common.required : undefined}
+      locked={!unlocked}
+      note={listed ? m.common.required : undefined}
     >
-      {!groupId ? (
+      {!unlocked ? (
         <LockedPanel />
       ) : picker === null || picker.status === "loading" ? (
         <LoadingRows />
@@ -76,7 +79,9 @@ export function VenueField({
         />
       ) : picker.value.venues.length === 0 ? (
         <Text size="meta" weight="medium">
-          {m.mobileCreateGame.venue.noneYet}
+          {publicGame
+            ? m.rating.publicGame.noPartnerVenues
+            : m.mobileCreateGame.venue.noneYet}
         </Text>
       ) : (
         <>
@@ -97,7 +102,11 @@ export function VenueField({
             onSelect={onSelect}
           />
           <Text size="meta" tone="muted">
-            {createVenueCopy(picker.value, locale, { manyCourts, sport })}
+            {createVenueCopy(picker.value, locale, {
+              manyCourts,
+              sport,
+              publicGame,
+            })}
           </Text>
         </>
       )}

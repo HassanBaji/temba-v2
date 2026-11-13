@@ -9,12 +9,14 @@ import * as challengeExpire from "./handlers/challenge.expire";
 import * as challengeSquadDue from "./handlers/challenge.squad-due";
 import * as notificationEmail from "./handlers/notification.email";
 import * as marksSettleMvp from "./handlers/marks.settle-mvp";
+import * as matchConfirmWindow from "./handlers/match.confirm-window";
 import * as matchScoreStands from "./handlers/match.score-stands";
 import * as paymentCreateCharge from "./handlers/payment.create-charge";
 import * as paymentPollCharge from "./handlers/payment.poll-charge";
 import * as paymentProcessWebhook from "./handlers/payment.process-webhook";
 import * as paymentRefund from "./handlers/payment.refund";
 import * as proposalExpire from "./handlers/proposal.expire";
+import * as ratingWindowSettle from "./handlers/rating-window.settle";
 import { logJobFailed, type JobHandler } from "./handler";
 
 const handlers: Record<string, JobHandler> = {
@@ -25,12 +27,14 @@ const handlers: Record<string, JobHandler> = {
   [challengeSquadDue.jobName]: challengeSquadDue,
   [notificationEmail.jobName]: notificationEmail,
   [marksSettleMvp.jobName]: marksSettleMvp,
+  [matchConfirmWindow.jobName]: matchConfirmWindow,
   [matchScoreStands.jobName]: matchScoreStands,
   [paymentCreateCharge.jobName]: paymentCreateCharge,
   [paymentPollCharge.jobName]: paymentPollCharge,
   [paymentProcessWebhook.jobName]: paymentProcessWebhook,
   [paymentRefund.jobName]: paymentRefund,
   [proposalExpire.jobName]: proposalExpire,
+  [ratingWindowSettle.jobName]: ratingWindowSettle,
 };
 
 export const crontab = [bookingReconcile.crontabLine].join("\n");

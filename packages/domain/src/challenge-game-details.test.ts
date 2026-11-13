@@ -99,11 +99,20 @@ describe("challenge game details", () => {
   });
 
   it("says what the Game counts for, by sport", () => {
-    expect(challengeCountsForLine("football", "en")).toBe(
+    expect(challengeCountsForLine("football", true, "en")).toBe(
+      "Both teams' records, the players named and Temba Level, once each team confirms the score",
+    );
+    expect(challengeCountsForLine("padel", true, "en")).toBe(
+      "Both teams' records, the players named and rating",
+    );
+  });
+
+  it("keeps an older Unrated football Challenge Game off Temba Level", () => {
+    expect(challengeCountsForLine("football", false, "en")).toBe(
       "Both teams' records and the players named",
     );
-    expect(challengeCountsForLine("padel", "en")).toBe(
-      "Both teams' records, the players named and rating",
+    expect(challengeCountsForLine("football", true, "ar")).toBe(
+      "سجلّ الفريقين، واللاعبين المُسمّين، ومستوى Temba، بعد أن يؤكّد كل فريق النتيجة",
     );
   });
 
@@ -111,6 +120,7 @@ describe("challenge game details", () => {
     const rows = challengeGameDetailsRows(
       {
         sport: "football",
+        rated: true,
         postedByTeamName: "Gooz FC",
         postedAt: "2026-11-04T09:00:00.000Z",
         proposedByTeamName: "Hidd United",
@@ -146,12 +156,14 @@ describe("challenge game details", () => {
       {
         key: "counts",
         label: "Counts for",
-        value: "Both teams' records and the players named",
+        value:
+          "Both teams' records, the players named and Temba Level, once each team confirms the score",
       },
     ]);
     const padel = challengeGameDetailsRows(
       {
         sport: "padel",
+        rated: true,
         postedByTeamName: "Seef Smashers",
         postedAt: null,
         proposedByTeamName: "Riffa Duo",

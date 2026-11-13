@@ -27,6 +27,13 @@ export type DoublesPlayerResult = {
 
 type Pair<T> = [T, T];
 
+/**
+ * How much of the gap to a partner shifts a player's opponent (ADR-0070). At 1
+ * both partners share the pair-against-pair expectation; at 0 the partner is
+ * ignored, as under ADR-0009.
+ */
+export const DOUBLES_PARTNER_WEIGHT = 1;
+
 export type RateDoublesMatchInput = {
   slot1: Pair<DoublesPlayerInput>;
   slot2: Pair<DoublesPlayerInput>;
@@ -57,6 +64,17 @@ function compositeOpponent(
   return {
     mu: (first.mu + second.mu) / 2,
     phi: (first.phi + second.phi) / 2,
+  };
+}
+
+function partnerWeightedOpponent(
+  opposingPair: ClassicGlickoOpponent,
+  own: RatingGlickoState,
+  partner: RatingGlickoState,
+): ClassicGlickoOpponent {
+  return {
+    mu: opposingPair.mu - (DOUBLES_PARTNER_WEIGHT * (partner.mu - own.mu)) / 2,
+    phi: opposingPair.phi,
   };
 }
 
@@ -99,9 +117,10 @@ function ratePlayer(
 }
 
 /**
- * Each player faces the opposing pair as one composite opponent, steps once in
- * Glicko-2, and the step is blended by `weight`. Idle RD inflation runs per
- * player before composites are built.
+ * Each player faces the opposing pair as one composite opponent, shifted by
+ * half the gap to their partner so the pair shares one expected score, steps
+ * once in Glicko-2 by their own φ, and the step is blended by `weight`. Idle
+ * RD inflation runs per player before composites are built.
  */
 export function rateDoublesMatch(
   input: RateDoublesMatchInput,
@@ -120,12 +139,32 @@ export function rateDoublesMatch(
 
   return {
     slot1: [
-      ratePlayer(slot1[0], slot2Composite, slot1Score, weight),
-      ratePlayer(slot1[1], slot2Composite, slot1Score, weight),
+      ratePlayer(
+        slot1[0],
+        partnerWeightedOpponent(slot2Composite, slot1[0], slot1[1]),
+        slot1Score,
+        weight,
+      ),
+      ratePlayer(
+        slot1[1],
+        partnerWeightedOpponent(slot2Composite, slot1[1], slot1[0]),
+        slot1Score,
+        weight,
+      ),
     ],
     slot2: [
-      ratePlayer(slot2[0], slot1Composite, slot2Score, weight),
-      ratePlayer(slot2[1], slot1Composite, slot2Score, weight),
+      ratePlayer(
+        slot2[0],
+        partnerWeightedOpponent(slot1Composite, slot2[0], slot2[1]),
+        slot2Score,
+        weight,
+      ),
+      ratePlayer(
+        slot2[1],
+        partnerWeightedOpponent(slot1Composite, slot2[1], slot2[0]),
+        slot2Score,
+        weight,
+      ),
     ],
   };
 }

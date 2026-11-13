@@ -123,12 +123,21 @@ type ExpectedGames =
   | "removeSet"
   | "completeMatch"
   | "confirmMatchResult"
+  | "stampMatch"
+  | "listMatchesToStamp"
+  | "disputeMatchResult"
+  | "listDisputesForOperator"
+  | "decideDispute"
   | "footballBoard"
   | "resultLink"
   | "setFootballRole"
   | "publishFootballTeams"
   | "saveFootballScore"
   | "nameChallengeSquad"
+  | "performanceRatingSheet"
+  | "performanceRatingResult"
+  | "performanceRatingSummary"
+  | "submitPerformanceRatings"
   | "reportWrongScore"
   | "searchLookupUsers"
   | "sendLookupInvite"
@@ -191,7 +200,12 @@ type ExpectedGroups =
   | "listSeasons"
   | "createSeason"
   | "closeSeason"
-  | "seasonStanding";
+  | "seasonStanding"
+  | "adjustTierPoints"
+  | "tierHistory"
+  | "ratingSettings"
+  | "updateRatingSettings"
+  | "myStandings";
 
 type ExpectedGameAlbum =
   | "forGame"
@@ -223,7 +237,10 @@ type ExpectedRatings =
   | "setLevel"
   | "listForOperator"
   | "setLevelAsOperator"
+  | "setLevelAsVerifier"
   | "myGroupLevels"
+  | "myGroupTiers"
+  | "history"
   | "setGroupLevel";
 
 type ExpectedTeams =
@@ -288,6 +305,10 @@ type ExpectedVenues =
   | "setDisplayPhotos"
   | "softArchive"
   | "unarchive"
+  | "setPartner"
+  | "addVerifier"
+  | "removeVerifier"
+  | "listVerifiers"
   | "listLinkedGroups"
   | "searchLinkableGroups"
   | "sendGroupLinkRequest"

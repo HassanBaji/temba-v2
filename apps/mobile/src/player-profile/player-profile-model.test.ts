@@ -7,6 +7,7 @@ import {
   footballProfileState,
   playerProfileModel,
   playerProfileState,
+  sharedTierView,
 } from "./player-profile-model";
 
 const ORIGIN = "https://api.example.com";
@@ -74,7 +75,7 @@ describe("playerProfileModel", () => {
     ]);
     expect(model.rows[0]).toMatchObject({
       score: "6\u20134, 6\u20133",
-      detail: "+0.1",
+      detail: "+0.10",
       target: { kind: "match", matchId: "match-2026-10-01" },
     });
   });
@@ -173,6 +174,7 @@ const FOOTBALL: RouterOutputs["users"]["footballProfile"] = {
       outcome: "draw",
       score: { us: 2, them: 2 },
       goals: 0,
+      levelMove: null,
       game: {
         name: "Thursday 5s",
         hasCustomName: true,
@@ -190,6 +192,7 @@ const FOOTBALL: RouterOutputs["users"]["footballProfile"] = {
       outcome: "won",
       score: { us: 5, them: 3 },
       goals: 3,
+      levelMove: null,
       game: {
         name: "Thursday 5s",
         hasCustomName: true,
@@ -286,5 +289,38 @@ describe("footballProfileState", () => {
       footballProfileState({ data: FOOTBALL, error: null }, ORIGIN, "en")
         .status,
     ).toBe("ready");
+  });
+});
+
+describe("sharedTierView", () => {
+  const data = {
+    player: { name: "Mahmood Ali", isViewer: false },
+    sharedGroupTiers: [
+      {
+        groupId: "t1",
+        name: "Thursday Football",
+        imageUrl: null,
+        memberCount: 13,
+        rankedCount: 11,
+        band: "kanaad" as const,
+        place: 6,
+        points: 1201,
+        provisional: false,
+        gamesOfFive: 5,
+      },
+    ],
+  } as unknown as NonNullable<Parameters<typeof sharedTierView>[1]>;
+
+  it("draws the fish only on football", () => {
+    expect(sharedTierView("football", data, "en")?.rows[0]?.caption).toBe(
+      "Kanaad, #6 of 13",
+    );
+    expect(sharedTierView("padel", data, "en")).toBeNull();
+  });
+
+  it("draws nothing when the viewer shares no tier Group", () => {
+    expect(
+      sharedTierView("football", { ...data, sharedGroupTiers: [] }, "en"),
+    ).toBeNull();
   });
 });

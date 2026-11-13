@@ -300,7 +300,7 @@ export function FriendlyTournamentSteps({
           />
 
           <VenueField
-            selectedGroupId={selectedGroupId}
+            unlocked={Boolean(selectedGroupId)}
             venueCopy={venueCopy}
             venues={venues}
             venuesLocked={venuesLocked}

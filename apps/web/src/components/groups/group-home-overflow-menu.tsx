@@ -9,6 +9,7 @@ import {
   MoreVerticalIcon,
   PencilIcon,
   PlusIcon,
+  SlidersHorizontalIcon,
   Trash2Icon,
   UnlinkIcon,
   UserRoundPlusIcon,
@@ -28,7 +29,11 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import type { GroupHomeOverflowItem } from "@repo/domain/group-home-cta";
 import { groupLeaveVenueActionLabel } from "@repo/domain/group-link-request";
 import { groupMenuLabel } from "@repo/domain/group-settings";
-import { groupEditHref, groupSeasonsHref } from "~/lib/dashboard-paths";
+import {
+  groupEditHref,
+  groupRatingSettingsHref,
+  groupSeasonsHref,
+} from "~/lib/dashboard-paths";
 
 const DESTRUCTIVE: ReadonlySet<GroupHomeOverflowItem> = new Set([
   "unlink_venue",
@@ -53,6 +58,7 @@ export function GroupHomeOverflowMenu({
   groupName,
   roleLine,
   leaveBlockedHint,
+  ratingSettingsHint,
   venueName,
   triggerRef,
   onCopyGroupUrl,
@@ -69,6 +75,8 @@ export function GroupHomeOverflowMenu({
   roleLine: string | null;
   /** Why Leave is disabled, or `null` when the viewer may leave. */
   leaveBlockedHint: string | null;
+  /** The current Rating settings, under their row. */
+  ratingSettingsHint: string | null;
   venueName: string | null;
   triggerRef?: RefObject<HTMLButtonElement | null>;
   onCopyGroupUrl: () => void;
@@ -130,6 +138,13 @@ export function GroupHomeOverflowMenu({
           label: m.webGroup.overflow.seasons,
           icon: CalendarRangeIcon,
           href: groupSeasonsHref(groupId),
+        };
+      case "rating_settings":
+        return {
+          label: groupMenuLabel("rating_settings", locale),
+          hint: ratingSettingsHint,
+          icon: SlidersHorizontalIcon,
+          href: groupRatingSettingsHref(groupId),
         };
       case "unlink_venue":
         return venueName
@@ -206,6 +221,7 @@ export function GroupHomeOverflowMenu({
                   <SheetMenuRow
                     key={row.item}
                     label={row.label}
+                    hint={row.hint}
                     icon={row.icon}
                     iconClassName={row.iconClassName}
                     trailing="chevron"

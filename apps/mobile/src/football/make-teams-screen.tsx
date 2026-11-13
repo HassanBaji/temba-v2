@@ -2,6 +2,7 @@ import { bibColors, radii } from "@repo/design-tokens";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import {
   FOOTBALL_TEAMS_METHODS,
+  type FootballBalanceOn,
   type FootballBib,
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
@@ -28,20 +29,21 @@ import { bibEdge } from "./bib-edge";
 import { BibChip, BibPicker } from "./bib-picker";
 import {
   balancedSides,
+  boardTierCell,
   draftSummary,
   initialTeamsDraft,
   keeperWord,
-  levelLabel,
+  makeTeamsLevelLabel,
   moveAcross,
   placeOn,
-  sideAverage,
   slotCode,
   switchMethod,
+  teamsSideAverage,
   type BoardPlayer,
   type Side,
   type TeamsDraft,
 } from "@repo/domain/football-board";
-import { BibRow } from "./team-columns";
+import { BibRow, TierMark } from "./team-columns";
 
 const BAR_HEIGHT = 6;
 const SWATCH_BUTTON = 34;
@@ -149,7 +151,10 @@ function BalanceCard({
           <BibChip bib={bib} size={16} />
           <Text weight="semibold">{name}</Text>
           <Text size="meta" tone="muted" style={{ flex: 1 }}>
-            {m.avgAndKeepers(sideAverage(members), keeperWord(members, locale))}
+            {m.avgAndKeepers(
+              teamsSideAverage(members, locale, summary.balanceOn),
+              keeperWord(members, locale),
+            )}
           </Text>
           <Text weight="bold" width="expanded">
             {draft.method === "manual"
@@ -226,6 +231,8 @@ function LevelColumns({
             key={player.userId}
             player={player}
             bib={bib}
+            showTier
+            balanceOn={summary.balanceOn}
             trailing={
               <ArrowButton
                 side={side}
@@ -299,11 +306,13 @@ function ManualRow({
   player,
   draft,
   names,
+  balanceOn,
   onPlace,
 }: {
   player: BoardPlayer;
   draft: TeamsDraft;
   names: { slot1: string; slot2: string };
+  balanceOn: FootballBalanceOn;
   onPlace: (side: Side) => void;
 }) {
   const colors = useColors();
@@ -317,6 +326,7 @@ function ManualRow({
   const fill = bib ? bibColors[bib].fill : colors.paper;
   const on = bib ? bibColors[bib].on : colors.ink;
   const code = slotCode(player, locale);
+  const tierCell = boardTierCell(player, locale);
   return (
     <View
       style={{
@@ -346,9 +356,13 @@ function ManualRow({
           </Text>
         ) : null}
       </View>
-      <Text weight="bold" width="expanded" ltr style={{ color: on }}>
-        {levelLabel(player.levelBand)}
-      </Text>
+      {tierCell ? (
+        <TierMark cell={tierCell} />
+      ) : (
+        <Text weight="bold" width="expanded" ltr style={{ color: on }}>
+          {makeTeamsLevelLabel(player, balanceOn)}
+        </Text>
+      )}
       <SwatchButton
         bib={draft.bibs.slot1}
         selected={side === 1}
@@ -400,6 +414,7 @@ function ManualLists({
             player={player}
             draft={draft}
             names={summary.names}
+            balanceOn={summary.balanceOn}
             onPlace={(side) => onPlace(player.userId, side)}
           />
         ))}
@@ -469,7 +484,9 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
   const fallback = `/games/${gameId}` as Href;
   const players = board.data?.players ?? [];
   const sideSize = game.data?.sideSize ?? null;
-  const summary = draft ? draftSummary(draft, players, locale) : null;
+  const summary = draft
+    ? draftSummary(draft, players, locale, board.data?.balanceOn)
+    : null;
 
   if (board.error || (board.data && !board.data.viewer.canMakeTeams)) {
     return (

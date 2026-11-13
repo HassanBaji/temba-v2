@@ -19,9 +19,9 @@ export function MemberSheet({
   onClose,
   onCall,
   onSetLevel,
-  onSetGroupLevel,
-  groupLevelHint,
   onViewProfile,
+  onAdjustTier,
+  onTierHistory,
   onNickname,
   organizerLabel,
   organizerHint,
@@ -33,10 +33,11 @@ export function MemberSheet({
   onClose: () => void;
   onCall?: (href: string) => void;
   onSetLevel?: () => void;
-  onSetGroupLevel?: () => void;
-  /** The member's Group Level, shown to an Organizer on that row. */
-  groupLevelHint?: string;
   onViewProfile?: () => void;
+  /** An Organizer of a tier Group moves this member's Tier points. */
+  onAdjustTier?: () => void;
+  /** An Organizer of a tier Group reads what moved this member's points. */
+  onTierHistory?: () => void;
   /** Opens "Name in this Group" (design "Group names" 1b). */
   onNickname?: () => void;
   organizerLabel?: string;
@@ -65,6 +66,24 @@ export function MemberSheet({
             onPress={onViewProfile}
           />
         ) : null,
+        onTierHistory ? (
+          <SheetMenuRow
+            key="tier-history"
+            label={m.rating.history.menuRow}
+            hint={m.rating.history.menuHint}
+            trailing="chevron"
+            onPress={onTierHistory}
+          />
+        ) : null,
+        onAdjustTier ? (
+          <SheetMenuRow
+            key="adjust-tier"
+            label={m.rating.adjust.menuRow}
+            hint={m.rating.adjust.menuHint}
+            trailing="chevron"
+            onPress={onAdjustTier}
+          />
+        ) : null,
         onNickname ? (
           <SheetMenuRow
             key="nickname"
@@ -86,15 +105,6 @@ export function MemberSheet({
             }
             trailing="chevron"
             onPress={onSetLevel}
-          />
-        ) : null,
-        onSetGroupLevel ? (
-          <SheetMenuRow
-            key="group-level"
-            label={m.you.setGroupLevel.title}
-            hint={groupLevelHint}
-            trailing="chevron"
-            onPress={onSetGroupLevel}
           />
         ) : null,
         organizerLabel && onOrganizerAction ? (

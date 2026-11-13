@@ -1142,6 +1142,64 @@ function updatedAt(payload: ClerkUserPayload, at: number): ClerkUserPayload {
   return { ...payload, updated_at: at };
 }
 
+describe("The Operator directory", () => {
+  function withOperator(
+    payload: ClerkUserPayload,
+    publicMetadata: Record<string, unknown>,
+    at: number,
+  ): ClerkUserPayload {
+    return { ...payload, public_metadata: publicMetadata, updated_at: at };
+  }
+
+  it("follows public_metadata.operator on create and every update", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const alex = clerkUser({ has_image: false });
+      await upsertUserFromClerk(db, withOperator(alex, { operator: true }, 1));
+      expect((await storedUser(db, "user_clerk_alex")).isOperator).toBe(true);
+
+      await upsertUserFromClerk(db, withOperator(alex, {}, 2));
+      expect((await storedUser(db, "user_clerk_alex")).isOperator).toBe(false);
+
+      await upsertUserFromClerk(db, withOperator(alex, { operator: true }, 3));
+      expect((await storedUser(db, "user_clerk_alex")).isOperator).toBe(true);
+
+      await upsertUserFromClerk(
+        db,
+        withOperator(alex, { operator: "true" }, 4),
+      );
+      expect((await storedUser(db, "user_clerk_alex")).isOperator).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+
+  it("creates a User without Operator metadata as not an Operator", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      await upsertUserFromClerk(db, clerkUser({ has_image: false }));
+      expect((await storedUser(db, "user_clerk_alex")).isOperator).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+
+  it("keeps the flag when an older delivery arrives late", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const alex = clerkUser({ has_image: false });
+      await upsertUserFromClerk(db, withOperator(alex, {}, 2_000));
+      await upsertUserFromClerk(
+        db,
+        withOperator(alex, { operator: true }, 1_000),
+      );
+      expect((await storedUser(db, "user_clerk_alex")).isOperator).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+});
+
 describe("Clerk webhook ordering and email linking", () => {
   it("ignores a delivery older than the last one applied", async () => {
     const { db, close } = await createPgliteDb();

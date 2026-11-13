@@ -384,7 +384,7 @@ function SettingsBody({ details }: { details: Details }) {
           sub={
             hasFootball
               ? footballSportSub(
-                  footballRating?.levelBand ?? null,
+                  footballRating?.levelValue ?? null,
                   footballRole,
                   locale,
                 )

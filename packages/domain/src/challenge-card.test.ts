@@ -47,7 +47,9 @@ describe("challengeCardView", () => {
     const view = challengeCardView(card(), "en", now);
     expect(view.title).toBe("Gooz FC");
     expect(view.levelBand).toBe("C");
-    expect(view.sportLine).toBe("Football, 6-a-side, avg 2.8. Wants C to B-");
+    expect(view.sportLine).toBe(
+      "Football, 6-a-side, avg 2.8. Wants OVR 64 to 80",
+    );
     expect(view.whenLine).toBe("Weekends · Evenings");
     expect(view.daysLine).toBe("Weekend evenings");
     expect(view.venuesLine).toBe("Matchday Pitches");
@@ -67,11 +69,27 @@ describe("challengeCardView", () => {
       { preview: true },
     );
     expect(view.sportLine).toBe(
-      "Football, 6-a-side, avg 2.8, 12 on the roster. Wants C to B-",
+      "Football, 6-a-side, avg 2.8, 12 on the roster. Wants OVR 64 to 80",
     );
     expect(view.footerLine).toBe("Open for 7 days");
     expect(view.preview).toBe(true);
     expect(view.canAccept).toBe(false);
+  });
+
+  it("reads a football Team Level as the mean OVR", () => {
+    const view = challengeCardView(
+      card({
+        team: {
+          ...card().team,
+          teamLevel: { level: "3.9", band: "C+", ovr: 72 },
+        },
+      }),
+      "en",
+      now,
+    );
+    expect(view.sportLine).toBe(
+      "Football, 6-a-side, avg OVR 72. Wants OVR 64 to 80",
+    );
   });
 
   it("reads a padel card without a Team Level or Level wanted", () => {
@@ -167,10 +185,22 @@ describe("challengeCardView", () => {
 });
 
 describe("challengeLevelWanted and challengeWhenLine", () => {
-  it("reads one-sided and single-band ranges", () => {
-    expect(challengeLevelWanted(42, null, "en")).toBe("Wants B- and up");
-    expect(challengeLevelWanted(null, 34, "en")).toBe("Wants C and under");
-    expect(challengeLevelWanted(28, 34, "en")).toBe("Wants C");
+  it("reads one-sided and single-band ranges in the sport's face", () => {
+    expect(challengeLevelWanted(42, null, "en", "padel")).toBe(
+      "Wants 4.2 and up",
+    );
+    expect(challengeLevelWanted(null, 34, "en", "padel")).toBe(
+      "Wants 3.4 and under",
+    );
+    expect(challengeLevelWanted(28, 34, "en", "padel")).toBe(
+      "Wants 2.8 to 3.4",
+    );
+    expect(challengeLevelWanted(42, null, "en", "football")).toBe(
+      "Wants OVR 75 and up",
+    );
+    expect(challengeLevelWanted(null, null, "en", "football")).toBe(
+      "Open to any level",
+    );
   });
 
   it("names weekdays and picked days in week order", () => {

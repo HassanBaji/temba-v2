@@ -152,6 +152,8 @@ export type GameCreateVenueOption = {
   city: string;
   country: string;
   archivedAt: Date | null;
+  /** A partner Venue hosts Public Games (ADR-0071). */
+  isPartner: boolean;
   courts: { id: string; name: string; sport: Sport }[];
 };
 
@@ -161,8 +163,10 @@ export type CreateFriendlyGameInput = {
   createdBy: string;
   name?: string | null;
   hasCustomName?: boolean;
-  /** Null only for a Booking Game. */
+  /** Null only for a Booking Game or a Public Game. */
   groupId: string | null;
+  /** True only for a Public Game (ADR-0071). Omitted = private. */
+  isPublic?: boolean;
   venueId: string;
   courtId?: string | null;
   windowStart: Date;
@@ -184,8 +188,10 @@ export type CreateFootballGameInput = {
   createdBy: string;
   name?: string | null;
   hasCustomName?: boolean;
-  /** Null only for a Booking Game. */
+  /** Null only for a Booking Game or a Public Game. */
   groupId: string | null;
+  /** True only for a Public Game (ADR-0071). Omitted = private. */
+  isPublic?: boolean;
   venueId: string;
   courtId?: string | null;
   windowStart: Date;
@@ -195,6 +201,12 @@ export type CreateFootballGameInput = {
   playersAllowed: number;
   /** How the MVP is decided. Omitted = players vote. */
   mvpMode?: MvpMode;
+  /** From `ratingFlagsAtCreate`. Omitted = moves nothing. */
+  rated?: boolean;
+  groupRated?: boolean;
+  /** Only on a Game that counts for Temba Level (ADR-0069). */
+  levelMinTenths?: number | null;
+  levelMaxTenths?: number | null;
 };
 
 export type CreateFriendlyGameResult = {
@@ -206,8 +218,11 @@ export type CreateGameInput = {
   createdBy: string;
   name?: string;
   customName?: string;
-  groupId: string;
+  /** Omitted only for a Public Game (ADR-0071). */
+  groupId?: string;
   isPublic: boolean;
+  /** A Public Game's sport. Omitted = padel. */
+  sport?: Sport;
   /** False makes the Game Unrated (ADR-0053). Omitted = rated. */
   rated?: boolean;
   format: "friendly_game" | "americano" | "friendly_tournament";

@@ -6,6 +6,7 @@ import {
   Building2,
   CalendarClock,
   FileText,
+  Flag,
   KeyRound,
   Mail,
   MailCheck,
@@ -41,13 +42,14 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { Switch } from "~/components/ui/switch";
 import { profileAvatarClassName } from "~/components/you/you-header";
 import { SPORT_SETTINGS_HREF } from "~/components/you/you-chips";
-import { footballLevelLabel } from "~/components/you/you-football-model";
 import { bandInText, displayBand } from "~/components/you/you-format";
 import { usePendingInviteCount } from "~/hooks/use-pending-invite-count";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { OPERATOR_DISPUTES_HREF } from "~/lib/dashboard-paths";
 import { profileTaskHref } from "~/lib/onboarding-step";
 import { cn } from "~/lib/utils";
 import { activeVenueCountLabel } from "@repo/domain/active-venue-count";
+import { formatPadelLevel } from "@repo/domain/level";
 import { footballRoleView } from "@repo/domain/player-profile-football";
 import { preferredPositionLabel } from "@repo/domain/preferred-position";
 import { playWindowsSummary } from "@repo/domain/profile-details";
@@ -193,9 +195,11 @@ function SportProfiles({ details }: { details: Details }) {
   const side = preferredPositionLabel(details.preferredPosition, locale);
   const padelLevel = padel.data?.level ?? null;
   const footballRating = football.data?.rating ?? null;
-  const footballLevel = footballRating
-    ? footballLevelLabel(footballRating.levelBand, locale)
-    : m.you.hero.noLevel;
+  const footballOvr = football.data?.ovr;
+  const footballLevel =
+    footballOvr != null
+      ? m.rating.ovr.value(String(footballOvr))
+      : m.you.hero.noLevel;
   const role = footballRoleView(
     {
       role: details.preferredFootballRole,
@@ -214,7 +218,7 @@ function SportProfiles({ details }: { details: Details }) {
       sub: padelLevel
         ? copy.padelSub(
             bandInText(
-              `${displayBand(padelLevel.levelBand)} ${padelLevel.rating.toFixed(2)}`,
+              `${displayBand(padelLevel.levelBand)} ${formatPadelLevel(padelLevel.rating, 2)}`,
               locale,
             ),
             side,
@@ -525,6 +529,12 @@ export function SettingsHub() {
                       </span>
                     ) : null
                   }
+                />
+                <SettingsLinkRow
+                  href={OPERATOR_DISPUTES_HREF}
+                  icon={<Flag {...iconProps} />}
+                  title={m.rating.dispute.operator.title}
+                  subtitle={m.rating.dispute.operator.settingsSubtitle}
                 />
               </SettingsSection>
             ) : null}

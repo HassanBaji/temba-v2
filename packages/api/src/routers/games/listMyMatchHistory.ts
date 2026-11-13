@@ -10,6 +10,7 @@ import {
   games,
   marks,
   matches,
+  ratingEvents,
 } from "@repo/db";
 import {
   GAME_ALBUM_SLOTS,
@@ -71,6 +72,11 @@ export type MatchHistoryRow = {
   /** The viewer is this Game's settled MVP. */
   viewerIsMvp: boolean;
   /**
+   * What this Match moved the viewer's Temba Level, when it counted for it.
+   * Null on a tier Game or an Unrated Game, which never move a Level.
+   */
+  levelMove: { muBefore: number; muAfter: number } | null;
+  /**
    * Set when `groupTournaments` folds a Groups only tournament into one row:
    * the row's Match fields are its latest scored Match (ADR-0074).
    */
@@ -79,7 +85,10 @@ export type MatchHistoryRow = {
   album?: GameAlbumSummary;
 };
 
-type HistoryRowWithoutMarks = Omit<MatchHistoryRow, "viewerMarks">;
+type HistoryRowWithoutMarks = Omit<
+  MatchHistoryRow,
+  "viewerMarks" | "levelMove"
+>;
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -360,10 +369,14 @@ export async function listMyMatchHistoryRows(
   });
 
   const pageRows = pageOf(rows, page);
-  return withViewerMarks(
+  return withLevelMoves(
     database,
     userId,
-    await withMyTournaments(database, userId, locale, pageRows),
+    await withViewerMarks(
+      database,
+      userId,
+      await withMyTournaments(database, userId, locale, pageRows),
+    ),
   );
 }
 
@@ -422,7 +435,7 @@ async function withViewerMarks(
   database: DbClient,
   userId: string,
   rows: HistoryRowWithoutMarks[],
-): Promise<MatchHistoryRow[]> {
+): Promise<Omit<MatchHistoryRow, "levelMove">[]> {
   const received =
     rows.length === 0
       ? []
@@ -452,6 +465,36 @@ async function withViewerMarks(
           MARK_KINDS.indexOf(leftKind) - MARK_KINDS.indexOf(rightKind),
       )
       .map(([kind]) => kind),
+  }));
+}
+
+async function withLevelMoves(
+  database: DbClient,
+  userId: string,
+  rows: Omit<MatchHistoryRow, "levelMove">[],
+): Promise<MatchHistoryRow[]> {
+  const events =
+    rows.length === 0
+      ? []
+      : await database.query.ratingEvents.findMany({
+          where: and(
+            eq(ratingEvents.userId, userId),
+            inArray(
+              ratingEvents.matchId,
+              rows.map((row) => row.matchId),
+            ),
+          ),
+          columns: { matchId: true, muBefore: true, muAfter: true },
+        });
+  const byMatch = new Map(
+    events.map((event) => [
+      event.matchId,
+      { muBefore: event.muBefore, muAfter: event.muAfter },
+    ]),
+  );
+  return rows.map((row) => ({
+    ...row,
+    levelMove: byMatch.get(row.matchId) ?? null,
   }));
 }
 

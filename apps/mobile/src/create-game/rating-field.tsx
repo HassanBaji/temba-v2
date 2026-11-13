@@ -1,4 +1,8 @@
-import { createRatingChoice } from "@repo/domain/create-game-flow";
+import {
+  createRatingChoice,
+  createRatingChoiceShown,
+} from "@repo/domain/create-game-flow";
+import type { Sport } from "@repo/domain/sport";
 import { View } from "react-native";
 
 import { useLocale } from "../i18n/locale-provider";
@@ -7,15 +11,26 @@ import { HelperNote, StepSection } from "./step-section";
 
 export function RatingField({
   groupVerified,
+  sport,
   rated,
   onRated,
 }: {
   groupVerified: boolean;
+  sport?: Sport;
   rated: boolean;
   onRated: (rated: boolean) => void;
 }) {
   const locale = useLocale();
-  const choice = createRatingChoice({ groupVerified, rated, locale });
+  if (
+    !createRatingChoiceShown({
+      sport: sport ?? "padel",
+      hasGroup: true,
+      groupVerified,
+    })
+  ) {
+    return null;
+  }
+  const choice = createRatingChoice({ groupVerified, rated, locale, sport });
   return (
     <StepSection title={choice.title}>
       <View accessibilityRole="radiogroup" style={{ gap: 8 }}>

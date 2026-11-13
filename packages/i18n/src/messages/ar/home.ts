@@ -33,27 +33,6 @@ export const home = {
       football: "مستواك في كرة القدم",
     },
     numberLabel: "التقييم",
-    window: (n: number) =>
-      plural("ar", n, {
-        one: "في آخر مباراة",
-        two: "في آخر مباراتين",
-        few: "في آخر {n} مباريات",
-        many: "في آخر {n} مباراة",
-        other: "في آخر {n} مباراة",
-      }),
-    provisionalLead: "مستواك مبدئي.",
-    provisionalRest: (remaining: number) =>
-      plural("ar", remaining, {
-        one: " العب مباراة مصنّفة واحدة أخرى لتأكيده.",
-        two: " العب مباراتين مصنّفتين أخريين لتأكيده.",
-        few: " العب {n} مباريات مصنّفة أخرى لتأكيده.",
-        many: " العب {n} مباراة مصنّفة أخرى لتأكيده.",
-        other: " العب {n} مباراة مصنّفة أخرى لتأكيده.",
-      }),
-    confirmedLead: "مستواك مؤكد.",
-    confirmedRest: " يتحرك مستواك الآن مع كل مباراة مصنّفة تلعبها.",
-    progressTo: (percent: number, next: string) =>
-      `${percent}% نحو ${isolate(next)}`,
   },
   levelChange: {
     up: "ارتفاع",
@@ -284,23 +263,7 @@ export const home = {
       padel: "مستوى البادل",
       football: "مستوى كرة القدم",
     },
-    confirmed: "مؤكَّد",
-    provisional: "مبدئي",
-    level: "المستوى",
-    lastN: (n: number) => `آخر ${n}`,
-    nextBand: "الفئة التالية",
-    nextBandValue: (percent: number) => `، قطعت ${percent}% من الطريق`,
-    topBand: "أعلى فئة",
-    confirmsIn: (n: number) =>
-      plural("ar", n, {
-        one: "مباراة مصنّفة واحدة ويتأكد مستواك.",
-        two: "مباراتان مصنّفتان ويتأكد مستواك.",
-        few: "{n} مباريات مصنّفة ويتأكد مستواك.",
-        many: "{n} مباراة مصنّفة ويتأكد مستواك.",
-        other: "{n} مباراة مصنّفة ويتأكد مستواك.",
-      }),
-    gaugeSpoken: (band: string, percent: number, next: string) =>
-      `الفئة ${isolate(band)}، قطعت ${percent}% من الطريق إلى ${isolate(next)}`,
+    opensRatings: "يفتح التصنيفات",
   },
   trend: {
     title: "الاتجاه",

@@ -22,12 +22,14 @@ import {
   groupMemberSortCaption,
   groupMembersLens,
   groupMemberTableCaption,
+  groupMemberTierView,
   type GroupMemberSort,
   type GroupMembersLensInput,
+  type GroupMemberTierView,
 } from "@repo/domain/group-members-table";
 import {
   levelOverrideCaption,
-  levelOverrideReasonLabel,
+  levelOverrideWhy,
 } from "@repo/domain/level-slider";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import { formatE164 } from "@repo/domain/phone-number";
@@ -167,21 +169,28 @@ export type MemberRowView = {
   caption: string | null;
   level: LevelCellView;
   levelText: string | null;
+  /** Set on a tier Group's rows. */
+  tier: GroupMemberTierView | null;
   selectable: boolean;
   accessibilityLabel: string;
 };
 
+/** The OVR face already carries its number; the Level face adds the Level. */
 function levelSpokenLabel(
   view: LevelCellView,
   levelText: string | null,
   locale: Locale,
+  carriesValue = false,
 ) {
   const m = messagesFor(locale).mobileGroup.members;
   if (view.kind === "label") {
     return m.levelSpoken(levelText ? `${view.label} ${levelText}` : view.label);
   }
-  return view.label && levelText
-    ? m.levelSpokenProvisional(`${view.label} ${levelText}`)
+  if (view.label && levelText) {
+    return m.levelSpokenProvisional(`${view.label} ${levelText}`);
+  }
+  return view.label && carriesValue
+    ? m.levelSpokenProvisional(view.label)
     : m.levelStillProvisional;
 }
 
@@ -212,15 +221,18 @@ export function memberRowView(
   canRemovePlayers = false,
   canAppointOrganizers = false,
   sort: GroupMemberSort = "level",
-  canSetGroupLevel = false,
+  canAdjustTier = false,
   canSetNicknames = false,
 ): MemberRowView {
   const m = messagesFor(locale);
   const tembaName = entry.name ?? m.mobileGroup.unnamedMember;
   const nickname = entry.nickname?.name ?? null;
   const name = nickname ?? tembaName;
+  const tier = groupMemberTierView(entry, locale);
   const details = [
-    groupMemberSortCaption(entry, sort, locale),
+    tier && sort === "tier"
+      ? tier.caption
+      : groupMemberSortCaption(entry, sort, locale),
     entry.phoneMasked ? isolate(entry.phoneMasked) : null,
     canSetLevel && entry.levelOverride
       ? levelOverrideCaption({ ...entry.levelOverride, locale })
@@ -232,7 +244,8 @@ export function memberRowView(
   const spokenName = nickname
     ? m.group.nickname.spoken(nickname, tembaName)
     : name;
-  const level = levelCellView(entry.levelBand, entry.levelProvisional);
+  const ovr = entry.ovr ?? null;
+  const level = levelCellView(entry.levelBand, entry.levelProvisional, ovr);
   return {
     key: entry.userId,
     name,
@@ -244,8 +257,10 @@ export function memberRowView(
     caption: caption || null,
     level,
     levelText: entry.level,
+    tier,
     selectable:
-      ((canSetLevel || canSetGroupLevel) && !entry.isViewer) ||
+      (canSetLevel && !entry.isViewer) ||
+      (canAdjustTier && entry.tier != null && !entry.isViewer) ||
       memberIsRemovable(entry, canRemovePlayers) ||
       memberOrganizerAction(entry, canAppointOrganizers) != null ||
       memberIsCallable(entry) ||
@@ -254,7 +269,13 @@ export function memberRowView(
       entry.isViewer ? m.mobileGroup.members.rowYou(spokenName) : spokenName,
       entry.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
       ...details,
-      levelSpokenLabel(level, entry.level, locale),
+      tier
+        ? sort === "tier"
+          ? tier.pointsSpoken
+          : tier.spoken
+        : ovr == null
+          ? levelSpokenLabel(level, entry.level, locale)
+          : levelSpokenLabel(level, null, locale, true),
     ]
       .filter(Boolean)
       .join(". "),
@@ -281,7 +302,7 @@ export function memberList(
   canRemovePlayers = false,
   canAppointOrganizers = false,
   lens: MemberLens = LEVEL_ORDER,
-  canSetGroupLevel = false,
+  canAdjustTier = false,
   canSetNicknames = false,
 ) {
   const unnamed = messagesFor(locale).mobileGroup.unnamedMember;
@@ -302,7 +323,7 @@ export function memberList(
         canRemovePlayers,
         canAppointOrganizers,
         view.sort,
-        canSetGroupLevel,
+        canAdjustTier,
         canSetNicknames,
       ),
     ),
@@ -361,13 +382,12 @@ export function memberSheetView(
     provisionalNote: entry.levelProvisional
       ? m.members.provisionalNote(firstName(name))
       : null,
-    latestSet: caption
-      ? override?.reason
+    latestSet:
+      caption && override
         ? m.members.latestSetWithReason(
             caption,
-            levelOverrideReasonLabel(override.reason, locale),
+            levelOverrideWhy({ ...override, locale }),
           )
-        : caption
-      : null,
+        : null,
   };
 }

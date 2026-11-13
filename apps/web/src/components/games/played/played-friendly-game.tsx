@@ -1,5 +1,6 @@
 "use client";
 
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
 import {
@@ -26,6 +27,7 @@ import { MarksSection } from "~/components/marks/marks-section";
 import { MvpRow } from "~/components/marks/mvp-row";
 import { useGameMarks } from "~/components/marks/use-game-marks";
 
+import { MatchDisputeRow } from "./match-dispute-row";
 import { PlayedGameView } from "./played-game-view";
 import { PlayedPadelBoard } from "./played-padel-board";
 import { PlayedPlayerDialog } from "./played-player-dialog";
@@ -68,6 +70,7 @@ export function PlayedFriendlyGame({
           groupName: game.groupName,
           rated: game.rated,
           ratingScope: game.ratingScope,
+          publicGame: isPublicGame(game),
           ratingImpact: game.ratingImpact,
           confirmation: game.matchResultConfirmation,
         },
@@ -159,6 +162,7 @@ export function PlayedFriendlyGame({
         }
         columns={model.columns}
         facts={model.facts}
+        dispute={<MatchDisputeRow match={match} />}
         onPressPlayer={
           linkToPlayers || game.isOrganizer ? setSelected : undefined
         }

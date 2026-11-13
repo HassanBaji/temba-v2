@@ -13,6 +13,7 @@ import {
   createGameTypeCards,
   createRatingChoice,
   createRatingChoiceShown,
+  createLevelRangeShown,
   applyLevelBoundChange,
   createFlowFirstStep,
   createFlowLaterSteps,
@@ -60,6 +61,12 @@ import {
   resetCreateBranch,
   selectDurationFinish,
   selectStartSlot,
+  choosePublicGame,
+  choosePublicGameSport,
+  createDraftSport,
+  isPublicGameDraft,
+  publicGameSportOptions,
+  publicGameOffered,
 } from "./create-game-flow";
 import { initialCreateGameDraft } from "./create-game-draft";
 
@@ -1090,17 +1097,74 @@ describe("football create flow", () => {
 });
 
 describe("Rating choice", () => {
-  it("shows only for a padel Game on a Group", () => {
+  it("shows on a Verified Group and a tier Group, not on a padel Group that is not Verified", () => {
     assert.equal(
-      createRatingChoiceShown({ sport: "padel", hasGroup: true }),
+      createRatingChoiceShown({
+        sport: "padel",
+        hasGroup: true,
+        groupVerified: true,
+      }),
       true,
     );
     assert.equal(
-      createRatingChoiceShown({ sport: "football", hasGroup: true }),
+      createRatingChoiceShown({
+        sport: "padel",
+        hasGroup: true,
+        groupVerified: false,
+      }),
+      false,
+    );
+    assert.equal(
+      createRatingChoiceShown({ sport: "padel", hasGroup: true }),
+      false,
+    );
+    assert.equal(
+      createRatingChoiceShown({
+        sport: "football",
+        hasGroup: true,
+        groupVerified: false,
+      }),
+      true,
+    );
+    assert.equal(
+      createRatingChoiceShown({
+        sport: "football",
+        hasGroup: true,
+        groupVerified: true,
+      }),
+      true,
+    );
+    assert.equal(
+      createRatingChoiceShown({ sport: "football", hasGroup: false }),
       false,
     );
     assert.equal(
       createRatingChoiceShown({ sport: "padel", hasGroup: false }),
+      false,
+    );
+  });
+
+  it("offers a Level range on padel, and on football only when the Game counts for Temba Level", () => {
+    const on = { hasGroup: true, rated: true };
+    assert.equal(
+      createLevelRangeShown({ ...on, sport: "padel", groupVerified: false }),
+      true,
+    );
+    assert.equal(
+      createLevelRangeShown({ ...on, sport: "football", groupVerified: true }),
+      true,
+    );
+    assert.equal(
+      createLevelRangeShown({ ...on, sport: "football", groupVerified: false }),
+      false,
+    );
+    assert.equal(
+      createLevelRangeShown({
+        ...on,
+        sport: "football",
+        groupVerified: true,
+        rated: false,
+      }),
       false,
     );
   });
@@ -1132,9 +1196,9 @@ describe("Rating choice", () => {
       rated: true,
       locale: "en",
     });
-    assert.equal(loose.scope, "group");
-    assert.equal(loose.options[0]?.description, "Counts for group rating");
-    assert.equal(loose.note, messagesFor("en").you.ratingScope.group_note);
+    assert.equal(loose.scope, "unrated");
+    assert.equal(loose.scopeLabel, "Unrated");
+    assert.equal(loose.note, messagesFor("en").you.ratingScope.unrated_note);
 
     const unrated = createRatingChoice({
       groupVerified: true,
@@ -1146,14 +1210,40 @@ describe("Rating choice", () => {
     assert.equal(unrated.note, messagesFor("en").you.ratingScope.unrated_note);
   });
 
-  it("reads in Arabic", () => {
+  it("describes Rated on a tier Group as the group tier", () => {
     const choice = createRatingChoice({
       groupVerified: false,
+      rated: true,
+      locale: "en",
+      sport: "football",
+    });
+    assert.equal(choice.scope, "group");
+    assert.equal(choice.scopeLabel, "Counts for group tier");
+    assert.equal(choice.options[0]?.description, "Counts for group tier");
+    assert.equal(choice.note, messagesFor("en").rating.scope.groupNote);
+  });
+
+  it("describes Rated on a Verified football Group as the Temba Level", () => {
+    const choice = createRatingChoice({
+      groupVerified: true,
+      rated: true,
+      locale: "en",
+      sport: "football",
+    });
+    assert.equal(choice.scope, "temba");
+    assert.equal(choice.scopeLabel, "Counts for Temba Level");
+    assert.equal(choice.options[0]?.description, "Counts for Temba Level");
+    assert.equal(choice.note, messagesFor("en").rating.scope.tembaNote);
+  });
+
+  it("reads in Arabic", () => {
+    const choice = createRatingChoice({
+      groupVerified: true,
       rated: true,
       locale: "ar",
     });
     assert.equal(choice.title, messagesFor("ar").you.ratingScope.title);
-    assert.equal(choice.scopeLabel, messagesFor("ar").you.ratingScope.group);
+    assert.equal(choice.scopeLabel, messagesFor("ar").you.ratingScope.temba);
   });
 });
 
@@ -1204,6 +1294,127 @@ describe("Arabic copy", () => {
     assert.equal(
       gameTeamOfTwoCopy("6.50", "ar"),
       "13.000 د.ب لفريق من لاعبَين",
+    );
+  });
+});
+
+describe("Public Game sport", () => {
+  it("is padel until the creator picks football, which drops the Venue", () => {
+    const draft = {
+      ...choosePublicGame(initialCreateGameDraft(NOW, "en")),
+      venueId: "venue-1",
+      courtId: "court-1",
+    };
+    assert.equal(createDraftSport(draft, null), "padel");
+    const football = choosePublicGameSport(draft, "football");
+    assert.equal(createDraftSport(football, null), "football");
+    assert.equal(football.venueId, "");
+    assert.equal(football.courtId, "none");
+    assert.equal(choosePublicGameSport(football, "football"), football);
+    assert.equal(
+      createDraftSport(changeCreateGroup(football, "group-1"), "padel"),
+      "padel",
+    );
+  });
+
+  it("offers padel and football, marking the pick", () => {
+    assert.deepEqual(publicGameSportOptions("football", "en"), [
+      { sport: "padel", label: "Padel", selected: false },
+      { sport: "football", label: "Football", selected: true },
+    ]);
+  });
+
+  it("offers a Level range on a football Public Game", () => {
+    assert.equal(
+      createLevelRangeShown({
+        sport: "football",
+        hasGroup: false,
+        groupVerified: false,
+        rated: true,
+        isPublic: true,
+      }),
+      true,
+    );
+    assert.equal(
+      createLevelRangeShown({
+        sport: "football",
+        hasGroup: false,
+        groupVerified: false,
+        rated: true,
+      }),
+      false,
+    );
+  });
+});
+
+describe("Public Game on create", () => {
+  it("is offered only on the Friendly game type", () => {
+    assert.equal(publicGameOffered("friendly_game"), true);
+    assert.equal(publicGameOffered("friendly_tournament"), false);
+    assert.equal(publicGameOffered(null), false);
+  });
+
+  it("drops the Group and Venue, and picking a Group undoes it", () => {
+    const draft = {
+      ...initialCreateGameDraft(NOW, "en"),
+      groupId: "group-1",
+      venueId: "venue-1",
+      courtId: "court-1",
+    };
+    const chosen = choosePublicGame(draft);
+    assert.equal(chosen.groupId, "");
+    assert.equal(chosen.venueId, "");
+    assert.equal(chosen.courtId, "none");
+    assert.equal(isPublicGameDraft(chosen), true);
+    assert.equal(
+      isPublicGameDraft(changeCreateGroup(chosen, "group-2")),
+      false,
+    );
+    assert.equal(
+      isPublicGameDraft(resetCreateBranch(chosen, "friendly_game", "en")),
+      false,
+    );
+    assert.equal(
+      isPublicGameDraft(resetCreateBranch(chosen, "friendly_tournament", "en")),
+      false,
+    );
+  });
+
+  it("needs no Group to move past Where, but still a Venue", () => {
+    assert.deepEqual(validateFriendlyGameWhere("", "venue-1", "en", true), {
+      ok: true,
+    });
+    const noVenue = validateFriendlyGameWhere("", "", "en", true);
+    assert.equal(noVenue.ok ? null : noVenue.field, "venueId");
+    const grouped = validateFriendlyGameWhere("", "venue-1", "en");
+    assert.equal(grouped.ok ? null : grouped.field, "groupId");
+    assert.equal(
+      firstIncompleteFriendlyGameStep(
+        { ...emptyDraft, venueId: "venue-1", isPublic: true },
+        NOW,
+      ),
+      3,
+    );
+    assert.equal(
+      firstIncompleteFriendlyGameStep(
+        { ...emptyDraft, venueId: "venue-1" },
+        NOW,
+      ),
+      2,
+    );
+  });
+
+  it("tells the creator only partner Venues host public games", () => {
+    const copy = createVenueCopy(
+      { locked: false, groupKind: "none", venues: [] },
+      "en",
+      { publicGame: true },
+    );
+    assert.equal(
+      copy,
+      messagesFor("en").createGame.venue.pickPartner(
+        messagesFor("en").createGame.venue.courtOptional,
+      ),
     );
   });
 });

@@ -6,10 +6,11 @@ import { ErrorState } from "~/components/common/error-state";
 import { HomeDeclareLevel } from "~/components/home/home-level-block";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { api } from "~/trpc/react";
-import { footballRoleView } from "@repo/domain/player-profile-football";
-import { shownWinRatePercent } from "@repo/domain/win-rate";
+import {
+  footballHeroLevelView,
+  footballRoleView,
+} from "@repo/domain/player-profile-football";
 
-import { DifferenceBox } from "./group-levels-card";
 import { LastTenStrip } from "./last-ten-strip";
 import {
   HeroCard,
@@ -19,17 +20,16 @@ import {
   LevelHeroSkeleton,
 } from "./level-hero";
 import { PartnersCard } from "./profile-cards";
+import { RatingsLink } from "./ratings-page";
 import {
-  footballGroupRowView,
   footballHeroStats,
-  footballLevelLabel,
   goalBars,
   recordShares,
   type FootballProfile,
 } from "./you-football-model";
 import { formRecord, lastTenSlots, partnerRows } from "./you-form-model";
-import type { GroupLevelRow, MyProfile } from "./you-hero-model";
-import { InitialsTile, YouCard, YouSection } from "./you-section";
+import type { MyProfile } from "./you-hero-model";
+import { YouCard } from "./you-section";
 
 function GoalsLastTen({ profile }: { profile: FootballProfile }) {
   const m = useMessages();
@@ -76,31 +76,47 @@ function FootballHero({ profile }: { profile: FootballProfile }) {
   if (!rating) {
     return null;
   }
-  const winRate = shownWinRatePercent(
-    profile.overall.won,
-    profile.overall.played,
-  );
-  const levelLabel = footballLevelLabel(rating.levelBand, locale);
+  const level = footballHeroLevelView(rating, locale);
   const role = footballRoleView(profile.role, locale);
 
   return (
     <HeroCard>
       <HeroTopLine
         label={m.you.football.level}
-        status={rating.ratedMatchCount === 0 ? m.you.football.selfPlaced : null}
+        status={level.placement ? m.you.football.selfPlaced : null}
       />
       <div className="flex items-center gap-5">
-        <HeroRing percent={winRate ?? 0}>
-          <span className="font-expanded text-[28px] tabular-nums leading-none">
-            {winRate === null ? m.webYou.noData : `${winRate}%`}
+        <span className="sr-only">{level.spoken}</span>
+        <HeroRing percent={level.ringPercent}>
+          <span
+            aria-hidden="true"
+            className="font-expanded text-[28px] tabular-nums leading-none"
+          >
+            {level.ovr}
           </span>
-          <span className="text-dim mt-1 text-[10px] leading-tight">
-            {m.you.hero.winRate}
+          <span
+            aria-hidden="true"
+            className="text-dim mt-1 text-[10px] leading-tight"
+          >
+            {level.ovrLabel}
           </span>
         </HeroRing>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <p className="font-expanded text-[28px] leading-none">{levelLabel}</p>
+          <p
+            aria-hidden="true"
+            className="font-expanded text-[28px] leading-none"
+          >
+            <bdi dir="ltr">{level.band}</bdi>
+          </p>
+          {level.placement ? (
+            <p aria-hidden="true" className="text-dim text-meta">
+              {level.placement}
+            </p>
+          ) : null}
           <p className="text-meta font-semibold">{role.label}</p>
+          <p aria-hidden="true" className="text-dim text-eyebrow leading-[1.5]">
+            {level.progress}
+          </p>
           <p className="text-dim text-eyebrow leading-[1.5]">
             {m.you.football.adjustNote}
           </p>
@@ -159,63 +175,12 @@ function AllTimeRecord({ profile }: { profile: FootballProfile }) {
   );
 }
 
-function FootballGroups({
-  rows,
-  levelLabel,
-}: {
-  rows: readonly GroupLevelRow[];
-  levelLabel: string | null;
-}) {
-  const m = useMessages();
-  const locale = useLocale();
-  if (rows.length === 0) {
-    return null;
-  }
-
-  return (
-    <YouSection
-      title={m.you.groups.title}
-      meta={levelLabel ? m.you.groups.vsGeneral(levelLabel, "").trim() : null}
-      note={m.you.groups.footballNote}
-    >
-      <YouCard>
-        <ul className="divide-rule divide-y">
-          {rows.map((row) => {
-            const view = footballGroupRowView(row, locale);
-            return (
-              <li
-                key={view.groupId}
-                className="flex items-center gap-3 px-5 py-3"
-              >
-                <InitialsTile text={view.initials} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-body text-ink truncate font-semibold">
-                    {view.name}
-                  </p>
-                  <p className="text-eyebrow text-muted-foreground truncate">
-                    {view.sub}
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  <span className="font-expanded text-body">{view.level}</span>
-                  <DifferenceBox difference={view.difference} />
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </YouCard>
-    </YouSection>
-  );
-}
-
-/** The football profile: Level, goals, Last 10, record, Group Levels, Teammates. */
+/** The football profile: Level, goals, Last 10, record, Teammates. */
 export function FootballTab({ userId }: { userId: string }) {
   const m = useMessages();
   const locale = useLocale();
   const utils = api.useUtils();
   const profile = api.users.footballProfile.useQuery({ userId });
-  const groups = api.ratings.myGroupLevels.useQuery({ sport: "football" });
   const mine = api.users.myProfile.useQuery({ sport: "football" });
   const me = api.ratings.me.useQuery({ sport: "football" });
   const declared = me.data?.rating != null;
@@ -258,6 +223,7 @@ export function FootballTab({ userId }: { userId: string }) {
         ) : me.data?.canSelfDeclare ? (
           <HomeDeclareLevel surface="profile" sport="football" />
         ) : null}
+        <RatingsLink sport="football" />
         <LastTenStrip
           title={m.you.form.lastTen}
           record={formRecord(lastTen, locale)}
@@ -266,14 +232,6 @@ export function FootballTab({ userId }: { userId: string }) {
         <AllTimeRecord profile={data} />
       </div>
       <div className="flex min-w-0 flex-col gap-[26px]">
-        <FootballGroups
-          rows={groups.data ?? []}
-          levelLabel={
-            data.rating
-              ? footballLevelLabel(data.rating.levelBand, locale)
-              : null
-          }
-        />
         <PartnersCard
           title={m.you.partners.teammates}
           meta={m.you.partners.mostPlayed}

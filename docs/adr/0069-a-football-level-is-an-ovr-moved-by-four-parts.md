@@ -1,6 +1,6 @@
 # A football Level is an OVR moved by four parts
 
-**Status:** proposed (draft for the owner's review). Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0009](./0009-glicko-2-user-ratings.md), [ADR-0039](./0039-a-football-game-is-a-roster-with-sides-picked-later.md), [ADR-0040](./0040-football-sides-score-and-goals.md) and [ADR-0061](./0061-a-challenge-is-a-request-and-a-game-is-the-result.md) for football.
+**Status:** accepted. Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0009](./0009-glicko-2-user-ratings.md), [ADR-0039](./0039-a-football-game-is-a-roster-with-sides-picked-later.md), [ADR-0040](./0040-football-sides-score-and-goals.md) and [ADR-0061](./0061-a-challenge-is-a-request-and-a-game-is-the-result.md) for football.
 
 Football was never rated: ADR-0039 and ADR-0040 left "football rating" as future work, and a football Level was the word a player chose at sign-up. The owner's design gives football a Temba Level that reads as OVR 40 to 99 and moves on four things a player recognises.
 
@@ -9,10 +9,12 @@ Football was never rated: ADR-0039 and ADR-0040 left "football rating" as future
 - **OVR is the football face of the existing Rating.** `ovr = 40 + 59 × level / 7` on the stored μ, shown as a whole number. The `ratings` row, the Level bands, Team Level, Game Level range and Level overrides are unchanged. No row is rewritten: a self-placed Beginner reads 43, Casual 61, Competitive 72, Pro 78.
 - **A counting football Match moves OVR by four additive parts**: result 40% (against the other side's mean OVR), Performance ratings 30%, goals 20%, MVP 10%. The parts are stored on the `rating_events` row.
 - **Each part sums to zero across the Match's players**, so the population cannot inflate. A missing part counts as zero and is not redistributed.
+- **The result part is scaled so it sums to zero** (spec 8.4): each side's raw result parts are scaled until both sides carry the same total. With even sides of confirmed players nothing is scaled; where the sides differ in size or mix Provisional players it is, so a confirmed winner over an all-Provisional side gets more than a Match of players at their own K would give.
+- **A move cut at 40 or 99 keeps its parts.** The event stores each part as earned and the μ the bound allowed. "What moved your OVR" shows the parts as earned and one line for what the floor or ceiling held back, read from the stored row; no part is ever shown with a sign the player did not earn.
 - **Goals are a rating input.** A player's own named goals count for them; the side's goals conceded count against them by Football role, most for a keeper and least for a forward. With no minutes recorded, "while you played" is the whole Match. A changed Scorer list clears Match result confirmations.
 - **The MVP part counts only an MVP decided by vote.**
 - **Provisional is five counting Matches.** The football writer sets φ from the count so every reader of Provisional keeps working; φ carries nothing else on football, and idle inflation does not apply.
-- **What counts**: a football Game on a Verified Group, a Public Game ([ADR-0071](./0071-a-public-game-at-a-partner-venue-counts-for-temba-level.md)) and a football Challenge Game, which needs one confirmation from each Team.
+- **What counts**: a football Game on a Verified Group, a Public Game ([ADR-0071](./0071-a-public-game-at-a-partner-venue-counts-for-temba-level.md)) and a football Challenge Game, which needs one confirmation from each Team, from two different Users: someone who acts for both Teams confirms for one side only.
 - **Reversal subtracts** the event's parts ([ADR-0067](./0067-tier-points-are-an-additive-ledger-and-a-tier-band-is-a-place.md)).
 - **Padel is unchanged**: Glicko-2, with the partner term of [ADR-0070](./0070-a-padel-level-weighs-the-partner-and-reads-from-one.md).
 
