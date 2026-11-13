@@ -10,6 +10,7 @@ import {
   gamePlayers,
   gameTeamPlayers,
   games,
+  GroupMemberRoleEnum,
   groupMembers,
   groups,
   matches,
@@ -27,6 +28,7 @@ import {
   readTembaLevelView,
   tembaLevelViews,
 } from "#src/ratings/level-confirmed";
+import { tierPointsShownTo } from "#src/ratings/group-tier-table";
 import { calibrationVenueFor } from "#src/ratings/verifier-calibration";
 import {
   myGroupTiers,
@@ -627,7 +629,7 @@ async function ratingChanges(
 }
 
 export type SharedGroupTierRow = Omit<MyGroupTierRow, "points"> & {
-  /** Null while Provisional, unless the viewer is the player (D10). */
+  /** Null while Provisional, unless the viewer may see them. */
   points: number | null;
 };
 
@@ -647,8 +649,13 @@ async function sharedGroupTiers(
   const viewerGroups = self
     ? null
     : await database
-        .select({ groupId: groupMembers.groupId })
+        .select({
+          groupId: groupMembers.groupId,
+          role: groupMembers.role,
+          createdBy: groups.createdBy,
+        })
         .from(groupMembers)
+        .innerJoin(groups, eq(groups.id, groupMembers.groupId))
         .where(
           and(
             eq(groupMembers.userId, args.viewerId),
@@ -658,14 +665,32 @@ async function sharedGroupTiers(
             ),
           ),
         );
-  const shared = viewerGroups
-    ? new Set(viewerGroups.map((row) => row.groupId))
+  const organizesByGroup = viewerGroups
+    ? new Map(
+        viewerGroups.map((row) => [
+          row.groupId,
+          row.createdBy === args.viewerId ||
+            row.role === GroupMemberRoleEnum.ORGANIZER,
+        ]),
+      )
     : null;
   return tiers
-    .filter((tier) => shared == null || shared.has(tier.groupId))
+    .filter(
+      (tier) => organizesByGroup == null || organizesByGroup.has(tier.groupId),
+    )
     .map((tier) => ({
       ...tier,
-      points: tier.provisional && !self ? null : tier.points,
+      points: tierPointsShownTo(
+        {
+          userId: args.playerId,
+          points: tier.points,
+          provisional: tier.provisional,
+        },
+        {
+          userId: args.viewerId,
+          organizes: organizesByGroup?.get(tier.groupId) ?? false,
+        },
+      ),
     }));
 }
 

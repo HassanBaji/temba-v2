@@ -5,6 +5,7 @@ import {
   GameFormatEnum,
   GameRegistrationModeEnum,
   GameSportEnum,
+  GroupMemberRoleEnum,
   GroupSportEnum,
   MatchStatusEnum,
   gamePlayers,
@@ -1367,15 +1368,26 @@ describe("loadPlayerProfile sharedGroupTiers", () => {
     });
   });
 
-  it("keeps a Provisional player's points from other members, never from the player", async () => {
+  it("shows a Provisional player's points to the player and the Group's Organizers, never to other members", async () => {
     await withDb(async (db) => {
       const player = await insertUser(db, "Mahmood");
-      const viewer = await insertUser(db, "Hussain");
+      const creator = await insertUser(db, "Hussain");
+      const appointed = await insertUser(db, "Yousif");
+      const member = await insertUser(db, "Salman");
       const group = await footballGroup(db, {
         name: "Gooz of Arad",
-        createdBy: viewer.id,
-        memberIds: [player.id, viewer.id],
+        createdBy: creator.id,
+        memberIds: [player.id, creator.id, appointed.id, member.id],
       });
+      await db
+        .update(groupMembers)
+        .set({ role: GroupMemberRoleEnum.ORGANIZER })
+        .where(
+          and(
+            eq(groupMembers.groupId, group),
+            eq(groupMembers.userId, appointed.id),
+          ),
+        );
       await db.insert(groupTierPoints).values({
         groupId: group,
         userId: player.id,
@@ -1383,21 +1395,25 @@ describe("loadPlayerProfile sharedGroupTiers", () => {
         gamesCounted: 2,
       });
 
-      const asViewer = await loadPlayerProfile(db, {
-        viewerId: viewer.id,
-        playerId: player.id,
-        now: NOW,
-      });
-      const asPlayer = await loadPlayerProfile(db, {
-        viewerId: player.id,
-        playerId: player.id,
-        now: NOW,
-      });
+      const tiersSeenBy = async (viewerId: string) =>
+        (
+          await loadPlayerProfile(db, {
+            viewerId,
+            playerId: player.id,
+            now: NOW,
+          })
+        ).sharedGroupTiers;
 
-      expect(asViewer.sharedGroupTiers).toMatchObject([
+      expect(await tiersSeenBy(member.id)).toMatchObject([
         { groupId: group, provisional: true, band: null, points: null },
       ]);
-      expect(asPlayer.sharedGroupTiers).toMatchObject([
+      expect(await tiersSeenBy(creator.id)).toMatchObject([
+        { groupId: group, provisional: true, band: null, points: 1230 },
+      ]);
+      expect(await tiersSeenBy(appointed.id)).toMatchObject([
+        { groupId: group, provisional: true, band: null, points: 1230 },
+      ]);
+      expect(await tiersSeenBy(player.id)).toMatchObject([
         { groupId: group, provisional: true, points: 1230 },
       ]);
     });
