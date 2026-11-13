@@ -55,9 +55,12 @@ export type RatingHistoryCursor = {
   milestone?: boolean;
 };
 
-/** A line's place: newest first, the id breaking a tie, a milestone first. */
 type Keyed = { id: string; createdAt: Date; milestone: boolean };
 
+/**
+ * Newest first; the id breaks a tie so a cursor never skips or repeats, and
+ * a milestone comes just before the Match it is derived from.
+ */
 function newestFirst(a: Keyed, b: Keyed) {
   return (
     b.createdAt.getTime() - a.createdAt.getTime() ||
