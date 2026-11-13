@@ -10,7 +10,6 @@ import {
   gamePlayers,
   gameTeamPlayers,
   games,
-  GroupMemberRoleEnum,
   groupMembers,
   groups,
   matches,
@@ -23,6 +22,7 @@ import {
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { canViewGame } from "#src/games/access";
+import { appointedOrganizerGroupIds } from "#src/groups/helpers/appointed-organizers";
 import { gameListTime } from "#src/home/upcoming-games";
 import {
   readTembaLevelView,
@@ -651,7 +651,6 @@ async function sharedGroupTiers(
     : await database
         .select({
           groupId: groupMembers.groupId,
-          role: groupMembers.role,
           createdBy: groups.createdBy,
         })
         .from(groupMembers)
@@ -665,12 +664,16 @@ async function sharedGroupTiers(
             ),
           ),
         );
+  const appointed = new Set(
+    viewerGroups
+      ? await appointedOrganizerGroupIds(database, args.viewerId)
+      : [],
+  );
   const organizesByGroup = viewerGroups
     ? new Map(
         viewerGroups.map((row) => [
           row.groupId,
-          row.createdBy === args.viewerId ||
-            row.role === GroupMemberRoleEnum.ORGANIZER,
+          row.createdBy === args.viewerId || appointed.has(row.groupId),
         ]),
       )
     : null;
