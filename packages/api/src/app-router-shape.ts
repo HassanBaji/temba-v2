@@ -121,6 +121,7 @@ type ExpectedGames =
   | "completeMatch"
   | "confirmMatchResult"
   | "stampMatch"
+  | "listMatchesToStamp"
   | "disputeMatchResult"
   | "listDisputesForOperator"
   | "decideDispute"

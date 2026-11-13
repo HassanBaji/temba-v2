@@ -16,6 +16,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import { gameById } from "#src/routers/games/byId";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
+import { listMatchesToStamp } from "#src/routers/games/listMatchesToStamp";
 import { seatedPublicGame } from "#src/routers/games/public-game.test-support";
 import { registerSeat } from "#src/routers/games/registerSeat";
 import { scoreSet } from "#src/routers/games/scoreSet";
@@ -49,9 +50,9 @@ async function verifierAt(db: TestDatabase, venueId: string) {
 
 /**
  * A private Group Game at a Venue with its four seats taken by Group members,
- * and the creator's 6-3 entered on its Match.
+ * and the creator's 6-3 entered on its Match unless `scored` is false.
  */
-async function enteredGroupGame(db: TestDatabase) {
+async function enteredGroupGame(db: TestDatabase, scored = true) {
   const g = await seatedPublicGame(db);
   const game = await db.query.games.findFirst({
     where: eq(games.id, g.gameId),
@@ -68,6 +69,9 @@ async function enteredGroupGame(db: TestDatabase) {
     .update(games)
     .set({ isPublic: false, groupId: group!.id })
     .where(eq(games.id, g.gameId));
+  if (!scored) {
+    return { ...g, venueId: game!.venueId! };
+  }
   await scoreSet(db, {
     gameId: g.gameId,
     matchId: g.matchId,
@@ -178,6 +182,43 @@ describe("games.byId for a Verifier (ADR-0072)", () => {
         columns: { status: true },
       });
       expect(match?.status).toBe(MatchStatusEnum.PENDING);
+    });
+  });
+});
+
+describe("games.listMatchesToStamp (ADR-0072)", () => {
+  it("lists a scored Match at the Verifier's Venue until it is stamped", async () => {
+    await withDb(async (db) => {
+      const g = await enteredGroupGame(db);
+      const verifier = await verifierAt(db, g.venueId);
+
+      expect(await listMatchesToStamp(db, { userId: verifier })).toEqual([
+        expect.objectContaining({
+          matchId: g.matchId,
+          gameId: g.gameId,
+          sport: "padel",
+        }),
+      ]);
+
+      await stampMatch(db, { matchId: g.matchId, userId: verifier });
+      expect(await listMatchesToStamp(db, { userId: verifier })).toEqual([]);
+    });
+  });
+
+  it("leaves out a Match with no score, one at another Venue, and one the Verifier sits in", async () => {
+    await withDb(async (db) => {
+      const unscored = await enteredGroupGame(db, false);
+      const scored = await enteredGroupGame(db);
+      const verifier = await verifierAt(db, unscored.venueId);
+      await db
+        .insert(venueVerifiers)
+        .values({ venueId: scored.venueId, userId: scored.c, kind: "referee" });
+
+      expect(await listMatchesToStamp(db, { userId: verifier })).toEqual([]);
+      expect(await listMatchesToStamp(db, { userId: scored.c })).toEqual([]);
+      expect(await listMatchesToStamp(db, { userId: scored.creator })).toEqual(
+        [],
+      );
     });
   });
 });

@@ -33,6 +33,7 @@ import { listGroupMembersToAddProcedure as listGroupMembersToAdd } from "./listG
 import { listLevelRangeRequestsProcedure as listLevelRangeRequests } from "./listLevelRangeRequests";
 import { listLookupInvitesProcedure as listLookupInvites } from "./listLookupInvites";
 import { listMyGames } from "./listMyGames";
+import { listMatchesToStampProcedure as listMatchesToStamp } from "./listMatchesToStamp";
 import { listMyMatchHistory } from "./listMyMatchHistory";
 import { listPartnerSuggestionsProcedure as listPartnerSuggestions } from "./listPartnerSuggestions";
 import { listPublicPickup } from "./listPublicPickup";
@@ -150,6 +151,7 @@ export const gamesRouter = createTRPCRouter({
   completeMatch,
   confirmMatchResult,
   stampMatch,
+  listMatchesToStamp,
   disputeMatchResult,
   listDisputesForOperator,
   decideDispute,
