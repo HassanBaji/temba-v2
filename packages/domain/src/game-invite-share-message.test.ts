@@ -58,6 +58,35 @@ describe("formatGameInviteShareMessage", () => {
     expect(message).not.toContain("Court Court");
   });
 
+  describe("day line", () => {
+    const dayLine = (windowStart: Date, locale: "en" | "ar" = "en") =>
+      formatGameInviteShareMessage({
+        venueName: "Padel Club",
+        courtName: null,
+        windowStart,
+        windowEnd: windowStart,
+        sides: [],
+        shortUrl,
+        locale,
+      }).split("\n")[1];
+
+    it("says this afternoon for a Game starting this afternoon", () => {
+      expect(dayLine(bahrainDayFromToday(0, 12))).toBe("📅 This afternoon");
+      expect(dayLine(bahrainDayFromToday(0, 16))).toBe("📅 This afternoon");
+      expect(dayLine(bahrainDayFromToday(0, 15), "ar")).toBe(
+        "📅 بعد ظهر اليوم",
+      );
+    });
+
+    it("says tonight for a Game starting this evening", () => {
+      expect(dayLine(bahrainDayFromToday(0, 17))).toBe("📅 Tonight");
+    });
+
+    it("says tomorrow for a Game starting tomorrow afternoon", () => {
+      expect(dayLine(bahrainDayFromToday(1, 15))).toBe("📅 Tomorrow");
+    });
+  });
+
   it("omits the court line when the Match has no Court", () => {
     const windowStart = new Date();
     const message = formatGameInviteShareMessage({
