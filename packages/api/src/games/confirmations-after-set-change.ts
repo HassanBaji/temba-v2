@@ -72,10 +72,10 @@ export async function keepPublicGameConfirmation(
   tx: Tx,
   args: { game: GameRow; match: MatchRow; userId: string },
 ) {
-  const windowOpen =
-    (await publicGameConfirmWindowClosesAt(tx, args.match.id)) != null;
+  const isFirst =
+    (await publicGameConfirmWindowClosesAt(tx, args.match.id)) == null;
   await keepMatchResultConfirmation(tx, args.match.id, args.userId);
-  if (!windowOpen) {
+  if (isFirst) {
     await askOtherSideToConfirm(tx, args);
   }
 }
