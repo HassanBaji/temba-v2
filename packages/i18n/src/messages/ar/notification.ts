@@ -329,7 +329,8 @@ export const notification = {
     ratingsOpenEveryone:
       "قيّم زملاءك، والخصوم إن أردت، خلال 24 ساعة. لا أحد يرى من أعطى ماذا.",
     tierPlaces: "الفئات مراكز، فحين يتحرّك لاعب يتحرّك غيره في الاتجاه الآخر.",
-    levelConfirmed: "لم يعد المسار مخطّطًا. يواصل التحرّك في المباريات الموثّقة.",
+    levelConfirmed:
+      "لم يعد المسار مخطّطًا. يواصل التحرّك في المباريات الموثّقة.",
     ratingsClosed: (rating: string, delta: string, points: string) =>
       `تقييمك ${isolate(rating)}. نقاط الفئة ${isolate(delta)}، والآن ${isolate(points)}.`,
     ratingsClosedResultOnly: (delta: string, points: string) =>

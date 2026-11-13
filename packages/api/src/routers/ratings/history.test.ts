@@ -353,16 +353,20 @@ describe("ratings.history (screen 1c)", () => {
         ladder: "level",
       });
       const expected = [
-        ...[...padel].reverse().flatMap((id) =>
-          id === padel[3]
-            ? [`level_confirmed:${id}`, `level_match:${id}`]
-            : [`level_match:${id}`],
-        ),
-        ...[...football].reverse().flatMap((id) =>
-          id === football[4]
-            ? [`level_confirmed:${id}`, `level_match:${id}`]
-            : [`level_match:${id}`],
-        ),
+        ...[...padel]
+          .reverse()
+          .flatMap((id) =>
+            id === padel[3]
+              ? [`level_confirmed:${id}`, `level_match:${id}`]
+              : [`level_match:${id}`],
+          ),
+        ...[...football]
+          .reverse()
+          .flatMap((id) =>
+            id === football[4]
+              ? [`level_confirmed:${id}`, `level_match:${id}`]
+              : [`level_match:${id}`],
+          ),
       ];
       expect(whole.entries.map(kindAndId)).toEqual(expected);
 
@@ -430,8 +434,9 @@ describe("ratings.history (screen 1c)", () => {
         userId: a,
         ladder: "all",
       });
-      expect(result.entries.some((entry) => entry.kind === "level_confirmed"))
-        .toBe(false);
+      expect(
+        result.entries.some((entry) => entry.kind === "level_confirmed"),
+      ).toBe(false);
     });
   });
 
