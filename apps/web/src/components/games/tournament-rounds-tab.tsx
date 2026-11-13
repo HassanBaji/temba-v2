@@ -119,17 +119,21 @@ function MatchTrailing({
     );
   }
   if (match.state === "awaiting_confirmation") {
-    return match.canConfirm ? (
-      <button
-        type="button"
-        onClick={() => onEnterScore({ roundNumber, match, mode: "confirm" })}
-        className={INK_ACTION}
-      >
-        {m.confirm.confirm(score ?? "")}
-      </button>
-    ) : stamp ? (
-      stamp
-    ) : (
+    if (match.canConfirm) {
+      return (
+        <button
+          type="button"
+          onClick={() => onEnterScore({ roundNumber, match, mode: "confirm" })}
+          className={INK_ACTION}
+        >
+          {m.confirm.confirm(score ?? "")}
+        </button>
+      );
+    }
+    if (stamp) {
+      return stamp;
+    }
+    return (
       <span className="flex shrink-0 flex-col items-end">
         <ScoreText className="font-expanded text-muted-foreground text-[16px]">
           {score ?? ""}
@@ -177,9 +181,6 @@ function MatchTrailing({
         ) : null}
       </span>
     );
-  }
-  if (match.state === "not_finished" && stamp) {
-    return stamp;
   }
   if (match.state === "not_finished" || match.state === "cancelled") {
     return (

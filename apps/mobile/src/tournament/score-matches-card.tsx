@@ -183,19 +183,29 @@ export function ScoreMatchesCard({
   matches: readonly ScorableMatch[];
   handlers: ScoreHandlers;
 }) {
-  const m = useMessages().mobileTournament.score;
+  const messages = useMessages();
+  const m = messages.mobileTournament.score;
   if (matches.length === 0) {
     return null;
   }
+  const stampsOnly = matches.every(
+    (match) => !match.canEnter && match.scoreToConfirm == null,
+  );
   return (
-    <Card title={m.sectionTitle}>
-      <Text
-        size="meta"
-        tone="muted"
-        style={{ paddingHorizontal: spacing.surface, paddingBottom: 4 }}
-      >
-        {m.sectionNote}
-      </Text>
+    <Card
+      title={
+        stampsOnly ? messages.rating.verifier.toStamp.title : m.sectionTitle
+      }
+    >
+      {stampsOnly ? null : (
+        <Text
+          size="meta"
+          tone="muted"
+          style={{ paddingHorizontal: spacing.surface, paddingBottom: 4 }}
+        >
+          {m.sectionNote}
+        </Text>
+      )}
       {matches.map((match) => (
         <View key={match.id}>
           <Hairline />

@@ -1455,6 +1455,8 @@ export default function GameHomePage({
                 completePending={completeMatch.isPending}
                 cancelPending={cancelMatch.isPending}
                 updatePending={updateMatch.isPending}
+                stampPending={stampMatch.isPending}
+                onStamp={(matchId) => stampMatch.mutate({ matchId })}
                 onScoreSet={(input) =>
                   scoreSet.mutate({
                     gameId: id,
