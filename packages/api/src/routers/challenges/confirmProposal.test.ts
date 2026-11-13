@@ -510,6 +510,74 @@ describe("challenges.confirmProposal", () => {
       });
     });
 
+    async function tagBothTeams(
+      fixture: Fixture,
+      match: Awaited<ReturnType<typeof scored>>["match"],
+      organizerId: string,
+    ) {
+      const [group] = await fixture.database
+        .insert(groups)
+        .values({ name: "Gooz", sport: "football", createdBy: organizerId })
+        .returning({ id: groups.id });
+      await fixture.database
+        .update(teams)
+        .set({ groupId: group!.id })
+        .where(inArray(teams.id, [match.hidd.id, match.arad.id]));
+    }
+
+    it("does not complete on one person who acts for both Teams", async () => {
+      await withDb(async (fixture) => {
+        const { match, gameId, confirm, status } = await scored(fixture);
+        const [organizer] = await makeUsers(fixture.database, "Organizer", 1);
+        await tagBothTeams(fixture, match, organizer!);
+
+        await confirm(organizer!);
+        expect(await status()).toBe("pending");
+        const board = await footballBoard(fixture.db, {
+          gameId,
+          userId: organizer!,
+        });
+        expect(board.match?.confirmed).toEqual({ slot1: true, slot2: false });
+        expect(board.viewer).toMatchObject({
+          canConfirm: false,
+          canConfirmAsOrganizer: false,
+          canConfirmForSlots: [],
+        });
+
+        await confirm(organizer!);
+        expect(await status()).toBe("pending");
+        expect(
+          await fixture.database.query.matchRatingWindows.findMany(),
+        ).toHaveLength(0);
+
+        await confirm(match.aradIds[0]!);
+        expect(await status()).toBe("completed");
+      });
+    });
+
+    it("counts someone who acts for both Teams for their own Team's side", async () => {
+      await withDb(async (fixture) => {
+        const { match, gameId, confirm, status } = await scored(fixture);
+        const aradCaptain = match.aradIds[0]!;
+        await tagBothTeams(fixture, match, aradCaptain);
+
+        await confirm(aradCaptain);
+        expect(await status()).toBe("pending");
+        const board = await footballBoard(fixture.db, {
+          gameId,
+          userId: aradCaptain,
+        });
+        expect(board.match?.confirmed).toEqual({ slot1: false, slot2: true });
+        expect(board.viewer.canConfirm).toBe(false);
+
+        await confirm(match.aradIds[1]!);
+        expect(await status()).toBe("pending");
+
+        await confirm(match.hiddIds[1]!);
+        expect(await status()).toBe("completed");
+      });
+    });
+
     it("refuses someone who neither plays nor acts for a Team", async () => {
       await withDb(async (fixture) => {
         const { match, confirm, status } = await scored(fixture);

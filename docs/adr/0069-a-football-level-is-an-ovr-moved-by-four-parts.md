@@ -12,7 +12,7 @@ Football was never rated: ADR-0039 and ADR-0040 left "football rating" as future
 - **Goals are a rating input.** A player's own named goals count for them; the side's goals conceded count against them by Football role, most for a keeper and least for a forward. With no minutes recorded, "while you played" is the whole Match. A changed Scorer list clears Match result confirmations.
 - **The MVP part counts only an MVP decided by vote.**
 - **Provisional is five counting Matches.** The football writer sets φ from the count so every reader of Provisional keeps working; φ carries nothing else on football, and idle inflation does not apply.
-- **What counts**: a football Game on a Verified Group, a Public Game ([ADR-0071](./0071-a-public-game-at-a-partner-venue-counts-for-temba-level.md)) and a football Challenge Game, which needs one confirmation from each Team.
+- **What counts**: a football Game on a Verified Group, a Public Game ([ADR-0071](./0071-a-public-game-at-a-partner-venue-counts-for-temba-level.md)) and a football Challenge Game, which needs one confirmation from each Team, from two different Users: someone who acts for both Teams confirms for one side only.
 - **Reversal subtracts** the event's parts ([ADR-0067](./0067-tier-points-are-an-additive-ledger-and-a-tier-band-is-a-place.md)).
 - **Padel is unchanged**: Glicko-2, with the partner term of [ADR-0070](./0070-a-padel-level-weighs-the-partner-and-reads-from-one.md).
 

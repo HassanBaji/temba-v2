@@ -42,8 +42,9 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 /**
  * On a Match agreed by one player from each side, a side that already agreed
  * has nothing to add: another tap from it must not move the moment its score
- * stands from (ADR-0062). The User's sides are the one they are seated on
- * and, on a football Challenge Game, those whose Team they act for.
+ * stands from (ADR-0062). The User's side is the one they are seated on or,
+ * on a football Challenge Game they are not named to, each side whose Team
+ * they act for.
  */
 async function sideAlreadyAgreed(
   database: DbClient,
@@ -56,12 +57,12 @@ async function sideAlreadyAgreed(
     return false;
   }
   const seated = seatedSlot(await matchSideSeats(database, match), userId);
-  const slots = new Set([...(seated == null ? [] : [seated]), ...actedFor]);
-  if (slots.size === 0) {
+  const slots = seated == null ? actedFor : [seated];
+  if (slots.length === 0) {
     return false;
   }
   const agreed = await matchSlotsConfirmed(database, match);
-  return [...slots].every((slot) => (slot === 1 ? agreed.slot1 : agreed.slot2));
+  return slots.every((slot) => (slot === 1 ? agreed.slot1 : agreed.slot2));
 }
 
 /**
@@ -71,8 +72,9 @@ async function sideAlreadyAgreed(
  * Match at once, without waiting on the players (ADR-0044); the players of a
  * padel Challenge Game organize it but confirm as players, and on a football
  * Challenge Game that counts for Temba Level whoever acts for a Team
- * confirms for that Team's side only, so the Match waits for the other
- * Team (ADR-0069). On a Public Game one player from each side confirms and
+ * confirms for that Team's side only, and someone who acts for both Teams
+ * for one side, so the Match waits for a second User on the other Team
+ * (ADR-0069). On a Public Game one player from each side confirms and
  * nobody's word is final; the first confirmation on a reopened Match starts
  * the other side's 24 hours, and a confirmation after them lets the score
  * stand without counting (ADR-0071). `slot` is kept for

@@ -330,12 +330,11 @@ export async function footballBoard(
   const viewerSide = sideByUser.get(args.userId) ?? null;
   const confirmsFinal =
     organizer && (await confirmsAsOrganizer(database, game, args.userId));
-  const viewerSlots = new Set([
-    ...(viewerSide != null ? [viewerSide] : []),
-    ...(match && !confirmsFinal
+  const viewerActsFor =
+    match && !confirmsFinal && viewerSide == null
       ? await matchSlotsActedFor(database, match, args.userId)
-      : []),
-  ]);
+      : [];
+  const viewerSlots = viewerSide != null ? [viewerSide] : viewerActsFor;
   const published = sides.slot1 != null && sides.slot2 != null && match != null;
   const challengeSides = await loadChallengeSides(database, game);
   const squadsReady =
@@ -346,7 +345,7 @@ export async function footballBoard(
   const viewerConfirmed = confirmations.some(
     (row) => row.userId === args.userId,
   );
-  const viewerSidesConfirmed = [...viewerSlots].every((slot) =>
+  const viewerSidesConfirmed = viewerSlots.every((slot) =>
     slot === 1 ? slotsConfirmed.slot1 : slotsConfirmed.slot2,
   );
   const bib = (side: { bib: FootballBib | null } | null, index: 1 | 2) =>
@@ -420,7 +419,7 @@ export async function footballBoard(
       canConfirm:
         live &&
         score != null &&
-        viewerSlots.size > 0 &&
+        viewerSlots.length > 0 &&
         !viewerConfirmed &&
         !viewerSidesConfirmed,
       canConfirmAsOrganizer: confirmsFinal && live && score != null,

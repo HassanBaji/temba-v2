@@ -264,11 +264,13 @@ export async function clearMatchVerifierStamp(
     .where(eq(matchVerifierStamps.matchId, matchId));
 }
 
+type ChallengeSideTeam = { slot: MatchSlot; team: TeamForActing };
+
 /** The Team bound to each side of a football Challenge Game's Match. */
 async function challengeSideTeams(
   database: DbClient,
   match: MatchRow,
-): Promise<{ slot: MatchSlot; team: TeamForActing }[]> {
+): Promise<ChallengeSideTeam[]> {
   const game = await database.query.games.findFirst({
     where: eq(games.id, match.gameId),
     columns: { sport: true, challengeId: true },
@@ -301,18 +303,17 @@ async function challengeSideTeams(
   });
 }
 
-/**
- * The sides of a football Challenge Game's Match whose Team the User acts
- * for. The Captain, or an Organizer of the Team's tagged Group, confirms for
- * that side whether or not they are named to it, and for that side only.
- */
-export async function matchSlotsActedFor(
+async function slotsActedFor(
   database: DbClient,
-  match: MatchRow,
+  teamSides: readonly ChallengeSideTeam[],
   userId: string,
 ): Promise<MatchSlot[]> {
+  const captained = teamSides.filter((side) => side.team.createdBy === userId);
+  if (captained.length === 1) {
+    return captained.map((side) => side.slot);
+  }
   const slots: MatchSlot[] = [];
-  for (const side of await challengeSideTeams(database, match)) {
+  for (const side of teamSides) {
     if (await userActsForTeam(database, side.team, userId)) {
       slots.push(side.slot);
     }
@@ -321,11 +322,34 @@ export async function matchSlotsActedFor(
 }
 
 /**
+ * The sides of a football Challenge Game's Match a User who is not named to
+ * either squad confirms for: the Team they captain, else every Team they act
+ * for as an Organizer of its tagged Group. That is both sides only for an
+ * Organizer of a Group both Teams are tagged to, whose one confirmation still
+ * counts for one side (`matchSlotsConfirmed`).
+ */
+export async function matchSlotsActedFor(
+  database: DbClient,
+  match: MatchRow,
+  userId: string,
+): Promise<MatchSlot[]> {
+  return slotsActedFor(
+    database,
+    await challengeSideTeams(database, match),
+    userId,
+  );
+}
+
+/**
  * The sides of a Match whose players have confirmed its result, by slot.
  * A football Match is agreed once one player from each side confirms; a side
  * with no account holder counts once an Organizer confirms for it. On a
  * football Challenge Game a side also counts once someone who acts for its
- * Team confirms.
+ * Team confirms, and one User's confirmation counts for one side only, so
+ * the Match needs two Users, one for each Team (ADR-0069): a named player
+ * for their own side, anyone else for the Team they captain or the one Team
+ * they act for. Someone who acts for both Teams counts for the first side
+ * nobody else has confirmed.
  */
 export async function matchSlotsConfirmed(
   database: DbClient,
@@ -337,19 +361,7 @@ export async function matchSlotsConfirmed(
     challengeSideTeams(database, match),
   ]);
   const confirmed = new Set(confirmedUserIds);
-  const actedFor = async (slot: MatchSlot) => {
-    const team = teamSides.find((entry) => entry.slot === slot)?.team;
-    if (!team) {
-      return false;
-    }
-    for (const userId of confirmed) {
-      if (await userActsForTeam(database, team, userId)) {
-        return true;
-      }
-    }
-    return false;
-  };
-  const slotConfirmed = async (slot: MatchSlot) => {
+  const seatedConfirmed = (slot: MatchSlot) => {
     const side = sides.find((entry) => entry.slot === slot);
     if (!side) {
       return false;
@@ -357,12 +369,31 @@ export async function matchSlotsConfirmed(
     const confirmers = sideHasNoAccountHolder(side)
       ? side.userIds
       : side.accountHolderIds;
-    return (
-      confirmers.some((userId) => confirmed.has(userId)) ||
-      (await actedFor(slot))
-    );
+    return confirmers.some((userId) => confirmed.has(userId));
   };
-  return { slot1: await slotConfirmed(1), slot2: await slotConfirmed(2) };
+  const agreed = { slot1: seatedConfirmed(1), slot2: seatedConfirmed(2) };
+  if (teamSides.length === 0) {
+    return agreed;
+  }
+  const agree = (slot: MatchSlot) => {
+    agreed[slot === 1 ? "slot1" : "slot2"] = true;
+  };
+  let actingForBoth = 0;
+  for (const userId of confirmed) {
+    if (sides.some((side) => side.userIds.includes(userId))) {
+      continue;
+    }
+    const [slot, other] = await slotsActedFor(database, teamSides, userId);
+    if (other) {
+      actingForBoth += 1;
+    } else if (slot) {
+      agree(slot);
+    }
+  }
+  for (; actingForBoth > 0; actingForBoth -= 1) {
+    agree(agreed.slot1 ? 2 : 1);
+  }
+  return agreed;
 }
 
 /**
