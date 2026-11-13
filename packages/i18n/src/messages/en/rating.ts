@@ -332,7 +332,6 @@ export const rating = {
       noTier:
         "This group has no tier. Tiers are for football groups that aren’t verified.",
       notMember: "That player isn’t in this group.",
-      reasonRequired: "Pick a reason. The player will see it.",
       noChange: "Move the points first.",
       tooFar: (max: number) =>
         `An adjustment can move tier points by at most ${max}.`,
