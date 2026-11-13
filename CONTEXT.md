@@ -66,7 +66,7 @@ A token named for what it does, not how it looks: `ink`, `paper`, `rule`, `wash`
 _Avoid_: black, white (when you mean ink or paper), color name
 
 **Lifted**:
-The focused surface (`focus`): the one card a screen is about, drawn one step off the page in the direction of the Color scheme (`#f4f4f4` on white, `#141414` on black) with a hairline. Distinct from **Solid** (`control`), the black fill of a primary button, a selected control, a won Set or your own chip (ADR-0066).
+The focused surface (`focus`): the one card a screen is about, drawn one step off the page in the direction of the Color scheme (`#f4f4f4` on white, `#141414` on black) with a hairline. Distinct from **Solid** (`control`), the black fill of a primary button, a selected control, a won Set or your own chip (ADR-0084).
 _Avoid_: ink card, black card, inverted (for the focused surface)
 
 ### Product
@@ -260,7 +260,7 @@ A User's standing preference for Left or right, or Either. A default for the Gam
 _Avoid_: Position (that is the per-Game-team seat), side, hand, preferred side, Both sides
 
 **Either side**:
-On a padel Friendly game, a User's answer to "which side?" when they take a seat on a Game team without picking Left or Right (ADR-0065). Left, Right and Either are the three answers; a side is a label on a seat, so it never blocks a join. Either next to a User who picked plays the other side, shown "auto". Either next to Either stays open, shown "no sides picked", and is sorted on court. A side a partner picked cannot be taken; the Position an Either-side User holds can, and moves them over. A seated User may change their answer until the Game starts, and an Organizer may set a full Game team's sides on the sheet; a User whose Position moves because of either is told. Not on Friendly tournaments.
+On a padel Friendly game, a User's answer to "which side?" when they take a seat on a Game team without picking Left or Right (ADR-0083). Left, Right and Either are the three answers; a side is a label on a seat, so it never blocks a join. Either next to a User who picked plays the other side, shown "auto". Either next to Either stays open, shown "no sides picked", and is sorted on court. A side a partner picked cannot be taken; the Position an Either-side User holds can, and moves them over. A seated User may change their answer until the Game starts, and an Organizer may set a full Game team's sides on the sheet; a User whose Position moves because of either is told. Not on Friendly tournaments.
 _Avoid_: flexible seat, any seat, Preferred Position (that is the profile default), wildcard
 
 **Operator**:
@@ -509,7 +509,7 @@ A Game team on a Friendly tournament with one Position taken and the other vacan
 _Avoid_: incomplete Team, solo, single, orphan seat
 
 **Edit teams**:
-The Organizer rewriting who plays where on a padel Friendly game or a Friendly tournament: moving a player to the other Position or another Game team, saved as one line-up (ADR-0077). Allowed on a Friendly game until a score is entered. On a Friendly tournament a Game team with a scored Match, confirmed or still waiting, keeps its two players and may only swap Positions, and after the Pool draw players only swap. Never on a Challenge Game. Distinct from setting a Game team's sides, which only swaps Left and Right inside one full Game team.
+The Organizer rewriting who plays where on a padel Friendly game or a Friendly tournament: moving a player to the other Position or another Game team, saved as one line-up (ADR-0086). Allowed on a Friendly game until a score is entered. On a Friendly tournament a Game team with a scored Match, confirmed or still waiting, keeps its two players and may only swap Positions, and after the Pool draw players only swap. Never on a Challenge Game. Distinct from setting a Game team's sides, which only swaps Left and Right inside one full Game team.
 _Avoid_: reseat, reshuffle, team builder
 
 **Pool**:
@@ -665,7 +665,7 @@ A User's position among the other Users of one Group, shown as position and memb
 _Avoid_: ranking, leaderboard position (when you mean this entity), player standing (Level, Recent form and All time are not a Standing), rank, Pool table (that ranks Game teams inside a tournament Pool)
 
 **Season**:
-An optional date window the Group owner (or Owner and Admin on a Club Group) sets on a Group, inclusive on both product-timezone days. A Group Game links to at most one Season of its Group, and the Standing for a Season reads the completed Matches of the Games linked to it (ADR-0050); a Game with no Season is a friendly that updates Levels but no Standing. A new Game starts in the open Season that holds its day; an Organizer may link, move or unlink it in Edit game while the Season holds the game day and no score is confirmed. A Season is Upcoming before its first day, Active until its last day, and Closed after it or once closed early, which moves its last day to the closing day; closing re-homes its Games that start after the close, later that day included. Seasons never overlap. A Level is never reset by a Season. The Standing tab opens on the Active Season, else the next one to start, else the latest Closed one, else All-time.
+An optional date window the Group owner (or Owner and Admin on a Club Group) sets on a Group, inclusive on both product-timezone days. A Group Game links to at most one Season of its Group, and the Standing for a Season reads the completed Matches of the Games linked to it (ADR-0082); a Game with no Season is a friendly that updates Levels but no Standing. A new Game starts in the open Season that holds its day; an Organizer may link, move or unlink it in Edit game while the Season holds the game day and no score is confirmed. A Season is Upcoming before its first day, Active until its last day, and Closed after it or once closed early, which moves its last day to the closing day; closing re-homes its Games that start after the close, later that day included. Seasons never overlap. A Level is never reset by a Season. The Standing tab opens on the Active Season, else the next one to start, else the latest Closed one, else All-time.
 _Avoid_: league, campaign, term, period (when you mean this entity), reset (a Season does not reset Levels)
 
 **Rating**:

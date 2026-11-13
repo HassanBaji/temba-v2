@@ -50,7 +50,7 @@ const STEP_ICONS: Record<"playing" | "first" | "next", LucideIcon> = {
 
 type Tone = { rule: string; raised: string };
 
-/** Lifted roles of Palette v2 on the next thing the viewer plays (ADR-0066). */
+/** Lifted roles of Palette v2 on the next thing the viewer plays (ADR-0084). */
 function useTone(lifted: boolean): Tone {
   const colors = useColors();
   const v2 = palettes[useColorSchemeName()];

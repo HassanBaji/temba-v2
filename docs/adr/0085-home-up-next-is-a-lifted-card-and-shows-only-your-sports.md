@@ -1,6 +1,6 @@
 # Home's Up next is a lifted card and Home shows only your sports
 
-**Status:** accepted. Builds on [ADR-0066](./0066-the-focused-surface-lifts-in-light-too.md) (Palette
+**Status:** accepted. Builds on [ADR-0084](./0084-the-focused-surface-lifts-in-light-too.md) (Palette
 v2) for Home, in the mobile and web Apps.
 
 Home led with an ink card for the next Game: a black card on a white page in light, and a
