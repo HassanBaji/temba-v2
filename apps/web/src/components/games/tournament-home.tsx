@@ -31,6 +31,10 @@ import {
   TournamentUndoPoolDraw,
 } from "~/components/games/tournament-draw-drawer";
 import { TournamentHero } from "~/components/games/tournament-hero";
+import {
+  useMatchStamping,
+  type MatchStamping,
+} from "~/components/games/match-stamp";
 import { TournamentKnockoutTree } from "~/components/games/tournament-knockout-tree";
 import {
   TournamentMergeBanner,
@@ -169,6 +173,7 @@ export function TournamentHome({
   const [undoOpen, setUndoOpen] = useState(false);
   const backHref = detailBackHref(usePathname()) ?? "/dashboard/games";
   const view = tournamentHomeView(data, locale);
+  const stamping = useMatchStamping(data);
   const { partnerRequired, joinKind, drawn, schedule } = view;
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
   const organizer = tournamentOrganizerView(data, {
@@ -238,6 +243,7 @@ export function TournamentHome({
             onCancelMatch={
               isOrganizerActive ? onCancelKnockoutMatch : undefined
             }
+            stamping={stamping}
             preview={roundsPreview}
           />
           <ConfirmDialog
@@ -273,6 +279,7 @@ export function TournamentHome({
           undoError={undoError}
           onUndo={onUndo}
           onCancelMatch={isOrganizerActive ? onCancelKnockoutMatch : undefined}
+          stamping={stamping}
           actions={actionsMenu(false)}
         />
       ) : (
@@ -553,6 +560,7 @@ function TournamentStandingsTree({
   undoError,
   onUndo,
   onCancelMatch,
+  stamping,
   actions,
 }: {
   standings: TournamentStandingsView;
@@ -565,6 +573,7 @@ function TournamentStandingsTree({
   undoError: { message: string; data?: { zodError?: unknown } | null } | null;
   onUndo: () => void | Promise<void>;
   onCancelMatch?: (place: KnockoutMatchPlace) => void;
+  stamping: MatchStamping;
   actions?: ReactNode;
 }) {
   const m = useMessages();
@@ -586,6 +595,7 @@ function TournamentStandingsTree({
             <TournamentKnockoutTree
               rounds={knockout}
               onCancelMatch={onCancelMatch}
+              stamping={stamping}
               gameTeams={gameTeams}
             />
           </div>
@@ -617,6 +627,7 @@ function TournamentStandingsTree({
               rounds={knockout}
               headingLevel="h3"
               onCancelMatch={onCancelMatch}
+              stamping={stamping}
               gameTeams={gameTeams}
             />
           </div>

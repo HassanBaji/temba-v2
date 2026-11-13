@@ -32,6 +32,7 @@ import {
   type RoundsTeam,
   type TournamentRoundsData,
 } from "./tournament-round-parts";
+import { StampScoreButton, type MatchStamping } from "./match-stamp";
 import { type ScoreSheetTarget } from "./tournament-score-drawer";
 import { type SwapTarget } from "./tournament-swap-drawer";
 import { type TournamentRoundsActions } from "./use-tournament-rounds";
@@ -76,12 +77,14 @@ function MatchTrailing({
   roundNumber,
   match,
   teams,
+  stamping,
   onEnterScore,
   onSwap,
 }: {
   roundNumber: number;
   match: RoundsMatch;
   teams: ReadonlyMap<string, RoundsTeam>;
+  stamping?: MatchStamping;
   onEnterScore: (target: ScoreSheetTarget) => void;
   onSwap: (target: SwapTarget) => void;
 }) {
@@ -89,6 +92,15 @@ function MatchTrailing({
   const team1 = teamShortName(teams.get(match.slot1GameTeamId));
   const team2 = teamShortName(teams.get(match.slot2GameTeamId));
   const score = scoreLabel(match);
+  const stamp =
+    match.matchId != null && stamping?.canStamp(match.matchId) ? (
+      <span className="flex shrink-0 items-center gap-2">
+        <ScoreText className="font-expanded text-muted-foreground text-[16px]">
+          {score ?? ""}
+        </ScoreText>
+        <StampScoreButton matchId={match.matchId} stamping={stamping} />
+      </span>
+    ) : null;
 
   if (
     match.state === "draft" ||
@@ -115,6 +127,8 @@ function MatchTrailing({
       >
         {m.confirm.confirm(score ?? "")}
       </button>
+    ) : stamp ? (
+      stamp
     ) : (
       <span className="flex shrink-0 flex-col items-end">
         <ScoreText className="font-expanded text-muted-foreground text-[16px]">
@@ -164,6 +178,9 @@ function MatchTrailing({
       </span>
     );
   }
+  if (match.state === "not_finished" && stamp) {
+    return stamp;
+  }
   if (match.state === "not_finished" || match.state === "cancelled") {
     return (
       <span className="text-muted-foreground text-meta shrink-0">
@@ -186,6 +203,7 @@ function MatchRow({
   viewerUserId,
   viewerGameTeamId,
   showTime,
+  stamping,
   onEnterScore,
   onSwap,
 }: {
@@ -195,6 +213,7 @@ function MatchRow({
   viewerUserId: string;
   viewerGameTeamId: string | null;
   showTime: boolean;
+  stamping?: MatchStamping;
   onEnterScore: (target: ScoreSheetTarget) => void;
   onSwap: (target: SwapTarget) => void;
 }) {
@@ -237,6 +256,7 @@ function MatchRow({
         roundNumber={roundNumber}
         match={match}
         teams={teams}
+        stamping={stamping}
         onEnterScore={onEnterScore}
         onSwap={onSwap}
       />
@@ -251,6 +271,7 @@ function RoundCard({
   teams,
   viewerUserId,
   viewerGameTeamId,
+  stamping,
   onEnterScore,
   onSwap,
 }: {
@@ -260,6 +281,7 @@ function RoundCard({
   teams: ReadonlyMap<string, RoundsTeam>;
   viewerUserId: string;
   viewerGameTeamId: string | null;
+  stamping?: MatchStamping;
   onEnterScore: (target: ScoreSheetTarget) => void;
   onSwap: (target: SwapTarget) => void;
 }) {
@@ -305,6 +327,7 @@ function RoundCard({
               viewerUserId={viewerUserId}
               viewerGameTeamId={viewerGameTeamId}
               showTime={round.state === "draft" || round.state === "scheduled"}
+              stamping={stamping}
               onEnterScore={onEnterScore}
               onSwap={onSwap}
             />
@@ -502,6 +525,7 @@ export function TournamentRoundsTab({
   actions,
   details,
   afterGroup,
+  stamping,
   onEnterScore,
   onSwap,
   onPair,
@@ -513,6 +537,7 @@ export function TournamentRoundsTab({
   actions: TournamentRoundsActions;
   details?: React.ReactNode;
   afterGroup?: { label: string; value: string } | null;
+  stamping?: MatchStamping;
   onEnterScore: (target: ScoreSheetTarget) => void;
   onSwap: (target: SwapTarget) => void;
   onPair: (roundNumber: number) => void;
@@ -575,6 +600,7 @@ export function TournamentRoundsTab({
             teams={teams}
             viewerUserId={viewerUserId}
             viewerGameTeamId={data.viewerGameTeamId}
+            stamping={stamping}
             onEnterScore={onEnterScore}
             onSwap={onSwap}
           />
@@ -768,6 +794,7 @@ export function TournamentRoundsTab({
           teams={teams}
           viewerUserId={viewerUserId}
           viewerGameTeamId={data.viewerGameTeamId}
+          stamping={stamping}
           onEnterScore={onEnterScore}
           onSwap={onSwap}
         />

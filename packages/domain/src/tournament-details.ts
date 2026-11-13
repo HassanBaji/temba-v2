@@ -89,6 +89,8 @@ export type TournamentDetailsMatch = {
   canScoreSets: boolean;
   /** The viewer may confirm the other team's pending score (ADR-0062). */
   canConfirmScore: boolean;
+  /** The viewer is a Verifier who may stamp the entered score (ADR-0072). */
+  canStamp?: boolean;
   canComplete: boolean;
   outcome: {
     slot1SetWins: number;

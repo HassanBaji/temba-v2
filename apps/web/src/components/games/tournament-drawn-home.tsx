@@ -22,6 +22,7 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
+import { type MatchStamping } from "./match-stamp";
 import { TournamentKnockoutTree } from "./tournament-knockout-tree";
 import { TournamentPairDrawer } from "./tournament-pair-drawer";
 import {
@@ -84,6 +85,7 @@ export function TournamentDrawnHome({
   details,
   gameTeams,
   onCancelMatch,
+  stamping,
   preview,
 }: {
   data: GameDetail;
@@ -93,6 +95,7 @@ export function TournamentDrawnHome({
   details?: React.ReactNode;
   gameTeams?: GameDetail["gameTeams"];
   onCancelMatch?: (place: KnockoutMatchPlace) => void;
+  stamping?: MatchStamping;
   /** Fixture Rounds for the design preview, which has no API to call. */
   preview?: { rounds: TournamentRoundsData; actions: TournamentRoundsActions };
 }) {
@@ -103,7 +106,10 @@ export function TournamentDrawnHome({
   const rounds = preview?.rounds ?? loaded.rounds.data;
   const roundsActions = preview?.actions ?? loaded.actions;
   const [tab, setTab] = React.useState<Tab>(
-    data.isOrganizer && !data.cancelledAt ? "rounds" : "standings",
+    (data.isOrganizer && !data.cancelledAt) ||
+      data.matches.some((match) => match.canStamp)
+      ? "rounds"
+      : "standings",
   );
   const [scoreTarget, setScoreTarget] = React.useState<ScoreSheetTarget | null>(
     null,
@@ -262,6 +268,7 @@ export function TournamentDrawnHome({
               actions={roundsActions}
               details={details}
               afterGroup={afterGroup}
+              stamping={stamping}
               onEnterScore={setScoreTarget}
               onSwap={setSwapTarget}
               onPair={setPairRound}
@@ -291,6 +298,7 @@ export function TournamentDrawnHome({
             <TournamentKnockoutTree
               rounds={data.knockout}
               onCancelMatch={onCancelMatch}
+              stamping={stamping}
               gameTeams={gameTeams}
             />
           </TabsContent>
