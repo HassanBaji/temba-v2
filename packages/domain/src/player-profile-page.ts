@@ -746,8 +746,8 @@ export type ProfileTierView = {
 
 /**
  * "Group tier" on a football Player profile: the player's fish in each tier
- * Group the viewer shares with them, as the Ratings screen draws its own
- * (screen 1a). None when they share no tier Group.
+ * Group the viewer shares with them, as the Ratings screen draws its own.
+ * None when they share no tier Group.
  */
 export function profileTierView(
   rows: readonly MyGroupTierData[],

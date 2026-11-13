@@ -26,7 +26,7 @@ import {
 /** The longest note a Tier adjustment keeps (ADR-0073). */
 export const TIER_ADJUST_NOTE_MAX = 140;
 
-/** The step buttons of the adjust sheet (screen 2d). */
+/** The step buttons of the adjust sheet. */
 export const TIER_ADJUST_STEPS = [-50, -10, 10, 50] as const;
 
 /** The jumps the adjust sheet offers, when the member can reach them. */
@@ -94,7 +94,7 @@ function memberOvr(member: TierAdjustMember) {
 }
 
 /**
- * The start hint for a Provisional member (D13): a move the Organizer can
+ * The start hint for a Provisional member: a move the Organizer can
  * pick, never written without them. Null for a ranked member, without a
  * Level to read, or when the hint is where they already are.
  */
@@ -300,7 +300,7 @@ function effectLine(args: {
 }
 
 /**
- * The Organizer's adjust sheet (screen 2d): the new points, the place and
+ * The Organizer's adjust sheet: the new points, the place and
  * fish they give, who moves the other way, the reason chips and the save
  * button. `delta` is what the Organizer moved so far; the place is cut by
  * `tierAdjustPreview`, as the server will cut it.

@@ -217,7 +217,7 @@ function isFar(distance: number | null | undefined) {
 
 /**
  * The raters whose ratings were far from the settled ones in this Match and
- * in each of their previous two (D19). This Match's distance is measured
+ * in each of their previous two (ADR-0068). This Match's distance is measured
  * against the ratings as they settle at full weight. Derived from the
  * ballots every time, so there is no record of who.
  */
@@ -318,7 +318,7 @@ function clamp(value: number, min: number, max: number) {
 /**
  * Each rated player's performance score in −1 to 1: their rating against
  * their usual, minus the Match's mean of that difference, so a generous
- * rating day nets to about zero (D20).
+ * rating day nets to about zero.
  */
 export function performanceScores(
   players: readonly { userId: string; rating: number; usual: number }[],
@@ -347,7 +347,7 @@ export function fromHundredths(value: number) {
   return value / 100;
 }
 
-/** A player row of screen 4a, where the Organizer rates everyone. */
+/** A player row of Rate the game, where the Organizer rates everyone. */
 export type RateGamePlayer = {
   userId: string;
   name: string;
@@ -581,8 +581,8 @@ function hiddenUntil(closesAt: Date | string, now: Date, locale: Locale) {
 }
 
 /**
- * Screen 4a when the Organizer rates everyone, screen 4b when everyone rates
- * their teammates and, if they want, their opponents.
+ * Rate the game: the Organizer rates everyone, or everyone rates their
+ * teammates and, if they want, their opponents.
  */
 export function rateGameView(
   sheet: RateGameSheet,
@@ -764,7 +764,7 @@ export function formatRatingWindowClose(
   return `${formatWeekday(closesAt, "short", locale)} ${formatGameClock(closesAt, locale)}`;
 }
 
-/** The card on a played Game that opens screen 4a or 4b, while the viewer may rate. */
+/** The card on a played Game that opens Rate the game, while the viewer may rate. */
 export function rateGameEntry(
   window: {
     mode: RatingWindowMode;
@@ -801,7 +801,7 @@ export type NoPerformanceReason =
 /**
  * What `games.performanceRatingResult` returns: the closing time, and once
  * the window has settled the caller's own rating and what it did to their
- * Tier points (screen 4c). `result` is null before the window settles, for a
+ * Tier points. `result` is null before the window settles, for a
  * viewer who did not play, and for a Match that moved nobody's points.
  */
 export type PerformanceRatingResultData = {
@@ -1068,7 +1068,7 @@ function mvpView(
 }
 
 /**
- * Screen 4c on Game details, or the line that says when it will arrive. While
+ * The viewer's result card on Game details, or the line that says when it will arrive. While
  * the viewer may still rate, the Rate the game card says when it closes, so
  * the pending line is left out.
  */
@@ -1202,8 +1202,8 @@ export type PerformanceRatingSummaryPlayer = {
 };
 
 /**
- * What `games.performanceRatingSummary` returns to an Organizer of the Game
- * (screen 4d). `summary` is null until the window settles. It counts the
+ * What `games.performanceRatingSummary` returns to an Organizer of the
+ * Game. `summary` is null until the window settles. It counts the
  * raters who counted for less and never says which.
  */
 export type PerformanceRatingSummaryData = {
@@ -1306,7 +1306,7 @@ function byRatingThenName(
 }
 
 /**
- * Screen 4d, the Organizer's summary: each side's players by rating, with
+ * The Organizer's summary: each side's players by rating, with
  * their points move and any change of fish, how many rated, and a line when
  * raters counted for less, without saying who.
  */
@@ -1427,7 +1427,7 @@ export function performanceRatingSummaryView(
   };
 }
 
-/** The card on a played Game that opens screen 4d for an Organizer, once the window has settled. */
+/** The card on a played Game that opens the ratings summary for an Organizer, once the window has settled. */
 export function ratingSummaryEntry(
   window: { state: RatingWindowState } | null,
   isOrganizer: boolean,

@@ -138,7 +138,7 @@ function SideBlock({ side }: { side: RatingSummarySide }) {
 }
 
 /**
- * The Organizer's summary once ratings are in (screen 4d): each player's
+ * The Organizer's summary once ratings are in: each player's
  * rating and points move, who changed tier, and whether a rater counted for
  * less, without names.
  */

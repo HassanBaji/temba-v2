@@ -393,7 +393,7 @@ function individualFriendlyGamePhase(args: {
 }
 
 /**
- * What a counting football Match did to the viewer's OVR (screen 5a): the
+ * What a counting football Match did to the viewer's OVR: the
  * move and its four parts, the other side's mean OVR before the Match, the
  * viewer's settled rating and how many ratings they received, their goals
  * and their side's goals conceded, and whether they were voted MVP.

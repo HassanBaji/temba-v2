@@ -55,8 +55,8 @@ export function votedMvpUserId(
 
 /**
  * The Match's Rating window, when it has one that a wrong score has not
- * suspended. The MVP closes with it (ADR-0068): Screen 4c and OVR's MVP part
- * both need the MVP known when the window's move is written.
+ * suspended. The MVP closes with it (ADR-0068): the player's result card and
+ * OVR's MVP part both need the MVP known when the window's move is written.
  */
 async function ratingWindowOf(database: DbClient, matchId: string) {
   const window = await database.query.matchRatingWindows.findFirst({

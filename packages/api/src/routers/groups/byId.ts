@@ -1007,7 +1007,7 @@ export async function groupById(
     verified: groupIsVerified(group),
     hasTier,
     tierSummary: groupTiers?.summary ?? null,
-    /** How ratings work in a tier Group, read-only under Standing (screen 3a). */
+    /** How ratings work in a tier Group, read-only under Standing. */
     ratingSettingsLine: hasTier
       ? ratingSettingsLine(groupRatingSettings, locale)
       : null,

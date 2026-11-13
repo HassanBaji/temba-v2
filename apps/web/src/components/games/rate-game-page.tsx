@@ -386,11 +386,10 @@ function RateGameForm({ gameId, sheet }: { gameId: string; sheet: Sheet }) {
 }
 
 /**
- * Rate the game. Screen 4a: in Organizer mode the Organizer scores every
- * player 1 to 10 and stars the MVP; Submit closes the Rating window and
- * everyone's Tier points move. Screen 4b: when everyone rates, a player
- * scores teammates and, if they want, opponents, and may change them until
- * the window closes.
+ * Rate the game. In Organizer mode the Organizer scores every player 1 to
+ * 10 and stars the MVP; Submit closes the Rating window and everyone's Tier
+ * points move. When everyone rates, a player scores teammates and, if they
+ * want, opponents, and may change them until the window closes.
  */
 export function RateGamePage({ gameId }: { gameId: string }) {
   const m = useMessages();

@@ -11,12 +11,10 @@ const PLAYER_MARK = /^\/dashboard\/players\/([^/]+)\/marks\/([^/]+)\/?$/;
 const YOU_RATINGS_HREF = "/dashboard/you/ratings";
 const YOU_RATING_HISTORY_HREF = `${YOU_RATINGS_HREF}/history`;
 
-/** Ratings (screens 1a, 1b), opened on `sport`. */
 export function youRatingsHref(sport: Sport) {
   return `${YOU_RATINGS_HREF}?sport=${sport}`;
 }
 
-/** Rating history (screen 1c), opened on `sport`. */
 export function youRatingHistoryHref(sport: Sport) {
   return `${YOU_RATING_HISTORY_HREF}?sport=${sport}`;
 }
@@ -199,12 +197,10 @@ export function gameHomeHref(gameId: string) {
 /** The Operator's open Match disputes. */
 export const OPERATOR_DISPUTES_HREF = "/dashboard/operator/disputes";
 
-/** Rate the game (screen 4a). */
 export function gameRateHref(gameId: string) {
   return `/dashboard/games/${gameId}/rate`;
 }
 
-/** The Organizer's ratings summary (screen 4d). */
 export function gameRatingSummaryHref(gameId: string) {
   return `/dashboard/games/${gameId}/ratings`;
 }
@@ -221,7 +217,6 @@ export function groupHomeHref(groupId: string) {
   return `/dashboard/groups/${groupId}`;
 }
 
-/** Rating settings of a tier Group (screen 3b). */
 export function groupRatingSettingsHref(groupId: string) {
   return `/dashboard/groups/${groupId}/rating-settings`;
 }
@@ -230,7 +225,7 @@ export function groupNewSeasonHref(groupId: string) {
   return `/dashboard/groups/${groupId}/seasons/new`;
 }
 
-/** Points and history (screen 2e); without `userId`, the viewer's own. */
+/** Points and history; without `userId`, the viewer's own. */
 export function groupTierHistoryHref(groupId: string, userId?: string) {
   const path = `/dashboard/groups/${groupId}/points`;
   return userId

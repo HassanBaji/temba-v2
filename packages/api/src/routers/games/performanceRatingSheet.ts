@@ -39,8 +39,8 @@ import { settleRatingWindowIfDue } from "#src/ratings/settle-rating-window";
 type DbClient = typeof db;
 
 /**
- * What the viewer rates on a football Match with a Rating window (screens 4a
- * and 4b): the players of both sides, the viewer's own ballots, how many of
+ * What the viewer rates on a football Match with a Rating window: the
+ * players of both sides, the viewer's own ballots, how many of
  * the seated account holders have rated and, in Organizer mode, whether the
  * star may pick the MVP. In Organizer mode only an Organizer of the Game
  * reads it; when everyone rates, a seated player. Nobody else's ballots are

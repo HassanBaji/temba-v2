@@ -11,7 +11,7 @@ import { type RouterOutputs } from "../trpc/react";
 
 type RatingWindow = RouterOutputs["games"]["byId"]["ratingWindow"];
 
-/** Opens Rate the game (screen 4a or 4b) while the viewer may still rate. */
+/** Opens Rate the game while the viewer may still rate. */
 export function RateGameCard({
   gameId,
   window,

@@ -90,7 +90,7 @@ type BoardTier = {
 
 /**
  * Each roster player's Group Tier on a tier Group's Game, and what Make teams
- * balances them on (D15): their Tier points, or while Provisional the start
+ * balances them on: their Tier points, or while Provisional the start
  * hint their Temba Level gives against the Group's ranked members. Null
  * outside a tier Group. A Provisional member's points are shown only to the
  * viewer themselves and to an Organizer.
@@ -161,7 +161,7 @@ async function loadBoardTiers(
  * with each player's role, position, Level and OVR, Group Tier and team, the
  * two teams and their bibs, the Score with its scorers, and what the viewer
  * may do next. Make teams balances on Tier points in a tier Group and on OVR
- * on any other Game (D15).
+ * on any other Game.
  */
 export async function footballBoard(
   database: DbClient,

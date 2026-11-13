@@ -126,7 +126,7 @@ export type TierHintReference = {
 /**
  * Where a member's Temba Level suggests their Tier points start: the Group's
  * median points plus ten per OVR point above the Group's median OVR, kept
- * inside the Group's range. A suggestion only (D13): nothing writes it
+ * inside the Group's range. A suggestion only: nothing writes it
  * without an Organizer.
  */
 export function tierStartHint(args: {

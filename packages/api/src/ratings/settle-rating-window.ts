@@ -387,7 +387,7 @@ export async function previousRaterDistances(
 /**
  * The OVR move of a Match that counts for Temba Level, once its Rating window
  * settles (ADR-0069): the MVP is settled first, since it closes with the
- * window (D21), and only an MVP decided by vote moves OVR; goals come from
+ * window (ADR-0068), and only an MVP decided by vote moves OVR; goals come from
  * the Scorers and the Score, weighed by each player's Football role.
  */
 async function applySettledLevelMatch(

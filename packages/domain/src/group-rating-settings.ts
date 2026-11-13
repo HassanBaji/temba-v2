@@ -2,7 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 /**
- * Rating settings of a tier Group (ADR-0068, screens 3a and 3b): who gives
+ * Rating settings of a tier Group (ADR-0068): who gives
  * Performance ratings after a Game, how much of each move they make, and
  * whether an Organizer's rating counts double. Each Match snapshots them when
  * it completes, so a change applies from the next Game.
@@ -16,7 +16,7 @@ export const PERFORMANCE_RATING_MODES = [
 
 export type PerformanceRatingMode = (typeof PERFORMANCE_RATING_MODES)[number];
 
-/** Light, standard and heavy, in percent of the move (spec §8, tunable). */
+/** Light, standard and heavy, in percent of the move. Starting values, tunable. */
 export const PERFORMANCE_WEIGHTS = [20, 30, 50] as const;
 
 export type PerformanceWeight = (typeof PERFORMANCE_WEIGHTS)[number];
@@ -51,7 +51,7 @@ function weightKey(weightPercent: number): WeightKey {
     : "standard";
 }
 
-/** The hint under "Rating settings" in the Group's menu (screen 3a). */
+/** The hint under "Rating settings" in the Group's menu. */
 export function ratingSettingsSummary(
   settings: GroupRatingSettings,
   locale: Locale,
@@ -136,7 +136,7 @@ export type RatingSettingsScreen = {
   footnote: string;
 };
 
-/** Screen 3b's view-model on the Organizer's draft. */
+/** The Rating settings screen's view-model on the Organizer's draft. */
 export function ratingSettingsScreen(
   draft: GroupRatingSettings,
   locale: Locale,

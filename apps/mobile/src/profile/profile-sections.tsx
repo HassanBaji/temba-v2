@@ -70,7 +70,7 @@ function InYourGroupsItem({
   );
 }
 
-/** "In your groups" (design 1b): won, lost and place in each Group. */
+/** "In your groups": won, lost and place in each Group. */
 export function InYourGroups({
   title,
   meta,

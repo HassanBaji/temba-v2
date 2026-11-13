@@ -15,7 +15,7 @@ import {
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
- * Each User's start hint in a tier Group (spec 8.1, D13): where their
+ * Each User's start hint in a tier Group: where their
  * football Level, or a football Group Level an Organizer set earlier, puts
  * them against the Group's members. Null without a Level to read. Make teams
  * places a Provisional member by it and a Match counts a player with no

@@ -26,7 +26,7 @@ function member(
   };
 }
 
-/** Screen 2b: eleven ranked members and two still Provisional. */
+/** The Members design's Group: eleven ranked members and two still Provisional. */
 const THURSDAY: TierStanding[] = [
   member("hussain", 1412),
   member("ali", 1356),

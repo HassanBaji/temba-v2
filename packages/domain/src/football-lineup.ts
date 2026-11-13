@@ -206,7 +206,7 @@ export function averageLevelLabel(bands: readonly (LevelBand | null)[]) {
 }
 
 /**
- * What Make teams balances on (D15): Tier points in a tier Group, OVR in a
+ * What Make teams balances on: Tier points in a tier Group, OVR in a
  * Verified Group and in a groupless Game.
  */
 export type FootballBalanceOn = "tierPoints" | "ovr";
@@ -223,7 +223,7 @@ export type BalanceCandidate = {
 };
 
 /**
- * What Make teams balances a player on in a tier Group (D15): their Tier
+ * What Make teams balances a player on in a tier Group: their Tier
  * points, or the start hint their Temba Level gives while they are
  * Provisional. Null outside a tier Group, where OVR decides.
  */

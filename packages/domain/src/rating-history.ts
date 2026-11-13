@@ -149,7 +149,7 @@ function adjustmentByline(
     : copy.byline(name, reason);
 }
 
-/** A line of "What moved it" (screen 2e). */
+/** A line of "What moved it". */
 export function ratingHistoryRow(
   entry: RatingHistoryEntryData,
   viewerUserId: string,
@@ -206,7 +206,7 @@ export type TierHistoryScreen = {
   footnote: string;
 };
 
-/** Points and history for one member of a tier Group (screen 2e). */
+/** Points and history for one member of a tier Group. */
 export function tierHistoryScreen(
   data: TierHistoryData,
   viewerUserId: string,
@@ -266,7 +266,7 @@ function firstName(name: string) {
   return first ?? name;
 }
 
-/** The filters of a User's Rating history (screen 1c). */
+/** The filters of a User's Rating history. */
 export const RATING_HISTORY_LADDERS = ["all", "level", "tier", "rank"] as const;
 
 export type RatingHistoryLadder = (typeof RATING_HISTORY_LADDERS)[number];
@@ -282,7 +282,7 @@ type TierAdjustmentEntry = Extract<
 >;
 
 /**
- * One line of a User's own Rating history (screen 1c, ADR-0073): a Rated
+ * One line of a User's own Rating history (ADR-0073): a Rated
  * Match, a Level override or the derived "Level confirmed" milestone on the
  * Level, or a Game, a Tier adjustment or a change of fish in a tier Group.
  */
@@ -514,7 +514,7 @@ function bandTitle(
     : m.downTo(label);
 }
 
-/** A line of a User's Rating history (screen 1c). */
+/** A line of a User's Rating history. */
 export function ratingHistoryLine(
   item: RatingHistoryItemData,
   viewerUserId: string,
@@ -654,7 +654,7 @@ function sectionOf(at: Date, now: Date, locale: Locale) {
 }
 
 /**
- * A User's own Rating history (screen 1c): every move and every manual
+ * A User's own Rating history: every move and every manual
  * change, newest first, under "This week" and then each month. The Rank
  * filter is reserved for Official Rank and stays empty.
  */

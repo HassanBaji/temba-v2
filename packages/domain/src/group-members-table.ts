@@ -425,7 +425,7 @@ export type GroupMemberTierView = {
   cell: GroupMemberTierCell;
   caption: string | null;
   points: string;
-  /** "no tier" reads muted, as on screen 2b. */
+  /** "no tier" reads muted. */
   pointsMuted: boolean;
   /** The tier cell and the points, for a row whose caption says something else. */
   spoken: string;
@@ -434,7 +434,7 @@ export type GroupMemberTierView = {
 };
 
 /**
- * A Members row on a tier Group (screen 2b): the fish, or the place while
+ * A Members row on a tier Group: the fish, or the place while
  * fewer than four are ranked, or a hatched Provisional slot; the band and
  * role as the caption; the points, or "no tier" while Provisional.
  */

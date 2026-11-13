@@ -1886,7 +1886,7 @@ function keeper(key: string): Footballer {
 }
 
 /**
- * Thursday Football's Group Tier as screen 2b draws it: eleven ranked members
+ * Thursday Football's Group Tier as the Members design draws it: eleven ranked members
  * (1 Shark, 2 Hamour, 4 Kanaad, 4 Safi) and two still Provisional. The
  * Shark has been top for five weeks.
  */
@@ -1944,7 +1944,7 @@ async function seedThursdayTier(u: Users, groupId: string) {
     rankedCount: table.rankedCount,
     createdAt: new Date(Date.now() - 36 * DAY),
   });
-  // Screen 2e's manual change, so Points and history shows who and why.
+  // A manual change, so Points and history shows who and why.
   await db.insert(groupTierEvents).values({
     groupId,
     userId: u.diego!.id,
@@ -1964,7 +1964,7 @@ async function seedThursdayTier(u: Users, groupId: string) {
  * picker and the score sheet. Each Game is created in the future, filled,
  * then moved so it has kicked off: the score only opens at kick-off.
  * Thursday Football is a tier Group of thirteen where everyone rates at the
- * standard weight (screen 3a); last week's Game, before ratings were on,
+ * standard weight; last week's Game, before ratings were on,
  * moves the Tier points of the ten who played, yesterday's waits for the
  * organizer's ratings, and this afternoon's is open for everyone to rate.
  */
@@ -2127,7 +2127,7 @@ async function seedFootball(u: Users, v: Venues) {
   });
 
   // Played yesterday while the organizer rated: its Rating window is open,
-  // so Sam is asked to rate everyone (screen 4a) before the points move.
+  // so Sam is asked to rate everyone before the points move.
   const setRatings = (mode: "organizer" | "everyone") =>
     updateRatingSettings(db, {
       groupId: group.id,
@@ -2186,7 +2186,7 @@ async function seedFootball(u: Users, v: Venues) {
   await setRatings("everyone");
 
   // Played this afternoon while everyone rates: its Rating window is open, five
-  // of the ten have rated, and Sam has not yet (screen 4b).
+  // of the ten have rated, and Sam has not yet.
   const everyoneRates = await footballGame({
     name: "Afternoon five-a-side",
     sideSize: 5,
@@ -2284,8 +2284,8 @@ async function seedFootball(u: Users, v: Venues) {
   }
 
   // Played two days ago while everyone rated: its Rating window has closed,
-  // so Sam sees the rating, the two parts of the move and the fish (screen
-  // 4c). Two players rated Jonas, too few for a performance part.
+  // so Sam sees the rating, the two parts of the move and the fish. Two
+  // players rated Jonas, too few for a performance part.
   const settled = await footballGame({
     name: "Tuesday five-a-side",
     sideSize: 5,
@@ -2454,7 +2454,7 @@ async function seedGroupLinks(u: Users, v: Venues, g: Groups) {
  * Galali Football is a Verified Group on the pitches, so its Games count for
  * Temba Level at full weight (ADR-0069): last night's 5–3 was rated by the
  * ten who played and voted Omar MVP, and its settled Rating window moved
- * their OVR by four parts (screen 5a). Diego disputes that result, so it
+ * their OVR by four parts. Diego disputes that result, so it
  * waits on the Operator Disputes page. Saturday's is tagged "Counts for
  * Temba Level" and open to OVR 64 and up.
  */

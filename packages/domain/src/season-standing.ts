@@ -339,8 +339,8 @@ export type StandingTierFootnote = {
 };
 
 /**
- * Screen 2a: on a tier Group the Standing says it is the season and points to
- * Members, where the Group Tier lives (ADR-0066). The season sentence drops
+ * On a tier Group the Standing says it is the season and points to Members,
+ * where the Group Tier lives (ADR-0066). The season sentence drops
  * out when no Season is in view, since the table then counts every game.
  */
 export function standingTierFootnote(

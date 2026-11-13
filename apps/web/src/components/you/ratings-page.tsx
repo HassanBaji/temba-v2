@@ -299,7 +299,7 @@ function SportSwitch({
 }
 
 /**
- * Ratings (screens 1a and 1b): the Temba Level, a Group tier per tier Group
+ * Ratings: the Temba Level, a Group tier per tier Group
  * on football, "In your groups", and the reserved Official Rank slot.
  */
 export function RatingsPage({ initialSport }: { initialSport: Sport }) {

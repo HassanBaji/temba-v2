@@ -13,7 +13,7 @@ import { type RouterOutputs } from "../trpc/react";
 
 type RatingImpact = RouterOutputs["games"]["byId"]["ratingImpact"];
 
-/** Screen 5a on a played football Game that counts for Temba Level. */
+/** "What moved your OVR" on a played football Game that counts for Temba Level. */
 export function OvrImpactCard({
   ratingImpact,
 }: {

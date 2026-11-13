@@ -79,7 +79,7 @@ function shows(ladder: RatingHistoryLadder, part: "level" | "tier") {
 }
 
 /**
- * A User's own Rating history (screen 1c, ADR-0073): the union of their
+ * A User's own Rating history (ADR-0073): the union of their
  * Rated Matches (`rating_events`), Level overrides (`level_overrides`) and
  * tier Group moves (`group_tier_events`), newest first, keyset-paged across
  * all three. Manual changes carry who set them, by which door, the Venue a

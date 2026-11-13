@@ -163,7 +163,7 @@ function HistoryRow({ row }: { row: RatingHistoryRow }) {
 }
 
 /**
- * Points and history for one member of a tier Group (screen 2e): their fish,
+ * Points and history for one member of a tier Group: their fish,
  * place and points, then what moved them, manual changes with who and why.
  * The member themself and the Group's Organizers see the same list.
  */

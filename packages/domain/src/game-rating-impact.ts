@@ -167,7 +167,7 @@ export function ratingImpactView(
   };
 }
 
-/** What a counting football Match did to the viewer's OVR (screen 5a). */
+/** What a counting football Match did to the viewer's OVR. */
 export type OvrImpact = {
   before: number;
   after: number;
@@ -275,7 +275,7 @@ export function ovrMoveHeldAt(
 }
 
 /**
- * Screen 5a's "What moved your OVR": one row per part the Match wrote, then
+ * "What moved your OVR": one row per part the Match wrote, then
  * the move in one decimal with where the Level stands. The shown rows add up
  * to the shown move. A move cut at the 40 floor or the 99 ceiling shows each
  * part as earned and one more row for what the bound held back.

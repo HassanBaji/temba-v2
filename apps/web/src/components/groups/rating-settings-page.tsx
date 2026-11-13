@@ -313,7 +313,7 @@ function RatingSettingsForm({
 }
 
 /**
- * Rating settings of a tier Group (screen 3b): who rates after a game, how
+ * Rating settings of a tier Group: who rates after a game, how
  * much it counts and whether the organizer counts double. Only Organizers
  * change them; a member who opens the page reads how ratings work here.
  */

@@ -59,7 +59,7 @@ function recordLine(row: GroupStandingData, locale: Locale) {
 }
 
 /**
- * "In your groups" (design 1b): each Group's won, lost and place in its
+ * "In your groups": each Group's won, lost and place in its
  * Standing. A padel Group has no Level and no tier (ADR-0066), so these rows
  * carry neither.
  */
@@ -171,7 +171,7 @@ export type RatingsScreenView = {
   } | null;
   /** Reserved (ADR-0065): a hatched slot, never a number. */
   official: { title: string; message: string; note: string };
-  /** Screen 1a's order on football, 1b's on padel. */
+  /** The sections in the order the sport's Ratings screen shows them. */
   order: RatingsSection[];
 };
 
@@ -189,7 +189,7 @@ function clampPercent(value: number) {
 }
 
 /**
- * The Temba Level card (screens 1a, 1b): the band in the ring, the number on
+ * The Temba Level card: the band in the ring, the number on
  * the sport's face, what the last eight counting Matches did, and the way to
  * the next band. A Provisional Level shows a hatched ring and the count to
  * confirm instead.
@@ -286,7 +286,7 @@ export function ratingsLevelView(
 }
 
 /**
- * A Group tier row (screen 1a): the fish, the place while fewer than four are
+ * A Group tier row: the fish, the place while fewer than four are
  * ranked, or a hatched Provisional slot; the band and place among the
  * Group's members; the points once out of Provisional.
  */
@@ -339,7 +339,7 @@ export function ratingsTierRows(
 }
 
 /**
- * The Ratings screen (1a football, 1b padel). Football has all three ladders:
+ * The Ratings screen. Football has all three ladders:
  * Temba Level, a Group tier in each tier Group, and its Verified Groups under
  * "In your groups". Padel has no tier (ADR-0066); its Groups keep a Standing.
  * Official Rank is reserved on both.

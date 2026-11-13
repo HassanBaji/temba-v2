@@ -20,8 +20,8 @@ type RatingWindow = RouterOutputs["games"]["byId"]["ratingWindow"];
 type SettledView = Extract<PerformanceResultView, { kind: "settled" }>;
 
 /**
- * Screen 4c on a played Game: once the Rating window closes, the viewer's
- * rating and what it did to their tier points; before that, when it arrives.
+ * On a played Game, once the Rating window closes: the viewer's rating and
+ * what it did to their tier points; before that, when it arrives.
  */
 export function PerformanceResultCard({
   gameId,

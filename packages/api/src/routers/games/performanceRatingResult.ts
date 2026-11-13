@@ -44,8 +44,8 @@ import {
 type DbClient = typeof db;
 
 /**
- * The caller's own result once a football Match's Rating window has settled
- * (screen 4c): their rating, how many ratings it came from and the game's
+ * The caller's own result once a football Match's Rating window has
+ * settled: their rating, how many ratings it came from and the game's
  * average, the result part and the performance part of their Tier points
  * move, the new points, place and fish, and the MVP. Before the window
  * settles it returns the closing time and no rating. A viewer who did not

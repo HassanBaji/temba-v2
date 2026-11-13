@@ -147,7 +147,7 @@ function Empty({
 }
 
 /**
- * Rating history (screen 1c): every move of the viewer's Level and Group
+ * Rating history: every move of the viewer's Level and Group
  * Tiers on one sport, newest first under This week and then each month,
  * manual changes with who and why. The Rank filter is reserved and empty.
  */

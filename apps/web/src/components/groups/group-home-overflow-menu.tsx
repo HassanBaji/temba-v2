@@ -75,7 +75,7 @@ export function GroupHomeOverflowMenu({
   roleLine: string | null;
   /** Why Leave is disabled, or `null` when the viewer may leave. */
   leaveBlockedHint: string | null;
-  /** The current Rating settings, under their row (screen 3a). */
+  /** The current Rating settings, under their row. */
   ratingSettingsHint: string | null;
   venueName: string | null;
   triggerRef?: RefObject<HTMLButtonElement | null>;

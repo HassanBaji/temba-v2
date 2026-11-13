@@ -60,7 +60,7 @@ export function wholeOvrFromMu(mu: number) {
 }
 
 /**
- * What Make teams balances a player on outside a tier Group (D15): their
+ * What Make teams balances a player on outside a tier Group: their
  * whole-number OVR, or a new Rating's (Level 3.0, OVR 65) when they have
  * none, as the Level slider starts.
  */
@@ -167,7 +167,8 @@ export function footballExpectedScore(ownMean: number, otherMean: number) {
 }
 
 /**
- * The goals score of each player, in −1 to 1 (spec 20.7, no minutes): own
+ * The goals score of each player, in −1 to 1. No minutes are recorded, so
+ * "while they played" is the whole Match: own
  * named goals against the Match's mean per player, minus the side's goals
  * conceded against half the Match total, the conceded part weighed by
  * Football role. Both are counted in halves of the Match total, so a side

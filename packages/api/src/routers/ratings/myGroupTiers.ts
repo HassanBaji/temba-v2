@@ -33,7 +33,7 @@ export type MyGroupTierRow = {
 };
 
 /**
- * "Group tier" on the Ratings screen (design 1a): the caller's Group Tier in
+ * "Group tier" on the Ratings screen: the caller's Group Tier in
  * each of their tier Groups, cut as Members cuts it (ADR-0067). A member with
  * no Tier points yet is Provisional at the start. The caller always sees
  * their own points.

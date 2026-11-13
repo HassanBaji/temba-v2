@@ -10,7 +10,7 @@ import { type RouterOutputs } from "~/trpc/react";
 
 type RatingWindow = RouterOutputs["games"]["byId"]["ratingWindow"];
 
-/** Opens the ratings summary (screen 4d) for an Organizer once the window has settled. */
+/** Opens the ratings summary for an Organizer once the window has settled. */
 export function RatingSummaryCard({
   gameId,
   window,

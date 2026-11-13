@@ -33,7 +33,7 @@ const DEFAULT_PAGE_SIZE = 20;
 export type TierHistoryCursor = { createdAt: Date; id: string };
 
 /**
- * Points and history (screen 2e): what moved one member's Tier points in a
+ * Points and history: what moved one member's Tier points in a
  * Group, newest first, Tier adjustments with who and why included (ADR-0073).
  * Only that member and the Group's Organizers may read it. The events outlive
  * the points row, so a member who left and came back still sees them.

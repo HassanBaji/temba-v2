@@ -406,12 +406,12 @@ export function MembersTab({
   showLevel?: boolean;
   /** OVR on a Verified football Group (ADR-0069). */
   levelFace?: LevelFace;
-  /** A tier Group's Members (screen 2b): fish, points and the Shark. */
+  /** A tier Group's Members: fish, points and the Shark. */
   tierSummary?: GroupTierSummaryData | null;
   groupName?: string;
-  /** An Organizer of a tier Group adjusts members' Tier points (screen 2d). */
+  /** An Organizer of a tier Group adjusts members' Tier points. */
   canAdjustTier?: boolean;
-  /** Points and history (screen 2e), for an Organizer of a tier Group. */
+  /** Points and history, for an Organizer of a tier Group. */
   onOpenTierHistory?: (userId: string) => void;
   onSetLevel: (userId: string) => void;
   onOpenMember?: (userId: string) => void;

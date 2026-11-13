@@ -11,7 +11,7 @@ export type HomeLevelView = {
   status: string;
   provisional: boolean;
   displayBand: string;
-  /** "Level" on both faces (screen 1a). */
+  /** "Level" on both faces. */
   numberLabel: string;
   level: string;
   /** Through the band when confirmed; towards confirming while Provisional. */
@@ -31,8 +31,8 @@ export type HomeLevelView = {
 };
 
 /**
- * Home's Level card reads the Temba Level as the Ratings screen does
- * (screens 1a, 1b), so the two never disagree: the band, the number on the
+ * Home's Level card reads the Temba Level as the Ratings screen does, so
+ * the two never disagree: the band, the number on the
  * sport's face, what the last eight counting Matches moved it, and the way to
  * the next band or to confirming. Null before the first Rating.
  */

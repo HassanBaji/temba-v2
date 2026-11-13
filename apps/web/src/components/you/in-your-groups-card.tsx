@@ -56,7 +56,7 @@ export function InYourGroupsList({
   );
 }
 
-/** "In your groups" (design 1b): won, lost and place in each padel Group. */
+/** "In your groups": won, lost and place in each padel Group. */
 export function InYourGroupsCard({ rows }: { rows: readonly GroupStanding[] }) {
   const m = useMessages();
   const locale = useLocale();

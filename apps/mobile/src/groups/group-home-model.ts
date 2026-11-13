@@ -159,7 +159,7 @@ export type MemberRowView = {
   caption: string | null;
   level: LevelCellView;
   levelText: string | null;
-  /** Set on a tier Group's rows (screen 2b). */
+  /** Set on a tier Group's rows. */
   tier: GroupMemberTierView | null;
   selectable: boolean;
   accessibilityLabel: string;

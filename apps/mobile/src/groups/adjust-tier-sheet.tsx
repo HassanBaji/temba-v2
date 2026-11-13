@@ -304,7 +304,7 @@ function AdjustTierForm({
 }
 
 /**
- * Adjust a member's Tier points (screen 2d): move the points, read the new
+ * Adjust a member's Tier points: move the points, read the new
  * place and fish live, pick a reason the player will see, then save.
  */
 export function AdjustTierSheet({

@@ -42,8 +42,8 @@ import {
 type DbClient = typeof db;
 
 /**
- * The Organizer's summary once a football Match's Rating window has settled
- * (screen 4d): each player's rating and Tier points move, who changed tier,
+ * The Organizer's summary once a football Match's Rating window has
+ * settled: each player's rating and Tier points move, who changed tier,
  * how many rated, and how many raters counted for less. Only an Organizer of
  * the Game reads it. It never says who gave what, nor which rater counted for
  * less: no rater id leaves this file. A window past its close is settled

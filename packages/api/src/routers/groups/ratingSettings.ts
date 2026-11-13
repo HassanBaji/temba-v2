@@ -21,7 +21,7 @@ import { requireGroup } from "#src/groups/helpers/require-group";
 type DbClient = typeof db;
 
 /**
- * A tier Group's Rating settings (ADR-0068, screens 3a and 3b). Organizers get
+ * A tier Group's Rating settings (ADR-0068). Organizers get
  * the settings to change them; any other member gets only the line saying how
  * ratings work in the Group.
  */

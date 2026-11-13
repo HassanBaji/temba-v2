@@ -26,7 +26,7 @@ export type MyGroupStandingRow = {
 };
 
 /**
- * "In your groups" on the Ratings area (design 1b): where the caller stands in
+ * "In your groups" on the Ratings area: where the caller stands in
  * each of their Groups of one sport, read from the same Standing as Group home
  * (its default lens, the current Season) so the two cannot disagree. A padel
  * Group keeps only this Standing (ADR-0066).

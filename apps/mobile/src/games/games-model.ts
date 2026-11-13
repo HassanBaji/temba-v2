@@ -80,12 +80,10 @@ export function footballScorePath(gameId: string) {
   return `/games/${gameId}/score`;
 }
 
-/** Rate the game (screen 4a). */
 export function gameRatePath(gameId: string) {
   return `/games/${gameId}/rate`;
 }
 
-/** The Organizer's ratings summary (screen 4d). */
 export function gameRatingSummaryPath(gameId: string) {
   return `/games/${gameId}/ratings`;
 }

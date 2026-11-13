@@ -116,8 +116,8 @@ export async function applyTierMatch(
   const rowByUser = new Map(rows.map((row) => [row.userId, row]));
 
   // A player whose Tier points have not started counts as their start hint
-  // when the sides are weighed (spec 8.1). The hint is never written: their
-  // row still moves from 1,200 (D13).
+  // when the sides are weighed. The hint is never written: their row still
+  // moves from 1,200.
   const notStarted = (userId: string) => {
     const row = rowByUser.get(userId);
     return !row || (row.gamesCounted === 0 && !adjusted(row));
@@ -346,7 +346,7 @@ export async function rewriteTierBands(
 }
 
 /**
- * `tier_band_changed`, once per player per write (spec 13): each member
+ * `tier_band_changed`, once per player per write: each member
  * whose fish moved hears where they are now. A member left with no fish has
  * nothing to read, and the row goes with its event if the write is reversed.
  */

@@ -15,7 +15,7 @@ import { muFromLevel } from "./level";
 import type { Sport } from "./sport";
 import type { TierBand } from "./tier-bands";
 
-/** Thursdays in the product timezone, as on screen 2e. */
+/** Thursdays in the product timezone. */
 const THU_12_NOV = new Date("2026-11-12T17:00:00Z");
 const THU_5_NOV = new Date("2026-11-05T17:00:00Z");
 const THU_29_OCT = new Date("2026-10-29T17:00:00Z");

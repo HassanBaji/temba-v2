@@ -40,7 +40,7 @@ async function insertUser(database: TestDatabase, name: string) {
   return row.id;
 }
 
-/** Screen 2b: Thursday Football, eleven ranked and two Provisional. */
+/** Thursday Football as the Members design draws it: eleven ranked and two Provisional. */
 const THURSDAY: [string, number, number][] = [
   ["Hussain A", 1412, 10],
   ["Ali M", 1356, 10],
