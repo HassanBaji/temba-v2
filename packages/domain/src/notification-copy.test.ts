@@ -666,6 +666,33 @@ describe("notificationCopy for the MVP", () => {
     assert.equal(decided("open", true), null);
   });
 
+  it("tells the player an Organizer reopened the score their dispute was on", () => {
+    const superseded = (locale: "en" | "ar") =>
+      notificationCopy(
+        {
+          type: "match_dispute_decided",
+          audience: "player",
+          actor: { name: "Omar" },
+          actorIsRecipient: false,
+          group: null,
+          game,
+          dispute: { status: "superseded", note: "It finished 4–3" },
+        },
+        locale,
+      );
+    assert.equal(
+      superseded("en")
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Omar reopened the score of Thursday Padel",
+    );
+    assert.equal(
+      superseded("en")?.subline,
+      "Your dispute is closed. If the new result is wrong too, you can dispute it.",
+    );
+    assert.notEqual(superseded("ar"), null);
+  });
+
   it("tells a player their rating and their points move once ratings close", () => {
     const closed = (
       ratingHundredths: number | null,

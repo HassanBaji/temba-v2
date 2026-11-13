@@ -391,6 +391,20 @@ export function notificationCopy(
   }
   if (
     item.type === "match_dispute_decided" &&
+    item.audience === "player" &&
+    item.game &&
+    item.dispute?.status === "superseded"
+  ) {
+    return {
+      title: m.matchDisputeSuperseded(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: sub.disputeSuperseded,
+    };
+  }
+  if (
+    item.type === "match_dispute_decided" &&
     (item.audience === "admin" || item.audience === "player") &&
     item.game &&
     (item.dispute?.status === "upheld" || item.dispute?.status === "dismissed")

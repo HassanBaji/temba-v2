@@ -33,6 +33,7 @@ import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { decideDispute } from "#src/routers/games/decideDispute";
 import { disputeMatchResult } from "#src/routers/games/disputeMatchResult";
 import { listDisputesForOperator } from "#src/routers/games/listDisputesForOperator";
+import { reportWrongScore } from "#src/routers/games/reportWrongScore";
 
 const en = messagesFor("en");
 
@@ -372,6 +373,102 @@ describe("games.decideDispute", () => {
         note: "Still wrong",
       });
       expect((await listDisputesForOperator(db)).items).toHaveLength(1);
+    });
+  });
+});
+
+describe("an Organizer's wrong-score report on a disputed Match", () => {
+  it("closes the open dispute as superseded, tells the player, and lets them dispute the corrected result", async () => {
+    await withDb(async (db) => {
+      const m = await countedPadelMatch(db);
+      const operator = await insertOperator(db, "operator");
+      const { disputeId } = await disputeMatchResult(db, {
+        matchId: m.matchId,
+        userId: m.c.id,
+        note: "Wrong",
+      });
+
+      await reportWrongScore(db, {
+        gameId: m.gameId,
+        matchId: m.matchId,
+        userId: m.a.id,
+      });
+
+      expect(await matchStatus(db, m.matchId)).toBe(MatchStatusEnum.PENDING);
+      const closed = await disputeOf(db, disputeId);
+      expect(closed).toMatchObject({
+        status: "superseded",
+        decidedByUserId: m.a.id,
+      });
+      expect(closed?.decidedAt).not.toBeNull();
+      expect((await listDisputesForOperator(db)).items).toHaveLength(0);
+
+      const told = await db.query.notifications.findMany({
+        where: eq(notifications.type, "match_dispute_decided"),
+      });
+      expect(told.map((row) => [row.recipientUserId, row.audience])).toEqual([
+        [m.c.id, "player"],
+      ]);
+      const [toPlayer] = (await listNotifications(db, { userId: m.c.id }))
+        .items;
+      expect(titleOf(notificationCopy(toPlayer!, "en"))).toMatch(
+        /^a reopened the score of /,
+      );
+      expect(notificationCopy(toPlayer!, "en")?.subline).toBe(
+        en.notification.subline.disputeSuperseded,
+      );
+      expect(titleOf(notificationCopy(toPlayer!, "ar"))).toBeTruthy();
+
+      const stale = await decideDispute(db, {
+        disputeId,
+        upheld: true,
+        operatorUserId: operator.id,
+      }).catch((caught: unknown) => caught);
+      expect((stale as TRPCError).message).toBe(
+        en.rating.dispute.errors.decided,
+      );
+
+      await confirmMatchResult(db, {
+        gameId: m.gameId,
+        matchId: m.matchId,
+        userId: m.a.id,
+      });
+      expect(await matchStatus(db, m.matchId)).toBe(MatchStatusEnum.COMPLETED);
+      const again = await disputeMatchResult(db, {
+        matchId: m.matchId,
+        userId: m.c.id,
+        note: "Still wrong",
+      });
+      expect(again.disputeId).not.toBe(disputeId);
+      expect(
+        (await listDisputesForOperator(db)).items.map((item) => item.id),
+      ).toEqual([again.disputeId]);
+    });
+  });
+
+  it("does not tell an Organizer who reopens the score they disputed themselves", async () => {
+    await withDb(async (db) => {
+      const m = await countedPadelMatch(db);
+      const { disputeId } = await disputeMatchResult(db, {
+        matchId: m.matchId,
+        userId: m.a.id,
+        note: "Wrong",
+      });
+
+      await reportWrongScore(db, {
+        gameId: m.gameId,
+        matchId: m.matchId,
+        userId: m.a.id,
+      });
+
+      expect(await disputeOf(db, disputeId)).toMatchObject({
+        status: "superseded",
+      });
+      expect(
+        await db.query.notifications.findMany({
+          where: eq(notifications.type, "match_dispute_decided"),
+        }),
+      ).toHaveLength(0);
     });
   });
 });

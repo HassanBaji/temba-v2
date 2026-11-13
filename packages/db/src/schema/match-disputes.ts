@@ -16,6 +16,7 @@ export const MATCH_DISPUTE_STATUS_VALUES = [
   "open",
   "upheld",
   "dismissed",
+  "superseded",
 ] as const;
 
 export type MatchDisputeStatus = (typeof MATCH_DISPUTE_STATUS_VALUES)[number];
@@ -30,7 +31,9 @@ export const MATCH_DISPUTE_NOTE_MAX_LENGTH = 280;
 /**
  * A Match dispute: a seated player's claim that a Match that counted for
  * Temba Level is wrong. An Operator upholds it, which runs the wrong-score
- * reversal, or dismisses it. One open dispute per Match.
+ * reversal, or dismisses it. An Organizer who reports the wrong score first
+ * supersedes it: the result it was raised against is gone. One open dispute
+ * per Match.
  */
 export const matchDisputes = pgTable(
   "match_disputes",

@@ -151,6 +151,11 @@ export const notification = {
       plain("’s dispute on "),
       strong(game),
     ],
+    matchDisputeSuperseded: (actor: string, game: string) => [
+      strong(actor),
+      plain(" reopened the score of "),
+      strong(game),
+    ],
     mvpTieBreak: (game: string) => [
       plain("Tied vote on "),
       strong(game),
@@ -310,6 +315,8 @@ export const notification = {
       `No rating for you this time. Tier points ${delta} on the result, now ${points}.`,
     disputeUpheld: "The score is open again. Enter the right one.",
     disputeDismissed: "The result stands.",
+    disputeSuperseded:
+      "Your dispute is closed. If the new result is wrong too, you can dispute it.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

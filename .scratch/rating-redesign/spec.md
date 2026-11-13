@@ -204,7 +204,7 @@ venue_verifier_kind  enum: club_staff | referee | coach
 venue_verifiers          unique (venue_id, user_id)
   kind, granted_by_user_id, created_at
 match_verifier_stamps    match_id pk, verifier_user_id, venue_id, created_at
-match_dispute_status     enum: open | upheld | dismissed
+match_dispute_status     enum: open | upheld | dismissed | superseded
 match_disputes           match_id, raised_by_user_id, note varchar(280),
                          status, decided_by_user_id null, decided_at null, created_at
 ```
@@ -277,7 +277,7 @@ All constants are starting values, fitted to roughly reproduce the prototype's o
 
 **Public Game Match**: `pending` until a score is entered; the enterer is confirmed and a 24-hour job `match.confirm-window` starts. A confirmation from the other side, or a Verifier stamp, completes it and it counts. If the clock runs out it completes with `stood_unconfirmed_at` set: it appears in Match history and never moves a Level. A changed score clears confirmations and restarts the clock.
 
-**Match dispute**: `open` (a seated player, within 7 days of completion, one open dispute per Match) to `upheld` (the Operator's decision runs the wrong-score reversal and the Match returns to `pending`) or `dismissed`.
+**Match dispute**: `open` (a seated player, within 7 days of completion, one open dispute per Match) to `upheld` (the Operator's decision runs the wrong-score reversal and the Match returns to `pending`), `dismissed`, or `superseded` (an Organizer reported the wrong score first, so the result it was raised against is gone; the player is told and may dispute the corrected result).
 
 ## 10. Permissions
 

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."match_dispute_status" ADD VALUE 'superseded';

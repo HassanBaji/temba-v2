@@ -12,6 +12,7 @@ import {
   levelOverrides,
   MatchStatusEnum,
   matches,
+  matchDisputes,
   matchGoals,
   matchResultConfirmations,
   matchSets,
@@ -35,6 +36,7 @@ import {
 import { clearMatchVerifierStamp } from "#src/games/match-result-confirmations";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
 import { suspendMvp } from "#src/marks/settle-mvp";
+import { notify } from "#src/notifications/notify";
 import { reverseFootballLevelMatch } from "#src/ratings/apply-football-level-match";
 import { rewriteTierBands } from "#src/ratings/apply-tier-match";
 import { suspendRatingWindow } from "#src/ratings/settle-rating-window";
@@ -170,6 +172,47 @@ async function reverseTierEvents(tx: DbClient, matchId: string, now: Date) {
   await rewriteTierBands(tx, { groupId, matchId: null, rowByUser, now });
 }
 
+function openDisputeOn(matchId: string) {
+  return and(
+    eq(matchDisputes.matchId, matchId),
+    eq(matchDisputes.status, "open"),
+  );
+}
+
+/**
+ * Closes the Match's open dispute as superseded: it was raised against the
+ * result this report takes back, so upholding it later would reverse the
+ * corrected one. The player who raised it is told, and may dispute the
+ * corrected result once it counts.
+ */
+async function supersedeOpenDispute(
+  tx: DbClient,
+  args: { gameId: string; matchId: string; userId: string; now: Date },
+) {
+  const superseded = await tx
+    .update(matchDisputes)
+    .set({
+      status: "superseded",
+      decidedByUserId: args.userId,
+      decidedAt: args.now,
+    })
+    .where(openDisputeOn(args.matchId))
+    .returning({
+      id: matchDisputes.id,
+      raisedByUserId: matchDisputes.raisedByUserId,
+    });
+  for (const dispute of superseded) {
+    await notify(tx, {
+      type: "match_dispute_decided",
+      recipients: [{ userId: dispute.raisedByUserId, audience: "player" }],
+      excludeUserIds: [args.userId],
+      actorUserId: args.userId,
+      gameId: args.gameId,
+      matchDisputeId: dispute.id,
+    });
+  }
+}
+
 /**
  * Organizer-only "report a wrong score" reversal — Option A, the gated
  * self-service reversal resolved in
@@ -183,7 +226,9 @@ async function reverseTierEvents(tx: DbClient, matchId: string, now: Date) {
  * back by subtraction whatever came after (ADR-0067), and so is a football
  * Level (ADR-0069). A Rating window is
  * suspended with its ballots kept, and reopens at the next completion
- * (ADR-0068).
+ * (ADR-0068). An Organizer's report closes the Match's open dispute as
+ * superseded; an Operator upholding that dispute runs this door and marks it
+ * upheld itself.
  *
  * When eligible, in one transaction: restores each Rating (μ, φ, σ, Level
  * band, last rated time) to the before-values stored on this Match's rating
@@ -232,6 +277,15 @@ export async function reportWrongScore(
   }
 
   await database.transaction(async (tx) => {
+    // The dispute row is locked before the Match row, the order
+    // `decideDispute` takes them in, so the two cannot deadlock.
+    if (!args.asOperator) {
+      await tx
+        .select({ id: matchDisputes.id })
+        .from(matchDisputes)
+        .where(openDisputeOn(match.id))
+        .for("update");
+    }
     const [locked] = await tx
       .select()
       .from(matches)
@@ -352,6 +406,14 @@ export async function reportWrongScore(
       })
       .where(eq(matches.id, locked.id));
     await suspendMvp(tx, game);
+    if (!args.asOperator) {
+      await supersedeOpenDispute(tx, {
+        gameId: game.id,
+        matchId: locked.id,
+        userId: args.userId,
+        now,
+      });
+    }
   });
 
   return { ok: true as const };

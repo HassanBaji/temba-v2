@@ -178,6 +178,12 @@ export const notification = {
       plain(" على "),
       strong(game),
     ],
+    matchDisputeSuperseded: (actor: string, game: string) => [
+      plain("أعاد "),
+      strong(actor),
+      plain(" فتح نتيجة "),
+      strong(game),
+    ],
     mvpTieBreak: (game: string) => [
       plain("تعادل في التصويت على "),
       strong(game),
@@ -337,6 +343,8 @@ export const notification = {
       `لا تقييم لك هذه المرة. نقاط الفئة ${isolate(delta)} على النتيجة، والآن ${isolate(points)}.`,
     disputeUpheld: "النتيجة مفتوحة من جديد. أدخل النتيجة الصحيحة.",
     disputeDismissed: "تبقى النتيجة.",
+    disputeSuperseded:
+      "أُغلق اعتراضك. إن كانت النتيجة الجديدة خاطئة أيضًا فيمكنك الاعتراض عليها.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,
