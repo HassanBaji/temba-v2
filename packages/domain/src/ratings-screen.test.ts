@@ -155,6 +155,30 @@ describe("ratingsLevelView", () => {
     });
   });
 
+  it("counts a padel Level towards five Matches in a Verified Group, not every rated one", () => {
+    const view = ratingsLevelView(
+      {
+        face: "level",
+        levelValue: 3.45,
+        rating: {
+          levelBand: "C2",
+          provisional: true,
+          ratedMatchesRemaining: 4,
+        },
+        ratedMatchCount: 6,
+        changeOverLast: null,
+      },
+      "padel",
+      "en",
+    );
+    expect(view).toMatchObject({
+      provisional: true,
+      ringHatched: true,
+      ringPercent: 20,
+      footer: { label: "To confirm", value: "1 of 5 matches", detail: null },
+    });
+  });
+
   it("reads the top band without a next one", () => {
     const view = ratingsLevelView(
       footballLevel({

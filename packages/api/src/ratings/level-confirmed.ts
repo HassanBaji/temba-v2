@@ -277,9 +277,7 @@ export async function levelConfirmations(
     return [];
   }
   const [football, padel] = await Promise.all([
-    args.sport === "padel"
-      ? []
-      : footballLevelConfirmations(database, userIds),
+    args.sport === "padel" ? [] : footballLevelConfirmations(database, userIds),
     args.sport === "football" ? [] : padelLevelConfirmations(database, userIds),
   ]);
   return [...football, ...padel];

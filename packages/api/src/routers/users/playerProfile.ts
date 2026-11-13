@@ -376,10 +376,9 @@ export async function teamPlayers(
       ? [{ teamId: link.gameTeamId, user: link.gamePlayer.user }]
       : [],
   );
-  const levels = await currentLevels(
-    database,
-    [...new Set(people.map((person) => person.user.id))],
-  );
+  const levels = await currentLevels(database, [
+    ...new Set(people.map((person) => person.user.id)),
+  ]);
 
   const byTeam = new Map<string, PlayerMatchPlayer[]>();
   for (const person of people) {

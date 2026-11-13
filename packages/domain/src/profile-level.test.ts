@@ -10,26 +10,17 @@ import {
 } from "./profile-level";
 
 describe("confirmationFraction", () => {
-  it("is rated matches over rated matches plus remaining", () => {
-    assert.equal(confirmationFraction(13, 7), 0.65);
-    assert.equal(confirmationFraction(1, 1), 0.5);
+  it("is the share of the five confirming Matches already played", () => {
+    assert.equal(confirmationFraction(2), 0.6);
+    assert.equal(confirmationFraction(1), 0.8);
   });
 
-  it("is 0 when no rated matches have been played", () => {
-    assert.equal(confirmationFraction(0, 5), 0);
+  it("is 0 before the first confirming Match", () => {
+    assert.equal(confirmationFraction(5), 0);
   });
 
-  it("is 1 when no rated matches remain", () => {
-    assert.equal(confirmationFraction(5, 0), 1);
-  });
-
-  it("does not clamp like Home plottedFraction", () => {
-    assert.equal(confirmationFraction(1, 20), 1 / 21);
-    assert.equal(confirmationFraction(8, 1), 8 / 9);
-  });
-
-  it("is 0 when both sides are 0", () => {
-    assert.equal(confirmationFraction(0, 0), 0);
+  it("is 1 when no confirming Match remains", () => {
+    assert.equal(confirmationFraction(0), 1);
   });
 });
 
@@ -54,15 +45,15 @@ describe("lastMatchMovement", () => {
 describe("confirmationProgressCaption", () => {
   it("says what the confirmation bar measures", () => {
     assert.equal(
-      confirmationProgressCaption(3, 2, "en"),
+      confirmationProgressCaption(2, "en"),
       "3 of about 5 rated games to confirm",
     );
   });
 
-  it("uses the singular when one rated game confirms", () => {
+  it("counts out of five whatever else was played", () => {
     assert.equal(
-      confirmationProgressCaption(0, 1, "en"),
-      "0 of about 1 rated game to confirm",
+      confirmationProgressCaption(5, "en"),
+      "0 of about 5 rated games to confirm",
     );
   });
 });
@@ -99,6 +90,20 @@ describe("profileLevelView", () => {
     );
     assert.equal(view.fillPercent, 60);
     assert.equal(view.caption, "3 of about 5 rated games to confirm");
+  });
+
+  it("counts only the Matches that confirm, not every rated one", () => {
+    const view = profileLevelView(
+      {
+        ...base,
+        provisional: true,
+        ratedMatchCount: 7,
+        ratedMatchesRemaining: 3,
+      },
+      "en",
+    );
+    assert.equal(view.fillPercent, 40);
+    assert.equal(view.caption, "2 of about 5 rated games to confirm");
   });
 
   it("reads an unrated football Level as the starting one", () => {
@@ -181,7 +186,7 @@ describe("profileLevelView", () => {
       `16% نحو ${isolate("C+")}`,
     );
     assert.equal(
-      confirmationProgressCaption(3, 2, "ar"),
+      confirmationProgressCaption(2, "ar"),
       "3 من 5 مباريات مصنّفة لتأكيد مستواك",
     );
     assert.equal(

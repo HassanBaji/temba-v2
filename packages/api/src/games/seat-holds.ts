@@ -13,7 +13,6 @@ import {
   type GroupJoinRequestHeldSeat,
 } from "@repo/db";
 
-
 import { type db } from "#src/db";
 import {
   isGameOrganizer,

@@ -121,7 +121,10 @@ export function playerLevelCardView(
   };
 
   if (input.provisional) {
-    const caption = confirmationProgressCaption(input.ratedMatchesRemaining, locale);
+    const caption = confirmationProgressCaption(
+      input.ratedMatchesRemaining,
+      locale,
+    );
     return {
       ...base,
       lines: [caption],
