@@ -14,7 +14,6 @@ import {
   knockoutLevelMessage,
   knockoutMatchIsLevel,
 } from "#src/games/knockout-advance";
-import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import { messagesFor } from "@repo/i18n/messages";
 import {
@@ -25,11 +24,13 @@ import {
   matchSideSeats,
   matchSlotsActedFor,
   matchSlotsConfirmed,
-  publicGameConfirmWindowClosesAt,
   type MatchSlot,
 } from "#src/games/match-result-confirmations";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
-import { runMatchCompletionEffect } from "#src/games/run-match-completion-effect";
+import {
+  runMatchCompletionEffect,
+  standUnconfirmedIfConfirmWindowClosed,
+} from "#src/games/run-match-completion-effect";
 import { seatedSlot } from "#src/games/tournament-score";
 import { userIsOnMatchSlots } from "#src/games/user-is-on-match-slots";
 import { type MatchRow } from "#src/games/utils";
@@ -156,14 +157,10 @@ export async function confirmMatchResult(
     });
   }
 
-  if (isPublicGame(game)) {
-    const closesAt = await publicGameConfirmWindowClosesAt(database, match.id);
-    if (closesAt && closesAt.getTime() <= now.getTime()) {
-      await runMatchCompletionEffect(database, game, match.id, {
-        stoodUnconfirmed: true,
-      });
-      return { ok: true as const };
-    }
+  if (
+    await standUnconfirmedIfConfirmWindowClosed(database, game, match.id, now)
+  ) {
+    return { ok: true as const };
   }
 
   if (

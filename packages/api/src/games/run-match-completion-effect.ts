@@ -9,6 +9,7 @@ import {
   knockoutMatchIsLevel,
   placeKnockoutQualifiers,
 } from "#src/games/knockout-advance";
+import { publicGameConfirmWindowClosed } from "#src/games/match-result-confirmations";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import { scheduleMvpSettle } from "#src/marks/settle-mvp";
 import { notifyIfGameFinished } from "#src/notifications/notify-game-finished";
@@ -87,4 +88,25 @@ export async function runMatchCompletionEffect(
     await placeKnockoutQualifiers(tx, game, locked);
     await notifyIfGameFinished(tx, game);
   });
+}
+
+/**
+ * Lets a Public Game's score stand without counting once its 24 hours have
+ * run out, and says whether it did (ADR-0071). Every door that can complete
+ * a Public Game's Match asks this before it records an agreement, so one that
+ * arrives late never counts, however late the `match.confirm-window` Job is.
+ */
+export async function standUnconfirmedIfConfirmWindowClosed(
+  database: DbClient,
+  game: GameRow,
+  matchId: string,
+  now: Date,
+): Promise<boolean> {
+  if (!(await publicGameConfirmWindowClosed(database, game, matchId, now))) {
+    return false;
+  }
+  await runMatchCompletionEffect(database, game, matchId, {
+    stoodUnconfirmed: true,
+  });
+  return true;
 }

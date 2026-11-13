@@ -9,6 +9,7 @@ import {
   games,
   groupTierEvents,
   matchRatingWindows,
+  matchResultConfirmations,
   matches,
   notifications,
   ratingEvents,
@@ -20,7 +21,10 @@ import { muFromOvr } from "@repo/domain/football-ovr";
 import { INITIAL_SIGMA, muFromLevel } from "@repo/domain/level";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { publicGameConfirmWindowClosesAt } from "#src/games/match-result-confirmations";
+import {
+  PUBLIC_GAME_CONFIRM_WINDOW_MS,
+  publicGameConfirmWindowClosesAt,
+} from "#src/games/match-result-confirmations";
 import { handle as standUnconfirmed } from "#src/jobs/handlers/match.confirm-window";
 import { recordJobs } from "#src/jobs/job-sink.test-support";
 import { confirmWindowJobKey } from "#src/jobs/specs";
@@ -455,6 +459,52 @@ describe("Football Public Game score (ADR-0071)", () => {
           where: eq(groupTierEvents.matchId, g.matchId),
         }),
       ).toHaveLength(0);
+    });
+  });
+
+  it("lets the same Score saved by the other side after the 24 hours stand without counting", async () => {
+    await withDb(async (db) => {
+      const g = await playedPublicFootballGame(db);
+      const save = (userId: string) =>
+        saveFootballScore(
+          apiDb(db),
+          {
+            gameId: g.gameId,
+            userId,
+            slot1Goals: 2,
+            slot2Goals: 0,
+            scorers: [],
+          },
+          g.afterKickoff,
+        );
+      await save(g.creator);
+      await db
+        .update(matchResultConfirmations)
+        .set({
+          confirmedAt: new Date(
+            Date.now() - PUBLIC_GAME_CONFIRM_WINDOW_MS - 60_000,
+          ),
+        })
+        .where(eq(matchResultConfirmations.matchId, g.matchId));
+      await save(g.c);
+
+      const match = await db.query.matches.findFirst({
+        where: eq(matches.id, g.matchId),
+      });
+      expect(match?.status).toBe(MatchStatusEnum.COMPLETED);
+      expect(match?.stoodUnconfirmedAt).not.toBeNull();
+      expect(
+        await db.query.matchRatingWindows.findFirst({
+          where: eq(matchRatingWindows.matchId, g.matchId),
+        }),
+      ).toBeUndefined();
+      expect(
+        (
+          await db.query.matchResultConfirmations.findMany({
+            where: eq(matchResultConfirmations.matchId, g.matchId),
+          })
+        ).map((row) => row.userId),
+      ).toEqual([g.creator]);
     });
   });
 });

@@ -2,13 +2,12 @@ import { and, eq } from "drizzle-orm";
 
 import { MatchStatusEnum, matchSets, venueVerifiers } from "@repo/db";
 
-import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { matchOutcome } from "@repo/domain/match-outcome";
 
 import { type db } from "#src/db";
 import { canViewGame, type GameRow } from "#src/games/access";
 import { knockoutMatchIsLevel } from "#src/games/knockout-advance";
-import { publicGameConfirmWindowClosesAt } from "#src/games/match-result-confirmations";
+import { publicGameConfirmWindowClosed } from "#src/games/match-result-confirmations";
 import { userIsOnMatchSlots } from "#src/games/user-is-on-match-slots";
 import { type MatchRow } from "#src/games/utils";
 
@@ -107,12 +106,10 @@ export async function mayStampNow(
   if ((await verifierStampRefusal(database, args)) != null) {
     return false;
   }
-  if (!isPublicGame(args.game)) {
-    return true;
-  }
-  const closesAt = await publicGameConfirmWindowClosesAt(
+  return !(await publicGameConfirmWindowClosed(
     database,
+    args.game,
     args.match.id,
-  );
-  return closesAt == null || closesAt.getTime() > args.now.getTime();
+    args.now,
+  ));
 }

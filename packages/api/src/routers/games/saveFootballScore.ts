@@ -41,7 +41,10 @@ import {
   matchResultFullyConfirmed,
   recordMatchResultConfirmation,
 } from "#src/games/match-result-confirmations";
-import { runMatchCompletionEffect } from "#src/games/run-match-completion-effect";
+import {
+  runMatchCompletionEffect,
+  standUnconfirmedIfConfirmWindowClosed,
+} from "#src/games/run-match-completion-effect";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -208,11 +211,20 @@ async function checkAndWriteScore(
     }
     if (isPublicGame(game)) {
       // The enterer is confirmed and the other side's 24 hours start; the
-      // same Score saved again moves neither (ADR-0071).
+      // same Score saved again moves neither, and after the 24 hours lets
+      // the Score stand without counting (ADR-0071).
       if (changed) {
         await recordMatchResultConfirmation(tx, match.id, args.userId);
         await askOtherSideToConfirm(tx, { game, match, userId: args.userId });
-      } else if (onSide) {
+      } else if (
+        !(await standUnconfirmedIfConfirmWindowClosed(
+          tx,
+          game,
+          match.id,
+          now,
+        )) &&
+        onSide
+      ) {
         await keepMatchResultConfirmation(tx, match.id, args.userId);
       }
     } else if (onSide) {

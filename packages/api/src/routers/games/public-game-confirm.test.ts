@@ -263,4 +263,40 @@ describe("Public Game score confirmation (ADR-0071)", () => {
       expect(details.matchResultConfirmation?.confirmedByOrganizer).toBe(false);
     });
   });
+
+  it("lets the same score saved by the other side after the 24 hours stand without counting", async () => {
+    await withDb(async (db) => {
+      const g = await seatedPublicGame(db);
+      const score = { slot1GamesWon: 6, slot2GamesWon: 3 };
+      await scoreSet(db, {
+        gameId: g.gameId,
+        matchId: g.matchId,
+        setId: g.setId,
+        userId: g.creator,
+        ...score,
+      });
+      await backdateConfirmations(
+        db,
+        g.matchId,
+        new Date(Date.now() - PUBLIC_GAME_CONFIRM_WINDOW_MS - 60_000),
+      );
+      await scoreSet(db, {
+        gameId: g.gameId,
+        matchId: g.matchId,
+        setId: g.setId,
+        userId: g.c,
+        ...score,
+      });
+
+      const match = await matchRow(db, g.matchId);
+      expect(match?.status).toBe(MatchStatusEnum.COMPLETED);
+      expect(match?.stoodUnconfirmedAt).not.toBeNull();
+      expect(
+        await db.query.ratingEvents.findMany({
+          where: eq(ratingEvents.matchId, g.matchId),
+        }),
+      ).toHaveLength(0);
+      expect(await confirmedUserIds(db, g.matchId)).toEqual([g.creator]);
+    });
+  });
 });

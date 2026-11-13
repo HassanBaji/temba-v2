@@ -5,7 +5,6 @@ import { z } from "zod";
 
 import { MatchStatusEnum, matches, matchVerifierStamps } from "@repo/db";
 
-import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { protectedProcedure } from "#src/trpc";
@@ -13,11 +12,11 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { requireGame } from "#src/games/access";
 import { knockoutLevelMessage } from "#src/games/knockout-advance";
+import { matchVerifierStampOf } from "#src/games/match-result-confirmations";
 import {
-  matchVerifierStampOf,
-  publicGameConfirmWindowClosesAt,
-} from "#src/games/match-result-confirmations";
-import { runMatchCompletionEffect } from "#src/games/run-match-completion-effect";
+  runMatchCompletionEffect,
+  standUnconfirmedIfConfirmWindowClosed,
+} from "#src/games/run-match-completion-effect";
 import {
   verifierStampRefusal,
   type VerifierStampRefusal,
@@ -100,14 +99,10 @@ export async function stampMatch(
     throw refusalError("not_verifier", locale);
   }
 
-  if (isPublicGame(game)) {
-    const closesAt = await publicGameConfirmWindowClosesAt(database, match.id);
-    if (closesAt && closesAt.getTime() <= now.getTime()) {
-      await runMatchCompletionEffect(database, game, match.id, {
-        stoodUnconfirmed: true,
-      });
-      return { ok: true as const };
-    }
+  if (
+    await standUnconfirmedIfConfirmWindowClosed(database, game, match.id, now)
+  ) {
+    return { ok: true as const };
   }
 
   await database.transaction(async (tx) => {

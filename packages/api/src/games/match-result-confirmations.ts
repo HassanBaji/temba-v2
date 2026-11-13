@@ -452,3 +452,17 @@ export async function publicGameConfirmWindowClosesAt(
   );
   return new Date(enteredAt + PUBLIC_GAME_CONFIRM_WINDOW_MS);
 }
+
+/** Whether a Public Game's 24 hours to confirm its entered score have run out. */
+export async function publicGameConfirmWindowClosed(
+  database: DbClient,
+  game: { isPublic?: boolean | null; groupId: string | null },
+  matchId: string,
+  now: Date,
+): Promise<boolean> {
+  if (!isPublicGame(game)) {
+    return false;
+  }
+  const closesAt = await publicGameConfirmWindowClosesAt(database, matchId);
+  return closesAt != null && closesAt.getTime() <= now.getTime();
+}

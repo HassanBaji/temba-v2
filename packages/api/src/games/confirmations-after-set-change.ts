@@ -17,7 +17,10 @@ import {
   publicGameConfirmWindowClosesAt,
   recordMatchResultConfirmation,
 } from "#src/games/match-result-confirmations";
-import { runMatchCompletionEffect } from "#src/games/run-match-completion-effect";
+import {
+  runMatchCompletionEffect,
+  standUnconfirmedIfConfirmWindowClosed,
+} from "#src/games/run-match-completion-effect";
 import { type MatchRow } from "#src/games/utils";
 import { enqueueAt, removeJob } from "#src/jobs/enqueue";
 import { confirmWindowJob, confirmWindowJobKey } from "#src/jobs/specs";
@@ -64,7 +67,9 @@ export async function askOtherSideToConfirm(
  * a changed score needs agreeing again rather than standing on stale ones. A
  * level Knockout Match, or one with no result left, has nothing to confirm.
  * On a Public Game a changed score restarts the other side's 24 hours, and
- * saving the same score again does not move them (ADR-0071).
+ * saving the same score again does not move them: it is an agreement with
+ * the score, so after the 24 hours it lets the score stand without counting
+ * (ADR-0071).
  */
 export async function settleConfirmationsAfterSetChange(
   tx: Tx,
@@ -98,6 +103,16 @@ export async function settleConfirmationsAfterSetChange(
     );
   }
   if (isPublicGame(args.game) && !args.scoreChanged) {
+    if (
+      await standUnconfirmedIfConfirmWindowClosed(
+        tx,
+        args.game,
+        args.match.id,
+        new Date(),
+      )
+    ) {
+      return;
+    }
     await keepMatchResultConfirmation(tx, args.match.id, args.userId);
   } else {
     await recordMatchResultConfirmation(tx, args.match.id, args.userId);
