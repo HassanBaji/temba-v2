@@ -24,6 +24,10 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { canViewGame } from "#src/games/access";
 import { gameListTime } from "#src/home/upcoming-games";
 import { calibrationVenueFor } from "#src/ratings/verifier-calibration";
+import {
+  myGroupTiers,
+  type MyGroupTierRow,
+} from "#src/routers/ratings/myGroupTiers";
 import { summarizeCompletedMatchStats } from "@repo/domain/completed-matches";
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import {
@@ -617,6 +621,49 @@ async function ratingChanges(
   );
 }
 
+export type SharedGroupTierRow = Omit<MyGroupTierRow, "points"> & {
+  /** Null while Provisional, unless the viewer is the player (D10). */
+  points: number | null;
+};
+
+/**
+ * The player's Group Tier in each tier Group the viewer is also a member of,
+ * cut as Members cuts it (ADR-0067). Sharing only a Game shows none.
+ */
+async function sharedGroupTiers(
+  database: DbClient,
+  args: { viewerId: string; playerId: string },
+): Promise<SharedGroupTierRow[]> {
+  const tiers = await myGroupTiers(database, { userId: args.playerId });
+  if (tiers.length === 0) {
+    return [];
+  }
+  const self = args.viewerId === args.playerId;
+  const viewerGroups = self
+    ? null
+    : await database
+        .select({ groupId: groupMembers.groupId })
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.userId, args.viewerId),
+            inArray(
+              groupMembers.groupId,
+              tiers.map((tier) => tier.groupId),
+            ),
+          ),
+        );
+  const shared = viewerGroups
+    ? new Set(viewerGroups.map((row) => row.groupId))
+    : null;
+  return tiers
+    .filter((tier) => shared == null || shared.has(tier.groupId))
+    .map((tier) => ({
+      ...tier,
+      points: tier.provisional && !self ? null : tier.points,
+    }));
+}
+
 export async function openableGameIds(
   database: DbClient,
   viewerId: string,
@@ -815,7 +862,7 @@ export async function loadPlayerProfile(
     playerId: player.id,
     visibility: player.matchHistoryVisibility,
   });
-  const [rating, counted, calibration] = await Promise.all([
+  const [rating, counted, calibration, tiers] = await Promise.all([
     sportRating(database, {
       userId: player.id,
       sport: GroupSportEnum.PADEL,
@@ -827,6 +874,10 @@ export async function loadPlayerProfile(
     calibrationVenueFor(database, {
       verifierUserId: args.viewerId,
       targetUserId: player.id,
+    }),
+    sharedGroupTiers(database, {
+      viewerId: args.viewerId,
+      playerId: player.id,
     }),
   ]);
   const [lastMatches, partners, withViewer] = await Promise.all([
@@ -871,6 +922,8 @@ export async function loadPlayerProfile(
     withViewer,
     /** The viewer is a Verifier who may calibrate this player's Level, in either sport. */
     viewerMayCalibrate: calibration.venue !== null,
+    /** The player's fish in each tier Group the viewer shares with them. */
+    sharedGroupTiers: tiers,
   };
 }
 

@@ -13,6 +13,7 @@ import {
   gameWaitlist,
   games,
   groupMembers,
+  groupTierPoints,
   groups,
   matchSets,
   matches,
@@ -507,6 +508,7 @@ describe("loadPlayerProfile", () => {
         partners: [],
         withViewer: null,
         viewerMayCalibrate: false,
+        sharedGroupTiers: [],
       });
     });
   });
@@ -1160,6 +1162,158 @@ describe("loadPlayerProfile", () => {
 
       expect(result.withViewer).toBeNull();
       expect(result.partners).toEqual([]);
+    });
+  });
+});
+
+describe("loadPlayerProfile sharedGroupTiers", () => {
+  async function footballGroup(
+    database: TestDatabase,
+    args: {
+      name: string;
+      createdBy: string;
+      memberIds: readonly string[];
+      sport?: (typeof GroupSportEnum)[keyof typeof GroupSportEnum];
+      verifiedAt?: Date;
+    },
+  ) {
+    const [group] = await database
+      .insert(groups)
+      .values({
+        name: args.name,
+        createdBy: args.createdBy,
+        sport: args.sport ?? GroupSportEnum.FOOTBALL,
+        verifiedAt: args.verifiedAt ?? null,
+      })
+      .returning({ id: groups.id });
+    if (!group) {
+      throw new Error("Failed to insert group");
+    }
+    await joinGroup(database, group.id, [...args.memberIds]);
+    return group.id;
+  }
+
+  async function members(database: TestDatabase, count: number) {
+    const rows = [];
+    for (let index = 0; index < count; index += 1) {
+      rows.push(await insertUser(database, `Member ${index + 1}`));
+    }
+    return rows.map((row) => row.id);
+  }
+
+  it("shows the player's fish in the tier Groups the viewer is also in, and nowhere else", async () => {
+    await withDb(async (db) => {
+      const player = await insertUser(db, "Mahmood");
+      const viewer = await insertUser(db, "Hussain");
+      const others = await members(db, 4);
+      const shared = await footballGroup(db, {
+        name: "Thursday Football",
+        createdBy: viewer.id,
+        memberIds: [player.id, viewer.id, ...others],
+      });
+      await footballGroup(db, {
+        name: "Karbabad Friday Football",
+        createdBy: player.id,
+        memberIds: [player.id, ...others],
+      });
+      await footballGroup(db, {
+        name: "Verified Football",
+        createdBy: viewer.id,
+        memberIds: [player.id, viewer.id],
+        verifiedAt: new Date(),
+      });
+      await footballGroup(db, {
+        name: "Padel Crew",
+        createdBy: viewer.id,
+        memberIds: [player.id, viewer.id],
+        sport: GroupSportEnum.PADEL,
+      });
+      const ranked = [player.id, viewer.id, ...others];
+      await db.insert(groupTierPoints).values(
+        ranked.map((userId, index) => ({
+          groupId: shared,
+          userId,
+          points: [1320, 1260, 1240, 1200, 1180, 1100][index]!,
+          gamesCounted: 5,
+        })),
+      );
+
+      const result = await loadPlayerProfile(db, {
+        viewerId: viewer.id,
+        playerId: player.id,
+        now: NOW,
+      });
+
+      expect(result.sharedGroupTiers).toEqual([
+        {
+          groupId: shared,
+          name: "Thursday Football",
+          imageUrl: null,
+          memberCount: 6,
+          rankedCount: 6,
+          band: "shark",
+          place: 1,
+          points: 1320,
+          provisional: false,
+          gamesOfFive: 5,
+        },
+      ]);
+    });
+  });
+
+  it("shows no fish to a viewer who shares no tier Group, only a Game", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      await footballGroup(db, {
+        name: "Thursday Football",
+        createdBy: people.player.id,
+        memberIds: [people.player.id, ...(await members(db, 4))],
+      });
+      await friendlyMatch(db, people, { sets: WIN, startTime: at(1) });
+
+      const result = await loadPlayerProfile(db, {
+        viewerId: people.right.id,
+        playerId: people.player.id,
+        now: NOW,
+      });
+
+      expect(result.sharedGroupTiers).toEqual([]);
+    });
+  });
+
+  it("keeps a Provisional player's points from other members, never from the player", async () => {
+    await withDb(async (db) => {
+      const player = await insertUser(db, "Mahmood");
+      const viewer = await insertUser(db, "Hussain");
+      const group = await footballGroup(db, {
+        name: "Gooz of Arad",
+        createdBy: viewer.id,
+        memberIds: [player.id, viewer.id],
+      });
+      await db.insert(groupTierPoints).values({
+        groupId: group,
+        userId: player.id,
+        points: 1230,
+        gamesCounted: 2,
+      });
+
+      const asViewer = await loadPlayerProfile(db, {
+        viewerId: viewer.id,
+        playerId: player.id,
+        now: NOW,
+      });
+      const asPlayer = await loadPlayerProfile(db, {
+        viewerId: player.id,
+        playerId: player.id,
+        now: NOW,
+      });
+
+      expect(asViewer.sharedGroupTiers).toMatchObject([
+        { groupId: group, provisional: true, band: null, points: null },
+      ]);
+      expect(asPlayer.sharedGroupTiers).toMatchObject([
+        { groupId: group, provisional: true, points: 1230 },
+      ]);
     });
   });
 });
