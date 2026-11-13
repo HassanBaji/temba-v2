@@ -598,6 +598,8 @@ export function GameDetailsScreen({
                 enterTournamentScore.mutate({ gameId, matchId, ...score }),
               confirmPending: confirmResult.isPending,
               onConfirm: (matchId) => confirmResult.mutate({ gameId, matchId }),
+              stampPending: stampMatch.isPending,
+              onStamp: (matchId) => stampMatch.mutate({ matchId }),
               onOpenPlayer,
             }}
           />

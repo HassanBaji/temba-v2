@@ -23,6 +23,8 @@ export type ScoreHandlers = {
   confirmPending: boolean;
   onSave: (matchId: string, score: TournamentScore) => void;
   onConfirm: (matchId: string) => void;
+  stampPending: boolean;
+  onStamp: (matchId: string) => void;
 };
 
 type GamesDraft = { slot1: string; slot2: string };
@@ -58,7 +60,9 @@ function MatchScore({
   handlers: ScoreHandlers;
 }) {
   const locale = useLocale();
-  const m = useMessages().mobileTournament.score;
+  const messages = useMessages();
+  const m = messages.mobileTournament.score;
+  const stamp = messages.rating.verifier.stamp;
   const [draft, setDraft] = useState<GamesDraft>(() => draftOf(match.sets));
   useEffect(() => {
     setDraft(draftOf(match.sets));
@@ -69,7 +73,8 @@ function MatchScore({
     (text) => text !== "" && !friendlySetGamesInRange(Number(text)),
   );
   const name = setLabel(0, locale);
-  const busy = handlers.scorePending || handlers.confirmPending;
+  const busy =
+    handlers.scorePending || handlers.confirmPending || handlers.stampPending;
   const editable = match.canEnter && !busy;
 
   return (
@@ -127,6 +132,11 @@ function MatchScore({
           {match.note}
         </Text>
       ) : null}
+      {match.canStamp ? (
+        <Text size="meta" tone="muted">
+          {stamp.note}
+        </Text>
+      ) : null}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
         {match.scoreToConfirm ? (
           <Button
@@ -149,6 +159,16 @@ function MatchScore({
                 handlers.onSave(match.id, score);
               }
             }}
+          />
+        ) : null}
+        {match.canStamp ? (
+          <Button
+            label={stamp.action}
+            size="sm"
+            variant="outline"
+            pending={handlers.stampPending}
+            disabled={handlers.scorePending || handlers.confirmPending}
+            onPress={() => handlers.onStamp(match.id)}
           />
         ) : null}
       </View>

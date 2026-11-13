@@ -20,6 +20,7 @@ import { Screen } from "../primitives/screen";
 import { api } from "../trpc/react";
 import { FootballTab } from "./football-tab";
 import { LevelHero } from "./level-hero";
+import { MatchesToStamp } from "./matches-to-stamp";
 import { ProfileHeader } from "./profile-header";
 import { ratingsPath } from "./ratings-path";
 import { RatingsLink } from "./ratings-screen";
@@ -158,6 +159,10 @@ export function ProfileScreen() {
     { userId: details.data?.id ?? "" },
     { ...REFETCH_ON_FOREGROUND, enabled: sport !== null && !!details.data },
   );
+  const toStamp = api.games.listMatchesToStamp.useQuery(
+    undefined,
+    REFETCH_ON_FOREGROUND,
+  );
 
   const refetchAll = useCallback(
     () =>
@@ -168,9 +173,20 @@ export function ProfileScreen() {
         sport === "football" ? football.refetch() : null,
         sport === "football" ? teammates.refetch() : null,
         sport ? cabinet.refetch() : null,
+        toStamp.refetch(),
         user?.reload(),
       ]),
-    [details, sport, standings, padel, football, teammates, cabinet, user],
+    [
+      details,
+      sport,
+      standings,
+      padel,
+      football,
+      teammates,
+      cabinet,
+      toStamp,
+      user,
+    ],
   );
 
   const onRefresh = useCallback(async () => {
@@ -204,6 +220,10 @@ export function ProfileScreen() {
         line={details.data ? headerLine(details.data, locale) : null}
         onEdit={() => open("/profile/details")}
         onSettings={() => open("/profile/settings")}
+      />
+      <MatchesToStamp
+        rows={toStamp.data ?? []}
+        onOpenGame={(gameId) => open(gamePath(gameId))}
       />
       <Block
         slot={slotOf(details)}
