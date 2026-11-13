@@ -421,11 +421,11 @@ A Mark that teases rather than praises: Mr Fumble and Sayed Malek. Counts like a
 _Avoid_: negative mark, penalty, insult
 
 **Marks window**:
-The 48 hours after a Match's completion during which Marks are given and the MVP is decided. On a Match that counts for Temba Level the MVP closes with its 24-hour Rating window instead; Marks keep the 48 hours. Anchored on the Match's completion moment, suspended by a wrong-score report, restarted by the next completion. The vote may close earlier when everyone has voted; the window never does. Closed by a Job and by the read-time rule. Judged by the server clock.
+The 48 hours after a Match's completion during which Marks are given and the MVP is decided. On a Match with a Rating window, on a tier Group or counting for Temba Level, the MVP closes with that window instead (ADR-0068): after its 24 hours, or when the rating Organizer submits and the window settles early. Marks keep the 48 hours. Anchored on the Match's completion moment, suspended by a wrong-score report, restarted by the next completion. The vote may close earlier when everyone has voted; the window never does. Closed by a Job and by the read-time rule. Judged by the server clock.
 _Avoid_: voting period, deadline, grace period
 
 **MVP**:
-The one player of a Friendly game named most valuable after the score, decided the way its MVP mode says. A vote is one per seated account holder, for any other participant, hidden until it closes; a tie goes to the Organizer; no pick by the close means no MVP. On a Match that counts for Temba Level it closes with the Rating window, and an MVP decided by vote is OVR's MVP part; one an Organizer picked or broke a tie for moves nothing. Shown on the Played game, the Result card and the cabinet with the gold coin. Not a Mark: nobody gives it.
+The one player of a Friendly game named most valuable after the score, decided the way its MVP mode says. A vote is one per seated account holder, for any other participant, hidden until it closes; a tie goes to the Organizer; no pick by the close means no MVP. On a Match with a Rating window it closes with that window, so the MVP is known when the move is shown. On a Match that counts for Temba Level an MVP decided by vote is OVR's MVP part; one an Organizer picked or broke a tie for moves nothing. Shown on the Played game, the Result card and the cabinet with the gold coin. Not a Mark: nobody gives it.
 _Avoid_: man of the match, player of the game, best player, star (bare)
 
 **MVP mode**:

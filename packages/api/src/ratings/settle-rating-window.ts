@@ -451,7 +451,8 @@ async function applySettledLevelMatch(
  * Level the OVR move with all four parts. In Organizer mode the Organizers
  * who rated move on the result alone, and only an Organizer's ballots count.
  * A player nobody rated, or with fewer ballots than the mode needs, has no
- * performance part. Idempotent on `settled_at`; a suspended window waits for
+ * performance part. The MVP closes with the window, whichever ladder it
+ * moves. Idempotent on `settled_at`; a suspended window waits for
  * the next completion. Without `force` it settles only once `closes_at` has
  * passed. Returns whether this call settled it.
  */
@@ -596,6 +597,7 @@ export async function settleRatingWindow(
     .update(matchRatingWindows)
     .set({ settledAt: now, updatedAt: now })
     .where(eq(matchRatingWindows.matchId, matchId));
+  await settleMvp(database, game.id, now);
   if (groupId && !window.countsForLevel) {
     await notifyRatingsClosed(database, { match, gameId: game.id, groupId });
   }

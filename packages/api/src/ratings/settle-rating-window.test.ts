@@ -2,9 +2,11 @@ import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
+  games,
   groupTierEvents,
   groupTierPoints,
   matchRatingWindows,
+  matches,
   notifications,
   performanceRatingResults,
   performanceRatings,
@@ -14,7 +16,7 @@ import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { TIER_K, tierExpectedScore } from "@repo/domain/tier-points";
 
 import { recordJobs } from "#src/jobs/job-sink.test-support";
-import { ratingWindowSettleJobKey } from "#src/jobs/specs";
+import { ratingWindowSettleJobKey, settleMvpJobKey } from "#src/jobs/specs";
 import {
   addMember,
   footballGame,
@@ -27,6 +29,12 @@ import {
 import { gameById } from "#src/routers/games/byId";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
+import { performanceRatingResult } from "#src/routers/games/performanceRatingResult";
+import { submitPerformanceRatings } from "#src/routers/games/submitPerformanceRatings";
+import { castMvpVote } from "#src/routers/marks/castMvpVote";
+import { forGame } from "#src/routers/marks/forGame";
+import { setMvp } from "#src/routers/marks/setMvp";
+import { setMvpMode } from "#src/routers/marks/setMvpMode";
 
 import {
   settleRatingWindow,
@@ -365,3 +373,132 @@ async function completeAgain(f: FootballFixture, matchId: string) {
     userId: f.organizerId,
   });
 }
+
+describe("The MVP closes with the Match's Rating window (ADR-0068)", () => {
+  const jobs = recordJobs();
+  const HOUR = 60 * 60 * 1000;
+
+  async function mvpOf(database: TestDatabase, gameId: string) {
+    return database.query.games.findFirst({
+      where: eq(games.id, gameId),
+      columns: {
+        mvpUserId: true,
+        mvpDecidedBy: true,
+        mvpSettledAt: true,
+      },
+    });
+  }
+
+  function mvpJobRunAts(gameId: string) {
+    return jobs.added
+      .filter((job) => job.key === settleMvpJobKey(gameId))
+      .map((job) => job.runAt);
+  }
+
+  it("closes a tier Match's vote at 24 hours and settles it with the window", async () => {
+    await withDb(async (db) => {
+      const { f, matchId, a, b, c } = await playedGame(db, {
+        mode: "everyone",
+      });
+      const window = await windowOf(db, matchId);
+      expect(mvpJobRunAts(f.gameId)).toEqual([window!.closesAt]);
+      const marks = await forGame(db, { gameId: f.gameId, userId: a });
+      expect(marks.mvp).toMatchObject({
+        state: "pending",
+        closesAt: window!.closesAt,
+      });
+
+      await castMvpVote(
+        db,
+        { gameId: f.gameId, userId: a, candidateUserId: c },
+        new Date(window!.closesAt.getTime() - HOUR),
+      );
+      await expect(
+        castMvpVote(
+          db,
+          { gameId: f.gameId, userId: b, candidateUserId: c },
+          new Date(window!.closesAt.getTime() + HOUR),
+        ),
+      ).rejects.toThrow();
+
+      expect(await settleRatingWindow(db, matchId, window!.closesAt)).toBe(
+        true,
+      );
+      expect(await mvpOf(db, f.gameId)).toEqual({
+        mvpUserId: c,
+        mvpDecidedBy: "vote",
+        mvpSettledAt: window!.closesAt,
+      });
+      const shown = await performanceRatingResult(
+        db,
+        { gameId: f.gameId, userId: a },
+        new Date(window!.closesAt.getTime() + HOUR),
+      );
+      expect(shown.result?.mvp).toMatchObject({
+        decidedBy: "vote",
+        isViewer: false,
+      });
+    });
+  });
+
+  it("closes the MVP when the rating Organizer submits", async () => {
+    await withDb(async (db) => {
+      const f = await footballGame(db);
+      await setRatingSettings(f, { mode: "organizer" });
+      await setMvpMode(db, {
+        gameId: f.gameId,
+        userId: f.organizerId,
+        mode: "organizer",
+      });
+      const a = await addMember(f, "a");
+      const b = await addMember(f, "b");
+      const matchId = await playScore(f, [a], [b], { slot1: 2, slot2: 1 });
+      const window = await windowOf(db, matchId);
+      const submittedAt = new Date(window!.closesAt.getTime() - 20 * HOUR);
+
+      await setMvp(
+        db,
+        { gameId: f.gameId, userId: f.organizerId, mvpUserId: a },
+        submittedAt,
+      );
+      expect((await mvpOf(db, f.gameId))?.mvpSettledAt).toBeNull();
+      await submitPerformanceRatings(
+        db,
+        {
+          gameId: f.gameId,
+          userId: f.organizerId,
+          ratings: [
+            { userId: a, value: 8 },
+            { userId: b, value: 6 },
+          ],
+        },
+        submittedAt,
+      );
+
+      expect(await mvpOf(db, f.gameId)).toEqual({
+        mvpUserId: a,
+        mvpDecidedBy: "organizer",
+        mvpSettledAt: submittedAt,
+      });
+      await expect(
+        setMvp(
+          db,
+          { gameId: f.gameId, userId: f.organizerId, mvpUserId: b },
+          new Date(submittedAt.getTime() + HOUR),
+        ),
+      ).rejects.toThrow();
+    });
+  });
+
+  it("keeps 48 hours on a tier Match with no Rating window", async () => {
+    await withDb(async (db) => {
+      const { f, matchId } = await playedGame(db, { mode: "off" });
+      const match = await db.query.matches.findFirst({
+        where: eq(matches.id, matchId),
+      });
+      expect(mvpJobRunAts(f.gameId)).toEqual([
+        new Date(match!.completedAt!.getTime() + 48 * HOUR),
+      ]);
+    });
+  });
+});

@@ -79,11 +79,14 @@ export async function runMatchCompletionEffect(
         updatedAt: now,
       })
       .where(eq(matches.id, locked.id));
-    await scheduleMvpSettle(tx, game.id, now);
-
     if (!options.stoodUnconfirmed) {
       await applyRatedMatch(tx, game, locked, outcome.result);
     }
+    await scheduleMvpSettle(tx, {
+      gameId: game.id,
+      matchId: locked.id,
+      completedAt: now,
+    });
     await advanceKnockoutWinner(tx, locked, outcome.result);
     await placeKnockoutQualifiers(tx, game, locked);
     await notifyIfGameFinished(tx, game);

@@ -55,25 +55,47 @@ describe("marksWindow", () => {
 });
 
 describe("mvpWindow", () => {
-  it("closes with the 24-hour Rating window on a Match that counts for Temba Level", () => {
-    const window = mvpWindow(COMPLETED_AT, COMPLETED_AT, true);
-    expect(window?.closesAt).toEqual(
-      new Date(COMPLETED_AT.getTime() + 24 * HOUR),
-    );
+  const ratingCloses = new Date(COMPLETED_AT.getTime() + 24 * HOUR);
+  const ratingWindow = { closesAt: ratingCloses, settledAt: null };
+
+  it("closes with the Rating window on a Match that has one", () => {
+    expect(mvpWindow(COMPLETED_AT, COMPLETED_AT, ratingWindow)).toEqual({
+      state: "open",
+      opensAt: COMPLETED_AT,
+      closesAt: ratingCloses,
+    });
     expect(
       mvpWindow(
         COMPLETED_AT,
-        new Date(COMPLETED_AT.getTime() + 24 * HOUR),
-        true,
+        new Date(ratingCloses.getTime() - 1),
+        ratingWindow,
       )?.state,
-    ).toBe("closed");
+    ).toBe("open");
+    expect(mvpWindow(COMPLETED_AT, ratingCloses, ratingWindow)?.state).toBe(
+      "closed",
+    );
   });
 
-  it("is the Marks window on any other Match", () => {
-    expect(mvpWindow(COMPLETED_AT, COMPLETED_AT, false)).toEqual(
+  it("closes when the Rating window settled early, as the rating Organizer submitted", () => {
+    const settledAt = new Date(COMPLETED_AT.getTime() + 2 * HOUR);
+    expect(
+      mvpWindow(COMPLETED_AT, settledAt, { ...ratingWindow, settledAt }),
+    ).toEqual({ state: "closed", opensAt: COMPLETED_AT, closesAt: settledAt });
+  });
+
+  it("keeps the Rating window's close when it settled late", () => {
+    const settledAt = new Date(ratingCloses.getTime() + HOUR);
+    expect(
+      mvpWindow(COMPLETED_AT, settledAt, { ...ratingWindow, settledAt })
+        ?.closesAt,
+    ).toEqual(ratingCloses);
+  });
+
+  it("is the Marks window on a Match with no Rating window", () => {
+    expect(mvpWindow(COMPLETED_AT, COMPLETED_AT, null)).toEqual(
       marksWindow(COMPLETED_AT, COMPLETED_AT),
     );
-    expect(mvpWindow(null, COMPLETED_AT, true)).toBeNull();
+    expect(mvpWindow(null, COMPLETED_AT, ratingWindow)).toBeNull();
   });
 });
 
