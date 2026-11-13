@@ -730,7 +730,7 @@ describe("loadPlayerProfile", () => {
     });
   });
 
-  it("reads the padel Rating the way ratings.me does, with idle inflation", async () => {
+  it("reads the padel Rating the way ratings.me does: Provisional by its Matches in a Verified Group, whatever its φ or idle time", async () => {
     await withDb(async (db) => {
       const people = await seedFour(db);
       const match = await friendlyMatch(db, people, {
@@ -769,12 +769,13 @@ describe("loadPlayerProfile", () => {
         playerId: people.player.id,
         now: new Date("2020-01-02T00:00:00.000Z"),
       });
+      // A groupless Game's Match moves the Level but does not confirm it.
       expect(fresh.rating).toEqual({
         level: "4.6",
         levelBand: "B3",
-        provisional: false,
+        provisional: true,
         ratedMatchCount: 1,
-        ratedMatchesRemaining: 0,
+        ratedMatchesRemaining: 5,
         levelValue: expect.closeTo(4.55, 6),
       });
 
@@ -783,8 +784,7 @@ describe("loadPlayerProfile", () => {
         playerId: people.player.id,
         now: NOW,
       });
-      expect(idle.rating?.provisional).toBe(true);
-      expect(idle.rating?.ratedMatchesRemaining).toBeGreaterThan(0);
+      expect(idle.rating).toEqual(fresh.rating);
     });
   });
 
@@ -867,7 +867,7 @@ describe("loadPlayerProfile", () => {
           image: null,
           levelBand: "B3",
           level: "4.3",
-          provisional: false,
+          provisional: true,
         },
         {
           userId: people.right.id,

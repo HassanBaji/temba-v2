@@ -27,6 +27,7 @@ import {
   venues,
 } from "@repo/db/schema";
 
+import { applyLevelOverride } from "#src/ratings/apply-level-override";
 import { groupById } from "#src/routers/groups/byId";
 import { listSeasons } from "#src/routers/groups/listSeasons";
 import { loadRatingsMe } from "#src/routers/ratings/me";
@@ -548,6 +549,19 @@ describe("groupById standing facts", () => {
         levelBand: "B1",
         phi: 100,
       });
+      // A Level override confirms the Level (ADR-0074).
+      await applyLevelOverride(
+        db as unknown as Parameters<typeof applyLevelOverride>[0],
+        {
+          sport: "padel",
+          setterUserId: rival.id,
+          setByRole: "operator",
+          targetUserId: viewer.id,
+          groupId: null,
+          level: 5.95,
+          reason: "plays_above_results",
+        },
+      );
       await insertRating(db, {
         userId: rival.id,
         sport: GroupSportEnum.PADEL,
@@ -595,7 +609,7 @@ describe("groupById standing facts", () => {
     }
   });
 
-  it("returns Level and Rated Match count, with idle-aware Provisional matching ratings.me", async () => {
+  it("returns Level and Rated Match count, with Provisional matching ratings.me whatever φ or idle time", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const viewer = await insertUser(db, "level-viewer@example.com");
@@ -656,10 +670,11 @@ describe("groupById standing facts", () => {
         detail.standing.leaderboard.map((entry) => [entry.userId, entry]),
       );
 
+      // One Rated Match in a Verified Group of the five that confirm.
       expect(byUserId.get(viewer.id)).toMatchObject({
         level: "3.8",
         ratedMatchCount: 1,
-        levelProvisional: false,
+        levelProvisional: true,
       });
       expect(byUserId.get(idle.id)).toMatchObject({
         level: "3.8",
@@ -673,8 +688,13 @@ describe("groupById standing facts", () => {
         levelProvisional: true,
       });
 
-      const me = await loadRatingsMe(db, { userId: idle.id });
-      expect(me.rating?.provisional).toBe(true);
+      const me = await loadRatingsMe(db, { userId: viewer.id });
+      expect(me.rating).toMatchObject({
+        provisional: true,
+        ratedMatchesRemaining: 4,
+      });
+      const idleMe = await loadRatingsMe(db, { userId: idle.id });
+      expect(idleMe.rating?.provisional).toBe(true);
     } finally {
       await close();
     }
