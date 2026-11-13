@@ -35,6 +35,7 @@ import { BackButton } from "~/components/ui/nav-icon-button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { gameHomeHref } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
@@ -309,6 +310,7 @@ function RateGameForm({ gameId, sheet }: { gameId: string; sheet: Sheet }) {
       utils.games.byId.invalidate({ id: gameId }),
       utils.games.footballBoard.invalidate({ gameId }),
       utils.marks.forGame.invalidate({ gameId }),
+      invalidateRatingReads(utils),
     ]);
     router.push(gameHomeHref(gameId));
   }

@@ -21,6 +21,7 @@ import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
 import { useToast } from "../primitives/toast";
 import { useColors } from "../theme/theme-provider";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api } from "../trpc/react";
 import { TierFish } from "./tier-fish";
 
@@ -220,7 +221,7 @@ function AdjustTierForm({
       if (view) {
         toast.show(view.savedToast);
       }
-      await utils.groups.byId.invalidate({ id: groupId });
+      await invalidateRatingReads(utils, { groupId });
       onClose();
     },
   });

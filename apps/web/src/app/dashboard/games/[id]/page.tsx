@@ -146,6 +146,7 @@ import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { gamePlayersLink } from "~/lib/game-player-links";
 import { shareLinkWithFeedback } from "~/lib/share-link";
 import { cn } from "~/lib/utils";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api } from "~/trpc/react";
 
 const EMPTY_EDIT_SOURCE = {
@@ -414,6 +415,10 @@ export default function GameHomePage({
     },
   });
 
+  function refreshRatings() {
+    return invalidateRatingReads(utils, { groupId: game.data?.groupId });
+  }
+
   async function refreshGame() {
     await utils.games.byId.invalidate({ id });
     await utils.users.home.invalidate();
@@ -489,6 +494,7 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(g.toast.setSaved);
       await refreshGame();
+      await refreshRatings();
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -499,7 +505,7 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(g.toast.matchCompleted);
       await refreshGame();
-      await utils.ratings.me.invalidate();
+      await refreshRatings();
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -510,7 +516,7 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(g.toast.resultConfirmed);
       await refreshGame();
-      await utils.ratings.me.invalidate();
+      await refreshRatings();
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -522,6 +528,7 @@ export default function GameHomePage({
       toast.success(m.rating.verifier.stamp.stamped);
       await Promise.all([
         refreshGame(),
+        refreshRatings(),
         utils.games.listMatchesToStamp.invalidate(),
       ]);
     },
@@ -534,7 +541,7 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(g.toast.scoreReopened);
       await refreshGame();
-      await utils.ratings.me.invalidate();
+      await refreshRatings();
     },
     onError: (error) => {
       toastGlobalFormError(error);

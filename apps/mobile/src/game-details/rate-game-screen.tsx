@@ -38,6 +38,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { useColors } from "../theme/theme-provider";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "../trpc/react";
 
 type Sheet = RouterOutputs["games"]["performanceRatingSheet"];
@@ -432,6 +433,7 @@ function RateGameForm({
       utils.games.byId.invalidate({ id: gameId }),
       utils.games.footballBoard.invalidate({ gameId }),
       utils.marks.forGame.invalidate({ gameId }),
+      invalidateRatingReads(utils),
     ]);
     if (router.canGoBack()) {
       router.back();

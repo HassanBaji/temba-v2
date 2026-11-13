@@ -52,6 +52,7 @@ import {
   isDrawnTournament,
   poolRoundLabel,
 } from "@repo/domain/tournament-rounds";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type HubGame = RouterOutputs["games"]["listMyGames"][number];
@@ -534,7 +535,7 @@ export default function GamesHubPage({
   const confirmScore = api.games.confirmMatchResult.useMutation({
     onSuccess: async () => {
       toast.success(m.webDashboard.games.scoreConfirmedToast);
-      await refreshLists();
+      await Promise.all([refreshLists(), invalidateRatingReads(utils)]);
     },
     onError: toastGlobalFormError,
   });

@@ -118,6 +118,7 @@ import { gameIsPlayed, playedFootballModel } from "@repo/domain/played-game";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { gameCustomName, gameDisplayName } from "@repo/domain/game-custom-name";
 import { ratingScopeOf, ratingScopeTag } from "@repo/domain/game-rating-impact";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
@@ -218,6 +219,10 @@ export function FootballGameDetails({
     await utils.games.listMyGames.invalidate();
   }
 
+  function refreshRatings() {
+    return invalidateRatingReads(utils, { groupId: game.groupId });
+  }
+
   const onError = toastGlobalFormError;
   const register = api.games.register.useMutation({
     meta: OWN_ERROR_UI,
@@ -238,7 +243,7 @@ export function FootballGameDetails({
   const confirmScore = api.games.confirmMatchResult.useMutation({
     onSuccess: async () => {
       toast.success(t.scoreConfirmedToast);
-      await refreshGame();
+      await Promise.all([refreshGame(), refreshRatings()]);
     },
     onError,
   });
@@ -247,6 +252,7 @@ export function FootballGameDetails({
       toast.success(m.rating.verifier.stamp.stamped);
       await Promise.all([
         refreshGame(),
+        refreshRatings(),
         utils.games.listMatchesToStamp.invalidate(),
       ]);
     },
@@ -295,7 +301,7 @@ export function FootballGameDetails({
     onSuccess: async () => {
       toast.success(m.webDashboard.game.toast.scoreReopened);
       await refreshGame();
-      await utils.groups.byId.invalidate();
+      await refreshRatings();
     },
     onError,
   });

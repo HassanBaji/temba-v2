@@ -17,6 +17,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "~/components/ui/sheet";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { levelFaceFor, ovrFromLevel } from "@repo/domain/football-ovr";
@@ -80,10 +81,7 @@ export function CalibrateLevelAction({
         ),
       );
       setOpen(false);
-      await Promise.all([
-        utils.users.playerProfile.invalidate({ userId }),
-        utils.users.footballProfile.invalidate({ userId }),
-      ]);
+      await invalidateRatingReads(utils);
     },
   });
 

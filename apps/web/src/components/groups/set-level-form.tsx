@@ -14,6 +14,7 @@ import { Input } from "~/components/ui/input";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { Surface } from "~/components/ui/surface";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 import {
@@ -152,7 +153,7 @@ export function SetLevelForm({
   const setLevel = api.ratings.setLevel.useMutation({
     meta: OWN_ERROR_UI,
     onSuccess: async () => {
-      await utils.groups.byId.invalidate({ id: groupId });
+      await invalidateRatingReads(utils, { groupId });
       await onSaved();
     },
   });

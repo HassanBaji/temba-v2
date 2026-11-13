@@ -17,6 +17,7 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api } from "../trpc/react";
 import {
   calibrateLevelLabel,
@@ -55,10 +56,7 @@ function CalibrateLevelForm({
   const calibrate = api.ratings.setLevelAsVerifier.useMutation({
     onSuccess: async () => {
       toast.show(copy.saved(name, label));
-      await Promise.all([
-        utils.users.playerProfile.invalidate({ userId }),
-        utils.users.footballProfile.invalidate({ userId }),
-      ]);
+      await invalidateRatingReads(utils);
       router.back();
     },
   });

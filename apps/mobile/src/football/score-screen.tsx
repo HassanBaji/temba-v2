@@ -26,6 +26,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { useColors } from "../theme/theme-provider";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api } from "../trpc/react";
 import { BibChip } from "./bib-picker";
 import {
@@ -233,6 +234,7 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
         utils.games.footballBoard.invalidate({ gameId }),
         utils.games.byId.invalidate({ id: gameId }),
         utils.games.listMyGames.invalidate(),
+        invalidateRatingReads(utils),
       ]);
       router.back();
     },

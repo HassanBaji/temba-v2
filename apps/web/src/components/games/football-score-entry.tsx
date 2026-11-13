@@ -37,6 +37,7 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
@@ -202,6 +203,7 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
         utils.games.footballBoard.invalidate({ gameId }),
         utils.games.byId.invalidate({ id: gameId }),
         utils.games.listMyGames.invalidate(),
+        invalidateRatingReads(utils),
       ]);
       router.push(gameHref);
     },

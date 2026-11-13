@@ -29,6 +29,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "~/components/ui/sheet";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { formatOvr, levelFaceFor } from "@repo/domain/football-ovr";
@@ -96,7 +97,10 @@ export default function OperatorLevelsPage() {
         ),
       );
       setTarget(null);
-      await utils.ratings.listForOperator.invalidate();
+      await Promise.all([
+        utils.ratings.listForOperator.invalidate(),
+        invalidateRatingReads(utils),
+      ]);
     },
   });
 

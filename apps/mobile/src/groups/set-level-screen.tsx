@@ -35,6 +35,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
 import { useColors } from "../theme/theme-provider";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api } from "../trpc/react";
 import { Notice } from "./notice";
 import { firstName } from "./group-home-model";
@@ -301,7 +302,7 @@ function SetLevelForm({
 
   const setLevel = api.ratings.setLevel.useMutation({
     onSuccess: async () => {
-      await utils.groups.byId.invalidate({ id: groupId });
+      await invalidateRatingReads(utils, { groupId });
       router.dismissTo(
         savedLevelPath(groupId, {
           name: view.name,

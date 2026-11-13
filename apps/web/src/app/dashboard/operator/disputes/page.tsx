@@ -16,6 +16,7 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
@@ -36,7 +37,10 @@ export default function OperatorDisputesPage() {
     meta: OWN_ERROR_UI,
     onSuccess: async (result) => {
       toast.success(result.status === "upheld" ? o.upheld : o.dismissed);
-      await utils.games.listDisputesForOperator.invalidate();
+      await Promise.all([
+        utils.games.listDisputesForOperator.invalidate(),
+        invalidateRatingReads(utils),
+      ]);
     },
   });
   const rows = disputes.data?.items ?? [];

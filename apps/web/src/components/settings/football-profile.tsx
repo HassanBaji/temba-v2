@@ -15,6 +15,7 @@ import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { footballLevelLabel } from "~/components/you/you-football-model";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "~/trpc/react";
 import {
   DEFAULT_FOOTBALL_POSITION,
@@ -98,10 +99,7 @@ function FootballForm({ details }: { details: Details }) {
     } catch {
       return false;
     }
-    await Promise.all([
-      utils.ratings.me.invalidate(),
-      utils.users.footballProfile.invalidate(),
-    ]);
+    await invalidateRatingReads(utils);
     return true;
   }
 

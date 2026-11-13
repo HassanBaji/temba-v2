@@ -64,6 +64,7 @@ import { TournamentBar } from "../tournament/tournament-bar";
 import { OrganizerSheets as TournamentOrganizerSheets } from "../tournament/organizer-sheets";
 import { TournamentContent } from "../tournament/tournament-content";
 import { useTournamentOrganizer } from "../tournament/use-tournament-organizer";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api } from "../trpc/react";
 import { AddPlayerSheet } from "./add-player-sheet";
 import { RenamePlayerSheet } from "./rename-player-sheet";
@@ -212,6 +213,12 @@ export function GameDetailsScreen({
     [utils, gameId],
   );
 
+  const groupId = data?.groupId;
+  const refreshWithRatings = useCallback(
+    () => Promise.all([refresh(), invalidateRatingReads(utils, { groupId })]),
+    [refresh, utils, groupId],
+  );
+
   const failure = (error: { message: string }) => toast.show(error.message);
 
   const registerSeat = api.games.registerSeat.useMutation({
@@ -277,16 +284,16 @@ export function GameDetailsScreen({
   const confirmResult = api.games.confirmMatchResult.useMutation({
     onSuccess: () => toast.show(copy.toast.resultConfirmed),
     onError: failure,
-    onSettled: async () => {
-      await refresh();
-      await utils.ratings.me.invalidate();
-    },
+    onSettled: refreshWithRatings,
   });
   const stampMatch = api.games.stampMatch.useMutation({
     onSuccess: () => toast.show(m.rating.verifier.stamp.stamped),
     onError: failure,
     onSettled: () =>
-      Promise.all([refresh(), utils.games.listMatchesToStamp.invalidate()]),
+      Promise.all([
+        refreshWithRatings(),
+        utils.games.listMatchesToStamp.invalidate(),
+      ]),
   });
   const requestLevel = api.games.requestLevelRange.useMutation({
     onSuccess: () => toast.show(m.level.request.sent),
@@ -303,10 +310,7 @@ export function GameDetailsScreen({
   const enterTournamentScore = api.games.enterTournamentScore.useMutation({
     onSuccess: () => toast.show(copy.toast.setSaved),
     onError: failure,
-    onSettled: async () => {
-      await refresh();
-      await utils.ratings.me.invalidate();
-    },
+    onSettled: refreshWithRatings,
   });
 
   const firstMatchId = data?.matches[0]?.id;
@@ -355,7 +359,7 @@ export function GameDetailsScreen({
           error instanceof Error ? errorText(error) : copy.toast.couldNotSave,
         );
       } finally {
-        await refresh();
+        await refreshWithRatings();
       }
     },
     [
@@ -364,7 +368,7 @@ export function GameDetailsScreen({
       firstMatchId,
       gameId,
       locale,
-      refresh,
+      refreshWithRatings,
       scoreSet,
       toast,
     ],

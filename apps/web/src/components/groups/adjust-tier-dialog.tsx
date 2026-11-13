@@ -21,6 +21,7 @@ import { Input } from "~/components/ui/input";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import { cn } from "~/lib/utils";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 import type { LevelOverrideReason } from "@repo/domain/level-slider";
@@ -68,7 +69,7 @@ function AdjustTierForm({
       if (view) {
         toast.success(view.savedToast);
       }
-      await utils.groups.byId.invalidate({ id: groupId });
+      await invalidateRatingReads(utils, { groupId });
       onDone();
     },
   });

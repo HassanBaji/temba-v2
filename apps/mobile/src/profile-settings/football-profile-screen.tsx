@@ -35,6 +35,7 @@ import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { footballLevelWord } from "../profile/profile-model";
 import { useColors } from "../theme/theme-provider";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "../trpc/react";
 import { footballSavePlan } from "./settings-model";
 
@@ -117,8 +118,8 @@ function FootballProfileForm({
     Promise.all([
       utils.users.profileDetails.invalidate(),
       utils.users.onboardingState.invalidate(),
-      utils.users.footballProfile.invalidate(),
       utils.users.home.invalidate(),
+      invalidateRatingReads(utils),
     ]);
 
   async function run(work: () => Promise<unknown>, done: string) {

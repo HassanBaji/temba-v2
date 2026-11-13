@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api } from "~/trpc/react";
 
 /** Which of a Game's Matches the viewer may stamp, and the door that stamps one (ADR-0072). */
@@ -28,6 +29,7 @@ export function useMatchStamping(game: {
         utils.games.byId.invalidate({ id: game.id }),
         utils.games.tournamentRounds.invalidate({ gameId: game.id }),
         utils.games.listMatchesToStamp.invalidate(),
+        invalidateRatingReads(utils),
       ]);
     },
     onError: (error) => {

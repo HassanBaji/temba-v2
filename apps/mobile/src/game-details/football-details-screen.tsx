@@ -90,6 +90,7 @@ import { HeaderIconButton } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "../trpc/react";
 import { AddPlayerSheet } from "./add-player-sheet";
 import { BottomBar } from "./bottom-bar";
@@ -232,6 +233,8 @@ export function FootballGameDetails({
       utils.games.listPublicPickup.invalidate(),
       utils.users.home.invalidate(),
     ]);
+  const refreshRatings = () =>
+    invalidateRatingReads(utils, { groupId: game.groupId });
   const failure = (error: { message: string }) => toast.show(error.message);
   const settled = async () => {
     setConfirm(null);
@@ -261,13 +264,17 @@ export function FootballGameDetails({
   const confirmScore = api.games.confirmMatchResult.useMutation({
     onSuccess: () => toast.show(copy.toast.scoreConfirmed),
     onError: failure,
-    onSettled: refresh,
+    onSettled: () => Promise.all([refresh(), refreshRatings()]),
   });
   const stampMatch = api.games.stampMatch.useMutation({
     onSuccess: () => toast.show(m.rating.verifier.stamp.stamped),
     onError: failure,
     onSettled: () =>
-      Promise.all([refresh(), utils.games.listMatchesToStamp.invalidate()]),
+      Promise.all([
+        refresh(),
+        refreshRatings(),
+        utils.games.listMatchesToStamp.invalidate(),
+      ]),
   });
   const leave = api.games.leave.useMutation({
     onSuccess: () => toast.show(gameToast(locale).left),
@@ -311,7 +318,7 @@ export function FootballGameDetails({
     onError: failure,
     onSettled: async () => {
       await settled();
-      await utils.groups.byId.invalidate();
+      await refreshRatings();
     },
   });
   const editSections = gameEditSectionsFor({

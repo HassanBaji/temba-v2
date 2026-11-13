@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMessages } from "../i18n/locale-provider";
 import { Screen } from "../primitives/screen";
 import { useToast } from "../primitives/toast";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api } from "../trpc/react";
 import type { Slot } from "../home/home-model";
 import { slotOf } from "../lib/slot-of";
@@ -66,6 +67,7 @@ export function GamesScreen() {
       Promise.all([
         utils.games.listMyGames.invalidate(),
         utils.games.listPublicPickup.invalidate(),
+        invalidateRatingReads(utils),
       ]),
   });
   const confirmingGameId = confirmScore.isPending
