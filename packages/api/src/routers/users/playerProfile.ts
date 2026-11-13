@@ -622,6 +622,8 @@ async function ratingChanges(
           bandBefore,
           bandAfter: bandWithHysteresis(after, bandBefore),
           levelChange: Math.round((levelAfter - levelBefore) * 10) / 10,
+          muBefore: event.muBefore,
+          muAfter: event.muAfter,
         },
       ];
     }),

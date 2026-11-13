@@ -77,6 +77,8 @@ export type FriendlyGameDetailsConfirmation = {
 export type FriendlyGameDetailsRatingImpact = {
   levelChange: number;
   newLevel: number;
+  muBefore: number;
+  muAfter: number;
   newLevelBand: LevelBand;
   isProvisional: boolean;
   ratedMatchesRemainingToConfirm: number | null;

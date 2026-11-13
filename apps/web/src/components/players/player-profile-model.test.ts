@@ -29,6 +29,7 @@ const FOOTBALL: RouterOutputs["users"]["footballProfile"] = {
       outcome: "won",
       score: { us: 18, them: 9 },
       goals: 1,
+      levelMove: null,
       game: {
         name: null,
         hasCustomName: false,
@@ -46,6 +47,7 @@ const FOOTBALL: RouterOutputs["users"]["footballProfile"] = {
       outcome: "lost",
       score: { us: 9, them: 12 },
       goals: 0,
+      levelMove: null,
       game: {
         name: null,
         hasCustomName: false,

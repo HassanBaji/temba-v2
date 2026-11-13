@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { levelFromOvr } from "./football-ovr";
+import { levelFromOvr, muFromOvr } from "./football-ovr";
 import { BAND_MIDPOINTS } from "./level";
 import {
   footballHeroLevelView,
@@ -22,6 +22,7 @@ function match(
     outcome: "won",
     score: { us: 5, them: 3 },
     goals: 2,
+    levelMove: null,
     game: {
       name: "Thursday 5s",
       hasCustomName: true,
@@ -218,8 +219,32 @@ describe("footballMatchRowView", () => {
       meta: "Sat 24 Oct, Riffa Pitch",
       score: "5–3",
       goals: "2 goals",
+      ovrChange: null,
+      detail: "2 goals",
       canOpenGame: true,
     });
+  });
+
+  it("shows what a Match that counted moved the OVR, beside the goals", () => {
+    const counted = { muBefore: muFromOvr(71), muAfter: muFromOvr(72) };
+    expect(
+      footballMatchRowView(match({ levelMove: counted }), "en"),
+    ).toMatchObject({
+      ovrChange: "OVR +1",
+      detail: "2 goals, OVR +1",
+      accessibilityLabel:
+        "Won 5–3, Saturday 24 October, Riffa Ballers, Riffa Pitch, scored 2 goals, OVR +1",
+    });
+    expect(
+      footballMatchRowView(
+        match({
+          goals: 0,
+          levelMove: { muBefore: muFromOvr(72), muAfter: muFromOvr(70) },
+        }),
+        "en",
+      ).detail,
+    ).toBe("OVR −2");
+    expect(footballMatchRowView(match({ goals: 0 }), "en").detail).toBeNull();
   });
 
   it("falls back to the Game name, then Friendly game", () => {

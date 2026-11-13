@@ -15,6 +15,7 @@ import { displayBand } from "~/components/you/you-format";
 import { useSetSport } from "~/components/settings/use-set-sport";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api, type RouterOutputs } from "~/trpc/react";
+import { formatPadelLevel } from "@repo/domain/level";
 import {
   isPreferredPosition,
   preferredPositionChoices,
@@ -54,7 +55,7 @@ function LockedLevelCard() {
             {displayBand(level.levelBand)}
           </span>
           <span className="font-expanded text-title tabular-nums">
-            {level.rating.toFixed(2)}
+            {formatPadelLevel(level.rating, 2)}
           </span>
           <span className="text-eyebrow text-muted-foreground ms-auto">
             {copy.general}

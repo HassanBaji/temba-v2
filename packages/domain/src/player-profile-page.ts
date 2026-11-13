@@ -27,8 +27,9 @@ import {
   shownLevel,
   type PlayerLevelInput,
 } from "./player-profile-level";
-import { levelChangeLabel, LAST_TEN_SIZE } from "./player-profile-matches";
+import { LAST_TEN_SIZE } from "./player-profile-matches";
 import { preferredPositionProfileLine } from "./preferred-position";
+import { formatLevelMoveSteps, levelMoveSteps } from "./rating-history";
 import {
   confirmationFraction,
   confirmationProgressCaption,
@@ -152,11 +153,11 @@ export type ProfileLevelView =
       spoken: string;
     };
 
-/** "+0.2 since Sep": the sum of the rated changes in the Last 10. */
+/** "+0.24 since Sep": the sum of the rated changes in the Last 10. */
 export function levelTrendSince(
   newestFirst: readonly {
     playedAt: Date | string;
-    rating: { levelChange: number } | null;
+    rating: { muBefore: number; muAfter: number } | null;
   }[],
   locale: Locale,
 ) {
@@ -169,10 +170,14 @@ export function levelTrendSince(
   if (!oldest) {
     return null;
   }
-  const sum = rated.reduce((total, match) => total + match.levelChange, 0);
+  const steps = rated.reduce(
+    (total, match) =>
+      total + levelMoveSteps("padel", match.muBefore, match.muAfter),
+    0,
+  );
   const all = messagesFor(locale);
   return all.profile.playerPage.trendSince(
-    all.common.isolate(levelChangeLabel(sum)),
+    all.common.isolate(formatLevelMoveSteps("padel", steps)),
     formatMonth(oldest.playedAt, "short", locale),
   );
 }

@@ -14,18 +14,19 @@ import {
   shownOvrParts,
   unratedLabel,
 } from "./game-rating-impact";
+import { muFromLevel } from "./level";
 
 describe("ratingImpactChangeMagnitude", () => {
-  it("formats a drop as an unsigned one-decimal figure", () => {
-    assert.equal(ratingImpactChangeMagnitude(-0.3), "0.3");
+  it("formats a drop as an unsigned two-decimal figure", () => {
+    assert.equal(ratingImpactChangeMagnitude(-0.34), "0.34");
   });
 
-  it("formats a rise as an unsigned one-decimal figure", () => {
-    assert.equal(ratingImpactChangeMagnitude(0.3), "0.3");
+  it("formats a rise as an unsigned two-decimal figure", () => {
+    assert.equal(ratingImpactChangeMagnitude(0.3), "0.30");
   });
 
-  it("formats no change as 0.0", () => {
-    assert.equal(ratingImpactChangeMagnitude(0), "0.0");
+  it("formats no change as 0.00", () => {
+    assert.equal(ratingImpactChangeMagnitude(0), "0.00");
   });
 });
 
@@ -119,9 +120,12 @@ describe("ratingImpactStandingSentence", () => {
 });
 
 describe("ratingImpactView", () => {
+  const move = (before: number, after: number) => ({
+    muBefore: muFromLevel(before),
+    muAfter: muFromLevel(after),
+  });
   const base = {
-    levelChange: 0.2,
-    newLevel: 3.6,
+    ...move(3.42, 3.6),
     newLevelBand: "C2" as const,
     isProvisional: false,
     ratedMatchesRemainingToConfirm: null,
@@ -130,9 +134,9 @@ describe("ratingImpactView", () => {
   it("reads a rise with an unsigned magnitude and the new Level", () => {
     const view = ratingImpactView(base, "en");
     assert.equal(view.direction, "up");
-    assert.equal(view.magnitude, "0.2");
-    assert.equal(view.newLevelLabel, "3.6");
-    assert.equal(view.directionText, "Level increased by 0.2");
+    assert.equal(view.magnitude, "0.18");
+    assert.equal(view.newLevelLabel, "3.60");
+    assert.equal(view.directionText, "Level increased by 0.18");
   });
 
   it("reads the change in Arabic", () => {
@@ -140,7 +144,7 @@ describe("ratingImpactView", () => {
       { ...base, isProvisional: true, ratedMatchesRemainingToConfirm: 2 },
       "ar",
     );
-    assert.equal(view.directionText, "ارتفع المستوى بمقدار 0.2");
+    assert.equal(view.directionText, "ارتفع المستوى بمقدار 0.18");
     assert.equal(
       view.sentence,
       "ما زلت C. مباراتان مصنّفتان أخريان في مجموعة موثّقة ويتأكد مستواك.",
@@ -149,13 +153,19 @@ describe("ratingImpactView", () => {
 
   it("reads a drop and no change in words", () => {
     assert.equal(
-      ratingImpactView({ ...base, levelChange: -0.4 }, "en").directionText,
-      "Level decreased by 0.4",
+      ratingImpactView({ ...base, ...move(3.6, 3.56) }, "en").directionText,
+      "Level decreased by 0.04",
     );
     assert.equal(
-      ratingImpactView({ ...base, levelChange: 0 }, "en").directionText,
+      ratingImpactView({ ...base, ...move(3.6, 3.6) }, "en").directionText,
       "Level unchanged",
     );
+  });
+
+  it("never reads a Level below 1.00", () => {
+    const view = ratingImpactView({ ...base, ...move(0.9, 0.6) }, "en");
+    assert.equal(view.newLevelLabel, "1.00");
+    assert.equal(view.directionText, "Level unchanged");
   });
 
   it("uses the Provisional sentence while the Level is unconfirmed", () => {

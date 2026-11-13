@@ -6,6 +6,7 @@ import {
   GameSportEnum,
   GroupSportEnum,
   matchGoals,
+  ratingEvents,
   user,
   type DbClient,
 } from "@repo/db";
@@ -75,6 +76,31 @@ async function goalsByMatch(
   return new Map(rows.map((row) => [row.matchId, row.goals]));
 }
 
+/** What each Match that counted moved the owner's football Level. */
+async function levelMovesByMatch(
+  database: DbClient,
+  userId: string,
+  matchIds: readonly string[],
+) {
+  const events =
+    matchIds.length === 0
+      ? []
+      : await database.query.ratingEvents.findMany({
+          where: and(
+            eq(ratingEvents.userId, userId),
+            eq(ratingEvents.sport, GroupSportEnum.FOOTBALL),
+            inArray(ratingEvents.matchId, [...matchIds]),
+          ),
+          columns: { matchId: true, muBefore: true, muAfter: true },
+        });
+  return new Map(
+    events.map((event) => [
+      event.matchId,
+      { muBefore: event.muBefore, muAfter: event.muAfter },
+    ]),
+  );
+}
+
 function overallFrom(
   counted: readonly CountedMatch[],
   goals: ReadonlyMap<string, number>,
@@ -132,27 +158,34 @@ export async function loadFootballProfile(
       : loadCountedMatches(database, player.id, GameSportEnum.Football),
   ]);
   const shown = counted.slice(0, LAST_TEN_SIZE);
-  const [goals, openable, partners, withViewer] = await Promise.all([
-    goalsByMatch(
-      database,
-      player.id,
-      counted.map((match) => match.matchId),
-    ),
-    openableGameIds(database, args.viewerId, [
-      ...new Set(shown.map((match) => match.gameId)),
-    ]),
-    mostPlayedPartners(database, { playerId: player.id, now }, counted),
-    withViewerFrom(
-      database,
-      {
-        viewerId: args.viewerId,
-        playerId: player.id,
-        sport: GroupSportEnum.FOOTBALL,
-        historyHidden,
-      },
-      counted,
-    ),
-  ]);
+  const [goals, levelMoves, openable, partners, withViewer] = await Promise.all(
+    [
+      goalsByMatch(
+        database,
+        player.id,
+        counted.map((match) => match.matchId),
+      ),
+      levelMovesByMatch(
+        database,
+        player.id,
+        shown.map((match) => match.matchId),
+      ),
+      openableGameIds(database, args.viewerId, [
+        ...new Set(shown.map((match) => match.gameId)),
+      ]),
+      mostPlayedPartners(database, { playerId: player.id, now }, counted),
+      withViewerFrom(
+        database,
+        {
+          viewerId: args.viewerId,
+          playerId: player.id,
+          sport: GroupSportEnum.FOOTBALL,
+          historyHidden,
+        },
+        counted,
+      ),
+    ],
+  );
 
   const lastMatches: FootballMatchInput[] = shown.map((match) => ({
     matchId: match.matchId,
@@ -161,6 +194,7 @@ export async function loadFootballProfile(
     outcome: ownerOutcome(match),
     score: ownerScore(match),
     goals: goals.get(match.matchId) ?? 0,
+    levelMove: levelMoves.get(match.matchId) ?? null,
     game: {
       name: match.game.name,
       hasCustomName: match.game.hasCustomName,

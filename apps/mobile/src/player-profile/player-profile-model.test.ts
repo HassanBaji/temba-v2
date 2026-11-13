@@ -75,7 +75,7 @@ describe("playerProfileModel", () => {
     ]);
     expect(model.rows[0]).toMatchObject({
       score: "6\u20134, 6\u20133",
-      detail: "+0.1",
+      detail: "+0.10",
       target: { kind: "match", matchId: "match-2026-10-01" },
     });
   });
@@ -174,6 +174,7 @@ const FOOTBALL: RouterOutputs["users"]["footballProfile"] = {
       outcome: "draw",
       score: { us: 2, them: 2 },
       goals: 0,
+      levelMove: null,
       game: {
         name: "Thursday 5s",
         hasCustomName: true,
@@ -191,6 +192,7 @@ const FOOTBALL: RouterOutputs["users"]["footballProfile"] = {
       outcome: "won",
       score: { us: 5, them: 3 },
       goals: 3,
+      levelMove: null,
       game: {
         name: "Thursday 5s",
         hasCustomName: true,

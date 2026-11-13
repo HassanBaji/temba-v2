@@ -15,8 +15,10 @@ import {
   tembaRatingScopeNote,
   type GameRatingScope,
 } from "./game-rating-scope";
+import { formatPadelLevel, levelFromMu } from "./level";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import { formatPerformanceRating, MIN_BALLOTS } from "./performance-rating";
+import { levelMoveSteps } from "./rating-history";
 import type { Sport } from "./sport";
 
 export function unratedLabel(locale: Locale) {
@@ -91,9 +93,9 @@ export function ratingScopeNotice(
 
 export type RatingImpactChangeDirection = "up" | "down" | "flat";
 
-/** Absolute Level change, one decimal, sign-free (the arrow glyph carries sign). */
+/** Absolute Level change, two decimals, sign-free (the arrow glyph carries sign). */
 export function ratingImpactChangeMagnitude(levelChange: number): string {
-  return Math.abs(levelChange).toFixed(1);
+  return Math.abs(levelChange).toFixed(2);
 }
 
 export function ratingImpactChangeDirection(
@@ -143,10 +145,14 @@ export function ratingImpactStandingSentence(args: {
   return m.stillConfirmed(bandLabel);
 }
 
+/**
+ * What a rated padel Match did to the viewer's Level, read as the padel
+ * Level reads everywhere: two decimals, never below 1.00.
+ */
 export function ratingImpactView(
   ratingImpact: {
-    levelChange: number;
-    newLevel: number;
+    muBefore: number;
+    muAfter: number;
     newLevelBand: LevelBand;
     isProvisional: boolean;
     ratedMatchesRemainingToConfirm: number | null;
@@ -154,12 +160,14 @@ export function ratingImpactView(
   locale: Locale,
 ) {
   const m = messagesFor(locale).game.rating;
-  const direction = ratingImpactChangeDirection(ratingImpact.levelChange);
-  const magnitude = ratingImpactChangeMagnitude(ratingImpact.levelChange);
+  const change =
+    levelMoveSteps("padel", ratingImpact.muBefore, ratingImpact.muAfter) / 100;
+  const direction = ratingImpactChangeDirection(change);
+  const magnitude = ratingImpactChangeMagnitude(change);
   return {
     direction,
     magnitude,
-    newLevelLabel: ratingImpact.newLevel.toFixed(1),
+    newLevelLabel: formatPadelLevel(levelFromMu(ratingImpact.muAfter), 2),
     sentence: ratingImpactStandingSentence({
       ...ratingImpact,
       sport: "padel",

@@ -3,7 +3,7 @@ import type {
   FootballPosition,
   FootballRole,
 } from "@repo/domain/football-lineup";
-import type { LevelBand } from "@repo/domain/level";
+import { formatPadelLevel, type LevelBand } from "@repo/domain/level";
 import {
   formatInternationalNumber,
   parseE164,
@@ -49,7 +49,7 @@ export function padelSportSub(
     preferredPositionProfileLine(preferredPosition, locale) ?? m.common.notSet;
   return level
     ? m.you.settings.padelSub(
-        `${displayBand(level.levelBand)} ${level.rating.toFixed(2)}`,
+        `${displayBand(level.levelBand)} ${formatPadelLevel(level.rating, 2)}`,
         side,
       )
     : m.you.settings.padelSubNoLevel(side);

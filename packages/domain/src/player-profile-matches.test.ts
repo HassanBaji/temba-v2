@@ -1,6 +1,7 @@
 import { isolate } from "@repo/i18n/bidi";
 import { describe, expect, it } from "vitest";
 
+import { muFromLevel } from "./level";
 import { createPlayerProfileFixtures } from "./player-profile-fixtures";
 import {
   filterLastTen,
@@ -130,11 +131,11 @@ describe("playerMatchRowView", () => {
       partnerVenue: "with Jonas B, Padelhuset Bromma",
       meta: "Thu 1 Oct, Tuesday Crew",
       sets: ["6–4", "6–3"],
-      delta: "+0.1",
+      delta: "+0.10",
       unrated: false,
       ratingTag: null,
       accessibilityLabel:
-        "Won against Sofia L and Adam R, Thursday 1 October, Tuesday Crew, 6–4 6–3, rating up 0.1",
+        "Won against Sofia L and Adam R, Thursday 1 October, Tuesday Crew, 6–4 6–3, rating up 0.10",
     });
   });
 
@@ -207,7 +208,7 @@ describe("playerMatchRowView", () => {
     expect(
       playerMatchRowView(fixtures.confirmed.lastMatches[7]!, ELIN_ID, "en")
         .accessibilityLabel,
-    ).toMatch(/^Lost against .*rating down 0\.1$/);
+    ).toMatch(/^Lost against .*rating down 0\.10$/);
   });
 
   it("labels every format in the confirmed Last 10", () => {
@@ -303,7 +304,7 @@ describe("Last 10 in Arabic", () => {
     expect(row.accessibilityLabel.startsWith("فاز ضد Sofia L وAdam R، ")).toBe(
       true,
     );
-    expect(row.accessibilityLabel.endsWith("التصنيف ارتفع 0.1")).toBe(true);
+    expect(row.accessibilityLabel.endsWith("التصنيف ارتفع 0.10")).toBe(true);
     const summary = lastTenSummary(fixtures.confirmed.lastMatches, "ar");
     expect(summary.record).toBe("7 فوز، 3 خسارة");
     expect(summary.seeAll).toBe("عرض المباريات الـ10 كلها");
@@ -423,7 +424,7 @@ describe("playerMatchSheetView", () => {
     expect(sheet.teams[1].sets[0]).toEqual({ games: 6, won: false });
   });
 
-  it("reads the rating line before to after with bands and one decimal", () => {
+  it("reads the rating line before to after with bands and two decimals", () => {
     const sheet = playerMatchSheetView(
       {
         ...matchAt(0),
@@ -433,6 +434,8 @@ describe("playerMatchSheetView", () => {
           bandBefore: "C1",
           bandAfter: "B3",
           levelChange: 0.3,
+          muBefore: muFromLevel(3.93),
+          muAfter: muFromLevel(4.21),
         },
       },
       "Elin Nilsson",
@@ -440,10 +443,10 @@ describe("playerMatchSheetView", () => {
     );
     expect(sheet.rating).toEqual({
       label: "Elin N's rating",
-      before: "C+ 3.9",
-      after: "B- 4.2",
-      delta: "+0.3",
-      accessibilityLabel: "Elin N's rating, C+ 3.9 to B- 4.2, rating up 0.3",
+      before: "C+ 3.93",
+      after: "B- 4.21",
+      delta: "+0.28",
+      accessibilityLabel: "Elin N's rating, C+ 3.93 to B- 4.21, rating up 0.28",
     });
   });
 

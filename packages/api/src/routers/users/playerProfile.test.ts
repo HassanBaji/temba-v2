@@ -1092,6 +1092,8 @@ describe("loadPlayerProfile", () => {
           bandBefore: "C1",
           bandAfter: "B3",
           levelChange: 0.1,
+          muBefore: muFromLevel(4.18),
+          muAfter: muFromLevel(4.31),
         },
         {
           levelBefore: 4.1,
@@ -1099,6 +1101,8 @@ describe("loadPlayerProfile", () => {
           bandBefore: "C1",
           bandAfter: "C1",
           levelChange: 0.1,
+          muBefore: muFromLevel(4.12),
+          muAfter: muFromLevel(4.18),
         },
       ]);
       expect(result.trend).toEqual({ levelChange: 0.2 });

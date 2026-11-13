@@ -2,7 +2,7 @@ import { isolate } from "@repo/i18n/bidi";
 import { describe, expect, it } from "vitest";
 
 import { levelFromOvr } from "./football-ovr";
-import { BAND_MIDPOINTS } from "./level";
+import { BAND_MIDPOINTS, muFromLevel } from "./level";
 import {
   earlyDaysView,
   footballPositionView,
@@ -194,18 +194,22 @@ describe("profileLevelView", () => {
   });
 });
 
+function move(before: number, after: number) {
+  return { muBefore: muFromLevel(before), muAfter: muFromLevel(after) };
+}
+
 describe("levelTrendSince", () => {
   it("sums the rated changes and names the oldest rated month", () => {
     expect(
       levelTrendSince(
         [
-          { playedAt: NOV_4, rating: { levelChange: 0.1 } },
+          { playedAt: NOV_4, rating: move(3.56, 3.68) },
           { playedAt: NOV_2, rating: null },
-          { playedAt: SEP_29, rating: { levelChange: 0.1 } },
+          { playedAt: SEP_29, rating: move(3.5, 3.56) },
         ],
         "en",
       ),
-    ).toBe("+0.2 since Sep");
+    ).toBe("+0.18 since Sep");
     expect(levelTrendSince([{ playedAt: NOV_4, rating: null }], "en")).toBe(
       null,
     );

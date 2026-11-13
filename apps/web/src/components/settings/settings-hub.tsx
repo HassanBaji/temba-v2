@@ -49,6 +49,7 @@ import { OPERATOR_DISPUTES_HREF } from "~/lib/dashboard-paths";
 import { profileTaskHref } from "~/lib/onboarding-step";
 import { cn } from "~/lib/utils";
 import { activeVenueCountLabel } from "@repo/domain/active-venue-count";
+import { formatPadelLevel } from "@repo/domain/level";
 import { footballRoleView } from "@repo/domain/player-profile-football";
 import { preferredPositionLabel } from "@repo/domain/preferred-position";
 import { playWindowsSummary } from "@repo/domain/profile-details";
@@ -217,7 +218,7 @@ function SportProfiles({ details }: { details: Details }) {
       sub: padelLevel
         ? copy.padelSub(
             bandInText(
-              `${displayBand(padelLevel.levelBand)} ${padelLevel.rating.toFixed(2)}`,
+              `${displayBand(padelLevel.levelBand)} ${formatPadelLevel(padelLevel.rating, 2)}`,
               locale,
             ),
             side,

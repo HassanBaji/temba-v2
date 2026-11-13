@@ -238,7 +238,7 @@ function footballRow(
     title: row.title,
     sub: row.meta,
     score: row.score,
-    detail: row.goals,
+    detail: row.detail,
     accessibilityLabel: row.accessibilityLabel,
     target: row.canOpenGame ? { kind: "game", gameId: row.gameId } : null,
   };

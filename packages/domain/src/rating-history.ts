@@ -382,10 +382,30 @@ function formatLevelFace(sport: Sport, value: number) {
   return sport === "football" ? formatOvr(value) : value.toFixed(2);
 }
 
-/** The move as the faces show it, so before plus delta reads after. */
-function levelDelta(sport: Sport, before: number, after: number) {
-  const steps =
-    sport === "football" ? after - before : Math.round((after - before) * 100);
+function levelSteps(sport: Sport, before: number, after: number) {
+  return sport === "football"
+    ? after - before
+    : Math.round((after - before) * 100);
+}
+
+/**
+ * A Level move in the steps its face counts in, so moves add up as the
+ * faces read: OVR points on football, hundredths on padel.
+ */
+export function levelMoveSteps(
+  sport: Sport,
+  muBefore: number,
+  muAfter: number,
+) {
+  return levelSteps(
+    sport,
+    levelFace(sport, muBefore),
+    levelFace(sport, muAfter),
+  );
+}
+
+/** Steps as the face shows a move: "+1" in OVR, "−0.04" on padel. */
+export function formatLevelMoveSteps(sport: Sport, steps: number) {
   const amount =
     sport === "football"
       ? String(Math.abs(steps))
@@ -399,17 +419,18 @@ function levelDelta(sport: Sport, before: number, after: number) {
   return amount;
 }
 
+/** The move as the faces show it, so before plus delta reads after. */
+function levelDelta(sport: Sport, before: number, after: number) {
+  return formatLevelMoveSteps(sport, levelSteps(sport, before, after));
+}
+
 /** A Level move on the sport's face: "+1" in OVR, "−0.04" on padel. */
 export function levelMoveDelta(
   sport: Sport,
   muBefore: number,
   muAfter: number,
 ) {
-  return levelDelta(
-    sport,
-    levelFace(sport, muBefore),
-    levelFace(sport, muAfter),
-  );
+  return formatLevelMoveSteps(sport, levelMoveSteps(sport, muBefore, muAfter));
 }
 
 function setsLine(sets: { own: number; opponent: number }[], locale: Locale) {

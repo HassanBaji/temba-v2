@@ -192,7 +192,7 @@ function footballRow(
     title: row.title,
     sub: row.meta,
     score: row.score,
-    detail: row.goals,
+    detail: row.detail,
     accessibilityLabel: row.accessibilityLabel,
     href: row.canOpenGame ? `/dashboard/games/${row.gameId}` : null,
   };

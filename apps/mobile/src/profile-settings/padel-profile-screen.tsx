@@ -8,6 +8,7 @@ import {
   MATCH_HISTORY_VISIBILITIES,
   type MatchHistoryVisibility,
 } from "@repo/domain/profile-details";
+import { formatPadelLevel } from "@repo/domain/level";
 import { Lock } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -78,7 +79,7 @@ function LockedLevel({ setUp }: { setUp: boolean }) {
             {displayBand(level.levelBand)}
           </Text>
           <Text size="title" weight="bold" style={{ flex: 1 }}>
-            {level.rating.toFixed(2)}
+            {formatPadelLevel(level.rating, 2)}
           </Text>
           <Text size="eyebrow" tone="muted">
             {p.general}

@@ -24,6 +24,7 @@ import {
   type PlayerLevelInput,
 } from "./player-profile-level";
 import { lastTenSummary, type LastTenSummary } from "./player-profile-matches";
+import { levelMoveDelta } from "./rating-history";
 import type { MatchOutcome } from "./result-mark";
 import { formatWinRate } from "./win-rate";
 
@@ -55,6 +56,8 @@ export type FootballMatchInput = {
   /** The owner's side first. */
   score: { us: number; them: number } | null;
   goals: number;
+  /** What the Match moved the owner's Level, when it counted for it. */
+  levelMove: { muBefore: number; muAfter: number } | null;
   game: {
     name: string | null;
     hasCustomName: boolean;
@@ -74,6 +77,10 @@ export type FootballMatchRowView = {
   meta: string;
   score: string | null;
   goals: string | null;
+  /** "OVR +1": what the Match moved the owner's OVR, when it counted. */
+  ovrChange: string | null;
+  /** The goals and the OVR change, as the row's one line under the score. */
+  detail: string | null;
   canOpenGame: boolean;
   accessibilityLabel: string;
 };
@@ -220,6 +227,16 @@ export function footballMatchRowView(
     m.matches.friendlyGame;
   const score = match.score ? `${match.score.us}–${match.score.them}` : null;
   const goals = match.goals > 0 ? m.football.goalsScored(match.goals) : null;
+  const ovrChange = match.levelMove
+    ? messagesFor(locale).rating.matchHistory.ovr(
+        levelMoveDelta(
+          "football",
+          match.levelMove.muBefore,
+          match.levelMove.muAfter,
+        ),
+      )
+    : null;
+  const shown = [goals, ovrChange].filter((part) => part != null);
   const outcome = m.matches.outcome[match.outcome];
   const spoken = [
     score ? m.matches.outcomeScore(outcome, score) : outcome,
@@ -227,6 +244,7 @@ export function footballMatchRowView(
     title,
     match.game.venueName,
     goals ? m.football.scored(goals) : null,
+    ovrChange,
   ];
 
   return {
@@ -240,6 +258,8 @@ export function footballMatchRowView(
     ),
     score,
     goals,
+    ovrChange,
+    detail: shown.length > 0 ? m.matches.spokenParts(shown) : null,
     canOpenGame: match.canOpenGame,
     accessibilityLabel: m.matches.spokenParts(
       spoken.filter((part) => part != null),

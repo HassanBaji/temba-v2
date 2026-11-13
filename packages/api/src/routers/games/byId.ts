@@ -993,6 +993,8 @@ export async function gameById(
   let ratingImpact: {
     levelChange: number;
     newLevel: number;
+    muBefore: number;
+    muAfter: number;
     newLevelBand: LevelBand;
     isProvisional: boolean;
     ratedMatchesRemainingToConfirm: number | null;
@@ -1093,6 +1095,8 @@ export async function gameById(
         ratingImpact = {
           levelChange,
           newLevel,
+          muBefore: viewerRatingEvent.muBefore,
+          muAfter: viewerRatingEvent.muAfter,
           newLevelBand,
           isProvisional: remaining > 0,
           ratedMatchesRemainingToConfirm: remaining > 0 ? remaining : null,
