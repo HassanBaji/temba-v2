@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, lt, or, type SQL } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, or, sql, type SQL } from "drizzle-orm";
 import { type AnyPgColumn } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
@@ -45,6 +45,20 @@ function newestFirst(a: Keyed, b: Keyed) {
   );
 }
 
+/**
+ * A row's time cut to the millisecond a JavaScript Date holds. The stored
+ * time has microseconds, and rows one transaction writes share it, so keying
+ * the cursor on the cut time keeps the three sources and the cursor in one
+ * order.
+ */
+function shownAt(column: AnyPgColumn) {
+  return sql`date_trunc('milliseconds', ${column})`;
+}
+
+function shownAtIso(column: AnyPgColumn) {
+  return sql<string>`to_char(${shownAt(column)}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`;
+}
+
 function olderThan(
   columns: { createdAt: AnyPgColumn; id: AnyPgColumn },
   cursor: RatingHistoryCursor | undefined,
@@ -52,9 +66,10 @@ function olderThan(
   if (!cursor) {
     return undefined;
   }
+  const at = cursor.createdAt.toISOString();
   return or(
-    lt(columns.createdAt, cursor.createdAt),
-    and(eq(columns.createdAt, cursor.createdAt), lt(columns.id, cursor.id)),
+    lt(shownAt(columns.createdAt), at),
+    and(eq(shownAt(columns.createdAt), at), lt(columns.id, cursor.id)),
   );
 }
 
@@ -96,7 +111,10 @@ export async function ratingHistory(
   const [events, overrides, tierRows] = await Promise.all([
     level
       ? database
-          .select()
+          .select({
+            event: ratingEvents,
+            shownAt: shownAtIso(ratingEvents.createdAt),
+          })
           .from(ratingEvents)
           .where(
             and(
@@ -105,12 +123,16 @@ export async function ratingHistory(
               olderThan(ratingEvents, cursor),
             ),
           )
-          .orderBy(desc(ratingEvents.createdAt), desc(ratingEvents.id))
+          .orderBy(desc(shownAt(ratingEvents.createdAt)), desc(ratingEvents.id))
           .limit(limit + 1)
       : [],
     level
       ? database
-          .select({ override: levelOverrides, venueName: venues.name })
+          .select({
+            override: levelOverrides,
+            venueName: venues.name,
+            shownAt: shownAtIso(levelOverrides.createdAt),
+          })
           .from(levelOverrides)
           .leftJoin(venues, eq(venues.id, levelOverrides.venueId))
           .where(
@@ -120,7 +142,10 @@ export async function ratingHistory(
               olderThan(levelOverrides, cursor),
             ),
           )
-          .orderBy(desc(levelOverrides.createdAt), desc(levelOverrides.id))
+          .orderBy(
+            desc(shownAt(levelOverrides.createdAt)),
+            desc(levelOverrides.id),
+          )
           .limit(limit + 1)
       : [],
     tier
@@ -128,6 +153,7 @@ export async function ratingHistory(
           .select({
             event: groupTierEvents,
             group: { id: groups.id, name: groups.name },
+            shownAt: shownAtIso(groupTierEvents.createdAt),
           })
           .from(groupTierEvents)
           .innerJoin(groups, eq(groups.id, groupTierEvents.groupId))
@@ -138,7 +164,10 @@ export async function ratingHistory(
               olderThan(groupTierEvents, cursor),
             ),
           )
-          .orderBy(desc(groupTierEvents.createdAt), desc(groupTierEvents.id))
+          .orderBy(
+            desc(shownAt(groupTierEvents.createdAt)),
+            desc(groupTierEvents.id),
+          )
           .limit(limit + 1)
       : [],
   ]);
@@ -160,20 +189,20 @@ export async function ratingHistory(
   const merged: Row[] = [
     ...events.map((row) => ({
       source: "event" as const,
-      id: row.id,
-      createdAt: row.createdAt,
+      id: row.event.id,
+      createdAt: new Date(row.shownAt),
       row,
     })),
     ...overrides.map((row) => ({
       source: "override" as const,
       id: row.override.id,
-      createdAt: row.override.createdAt,
+      createdAt: new Date(row.shownAt),
       row,
     })),
     ...tierRows.map((row) => ({
       source: "tier" as const,
       id: row.event.id,
-      createdAt: row.event.createdAt,
+      createdAt: new Date(row.shownAt),
       row,
     })),
   ].sort(newestFirst);
@@ -181,7 +210,7 @@ export async function ratingHistory(
   const last = page.at(-1);
 
   const pageEvents = page.flatMap((entry) =>
-    entry.source === "event" ? [entry.row] : [],
+    entry.source === "event" ? [entry.row.event] : [],
   );
   const pageOverrides = page.flatMap((entry) =>
     entry.source === "override" ? [entry.row] : [],
@@ -247,7 +276,7 @@ export async function ratingHistory(
 
   const entries = page.flatMap((entry): RatingHistoryItemData[] => {
     if (entry.source === "event") {
-      const event = entry.row;
+      const { event } = entry.row;
       const match = matchById.get(event.matchId);
       const game = match?.game;
       const votedMvp =
@@ -267,9 +296,15 @@ export async function ratingHistory(
           football:
             event.sport === "football"
               ? {
-                  ratingHundredths: ratingByMatch.get(event.matchId) ?? null,
-                  goals: goalsByMatch.get(event.matchId) ?? 0,
-                  mvp: votedMvp === userId,
+                  ratingHundredths:
+                    event.performancePart == null
+                      ? null
+                      : (ratingByMatch.get(event.matchId) ?? null),
+                  goals:
+                    event.goalsPart == null
+                      ? 0
+                      : (goalsByMatch.get(event.matchId) ?? 0),
+                  mvp: event.mvpPart != null && votedMvp === userId,
                 }
               : null,
         },
