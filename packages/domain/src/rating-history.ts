@@ -1,10 +1,19 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { formatDayMonth, formatGameDay } from "./format-game-start";
+import { formatOvr, wholeOvrFromMu } from "./football-ovr";
+import {
+  formatDayMonth,
+  formatGameDay,
+  formatMonth,
+} from "./format-game-start";
+import { groupDisplayName } from "./group-join";
 import { formatTierPoints } from "./group-members-table";
+import { formatPadelLevel, levelFromMu } from "./level";
 import type { LevelOverrideReason } from "./level-slider";
-import { tierBandLabel, type TierBand } from "./tier-bands";
+import { zonedDateTimeToInstant, zonedParts } from "./product-timezone";
+import { sportLabel, type Sport } from "./sport";
+import { TIER_BANDS, tierBandLabel, type TierBand } from "./tier-bands";
 import { TIER_PROVISIONAL_GAMES } from "./tier-points";
 import { formatTierDelta } from "./tier-adjust";
 
@@ -250,4 +259,423 @@ export function tierHistoryScreen(
 function firstName(name: string) {
   const [first] = name.trim().split(/\s+/);
   return first ?? name;
+}
+
+/** The filters of a User's Rating history (screen 1c). */
+export const RATING_HISTORY_LADDERS = ["all", "level", "tier", "rank"] as const;
+
+export type RatingHistoryLadder = (typeof RATING_HISTORY_LADDERS)[number];
+
+export function isRatingHistoryLadder(
+  value: unknown,
+): value is RatingHistoryLadder {
+  return (RATING_HISTORY_LADDERS as readonly unknown[]).includes(value);
+}
+
+export type LevelOverrideSetByRole = "level_setter" | "operator" | "verifier";
+
+type GroupRef = { id: string; name: string | null };
+
+type TierGameEntry = Extract<RatingHistoryEntryData, { kind: "tier_game" }>;
+type TierAdjustmentEntry = Extract<
+  RatingHistoryEntryData,
+  { kind: "tier_adjustment" }
+>;
+
+/**
+ * One line of a User's own Rating history (screen 1c, ADR-0073): a Rated
+ * Match or a Level override on the Level, or a Game, a Tier adjustment or a
+ * change of fish in a tier Group.
+ */
+export type RatingHistoryItemData =
+  | {
+      kind: "level_match";
+      id: string;
+      at: Date | string;
+      sport: Sport;
+      muBefore: number;
+      muAfter: number;
+      venueName: string | null;
+      /** Scored Sets from the User's own side; null when unreadable. */
+      sets: { own: number; opponent: number }[] | null;
+      /** What fed a football move beyond the result; null on padel. */
+      football: {
+        ratingHundredths: number | null;
+        goals: number;
+        mvp: boolean;
+      } | null;
+    }
+  | {
+      kind: "level_override";
+      id: string;
+      at: Date | string;
+      sport: Sport;
+      muBefore: number;
+      muAfter: number;
+      setByRole: LevelOverrideSetByRole;
+      setBy: { userId: string; name: string | null } | null;
+      /** The Venue a Verifier calibrated from. */
+      venueName: string | null;
+      reason: LevelOverrideReason | null;
+      note: string | null;
+    }
+  | (TierGameEntry & { group: GroupRef; band: TierBand | null })
+  | (TierAdjustmentEntry & { group: GroupRef; band: TierBand | null })
+  | {
+      kind: "tier_band";
+      id: string;
+      at: Date | string;
+      group: GroupRef;
+      bandBefore: TierBand | null;
+      bandAfter: TierBand | null;
+      place: number | null;
+      rankedCount: number | null;
+      points: number;
+    };
+
+export type RatingHistoryIcon =
+  | { kind: "level" }
+  | { kind: "override" }
+  | { kind: "tier"; band: TierBand | null; label: string | null };
+
+export type RatingHistoryLine = {
+  key: string;
+  icon: RatingHistoryIcon;
+  title: string;
+  detail: string;
+  /** Who made a manual change and why; null when nobody did. */
+  byline: string | null;
+  /** The move: "+1", "−59", or "tier" for a change of fish. */
+  delta: string;
+  /** Where it left the number: "74", "1,201". */
+  after: string;
+  spoken: string;
+};
+
+const MINUS = "−";
+
+function levelFace(sport: Sport, mu: number) {
+  return sport === "football"
+    ? wholeOvrFromMu(mu)
+    : Number(formatPadelLevel(levelFromMu(mu), 2));
+}
+
+function formatLevelFace(sport: Sport, value: number) {
+  return sport === "football" ? formatOvr(value) : value.toFixed(2);
+}
+
+/** The move as the faces show it, so before plus delta reads after. */
+function levelDelta(sport: Sport, before: number, after: number) {
+  const steps =
+    sport === "football" ? after - before : Math.round((after - before) * 100);
+  const amount =
+    sport === "football"
+      ? String(Math.abs(steps))
+      : (Math.abs(steps) / 100).toFixed(2);
+  if (steps > 0) {
+    return `+${amount}`;
+  }
+  if (steps < 0) {
+    return `${MINUS}${amount}`;
+  }
+  return amount;
+}
+
+function setsLine(sets: { own: number; opponent: number }[], locale: Locale) {
+  const m = messagesFor(locale).rating;
+  return sets
+    .map((set) => `${set.own}–${set.opponent}`)
+    .join(m.ratingHistory.separator);
+}
+
+function matchResult(
+  sets: { own: number; opponent: number }[] | null,
+  locale: Locale,
+) {
+  const copy = messagesFor(locale).rating.history.game;
+  if (!sets || sets.length === 0) {
+    return null;
+  }
+  let won = 0;
+  let lost = 0;
+  for (const set of sets) {
+    if (set.own > set.opponent) {
+      won += 1;
+    } else if (set.own < set.opponent) {
+      lost += 1;
+    }
+  }
+  const score = setsLine(sets, locale);
+  return (won > lost ? copy.won : won < lost ? copy.lost : copy.drew)(score);
+}
+
+function levelMatchLine(
+  item: Extract<RatingHistoryItemData, { kind: "level_match" }>,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).rating.ratingHistory;
+  const result = matchResult(item.sets, locale);
+  let detail =
+    result && item.venueName
+      ? m.level.detail(result, item.venueName)
+      : (result ?? item.venueName ?? sportLabel(item.sport, locale) ?? "");
+  if (item.football) {
+    const parts = [m.level.result];
+    if (item.football.ratingHundredths != null) {
+      parts.push(m.level.ratings(formatRating(item.football.ratingHundredths)));
+    }
+    if (item.football.goals > 0) {
+      parts.push(m.level.goals(item.football.goals));
+    }
+    if (item.football.mvp) {
+      parts.push(m.level.mvp);
+    }
+    detail = m.level.withParts(detail, parts.join(m.separator));
+  }
+  return { title: m.level.title, detail };
+}
+
+function setterName(
+  setBy: { userId: string; name: string | null } | null,
+  viewerUserId: string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).rating;
+  if (setBy == null) {
+    return m.ratingHistory.override.someone;
+  }
+  return setBy.userId === viewerUserId
+    ? m.history.adjustment.you
+    : (setBy.name ?? m.ratingHistory.override.someone);
+}
+
+function overrideByline(
+  item: Extract<RatingHistoryItemData, { kind: "level_override" }>,
+  viewerUserId: string,
+  locale: Locale,
+) {
+  const all = messagesFor(locale);
+  const copy = all.rating.history.adjustment;
+  const name = setterName(item.setBy, viewerUserId, locale);
+  const who =
+    item.setByRole === "verifier" && item.venueName
+      ? all.rating.ratingHistory.override.atVenue(name, item.venueName)
+      : name;
+  const reason = item.reason
+    ? all.rating.adjust.reasons[item.reason]
+    : all.level.noReasonGiven;
+  return item.note
+    ? copy.bylineNote(who, reason, item.note)
+    : copy.byline(who, reason);
+}
+
+function bandTitle(
+  item: Extract<RatingHistoryItemData, { kind: "tier_band" }>,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).rating.ratingHistory.tier;
+  const { bandBefore: before, bandAfter: after } = item;
+  if (after == null) {
+    return before ? m.noLonger(tierBandLabel(before, locale)) : null;
+  }
+  const label = tierBandLabel(after, locale);
+  if (before == null) {
+    return m.nowA(label);
+  }
+  return TIER_BANDS.indexOf(after) < TIER_BANDS.indexOf(before)
+    ? m.upTo(label)
+    : m.downTo(label);
+}
+
+/** A line of a User's Rating history (screen 1c). */
+export function ratingHistoryLine(
+  item: RatingHistoryItemData,
+  viewerUserId: string,
+  locale: Locale,
+): RatingHistoryLine {
+  const all = messagesFor(locale);
+  const m = all.rating.ratingHistory;
+  let icon: RatingHistoryIcon;
+  let title: string;
+  let detail: string;
+  let byline: string | null = null;
+  let delta: string;
+  let after: string;
+
+  if (item.kind === "level_match" || item.kind === "level_override") {
+    const before = levelFace(item.sport, item.muBefore);
+    const afterFace = levelFace(item.sport, item.muAfter);
+    delta = levelDelta(item.sport, before, afterFace);
+    after = formatLevelFace(item.sport, afterFace);
+    if (item.kind === "level_match") {
+      icon = { kind: "level" };
+      ({ title, detail } = levelMatchLine(item, locale));
+    } else {
+      icon = { kind: "override" };
+      title = m.override.title[item.setByRole];
+      detail = m.override.detail(
+        sportLabel(item.sport, locale) ?? item.sport,
+        formatLevelFace(item.sport, before),
+        after,
+      );
+      byline = overrideByline(item, viewerUserId, locale);
+    }
+  } else {
+    const group = groupDisplayName(item.group.name, locale);
+    if (item.kind === "tier_band") {
+      const band = item.bandAfter ?? item.bandBefore;
+      icon = {
+        kind: "tier",
+        band,
+        label: band ? tierBandLabel(band, locale) : null,
+      };
+      title = bandTitle(item, locale) ?? group;
+      detail =
+        item.place != null && item.rankedCount != null
+          ? m.tier.bandDetail(
+              group,
+              all.rating.adjust.placeOf(item.place, item.rankedCount),
+            )
+          : group;
+      delta = m.tier.bandDelta;
+      after = formatTierPoints(item.points);
+    } else {
+      icon = {
+        kind: "tier",
+        band: item.band,
+        label: item.band ? tierBandLabel(item.band, locale) : null,
+      };
+      delta = formatTierDelta(item.delta);
+      after = formatTierPoints(item.pointsAfter);
+      if (item.kind === "tier_game") {
+        title = m.tier.title(group);
+        detail = gameTitle(item, locale);
+      } else {
+        title = m.tier.adjustmentTitle;
+        detail = m.tier.adjustmentDetail(
+          group,
+          formatTierPoints(item.pointsBefore),
+          after,
+        );
+        byline = adjustmentByline(item, viewerUserId, locale);
+      }
+    }
+  }
+
+  return {
+    key: item.id,
+    icon,
+    title,
+    detail,
+    byline,
+    delta,
+    after,
+    spoken: [title, detail, byline, m.deltaSpoken(delta, after)]
+      .filter(Boolean)
+      .join(". "),
+  };
+}
+
+export type RatingHistorySection = {
+  key: string;
+  title: string;
+  lines: RatingHistoryLine[];
+};
+
+export type RatingHistoryScreen = {
+  title: string;
+  filterLabel: string;
+  filters: { value: RatingHistoryLadder; label: string }[];
+  sections: RatingHistorySection[];
+  /** What an empty filter reads; `reserved` is Official Rank's "not yet". */
+  empty: { text: string; reserved: boolean } | null;
+  footnote: string;
+};
+
+/** Saturday, the first day of the week as it is lived here. */
+const WEEK_STARTS_ON = 6;
+
+function startOfProductWeek(now: Date) {
+  const { year, month, day } = zonedParts(now);
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  const back = (weekday - WEEK_STARTS_ON + 7) % 7;
+  return zonedDateTimeToInstant({ year, month, day: day - back });
+}
+
+function sectionOf(at: Date, now: Date, weekStart: Date, locale: Locale) {
+  const m = messagesFor(locale).rating.ratingHistory;
+  if (at.getTime() >= weekStart.getTime()) {
+    return { key: "this-week", title: m.thisWeek };
+  }
+  const { year, month } = zonedParts(at);
+  const monthName = formatMonth(at, "long", locale);
+  return {
+    key: `${year}-${month}`,
+    title:
+      year === zonedParts(now).year
+        ? monthName
+        : m.monthOfYear(monthName, year),
+  };
+}
+
+/**
+ * A User's own Rating history (screen 1c): every move and every manual
+ * change, newest first, under "This week" and then each month. The Rank
+ * filter is reserved for Official Rank and stays empty.
+ */
+export function ratingHistoryScreen(
+  data: {
+    ladder: RatingHistoryLadder;
+    sport?: Sport;
+    items: readonly RatingHistoryItemData[];
+    viewerUserId: string;
+    now: Date;
+  },
+  locale: Locale,
+): RatingHistoryScreen {
+  const m = messagesFor(locale).rating;
+  const copy = m.ratingHistory;
+  const weekStart = startOfProductWeek(data.now);
+
+  const sections: RatingHistorySection[] = [];
+  if (data.ladder !== "rank") {
+    for (const item of data.items) {
+      const at = item.at instanceof Date ? item.at : new Date(item.at);
+      const section = sectionOf(at, data.now, weekStart, locale);
+      const line = ratingHistoryLine(item, data.viewerUserId, locale);
+      const last = sections.at(-1);
+      if (last?.key === section.key) {
+        last.lines.push(line);
+      } else {
+        sections.push({ ...section, lines: [line] });
+      }
+    }
+  }
+
+  let empty: RatingHistoryScreen["empty"] = null;
+  if (data.ladder === "rank") {
+    empty = { text: m.screen.official.coming, reserved: true };
+  } else if (sections.length === 0) {
+    empty = {
+      text:
+        data.ladder === "tier"
+          ? data.sport === "padel"
+            ? copy.empty.tierPadel
+            : copy.empty.tier
+          : copy.empty[data.ladder],
+      reserved: false,
+    };
+  }
+
+  return {
+    title: copy.title,
+    filterLabel: copy.filter,
+    filters: RATING_HISTORY_LADDERS.map((value) => ({
+      value,
+      label: copy.ladders[value],
+    })),
+    sections,
+    empty,
+    footnote: copy.footnote,
+  };
 }

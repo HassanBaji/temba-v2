@@ -227,6 +227,7 @@ type ExpectedRatings =
   | "setLevelAsVerifier"
   | "myGroupLevels"
   | "myGroupTiers"
+  | "history"
   | "setGroupLevel";
 
 type ExpectedTeams =

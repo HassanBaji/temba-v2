@@ -345,6 +345,64 @@ export const rating = {
         "Only the player and this group’s organizers can see these points.",
     },
   },
+  ratingHistory: {
+    title: "Rating history",
+    open: "Rating history",
+    filter: "Show",
+    ladders: {
+      all: "All",
+      level: "Level",
+      tier: "Tier",
+      rank: "Rank",
+    },
+    thisWeek: "This week",
+    monthOfYear: (month: string, year: number) => `${month} ${year}`,
+    separator: ", ",
+    level: {
+      title: "Level, verified match",
+      detail: (result: string, venue: string) => `${result}, ${venue}`,
+      withParts: (detail: string, parts: string) => `${detail}. ${parts}`,
+      result: "Result",
+      ratings: (rating: string) => `ratings ${rating}`,
+      goals: (n: number) =>
+        plural("en", n, { one: "1 goal", other: "{n} goals" }),
+      mvp: "MVP",
+    },
+    override: {
+      title: {
+        verifier: "Level calibrated by a verifier",
+        operator: "Level set by an operator",
+        level_setter: "Level set by a level setter",
+      },
+      detail: (sport: string, from: string, to: string) =>
+        `${sport}, ${from} to ${to}`,
+      atVenue: (name: string, venue: string) => `${name} (${venue})`,
+      someone: "Someone",
+    },
+    tier: {
+      title: (group: string) => `Tier points, ${group}`,
+      adjustmentTitle: "Tier points set by an organizer",
+      adjustmentDetail: (group: string, from: string, to: string) =>
+        `${group}, ${from} to ${to}`,
+      upTo: (band: string) => `Up to ${band}`,
+      downTo: (band: string) => `Down to ${band}`,
+      nowA: (band: string) => `Now a ${band}`,
+      noLonger: (band: string) => `No longer a ${band}`,
+      bandDetail: (group: string, placeOf: string) =>
+        `${group}, now ${placeOf}`,
+      bandDelta: "tier",
+    },
+    deltaSpoken: (delta: string, after: string) => `${delta}, now ${after}`,
+    empty: {
+      all: "Nothing has moved your ratings yet.",
+      level: "Nothing has moved your Level yet. It moves on verified matches.",
+      tier: "No tier points have moved yet. They move after each game in a football group.",
+      tierPadel: "Padel has no group tier. Padel groups keep their standings.",
+    },
+    footnote:
+      "Anything a person changed by hand carries their name and reason, and you see it the moment it happens.",
+    loadFailed: "Couldn’t load your rating history",
+  },
   ovr: {
     label: "OVR",
     value: (ovr: string) => `OVR ${ovr}`,

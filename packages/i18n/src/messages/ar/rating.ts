@@ -373,6 +373,71 @@ export const rating = {
       forbidden: "لا يرى هذه النقاط إلا اللاعب ومنظّمو هذه المجموعة.",
     },
   },
+  ratingHistory: {
+    title: "سجل التقييم",
+    open: "سجل التقييم",
+    filter: "عرض",
+    ladders: {
+      all: "الكل",
+      level: "المستوى",
+      tier: "الفئة",
+      rank: "الرتبة",
+    },
+    thisWeek: "هذا الأسبوع",
+    monthOfYear: (month: string, year: number) => `${month} ${year}`,
+    separator: "، ",
+    level: {
+      title: "المستوى، مباراة موثّقة",
+      detail: (result: string, venue: string) => `${result}، ${venue}`,
+      withParts: (detail: string, parts: string) => `${detail}. ${parts}`,
+      result: "النتيجة",
+      ratings: (rating: string) => `التقييمات ${isolate(rating)}`,
+      goals: (n: number) =>
+        plural("ar", n, {
+          zero: "لا أهداف",
+          one: "هدف واحد",
+          two: "هدفان",
+          few: "{n} أهداف",
+          many: "{n} هدفًا",
+          other: "{n} هدف",
+        }),
+      mvp: "أفضل لاعب",
+    },
+    override: {
+      title: {
+        verifier: "معايرة المستوى من مُوثِّق",
+        operator: "تحديد المستوى من مشغّل",
+        level_setter: "تحديد المستوى من مخوَّل بتحديده",
+      },
+      detail: (sport: string, from: string, to: string) =>
+        `${sport}، من ${isolate(from)} إلى ${isolate(to)}`,
+      atVenue: (name: string, venue: string) => `${name} (${venue})`,
+      someone: "أحدهم",
+    },
+    tier: {
+      title: (group: string) => `نقاط الفئة، ${group}`,
+      adjustmentTitle: "تحديد نقاط الفئة من منظّم",
+      adjustmentDetail: (group: string, from: string, to: string) =>
+        `${group}، من ${isolate(from)} إلى ${isolate(to)}`,
+      upTo: (band: string) => `صعود إلى ${band}`,
+      downTo: (band: string) => `نزول إلى ${band}`,
+      nowA: (band: string) => `صرت ${band}`,
+      noLonger: (band: string) => `لم تعد ${band}`,
+      bandDetail: (group: string, placeOf: string) =>
+        `${group}، الآن ${isolate(placeOf)}`,
+      bandDelta: "الفئة",
+    },
+    deltaSpoken: (delta: string, after: string) =>
+      `${isolate(delta)}، الآن ${isolate(after)}`,
+    empty: {
+      all: "لم يحرّك شيء تقييماتك بعد.",
+      level: "لم يحرّك شيء مستواك بعد. يتحرّك في المباريات الموثّقة.",
+      tier: "لم تتحرّك نقاط فئة بعد. تتحرّك بعد كل مباراة في مجموعة كرة قدم.",
+      tierPadel: "لا فئة للمجموعات في البادل. تحتفظ مجموعات البادل بترتيبها.",
+    },
+    footnote: "كل ما غيّره شخص بيده يحمل اسمه وسببه، وتراه لحظة حدوثه.",
+    loadFailed: "تعذّر تحميل سجل تقييمك",
+  },
   ovr: {
     label: "OVR",
     value: (ovr: string) => `${isolate("OVR")} ${isolate(ovr)}`,

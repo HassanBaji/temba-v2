@@ -2,23 +2,12 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
 import { z } from "zod";
 
-import {
-  groupMembers,
-  groupTierEvents,
-  groupTierPoints,
-  matches,
-  user,
-} from "@repo/db";
+import { groupMembers, groupTierEvents, groupTierPoints, user } from "@repo/db";
 import { groupHasTier } from "@repo/domain/game-rating-scope";
 import type {
-  RatingHistoryEntryData,
   TierHistoryData,
   TierHistoryStandingData,
 } from "@repo/domain/rating-history";
-import {
-  scoredSetsFromMatch,
-  seatedUserSlotOnMatch,
-} from "@repo/domain/match-slots";
 import { tierTable } from "@repo/domain/tier-bands";
 import { TIER_POINTS_START } from "@repo/domain/tier-points";
 import { messagesFor } from "@repo/i18n/messages";
@@ -31,14 +20,13 @@ import { isGroupMember } from "#src/games/access";
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import { mayOrganizeGroupGames } from "#src/groups/helpers/may-organize-group-games";
 import { requireGroup } from "#src/groups/helpers/require-group";
+import { tierHistoryEntries } from "#src/ratings/rating-history-entries";
 
 type DbClient = typeof db;
 
 const DEFAULT_PAGE_SIZE = 20;
 
 export type TierHistoryCursor = { createdAt: Date; id: string };
-
-type TierEventRow = typeof groupTierEvents.$inferSelect;
 
 /**
  * Points and history (screen 2e): what moved one member's Tier points in a
@@ -142,7 +130,7 @@ export async function tierHistory(
       isViewer,
     },
     tier: hasTier ? await memberStanding(database, group.id, userId) : null,
-    entries: await historyEntries(database, userId, page),
+    entries: await tierHistoryEntries(database, userId, page),
     nextCursor:
       rows.length > limit && last
         ? { createdAt: last.createdAt, id: last.id }
@@ -195,126 +183,6 @@ async function memberStanding(
     nextBand: self.nextBand,
     pointsToNextBand: self.pointsToNextBand,
   };
-}
-
-async function historyEntries(
-  database: DbClient,
-  userId: string,
-  events: readonly TierEventRow[],
-): Promise<RatingHistoryEntryData[]> {
-  const matchIds = [
-    ...new Set(
-      events.flatMap((event) =>
-        event.kind === "game" && event.matchId ? [event.matchId] : [],
-      ),
-    ),
-  ];
-  const setByIds = [
-    ...new Set(events.flatMap((event) => event.setByUserId ?? [])),
-  ];
-
-  const sideRoster = {
-    columns: {},
-    with: {
-      players: {
-        columns: {},
-        with: { gamePlayer: { columns: { userId: true } } },
-      },
-    },
-  } as const;
-  const matchRows =
-    matchIds.length === 0
-      ? []
-      : await database.query.matches.findMany({
-          where: inArray(matches.id, matchIds),
-          columns: { id: true, startTime: true },
-          with: {
-            game: { columns: { windowStart: true } },
-            sets: {
-              columns: { slot1GamesWon: true, slot2GamesWon: true },
-              orderBy: (table, { asc }) => [asc(table.setNumber)],
-            },
-            slot1GameTeam: sideRoster,
-            slot2GameTeam: sideRoster,
-          },
-        });
-  const matchById = new Map(matchRows.map((row) => [row.id, row]));
-
-  const setters =
-    setByIds.length === 0
-      ? []
-      : await database.query.user.findMany({
-          where: inArray(user.id, setByIds),
-          columns: { id: true, name: true },
-        });
-  const setterById = new Map(setters.map((row) => [row.id, row]));
-
-  return events.map((event): RatingHistoryEntryData => {
-    if (event.kind === "adjustment") {
-      const setter = event.setByUserId
-        ? setterById.get(event.setByUserId)
-        : undefined;
-      return {
-        kind: "tier_adjustment",
-        id: event.id,
-        at: event.createdAt,
-        delta: event.delta,
-        pointsBefore: event.pointsBefore,
-        pointsAfter: event.pointsAfter,
-        setBy: setter ? { userId: setter.id, name: setter.name } : null,
-        reason: event.reason,
-        note: event.note,
-      };
-    }
-    const match = event.matchId ? matchById.get(event.matchId) : undefined;
-    return {
-      kind: "tier_game",
-      id: event.id,
-      at: event.createdAt,
-      playedAt: match?.game?.windowStart ?? match?.startTime ?? null,
-      delta: event.delta,
-      resultDelta: event.resultDelta,
-      performanceDelta: event.performanceDelta,
-      ratingHundredths: event.ratingHundredths,
-      pointsBefore: event.pointsBefore,
-      pointsAfter: event.pointsAfter,
-      score: match ? scoreFor(match, userId) : null,
-    };
-  });
-}
-
-type SideRoster = {
-  players: { gamePlayer: { userId: string | null } | null }[];
-} | null;
-
-/** The Match's goals read from the member's side; null when not on one. */
-function scoreFor(
-  match: {
-    sets: { slot1GamesWon: number | null; slot2GamesWon: number | null }[];
-    slot1GameTeam: SideRoster;
-    slot2GameTeam: SideRoster;
-  },
-  userId: string,
-) {
-  const [set] = scoredSetsFromMatch(match.sets);
-  if (!set) {
-    return null;
-  }
-  const userIdsOf = (team: SideRoster) =>
-    (team?.players ?? []).flatMap((link) => link.gamePlayer?.userId ?? []);
-  const slot = seatedUserSlotOnMatch(
-    {
-      slot1UserIds: userIdsOf(match.slot1GameTeam),
-      slot2UserIds: userIdsOf(match.slot2GameTeam),
-    },
-    userId,
-  );
-  if (slot == null) {
-    return null;
-  }
-  return slot === 1
-    ? { own: set.slot1GamesWon, opponent: set.slot2GamesWon }
-    : { own: set.slot2GamesWon, opponent: set.slot1GamesWon };
 }
 
 export const tierHistoryProcedure = protectedProcedure
