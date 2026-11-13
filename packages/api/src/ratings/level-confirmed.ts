@@ -1,15 +1,12 @@
 import {
   and,
-  asc,
   count,
   eq,
-  gt,
   inArray,
   isNotNull,
   lt,
   lte,
   notExists,
-  or,
   sql,
 } from "drizzle-orm";
 
@@ -22,8 +19,8 @@ import {
   type DbClient as AnyDbClient,
   type DbTx,
 } from "@repo/db";
+import { FOOTBALL_MATCHES_TO_CONFIRM } from "@repo/domain/football-ovr";
 import {
-  PROVISIONAL_PHI_THRESHOLD,
   RATED_MATCHES_TO_CONFIRM,
   tembaLevelView,
   UNCONFIRMED_PADEL,
@@ -145,69 +142,21 @@ export async function readTembaLevelView(
 }
 
 /**
- * Football: the first counting Match that took φ out of Provisional, which
- * is its fifth.
+ * The `rating_events` row that is each User's fifth of those that still count
+ * in the sport, unless a Level override had already confirmed the Level
+ * before it. A reversed Match's events are gone, so the fifth is read again
+ * from what is left: on football every counting Match, on padel the Rated
+ * Matches in a Verified Group.
  */
-async function footballLevelConfirmations(
+async function fifthCountingEvents(
   database: DbClient,
   userIds: string[],
+  sport: Sport,
 ): Promise<LevelConfirmation[]> {
-  const firsts = await database
-    .selectDistinctOn([ratingEvents.userId, ratingEvents.sport], {
-      eventId: ratingEvents.id,
-      userId: ratingEvents.userId,
-      sport: ratingEvents.sport,
-      matchId: ratingEvents.matchId,
-      muAfter: ratingEvents.muAfter,
-      shownAt: sql<string>`to_char(${shownAt(ratingEvents.createdAt)}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`,
-    })
-    .from(ratingEvents)
-    .where(
-      and(
-        inArray(ratingEvents.userId, userIds),
-        eq(ratingEvents.sport, GroupSportEnum.FOOTBALL),
-        gt(ratingEvents.phiBefore, PROVISIONAL_PHI_THRESHOLD),
-        lte(ratingEvents.phiAfter, PROVISIONAL_PHI_THRESHOLD),
-      ),
-    )
-    .orderBy(
-      ratingEvents.userId,
-      ratingEvents.sport,
-      asc(shownAt(ratingEvents.createdAt)),
-      asc(ratingEvents.id),
-    );
-
-  return Promise.all(
-    firsts.map(async ({ shownAt: at, ...first }) => {
-      const [row] = await database
-        .select({ counted: count() })
-        .from(ratingEvents)
-        .where(
-          and(
-            eq(ratingEvents.userId, first.userId),
-            eq(ratingEvents.sport, first.sport),
-            or(
-              lt(shownAt(ratingEvents.createdAt), at),
-              and(
-                eq(shownAt(ratingEvents.createdAt), at),
-                lte(ratingEvents.id, first.eventId),
-              ),
-            ),
-          ),
-        );
-      return { ...first, matchesCounted: row?.counted ?? 0 };
-    }),
-  );
-}
-
-/**
- * Padel: the Rated Match in a Verified Group that was the fifth, unless a
- * Level override had already confirmed the Level before it.
- */
-async function padelLevelConfirmations(
-  database: DbClient,
-  userIds: string[],
-): Promise<LevelConfirmation[]> {
+  const matchesToConfirm =
+    sport === "football"
+      ? FOOTBALL_MATCHES_TO_CONFIRM
+      : RATED_MATCHES_TO_CONFIRM;
   const ranked = database
     .select({
       eventId: ratingEvents.id,
@@ -223,7 +172,14 @@ async function padelLevelConfirmations(
     .from(ratingEvents)
     .innerJoin(matches, eq(matches.id, ratingEvents.matchId))
     .innerJoin(games, eq(games.id, matches.gameId))
-    .where(and(padelVerifiedEvent, inArray(ratingEvents.userId, userIds)))
+    .where(
+      and(
+        sport === "football"
+          ? eq(ratingEvents.sport, GroupSportEnum.FOOTBALL)
+          : padelVerifiedEvent,
+        inArray(ratingEvents.userId, userIds),
+      ),
+    )
     .as("ranked");
   const fifths = await database
     .select({
@@ -235,7 +191,7 @@ async function padelLevelConfirmations(
     .from(ranked)
     .where(
       and(
-        eq(ranked.place, RATED_MATCHES_TO_CONFIRM),
+        eq(ranked.place, matchesToConfirm),
         notExists(
           database
             .select({ id: levelOverrides.id })
@@ -243,7 +199,7 @@ async function padelLevelConfirmations(
             .where(
               and(
                 eq(levelOverrides.userId, ranked.userId),
-                eq(levelOverrides.sport, GroupSportEnum.PADEL),
+                eq(levelOverrides.sport, sport),
                 lt(levelOverrides.createdAt, ranked.createdAt),
               ),
             ),
@@ -252,8 +208,8 @@ async function padelLevelConfirmations(
     );
   return fifths.map((fifth) => ({
     ...fifth,
-    sport: "padel" as const,
-    matchesCounted: RATED_MATCHES_TO_CONFIRM,
+    sport,
+    matchesCounted: matchesToConfirm,
   }));
 }
 
@@ -273,8 +229,12 @@ export async function levelConfirmations(
     return [];
   }
   const [football, padel] = await Promise.all([
-    args.sport === "padel" ? [] : footballLevelConfirmations(database, userIds),
-    args.sport === "football" ? [] : padelLevelConfirmations(database, userIds),
+    args.sport === "padel"
+      ? []
+      : fifthCountingEvents(database, userIds, "football"),
+    args.sport === "football"
+      ? []
+      : fifthCountingEvents(database, userIds, "padel"),
   ]);
   return [...football, ...padel];
 }

@@ -162,6 +162,23 @@ async function seat(f: FootballFixture, userIds: string[]) {
   }
 }
 
+/** Two players' counting football Matches, one Game each, in order. */
+async function playFootball(db: TestDatabase, count: number) {
+  let f = await clubFootballGame(db);
+  const a = await addMember(f, "a");
+  const b = await addMember(f, "b");
+  const played: { gameId: string; matchId: string; organizerId: string }[] = [];
+  for (let game = 1; game <= count; game++) {
+    if (game > 1) {
+      f = await nextFootballGame(f, game * 3);
+      await seat(f, [a, b]);
+    }
+    const matchId = await playAndSettle(f, [a], [b], { slot1: 1, slot2: 0 });
+    played.push({ gameId: f.gameId, matchId, organizerId: f.organizerId });
+  }
+  return { a, b, played, last: f };
+}
+
 describe("Level confirmed", () => {
   it("tells a football player once, on their fifth counting Match, which their history marks", async () => {
     await withDb(async (db) => {
@@ -202,6 +219,74 @@ describe("Level confirmed", () => {
       expect(fifth?.match.gameId).toBe(gameIds[4]);
       expect(lines[0]).toMatchObject({ sport: "football", matchesCounted: 5 });
       expect(await confirmedLines(db, a, "padel")).toEqual([]);
+    });
+  });
+
+  it("moves the football milestone to the fifth Match left when an earlier one is reversed", async () => {
+    await withDb(async (db) => {
+      const { a, played } = await playFootball(db, 6);
+
+      await reportWrongScore(apiDb(db), {
+        gameId: played[4]!.gameId,
+        matchId: played[4]!.matchId,
+        userId: played[4]!.organizerId,
+      });
+      expect(isProvisional(await phiOf(db, a, "football"))).toBe(false);
+      const lines = await confirmedLines(db, a, "football");
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toMatchObject({ sport: "football", matchesCounted: 5 });
+      expect(await gameOfEvent(db, lines[0]!.id)).toBe(played[5]!.gameId);
+      expect(await confirmedNotifications(db, a)).toHaveLength(1);
+    });
+  });
+
+  it("drops the football milestone while a reversal leaves the Level Provisional, and marks the next fifth", async () => {
+    await withDb(async (db) => {
+      const { a, b, played, last } = await playFootball(db, 5);
+      expect(await confirmedLines(db, a, "football")).toHaveLength(1);
+
+      await reportWrongScore(apiDb(db), {
+        gameId: played[1]!.gameId,
+        matchId: played[1]!.matchId,
+        userId: played[1]!.organizerId,
+      });
+      expect(isProvisional(await phiOf(db, a, "football"))).toBe(true);
+      expect(await confirmedLines(db, a, "football")).toEqual([]);
+
+      const f = await nextFootballGame(last, 30);
+      await seat(f, [a, b]);
+      await playAndSettle(f, [a], [b], { slot1: 1, slot2: 0 });
+      expect(isProvisional(await phiOf(db, a, "football"))).toBe(false);
+      const lines = await confirmedLines(db, a, "football");
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toMatchObject({ matchesCounted: 5 });
+      expect(await gameOfEvent(db, lines[0]!.id)).toBe(f.gameId);
+      expect(await confirmedNotifications(db, a)).toHaveLength(1);
+    });
+  });
+
+  it("keeps a football Level a Level override confirmed, with no milestone after it", async () => {
+    await withDb(async (db) => {
+      const { a, b, last } = await playFootball(db, 1);
+      await applyLevelOverride(apiDb(db), {
+        sport: "football",
+        setterUserId: b,
+        setByRole: "operator",
+        targetUserId: a,
+        groupId: null,
+        level: 3.5,
+        reason: "plays_above_results",
+      });
+      let f = last;
+      for (let played = 2; played <= 6; played++) {
+        f = await nextFootballGame(f, played * 3);
+        await seat(f, [a, b]);
+        await playAndSettle(f, [a], [b], { slot1: 1, slot2: 0 });
+      }
+      expect(isProvisional(await phiOf(db, a, "football"))).toBe(false);
+      expect(await confirmedLines(db, a, "football")).toEqual([]);
+      expect(await confirmedNotifications(db, a)).toHaveLength(0);
+      expect(await confirmedLines(db, b, "football")).toHaveLength(1);
     });
   });
 
