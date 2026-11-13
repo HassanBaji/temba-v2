@@ -99,6 +99,11 @@ export const notification = {
       plain(" in "),
       strong(group),
     ],
+    levelConfirmed: (sport: string) => [
+      plain("Your "),
+      strong(sport),
+      plain(" Level is confirmed"),
+    ],
     gameFinished: (game: string) => [strong(game), plain(" has finished")],
     markReceived: (actor: string, kind: string, game: string) => [
       strong(actor),
@@ -297,6 +302,8 @@ export const notification = {
       "Score your teammates and, if you want, opponents, within 24 hours. Nobody sees who gave what.",
     tierPlaces:
       "Tiers are places, so when one player moves, someone moves the other way.",
+    levelConfirmed:
+      "The track is no longer hatched. It keeps moving on verified matches.",
     ratingsClosed: (rating: string, delta: string, points: string) =>
       `You were rated ${rating}. Tier points ${delta}, now ${points}.`,
     ratingsClosedResultOnly: (delta: string, points: string) =>

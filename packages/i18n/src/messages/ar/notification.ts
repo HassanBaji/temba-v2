@@ -125,6 +125,10 @@ export const notification = {
       plain(" في "),
       strong(group),
     ],
+    levelConfirmed: (sport: string) => [
+      plain("تأكّد مستواك في "),
+      strong(sport),
+    ],
     gameFinished: (game: string) => [plain("انتهت "), strong(game)],
     markReceived: (actor: string, kind: string, game: string) => [
       plain("منحك "),
@@ -325,6 +329,7 @@ export const notification = {
     ratingsOpenEveryone:
       "قيّم زملاءك، والخصوم إن أردت، خلال 24 ساعة. لا أحد يرى من أعطى ماذا.",
     tierPlaces: "الفئات مراكز، فحين يتحرّك لاعب يتحرّك غيره في الاتجاه الآخر.",
+    levelConfirmed: "لم يعد المسار مخطّطًا. يواصل التحرّك في المباريات الموثّقة.",
     ratingsClosed: (rating: string, delta: string, points: string) =>
       `تقييمك ${isolate(rating)}. نقاط الفئة ${isolate(delta)}، والآن ${isolate(points)}.`,
     ratingsClosedResultOnly: (delta: string, points: string) =>

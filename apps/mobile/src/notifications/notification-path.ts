@@ -1,5 +1,6 @@
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
+import { isSport } from "@repo/domain/sport";
 
 import { gamePath, gameRatePath } from "../games/games-model";
 import { groupTierHistoryPath } from "../groups/groups-model";
@@ -53,9 +54,13 @@ const CHALLENGE_TYPES = new Set([
 export function notificationPath(item: {
   type: string;
   group: { id: string } | null;
-  game?: { id: string } | null;
+  game?: { id: string; sport?: string | null } | null;
   challenge?: { id: string } | null;
 }): string | null {
+  const sport = item.game?.sport;
+  if (item.type === "level_confirmed" && isSport(sport)) {
+    return `/profile/ratings?sport=${sport}`;
+  }
   if (item.game && item.type === "performance_ratings_open") {
     return gameRatePath(item.game.id);
   }

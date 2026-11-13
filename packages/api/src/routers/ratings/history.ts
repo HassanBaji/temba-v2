@@ -1,4 +1,14 @@
-import { and, desc, eq, inArray, lt, or, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  inArray,
+  lt,
+  lte,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { type AnyPgColumn } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
@@ -22,6 +32,7 @@ import { sportSchema } from "@repo/validators/sport";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
+import { levelConfirmations } from "#src/ratings/level-confirmed";
 import {
   ratingHistoryMatches,
   setsFromSideOf,
@@ -33,15 +44,39 @@ type DbClient = typeof db;
 
 const DEFAULT_PAGE_SIZE = 20;
 
-export type RatingHistoryCursor = { createdAt: Date; id: string };
+/**
+ * Where a page ended. `milestone` marks a "Level confirmed" line, which sits
+ * just before the Rated Match it is derived from, so that Match is still to
+ * come.
+ */
+export type RatingHistoryCursor = {
+  createdAt: Date;
+  id: string;
+  milestone?: boolean;
+};
 
-type Keyed = { id: string; createdAt: Date };
+/** A line's place: newest first, the id breaking a tie, a milestone first. */
+type Keyed = { id: string; createdAt: Date; milestone: boolean };
 
-/** Newest first; the id breaks a tie so a cursor never skips or repeats. */
 function newestFirst(a: Keyed, b: Keyed) {
   return (
     b.createdAt.getTime() - a.createdAt.getTime() ||
-    (a.id < b.id ? 1 : a.id > b.id ? -1 : 0)
+    (a.id < b.id ? 1 : a.id > b.id ? -1 : 0) ||
+    Number(b.milestone) - Number(a.milestone)
+  );
+}
+
+function afterCursor(entry: Keyed, cursor: RatingHistoryCursor | undefined) {
+  return (
+    !cursor ||
+    newestFirst(
+      {
+        id: cursor.id,
+        createdAt: cursor.createdAt,
+        milestone: cursor.milestone ?? false,
+      },
+      entry,
+    ) < 0
   );
 }
 
@@ -59,9 +94,11 @@ function shownAtIso(column: AnyPgColumn) {
   return sql<string>`to_char(${shownAt(column)}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`;
 }
 
+/** Rows past the cursor; `andAt` keeps the cursor's own row as well. */
 function olderThan(
   columns: { createdAt: AnyPgColumn; id: AnyPgColumn },
   cursor: RatingHistoryCursor | undefined,
+  andAt = false,
 ): SQL | undefined {
   if (!cursor) {
     return undefined;
@@ -69,7 +106,10 @@ function olderThan(
   const at = cursor.createdAt.toISOString();
   return or(
     lt(shownAt(columns.createdAt), at),
-    and(eq(shownAt(columns.createdAt), at), lt(columns.id, cursor.id)),
+    and(
+      eq(shownAt(columns.createdAt), at),
+      (andAt ? lte : lt)(columns.id, cursor.id),
+    ),
   );
 }
 
@@ -82,8 +122,11 @@ function shows(ladder: RatingHistoryLadder, part: "level" | "tier") {
  * Rated Matches (`rating_events`), Level overrides (`level_overrides`) and
  * tier Group moves (`group_tier_events`), newest first, keyset-paged across
  * all three. Manual changes carry who set them, by which door, the Venue a
- * Verifier calibrated from, the reason and the note. The Rank filter is
- * reserved for Official Rank and returns nothing. Only the caller's own.
+ * Verifier calibrated from, the reason and the note. A derived "Level
+ * confirmed" milestone sits just before the Match that confirmed each sport's
+ * Level, and a change of fish is its own line, whoever caused it. The Rank
+ * filter is reserved for Official Rank and returns nothing. Only the
+ * caller's own.
  */
 export async function ratingHistory(
   database: DbClient,
@@ -108,7 +151,8 @@ export async function ratingHistory(
   const level = shows(args.ladder, "level");
   const tier = shows(args.ladder, "tier") && sport !== "padel";
 
-  const [events, overrides, tierRows] = await Promise.all([
+  const [confirmations, events, overrides, tierRows] = await Promise.all([
+    level ? levelConfirmations(database, { userIds: [userId], sport }) : [],
     level
       ? database
           .select({
@@ -120,7 +164,7 @@ export async function ratingHistory(
             and(
               eq(ratingEvents.userId, userId),
               sport ? eq(ratingEvents.sport, sport) : undefined,
-              olderThan(ratingEvents, cursor),
+              olderThan(ratingEvents, cursor, cursor?.milestone),
             ),
           )
           .orderBy(desc(shownAt(ratingEvents.createdAt)), desc(ratingEvents.id))
@@ -172,40 +216,61 @@ export async function ratingHistory(
       : [],
   ]);
 
-  type Row =
-    | { source: "event"; id: string; createdAt: Date; row: (typeof events)[0] }
-    | {
-        source: "override";
-        id: string;
-        createdAt: Date;
-        row: (typeof overrides)[0];
-      }
-    | {
-        source: "tier";
-        id: string;
-        createdAt: Date;
-        row: (typeof tierRows)[0];
-      };
+  const confirmationByEvent = new Map(
+    confirmations.map((row) => [row.eventId, row]),
+  );
+  type Row = Keyed &
+    (
+      | { source: "event"; row: (typeof events)[0] }
+      | { source: "confirmed"; row: (typeof confirmations)[0] }
+      | { source: "override"; row: (typeof overrides)[0] }
+      | { source: "tier"; row: (typeof tierRows)[0] }
+    );
   const merged: Row[] = [
-    ...events.map((row) => ({
-      source: "event" as const,
-      id: row.event.id,
-      createdAt: new Date(row.shownAt),
-      row,
-    })),
-    ...overrides.map((row) => ({
-      source: "override" as const,
-      id: row.override.id,
-      createdAt: new Date(row.shownAt),
-      row,
-    })),
-    ...tierRows.map((row) => ({
-      source: "tier" as const,
-      id: row.event.id,
-      createdAt: new Date(row.shownAt),
-      row,
-    })),
-  ].sort(newestFirst);
+    ...events.flatMap((row): Row[] => {
+      const createdAt = new Date(row.shownAt);
+      const event: Row = {
+        source: "event",
+        id: row.event.id,
+        createdAt,
+        milestone: false,
+        row,
+      };
+      const confirmation = confirmationByEvent.get(row.event.id);
+      return confirmation
+        ? [
+            {
+              source: "confirmed",
+              id: row.event.id,
+              createdAt,
+              milestone: true,
+              row: confirmation,
+            },
+            event,
+          ]
+        : [event];
+    }),
+    ...overrides.map(
+      (row): Row => ({
+        source: "override",
+        id: row.override.id,
+        createdAt: new Date(row.shownAt),
+        milestone: false,
+        row,
+      }),
+    ),
+    ...tierRows.map(
+      (row): Row => ({
+        source: "tier",
+        id: row.event.id,
+        createdAt: new Date(row.shownAt),
+        milestone: false,
+        row,
+      }),
+    ),
+  ]
+    .filter((entry) => afterCursor(entry, cursor))
+    .sort(newestFirst);
   const page = merged.slice(0, limit);
   const last = page.at(-1);
 
@@ -275,6 +340,19 @@ export async function ratingHistory(
   const tierEntryById = new Map(tierEntries.map((entry) => [entry.id, entry]));
 
   const entries = page.flatMap((entry): RatingHistoryItemData[] => {
+    if (entry.source === "confirmed") {
+      const { row } = entry;
+      return [
+        {
+          kind: "level_confirmed",
+          id: row.eventId,
+          at: entry.createdAt,
+          sport: row.sport,
+          muAfter: row.muAfter,
+          matchesCounted: row.matchesCounted,
+        },
+      ];
+    }
     if (entry.source === "event") {
       const { event } = entry.row;
       const match = matchById.get(event.matchId);
@@ -356,7 +434,11 @@ export async function ratingHistory(
     entries,
     nextCursor:
       merged.length > limit && last
-        ? { createdAt: last.createdAt, id: last.id }
+        ? {
+            createdAt: last.createdAt,
+            id: last.id,
+            ...(last.milestone ? { milestone: true } : {}),
+          }
         : null,
   };
 }
@@ -367,7 +449,11 @@ export const historyProcedure = protectedProcedure
       sport: sportSchema.optional(),
       ladder: z.enum(RATING_HISTORY_LADDERS),
       cursor: z
-        .object({ createdAt: z.date(), id: z.string().uuid() })
+        .object({
+          createdAt: z.date(),
+          id: z.string().uuid(),
+          milestone: z.boolean().optional(),
+        })
         .optional(),
       limit: z.number().int().min(1).max(50).optional(),
     }),

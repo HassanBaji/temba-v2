@@ -427,6 +427,21 @@ export const rating = {
         `${group}، الآن ${isolate(placeOf)}`,
       bandDelta: "الفئة",
     },
+    confirmed: {
+      title: "تأكّد المستوى",
+      fifth: "المباراة الموثّقة الخامسة. لم يعد المسار مخطّطًا",
+      afterMatches: (n: number) =>
+        plural("ar", n, {
+          zero: "قبل أي مباراة موثّقة. لم يعد المسار مخطّطًا",
+          one: "بعد مباراة موثّقة واحدة. لم يعد المسار مخطّطًا",
+          two: "بعد مباراتين موثّقتين. لم يعد المسار مخطّطًا",
+          few: "بعد {n} مباريات موثّقة. لم يعد المسار مخطّطًا",
+          many: "بعد {n} مباراة موثّقة. لم يعد المسار مخطّطًا",
+          other: "بعد {n} مباراة موثّقة. لم يعد المسار مخطّطًا",
+        }),
+      set: "ثابت",
+      spoken: (level: string) => `تأكّد عند ${isolate(level)}`,
+    },
     deltaSpoken: (delta: string, after: string) =>
       `${isolate(delta)}، الآن ${isolate(after)}`,
     empty: {

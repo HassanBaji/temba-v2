@@ -12,6 +12,7 @@ import { productDaysBetween, zonedParts } from "./product-timezone";
 import { formatPerformanceRating } from "./performance-rating";
 import { isTierBand, tierBandLabel } from "./tier-bands";
 import { formatTierDelta } from "./tier-adjust";
+import { isSport, sportLabel } from "./sport";
 
 export type NotificationTitlePart = { text: string; strong: boolean };
 
@@ -300,6 +301,18 @@ export function notificationCopy(
         groupName(item.group, locale),
       ),
       subline: sub.tierPlaces,
+    };
+  }
+  if (
+    item.type === "level_confirmed" &&
+    item.audience === "player" &&
+    isSport(item.game?.sport)
+  ) {
+    return {
+      title: m.levelConfirmed(
+        sportLabel(item.game.sport, locale) ?? item.game.sport,
+      ),
+      subline: sub.levelConfirmed,
     };
   }
   if (

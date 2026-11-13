@@ -392,6 +392,17 @@ export const rating = {
         `${group}, now ${placeOf}`,
       bandDelta: "tier",
     },
+    confirmed: {
+      title: "Level confirmed",
+      fifth: "Fifth verified match. The track is no longer hatched",
+      afterMatches: (n: number) =>
+        plural("en", n, {
+          one: "After 1 verified match. The track is no longer hatched",
+          other: "After {n} verified matches. The track is no longer hatched",
+        }),
+      set: "set",
+      spoken: (level: string) => `Confirmed at ${level}`,
+    },
     deltaSpoken: (delta: string, after: string) => `${delta}, now ${after}`,
     empty: {
       all: "Nothing has moved your ratings yet.",

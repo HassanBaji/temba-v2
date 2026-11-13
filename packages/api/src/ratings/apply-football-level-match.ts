@@ -9,6 +9,7 @@ import {
 
 import { type db } from "#src/db";
 import { sideUserIds } from "#src/ratings/apply-tier-match";
+import { notifyLevelConfirmed } from "#src/ratings/level-confirmed";
 import {
   footballPhiAfterMatches,
   muFromOvr,
@@ -174,6 +175,7 @@ export async function applyFootballLevelMatch(
     votedMvpUserId: args.votedMvpUserId,
   });
 
+  const rated: string[] = [];
   for (const move of moves) {
     const row = rowByUser.get(move.userId);
     if (!row || alreadyRated.has(move.userId)) {
@@ -217,7 +219,13 @@ export async function applyFootballLevelMatch(
       .update(ratings)
       .set({ ...after, lastRatedAt: args.now, updatedAt: args.now })
       .where(eq(ratings.id, row.id));
+    rated.push(move.userId);
   }
+  await notifyLevelConfirmed(database, {
+    matchId: args.matchId,
+    sport: FOOTBALL,
+    userIds: rated,
+  });
 }
 
 function afterMove(

@@ -17,6 +17,7 @@ import {
   gameRatesGroup,
 } from "@repo/domain/game-rating-eligibility";
 import { applyTierMatch } from "#src/ratings/apply-tier-match";
+import { notifyLevelConfirmed } from "#src/ratings/level-confirmed";
 import { ratingWeightForGame } from "#src/ratings/game-rating-weight";
 import { openRatingWindow } from "#src/ratings/settle-rating-window";
 import {
@@ -342,6 +343,7 @@ async function applyTembaRatedMatch(
     { userId: slots.slot2[1], ...rated.slot2[1] },
   ];
 
+  const ratedUserIds: string[] = [];
   for (const player of players) {
     if (alreadyRated.has(player.userId)) {
       continue;
@@ -392,5 +394,11 @@ async function applyTembaRatedMatch(
       levelBand,
       now,
     });
+    ratedUserIds.push(player.userId);
   }
+  await notifyLevelConfirmed(database, {
+    matchId: match.id,
+    sport,
+    userIds: ratedUserIds,
+  });
 }

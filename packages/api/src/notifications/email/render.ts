@@ -1,5 +1,6 @@
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
+import { isSport } from "@repo/domain/sport";
 import {
   notificationCopy,
   type NotificationTitlePart,
@@ -29,7 +30,14 @@ export type NotificationEmailInput = Pick<
 export type NotificationEmail = { subject: string; html: string; text: string };
 
 type Destination = {
-  kind: "game" | "group" | "history" | "teams" | "challenges" | "disputes";
+  kind:
+    | "game"
+    | "group"
+    | "history"
+    | "teams"
+    | "challenges"
+    | "disputes"
+    | "ratings";
   path: string;
 };
 
@@ -51,6 +59,10 @@ export function notificationEmailDestination(
 ): Destination | null {
   if (item.type === "match_dispute_raised") {
     return { kind: "disputes", path: "/dashboard/operator/disputes" };
+  }
+  const sport = item.game?.sport;
+  if (item.type === "level_confirmed" && isSport(sport)) {
+    return { kind: "ratings", path: `/dashboard/you/ratings?sport=${sport}` };
   }
   if (item.type === "performance_ratings_open" && item.game) {
     return { kind: "game", path: `/dashboard/games/${item.game.id}/rate` };

@@ -9,7 +9,11 @@ import {
 } from "./format-game-start";
 import { groupDisplayName } from "./group-join";
 import { formatTierPoints } from "./group-members-table";
-import { formatPadelLevel, levelFromMu } from "./level";
+import {
+  formatPadelLevel,
+  levelFromMu,
+  RATED_MATCHES_TO_CONFIRM,
+} from "./level";
 import type { LevelOverrideReason } from "./level-slider";
 import { zonedParts } from "./product-timezone";
 import { sportLabel, type Sport } from "./sport";
@@ -284,10 +288,20 @@ type TierAdjustmentEntry = Extract<
 
 /**
  * One line of a User's own Rating history (screen 1c, ADR-0073): a Rated
- * Match or a Level override on the Level, or a Game, a Tier adjustment or a
- * change of fish in a tier Group.
+ * Match, a Level override or the derived "Level confirmed" milestone on the
+ * Level, or a Game, a Tier adjustment or a change of fish in a tier Group.
  */
 export type RatingHistoryItemData =
+  | {
+      kind: "level_confirmed";
+      /** The Rated Match's `rating_events` row the milestone sits on. */
+      id: string;
+      at: Date | string;
+      sport: Sport;
+      muAfter: number;
+      /** Counting Matches in the sport up to and including that one. */
+      matchesCounted: number;
+    }
   | {
       kind: "level_match";
       id: string;
@@ -345,10 +359,15 @@ export type RatingHistoryLine = {
   detail: string;
   /** Who made a manual change and why; null when nobody did. */
   byline: string | null;
-  /** The move: "+1", "−59", or "tier" for a change of fish. */
+  /**
+   * The move: "+1", "−59", "tier" for a change of fish, or the confirmed
+   * Level on a "Level confirmed" milestone.
+   */
   delta: string;
-  /** Where it left the number: "74", "1,201". */
+  /** Where it left the number: "74", "1,201", or "set" on the milestone. */
   after: string;
+  /** What `delta` and `after` say together, for a screen reader. */
+  valueSpoken: string;
   spoken: string;
 };
 
@@ -501,8 +520,23 @@ export function ratingHistoryLine(
   let byline: string | null = null;
   let delta: string;
   let after: string;
+  let valueSpoken: string | null = null;
 
-  if (item.kind === "level_match" || item.kind === "level_override") {
+  if (item.kind === "level_confirmed") {
+    const level = formatLevelFace(
+      item.sport,
+      levelFace(item.sport, item.muAfter),
+    );
+    icon = { kind: "level" };
+    title = m.confirmed.title;
+    detail =
+      item.matchesCounted === RATED_MATCHES_TO_CONFIRM
+        ? m.confirmed.fifth
+        : m.confirmed.afterMatches(item.matchesCounted);
+    delta = level;
+    after = m.confirmed.set;
+    valueSpoken = m.confirmed.spoken(level);
+  } else if (item.kind === "level_match" || item.kind === "level_override") {
     const before = levelFace(item.sport, item.muBefore);
     const afterFace = levelFace(item.sport, item.muAfter);
     delta = levelDelta(item.sport, before, afterFace);
@@ -562,17 +596,17 @@ export function ratingHistoryLine(
     }
   }
 
+  valueSpoken ??= m.deltaSpoken(delta, after);
   return {
-    key: item.id,
+    key: item.kind === "level_confirmed" ? `${item.id}:confirmed` : item.id,
     icon,
     title,
     detail,
     byline,
     delta,
     after,
-    spoken: [title, detail, byline, m.deltaSpoken(delta, after)]
-      .filter(Boolean)
-      .join(". "),
+    valueSpoken,
+    spoken: [title, detail, byline, valueSpoken].filter(Boolean).join(". "),
   };
 }
 

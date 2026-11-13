@@ -1,20 +1,26 @@
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
+import { isSport } from "@repo/domain/sport";
 
 import {
   gameRateHref,
   groupTierHistoryHref,
   OPERATOR_DISPUTES_HREF,
+  youRatingsHref,
 } from "~/lib/dashboard-paths";
 
 export function notificationHref(item: {
   type: string;
   group: { id: string } | null;
-  game?: { id: string } | null;
+  game?: { id: string; sport?: string | null } | null;
   challenge?: { id: string } | null;
 }): string | null {
   if (item.type === "match_dispute_raised") {
     return OPERATOR_DISPUTES_HREF;
+  }
+  const sport = item.game?.sport;
+  if (item.type === "level_confirmed" && isSport(sport)) {
+    return youRatingsHref(sport);
   }
   if (item.type === "performance_ratings_open" && item.game) {
     return gameRateHref(item.game.id);

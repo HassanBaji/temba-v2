@@ -53,7 +53,6 @@ function LineIcon({ icon }: { icon: RatingHistoryIcon }) {
 }
 
 function Line({ line }: { line: RatingHistoryLine }) {
-  const m = useMessages();
   return (
     <li className="border-rule flex items-start gap-3 border-t px-4 py-[13px] first:border-t-0">
       <LineIcon icon={line.icon} />
@@ -68,9 +67,7 @@ function Line({ line }: { line: RatingHistoryLine }) {
         ) : null}
       </div>
       <div className="shrink-0 text-end">
-        <span className="sr-only">
-          {m.rating.ratingHistory.deltaSpoken(line.delta, line.after)}
-        </span>
+        <span className="sr-only">{line.valueSpoken}</span>
         <p
           aria-hidden="true"
           className="font-expanded text-body font-bold tabular-nums"
