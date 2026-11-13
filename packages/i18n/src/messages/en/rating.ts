@@ -716,6 +716,12 @@ export const rating = {
         cancelled: "A cancelled match can’t be stamped.",
       },
     },
+    toStamp: {
+      title: "Matches to stamp",
+      note: "Scores entered at your venue, waiting to be agreed. Open one to stamp it.",
+      line: (venue: string, day: string | null) =>
+        day ? `${venue}, ${day}` : venue,
+    },
   },
   dispute: {
     action: "Dispute this result",

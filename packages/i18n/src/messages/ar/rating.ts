@@ -797,6 +797,12 @@ export const rating = {
         cancelled: "لا يمكن ختم مباراة ملغاة.",
       },
     },
+    toStamp: {
+      title: "مباريات تنتظر ختمك",
+      note: "نتائج سُجّلت في ناديك وتنتظر الاتفاق عليها. افتح إحداها لتختمها.",
+      line: (venue: string, day: string | null) =>
+        day ? `${venue}، ${day}` : venue,
+    },
   },
   dispute: {
     action: "اعترض على هذه النتيجة",

@@ -11,6 +11,7 @@ import { CabinetRow } from "~/components/marks/cabinet-row";
 import { FootballTab } from "~/components/you/football-tab";
 import { PadelTab } from "~/components/you/padel-tab";
 import { SetUpSportCard } from "~/components/you/set-up-sport-card";
+import { MatchesToStamp } from "~/components/you/matches-to-stamp";
 import { SportChips } from "~/components/you/you-chips";
 import {
   YouHeader,
@@ -72,6 +73,7 @@ export default function YouPage() {
               homeArea={details.data.homeArea}
               memberSince={details.data.createdAt}
             />
+            <MatchesToStamp />
             {sport === null ? (
               <SetUpSportCard />
             ) : (
