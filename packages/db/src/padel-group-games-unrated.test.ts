@@ -11,7 +11,7 @@ import { games, groups, matches, user, venues } from "./schema";
 const migration = readFileSync(
   join(
     dirname(fileURLToPath(import.meta.url)),
-    "../drizzle/0108_padel_group_games_unrated.sql",
+    "../drizzle/0112_padel_group_games_unrated.sql",
   ),
   "utf8",
 );

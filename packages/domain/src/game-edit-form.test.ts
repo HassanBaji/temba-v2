@@ -9,6 +9,7 @@ import {
   gameEditPlan,
   gameEditSeasonFix,
   gameEditSectionsFor,
+  gameEditVenueChoices,
   playersAllowedForSideSize,
   playersCapWaitNote,
   venueLockedLine,
@@ -38,6 +39,7 @@ const saved: GameEditDraft = {
   levelMax: "none",
   roundCount: null,
   seasonId: "s3",
+  venueId: "v1",
   courtId: "pitch-1",
 };
 
@@ -70,6 +72,7 @@ describe("gameEditDraftFrom", () => {
       levelMaxTenths: null,
       roundCount: null,
       seasonId: "s3",
+      venueId: "v1",
       recordedCourts: [{ id: "pitch-1" }],
     });
     expect(draft).toEqual({
@@ -84,6 +87,7 @@ describe("gameEditDraftFrom", () => {
       levelMax: "none",
       roundCount: null,
       seasonId: "s3",
+      venueId: "v1",
       courtId: "pitch-1",
     });
   });
@@ -114,7 +118,7 @@ describe("gameEditDraftFrom", () => {
     expect(football).toEqual({
       name: true,
       window: true,
-      court: true,
+      place: true,
       caps: true,
       price: true,
       level: false,
@@ -131,7 +135,7 @@ describe("gameEditDraftFrom", () => {
     ).toEqual({
       name: false,
       window: true,
-      court: false,
+      place: false,
       caps: false,
       price: true,
       level: true,
@@ -141,28 +145,29 @@ describe("gameEditDraftFrom", () => {
   });
 });
 
-describe("Court section", () => {
-  it("locks the Court of a booked or Challenge Game", () => {
+describe("place section", () => {
+  it("locks the place of a booked or Challenge Game", () => {
     const base = {
       format: "friendly_game",
       sport: "padel",
       groupId: null,
       tournamentRounds: false,
     };
-    expect(gameEditSectionsFor({ ...base, booked: true }).court).toBe(false);
-    expect(gameEditSectionsFor({ ...base, challenge: true }).court).toBe(false);
-    expect(gameEditSectionsFor(base).court).toBe(true);
+    expect(gameEditSectionsFor({ ...base, booked: true }).place).toBe(false);
+    expect(gameEditSectionsFor({ ...base, challenge: true }).place).toBe(false);
+    expect(gameEditSectionsFor(base).place).toBe(true);
   });
 
-  it("sends a Court change after the window and names a football one a pitch", () => {
+  it("sends the place after the window and names a football Court a pitch", () => {
     const draft = { ...saved, startTime: "20:00", courtId: "pitch-2" };
     const plan = gameEditPlan(saved, draft, football, "en");
     expect(plan.ok && plan.steps.map((step) => step.kind)).toEqual([
       "window",
-      "court",
+      "place",
     ]);
     expect(plan.ok && plan.steps[1]).toEqual({
-      kind: "court",
+      kind: "place",
+      venueId: "v1",
       courtId: "pitch-2",
     });
     expect(
@@ -176,6 +181,41 @@ describe("Court section", () => {
         "en",
       ),
     ).toBe("Court changed");
+  });
+
+  it("sends a new Venue with its Court and calls it a venue move", () => {
+    const draft = { ...saved, venueId: "v2", courtId: null };
+    expect(gameEditPlan(saved, draft, football, "en")).toMatchObject({
+      ok: true,
+      steps: [{ kind: "place", venueId: "v2", courtId: null }],
+    });
+    expect(gameEditChangeNote(saved, draft, football, "en")).toBe(
+      "Venue moved",
+    );
+  });
+
+  it("offers each Venue's Courts of the sport and keeps the Game's own Venue", () => {
+    const venues = [
+      {
+        id: "v2",
+        name: "Marina",
+        courts: [
+          { id: "p1", name: "Pitch 1", sport: "football" },
+          { id: "c1", name: "Court 1", sport: "padel" },
+        ],
+      },
+    ];
+    expect(
+      gameEditVenueChoices(venues, "football", { id: "v1", name: "Old" }),
+    ).toEqual([
+      { id: "v1", name: "Old", courts: [] },
+      { id: "v2", name: "Marina", courts: [{ id: "p1", name: "Pitch 1" }] },
+    ]);
+    expect(
+      gameEditVenueChoices(venues, "padel", { id: "v2", name: "Marina" }),
+    ).toEqual([
+      { id: "v2", name: "Marina", courts: [{ id: "c1", name: "Court 1" }] },
+    ]);
   });
 });
 

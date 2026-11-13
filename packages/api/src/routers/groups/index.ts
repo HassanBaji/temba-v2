@@ -43,6 +43,7 @@ import { revokeLookupInviteProcedure as revokeLookupInvite } from "./revokeLooku
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
 import { seasonStandingProcedure as seasonStanding } from "./seasonStanding";
 import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvite";
+import { setMemberNicknameProcedure as setMemberNickname } from "./setMemberNickname";
 import { setOrganizerProcedure as setOrganizer } from "./setOrganizer";
 import { setVerifiedProcedure as setVerified } from "./setVerified";
 import { tierHistoryProcedure as tierHistory } from "./tierHistory";
@@ -96,6 +97,7 @@ export const groupsRouter = createTRPCRouter({
   addPlayerByPhone,
   removeUnclaimedPlayer,
   removePlayer,
+  setMemberNickname,
   setOrganizer,
   listSeasons,
   createSeason,

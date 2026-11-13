@@ -18,6 +18,7 @@ import {
   poolLayout,
   poolSections,
   removeGoal,
+  lineupName,
   scorersNote,
   scorersPayload,
   shortName,
@@ -430,5 +431,43 @@ describe("footballHeroLines", () => {
     expect(
       footballHeroLines({ ...input, scored: true }, at(120), "ar").status,
     ).toBe("لُعبت");
+  });
+});
+
+describe("lineupName", () => {
+  const ahmed = { name: "Ahmed Nasser", isViewer: false };
+
+  it("reads the short Temba name without a Member nickname", () => {
+    expect(lineupName(ahmed, "en")).toEqual({
+      name: "Ahmed N",
+      spoken: "Ahmed N",
+      isNickname: false,
+    });
+  });
+
+  it("reads the Member nickname in full and says whose it is", () => {
+    expect(
+      lineupName(
+        { ...ahmed, nickname: { name: "Ahmed keeper", visibility: "group" } },
+        "en",
+      ),
+    ).toEqual({
+      name: "Ahmed keeper",
+      spoken: "Ahmed keeper, this Group's name for Ahmed Nasser",
+      isNickname: true,
+    });
+  });
+
+  it("calls the viewer You, nickname or not", () => {
+    expect(
+      lineupName(
+        {
+          ...ahmed,
+          isViewer: true,
+          nickname: { name: "Ahmed keeper", visibility: "group" },
+        },
+        "en",
+      ).name,
+    ).toBe("You");
   });
 });

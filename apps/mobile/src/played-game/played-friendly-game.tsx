@@ -22,6 +22,8 @@ import { MarksSection } from "../marks/marks-section";
 import { MvpRow } from "../marks/mvp-row";
 import { useGameMarks } from "../marks/use-game-marks";
 import { MatchDisputeSection } from "./match-dispute-section";
+import { GameAlbumSections } from "../game-album/game-album-sections";
+import { useGameAlbum } from "../game-album/use-game-album";
 import { PlayedGameView } from "./played-game-view";
 import { PlayedMenuSheet, type PlayedMenuItem } from "./played-menu-sheet";
 import { PlayedPadelBoard } from "./played-padel-board";
@@ -43,6 +45,7 @@ export function PlayedFriendlyGame({
   organizer,
   onOpenPlayer,
   onRenameUnclaimed,
+  openAddPhotos = false,
 }: {
   gameId: string;
   game: FriendlyGameDetails;
@@ -52,6 +55,8 @@ export function PlayedFriendlyGame({
   organizer: Organizer;
   onOpenPlayer?: (userId: string) => void;
   onRenameUnclaimed?: (player: { userId: string; name: string }) => void;
+  /** Opened from the Played list's Add photos. */
+  openAddPhotos?: boolean;
 }) {
   const router = useRouter();
   const locale = useLocale();
@@ -59,6 +64,7 @@ export function PlayedFriendlyGame({
   const [menuOpen, setMenuOpen] = useState(false);
   const [selected, setSelected] = useState<PlayedRow | null>(null);
   const marks = useGameMarks(gameId);
+  const album = useGameAlbum(gameId);
 
   const model = useMemo(
     () =>
@@ -139,6 +145,14 @@ export function PlayedFriendlyGame({
         }
         heroFooter={<MvpRow marks={marks} onOpenPlayer={onOpenPlayer} />}
         marks={<MarksSection marks={marks} />}
+        album={
+          <GameAlbumSections
+            album={album}
+            place={model.venueLine ?? ""}
+            context={model.dateLine}
+            openAdd={openAddPhotos}
+          />
+        }
         columns={model.columns}
         facts={model.facts}
         dispute={<MatchDisputeSection match={match} />}
@@ -146,6 +160,7 @@ export function PlayedFriendlyGame({
         onRefresh={() => {
           onRefresh();
           void marks.refetch();
+          void album.refetch();
         }}
         onShare={() => router.push(sharePath(gameId))}
         onMore={menuItems.length > 0 ? () => setMenuOpen(true) : undefined}

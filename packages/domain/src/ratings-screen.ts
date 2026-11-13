@@ -175,7 +175,8 @@ export type RatingsScreenView = {
   order: RatingsSection[];
 };
 
-function signedChange(delta: number, face: LevelFace) {
+/** A Level change on the sport's face: whole OVR points, or two decimals. */
+export function signedLevelChange(delta: number, face: LevelFace) {
   const decimals = face === "ovr" ? 0 : 2;
   const amount = Math.abs(delta).toFixed(decimals);
   if (Number(amount) === 0) {
@@ -249,7 +250,7 @@ export function ratingsLevelView(
   const changeData = data.changeOverLast;
   const change = changeData
     ? (() => {
-        const delta = signedChange(changeData.delta, data.face);
+        const delta = signedLevelChange(changeData.delta, data.face);
         return {
           delta,
           caption: m.lastCount(changeData.matches),

@@ -580,6 +580,76 @@ describe("tournament scores", () => {
     });
   });
 
+  it("takes the score of an Organizer playing in the Match as final", async () => {
+    await withDb(async (database) => {
+      const seeded = await postedRound1(database);
+      const game = await database.query.games.findFirst({
+        where: eq(games.id, seeded.gameId),
+      });
+      await database
+        .update(groups)
+        .set({ createdBy: seeded.players[0]!.id })
+        .where(eq(groups.id, game!.groupId!));
+
+      const result = await enterTournamentScore(database, {
+        gameId: seeded.gameId,
+        matchId: seeded.match.matchId!,
+        userId: seeded.players[0]!.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 3,
+      });
+
+      expect(result.final).toBe(true);
+      const match = await database.query.matches.findFirst({
+        where: eq(matches.id, seeded.match.matchId!),
+      });
+      expect(match?.status).toBe("completed");
+      expect(jobs.added.map((job) => job.key)).not.toContain(
+        scoreStandsJobKey(seeded.match.matchId!),
+      );
+    });
+  });
+
+  it("lets an Organizer playing in the Match confirm their teammate's score", async () => {
+    await withDb(async (database) => {
+      const seeded = await postedRound1(database);
+      const game = await database.query.games.findFirst({
+        where: eq(games.id, seeded.gameId),
+      });
+      await database
+        .update(groups)
+        .set({ createdBy: seeded.players[0]!.id })
+        .where(eq(groups.id, game!.groupId!));
+      await enterTournamentScore(database, {
+        gameId: seeded.gameId,
+        matchId: seeded.match.matchId!,
+        userId: seeded.teammate.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 3,
+      });
+
+      const view = await tournamentRounds(database, {
+        gameId: seeded.gameId,
+        userId: seeded.players[0]!.id,
+      });
+      const row = view.rounds[0]!.matches.find(
+        (match) => match.matchId === seeded.match.matchId,
+      )!;
+      expect(row.state).toBe("awaiting_confirmation");
+      expect(row.canConfirm).toBe(true);
+
+      await confirmMatchResult(database, {
+        gameId: seeded.gameId,
+        matchId: seeded.match.matchId!,
+        userId: seeded.players[0]!.id,
+      });
+      const match = await database.query.matches.findFirst({
+        where: eq(matches.id, seeded.match.matchId!),
+      });
+      expect(match?.status).toBe("completed");
+    });
+  });
+
   it("marks a Match not finished, clearing its score until a new one", async () => {
     await withDb(async (database) => {
       const seeded = await postedRound1(database);

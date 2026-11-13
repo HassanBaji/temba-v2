@@ -6,6 +6,7 @@ import type { GroupMemberTierData, GroupTierSummaryData } from "./group-data";
 import { groupHomeShowsMemberSearch } from "./group-home-chrome";
 import { tierBandLabel, type TierBand } from "./tier-bands";
 import { TIER_PROVISIONAL_GAMES } from "./tier-points";
+import { memberMatchesQuery, type MemberNicknameData } from "./member-nickname";
 
 /**
  * The Members tab table (design "Group members" 2a–2f, Seasons revision):
@@ -302,6 +303,7 @@ export function asGroupMemberFilter(value: unknown): GroupMemberFilter | null {
 type LensMember = DatedMember & {
   isOrganizer: boolean;
   unclaimed: boolean;
+  nickname?: MemberNicknameData | null;
 };
 
 export type GroupMembersLensInput = {
@@ -341,12 +343,11 @@ export function groupMembersLens<T extends LensMember>(
       ? input.filter
       : "all";
   const needle = showControls ? input.query.trim() : "";
-  const lowered = needle.toLowerCase();
   const rows = sortGroupMembersBy(
     members.filter(
       (member) =>
         groupMemberMatchesFilter(member, filter, input.now) &&
-        (member.name ?? "").toLowerCase().includes(lowered),
+        memberMatchesQuery(member, needle),
     ),
     sort,
     input.locale,

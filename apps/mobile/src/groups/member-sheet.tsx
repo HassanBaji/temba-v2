@@ -17,10 +17,12 @@ import type { MemberSheetView } from "./group-home-model";
 export function MemberSheet({
   member,
   onClose,
+  onCall,
   onSetLevel,
   onViewProfile,
   onAdjustTier,
   onTierHistory,
+  onNickname,
   organizerLabel,
   organizerHint,
   onOrganizerAction,
@@ -29,12 +31,15 @@ export function MemberSheet({
 }: {
   member: MemberSheetView | null;
   onClose: () => void;
+  onCall?: (href: string) => void;
   onSetLevel?: () => void;
   onViewProfile?: () => void;
   /** An Organizer of a tier Group moves this member's Tier points. */
   onAdjustTier?: () => void;
   /** An Organizer of a tier Group reads what moved this member's points. */
   onTierHistory?: () => void;
+  /** Opens "Name in this Group" (design "Group names" 1b). */
+  onNickname?: () => void;
   organizerLabel?: string;
   organizerHint?: string;
   onOrganizerAction?: () => void;
@@ -42,8 +47,17 @@ export function MemberSheet({
   onRemove?: () => void;
 }) {
   const m = useMessages();
+  const phoneHref = member?.phoneHref;
   const rows = member
     ? [
+        phoneHref && onCall ? (
+          <SheetMenuRow
+            key="call"
+            label={m.mobileGroup.members.sheet.call}
+            hint={member.phone}
+            onPress={() => onCall(phoneHref)}
+          />
+        ) : null,
         onViewProfile ? (
           <SheetMenuRow
             key="profile"
@@ -68,6 +82,16 @@ export function MemberSheet({
             hint={m.rating.adjust.menuHint}
             trailing="chevron"
             onPress={onAdjustTier}
+          />
+        ) : null,
+        onNickname ? (
+          <SheetMenuRow
+            key="nickname"
+            label={m.mobileGroup.nickname.menuLabel}
+            hint={m.mobileGroup.nickname.menuHint}
+            value={member.nickname ?? m.mobileGroup.nickname.notSet}
+            trailing="chevron"
+            onPress={onNickname}
           />
         ) : null,
         onSetLevel ? (
@@ -123,9 +147,9 @@ export function MemberSheet({
                   style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                 >
                   <NotOnTembaMark />
-                  {member.phoneMasked ? (
+                  {member.phone || member.phoneMasked ? (
                     <Text size="meta" tone="muted" ltr>
-                      {member.phoneMasked}
+                      {member.phone ?? member.phoneMasked}
                     </Text>
                   ) : null}
                 </View>

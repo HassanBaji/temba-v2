@@ -1,6 +1,9 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+/** What moved the Level into a history point: a Rated Match outcome or a set. */
+export type LevelHistoryStep = "won" | "drawn" | "lost" | "set";
+
 export const HOME_CHART_WIDTH = 100;
 export const HOME_CHART_HEIGHT = 58;
 

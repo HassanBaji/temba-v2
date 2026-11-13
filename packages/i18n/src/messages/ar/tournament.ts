@@ -567,6 +567,78 @@ export const tournament = {
     viewKnockout: "اعرض خروج المغلوب",
     viewGroup: "اعرض المجموعة",
   },
+  gamesCard: {
+    roundOfCount: (roundNumber: number, roundCount: number) =>
+      `الجولة ${roundNumber} من ${roundCount}`,
+    allRoundsPlayed: "لُعبت كل الجولات",
+    dayLine: (relativeDay: string, day: string) => `${relativeDay}، ${day}`,
+    untilClock: (clock: string) => `حتى ${clock}`,
+    courtsCount: (n: number) =>
+      plural("ar", n, {
+        one: "ملعب واحد",
+        two: "ملعبان",
+        few: "{n} ملاعب",
+        many: "{n} ملعبًا",
+        other: "{n} ملعب",
+      }),
+    groupPlace: (label: string, place: string, size: number) =>
+      `المجموعة ${label}، ${place} من ${size}`,
+    groupPlaceSoFar: (label: string, place: string, size: number) =>
+      `المجموعة ${label}، ${place} من ${size} حتى الآن`,
+    yourRounds: "جولاتك",
+    roundsTonight: (n: number) => `${roundsWord(n)} الليلة`,
+    roundsCount: (n: number) => roundsWord(n),
+    playedWon: (played: number, won: number) =>
+      `لُعبت ${played}، فزت في ${won}`,
+    next: "التالية",
+    onCourt: "في الملعب",
+    noScore: "بلا نتيجة",
+    cancelled: "أُلغيت",
+    withCourt: (line: string, court: string) => `${line}، ${isolate(court)}`,
+    firstUp: (opponent: string) => `أولًا: ${opponent}`,
+    nextUp: (opponent: string) => `التالية: ${opponent}`,
+    playing: (opponent: string) => `تلعب ضد ${opponent}`,
+    firstUpBody: (rounds: number) =>
+      `${roundsWord(rounds)}، بطاقة واحدة لليلة كلها. تُدخل النتائج من هنا.`,
+    roundsToGo: (n: number) => `باقٍ ${roundsWord(n)}.`,
+    playingBody: "أدخل النتيجة عندما تنتهي.",
+    playingBodyThenNext: (opponent: string) =>
+      `أدخل النتيجة عندما تنتهي. التالية ضد ${opponent}.`,
+    playingBodyThenNextOnCourt: (opponent: string, court: string) =>
+      `أدخل النتيجة عندما تنتهي. التالية ضد ${opponent}، في ${isolate(court)}.`,
+    details: "التفاصيل",
+    viewTournament: "اعرض البطولة",
+    tournament: "البطولة",
+    enterScore: "أدخل النتيجة",
+    place: (n: number) => `المركز ${n}`,
+    ofTeams: (size: number) => `من ${teamsWord(size)}`,
+    ofTeamsInGroup: (size: number, label: string) =>
+      `من ${size} في المجموعة ${label}`,
+    soFar: "حتى الآن",
+    withPartner: (name: string) => `مع ${name}`,
+    record: (won: number, drawn: number, lost: number) =>
+      drawn > 0
+        ? `فوز ${won}، تعادل ${drawn}، خسارة ${lost}.`
+        : `فوز ${won}، خسارة ${lost}.`,
+    wonIt: (pair: string) => `فاز بها ${pair}`,
+    noScoreYet: (n: number) =>
+      plural("ar", n, {
+        one: "جولة واحدة بلا نتيجة بعد",
+        two: "جولتان بلا نتيجة بعد",
+        few: "{n} جولات بلا نتيجة بعد",
+        many: "{n} جولة بلا نتيجة بعد",
+        other: "{n} جولة بلا نتيجة بعد",
+      }),
+    roundHasNoScore: (round: string) => `${round} بلا نتيجة`,
+    roundsHaveNoScore: (n: number) => `${roundsWord(n)} بلا نتيجة`,
+    addScore: "أضف النتيجة",
+    cellWon: (score: string) => (score ? `فوز ${score}` : "فوز"),
+    cellLost: (score: string) => (score ? `خسارة ${score}` : "خسارة"),
+    cellDrew: (score: string) => (score ? `تعادل ${score}` : "تعادل"),
+    cellLabel: (round: string, state: string, opponent: string) =>
+      opponent ? `${round}، ${state}، ضد ${opponent}` : `${round}، ${state}`,
+    later: "لاحقًا",
+  },
   details: {
     fallbackName: "بطولة",
     minutes: (n: number) => `${n} دقيقة`,

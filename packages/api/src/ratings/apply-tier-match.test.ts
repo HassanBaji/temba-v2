@@ -30,6 +30,7 @@ import {
   type FootballFixture,
 } from "#src/ratings/group-rated-match.test-support";
 import { applyRatedMatch } from "#src/ratings/apply-rated-match";
+import { addGuestPlayer } from "#src/routers/games/addGuestPlayer";
 import { completeMatch } from "#src/routers/games/completeMatch";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { footballBoard } from "#src/routers/games/footballBoard";
@@ -90,6 +91,36 @@ async function withDb(run: (database: TestDatabase) => Promise<void>) {
 }
 
 describe("Tier points on a completed football Match (ADR-0067)", () => {
+  it("gives a Guest player no Tier points (ADR-0079)", async () => {
+    await withDb(async (db) => {
+      const f = await footballGame(db);
+      const a = await addMember(f, "a");
+      const b = await addMember(f, "b");
+      const c = await addMember(f, "c");
+      const guest = await addGuestPlayer(db, {
+        gameId: f.gameId,
+        organizerUserId: f.organizerId,
+        name: "Fahad",
+      });
+      const matchId = await playScore(f, [a, b], [c, guest.userId], {
+        slot1: 3,
+        slot2: 1,
+      });
+
+      const events = (await tierEvents(db, matchId)).filter(
+        (event) => event.kind === "game",
+      );
+      expect(events.map((event) => event.userId).sort()).toEqual(
+        [a, b, c].sort(),
+      );
+      expect(
+        await db.query.groupTierPoints.findFirst({
+          where: eq(groupTierPoints.userId, guest.userId),
+        }),
+      ).toBeUndefined();
+    });
+  });
+
   it("writes one game event per seated player, Unclaimed included, and no Rating event", async () => {
     await withDb(async (db) => {
       const f = await footballGame(db);

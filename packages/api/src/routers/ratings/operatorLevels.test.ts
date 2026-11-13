@@ -326,19 +326,40 @@ describe("setLevelAsOperator", () => {
     }
   });
 
-  it("refuses the Operator's own Level and an unknown player", async () => {
+  it("sets the Operator's own Level", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const operator = await insertUser(db, "Operator");
 
-      await expect(
-        setLevelAsOperator(db, {
-          operatorUserId: operator.id,
-          targetUserId: operator.id,
-          sport: "padel",
-          levelTenths: 40,
-        }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      const result = await setLevelAsOperator(db, {
+        operatorUserId: operator.id,
+        targetUserId: operator.id,
+        sport: "padel",
+        levelTenths: 40,
+        reason: "correcting_a_mistake",
+      });
+
+      expect(result.level.level).toBe("4.0");
+      const rating = await ratingFor(db, operator.id, GroupSportEnum.PADEL);
+      expect(rating?.mu).toBeCloseTo(muFromLevel(4));
+      const [override] = await db
+        .select()
+        .from(levelOverrides)
+        .where(eq(levelOverrides.userId, operator.id));
+      expect(override).toMatchObject({
+        setByUserId: operator.id,
+        groupId: null,
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses an unknown player", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const operator = await insertUser(db, "Operator");
+
       await expect(
         setLevelAsOperator(db, {
           operatorUserId: operator.id,

@@ -22,6 +22,8 @@ export type PlayerMatchPlayer = {
   levelBand: LevelBand | null;
   level: string | null;
   provisional: boolean;
+  /** A Guest player: a name only, with no profile to open. */
+  guest?: boolean;
 };
 
 export type PlayerMatchGame = {
@@ -337,6 +339,7 @@ export type PlayerMatchSheetPlayer = {
   image: string | null;
   /** "B 4.2", or null for the hatched placeholder while Provisional or unrated. */
   level: string | null;
+  guest: boolean;
   accessibilityLabel: string;
 };
 
@@ -382,6 +385,7 @@ function sheetPlayer(
     name: player.name,
     image: player.image,
     level,
+    guest: player.guest === true,
     accessibilityLabel: level
       ? m.playerLevel(player.name, level)
       : m.playerProvisional(player.name),

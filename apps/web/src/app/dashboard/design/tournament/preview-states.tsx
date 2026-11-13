@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { StepperField } from "~/components/games/stepper-field";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import { TournamentHome } from "~/components/games/tournament-home";
+import { ScaledCanvas } from "~/components/share-result/scaled-canvas";
+import {
+  TOURNAMENT_CARD_SIZE,
+  TournamentShareCard,
+} from "~/components/share-result/tournament-share-card";
 import {
   HomeTournamentMatchCard,
   TournamentMatchCard,
@@ -22,6 +27,7 @@ import { formatGameClock } from "@repo/domain/format-game-start";
 import { zonedDateTimeToInstant } from "@repo/domain/product-timezone";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import type { TournamentMatchPhase } from "@repo/domain/tournament-card";
+import { tournamentShareCard } from "@repo/domain/tournament-finished";
 import {
   courtCountValue,
   defaultPoolCount,
@@ -119,6 +125,16 @@ export function TournamentPreviewStates({
             data={fixtures.postedMid}
             rounds="live"
           />
+          <PreviewColumn
+            title="Player, finished"
+            data={fixtures.finished}
+            rounds="finished"
+          />
+          <PreviewColumn
+            title="Organizer, finished"
+            data={{ ...fixtures.finished, isOrganizer: true }}
+            rounds="finished"
+          />
         </div>
       </section>
       <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-3">
@@ -145,8 +161,22 @@ export function TournamentPreviewStates({
         <PreviewColumn
           title="Finished, group winner"
           data={fixtures.finished}
+          rounds="finished"
         />
       </div>
+      <section className="space-y-4">
+        <h2 className="text-title font-semibold">Finished share card</h2>
+        <div className="grid items-start gap-10 lg:grid-cols-2">
+          <div className="max-w-column w-full" data-preview="share-placing">
+            <ShareCardPreview data={fixtures.finished} />
+          </div>
+          <div className="max-w-column w-full" data-preview="share-table">
+            <ShareCardPreview
+              data={{ ...fixtures.finished, isOrganizer: true }}
+            />
+          </div>
+        </div>
+      </section>
       <section className="space-y-4">
         <h2 className="text-title font-semibold">Games list card</h2>
         <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-4">
@@ -247,6 +277,23 @@ function PreviewColumn({
       <h2 className="text-title font-semibold">{title}</h2>
       <TournamentHomePreview data={data} rounds={rounds} />
     </div>
+  );
+}
+
+function ShareCardPreview({ data }: { data: TournamentFixture }) {
+  const canvasRef = useRef<HTMLDivElement | null>(null);
+  const card = tournamentShareCard(data, "en");
+  if (!card) {
+    return null;
+  }
+  return (
+    <ScaledCanvas
+      canvasRef={canvasRef}
+      canvasWidth={TOURNAMENT_CARD_SIZE}
+      canvasHeight={TOURNAMENT_CARD_SIZE}
+    >
+      <TournamentShareCard card={card} />
+    </ScaledCanvas>
   );
 }
 

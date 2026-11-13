@@ -1,6 +1,6 @@
 {
-  "id": "d89c955d-987e-433f-b8af-bcd9258cfee9",
-  "prevId": "a4b420f9-0fe3-45f8-91cd-7bf8f66f4a33",
+  "id": "eda31768-e5e4-4a42-a79a-3375617cec4f",
+  "prevId": "cf4a0724-9b27-499a-8bfb-dcc467ea59c2",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1519,433 +1519,6 @@
           "columns": [
             "user_id",
             "group_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.group_tier_events": {
-      "name": "group_tier_events",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "group_id": {
-          "name": "group_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "tier_event_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "match_id": {
-          "name": "match_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "result_delta": {
-          "name": "result_delta",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "performance_delta": {
-          "name": "performance_delta",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "delta": {
-          "name": "delta",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "points_before": {
-          "name": "points_before",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "points_after": {
-          "name": "points_after",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rating_hundredths": {
-          "name": "rating_hundredths",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "usual_hundredths": {
-          "name": "usual_hundredths",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "expected_score": {
-          "name": "expected_score",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "band_before": {
-          "name": "band_before",
-          "type": "tier_band",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "band_after": {
-          "name": "band_after",
-          "type": "tier_band",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "place_after": {
-          "name": "place_after",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ranked_count": {
-          "name": "ranked_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "set_by_user_id": {
-          "name": "set_by_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reason": {
-          "name": "reason",
-          "type": "level_override_reason",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "note": {
-          "name": "note",
-          "type": "varchar(140)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "group_tier_events_user_id_match_id_game": {
-          "name": "group_tier_events_user_id_match_id_game",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "match_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"group_tier_events\".\"kind\" = 'game'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "group_tier_events_user_id_group_id_created_at_idx": {
-          "name": "group_tier_events_user_id_group_id_created_at_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "group_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "group_tier_events_group_id_created_at_idx": {
-          "name": "group_tier_events_group_id_created_at_idx",
-          "columns": [
-            {
-              "expression": "group_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "group_tier_events_match_id_idx": {
-          "name": "group_tier_events_match_id_idx",
-          "columns": [
-            {
-              "expression": "match_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "group_tier_events_set_by_user_id_idx": {
-          "name": "group_tier_events_set_by_user_id_idx",
-          "columns": [
-            {
-              "expression": "set_by_user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "group_tier_events_group_id_groups_id_fk": {
-          "name": "group_tier_events_group_id_groups_id_fk",
-          "tableFrom": "group_tier_events",
-          "tableTo": "groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "group_tier_events_user_id_user_id_fk": {
-          "name": "group_tier_events_user_id_user_id_fk",
-          "tableFrom": "group_tier_events",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "group_tier_events_match_id_matches_id_fk": {
-          "name": "group_tier_events_match_id_matches_id_fk",
-          "tableFrom": "group_tier_events",
-          "tableTo": "matches",
-          "columnsFrom": [
-            "match_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "group_tier_events_set_by_user_id_user_id_fk": {
-          "name": "group_tier_events_set_by_user_id_user_id_fk",
-          "tableFrom": "group_tier_events",
-          "tableTo": "user",
-          "columnsFrom": [
-            "set_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.group_tier_points": {
-      "name": "group_tier_points",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "group_id": {
-          "name": "group_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "points": {
-          "name": "points",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1200
-        },
-        "games_counted": {
-          "name": "games_counted",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "confirmed_at": {
-          "name": "confirmed_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "band": {
-          "name": "band",
-          "type": "tier_band",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "group_tier_points_user_id_idx": {
-          "name": "group_tier_points_user_id_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "group_tier_points_group_id_groups_id_fk": {
-          "name": "group_tier_points_group_id_groups_id_fk",
-          "tableFrom": "group_tier_points",
-          "tableTo": "groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "group_tier_points_user_id_user_id_fk": {
-          "name": "group_tier_points_user_id_user_id_fk",
-          "tableFrom": "group_tier_points",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "group_tier_points_group_id_user_id_unique": {
-          "name": "group_tier_points_group_id_user_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "group_id",
-            "user_id"
           ]
         }
       },
@@ -5975,6 +5548,231 @@
       },
       "isRLSEnabled": false
     },
+    "public.game_notes": {
+      "name": "game_notes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "game_id": {
+          "name": "game_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "author_user_id": {
+          "name": "author_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "varchar(300)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "visibility": {
+          "name": "visibility",
+          "type": "game_note_visibility",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "game_notes_author_user_id_created_at_idx": {
+          "name": "game_notes_author_user_id_created_at_idx",
+          "columns": [
+            {
+              "expression": "author_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "game_notes_game_id_games_id_fk": {
+          "name": "game_notes_game_id_games_id_fk",
+          "tableFrom": "game_notes",
+          "tableTo": "games",
+          "columnsFrom": [
+            "game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "game_notes_author_user_id_user_id_fk": {
+          "name": "game_notes_author_user_id_user_id_fk",
+          "tableFrom": "game_notes",
+          "tableTo": "user",
+          "columnsFrom": [
+            "author_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "game_notes_game_author_unique": {
+          "name": "game_notes_game_author_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "game_id",
+            "author_user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "game_notes_body_not_blank_check": {
+          "name": "game_notes_body_not_blank_check",
+          "value": "length(btrim(\"game_notes\".\"body\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.game_photos": {
+      "name": "game_photos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "game_id": {
+          "name": "game_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uploader_user_id": {
+          "name": "uploader_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "game_photos_game_id_created_at_idx": {
+          "name": "game_photos_game_id_created_at_idx",
+          "columns": [
+            {
+              "expression": "game_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "game_photos_uploader_user_id_idx": {
+          "name": "game_photos_uploader_user_id_idx",
+          "columns": [
+            {
+              "expression": "uploader_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "game_photos_game_id_games_id_fk": {
+          "name": "game_photos_game_id_games_id_fk",
+          "tableFrom": "game_photos",
+          "tableTo": "games",
+          "columnsFrom": [
+            "game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "game_photos_uploader_user_id_user_id_fk": {
+          "name": "game_photos_uploader_user_id_user_id_fk",
+          "tableFrom": "game_photos",
+          "tableTo": "user",
+          "columnsFrom": [
+            "uploader_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.game_member_invites": {
       "name": "game_member_invites",
       "schema": "",
@@ -6556,28 +6354,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "performance_rating_mode": {
-          "name": "performance_rating_mode",
-          "type": "performance_rating_mode",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'off'"
-        },
-        "performance_weight_percent": {
-          "name": "performance_weight_percent",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 30
-        },
-        "organizer_counts_double": {
-          "name": "organizer_counts_double",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -6651,12 +6427,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "groups_performance_weight_percent_check": {
-          "name": "groups_performance_weight_percent_check",
-          "value": "\"groups\".\"performance_weight_percent\" in (20, 30, 50)"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.group_members": {
@@ -6710,6 +6481,32 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "nickname": {
+          "name": "nickname",
+          "type": "varchar(24)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nickname_visibility": {
+          "name": "nickname_visibility",
+          "type": "member_nickname_visibility",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'approvers'"
+        },
+        "nickname_updated_by_id": {
+          "name": "nickname_updated_by_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nickname_updated_at": {
+          "name": "nickname_updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -6768,6 +6565,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "group_members_nickname_updated_by_id_user_id_fk": {
+          "name": "group_members_nickname_updated_by_id_user_id_fk",
+          "tableFrom": "group_members",
+          "tableTo": "user",
+          "columnsFrom": [
+            "nickname_updated_by_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -8989,12 +8799,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "group_tier_event_id": {
-          "name": "group_tier_event_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "via_waitlist": {
           "name": "via_waitlist",
           "type": "boolean",
@@ -9150,21 +8954,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "notifications_group_tier_event_id_idx": {
-          "name": "notifications_group_tier_event_id_idx",
-          "columns": [
-            {
-              "expression": "group_tier_event_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -9271,19 +9060,6 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
-        },
-        "notifications_group_tier_event_id_group_tier_events_id_fk": {
-          "name": "notifications_group_tier_event_id_group_tier_events_id_fk",
-          "tableFrom": "notifications",
-          "tableTo": "group_tier_events",
-          "columnsFrom": [
-            "group_tier_event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -9366,25 +9142,6 @@
         "plays_below_results",
         "back_from_injury",
         "correcting_a_mistake"
-      ]
-    },
-    "public.tier_band": {
-      "name": "tier_band",
-      "schema": "public",
-      "values": [
-        "safi",
-        "kanaad",
-        "hamour",
-        "shark"
-      ]
-    },
-    "public.tier_event_kind": {
-      "name": "tier_event_kind",
-      "schema": "public",
-      "values": [
-        "game",
-        "adjustment",
-        "band_change"
       ]
     },
     "public.booking_cancelled_by": {
@@ -9605,6 +9362,14 @@
         "good_game"
       ]
     },
+    "public.game_note_visibility": {
+      "name": "game_note_visibility",
+      "schema": "public",
+      "values": [
+        "public",
+        "private"
+      ]
+    },
     "public.game_level_range_request_status": {
       "name": "game_level_range_request_status",
       "schema": "public",
@@ -9638,13 +9403,12 @@
         "private"
       ]
     },
-    "public.performance_rating_mode": {
-      "name": "performance_rating_mode",
+    "public.member_nickname_visibility": {
+      "name": "member_nickname_visibility",
       "schema": "public",
       "values": [
-        "off",
-        "organizer",
-        "everyone"
+        "approvers",
+        "group"
       ]
     },
     "public.challenge_status": {
@@ -9760,8 +9524,7 @@
         "challenge_rematch_nudge",
         "match_score_to_confirm",
         "game_moved_to_waitlist",
-        "tier_points_adjusted",
-        "tier_band_changed"
+        "game_team_changed"
       ]
     }
   },

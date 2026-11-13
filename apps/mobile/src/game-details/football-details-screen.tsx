@@ -72,6 +72,8 @@ import { InviteIconEntry } from "../invites/invite-entry";
 import { MarksSection } from "../marks/marks-section";
 import { MvpRow } from "../marks/mvp-row";
 import { useGameMarks } from "../marks/use-game-marks";
+import { GameAlbumSections } from "../game-album/game-album-sections";
+import { useGameAlbum } from "../game-album/use-game-album";
 import { PlayedFootballBoard } from "../played-game/played-football-board";
 import { sharePath } from "../played-game/played-friendly-game";
 import { MatchDisputeSection } from "../played-game/match-dispute-section";
@@ -144,12 +146,15 @@ export function FootballGameDetails({
   gameId,
   game,
   openJoin,
+  openAddPhotos = false,
   refreshing,
   onRefresh,
 }: {
   gameId: string;
   game: FootballGame;
   openJoin: boolean;
+  /** Opened from the Played list's Add photos. */
+  openAddPhotos?: boolean;
   refreshing: boolean;
   onRefresh: () => void;
 }) {
@@ -183,6 +188,7 @@ export function FootballGameDetails({
   const viewer = players.find((player) => player.isViewer) ?? null;
   const preferences = api.users.onboardingState.useQuery().data;
   const marks = useGameMarks(gameId, board.data?.match?.status === "completed");
+  const album = useGameAlbum(gameId, board.data?.match?.status === "completed");
 
   const input: FootballGameDetailsInput = {
     ...game,
@@ -433,8 +439,12 @@ export function FootballGameDetails({
     : { canManage: false, canSendLookup: false };
   const canAddPlayer = game.canAddPlayer && organizerCanAddPlayer(game);
   const canOpenProfile = gamePlayersLink(game);
-  const openProfile = (userId: string) =>
+  const openProfile = (userId: string) => {
+    if (players.some((row) => row.userId === userId && row.guest)) {
+      return;
+    }
     router.push(playerPath(segments, userId, "football"));
+  };
   const onPressPlayer = (userId: string) => {
     const player = players.find((row) => row.userId === userId);
     if (player && model.organizer && !player.isViewer) {
@@ -704,6 +714,7 @@ export function FootballGameDetails({
     void board.refetch();
     if (playedModel) {
       void marks.refetch();
+      void album.refetch();
     }
   };
 
@@ -744,6 +755,14 @@ export function FootballGameDetails({
         </>
       }
       marks={<MarksSection marks={marks} />}
+      album={
+        <GameAlbumSections
+          album={album}
+          place={playedModel.venueLine ?? ""}
+          context={playedModel.dateLine}
+          openAdd={openAddPhotos}
+        />
+      }
       columns={playedModel.columns}
       unplaced={playedModel.unplaced}
       facts={playedModel.facts}

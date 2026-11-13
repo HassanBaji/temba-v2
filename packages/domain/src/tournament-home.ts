@@ -31,6 +31,7 @@ export type TournamentHomeOccupant = {
   name: string;
   image?: string | null;
   levelBand?: LevelBand | null;
+  guest?: boolean;
 };
 
 export type TournamentHomeSide = {

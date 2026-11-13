@@ -13,6 +13,9 @@ const football: HomeLevelInput = {
   rating: { levelBand: "C1", provisional: false, ratedMatchesRemaining: 0 },
   ratedMatchCount: 12,
   changeOverLast: { matches: 8, delta: 2.2, points: [72, 72.6, 74.2] },
+  history: ["72", "73", "74"],
+  historySteps: ["won", "won"],
+  historyMatchCount: 2,
 };
 
 const padel: HomeLevelInput = {
@@ -22,6 +25,9 @@ const padel: HomeLevelInput = {
   rating: { levelBand: "C2", provisional: true, ratedMatchesRemaining: 3 },
   ratedMatchCount: 2,
   changeOverLast: { matches: 2, delta: -0.15, points: [3.6, 3.5, 3.45] },
+  history: ["3.60", "3.50", "3.45"],
+  historySteps: ["lost", "lost"],
+  historyMatchCount: 2,
 };
 
 describe("homeLevelView", () => {

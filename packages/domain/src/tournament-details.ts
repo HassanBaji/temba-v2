@@ -3,6 +3,7 @@ import type { Locale } from "@repo/i18n/locale";
 
 import type { SeatHoldRequestRow } from "./seat-hold-request";
 import { formatGameCardDay } from "./format-game-start";
+import { ratingScopeNotice, ratingScopeOf } from "./game-rating-impact";
 import type { GameRatingScope } from "./game-rating-scope";
 import type { LevelBand } from "./level-bands";
 import type { ComputedPoolTables } from "./pool-table";
@@ -53,6 +54,7 @@ type Occupant = {
   name: string;
   image: string | null;
   levelBand: LevelBand | null;
+  guest?: boolean;
 };
 
 export type TournamentDetailsSide = {
@@ -252,13 +254,36 @@ export function tournamentPeople(
   return people;
 }
 
-export type TournamentDetailRow = { label: string; value: string };
+export type TournamentDetailRow = {
+  label: string;
+  value: string;
+  note?: string;
+};
+
+function ratingDetailRow(
+  scope: GameRatingScope,
+  locale: Locale,
+): TournamentDetailRow {
+  const m = messagesFor(locale);
+  const value = {
+    temba: m.common.yes,
+    group: m.common.no,
+    unrated: m.common.no,
+  }[scope];
+  const note = ratingScopeNotice(scope, locale)?.line;
+  return {
+    label: m.tournament.home.countsForRating,
+    value,
+    ...(note ? { note } : {}),
+  };
+}
 
 export function tournamentDetailRows(args: {
   organizerName: string | null;
   groupName: string | null;
   matchMinutes: number | null;
   pricePerPlayerFils: number | null;
+  ratingScope: GameRatingScope;
   seated: boolean;
   totalFils: number | null;
   locale: Locale;
@@ -287,10 +312,7 @@ export function tournamentDetailRows(args: {
       value: m.tournament.details.pricePerMatchValue(price),
     });
   }
-  rows.push({
-    label: m.tournament.home.countsForRating,
-    value: m.common.yes,
-  });
+  rows.push(ratingDetailRow(args.ratingScope, args.locale));
   if (args.seated && args.totalFils != null) {
     const amount = formatPricePerPlayerFils(args.totalFils, args.locale);
     if (amount) {
@@ -381,9 +403,10 @@ export function tournamentHomeView(
         })
       : [];
   const canJoin = joinKind === "join";
+  const drawn = isTournamentStandingsView(game.drawPostedAt);
 
   return {
-    drawn: isTournamentStandingsView(game.drawPostedAt),
+    drawn,
     knockoutOnly,
     thenKnockout,
     partnerRequired,
@@ -424,11 +447,14 @@ export function tournamentHomeView(
       groupName: game.groupName,
       matchMinutes: game.matchMinutes,
       pricePerPlayerFils: game.pricePerPlayerFils,
+      ratingScope: ratingScopeOf(game),
       seated,
       totalFils,
       locale,
     }),
+    // The API refuses a leave once the draw is posted.
     canLeaveGame:
+      !drawn &&
       (game.isSeated || game.isRegistered) &&
       game.canLeave &&
       !game.isWaitlisted,

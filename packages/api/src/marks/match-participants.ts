@@ -90,6 +90,7 @@ export async function loadMatchParticipants(
         image: true,
         clerkId: true,
         addedAt: true,
+        guestAt: true,
       },
     }),
     football
@@ -137,7 +138,8 @@ export async function loadMatchParticipants(
   return users
     .flatMap((row) => {
       const slot = slotByUser.get(row.id);
-      if (!slot) {
+      // A Guest player gives and receives no Marks and is never MVP (ADR-0079).
+      if (!slot || row.guestAt) {
         return [];
       }
       return [

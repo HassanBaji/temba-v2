@@ -16,7 +16,12 @@ export function gamePlayersLink(game: {
   );
 }
 
-export type GameTeamPlayer = { id: string; name: string; image: string | null };
+export type GameTeamPlayer = {
+  id: string;
+  name: string;
+  image: string | null;
+  guest?: boolean;
+};
 
 /** A Game team's players, or none for an unknown or empty Game team. */
 export function gameTeamPlayers(
@@ -28,5 +33,10 @@ export function gameTeamPlayers(
 ): GameTeamPlayer[] {
   const members =
     gameTeams.find((team) => team.id === gameTeamId)?.members ?? [];
-  return members.map(({ id, name, image }) => ({ id, name, image }));
+  return members.map(({ id, name, image, guest }) => ({
+    id,
+    name,
+    image,
+    guest: guest === true,
+  }));
 }

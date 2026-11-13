@@ -1,6 +1,6 @@
 {
-  "id": "5ea65175-ef38-4212-9f16-3f396167c7ca",
-  "prevId": "dc760e02-9e87-43f7-8f2b-bb79699f5965",
+  "id": "69dd9206-57cd-4457-8ab3-6eeda6605a74",
+  "prevId": "3065dc13-7786-4dd7-85c0-a2a72ad962c0",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -413,13 +413,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "is_operator": {
-          "name": "is_operator",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "deleted_at": {
           "name": "deleted_at",
           "type": "timestamp",
@@ -443,6 +436,12 @@
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true
+        },
+        "guest_at": {
+          "name": "guest_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -520,11 +519,15 @@
       "checkConstraints": {
         "user_email_or_phone_number": {
           "name": "user_email_or_phone_number",
-          "value": "\"user\".\"email\" is not null or \"user\".\"phone_number\" is not null or \"user\".\"deleted_at\" is not null"
+          "value": "\"user\".\"email\" is not null or \"user\".\"phone_number\" is not null or \"user\".\"deleted_at\" is not null or \"user\".\"guest_at\" is not null"
         },
         "user_unclaimed_has_phone": {
           "name": "user_unclaimed_has_phone",
-          "value": "\"user\".\"added_at\" is null or \"user\".\"clerk_id\" is not null or \"user\".\"phone_number\" is not null"
+          "value": "\"user\".\"added_at\" is null or \"user\".\"clerk_id\" is not null or \"user\".\"phone_number\" is not null or \"user\".\"guest_at\" is not null"
+        },
+        "user_guest_has_no_account": {
+          "name": "user_guest_has_no_account",
+          "value": "\"user\".\"guest_at\" is null or (\"user\".\"clerk_id\" is null and \"user\".\"added_at\" is not null and \"user\".\"phone_number\" is null and \"user\".\"email\" is null)"
         }
       },
       "isRLSEnabled": false
@@ -2439,84 +2442,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.match_verifier_stamps": {
-      "name": "match_verifier_stamps",
-      "schema": "",
-      "columns": {
-        "match_id": {
-          "name": "match_id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "verifier_user_id": {
-          "name": "verifier_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "venue_id": {
-          "name": "venue_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "match_verifier_stamps_match_id_matches_id_fk": {
-          "name": "match_verifier_stamps_match_id_matches_id_fk",
-          "tableFrom": "match_verifier_stamps",
-          "tableTo": "matches",
-          "columnsFrom": [
-            "match_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "match_verifier_stamps_verifier_user_id_user_id_fk": {
-          "name": "match_verifier_stamps_verifier_user_id_user_id_fk",
-          "tableFrom": "match_verifier_stamps",
-          "tableTo": "user",
-          "columnsFrom": [
-            "verifier_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "match_verifier_stamps_venue_id_venues_id_fk": {
-          "name": "match_verifier_stamps_venue_id_venues_id_fk",
-          "tableFrom": "match_verifier_stamps",
-          "tableTo": "venues",
-          "columnsFrom": [
-            "venue_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -5193,164 +5118,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.match_disputes": {
-      "name": "match_disputes",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "match_id": {
-          "name": "match_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "raised_by_user_id": {
-          "name": "raised_by_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "note": {
-          "name": "note",
-          "type": "varchar(280)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "match_dispute_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'open'"
-        },
-        "decided_by_user_id": {
-          "name": "decided_by_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "decided_at": {
-          "name": "decided_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp (3)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "match_disputes_match_id_idx": {
-          "name": "match_disputes_match_id_idx",
-          "columns": [
-            {
-              "expression": "match_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "match_disputes_open_match_unique": {
-          "name": "match_disputes_open_match_unique",
-          "columns": [
-            {
-              "expression": "match_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"match_disputes\".\"status\" = 'open'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "match_disputes_status_created_idx": {
-          "name": "match_disputes_status_created_idx",
-          "columns": [
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "match_disputes_match_id_matches_id_fk": {
-          "name": "match_disputes_match_id_matches_id_fk",
-          "tableFrom": "match_disputes",
-          "tableTo": "matches",
-          "columnsFrom": [
-            "match_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "match_disputes_raised_by_user_id_user_id_fk": {
-          "name": "match_disputes_raised_by_user_id_user_id_fk",
-          "tableFrom": "match_disputes",
-          "tableTo": "user",
-          "columnsFrom": [
-            "raised_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "match_disputes_decided_by_user_id_user_id_fk": {
-          "name": "match_disputes_decided_by_user_id_user_id_fk",
-          "tableFrom": "match_disputes",
-          "tableTo": "user",
-          "columnsFrom": [
-            "decided_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.game_players": {
       "name": "game_players",
       "schema": "",
@@ -7535,6 +7302,32 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "nickname": {
+          "name": "nickname",
+          "type": "varchar(24)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nickname_updated_by_id": {
+          "name": "nickname_updated_by_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nickname_visibility": {
+          "name": "nickname_visibility",
+          "type": "member_nickname_visibility",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'approvers'"
+        },
+        "nickname_updated_at": {
+          "name": "nickname_updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -7579,6 +7372,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "group_members_nickname_updated_by_id_user_id_fk": {
+          "name": "group_members_nickname_updated_by_id_user_id_fk",
+          "tableFrom": "group_members",
+          "tableTo": "user",
+          "columnsFrom": [
+            "nickname_updated_by_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -9806,12 +9612,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "match_dispute_id": {
-          "name": "match_dispute_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "via_waitlist": {
           "name": "via_waitlist",
           "type": "boolean",
@@ -9982,21 +9782,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "notifications_match_dispute_id_idx": {
-          "name": "notifications_match_dispute_id_idx",
-          "columns": [
-            {
-              "expression": "match_dispute_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -10116,13 +9901,225 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.game_notes": {
+      "name": "game_notes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
-        "notifications_match_dispute_id_match_disputes_id_fk": {
-          "name": "notifications_match_dispute_id_match_disputes_id_fk",
-          "tableFrom": "notifications",
-          "tableTo": "match_disputes",
+        "game_id": {
+          "name": "game_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "author_user_id": {
+          "name": "author_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "varchar(300)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "visibility": {
+          "name": "visibility",
+          "type": "game_note_visibility",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "game_notes_author_user_id_created_at_idx": {
+          "name": "game_notes_author_user_id_created_at_idx",
+          "columns": [
+            {
+              "expression": "author_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "game_notes_game_id_games_id_fk": {
+          "name": "game_notes_game_id_games_id_fk",
+          "tableFrom": "game_notes",
+          "tableTo": "games",
           "columnsFrom": [
-            "match_dispute_id"
+            "game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "game_notes_author_user_id_user_id_fk": {
+          "name": "game_notes_author_user_id_user_id_fk",
+          "tableFrom": "game_notes",
+          "tableTo": "user",
+          "columnsFrom": [
+            "author_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "game_notes_game_author_unique": {
+          "name": "game_notes_game_author_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "game_id",
+            "author_user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "game_notes_body_not_blank_check": {
+          "name": "game_notes_body_not_blank_check",
+          "value": "length(btrim(\"game_notes\".\"body\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.game_photos": {
+      "name": "game_photos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "game_id": {
+          "name": "game_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uploader_user_id": {
+          "name": "uploader_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "game_photos_game_id_created_at_idx": {
+          "name": "game_photos_game_id_created_at_idx",
+          "columns": [
+            {
+              "expression": "game_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "game_photos_uploader_user_id_idx": {
+          "name": "game_photos_uploader_user_id_idx",
+          "columns": [
+            {
+              "expression": "uploader_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "game_photos_game_id_games_id_fk": {
+          "name": "game_photos_game_id_games_id_fk",
+          "tableFrom": "game_photos",
+          "tableTo": "games",
+          "columnsFrom": [
+            "game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "game_photos_uploader_user_id_user_id_fk": {
+          "name": "game_photos_uploader_user_id_user_id_fk",
+          "tableFrom": "game_photos",
+          "tableTo": "user",
+          "columnsFrom": [
+            "uploader_user_id"
           ],
           "columnsTo": [
             "id"
@@ -10450,15 +10447,6 @@
         "knockout_only"
       ]
     },
-    "public.match_dispute_status": {
-      "name": "match_dispute_status",
-      "schema": "public",
-      "values": [
-        "open",
-        "upheld",
-        "dismissed"
-      ]
-    },
     "public.mark_kind": {
       "name": "mark_kind",
       "schema": "public",
@@ -10632,13 +10620,27 @@
         "challenge_rematch_nudge",
         "match_score_to_confirm",
         "game_moved_to_waitlist",
+        "game_team_changed",
         "tier_points_adjusted",
         "tier_band_changed",
         "performance_ratings_open",
-        "performance_ratings_closed",
-        "match_dispute_raised",
-        "match_dispute_decided",
-        "level_confirmed"
+        "performance_ratings_closed"
+      ]
+    },
+    "public.game_note_visibility": {
+      "name": "game_note_visibility",
+      "schema": "public",
+      "values": [
+        "public",
+        "private"
+      ]
+    },
+    "public.member_nickname_visibility": {
+      "name": "member_nickname_visibility",
+      "schema": "public",
+      "values": [
+        "approvers",
+        "group"
       ]
     }
   },

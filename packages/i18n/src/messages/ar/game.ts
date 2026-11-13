@@ -704,6 +704,7 @@ export const game = {
     playerAlreadyOn: (name: string) =>
       `${isolate(name)} في هذه المباراة بالفعل`,
     playerWaitlisted: (name: string) => `${isolate(name)} في قائمة الانتظار`,
+    guestNotAdded: "تعذّرت إضافة الضيف. حاول مرة أخرى.",
     sideNotOnGame: "هذه الجهة ليست في هذه المباراة",
     sideHasUser: "في هذه الجهة لاعب بالفعل",
     positionOccupied: "هذا المركز مشغول",

@@ -25,6 +25,8 @@ export type PlayedGameViewProps = {
   task?: React.ReactNode;
   /** The marks rows, between the columns and the facts. */
   marks?: React.ReactNode;
+  /** Album and Notes, between the facts and Share. */
+  album?: React.ReactNode;
   columns: [PlayedColumn, PlayedColumn];
   unplaced?: PlayedRow[];
   facts: PlayedFact[];
@@ -37,13 +39,14 @@ export type PlayedGameViewProps = {
   onPressPlayer?: (row: PlayedRow) => void;
 };
 
-/** A played Game: the result on black, the roster, the facts, then share. */
+/** A played Game: the result on black, the roster, the facts, the Album and Notes, then share. */
 export function PlayedGameView({
   hero,
   board,
   heroFooter,
   task,
   marks,
+  album,
   columns,
   unplaced,
   facts,
@@ -81,6 +84,7 @@ export function PlayedGameView({
       {marks}
       <InfoRows rows={facts} />
       {dispute}
+      {album}
       <View>
         <Button
           label={m.game.cta.shareResult}

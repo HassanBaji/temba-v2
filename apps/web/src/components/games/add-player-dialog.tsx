@@ -1,6 +1,6 @@
 "use client";
 
-import { Phone, Users } from "lucide-react";
+import { Phone, UserRound, Users } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 
@@ -19,7 +19,8 @@ import {
   TileChoices,
 } from "~/components/onboarding/onboarding-choices";
 import { Button } from "~/components/ui/button";
-import { FieldError } from "~/components/ui/field";
+import { Field, FieldError, FieldLabel } from "~/components/ui/field";
+import { Input } from "~/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
   ADD_PLAYER_DEFAULT_FOOTBALL_LEVEL,
@@ -36,6 +37,7 @@ import {
   addPlayerSeatChoices,
   addPlayerSideChoices,
   sameJoinSeat,
+  UNCLAIMED_PLAYER_NAME_MAX_LENGTH,
   type AddPlayerFootballPosition,
   type AddPlayerLevel,
   type AddPlayerPlacement,
@@ -60,6 +62,13 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
+type DialogMode = AddPlayerMode | "guest";
+
+const TAB_CLASS =
+  "text-muted-foreground text-meta data-[state=active]:bg-paper data-[state=active]:text-ink h-[38px] gap-1.5 border-none font-semibold";
+
+const GUEST_NAME_ID = "add-guest-name";
+
 function seatKey(seat: FriendlyGameJoinSeat) {
   return `${seat.sideIndex}:${seat.position}`;
 }
@@ -73,6 +82,7 @@ export function AddPlayerDialog({
   placement,
   sides,
   initialSeat = null,
+  initialSide = null,
   groupName,
   onAdded,
 }: {
@@ -83,6 +93,8 @@ export function AddPlayerDialog({
   sides: readonly { sideIndex: number; left: NamedSeat; right: NamedSeat }[];
   /** The open spot the Organizer clicked on the court. */
   initialSeat?: FriendlyGameJoinSeat | null;
+  /** The open tournament team the Organizer clicked. */
+  initialSide?: number | null;
   /** The Game's Group; with one, the dialog opens on its members. */
   groupName: string | null;
   onAdded: () => Promise<unknown>;
@@ -109,9 +121,10 @@ export function AddPlayerDialog({
   const [picked, setPicked] = React.useState<FriendlyGameJoinSeat | null>(null);
   const [pickedSide, setPickedSide] = React.useState<number | null>(null);
   const hasGroup = groupName != null;
-  const [mode, setMode] = React.useState<AddPlayerMode>(
+  const [mode, setMode] = React.useState<DialogMode>(
     hasGroup ? "group" : "phone",
   );
+  const [guestName, setGuestName] = React.useState("");
   const [query, setQuery] = React.useState("");
   const [memberIds, setMemberIds] = React.useState<string[]>([]);
   const [footballPicks, setFootballPicks] = React.useState<
@@ -121,12 +134,14 @@ export function AddPlayerDialog({
   React.useEffect(() => {
     if (open) {
       setPicked(initialSeat);
+      setPickedSide(initialSide);
       setMode(hasGroup ? "group" : "phone");
       setQuery("");
       setMemberIds([]);
       setFootballPicks({});
+      setGuestName("");
     }
-  }, [open, initialSeat, hasGroup]);
+  }, [open, initialSeat, initialSide, hasGroup]);
 
   const isFootball = placement === "football";
   const inGroupMode = hasGroup && mode === "group";
@@ -142,6 +157,8 @@ export function AddPlayerDialog({
     sideChoices.find((choice) => choice.sideIndex === pickedSide) ??
     sideChoices[0] ??
     null;
+  const tappedSide =
+    sideChoices.find((choice) => choice.sideIndex === pickedSide) ?? null;
   const placed =
     placement === "seat"
       ? seat != null
@@ -174,6 +191,19 @@ export function AddPlayerDialog({
     },
   });
 
+  const addGuest = api.games.addGuestPlayer.useMutation({
+    meta: OWN_ERROR_UI,
+    onSuccess: async (result) => {
+      toast.success(m.group.addPlayer.guest.addedToast(result.name));
+      setGuestName("");
+      setPicked(null);
+      await Promise.all([
+        utils.games.listGroupMembersToAdd.invalidate({ gameId }),
+        onAdded(),
+      ]);
+    },
+  });
+
   const groupMembers = api.games.listGroupMembersToAdd.useQuery(
     { gameId },
     { enabled: open && hasGroup },
@@ -200,6 +230,7 @@ export function AddPlayerDialog({
       setMemberIds([]);
       setFootballPicks({});
       setPicked(null);
+      setPickedSide(null);
       await Promise.all([
         utils.games.listGroupMembersToAdd.invalidate({ gameId }),
         utils.games.previewPlayerByPhone.invalidate({ gameId }),
@@ -238,6 +269,7 @@ export function AddPlayerDialog({
         };
       }),
       seat: placement === "seat" ? (picked ?? undefined) : undefined,
+      side: tappedSide ? { sideIndex: tappedSide.sideIndex } : undefined,
     });
   }
 
@@ -261,10 +293,103 @@ export function AddPlayerDialog({
     });
   }
 
+  function submitGuest(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = guestName.trim();
+    if (!name || !placed || addGuest.isPending) {
+      return;
+    }
+    addGuest.mutate({
+      gameId,
+      name,
+      seat: seat ?? undefined,
+      side: side ? { sideIndex: side.sideIndex } : undefined,
+      football: isFootball
+        ? addPlayerFootballInput(role, footballPosition)
+        : undefined,
+    });
+  }
+
   const canSubmit =
     !add.isPending &&
     !addMembers.isPending &&
     addPlayerCanSubmit({ preview: previewData, name, placed });
+  const placementControls = (
+    <>
+      {isFootball ? (
+        <>
+          <Group>
+            <SectionLabel label={m.webGame.addPlayer.playsAs} />
+            <TileChoices
+              label={m.webGame.addPlayer.playsAs}
+              choices={addPlayerFootballRoleChoices(locale)}
+              value={role}
+              onSelect={setRole}
+            />
+          </Group>
+          {role === "outfield" ? (
+            <Group>
+              <SectionLabel label={m.webGame.addPlayer.preferredPosition} />
+              <TileChoices
+                label={m.webGame.addPlayer.preferredPosition}
+                choices={addPlayerFootballPositionChoices(locale)}
+                value={footballPosition}
+                onSelect={setFootballPosition}
+              />
+            </Group>
+          ) : null}
+        </>
+      ) : null}
+
+      {placement === "side" ? (
+        side ? (
+          <Group>
+            <SectionLabel label={m.webGame.addPlayer.side} />
+            <TileChoices
+              label={m.webGame.addPlayer.side}
+              choices={sideChoices.map((choice) => ({
+                value: String(choice.sideIndex),
+                name: choice.team,
+                detail: choice.detail,
+              }))}
+              value={String(side.sideIndex)}
+              onSelect={(key) => setPickedSide(Number(key))}
+            />
+          </Group>
+        ) : (
+          <p className="text-muted-foreground text-meta">
+            {m.group.addPlayer.noSide}
+          </p>
+        )
+      ) : null}
+
+      {placement !== "seat" ? null : seat ? (
+        <Group>
+          <SectionLabel label={m.webGame.addPlayer.position} />
+          <TileChoices
+            label={m.webGame.addPlayer.position}
+            choices={seatChoices.map((choice) => ({
+              value: seatKey(choice.seat),
+              name: choice.side,
+              detail: choice.team,
+            }))}
+            value={seatKey(seat)}
+            onSelect={(key) =>
+              setPicked(
+                seatChoices.find((choice) => seatKey(choice.seat) === key)
+                  ?.seat ?? null,
+              )
+            }
+          />
+        </Group>
+      ) : (
+        <p className="text-muted-foreground text-meta">
+          {m.group.addPlayer.noSeat}
+        </p>
+      )}
+    </>
+  );
+
   const pickedNames = roster
     ? groupPickedNames(roster.members, memberIds, locale)
     : "";
@@ -278,6 +403,7 @@ export function AddPlayerDialog({
         if (!next) {
           add.reset();
           addMembers.reset();
+          addGuest.reset();
         }
         onOpenChange(next);
       }}
@@ -290,39 +416,74 @@ export function AddPlayerDialog({
           <ResponsiveDialogDescription>
             {inGroupMode
               ? m.group.addPlayer.fromGroup.description
-              : m.group.addPlayer.description}
+              : mode === "guest"
+                ? m.group.addPlayer.guest.description
+                : m.group.addPlayer.description}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
-        {hasGroup ? (
-          <Tabs
-            value={mode}
-            onValueChange={(next) => setMode(next as AddPlayerMode)}
-            className="px-4 md:px-0"
+        <Tabs
+          value={mode}
+          onValueChange={(next) => setMode(next as DialogMode)}
+          className="px-4 pb-4 md:px-0 md:pb-0"
+        >
+          <TabsList
+            aria-label={m.group.addPlayer.fromGroup.modes}
+            className="bg-wash h-auto w-full gap-1 p-1"
           >
-            <TabsList
-              aria-label={m.group.addPlayer.fromGroup.modes}
-              className="bg-wash h-auto w-full gap-1 p-1"
-            >
-              <TabsTrigger
-                value="group"
-                className="text-muted-foreground text-meta data-[state=active]:bg-paper data-[state=active]:text-ink h-[38px] gap-1.5 border-none font-semibold"
-              >
+            {hasGroup ? (
+              <TabsTrigger value="group" className={TAB_CLASS}>
                 <Users className="size-3.5" aria-hidden="true" />
                 {m.group.addPlayer.fromGroup.tab}
               </TabsTrigger>
-              <TabsTrigger
-                value="phone"
-                className="text-muted-foreground text-meta data-[state=active]:bg-paper data-[state=active]:text-ink h-[38px] gap-1.5 border-none font-semibold"
-              >
-                <Phone className="size-3.5" aria-hidden="true" />
-                {m.group.addPlayer.fromGroup.phoneTab}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        ) : null}
+            ) : null}
+            <TabsTrigger value="phone" className={TAB_CLASS}>
+              <Phone className="size-3.5" aria-hidden="true" />
+              {m.group.addPlayer.fromGroup.phoneTab}
+            </TabsTrigger>
+            <TabsTrigger value="guest" className={TAB_CLASS}>
+              <UserRound className="size-3.5" aria-hidden="true" />
+              {m.group.addPlayer.guest.tab}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-        {inGroupMode ? (
+        {mode === "guest" ? (
+          <form onSubmit={submitGuest} className={formClass}>
+            <Field>
+              <FieldLabel htmlFor={GUEST_NAME_ID}>
+                {m.group.addPlayer.guest.nameLabel}
+              </FieldLabel>
+              <Input
+                id={GUEST_NAME_ID}
+                value={guestName}
+                onChange={(event) => setGuestName(event.target.value)}
+                maxLength={UNCLAIMED_PLAYER_NAME_MAX_LENGTH}
+                autoComplete="off"
+                disabled={addGuest.isPending}
+              />
+            </Field>
+            <p className="text-meta text-muted-foreground">
+              {m.group.addPlayer.guest.levelNote}
+            </p>
+
+            {placementControls}
+
+            {addGuest.error ? (
+              <FieldError>{addGuest.error.message}</FieldError>
+            ) : null}
+
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full font-semibold"
+              pending={addGuest.isPending}
+              disabled={!guestName.trim() || !placed}
+            >
+              {m.group.addPlayer.guest.submit(guestName.trim())}
+            </Button>
+          </form>
+        ) : inGroupMode ? (
           <form onSubmit={submitMembers} className={formClass}>
             <GroupMemberList
               query={query}
@@ -369,6 +530,11 @@ export function AddPlayerDialog({
               {addMembers.error ? (
                 <FieldError>{addMembers.error.message}</FieldError>
               ) : null}
+              {tappedSide ? (
+                <p className="text-meta text-muted-foreground">
+                  {m.editTeams.openSpot.firstGoesTo(tappedSide.team)}
+                </p>
+              ) : null}
               {pickedNames ? (
                 <p className="text-meta text-muted-foreground truncate">
                   {pickedNames}
@@ -414,79 +580,7 @@ export function AddPlayerDialog({
               disabled={add.isPending}
             />
 
-            {isFootball ? (
-              <>
-                <Group>
-                  <SectionLabel label={m.webGame.addPlayer.playsAs} />
-                  <TileChoices
-                    label={m.webGame.addPlayer.playsAs}
-                    choices={addPlayerFootballRoleChoices(locale)}
-                    value={role}
-                    onSelect={setRole}
-                  />
-                </Group>
-                {role === "outfield" ? (
-                  <Group>
-                    <SectionLabel
-                      label={m.webGame.addPlayer.preferredPosition}
-                    />
-                    <TileChoices
-                      label={m.webGame.addPlayer.preferredPosition}
-                      choices={addPlayerFootballPositionChoices(locale)}
-                      value={footballPosition}
-                      onSelect={setFootballPosition}
-                    />
-                  </Group>
-                ) : null}
-              </>
-            ) : null}
-
-            {placement === "side" ? (
-              side ? (
-                <Group>
-                  <SectionLabel label={m.webGame.addPlayer.side} />
-                  <TileChoices
-                    label={m.webGame.addPlayer.side}
-                    choices={sideChoices.map((choice) => ({
-                      value: String(choice.sideIndex),
-                      name: choice.team,
-                      detail: choice.detail,
-                    }))}
-                    value={String(side.sideIndex)}
-                    onSelect={(key) => setPickedSide(Number(key))}
-                  />
-                </Group>
-              ) : (
-                <p className="text-muted-foreground text-meta">
-                  {m.group.addPlayer.noSide}
-                </p>
-              )
-            ) : null}
-
-            {placement !== "seat" ? null : seat ? (
-              <Group>
-                <SectionLabel label={m.webGame.addPlayer.position} />
-                <TileChoices
-                  label={m.webGame.addPlayer.position}
-                  choices={seatChoices.map((choice) => ({
-                    value: seatKey(choice.seat),
-                    name: choice.side,
-                    detail: choice.team,
-                  }))}
-                  value={seatKey(seat)}
-                  onSelect={(key) =>
-                    setPicked(
-                      seatChoices.find((choice) => seatKey(choice.seat) === key)
-                        ?.seat ?? null,
-                    )
-                  }
-                />
-              </Group>
-            ) : (
-              <p className="text-muted-foreground text-meta">
-                {m.group.addPlayer.noSeat}
-              </p>
-            )}
+            {placementControls}
 
             {add.error ? <FieldError>{add.error.message}</FieldError> : null}
 

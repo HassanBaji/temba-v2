@@ -56,6 +56,7 @@ import {
   InviteDoorDialog,
 } from "~/components/invites/invite-door-dialog";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { GameAlbumSections } from "~/components/game-album/game-album-sections";
 import { MarksSection } from "~/components/marks/marks-section";
 import { MvpRow } from "~/components/marks/mvp-row";
 import { useGameMarks } from "~/components/marks/use-game-marks";
@@ -157,6 +158,7 @@ export function FootballGameDetails({
   const [renaming, setRenaming] = React.useState<{
     userId: string;
     name: string;
+    guest?: boolean;
   } | null>(null);
   const [squadTeamId, setSquadTeamId] = React.useState<string | null>(null);
   const autoJoined = React.useRef(false);
@@ -423,7 +425,7 @@ export function FootballGameDetails({
     const player = players.find((row) => row.userId === userId);
     if (player && organizer && !player.isViewer) {
       setSelected(player);
-    } else if (canOpenProfiles) {
+    } else if (canOpenProfiles && !player?.guest) {
       router.push(playerProfilePath(userId, "football"));
     }
   }
@@ -847,6 +849,13 @@ export function FootballGameDetails({
               </>
             }
             marks={<MarksSection marks={marks} />}
+            album={
+              <GameAlbumSections
+                gameId={gameId}
+                place={playedModel.venueLine ?? ""}
+                context={playedModel.dateLine}
+              />
+            }
             columns={playedModel.columns}
             unplaced={playedModel.unplaced}
             facts={playedModel.facts}

@@ -17,7 +17,7 @@ Both the Web App and the Mobile App authenticate the same way.
 
 The Operator check reads the session's public metadata. To find every Operator (the Match dispute Notification), procedures read `user.is_operator`, which the Clerk webhook copies from `public_metadata.operator` on every `user.created` and `user.updated` (ADR-0081).
 
-**One-time step after the `0115_user_is_operator` migration deploys.** Operators granted before it have the column false until Clerk next sends a `user.updated` for them. Run the backfill once against each environment, with that environment's `CLERK_SECRET_KEY` and `DATABASE_URL` in the shell or in `packages/api/.env`:
+**One-time step after the `0119_user_is_operator` migration deploys.** Operators granted before it have the column false until Clerk next sends a `user.updated` for them. Run the backfill once against each environment, with that environment's `CLERK_SECRET_KEY` and `DATABASE_URL` in the shell or in `packages/api/.env`:
 
 ```bash
 pnpm --filter @repo/api db:backfill-operators

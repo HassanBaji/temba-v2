@@ -12,7 +12,15 @@ import {
 } from "~/components/common/responsive-dialog";
 import { useMessages } from "~/components/locale-provider";
 import { playerProfilePath } from "~/lib/dashboard-paths";
+import { cn } from "~/lib/utils";
 import { type GameTeamPlayer } from "~/lib/game-player-links";
+
+import { useTournamentPlayerActions } from "./tournament-player-dialog";
+
+const ROW =
+  "flex min-h-11 w-full items-center gap-2.5 px-5 py-2 text-start outline-none";
+const INTERACTIVE_ROW =
+  "hover:bg-wash focus-visible:ring-ring/50 transition-colors focus-visible:ring-[3px]";
 
 export type GameTeamPlayersSheetTeam = {
   name: string;
@@ -27,6 +35,8 @@ export function GameTeamPlayersSheet({
   onClose: () => void;
 }) {
   const m = useMessages();
+  const playerActions = useTournamentPlayerActions();
+  const canOpenProfile = playerActions?.canOpenProfile ?? true;
   return (
     <ResponsiveDialog
       open={team != null}
@@ -48,19 +58,53 @@ export function GameTeamPlayersSheet({
               </ResponsiveDialogDescription>
             </ResponsiveDialogHeader>
             <ul className="border-rule rounded-card divide-rule mx-[22px] mb-[max(22px,env(safe-area-inset-bottom))] mt-[18px] divide-y overflow-hidden border">
-              {team.players.map((player) => (
-                <li key={player.id}>
-                  <Link
-                    href={playerProfilePath(player.id)}
-                    className="hover:bg-wash focus-visible:ring-ring/50 flex min-h-11 items-center gap-2.5 px-5 py-2 outline-none transition-colors focus-visible:ring-[3px]"
-                  >
-                    <UserAvatar name={player.name} image={player.image} />
+              {team.players.map((player) => {
+                const face = (
+                  <>
+                    <UserAvatar
+                      name={player.name}
+                      image={player.image}
+                      guest={player.guest}
+                    />
                     <span className="text-body min-w-0 truncate">
                       {player.name}
                     </span>
-                  </Link>
-                </li>
-              ))}
+                  </>
+                );
+                return (
+                  <li key={player.id}>
+                    {playerActions?.canKick(player.id) ? (
+                      <button
+                        type="button"
+                        aria-label={m.webTournament.player.openActions(
+                          player.name,
+                        )}
+                        onClick={() => {
+                          onClose();
+                          playerActions.open({
+                            userId: player.id,
+                            name: player.name,
+                            image: player.image,
+                            guest: player.guest,
+                          });
+                        }}
+                        className={cn(ROW, INTERACTIVE_ROW)}
+                      >
+                        {face}
+                      </button>
+                    ) : canOpenProfile && !player.guest ? (
+                      <Link
+                        href={playerProfilePath(player.id)}
+                        className={cn(ROW, INTERACTIVE_ROW)}
+                      >
+                        {face}
+                      </Link>
+                    ) : (
+                      <div className={ROW}>{face}</div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </>
         ) : null}

@@ -71,6 +71,12 @@ describe("gameCardView", () => {
     assert.equal(view.place, "Ace Padel, Court 2");
   });
 
+  it("says Today on the Game's own day", () => {
+    const onTheDay = new Date("2026-11-12T09:00:00.000Z");
+    const view = gameCardView(item(game()), onTheDay, "en");
+    assert.equal(view.dateLine, "Today");
+  });
+
   it("shows padel as two sides and names the teammate of the open seat", () => {
     const view = gameCardView(item(game()), NOW, "en");
     assert.equal(view.who?.kind, "sides");

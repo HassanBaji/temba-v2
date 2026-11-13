@@ -28,9 +28,10 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
- * An Operator sets any other User's Level in either sport, with no Group in
- * between, and a reason the player is told at once (ADR-0073). Football may
- * be set as an OVR. The override is recorded with no Group.
+ * An Operator sets any User's Level in either sport, their own included, with
+ * no Group in between (ADR-0077), and a reason the player is told at once
+ * (ADR-0073). Football may be set as an OVR. The override is recorded with no
+ * Group.
  */
 export async function setLevelAsOperator(
   database: DbClient,
@@ -46,12 +47,6 @@ export async function setLevelAsOperator(
   },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
-  if (args.targetUserId === args.operatorUserId) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: messagesFor(locale).level.errors.ownLevel,
-    });
-  }
   const level = requestedOverrideLevel(args, locale);
   const target = await database.query.user.findFirst({
     where: eq(user.id, args.targetUserId),

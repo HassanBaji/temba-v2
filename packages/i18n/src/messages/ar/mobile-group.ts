@@ -151,10 +151,56 @@ export const mobileGroup = {
     latestSet: (text: string) => `آخر تحديد للمستوى: ${text}`,
     sheet: {
       viewProfile: "عرض الملف",
+      call: "اتصال",
       setLevel: "تحديد المستوى",
       stillProvisional: "ما زال مبدئيًا",
       noLevelMark: "–",
     },
+  },
+  nickname: {
+    menuLabel: "الاسم في هذه المجموعة",
+    menuHint: "ما تناديه به هنا، لتميّز بين اللاعبين",
+    notSet: "غير محدّد",
+    addName: "أضف اسمًا",
+    addNameFor: (name: string) => `أضف اسمًا لـ${name}`,
+    title: "الاسم في هذه المجموعة",
+    forMember: (name: string, group: string) => `لـ${name}، في ${group} فقط.`,
+    forYou: (group: string) => `لك، في ${group} فقط.`,
+    fieldLabel: "الاسم",
+    placeholder: "بماذا تناديه؟",
+    counter: (count: number, max: number) => `${count} من ${max}`,
+    counterSpoken: (count: number, max: number) => `${count} من ${max} حرفًا`,
+    previewLabel: "كيف سيظهر في هذه المجموعة",
+    noNickname: "لا اسم في هذه المجموعة",
+    whoSees: "من يراه",
+    visibility: {
+      approvers: {
+        title: "المنظّمون فقط",
+        description: "تسمية عمل لمن يدير المباريات.",
+      },
+      group: {
+        title: "كل من في المجموعة",
+        description: "الاسم الذي تناديه به المجموعة كلها.",
+      },
+    },
+    approversNote: (firstName: string) =>
+      `لن يرى ${firstName} هذا الاسم. يراه منظّمو المجموعة فقط.`,
+    groupNote: (firstName: string) =>
+      `سيراه ${firstName} وكل من في المجموعة بجانب اسمه.`,
+    approversNoteSelf: "يرى هذا الاسم منظّمو المجموعة فقط، وأنت منهم.",
+    groupNoteSelf: "سيراه كل من في المجموعة بجانب اسمك.",
+    save: (nickname: string) => `احفظ «${nickname}»`,
+    typeFirst: "اكتب اسمًا أولًا",
+    clear: "امسح الاسم",
+    savedToast: (nickname: string) => `حُفظ «${nickname}»`,
+    clearedToast: (name: string) => `لم يعد لـ${name} اسم في هذه المجموعة`,
+    youAre: "اسمك في هذه المجموعة",
+    youAreNote:
+      "اسم أعطاك إياه منظّمو المجموعة. يراه كل من في المجموعة بجانب اسمك، ولا يظهر في أي مكان آخر.",
+    youAreSpoken: (nickname: string) =>
+      `اسمك في هذه المجموعة ${nickname}. اسم أعطاك إياه منظّمو المجموعة. يراه كل من في المجموعة بجانب اسمك، ولا يظهر في أي مكان آخر.`,
+    legend:
+      "علامة الوسم تعني اسمًا أعطته هذه المجموعة. يظهر في هذه المجموعة فقط، ولا يتغيّر اسم اللاعب في Temba ولا ملفه.",
   },
   requests: {
     review: "مراجعة طلبات الانضمام",

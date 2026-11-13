@@ -21,6 +21,8 @@ import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaime
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { AddPlayerDialog } from "~/components/games/add-player-dialog";
+import { EditTeamsDialog } from "~/components/games/edit-teams-dialog";
+import { OpenSpotDialog } from "~/components/games/open-spot-dialog";
 import { FootballGameDetails } from "~/components/games/football-game-details";
 import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
@@ -129,12 +131,14 @@ import {
   gameHomeTabQuery,
 } from "~/lib/game-home-tab";
 import { gameViewerStatus } from "@repo/domain/game-summary-cta";
+import { canEditTeams, editTeamsSpotLabel } from "@repo/domain/edit-teams";
 import { gameDetailsChrome } from "@repo/domain/tournament-home";
 import { type KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
 import {
   tournamentInviteLandingOpensPartnerSheet,
   tournamentLeaveOrKickConfirmCopy,
 } from "@repo/domain/tournament-join";
+import { isTournamentFinished } from "@repo/domain/tournament-finished";
 import { tournamentRoundsPlan } from "@repo/domain/tournament-organizer";
 import {
   isPartnerRequiredGame,
@@ -227,6 +231,7 @@ export default function GameHomePage({
   const [renaming, setRenaming] = React.useState<{
     userId: string;
     name: string;
+    guest?: boolean;
   } | null>(null);
   const [cancelGameOpen, setCancelGameOpen] = React.useState(false);
   const [leaveGameOpen, setLeaveGameOpen] = React.useState(false);
@@ -245,6 +250,12 @@ export default function GameHomePage({
     null,
   );
   const [markAsNotPlayedOpen, setMarkAsNotPlayedOpen] = React.useState(false);
+  const [editTeamsOpen, setEditTeamsOpen] = React.useState(false);
+  const [addSide, setAddSide] = React.useState<number | null>(null);
+  const [openSpot, setOpenSpot] = React.useState<{
+    seat: FriendlyGameJoinSeat;
+    own: "move" | "join";
+  } | null>(null);
   const [addSeat, setAddSeat] = React.useState<FriendlyGameJoinSeat | null>(
     null,
   );
@@ -659,6 +670,7 @@ export default function GameHomePage({
         cancelledAt: data.cancelledAt,
         registrationMode: data.registrationMode,
         partnerRequired: isPartnerRequiredGame(data),
+        over: isTournamentFinished(data),
       })
     : { canManage: false, canSendLookup: false };
   const canMintInvite = data ? friendlyGameCanMintInvite(data) : false;
@@ -789,6 +801,17 @@ export default function GameHomePage({
   const addPlacement = addPlayerPlacement(data);
   const canAddPlayer = organizerCanAddPlayer(data);
   const openAddPlayer = canAddPlayer ? () => setAddPlayerOpen(true) : undefined;
+  const editsTeams =
+    (usesFriendlyChrome || usesDrawnTournamentChrome) && canEditTeams(data);
+  const openEditTeams = editsTeams ? () => setEditTeamsOpen(true) : undefined;
+  const addPlayerToSeat = (seat: FriendlyGameJoinSeat) => {
+    setAddSeat(seat);
+    setAddPlayerOpen(true);
+  };
+  const addPlayerToSide = (sideIndex: number) => {
+    setAddSide(sideIndex);
+    setAddPlayerOpen(true);
+  };
   const { firstMatch, winningGameTeamId, canLeaveGame } = plan;
   const playedMatch =
     usesFriendlyChrome && data.phase === "final" ? firstMatch : undefined;
@@ -856,6 +879,7 @@ export default function GameHomePage({
         onCloseRegistration={() => closeRegistration.mutate({ gameId: id })}
         onReopenRegistration={() => reopenRegistration.mutate({ gameId: id })}
         onAddPlayer={openAddPlayer}
+        onEditTeams={openEditTeams}
         onFooterAction={(kind) => footerHandlers[kind]()}
         onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
       />
@@ -918,6 +942,15 @@ export default function GameHomePage({
   ): OpenSeatAction | null => {
     const sideLabel = formatGameSideLabel("friendly_game", sideIndex, locale);
     const positionLabel = courtPositionLabel(position, locale);
+    if ((vacantAction === "move" || vacantAction === "join") && canAddAtSeat) {
+      const own = vacantAction;
+      return {
+        label: m.editTeams.openSpot.title(
+          editTeamsSpotLabel("friendly_game", { sideIndex, position }, locale),
+        ),
+        onClick: () => setOpenSpot({ seat: { sideIndex, position }, own }),
+      };
+    }
     if (vacantAction === "move" || vacantAction === "join") {
       return {
         label:
@@ -936,10 +969,7 @@ export default function GameHomePage({
     return canAddAtSeat
       ? {
           label: g.addPlayerTo(sideLabel, positionLabel),
-          onClick: () => {
-            setAddSeat({ sideIndex, position });
-            setAddPlayerOpen(true);
-          },
+          onClick: () => addPlayerToSeat({ sideIndex, position }),
         }
       : null;
   };
@@ -1123,7 +1153,6 @@ export default function GameHomePage({
 
         {usesDrawnTournamentChrome ? (
           <>
-            <GameRatingScopeBlock scope={data.ratingScope} sport={data.sport} />
             <TournamentHome
               data={data}
               linkToPlayers={gamePlayersLink(data)}
@@ -1192,6 +1221,18 @@ export default function GameHomePage({
               onKick={(userId) => requestKick({ userId })}
               onKickWaitlist={(waitlistId) => requestKick({ waitlistId })}
               onAddPlayer={openAddPlayer}
+              onEditTeams={openEditTeams}
+              onOpenSeat={
+                canAddPlayer && addPlacement === "side"
+                  ? (seat, canJoin) => {
+                      if (canJoin) {
+                        setOpenSpot({ seat, own: "join" });
+                        return;
+                      }
+                      addPlayerToSide(seat.sideIndex);
+                    }
+                  : undefined
+              }
               onCancelKnockoutMatch={setCancelKnockoutPlace}
             />
           </>
@@ -1582,16 +1623,73 @@ export default function GameHomePage({
             setAddPlayerOpen(open);
             if (!open) {
               setAddSeat(null);
+              setAddSide(null);
             }
           }}
           gameId={id}
           placement={addPlacement}
           sides={data.sides}
           initialSeat={addSeat}
+          initialSide={addSide}
           groupName={data.groupName}
           onAdded={() => utils.games.byId.invalidate({ id })}
         />
       ) : null}
+
+      {editsTeams ? (
+        <EditTeamsDialog
+          open={editTeamsOpen}
+          onOpenChange={setEditTeamsOpen}
+          gameId={id}
+          format={usesFriendlyChrome ? "friendly_game" : "friendly_tournament"}
+          sides={data.sides}
+          matches={data.matches}
+          rules={{
+            fullSidesOnly: isPartnerRequiredGame(data),
+            fixedSides: data.drawPostedAt != null,
+          }}
+          viewerUserId={data.viewerUserId}
+          onSaved={() => utils.games.byId.invalidate({ id })}
+        />
+      ) : null}
+
+      <OpenSpotDialog
+        spotLabel={
+          openSpot
+            ? editTeamsSpotLabel(
+                usesFriendlyChrome ? "friendly_game" : "friendly_tournament",
+                openSpot.seat,
+                locale,
+              )
+            : null
+        }
+        own={openSpot?.own ?? "join"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setOpenSpot(null);
+          }
+        }}
+        onAddPlayer={() => {
+          if (!openSpot) {
+            return;
+          }
+          if (usesFriendlyChrome) {
+            addPlayerToSeat(openSpot.seat);
+          } else {
+            addPlayerToSide(openSpot.seat.sideIndex);
+          }
+        }}
+        onOwn={() => {
+          if (!openSpot) {
+            return;
+          }
+          if (openSpot.own === "move") {
+            moveSeat.mutate({ gameId: id, ...openSpot.seat });
+          } else {
+            openJoinPicker(openSpot.seat);
+          }
+        }}
+      />
 
       {usesFriendlyChrome && !playedMatch ? (
         <PlayedPlayerDialog

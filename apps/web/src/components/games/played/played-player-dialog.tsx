@@ -13,7 +13,7 @@ import {
 } from "~/components/common/responsive-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useMessages } from "~/components/locale-provider";
-import { NotOnTembaTag } from "~/components/temba/seat";
+import { GuestTag, NotOnTembaTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 
@@ -38,7 +38,7 @@ export function PlayedPlayerDialog({
   canRename: boolean;
   onOpenChange: (open: boolean) => void;
   onKick: (userId: string) => void;
-  onRename: (player: { userId: string; name: string }) => void;
+  onRename: (player: { userId: string; name: string; guest: boolean }) => void;
 }) {
   const m = useMessages();
   const meta = player
@@ -56,6 +56,7 @@ export function PlayedPlayerDialog({
                 name={player.fullName}
                 image={player.image}
                 size="lg"
+                guest={player.guest}
               />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -63,6 +64,7 @@ export function PlayedPlayerDialog({
                     {player.fullName}
                   </ResponsiveDialogTitle>
                   {player.unclaimed ? <NotOnTembaTag /> : null}
+                  {player.guest ? <GuestTag /> : null}
                 </div>
                 <ResponsiveDialogDescription>
                   {meta}
@@ -75,14 +77,14 @@ export function PlayedPlayerDialog({
               </div>
             </ResponsiveDialogHeader>
             <div className="flex flex-wrap gap-2 px-4 pb-4 sm:px-0 sm:pb-0">
-              {canOpenProfile ? (
+              {canOpenProfile && !player.guest ? (
                 <Button variant="outline" asChild>
                   <Link href={playerProfilePath(player.userId, sport)}>
                     {m.webGame.played.viewProfile}
                   </Link>
                 </Button>
               ) : null}
-              {canRename && player.unclaimed ? (
+              {canRename && (player.unclaimed || player.guest) ? (
                 <Button
                   variant="outline"
                   aria-label={m.webGame.lineup.renameFor(
@@ -90,7 +92,11 @@ export function PlayedPlayerDialog({
                     player.fullName,
                   )}
                   onClick={() =>
-                    onRename({ userId: player.userId, name: player.fullName })
+                    onRename({
+                      userId: player.userId,
+                      name: player.fullName,
+                      guest: player.guest,
+                    })
                   }
                 >
                   {m.group.addPlayer.renameAction}

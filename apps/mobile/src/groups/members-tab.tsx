@@ -21,7 +21,7 @@ import {
   UserRoundPlus,
 } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { Linking, Pressable, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
@@ -38,6 +38,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import {
+  memberIsCallable,
   memberIsRemovable,
   memberList,
   memberOrganizerAction,
@@ -46,8 +47,11 @@ import {
 } from "./group-home-model";
 import { AdjustTierSheet } from "./adjust-tier-sheet";
 import { LevelCell } from "./level-cell";
+import type { MemberNicknameTarget } from "./member-nickname-model";
+import { MemberNicknameSheet } from "./member-nickname-sheet";
 import { MemberSheet } from "./member-sheet";
 import { MemberLensRow, MemberSortSheet } from "./members-lens";
+import { NicknameName } from "../primitives/nickname-name";
 import { Notice } from "./notice";
 import { TIER_WIDTH, TierCell, TierFish } from "./tier-fish";
 import { useMemberLens } from "./use-member-lens";
@@ -79,6 +83,33 @@ function YouMark() {
   );
 }
 
+function AddNameButton({
+  name,
+  onPress,
+}: {
+  name: string;
+  onPress: () => void;
+}) {
+  const m = useMessages();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={m.mobileGroup.nickname.addNameFor(name)}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: sizes.touchTarget,
+        justifyContent: "center",
+        paddingHorizontal: 4,
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Text size="eyebrow" tone="muted">
+        {m.mobileGroup.nickname.addName}
+      </Text>
+    </Pressable>
+  );
+}
+
 function MemberRow({
   row,
   showLevel,
@@ -86,6 +117,7 @@ function MemberRow({
   managing,
   onOpen,
   onManage,
+  onAddName,
 }: {
   row: MemberRowView;
   showLevel: boolean;
@@ -93,6 +125,8 @@ function MemberRow({
   managing: boolean;
   onOpen?: () => void;
   onManage?: () => void;
+  /** While managing, a member with no Member nickname offers one. */
+  onAddName?: () => void;
 }) {
   const m = useMessages();
   const colors = useColors();
@@ -104,13 +138,11 @@ function MemberRow({
           <TierCell cell={tier.cell} />
         </View>
       ) : (
-        <Avatar name={row.name} uri={row.imageUri} />
+        <Avatar name={row.tembaName} uri={row.imageUri} />
       )}
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-          <Text weight="semibold" numberOfLines={1} style={{ flexShrink: 1 }}>
-            {row.name}
-          </Text>
+          <NicknameName name={row.name} isNickname={row.nickname != null} />
           {row.isViewer ? <YouMark /> : null}
         </View>
         {row.unclaimed ? <NotOnTembaMark /> : null}
@@ -161,10 +193,13 @@ function MemberRow({
         >
           {content}
         </View>
+        {onAddName ? (
+          <AddNameButton name={row.tembaName} onPress={onAddName} />
+        ) : null}
         {onManage ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={m.mobileGroup.members.manageName(row.name)}
+            accessibilityLabel={m.mobileGroup.members.manageName(row.tembaName)}
             onPress={onManage}
             style={({ pressed }) => ({
               width: ACTION_WIDTH,
@@ -201,6 +236,48 @@ function MemberRow({
     <View accessible accessibilityLabel={row.accessibilityLabel} style={style}>
       {content}
     </View>
+  );
+}
+
+/** The member's own Member nickname (design "Group names" 1e). */
+function ViewerNicknameCard({
+  nickname,
+  name,
+  imageUri,
+}: {
+  nickname: string;
+  name: string;
+  imageUri: string | null;
+}) {
+  const m = useMessages();
+  const colors = useColors();
+  return (
+    <Surface
+      radius="card"
+      style={{ gap: 12, backgroundColor: colors.wash }}
+      accessible
+      accessibilityLabel={m.mobileGroup.nickname.youAreSpoken(nickname)}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <Avatar name={name} uri={imageUri} />
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <Text size="eyebrow" tone="muted">
+            {m.mobileGroup.nickname.youAre}
+          </Text>
+          <NicknameName
+            name={nickname}
+            isNickname
+            size="title"
+            weight="bold"
+            iconSize={sizes.iconAction}
+          />
+        </View>
+      </View>
+      <Hairline />
+      <Text size="meta" tone="muted">
+        {m.mobileGroup.nickname.youAreNote}
+      </Text>
+    </Surface>
   );
 }
 
@@ -390,6 +467,7 @@ export function MembersTab({
   onRemovePlayer,
   canAppointOrganizers = false,
   onOrganizerAction,
+  canSetNicknames = false,
   pendingInviteNames = [],
   onOpenInvites,
   onAddPlayer,
@@ -423,6 +501,7 @@ export function MembersTab({
     member: { userId: string; name: string },
     action: GroupMemberOrganizerAction,
   ) => void;
+  canSetNicknames?: boolean;
   /** Lookup invites not yet accepted; only an inviter is given them. */
   pendingInviteNames?: string[];
   onOpenInvites?: () => void;
@@ -440,13 +519,15 @@ export function MembersTab({
   const [adjustingUserId, setAdjustingUserId] = useState<string | null>(null);
   const [managing, setManaging] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  const [naming, setNaming] = useState<MemberNicknameTarget | null>(null);
   const { lens, setSort, setFilter } = useMemberLens(groupId);
   const canManage =
     canSetLevel ||
     canAdjustTier ||
     canAddPlayers ||
     canRemovePlayers ||
-    canAppointOrganizers;
+    canAppointOrganizers ||
+    canSetNicknames;
   const isManaging = canManage && managing;
   const showTier = tierSummary != null;
   const legend = groupMembersLegend({ showLevel, showTier, locale });
@@ -461,6 +542,7 @@ export function MembersTab({
     canAppointOrganizers,
     { ...lens, showLevel, showTier, canManage, now: new Date() },
     canAdjustTier,
+    canSetNicknames,
   );
   const rowWindow = useRowWindow(
     [query, lens.sort, lens.filter].join("\u0000"),
@@ -474,8 +556,29 @@ export function MembersTab({
         (canAdjustTier && entry.tier != null) ||
         (canAddPlayers && entry.canRename === true) ||
         memberIsRemovable(entry, canRemovePlayers) ||
-        memberOrganizerAction(entry, canAppointOrganizers) != null),
+        memberOrganizerAction(entry, canAppointOrganizers) != null ||
+        memberIsCallable(entry) ||
+        canSetNicknames),
   );
+  const viewerEntry = leaderboard.find((entry) => entry.isViewer);
+  const showsNicknameLegend = leaderboard.some(
+    (entry) => entry.nickname != null,
+  );
+  const nicknameTarget = (
+    entry: GroupLeaderboardEntryData,
+  ): MemberNicknameTarget => ({
+    userId: entry.userId,
+    name: entry.name ?? m.mobileGroup.unnamedMember,
+    imageUri: mediaUrl(entry.image, apiOrigin),
+    nickname: entry.nickname ?? null,
+    isViewer: entry.isViewer,
+  });
+  const openNaming = (userId: string) => {
+    const entry = leaderboard.find((row) => row.userId === userId);
+    if (entry) {
+      setNaming(nicknameTarget(entry));
+    }
+  };
   const organizerAction = selected
     ? memberOrganizerAction(selected, canAppointOrganizers)
     : null;
@@ -502,6 +605,13 @@ export function MembersTab({
     <View style={{ gap: 14 }}>
       {top}
       {showTier ? <SharkCard summary={tierSummary} /> : null}
+      {viewerEntry?.nickname?.visibility === "group" ? (
+        <ViewerNicknameCard
+          nickname={viewerEntry.nickname.name}
+          name={viewerEntry.name ?? m.mobileGroup.unnamedMember}
+          imageUri={mediaUrl(viewerEntry.image, apiOrigin)}
+        />
+      ) : null}
       {list.showSearch || canManage ? (
         <View style={{ flexDirection: "row", gap: 8 }}>
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -585,7 +695,18 @@ export function MembersTab({
                 managing={isManaging}
                 onOpen={onOpenMember ? () => onOpenMember(row.key) : undefined}
                 onManage={
-                  row.selectable ? () => setSelectedUserId(row.key) : undefined
+                  row.isViewer
+                    ? canSetNicknames && row.nickname != null
+                      ? () => openNaming(row.key)
+                      : undefined
+                    : row.selectable
+                      ? () => setSelectedUserId(row.key)
+                      : undefined
+                }
+                onAddName={
+                  canSetNicknames && row.nickname == null
+                    ? () => openNaming(row.key)
+                    : undefined
                 }
               />
             </View>
@@ -603,15 +724,22 @@ export function MembersTab({
             </View>
           </>
         ) : null}
-        {legend ? (
+        {legend || showsNicknameLegend ? (
           <>
             <Hairline />
             <View
               style={{ paddingHorizontal: 18, paddingVertical: 12, gap: 6 }}
             >
-              <Text size="eyebrow" tone="muted">
-                {legend}
-              </Text>
+              {legend ? (
+                <Text size="eyebrow" tone="muted">
+                  {legend}
+                </Text>
+              ) : null}
+              {showsNicknameLegend ? (
+                <Text size="eyebrow" tone="muted">
+                  {m.mobileGroup.nickname.legend}
+                </Text>
+              ) : null}
               {provisionalLine ? (
                 <Text size="eyebrow" weight="semibold">
                   {provisionalLine}
@@ -637,6 +765,7 @@ export function MembersTab({
       <MemberSheet
         member={selected ? memberSheetView(selected, locale, apiOrigin) : null}
         onClose={() => setSelectedUserId(null)}
+        onCall={(href) => void Linking.openURL(href)}
         onSetLevel={
           canSetLevel
             ? () => {
@@ -663,6 +792,14 @@ export function MembersTab({
             ? () => {
                 setSelectedUserId(null);
                 setAdjustingUserId(selected.userId);
+              }
+            : undefined
+        }
+        onNickname={
+          selected && canSetNicknames
+            ? () => {
+                setSelectedUserId(null);
+                setNaming(nicknameTarget(selected));
               }
             : undefined
         }
@@ -751,6 +888,12 @@ export function MembersTab({
           onClose={() => setAdjustingUserId(null)}
         />
       ) : null}
+      <MemberNicknameSheet
+        groupId={groupId}
+        groupName={groupName}
+        member={naming}
+        onClose={() => setNaming(null)}
+      />
     </View>
   );
 }

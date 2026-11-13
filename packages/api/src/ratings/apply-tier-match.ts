@@ -237,6 +237,10 @@ export async function applyTierMatch(
   }
 }
 
+/**
+ * The players a side rates: never a Guest player, who has no Rating and no
+ * Tier points and so plays at the average of the side (ADR-0079).
+ */
 export async function sideUserIds(database: DbClient, gameTeamId: string) {
   const links = await database.query.gameTeamPlayers.findMany({
     where: eq(gameTeamPlayers.gameTeamId, gameTeamId),
@@ -244,14 +248,16 @@ export async function sideUserIds(database: DbClient, gameTeamId: string) {
     with: {
       gamePlayer: {
         columns: { userId: true },
-        with: { user: { columns: { id: true, deletedAt: true } } },
+        with: {
+          user: { columns: { id: true, deletedAt: true, guestAt: true } },
+        },
       },
     },
   });
   const ids = new Set<string>();
   for (const link of links) {
     const seat = link.gamePlayer.user;
-    if (seat?.deletedAt === null) {
+    if (seat?.deletedAt === null && seat.guestAt === null) {
       ids.add(seat.id);
     }
   }

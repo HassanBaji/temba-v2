@@ -38,6 +38,7 @@ import {
   tierEvents,
   type FootballFixture,
 } from "#src/ratings/group-rated-match.test-support";
+import { addGuestPlayer } from "#src/routers/games/addGuestPlayer";
 import { castMvpVote } from "#src/routers/marks/castMvpVote";
 import { gameById } from "#src/routers/games/byId";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
@@ -268,6 +269,31 @@ describe("A counting football Match moves OVR (ADR-0069)", () => {
       await playAndSettle(f, [a], [b], { slot1: 1, slot2: 0 });
       expect(isProvisional((await footballRating(db, a))!.phi)).toBe(false);
       expect(isProvisional((await footballRating(db, b))!.phi)).toBe(true);
+    });
+  });
+
+  it("never rates a Guest player (ADR-0079)", async () => {
+    await withDb(async (db) => {
+      const f = await clubFootballGame(db);
+      const a = await addMember(f, "a");
+      const b = await addMember(f, "b");
+      const c = await addMember(f, "c");
+      const guest = await addGuestPlayer(db, {
+        gameId: f.gameId,
+        organizerUserId: f.organizerId,
+        name: "Fahad",
+      });
+      const matchId = await playAndSettle(f, [a, b], [c, guest.userId], {
+        slot1: 2,
+        slot2: 1,
+      });
+      const events = await db.query.ratingEvents.findMany({
+        where: eq(ratingEvents.matchId, matchId),
+      });
+      expect(events.map((event) => event.userId).sort()).toEqual(
+        [a, b, c].sort(),
+      );
+      expect(await footballRating(db, guest.userId)).toBeUndefined();
     });
   });
 

@@ -30,6 +30,11 @@ import { PlayedEmpty, PublicEmpty, UpcomingEmpty } from "./games-empty";
 import { HistoryCard } from "./history-card";
 import { SeatPickerSheet } from "./seat-picker-sheet";
 import { TournamentCard, TournamentMatchCard } from "./tournament-cards";
+import {
+  TournamentGamesCard,
+  TournamentPlayedCard,
+} from "./tournament-games-cards";
+import { isTournamentGamesCardRow } from "@repo/domain/tournament-games-card";
 import { useNow } from "./use-now";
 
 const LIST_GAP = 12;
@@ -47,6 +52,8 @@ export type GamesViewProps = {
   pickerGame: HubGameRow | null;
   onOpenPicker: (game: HubGameRow | null) => void;
   onOpen: (gameId: string) => void;
+  /** A Played card's Add photos: the Game with the Add photos sheet up. */
+  onAddPhotos?: (gameId: string) => void;
   onJoinSeat: (
     gameId: string,
     sideIndex: number,
@@ -383,8 +390,18 @@ function HubGamesList(
   }
   return (
     <View style={{ gap: LIST_GAP }}>
-      {hubItems(rows).map((item) => {
+      {hubItems(rows).map((item, index) => {
         const pending = props.pendingGameId === item.game.id;
+        if (item.kind === "my-tournament") {
+          return (
+            <TournamentGamesCard
+              key={item.key}
+              game={item.game}
+              lifted={index === 0}
+              onOpen={() => actions.onOpen(item.game.id)}
+            />
+          );
+        }
         if (item.kind === "football") {
           return (
             <FootballGameCard
@@ -442,9 +459,22 @@ function HistoryList(props: GamesViewProps) {
   }
   return (
     <View style={{ gap: LIST_GAP }}>
-      {history.value.map((row) => (
-        <HistoryCard key={row.matchId} row={row} onOpen={props.onOpen} />
-      ))}
+      {history.value.map((row) =>
+        isTournamentGamesCardRow(row) ? (
+          <TournamentPlayedCard
+            key={row.matchId}
+            row={{ ...row, myTournament: row.myTournament }}
+            onOpen={() => props.onOpen(row.id)}
+          />
+        ) : (
+          <HistoryCard
+            key={row.matchId}
+            row={row}
+            onOpen={props.onOpen}
+            onAddPhotos={props.onAddPhotos}
+          />
+        ),
+      )}
       {props.historyLoadMoreFailed ? (
         <Failure
           message={props.historyLoadMoreFailed}

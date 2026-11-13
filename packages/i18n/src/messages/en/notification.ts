@@ -59,6 +59,12 @@ export const notification = {
       plain(" changed your side on "),
       strong(game),
     ],
+    gameTeamChanged: (actor: string, game: string) => [
+      strong(actor),
+      plain(" changed the teams on "),
+      strong(game),
+      plain(". See where you play now"),
+    ],
     gameMovedToWaitlist: (actor: string, game: string) => [
       strong(actor),
       plain(" lowered the players on "),

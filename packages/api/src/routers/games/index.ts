@@ -4,6 +4,7 @@ import { acceptInviteLinkProcedure as acceptInviteLink } from "./acceptInviteLin
 import { acceptLookupInviteProcedure as acceptLookupInvite } from "./acceptLookupInvite";
 import { addGroupMembersProcedure as addGroupMembers } from "./addGroupMembers";
 import { addMatchProcedure as addMatch } from "./addMatch";
+import { addGuestPlayerProcedure as addGuestPlayer } from "./addGuestPlayer";
 import { addPlayerByPhoneProcedure as addPlayerByPhone } from "./addPlayerByPhone";
 import { addSetProcedure as addSet } from "./addSet";
 import { approveLevelRangeRequestProcedure as approveLevelRangeRequest } from "./approveLevelRangeRequest";
@@ -41,6 +42,7 @@ import { mergeHalfTeamsProcedure as mergeHalfTeams } from "./mergeHalfTeams";
 import { moveSeatProcedure as moveSeat } from "./moveSeat";
 import { setSeatSideProcedure as setSeatSide } from "./setSeatSide";
 import { setTeamSidesProcedure as setTeamSides } from "./setTeamSides";
+import { editTeamsProcedure as editTeams } from "./editTeams";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
 import { performanceRatingResultProcedure as performanceRatingResult } from "./performanceRatingResult";
 import { performanceRatingSheetProcedure as performanceRatingSheet } from "./performanceRatingSheet";
@@ -80,7 +82,7 @@ import { setFootballRoleProcedure as setFootballRole } from "./setFootballRole";
 import { stampMatchProcedure as stampMatch } from "./stampMatch";
 import { undoPoolDrawProcedure as undoPoolDraw } from "./undoPoolDraw";
 import { updateCaps } from "./updateCaps";
-import { updateCourt } from "./updateCourt";
+import { updatePlace } from "./updatePlace";
 import { updateLevelRange } from "./updateLevelRange";
 import { updateMatchProcedure as updateMatch } from "./updateMatch";
 import { updateName } from "./updateName";
@@ -114,6 +116,7 @@ export const gamesRouter = createTRPCRouter({
   moveSeat,
   setSeatSide,
   setTeamSides,
+  editTeams,
   searchPartnerUsers,
   listPartnerSuggestions,
   registerWithPartner,
@@ -124,6 +127,7 @@ export const gamesRouter = createTRPCRouter({
   kick,
   previewPlayerByPhone,
   addPlayerByPhone,
+  addGuestPlayer,
   listGroupMembersToAdd,
   addGroupMembers,
   closeRegistration,
@@ -141,7 +145,7 @@ export const gamesRouter = createTRPCRouter({
   approveLevelRangeRequest,
   rejectLevelRangeRequest,
   updateCaps,
-  updateCourt,
+  updatePlace,
   listCourts,
   addMatch,
   updateMatch,

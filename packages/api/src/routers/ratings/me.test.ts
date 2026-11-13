@@ -93,13 +93,14 @@ async function insertRatingEvent(
     createdAt?: Date;
     muBefore?: number;
     muAfter?: number;
+    outcomeScore?: number;
   },
 ) {
   await database.insert(ratingEvents).values({
     userId: args.userId,
     sport: args.sport ?? GroupSportEnum.PADEL,
     matchId: args.matchId,
-    outcomeScore: 1,
+    outcomeScore: args.outcomeScore ?? 1,
     weight: 1,
     muBefore: args.muBefore ?? muFromLevel(3.2),
     phiBefore: INITIAL_PHI,
@@ -158,6 +159,29 @@ describe("loadRatingsMe ratedMatchCount", () => {
       expect(result.ratedMatchCount).toBe(3);
       expect(result.history).toHaveLength(4);
       expect(result.historyMatchCount).toBe(3);
+    } finally {
+      await close();
+    }
+  });
+
+  it("names the outcome that moved each history point", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "ratings-me-steps@example.com");
+      await insertPadelRating(db, viewer.id);
+      const matchRows = await insertGameWithMatches(db, viewer.id, 3);
+      const scores = [1, 0, 0.5];
+      for (const [index, match] of matchRows.entries()) {
+        await insertRatingEvent(db, {
+          userId: viewer.id,
+          matchId: match.id,
+          createdAt: new Date(Date.UTC(2026, 1, 1 + index)),
+          outcomeScore: scores[index],
+        });
+      }
+
+      const result = await loadRatingsMe(db, { userId: viewer.id });
+      expect(result.historySteps).toEqual(["won", "lost", "drawn"]);
     } finally {
       await close();
     }
@@ -250,6 +274,7 @@ describe("loadRatingsMe history with Level sets", () => {
         displayedLevelFromMu(setMu),
       ]);
       expect(result.history.at(-1)).toBe(result.rating?.level);
+      expect(result.historySteps).toEqual(["won", "set"]);
       expect(result.ratedMatchCount).toBe(1);
       expect(result.historyMatchCount).toBe(1);
     } finally {

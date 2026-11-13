@@ -178,7 +178,12 @@ function ScorerChip({
         opacity: pressed ? 0.8 : 1,
       })}
     >
-      <Avatar name={player.name} uri={player.image} size="sm" />
+      <Avatar
+        name={player.name}
+        uri={player.image}
+        size="sm"
+        guest={player.guest === true}
+      />
       <Text
         size="meta"
         weight="semibold"

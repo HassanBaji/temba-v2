@@ -28,6 +28,7 @@ import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
 import { groupById } from "#src/routers/groups/byId";
 import { listMyGamesHubRows } from "#src/games/list-my-games";
+import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { listHomeCarouselGames } from "#src/home/carousel-games";
 import { admit } from "#src/games/admit";
@@ -956,6 +957,200 @@ describe("Knockout Matches on hub lists", () => {
       const out = await myRows(db, seeded, 4);
       expect(out).toHaveLength(1);
       expect(out[0]?.matchId).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("one Games list row per Groups only tournament", () => {
+  beforeAll(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
+  async function viewerMatches(database: TestDatabase, gameId: string) {
+    return database.query.matches.findMany({
+      where: eq(matches.gameId, gameId),
+      orderBy: (table, { asc }) => [asc(table.roundNumber)],
+    });
+  }
+
+  it("keeps the tournament as one row carrying the viewer's Rounds", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedFewWeeksTournament(db, "one-card");
+      const viewer = seeded.players[0];
+      const partner = seeded.players[1];
+      if (!viewer || !partner) {
+        throw new Error("Expected seated players");
+      }
+
+      const rows = (
+        await listMyGamesHubRows(db, viewer.id, NOW, "en", {
+          groupTournaments: true,
+        })
+      ).filter((row) => row.id === seeded.gameId);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ matchId: null, roundNumber: null });
+      const mine = rows[0]?.myTournament;
+      expect(mine).toMatchObject({
+        poolLabel: "A",
+        poolSize: 4,
+        poolCount: 1,
+        viewerPosition: null,
+        poolFinished: false,
+        winner: null,
+      });
+      expect(
+        [mine?.viewerTeam.left?.userId, mine?.viewerTeam.right?.userId].sort(),
+      ).toEqual([viewer.id, partner.id].sort());
+      expect(mine?.rounds.map((round) => round.roundNumber)).toEqual([1, 2, 3]);
+      expect(mine?.rounds[0]).toMatchObject({
+        courtName: "Court 1",
+        completed: false,
+        outcome: null,
+        viewerSets: [],
+      });
+      expect(
+        mine?.rounds.every(
+          (round) =>
+            round.opponent.left != null &&
+            !round.opponent.left.isViewer &&
+            round.opponent.left.userId !== partner.id,
+        ),
+      ).toBe(true);
+
+      const expanded = (await listMyGamesHubRows(db, viewer.id, NOW)).filter(
+        (row) => row.id === seeded.gameId,
+      );
+      expect(expanded).toHaveLength(3);
+    } finally {
+      await close();
+    }
+  });
+
+  it("folds the history into one row once the tournament is over", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedFewWeeksTournament(db, "one-history");
+      const viewer = seeded.players[0];
+      if (!viewer) {
+        throw new Error("Expected a seated viewer");
+      }
+      const viewerTeam = await db.query.gameTeams.findFirst({
+        where: and(
+          eq(gameTeams.gameId, seeded.gameId),
+          eq(gameTeams.sideIndex, 1),
+        ),
+      });
+      const all = await viewerMatches(db, seeded.gameId);
+      const mine = all.filter(
+        (match) =>
+          match.slot1GameTeamId === viewerTeam?.id ||
+          match.slot2GameTeamId === viewerTeam?.id,
+      );
+      expect(mine).toHaveLength(3);
+      vi.setSystemTime(new Date("2026-10-05T12:00:00.000Z"));
+      try {
+        for (const [index, match] of mine.entries()) {
+          const viewerSlot1 = match.slot1GameTeamId === viewerTeam?.id;
+          const viewerWins = index !== 1;
+          await enterTournamentScore(db, {
+            gameId: seeded.gameId,
+            matchId: match.id,
+            userId: seeded.owner.id,
+            slot1GamesWon: viewerSlot1 === viewerWins ? 6 : 2,
+            slot2GamesWon: viewerSlot1 === viewerWins ? 2 : 6,
+          });
+        }
+        const later = new Date("2026-10-05T12:00:00.000Z");
+
+        const perMatch = (
+          await listMyMatchHistoryRows(db, viewer.id, later)
+        ).filter((row) => row.id === seeded.gameId);
+        expect(perMatch).toHaveLength(3);
+        expect(perMatch.every((row) => row.myTournament == null)).toBe(true);
+
+        const grouped = (
+          await listMyMatchHistoryRows(db, viewer.id, later, {
+            limit: 20,
+            groupTournaments: true,
+          })
+        ).filter((row) => row.id === seeded.gameId);
+        expect(grouped).toHaveLength(1);
+        const tournament = grouped[0]?.myTournament;
+        expect(
+          tournament?.rounds.map((round) => [round.outcome, round.viewerSets]),
+        ).toEqual([
+          ["won", [{ viewer: 6, opponent: 2 }]],
+          ["lost", [{ viewer: 2, opponent: 6 }]],
+          ["won", [{ viewer: 6, opponent: 2 }]],
+        ]);
+        expect(tournament?.viewerPosition).toEqual(expect.any(Number));
+        expect(tournament?.poolSize).toBe(4);
+      } finally {
+        vi.setSystemTime(NOW);
+      }
+    } finally {
+      await close();
+    }
+  });
+
+  it("leaves a tournament that is still live out of the grouped history", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedFewWeeksTournament(db, "live-history");
+      const viewer = seeded.players[0];
+      if (!viewer) {
+        throw new Error("Expected a seated viewer");
+      }
+      const viewerTeam = await db.query.gameTeams.findFirst({
+        where: and(
+          eq(gameTeams.gameId, seeded.gameId),
+          eq(gameTeams.sideIndex, 1),
+        ),
+      });
+      const first = (await viewerMatches(db, seeded.gameId)).find(
+        (match) =>
+          match.roundNumber === 1 &&
+          (match.slot1GameTeamId === viewerTeam?.id ||
+            match.slot2GameTeamId === viewerTeam?.id),
+      );
+      if (!first) {
+        throw new Error("Expected the viewer's Round 1 Match");
+      }
+      const during = new Date("2026-09-21T12:00:00.000Z");
+      vi.setSystemTime(during);
+      try {
+        await enterTournamentScore(db, {
+          gameId: seeded.gameId,
+          matchId: first.id,
+          userId: seeded.owner.id,
+          slot1GamesWon: 6,
+          slot2GamesWon: 2,
+        });
+        const grouped = await listMyMatchHistoryRows(db, viewer.id, during, {
+          limit: 20,
+          groupTournaments: true,
+        });
+        expect(grouped.filter((row) => row.id === seeded.gameId)).toEqual([]);
+        const upcoming = (
+          await listMyGamesHubRows(db, viewer.id, during, "en", {
+            groupTournaments: true,
+          })
+        ).filter((row) => row.id === seeded.gameId);
+        expect(upcoming).toHaveLength(1);
+        expect(
+          upcoming[0]?.myTournament?.rounds.map((round) => round.completed),
+        ).toEqual([true, false, false]);
+      } finally {
+        vi.setSystemTime(NOW);
+      }
     } finally {
       await close();
     }

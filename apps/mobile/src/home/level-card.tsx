@@ -241,7 +241,6 @@ function RatedLevel({ view }: { view: HomeLevelView }) {
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
-              <Sparkline values={view.change.points} />
               <Text weight="bold" width="expanded">
                 {view.change.signedAmount}
               </Text>

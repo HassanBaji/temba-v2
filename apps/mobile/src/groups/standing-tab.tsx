@@ -51,6 +51,7 @@ import {
   standingStats,
   type StandingRowView,
 } from "./group-home-model";
+import { NicknameName } from "../primitives/nickname-name";
 import { groupSeasonsPath } from "./groups-model";
 import { Notice } from "./notice";
 
@@ -167,13 +168,12 @@ function StandingRow({
         importantForAccessibility="no-hide-descendants"
         style={{ flex: 1, minWidth: 0 }}
       >
-        <Text
+        <NicknameName
+          name={row.name}
+          isNickname={row.isNickname}
           weight={row.isViewer ? "semibold" : "regular"}
           tone={muted ? "muted" : "default"}
-          numberOfLines={1}
-        >
-          {row.name}
-        </Text>
+        />
         <FormStrip form={row.form} />
       </View>
       {notPlayedYet ? (
@@ -370,13 +370,12 @@ function Podium({ rows, season }: { rows: StandingRowView[]; season: Season }) {
             >
               {row.position}
             </Text>
-            <Text
+            <NicknameName
+              name={row.name}
+              isNickname={row.isNickname}
               weight={row.isViewer ? "semibold" : "regular"}
-              numberOfLines={1}
-              style={{ flex: 1, minWidth: 0 }}
-            >
-              {row.name}
-            </Text>
+              style={{ flex: 1 }}
+            />
             <Text size="meta" tone="muted">
               {standingRecordLabel(row)}
             </Text>
@@ -740,13 +739,12 @@ function StandingPreview({
               uri={mediaUrl(entry.image, apiOrigin)}
               radius={radii.sm}
             />
-            <Text
+            <NicknameName
+              name={row.name}
+              isNickname={row.isNickname}
               weight={row.isViewer ? "semibold" : "regular"}
-              numberOfLines={1}
-              style={{ flex: 1, minWidth: 0 }}
-            >
-              {row.name}
-            </Text>
+              style={{ flex: 1 }}
+            />
             <Text
               width="expanded"
               weight="bold"

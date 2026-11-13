@@ -107,6 +107,7 @@ import { startOfProductDay } from "@repo/domain/product-timezone";
 import { seasonStandingPosition } from "@repo/domain/season-standing";
 import { canManageSeasons } from "#src/groups/helpers/season-access";
 import { loadGroupStandings } from "#src/standing/load-group-standing";
+import { visibleMemberNickname } from "#src/groups/helpers/visible-member-nickname";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
 import { mayRenameUnclaimedPlayer } from "#src/unclaimed-players/may-rename-unclaimed-player";
@@ -575,7 +576,15 @@ export async function groupById(
             adderId: row.user.addedByUserId,
             callerId: args.userId,
           }));
-        return [row.userId, { unclaimed, phoneMasked, canRename }] as const;
+        const phoneNumber = isApprover ? row.user.phoneNumber : null;
+        const nickname = visibleMemberNickname(row, {
+          isApprover,
+          isMember: membership !== undefined,
+        });
+        return [
+          row.userId,
+          { unclaimed, phoneMasked, phoneNumber, canRename, nickname },
+        ] as const;
       }),
     ),
   );
@@ -785,7 +794,14 @@ export async function groupById(
                   gamePlayer: {
                     columns: { userId: true },
                     with: {
-                      user: { columns: { id: true, name: true, image: true } },
+                      user: {
+                        columns: {
+                          id: true,
+                          name: true,
+                          image: true,
+                          guestAt: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -801,7 +817,14 @@ export async function groupById(
                   gamePlayer: {
                     columns: { userId: true },
                     with: {
-                      user: { columns: { id: true, name: true, image: true } },
+                      user: {
+                        columns: {
+                          id: true,
+                          name: true,
+                          image: true,
+                          guestAt: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -945,7 +968,9 @@ export async function groupById(
         appointedUserIds.has(entry.userId) && entry.userId !== group.createdBy,
       unclaimed: memberMarkByUserId.get(entry.userId)?.unclaimed ?? false,
       phoneMasked: memberMarkByUserId.get(entry.userId)?.phoneMasked ?? null,
+      phoneNumber: memberMarkByUserId.get(entry.userId)?.phoneNumber ?? null,
       canRename: memberMarkByUserId.get(entry.userId)?.canRename ?? false,
+      nickname: memberMarkByUserId.get(entry.userId)?.nickname ?? null,
     };
   });
 
@@ -1035,6 +1060,7 @@ export async function groupById(
     canAddPlayers: isApprover,
     canRemovePlayers: isApprover,
     canAppointOrganizers: isApprover,
+    canSetMemberNicknames: isApprover,
     viewerCanSetLevel,
     memberUserIds,
     hasInviteLink: canManageInviteLinks,

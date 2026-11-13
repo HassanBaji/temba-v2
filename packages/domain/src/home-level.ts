@@ -1,11 +1,22 @@
 import { isolate } from "@repo/i18n/bidi";
 import type { Locale } from "@repo/i18n/locale";
 
+import type { LevelHistoryStep } from "./home-level-chart";
 import { ratingsLevelView, type RatingsLevelData } from "./ratings-screen";
 import type { Sport } from "./sport";
 
-/** The Temba Level `ratings.me` reads for one sport. */
-export type HomeLevelInput = RatingsLevelData & { sport: Sport };
+/**
+ * The Temba Level `ratings.me` reads for one sport, with its recent history
+ * on the sport's face for the home Trend.
+ */
+export type HomeLevelInput = RatingsLevelData & {
+  sport: Sport;
+  history: readonly string[];
+  /** One per history point after the first: what moved the Level there. */
+  historySteps: readonly LevelHistoryStep[];
+  /** Rated Matches among the history's changes; Level sets are not Matches. */
+  historyMatchCount: number;
+};
 
 export type HomeLevelView = {
   status: string;

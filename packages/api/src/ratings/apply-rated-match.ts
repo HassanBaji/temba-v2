@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
 
 import {
   gameTeamPlayers,
@@ -6,6 +6,7 @@ import {
   MatchStatusEnum,
   ratingEvents,
   ratings,
+  user,
 } from "@repo/db";
 
 import { type db } from "#src/db";
@@ -20,6 +21,7 @@ import { applyTierMatch } from "#src/ratings/apply-tier-match";
 import { notifyLevelConfirmed } from "#src/ratings/level-confirmed";
 import { ratingWeightForGame } from "#src/ratings/game-rating-weight";
 import { openRatingWindow } from "#src/ratings/settle-rating-window";
+import { withGuestStandIns } from "#src/ratings/guest-stand-ins";
 import {
   initialRatingFromChoice,
   type LevelBand,
@@ -120,6 +122,20 @@ async function loadSlotUsers(
   return { slot1, slot2 };
 }
 
+async function loadGuestIds(
+  database: DbClient,
+  slots: SlotUsers,
+): Promise<Set<string>> {
+  const rows = await database.query.user.findMany({
+    where: and(
+      inArray(user.id, [...slots.slot1, ...slots.slot2]),
+      isNotNull(user.guestAt),
+    ),
+    columns: { id: true },
+  });
+  return new Set(rows.map((row) => row.id));
+}
+
 function snapshotState(
   row:
     | {
@@ -193,7 +209,9 @@ async function persistRatedUser(args: {
  * Group it moves their Tier points. A padel Group Level is retired
  * (ADR-0066), so a padel Game's group scope moves nothing; its Matches still
  * count in the Standing. Skips when the Match is not a Rated Match (cancelled
- * or Unrated Game, missing sides, not four Users). Idempotent per User+Match.
+ * or Unrated Game, missing sides, not four Users, or four Guest players). A
+ * Guest player plays at the mean of the others and is never rated
+ * (ADR-0079). Idempotent per User+Match.
  */
 export async function applyRatedMatch(
   database: DbClient,
@@ -265,12 +283,15 @@ export async function applyRatedMatch(
     }
     return;
   }
-
   if (!ratesTemba) {
     return;
   }
   const slots = await loadSlotUsers(database, match);
   if (!slots) {
+    return;
+  }
+  const guestIds = await loadGuestIds(database, slots);
+  if (guestIds.size === 4) {
     return;
   }
 
@@ -279,6 +300,7 @@ export async function applyRatedMatch(
     sport: ratingSportFromGame(liveGame.sport),
     matchId: match.id,
     slots,
+    guestIds,
     result,
     now: new Date(),
   });
@@ -295,11 +317,12 @@ async function applyTembaRatedMatch(
     sport: "padel" | "football";
     matchId: string;
     slots: SlotUsers;
+    guestIds: ReadonlySet<string>;
     result: RatedMatchOutcome;
     now: Date;
   },
 ): Promise<void> {
-  const { sport, slots, now } = args;
+  const { sport, slots, guestIds, now } = args;
   const match = { id: args.matchId };
   const result = args.result;
   const weight = await ratingWeightForGame(database, args.game);
@@ -324,10 +347,10 @@ async function applyTembaRatedMatch(
     .for("update");
   const rowByUser = new Map(existingRows.map((row) => [row.userId, row]));
 
-  const playerInput = (userId: string) => ({
+  const playerInput = withGuestStandIns(userIds, guestIds, (userId) => ({
     state: snapshotState(rowByUser.get(userId)),
     lastRatedAt: rowByUser.get(userId)?.lastRatedAt,
-  });
+  }));
   const rated = rateDoublesMatch({
     slot1: [playerInput(slots.slot1[0]), playerInput(slots.slot1[1])],
     slot2: [playerInput(slots.slot2[0]), playerInput(slots.slot2[1])],
@@ -345,7 +368,7 @@ async function applyTembaRatedMatch(
 
   const ratedUserIds: string[] = [];
   for (const player of players) {
-    if (alreadyRated.has(player.userId)) {
+    if (alreadyRated.has(player.userId) || guestIds.has(player.userId)) {
       continue;
     }
 

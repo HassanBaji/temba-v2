@@ -24,6 +24,7 @@ const ALLOWED_UNINDEXED: Record<string, string> = {
   "user.added_by_user_id": USER_ACTOR,
   "user_merges.survivor_user_id": USER_OWN,
   "level_overrides.set_by_user_id": USER_ACTOR,
+  "group_members.nickname_updated_by_id": USER_ACTOR,
   "level_overrides.group_id": RARE_PARENT,
   "level_overrides.venue_id": RARE_PARENT,
   "group_rating_events.group_id":

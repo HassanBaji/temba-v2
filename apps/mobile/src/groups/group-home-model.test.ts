@@ -277,6 +277,30 @@ describe("memberList with an Unclaimed player", () => {
   });
 });
 
+describe("memberList and memberSheetView with a member's number", () => {
+  const [first, second] = home.member.standing.leaderboard;
+  const withNumber = { ...second!, phoneNumber: "+97336124408" };
+
+  it("lets a Group approver open any member they were sent a number for", () => {
+    const rows = memberList([first!, withNumber], "", ORIGIN, "en").rows;
+    expect(rows.map((row) => row.selectable)).toEqual([false, true]);
+    expect(
+      memberList([{ ...withNumber, isViewer: true }], "", ORIGIN, "en").rows[0]!
+        .selectable,
+    ).toBe(false);
+  });
+
+  it("shows the full number and dials it", () => {
+    const view = memberSheetView(withNumber, "en");
+    expect(view.phone).toBe(isolate("+973 3612 4408"));
+    expect(view.phoneHref).toBe("tel:+97336124408");
+    expect(memberSheetView(second!, "en")).toMatchObject({
+      phone: null,
+      phoneHref: null,
+    });
+  });
+});
+
 describe("memberSheetView", () => {
   const entry = {
     ...home.member.standing.leaderboard[1]!,

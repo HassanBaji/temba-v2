@@ -1,5 +1,6 @@
 import { spacing } from "@repo/design-tokens";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
+import { canEditTeams } from "@repo/domain/edit-teams";
 import { kickAction } from "@repo/domain/game-copy";
 import type {
   TournamentDetails,
@@ -11,7 +12,6 @@ import {
   mergePairCopy,
 } from "@repo/domain/tournament-half-teams";
 import {
-  kickableTournamentOccupants,
   tournamentRoundsPlan,
   type TournamentOrganizerView,
 } from "@repo/domain/tournament-organizer";
@@ -42,6 +42,7 @@ export type OrganizerCardHandlers = {
   onKickPlayer: (userId: string) => void;
   onKickWaitlist: (waitlistId: string) => void;
   onAddPlayer: () => void;
+  onEditTeams: () => void;
 };
 
 function Block({ children }: { children: React.ReactNode }) {
@@ -179,6 +180,23 @@ export function OrganizerCard({
     );
   }
 
+  if (canEditTeams(game)) {
+    blocks.push(
+      <Block key="edit-teams">
+        <Text size="meta" tone="muted">
+          {messages.editTeams.tournamentCardCopy}
+        </Text>
+        <Action>
+          <Button
+            label={messages.editTeams.action}
+            variant="outline"
+            onPress={handlers.onEditTeams}
+          />
+        </Action>
+      </Block>,
+    );
+  }
+
   if (organizerCanAddPlayer(game)) {
     blocks.push(
       <Block key="add-player">
@@ -196,32 +214,13 @@ export function OrganizerCard({
     );
   }
 
-  const occupants = organizer.active ? kickableTournamentOccupants(game) : [];
   const waitlist = organizer.active ? game.waitlist : [];
-  if (occupants.length > 0 || waitlist.length > 0) {
+  if (waitlist.length > 0) {
     blocks.push(
       <Block key="kick">
         <Text weight="medium" accessibilityRole="header">
           {messages.common.players}
         </Text>
-        {occupants.map((occupant) => (
-          <View
-            key={occupant.userId}
-            style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
-          >
-            <Text style={{ flex: 1, minWidth: 0 }} numberOfLines={1}>
-              {occupant.name}
-            </Text>
-            <Button
-              label={kick}
-              accessibilityLabel={m.kickSr(occupant.name)}
-              size="sm"
-              variant="outline"
-              disabled={handlers.kickPending}
-              onPress={() => handlers.onKickPlayer(occupant.userId)}
-            />
-          </View>
-        ))}
         {waitlist.map((entry) => (
           <View
             key={entry.id}

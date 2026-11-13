@@ -64,6 +64,7 @@ import type {
 } from "@repo/domain/group-data";
 import type { LevelFace } from "@repo/domain/football-ovr";
 import type { LevelBand } from "@repo/domain/level-bands";
+import { formatE164 } from "@repo/domain/phone-number";
 import type { Locale } from "@repo/i18n/locale";
 import {
   levelOverrideCaption,
@@ -91,6 +92,7 @@ type GroupMember = {
   tier?: GroupMemberTierData | null;
   unclaimed: boolean;
   phoneMasked: string | null;
+  phoneNumber?: string | null;
   canRename?: boolean;
 };
 
@@ -180,6 +182,7 @@ function SavedBanner({
 
 function MemberActionsMenu({
   name,
+  phoneNumber,
   setLevelHref,
   profileHref,
   tierHistoryHref,
@@ -190,6 +193,8 @@ function MemberActionsMenu({
   onRemove,
 }: {
   name: string;
+  /** Given to a Group approver, for any member with a number. */
+  phoneNumber?: string;
   setLevelHref?: string;
   profileHref?: string;
   tierHistoryHref?: string;
@@ -203,6 +208,24 @@ function MemberActionsMenu({
   const locale = useLocale();
   return (
     <ActionMenu label={m.webGroup.members.manageName(name)}>
+      {phoneNumber ? (
+        <>
+          <ActionMenuItem asChild>
+            <a href={`tel:${phoneNumber}`}>
+              {m.webGroup.members.callPhone(formatE164(phoneNumber))}
+            </a>
+          </ActionMenuItem>
+          {setLevelHref ||
+          profileHref ||
+          tierHistoryHref ||
+          onAdjustTier ||
+          organizerAction ||
+          onRename ||
+          onRemove ? (
+            <ActionMenuSeparator />
+          ) : null}
+        </>
+      ) : null}
       {setLevelHref ? (
         <ActionMenuItem asChild>
           <Link href={setLevelHref}>{m.webGroup.members.setLevel}</Link>
@@ -605,15 +628,11 @@ export function GroupMembersTab({
     canRemovePlayers;
   const isManaging = canManage && managing;
   const showTier = tierSummary != null;
-  const view = groupMembersLens(members, {
-    ...lens,
-    query,
-    showLevel,
-    showTier,
-    canManage,
-    now: new Date(),
-    locale,
-  });
+  // The web members table shows no Member nicknames, so search must not match them.
+  const view = groupMembersLens(
+    members.map((member) => ({ ...member, nickname: null })),
+    { ...lens, query, showLevel, showTier, canManage, now: new Date(), locale },
+  );
   const showSearch = view.showControls;
   const visible = view.rows;
   const columnCount = showTier
@@ -689,7 +708,10 @@ export function GroupMembersTab({
       canRemovePlayers && groupMemberIsRemovable(member) && onRemovePlayer
         ? () => onRemovePlayer(target)
         : undefined;
+    const phoneNumber =
+      !member.isViewer && member.phoneNumber ? member.phoneNumber : undefined;
     if (
+      !phoneNumber &&
       !setLevelHref &&
       !profileHref &&
       !tierHistoryHref &&
@@ -703,6 +725,7 @@ export function GroupMembersTab({
     return (
       <MemberActionsMenu
         name={member.name}
+        phoneNumber={phoneNumber}
         setLevelHref={setLevelHref}
         profileHref={profileHref}
         tierHistoryHref={tierHistoryHref}

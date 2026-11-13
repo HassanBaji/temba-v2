@@ -51,6 +51,7 @@ export const NOTIFICATION_TYPE_VALUES = [
   "challenge_rematch_nudge",
   "match_score_to_confirm",
   "game_moved_to_waitlist",
+  "game_team_changed",
   "tier_points_adjusted",
   "tier_band_changed",
   "performance_ratings_open",

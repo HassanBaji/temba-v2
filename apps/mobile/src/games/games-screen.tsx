@@ -16,6 +16,7 @@ import { api } from "../trpc/react";
 import type { Slot } from "../home/home-model";
 import { slotOf } from "../lib/slot-of";
 import {
+  addPhotosPath,
   footballJoinPath,
   footballScorePath,
   gamePath,
@@ -46,7 +47,7 @@ export function GamesScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const myGames = api.games.listMyGames.useQuery(
-    undefined,
+    { groupTournaments: true },
     REFETCH_ON_FOREGROUND,
   );
   const publicGames = api.games.listPublicPickup.useQuery(
@@ -54,7 +55,7 @@ export function GamesScreen() {
     REFETCH_ON_FOREGROUND,
   );
   const history = api.games.listMyMatchHistory.useInfiniteQuery(
-    { limit: HISTORY_PAGE_SIZE },
+    { limit: HISTORY_PAGE_SIZE, groupTournaments: true },
     { ...REFETCH_ON_FOREGROUND, getNextPageParam: nextHistoryCursor },
   );
   const historyRows = useMemo(() => history.data?.pages.flat(), [history.data]);
@@ -120,6 +121,7 @@ export function GamesScreen() {
         pickerGame={pickerGame}
         onOpenPicker={setPickerGame}
         onOpen={(gameId) => router.push(gamePath(gameId))}
+        onAddPhotos={(gameId) => router.push(addPhotosPath(gameId))}
         onJoinSeat={(gameId, sideIndex, position) =>
           join(seatJoinRequest(gameId, sideIndex, position))
         }

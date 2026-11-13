@@ -202,8 +202,7 @@ function RatedLevel({ view }: { view: HomeLevelView }) {
             {view.level}
           </span>
           {view.change ? (
-            <span className="mt-1 flex items-center gap-2">
-              <Sparkline values={view.change.points} />
+            <span className="mt-1 flex items-baseline gap-2">
               <span className="font-expanded tabular-nums">
                 {view.change.signedAmount}
               </span>

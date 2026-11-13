@@ -37,9 +37,9 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 /**
  * Games won by each team in a tournament Match, as one Set (ADR-0062).
  * A seated player's score waits for one tap from the other team, and stands
- * on its own after ten minutes. An Organizer who is not playing in the Match
- * sets the score outright, including over a confirmed one, which is first
- * reopened under the usual wrong-score rule.
+ * on its own after ten minutes. An Organizer sets the score outright, whether
+ * or not they play in the Match (ADR-0075), including over a confirmed one,
+ * which is first reopened under the usual wrong-score rule.
  */
 export async function enterTournamentScore(
   database: DbClient,
@@ -92,7 +92,7 @@ export async function enterTournamentScore(
       message: messagesFor(locale).tournament.errors.scoreTeamsOrOrganizer,
     });
   }
-  const final = organizer && slot == null;
+  const final = organizer;
 
   const now = new Date();
   // Checked under the Match lock and before any reopening, so a refused

@@ -8,6 +8,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
 
+import { MyNotesRow } from "../game-album/my-notes-row";
 import { gamePath } from "../games/games-model";
 import { groupPath } from "../groups/groups-model";
 import { Block } from "../home/slot-block";
@@ -225,6 +226,7 @@ export function ProfileScreen() {
         rows={toStamp.data ?? []}
         onOpenGame={(gameId) => open(gamePath(gameId))}
       />
+      <MyNotesRow onOpen={() => open("/profile/notes")} />
       <Block
         slot={slotOf(details)}
         title={m.common.profile}

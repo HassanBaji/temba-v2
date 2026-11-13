@@ -25,6 +25,7 @@ describe("levelFromApi", () => {
       progressPercent: null,
       nextBand: null,
       history: [],
+      historySteps: [],
       historyMatchCount: 0,
       ratedMatchCount: 0,
       changeOverLast: null,
@@ -48,6 +49,9 @@ describe("levelFromApi", () => {
       levelValue: 2.79,
       ratedMatchCount: 2,
       changeOverLast: { matches: 2, delta: -0.4, points: [3.19, 2.79] },
+      history: ["3.19", "2.79"],
+      historySteps: ["lost"],
+      historyMatchCount: 1,
     } as unknown as ApiRating;
     assert.deepEqual(levelFromApi(data), {
       kind: "rated",
@@ -62,6 +66,9 @@ describe("levelFromApi", () => {
         },
         ratedMatchCount: 2,
         changeOverLast: { matches: 2, delta: -0.4, points: [3.19, 2.79] },
+        history: ["3.19", "2.79"],
+        historySteps: ["lost"],
+        historyMatchCount: 1,
       },
     });
   });

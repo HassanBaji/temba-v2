@@ -677,6 +677,19 @@ export const group = {
     renameDescription:
       "يبقى هاتفه كما هو. إن كان الرقم خاطئًا، أزله ثم أضفه مجددًا.",
     renamedToast: (name: string) => `تغيّر الاسم إلى ${name}`,
+    guest: {
+      tab: "ضيف",
+      description: "يلعب الضيف هذه المباراة باسمه فقط. دون هاتف ودون حساب.",
+      nameLabel: "الاسم",
+      levelNote:
+        "يُحتسب مستواه كمتوسط مستوى اللاعبين الآخرين في كل مباراة، ولا تتغير إلا مستويات اللاعبين الحقيقيين.",
+      submit: (name: string) =>
+        name ? `إضافة ${isolate(name)} كضيف` : "إضافة كضيف",
+      addedToast: (name: string) => `أُضيف ${isolate(name)} كضيف`,
+      tag: "ضيف",
+      nameGuest: (name: string) => `${isolate(name)}، ضيف`,
+      renameDescription: "اسمه في هذه المباراة.",
+    },
     fromGroup: {
       tab: "من المجموعة",
       phoneTab: "بالهاتف",
@@ -747,6 +760,10 @@ export const group = {
         other: "لا يتجاوز {n} حرف",
       }),
   },
+  nickname: {
+    spoken: (nickname: string, name: string) =>
+      `${nickname}، اسم ${name} في هذه المجموعة`,
+  },
   errors: {
     notFound: "المجموعة غير موجودة",
     cannotJoin: "لا يمكنك الانضمام إلى هذه المجموعة",
@@ -792,5 +809,13 @@ export const group = {
     standingMembersOnly: "انضم إلى المجموعة لترى ترتيبها",
     approvalPublicOnly: "اشتراط الموافقة للمجموعات العامة فقط",
     imageEmpty: "ملف الصورة فارغ",
+    nicknameTooLong: (max: number) =>
+      plural("ar", max, {
+        one: "لا يتجاوز الاسم حرفًا واحدًا",
+        two: "لا يتجاوز الاسم حرفين",
+        few: "لا يتجاوز الاسم {n} أحرف",
+        many: "لا يتجاوز الاسم {n} حرفًا",
+        other: "لا يتجاوز الاسم {n} حرف",
+      }),
   },
 } satisfies typeof source;

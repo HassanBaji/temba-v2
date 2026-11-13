@@ -115,8 +115,8 @@ export function seatedSlot(
 }
 
 /**
- * A pending score waits on the other team; an Organizer who is not playing in
- * the Match may confirm it in their place (ADR-0062).
+ * A pending score waits on the other team; any Organizer, playing or not, may
+ * confirm it in their place (ADR-0062, ADR-0075).
  */
 export function mayConfirmEnteredScore(args: {
   state: TournamentMatchState | "draft";
@@ -126,8 +126,8 @@ export function mayConfirmEnteredScore(args: {
 }) {
   return (
     args.state === "awaiting_confirmation" &&
-    ((args.viewerSlot != null && args.enteredSlot !== args.viewerSlot) ||
-      (args.organizer && args.viewerSlot == null))
+    (args.organizer ||
+      (args.viewerSlot != null && args.enteredSlot !== args.viewerSlot))
   );
 }
 

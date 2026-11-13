@@ -8,7 +8,7 @@ import type {
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { games, matches } from "@repo/db";
 
-import type { HubGameFootball } from "@repo/domain/hub-game-row";
+import type { HubGameFootball, MyTournament } from "@repo/domain/hub-game-row";
 import type { Sport } from "@repo/domain/sport";
 import type { GameRatingScope } from "@repo/domain/game-rating-scope";
 import type { MvpMode } from "@repo/domain/marks";
@@ -84,6 +84,8 @@ export type HubListKnockoutMatch = {
 
 export type HubListFootball = HubGameFootball;
 
+export type HubListMyTournament = MyTournament;
+
 export type HubListRow = {
   id: string;
   name: string | null;
@@ -128,6 +130,8 @@ export type HubListRow = {
   poolMatch: HubListPoolMatch | null;
   /** Only on expanded Knockout Match rows, which carry no Round number. */
   knockoutMatch: HubListKnockoutMatch | null;
+  /** The viewer's Game team, group place and Rounds on a posted Groups only tournament. */
+  myTournament?: HubListMyTournament | null;
   /** Only on football Games. */
   football?: HubListFootball | null;
   /** A Challenge Game: sides set by the Challenge, nobody joins. */

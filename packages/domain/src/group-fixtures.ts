@@ -47,6 +47,7 @@ function entry(
     joinedAt: new Date("2025-02-11T12:00:00Z"),
     unclaimed: false,
     phoneMasked: null,
+    phoneNumber: null,
     ...extra,
   };
 }
@@ -279,6 +280,7 @@ export function createGroupFixtures(now = new Date()) {
     canAddPlayers: false,
     canRemovePlayers: false,
     canAppointOrganizers: false,
+    canSetMemberNicknames: false,
     canDelete: false,
     viewerCanSetLevel: false,
     venue: null,
@@ -305,6 +307,7 @@ export function createGroupFixtures(now = new Date()) {
     canAddPlayers: true,
     canRemovePlayers: true,
     canAppointOrganizers: true,
+    canSetMemberNicknames: true,
     isOwner: true,
     canEdit: true,
     canTransferOwnership: true,

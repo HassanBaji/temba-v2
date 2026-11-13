@@ -136,8 +136,12 @@ A Group join request a Group approver rejected with "Reject and block". A blocke
 _Avoid_: ban (when you mean this Group-level refusal)
 
 **Group approver**:
-Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, make or unmake Appointed Organizers and, on a tier Group, make a Tier adjustment for any other member and change the Rating settings: the Group creator and Appointed Organizers, on a Loose Group and a Club Group alike. Removing a player never removes the Group creator; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once.
+Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, make or unmake Appointed Organizers and, on a tier Group, make a Tier adjustment for any other member and change the Rating settings: the Group creator and Appointed Organizers, on a Loose Group and a Club Group alike. Removing a player never removes the Group creator; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. A Group approver also sees every member's full phone number, in the member menu on the Members tab, and no one else in the Group does (ADR-0078).
 _Avoid_: organizer (when you mean this write permission), group admin, Group owner (when you mean this permission rather than the one User who owns the Group)
+
+**Member nickname**:
+A name a Group approver gives a member, belonging to that one Group: a nickname ("Abu Ali") or a tag that tells players apart ("Ahmed keeper"). One per member per Group, up to 24 characters; any Group approver may set, change or clear it, their own included, and the last editor is recorded. It shows with a tag icon on that Group's Members list (above the Temba name), Standing and Add players lists, and on the line-ups and team making of the Group's Games; search matches both names. Who sees it is set per name: Organizers only (the default, a working label for Group approvers that a member who is not one never sees, even about themselves) or Everyone in the Group (the member sees it too, with nothing to accept or remove). Nobody outside the Group sees it: not on the player's profile, in other Groups or in Challenges. Stored on `group_members`.
+_Avoid_: Group name (that is the Group's own name), alias, display name
 
 **Group owner**:
 The one User a Group belongs to: its creator, until ownership is transferred. Who may edit the Group (name, sport until the first Game, visibility, Require approval, photo, Invite link reset), transfer ownership, delete it and, on a Club Group, unlink it from its Venue. The owner cannot Leave; they transfer ownership or delete the Group first. A Group approver is not an owner.
@@ -264,7 +268,7 @@ On a padel Friendly game, a User's answer to "which side?" when they take a seat
 _Avoid_: flexible seat, any seat, Preferred Position (that is the profile default), wildcard
 
 **Operator**:
-A Temba staff User. Operators curate Venues and Courts, mark Partner Venues, grant Venue managers and Verifiers, verify Groups, link Loose Groups to Venues directly, may set any other User's Level in either sport (ADR-0046), and decide Match disputes. Being an Operator is Clerk's `publicMetadata.operator` flag, read from the session for every Operator door. The Clerk webhook copies it onto `user.is_operator`, the directory a Notification to every Operator (such as a raised Match dispute) reads (ADR-0081); the copy is never the check.
+A Temba staff User. Operators curate Venues and Courts, mark Partner Venues, grant Venue managers and Verifiers, verify Groups, link Loose Groups to Venues directly, may set any User's Level in either sport, their own included (ADR-0046, ADR-0077), and decide Match disputes. Being an Operator is Clerk's `publicMetadata.operator` flag, read from the session for every Operator door. The Clerk webhook copies it onto `user.is_operator`, the directory a Notification to every Operator (such as a raised Match dispute) reads (ADR-0081); the copy is never the check.
 _Avoid_: Admin, Owner (retired Community roles, ADR-0055), system admin, platform admin, superadmin
 
 **Venue manager**:
@@ -420,6 +424,18 @@ _Avoid_: badge, trophy, award, honor (bare), ResultMark or form mark (those are 
 A Mark that teases rather than praises: Mr Fumble and Sayed Malek. Counts like any Mark on the Game screen. Its receiver may hide every Roast from their Player profile with one setting; hidden Roasts still show to everyone who can open that Game.
 _Avoid_: negative mark, penalty, insult
 
+**Album**:
+Up to six photos on a Game once a score is final, added by its players and shown to them only, each with who added it. Whoever added a photo removes it; an Organizer removes any. A social gets one Album for the whole day (ADR-0076).
+_Avoid_: gallery, feed, photo wall, media
+
+**Game note**:
+A player's one note on a Game whose score is final: how it felt, what to work on, who to play again. Public is read by the players of that Game; private is read by its author alone, and the others cannot tell it exists. Written and edited for thirty days after the Game. Not a comment thread: no replies, no likes (ADR-0076).
+_Avoid_: comment, review, post, journal entry
+
+**Your notes**:
+The profile page listing every Game note the viewer wrote, private and shared, grouped by month with each Game's result and score. Only its owner sees it.
+_Avoid_: journal (in code), diary, notebook
+
 **Marks window**:
 The 48 hours after a Match's completion during which Marks are given and the MVP is decided. On a Match with a Rating window, on a tier Group or counting for Temba Level, the MVP closes with that window instead (ADR-0068): after its 24 hours, or when the rating Organizer submits and the window settles early. Marks keep the 48 hours. Anchored on the Match's completion moment, suspended by a wrong-score report, restarted by the next completion. The vote may close earlier when everyone has voted; the window never does. Closed by a Job and by the read-time rule. Judged by the server clock.
 _Avoid_: voting period, deadline, grace period
@@ -512,6 +528,10 @@ _Avoid_: auto-confirm, timeout, default result
 A Game team on a Friendly tournament with one Position taken and the other vacant, before the Pool draw. An organizer may merge two Half teams into one Game team. Distinct from an incomplete Team, which is the persistent partnership with one seat.
 _Avoid_: incomplete Team, solo, single, orphan seat
 
+**Edit teams**:
+The Organizer rewriting who plays where on a padel Friendly game or a Friendly tournament: moving a player to the other Position or another Game team, saved as one line-up (ADR-0077). Allowed on a Friendly game until a score is entered. On a Friendly tournament a Game team with a scored Match, confirmed or still waiting, keeps its two players and may only swap Positions, and after the Pool draw players only swap. Never on a Challenge Game. Distinct from setting a Game team's sides, which only swaps Left and Right inside one full Game team.
+_Avoid_: reseat, reshuffle, team builder
+
 **Pool**:
 One subset of a Friendly tournament's Game teams that plays a round robin against itself — one Pass by default, cut short or played twice by the organizer's Round count. A tournament has one or more Pools, and every Game team sits in exactly one. Not a Group: a Pool lives inside a single tournament, while a Group is a set of people who play Games. Shown to users as _group_.
 _Avoid_: Group, group stage group, division, section, bracket
@@ -581,12 +601,16 @@ An approved Game Level range request, or an Organizer Lookup invite, that except
 _Avoid_: auto-admit, Game admit, exception (as the name of the entity), Lookup invite (that is a door that grants this)
 
 **User**:
-A person on Temba. Almost every User has a Temba account; the exception is an Unclaimed player, who has a phone and a name but no account yet.
+A person on Temba. Almost every User has a Temba account; the exceptions are an Unclaimed player, who has a phone and a name but no account yet, and a Guest player, who has only a name.
 _Avoid_: player (when you mean User), member (when you mean a Group member)
+
+**Guest player**:
+Someone an Organizer seated on one Game by name only: no phone, no account, no Rating. A User row marked as a guest, so every rule for a User without an account applies (never searched, notified or a required confirmer). On a Rated Match they play at the mean Level of the Users with an account in it, whose Levels move as usual; their own never exists. Shown with a dashed avatar and the word Guest, at the mean Level band of the other players. One per add, never claimed (ADR-0079).
+_Avoid_: Guest (that is a Booking holder without an account), Unclaimed player (that one has a phone and can be claimed), placeholder, ghost, ringer
 
 **Unclaimed player**:
 A User an Organizer or Group approver added by phone and name, with no Temba account yet. They are seated, rated and shown like any User, marked "Not on Temba yet", but never found by Lookup invite or Partner search and never sent a Notification. One per phone. While unclaimed, an Organizer or Group approver of a Game or Group they are on may correct the name, when the User who added them also organizes that Game or Group; the phone never changes, so a wrong number is fixed by removing and adding them again. Signing up with that phone, verified, claims the row and its history; an existing account that verifies the phone later absorbs it (ADR-0042).
-_Avoid_: Guest (that is a Booking holder without an account), placeholder, ghost, manual User, invitee
+_Avoid_: Guest (that is a Booking holder without an account), Guest player (name only, no phone), placeholder, ghost, manual User, invitee
 
 **Onboarding questionnaire**:
 The sports, Level and side questions, now one Profile task ("Pick your sports and level") on the Profile checklist rather than a gate (ADR-0049). It first asks which **Sports played**, then padel (Level band and Preferred Position) and football (Football role, Preferred football position and a **Football self-placement**) for each picked sport, and saves every answer in one call. **Either** and **Not sure** (which starts padel at D+) are the low-commitment answers. Users who predate it are complete without answering.

@@ -233,6 +233,19 @@ export function notificationCopy(
     };
   }
   if (
+    item.type === "game_team_changed" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: m.gameTeamChanged(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (
     item.type === "game_moved_to_waitlist" &&
     item.audience === "player" &&
     item.game
