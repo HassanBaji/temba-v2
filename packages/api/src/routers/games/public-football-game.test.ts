@@ -39,6 +39,7 @@ import { listCreateVenuesForUser } from "#src/routers/games/listCreateVenues";
 import { listPublicHubRows } from "#src/routers/games/listPublicPickup";
 import { publishFootballTeams } from "#src/routers/games/publishFootballTeams";
 import { register } from "#src/routers/games/register";
+import { reportWrongScore } from "#src/routers/games/reportWrongScore";
 import { saveFootballScore } from "#src/routers/games/saveFootballScore";
 
 const HOUR = 60 * 60 * 1000;
@@ -505,6 +506,62 @@ describe("Football Public Game score (ADR-0071)", () => {
           })
         ).map((row) => row.userId),
       ).toEqual([g.creator]);
+    });
+  });
+
+  it("starts the 24 hours and asks the other side when a reopened Match's Score is saved again unchanged", async () => {
+    await withDb(async (db) => {
+      const g = await playedPublicFootballGame(db);
+      const save = (userId: string) =>
+        saveFootballScore(
+          apiDb(db),
+          {
+            gameId: g.gameId,
+            userId,
+            slot1Goals: 3,
+            slot2Goals: 1,
+            scorers: [],
+          },
+          g.afterKickoff,
+        );
+      await save(g.creator);
+      await confirmMatchResult(apiDb(db), {
+        gameId: g.gameId,
+        matchId: g.matchId,
+        userId: g.c,
+      });
+      await reportWrongScore(apiDb(db), {
+        gameId: g.gameId,
+        matchId: g.matchId,
+        userId: g.creator,
+      });
+      expect(await publicGameConfirmWindowClosesAt(db, g.matchId)).toBeNull();
+      await db.delete(notifications);
+      jobs.clear();
+
+      const savedAt = Date.now();
+      await save(g.c);
+
+      const window = jobs.added.find(
+        (job) => job.key === confirmWindowJobKey(g.matchId),
+      );
+      expect(window).toMatchObject({ name: "match.confirm-window" });
+      expect(window!.runAt!.getTime()).toBeGreaterThanOrEqual(
+        savedAt + PUBLIC_GAME_CONFIRM_WINDOW_MS,
+      );
+      const asked = await db.query.notifications.findMany({
+        where: and(
+          eq(notifications.gameId, g.gameId),
+          eq(notifications.type, "match_score_to_confirm"),
+        ),
+      });
+      expect(asked.map((row) => row.recipientUserId).sort()).toEqual(
+        [g.creator, g.b].sort(),
+      );
+      expect(
+        (await gameById(db, { gameId: g.gameId, userId: g.creator }))
+          .confirmWindow,
+      ).toMatchObject({ viewerMayConfirm: true });
     });
   });
 });

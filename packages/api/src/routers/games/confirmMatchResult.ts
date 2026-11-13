@@ -9,11 +9,13 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { requireGame, type GameRow } from "#src/games/access";
+import { keepPublicGameConfirmation } from "#src/games/confirmations-after-set-change";
 import { confirmsAsOrganizer } from "#src/games/confirms-as-organizer";
 import {
   knockoutLevelMessage,
   knockoutMatchIsLevel,
 } from "#src/games/knockout-advance";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import { messagesFor } from "@repo/i18n/messages";
 import {
@@ -71,7 +73,8 @@ async function sideAlreadyAgreed(
  * Challenge Game that counts for Temba Level whoever acts for a Team
  * confirms for that Team's side only, so the Match waits for the other
  * Team (ADR-0069). On a Public Game one player from each side confirms and
- * nobody's word is final; a confirmation after the 24 hours lets the score
+ * nobody's word is final; the first confirmation on a reopened Match starts
+ * the other side's 24 hours, and a confirmation after them lets the score
  * stand without counting (ADR-0071). `slot` is kept for
  * clients that still name the side an Organizer confirms for; it is refused
  * from anyone else. The Match must already have a result and must not be
@@ -167,7 +170,13 @@ export async function confirmMatchResult(
     confirmsForSide &&
     !(await sideAlreadyAgreed(database, game, match, args.userId, actedFor))
   ) {
-    await keepMatchResultConfirmation(database, match.id, args.userId);
+    if (isPublicGame(game)) {
+      await database.transaction((tx) =>
+        keepPublicGameConfirmation(tx, { game, match, userId: args.userId }),
+      );
+    } else {
+      await keepMatchResultConfirmation(database, match.id, args.userId);
+    }
   }
 
   if (organizer || (await matchResultFullyConfirmed(database, match))) {

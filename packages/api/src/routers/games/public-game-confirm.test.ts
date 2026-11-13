@@ -19,6 +19,7 @@ import { gameById } from "#src/routers/games/byId";
 import { completeMatch } from "#src/routers/games/completeMatch";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { seatedPublicGame } from "#src/routers/games/public-game.test-support";
+import { reportWrongScore } from "#src/routers/games/reportWrongScore";
 import { scoreSet } from "#src/routers/games/scoreSet";
 
 async function withDb(run: (db: TestDatabase) => Promise<void>) {
@@ -297,6 +298,142 @@ describe("Public Game score confirmation (ADR-0071)", () => {
         }),
       ).toHaveLength(0);
       expect(await confirmedUserIds(db, g.matchId)).toEqual([g.creator]);
+    });
+  });
+
+  describe("a Match reopened by a wrong-score report", () => {
+    /** Entered 6-3 by the creator, confirmed by `c`, then reopened: the Sets stay and the confirmations go. */
+    async function reopened(db: TestDatabase) {
+      const g = await seatedPublicGame(db);
+      await scoreSet(db, {
+        gameId: g.gameId,
+        matchId: g.matchId,
+        setId: g.setId,
+        userId: g.creator,
+        slot1GamesWon: 6,
+        slot2GamesWon: 3,
+      });
+      await confirmMatchResult(db, {
+        gameId: g.gameId,
+        matchId: g.matchId,
+        userId: g.c,
+      });
+      await reportWrongScore(db, {
+        gameId: g.gameId,
+        matchId: g.matchId,
+        userId: g.creator,
+      });
+      expect((await matchRow(db, g.matchId))?.status).toBe(
+        MatchStatusEnum.PENDING,
+      );
+      expect(await confirmedUserIds(db, g.matchId)).toEqual([]);
+      await db.delete(notifications);
+      jobs.clear();
+      return g;
+    }
+
+    async function askedToConfirm(db: TestDatabase, gameId: string) {
+      const rows = await db.query.notifications.findMany({
+        where: and(
+          eq(notifications.gameId, gameId),
+          eq(notifications.type, "match_score_to_confirm"),
+        ),
+      });
+      return rows.map((row) => row.recipientUserId).sort();
+    }
+
+    function windowJob(matchId: string) {
+      return jobs.added.find((job) => job.key === confirmWindowJobKey(matchId));
+    }
+
+    it("starts the 24 hours and asks the other side on a confirm tap", async () => {
+      await withDb(async (db) => {
+        const g = await reopened(db);
+        const tappedAt = Date.now();
+        await confirmMatchResult(db, {
+          gameId: g.gameId,
+          matchId: g.matchId,
+          userId: g.c,
+        });
+
+        expect((await matchRow(db, g.matchId))?.status).toBe(
+          MatchStatusEnum.PENDING,
+        );
+        expect(windowJob(g.matchId)).toMatchObject({
+          name: "match.confirm-window",
+          payload: { matchId: g.matchId },
+        });
+        expect(windowJob(g.matchId)!.runAt!.getTime()).toBeGreaterThanOrEqual(
+          tappedAt + PUBLIC_GAME_CONFIRM_WINDOW_MS,
+        );
+        expect(await askedToConfirm(db, g.gameId)).toEqual(
+          [g.creator, g.b].sort(),
+        );
+        const forCreator = await gameById(db, {
+          gameId: g.gameId,
+          userId: g.creator,
+        });
+        expect(forCreator.confirmWindow).toMatchObject({
+          closesAt: windowJob(g.matchId)!.runAt,
+          viewerMayConfirm: true,
+        });
+
+        jobs.clear();
+        await confirmMatchResult(db, {
+          gameId: g.gameId,
+          matchId: g.matchId,
+          userId: g.d,
+        });
+        expect(windowJob(g.matchId)).toBeUndefined();
+        expect(await askedToConfirm(db, g.gameId)).toHaveLength(2);
+
+        await confirmMatchResult(db, {
+          gameId: g.gameId,
+          matchId: g.matchId,
+          userId: g.b,
+        });
+        const match = await matchRow(db, g.matchId);
+        expect(match?.status).toBe(MatchStatusEnum.COMPLETED);
+        expect(match?.stoodUnconfirmedAt).toBeNull();
+        expect(
+          await db.query.ratingEvents.findMany({
+            where: eq(ratingEvents.matchId, g.matchId),
+          }),
+        ).toHaveLength(4);
+      });
+    });
+
+    it("starts the 24 hours and asks the other side when the same score is saved again", async () => {
+      await withDb(async (db) => {
+        const g = await reopened(db);
+        const savedAt = Date.now();
+        await scoreSet(db, {
+          gameId: g.gameId,
+          matchId: g.matchId,
+          setId: g.setId,
+          userId: g.creator,
+          slot1GamesWon: 6,
+          slot2GamesWon: 3,
+        });
+
+        expect(await confirmedUserIds(db, g.matchId)).toEqual([g.creator]);
+        expect(windowJob(g.matchId)!.runAt!.getTime()).toBeGreaterThanOrEqual(
+          savedAt + PUBLIC_GAME_CONFIRM_WINDOW_MS,
+        );
+        expect(await askedToConfirm(db, g.gameId)).toEqual([g.c, g.d].sort());
+
+        jobs.clear();
+        await scoreSet(db, {
+          gameId: g.gameId,
+          matchId: g.matchId,
+          setId: g.setId,
+          userId: g.b,
+          slot1GamesWon: 6,
+          slot2GamesWon: 3,
+        });
+        expect(windowJob(g.matchId)).toBeUndefined();
+        expect(await askedToConfirm(db, g.gameId)).toHaveLength(2);
+      });
     });
   });
 });

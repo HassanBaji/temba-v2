@@ -34,10 +34,12 @@ import {
   footballScoreSet,
   footballSides,
 } from "#src/games/football-lineup";
-import { askOtherSideToConfirm } from "#src/games/confirmations-after-set-change";
+import {
+  askOtherSideToConfirm,
+  keepPublicGameConfirmation,
+} from "#src/games/confirmations-after-set-change";
 import {
   clearMatchResultConfirmationsExceptUser,
-  keepMatchResultConfirmation,
   matchResultFullyConfirmed,
   recordMatchResultConfirmation,
 } from "#src/games/match-result-confirmations";
@@ -225,7 +227,11 @@ async function checkAndWriteScore(
         )) &&
         onSide
       ) {
-        await keepMatchResultConfirmation(tx, match.id, args.userId);
+        await keepPublicGameConfirmation(tx, {
+          game,
+          match,
+          userId: args.userId,
+        });
       }
     } else if (onSide) {
       await recordMatchResultConfirmation(tx, match.id, args.userId);

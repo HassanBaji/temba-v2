@@ -62,6 +62,25 @@ export async function askOtherSideToConfirm(
 }
 
 /**
+ * Records a User's agreement with a Public Game's score as it stands. The
+ * first agreement on a Match starts the other side's 24 hours, whichever
+ * door records it: a Match reopened by a wrong-score report keeps its Sets
+ * and has no confirmation, so no changed score comes to start them
+ * (ADR-0071).
+ */
+export async function keepPublicGameConfirmation(
+  tx: Tx,
+  args: { game: GameRow; match: MatchRow; userId: string },
+) {
+  const windowOpen =
+    (await publicGameConfirmWindowClosesAt(tx, args.match.id)) != null;
+  await keepMatchResultConfirmation(tx, args.match.id, args.userId);
+  if (!windowOpen) {
+    await askOtherSideToConfirm(tx, args);
+  }
+}
+
+/**
  * ADR-0011: the User who changes a Match's Sets into a result is confirmed
  * automatically, and every other confirmation goes once the score changed, so
  * a changed score needs agreeing again rather than standing on stale ones. A
@@ -113,7 +132,7 @@ export async function settleConfirmationsAfterSetChange(
     ) {
       return;
     }
-    await keepMatchResultConfirmation(tx, args.match.id, args.userId);
+    await keepPublicGameConfirmation(tx, args);
   } else {
     await recordMatchResultConfirmation(tx, args.match.id, args.userId);
   }
