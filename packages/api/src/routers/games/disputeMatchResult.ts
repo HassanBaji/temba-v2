@@ -52,9 +52,9 @@ function refusalError(refusal: MatchDisputeRefusal, locale: Locale) {
 
 /**
  * A seated player says a Match that counted for Temba Level is wrong. The
- * dispute waits for an Operator, and every Operator `user.is_operator` lists
- * is told (ADR-0075). One open dispute per Match; the partial unique index
- * settles two players racing.
+ * dispute waits for an Operator, and every Operator is told, found through
+ * `user.is_operator` (ADR-0075). One open dispute per Match; the partial
+ * unique index settles two players racing.
  */
 export async function disputeMatchResult(
   database: DbClient,
