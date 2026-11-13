@@ -154,9 +154,7 @@ export async function mine(
       type: group.type,
       sport: group.sport as GroupSportEnum | null,
       imageUrl: group.imageUrl ?? null,
-      venue: group.venue
-        ? { id: group.venue.id, name: group.venue.name }
-        : null,
+      venue: group.venue ? { id: group.venue.id, name: group.venue.name } : null,
       memberCount: members.length,
       // Unranked until the member has played enough in the lens: no rank
       // worth reading before then.
