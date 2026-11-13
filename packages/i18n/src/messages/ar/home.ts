@@ -263,8 +263,6 @@ export const home = {
       padel: "مستوى البادل",
       football: "مستوى كرة القدم",
     },
-    confirmed: "مؤكَّد",
-    provisional: "مبدئي",
     opensRatings: "يفتح التصنيفات",
   },
   lastTen: {

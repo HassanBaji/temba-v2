@@ -217,8 +217,6 @@ export const home = {
       padel: "Padel level",
       football: "Football level",
     },
-    confirmed: "Confirmed",
-    provisional: "Provisional",
     opensRatings: "Opens Ratings",
   },
   lastTen: {
