@@ -7,6 +7,7 @@ import {
 } from "@repo/domain/ratings-screen";
 import { isSport, type Sport } from "@repo/domain/sport";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { History } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
@@ -20,7 +21,7 @@ import { Segmented, SettingsRow } from "../profile-settings/settings-rows";
 import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
 import { Screen } from "../primitives/screen";
-import { ScreenHeader } from "../primitives/screen-header";
+import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
@@ -37,6 +38,10 @@ const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
 export function ratingsPath(sport: Sport) {
   return `/profile/ratings?sport=${sport}`;
+}
+
+export function ratingHistoryPath(sport: Sport) {
+  return `/profile/rating-history?sport=${sport}`;
 }
 
 /** The way from the You page hero to the Ratings screen. */
@@ -364,6 +369,14 @@ export function RatingsScreen({ initialSport }: { initialSport: Sport }) {
         nav="back"
         fallback="/profile"
         title={m.rating.screen.title}
+        actions={
+          <HeaderIconButton
+            framed
+            icon={History}
+            accessibilityLabel={m.rating.ratingHistory.open}
+            onPress={() => router.push(ratingHistoryPath(sport))}
+          />
+        }
       >
         <Segmented
           label={m.rating.screen.sport}
