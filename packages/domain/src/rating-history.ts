@@ -11,7 +11,7 @@ import { groupDisplayName } from "./group-join";
 import { formatTierPoints } from "./group-members-table";
 import { formatPadelLevel, levelFromMu } from "./level";
 import type { LevelOverrideReason } from "./level-slider";
-import { zonedDateTimeToInstant, zonedParts } from "./product-timezone";
+import { zonedParts } from "./product-timezone";
 import { sportLabel, type Sport } from "./sport";
 import { TIER_BANDS, tierBandLabel, type TierBand } from "./tier-bands";
 import { TIER_PROVISIONAL_GAMES } from "./tier-points";
@@ -592,19 +592,12 @@ export type RatingHistoryScreen = {
   footnote: string;
 };
 
-/** Saturday, the first day of the week as it is lived here. */
-const WEEK_STARTS_ON = 6;
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-function startOfProductWeek(now: Date) {
-  const { year, month, day } = zonedParts(now);
-  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
-  const back = (weekday - WEEK_STARTS_ON + 7) % 7;
-  return zonedDateTimeToInstant({ year, month, day: day - back });
-}
-
-function sectionOf(at: Date, now: Date, weekStart: Date, locale: Locale) {
+/** "This week" is the last seven days, as the You page's week change reads it. */
+function sectionOf(at: Date, now: Date, locale: Locale) {
   const m = messagesFor(locale).rating.ratingHistory;
-  if (at.getTime() >= weekStart.getTime()) {
+  if (now.getTime() - at.getTime() < WEEK_MS) {
     return { key: "this-week", title: m.thisWeek };
   }
   const { year, month } = zonedParts(at);
@@ -635,13 +628,12 @@ export function ratingHistoryScreen(
 ): RatingHistoryScreen {
   const m = messagesFor(locale).rating;
   const copy = m.ratingHistory;
-  const weekStart = startOfProductWeek(data.now);
 
   const sections: RatingHistorySection[] = [];
   if (data.ladder !== "rank") {
     for (const item of data.items) {
       const at = item.at instanceof Date ? item.at : new Date(item.at);
-      const section = sectionOf(at, data.now, weekStart, locale);
+      const section = sectionOf(at, data.now, locale);
       const line = ratingHistoryLine(item, data.viewerUserId, locale);
       const last = sections.at(-1);
       if (last?.key === section.key) {
