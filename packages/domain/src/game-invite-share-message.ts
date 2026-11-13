@@ -1,7 +1,11 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { formatGameTimeWindow, formatRelativeDay } from "./format-game-start";
+import {
+  formatGameTimeWindow,
+  formatRelativeDay,
+  gameDayProximity,
+} from "./format-game-start";
 import { KEEPERS_PER_GAME } from "./football-lineup";
 import {
   isFootballGame,
@@ -10,6 +14,7 @@ import {
 } from "./game-shape";
 import { formatLevelRangeLabel } from "./level-range";
 import { showsFriendlyRoster } from "./game-summary-cta";
+import { zonedParts } from "./product-timezone";
 
 export type GameInviteShareOccupant = {
   name: string;
@@ -62,6 +67,19 @@ function sideSeats(
   };
 }
 
+const AFTERNOON_START_HOUR = 12;
+const EVENING_START_HOUR = 17;
+
+function shareDay(start: Date | string, locale: Locale) {
+  const date = start instanceof Date ? start : new Date(start);
+  const { hour } = zonedParts(date);
+  const afternoon = hour >= AFTERNOON_START_HOUR && hour < EVENING_START_HOUR;
+  if (afternoon && gameDayProximity(date) === "today") {
+    return messagesFor(locale).dates.thisAfternoon;
+  }
+  return formatRelativeDay(date, locale);
+}
+
 function whereAndWhenLines(
   input: GameInviteShareMessageInput,
   courtEmoji: string,
@@ -76,7 +94,7 @@ function whereAndWhenLines(
   if (input.courtName) {
     lines.push(`${courtEmoji} ${input.courtName}`);
   }
-  lines.push(`📅 ${formatRelativeDay(start, input.locale)}`);
+  lines.push(`📅 ${shareDay(start, input.locale)}`);
   lines.push(
     `🕗 ${formatGameTimeWindow(input.windowStart, input.windowEnd, start, input.locale)}`,
   );
