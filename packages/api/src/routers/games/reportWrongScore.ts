@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   GroupSportEnum,
   groupLevelOverrides,
+  groupMembers,
   groupRatingEvents,
   groupRatings,
   groupTierEvents,
@@ -128,7 +129,8 @@ async function reverseGroupRatingEvents(
  * is deleted, and the Group's fish are re-cut with a `band_change` event for
  * anyone whose fish moved. The ledger is additive, so later Games and Tier
  * adjustments stay as they are. A member who left the Group has no points row
- * to change.
+ * to change, and one who joined again holds a fresh row that a Match from
+ * before they left never moved.
  */
 async function reverseTierEvents(tx: DbClient, matchId: string, now: Date) {
   const events = await tx.query.groupTierEvents.findMany({
@@ -149,9 +151,26 @@ async function reverseTierEvents(tx: DbClient, matchId: string, now: Date) {
     .for("update");
   const rowByUser = new Map(rows.map((row) => [row.userId, row]));
 
+  const memberships = await tx
+    .select({ userId: groupMembers.userId, joinedAt: groupMembers.createdAt })
+    .from(groupMembers)
+    .where(
+      and(
+        eq(groupMembers.groupId, groupId),
+        inArray(
+          groupMembers.userId,
+          events.map((event) => event.userId),
+        ),
+      ),
+    );
+  const joinedAt = new Map(
+    memberships.map((member) => [member.userId, member.joinedAt]),
+  );
+
   for (const event of events) {
     const row = rowByUser.get(event.userId);
-    if (!row) {
+    const joined = joinedAt.get(event.userId);
+    if (!row || (joined && event.createdAt < joined)) {
       continue;
     }
     const [updated] = await tx
@@ -265,8 +284,9 @@ export async function reportWrongScore(
   if (!args.asOperator) {
     await assertGameOrganizer(database, game, args.userId, locale);
   }
-  // A football Challenge Game is Unrated, so nothing needs reversing: the
-  // report clears its Score, which reopens both squads (ADR-0060).
+  // On a football Challenge Game the report also clears the Score, which
+  // reopens both squads (ADR-0060). Its Level move is additive and is taken
+  // back below whatever came after (ADR-0069), so nothing can block it.
   const clearsScore = game.challengeId != null && isFootballGame(game);
 
   if (match.status !== MatchStatusEnum.COMPLETED) {

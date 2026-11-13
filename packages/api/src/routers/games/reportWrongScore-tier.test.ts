@@ -20,6 +20,7 @@ import {
   type FootballFixture,
 } from "#src/ratings/group-rated-match.test-support";
 import { gameById } from "#src/routers/games/byId";
+import { leaveGroup } from "#src/routers/groups/leave";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { register } from "#src/routers/games/register";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
@@ -251,6 +252,47 @@ describe("reportWrongScore on a football Group Game (ADR-0067)", () => {
       const after = await pointsByUser(db, f.groupId);
       expect(after.get(a)).toMatchObject({ points: 1200, gamesCounted: 0 });
       expect(after.has(b)).toBe(false);
+      expect(await tierEvents(db, reported)).toHaveLength(0);
+    });
+  });
+
+  it("leaves the fresh points of a member who left and joined again alone", async () => {
+    await withDb(async (db) => {
+      const f = await footballGame(db);
+      const a = await addMember(f, "a");
+      const b = await addMember(f, "b");
+      const reported = await playScore(f, [a], [b], { slot1: 1, slot2: 0 });
+      const oldDelta = (await gameDeltas(db, reported)).get(b)!;
+      expect(oldDelta).toBeLessThan(0);
+
+      await leaveGroup(db, { groupId: f.groupId, userId: b });
+      expect((await pointsByUser(db, f.groupId)).has(b)).toBe(false);
+      await db.insert(groupMembers).values({ groupId: f.groupId, userId: b });
+
+      const next = await laterGame(f, 3, [a, b]);
+      const later = await playScore(next, [b], [a], { slot1: 2, slot2: 0 });
+      const laterDeltas = await gameDeltas(db, later);
+      const fresh = (await pointsByUser(db, f.groupId)).get(b);
+      expect(fresh).toMatchObject({
+        points: 1200 + laterDeltas.get(b)!,
+        gamesCounted: 1,
+      });
+
+      await reportWrongScore(db, {
+        gameId: f.gameId,
+        matchId: reported,
+        userId: f.organizerId,
+      });
+
+      const after = await pointsByUser(db, f.groupId);
+      expect(after.get(b)).toMatchObject({
+        points: fresh!.points,
+        gamesCounted: 1,
+      });
+      expect(after.get(a)).toMatchObject({
+        points: 1200 + laterDeltas.get(a)!,
+        gamesCounted: 1,
+      });
       expect(await tierEvents(db, reported)).toHaveLength(0);
     });
   });
