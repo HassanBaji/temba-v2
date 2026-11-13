@@ -42,22 +42,6 @@ export const home = {
       football: "Your football Level",
     },
     numberLabel: "Level",
-    window: (n: number) =>
-      plural("en", n, {
-        one: "in the last match",
-        other: "in the last {n} matches",
-      }),
-    provisionalLead: "Provisional Level.",
-    provisionalRest: (remaining: number) =>
-      plural("en", remaining, {
-        one: " Hatched means unconfirmed — play about 1 more rated game and your Level confirms.",
-        other:
-          " Hatched means unconfirmed — play about {n} more rated games and your Level confirms.",
-      }),
-    confirmedLead: "Level confirmed.",
-    confirmedRest: " Your Level now moves with every rated game you play.",
-    progressTo: (percent: number, next: string) =>
-      `${percent}% of the way to ${next}`,
   },
   levelChange: {
     up: "Up",
@@ -235,18 +219,7 @@ export const home = {
     },
     confirmed: "Confirmed",
     provisional: "Provisional",
-    level: "Level",
-    lastN: (n: number) => `last ${n}`,
-    nextBand: "Next band",
-    nextBandValue: (percent: number) => `, ${percent}% of the way`,
-    topBand: "Top band",
-    confirmsIn: (n: number) =>
-      plural("en", n, {
-        one: "One more rated game and your level is confirmed.",
-        other: "{n} more rated games and your level is confirmed.",
-      }),
-    gaugeSpoken: (band: string, percent: number, next: string) =>
-      `Band ${band}, ${percent}% of the way to ${next}`,
+    opensRatings: "Opens Ratings",
   },
   lastTen: {
     title: "Last 10",

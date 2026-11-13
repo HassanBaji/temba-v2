@@ -28,8 +28,9 @@ describe("levelFromApi", () => {
     );
   });
 
-  it("carries the band, Level and progress of a Rating", () => {
+  it("carries what the Ratings screen reads: the Level, its status and the last counting Matches", () => {
     const data = {
+      face: "level",
       rating: {
         levelBand: "C3",
         level: "2.8",
@@ -37,20 +38,27 @@ describe("levelFromApi", () => {
         ratedMatchesRemaining: 3,
       },
       levelValue: 2.79,
-      progressPercent: 1,
-      history: ["3.2", "2.8"],
-      historyMatchCount: 1,
+      ratedMatchCount: 2,
+      changeOverLast: { matches: 2, delta: -0.4, points: [3.19, 2.79] },
     } as unknown as ApiRating;
-    const level = levelFromApi(data);
-    assert.equal(level.kind, "rated");
-    if (level.kind !== "rated") return;
-    assert.equal(level.input.level, "2.8");
-    assert.equal(level.input.levelValue, 2.79);
-    assert.equal(level.input.progressPercent, 1);
-    assert.equal(level.input.historyMatchCount, 1);
+    assert.deepEqual(levelFromApi(data), {
+      kind: "rated",
+      input: {
+        sport: "padel",
+        face: "level",
+        levelValue: 2.79,
+        rating: {
+          levelBand: "C3",
+          provisional: true,
+          ratedMatchesRemaining: 3,
+        },
+        ratedMatchCount: 2,
+        changeOverLast: { matches: 2, delta: -0.4, points: [3.19, 2.79] },
+      },
+    });
   });
 
-  it("carries the football OVR", () => {
+  it("reads a football Level on the OVR face", () => {
     const data = {
       face: "ovr",
       ovr: 72,
@@ -60,14 +68,14 @@ describe("levelFromApi", () => {
         provisional: true,
         ratedMatchesRemaining: 5,
       },
-      progressPercent: 50,
-      history: [],
-      historyMatchCount: 0,
+      levelValue: 3.9,
+      ratedMatchCount: 0,
+      changeOverLast: null,
     } as unknown as ApiRating;
     const level = levelFromApi(data);
     if (level.kind !== "rated") throw new Error("Expected a rated Level");
     assert.equal(level.input.sport, "football");
-    assert.equal(level.input.ovr, 72);
+    assert.equal(level.input.face, "ovr");
   });
 });
 

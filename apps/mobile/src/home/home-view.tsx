@@ -109,7 +109,13 @@ export function HomeView({
         skeletonHeight={220}
         onRetry={onRetry}
       >
-        {(level) => <LevelCard level={level} sport={model.sport} />}
+        {(level) => (
+          <LevelCard
+            level={level}
+            sport={model.sport}
+            onOpen={() => onNavigate({ kind: "ratings", sport: model.sport })}
+          />
+        )}
       </Block>
       <Block
         slot={model.recentForm}

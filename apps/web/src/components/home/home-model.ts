@@ -45,15 +45,15 @@ export function levelFromApi(data: ApiRating): HomeLevel {
     kind: "rated",
     input: {
       sport: data.face === "ovr" ? "football" : "padel",
-      ovr: data.ovr,
-      band: data.rating.levelBand,
-      level: data.rating.level,
+      face: data.face,
       levelValue: data.levelValue,
-      provisional: data.rating.provisional,
-      ratedMatchesRemaining: data.rating.ratedMatchesRemaining,
-      history: data.history,
-      historyMatchCount: data.historyMatchCount,
-      progressPercent: data.progressPercent,
+      rating: {
+        levelBand: data.rating.levelBand,
+        provisional: data.rating.provisional,
+        ratedMatchesRemaining: data.rating.ratedMatchesRemaining,
+      },
+      ratedMatchCount: data.ratedMatchCount,
+      changeOverLast: data.changeOverLast,
     },
   };
 }

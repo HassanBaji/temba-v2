@@ -21,7 +21,8 @@ import { api } from "../trpc/react";
 import { FootballTab } from "./football-tab";
 import { LevelHero } from "./level-hero";
 import { ProfileHeader } from "./profile-header";
-import { RatingsLink, ratingsPath } from "./ratings-screen";
+import { ratingsPath } from "./ratings-path";
+import { RatingsLink } from "./ratings-screen";
 import {
   headerLine,
   heroView,

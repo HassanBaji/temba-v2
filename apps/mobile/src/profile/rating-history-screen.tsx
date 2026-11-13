@@ -26,7 +26,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import { api } from "../trpc/react";
-import { ratingsPath } from "./ratings-screen";
+import { ratingsPath } from "./ratings-path";
 
 const PAGE_SIZE = 20;
 const TAB_RULE = 2;

@@ -16,6 +16,10 @@ describe("homePath", () => {
       homePath({ kind: "marks", userId: "u1", sport: "football" }),
       "/players/u1/marks?sport=football",
     );
+    assert.equal(
+      homePath({ kind: "ratings", sport: "football" }),
+      "/profile/ratings?sport=football",
+    );
     assert.equal(homePath({ kind: "create-game" }), "/games/new");
     assert.equal(homePath({ kind: "create-group" }), "/groups/new");
     assert.equal(homePath({ kind: "browse-games" }), "/games");

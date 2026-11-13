@@ -28,6 +28,7 @@ import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { api } from "../trpc/react";
 import { LevelRing } from "./level-ring";
+import { ratingHistoryPath } from "./ratings-path";
 import { SectionHead } from "./profile-parts";
 import { curvePoints, pathFor } from "./profile-model";
 import { InYourGroups, SECTION_GAP } from "./profile-sections";
@@ -35,14 +36,6 @@ import { InYourGroups, SECTION_GAP } from "./profile-sections";
 const SPARK_WIDTH = 64;
 const SPARK_HEIGHT = 22;
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
-
-export function ratingsPath(sport: Sport) {
-  return `/profile/ratings?sport=${sport}`;
-}
-
-export function ratingHistoryPath(sport: Sport) {
-  return `/profile/rating-history?sport=${sport}`;
-}
 
 /** The way from the You page hero to the Ratings screen. */
 export function RatingsLink({
