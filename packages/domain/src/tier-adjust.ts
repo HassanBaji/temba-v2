@@ -23,6 +23,9 @@ import {
   tierHintOvr,
 } from "./tier-points";
 
+/** The longest note a Tier adjustment keeps (ADR-0073). */
+export const TIER_ADJUST_NOTE_MAX = 140;
+
 /** The step buttons of the adjust sheet (screen 2d). */
 export const TIER_ADJUST_STEPS = [-50, -10, 10, 50] as const;
 

@@ -106,14 +106,21 @@ export function assertLevelOverrideReason(
   }
 }
 
-/** A trimmed note of at most 280 characters, or null for a blank one. */
-export function levelOverrideNote(note: string | null | undefined) {
-  const trimmed = note?.trim().slice(0, LEVEL_OVERRIDE_NOTE_MAX);
+/** A trimmed note of at most `max` characters, or null for a blank one. */
+export function levelOverrideNote(
+  note: string | null | undefined,
+  max = LEVEL_OVERRIDE_NOTE_MAX,
+) {
+  const trimmed = note?.trim().slice(0, max);
   return trimmed === undefined || trimmed === "" ? null : trimmed;
 }
 
 function assertLevel(level: number, locale: Locale) {
-  if (!Number.isFinite(level) || level < 0 || level > 7) {
+  if (
+    !Number.isFinite(level) ||
+    level < LEVEL_TENTHS_MIN / 10 ||
+    level > LEVEL_TENTHS_MAX / 10
+  ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: messagesFor(locale).level.between,

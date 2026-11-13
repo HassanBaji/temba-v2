@@ -10,7 +10,10 @@ import {
   venues,
 } from "@repo/db";
 
-import { type FootballPosition } from "@repo/domain/football-lineup";
+import {
+  DEFAULT_FOOTBALL_BIBS,
+  type FootballPosition,
+} from "@repo/domain/football-lineup";
 import { marksWindow } from "@repo/domain/marks";
 import {
   ratingWindowState,
@@ -160,8 +163,8 @@ export async function performanceRatingSheet(
     windowStart: game.windowStart,
     score,
     bibs: {
-      slot1: slot1[0]?.bib ?? "black",
-      slot2: slot2[0]?.bib ?? "white",
+      slot1: slot1[0]?.bib ?? DEFAULT_FOOTBALL_BIBS.slot1,
+      slot2: slot2[0]?.bib ?? DEFAULT_FOOTBALL_BIBS.slot2,
     },
     viewerSide: viewer?.slot ?? null,
     viewerIsOrganizer: organizer,

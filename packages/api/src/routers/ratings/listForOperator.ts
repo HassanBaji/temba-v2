@@ -18,7 +18,7 @@ import {
 import { operatorProcedure } from "#src/trpc";
 import { tembaLevelViews } from "#src/ratings/level-confirmed";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
-import { ovrFromMu } from "@repo/domain/football-ovr";
+import { wholeOvrFromMu } from "@repo/domain/football-ovr";
 import type { Sport } from "@repo/domain/sport";
 import { sportSchema } from "@repo/validators/sport";
 
@@ -106,10 +106,7 @@ export async function listForOperator(
       row.userId,
       {
         ...levelView(row),
-        ovr:
-          sport === GroupSportEnum.FOOTBALL
-            ? Math.round(ovrFromMu(row.mu))
-            : null,
+        ovr: sport === GroupSportEnum.FOOTBALL ? wholeOvrFromMu(row.mu) : null,
       },
     ]),
   );

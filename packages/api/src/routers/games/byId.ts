@@ -115,6 +115,7 @@ import {
   wrongScoreReversalEligibility,
   type WrongScoreReversalEligibility,
 } from "#src/games/wrong-score-reversal";
+import { votedMvpUserId } from "#src/marks/settle-mvp";
 import { sideUserIds } from "#src/ratings/apply-tier-match";
 import { padelConfirmations } from "#src/ratings/level-confirmed";
 import { mayCalibrateAll } from "#src/ratings/verifier-calibration";
@@ -469,8 +470,7 @@ async function footballOvrImpact(
         opponents.length;
   const seated = new Set([...slot1, ...slot2]);
   const score = footballScoreOf(args.match.sets[0] ?? null);
-  const votedMvp =
-    game?.mvpSettledAt && game.mvpDecidedBy === "vote" ? game.mvpUserId : null;
+  const votedMvp = votedMvpUserId(game);
   const resultPart = args.event.resultPart ?? 0;
   return {
     before: ovrFromMu(args.event.muBefore),

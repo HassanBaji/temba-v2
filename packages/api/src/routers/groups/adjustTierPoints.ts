@@ -8,6 +8,7 @@ import {
   LEVEL_OVERRIDE_REASONS,
   type LevelOverrideReason,
 } from "@repo/domain/level-slider";
+import { TIER_ADJUST_NOTE_MAX } from "@repo/domain/tier-adjust";
 import {
   TIER_ADJUST_MAX_STEP,
   TIER_POINTS_START,
@@ -23,11 +24,13 @@ import { groupIsVerified } from "#src/groups/group-is-verified";
 import { mayOrganizeGroupGames } from "#src/groups/helpers/may-organize-group-games";
 import { requireGroup } from "#src/groups/helpers/require-group";
 import { notify } from "#src/notifications/notify";
+import {
+  assertLevelOverrideReason,
+  levelOverrideNote,
+} from "#src/ratings/apply-level-override";
 import { rewriteTierBands } from "#src/ratings/apply-tier-match";
 
 type DbClient = typeof db;
-
-const TIER_ADJUST_NOTE_MAX = 140;
 
 /**
  * An Organizer moves a member's Tier points by hand, a Tier adjustment
@@ -66,18 +69,11 @@ export async function adjustTierPoints(
   if (!(await isGroupMember(database, group.id, args.userId))) {
     throw new TRPCError({ code: "NOT_FOUND", message: errors.notMember });
   }
-  if (!(LEVEL_OVERRIDE_REASONS as readonly unknown[]).includes(args.reason)) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: errors.reasonRequired,
-    });
-  }
+  assertLevelOverrideReason(args.reason, locale);
   if (!Number.isInteger(args.points) || args.points < 0) {
     throw new TRPCError({ code: "BAD_REQUEST", message: errors.belowZero });
   }
-  const trimmedNote = args.note?.trim().slice(0, TIER_ADJUST_NOTE_MAX);
-  const note =
-    trimmedNote === undefined || trimmedNote === "" ? null : trimmedNote;
+  const note = levelOverrideNote(args.note, TIER_ADJUST_NOTE_MAX);
   const now = args.now ?? new Date();
 
   return database.transaction(async (tx) => {

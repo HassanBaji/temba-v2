@@ -54,7 +54,7 @@ import {
   ratingWindowSettleJob,
   ratingWindowSettleJobKey,
 } from "#src/jobs/specs";
-import { settleMvp } from "#src/marks/settle-mvp";
+import { settleMvp, votedMvpUserId } from "#src/marks/settle-mvp";
 import { notify } from "#src/notifications/notify";
 import { applyFootballLevelMatch } from "#src/ratings/apply-football-level-match";
 import {
@@ -441,8 +441,7 @@ async function applySettledLevelMatch(
       ),
     ),
     performance: args.performance,
-    votedMvpUserId:
-      mvp?.mvpSettledAt && mvp.mvpDecidedBy === "vote" ? mvp.mvpUserId : null,
+    votedMvpUserId: votedMvpUserId(mvp),
   });
 }
 

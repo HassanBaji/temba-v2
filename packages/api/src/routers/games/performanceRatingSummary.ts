@@ -9,6 +9,7 @@ import {
   performanceRatingResults,
 } from "@repo/db";
 
+import { DEFAULT_FOOTBALL_BIBS } from "@repo/domain/football-lineup";
 import { gameMvpView } from "@repo/domain/marks";
 import {
   outlierRaterIds,
@@ -159,7 +160,7 @@ export async function performanceRatingSummary(
   const score = footballScoreOf(await footballScoreSet(database, match.id));
   const bibOf = (slot: 1 | 2) =>
     participants.find((row) => row.slot === slot)?.bib ??
-    (slot === 1 ? "black" : "white");
+    (slot === 1 ? DEFAULT_FOOTBALL_BIBS.slot1 : DEFAULT_FOOTBALL_BIBS.slot2);
 
   const player = (
     row: (typeof participants)[number],

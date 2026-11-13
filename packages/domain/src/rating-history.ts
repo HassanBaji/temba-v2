@@ -271,12 +271,6 @@ export const RATING_HISTORY_LADDERS = ["all", "level", "tier", "rank"] as const;
 
 export type RatingHistoryLadder = (typeof RATING_HISTORY_LADDERS)[number];
 
-export function isRatingHistoryLadder(
-  value: unknown,
-): value is RatingHistoryLadder {
-  return (RATING_HISTORY_LADDERS as readonly unknown[]).includes(value);
-}
-
 export type LevelOverrideSetByRole = "level_setter" | "operator" | "verifier";
 
 type GroupRef = { id: string; name: string | null };

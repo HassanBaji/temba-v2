@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_GROUP_RATING_SETTINGS,
-  isPerformanceRatingMode,
   isPerformanceWeight,
   PERFORMANCE_WEIGHTS,
   ratingSettingsChanged,
@@ -23,13 +22,6 @@ describe("weights and modes", () => {
     expect(PERFORMANCE_WEIGHTS).toEqual([20, 30, 50]);
     expect([20, 30, 50].every(isPerformanceWeight)).toBe(true);
     expect([0, 10, 25, 40, 100, 30.5].some(isPerformanceWeight)).toBe(false);
-  });
-
-  it("knows the three modes", () => {
-    expect(
-      ["off", "organizer", "everyone"].every(isPerformanceRatingMode),
-    ).toBe(true);
-    expect(isPerformanceRatingMode("admin")).toBe(false);
   });
 
   it("starts Off at the standard weight, nobody counted double", () => {

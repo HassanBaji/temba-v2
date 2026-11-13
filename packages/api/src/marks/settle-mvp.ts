@@ -39,6 +39,21 @@ function storedPick(
 }
 
 /**
+ * The Game's MVP when a settled vote chose them. Only a voted MVP moves OVR
+ * (ADR-0069); an Organizer's pick does not.
+ */
+export function votedMvpUserId(
+  game:
+    | Pick<GameRow, "mvpUserId" | "mvpDecidedBy" | "mvpSettledAt">
+    | null
+    | undefined,
+) {
+  return game?.mvpSettledAt && game.mvpDecidedBy === "vote"
+    ? game.mvpUserId
+    : null;
+}
+
+/**
  * The Match's Rating window, when it has one that a wrong score has not
  * suspended. The MVP closes with it (ADR-0068): Screen 4c and OVR's MVP part
  * both need the MVP known when the window's move is written.

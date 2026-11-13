@@ -45,12 +45,6 @@ export function isPerformanceWeight(value: number): value is PerformanceWeight {
   return (PERFORMANCE_WEIGHTS as readonly number[]).includes(value);
 }
 
-export function isPerformanceRatingMode(
-  value: string,
-): value is PerformanceRatingMode {
-  return (PERFORMANCE_RATING_MODES as readonly string[]).includes(value);
-}
-
 function weightKey(weightPercent: number): WeightKey {
   return isPerformanceWeight(weightPercent)
     ? WEIGHT_KEYS[weightPercent]

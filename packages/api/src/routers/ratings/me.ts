@@ -17,6 +17,7 @@ import {
   formatOvr,
   levelFaceFor,
   ovrFromMu,
+  wholeOvrFromMu,
   type LevelFace,
 } from "@repo/domain/football-ovr";
 import {
@@ -204,7 +205,7 @@ export async function loadRatingsMe(
 
   return {
     face,
-    ovr: face === "ovr" ? Math.round(ovrFromMu(row.mu)) : null,
+    ovr: face === "ovr" ? wholeOvrFromMu(row.mu) : null,
     levelValue,
     rating,
     canSelfDeclare: false,

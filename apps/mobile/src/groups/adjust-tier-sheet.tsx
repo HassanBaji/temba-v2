@@ -1,6 +1,7 @@
 import { radii } from "@repo/design-tokens";
 import type { LevelOverrideReason } from "@repo/domain/level-slider";
 import {
+  TIER_ADJUST_NOTE_MAX,
   tierAdjustSheet,
   type TierAdjustMember,
   type TierAdjustSheet as TierAdjustSheetView,
@@ -24,7 +25,6 @@ import { api } from "../trpc/react";
 import { TierFish } from "./tier-fish";
 
 const DIMMED_FISH = 0.18;
-const NOTE_MAX = 140;
 
 function PointsPanel({
   view,
@@ -294,7 +294,7 @@ function AdjustTierForm({
           placeholder={copy.notePlaceholder}
           value={note}
           onChangeText={setNote}
-          maxLength={NOTE_MAX}
+          maxLength={TIER_ADJUST_NOTE_MAX}
           editable={!adjust.isPending}
         />
       </View>

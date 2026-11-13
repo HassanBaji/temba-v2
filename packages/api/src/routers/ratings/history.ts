@@ -21,6 +21,7 @@ import { sportSchema } from "@repo/validators/sport";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
+import { votedMvpUserId } from "#src/marks/settle-mvp";
 import { levelConfirmations } from "#src/ratings/level-confirmed";
 import { olderThanShown, shownAt, shownAtIso } from "#src/ratings/shown-at";
 import {
@@ -317,10 +318,7 @@ export async function ratingHistory(
       const { event } = entry.row;
       const match = matchById.get(event.matchId);
       const game = match?.game;
-      const votedMvp =
-        game?.mvpSettledAt && game.mvpDecidedBy === "vote"
-          ? game.mvpUserId
-          : null;
+      const votedMvp = votedMvpUserId(game);
       return [
         {
           kind: "level_match",

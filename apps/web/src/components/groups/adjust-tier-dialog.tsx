@@ -25,12 +25,12 @@ import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 import type { LevelOverrideReason } from "@repo/domain/level-slider";
 import {
+  TIER_ADJUST_NOTE_MAX,
   tierAdjustSheet,
   type TierAdjustMember,
 } from "@repo/domain/tier-adjust";
 
 const REASON_LABEL_ID = "adjust-tier-reason";
-const NOTE_MAX = 140;
 
 function AdjustTierForm({
   groupId,
@@ -217,7 +217,7 @@ function AdjustTierForm({
           onChange={(event) => setNote(event.target.value)}
           placeholder={copy.notePlaceholder}
           aria-label={copy.noteLabel}
-          maxLength={NOTE_MAX}
+          maxLength={TIER_ADJUST_NOTE_MAX}
           disabled={pending}
         />
       </div>
