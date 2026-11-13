@@ -23,6 +23,7 @@ Users are matched on `user.clerk_id`, and the Clerk webhook cannot reach a local
    ```json
    { "operator": true, "groupCreator": true }
    ```
+   The seed already marks `me` in `user.is_operator`, the directory Match dispute Notifications read, so this metadata only opens the Operator doors.
 
 ### What `me` (Sam Rivera) sees
 

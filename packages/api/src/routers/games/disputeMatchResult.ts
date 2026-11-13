@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -52,8 +52,9 @@ function refusalError(refusal: MatchDisputeRefusal, locale: Locale) {
 
 /**
  * A seated player says a Match that counted for Temba Level is wrong. The
- * dispute waits for an Operator, and every Operator is told. One open dispute
- * per Match; the partial unique index settles two players racing.
+ * dispute waits for an Operator, and every Operator `user.is_operator` lists
+ * is told (ADR-0075). One open dispute per Match; the partial unique index
+ * settles two players racing.
  */
 export async function disputeMatchResult(
   database: DbClient,
@@ -61,7 +62,6 @@ export async function disputeMatchResult(
     matchId: string;
     userId: string;
     note: string;
-    operatorUserIds: string[];
     locale?: Locale;
     now?: Date;
   },
@@ -119,10 +119,14 @@ export async function disputeMatchResult(
     if (!dispute) {
       throw new Error("Failed to write the Match dispute");
     }
+    const operators = await tx
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.isOperator, true));
     await notify(tx, {
       type: "match_dispute_raised",
-      recipients: args.operatorUserIds.map((userId) => ({
-        userId,
+      recipients: operators.map((operator) => ({
+        userId: operator.id,
         audience: "admin" as const,
       })),
       excludeUserIds: [args.userId],
@@ -134,18 +138,6 @@ export async function disputeMatchResult(
   });
 }
 
-/** The Temba User ids of the Operators the host found in Clerk. */
-async function operatorUserIdsOf(database: DbClient, clerkIds: string[]) {
-  if (clerkIds.length === 0) {
-    return [];
-  }
-  const rows = await database
-    .select({ id: user.id })
-    .from(user)
-    .where(inArray(user.clerkId, clerkIds));
-  return rows.map((row) => row.id);
-}
-
 export const disputeMatchResultProcedure = protectedProcedure
   .input(
     z.object({
@@ -155,18 +147,10 @@ export const disputeMatchResultProcedure = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    // The dispute waits on the Operator page whether or not Clerk answers,
-    // so a failed Operator lookup only costs the Notification.
-    const operatorClerkIds =
-      (await ctx.listOperatorClerkIds?.().catch((error: unknown) => {
-        console.error("[disputeMatchResult] Operator lookup failed", error);
-        return [];
-      })) ?? [];
     return disputeMatchResult(ctx.db, {
       matchId: input.matchId,
       userId: appUser.id,
       note: input.note,
-      operatorUserIds: await operatorUserIdsOf(ctx.db, operatorClerkIds),
       locale: ctx.locale,
     });
   });

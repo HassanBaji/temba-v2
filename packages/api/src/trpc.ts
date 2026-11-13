@@ -36,11 +36,6 @@ export type TRPCContextHost = {
   db: typeof db;
   userId: string | null;
   getPublicMetadata: () => Promise<PublicMetadata | undefined>;
-  /**
-   * The Clerk ids of every Operator, for a Notification that goes to them.
-   * Operators stay a Clerk flag (ADR-0046), so only the host can list them.
-   */
-  listOperatorClerkIds?: () => Promise<string[]>;
   headers: Headers;
   webOrigin: string;
   locale: Locale;

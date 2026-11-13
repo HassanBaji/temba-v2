@@ -23,6 +23,7 @@ import { listNotifications } from "#src/routers/notifications/list";
 import {
   addMember,
   footballGame,
+  insertOperator,
   insertUser,
   playAndSettle,
   setUpMatch,
@@ -160,12 +161,11 @@ describe("games.decideDispute", () => {
       expect(events.map((event) => event.userId).sort()).toEqual([a, b].sort());
       expect(await ovrOf(db, a)).toBeGreaterThan(70);
 
-      const operator = await insertUser(db, "operator");
+      const operator = await insertOperator(db, "operator");
       const { disputeId } = await disputeMatchResult(db, {
         matchId,
         userId: b,
         note: "It was 0–1",
-        operatorUserIds: [operator.id],
       });
 
       const result = await decideDispute(db, {
@@ -214,12 +214,11 @@ describe("games.decideDispute", () => {
         where: eq(ratingEvents.matchId, m.matchId),
       });
       expect(before).toHaveLength(4);
-      const operator = await insertUser(db, "operator");
+      const operator = await insertOperator(db, "operator");
       const { disputeId } = await disputeMatchResult(db, {
         matchId: m.matchId,
         userId: m.c.id,
         note: "Wrong",
-        operatorUserIds: [operator.id],
       });
 
       await decideDispute(db, {
@@ -250,12 +249,11 @@ describe("games.decideDispute", () => {
   it("refuses to uphold a padel dispute after a later Rated Match, says why, and keeps it open", async () => {
     await withDb(async (db) => {
       const first = await countedPadelMatch(db);
-      const operator = await insertUser(db, "operator");
+      const operator = await insertOperator(db, "operator");
       const { disputeId } = await disputeMatchResult(db, {
         matchId: first.matchId,
         userId: first.c.id,
         note: "Wrong",
-        operatorUserIds: [operator.id],
       });
       const later = await setUpMatch(
         db,
@@ -303,12 +301,11 @@ describe("games.decideDispute", () => {
   it("dismissing leaves the result, closes the dispute and tells the player and Organizers", async () => {
     await withDb(async (db) => {
       const m = await countedPadelMatch(db);
-      const operator = await insertUser(db, "operator");
+      const operator = await insertOperator(db, "operator");
       const { disputeId } = await disputeMatchResult(db, {
         matchId: m.matchId,
         userId: m.c.id,
         note: "Wrong",
-        operatorUserIds: [operator.id],
       });
 
       await decideDispute(db, {
@@ -373,7 +370,6 @@ describe("games.decideDispute", () => {
         matchId: m.matchId,
         userId: m.d.id,
         note: "Still wrong",
-        operatorUserIds: [],
       });
       expect((await listDisputesForOperator(db)).items).toHaveLength(1);
     });
@@ -406,14 +402,12 @@ describe("games.listDisputesForOperator", () => {
         matchId: first.matchId,
         userId: first.c.id,
         note: "First",
-        operatorUserIds: [],
         now: new Date(Date.now() - 60 * 1000),
       });
       await disputeMatchResult(db, {
         matchId: second.matchId,
         userId: second.b.id,
         note: "Second",
-        operatorUserIds: [],
       });
 
       const { items } = await listDisputesForOperator(db);

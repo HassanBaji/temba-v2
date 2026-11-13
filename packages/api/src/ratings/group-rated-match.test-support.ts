@@ -41,6 +41,16 @@ export async function insertUser(database: TestDatabase, label: string) {
   return row;
 }
 
+/** A User the Clerk webhook marked as an Operator. */
+export async function insertOperator(database: TestDatabase, label: string) {
+  const row = await insertUser(database, label);
+  await database
+    .update(user)
+    .set({ isOperator: true })
+    .where(eq(user.id, row.id));
+  return { ...row, isOperator: true };
+}
+
 /** Four members of a new Group seated on a scored Friendly game: a and b beat c and d 6–2. */
 export async function setUpMatch(
   database: TestDatabase,

@@ -7,6 +7,7 @@ import {
   matchDisputes,
   matches,
   notifications,
+  user,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { messagesFor } from "@repo/i18n/messages";
@@ -14,6 +15,7 @@ import { messagesFor } from "@repo/i18n/messages";
 import {
   addMember,
   footballGame,
+  insertOperator,
   insertUser,
   playScore,
   setUpMatch,
@@ -64,7 +66,12 @@ describe("games.disputeMatchResult", () => {
   it("opens a dispute for a seated player and tells every Operator", async () => {
     await withDb(async (db) => {
       const m = await countedPadelMatch(db);
-      const operator = await insertUser(db, "operator");
+      const operator = await insertOperator(db, "operator");
+      await insertUser(db, "not an operator");
+      await db
+        .update(user)
+        .set({ isOperator: true })
+        .where(eq(user.id, m.c.id));
 
       const before = await gameById(db, { gameId: m.gameId, userId: m.c.id });
       expect(before.matches[0]?.canDispute).toBe(true);
@@ -74,7 +81,6 @@ describe("games.disputeMatchResult", () => {
         matchId: m.matchId,
         userId: m.c.id,
         note: "  It was 6–4, not 6–2  ",
-        operatorUserIds: [operator.id, m.c.id],
       });
 
       const dispute = await db.query.matchDisputes.findFirst({
@@ -129,7 +135,6 @@ describe("games.disputeMatchResult", () => {
           matchId: m.matchId,
           userId: outsider.id,
           note: "Wrong",
-          operatorUserIds: [],
         }),
       );
       expect(error.code).toBe("FORBIDDEN");
@@ -156,7 +161,6 @@ describe("games.disputeMatchResult", () => {
           matchId: m.matchId,
           userId: m.b.id,
           note: "Wrong",
-          operatorUserIds: [],
         }),
       );
       expect(error.code).toBe("PRECONDITION_FAILED");
@@ -178,7 +182,6 @@ describe("games.disputeMatchResult", () => {
           matchId,
           userId: a,
           note: "Wrong",
-          operatorUserIds: [],
         }),
       );
       expect(error.code).toBe("PRECONDITION_FAILED");
@@ -199,7 +202,6 @@ describe("games.disputeMatchResult", () => {
           matchId: m.matchId,
           userId: m.c.id,
           note: "Wrong",
-          operatorUserIds: [],
         }),
       );
       expect(error.code).toBe("PRECONDITION_FAILED");
@@ -214,7 +216,6 @@ describe("games.disputeMatchResult", () => {
         matchId: m.matchId,
         userId: m.c.id,
         note: "Wrong",
-        operatorUserIds: [],
       });
 
       for (const userId of [m.c.id, m.d.id]) {
@@ -223,7 +224,6 @@ describe("games.disputeMatchResult", () => {
             matchId: m.matchId,
             userId,
             note: "Also wrong",
-            operatorUserIds: [],
           }),
         );
         expect(error.code).toBe("CONFLICT");
@@ -242,7 +242,6 @@ describe("games.disputeMatchResult", () => {
           matchId: m.matchId,
           userId: m.c.id,
           note: "Wrong",
-          operatorUserIds: [],
           now: new Date(m.completedAt.getTime() + 7 * DAY + 1000),
         }),
       );
@@ -253,7 +252,6 @@ describe("games.disputeMatchResult", () => {
         matchId: m.matchId,
         userId: m.c.id,
         note: "Wrong",
-        operatorUserIds: [],
         now: new Date(m.completedAt.getTime() + 7 * DAY - 1000),
       });
     });
@@ -268,7 +266,6 @@ describe("games.disputeMatchResult", () => {
           matchId: m.matchId,
           userId: m.b.id,
           note: "Wrong",
-          operatorUserIds: [],
         }),
       );
       expect(pending.message).toBe(errors.notCompleted);
@@ -278,7 +275,6 @@ describe("games.disputeMatchResult", () => {
           matchId: m.matchId,
           userId: m.b.id,
           note: "   ",
-          operatorUserIds: [],
         }),
       );
       expect(empty.message).toBe(errors.note);

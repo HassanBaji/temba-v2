@@ -3,11 +3,7 @@ import { createSign, generateKeyPairSync } from "node:crypto";
 import { createClerkClient } from "@clerk/backend";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  clerkAuthenticator,
-  clerkOperatorDirectory,
-  contextFor,
-} from "./context";
+import { clerkAuthenticator, contextFor } from "./context";
 
 const WEB = "http://localhost:3000";
 const publishableKey = `pk_test_${Buffer.from("clerk.example.test$").toString("base64")}`;
@@ -179,51 +175,5 @@ describe("contextFor", () => {
     expect(
       (await buildContext(request({ "accept-language": "fr-FR" }))).locale,
     ).toBe("en");
-  });
-});
-
-describe("clerkOperatorDirectory", () => {
-  function users(count: number, operatorAt: number[] = []) {
-    return Array.from({ length: count }, (_, index) => ({
-      id: `user_${index}`,
-      publicMetadata: operatorAt.includes(index) ? { operator: true } : {},
-    }));
-  }
-
-  it("reads every page and keeps only Operators", async () => {
-    const clerk = createClerkClient({ secretKey: "sk_test_x", publishableKey });
-    const getUserList = vi
-      .spyOn(clerk.users, "getUserList")
-      .mockResolvedValueOnce({ data: users(500, [3]) } as never)
-      .mockResolvedValueOnce({
-        data: [
-          { id: "user_late", publicMetadata: { operator: true } },
-          { id: "user_flag", publicMetadata: { operator: "yes" } },
-        ],
-      } as never);
-    const list = clerkOperatorDirectory(clerk);
-
-    expect(await list()).toEqual(["user_3", "user_late"]);
-    expect(getUserList).toHaveBeenCalledTimes(2);
-    expect(getUserList).toHaveBeenLastCalledWith({ limit: 500, offset: 500 });
-  });
-
-  it("keeps the list for five minutes, and not after a failed read", async () => {
-    const clerk = createClerkClient({ secretKey: "sk_test_x", publishableKey });
-    const getUserList = vi
-      .spyOn(clerk.users, "getUserList")
-      .mockRejectedValueOnce(new Error("Clerk is down"))
-      .mockResolvedValue({ data: users(2, [1]) } as never);
-    let now = 0;
-    const list = clerkOperatorDirectory(clerk, () => now);
-
-    await expect(list()).rejects.toThrow("Clerk is down");
-    expect(await list()).toEqual(["user_1"]);
-    now = 4 * 60 * 1000;
-    expect(await list()).toEqual(["user_1"]);
-    expect(getUserList).toHaveBeenCalledTimes(2);
-    now = 6 * 60 * 1000;
-    await list();
-    expect(getUserList).toHaveBeenCalledTimes(3);
   });
 });

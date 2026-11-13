@@ -163,10 +163,12 @@ type Persona = {
   level: SelfDeclareChoice;
   position: "left" | "right" | "either";
   onboarded?: boolean;
+  operator?: boolean;
 };
 
 /**
- * `me` is the main demo persona; `newbie` has not finished onboarding. Point
+ * `me` is the main demo persona and the seeded Operator, so a Match dispute
+ * notifies them; `newbie` has not finished onboarding. Point
  * either at a real Clerk dev User with SEED_CLERK_ID_ME / SEED_CLERK_ID_NEWBIE
  * (or any persona with SEED_CLERK_ID_<KEY>) to sign in as them.
  */
@@ -177,6 +179,7 @@ const PERSONAS: Persona[] = [
     username: "samrivera",
     level: "C2",
     position: "right",
+    operator: true,
   },
   {
     key: "newbie",
@@ -319,6 +322,7 @@ async function seedUsers(): Promise<Users> {
         username: persona.username,
         email: `${persona.username}@example.test`,
         emailVerified: true,
+        isOperator: persona.operator ?? false,
       })
       .returning({ id: user.id });
     if (!row) throw new Error(`Failed to insert ${persona.key}`);
@@ -2577,7 +2581,6 @@ async function seedVerifiedFootball(u: Users, v: Venues) {
     matchId: match!.id,
     userId: u.diego!.id,
     note: "It finished 4–3. Omar’s third goal came after the final whistle.",
-    operatorUserIds: [u.me!.id],
   });
 
   await game("Saturday Galali five-a-side", at(3, 18), 28);
