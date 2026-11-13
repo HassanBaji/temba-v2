@@ -22,6 +22,7 @@ import {
   teamMembers,
   teams,
   user,
+  venueVerifiers,
   venues,
 } from "@repo/db/schema";
 
@@ -451,6 +452,91 @@ describe("mayViewPlayer", () => {
       await seat(db, game.id, player.id);
       expect(
         await mayViewPlayer(db, { viewerId: viewer.id, playerId: player.id }),
+      ).toBe(false);
+    });
+  });
+});
+
+describe("mayViewPlayer for a Verifier", () => {
+  async function verifierAt(database: TestDatabase, venueId: string) {
+    const verifier = await insertUser(database, "Sara Verifier");
+    await database
+      .insert(venueVerifiers)
+      .values({ venueId, userId: verifier.id, kind: "referee" });
+    return verifier;
+  }
+
+  it("opens a player who played a completed Match at the Verifier's Venue", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      await friendlyMatch(db, people, { sets: WIN, startTime: at(1) });
+      const verifier = await verifierAt(db, people.venue.id);
+      expect(
+        await mayViewPlayer(db, {
+          viewerId: verifier.id,
+          playerId: people.player.id,
+        }),
+      ).toBe(true);
+      const profile = await loadPlayerProfile(db, {
+        viewerId: verifier.id,
+        playerId: people.player.id,
+        now: NOW,
+      });
+      expect(profile.viewerMayCalibrate).toBe(true);
+    });
+  });
+
+  it("opens a member of one of the Venue's Club Groups", async () => {
+    await withDb(async (db) => {
+      const venue = await insertVenue(db, "Club Court");
+      const member = await insertUser(db, "Club Member");
+      const group = await insertGroup(db, {
+        createdBy: member.id,
+        venueId: venue.id,
+      });
+      await joinGroup(db, group.id, [member.id]);
+      const verifier = await verifierAt(db, venue.id);
+      expect(
+        await mayViewPlayer(db, { viewerId: verifier.id, playerId: member.id }),
+      ).toBe(true);
+    });
+  });
+
+  it("refuses a player whose Matches were all at another Venue", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      await friendlyMatch(db, people, { sets: WIN, startTime: at(1) });
+      const elsewhere = await insertVenue(db, "Elsewhere");
+      const verifier = await verifierAt(db, elsewhere.id);
+      expect(
+        await mayViewPlayer(db, {
+          viewerId: verifier.id,
+          playerId: people.player.id,
+        }),
+      ).toBe(false);
+      await expect(
+        loadPlayerProfile(db, {
+          viewerId: verifier.id,
+          playerId: people.player.id,
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  it("refuses a player whose only Match at the Venue was in a cancelled Game", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      await friendlyMatch(db, people, {
+        sets: WIN,
+        startTime: at(1),
+        cancelledAt: at(2),
+      });
+      const verifier = await verifierAt(db, people.venue.id);
+      expect(
+        await mayViewPlayer(db, {
+          viewerId: verifier.id,
+          playerId: people.player.id,
+        }),
       ).toBe(false);
     });
   });

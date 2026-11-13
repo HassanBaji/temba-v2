@@ -63,9 +63,10 @@ const notFound = (locale: Locale) =>
   });
 
 /**
- * A viewer may see a Player profile when they are that User, or share a
- * current Group membership or a Game seat with them. Everything else,
- * including an unknown User, reads as not found.
+ * A viewer may see a Player profile when they are that User, share a
+ * current Group membership or a Game seat with them, or is a Verifier who may
+ * calibrate them (ADR-0072). Everything else, including an unknown User,
+ * reads as not found.
  */
 async function sharesGroup(
   database: DbClient,
@@ -146,7 +147,15 @@ export async function mayViewPlayer(
       ),
     )
     .limit(1);
-  return sharedGame != null;
+  if (sharedGame) {
+    return true;
+  }
+
+  const calibration = await calibrationVenueFor(database, {
+    verifierUserId: args.viewerId,
+    targetUserId: args.playerId,
+  });
+  return calibration.venue !== null;
 }
 
 export type CountedMatch = {

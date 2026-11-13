@@ -76,10 +76,7 @@ import {
   type MatchSlot,
 } from "#src/games/match-result-confirmations";
 import { listGameSeatHolds } from "#src/games/seat-holds";
-import {
-  isVerifierOfVenue,
-  verifierStampRefusal,
-} from "#src/games/verifier-stamp";
+import { isVerifierOfVenue, mayStampNow } from "#src/games/verifier-stamp";
 import { matchDisputeRefusal } from "#src/games/match-dispute";
 import {
   seatedSlot,
@@ -512,7 +509,13 @@ export async function gameById(
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId, locale);
 
-  if (!(await canViewGame(database, game, args.userId))) {
+  // A Verifier of the Game's Venue opens it to stamp, and asks for nothing
+  // else on it (ADR-0072).
+  const viewsToStampOnly = !(await canViewGame(database, game, args.userId));
+  if (
+    viewsToStampOnly &&
+    !(await isVerifierOfVenue(database, game.venueId, args.userId))
+  ) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: messagesFor(locale).game.errors.notFound,
@@ -580,23 +583,9 @@ export async function gameById(
     game.venueId,
     args.userId,
   );
-  const viewerMayStamp = async (match: (typeof matchRows)[number]) => {
-    if (
-      !viewerIsVenueVerifier ||
-      (await verifierStampRefusal(database, {
-        game,
-        match,
-        userId: args.userId,
-      })) != null
-    ) {
-      return false;
-    }
-    if (!isPublicGame(game)) {
-      return true;
-    }
-    const closesAt = await publicGameConfirmWindowClosesAt(database, match.id);
-    return closesAt == null || closesAt.getTime() > now.getTime();
-  };
+  const viewerMayStamp = async (match: (typeof matchRows)[number]) =>
+    viewerIsVenueVerifier &&
+    (await mayStampNow(database, { game, match, userId: args.userId, now }));
 
   // The open Match dispute on each Match, and whether the viewer may raise
   // one: a seated player of a Match that counted for Temba Level, within
@@ -1428,6 +1417,7 @@ export async function gameById(
       }),
     eligibleTeams,
     ...levelRange,
+    canRequestLevelRange: levelRange.canRequestLevelRange && !viewsToStampOnly,
     pendingLevelRangeRequests,
     pendingSeatHolds,
     poolTables: computePoolTables({

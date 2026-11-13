@@ -2,11 +2,13 @@ import { and, eq } from "drizzle-orm";
 
 import { MatchStatusEnum, matchSets, venueVerifiers } from "@repo/db";
 
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { matchOutcome } from "@repo/domain/match-outcome";
 
 import { type db } from "#src/db";
-import { type GameRow } from "#src/games/access";
+import { canViewGame, type GameRow } from "#src/games/access";
 import { knockoutMatchIsLevel } from "#src/games/knockout-advance";
+import { publicGameConfirmWindowClosesAt } from "#src/games/match-result-confirmations";
 import { userIsOnMatchSlots } from "#src/games/user-is-on-match-slots";
 import { type MatchRow } from "#src/games/utils";
 
@@ -28,6 +30,22 @@ export async function isVerifierOfVenue(
     columns: { id: true },
   });
   return Boolean(grant);
+}
+
+/**
+ * Whether the User may open the Game: everyone `canViewGame` admits, and a
+ * Verifier of its Venue, who opens it to stamp its Matches (ADR-0072). Every
+ * write door keeps its own check, so this grants nothing beyond the stamp.
+ */
+export async function canViewGameOrStamp(
+  database: DbClient,
+  game: GameRow,
+  userId: string,
+): Promise<boolean> {
+  return (
+    (await canViewGame(database, game, userId)) ||
+    isVerifierOfVenue(database, game.venueId, userId)
+  );
 }
 
 export type VerifierStampRefusal =
@@ -71,4 +89,25 @@ export async function verifierStampRefusal(
     return "knockout_level";
   }
   return null;
+}
+
+/**
+ * Whether the User may stamp the Match now: nothing refuses it, and on a
+ * Public Game its 24-hour confirm window is still open (ADR-0071).
+ */
+export async function mayStampNow(
+  database: DbClient,
+  args: { game: GameRow; match: MatchRow; userId: string; now: Date },
+): Promise<boolean> {
+  if ((await verifierStampRefusal(database, args)) != null) {
+    return false;
+  }
+  if (!isPublicGame(args.game)) {
+    return true;
+  }
+  const closesAt = await publicGameConfirmWindowClosesAt(
+    database,
+    args.match.id,
+  );
+  return closesAt == null || closesAt.getTime() > args.now.getTime();
 }

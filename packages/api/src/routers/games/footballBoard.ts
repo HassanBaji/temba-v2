@@ -38,7 +38,8 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { canViewGame, isGameOrganizer, requireGame } from "#src/games/access";
+import { isGameOrganizer, requireGame } from "#src/games/access";
+import { canViewGameOrStamp } from "#src/games/verifier-stamp";
 import { confirmsAsOrganizer } from "#src/games/confirms-as-organizer";
 import { loadChallengeSides } from "#src/games/challenge-squad";
 import { groupIsVerified } from "#src/groups/group-is-verified";
@@ -227,7 +228,7 @@ export async function footballBoard(
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId, locale);
-  if (!(await canViewGame(database, game, args.userId))) {
+  if (!(await canViewGameOrStamp(database, game, args.userId))) {
     throw new TRPCError({
       code: "NOT_FOUND",
       message: messagesFor(locale).game.errors.notFound,
