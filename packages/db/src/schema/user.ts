@@ -132,6 +132,12 @@ export const user = pgTable(
     /** Clerk's `updated_at` of the last user.created / user.updated applied, so an older delivery is ignored. */
     clerkUpdatedAt: timestamp("clerk_updated_at"),
     /**
+     * A copy of Clerk's `publicMetadata.operator`, written by the Clerk user
+     * webhook, so Notifications can find every Operator. Never an
+     * authorization check: Operator doors read the session (ADR-0075).
+     */
+    isOperator: boolean("is_operator").notNull().default(false),
+    /**
      * Set when the Clerk account was deleted. The row stays, anonymised, for
      * the Games and Matches that reference it; `deleted_clerk_id` keeps a late
      * user.updated for that account from recreating it.
