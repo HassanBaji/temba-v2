@@ -307,7 +307,7 @@ describe("sharedTierView", () => {
         gamesOfFive: 5,
       },
     ],
-  } as unknown as Parameters<typeof sharedTierView>[1];
+  } as unknown as NonNullable<Parameters<typeof sharedTierView>[1]>;
 
   it("draws the fish only on football", () => {
     expect(sharedTierView("football", data, "en")?.rows[0]?.caption).toBe(
@@ -318,13 +318,7 @@ describe("sharedTierView", () => {
 
   it("draws nothing when the viewer shares no tier Group", () => {
     expect(
-      sharedTierView(
-        "football",
-        { ...data!, sharedGroupTiers: [] } as Parameters<
-          typeof sharedTierView
-        >[1],
-        "en",
-      ),
+      sharedTierView("football", { ...data, sharedGroupTiers: [] }, "en"),
     ).toBeNull();
   });
 });
