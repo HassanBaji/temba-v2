@@ -1,6 +1,11 @@
 import { and, eq, inArray } from "drizzle-orm";
 
-import { groupMembers, groupRatings, groupTierPoints, ratings } from "@repo/db";
+import {
+  groupMembers,
+  groupRatings,
+  ratings,
+  type groupTierPoints,
+} from "@repo/db";
 
 import { displayedLevelFromMu } from "@repo/domain/level";
 import { tierHintReference, tierTable } from "@repo/domain/tier-bands";

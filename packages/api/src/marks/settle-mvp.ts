@@ -229,7 +229,7 @@ export async function scheduleMvpSettle(
     where: eq(games.id, args.gameId),
     columns: { format: true, mvpMode: true },
   });
-  if (!game || game.format !== "friendly_game" || game.mvpMode === "none") {
+  if (game?.format !== "friendly_game" || game.mvpMode === "none") {
     return;
   }
   const window = mvpWindow(
