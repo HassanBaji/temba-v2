@@ -1,5 +1,13 @@
 import { plural } from "../../plural";
 
+/** `points` is the count as shown: grouped, and signed when it is a move. */
+function pointsCount(points: string, count: number) {
+  return plural("en", count, {
+    one: `${points} point`,
+    other: `${points} points`,
+  });
+}
+
 export const rating = {
   bands: {
     shark: "Shark",
@@ -50,7 +58,10 @@ export const rating = {
       topBand: "Top band",
       toConfirm: "To confirm",
       confirmCount: (done: number, total: number) =>
-        `${done} of ${total} matches`,
+        plural("en", total, {
+          one: `${done} of 1 match`,
+          other: `${done} of {n} matches`,
+        }),
       noLevel: "No level yet",
       noLevelFootball: "Play a game that counts for Temba Level to get an OVR.",
       noLevelPadel: "Play a match that counts for Temba Level to get a Level.",
@@ -105,7 +116,10 @@ export const rating = {
         other: `${rating} from {n} teammates and opponents`,
       }),
     noRating: (min: number) =>
-      `Fewer than ${min} ratings this time, so this part is 0`,
+      plural("en", min, {
+        one: "Fewer than 1 rating this time, so this part is 0",
+        other: "Fewer than {n} ratings this time, so this part is 0",
+      }),
     goals: (percent: number) => `Goals ${percent}%`,
     goalsLine: (scored: number, conceded: number) =>
       `${scored} scored, ${conceded} conceded while you played. Conceded weighs more at the back`,
@@ -133,15 +147,18 @@ export const rating = {
     columnPlayer: "Player",
     columnPoints: "Points",
     theShark: "The Shark",
-    points: (points: string) => `${points} points`,
-    sharkFor: (points: string, weeks: number) =>
+    points: pointsCount,
+    sharkFor: (points: string, count: number, weeks: number) =>
       plural("en", weeks, {
-        one: `${points} points, top for 1 week`,
-        other: `${points} points, top for {n} weeks`,
+        one: `${pointsCount(points, count)}, top for 1 week`,
+        other: `${pointsCount(points, count)}, top for {n} weeks`,
       }),
     place: (place: number) => `#${place}`,
     provisionalGames: (games: number, of: number) =>
-      `Provisional, ${games} of ${of} games`,
+      plural("en", of, {
+        one: `Provisional, ${games} of 1 game`,
+        other: `Provisional, ${games} of {n} games`,
+      }),
     noTier: "no tier",
     withOrganizer: (label: string) => `${label}, organizer`,
     stillProvisional: (n: number) =>
@@ -149,7 +166,11 @@ export const rating = {
         one: "1 still provisional",
         other: "{n} still provisional",
       }),
-    pointsSpoken: (points: string) => `${points} tier points`,
+    pointsSpoken: (points: string, count: number) =>
+      plural("en", count, {
+        one: `${points} tier point`,
+        other: `${points} tier points`,
+      }),
     footnote:
       "Tier and points are this group’s own: Hamour is the top 15% after the Shark, Kanaad the next 35%, Safi everyone else. Points come from this group’s games only.",
   },
@@ -249,7 +270,10 @@ export const rating = {
     now: (points: string, standing: string) => `Now ${points}, ${standing}`,
     nowRanked: (band: string, placeOf: string) => `${band}, ${placeOf}`,
     nowProvisional: (games: number, of: number) =>
-      `provisional, ${games} of ${of} games`,
+      plural("en", of, {
+        one: `provisional, ${games} of 1 game`,
+        other: `provisional, ${games} of {n} games`,
+      }),
     newPoints: "New points",
     noChange: "no change",
     place: "Place",
@@ -329,7 +353,7 @@ export const rating = {
     lastCount: (n: number) => `last ${n}`,
     empty:
       "Nothing has moved these points yet. They move after each group game.",
-    deltaSpoken: (delta: string) => `${delta} points`,
+    deltaSpoken: pointsCount,
     game: {
       won: (score: string) => `Won ${score}`,
       drew: (score: string) => `Drew ${score}`,
@@ -500,7 +524,10 @@ export const rating = {
       closesTomorrow: (clock: string) => `Closes tomorrow, ${clock}`,
       closesOn: (day: string, clock: string) => `Closes ${day}, ${clock}`,
       privacy: (raters: number, players: number) =>
-        `Nobody sees who gave what. ${raters} of ${players} have rated so far`,
+        plural("en", raters, {
+          one: `Nobody sees who gave what. 1 of ${players} has rated so far`,
+          other: `Nobody sees who gave what. {n} of ${players} have rated so far`,
+        }),
       yourSide: "your side",
       optional: "optional",
       opponentsOptional: (n: number) =>
@@ -581,7 +608,8 @@ export const rating = {
         total: (before: string, after: string) => `${before} to ${after}`,
         weight: (weight: number) =>
           `Performance counts for ${weight}% in this group`,
-        spoken: (title: string, delta: string) => `${title}, ${delta} points`,
+        spoken: (title: string, delta: string, count: number) =>
+          `${title}, ${pointsCount(delta, count)}`,
       },
       noRating: {
         organizerRated:
@@ -606,8 +634,8 @@ export const rating = {
         upTo: (band: string) => `Up to ${band}.`,
         downTo: (band: string) => `Down to ${band}.`,
         nowA: (band: string) => `Now a ${band}.`,
-        toNext: (points: string, band: string) =>
-          `${points} points to ${band}.`,
+        toNext: (points: string, count: number, band: string) =>
+          `${pointsCount(points, count)} to ${band}.`,
         noFish: "No fish until four players are ranked.",
         provisional:
           "Your place and fish come after five group games, or sooner if an organizer sets your points.",
@@ -656,7 +684,7 @@ export const rating = {
         notRated: "Not rated",
         ratedSpoken: (rating: string) => `rated ${rating}`,
         notRatedSpoken: "no rating",
-        pointsSpoken: (points: string) => `${points} points`,
+        pointsSpoken: pointsCount,
         spokenSeparator: ", ",
       },
       outliers: {

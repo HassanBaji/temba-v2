@@ -8,7 +8,7 @@ import {
   formatMonth,
 } from "./format-game-start";
 import { groupDisplayName } from "./group-join";
-import { formatTierPoints } from "./group-members-table";
+import { formatTierPoints, tierPointsCount } from "./group-members-table";
 import {
   formatPadelLevel,
   levelFromMu,
@@ -87,6 +87,7 @@ export type RatingHistoryRow = {
   /** Who made a manual change and why; null on a Game. */
   byline: string | null;
   delta: string;
+  deltaSpoken: string;
   spoken: string;
 };
 
@@ -171,15 +172,15 @@ export function ratingHistoryRow(
     );
     byline = adjustmentByline(entry, viewerUserId, locale);
   }
+  const deltaSpoken = m.deltaSpoken(delta, tierPointsCount(entry.delta));
   return {
     key: entry.id,
     title,
     detail,
     byline,
     delta,
-    spoken: [title, detail, byline, m.deltaSpoken(delta)]
-      .filter(Boolean)
-      .join(". "),
+    deltaSpoken,
+    spoken: [title, detail, byline, deltaSpoken].filter(Boolean).join(". "),
   };
 }
 

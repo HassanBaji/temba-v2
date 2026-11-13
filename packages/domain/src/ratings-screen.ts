@@ -4,6 +4,7 @@ import { messagesFor } from "@repo/i18n/messages";
 import { formatOvr, ovrFromLevel, type LevelFace } from "./football-ovr";
 import {
   formatTierPoints,
+  tierPointsCount,
   type GroupMemberTierCell,
 } from "./group-members-table";
 import { initials } from "./initials";
@@ -324,7 +325,13 @@ export function ratingsTierRows(
       cell,
       caption,
       points,
-      spoken: [row.name, caption, points ? all.tier.pointsSpoken(points) : null]
+      spoken: [
+        row.name,
+        caption,
+        points
+          ? all.tier.pointsSpoken(points, tierPointsCount(row.points ?? 0))
+          : null,
+      ]
         .filter((part): part is string => part != null)
         .join(", "),
     };

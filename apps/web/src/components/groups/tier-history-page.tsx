@@ -118,7 +118,6 @@ function HeaderCard({
 }
 
 function HistoryRow({ row }: { row: RatingHistoryRow }) {
-  const m = useMessages();
   return (
     <li className="border-rule flex items-start gap-3 border-t px-4 py-3 first:border-t-0">
       <div className="min-w-0 flex-1">
@@ -133,7 +132,7 @@ function HistoryRow({ row }: { row: RatingHistoryRow }) {
       </div>
       <span
         className="font-expanded text-body shrink-0 font-bold tabular-nums"
-        aria-label={m.rating.history.deltaSpoken(row.delta)}
+        aria-label={row.deltaSpoken}
       >
         {row.delta}
       </span>

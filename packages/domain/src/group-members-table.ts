@@ -411,6 +411,11 @@ export function formatTierPoints(points: number) {
   return String(Math.round(points)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+/** The whole number a formatted points figure or move shows, for `plural`. */
+export function tierPointsCount(points: number) {
+  return Math.abs(Math.round(points));
+}
+
 export type GroupMemberTierCell =
   | { kind: "fish"; band: TierBand; label: string }
   | { kind: "place"; label: string }
@@ -461,6 +466,10 @@ export function groupMemberTierView(
     };
   }
   const points = formatTierPoints(tier.points ?? 0);
+  const pointsSpoken = copy.pointsSpoken(
+    points,
+    tierPointsCount(tier.points ?? 0),
+  );
   if (tier.band) {
     const band = tierBandLabel(tier.band, locale);
     const caption = member.isOrganizer ? copy.withOrganizer(band) : band;
@@ -469,8 +478,8 @@ export function groupMemberTierView(
       caption,
       points,
       pointsMuted: false,
-      spoken: [band, copy.pointsSpoken(points)].join(". "),
-      pointsSpoken: copy.pointsSpoken(points),
+      spoken: [band, pointsSpoken].join(". "),
+      pointsSpoken,
     };
   }
   const place = copy.place(tier.place);
@@ -480,8 +489,8 @@ export function groupMemberTierView(
     caption,
     points,
     pointsMuted: false,
-    spoken: [place, copy.pointsSpoken(points)].join(". "),
-    pointsSpoken: copy.pointsSpoken(points),
+    spoken: [place, pointsSpoken].join(". "),
+    pointsSpoken,
   };
 }
 
@@ -499,6 +508,7 @@ export function groupTierSharkCard(
   }
   const m = messagesFor(locale);
   const points = formatTierPoints(shark.points);
+  const count = tierPointsCount(shark.points);
   const since = asValidDate(shark.since);
   const weeks = since
     ? Math.floor((now.getTime() - since.getTime()) / WEEK_MS)
@@ -508,8 +518,8 @@ export function groupTierSharkCard(
     name: shark.name,
     line:
       weeks >= 1
-        ? m.rating.tier.sharkFor(points, weeks)
-        : m.rating.tier.points(points),
+        ? m.rating.tier.sharkFor(points, count, weeks)
+        : m.rating.tier.points(points, count),
     fishLabel: tierBandLabel("shark", locale),
   };
 }

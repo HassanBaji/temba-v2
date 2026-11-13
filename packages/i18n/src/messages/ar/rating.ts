@@ -2,6 +2,39 @@ import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { rating as source } from "../en/rating";
 
+function pointsCount(points: string, count: number) {
+  return plural("ar", count, {
+    zero: `${isolate(points)} نقاط`,
+    one: "نقطة واحدة",
+    two: "نقطتان",
+    few: `${isolate(points)} نقاط`,
+    many: `${isolate(points)} نقطة`,
+    other: `${isolate(points)} نقطة`,
+  });
+}
+
+/** A move keeps its sign, so one and two keep the number too. */
+function pointsMoved(delta: string, count: number) {
+  return plural("ar", count, {
+    zero: `${isolate(delta)} نقاط`,
+    one: `${isolate(delta)} نقطة`,
+    two: `${isolate(delta)} نقطتان`,
+    few: `${isolate(delta)} نقاط`,
+    many: `${isolate(delta)} نقطة`,
+    other: `${isolate(delta)} نقطة`,
+  });
+}
+
+function ofGames(lead: string, games: number, of: number) {
+  return plural("ar", of, {
+    one: `${lead}، ${games} من مباراة واحدة`,
+    two: `${lead}، ${games} من مباراتين`,
+    few: `${lead}، ${games} من {n} مباريات`,
+    many: `${lead}، ${games} من {n} مباراة`,
+    other: `${lead}، ${games} من {n} مباراة`,
+  });
+}
+
 export const rating = {
   bands: {
     shark: "قرش",
@@ -55,7 +88,13 @@ export const rating = {
       topBand: "أعلى فئة",
       toConfirm: "حتى التأكيد",
       confirmCount: (done: number, total: number) =>
-        `${done} من ${total} مباريات`,
+        plural("ar", total, {
+          one: `${done} من مباراة واحدة`,
+          two: `${done} من مباراتين`,
+          few: `${done} من {n} مباريات`,
+          many: `${done} من {n} مباراة`,
+          other: `${done} من {n} مباراة`,
+        }),
       noLevel: "لا يوجد مستوى بعد",
       noLevelFootball: "العب مباراة تُحتسب لمستوى Temba لتحصل على OVR.",
       noLevelPadel: "العب مباراة تُحتسب لمستوى Temba لتحصل على مستوى.",
@@ -124,7 +163,13 @@ export const rating = {
         other: `${isolate(rating)} من {n} زميل ومنافس`,
       }),
     noRating: (min: number) =>
-      `أقل من ${min} تقييمات هذه المرة، لذا هذا الجزء صفر`,
+      plural("ar", min, {
+        one: "أقل من تقييم واحد هذه المرة، لذا هذا الجزء صفر",
+        two: "أقل من تقييمين هذه المرة، لذا هذا الجزء صفر",
+        few: "أقل من {n} تقييمات هذه المرة، لذا هذا الجزء صفر",
+        many: "أقل من {n} تقييمًا هذه المرة، لذا هذا الجزء صفر",
+        other: "أقل من {n} تقييم هذه المرة، لذا هذا الجزء صفر",
+      }),
     goals: (percent: number) => `الأهداف ${percent}%`,
     goalsLine: (scored: number, conceded: number) =>
       `سجّلت ${scored}، واستقبل فريقك ${conceded} أثناء لعبك. الأهداف المستقبَلة تزن أكثر في الخط الخلفي`,
@@ -152,18 +197,19 @@ export const rating = {
     columnPlayer: "اللاعب",
     columnPoints: "النقاط",
     theShark: "القرش",
-    points: (points: string) => `${isolate(points)} نقطة`,
-    sharkFor: (points: string, weeks: number) =>
+    points: pointsCount,
+    sharkFor: (points: string, count: number, weeks: number) =>
       plural("ar", weeks, {
-        zero: `${isolate(points)} نقطة، في الصدارة منذ أقل من أسبوع`,
-        one: `${isolate(points)} نقطة، في الصدارة منذ أسبوع`,
-        two: `${isolate(points)} نقطة، في الصدارة منذ أسبوعين`,
-        few: `${isolate(points)} نقطة، في الصدارة منذ {n} أسابيع`,
-        other: `${isolate(points)} نقطة، في الصدارة منذ {n} أسبوعًا`,
+        zero: `${pointsCount(points, count)}، في الصدارة منذ أقل من أسبوع`,
+        one: `${pointsCount(points, count)}، في الصدارة منذ أسبوع`,
+        two: `${pointsCount(points, count)}، في الصدارة منذ أسبوعين`,
+        few: `${pointsCount(points, count)}، في الصدارة منذ {n} أسابيع`,
+        many: `${pointsCount(points, count)}، في الصدارة منذ {n} أسبوعًا`,
+        other: `${pointsCount(points, count)}، في الصدارة منذ {n} أسبوع`,
       }),
     place: (place: number) => `#${place}`,
     provisionalGames: (games: number, of: number) =>
-      `مبدئي، ${games} من ${of} مباريات`,
+      ofGames("مبدئي", games, of),
     noTier: "بلا فئة",
     withOrganizer: (label: string) => `${label}، منظّم`,
     stillProvisional: (n: number) =>
@@ -174,7 +220,15 @@ export const rating = {
         few: "{n} ما زالوا مبدئيين",
         other: "{n} ما زالوا مبدئيين",
       }),
-    pointsSpoken: (points: string) => `${isolate(points)} نقطة فئة`,
+    pointsSpoken: (points: string, count: number) =>
+      plural("ar", count, {
+        zero: `${isolate(points)} نقاط فئة`,
+        one: "نقطة فئة واحدة",
+        two: "نقطتا فئة",
+        few: `${isolate(points)} نقاط فئة`,
+        many: `${isolate(points)} نقطة فئة`,
+        other: `${isolate(points)} نقطة فئة`,
+      }),
     footnote:
       "الفئة والنقاط خاصة بهذه المجموعة: الهامور هم أعلى 15% بعد القرش، والكنعد الـ35% التالية، والصافي البقية. النقاط تأتي من مباريات هذه المجموعة فقط.",
   },
@@ -271,8 +325,7 @@ export const rating = {
     now: (points: string, standing: string) =>
       `الآن ${isolate(points)}، ${standing}`,
     nowRanked: (band: string, placeOf: string) => `${band}، ${placeOf}`,
-    nowProvisional: (games: number, of: number) =>
-      `مبدئي، ${games} من ${of} مباريات`,
+    nowProvisional: (games: number, of: number) => ofGames("مبدئي", games, of),
     newPoints: "النقاط الجديدة",
     noChange: "بلا تغيير",
     place: "المركز",
@@ -359,7 +412,7 @@ export const rating = {
     whatMovedIt: "ما الذي حرّكها",
     lastCount: (n: number) => `آخر ${n}`,
     empty: "لم يحرّك شيء هذه النقاط بعد. تتحرّك بعد كل مباراة في المجموعة.",
-    deltaSpoken: (delta: string) => `${isolate(delta)} نقطة`,
+    deltaSpoken: pointsMoved,
     game: {
       won: (score: string) => `فوز ${isolate(score)}`,
       drew: (score: string) => `تعادل ${isolate(score)}`,
@@ -638,8 +691,8 @@ export const rating = {
           `من ${isolate(before)} إلى ${isolate(after)}`,
         weight: (weight: number) =>
           `الأداء ${isolate(`${weight}%`)} من الحركة في هذه المجموعة`,
-        spoken: (title: string, delta: string) =>
-          `${title}، ${isolate(delta)} نقطة`,
+        spoken: (title: string, delta: string, count: number) =>
+          `${title}، ${pointsMoved(delta, count)}`,
       },
       noRating: {
         organizerRated: "قيّمت هذه المباراة، فتحرّكت نقاطك على النتيجة وحدها.",
@@ -667,8 +720,8 @@ export const rating = {
         upTo: (band: string) => `صعدت إلى ${band}.`,
         downTo: (band: string) => `نزلت إلى ${band}.`,
         nowA: (band: string) => `صرت ${band}.`,
-        toNext: (points: string, band: string) =>
-          `${isolate(points)} نقطة إلى ${band}.`,
+        toNext: (points: string, count: number, band: string) =>
+          `${pointsCount(points, count)} إلى ${band}.`,
         noFish: "لا أسماك حتى يُصنَّف أربعة لاعبين.",
         provisional:
           "يأتي مركزك وسمكتك بعد خمس مباريات في المجموعة، أو قبل ذلك إن حدّد منظّم نقاطك.",
@@ -736,7 +789,7 @@ export const rating = {
         notRated: "لم يُقيَّم",
         ratedSpoken: (rating: string) => `تقييمه ${isolate(rating)}`,
         notRatedSpoken: "بلا تقييم",
-        pointsSpoken: (points: string) => `${isolate(points)} نقطة`,
+        pointsSpoken: pointsMoved,
         spokenSeparator: "، ",
       },
       outliers: {

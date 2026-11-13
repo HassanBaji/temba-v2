@@ -29,6 +29,7 @@ import { sideSizeLabel } from "./game-shape";
 import type { GroupMemberTierData } from "./group-data";
 import {
   formatTierPoints,
+  tierPointsCount,
   groupMemberTierView,
   type GroupMemberTierCell,
 } from "./group-members-table";
@@ -422,7 +423,7 @@ export function teamsSideAverage(
   const m = messagesFor(locale).rating;
   return balanceOn === "ovr"
     ? m.ovr.value(formatOvr(mean))
-    : m.tier.points(formatTierPoints(mean));
+    : m.tier.points(formatTierPoints(mean), tierPointsCount(mean));
 }
 
 /** The fish, place or Provisional slot beside a player in a tier Group. */

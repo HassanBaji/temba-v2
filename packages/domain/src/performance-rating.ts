@@ -12,7 +12,7 @@ import {
   formatGameDay,
   formatWeekday,
 } from "./format-game-start";
-import { formatTierPoints } from "./group-members-table";
+import { formatTierPoints, tierPointsCount } from "./group-members-table";
 import { initials } from "./initials";
 import { productDaysBetween } from "./product-timezone";
 import { formatTierDelta } from "./tier-adjust";
@@ -1026,6 +1026,7 @@ function tierView(
     tier.nextBand && tier.pointsToNextBand != null
       ? copy.toNext(
           formatTierPoints(tier.pointsToNextBand),
+          tierPointsCount(tier.pointsToNextBand),
           m.bands[tier.nextBand],
         )
       : null;
@@ -1116,6 +1117,7 @@ export function performanceResultView(
     spoken: copy.points.spoken(
       copy.points.result,
       formatTierDelta(result.resultDelta),
+      tierPointsCount(result.resultDelta),
     ),
   };
   const performanceRow: PerformanceResultRow = {
@@ -1132,6 +1134,7 @@ export function performanceResultView(
     spoken: copy.points.spoken(
       copy.points.performance,
       formatTierDelta(result.performanceDelta),
+      tierPointsCount(result.performanceDelta),
     ),
   };
   const totalTitle = copy.points.total(
@@ -1171,7 +1174,11 @@ export function performanceResultView(
         title: totalTitle,
         detail: copy.points.weight(result.weightPercent),
         delta: formatTierDelta(result.delta),
-        spoken: copy.points.spoken(totalTitle, formatTierDelta(result.delta)),
+        spoken: copy.points.spoken(
+          totalTitle,
+          formatTierDelta(result.delta),
+          tierPointsCount(result.delta),
+        ),
       },
     },
     tier: tierView(result.tier, locale),
@@ -1365,7 +1372,9 @@ export function performanceRatingSummaryView(
         name,
         detail.text,
         rating ? copy.row.ratedSpoken(rating) : copy.row.notRatedSpoken,
-        points ? copy.row.pointsSpoken(points) : null,
+        points
+          ? copy.row.pointsSpoken(points, tierPointsCount(player.delta ?? 0))
+          : null,
       ]
         .filter((part): part is string => Boolean(part))
         .join(copy.row.spokenSeparator),
