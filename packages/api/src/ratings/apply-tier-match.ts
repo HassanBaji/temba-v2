@@ -8,6 +8,7 @@ import {
 } from "@repo/db";
 
 import { type db } from "#src/db";
+import { notify } from "#src/notifications/notify";
 import { tierStartHints } from "#src/ratings/tier-start-hints";
 import {
   tierIsProvisional,
@@ -284,8 +285,10 @@ async function groupTierTable(
 
 /**
  * Re-cuts the Group's places over its current members and writes a
- * `band_change` event wherever the stored fish differs. `rowByUser` holds the
- * Group's Tier points rows, locked by the caller.
+ * `band_change` event wherever the stored fish differs, then tells each
+ * member whose fish moved. The one writer of `band_change` events, so a Game
+ * settling, a reversal and a Tier adjustment all tell them the same way.
+ * `rowByUser` holds the Group's Tier points rows, locked by the caller.
  */
 export async function rewriteTierBands(
   database: DbClient,
@@ -294,6 +297,10 @@ export async function rewriteTierBands(
     matchId: string | null;
     rowByUser: Map<string, TierPointsRow>;
     now: Date;
+    /** Who made the write, when a person did. */
+    actorUserId?: string | null;
+    /** Members this write already tells another way. */
+    toldAnotherWay?: readonly string[];
   },
 ): Promise<TierTable & { bandChanges: TierBandChange[] }> {
   const table = await groupTierTable(database, args.groupId, args.rowByUser);
@@ -337,5 +344,44 @@ export async function rewriteTierBands(
       args.rowByUser.set(updated.userId, updated);
     }
   }
+  await notifyTierBandChanges(database, {
+    groupId: args.groupId,
+    bandChanges,
+    actorUserId: args.actorUserId ?? null,
+    toldAnotherWay: args.toldAnotherWay ?? [],
+  });
   return { ...table, bandChanges };
+}
+
+/**
+ * `tier_band_changed`, once per player per write (spec 13): each member
+ * whose fish moved hears where they are now. A member left with no fish has
+ * nothing to read, and the row goes with its event if the write is reversed.
+ */
+async function notifyTierBandChanges(
+  database: DbClient,
+  args: {
+    groupId: string;
+    bandChanges: readonly TierBandChange[];
+    actorUserId: string | null;
+    toldAnotherWay: readonly string[];
+  },
+) {
+  const latestByUser = new Map(
+    args.bandChanges.map((change) => [change.userId, change]),
+  );
+  for (const change of latestByUser.values()) {
+    if (change.to === null || args.toldAnotherWay.includes(change.userId)) {
+      continue;
+    }
+    await notify(database, {
+      type: "tier_band_changed",
+      recipients: [{ userId: change.userId, audience: "player" }],
+      excludeUserIds: [],
+      actorUserId: args.actorUserId,
+      groupId: args.groupId,
+      groupTierEventId: change.eventId,
+      dedupeKey: `tier_band_changed:${change.eventId}`,
+    });
+  }
 }

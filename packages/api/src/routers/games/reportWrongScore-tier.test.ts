@@ -7,6 +7,7 @@ import {
   groupTierEvents,
   groupTierPoints,
   matches,
+  notifications,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
@@ -220,6 +221,25 @@ describe("reportWrongScore on a football Group Game (ADR-0067)", () => {
         ].sort(),
       );
       expect(await tierEvents(db, reported)).toHaveLength(0);
+
+      const told = await db.query.notifications.findMany({
+        where: eq(notifications.type, "tier_band_changed"),
+        with: { groupTierEvent: true },
+      });
+      expect(
+        told
+          .map((row) => [
+            row.recipientUserId,
+            row.groupTierEvent?.matchId,
+            row.groupTierEvent?.bandAfter,
+          ])
+          .sort(),
+      ).toEqual(
+        [
+          [p1, null, "shark"],
+          [p2, null, "kanaad"],
+        ].sort(),
+      );
     });
   });
 

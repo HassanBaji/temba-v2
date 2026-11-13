@@ -8,6 +8,7 @@ import {
   groupTierEvents,
   groupTierPoints,
   matches,
+  notifications,
   ratingEvents,
   ratings,
   user,
@@ -342,6 +343,28 @@ describe("Tier points on a completed football Match (ADR-0067)", () => {
         where: eq(groupTierPoints.userId, p2),
       });
       expect(stored?.band).toBe("shark");
+
+      const told = await db.query.notifications.findMany({
+        where: eq(notifications.type, "tier_band_changed"),
+        with: { groupTierEvent: true },
+      });
+      expect(
+        told
+          .map((row) => [
+            row.recipientUserId,
+            row.audience,
+            row.groupId,
+            row.groupTierEvent?.kind,
+            row.groupTierEvent?.userId,
+            row.groupTierEvent?.bandAfter,
+          ])
+          .sort(),
+      ).toEqual(
+        [
+          [p1, "player", f.groupId, "band_change", p1, "kanaad"],
+          [p2, "player", f.groupId, "band_change", p2, "shark"],
+        ].sort(),
+      );
     });
   });
 

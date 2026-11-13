@@ -150,11 +150,16 @@ export async function adjustTierPoints(
       rowByUser.set(updated.userId, updated);
     }
 
+    // One Notification per player: the member hears of the adjustment
+    // below, which already names their new place; anyone else whose fish
+    // moved hears of that.
     const table = await rewriteTierBands(tx, {
       groupId: group.id,
       matchId: null,
       rowByUser,
       now,
+      actorUserId: args.organizerUserId,
+      toldAnotherWay: [args.userId],
     });
     const self = table.rows.find((entry) => entry.userId === args.userId);
     await tx
@@ -166,10 +171,6 @@ export async function adjustTierPoints(
       })
       .where(eq(groupTierEvents.id, event.id));
 
-    // One Notification per player: the member hears of the adjustment,
-    // which already names their new place; anyone else whose fish moved
-    // hears of that. An adjustment only adds a ranked member, so no fish
-    // is ever taken away here.
     await notify(tx, {
       type: "tier_points_adjusted",
       recipients: [{ userId: args.userId, audience: "player" }],
@@ -178,19 +179,6 @@ export async function adjustTierPoints(
       groupId: group.id,
       groupTierEventId: event.id,
     });
-    for (const change of table.bandChanges) {
-      if (change.userId === args.userId || change.to === null) {
-        continue;
-      }
-      await notify(tx, {
-        type: "tier_band_changed",
-        recipients: [{ userId: change.userId, audience: "player" }],
-        excludeUserIds: [],
-        actorUserId: args.organizerUserId,
-        groupId: group.id,
-        groupTierEventId: change.eventId,
-      });
-    }
 
     return {
       userId: args.userId,
