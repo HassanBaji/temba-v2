@@ -36,11 +36,7 @@ import type { Sport } from "@repo/domain/sport";
 import { type db } from "#src/db";
 import { notify } from "#src/notifications/notify";
 
-type DbClient =
-  | typeof db
-  | Parameters<Parameters<typeof db.transaction>[0]>[0]
-  | AnyDbClient
-  | DbTx;
+type DbClient = typeof db | DbTx | AnyDbClient;
 
 export type LevelConfirmation = {
   /** The `rating_events` row of the Match that confirmed the Level. */
@@ -135,7 +131,7 @@ export async function tembaLevelViews(
 ): Promise<(row: TembaRatingRow) => YouRatingView> {
   const confirmation = await padelConfirmations(database, {
     userIds: rows
-      .filter((row) => row.sport !== GroupSportEnum.FOOTBALL)
+      .filter((row) => row.sport !== "football")
       .map((row) => row.userId),
   });
   return (row) => tembaLevelView(row, confirmation(row.userId));
