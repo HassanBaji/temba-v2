@@ -57,6 +57,7 @@ export const NOTIFICATION_TYPE_VALUES = [
   "performance_ratings_closed",
   "match_dispute_raised",
   "match_dispute_decided",
+  "level_confirmed",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];
