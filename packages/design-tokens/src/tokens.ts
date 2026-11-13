@@ -1,5 +1,5 @@
 /**
- * Palette v2 (ADR-0066). The focused surface is Lifted: one step off the page
+ * Palette v2 (ADR-0084). The focused surface is Lifted: one step off the page
  * (#f4f4f4 with a #e6e6e6 hairline) instead of inverting to black. The
  * `dim`, `dimrule`, `raised` and `hatchStrokeOnInk` roles are what sits on that
  * lifted surface; `onControlMuted`, `controlRule`, `controlRaised` and
@@ -99,7 +99,7 @@ export const palettes: Record<ColorScheme, Palette> = {
 
 /**
  * Light with the focused surface still inverted to black, as before Palette v2
- * (ADR-0066). The mobile App reads it because its screens use the ink tone for
+ * (ADR-0084). The mobile App reads it because its screens use the ink tone for
  * both the focused surface and solid controls; it moves to `palettes` when
  * those screens are redrawn, and this goes.
  */

@@ -120,6 +120,6 @@ The design system is locked. See section 4 of the spec for values.
 - Hairline borders, never shadows.
 - Colors, spacing, radii and type sizes come from `@repo/design-tokens`. No hex literals in screens.
 - Text goes through the `Text` primitive, which sets the font family and tabular figures. Never set `fontFamily` or `fontWeight` directly.
-- `Surface tone="ink"` marks the one upcoming focus on a screen. Finished things are `paper`. Home's Up next card is the exception: it is the Palette v2 lifted card (ADR-0066), read from `palettes` until the rest of the mobile App moves off `invertedFocusPalettes` (ADR-0067).
+- `Surface tone="ink"` marks the one upcoming focus on a screen. Finished things are `paper`. Home's Up next card is the exception: it is the Palette v2 lifted card (ADR-0084), read from `palettes` until the rest of the mobile App moves off `invertedFocusPalettes` (ADR-0085).
 - `Hatch` means "not yet". `ResultMark` and `FormSlot` are solid for a win, outline for a loss, hatched for not played.
 - At most two mount animations per screen, through `MountFill` and `MountDraw`, both honouring reduce-motion.
