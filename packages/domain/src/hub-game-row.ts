@@ -1,3 +1,4 @@
+import type { KingPlayedSummary } from "./tournament-king-view";
 import type { GameAlbumSummary } from "./game-album";
 import type { GameRatingScope } from "./game-rating-scope";
 import type { MarkKind } from "./marks";
@@ -184,5 +185,7 @@ export type HubHistoryRow = {
   levelMove?: { muBefore: number; muAfter: number } | null;
   /** Set when the history groups a Groups only tournament into one row. */
   myTournament?: MyTournament | null;
+  /** Set on a King of the court row: it has no Match, only a place and a king. */
+  kingOfTheCourt?: KingPlayedSummary | null;
   album?: GameAlbumSummary;
 };

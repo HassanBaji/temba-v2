@@ -269,8 +269,10 @@ function MemberActionsMenu({
   const manageRows: (MemberSheetRow | false | undefined | "")[] = [
     onNickname && {
       key: "nickname",
-      label: m.group.nickname.menuLabel,
-      value: nickname ?? m.group.nickname.notSet,
+      label: nickname
+        ? m.group.nickname.menuLabel
+        : m.group.nickname.addMenuLabel,
+      value: nickname,
       icon: Tag,
       onSelect: onNickname,
     },
@@ -478,7 +480,6 @@ function GroupMemberRow({
   sort,
   profileHref,
   actions,
-  onAddName,
 }: {
   member: GroupMember;
   canSetLevel: boolean;
@@ -488,8 +489,6 @@ function GroupMemberRow({
   sort: GroupMemberSort;
   profileHref?: string;
   actions?: ReactNode;
-  /** While managing, a member with no Member nickname offers one. */
-  onAddName?: () => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -550,16 +549,6 @@ function GroupMemberRow({
               </span>
             ) : null}
           </span>
-          {onAddName ? (
-            <button
-              type="button"
-              onClick={onAddName}
-              aria-label={m.group.nickname.addNameFor(member.name)}
-              className="text-eyebrow text-muted-foreground hover:text-ink focus-visible:ring-ring/50 ms-auto shrink-0 rounded-md px-1 py-2 outline-none focus-visible:ring-[3px]"
-            >
-              {m.group.nickname.addName}
-            </button>
-          ) : null}
         </span>
       </td>
       {tier ? (
@@ -1098,11 +1087,6 @@ export function GroupMembersTab({
                         : undefined
                     }
                     actions={isManaging ? memberActions(member) : undefined}
-                    onAddName={
-                      isManaging && canSetNicknames && member.nickname == null
-                        ? () => nameMember(member)
-                        : undefined
-                    }
                   />
                 ))
               )}

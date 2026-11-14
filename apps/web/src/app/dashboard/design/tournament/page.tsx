@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { createTournamentFixtures } from "@repo/domain/tournament-details-fixtures";
 import { createTournamentCardFixtures } from "@repo/domain/tournament-card-fixtures";
+import { createKingTournamentFixtures } from "@repo/domain/tournament-king-fixtures";
 
 import { TournamentGamesCardPreview } from "./games-card-preview";
 import { TournamentPreviewStates } from "./preview-states";
@@ -14,6 +15,7 @@ export default function TournamentDesignPreviewPage() {
 
   const fixtures = createTournamentFixtures();
   const cardFixtures = createTournamentCardFixtures();
+  const kingFixtures = createKingTournamentFixtures();
 
   return (
     <DashboardShell title="Tournament preview" width="wide">
@@ -21,6 +23,7 @@ export default function TournamentDesignPreviewPage() {
       <TournamentPreviewStates
         fixtures={fixtures}
         cardFixtures={cardFixtures}
+        kingFixtures={kingFixtures}
       />
     </DashboardShell>
   );

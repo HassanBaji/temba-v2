@@ -21,6 +21,7 @@ import { auth } from "./auth";
 import { webGame } from "./web-game";
 import { webTournament } from "./web-tournament";
 import { tournamentRounds } from "./tournament-rounds";
+import { tournamentKing } from "./tournament-king";
 import { webDashboard } from "./web-dashboard";
 import { webGroup } from "./web-group";
 import { webUi } from "./web-ui";
@@ -80,6 +81,7 @@ export const ar: Messages = {
   webGame,
   webTournament,
   tournamentRounds,
+  tournamentKing,
   webDashboard,
   webGroup,
   webUi,

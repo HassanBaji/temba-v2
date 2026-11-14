@@ -11,6 +11,7 @@ import {
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
+import { assertNotKingOfTheCourt } from "#src/games/assert-not-king-of-the-court";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
@@ -45,6 +46,7 @@ export async function undoPoolDraw(
       message: messagesFor(locale).tournament.errors.undoFriendly,
     });
   }
+  assertNotKingOfTheCourt(game, locale);
   if (game.drawPostedAt == null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
