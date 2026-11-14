@@ -360,7 +360,10 @@ export function createRequestAnswerQueue<Timer>(
 
   return {
     answered: () => answered,
-    answer(requests: readonly WaitingRequest[], decision: RequestDecision) {
+    answer: (
+      requests: readonly WaitingRequest[],
+      decision: RequestDecision,
+    ) => {
       const next = new Map(answered);
       const fresh = requests.filter((request) => {
         const phase = next.get(request.id)?.answer.phase;
@@ -385,14 +388,14 @@ export function createRequestAnswerQueue<Timer>(
       }
       set(next);
     },
-    undo(requestId: string) {
+    undo: (requestId: string) => {
       if (!canUndoAnswer(answered.get(requestId)?.answer ?? null)) {
         return;
       }
       stopTimer(requestId);
       drop(requestId);
     },
-    flush() {
+    flush: () => {
       for (const entry of [...answered.values()]) {
         if (entry.answer.phase === "held") {
           void send(entry.request.id);

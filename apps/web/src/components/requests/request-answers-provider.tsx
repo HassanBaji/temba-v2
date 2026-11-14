@@ -141,15 +141,16 @@ export function RequestAnswersProvider({
   );
 
   useEffect(() => {
+    const flush = () => queue.flush();
     const flushWhenHidden = () => {
       if (document.visibilityState === "hidden") {
-        queue.flush();
+        flush();
       }
     };
-    window.addEventListener("pagehide", queue.flush);
+    window.addEventListener("pagehide", flush);
     document.addEventListener("visibilitychange", flushWhenHidden);
     return () => {
-      window.removeEventListener("pagehide", queue.flush);
+      window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", flushWhenHidden);
       queue.flush();
     };
@@ -164,7 +165,7 @@ export function RequestAnswersProvider({
       rows: requestRows(data ?? [], answered),
       answer: (request, decision) => queue.answer([request], decision),
       approveMany: (requests) => queue.answer(requests, "approve"),
-      undo: queue.undo,
+      undo: (requestId) => queue.undo(requestId),
     }),
     [data, isLoading, error, refetch, answered, queue],
   );
