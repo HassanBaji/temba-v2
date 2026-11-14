@@ -551,6 +551,8 @@ export const group = {
       `Remove ${name} from this Group? Their Games stay in history.`,
     removedToast: (name: string) => `${name} removed`,
     renameAction: "Edit name",
+    whatsAppAction: "WhatsApp",
+    whatsAppFor: (name: string) => `Message ${name} on WhatsApp`,
     renameDescription:
       "Their phone stays the same. If the number is wrong, remove them and add them again.",
     renamedToast: (name: string) => `Name changed to ${name}`,

@@ -32,7 +32,7 @@ import {
   levelOverrideWhy,
 } from "@repo/domain/level-slider";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
-import { formatE164 } from "@repo/domain/phone-number";
+import { formatE164, whatsAppHref } from "@repo/domain/phone-number";
 import type { ResultMarkVariant } from "@repo/domain/result-mark";
 import { paddedForm, standingRecordLabel } from "@repo/domain/season-standing";
 import { isolate } from "@repo/i18n/bidi";
@@ -348,6 +348,7 @@ export type MemberSheetView = {
   /** The full number, isolated for display, when the viewer may call. */
   phone: string | null;
   phoneHref: string | null;
+  whatsAppHref: string | null;
   summary: string;
   letter: string | null;
   level: string | null;
@@ -380,6 +381,7 @@ export function memberSheetView(
     phoneMasked: entry.phoneMasked,
     phone: callable ? isolate(formatE164(callable)) : null,
     phoneHref: callable ? `tel:${callable}` : null,
+    whatsAppHref: callable ? whatsAppHref(callable) : null,
     summary: [caption, m.members.ratedMatches(entry.ratedMatchCount)]
       .filter(Boolean)
       .join(" · "),

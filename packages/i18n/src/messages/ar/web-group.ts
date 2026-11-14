@@ -17,6 +17,7 @@ export const webGroup = {
     roleFor: (name: string) => `دور ${name}`,
     manageName: (name: string) => `إدارة ${name}`,
     callPhone: (phone: string) => `اتصال بـ ${isolate(phone)}`,
+    whatsAppPhone: (phone: string) => `واتساب ${isolate(phone)}`,
     setLevel: "تحديد المستوى",
     savedLevel: (name: string, level: string) =>
       `تم تحديد مستوى ${name} إلى ${level}.`,

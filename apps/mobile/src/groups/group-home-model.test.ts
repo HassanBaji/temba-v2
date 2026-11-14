@@ -292,13 +292,15 @@ describe("memberList and memberSheetView with a member's number", () => {
     ).toBe(false);
   });
 
-  it("shows the full number and dials it", () => {
+  it("shows the full number, dials it and opens it on WhatsApp", () => {
     const view = memberSheetView(withNumber, "en");
     expect(view.phone).toBe(isolate("+973 3612 4408"));
     expect(view.phoneHref).toBe("tel:+97336124408");
+    expect(view.whatsAppHref).toBe("https://wa.me/97336124408");
     expect(memberSheetView(second!, "en")).toMatchObject({
       phone: null,
       phoneHref: null,
+      whatsAppHref: null,
     });
   });
 });

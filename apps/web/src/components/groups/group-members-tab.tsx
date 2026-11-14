@@ -64,7 +64,7 @@ import type {
 } from "@repo/domain/group-data";
 import type { LevelFace } from "@repo/domain/football-ovr";
 import type { LevelBand } from "@repo/domain/level-bands";
-import { formatE164 } from "@repo/domain/phone-number";
+import { formatE164, whatsAppHref } from "@repo/domain/phone-number";
 import type { Locale } from "@repo/i18n/locale";
 import {
   levelOverrideCaption,
@@ -213,6 +213,15 @@ function MemberActionsMenu({
           <ActionMenuItem asChild>
             <a href={`tel:${phoneNumber}`}>
               {m.webGroup.members.callPhone(formatE164(phoneNumber))}
+            </a>
+          </ActionMenuItem>
+          <ActionMenuItem asChild>
+            <a
+              href={whatsAppHref(phoneNumber)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {m.webGroup.members.whatsAppPhone(formatE164(phoneNumber))}
             </a>
           </ActionMenuItem>
           {setLevelHref ||

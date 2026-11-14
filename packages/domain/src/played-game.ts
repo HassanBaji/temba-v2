@@ -57,6 +57,8 @@ export type PlayedRow = {
   /** A Guest player: a name only, nothing opens on tap for players. */
   guest: boolean;
   phoneMasked: string | null;
+  /** E.164, sent only to a Group approver for a current member (ADR-0078). */
+  phoneNumber: string | null;
 };
 
 export type PlayedColumn = {
@@ -367,6 +369,7 @@ function padelRows(
         unclaimed: Boolean(seat.unclaimed),
         guest: Boolean(seat.guest),
         phoneMasked: seat.phoneMasked ?? null,
+        phoneNumber: seat.phoneNumber ?? null,
       },
     ];
   });
@@ -569,6 +572,7 @@ function footballRow(player: BoardPlayer, locale: Locale): PlayedRow {
     unclaimed: Boolean(player.unclaimed),
     guest: Boolean(player.guest),
     phoneMasked: player.phoneMasked ?? null,
+    phoneNumber: player.phoneNumber ?? null,
   };
 }
 

@@ -73,6 +73,7 @@ export function courtSeatRow(
     unclaimed: Boolean(seat.unclaimed),
     guest: Boolean(seat.guest),
     phoneMasked: seat.phoneMasked ?? null,
+    phoneNumber: seat.phoneNumber ?? null,
   };
 }
 
