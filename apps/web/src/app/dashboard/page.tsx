@@ -7,6 +7,7 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { HomeBlock } from "~/components/home/home-block";
 import { HomeHeader } from "~/components/home/home-header";
+import { HomeRequests } from "~/components/home/home-requests";
 import { ProfileChecklistCard } from "~/components/home/profile-checklist-card";
 import {
   levelFromApi,
@@ -134,6 +135,8 @@ export default function HomePage() {
           })}
           image={user?.imageUrl}
         />
+
+        <HomeRequests />
 
         {checklist ? <ProfileChecklistCard list={checklist} /> : null}
 

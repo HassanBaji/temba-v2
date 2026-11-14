@@ -9,6 +9,9 @@ const PLAYER_MARKS = /^\/dashboard\/players\/([^/]+)\/marks\/?$/;
 const PLAYER_MARK = /^\/dashboard\/players\/([^/]+)\/marks\/([^/]+)\/?$/;
 
 const YOU_RATINGS_HREF = "/dashboard/you/ratings";
+
+/** All requests: every request waiting on the viewer as an Organizer or admin. */
+export const REQUESTS_HREF = "/dashboard/requests";
 const YOU_RATING_HISTORY_HREF = `${YOU_RATINGS_HREF}/history`;
 
 export function youRatingsHref(sport: Sport) {
@@ -77,6 +80,9 @@ export function titleFromPath(pathname: string, m: Messages) {
   }
   if (pathname.startsWith("/dashboard/notifications")) {
     return m.common.notifications;
+  }
+  if (pathname.startsWith(REQUESTS_HREF)) {
+    return m.requests.title;
   }
   if (pathname.startsWith("/dashboard/operator/groups")) {
     return m.webUi.nav.verifyGroups;
@@ -160,7 +166,10 @@ export function detailBackHref(pathname: string | null): string | undefined {
   ) {
     return "/dashboard/you";
   }
-  if (pathname.startsWith("/dashboard/notifications")) {
+  if (
+    pathname.startsWith("/dashboard/notifications") ||
+    pathname.startsWith(REQUESTS_HREF)
+  ) {
     return "/dashboard";
   }
   const playerMatches = PLAYER_MATCHES.exec(pathname);

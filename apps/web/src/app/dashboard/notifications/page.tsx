@@ -10,7 +10,9 @@ import { ListPageSkeleton } from "~/components/common/page-skeleton";
 import { ListRow, RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { SectionTitle } from "~/components/home/section-title";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { NotificationsRequests } from "~/components/notifications/notifications-requests";
 import { Button } from "~/components/ui/button";
 import { useInviteInboxCount } from "~/hooks/use-invite-inbox-count";
 import { notificationHref } from "~/lib/notification-href";
@@ -145,6 +147,8 @@ export default function NotificationsPage() {
     { limit: PAGE_SIZE },
     { getNextPageParam: (page) => page.nextCursor ?? undefined },
   );
+  const unread = api.notifications.unreadCount.useQuery();
+  const unreadCount = unread.data?.count ?? 0;
 
   async function refreshNotifications() {
     await Promise.all([
@@ -176,90 +180,108 @@ export default function NotificationsPage() {
 
   return (
     <DashboardShell title={m.common.notifications}>
-      {inviteCount > 0 ? (
-        <RowList className="mb-4">
-          <ListRow
-            asChild
-            leading={
-              <span className="border-rule text-ink flex size-10 items-center justify-center rounded-full border">
-                <Inbox aria-hidden="true" className="size-5" />
-              </span>
-            }
-            title={invitesWaitingLabel(inviteCount, locale)}
-          >
-            <Link href="/dashboard/invites" />
-          </ListRow>
-        </RowList>
-      ) : null}
+      <div className="flex flex-col gap-[26px]">
+        <NotificationsRequests />
+        <section className="flex flex-col gap-3">
+          <SectionTitle
+            title={m.requests.notificationsTitle}
+            meta={unreadCount > 0 ? m.requests.newCount(unreadCount) : null}
+          />
+          <div>
+            {inviteCount > 0 ? (
+              <RowList className="mb-4">
+                <ListRow
+                  asChild
+                  leading={
+                    <span className="border-rule text-ink flex size-10 items-center justify-center rounded-full border">
+                      <Inbox aria-hidden="true" className="size-5" />
+                    </span>
+                  }
+                  title={invitesWaitingLabel(inviteCount, locale)}
+                >
+                  <Link href="/dashboard/invites" />
+                </ListRow>
+              </RowList>
+            ) : null}
 
-      {notifications.isLoading ? <ListPageSkeleton rows={4} /> : null}
+            {notifications.isLoading ? <ListPageSkeleton rows={4} /> : null}
 
-      {notifications.error ? (
-        <ErrorState
-          title={m.webDashboard.notifications.errorTitle}
-          error={notifications.error}
-          onRetry={() => void notifications.refetch()}
-        />
-      ) : null}
+            {notifications.error ? (
+              <ErrorState
+                title={m.webDashboard.notifications.errorTitle}
+                error={notifications.error}
+                onRetry={() => void notifications.refetch()}
+              />
+            ) : null}
 
-      {!notifications.isLoading && !notifications.error && rows.length === 0 ? (
-        <EmptyState
-          icon={Bell}
-          title={m.webDashboard.notifications.empty.title}
-          description={m.webDashboard.notifications.empty.description}
-        />
-      ) : null}
+            {!notifications.isLoading &&
+            !notifications.error &&
+            rows.length === 0 ? (
+              <EmptyState
+                icon={Bell}
+                title={m.webDashboard.notifications.empty.title}
+                description={m.webDashboard.notifications.empty.description}
+              />
+            ) : null}
 
-      {hasUnread && newestLoadedAt ? (
-        <div className="mb-2 flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            pending={markAllRead.isPending}
-            pendingLabel={m.webDashboard.notifications.marking}
-            onClick={() => markAllRead.mutate({ upTo: newestLoadedAt })}
-          >
-            {m.webDashboard.notifications.markAllRead}
-          </Button>
-        </div>
-      ) : null}
+            {hasUnread && newestLoadedAt ? (
+              <div className="mb-2 flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  pending={markAllRead.isPending}
+                  pendingLabel={m.webDashboard.notifications.marking}
+                  onClick={() => markAllRead.mutate({ upTo: newestLoadedAt })}
+                >
+                  {m.webDashboard.notifications.markAllRead}
+                </Button>
+              </div>
+            ) : null}
 
-      {rows.length > 0 ? (
-        <RowList>
-          {rows.map(({ item, copy, href }) => {
-            const unread = item.readAt === null;
-            return (
-              <ListRow
-                key={item.id}
-                asChild
-                leading={
-                  <NotificationLeading type={item.type} actor={item.actor} />
-                }
-                title={<NotificationTitle parts={copy.title} unread={unread} />}
-                titleClamp="lines"
-                subtitle={copy.subline}
-                meta={notificationMeta(item, locale)}
-                trailing={unread ? <UnreadDot /> : null}
-              >
-                <Link
-                  href={href}
-                  onClick={() => {
-                    if (unread) {
-                      markRead.mutate({ ids: [item.id] });
-                    }
-                  }}
-                />
-              </ListRow>
-            );
-          })}
-        </RowList>
-      ) : null}
+            {rows.length > 0 ? (
+              <RowList>
+                {rows.map(({ item, copy, href }) => {
+                  const unread = item.readAt === null;
+                  return (
+                    <ListRow
+                      key={item.id}
+                      asChild
+                      leading={
+                        <NotificationLeading
+                          type={item.type}
+                          actor={item.actor}
+                        />
+                      }
+                      title={
+                        <NotificationTitle parts={copy.title} unread={unread} />
+                      }
+                      titleClamp="lines"
+                      subtitle={copy.subline}
+                      meta={notificationMeta(item, locale)}
+                      trailing={unread ? <UnreadDot /> : null}
+                    >
+                      <Link
+                        href={href}
+                        onClick={() => {
+                          if (unread) {
+                            markRead.mutate({ ids: [item.id] });
+                          }
+                        }}
+                      />
+                    </ListRow>
+                  );
+                })}
+              </RowList>
+            ) : null}
 
-      <LoadMoreSentinel
-        hasNextPage={notifications.hasNextPage}
-        isFetchingNextPage={notifications.isFetchingNextPage}
-        onLoadMore={() => void notifications.fetchNextPage()}
-      />
+            <LoadMoreSentinel
+              hasNextPage={notifications.hasNextPage}
+              isFetchingNextPage={notifications.isFetchingNextPage}
+              onLoadMore={() => void notifications.fetchNextPage()}
+            />
+          </div>
+        </section>
+      </div>
     </DashboardShell>
   );
 }
