@@ -89,9 +89,9 @@ describe("rating catalog counts", () => {
     ]);
     expect(t.tier.pointsSpoken("1", 1)).toBe("1 tier point");
     expect(t.tier.pointsSpoken("2", 2)).toBe("2 tier points");
-    expect(t.tier.sharkFor("1", 1, 1)).toBe("1 point, top for 1 week");
+    expect(t.tier.sharkFor("1", 1, 1)).toBe("1 point, a Shark for 1 week");
     expect(t.tier.sharkFor("1,240", 1240, 3)).toBe(
-      "1,240 points, top for 3 weeks",
+      "1,240 points, a Shark for 3 weeks",
     );
     expect(t.history.deltaSpoken("+1", 1)).toBe("+1 point");
     expect(t.history.deltaSpoken("−1", 1)).toBe("−1 point");
@@ -151,7 +151,7 @@ describe("rating catalog counts", () => {
     expect(t.performance.result.tier.toNext("1", 1, "هامور")).toBe(
       "نقطة واحدة إلى هامور.",
     );
-    expect(t.tier.sharkFor("2", 2, 2)).toBe("نقطتان، في الصدارة منذ أسبوعين");
+    expect(t.tier.sharkFor("2", 2, 2)).toBe("نقطتان، قرش منذ أسبوعين");
   });
 
   it("keeps the sign on an Arabic points move", () => {

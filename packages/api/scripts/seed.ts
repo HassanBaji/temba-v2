@@ -1887,8 +1887,8 @@ function keeper(key: string): Footballer {
 
 /**
  * Thursday Football's Group Tier as the Members design draws it: eleven ranked members
- * (1 Shark, 2 Hamour, 4 Kanaad, 4 Safi) and two still Provisional. The
- * Shark has been top for five weeks.
+ * (3 Shark, 1 Hamour, 3 Kanaad, 4 Safi) and two still Provisional. The
+ * first Shark has been a Shark for five weeks.
  */
 const THURSDAY_TIER: Record<string, { points: number; games: number }> = {
   omar: { points: 1412, games: 31 },

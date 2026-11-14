@@ -214,12 +214,12 @@ export const rating = {
     points: pointsCount,
     sharkFor: (points: string, count: number, weeks: number) =>
       plural("ar", weeks, {
-        zero: `${pointsCount(points, count)}، في الصدارة منذ أقل من أسبوع`,
-        one: `${pointsCount(points, count)}، في الصدارة منذ أسبوع`,
-        two: `${pointsCount(points, count)}، في الصدارة منذ أسبوعين`,
-        few: `${pointsCount(points, count)}، في الصدارة منذ {n} أسابيع`,
-        many: `${pointsCount(points, count)}، في الصدارة منذ {n} أسبوعًا`,
-        other: `${pointsCount(points, count)}، في الصدارة منذ {n} أسبوع`,
+        zero: `${pointsCount(points, count)}، قرش منذ أقل من أسبوع`,
+        one: `${pointsCount(points, count)}، قرش منذ أسبوع`,
+        two: `${pointsCount(points, count)}، قرش منذ أسبوعين`,
+        few: `${pointsCount(points, count)}، قرش منذ {n} أسابيع`,
+        many: `${pointsCount(points, count)}، قرش منذ {n} أسبوعًا`,
+        other: `${pointsCount(points, count)}، قرش منذ {n} أسبوع`,
       }),
     place: (place: number) => `#${place}`,
     provisionalGames: (games: number, of: number) =>
@@ -244,7 +244,7 @@ export const rating = {
         other: `${isolate(points)} نقطة فئة`,
       }),
     footnote:
-      "الفئة والنقاط خاصة بهذه المجموعة: الهامور هم أعلى 15% بعد القرش، والكنعد الـ35% التالية، والصافي البقية. النقاط تأتي من مباريات هذه المجموعة فقط.",
+      "الفئة والنقاط خاصة بهذه المجموعة: أعلى ثلاثة هم القروش، والهامور الـ15% التالية، والكنعد الـ35% التالية، والصافي البقية. النقاط تأتي من مباريات هذه المجموعة فقط.",
   },
   settingsLine: {
     resultsOnly: "النتائج فقط: تتحرّك نقاط الفئة بالفوز والتعادل والخسارة.",

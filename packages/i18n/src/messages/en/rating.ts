@@ -161,8 +161,8 @@ export const rating = {
     points: pointsCount,
     sharkFor: (points: string, count: number, weeks: number) =>
       plural("en", weeks, {
-        one: `${pointsCount(points, count)}, top for 1 week`,
-        other: `${pointsCount(points, count)}, top for {n} weeks`,
+        one: `${pointsCount(points, count)}, a Shark for 1 week`,
+        other: `${pointsCount(points, count)}, a Shark for {n} weeks`,
       }),
     place: (place: number) => `#${place}`,
     provisionalGames: (games: number, of: number) =>
@@ -183,7 +183,7 @@ export const rating = {
         other: `${points} tier points`,
       }),
     footnote:
-      "Tier and points are this group’s own: Hamour is the top 15% after the Shark, Kanaad the next 35%, Safi everyone else. Points come from this group’s games only.",
+      "Tier and points are this group’s own: the top three are Sharks, Hamour the next 15%, Kanaad the next 35%, Safi everyone else. Points come from this group’s games only.",
   },
   settingsLine: {
     resultsOnly: "Results only: tier points move on wins, draws and losses.",

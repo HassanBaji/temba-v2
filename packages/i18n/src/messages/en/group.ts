@@ -296,7 +296,7 @@ export const group = {
           joined: { label: "Recently joined", hint: "Newest members first" },
           name: { label: "Name", hint: "A to Z" },
           level: { label: "Level", hint: "Highest first, no Level last" },
-          tier: { label: "Tier", hint: "The Shark first, Provisional last" },
+          tier: { label: "Tier", hint: "Sharks first, Provisional last" },
         },
       },
       filters: {
