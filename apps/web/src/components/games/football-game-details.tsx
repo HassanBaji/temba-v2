@@ -46,6 +46,8 @@ import { PlayedFootballBoard } from "~/components/games/played/played-football-b
 import { MatchDisputeRow } from "~/components/games/played/match-dispute-row";
 import { PlayedGameView } from "~/components/games/played/played-game-view";
 import { OvrImpactCard } from "~/components/games/ovr-impact-card";
+import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
+import { gamePaymentsTracked } from "@repo/domain/game-payments";
 import { PerformanceResultCard } from "~/components/games/performance-result-card";
 import { RateGameCard } from "~/components/games/rate-game-card";
 import { RatingSummaryCard } from "~/components/games/rating-summary-card";
@@ -835,6 +837,10 @@ export function FootballGameDetails({
             }
             task={
               <>
+                <GamePaymentsSection
+                  gameId={gameId}
+                  tracked={gamePaymentsTracked(game)}
+                />
                 <OvrImpactCard ratingImpact={game.ratingImpact} />
                 <RateGameCard gameId={gameId} window={game.ratingWindow} />
                 <PerformanceResultCard
@@ -982,6 +988,13 @@ export function FootballGameDetails({
             }}
           />
         ) : null}
+
+        {playedModel ? null : (
+          <GamePaymentsSection
+            gameId={gameId}
+            tracked={gamePaymentsTracked(game)}
+          />
+        )}
 
         {playedModel ? null : <FootballInfoRows rows={infoRows} />}
 

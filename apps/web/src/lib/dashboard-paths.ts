@@ -197,6 +197,10 @@ export function gameHomeHref(gameId: string) {
 /** The Operator's open Match disputes. */
 export const OPERATOR_DISPUTES_HREF = "/dashboard/operator/disputes";
 
+export function gamePaymentsHref(gameId: string) {
+  return `/dashboard/games/${gameId}/payments`;
+}
+
 export function gameRateHref(gameId: string) {
   return `/dashboard/games/${gameId}/rate`;
 }

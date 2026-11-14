@@ -15,6 +15,8 @@ import { use } from "react";
 import * as React from "react";
 import { toast } from "sonner";
 
+import { gamePaymentsTracked } from "@repo/domain/game-payments";
+
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaimed-player-dialog";
@@ -51,6 +53,7 @@ import {
 } from "~/components/games/game-rating-impact-block";
 import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
+import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { TournamentHome } from "~/components/games/tournament-home";
 import { TournamentKnockoutCancelDialog } from "~/components/games/tournament-knockout-cancel-dialog";
 import { TournamentPoolTablesPanel } from "~/components/games/tournament-pool-tables-panel";
@@ -1385,6 +1388,10 @@ export default function GameHomePage({
                   ? () => setPickSideOpen(true)
                   : undefined
               }
+            />
+            <GamePaymentsSection
+              gameId={id}
+              tracked={gamePaymentsTracked(data)}
             />
             {data.phase && data.phase !== "cancelled" && firstMatch ? (
               <div ref={resultsSectionRef}>

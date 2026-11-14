@@ -1,5 +1,7 @@
 "use client";
 
+import { gamePaymentsTracked } from "@repo/domain/game-payments";
+import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
@@ -152,6 +154,15 @@ export function PlayedFriendlyGame({
           <PlayedPadelBoard setLabels={model.setLabels} rows={model.board} />
         }
         heroFooter={<MvpRow marks={marks} canOpenProfile={linkToPlayers} />}
+        task={
+          <GamePaymentsSection
+            gameId={gameId}
+            tracked={gamePaymentsTracked({
+              trackPayments: game.trackPayments ?? false,
+              pricePerPlayerFils: game.pricePerPlayerFils,
+            })}
+          />
+        }
         marks={<MarksSection marks={marks} />}
         album={
           <GameAlbumSections
