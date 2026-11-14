@@ -22,8 +22,8 @@ export function SheetMenu({
 }
 
 type SheetMenuRowTarget =
-  | { href: string; onSelect?: () => void }
-  | { href?: undefined; onSelect: () => void };
+  | { href: string; newTab?: boolean; onSelect?: () => void }
+  | { href?: undefined; newTab?: undefined; onSelect: () => void };
 
 /**
  * One action in a sheet menu list: an icon, a label with an optional hint,
@@ -32,6 +32,7 @@ type SheetMenuRowTarget =
 export function SheetMenuRow({
   label,
   hint,
+  value,
   icon: Icon,
   iconClassName,
   trailing,
@@ -42,6 +43,8 @@ export function SheetMenuRow({
 }: SheetMenuRowTarget & {
   label: string;
   hint?: string | null;
+  /** The current setting, muted at the row's end. */
+  value?: string | null;
   icon?: LucideIcon;
   iconClassName?: string;
   trailing?: LucideIcon | "chevron";
@@ -73,6 +76,11 @@ export function SheetMenuRow({
           <span className="text-eyebrow text-muted-foreground">{hint}</span>
         ) : null}
       </span>
+      {value ? (
+        <span className="text-body text-muted-foreground max-w-[40%] shrink-0 truncate">
+          {value}
+        </span>
+      ) : null}
       {Trailing ? (
         <Trailing
           aria-hidden="true"
@@ -90,6 +98,9 @@ export function SheetMenuRow({
       <Link
         href={target.href}
         onClick={target.onSelect}
+        {...(target.newTab
+          ? { target: "_blank", rel: "noopener noreferrer" }
+          : {})}
         aria-disabled={inactive || undefined}
         className={className}
       >
