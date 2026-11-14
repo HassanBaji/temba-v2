@@ -3,17 +3,20 @@ import type { GroupJoinRequestData } from "@repo/domain/group-data";
 import {
   groupJoinPolicyLine,
   groupJoinRequestMeta,
-  groupJoinRequestsBannerText,
-  groupJoinRequestsHeading,
   groupJoinRequestsSummary,
 } from "@repo/domain/group-admin";
 import { levelCellView } from "@repo/domain/group-home-chrome";
-import { ArrowDown, Check, ChevronRight, Inbox } from "lucide-react-native";
-import { forwardRef } from "react";
+import {
+  waitingCountLabel,
+  type RequestRow,
+} from "@repo/domain/waiting-requests";
+import { Check, ChevronRight, Inbox } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
-import { mirrorInRtl } from "../i18n/rtl";
+import { useNow } from "../games/use-now";
 import type { Slot } from "../home/home-model";
+import { SectionTitle } from "../home/section-title";
+import { mirrorInRtl } from "../i18n/rtl";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mediaUrl } from "../lib/media-url";
 import { Avatar } from "../primitives/avatar";
@@ -23,61 +26,19 @@ import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
-import { SurfaceToneContext } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import {
+  groupRequestRows,
+  waitingRows,
+} from "../requests/request-answers-model";
+import { useRequestAnswers } from "../requests/request-answers-provider";
+import { RequestRowItem } from "../requests/request-card";
+import {
+  REQUESTS_HEADING_GAP,
+  RequestsFootnote,
+} from "../requests/request-sections";
 import { useColors } from "../theme/theme-provider";
 import { Notice } from "./notice";
-
-export function JoinRequestsBanner({
-  count,
-  onReview,
-}: {
-  count: number;
-  onReview: () => void;
-}) {
-  const locale = useLocale();
-  const m = useMessages();
-  const colors = useColors();
-  if (count === 0) {
-    return null;
-  }
-  return (
-    <Surface
-      tone="ink"
-      padded={false}
-      radius="card"
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-        paddingStart: 16,
-        paddingEnd: 8,
-        paddingVertical: 8,
-      }}
-    >
-      <View
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: 3,
-          backgroundColor: colors.onFocus,
-        }}
-      />
-      <Text size="meta" weight="semibold" style={{ flex: 1 }}>
-        {groupJoinRequestsBannerText(count, locale)}
-      </Text>
-      <Button
-        label={m.group.admin.reviewLabel}
-        accessibilityLabel={m.mobileGroup.requests.review}
-        size="sm"
-        variant="outline-inverse"
-        icon={<ArrowDown size={sizes.iconRow - 2} color={colors.onFocus} />}
-        iconPlacement="trailing"
-        onPress={onReview}
-      />
-    </Surface>
-  );
-}
 
 function LevelChip({ level }: { level: GroupJoinRequestData["level"] }) {
   const m = useMessages();
@@ -133,7 +94,7 @@ function ChangePolicyLink({ onPress }: { onPress: () => void }) {
   );
 }
 
-function RequestRow({
+function OwnRequestRow({
   request,
   apiOrigin,
   showLevel,
@@ -242,111 +203,139 @@ function RequestRow({
   );
 }
 
-export type JoinRequestsCardProps = {
-  requests: Slot<GroupJoinRequestData[]>;
+/**
+ * A Group's join requests: the waiting list's rows for this Group, answered
+ * through the shared answers, then any request only the Group's own list
+ * carries, which keeps its own row.
+ */
+export function useGroupRequests(
+  groupId: string,
+  requests: Slot<GroupJoinRequestData[]>,
+) {
+  const answers = useRequestAnswers();
+  const rows = groupRequestRows(answers.rows, groupId);
+  const shown = new Set(rows.map((row) => row.request.id));
+  const own =
+    requests.status === "ready"
+      ? requests.value.filter((request) => !shown.has(request.id))
+      : [];
+  return { rows, own, any: rows.length + own.length > 0 };
+}
+
+function PolicyFooter({
+  requiresApproval,
+  onChangePolicy,
+}: {
   requiresApproval: boolean;
-  approvedToday: number;
+  onChangePolicy: () => void;
+}) {
+  const locale = useLocale();
+  const colors = useColors();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+        paddingStart: 16,
+        paddingEnd: 10,
+        paddingVertical: 6,
+        backgroundColor: colors.surfaceRaised,
+      }}
+    >
+      <Text size="eyebrow" tone="muted" style={{ flex: 1 }}>
+        {groupJoinPolicyLine(requiresApproval, locale)}
+      </Text>
+      <ChangePolicyLink onPress={onChangePolicy} />
+    </View>
+  );
+}
+
+function BlockLink({ name, onPress }: { name: string; onPress: () => void }) {
+  const m = useMessages();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={m.mobileHome.requests.blockName(name)}
+      hitSlop={8}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        alignSelf: "flex-start",
+        minHeight: 28,
+        justifyContent: "center",
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Text size="eyebrow" tone="muted">
+        {m.group.admin.reject.blockLabel}
+      </Text>
+    </Pressable>
+  );
+}
+
+export type GroupRequestsSectionProps = {
+  rows: RequestRow[];
+  own: GroupJoinRequestData[];
+  requiresApproval: boolean;
   apiOrigin: string;
   showLevel: boolean;
   approvePendingId: string | null;
   rejectPendingId: string | null;
   onApprove: (request: GroupJoinRequestData) => void;
   onAskReject: (request: GroupJoinRequestData) => void;
+  onAskBlock: (request: { id: string; name: string }) => void;
   onOpenProfile?: (userId: string) => void;
   onChangePolicy: () => void;
-  onRetry: () => void;
 };
 
-/** Sits under the members table; the banner above it jumps here. */
-export const JoinRequestsCard = forwardRef<View, JoinRequestsCardProps>(
-  function JoinRequestsCard(props, ref) {
-    const { requests } = props;
-    const locale = useLocale();
-    const m = useMessages();
-    const colors = useColors();
-    if (requests.status === "loading") {
-      return <Skeleton height={72} radius={radii.card} />;
-    }
-    if (requests.status === "error") {
-      return (
-        <Notice
-          alert
-          title={m.group.admin.requestsErrorTitle}
-          description={requests.message}
-          onRetry={props.onRetry}
-        />
-      );
-    }
+/** Design "Requests" 3b: requests to join sit above the members, on the same card as Home. */
+export function GroupRequestsSection(props: GroupRequestsSectionProps) {
+  const m = useMessages();
+  const locale = useLocale();
+  const now = useNow();
+  const { rows, own, onOpenProfile } = props;
+  const waitingCount = waitingRows(rows).length + own.length;
 
-    if (requests.value.length === 0) {
-      const summary = groupJoinRequestsSummary({
-        requiresApproval: props.requiresApproval,
-        approvedToday: props.approvedToday,
-        locale,
-      });
-      return (
-        <View
-          ref={ref}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 12,
-            paddingStart: 18,
-            paddingEnd: 10,
-            paddingVertical: 12,
-            borderRadius: radii.card,
-            borderWidth: hairline,
-            borderColor: colors.rule,
-            overflow: "hidden",
-          }}
-        >
-          <Hatch bordered={false} radius={radii.card} />
-          <Inbox size={sizes.iconRow} color={colors.muted} />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text size="meta" weight="semibold">
-              {summary.title}
-            </Text>
-            <Text size="eyebrow" tone="muted">
-              {summary.line}
-            </Text>
-          </View>
-          <ChangePolicyLink onPress={props.onChangePolicy} />
-        </View>
-      );
-    }
-
+  function blockLink(row: RequestRow) {
+    const name = row.request.user.name ?? m.mobileGroup.unnamedUser;
     return (
-      <View
-        ref={ref}
-        style={{
-          borderRadius: radii.card,
-          borderWidth: hairline,
-          borderColor: colors.ink,
-          overflow: "hidden",
-        }}
-      >
-        <SurfaceToneContext.Provider value="ink">
-          <View
-            accessibilityRole="header"
-            style={{
-              height: 40,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 8,
-              paddingHorizontal: 16,
-              backgroundColor: colors.focus,
-            }}
-          >
-            <Inbox size={sizes.iconRow - 1} color={colors.onFocus} />
-            <Text size="meta" weight="semibold">
-              {groupJoinRequestsHeading(requests.value.length, locale)}
-            </Text>
-          </View>
-        </SurfaceToneContext.Provider>
-        {requests.value.map((request, index) => (
-          <View key={request.id}>
+      <BlockLink
+        name={name}
+        onPress={() => props.onAskBlock({ id: row.request.id, name })}
+      />
+    );
+  }
+
+  return (
+    <View style={{ gap: REQUESTS_HEADING_GAP }}>
+      <SectionTitle
+        title={m.requests.title}
+        meta={waitingCountLabel(waitingCount, locale)}
+      />
+      <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
+        {rows.map((row, index) => (
+          <View key={row.request.id}>
             {index > 0 ? <Hairline /> : null}
-            <RequestRow
+            <RequestRowItem
+              row={row}
+              now={now}
+              open={
+                onOpenProfile
+                  ? {
+                      onPress: () => onOpenProfile(row.request.user.id),
+                      hint: m.mobileGroup.opensPlayerProfile,
+                    }
+                  : undefined
+              }
+              cardExtra={blockLink(row)}
+            />
+          </View>
+        ))}
+        {own.map((request, index) => (
+          <View key={request.id}>
+            {rows.length + index > 0 ? <Hairline /> : null}
+            <OwnRequestRow
               request={request}
               apiOrigin={props.apiOrigin}
               showLevel={props.showLevel}
@@ -355,32 +344,83 @@ export const JoinRequestsCard = forwardRef<View, JoinRequestsCardProps>(
               onApprove={() => props.onApprove(request)}
               onReject={() => props.onAskReject(request)}
               onOpenProfile={
-                props.onOpenProfile
-                  ? () => props.onOpenProfile?.(request.user.id)
-                  : undefined
+                onOpenProfile ? () => onOpenProfile(request.user.id) : undefined
               }
             />
           </View>
         ))}
         <Hairline />
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            paddingStart: 16,
-            paddingEnd: 10,
-            paddingVertical: 6,
-            backgroundColor: colors.surfaceRaised,
-          }}
-        >
-          <Text size="eyebrow" tone="muted" style={{ flex: 1 }}>
-            {groupJoinPolicyLine(props.requiresApproval, locale)}
-          </Text>
-          <ChangePolicyLink onPress={props.onChangePolicy} />
-        </View>
-      </View>
+        <PolicyFooter
+          requiresApproval={props.requiresApproval}
+          onChangePolicy={props.onChangePolicy}
+        />
+      </Surface>
+      <RequestsFootnote>{m.requests.groupNote}</RequestsFootnote>
+    </View>
+  );
+}
+
+/** Under the members table while nothing waits: loading, a failed load, or who can join. */
+export function JoinRequestsCard({
+  requests,
+  requiresApproval,
+  approvedToday,
+  onChangePolicy,
+  onRetry,
+}: {
+  requests: Slot<GroupJoinRequestData[]>;
+  requiresApproval: boolean;
+  approvedToday: number;
+  onChangePolicy: () => void;
+  onRetry: () => void;
+}) {
+  const locale = useLocale();
+  const m = useMessages();
+  const colors = useColors();
+  if (requests.status === "loading") {
+    return <Skeleton height={72} radius={radii.card} />;
+  }
+  if (requests.status === "error") {
+    return (
+      <Notice
+        alert
+        title={m.group.admin.requestsErrorTitle}
+        description={requests.message}
+        onRetry={onRetry}
+      />
     );
-  },
-);
+  }
+  const summary = groupJoinRequestsSummary({
+    requiresApproval,
+    approvedToday,
+    locale,
+  });
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        paddingStart: 18,
+        paddingEnd: 10,
+        paddingVertical: 12,
+        borderRadius: radii.card,
+        borderWidth: hairline,
+        borderColor: colors.rule,
+        overflow: "hidden",
+      }}
+    >
+      <Hatch bordered={false} radius={radii.card} />
+      <Inbox size={sizes.iconRow} color={colors.muted} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text size="meta" weight="semibold">
+          {summary.title}
+        </Text>
+        <Text size="eyebrow" tone="muted">
+          {summary.line}
+        </Text>
+      </View>
+      <ChangePolicyLink onPress={onChangePolicy} />
+    </View>
+  );
+}

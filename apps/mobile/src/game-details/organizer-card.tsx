@@ -9,6 +9,7 @@ import { requestsQueueHeading } from "@repo/domain/seat-hold-request";
 import { Fragment } from "react";
 import { View } from "react-native";
 
+import { useNow } from "../games/use-now";
 import { Card } from "../home/card";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
@@ -16,7 +17,12 @@ import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
-import { useColors } from "../theme/theme-provider";
+import {
+  gameRequestRows,
+  waitingQueueCounts,
+} from "../requests/request-answers-model";
+import { useRequestAnswers } from "../requests/request-answers-provider";
+import { RequestRowItem } from "../requests/request-card";
 import type { RequestDecisions } from "./use-request-decisions";
 
 export type OrganizerHandlers = {
@@ -148,18 +154,35 @@ function RequestRow({
   );
 }
 
-/** Design "Join via link" 2a: link requests, then Level range requests, decided on the row. */
+/**
+ * The Game's Requests queue (design "Requests" 3a): the same card as Home and
+ * Notifications, answered through the shared answers. A request the waiting
+ * list does not carry, such as one on a Challenge Game, keeps its own row.
+ */
 export function RequestsSection({
+  gameId,
+  groupName,
   requests,
   decisions,
 }: {
+  gameId: string;
+  groupName: string | null;
   requests: readonly OrganizerRequest[];
   decisions: RequestDecisions;
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const colors = useColors();
-  const counts = requestsQueueCounts(requests);
+  const now = useNow();
+  const answers = useRequestAnswers();
+  const rows = gameRequestRows(answers.rows, gameId);
+  const shown = new Set(rows.map((row) => row.request.id));
+  const own = requests.filter((request) => !shown.has(request.id));
+  const waiting = waitingQueueCounts(rows);
+  const ownCounts = requestsQueueCounts(own);
+  const counts = {
+    levelRange: waiting.levelRange + ownCounts.levelRange,
+    seatHolds: waiting.seatHolds + ownCounts.seatHolds,
+  };
   return (
     <View style={{ gap: 10 }}>
       <View
@@ -177,28 +200,32 @@ export function RequestsSection({
           {requestsQueueHeading(counts, locale)}
         </Text>
       </View>
-      {requests.length > 0 ? (
-        <Surface
-          padded={false}
-          radius="card"
-          style={{ overflow: "hidden", borderColor: colors.ink }}
-        >
-          {requests.map((request, index) => (
-            <Fragment key={request.id}>
-              {index > 0 ? <Hairline /> : null}
-              <RequestRow
-                request={request}
-                deciding={decisions.decidingRequestId === request.id}
-                handlers={decisions}
-              />
-            </Fragment>
-          ))}
-        </Surface>
-      ) : null}
-      {counts.seatHolds > 0 ? (
-        <Text size="meta" tone="muted">
-          {m.game.requests.note}
-        </Text>
+      {rows.length + own.length > 0 ? (
+        <>
+          <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
+            {rows.map((row, index) => (
+              <Fragment key={row.request.id}>
+                {index > 0 ? <Hairline /> : null}
+                <RequestRowItem row={row} now={now} />
+              </Fragment>
+            ))}
+            {own.map((request, index) => (
+              <Fragment key={request.id}>
+                {rows.length + index > 0 ? <Hairline /> : null}
+                <RequestRow
+                  request={request}
+                  deciding={decisions.decidingRequestId === request.id}
+                  handlers={decisions}
+                />
+              </Fragment>
+            ))}
+          </Surface>
+          <Text size="eyebrow" tone="muted">
+            {groupName
+              ? m.requests.gameNote(groupName)
+              : m.requests.gameNoteNoGroup}
+          </Text>
+        </>
       ) : null}
     </View>
   );

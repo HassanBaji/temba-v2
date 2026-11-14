@@ -6,6 +6,8 @@ import { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, RefreshControl, View } from "react-native";
 
 import { Notice } from "../groups/notice";
+import { SectionTitle } from "../home/section-title";
+import { REQUESTS_PATH } from "../home/home-target";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
 import { apiOrigin } from "../lib/api-origin-runtime";
@@ -18,6 +20,11 @@ import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { Text } from "../primitives/text";
+import { useRequestAnswers } from "../requests/request-answers-provider";
+import {
+  NotificationsRequests,
+  useNotificationsRequestsVisible,
+} from "../requests/notifications-requests";
 import { useColors } from "../theme/theme-provider";
 import { api } from "../trpc/react";
 import {
@@ -178,6 +185,8 @@ export function NotificationsScreen() {
   const colors = useColors();
   const utils = api.useUtils();
   const inviteCount = useInviteInboxCount();
+  const requestsVisible = useNotificationsRequestsVisible();
+  const { refetch: refetchRequests } = useRequestAnswers();
   const [refreshing, setRefreshing] = useState(false);
 
   const notifications = api.notifications.list.useInfiniteQuery(
@@ -196,6 +205,11 @@ export function NotificationsScreen() {
       ]),
     [utils],
   );
+  const unread = api.notifications.unreadCount.useQuery(
+    undefined,
+    REFETCH_ON_FOREGROUND,
+  );
+  const unreadCount = unread.data?.count ?? 0;
   const markRead = api.notifications.markRead.useMutation({
     onSettled: refreshCounts,
   });
@@ -214,11 +228,15 @@ export function NotificationsScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([notifications.refetch(), refreshCounts()]);
+      await Promise.all([
+        notifications.refetch(),
+        refreshCounts(),
+        refetchRequests(),
+      ]);
     } finally {
       setRefreshing(false);
     }
-  }, [notifications, refreshCounts]);
+  }, [notifications, refreshCounts, refetchRequests]);
 
   function open(row: NotificationRowView) {
     if (row.unread) {
@@ -245,6 +263,13 @@ export function NotificationsScreen() {
           ) : null
         }
       />
+      <NotificationsRequests onMore={() => router.push(REQUESTS_PATH)} />
+      {requestsVisible ? (
+        <SectionTitle
+          title={m.requests.notificationsTitle}
+          meta={unreadCount > 0 ? m.requests.newCount(unreadCount) : null}
+        />
+      ) : null}
       {inviteCount > 0 ? (
         <InvitesRow
           count={inviteCount}

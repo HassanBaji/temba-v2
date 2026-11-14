@@ -14,6 +14,7 @@ import { useCallback, useState } from "react";
 import { useNow } from "../games/use-now";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Screen } from "../primitives/screen";
+import { useRequestAnswers } from "../requests/request-answers-provider";
 import { checklistFrom } from "../profile-tasks/profile-tasks-model";
 import { api } from "../trpc/react";
 import {
@@ -72,6 +73,7 @@ export function HomeScreen() {
   const [chosenSport, setChosenSport] = useState<Sport | null>(null);
   const { skipped, setChecklistSkipped } = useChecklistSkipped();
   const { seen, ready: seenReady, markSeen } = useLatestSeen();
+  const { refetch: refetchRequests } = useRequestAnswers();
 
   const home = api.users.home.useQuery(undefined, REFETCH_ON_FOREGROUND);
   const onboarding = api.users.onboardingState.useQuery(
@@ -189,6 +191,7 @@ export function HomeScreen() {
         onboarding.refetch(),
         details.refetch(),
         unread.refetch(),
+        refetchRequests(),
         user?.reload(),
       ]),
     [
@@ -203,6 +206,7 @@ export function HomeScreen() {
       onboarding,
       details,
       unread,
+      refetchRequests,
       user,
     ],
   );

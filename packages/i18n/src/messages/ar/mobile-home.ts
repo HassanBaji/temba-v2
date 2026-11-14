@@ -181,6 +181,10 @@ export const mobileHome = {
     markAllRead: "تحديد الكل كمقروء",
     unread: "غير مقروء",
   },
+  requests: {
+    loadFailed: "تعذّر تحميل الطلبات",
+    blockName: (name: string) => `رفض وحظر ${isolate(name)}`,
+  },
   upNext: {
     title: "مبارياتك القادمة",
     kind: {

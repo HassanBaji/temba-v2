@@ -178,6 +178,10 @@ export const mobileHome = {
     markAllRead: "Mark all as read",
     unread: "Unread",
   },
+  requests: {
+    loadFailed: "Requests could not be loaded",
+    blockName: (name: string) => `Reject and block ${name}`,
+  },
   upNext: {
     title: "Up next",
     kind: {
