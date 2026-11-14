@@ -5,7 +5,7 @@ import { formatHomeCountdown } from "./home-countdown";
 
 export type HomeNextGamePhase = "upcoming" | "ongoing" | "needs_results";
 
-export type HomeGameIntent = "invite" | "results";
+export type HomeGameIntent = "invite" | "results" | "join";
 
 export type HomeTarget = {
   kind: "game";
