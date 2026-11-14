@@ -28,6 +28,7 @@ import {
 import { hubItems, tabCount, type GamesTab } from "./games-model";
 import { PlayedEmpty, PublicEmpty, UpcomingEmpty } from "./games-empty";
 import { HistoryCard } from "./history-card";
+import { KingPlayedCard } from "./king-played-card";
 import { SeatPickerSheet } from "./seat-picker-sheet";
 import { TournamentCard, TournamentMatchCard } from "./tournament-cards";
 import {
@@ -460,7 +461,13 @@ function HistoryList(props: GamesViewProps) {
   return (
     <View style={{ gap: LIST_GAP }}>
       {history.value.map((row) =>
-        isTournamentGamesCardRow(row) ? (
+        row.kingOfTheCourt ? (
+          <KingPlayedCard
+            key={row.matchId}
+            row={{ ...row, kingOfTheCourt: row.kingOfTheCourt }}
+            onOpen={() => props.onOpen(row.id)}
+          />
+        ) : isTournamentGamesCardRow(row) ? (
           <TournamentPlayedCard
             key={row.matchId}
             row={{ ...row, myTournament: row.myTournament }}

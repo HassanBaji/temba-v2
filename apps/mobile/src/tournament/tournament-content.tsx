@@ -11,6 +11,7 @@ import { View } from "react-native";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { KingView } from "./king-view";
 import { OrganizerCard, type OrganizerCardHandlers } from "./organizer-card";
 import {
   PreDrawView,
@@ -61,7 +62,9 @@ export function TournamentContent({
           </Text>
         </Surface>
       ) : null}
-      {view.drawn ? (
+      {view.drawn && view.kingOfTheCourt ? (
+        <KingView game={game} />
+      ) : view.drawn ? (
         <StandingsView
           game={game}
           standings={tournamentStandingsView(game, locale)}

@@ -55,7 +55,7 @@ export function GamesScreen() {
     REFETCH_ON_FOREGROUND,
   );
   const history = api.games.listMyMatchHistory.useInfiniteQuery(
-    { limit: HISTORY_PAGE_SIZE, groupTournaments: true },
+    { limit: HISTORY_PAGE_SIZE, groupTournaments: true, kingOfTheCourt: true },
     { ...REFETCH_ON_FOREGROUND, getNextPageParam: nextHistoryCursor },
   );
   const historyRows = useMemo(() => history.data?.pages.flat(), [history.data]);

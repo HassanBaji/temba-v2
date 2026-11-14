@@ -88,6 +88,8 @@ export function notificationEmailDestination(
       item.type === "game_side_changed" ||
       item.type === "game_moved_to_waitlist" ||
       item.type === "game_team_changed" ||
+      item.type === "king_courts_posted" ||
+      item.type === "king_final_order_posted" ||
       item.type === "match_score_to_confirm" ||
       item.type === "game_finished" ||
       item.type === "mark_received" ||

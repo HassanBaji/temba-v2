@@ -70,6 +70,8 @@ type ExpectedGames =
   | "createTournament"
   | "drawPools"
   | "postPoolDraw"
+  | "postKingCourts"
+  | "postKingFinalOrder"
   | "undoPoolDraw"
   | "tournamentRounds"
   | "generateRounds"

@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   MatchStatusEnum,
   gameNotes,
+  gameTeams,
   gamePhotos,
   gamePlayers,
   games,
@@ -39,6 +40,11 @@ import {
 import { MARK_KINDS, type MarkKind } from "@repo/domain/marks";
 import type { MyTournament } from "@repo/domain/hub-game-row";
 import { hasKnockout, hasPools } from "@repo/domain/tournament-rounds";
+import { isKingOfTheCourt } from "@repo/domain/tournament-king";
+import {
+  kingPlayedSummary,
+  type KingPlayedSummary,
+} from "@repo/domain/tournament-king-view";
 import {
   myTournamentFromRow,
   queryHubGames,
@@ -81,6 +87,11 @@ export type MatchHistoryRow = {
    * the row's Match fields are its latest scored Match (ADR-0074).
    */
   myTournament: MyTournament | null;
+  /**
+   * Set on a King of the court row, which `kingOfTheCourt` asks for: it has
+   * no Match, so its Match fields are empty and `matchId` is the Game id.
+   */
+  kingOfTheCourt?: KingPlayedSummary | null;
   /** The Game's Album thumbnails and the notes the viewer can read; set by the Played list. */
   album?: GameAlbumSummary;
 };
@@ -98,6 +109,8 @@ const historyPageInput = z
     sport: sportSchema.optional(),
     /** One row per Groups only tournament, once it is no longer live (ADR-0074). */
     groupTournaments: z.boolean().optional(),
+    /** Also list King of the court Games the viewer played, one row each. */
+    kingOfTheCourt: z.boolean().optional(),
     cursor: z
       .object({ displayTime: z.date(), matchId: z.string().uuid() })
       .optional(),
@@ -140,6 +153,18 @@ export async function listMyMatchHistoryRows(
   if (myGameTeamIds.length === 0) {
     return [];
   }
+
+  const kingRows =
+    page?.kingOfTheCourt === true
+      ? await kingOfTheCourtRows(
+          database,
+          userId,
+          myGameTeamIds,
+          now,
+          page,
+          locale,
+        )
+      : [];
 
   const completedMatches = await database.query.matches.findMany({
     where: and(
@@ -251,7 +276,7 @@ export async function listMyMatchHistoryRows(
     byGameId.set(match.game.id, list);
   }
 
-  const rows: HistoryRowDraft[] = [];
+  const rows: HistoryRowDraft[] = [...kingRows];
   for (const gameMatches of byGameId.values()) {
     const game = gameMatches[0]?.game;
     if (!game) {
@@ -383,6 +408,134 @@ export async function listMyMatchHistoryRows(
 type HistoryRowDraft = Omit<HistoryRowWithoutMarks, "myTournament"> & {
   groupedTournament: boolean;
 };
+
+/**
+ * King of the court has no Matches, so each Game the viewer played is one row
+ * of its own once its final order is posted or its window has passed.
+ */
+async function kingOfTheCourtRows(
+  database: DbClient,
+  userId: string,
+  myGameTeamIds: readonly string[],
+  now: Date,
+  page: MatchHistoryPage,
+  locale: Locale,
+): Promise<HistoryRowDraft[]> {
+  const links = await database.query.gameTeams.findMany({
+    where: inArray(gameTeams.id, [...myGameTeamIds]),
+    columns: { gameId: true },
+    with: {
+      game: {
+        columns: {
+          id: true,
+          format: true,
+          tournamentShape: true,
+          drawPostedAt: true,
+          cancelledAt: true,
+        },
+      },
+    },
+  });
+  const gameIds = [
+    ...new Set(
+      links.flatMap((link) =>
+        link.game &&
+        isKingOfTheCourt(link.game.format, link.game.tournamentShape) &&
+        link.game.drawPostedAt != null &&
+        link.game.cancelledAt == null
+          ? [link.game.id]
+          : [],
+      ),
+    ),
+  ];
+  if (gameIds.length === 0) {
+    return [];
+  }
+  const kingGames = await database.query.games.findMany({
+    where: inArray(games.id, gameIds),
+    with: {
+      group: { columns: { name: true } },
+      venue: { columns: { name: true } },
+      teams: {
+        with: {
+          players: {
+            with: {
+              gamePlayer: {
+                with: {
+                  user: {
+                    columns: {
+                      id: true,
+                      name: true,
+                      image: true,
+                      guestAt: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  return kingGames.flatMap((game): HistoryRowDraft[] => {
+    const over =
+      game.finalOrderPostedAt != null ||
+      (game.windowEnd != null && game.windowEnd.getTime() < now.getTime());
+    if (!over || !game.venue) {
+      return [];
+    }
+    if (page?.sport && page.sport !== sportOrDefault(game.sport)) {
+      return [];
+    }
+    const summary = kingPlayedSummary(
+      {
+        teamsAllowed: game.teamsAllowed,
+        viewerUserId: userId,
+        finalOrderPostedAt: game.finalOrderPostedAt,
+        gameTeams: game.teams.map((team) => ({
+          id: team.id,
+          sideIndex: team.sideIndex,
+          startCourt: team.startCourt,
+          finalPlace: team.finalPlace,
+          members: slotMembers(team, userId),
+        })),
+      },
+      locale,
+    );
+    const viewerTeam = game.teams.find((team) =>
+      team.players.some((link) => link.gamePlayer?.user?.id === userId),
+    );
+    if (!summary || !viewerTeam) {
+      return [];
+    }
+    return [
+      {
+        id: game.id,
+        name: game.name,
+        hasCustomName: game.hasCustomName,
+        windowStart: game.windowStart,
+        windowEnd: game.windowEnd,
+        format: game.format,
+        sport: sportOrDefault(game.sport),
+        venue: { name: game.venue.name },
+        displayTime: game.windowStart ?? game.createdAt,
+        matchId: game.id,
+        groupName: game.group?.name ?? null,
+        slot1Members: slotMembers(viewerTeam, userId),
+        slot2Members: [],
+        scoredSets: [],
+        viewerSlot: 1,
+        outcome: "draw",
+        rated: false,
+        ratingScope: gameRatingScope({ rated: false, groupRated: false }),
+        viewerIsMvp: false,
+        groupedTournament: false,
+        kingOfTheCourt: summary,
+      },
+    ];
+  });
+}
 
 async function withMyTournaments(
   database: DbClient,

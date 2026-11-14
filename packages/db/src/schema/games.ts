@@ -73,6 +73,8 @@ export const games = pgTable(
     matchMinutes: integer("match_minutes"),
     roundCount: integer("round_count"),
     drawPostedAt: timestamp("draw_posted_at"),
+    /** King of the court: when the Organizer first posted the final order. */
+    finalOrderPostedAt: timestamp("final_order_posted_at"),
     allowSoloRegister: boolean("allow_solo_register").notNull().default(true),
     legacyPricePerPlayerCents: integer("price_per_player_cents"),
     pricePerPlayerFils: integer("price_per_player_fils"),
