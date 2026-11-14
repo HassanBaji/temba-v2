@@ -76,6 +76,8 @@ export type CreateAction =
     }
   | { kind: "openLevelRange" }
   | { kind: "setPrice"; price: string }
+  | { kind: "setTrackPayments"; trackPayments: boolean }
+  | { kind: "setKeepersPlayFree"; keepersPlayFree: boolean }
   | { kind: "setTeamCount"; teamCount: number }
   | { kind: "setShape"; shape: CreateTournamentShape }
   | { kind: "setPoolCount"; poolCount: number }
@@ -223,6 +225,10 @@ export function createReducer(
     }
     case "setPrice":
       return patch(state, { pricePerPlayer: action.price });
+    case "setTrackPayments":
+      return patch(state, { trackPayments: action.trackPayments });
+    case "setKeepersPlayFree":
+      return patch(state, { keepersPlayFree: action.keepersPlayFree });
     case "setTeamCount":
       return patch(
         state,

@@ -53,6 +53,8 @@ type GroupGameInput = CreateGameInput & { groupId: string };
 // The input schema is parsed before the request Locale is known, so its
 // issues read in the default Locale.
 const PICK_GROUP = messagesFor(DEFAULT_LOCALE).createGame.validation.pickGroup;
+const PAYMENTS_NEED_PRICE =
+  messagesFor(DEFAULT_LOCALE).gamePayments.errors.needsPrice;
 
 const registrationModeSchema = z.enum(["individual", "team_only"]);
 const createFormatSchema = z.enum([
@@ -105,6 +107,10 @@ export const createGameInputSchema = z
       .optional(),
     /** How the MVP is decided; Friendly game only. Omitted = players vote. */
     mvpMode: z.enum(MVP_MODES).optional(),
+    /** Friendly game with a price above zero only. */
+    trackPayments: z.boolean().optional(),
+    /** Football only: keepers owe nothing while payments are tracked. */
+    keepersPlayFree: z.boolean().optional(),
   })
   .refine((value) => value.windowEnd.getTime() >= value.windowStart.getTime(), {
     message: "Finish time must be at or after start time",
@@ -177,6 +183,16 @@ export const createGameInputSchema = z
         code: z.ZodIssueCode.custom,
         message: "Only a Friendly game has an MVP",
         path: ["mvpMode"],
+      });
+    }
+    if (
+      value.trackPayments &&
+      (value.format !== "friendly_game" || (value.pricePerPlayerFils ?? 0) <= 0)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: PAYMENTS_NEED_PRICE,
+        path: ["trackPayments"],
       });
     }
     if (
@@ -256,6 +272,8 @@ async function createFootballGameOnGroup(
       mvpMode: input.mvpMode,
       levelMinTenths: input.levelMinTenths ?? null,
       levelMaxTenths: input.levelMaxTenths ?? null,
+      trackPayments: input.trackPayments,
+      keepersPlayFree: input.keepersPlayFree,
       ...flags,
     },
     locale,
@@ -382,6 +400,8 @@ async function createPublicGame(
         mvpMode: input.mvpMode,
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
+        trackPayments: input.trackPayments,
+        keepersPlayFree: input.keepersPlayFree,
         ...flags,
       },
       locale,
@@ -404,6 +424,7 @@ async function createPublicGame(
       levelMaxTenths: input.levelMaxTenths ?? null,
       ...flags,
       mvpMode: input.mvpMode,
+      trackPayments: input.trackPayments,
     },
     locale,
   );
@@ -453,6 +474,7 @@ async function createGameOnGroup(
         rated,
         groupRated,
         mvpMode: input.mvpMode,
+        trackPayments: input.trackPayments,
       },
       locale,
     );

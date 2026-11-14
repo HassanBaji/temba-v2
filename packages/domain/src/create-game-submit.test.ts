@@ -633,3 +633,48 @@ describe("Arabic validation", () => {
     }
   });
 });
+
+describe("track payments on submit", () => {
+  it("sends tracking only with a price above zero", () => {
+    const priced = validateFriendlyGameSubmit(
+      { ...game, pricePerPlayer: "1.5", trackPayments: true },
+      NOW,
+      "en",
+    );
+    const free = validateFriendlyGameSubmit(
+      { ...game, pricePerPlayer: "0", trackPayments: true },
+      NOW,
+      "en",
+    );
+    const off = validateFriendlyGameSubmit(
+      { ...game, pricePerPlayer: "1.5", trackPayments: false },
+      NOW,
+      "en",
+    );
+    assert.ok(priced.ok && free.ok && off.ok);
+    if (priced.ok && free.ok && off.ok) {
+      assert.equal(priced.input.trackPayments, true);
+      assert.equal("keepersPlayFree" in priced.input, false);
+      assert.equal("trackPayments" in free.input, false);
+      assert.equal("trackPayments" in off.input, false);
+    }
+  });
+
+  it("sends the keepers choice with a tracked football Game", () => {
+    const result = validateFootballGameSubmit(
+      {
+        ...football,
+        pricePerPlayer: "1.500",
+        trackPayments: true,
+        keepersPlayFree: true,
+      },
+      NOW,
+      "en",
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal(result.input.trackPayments, true);
+      assert.equal(result.input.keepersPlayFree, true);
+    }
+  });
+});

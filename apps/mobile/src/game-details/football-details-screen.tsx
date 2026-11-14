@@ -46,6 +46,7 @@ import {
   type PlayedRow,
 } from "@repo/domain/played-game";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+import { gamePaymentsTracked } from "@repo/domain/game-payments";
 import { useRouter, useSegments, type Href } from "expo-router";
 import { Share } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
@@ -73,6 +74,7 @@ import { MarksSection } from "../marks/marks-section";
 import { MvpRow } from "../marks/mvp-row";
 import { useGameMarks } from "../marks/use-game-marks";
 import { GameAlbumSections } from "../game-album/game-album-sections";
+import { GamePaymentsSection } from "../game-payments/game-payments-section";
 import { useGameAlbum } from "../game-album/use-game-album";
 import { PlayedFootballBoard } from "../played-game/played-football-board";
 import { sharePath } from "../played-game/played-friendly-game";
@@ -200,6 +202,7 @@ export function FootballGameDetails({
     now,
   );
   const price = formatPricePerPlayerFils(game.pricePerPlayerFils, locale);
+  const paymentsTracked = gamePaymentsTracked(game);
   const layout = poolLayout(players, game.sideSize, game.playersAllowed);
   const baseLines = footballHeroLines(
     {
@@ -744,6 +747,7 @@ export function FootballGameDetails({
       }
       task={
         <>
+          <GamePaymentsSection gameId={gameId} tracked={paymentsTracked} />
           <OvrImpactCard ratingImpact={game.ratingImpact} />
           <RateGameCard gameId={gameId} window={game.ratingWindow} />
           <PerformanceResultCard gameId={gameId} window={game.ratingWindow} />
@@ -906,6 +910,7 @@ export function FootballGameDetails({
             }}
           />
         ) : null}
+        <GamePaymentsSection gameId={gameId} tracked={paymentsTracked} />
         <InfoRows rows={infoRows} />
         {model.organizer ? (
           <FootballOrganizerCard

@@ -182,6 +182,8 @@ export type CreateFriendlyGameInput = {
   levelMaxTenths?: number | null;
   /** How the MVP is decided. Omitted = players vote. */
   mvpMode?: MvpMode;
+  /** Only with a price above zero. Omitted = not tracked. */
+  trackPayments?: boolean;
 };
 
 export type CreateFootballGameInput = {
@@ -207,6 +209,9 @@ export type CreateFootballGameInput = {
   /** Only on a Game that counts for Temba Level (ADR-0069). */
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
+  /** Only with a price above zero. Omitted = not tracked. */
+  trackPayments?: boolean;
+  keepersPlayFree?: boolean;
 };
 
 export type CreateFriendlyGameResult = {
@@ -240,6 +245,10 @@ export type CreateGameInput = {
   levelMaxTenths?: number | null;
   /** Friendly game only. Omitted = players vote. */
   mvpMode?: MvpMode;
+  /** Friendly game with a price above zero only. */
+  trackPayments?: boolean;
+  /** Football only, with tracking. */
+  keepersPlayFree?: boolean;
 };
 
 export type SeatPosition = "left" | "right";

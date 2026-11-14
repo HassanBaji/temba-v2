@@ -74,6 +74,11 @@
       "types": "./dist/routers/gameAlbum/index.d.ts",
       "default": "./src/routers/gameAlbum/index.ts"
     },
+    "#src/routers/gamePayments": {
+      "temba-source": "./src/routers/gamePayments/index.ts",
+      "types": "./dist/routers/gamePayments/index.d.ts",
+      "default": "./src/routers/gamePayments/index.ts"
+    },
     "#src/routers/marks": {
       "temba-source": "./src/routers/marks/index.ts",
       "types": "./dist/routers/marks/index.d.ts",

@@ -56,6 +56,7 @@ type GameFields = {
   rated?: boolean;
   /** With no Group, a Public Game (ADR-0071). */
   isPublic?: boolean;
+  trackPayments?: boolean;
 };
 
 type TournamentFields = Omit<
@@ -77,6 +78,20 @@ type TournamentFields = Omit<
 function customNameInput(draft: Pick<GameFields, "customName">) {
   const customName = normalizeGameCustomName(draft.customName);
   return customName ? { customName } : {};
+}
+
+/** Tracking needs a price above zero, so a free Game never sends it. */
+function trackPaymentsInput(
+  draft: Pick<GameFields, "trackPayments">,
+  fils: number | null,
+  keepersPlayFree?: boolean,
+) {
+  if (!draft.trackPayments || fils === null || fils <= 0) {
+    return {};
+  }
+  return keepersPlayFree === undefined
+    ? { trackPayments: true }
+    : { trackPayments: true, keepersPlayFree };
 }
 
 /** Rated is the server default, so only the Unrated choice is sent. */
@@ -199,6 +214,7 @@ export function validateFriendlyGameSubmit(
       ...customNameInput(draft),
       ...(publicGame ? {} : ratedInput(draft)),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
+      ...trackPaymentsInput(draft, priced.fils),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }
         : {}),
@@ -211,6 +227,7 @@ export function validateFriendlyGameSubmit(
 
 export type FootballGameFields = Omit<GameFields, "levelMin" | "levelMax"> & {
   sideSize: number;
+  keepersPlayFree?: boolean;
   playersAllowed: number;
   /** Read only when the Game counts for Temba Level (`createLevelRangeShown`). */
   levelMin?: LevelBandSelectValue;
@@ -291,6 +308,7 @@ export function validateFootballGameSubmit(
       ...(publicGame ? {} : ratedInput(draft)),
       ...customNameInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
+      ...trackPaymentsInput(draft, priced.fils, draft.keepersPlayFree ?? false),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }
         : {}),

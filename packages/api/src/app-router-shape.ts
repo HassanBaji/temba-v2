@@ -15,6 +15,7 @@ type ExpectedTopLevel =
   | "bookings"
   | "challenges"
   | "gameAlbum"
+  | "gamePayments"
   | "games"
   | "groups"
   | "marks"
@@ -215,6 +216,16 @@ type ExpectedGameAlbum =
   | "deleteNote"
   | "myNotes";
 
+type ExpectedGamePayments =
+  | "forGame"
+  | "claim"
+  | "unclaim"
+  | "markPaid"
+  | "markNotReceived"
+  | "undo"
+  | "confirmAll"
+  | "remind";
+
 type ExpectedMarks =
   | "forGame"
   | "give"
@@ -340,6 +351,9 @@ type _Groups = AssertTrue<Equal<keyof RouterInputs["groups"], ExpectedGroups>>;
 type _GameAlbum = AssertTrue<
   Equal<keyof RouterInputs["gameAlbum"], ExpectedGameAlbum>
 >;
+type _GamePayments = AssertTrue<
+  Equal<keyof RouterInputs["gamePayments"], ExpectedGamePayments>
+>;
 type _Marks = AssertTrue<Equal<keyof RouterInputs["marks"], ExpectedMarks>>;
 type _Notifications = AssertTrue<
   Equal<keyof RouterInputs["notifications"], ExpectedNotifications>
@@ -358,6 +372,7 @@ export type AppRouterShapeChecks = [
   _Games,
   _Groups,
   _GameAlbum,
+  _GamePayments,
   _Marks,
   _Notifications,
   _Ratings,

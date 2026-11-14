@@ -1,3 +1,4 @@
+import { gamePaymentsTracked } from "@repo/domain/game-payments";
 import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
@@ -21,6 +22,7 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { MarksSection } from "../marks/marks-section";
 import { MvpRow } from "../marks/mvp-row";
 import { useGameMarks } from "../marks/use-game-marks";
+import { GamePaymentsSection } from "../game-payments/game-payments-section";
 import { MatchDisputeSection } from "./match-dispute-section";
 import { GameAlbumSections } from "../game-album/game-album-sections";
 import { useGameAlbum } from "../game-album/use-game-album";
@@ -156,6 +158,15 @@ export function PlayedFriendlyGame({
         columns={model.columns}
         facts={model.facts}
         dispute={<MatchDisputeSection match={match} />}
+        task={
+          <GamePaymentsSection
+            gameId={gameId}
+            tracked={gamePaymentsTracked({
+              trackPayments: game.trackPayments ?? false,
+              pricePerPlayerFils: game.pricePerPlayerFils,
+            })}
+          />
+        }
         refreshing={refreshing}
         onRefresh={() => {
           onRefresh();

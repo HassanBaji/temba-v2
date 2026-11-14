@@ -45,6 +45,8 @@ export function notificationHref(item: {
       item.type === "game_player_left" ||
       item.type === "game_seated_by_organizer" ||
       item.type === "game_side_changed" ||
+      item.type === "game_payment_reminder" ||
+      item.type === "game_payment_not_received" ||
       item.type === "game_moved_to_waitlist" ||
       item.type === "game_team_changed" ||
       item.type === "match_score_to_confirm" ||

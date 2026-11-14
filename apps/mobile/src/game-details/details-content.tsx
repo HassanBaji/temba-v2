@@ -1,3 +1,4 @@
+import { gamePaymentsTracked } from "@repo/domain/game-payments";
 import { isPublicGame } from "@repo/domain/game-rating-scope";
 import {
   friendlyGameDetailsPlan,
@@ -43,6 +44,7 @@ import {
 import type { setsToSave } from "./details-model";
 import { LevelRequestCard } from "./level-request-card";
 import { LineupCard, type OpenSeatAction } from "./lineup-card";
+import { GamePaymentsSection } from "../game-payments/game-payments-section";
 import {
   OrganizerCard,
   RequestsSection,
@@ -195,6 +197,13 @@ export function GameDetailsContent({
         onInvite={canInvite ? handlers.onInvite : undefined}
         onPressPlayer={handlers.onPressPlayer}
         isOrganizer={game.isOrganizer}
+      />
+      <GamePaymentsSection
+        gameId={game.id}
+        tracked={gamePaymentsTracked({
+          trackPayments: game.trackPayments ?? false,
+          pricePerPlayerFils: game.pricePerPlayerFils,
+        })}
       />
       {live && firstMatch ? (
         <ScoreCard

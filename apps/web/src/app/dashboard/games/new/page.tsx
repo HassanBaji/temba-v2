@@ -318,6 +318,8 @@ function NewGameForm() {
     sideSize,
     playersAllowed,
     rated,
+    trackPayments: false,
+    keepersPlayFree: true,
   };
   const initialGroupId =
     requestedGroupId &&

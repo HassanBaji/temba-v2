@@ -259,6 +259,32 @@ export function notificationCopy(
     };
   }
   if (
+    item.type === "game_payment_reminder" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: m.gamePaymentReminder(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: sub.gamePaymentReminder,
+    };
+  }
+  if (
+    item.type === "game_payment_not_received" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: m.gamePaymentNotReceived(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (
     item.type === "game_seated_by_organizer" &&
     item.audience === "player" &&
     item.game

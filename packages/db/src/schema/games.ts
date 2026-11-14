@@ -24,6 +24,7 @@ import { gameMemberInvites } from "./game-member-invites";
 import { gameInviteLinks } from "./game-invite-links";
 import { gameLevelRangeRequests } from "./game-level-range-requests";
 import { gameMvpVotes } from "./marks";
+import { gamePayments } from "./game-payments";
 import { challenges } from "./challenges";
 import {
   gameFormats,
@@ -76,6 +77,10 @@ export const games = pgTable(
     allowSoloRegister: boolean("allow_solo_register").notNull().default(true),
     legacyPricePerPlayerCents: integer("price_per_player_cents"),
     pricePerPlayerFils: integer("price_per_player_fils"),
+    /** Payments are tracked only while the Game also has a price. */
+    trackPayments: boolean("track_payments").notNull().default(false),
+    /** Football only: whoever holds a keeper spot owes nothing. */
+    keepersPlayFree: boolean("keepers_play_free").notNull().default(false),
     levelMinTenths: integer("level_min_tenths"),
     levelMaxTenths: integer("level_max_tenths"),
     sport: gameSports("sport").notNull().default(GameSportEnum.PADEL),
@@ -142,4 +147,5 @@ export const gameRelations = relations(games, ({ one, many }) => ({
   inviteLinks: many(gameInviteLinks),
   levelRangeRequests: many(gameLevelRangeRequests),
   mvpVotes: many(gameMvpVotes),
+  payments: many(gamePayments),
 }));

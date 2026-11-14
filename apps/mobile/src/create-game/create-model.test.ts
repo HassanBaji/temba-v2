@@ -264,6 +264,27 @@ describe("submitRequest", () => {
     },
   );
 
+  it("sends Track payments only once the Game has a price", () => {
+    const priced = createReducer(
+      createReducer(stateAt(4, "friendly_game", fixtures.drafts.gameReview), {
+        kind: "setPrice",
+        price: "2",
+      }),
+      { kind: "setTrackPayments", trackPayments: true },
+    );
+    expect(priced.draft.trackPayments).toBe(true);
+    const sent = submitRequest(priced, NOW, false);
+    expect(
+      sent.ok &&
+        sent.request.kind === "friendly_game" &&
+        sent.request.input.trackPayments,
+    ).toBe(true);
+
+    const free = createReducer(priced, { kind: "setPrice", price: "" });
+    const unsent = submitRequest(free, NOW, false);
+    expect(unsent.ok && "trackPayments" in unsent.request.input).toBe(false);
+  });
+
   it.each([
     "tournamentGroupsOnly",
     "tournamentKnockoutOnly",

@@ -1291,6 +1291,8 @@ export async function gameById(
     windowStart: game.windowStart,
     windowEnd: game.windowEnd,
     pricePerPlayerFils: game.pricePerPlayerFils,
+    trackPayments: game.trackPayments,
+    keepersPlayFree: game.keepersPlayFree,
     levelMinTenths: game.levelMinTenths,
     levelMaxTenths: game.levelMaxTenths,
     playersAllowed: game.playersAllowed,
