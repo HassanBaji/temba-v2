@@ -184,7 +184,7 @@ export default function NotificationsPage() {
         <NotificationsRequests />
         <section className="flex flex-col gap-3">
           <SectionTitle
-            title={m.requests.notificationsTitle}
+            title={m.common.notifications}
             meta={unreadCount > 0 ? m.requests.newCount(unreadCount) : null}
           />
           <div>

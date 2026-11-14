@@ -8,7 +8,6 @@ import {
   RequestRowItem,
   RequestsFootnote,
 } from "~/components/requests/request-card";
-import { gameRequestRows, waitingOf } from "~/components/requests/request-rows";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
@@ -21,6 +20,11 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
 import type { TournamentDetails } from "@repo/domain/tournament-details";
+import {
+  gameRequestRows,
+  waitingRequestsOf,
+} from "@repo/domain/request-answers";
+import { isSeatRequest } from "@repo/domain/waiting-requests";
 
 /** The Game fields the player's Level card and the Organizer's Requests queue read. */
 type GameDetail = Pick<
@@ -51,7 +55,7 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
   const requestCard = levelRangeRequestCard(game, locale);
   const { rows } = useRequestAnswers();
   const gameRows = game.isOrganizer ? gameRequestRows(rows, game.id) : [];
-  const waiting = waitingOf(gameRows);
+  const waiting = waitingRequestsOf(gameRows);
   const showOrganizerQueue =
     levelRangeQueueVisible(game) || gameRows.length > 0;
   const queueHeading = requestsQueueHeading(
@@ -63,7 +67,8 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
     },
     locale,
   );
-  const groupName = gameRows[0]?.request.game.groupName ?? null;
+  const first = gameRows[0]?.request;
+  const groupName = first && isSeatRequest(first) ? first.game.groupName : null;
 
   if (!requestCard && !showOrganizerQueue) {
     return null;
@@ -123,7 +128,7 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
               <RequestsFootnote>
                 {groupName
                   ? m.requests.gameNote(groupName)
-                  : m.requests.gameNoteNoGroup}
+                  : m.requests.gamesNote}
               </RequestsFootnote>
             </>
           ) : null}

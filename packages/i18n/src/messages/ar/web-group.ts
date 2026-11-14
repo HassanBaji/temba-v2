@@ -97,14 +97,7 @@ export const webGroup = {
   },
   requests: {
     title: "طلبات الانضمام",
-    reviewAria: "مراجعة طلبات الانضمام",
-    level: (label: string) => `المستوى ${label}`,
-    levelProvisional: (label: string) => `المستوى ${label}، ما زال مبدئيًا`,
     changePolicyAria: "تغيير من يمكنه الانضمام",
-    approve: "قبول",
-    reject: "رفض",
-    approveName: (name: string) => `قبول ${name}`,
-    rejectName: (name: string) => `رفض ${name}`,
   },
   standing: {
     position: "المركز",

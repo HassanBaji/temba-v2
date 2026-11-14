@@ -183,21 +183,6 @@ export const group = {
         `عبر رابط دعوة من ${name}، ${when}`,
       viaInviteLink: (when: string) => `عبر رابط دعوة، ${when}`,
     },
-    requestsBanner: (n: number) =>
-      plural("ar", n, {
-        one: "شخص واحد يريد الانضمام",
-        two: "شخصان يريدان الانضمام",
-        few: "{n} أشخاص يريدون الانضمام",
-        many: "{n} شخصًا يريدون الانضمام",
-        other: "{n} شخص يريدون الانضمام",
-      }),
-    requestsHeading: (n: number) =>
-      plural("ar", n, {
-        one: "1 يريد الانضمام",
-        two: "2 يريدان الانضمام",
-        other: "{n} يريدون الانضمام",
-      }),
-    reviewLabel: "مراجعة",
     changeLabel: "تغيير",
     policy: {
       approve: "يوافق المنظّمون على الأعضاء الجدد",

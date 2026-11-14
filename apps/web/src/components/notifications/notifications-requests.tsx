@@ -11,11 +11,9 @@ import {
   RequestRowItem,
   RequestsFootnote,
 } from "~/components/requests/request-card";
-import {
-  notificationsRequestsView,
-  waitingCountLabel,
-} from "@repo/domain/waiting-requests";
+import { waitingCountLabel } from "@repo/domain/waiting-requests";
 import { REQUESTS_HREF } from "~/lib/dashboard-paths";
+import { notificationsRequestsView } from "@repo/domain/request-answers";
 
 /** Notifications 2a: requests in their own section, answered in place. */
 export function NotificationsRequests() {

@@ -1,7 +1,4 @@
-import {
-  notificationsRequestsView,
-  waitingCountLabel,
-} from "@repo/domain/waiting-requests";
+import { waitingCountLabel } from "@repo/domain/waiting-requests";
 import { View } from "react-native";
 
 import { useNow } from "../games/use-now";
@@ -14,6 +11,7 @@ import {
   RequestLinkRow,
   RequestsFootnote,
 } from "./request-sections";
+import { notificationsRequestsView } from "@repo/domain/request-answers";
 
 export function useNotificationsRequestsVisible() {
   return notificationsRequestsView(useRequestAnswers().rows).visible;

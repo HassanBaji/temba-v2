@@ -7,7 +7,6 @@ import { plural } from "../../plural";
  */
 export const requests = {
   title: "Requests",
-  notificationsTitle: "Notifications",
   newCount: (n: number) => `${n} new`,
   allTitle: "All requests",
   all: "All",
@@ -34,14 +33,14 @@ export const requests = {
       `Next: ${first}, ${second} and ${more} more`,
   },
   notificationsNote:
-    "Most urgent first: seats on hold before group requests. Any organizer or admin of that group can answer.",
+    "Most urgent first: seats on hold before group requests. Any organizer of that group can answer.",
   gamesNote:
     "A held seat frees itself when the hold runs out or when you decline.",
   gameNote: (group: string) =>
     `Any organizer of ${group} can decide. A held seat frees itself when the hold runs out or when you decline.`,
-  gameNoteNoGroup:
-    "A held seat frees itself when the hold runs out or when you decline.",
-  groupNote: "Any admin of the group can decide.",
+  groupNote: "Any organizer of the group can decide.",
+  blockName: (name: string) => `Reject and block ${name}`,
+  loadFailed: "Requests could not be loaded",
   userFallback: "A player",
   groupFallback: "the group",
   sportNoun: { padel: "padel", football: "football" },
@@ -112,6 +111,9 @@ export const requests = {
     onWaitlistAndGroup: (weekday: string) =>
       `goes on ${weekday}’s Waitlist and into the group`,
     inTheGame: "is in the game",
+    onTheWaitlist: "goes on the Waitlist",
+    canJoin: (weekday: string) => `can now join ${weekday}’s game`,
+    canJoinGame: "can now join the game",
     inGroup: (group: string) => `is now in ${group}`,
     declinedSeatFreed: "declined, seat freed",
     declined: "declined",

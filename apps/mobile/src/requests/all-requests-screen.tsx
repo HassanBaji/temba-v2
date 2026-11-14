@@ -20,17 +20,20 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
-import { allRequestsView, type AllRequestsGame } from "./request-answers-model";
 import { useRequestAnswers } from "./request-answers-provider";
 import { RequestList, RequestRowItem } from "./request-card";
 import { REQUESTS_HEADING_GAP, RequestsFootnote } from "./request-sections";
+import {
+  type GameRequestsSection,
+  allRequestsView,
+} from "@repo/domain/request-answers";
 
 const GAME_GLYPH = 16;
 
-function GameHeader({ entry }: { entry: AllRequestsGame }) {
+function GameHeader({ entry }: { entry: GameRequestsSection }) {
   const locale = useLocale();
   const palette = useTonePalette();
-  const { answerMany } = useRequestAnswers();
+  const { approveMany } = useRequestAnswers();
   const bulkLabel = waitingBulkApproveLabel(entry.waiting.length, locale);
   return (
     <View
@@ -55,7 +58,10 @@ function GameHeader({ entry }: { entry: AllRequestsGame }) {
         <Text size="eyebrow" tone="muted" numberOfLines={1}>
           {waitingGameFill(
             entry.game,
-            { waiting: entry.waiting.length, approved: entry.approved },
+            {
+              heldSeats: entry.heldSeats,
+              approvedSeats: entry.approvedSeats,
+            },
             locale,
           )}
         </Text>
@@ -65,7 +71,7 @@ function GameHeader({ entry }: { entry: AllRequestsGame }) {
           label={bulkLabel}
           size="sm"
           variant="outline"
-          onPress={() => answerMany(entry.waiting)}
+          onPress={() => approveMany(entry.waiting)}
         />
       ) : null}
     </View>
@@ -103,7 +109,7 @@ export function AllRequestsScreen() {
       {view.empty && status.kind === "error" ? (
         <Notice
           alert
-          title={m.mobileHome.requests.loadFailed}
+          title={m.requests.loadFailed}
           description={status.message}
           onRetry={() => void refetch()}
         />

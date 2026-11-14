@@ -34,6 +34,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import {
   FRIENDLY_PLAYERS_ALLOWED,
   isGameOrganizer,
+  isGroupMember,
   registeredUserCount,
 } from "#src/games/access";
 import { displayedLevelTenthsForUser } from "#src/games/user-allowed-by-level-range";
@@ -89,21 +90,6 @@ async function gamesWithMembers(
       ),
     );
   return row?.count ?? 0;
-}
-
-async function isGroupMember(
-  database: DbClient,
-  groupId: string,
-  userId: string,
-) {
-  const row = await database.query.groupMembers.findFirst({
-    where: and(
-      eq(groupMembers.groupId, groupId),
-      eq(groupMembers.userId, userId),
-    ),
-    columns: { id: true },
-  });
-  return row != null;
 }
 
 /**
@@ -236,6 +222,7 @@ export async function listWaitingRequests(
       requesterInGroup: game.groupId
         ? await isGroupMember(database, game.groupId, request.userId)
         : false,
+      pickedSeat: request.heldSeat != null,
     });
   }
 

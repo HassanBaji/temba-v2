@@ -15,10 +15,6 @@ import {
   RequestRowItem,
   RequestsFootnote,
 } from "~/components/requests/request-card";
-import {
-  allRequestsView,
-  type GameRequestsSection,
-} from "~/components/requests/request-rows";
 import { SportGlyph } from "~/components/temba/sport-glyph";
 import { Button } from "~/components/ui/button";
 import {
@@ -28,10 +24,14 @@ import {
   waitingGameHeading,
 } from "@repo/domain/waiting-requests";
 import { gameHomeHref } from "~/lib/dashboard-paths";
+import {
+  allRequestsView,
+  type GameRequestsSection,
+} from "@repo/domain/request-answers";
 
 function GameRequests({ section }: { section: GameRequestsSection }) {
   const locale = useLocale();
-  const { answerMany } = useRequestAnswers();
+  const { approveMany } = useRequestAnswers();
   const { game, waiting } = section;
   const bulkLabel = waitingBulkApproveLabel(waiting.length, locale);
   return (
@@ -48,7 +48,10 @@ function GameRequests({ section }: { section: GameRequestsSection }) {
           <p className="text-eyebrow text-muted-foreground truncate">
             {waitingGameFill(
               game,
-              { waiting: waiting.length, approved: section.approved },
+              {
+                heldSeats: section.heldSeats,
+                approvedSeats: section.approvedSeats,
+              },
               locale,
             )}
           </p>
@@ -59,7 +62,7 @@ function GameRequests({ section }: { section: GameRequestsSection }) {
             variant="outline"
             size="sm"
             className="border-rule bg-paper shrink-0 rounded-lg font-semibold shadow-none"
-            onClick={() => answerMany(waiting)}
+            onClick={() => approveMany(waiting)}
           >
             {bulkLabel}
           </Button>
@@ -107,7 +110,7 @@ export default function AllRequestsPage() {
           <section className="flex flex-col gap-3">
             <SectionTitle
               title={m.requests.games}
-              meta={waitingCountLabel(view.gamesWaiting, locale)}
+              meta={waitingCountLabel(view.gameWaitingCount, locale)}
             />
             <RequestList>
               {view.games.map((section) => (
@@ -121,7 +124,7 @@ export default function AllRequestsPage() {
           <section className="flex flex-col gap-3">
             <SectionTitle
               title={m.requests.groups}
-              meta={waitingCountLabel(view.groupsWaiting, locale)}
+              meta={waitingCountLabel(view.groupWaitingCount, locale)}
             />
             <RequestList>
               {view.groups.map((row) => (

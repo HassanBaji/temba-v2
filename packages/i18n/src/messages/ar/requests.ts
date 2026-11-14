@@ -4,7 +4,6 @@ import { plural } from "../../plural";
 
 export const requests = {
   title: "الطلبات",
-  notificationsTitle: "الإشعارات",
   newCount: (n: number) =>
     plural("ar", n, {
       one: "إشعار جديد",
@@ -64,12 +63,13 @@ export const requests = {
       }),
   },
   notificationsNote:
-    "الأكثر إلحاحًا أولًا: الأماكن المحجوزة قبل طلبات المجموعات. يمكن لأي منظّم أو مشرف في تلك المجموعة أن يردّ.",
+    "الأكثر إلحاحًا أولًا: الأماكن المحجوزة قبل طلبات المجموعات. يمكن لأي منظّم في تلك المجموعة أن يردّ.",
   gamesNote: "يتحرّر المكان المحجوز عند انتهاء الحجز أو عند الرفض.",
   gameNote: (group: string) =>
     `يمكن لأي منظّم في ${group} أن يقرّر. يتحرّر المكان المحجوز عند انتهاء الحجز أو عند الرفض.`,
-  gameNoteNoGroup: "يتحرّر المكان المحجوز عند انتهاء الحجز أو عند الرفض.",
-  groupNote: "يمكن لأي مشرف في المجموعة أن يقرّر.",
+  groupNote: "يمكن لأي منظّم في المجموعة أن يقرّر.",
+  blockName: (name: string) => `رفض وحظر ${isolate(name)}`,
+  loadFailed: "تعذّر تحميل الطلبات",
   userFallback: "لاعب",
   groupFallback: "المجموعة",
   sportNoun: { padel: "بادل", football: "كرة قدم" },
@@ -146,6 +146,9 @@ export const requests = {
     onWaitlistAndGroup: (weekday: string) =>
       `على قائمة انتظار مباراة ${weekday} وفي المجموعة`,
     inTheGame: "في المباراة",
+    onTheWaitlist: "على قائمة الانتظار",
+    canJoin: (weekday: string) => `يمكنه الآن الانضمام إلى مباراة ${weekday}`,
+    canJoinGame: "يمكنه الآن الانضمام إلى المباراة",
     inGroup: (group: string) => `صار في ${group}`,
     declinedSeatFreed: "رُفض، وتحرّر المكان",
     declined: "رُفض",

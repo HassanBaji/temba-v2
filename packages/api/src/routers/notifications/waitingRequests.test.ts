@@ -199,6 +199,7 @@ describe("listWaitingRequests", () => {
       expect(levelRange).toMatchObject({
         kind: "level_range",
         requesterInGroup: true,
+        pickedSeat: false,
         levelTenths: null,
       });
       expect(groupJoin).toMatchObject({
@@ -319,6 +320,7 @@ describe("listWaitingRequests", () => {
       await database.insert(gameLevelRangeRequests).values({
         gameId: game.id,
         userId: requester,
+        heldSeat: { kind: "position", sideIndex: 0, position: "left" },
       });
 
       const mine = await listWaitingRequests(database, {
@@ -329,6 +331,7 @@ describe("listWaitingRequests", () => {
         {
           kind: "level_range",
           requesterInGroup: false,
+          pickedSeat: true,
           game: { groupId: null, groupName: null },
         },
       ]);

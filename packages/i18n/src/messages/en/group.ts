@@ -132,14 +132,6 @@ export const group = {
         `Via invite link from ${name}, ${when}`,
       viaInviteLink: (when: string) => `Via invite link, ${when}`,
     },
-    requestsBanner: (n: number) =>
-      plural("en", n, {
-        one: "1 person wants to join",
-        other: "{n} people want to join",
-      }),
-    requestsHeading: (n: number) =>
-      plural("en", n, { one: "1 wants to join", other: "{n} want to join" }),
-    reviewLabel: "Review",
     changeLabel: "Change",
     policy: {
       approve: "Organizers approve new members",

@@ -27,8 +27,16 @@ away under news. The design ("Requests") gathers them where an approver already 
   App holds the answer for `REQUEST_UNDO_WINDOW_MS`, shows it as one line with Undo, and only then
   calls the existing door (`games.approveLevelRangeRequest`, `games.rejectLevelRangeRequest`,
   `groups.approveJoinRequest`, `groups.rejectJoinRequest`). Leaving the App or the page sends what is
-  pending at once. The answers live in one provider per App, so the same request disappears from
-  Home, Notifications, All requests, the Game and the Group together.
+  pending at once; the web App sends it with `keepalive` so it outlives the page. The queue is pure,
+  in `@repo/domain/request-answers`, with one provider per App around it, so the same request
+  disappears from Home, Notifications, All requests, the Game and the Group together.
+- **The line says what approving did.** Approving a Level range request seats the requester only
+  when they picked a seat while asking; otherwise it waives the range and the line reads "can now
+  join". Until the door answers, the line says what is expected from how full the Game is; after, it
+  says what the door did (seated, Waitlist, or a hold that lapsed).
+- **A request asked again waits again.** A rejected request is reset to pending under the same id.
+  Once an answer was sent and the list read again, a request the list shows under that id is a new
+  ask, and it shows as waiting.
 
 ## Considered
 

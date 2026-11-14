@@ -266,7 +266,7 @@ export function NotificationsScreen() {
       <NotificationsRequests onMore={() => router.push(REQUESTS_PATH)} />
       {requestsVisible ? (
         <SectionTitle
-          title={m.requests.notificationsTitle}
+          title={m.common.notifications}
           meta={unreadCount > 0 ? m.requests.newCount(unreadCount) : null}
         />
       ) : null}

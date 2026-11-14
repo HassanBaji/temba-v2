@@ -10,7 +10,6 @@ import {
   RequestRowItem,
 } from "~/components/requests/request-card";
 import {
-  homeRequestsView,
   waitingCountLabel,
   waitingNextLine,
 } from "@repo/domain/waiting-requests";
@@ -18,6 +17,7 @@ import { REQUESTS_HREF } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 
 import { SectionTitle } from "./section-title";
+import { homeRequestsView } from "@repo/domain/request-answers";
 
 /** Home 1a: the most urgent request first, under the line the last answer left. */
 export function HomeRequests() {

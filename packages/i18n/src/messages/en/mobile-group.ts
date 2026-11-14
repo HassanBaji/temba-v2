@@ -178,7 +178,6 @@ export const mobileGroup = {
       "A tag marks a name this Group gave. It shows in this Group only; the player's Temba name and profile don't change.",
   },
   requests: {
-    review: "Review join requests",
     changeWhoCanJoin: "Change who can join",
     row: (name: string, meta: string) => `${name}. ${meta}`,
     quotedNote: (note: string) => `“${note}”`,

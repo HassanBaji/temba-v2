@@ -20,10 +20,6 @@ import {
   RequestRowItem,
   RequestsFootnote,
 } from "~/components/requests/request-card";
-import {
-  groupRequestRows,
-  waitingOf,
-} from "~/components/requests/request-rows";
 import { Button } from "~/components/ui/button";
 import { SelectCard } from "~/components/ui/select-card";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -37,6 +33,10 @@ import {
   waitingCountLabel,
   type WaitingRequest,
 } from "@repo/domain/waiting-requests";
+import {
+  groupRequestRows,
+  waitingRequestsOf,
+} from "@repo/domain/request-answers";
 
 function ChangePolicyButton({ onClick }: { onClick: () => void }) {
   const m = useMessages();
@@ -92,7 +92,7 @@ export function GroupJoinRequests({
     <section className="flex flex-col gap-3">
       <SectionTitle
         title={m.requests.title}
-        meta={waitingCountLabel(waitingOf(rows).length, locale)}
+        meta={waitingCountLabel(waitingRequestsOf(rows).length, locale)}
       />
       <RequestList>
         {rows.map((row) => (

@@ -1,5 +1,4 @@
 import {
-  homeRequestsView,
   waitingCountLabel,
   waitingNextLine,
 } from "@repo/domain/waiting-requests";
@@ -13,6 +12,7 @@ import { Surface } from "../primitives/surface";
 import { useRequestAnswers } from "./request-answers-provider";
 import { RequestRowItem } from "./request-card";
 import { REQUESTS_HEADING_GAP, RequestLinkRow } from "./request-sections";
+import { homeRequestsView } from "@repo/domain/request-answers";
 
 /** Design 1a/1b: the most urgent request on top of Home, under the line the last answer left. */
 export function HomeRequests({ onAll }: { onAll: () => void }) {

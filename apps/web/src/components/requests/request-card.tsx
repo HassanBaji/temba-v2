@@ -13,11 +13,11 @@ import { cn } from "~/lib/utils";
 import {
   waitingRequestCard,
   waitingRequestDoneText,
-  type RequestRow,
   type WaitingRequest,
 } from "@repo/domain/waiting-requests";
 
 import { useRequestAnswers } from "./request-answers-provider";
+import { canUndoAnswer, type RequestRow } from "@repo/domain/request-answers";
 
 const MONOGRAM =
   "border-rule rounded-lg border text-meta font-semibold [&_[data-slot=avatar-fallback]]:rounded-[inherit] [&_[data-slot=avatar-fallback]]:bg-paper [&_[data-slot=avatar-fallback]]:text-ink";
@@ -177,10 +177,15 @@ export function RequestDoneLine({
           {name}
         </span>{" "}
         <span className="text-muted-foreground">
-          {waitingRequestDoneText(row.request, row.answer.decision, locale)}
+          {waitingRequestDoneText(
+            row.request,
+            row.answer.decision,
+            locale,
+            row.answer.outcome,
+          )}
         </span>
       </p>
-      {row.answer.committed ? null : (
+      {canUndoAnswer(row.answer) ? (
         <Button
           type="button"
           variant="ghost"
@@ -191,7 +196,7 @@ export function RequestDoneLine({
         >
           {m.requests.undo}
         </Button>
-      )}
+      ) : null}
     </div>
   );
 }

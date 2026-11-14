@@ -6,10 +6,7 @@ import {
   groupJoinRequestsSummary,
 } from "@repo/domain/group-admin";
 import { levelCellView } from "@repo/domain/group-home-chrome";
-import {
-  waitingCountLabel,
-  type RequestRow,
-} from "@repo/domain/waiting-requests";
+import { waitingCountLabel } from "@repo/domain/waiting-requests";
 import { Check, ChevronRight, Inbox } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
@@ -27,10 +24,6 @@ import { Hatch } from "../primitives/hatch";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
-import {
-  groupRequestRows,
-  waitingRows,
-} from "../requests/request-answers-model";
 import { useRequestAnswers } from "../requests/request-answers-provider";
 import { RequestRowItem } from "../requests/request-card";
 import {
@@ -39,6 +32,11 @@ import {
 } from "../requests/request-sections";
 import { useColors } from "../theme/theme-provider";
 import { Notice } from "./notice";
+import {
+  groupRequestRows,
+  type RequestRow,
+  waitingRequestsOf,
+} from "@repo/domain/request-answers";
 
 function LevelChip({ level }: { level: GroupJoinRequestData["level"] }) {
   const m = useMessages();
@@ -257,7 +255,7 @@ function BlockLink({ name, onPress }: { name: string; onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={m.mobileHome.requests.blockName(name)}
+      accessibilityLabel={m.requests.blockName(name)}
       hitSlop={8}
       onPress={onPress}
       style={({ pressed }) => ({
@@ -295,7 +293,7 @@ export function GroupRequestsSection(props: GroupRequestsSectionProps) {
   const locale = useLocale();
   const now = useNow();
   const { rows, own, onOpenProfile } = props;
-  const waitingCount = waitingRows(rows).length + own.length;
+  const waitingCount = waitingRequestsOf(rows).length + own.length;
 
   function blockLink(row: RequestRow) {
     const name = row.request.user.name ?? m.mobileGroup.unnamedUser;

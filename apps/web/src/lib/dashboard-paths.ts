@@ -10,7 +10,7 @@ const PLAYER_MARK = /^\/dashboard\/players\/([^/]+)\/marks\/([^/]+)\/?$/;
 
 const YOU_RATINGS_HREF = "/dashboard/you/ratings";
 
-/** All requests: every request waiting on the viewer as an Organizer or admin. */
+/** All requests: every request waiting on the viewer as an Organizer or Group approver. */
 export const REQUESTS_HREF = "/dashboard/requests";
 const YOU_RATING_HISTORY_HREF = `${YOU_RATINGS_HREF}/history`;
 

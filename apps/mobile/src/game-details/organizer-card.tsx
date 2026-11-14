@@ -17,13 +17,13 @@ import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
-import {
-  gameRequestRows,
-  waitingQueueCounts,
-} from "../requests/request-answers-model";
 import { useRequestAnswers } from "../requests/request-answers-provider";
 import { RequestRowItem } from "../requests/request-card";
 import type { RequestDecisions } from "./use-request-decisions";
+import {
+  gameRequestRows,
+  waitingQueueCounts,
+} from "@repo/domain/request-answers";
 
 export type OrganizerHandlers = {
   registrationPending: boolean;
@@ -221,9 +221,7 @@ export function RequestsSection({
             ))}
           </Surface>
           <Text size="eyebrow" tone="muted">
-            {groupName
-              ? m.requests.gameNote(groupName)
-              : m.requests.gameNoteNoGroup}
+            {groupName ? m.requests.gameNote(groupName) : m.requests.gamesNote}
           </Text>
         </>
       ) : null}

@@ -7,12 +7,6 @@ import { displayLabelFromStoredBand } from "./level-bands";
 import { tenthsToLevelBand } from "./level-range";
 import type { Sport } from "./sport";
 
-/**
- * A request waiting on the viewer as an Organizer or Group approver: a Game
- * Level range request, a Group join request with a live Seat hold, or a Group
- * join request without one. Home, Notifications and All requests read it as
- * one card.
- */
 export type WaitingRequestUser = {
   id: string;
   name: string | null;
@@ -38,11 +32,19 @@ type WaitingRequestBase = {
   levelTenths: number | null;
 };
 
+/**
+ * A request waiting on the viewer as an Organizer or Group approver: a Game
+ * Level range request, a Group join request with a live Seat hold, or a Group
+ * join request without one. Home, Notifications and All requests read it as
+ * one card.
+ */
 export type WaitingRequest =
   | (WaitingRequestBase & {
       kind: "level_range";
       game: WaitingRequestGame;
       requesterInGroup: boolean;
+      /** They picked a seat while asking, so approval seats them; without one it only waives the Level range. */
+      pickedSeat: boolean;
     })
   | (WaitingRequestBase & {
       kind: "seat_hold";
@@ -70,7 +72,7 @@ const MS_PER_MINUTE = 60 * 1000;
 const MINUTES_PER_HOUR = 60;
 const MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR;
 
-function time(value: Date | string) {
+function millisOf(value: Date | string) {
   return new Date(value).getTime();
 }
 
@@ -87,10 +89,10 @@ export function waitingRequestSport(request: WaitingRequest): Sport {
 /** What runs out first: the Seat hold, or the Game's start. None for a Group join request. */
 export function waitingRequestDeadline(request: WaitingRequest): number | null {
   if (request.kind === "seat_hold") {
-    return time(request.seatHeldUntil);
+    return millisOf(request.seatHeldUntil);
   }
   if (request.kind === "level_range" && request.game.startsAt) {
-    return time(request.game.startsAt);
+    return millisOf(request.game.startsAt);
   }
   return null;
 }
@@ -106,12 +108,14 @@ export function compareWaitingRequests(a: WaitingRequest, b: WaitingRequest) {
   if (aDeadline !== bDeadline) {
     return aDeadline < bDeadline ? -1 : 1;
   }
-  return time(a.createdAt) - time(b.createdAt) || a.id.localeCompare(b.id);
+  return (
+    millisOf(a.createdAt) - millisOf(b.createdAt) || a.id.localeCompare(b.id)
+  );
 }
 
-export function sortWaitingRequests<T extends WaitingRequest>(
-  requests: readonly T[],
-): T[] {
+export function sortWaitingRequests(
+  requests: readonly WaitingRequest[],
+): WaitingRequest[] {
   return [...requests].sort(compareWaitingRequests);
 }
 
@@ -255,40 +259,20 @@ function minutesBetween(from: number, to: number) {
   return Math.floor((to - from) / MS_PER_MINUTE);
 }
 
-function leftLabel(minutes: number, locale: Locale) {
-  const m = messagesFor(locale).requests.time;
-  if (minutes < MINUTES_PER_HOUR) {
-    return m.minutesLeft(Math.max(1, minutes));
-  }
-  if (minutes < MINUTES_PER_DAY) {
-    return m.hoursLeft(Math.floor(minutes / MINUTES_PER_HOUR));
-  }
-  return m.daysLeft(Math.floor(minutes / MINUTES_PER_DAY));
-}
+type DurationForms = {
+  minutes: (n: number) => string;
+  hours: (n: number) => string;
+  days: (n: number) => string;
+};
 
-function inLabel(minutes: number, locale: Locale) {
-  const m = messagesFor(locale).requests.time;
+function durationLabel(minutes: number, forms: DurationForms) {
   if (minutes < MINUTES_PER_HOUR) {
-    return m.inMinutes(Math.max(1, minutes));
+    return forms.minutes(Math.max(1, minutes));
   }
   if (minutes < MINUTES_PER_DAY) {
-    return m.inHours(Math.floor(minutes / MINUTES_PER_HOUR));
+    return forms.hours(Math.floor(minutes / MINUTES_PER_HOUR));
   }
-  return m.inDays(Math.floor(minutes / MINUTES_PER_DAY));
-}
-
-function agoLabel(minutes: number, locale: Locale) {
-  const m = messagesFor(locale).requests.time;
-  if (minutes < 1) {
-    return m.justNow;
-  }
-  if (minutes < MINUTES_PER_HOUR) {
-    return m.minutesAgo(minutes);
-  }
-  if (minutes < MINUTES_PER_DAY) {
-    return m.hoursAgo(Math.floor(minutes / MINUTES_PER_HOUR));
-  }
-  return m.daysAgo(Math.floor(minutes / MINUTES_PER_DAY));
+  return forms.days(Math.floor(minutes / MINUTES_PER_DAY));
 }
 
 /** What is running out: `seat held 6h left`, `starts in 2d`, or `asked 2d ago`. */
@@ -302,24 +286,32 @@ export function waitingRequestClock(
   if (request.kind === "seat_hold") {
     return {
       label: m.seatHeld,
-      value: leftLabel(
-        minutesBetween(nowMs, time(request.seatHeldUntil)),
-        locale,
+      value: durationLabel(
+        minutesBetween(nowMs, millisOf(request.seatHeldUntil)),
+        { minutes: m.minutesLeft, hours: m.hoursLeft, days: m.daysLeft },
       ),
     };
   }
   if (request.kind === "level_range" && request.game.startsAt) {
     return {
       label: m.starts,
-      value: inLabel(
-        minutesBetween(nowMs, time(request.game.startsAt)),
-        locale,
+      value: durationLabel(
+        minutesBetween(nowMs, millisOf(request.game.startsAt)),
+        { minutes: m.inMinutes, hours: m.inHours, days: m.inDays },
       ),
     };
   }
+  const askedMinutesAgo = minutesBetween(millisOf(request.createdAt), nowMs);
   return {
     label: m.asked,
-    value: agoLabel(minutesBetween(time(request.createdAt), nowMs), locale),
+    value:
+      askedMinutesAgo < 1
+        ? m.justNow
+        : durationLabel(askedMinutesAgo, {
+            minutes: m.minutesAgo,
+            hours: m.hoursAgo,
+            days: m.daysAgo,
+          }),
   };
 }
 
@@ -363,15 +355,63 @@ export function waitingRequestCard(
   };
 }
 
-function gameIsFull(game: WaitingRequestGame) {
-  return game.registeredCount >= game.capacity;
+/** What approving did, or will do, about a seat: null when it seats nobody. */
+export type SeatOutcome = "registered" | "waitlisted" | "lapsed" | null;
+
+/** Approval seats the requester: a Seat hold, or a Level range request whose asker picked a seat. */
+export function approvalSeats(request: WaitingRequest) {
+  return (
+    request.kind === "seat_hold" ||
+    (request.kind === "level_range" && request.pickedSeat)
+  );
 }
 
-/** The line an answered request leaves behind, after the name: `is in Friday’s game`, `declined, seat freed`. */
+/** The seat approval is expected to give, read from how full the Game is, until the door says what it gave. */
+export function expectedSeatOutcome(request: WaitingRequest): SeatOutcome {
+  if (!isSeatRequest(request) || !approvalSeats(request)) {
+    return null;
+  }
+  return request.game.registeredCount >= request.game.capacity
+    ? "waitlisted"
+    : "registered";
+}
+
+function approvedSeatText(
+  request: Extract<WaitingRequest, { game: WaitingRequestGame }>,
+  outcome: SeatOutcome,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).requests.done;
+  const { startsAt } = request.game;
+  const weekday = startsAt ? formatWeekday(startsAt, "long", locale) : null;
+  const seated = outcome === "registered" || outcome === "waitlisted";
+  if (request.kind === "seat_hold") {
+    if (!seated || !weekday) {
+      return m.inGroup(groupNameOf(request.group.name, locale));
+    }
+    return outcome === "registered"
+      ? m.inGameAndGroup(weekday)
+      : m.onWaitlistAndGroup(weekday);
+  }
+  if (outcome === "registered") {
+    return weekday ? m.inGame(weekday) : m.inTheGame;
+  }
+  if (outcome === "waitlisted") {
+    return weekday ? m.onWaitlist(weekday) : m.onTheWaitlist;
+  }
+  return weekday ? m.canJoin(weekday) : m.canJoinGame;
+}
+
+/**
+ * The line an answered request leaves behind, after the name: `is in Friday’s
+ * game`, `can now join Friday’s game`, `declined, seat freed`. `outcome` is
+ * what the door said it did; until it is known the line says what is expected.
+ */
 export function waitingRequestDoneText(
   request: WaitingRequest,
   decision: RequestDecision,
   locale: Locale,
+  outcome: SeatOutcome | undefined = undefined,
 ) {
   const m = messagesFor(locale).requests.done;
   if (decision === "decline") {
@@ -380,16 +420,11 @@ export function waitingRequestDoneText(
   if (!isSeatRequest(request)) {
     return m.inGroup(groupNameOf(request.group.name, locale));
   }
-  const { startsAt } = request.game;
-  if (!startsAt) {
-    return m.inTheGame;
-  }
-  const weekday = formatWeekday(startsAt, "long", locale);
-  const full = gameIsFull(request.game);
-  if (request.kind === "seat_hold") {
-    return full ? m.onWaitlistAndGroup(weekday) : m.inGameAndGroup(weekday);
-  }
-  return full ? m.onWaitlist(weekday) : m.inGame(weekday);
+  return approvedSeatText(
+    request,
+    outcome === undefined ? expectedSeatOutcome(request) : outcome,
+    locale,
+  );
 }
 
 /** `5 waiting`, or `All answered` once none is. */
@@ -432,21 +467,21 @@ export function waitingGameHeading(game: WaitingRequestGame, locale: Locale) {
 }
 
 /**
- * `11 of 14 in, 2 seats held`: how full the Game is, counting requests the
- * viewer just approved, and how many seat requests still wait on it.
+ * `11 of 14 in, 2 seats held`: how full the Game is, counting the seats the
+ * viewer's approvals took, and how many waiting requests would take a seat.
  */
 export function waitingGameFill(
   game: WaitingRequestGame,
-  counts: { waiting: number; approved: number },
+  counts: { heldSeats: number; approvedSeats: number },
   locale: Locale,
 ) {
   const m = messagesFor(locale).requests;
   const inCount = Math.min(
     game.capacity,
-    game.registeredCount + counts.approved,
+    game.registeredCount + counts.approvedSeats,
   );
-  return counts.waiting > 0
-    ? m.gameFillHeld(inCount, game.capacity, counts.waiting)
+  return counts.heldSeats > 0
+    ? m.gameFillHeld(inCount, game.capacity, counts.heldSeats)
     : m.gameFill(inCount, game.capacity);
 }
 
@@ -457,113 +492,4 @@ export function waitingBulkApproveLabel(waiting: number, locale: Locale) {
     return null;
   }
   return waiting === 2 ? m.approveBoth : m.approveAll(waiting);
-}
-
-export type WaitingGameRequests<T extends WaitingRequest> = {
-  game: WaitingRequestGame;
-  requests: T[];
-};
-
-/** All requests: seat requests by Game, in the order their most urgent request comes, then Group join requests. */
-export function groupWaitingRequests<T extends WaitingRequest>(
-  requests: readonly T[],
-): { games: WaitingGameRequests<T>[]; groups: T[] } {
-  const byGame = new Map<string, WaitingGameRequests<T>>();
-  const groups: T[] = [];
-  for (const request of sortWaitingRequests(requests)) {
-    if (!isSeatRequest(request)) {
-      groups.push(request);
-      continue;
-    }
-    const entry = byGame.get(request.game.id);
-    if (entry) {
-      entry.requests.push(request);
-    } else {
-      byGame.set(request.game.id, { game: request.game, requests: [request] });
-    }
-  }
-  return { games: [...byGame.values()], groups };
-}
-
-/** How many of the waiting requests a screen shows before its `N more requests` row. */
-export const NOTIFICATIONS_REQUEST_LIMIT = 3;
-
-/** How long an answer waits, with Undo, before it is sent. */
-export const REQUEST_UNDO_WINDOW_MS = 6000;
-
-/** An answer given in this session: sent once `committed`, undoable until then. */
-export type RequestAnswer = {
-  decision: RequestDecision;
-  committed: boolean;
-  answeredAt: number;
-};
-
-export type AnsweredRequest<T extends WaitingRequest = WaitingRequest> = {
-  request: T;
-  answer: RequestAnswer;
-};
-
-export type RequestRow<T extends WaitingRequest = WaitingRequest> = {
-  request: T;
-  answer: RequestAnswer | null;
-};
-
-/**
- * The server's waiting list merged with this session's answers, most urgent
- * first. An answered request keeps its place as a line, from the snapshot
- * taken when it was answered, after the server stops listing it.
- */
-export function requestRows<T extends WaitingRequest>(
-  waiting: readonly T[],
-  answered: ReadonlyMap<string, AnsweredRequest<T>>,
-): RequestRow<T>[] {
-  const rows: RequestRow<T>[] = waiting
-    .filter((request) => !answered.has(request.id))
-    .map((request) => ({ request, answer: null }));
-  for (const entry of answered.values()) {
-    rows.push({ request: entry.request, answer: entry.answer });
-  }
-  return rows.sort((a, b) => compareWaitingRequests(a.request, b.request));
-}
-
-/**
- * Home: one full request, the most urgent, under the line the last answer
- * left while it can still be undone. The section leaves Home once nothing
- * waits and nothing can be undone.
- */
-export function homeRequestsView<T extends WaitingRequest>(
-  rows: readonly RequestRow<T>[],
-) {
-  const waiting = rows.filter((row) => row.answer == null);
-  const [current, ...rest] = waiting;
-  const last = rows
-    .filter((row) => row.answer != null && !row.answer.committed)
-    .sort(
-      (a, b) => (b.answer?.answeredAt ?? 0) - (a.answer?.answeredAt ?? 0),
-    )[0];
-  return {
-    visible: waiting.length > 0 || last != null,
-    waitingCount: waiting.length,
-    current: current?.request ?? null,
-    rest: rest.map((row) => row.request),
-    last: last ?? null,
-  };
-}
-
-/** Notifications: every answer stays as a line, plus the most urgent requests still waiting, up to the limit. */
-export function notificationsRequestsView<T extends WaitingRequest>(
-  rows: readonly RequestRow<T>[],
-  limit: number = NOTIFICATIONS_REQUEST_LIMIT,
-) {
-  let shown = 0;
-  const visibleRows = rows.filter(
-    (row) => row.answer != null || shown++ < limit,
-  );
-  const waitingCount = rows.filter((row) => row.answer == null).length;
-  return {
-    visible: rows.length > 0,
-    waitingCount,
-    rows: visibleRows,
-    moreCount: Math.max(0, waitingCount - limit),
-  };
 }

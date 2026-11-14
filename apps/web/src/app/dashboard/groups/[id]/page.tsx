@@ -87,7 +87,7 @@ import {
   type GroupJoinRequestDecision,
   groupRemoveImageConfirm,
 } from "@repo/domain/group-admin";
-import type { WaitingRequest } from "@repo/domain/waiting-requests";
+import { type WaitingRequest } from "@repo/domain/waiting-requests";
 import {
   groupLeaveBlockedHint,
   groupMenuRoleLine,

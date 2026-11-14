@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  groupWaitingRequests,
-  homeRequestsView,
-  notificationsRequestsView,
-  requestRows,
   sortWaitingRequests,
   waitingBulkApproveLabel,
   waitingCountLabel,
@@ -59,6 +55,7 @@ const omar: WaitingRequest = {
   levelTenths: 15,
   game: FRIDAY_GAME,
   requesterInGroup: true,
+  pickedSeat: true,
 };
 
 const jassim: WaitingRequest = {
@@ -82,6 +79,7 @@ const faisal: WaitingRequest = {
   levelTenths: 38,
   game: TUESDAY_GAME,
   requesterInGroup: true,
+  pickedSeat: false,
 };
 
 const jawad: WaitingRequest = {
@@ -211,11 +209,32 @@ describe("waitingRequestDoneText", () => {
     );
   });
 
-  it("says the Waitlist when the Game is full", () => {
+  it("says a Level range request with no seat picked can now join, not that they are in", () => {
+    expect(waitingRequestDoneText(faisal, "approve", "en")).toBe(
+      "can now join Tuesday’s game",
+    );
+  });
+
+  it("expects the Waitlist when the Game is full", () => {
     const full = { ...FRIDAY_GAME, registeredCount: 14 };
     expect(
       waitingRequestDoneText({ ...omar, game: full }, "approve", "en"),
     ).toBe("goes on Friday’s Waitlist");
+  });
+
+  it("says what the door did once it is known", () => {
+    expect(waitingRequestDoneText(omar, "approve", "en", "waitlisted")).toBe(
+      "goes on Friday’s Waitlist",
+    );
+    expect(waitingRequestDoneText(omar, "approve", "en", "lapsed")).toBe(
+      "can now join Friday’s game",
+    );
+    expect(waitingRequestDoneText(jassim, "approve", "en", "lapsed")).toBe(
+      "is now in Karbabad Friday Football",
+    );
+    expect(waitingRequestDoneText(faisal, "approve", "en", "registered")).toBe(
+      "is in Tuesday’s game",
+    );
   });
 
   it("frees the seat only for a Seat hold", () => {
@@ -239,30 +258,17 @@ describe("waitingNextLine", () => {
   });
 });
 
-describe("All requests grouping", () => {
-  it("groups seat requests by Game in urgency order and keeps Group requests apart", () => {
-    const grouped = groupWaitingRequests([jawad, faisal, omar, jassim, mahdi]);
-    expect(grouped.games.map((entry) => entry.game.id)).toEqual([
-      "game-fri",
-      "game-tue",
-    ]);
-    expect(grouped.games[0]?.requests.map((request) => request.id)).toEqual([
-      "ja",
-      "ot",
-    ]);
-    expect(grouped.groups.map((request) => request.id)).toEqual(["ms", "jr"]);
-  });
-
+describe("a Game's heading on All requests", () => {
   it("heads a Game with its day, fill and held seats", () => {
     expect(waitingGameHeading(FRIDAY_GAME, "en")).toBe("Fri 7:00 PM football");
     expect(
-      waitingGameFill(FRIDAY_GAME, { waiting: 2, approved: 0 }, "en"),
+      waitingGameFill(FRIDAY_GAME, { heldSeats: 2, approvedSeats: 0 }, "en"),
     ).toBe("11 of 14 in, 2 seats held");
     expect(
-      waitingGameFill(FRIDAY_GAME, { waiting: 1, approved: 1 }, "en"),
+      waitingGameFill(FRIDAY_GAME, { heldSeats: 1, approvedSeats: 1 }, "en"),
     ).toBe("12 of 14 in, 1 seat held");
     expect(
-      waitingGameFill(FRIDAY_GAME, { waiting: 0, approved: 2 }, "en"),
+      waitingGameFill(FRIDAY_GAME, { heldSeats: 0, approvedSeats: 2 }, "en"),
     ).toBe("13 of 14 in");
   });
 
@@ -275,76 +281,5 @@ describe("All requests grouping", () => {
   it("counts what waits", () => {
     expect(waitingCountLabel(5, "en")).toBe("5 waiting");
     expect(waitingCountLabel(0, "en")).toBe("All answered");
-  });
-});
-
-describe("session answers", () => {
-  const all = [omar, jassim, faisal, jawad, mahdi];
-
-  function answered(
-    entries: [WaitingRequest, "approve" | "decline", boolean, number][],
-  ) {
-    return new Map(
-      entries.map(([request, decision, committed, answeredAt]) => [
-        request.id,
-        { request, answer: { decision, committed, answeredAt } },
-      ]),
-    );
-  }
-
-  it("keeps an answered request in its place after the server drops it", () => {
-    const rows = requestRows(
-      [omar, faisal, jawad, mahdi],
-      answered([[jassim, "approve", true, 1]]),
-    );
-    expect(
-      rows.map((row) => [row.request.id, row.answer?.decision ?? null]),
-    ).toEqual([
-      ["ja", "approve"],
-      ["ot", null],
-      ["fj", null],
-      ["ms", null],
-      ["jr", null],
-    ]);
-  });
-
-  it("shows Home one request under the last undoable answer", () => {
-    const view = homeRequestsView(
-      requestRows(
-        all,
-        answered([
-          [jassim, "approve", false, 1],
-          [omar, "decline", false, 2],
-        ]),
-      ),
-    );
-    expect(view.visible).toBe(true);
-    expect(view.waitingCount).toBe(3);
-    expect(view.current?.id).toBe("fj");
-    expect(view.rest.map((request) => request.id)).toEqual(["ms", "jr"]);
-    expect(view.last?.request.id).toBe("ot");
-  });
-
-  it("leaves Home once nothing waits and every answer is sent", () => {
-    const sent = answered(
-      all.map((request, index) => [request, "approve", true, index]),
-    );
-    const view = homeRequestsView(requestRows([], sent));
-    expect(view.visible).toBe(false);
-    expect(view.last).toBeNull();
-  });
-
-  it("shows Notifications every answer and the three most urgent waiting", () => {
-    const view = notificationsRequestsView(
-      requestRows(all, answered([[jassim, "approve", false, 1]])),
-    );
-    expect(view.rows.map((row) => row.request.id)).toEqual([
-      "ja",
-      "ot",
-      "fj",
-      "ms",
-    ]);
-    expect(view.waitingCount).toBe(4);
-    expect(view.moreCount).toBe(1);
   });
 });

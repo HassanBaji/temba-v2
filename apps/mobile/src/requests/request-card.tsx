@@ -3,7 +3,7 @@ import {
   waitingRequestCard,
   waitingRequestDoneText,
   type RequestDecision,
-  type RequestRow,
+  type SeatOutcome,
   type WaitingRequest,
 } from "@repo/domain/waiting-requests";
 import { Check, Users, X } from "lucide-react-native";
@@ -22,6 +22,7 @@ import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { useRequestAnswers } from "./request-answers-provider";
 import { SeatGlyph } from "./seat-glyph";
+import { type RequestRow } from "@repo/domain/request-answers";
 
 const LEVEL_GLYPH = 13;
 const WANT_ICON = 15;
@@ -172,11 +173,13 @@ export function RequestCard({
 export function RequestDoneLine({
   request,
   decision,
+  outcome,
   canUndo,
   onUndo,
 }: {
   request: WaitingRequest;
   decision: RequestDecision;
+  outcome: SeatOutcome | undefined;
   canUndo: boolean;
   onUndo: () => void;
 }) {
@@ -214,7 +217,7 @@ export function RequestDoneLine({
           {name}
         </Text>{" "}
         <Text size="meta" tone="muted">
-          {waitingRequestDoneText(request, decision, locale)}
+          {waitingRequestDoneText(request, decision, locale, outcome)}
         </Text>
       </Text>
       {canUndo ? (
@@ -275,6 +278,7 @@ export function RequestRowItem({
       <RequestDoneLine
         request={row.request}
         decision={row.answer.decision}
+        outcome={row.answer.outcome}
         canUndo={answers.canUndo(row)}
         onUndo={() => answers.undo(row.request.id)}
       />

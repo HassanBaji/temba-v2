@@ -203,7 +203,6 @@ export const mobileGroup = {
       "علامة الوسم تعني اسمًا أعطته هذه المجموعة. يظهر في هذه المجموعة فقط، ولا يتغيّر اسم اللاعب في Temba ولا ملفه.",
   },
   requests: {
-    review: "مراجعة طلبات الانضمام",
     changeWhoCanJoin: "تغيير من يمكنه الانضمام",
     row: (name: string, meta: string) => `${name}. ${meta}`,
     quotedNote: (note: string) => `«${note}»`,
