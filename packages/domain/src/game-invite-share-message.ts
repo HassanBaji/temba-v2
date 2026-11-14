@@ -2,10 +2,11 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import {
+  formatGameDay,
   formatGameTimeWindow,
-  formatRelativeDay,
-  gameDayProximity,
+  formatWeekday,
 } from "./format-game-start";
+import { gameDayStart } from "./game-day";
 import { KEEPERS_PER_GAME } from "./football-lineup";
 import {
   isFootballGame,
@@ -14,7 +15,6 @@ import {
 } from "./game-shape";
 import { formatLevelRangeLabel } from "./level-range";
 import { showsFriendlyRoster } from "./game-summary-cta";
-import { zonedParts } from "./product-timezone";
 
 export type GameInviteShareOccupant = {
   name: string;
@@ -67,17 +67,13 @@ function sideSeats(
   };
 }
 
-const AFTERNOON_START_HOUR = 12;
-const EVENING_START_HOUR = 17;
-
+/** Always the weekday and date (`Monday, 12 Nov`): a pasted message outlives "Tonight". */
 function shareDay(start: Date | string, locale: Locale) {
   const date = start instanceof Date ? start : new Date(start);
-  const { hour } = zonedParts(date);
-  const afternoon = hour >= AFTERNOON_START_HOUR && hour < EVENING_START_HOUR;
-  if (afternoon && gameDayProximity(date) === "today") {
-    return messagesFor(locale).dates.thisAfternoon;
-  }
-  return formatRelativeDay(date, locale);
+  return messagesFor(locale).dates.weekdayAndDate(
+    formatWeekday(gameDayStart(date), "long", locale),
+    formatGameDay(date, locale),
+  );
 }
 
 function whereAndWhenLines(
