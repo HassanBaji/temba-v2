@@ -246,12 +246,14 @@ function MemberActionsMenu({
       ) : null}
       {onNickname ? (
         <ActionMenuItem onSelect={onNickname}>
-          <span className="flex w-full min-w-0 items-center justify-between gap-4">
-            <span>{m.group.nickname.menuLabel}</span>
-            <span className="text-muted-foreground truncate">
-              {nickname ?? m.group.nickname.notSet}
+          {nickname ? (
+            <span className="flex w-full min-w-0 items-center justify-between gap-4">
+              <span>{m.group.nickname.menuLabel}</span>
+              <span className="text-muted-foreground truncate">{nickname}</span>
             </span>
-          </span>
+          ) : (
+            m.group.nickname.addMenuLabel
+          )}
         </ActionMenuItem>
       ) : null}
       {setLevelHref ? (
@@ -382,7 +384,6 @@ function GroupMemberRow({
   sort,
   profileHref,
   actions,
-  onAddName,
 }: {
   member: GroupMember;
   canSetLevel: boolean;
@@ -392,8 +393,6 @@ function GroupMemberRow({
   sort: GroupMemberSort;
   profileHref?: string;
   actions?: ReactNode;
-  /** While managing, a member with no Member nickname offers one. */
-  onAddName?: () => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -454,16 +453,6 @@ function GroupMemberRow({
               </span>
             ) : null}
           </span>
-          {onAddName ? (
-            <button
-              type="button"
-              onClick={onAddName}
-              aria-label={m.group.nickname.addNameFor(member.name)}
-              className="text-eyebrow text-muted-foreground hover:text-ink focus-visible:ring-ring/50 ms-auto shrink-0 rounded-md px-1 py-2 outline-none focus-visible:ring-[3px]"
-            >
-              {m.group.nickname.addName}
-            </button>
-          ) : null}
         </span>
       </td>
       {tier ? (
@@ -1001,11 +990,6 @@ export function GroupMembersTab({
                         : undefined
                     }
                     actions={isManaging ? memberActions(member) : undefined}
-                    onAddName={
-                      isManaging && canSetNicknames && member.nickname == null
-                        ? () => nameMember(member)
-                        : undefined
-                    }
                   />
                 ))
               )}
