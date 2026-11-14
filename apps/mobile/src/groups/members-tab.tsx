@@ -766,6 +766,7 @@ export function MembersTab({
         member={selected ? memberSheetView(selected, locale, apiOrigin) : null}
         onClose={() => setSelectedUserId(null)}
         onCall={(href) => void Linking.openURL(href)}
+        onWhatsApp={(href) => void Linking.openURL(href)}
         onSetLevel={
           canSetLevel
             ? () => {

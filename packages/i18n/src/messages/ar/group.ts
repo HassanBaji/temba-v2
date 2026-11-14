@@ -674,6 +674,8 @@ export const group = {
       `إزالة ${name} من هذه المجموعة؟ تبقى مبارياته في السجل.`,
     removedToast: (name: string) => `أُزيل ${name}`,
     renameAction: "تعديل الاسم",
+    whatsAppAction: "واتساب",
+    whatsAppFor: (name: string) => `مراسلة ${name} على واتساب`,
     renameDescription:
       "يبقى هاتفه كما هو. إن كان الرقم خاطئًا، أزله ثم أضفه مجددًا.",
     renamedToast: (name: string) => `تغيّر الاسم إلى ${name}`,

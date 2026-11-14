@@ -2,7 +2,8 @@ import type { Locale } from "@repo/i18n/locale";
 import type { Messages } from "@repo/i18n/messages";
 import { kickAction } from "@repo/domain/game-copy";
 import { footballPositionChoices } from "@repo/domain/football-lineup";
-import { View } from "react-native";
+import { whatsAppHref } from "@repo/domain/phone-number";
+import { Linking, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
@@ -41,6 +42,9 @@ export function PlayerSheet({
   const locale = useLocale();
   const messages = useMessages();
   const m = messages.mobileTournament;
+  const chatHref = player?.phoneNumber
+    ? whatsAppHref(player.phoneNumber)
+    : null;
   return (
     <Sheet visible={player != null} onClose={onClose}>
       {player ? (
@@ -65,7 +69,17 @@ export function PlayerSheet({
               </Text>
             </View>
           </View>
-          <View style={{ flexDirection: "row", gap: 8 }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {chatHref ? (
+              <Button
+                label={messages.group.addPlayer.whatsAppAction}
+                accessibilityLabel={messages.group.addPlayer.whatsAppFor(
+                  player.name,
+                )}
+                variant="outline"
+                onPress={() => void Linking.openURL(chatHref)}
+              />
+            ) : null}
             {canOpenProfile && !player.guest ? (
               <Button
                 label={m.playerSheet.viewProfile}

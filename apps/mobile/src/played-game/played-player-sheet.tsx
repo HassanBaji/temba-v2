@@ -1,7 +1,8 @@
 import { kickAction } from "@repo/domain/game-copy";
+import { whatsAppHref } from "@repo/domain/phone-number";
 import type { PlayedRow } from "@repo/domain/played-game";
 import { isolate } from "@repo/i18n/bidi";
-import { View } from "react-native";
+import { Linking, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
@@ -34,6 +35,9 @@ export function PlayedPlayerSheet({
 }) {
   const locale = useLocale();
   const m = useMessages();
+  const chatHref = player?.phoneNumber
+    ? whatsAppHref(player.phoneNumber)
+    : null;
   const renameAction = m.group.addPlayer.renameAction;
   const kick = kickAction(locale);
   const meta = player
@@ -69,6 +73,16 @@ export function PlayedPlayerSheet({
             </View>
           </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {chatHref ? (
+              <Button
+                label={m.group.addPlayer.whatsAppAction}
+                accessibilityLabel={m.group.addPlayer.whatsAppFor(
+                  player.fullName,
+                )}
+                variant="outline"
+                onPress={() => void Linking.openURL(chatHref)}
+              />
+            ) : null}
             {canOpenProfile && !player.guest ? (
               <Button
                 label={m.mobilePlayer.played.viewProfile}

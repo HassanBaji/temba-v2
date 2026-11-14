@@ -59,6 +59,8 @@ export type BoardPlayer = {
   unclaimed?: boolean;
   guest?: boolean;
   phoneMasked?: string | null;
+  /** E.164, sent only to a Group approver for a current member (ADR-0078). */
+  phoneNumber?: string | null;
   /**
    * What Make teams balances on: Tier points, or the start hint while
    * Provisional, in a tier Group; the OVR elsewhere. Null for a viewer who
