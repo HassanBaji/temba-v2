@@ -92,7 +92,7 @@ A set of people who play Games of one sport. Every Group is either a Club Group 
 _Avoid_: Team, lobby, channel, club (when you mean a Group)
 
 **Verified Group**:
-A Group that may host Rated Games and public Games: one an Operator verified, one created by a User with Group creator access, or a Club Group. Every other Group's new Games are private. A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; a Club Group's verification is derived from its Venue link, not stored.
+A Group that may host Rated Games and public Games: one an Operator verified, or a Club Group. A new Group is never Verified at create, whoever creates it (ADR-0088). Every other Group's new Games are private. A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; a Club Group's verification is derived from its Venue link, not stored.
 _Avoid_: ranked Group, official Group, premium Group, permitted Group, groupCreator (that is a Clerk key)
 
 **Club Group**:
