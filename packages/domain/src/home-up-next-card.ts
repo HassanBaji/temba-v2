@@ -417,6 +417,12 @@ function gamePlan(
     icon: "invite",
     target: { ...open, intent: "invite" },
   };
+  // Organizers see their Groups' Games on Home before they take a seat.
+  const viewerIsOut = !game.isRegistered && !game.isSeated;
+  const fill: CardAction =
+    viewerIsOut && game.canRegister
+      ? { label: card.join, icon: null, target: { ...open, intent: "join" } }
+      : invite;
 
   if (who?.kind === "teams") {
     const viewerTeam = who.teams.find((team) =>
@@ -453,11 +459,13 @@ function gamePlan(
       return {
         step: {
           icon: "teams",
-          title: card.step.poolShort(missing),
+          title: viewerIsOut
+            ? card.step.poolShortOpen(missing)
+            : card.step.poolShort(missing),
           body: card.step.poolShortBody,
         },
         secondary: details,
-        primary: invite,
+        primary: fill,
       };
     }
     if (game.viewerIsOrganizer) {
@@ -483,10 +491,15 @@ function gamePlan(
   }
 
   if (openSeats(who).length > 0) {
+    const seat = openSeatStep(who, locale);
     return {
-      step: { icon: "invite", ...openSeatStep(who, locale) },
+      step: {
+        icon: "invite",
+        title: seat.title,
+        body: fill === invite ? seat.body : card.step.joinBody,
+      },
       secondary: details,
-      primary: invite,
+      primary: fill,
     };
   }
 

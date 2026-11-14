@@ -148,10 +148,16 @@ export const home = {
       seatLeftOnSide: (name: string) => `One seat left, on ${name}'s side`,
       inviteBody:
         "Invite someone to fill it, or share the game with your group.",
+      joinBody: "Take a seat, or share the game with your group.",
       poolShort: (n: number) =>
         plural("en", n, {
           one: "You're in. One more and it's on",
           other: "You're in. {n} more and it's on",
+        }),
+      poolShortOpen: (n: number) =>
+        plural("en", n, {
+          one: "One more and it's on",
+          other: "{n} more and it's on",
         }),
       poolShortBody: "Teams are made when it fills.",
       poolFullOrganizer: "Full. Time to make the teams",
