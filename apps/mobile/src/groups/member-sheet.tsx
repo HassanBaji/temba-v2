@@ -98,9 +98,9 @@ export function MemberSheet({
         onNickname ? (
           <SheetMenuRow
             key="nickname"
-            label={m.mobileGroup.nickname.menuLabel}
-            hint={m.mobileGroup.nickname.menuHint}
-            value={member.nickname ?? m.mobileGroup.nickname.notSet}
+            label={m.group.nickname.menuLabel}
+            hint={m.group.nickname.menuHint}
+            value={member.nickname ?? m.group.nickname.notSet}
             trailing="chevron"
             onPress={onNickname}
           />

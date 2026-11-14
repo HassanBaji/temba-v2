@@ -33,11 +33,9 @@ import {
 import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-menu";
 import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
 import {
-  JoinRequestsBanner,
-  JoinRequestsCard,
-  RejectRequestDialog,
+  GroupJoinPolicySummary,
+  GroupJoinRequests,
   WhoCanJoinDialog,
-  type JoinRequest,
 } from "~/components/groups/group-join-requests-section";
 import { RequestJoinDialog } from "~/components/groups/request-join-dialog";
 import { GroupMembersTab } from "~/components/groups/group-members-tab";
@@ -85,9 +83,11 @@ import {
 } from "@repo/domain/group-join";
 import {
   groupJoinRequestDecidedToast,
+  groupRejectRequestCopy,
   type GroupJoinRequestDecision,
   groupRemoveImageConfirm,
 } from "@repo/domain/group-admin";
+import { type WaitingRequest } from "@repo/domain/waiting-requests";
 import {
   groupLeaveBlockedHint,
   groupMenuRoleLine,
@@ -140,8 +140,7 @@ export default function GroupHomePage({
   const [addPlayerOpen, setAddPlayerOpen] = useState(false);
   const [requestJoinOpen, setRequestJoinOpen] = useState(false);
   const [whoCanJoinOpen, setWhoCanJoinOpen] = useState(false);
-  const [rejecting, setRejecting] = useState<JoinRequest | null>(null);
-  const joinRequestsRef = useRef<HTMLElement>(null);
+  const [blocking, setBlocking] = useState<WaitingRequest | null>(null);
   const [removing, setRemoving] = useState<{
     userId: string;
     name: string;
@@ -207,16 +206,12 @@ export default function GroupHomePage({
     },
   });
 
-  const joinRequests = api.groups.listJoinRequests.useQuery(
-    { groupId: id },
-    { enabled: Boolean(group.data?.canDecideJoinRequests) },
-  );
-
   async function refreshJoinRequests() {
     await Promise.all([
       utils.groups.byId.invalidate({ id }),
       utils.groups.mine.invalidate(),
       utils.groups.listJoinRequests.invalidate({ groupId: id }),
+      utils.notifications.waitingRequests.invalidate(),
     ]);
   }
 
@@ -229,7 +224,7 @@ export default function GroupHomePage({
     });
 
   function toastJoinRequestDecided(
-    request: JoinRequest,
+    request: { id: string; user: { name: string | null } },
     decision: GroupJoinRequestDecision,
   ) {
     toast.success(
@@ -247,13 +242,6 @@ export default function GroupHomePage({
       },
     );
   }
-
-  const approveJoinRequest = api.groups.approveJoinRequest.useMutation({
-    onSettled: refreshJoinRequests,
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
 
   const rejectJoinRequest = api.groups.rejectJoinRequest.useMutation({
     onSettled: refreshJoinRequests,
@@ -554,6 +542,10 @@ export default function GroupHomePage({
     canChangeRatingSettings: data.ratingSettings != null,
   });
   const leaveConfirm = groupLeaveConfirm(groupName, locale);
+  const blockCopy = groupRejectRequestCopy(
+    blocking?.user.name ?? m.webGroup.userFallback,
+    locale,
+  );
   const leaveVenueConfirm = groupLeaveVenueConfirm(
     groupName,
     venueName,
@@ -775,6 +767,7 @@ export default function GroupHomePage({
                   phoneMasked: entry.phoneMasked,
                   phoneNumber: entry.phoneNumber,
                   canRename: entry.canRename,
+                  nickname: entry.nickname ?? null,
                 }))}
                 linkToPlayers={groupMemberRowsLink(data.membership)}
                 canInvite={canManageInvites}
@@ -785,6 +778,7 @@ export default function GroupHomePage({
                 canRemovePlayers={data.canRemovePlayers}
                 onRemovePlayer={setRemoving}
                 canAppointOrganizers={data.canAppointOrganizers}
+                canSetNicknames={data.canSetMemberNicknames}
                 pendingInvites={
                   data.canManageLookupInvites
                     ? (lookupInvites.data ?? []).map((invite) => ({
@@ -804,54 +798,21 @@ export default function GroupHomePage({
                 }
                 top={
                   data.canDecideJoinRequests ? (
-                    <JoinRequestsBanner
-                      count={joinRequests.data?.length ?? 0}
-                      onReview={() => {
-                        joinRequestsRef.current?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "start",
-                        });
-                        joinRequestsRef.current?.focus({
-                          preventScroll: true,
-                        });
-                      }}
+                    <GroupJoinRequests
+                      groupId={id}
+                      requiresApproval={data.requiresApproval}
+                      linkToProfiles={groupMemberRowsLink(data.membership)}
+                      onBlock={setBlocking}
+                      onChangePolicy={() => setWhoCanJoinOpen(true)}
                     />
                   ) : null
                 }
                 afterTable={
                   data.canDecideJoinRequests ? (
-                    <JoinRequestsCard
-                      ref={joinRequestsRef}
-                      requests={joinRequests.data}
-                      loading={joinRequests.isLoading}
-                      error={joinRequests.error?.message}
-                      onRetry={() => {
-                        void joinRequests.refetch();
-                      }}
+                    <GroupJoinPolicySummary
+                      groupId={id}
                       requiresApproval={data.requiresApproval}
                       approvedToday={data.joinRequestsApprovedToday}
-                      showLevel={groupShowsLevel(data.sport)}
-                      linkToProfiles={groupMemberRowsLink(data.membership)}
-                      approvePendingId={
-                        approveJoinRequest.isPending
-                          ? approveJoinRequest.variables?.requestId
-                          : undefined
-                      }
-                      rejectPendingId={
-                        rejectJoinRequest.isPending
-                          ? rejectJoinRequest.variables?.requestId
-                          : undefined
-                      }
-                      onApprove={(request) =>
-                        approveJoinRequest.mutate(
-                          { requestId: request.id },
-                          {
-                            onSuccess: () =>
-                              toastJoinRequestDecided(request, "approved"),
-                          },
-                        )
-                      }
-                      onAskReject={setRejecting}
                       onChangePolicy={() => setWhoCanJoinOpen(true)}
                     />
                   ) : null
@@ -892,35 +853,26 @@ export default function GroupHomePage({
       />
       {data.canDecideJoinRequests ? (
         <>
-          <RejectRequestDialog
-            request={rejecting}
-            pending={
-              rejectJoinRequest.isPending
-                ? rejectJoinRequest.variables?.block
-                  ? "block"
-                  : "reject"
-                : null
-            }
+          <ConfirmDialog
+            open={blocking != null}
             onOpenChange={(open) => {
               if (!open) {
-                setRejecting(null);
+                setBlocking(null);
               }
             }}
-            onReject={(block) => {
-              if (!rejecting) {
+            title={blockCopy.title}
+            description={blockCopy.description}
+            confirmLabel={blockCopy.blockLabel}
+            pending={rejectJoinRequest.isPending}
+            onConfirm={() => {
+              if (!blocking) {
                 return;
               }
-              const request = rejecting;
+              const request = blocking;
               rejectJoinRequest.mutate(
-                { requestId: request.id, block },
+                { requestId: request.id, block: true },
                 {
-                  onSuccess: () => {
-                    setRejecting(null);
-                    toastJoinRequestDecided(
-                      request,
-                      block ? "blocked" : "rejected",
-                    );
-                  },
+                  onSuccess: () => toastJoinRequestDecided(request, "blocked"),
                 },
               );
             }}

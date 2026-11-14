@@ -7,6 +7,7 @@ import {
   ResponsiveDialog,
   ResponsiveDialogContent,
   ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
@@ -79,181 +80,189 @@ function AdjustTierForm({
   const pending = adjust.isPending;
 
   return (
-    <div className="flex flex-col gap-5 px-4 pb-4 md:px-0 md:pb-0">
-      <div className="flex items-center gap-3">
-        <UserAvatar name={view.name} image={image} className="size-10" />
-        <div className="min-w-0">
-          <p className="text-body truncate font-semibold">{view.name}</p>
-          <p className="text-meta text-muted-foreground">{view.nowLine}</p>
-        </div>
-      </div>
-
-      <div className="border-rule rounded-card flex flex-col gap-4 border p-4">
-        <div className="flex gap-3" aria-live="polite">
-          <div className="min-w-0 flex-1">
-            <p className="text-eyebrow text-muted-foreground">
-              {copy.newPoints}
-            </p>
-            <p className="flex items-baseline gap-2">
-              <span className="font-expanded text-h1 font-bold tabular-nums">
-                {view.pointsLabel}
-              </span>
-              <span className="text-meta text-muted-foreground tabular-nums">
-                {view.deltaLabel}
-              </span>
-            </p>
+    <>
+      <div className="flex min-h-0 flex-col gap-5 overflow-y-auto overscroll-contain px-4 pb-4 md:px-0 md:pb-0">
+        <div className="flex items-center gap-3">
+          <UserAvatar name={view.name} image={image} className="size-10" />
+          <div className="min-w-0">
+            <p className="text-body truncate font-semibold">{view.name}</p>
+            <p className="text-meta text-muted-foreground">{view.nowLine}</p>
           </div>
-          <div className="text-end">
-            <p className="text-eyebrow text-muted-foreground">{copy.place}</p>
-            {view.placeLabel ? (
-              <p className="font-expanded text-h1 font-bold tabular-nums">
-                {view.placeLabel}
+        </div>
+
+        <div className="border-rule rounded-card flex flex-col gap-4 border p-4">
+          <div className="flex gap-3" aria-live="polite">
+            <div className="min-w-0 flex-1">
+              <p className="text-eyebrow text-muted-foreground">
+                {copy.newPoints}
               </p>
-            ) : (
-              <Hatch className="ms-auto block h-[34px] w-11" />
-            )}
-            <p className="text-meta text-muted-foreground">{view.bandLabel}</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-4 gap-2">
-          {view.steps.map((step) => (
-            <Button
-              key={step.delta}
-              type="button"
-              variant="outline"
-              className="min-h-11 tabular-nums"
-              aria-label={step.accessibilityLabel}
-              disabled={pending || step.disabled}
-              onClick={() => setDelta(view.delta + step.delta)}
-            >
-              {step.label}
-            </Button>
-          ))}
-        </div>
-        {view.suggestion ? (
-          <div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={pending || view.delta === view.suggestion.delta}
-              onClick={() => setDelta(view.suggestion?.delta ?? 0)}
-            >
-              {view.suggestion.label}
-            </Button>
-          </div>
-        ) : null}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-meta text-muted-foreground">{copy.orJump}</span>
-          {view.jumps.map((jump) => (
-            <Button
-              key={jump.band}
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={pending}
-              onClick={() => setDelta(jump.delta)}
-            >
-              {jump.label}
-            </Button>
-          ))}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={pending || view.delta === 0}
-            onClick={() => setDelta(0)}
-          >
-            {copy.reset}
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2.5">
-        <p className="text-meta text-muted-foreground">{copy.tierAfter}</p>
-        <ul className="grid grid-cols-4" aria-label={copy.tierAfter}>
-          {view.bands.map((band) => (
-            <li
-              key={band.band}
-              aria-current={band.current ? "true" : undefined}
-              className={cn(
-                "flex flex-col items-center gap-1",
-                band.current ? "opacity-100" : "opacity-20",
+              <p className="flex items-baseline gap-2">
+                <span className="font-expanded text-h1 font-bold tabular-nums">
+                  {view.pointsLabel}
+                </span>
+                <span className="text-meta text-muted-foreground tabular-nums">
+                  {view.deltaLabel}
+                </span>
+              </p>
+            </div>
+            <div className="text-end">
+              <p className="text-eyebrow text-muted-foreground">{copy.place}</p>
+              {view.placeLabel ? (
+                <p className="font-expanded text-h1 font-bold tabular-nums">
+                  {view.placeLabel}
+                </p>
+              ) : (
+                <Hatch className="ms-auto block h-[34px] w-11" />
               )}
+              <p className="text-meta text-muted-foreground">
+                {view.bandLabel}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {view.steps.map((step) => (
+              <Button
+                key={step.delta}
+                type="button"
+                variant="outline"
+                className="min-h-11 tabular-nums"
+                aria-label={step.accessibilityLabel}
+                disabled={pending || step.disabled}
+                onClick={() => setDelta(view.delta + step.delta)}
+              >
+                {step.label}
+              </Button>
+            ))}
+          </div>
+          {view.suggestion ? (
+            <div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={pending || view.delta === view.suggestion.delta}
+                onClick={() => setDelta(view.suggestion?.delta ?? 0)}
+              >
+                {view.suggestion.label}
+              </Button>
+            </div>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-meta text-muted-foreground">
+              {copy.orJump}
+            </span>
+            {view.jumps.map((jump) => (
+              <Button
+                key={jump.band}
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={pending}
+                onClick={() => setDelta(jump.delta)}
+              >
+                {jump.label}
+              </Button>
+            ))}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={pending || view.delta === 0}
+              onClick={() => setDelta(0)}
             >
-              <TierFish band={band.band} label={band.label} />
-              <span
+              {copy.reset}
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2.5">
+          <p className="text-meta text-muted-foreground">{copy.tierAfter}</p>
+          <ul className="grid grid-cols-4" aria-label={copy.tierAfter}>
+            {view.bands.map((band) => (
+              <li
+                key={band.band}
+                aria-current={band.current ? "true" : undefined}
                 className={cn(
-                  "text-eyebrow truncate",
-                  band.current && "font-semibold",
+                  "flex flex-col items-center gap-1",
+                  band.current ? "opacity-100" : "opacity-20",
                 )}
               >
-                {band.label}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <p className="text-meta text-muted-foreground" aria-live="polite">
-          {view.effect}
-        </p>
+                <TierFish band={band.band} label={band.label} />
+                <span
+                  className={cn(
+                    "text-eyebrow truncate",
+                    band.current && "font-semibold",
+                  )}
+                >
+                  {band.label}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-meta text-muted-foreground" aria-live="polite">
+            {view.effect}
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <p id={REASON_LABEL_ID} className="text-meta text-muted-foreground">
+            {view.why}
+          </p>
+          <RovingRadioGroup
+            aria-labelledby={REASON_LABEL_ID}
+            className="flex flex-wrap gap-2"
+          >
+            {view.reasons.map((option) => (
+              <ChoiceChip
+                key={option.value}
+                role="radio"
+                selected={option.selected}
+                disabled={pending}
+                onClick={() =>
+                  setReason(reason === option.value ? null : option.value)
+                }
+              >
+                {option.label}
+              </ChoiceChip>
+            ))}
+          </RovingRadioGroup>
+          <Input
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder={copy.notePlaceholder}
+            aria-label={copy.noteLabel}
+            maxLength={TIER_ADJUST_NOTE_MAX}
+            disabled={pending}
+          />
+        </div>
+
+        <FormErrorSummary message={globalFormErrorMessage(adjust.error)} />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <p id={REASON_LABEL_ID} className="text-meta text-muted-foreground">
-          {view.why}
-        </p>
-        <RovingRadioGroup
-          aria-labelledby={REASON_LABEL_ID}
-          className="flex flex-wrap gap-2"
+      <ResponsiveDialogFooter>
+        <Button
+          type="button"
+          size="lg"
+          className="w-full font-semibold"
+          disabled={!view.canSave || pending}
+          aria-busy={pending}
+          onClick={() => {
+            if (!reason) {
+              return;
+            }
+            adjust.mutate({
+              groupId,
+              userId,
+              points: view.points,
+              reason,
+              note: note.trim() || undefined,
+            });
+          }}
         >
-          {view.reasons.map((option) => (
-            <ChoiceChip
-              key={option.value}
-              role="radio"
-              selected={option.selected}
-              disabled={pending}
-              onClick={() =>
-                setReason(reason === option.value ? null : option.value)
-              }
-            >
-              {option.label}
-            </ChoiceChip>
-          ))}
-        </RovingRadioGroup>
-        <Input
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder={copy.notePlaceholder}
-          aria-label={copy.noteLabel}
-          maxLength={TIER_ADJUST_NOTE_MAX}
-          disabled={pending}
-        />
-      </div>
-
-      <FormErrorSummary message={globalFormErrorMessage(adjust.error)} />
-
-      <Button
-        type="button"
-        size="lg"
-        className="w-full font-semibold"
-        disabled={!view.canSave || pending}
-        aria-busy={pending}
-        onClick={() => {
-          if (!reason) {
-            return;
-          }
-          adjust.mutate({
-            groupId,
-            userId,
-            points: view.points,
-            reason,
-            note: note.trim() || undefined,
-          });
-        }}
-      >
-        {view.saveLabel}
-      </Button>
-    </div>
+          {view.saveLabel}
+        </Button>
+      </ResponsiveDialogFooter>
+    </>
   );
 }
 

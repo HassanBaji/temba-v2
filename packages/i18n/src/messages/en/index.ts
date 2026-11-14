@@ -14,6 +14,7 @@ import { profile } from "./profile";
 import { onboarding } from "./onboarding";
 import { booking } from "./booking";
 import { notification } from "./notification";
+import { requests } from "./requests";
 import { email } from "./email";
 import { marks } from "./marks";
 import { auth } from "./auth";
@@ -68,6 +69,7 @@ export const en = {
   onboarding,
   booking,
   notification,
+  requests,
   email,
   marks,
   auth,

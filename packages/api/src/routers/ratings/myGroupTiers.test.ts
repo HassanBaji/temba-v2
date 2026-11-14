@@ -163,7 +163,7 @@ describe("ratings.myGroupTiers", () => {
     }
   });
 
-  it("shows a place without fish while fewer than four are ranked", async () => {
+  it("shows a place without fish while fewer than two are ranked", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const players = await insertUsers(db, 3);
@@ -178,13 +178,13 @@ describe("ratings.myGroupTiers", () => {
           groupId,
           userId,
           points: 1300 - index * 50,
-          gamesCounted: 6,
+          gamesCounted: index === 0 ? 6 : 2,
         })),
       );
 
-      const [row] = await myGroupTiers(db as never, { userId: ids[1]! });
+      const [row] = await myGroupTiers(db as never, { userId: ids[0]! });
 
-      expect(row).toMatchObject({ place: 2, band: null, rankedCount: 3 });
+      expect(row).toMatchObject({ place: 1, band: null, rankedCount: 1 });
     } finally {
       await close();
     }

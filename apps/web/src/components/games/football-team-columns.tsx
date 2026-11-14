@@ -1,6 +1,5 @@
 "use client";
 
-import { Tag as TagIcon } from "lucide-react";
 import {
   boardTierCell,
   byKeeperThenLevel,
@@ -18,6 +17,7 @@ import type {
 } from "@repo/domain/football-lineup";
 import type { GroupMemberTierCell } from "@repo/domain/group-members-table";
 
+import { NicknameName } from "~/components/temba/nickname-name";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { TierCell } from "~/components/groups/tier-fish";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -75,19 +75,14 @@ export function BibRow({
         size="sm"
         guest={player.guest}
       />
-      <span
+      <NicknameName
+        name={name}
+        isNickname={isNickname}
         className={cn(
-          "text-meta flex min-w-0 flex-1 items-center gap-1",
+          "text-meta flex-1 [text-align:match-parent]",
           player.isViewer && "font-semibold",
         )}
-      >
-        {isNickname ? (
-          <TagIcon aria-hidden className="size-3 shrink-0" />
-        ) : null}
-        <span dir="auto" className="truncate [text-align:match-parent]">
-          {name}
-        </span>
-      </span>
+      />
       {code ? (
         <span className="font-mono text-[11px] opacity-70">{code}</span>
       ) : null}

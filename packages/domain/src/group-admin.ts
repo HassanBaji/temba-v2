@@ -37,14 +37,6 @@ export function groupJoinRequestMeta(
   return formatRequestedAt(request.createdAt, locale, now);
 }
 
-export function groupJoinRequestsBannerText(count: number, locale: Locale) {
-  return messagesFor(locale).group.admin.requestsBanner(count);
-}
-
-export function groupJoinRequestsHeading(count: number, locale: Locale) {
-  return messagesFor(locale).group.admin.requestsHeading(count);
-}
-
 export function groupJoinPolicyLine(requiresApproval: boolean, locale: Locale) {
   const m = messagesFor(locale).group.admin.policy;
   return requiresApproval ? m.approve : m.open;

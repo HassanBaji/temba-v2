@@ -37,8 +37,7 @@ import {
 import { groupLookupNote } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { useLocalSearchParams, useRouter, useSegments } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
-import type { ScrollView, View } from "react-native";
+import { useCallback, useMemo, useState } from "react";
 
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
 import { RenamePlayerSheet } from "../game-details/rename-player-sheet";
@@ -84,8 +83,6 @@ type OlderPages = {
   games: GroupHomeData["gameHistory"];
   exhausted: boolean;
 };
-
-const SCROLL_TARGET_INSET = 16;
 
 export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const m = useMessages();
@@ -258,22 +255,6 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
       }),
     [router],
   );
-  const scrollRef = useRef<ScrollView>(null);
-  const scrollTo = useCallback((target: View | null) => {
-    const scroll = scrollRef.current;
-    // React Native types the inner content node as `any`; it is a host node.
-    const content = scroll?.getInnerViewNode() as number | null | undefined;
-    if (!target || !scroll || content == null) {
-      return;
-    }
-    target.measureLayout(content, (_x, y) =>
-      scroll.scrollTo({
-        y: Math.max(0, y - SCROLL_TARGET_INSET),
-        animated: true,
-      }),
-    );
-  }, []);
-
   const header = <ScreenHeader nav="back" fallback="/groups" />;
 
   if (isNotFoundError(group.error)) {
@@ -350,9 +331,8 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   };
 
   return (
-    <Screen refreshing={refreshing} onRefresh={onRefresh} scrollRef={scrollRef}>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
       <GroupHomeView
-        onScrollTo={scrollTo}
         data={data}
         apiOrigin={apiOrigin}
         tab={tab}
