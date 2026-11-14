@@ -446,7 +446,7 @@ describe("ratings.history (screen 1c)", () => {
       const members = await Promise.all(
         ["Ali", "Bader", "Cyrus", "Dana"].map((name) => addMember(f, name)),
       );
-      const [ali, , , dana] = members;
+      const [, , cyrus, dana] = members;
       const start = Date.parse("2026-10-01T09:00:00Z");
       for (const [index, [userId, points]] of [
         [members[0]!, 1350],
@@ -472,28 +472,28 @@ describe("ratings.history (screen 1c)", () => {
         now: new Date(start + 10 * 60_000),
       });
 
-      const ofAli = await ratingHistory(apiDb(db), {
-        userId: ali!,
+      const ofCyrus = await ratingHistory(apiDb(db), {
+        userId: cyrus!,
         ladder: "tier",
       });
-      const [latest] = ofAli.entries;
+      const [latest] = ofCyrus.entries;
       expect(latest).toMatchObject({
         kind: "tier_band",
         bandBefore: "shark",
-        bandAfter: "kanaad",
-        place: 2,
+        bandAfter: "safi",
+        place: 4,
         rankedCount: 4,
         memberCount: 5,
-        points: 1350,
+        points: 1250,
       });
-      expect(ratingHistoryLine(latest!, ali!, "en")).toMatchObject({
-        title: "Down to Kanaad",
-        detail: "Thursday Football, now #2 of 5",
+      expect(ratingHistoryLine(latest!, cyrus!, "en")).toMatchObject({
+        title: "Down to Safi",
+        detail: "Thursday Football, now #4 of 5",
         delta: "tier",
-        after: "1,350",
+        after: "1,250",
       });
       expect(
-        ofAli.entries.filter((entry) => entry.kind === "tier_adjustment"),
+        ofCyrus.entries.filter((entry) => entry.kind === "tier_adjustment"),
       ).toHaveLength(1);
     });
   });
