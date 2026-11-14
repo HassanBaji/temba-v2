@@ -2,7 +2,8 @@
 
 import { Tag as TagIcon } from "lucide-react";
 import {
-  levelLabel,
+  ovrLabel,
+  ovrSpoken,
   poolSections,
   lineupName,
   slotCode,
@@ -45,7 +46,7 @@ function PlayerTile({
       aria-label={[
         spoken,
         code,
-        levelLabel(player.levelBand),
+        ovrSpoken(player, locale),
         player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
         player.guest ? m.group.addPlayer.guest.tag : null,
       ]
@@ -95,7 +96,7 @@ function PlayerTile({
           </span>
         </span>
         <span dir="ltr" className="font-expanded text-meta">
-          {levelLabel(player.levelBand)}
+          {ovrLabel(player)}
         </span>
       </span>
     </Tag>

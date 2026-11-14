@@ -5,12 +5,14 @@ import { describe, it } from "vitest";
 import { messagesFor } from "@repo/i18n/messages";
 
 import type { BoardPlayer } from "./football-board";
+import { muFromOvr } from "./football-ovr";
 import type { FriendlyGameDetailsSide } from "./friendly-game-details";
 import {
   gameIsPlayed,
   padelPairLine,
   playedDurationLabel,
   playedFootballModel,
+  playedFootballRatingLine,
   playedPadelModel,
   playedRatingLine,
   playedTagLabel,
@@ -322,7 +324,7 @@ function player(
 
 const footballPlayers: BoardPlayer[] = [
   player("u1", "Jassim Ahmed", 1, { role: "keeper", position: null }),
-  player("u2", "Nematulla Said", 1, { goals: 4, levelBand: "B2" }),
+  player("u2", "Nematulla Said", 1, { goals: 4, levelBand: "B2", ovr: 81 }),
   player("u3", "Mohamed Jaber", 1, { goals: 2 }),
   player("u4", "Hassan Ibrahim", 2, { role: "keeper", position: null }),
   player(VIEWER, "Elin Larsson", 2, { goals: 3, isViewer: true }),
@@ -454,13 +456,15 @@ describe("playedFootballModel", () => {
     assert.equal(black.bib, "black");
     assert.equal(black.word, "Lost");
     assert.deepEqual(
-      black.players.map((row) => [row.name, row.meta, row.trailing]),
+      black.players.map((row) => [row.name, row.meta, row.level, row.trailing]),
       [
-        ["Jassim A", "GK", null],
-        ["Nematulla S", "MID", "4 goals"],
-        ["Mohamed J", "MID", "2 goals"],
+        ["Jassim A", "GK", "–", null],
+        ["Nematulla S", "MID", "81", "4 goals"],
+        ["Mohamed J", "MID", "–", "2 goals"],
       ],
     );
+    assert.equal(black.players[1]?.levelSpoken, "OVR 81");
+    assert.equal(black.players[0]?.levelSpoken, null);
     assert.equal(white.word, "Won");
     assert.deepEqual(
       model.unplaced.map((row) => row.name),
@@ -494,7 +498,7 @@ describe("playedFootballModel", () => {
         sideSize: null,
         groupName: null,
         rated: true,
-        ratingImpact: { levelChange: 0, newLevelBand: "C1" },
+        ratingImpact: { levelChange: 0, muAfter: muFromOvr(72) },
       },
       "en",
     );
@@ -504,7 +508,7 @@ describe("playedFootballModel", () => {
     assert.equal(draw.result.line, "Draw, both sides level");
     assert.equal(draw.result.hasWinner, false);
     assert.equal(draw.you?.tag, "DRAW");
-    assert.equal(draw.you?.ratingLine, "Counts for rating, C+ holds");
+    assert.equal(draw.you?.ratingLine, "Counts for rating, OVR 72 holds");
     assert.deepEqual(
       draw.columns.map((column) => column.word),
       ["Draw", "Draw"],
@@ -530,6 +534,18 @@ describe("played lines", () => {
     assert.equal(
       playedRatingLine(true, { levelChange: -0.3, newLevelBand: "C2" }, "en"),
       "Counts for rating, C moves down",
+    );
+    assert.equal(
+      playedFootballRatingLine(
+        true,
+        { levelChange: 0.4, muAfter: muFromOvr(72) },
+        "en",
+      ),
+      "Counts for rating, OVR 72 moves up",
+    );
+    assert.equal(
+      playedFootballRatingLine(false, null, "en"),
+      "Friendly, does not count for rating",
     );
   });
 });

@@ -83,6 +83,9 @@ export const profile = {
       `Level ${band} ${level}, Provisional. ${caption}`,
     spokenLevel: (band: string, level: string, details: string) =>
       `Level ${band} ${level}. ${details}`,
+    spokenOvrProvisional: (ovr: string, caption: string) =>
+      `OVR ${ovr}, Provisional. ${caption}`,
+    spokenOvr: (ovr: string, details: string) => `OVR ${ovr}. ${details}`,
   },
   matches: {
     friendlyGame: "Friendly game",

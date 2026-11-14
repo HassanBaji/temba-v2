@@ -180,7 +180,6 @@ function levelSpokenLabel(
   view: LevelCellView,
   levelText: string | null,
   locale: Locale,
-  carriesValue = false,
 ) {
   const m = messagesFor(locale).mobileGroup.members;
   if (view.kind === "label") {
@@ -189,9 +188,18 @@ function levelSpokenLabel(
   if (view.label && levelText) {
     return m.levelSpokenProvisional(`${view.label} ${levelText}`);
   }
-  return view.label && carriesValue
-    ? m.levelSpokenProvisional(view.label)
-    : m.levelStillProvisional;
+  return m.levelStillProvisional;
+}
+
+/** A football member's Level read out as OVR, with no band (ADR-0087). */
+export function ovrSpokenLabel(view: LevelCellView, locale: Locale) {
+  const m = messagesFor(locale);
+  if (!view.label) {
+    return m.mobileGroup.members.levelStillProvisional;
+  }
+  return view.kind === "label"
+    ? m.rating.ovr.value(view.label)
+    : m.rating.ovr.valueProvisional(view.label);
 }
 
 export function memberIsRemovable(
@@ -275,7 +283,7 @@ export function memberRowView(
           : tier.spoken
         : ovr == null
           ? levelSpokenLabel(level, entry.level, locale)
-          : levelSpokenLabel(level, null, locale, true),
+          : ovrSpokenLabel(level, locale),
     ]
       .filter(Boolean)
       .join(". "),

@@ -166,14 +166,16 @@ describe("memberList on a Verified football Group", () => {
     },
   ];
 
-  it("reads each Level as OVR with its band, the highest OVR first", () => {
+  it("reads each Level as the bare OVR with no band, the highest OVR first", () => {
     const rows = memberList(football, "", ORIGIN, "en").rows;
     expect(rows.map((row) => row.key)).toEqual(["yousif", "ali", "noor"]);
-    expect(rows[0]!.level).toEqual({ kind: "label", label: "C+ 72" });
-    expect(rows[0]!.accessibilityLabel).toContain("Level C+ 72");
+    expect(rows[0]!.level).toEqual({ kind: "label", label: "72" });
+    expect(rows[0]!.accessibilityLabel).toContain("OVR 72");
     expect(rows[0]!.accessibilityLabel).not.toContain("3.7");
-    expect(rows[2]!.level).toEqual({ kind: "provisional", label: "C- 61" });
-    expect(rows[2]!.accessibilityLabel).toContain("C- 61");
+    expect(rows[0]!.accessibilityLabel).not.toContain("C+");
+    expect(rows[2]!.level).toEqual({ kind: "provisional", label: "61" });
+    expect(rows[2]!.accessibilityLabel).toContain("OVR 61, still Provisional");
+    expect(rows[2]!.accessibilityLabel).not.toContain("C-");
   });
 });
 

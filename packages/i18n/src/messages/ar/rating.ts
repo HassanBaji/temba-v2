@@ -543,15 +543,18 @@ export const rating = {
   ovr: {
     label: "OVR",
     value: (ovr: string) => `${isolate("OVR")} ${isolate(ovr)}`,
+    valueProvisional: (ovr: string) =>
+      `${isolate("OVR")} ${isolate(ovr)}، لا يزال مبدئيًا`,
     startsAt: (description: string, ovr: string) =>
       `${description} تبدأ عند ${isolate("OVR")} ${isolate(ovr)}.`,
     member: (band: string, ovr: string) =>
       `${isolate(band)}، ${isolate("OVR")} ${isolate(ovr)}`,
-    team: (band: string, ovr: string) =>
-      `${isolate(band)}، بمعدل ${isolate("OVR")} ${isolate(ovr)}`,
     avg: (ovr: string) => `بمعدل ${isolate("OVR")} ${isolate(ovr)}`,
-    heroSpoken: (ovr: string, band: string, detail: string) =>
-      `${isolate("OVR")} ${isolate(ovr)}، الفئة ${isolate(band)}. ${detail}`,
+    span: (min: string, max: string) => isolate(`${min}–${max}`),
+    heroSpoken: (ovr: string, placement: string | null) =>
+      placement
+        ? `${isolate("OVR")} ${isolate(ovr)}. ${placement}`
+        : `${isolate("OVR")} ${isolate(ovr)}`,
   },
   performance: {
     title: "قيّم المباراة",

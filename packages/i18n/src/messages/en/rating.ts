@@ -469,13 +469,14 @@ export const rating = {
   ovr: {
     label: "OVR",
     value: (ovr: string) => `OVR ${ovr}`,
+    valueProvisional: (ovr: string) => `OVR ${ovr}, still Provisional`,
     startsAt: (description: string, ovr: string) =>
       `${description} Starts at OVR ${ovr}.`,
     member: (band: string, ovr: string) => `${band}, OVR ${ovr}`,
-    team: (band: string, ovr: string) => `${band}, avg OVR ${ovr}`,
     avg: (ovr: string) => `avg OVR ${ovr}`,
-    heroSpoken: (ovr: string, band: string, detail: string) =>
-      `OVR ${ovr}, band ${band}. ${detail}`,
+    span: (min: string, max: string) => `${min}–${max}`,
+    heroSpoken: (ovr: string, placement: string | null) =>
+      placement ? `OVR ${ovr}. ${placement}` : `OVR ${ovr}`,
   },
   performance: {
     title: "Rate the game",

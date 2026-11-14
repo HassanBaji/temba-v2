@@ -235,5 +235,11 @@ export type GroupJoinRequestData = {
   note: string | null;
   source: GroupJoinRequestSource | null;
   invitedBy: { id: string; name: string } | null;
-  level: { levelBand: LevelBand; provisional: boolean; level: string } | null;
+  level: {
+    levelBand: LevelBand;
+    provisional: boolean;
+    level: string;
+    /** The whole OVR in a football Group, which the chip shows in place of the band. */
+    ovr?: number | null;
+  } | null;
 };

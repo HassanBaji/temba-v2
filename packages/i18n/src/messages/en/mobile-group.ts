@@ -219,6 +219,8 @@ export const mobileGroup = {
     newLevel: "New Level",
     readout: (band: string, level: string, delta: string) =>
       `New Level ${band} ${level}, ${delta}`,
+    readoutOvr: (ovr: string, delta: string) =>
+      `New Level OVR ${ovr}, ${delta}`,
     toNext: (distance: string, label: string) => `${distance} to ${label}`,
     topOfScale: "Top of the scale",
     throughRung: (percent: number, rung: string) =>

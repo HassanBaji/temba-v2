@@ -870,6 +870,40 @@ describe("notificationCopy for a Level set", () => {
     );
   });
 
+  it("reads a football Level as OVR, with no band", () => {
+    assert.deepEqual(
+      levelSet({
+        levelSet: {
+          level: "72",
+          levelBand: "C1",
+          sport: "football",
+          reason: "plays_above_results",
+        },
+      })?.title,
+      [
+        { text: "Sara", strong: true },
+        { text: " set your Level to ", strong: false },
+        { text: "OVR 72", strong: true },
+      ],
+    );
+    const arabic = notificationCopy(
+      {
+        type: "level_set",
+        audience: "player",
+        actor: { name: "سارة" },
+        group: null,
+        levelSet: {
+          level: "72",
+          levelBand: "C1",
+          sport: "football",
+          reason: "plays_above_results",
+        },
+      },
+      "ar",
+    );
+    assert.equal(arabic?.title.at(-1)?.text, `OVR ${isolate("72")}`);
+  });
+
   it("names the Verifier and their Venue on a calibration", () => {
     assert.deepEqual(
       levelSet({
@@ -878,6 +912,7 @@ describe("notificationCopy for a Level set", () => {
         levelSet: {
           level: "71",
           levelBand: "C1",
+          sport: "football",
           reason: "plays_above_results",
           venue: { name: "Fantasy FC" },
         },
@@ -888,7 +923,7 @@ describe("notificationCopy for a Level set", () => {
           { text: " (", strong: false },
           { text: "Fantasy FC", strong: true },
           { text: ") calibrated your Level to ", strong: false },
-          { text: "C+ 71", strong: true },
+          { text: "OVR 71", strong: true },
         ],
         subline: "Plays above results",
       },

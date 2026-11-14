@@ -62,6 +62,22 @@ describe("gameInviteOpenGraphMetadata", () => {
     expect(metadata.description).not.toMatch(/5\.2|Your Level/);
   });
 
+  it("reads a football Game's range in OVR, never a band", () => {
+    const metadata = gameInviteOpenGraphMetadata({
+      venueName: "Pitch Club",
+      windowStart: null,
+      windowEnd: null,
+      format: "friendly_game",
+      registrationMode: "individual",
+      occupiedCount: 0,
+      levelMinTenths: 30,
+      levelMaxTenths: 45,
+      sport: "football",
+      locale: "en",
+    });
+    expect(metadata.description).toBe("Pitch Club, OVR 65 to 78");
+  });
+
   it("titles a Group Game with the Group name and leads the description with the Venue", () => {
     const start = bahrainDate(2026, 8, 15, 19, 0, 0);
     const end = bahrainDate(2026, 8, 15, 20, 0, 0);

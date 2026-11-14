@@ -42,8 +42,11 @@ export type NotificationCopyInput = {
 };
 
 type NotificationLevelSet = {
+  /** The one-decimal Level on padel, the whole OVR on football. */
   level: string;
   levelBand: LevelBand;
+  /** Football reads `OVR 72`, with no band (ADR-0087). */
+  sport?: string | null;
   reason: LevelOverrideReason | null;
   note?: string | null;
   /** Set when a Verifier calibrated the Level from this Venue. */
@@ -286,9 +289,12 @@ export function notificationCopy(
     item.audience === "player" &&
     item.levelSet
   ) {
-    const { level, levelBand, reason, note, venue } = item.levelSet;
+    const { level, levelBand, sport, reason, note, venue } = item.levelSet;
     const actor = actorName(item.actor, locale);
-    const shown = `${displayLabelFromStoredBand(levelBand)} ${level}`;
+    const shown =
+      sport === "football"
+        ? messagesFor(locale).level.ovr(level)
+        : `${displayLabelFromStoredBand(levelBand)} ${level}`;
     return {
       title: venue
         ? m.levelCalibrated(actor, venue.name, shown)

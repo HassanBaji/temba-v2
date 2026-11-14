@@ -10,14 +10,11 @@ import {
   type FootballPosition,
   type FootballRole,
 } from "./football-lineup";
+import { ovrFromLevel, ovrScalePercent } from "./football-ovr";
 import { footballSelfPlacementChoices } from "./football-self-placement";
-import {
-  displayLabelFromStoredBand,
-  nextDistinctDisplayRung,
-} from "./level-bands";
+import { displayLabelFromStoredBand } from "./level-bands";
 import type { PlayerOverallView } from "./player-profile";
 import {
-  percentThroughDisplayBand,
   playerLevelCardView,
   shownLevel,
   type PlayerLevelCardView,
@@ -91,8 +88,9 @@ function nonBlank(value: string | null) {
 }
 
 /**
- * A football Level reads as OVR. It is the starting one until a football
- * Match rates; from then on it reads like the padel Level card.
+ * A football Level reads as OVR, with no band. It is the starting one until a
+ * football Match rates; from then on it reads like the padel Level card on
+ * the OVR face.
  */
 export function footballLevelCardView(
   input: PlayerLevelInput | null,
@@ -102,76 +100,53 @@ export function footballLevelCardView(
     return playerLevelCardView(input, locale, "ovr");
   }
   const m = messagesFor(locale).profile;
-  const displayBand = displayLabelFromStoredBand(input.levelBand);
   const level = shownLevel(input.levelValue, "ovr");
   const lines = [m.football.startingLevel, m.football.startingLevelNote];
   return {
     kind: "rated",
-    displayBand,
+    displayBand: null,
     level,
     provisional: true,
     lines,
     fillPercent: 0,
-    accessibilityLabel: m.levelCard.spokenLevel(
-      displayBand,
-      level,
-      lines.join(". "),
-    ),
+    accessibilityLabel: m.levelCard.spokenOvr(level, lines.join(". ")),
   };
 }
 
 export type FootballHeroLevelView = {
   ovr: string;
   ovrLabel: string;
-  band: string;
-  /** Through the current band towards the next; 100 at the top band. */
+  /** Where the OVR sits along the 40 to 99 scale. */
   ringPercent: number;
-  /** "76% of the way to B-", or the top band. */
-  progress: string;
   /** The placement word ("Competitive") while no football Match has counted. */
   placement: string | null;
   spoken: string;
 };
 
 /**
- * The You page's football hero: the ring is the Level, read as OVR, with its
- * band and the way to the next one. A self-placed Level keeps the placement
- * word as a caption until a Match counts.
+ * The You page's football hero: the ring is the Level, read as OVR along the
+ * 40 to 99 scale. A self-placed Level keeps the placement word as a caption
+ * until a Match counts.
  */
 export function footballHeroLevelView(
   input: PlayerLevelInput,
   locale: Locale,
 ): FootballHeroLevelView {
   const all = messagesFor(locale);
-  const band = displayLabelFromStoredBand(input.levelBand);
   const ovr = shownLevel(input.levelValue, "ovr");
-  const next = nextDistinctDisplayRung(input.levelBand);
-  const ringPercent =
-    next == null
-      ? 100
-      : percentThroughDisplayBand(input.levelValue, input.levelBand);
-  const progress =
-    next == null
-      ? all.profile.level.topBand
-      : all.profile.level.progressTo(ringPercent, next);
   const placement =
     input.ratedMatchCount === 0
       ? (footballSelfPlacementChoices(locale).find(
-          (choice) => choice.band === band,
+          (choice) =>
+            choice.band === displayLabelFromStoredBand(input.levelBand),
         )?.label ?? null)
       : null;
   return {
     ovr,
     ovrLabel: all.rating.ovr.label,
-    band,
-    ringPercent,
-    progress,
+    ringPercent: ovrScalePercent(ovrFromLevel(input.levelValue)),
     placement,
-    spoken: all.rating.ovr.heroSpoken(
-      ovr,
-      band,
-      [placement, progress].filter((part) => part != null).join(". "),
-    ),
+    spoken: all.rating.ovr.heroSpoken(ovr, placement),
   };
 }
 

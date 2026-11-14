@@ -7,9 +7,11 @@ import {
   groupMembers,
   groups,
   notifications,
+  ratings,
   user,
   venues,
 } from "@repo/db/schema";
+import { muFromOvr } from "@repo/domain/football-ovr";
 
 import { createFriendlyGame } from "#src/games/create-friendly";
 import { addGroupMembers } from "#src/routers/games/addGroupMembers";
@@ -127,6 +129,72 @@ describe("games.listGroupMembersToAdd", () => {
         ["Organizer", null, null, false],
         ["Sara Unclaimed", null, null, true],
       ]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("sends a football member's whole OVR, and none on padel", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const football = await seed(db, "football");
+      await db.insert(ratings).values([
+        {
+          userId: football.hamad,
+          sport: "football",
+          mu: muFromOvr(72),
+          phi: 120,
+          sigma: 0.06,
+          levelBand: "C1",
+        },
+        {
+          userId: football.mohamed,
+          sport: "padel",
+          mu: muFromOvr(80),
+          phi: 120,
+          sigma: 0.06,
+          levelBand: "B2",
+        },
+      ]);
+      const listed = await listGroupMembersToAdd(db, {
+        gameId: football.gameId,
+        organizerUserId: football.organizer,
+      });
+      const byName = new Map(
+        listed?.members.map((member) => [member.name, member]),
+      );
+      expect(byName.get("Hamad Al Sayed")).toMatchObject({
+        levelBand: "C1",
+        ovr: 72,
+      });
+      expect(byName.get("Mohamed Alawi")).toMatchObject({
+        levelBand: null,
+        ovr: null,
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it("sends no OVR on a padel Game", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const padel = await seed(db, "padel");
+      await db.insert(ratings).values({
+        userId: padel.hamad,
+        sport: "padel",
+        mu: 1500,
+        phi: 120,
+        sigma: 0.06,
+        levelBand: "C2",
+      });
+      const listed = await listGroupMembersToAdd(db, {
+        gameId: padel.gameId,
+        organizerUserId: padel.organizer,
+      });
+      expect(
+        listed?.members.find((member) => member.userId === padel.hamad),
+      ).toMatchObject({ levelBand: "C2", ovr: null });
     } finally {
       await close();
     }

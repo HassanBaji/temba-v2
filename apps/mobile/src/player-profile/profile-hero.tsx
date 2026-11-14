@@ -148,12 +148,27 @@ function LevelBlock({ view }: { view: ProfileLevelView }) {
           marginTop: 6,
         }}
       >
-        <Text size="record" width="expanded" weight="bold" ltr>
-          {view.band}
-        </Text>
-        <Text size="h1" width="expanded" weight="bold">
-          {view.level}
-        </Text>
+        {view.band ? (
+          <>
+            <Text size="record" width="expanded" weight="bold" ltr>
+              {view.band}
+            </Text>
+            <Text size="h1" width="expanded" weight="bold">
+              {view.level}
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text size="record" width="expanded" weight="bold">
+              {view.level}
+            </Text>
+            {view.unit ? (
+              <Text size="meta" weight="semibold" tone="muted">
+                {view.unit}
+              </Text>
+            ) : null}
+          </>
+        )}
         {view.trend ? (
           <Text
             size="meta"
@@ -165,25 +180,29 @@ function LevelBlock({ view }: { view: ProfileLevelView }) {
           </Text>
         ) : null}
       </View>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          gap: 10,
-          marginTop: 16,
-          marginBottom: 10,
-        }}
-      >
-        <Text size="meta" weight="semibold" style={{ flexShrink: 1 }}>
-          {view.lead}
-        </Text>
-        {view.trail ? (
-          <Text size="eyebrow" tone="muted">
-            {view.trail}
+      {view.lead || view.trail ? (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            gap: 10,
+            marginTop: 16,
+            marginBottom: 10,
+          }}
+        >
+          <Text size="meta" weight="semibold" style={{ flexShrink: 1 }}>
+            {view.lead}
           </Text>
-        ) : null}
-      </View>
+          {view.trail ? (
+            <Text size="eyebrow" tone="muted">
+              {view.trail}
+            </Text>
+          ) : null}
+        </View>
+      ) : (
+        <View style={{ height: 16 }} />
+      )}
       <MountFill percent={view.percent} hatched={view.hatched} />
     </View>
   );

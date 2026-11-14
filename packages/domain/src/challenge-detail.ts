@@ -16,6 +16,7 @@ import {
   formatGameDay,
   formatGameStart,
 } from "./format-game-start";
+import { formatOvr } from "./football-ovr";
 import { initials } from "./initials";
 import { formatLevelRangeFaceLabel } from "./level-range";
 import { shortPlayerName } from "./player-name";
@@ -48,7 +49,7 @@ export type ChallengeTeamFace = {
   displayName: string;
   sport: string;
   rosterCount: number;
-  teamLevel: { band: string } | null;
+  teamLevel: { band: string; ovr?: number | null } | null;
   members: readonly { name: string | null; isViewer: boolean }[];
 };
 
@@ -63,7 +64,7 @@ function joinNames(names: readonly string[], locale: Locale) {
 
 /**
  * "C+, Khalid A and Mahmood S" on padel (the viewer reads "you", first);
- * "C. 12 on the roster" on football; "Padel, C+, you and Ali M" with the sport.
+ * "OVR 72. 12 on the roster" on football; "Padel, C+, you and Ali M" with the sport.
  */
 export function challengeTeamFaceLine(
   face: ChallengeTeamFace,
@@ -72,12 +73,14 @@ export function challengeTeamFaceLine(
 ) {
   const m = messagesFor(locale);
   const copy = m.challenge.detailScreen;
-  const level = face.teamLevel?.band ?? null;
   let line: string;
   if (face.sport === "football") {
+    const ovr = face.teamLevel?.ovr;
+    const level = ovr != null ? m.rating.ovr.value(formatOvr(ovr)) : null;
     const roster = m.team.onRoster(face.rosterCount);
     line = level ? copy.footballLine(level, roster) : roster;
   } else {
+    const level = face.teamLevel?.band ?? null;
     const names = [...face.members]
       .sort((a, b) => Number(b.isViewer) - Number(a.isViewer))
       .map((member) =>

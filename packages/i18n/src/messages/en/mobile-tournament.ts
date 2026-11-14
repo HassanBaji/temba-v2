@@ -180,7 +180,7 @@ export const mobileTournament = {
   playerSheet: {
     prefers: (position: string) => `Prefers ${position.toLowerCase()}`,
     noPositionYet: "No position yet",
-    roleAndLevel: (role: string, level: string) => `${role}, Level ${level}`,
+    roleAndOvr: (role: string, ovr: string) => `${role}, OVR ${ovr}`,
     viewProfile: "View profile",
   },
   pool: {

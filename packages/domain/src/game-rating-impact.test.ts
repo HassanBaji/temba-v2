@@ -50,7 +50,6 @@ describe("ratingImpactStandingSentence", () => {
       newLevelBand: "C2",
       isProvisional: true,
       ratedMatchesRemainingToConfirm: 4,
-      sport: "padel",
       locale: "en",
     });
     assert.equal(
@@ -64,24 +63,9 @@ describe("ratingImpactStandingSentence", () => {
       newLevelBand: "C2",
       isProvisional: true,
       ratedMatchesRemainingToConfirm: 1,
-      sport: "padel",
       locale: "en",
     });
     assert.match(sentence, /1 more rated match in a verified group and/);
-  });
-
-  it("counts verified Matches on football", () => {
-    const sentence = ratingImpactStandingSentence({
-      newLevelBand: "C2",
-      isProvisional: true,
-      ratedMatchesRemainingToConfirm: 2,
-      sport: "football",
-      locale: "en",
-    });
-    assert.equal(
-      sentence,
-      "Still C. 2 more verified matches and your level confirms.",
-    );
   });
 
   it("floors a missing remaining-count at 1 rather than reading '0 more'", () => {
@@ -89,7 +73,6 @@ describe("ratingImpactStandingSentence", () => {
       newLevelBand: "D1",
       isProvisional: true,
       ratedMatchesRemainingToConfirm: null,
-      sport: "padel",
       locale: "en",
     });
     assert.match(sentence, /1 more rated match in a verified group and/);
@@ -100,7 +83,6 @@ describe("ratingImpactStandingSentence", () => {
       newLevelBand: "B1",
       isProvisional: false,
       ratedMatchesRemainingToConfirm: null,
-      sport: "padel",
       locale: "en",
     });
     assert.doesNotMatch(sentence, /locks in/i);
@@ -112,7 +94,6 @@ describe("ratingImpactStandingSentence", () => {
       newLevelBand: "D2",
       isProvisional: false,
       ratedMatchesRemainingToConfirm: null,
-      sport: "padel",
       locale: "en",
     });
     assert.match(sentence, /^Still D\. /);
@@ -318,6 +299,24 @@ describe("ovrImpactView", () => {
     assert.equal(view.total.title, "74.2 to 74.8");
     assert.equal(view.total.delta, "+0.6");
     assert.equal(view.footnote, null);
+  });
+
+  it("says where the move left the OVR, never a band", () => {
+    assert.equal(
+      ovrImpactView(resultOnly, "en").total.detail,
+      "Now OVR 75. Your level is confirmed — it moves with every rated game you play.",
+    );
+    assert.equal(
+      ovrImpactView(
+        {
+          ...resultOnly,
+          isProvisional: true,
+          ratedMatchesRemainingToConfirm: 2,
+        },
+        "en",
+      ).total.detail,
+      "Now OVR 75. 2 more verified matches and your level confirms.",
+    );
   });
 
   const fourParts = {

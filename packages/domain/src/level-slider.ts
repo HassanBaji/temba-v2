@@ -1,7 +1,6 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { bandFromLevel } from "./level";
 import {
   ASSIGNABLE_DISPLAY_LEVEL_BANDS,
   displayLabelFromStoredBand,
@@ -14,7 +13,13 @@ import {
   LEVEL_TENTHS_MIN,
   tenthsToLevelBand,
 } from "./level-range";
-import { levelFromOvr, OVR_MAX, OVR_MIN, ovrFromLevel } from "./football-ovr";
+import {
+  OVR_MAX,
+  OVR_MIN,
+  OVR_SCALE_TICKS,
+  ovrFromLevel,
+  ovrScalePercent,
+} from "./football-ovr";
 import { shortPlayerName } from "./player-name";
 import { formatPastDay } from "./request-meta";
 
@@ -121,34 +126,15 @@ export function levelSliderReadout(args: {
   };
 }
 
-/** The OVR at a rung's lower edge, usually between two whole numbers. */
-function rungLowerOvr(rung: LevelSliderRung) {
-  return ovrFromLevel(rung.lowerTenths / 10);
-}
+const OVR_SLIDER_INNER_TICKS = OVR_SCALE_TICKS.slice(1, -1);
 
-function rungUpperOvr(rung: LevelSliderRung) {
-  return ovrFromLevel(rung.upperTenths / 10);
-}
-
-/** The first whole OVR in a rung. */
-function firstOvrOf(rung: LevelSliderRung) {
-  return Math.ceil(rungLowerOvr(rung));
-}
-
-/** The last whole OVR in a rung: the top rung keeps 99. */
-function lastOvrOf(rung: LevelSliderRung) {
-  return rung === RUNGS[RUNGS.length - 1]
-    ? OVR_MAX
-    : Math.ceil(rungUpperOvr(rung)) - 1;
-}
-
-/** The OVR slider's marks: football's face of the same letters (ADR-0069). */
+/**
+ * The OVR slider's marks: the football scale's numbers, 40 and 99 at the
+ * ends and 55, 70 and 85 between, with no band letters (ADR-0087).
+ */
 export const OVR_SLIDER_TICKS = {
-  edges: RUNGS.slice(1).map(rungLowerOvr),
-  letters: RUNGS.map((rung) => ({
-    label: rung.label,
-    centre: (rungLowerOvr(rung) + rungUpperOvr(rung)) / 2,
-  })),
+  edges: OVR_SLIDER_INNER_TICKS,
+  marks: OVR_SLIDER_INNER_TICKS.map((ovr) => ({ label: String(ovr), at: ovr })),
   startLabel: String(OVR_MIN),
   endLabel: String(OVR_MAX),
 };
@@ -162,19 +148,21 @@ export function ovrSliderStart(ovr: number | null): number {
   return clampOvrInput(ovr ?? ovrFromLevel(LEVEL_SLIDER_DEFAULT_TENTHS / 10));
 }
 
-/** The rung a whole OVR stores into, by the same band table the server uses. */
-function rungForOvr(ovr: number): LevelSliderRung {
-  const label = displayLabelFromStoredBand(bandFromLevel(levelFromOvr(ovr)));
-  return RUNGS.find((rung) => rung.label === label) ?? RUNGS[0]!;
-}
-
-/** `C+ 72`. */
+/** The compact OVR value the slider's thumb shows: `72`. */
 export function ovrSliderLabel(ovr: number): string {
-  const clamped = clampOvrInput(ovr);
-  return `${rungForOvr(clamped).label} ${clamped}`;
+  return String(clampOvrInput(ovr));
 }
 
-/** The readout of the OVR slider, in the shape of `levelSliderReadout`. */
+/** The OVR value in prose and toasts: `OVR 72`. */
+export function ovrSliderValueText(ovr: number, locale: Locale): string {
+  return messagesFor(locale).level.ovr(ovrSliderLabel(ovr));
+}
+
+/**
+ * The readout of the OVR slider: the big OVR and its change, with a bar
+ * filled along the 40 to 99 scale. Football reads no band, so there is no
+ * rung or way to the next one (ADR-0087).
+ */
 export function ovrSliderReadout(args: {
   ovr: number;
   currentOvr: number;
@@ -182,10 +170,6 @@ export function ovrSliderReadout(args: {
 }) {
   const ovr = clampOvrInput(args.ovr);
   const delta = ovr - clampOvrInput(args.currentOvr);
-  const rung = rungForOvr(ovr);
-  const next = RUNGS[RUNGS.indexOf(rung) + 1];
-  const lower = rungLowerOvr(rung);
-  const span = rungUpperOvr(rung) - lower;
 
   let deltaLabel = "0";
   if (delta > 0) {
@@ -195,24 +179,13 @@ export function ovrSliderReadout(args: {
   }
 
   return {
-    displayBand: rung.label,
-    levelLabel: String(ovr),
+    ovrLabel: String(ovr),
     deltaLabel: messagesFor(args.locale).common.isolate(deltaLabel),
-    rung: {
-      label: rung.label,
-      lowerLabel: String(firstOvrOf(rung)),
-      upperLabel: String(lastOvrOf(rung)),
+    percentOfScale: ovrScalePercent(ovr),
+    scale: {
+      lowerLabel: OVR_SLIDER_TICKS.startLabel,
+      upperLabel: OVR_SLIDER_TICKS.endLabel,
     },
-    percentThroughRung: Math.min(
-      100,
-      Math.max(0, Math.round(((ovr - lower) / span) * 100)),
-    ),
-    toNext: next
-      ? {
-          label: next.label,
-          distanceLabel: String(firstOvrOf(next) - ovr),
-        }
-      : null,
   };
 }
 

@@ -292,14 +292,16 @@ export const game = {
           other:
             "{n} more rated matches in a verified group and your level confirms.",
         })}`,
-      football: (band: string, remaining: number) =>
-        `Still ${band}. ${plural("en", remaining, {
-          one: "1 more verified match and your level confirms.",
-          other: "{n} more verified matches and your level confirms.",
-        })}`,
     },
     stillConfirmed: (band: string) =>
       `Still ${band}. Your level is confirmed — it moves with every rated game you play.`,
+    ovrProvisional: (ovr: string, remaining: number) =>
+      `Now OVR ${ovr}. ${plural("en", remaining, {
+        one: "1 more verified match and your level confirms.",
+        other: "{n} more verified matches and your level confirms.",
+      })}`,
+    ovrConfirmed: (ovr: string) =>
+      `Now OVR ${ovr}. Your level is confirmed — it moves with every rated game you play.`,
     increasedBy: (magnitude: string) => `Level increased by ${magnitude}`,
     decreasedBy: (magnitude: string) => `Level decreased by ${magnitude}`,
     unchanged: "Level unchanged",

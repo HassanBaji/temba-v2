@@ -64,6 +64,11 @@ export function formatOvr(ovr: number) {
   return String(Math.round(clampOvr(ovr)));
 }
 
+/** The whole-number OVR of a Level in tenths, as a Level range bound or a Team Level reads. */
+export function formatOvrFromTenths(tenths: number) {
+  return formatOvr(ovrFromLevel(tenths / 10));
+}
+
 /** The whole-number OVR of a stored μ, as every surface shows it. */
 export function wholeOvrFromMu(mu: number) {
   return Math.round(ovrFromMu(mu));

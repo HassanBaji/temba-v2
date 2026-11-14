@@ -1,7 +1,7 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { formatOvr, ovrFromLevel } from "./football-ovr";
+import { formatOvrFromTenths } from "./football-ovr";
 import { formatPadelLevel } from "./level";
 import {
   displayLabelFromStoredBand,
@@ -201,11 +201,41 @@ export function parseLevelBandSelectTenths(
 
 /** A Level range bound in OVR, for a football Game (ADR-0069). */
 function ovrOfTenths(tenths: number) {
-  const clamped = Math.min(
-    LEVEL_TENTHS_MAX,
-    Math.max(LEVEL_TENTHS_MIN, tenths),
+  return formatOvrFromTenths(
+    Math.min(LEVEL_TENTHS_MAX, Math.max(LEVEL_TENTHS_MIN, tenths)),
   );
-  return formatOvr(ovrFromLevel(clamped / 10));
+}
+
+/**
+ * The OVR span a Level band rung covers, for football pickers that still
+ * store band bounds (ADR-0087): C+ reads "70–75". Each end is the whole OVR
+ * of the rung's lowest and highest Level.
+ */
+export function displayRungOvrSpan(
+  label: AssignableDisplayLevelBand,
+  locale: Locale,
+): string {
+  return messagesFor(locale).rating.ovr.span(
+    ovrOfTenths(displayTenthsForBound(label, "min")),
+    ovrOfTenths(displayTenthsForBound(label, "max")),
+  );
+}
+
+/** One end of a football Level range picker as OVR: a rung's lowest OVR for a minimum, its highest for a maximum. */
+export function displayRungOvrBound(
+  label: AssignableDisplayLevelBand,
+  bound: "min" | "max",
+): string {
+  return ovrOfTenths(displayTenthsForBound(label, bound));
+}
+
+/** A football Level range picker's chosen bound as OVR; null while the bound is open. */
+export function levelBandSelectOvr(
+  value: string,
+  bound: "min" | "max",
+): string | null {
+  const tenths = parseLevelBandSelectTenths(value, bound);
+  return tenths == null ? null : ovrOfTenths(tenths);
 }
 
 function formatOvrRangeLabel(
