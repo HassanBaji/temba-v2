@@ -27,6 +27,7 @@ import {
   profileHeroSubtitle,
   profileLevelView,
   profileStreaksView,
+  profileTierView,
   withViewerView,
   type EarlyDaysView,
   type PartnerRowView,
@@ -35,6 +36,7 @@ import {
   type ProfilePositionView,
   type ProfileStatTile,
   type ProfileStreaksView,
+  type ProfileTierView,
   type WithViewerInput,
   type WithViewerView,
 } from "@repo/domain/player-profile-page";
@@ -236,7 +238,7 @@ function footballRow(
     title: row.title,
     sub: row.meta,
     score: row.score,
-    detail: row.goals,
+    detail: row.detail,
     accessibilityLabel: row.accessibilityLabel,
     target: row.canOpenGame ? { kind: "game", gameId: row.gameId } : null,
   };
@@ -291,5 +293,24 @@ export function footballProfileState(
 ): ProfileState<PlayerProfileModel> {
   return profileState(query, (data) =>
     footballProfileModel(data, apiOrigin, locale),
+  );
+}
+
+/**
+ * The player's fish in the tier Groups the viewer shares with them. Tier
+ * Groups are football's, so padel shows none.
+ */
+export function sharedTierView(
+  sport: Sport,
+  data: Pick<ApiPlayerProfile, "player" | "sharedGroupTiers"> | undefined,
+  locale: Locale,
+): ProfileTierView | null {
+  if (sport !== "football" || !data) {
+    return null;
+  }
+  return profileTierView(
+    data.sharedGroupTiers,
+    { playerName: data.player.name, isViewer: data.player.isViewer },
+    locale,
   );
 }

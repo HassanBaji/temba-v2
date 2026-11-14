@@ -27,6 +27,7 @@ import {
   organizerConfirmNote,
   scoreCanConfirm,
   scoreCanEnter,
+  scoreConfirmWindowLine,
   scoreConfirmationRows,
   scoreFooterNote,
   scoreGamesWonForSide,
@@ -41,8 +42,10 @@ import {
   scoreShownSets,
   scorePhaseFlags,
   type FriendlyScorePhase,
+  type ScoreConfirmWindow,
   type SetBoxState,
 } from "@repo/domain/friendly-game-score";
+import { useNow } from "~/hooks/use-now";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -160,10 +163,12 @@ function ScoreFooterNote({
   phase,
   confirmedAtLabel,
   confirmedByOrganizer,
+  stampedByName,
 }: {
   phase: GameScoreSectionPhase;
   confirmedAtLabel: string | null;
   confirmedByOrganizer: boolean;
+  stampedByName: string | null;
 }) {
   const locale = useLocale();
   const { isFinal } = scorePhaseFlags(phase);
@@ -172,6 +177,7 @@ function ScoreFooterNote({
     confirmedAtLabel,
     locale,
     confirmedByOrganizer,
+    stampedByName,
   );
 
   return (
@@ -188,6 +194,33 @@ function ScoreFooterNote({
   );
 }
 
+/** A Verifier of the Venue, not seated in the Match, stamps its score (ADR-0072). */
+function VerifierStamp({
+  pending,
+  onStamp,
+}: {
+  pending: boolean;
+  onStamp: () => void;
+}) {
+  const m = useMessages();
+  const copy = m.rating.verifier.stamp;
+  return (
+    <div className="border-rule space-y-2 border-t pt-4">
+      <p className="text-muted-foreground text-meta">{copy.note}</p>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={onStamp}
+        pending={pending}
+        pendingLabel={m.common.saving}
+      >
+        {copy.action}
+      </Button>
+    </div>
+  );
+}
+
 function MatchResultConfirmations({
   confirmation,
   viewerUserId,
@@ -196,6 +229,7 @@ function MatchResultConfirmations({
   organizerCanConfirm,
   confirmPending,
   onConfirm,
+  windowLine,
 }: {
   confirmation: GameScoreSectionConfirmation;
   viewerUserId: string;
@@ -204,6 +238,7 @@ function MatchResultConfirmations({
   organizerCanConfirm: boolean;
   confirmPending: boolean;
   onConfirm: () => void;
+  windowLine: string | null;
 }) {
   const locale = useLocale();
   const m = useMessages();
@@ -238,6 +273,9 @@ function MatchResultConfirmations({
           {line}
         </p>
       ))}
+      {windowLine ? (
+        <p className="text-muted-foreground text-meta">{windowLine}</p>
+      ) : null}
       {organizerCanConfirm ? (
         <div className="space-y-2">
           <Button
@@ -313,12 +351,15 @@ export function GameScoreSection({
   viewerUserId,
   winningGameTeamId,
   matchResultConfirmation,
+  confirmWindow = null,
   isOrganizer,
   courtFull,
   scorePending,
   confirmPending,
+  stampPending = false,
   onScoreSet,
   onConfirm,
+  onStamp,
 }: {
   phase: GameScoreSectionPhase;
   match: GameScoreSectionMatch;
@@ -326,21 +367,26 @@ export function GameScoreSection({
   viewerUserId: string;
   winningGameTeamId: string | null;
   matchResultConfirmation: GameScoreSectionConfirmation | null;
+  /** A Public Game's 24 hours for the other side (ADR-0071). */
+  confirmWindow?: ScoreConfirmWindow | null;
   isOrganizer: boolean;
   courtFull: boolean;
   scorePending: boolean;
   confirmPending: boolean;
+  stampPending?: boolean;
   onScoreSet: (input: {
     setId: string;
     slot1GamesWon: number;
     slot2GamesWon: number;
   }) => void | Promise<unknown>;
   onConfirm: () => void;
+  onStamp?: () => void;
 }) {
   const locale = useLocale();
   const m = useMessages();
   const [drafts, setDrafts] = React.useState<Record<string, SetDraft>>({});
   const [capped, setCapped] = React.useState(false);
+  const now = useNow();
 
   React.useEffect(() => {
     const next: Record<string, SetDraft> = {};
@@ -386,6 +432,7 @@ export function GameScoreSection({
     hasResult,
     phase,
     viewerUserId,
+    confirmWindow,
   });
   const organizerCanConfirm = scoreOrganizerCanConfirm({
     confirmation: matchResultConfirmation,
@@ -537,7 +584,12 @@ export function GameScoreSection({
             organizerCanConfirm={organizerCanConfirm}
             confirmPending={confirmPending}
             onConfirm={onConfirm}
+            windowLine={scoreConfirmWindowLine(confirmWindow, now, locale)}
           />
+        ) : null}
+
+        {match.canStamp && onStamp ? (
+          <VerifierStamp pending={stampPending} onStamp={onStamp} />
         ) : null}
 
         {canEnter ? null : (
@@ -551,6 +603,7 @@ export function GameScoreSection({
             confirmedByOrganizer={
               matchResultConfirmation?.confirmedByOrganizer ?? false
             }
+            stampedByName={match.stamp?.verifierName ?? null}
           />
         )}
       </div>

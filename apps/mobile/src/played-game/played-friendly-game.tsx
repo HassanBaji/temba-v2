@@ -1,3 +1,4 @@
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
 import {
@@ -20,6 +21,7 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { MarksSection } from "../marks/marks-section";
 import { MvpRow } from "../marks/mvp-row";
 import { useGameMarks } from "../marks/use-game-marks";
+import { MatchDisputeSection } from "./match-dispute-section";
 import { GameAlbumSections } from "../game-album/game-album-sections";
 import { useGameAlbum } from "../game-album/use-game-album";
 import { PlayedGameView } from "./played-game-view";
@@ -78,6 +80,7 @@ export function PlayedFriendlyGame({
           groupName: game.groupName,
           rated: game.rated,
           ratingScope: game.ratingScope,
+          publicGame: isPublicGame(game),
           ratingImpact: game.ratingImpact,
           confirmation: game.matchResultConfirmation,
         },
@@ -152,6 +155,7 @@ export function PlayedFriendlyGame({
         }
         columns={model.columns}
         facts={model.facts}
+        dispute={<MatchDisputeSection match={match} />}
         refreshing={refreshing}
         onRefresh={() => {
           onRefresh();

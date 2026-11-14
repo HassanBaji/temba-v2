@@ -77,7 +77,7 @@ const ACTION_ICONS: Record<CardActionIcon, LucideIcon> = {
 };
 
 /**
- * The lifted roles of Palette v2 (ADR-0066). The rest of the mobile App still
+ * The lifted roles of Palette v2 (ADR-0084). The rest of the mobile App still
  * reads the inverted light focus, so Home's card takes these from `palettes`.
  */
 function useLifted() {

@@ -1,11 +1,7 @@
 import { messagesFor } from "@repo/i18n/messages";
 import type { Locale } from "@repo/i18n/locale";
 
-import {
-  displayLabelFromStoredBand,
-  LEVEL_BANDS,
-  type LevelBand,
-} from "./level-bands";
+import { LEVEL_BANDS, type LevelBand } from "./level-bands";
 
 export const FOOTBALL_ROLES = ["outfield", "keeper"] as const;
 
@@ -192,29 +188,48 @@ export function levelBandStrength(band: LevelBand | null) {
   return band ? LEVEL_BANDS.indexOf(band) : (LEVEL_BANDS.length - 1) / 2;
 }
 
-/** The mean Level of a side as a display letter, or null with no Levels. */
-export function averageLevelLabel(bands: readonly (LevelBand | null)[]) {
-  const known = bands.filter((band): band is LevelBand => band != null);
-  if (known.length === 0) {
-    return null;
-  }
-  const mean =
-    known.reduce((sum, band) => sum + LEVEL_BANDS.indexOf(band), 0) /
-    known.length;
-  const band = LEVEL_BANDS[Math.round(mean)];
-  return band ? displayLabelFromStoredBand(band) : null;
-}
+/**
+ * What Make teams balances on: Tier points in a tier Group, OVR in a
+ * Verified Group and in a groupless Game.
+ */
+export type FootballBalanceOn = "tierPoints" | "ovr";
 
 export type BalanceCandidate = {
   userId: string;
   role: FootballRole | null;
   levelBand: LevelBand | null;
+  /**
+   * Tier points, or the start hint, in a tier Group; OVR elsewhere. Null
+   * when the viewer cannot make teams, where the Level band decides.
+   */
+  strength: number | null;
 };
 
 /**
- * Splits a roster into two sides by Level: keepers first, one to a side, then
- * a snake draft from the strongest down (A, B, B, A, A, B, …). `random`
- * breaks ties between equal Levels, so Shuffle gives another even split.
+ * What Make teams balances a player on in a tier Group: their Tier
+ * points, or the start hint their Temba Level gives while they are
+ * Provisional. Null outside a tier Group, where OVR decides.
+ */
+export function footballBalanceStrength(args: {
+  tierPoints: number | null;
+  tierProvisional: boolean;
+  ovrHint: number | null;
+}) {
+  if (args.tierPoints == null) {
+    return null;
+  }
+  if (args.tierProvisional && args.ovrHint != null) {
+    return args.ovrHint;
+  }
+  return args.tierPoints;
+}
+
+/**
+ * Splits a roster into two sides: keepers first, one to a side, then a snake
+ * draft from the strongest down (A, B, B, A, A, B, …). Strongest is by
+ * strength when every player has one, otherwise by Level band; one scale
+ * never mixes with the other. `random` breaks ties, so Shuffle gives another
+ * even split.
  */
 export function balanceFootballSides(
   players: readonly BalanceCandidate[],
@@ -228,9 +243,10 @@ export function balanceFootballSides(
       .sort((a, b) => a.key - b.key)
       .map((entry) => entry.player);
   }
-  rest = [...rest].sort(
-    (a, b) => levelBandStrength(b.levelBand) - levelBandStrength(a.levelBand),
-  );
+  const byStrength = rest.every((player) => player.strength != null);
+  const strengthOf = (player: BalanceCandidate) =>
+    byStrength ? (player.strength ?? 0) : levelBandStrength(player.levelBand);
+  rest = [...rest].sort((a, b) => strengthOf(b) - strengthOf(a));
   const slot1: string[] = [];
   const slot2: string[] = [];
   [...keepers, ...rest].forEach((player, index) => {

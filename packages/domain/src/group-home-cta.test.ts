@@ -172,6 +172,14 @@ describe("groupHomeOverflowItems", () => {
       groupHomeOverflowItems({ ...base, canManageSeasons: true }),
       ["seasons", "leave"],
     );
+    assert.deepEqual(
+      groupHomeOverflowItems({
+        ...base,
+        canManageSeasons: true,
+        canChangeRatingSettings: true,
+      }),
+      ["seasons", "rating_settings", "leave"],
+    );
   });
 
   it("puts Edit Group first for the owner", () => {
@@ -219,11 +227,7 @@ describe("groupHomeOverflowItems", () => {
         isMember: true,
         canDelete: true,
       }),
-      [
-        "manage_invites",
-        "leave",
-        "delete",
-      ],
+      ["manage_invites", "leave", "delete"],
     );
   });
 

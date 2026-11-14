@@ -12,6 +12,7 @@ import {
   notifications,
   tournamentDraftMatches,
   user,
+  venueVerifiers,
   venues,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
@@ -21,6 +22,7 @@ import { handle as scoreStands } from "#src/jobs/handlers/match.score-stands";
 import { recordJobs } from "#src/jobs/job-sink.test-support";
 import { scoreStandsJobKey } from "#src/jobs/specs";
 import { addSet } from "#src/routers/games/addSet";
+import { gameById } from "#src/routers/games/byId";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
@@ -34,6 +36,7 @@ import { registerSeat } from "#src/routers/games/registerSeat";
 import { removeSet } from "#src/routers/games/removeSet";
 import { saveRoundPairings } from "#src/routers/games/saveRoundPairings";
 import { scoreSet } from "#src/routers/games/scoreSet";
+import { stampMatch } from "#src/routers/games/stampMatch";
 import { swapRoundPairing } from "#src/routers/games/swapRoundPairing";
 import { tournamentRounds } from "#src/routers/games/tournamentRounds";
 import { undoPoolDraw } from "#src/routers/games/undoPoolDraw";
@@ -709,6 +712,80 @@ describe("tournament scores", () => {
         "Only the two teams or an organizer can enter this score",
       );
       expect(outsider).toBeDefined();
+    });
+  });
+});
+
+describe("a Verifier on a tournament's Rounds (ADR-0072)", () => {
+  recordJobs();
+
+  it("opens the Rounds of a private tournament at their Venue and stamps an entered score", async () => {
+    await withDb(async (database) => {
+      const seeded = await postedRound1(database);
+      const game = await database.query.games.findFirst({
+        where: eq(games.id, seeded.gameId),
+        columns: { venueId: true },
+      });
+      const verifier = await insertUser(database, "Sara");
+      await database.insert(venueVerifiers).values({
+        venueId: game!.venueId,
+        userId: verifier.id,
+        kind: "referee",
+      });
+      const outsider = await insertUser(database, "Outsider");
+      const matchId = seeded.match.matchId!;
+      await enterTournamentScore(database, {
+        gameId: seeded.gameId,
+        matchId,
+        userId: seeded.players[0]!.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 4,
+      });
+
+      await expect(
+        tournamentRounds(database, {
+          gameId: seeded.gameId,
+          userId: outsider.id,
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      const view = await tournamentRounds(database, {
+        gameId: seeded.gameId,
+        userId: verifier.id,
+      });
+      expect(view.isOrganizer).toBe(false);
+      expect(
+        view.rounds
+          .flatMap((round) => round.matches)
+          .every(
+            (match) =>
+              match.viewerSlot === null &&
+              !match.canEnterScore &&
+              !match.canConfirm &&
+              !match.canMarkNotFinished &&
+              !match.canSwap,
+          ),
+      ).toBe(true);
+
+      const details = await gameById(database, {
+        gameId: seeded.gameId,
+        userId: verifier.id,
+      });
+      expect(
+        details.matches.flatMap((match) => (match.canStamp ? [match.id] : [])),
+      ).toEqual([matchId]);
+      await expect(
+        markMatchNotFinished(database, {
+          gameId: seeded.gameId,
+          matchId,
+          userId: verifier.id,
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+      await stampMatch(database, { matchId, userId: verifier.id });
+      const done = await database.query.matches.findFirst({
+        where: eq(matches.id, matchId),
+      });
+      expect(done?.status).toBe("completed");
     });
   });
 });

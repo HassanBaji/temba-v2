@@ -10,6 +10,8 @@ import {
   type FootballBib,
 } from "@repo/domain/football-lineup";
 import { gameCustomName } from "@repo/domain/game-custom-name";
+import { ratingScopeTag } from "@repo/domain/game-rating-impact";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { sideSizeLabel } from "@repo/domain/game-shape";
 import { footballSection } from "@repo/domain/football-hub";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
@@ -17,6 +19,7 @@ import type {
   HubGameFootballSide,
   HubGameRow,
 } from "@repo/domain/hub-game-row";
+import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { View } from "react-native";
 
@@ -216,6 +219,37 @@ function ResultBody({ game }: { game: HubGameRow }) {
   );
 }
 
+/** A Public Game says it counts for Temba Level; any Game says who may join. */
+function ScopeLine({ game }: { game: HubGameRow }) {
+  const locale = useLocale();
+  const tag = isPublicGame(game)
+    ? ratingScopeTag({ ...game, publicGame: true }, locale)
+    : null;
+  const range = formatLevelRangeLabel(
+    game.levelMinTenths,
+    game.levelMaxTenths,
+    locale,
+    game.sport,
+  );
+  if (!tag && !range) {
+    return null;
+  }
+  return (
+    <View
+      style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}
+    >
+      <Text size="meta" weight="semibold" numberOfLines={1}>
+        {tag ?? ""}
+      </Text>
+      {range ? (
+        <Text size="meta" tone="muted" numberOfLines={1}>
+          {range}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
 function OpenBody({ game }: { game: HubGameRow }) {
   const m = useMessages().football.hub.card;
   const seats = game.playersAllowed ?? (game.football?.sideSize ?? 5) * 2;
@@ -405,6 +439,7 @@ export function FootballGameCard({
       ) : (
         <OpenBody game={game} />
       )}
+      {section === "result" ? null : <ScopeLine game={game} />}
     </CardShell>
   );
 }

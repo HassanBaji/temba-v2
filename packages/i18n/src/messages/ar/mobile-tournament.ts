@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { mobileTournament as source } from "../en/mobile-tournament";
 
@@ -6,6 +7,7 @@ export const mobileTournament = {
     createGame: "إنشاء مباراة",
     findAGroup: "ابحث عن مجموعة",
     upcomingTab: "القادمة",
+    publicTab: "عامة",
     playedTab: "السابقة",
     sport: "الرياضة",
     couldNotLoad: "تعذّر تحميل المباريات",
@@ -205,7 +207,8 @@ export const mobileTournament = {
   playerSheet: {
     prefers: (position: string) => `يفضّل ${position}`,
     noPositionYet: "لا مركز بعد",
-    roleAndLevel: (role: string, level: string) => `${role}، المستوى ${level}`,
+    roleAndOvr: (role: string, ovr: string) =>
+      `${role}، ${isolate("OVR")} ${isolate(ovr)}`,
     viewProfile: "عرض الملف الشخصي",
   },
   pool: {

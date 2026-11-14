@@ -1,13 +1,19 @@
 /**
  * Line-up seats and Friendly tournament player names open Player profiles
- * only for viewers on the Game or in its Group. Waitlisted viewers, public
+ * only for viewers on the Game or in its Group, and for a Verifier who may
+ * calibrate every player on it (ADR-0072). Waitlisted viewers, public
  * browsers and Organizers outside the Group see plain names.
  */
 export function gamePlayersLink(game: {
   isRegistered: boolean;
   isGroupMember: boolean;
+  viewerMayCalibratePlayers?: boolean;
 }) {
-  return game.isRegistered || game.isGroupMember;
+  return (
+    game.isRegistered ||
+    game.isGroupMember ||
+    game.viewerMayCalibratePlayers === true
+  );
 }
 
 export type GameTeamPlayer = {

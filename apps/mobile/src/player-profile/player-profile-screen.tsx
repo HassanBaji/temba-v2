@@ -13,18 +13,26 @@ import {
 import { useCallback, useState } from "react";
 
 import { gamePath } from "../games/games-model";
+import { groupPath } from "../groups/groups-model";
 import { Notice } from "../groups/notice";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { apiOrigin } from "../lib/api-origin-runtime";
+import { Button } from "../primitives/button";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { api } from "../trpc/react";
 import { cabinetRowModel } from "../marks/cabinet-model";
-import { playerMarksPath, playerMatchesPath, playerPath } from "./player-path";
+import {
+  playerCalibratePath,
+  playerMarksPath,
+  playerMatchesPath,
+  playerPath,
+} from "./player-path";
 import {
   footballProfileState,
   playerProfileState,
+  sharedTierView,
   type ProfileMatchRow,
 } from "./player-profile-model";
 import { PlayerProfileBody } from "./player-profile-view";
@@ -152,12 +160,23 @@ export function PlayerProfileScreen({
         />
       }
     >
+      {padelQuery.data?.viewerMayCalibrate ? (
+        <Button
+          label={m.rating.verifier.calibrate.action}
+          variant="outline"
+          onPress={() =>
+            router.push(playerCalibratePath(segments, userId, sport))
+          }
+        />
+      ) : null}
       <PlayerProfileBody
         model={model}
         cabinet={cabinetRowModel(cabinetQuery.data, sport, locale)}
+        tier={sharedTierView(sport, padelQuery.data, locale)}
         onOpenCabinet={() =>
           router.push(playerMarksPath(segments, userId, sport))
         }
+        onOpenGroup={(groupId) => router.push(groupPath(groupId))}
         onOpenRow={onOpenRow}
         onOpenPlayer={(playerId) =>
           router.push(playerPath(segments, playerId, sport))

@@ -200,11 +200,7 @@ export const challenge = {
     partSeparator: "، ",
     avg: (level: string) => `بمعدل ${isolate(level)}`,
     sportLine: (parts: string, wants: string) => `${parts}. ${wants}`,
-    wants: (min: string, max: string) =>
-      `يريد من ${isolate(min)} إلى ${isolate(max)}`,
-    wantsOnly: (band: string) => `يريد ${isolate(band)}`,
-    wantsAndUp: (band: string) => `يريد ${isolate(band)} فما فوق`,
-    wantsAndUnder: (band: string) => `يريد ${isolate(band)} فما دون`,
+    wants: (range: string) => `يريد ${range}`,
     anyLevel: "مفتوح لأي مستوى",
     anyVenue: "أي ملعب",
     proposals: (n: number) =>
@@ -318,10 +314,6 @@ export const challenge = {
     addSlot: "أضف موعدًا",
     removeSlot: (slot: string) => `إزالة ${isolate(slot)}`,
     level: "المستوى المطلوب",
-    levelRange: (min: string, max: string) =>
-      `${isolate(min)} إلى ${isolate(max)}`,
-    levelAndUp: (band: string) => `${isolate(band)} فما فوق`,
-    levelAndUnder: (band: string) => `${isolate(band)} فما دون`,
     anyLevel: "أي مستوى",
     note: "سطر عنكم",
     noteShown: "يظهر على البطاقة",
@@ -473,6 +465,8 @@ export const challenge = {
       title: "تجعلها مباراة؟",
       description:
         "تُنشأ المباراة والفريقان فيها. وتُتجاوز العروض الأخرى ويُبلَّغ أصحابها.",
+      descriptionFootball:
+        "تُنشأ المباراة والفريقان فيها، وتُحتسب لمستوى Temba بعد أن يؤكّد أحدٌ من كل فريق النتيجة. وتُتجاوز العروض الأخرى ويُبلَّغ أصحابها.",
       confirm: "أكّد، واجعلها مباراة",
     },
     confirmed: "صارت مباراة",
@@ -646,6 +640,8 @@ export const challenge = {
     countsForLine: {
       padel: "سجلّ الفريقين، واللاعبين المُسمّين، والتقييم",
       football: "سجلّ الفريقين واللاعبين المُسمّين",
+      footballLevel:
+        "سجلّ الفريقين، واللاعبين المُسمّين، ومستوى Temba، بعد أن يؤكّد كل فريق النتيجة",
     },
     costSplitWays: (n: number) => `تُقسم على ${n}، الدفع في الملعب`,
     squadsTitle: "التشكيلات",
@@ -686,10 +682,6 @@ export const challenge = {
       posted: "نُشر",
     },
     level: {
-      range: (min: string, max: string) =>
-        `من ${isolate(min)} إلى ${isolate(max)}`,
-      andUp: (band: string) => `${isolate(band)} فما فوق`,
-      andUnder: (band: string) => `${isolate(band)} فما دون`,
       any: "أي مستوى",
     },
     timingRanges: {

@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  levelFromOvr,
+  muFromOvr,
+  ovrFromLevel,
+  ovrScalePercent,
+} from "./football-ovr";
+import { BAND_MIDPOINTS } from "./level";
+import {
+  footballHeroLevelView,
   footballLastTenSummary,
   footballLevelCardView,
   footballMatchRowView,
@@ -19,6 +27,7 @@ function match(
     outcome: "won",
     score: { us: 5, them: 3 },
     goals: 2,
+    levelMove: null,
     game: {
       name: "Thursday 5s",
       hasCustomName: true,
@@ -40,7 +49,7 @@ describe("footballLevelCardView", () => {
     });
   });
 
-  it("shows the starting Level, hatched, while football Games are Unrated", () => {
+  it("shows the starting Level as OVR, hatched, while no football Match has rated", () => {
     const view = footballLevelCardView(
       {
         levelBand: "C1",
@@ -53,11 +62,13 @@ describe("footballLevelCardView", () => {
     );
     expect(view).toMatchObject({
       kind: "rated",
-      displayBand: "C+",
-      level: "3.6",
+      displayBand: null,
+      level: "70",
       provisional: true,
       fillPercent: 0,
-      lines: ["Starting Level", "Football games don't move it yet"],
+      lines: ["Starting Level", "Games that count for Temba Level move it"],
+      accessibilityLabel:
+        "OVR 70. Starting Level. Games that count for Temba Level move it",
     });
   });
 
@@ -73,6 +84,130 @@ describe("footballLevelCardView", () => {
       "en",
     );
     expect(view.kind === "rated" && view.lines).not.toContain("Starting Level");
+  });
+
+  it("reads a Provisional OVR with the confirmation caption and no band", () => {
+    const view = footballLevelCardView(
+      {
+        levelBand: "C1",
+        levelValue: levelFromOvr(74),
+        provisional: true,
+        ratedMatchCount: 2,
+        ratedMatchesRemaining: 3,
+      },
+      "en",
+    );
+    expect(view).toMatchObject({
+      kind: "rated",
+      displayBand: null,
+      level: "74",
+      lines: ["2 of 5 matches to confirm"],
+      fillPercent: 40,
+      accessibilityLabel: "OVR 74, Provisional. 2 of 5 matches to confirm",
+    });
+  });
+
+  it("reads a Confirmed OVR of 74 with no band, filled along the OVR scale", () => {
+    const view = footballLevelCardView(
+      {
+        levelBand: "C1",
+        levelValue: levelFromOvr(74),
+        provisional: false,
+        ratedMatchCount: 6,
+        ratedMatchesRemaining: 0,
+      },
+      "en",
+    );
+    expect(view).toEqual({
+      kind: "rated",
+      displayBand: null,
+      level: "74",
+      provisional: false,
+      fillPercent: 58,
+      lines: ["Confirmed, 6 rated matches"],
+      accessibilityLabel: "OVR 74. Confirmed, 6 rated matches",
+    });
+  });
+});
+
+describe("footballHeroLevelView", () => {
+  it("reads each self-placement as its starting OVR, the placement word as the caption", () => {
+    const placed = (
+      levelBand: "D3" | "C3" | "C1" | "B3",
+    ): Parameters<typeof footballHeroLevelView>[0] => ({
+      levelBand,
+      levelValue: BAND_MIDPOINTS[levelBand],
+      provisional: true,
+      ratedMatchCount: 0,
+      ratedMatchesRemaining: 5,
+    });
+    expect(
+      (["D3", "C3", "C1", "B3"] as const).map((band) => {
+        const view = footballHeroLevelView(placed(band), "en");
+        return [view.ovr, view.placement];
+      }),
+    ).toEqual([
+      ["43", "Beginner"],
+      ["61", "Casual"],
+      ["72", "Competitive"],
+      ["78", "Pro"],
+    ]);
+  });
+
+  it("rings an OVR of 74 along the OVR scale with no band, without the placement word once a Match counts", () => {
+    expect(
+      footballHeroLevelView(
+        {
+          levelBand: "C1",
+          levelValue: levelFromOvr(74),
+          provisional: false,
+          ratedMatchCount: 6,
+          ratedMatchesRemaining: 0,
+        },
+        "en",
+      ),
+    ).toEqual({
+      ovr: "74",
+      ovrLabel: "OVR",
+      ringPercent: 57.6,
+      placement: null,
+      spoken: "OVR 74",
+    });
+  });
+
+  it("speaks the OVR and the placement word, never a band", () => {
+    const view = footballHeroLevelView(
+      {
+        levelBand: "C1",
+        levelValue: BAND_MIDPOINTS.C1,
+        provisional: true,
+        ratedMatchCount: 0,
+        ratedMatchesRemaining: 5,
+      },
+      "en",
+    );
+    expect(view.spoken).toBe("OVR 72. Competitive");
+    expect(view.ringPercent).toBe(
+      ovrScalePercent(ovrFromLevel(BAND_MIDPOINTS.C1)),
+    );
+  });
+
+  it("fills the ring only at the top of the OVR scale", () => {
+    const top = (levelValue: number) =>
+      footballHeroLevelView(
+        {
+          levelBand: "A",
+          levelValue,
+          provisional: false,
+          ratedMatchCount: 9,
+          ratedMatchesRemaining: 0,
+        },
+        "ar",
+      );
+    expect(top(6.8).ringPercent).toBe(ovrScalePercent(ovrFromLevel(6.8)));
+    expect(top(6.8).ringPercent).toBeLessThan(100);
+    expect(top(7).ringPercent).toBe(100);
+    expect(top(6.8).placement).toBeNull();
   });
 });
 
@@ -132,8 +267,32 @@ describe("footballMatchRowView", () => {
       meta: "Sat 24 Oct, Riffa Pitch",
       score: "5–3",
       goals: "2 goals",
+      ovrChange: null,
+      detail: "2 goals",
       canOpenGame: true,
     });
+  });
+
+  it("shows what a Match that counted moved the OVR, beside the goals", () => {
+    const counted = { muBefore: muFromOvr(71), muAfter: muFromOvr(72) };
+    expect(
+      footballMatchRowView(match({ levelMove: counted }), "en"),
+    ).toMatchObject({
+      ovrChange: "OVR +1",
+      detail: "2 goals, OVR +1",
+      accessibilityLabel:
+        "Won 5–3, Saturday 24 October, Riffa Ballers, Riffa Pitch, scored 2 goals, OVR +1",
+    });
+    expect(
+      footballMatchRowView(
+        match({
+          goals: 0,
+          levelMove: { muBefore: muFromOvr(72), muAfter: muFromOvr(70) },
+        }),
+        "en",
+      ).detail,
+    ).toBe("OVR −2");
+    expect(footballMatchRowView(match({ goals: 0 }), "en").detail).toBeNull();
   });
 
   it("falls back to the Game name, then Friendly game", () => {
@@ -225,7 +384,7 @@ describe("football profile in Arabic", () => {
         "ar",
       ),
     ).toMatchObject({
-      lines: ["المستوى الابتدائي", "مباريات كرة القدم لا تحرّكه بعد"],
+      lines: ["المستوى الابتدائي", "تحرّكه المباريات التي تُحتسب لمستوى Temba"],
     });
   });
 });

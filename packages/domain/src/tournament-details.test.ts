@@ -135,8 +135,8 @@ describe("tournamentDetailRows", () => {
     });
     assert.deepEqual(ratingRow("group"), {
       label: "Counts for rating",
-      value: "Group rating only",
-      note: "Moves levels in this group only. Temba levels move in verified groups.",
+      value: "No",
+      note: "It counted for a group level, which padel no longer has. It moved no Temba Level.",
     });
     assert.deepEqual(ratingRow("unrated"), {
       label: "Counts for rating",

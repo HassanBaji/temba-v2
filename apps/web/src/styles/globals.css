@@ -173,7 +173,7 @@
 
 /* The focused surface (`Surface tone="ink"`). Both schemes lift it one step off
    the page (#f4f4f4 on white, #141414 on black) and draw it with a hairline,
-   since the lift alone is too small to read as an edge (ADR-0066). */
+   since the lift alone is too small to read as an edge (ADR-0084). */
 @utility surface-focus {
   --ring: var(--color-on-focus);
   background-color: var(--color-focus);

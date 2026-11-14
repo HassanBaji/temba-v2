@@ -1,8 +1,10 @@
+import { isolate } from "@repo/i18n/bidi";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import type { LevelFace } from "./football-ovr";
 import type { LevelHistoryStep } from "./home-level-chart";
-import { homeLevelView, type HomeLevelInput } from "./home-level";
+import { signedLevelChange } from "./ratings-screen";
 
 export type TrendPointKind = "start" | LevelHistoryStep;
 
@@ -19,6 +21,14 @@ export type HomeTrendView = {
   startLabel: string;
   legend: string;
   spoken: string;
+};
+
+/** The recent Level history `ratings.me` reads, on the sport's face. */
+export type HomeTrendInput = {
+  face: LevelFace;
+  history: readonly string[];
+  historySteps: readonly LevelHistoryStep[];
+  historyMatchCount: number;
 };
 
 const LEGEND_ORDER = ["won", "drawn", "lost", "set"] as const;
@@ -45,16 +55,15 @@ function trendGeometry(
  * by what moved it. Null until a Rated Match has moved the Level.
  */
 export function homeTrendView(
-  input: HomeLevelInput,
+  input: HomeTrendInput,
   box: { width: number; height: number; inset: number },
   locale: Locale,
 ): HomeTrendView | null {
-  const change = homeLevelView(input, locale).change;
   const values = input.history.map((point) => Number.parseFloat(point));
   const from = input.history[0];
   const to = input.history.at(-1);
   if (
-    !change ||
+    input.historyMatchCount === 0 ||
     values.length < 2 ||
     input.historySteps.length !== values.length - 1 ||
     from === undefined ||
@@ -70,7 +79,9 @@ export function homeTrendView(
   const present = new Set(steps);
 
   return {
-    signedDelta: change.signedAmount,
+    signedDelta: isolate(
+      signedLevelChange((values.at(-1) ?? 0) - (values[0] ?? 0), input.face),
+    ),
     from,
     to,
     window,

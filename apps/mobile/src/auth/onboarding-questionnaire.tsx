@@ -35,6 +35,7 @@ import { sportsTaskMeta } from "../profile-tasks/profile-tasks-model";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "../trpc/react";
 import { AuthScreen } from "./auth-screen";
 import { FormErrorSummary } from "./form-error-summary";
@@ -99,6 +100,7 @@ export function SportsQuestionnaire({
       await Promise.all([
         utils.users.onboardingState.invalidate(),
         utils.users.home.invalidate(),
+        invalidateRatingReads(utils),
       ]);
       onDone();
     },

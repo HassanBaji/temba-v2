@@ -38,6 +38,7 @@ import {
   standingRecordLabel,
   standingRulesLine,
   standingShowsDraws,
+  standingTierFootnote,
   unrankedNote,
 } from "@repo/domain/season-standing";
 import { isRtl } from "@repo/i18n/locale";
@@ -779,6 +780,40 @@ function ManageSeasonsLink({
   );
 }
 
+function TierFootnote({
+  hasTier,
+  seasonInView,
+  ratingSettingsLine,
+  onOpenMembers,
+}: {
+  hasTier: boolean;
+  seasonInView: boolean;
+  ratingSettingsLine: string | null;
+  onOpenMembers?: () => void;
+}) {
+  const locale = useLocale();
+  const footnote = standingTierFootnote({ hasTier, seasonInView }, locale);
+  if (!footnote) {
+    return null;
+  }
+  return (
+    <div className="text-meta text-muted-foreground flex flex-col gap-1.5">
+      <p>
+        {footnote.before}
+        <button
+          type="button"
+          onClick={onOpenMembers}
+          className="text-foreground underline underline-offset-2"
+        >
+          {footnote.membersLink}
+        </button>
+        {footnote.after}
+      </p>
+      {ratingSettingsLine ? <p>{ratingSettingsLine}</p> : null}
+    </div>
+  );
+}
+
 export function GroupStandingTab({
   isMember,
   linkToPlayers,
@@ -795,6 +830,9 @@ export function GroupStandingTab({
   canInvite = false,
   onInvite,
   canManageSeasons = false,
+  hasTier = false,
+  ratingSettingsLine = null,
+  onOpenMembers,
   now = new Date(),
 }: {
   canInvite?: boolean;
@@ -813,6 +851,10 @@ export function GroupStandingTab({
   totalGamesPlayed: number;
   awaitingScoreCount: number;
   canManageSeasons?: boolean;
+  hasTier?: boolean;
+  ratingSettingsLine?: string | null;
+  /** Switches to the Members tab, where the Group Tier lives. */
+  onOpenMembers?: () => void;
   now?: Date;
 }) {
   const m = useMessages();
@@ -955,6 +997,12 @@ export function GroupStandingTab({
         <Podium rows={rows} season={season} />
       ) : null}
       {table}
+      <TierFootnote
+        hasTier={hasTier}
+        seasonInView={season != null}
+        ratingSettingsLine={ratingSettingsLine}
+        onOpenMembers={onOpenMembers}
+      />
       {seasons.length === 0 ? (
         <StatPair
           totalGamesPlayed={totalGamesPlayed}

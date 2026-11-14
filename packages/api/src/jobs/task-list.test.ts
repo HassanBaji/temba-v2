@@ -88,6 +88,7 @@ describe("task list", () => {
       "challenge.expire",
       "challenge.squad-due",
       "marks.settle-mvp",
+      "match.confirm-window",
       "match.score-stands",
       "notification.email",
       "payment.create-charge",
@@ -95,6 +96,7 @@ describe("task list", () => {
       "payment.process-webhook",
       "payment.refund",
       "proposal.expire",
+      "rating-window.settle",
     ]);
     expect(crontab).toContain("*/15 * * * * booking:reconcile");
   });

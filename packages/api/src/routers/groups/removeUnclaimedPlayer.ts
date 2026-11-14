@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { groupMembers } from "@repo/db";
+import { groupMembers, groupTierPoints } from "@repo/db";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
@@ -49,7 +49,17 @@ export async function removeUnclaimedPlayer(
     });
   }
 
-  await database.delete(groupMembers).where(eq(groupMembers.id, membership.id));
+  await database.transaction(async (tx) => {
+    await tx.delete(groupMembers).where(eq(groupMembers.id, membership.id));
+    await tx
+      .delete(groupTierPoints)
+      .where(
+        and(
+          eq(groupTierPoints.groupId, group.id),
+          eq(groupTierPoints.userId, args.userId),
+        ),
+      );
+  });
 
   return { ok: true as const, groupId: group.id, userId: args.userId };
 }

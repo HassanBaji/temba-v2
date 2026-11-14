@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMessages } from "../i18n/locale-provider";
 import { Screen } from "../primitives/screen";
 import { useToast } from "../primitives/toast";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api } from "../trpc/react";
 import type { Slot } from "../home/home-model";
 import { slotOf } from "../lib/slot-of";
@@ -49,6 +50,10 @@ export function GamesScreen() {
     { groupTournaments: true },
     REFETCH_ON_FOREGROUND,
   );
+  const publicGames = api.games.listPublicPickup.useQuery(
+    undefined,
+    REFETCH_ON_FOREGROUND,
+  );
   const history = api.games.listMyMatchHistory.useInfiniteQuery(
     { limit: HISTORY_PAGE_SIZE, groupTournaments: true },
     { ...REFETCH_ON_FOREGROUND, getNextPageParam: nextHistoryCursor },
@@ -59,7 +64,12 @@ export function GamesScreen() {
   const confirmScore = api.games.confirmMatchResult.useMutation({
     onSuccess: () => toast.show(m.mobileTournament.games.scoreConfirmed),
     onError: (error) => toast.show(error.message),
-    onSettled: () => utils.games.listMyGames.invalidate(),
+    onSettled: () =>
+      Promise.all([
+        utils.games.listMyGames.invalidate(),
+        utils.games.listPublicPickup.invalidate(),
+        invalidateRatingReads(utils),
+      ]),
   });
   const confirmingGameId = confirmScore.isPending
     ? (confirmScore.variables?.gameId ?? null)
@@ -68,11 +78,15 @@ export function GamesScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([myGames.refetch(), history.refetch()]);
+      await Promise.all([
+        myGames.refetch(),
+        publicGames.refetch(),
+        history.refetch(),
+      ]);
     } finally {
       setRefreshing(false);
     }
-  }, [myGames, history]);
+  }, [myGames, publicGames, history]);
 
   const loadMore = useCallback(() => {
     if (history.hasNextPage && !history.isFetchingNextPage) {
@@ -96,6 +110,7 @@ export function GamesScreen() {
         tab={tab}
         onTabChange={setTab}
         myGames={slotOf(myGames)}
+        publicGames={slotOf(publicGames)}
         history={historySlot}
         historyHasMore={history.hasNextPage}
         historyLoadingMore={history.isFetchingNextPage}

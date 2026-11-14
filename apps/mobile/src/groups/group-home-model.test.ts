@@ -134,6 +134,51 @@ describe("memberList", () => {
   });
 });
 
+describe("memberList on a Verified football Group", () => {
+  const leaderboard = home.member.standing.leaderboard;
+  const football = [
+    {
+      ...leaderboard[0]!,
+      userId: "ali",
+      name: "Ali",
+      levelBand: "C1" as const,
+      levelProvisional: false,
+      level: "3.7",
+      ovr: 71,
+    },
+    {
+      ...leaderboard[0]!,
+      userId: "yousif",
+      name: "Yousif",
+      levelBand: "C1" as const,
+      levelProvisional: false,
+      level: "3.7",
+      ovr: 72,
+    },
+    {
+      ...leaderboard[0]!,
+      userId: "noor",
+      name: "Noor",
+      levelBand: "C3" as const,
+      levelProvisional: true,
+      level: "2.5",
+      ovr: 61,
+    },
+  ];
+
+  it("reads each Level as the bare OVR with no band, the highest OVR first", () => {
+    const rows = memberList(football, "", ORIGIN, "en").rows;
+    expect(rows.map((row) => row.key)).toEqual(["yousif", "ali", "noor"]);
+    expect(rows[0]!.level).toEqual({ kind: "label", label: "72" });
+    expect(rows[0]!.accessibilityLabel).toContain("OVR 72");
+    expect(rows[0]!.accessibilityLabel).not.toContain("3.7");
+    expect(rows[0]!.accessibilityLabel).not.toContain("C+");
+    expect(rows[2]!.level).toEqual({ kind: "provisional", label: "61" });
+    expect(rows[2]!.accessibilityLabel).toContain("OVR 61, still Provisional");
+    expect(rows[2]!.accessibilityLabel).not.toContain("C-");
+  });
+});
+
 describe("memberList for a Level setter", () => {
   const leaderboard = home.member.standing.leaderboard;
   const withSet = {
@@ -247,13 +292,15 @@ describe("memberList and memberSheetView with a member's number", () => {
     ).toBe(false);
   });
 
-  it("shows the full number and dials it", () => {
+  it("shows the full number, dials it and opens it on WhatsApp", () => {
     const view = memberSheetView(withNumber, "en");
     expect(view.phone).toBe(isolate("+973 3612 4408"));
     expect(view.phoneHref).toBe("tel:+97336124408");
+    expect(view.whatsAppHref).toBe("https://wa.me/97336124408");
     expect(memberSheetView(second!, "en")).toMatchObject({
       phone: null,
       phoneHref: null,
+      whatsAppHref: null,
     });
   });
 });
@@ -279,6 +326,24 @@ describe("memberSheetView", () => {
     );
     expect(view.latestSet).toMatch(/^Set by Sara K, .*\. Back from injury$/);
     expect(view.summary).toMatch(/ · 1 Rated Match$/);
+  });
+
+  it("quotes the note, and reads an old set with no reason as no reason given", () => {
+    expect(
+      memberSheetView(
+        {
+          ...entry,
+          levelOverride: { ...entry.levelOverride, note: "Two months out." },
+        },
+        "en",
+      ).latestSet,
+    ).toMatch(/\. Back from injury: “Two months out\.”$/);
+    expect(
+      memberSheetView(
+        { ...entry, levelOverride: { ...entry.levelOverride, reason: null } },
+        "en",
+      ).latestSet,
+    ).toMatch(/^Set by Sara K, .*\. No reason given$/);
   });
 
   it("omits the Provisional note and latest set when there are none", () => {
@@ -441,5 +506,98 @@ describe("memberList with a sort and filter", () => {
     expect(list.rows.find((row) => row.key === "org")!.caption).toBe(
       "Organizer, joined Sun 6 Sep",
     );
+  });
+});
+
+describe("memberList on a tier Group (screen 2b)", () => {
+  const base = home.member.standing.leaderboard[0]!;
+  const lens = {
+    sort: null,
+    filter: null,
+    showLevel: false,
+    showTier: true,
+    canManage: false,
+    now: new Date("2026-11-04T12:00:00Z"),
+  };
+  const member = (
+    userId: string,
+    name: string,
+    tier: NonNullable<typeof base.tier>,
+    isOrganizer = false,
+  ) => ({ ...base, userId, name, isViewer: false, isOrganizer, tier });
+
+  it("orders by tier and reads the fish, the band and the points", () => {
+    const list = memberList(
+      [
+        member("khalid", "Khalid R", {
+          band: null,
+          place: null,
+          points: null,
+          provisional: true,
+          gamesOfFive: 3,
+        }),
+        member(
+          "hussain",
+          "Hussain A",
+          {
+            band: "shark",
+            place: 1,
+            points: 1412,
+            provisional: false,
+            gamesOfFive: 5,
+          },
+          true,
+        ),
+      ],
+      "",
+      ORIGIN,
+      "en",
+      false,
+      false,
+      false,
+      lens,
+    );
+    expect(list.sort).toBe("tier");
+    expect(
+      list.rows.map((row) => [row.name, row.caption, row.tier?.points]),
+    ).toEqual([
+      ["Hussain A", "Shark, organizer", "1,412"],
+      ["Khalid R", "Provisional, 3 of 5 games", "no tier"],
+    ]);
+    expect(list.rows[0]?.tier?.cell).toEqual({
+      kind: "fish",
+      band: "shark",
+      label: "Shark",
+    });
+    expect(list.rows[0]?.accessibilityLabel).toBe(
+      "Hussain A. Shark, organizer. 1,412 tier points",
+    );
+  });
+
+  it("lets an Organizer who adjusts tiers open their own row", () => {
+    const tier = {
+      band: null,
+      place: 1,
+      points: 1200,
+      provisional: false,
+      gamesOfFive: 5,
+    };
+    const viewer = { ...member("you", "You", tier, true), isViewer: true };
+    const select = (canAdjustTier: boolean, canSetNicknames = false) =>
+      memberList(
+        [viewer],
+        "",
+        ORIGIN,
+        "en",
+        true,
+        false,
+        false,
+        lens,
+        canAdjustTier,
+        canSetNicknames,
+      ).rows[0]?.selectable;
+    expect(select(true)).toBe(true);
+    expect(select(false)).toBe(false);
+    expect(select(false, true)).toBe(false);
   });
 });

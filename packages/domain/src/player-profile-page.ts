@@ -2,7 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatDayMonth, formatMonth } from "./format-game-start";
-import { formatLevel } from "./level";
+import { ovrFromLevel, ovrScalePercent } from "./football-ovr";
 import {
   displayLabelFromStoredBand,
   nextDistinctDisplayRung,
@@ -24,14 +24,21 @@ import {
 import {
   distanceToNextRung,
   percentThroughDisplayBand,
+  shownLevel,
   type PlayerLevelInput,
 } from "./player-profile-level";
-import { levelChangeLabel, LAST_TEN_SIZE } from "./player-profile-matches";
+import { LAST_TEN_SIZE } from "./player-profile-matches";
 import { preferredPositionProfileLine } from "./preferred-position";
+import { formatLevelMoveSteps, levelMoveSteps } from "./rating-history";
 import {
   confirmationFraction,
   confirmationProgressCaption,
 } from "./profile-level";
+import {
+  ratingsTierRows,
+  type MyGroupTierData,
+  type RatingsTierRow,
+} from "./ratings-screen";
 import type { MatchOutcome, ResultMarkVariant } from "./result-mark";
 import type { Sport } from "./sport";
 import { formatWinRate, WIN_RATE_MIN_MATCHES } from "./win-rate";
@@ -135,10 +142,13 @@ export type ProfileLevelView =
       label: string;
       status: string;
       statusDetail: string;
-      band: string;
+      /** Null on football, which reads its Level as OVR with no band. */
+      band: string | null;
       level: string;
+      /** "OVR" beside a football Level; null on padel. */
+      unit: string | null;
       trend: string | null;
-      lead: string;
+      lead: string | null;
       trail: string | null;
       percent: number;
       /** The track is hatched while the Level is not settled yet. */
@@ -146,11 +156,11 @@ export type ProfileLevelView =
       spoken: string;
     };
 
-/** "+0.2 since Sep": the sum of the rated changes in the Last 10. */
+/** "+0.24 since Sep": the sum of the rated changes in the Last 10. */
 export function levelTrendSince(
   newestFirst: readonly {
     playedAt: Date | string;
-    rating: { levelChange: number } | null;
+    rating: { muBefore: number; muAfter: number } | null;
   }[],
   locale: Locale,
 ) {
@@ -163,10 +173,14 @@ export function levelTrendSince(
   if (!oldest) {
     return null;
   }
-  const sum = rated.reduce((total, match) => total + match.levelChange, 0);
+  const steps = rated.reduce(
+    (total, match) =>
+      total + levelMoveSteps("padel", match.muBefore, match.muAfter),
+    0,
+  );
   const all = messagesFor(locale);
   return all.profile.playerPage.trendSince(
-    all.common.isolate(levelChangeLabel(sum)),
+    all.common.isolate(formatLevelMoveSteps("padel", steps)),
     formatMonth(oldest.playedAt, "short", locale),
   );
 }
@@ -176,9 +190,10 @@ function clampPercent(value: number) {
 }
 
 /**
- * The Level block in the hero. A football Level that no rated Match has moved
- * is the starting one and its track is hatched; otherwise both sports read
- * the same: Provisional while confirming, then the distance to the next band.
+ * The Level block in the hero. A football Level reads as OVR with no band,
+ * and one that no rated Match has moved is the starting one and its track is
+ * hatched. Both sports read Provisional while confirming; then padel shows
+ * the distance to the next band and football fills along the OVR scale.
  */
 export function profileLevelView(
   input: PlayerLevelInput | null,
@@ -201,8 +216,9 @@ export function profileLevelView(
     };
   }
 
-  const band = displayLabelFromStoredBand(input.levelBand);
-  const level = formatLevel(input.levelValue);
+  const football = options.sport === "football";
+  const band = football ? null : displayLabelFromStoredBand(input.levelBand);
+  const level = shownLevel(input.levelValue, football ? "ovr" : "level");
   const shape = (
     parts: Pick<
       Extract<ProfileLevelView, { kind: "level" }>,
@@ -213,10 +229,13 @@ export function profileLevelView(
     label,
     band,
     level,
+    unit: football ? all.rating.ovr.label : null,
     ...parts,
     spoken: join(
       [
-        `${label} ${band} ${level}`,
+        football
+          ? `${label} ${all.rating.ovr.value(level)}`
+          : `${label} ${band} ${level}`,
         parts.status,
         parts.statusDetail,
         parts.lead,
@@ -226,7 +245,7 @@ export function profileLevelView(
     ),
   });
 
-  if (options.sport === "football" && input.ratedMatchCount === 0) {
+  if (football && input.ratedMatchCount === 0) {
     return shape({
       status: m.startingLevel,
       statusDetail: m.setAtSignUp,
@@ -243,19 +262,24 @@ export function profileLevelView(
     return shape({
       status: m.provisional,
       statusDetail,
-      lead: confirmationProgressCaption(
-        input.ratedMatchCount,
-        input.ratedMatchesRemaining,
-        locale,
-      ),
+      lead: confirmationProgressCaption(input.ratedMatchesRemaining, locale),
       trail: null,
       percent: clampPercent(
-        confirmationFraction(
-          input.ratedMatchCount,
-          input.ratedMatchesRemaining,
-        ) * 100,
+        confirmationFraction(input.ratedMatchesRemaining) * 100,
       ),
       hatched: true,
+      trend: options.trend,
+    });
+  }
+
+  if (football) {
+    return shape({
+      status: m.confirmed,
+      statusDetail,
+      lead: null,
+      trail: null,
+      percent: clampPercent(ovrScalePercent(ovrFromLevel(input.levelValue))),
+      hatched: false,
       trend: options.trend,
     });
   }
@@ -734,4 +758,37 @@ export function partnerRowsView(
       spoken: m.spoken(partner.name, partner.won, partner.lost, percent),
     };
   });
+}
+
+export type ProfileTierView = {
+  title: string;
+  meta: string;
+  rows: RatingsTierRow[];
+  note: string;
+};
+
+/**
+ * "Group tier" on a football Player profile: the player's fish in each tier
+ * Group the viewer shares with them, as the Ratings screen draws its own.
+ * None when they share no tier Group.
+ */
+export function profileTierView(
+  rows: readonly MyGroupTierData[],
+  options: { playerName: string; isViewer: boolean },
+  locale: Locale,
+): ProfileTierView | null {
+  if (rows.length === 0) {
+    return null;
+  }
+  const m = messagesFor(locale).rating;
+  return {
+    title: m.screen.tier.title,
+    meta: options.isViewer
+      ? m.screen.tier.count(rows.length)
+      : m.profileTier.shared(rows.length),
+    rows: ratingsTierRows(rows, locale),
+    note: options.isViewer
+      ? m.screen.tier.note
+      : m.profileTier.note(firstName(options.playerName)),
+  };
 }

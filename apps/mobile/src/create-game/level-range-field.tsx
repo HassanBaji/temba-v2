@@ -1,11 +1,16 @@
 import { sizes } from "@repo/design-tokens";
 import { isLevelBoundDisabled } from "@repo/domain/create-game-flow";
-import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "@repo/domain/level-bands";
+import {
+  ASSIGNABLE_DISPLAY_LEVEL_BANDS,
+  type AssignableDisplayLevelBand,
+} from "@repo/domain/level-bands";
 import { isolate } from "@repo/i18n/bidi";
 import {
+  displayRungOvrBound,
   LEVEL_BAND_SELECT_NONE,
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
+import type { Sport } from "@repo/domain/sport";
 import { Pressable, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
@@ -20,16 +25,29 @@ function BoundRow({
   value,
   other,
   error,
+  sport,
   onChange,
 }: {
   bound: "min" | "max";
   value: LevelBandSelectValue;
   other: LevelBandSelectValue;
   error?: string;
+  sport?: Sport;
   onChange: (value: LevelBandSelectValue) => void;
 }) {
   const copy = useMessages().mobileCreateGame.levelRange;
   const label = bound === "min" ? copy.minimum : copy.maximum;
+  const chipLabel = (band: AssignableDisplayLevelBand) =>
+    sport === "football" ? displayRungOvrBound(band, bound) : band;
+  const chipA11y = (band: AssignableDisplayLevelBand) => {
+    if (sport === "football") {
+      const ovr = displayRungOvrBound(band, bound);
+      return bound === "min" ? copy.minimumOvr(ovr) : copy.maximumOvr(ovr);
+    }
+    return bound === "min"
+      ? copy.minimumLevelBand(band)
+      : copy.maximumLevelBand(band);
+  };
   return (
     <View style={{ gap: 8 }}>
       <Text size="meta" tone="muted">
@@ -41,12 +59,9 @@ function BoundRow({
         dense
         chips={ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => ({
           value: band,
-          label: band,
+          label: chipLabel(band),
           ltr: true,
-          accessibilityLabel:
-            bound === "min"
-              ? copy.minimumLevelBand(band)
-              : copy.maximumLevelBand(band),
+          accessibilityLabel: chipA11y(band),
           disabled: isLevelBoundDisabled(bound, band, other),
         }))}
         isSelected={(band) => band === value}
@@ -64,11 +79,17 @@ export function LevelRangeRows({
   errors,
   dispatch,
   openLink = true,
-}: StepProps & { openLink?: boolean }) {
+  sport,
+}: StepProps & { openLink?: boolean; sport?: Sport }) {
   const { draft } = state;
   const locale = useLocale();
   const copy = useMessages().mobileCreateGame.levelRange;
-  const summary = levelRangeSummary(draft.levelMin, draft.levelMax, locale);
+  const summary = levelRangeSummary(
+    draft.levelMin,
+    draft.levelMax,
+    locale,
+    sport,
+  );
   const setBound = (bound: "min" | "max") => (value: LevelBandSelectValue) =>
     dispatch({ kind: "setLevelBound", bound, value });
 
@@ -79,6 +100,7 @@ export function LevelRangeRows({
         value={draft.levelMin}
         other={draft.levelMax}
         error={errors.levelMinTenths}
+        sport={sport}
         onChange={setBound("min")}
       />
       <BoundRow
@@ -86,6 +108,7 @@ export function LevelRangeRows({
         value={draft.levelMax}
         other={draft.levelMin}
         error={errors.levelMaxTenths}
+        sport={sport}
         onChange={setBound("max")}
       />
       <View
@@ -144,14 +167,22 @@ export function LevelRangeHelper() {
   return <HelperNote>{copy.helper}</HelperNote>;
 }
 
-export function LevelRangeField(props: StepProps) {
+/** `encouraged` on a Public Game, which strangers join (ADR-0071). */
+export function LevelRangeField({
+  sport,
+  encouraged = false,
+  ...props
+}: StepProps & { sport?: Sport; encouraged?: boolean }) {
   const m = useMessages();
   return (
     <StepSection
       title={m.mobileCreateGame.levelRange.title}
-      note={m.common.optional}
+      note={encouraged ? m.rating.publicGame.levelRangeNote : m.common.optional}
     >
-      <LevelRangeRows {...props} />
+      <LevelRangeRows {...props} sport={sport} />
+      {encouraged ? (
+        <HelperNote>{m.rating.publicGame.levelRangeHint}</HelperNote>
+      ) : null}
       <LevelRangeHelper />
     </StepSection>
   );

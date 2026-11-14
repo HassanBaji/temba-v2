@@ -3,15 +3,16 @@
 import { bibColors, colors } from "@repo/design-tokens";
 import {
   balancedSides,
+  boardTierCell,
   draftSummary,
   initialTeamsDraft,
   keeperWord,
-  levelLabel,
   moveAcross,
+  ovrLabel,
   placeOn,
-  sideAverage,
   slotCode,
   switchMethod,
+  teamsSideAverage,
   type BoardPlayer,
   type Side,
   type TeamsDraft,
@@ -40,7 +41,7 @@ import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 import { BibChip, BibPicker, bibStyle } from "./football-bibs";
-import { BibRow } from "./football-team-columns";
+import { BibRow, TierMark } from "./football-team-columns";
 
 function MethodToggle({
   method,
@@ -106,7 +107,10 @@ function BalanceCard({
           <BibChip bib={bib} className="size-4" />
           <span className="font-semibold">{name}</span>
           <span className="text-muted-foreground text-meta flex-1">
-            {t.avgAndKeepers(sideAverage(members), keeperWord(members, locale))}
+            {t.avgAndKeepers(
+              teamsSideAverage(members, locale, summary.balanceOn),
+              keeperWord(members, locale),
+            )}
           </span>
           <span className="font-expanded tabular-nums">
             {draft.method === "manual"
@@ -159,6 +163,7 @@ function LevelColumns({
             <BibRow
               player={player}
               bib={bib}
+              showTier
               trailing={
                 <button
                   type="button"
@@ -244,6 +249,7 @@ function ManualRow({
   const bib =
     side === 1 ? draft.bibs.slot1 : side === 2 ? draft.bibs.slot2 : null;
   const code = slotCode(player, locale);
+  const tierCell = boardTierCell(player, locale);
   return (
     <li
       className={cn(
@@ -261,9 +267,13 @@ function ManualRow({
           <p className="font-mono text-[11px] opacity-70">{code}</p>
         ) : null}
       </div>
-      <span dir="ltr" className="font-expanded">
-        {levelLabel(player.levelBand)}
-      </span>
+      {tierCell ? (
+        <TierMark cell={tierCell} />
+      ) : (
+        <span dir="ltr" className="font-expanded">
+          {ovrLabel(player)}
+        </span>
+      )}
       <SwatchButton
         bib={draft.bibs.slot1}
         selected={side === 1}
@@ -391,7 +401,9 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
   });
 
   const players = board.data?.players ?? [];
-  const summary = draft ? draftSummary(draft, players, locale) : null;
+  const summary = draft
+    ? draftSummary(draft, players, locale, board.data?.balanceOn)
+    : null;
   const back = (
     <Button variant="outline" asChild>
       <Link href={gameHref}>{m.webTournament.backToGame}</Link>

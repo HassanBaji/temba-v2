@@ -1,12 +1,15 @@
 import { TRPCError } from "@trpc/server";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
   GameFormatEnum,
   GameRegistrationModeEnum,
   GameSportEnum,
+  courts,
   gameCourts,
   games,
+  venues,
 } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
@@ -34,7 +37,8 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_FOOTBALL_SIDE_SIZE } from "@repo/domain/game-shape";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
-import { sportOrDefault } from "@repo/domain/sport";
+import { DEFAULT_SPORT, sportOrDefault, type Sport } from "@repo/domain/sport";
+import { sportSchema } from "@repo/validators/sport";
 import { ratingFlagsAtCreate } from "@repo/domain/game-rating-scope";
 import { MVP_MODES } from "@repo/domain/marks";
 import {
@@ -43,6 +47,12 @@ import {
 } from "@repo/domain/game-custom-name";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+type GroupGameInput = CreateGameInput & { groupId: string };
+
+// The input schema is parsed before the request Locale is known, so its
+// issues read in the default Locale.
+const PICK_GROUP = messagesFor(DEFAULT_LOCALE).createGame.validation.pickGroup;
 
 const registrationModeSchema = z.enum(["individual", "team_only"]);
 const createFormatSchema = z.enum([
@@ -55,8 +65,11 @@ export const createGameInputSchema = z
   .object({
     name: z.string().trim().max(255).optional(),
     customName: z.string().trim().max(GAME_CUSTOM_NAME_MAX_LENGTH).optional(),
-    groupId: z.string().uuid({ message: "Pick a Group" }),
+    /** Omitted only for a Public Game (ADR-0071). */
+    groupId: z.string().uuid({ message: PICK_GROUP }).optional(),
     isPublic: z.boolean(),
+    /** A Public Game's sport; a Group's Game takes its Group's. Omitted = padel. */
+    sport: sportSchema.optional(),
     /** False makes the Game Unrated (ADR-0053). */
     rated: z.boolean().optional(),
     format: createFormatSchema.default("friendly_game"),
@@ -131,6 +144,20 @@ export const createGameInputSchema = z
     },
   )
   .superRefine((value, ctx) => {
+    if (value.groupId === undefined && !value.isPublic) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: PICK_GROUP,
+        path: ["groupId"],
+      });
+    }
+    if (value.groupId !== undefined && value.sport !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: messagesFor(DEFAULT_LOCALE).game.errors.publicGameSportOnly,
+        path: ["sport"],
+      });
+    }
     if (value.format === "friendly_game" && value.courtIds !== undefined) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -191,7 +218,8 @@ function friendlyGameNameFields(
 
 async function createFootballGameOnGroup(
   database: DbClient,
-  input: CreateGameInput,
+  input: GroupGameInput,
+  flags: { rated: boolean; groupRated: boolean },
   locale: Locale = DEFAULT_LOCALE,
 ) {
   if (input.format !== "friendly_game") {
@@ -200,7 +228,12 @@ async function createFootballGameOnGroup(
       message: messagesFor(locale).football.errors.friendlyOnly,
     });
   }
-  if (input.levelMinTenths != null || input.levelMaxTenths != null) {
+  // A Level range gates who may join on their Temba Level, so only a Game
+  // that counts for it has one (ADR-0069).
+  if (
+    !flags.rated &&
+    (input.levelMinTenths != null || input.levelMaxTenths != null)
+  ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: messagesFor(locale).football.errors.noLevelRange,
@@ -221,6 +254,9 @@ async function createFootballGameOnGroup(
       sideSize,
       playersAllowed: input.playersAllowed ?? 2 * sideSize,
       mvpMode: input.mvpMode,
+      levelMinTenths: input.levelMinTenths ?? null,
+      levelMaxTenths: input.levelMaxTenths ?? null,
+      ...flags,
     },
     locale,
   );
@@ -244,18 +280,139 @@ export async function createGame(
         .startInPast,
     });
   }
-  const created = await createGameOnGroup(database, input, locale);
+  const created = input.groupId
+    ? await createGameOnGroup(
+        database,
+        { ...input, groupId: input.groupId },
+        locale,
+      )
+    : await createPublicGame(database, input, locale);
   await linkNewGameToSeason(database, {
     id: created.id,
-    groupId: input.groupId,
+    groupId: input.groupId ?? null,
     windowStart: input.windowStart,
   });
   return created;
 }
 
-async function createGameOnGroup(
+/**
+ * Only a partner Venue hosts a Public Game, read from the stored mark, never
+ * inferred (ADR-0071), and it must offer the Game's sport.
+ */
+async function assertPublicGameVenue(
+  database: DbClient,
+  venueId: string,
+  sport: Sport,
+  locale: Locale,
+) {
+  const errors = messagesFor(locale).game.errors;
+  const venue = await database.query.venues.findFirst({
+    where: eq(venues.id, venueId),
+    columns: { id: true, partnerAt: true },
+  });
+  if (!venue) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).venue.errors.notFound,
+    });
+  }
+  if (venue.partnerAt === null) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: errors.publicGamePartnerVenue,
+    });
+  }
+  const court = await database.query.courts.findFirst({
+    where: and(eq(courts.venueId, venueId), eq(courts.sport, sport)),
+    columns: { id: true },
+  });
+  if (!court) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        sport === "football"
+          ? errors.publicGameFootballVenue
+          : errors.publicGamePadelVenue,
+    });
+  }
+}
+
+/**
+ * A Public Game: a groupless Friendly game at a partner Venue that anyone
+ * inside its Level range may join (ADR-0071). It counts for Temba Level once
+ * one player from each side confirms its score within 24 hours. A football
+ * one keeps the usual side size and reads its Level range in OVR.
+ */
+async function createPublicGame(
   database: DbClient,
   input: CreateGameInput,
+  locale: Locale,
+) {
+  if (!input.isPublic || input.format !== "friendly_game") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).game.errors.publicGameOnly,
+    });
+  }
+  const sport = input.sport ?? DEFAULT_SPORT;
+  await assertPublicGameVenue(database, input.venueId, sport, locale);
+  const flags = ratingFlagsAtCreate({
+    hasGroup: false,
+    groupVerified: false,
+    sport,
+    rated: true,
+    isPublic: true,
+  });
+  if (sport === "football") {
+    const sideSize = input.sideSize ?? DEFAULT_FOOTBALL_SIDE_SIZE;
+    const created = await createFootballGame(
+      database,
+      {
+        createdBy: input.createdBy,
+        ...friendlyGameNameFields(input),
+        groupId: null,
+        isPublic: true,
+        venueId: input.venueId,
+        courtId: input.courtId,
+        windowStart: input.windowStart,
+        windowEnd: input.windowEnd,
+        pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+        sideSize,
+        playersAllowed: input.playersAllowed ?? 2 * sideSize,
+        mvpMode: input.mvpMode,
+        levelMinTenths: input.levelMinTenths ?? null,
+        levelMaxTenths: input.levelMaxTenths ?? null,
+        ...flags,
+      },
+      locale,
+    );
+    return { id: created.game.id, matchId: null as string | null };
+  }
+  const created = await createFriendlyGame(
+    database,
+    {
+      createdBy: input.createdBy,
+      ...friendlyGameNameFields(input),
+      groupId: null,
+      isPublic: true,
+      venueId: input.venueId,
+      courtId: input.courtId,
+      windowStart: input.windowStart,
+      windowEnd: input.windowEnd,
+      pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+      levelMinTenths: input.levelMinTenths ?? null,
+      levelMaxTenths: input.levelMaxTenths ?? null,
+      ...flags,
+      mvpMode: input.mvpMode,
+    },
+    locale,
+  );
+  return { id: created.game.id, matchId: created.matchId };
+}
+
+async function createGameOnGroup(
+  database: DbClient,
+  input: GroupGameInput,
   locale: Locale = DEFAULT_LOCALE,
 ) {
   const group = await requireGroup(database, input.groupId, locale);
@@ -271,7 +428,12 @@ async function createGameOnGroup(
   });
 
   if (sportOrDefault(group.sport) === "football") {
-    return createFootballGameOnGroup(database, input, locale);
+    return createFootballGameOnGroup(
+      database,
+      input,
+      { rated, groupRated },
+      locale,
+    );
   }
 
   if (!isAmericano && !isTournament) {

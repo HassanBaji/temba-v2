@@ -86,6 +86,7 @@ export function GameTeamPlayersSheet({
                             name: player.name,
                             image: player.image,
                             guest: player.guest,
+                            phoneNumber: player.phoneNumber,
                           });
                         }}
                         className={cn(ROW, INTERACTIVE_ROW)}

@@ -17,7 +17,6 @@ export async function createLoosePrivate(
     description?: string;
     sport: "padel" | "football";
     userId: string;
-    verifiedBy?: string;
   },
 ) {
   return createLooseGroup({
@@ -27,7 +26,6 @@ export async function createLoosePrivate(
     sport: args.sport,
     type: GroupTypeEnum.PRIVATE,
     createdBy: args.userId,
-    verifiedBy: args.verifiedBy,
   });
 }
 
@@ -46,9 +44,5 @@ export const createLoosePrivateProcedure = protectedProcedure
       description: input.description,
       sport: input.sport,
       userId: appUser.id,
-      verifiedBy:
-        (await ctx.getPublicMetadata())?.groupCreator === true
-          ? appUser.id
-          : undefined,
     });
   });

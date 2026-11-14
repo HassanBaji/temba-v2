@@ -1,10 +1,11 @@
 import { hubGameCardPlan, hubWaitlistJoinCall } from "@repo/domain/game-card";
+import type { GamesHubTab } from "@repo/domain/games-hub-tab";
 import type { HubGameRow, MyTournament } from "@repo/domain/hub-game-row";
 import { isTournamentMatchRow } from "@repo/domain/tournament-card";
 import { isTournamentGamesCardRow } from "@repo/domain/tournament-games-card";
 import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 
-export type GamesTab = "my-games" | "history";
+export type GamesTab = GamesHubTab;
 
 export type HubItem =
   | {
@@ -94,6 +95,14 @@ export function footballJoinPath(gameId: string) {
 
 export function footballScorePath(gameId: string) {
   return `/games/${gameId}/score`;
+}
+
+export function gameRatePath(gameId: string) {
+  return `/games/${gameId}/rate`;
+}
+
+export function gameRatingSummaryPath(gameId: string) {
+  return `/games/${gameId}/ratings`;
 }
 
 export function tabCount(count: number | undefined) {

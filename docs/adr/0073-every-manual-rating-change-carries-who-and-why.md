@@ -1,6 +1,6 @@
 # Every manual rating change carries who and why
 
-**Status:** proposed (draft for the owner's review). Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0023](./0023-level-override-is-a-confirmed-glicko-baseline.md).
+**Status:** accepted. Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0023](./0023-level-override-is-a-confirmed-glicko-baseline.md).
 
 A Level override already records who set it, and may carry a reason. A Group Level override records who and no reason. The owner's rule is stricter and covers the new ladder too: anything a person changed by hand carries their name and reason, and the player sees it the moment it happens.
 

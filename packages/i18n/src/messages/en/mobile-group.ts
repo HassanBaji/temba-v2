@@ -219,6 +219,8 @@ export const mobileGroup = {
     newLevel: "New Level",
     readout: (band: string, level: string, delta: string) =>
       `New Level ${band} ${level}, ${delta}`,
+    readoutOvr: (ovr: string, delta: string) =>
+      `New Level OVR ${ovr}, ${delta}`,
     toNext: (distance: string, label: string) => `${distance} to ${label}`,
     topOfScale: "Top of the scale",
     throughRung: (percent: number, rung: string) =>
@@ -226,8 +228,13 @@ export const mobileGroup = {
     nowMarker: (label: string) => `Now ${label}`,
     decrease: "Decrease Level by 0.1",
     increase: "Increase Level by 0.1",
+    decreaseOvr: "Decrease OVR by 1",
+    increaseOvr: "Increase OVR by 1",
     reset: "Reset",
-    reason: "Reason",
+    why: (name: string) => `Why? ${name} will see this.`,
+    noteLabel: "Note",
+    notePlaceholder: "Add a note (optional)",
+    pickReason: "Pick a reason to save",
     note: "A Level you set counts as confirmed. Rated Matches keep moving it from here.",
     noteProvisional: (firstName: string) =>
       `${firstName} will no longer be Provisional, and setting again will not change that.`,
@@ -237,12 +244,6 @@ export const mobileGroup = {
     savedHeadline: (name: string, label: string) => `${name} set to ${label}.`,
     savedReason: (reason: string) => `Reason: ${reason}.`,
     dismiss: "Dismiss",
-  },
-  setGroupLevel: {
-    groupLevel: (label: string) => `Group level ${label}`,
-    tembaLevel: (label: string) => `Temba level ${label}`,
-    noTembaLevel: "no Temba level yet",
-    tembaMarker: (label: string) => `Temba ${label}`,
   },
   seasons: {
     title: "Seasons",

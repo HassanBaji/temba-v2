@@ -6,8 +6,9 @@ import {
   groupHomeCanShowCreateGame,
 } from "@repo/domain/group-home-cta";
 import {
+  groupLevelFace,
   groupShowsLevel,
-  viewerMaySetGroupLevel,
+  viewerMayAdjustTier,
   type GroupMemberOrganizerAction,
 } from "@repo/domain/group-home-chrome";
 import {
@@ -16,7 +17,7 @@ import {
   groupPartOfVenueLine,
 } from "@repo/domain/group-link-request";
 import { groupMemberRowsLink } from "@repo/domain/player-profile";
-import type { GroupJoinDoor } from "@repo/domain/group-join";
+import { groupDisplayName, type GroupJoinDoor } from "@repo/domain/group-join";
 import type { GroupMenuItem } from "@repo/domain/group-settings";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { EllipsisVertical, UserRoundPlus } from "lucide-react-native";
@@ -57,6 +58,8 @@ export type GroupMenuProps = {
   roleLine: string | null;
   /** Why Leave is disabled, or `null` when the viewer may leave. */
   leaveBlockedHint: string | null;
+  /** The current Rating settings, under their row. */
+  ratingSettingsHint: string | null;
   copyPending: boolean;
   onOpen: () => void;
   onPick: (item: GroupMenuItem) => void;
@@ -89,7 +92,7 @@ export type GroupHomeViewProps = {
   pendingInviteNames?: string[];
   onOpenMember: (userId: string) => void;
   onSetLevel: (userId: string) => void;
-  onSetGroupLevel: (userId: string) => void;
+  onOpenTierHistory?: (userId: string) => void;
   saved: SavedLevel | null;
   onDismissSaved: () => void;
   games: Omit<
@@ -259,6 +262,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
               ? props.onOpenMember
               : undefined
           }
+          onOpenMembers={() => props.onTabChange("members")}
         />
       ) : null}
       {props.tab === "games" ? (
@@ -293,17 +297,16 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           }
           apiOrigin={props.apiOrigin}
           canSetLevel={data.viewerCanSetLevel && groupShowsLevel(data.sport)}
-          showLevel={groupShowsLevel(data.sport)}
+          showLevel={groupShowsLevel(data.sport, data.verified)}
+          levelFace={groupLevelFace(data.sport)}
+          tierSummary={data.hasTier ? (data.tierSummary ?? null) : null}
+          groupName={groupDisplayName(data.name, locale)}
+          canAdjustTier={viewerMayAdjustTier({
+            hasTier: data.hasTier,
+            leaderboard: data.standing.leaderboard,
+          })}
+          onOpenTierHistory={props.onOpenTierHistory}
           onSetLevel={props.onSetLevel}
-          onSetGroupLevel={
-            viewerMaySetGroupLevel({
-              sport: data.sport,
-              canCreateGame: data.canCreateGame,
-              leaderboard: data.standing.leaderboard,
-            })
-              ? props.onSetGroupLevel
-              : undefined
-          }
           canAddPlayers={data.canAddPlayers}
           onRenameUnclaimed={props.onRenameUnclaimed}
           canRemovePlayers={data.canRemovePlayers}
@@ -311,7 +314,6 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           canAppointOrganizers={data.canAppointOrganizers}
           onOrganizerAction={props.onOrganizerAction}
           canSetNicknames={data.canSetMemberNicknames}
-          groupName={header.name}
           pendingInviteNames={props.pendingInviteNames}
           onOpenInvites={onInvite}
           onAddPlayer={props.onAddPlayer}
@@ -377,6 +379,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         roleLine={props.menu.roleLine}
         items={props.menu.items}
         leaveBlockedHint={props.menu.leaveBlockedHint}
+        ratingSettingsHint={props.menu.ratingSettingsHint}
         copyPending={props.menu.copyPending}
         onPick={props.menu.onPick}
         onClose={props.menu.onClose}

@@ -114,28 +114,48 @@ function LevelBlock({ view }: { view: ProfileLevelView }) {
           </p>
         </div>
         <p className="mt-1.5 flex items-baseline gap-3.5">
-          <span dir="ltr" className="font-expanded text-[72px] leading-[0.9]">
-            {view.band}
-          </span>
-          <span className="font-expanded text-[30px] tabular-nums leading-none">
-            {view.level}
-          </span>
+          {view.band ? (
+            <>
+              <span
+                dir="ltr"
+                className="font-expanded text-[72px] leading-[0.9]"
+              >
+                {view.band}
+              </span>
+              <span className="font-expanded text-[30px] tabular-nums leading-none">
+                {view.level}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="font-expanded text-[72px] tabular-nums leading-[0.9]">
+                {view.level}
+              </span>
+              {view.unit ? (
+                <span className="text-meta text-dim font-semibold">
+                  {view.unit}
+                </span>
+              ) : null}
+            </>
+          )}
           {view.trend ? (
             <span className="text-meta ms-auto font-semibold tabular-nums">
               {view.trend}
             </span>
           ) : null}
         </p>
-        <div className="mt-4 flex items-baseline justify-between gap-2.5">
-          <span className="text-body font-semibold tabular-nums">
-            {view.lead}
-          </span>
-          {view.trail ? (
-            <span className="text-eyebrow text-dim tabular-nums">
-              {view.trail}
+        {view.lead || view.trail ? (
+          <div className="mt-4 flex items-baseline justify-between gap-2.5">
+            <span className="text-body font-semibold tabular-nums">
+              {view.lead}
             </span>
-          ) : null}
-        </div>
+            {view.trail ? (
+              <span className="text-eyebrow text-dim tabular-nums">
+                {view.trail}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
         <LevelTrack percent={view.percent} hatched={view.hatched} />
       </div>
     </section>

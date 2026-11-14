@@ -30,6 +30,7 @@ export const webDashboard = {
     createAction: "إنشاء مباراة",
     tabs: {
       upcoming: "القادمة",
+      public: "عامة",
       played: "السابقة",
     },
   },
@@ -304,7 +305,7 @@ export const webDashboard = {
       removeConfirm: {
         title: (name: string) => `إزالة التوثيق من ${name}؟`,
         description:
-          "تحتفظ المباريات الحالية بإعدادات التصنيف والعامة. المباريات الجديدة في هذه المجموعة ستُحتسب في تصنيف المجموعة فقط وستكون خاصة.",
+          "تحتفظ المباريات الحالية بإعدادات التصنيف والعامة. المباريات الجديدة في هذه المجموعة لن تُحتسب لمستوى Temba وستكون خاصة.",
       },
     },
     levels: {
@@ -353,6 +354,15 @@ export const webDashboard = {
     softArchiveAction: "أرشفة",
     unarchiveAction: "إلغاء الأرشفة",
     softArchivedBadge: "مؤرشف",
+    partner: {
+      title: "نادٍ شريك",
+      description:
+        "يستضيف النادي الشريك المباريات العامة، وهي تُحتسب لمستوى Temba.",
+      badge: "شريك",
+      archivedNote: "ألغِ أرشفة هذا النادي لتجعله شريكًا.",
+      onToast: "صار النادي ناديًا شريكًا",
+      offToast: "لم يعد النادي ناديًا شريكًا",
+    },
     logoReadError: "تعذّرت قراءة الشعار",
     unarchiving: "جارٍ إلغاء الأرشفة…",
     toast: {
@@ -412,7 +422,7 @@ export const webDashboard = {
       unlinkConfirm: {
         title: (group: string) => `فك ارتباط ${group}؟`,
         description: (group: string) =>
-          `تعود ${group} مجموعة حرة. ستُحتسب المباريات الجديدة في تصنيف المجموعة فقط، ما لم يوثّقها مشغّل. تبقى المباريات السابقة والأعضاء كما هم.`,
+          `تعود ${group} مجموعة حرة. لن تُحتسب المباريات الجديدة لمستوى Temba، ما لم يوثّقها مشغّل. تبقى المباريات السابقة والأعضاء كما هم.`,
         confirmLabel: "فك ارتباط المجموعة",
       },
       unlinkedToast: (group: string) => `تم فك ارتباط ${group}`,

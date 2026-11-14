@@ -2,6 +2,7 @@ import type {
   NotificationTitlePart,
   notification as source,
 } from "../en/notification";
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 
 function strong(text: string): NotificationTitlePart {
@@ -111,6 +112,30 @@ export const notification = {
       plain(" مستواك عند "),
       strong(level),
     ],
+    levelCalibrated: (actor: string, venue: string, level: string) => [
+      plain("عاير "),
+      strong(actor),
+      plain(" ("),
+      strong(venue),
+      plain(") مستواك عند "),
+      strong(level),
+    ],
+    tierPointsAdjusted: (actor: string, group: string) => [
+      plain("عدّل "),
+      strong(actor),
+      plain(" نقاط فئتك في "),
+      strong(group),
+    ],
+    tierBandChanged: (band: string, group: string) => [
+      plain("صرت الآن "),
+      strong(band),
+      plain(" في "),
+      strong(group),
+    ],
+    levelConfirmed: (sport: string) => [
+      plain("تأكّد مستواك في "),
+      strong(sport),
+    ],
     gameFinished: (game: string) => [plain("انتهت "), strong(game)],
     markReceived: (actor: string, kind: string, game: string) => [
       plain("منحك "),
@@ -126,6 +151,46 @@ export const notification = {
       strong(game),
     ],
     youAreMvp: (game: string) => [plain("أنت نجم مباراة "), strong(game)],
+    performanceRatingsOpen: (game: string) => [
+      plain("قيّم لاعبي "),
+      strong(game),
+    ],
+    performanceRatingsClosed: (game: string) => [
+      plain("صدرت تقييمات "),
+      strong(game),
+    ],
+    matchDisputeRaised: (actor: string, game: string) => [
+      plain("اعترض "),
+      strong(actor),
+      plain(" على نتيجة "),
+      strong(game),
+    ],
+    matchDisputeUpheld: (game: string) => [
+      plain("قبل Temba اعتراضك على "),
+      strong(game),
+    ],
+    matchDisputeUpheldFor: (actor: string, game: string) => [
+      plain("قبل Temba اعتراض "),
+      strong(actor),
+      plain(" على "),
+      strong(game),
+    ],
+    matchDisputeDismissed: (game: string) => [
+      plain("رفض Temba اعتراضك على "),
+      strong(game),
+    ],
+    matchDisputeDismissedFor: (actor: string, game: string) => [
+      plain("رفض Temba اعتراض "),
+      strong(actor),
+      plain(" على "),
+      strong(game),
+    ],
+    matchDisputeSuperseded: (actor: string, game: string) => [
+      plain("أعاد "),
+      strong(actor),
+      plain(" فتح نتيجة "),
+      strong(game),
+    ],
     mvpTieBreak: (game: string) => [
       plain("تعادل في التصويت على "),
       strong(game),
@@ -264,6 +329,33 @@ export const notification = {
     kickOffTomorrow: "تنطلق المباراة بعد 24 ساعة.",
     seeWhoIsNamed: "اطّلع على المباراة ومن سُمّي معك.",
     acceptRematch: "اقبله لتقترح وقتًا وملعبًا.",
+    tierAdjusted: (reason: string, from: string, to: string) =>
+      `${reason}. من ${isolate(from)} إلى ${isolate(to)}.`,
+    tierAdjustedWithNote: (
+      reason: string,
+      note: string,
+      from: string,
+      to: string,
+    ) => `${reason}: «${note}» من ${isolate(from)} إلى ${isolate(to)}.`,
+    ratingsOpen:
+      "امنح كل لاعب من 1 إلى 10 خلال 24 ساعة. تتحرّك النقاط حين ترسلها.",
+    ratingsOpenEveryone:
+      "قيّم زملاءك، والخصوم إن أردت، خلال 24 ساعة. لا أحد يرى من أعطى ماذا.",
+    tierPlaces: "الفئات مراكز، فحين يتحرّك لاعب يتحرّك غيره في الاتجاه الآخر.",
+    levelConfirmed:
+      "لم يعد المسار مخطّطًا. يواصل التحرّك في المباريات الموثّقة.",
+    ratingsClosed: (rating: string, delta: string, points: string) =>
+      `تقييمك ${isolate(rating)}. نقاط الفئة ${isolate(delta)}، والآن ${isolate(points)}.`,
+    ratingsClosedResultOnly: (delta: string, points: string) =>
+      `لا تقييم لك هذه المرة. نقاط الفئة ${isolate(delta)} على النتيجة، والآن ${isolate(points)}.`,
+    ratingsClosedOvr: (rating: string, delta: string, ovr: string) =>
+      `تقييمك ${isolate(rating)}. OVR ${isolate(delta)}، والآن ${isolate(ovr)}.`,
+    ratingsClosedOvrNoRating: (delta: string, ovr: string) =>
+      `لا تقييم لك هذه المرة. OVR ${isolate(delta)}، والآن ${isolate(ovr)}.`,
+    disputeUpheld: "النتيجة مفتوحة من جديد. أدخل النتيجة الصحيحة.",
+    disputeDismissed: "تبقى النتيجة.",
+    disputeSuperseded:
+      "أُغلق اعتراضك. إن كانت النتيجة الجديدة خاطئة أيضًا فيمكنك الاعتراض عليها.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

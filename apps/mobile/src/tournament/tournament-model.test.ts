@@ -78,6 +78,63 @@ describe("scorableMatches", () => {
     ).toBe(false);
   });
 
+  it("lists a Match the viewer may stamp, as a Verifier who cannot score it", () => {
+    const [first, ...rest] = pool.postedMid.matches;
+    if (!first) {
+      throw new Error("expected a posted Match");
+    }
+    const stampable = {
+      ...pool.postedMid,
+      matches: [
+        {
+          ...first,
+          canScoreSets: false,
+          canConfirmScore: false,
+          canStamp: true,
+          sets: [{ id: "set-1", slot1GamesWon: 6, slot2GamesWon: 4, wins: [] }],
+        },
+        ...rest.map((match) => ({
+          ...match,
+          canScoreSets: false,
+          canConfirmScore: false,
+        })),
+      ],
+    };
+    expect(scorableMatches(stampable, "en")).toEqual([
+      expect.objectContaining({
+        id: first.id,
+        canEnter: false,
+        scoreToConfirm: null,
+        canStamp: true,
+      }),
+    ]);
+  });
+
+  it("lists a Knockout Match the viewer may stamp", () => {
+    const [level] = knockout.knockoutOnlyMid.matches.filter(
+      (match) => match.canScoreSets,
+    );
+    if (!level) {
+      throw new Error("expected a scorable Knockout Match");
+    }
+    const game = {
+      ...knockout.knockoutOnlyMid,
+      matches: knockout.knockoutOnlyMid.matches.map((match) => ({
+        ...match,
+        canScoreSets: false,
+        canConfirmScore: false,
+        canStamp: match.id === level.id,
+      })),
+    };
+    const [stampable] = scorableMatches(game, "en");
+    expect(stampable).toMatchObject({
+      id: level.id,
+      heading: "Semi-finals, S1",
+      canEnter: false,
+      canStamp: true,
+    });
+  });
+
   it("shows nothing to score once everything is final", () => {
     expect(scorableMatches(knockout.knockoutOnlyChampion, "en")).toEqual([]);
   });
@@ -119,7 +176,25 @@ describe("tournamentPlayer", () => {
       image: member.image,
       level: null,
       guest: false,
+      phoneNumber: null,
     });
+  });
+
+  it("carries the number a Group approver was sent", () => {
+    const game = structuredClone(pool.postedMid);
+    const seated = game.sides.find((side) => side.left)?.left;
+    const member = game.gameTeams[0]?.members[0];
+    if (!seated || !member) {
+      throw new Error("expected a seated player and a Game team member");
+    }
+    Object.assign(seated, { phoneNumber: "+97336124408" });
+    Object.assign(member, { phoneNumber: "+97333000002" });
+    expect(tournamentPlayer(game, seated.userId)?.phoneNumber).toBe(
+      "+97336124408",
+    );
+    expect(
+      tournamentPlayer({ ...game, sides: [] }, member.id)?.phoneNumber,
+    ).toBe("+97333000002");
   });
 
   it("returns null for someone not on the Tournament", () => {

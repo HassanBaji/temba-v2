@@ -12,6 +12,15 @@ describe("notificationPath", () => {
       "/groups/g1",
     );
     expect(notificationPath({ type: "level_set", group })).toBe("/groups/g1");
+    expect(notificationPath({ type: "tier_band_changed", group })).toBe(
+      "/groups/g1",
+    );
+  });
+
+  it("opens the member's own Points and history for a Tier adjustment", () => {
+    expect(notificationPath({ type: "tier_points_adjusted", group })).toBe(
+      "/groups/tier-history?groupId=g1",
+    );
     expect(
       notificationPath({ type: "group_join_approved", group, game: null }),
     ).toBe("/groups/g1");
@@ -50,10 +59,48 @@ describe("notificationPath", () => {
     );
   });
 
+  it("opens Rate the game when ratings open for the Organizer", () => {
+    expect(
+      notificationPath({ type: "performance_ratings_open", group, game }),
+    ).toBe("/games/x1/rate");
+  });
+
+  it("opens the Game for a Match dispute, raised or decided", () => {
+    for (const type of ["match_dispute_raised", "match_dispute_decided"]) {
+      expect(notificationPath({ type, group: null, game })).toBe("/games/x1");
+    }
+  });
+
+  it("opens the Game when ratings close, on a Group's Game or one with no Group", () => {
+    expect(
+      notificationPath({ type: "performance_ratings_closed", group, game }),
+    ).toBe("/games/x1");
+    expect(
+      notificationPath({
+        type: "performance_ratings_closed",
+        group: null,
+        game,
+      }),
+    ).toBe("/games/x1");
+  });
+
   it("opens the Games history for linked history", () => {
     expect(notificationPath({ type: "history_linked", group: null })).toBe(
       "/games?tab=history",
     );
+  });
+
+  it("opens Ratings on the sport whose Level was confirmed", () => {
+    expect(
+      notificationPath({
+        type: "level_confirmed",
+        group: null,
+        game: { id: "x1", sport: "football" },
+      }),
+    ).toBe("/profile/ratings?sport=football");
+    expect(
+      notificationPath({ type: "level_confirmed", group: null, game: null }),
+    ).toBeNull();
   });
 
   it("has no target when the subject is missing or the type is unknown", () => {

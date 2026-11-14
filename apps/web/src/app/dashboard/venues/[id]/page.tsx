@@ -18,7 +18,9 @@ import { EntityHomeHeader } from "~/components/layout/entity-home-header";
 import { Section } from "~/components/layout/section";
 import { VenueLinkedGroupsSection } from "~/components/venues/venue-linked-groups-section";
 import { VenueManagersSection } from "~/components/venues/venue-managers-section";
+import { VenueVerifiersSection } from "~/components/venues/venue-verifiers-section";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
   Field,
@@ -36,6 +38,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { Input } from "~/components/ui/input";
+import { Switch } from "~/components/ui/switch";
 import {
   fieldErrorMessage,
   focusFormFailure,
@@ -215,6 +218,17 @@ export default function VenueHomePage({
     },
   });
 
+  const setPartner = api.venues.setPartner.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.isPartner ? v.partner.onToast : v.partner.offToast);
+      await utils.venues.byId.invalidate({ id });
+      await utils.venues.list.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (updateVenue.isPending) {
@@ -306,6 +320,11 @@ export default function VenueHomePage({
             />
           }
           title={venueName}
+          badges={
+            data.isPartner ? (
+              <Badge variant="secondary">{v.partner.badge}</Badge>
+            ) : undefined
+          }
           meta={v.location(data.city, data.country)}
           primaryAction={
             data.archivedAt ? (
@@ -337,6 +356,29 @@ export default function VenueHomePage({
             {v.archivedBanner.body}
           </SoftArchiveBanner>
         ) : null}
+
+        <Section
+          title={v.partner.title}
+          description={v.partner.description}
+          action={
+            <Switch
+              checked={data.isPartner}
+              disabled={
+                setPartner.isPending || (!data.isPartner && !!data.archivedAt)
+              }
+              onCheckedChange={(partner) =>
+                setPartner.mutate({ venueId: id, partner })
+              }
+              aria-label={v.partner.title}
+            />
+          }
+        >
+          {data.archivedAt && !data.isPartner ? (
+            <p className="text-body text-muted-foreground">
+              {v.partner.archivedNote}
+            </p>
+          ) : null}
+        </Section>
 
         <VenueLinkedGroupsSection venueId={id} venueName={venueName} />
 
@@ -523,6 +565,8 @@ export default function VenueHomePage({
         </Section>
 
         <VenueManagersSection venueId={id} />
+
+        <VenueVerifiersSection venueId={id} />
 
         <Section title={v.courts.title} description={v.courts.description}>
           <form onSubmit={onAddCourt} className="space-y-3">

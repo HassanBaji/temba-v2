@@ -74,9 +74,9 @@ export async function loadChallengeCards(
     ]);
 
   const [levels, matches, viewerTeams, nudgedNames] = await Promise.all([
-    loadTeamLevels(database, teamRows, args.now),
+    loadTeamLevels(database, teamRows),
     loadTeamMatches(database, teamIds),
-    loadViewerTeams(database, args.userId, args.now),
+    loadViewerTeams(database, args.userId),
     loadTeamDisplayNames(
       database,
       rows.flatMap((row) => (row.nudgeTeamId ? [row.nudgeTeamId] : [])),

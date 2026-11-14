@@ -1,12 +1,20 @@
 import { and, eq, inArray, ne } from "drizzle-orm";
 
-import { gameTeamPlayers, games, matchResultConfirmations } from "@repo/db";
+import {
+  gameTeamPlayers,
+  gameTeams,
+  games,
+  matchResultConfirmations,
+  matchVerifierStamps,
+} from "@repo/db";
 
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { isFootballGame } from "@repo/domain/game-shape";
 import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 
 import { type db } from "#src/db";
 import { type MatchRow } from "#src/games/utils";
+import { type TeamForActing, userActsForTeam } from "#src/teams/acts-for-team";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -199,10 +207,11 @@ export async function matchResultConfirmedUserIds(
 
 /**
  * The moment a Match's confirmations were completed: the latest `confirmedAt`
- * among its confirmation rows. `runMatchCompletionEffect` completes and rates
- * a Match in the same transaction as the confirmation that reaches the
- * required count (ADR-0011), so once a Match is `completed`, this timestamp
- * is that completion moment. `null` when the Match has no confirmation rows
+ * among its confirmation rows and its Verifier stamp.
+ * `runMatchCompletionEffect` completes and rates a Match in the same
+ * transaction as the confirmation that reaches the required count
+ * (ADR-0011), so once a Match is `completed`, this timestamp is that
+ * completion moment. `null` when the Match has no confirmation rows
  * yet. Read-only additive helper (game-details redesign, TEM-181) — no new
  * table, just an existing column already written by
  * `recordMatchResultConfirmation`.
@@ -211,34 +220,148 @@ export async function matchResultConfirmationCompletedAt(
   database: DbClient,
   matchId: string,
 ): Promise<Date | null> {
-  const confirmations = await database.query.matchResultConfirmations.findMany({
-    where: eq(matchResultConfirmations.matchId, matchId),
-    columns: { confirmedAt: true },
-  });
-  if (confirmations.length === 0) {
+  const [confirmations, stamp] = await Promise.all([
+    database.query.matchResultConfirmations.findMany({
+      where: eq(matchResultConfirmations.matchId, matchId),
+      columns: { confirmedAt: true },
+    }),
+    matchVerifierStampOf(database, matchId),
+  ]);
+  const moments = [
+    ...confirmations.map((row) => row.confirmedAt),
+    ...(stamp ? [stamp.createdAt] : []),
+  ];
+  if (moments.length === 0) {
     return null;
   }
-  return confirmations.reduce<Date>(
-    (latest, row) => (row.confirmedAt > latest ? row.confirmedAt : latest),
-    confirmations[0]!.confirmedAt,
+  return moments.reduce<Date>(
+    (latest, moment) => (moment > latest ? moment : latest),
+    moments[0]!,
+  );
+}
+
+/** A Match's Verifier stamp (ADR-0072), or `null` while it has none. */
+export async function matchVerifierStampOf(
+  database: DbClient,
+  matchId: string,
+) {
+  const stamp = await database.query.matchVerifierStamps.findFirst({
+    where: eq(matchVerifierStamps.matchId, matchId),
+  });
+  return stamp ?? null;
+}
+
+/**
+ * Removes a Match's Verifier stamp: the stamp vouched for one score, so a
+ * Match reopened for a corrected score needs a new one.
+ */
+export async function clearMatchVerifierStamp(
+  database: DbClient,
+  matchId: string,
+): Promise<void> {
+  await database
+    .delete(matchVerifierStamps)
+    .where(eq(matchVerifierStamps.matchId, matchId));
+}
+
+type ChallengeSideTeam = { slot: MatchSlot; team: TeamForActing };
+
+/** The Team bound to each side of a football Challenge Game's Match. */
+async function challengeSideTeams(
+  database: DbClient,
+  match: MatchRow,
+): Promise<ChallengeSideTeam[]> {
+  const game = await database.query.games.findFirst({
+    where: eq(games.id, match.gameId),
+    columns: { sport: true, challengeId: true },
+  });
+  if (!game?.challengeId || !isFootballGame(game)) {
+    return [];
+  }
+  const slots = [
+    { slot: 1 as const, gameTeamId: match.slot1GameTeamId },
+    { slot: 2 as const, gameTeamId: match.slot2GameTeamId },
+  ];
+  const gameTeamIds = slots.flatMap((entry) =>
+    entry.gameTeamId ? [entry.gameTeamId] : [],
+  );
+  if (gameTeamIds.length === 0) {
+    return [];
+  }
+  const rows = await database.query.gameTeams.findMany({
+    where: inArray(gameTeams.id, gameTeamIds),
+    columns: { id: true },
+    with: {
+      team: {
+        columns: { id: true, sport: true, createdBy: true, groupId: true },
+      },
+    },
+  });
+  return slots.flatMap(({ slot, gameTeamId }) => {
+    const team = rows.find((row) => row.id === gameTeamId)?.team;
+    return team ? [{ slot, team }] : [];
+  });
+}
+
+async function slotsActedFor(
+  database: DbClient,
+  teamSides: readonly ChallengeSideTeam[],
+  userId: string,
+): Promise<MatchSlot[]> {
+  const captained = teamSides.filter((side) => side.team.createdBy === userId);
+  if (captained.length === 1) {
+    return captained.map((side) => side.slot);
+  }
+  const slots: MatchSlot[] = [];
+  for (const side of teamSides) {
+    if (await userActsForTeam(database, side.team, userId)) {
+      slots.push(side.slot);
+    }
+  }
+  return slots;
+}
+
+/**
+ * The sides of a football Challenge Game's Match a User who is not named to
+ * either squad confirms for: the Team they captain, else every Team they act
+ * for as an Organizer of its tagged Group. That is both sides only for an
+ * Organizer of a Group both Teams are tagged to, whose one confirmation still
+ * counts for one side (`matchSlotsConfirmed`).
+ */
+export async function matchSlotsActedFor(
+  database: DbClient,
+  match: MatchRow,
+  userId: string,
+): Promise<MatchSlot[]> {
+  return slotsActedFor(
+    database,
+    await challengeSideTeams(database, match),
+    userId,
   );
 }
 
 /**
  * The sides of a Match whose players have confirmed its result, by slot.
  * A football Match is agreed once one player from each side confirms; a side
- * with no account holder counts once an Organizer confirms for it.
+ * with no account holder counts once an Organizer confirms for it. On a
+ * football Challenge Game a side also counts once someone who acts for its
+ * Team confirms, and one User's confirmation counts for one side only, so
+ * the Match needs two Users, one for each Team (ADR-0069): a named player
+ * for their own side, anyone else for the Team they captain or the one Team
+ * they act for. Someone who acts for both Teams counts for the first side
+ * nobody else has confirmed.
  */
 export async function matchSlotsConfirmed(
   database: DbClient,
   match: MatchRow,
 ): Promise<{ slot1: boolean; slot2: boolean }> {
-  const [sides, confirmedUserIds] = await Promise.all([
+  const [sides, confirmedUserIds, teamSides] = await Promise.all([
     matchSideSeats(database, match),
     matchResultConfirmedUserIds(database, match.id),
+    challengeSideTeams(database, match),
   ]);
   const confirmed = new Set(confirmedUserIds);
-  const slotConfirmed = (slot: MatchSlot) => {
+  const seatedConfirmed = (slot: MatchSlot) => {
     const side = sides.find((entry) => entry.slot === slot);
     if (!side) {
       return false;
@@ -248,21 +371,46 @@ export async function matchSlotsConfirmed(
       : side.accountHolderIds;
     return confirmers.some((userId) => confirmed.has(userId));
   };
-  return { slot1: slotConfirmed(1), slot2: slotConfirmed(2) };
+  const agreed = { slot1: seatedConfirmed(1), slot2: seatedConfirmed(2) };
+  if (teamSides.length === 0) {
+    return agreed;
+  }
+  const agree = (slot: MatchSlot) => {
+    agreed[slot === 1 ? "slot1" : "slot2"] = true;
+  };
+  let actingForBoth = 0;
+  for (const userId of confirmed) {
+    if (sides.some((side) => side.userIds.includes(userId))) {
+      continue;
+    }
+    const [slot, other] = await slotsActedFor(database, teamSides, userId);
+    if (other) {
+      actingForBoth += 1;
+    } else if (slot) {
+      agree(slot);
+    }
+  }
+  for (; actingForBoth > 0; actingForBoth -= 1) {
+    agree(agreed.slot1 ? 2 : 1);
+  }
+  return agreed;
 }
 
 /**
- * One player from each side agrees a football Match and a drawn tournament's
- * Match (ADR-0062): the team that entered the score, then one tap from the
- * other team.
+ * One player from each side agrees a football Match, a drawn tournament's
+ * Match (ADR-0062) and a Public Game's Match (ADR-0071): the side that
+ * entered the score, then one tap from the other side.
  */
 export function confirmsBySide(game: {
   sport: string | null;
   format: string;
   poolCount: number | null;
   tournamentShape: string | null;
+  isPublic: boolean;
+  groupId: string | null;
 }) {
   return (
+    isPublicGame(game) ||
     isFootballGame(game) ||
     isDrawnTournament(game.format, game.poolCount, game.tournamentShape)
   );
@@ -270,14 +418,18 @@ export function confirmsBySide(game: {
 
 /**
  * Whether the Match's result is agreed: every seated User with an account on
- * a padel Match's two Game teams, or one player from each side of a football
- * or drawn tournament Match. A side with no account holder is agreed by an
- * Organizer's confirmation.
+ * a padel Match's two Game teams, or one player from each side of a football,
+ * drawn tournament or Public Game Match. A side with no account holder is
+ * agreed by an Organizer's confirmation. A Verifier stamp is a final
+ * confirmation on its own (ADR-0072).
  */
 export async function matchResultFullyConfirmed(
   database: DbClient,
   match: MatchRow,
 ): Promise<boolean> {
+  if (await matchVerifierStampOf(database, match.id)) {
+    return true;
+  }
   const game = await database.query.games.findFirst({
     where: eq(games.id, match.gameId),
     columns: {
@@ -285,6 +437,8 @@ export async function matchResultFullyConfirmed(
       format: true,
       poolCount: true,
       tournamentShape: true,
+      isPublic: true,
+      groupId: true,
     },
   });
   if (game && confirmsBySide(game)) {
@@ -303,4 +457,43 @@ export async function matchResultFullyConfirmed(
       ? side.userIds.some((userId) => confirmedUserIds.has(userId))
       : side.accountHolderIds.every((userId) => confirmedUserIds.has(userId)),
   );
+}
+
+export const PUBLIC_GAME_CONFIRM_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * When a Public Game's entered score stands unconfirmed: 24 hours after it
+ * was entered (ADR-0071). A changed score keeps only its enterer's
+ * confirmation, so the earliest one left is the entry. `null` while the
+ * Match has no confirmation.
+ */
+export async function publicGameConfirmWindowClosesAt(
+  database: DbClient,
+  matchId: string,
+): Promise<Date | null> {
+  const confirmations = await database.query.matchResultConfirmations.findMany({
+    where: eq(matchResultConfirmations.matchId, matchId),
+    columns: { confirmedAt: true },
+  });
+  if (confirmations.length === 0) {
+    return null;
+  }
+  const enteredAt = Math.min(
+    ...confirmations.map((row) => row.confirmedAt.getTime()),
+  );
+  return new Date(enteredAt + PUBLIC_GAME_CONFIRM_WINDOW_MS);
+}
+
+/** Whether a Public Game's 24 hours to confirm its entered score have run out. */
+export async function publicGameConfirmWindowClosed(
+  database: DbClient,
+  game: { isPublic?: boolean | null; groupId: string | null },
+  matchId: string,
+  now: Date,
+): Promise<boolean> {
+  if (!isPublicGame(game)) {
+    return false;
+  }
+  const closesAt = await publicGameConfirmWindowClosesAt(database, matchId);
+  return closesAt != null && closesAt.getTime() <= now.getTime();
 }

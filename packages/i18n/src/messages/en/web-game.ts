@@ -155,8 +155,6 @@ export const webGame = {
     findAGroup: "Find a Group",
     recentForm: "Recent form",
     noResultsYet: "No results yet",
-    openGamesTitle: "Open Games",
-    openGamesLine: "Public Games with seats you can join.",
   },
   history: {
     linkLabel: (outcome: string, score: string, meta: string) =>

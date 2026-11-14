@@ -1,6 +1,6 @@
 # A football Group that is not Verified has a Group Tier, and a padel Group has only a Standing
 
-**Status:** proposed (draft for the owner's review). Spec: `.scratch/rating-redesign/spec.md`. Supersedes [ADR-0053](./0053-every-group-game-rates-a-group-level.md). Amends [ADR-0035](./0035-rated-and-public-games-need-a-verified-group.md) and [ADR-0045](./0045-a-standing-counts-unrated-games.md).
+**Status:** accepted. Spec: `.scratch/rating-redesign/spec.md`. Supersedes [ADR-0053](./0053-every-group-game-rates-a-group-level.md). Amends [ADR-0035](./0035-rated-and-public-games-need-a-verified-group.md) and [ADR-0045](./0045-a-standing-counts-unrated-games.md).
 
 ADR-0053 gave every Group a second Glicko-2 Level. On padel it duplicated the Temba Level's face; on football it never moved, because football had no rating step. The owner's design gives football Groups a Group Tier and padel Groups none: padel pairs rotate, so one honest Level does the balancing.
 

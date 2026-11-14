@@ -6,6 +6,7 @@ import {
   challengeDaysHint,
   challengeFormatHelp,
   challengeFormatOptions,
+  challengeLevelChip,
   challengeLevelChips,
   challengeLevelHint,
   challengeLevelSelected,
@@ -299,21 +300,29 @@ export function PostChallengeForm(props: PostChallengeFormProps) {
 
       <PostChallengeSection
         title={copy.level}
-        hint={challengeLevelHint(levelRange, locale)}
+        hint={challengeLevelHint(levelRange, locale, team?.sport)}
         error={props.errors.level}
       >
-        <PostChallengeGrid label={copy.level} columns={6} multiple>
+        <PostChallengeGrid
+          label={copy.level}
+          columns={team?.sport === "football" ? 3 : 6}
+          multiple
+        >
           {challengeLevelChips(team?.teamLevel?.tenths ?? null, levelRange).map(
-            (band) => (
-              <PostChallengeChip
-                key={band}
-                multiple
-                ltr
-                label={band}
-                selected={challengeLevelSelected(levelRange, band)}
-                onPress={() => props.onLevel(band)}
-              />
-            ),
+            (band) => {
+              const chip = challengeLevelChip(band, team?.sport, locale);
+              return (
+                <PostChallengeChip
+                  key={band}
+                  multiple
+                  ltr
+                  label={chip.label}
+                  accessibilityLabel={chip.accessibilityLabel}
+                  selected={challengeLevelSelected(levelRange, band)}
+                  onPress={() => props.onLevel(band)}
+                />
+              );
+            },
           )}
         </PostChallengeGrid>
       </PostChallengeSection>

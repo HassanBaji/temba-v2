@@ -13,8 +13,8 @@ import {
 import { useSetSport } from "~/components/settings/use-set-sport";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
-import { footballLevelLabel } from "~/components/you/you-football-model";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "~/trpc/react";
 import {
   DEFAULT_FOOTBALL_POSITION,
@@ -82,7 +82,7 @@ function FootballForm({ details }: { details: Details }) {
     ? details.preferredFootballPosition
     : null;
   const position = optimistic ? optimistic.position : storedPosition;
-  const rating = me.data?.rating ?? null;
+  const ovr = me.data?.ovr ?? null;
   const canPlace = me.data?.canSelfDeclare ?? false;
   const pending = declare.isPending || setSports.isPending;
 
@@ -98,10 +98,7 @@ function FootballForm({ details }: { details: Details }) {
     } catch {
       return false;
     }
-    await Promise.all([
-      utils.ratings.me.invalidate(),
-      utils.users.footballProfile.invalidate(),
-    ]);
+    await invalidateRatingReads(utils);
     return true;
   }
 
@@ -216,9 +213,9 @@ function FootballForm({ details }: { details: Details }) {
           </div>
         ) : (
           <div className="border-rule rounded-card flex flex-col gap-1 border px-5 py-4">
-            {rating ? (
-              <p className="font-expanded text-h2">
-                {footballLevelLabel(rating.levelBand, locale)}
+            {ovr != null ? (
+              <p className="font-expanded text-h2 tabular-nums">
+                {m.rating.ovr.value(String(ovr))}
               </p>
             ) : null}
             <p className="text-meta text-muted-foreground leading-[1.5]">

@@ -1,6 +1,6 @@
 # An Organizer's score confirmation is final
 
-**Status:** accepted. Amends ADR-0011, ADR-0040 and the Unclaimed side rule of ADR-0042. Amendment proposed: [ADR-0071](./0071-a-public-game-at-a-partner-venue-counts-for-temba-level.md) makes the creator's confirmation not final on a Public Game.
+**Status:** accepted. Amends ADR-0011, ADR-0040 and the Unclaimed side rule of ADR-0042. Amended by [ADR-0071](./0071-a-public-game-at-a-partner-venue-counts-for-temba-level.md), which makes the creator's confirmation not final on a Public Game.
 
 A Match waited on every seated User with an account (padel) or one player from each side (football) before it completed. When players did not respond, an Organizer could force-complete a padel Match through `games.completeMatch`, but could not settle a football Score, and the confirm action on the score card only covered sides with no account holder. Organizers now settle the score from the score card in one step.
 

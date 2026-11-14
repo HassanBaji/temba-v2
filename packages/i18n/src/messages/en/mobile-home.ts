@@ -209,11 +209,8 @@ export const mobileHome = {
       padel: "Play a rated padel game and your padel Level appears.",
       football: "Play a rated football game and your football Level appears.",
     },
-    bandSpoken: (band: string) => `Level band ${band}`,
     bandLevelSpoken: (band: string, level: string) =>
       `Level band ${band}, Level ${level}`,
-    changeSpoken: (spoken: string, amount: string, window: string) =>
-      `${spoken} ${amount}, ${window}`,
   },
   allTime: {
     matches: (n: number) => plural("en", n, { one: "match", other: "matches" }),

@@ -46,7 +46,6 @@ export async function listPostOptions(
   database: DbClient,
   args: { userId: string; now?: Date },
 ) {
-  const now = args.now ?? new Date();
   const acting = await teamsUserActsFor(database, args.userId);
   const teamIds = acting.map((team) => team.id);
   const [members, openRows] =
@@ -75,7 +74,7 @@ export async function listPostOptions(
     );
   });
   const [levels, matches, padelVenues, footballVenues] = await Promise.all([
-    loadTeamLevels(database, postable, now),
+    loadTeamLevels(database, postable),
     loadTeamMatches(
       database,
       postable.map((team) => team.id),
@@ -101,7 +100,7 @@ export async function listPostOptions(
         });
   const [opponentNames, opponentLevels] = await Promise.all([
     loadTeamDisplayNames(database, opponentIds),
-    loadTeamLevels(database, opponentRows, now),
+    loadTeamLevels(database, opponentRows),
   ]);
   const playedTeams = (team: (typeof postable)[number]) =>
     lastMatchByOpponent(matches.get(team.id) ?? []).flatMap((match) => {

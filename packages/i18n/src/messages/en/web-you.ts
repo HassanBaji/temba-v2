@@ -3,8 +3,6 @@ import { plural } from "../../plural";
 /** webYou: copy only the web You page and Settings use. Shared copy lives in `you`. */
 export const webYou = {
   sportsLabel: "Your sports",
-  scopesLabel: "Level scope",
-  scaleLabel: "Group levels against your general level",
   noData: "—",
   outcome: {
     won: "Won",
@@ -16,8 +14,6 @@ export const webYou = {
     goalsPerGame: "goals a game",
     goalsTotal: (n: number) =>
       plural("en", n, { one: "1 goal", other: "{n} goals" }),
-    sameAsYours: "Same as yours",
-    same: "Same",
   },
   settings: {
     changePassword: "Change your password",

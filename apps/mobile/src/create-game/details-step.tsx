@@ -3,17 +3,22 @@ import {
   createFlowPriceChips,
   createFlowSeatsLabel,
   createRatingChoice,
+  createLevelRangeShown,
+  createRatingChoiceShown,
   friendlyTournamentCourtsLabel,
   friendlyTournamentFormatLabel,
   gameTeamOfTwoCopy,
+  isPublicGameDraft,
   parseCreateMatchMinutes,
   priceChipIsSelected,
 } from "@repo/domain/create-game-flow";
 import type { CreateVenuePicker } from "@repo/domain/create-game-flow";
 import { friendlyTournamentPlan } from "@repo/domain/create-game-submit";
 import { unratedLabel } from "@repo/domain/game-rating-impact";
+import { gameRatingScopeLabel } from "@repo/domain/game-rating-scope";
 import { LEVEL_BAND_SELECT_NONE } from "@repo/domain/level-range";
 import { mvpModeCopy, type MvpMode } from "@repo/domain/marks";
+import type { Sport } from "@repo/domain/sport";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
 import {
   groupsThenKnockoutReviewValue,
@@ -144,6 +149,19 @@ function customNameReviewRows(customName: string, locale: Locale): ReviewRow[] {
 export function FootballDetailsStep(props: DetailsProps) {
   const { state, groupName, picker } = props;
   const { draft } = state;
+  const ratingShown = createRatingChoiceShown({
+    sport: "football",
+    hasGroup: Boolean(draft.groupId),
+    groupVerified: props.groupVerified,
+  });
+  const publicGame = isPublicGameDraft(draft);
+  const levelRangeShown = createLevelRangeShown({
+    sport: "football",
+    hasGroup: Boolean(draft.groupId),
+    groupVerified: props.groupVerified,
+    rated: draft.rated,
+    isPublic: publicGame,
+  });
   const locale = useLocale();
   const m = useMessages();
   const review = m.mobileCreateGame.review;
@@ -158,6 +176,10 @@ export function FootballDetailsStep(props: DetailsProps) {
     <View style={{ gap: spacing.section }}>
       <CustomNameField {...props} />
       <FootballSizeFields {...props} />
+      {ratingShown ? <DetailsRatingField {...props} sport="football" /> : null}
+      {levelRangeShown ? (
+        <LevelRangeField {...props} sport="football" encouraged={publicGame} />
+      ) : null}
       <PriceField {...props} />
       <FriendlyMvpField {...props} />
       <ReviewCard
@@ -175,7 +197,11 @@ export function FootballDetailsStep(props: DetailsProps) {
             label: review.size,
             value: createFlowSeatsLabel("football", draft, locale),
           },
-          { label: review.rating, value: unratedLabel(locale) },
+          publicGame
+            ? publicGameRatingReviewRow(locale, "football")
+            : ratingShown
+              ? ratingReviewRow(props, locale, "football")
+              : { label: review.rating, value: unratedLabel(locale) },
           ...mvpReviewRows(state.mvpMode, locale),
         ]}
       />
@@ -183,24 +209,40 @@ export function FootballDetailsStep(props: DetailsProps) {
   );
 }
 
-function DetailsRatingField({ state, dispatch, groupVerified }: DetailsProps) {
+function DetailsRatingField({
+  state,
+  dispatch,
+  groupVerified,
+  sport,
+}: DetailsProps & { sport?: Sport }) {
   return (
     <RatingField
       groupVerified={groupVerified}
+      sport={sport}
       rated={state.draft.rated}
       onRated={(rated) => dispatch({ kind: "setRated", rated })}
     />
   );
 }
 
+/** A Public Game counts for Temba Level once both sides confirm (ADR-0071). */
+function publicGameRatingReviewRow(locale: Locale, sport: Sport): ReviewRow {
+  return {
+    label: messagesFor(locale).mobileCreateGame.review.rating,
+    value: gameRatingScopeLabel("temba", locale, sport),
+  };
+}
+
 function ratingReviewRow(
   { state, groupVerified }: DetailsProps,
   locale: Locale,
+  sport?: Sport,
 ): ReviewRow {
   const choice = createRatingChoice({
     groupVerified,
     rated: state.draft.rated,
     locale,
+    sport,
   });
   return {
     label: messagesFor(locale).mobileCreateGame.review.rating,
@@ -223,7 +265,7 @@ export function GameDetailsStep(props: DetailsProps) {
   return (
     <View style={{ gap: spacing.section }}>
       <CustomNameField {...props} />
-      <LevelRangeField {...props} />
+      <LevelRangeField {...props} encouraged={isPublicGameDraft(draft)} />
       <PriceField {...props} />
       <FriendlyMvpField {...props} />
       <DetailsRatingField {...props} />
@@ -241,7 +283,9 @@ export function GameDetailsStep(props: DetailsProps) {
             label: review.seats,
             value: createFlowSeatsLabel("padel", draft, locale),
           },
-          ratingReviewRow(props, locale),
+          isPublicGameDraft(draft)
+            ? publicGameRatingReviewRow(locale, "padel")
+            : ratingReviewRow(props, locale),
           ...mvpReviewRows(state.mvpMode, locale),
         ]}
       />

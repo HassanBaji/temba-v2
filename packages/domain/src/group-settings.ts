@@ -50,11 +50,24 @@ export function groupJoiningToggleHelp(input: {
   return input.requiresApproval ? m.toggleHelpOn : m.toggleHelpOff;
 }
 
-export type GroupMenuItem = "edit" | "invite" | "copy_link" | "leave";
+export type GroupMenuItem =
+  | "edit"
+  | "invite"
+  | "copy_link"
+  | "rating_settings"
+  | "leave";
 
 export function groupMenuLabel(item: GroupMenuItem, locale: Locale) {
-  const m = messagesFor(locale).group.settings.menu;
-  return item === "copy_link" ? m.copyLink : m[item];
+  const messages = messagesFor(locale);
+  const m = messages.group.settings.menu;
+  switch (item) {
+    case "copy_link":
+      return m.copyLink;
+    case "rating_settings":
+      return messages.rating.settings.menuRow;
+    default:
+      return m[item];
+  }
 }
 
 export function groupMenuItems(input: {
@@ -62,6 +75,8 @@ export function groupMenuItems(input: {
   canEdit: boolean;
   canInvite: boolean;
   canCopyLink: boolean;
+  /** An Organizer of a tier Group (ADR-0068). */
+  canChangeRatingSettings?: boolean;
 }): GroupMenuItem[] {
   const items: GroupMenuItem[] = [];
   if (input.canEdit) {
@@ -72,6 +87,9 @@ export function groupMenuItems(input: {
   }
   if (input.canCopyLink) {
     items.push("copy_link");
+  }
+  if (input.canChangeRatingSettings) {
+    items.push("rating_settings");
   }
   if (input.isMember) {
     items.push("leave");

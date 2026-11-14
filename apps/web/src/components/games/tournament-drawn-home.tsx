@@ -25,6 +25,7 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
+import { type MatchStamping } from "./match-stamp";
 import {
   FinishedScoresNote,
   FinishedShareLink,
@@ -85,6 +86,18 @@ function roundsLead(
   );
 }
 
+/** Organizers and a Verifier with a Match to stamp open on where they act. */
+function openingTab(data: GameDetail, showBracket: boolean): Tab {
+  if (data.isOrganizer && !data.cancelledAt) {
+    return "rounds";
+  }
+  const toStamp = data.matches.filter((match) => match.canStamp);
+  if (toStamp.some((match) => match.knockoutRound == null)) {
+    return "rounds";
+  }
+  return toStamp.length > 0 && showBracket ? "bracket" : "standings";
+}
+
 export function TournamentDrawnHome({
   data,
   standings,
@@ -95,6 +108,7 @@ export function TournamentDrawnHome({
   details,
   gameTeams,
   onCancelMatch,
+  stamping,
   preview,
 }: {
   data: GameDetail;
@@ -108,6 +122,7 @@ export function TournamentDrawnHome({
   details?: React.ReactNode;
   gameTeams?: GameDetail["gameTeams"];
   onCancelMatch?: (place: KnockoutMatchPlace) => void;
+  stamping?: MatchStamping;
   /** Fixture Rounds for the design preview, which has no API to call. */
   preview?: { rounds: TournamentRoundsData; actions: TournamentRoundsActions };
 }) {
@@ -117,8 +132,9 @@ export function TournamentDrawnHome({
   const loaded = useTournamentRounds(data.id, preview == null);
   const rounds = preview?.rounds ?? loaded.rounds.data;
   const roundsActions = preview?.actions ?? loaded.actions;
-  const [tab, setTab] = React.useState<Tab>(
-    data.isOrganizer && !data.cancelledAt ? "rounds" : "standings",
+  const showBracket = standings.groupsThenKnockout && data.knockout != null;
+  const [tab, setTab] = React.useState<Tab>(() =>
+    openingTab(data, showBracket),
   );
   const [scoreTarget, setScoreTarget] = React.useState<ScoreSheetTarget | null>(
     null,
@@ -146,7 +162,6 @@ export function TournamentDrawnHome({
   const choosingWay =
     rounds?.isOrganizer === true &&
     rounds.rounds.every((round) => round.matches.length === 0);
-  const showBracket = standings.groupsThenKnockout && data.knockout != null;
   const afterGroup = React.useMemo(() => {
     const { poolCount, qualifiersPerPool } = data;
     if (!standings.groupsThenKnockout || !poolCount || !qualifiersPerPool) {
@@ -289,6 +304,7 @@ export function TournamentDrawnHome({
               actions={roundsActions}
               details={details}
               afterGroup={afterGroup}
+              stamping={stamping}
               onEnterScore={setScoreTarget}
               onSwap={setSwapTarget}
               onPair={setPairRound}
@@ -319,6 +335,7 @@ export function TournamentDrawnHome({
             <TournamentKnockoutTree
               rounds={data.knockout}
               onCancelMatch={onCancelMatch}
+              stamping={stamping}
               gameTeams={gameTeams}
             />
           </TabsContent>

@@ -1,5 +1,6 @@
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
+import { isSport } from "@repo/domain/sport";
 import {
   notificationCopy,
   type NotificationTitlePart,
@@ -22,12 +23,22 @@ export type NotificationEmailInput = Pick<
   | "challenge"
   | "game"
   | "levelSet"
+  | "tier"
+  | "ovrMove"
+  | "dispute"
 >;
 
 export type NotificationEmail = { subject: string; html: string; text: string };
 
 type Destination = {
-  kind: "game" | "group" | "history" | "teams" | "challenges";
+  kind:
+    | "game"
+    | "group"
+    | "history"
+    | "teams"
+    | "challenges"
+    | "disputes"
+    | "ratings";
   path: string;
 };
 
@@ -47,9 +58,21 @@ export function notificationEmailDestination(
     challenge?: { id: string } | null;
   },
 ): Destination | null {
+  if (item.type === "match_dispute_raised") {
+    return { kind: "disputes", path: "/dashboard/operator/disputes" };
+  }
+  const sport = item.game?.sport;
+  if (item.type === "level_confirmed" && isSport(sport)) {
+    return { kind: "ratings", path: `/dashboard/you/ratings?sport=${sport}` };
+  }
+  if (item.type === "performance_ratings_open" && item.game) {
+    return { kind: "game", path: `/dashboard/games/${item.game.id}/rate` };
+  }
   if (
     (item.type === "group_member_joined" ||
       item.type === "level_set" ||
+      item.type === "tier_points_adjusted" ||
+      item.type === "tier_band_changed" ||
       ((item.type === "group_join_requested" ||
         item.type === "group_join_approved" ||
         item.type === "group_join_declined") &&
@@ -70,6 +93,8 @@ export function notificationEmailDestination(
       item.type === "mark_received" ||
       item.type === "mvp_decided" ||
       item.type === "mvp_tie_break" ||
+      item.type === "performance_ratings_closed" ||
+      item.type === "match_dispute_decided" ||
       item.type === "group_join_requested" ||
       item.type === "group_join_approved" ||
       item.type === "group_join_declined" ||

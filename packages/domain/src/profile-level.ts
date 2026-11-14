@@ -1,6 +1,12 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { formatOvr } from "./football-ovr";
+import {
+  formatPadelLevel,
+  matchesTowardConfirming,
+  RATED_MATCHES_TO_CONFIRM,
+} from "./level";
 import {
   displayLabelFromStoredBand,
   nextDistinctDisplayRung,
@@ -8,26 +14,19 @@ import {
 } from "./level-bands";
 import type { Sport } from "./sport";
 
-export function confirmationFraction(
-  ratedMatchCount: number,
-  ratedMatchesRemaining: number,
-): number {
-  const denom = ratedMatchCount + ratedMatchesRemaining;
-  if (denom <= 0) {
-    return 0;
-  }
-  return ratedMatchCount / denom;
+export function confirmationFraction(ratedMatchesRemaining: number): number {
+  return (
+    matchesTowardConfirming(ratedMatchesRemaining) / RATED_MATCHES_TO_CONFIRM
+  );
 }
 
 export function confirmationProgressCaption(
-  ratedMatchCount: number,
   ratedMatchesRemaining: number,
   locale: Locale,
 ): string {
-  const total = ratedMatchCount + ratedMatchesRemaining;
   return messagesFor(locale).profile.level.confirmProgress(
-    ratedMatchCount,
-    total,
+    matchesTowardConfirming(ratedMatchesRemaining),
+    RATED_MATCHES_TO_CONFIRM,
   );
 }
 
@@ -56,10 +55,14 @@ export function lastMatchMovement(
 }
 
 export type ProfileLevelInput = {
-  /** Padel unless asked. */
+  /** Padel unless asked. Football reads its Level as OVR. */
   sport?: Sport;
+  /** The whole-number OVR, on football. */
+  ovr?: number | null;
   band: LevelBand;
   level: string;
+  /** The continuous Level; padel shows it from 1.00 to 7.00. */
+  levelValue?: number | null;
   provisional: boolean;
   ratedMatchCount: number;
   ratedMatchesRemaining: number;
@@ -84,10 +87,18 @@ export function profileLevelView(
   locale: Locale,
 ): ProfileLevelView {
   const m = messagesFor(locale).profile.level;
+  const level =
+    input.sport === "football"
+      ? input.ovr != null
+        ? formatOvr(input.ovr)
+        : input.level
+      : input.levelValue != null
+        ? formatPadelLevel(input.levelValue, 2)
+        : input.level;
   if (input.sport === "football" && input.ratedMatchCount === 0) {
     return {
       displayBand: displayLabelFromStoredBand(input.band),
-      level: input.level,
+      level,
       provisional: true,
       movement: null,
       movementLabel: null,
@@ -99,10 +110,7 @@ export function profileLevelView(
   const displayNext = nextDistinctDisplayRung(input.band);
   const fillPercent = clampPercent(
     input.provisional
-      ? confirmationFraction(
-          input.ratedMatchCount,
-          input.ratedMatchesRemaining,
-        ) * 100
+      ? confirmationFraction(input.ratedMatchesRemaining) * 100
       : (input.progressPercent ?? 0),
   );
   const progressCaption =
@@ -114,18 +122,14 @@ export function profileLevelView(
 
   return {
     displayBand: displayLabelFromStoredBand(input.band),
-    level: input.level,
+    level,
     provisional: input.provisional,
     movement,
     movementLabel: movement ? m.movement[movement] : null,
     atTopBand: !input.provisional && displayNext == null,
     fillPercent,
     caption: input.provisional
-      ? confirmationProgressCaption(
-          input.ratedMatchCount,
-          input.ratedMatchesRemaining,
-          locale,
-        )
+      ? confirmationProgressCaption(input.ratedMatchesRemaining, locale)
       : progressCaption,
   };
 }

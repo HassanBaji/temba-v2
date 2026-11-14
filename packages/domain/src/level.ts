@@ -17,8 +17,26 @@ export const INITIAL_SIGMA = 0.06;
 export const PROVISIONAL_PHI_THRESHOLD = 200;
 /** φ ceiling a Level override writes; below the Provisional threshold so idle growth cannot undo it. */
 export const LEVEL_OVERRIDE_PHI = 150;
-/** Typical Rated Matches from a fresh Rating (φ₀) until Provisional clears. */
+/**
+ * Rated Matches that confirm a Level: on padel in a Verified Group, on
+ * football any counting Match.
+ */
 export const RATED_MATCHES_TO_CONFIRM = 5;
+
+/**
+ * What confirms a padel Level (ADR-0080): its Rated Matches in a Verified
+ * Group, or any Level override. Matches elsewhere move the Level but do not
+ * count.
+ */
+export type PadelConfirmation = {
+  verifiedMatches: number;
+  overridden: boolean;
+};
+
+export const UNCONFIRMED_PADEL: PadelConfirmation = {
+  verifiedMatches: 0,
+  overridden: false,
+};
 
 /** Band midpoints (continuous Level) for a self-declared Level band. */
 export const BAND_MIDPOINTS: Record<LevelBand, number> = {
@@ -82,6 +100,17 @@ export function formatLevel(level: number): string {
   const tenths = Math.round(clampLevel(level) * 10 + 1e-8);
   const clampedTenths = Math.min(70, Math.max(0, tenths));
   return (clampedTenths / 10).toFixed(1);
+}
+
+/**
+ * The padel face of a Level (ADR-0070): the 1.0 to 7.0 scale padel players
+ * know. A stored Level below 1.0 reads 1.0; the stored value is unchanged.
+ * Two decimals on the hero, one in dense lists.
+ */
+export function formatPadelLevel(level: number, decimals: 1 | 2): string {
+  const scale = 10 ** decimals;
+  const shown = Math.max(1, clampLevel(level));
+  return (Math.round(shown * scale + 1e-8) / scale).toFixed(decimals);
 }
 
 export function displayedLevelFromMu(mu: number): string {
@@ -206,6 +235,11 @@ export function bandWithHysteresis(
   return storedBand;
 }
 
+/**
+ * Whether a φ is above the Provisional threshold. A football Rating's φ
+ * carries its Provisional (ADR-0069); a padel Level's Provisional is
+ * `padelMatchesRemainingToConfirm`, whatever its φ.
+ */
 export function isProvisional(phi: number): boolean {
   return phi > PROVISIONAL_PHI_THRESHOLD;
 }
@@ -213,7 +247,8 @@ export function isProvisional(phi: number): boolean {
 /**
  * Product-facing count of typical Rated Matches until φ is at or below the
  * Provisional threshold. Linear in φ between φ₀ and the threshold; never
- * exposes raw φ. Still-Provisional Ratings always return at least 1.
+ * exposes raw φ. Still-Provisional Ratings always return at least 1. Exact
+ * on football, whose φ steps down by one fifth of the span per Match.
  */
 export function ratedMatchesRemainingToConfirm(phi: number): number {
   if (!isProvisional(phi)) {
@@ -226,6 +261,21 @@ export function ratedMatchesRemainingToConfirm(phi: number): number {
     ((cappedPhi - PROVISIONAL_PHI_THRESHOLD) / span) * RATED_MATCHES_TO_CONFIRM,
   );
   return Math.max(1, remaining);
+}
+
+/** Rated Matches in a Verified Group a padel Level still needs; 0 once confirmed. */
+export function padelMatchesRemainingToConfirm(
+  confirmation: PadelConfirmation,
+): number {
+  if (confirmation.overridden) {
+    return 0;
+  }
+  return Math.max(0, RATED_MATCHES_TO_CONFIRM - confirmation.verifiedMatches);
+}
+
+/** Of the Matches that confirm a Level, how many a Provisional one has played. */
+export function matchesTowardConfirming(ratedMatchesRemaining: number): number {
+  return Math.max(0, RATED_MATCHES_TO_CONFIRM - ratedMatchesRemaining);
 }
 
 export function confirmedPhiForOverride(phi: number | null): number {
@@ -260,5 +310,29 @@ export function youRatingViewFromState(
     levelBand: state.levelBand,
     provisional: isProvisional(state.phi),
     ratedMatchesRemaining: ratedMatchesRemainingToConfirm(state.phi),
+  };
+}
+
+/**
+ * A User's Temba Level in one sport as every App surface reads it. A
+ * football Level is Provisional by its φ, set from its counting Matches; a
+ * padel Level by its Rated Matches in a Verified Group, so idle time never
+ * makes either Provisional again.
+ */
+export function tembaLevelView(
+  rating: Pick<RatingGlickoState, "mu" | "phi" | "levelBand"> & {
+    sport: string;
+  },
+  padel: PadelConfirmation,
+): YouRatingView {
+  const ratedMatchesRemaining =
+    rating.sport === "football"
+      ? ratedMatchesRemainingToConfirm(rating.phi)
+      : padelMatchesRemainingToConfirm(padel);
+  return {
+    level: displayedLevelFromMu(rating.mu),
+    levelBand: rating.levelBand,
+    provisional: ratedMatchesRemaining > 0,
+    ratedMatchesRemaining,
   };
 }

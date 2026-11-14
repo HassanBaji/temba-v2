@@ -2,10 +2,16 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import {
+  formatOvr,
+  ovrFromLevel,
+  ovrScalePercent,
+  type LevelFace,
+} from "./football-ovr";
+import {
   BAND_LOWER_HUNDREDTHS,
   BAND_UPPER_HUNDREDTHS,
   clampLevel,
-  formatLevel,
+  formatPadelLevel,
 } from "./level";
 import {
   LEVEL_BANDS,
@@ -36,7 +42,8 @@ export type PlayerLevelCardView =
   | { kind: "none"; label: string }
   | {
       kind: "rated";
-      displayBand: string;
+      /** Null on the OVR face: football shows no band. */
+      displayBand: string | null;
       level: string;
       provisional: boolean;
       lines: string[];
@@ -73,6 +80,7 @@ export function percentThroughDisplayBand(levelValue: number, band: LevelBand) {
   return clampPercent(((hundredths(levelValue) - lower) / width) * 100);
 }
 
+/** "0.3": how far a padel Level is from the next rung. */
 export function distanceToNextRung(
   levelValue: number,
   next: AssignableDisplayLevelBand,
@@ -87,17 +95,29 @@ export function distanceToNextRung(
   return (tenths / 10).toFixed(1);
 }
 
+/** The Level as its face shows it: the padel "3.92", or the OVR "72". */
+export function shownLevel(levelValue: number, face: LevelFace = "level") {
+  return face === "ovr"
+    ? formatOvr(ovrFromLevel(levelValue))
+    : formatPadelLevel(levelValue, 2);
+}
+
 export function playerLevelCardView(
   input: PlayerLevelInput | null,
   locale: Locale,
+  face: LevelFace = "level",
 ): PlayerLevelCardView {
   const m = messagesFor(locale).profile;
   if (!input) {
     return { kind: "none", label: m.levelCard.noLevelYet };
   }
 
+  const level = shownLevel(input.levelValue, face);
+  if (face === "ovr") {
+    return ovrLevelCardView(input, level, locale);
+  }
+
   const displayBand = displayLabelFromStoredBand(input.levelBand);
-  const level = formatLevel(input.levelValue);
   const base = {
     kind: "rated" as const,
     displayBand,
@@ -107,7 +127,6 @@ export function playerLevelCardView(
 
   if (input.provisional) {
     const caption = confirmationProgressCaption(
-      input.ratedMatchCount,
       input.ratedMatchesRemaining,
       locale,
     );
@@ -115,10 +134,7 @@ export function playerLevelCardView(
       ...base,
       lines: [caption],
       fillPercent: clampPercent(
-        confirmationFraction(
-          input.ratedMatchCount,
-          input.ratedMatchesRemaining,
-        ) * 100,
+        confirmationFraction(input.ratedMatchesRemaining) * 100,
       ),
       accessibilityLabel: m.levelCard.spokenProvisional(
         displayBand,
@@ -163,5 +179,44 @@ export function playerLevelCardView(
       level,
       lines.join(". "),
     ),
+  };
+}
+
+/**
+ * The OVR face names no band and no way to the next one: a Confirmed OVR
+ * fills along the 40 to 99 scale.
+ */
+function ovrLevelCardView(
+  input: PlayerLevelInput,
+  level: string,
+  locale: Locale,
+): PlayerLevelCardView {
+  const m = messagesFor(locale).profile;
+  const base = {
+    kind: "rated" as const,
+    displayBand: null,
+    level,
+    provisional: input.provisional,
+  };
+  if (input.provisional) {
+    const caption = confirmationProgressCaption(
+      input.ratedMatchesRemaining,
+      locale,
+    );
+    return {
+      ...base,
+      lines: [caption],
+      fillPercent: clampPercent(
+        confirmationFraction(input.ratedMatchesRemaining) * 100,
+      ),
+      accessibilityLabel: m.levelCard.spokenOvrProvisional(level, caption),
+    };
+  }
+  const lines = [m.levelCard.confirmedRated(input.ratedMatchCount)];
+  return {
+    ...base,
+    lines,
+    fillPercent: clampPercent(ovrScalePercent(ovrFromLevel(input.levelValue))),
+    accessibilityLabel: m.levelCard.spokenOvr(level, lines.join(". ")),
   };
 }

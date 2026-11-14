@@ -9,6 +9,7 @@ import {
   matchGoals,
   matchSets,
 } from "@repo/db";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { squadsReadyForScore } from "@repo/domain/matchday-squad";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
@@ -34,11 +35,18 @@ import {
   footballSides,
 } from "#src/games/football-lineup";
 import {
+  askOtherSideToConfirm,
+  keepPublicGameConfirmation,
+} from "#src/games/confirmations-after-set-change";
+import {
   clearMatchResultConfirmationsExceptUser,
   matchResultFullyConfirmed,
   recordMatchResultConfirmation,
 } from "#src/games/match-result-confirmations";
-import { runMatchCompletionEffect } from "#src/games/run-match-completion-effect";
+import {
+  runMatchCompletionEffect,
+  standUnconfirmedIfConfirmWindowClosed,
+} from "#src/games/run-match-completion-effect";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -56,6 +64,22 @@ async function sideUserIds(database: DbClient, gameTeamId: string) {
     links.flatMap((link) =>
       link.gamePlayer.userId ? [link.gamePlayer.userId] : [],
     ),
+  );
+}
+
+function sameScorers(
+  stored: readonly { userId: string; goals: number }[],
+  next: readonly { userId: string; goals: number }[],
+) {
+  const goalsOf = (rows: readonly { userId: string; goals: number }[]) =>
+    new Map(
+      rows.filter((row) => row.goals > 0).map((row) => [row.userId, row.goals]),
+    );
+  const before = goalsOf(stored);
+  const after = goalsOf(next);
+  return (
+    before.size === after.size &&
+    [...after].every(([userId, goals]) => before.get(userId) === goals)
   );
 }
 
@@ -145,6 +169,14 @@ async function checkAndWriteScore(
   const scoreChanged =
     existing?.slot1GamesWon !== args.slot1Goals ||
     existing.slot2GamesWon !== args.slot2Goals;
+  // Goals feed OVR (ADR-0069), so who scored is part of what both sides agree.
+  const scorersChanged = !sameScorers(
+    await database.query.matchGoals.findMany({
+      where: eq(matchGoals.matchId, match.id),
+      columns: { userId: true, goals: true },
+    }),
+    args.scorers,
+  );
 
   await database.transaction(async (tx) => {
     if (existing) {
@@ -175,10 +207,33 @@ async function checkAndWriteScore(
         })),
       );
     }
-    if (scoreChanged) {
+    const changed = scoreChanged || scorersChanged;
+    if (changed) {
       await clearMatchResultConfirmationsExceptUser(tx, match.id, args.userId);
     }
-    if (onSide) {
+    if (isPublicGame(game)) {
+      // The enterer is confirmed and the other side's 24 hours start; the
+      // same Score saved again moves neither, and after the 24 hours lets
+      // the Score stand without counting (ADR-0071).
+      if (changed) {
+        await recordMatchResultConfirmation(tx, match.id, args.userId);
+        await askOtherSideToConfirm(tx, { game, match, userId: args.userId });
+      } else if (
+        !(await standUnconfirmedIfConfirmWindowClosed(
+          tx,
+          game,
+          match.id,
+          now,
+        )) &&
+        onSide
+      ) {
+        await keepPublicGameConfirmation(tx, {
+          game,
+          match,
+          userId: args.userId,
+        });
+      }
+    } else if (onSide) {
       await recordMatchResultConfirmation(tx, match.id, args.userId);
     }
   });
@@ -189,7 +244,9 @@ async function checkAndWriteScore(
  * Saves a football Match's Score (stored as its one Set, goals as games won)
  * and, optionally, who scored. A player on either side or an Organizer may
  * enter it once the Game has kicked off. The player who enters a Score
- * confirms it for their side; a changed Score asks the other side again.
+ * confirms it for their side; a changed Score or a changed list of who
+ * scored asks the other side again. On a Public Game that also restarts the
+ * other side's 24 hours to confirm.
  * On a Challenge Game the Game row is locked first, as `nameChallengeSquad`
  * locks it, so a squad save and a first Score cannot both pass their checks.
  */

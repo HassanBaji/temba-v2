@@ -43,6 +43,7 @@ export async function anonymiseUserFromClerk(
       playWindows: null,
       seatAlerts: false,
       emailNotifications: false,
+      isOperator: false,
       addedAt: null,
       addedByUserId: null,
       updatedAt: now,

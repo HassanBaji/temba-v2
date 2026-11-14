@@ -143,6 +143,7 @@ describe("deleting a User who authored other people's records", () => {
         ...LEVEL_CHANGE,
         userId: owner,
         setByUserId: author,
+        setByRole: "operator",
         sport: "padel",
         hadRating: true,
       }),

@@ -11,6 +11,7 @@ import {
   queryHubGames,
   toHubListRow,
   viewerHubContext,
+  viewerIsParticipantOnRow,
   type HubQueryRow,
 } from "#src/games/helpers/hub-list";
 import { hubGameMayBeLive } from "#src/games/helpers/hub-may-be-live";
@@ -32,9 +33,14 @@ export async function listPublicHubRows(
       hubGameMayBeLive(database, now),
     ),
   );
+  const candidates = (rows as HubQueryRow[]).map((row) => ({
+    ...row,
+    viewerIsParticipant: viewerIsParticipantOnRow(row, viewer),
+  }));
   const filtered = filterAndSortPublicHubGames(
-    rows as HubQueryRow[],
+    candidates,
     viewer.memberGroupIds,
+    viewer.userId,
     now,
   );
   return applyViewerLevelRangeToHubRows(
@@ -46,9 +52,9 @@ export async function listPublicHubRows(
 }
 
 /**
- * Public pickup Games (parent events). Live `isPublic` Games only.
- * Groupless public Games are included.
- * Games already listed on My Games are excluded (My Games preferred).
+ * The Games hub Public tab (parent events). Live `isPublic` Games only, the
+ * groupless Public Games at partner Venues included. Games already listed on
+ * My Games are excluded (My Games preferred).
  */
 export const listPublicPickup = protectedProcedure.query(async ({ ctx }) => {
   const appUser = await resolveAppUser(ctx.userId);

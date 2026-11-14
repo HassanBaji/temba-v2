@@ -20,6 +20,10 @@ import {
   games,
   gameMemberInvites,
   groupMemberInvites,
+  groupTierEvents,
+  groupTierPoints,
+  groups,
+  matchRatingWindows,
   matches,
   matchSets,
   teamMemberInvites,
@@ -44,6 +48,7 @@ import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { createGame } from "#src/routers/games/create";
 import { createInviteLink as createGameInviteLink } from "#src/routers/games/createInviteLink";
 import { createTournament } from "#src/routers/games/createTournament";
+import { disputeMatchResult } from "#src/routers/games/disputeMatchResult";
 import { drawPools } from "#src/routers/games/drawPools";
 import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
@@ -55,6 +60,8 @@ import { requestLevelRange } from "#src/routers/games/requestLevelRange";
 import { saveFootballScore } from "#src/routers/games/saveFootballScore";
 import { scoreSet } from "#src/routers/games/scoreSet";
 import { sendLookupInvite as sendGameLookupInvite } from "#src/routers/games/sendLookupInvite";
+import { submitPerformanceRatings } from "#src/routers/games/submitPerformanceRatings";
+import { castMvpVote } from "#src/routers/marks/castMvpVote";
 import { acceptLookupInvite as acceptGroupLookupInvite } from "#src/routers/groups/acceptLookupInvite";
 import { createInviteLink as createGroupInviteLink } from "#src/routers/groups/createInviteLink";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
@@ -63,6 +70,8 @@ import { joinPublic } from "#src/routers/groups/joinPublic";
 import { requestJoin as requestGroupJoin } from "#src/routers/groups/requestJoin";
 import { sendLookupInvite as sendGroupLookupInvite } from "#src/routers/groups/sendLookupInvite";
 import { setOrganizer } from "#src/routers/groups/setOrganizer";
+import { updateRatingSettings } from "#src/routers/groups/updateRatingSettings";
+import { settleRatingWindow } from "#src/ratings/settle-rating-window";
 import { selfDeclareRating } from "#src/routers/ratings/selfDeclare";
 import { confirmProposal } from "#src/routers/challenges/confirmProposal";
 import { nameChallengeSquad } from "#src/routers/games/nameChallengeSquad";
@@ -77,9 +86,11 @@ import { writePreferredPosition } from "#src/routers/users/setPreferredPosition"
 import { acceptLinkRequest as acceptGroupLinkRequest } from "#src/routers/groups/acceptLinkRequest";
 import { addCourt } from "#src/routers/venues/addCourt";
 import { addManager as addVenueManager } from "#src/routers/venues/addManager";
+import { addVerifier } from "#src/routers/venues/addVerifier";
 import { createVenue } from "#src/routers/venues/create";
 import { sendGroupLinkRequest } from "#src/routers/venues/sendGroupLinkRequest";
 import { setOpeningHours } from "#src/routers/venues/setOpeningHours";
+import { setPartner } from "#src/routers/venues/setPartner";
 import { setPricingRules } from "#src/routers/venues/setPricingRules";
 import { softArchive as softArchiveVenue } from "#src/routers/venues/softArchive";
 import { updateBookingSettings } from "#src/routers/venues/updateBookingSettings";
@@ -87,6 +98,7 @@ import { updateCancellationPolicy } from "#src/routers/venues/updateCancellation
 
 import type { SelfDeclareChoice } from "@repo/domain/level-bands";
 import { addProductDays, zonedParts } from "@repo/domain/product-timezone";
+import { tierTable } from "@repo/domain/tier-bands";
 import type { Sport } from "@repo/domain/sport";
 
 const ORIGIN = process.env.SEED_ORIGIN ?? "http://localhost:3000";
@@ -151,10 +163,12 @@ type Persona = {
   level: SelfDeclareChoice;
   position: "left" | "right" | "either";
   onboarded?: boolean;
+  operator?: boolean;
 };
 
 /**
- * `me` is the main demo persona; `newbie` has not finished onboarding. Point
+ * `me` is the main demo persona and the seeded Operator, so a Match dispute
+ * notifies them; `newbie` has not finished onboarding. Point
  * either at a real Clerk dev User with SEED_CLERK_ID_ME / SEED_CLERK_ID_NEWBIE
  * (or any persona with SEED_CLERK_ID_<KEY>) to sign in as them.
  */
@@ -165,6 +179,7 @@ const PERSONAS: Persona[] = [
     username: "samrivera",
     level: "C2",
     position: "right",
+    operator: true,
   },
   {
     key: "newbie",
@@ -307,6 +322,7 @@ async function seedUsers(): Promise<Users> {
         username: persona.username,
         email: `${persona.username}@example.test`,
         emailVerified: true,
+        isOperator: persona.operator ?? false,
       })
       .returning({ id: user.id });
     if (!row) throw new Error(`Failed to insert ${persona.key}`);
@@ -932,6 +948,115 @@ type Teams = Awaited<ReturnType<typeof seedTeams>>;
  * Kings, who won it yesterday, so the two are Rivals at one each; Rally Kings
  * have an open Rematch nudging Smash Brothers for the decider.
  */
+/**
+ * A Public Game at the partner Venue, organized by Omar, with three seats
+ * open to anyone inside its Level range (ADR-0071). A second one finished a
+ * few hours ago: Omar entered the score and you have the rest of the 24
+ * hours to confirm it for your side, or it stands and does not count. A
+ * third, which you did not play, waits on the other side too; you coach at
+ * Padel Central, so you may stamp it (ADR-0072).
+ */
+async function seedPublicGame(u: Users, v: Venues) {
+  const playedPublicGame = async (
+    customName: string,
+    seats: readonly {
+      key: string;
+      side: number;
+      position: "left" | "right";
+    }[],
+  ) => {
+    const played = await createGame(db, {
+      createdBy: u.omar!.id,
+      customName,
+      isPublic: true,
+      format: "friendly_game",
+      registrationMode: "individual",
+      windowStart: at(1, 19),
+      windowEnd: at(1, 20, 30),
+      venueId: v.central.id,
+      courtId: v.central.courtIds[0] ?? null,
+    });
+    for (const seat of seats) {
+      await registerSeat(db, {
+        gameId: played.id,
+        userId: u[seat.key]!.id,
+        sideIndex: seat.side,
+        position: seat.position,
+      });
+    }
+    await moveIntoPast(played.id, new Date(Date.now() - 3 * 60 * 60 * 1000));
+    await playFriendly(
+      u,
+      { id: played.id, matchId: played.matchId! },
+      "omar",
+      [
+        [6, 4],
+        [6, 3],
+      ],
+      [],
+    );
+  };
+  await playedPublicGame("Public padel, waiting on you", [
+    { key: "omar", side: 1, position: "right" },
+    { key: "maya", side: 1, position: "left" },
+    { key: "me", side: 2, position: "right" },
+    { key: "tom", side: 2, position: "left" },
+  ]);
+  await playedPublicGame("Public padel, waiting on a stamp", [
+    { key: "omar", side: 1, position: "right" },
+    { key: "maya", side: 1, position: "left" },
+    { key: "lina", side: 2, position: "right" },
+    { key: "tom", side: 2, position: "left" },
+  ]);
+
+  const created = await createGame(db, {
+    createdBy: u.omar!.id,
+    customName: "Open padel at Padel Central",
+    isPublic: true,
+    format: "friendly_game",
+    registrationMode: "individual",
+    windowStart: at(3, 19),
+    windowEnd: at(3, 20, 30),
+    venueId: v.central.id,
+    courtId: v.central.courtIds[0] ?? null,
+    levelMinTenths: 20,
+    levelMaxTenths: 55,
+  });
+  await registerSeat(db, {
+    gameId: created.id,
+    userId: u.omar!.id,
+    sideIndex: 1,
+    position: "right",
+  });
+}
+
+/**
+ * A football Public Game on the partner pitches, organized by Tom, open to
+ * anyone from OVR 64 to 86 (ADR-0071). Its sides are made once it fills, and
+ * its score counts for Temba Level once a player from each side confirms.
+ */
+async function seedPublicFootballGame(u: Users, v: Venues) {
+  const created = await createGame(db, {
+    createdBy: u.tom!.id,
+    customName: "Public five-a-side",
+    isPublic: true,
+    sport: "football",
+    format: "friendly_game",
+    registrationMode: "individual",
+    windowStart: at(2, 20),
+    windowEnd: at(2, 21),
+    venueId: v.pitches.id,
+    courtId: v.pitches.courtIds[0] ?? null,
+    sideSize: 5,
+    playersAllowed: 10,
+    levelMinTenths: 28,
+    levelMaxTenths: 55,
+  });
+  for (const key of ["tom", "diego", "leo"]) {
+    await register(db, { gameId: created.id, userId: u[key]!.id });
+  }
+}
+
 async function seedChallenges(u: Users, v: Venues, t: Teams) {
   const padel = await postChallenge(db, {
     teamId: t.duo.id,
@@ -1761,9 +1886,88 @@ function keeper(key: string): Footballer {
 }
 
 /**
+ * Thursday Football's Group Tier as the Members design draws it: eleven ranked members
+ * (1 Shark, 2 Hamour, 4 Kanaad, 4 Safi) and two still Provisional. The
+ * Shark has been top for five weeks.
+ */
+const THURSDAY_TIER: Record<string, { points: number; games: number }> = {
+  omar: { points: 1412, games: 31 },
+  lina: { points: 1356, games: 28 },
+  maya: { points: 1301, games: 24 },
+  diego: { points: 1248, games: 31 },
+  sofia: { points: 1214, games: 19 },
+  me: { points: 1201, games: 22 },
+  priya: { points: 1187, games: 17 },
+  jonas: { points: 1160, games: 14 },
+  emma: { points: 1122, games: 12 },
+  ben: { points: 1098, games: 20 },
+  hana: { points: 1064, games: 9 },
+  tom: { points: 1200, games: 3 },
+  yusuf: { points: 1200, games: 1 },
+};
+
+async function seedThursdayTier(u: Users, groupId: string) {
+  const members = await db.query.groupMembers.findMany({
+    where: (table, { eq: equals }) => equals(table.groupId, groupId),
+    columns: { userId: true, createdAt: true },
+  });
+  const joinedAt = new Map(members.map((row) => [row.userId, row.createdAt]));
+  const rows = Object.entries(THURSDAY_TIER).map(([key, tier]) => ({
+    userId: u[key]!.id,
+    points: tier.points,
+    gamesCounted: tier.games,
+  }));
+  const table = tierTable(
+    rows.map((row) => ({
+      ...row,
+      adjusted: false,
+      joinedAt: joinedAt.get(row.userId) ?? null,
+    })),
+  );
+  const bandOf = new Map(table.rows.map((row) => [row.userId, row.band]));
+  await db
+    .insert(groupTierPoints)
+    .values(
+      rows.map((row) => ({ groupId, ...row, band: bandOf.get(row.userId) })),
+    );
+  const shark = u.omar!.id;
+  const points = THURSDAY_TIER.omar!.points;
+  await db.insert(groupTierEvents).values({
+    groupId,
+    userId: shark,
+    kind: "band_change",
+    pointsBefore: points,
+    pointsAfter: points,
+    bandBefore: "hamour",
+    bandAfter: "shark",
+    placeAfter: 1,
+    rankedCount: table.rankedCount,
+    memberCount: table.rows.length,
+    createdAt: new Date(Date.now() - 36 * DAY),
+  });
+  // A manual change, so Points and history shows who and why.
+  await db.insert(groupTierEvents).values({
+    groupId,
+    userId: u.diego!.id,
+    kind: "adjustment",
+    delta: 40,
+    pointsBefore: 1180,
+    pointsAfter: 1220,
+    setByUserId: u.me!.id,
+    reason: "new_to_group",
+    note: "New to the group but plays Div 1. Starting him near his Level.",
+    createdAt: new Date(Date.now() - 14 * DAY),
+  });
+}
+
+/**
  * Sam organizes all three Games, so signing in as `me` reaches the team
  * picker and the score sheet. Each Game is created in the future, filled,
  * then moved so it has kicked off: the score only opens at kick-off.
+ * Thursday Football is a tier Group of thirteen where everyone rates at the
+ * standard weight; last week's Game, before ratings were on,
+ * moves the Tier points of the ten who played, yesterday's waits for the
+ * organizer's ratings, and this afternoon's is open for everyone to rate.
  */
 async function seedFootball(u: Users, v: Venues) {
   for (const [key, level] of Object.entries(FOOTBALL_LEVELS)) {
@@ -1776,15 +1980,22 @@ async function seedFootball(u: Users, v: Venues) {
     sport: "football",
     userId: u.me!.id,
   });
-  for (const key of Object.keys(FOOTBALL_LEVELS)) {
+  for (const key of Object.keys(THURSDAY_TIER)) {
     if (key === "me") continue;
     await joinPublic(db, { groupId: group.id, userId: u[key]!.id });
   }
+  await setOrganizer(db, {
+    groupId: group.id,
+    approverUserId: u.me!.id,
+    userId: u.maya!.id,
+    organizer: true,
+  });
+  await seedThursdayTier(u, group.id);
 
   const pitch = v.pitches;
   const footballGame = async (args: {
     name: string;
-    sideSize: 5 | 7;
+    sideSize: 5 | 6;
     start: Date;
     players: Footballer[];
   }) => {
@@ -1817,9 +2028,9 @@ async function seedFootball(u: Users, v: Venues) {
   const ids = (keys: string[]) => keys.map((key) => u[key]!.id);
 
   // Kicked off, teams not picked: try "Balanced by level" and manual.
-  const sevens = await footballGame({
-    name: "Thursday seven-a-side",
-    sideSize: 7,
+  const sixes = await footballGame({
+    name: "Thursday six-a-side",
+    sideSize: 6,
     start: at(20, 19),
     players: [
       keeper("ben"),
@@ -1835,10 +2046,9 @@ async function seedFootball(u: Users, v: Venues) {
       outfield("sofia", "fwd"),
       outfield("yusuf", "mid"),
       outfield("emma", "def"),
-      outfield("marco", "fwd"),
     ],
   });
-  await moveIntoPast(sevens, new Date(Date.now() - 20 * 60 * 1000));
+  await moveIntoPast(sixes, new Date(Date.now() - 20 * 60 * 1000));
 
   // Kicked off, teams published, no score yet: enter goals and scorers.
   const fives = await footballGame({
@@ -1846,16 +2056,16 @@ async function seedFootball(u: Users, v: Venues) {
     sideSize: 5,
     start: at(21, 19),
     players: [
-      keeper("aisha"),
-      keeper("leo"),
+      keeper("ben"),
+      keeper("hana"),
       outfield("me", "fwd"),
-      outfield("zara", "mid"),
+      outfield("lina", "mid"),
       outfield("diego", "def"),
       outfield("yusuf", "fwd"),
       outfield("omar", "mid"),
       outfield("maya", "fwd"),
       outfield("tom", "def"),
-      outfield("marco", "mid"),
+      outfield("sofia", "mid"),
     ],
   });
   await publishFootballTeams(db, {
@@ -1863,8 +2073,8 @@ async function seedFootball(u: Users, v: Venues) {
     userId: u.me!.id,
     method: "manual",
     bibs: { slot1: "black", slot2: "white" },
-    slot1: ids(["aisha", "me", "zara", "diego", "yusuf"]),
-    slot2: ids(["leo", "omar", "maya", "tom", "marco"]),
+    slot1: ids(["ben", "me", "lina", "diego", "yusuf"]),
+    slot2: ids(["hana", "omar", "maya", "tom", "sofia"]),
   });
   await moveIntoPast(fives, new Date(Date.now() - 45 * 60 * 1000));
 
@@ -1916,6 +2126,308 @@ async function seedFootball(u: Users, v: Venues) {
     matchId: playedMatch!.id,
     userId: u.omar!.id,
   });
+
+  // Played yesterday while the organizer rated: its Rating window is open,
+  // so Sam is asked to rate everyone before the points move.
+  const setRatings = (mode: "organizer" | "everyone") =>
+    updateRatingSettings(db, {
+      groupId: group.id,
+      organizerUserId: u.me!.id,
+      mode,
+      weightPercent: 30,
+      organizerCountsDouble: false,
+    });
+  await setRatings("organizer");
+  const rated = await footballGame({
+    name: "Yesterday's five-a-side",
+    sideSize: 5,
+    start: at(22, 19),
+    players: [
+      keeper("ben"),
+      keeper("hana"),
+      outfield("me", "mid"),
+      outfield("omar", "fwd"),
+      outfield("maya", "mid"),
+      outfield("lina", "def"),
+      outfield("diego", "fwd"),
+      outfield("sofia", "mid"),
+      outfield("jonas", "def"),
+      outfield("priya", "fwd"),
+    ],
+  });
+  await publishFootballTeams(db, {
+    gameId: rated,
+    userId: u.me!.id,
+    method: "manual",
+    bibs: { slot1: "black", slot2: "white" },
+    slot1: ids(["ben", "me", "omar", "maya", "lina"]),
+    slot2: ids(["hana", "diego", "sofia", "jonas", "priya"]),
+  });
+  await moveIntoPast(rated, at(-1, 19));
+  await saveFootballScore(db, {
+    gameId: rated,
+    userId: u.me!.id,
+    slot1Goals: 5,
+    slot2Goals: 3,
+    scorers: [
+      { userId: u.omar!.id, goals: 3 },
+      { userId: u.maya!.id, goals: 2 },
+      { userId: u.diego!.id, goals: 2 },
+      { userId: u.priya!.id, goals: 1 },
+    ],
+  });
+  const ratedMatch = await db.query.matches.findFirst({
+    where: eq(matches.gameId, rated),
+  });
+  await confirmMatchResult(db, {
+    gameId: rated,
+    matchId: ratedMatch!.id,
+    userId: u.me!.id,
+  });
+  await setRatings("everyone");
+
+  // Played this afternoon while everyone rates: its Rating window is open, five
+  // of the ten have rated, and Sam has not yet.
+  const everyoneRates = await footballGame({
+    name: "Afternoon five-a-side",
+    sideSize: 5,
+    start: at(23, 19),
+    players: [
+      keeper("ben"),
+      keeper("hana"),
+      outfield("me", "mid"),
+      outfield("omar", "fwd"),
+      outfield("maya", "mid"),
+      outfield("lina", "def"),
+      outfield("diego", "fwd"),
+      outfield("sofia", "mid"),
+      outfield("jonas", "def"),
+      outfield("priya", "fwd"),
+    ],
+  });
+  await publishFootballTeams(db, {
+    gameId: everyoneRates,
+    userId: u.me!.id,
+    method: "manual",
+    bibs: { slot1: "black", slot2: "white" },
+    slot1: ids(["ben", "me", "omar", "maya", "lina"]),
+    slot2: ids(["hana", "diego", "sofia", "jonas", "priya"]),
+  });
+  await moveIntoPast(everyoneRates, new Date(Date.now() - 3 * 60 * 60 * 1000));
+  await saveFootballScore(db, {
+    gameId: everyoneRates,
+    userId: u.me!.id,
+    slot1Goals: 4,
+    slot2Goals: 2,
+    scorers: [
+      { userId: u.omar!.id, goals: 2 },
+      { userId: u.maya!.id, goals: 2 },
+      { userId: u.diego!.id, goals: 2 },
+    ],
+  });
+  const everyoneMatch = await db.query.matches.findFirst({
+    where: eq(matches.gameId, everyoneRates),
+  });
+  await confirmMatchResult(db, {
+    gameId: everyoneRates,
+    matchId: everyoneMatch!.id,
+    userId: u.me!.id,
+  });
+  const ballots: [rater: string, ratings: [string, number][]][] = [
+    [
+      "omar",
+      [
+        ["maya", 8],
+        ["me", 7],
+        ["lina", 6],
+        ["diego", 7],
+      ],
+    ],
+    [
+      "maya",
+      [
+        ["omar", 9],
+        ["me", 7],
+        ["ben", 6],
+      ],
+    ],
+    [
+      "hana",
+      [
+        ["diego", 8],
+        ["sofia", 7],
+        ["omar", 8],
+      ],
+    ],
+    [
+      "diego",
+      [
+        ["hana", 7],
+        ["jonas", 6],
+        ["omar", 7],
+      ],
+    ],
+    [
+      "sofia",
+      [
+        ["diego", 8],
+        ["priya", 6],
+        ["me", 6],
+      ],
+    ],
+  ];
+  for (const [rater, ratings] of ballots) {
+    await submitPerformanceRatings(db, {
+      gameId: everyoneRates,
+      userId: u[rater]!.id,
+      ratings: ratings.map(([key, value]) => ({ userId: u[key]!.id, value })),
+    });
+  }
+
+  // Played two days ago while everyone rated: its Rating window has closed,
+  // so Sam sees the rating, the two parts of the move and the fish. Two
+  // players rated Jonas, too few for a performance part.
+  const settled = await footballGame({
+    name: "Tuesday five-a-side",
+    sideSize: 5,
+    start: at(24, 19),
+    players: [
+      keeper("ben"),
+      keeper("hana"),
+      outfield("me", "mid"),
+      outfield("omar", "fwd"),
+      outfield("maya", "mid"),
+      outfield("lina", "def"),
+      outfield("diego", "fwd"),
+      outfield("sofia", "mid"),
+      outfield("jonas", "def"),
+      outfield("priya", "fwd"),
+    ],
+  });
+  await publishFootballTeams(db, {
+    gameId: settled,
+    userId: u.me!.id,
+    method: "manual",
+    bibs: { slot1: "black", slot2: "white" },
+    slot1: ids(["ben", "me", "omar", "maya", "lina"]),
+    slot2: ids(["hana", "diego", "sofia", "jonas", "priya"]),
+  });
+  await moveIntoPast(settled, at(-2, 19));
+  await saveFootballScore(db, {
+    gameId: settled,
+    userId: u.me!.id,
+    slot1Goals: 3,
+    slot2Goals: 3,
+    scorers: [
+      { userId: u.me!.id, goals: 1 },
+      { userId: u.omar!.id, goals: 2 },
+      { userId: u.diego!.id, goals: 2 },
+      { userId: u.priya!.id, goals: 1 },
+    ],
+  });
+  const settledMatch = await db.query.matches.findFirst({
+    where: eq(matches.gameId, settled),
+  });
+  await confirmMatchResult(db, {
+    gameId: settled,
+    matchId: settledMatch!.id,
+    userId: u.me!.id,
+  });
+  const settledBallots: [rater: string, ratings: [string, number][]][] = [
+    [
+      "me",
+      [
+        ["omar", 8],
+        ["maya", 7],
+        ["ben", 6],
+        ["diego", 7],
+        ["jonas", 5],
+      ],
+    ],
+    [
+      "omar",
+      [
+        ["me", 8],
+        ["maya", 7],
+        ["lina", 6],
+        ["ben", 7],
+      ],
+    ],
+    [
+      "maya",
+      [
+        ["me", 7],
+        ["omar", 8],
+        ["lina", 6],
+        ["ben", 6],
+      ],
+    ],
+    [
+      "lina",
+      [
+        ["me", 9],
+        ["omar", 7],
+        ["maya", 7],
+        ["ben", 7],
+      ],
+    ],
+    [
+      "ben",
+      [
+        ["me", 6],
+        ["omar", 8],
+        ["maya", 6],
+        ["lina", 7],
+      ],
+    ],
+    [
+      "hana",
+      [
+        ["me", 7],
+        ["diego", 8],
+        ["sofia", 7],
+        ["priya", 6],
+      ],
+    ],
+    [
+      "diego",
+      [
+        ["hana", 7],
+        ["sofia", 6],
+        ["priya", 7],
+        ["jonas", 6],
+      ],
+    ],
+    [
+      "sofia",
+      [
+        ["hana", 6],
+        ["diego", 8],
+        ["priya", 7],
+      ],
+    ],
+    [
+      "priya",
+      [
+        ["hana", 7],
+        ["diego", 7],
+        ["sofia", 7],
+      ],
+    ],
+  ];
+  for (const [rater, ratings] of settledBallots) {
+    await submitPerformanceRatings(db, {
+      gameId: settled,
+      userId: u[rater]!.id,
+      ratings: ratings.map(([key, value]) => ({ userId: u[key]!.id, value })),
+    });
+  }
+  const settledWindow = await db.query.matchRatingWindows.findFirst({
+    where: eq(matchRatingWindows.matchId, settledMatch!.id),
+  });
+  await db.transaction((tx) =>
+    settleRatingWindow(tx, settledMatch!.id, settledWindow!.closesAt),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -1939,6 +2451,142 @@ async function seedGroupLinks(u: Users, v: Venues, g: Groups) {
   });
 }
 
+/**
+ * Galali Football is a Verified Group on the pitches, so its Games count for
+ * Temba Level at full weight (ADR-0069): last night's 5–3 was rated by the
+ * ten who played and voted Omar MVP, and its settled Rating window moved
+ * their OVR by four parts. Diego disputes that result, so it
+ * waits on the Operator Disputes page. Saturday's is tagged "Counts for
+ * Temba Level" and open to OVR 64 and up.
+ */
+async function seedVerifiedFootball(u: Users, v: Venues) {
+  const group = await createLoosePublic(db, {
+    name: "Galali Football",
+    description: "Verified pickup games. They move your OVR.",
+    sport: "football",
+    userId: u.me!.id,
+  });
+  await db
+    .update(groups)
+    .set({ verifiedAt: new Date(), venueId: v.pitches.id })
+    .where(eq(groups.id, group.id));
+  const squad = [
+    keeper("ben"),
+    keeper("hana"),
+    outfield("me", "mid"),
+    outfield("omar", "fwd"),
+    outfield("maya", "mid"),
+    outfield("lina", "def"),
+    outfield("diego", "fwd"),
+    outfield("sofia", "mid"),
+    outfield("jonas", "def"),
+    outfield("priya", "fwd"),
+  ];
+  for (const player of squad) {
+    if (player.key === "me") continue;
+    await joinPublic(db, { groupId: group.id, userId: u[player.key]!.id });
+  }
+  const ids = (keys: string[]) => keys.map((key) => u[key]!.id);
+  const game = async (name: string, start: Date, levelMinTenths?: number) => {
+    const created = await createGame(db, {
+      createdBy: u.me!.id,
+      customName: name,
+      groupId: group.id,
+      isPublic: false,
+      format: "friendly_game",
+      registrationMode: "individual",
+      sideSize: 5,
+      playersAllowed: squad.length,
+      windowStart: start,
+      windowEnd: new Date(start.getTime() + 90 * 60 * 1000),
+      venueId: v.pitches.id,
+      courtId: v.pitches.courtIds[0]!,
+      pricePerPlayerFils: 3000,
+      levelMinTenths,
+    });
+    return created.id;
+  };
+
+  const played = await game("Galali five-a-side", at(1, 20));
+  for (const player of squad) {
+    await register(db, {
+      gameId: played,
+      userId: u[player.key]!.id,
+      football: { role: player.role, position: player.position },
+    });
+  }
+  await publishFootballTeams(db, {
+    gameId: played,
+    userId: u.me!.id,
+    method: "manual",
+    bibs: { slot1: "black", slot2: "white" },
+    slot1: ids(["ben", "me", "omar", "maya", "lina"]),
+    slot2: ids(["hana", "diego", "sofia", "jonas", "priya"]),
+  });
+  await moveIntoPast(played, at(-1, 20));
+  await db.update(games).set({ mvpMode: "vote" }).where(eq(games.id, played));
+  await saveFootballScore(db, {
+    gameId: played,
+    userId: u.me!.id,
+    slot1Goals: 5,
+    slot2Goals: 3,
+    scorers: [
+      { userId: u.me!.id, goals: 1 },
+      { userId: u.omar!.id, goals: 3 },
+      { userId: u.maya!.id, goals: 1 },
+      { userId: u.diego!.id, goals: 2 },
+      { userId: u.priya!.id, goals: 1 },
+    ],
+  });
+  const match = await db.query.matches.findFirst({
+    where: eq(matches.gameId, played),
+  });
+  await confirmMatchResult(db, {
+    gameId: played,
+    matchId: match!.id,
+    userId: u.me!.id,
+  });
+  const ratingOf: Record<string, number> = {
+    omar: 9,
+    me: 8,
+    maya: 7,
+    diego: 7,
+    hana: 7,
+  };
+  for (const rater of squad) {
+    await submitPerformanceRatings(db, {
+      gameId: played,
+      userId: u[rater.key]!.id,
+      ratings: squad
+        .filter((ratee) => ratee.key !== rater.key)
+        .map((ratee) => ({
+          userId: u[ratee.key]!.id,
+          value: ratingOf[ratee.key] ?? 6,
+        })),
+    });
+  }
+  for (const voter of ["ben", "me", "maya", "lina", "hana", "jonas"]) {
+    await castMvpVote(db, {
+      gameId: played,
+      userId: u[voter]!.id,
+      candidateUserId: u.omar!.id,
+    });
+  }
+  const window = await db.query.matchRatingWindows.findFirst({
+    where: eq(matchRatingWindows.matchId, match!.id),
+  });
+  await db.transaction((tx) =>
+    settleRatingWindow(tx, match!.id, window!.closesAt),
+  );
+  await disputeMatchResult(db, {
+    matchId: match!.id,
+    userId: u.diego!.id,
+    note: "It finished 4–3. Omar’s third goal came after the final whistle.",
+  });
+
+  await game("Saturday Galali five-a-side", at(3, 18), 28);
+}
+
 async function main() {
   assertLocalDatabase();
   // The graphile_worker schema only exists once the API worker has booted, and
@@ -1953,6 +2601,27 @@ async function main() {
   const t = await step("teams", () => seedTeams(u));
   await step("games", () => seedGames(u, g, v));
   await step("football", () => seedFootball(u, v));
+  await step("verified football", () => seedVerifiedFootball(u, v));
+  await step("partner venues", async () => {
+    for (const venueId of [v.central.id, v.pitches.id]) {
+      await setPartner(db, {
+        venueId,
+        partner: true,
+        operatorUserId: u.me!.id,
+      });
+    }
+  });
+  // You coach at Padel Central, so a profile of anyone who played there offers "Calibrate level".
+  await step("verifier", () =>
+    addVerifier(db, {
+      venueId: v.central.id,
+      userId: u.me!.id,
+      kind: "coach",
+      grantedByUserId: u.me!.id,
+    }),
+  );
+  await step("public game", () => seedPublicGame(u, v));
+  await step("public football game", () => seedPublicFootballGame(u, v));
   await step("challenges", () => seedChallenges(u, v, t));
   await step("bookings", () => seedBookings(u, v));
   await step("group links", () => seedGroupLinks(u, v, g));

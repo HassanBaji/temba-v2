@@ -212,11 +212,8 @@ export const mobileHome = {
       padel: "العب مباراة بادل مصنّفة ويظهر مستواك في البادل.",
       football: "العب مباراة كرة قدم مصنّفة ويظهر مستواك في كرة القدم.",
     },
-    bandSpoken: (band: string) => `الفئة ${band}`,
     bandLevelSpoken: (band: string, level: string) =>
       `الفئة ${band}، التقييم ${level}`,
-    changeSpoken: (spoken: string, amount: string, window: string) =>
-      `${spoken} ${amount}، ${window}`,
   },
   allTime: {
     matches: (n: number) =>

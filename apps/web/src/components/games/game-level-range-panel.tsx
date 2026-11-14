@@ -13,8 +13,7 @@ import {
   levelRangeRequestCard,
   levelRangeRequestRowMeta,
 } from "@repo/domain/level-range-request";
-import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
-import { tenthsToLevelBand } from "@repo/domain/level-range";
+import { organizerRequestLevel } from "@repo/domain/game-requests";
 import {
   requestsQueueHeading,
   seatHoldRemainingLabel,
@@ -31,6 +30,7 @@ type GameDetail = Pick<
   TournamentDetails,
   | "id"
   | "isOrganizer"
+  | "sport"
   | "levelMinTenths"
   | "levelMaxTenths"
   | "viewerLevelTenths"
@@ -45,6 +45,7 @@ function GameRequestRow({
   name,
   image,
   levelTenths,
+  sport,
   detail,
   held,
   meta,
@@ -56,6 +57,7 @@ function GameRequestRow({
   name: string;
   image: string | null;
   levelTenths: number | null;
+  sport: string | null;
   detail: string;
   held: string | null;
   meta: string;
@@ -68,10 +70,7 @@ function GameRequestRow({
   const copy = m.webAuth.invites.request;
   const [confirmRejectOpen, setConfirmRejectOpen] = React.useState(false);
   const busy = approvePending || rejectPending;
-  const level =
-    levelTenths == null
-      ? null
-      : displayLabelFromStoredBand(tenthsToLevelBand(levelTenths));
+  const level = organizerRequestLevel(levelTenths, sport);
   return (
     <div className="space-y-3 p-4">
       <div className="flex items-start gap-3">
@@ -253,6 +252,7 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
                     name={name}
                     image={request.user.image}
                     levelTenths={request.levelTenths}
+                    sport={game.sport}
                     detail={seatHoldRequestDetail(request, locale)}
                     held={seatHoldRemainingLabel(request.seatHeldUntil, locale)}
                     meta={seatHoldRequestRowMeta(request, locale)}
@@ -281,11 +281,17 @@ export function GameLevelRangePanel({ game }: { game: GameDetail }) {
                     name={name}
                     image={request.user.image}
                     levelTenths={request.levelTenths}
+                    sport={game.sport}
                     detail={m.game.requests.sentence(
                       m.game.requests.outsideRange,
                     )}
                     held={null}
-                    meta={levelRangeRequestRowMeta(request, locale)}
+                    meta={levelRangeRequestRowMeta(
+                      request,
+                      locale,
+                      undefined,
+                      game.sport,
+                    )}
                     approvePending={
                       approve.isPending &&
                       approve.variables?.requestId === request.id

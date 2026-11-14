@@ -126,7 +126,7 @@ describe("bookings.createGame", () => {
     });
   });
 
-  it("creates the Game on a Group the holder organizes, rated when the Group is verified", async () => {
+  it("creates the Game on a Group the holder organizes, rated when the Group is verified and Unrated otherwise", async () => {
     await withBookableVenue(async (db, f) => {
       const [loose, verified] = await db
         .insert(groups)
@@ -156,6 +156,7 @@ describe("bookings.createGame", () => {
       ).resolves.toMatchObject({
         groupId: loose!.id,
         rated: false,
+        groupRated: false,
         isPublic: false,
       });
       await expect(
@@ -173,7 +174,7 @@ describe("bookings.createGame", () => {
         actor: holder,
         now: NOW,
       });
-      expect(looseView.game?.ratingScope).toBe("group");
+      expect(looseView.game?.ratingScope).toBe("unrated");
       expect(verifiedView.game?.ratingScope).toBe("temba");
     });
   });
