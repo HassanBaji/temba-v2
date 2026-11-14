@@ -622,9 +622,7 @@ export const group = {
       `${nickname}, this Group's name for ${name}`,
     menuLabel: "Name in this Group",
     menuHint: "What you call them here, so you can tell people apart",
-    notSet: "Not set",
-    addName: "Add name",
-    addNameFor: (name: string) => `Add a name for ${name}`,
+    addMenuLabel: "Add a Group nickname",
     title: "Name in this Group",
     forMember: (name: string, group: string) =>
       `For ${name}, in ${group} only.`,
