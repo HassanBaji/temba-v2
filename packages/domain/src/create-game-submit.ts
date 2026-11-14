@@ -403,9 +403,7 @@ export function validateFriendlyTournamentSubmit(
       windowEnd: placed.when.windowEnd,
       venueId: draft.venueId,
       ...(draft.courtIds.length > 0 ? { courtIds: [...draft.courtIds] } : {}),
-      ...(draft.tournamentShape === "king_of_the_court"
-        ? { rated: false }
-        : ratedInput(draft)),
+      ...ratedInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }

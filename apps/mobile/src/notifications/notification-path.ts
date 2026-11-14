@@ -27,6 +27,7 @@ const GAME_TYPES = new Set([
   "game_team_changed",
   "king_courts_posted",
   "king_final_order_posted",
+  "king_place_awarded",
   "match_score_to_confirm",
   "game_finished",
   "mark_received",

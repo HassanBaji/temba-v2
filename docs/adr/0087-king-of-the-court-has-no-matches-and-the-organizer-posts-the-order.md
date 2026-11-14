@@ -1,6 +1,6 @@
 # King of the court has no Matches, and the Organizer posts the order
 
-**Status:** accepted.
+**Status:** accepted. Amended by [ADR-0089](./0089-a-king-of-the-court-final-order-moves-the-level-of-its-first-four-places.md): on a Verified Group the Final order moves the Level of its first four places, so "Never rated" below no longer holds.
 
 Groups want a looser Friendly tournament: teams spread over a few courts, winners move up a court,
 losers move down, and whoever holds Court 1 at the end is king of the court. The design ("King of

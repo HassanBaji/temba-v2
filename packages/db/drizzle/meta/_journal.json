@@ -869,6 +869,13 @@
       "when": 1794666466915,
       "tag": "0123_king_of_the_court_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 124,
+      "version": "7",
+      "when": 1794669677914,
+      "tag": "0124_king_place_awards",
+      "breakpoints": true
     }
   ]
 }

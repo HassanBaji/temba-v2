@@ -64,8 +64,6 @@ export const tournamentKing = {
     summaryCopy: (courtCount: number, duration: string) =>
       `${courts(courtCount)} لمدة ${isolate(duration)}. يسحب تمبا أي فريق يبدأ على أي ملعب. وعند النهاية ترتّب الفرق: الأول والثاني والثالث وهكذا. لا جولات تُعدّ ولا نتائج تُدخل.`,
     reviewFormat: (courtCount: number) => `ملك الملعب، ${courts(courtCount)}`,
-    reviewRating: "التقييم",
-    reviewRatingValue: "ودية، بلا تغيير",
   },
   court: {
     name: (court: number) => `الملعب ${court}`,
@@ -228,8 +226,16 @@ export const tournamentKing = {
     scoresNone: "لا شيء، المنظّم ينشر الترتيب",
     scoresPosted: "لا شيء، نشر المنظّم الترتيب",
     rating: "تُحتسب في التقييم",
-    ratingNo: "لا، لا شيء يُسجَّل",
-    ratingFinished: "لم تُحتسب، لم يُسجَّل شيء",
+    ratingYes: "نعم، للمراكز من الأول إلى الرابع",
+    ratingYesNote:
+      "يُحتسب المركز الأول فوزين على الميدان، والثاني فوزًا واحدًا، والثالث نصف فوز، والرابع ربع فوز. الميدان هو متوسط مستوى كل اللاعبين على الملاعب.",
+    ratingPending: "نعم، بعد 24 ساعة من الترتيب النهائي",
+    ratingPendingNote:
+      "ترتفع مستويات المراكز من الأول إلى الرابع حين يتعذّر تغيير الترتيب النهائي.",
+    ratingCounted: "احتُسبت للمراكز من الأول إلى الرابع",
+    ratingYourMove: (from: string, to: string) =>
+      `انتقل مستواك من ${isolate(from)} إلى ${isolate(to)}.`,
+    ratingNotCounted: "لم تُحتسب",
   },
   errors: {
     oddTeams: "يبدأ فريقان على كل ملعب، لذا يجب أن يكتمل عدد زوجي من الفرق.",

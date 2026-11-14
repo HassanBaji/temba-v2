@@ -489,6 +489,9 @@ export const rating = {
         }),
       mvp: "أفضل لاعب",
     },
+    kingPlace: {
+      title: "المستوى، ملك الملعب",
+    },
     override: {
       title: {
         verifier: "معايرة المستوى من مُوثِّق",

@@ -8,6 +8,7 @@ import * as bookingReconcile from "./handlers/booking.reconcile";
 import * as challengeExpire from "./handlers/challenge.expire";
 import * as challengeSquadDue from "./handlers/challenge.squad-due";
 import * as notificationEmail from "./handlers/notification.email";
+import * as kingPlaceAwards from "./handlers/king.place-awards";
 import * as marksSettleMvp from "./handlers/marks.settle-mvp";
 import * as matchConfirmWindow from "./handlers/match.confirm-window";
 import * as matchScoreStands from "./handlers/match.score-stands";
@@ -26,6 +27,7 @@ const handlers: Record<string, JobHandler> = {
   [challengeExpire.jobName]: challengeExpire,
   [challengeSquadDue.jobName]: challengeSquadDue,
   [notificationEmail.jobName]: notificationEmail,
+  [kingPlaceAwards.jobName]: kingPlaceAwards,
   [marksSettleMvp.jobName]: marksSettleMvp,
   [matchConfirmWindow.jobName]: matchConfirmWindow,
   [matchScoreStands.jobName]: matchScoreStands,

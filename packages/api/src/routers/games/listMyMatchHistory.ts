@@ -9,6 +9,7 @@ import {
   gamePhotos,
   gamePlayers,
   games,
+  kingPlaceAwards,
   marks,
   matches,
   ratingEvents,
@@ -79,7 +80,8 @@ export type MatchHistoryRow = {
   viewerIsMvp: boolean;
   /**
    * What this Match moved the viewer's Temba Level, when it counted for it.
-   * Null on a tier Game or an Unrated Game, which never move a Level.
+   * Null on a tier Game or an Unrated Game, which never move a Level. On a
+   * King of the court row it is the viewer's Place award.
    */
   levelMove: { muBefore: number; muAfter: number } | null;
   /**
@@ -527,8 +529,8 @@ async function kingOfTheCourtRows(
         scoredSets: [],
         viewerSlot: 1,
         outcome: "draw",
-        rated: false,
-        ratingScope: gameRatingScope({ rated: false, groupRated: false }),
+        rated: game.rated,
+        ratingScope: gameRatingScope(game),
         viewerIsMvp: false,
         groupedTournament: false,
         kingOfTheCourt: summary,
@@ -639,10 +641,28 @@ async function withLevelMoves(
           ),
           columns: { matchId: true, muBefore: true, muAfter: true },
         });
+  // A King of the court row has no Match: its `matchId` is the Game id, and
+  // what moved the Level is the viewer's Place award (ADR-0089).
+  const kingGameIds = rows.flatMap((row) =>
+    row.kingOfTheCourt ? [row.id] : [],
+  );
+  const awards =
+    kingGameIds.length === 0
+      ? []
+      : await database.query.kingPlaceAwards.findMany({
+          where: and(
+            eq(kingPlaceAwards.userId, userId),
+            inArray(kingPlaceAwards.gameId, kingGameIds),
+          ),
+          columns: { gameId: true, muBefore: true, muAfter: true },
+        });
   const byMatch = new Map(
-    events.map((event) => [
-      event.matchId,
-      { muBefore: event.muBefore, muAfter: event.muAfter },
+    [
+      ...events.map((event) => ({ ...event, key: event.matchId })),
+      ...awards.map((award) => ({ ...award, key: award.gameId })),
+    ].map((move) => [
+      move.key,
+      { muBefore: move.muBefore, muAfter: move.muAfter },
     ]),
   );
   return rows.map((row) => ({

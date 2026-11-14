@@ -663,6 +663,8 @@ export const game = {
       "Only a completed Match can be reopened for a wrong-score reversal",
     laterRatedMatch:
       "At least one player seated on this Match has a later rated Match — this needs manual support to correct",
+    laterPlaceAward:
+      "At least one player seated on this Match has a later King of the court place award — this needs manual support to correct",
     verifiedGroupOpen:
       "Only a Verified Group can open a Game to anyone with the link",
     noGroupToJoin: "This Game has no Group to join",

@@ -49,6 +49,7 @@ export function notificationHref(item: {
       item.type === "game_team_changed" ||
       item.type === "king_courts_posted" ||
       item.type === "king_final_order_posted" ||
+      item.type === "king_place_awarded" ||
       item.type === "match_score_to_confirm" ||
       item.type === "game_finished" ||
       item.type === "mark_received" ||

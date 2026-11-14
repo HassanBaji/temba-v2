@@ -89,6 +89,13 @@ export const notification = {
       strong(game),
       plain(". See where you finished"),
     ],
+    kingPlaceAwarded: (place: string, game: string) => [
+      plain("Finishing "),
+      strong(place),
+      plain(" in "),
+      strong(game),
+      plain(" moved your Level"),
+    ],
     historyLinked: (gameCount: number) => [
       plain("We linked "),
       strong(plural("en", gameCount, { one: "1 Game", other: "{n} Games" })),
@@ -327,6 +334,7 @@ export const notification = {
       "Tiers are places, so when one player moves, someone moves the other way.",
     levelConfirmed:
       "The track is no longer hatched. It keeps moving on verified matches.",
+    kingPlaceAwarded: (from: string, to: string) => `Level ${from} to ${to}.`,
     ratingsClosed: (rating: string, delta: string, points: string) =>
       `You were rated ${rating}. Tier points ${delta}, now ${points}.`,
     ratingsClosedResultOnly: (delta: string, points: string) =>

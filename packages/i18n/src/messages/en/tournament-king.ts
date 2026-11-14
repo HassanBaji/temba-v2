@@ -35,8 +35,6 @@ export const tournamentKing = {
       `${courts(courtCount)} for ${duration}. Temba draws which teams start on which court. When it ends you name the final order: first, second, third and so on. No rounds to make and no scores to enter.`,
     reviewFormat: (courtCount: number) =>
       `King of the court, ${courts(courtCount)}`,
-    reviewRating: "Rating",
-    reviewRatingValue: "Friendly, no change",
   },
   court: {
     name: (court: number) => `Court ${court}`,
@@ -192,8 +190,16 @@ export const tournamentKing = {
     scoresNone: "None, the organizer posts the order",
     scoresPosted: "None, the organizer posted the order",
     rating: "Counts for rating",
-    ratingNo: "No, nothing is scored",
-    ratingFinished: "Not counted, nothing was scored",
+    ratingYes: "Yes, for first to fourth place",
+    ratingYesNote:
+      "First place counts as 2 wins against the field, second as 1, third as a half and fourth as a quarter. The field is the average Level of everyone on a court.",
+    ratingPending: "Yes, 24 hours after the final order",
+    ratingPendingNote:
+      "First to fourth place move up once the final order can no longer change.",
+    ratingCounted: "Counted for first to fourth place",
+    ratingYourMove: (from: string, to: string) =>
+      `Your Level moved from ${from} to ${to}.`,
+    ratingNotCounted: "Not counted",
   },
   errors: {
     oddTeams:

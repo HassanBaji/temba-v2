@@ -1007,14 +1007,12 @@ export function FriendlyTournamentSteps({
             </RovingRadioGroup>
           </section>
 
-          {kingOfTheCourt ? null : (
-            <RatingField
-              idPrefix="tournament"
-              groupVerified={groupVerified}
-              rated={rated}
-              onRated={onRated}
-            />
-          )}
+          <RatingField
+            idPrefix="tournament"
+            groupVerified={groupVerified}
+            rated={rated}
+            onRated={onRated}
+          />
 
           <section className="flex flex-col gap-3">
             <SectionHeading
@@ -1097,27 +1095,20 @@ export function FriendlyTournamentSteps({
               label={c.courts}
               value={friendlyTournamentCourtsLabel(selectedCourtNames, locale)}
             />
-            {kingOfTheCourt ? (
+            {kingOfTheCourt ? null : (
               <ReviewRow
-                label={k.create.reviewRating}
-                value={k.create.reviewRatingValue}
+                label={c.gameLength}
+                value={
+                  parsedMinutes.ok
+                    ? c.minutes(parsedMinutes.minutes)
+                    : c.gameLength
+                }
               />
-            ) : (
-              <>
-                <ReviewRow
-                  label={c.gameLength}
-                  value={
-                    parsedMinutes.ok
-                      ? c.minutes(parsedMinutes.minutes)
-                      : c.gameLength
-                  }
-                />
-                <ReviewRow
-                  label={ratingChoice.title}
-                  value={ratingChoice.scopeLabel}
-                />
-              </>
             )}
+            <ReviewRow
+              label={ratingChoice.title}
+              value={ratingChoice.scopeLabel}
+            />
           </div>
         </>
       ) : null}

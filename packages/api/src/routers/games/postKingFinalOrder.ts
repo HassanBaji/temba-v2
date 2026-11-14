@@ -4,8 +4,10 @@ import { z } from "zod";
 
 import { gameTeams, games } from "@repo/db";
 
+import { gameRates } from "@repo/domain/game-rating-eligibility";
 import {
   canPostFinalOrder,
+  finalOrderClosesAt,
   finalOrderStillOpen,
   isKingOfTheCourt,
   KING_FINAL_ORDER_MIN,
@@ -17,6 +19,8 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import { lockGame } from "#src/games/lock-rows";
+import { enqueueAt } from "#src/jobs/enqueue";
+import { kingPlaceAwardsJob } from "#src/jobs/specs";
 import { notify } from "#src/notifications/notify";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -24,7 +28,9 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 /**
  * Posts the King of the court final order: `gameTeamIds` first place first,
  * at least the top three. Teams left out show as not placed. The Organizer
- * can post again for 24 hours after the first post.
+ * can post again for 24 hours after the first post. On a Game that counts for
+ * Temba Level the Place awards are written when those 24 hours end
+ * (ADR-0089), so a corrected order never has to take a Level back.
  */
 export async function postKingFinalOrder(
   database: DbClient,
@@ -108,6 +114,13 @@ export async function postKingFinalOrder(
       .where(eq(games.id, game.id));
 
     if (locked.finalOrderPostedAt == null) {
+      if (gameRates(locked)) {
+        await enqueueAt(
+          tx,
+          kingPlaceAwardsJob(game.id),
+          finalOrderClosesAt(now),
+        );
+      }
       await notify(tx, {
         type: "king_final_order_posted",
         recipients: onCourtTeams.flatMap((team) =>

@@ -164,6 +164,13 @@ export function finalOrderStillOpen(
   return now.getTime() - posted < KING_FINAL_ORDER_CHANGE_MS;
 }
 
+/** When the Final order can no longer change, which is when its Place awards are written. */
+export function finalOrderClosesAt(finalOrderPostedAt: Date | string) {
+  return new Date(
+    new Date(finalOrderPostedAt).getTime() + KING_FINAL_ORDER_CHANGE_MS,
+  );
+}
+
 type PlacedTeam = {
   id: string;
   finalPlace?: number | null;

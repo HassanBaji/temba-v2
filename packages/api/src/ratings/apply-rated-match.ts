@@ -136,7 +136,7 @@ async function loadGuestIds(
   return new Set(rows.map((row) => row.id));
 }
 
-function snapshotState(
+export function snapshotState(
   row:
     | {
         mu: number;
@@ -157,7 +157,7 @@ function snapshotState(
   };
 }
 
-async function persistRatedUser(args: {
+export async function persistRatedUser(args: {
   database: DbClient;
   userId: string;
   sport: "padel" | "football";

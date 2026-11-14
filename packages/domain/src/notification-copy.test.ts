@@ -1594,6 +1594,36 @@ describe("notificationCopy: a confirmed Level", () => {
     );
   });
 
+  it("says which place moved the Level and where it went", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          type: "king_place_awarded",
+          audience: "player",
+          actor: null,
+          group: null,
+          game: { ...game("padel"), name: "Sunday Social" },
+          placeAward: {
+            finalPlace: 2,
+            levelBefore: "3.40",
+            levelAfter: "3.48",
+          },
+        },
+        "en",
+      ),
+      {
+        title: [
+          { text: "Finishing ", strong: false },
+          { text: "2nd", strong: true },
+          { text: " in ", strong: false },
+          { text: "Sunday Social", strong: true },
+          { text: " moved your Level", strong: false },
+        ],
+        subline: "Level 3.40 to 3.48.",
+      },
+    );
+  });
+
   it("returns null without the Game's sport", () => {
     for (const value of [null, undefined]) {
       assert.equal(

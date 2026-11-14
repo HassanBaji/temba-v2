@@ -9,6 +9,7 @@ import {
   groupMembers,
   groupRatingEvents,
   groupRatings,
+  kingPlaceAwards,
   groups,
   levelOverrides,
   matchGoals,
@@ -81,14 +82,14 @@ function byTime(left: Change, right: Change) {
   );
 }
 
-/** Rated Match events and hand-set Levels for the scope, oldest first. */
+/** Rated Match events, hand-set Levels and Place awards for the scope, oldest first. */
 async function levelChanges(
   database: DbClient,
   userId: string,
   scope: Scope,
 ): Promise<Change[]> {
   if (scope.kind === "general") {
-    const [events, overrides] = await Promise.all([
+    const [events, overrides, awards] = await Promise.all([
       database.query.ratingEvents.findMany({
         where: and(
           eq(ratingEvents.userId, userId),
@@ -109,10 +110,17 @@ async function levelChanges(
         ),
         columns: { id: true, createdAt: true, muBefore: true, muAfter: true },
       }),
+      database.query.kingPlaceAwards.findMany({
+        where: and(
+          eq(kingPlaceAwards.userId, userId),
+          eq(kingPlaceAwards.sport, scope.sport),
+        ),
+        columns: { id: true, createdAt: true, muBefore: true, muAfter: true },
+      }),
     ]);
     return [
       ...events,
-      ...overrides.map((row) => ({ ...row, matchId: null })),
+      ...[...overrides, ...awards].map((row) => ({ ...row, matchId: null })),
     ].sort(byTime);
   }
   const [events, overrides] = await Promise.all([

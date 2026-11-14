@@ -477,7 +477,7 @@ Which stages a Friendly tournament plays: Groups only, Knockout only, Groups the
 _Avoid_: Game format, mode, type, tournament format
 
 **King of the court**:
-A Tournament shape with no Matches. Two Game teams start on each court, two to six courts, Court 1 being the king's court; on the day winners move up a court and losers move down, run by the players. The Organizer draws the Starting courts and, when it ends, posts the Final order. Never rated: nothing is scored (ADR-0087).
+A Tournament shape with no Matches. Two Game teams start on each court, two to six courts, Court 1 being the king's court; on the day winners move up a court and losers move down, run by the players. The Organizer draws the Starting courts and, when it ends, posts the Final order. Nothing is scored (ADR-0087). On a Verified Group it counts for Temba Level through Place awards, unless its creator chose Unrated (ADR-0089).
 _Avoid_: ladder, king's court (that is Court 1), Americano
 
 **Starting courts**:
@@ -485,8 +485,12 @@ The King of the court draw: which court each Game team starts on, for the first 
 _Avoid_: Pool draw, seeding, bracket
 
 **Final order**:
-The King of the court result: the Game teams in the order the Organizer says they finished, at least the top three; the first is king of the court and teams left out are not placed. It can change for 24 hours after it is first posted. Not a Pool table and not a Standing.
+The King of the court result: the Game teams in the order the Organizer says they finished, at least the top three; the first is king of the court and teams left out are not placed. It can change for 24 hours after it is first posted; when those 24 hours end it closes and its Place awards are written. Not a Pool table and not a Standing.
 _Avoid_: standings, table, ranking, leaderboard
+
+**Place award**:
+What a King of the court Final order moves (ADR-0089, `king_place_awards`): each player of the Game teams placed first to fourth is rated as 2, 1, a half and a quarter of a win against the field, the average Level of everyone on a court. Written once, when the Final order closes, on a Game that counts for Temba Level. It only moves a Level up. Not a Rated Match: it does not count towards confirming a Level, the Rated Match count, Last 10 or the win rate, and it shows in Rating history as "Level, King of the court".
+_Avoid_: bonus, prize, Rated Match, Level override
 
 **Knockout**:
 The single-elimination stage of a Friendly tournament: a Game team that loses a Knockout Match is out.
@@ -729,7 +733,7 @@ A Level that a Level setter, an Operator or a Verifier set by hand, and its audi
 _Avoid_: manual rating, rating override, Rated Match (an override is not a Match), permanent override
 
 **Rated Match**:
-A completed, non-cancelled Match on a Game that rates, which produced rating events for the Users on its two Game teams: Temba rating events when its Rating scope is `temba`. A padel Match completed before the Group Level was retired may also carry Group rating events. A football Match that counts for Temba Level is a Rated Match too: one rating event per seated player, with its parts, and no Tier points; a tier Group's Match moves Tier points and writes no rating event. A Match on an Unrated Game is never a Rated Match. Copy may say "verified match".
+A completed, non-cancelled Match on a Game that rates, which produced rating events for the Users on its two Game teams: Temba rating events when its Rating scope is `temba`. A padel Match completed before the Group Level was retired may also carry Group rating events. A football Match that counts for Temba Level is a Rated Match too: one rating event per seated player, with its parts, and no Tier points; a tier Group's Match moves Tier points and writes no rating event. A Match on an Unrated Game is never a Rated Match. A King of the court Place award moves a Level without one. Copy may say "verified match".
 _Avoid_: ranked Match, scored Match (Sets score a Match; rating is separate)
 
 **Unrated Game**:

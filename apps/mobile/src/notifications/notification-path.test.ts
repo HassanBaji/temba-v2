@@ -38,6 +38,7 @@ describe("notificationPath", () => {
       "match_score_to_confirm",
       "mvp_decided",
       "challenge_squad_due",
+      "king_place_awarded",
     ]) {
       expect(notificationPath({ type, group: null, game })).toBe("/games/x1");
     }

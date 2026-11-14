@@ -37,6 +37,7 @@ function item(
     levelSet: null,
     tier: null,
     ovrMove: null,
+    placeAward: null,
     dispute: null,
     ...overrides,
   };
@@ -183,6 +184,23 @@ describe("renderNotificationEmail", () => {
     );
     expect(email.subject).toBe("Ratings are in for Thursday Padel");
     expect(email.text).toContain("You were rated 7.8. OVR +0.8, now 75.");
+    expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
+  });
+
+  it("tells a player what a King of the court place moved, and opens the Game", () => {
+    const email = render(
+      item({
+        type: "king_place_awarded",
+        audience: "player",
+        actor: null,
+        game: GAME,
+        placeAward: { finalPlace: 1, levelBefore: "3.40", levelAfter: "3.55" },
+      }),
+    );
+    expect(email.subject).toBe(
+      "Finishing 1st in Thursday Padel moved your Level",
+    );
+    expect(email.text).toContain("Level 3.40 to 3.55.");
     expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
   });
 

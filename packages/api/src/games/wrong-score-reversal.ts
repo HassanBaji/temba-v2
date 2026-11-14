@@ -1,6 +1,6 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gt } from "drizzle-orm";
 
-import { groupRatingEvents, ratingEvents } from "@repo/db";
+import { groupRatingEvents, kingPlaceAwards, ratingEvents } from "@repo/db";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
@@ -21,7 +21,9 @@ export type WrongScoreReversalEligibility =
  * before-values is only correct when nothing has been built on top of them
  * since — checked per seated User, not just the caller/viewer. A Match with
  * no rating events (an Unrated Game) has nothing to reverse and just reopens
- * (ADR-0062). Tier points and a football Level are additive ledgers, so a
+ * (ADR-0062). A King of the court Place award written after the Match was
+ * built on it too, so it refuses the reversal the same way (ADR-0089). Tier
+ * points and a football Level are additive ledgers, so a
  * football Match's tier and Level events never block: they are subtracted
  * whatever came after (ADR-0067, ADR-0069).
  */
@@ -57,6 +59,23 @@ export async function wrongScoreReversalEligibility(
       return {
         eligible: false,
         reason: messagesFor(locale).game.errors.laterRatedMatch,
+      };
+    }
+    const [laterAward] = await database
+      .select({ id: kingPlaceAwards.id })
+      .from(kingPlaceAwards)
+      .where(
+        and(
+          eq(kingPlaceAwards.userId, event.userId),
+          eq(kingPlaceAwards.sport, event.sport),
+          gt(kingPlaceAwards.createdAt, event.createdAt),
+        ),
+      )
+      .limit(1);
+    if (laterAward) {
+      return {
+        eligible: false,
+        reason: messagesFor(locale).game.errors.laterPlaceAward,
       };
     }
   }

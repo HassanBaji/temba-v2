@@ -17,6 +17,7 @@ export const JOB = {
   scoreStands: "match.score-stands",
   ratingWindowSettle: "rating-window.settle",
   confirmWindow: "match.confirm-window",
+  kingPlaceAwards: "king.place-awards",
 } as const;
 
 export const MAX_ATTEMPTS = {
@@ -35,6 +36,7 @@ export const MAX_ATTEMPTS = {
   scoreStands: 5,
   ratingWindowSettle: 5,
   confirmWindow: 5,
+  kingPlaceAwards: 5,
 } as const;
 
 export const POLL_INTERVAL_SECONDS = { first: 45, second: 90, steady: 120 };
@@ -238,6 +240,21 @@ export function ratingWindowSettleJob(matchId: string): JobSpec {
     key: ratingWindowSettleJobKey(matchId),
     payload: { matchId },
     maxAttempts: MAX_ATTEMPTS.ratingWindowSettle,
+    mode: "replace",
+  };
+}
+
+export function kingPlaceAwardsJobKey(gameId: string) {
+  return `king:place-awards:${gameId}`;
+}
+
+/** Writes a King of the court Game's Place awards; enqueued for when its Final order closes. */
+export function kingPlaceAwardsJob(gameId: string): JobSpec {
+  return {
+    name: JOB.kingPlaceAwards,
+    key: kingPlaceAwardsJobKey(gameId),
+    payload: { gameId },
+    maxAttempts: MAX_ATTEMPTS.kingPlaceAwards,
     mode: "replace",
   };
 }

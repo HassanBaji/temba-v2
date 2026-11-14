@@ -20,7 +20,7 @@ function Dot({ point }: { point: TrendPoint }) {
       <circle cx={x} cy={y} r={SMALL_DOT} className="fill-muted-foreground" />
     );
   }
-  if (kind === "won") {
+  if (kind === "won" || kind === "placed") {
     return <circle cx={x} cy={y} r={DOT} className="fill-ink" />;
   }
   return (

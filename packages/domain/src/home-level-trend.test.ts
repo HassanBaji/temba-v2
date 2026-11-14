@@ -121,6 +121,24 @@ describe("homeTrendView", () => {
     );
   });
 
+  it("draws a Place award as a won point and counts it as a change", () => {
+    const view = homeTrendView(
+      {
+        ...base,
+        historySteps: ["lost", "placed", "lost"],
+        historyMatchCount: 2,
+      },
+      box,
+      "en",
+    );
+    assert.deepEqual(
+      view?.points.map((point) => point.kind),
+      ["start", "lost", "placed", "lost"],
+    );
+    assert.equal(view?.legend, "solid won, open lost");
+    assert.equal(view?.startLabel, "3 changes ago");
+  });
+
   it("is null when the steps do not match the points", () => {
     assert.equal(
       homeTrendView({ ...base, historySteps: ["won"] }, box, "en"),

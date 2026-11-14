@@ -5,6 +5,7 @@ import type { SeatHoldRequestRow } from "./seat-hold-request";
 import { formatGameCardDay } from "./format-game-start";
 import { ratingScopeNotice, ratingScopeOf } from "./game-rating-impact";
 import type { GameRatingScope } from "./game-rating-scope";
+import { formatPadelLevel, levelFromMu } from "./level";
 import type { LevelBand } from "./level-bands";
 import type { ComputedPoolTables } from "./pool-table";
 import { formatPricePerPlayerFils } from "./price-per-player";
@@ -163,6 +164,8 @@ export type TournamentDetails = {
   matchMinutes: number | null;
   drawPostedAt: Date | null;
   finalOrderPostedAt: Date | null;
+  placeAwardsSettledAt?: Date | null;
+  viewerPlaceAward?: { muBefore: number; muAfter: number } | null;
   canUndoDraw: boolean;
   sport: string | null;
   cancelledAt: Date | null;
@@ -288,10 +291,55 @@ function ratingDetailRow(
   };
 }
 
+export type KingDetailState = {
+  finished: boolean;
+  /** The Final order has closed and its Place awards are written (ADR-0089). */
+  placeAwardsSettled?: boolean;
+  /** The viewer's own Place award, as μ either side of it. */
+  viewerPlaceAward?: { muBefore: number; muAfter: number } | null;
+};
+
+function kingRatingRow(
+  scope: GameRatingScope,
+  king: KingDetailState,
+  locale: Locale,
+): TournamentDetailRow {
+  const k = messagesFor(locale).tournamentKing.details;
+  if (scope !== "temba") {
+    return king.finished
+      ? { label: k.rating, value: k.ratingNotCounted }
+      : { ...ratingDetailRow(scope, locale), label: k.rating };
+  }
+  if (!king.finished) {
+    return { label: k.rating, value: k.ratingYes, note: k.ratingYesNote };
+  }
+  if (!king.placeAwardsSettled) {
+    return {
+      label: k.rating,
+      value: k.ratingPending,
+      note: k.ratingPendingNote,
+    };
+  }
+  const move = king.viewerPlaceAward;
+  return {
+    label: k.rating,
+    value: k.ratingCounted,
+    ...(move
+      ? {
+          note: k.ratingYourMove(
+            formatPadelLevel(levelFromMu(move.muBefore), 2),
+            formatPadelLevel(levelFromMu(move.muAfter), 2),
+          ),
+        }
+      : {}),
+  };
+}
+
 function kingDetailRows(
   head: TournamentDetailRow[],
   pricePerPlayerFils: number | null,
-  king: { finished: boolean },
+  ratingScope: GameRatingScope,
+  king: KingDetailState,
   locale: Locale,
 ): TournamentDetailRow[] {
   const m = messagesFor(locale);
@@ -309,10 +357,7 @@ function kingDetailRows(
       label: k.scores,
       value: king.finished ? k.scoresPosted : k.scoresNone,
     },
-    {
-      label: k.rating,
-      value: king.finished ? k.ratingFinished : k.ratingNo,
-    },
+    kingRatingRow(ratingScope, king, locale),
   );
   return rows;
 }
@@ -327,7 +372,7 @@ export function tournamentDetailRows(args: {
   totalFils: number | null;
   locale: Locale;
   /** King of the court: no Matches, so Scores and rating replace the Match rows. */
-  king?: { finished: boolean };
+  king?: KingDetailState;
 }): TournamentDetailRow[] {
   const m = messagesFor(args.locale);
   const head: TournamentDetailRow[] = [
@@ -344,6 +389,7 @@ export function tournamentDetailRows(args: {
     return kingDetailRows(
       head,
       args.pricePerPlayerFils,
+      args.ratingScope,
       args.king,
       args.locale,
     );
@@ -514,7 +560,13 @@ export function tournamentHomeView(
       seated,
       totalFils,
       locale,
-      king: king ? { finished: game.finalOrderPostedAt != null } : undefined,
+      king: king
+        ? {
+            finished: game.finalOrderPostedAt != null,
+            placeAwardsSettled: game.placeAwardsSettledAt != null,
+            viewerPlaceAward: game.viewerPlaceAward,
+          }
+        : undefined,
     }),
     // The API refuses a leave once the draw is posted.
     canLeaveGame:

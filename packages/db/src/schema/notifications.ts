@@ -61,6 +61,7 @@ export const NOTIFICATION_TYPE_VALUES = [
   "level_confirmed",
   "king_courts_posted",
   "king_final_order_posted",
+  "king_place_awarded",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];

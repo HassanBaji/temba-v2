@@ -64,7 +64,7 @@ async function startCourts(database: TestDatabase, gameId: string) {
 }
 
 describe("createTournament, king of the court", () => {
-  it("stores two teams a court, no Pools or Match length, and never rates it", async () => {
+  it("stores two teams a court, no Pools or Match length, and counts for Temba Level on a Verified Group", async () => {
     const database = await testDatabase();
     const organizer = await insertKingUser(database, "Hassan Haji");
     const gameId = await insertKingTournament(database, {
@@ -83,7 +83,7 @@ describe("createTournament, king of the court", () => {
       poolCount: null,
       roundCount: null,
       matchMinutes: null,
-      rated: false,
+      rated: true,
       groupRated: false,
     });
   });

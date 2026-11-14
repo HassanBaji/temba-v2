@@ -321,6 +321,61 @@ describe("tournamentSeatLabel", () => {
   });
 });
 
+describe("tournamentDetailRows, King of the court rating", () => {
+  const base = {
+    organizerName: "Hassan",
+    groupName: "Sunday Social",
+    matchMinutes: null,
+    pricePerPlayerFils: null,
+    seated: true,
+    totalFils: null,
+    locale: "en",
+  } as const;
+  const ratingRow = (
+    ratingScope: "temba" | "unrated",
+    king: Parameters<typeof tournamentDetailRows>[0]["king"],
+  ) => tournamentDetailRows({ ...base, ratingScope, king }).at(-1);
+
+  it("says which places count before the final order", () => {
+    assert.deepEqual(ratingRow("temba", { finished: false }), {
+      label: "Counts for rating",
+      value: "Yes, for first to fourth place",
+      note: "First place counts as 2 wins against the field, second as 1, third as a half and fourth as a quarter. The field is the average Level of everyone on a court.",
+    });
+  });
+
+  it("waits out the 24 hours, then shows the viewer's own move", () => {
+    assert.equal(
+      ratingRow("temba", { finished: true })?.value,
+      "Yes, 24 hours after the final order",
+    );
+    assert.deepEqual(
+      ratingRow("temba", {
+        finished: true,
+        placeAwardsSettled: true,
+        viewerPlaceAward: { muBefore: 1700, muAfter: 1775 },
+      }),
+      {
+        label: "Counts for rating",
+        value: "Counted for first to fourth place",
+        note: "Your Level moved from 3.40 to 3.55.",
+      },
+    );
+    assert.equal(
+      ratingRow("temba", { finished: true, placeAwardsSettled: true })?.note,
+      undefined,
+    );
+  });
+
+  it("says no on an Unrated Game", () => {
+    assert.equal(ratingRow("unrated", { finished: false })?.value, "No");
+    assert.equal(
+      ratingRow("unrated", { finished: true })?.value,
+      "Not counted",
+    );
+  });
+});
+
 describe("Arabic copy", () => {
   it("reads the detail rows, the standings heading and the seat label in Arabic", () => {
     const rows = tournamentDetailRows({

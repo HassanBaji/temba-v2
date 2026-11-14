@@ -1,6 +1,6 @@
 import { inArray } from "drizzle-orm";
 
-import { matches, user, type groupTierEvents } from "@repo/db";
+import { games, matches, user, type groupTierEvents } from "@repo/db";
 import type { RatingHistoryEntryData } from "@repo/domain/rating-history";
 import {
   scoredSetsFromMatch,
@@ -92,6 +92,38 @@ export function setsFromSideOf(
     slot === 1
       ? { own: set.slot1GamesWon, opponent: set.slot2GamesWon }
       : { own: set.slot2GamesWon, opponent: set.slot1GamesWon },
+  );
+}
+
+/**
+ * The King of the court Games a Rating history names, with what a Place
+ * award's line reads: where it was played and how many Game teams were on a
+ * court.
+ */
+export async function kingPlaceGames(
+  database: DbClient,
+  gameIds: readonly string[],
+) {
+  const unique = [...new Set(gameIds)];
+  const rows =
+    unique.length === 0
+      ? []
+      : await database.query.games.findMany({
+          where: inArray(games.id, unique),
+          columns: { id: true },
+          with: {
+            venue: { columns: { name: true } },
+            teams: { columns: { startCourt: true } },
+          },
+        });
+  return new Map(
+    rows.map((row) => [
+      row.id,
+      {
+        venueName: row.venue?.name ?? null,
+        teamCount: row.teams.filter((team) => team.startCourt != null).length,
+      },
+    ]),
   );
 }
 

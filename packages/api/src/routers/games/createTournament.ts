@@ -345,15 +345,12 @@ export async function createTournament(
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
-        // Nothing is scored in King of the court, so it never moves a Level.
-        ...(king
-          ? { rated: false, groupRated: false }
-          : ratingFlagsAtCreate({
-              hasGroup: true,
-              groupVerified,
-              sport: "padel",
-              rated: input.rated ?? true,
-            })),
+        ...ratingFlagsAtCreate({
+          hasGroup: true,
+          groupVerified,
+          sport: "padel",
+          rated: input.rated ?? true,
+        }),
         createdBy: input.createdBy,
       })
       .returning();
