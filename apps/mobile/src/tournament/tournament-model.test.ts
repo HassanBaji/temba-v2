@@ -176,7 +176,25 @@ describe("tournamentPlayer", () => {
       image: member.image,
       level: null,
       guest: false,
+      phoneNumber: null,
     });
+  });
+
+  it("carries the number a Group approver was sent", () => {
+    const game = structuredClone(pool.postedMid);
+    const seated = game.sides.find((side) => side.left)?.left;
+    const member = game.gameTeams[0]?.members[0];
+    if (!seated || !member) {
+      throw new Error("expected a seated player and a Game team member");
+    }
+    Object.assign(seated, { phoneNumber: "+97336124408" });
+    Object.assign(member, { phoneNumber: "+97333000002" });
+    expect(tournamentPlayer(game, seated.userId)?.phoneNumber).toBe(
+      "+97336124408",
+    );
+    expect(
+      tournamentPlayer({ ...game, sides: [] }, member.id)?.phoneNumber,
+    ).toBe("+97333000002");
   });
 
   it("returns null for someone not on the Tournament", () => {
