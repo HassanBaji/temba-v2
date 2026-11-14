@@ -8,11 +8,13 @@ import { EmptyState } from "~/components/common/empty-state";
 import { LinkedTableRow } from "~/components/common/linked-table-row";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { NicknameName } from "~/components/temba/nickname-name";
 import { ResultMark } from "~/components/temba/result-mark";
 import { NotOnTembaTag, YouTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Surface } from "~/components/ui/surface";
+import type { MemberNicknameData } from "@repo/domain/member-nickname";
 import { groupStandingState } from "@repo/domain/group-join";
 import {
   groupStandingEmptyFooter,
@@ -61,7 +63,13 @@ export type StandingEntry = {
   form: ResultMarkVariant[];
   isViewer: boolean;
   unclaimed: boolean;
+  nickname?: MemberNicknameData | null;
 };
+
+/** Another member's Member nickname; the viewer's own row keeps their Temba name. */
+function standingNickname(entry: StandingEntry) {
+  return entry.isViewer ? null : (entry.nickname?.name ?? null);
+}
 
 export type StandingSeason = GroupSeasonData & { status: GroupSeasonStatus };
 
@@ -105,17 +113,17 @@ function PlayerCell({
 }) {
   const m = useMessages();
   const name = entry.name ?? m.webGroup.memberFallback;
+  const nickname = standingNickname(entry);
   const label = (
-    <span
-      dir="auto"
+    <NicknameName
+      name={nickname ?? name}
+      isNickname={nickname != null}
       className={cn(
-        "text-body block min-w-0 truncate",
+        "text-body",
         entry.isViewer && "font-semibold",
         muted && "text-muted-foreground",
       )}
-    >
-      {name}
-    </span>
+    />
   );
   return (
     <span className="flex min-w-0 flex-col">
@@ -123,6 +131,9 @@ function PlayerCell({
         {linkToPlayers ? (
           <Link
             href={playerProfilePath(entry.userId)}
+            aria-label={
+              nickname ? m.group.nickname.spoken(nickname, name) : undefined
+            }
             className="block min-w-0 truncate outline-none focus-visible:underline"
           >
             {label}
@@ -424,15 +435,15 @@ function Podium({
               {entry.position}
             </span>
             <span className="flex min-w-0 flex-1 items-center gap-1.5">
-              <span
-                dir="auto"
-                className={cn(
-                  "text-body truncate",
-                  entry.isViewer && "font-semibold",
-                )}
-              >
-                {entry.name ?? m.webGroup.memberFallback}
-              </span>
+              <NicknameName
+                name={
+                  standingNickname(entry) ??
+                  entry.name ??
+                  m.webGroup.memberFallback
+                }
+                isNickname={standingNickname(entry) != null}
+                className={cn("text-body", entry.isViewer && "font-semibold")}
+              />
               {entry.isViewer ? <YouTag /> : null}
             </span>
             <span className="text-meta text-muted-foreground tabular-nums">
@@ -619,9 +630,10 @@ function StandingPreview({
       </div>
       <ol>
         {leaderboard.map((entry, index) => {
+          const nickname = standingNickname(entry);
           const name = entry.isViewer
             ? m.common.you
-            : (entry.name ?? m.webGroup.memberFallback);
+            : (nickname ?? entry.name ?? m.webGroup.memberFallback);
           return (
             <li
               key={entry.userId}
@@ -647,23 +659,30 @@ function StandingPreview({
                   <Link
                     href={playerProfilePath(entry.userId)}
                     dir="auto"
+                    aria-label={
+                      nickname
+                        ? m.group.nickname.spoken(
+                            nickname,
+                            entry.name ?? m.webGroup.memberFallback,
+                          )
+                        : undefined
+                    }
                     className={cn(
                       "text-body block min-w-0 truncate after:absolute after:inset-0",
                       entry.isViewer && "font-semibold",
                     )}
                   >
-                    {name}
+                    <NicknameName name={name} isNickname={nickname != null} />
                   </Link>
                 ) : (
-                  <span
-                    dir="auto"
+                  <NicknameName
+                    name={name}
+                    isNickname={nickname != null}
                     className={cn(
-                      "text-body block min-w-0 truncate",
+                      "text-body",
                       entry.isViewer && "font-semibold",
                     )}
-                  >
-                    {name}
-                  </span>
+                  />
                 )}
                 {entry.unclaimed ? <NotOnTembaTag /> : null}
               </span>

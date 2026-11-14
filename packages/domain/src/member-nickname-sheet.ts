@@ -18,6 +18,18 @@ export type MemberNicknameTarget = {
   isViewer: boolean;
 };
 
+/** "For Ahmed S, in Karbabad Friday Football only.", or "For you" when naming yourself. */
+export function memberNicknameSheetSubtitle(
+  member: Pick<MemberNicknameTarget, "name" | "isViewer">,
+  groupName: string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).group.nickname;
+  return member.isViewer
+    ? m.forYou(groupName)
+    : m.forMember(member.name, groupName);
+}
+
 /** The "Name in this Group" sheet (design "Group names" 1c) for a draft. */
 export function memberNicknameSheetView(
   input: {
@@ -38,9 +50,11 @@ export function memberNicknameSheetView(
   const first = firstName(input.member.name);
   const self = input.member.isViewer;
   return {
-    subtitle: self
-      ? m.forYou(input.groupName)
-      : m.forMember(input.member.name, input.groupName),
+    subtitle: memberNicknameSheetSubtitle(
+      input.member,
+      input.groupName,
+      locale,
+    ),
     counter: m.counter(length, MEMBER_NICKNAME_MAX_LENGTH),
     counterSpoken: m.counterSpoken(length, MEMBER_NICKNAME_MAX_LENGTH),
     preview: next
