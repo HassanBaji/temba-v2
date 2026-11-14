@@ -71,6 +71,17 @@ export const rating = {
         "The 1.0 to 7.0 scale padel players already know. Moves on verified matches, weighing your partner and opponents.",
       spoken: (band: string, level: string, status: string) =>
         `Temba Level ${level}, band ${band}. ${status}`,
+      spokenOvr: (level: string, status: string) =>
+        `Temba Level ${level}. ${status}`,
+      startingFromSignUp: "Starting level, from sign-up",
+      startingLevel: "Starting level",
+      lastMatch: "Last match",
+      lastResult: {
+        won: (score: string | null) => (score ? `Won ${score}` : "Won"),
+        drawn: (score: string | null) => (score ? `Drew ${score}` : "Drew"),
+        lost: (score: string | null) => (score ? `Lost ${score}` : "Lost"),
+      },
+      noLastMatch: "None yet",
     },
     tier: {
       title: "Group tier",

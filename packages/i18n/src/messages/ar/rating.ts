@@ -104,6 +104,20 @@ export const rating = {
         "مقياس 1.0 إلى 7.0 الذي يعرفه لاعبو البادل. يتحرّك في المباريات الموثّقة، ويزن شريكك وخصومك.",
       spoken: (band: string, level: string, status: string) =>
         `مستوى Temba ${isolate(level)}، الفئة ${isolate(band)}. ${status}`,
+      spokenOvr: (level: string, status: string) =>
+        `مستوى Temba ${isolate(level)}. ${status}`,
+      startingFromSignUp: "مستوى البداية، من التسجيل",
+      startingLevel: "مستوى البداية",
+      lastMatch: "آخر مباراة",
+      lastResult: {
+        won: (score: string | null) =>
+          score ? `فوز ${isolate(score)}` : "فوز",
+        drawn: (score: string | null) =>
+          score ? `تعادل ${isolate(score)}` : "تعادل",
+        lost: (score: string | null) =>
+          score ? `خسارة ${isolate(score)}` : "خسارة",
+      },
+      noLastMatch: "لا شيء بعد",
     },
     tier: {
       title: "فئة المجموعة",

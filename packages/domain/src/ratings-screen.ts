@@ -1,12 +1,19 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { formatOvr, ovrFromLevel, type LevelFace } from "./football-ovr";
+import {
+  formatOvr,
+  OVR_SCALE_TICKS,
+  ovrFromLevel,
+  ovrScalePercent,
+  type LevelFace,
+} from "./football-ovr";
 import {
   formatTierPoints,
   tierPointsCount,
   type GroupMemberTierCell,
 } from "./group-members-table";
+import type { LevelHistoryStep } from "./home-level-chart";
 import { initials } from "./initials";
 import {
   formatPadelLevel,
@@ -19,6 +26,7 @@ import {
   type LevelBand,
 } from "./level-bands";
 import { percentThroughDisplayBand } from "./player-profile-level";
+import { levelMoveDelta } from "./rating-history";
 import type { Sport } from "./sport";
 import { tierBandLabel, type TierBand } from "./tier-bands";
 import { TIER_PROVISIONAL_GAMES } from "./tier-points";
@@ -99,6 +107,30 @@ export type RatingsLevelData = {
   } | null;
   ratedMatchCount: number;
   changeOverLast: { matches: number; delta: number; points: number[] } | null;
+  /** The newest Rated Match, for football's "Last match" line. */
+  lastMatch?: RatingsLastMatch | null;
+  /** What moved each recent history point; a "set" means someone set the Level. */
+  historySteps?: readonly LevelHistoryStep[];
+};
+
+export type RatingsLastMatch = {
+  outcome: Exclude<LevelHistoryStep, "set">;
+  /** The scored Sets from the player's side; football has one, the goals. */
+  sets: { own: number; opponent: number }[] | null;
+  muBefore: number;
+  muAfter: number;
+};
+
+/** "Next band B−, 40% of the way", "To confirm 2 of 5 matches", or "Last match Won 5–3 +1". */
+export type RatingsLevelFooter = {
+  label: string;
+  /** The figure, drawn bold: a band, a count, or a Level move. */
+  value: string | null;
+  detail: string | null;
+  /** The Last match result ahead of its move, as "Won 5–3". */
+  result: string | null;
+  /** Matches towards confirming, one pip each, while Provisional. */
+  pips: { done: number; total: number } | null;
 };
 
 /** One tier Group as `ratings.myGroupTiers` reads it. */
@@ -121,13 +153,19 @@ export type RatingsLevelView =
       title: string;
       status: string;
       provisional: boolean;
-      band: string;
+      /** The padel band in the ring; football has no band, only the number. */
+      band: string | null;
       numberLabel: string;
       number: string;
-      /** Through the band when confirmed; towards confirming while Provisional. */
+      /**
+       * Padel: through the band when confirmed, towards confirming while
+       * Provisional. Football: along the 40 to 99 scale.
+       */
       ringPercent: number;
       /** A Provisional Level keeps a hatched track ("not yet"). */
       ringHatched: boolean;
+      /** Football's 40 to 99 bar, filled to the OVR, with its labels. */
+      scale: { percent: number; ticks: string[] } | null;
       change: {
         delta: string;
         caption: string;
@@ -135,8 +173,9 @@ export type RatingsLevelView =
         points: number[];
         spoken: string;
       } | null;
-      /** "Next band B−, 40% of the way", or "To confirm 2 of 5 matches". */
-      footer: { label: string; value: string | null; detail: string | null };
+      /** Football before a counting Match: where the number came from. */
+      start: string | null;
+      footer: RatingsLevelFooter;
       note: string;
       spoken: string;
     };
@@ -189,11 +228,126 @@ function clampPercent(value: number) {
   return Math.min(100, Math.max(0, Math.round(value)));
 }
 
+function levelChange(data: RatingsLevelData, locale: Locale) {
+  const m = messagesFor(locale).rating.screen.level;
+  const changeData = data.changeOverLast;
+  if (!changeData) {
+    return null;
+  }
+  const delta = signedLevelChange(changeData.delta, data.face);
+  return {
+    delta,
+    caption: m.lastCount(changeData.matches),
+    points: changeData.points,
+    spoken: m.changeSpoken(delta, changeData.matches),
+  };
+}
+
+function confirmFooter(
+  ratedMatchesRemaining: number,
+  locale: Locale,
+): { percent: number; footer: RatingsLevelFooter } {
+  const m = messagesFor(locale).rating.screen.level;
+  const toward = matchesTowardConfirming(ratedMatchesRemaining);
+  return {
+    percent: clampPercent((toward / RATED_MATCHES_TO_CONFIRM) * 100),
+    footer: {
+      label: m.toConfirm,
+      value: m.confirmCount(toward, RATED_MATCHES_TO_CONFIRM),
+      detail: null,
+      result: null,
+      pips: { done: toward, total: RATED_MATCHES_TO_CONFIRM },
+    },
+  };
+}
+
+function lastMatchResult(lastMatch: RatingsLastMatch, locale: Locale) {
+  const all = messagesFor(locale).rating;
+  const score =
+    lastMatch.sets && lastMatch.sets.length > 0
+      ? lastMatch.sets
+          .map((set) => `${set.own}–${set.opponent}`)
+          .join(all.ratingHistory.separator)
+      : null;
+  return all.screen.level.lastResult[lastMatch.outcome](score);
+}
+
+function footerLine(footer: RatingsLevelFooter) {
+  return [footer.label, footer.result, footer.value, footer.detail]
+    .filter((part): part is string => part != null)
+    .join(" ");
+}
+
 /**
- * The Temba Level card: the band in the ring, the number on
- * the sport's face, what the last eight counting Matches did, and the way to
- * the next band. A Provisional Level shows a hatched ring and the count to
- * confirm instead.
+ * The football Level card (ADR-0069): no band, only the OVR, with the 40 to
+ * 99 scale under it. Top right is the change over the last eight counting
+ * Matches, or where the number came from before the first. While Provisional
+ * the footer counts Matches to confirm; once confirmed it reads the last
+ * Match and what it did to the OVR.
+ */
+function footballLevelView(
+  data: RatingsLevelData,
+  rating: NonNullable<RatingsLevelData["rating"]>,
+  levelValue: number,
+  locale: Locale,
+): RatingsLevelView {
+  const m = messagesFor(locale).rating.screen.level;
+  const ovr = ovrFromLevel(levelValue);
+  const number = formatOvr(ovr);
+  const percent = ovrScalePercent(ovr);
+  const status = rating.provisional ? m.provisional : m.confirmed;
+  const change = levelChange(data, locale);
+  const start = change
+    ? null
+    : data.historySteps?.includes("set")
+      ? m.startingLevel
+      : m.startingFromSignUp;
+
+  let footer: RatingsLevelFooter;
+  if (rating.provisional) {
+    footer = confirmFooter(rating.ratedMatchesRemaining, locale).footer;
+  } else {
+    const lastMatch = data.lastMatch;
+    footer = {
+      label: m.lastMatch,
+      value: lastMatch
+        ? levelMoveDelta("football", lastMatch.muBefore, lastMatch.muAfter)
+        : null,
+      detail: null,
+      result: lastMatch ? lastMatchResult(lastMatch, locale) : m.noLastMatch,
+      pips: null,
+    };
+  }
+
+  return {
+    kind: "rated",
+    title: m.title,
+    status,
+    provisional: rating.provisional,
+    band: null,
+    numberLabel: m.number,
+    number,
+    ringPercent: percent,
+    ringHatched: rating.provisional,
+    scale: { percent, ticks: OVR_SCALE_TICKS.map(String) },
+    change,
+    start,
+    footer,
+    note: m.noteFootball,
+    spoken: m.spokenOvr(
+      number,
+      [status, change?.spoken ?? start, footerLine(footer)]
+        .filter((part): part is string => part != null)
+        .join(". "),
+    ),
+  };
+}
+
+/**
+ * The Temba Level card. Padel shows the band in the ring, the number, what
+ * the last eight counting Matches did, and the way to the next band; a
+ * Provisional Level shows a hatched ring and the count to confirm instead.
+ * Football shows the number alone (`footballLevelView`).
  */
 export function ratingsLevelView(
   data: RatingsLevelData,
@@ -201,7 +355,6 @@ export function ratingsLevelView(
   locale: Locale,
 ): RatingsLevelView {
   const m = messagesFor(locale).rating.screen.level;
-  const note = sport === "football" ? m.noteFootball : m.notePadel;
   const rating = data.rating;
   if (!rating || data.levelValue == null) {
     return {
@@ -211,29 +364,31 @@ export function ratingsLevelView(
       note: sport === "football" ? m.noLevelFootball : m.noLevelPadel,
     };
   }
+  if (data.face === "ovr") {
+    return footballLevelView(data, rating, data.levelValue, locale);
+  }
 
   const band = displayLabelFromStoredBand(rating.levelBand);
-  const number =
-    data.face === "ovr"
-      ? formatOvr(ovrFromLevel(data.levelValue))
-      : formatPadelLevel(data.levelValue, 2);
+  const number = formatPadelLevel(data.levelValue, 2);
   const status = rating.provisional ? m.provisional : m.confirmed;
 
   let ringPercent: number;
-  let footer: { label: string; value: string | null; detail: string | null };
+  let footer: RatingsLevelFooter;
   if (rating.provisional) {
-    const toward = matchesTowardConfirming(rating.ratedMatchesRemaining);
-    ringPercent = clampPercent((toward / RATED_MATCHES_TO_CONFIRM) * 100);
-    footer = {
-      label: m.toConfirm,
-      value: m.confirmCount(toward, RATED_MATCHES_TO_CONFIRM),
-      detail: null,
-    };
+    const confirm = confirmFooter(rating.ratedMatchesRemaining, locale);
+    ringPercent = confirm.percent;
+    footer = { ...confirm.footer, pips: null };
   } else {
     const next = nextDistinctDisplayRung(rating.levelBand);
     if (next == null) {
       ringPercent = 100;
-      footer = { label: m.topBand, value: null, detail: null };
+      footer = {
+        label: m.topBand,
+        value: null,
+        detail: null,
+        result: null,
+        pips: null,
+      };
     } else {
       ringPercent = percentThroughDisplayBand(
         data.levelValue,
@@ -243,26 +398,13 @@ export function ratingsLevelView(
         label: m.nextBand,
         value: next,
         detail: m.ofTheWay(ringPercent),
+        result: null,
+        pips: null,
       };
     }
   }
 
-  const changeData = data.changeOverLast;
-  const change = changeData
-    ? (() => {
-        const delta = signedLevelChange(changeData.delta, data.face);
-        return {
-          delta,
-          caption: m.lastCount(changeData.matches),
-          points: changeData.points,
-          spoken: m.changeSpoken(delta, changeData.matches),
-        };
-      })()
-    : null;
-
-  const footerLine = [footer.label, footer.value, footer.detail]
-    .filter((part): part is string => part != null)
-    .join(" ");
+  const change = levelChange(data, locale);
   return {
     kind: "rated",
     title: m.title,
@@ -273,13 +415,15 @@ export function ratingsLevelView(
     number,
     ringPercent,
     ringHatched: rating.provisional,
+    scale: null,
     change,
+    start: null,
     footer,
-    note,
+    note: m.notePadel,
     spoken: m.spoken(
       band,
       number,
-      [status, change?.spoken, footerLine]
+      [status, change?.spoken, footerLine(footer)]
         .filter((part): part is string => part != null)
         .join(". "),
     ),
@@ -396,4 +540,34 @@ export function ratingsScreenView(
       ? ["level", "tier", "groups", "official"]
       : ["level", "official", "groups"],
   };
+}
+
+export type SportSwitchLevel = { label: string; spoken: string };
+
+/**
+ * What the Home sport switch shows beside a sport: the padel band, or the
+ * football OVR, which has no band. Null before the first Rating.
+ */
+export function sportSwitchLevel(
+  sport: Sport,
+  data:
+    | Pick<RatingsLevelData, "face" | "levelValue" | "rating">
+    | null
+    | undefined,
+  locale: Locale,
+): SportSwitchLevel | null {
+  if (!data?.rating || data.levelValue == null) {
+    return null;
+  }
+  const all = messagesFor(locale);
+  const sportName = all.common[sport];
+  if (data.face === "ovr") {
+    const ovr = formatOvr(ovrFromLevel(data.levelValue));
+    return {
+      label: ovr,
+      spoken: all.home.sportSwitch.spokenOvr(sportName, ovr),
+    };
+  }
+  const band = displayLabelFromStoredBand(data.rating.levelBand);
+  return { label: band, spoken: all.home.sportSwitch.spoken(sportName, band) };
 }

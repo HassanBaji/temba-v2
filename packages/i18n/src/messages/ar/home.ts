@@ -257,6 +257,8 @@ export const home = {
   },
   sportSwitch: {
     spoken: (sport: string, band: string) => `${sport}، ${isolate(band)}`,
+    spokenOvr: (sport: string, ovr: string) =>
+      `${sport}، المستوى ${isolate(ovr)}`,
   },
   levelSection: {
     title: {

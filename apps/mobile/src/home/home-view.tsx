@@ -100,7 +100,7 @@ export function HomeView({
         <SportSwitch
           sports={model.sports}
           value={model.sport}
-          bands={model.bands}
+          levels={model.levels}
           onSelect={onSport}
         />
       ) : null}
