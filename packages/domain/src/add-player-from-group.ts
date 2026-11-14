@@ -3,6 +3,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import type { AddPlayerFootballPosition } from "./add-player-by-phone";
 import { footballPositionChoices, type FootballRole } from "./football-lineup";
+import { formatOvr } from "./football-ovr";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import { memberMatchesQuery, type MemberNicknameData } from "./member-nickname";
 
@@ -14,6 +15,8 @@ export type GroupMemberToAdd = {
   /** The Member nickname, when the organizer may see it. */
   nickname?: MemberNicknameData | null;
   levelBand: LevelBand | null;
+  /** The whole OVR of a football Rating, which the row shows in place of the band. */
+  ovr?: number | null;
   footballRole: FootballRole | null;
   footballPosition: Exclude<AddPlayerFootballPosition, "none"> | null;
   status: "in_game" | "waitlisted" | null;
@@ -59,6 +62,24 @@ function footballLabel(pick: GroupMemberFootballPick, locale: Locale): string {
     : m.positions[pick.position];
 }
 
+/** `Level C` on padel; football reads `OVR 72`, with no band (ADR-0087). */
+function memberLevel(
+  member: Pick<GroupMemberToAdd, "levelBand" | "ovr">,
+  isFootball: boolean,
+  locale: Locale,
+): string | null {
+  if (isFootball) {
+    return member.ovr == null
+      ? null
+      : messagesFor(locale).level.ovr(formatOvr(member.ovr));
+  }
+  return member.levelBand
+    ? messagesFor(locale).group.addPlayer.fromGroup.level(
+        displayLabelFromStoredBand(member.levelBand),
+      )
+    : null;
+}
+
 /**
  * Members matching the search, those who can still be added first. A picked
  * member's line drops the role, since the choices under the row show it.
@@ -81,9 +102,7 @@ export function groupMemberRows(
     .map((member) => {
       const selected = input.picked.includes(member.userId);
       const blocked = member.status == null && !selected && full;
-      const level = member.levelBand
-        ? m.level(displayLabelFromStoredBand(member.levelBand))
-        : null;
+      const level = memberLevel(member, input.isFootball, locale);
       const role =
         input.isFootball && !selected
           ? footballLabel(groupMemberFootballDefaults(member), locale)

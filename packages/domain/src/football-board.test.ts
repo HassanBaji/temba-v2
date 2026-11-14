@@ -12,8 +12,9 @@ import {
   joinActionLabel,
   keeperNote,
   keeperSub,
-  makeTeamsLevelLabel,
   moveAcross,
+  ovrLabel,
+  ovrSpoken,
   placeOn,
   poolLayout,
   poolSections,
@@ -139,10 +140,10 @@ describe("join sheet copy", () => {
 
 describe("teams draft", () => {
   const players = [
-    player("k", { role: "keeper", levelBand: "C1" }),
-    player("a", { levelBand: "A" }),
-    player("b", { levelBand: "B2" }),
-    player("c", { levelBand: "C2" }),
+    player("k", { role: "keeper", levelBand: "C1", ovr: 70 }),
+    player("a", { levelBand: "A", ovr: 92 }),
+    player("b", { levelBand: "B2", ovr: 80 }),
+    player("c", { levelBand: "C2", ovr: 66 }),
   ];
 
   it("starts from a split by Level, or from the published teams", () => {
@@ -190,7 +191,7 @@ describe("teams draft", () => {
 
     const done = placeOn(placeOn(manual, "b", 2), "c", 2);
     expect(draftSummary(done, players, "en").note).toBe(
-      "Everyone placed. Black avg B, White avg B-.",
+      "Everyone placed. Black avg OVR 81, White avg OVR 73.",
     );
   });
 });
@@ -227,16 +228,25 @@ describe("teams draft in a tier Group", () => {
     );
   });
 
-  it("reads the Level when any player has no strength", () => {
+  it("reads the mean OVR, never a band, when any player has no strength", () => {
     expect(
       teamsSideAverage(
         [
-          player("a", { levelBand: "B1", balanceStrength: 1300 }),
-          player("b", { levelBand: "B1" }),
+          player("a", { levelBand: "B1", ovr: 72, balanceStrength: 1300 }),
+          player("b", { levelBand: "B1", ovr: 77 }),
+          player("c", { levelBand: "B1" }),
         ],
         "en",
       ),
-    ).toBe("B+");
+    ).toBe("OVR 75");
+    expect(teamsSideAverage([player("a", { levelBand: "B1" })], "en")).toBe(
+      "–",
+    );
+  });
+
+  it("shows each row's OVR, not its band, and a dash without one", () => {
+    expect(ovrLabel(player("a", { levelBand: "D3", ovr: 61 }))).toBe("61");
+    expect(ovrLabel(tierPlayers[0]!)).toBe("–");
   });
 
   it("puts the fish, the place or a Provisional slot beside a player", () => {
@@ -304,9 +314,10 @@ describe("teams draft outside a tier Group", () => {
   });
 
   it("shows the OVR where the Level sits, a dash without one", () => {
-    expect(makeTeamsLevelLabel(ovrPlayers[2]!, "ovr")).toBe("84");
-    expect(makeTeamsLevelLabel(ovrPlayers[5]!, "ovr")).toBe("–");
-    expect(makeTeamsLevelLabel(ovrPlayers[2]!, "tierPoints")).toBe("D");
+    expect(ovrLabel(ovrPlayers[2]!)).toBe("84");
+    expect(ovrLabel(ovrPlayers[5]!)).toBe("–");
+    expect(ovrSpoken(ovrPlayers[2]!, "en")).toBe("OVR 84");
+    expect(ovrSpoken(ovrPlayers[5]!, "en")).toBeNull();
   });
 });
 

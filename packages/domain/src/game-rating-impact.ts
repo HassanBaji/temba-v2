@@ -19,7 +19,6 @@ import { formatPadelLevel, levelFromMu } from "./level";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import { formatPerformanceRating, MIN_BALLOTS } from "./performance-rating";
 import { levelMoveSteps } from "./rating-history";
-import type { Sport } from "./sport";
 
 export function unratedLabel(locale: Locale) {
   return messagesFor(locale).common.unrated;
@@ -111,15 +110,14 @@ export function ratingImpactChangeDirection(
 }
 
 /**
- * Standing-sentence copy for the Final-phase Rating impact block
+ * Standing-sentence copy for the padel Final-phase Rating impact block
  * (game-details redesign, TEM-182) — the block that explains why the
  * viewer's Home level card changed after this Match. Reuses the exact
  * Provisional/confirmed phrasing conventions already shipped on Home
  * (`.scratch/home-level-redesign/spec.md` §3.4, `home-level-block.tsx`)
  * rather than inventing new copy:
- * - the remaining count is exact, and which Matches it counts differs by
- *   sport: counting Matches on football (ADR-0069), Rated Matches in a
- *   Verified Group on padel (ADR-0080).
+ * - the remaining count is exact: Rated Matches in a Verified Group
+ *   (ADR-0080).
  * - "confirms"/"confirmed", never "locks in".
  *
  * The Level band renders through the shipped display remap (D / D+ / C /
@@ -130,19 +128,40 @@ export function ratingImpactStandingSentence(args: {
   newLevelBand: LevelBand;
   isProvisional: boolean;
   ratedMatchesRemainingToConfirm: number | null;
-  /** Which Matches confirm a Level differs by sport (ADR-0069, ADR-0080). */
-  sport: Sport;
   locale: Locale;
 }): string {
   const m = messagesFor(args.locale).game.rating;
   const bandLabel = displayLabelFromStoredBand(args.newLevelBand);
 
   if (args.isProvisional) {
-    const remaining = Math.max(1, args.ratedMatchesRemainingToConfirm ?? 1);
-    return m.stillProvisional[args.sport](bandLabel, remaining);
+    return m.stillProvisional.padel(bandLabel, remainingToConfirm(args));
   }
 
   return m.stillConfirmed(bandLabel);
+}
+
+function remainingToConfirm(impact: {
+  ratedMatchesRemainingToConfirm: number | null;
+}) {
+  return Math.max(1, impact.ratedMatchesRemainingToConfirm ?? 1);
+}
+
+/**
+ * Where a counting football Match left the viewer: the OVR it reached, then
+ * the verified Matches still to confirm it, or that it is confirmed. Never a
+ * band (ADR-0087).
+ */
+function ovrStandingSentence(args: {
+  ovrAfter: number;
+  isProvisional: boolean;
+  ratedMatchesRemainingToConfirm: number | null;
+  locale: Locale;
+}): string {
+  const m = messagesFor(args.locale).game.rating;
+  const ovr = formatOvr(args.ovrAfter);
+  return args.isProvisional
+    ? m.ovrProvisional(ovr, remainingToConfirm(args))
+    : m.ovrConfirmed(ovr);
 }
 
 /**
@@ -168,11 +187,7 @@ export function ratingImpactView(
     direction,
     magnitude,
     newLevelLabel: formatPadelLevel(levelFromMu(ratingImpact.muAfter), 2),
-    sentence: ratingImpactStandingSentence({
-      ...ratingImpact,
-      sport: "padel",
-      locale,
-    }),
+    sentence: ratingImpactStandingSentence({ ...ratingImpact, locale }),
     directionText:
       direction === "up"
         ? m.increasedBy(magnitude)
@@ -298,7 +313,6 @@ export function ovrMoveHeldAt(
 export function ovrImpactView(
   impact: {
     ovr: OvrImpact;
-    newLevelBand: LevelBand;
     isProvisional: boolean;
     ratedMatchesRemainingToConfirm: number | null;
   },
@@ -389,9 +403,10 @@ export function ovrImpactView(
     })),
     total: {
       title: totalTitle,
-      detail: ratingImpactStandingSentence({
-        ...impact,
-        sport: "football",
+      detail: ovrStandingSentence({
+        ovrAfter: ovr.after,
+        isProvisional: impact.isProvisional,
+        ratedMatchesRemainingToConfirm: impact.ratedMatchesRemainingToConfirm,
         locale,
       }),
       delta: totalDelta,

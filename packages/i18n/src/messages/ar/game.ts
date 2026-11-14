@@ -343,17 +343,19 @@ export const game = {
           many: "{n} مباراة مصنّفة أخرى في مجموعة موثّقة ويتأكد مستواك.",
           other: "{n} مباراة مصنّفة أخرى في مجموعة موثّقة ويتأكد مستواك.",
         })}`,
-      football: (band: string, remaining: number) =>
-        `ما زلت ${band}. ${plural("ar", remaining, {
-          one: "مباراة موثّقة واحدة أخرى ويتأكد مستواك.",
-          two: "مباراتان موثّقتان أخريان ويتأكد مستواك.",
-          few: "{n} مباريات موثّقة أخرى ويتأكد مستواك.",
-          many: "{n} مباراة موثّقة أخرى ويتأكد مستواك.",
-          other: "{n} مباراة موثّقة أخرى ويتأكد مستواك.",
-        })}`,
     },
     stillConfirmed: (band: string) =>
       `ما زلت ${band}. مستواك مؤكد — يتحرك مع كل مباراة مصنّفة تلعبها.`,
+    ovrProvisional: (ovr: string, remaining: number) =>
+      `الآن ${isolate("OVR")} ${isolate(ovr)}. ${plural("ar", remaining, {
+        one: "مباراة موثّقة واحدة أخرى ويتأكد مستواك.",
+        two: "مباراتان موثّقتان أخريان ويتأكد مستواك.",
+        few: "{n} مباريات موثّقة أخرى ويتأكد مستواك.",
+        many: "{n} مباراة موثّقة أخرى ويتأكد مستواك.",
+        other: "{n} مباراة موثّقة أخرى ويتأكد مستواك.",
+      })}`,
+    ovrConfirmed: (ovr: string) =>
+      `الآن ${isolate("OVR")} ${isolate(ovr)}. مستواك مؤكد — يتحرك مع كل مباراة مصنّفة تلعبها.`,
     increasedBy: (magnitude: string) => `ارتفع المستوى بمقدار ${magnitude}`,
     decreasedBy: (magnitude: string) => `انخفض المستوى بمقدار ${magnitude}`,
     unchanged: "المستوى دون تغيير",

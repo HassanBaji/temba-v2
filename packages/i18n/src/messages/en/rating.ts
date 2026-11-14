@@ -71,6 +71,17 @@ export const rating = {
         "The 1.0 to 7.0 scale padel players already know. Moves on verified matches, weighing your partner and opponents.",
       spoken: (band: string, level: string, status: string) =>
         `Temba Level ${level}, band ${band}. ${status}`,
+      spokenOvr: (level: string, status: string) =>
+        `Temba Level ${level}. ${status}`,
+      startingFromSignUp: "Starting level, from sign-up",
+      startingLevel: "Starting level",
+      lastMatch: "Last match",
+      lastResult: {
+        won: (score: string | null) => (score ? `Won ${score}` : "Won"),
+        drawn: (score: string | null) => (score ? `Drew ${score}` : "Drew"),
+        lost: (score: string | null) => (score ? `Lost ${score}` : "Lost"),
+      },
+      noLastMatch: "None yet",
     },
     tier: {
       title: "Group tier",
@@ -458,13 +469,14 @@ export const rating = {
   ovr: {
     label: "OVR",
     value: (ovr: string) => `OVR ${ovr}`,
+    valueProvisional: (ovr: string) => `OVR ${ovr}, still Provisional`,
     startsAt: (description: string, ovr: string) =>
       `${description} Starts at OVR ${ovr}.`,
     member: (band: string, ovr: string) => `${band}, OVR ${ovr}`,
-    team: (band: string, ovr: string) => `${band}, avg OVR ${ovr}`,
     avg: (ovr: string) => `avg OVR ${ovr}`,
-    heroSpoken: (ovr: string, band: string, detail: string) =>
-      `OVR ${ovr}, band ${band}. ${detail}`,
+    span: (min: string, max: string) => `${min}–${max}`,
+    heroSpoken: (ovr: string, placement: string | null) =>
+      placement ? `OVR ${ovr}. ${placement}` : `OVR ${ovr}`,
   },
   performance: {
     title: "Rate the game",

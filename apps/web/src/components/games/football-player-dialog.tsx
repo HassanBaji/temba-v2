@@ -1,6 +1,6 @@
 "use client";
 
-import { levelLabel, type BoardPlayer } from "@repo/domain/football-board";
+import { ovrLabel, type BoardPlayer } from "@repo/domain/football-board";
 import { footballPositionChoices } from "@repo/domain/football-lineup";
 import type { Messages } from "@repo/i18n/messages";
 import type { Locale } from "@repo/i18n/locale";
@@ -72,7 +72,7 @@ export function FootballPlayerDialog({
                 <ResponsiveDialogDescription>
                   {m.webTournament.footballPlayer.subtitle(
                     roleLine(player, m, locale),
-                    levelLabel(player.levelBand),
+                    ovrLabel(player),
                   )}
                 </ResponsiveDialogDescription>
                 {player.phoneMasked ? (

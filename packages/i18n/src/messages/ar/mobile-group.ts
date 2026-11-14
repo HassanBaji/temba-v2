@@ -1,4 +1,5 @@
 import { plural } from "../../plural";
+import { isolate } from "../../bidi";
 import type { mobileGroup as source } from "../en/mobile-group";
 
 export const mobileGroup = {
@@ -248,6 +249,8 @@ export const mobileGroup = {
     newLevel: "المستوى الجديد",
     readout: (band: string, level: string, delta: string) =>
       `المستوى الجديد ${band} ${level}، ${delta}`,
+    readoutOvr: (ovr: string, delta: string) =>
+      `المستوى الجديد ${isolate("OVR")} ${isolate(ovr)}، ${delta}`,
     toNext: (distance: string, label: string) => `${distance} حتى ${label}`,
     topOfScale: "أعلى المقياس",
     throughRung: (percent: number, rung: string) => `${percent}% من ${rung}`,

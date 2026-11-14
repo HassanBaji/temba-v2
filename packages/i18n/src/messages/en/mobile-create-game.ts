@@ -161,6 +161,8 @@ export const mobileCreateGame = {
     maximumLevel: "Maximum Level",
     minimumLevelBand: (band: string) => `Minimum Level ${band}`,
     maximumLevelBand: (band: string) => `Maximum Level ${band}`,
+    minimumOvr: (ovr: string) => `Minimum OVR ${ovr}`,
+    maximumOvr: (ovr: string) => `Maximum OVR ${ovr}`,
     summaryA11y: (minimum: string, maximum: string) =>
       `Minimum ${minimum}, Maximum ${maximum}`,
     openToAnyone: "Open to anyone",

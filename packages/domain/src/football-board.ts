@@ -2,7 +2,6 @@ import { messagesFor } from "@repo/i18n/messages";
 import type { Locale } from "@repo/i18n/locale";
 
 import {
-  averageLevelLabel,
   balanceFootballSides,
   DEFAULT_FOOTBALL_BIBS,
   footballBibName,
@@ -77,18 +76,16 @@ export function levelLabel(band: LevelBand | null) {
   return band ? displayLabelFromStoredBand(band) : "–";
 }
 
-/**
- * What a player row in Make teams shows where the Level sits: the OVR when
- * the teams balance on it, otherwise the Level band.
- */
-export function makeTeamsLevelLabel(
-  player: Pick<BoardPlayer, "levelBand" | "ovr">,
-  balanceOn: FootballBalanceOn,
-) {
-  if (balanceOn === "ovr") {
-    return player.ovr == null ? levelLabel(null) : formatOvr(player.ovr);
-  }
-  return levelLabel(player.levelBand);
+/** What a football line-up row shows where the Level sits: the whole OVR, a dash without one. */
+export function ovrLabel(player: Pick<BoardPlayer, "ovr">) {
+  return player.ovr == null ? "–" : formatOvr(player.ovr);
+}
+
+/** How a screen reader says a line-up row's OVR, "OVR 72"; nothing without one. */
+export function ovrSpoken(player: Pick<BoardPlayer, "ovr">, locale: Locale) {
+  return player.ovr == null
+    ? null
+    : messagesFor(locale).level.ovr(formatOvr(player.ovr));
 }
 
 export function slotCode(
@@ -433,10 +430,10 @@ export function draftSummary(
 /**
  * A side's mean as Make teams reads it when every player has a balance
  * strength: mean Tier points in a tier Group, the mean OVR elsewhere.
- * Otherwise the mean Level.
+ * Otherwise the mean OVR of the players who have one.
  */
 export function teamsSideAverage(
-  players: readonly Pick<BoardPlayer, "levelBand" | "balanceStrength">[],
+  players: readonly Pick<BoardPlayer, "ovr" | "balanceStrength">[],
   locale: Locale,
   balanceOn: FootballBalanceOn = "tierPoints",
 ) {
@@ -444,7 +441,7 @@ export function teamsSideAverage(
     player.balanceStrength == null ? [] : [player.balanceStrength],
   );
   if (strengths.length === 0 || strengths.length < players.length) {
-    return sideAverage(players);
+    return sideOvrAverage(players, locale);
   }
   const mean =
     strengths.reduce((sum, strength) => sum + strength, 0) / strengths.length;
@@ -465,10 +462,6 @@ export function boardTierCell(
       locale,
     )?.cell ?? null
   );
-}
-
-function sideAverage(players: readonly Pick<BoardPlayer, "levelBand">[]) {
-  return averageLevelLabel(players.map((player) => player.levelBand)) ?? "–";
 }
 
 /**

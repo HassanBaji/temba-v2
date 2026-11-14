@@ -216,7 +216,8 @@ describe("footballProfileModel", () => {
     expect(model.level).toMatchObject({
       kind: "level",
       label: "Football level",
-      band: "C+",
+      band: null,
+      unit: "OVR",
       status: "Starting level",
       statusDetail: "Set at sign up",
       hatched: true,

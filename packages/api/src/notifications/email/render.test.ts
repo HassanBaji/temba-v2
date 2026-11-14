@@ -219,6 +219,24 @@ describe("renderNotificationEmail", () => {
     expect(email.text.split("\n")[1]).not.toBe("");
   });
 
+  it("emails a set football Level as OVR, with no band", () => {
+    const email = render(
+      item({
+        type: "level_set",
+        audience: "player",
+        group: GROUP,
+        levelSet: {
+          level: "72",
+          levelBand: "C1",
+          sport: "football",
+          reason: "plays_above_results",
+        },
+      }),
+    );
+    expect(email.subject).toBe("Omar Aziz set your Level to OVR 72");
+    expect(email.text).not.toContain("C+");
+  });
+
   it("sends the linked history to the Games hub History tab", () => {
     const email = render(
       item({

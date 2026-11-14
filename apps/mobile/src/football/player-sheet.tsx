@@ -10,7 +10,7 @@ import { Button } from "../primitives/button";
 import { GuestMark } from "../primitives/guest-mark";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
-import { levelLabel, type BoardPlayer } from "@repo/domain/football-board";
+import { ovrLabel, type BoardPlayer } from "@repo/domain/football-board";
 
 function roleLine(player: BoardPlayer, locale: Locale, m: Messages) {
   if (player.role === "keeper") {
@@ -58,9 +58,9 @@ export function PlayerSheet({
               </Text>
               {player.guest ? <GuestMark /> : null}
               <Text size="meta" tone="muted">
-                {m.playerSheet.roleAndLevel(
+                {m.playerSheet.roleAndOvr(
                   roleLine(player, locale, messages),
-                  levelLabel(player.levelBand),
+                  ovrLabel(player),
                 )}
               </Text>
             </View>

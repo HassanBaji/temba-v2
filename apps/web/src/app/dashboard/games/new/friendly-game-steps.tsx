@@ -25,9 +25,8 @@ import { FieldDescription, FieldError } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import {
-  formatLevelRangeLabel,
   LEVEL_BAND_SELECT_NONE,
-  parseLevelBandSelectTenths,
+  levelBandSelectOvr,
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
@@ -227,14 +226,19 @@ export function FriendlyGameSteps({
     locale,
     sport,
   });
-  const ovrRangeLabel = football
-    ? formatLevelRangeLabel(
-        parseLevelBandSelectTenths(levelMin, "min"),
-        parseLevelBandSelectTenths(levelMax, "max"),
-        locale,
-        "football",
-      )
-    : null;
+  const levelBoundLabel = (
+    value: LevelBandSelectValue,
+    bound: "min" | "max",
+  ) => {
+    if (value === LEVEL_BAND_SELECT_NONE) {
+      return c.openBound;
+    }
+    if (!football) {
+      return value;
+    }
+    const ovr = levelBandSelectOvr(value, bound);
+    return ovr == null ? c.openBound : m.level.ovr(ovr);
+  };
   const publicGame = publicChoice?.selected === true;
   const levelRangeShown = createLevelRangeShown({
     sport,
@@ -267,6 +271,7 @@ export function FriendlyGameSteps({
         describedBy={
           levelMinError ? "game-level-min-error" : "game-level-range-copy"
         }
+        sport={sport}
         onSelect={(band) => {
           onLevelRange(
             applyLevelBoundChange(
@@ -288,6 +293,7 @@ export function FriendlyGameSteps({
         describedBy={
           levelMaxError ? "game-level-max-error" : "game-level-range-copy"
         }
+        sport={sport}
         onSelect={(band) => {
           onLevelRange(
             applyLevelBoundChange(
@@ -306,12 +312,12 @@ export function FriendlyGameSteps({
             <>
               {c.minimum}{" "}
               <span className="text-foreground font-semibold">
-                {levelMin === LEVEL_BAND_SELECT_NONE ? c.openBound : levelMin}
+                {levelBoundLabel(levelMin, "min")}
               </span>
               {" · "}
               {c.maximum}{" "}
               <span className="text-foreground font-semibold">
-                {levelMax === LEVEL_BAND_SELECT_NONE ? c.openBound : levelMax}
+                {levelBoundLabel(levelMax, "max")}
               </span>
             </>
           )}
@@ -328,11 +334,10 @@ export function FriendlyGameSteps({
           </button>
         )}
       </div>
-      {ovrRangeLabel ? (
-        <p className="text-meta font-semibold">{ovrRangeLabel}</p>
-      ) : null}
       <FieldDescription id="game-level-range-copy">
-        {m.level.rangeFieldDescription}
+        {football
+          ? m.level.rangeFieldDescriptionFootball
+          : m.level.rangeFieldDescription}
       </FieldDescription>
       <FieldError id="game-level-max-error">{levelMaxError}</FieldError>
     </section>

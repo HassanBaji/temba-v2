@@ -6,7 +6,7 @@ import { homeNoGamesCreateAction } from "@repo/domain/home-no-games";
 import { openWeekRows } from "@repo/domain/home-open-week";
 import { homeSport, homeSports } from "@repo/domain/home-sports";
 import { homeStats } from "@repo/domain/home-stats";
-import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
+import { sportSwitchLevel } from "@repo/domain/ratings-screen";
 import type { Sport } from "@repo/domain/sport";
 import { useRouter, type Href } from "expo-router";
 import { useCallback, useState } from "react";
@@ -48,18 +48,6 @@ function slotOf<T, U>(
     return { status: "loading" };
   }
   return { status: "ready", value: map(query.data) };
-}
-
-type RatingData = { rating: { levelBand: string } | null } | undefined;
-
-function bandOf(data: RatingData): string | null {
-  return data?.rating
-    ? displayLabelFromStoredBand(
-        data.rating.levelBand as Parameters<
-          typeof displayLabelFromStoredBand
-        >[0],
-      )
-    : null;
 }
 
 export function HomeScreen() {
@@ -163,10 +151,10 @@ export function HomeScreen() {
     dateLine: formatDayMonth(now, locale, { weekday: "long", month: "long" }),
     sports: twoSports ? sports : [sport],
     sport,
-    bands: twoSports
+    levels: twoSports
       ? {
-          padel: bandOf(padelRating.data),
-          football: bandOf(footballRating.data),
+          padel: sportSwitchLevel("padel", padelRating.data, locale),
+          football: sportSwitchLevel("football", footballRating.data, locale),
         }
       : {},
     level: slotOf(rating, levelFromApi),

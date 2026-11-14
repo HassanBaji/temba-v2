@@ -1,11 +1,11 @@
 import { hatch, spacing } from "@repo/design-tokens";
 import { homeLevelView, type HomeLevelView } from "@repo/domain/home-level";
-import { gaugeArc, sparklinePoints } from "@repo/domain/home-level-chart";
+import { gaugeArc } from "@repo/domain/home-level-chart";
 import { type Sport } from "@repo/domain/sport";
 import { Check, ChevronRight } from "lucide-react-native";
 import { useId } from "react";
 import { Pressable, View } from "react-native";
-import Svg, { Circle, Defs, Pattern, Polyline, Rect } from "react-native-svg";
+import Svg, { Circle, Defs, Pattern, Rect } from "react-native-svg";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
@@ -15,6 +15,7 @@ import { hatchPatternId } from "../primitives/hatch-pattern-id";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import { FootballLevelFace } from "./football-level-face";
 import { noLevelCopy, type HomeLevel } from "./home-model";
 import { SectionTitle } from "./section-title";
 
@@ -22,8 +23,6 @@ const GAUGE = 104;
 const VIEWBOX = 120;
 const RADIUS = 50;
 const STROKE = 10;
-const SPARK_WIDTH = 60;
-const SPARK_HEIGHT = 18;
 const SWATCH = 12;
 const NO_LEVEL_TILE = 74;
 const STATUS_ICON = 14;
@@ -98,40 +97,6 @@ function Gauge({ percent, band }: { percent: number; band: string }) {
         {band}
       </Text>
     </View>
-  );
-}
-
-/** A Level's recent run, newest last along the reading direction. */
-export function Sparkline({ values }: { values: readonly number[] }) {
-  const palette = useTonePalette();
-  const points = sparklinePoints(values, SPARK_WIDTH - 4, SPARK_HEIGHT - 4);
-  if (!points) {
-    return null;
-  }
-  const last = points.split(" ").at(-1)?.split(",").map(Number) ?? [0, 0];
-  return (
-    <Svg
-      width={SPARK_WIDTH}
-      height={SPARK_HEIGHT}
-      style={mirrorInRtl}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    >
-      <Polyline
-        points={points}
-        fill="none"
-        stroke={palette.foreground}
-        strokeWidth={1.5}
-        strokeLinejoin="round"
-        transform="translate(2 2)"
-      />
-      <Circle
-        cx={(last[0] ?? 0) + 2}
-        cy={(last[1] ?? 0) + 2}
-        r={2.5}
-        fill={palette.foreground}
-      />
-    </Svg>
   );
 }
 
@@ -219,6 +184,29 @@ function NoLevel({ sport }: { sport: Sport }) {
 
 function RatedLevel({ view }: { view: HomeLevelView }) {
   const palette = useTonePalette();
+  if (view.scale) {
+    return (
+      <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
+        <FootballLevelFace
+          numberLabel={view.numberLabel}
+          number={view.level}
+          scale={view.scale}
+          change={
+            view.change
+              ? {
+                  amount: view.change.signedAmount,
+                  caption: view.change.caption,
+                  points: view.change.points,
+                }
+              : null
+          }
+          start={view.start}
+          footer={view.footer}
+          opens
+        />
+      </Surface>
+    );
+  }
   return (
     <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
       <View
@@ -229,7 +217,7 @@ function RatedLevel({ view }: { view: HomeLevelView }) {
           padding: spacing.surface,
         }}
       >
-        <Gauge percent={view.percent} band={view.displayBand} />
+        <Gauge percent={view.percent} band={view.displayBand ?? ""} />
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Text size="eyebrow" tone="muted">
             {view.numberLabel}

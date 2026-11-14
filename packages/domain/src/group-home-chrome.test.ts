@@ -181,14 +181,14 @@ describe("levelCellView", () => {
     assert.deepEqual(levelCellView(null, false, 72), bare);
   });
 
-  it("gives the OVR face with the band when the OVR is given", () => {
+  it("gives the bare OVR with no band when the OVR is given", () => {
     assert.deepEqual(levelCellView("C1", false, 72.4), {
       kind: "label",
-      label: "C+ 72",
+      label: "72",
     });
     assert.deepEqual(levelCellView("C3", true, 61), {
       kind: "provisional",
-      label: "C- 61",
+      label: "61",
     });
     assert.deepEqual(levelCellView("B3", false, null), {
       kind: "label",

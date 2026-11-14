@@ -8,6 +8,7 @@ import {
   challengeDraftWithTeam,
   challengeFormatHelp,
   challengeInitialDraft,
+  challengeLevelChip,
   challengeLevelChips,
   challengeLevelHint,
   challengeLevelSelected,
@@ -388,7 +389,7 @@ describe("challengeNudgeView", () => {
 
 const goozForm: ChallengeFormTeam = {
   ...gooz,
-  teamLevel: { tenths: 28, level: "2.8", band: "C" },
+  teamLevel: { tenths: 28, level: "2.8", band: "C", ovr: 64 },
   members: [{ name: "Hamad Hasan", isViewer: true }],
   playedTeams: [arad],
 };
@@ -465,7 +466,7 @@ describe("challengeTeamChoice", () => {
       "Padel, C+, you and Ali M",
     );
     expect(challengeTeamChoice(goozForm, "en").detail).toBe(
-      "Football, C. 12 on the roster",
+      "Football, OVR 64. 12 on the roster",
     );
     expect(
       challengeTeamChoice({ ...goozForm, teamLevel: null }, "en").detail,
@@ -582,6 +583,18 @@ describe("level wanted", () => {
       levelMax: "B-",
     });
     expect(challengeLevelTap(c, "C")).toEqual(none);
+  });
+
+  it("labels each chip with its band on padel and its OVR span on football", () => {
+    expect(challengeLevelChip("C", "padel", "en")).toEqual({
+      label: "C",
+      accessibilityLabel: "C",
+    });
+    expect(challengeLevelChip("C", "football", "en")).toEqual({
+      label: "64–69",
+      accessibilityLabel: "OVR 64 to 69",
+    });
+    expect(challengeLevelChip("C+", "football", "en").label).toBe("70–75");
   });
 
   it("names the run beside the heading", () => {

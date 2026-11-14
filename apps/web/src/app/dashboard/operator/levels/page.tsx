@@ -32,8 +32,11 @@ import {
 import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
-import { formatOvr, levelFaceFor } from "@repo/domain/football-ovr";
-import { levelSliderLabel, ovrSliderLabel } from "@repo/domain/level-slider";
+import { levelFaceFor } from "@repo/domain/football-ovr";
+import {
+  levelSliderLabel,
+  ovrSliderValueText,
+} from "@repo/domain/level-slider";
 import { sportLabel, type Sport } from "@repo/domain/sport";
 import type { Messages } from "@repo/i18n/messages";
 
@@ -93,7 +96,7 @@ export default function OperatorLevelsPage() {
           target?.name ?? o.playerFallback,
           variables.ovr === undefined
             ? levelSliderLabel(variables.levelTenths ?? 0)
-            : ovrSliderLabel(variables.ovr),
+            : ovrSliderValueText(variables.ovr, locale),
         ),
       );
       setTarget(null);
@@ -167,11 +170,8 @@ export default function OperatorLevelsPage() {
                   <div className="flex items-center gap-3">
                     <LevelCell
                       band={player.levelBand}
-                      level={
-                        player.ovr == null
-                          ? player.level
-                          : formatOvr(player.ovr)
-                      }
+                      level={player.level}
+                      ovr={player.ovr}
                       provisional={player.levelProvisional}
                       className="w-16 shrink-0"
                     />

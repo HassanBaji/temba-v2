@@ -81,6 +81,7 @@ export async function gameInviteLinkOpenGraph(
     occupiedCount: occupiedFriendlyPositions(sides),
     levelMinTenths: game.levelMinTenths,
     levelMaxTenths: game.levelMaxTenths,
+    sport: game.sport,
     locale,
   });
   return { ...metadata, image: group?.imageUrl ?? null };

@@ -7,6 +7,7 @@ import {
   ratings,
 } from "@repo/db";
 
+import { wholeOvrFromMu } from "@repo/domain/football-ovr";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
@@ -47,7 +48,13 @@ export async function listJoinRequests(
   const requesterIds = rows.map((row) => row.userId);
   const levelByUserId = new Map<
     string,
-    { levelBand: LevelBand; provisional: boolean; level: string }
+    {
+      levelBand: LevelBand;
+      provisional: boolean;
+      level: string;
+      /** The whole OVR in a football Group, null on padel. */
+      ovr: number | null;
+    }
   >();
   if (group.sport && requesterIds.length > 0) {
     const ratingRows = await database.query.ratings.findMany({
@@ -63,6 +70,7 @@ export async function listJoinRequests(
         levelBand: view.levelBand,
         provisional: view.provisional,
         level: view.level,
+        ovr: group.sport === "football" ? wholeOvrFromMu(row.mu) : null,
       });
     }
   }

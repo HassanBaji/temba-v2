@@ -73,10 +73,15 @@ export function JoinRequestsBanner({
 
 function LevelChip({ level }: { level: JoinRequest["level"] }) {
   const m = useMessages();
-  const view = levelCellView(level?.levelBand, level?.provisional ?? true);
+  const view = levelCellView(
+    level?.levelBand,
+    level?.provisional ?? true,
+    level?.ovr,
+  );
   if (!view.label) {
     return null;
   }
+  const football = level?.ovr != null;
   return (
     <span
       dir="ltr"
@@ -86,8 +91,12 @@ function LevelChip({ level }: { level: JoinRequest["level"] }) {
       )}
       aria-label={
         view.kind === "provisional"
-          ? m.webGroup.requests.levelProvisional(view.label)
-          : m.webGroup.requests.level(view.label)
+          ? football
+            ? m.rating.ovr.valueProvisional(view.label)
+            : m.webGroup.requests.levelProvisional(view.label)
+          : football
+            ? m.rating.ovr.value(view.label)
+            : m.webGroup.requests.level(view.label)
       }
     >
       {view.label}

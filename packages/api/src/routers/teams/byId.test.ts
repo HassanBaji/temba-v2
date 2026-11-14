@@ -17,6 +17,8 @@ import {
   venues,
 } from "@repo/db/schema";
 
+import { muFromOvr } from "@repo/domain/football-ovr";
+
 import { teamById } from "#src/routers/teams/byId";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
@@ -421,6 +423,54 @@ describe("teamById for any signed-in User", () => {
         preferredPosition: "left",
         footballRole: "keeper",
         footballPosition: null,
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it("sends each football member's whole OVR, and null on padel or without a Rating", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const captain = await makeUser(db, "Captain");
+      const member = await makeUser(db, "Member");
+      const padel = await makeTeam(db, "padel", captain, [member]);
+      const football = await makeTeam(db, "football", captain, [member]);
+      await db.insert(ratings).values([
+        {
+          userId: captain,
+          sport: "football",
+          mu: muFromOvr(72),
+          phi: 150,
+          sigma: 0.06,
+          levelBand: "C1",
+        },
+        {
+          userId: captain,
+          sport: "padel",
+          mu: 1400,
+          phi: 150,
+          sigma: 0.06,
+          levelBand: "C2",
+        },
+      ]);
+
+      const footballView = await teamById(db as unknown as Db, {
+        teamId: football,
+        userId: member,
+      });
+      expect(footballView.members.map((row) => [row.userId, row.ovr])).toEqual([
+        [captain, 72],
+        [member, null],
+      ]);
+      const padelView = await teamById(db as unknown as Db, {
+        teamId: padel,
+        userId: member,
+      });
+      expect(padelView.members[0]).toMatchObject({
+        userId: captain,
+        levelBand: "C2",
+        ovr: null,
       });
     } finally {
       await close();

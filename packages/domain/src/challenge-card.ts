@@ -19,6 +19,7 @@ import {
   type AssignableDisplayLevelBand,
 } from "./level-bands";
 import {
+  displayRungOvrSpan,
   formatLevelRangeFaceLabel,
   parseLevelBandSelectTenths,
 } from "./level-range";
@@ -295,6 +296,15 @@ export function challengeIneligibleLine(
   }
 }
 
+/** The big Level beside the card: the Team's band on padel, its mean whole OVR on football. */
+function levelBadge(input: Pick<ChallengeCardInput, "sport" | "team">) {
+  const level = input.team.teamLevel;
+  if (input.sport === "football") {
+    return level?.ovr != null ? formatOvr(level.ovr) : null;
+  }
+  return level?.band ?? null;
+}
+
 /** Whether the viewer may press Accept: an eligible Team, or none yet (the detail asks for one). */
 function canAccept(reason: ChallengeIneligibleReason | null) {
   return reason == null || reason === "no_team";
@@ -350,7 +360,7 @@ export function challengeCardView(
     id: input.id,
     sport: input.sport,
     title: input.team.displayName,
-    levelBand: input.team.teamLevel?.band ?? null,
+    levelBadge: levelBadge(input),
     sportLine,
     whenLine,
     daysLine,
@@ -417,7 +427,7 @@ export function challengeBoardQuery(filters: ChallengeBoardFilters) {
 
 export type ChallengeBoardFilterKey = keyof ChallengeBoardFilters;
 
-/** Sport, Level, Area and Day, each with Any first. */
+/** Sport, Level, Area and Day, each with Any first; Level reads as OVR spans while the sport is football. */
 export function challengeBoardFilterGroups(
   filters: ChallengeBoardFilters,
   areas: readonly string[],
@@ -457,7 +467,10 @@ export function challengeBoardFilterGroups(
       m.filters.level,
       ASSIGNABLE_DISPLAY_LEVEL_BANDS.map((band) => ({
         value: band,
-        label: band,
+        label:
+          filters.sport === "football"
+            ? displayRungOvrSpan(band, locale)
+            : band,
       })),
     ),
     group(

@@ -104,6 +104,20 @@ export const rating = {
         "مقياس 1.0 إلى 7.0 الذي يعرفه لاعبو البادل. يتحرّك في المباريات الموثّقة، ويزن شريكك وخصومك.",
       spoken: (band: string, level: string, status: string) =>
         `مستوى Temba ${isolate(level)}، الفئة ${isolate(band)}. ${status}`,
+      spokenOvr: (level: string, status: string) =>
+        `مستوى Temba ${isolate(level)}. ${status}`,
+      startingFromSignUp: "مستوى البداية، من التسجيل",
+      startingLevel: "مستوى البداية",
+      lastMatch: "آخر مباراة",
+      lastResult: {
+        won: (score: string | null) =>
+          score ? `فوز ${isolate(score)}` : "فوز",
+        drawn: (score: string | null) =>
+          score ? `تعادل ${isolate(score)}` : "تعادل",
+        lost: (score: string | null) =>
+          score ? `خسارة ${isolate(score)}` : "خسارة",
+      },
+      noLastMatch: "لا شيء بعد",
     },
     tier: {
       title: "فئة المجموعة",
@@ -529,15 +543,18 @@ export const rating = {
   ovr: {
     label: "OVR",
     value: (ovr: string) => `${isolate("OVR")} ${isolate(ovr)}`,
+    valueProvisional: (ovr: string) =>
+      `${isolate("OVR")} ${isolate(ovr)}، لا يزال مبدئيًا`,
     startsAt: (description: string, ovr: string) =>
       `${description} تبدأ عند ${isolate("OVR")} ${isolate(ovr)}.`,
     member: (band: string, ovr: string) =>
       `${isolate(band)}، ${isolate("OVR")} ${isolate(ovr)}`,
-    team: (band: string, ovr: string) =>
-      `${isolate(band)}، بمعدل ${isolate("OVR")} ${isolate(ovr)}`,
     avg: (ovr: string) => `بمعدل ${isolate("OVR")} ${isolate(ovr)}`,
-    heroSpoken: (ovr: string, band: string, detail: string) =>
-      `${isolate("OVR")} ${isolate(ovr)}، الفئة ${isolate(band)}. ${detail}`,
+    span: (min: string, max: string) => isolate(`${min}–${max}`),
+    heroSpoken: (ovr: string, placement: string | null) =>
+      placement
+        ? `${isolate("OVR")} ${isolate(ovr)}. ${placement}`
+        : `${isolate("OVR")} ${isolate(ovr)}`,
   },
   performance: {
     title: "قيّم المباراة",

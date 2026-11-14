@@ -697,7 +697,7 @@ The continuous 0.0–7.0 skill state derived from a Rating’s μ. Product copy 
 _Avoid_: rank (reserved for Official Rank), ELO, Level band (that is the discrete label)
 
 **OVR**:
-The football face of a Level, 40 to 99, shown as a whole number: `40 + 59 × Level / 7` on the stored μ, so no Rating row is rewritten (ADR-0069). The Level bands apply unchanged, 5.9 OVR each (C+ is 69.5 to 75.4). Home, the You page, the Player profile, Team Level and the Operator's Player Levels page show a football Level as OVR with its band. A move that would pass 40 or 99 stops there: "What moved your OVR" shows each part as the player earned it and one more line, "Held at 40" or "Held at 99", for what the bound kept out, so the lines add up to the move.
+The football face of a Level, 40 to 99, shown as a whole number: `40 + 59 × Level / 7` on the stored μ, so no Rating row is rewritten (ADR-0069). The Level bands apply unchanged, 5.9 OVR each (C+ is 69.5 to 75.4). A football Level is shown as OVR alone, never with a band letter (ADR-0087): the Level card, the sport switch, line-ups, profiles, Team Level, Challenges, Game Level ranges, notifications and the Operator and Verifier tools. The band is still stored and still drives gates and pickers, which label their options in OVR. A move that would pass 40 or 99 stops there: "What moved your OVR" shows each part as the player earned it and one more line, "Held at 40" or "Held at 99", for what the bound kept out, so the lines add up to the move.
 _Avoid_: overall (in copy), football rating
 
 **Level band**:

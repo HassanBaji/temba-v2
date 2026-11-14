@@ -2,7 +2,6 @@ import { bibColors, radii } from "@repo/design-tokens";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import {
   FOOTBALL_TEAMS_METHODS,
-  type FootballBalanceOn,
   type FootballBib,
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
@@ -33,8 +32,8 @@ import {
   draftSummary,
   initialTeamsDraft,
   keeperWord,
-  makeTeamsLevelLabel,
   moveAcross,
+  ovrLabel,
   placeOn,
   slotCode,
   switchMethod,
@@ -232,7 +231,6 @@ function LevelColumns({
             player={player}
             bib={bib}
             showTier
-            balanceOn={summary.balanceOn}
             trailing={
               <ArrowButton
                 side={side}
@@ -306,13 +304,11 @@ function ManualRow({
   player,
   draft,
   names,
-  balanceOn,
   onPlace,
 }: {
   player: BoardPlayer;
   draft: TeamsDraft;
   names: { slot1: string; slot2: string };
-  balanceOn: FootballBalanceOn;
   onPlace: (side: Side) => void;
 }) {
   const colors = useColors();
@@ -360,7 +356,7 @@ function ManualRow({
         <TierMark cell={tierCell} />
       ) : (
         <Text weight="bold" width="expanded" ltr style={{ color: on }}>
-          {makeTeamsLevelLabel(player, balanceOn)}
+          {ovrLabel(player)}
         </Text>
       )}
       <SwatchButton
@@ -414,7 +410,6 @@ function ManualLists({
             player={player}
             draft={draft}
             names={summary.names}
-            balanceOn={summary.balanceOn}
             onPlace={(side) => onPlace(player.userId, side)}
           />
         ))}

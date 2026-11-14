@@ -194,7 +194,6 @@ function SportProfiles({ details }: { details: Details }) {
 
   const side = preferredPositionLabel(details.preferredPosition, locale);
   const padelLevel = padel.data?.level ?? null;
-  const footballRating = football.data?.rating ?? null;
   const footballOvr = football.data?.ovr;
   const footballLevel =
     footballOvr != null
@@ -227,7 +226,7 @@ function SportProfiles({ details }: { details: Details }) {
     },
     football: {
       set: hasFootball,
-      band: footballRating ? displayBand(footballRating.levelBand) : null,
+      band: footballOvr != null ? String(footballOvr) : null,
       sub: copy.footballSub(footballLevel, role),
     },
   };

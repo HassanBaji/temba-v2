@@ -7,8 +7,8 @@ import {
   draftSummary,
   initialTeamsDraft,
   keeperWord,
-  makeTeamsLevelLabel,
   moveAcross,
+  ovrLabel,
   placeOn,
   slotCode,
   switchMethod,
@@ -19,7 +19,6 @@ import {
 } from "@repo/domain/football-board";
 import {
   FOOTBALL_TEAMS_METHODS,
-  type FootballBalanceOn,
   type FootballBib,
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
@@ -165,7 +164,6 @@ function LevelColumns({
               player={player}
               bib={bib}
               showTier
-              balanceOn={summary.balanceOn}
               trailing={
                 <button
                   type="button"
@@ -238,13 +236,11 @@ function ManualRow({
   player,
   draft,
   names,
-  balanceOn,
   onPlace,
 }: {
   player: BoardPlayer;
   draft: TeamsDraft;
   names: { slot1: string; slot2: string };
-  balanceOn: FootballBalanceOn;
   onPlace: (side: Side) => void;
 }) {
   const m = useMessages();
@@ -275,7 +271,7 @@ function ManualRow({
         <TierMark cell={tierCell} />
       ) : (
         <span dir="ltr" className="font-expanded">
-          {makeTeamsLevelLabel(player, balanceOn)}
+          {ovrLabel(player)}
         </span>
       )}
       <SwatchButton
@@ -324,7 +320,6 @@ function ManualLists({
               player={player}
               draft={draft}
               names={summary.names}
-              balanceOn={summary.balanceOn}
               onPlace={(side) => onPlace(player.userId, side)}
             />
           ))}
