@@ -366,7 +366,7 @@ export const rating = {
       movesUp: (name: string, band: string) => `يصعد ${name} إلى ${band}.`,
       movesDown: (name: string, band: string) => `ينزل ${name} إلى ${band}.`,
       noFish: (placeOf: string) =>
-        `الآن ${placeOf}. لا أسماك حتى يُصنَّف أربعة لاعبين.`,
+        `الآن ${placeOf}. لا أسماك حتى يُصنَّف لاعبان.`,
       otherUp: (name: string, band: string) => `يصعد ${name} إلى ${band}.`,
       otherBecomes: (name: string, band: string) => `يصبح ${name} ${band}.`,
       andMore: (n: number) =>
@@ -397,7 +397,6 @@ export const rating = {
     saved: (name: string) => `حُفظ وسُجّل في سجل ${name}`,
     errors: {
       organizerOnly: "منظّمو هذه المجموعة وحدهم يعدّلون نقاط الفئة.",
-      notYourOwn: "لا يمكنك تعديل نقاط فئتك.",
       noTier:
         "لا فئات في هذه المجموعة. الفئات لمجموعات كرة القدم غير الموثّقة.",
       notMember: "هذا اللاعب ليس في هذه المجموعة.",
@@ -738,7 +737,7 @@ export const rating = {
         nowA: (band: string) => `صرت ${band}.`,
         toNext: (points: string, count: number, band: string) =>
           `${pointsCount(points, count)} إلى ${band}.`,
-        noFish: "لا أسماك حتى يُصنَّف أربعة لاعبين.",
+        noFish: "لا أسماك حتى يُصنَّف لاعبان.",
         provisional:
           "يأتي مركزك وسمكتك بعد خمس مباريات في المجموعة، أو قبل ذلك إن حدّد منظّم نقاطك.",
       },

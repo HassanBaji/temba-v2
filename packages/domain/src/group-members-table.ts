@@ -436,7 +436,7 @@ export type GroupMemberTierView = {
 
 /**
  * A Members row on a tier Group: the fish, or the place while
- * fewer than four are ranked, or a hatched Provisional slot; the band and
+ * fewer than two are ranked, or a hatched Provisional slot; the band and
  * role as the caption; the points, or "no tier" while Provisional.
  */
 export function groupMemberTierView(

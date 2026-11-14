@@ -431,7 +431,7 @@ export function ratingsLevelView(
 }
 
 /**
- * A Group tier row: the fish, the place while fewer than four are
+ * A Group tier row: the fish, the place while fewer than two are
  * ranked, or a hatched Provisional slot; the band and place among the
  * Group's members; the points once out of Provisional.
  */

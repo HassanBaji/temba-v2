@@ -182,7 +182,14 @@ function AdjustTierForm({
               )}
             >
               <TierFish band={band.band} label={band.label} />
-              <span className="text-eyebrow">{band.label}</span>
+              <span
+                className={cn(
+                  "text-eyebrow truncate",
+                  band.current && "font-semibold",
+                )}
+              >
+                {band.label}
+              </span>
             </li>
           ))}
         </ul>

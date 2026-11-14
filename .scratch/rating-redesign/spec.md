@@ -283,7 +283,7 @@ All constants are starting values, fitted to roughly reproduce the prototype's o
 
 | Action | Who |
 | --- | --- |
-| Adjust a member's Tier points | An Organizer of the Group, never their own |
+| Adjust a member's Tier points | An Organizer of the Group, their own included |
 | Read a member's Points and history | That member, or an Organizer of the Group |
 | Change Rating settings | An Organizer of a tier Group |
 | Give Performance ratings | A seated account holder of the Match, in the Group's mode; never to themselves |

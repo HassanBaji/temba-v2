@@ -573,4 +573,31 @@ describe("memberList on a tier Group (screen 2b)", () => {
       "Hussain A. Shark, organizer. 1,412 tier points",
     );
   });
+
+  it("lets an Organizer who adjusts tiers open their own row", () => {
+    const tier = {
+      band: null,
+      place: 1,
+      points: 1200,
+      provisional: false,
+      gamesOfFive: 5,
+    };
+    const viewer = { ...member("you", "You", tier, true), isViewer: true };
+    const select = (canAdjustTier: boolean, canSetNicknames = false) =>
+      memberList(
+        [viewer],
+        "",
+        ORIGIN,
+        "en",
+        true,
+        false,
+        false,
+        lens,
+        canAdjustTier,
+        canSetNicknames,
+      ).rows[0]?.selectable;
+    expect(select(true)).toBe(true);
+    expect(select(false)).toBe(false);
+    expect(select(false, true)).toBe(false);
+  });
 });

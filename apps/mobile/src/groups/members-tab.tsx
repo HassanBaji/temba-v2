@@ -551,14 +551,14 @@ export function MembersTab({
   const selected = leaderboard.find(
     (entry) =>
       entry.userId === selectedUserId &&
-      !entry.isViewer &&
-      (canSetLevel ||
-        (canAdjustTier && entry.tier != null) ||
-        (canAddPlayers && entry.canRename === true) ||
-        memberIsRemovable(entry, canRemovePlayers) ||
-        memberOrganizerAction(entry, canAppointOrganizers) != null ||
-        memberIsCallable(entry) ||
-        canSetNicknames),
+      ((canAdjustTier && entry.tier != null) ||
+        (!entry.isViewer &&
+          (canSetLevel ||
+            (canAddPlayers && entry.canRename === true) ||
+            memberIsRemovable(entry, canRemovePlayers) ||
+            memberOrganizerAction(entry, canAppointOrganizers) != null ||
+            memberIsCallable(entry) ||
+            canSetNicknames))),
   );
   const viewerEntry = leaderboard.find((entry) => entry.isViewer);
   const showsNicknameLegend = leaderboard.some(
@@ -584,10 +584,7 @@ export function MembersTab({
     : null;
   const adjusting = canAdjustTier
     ? leaderboard.find(
-        (entry) =>
-          entry.userId === adjustingUserId &&
-          !entry.isViewer &&
-          entry.tier != null,
+        (entry) => entry.userId === adjustingUserId && entry.tier != null,
       )
     : undefined;
 
@@ -695,7 +692,7 @@ export function MembersTab({
                 managing={isManaging}
                 onOpen={onOpenMember ? () => onOpenMember(row.key) : undefined}
                 onManage={
-                  row.isViewer
+                  row.isViewer && !row.selectable
                     ? canSetNicknames && row.nickname != null
                       ? () => openNaming(row.key)
                       : undefined
@@ -768,7 +765,7 @@ export function MembersTab({
         onCall={(href) => void Linking.openURL(href)}
         onWhatsApp={(href) => void Linking.openURL(href)}
         onSetLevel={
-          canSetLevel
+          canSetLevel && !selected?.isViewer
             ? () => {
                 if (selected) {
                   setSelectedUserId(null);

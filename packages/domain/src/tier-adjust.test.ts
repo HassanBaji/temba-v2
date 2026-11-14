@@ -189,6 +189,33 @@ describe("tierAdjustSheet (screen 2d)", () => {
   });
 });
 
+describe("tierAdjustSheet in a small Group", () => {
+  const pair = [
+    member("p1", "Player One", 1200, 0),
+    member("p2", "Player Two", 1250),
+  ];
+  const view = (delta: number) =>
+    tierAdjustSheet({
+      members: pair,
+      userId: "p1",
+      delta,
+      reason: null,
+      groupName: "First football",
+      locale: "en",
+    });
+
+  it("lights the fish the move lands on with only two ranked", () => {
+    const down = view(-130);
+    expect(down?.band).toBe("safi");
+    expect(down?.bands.filter((band) => band.current)).toEqual([
+      { band: "safi", label: "Safi", current: true },
+    ]);
+    const up = view(100);
+    expect(up?.band).toBe("shark");
+    expect(up?.placeLabel).toBe("#1");
+  });
+});
+
 describe("tierAdjustSheet start suggestion", () => {
   const withLevels = THURSDAY.map((entry) => ({
     ...entry,
