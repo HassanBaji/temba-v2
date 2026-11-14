@@ -33,27 +33,6 @@ export const home = {
       football: "مستواك في كرة القدم",
     },
     numberLabel: "التقييم",
-    window: (n: number) =>
-      plural("ar", n, {
-        one: "في آخر مباراة",
-        two: "في آخر مباراتين",
-        few: "في آخر {n} مباريات",
-        many: "في آخر {n} مباراة",
-        other: "في آخر {n} مباراة",
-      }),
-    provisionalLead: "مستواك مبدئي.",
-    provisionalRest: (remaining: number) =>
-      plural("ar", remaining, {
-        one: " العب مباراة مصنّفة واحدة أخرى لتأكيده.",
-        two: " العب مباراتين مصنّفتين أخريين لتأكيده.",
-        few: " العب {n} مباريات مصنّفة أخرى لتأكيده.",
-        many: " العب {n} مباراة مصنّفة أخرى لتأكيده.",
-        other: " العب {n} مباراة مصنّفة أخرى لتأكيده.",
-      }),
-    confirmedLead: "مستواك مؤكد.",
-    confirmedRest: " يتحرك مستواك الآن مع كل مباراة مصنّفة تلعبها.",
-    progressTo: (percent: number, next: string) =>
-      `${percent}% نحو ${isolate(next)}`,
   },
   levelChange: {
     up: "ارتفاع",
@@ -208,6 +187,7 @@ export const home = {
         }),
       seatLeftOnSide: (name: string) => `بقي مقعد واحد، في جهة ${name}`,
       inviteBody: "ادعُ أحدًا ليكمل العدد، أو شارك المباراة مع مجموعتك.",
+      joinBody: "احجز مقعدًا، أو شارك المباراة مع مجموعتك.",
       poolShort: (n: number) =>
         plural("ar", n, {
           one: "أنت مسجّل. لاعب واحد إضافي وتُقام المباراة",
@@ -215,6 +195,14 @@ export const home = {
           few: "أنت مسجّل. {n} لاعبين إضافيين وتُقام المباراة",
           many: "أنت مسجّل. {n} لاعبًا إضافيًا وتُقام المباراة",
           other: "أنت مسجّل. {n} لاعب إضافي وتُقام المباراة",
+        }),
+      poolShortOpen: (n: number) =>
+        plural("ar", n, {
+          one: "لاعب واحد إضافي وتُقام المباراة",
+          two: "لاعبان إضافيان وتُقام المباراة",
+          few: "{n} لاعبين إضافيين وتُقام المباراة",
+          many: "{n} لاعبًا إضافيًا وتُقام المباراة",
+          other: "{n} لاعب إضافي وتُقام المباراة",
         }),
       poolShortBody: "يُقسَّم الفريقان عند اكتمال العدد.",
       poolFullOrganizer: "اكتمل العدد. حان وقت تقسيم الفريقين",
@@ -278,29 +266,15 @@ export const home = {
   },
   sportSwitch: {
     spoken: (sport: string, band: string) => `${sport}، ${isolate(band)}`,
+    spokenOvr: (sport: string, ovr: string) =>
+      `${sport}، المستوى ${isolate(ovr)}`,
   },
   levelSection: {
     title: {
       padel: "مستوى البادل",
       football: "مستوى كرة القدم",
     },
-    confirmed: "مؤكَّد",
-    provisional: "مبدئي",
-    level: "المستوى",
-    lastN: (n: number) => `آخر ${n}`,
-    nextBand: "الفئة التالية",
-    nextBandValue: (percent: number) => `، قطعت ${percent}% من الطريق`,
-    topBand: "أعلى فئة",
-    confirmsIn: (n: number) =>
-      plural("ar", n, {
-        one: "مباراة مصنّفة واحدة ويتأكد مستواك.",
-        two: "مباراتان مصنّفتان ويتأكد مستواك.",
-        few: "{n} مباريات مصنّفة ويتأكد مستواك.",
-        many: "{n} مباراة مصنّفة ويتأكد مستواك.",
-        other: "{n} مباراة مصنّفة ويتأكد مستواك.",
-      }),
-    gaugeSpoken: (band: string, percent: number, next: string) =>
-      `الفئة ${isolate(band)}، قطعت ${percent}% من الطريق إلى ${isolate(next)}`,
+    opensRatings: "يفتح التصنيفات",
   },
   trend: {
     title: "الاتجاه",

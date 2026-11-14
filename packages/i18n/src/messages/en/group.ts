@@ -253,7 +253,7 @@ export const group = {
     leaveVenueConfirm: {
       title: (venue: string) => `Unlink from ${venue}?`,
       description: (group: string) =>
-        `${group} becomes a Loose Group again. New Games will count for the group rating only, unless an Operator has verified the Group.`,
+        `${group} becomes a Loose Group again. New Games will not count for Temba Level, unless an Operator has verified the Group.`,
       confirmLabel: "Unlink",
       cancelLabel: "Stay linked",
       pendingLabel: "Unlinking…",
@@ -266,7 +266,7 @@ export const group = {
     venueUnlinkConfirm: {
       title: (group: string) => `Unlink ${group}?`,
       description: (group: string) =>
-        `${group} is no longer linked to your Venue and becomes a Loose Group. New Games will count for the group rating only, unless an Operator has verified it. Past Games and members stay as they are.`,
+        `${group} is no longer linked to your Venue and becomes a Loose Group. New Games will not count for Temba Level, unless an Operator has verified it. Past Games and members stay as they are.`,
       confirmLabel: "Unlink Group",
       cancelLabel: "Keep linked",
     },
@@ -296,6 +296,7 @@ export const group = {
           joined: { label: "Recently joined", hint: "Newest members first" },
           name: { label: "Name", hint: "A to Z" },
           level: { label: "Level", hint: "Highest first, no Level last" },
+          tier: { label: "Tier", hint: "The Shark first, Provisional last" },
         },
       },
       filters: {
@@ -394,6 +395,12 @@ export const group = {
     },
     oneGameRanks: "One game ranks you.",
     playGamesToRank: (n: number) => `Play ${n} games to be ranked.`,
+    tierFootnote: {
+      season: "Counts this season’s games and starts again next season.",
+      before: "How strong each player is in the group, their tier, is on ",
+      membersLink: "Members",
+      after: ".",
+    },
   },
   settings: {
     sportSublabel: {
@@ -544,9 +551,25 @@ export const group = {
       `Remove ${name} from this Group? Their Games stay in history.`,
     removedToast: (name: string) => `${name} removed`,
     renameAction: "Edit name",
+    whatsAppAction: "WhatsApp",
+    whatsAppFor: (name: string) => `Message ${name} on WhatsApp`,
     renameDescription:
       "Their phone stays the same. If the number is wrong, remove them and add them again.",
     renamedToast: (name: string) => `Name changed to ${name}`,
+    guest: {
+      tab: "Guest",
+      description:
+        "A guest plays this game by name only. No phone, no account.",
+      nameLabel: "Name",
+      levelNote:
+        "Their level counts as the average of the other players in each match, and only real players' levels move.",
+      submit: (name: string) =>
+        name ? `Add ${name} as a guest` : "Add as a guest",
+      addedToast: (name: string) => `${name} added as a guest`,
+      tag: "Guest",
+      nameGuest: (name: string) => `${name}, guest`,
+      renameDescription: "What they're called in this game.",
+    },
     fromGroup: {
       tab: "From group",
       phoneTab: "By phone",

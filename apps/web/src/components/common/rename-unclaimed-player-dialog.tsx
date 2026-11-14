@@ -24,7 +24,7 @@ import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 const NAME_ID = "rename-unclaimed-player-name";
 
-type Player = { userId: string; name: string };
+type Player = { userId: string; name: string; guest?: boolean };
 
 function RenameForm({
   player,
@@ -111,7 +111,9 @@ export function RenameUnclaimedPlayerDialog({
             {m.group.addPlayer.renameAction}
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            {m.group.addPlayer.renameDescription}
+            {player?.guest
+              ? m.group.addPlayer.guest.renameDescription
+              : m.group.addPlayer.renameDescription}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         {player ? (

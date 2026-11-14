@@ -180,6 +180,8 @@ export type HubHistoryRow = {
   rated: boolean;
   viewerMarks: MarkKind[];
   viewerIsMvp: boolean;
+  /** What the Match moved the viewer's Temba Level, when it counted. */
+  levelMove?: { muBefore: number; muAfter: number } | null;
   /** Set when the history groups a Groups only tournament into one row. */
   myTournament?: MyTournament | null;
   album?: GameAlbumSummary;

@@ -5,10 +5,7 @@ import {
   arrowDelta,
   compactDelta,
   curvePoints,
-  footballLevelWord,
   footballTabView,
-  groupLevelRows,
-  groupScale,
   headerLine,
   heroView,
   lastTenRecord,
@@ -19,7 +16,6 @@ import {
   sportChips,
   tilesView,
   type FootballProfile,
-  type GroupLevel,
   type MyProfile,
 } from "./profile-model";
 
@@ -67,25 +63,6 @@ function profile(overrides: Partial<MyProfile> = {}): MyProfile {
   };
 }
 
-function groupLevel(overrides: Partial<GroupLevel> = {}): GroupLevel {
-  return {
-    groupId: "g1",
-    name: "Tuesday Crew",
-    imageUrl: null,
-    level: "3.4",
-    rating: 3.38,
-    levelBand: "C2",
-    provisional: false,
-    ratedMatchesRemaining: 0,
-    ratedMatchCount: 10,
-    rank: 3,
-    rankedCount: 14,
-    differenceFromGeneral: 0.17,
-    setBy: null,
-    ...overrides,
-  };
-}
-
 describe("deltas", () => {
   it("signs with a typographic minus and drops the sign at zero", () => {
     assert.equal(signedDelta(0.12), "+0.12");
@@ -126,7 +103,7 @@ describe("sportChips", () => {
 
 describe("heroView", () => {
   it("reads a confirmed General Level", () => {
-    const view = heroView(profile(), null, "en");
+    const view = heroView(profile(), "en");
     assert.equal(view.kind, "rated");
     if (view.kind !== "rated") return;
     assert.equal(view.band, "C");
@@ -142,7 +119,18 @@ describe("heroView", () => {
     );
   });
 
-  it("counts toward confirming while Provisional", () => {
+  it("reads a padel Level below 1.0 as 1.00", () => {
+    const base = profile();
+    const view = heroView(
+      profile({ level: { ...base.level!, rating: 0.35, levelBand: "D3" } }),
+      "en",
+    );
+    if (view.kind !== "rated") throw new Error("Expected a rated Level");
+    assert.equal(view.rating, "1.00");
+    assert.equal(view.band, "D");
+  });
+
+  it("counts the confirming Matches out of five while Provisional", () => {
     const base = profile();
     const view = heroView(
       profile({
@@ -150,48 +138,20 @@ describe("heroView", () => {
         level: { ...base.level!, provisional: true, ratedMatchesRemaining: 3 },
         stats: { ...base.stats, winRatePercent: null, played: 3 },
       }),
-      null,
       "en",
     );
     if (view.kind !== "rated") throw new Error("expected rated");
-    assert.equal(view.ring.label, "3 of 6 to confirm");
-    assert.equal(view.ring.percent, 50);
-    assert.match(view.outlook, /about 3 more rated matches/);
+    assert.equal(view.ring.label, "2 of 5 to confirm");
+    assert.equal(view.ring.percent, 40);
+    assert.match(
+      view.outlook,
+      /after 3 more rated matches in a verified group/,
+    );
     assert.equal(view.stats[0]?.label, "win rate after 5");
   });
 
-  it("reads a Group scope against General with its rank", () => {
-    const view = heroView(
-      profile({
-        group: { id: "g1", name: "Tuesday Crew" },
-        ratedMatchCount: 10,
-      }),
-      groupLevel(),
-      "en",
-    );
-    if (view.kind !== "rated") throw new Error("expected rated");
-    assert.equal(view.label, "Tuesday Crew level");
-    assert.equal(view.status, "Group level · 10 rated");
-    assert.equal(view.movement, "▲ 0.17 vs general");
-    assert.equal(view.stats[2]?.value, "#3");
-    assert.equal(view.stats[2]?.label, "of 14 in standings");
-  });
-
-  it("names the organizer who set a Group Level", () => {
-    const view = heroView(
-      profile({ group: { id: "g1", name: "Seef Padel Club" } }),
-      groupLevel({
-        setBy: { name: "Jaber B", at: new Date("2026-10-12T10:00:00Z") },
-      }),
-      "en",
-    );
-    if (view.kind !== "rated") throw new Error("expected rated");
-    assert.equal(view.status, "Set by organizer");
-    assert.match(view.outlook, /^Jaber B set this on 12 Oct/);
-  });
-
   it("has no ring without a Level", () => {
-    const view = heroView(profile({ level: null }), null, "en");
+    const view = heroView(profile({ level: null }), "en");
     assert.equal(view.kind, "none");
   });
 });
@@ -282,66 +242,6 @@ describe("partnerRows and recentRows", () => {
   });
 });
 
-describe("Group Levels", () => {
-  it("subtitles rank, Provisional and an organizer's Level", () => {
-    const rows = groupLevelRows(
-      [
-        groupLevel(),
-        groupLevel({
-          groupId: "g2",
-          name: "Friday Americano",
-          provisional: true,
-          ratedMatchesRemaining: 2,
-          rating: 3.05,
-          differenceFromGeneral: -0.16,
-        }),
-        groupLevel({
-          groupId: "g3",
-          name: "Seef Padel Club",
-          setBy: { name: "Jaber B", at: NOW },
-          rating: 3.21,
-          differenceFromGeneral: 0,
-        }),
-      ],
-      "en",
-    );
-    assert.equal(rows[0]?.sub, "#3 of 14 · 10 rated");
-    assert.equal(rows[0]?.level, "3.38");
-    assert.deepEqual(rows[0]?.difference, { label: "+0.17", above: true });
-    assert.equal(rows[1]?.sub, "Provisional · 2 more to confirm");
-    assert.equal(rows[1]?.provisional, true);
-    assert.equal(rows[2]?.sub, "Set by Jaber B, organizer");
-    assert.equal(rows[2]?.difference?.label, "SAME");
-  });
-
-  it("places General and each Group on one scale", () => {
-    const scale = groupScale(
-      3.21,
-      [
-        groupLevel(),
-        groupLevel({
-          groupId: "g2",
-          rating: 2.95,
-          differenceFromGeneral: -0.26,
-        }),
-      ],
-      "en",
-    );
-    assert.ok(scale);
-    const general = scale.markers.find((marker) => marker.general);
-    const above = scale.markers.find((marker) => marker.key === "g1");
-    const below = scale.markers.find((marker) => marker.key === "g2");
-    assert.ok(general && above && below);
-    assert.ok(below.percent < general.percent);
-    assert.ok(general.percent < above.percent);
-    assert.equal(scale.ticks.length, 3);
-  });
-
-  it("has no scale without Group Levels", () => {
-    assert.equal(groupScale(3.21, [], "en"), null);
-  });
-});
-
 describe("curvePoints", () => {
   it("runs right to left when mirrored for RTL", () => {
     const points = curvePoints([1, 2], 100, 50, { mirrored: true });
@@ -351,11 +251,6 @@ describe("curvePoints", () => {
 });
 
 describe("football", () => {
-  it("reads a placement band as its word", () => {
-    assert.equal(footballLevelWord("C1", "en"), "Competitive");
-    assert.equal(footballLevelWord("B2", "en"), "B");
-  });
-
   it("builds the tab from the football profile", () => {
     const football = {
       player: { id: "u1", name: "Hassan Haji", image: null, isViewer: true },
@@ -379,9 +274,12 @@ describe("football", () => {
       ],
     } as unknown as FootballProfile;
     const view = footballTabView(football, "en");
-    assert.equal(view.level?.word, "Competitive");
+    assert.equal(view.level?.placement, "Competitive");
     assert.equal(view.level?.status, "Self-placed");
-    assert.equal(view.winRate.value, "55%");
+    assert.equal(view.level?.ovr, "72");
+    assert.equal(view.level?.spoken, "OVR 72. Competitive");
+    assert.equal(view.level != null && "band" in view.level, false);
+    assert.equal(view.level != null && "progress" in view.level, false);
     assert.equal(view.goals.total, "2 goals");
     assert.equal(view.goals.bars.length, 10);
     assert.equal(view.goals.bars[0]?.goals, 0);

@@ -478,6 +478,49 @@ describe("football Score and goals", () => {
   });
 });
 
+describe("a changed Scorer list (R5)", () => {
+  it("returns the Match to pending when who scored changes after both sides confirmed", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await publish(f, [a!, b!], [c!, d!]);
+      const save = (
+        userId: string,
+        scorers: { userId: string; goals: number }[],
+      ) =>
+        saveFootballScore(
+          f.db,
+          { gameId: f.gameId, userId, slot1Goals: 2, slot2Goals: 1, scorers },
+          AFTER_KICKOFF(),
+        );
+      await save(a!.id, [
+        { userId: a!.id, goals: 2 },
+        { userId: c!.id, goals: 1 },
+      ]);
+      await save(c!.id, [
+        { userId: b!.id, goals: 2 },
+        { userId: c!.id, goals: 1 },
+      ]);
+      const changed = await footballBoard(f.db, {
+        gameId: f.gameId,
+        userId: a!.id,
+      });
+      expect(changed.match?.status).not.toBe("completed");
+      expect(changed.match?.confirmed).toEqual({ slot1: false, slot2: true });
+      expect(changed.viewer.canConfirm).toBe(true);
+
+      await save(b!.id, [
+        { userId: c!.id, goals: 1 },
+        { userId: b!.id, goals: 2 },
+      ]);
+      const agreed = await footballBoard(f.db, {
+        gameId: f.gameId,
+        userId: a!.id,
+      });
+      expect(agreed.match?.status).toBe("completed");
+    });
+  });
+});
+
 describe("football Score with a side of Unclaimed players (D14)", () => {
   it("waits on the Organizer for that side, whose confirmation completes the Score", async () => {
     await withFootballGame(async (f) => {

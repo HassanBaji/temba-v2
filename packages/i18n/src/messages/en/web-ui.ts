@@ -134,6 +134,28 @@ export const webUi = {
     addedToast: "Venue manager added",
     removedToast: "Venue manager removed",
   },
+  venueVerifiers: {
+    title: "Verifiers",
+    description:
+      "Club staff, referees and coaches who may calibrate a player’s Level here. Only Operators can grant or remove them.",
+    loadError: "Verifiers could not be loaded",
+    none: "No verifiers yet.",
+    kindLabel: "Role",
+    removeNamed: (name: string) => `Remove ${name}`,
+    addLabel: "Add a verifier",
+    searchPlaceholder: "Search by name, phone or email",
+    noUsers: "No Users found.",
+    addNamed: (name: string, kind: string) => `Add ${name} as ${kind}`,
+    adding: "Adding…",
+    add: "Add",
+    removeTitle: (name: string) => `Remove ${name}?`,
+    thisUser: "this User",
+    removeDescription:
+      "They can no longer calibrate Levels here. Levels they set stay in each player’s history.",
+    removeConfirm: "Remove verifier",
+    addedToast: "Verifier added",
+    removedToast: "Verifier removed",
+  },
   shareResult: {
     title: "Share result",
     loadError: "Result could not be loaded",

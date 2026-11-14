@@ -7,6 +7,8 @@ export const email = {
     history: "اطّلع على مبارياتك",
     teams: "افتح فرقك",
     challenges: "افتح التحديات",
+    disputes: "افتح الاعتراضات",
+    ratings: "افتح تقييماتك",
   },
   inGroup: (group: string) => `في ${group}`,
   footer: {

@@ -24,6 +24,8 @@ import { knockoutPlaceSideTags } from "@repo/domain/tournament-details";
 import { gameTeamPlayers } from "~/lib/game-player-links";
 import { cn } from "~/lib/utils";
 
+import { StampScoreButton, type MatchStamping } from "./match-stamp";
+
 type GameTeams = Parameters<typeof gameTeamPlayers>[0];
 type OpenTeam = (team: GameTeamPlayersSheetTeam) => void;
 
@@ -94,12 +96,14 @@ function KnockoutPlaceCard({
   place,
   isFinal,
   onCancelMatch,
+  stamping,
   gameTeams,
   onOpenTeam,
 }: {
   place: KnockoutViewPlace;
   isFinal: boolean;
   onCancelMatch?: (place: KnockoutMatchPlace) => void;
+  stamping?: MatchStamping;
   gameTeams?: GameTeams;
   onOpenTeam: OpenTeam;
 }) {
@@ -144,6 +148,18 @@ function KnockoutPlaceCard({
                 {m.tournament.knockoutView.decidingSet}
               </p>
             ) : null}
+            {place.matchId != null && stamping?.canStamp(place.matchId) ? (
+              <div className="space-y-2 py-2">
+                <p className="text-muted-foreground text-meta">
+                  {m.rating.verifier.stamp.note}
+                </p>
+                <StampScoreButton
+                  matchId={place.matchId}
+                  stamping={stamping}
+                  className="w-full"
+                />
+              </div>
+            ) : null}
             {onCancelMatch && canCancelKnockoutPlace(place) ? (
               <div className="py-2">
                 <Button
@@ -179,12 +195,14 @@ export function TournamentKnockoutRound({
   headingLevel = "h3",
   isFinal = false,
   onCancelMatch,
+  stamping,
   gameTeams,
 }: {
   round: KnockoutViewRound;
   headingLevel?: "h2" | "h3";
   isFinal?: boolean;
   onCancelMatch?: (place: KnockoutMatchPlace) => void;
+  stamping?: MatchStamping;
   /** Given when the viewer may open Player profiles from the tree. */
   gameTeams?: GameTeams;
 }) {
@@ -208,6 +226,7 @@ export function TournamentKnockoutRound({
               place={place}
               isFinal={isFinal}
               onCancelMatch={onCancelMatch}
+              stamping={stamping}
               gameTeams={gameTeams}
               onOpenTeam={setOpenTeam}
             />
@@ -223,11 +242,13 @@ export function TournamentKnockoutTree({
   rounds,
   headingLevel = "h2",
   onCancelMatch,
+  stamping,
   gameTeams,
 }: {
   rounds: readonly KnockoutViewRound[];
   headingLevel?: "h2" | "h3";
   onCancelMatch?: (place: KnockoutMatchPlace) => void;
+  stamping?: MatchStamping;
   gameTeams?: GameTeams;
 }) {
   return (
@@ -239,6 +260,7 @@ export function TournamentKnockoutTree({
           headingLevel={headingLevel}
           isFinal={index === rounds.length - 1}
           onCancelMatch={onCancelMatch}
+          stamping={stamping}
           gameTeams={gameTeams}
         />
       ))}

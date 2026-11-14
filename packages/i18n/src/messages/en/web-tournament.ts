@@ -146,7 +146,7 @@ export const webTournament = {
   footballPlayer: {
     prefers: (label: string) => `Prefers ${label.toLowerCase()}`,
     noPositionYet: "No position yet",
-    subtitle: (role: string, level: string) => `${role}, Level ${level}`,
+    subtitle: (role: string, ovr: string) => `${role}, OVR ${ovr}`,
     viewProfile: "View profile",
     renameLabel: (name: string) => `Edit name: ${name}`,
   },

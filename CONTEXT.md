@@ -66,7 +66,7 @@ A token named for what it does, not how it looks: `ink`, `paper`, `rule`, `wash`
 _Avoid_: black, white (when you mean ink or paper), color name
 
 **Lifted**:
-The focused surface (`focus`): the one card a screen is about, drawn one step off the page in the direction of the Color scheme (`#f4f4f4` on white, `#141414` on black) with a hairline. Distinct from **Solid** (`control`), the black fill of a primary button, a selected control, a won Set or your own chip (ADR-0066).
+The focused surface (`focus`): the one card a screen is about, drawn one step off the page in the direction of the Color scheme (`#f4f4f4` on white, `#141414` on black) with a hairline. Distinct from **Solid** (`control`), the black fill of a primary button, a selected control, a won Set or your own chip (ADR-0084).
 _Avoid_: ink card, black card, inverted (for the focused surface)
 
 ### Product
@@ -83,12 +83,16 @@ _Avoid_: Venue, pitch (as the entity name; football product copy may say pitch),
 The one sport a Court is for: padel or football. A Venue offers a sport when at least one of its Courts has it. Set by a Venue manager or Operator; changing it never changes a Booking. Product copy calls a football Court a pitch; the entity is still a Court.
 _Avoid_: Venue sport, Venue sports (there is no Venue-level list), pitch (as the entity name), field
 
+**Partner Venue**:
+A Venue an Operator marked as a partner, from the Venue's page on the web App. Stored as `venues.partner_at` and `partner_by`, never inferred from Venue managers, Bookings or linked Groups. Only a partner Venue hosts Public Games, which count for Temba Level (ADR-0071). An archived Venue cannot become one; taking the mark away is always allowed. Venue rows show the mark on both Apps.
+_Avoid_: partner club, featured Venue, official Venue, verified Venue (Verified is a Group's word)
+
 **Group**:
 A set of people who play Games of one sport. Every Group is either a Club Group or a Loose Group.
 _Avoid_: Team, lobby, channel, club (when you mean a Group)
 
 **Verified Group**:
-A Group that may host Rated Games and public Games: one an Operator verified, one created by a User with Group creator access, or a Club Group. Every other Group's new Games are private and count for a Group Level only (ADR-0053). A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; a Club Group's verification is derived from its Venue link, not stored.
+A Group that may host Rated Games and public Games: one an Operator verified, one created by a User with Group creator access, or a Club Group. Every other Group's new Games are private. A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; a Club Group's verification is derived from its Venue link, not stored.
 _Avoid_: ranked Group, official Group, premium Group, permitted Group, groupCreator (that is a Clerk key)
 
 **Club Group**:
@@ -132,7 +136,7 @@ A Group join request a Group approver rejected with "Reject and block". A blocke
 _Avoid_: ban (when you mean this Group-level refusal)
 
 **Group approver**:
-Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, and make or unmake Appointed Organizers: the Group creator and Appointed Organizers, on a Loose Group and a Club Group alike. Removing a player never removes the Group creator; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. A Group approver also sees every member's full phone number, in the member menu on the Members tab, and no one else in the Group does (ADR-0078).
+Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, make or unmake Appointed Organizers and, on a tier Group, make a Tier adjustment for any other member and change the Rating settings: the Group creator and Appointed Organizers, on a Loose Group and a Club Group alike. Removing a player never removes the Group creator; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. A Group approver also sees every member's full phone number, in the member menu on the Members tab and in the player dialog on the Group's Games, with doors to call them or message them on WhatsApp, and no one else in the Group does (ADR-0078, ADR-0087).
 _Avoid_: organizer (when you mean this write permission), group admin, Group owner (when you mean this permission rather than the one User who owns the Group)
 
 **Member nickname**:
@@ -212,7 +216,7 @@ One Team's answer to a Challenge: a Venue, a start at least an hour ahead and wi
 _Avoid_: accept (the button says Accept; the entity is a Proposal), bid, offer, counter
 
 **Challenge Game**:
-The Friendly game a confirmed Proposal creates (ADR-0061): no Group, the Proposal's Venue, Court, start and price, a window of the Challenge's duration, registration closed, both Game teams bound to the two Teams (the poster's is side 1). No Waitlist, no Invite doors, nobody joins, leaves or is kicked, and its shape (caps, Game Level range, Season) is the Challenge's. Padel seats both pairs at confirm, Positions from Preferred Position, and is Rated at the groupless weight. Football opens with two empty sides of `side + 3` seats in black and white, the one Match and its Score shell, and is Unrated; each Captain names a Matchday squad. Its Organizers are whoever acts for either Team; any Roster member of either Team may view it. The Challenge stays confirmed if the Game is cancelled.
+The Friendly game a confirmed Proposal creates (ADR-0061): no Group, the Proposal's Venue, Court, start and price, a window of the Challenge's duration, registration closed, both Game teams bound to the two Teams (the poster's is side 1). No Waitlist, no Invite doors, nobody joins, leaves or is kicked, and its shape (caps, Game Level range, Season) is the Challenge's. Padel seats both pairs at confirm, Positions from Preferred Position, and is Rated at the groupless weight. Football opens with two empty sides of `side + 3` seats in black and white, the one Match and its Score shell, and counts for Temba Level (ADR-0069); each Captain names a Matchday squad. Its score needs a confirmation from each Team: a named player of the side, or whoever acts for its Team, confirms for that side only, so nobody who acts for one Team settles it for the other. One User's confirmation counts for one side, so the score always takes two Users: someone who acts for both Teams, as an Organizer of a Group both are tagged to does, counts for their own side when they are named to it or captain its Team, and otherwise for the first side nobody else has confirmed. Football Challenge Games created before it counted stay Unrated, and their Organizers' confirmation stays final. Its Organizers are whoever acts for either Team; any Roster member of either Team may view it. The Challenge stays confirmed if the Game is cancelled.
 _Avoid_: challenge match, team game (that is a team-only Game), friendly (bare)
 
 **Matchday squad**:
@@ -240,7 +244,7 @@ The wins–losses (wins–draws–losses in football) between a Team and one Riv
 _Avoid_: H2H (in product copy), series, rivalry score
 
 **Team Level**:
-The mean displayed Level, in tenths, of a Team's Roster members who hold a Rating for the Team's sport, shown as a Level band and the mean ("C, avg 2.8"). A Team with no rated member has no Team Level. Used by the Challenge Level wanted gate. Never a Rating.
+The mean displayed Level, in tenths, of a Team's Roster members who hold a Rating for the Team's sport, shown as a Level band and the mean ("C, avg 2.8"). A football Team shows the mean of its members' OVRs ("C+, avg OVR 72"). A Team with no rated member has no Team Level. Used by the Challenge Level wanted gate, which still compares tenths. Never a Rating.
 _Avoid_: team rating, average rank, squad level
 
 **Team roster rule**:
@@ -260,16 +264,24 @@ A User's standing preference for Left or right, or Either. A default for the Gam
 _Avoid_: Position (that is the per-Game-team seat), side, hand, preferred side, Both sides
 
 **Either side**:
-On a padel Friendly game, a User's answer to "which side?" when they take a seat on a Game team without picking Left or Right (ADR-0065). Left, Right and Either are the three answers; a side is a label on a seat, so it never blocks a join. Either next to a User who picked plays the other side, shown "auto". Either next to Either stays open, shown "no sides picked", and is sorted on court. A side a partner picked cannot be taken; the Position an Either-side User holds can, and moves them over. A seated User may change their answer until the Game starts, and an Organizer may set a full Game team's sides on the sheet; a User whose Position moves because of either is told. Not on Friendly tournaments.
+On a padel Friendly game, a User's answer to "which side?" when they take a seat on a Game team without picking Left or Right (ADR-0083). Left, Right and Either are the three answers; a side is a label on a seat, so it never blocks a join. Either next to a User who picked plays the other side, shown "auto". Either next to Either stays open, shown "no sides picked", and is sorted on court. A side a partner picked cannot be taken; the Position an Either-side User holds can, and moves them over. A seated User may change their answer until the Game starts, and an Organizer may set a full Game team's sides on the sheet; a User whose Position moves because of either is told. Not on Friendly tournaments.
 _Avoid_: flexible seat, any seat, Preferred Position (that is the profile default), wildcard
 
 **Operator**:
-A Temba staff User. Operators curate Venues and Courts, grant Venue managers, verify Groups, link Loose Groups to Venues directly, and may set any User's Level in either sport, their own included (ADR-0046, ADR-0077).
+A Temba staff User. Operators curate Venues and Courts, mark Partner Venues, grant Venue managers and Verifiers, verify Groups, link Loose Groups to Venues directly, may set any User's Level in either sport, their own included (ADR-0046, ADR-0077), and decide Match disputes. Being an Operator is Clerk's `publicMetadata.operator` flag, read from the session for every Operator door. The Clerk webhook copies it onto `user.is_operator`, the directory a Notification to every Operator (such as a raised Match dispute) reads (ADR-0081); the copy is never the check.
 _Avoid_: Admin, Owner (retired Community roles, ADR-0055), system admin, platform admin, superadmin
 
 **Venue manager**:
 A User granted management of one Venue by an Operator: Venue details, Courts, Opening hours, Closures, Pricing rules, Cancellation policy, Bookings, Payments, Customers, reports and Group link requests for that Venue, from the Venue console. A User may manage many Venues. Not an Operator; an Operator may do everything a Venue manager may. Managing a Venue gives no door on its Club Groups.
 _Avoid_: facility owner, venue admin, Owner, Admin, Operator, staff
+
+**Verifier**:
+A User an Operator granted on one Venue as club staff, a referee or a coach, from the Venue's page on the web App (`venue_verifiers`, ADR-0072). A Verifier may calibrate the Level of another User, in either sport, who has played a completed Match at that Venue or belongs to one of its Club Groups, from that User's Player profile on either App; never their own. A calibration is a Level override that names the Verifier and the Venue. A User may be a Verifier of many Venues; when the player qualifies at several, the oldest grant names the Venue. Removing the role stops further calibrations and keeps the ones made. A Verifier may also give a Verifier stamp. A Verifier may open the Player profile of every User they may calibrate, and Game details of every Game at their Venue, even a private one, to stamp its Matches. On a Game they open only to stamp they read the line-up and the scores, not its waitlist, its Group's Seasons or Group Tier, and gain no other door on it; its players open their Player profiles once the Verifier may calibrate all of them, as after a completed Match. You lists their Matches to stamp on either App. Not a Venue manager, and not a Level setter.
+_Avoid_: admin, Level setter, coach (the unused `coach` tables), referee as a role name
+
+**Verifier stamp**:
+A Verifier's mark on a Match at their Venue that they are not seated in, given from Game details on either App once its score is entered, on a Friendly game, a football Game, or a tournament's Round or Knockout Match (`match_verifier_stamps`, ADR-0072). It is a final confirmation by a neutral party: the Match completes at once and rates as the players' agreement would, at the Game's own weight, so on a Public Game it counts even when only one side confirmed. One per Match, shown as "Stamped by". Optional. A Match reopened for a wrong score loses its stamp. After a Public Game's 24 hours, a stamp lets the score stand without counting, as a late confirmation does.
+_Avoid_: verified match, approval, verify
 
 **Venue photo**:
 A picture of a Venue that a Venue manager uploads from the Venue console, up to ten per Venue. One is the **Main photo**, which fronts the Venue's card in the App's Venue list; one is the **Details photo**, at the top of the Venue screen. They may be the same photo. With no Venue photo, the App shows the Venue logo.
@@ -302,6 +314,10 @@ _Avoid_: reservation, slot (that is the offer, not the reservation), Game, sessi
 **Booking Game**:
 A groupless, unrated, private Friendly game created from a confirmed, upcoming Booking by its holder, who is its Organizer. Its Venue, Court and window are the Booking's. Players join through Invite doors. Cancelling the Booking cancels the Game; cancelling the Game keeps the Booking, and the holder may then create a new Game for it. A Booking on a football Court creates a football Game, whose holder chooses the Side size and players allowed. Americano and Friendly tournament are never created from a Booking.
 _Avoid_: booked Game, court Game, reservation Game, Game booking, private Game (that is any Game with `isPublic` off)
+
+**Public Game**:
+A padel or football Friendly game with no Group, `isPublic` on, at a Partner Venue (ADR-0071). Any User may create one, from the Public game choice in Create Game: the creator picks the sport, which a Group would otherwise give, and the choice lists only partner Venues that offer it and encourages a Game Level range. A football one keeps the usual Side size, reads its Game Level range in OVR and has its Football sides made by its Organizer; a player with no football Rating is outside any range it sets, whatever their padel Level. Its creator is its Organizer. Anyone inside its Game Level range may join, alone or with a partner, without joining a Group; a User outside it sees no join action and is refused. It is listed on the Games hub's Public tab for everyone who has not created it or taken a seat or Waitlist place on it, and on My Games for those who have. It is the third groupless kind, beside the Booking Game and the Challenge Game. It counts for Temba Level at weight 1 once one player from each side confirms the score within 24 hours (ADR-0071), and is tagged "Counts for Temba Level". Its creator's confirmation is not final. A score nobody on the other side confirms stands after 24 hours: the Match completes, stays in Match history and moves no Level.
+_Avoid_: open game, pickup, pickup Game, verified game, public Booking Game
 
 **Slot**:
 One Court, one start on the Venue's grid, one duration and one price, offered to a Customer. Derived from Opening hours, Closures, Pricing rules and occupying Bookings; never stored.
@@ -344,7 +360,7 @@ A reversible hide of a Venue by an Operator. It hides the Venue from unlocked Ga
 _Avoid_: delete, hard-delete, detach, hide (as the name of the action)
 
 **Game**:
-The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game and a Challenge Game, which have none; other groupless Games are legacy rows. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group, the Group’s linked Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator and Appointed Organizers. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator, except a Challenge Game's, which are whoever acts for either Team. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration** and a **Side size**; it has no Match until its Organizer publishes the two **Football sides**, which creates its one Match. It is Unrated and comes only from a football Group, a football Court Booking or a confirmed Challenge, whose Challenge Game has its two sides and Match from the start. Positions, Game teams and Sets are padel structure.
+The parent event that contains one or more Matches. A new Game must belong to a Group, except a Booking Game, a Challenge Game and a Public Game, which have none; other groupless Games are legacy rows. A groupless Game is private and creator-only, so only its creator may join without an Invite door, unless it is a Public Game. Every Game has exactly one Venue, chosen at create and immutable after. If the Game belongs to a Club Group, the Group’s linked Venue is used and cannot be swapped at create. Organizers of a Group Game are that Group’s creator and Appointed Organizers. Those people may create the Game, cancel it or a Match, and kick registered or waitlisted entries. A groupless Game’s organizer is its creator, except a Challenge Game's, which are whoever acts for either Team. A Game on a Group that is not a Verified Group is Unrated and private. A football Game is a Friendly game with **Roster registration** and a **Side size**; it has no Match until its Organizer publishes the two **Football sides**, which creates its one Match. It comes only from a football Group, a football Court Booking, a confirmed Challenge, whose Challenge Game has its two sides and Match from the start, or a football Public Game. On a Verified Group or as a Public Game it counts for Temba Level and may have a Game Level range, shown in OVR; on a tier Group it moves Tier points; otherwise it is Unrated (ADR-0069). Positions, Game teams and Sets are padel structure.
 _Avoid_: Event (when you mean Game), session, match (that is a Match)
 
 **Game day**:
@@ -373,7 +389,7 @@ The colour a Football side wears: black, white, red, dark blue, light blue, gree
 On a football Match, the goals each Football side scored, stored as the Match's one Set. A player on either side or an Organizer enters it from kick-off; it is agreed once one player from each side confirms, or as soon as an Organizer confirms. A changed Score asks again.
 
 **Scorer**:
-A player named with the goals they scored in a football Match. Optional, and never more goals than their side's Score. Goals are a player fact, not a rating input.
+A player named with the goals they scored in a football Match. Optional, and never more goals than their side's Score. On a Match that counts for Temba Level a player's own goals, and their side's goals conceded weighed by Football role, are OVR's goals part (ADR-0069), so a changed list of who scored asks the other side again, as a changed Score does.
 _Avoid_: format (that is Friendly game, Americano or Friendly tournament), team size, a-side (bare)
 
 **Match**:
@@ -388,8 +404,12 @@ _Avoid_: Game, Match, game (the padel/tennis point-unit inside a set; not a Temb
 A completed Match's outcome for one User: won, lost, or draw. A draw is equal Set wins on both sides; Glicko-2 scores it 0.5. A draw is played, not won, so Played never equals Won plus Lost.
 _Avoid_: score (Sets carry the score), win rate (that is a derived percentage), outcome (when you mean this entity)
 
+**Match dispute**:
+A seated player's claim that a Match that counted for Temba Level is wrong, with a note of up to 280 characters, raised from Game details on either App within seven days of the Match's completion (`match_disputes`). A Match on an Unrated or tier Game, and a Public Game's score that stood without the other side, never counted, so they cannot be disputed. One open dispute per Match. Every Operator is told, and an Operator upholds or dismisses it from the Disputes page on the Web App. Upholding runs the wrong-score reversal as the Operator and returns the Match to `pending`: a football Match's OVR and Tier events are subtracted, and a padel Match follows the same rule as reporting a wrong score, so a later Rated Match of a seated player refuses it, with that reason, and the dispute stays open. Dismissing leaves the result. Either way the player and the Game's Organizers are told. An Organizer who reports the wrong score while a dispute is open supersedes it (`superseded`): the result it was raised against is gone, so it leaves the Operators' list and can no longer be upheld, the player is told who reopened the score, and they may dispute the corrected result within seven days of its completion.
+_Avoid_: report a wrong score (that is the Organizer's door), appeal, complaint
+
 **Match result confirmation**:
-A seated User's acknowledgement that a Match's entered Sets are correct. The User who enters the Set that first produces a Match result is confirmed automatically; a Match only reaches completed, and only then rates, once every seated User with an account on its two Game teams has confirmed. An Unclaimed player never confirms: a side whose seated Users are all Unclaimed players is confirmed by an Organizer's confirmation for that side, which a changed score clears like any other. A football Match needs one player from each side, read the same way. An Organizer's confirmation is final: it completes the Match without waiting on the players (ADR-0044). Entering a score is never a final confirmation, even for an Organizer.
+A seated User's acknowledgement that a Match's entered Sets are correct. The User who enters the Set that first produces a Match result is confirmed automatically; a Match only reaches completed, and only then rates, once every seated User with an account on its two Game teams has confirmed. An Unclaimed player never confirms: a side whose seated Users are all Unclaimed players is confirmed by an Organizer's confirmation for that side, which a changed score clears like any other. A football Match needs one player from each side, read the same way. An Organizer's confirmation is final: it completes the Match without waiting on the players (ADR-0044). A Public Game's Match needs one account holder from each side and nobody's confirmation is final; the other side has 24 hours from the score's entry, a changed score restarts them, and when they run out the score stands without counting (ADR-0071). The same score saved again is an agreement with it, not a new entry: it keeps the 24 hours, and after them it lets the score stand without counting, as a late confirmation does, whether or not the Job that closes the 24 hours has run. A Match reopened by a wrong-score report or an upheld Match dispute keeps its score and has no confirmation: the first one on it, a confirm tap or the same score saved again, starts the other side's 24 hours and asks them to confirm, as entering a score does. A Verifier stamp is final on any Match, a Public Game's included (ADR-0072). Entering a score is never a final confirmation, even for an Organizer.
 _Avoid_: complete (the resulting Match status), verify, approve, agree, confirmed Match status (`MatchStatusEnum.CONFIRMED` is deliberately unused — see ADR-0011)
 
 **Played game**:
@@ -417,11 +437,11 @@ The profile page listing every Game note the viewer wrote, private and shared, g
 _Avoid_: journal (in code), diary, notebook
 
 **Marks window**:
-The 48 hours after a Match's completion during which Marks are given and the MVP is decided. Anchored on the Match's completion moment, suspended by a wrong-score report, restarted by the next completion. The vote may close earlier when everyone has voted; the window never does. Closed by a Job and by the read-time rule. Judged by the server clock.
+The 48 hours after a Match's completion during which Marks are given and the MVP is decided. On a Match with a Rating window, on a tier Group or counting for Temba Level, the MVP closes with that window instead (ADR-0068): after its 24 hours, or when the rating Organizer submits and the window settles early. Marks keep the 48 hours. Anchored on the Match's completion moment, suspended by a wrong-score report, restarted by the next completion. The vote may close earlier when everyone has voted; the window never does. Closed by a Job and by the read-time rule. Judged by the server clock.
 _Avoid_: voting period, deadline, grace period
 
 **MVP**:
-The one player of a Friendly game named most valuable after the score, decided the way its MVP mode says. A vote is one per seated account holder, for any other participant, hidden until it closes; a tie goes to the Organizer; no pick by the close means no MVP. Shown on the Played game, the Result card and the cabinet with the gold coin. Not a Mark: nobody gives it.
+The one player of a Friendly game named most valuable after the score, decided the way its MVP mode says. A vote is one per seated account holder, for any other participant, hidden until it closes; a tie goes to the Organizer; no pick by the close means no MVP. On a Match with a Rating window it closes with that window, so the MVP is known when the move is shown. On a Match that counts for Temba Level an MVP decided by vote is OVR's MVP part; one an Organizer picked or broke a tie for moves nothing. Shown on the Played game, the Result card and the cabinet with the gold coin. Not a Mark: nobody gives it.
 _Avoid_: man of the match, player of the game, best player, star (bare)
 
 **MVP mode**:
@@ -430,7 +450,7 @@ _Avoid_: MVP setting, MVP type
 
 **Giver group**:
 Who may give a Mark: your teammate or partner (same Game team), anyone in the game, or the other side (the opposing Game team). The giving sheet is grouped by it.
-_Avoid_: category, tier
+_Avoid_: category, tier (that is a Group Tier)
 
 **Cabinet**:
 The Marks and MVPs a User has collected, shown on their Player profile per sport: a summary row, every kind with its count or "Not yet", and per kind the Games it came from. A Mark counts on the sport of the Game it was given in, an MVP on the sport it was won in, once it has settled. Follows Match history visibility; when the owner hides Roasts, other viewers see no trace of them.
@@ -509,7 +529,7 @@ A Game team on a Friendly tournament with one Position taken and the other vacan
 _Avoid_: incomplete Team, solo, single, orphan seat
 
 **Edit teams**:
-The Organizer rewriting who plays where on a padel Friendly game or a Friendly tournament: moving a player to the other Position or another Game team, saved as one line-up (ADR-0077). Allowed on a Friendly game until a score is entered. On a Friendly tournament a Game team with a scored Match, confirmed or still waiting, keeps its two players and may only swap Positions, and after the Pool draw players only swap. Never on a Challenge Game. Distinct from setting a Game team's sides, which only swaps Left and Right inside one full Game team.
+The Organizer rewriting who plays where on a padel Friendly game or a Friendly tournament: moving a player to the other Position or another Game team, saved as one line-up (ADR-0086). Allowed on a Friendly game until a score is entered. On a Friendly tournament a Game team with a scored Match, confirmed or still waiting, keeps its two players and may only swap Positions, and after the Pool draw players only swap. Never on a Challenge Game. Distinct from setting a Game team's sides, which only swaps Left and Right inside one full Game team.
 _Avoid_: reseat, reshuffle, team builder
 
 **Pool**:
@@ -529,7 +549,7 @@ One Game team's played, won, drawn, and lost counts inside its Pool. Ordered by 
 _Avoid_: score (Sets carry the score), Standing, stats, results
 
 **Friendly game**:
-A Game format with exactly one Match, created with the Game.
+A Game format with exactly one Match, created with the Game. The Booking Game, the Challenge Game and the Public Game are Friendly games with no Group.
 _Avoid_: Single, Friendly tournament, Americano
 
 **Waitlist**:
@@ -553,7 +573,7 @@ The display-only amount one User pays to occupy a seat on that Game, shown in BD
 _Avoid_: fee, cost, entry fee, registration price (registration is the open/closed window), total price, price per team, Match price, player (when you mean User outside this term)
 
 **Organizer**:
-Of a Group Game: that Group’s creator and its Appointed Organizers. Of a Challenge Game: whoever acts for either Team, who may cancel it, score and confirm it, and edit its name, window and price, but not add, kick, invite, publish sides or change its shape. Of any other groupless Game: its creator. Those people may create the Game, cancel it or a Match, confirm a score for everyone, kick registered or waitlisted entries, edit the Game in one sheet (name, window, players allowed and Side size, price per player, Game Level range, Season), decide Game Level range requests, and add players by phone: a User with an account is seated straight away, any other number becomes or reuses an Unclaimed player. An Organizer's add skips the registration window, the Group join gate and the Game Level range, never waitlists, and never adds the person to the Group.
+Of a Group Game: that Group’s creator and its Appointed Organizers. Of a Challenge Game: whoever acts for either Team, who may cancel it, score and confirm it (on a football one that counts for Temba Level, for their own Team's side only, and for one side when they act for both Teams), and edit its name, window and price, but not add, kick, invite, publish sides or change its shape. Of any other groupless Game: its creator. Those people may create the Game, cancel it or a Match, confirm a score for everyone, kick registered or waitlisted entries, edit the Game in one sheet (name, window, players allowed and Side size, price per player, Game Level range, Season), decide Game Level range requests, and add players by phone: a User with an account is seated straight away, any other number becomes or reuses an Unclaimed player. An Organizer's add skips the registration window, the Group join gate and the Game Level range, never waitlists, and never adds the person to the Group. The Organizers of a tier Group also make Tier adjustments for its other members, never for themselves, change its Rating settings and, in Organizer mode, give the Performance ratings of its Games.
 _Avoid_: creator (when you mean this set), host, admin (when you mean this), game admin, co-host
 
 **Appointed Organizer**:
@@ -581,12 +601,16 @@ An approved Game Level range request, or an Organizer Lookup invite, that except
 _Avoid_: auto-admit, Game admit, exception (as the name of the entity), Lookup invite (that is a door that grants this)
 
 **User**:
-A person on Temba. Almost every User has a Temba account; the exception is an Unclaimed player, who has a phone and a name but no account yet.
+A person on Temba. Almost every User has a Temba account; the exceptions are an Unclaimed player, who has a phone and a name but no account yet, and a Guest player, who has only a name.
 _Avoid_: player (when you mean User), member (when you mean a Group member)
+
+**Guest player**:
+Someone an Organizer seated on one Game by name only: no phone, no account, no Rating. A User row marked as a guest, so every rule for a User without an account applies (never searched, notified or a required confirmer). On a Rated Match they play at the mean Level of the Users with an account in it, whose Levels move as usual; their own never exists. Shown with a dashed avatar and the word Guest, at the mean Level band of the other players. One per add, never claimed (ADR-0079).
+_Avoid_: Guest (that is a Booking holder without an account), Unclaimed player (that one has a phone and can be claimed), placeholder, ghost, ringer
 
 **Unclaimed player**:
 A User an Organizer or Group approver added by phone and name, with no Temba account yet. They are seated, rated and shown like any User, marked "Not on Temba yet", but never found by Lookup invite or Partner search and never sent a Notification. One per phone. While unclaimed, an Organizer or Group approver of a Game or Group they are on may correct the name, when the User who added them also organizes that Game or Group; the phone never changes, so a wrong number is fixed by removing and adding them again. Signing up with that phone, verified, claims the row and its history; an existing account that verifies the phone later absorbs it (ADR-0042).
-_Avoid_: Guest (that is a Booking holder without an account), placeholder, ghost, manual User, invitee
+_Avoid_: Guest (that is a Booking holder without an account), Guest player (name only, no phone), placeholder, ghost, manual User, invitee
 
 **Onboarding questionnaire**:
 The sports, Level and side questions, now one Profile task ("Pick your sports and level") on the Profile checklist rather than a gate (ADR-0049). It first asks which **Sports played**, then padel (Level band and Preferred Position) and football (Football role, Preferred football position and a **Football self-placement**) for each picked sport, and saves every answer in one call. **Either** and **Not sure** (which starts padel at D+) are the low-commitment answers. Users who predate it are complete without answering.
@@ -605,7 +629,7 @@ The sports a User told the Onboarding questionnaire they play: padel, football o
 _Avoid_: favourite sports, interests
 
 **Football self-placement**:
-A new football player's own starting Level, picked as Beginner, Casual, Competitive or Pro instead of a letter. Each declares the football Level that Make teams balances on (D, C, C+ or B; never A) until football results rate. One time, like the padel Level declaration.
+A new football player's own starting Level, picked as Beginner, Casual, Competitive or Pro instead of a letter. Each declares the football Level that Make teams balances on (D, C, C+ or B; never A) until football results rate, and states the OVR it starts at: 43, 61, 72 and 78. The You page keeps the word as a caption under the OVR until a Match counts. One time, like the padel Level declaration.
 _Avoid_: football rating (when you mean the self-placed start), skill level
 
 **Home**:
@@ -613,7 +637,7 @@ The signed-in User’s landing dashboard after login. It shows that User’s Gam
 _Avoid_: feed, lobby, dashboard (when you mean this surface)
 
 **Player profile**:
-A read-only page about one User, with a Padel / Football switch: for each sport their Level, Win streaks, preferred position, All time stats and Last 10. It opens on football from a football Game, or when the User plays football only. Football results are Unrated, so the football Level is the starting one and football goals count in All time. Visible to that User and to every User who shares a Group or a Game with them. Distinct from You, which is the signed-in User's own page with settings.
+A read-only page about one User, with a Padel / Football switch: for each sport their Level, Win streaks, preferred position, All time stats and Last 10. It opens on football from a football Game, or when the User plays football only. Football results are Unrated, so the football Level is the starting one and football goals count in All time. Visible to that User, to every User who shares a Group or a Game with them, and to a Verifier who may calibrate them (ADR-0072). Distinct from You, which is the signed-in User's own page with settings.
 _Avoid_: public profile, player card, user page
 
 **Last 10**:
@@ -637,7 +661,7 @@ The idempotency identifier of a Job, such as `booking:expire:<bookingId>`. Enque
 _Avoid_: job id, dedupe key (that is the Notification column)
 
 **Notification**:
-An in-app record that tells one User that something happened on a Group or Game they run, including a Group join request or a Level range request waiting on them; that a Game they played on has finished; that an Organizer seated them on a Game; that a Level setter set their Level; that a Group approver or Organizer decided their request, by name; that a Captain invited them to a Team (the Lookup invite stays the thing they accept); that a Challenge or Proposal of a Team they act for was answered, confirmed, declined, passed over or expired, or that a squad is still to name a day before kick-off; or, once, that signing up claimed the Games an Unclaimed player played under their number. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Not a push message, not an invite; its email copy is the Notification email.
+An in-app record that tells one User that something happened on a Group or Game they run, including a Group join request or a Level range request waiting on them; that a Game they played on has finished; that an Organizer seated them on a Game; that a Level setter or an Operator set their Level, and why; that a Group approver or Organizer decided their request, by name; that a Captain invited them to a Team (the Lookup invite stays the thing they accept); that a Challenge or Proposal of a Team they act for was answered, confirmed, declined, passed over or expired, or that a squad is still to name a day before kick-off; that a player disputed a counted Match (to Operators) or that an Operator decided a Match dispute (to the player and the Game's Organizers); or, once, that signing up claimed the Games an Unclaimed player played under their number. One row per recipient, unread until that User opens it or marks all read. Kept 90 days. Not a push message, not an invite; its email copy is the Notification email.
 _Avoid_: alert, activity, feed item, message, Lookup invite (that is an actionable invitation)
 
 **Notification email**:
@@ -657,52 +681,92 @@ The Web App page at `/dashboard/notifications`, opened from the bell, listing th
 _Avoid_: feed, inbox (when you mean this page), activity log, Home
 
 **Standing**:
-A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). It counts every completed Match of the Group's Games, Rated or Unrated, padel or football (ADR-0045), scoring win 3, draw 1, loss 0 to every player on the side. Ties break on wins, then head-to-head, then set difference (padel) or score difference (football), then fewer games played. A member with no result in the lens is listed Unranked, below the ranked rows, without a position; one result is enough to hold a rank. When the Group has a Season, the Standing reads the Season's window; the All-time lens reads every Match. A Standing is a position among others, so it is never a Level, a Level band, or a Rating.
-_Avoid_: ranking, leaderboard position (when you mean this entity), player standing (Level, Recent form and All time are not a Standing), rank, Pool table (that ranks Game teams inside a tournament Pool)
+A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). It counts every completed Match of the Group's Games, Rated or Unrated, padel or football (ADR-0045), scoring win 3, draw 1, loss 0 to every player on the side. Ties break on wins, then head-to-head, then set difference (padel) or score difference (football), then fewer games played. A member with no result in the lens is listed Unranked, below the ranked rows, without a position; one result is enough to hold a rank. When the Group has a Season, the Standing reads the Season's window; the All-time lens reads every Match. A Standing is a position among others, so it is never a Level, a Level band, a Rating or a Group Tier.
+_Avoid_: ranking, leaderboard position (when you mean this entity), player standing (Level, Recent form and All time are not a Standing), rank (reserved for Official Rank), Pool table (that ranks Game teams inside a tournament Pool)
 
 **Season**:
-An optional date window the Group owner (or Owner and Admin on a Club Group) sets on a Group, inclusive on both product-timezone days. A Group Game links to at most one Season of its Group, and the Standing for a Season reads the completed Matches of the Games linked to it (ADR-0050); a Game with no Season is a friendly that updates Levels but no Standing. A new Game starts in the open Season that holds its day; an Organizer may link, move or unlink it in Edit game while the Season holds the game day and no score is confirmed. A Season is Upcoming before its first day, Active until its last day, and Closed after it or once closed early, which moves its last day to the closing day; closing re-homes its Games that start after the close, later that day included. Seasons never overlap. A Level is never reset by a Season. The Standing tab opens on the Active Season, else the next one to start, else the latest Closed one, else All-time.
+An optional date window the Group owner (or Owner and Admin on a Club Group) sets on a Group, inclusive on both product-timezone days. A Group Game links to at most one Season of its Group, and the Standing for a Season reads the completed Matches of the Games linked to it (ADR-0082); a Game with no Season is a friendly that updates Levels but no Standing. A new Game starts in the open Season that holds its day; an Organizer may link, move or unlink it in Edit game while the Season holds the game day and no score is confirmed. A Season is Upcoming before its first day, Active until its last day, and Closed after it or once closed early, which moves its last day to the closing day; closing re-homes its Games that start after the close, later that day included. Seasons never overlap. A Level is never reset by a Season. The Standing tab opens on the Active Season, else the next one to start, else the latest Closed one, else All-time.
 _Avoid_: league, campaign, term, period (when you mean this entity), reset (a Season does not reset Levels)
 
 **Rating**:
-A User’s sport-keyed Glicko-2 skill state (μ, φ, σ). Not shown raw in the App.
-_Avoid_: ELO, Elo, player rating (when you mean this entity), rank (that is leaderboard position)
+A User’s sport-keyed skill state (μ, φ, σ). Not shown raw in the App. A padel Rating moves by Glicko-2; a football Rating moves by the OVR step, the sum of its parts in OVR points (only the result part so far), and its φ only carries Provisional, set from the count of counting Matches, so idle time never grows it (ADR-0069).
+_Avoid_: ELO, Elo, player rating (when you mean this entity), rank (reserved for Official Rank)
 
 **Level**:
-The continuous 0.0–7.0 skill face derived from a Rating’s μ (one decimal in the App).
-_Avoid_: rank, ELO, Level band (that is the discrete label)
+The continuous 0.0–7.0 skill state derived from a Rating’s μ. Product copy says Temba Level. Padel shows it from 1.0 to 7.0, the scale padel players know: a stored Level below 1.0 reads 1.0, a floor on the face only, so bands, Game Level range and Level wanted still compare the stored Level in tenths. Home, the You page hero and the Player profile show two decimals ("3.45"); dense lists keep one (ADR-0070). A padel Rated Match moves it pair against pair: each player's expectation weighs their partner as well as the other pair, and each moves by their own φ (ADR-0070). Football shows it as OVR.
+_Avoid_: rank (reserved for Official Rank), ELO, Level band (that is the discrete label)
+
+**OVR**:
+The football face of a Level, 40 to 99, shown as a whole number: `40 + 59 × Level / 7` on the stored μ, so no Rating row is rewritten (ADR-0069). The Level bands apply unchanged, 5.9 OVR each (C+ is 69.5 to 75.4). A football Level is shown as OVR alone, never with a band letter (ADR-0087): the Level card, the sport switch, line-ups, profiles, Team Level, Challenges, Game Level ranges, notifications and the Operator and Verifier tools. The band is still stored and still drives gates and pickers, which label their options in OVR. A move that would pass 40 or 99 stops there: "What moved your OVR" shows each part as the player earned it and one more line, "Held at 40" or "Held at 99", for what the bound kept out, so the lines add up to the move.
+_Avoid_: overall (in copy), football rating
 
 **Level band**:
 The discrete skill label D–D+–C-–C–C+–B-–B–B+–A–PRO (PRO highest) shown in the App, derived from Level with hysteresis. PRO is reserved for an elite override and is not assigned from Level.
-_Avoid_: rank, Level 1–5 (redesign artefact, not product), ELO, D3–A (stored thirds, not the product face)
+_Avoid_: rank (reserved for Official Rank), Level 1–5 (redesign artefact, not product), ELO, D3–A (stored thirds, not the product face)
 
 **Provisional**:
-UI state on a Rating when rating deviation φ is above the product threshold (confidence still settling). A Level override clears Provisional.
+Per ladder. A padel Level is Provisional until its fifth Rated Match in a Verified Group (a Game on a Group, which is stored rated only on a Verified Group) and confirmed after it; Public Games, Challenge Games and a reversed Match do not count, though they move the Level (ADR-0080). A football Level is Provisional until its fifth counting Match and confirmed after it. A Level override confirms either at once. Idle time never makes a confirmed Level Provisional again. A retired padel Group Level is Provisional while its φ is above the product threshold. A Group Tier is Provisional for the member's first five Group Games or until an Organizer adjusts their Tier points: no fish, a hatched slot, Tier points shown only to them and the Group's Organizers, and not counted when places are cut.
 _Avoid_: unranked, unrated (a User may already have a Level), PRO (that is a Level band label)
 
 **Level override**:
-A Level that a Level setter or an Operator set by hand, and its audit record. An Operator's has no Group. It replaces the Rating's μ and makes the Rating confirmed. Later Rated Matches move the Level from there. There is no undo; a mistake is corrected by another Level override. A Level override is displayed like any other Level.
+A Level that a Level setter, an Operator or a Verifier set by hand, and its audit record: who set it, by which door (`set_by_role`: `level_setter`, `operator` or `verifier`), a required reason from five, and an optional note of up to 280 characters (ADR-0073). An Operator's and a Verifier's have no Group, and on football both set it as an OVR. A Verifier's is a calibration ("calibrated" in copy) and records the Venue it was made from (`venue_id`, ADR-0072). The player is told at once, by a Notification that names the setter, the reason and the note, and for a calibration the Venue. An override from before reasons were required reads "No reason given". It replaces the Rating's μ and makes the Rating confirmed. Later Rated Matches move the Level from there. There is no undo; a mistake is corrected by another Level override. A Level override is displayed like any other Level.
 _Avoid_: manual rating, rating override, Rated Match (an override is not a Match), permanent override
 
 **Rated Match**:
-A completed, non-cancelled Match on a Game that rates, which produced rating events for the Users on its two Game teams: Temba rating events when its Rating scope is `temba`, Group rating events when it is `temba` or `group`. A Match on an Unrated Game is never a Rated Match.
+A completed, non-cancelled Match on a Game that rates, which produced rating events for the Users on its two Game teams: Temba rating events when its Rating scope is `temba`. A padel Match completed before the Group Level was retired may also carry Group rating events. A football Match that counts for Temba Level is a Rated Match too: one rating event per seated player, with its parts, and no Tier points; a tier Group's Match moves Tier points and writes no rating event. A Match on an Unrated Game is never a Rated Match. Copy may say "verified match".
 _Avoid_: ranked Match, scored Match (Sets score a Match; rating is separate)
 
 **Unrated Game**:
-A Game whose completed Matches never produce rating events or move a Level or a Group Level, while still counting towards its Group's Standing and as played, won, lost or drawn in Last 10, All time stats and Win streak. A Game whose creator chose Unrated, a groupless Game (a Booking Game without a Group, legacy rows), and every football Game. Match result confirmation still applies. Its Rating scope is `unrated`: `games.rated` and `games.group_rated` both false, fixed at create.
+A Game whose completed Matches never produce rating events or move a Level, while still counting towards its Group's Standing and as played, won, lost or drawn in Last 10, All time stats and Win streak. A Game whose creator chose Unrated, a groupless Game other than a Public Game or a Challenge Game that counts (a Booking Game without a Group, legacy rows), every padel Game on a Group that is not Verified (ADR-0066), and every other football Game on neither a tier Group nor a Verified Group. Match result confirmation still applies. Its Rating scope is `unrated`: `games.rated` and `games.group_rated` both false, fixed at create.
 _Avoid_: unranked (the user-facing word is "Unrated"), casual, friendly (that is a Game format), practice
 
 **Rating scope**:
-What a Game's completed Matches rate, fixed at create (ADR-0053). `temba`, shown "Counts for Temba rating", moves the Temba Level and the Group Level: a padel Game on a Verified Group. `group`, shown "Counts for group rating", moves the Group Level only: a padel Game on a Group that is not Verified. `unrated`, shown "Unrated", moves neither. Pure in `@repo/domain/game-rating-scope`.
+What a Game's completed Matches move, fixed at create (ADR-0066). One Game feeds one ladder. `temba`, shown "Counts for Temba rating", moves the Temba Level: a padel Game on a Verified Group. On football, shown "Counts for Temba Level", it moves the Temba Level only: a football Game on a Verified Group. `group`, shown "Counts for group tier", moves Tier points: a football Game on a tier Group. A padel Game on a Group that is not Verified is `unrated`; one completed before the Group Level was retired keeps `group` and reads "Did not count for Temba Level". `unrated`, shown "Unrated", moves nothing. The creator may choose Unrated wherever a scope is offered, and padel offers no choice on a Group that is not Verified. Pure in `@repo/domain/game-rating-scope`.
 _Avoid_: rated (bare, when the scope matters), ranked, verified game
 
 **Group Level**:
-A User's Level inside one Group, from a Glicko-2 Rating that only that Group's Rated Matches move (`group_ratings`). It starts from the User's Temba Level, Provisional, and an Organizer of the Group may set it as a Group Level override. A football Group Level is the football Level until an Organizer sets one. Distinct from the Temba Level ("General" on the You page), which every Group shares, and from a Standing, which is a position.
+Retired (ADR-0066). Was a User's Level inside one Group, from a Glicko-2 Rating that only that Group's Rated Matches moved (`group_ratings`). No Match writes one now and no screen shows one: a padel Group keeps only a Standing, and a football tier Group has a Group Tier. The rows stay for history, and reporting a wrong score on a padel Match completed before the retirement still restores them.
 _Avoid_: group rating (when you mean the face), local level, club level
 
 **Group Level override**:
-A Group Level an Organizer of the Group set by hand, and its audit record (`group_level_overrides`). Works like a Level override, inside one Group. Never moves the Temba Level.
+Retired with the Group Level (ADR-0066). Was a Group Level an Organizer of the Group set by hand, and its audit record (`group_level_overrides`). `ratings.setGroupLevel` now refuses; the rows stay for history. An Organizer of a tier Group makes a Tier adjustment instead.
 _Avoid_: group rating override
+
+**Group Tier**:
+A football Group member's strength inside one tier Group, a football Group that is not Verified (ADR-0066): Tier points, a place and a Tier band. Moved by that Group's Games and its Organizers. Never moves a Level and is never moved by one. Shown on the Group's Members tab, not on the Standing.
+_Avoid_: group level, group rating, local level, badge
+
+**Tier points**:
+The number behind a Group Tier (`group_tier_points`). Starts at 1,200 and moves once per Match by a result part, an expected-score step on the mean Tier points of the two Football sides, and a performance part; an Organizer may adjust it. A player whose points have not started (no counted Game and no Tier adjustment) is weighed in that mean as their start hint, the one Make teams places them by; the hint is never written, so their points still move from 1,200. Every move is an event in an append-only ledger (`group_tier_events`). Carries across Seasons (ADR-0067). Leaving or being removed from the Group deletes the member's points; the events stay, and a member who comes back starts again at 1,200, Provisional. Reversing a Match from before they left does not touch the points they hold now.
+_Avoid_: Elo, group Elo, rating points, Standing points
+
+**Tier band**:
+Shark, Hamour, Kanaad or Safi, shown as a fish. A place, not a threshold: the Shark is first, Hamour the next 15% of the other ranked members, Kanaad the next 35%, Safi the rest. Only members out of Provisional are ranked, and there are no fish until four are. A place is shown against the Group's member count ("#6 of 13" in a Group of 13 with two still Provisional), wherever it is shown; an event keeps the count from when its place was cut. A member whose fish moves is told once per write (`tier_band_changed`), whether a Game settling, a wrong-score reversal or another member's Tier adjustment moved it; a member left with no fish is not told. Pure in `@repo/domain/tier-bands`.
+_Avoid_: badge, rank, Level band, league
+
+**Tier adjustment**:
+An Organizer's manual change to another member's Tier points in a tier Group (ADR-0073): at most 400 points from where they stand, with a required reason from the five Level override reasons and an optional note of up to 140 characters. Written as an `adjustment` event in `group_tier_events`, on top of what the Games did. It moves points, never the fish directly: the Group's places are cut again, and the member and everyone whose fish moved are told at once. It ends a Provisional tier. There is no undo; a mistake is corrected by another Tier adjustment.
+_Avoid_: override (that is a Level's), penalty, reset
+
+**Rating settings**:
+A tier Group's choice of who gives Performance ratings after a Game (Off, Organizer rates, Everyone rates), how much of each Tier points move they make (light 20%, standard 30% or heavy 50%; the rest is the result) and, when everyone rates, whether an Organizer's rating counts double (ADR-0068). Stored on the Group (`groups.performance_rating_mode`, `performance_weight_percent`, `organizer_counts_double`), Off at 30% by default. Only the Group's Organizers see and change them (`groups.ratingSettings`, `groups.updateRatingSettings`), from the Group's menu; members read one line under the Standing saying how ratings work in the Group. A change applies from the next Game: a completed Match never moves again. Verified Groups and padel Groups have none. Pure in `@repo/domain/group-rating-settings`.
+_Avoid_: group rules, scoring settings
+
+**Performance rating**:
+A 1 to 10 score for how a player played a football Match on a tier Group, given while its Rating window is open (ADR-0068). 6 is an ordinary game; nobody rates themselves, only the players of the Match are rated, and a blank is not a zero. In Organizer mode only an Organizer of the Game rates, on Rate the game, where the star picks the MVP; an Organizer who rated moves on the result alone. When everyone rates, every seated account holder rates their teammates and, if they want, their opponents, and may change their ratings until the window closes; nobody, a player or an Organizer, is ever shown another's ratings, only how many have rated. Each player's ballots settle into one rating, a weighted mean that drops the highest and the lowest from five ballots up and needs three ballots when everyone rates, where an Organizer's counts double if the Rating settings say so. Compared with the player's usual rating in the Group and centred on the Match, it makes the performance part of the Tier points move; a player with no settled rating moves on the result alone. Stored in `performance_ratings`, settled into `performance_rating_results`. Pure in `@repo/domain/performance-rating`.
+_Avoid_: player rating (bare), Mark, score, vote (that is the MVP's)
+
+**Rating window**:
+The 24 hours after a football Match completes on a tier Group whose Rating settings are not Off, in which Performance ratings are given (`match_rating_windows`, ADR-0068). Opened at completion with a snapshot of the Rating settings, and the Tier points move waits for it. A football Match that counts for Temba Level always opens one, in Everyone mode, and its OVR move with all four parts waits for it. In Organizer mode the Organizer's submit closes it at once and the Organizer is told when it opens; when everyone rates, every seated account holder is told. Otherwise it closes at 24 hours, by the `rating-window.settle` Job or on the next read when the Job is late, and with no ratings everyone moves on the result alone. Settling writes the results, then the move, then tells each seated account holder their rating and what it did: their Tier points on a tier Group, their OVR on a Match that counts for Temba Level. A wrong-score report suspends it and keeps the ballots; the next completion reopens it for a fresh 24 hours. A Match with no window, such as one in Off mode, writes its move at completion.
+_Avoid_: voting period, Marks window
+
+**Rating history**:
+The list of everything that moved a User's Level or Group Tier, newest first (ADR-0073), opened from the Ratings screen for one sport and filtered All, Level, Tier or Rank. Level lines are each Rated Match (on football with the parts that fed it: result, ratings, goals, MVP) and each Level override, read by its door: "calibrated by a verifier" with the Verifier's name and Venue, or set by an Operator or a Level setter. A "Level confirmed" milestone sits just before the counting Match that took the Level out of Provisional (on football the fifth counting Match, on padel the fifth Rated Match in a Verified Group), once per sport and never after a Level override; it is derived from the Rated Matches, never stored, and the User is told by a Notification the same once. Tier lines are each Game, each Tier adjustment ("set by an organizer") and each change of fish, including one another member's Game or adjustment caused. Every manual change carries the person's name, the reason ("no reason given" on old overrides) and the note. Grouped under "This week" (the last seven days) and then each month. A union read over `rating_events`, `level_overrides` and `group_tier_events` (`ratings.history`), keyset-paged across the three; a reversed Match leaves no line, because its events are gone. Only the User reads their own. The Rank filter is reserved for Official Rank and stays empty. In a Group the Tier part is "Points and history" (`groups.tierHistory`): Games and Tier adjustments only, no change of fish, which the member and the Group's Organizers may read.
+_Avoid_: activity, audit log, feed
+
+**Official Rank** (reserved):
+What a football Team or a padel player has won in official tournaments and divisions, shown as a #position with points (ADR-0065). Fed only by official results, and nobody can edit it. A later spec designs it: today only its slot exists, on the Ratings screen opened from the You page, hatched ("not yet"), reading "Coming with official tournaments" and never a number.
+_Avoid_: Standing, Level, ranking (for a Standing)
 
 **Match history visibility**:
 Who sees a User's form, stats and partners on their Player profile: everyone who may open it (default), Group members, or only them. A viewer it excludes sees Level and Preferred Position only.

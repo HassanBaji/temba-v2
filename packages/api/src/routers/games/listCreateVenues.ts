@@ -5,7 +5,8 @@ import { z } from "zod";
 
 import { gamePlayers, games, venues } from "@repo/db";
 
-import { sportOrDefault, type Sport } from "@repo/domain/sport";
+import { DEFAULT_SPORT, sportOrDefault, type Sport } from "@repo/domain/sport";
+import { sportSchema } from "@repo/validators/sport";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
@@ -31,6 +32,7 @@ async function listVenuesForGameCreate(
   groupId: string | undefined,
   sport: Sport | null,
   locale: Locale = DEFAULT_LOCALE,
+  partnerOnly = false,
 ): Promise<{
   locked: boolean;
   groupKind: GameCreateGroupKind;
@@ -41,6 +43,10 @@ async function listVenuesForGameCreate(
     sport == null || court.sport === sport;
   const offersFootball = (venue: { courts: { sport: Sport }[] }) =>
     sport !== "football" || venue.courts.some(ofSport);
+  const hostsPublicGames = (venue: {
+    partnerAt: Date | null;
+    courts: { sport: Sport }[];
+  }) => venue.partnerAt !== null && venue.courts.some(ofSport);
 
   if (context.locked && context.linkedVenueId) {
     const venue = await database.query.venues.findFirst({
@@ -51,6 +57,7 @@ async function listVenuesForGameCreate(
         city: true,
         country: true,
         archivedAt: true,
+        partnerAt: true,
       },
       with: {
         courts: {
@@ -79,6 +86,7 @@ async function listVenuesForGameCreate(
           city: venue.city,
           country: venue.country,
           archivedAt: venue.archivedAt,
+          isPartner: venue.partnerAt !== null,
           courts: archived ? [] : venue.courts.filter(ofSport),
         },
       ],
@@ -93,6 +101,7 @@ async function listVenuesForGameCreate(
       city: true,
       country: true,
       archivedAt: true,
+      partnerAt: true,
     },
     with: {
       courts: {
@@ -111,14 +120,17 @@ async function listVenuesForGameCreate(
   return {
     locked: false,
     groupKind: context.groupKind,
-    venues: rows.filter(offersFootball).map((venue) => ({
-      id: venue.id,
-      name: venue.name,
-      city: venue.city,
-      country: venue.country,
-      archivedAt: venue.archivedAt,
-      courts: venue.courts.filter(ofSport),
-    })),
+    venues: rows
+      .filter(partnerOnly ? hostsPublicGames : offersFootball)
+      .map((venue) => ({
+        id: venue.id,
+        name: venue.name,
+        city: venue.city,
+        country: venue.country,
+        archivedAt: venue.archivedAt,
+        isPartner: venue.partnerAt !== null,
+        courts: venue.courts.filter(ofSport),
+      })),
   };
 }
 
@@ -175,31 +187,52 @@ export async function listRecentCourtIds(
   return ids;
 }
 
+/**
+ * The Venues a Game may be created at. With `publicGame` and no Group, only
+ * partner Venues that offer the Public Game's sport, padel unless `sport`
+ * says otherwise (ADR-0071).
+ */
 export async function listCreateVenuesForUser(
   database: DbOrTx,
-  args: { userId: string; groupId?: string; locale?: Locale },
+  args: {
+    userId: string;
+    groupId?: string;
+    publicGame?: boolean;
+    sport?: Sport;
+    locale?: Locale;
+  },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
-  let sport: Sport | null = null;
+  const publicGame = !args.groupId && args.publicGame === true;
+  let sport: Sport | null = publicGame ? (args.sport ?? DEFAULT_SPORT) : null;
   if (args.groupId) {
     const group = await requireGroup(database, args.groupId, locale);
     await assertMayCreateGameOnGroup(database, group, args.userId, locale);
     sport = sportOrDefault(group.sport);
   }
   const [catalog, recentCourtIds] = await Promise.all([
-    listVenuesForGameCreate(database, args.groupId, sport, locale),
+    listVenuesForGameCreate(database, args.groupId, sport, locale, publicGame),
     listRecentCourtIds(database, args.userId),
   ]);
   return { ...catalog, recentCourtIds };
 }
 
 export const listCreateVenues = protectedProcedure
-  .input(z.object({ groupId: z.string().uuid().optional() }))
+  .input(
+    z.object({
+      groupId: z.string().uuid().optional(),
+      publicGame: z.boolean().optional(),
+      /** A Public Game's sport. Omitted = padel. */
+      sport: sportSchema.optional(),
+    }),
+  )
   .query(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
     return listCreateVenuesForUser(ctx.db, {
       userId: appUser.id,
       groupId: input.groupId,
+      publicGame: input.publicGame,
+      sport: input.sport,
       locale: ctx.locale,
     });
   });

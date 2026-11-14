@@ -21,6 +21,7 @@ import {
   challengeFormatHelp,
   challengeFormatOptions,
   challengeInitialDraft,
+  challengeLevelChip,
   challengeLevelChips,
   challengeLevelHint,
   challengeLevelSelected,
@@ -415,23 +416,31 @@ export function ChallengePostForm({
 
           <ChallengePostSection
             title={copy.level}
-            hint={challengeLevelHint(levelRange, locale)}
+            hint={challengeLevelHint(levelRange, locale, team?.sport)}
             error={errors.level}
           >
-            <ChallengePostGrid label={copy.level} columns={6} multiple>
+            <ChallengePostGrid
+              label={copy.level}
+              columns={team?.sport === "football" ? 3 : 6}
+              multiple
+            >
               {challengeLevelChips(
                 team?.teamLevel?.tenths ?? null,
                 levelRange,
-              ).map((band) => (
-                <ChallengePostChip
-                  key={band}
-                  multiple
-                  dir="ltr"
-                  label={band}
-                  selected={challengeLevelSelected(levelRange, band)}
-                  onClick={() => update(challengeLevelTap(levelRange, band))}
-                />
-              ))}
+              ).map((band) => {
+                const chip = challengeLevelChip(band, team?.sport, locale);
+                return (
+                  <ChallengePostChip
+                    key={band}
+                    multiple
+                    dir="ltr"
+                    label={chip.label}
+                    aria-label={chip.accessibilityLabel}
+                    selected={challengeLevelSelected(levelRange, band)}
+                    onClick={() => update(challengeLevelTap(levelRange, band))}
+                  />
+                );
+              })}
             </ChallengePostGrid>
           </ChallengePostSection>
 

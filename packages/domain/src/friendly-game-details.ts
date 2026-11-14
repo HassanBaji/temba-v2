@@ -21,7 +21,10 @@ export type FriendlyGameDetailsSeat = {
   image: string | null;
   levelBand: LevelBand | null;
   unclaimed?: boolean;
+  guest?: boolean;
   phoneMasked?: string | null;
+  /** E.164, sent only to a Group approver for a current member (ADR-0078). */
+  phoneNumber?: string | null;
   /** The viewer may fix this Unclaimed player's name here. */
   canRename?: boolean;
   /** Joined without picking a Position. */
@@ -47,6 +50,15 @@ export type FriendlyGameDetailsMatch = {
   durationInMinutes: number | null;
   courtName: string | null;
   status: string | null;
+  stoodUnconfirmed?: boolean;
+  /** The Verifier who stamped the score (ADR-0072). */
+  stamp?: { verifierName: string } | null;
+  /** The viewer is a Verifier of the Venue who may stamp it now. */
+  canStamp?: boolean;
+  /** The viewer is a seated player who may dispute the counted result. */
+  canDispute?: boolean;
+  /** The Match dispute waiting on an Operator. */
+  openDispute?: { raisedByViewer: boolean } | null;
   slot1GameTeamId: string | null;
   slot2GameTeamId: string | null;
   canScoreSets: boolean;
@@ -71,6 +83,8 @@ export type FriendlyGameDetailsConfirmation = {
 export type FriendlyGameDetailsRatingImpact = {
   levelChange: number;
   newLevel: number;
+  muBefore: number;
+  muAfter: number;
   newLevelBand: LevelBand;
   isProvisional: boolean;
   ratedMatchesRemainingToConfirm: number | null;
@@ -130,6 +144,8 @@ export type FriendlyGameDetails = {
   matchResultConfirmation: FriendlyGameDetailsConfirmation | null;
   rated: boolean;
   ratingScope?: GameRatingScope;
+  isPublic?: boolean;
+  confirmWindow?: { closesAt: Date; viewerMayConfirm: boolean } | null;
   booking?: FriendlyGameDetailsBooking | null;
   ratingImpact: FriendlyGameDetailsRatingImpact | null;
   canReportWrongScore: { eligible: boolean; reason?: string } | null;

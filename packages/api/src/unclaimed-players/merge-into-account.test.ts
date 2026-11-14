@@ -14,6 +14,8 @@ import {
   groupJoinRequests,
   gameMvpVotes,
   groupMembers,
+  groupTierEvents,
+  groupTierPoints,
   groups,
   levelOverrides,
   marks,
@@ -21,6 +23,8 @@ import {
   matchSets,
   matches,
   notifications,
+  performanceRatingResults,
+  performanceRatings,
   ratingEvents,
   ratings,
   user,
@@ -441,6 +445,57 @@ describe("mergeIntoAccount", () => {
     }
   });
 
+  it("moves the Performance ratings the Unclaimed player received to the account, and drops one between the two", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const people = await seedPeople(db);
+      const gameId = await insertGame(db, people);
+      const { matchId } = await playCompletedMatch(db, {
+        gameId,
+        side1: [people.partner.id, people.unclaimed.id],
+        side2: [people.oppLeft.id, people.oppRight.id],
+      });
+      const otherGameId = await insertGame(db, people);
+      const other = await playCompletedMatch(db, {
+        gameId: otherGameId,
+        side1: [people.survivor.id, people.partner.id],
+        side2: [people.unclaimed.id, people.oppRight.id],
+      });
+      await db.insert(performanceRatings).values([
+        {
+          matchId,
+          raterUserId: people.partner.id,
+          rateeUserId: people.unclaimed.id,
+          value: 8,
+        },
+        {
+          matchId: other.matchId,
+          raterUserId: people.survivor.id,
+          rateeUserId: people.unclaimed.id,
+          value: 5,
+        },
+      ]);
+      await db.insert(performanceRatingResults).values({
+        matchId,
+        userId: people.unclaimed.id,
+        ratingHundredths: 800,
+        ballotsCounted: 1,
+        gameAverageHundredths: 800,
+      });
+
+      await merge(db, people);
+
+      const ballots = await db.query.performanceRatings.findMany();
+      expect(
+        ballots.map((row) => [row.matchId, row.rateeUserId, row.value]),
+      ).toEqual([[matchId, people.survivor.id, 8]]);
+      const results = await db.query.performanceRatingResults.findMany();
+      expect(results.map((row) => row.userId)).toEqual([people.survivor.id]);
+    } finally {
+      await close();
+    }
+  });
+
   it("carries the MVP and the votes for the Unclaimed player to the account, and drops a vote between the two", async () => {
     const { db, close } = await createPgliteDb();
     try {
@@ -616,6 +671,7 @@ describe("mergeIntoAccount", () => {
         userId: people.survivor.id,
         sport: "padel",
         setByUserId: people.organizer.id,
+        setByRole: "operator",
         hadRating: true,
         muBefore: 0,
         phiBefore: 1,
@@ -723,6 +779,68 @@ describe("mergeIntoAccount", () => {
           where: eq(ratingEvents.userId, people.survivor.id),
         }),
       ).toHaveLength(2);
+    } finally {
+      await close();
+    }
+  });
+
+  it("keeps the Tier points with more games in a shared Group and moves the rest", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const people = await seedPeople(db);
+      const shared = await insertGroup(db, people);
+      const own = await insertGroup(db, people);
+      const tier = (
+        userId: string,
+        groupId: string,
+        points: number,
+        gamesCounted: number,
+      ) => ({ userId, groupId, points, gamesCounted });
+      await db
+        .insert(groupTierPoints)
+        .values([
+          tier(people.survivor.id, shared, 1250, 2),
+          tier(people.unclaimed.id, shared, 1180, 7),
+          tier(people.unclaimed.id, own, 1230, 5),
+        ]);
+      await db.insert(groupTierEvents).values([
+        {
+          groupId: shared,
+          userId: people.survivor.id,
+          kind: "game",
+          pointsBefore: 1234,
+          pointsAfter: 1250,
+          delta: 16,
+        },
+        {
+          groupId: shared,
+          userId: people.unclaimed.id,
+          kind: "game",
+          pointsBefore: 1196,
+          pointsAfter: 1180,
+          delta: -16,
+        },
+      ]);
+
+      await merge(db, people);
+
+      const kept = await db
+        .select()
+        .from(groupTierPoints)
+        .where(eq(groupTierPoints.userId, people.survivor.id));
+      expect(
+        kept.map((row) => [row.groupId, row.points, row.gamesCounted]).sort(),
+      ).toEqual(
+        [
+          [shared, 1180, 7],
+          [own, 1230, 5],
+        ].sort(),
+      );
+      const events = await db
+        .select()
+        .from(groupTierEvents)
+        .where(eq(groupTierEvents.userId, people.survivor.id));
+      expect(events.map((row) => row.pointsAfter)).toEqual([1180]);
     } finally {
       await close();
     }

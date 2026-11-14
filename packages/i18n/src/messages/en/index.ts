@@ -32,6 +32,7 @@ import { mobileTournament } from "./mobile-tournament";
 import { mobileHome } from "./mobile-home";
 import { mobilePlayer } from "./mobile-player";
 import { you } from "./you";
+import { rating } from "./rating";
 import { mobileYou } from "./mobile-you";
 import { mobileInvite } from "./mobile-invite";
 import { mobileTeam } from "./mobile-team";
@@ -85,6 +86,7 @@ export const en = {
   mobileHome,
   mobilePlayer,
   you,
+  rating,
   mobileYou,
   webYou,
   webMarks,

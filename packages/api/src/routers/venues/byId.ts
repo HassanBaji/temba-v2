@@ -27,6 +27,7 @@ export async function venueById(
       longitude: true,
       logoImageUrl: true,
       archivedAt: true,
+      partnerAt: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -61,8 +62,10 @@ export async function venueById(
     orderBy: (table, { asc }) => [asc(table.name)],
   });
 
+  const { partnerAt, ...rest } = venue;
   return {
-    ...venue,
+    ...rest,
+    isPartner: partnerAt !== null,
     linkedGroups,
   };
 }

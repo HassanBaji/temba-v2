@@ -4,6 +4,7 @@ import { acceptInviteLinkProcedure as acceptInviteLink } from "./acceptInviteLin
 import { acceptLookupInviteProcedure as acceptLookupInvite } from "./acceptLookupInvite";
 import { addGroupMembersProcedure as addGroupMembers } from "./addGroupMembers";
 import { addMatchProcedure as addMatch } from "./addMatch";
+import { addGuestPlayerProcedure as addGuestPlayer } from "./addGuestPlayer";
 import { addPlayerByPhoneProcedure as addPlayerByPhone } from "./addPlayerByPhone";
 import { addSetProcedure as addSet } from "./addSet";
 import { approveLevelRangeRequestProcedure as approveLevelRangeRequest } from "./approveLevelRangeRequest";
@@ -16,6 +17,8 @@ import { confirmMatchResultProcedure as confirmMatchResult } from "./confirmMatc
 import { create } from "./create";
 import { createInviteLinkProcedure as createInviteLink } from "./createInviteLink";
 import { createTournamentProcedure as createTournament } from "./createTournament";
+import { decideDisputeProcedure as decideDispute } from "./decideDispute";
+import { disputeMatchResultProcedure as disputeMatchResult } from "./disputeMatchResult";
 import { drawPoolsProcedure as drawPools } from "./drawPools";
 import { footballBoardProcedure as footballBoard } from "./footballBoard";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
@@ -26,10 +29,12 @@ import { leaveWaitlistProcedure as leaveWaitlist } from "./leaveWaitlist";
 import { listCourtsProcedure as listCourts } from "./listCourts";
 import { listCreateGroupsProcedure as listCreateGroups } from "./listCreateGroups";
 import { listCreateVenues } from "./listCreateVenues";
+import { listDisputesForOperatorProcedure as listDisputesForOperator } from "./listDisputesForOperator";
 import { listGroupMembersToAddProcedure as listGroupMembersToAdd } from "./listGroupMembersToAdd";
 import { listLevelRangeRequestsProcedure as listLevelRangeRequests } from "./listLevelRangeRequests";
 import { listLookupInvitesProcedure as listLookupInvites } from "./listLookupInvites";
 import { listMyGames } from "./listMyGames";
+import { listMatchesToStampProcedure as listMatchesToStamp } from "./listMatchesToStamp";
 import { listMyMatchHistory } from "./listMyMatchHistory";
 import { listPartnerSuggestionsProcedure as listPartnerSuggestions } from "./listPartnerSuggestions";
 import { listPublicPickup } from "./listPublicPickup";
@@ -39,6 +44,9 @@ import { setSeatSideProcedure as setSeatSide } from "./setSeatSide";
 import { setTeamSidesProcedure as setTeamSides } from "./setTeamSides";
 import { editTeamsProcedure as editTeams } from "./editTeams";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
+import { performanceRatingResultProcedure as performanceRatingResult } from "./performanceRatingResult";
+import { performanceRatingSheetProcedure as performanceRatingSheet } from "./performanceRatingSheet";
+import { performanceRatingSummaryProcedure as performanceRatingSummary } from "./performanceRatingSummary";
 import { poolTablesProcedure as poolTables } from "./poolTables";
 import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
 import { enterTournamentScoreProcedure as enterTournamentScore } from "./enterTournamentScore";
@@ -54,6 +62,7 @@ import { previewInviteLinkProcedure as previewInviteLink } from "./previewInvite
 import { previewPlayerByPhoneProcedure as previewPlayerByPhone } from "./previewPlayerByPhone";
 import { publishFootballTeamsProcedure as publishFootballTeams } from "./publishFootballTeams";
 import { registerProcedure as register } from "./register";
+import { submitPerformanceRatingsProcedure as submitPerformanceRatings } from "./submitPerformanceRatings";
 import { registerSeatProcedure as registerSeat } from "./registerSeat";
 import { registerTeamProcedure as registerTeam } from "./registerTeam";
 import { registerWithPartnerProcedure as registerWithPartner } from "./registerWithPartner";
@@ -70,6 +79,7 @@ import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupU
 import { searchPartnerUsersProcedure as searchPartnerUsers } from "./searchPartnerUsers";
 import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvite";
 import { setFootballRoleProcedure as setFootballRole } from "./setFootballRole";
+import { stampMatchProcedure as stampMatch } from "./stampMatch";
 import { undoPoolDrawProcedure as undoPoolDraw } from "./undoPoolDraw";
 import { updateCaps } from "./updateCaps";
 import { updatePlace } from "./updatePlace";
@@ -117,6 +127,7 @@ export const gamesRouter = createTRPCRouter({
   kick,
   previewPlayerByPhone,
   addPlayerByPhone,
+  addGuestPlayer,
   listGroupMembersToAdd,
   addGroupMembers,
   closeRegistration,
@@ -143,6 +154,11 @@ export const gamesRouter = createTRPCRouter({
   removeSet,
   completeMatch,
   confirmMatchResult,
+  stampMatch,
+  listMatchesToStamp,
+  disputeMatchResult,
+  listDisputesForOperator,
+  decideDispute,
   reportWrongScore,
   footballBoard,
   resultLink,
@@ -150,6 +166,10 @@ export const gamesRouter = createTRPCRouter({
   publishFootballTeams,
   saveFootballScore,
   nameChallengeSquad,
+  performanceRatingSheet,
+  performanceRatingResult,
+  performanceRatingSummary,
+  submitPerformanceRatings,
   searchLookupUsers,
   sendLookupInvite,
   listLookupInvites,

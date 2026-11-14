@@ -4,12 +4,14 @@ import { describe, expect, it } from "vitest";
 
 import { LEVEL_BANDS } from "./level-bands";
 import {
+  displayRungOvrBound,
   formatLevelRangeLabel,
   formatLevelRangeProseLabel,
   formatLevelRangeGateCopy,
   formatLevelTenths,
   LEVEL_BAND_MAX_TENTHS,
   LEVEL_BAND_MIN_TENTHS,
+  levelBandSelectOvr,
   parseLevelBandSelectTenths,
   parseOptionalLevelTenths,
   tenthsToLevelBand,
@@ -181,6 +183,75 @@ describe("tenthsToLevelBandSelectValue", () => {
     expect(tenthsToLevelBandSelectValue(14)).toBe("D+");
     expect(tenthsToLevelBandSelectValue(30)).toBe("C");
     expect(tenthsToLevelBandSelectValue(35)).toBe("C+");
+  });
+});
+
+describe("formatLevelRangeLabel on football", () => {
+  it("reads the range in OVR", () => {
+    expect(formatLevelRangeLabel(35, 56, "en", "football")).toBe(
+      "OVR 70 to 87",
+    );
+    expect(formatLevelRangeLabel(35, null, "en", "football")).toBe(
+      "OVR 70 and up",
+    );
+    expect(formatLevelRangeLabel(null, 56, "en", "football")).toBe(
+      "OVR 87 and under",
+    );
+    expect(formatLevelRangeLabel(null, null, "en", "football")).toBeNull();
+    expect(formatLevelRangeProseLabel(35, 56, "en", "football")).toBe(
+      "OVR 70 to 87",
+    );
+  });
+
+  it("tells a player outside it their OVR", () => {
+    expect(
+      formatLevelRangeGateCopy({
+        levelMinTenths: 35,
+        levelMaxTenths: null,
+        viewerLevelTenths: 28,
+        locale: "en",
+        sport: "football",
+      }),
+    ).toBe("This Game is for OVR 70 and up. Your Level is OVR 64.");
+  });
+
+  it("tells a player with no football Rating they are outside it", () => {
+    expect(
+      formatLevelRangeGateCopy({
+        levelMinTenths: 35,
+        levelMaxTenths: 56,
+        viewerLevelTenths: null,
+        locale: "en",
+        sport: "football",
+      }),
+    ).toBe(
+      "This Game is for OVR 70 to 87. You don't have a football OVR yet, so you're outside it. Declare a football Level on You, or request to play.",
+    );
+    expect(
+      formatLevelRangeGateCopy({
+        levelMinTenths: 35,
+        levelMaxTenths: null,
+        viewerLevelTenths: null,
+        locale: "ar",
+        sport: "football",
+      }),
+    ).toContain("ليس لديك OVR في كرة القدم بعد");
+  });
+});
+
+describe("football Level range picker bounds", () => {
+  it("labels a minimum with the rung's lowest OVR and a maximum with its highest", () => {
+    expect(displayRungOvrBound("C", "min")).toBe("64");
+    expect(displayRungOvrBound("C", "max")).toBe(
+      levelBandSelectOvr("C", "max"),
+    );
+    expect(displayRungOvrBound("B", "max")).toBe("86");
+  });
+
+  it("reads a picked bound as OVR and an open one as null", () => {
+    expect(levelBandSelectOvr("C", "min")).toBe("64");
+    expect(levelBandSelectOvr("B", "max")).toBe("86");
+    expect(levelBandSelectOvr("none", "min")).toBeNull();
   });
 });
 

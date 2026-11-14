@@ -1,16 +1,21 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { groupMembers, groups, user } from "@repo/db/schema";
+import {
+  groupLevelOverrides,
+  groupMembers,
+  groups,
+  user,
+} from "@repo/db/schema";
 import { createPgliteDb } from "@repo/db/testing";
 
 import {
   insertUser,
   setUpMatch,
 } from "#src/ratings/group-rated-match.test-support";
+import { writeLegacyGroupLevelsFor } from "#src/ratings/legacy-group-level.test-support";
 import { completeMatch } from "#src/routers/games/completeMatch";
 import { loadMyGroupLevels } from "#src/routers/ratings/myGroupLevels";
-import { setGroupLevelForMember } from "#src/routers/ratings/setGroupLevel";
 import {
   loadMyProfile,
   unbeatenRuns,
@@ -25,11 +30,12 @@ import { muFromLevel } from "@repo/domain/level";
 type Db = Parameters<typeof loadMyProfile>[0];
 
 describe("users.myProfile", () => {
-  it("reads General and one Group's scope", async () => {
+  it("reads General and one Group's scope from Group Levels written before they were retired", async () => {
     const { db, close } = await createPgliteDb();
     const database = db as unknown as Db;
     try {
       const first = await setUpMatch(db, { rated: true, groupRated: true });
+      await writeLegacyGroupLevelsFor(db as never, first);
       await completeMatch(database as never, {
         gameId: first.gameId,
         matchId: first.matchId,
@@ -44,6 +50,10 @@ describe("users.myProfile", () => {
           venueId: first.venueId,
         },
       );
+      await writeLegacyGroupLevelsFor(db as never, {
+        ...second,
+        groupId: first.groupId,
+      });
       await completeMatch(database as never, {
         gameId: second.gameId,
         matchId: second.matchId,
@@ -107,8 +117,8 @@ describe("users.myProfile", () => {
   });
 });
 
-describe("ratings.myGroupLevels and setGroupLevel", () => {
-  it("lists Group Levels with rank, count and who set them", async () => {
+describe("ratings.myGroupLevels", () => {
+  it("lists Group Levels written before they were retired, with rank, count and who set them", async () => {
     const { db, close } = await createPgliteDb();
     const database = db as unknown as Db;
     try {
@@ -118,6 +128,7 @@ describe("ratings.myGroupLevels and setGroupLevel", () => {
         matchId: played.matchId,
         userId: played.a.id,
       });
+      await writeLegacyGroupLevelsFor(db as never, played);
 
       const levels = await loadMyGroupLevels(database as never, {
         userId: played.a.id,
@@ -134,57 +145,24 @@ describe("ratings.myGroupLevels and setGroupLevel", () => {
         differenceFromGeneral: null,
       });
 
-      await setGroupLevelForMember(database as never, {
+      await db.insert(groupLevelOverrides).values({
+        userId: played.c.id,
         groupId: played.groupId,
-        setterUserId: played.a.id,
-        targetUserId: played.c.id,
-        levelTenths: 50,
+        setByUserId: played.a.id,
+        muBefore: muFromLevel(3),
+        phiBefore: 250,
+        sigmaBefore: 0.06,
+        levelBandBefore: "C2",
+        muAfter: muFromLevel(5),
+        phiAfter: 100,
+        sigmaAfter: 0.06,
+        levelBandAfter: "B3",
       });
       const cLevels = await loadMyGroupLevels(database as never, {
         userId: played.c.id,
         sport: "padel",
       });
-      expect(cLevels[0]).toMatchObject({
-        level: "5.0",
-        provisional: false,
-        rank: 1,
-        setBy: { name: "a" },
-      });
-    } finally {
-      await close();
-    }
-  });
-
-  it("lets only an Organizer set a Group Level", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const played = await setUpMatch(db, { rated: false, groupRated: true });
-      await expect(
-        setGroupLevelForMember(db as never, {
-          groupId: played.groupId,
-          setterUserId: played.b.id,
-          targetUserId: played.c.id,
-          levelTenths: 40,
-        }),
-      ).rejects.toThrow("Only an Organizer");
-    } finally {
-      await close();
-    }
-  });
-
-  it("starts a set Group Level from the Temba Rating's σ and leaves the Temba Level", async () => {
-    const { db, close } = await createPgliteDb();
-    try {
-      const played = await setUpMatch(db, { rated: false, groupRated: true });
-      await setGroupLevelForMember(db as never, {
-        groupId: played.groupId,
-        setterUserId: played.a.id,
-        targetUserId: played.d.id,
-        levelTenths: 45,
-      });
-      const row = await db.query.groupRatings.findFirst();
-      expect(row?.mu).toBe(muFromLevel(4.5));
-      expect(await db.query.ratings.findMany()).toHaveLength(0);
+      expect(cLevels[0]).toMatchObject({ setBy: { name: "a" } });
     } finally {
       await close();
     }

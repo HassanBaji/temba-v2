@@ -64,7 +64,7 @@ describe("group link request copy", () => {
 });
 
 describe("unlinking from a Venue copy", () => {
-  it("names the Venue and warns that new Games rate the group only", () => {
+  it("names the Venue and warns that new Games stop counting for Temba Level", () => {
     expect(groupLeaveVenueActionLabel("Smash Club", "en")).toBe(
       "Unlink from Smash Club",
     );
@@ -72,7 +72,7 @@ describe("unlinking from a Venue copy", () => {
     expect(confirm.title).toBe("Unlink from Smash Club?");
     expect(confirm.consequences).toHaveLength(2);
     expect(confirm.description).toContain("Tuesday Crew");
-    expect(confirm.description).toContain("group rating only");
+    expect(confirm.description).toContain("will not count for Temba Level");
     expect(confirm.description).toContain("Operator");
   });
 
@@ -81,7 +81,7 @@ describe("unlinking from a Venue copy", () => {
       "Unlink this Group?",
     );
     expect(venueUnlinkGroupConfirm("Tuesday Crew", "en").description).toContain(
-      "group rating only",
+      "will not count for Temba Level",
     );
   });
 });

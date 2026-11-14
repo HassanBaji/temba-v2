@@ -13,6 +13,7 @@ import type {
   FootballPosition,
   FootballRole,
 } from "@repo/domain/football-lineup";
+import { wholeOvrFromMu } from "@repo/domain/football-ovr";
 import { isFootballGame } from "@repo/domain/game-shape";
 import type { LevelBand } from "@repo/domain/level-bands";
 import type { MemberNicknameData } from "@repo/domain/member-nickname";
@@ -38,6 +39,8 @@ export type GroupMemberToAdd = {
   image: string | null;
   unclaimed: boolean;
   levelBand: LevelBand | null;
+  /** The whole OVR on a football Game, null on padel or without a Rating. */
+  ovr: number | null;
   footballRole: FootballRole | null;
   footballPosition: FootballPosition | null;
   status: GroupMemberToAddStatus;
@@ -48,6 +51,10 @@ export type ListGroupMembersToAddResult = {
   openSpots: number;
   members: GroupMemberToAdd[];
 } | null;
+
+function ovrOf(rating: { mu: number } | undefined, football: boolean) {
+  return football && rating ? wholeOvrFromMu(rating.mu) : null;
+}
 
 /** The Game's Group members, for the Organizer's Add player sheet. Null without a Group. */
 export async function listGroupMembersToAdd(
@@ -84,6 +91,7 @@ export async function listGroupMembersToAdd(
     },
   });
   const userIds = rows.map((row) => row.userId);
+  const football = isFootballGame(game);
   const [seated, waitlisted, levels] =
     userIds.length === 0
       ? [[], [], []]
@@ -105,16 +113,14 @@ export async function listGroupMembersToAdd(
           database.query.ratings.findMany({
             where: and(
               inArray(ratings.userId, userIds),
-              eq(ratings.sport, isFootballGame(game) ? "football" : "padel"),
+              eq(ratings.sport, football ? "football" : "padel"),
             ),
-            columns: { userId: true, levelBand: true },
+            columns: { userId: true, levelBand: true, mu: true },
           }),
         ]);
   const seatedIds = new Set(seated.map((row) => row.userId));
   const waitlistedIds = new Set(waitlisted.map((row) => row.userId));
-  const levelByUserId = new Map(
-    levels.map((row) => [row.userId, row.levelBand]),
-  );
+  const levelByUserId = new Map(levels.map((row) => [row.userId, row]));
 
   const viewer = {
     isApprover:
@@ -130,7 +136,8 @@ export async function listGroupMembersToAdd(
         nickname: visibleMemberNickname(membership, viewer),
         image: user.image ?? null,
         unclaimed: isUnclaimed(user),
-        levelBand: levelByUserId.get(user.id) ?? null,
+        levelBand: levelByUserId.get(user.id)?.levelBand ?? null,
+        ovr: ovrOf(levelByUserId.get(user.id), football),
         footballRole: user.preferredFootballRole ?? null,
         footballPosition: user.preferredFootballPosition ?? null,
         status: seatedIds.has(user.id)

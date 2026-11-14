@@ -5,6 +5,7 @@ import type { Sport } from "@repo/domain/sport";
 
 import { bookingGamePath, bookingPath } from "../booking/booking-model";
 import { playerMarksPath } from "../player-profile/player-path";
+import { ratingsPath } from "../profile/ratings-path";
 import { sportQuery } from "../booking/book-sport";
 import {
   COMPLETE_PROFILE_PATH,
@@ -20,6 +21,7 @@ export type HomeNavTarget =
   | { kind: "group"; groupId: string }
   | { kind: "groups" }
   | { kind: "marks"; userId: string; sport: Sport }
+  | { kind: "ratings"; sport: Sport }
   | { kind: "booking"; bookingId: string }
   | { kind: "booking-payment"; bookingId: string }
   | { kind: "booking-game"; bookingId: string }
@@ -41,6 +43,8 @@ export function homePath(target: HomeNavTarget): string {
       return "/groups";
     case "marks":
       return playerMarksPath(HOME_TAB, target.userId, target.sport);
+    case "ratings":
+      return ratingsPath(target.sport);
     case "create-game":
       return "/games/new";
     case "create-group":

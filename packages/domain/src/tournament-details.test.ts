@@ -56,6 +56,13 @@ describe("tournamentHomeView", () => {
     assert.equal(view.viewerSide?.left?.userId, "user-viewer");
   });
 
+  it("drops the leave action once the draw is posted", () => {
+    for (const game of [pool.postedMid, pool.finished]) {
+      const seated = { ...game, isSeated: true, canLeave: true };
+      assert.equal(tournamentHomeView(seated, "en").canLeaveGame, false);
+    }
+  });
+
   it("marks a posted draw as drawn", () => {
     assert.equal(tournamentHomeView(pool.postedMid, "en").drawn, true);
   });
@@ -128,8 +135,8 @@ describe("tournamentDetailRows", () => {
     });
     assert.deepEqual(ratingRow("group"), {
       label: "Counts for rating",
-      value: "Group rating only",
-      note: "Moves levels in this group only. Temba levels move in verified groups.",
+      value: "No",
+      note: "It counted for a group level, which padel no longer has. It moved no Temba Level.",
     });
     assert.deepEqual(ratingRow("unrated"), {
       label: "Counts for rating",

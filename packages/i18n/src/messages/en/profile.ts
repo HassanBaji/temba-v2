@@ -42,7 +42,7 @@ export const profile = {
   },
   football: {
     startingLevel: "Starting Level",
-    startingLevelNote: "Football games don't move it yet",
+    startingLevelNote: "Games that count for Temba Level move it",
     keeper: "Keeper",
     outfield: "Outfield",
     goalsScored: (n: number) =>
@@ -55,11 +55,12 @@ export const profile = {
       down: "Down after the last match",
       held: "Held after the last match",
     },
-    footballStartingCaption: "Starting Level. Football games don’t move it yet",
+    footballStartingCaption:
+      "Starting Level. Games that count for Temba Level move it",
     confirmProgress: (count: number, total: number) =>
       plural("en", total, {
-        one: `${count} of about 1 rated game to confirm`,
-        other: `${count} of about {n} rated games to confirm`,
+        one: `${count} of 1 match to confirm`,
+        other: `${count} of {n} matches to confirm`,
       }),
     topBand: "Top Level band",
     progressTo: (percent: number, next: string) =>
@@ -82,6 +83,9 @@ export const profile = {
       `Level ${band} ${level}, Provisional. ${caption}`,
     spokenLevel: (band: string, level: string, details: string) =>
       `Level ${band} ${level}. ${details}`,
+    spokenOvrProvisional: (ovr: string, caption: string) =>
+      `OVR ${ovr}, Provisional. ${caption}`,
+    spokenOvr: (ovr: string, details: string) => `OVR ${ovr}. ${details}`,
   },
   matches: {
     friendlyGame: "Friendly game",

@@ -4,9 +4,10 @@ import { messagesFor } from "@repo/i18n/messages";
 import { formatDayMonth } from "./format-game-start";
 import { ratingScopeOf, ratingScopeTag } from "./game-rating-impact";
 import type { GameRatingScope } from "./game-rating-scope";
-import { formatLevel } from "./level";
+import { formatPadelLevel, levelFromMu } from "./level";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import { shortPlayerName } from "./player-name";
+import { levelMoveDelta, levelMoveSteps } from "./rating-history";
 import {
   resultMarkLabel,
   type MatchOutcome,
@@ -21,6 +22,8 @@ export type PlayerMatchPlayer = {
   levelBand: LevelBand | null;
   level: string | null;
   provisional: boolean;
+  /** A Guest player: a name only, with no profile to open. */
+  guest?: boolean;
 };
 
 export type PlayerMatchGame = {
@@ -38,6 +41,8 @@ export type PlayerMatchRating = {
   bandBefore: LevelBand;
   bandAfter: LevelBand;
   levelChange: number;
+  muBefore: number;
+  muAfter: number;
 };
 
 /** One of the profile owner's Last 10 Matches, as `users.playerProfile` returns it. */
@@ -188,15 +193,23 @@ function partnerVenueLine(
     : venue;
 }
 
-function deltaWords(levelChange: number, locale: Locale) {
+/** The Match's move as the padel Level reads, two decimals: "+0.04". */
+function ratingDelta(rating: PlayerMatchRating) {
+  return levelMoveDelta("padel", rating.muBefore, rating.muAfter);
+}
+
+function signedRatingDelta(rating: PlayerMatchRating, locale: Locale) {
+  return messagesFor(locale).common.isolate(ratingDelta(rating));
+}
+
+function deltaWords(rating: PlayerMatchRating, locale: Locale) {
   const m = messagesFor(locale).profile.matches;
-  const label = levelChangeLabel(levelChange);
-  if (label === "0.0") {
+  const steps = levelMoveSteps("padel", rating.muBefore, rating.muAfter);
+  if (steps === 0) {
     return m.ratingUnchanged;
   }
-  return levelChange > 0
-    ? m.ratingUp(label.slice(1))
-    : m.ratingDown(label.slice(1));
+  const amount = ratingDelta(rating).slice(1);
+  return steps > 0 ? m.ratingUp(amount) : m.ratingDown(amount);
 }
 
 export function playerMatchRowView(
@@ -217,7 +230,7 @@ export function playerMatchRowView(
     formatDayMonth(match.playedAt, locale, { weekday: "long", month: "long" }),
     kind,
     sets.join(" "),
-    match.rating ? deltaWords(match.rating.levelChange, locale) : null,
+    match.rating ? deltaWords(match.rating, locale) : null,
     ratingTag,
   ];
 
@@ -238,9 +251,7 @@ export function playerMatchRowView(
     partnerVenue: partnerVenueLine(match, ownerId, locale),
     meta: m.dateComma(date, kind),
     sets,
-    delta: match.rating
-      ? signedLevelChange(match.rating.levelChange, locale)
-      : null,
+    delta: match.rating ? signedRatingDelta(match.rating, locale) : null,
     unrated: ratingScopeOf(match) === "unrated",
     ratingTag,
     accessibilityLabel: m.spokenParts(
@@ -328,6 +339,7 @@ export type PlayerMatchSheetPlayer = {
   image: string | null;
   /** "B 4.2", or null for the hatched placeholder while Provisional or unrated. */
   level: string | null;
+  guest: boolean;
   accessibilityLabel: string;
 };
 
@@ -373,14 +385,15 @@ function sheetPlayer(
     name: player.name,
     image: player.image,
     level,
+    guest: player.guest === true,
     accessibilityLabel: level
       ? m.playerLevel(player.name, level)
       : m.playerProvisional(player.name),
   };
 }
 
-function bandLevel(band: LevelBand, level: number) {
-  return `${displayLabelFromStoredBand(band)} ${formatLevel(level)}`;
+function bandLevel(band: LevelBand, mu: number) {
+  return `${displayLabelFromStoredBand(band)} ${formatPadelLevel(levelFromMu(mu), 2)}`;
 }
 
 function sheetRating(
@@ -390,18 +403,18 @@ function sheetRating(
 ) {
   const m = messagesFor(locale).profile.matchSheet;
   const label = m.ratingOf(shortPlayerName(ownerName));
-  const before = bandLevel(rating.bandBefore, rating.levelBefore);
-  const after = bandLevel(rating.bandAfter, rating.levelAfter);
+  const before = bandLevel(rating.bandBefore, rating.muBefore);
+  const after = bandLevel(rating.bandAfter, rating.muAfter);
   return {
     label,
     before,
     after,
-    delta: signedLevelChange(rating.levelChange, locale),
+    delta: signedRatingDelta(rating, locale),
     accessibilityLabel: m.ratingSpoken(
       label,
       before,
       after,
-      deltaWords(rating.levelChange, locale),
+      deltaWords(rating, locale),
     ),
   };
 }

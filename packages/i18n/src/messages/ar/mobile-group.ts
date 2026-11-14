@@ -1,4 +1,5 @@
 import { plural } from "../../plural";
+import { isolate } from "../../bidi";
 import type { mobileGroup as source } from "../en/mobile-group";
 
 export const mobileGroup = {
@@ -248,14 +249,21 @@ export const mobileGroup = {
     newLevel: "المستوى الجديد",
     readout: (band: string, level: string, delta: string) =>
       `المستوى الجديد ${band} ${level}، ${delta}`,
+    readoutOvr: (ovr: string, delta: string) =>
+      `المستوى الجديد ${isolate("OVR")} ${isolate(ovr)}، ${delta}`,
     toNext: (distance: string, label: string) => `${distance} حتى ${label}`,
     topOfScale: "أعلى المقياس",
     throughRung: (percent: number, rung: string) => `${percent}% من ${rung}`,
     nowMarker: (label: string) => `الآن ${label}`,
     decrease: "خفض المستوى بمقدار 0.1",
     increase: "رفع المستوى بمقدار 0.1",
+    decreaseOvr: "خفض OVR بمقدار 1",
+    increaseOvr: "رفع OVR بمقدار 1",
     reset: "إعادة ضبط",
-    reason: "السبب",
+    why: (name: string) => `لماذا؟ سيرى ${name} هذا.`,
+    noteLabel: "ملاحظة",
+    notePlaceholder: "أضف ملاحظة (اختياري)",
+    pickReason: "اختر سببًا للحفظ",
     note: "المستوى الذي تحدده يُعدّ مؤكدًا. تواصل المباريات المصنّفة تحريكه من هنا.",
     noteProvisional: (firstName: string) =>
       `لن يعود ${firstName} مبدئيًا، ولن يغيّر التحديد مجددًا ذلك.`,
@@ -266,12 +274,6 @@ export const mobileGroup = {
       `حُدد مستوى ${name} على ${label}.`,
     savedReason: (reason: string) => `السبب: ${reason}.`,
     dismiss: "إغلاق",
-  },
-  setGroupLevel: {
-    groupLevel: (label: string) => `مستوى المجموعة ${label}`,
-    tembaLevel: (label: string) => `مستوى Temba ${label}`,
-    noTembaLevel: "لا مستوى Temba بعد",
-    tembaMarker: (label: string) => `Temba ${label}`,
   },
   seasons: {
     title: "المواسم",

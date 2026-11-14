@@ -1,5 +1,9 @@
 import { bibColors, radii, sizes } from "@repo/design-tokens";
-import { type FootballBib } from "@repo/domain/football-lineup";
+import {
+  type FootballBalanceOn,
+  type FootballBib,
+} from "@repo/domain/football-lineup";
+import type { GroupMemberTierCell } from "@repo/domain/group-members-table";
 import { Pressable, View } from "react-native";
 
 import { NicknameName } from "../primitives/nickname-name";
@@ -7,14 +11,17 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { useTonePalette } from "../primitives/surface-context";
-import { useColorSchemeName } from "../theme/theme-provider";
+import { useColors, useColorSchemeName } from "../theme/theme-provider";
 import { Text } from "../primitives/text";
+import { TierCell } from "../groups/tier-fish";
 import { BibChip } from "./bib-picker";
 import {
+  boardTierCell,
   byKeeperThenLevel,
-  levelLabel,
   lineupName,
-  sideAverage,
+  ovrLabel,
+  ovrSpoken,
+  sideOvrAverage,
   slotCode,
   type Bibs,
   type BoardPlayer,
@@ -22,17 +29,40 @@ import {
 
 const ROW_HEIGHT = 44;
 
-/** A player row in their team's bib colour; the viewer's row is ringed. */
+/** A player's fish on a paper tile, so it reads on any bib colour. */
+export function TierMark({ cell }: { cell: GroupMemberTierCell }) {
+  const colors = useColors();
+  return (
+    <View
+      style={{
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+        borderRadius: radii.sm,
+        backgroundColor: colors.paper,
+      }}
+    >
+      <TierCell cell={cell} />
+    </View>
+  );
+}
+
+/**
+ * A player row in their team's bib colour; the viewer's row is ringed.
+ * The OVR sits at the end, or with `showTier` the player's fish in a tier
+ * Group.
+ */
 export function BibRow({
   player,
   bib,
   trailing,
   onPress,
+  showTier = false,
 }: {
   player: BoardPlayer;
   bib: FootballBib;
   trailing?: React.ReactNode;
   onPress?: () => void;
+  showTier?: boolean;
 }) {
   const messages = useMessages();
   const locale = useLocale();
@@ -45,10 +75,17 @@ export function BibRow({
   const edge = blendsIn ? palette.muted : fill;
   const { name, spoken, isNickname } = lineupName(player, locale);
   const code = slotCode(player, locale);
+  const tierCell = showTier ? boardTierCell(player, locale) : null;
+  const level = ovrLabel(player);
   return (
     <Pressable
       accessibilityRole={onPress ? "button" : undefined}
-      accessibilityLabel={[spoken, code, levelLabel(player.levelBand)]
+      accessibilityLabel={[
+        spoken,
+        code,
+        tierCell ? tierCell.label : ovrSpoken(player, locale),
+        player.guest ? messages.group.addPlayer.guest.tag : null,
+      ]
         .filter(Boolean)
         .join(messages.tournament.listSeparator)}
       disabled={!onPress}
@@ -65,7 +102,12 @@ export function BibRow({
         borderColor: player.isViewer ? palette.foreground : edge,
       }}
     >
-      <Avatar name={player.name} uri={player.image} size="sm" />
+      <Avatar
+        name={player.name}
+        uri={player.image}
+        size="sm"
+        guest={player.guest}
+      />
       <NicknameName
         name={name}
         isNickname={isNickname}
@@ -80,30 +122,41 @@ export function BibRow({
           {code}
         </Text>
       ) : null}
-      <Text
-        size="meta"
-        width="expanded"
-        weight="bold"
-        ltr
-        style={{ color: on }}
-      >
-        {levelLabel(player.levelBand)}
-      </Text>
+      {tierCell ? (
+        <TierMark cell={tierCell} />
+      ) : (
+        <Text
+          size="meta"
+          width="expanded"
+          weight="bold"
+          ltr
+          style={{ color: on }}
+        >
+          {level}
+        </Text>
+      )}
       {trailing}
     </Pressable>
   );
 }
 
+/**
+ * A published side's heading. The mean reads in OVR, and is left out in a
+ * tier Group, where the rows show fish and points are not everyone's to see.
+ */
 export function TeamHeader({
   bib,
   name,
   players,
+  balanceOn,
 }: {
   bib: FootballBib;
   name: string;
   players: readonly BoardPlayer[];
+  balanceOn: FootballBalanceOn;
 }) {
   const messages = useMessages();
+  const locale = useLocale();
   return (
     <View
       style={{
@@ -119,23 +172,30 @@ export function TeamHeader({
           {name}
         </Text>
       </View>
-      <Text size="eyebrow" tone="muted">
-        {messages.game.played.avg(sideAverage(players))}
-      </Text>
+      {balanceOn === "ovr" ? (
+        <Text size="eyebrow" tone="muted">
+          {messages.game.played.avg(sideOvrAverage(players, locale))}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
-/** The two published teams side by side. */
+/**
+ * The two published teams side by side. A row shows the player's OVR, or
+ * their fish in a tier Group, as Make teams does.
+ */
 export function TeamColumns({
   players,
   bibs,
   names,
+  balanceOn,
   onOpenPlayer,
 }: {
   players: readonly BoardPlayer[];
   bibs: Bibs;
   names: { slot1: string; slot2: string };
+  balanceOn: FootballBalanceOn;
   onOpenPlayer?: (userId: string) => void;
 }) {
   const m = useMessages().mobileTournament.card;
@@ -152,12 +212,14 @@ export function TeamColumns({
           bib={bib}
           name={index === 1 ? names.slot1 : names.slot2}
           players={members}
+          balanceOn={balanceOn}
         />
         {members.map((player) => (
           <BibRow
             key={player.userId}
             player={player}
             bib={bib}
+            showTier={balanceOn === "tierPoints"}
             onPress={
               onOpenPlayer ? () => onOpenPlayer(player.userId) : undefined
             }

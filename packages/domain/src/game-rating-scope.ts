@@ -4,9 +4,10 @@ import { messagesFor } from "@repo/i18n/messages";
 import type { Sport } from "./sport";
 
 /**
- * Rating scope (ADR-0053): what a Game's completed Matches rate. `temba`
- * moves the Temba Level and the Group Level, `group` the Group Level only,
- * `unrated` neither. Stored as `games.rated` and `games.group_rated`.
+ * Rating scope (ADR-0066): what a Game's completed Matches move. `temba`
+ * moves the Temba Level, `group` Tier points on football, `unrated` neither.
+ * A padel Game completed before the Group Level was retired can still read
+ * `group`. Stored as `games.rated` and `games.group_rated`.
  */
 export const GAME_RATING_SCOPES = ["temba", "group", "unrated"] as const;
 
@@ -23,25 +24,101 @@ export function gameRatingScope(game: {
 }
 
 /**
- * The two stored flags for a new Game. Only a padel Game on a Group rates;
- * a Verified Group's also moves the Temba Level. `rated` is the creator's
- * choice, false for Unrated.
+ * A Public Game is a Friendly game with no Group that anyone in its Level
+ * range may join (ADR-0071). A public tournament on a Group is not one.
+ */
+export function isPublicGame(game: {
+  isPublic?: boolean | null;
+  groupId: string | null;
+}) {
+  return game.isPublic === true && game.groupId == null;
+}
+
+/** A tier Group is a football Group that is not Verified (ADR-0066). */
+export function groupHasTier(group: {
+  sport: string | null | undefined;
+  verified: boolean;
+}) {
+  return group.sport === "football" && !group.verified;
+}
+
+/**
+ * The two stored flags for a new Game. A padel Game on a Verified Group moves
+ * the Temba Level, and on any other Group is Unrated: padel Groups keep only a
+ * Standing (ADR-0066). A football Game on a tier Group moves Tier points, and
+ * on a Verified Group the Temba Level only (ADR-0069). A Public Game moves
+ * the Temba Level once both sides confirm (ADR-0071). `rated` is the
+ * creator's choice, false for Unrated.
  */
 export function ratingFlagsAtCreate(args: {
   hasGroup: boolean;
   groupVerified: boolean;
   sport: Sport;
   rated: boolean;
+  isPublic?: boolean;
 }): { rated: boolean; groupRated: boolean } {
-  const groupRated = args.hasGroup && args.sport === "padel" && args.rated;
-  return { rated: groupRated && args.groupVerified, groupRated };
+  if (args.isPublic) {
+    return { rated: true, groupRated: false };
+  }
+  if (args.sport === "football") {
+    const counts = args.hasGroup && args.rated;
+    return {
+      rated: counts && args.groupVerified,
+      groupRated: counts && !args.groupVerified,
+    };
+  }
+  return {
+    rated: args.hasGroup && args.rated && args.groupVerified,
+    groupRated: false,
+  };
 }
 
-/** The scope a creator gets if they keep the Game rated. */
-export function ratedScopeForGroup(groupVerified: boolean): GameRatingScope {
-  return groupVerified ? "temba" : "group";
+/**
+ * The scope a creator gets if they keep the Game rated: the Temba Level on a
+ * Verified Group, Tier points on a tier Group, nothing on a padel Group that
+ * is not Verified. A missing sport reads as padel.
+ */
+export function ratedScopeForGroup(
+  groupVerified: boolean,
+  sport?: Sport,
+): GameRatingScope {
+  if (groupVerified) {
+    return "temba";
+  }
+  return sport === "football" ? "group" : "unrated";
 }
 
-export function gameRatingScopeLabel(scope: GameRatingScope, locale: Locale) {
-  return messagesFor(locale).you.ratingScope[scope];
+/** On football the `group` scope reads as a group tier, `temba` as the Temba Level. */
+export function gameRatingScopeLabel(
+  scope: GameRatingScope,
+  locale: Locale,
+  sport?: string | null,
+) {
+  const m = messagesFor(locale);
+  if (sport === "football" && scope !== "unrated") {
+    return m.rating.scope[scope];
+  }
+  return m.you.ratingScope[scope];
+}
+
+/** The line under a `group` scope, which differs by sport. */
+export function groupRatingScopeNote(
+  locale: Locale,
+  sport?: string | null,
+): string {
+  const m = messagesFor(locale);
+  return sport === "football"
+    ? m.rating.scope.groupNote
+    : m.you.ratingScope.group_note;
+}
+
+/** The line under a `temba` scope, which differs by sport. */
+export function tembaRatingScopeNote(
+  locale: Locale,
+  sport?: string | null,
+): string {
+  const m = messagesFor(locale);
+  return sport === "football"
+    ? m.rating.scope.tembaNote
+    : m.you.ratingScope.temba_note;
 }

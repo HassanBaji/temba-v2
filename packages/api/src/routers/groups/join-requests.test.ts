@@ -10,10 +10,12 @@ import {
   GroupMemberRoleEnum,
   groups,
   GroupTypeEnum,
+  ratings,
   user,
   venueManagers,
   venues,
 } from "@repo/db/schema";
+import { muFromOvr } from "@repo/domain/football-ovr";
 
 import { acceptInviteLink } from "#src/routers/groups/acceptInviteLink";
 import { acceptLookupInvite } from "#src/routers/groups/acceptLookupInvite";
@@ -276,6 +278,49 @@ describe("group join requests", () => {
         userId: creator.id,
       });
       expect(after).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("sends a requester's whole OVR in a football Group, and none on padel", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "ovr-creator@example.com");
+      const joiner = await insertUser(db, "ovr-joiner@example.com");
+      await db.insert(ratings).values(
+        (["football", "padel"] as const).map((sport) => ({
+          userId: joiner.id,
+          sport,
+          mu: muFromOvr(72),
+          phi: 120,
+          sigma: 0.06,
+          levelBand: "C1" as const,
+        })),
+      );
+      const levelIn = async (sport: "padel" | "football") => {
+        const group = await createLoosePublic(db, {
+          name: `${sport} Crew`,
+          sport,
+          userId: creator.id,
+          requiresApproval: true,
+        });
+        await requestJoin(db, { groupId: group.id, userId: joiner.id });
+        const [request] = await listJoinRequests(db, {
+          groupId: group.id,
+          userId: creator.id,
+        });
+        return request?.level;
+      };
+
+      expect(await levelIn("football")).toMatchObject({
+        levelBand: "C1",
+        ovr: 72,
+      });
+      expect(await levelIn("padel")).toMatchObject({
+        levelBand: "C1",
+        ovr: null,
+      });
     } finally {
       await close();
     }

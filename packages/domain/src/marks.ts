@@ -88,12 +88,44 @@ export function marksWindow(
   completedAt: Date | null,
   now: Date,
 ): MarksWindow | null {
+  return windowFor(completedAt, now, MARKS_WINDOW_HOURS);
+}
+
+/**
+ * The MVP's window. On a Match with a Rating window it closes with that
+ * window (ADR-0068), so the MVP is known when the move is shown: at the
+ * window's close, or when it settled earlier because the rating Organizer
+ * submitted. On any other Match it is the Marks window.
+ */
+export function mvpWindow(
+  completedAt: Date | null,
+  now: Date,
+  ratingWindow: { closesAt: Date; settledAt: Date | null } | null,
+): MarksWindow | null {
+  if (!completedAt || !ratingWindow) {
+    return windowFor(completedAt, now, MARKS_WINDOW_HOURS);
+  }
+  const { closesAt, settledAt } = ratingWindow;
+  const closedAt =
+    settledAt && settledAt.getTime() < closesAt.getTime()
+      ? settledAt
+      : closesAt;
+  return {
+    state: now.getTime() < closedAt.getTime() ? "open" : "closed",
+    opensAt: completedAt,
+    closesAt: closedAt,
+  };
+}
+
+function windowFor(
+  completedAt: Date | null,
+  now: Date,
+  hours: number,
+): MarksWindow | null {
   if (!completedAt) {
     return null;
   }
-  const closesAt = new Date(
-    completedAt.getTime() + MARKS_WINDOW_HOURS * MS_PER_HOUR,
-  );
+  const closesAt = new Date(completedAt.getTime() + hours * MS_PER_HOUR);
   return {
     state: now.getTime() < closesAt.getTime() ? "open" : "closed",
     opensAt: completedAt,

@@ -3,8 +3,6 @@ import { plural } from "../../plural";
 
 export const webYou = {
   sportsLabel: "رياضاتك",
-  scopesLabel: "نطاق المستوى",
-  scaleLabel: "مستويات المجموعات مقارنة بمستواك العام",
   noData: "—",
   outcome: {
     won: "فوز",
@@ -23,8 +21,6 @@ export const webYou = {
         many: "{n} هدفًا",
         other: "{n} هدف",
       }),
-    sameAsYours: "مثل مستواك",
-    same: "مثله",
   },
   settings: {
     changePassword: "تغيير كلمة المرور",

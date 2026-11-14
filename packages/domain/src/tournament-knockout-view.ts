@@ -348,10 +348,13 @@ export function postedKnockoutRounds(args: {
   return rounds;
 }
 
-/** The Game team that won the Final, or was awarded it as a Walkover. */
-export function knockoutChampion(
+/**
+ * Both teams of a settled Final: the Champion (who won it, or was awarded it
+ * as a Walkover) and the runner-up. Null until the Final has a winner.
+ */
+export function knockoutFinalists(
   rounds: readonly KnockoutViewRound[] | null,
-): KnockoutViewTeam | null {
+): { champion: KnockoutViewTeam; runnerUp: KnockoutViewTeam | null } | null {
   const final = rounds?.at(-1)?.places[0];
   if (final?.kind !== "match") {
     return null;
@@ -360,8 +363,22 @@ export function knockoutChampion(
   if (through == null) {
     return null;
   }
-  const side = through === 1 ? final.slot1 : final.slot2;
-  return side.kind === "team" ? side.team : null;
+  const [won, lost] =
+    through === 1 ? [final.slot1, final.slot2] : [final.slot2, final.slot1];
+  if (won.kind !== "team") {
+    return null;
+  }
+  return {
+    champion: won.team,
+    runnerUp: lost.kind === "team" ? lost.team : null,
+  };
+}
+
+/** The Game team that won the Final, or was awarded it as a Walkover. */
+export function knockoutChampion(
+  rounds: readonly KnockoutViewRound[] | null,
+): KnockoutViewTeam | null {
+  return knockoutFinalists(rounds)?.champion ?? null;
 }
 
 /**

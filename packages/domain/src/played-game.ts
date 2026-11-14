@@ -5,8 +5,10 @@ import {
   byKeeperThenLevel,
   bibNames,
   levelLabel,
+  ovrLabel,
+  ovrSpoken,
   shortName,
-  sideAverage,
+  sideOvrAverage,
   slotCode,
   type Bibs,
   type BoardPlayer,
@@ -16,6 +18,7 @@ import {
   type FootballBib,
   type FootballTeamsMethod,
 } from "./football-lineup";
+import { wholeOvrFromMu } from "./football-ovr";
 import { formatGameClock, formatGameDay } from "./format-game-start";
 import type { FriendlyGameDetailsSide } from "./friendly-game-details";
 import type { FriendlyGameHeroMatch } from "./friendly-game-hero";
@@ -43,10 +46,19 @@ export type PlayedRow = {
   /** LEFT or RIGHT on padel; GK, DEF, MID or FWD on football. */
   meta: string | null;
   level: string;
+  /**
+   * How a screen reader says `level`: "OVR 72" on football, null without
+   * one; padel leaves it to the App.
+   */
+  levelSpoken?: string | null;
   /** "2 goals" on football, nothing on padel. */
   trailing: string | null;
   unclaimed: boolean;
+  /** A Guest player: a name only, nothing opens on tap for players. */
+  guest: boolean;
   phoneMasked: string | null;
+  /** E.164, sent only to a Group approver for a current member (ADR-0078). */
+  phoneNumber: string | null;
 };
 
 export type PlayedColumn = {
@@ -77,6 +89,12 @@ export type PlayedYouLine = {
 export type PlayedRatingImpact = {
   levelChange: number;
   newLevelBand: LevelBand;
+};
+
+/** A football Match's Rating move, read in OVR from the μ it left (ADR-0087). */
+export type PlayedFootballRatingImpact = {
+  levelChange: number;
+  muAfter: number;
 };
 
 export type PlayedPlace = {
@@ -151,6 +169,30 @@ export function playedRatingLine(
     return m.ratingMovesDown(band);
   }
   return m.ratingHolds(band);
+}
+
+/** "Counts for rating, OVR 72 moves up": the football line names the OVR the Match left, never a band. */
+export function playedFootballRatingLine(
+  rated: boolean,
+  impact: PlayedFootballRatingImpact | null,
+  locale: Locale,
+) {
+  const messages = messagesFor(locale);
+  const m = messages.game.played;
+  if (!rated) {
+    return m.friendlyNoRating;
+  }
+  if (!impact) {
+    return m.countsForRating;
+  }
+  const ovr = messages.rating.ovr.value(String(wholeOvrFromMu(impact.muAfter)));
+  if (impact.levelChange > 0) {
+    return m.ratingMovesUp(ovr);
+  }
+  if (impact.levelChange < 0) {
+    return m.ratingMovesDown(ovr);
+  }
+  return m.ratingHolds(ovr);
 }
 
 export function playedWord(won: boolean, hasWinner: boolean): PlayedWord {
@@ -281,6 +323,7 @@ export type PlayedPadelInput = PlayedPlace & {
   groupName: string | null;
   rated: boolean;
   ratingScope?: GameRatingScope;
+  publicGame?: boolean;
   ratingImpact: PlayedRatingImpact | null;
   confirmation: { confirmedByOrganizer?: boolean } | null;
 };
@@ -324,7 +367,9 @@ function padelRows(
         level: levelLabel(seat.levelBand),
         trailing: null,
         unclaimed: Boolean(seat.unclaimed),
+        guest: Boolean(seat.guest),
         phoneMasked: seat.phoneMasked ?? null,
+        phoneNumber: seat.phoneNumber ?? null,
       },
     ];
   });
@@ -389,8 +434,9 @@ export function playedPadelModel(
   const you: PlayedYouLine | null = viewerSide
     ? {
         line: partner ? m.playedWith(shortName(partner.name)) : m.playedAlone,
-        ratingLine:
-          scope === "group"
+        ratingLine: input.match.stoodUnconfirmed
+          ? messages.rating.publicGame.stood
+          : scope === "group"
             ? gameRatingScopeLabel(scope, locale)
             : playedRatingLine(input.rated, input.ratingImpact, locale),
         tag: youTag(youWord),
@@ -422,9 +468,15 @@ export function playedPadelModel(
     ...(input.groupName ? [{ label: m.group, value: input.groupName }] : []),
     {
       label: m.confirmed,
-      value: input.confirmation?.confirmedByOrganizer
-        ? m.byTheOrganizer
-        : m.byBothPairs,
+      value: input.match.stoodUnconfirmed
+        ? messages.rating.publicGame.notInTime
+        : input.match.stamp
+          ? messages.rating.verifier.stamp.stampedBy(
+              input.match.stamp.verifierName,
+            )
+          : input.confirmation?.confirmedByOrganizer
+            ? m.byTheOrganizer
+            : m.byBothPairs,
     },
     {
       label: m.format,
@@ -432,7 +484,10 @@ export function playedPadelModel(
     },
     {
       label: messages.you.ratingScope.title,
-      value: gameRatingScopeLabel(scope, locale),
+      value:
+        input.publicGame && scope === "temba"
+          ? messages.rating.scope.temba
+          : gameRatingScopeLabel(scope, locale),
     },
   ];
 
@@ -475,7 +530,11 @@ export type PlayedFootballInput = PlayedPlace & {
   sideSize: number | null;
   groupName: string | null;
   rated: boolean;
-  ratingImpact: PlayedRatingImpact | null;
+  ratingImpact: PlayedFootballRatingImpact | null;
+  /** A Public Game's score the other side did not confirm in time (ADR-0071). */
+  stoodUnconfirmed?: boolean;
+  /** The Verifier who stamped the score (ADR-0072). */
+  stampedByName?: string | null;
 };
 
 export type PlayedFootballModel = {
@@ -507,10 +566,13 @@ function footballRow(player: BoardPlayer, locale: Locale): PlayedRow {
     image: player.image,
     isYou: player.isViewer,
     meta: slotCode(player, locale),
-    level: levelLabel(player.levelBand),
+    level: ovrLabel(player),
+    levelSpoken: ovrSpoken(player, locale),
     trailing: player.goals > 0 ? goalsLabel(player.goals, locale) : null,
     unclaimed: Boolean(player.unclaimed),
+    guest: Boolean(player.guest),
     phoneMasked: player.phoneMasked ?? null,
+    phoneNumber: player.phoneNumber ?? null,
   };
 }
 
@@ -550,7 +612,7 @@ export function playedFootballModel(
   ): PlayedFootballSide => ({
     name: index === 1 ? names.slot1 : names.slot2,
     bib: index === 1 ? input.bibs.slot1 : input.bibs.slot2,
-    average: m.avg(sideAverage(players)),
+    average: m.avg(sideOvrAverage(players, locale)),
     score: index === 1 ? input.score.slot1 : input.score.slot2,
     won,
   });
@@ -580,7 +642,9 @@ export function playedFootballModel(
             const code = slotCode(viewer, locale);
             return code ? m.playedCodeFor(code, team) : m.playedFor(team);
           })(),
-          ratingLine: playedRatingLine(input.rated, input.ratingImpact, locale),
+          ratingLine: input.stoodUnconfirmed
+            ? messages.rating.publicGame.stood
+            : playedFootballRatingLine(input.rated, input.ratingImpact, locale),
           tag: youTag(youWord),
           won: viewerWon,
         }
@@ -608,10 +672,13 @@ export function playedFootballModel(
       : []),
     {
       label: m.confirmed,
-      value:
-        input.confirmed.slot1 && input.confirmed.slot2
-          ? m.byBothSides
-          : m.byTheOrganizer,
+      value: input.stoodUnconfirmed
+        ? messages.rating.publicGame.notInTime
+        : input.stampedByName
+          ? messages.rating.verifier.stamp.stampedBy(input.stampedByName)
+          : input.confirmed.slot1 && input.confirmed.slot2
+            ? m.byBothSides
+            : m.byTheOrganizer,
     },
     {
       label: m.teams,
@@ -623,7 +690,10 @@ export function playedFootballModel(
     },
     {
       label: m.countsForRatingLabel,
-      value: input.rated ? messages.common.yes : messages.common.no,
+      value:
+        input.rated && !input.stoodUnconfirmed
+          ? messages.common.yes
+          : messages.common.no,
     },
   ];
 

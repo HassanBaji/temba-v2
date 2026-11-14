@@ -7,24 +7,31 @@ import { homeTrendView } from "./home-level-trend";
 const box = { width: 100, height: 60, inset: 10 };
 
 const base = {
-  band: "C2",
-  level: "3.1",
-  provisional: false,
-  ratedMatchesRemaining: 0,
-  history: ["2.9", "3.0", "2.8", "3.1"],
+  face: "level",
+  history: ["2.90", "3.00", "2.80", "3.10"],
   historySteps: ["won", "lost", "won"],
   historyMatchCount: 3,
-  progressPercent: 46,
 } as const;
 
 describe("homeTrendView", () => {
   it("reads the change from the first point to the latest", () => {
     const view = homeTrendView(base, box, "en");
-    assert.equal(view?.signedDelta, isolate("+0.2"));
-    assert.equal(view?.from, "2.9");
-    assert.equal(view?.to, "3.1");
+    assert.equal(view?.signedDelta, isolate("+0.20"));
+    assert.equal(view?.from, "2.90");
+    assert.equal(view?.to, "3.10");
     assert.equal(view?.window, "last 3 matches");
     assert.equal(view?.startLabel, "3 matches ago");
+  });
+
+  it("reads football in whole OVR points", () => {
+    const view = homeTrendView(
+      { ...base, face: "ovr", history: ["72", "73", "71", "74"] },
+      box,
+      "en",
+    );
+    assert.equal(view?.signedDelta, isolate("+2"));
+    assert.equal(view?.from, "72");
+    assert.equal(view?.to, "74");
   });
 
   it("marks each point by what moved the Level there", () => {
@@ -77,7 +84,7 @@ describe("homeTrendView", () => {
     const view = homeTrendView(
       {
         ...base,
-        history: ["3.0", "3.0"],
+        history: ["3.00", "3.00"],
         historySteps: ["drawn"],
         historyMatchCount: 1,
       },
@@ -93,7 +100,7 @@ describe("homeTrendView", () => {
   it("is null before a Rated Match has moved the Level", () => {
     assert.equal(
       homeTrendView(
-        { ...base, history: ["3.0"], historySteps: [], historyMatchCount: 0 },
+        { ...base, history: ["3.00"], historySteps: [], historyMatchCount: 0 },
         box,
         "en",
       ),
@@ -103,7 +110,7 @@ describe("homeTrendView", () => {
       homeTrendView(
         {
           ...base,
-          history: ["3.0", "4.0"],
+          history: ["3.00", "4.00"],
           historySteps: ["set"],
           historyMatchCount: 0,
         },

@@ -13,10 +13,6 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaimed-player-dialog";
-import {
-  SetGroupLevelDialog,
-  type SetGroupLevelMember,
-} from "~/components/groups/set-group-level-dialog";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { DeleteGroupSheet } from "~/components/groups/delete-group-sheet";
@@ -30,8 +26,9 @@ import { VenueLinkRequestActions } from "~/components/groups/venue-link-request-
 import { GroupHomeChrome } from "~/components/groups/group-home-chrome";
 import {
   groupMemberOrganizerToast,
+  groupLevelFace,
   groupShowsLevel,
-  viewerMaySetGroupLevel,
+  viewerMayAdjustTier,
 } from "@repo/domain/group-home-chrome";
 import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-menu";
 import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
@@ -96,6 +93,7 @@ import {
   groupMenuRoleLine,
   groupSeasonCount,
 } from "@repo/domain/group-settings";
+import { ratingSettingsSummary } from "@repo/domain/group-rating-settings";
 import { groupInviteClipboardText } from "@repo/domain/group-invite-share-message";
 import { groupLookupNote } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
@@ -152,8 +150,6 @@ export default function GroupHomePage({
     userId: string;
     name: string;
   } | null>(null);
-  const [settingGroupLevel, setSettingGroupLevel] =
-    useState<SetGroupLevelMember | null>(null);
   const [restoreFocus, setRestoreFocus] = useState<"mobile" | "desktop">(
     "desktop",
   );
@@ -530,11 +526,6 @@ export default function GroupHomePage({
   const canShowCreateGame = groupHomeCanShowCreateGame({
     canCreateGame: data.canCreateGame,
   });
-  const canSetGroupLevel = viewerMaySetGroupLevel({
-    sport: data.sport,
-    canCreateGame: data.canCreateGame,
-    leaderboard: data.standing.leaderboard,
-  });
   const canManageInvites = groupHomeCanManageInvites({
     canManageLookupInvites: data.canManageLookupInvites,
     canManageInviteLinks: data.canManageInviteLinks,
@@ -560,6 +551,7 @@ export default function GroupHomePage({
     canUnlinkVenue: data.canUnlinkFromVenue,
     canManageSeasons: data.canManageSeasons,
     canEdit: data.canEdit,
+    canChangeRatingSettings: data.ratingSettings != null,
   });
   const leaveConfirm = groupLeaveConfirm(groupName, locale);
   const leaveVenueConfirm = groupLeaveVenueConfirm(
@@ -589,6 +581,11 @@ export default function GroupHomePage({
         isLoose: data.isLoose,
         locale,
       })}
+      ratingSettingsHint={
+        data.ratingSettings
+          ? ratingSettingsSummary(data.ratingSettings, locale)
+          : null
+      }
       venueName={data.venue?.name ?? null}
       triggerRef={
         which === "mobile" ? mobileMenuTriggerRef : desktopMenuTriggerRef
@@ -710,6 +707,9 @@ export default function GroupHomePage({
               canInvite={canManageInvites}
               onInvite={() => setInvitesOpen(true)}
               canManageSeasons={data.canManageSeasons}
+              hasTier={data.hasTier}
+              ratingSettingsLine={data.ratingSettingsLine}
+              onOpenMembers={() => setTab("members")}
             />
           </TabsContent>
           <TabsContent value="games" forceMount className={TAB_PANEL}>
@@ -742,10 +742,14 @@ export default function GroupHomePage({
                 canSetLevel={
                   data.viewerCanSetLevel && groupShowsLevel(data.sport)
                 }
-                onSetGroupLevel={
-                  canSetGroupLevel ? setSettingGroupLevel : undefined
-                }
-                showLevel={groupShowsLevel(data.sport)}
+                showLevel={groupShowsLevel(data.sport, data.verified)}
+                levelFace={groupLevelFace(data.sport)}
+                tierSummary={data.hasTier ? data.tierSummary : null}
+                groupName={data.name ?? m.webGroup.groupFallback}
+                canAdjustTier={viewerMayAdjustTier({
+                  hasTier: data.hasTier,
+                  leaderboard: data.standing.leaderboard,
+                })}
                 savedUserId={savedUserId}
                 onDismissSaved={() =>
                   router.replace(groupMembersTabHref(id), { scroll: false })
@@ -762,9 +766,11 @@ export default function GroupHomePage({
                   levelBand: entry.levelBand,
                   levelProvisional: entry.levelProvisional,
                   level: entry.level,
+                  ovr: entry.ovr,
                   ratedMatchCount: entry.ratedMatchCount,
                   levelOverride: entry.levelOverride,
                   groupLevel: entry.groupLevel,
+                  tier: entry.tier,
                   unclaimed: entry.unclaimed,
                   phoneMasked: entry.phoneMasked,
                   phoneNumber: entry.phoneNumber,
@@ -1010,15 +1016,6 @@ export default function GroupHomePage({
           }
         }}
       />
-
-      {canSetGroupLevel ? (
-        <SetGroupLevelDialog
-          groupId={id}
-          groupName={data.name ?? m.webGroup.groupFallback}
-          member={settingGroupLevel}
-          onClose={() => setSettingGroupLevel(null)}
-        />
-      ) : null}
 
       {data.canAddPlayers ? (
         <RenameUnclaimedPlayerDialog

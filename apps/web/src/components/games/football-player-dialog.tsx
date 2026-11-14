@@ -1,7 +1,8 @@
 "use client";
 
-import { levelLabel, type BoardPlayer } from "@repo/domain/football-board";
+import { ovrLabel, type BoardPlayer } from "@repo/domain/football-board";
 import { footballPositionChoices } from "@repo/domain/football-lineup";
+import { whatsAppHref } from "@repo/domain/phone-number";
 import type { Messages } from "@repo/i18n/messages";
 import type { Locale } from "@repo/i18n/locale";
 import Link from "next/link";
@@ -15,7 +16,7 @@ import {
 } from "~/components/common/responsive-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
-import { NotOnTembaTag } from "~/components/temba/seat";
+import { GuestTag, NotOnTembaTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 
@@ -45,7 +46,7 @@ export function FootballPlayerDialog({
   canRename: boolean;
   onOpenChange: (open: boolean) => void;
   onRemove: (userId: string) => void;
-  onRename?: (player: { userId: string; name: string }) => void;
+  onRename?: (player: { userId: string; name: string; guest: boolean }) => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -55,18 +56,24 @@ export function FootballPlayerDialog({
         {player ? (
           <>
             <ResponsiveDialogHeader className="flex-row items-center gap-3 text-start">
-              <UserAvatar name={player.name} image={player.image} size="lg" />
+              <UserAvatar
+                name={player.name}
+                image={player.image}
+                size="lg"
+                guest={player.guest}
+              />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <ResponsiveDialogTitle className="truncate">
                     {player.name}
                   </ResponsiveDialogTitle>
                   {player.unclaimed ? <NotOnTembaTag /> : null}
+                  {player.guest ? <GuestTag /> : null}
                 </div>
                 <ResponsiveDialogDescription>
                   {m.webTournament.footballPlayer.subtitle(
                     roleLine(player, m, locale),
-                    levelLabel(player.levelBand),
+                    ovrLabel(player),
                   )}
                 </ResponsiveDialogDescription>
                 {player.phoneMasked ? (
@@ -76,8 +83,20 @@ export function FootballPlayerDialog({
                 ) : null}
               </div>
             </ResponsiveDialogHeader>
-            <div className="flex gap-2 px-4 pb-4 sm:px-0 sm:pb-0">
-              {canOpenProfile ? (
+            <div className="flex flex-wrap gap-2 px-4 pb-4 sm:px-0 sm:pb-0">
+              {player.phoneNumber ? (
+                <Button variant="outline" asChild>
+                  <a
+                    href={whatsAppHref(player.phoneNumber)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={m.group.addPlayer.whatsAppFor(player.name)}
+                  >
+                    {m.group.addPlayer.whatsAppAction}
+                  </a>
+                </Button>
+              ) : null}
+              {canOpenProfile && !player.guest ? (
                 <Button variant="outline" asChild>
                   <Link href={playerProfilePath(player.userId, "football")}>
                     {m.webTournament.footballPlayer.viewProfile}
@@ -91,7 +110,11 @@ export function FootballPlayerDialog({
                     player.name,
                   )}
                   onClick={() =>
-                    onRename({ userId: player.userId, name: player.name })
+                    onRename({
+                      userId: player.userId,
+                      name: player.name,
+                      guest: Boolean(player.guest),
+                    })
                   }
                 >
                   {m.group.addPlayer.renameAction}

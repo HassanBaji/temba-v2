@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   MatchStatusEnum,
   courts,
+  games,
   gameTeams,
   groups,
   matches,
@@ -12,6 +13,7 @@ import {
   matchSets,
   ratingEvents,
   user,
+  venueVerifiers,
   venues,
 } from "@repo/db/schema";
 
@@ -25,6 +27,7 @@ import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
+import { stampMatch } from "#src/routers/games/stampMatch";
 import { requireGame } from "#src/games/access";
 import { knockoutLevelMessage } from "#src/games/knockout-advance";
 import { runMatchCompletionEffect } from "#src/games/run-match-completion-effect";
@@ -700,6 +703,91 @@ describe("an Organizer's correction of a confirmed Knockout score", () => {
         q2.slot2GameTeamId,
       );
       expect(await ratingEventCount(db, q2.id)).toBe(4);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("a Verifier's stamp on a Knockout Match (ADR-0072)", () => {
+  it("opens the private tournament to stamp the entered score, which advances the winner", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedPostedKnockout(db, "verifier-stamp");
+      await db
+        .update(games)
+        .set({ isPublic: false })
+        .where(eq(games.id, seeded.gameId));
+      const game = await requireGame(db, seeded.gameId);
+      const verifier = await insertUser(db, "verifier-stamp-sara@example.com");
+      await db.insert(venueVerifiers).values({
+        venueId: game.venueId,
+        userId: verifier.id,
+        kind: "referee",
+      });
+      const q2 = await matchAt(db, seeded.gameId, 1, 2);
+      const [side4Left] = seeded.players(4);
+
+      const before = await gameById(db, {
+        gameId: seeded.gameId,
+        userId: verifier.id,
+      });
+      expect(before.matches.some((match) => match.canStamp)).toBe(false);
+
+      await enterTournamentScore(db, {
+        gameId: seeded.gameId,
+        matchId: q2.id,
+        userId: side4Left!,
+        slot1GamesWon: 3,
+        slot2GamesWon: 6,
+      });
+      const entered = await gameById(db, {
+        gameId: seeded.gameId,
+        userId: verifier.id,
+      });
+      expect(
+        entered.matches.flatMap((match) => (match.canStamp ? [match.id] : [])),
+      ).toEqual([q2.id]);
+      expect(
+        entered.matches.every(
+          (match) =>
+            !match.canScoreSets &&
+            !match.canConfirmScore &&
+            !match.canComplete &&
+            !match.canAddSet,
+        ),
+      ).toBe(true);
+      await expectRefused(
+        () =>
+          enterTournamentScore(db, {
+            gameId: seeded.gameId,
+            matchId: q2.id,
+            userId: verifier.id,
+            slot1GamesWon: 6,
+            slot2GamesWon: 3,
+          }),
+        "FORBIDDEN",
+        messagesFor("en").tournament.errors.scoreTeamsOrOrganizer,
+      );
+
+      await stampMatch(db, { matchId: q2.id, userId: verifier.id });
+
+      expect((await matchAt(db, seeded.gameId, 1, 2)).status).toBe(
+        MatchStatusEnum.COMPLETED,
+      );
+      expect((await matchAt(db, seeded.gameId, 2, 1)).slot2GameTeamId).toBe(
+        seeded.team(5),
+      );
+      const stamped = await gameById(db, {
+        gameId: seeded.gameId,
+        userId: verifier.id,
+      });
+      expect(stamped.matches.find((match) => match.id === q2.id)).toMatchObject(
+        {
+          canStamp: false,
+          stamp: { verifierUserId: verifier.id },
+        },
+      );
     } finally {
       await close();
     }

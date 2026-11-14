@@ -11,6 +11,12 @@ import {
   levelSliderLabel,
   levelSliderReadout,
   levelSliderStartTenths,
+  levelOverrideWhy,
+  OVR_SLIDER_TICKS,
+  ovrSliderLabel,
+  ovrSliderReadout,
+  ovrSliderStart,
+  ovrSliderValueText,
 } from "./level-slider";
 
 const readout = (tenths: number, currentTenths = 24) =>
@@ -200,5 +206,87 @@ describe("levelOverrideCaption", () => {
         now,
       }).startsWith("حدّده أنت، "),
     ).toBe(true);
+  });
+});
+
+describe("OVR slider", () => {
+  it("marks the football scale's numbers, with no letters", () => {
+    expect(OVR_SLIDER_TICKS.startLabel).toBe("40");
+    expect(OVR_SLIDER_TICKS.endLabel).toBe("99");
+    expect(OVR_SLIDER_TICKS.edges).toEqual([55, 70, 85]);
+    expect(OVR_SLIDER_TICKS.marks).toEqual([
+      { label: "55", at: 55 },
+      { label: "70", at: 70 },
+      { label: "85", at: 85 },
+    ]);
+  });
+
+  it("labels the thumb with the bare whole OVR", () => {
+    expect(ovrSliderLabel(72)).toBe("72");
+    expect(ovrSliderLabel(71.6)).toBe("72");
+    expect(ovrSliderLabel(120)).toBe("99");
+    expect(ovrSliderLabel(12)).toBe("40");
+  });
+
+  it("reads OVR 72 in prose, with no band", () => {
+    expect(ovrSliderValueText(72, "en")).toBe("OVR 72");
+    expect(ovrSliderValueText(72, "ar")).toBe(`OVR ${isolate("72")}`);
+  });
+
+  it("reads the big OVR and fills the bar along 40 to 99, with no band", () => {
+    const view = ovrSliderReadout({ ovr: 72, currentOvr: 68, locale: "en" });
+    expect(view).toEqual({
+      ovrLabel: "72",
+      deltaLabel: "+4",
+      percentOfScale: 54.2,
+      scale: { lowerLabel: "40", upperLabel: "99" },
+    });
+    expect(
+      ovrSliderReadout({ ovr: 65, currentOvr: 68, locale: "en" }).deltaLabel,
+    ).toBe("−3");
+    expect(
+      ovrSliderReadout({ ovr: 99, currentOvr: 99, locale: "en" })
+        .percentOfScale,
+    ).toBe(100);
+    expect(
+      ovrSliderReadout({ ovr: 40, currentOvr: 99, locale: "en" })
+        .percentOfScale,
+    ).toBe(0);
+  });
+
+  it("starts from the member's OVR, or Level 3.0's without one", () => {
+    expect(ovrSliderStart(72)).toBe(72);
+    expect(ovrSliderStart(null)).toBe(65);
+  });
+});
+
+describe("levelOverrideWhy", () => {
+  it("gives the reason, and the note in quotes", () => {
+    expect(levelOverrideWhy({ reason: "back_from_injury", locale: "en" })).toBe(
+      "Back from injury",
+    );
+    expect(
+      levelOverrideWhy({
+        reason: "back_from_injury",
+        note: "Two months out.",
+        locale: "en",
+      }),
+    ).toBe("Back from injury: “Two months out.”");
+    expect(
+      levelOverrideWhy({
+        reason: "back_from_injury",
+        note: "Two months out.",
+        locale: "ar",
+      }),
+    ).toBe(`عائد من إصابة: «${isolate("Two months out.")}»`);
+  });
+
+  it("reads an override with no reason as no reason given", () => {
+    expect(levelOverrideWhy({ reason: null, locale: "en" })).toBe(
+      "No reason given",
+    );
+    expect(levelOverrideWhy({ reason: null, locale: "ar" })).toBe(
+      "دون ذكر سبب",
+    );
   });
 });

@@ -1,15 +1,37 @@
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
+import { isSport } from "@repo/domain/sport";
+
+import {
+  gameRateHref,
+  groupTierHistoryHref,
+  OPERATOR_DISPUTES_HREF,
+  youRatingsHref,
+} from "~/lib/dashboard-paths";
 
 export function notificationHref(item: {
   type: string;
   group: { id: string } | null;
-  game?: { id: string } | null;
+  game?: { id: string; sport?: string | null } | null;
   challenge?: { id: string } | null;
 }): string | null {
+  if (item.type === "match_dispute_raised") {
+    return OPERATOR_DISPUTES_HREF;
+  }
+  const sport = item.game?.sport;
+  if (item.type === "level_confirmed" && isSport(sport)) {
+    return youRatingsHref(sport);
+  }
+  if (item.type === "performance_ratings_open" && item.game) {
+    return gameRateHref(item.game.id);
+  }
+  if (item.type === "tier_points_adjusted" && item.group) {
+    return groupTierHistoryHref(item.group.id);
+  }
   if (
     (item.type === "group_member_joined" ||
       item.type === "level_set" ||
+      item.type === "tier_band_changed" ||
       ((item.type === "group_join_requested" ||
         item.type === "group_join_approved" ||
         item.type === "group_join_declined") &&
@@ -30,6 +52,8 @@ export function notificationHref(item: {
       item.type === "mark_received" ||
       item.type === "mvp_decided" ||
       item.type === "mvp_tie_break" ||
+      item.type === "performance_ratings_closed" ||
+      item.type === "match_dispute_decided" ||
       item.type === "group_join_requested" ||
       item.type === "group_join_approved" ||
       item.type === "group_join_declined" ||

@@ -7,8 +7,10 @@ import { mirrorInRtl } from "../i18n/rtl";
 import { Button } from "../primitives/button";
 import type { CabinetRowModel } from "../marks/cabinet-model";
 import { CabinetRow } from "../marks/cabinet-row";
+import type { ProfileTierView } from "@repo/domain/player-profile-page";
 import { PartnersCard } from "../profile/profile-sections";
 import { SectionHead } from "../profile/profile-parts";
+import { TierSection } from "../profile/ratings-screen";
 import { useColors } from "../theme/theme-provider";
 import type {
   PlayerProfileModel,
@@ -27,21 +29,25 @@ import {
 const TIGHT = 14;
 
 /**
- * Everything under the hero, in the design's order: the marks cabinet,
- * early days or streaks, position, Overall, you and them, partners, then the
- * games.
+ * Everything under the hero, in the design's order: the marks cabinet, the
+ * Group tier in shared tier Groups, early days or streaks, position, Overall,
+ * you and them, partners, then the games.
  */
 export function PlayerProfileBody({
   model,
   cabinet,
+  tier,
   onOpenCabinet,
+  onOpenGroup,
   onOpenRow,
   onOpenPlayer,
   onSeeAll,
 }: {
   model: PlayerProfileModel;
   cabinet: CabinetRowModel | null;
+  tier: ProfileTierView | null;
   onOpenCabinet: () => void;
+  onOpenGroup: (groupId: string) => void;
   onOpenRow: (target: NonNullable<ProfileMatchRow["target"]>) => void;
   onOpenPlayer: (userId: string) => void;
   onSeeAll: () => void;
@@ -52,6 +58,7 @@ export function PlayerProfileBody({
   return (
     <>
       {cabinet ? <CabinetRow row={cabinet} onOpen={onOpenCabinet} /> : null}
+      {tier ? <TierSection tier={tier} onOpenGroup={onOpenGroup} /> : null}
       <View style={{ gap: TIGHT }}>
         {model.early ? (
           <EarlyDaysCard view={model.early} form={model.form} />

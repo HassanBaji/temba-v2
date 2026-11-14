@@ -69,6 +69,17 @@ describe("levelRangeSummary", () => {
   it("reads Arabic", () => {
     expect(levelRangeSummary("none", "B", "ar").minimum).toBe("أي");
   });
+
+  it("reads football bounds in OVR while still storing bands", () => {
+    expect(levelRangeSummary("C", "B", "en", "football")).toEqual({
+      minimum: "OVR 64",
+      maximum: "OVR 86",
+      open: false,
+    });
+    expect(levelRangeSummary("none", "B", "en", "football").minimum).toBe(
+      "Any",
+    );
+  });
 });
 
 describe("tournamentMatchTotals", () => {

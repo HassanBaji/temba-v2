@@ -2,6 +2,7 @@
 
 import {
   Ban,
+  FlagIcon,
   LockIcon,
   LockOpenIcon,
   PencilIcon,
@@ -42,7 +43,12 @@ import { PoolSections, SeatBar } from "~/components/games/football-pool-grid";
 import { FootballScoreCard } from "~/components/games/football-score-card";
 import { TeamColumns } from "~/components/games/football-team-columns";
 import { PlayedFootballBoard } from "~/components/games/played/played-football-board";
+import { MatchDisputeRow } from "~/components/games/played/match-dispute-row";
 import { PlayedGameView } from "~/components/games/played/played-game-view";
+import { OvrImpactCard } from "~/components/games/ovr-impact-card";
+import { PerformanceResultCard } from "~/components/games/performance-result-card";
+import { RateGameCard } from "~/components/games/rate-game-card";
+import { RatingSummaryCard } from "~/components/games/rating-summary-card";
 import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import {
@@ -93,7 +99,11 @@ import {
   leaveWaitlistAction,
   leaveWaitlistConsequence,
   reopenRegistrationAction,
+  reportWrongScoreAction,
+  reportWrongScoreConsequence,
 } from "@repo/domain/game-copy";
+import { footballReportWrongScoreAction } from "@repo/domain/friendly-game-actions";
+import { scoreConfirmWindowLine } from "@repo/domain/friendly-game-score";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { squadButtonCopy } from "@repo/domain/matchday-squad";
 import { challengeHeroSubLine } from "@repo/domain/challenge-game-details";
@@ -108,6 +118,8 @@ import { gameInviteAccess } from "@repo/domain/invites";
 import { gameIsPlayed, playedFootballModel } from "@repo/domain/played-game";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { gameCustomName, gameDisplayName } from "@repo/domain/game-custom-name";
+import { ratingScopeOf, ratingScopeTag } from "@repo/domain/game-rating-impact";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
@@ -135,6 +147,7 @@ export function FootballGameDetails({
   const [addPlayerOpen, setAddPlayerOpen] = React.useState(false);
   const [invitesOpen, setInvitesOpen] = React.useState(openInvites);
   const [cancelOpen, setCancelOpen] = React.useState(false);
+  const [reportWrongScoreOpen, setReportWrongScoreOpen] = React.useState(false);
   const [leaveOpen, setLeaveOpen] = React.useState(false);
   const [leaveWaitlistOpen, setLeaveWaitlistOpen] = React.useState(false);
   const [kickConfirm, setKickConfirm] = React.useState<GameKickTarget | null>(
@@ -145,6 +158,7 @@ export function FootballGameDetails({
   const [renaming, setRenaming] = React.useState<{
     userId: string;
     name: string;
+    guest?: boolean;
   } | null>(null);
   const [squadTeamId, setSquadTeamId] = React.useState<string | null>(null);
   const autoJoined = React.useRef(false);
@@ -207,6 +221,10 @@ export function FootballGameDetails({
     await utils.games.listMyGames.invalidate();
   }
 
+  function refreshRatings() {
+    return invalidateRatingReads(utils, { groupId: game.groupId });
+  }
+
   const onError = toastGlobalFormError;
   const register = api.games.register.useMutation({
     meta: OWN_ERROR_UI,
@@ -227,7 +245,18 @@ export function FootballGameDetails({
   const confirmScore = api.games.confirmMatchResult.useMutation({
     onSuccess: async () => {
       toast.success(t.scoreConfirmedToast);
-      await refreshGame();
+      await Promise.all([refreshGame(), refreshRatings()]);
+    },
+    onError,
+  });
+  const stampMatch = api.games.stampMatch.useMutation({
+    onSuccess: async () => {
+      toast.success(m.rating.verifier.stamp.stamped);
+      await Promise.all([
+        refreshGame(),
+        refreshRatings(),
+        utils.games.listMatchesToStamp.invalidate(),
+      ]);
     },
     onError,
   });
@@ -267,6 +296,14 @@ export function FootballGameDetails({
     onSuccess: async () => {
       toast.success(toastCopy.registrationReopened);
       await refreshGame();
+    },
+    onError,
+  });
+  const reportWrongScore = api.games.reportWrongScore.useMutation({
+    onSuccess: async () => {
+      toast.success(m.webDashboard.game.toast.scoreReopened);
+      await refreshGame();
+      await refreshRatings();
     },
     onError,
   });
@@ -388,7 +425,7 @@ export function FootballGameDetails({
     const player = players.find((row) => row.userId === userId);
     if (player && organizer && !player.isViewer) {
       setSelected(player);
-    } else if (canOpenProfiles) {
+    } else if (canOpenProfiles && !player?.guest) {
       router.push(playerProfilePath(userId, "football"));
     }
   }
@@ -443,7 +480,7 @@ export function FootballGameDetails({
     },
   ];
   const infoRows: FootballInfoRow[] = challenge
-    ? challengeInfoRows(challenge, game.sport, locale)
+    ? challengeInfoRows(challenge, game.sport, game.rated, locale)
     : gameInfoRows;
   const squadSide = challenge?.sides.find(
     (side) => side.teamId === squadTeamId,
@@ -531,6 +568,7 @@ export function FootballGameDetails({
           players={players}
           bibs={teams.bibs}
           names={names}
+          balanceOn={board.data?.balanceOn ?? "ovr"}
           muted={heroMuted}
           onOpenPlayer={pressPlayer}
         />
@@ -611,6 +649,9 @@ export function FootballGameDetails({
   );
 
   const score = board.data?.match?.score ?? null;
+  const boardMatch = game.matches.find(
+    (match) => match.id === board.data?.match?.id,
+  );
   const playedModel =
     teams && names && score && board.data?.match?.status === "completed"
       ? playedFootballModel(
@@ -629,11 +670,17 @@ export function FootballGameDetails({
             groupName: game.groupName,
             rated: game.rated,
             ratingImpact: game.ratingImpact,
+            stoodUnconfirmed: boardMatch?.stoodUnconfirmed ?? false,
+            stampedByName: boardMatch?.stamp?.verifierName ?? null,
           },
           locale,
         )
       : null;
   const canAddPlayer = game.canAddPlayer && organizerCanAddPlayer(game);
+  const playedMatchId = playedModel ? board.data?.match?.id : undefined;
+  const wrongScore = playedMatchId
+    ? footballReportWrongScoreAction(game, locale)
+    : null;
   const menu = organizer ? (
     <GameActionsSheet
       title={savedCustomName ?? m.football.details.fallbackTitle}
@@ -699,6 +746,18 @@ export function FootballGameDetails({
                   label: m.group.addPlayer.action,
                   icon: UserPlusIcon,
                   onSelect: () => setAddPlayerOpen(true),
+                },
+              ]
+            : []),
+          ...(wrongScore
+            ? [
+                {
+                  key: wrongScore.kind,
+                  label: wrongScore.label,
+                  hint: wrongScore.consequence,
+                  icon: FlagIcon,
+                  disabled: !wrongScore.enabled,
+                  onSelect: () => setReportWrongScoreOpen(true),
                 },
               ]
             : []),
@@ -774,6 +833,21 @@ export function FootballGameDetails({
             heroFooter={
               <MvpRow marks={marks} canOpenProfile={canOpenProfiles} />
             }
+            task={
+              <>
+                <OvrImpactCard ratingImpact={game.ratingImpact} />
+                <RateGameCard gameId={gameId} window={game.ratingWindow} />
+                <PerformanceResultCard
+                  gameId={gameId}
+                  window={game.ratingWindow}
+                />
+                <RatingSummaryCard
+                  gameId={gameId}
+                  window={game.ratingWindow}
+                  isOrganizer={game.isOrganizer}
+                />
+              </>
+            }
             marks={<MarksSection marks={marks} />}
             album={
               <GameAlbumSections
@@ -785,6 +859,7 @@ export function FootballGameDetails({
             columns={playedModel.columns}
             unplaced={playedModel.unplaced}
             facts={playedModel.facts}
+            dispute={<MatchDisputeRow match={boardMatch} />}
             onPressPlayer={
               pressPlayer ? (row) => pressPlayer(row.userId) : undefined
             }
@@ -793,7 +868,13 @@ export function FootballGameDetails({
           <FootballGameHeroCard
             tone={model.hero.tone}
             lines={lines}
-            tag={challenge ? m.challenge.gameDetails.tag : undefined}
+            tag={
+              ratingScopeOf(game) === "temba"
+                ? (ratingScopeTag(game, locale) ?? undefined)
+                : challenge
+                  ? m.challenge.gameDetails.tag
+                  : undefined
+            }
             actions={
               challenge && !game.cancelledAt ? (
                 <>
@@ -879,12 +960,24 @@ export function FootballGameDetails({
             canConfirmAsOrganizer={
               board.data?.viewer.canConfirmAsOrganizer ?? false
             }
+            confirmWindowLine={scoreConfirmWindowLine(
+              game.confirmWindow,
+              now,
+              locale,
+            )}
             confirmPending={confirmScore.isPending}
+            canStamp={boardMatch?.canStamp ?? false}
+            stampPending={stampMatch.isPending}
             scoreHref={scoreHref}
             onConfirm={() => {
               const matchId = board.data?.match?.id;
               if (matchId) {
                 confirmScore.mutate({ gameId, matchId });
+              }
+            }}
+            onStamp={() => {
+              if (boardMatch) {
+                stampMatch.mutate({ matchId: boardMatch.id });
               }
             }}
           />
@@ -1087,6 +1180,23 @@ export function FootballGameDetails({
         pending={cancel.isPending}
         onConfirm={async () => {
           await cancel.mutateAsync({ gameId });
+        }}
+      />
+      <ConfirmDialog
+        open={reportWrongScoreOpen}
+        onOpenChange={setReportWrongScoreOpen}
+        title={m.webDashboard.game.reportWrongScoreTitle}
+        description={reportWrongScoreConsequence(locale)}
+        confirmLabel={reportWrongScoreAction(locale)}
+        pending={reportWrongScore.isPending}
+        onConfirm={async () => {
+          if (!playedMatchId) {
+            return;
+          }
+          await reportWrongScore.mutateAsync({
+            gameId,
+            matchId: playedMatchId,
+          });
         }}
       />
       <ConfirmDialog

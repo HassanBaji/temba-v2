@@ -5,6 +5,7 @@ import {
   CREATE_FLOW_FIELD_IDS,
   createShapeHasPools,
   friendlyTournamentSchedule,
+  isPublicGameDraft,
   parseCreateMatchMinutes,
   validateFriendlyGameWhen,
   validateFriendlyGameWhere,
@@ -17,6 +18,7 @@ import { normalizeGameCustomName } from "./game-custom-name";
 import { footballPlayersAllowedBounds, isFootballSideSize } from "./game-shape";
 import { formatGameWindowName, parseRequiredGameWindow } from "./game-window";
 import {
+  LEVEL_BAND_SELECT_NONE,
   levelRangeInvertedMessage,
   parseLevelBandSelectTenths,
   type LevelBandSelectValue,
@@ -52,9 +54,14 @@ type GameFields = {
   levelMax: LevelBandSelectValue;
   customName?: string;
   rated?: boolean;
+  /** With no Group, a Public Game (ADR-0071). */
+  isPublic?: boolean;
 };
 
-type TournamentFields = Omit<GameFields, "courtId" | "customName"> & {
+type TournamentFields = Omit<
+  GameFields,
+  "courtId" | "customName" | "isPublic"
+> & {
   courtIds: readonly string[];
   teamCount: number;
   tournamentShape: CreateTournamentShape;
@@ -91,8 +98,14 @@ function validateWhereAndWhen(
   >,
   now: Date,
   locale: Locale,
+  publicGame = false,
 ) {
-  const where = validateFriendlyGameWhere(draft.groupId, draft.venueId, locale);
+  const where = validateFriendlyGameWhere(
+    draft.groupId,
+    draft.venueId,
+    locale,
+    publicGame,
+  );
   if (!where.ok) {
     return { failed: true as const, issue: issueAtStep(where, 2) };
   }
@@ -107,26 +120,6 @@ function validateWhereAndWhen(
     return { failed: true as const, issue: issueAtStep(when, 3) };
   }
   return { failed: false as const, when };
-}
-
-function validatePrice(
-  draft: Pick<GameFields, "pricePerPlayer">,
-  locale: Locale,
-) {
-  const price = parseOptionalPricePerPlayerFils(draft.pricePerPlayer, locale);
-  if (!price.ok) {
-    return {
-      failed: true as const,
-      issue: {
-        ok: false as const,
-        field: "pricePerPlayerFils",
-        message: price.message,
-        elementId: CREATE_FLOW_FIELD_IDS.pricePerPlayerFils ?? "",
-        step: 4 as const,
-      },
-    };
-  }
-  return { failed: false as const, fils: price.fils };
 }
 
 function validatePriceAndLevel(
@@ -177,7 +170,8 @@ export function validateFriendlyGameSubmit(
   now: Date,
   locale: Locale,
 ) {
-  const placed = validateWhereAndWhen(draft, now, locale);
+  const publicGame = isPublicGameDraft(draft);
+  const placed = validateWhereAndWhen(draft, now, locale, publicGame);
   if (placed.failed) {
     return placed.issue;
   }
@@ -194,8 +188,8 @@ export function validateFriendlyGameSubmit(
         draft.finishTime,
         locale,
       ),
-      groupId: draft.groupId,
-      isPublic: false,
+      ...(publicGame ? {} : { groupId: draft.groupId }),
+      isPublic: publicGame,
       format: "friendly_game" as const,
       registrationMode: "individual" as const,
       windowStart: placed.when.windowStart,
@@ -203,7 +197,7 @@ export function validateFriendlyGameSubmit(
       venueId: draft.venueId,
       courtId: draft.courtId === "none" ? undefined : draft.courtId,
       ...customNameInput(draft),
-      ...ratedInput(draft),
+      ...(publicGame ? {} : ratedInput(draft)),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }
@@ -215,21 +209,23 @@ export function validateFriendlyGameSubmit(
   };
 }
 
-export type FootballGameFields = Omit<
-  GameFields,
-  "levelMin" | "levelMax" | "rated"
-> & {
+export type FootballGameFields = Omit<GameFields, "levelMin" | "levelMax"> & {
   sideSize: number;
   playersAllowed: number;
+  /** Read only when the Game counts for Temba Level (`createLevelRangeShown`). */
+  levelMin?: LevelBandSelectValue;
+  levelMax?: LevelBandSelectValue;
 };
 
 export function validateFootballGameSubmit(
   draft: FootballGameFields,
   now: Date,
   locale: Locale,
+  options: { levelRange?: boolean } = {},
 ) {
   const m = messagesFor(locale).createGame.validation;
-  const placed = validateWhereAndWhen(draft, now, locale);
+  const publicGame = isPublicGameDraft(draft);
+  const placed = validateWhereAndWhen(draft, now, locale, publicGame);
   if (placed.failed) {
     return placed.issue;
   }
@@ -256,7 +252,18 @@ export function validateFootballGameSubmit(
       step: 4 as const,
     };
   }
-  const priced = validatePrice(draft, locale);
+  const priced = validatePriceAndLevel(
+    {
+      ...draft,
+      levelMin: options.levelRange
+        ? (draft.levelMin ?? LEVEL_BAND_SELECT_NONE)
+        : LEVEL_BAND_SELECT_NONE,
+      levelMax: options.levelRange
+        ? (draft.levelMax ?? LEVEL_BAND_SELECT_NONE)
+        : LEVEL_BAND_SELECT_NONE,
+    },
+    locale,
+  );
   if (priced.failed) {
     return priced.issue;
   }
@@ -269,8 +276,10 @@ export function validateFootballGameSubmit(
         draft.finishTime,
         locale,
       ),
-      groupId: draft.groupId,
-      isPublic: false,
+      ...(publicGame
+        ? { sport: "football" as const }
+        : { groupId: draft.groupId }),
+      isPublic: publicGame,
       format: "friendly_game" as const,
       registrationMode: "individual" as const,
       windowStart: placed.when.windowStart,
@@ -279,8 +288,15 @@ export function validateFootballGameSubmit(
       courtId: draft.courtId === "none" ? undefined : draft.courtId,
       sideSize: draft.sideSize,
       playersAllowed: draft.playersAllowed,
+      ...(publicGame ? {} : ratedInput(draft)),
       ...customNameInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
+      ...(priced.levelMinTenths !== null
+        ? { levelMinTenths: priced.levelMinTenths }
+        : {}),
+      ...(priced.levelMaxTenths !== null
+        ? { levelMaxTenths: priced.levelMaxTenths }
+        : {}),
     },
   };
 }

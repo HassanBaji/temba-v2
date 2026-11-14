@@ -8,6 +8,7 @@ import {
   groupJoinRequests,
   GroupJoinRequestStatusEnum,
   groupMembers,
+  groupTierPoints,
 } from "@repo/db";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
@@ -95,6 +96,14 @@ export async function undoJoinRequestDecision(
           });
         }
         await tx.delete(groupMembers).where(eq(groupMembers.id, membership.id));
+        await tx
+          .delete(groupTierPoints)
+          .where(
+            and(
+              eq(groupTierPoints.groupId, group.id),
+              eq(groupTierPoints.userId, request.userId),
+            ),
+          );
       }
     }
 

@@ -145,14 +145,14 @@ export function ChallengeCardBody({
           importantForAccessibility="no-hide-descendants"
           style={{ width: LEVEL_WIDTH }}
         >
-          {card.levelBand ? (
+          {card.levelBadge ? (
             <Text
               size="h1"
               width="expanded"
               ltr
               style={{ lineHeight: typeScale.h1.size }}
             >
-              {card.levelBand}
+              {card.levelBadge}
             </Text>
           ) : (
             <View style={{ width: SEAT.large, height: SEAT.large }}>

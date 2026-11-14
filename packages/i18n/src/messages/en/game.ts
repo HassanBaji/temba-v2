@@ -285,13 +285,23 @@ export const game = {
   },
   rating: {
     unratedGameLine: "This Game doesn't change anyone's Level.",
-    stillProvisional: (band: string, remaining: number) =>
-      `Still ${band}. ${plural("en", remaining, {
-        one: "About 1 more rated game and your level confirms.",
-        other: "About {n} more rated games and your level confirms.",
-      })}`,
+    stillProvisional: {
+      padel: (band: string, remaining: number) =>
+        `Still ${band}. ${plural("en", remaining, {
+          one: "1 more rated match in a verified group and your level confirms.",
+          other:
+            "{n} more rated matches in a verified group and your level confirms.",
+        })}`,
+    },
     stillConfirmed: (band: string) =>
       `Still ${band}. Your level is confirmed — it moves with every rated game you play.`,
+    ovrProvisional: (ovr: string, remaining: number) =>
+      `Now OVR ${ovr}. ${plural("en", remaining, {
+        one: "1 more verified match and your level confirms.",
+        other: "{n} more verified matches and your level confirms.",
+      })}`,
+    ovrConfirmed: (ovr: string) =>
+      `Now OVR ${ovr}. Your level is confirmed — it moves with every rated game you play.`,
     increasedBy: (magnitude: string) => `Level increased by ${magnitude}`,
     decreasedBy: (magnitude: string) => `Level decreased by ${magnitude}`,
     unchanged: "Level unchanged",
@@ -534,6 +544,12 @@ export const game = {
     courtNotSelectedVenue: "Court must belong to the selected Venue",
     pickFootballPitch: "Pick a football pitch",
     padelCourtRequired: "Court must be a padel Court",
+    publicGameOnly: "A Game without a Group must be a public Friendly game",
+    publicGamePartnerVenue: "A public game must be at a partner Venue",
+    publicGamePadelVenue: "A public game needs a Venue with padel Courts",
+    publicGameFootballVenue:
+      "A public game needs a Venue with a football pitch",
+    publicGameSportOnly: "Only a public game picks its sport",
     gameTeamNotOnGame: "Game team is not on this Game",
     americanoNoSets: "Americano has no Sets this slice",
     setsCancelledMatch: "Cannot change Sets on a cancelled Match",
@@ -606,6 +622,7 @@ export const game = {
     sideFull: "That side is full",
     playerAlreadyOn: (name: string) => `${name} is already on this Game`,
     playerWaitlisted: (name: string) => `${name} is on the waitlist`,
+    guestNotAdded: "Couldn't add the guest. Try again.",
     sideNotOnGame: "That side is not on this Game",
     sideHasUser: "That side already has a User",
     positionOccupied: "That Position is occupied",

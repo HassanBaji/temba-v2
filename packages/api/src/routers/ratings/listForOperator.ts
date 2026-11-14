@@ -16,8 +16,9 @@ import {
   lookupUserTextFilter,
 } from "#src/invites/search-lookup-users";
 import { operatorProcedure } from "#src/trpc";
+import { tembaLevelViews } from "#src/ratings/level-confirmed";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
-import { youRatingViewAfterIdle } from "@repo/domain/idle";
+import { wholeOvrFromMu } from "@repo/domain/football-ovr";
 import type { Sport } from "@repo/domain/sport";
 import { sportSchema } from "@repo/validators/sport";
 
@@ -35,14 +36,12 @@ export async function listForOperator(
     query?: string;
     cursor?: number;
     limit?: number;
-    now?: Date;
   },
 ) {
   const sport =
     args.sport === "football" ? GroupSportEnum.FOOTBALL : GroupSportEnum.PADEL;
   const offset = args.cursor ?? 0;
   const limit = args.limit ?? OPERATOR_PLAYERS_PAGE_SIZE;
-  const now = args.now ?? new Date();
 
   const rows = await database.query.user.findMany({
     where: lookupUserTextFilter(classifyLookupQuery(args.query ?? "")),
@@ -88,6 +87,7 @@ export async function listForOperator(
               setByName: user.name,
               createdAt: levelOverrides.createdAt,
               reason: levelOverrides.reason,
+              note: levelOverrides.note,
             })
             .from(levelOverrides)
             .innerJoin(user, eq(user.id, levelOverrides.setByUserId))
@@ -100,8 +100,15 @@ export async function listForOperator(
             .orderBy(desc(levelOverrides.createdAt), desc(levelOverrides.id)),
         ]);
 
+  const levelView = await tembaLevelViews(database, ratingRows);
   const ratingByUserId = new Map(
-    ratingRows.map((row) => [row.userId, youRatingViewAfterIdle(row, now)]),
+    ratingRows.map((row) => [
+      row.userId,
+      {
+        ...levelView(row),
+        ovr: sport === GroupSportEnum.FOOTBALL ? wholeOvrFromMu(row.mu) : null,
+      },
+    ]),
   );
   const ratedMatchCountByUserId = new Map(
     matchCountRows.map((row) => [row.userId, Number(row.ratedMatchCount)]),
@@ -129,6 +136,7 @@ export async function listForOperator(
         isViewer: row.id === args.operatorUserId,
         level: rating?.level ?? null,
         levelBand: rating?.levelBand ?? null,
+        ovr: rating?.ovr ?? null,
         levelProvisional: rating?.provisional ?? true,
         ratedMatchCount: ratedMatchCountByUserId.get(row.id) ?? 0,
         levelOverride: override
@@ -137,6 +145,7 @@ export async function listForOperator(
               setByIsViewer: override.setByUserId === args.operatorUserId,
               createdAt: override.createdAt,
               reason: override.reason,
+              note: override.note,
             }
           : null,
       };

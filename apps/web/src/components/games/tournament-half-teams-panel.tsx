@@ -252,10 +252,11 @@ function HalfTeamCard({ team, linked }: { team: HalfTeam; linked: boolean }) {
         <UserAvatar
           name={team.occupant.name}
           image={team.occupant.image}
+          guest={team.occupant.guest}
           className="border-rule size-[34px] shrink-0 rounded-sm border"
         />
         <span className="flex min-w-0 flex-1 flex-col">
-          {linked ? (
+          {linked && !team.occupant.guest ? (
             <Link
               href={playerProfilePath(team.occupant.userId)}
               dir="auto"

@@ -102,6 +102,14 @@ export const ratingEvents = pgTable(
      */
     levelBandBefore: ratingLevelBands("level_band_before"),
     lastRatedAtBefore: timestamp("last_rated_at_before"),
+    /**
+     * A football event's step in OVR points, by part (ADR-0069). Null on
+     * padel events and on a part that did not count.
+     */
+    resultPart: doublePrecision("result_part"),
+    performancePart: doublePrecision("performance_part"),
+    goalsPart: doublePrecision("goals_part"),
+    mvpPart: doublePrecision("mvp_part"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => ({

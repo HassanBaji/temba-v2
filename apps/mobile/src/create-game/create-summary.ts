@@ -9,6 +9,7 @@ import { formatGameClock } from "@repo/domain/format-game-start";
 import { formatTimeSlotLabel } from "@repo/domain/game-window";
 import {
   LEVEL_BAND_SELECT_NONE,
+  levelBandSelectOvr,
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
 import { courtCountValue, oneDayFit } from "@repo/domain/tournament-sizing";
@@ -21,15 +22,28 @@ export type LevelRangeSummary = {
   open: boolean;
 };
 
+/** The picked bounds: bands, or `OVR 58` on football, which still stores bands. */
 export function levelRangeSummary(
   min: LevelBandSelectValue,
   max: LevelBandSelectValue,
   locale: Locale,
+  sport?: string | null,
 ): LevelRangeSummary {
-  const unsetBound = messagesFor(locale).mobileCreateGame.levelRange.any;
+  const messages = messagesFor(locale);
+  const unsetBound = messages.mobileCreateGame.levelRange.any;
+  const boundLabel = (value: LevelBandSelectValue, bound: "min" | "max") => {
+    if (value === LEVEL_BAND_SELECT_NONE) {
+      return unsetBound;
+    }
+    if (sport !== "football") {
+      return value;
+    }
+    const ovr = levelBandSelectOvr(value, bound);
+    return ovr == null ? unsetBound : messages.level.ovr(ovr);
+  };
   return {
-    minimum: min === LEVEL_BAND_SELECT_NONE ? unsetBound : min,
-    maximum: max === LEVEL_BAND_SELECT_NONE ? unsetBound : max,
+    minimum: boundLabel(min, "min"),
+    maximum: boundLabel(max, "max"),
     open: min === LEVEL_BAND_SELECT_NONE && max === LEVEL_BAND_SELECT_NONE,
   };
 }

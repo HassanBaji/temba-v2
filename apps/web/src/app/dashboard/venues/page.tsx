@@ -62,10 +62,19 @@ export default function VenuesPage() {
                 title={venue.name}
                 meta={m.webDashboard.venue.location(venue.city, venue.country)}
                 trailing={
-                  venue.archivedAt ? (
-                    <Badge variant="outline">
-                      {m.webDashboard.venue.softArchivedBadge}
-                    </Badge>
+                  venue.archivedAt || venue.isPartner ? (
+                    <div className="flex items-center gap-2">
+                      {venue.isPartner ? (
+                        <Badge variant="secondary">
+                          {m.webDashboard.venue.partner.badge}
+                        </Badge>
+                      ) : null}
+                      {venue.archivedAt ? (
+                        <Badge variant="outline">
+                          {m.webDashboard.venue.softArchivedBadge}
+                        </Badge>
+                      ) : null}
+                    </div>
                   ) : undefined
                 }
               >

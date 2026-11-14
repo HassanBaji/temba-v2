@@ -2,7 +2,6 @@ import { messagesFor } from "@repo/i18n/messages";
 import type { Locale } from "@repo/i18n/locale";
 
 import {
-  averageLevelLabel,
   balanceFootballSides,
   DEFAULT_FOOTBALL_BIBS,
   footballBibName,
@@ -12,11 +11,13 @@ import {
   keeperSeatsLeft,
   KEEPERS_PER_GAME,
   keepersInLine,
+  type FootballBalanceOn,
   type FootballBib,
   type FootballPosition,
   type FootballRole,
   type FootballTeamsMethod,
 } from "./football-lineup";
+import { formatOvr } from "./football-ovr";
 import {
   formatGameDay,
   formatWeekday,
@@ -24,6 +25,13 @@ import {
 } from "./format-game-start";
 import { gameDayStart } from "./game-day";
 import { sideSizeLabel } from "./game-shape";
+import type { GroupMemberTierData } from "./group-data";
+import {
+  formatTierPoints,
+  tierPointsCount,
+  groupMemberTierView,
+  type GroupMemberTierCell,
+} from "./group-members-table";
 import { formatHomeKickoff } from "./home-countdown";
 import {
   displayLabelFromStoredBand,
@@ -48,13 +56,38 @@ export type BoardPlayer = {
   goals: number;
   isViewer: boolean;
   unclaimed?: boolean;
+  guest?: boolean;
   phoneMasked?: string | null;
+  /** E.164, sent only to a Group approver for a current member (ADR-0078). */
+  phoneNumber?: string | null;
+  /**
+   * What Make teams balances on: Tier points, or the start hint while
+   * Provisional, in a tier Group; the OVR elsewhere. Null for a viewer who
+   * cannot make teams.
+   */
+  balanceStrength?: number | null;
+  /** The whole-number OVR; null without a football Rating. */
+  ovr?: number | null;
+  /** The player's Group Tier on a tier Group's Game; null elsewhere. */
+  tier?: GroupMemberTierData | null;
 };
 
 export type Bibs = { slot1: FootballBib; slot2: FootballBib };
 
 export function levelLabel(band: LevelBand | null) {
   return band ? displayLabelFromStoredBand(band) : "–";
+}
+
+/** What a football line-up row shows where the Level sits: the whole OVR, a dash without one. */
+export function ovrLabel(player: Pick<BoardPlayer, "ovr">) {
+  return player.ovr == null ? "–" : formatOvr(player.ovr);
+}
+
+/** How a screen reader says a line-up row's OVR, "OVR 72"; nothing without one. */
+export function ovrSpoken(player: Pick<BoardPlayer, "ovr">, locale: Locale) {
+  return player.ovr == null
+    ? null
+    : messagesFor(locale).level.ovr(formatOvr(player.ovr));
 }
 
 export function slotCode(
@@ -253,6 +286,7 @@ export function balancedSides(
         userId: player.userId,
         role: player.role,
         levelBand: player.levelBand,
+        strength: player.balanceStrength ?? null,
       })),
       random,
     ),
@@ -261,7 +295,7 @@ export function balancedSides(
 
 /**
  * Where the Make teams screen starts: the published split when there is one,
- * otherwise a split by Level.
+ * otherwise a balanced split.
  */
 export function initialTeamsDraft(
   players: readonly BoardPlayer[],
@@ -336,20 +370,35 @@ export function byKeeperThenLevel(a: BoardPlayer, b: BoardPlayer) {
   return strength(b) - strength(a);
 }
 
+/**
+ * Keepers first, then strongest down by what Make teams balances on: the
+ * balance strength when every player has one, otherwise the Level.
+ */
+function byKeeperThenBalance(players: readonly BoardPlayer[]) {
+  if (!players.every((player) => player.balanceStrength != null)) {
+    return byKeeperThenLevel;
+  }
+  return (a: BoardPlayer, b: BoardPlayer) =>
+    Number(b.role === "keeper") - Number(a.role === "keeper") ||
+    (b.balanceStrength ?? 0) - (a.balanceStrength ?? 0);
+}
+
 export function draftSummary(
   draft: TeamsDraft,
   players: readonly BoardPlayer[],
   locale: Locale,
+  balanceOn: FootballBalanceOn = "tierPoints",
 ) {
+  const order = byKeeperThenBalance(players);
   const slot1 = players
     .filter((player) => draft.sides[player.userId] === 1)
-    .sort(byKeeperThenLevel);
+    .sort(order);
   const slot2 = players
     .filter((player) => draft.sides[player.userId] === 2)
-    .sort(byKeeperThenLevel);
+    .sort(order);
   const unplaced = players
     .filter((player) => !draft.sides[player.userId])
-    .sort(byKeeperThenLevel);
+    .sort(order);
   const names = bibNames(draft.bibs, locale);
   const problem = footballSidesProblem(
     {
@@ -367,22 +416,72 @@ export function draftSummary(
     unplaced,
     names,
     teamSize,
+    balanceOn,
     problem,
     note:
       problem ??
       messagesFor(locale).football.board.everyonePlaced(
         names.slot1,
-        sideAverage(slot1),
+        teamsSideAverage(slot1, locale, balanceOn),
         names.slot2,
-        sideAverage(slot2),
+        teamsSideAverage(slot2, locale, balanceOn),
       ),
   };
 }
 
-export function sideAverage(
-  players: readonly Pick<BoardPlayer, "levelBand">[],
+/**
+ * A side's mean as Make teams reads it when every player has a balance
+ * strength: mean Tier points in a tier Group, the mean OVR elsewhere.
+ * Otherwise the mean OVR of the players who have one.
+ */
+export function teamsSideAverage(
+  players: readonly Pick<BoardPlayer, "ovr" | "balanceStrength">[],
+  locale: Locale,
+  balanceOn: FootballBalanceOn = "tierPoints",
 ) {
-  return averageLevelLabel(players.map((player) => player.levelBand)) ?? "–";
+  const strengths = players.flatMap((player) =>
+    player.balanceStrength == null ? [] : [player.balanceStrength],
+  );
+  if (strengths.length === 0 || strengths.length < players.length) {
+    return sideOvrAverage(players, locale);
+  }
+  const mean =
+    strengths.reduce((sum, strength) => sum + strength, 0) / strengths.length;
+  const m = messagesFor(locale).rating;
+  return balanceOn === "ovr"
+    ? m.ovr.value(formatOvr(mean))
+    : m.tier.points(formatTierPoints(mean), tierPointsCount(mean));
+}
+
+/** The fish, place or Provisional slot beside a player in a tier Group. */
+export function boardTierCell(
+  player: Pick<BoardPlayer, "tier">,
+  locale: Locale,
+): GroupMemberTierCell | null {
+  return (
+    groupMemberTierView(
+      { tier: player.tier ?? null, isOrganizer: false },
+      locale,
+    )?.cell ?? null
+  );
+}
+
+/**
+ * A side's mean OVR, "OVR 72", over its players with a football Rating; a
+ * dash when none has one.
+ */
+export function sideOvrAverage(
+  players: readonly Pick<BoardPlayer, "ovr">[],
+  locale: Locale,
+) {
+  const known = players.flatMap((player) =>
+    player.ovr == null ? [] : [player.ovr],
+  );
+  if (known.length === 0) {
+    return "–";
+  }
+  const mean = known.reduce((sum, ovr) => sum + ovr, 0) / known.length;
+  return messagesFor(locale).rating.ovr.value(formatOvr(mean));
 }
 
 export function keeperWord(

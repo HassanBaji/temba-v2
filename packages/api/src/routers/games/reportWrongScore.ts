@@ -1,14 +1,19 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  GroupSportEnum,
   groupLevelOverrides,
+  groupMembers,
   groupRatingEvents,
   groupRatings,
+  groupTierEvents,
+  groupTierPoints,
   levelOverrides,
   MatchStatusEnum,
   matches,
+  matchDisputes,
   matchGoals,
   matchResultConfirmations,
   matchSets,
@@ -29,8 +34,13 @@ import {
   takeBackKnockoutQualifiers,
   takeBackKnockoutWinner,
 } from "#src/games/knockout-advance";
+import { clearMatchVerifierStamp } from "#src/games/match-result-confirmations";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
 import { suspendMvp } from "#src/marks/settle-mvp";
+import { notify } from "#src/notifications/notify";
+import { reverseFootballLevelMatch } from "#src/ratings/apply-football-level-match";
+import { rewriteTierBands } from "#src/ratings/apply-tier-match";
+import { suspendRatingWindow } from "#src/ratings/settle-rating-window";
 import { wrongScoreReversalEligibility } from "#src/games/wrong-score-reversal";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -114,6 +124,115 @@ async function reverseGroupRatingEvents(
 }
 
 /**
+ * Takes this Match's moves out of Tier points (ADR-0067): each `game` event's
+ * delta is subtracted from the member's points, every tier event of the Match
+ * is deleted, and the Group's fish are re-cut with a `band_change` event for
+ * anyone whose fish moved. The ledger is additive, so later Games and Tier
+ * adjustments stay as they are. A member who left the Group has no points row
+ * to change, and one who joined again holds a fresh row that a Match from
+ * before they left never moved.
+ */
+async function reverseTierEvents(tx: DbClient, matchId: string, now: Date) {
+  const events = await tx.query.groupTierEvents.findMany({
+    where: and(
+      eq(groupTierEvents.matchId, matchId),
+      eq(groupTierEvents.kind, "game"),
+    ),
+  });
+  const groupId = events[0]?.groupId;
+  if (!groupId) {
+    return;
+  }
+  const rows = await tx
+    .select()
+    .from(groupTierPoints)
+    .where(eq(groupTierPoints.groupId, groupId))
+    .orderBy(groupTierPoints.userId)
+    .for("update");
+  const rowByUser = new Map(rows.map((row) => [row.userId, row]));
+
+  const memberships = await tx
+    .select({ userId: groupMembers.userId, joinedAt: groupMembers.createdAt })
+    .from(groupMembers)
+    .where(
+      and(
+        eq(groupMembers.groupId, groupId),
+        inArray(
+          groupMembers.userId,
+          events.map((event) => event.userId),
+        ),
+      ),
+    );
+  const joinedAt = new Map(
+    memberships.map((member) => [member.userId, member.joinedAt]),
+  );
+
+  for (const event of events) {
+    const row = rowByUser.get(event.userId);
+    const joined = joinedAt.get(event.userId);
+    if (!row || (joined && event.createdAt < joined)) {
+      continue;
+    }
+    const [updated] = await tx
+      .update(groupTierPoints)
+      .set({
+        points: row.points - event.delta,
+        gamesCounted: Math.max(0, row.gamesCounted - 1),
+        updatedAt: now,
+      })
+      .where(eq(groupTierPoints.id, row.id))
+      .returning();
+    if (updated) {
+      rowByUser.set(updated.userId, updated);
+    }
+  }
+
+  await tx.delete(groupTierEvents).where(eq(groupTierEvents.matchId, matchId));
+  await rewriteTierBands(tx, { groupId, matchId: null, rowByUser, now });
+}
+
+function openDisputeOn(matchId: string) {
+  return and(
+    eq(matchDisputes.matchId, matchId),
+    eq(matchDisputes.status, "open"),
+  );
+}
+
+/**
+ * Closes the Match's open dispute as superseded: it was raised against the
+ * result this report takes back, so upholding it later would reverse the
+ * corrected one. The player who raised it is told, and may dispute the
+ * corrected result once it counts.
+ */
+async function supersedeOpenDispute(
+  tx: DbClient,
+  args: { gameId: string; matchId: string; userId: string; now: Date },
+) {
+  const superseded = await tx
+    .update(matchDisputes)
+    .set({
+      status: "superseded",
+      decidedByUserId: args.userId,
+      decidedAt: args.now,
+    })
+    .where(openDisputeOn(args.matchId))
+    .returning({
+      id: matchDisputes.id,
+      raisedByUserId: matchDisputes.raisedByUserId,
+    });
+  for (const dispute of superseded) {
+    await notify(tx, {
+      type: "match_dispute_decided",
+      recipients: [{ userId: dispute.raisedByUserId, audience: "player" }],
+      excludeUserIds: [args.userId],
+      actorUserId: args.userId,
+      gameId: args.gameId,
+      matchDisputeId: dispute.id,
+    });
+  }
+}
+
+/**
  * Organizer-only "report a wrong score" reversal — Option A, the gated
  * self-service reversal resolved in
  * `.scratch/game-details-redesign/spec.md` ("Resolved decision") and
@@ -122,7 +241,13 @@ async function reverseGroupRatingEvents(
  * its four seated Users has a later Rated Match of the same kind (Temba, or
  * the same Group's, ADR-0053) — Glicko-2 updates are
  * sequential, so restoring stored before-values would otherwise silently
- * erase legitimate later changes.
+ * erase legitimate later changes. Tier points are additive and are taken
+ * back by subtraction whatever came after (ADR-0067), and so is a football
+ * Level (ADR-0069). A Rating window is
+ * suspended with its ballots kept, and reopens at the next completion
+ * (ADR-0068). An Organizer's report closes the Match's open dispute as
+ * superseded; an Operator upholding that dispute runs this door and marks it
+ * upheld itself.
  *
  * When eligible, in one transaction: restores each Rating (μ, φ, σ, Level
  * band, last rated time) to the before-values stored on this Match's rating
@@ -139,7 +264,14 @@ async function reverseGroupRatingEvents(
  */
 export async function reportWrongScore(
   database: DbClient,
-  args: { gameId: string; matchId: string; userId: string; locale?: Locale },
+  args: {
+    gameId: string;
+    matchId: string;
+    userId: string;
+    locale?: Locale;
+    /** An Operator upholding a Match dispute, checked by that door. */
+    asOperator?: boolean;
+  },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId, locale);
@@ -149,9 +281,12 @@ export async function reportWrongScore(
     args.matchId,
     locale,
   );
-  await assertGameOrganizer(database, game, args.userId, locale);
-  // A football Challenge Game is Unrated, so nothing needs reversing: the
-  // report clears its Score, which reopens both squads (ADR-0060).
+  if (!args.asOperator) {
+    await assertGameOrganizer(database, game, args.userId, locale);
+  }
+  // On a football Challenge Game the report also clears the Score, which
+  // reopens both squads (ADR-0060). Its Level move is additive and is taken
+  // back below whatever came after (ADR-0069), so nothing can block it.
   const clearsScore = game.challengeId != null && isFootballGame(game);
 
   if (match.status !== MatchStatusEnum.COMPLETED) {
@@ -162,6 +297,15 @@ export async function reportWrongScore(
   }
 
   await database.transaction(async (tx) => {
+    // The dispute row is locked before the Match row, the order
+    // `decideDispute` takes them in, so the two cannot deadlock.
+    if (!args.asOperator) {
+      await tx
+        .select({ id: matchDisputes.id })
+        .from(matchDisputes)
+        .where(openDisputeOn(match.id))
+        .for("update");
+    }
     const [locked] = await tx
       .select()
       .from(matches)
@@ -196,7 +340,10 @@ export async function reportWrongScore(
     await takeBackKnockoutQualifiers(tx, game, locked, locale);
 
     const matchEvents = await tx.query.ratingEvents.findMany({
-      where: eq(ratingEvents.matchId, locked.id),
+      where: and(
+        eq(ratingEvents.matchId, locked.id),
+        ne(ratingEvents.sport, GroupSportEnum.FOOTBALL),
+      ),
     });
 
     const eventUserIds = matchEvents.map((event) => event.userId);
@@ -246,11 +393,22 @@ export async function reportWrongScore(
         );
     }
 
-    await tx.delete(ratingEvents).where(eq(ratingEvents.matchId, locked.id));
+    await tx
+      .delete(ratingEvents)
+      .where(
+        and(
+          eq(ratingEvents.matchId, locked.id),
+          ne(ratingEvents.sport, GroupSportEnum.FOOTBALL),
+        ),
+      );
+    await reverseFootballLevelMatch(tx, locked.id, now);
     await reverseGroupRatingEvents(tx, locked.id, now);
+    await reverseTierEvents(tx, locked.id, now);
+    await suspendRatingWindow(tx, locked.id, now);
     await tx
       .delete(matchResultConfirmations)
       .where(eq(matchResultConfirmations.matchId, locked.id));
+    await clearMatchVerifierStamp(tx, locked.id);
     if (clearsScore) {
       await tx
         .update(matchSets)
@@ -263,10 +421,19 @@ export async function reportWrongScore(
       .set({
         status: MatchStatusEnum.PENDING,
         completedAt: null,
+        stoodUnconfirmedAt: null,
         updatedAt: now,
       })
       .where(eq(matches.id, locked.id));
     await suspendMvp(tx, game);
+    if (!args.asOperator) {
+      await supersedeOpenDispute(tx, {
+        gameId: game.id,
+        matchId: locked.id,
+        userId: args.userId,
+        now,
+      });
+    }
   });
 
   return { ok: true as const };

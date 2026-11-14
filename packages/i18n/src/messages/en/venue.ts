@@ -6,6 +6,7 @@ export const venue = {
     photoNotFound: "Photo not found",
     managerOnly: "Only Venue managers can manage this Venue",
     alreadyManager: "This User already manages this Venue",
+    alreadyVerifier: "This User is already a verifier at this Venue",
     closureEndAfterStart: "A Closure must end after it starts",
     cancelBookingsFirst: "Cancel its Bookings first",
     courtHasHistory: "This Court has Booking history and cannot be deleted",
@@ -59,6 +60,7 @@ export const venue = {
     pricingOffGrid: (slotMinutes: number) =>
       `Pricing rules are not on the ${slotMinutes}-minute grid. Adjust them first.`,
     archivedNoBookings: "An archived Venue cannot accept bookings",
+    archivedNoPartner: "An archived Venue cannot be a partner Venue",
     addCourtFirst: "Add a Court before accepting bookings",
     invalidCancellationPolicy: "Invalid Cancellation policy",
   },

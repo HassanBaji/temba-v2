@@ -7,6 +7,7 @@ import {
 } from "@repo/domain/home-recent-form";
 import type { HomeStandingRow } from "@repo/domain/home-standing";
 import type { ProfileChecklist } from "@repo/domain/profile-checklist";
+import type { SportSwitchLevel } from "@repo/domain/ratings-screen";
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
@@ -43,7 +44,7 @@ export type HomeModel = {
   dateLine: string;
   sports: Sport[];
   sport: Sport;
-  bands: Partial<Record<Sport, string | null>>;
+  levels: Partial<Record<Sport, SportSwitchLevel | null>>;
   level: Slot<HomeLevel>;
   recentForm: Slot<RecentFormView>;
   stats: Slot<HomeStats | null>;
@@ -59,14 +60,20 @@ export function levelFromApi(data: ApiRating): HomeLevel {
   return {
     kind: "rated",
     input: {
-      band: data.rating.levelBand,
-      level: data.rating.level,
-      provisional: data.rating.provisional,
-      ratedMatchesRemaining: data.rating.ratedMatchesRemaining,
+      sport: data.face === "ovr" ? "football" : "padel",
+      face: data.face,
+      levelValue: data.levelValue,
+      rating: {
+        levelBand: data.rating.levelBand,
+        provisional: data.rating.provisional,
+        ratedMatchesRemaining: data.rating.ratedMatchesRemaining,
+      },
+      ratedMatchCount: data.ratedMatchCount,
+      changeOverLast: data.changeOverLast,
+      lastMatch: data.lastMatch,
       history: data.history,
       historySteps: data.historySteps,
       historyMatchCount: data.historyMatchCount,
-      progressPercent: data.progressPercent,
     },
   };
 }

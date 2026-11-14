@@ -18,10 +18,11 @@ export function MemberSheet({
   member,
   onClose,
   onCall,
+  onWhatsApp,
   onSetLevel,
-  onSetGroupLevel,
-  groupLevelHint,
   onViewProfile,
+  onAdjustTier,
+  onTierHistory,
   onNickname,
   organizerLabel,
   organizerHint,
@@ -32,11 +33,13 @@ export function MemberSheet({
   member: MemberSheetView | null;
   onClose: () => void;
   onCall?: (href: string) => void;
+  onWhatsApp?: (href: string) => void;
   onSetLevel?: () => void;
-  onSetGroupLevel?: () => void;
-  /** The member's Group Level, shown to an Organizer on that row. */
-  groupLevelHint?: string;
   onViewProfile?: () => void;
+  /** An Organizer of a tier Group moves this member's Tier points. */
+  onAdjustTier?: () => void;
+  /** An Organizer of a tier Group reads what moved this member's points. */
+  onTierHistory?: () => void;
   /** Opens "Name in this Group" (design "Group names" 1b). */
   onNickname?: () => void;
   organizerLabel?: string;
@@ -47,6 +50,7 @@ export function MemberSheet({
 }) {
   const m = useMessages();
   const phoneHref = member?.phoneHref;
+  const chatHref = member?.whatsAppHref;
   const rows = member
     ? [
         phoneHref && onCall ? (
@@ -57,12 +61,38 @@ export function MemberSheet({
             onPress={() => onCall(phoneHref)}
           />
         ) : null,
+        chatHref && onWhatsApp ? (
+          <SheetMenuRow
+            key="whatsapp"
+            label={m.group.addPlayer.whatsAppAction}
+            hint={member.phone}
+            onPress={() => onWhatsApp(chatHref)}
+          />
+        ) : null,
         onViewProfile ? (
           <SheetMenuRow
             key="profile"
             label={m.mobileGroup.members.sheet.viewProfile}
             trailing="chevron"
             onPress={onViewProfile}
+          />
+        ) : null,
+        onTierHistory ? (
+          <SheetMenuRow
+            key="tier-history"
+            label={m.rating.history.menuRow}
+            hint={m.rating.history.menuHint}
+            trailing="chevron"
+            onPress={onTierHistory}
+          />
+        ) : null,
+        onAdjustTier ? (
+          <SheetMenuRow
+            key="adjust-tier"
+            label={m.rating.adjust.menuRow}
+            hint={m.rating.adjust.menuHint}
+            trailing="chevron"
+            onPress={onAdjustTier}
           />
         ) : null,
         onNickname ? (
@@ -86,15 +116,6 @@ export function MemberSheet({
             }
             trailing="chevron"
             onPress={onSetLevel}
-          />
-        ) : null,
-        onSetGroupLevel ? (
-          <SheetMenuRow
-            key="group-level"
-            label={m.you.setGroupLevel.title}
-            hint={groupLevelHint}
-            trailing="chevron"
-            onPress={onSetGroupLevel}
           />
         ) : null,
         organizerLabel && onOrganizerAction ? (

@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, count, eq, inArray, or } from "drizzle-orm";
+import { and, count, eq, inArray, isNotNull, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
@@ -22,14 +22,25 @@ import {
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { canViewGame } from "#src/games/access";
+import { appointedOrganizerGroupIds } from "#src/groups/helpers/appointed-organizers";
 import { gameListTime } from "#src/home/upcoming-games";
+import {
+  readTembaLevelView,
+  tembaLevelViews,
+} from "#src/ratings/level-confirmed";
+import { tierPointsShownTo } from "#src/ratings/group-tier-table";
+import { calibrationVenueFor } from "#src/ratings/verifier-calibration";
+import {
+  myGroupTiers,
+  type MyGroupTierRow,
+} from "#src/routers/ratings/myGroupTiers";
 import { summarizeCompletedMatchStats } from "@repo/domain/completed-matches";
-import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import {
   bandFromLevel,
   bandWithHysteresis,
   formatLevel,
   levelFromMu,
+  type YouRatingView,
 } from "@repo/domain/level";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import { outcomeForSlot, userSlotOnMatch } from "@repo/domain/match-slots";
@@ -54,9 +65,10 @@ const notFound = (locale: Locale) =>
   });
 
 /**
- * A viewer may see a Player profile when they are that User, or share a
- * current Group membership or a Game seat with them. Everything else,
- * including an unknown User, reads as not found.
+ * A viewer may see a Player profile when they are that User, share a
+ * current Group membership or a Game seat with them, or are a Verifier who
+ * may calibrate them (ADR-0072). Everything else, including an unknown User,
+ * reads as not found.
  */
 async function sharesGroup(
   database: DbClient,
@@ -106,6 +118,14 @@ export async function mayViewPlayer(
   if (args.viewerId === args.playerId) {
     return true;
   }
+  // A Guest player is a name on one Game, with no profile to open (ADR-0079).
+  const guest = await database.query.user.findFirst({
+    where: and(eq(user.id, args.playerId), isNotNull(user.guestAt)),
+    columns: { id: true },
+  });
+  if (guest) {
+    return false;
+  }
 
   const viewerMember = alias(groupMembers, "viewer_member");
   const playerMember = alias(groupMembers, "player_member");
@@ -137,7 +157,15 @@ export async function mayViewPlayer(
       ),
     )
     .limit(1);
-  return sharedGame != null;
+  if (sharedGame) {
+    return true;
+  }
+
+  const calibration = await calibrationVenueFor(database, {
+    verifierUserId: args.viewerId,
+    targetUserId: args.playerId,
+  });
+  return calibration.venue !== null;
 }
 
 export type CountedMatch = {
@@ -324,13 +352,9 @@ export function usualVenue(newest: readonly Pick<CountedMatch, "venue">[]) {
 }
 
 /** Each player's current padel Level, read the way their own profile reads it. */
-async function currentLevels(
-  database: DbClient,
-  userIds: readonly string[],
-  now: Date,
-) {
+async function currentLevels(database: DbClient, userIds: readonly string[]) {
   if (userIds.length === 0) {
-    return new Map<string, ReturnType<typeof youRatingViewAfterIdle>>();
+    return new Map<string, YouRatingView>();
   }
   const rows = await database.query.ratings.findMany({
     where: and(
@@ -338,15 +362,13 @@ async function currentLevels(
       eq(ratings.sport, GroupSportEnum.PADEL),
     ),
   });
-  return new Map(
-    rows.map((row) => [row.userId, youRatingViewAfterIdle(row, now)]),
-  );
+  const view = await tembaLevelViews(database, rows);
+  return new Map(rows.map((row) => [row.userId, view(row)]));
 }
 
 export async function teamPlayers(
   database: DbClient,
   teamIds: readonly string[],
-  now: Date,
 ) {
   const links =
     teamIds.length === 0
@@ -363,7 +385,9 @@ export async function teamPlayers(
             gamePlayer: {
               columns: {},
               with: {
-                user: { columns: { id: true, name: true, image: true } },
+                user: {
+                  columns: { id: true, name: true, image: true, guestAt: true },
+                },
               },
             },
           },
@@ -373,11 +397,9 @@ export async function teamPlayers(
       ? [{ teamId: link.gameTeamId, user: link.gamePlayer.user }]
       : [],
   );
-  const levels = await currentLevels(
-    database,
-    [...new Set(people.map((person) => person.user.id))],
-    now,
-  );
+  const levels = await currentLevels(database, [
+    ...new Set(people.map((person) => person.user.id)),
+  ]);
 
   const byTeam = new Map<string, PlayerMatchPlayer[]>();
   for (const person of people) {
@@ -390,13 +412,19 @@ export async function teamPlayers(
       levelBand: level?.levelBand ?? null,
       level: level?.level ?? null,
       provisional: level?.provisional ?? false,
+      guest: person.user.guestAt !== null,
     });
     byTeam.set(person.teamId, players);
   }
   return byTeam;
 }
 
-export type TeamPlayer = { userId: string; name: string; image: string | null };
+export type TeamPlayer = {
+  userId: string;
+  name: string;
+  image: string | null;
+  guest?: boolean;
+};
 
 const PARTNER_COUNT = 3;
 
@@ -420,7 +448,7 @@ export function partnersFrom(
   for (const match of matches) {
     const outcome = ownerOutcome(match);
     for (const player of playersOf(match.slotTeamIds[match.userSlot])) {
-      if (player.userId === userId) {
+      if (player.userId === userId || player.guest) {
         continue;
       }
       const entry = partners.get(player.userId) ?? {
@@ -469,7 +497,7 @@ export async function mostPlayedPartners(
       }),
     ),
   ];
-  const players = await teamPlayers(database, ownTeamIds, args.now);
+  const players = await teamPlayers(database, ownTeamIds);
   return partnersFrom(args.playerId, counted, (teamId) =>
     teamId ? (players.get(teamId) ?? []) : [],
   );
@@ -610,10 +638,81 @@ async function ratingChanges(
           bandBefore,
           bandAfter: bandWithHysteresis(after, bandBefore),
           levelChange: Math.round((levelAfter - levelBefore) * 10) / 10,
+          muBefore: event.muBefore,
+          muAfter: event.muAfter,
         },
       ];
     }),
   );
+}
+
+export type SharedGroupTierRow = Omit<MyGroupTierRow, "points"> & {
+  /** Null while Provisional, unless the viewer may see them. */
+  points: number | null;
+};
+
+/**
+ * The player's Group Tier in each tier Group the viewer is also a member of,
+ * cut as Members cuts it (ADR-0067). Sharing only a Game shows none.
+ */
+async function sharedGroupTiers(
+  database: DbClient,
+  args: { viewerId: string; playerId: string },
+): Promise<SharedGroupTierRow[]> {
+  const tiers = await myGroupTiers(database, { userId: args.playerId });
+  if (tiers.length === 0) {
+    return [];
+  }
+  const self = args.viewerId === args.playerId;
+  const viewerGroups = self
+    ? null
+    : await database
+        .select({
+          groupId: groupMembers.groupId,
+          createdBy: groups.createdBy,
+        })
+        .from(groupMembers)
+        .innerJoin(groups, eq(groups.id, groupMembers.groupId))
+        .where(
+          and(
+            eq(groupMembers.userId, args.viewerId),
+            inArray(
+              groupMembers.groupId,
+              tiers.map((tier) => tier.groupId),
+            ),
+          ),
+        );
+  const appointed = new Set(
+    viewerGroups
+      ? await appointedOrganizerGroupIds(database, args.viewerId)
+      : [],
+  );
+  const organizesByGroup = viewerGroups
+    ? new Map(
+        viewerGroups.map((row) => [
+          row.groupId,
+          row.createdBy === args.viewerId || appointed.has(row.groupId),
+        ]),
+      )
+    : null;
+  return tiers
+    .filter(
+      (tier) => organizesByGroup == null || organizesByGroup.has(tier.groupId),
+    )
+    .map((tier) => ({
+      ...tier,
+      points: tierPointsShownTo(
+        {
+          userId: args.playerId,
+          points: tier.points,
+          provisional: tier.provisional,
+        },
+        {
+          userId: args.viewerId,
+          organizes: organizesByGroup?.get(tier.groupId) ?? false,
+        },
+      ),
+    }));
 }
 
 export async function openableGameIds(
@@ -648,7 +747,7 @@ async function lastMatchesFrom(
     ),
   );
   const [players, ratingByMatch, openable] = await Promise.all([
-    teamPlayers(database, teamIds, args.now),
+    teamPlayers(database, teamIds),
     ratingChanges(
       database,
       args.playerId,
@@ -761,9 +860,9 @@ function playedSideCounts(counted: readonly CountedMatch[]) {
 
 export async function sportRating(
   database: DbClient,
-  args: { userId: string; sport: GroupSportEnum; now: Date },
+  args: { userId: string; sport: GroupSportEnum },
 ) {
-  const { userId, sport, now } = args;
+  const { userId, sport } = args;
   const row = await database.query.ratings.findFirst({
     where: and(eq(ratings.userId, userId), eq(ratings.sport, sport)),
   });
@@ -774,7 +873,7 @@ export async function sportRating(
     .select({ ratedMatchCount: count() })
     .from(ratingEvents)
     .where(and(eq(ratingEvents.userId, userId), eq(ratingEvents.sport, sport)));
-  const view = youRatingViewAfterIdle(row, now);
+  const view = await readTembaLevelView(database, row);
   return {
     level: view.level,
     levelBand: view.levelBand,
@@ -814,15 +913,22 @@ export async function loadPlayerProfile(
     playerId: player.id,
     visibility: player.matchHistoryVisibility,
   });
-  const [rating, counted] = await Promise.all([
+  const [rating, counted, calibration, tiers] = await Promise.all([
     sportRating(database, {
       userId: player.id,
       sport: GroupSportEnum.PADEL,
-      now,
     }),
     historyHidden
       ? Promise.resolve([])
       : loadCountedMatches(database, player.id, GameSportEnum.PADEL),
+    calibrationVenueFor(database, {
+      verifierUserId: args.viewerId,
+      targetUserId: player.id,
+    }),
+    sharedGroupTiers(database, {
+      viewerId: args.viewerId,
+      playerId: player.id,
+    }),
   ]);
   const [lastMatches, partners, withViewer] = await Promise.all([
     lastMatchesFrom(
@@ -864,6 +970,10 @@ export async function loadPlayerProfile(
     lastMatches,
     partners,
     withViewer,
+    /** The viewer is a Verifier who may calibrate this player's Level, in either sport. */
+    viewerMayCalibrate: calibration.venue !== null,
+    /** The player's fish in each tier Group the viewer shares with them. */
+    sharedGroupTiers: tiers,
   };
 }
 

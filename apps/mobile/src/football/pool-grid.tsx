@@ -11,7 +11,8 @@ import { tonePalette } from "../primitives/tone-palette";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import {
-  levelLabel,
+  ovrLabel,
+  ovrSpoken,
   poolSections,
   lineupName,
   slotCode,
@@ -71,7 +72,12 @@ function PlayerTile({
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
         accessibilityRole={onPress ? "button" : undefined}
-        accessibilityLabel={[spoken, code, levelLabel(player.levelBand)]
+        accessibilityLabel={[
+          spoken,
+          code,
+          ovrSpoken(player, locale),
+          player.guest ? messages.group.addPlayer.guest.tag : null,
+        ]
           .filter(Boolean)
           .join(messages.tournament.listSeparator)}
         disabled={!onPress}
@@ -96,7 +102,12 @@ function PlayerTile({
             justifyContent: "space-between",
           }}
         >
-          <Avatar name={player.name} uri={player.image} size="sm" />
+          <Avatar
+            name={player.name}
+            uri={player.image}
+            size="sm"
+            guest={player.guest}
+          />
           <CodeTag code={code} keeper={player.role === "keeper"} />
         </View>
         <View
@@ -115,7 +126,7 @@ function PlayerTile({
             iconSize={sizes.iconRow - 4}
           />
           <Text size="meta" width="expanded" weight="bold" ltr>
-            {levelLabel(player.levelBand)}
+            {ovrLabel(player)}
           </Text>
         </View>
       </Pressable>

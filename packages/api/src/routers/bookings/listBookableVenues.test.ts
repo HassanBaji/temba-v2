@@ -83,6 +83,21 @@ describe("bookings.listBookableVenues", () => {
     });
   });
 
+  it("marks a partner Venue", async () => {
+    await withBookableVenue(async (db, f) => {
+      expect((await listBookableVenues(db, { now: NOW }))[0]?.isPartner).toBe(
+        false,
+      );
+      await db
+        .update(venues)
+        .set({ partnerAt: NOW })
+        .where(eq(venues.id, f.venueId));
+      expect((await listBookableVenues(db, { now: NOW }))[0]?.isPartner).toBe(
+        true,
+      );
+    });
+  });
+
   it("leaves out Venues that are archived, not accepting, courtless or unpriced", async () => {
     await withBookableVenue(async (db, f) => {
       await db

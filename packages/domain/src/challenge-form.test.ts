@@ -8,6 +8,7 @@ import {
   challengeDraftWithTeam,
   challengeFormatHelp,
   challengeInitialDraft,
+  challengeLevelChip,
   challengeLevelChips,
   challengeLevelHint,
   challengeLevelSelected,
@@ -225,7 +226,7 @@ describe("challengeReviewRows", () => {
       {
         key: "visibility",
         label: "Visible to",
-        value: "Football teams, C to B-, in Manama",
+        value: "Football teams, OVR 64 to 80, in Manama",
       },
       { key: "open", label: "Open for", value: "7 days, then it expires" },
       {
@@ -388,7 +389,7 @@ describe("challengeNudgeView", () => {
 
 const goozForm: ChallengeFormTeam = {
   ...gooz,
-  teamLevel: { tenths: 28, level: "2.8", band: "C" },
+  teamLevel: { tenths: 28, level: "2.8", band: "C", ovr: 64 },
   members: [{ name: "Hamad Hasan", isViewer: true }],
   playedTeams: [arad],
 };
@@ -465,7 +466,7 @@ describe("challengeTeamChoice", () => {
       "Padel, C+, you and Ali M",
     );
     expect(challengeTeamChoice(goozForm, "en").detail).toBe(
-      "Football, C. 12 on the roster",
+      "Football, OVR 64. 12 on the roster",
     );
     expect(
       challengeTeamChoice({ ...goozForm, teamLevel: null }, "en").detail,
@@ -584,14 +585,26 @@ describe("level wanted", () => {
     expect(challengeLevelTap(c, "C")).toEqual(none);
   });
 
+  it("labels each chip with its band on padel and its OVR span on football", () => {
+    expect(challengeLevelChip("C", "padel", "en")).toEqual({
+      label: "C",
+      accessibilityLabel: "C",
+    });
+    expect(challengeLevelChip("C", "football", "en")).toEqual({
+      label: "64–69",
+      accessibilityLabel: "OVR 64 to 69",
+    });
+    expect(challengeLevelChip("C+", "football", "en").label).toBe("70–75");
+  });
+
   it("names the run beside the heading", () => {
-    expect(challengeLevelHint({ levelMin: "C", levelMax: "B-" }, "en")).toBe(
-      "C to B-",
-    );
-    expect(challengeLevelHint({ levelMin: "C", levelMax: "C" }, "en")).toBe(
-      "C",
-    );
-    expect(challengeLevelHint(none, "en")).toBe("Any level");
+    const run = { levelMin: "C", levelMax: "B-" } as const;
+    expect(challengeLevelHint(run, "en", "padel")).toBe("2.8 to 4.8");
+    expect(challengeLevelHint(run, "en", "football")).toBe("OVR 64 to 80");
+    expect(
+      challengeLevelHint({ levelMin: "C", levelMax: "C" }, "en", "padel"),
+    ).toBe("2.8 to 3.4");
+    expect(challengeLevelHint(none, "en", "football")).toBe("Any level");
   });
 });
 

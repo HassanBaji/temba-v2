@@ -4,6 +4,7 @@ import {
   displayLabelFromStoredBand,
   type LevelBand,
 } from "@repo/domain/level-bands";
+import { whatsAppHref } from "@repo/domain/phone-number";
 import Link from "next/link";
 import { createContext, useContext, useState, type ReactNode } from "react";
 
@@ -15,6 +16,7 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { UserAvatar } from "~/components/common/user-avatar";
+import { GuestTag } from "~/components/temba/seat";
 import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { playerProfilePath } from "~/lib/dashboard-paths";
@@ -24,6 +26,8 @@ export type TournamentPlayer = {
   name: string;
   image: string | null;
   levelBand?: LevelBand | null;
+  guest?: boolean;
+  phoneNumber?: string | null;
 };
 
 type TournamentPlayerActions = {
@@ -120,11 +124,19 @@ function TournamentPlayerDialog({
         {player ? (
           <>
             <ResponsiveDialogHeader className="flex-row items-center gap-3 text-start">
-              <UserAvatar name={player.name} image={player.image} size="lg" />
+              <UserAvatar
+                name={player.name}
+                image={player.image}
+                size="lg"
+                guest={player.guest}
+              />
               <div className="min-w-0">
-                <ResponsiveDialogTitle className="truncate">
-                  {player.name}
-                </ResponsiveDialogTitle>
+                <div className="flex items-center gap-1.5">
+                  <ResponsiveDialogTitle className="truncate">
+                    {player.name}
+                  </ResponsiveDialogTitle>
+                  {player.guest ? <GuestTag /> : null}
+                </div>
                 {level ? (
                   <ResponsiveDialogDescription>
                     {m.webTournament.player.level(level)}
@@ -132,8 +144,20 @@ function TournamentPlayerDialog({
                 ) : null}
               </div>
             </ResponsiveDialogHeader>
-            <div className="flex gap-2 px-4 pb-4 sm:px-0 sm:pb-0">
-              {canOpenProfile ? (
+            <div className="flex flex-wrap gap-2 px-4 pb-4 sm:px-0 sm:pb-0">
+              {player.phoneNumber ? (
+                <Button variant="outline" asChild>
+                  <a
+                    href={whatsAppHref(player.phoneNumber)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={m.group.addPlayer.whatsAppFor(player.name)}
+                  >
+                    {m.group.addPlayer.whatsAppAction}
+                  </a>
+                </Button>
+              ) : null}
+              {canOpenProfile && !player.guest ? (
                 <Button variant="outline" asChild>
                   <Link href={playerProfilePath(player.userId)}>
                     {m.webTournament.player.viewProfile}

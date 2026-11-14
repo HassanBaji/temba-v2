@@ -65,11 +65,13 @@ describe("bookingGameReviewRows", () => {
       { label: "Rating", value: "Counts for Temba rating" },
     ]);
     expect(
-      bookingGameReviewRows(booking, "en", undefined, {
-        name: "Thursday padel",
-        ratingScope: "group",
-      }).at(-1),
-    ).toEqual({ label: "Rating", value: "Counts for group rating" });
+      bookingGameReviewRows(
+        { ...booking, court: { name: "Pitch 1", sport: "football" } },
+        "en",
+        undefined,
+        { name: "Thursday football", ratingScope: "group" },
+      ).at(-1),
+    ).toEqual({ label: "Rating", value: "Counts for group tier" });
     expect(
       bookingGameReviewRows(booking, "en", undefined, {
         name: "Thursday padel",
@@ -243,6 +245,26 @@ describe("a football Booking Game", () => {
         sideSize: 7,
         playersAllowed: 16,
         pricePerPlayerFils: 1_125,
+      },
+    });
+  });
+
+  it("sends the Unrated choice for a Group", () => {
+    expect(
+      bookingGameRequest(
+        "booking-1",
+        { ...open, groupId: "group-1", rated: false },
+        "en",
+        "football",
+      ),
+    ).toEqual({
+      ok: true,
+      input: {
+        bookingId: "booking-1",
+        groupId: "group-1",
+        rated: false,
+        sideSize: 7,
+        playersAllowed: 16,
       },
     });
   });

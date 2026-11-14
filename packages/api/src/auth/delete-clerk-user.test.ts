@@ -49,7 +49,12 @@ describe("anonymiseUserFromClerk", () => {
       const created = await upsertUserFromClerk(db, payload("user_dana"));
       await db
         .update(user)
-        .set({ addedAt: new Date(), homeArea: "Seef", nationality: "BH" })
+        .set({
+          addedAt: new Date(),
+          homeArea: "Seef",
+          nationality: "BH",
+          isOperator: true,
+        })
         .where(eq(user.id, created.id));
       const [group] = await db
         .insert(groups)
@@ -77,6 +82,7 @@ describe("anonymiseUserFromClerk", () => {
         homeArea: null,
         nationality: null,
         emailNotifications: false,
+        isOperator: false,
       });
       expect(row?.deletedAt).toBeInstanceOf(Date);
       expect(row && isUnclaimed(row)).toBe(false);

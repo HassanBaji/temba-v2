@@ -26,6 +26,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { useColors } from "../theme/theme-provider";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api } from "../trpc/react";
 import { BibChip } from "./bib-picker";
 import {
@@ -36,7 +37,7 @@ import {
   scorersNote,
   scorersPayload,
   shortName,
-  sideAverage,
+  sideOvrAverage,
   type Bibs,
   type BoardPlayer,
   type ScoreDraft,
@@ -93,6 +94,7 @@ function SideStepper({
   onStep: (delta: -1 | 1) => void;
 }) {
   const messages = useMessages();
+  const locale = useLocale();
   const m = messages.mobileTournament.scoreScreen;
   return (
     <View
@@ -125,7 +127,7 @@ function SideStepper({
         />
       </View>
       <Text size="meta" tone="muted">
-        {messages.game.played.avg(sideAverage(members))}
+        {messages.game.played.avg(sideOvrAverage(members, locale))}
       </Text>
     </View>
   );
@@ -176,7 +178,12 @@ function ScorerChip({
         opacity: pressed ? 0.8 : 1,
       })}
     >
-      <Avatar name={player.name} uri={player.image} size="sm" />
+      <Avatar
+        name={player.name}
+        uri={player.image}
+        size="sm"
+        guest={player.guest === true}
+      />
       <Text
         size="meta"
         weight="semibold"
@@ -233,6 +240,7 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
         utils.games.footballBoard.invalidate({ gameId }),
         utils.games.byId.invalidate({ id: gameId }),
         utils.games.listMyGames.invalidate(),
+        invalidateRatingReads(utils),
       ]);
       router.back();
     },

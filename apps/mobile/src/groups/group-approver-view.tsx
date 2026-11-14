@@ -26,6 +26,7 @@ import { Surface } from "../primitives/surface";
 import { SurfaceToneContext } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
+import { ovrSpokenLabel } from "./group-home-model";
 import { Notice } from "./notice";
 
 export function JoinRequestsBanner({
@@ -82,16 +83,23 @@ export function JoinRequestsBanner({
 function LevelChip({ level }: { level: GroupJoinRequestData["level"] }) {
   const m = useMessages();
   const colors = useColors();
-  const view = levelCellView(level?.levelBand, level?.provisional ?? true);
+  const locale = useLocale();
+  const view = levelCellView(
+    level?.levelBand,
+    level?.provisional ?? true,
+    level?.ovr,
+  );
   if (!view.label) {
     return null;
   }
   return (
     <View
       accessibilityLabel={
-        view.kind === "provisional"
-          ? m.mobileGroup.members.levelSpokenProvisional(view.label)
-          : m.mobileGroup.members.levelSpoken(view.label)
+        level?.ovr != null
+          ? ovrSpokenLabel(view, locale)
+          : view.kind === "provisional"
+            ? m.mobileGroup.members.levelSpokenProvisional(view.label)
+            : m.mobileGroup.members.levelSpoken(view.label)
       }
       style={{
         borderWidth: hairline,

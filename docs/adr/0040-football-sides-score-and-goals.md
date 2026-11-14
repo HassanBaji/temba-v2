@@ -1,6 +1,6 @@
 # Football sides, Score and goals
 
-**Status:** accepted. Extends ADR-0039. Football Matches feed a Standing since [ADR-0045](./0045-a-standing-counts-unrated-games.md). Amendment proposed: [ADR-0069](./0069-a-football-level-is-an-ovr-moved-by-four-parts.md) makes goals a rating input.
+**Status:** accepted. Extends ADR-0039. Football Matches feed a Standing since [ADR-0045](./0045-a-standing-counts-unrated-games.md). Amended by [ADR-0069](./0069-a-football-level-is-an-ovr-moved-by-four-parts.md) makes goals a rating input.
 
 A football Game's roster is split by its Organizer into two Football sides, each in a Bib colour. Publishing the sides creates the Game's one Match. Its Score is that Match's one Set, so win, loss, draw, Standing, Last 10 and confirmation stay unchanged readers. Who scored is kept beside the Score, never inside it.
 

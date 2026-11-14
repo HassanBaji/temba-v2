@@ -1,3 +1,4 @@
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import {
   formatWindowDuration,
   formatGameCardDay,
@@ -78,7 +79,10 @@ export function GameCard({
   );
   const roundLabel = poolRoundLabel(game.roundNumber, game.roundCount, locale);
   const formatMeta = roundLabel ?? gameFormatLabel(game.format, locale);
-  const ratingTag = ratingScopeTag(game, locale);
+  const ratingTag = ratingScopeTag(
+    { ...game, publicGame: isPublicGame(game) },
+    locale,
+  );
   const durationMeta = formatWindowDuration(
     game.windowStart,
     game.windowEnd,

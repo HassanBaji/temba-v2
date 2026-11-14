@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -10,22 +10,28 @@ import {
 } from "~/components/marks/cabinet-model";
 import { CabinetRow } from "~/components/marks/cabinet-row";
 import { Skeleton } from "~/components/ui/skeleton";
+import { TierSection } from "~/components/you/ratings-page";
 import { YouSection } from "~/components/you/you-section";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import {
   playerProfileRefused,
   profileSport,
 } from "@repo/domain/player-profile";
-import { sportSwitchView } from "@repo/domain/player-profile-page";
+import {
+  sportSwitchView,
+  type ProfileTierView,
+} from "@repo/domain/player-profile-page";
 import type { Sport } from "@repo/domain/sport";
 import { playerMarksPath } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
+import { CalibrateLevelAction } from "./calibrate-level-sheet";
 import { PlayerBackButton } from "./player-header";
 import {
   footballProfileModel,
   padelProfileModel,
+  sharedTierView,
   type PlayerProfileModel,
 } from "./player-profile-model";
 import { PLAYER_HERO_BLEED, PlayerProfileHero } from "./player-profile-hero";
@@ -120,11 +126,23 @@ export function PlayerProfile({
 
   const played = (entry: Sport) =>
     (entry === "football" ? football.data : padel.data)?.overall.played ?? null;
+  const shown = model.sport === "football" ? football.data : padel.data;
 
   return (
     <PlayerProfileView
       model={model}
+      calibrate={
+        padel.data?.viewerMayCalibrate && shown ? (
+          <CalibrateLevelAction
+            userId={userId}
+            name={shown.player.name}
+            sport={model.sport}
+            rating={shown.rating}
+          />
+        ) : null
+      }
       cabinet={cabinetRowModel(cabinet.data, model.sport, locale)}
+      tier={sharedTierView(model.sport, padel.data, locale)}
       cabinetHref={playerMarksPath(userId, model.sport)}
       switchOptions={sportSwitchView(
         model.sports.map((entry) => ({ sport: entry, played: played(entry) })),
@@ -137,19 +155,23 @@ export function PlayerProfile({
 }
 
 /**
- * The hero, the marks cabinet, early days or streaks and position on the
- * start column; Overall, you and them, partners and the games on the end
+ * The hero, the marks cabinet, the Group tier in shared tier Groups, early
+ * days or streaks and position on the start column; Overall, you and them, partners and the games on the end
  * column. One column below lg.
  */
 function PlayerProfileView({
   model,
+  calibrate,
   cabinet,
+  tier,
   cabinetHref,
   switchOptions,
   onSelectSport,
 }: {
   model: PlayerProfileModel;
+  calibrate: ReactNode;
   cabinet: CabinetRowModel | null;
+  tier: ProfileTierView | null;
   cabinetHref: string;
   switchOptions: ReturnType<typeof sportSwitchView>;
   onSelectSport: (sport: Sport) => void;
@@ -167,7 +189,9 @@ function PlayerProfileView({
           onSelectSport={onSelectSport}
           level={model.level}
         />
+        {calibrate}
         {cabinet ? <CabinetRow row={cabinet} href={cabinetHref} /> : null}
+        {tier ? <TierSection tier={tier} /> : null}
         {model.early ? (
           <EarlyDaysCard view={model.early} form={model.form} />
         ) : null}

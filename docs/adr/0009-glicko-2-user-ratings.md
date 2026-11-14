@@ -1,6 +1,6 @@
 # Glicko-2 for per-User sport Ratings
 
-**Status:** accepted. Amendments proposed: [ADR-0069](./0069-a-football-level-is-an-ovr-moved-by-four-parts.md) gives football an additive OVR step in place of Glicko-2, and [ADR-0070](./0070-a-padel-level-weighs-the-partner-and-reads-from-one.md) makes the padel expectation pair against pair.
+**Status:** accepted. Amended by [ADR-0069](./0069-a-football-level-is-an-ovr-moved-by-four-parts.md), which gives football an additive OVR step in place of Glicko-2. Amended by [ADR-0070](./0070-a-padel-level-weighs-the-partner-and-reads-from-one.md), which makes the padel expectation pair against pair.
 
 Users need a durable padel skill signal after Matches complete. Elo hides uncertainty; TrueSkill fits teams but is heavier than we need for a User-only ladder; running Glicko on the 0–7 face would invent non-standard parameters. **Glicko-2 on the classic scale** (μ₀ ≈ 1500, φ₀ ≈ 350, σ₀ ≈ 0.06, τ ≈ 0.5), mapped linearly to Level 0–7, gives a Rating, a confidence story (Provisional from φ), and a Playtomic-like face without a second algorithm.
 

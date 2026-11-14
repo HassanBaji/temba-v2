@@ -63,6 +63,7 @@ import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { useGameEdit } from "~/components/games/use-game-edit";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import {
   cancelGameConsequence,
@@ -137,6 +138,7 @@ import {
   tournamentInviteLandingOpensPartnerSheet,
   tournamentLeaveOrKickConfirmCopy,
 } from "@repo/domain/tournament-join";
+import { isTournamentFinished } from "@repo/domain/tournament-finished";
 import { tournamentRoundsPlan } from "@repo/domain/tournament-organizer";
 import {
   isPartnerRequiredGame,
@@ -148,6 +150,7 @@ import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { gamePlayersLink } from "~/lib/game-player-links";
 import { shareLinkWithFeedback } from "~/lib/share-link";
 import { cn } from "~/lib/utils";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api } from "~/trpc/react";
 
 const EMPTY_EDIT_SOURCE = {
@@ -228,6 +231,7 @@ export default function GameHomePage({
   const [renaming, setRenaming] = React.useState<{
     userId: string;
     name: string;
+    guest?: boolean;
   } | null>(null);
   const [cancelGameOpen, setCancelGameOpen] = React.useState(false);
   const [leaveGameOpen, setLeaveGameOpen] = React.useState(false);
@@ -422,6 +426,10 @@ export default function GameHomePage({
     },
   });
 
+  function refreshRatings() {
+    return invalidateRatingReads(utils, { groupId: game.data?.groupId });
+  }
+
   async function refreshGame() {
     await utils.games.byId.invalidate({ id });
     await utils.users.home.invalidate();
@@ -497,6 +505,7 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(g.toast.setSaved);
       await refreshGame();
+      await refreshRatings();
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -507,7 +516,7 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(g.toast.matchCompleted);
       await refreshGame();
-      await utils.ratings.me.invalidate();
+      await refreshRatings();
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -518,7 +527,21 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(g.toast.resultConfirmed);
       await refreshGame();
-      await utils.ratings.me.invalidate();
+      await refreshRatings();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const stampMatch = api.games.stampMatch.useMutation({
+    onSuccess: async () => {
+      toast.success(m.rating.verifier.stamp.stamped);
+      await Promise.all([
+        refreshGame(),
+        refreshRatings(),
+        utils.games.listMatchesToStamp.invalidate(),
+      ]);
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -529,7 +552,7 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(g.toast.scoreReopened);
       await refreshGame();
-      await utils.ratings.me.invalidate();
+      await refreshRatings();
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -647,6 +670,7 @@ export default function GameHomePage({
         cancelledAt: data.cancelledAt,
         registrationMode: data.registrationMode,
         partnerRequired: isPartnerRequiredGame(data),
+        over: isTournamentFinished(data),
       })
     : { canManage: false, canSendLookup: false };
   const canMintInvite = data ? friendlyGameCanMintInvite(data) : false;
@@ -1301,6 +1325,7 @@ export default function GameHomePage({
               <ChallengeDetailsBlock
                 challenge={data.challenge}
                 sport={data.sport}
+                rated={data.rated}
               />
             ) : null}
             {data.booking ? (
@@ -1309,7 +1334,11 @@ export default function GameHomePage({
                 ratingScope={data.ratingScope}
               />
             ) : (
-              <GameRatingScopeBlock scope={data.ratingScope} />
+              <GameRatingScopeBlock
+                scope={data.ratingScope}
+                sport={data.sport}
+                publicGame={isPublicGame(data)}
+              />
             )}
             <GameLineupSection
               sides={data.sides}
@@ -1366,6 +1395,7 @@ export default function GameHomePage({
                   viewerUserId={data.viewerUserId}
                   winningGameTeamId={winningGameTeamId}
                   matchResultConfirmation={data.matchResultConfirmation}
+                  confirmWindow={data.confirmWindow}
                   isOrganizer={
                     data.matchResultConfirmation?.viewerConfirmsAsOrganizer ??
                     false
@@ -1373,6 +1403,7 @@ export default function GameHomePage({
                   courtFull={vacantSeatCount === 0}
                   scorePending={scoreSet.isPending}
                   confirmPending={confirmMatchResult.isPending}
+                  stampPending={stampMatch.isPending}
                   onScoreSet={(input) =>
                     scoreSet.mutateAsync({
                       gameId: id,
@@ -1388,6 +1419,7 @@ export default function GameHomePage({
                       matchId: firstMatch.id,
                     })
                   }
+                  onStamp={() => stampMatch.mutate({ matchId: firstMatch.id })}
                 />
               </div>
             ) : null}
@@ -1474,6 +1506,8 @@ export default function GameHomePage({
                 completePending={completeMatch.isPending}
                 cancelPending={cancelMatch.isPending}
                 updatePending={updateMatch.isPending}
+                stampPending={stampMatch.isPending}
+                onStamp={(matchId) => stampMatch.mutate({ matchId })}
                 onScoreSet={(input) =>
                   scoreSet.mutate({
                     gameId: id,

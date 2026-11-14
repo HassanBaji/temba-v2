@@ -5,6 +5,7 @@ export const mobileTournament = {
     createGame: "Create Game",
     findAGroup: "Find a Group",
     upcomingTab: "Upcoming",
+    publicTab: "Public",
     playedTab: "Played",
     sport: "Sport",
     couldNotLoad: "Games could not be loaded",
@@ -179,7 +180,7 @@ export const mobileTournament = {
   playerSheet: {
     prefers: (position: string) => `Prefers ${position.toLowerCase()}`,
     noPositionYet: "No position yet",
-    roleAndLevel: (role: string, level: string) => `${role}, Level ${level}`,
+    roleAndOvr: (role: string, ovr: string) => `${role}, OVR ${ovr}`,
     viewProfile: "View profile",
   },
   pool: {

@@ -2,7 +2,8 @@
 
 import { Tag as TagIcon } from "lucide-react";
 import {
-  levelLabel,
+  ovrLabel,
+  ovrSpoken,
   poolSections,
   lineupName,
   slotCode,
@@ -45,8 +46,9 @@ function PlayerTile({
       aria-label={[
         spoken,
         code,
-        levelLabel(player.levelBand),
+        ovrSpoken(player, locale),
         player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
+        player.guest ? m.group.addPlayer.guest.tag : null,
       ]
         .filter(Boolean)
         .join(m.tournament.listSeparator)}
@@ -55,12 +57,18 @@ function PlayerTile({
         player.isViewer
           ? "bg-control text-on-control border-control-edge"
           : "bg-paper border-rule",
-        player.unclaimed && "border-ink border-dashed",
+        (Boolean(player.unclaimed) || Boolean(player.guest)) &&
+          "border-ink border-dashed",
         onPress && !player.isViewer && "hover:bg-wash",
       )}
     >
       <span className="flex items-center justify-between">
-        <UserAvatar name={player.name} image={player.image} size="sm" />
+        <UserAvatar
+          name={player.name}
+          image={player.image}
+          size="sm"
+          guest={player.guest}
+        />
         {player.role === "keeper" ? (
           <span className="bg-control text-on-control rounded-[4px] px-1 font-mono text-[11px]">
             {code}
@@ -88,7 +96,7 @@ function PlayerTile({
           </span>
         </span>
         <span dir="ltr" className="font-expanded text-meta">
-          {levelLabel(player.levelBand)}
+          {ovrLabel(player)}
         </span>
       </span>
     </Tag>

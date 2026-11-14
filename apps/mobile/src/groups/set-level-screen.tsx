@@ -1,13 +1,21 @@
 import { sizes } from "@repo/design-tokens";
+import { OVR_MAX, OVR_MIN, type LevelFace } from "@repo/domain/football-ovr";
 import {
   clampLevelTenths,
+  clampOvrInput,
+  LEVEL_OVERRIDE_NOTE_MAX,
   LEVEL_OVERRIDE_REASONS,
   LEVEL_SLIDER_TICKS,
   levelOverrideReasonLabel,
   levelSliderLabel,
   levelSliderReadout,
+  OVR_SLIDER_TICKS,
+  ovrSliderLabel,
+  ovrSliderReadout,
+  ovrSliderValueText,
   type LevelOverrideReason,
 } from "@repo/domain/level-slider";
+import type { Locale } from "@repo/i18n/locale";
 import { LEVEL_TENTHS_MAX, LEVEL_TENTHS_MIN } from "@repo/domain/level-range";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { useRouter } from "expo-router";
@@ -26,9 +34,12 @@ import { Skeleton } from "../primitives/skeleton";
 import { Slider } from "../primitives/slider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { TextField } from "../primitives/text-field";
 import { useColors } from "../theme/theme-provider";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api } from "../trpc/react";
 import { Notice } from "./notice";
+import { firstName } from "./group-home-model";
 import { groupPath } from "./groups-model";
 import {
   savedLevelPath,
@@ -38,28 +49,185 @@ import {
   type SetLevelView,
 } from "./set-level-model";
 
-const SLIDER_MARKS = LEVEL_SLIDER_TICKS.letters.map((letter) => ({
-  value: letter.centreTenths,
-  label: letter.label,
-}));
+/** How each face of the picker reads, steps and marks (ADR-0069). */
+const FACES = {
+  level: {
+    min: LEVEL_TENTHS_MIN,
+    max: LEVEL_TENTHS_MAX,
+    clamp: clampLevelTenths,
+    label: (value: number) => levelSliderLabel(value),
+    valueText: (value: number) => levelSliderLabel(value),
+    ticks: {
+      startLabel: LEVEL_SLIDER_TICKS.startLabel,
+      endLabel: LEVEL_SLIDER_TICKS.endLabel,
+      edges: LEVEL_SLIDER_TICKS.edgesTenths,
+      marks: LEVEL_SLIDER_TICKS.letters.map((letter) => ({
+        value: letter.centreTenths,
+        label: letter.label,
+      })),
+    },
+  },
+  ovr: {
+    min: OVR_MIN,
+    max: OVR_MAX,
+    clamp: clampOvrInput,
+    label: (value: number) => ovrSliderLabel(value),
+    valueText: (value: number, locale: Locale) =>
+      ovrSliderValueText(value, locale),
+    ticks: {
+      startLabel: OVR_SLIDER_TICKS.startLabel,
+      endLabel: OVR_SLIDER_TICKS.endLabel,
+      edges: OVR_SLIDER_TICKS.edges,
+      marks: OVR_SLIDER_TICKS.marks.map((mark) => ({
+        value: mark.at,
+        label: mark.label,
+      })),
+    },
+  },
+} satisfies Record<LevelFace, unknown>;
+
+function LevelReadout({
+  value,
+  currentValue,
+}: {
+  value: number;
+  currentValue: number;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.mobileGroup.setLevel;
+  const readout = levelSliderReadout({
+    tenths: value,
+    currentTenths: currentValue,
+    locale,
+  });
+  return (
+    <>
+      <View
+        accessible
+        accessibilityLiveRegion="polite"
+        accessibilityLabel={copy.readout(
+          readout.displayBand,
+          readout.levelLabel,
+          readout.deltaLabel,
+        )}
+        style={{ flexDirection: "row", alignItems: "baseline", gap: 12 }}
+      >
+        <Text size="hero" width="expanded" weight="bold" ltr>
+          {readout.displayBand}
+        </Text>
+        <Text size="h1" width="expanded" weight="bold">
+          {readout.levelLabel}
+        </Text>
+        <Text style={{ marginStart: "auto" }}>{readout.deltaLabel}</Text>
+      </View>
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        <Text size="meta">
+          {readout.toNext
+            ? copy.toNext(readout.toNext.distanceLabel, readout.toNext.label)
+            : copy.topOfScale}
+        </Text>
+        <Text size="meta">
+          {copy.throughRung(readout.percentThroughRung, readout.rung.label)}
+        </Text>
+      </View>
+      <ReadoutBar
+        percent={readout.percentThroughRung}
+        lowerLabel={readout.rung.lowerLabel}
+        upperLabel={readout.rung.upperLabel}
+      />
+    </>
+  );
+}
+
+/** Football's readout: the big OVR and its change, the bar along 40 to 99 (ADR-0087). */
+function OvrReadout({
+  value,
+  currentValue,
+}: {
+  value: number;
+  currentValue: number;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const readout = ovrSliderReadout({
+    ovr: value,
+    currentOvr: currentValue,
+    locale,
+  });
+  return (
+    <>
+      <View
+        accessible
+        accessibilityLiveRegion="polite"
+        accessibilityLabel={m.mobileGroup.setLevel.readoutOvr(
+          readout.ovrLabel,
+          readout.deltaLabel,
+        )}
+        style={{ flexDirection: "row", alignItems: "baseline", gap: 12 }}
+      >
+        <Text size="hero" width="expanded" weight="bold" ltr>
+          {readout.ovrLabel}
+        </Text>
+        <Text style={{ marginStart: "auto" }}>{readout.deltaLabel}</Text>
+      </View>
+      <ReadoutBar
+        percent={readout.percentOfScale}
+        lowerLabel={readout.scale.lowerLabel}
+        upperLabel={readout.scale.upperLabel}
+      />
+    </>
+  );
+}
+
+function ReadoutBar({
+  percent,
+  lowerLabel,
+  upperLabel,
+}: {
+  percent: number;
+  lowerLabel: string;
+  upperLabel: string;
+}) {
+  return (
+    <>
+      <MountFill percent={percent} />
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{ flexDirection: "row", justifyContent: "space-between" }}
+      >
+        <Text size="meta" tone="muted">
+          {lowerLabel}
+        </Text>
+        <Text size="meta" tone="muted">
+          {upperLabel}
+        </Text>
+      </View>
+    </>
+  );
+}
 
 /**
  * The readout, slider and stepper of a Level override, shared by the Level
- * setter and the Group Level override.
+ * setter and a Verifier's calibration. `face` "ovr" picks a football Level in
+ * whole OVR; `value` is in the face's unit.
  */
 export function LevelPicker({
-  tenths,
-  onTenths,
-  currentTenths,
+  face = "level",
+  value,
+  onValue,
+  currentValue,
   wasLabel,
   markerLabel,
   disabled = false,
 }: {
-  tenths: number;
-  onTenths: (tenths: number) => void;
-  currentTenths: number;
+  face?: LevelFace;
+  value: number;
+  onValue: (value: number) => void;
+  currentValue: number;
   wasLabel: string;
-  /** Names the slider marker at `currentTenths`; null draws none. */
+  /** Names the slider marker at `currentValue`; null draws none. */
   markerLabel?: string | null;
   disabled?: boolean;
 }) {
@@ -67,10 +235,18 @@ export function LevelPicker({
   const locale = useLocale();
   const colors = useColors();
   const copy = m.mobileGroup.setLevel;
-  const readout = levelSliderReadout({ tenths, currentTenths, locale });
+  const scale = FACES[face];
+  const stepperLabel =
+    face === "ovr"
+      ? ovrSliderLabel(value)
+      : levelSliderReadout({
+          tenths: value,
+          currentTenths: currentValue,
+          locale,
+        }).levelLabel;
 
   function step(delta: number) {
-    onTenths(clampLevelTenths(tenths + delta));
+    onValue(scale.clamp(value + delta));
   }
 
   return (
@@ -84,68 +260,32 @@ export function LevelPicker({
             {wasLabel}
           </Text>
         </View>
-        <View
-          accessible
-          accessibilityLiveRegion="polite"
-          accessibilityLabel={copy.readout(
-            readout.displayBand,
-            readout.levelLabel,
-            readout.deltaLabel,
-          )}
-          style={{ flexDirection: "row", alignItems: "baseline", gap: 12 }}
-        >
-          <Text size="hero" width="expanded" weight="bold" ltr>
-            {readout.displayBand}
-          </Text>
-          <Text size="h1" width="expanded" weight="bold">
-            {readout.levelLabel}
-          </Text>
-          <Text style={{ marginStart: "auto" }}>{readout.deltaLabel}</Text>
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text size="meta">
-            {readout.toNext
-              ? copy.toNext(readout.toNext.distanceLabel, readout.toNext.label)
-              : copy.topOfScale}
-          </Text>
-          <Text size="meta">
-            {copy.throughRung(readout.percentThroughRung, readout.rung.label)}
-          </Text>
-        </View>
-        <MountFill percent={readout.percentThroughRung} />
-        <View
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          style={{ flexDirection: "row", justifyContent: "space-between" }}
-        >
-          <Text size="meta" tone="muted">
-            {(readout.rung.lowerTenths / 10).toFixed(1)}
-          </Text>
-          <Text size="meta" tone="muted">
-            {(readout.rung.upperTenths / 10).toFixed(1)}
-          </Text>
-        </View>
+        {face === "ovr" ? (
+          <OvrReadout value={value} currentValue={currentValue} />
+        ) : (
+          <LevelReadout value={value} currentValue={currentValue} />
+        )}
       </Surface>
 
       <Slider
-        min={LEVEL_TENTHS_MIN}
-        max={LEVEL_TENTHS_MAX}
-        value={tenths}
-        onValueChange={onTenths}
+        min={scale.min}
+        max={scale.max}
+        value={value}
+        onValueChange={(next) => onValue(scale.clamp(next))}
         label={m.common.level}
-        valueText={levelSliderLabel(tenths)}
-        startLabel={LEVEL_SLIDER_TICKS.startLabel}
-        endLabel={LEVEL_SLIDER_TICKS.endLabel}
-        edges={LEVEL_SLIDER_TICKS.edgesTenths}
-        marks={SLIDER_MARKS}
+        valueText={scale.label(value)}
+        startLabel={scale.ticks.startLabel}
+        endLabel={scale.ticks.endLabel}
+        edges={scale.ticks.edges}
+        marks={scale.ticks.marks}
         marker={
           markerLabel === null
             ? undefined
             : {
-                value: currentTenths,
+                value: currentValue,
                 label:
                   markerLabel ??
-                  copy.nowMarker(levelSliderLabel(currentTenths)),
+                  copy.nowMarker(scale.valueText(currentValue, locale)),
               }
         }
         disabled={disabled}
@@ -160,11 +300,11 @@ export function LevelPicker({
         }}
       >
         <Button
-          label={copy.decrease}
+          label={face === "ovr" ? copy.decreaseOvr : copy.decrease}
           variant="outline"
           size="icon"
           icon={<Minus size={sizes.iconAction} color={colors.ink} />}
-          disabled={tenths <= LEVEL_TENTHS_MIN}
+          disabled={value <= scale.min}
           onPress={() => step(-1)}
         />
         <Text
@@ -172,24 +312,69 @@ export function LevelPicker({
           width="expanded"
           style={{ minWidth: 56, textAlign: "center" }}
         >
-          {readout.levelLabel}
+          {stepperLabel}
         </Text>
         <Button
-          label={copy.increase}
+          label={face === "ovr" ? copy.increaseOvr : copy.increase}
           variant="outline"
           size="icon"
           icon={<Plus size={sizes.iconAction} color={colors.ink} />}
-          disabled={tenths >= LEVEL_TENTHS_MAX}
+          disabled={value >= scale.max}
           onPress={() => step(1)}
         />
         <Button
           label={copy.reset}
           variant="outline"
-          disabled={tenths === currentTenths}
-          onPress={() => onTenths(currentTenths)}
+          disabled={value === currentValue}
+          onPress={() => onValue(currentValue)}
         />
       </View>
     </>
+  );
+}
+
+/** The required reason and the optional note of a Level override (ADR-0073). */
+export function LevelReasonFields({
+  name,
+  reason,
+  onReason,
+  note,
+  onNote,
+  disabled,
+}: {
+  name: string;
+  reason: LevelOverrideReason | null;
+  onReason: (reason: LevelOverrideReason | null) => void;
+  note: string;
+  onNote: (note: string) => void;
+  disabled: boolean;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.mobileGroup.setLevel;
+  const why = copy.why(firstName(name));
+  return (
+    <View style={{ gap: 8 }}>
+      <Text weight="semibold">{why}</Text>
+      <ChipGrid
+        label={why}
+        chips={LEVEL_OVERRIDE_REASONS.map((value) => ({
+          value,
+          label: levelOverrideReasonLabel(value, locale),
+          disabled,
+        }))}
+        isSelected={(value) => reason === value}
+        onSelect={(value) => onReason(reason === value ? null : value)}
+      />
+      <TextField
+        accessibilityLabel={copy.noteLabel}
+        placeholder={copy.notePlaceholder}
+        value={note}
+        onChangeText={onNote}
+        maxLength={LEVEL_OVERRIDE_NOTE_MAX}
+        editable={!disabled}
+      />
+    </View>
   );
 }
 
@@ -203,18 +388,16 @@ function SetLevelForm({
   const m = useMessages();
   const locale = useLocale();
   const copy = m.mobileGroup.setLevel;
-  const reasonChips = LEVEL_OVERRIDE_REASONS.map((value) => ({
-    value,
-    label: levelOverrideReasonLabel(value, locale),
-  }));
   const router = useRouter();
   const utils = api.useUtils();
   const [tenths, setTenths] = useState(view.currentTenths);
   const [reason, setReason] = useState<LevelOverrideReason | null>(null);
+  const [note, setNote] = useState("");
+  const unchanged = setLevelUnchanged(view, tenths);
 
   const setLevel = api.ratings.setLevel.useMutation({
     onSuccess: async () => {
-      await utils.groups.byId.invalidate({ id: groupId });
+      await invalidateRatingReads(utils, { groupId });
       router.dismissTo(
         savedLevelPath(groupId, {
           name: view.name,
@@ -235,18 +418,26 @@ function SetLevelForm({
         <View style={{ flex: 1, gap: 10 }}>
           <Text>{view.note}</Text>
           <Button
-            label={setLevelConfirmLabel(tenths, locale)}
+            label={
+              reason === null && !unchanged
+                ? copy.pickReason
+                : setLevelConfirmLabel(tenths, locale)
+            }
             size="lg"
-            disabled={setLevelUnchanged(view, tenths)}
+            disabled={unchanged || reason === null}
             pending={setLevel.isPending}
-            onPress={() =>
+            onPress={() => {
+              if (!reason) {
+                return;
+              }
               setLevel.mutate({
                 groupId,
                 userId: view.userId,
                 levelTenths: tenths,
-                reason: reason ?? undefined,
-              })
-            }
+                reason,
+                note: note.trim() || undefined,
+              });
+            }}
           />
         </View>
       }
@@ -257,25 +448,21 @@ function SetLevelForm({
         title={copy.title(view.name)}
       />
       <LevelPicker
-        tenths={tenths}
-        onTenths={setTenths}
-        currentTenths={view.currentTenths}
+        value={tenths}
+        onValue={setTenths}
+        currentValue={view.currentTenths}
         wasLabel={view.wasLabel}
         disabled={setLevel.isPending}
       />
 
-      <View style={{ gap: 8 }}>
-        <Text weight="semibold">{copy.reason}</Text>
-        <ChipGrid
-          label={copy.reason}
-          chips={reasonChips.map((chip) => ({
-            ...chip,
-            disabled: setLevel.isPending,
-          }))}
-          isSelected={(value) => reason === value}
-          onSelect={(value) => setReason(reason === value ? null : value)}
-        />
-      </View>
+      <LevelReasonFields
+        name={view.name}
+        reason={reason}
+        onReason={setReason}
+        note={note}
+        onNote={setNote}
+        disabled={setLevel.isPending}
+      />
 
       <FieldError message={error ?? undefined} />
     </Screen>

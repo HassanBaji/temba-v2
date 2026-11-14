@@ -135,8 +135,14 @@ export function scoreFooterNote(
   confirmedAtLabel: string | null,
   locale: Locale,
   confirmedByOrganizer = false,
+  stampedByName: string | null = null,
 ) {
   const m = messagesFor(locale).game.score;
+  if (phase === "final" && stampedByName) {
+    return messagesFor(locale).rating.verifier.stamp.stampedFinal(
+      stampedByName,
+    );
+  }
   if (phase === "final" && confirmedByOrganizer) {
     return m.confirmedByOrganizer;
   }
@@ -191,19 +197,59 @@ export function scoreShowsConfirmations(input: {
   );
 }
 
+/**
+ * A Public Game's entered score waits 24 hours for one player of the other
+ * side (ADR-0071). `viewerMayConfirm` is whether the viewer's side has yet
+ * to agree.
+ */
+export type ScoreConfirmWindow = { closesAt: Date; viewerMayConfirm: boolean };
+
 export function scoreCanConfirm(input: {
   confirmation: ScoreConfirmation | null;
   hasResult: boolean;
   phase: FriendlyScorePhase;
   viewerUserId: string;
+  confirmWindow?: ScoreConfirmWindow | null;
 }) {
   return (
     input.confirmation != null &&
     input.hasResult &&
     input.phase !== "final" &&
     input.confirmation.requiredUserIds.includes(input.viewerUserId) &&
-    !input.confirmation.viewerHasConfirmed
+    !input.confirmation.viewerHasConfirmed &&
+    (input.confirmWindow?.viewerMayConfirm ?? true)
   );
+}
+
+const MS_PER_MINUTE = 60_000;
+
+/**
+ * The time left on a Public Game's confirm window, said to the side it waits
+ * on or to everyone else. Once it has run out the score stands and does not
+ * count.
+ */
+export function scoreConfirmWindowLine(
+  window: ScoreConfirmWindow | null | undefined,
+  now: Date,
+  locale: Locale,
+): string | null {
+  if (!window) {
+    return null;
+  }
+  const m = messagesFor(locale).rating.publicGame;
+  const minutes = Math.ceil(
+    (new Date(window.closesAt).getTime() - now.getTime()) / MS_PER_MINUTE,
+  );
+  if (minutes <= 0) {
+    return m.stood;
+  }
+  const left =
+    minutes < 60
+      ? m.confirmWindow.minutes(minutes)
+      : m.confirmWindow.hours(Math.floor(minutes / 60));
+  return window.viewerMayConfirm
+    ? m.confirmWindow.yours(left)
+    : m.confirmWindow.theirs(left);
 }
 
 /** A side with no account holder waits on an Organizer's confirmation. */

@@ -58,6 +58,8 @@ export const matches = pgTable(
     completedAt: timestamp("completed_at"),
     /** A Match its players stopped before a result. No result, out of the table until a score replaces it. */
     notFinishedAt: timestamp("not_finished_at"),
+    /** A Public Game's Match completed when the other side did not confirm in 24 hours. It never moves a Level (ADR-0071). */
+    stoodUnconfirmedAt: timestamp("stood_unconfirmed_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

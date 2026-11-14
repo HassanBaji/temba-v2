@@ -9,6 +9,7 @@ import {
   knockoutMatchIsLevel,
   placeKnockoutQualifiers,
 } from "#src/games/knockout-advance";
+import { publicGameConfirmWindowClosed } from "#src/games/match-result-confirmations";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import { scheduleMvpSettle } from "#src/marks/settle-mvp";
 import { notifyIfGameFinished } from "#src/notifications/notify-game-finished";
@@ -29,11 +30,16 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
  * completed/cancelled or has no Match outcome yet (a level Knockout Match has
  * none), so a duplicate confirmation cannot double-fire the rating effect or
  * advance a Knockout winner twice.
+ *
+ * `stoodUnconfirmed` completes a Public Game's Match whose other side did
+ * not confirm in time: it stays in Match history and moves no Level
+ * (ADR-0071).
  */
 export async function runMatchCompletionEffect(
   database: DbClient,
   game: GameRow,
   matchId: string,
+  options: { stoodUnconfirmed?: boolean } = {},
 ): Promise<void> {
   await database.transaction(async (tx) => {
     const [locked] = await tx
@@ -69,14 +75,41 @@ export async function runMatchCompletionEffect(
       .set({
         status: MatchStatusEnum.COMPLETED,
         completedAt: now,
+        stoodUnconfirmedAt: options.stoodUnconfirmed ? now : null,
         updatedAt: now,
       })
       .where(eq(matches.id, locked.id));
-    await scheduleMvpSettle(tx, game.id, now);
-
-    await applyRatedMatch(tx, game, locked, outcome.result);
+    if (!options.stoodUnconfirmed) {
+      await applyRatedMatch(tx, game, locked, outcome.result);
+    }
+    await scheduleMvpSettle(tx, {
+      gameId: game.id,
+      matchId: locked.id,
+      completedAt: now,
+    });
     await advanceKnockoutWinner(tx, locked, outcome.result);
     await placeKnockoutQualifiers(tx, game, locked);
     await notifyIfGameFinished(tx, game);
   });
+}
+
+/**
+ * Lets a Public Game's score stand without counting once its 24 hours have
+ * run out, and says whether it did (ADR-0071). Every door that can complete
+ * a Public Game's Match asks this before it records an agreement, so one that
+ * arrives late never counts, however late the `match.confirm-window` Job is.
+ */
+export async function standUnconfirmedIfConfirmWindowClosed(
+  database: DbClient,
+  game: GameRow,
+  matchId: string,
+  now: Date,
+): Promise<boolean> {
+  if (!(await publicGameConfirmWindowClosed(database, game, matchId, now))) {
+    return false;
+  }
+  await runMatchCompletionEffect(database, game, matchId, {
+    stoodUnconfirmed: true,
+  });
+  return true;
 }

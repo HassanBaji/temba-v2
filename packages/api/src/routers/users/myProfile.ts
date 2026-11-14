@@ -28,6 +28,7 @@ import {
   type CountedMatch,
   type TeamPlayer,
 } from "#src/routers/users/playerProfile";
+import { readTembaLevelView } from "#src/ratings/level-confirmed";
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import {
   BAND_UPPER_HUNDREDTHS,
@@ -371,10 +372,20 @@ export async function loadMyProfile(
 
   let level = null;
   if (row) {
-    const view = youRatingViewAfterIdle(
-      { ...row, lastRatedAt: row.lastRatedAt ?? null },
-      now,
-    );
+    // A Group scope reads a retired Group Level, Provisional by its φ.
+    const view =
+      scope.kind === "general"
+        ? await readTembaLevelView(database, {
+            userId: args.userId,
+            sport: scope.sport,
+            mu: row.mu,
+            phi: row.phi,
+            levelBand: row.levelBand,
+          })
+        : youRatingViewAfterIdle(
+            { ...row, lastRatedAt: row.lastRatedAt ?? null },
+            now,
+          );
     const value = levelFromMu(row.mu);
     const progress = progressToNextBand(value, view.levelBand);
     const shown = changes.slice(-HISTORY_POINT_LIMIT);
@@ -454,7 +465,7 @@ export async function loadMyProfile(
     ),
   ];
   const [players, openable] = await Promise.all([
-    teamPlayers(database, teamIds, now),
+    teamPlayers(database, teamIds),
     openableGameIds(database, args.userId, [
       ...new Set(recentMatches.map((match) => match.gameId)),
     ]),

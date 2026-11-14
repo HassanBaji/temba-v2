@@ -41,6 +41,7 @@ import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import { gameInviteAccess } from "@repo/domain/invites";
 import type { PlayedRow } from "@repo/domain/played-game";
 import { kickableTournamentOccupants } from "@repo/domain/tournament-organizer";
+import { isTournamentFinished } from "@repo/domain/tournament-finished";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 import { useRouter, useSegments } from "expo-router";
 import { ArrowLeftRight, LogIn, UserPlus } from "lucide-react-native";
@@ -70,6 +71,7 @@ import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { TournamentBar } from "../tournament/tournament-bar";
 import { OrganizerSheets as TournamentOrganizerSheets } from "../tournament/organizer-sheets";
+import { TournamentAlbum } from "../tournament/tournament-album";
 import { TournamentContent } from "../tournament/tournament-content";
 import {
   tournamentPlayer,
@@ -77,6 +79,7 @@ import {
 } from "../tournament/tournament-model";
 import { TournamentPlayerSheet } from "../tournament/tournament-player-sheet";
 import { useTournamentOrganizer } from "../tournament/use-tournament-organizer";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api } from "../trpc/react";
 import { AddPlayerSheet } from "./add-player-sheet";
 import { RenamePlayerSheet } from "./rename-player-sheet";
@@ -180,6 +183,7 @@ export function GameDetailsScreen({
   const [renaming, setRenaming] = useState<{
     userId: string;
     name: string;
+    guest?: boolean;
   } | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -231,6 +235,12 @@ export function GameDetailsScreen({
         utils.users.home.invalidate(),
       ]),
     [utils, gameId],
+  );
+
+  const groupId = data?.groupId;
+  const refreshWithRatings = useCallback(
+    () => Promise.all([refresh(), invalidateRatingReads(utils, { groupId })]),
+    [refresh, utils, groupId],
   );
 
   const failure = (error: { message: string }) => toast.show(error.message);
@@ -298,10 +308,16 @@ export function GameDetailsScreen({
   const confirmResult = api.games.confirmMatchResult.useMutation({
     onSuccess: () => toast.show(copy.toast.resultConfirmed),
     onError: failure,
-    onSettled: async () => {
-      await refresh();
-      await utils.ratings.me.invalidate();
-    },
+    onSettled: refreshWithRatings,
+  });
+  const stampMatch = api.games.stampMatch.useMutation({
+    onSuccess: () => toast.show(m.rating.verifier.stamp.stamped),
+    onError: failure,
+    onSettled: () =>
+      Promise.all([
+        refreshWithRatings(),
+        utils.games.listMatchesToStamp.invalidate(),
+      ]),
   });
   const requestLevel = api.games.requestLevelRange.useMutation({
     onSuccess: () => toast.show(m.level.request.sent),
@@ -318,10 +334,7 @@ export function GameDetailsScreen({
   const enterTournamentScore = api.games.enterTournamentScore.useMutation({
     onSuccess: () => toast.show(copy.toast.setSaved),
     onError: failure,
-    onSettled: async () => {
-      await refresh();
-      await utils.ratings.me.invalidate();
-    },
+    onSettled: refreshWithRatings,
   });
 
   const firstMatchId = data?.matches[0]?.id;
@@ -370,7 +383,7 @@ export function GameDetailsScreen({
           error instanceof Error ? errorText(error) : copy.toast.couldNotSave,
         );
       } finally {
-        await refresh();
+        await refreshWithRatings();
       }
     },
     [
@@ -379,7 +392,7 @@ export function GameDetailsScreen({
       firstMatchId,
       gameId,
       locale,
-      refresh,
+      refreshWithRatings,
       scoreSet,
       toast,
     ],
@@ -439,6 +452,7 @@ export function GameDetailsScreen({
         cancelledAt: data.cancelledAt,
         registrationMode: data.registrationMode,
         partnerRequired: isPartnerRequiredGame(data),
+        over: isTournamentFinished(data),
       })
     : null;
   const shareContext = data
@@ -569,8 +583,18 @@ export function GameDetailsScreen({
     );
   }
 
+  const guestIds = new Set(
+    data.registeredPlayers
+      .filter((player) => player.guest)
+      .map((player) => player.id),
+  );
   const onOpenPlayer = gamePlayersLink(data)
-    ? (userId: string) => router.push(playerPath(segments, userId))
+    ? (userId: string) => {
+        if (guestIds.has(userId)) {
+          return;
+        }
+        router.push(playerPath(segments, userId));
+      }
     : undefined;
 
   if (football) {
@@ -612,10 +636,22 @@ export function GameDetailsScreen({
         : undefined;
     return (
       <View style={{ flex: 1 }}>
-        <Screen refreshing={refreshing} onRefresh={onRefresh}>
+        <Screen
+          refreshing={refreshing}
+          onRefresh={() => {
+            void utils.gameAlbum.forGame.invalidate({ gameId });
+            return onRefresh();
+          }}
+        >
           {inviteEntry}
           <TournamentContent
             game={details}
+            album={
+              <TournamentAlbum
+                game={details}
+                openAdd={intent === "addPhotos"}
+              />
+            }
             organizer={{
               card: tournamentOrganizer.handlers,
               onCancelMatch: tournamentOrganizer.openWalkover,
@@ -645,6 +681,8 @@ export function GameDetailsScreen({
                 enterTournamentScore.mutate({ gameId, matchId, ...score }),
               confirmPending: confirmResult.isPending,
               onConfirm: (matchId) => confirmResult.mutate({ gameId, matchId }),
+              stampPending: stampMatch.isPending,
+              onStamp: (matchId) => stampMatch.mutate({ matchId }),
               onOpenPlayer: openTournamentPlayer,
               playerOpensActions,
             }}
@@ -807,6 +845,7 @@ export function GameDetailsScreen({
     movePending: moveSeat.isPending,
     scorePending: scoreSet.isPending,
     confirmPending: confirmResult.isPending,
+    stampPending: stampMatch.isPending,
     levelRequestPending: requestLevel.isPending,
     onMove: (sideIndex, position) =>
       moveSeat.mutate({ gameId, sideIndex, position }),
@@ -820,6 +859,7 @@ export function GameDetailsScreen({
     onSaveSets: (payloads) => void saveSets(payloads),
     onConfirm: () =>
       firstMatchId && confirmResult.mutate({ gameId, matchId: firstMatchId }),
+    onStamp: () => firstMatchId && stampMatch.mutate({ matchId: firstMatchId }),
     onRequestLevel: () => requestLevel.mutate({ gameId }),
   };
 
@@ -920,6 +960,7 @@ export function GameDetailsScreen({
               <ChallengeDetailsCard
                 challenge={data.challenge}
                 sport={data.sport}
+                rated={data.rated}
               />
             ) : null}
             <GameDetailsContent

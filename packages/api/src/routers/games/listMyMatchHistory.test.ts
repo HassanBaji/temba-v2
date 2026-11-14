@@ -14,8 +14,10 @@ import {
   games,
   groups,
   marks,
+  GroupSportEnum,
   matchSets,
   matches,
+  ratingEvents,
   user,
   venues,
 } from "@repo/db/schema";
@@ -23,6 +25,7 @@ import {
 import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
 import { nextMatchSetNumber } from "#src/games/next-match-set-number";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
+import { muFromOvr } from "@repo/domain/football-ovr";
 
 const NOW = new Date("2026-08-31T16:00:00.000Z");
 const PAST_START = new Date("2026-08-01T18:00:00.000Z");
@@ -927,6 +930,85 @@ describe("listMyMatchHistoryRows marks", () => {
         viewerMarks: ["dynamo"],
         viewerIsMvp: false,
       });
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("listMyMatchHistoryRows Level moves", () => {
+  it("carries the viewer's Level move on a Match that counted, and none on a tier Game", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "move-viewer@example.com");
+      const partner = await insertUser(db, "move-partner@example.com");
+      const oppLeft = await insertUser(db, "move-opp-left@example.com");
+      const oppRight = await insertUser(db, "move-opp-right@example.com");
+      const venue = await insertVenue(db);
+
+      const counted = await insertGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        name: "Counted",
+        sport: GameSportEnum.Football,
+      });
+      await db
+        .update(games)
+        .set({ rated: true })
+        .where(eq(games.id, counted.game.id));
+      await seatCompletedFriendly(db, {
+        gameId: counted.game.id,
+        matchId: counted.match.id,
+        slot1: { left: viewer, right: partner },
+        slot2: { left: oppLeft, right: oppRight },
+        sets: [{ slot1GamesWon: 5, slot2GamesWon: 3 }],
+        startTime: new Date("2026-08-02T18:00:00.000Z"),
+      });
+      const muBefore = muFromOvr(73);
+      const muAfter = muFromOvr(74);
+      for (const userId of [viewer.id, partner.id]) {
+        await db.insert(ratingEvents).values({
+          userId,
+          sport: GroupSportEnum.FOOTBALL,
+          matchId: counted.match.id,
+          outcomeScore: 1,
+          weight: 1,
+          muBefore: userId === viewer.id ? muBefore : muFromOvr(60),
+          phiBefore: 200,
+          sigmaBefore: 0.06,
+          muAfter: userId === viewer.id ? muAfter : muFromOvr(62),
+          phiAfter: 190,
+          sigmaAfter: 0.06,
+        });
+      }
+
+      const tier = await insertGame(db, {
+        createdBy: viewer.id,
+        venueId: venue.id,
+        name: "Tier game",
+        sport: GameSportEnum.Football,
+      });
+      await db
+        .update(games)
+        .set({ rated: false, groupRated: true })
+        .where(eq(games.id, tier.game.id));
+      await seatCompletedFriendly(db, {
+        gameId: tier.game.id,
+        matchId: tier.match.id,
+        slot1: { left: viewer, right: partner },
+        slot2: { left: oppLeft, right: oppRight },
+        sets: [{ slot1GamesWon: 2, slot2GamesWon: 4 }],
+      });
+
+      const rows = await listMyMatchHistoryRows(db, viewer.id, NOW, {
+        limit: 10,
+      });
+      expect(
+        rows.map((row) => [row.name, row.ratingScope, row.levelMove]),
+      ).toEqual([
+        ["Counted", "temba", { muBefore, muAfter }],
+        ["Tier game", "group", null],
+      ]);
     } finally {
       await close();
     }

@@ -4,6 +4,7 @@ import { glicko2Step } from "./glicko2";
 import { IDLE_PERIOD_MS } from "./idle";
 import { bandWithHysteresis, levelFromMu } from "./level";
 import {
+  DOUBLES_PARTNER_WEIGHT,
   rateDoublesMatch,
   type DoublesPlayerInput,
 } from "./rate-doubles-match";
@@ -46,7 +47,7 @@ describe("rateDoublesMatch", () => {
     }
   });
 
-  it("steps each player against the composite of the opposing pair", () => {
+  it("steps each player against the opposing pair shifted by half the gap to their partner", () => {
     const result = rateDoublesMatch({
       slot1: strong,
       slot2: weak,
@@ -55,8 +56,85 @@ describe("rateDoublesMatch", () => {
       now,
     });
 
-    const expected = glicko2Step(strong[0].state, { mu: 1450, phi: 200 }, 1);
-    expect(result.slot1[0].after).toEqual(expected);
+    expect(DOUBLES_PARTNER_WEIGHT).toBe(1);
+    expect(result.slot1[0].after).toEqual(
+      glicko2Step(strong[0].state, { mu: 1500, phi: 200 }, 1),
+    );
+    expect(result.slot1[1].after).toEqual(
+      glicko2Step(strong[1].state, { mu: 1400, phi: 200 }, 1),
+    );
+    expect(result.slot2[0].after).toEqual(
+      glicko2Step(weak[0].state, { mu: 1600, phi: 200 }, 0),
+    );
+    expect(result.slot2[1].after).toEqual(
+      glicko2Step(weak[1].state, { mu: 1700, phi: 200 }, 0),
+    );
+  });
+
+  it("moves four players of equal μ exactly as the opposing pair's mean did", () => {
+    const even: [DoublesPlayerInput, DoublesPlayerInput] = [
+      player(1500, 120),
+      player(1500, 300),
+    ];
+    const others: [DoublesPlayerInput, DoublesPlayerInput] = [
+      player(1500, 200),
+      player(1500, 80),
+    ];
+    const result = rateDoublesMatch({
+      slot1: even,
+      slot2: others,
+      outcome: "slot1",
+      weight: 0.5,
+      now,
+    });
+
+    const versusSlot2 = { mu: 1500, phi: 140 };
+    const versusSlot1 = { mu: 1500, phi: 210 };
+    const halfStep = (state: DoublesPlayerInput["state"], score: 0 | 1) => {
+      const star = glicko2Step(
+        state,
+        score === 1 ? versusSlot2 : versusSlot1,
+        score,
+      );
+      return {
+        mu: state.mu + 0.5 * (star.mu - state.mu),
+        phi: state.phi + 0.5 * (star.phi - state.phi),
+        sigma: state.sigma + 0.5 * (star.sigma - state.sigma),
+      };
+    };
+    expect(result.slot1[0].after).toEqual(halfStep(even[0].state, 1));
+    expect(result.slot1[1].after).toEqual(halfStep(even[1].state, 1));
+    expect(result.slot2[0].after).toEqual(halfStep(others[0].state, 0));
+    expect(result.slot2[1].after).toEqual(halfStep(others[1].state, 0));
+  });
+
+  it("gives a weak player beside a strong partner less for a win, and the partner more", () => {
+    const mixed: [DoublesPlayerInput, DoublesPlayerInput] = [
+      player(1300),
+      player(1700),
+    ];
+    const even: [DoublesPlayerInput, DoublesPlayerInput] = [
+      player(1500),
+      player(1500),
+    ];
+    const result = rateDoublesMatch({
+      slot1: mixed,
+      slot2: even,
+      outcome: "slot1",
+      weight: 1,
+      now,
+    });
+
+    const pairMean = { mu: 1500, phi: 200 };
+    const ignoringPartner = mixed.map(
+      (p) => glicko2Step(p.state, pairMean, 1).mu - p.state.mu,
+    );
+    const gains = result.slot1.map((p) => p.after.mu - p.before.mu);
+
+    expect(gains[0]).toBeGreaterThan(0);
+    expect(gains[0]).toBeLessThan(ignoringPartner[0]!);
+    expect(gains[1]).toBeGreaterThan(ignoringPartner[1]!);
+    expect(gains[0]).toBeCloseTo(gains[1]!, 10);
   });
 
   it("scores a loss for slot1 when slot2 wins", () => {

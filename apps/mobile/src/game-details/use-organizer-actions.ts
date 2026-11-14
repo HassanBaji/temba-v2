@@ -31,6 +31,7 @@ import { useMemo, useState } from "react";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { slotOf } from "../lib/slot-of";
 import { useToast } from "../primitives/toast";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "../trpc/react";
 import type { ConfirmRequest } from "./confirm-sheet";
 import { gameTitle } from "./details-model";
@@ -101,10 +102,11 @@ export function useOrganizerActions({
     onClose: () => setSection(null),
   });
 
-  const refreshRatings = async () => {
-    await utils.ratings.me.invalidate();
-    await utils.users.profileStats.invalidate();
-  };
+  const refreshRatings = () =>
+    Promise.all([
+      invalidateRatingReads(utils, { groupId: game?.groupId }),
+      utils.users.profileStats.invalidate(),
+    ]);
   const failure = (error: { message: string }) => toast.show(error.message);
   const settled = async () => {
     setConfirm(null);

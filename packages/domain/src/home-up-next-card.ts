@@ -135,8 +135,12 @@ function isPresent(value: string | null | undefined): value is string {
 }
 
 /** "Today", else the full date: the card says the day once. */
-export function upNextCardDay(startsAt: Date, locale: Locale): string {
-  if (gameDayProximity(startsAt) === "today") {
+export function upNextCardDay(
+  startsAt: Date,
+  now: Date,
+  locale: Locale,
+): string {
+  if (gameDayProximity(startsAt, now) === "today") {
     return messagesFor(locale).home.upNextCard.today;
   }
   return formatGameDay(startsAt, locale, { weekday: "long", month: "long" });
@@ -161,11 +165,12 @@ function scopeLine(game: Game, locale: Locale): string | null {
     game.levelMinTenths,
     game.levelMaxTenths,
     locale,
+    game.sport,
   );
   const rating =
     scope === "temba"
       ? m.you.ratingScope.rated
-      : gameRatingScopeLabel(scope, locale);
+      : gameRatingScopeLabel(scope, locale, game.sport);
   return m.home.upNextCard.scope([rating, range].filter(isPresent));
 }
 
@@ -412,6 +417,12 @@ function gamePlan(
     icon: "invite",
     target: { ...open, intent: "invite" },
   };
+  // Organizers see their Groups' Games on Home before they take a seat.
+  const viewerIsOut = !game.isRegistered && !game.isSeated;
+  const fill: CardAction =
+    viewerIsOut && game.canRegister
+      ? { label: card.join, icon: null, target: { ...open, intent: "join" } }
+      : invite;
 
   if (who?.kind === "teams") {
     const viewerTeam = who.teams.find((team) =>
@@ -448,11 +459,13 @@ function gamePlan(
       return {
         step: {
           icon: "teams",
-          title: card.step.poolShort(missing),
+          title: viewerIsOut
+            ? card.step.poolShortOpen(missing)
+            : card.step.poolShort(missing),
           body: card.step.poolShortBody,
         },
         secondary: details,
-        primary: invite,
+        primary: fill,
       };
     }
     if (game.viewerIsOrganizer) {
@@ -478,10 +491,15 @@ function gamePlan(
   }
 
   if (openSeats(who).length > 0) {
+    const seat = openSeatStep(who, locale);
     return {
-      step: { icon: "invite", ...openSeatStep(who, locale) },
+      step: {
+        icon: "invite",
+        title: seat.title,
+        body: fill === invite ? seat.body : card.step.joinBody,
+      },
       secondary: details,
-      primary: invite,
+      primary: fill,
     };
   }
 
@@ -538,7 +556,7 @@ export function gameCardView(
   const kickoff = formatHomeKickoff(startsAt, locale);
   const title = gameCustomName(game) ?? game.groupName ?? null;
   const place = placeLine(game, locale);
-  const day = upNextCardDay(startsAt, locale);
+  const day = upNextCardDay(startsAt, now, locale);
   const sportName = sportLabel(item.sport, locale) ?? "";
 
   return {

@@ -33,6 +33,9 @@ function game(overrides: Partial<HomeCardGame> = {}): HomeCardGame {
     levelMaxTenths: null,
     registeredUserCount: 3,
     playersAllowed: 4,
+    isRegistered: true,
+    isSeated: true,
+    canRegister: false,
     sides: [
       {
         sideIndex: 0,
@@ -69,6 +72,12 @@ describe("gameCardView", () => {
     assert.deepEqual(view.kickoff, { time: "7:00", meridiem: "PM" });
     assert.equal(view.until, "to 8:30");
     assert.equal(view.place, "Ace Padel, Court 2");
+  });
+
+  it("says Today on the Game's own day", () => {
+    const onTheDay = new Date("2026-11-12T09:00:00.000Z");
+    const view = gameCardView(item(game()), onTheDay, "en");
+    assert.equal(view.dateLine, "Today");
   });
 
   it("shows padel as two sides and names the teammate of the open seat", () => {
@@ -150,6 +159,90 @@ describe("gameCardView", () => {
       ["1 of 2 keeper", "4 defenders", "4 mid", "2 forwards"],
     );
     assert.equal(view.step.title, "You're in. 3 more and it's on");
+  });
+
+  it("offers Join on a pool the viewer is not in", () => {
+    const pool = game({
+      sport: "football",
+      registeredUserCount: 13,
+      playersAllowed: 14,
+      isRegistered: false,
+      isSeated: false,
+      canRegister: true,
+      viewerIsOrganizer: true,
+      sides: [],
+      football: {
+        sideSize: 7,
+        sides: null,
+        viewer: { sideIndex: null, role: null, position: null },
+        score: null,
+        matchId: null,
+        matchStatus: null,
+        needsViewerConfirmation: false,
+        enteredByName: null,
+      },
+    });
+    const view = gameCardView(item(pool), NOW, "en");
+    assert.equal(view.step.title, "One more and it's on");
+    assert.equal(view.primary.label, "Join");
+    assert.deepEqual(view.primary.target, {
+      kind: "game",
+      gameId: "game-1",
+      intent: "join",
+    });
+  });
+
+  it("keeps Invite on a pool the viewer is not in but cannot join", () => {
+    const pool = game({
+      sport: "football",
+      registeredUserCount: 11,
+      playersAllowed: 14,
+      isRegistered: false,
+      isSeated: false,
+      canRegister: false,
+      sides: [],
+      football: {
+        sideSize: 7,
+        sides: null,
+        viewer: { sideIndex: null, role: null, position: null },
+        score: null,
+        matchId: null,
+        matchStatus: null,
+        needsViewerConfirmation: false,
+        enteredByName: null,
+      },
+    });
+    const view = gameCardView(item(pool), NOW, "en");
+    assert.equal(view.step.title, "3 more and it's on");
+    assert.equal(view.primary.label, "Invite a player");
+  });
+
+  it("offers Join on an open padel seat the viewer is not in", () => {
+    const out = game({
+      isRegistered: false,
+      isSeated: false,
+      canRegister: true,
+      sides: [
+        {
+          sideIndex: 0,
+          left: occupant("kj", "Khalid J"),
+          right: occupant("da", "Dana A"),
+        },
+        { sideIndex: 1, left: null, right: occupant("ab", "Ahmed B") },
+      ],
+    });
+    const view = gameCardView(item(out), NOW, "en");
+    assert.equal(view.step.title, "One seat left, on Ahmed's side");
+    assert.equal(
+      view.step.body,
+      "Take a seat, or share the game with your group.",
+    );
+    assert.equal(view.primary.label, "Join");
+    assert.deepEqual(view.primary.target, {
+      kind: "game",
+      gameId: "game-1",
+      intent: "join",
+    });
   });
 
   it("asks the organizer of a full pool to make the teams", () => {

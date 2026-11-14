@@ -75,9 +75,17 @@ export function RatingImpactCard({
   );
 }
 
-export function RatingScopeCard({ scope }: { scope: GameRatingScope }) {
+export function RatingScopeCard({
+  scope,
+  sport,
+  publicGame = false,
+}: {
+  scope: GameRatingScope;
+  sport?: string | null;
+  publicGame?: boolean;
+}) {
   const locale = useLocale();
-  const notice = ratingScopeNotice(scope, locale);
+  const notice = ratingScopeNotice(scope, locale, sport, publicGame);
   if (!notice) {
     return null;
   }

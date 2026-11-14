@@ -539,6 +539,9 @@ describe("gameById ratingImpact (TEM-177)", () => {
       expect(beforeFinal.matchResultConfirmation?.confirmedAt).toBeNull();
       expect(afterFinal.ratingImpact?.newLevel).toBeGreaterThan(3);
       expect(afterFinal.ratingImpact?.levelChange).toBeGreaterThan(0);
+      expect(afterFinal.ratingImpact?.muAfter).toBeGreaterThan(
+        afterFinal.ratingImpact?.muBefore ?? Number.POSITIVE_INFINITY,
+      );
       expect(afterFinal.ratingImpact?.isProvisional).toBe(true);
       expect(
         afterFinal.ratingImpact?.ratedMatchesRemainingToConfirm,

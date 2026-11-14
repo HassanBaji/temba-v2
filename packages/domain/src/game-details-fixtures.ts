@@ -1,4 +1,5 @@
 import type { FriendlyGameDetails } from "./friendly-game-details";
+import { muFromLevel } from "./level";
 import { matchOutcome } from "./match-outcome";
 
 export type GameDetailsFixture = Pick<
@@ -257,6 +258,8 @@ export function createGameDetailsFixtures(now = new Date()): {
     ratingImpact: {
       levelChange: 0.2,
       newLevel: 3.6,
+      muBefore: muFromLevel(3.42),
+      muAfter: muFromLevel(3.6),
       newLevelBand: "C2",
       isProvisional: false,
       ratedMatchesRemainingToConfirm: null,

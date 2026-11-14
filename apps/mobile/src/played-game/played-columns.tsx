@@ -87,8 +87,11 @@ function PlayerRow({
   const label = m.profile.matches.spokenParts(
     [
       row.isYou ? m.game.score.youSuffix(row.fullName) : row.fullName,
+      row.guest ? m.group.addPlayer.guest.tag : null,
       row.meta,
-      m.mobilePlayer.played.levelLine(row.level),
+      row.levelSpoken === undefined
+        ? m.mobilePlayer.played.levelLine(row.level)
+        : row.levelSpoken,
       row.trailing,
     ].filter((part): part is string => Boolean(part)),
   );
@@ -111,7 +114,7 @@ function PlayerRow({
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Avatar name={row.fullName} uri={row.image} size="sm" />
+      <Avatar name={row.fullName} uri={row.image} size="sm" guest={row.guest} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           size="meta"
@@ -233,7 +236,9 @@ function Column({
           key={row.userId}
           row={row}
           fill={fill}
-          onPress={onPressPlayer ? () => onPressPlayer(row) : undefined}
+          onPress={
+            onPressPlayer && !row.guest ? () => onPressPlayer(row) : undefined
+          }
         />
       ))}
     </View>
@@ -267,7 +272,11 @@ export function PlayedColumns({
               key={row.userId}
               row={row}
               fill="paper"
-              onPress={onPressPlayer ? () => onPressPlayer(row) : undefined}
+              onPress={
+                onPressPlayer && !row.guest
+                  ? () => onPressPlayer(row)
+                  : undefined
+              }
             />
           ))}
         </View>

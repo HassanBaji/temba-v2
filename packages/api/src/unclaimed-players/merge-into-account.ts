@@ -25,6 +25,8 @@ import {
   groupLevelOverrides,
   groupRatingEvents,
   groupRatings,
+  groupTierEvents,
+  groupTierPoints,
   groupLinkRequests,
   groupMemberInvites,
   groupMembers,
@@ -35,8 +37,12 @@ import {
   gameNotes,
   gamePhotos,
   matchGoals,
+  matchDisputes,
   matchResultConfirmations,
+  matchVerifierStamps,
   notifications,
+  performanceRatingResults,
+  performanceRatings,
   ratingEvents,
   ratings,
   session,
@@ -49,6 +55,8 @@ import {
   userMerges,
   venueClosures,
   venueManagers,
+  venueVerifiers,
+  venues,
 } from "@repo/db";
 
 import { type db } from "#src/db";
@@ -78,6 +86,7 @@ const uniqueUserReferences: UniqueUserReference[] = [
   { column: groupMembers.userId, sameKeys: [groupMembers.groupId] },
   { column: teamMembers.userId, sameKeys: [teamMembers.teamId] },
   { column: venueManagers.userId, sameKeys: [venueManagers.venueId] },
+  { column: venueVerifiers.userId, sameKeys: [venueVerifiers.venueId] },
   {
     column: matchResultConfirmations.userId,
     sameKeys: [matchResultConfirmations.matchId],
@@ -93,6 +102,18 @@ const uniqueUserReferences: UniqueUserReference[] = [
   },
   { column: gameMvpVotes.voterUserId, sameKeys: [gameMvpVotes.gameId] },
   { column: gameNotes.authorUserId, sameKeys: [gameNotes.gameId] },
+  {
+    column: performanceRatings.rateeUserId,
+    sameKeys: [performanceRatings.matchId, performanceRatings.raterUserId],
+  },
+  {
+    column: performanceRatings.raterUserId,
+    sameKeys: [performanceRatings.matchId, performanceRatings.rateeUserId],
+  },
+  {
+    column: performanceRatingResults.userId,
+    sameKeys: [performanceRatingResults.matchId],
+  },
   {
     column: gameInviteLinkConsents.userId,
     sameKeys: [gameInviteLinkConsents.gameInviteLinkId],
@@ -135,6 +156,11 @@ const groupRatingUserReferences: PgColumn[] = [
   groupLevelOverrides.userId,
 ];
 
+const groupTierUserReferences: PgColumn[] = [
+  groupTierPoints.userId,
+  groupTierEvents.userId,
+];
+
 const plainUserReferences: PgColumn[] = [
   account.userId,
   session.userId,
@@ -174,7 +200,12 @@ const plainUserReferences: PgColumn[] = [
   gameLevelRangeRequests.decidedBy,
   groupLinkRequests.requestedBy,
   groupLinkRequests.decidedBy,
+  venues.partnerBy,
   venueManagers.grantedByUserId,
+  venueVerifiers.grantedByUserId,
+  matchVerifierStamps.verifierUserId,
+  matchDisputes.raisedByUserId,
+  matchDisputes.decidedByUserId,
   venueClosures.createdByUserId,
   bookings.userId,
   bookings.cancelledByUserId,
@@ -183,6 +214,7 @@ const plainUserReferences: PgColumn[] = [
   bookingPayments.refundedByUserId,
   levelOverrides.setByUserId,
   groupLevelOverrides.setByUserId,
+  groupTierEvents.setByUserId,
 ];
 
 /** Every column referencing `user.id` that the merge reassigns or resolves. */
@@ -190,6 +222,7 @@ export const mergedUserReferenceColumns: readonly PgColumn[] = [
   ...uniqueUserReferences.map((reference) => reference.column),
   ...ratingUserReferences,
   ...groupRatingUserReferences,
+  ...groupTierUserReferences,
   ...plainUserReferences,
 ];
 
@@ -271,6 +304,24 @@ async function dropMvpVotesBetween(tx: DbTx, ids: MergeIds) {
         and(
           eq(gameMvpVotes.voterUserId, ids.mergedUserId),
           eq(gameMvpVotes.candidateUserId, ids.survivorUserId),
+        ),
+      ),
+    );
+}
+
+/** A Performance rating between the two would become one to oneself, which the table refuses. */
+async function dropPerformanceRatingsBetween(tx: DbTx, ids: MergeIds) {
+  await tx
+    .delete(performanceRatings)
+    .where(
+      or(
+        and(
+          eq(performanceRatings.raterUserId, ids.survivorUserId),
+          eq(performanceRatings.rateeUserId, ids.mergedUserId),
+        ),
+        and(
+          eq(performanceRatings.raterUserId, ids.mergedUserId),
+          eq(performanceRatings.rateeUserId, ids.survivorUserId),
         ),
       ),
     );
@@ -476,6 +527,58 @@ async function resolveGroupRatings(tx: DbTx, ids: MergeIds) {
   }
 }
 
+/**
+ * Per tier Group, the Tier points with more games counted stay and the
+ * account's win a tie; the other side's points row and ledger there go. The
+ * merged side's remaining tiers move with the plain reassignment.
+ */
+async function resolveGroupTiers(tx: DbTx, ids: MergeIds) {
+  const rows = await tx
+    .select({
+      userId: groupTierPoints.userId,
+      groupId: groupTierPoints.groupId,
+      gamesCounted: groupTierPoints.gamesCounted,
+    })
+    .from(groupTierPoints)
+    .where(
+      inArray(groupTierPoints.userId, [ids.survivorUserId, ids.mergedUserId]),
+    );
+  const survivorGames = new Map(
+    rows
+      .filter((row) => row.userId === ids.survivorUserId)
+      .map((row) => [row.groupId, row.gamesCounted]),
+  );
+  for (const row of rows) {
+    const survivorGamesCounted = survivorGames.get(row.groupId);
+    if (row.userId !== ids.mergedUserId || survivorGamesCounted === undefined) {
+      continue;
+    }
+    const dropped =
+      row.gamesCounted > survivorGamesCounted
+        ? ids.survivorUserId
+        : ids.mergedUserId;
+    await tx
+      .delete(groupTierPoints)
+      .where(
+        and(
+          eq(groupTierPoints.userId, dropped),
+          eq(groupTierPoints.groupId, row.groupId),
+        ),
+      );
+    await tx
+      .delete(groupTierEvents)
+      .where(
+        and(
+          eq(groupTierEvents.userId, dropped),
+          eq(groupTierEvents.groupId, row.groupId),
+        ),
+      );
+  }
+  for (const column of groupTierUserReferences) {
+    await reassign(tx, column, ids);
+  }
+}
+
 async function seatAndMembershipCounts(tx: DbTx, ids: MergeIds) {
   const both = [ids.survivorUserId, ids.mergedUserId];
   const [seatRows, groupRows] = await Promise.all([
@@ -567,8 +670,10 @@ export async function mergeIntoAccount(
     const counts = await seatAndMembershipCounts(tx, ids);
     const ratingKeptBySport = await resolveRatings(tx, ids);
     await resolveGroupRatings(tx, ids);
+    await resolveGroupTiers(tx, ids);
     await dropMarksBetween(tx, ids);
     await dropMvpVotesBetween(tx, ids);
+    await dropPerformanceRatingsBetween(tx, ids);
     await keepMergedNicknames(tx, ids);
 
     for (const reference of uniqueUserReferences) {

@@ -129,8 +129,21 @@ export const user = pgTable(
      */
     addedAt: timestamp("added_at"),
     claimedAt: timestamp("claimed_at"),
+    /**
+     * Set on a Guest player: someone an Organizer seated on one Game by name
+     * only. Such a row also has `added_at` and no clerkId, so every rule for
+     * a User without an account applies; it never has a phone or email and is
+     * never claimed (ADR-0079).
+     */
+    guestAt: timestamp("guest_at"),
     /** Clerk's `updated_at` of the last user.created / user.updated applied, so an older delivery is ignored. */
     clerkUpdatedAt: timestamp("clerk_updated_at"),
+    /**
+     * A copy of Clerk's `publicMetadata.operator`, written by the Clerk user
+     * webhook, so Notifications can find every Operator. Never an
+     * authorization check: Operator doors read the session (ADR-0081).
+     */
+    isOperator: boolean("is_operator").notNull().default(false),
     /**
      * Set when the Clerk account was deleted. The row stays, anonymised, for
      * the Games and Matches that reference it; `deleted_clerk_id` keeps a late
@@ -152,11 +165,15 @@ export const user = pgTable(
     ),
     emailOrPhone: check(
       "user_email_or_phone_number",
-      sql`${table.email} is not null or ${table.phoneNumber} is not null or ${table.deletedAt} is not null`,
+      sql`${table.email} is not null or ${table.phoneNumber} is not null or ${table.deletedAt} is not null or ${table.guestAt} is not null`,
     ),
     unclaimedHasPhone: check(
       "user_unclaimed_has_phone",
-      sql`${table.addedAt} is null or ${table.clerkId} is not null or ${table.phoneNumber} is not null`,
+      sql`${table.addedAt} is null or ${table.clerkId} is not null or ${table.phoneNumber} is not null or ${table.guestAt} is not null`,
+    ),
+    guestHasNoAccount: check(
+      "user_guest_has_no_account",
+      sql`${table.guestAt} is null or (${table.clerkId} is null and ${table.addedAt} is not null and ${table.phoneNumber} is null and ${table.email} is null)`,
     ),
   }),
 );
