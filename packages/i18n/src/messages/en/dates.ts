@@ -3,7 +3,7 @@ import { plural } from "../../plural";
 export const dates = {
   tonight: "Tonight",
   tonightInSentence: "tonight",
-  thisAfternoon: "This afternoon",
+  weekdayAndDate: (weekday: string, date: string) => `${weekday}, ${date}`,
   tomorrowInSentence: "tomorrow",
   minutesCompact: (minutes: string) => `${minutes}m`,
   minutes: (n: number) => `${n} min`,

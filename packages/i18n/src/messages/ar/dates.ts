@@ -4,7 +4,7 @@ import type { dates as source } from "../en/dates";
 export const dates = {
   tonight: "الليلة",
   tonightInSentence: "الليلة",
-  thisAfternoon: "بعد ظهر اليوم",
+  weekdayAndDate: (weekday: string, date: string) => `${weekday}، ${date}`,
   tomorrowInSentence: "غدًا",
   minutesCompact: (minutes: string) => `${minutes} د`,
   minutes: (n: number) => `${n} د`,
