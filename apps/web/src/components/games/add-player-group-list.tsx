@@ -2,6 +2,7 @@
 
 import { Check, Search } from "lucide-react";
 
+import { NicknameName } from "~/components/temba/nickname-name";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { NotOnTembaTag } from "~/components/temba/seat";
@@ -145,7 +146,11 @@ function MemberRow({
           className="rounded-md"
         />
         <span className="min-w-0 flex-1 space-y-0.5">
-          <span className="block truncate font-semibold">{row.name}</span>
+          <NicknameName
+            name={row.name}
+            isNickname={row.isNickname === true}
+            className="font-semibold"
+          />
           {unclaimed ? <NotOnTembaTag /> : null}
           {row.meta ? (
             <span className="text-eyebrow text-muted-foreground block truncate">
