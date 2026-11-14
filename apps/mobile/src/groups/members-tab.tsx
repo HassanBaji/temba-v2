@@ -94,7 +94,7 @@ function AddNameButton({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={m.mobileGroup.nickname.addNameFor(name)}
+      accessibilityLabel={m.group.nickname.addNameFor(name)}
       onPress={onPress}
       style={({ pressed }) => ({
         minHeight: sizes.touchTarget,
@@ -104,7 +104,7 @@ function AddNameButton({
       })}
     >
       <Text size="eyebrow" tone="muted">
-        {m.mobileGroup.nickname.addName}
+        {m.group.nickname.addName}
       </Text>
     </Pressable>
   );
@@ -256,13 +256,13 @@ function ViewerNicknameCard({
       radius="card"
       style={{ gap: 12, backgroundColor: colors.wash }}
       accessible
-      accessibilityLabel={m.mobileGroup.nickname.youAreSpoken(nickname)}
+      accessibilityLabel={m.group.nickname.youAreSpoken(nickname)}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Avatar name={name} uri={imageUri} />
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Text size="eyebrow" tone="muted">
-            {m.mobileGroup.nickname.youAre}
+            {m.group.nickname.youAre}
           </Text>
           <NicknameName
             name={nickname}
@@ -275,7 +275,7 @@ function ViewerNicknameCard({
       </View>
       <Hairline />
       <Text size="meta" tone="muted">
-        {m.mobileGroup.nickname.youAreNote}
+        {m.group.nickname.youAreNote}
       </Text>
     </Surface>
   );
@@ -737,7 +737,7 @@ export function MembersTab({
               ) : null}
               {showsNicknameLegend ? (
                 <Text size="eyebrow" tone="muted">
-                  {m.mobileGroup.nickname.legend}
+                  {m.group.nickname.legend}
                 </Text>
               ) : null}
               {provisionalLine ? (

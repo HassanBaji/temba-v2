@@ -36,7 +36,7 @@ function VisibilityOption({
 }) {
   const m = useMessages();
   const colors = useColors();
-  const copy = m.mobileGroup.nickname.visibility[visibility];
+  const copy = m.group.nickname.visibility[visibility];
   return (
     <Pressable
       accessibilityRole="radio"
@@ -98,8 +98,8 @@ export function MemberNicknameSheet({
     onSuccess: async (result) => {
       toast.show(
         result.nickname
-          ? m.mobileGroup.nickname.savedToast(result.nickname.name)
-          : m.mobileGroup.nickname.clearedToast(member?.name ?? ""),
+          ? m.group.nickname.savedToast(result.nickname.name)
+          : m.group.nickname.clearedToast(member?.name ?? ""),
       );
       await Promise.all([
         utils.groups.byId.invalidate({ id: groupId }),
@@ -125,7 +125,7 @@ export function MemberNicknameSheet({
     <Sheet
       visible={member != null}
       onClose={close}
-      title={m.mobileGroup.nickname.title}
+      title={m.group.nickname.title}
       subtitle={view?.subtitle}
       closeButton
       tall
@@ -150,7 +150,7 @@ export function MemberNicknameSheet({
             />
             {view.canClear ? (
               <Button
-                label={m.mobileGroup.nickname.clear}
+                label={m.group.nickname.clear}
                 size="lg"
                 variant="outline"
                 disabled={save.isPending}
@@ -179,7 +179,7 @@ export function MemberNicknameSheet({
               }}
             >
               <Text size="meta" tone="muted">
-                {m.mobileGroup.nickname.fieldLabel}
+                {m.group.nickname.fieldLabel}
               </Text>
               <Text
                 size="eyebrow"
@@ -191,9 +191,9 @@ export function MemberNicknameSheet({
               </Text>
             </View>
             <TextField
-              accessibilityLabel={m.mobileGroup.nickname.fieldLabel}
+              accessibilityLabel={m.group.nickname.fieldLabel}
               value={draft}
-              placeholder={m.mobileGroup.nickname.placeholder}
+              placeholder={m.group.nickname.placeholder}
               maxLength={MEMBER_NICKNAME_MAX_LENGTH}
               autoCapitalize="words"
               autoComplete="off"
@@ -205,7 +205,7 @@ export function MemberNicknameSheet({
 
           <View style={{ gap: 8 }}>
             <Text size="meta" tone="muted">
-              {m.mobileGroup.nickname.previewLabel}
+              {m.group.nickname.previewLabel}
             </Text>
             <Surface
               radius="card"
@@ -226,11 +226,11 @@ export function MemberNicknameSheet({
 
           <View style={{ gap: 8 }}>
             <Text size="meta" tone="muted">
-              {m.mobileGroup.nickname.whoSees}
+              {m.group.nickname.whoSees}
             </Text>
             <View
               accessibilityRole="radiogroup"
-              accessibilityLabel={m.mobileGroup.nickname.whoSees}
+              accessibilityLabel={m.group.nickname.whoSees}
               style={{ flexDirection: "row", gap: 8 }}
             >
               {MEMBER_NICKNAME_VISIBILITIES.map((option) => (

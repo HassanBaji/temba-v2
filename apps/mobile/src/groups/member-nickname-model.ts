@@ -28,7 +28,7 @@ export function memberNicknameSheetView(
   },
   locale: Locale,
 ) {
-  const m = messagesFor(locale).mobileGroup.nickname;
+  const m = messagesFor(locale).group.nickname;
   const next = normalizeMemberNickname(input.draft);
   const current = input.member.nickname;
   const changed =
