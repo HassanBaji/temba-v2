@@ -7,6 +7,7 @@ import type {
   FootballPosition,
   FootballRole,
 } from "@repo/domain/football-lineup";
+import { wholeOvrFromMu } from "@repo/domain/football-ovr";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { sportOrDefault } from "@repo/domain/sport";
 import { messagesFor } from "@repo/i18n/messages";
@@ -30,6 +31,8 @@ export type TeamGroupMemberToAdd = {
   image: string | null;
   unclaimed: boolean;
   levelBand: LevelBand | null;
+  /** Football only: the whole OVR football shows in place of the band. */
+  ovr: number | null;
   footballRole: FootballRole | null;
   footballPosition: FootballPosition | null;
   invited: boolean;
@@ -108,10 +111,17 @@ export async function listGroupMembersToAdd(
             inArray(ratings.userId, userIds),
             eq(ratings.sport, sportOrDefault(group.sport)),
           ),
-          columns: { userId: true, levelBand: true },
+          columns: { userId: true, levelBand: true, mu: true },
         });
+  const football = sportOrDefault(group.sport) === "football";
   const levelByUserId = new Map(
-    levels.map((row) => [row.userId, row.levelBand]),
+    levels.map((row) => [
+      row.userId,
+      {
+        levelBand: row.levelBand,
+        ovr: football ? wholeOvrFromMu(row.mu) : null,
+      },
+    ]),
   );
 
   const members = candidates
@@ -121,7 +131,8 @@ export async function listGroupMembersToAdd(
         name: user.name,
         image: user.image ?? null,
         unclaimed: isUnclaimed(user),
-        levelBand: levelByUserId.get(user.id) ?? null,
+        levelBand: levelByUserId.get(user.id)?.levelBand ?? null,
+        ovr: levelByUserId.get(user.id)?.ovr ?? null,
         footballRole: user.preferredFootballRole ?? null,
         footballPosition: user.preferredFootballPosition ?? null,
         invited: invitedIds.has(user.id),

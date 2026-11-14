@@ -1,7 +1,8 @@
 "use client";
 
-import { levelLabel, type BoardPlayer } from "@repo/domain/football-board";
+import { ovrLabel, type BoardPlayer } from "@repo/domain/football-board";
 import { footballPositionChoices } from "@repo/domain/football-lineup";
+import { whatsAppHref } from "@repo/domain/phone-number";
 import type { Messages } from "@repo/i18n/messages";
 import type { Locale } from "@repo/i18n/locale";
 import Link from "next/link";
@@ -72,7 +73,7 @@ export function FootballPlayerDialog({
                 <ResponsiveDialogDescription>
                   {m.webTournament.footballPlayer.subtitle(
                     roleLine(player, m, locale),
-                    levelLabel(player.levelBand),
+                    ovrLabel(player),
                   )}
                 </ResponsiveDialogDescription>
                 {player.phoneMasked ? (
@@ -82,7 +83,19 @@ export function FootballPlayerDialog({
                 ) : null}
               </div>
             </ResponsiveDialogHeader>
-            <div className="flex gap-2 px-4 pb-4 sm:px-0 sm:pb-0">
+            <div className="flex flex-wrap gap-2 px-4 pb-4 sm:px-0 sm:pb-0">
+              {player.phoneNumber ? (
+                <Button variant="outline" asChild>
+                  <a
+                    href={whatsAppHref(player.phoneNumber)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={m.group.addPlayer.whatsAppFor(player.name)}
+                  >
+                    {m.group.addPlayer.whatsAppAction}
+                  </a>
+                </Button>
+              ) : null}
               {canOpenProfile && !player.guest ? (
                 <Button variant="outline" asChild>
                   <Link href={playerProfilePath(player.userId, "football")}>

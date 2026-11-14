@@ -153,7 +153,7 @@ describe("matchday squad", () => {
           name: "Ali",
           role: "keeper",
           position: null,
-          levelBand: "C2",
+          ovr: 68,
         },
         { userId: "b", name: "Omar", role: "outfield", position: "fwd" },
       ],
@@ -171,7 +171,7 @@ describe("matchday squad", () => {
         name: "Ali",
         initials: "A",
         code: "GK",
-        meta: "GK · C",
+        meta: "GK · 68",
         unclaimed: false,
       },
       accessibilityLabel: "Side: Ali, Keeper",
@@ -247,7 +247,7 @@ describe("matchday squad", () => {
       name: "Hassan Haji",
       role: "outfield" as const,
       position: "def" as const,
-      levelBand: null,
+      ovr: null,
       isViewer: false,
       isCaptain: false,
     };
@@ -259,12 +259,8 @@ describe("matchday squad", () => {
       ),
     ).toBe("You, captain. DEF");
     expect(
-      squadRosterRowMeta(
-        { ...base, position: "mid", levelBand: "C1" },
-        true,
-        "en",
-      ),
-    ).toBe("MID, C+");
+      squadRosterRowMeta({ ...base, position: "mid", ovr: 72 }, true, "en"),
+    ).toBe("MID, 72");
     expect(
       squadRosterRowMeta(
         { ...base, role: "keeper", position: null, unclaimed: true },

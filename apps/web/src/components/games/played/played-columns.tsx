@@ -46,7 +46,7 @@ function PlayerRow({
     row.isYou ? m.game.score.youSuffix(row.fullName) : row.fullName,
     row.guest ? m.group.addPlayer.guest.tag : null,
     row.meta,
-    m.level.prose(row.level),
+    row.levelSpoken === undefined ? m.level.prose(row.level) : row.levelSpoken,
     row.trailing,
   ]
     .filter(Boolean)

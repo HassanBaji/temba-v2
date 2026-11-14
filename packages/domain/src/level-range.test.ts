@@ -4,12 +4,14 @@ import { describe, expect, it } from "vitest";
 
 import { LEVEL_BANDS } from "./level-bands";
 import {
+  displayRungOvrBound,
   formatLevelRangeLabel,
   formatLevelRangeProseLabel,
   formatLevelRangeGateCopy,
   formatLevelTenths,
   LEVEL_BAND_MAX_TENTHS,
   LEVEL_BAND_MIN_TENTHS,
+  levelBandSelectOvr,
   parseLevelBandSelectTenths,
   parseOptionalLevelTenths,
   tenthsToLevelBand,
@@ -234,6 +236,22 @@ describe("formatLevelRangeLabel on football", () => {
         sport: "football",
       }),
     ).toContain("ليس لديك OVR في كرة القدم بعد");
+  });
+});
+
+describe("football Level range picker bounds", () => {
+  it("labels a minimum with the rung's lowest OVR and a maximum with its highest", () => {
+    expect(displayRungOvrBound("C", "min")).toBe("64");
+    expect(displayRungOvrBound("C", "max")).toBe(
+      levelBandSelectOvr("C", "max"),
+    );
+    expect(displayRungOvrBound("B", "max")).toBe("86");
+  });
+
+  it("reads a picked bound as OVR and an open one as null", () => {
+    expect(levelBandSelectOvr("C", "min")).toBe("64");
+    expect(levelBandSelectOvr("B", "max")).toBe("86");
+    expect(levelBandSelectOvr("none", "min")).toBeNull();
   });
 });
 

@@ -14,6 +14,7 @@ import {
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
+import { wholeOvrFromMu } from "@repo/domain/football-ovr";
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import { type LevelBand } from "@repo/domain/level-bands";
 import {
@@ -82,7 +83,10 @@ async function loadMemberLevels(
   sport: GroupSportEnum,
   userIds: readonly string[],
 ) {
-  const levels = new Map<string, { level: string; levelBand: LevelBand }>();
+  const levels = new Map<
+    string,
+    { level: string; levelBand: LevelBand; ovr: number | null }
+  >();
   if (userIds.length === 0) {
     return levels;
   }
@@ -92,7 +96,11 @@ async function loadMemberLevels(
   const now = new Date();
   for (const row of rows) {
     const view = youRatingViewAfterIdle(row, now);
-    levels.set(row.userId, { level: view.level, levelBand: view.levelBand });
+    levels.set(row.userId, {
+      level: view.level,
+      levelBand: view.levelBand,
+      ovr: sport === GroupSportEnum.FOOTBALL ? wholeOvrFromMu(row.mu) : null,
+    });
   }
   return levels;
 }
@@ -362,6 +370,7 @@ export async function teamById(
         isViewer: row.user.id === args.userId,
         level: levels.get(row.user.id)?.level ?? null,
         levelBand: levels.get(row.user.id)?.levelBand ?? null,
+        ovr: levels.get(row.user.id)?.ovr ?? null,
         preferredPosition: row.user.preferredPosition,
         footballRole: row.user.preferredFootballRole,
         footballPosition: row.user.preferredFootballPosition,

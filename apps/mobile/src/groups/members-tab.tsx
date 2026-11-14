@@ -47,7 +47,7 @@ import {
 } from "./group-home-model";
 import { AdjustTierSheet } from "./adjust-tier-sheet";
 import { LevelCell } from "./level-cell";
-import type { MemberNicknameTarget } from "./member-nickname-model";
+import type { MemberNicknameTarget } from "@repo/domain/member-nickname-sheet";
 import { MemberNicknameSheet } from "./member-nickname-sheet";
 import { MemberSheet } from "./member-sheet";
 import { MemberLensRow, MemberSortSheet } from "./members-lens";
@@ -94,7 +94,7 @@ function AddNameButton({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={m.mobileGroup.nickname.addNameFor(name)}
+      accessibilityLabel={m.group.nickname.addNameFor(name)}
       onPress={onPress}
       style={({ pressed }) => ({
         minHeight: sizes.touchTarget,
@@ -104,7 +104,7 @@ function AddNameButton({
       })}
     >
       <Text size="eyebrow" tone="muted">
-        {m.mobileGroup.nickname.addName}
+        {m.group.nickname.addName}
       </Text>
     </Pressable>
   );
@@ -256,13 +256,13 @@ function ViewerNicknameCard({
       radius="card"
       style={{ gap: 12, backgroundColor: colors.wash }}
       accessible
-      accessibilityLabel={m.mobileGroup.nickname.youAreSpoken(nickname)}
+      accessibilityLabel={m.group.nickname.youAreSpoken(nickname)}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Avatar name={name} uri={imageUri} />
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Text size="eyebrow" tone="muted">
-            {m.mobileGroup.nickname.youAre}
+            {m.group.nickname.youAre}
           </Text>
           <NicknameName
             name={nickname}
@@ -275,7 +275,7 @@ function ViewerNicknameCard({
       </View>
       <Hairline />
       <Text size="meta" tone="muted">
-        {m.mobileGroup.nickname.youAreNote}
+        {m.group.nickname.youAreNote}
       </Text>
     </Surface>
   );
@@ -551,14 +551,14 @@ export function MembersTab({
   const selected = leaderboard.find(
     (entry) =>
       entry.userId === selectedUserId &&
-      !entry.isViewer &&
-      (canSetLevel ||
-        (canAdjustTier && entry.tier != null) ||
-        (canAddPlayers && entry.canRename === true) ||
-        memberIsRemovable(entry, canRemovePlayers) ||
-        memberOrganizerAction(entry, canAppointOrganizers) != null ||
-        memberIsCallable(entry) ||
-        canSetNicknames),
+      ((canAdjustTier && entry.tier != null) ||
+        (!entry.isViewer &&
+          (canSetLevel ||
+            (canAddPlayers && entry.canRename === true) ||
+            memberIsRemovable(entry, canRemovePlayers) ||
+            memberOrganizerAction(entry, canAppointOrganizers) != null ||
+            memberIsCallable(entry) ||
+            canSetNicknames))),
   );
   const viewerEntry = leaderboard.find((entry) => entry.isViewer);
   const showsNicknameLegend = leaderboard.some(
@@ -584,10 +584,7 @@ export function MembersTab({
     : null;
   const adjusting = canAdjustTier
     ? leaderboard.find(
-        (entry) =>
-          entry.userId === adjustingUserId &&
-          !entry.isViewer &&
-          entry.tier != null,
+        (entry) => entry.userId === adjustingUserId && entry.tier != null,
       )
     : undefined;
 
@@ -695,7 +692,7 @@ export function MembersTab({
                 managing={isManaging}
                 onOpen={onOpenMember ? () => onOpenMember(row.key) : undefined}
                 onManage={
-                  row.isViewer
+                  row.isViewer && !row.selectable
                     ? canSetNicknames && row.nickname != null
                       ? () => openNaming(row.key)
                       : undefined
@@ -737,7 +734,7 @@ export function MembersTab({
               ) : null}
               {showsNicknameLegend ? (
                 <Text size="eyebrow" tone="muted">
-                  {m.mobileGroup.nickname.legend}
+                  {m.group.nickname.legend}
                 </Text>
               ) : null}
               {provisionalLine ? (
@@ -766,8 +763,9 @@ export function MembersTab({
         member={selected ? memberSheetView(selected, locale, apiOrigin) : null}
         onClose={() => setSelectedUserId(null)}
         onCall={(href) => void Linking.openURL(href)}
+        onWhatsApp={(href) => void Linking.openURL(href)}
         onSetLevel={
-          canSetLevel
+          canSetLevel && !selected?.isViewer
             ? () => {
                 if (selected) {
                   setSelectedUserId(null);

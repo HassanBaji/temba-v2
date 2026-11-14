@@ -21,6 +21,7 @@ describe("levelFromApi", () => {
       historyMatchCount: 0,
       ratedMatchCount: 0,
       changeOverLast: null,
+      lastMatch: null,
     } as ApiRating;
     assert.deepEqual(levelFromApi(data), { kind: "none" });
     assert.equal(
@@ -41,6 +42,7 @@ describe("levelFromApi", () => {
       levelValue: 2.79,
       ratedMatchCount: 2,
       changeOverLast: { matches: 2, delta: -0.4, points: [3.19, 2.79] },
+      lastMatch: null,
       history: ["3.19", "2.79"],
       historySteps: ["lost"],
       historyMatchCount: 1,
@@ -58,6 +60,7 @@ describe("levelFromApi", () => {
         },
         ratedMatchCount: 2,
         changeOverLast: { matches: 2, delta: -0.4, points: [3.19, 2.79] },
+        lastMatch: null,
         history: ["3.19", "2.79"],
         historySteps: ["lost"],
         historyMatchCount: 1,
@@ -78,6 +81,7 @@ describe("levelFromApi", () => {
       levelValue: 3.9,
       ratedMatchCount: 0,
       changeOverLast: null,
+      lastMatch: null,
     } as unknown as ApiRating;
     const level = levelFromApi(data);
     if (level.kind !== "rated") throw new Error("Expected a rated Level");

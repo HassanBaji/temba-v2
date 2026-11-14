@@ -166,14 +166,16 @@ describe("memberList on a Verified football Group", () => {
     },
   ];
 
-  it("reads each Level as OVR with its band, the highest OVR first", () => {
+  it("reads each Level as the bare OVR with no band, the highest OVR first", () => {
     const rows = memberList(football, "", ORIGIN, "en").rows;
     expect(rows.map((row) => row.key)).toEqual(["yousif", "ali", "noor"]);
-    expect(rows[0]!.level).toEqual({ kind: "label", label: "C+ 72" });
-    expect(rows[0]!.accessibilityLabel).toContain("Level C+ 72");
+    expect(rows[0]!.level).toEqual({ kind: "label", label: "72" });
+    expect(rows[0]!.accessibilityLabel).toContain("OVR 72");
     expect(rows[0]!.accessibilityLabel).not.toContain("3.7");
-    expect(rows[2]!.level).toEqual({ kind: "provisional", label: "C- 61" });
-    expect(rows[2]!.accessibilityLabel).toContain("C- 61");
+    expect(rows[0]!.accessibilityLabel).not.toContain("C+");
+    expect(rows[2]!.level).toEqual({ kind: "provisional", label: "61" });
+    expect(rows[2]!.accessibilityLabel).toContain("OVR 61, still Provisional");
+    expect(rows[2]!.accessibilityLabel).not.toContain("C-");
   });
 });
 
@@ -290,13 +292,15 @@ describe("memberList and memberSheetView with a member's number", () => {
     ).toBe(false);
   });
 
-  it("shows the full number and dials it", () => {
+  it("shows the full number, dials it and opens it on WhatsApp", () => {
     const view = memberSheetView(withNumber, "en");
     expect(view.phone).toBe(isolate("+973 3612 4408"));
     expect(view.phoneHref).toBe("tel:+97336124408");
+    expect(view.whatsAppHref).toBe("https://wa.me/97336124408");
     expect(memberSheetView(second!, "en")).toMatchObject({
       phone: null,
       phoneHref: null,
+      whatsAppHref: null,
     });
   });
 });
@@ -568,5 +572,32 @@ describe("memberList on a tier Group (screen 2b)", () => {
     expect(list.rows[0]?.accessibilityLabel).toBe(
       "Hussain A. Shark, organizer. 1,412 tier points",
     );
+  });
+
+  it("lets an Organizer who adjusts tiers open their own row", () => {
+    const tier = {
+      band: null,
+      place: 1,
+      points: 1200,
+      provisional: false,
+      gamesOfFive: 5,
+    };
+    const viewer = { ...member("you", "You", tier, true), isViewer: true };
+    const select = (canAdjustTier: boolean, canSetNicknames = false) =>
+      memberList(
+        [viewer],
+        "",
+        ORIGIN,
+        "en",
+        true,
+        false,
+        false,
+        lens,
+        canAdjustTier,
+        canSetNicknames,
+      ).rows[0]?.selectable;
+    expect(select(true)).toBe(true);
+    expect(select(false)).toBe(false);
+    expect(select(false, true)).toBe(false);
   });
 });

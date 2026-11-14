@@ -6,8 +6,8 @@ import {
 import {
   levelSliderLabel,
   levelSliderStartTenths,
-  ovrSliderLabel,
   ovrSliderStart,
+  ovrSliderValueText,
 } from "@repo/domain/level-slider";
 import type { Sport } from "@repo/domain/sport";
 import type { Locale } from "@repo/i18n/locale";
@@ -48,7 +48,7 @@ export function calibrateLevelView(
     face,
     currentValue,
     wasLabel: rating
-      ? m.was(calibrateLevelLabel(face, currentValue))
+      ? m.was(calibrateLevelLabel(face, currentValue, locale))
       : m.noLevelYet,
     alreadyConfirmed: rating !== null && !rating.provisional,
     note: [
@@ -60,9 +60,15 @@ export function calibrateLevelView(
   };
 }
 
-/** `C+ 72` on football, `C+ 3.2` on padel. */
-export function calibrateLevelLabel(face: LevelFace, value: number) {
-  return face === "ovr" ? ovrSliderLabel(value) : levelSliderLabel(value);
+/** `OVR 72` on football, with no band; `C+ 3.2` on padel. */
+export function calibrateLevelLabel(
+  face: LevelFace,
+  value: number,
+  locale: Locale,
+) {
+  return face === "ovr"
+    ? ovrSliderValueText(value, locale)
+    : levelSliderLabel(value);
 }
 
 export function calibrateLevelUnchanged(

@@ -12,7 +12,8 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { groupPath } from "../groups/groups-model";
-import { Sparkline } from "../home/level-card";
+import { FootballLevelFace } from "../home/football-level-face";
+import { Sparkline } from "../home/sparkline";
 import { Notice } from "../groups/notice";
 import { TIER_WIDTH, TierCell } from "../groups/tier-fish";
 import { useLocale, useMessages } from "../i18n/locale-provider";
@@ -62,7 +63,10 @@ function SectionNote({ children }: { children: string }) {
   );
 }
 
-/** The one ink Surface on the screen: ring, band, number, change, next band. */
+/**
+ * The one ink Surface on the screen. Padel: ring, band, number, change, next
+ * band. Football: the number alone on its 40 to 99 scale.
+ */
 function LevelSection({ view }: { view: RatingsLevelView }) {
   if (view.kind === "none") {
     return (
@@ -76,6 +80,35 @@ function LevelSection({ view }: { view: RatingsLevelView }) {
             {view.note}
           </Text>
         </Surface>
+      </View>
+    );
+  }
+
+  if (view.scale) {
+    return (
+      <View style={{ gap: 12 }}>
+        <SectionHead title={view.title} meta={view.status} />
+        <Surface tone="ink" padded={false} style={{ overflow: "hidden" }}>
+          <View accessible accessibilityLabel={view.spoken}>
+            <FootballLevelFace
+              numberLabel={view.numberLabel}
+              number={view.number}
+              scale={view.scale}
+              change={
+                view.change
+                  ? {
+                      amount: view.change.delta,
+                      caption: view.change.caption,
+                      points: view.change.points,
+                    }
+                  : null
+              }
+              start={view.start}
+              footer={view.footer}
+            />
+          </View>
+        </Surface>
+        <SectionNote>{view.note}</SectionNote>
       </View>
     );
   }

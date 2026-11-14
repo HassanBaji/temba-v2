@@ -118,6 +118,18 @@ describe("levelRangeRequestRowMeta", () => {
     );
   });
 
+  it("reads the Level as OVR on a football Game", () => {
+    assert.equal(
+      levelRangeRequestRowMeta(
+        { levelTenths: 35, provisional: false, createdAt: now },
+        "en",
+        now,
+        "football",
+      ),
+      "OVR 70 · Requested today",
+    );
+  });
+
   it("says No Level for a User without a Rating", () => {
     assert.equal(
       levelRangeRequestRowMeta(

@@ -10,17 +10,16 @@ import { youRatingsHref } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import { hatch } from "@repo/design-tokens";
 import { homeLevelView, type HomeLevelView } from "@repo/domain/home-level";
-import { gaugeArc, sparklinePoints } from "@repo/domain/home-level-chart";
+import { gaugeArc } from "@repo/domain/home-level-chart";
 import type { Sport } from "@repo/domain/sport";
 
+import { FootballLevelFace } from "./football-level-face";
 import { noLevelCopy, type HomeLevel } from "./home-model";
 import { SectionTitle } from "./section-title";
 
 const VIEWBOX = 120;
 const RADIUS = 50;
 const STROKE = 10;
-const SPARK_WIDTH = 60;
-const SPARK_HEIGHT = 18;
 
 function Gauge({ percent, band }: { percent: number; band: string }) {
   const patternId = `gauge-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -77,40 +76,6 @@ function Gauge({ percent, band }: { percent: number; band: string }) {
         {band}
       </span>
     </span>
-  );
-}
-
-/** A Level's recent run, newest last along the reading direction. */
-export function Sparkline({
-  values,
-  className,
-}: {
-  values: readonly number[];
-  className?: string;
-}) {
-  const points = sparklinePoints(values, SPARK_WIDTH - 4, SPARK_HEIGHT - 4);
-  if (!points) {
-    return null;
-  }
-  const [x = 0, y = 0] = points.split(" ").at(-1)?.split(",").map(Number) ?? [];
-  return (
-    <svg
-      aria-hidden="true"
-      width={SPARK_WIDTH}
-      height={SPARK_HEIGHT}
-      className={cn("text-ink shrink-0 rtl:-scale-x-100", className)}
-    >
-      <g transform="translate(2 2)">
-        <polyline
-          points={points}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          strokeLinejoin="round"
-        />
-        <circle cx={x} cy={y} r={2.5} fill="currentColor" />
-      </g>
-    </svg>
   );
 }
 
@@ -190,10 +155,32 @@ export function LevelCard({
 }
 
 function RatedLevel({ view }: { view: HomeLevelView }) {
+  if (view.scale) {
+    return (
+      <FootballLevelFace
+        numberLabel={view.numberLabel}
+        number={view.level}
+        scale={view.scale}
+        change={
+          view.change
+            ? {
+                amount: view.change.signedAmount,
+                caption: view.change.caption,
+                points: view.change.points,
+              }
+            : null
+        }
+        start={view.start}
+        footer={view.footer}
+        tone="paper"
+        opens
+      />
+    );
+  }
   return (
     <>
       <span className="flex items-center gap-5 p-[22px]">
-        <Gauge percent={view.percent} band={view.displayBand} />
+        <Gauge percent={view.percent} band={view.displayBand ?? ""} />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="text-eyebrow text-muted-foreground">
             {view.numberLabel}

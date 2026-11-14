@@ -559,6 +559,7 @@ describe("setMemberLevel", () => {
         expect(items[0]?.levelSet).toEqual({
           level: "4.6",
           levelBand: "B3",
+          sport: "padel",
           reason: "back_from_injury",
           note: "Two months out, start him lower.",
           venue: null,

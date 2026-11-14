@@ -18,6 +18,7 @@ export function MemberSheet({
   member,
   onClose,
   onCall,
+  onWhatsApp,
   onSetLevel,
   onViewProfile,
   onAdjustTier,
@@ -32,6 +33,7 @@ export function MemberSheet({
   member: MemberSheetView | null;
   onClose: () => void;
   onCall?: (href: string) => void;
+  onWhatsApp?: (href: string) => void;
   onSetLevel?: () => void;
   onViewProfile?: () => void;
   /** An Organizer of a tier Group moves this member's Tier points. */
@@ -48,6 +50,7 @@ export function MemberSheet({
 }) {
   const m = useMessages();
   const phoneHref = member?.phoneHref;
+  const chatHref = member?.whatsAppHref;
   const rows = member
     ? [
         phoneHref && onCall ? (
@@ -56,6 +59,14 @@ export function MemberSheet({
             label={m.mobileGroup.members.sheet.call}
             hint={member.phone}
             onPress={() => onCall(phoneHref)}
+          />
+        ) : null,
+        chatHref && onWhatsApp ? (
+          <SheetMenuRow
+            key="whatsapp"
+            label={m.group.addPlayer.whatsAppAction}
+            hint={member.phone}
+            onPress={() => onWhatsApp(chatHref)}
           />
         ) : null,
         onViewProfile ? (
@@ -87,9 +98,9 @@ export function MemberSheet({
         onNickname ? (
           <SheetMenuRow
             key="nickname"
-            label={m.mobileGroup.nickname.menuLabel}
-            hint={m.mobileGroup.nickname.menuHint}
-            value={member.nickname ?? m.mobileGroup.nickname.notSet}
+            label={m.group.nickname.menuLabel}
+            hint={m.group.nickname.menuHint}
+            value={member.nickname ?? m.group.nickname.notSet}
             trailing="chevron"
             onPress={onNickname}
           />

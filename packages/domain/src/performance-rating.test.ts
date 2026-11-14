@@ -759,12 +759,12 @@ describe("performanceResultView (screen 4c)", () => {
     );
     expect(up.tier.line).toBe("Up to Hamour.");
     const fewRanked = settledView(
-      settled({ tier: { ...result.tier, bandAfter: null, rankedCount: 3 } }),
+      settled({ tier: { ...result.tier, bandAfter: null, rankedCount: 1 } }),
     );
     expect(fewRanked.tier).toMatchObject({
       track: null,
       provisional: false,
-      line: "No fish until four players are ranked.",
+      line: "No fish until two players are ranked.",
     });
   });
 

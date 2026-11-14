@@ -7,7 +7,8 @@ import { useState } from "react";
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { TierCell } from "~/components/groups/tier-fish";
-import { Sparkline } from "~/components/home/level-card";
+import { FootballLevelFace } from "~/components/home/football-level-face";
+import { Sparkline } from "~/components/home/sparkline";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { PageTitle } from "~/components/layout/page-title";
 import { Hatch } from "~/components/ui/hatch";
@@ -57,7 +58,10 @@ export function RatingsLink({ sport }: { sport: Sport }) {
   );
 }
 
-/** The one ink card on the page: ring, band, number, change, next band. */
+/**
+ * The one ink card on the page. Padel: ring, band, number, change, next band.
+ * Football: the number alone on its 40 to 99 scale.
+ */
 function LevelSection({ view }: { view: RatingsLevelView }) {
   if (view.kind === "none") {
     return (
@@ -68,6 +72,35 @@ function LevelSection({ view }: { view: RatingsLevelView }) {
             <p className="text-dim text-meta">{view.note}</p>
           </div>
         </HeroCard>
+      </YouSection>
+    );
+  }
+
+  if (view.scale) {
+    return (
+      <YouSection title={view.title} meta={view.status} note={view.note}>
+        <section className="surface-focus rounded-card overflow-hidden">
+          <p className="sr-only">{view.spoken}</p>
+          <div aria-hidden="true">
+            <FootballLevelFace
+              numberLabel={view.numberLabel}
+              number={view.number}
+              scale={view.scale}
+              change={
+                view.change
+                  ? {
+                      amount: view.change.delta,
+                      caption: view.change.caption,
+                      points: view.change.points,
+                    }
+                  : null
+              }
+              start={view.start}
+              footer={view.footer}
+              tone="focus"
+            />
+          </div>
+        </section>
       </YouSection>
     );
   }

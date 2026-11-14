@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  memberNicknameSheetSubtitle,
   memberNicknameSheetView,
   type MemberNicknameTarget,
-} from "./member-nickname-model";
+} from "./member-nickname-sheet";
 
 const member: MemberNicknameTarget = {
   userId: "u1",
@@ -86,5 +87,20 @@ describe("memberNicknameSheetView", () => {
     ).toBe(true);
     expect(view({ member: named, draft: "Ahmed S, lefty" }).canSave).toBe(true);
     expect(view({ member: named, draft: "Ahmed tall" }).canClear).toBe(true);
+  });
+});
+
+describe("memberNicknameSheetSubtitle", () => {
+  it("names the member, or says you when naming yourself", () => {
+    expect(
+      memberNicknameSheetSubtitle(member, "Karbabad Friday Football", "en"),
+    ).toBe("For Ahmed S, in Karbabad Friday Football only.");
+    expect(
+      memberNicknameSheetSubtitle(
+        { ...member, isViewer: true },
+        "Karbabad Friday Football",
+        "ar",
+      ),
+    ).toBe("لك، في Karbabad Friday Football فقط.");
   });
 });

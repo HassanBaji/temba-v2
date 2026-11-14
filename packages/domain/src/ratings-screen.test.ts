@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { levelFromOvr } from "./football-ovr";
+import { isolate } from "@repo/i18n/bidi";
+
+import { levelFromOvr, muFromOvr } from "./football-ovr";
 import {
   inYourGroupsRows,
   ratingsLevelView,
   ratingsScreenView,
   ratingsTierRows,
+  sportSwitchLevel,
   type GroupStandingData,
   type MyGroupTierData,
   type RatingsLevelData,
@@ -76,6 +79,19 @@ function footballLevel(
   };
 }
 
+function padelLevel(
+  overrides: Partial<RatingsLevelData> = {},
+): RatingsLevelData {
+  return {
+    face: "level",
+    levelValue: 3.45,
+    rating: { levelBand: "C2", provisional: false, ratedMatchesRemaining: 0 },
+    ratedMatchCount: 9,
+    changeOverLast: { matches: 3, delta: -0.15, points: [3.6, 3.45] },
+    ...overrides,
+  };
+}
+
 function tier(overrides: Partial<MyGroupTierData> = {}): MyGroupTierData {
   return {
     groupId: "t1",
@@ -91,23 +107,143 @@ function tier(overrides: Partial<MyGroupTierData> = {}): MyGroupTierData {
 }
 
 describe("ratingsLevelView", () => {
-  it("reads a confirmed football Level as screen 1a", () => {
-    const view = ratingsLevelView(footballLevel(), "football", "en");
+  it("reads a confirmed football Level as the number alone, on the 40 to 99 scale", () => {
+    const view = ratingsLevelView(
+      footballLevel({
+        lastMatch: {
+          outcome: "won",
+          sets: [{ own: 5, opponent: 3 }],
+          muBefore: muFromOvr(73),
+          muAfter: muFromOvr(74),
+        },
+      }),
+      "football",
+      "en",
+    );
     expect(view).toMatchObject({
       kind: "rated",
       title: "Temba Level",
       status: "Confirmed",
-      band: "C+",
+      band: null,
       numberLabel: "Level",
       number: "74",
-      ringHatched: false,
+      ringPercent: 57.6,
+      scale: { percent: 57.6, ticks: ["40", "55", "70", "85", "99"] },
       change: { delta: "+2", caption: "last 8", points: [72, 72.6, 74.2] },
-      footer: { label: "Next band", value: "B-" },
+      start: null,
+      footer: {
+        label: "Last match",
+        result: "Won 5–3",
+        value: "+1",
+        detail: null,
+        pips: null,
+      },
       note: "How good you are, on verified matches only. OVR runs 40 to 99 and never resets.",
     });
     if (view.kind !== "rated") throw new Error("Expected a rated Level");
-    expect(view.footer.detail).toBe(`, ${view.ringPercent}% of the way`);
-    expect(view.spoken).toContain("+2 over the last 8 matches");
+    expect(view.spoken).toBe(
+      "Temba Level 74. Confirmed. +2 over the last 8 matches. Last match Won 5–3 +1",
+    );
+  });
+
+  it("names no football band, not even when spoken", () => {
+    const view = ratingsLevelView(footballLevel(), "football", "en");
+    if (view.kind !== "rated") throw new Error("Expected a rated Level");
+    expect(view.band).toBeNull();
+    expect(view.spoken).not.toMatch(/band|C\+/);
+  });
+
+  it("reads a football loss going down, and a confirmed Level with no Match yet", () => {
+    const down = ratingsLevelView(
+      footballLevel({
+        lastMatch: {
+          outcome: "lost",
+          sets: [{ own: 2, opponent: 4 }],
+          muBefore: muFromOvr(69),
+          muAfter: muFromOvr(68),
+        },
+      }),
+      "football",
+      "en",
+    );
+    expect(down).toMatchObject({
+      footer: { label: "Last match", result: "Lost 2–4", value: "−1" },
+    });
+    expect(
+      ratingsLevelView(
+        footballLevel({ lastMatch: null, changeOverLast: null }),
+        "football",
+        "en",
+      ),
+    ).toMatchObject({
+      footer: { label: "Last match", result: "None yet", value: null },
+    });
+  });
+
+  it("counts a Provisional football Level to confirm in five pips", () => {
+    const view = ratingsLevelView(
+      footballLevel({
+        levelValue: levelFromOvr(63),
+        rating: {
+          levelBand: "C3",
+          provisional: true,
+          ratedMatchesRemaining: 2,
+        },
+        changeOverLast: { matches: 3, delta: 2, points: [61, 62, 62, 63] },
+      }),
+      "football",
+      "en",
+    );
+    expect(view).toMatchObject({
+      status: "Provisional",
+      provisional: true,
+      number: "63",
+      scale: { percent: 39 },
+      change: { delta: "+2", caption: "last 3" },
+      footer: {
+        label: "To confirm",
+        value: "3 of 5 matches",
+        pips: { done: 3, total: 5 },
+      },
+    });
+  });
+
+  it("says where a new football number came from before any Match", () => {
+    const fresh = footballLevel({
+      levelValue: levelFromOvr(61),
+      rating: { levelBand: "C3", provisional: true, ratedMatchesRemaining: 5 },
+      ratedMatchCount: 0,
+      changeOverLast: null,
+      historySteps: [],
+    });
+    expect(ratingsLevelView(fresh, "football", "en")).toMatchObject({
+      number: "61",
+      scale: { percent: 35.6 },
+      change: null,
+      start: "Starting level, from sign-up",
+      footer: { value: "0 of 5 matches", pips: { done: 0, total: 5 } },
+    });
+    expect(
+      ratingsLevelView({ ...fresh, historySteps: ["set"] }, "football", "en"),
+    ).toMatchObject({ start: "Starting level" });
+  });
+
+  it("reads the football card in Arabic", () => {
+    const view = ratingsLevelView(
+      footballLevel({
+        lastMatch: {
+          outcome: "won",
+          sets: [{ own: 5, opponent: 3 }],
+          muBefore: muFromOvr(73),
+          muAfter: muFromOvr(74),
+        },
+      }),
+      "football",
+      "ar",
+    );
+    expect(view).toMatchObject({
+      footer: { label: "آخر مباراة", result: `فوز ${isolate("5–3")}` },
+    });
   });
 
   it("reads padel to two decimals, with a two-decimal change", () => {
@@ -129,21 +265,27 @@ describe("ratingsLevelView", () => {
     expect(view).toMatchObject({
       number: "3.45",
       band: "C",
+      scale: null,
+      start: null,
       change: { delta: "−0.15", caption: "last 3" },
+      footer: { label: "Next band", result: null, pips: null },
     });
+    if (view.kind !== "rated") throw new Error("Expected a rated Level");
+    expect(view.footer.detail).toBe(`, ${view.ringPercent}% of the way`);
+    expect(view.spoken).toContain("band C");
   });
 
-  it("shows a Provisional Level as a hatched ring with the count to confirm", () => {
+  it("shows a Provisional padel Level as a hatched ring with the count to confirm", () => {
     const view = ratingsLevelView(
-      footballLevel({
+      padelLevel({
         rating: {
-          levelBand: "C1",
+          levelBand: "C2",
           provisional: true,
           ratedMatchesRemaining: 3,
         },
         ratedMatchCount: 2,
       }),
-      "football",
+      "padel",
       "en",
     );
     expect(view).toMatchObject({
@@ -151,7 +293,12 @@ describe("ratingsLevelView", () => {
       provisional: true,
       ringHatched: true,
       ringPercent: 40,
-      footer: { label: "To confirm", value: "2 of 5 matches", detail: null },
+      footer: {
+        label: "To confirm",
+        value: "2 of 5 matches",
+        detail: null,
+        pips: null,
+      },
     });
   });
 
@@ -179,9 +326,9 @@ describe("ratingsLevelView", () => {
     });
   });
 
-  it("reads the top band without a next one", () => {
+  it("reads the top padel band without a next one", () => {
     const view = ratingsLevelView(
-      footballLevel({
+      padelLevel({
         levelValue: 6.8,
         rating: {
           levelBand: "A",
@@ -189,7 +336,7 @@ describe("ratingsLevelView", () => {
           ratedMatchesRemaining: 0,
         },
       }),
-      "football",
+      "padel",
       "en",
     );
     expect(view).toMatchObject({
@@ -342,5 +489,29 @@ describe("ratingsScreenView", () => {
     );
     expect(view.tier?.title).toBe("فئة المجموعة");
     expect(view.official.message).toBe("قادمة مع البطولات الرسمية");
+  });
+});
+
+describe("sportSwitchLevel", () => {
+  it("shows the football OVR and the padel band", () => {
+    expect(sportSwitchLevel("football", footballLevel(), "en")).toEqual({
+      label: "74",
+      spoken: "Football, level 74",
+    });
+    expect(sportSwitchLevel("padel", padelLevel(), "en")).toEqual({
+      label: "C",
+      spoken: "Padel, C",
+    });
+  });
+
+  it("shows nothing before the first Rating", () => {
+    expect(
+      sportSwitchLevel(
+        "football",
+        footballLevel({ rating: null, levelValue: null }),
+        "en",
+      ),
+    ).toBeNull();
+    expect(sportSwitchLevel("padel", undefined, "en")).toBeNull();
   });
 });

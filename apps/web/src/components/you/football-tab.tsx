@@ -102,21 +102,12 @@ function FootballHero({ profile }: { profile: FootballProfile }) {
           </span>
         </HeroRing>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <p
-            aria-hidden="true"
-            className="font-expanded text-[28px] leading-none"
-          >
-            <bdi dir="ltr">{level.band}</bdi>
-          </p>
           {level.placement ? (
             <p aria-hidden="true" className="text-dim text-meta">
               {level.placement}
             </p>
           ) : null}
           <p className="text-meta font-semibold">{role.label}</p>
-          <p aria-hidden="true" className="text-dim text-eyebrow leading-[1.5]">
-            {level.progress}
-          </p>
           <p className="text-dim text-eyebrow leading-[1.5]">
             {m.you.football.adjustNote}
           </p>

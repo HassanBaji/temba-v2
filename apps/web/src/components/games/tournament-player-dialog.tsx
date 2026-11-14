@@ -4,6 +4,7 @@ import {
   displayLabelFromStoredBand,
   type LevelBand,
 } from "@repo/domain/level-bands";
+import { whatsAppHref } from "@repo/domain/phone-number";
 import Link from "next/link";
 import { createContext, useContext, useState, type ReactNode } from "react";
 
@@ -26,6 +27,7 @@ export type TournamentPlayer = {
   image: string | null;
   levelBand?: LevelBand | null;
   guest?: boolean;
+  phoneNumber?: string | null;
 };
 
 type TournamentPlayerActions = {
@@ -142,7 +144,19 @@ function TournamentPlayerDialog({
                 ) : null}
               </div>
             </ResponsiveDialogHeader>
-            <div className="flex gap-2 px-4 pb-4 sm:px-0 sm:pb-0">
+            <div className="flex flex-wrap gap-2 px-4 pb-4 sm:px-0 sm:pb-0">
+              {player.phoneNumber ? (
+                <Button variant="outline" asChild>
+                  <a
+                    href={whatsAppHref(player.phoneNumber)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={m.group.addPlayer.whatsAppFor(player.name)}
+                  >
+                    {m.group.addPlayer.whatsAppAction}
+                  </a>
+                </Button>
+              ) : null}
               {canOpenProfile && !player.guest ? (
                 <Button variant="outline" asChild>
                   <Link href={playerProfilePath(player.userId)}>

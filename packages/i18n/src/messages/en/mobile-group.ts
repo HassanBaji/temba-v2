@@ -129,54 +129,6 @@ export const mobileGroup = {
       noLevelMark: "–",
     },
   },
-  nickname: {
-    menuLabel: "Name in this Group",
-    menuHint: "What you call them here, so you can tell people apart",
-    notSet: "Not set",
-    addName: "Add name",
-    addNameFor: (name: string) => `Add a name for ${name}`,
-    title: "Name in this Group",
-    forMember: (name: string, group: string) =>
-      `For ${name}, in ${group} only.`,
-    forYou: (group: string) => `For you, in ${group} only.`,
-    fieldLabel: "Name",
-    placeholder: "What do you call them?",
-    counter: (count: number, max: number) => `${count} of ${max}`,
-    counterSpoken: (count: number, max: number) =>
-      `${count} of ${max} characters`,
-    previewLabel: "How they'll appear in this Group",
-    noNickname: "No name in this Group",
-    whoSees: "Who sees it",
-    visibility: {
-      approvers: {
-        title: "Organizers only",
-        description: "A working label for the people who run games.",
-      },
-      group: {
-        title: "Everyone in the Group",
-        description: "The name the whole Group uses for them.",
-      },
-    },
-    approversNote: (firstName: string) =>
-      `${firstName} won't see this name. Only the Group's Organizers do.`,
-    groupNote: (firstName: string) =>
-      `${firstName} and everyone else in the Group will see it next to their name.`,
-    approversNoteSelf:
-      "Only the Group's Organizers see this name, you included.",
-    groupNoteSelf: "Everyone in the Group will see it next to your name.",
-    save: (nickname: string) => `Save “${nickname}”`,
-    typeFirst: "Type a name first",
-    clear: "Clear name",
-    savedToast: (nickname: string) => `Saved “${nickname}”`,
-    clearedToast: (name: string) => `${name} has no name in this Group now`,
-    youAre: "In this Group you're",
-    youAreNote:
-      "A name the Group's Organizers gave you. Everyone in this Group sees it next to your name. It isn't shown anywhere else.",
-    youAreSpoken: (nickname: string) =>
-      `In this Group you're ${nickname}. A name the Group's Organizers gave you. Everyone in this Group sees it next to your name. It isn't shown anywhere else.`,
-    legend:
-      "A tag marks a name this Group gave. It shows in this Group only; the player's Temba name and profile don't change.",
-  },
   requests: {
     changeWhoCanJoin: "Change who can join",
     row: (name: string, meta: string) => `${name}. ${meta}`,
@@ -218,6 +170,8 @@ export const mobileGroup = {
     newLevel: "New Level",
     readout: (band: string, level: string, delta: string) =>
       `New Level ${band} ${level}, ${delta}`,
+    readoutOvr: (ovr: string, delta: string) =>
+      `New Level OVR ${ovr}, ${delta}`,
     toNext: (distance: string, label: string) => `${distance} to ${label}`,
     topOfScale: "Top of the scale",
     throughRung: (percent: number, rung: string) =>

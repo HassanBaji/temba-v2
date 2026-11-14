@@ -3,11 +3,11 @@ import {
   normalizeMemberNickname,
   type MemberNicknameData,
   type MemberNicknameVisibility,
-} from "@repo/domain/member-nickname";
+} from "./member-nickname";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { firstName } from "./group-home-model";
+import { firstName } from "./game-card";
 
 export type MemberNicknameTarget = {
   userId: string;
@@ -17,6 +17,18 @@ export type MemberNicknameTarget = {
   /** An approver naming themselves. */
   isViewer: boolean;
 };
+
+/** "For Ahmed S, in Karbabad Friday Football only.", or "For you" when naming yourself. */
+export function memberNicknameSheetSubtitle(
+  member: Pick<MemberNicknameTarget, "name" | "isViewer">,
+  groupName: string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).group.nickname;
+  return member.isViewer
+    ? m.forYou(groupName)
+    : m.forMember(member.name, groupName);
+}
 
 /** The "Name in this Group" sheet (design "Group names" 1c) for a draft. */
 export function memberNicknameSheetView(
@@ -28,7 +40,7 @@ export function memberNicknameSheetView(
   },
   locale: Locale,
 ) {
-  const m = messagesFor(locale).mobileGroup.nickname;
+  const m = messagesFor(locale).group.nickname;
   const next = normalizeMemberNickname(input.draft);
   const current = input.member.nickname;
   const changed =
@@ -38,9 +50,11 @@ export function memberNicknameSheetView(
   const first = firstName(input.member.name);
   const self = input.member.isViewer;
   return {
-    subtitle: self
-      ? m.forYou(input.groupName)
-      : m.forMember(input.member.name, input.groupName),
+    subtitle: memberNicknameSheetSubtitle(
+      input.member,
+      input.groupName,
+      locale,
+    ),
     counter: m.counter(length, MEMBER_NICKNAME_MAX_LENGTH),
     counterSpoken: m.counterSpoken(length, MEMBER_NICKNAME_MAX_LENGTH),
     preview: next

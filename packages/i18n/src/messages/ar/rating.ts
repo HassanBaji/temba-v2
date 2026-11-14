@@ -104,6 +104,20 @@ export const rating = {
         "مقياس 1.0 إلى 7.0 الذي يعرفه لاعبو البادل. يتحرّك في المباريات الموثّقة، ويزن شريكك وخصومك.",
       spoken: (band: string, level: string, status: string) =>
         `مستوى Temba ${isolate(level)}، الفئة ${isolate(band)}. ${status}`,
+      spokenOvr: (level: string, status: string) =>
+        `مستوى Temba ${isolate(level)}. ${status}`,
+      startingFromSignUp: "مستوى البداية، من التسجيل",
+      startingLevel: "مستوى البداية",
+      lastMatch: "آخر مباراة",
+      lastResult: {
+        won: (score: string | null) =>
+          score ? `فوز ${isolate(score)}` : "فوز",
+        drawn: (score: string | null) =>
+          score ? `تعادل ${isolate(score)}` : "تعادل",
+        lost: (score: string | null) =>
+          score ? `خسارة ${isolate(score)}` : "خسارة",
+      },
+      noLastMatch: "لا شيء بعد",
     },
     tier: {
       title: "فئة المجموعة",
@@ -352,7 +366,7 @@ export const rating = {
       movesUp: (name: string, band: string) => `يصعد ${name} إلى ${band}.`,
       movesDown: (name: string, band: string) => `ينزل ${name} إلى ${band}.`,
       noFish: (placeOf: string) =>
-        `الآن ${placeOf}. لا أسماك حتى يُصنَّف أربعة لاعبين.`,
+        `الآن ${placeOf}. لا أسماك حتى يُصنَّف لاعبان.`,
       otherUp: (name: string, band: string) => `يصعد ${name} إلى ${band}.`,
       otherBecomes: (name: string, band: string) => `يصبح ${name} ${band}.`,
       andMore: (n: number) =>
@@ -383,7 +397,6 @@ export const rating = {
     saved: (name: string) => `حُفظ وسُجّل في سجل ${name}`,
     errors: {
       organizerOnly: "منظّمو هذه المجموعة وحدهم يعدّلون نقاط الفئة.",
-      notYourOwn: "لا يمكنك تعديل نقاط فئتك.",
       noTier:
         "لا فئات في هذه المجموعة. الفئات لمجموعات كرة القدم غير الموثّقة.",
       notMember: "هذا اللاعب ليس في هذه المجموعة.",
@@ -529,15 +542,18 @@ export const rating = {
   ovr: {
     label: "OVR",
     value: (ovr: string) => `${isolate("OVR")} ${isolate(ovr)}`,
+    valueProvisional: (ovr: string) =>
+      `${isolate("OVR")} ${isolate(ovr)}، لا يزال مبدئيًا`,
     startsAt: (description: string, ovr: string) =>
       `${description} تبدأ عند ${isolate("OVR")} ${isolate(ovr)}.`,
     member: (band: string, ovr: string) =>
       `${isolate(band)}، ${isolate("OVR")} ${isolate(ovr)}`,
-    team: (band: string, ovr: string) =>
-      `${isolate(band)}، بمعدل ${isolate("OVR")} ${isolate(ovr)}`,
     avg: (ovr: string) => `بمعدل ${isolate("OVR")} ${isolate(ovr)}`,
-    heroSpoken: (ovr: string, band: string, detail: string) =>
-      `${isolate("OVR")} ${isolate(ovr)}، الفئة ${isolate(band)}. ${detail}`,
+    span: (min: string, max: string) => isolate(`${min}–${max}`),
+    heroSpoken: (ovr: string, placement: string | null) =>
+      placement
+        ? `${isolate("OVR")} ${isolate(ovr)}. ${placement}`
+        : `${isolate("OVR")} ${isolate(ovr)}`,
   },
   performance: {
     title: "قيّم المباراة",
@@ -721,7 +737,7 @@ export const rating = {
         nowA: (band: string) => `صرت ${band}.`,
         toNext: (points: string, count: number, band: string) =>
           `${pointsCount(points, count)} إلى ${band}.`,
-        noFish: "لا أسماك حتى يُصنَّف أربعة لاعبين.",
+        noFish: "لا أسماك حتى يُصنَّف لاعبان.",
         provisional:
           "يأتي مركزك وسمكتك بعد خمس مباريات في المجموعة، أو قبل ذلك إن حدّد منظّم نقاطك.",
       },

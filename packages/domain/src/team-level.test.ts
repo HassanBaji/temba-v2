@@ -45,7 +45,7 @@ describe("teamLevelLabel", () => {
 
   it("names the mean OVR on football", () => {
     expect(teamLevelLabel([levelFromOvr(74)], "football", "en")).toBe(
-      "C+, avg OVR 74",
+      "avg OVR 74",
     );
   });
 });

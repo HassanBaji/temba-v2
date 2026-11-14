@@ -39,21 +39,13 @@ import { homeNoGamesCreateAction } from "@repo/domain/home-no-games";
 import { openWeekRows } from "@repo/domain/home-open-week";
 import { homeSport, homeSports } from "@repo/domain/home-sports";
 import { homeStats } from "@repo/domain/home-stats";
-import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import { profileChecklist } from "@repo/domain/profile-checklist";
+import { sportSwitchLevel } from "@repo/domain/ratings-screen";
 import type { Sport } from "@repo/domain/sport";
 import { useNow } from "~/hooks/use-now";
 import { playerMarksPath } from "~/lib/dashboard-paths";
 import { profileChecklistInputFrom } from "~/lib/profile-checklist-input";
 import { api } from "~/trpc/react";
-
-type RatingData = Parameters<typeof levelFromApi>[0] | undefined;
-
-function bandOf(data: RatingData): string | null {
-  return data?.rating
-    ? displayLabelFromStoredBand(data.rating.levelBand)
-    : null;
-}
 
 export default function HomePage() {
   const { user } = useUser();
@@ -182,9 +174,13 @@ export default function HomePage() {
           <SportSwitch
             sports={sports}
             value={sport}
-            bands={{
-              padel: bandOf(padelRating.data),
-              football: bandOf(footballRating.data),
+            levels={{
+              padel: sportSwitchLevel("padel", padelRating.data, locale),
+              football: sportSwitchLevel(
+                "football",
+                footballRating.data,
+                locale,
+              ),
             }}
             onSelect={setChosenSport}
           />

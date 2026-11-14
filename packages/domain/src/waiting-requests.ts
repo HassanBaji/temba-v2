@@ -2,9 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatGameClock, formatWeekday } from "./format-game-start";
-import { formatOvr, ovrFromLevel } from "./football-ovr";
-import { displayLabelFromStoredBand } from "./level-bands";
-import { tenthsToLevelBand } from "./level-range";
+import { organizerRequestLevel } from "./game-requests";
 import type { Sport } from "./sport";
 
 export type WaitingRequestUser = {
@@ -124,12 +122,7 @@ export function waitingRequestLevelLabel(
   tenths: number | null,
   sport: Sport,
 ): string | null {
-  if (tenths == null) {
-    return null;
-  }
-  return sport === "football"
-    ? formatOvr(ovrFromLevel(tenths / 10))
-    : displayLabelFromStoredBand(tenthsToLevelBand(tenths));
+  return organizerRequestLevel(tenths, sport);
 }
 
 /** `55 to 75` for football, `C- to C` for padel; null when the Game has no range. */

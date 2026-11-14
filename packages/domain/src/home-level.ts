@@ -2,7 +2,11 @@ import { isolate } from "@repo/i18n/bidi";
 import type { Locale } from "@repo/i18n/locale";
 
 import type { LevelHistoryStep } from "./home-level-chart";
-import { ratingsLevelView, type RatingsLevelData } from "./ratings-screen";
+import {
+  ratingsLevelView,
+  type RatingsLevelData,
+  type RatingsLevelFooter,
+} from "./ratings-screen";
 import type { Sport } from "./sport";
 
 /**
@@ -21,12 +25,18 @@ export type HomeLevelInput = RatingsLevelData & {
 export type HomeLevelView = {
   status: string;
   provisional: boolean;
-  displayBand: string;
+  /** The padel band in the gauge; null on football, which shows only the number. */
+  displayBand: string | null;
   /** "Level" on both faces. */
   numberLabel: string;
   level: string;
-  /** Through the band when confirmed; towards confirming while Provisional. */
+  /**
+   * Padel: through the band when confirmed, towards confirming while
+   * Provisional. Football: along the 40 to 99 scale.
+   */
   percent: number;
+  /** Football's 40 to 99 bar, filled to the OVR, with its labels. */
+  scale: { percent: number; ticks: string[] } | null;
   change: {
     /** "+2" or "−0.15", isolated so the sign stays put in Arabic. */
     signedAmount: string;
@@ -35,17 +45,19 @@ export type HomeLevelView = {
     /** The face after each counting Match, oldest first. */
     points: number[];
   } | null;
-  /** "Next band B−, 40% of the way", or "To confirm 2 of 5 matches". */
-  footer: { label: string; value: string | null; detail: string | null };
+  /** Football before a counting Match: where the number came from. */
+  start: string | null;
+  footer: RatingsLevelFooter;
   /** The card read as one. */
   spoken: string;
 };
 
 /**
  * Home's Level card reads the Temba Level as the Ratings screen does, so
- * the two never disagree: the band, the number on the
- * sport's face, what the last eight counting Matches moved it, and the way to
- * the next band or to confirming. Null before the first Rating.
+ * the two never disagree: the number on the sport's face (with the band on
+ * padel, the 40 to 99 scale on football), what the last eight counting
+ * Matches moved it, and the way to confirming, the next band or the last
+ * Match. Null before the first Rating.
  */
 export function homeLevelView(
   input: HomeLevelInput,
@@ -62,6 +74,7 @@ export function homeLevelView(
     numberLabel: view.numberLabel,
     level: view.number,
     percent: view.ringPercent,
+    scale: view.scale,
     change: view.change
       ? {
           signedAmount: isolate(view.change.delta),
@@ -69,6 +82,7 @@ export function homeLevelView(
           points: view.change.points,
         }
       : null,
+    start: view.start,
     footer: view.footer,
     spoken: view.spoken,
   };

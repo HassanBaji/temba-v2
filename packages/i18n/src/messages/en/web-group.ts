@@ -15,6 +15,7 @@ export const webGroup = {
     roleFor: (name: string) => `Role for ${name}`,
     manageName: (name: string) => `Manage ${name}`,
     callPhone: (phone: string) => `Call ${phone}`,
+    whatsAppPhone: (phone: string) => `WhatsApp ${phone}`,
     setLevel: "Set Level",
     savedLevel: (name: string, level: string) => `${name} set to ${level}.`,
     savedReason: (reason: string) =>

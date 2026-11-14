@@ -55,6 +55,8 @@ type Occupant = {
   image: string | null;
   levelBand: LevelBand | null;
   guest?: boolean;
+  /** E.164, sent only to a Group approver for a current member (ADR-0078). */
+  phoneNumber?: string | null;
 };
 
 export type TournamentDetailsSide = {
@@ -114,6 +116,9 @@ export type TournamentDetailsGameTeam = {
     name: string;
     image: string | null;
     position: string | null;
+    guest?: boolean;
+    /** E.164, sent only to a Group approver for a current member (ADR-0078). */
+    phoneNumber?: string | null;
   }[];
 };
 

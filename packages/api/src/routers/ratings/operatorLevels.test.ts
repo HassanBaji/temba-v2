@@ -238,13 +238,14 @@ describe("setLevelAsOperator", () => {
       expect(item.levelSet).toEqual({
         level: "71",
         levelBand: "C1",
+        sport: "football",
         reason: "plays_above_results",
         note: "Plays above 68.",
         venue: null,
       });
       const copy = notificationCopy(item, "en");
       expect(copy?.title.map((part) => part.text).join("")).toBe(
-        "Yaser Ali set your Level to C+ 71",
+        "Yaser Ali set your Level to OVR 71",
       );
       expect(copy?.subline).toBe("Plays above results: “Plays above 68.”");
     } finally {

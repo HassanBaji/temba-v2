@@ -18,9 +18,9 @@ import { BibChip } from "./bib-picker";
 import {
   boardTierCell,
   byKeeperThenLevel,
-  levelLabel,
   lineupName,
-  makeTeamsLevelLabel,
+  ovrLabel,
+  ovrSpoken,
   sideOvrAverage,
   slotCode,
   type Bibs,
@@ -48,8 +48,8 @@ export function TierMark({ cell }: { cell: GroupMemberTierCell }) {
 
 /**
  * A player row in their team's bib colour; the viewer's row is ringed.
- * `showTier` puts the player's fish where the Level sits, in a tier Group;
- * `balanceOn` shows the OVR there when Make teams balances on it.
+ * The OVR sits at the end, or with `showTier` the player's fish in a tier
+ * Group.
  */
 export function BibRow({
   player,
@@ -57,14 +57,12 @@ export function BibRow({
   trailing,
   onPress,
   showTier = false,
-  balanceOn,
 }: {
   player: BoardPlayer;
   bib: FootballBib;
   trailing?: React.ReactNode;
   onPress?: () => void;
   showTier?: boolean;
-  balanceOn?: FootballBalanceOn;
 }) {
   const messages = useMessages();
   const locale = useLocale();
@@ -78,16 +76,14 @@ export function BibRow({
   const { name, spoken, isNickname } = lineupName(player, locale);
   const code = slotCode(player, locale);
   const tierCell = showTier ? boardTierCell(player, locale) : null;
-  const level = balanceOn
-    ? makeTeamsLevelLabel(player, balanceOn)
-    : levelLabel(player.levelBand);
+  const level = ovrLabel(player);
   return (
     <Pressable
       accessibilityRole={onPress ? "button" : undefined}
       accessibilityLabel={[
         spoken,
         code,
-        tierCell ? tierCell.label : level,
+        tierCell ? tierCell.label : ovrSpoken(player, locale),
         player.guest ? messages.group.addPlayer.guest.tag : null,
       ]
         .filter(Boolean)
@@ -224,7 +220,6 @@ export function TeamColumns({
             player={player}
             bib={bib}
             showTier={balanceOn === "tierPoints"}
-            balanceOn={balanceOn}
             onPress={
               onOpenPlayer ? () => onOpenPlayer(player.userId) : undefined
             }

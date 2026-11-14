@@ -1,11 +1,7 @@
 import { messagesFor } from "@repo/i18n/messages";
 import type { Locale } from "@repo/i18n/locale";
 
-import {
-  displayLabelFromStoredBand,
-  LEVEL_BANDS,
-  type LevelBand,
-} from "./level-bands";
+import { LEVEL_BANDS, type LevelBand } from "./level-bands";
 
 export const FOOTBALL_ROLES = ["outfield", "keeper"] as const;
 
@@ -190,19 +186,6 @@ export function footballTeamsMethodLabel(
 /** A Level band as a number for balancing; no Level sits mid-ladder. */
 export function levelBandStrength(band: LevelBand | null) {
   return band ? LEVEL_BANDS.indexOf(band) : (LEVEL_BANDS.length - 1) / 2;
-}
-
-/** The mean Level of a side as a display letter, or null with no Levels. */
-export function averageLevelLabel(bands: readonly (LevelBand | null)[]) {
-  const known = bands.filter((band): band is LevelBand => band != null);
-  if (known.length === 0) {
-    return null;
-  }
-  const mean =
-    known.reduce((sum, band) => sum + LEVEL_BANDS.indexOf(band), 0) /
-    known.length;
-  const band = LEVEL_BANDS[Math.round(mean)];
-  return band ? displayLabelFromStoredBand(band) : null;
 }
 
 /**

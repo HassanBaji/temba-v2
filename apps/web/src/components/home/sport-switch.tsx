@@ -3,19 +3,23 @@
 import { useMessages } from "~/components/locale-provider";
 import { SportGlyph } from "~/components/temba/sport-glyph";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
+import type { SportSwitchLevel } from "@repo/domain/ratings-screen";
 import type { Sport } from "@repo/domain/sport";
 import { cn } from "~/lib/utils";
 
-/** A track with a solid thumb; each side shows the sport and its band. */
+/**
+ * A track with a solid thumb; each side shows the sport and its Level: the
+ * band on padel, the number on football.
+ */
 export function SportSwitch({
   sports,
   value,
-  bands,
+  levels,
   onSelect,
 }: {
   sports: readonly Sport[];
   value: Sport;
-  bands: Partial<Record<Sport, string | null>>;
+  levels: Partial<Record<Sport, SportSwitchLevel | null>>;
   onSelect: (sport: Sport) => void;
 }) {
   const m = useMessages();
@@ -26,18 +30,14 @@ export function SportSwitch({
     >
       {sports.map((sport) => {
         const selected = sport === value;
-        const band = bands[sport] ?? null;
+        const level = levels[sport] ?? null;
         return (
           <button
             key={sport}
             type="button"
             role="radio"
             aria-checked={selected}
-            aria-label={
-              band
-                ? m.home.sportSwitch.spoken(m.common[sport], band)
-                : m.common[sport]
-            }
+            aria-label={level ? level.spoken : m.common[sport]}
             onClick={() => onSelect(sport)}
             className={cn(
               "focus-visible:ring-ring/50 flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg outline-none transition-colors focus-visible:ring-[3px]",
@@ -48,7 +48,7 @@ export function SportSwitch({
           >
             <SportGlyph sport={sport} className="size-4" />
             {m.common[sport]}
-            {band ? (
+            {level ? (
               <span
                 dir="ltr"
                 className={cn(
@@ -56,7 +56,7 @@ export function SportSwitch({
                   selected && "opacity-60",
                 )}
               >
-                {band}
+                {level.label}
               </span>
             ) : null}
           </button>
