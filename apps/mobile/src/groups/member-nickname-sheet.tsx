@@ -23,7 +23,7 @@ import { NicknameName } from "../primitives/nickname-name";
 import {
   memberNicknameSheetView,
   type MemberNicknameTarget,
-} from "./member-nickname-model";
+} from "@repo/domain/member-nickname-sheet";
 
 function VisibilityOption({
   visibility,

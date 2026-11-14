@@ -3,11 +3,11 @@ import {
   normalizeMemberNickname,
   type MemberNicknameData,
   type MemberNicknameVisibility,
-} from "@repo/domain/member-nickname";
+} from "./member-nickname";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { firstName } from "./group-home-model";
+import { firstName } from "./game-card";
 
 export type MemberNicknameTarget = {
   userId: string;

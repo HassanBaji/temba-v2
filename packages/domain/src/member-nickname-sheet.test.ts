@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   memberNicknameSheetView,
   type MemberNicknameTarget,
-} from "./member-nickname-model";
+} from "./member-nickname-sheet";
 
 const member: MemberNicknameTarget = {
   userId: "u1",

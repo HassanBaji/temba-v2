@@ -47,7 +47,7 @@ import {
 } from "./group-home-model";
 import { AdjustTierSheet } from "./adjust-tier-sheet";
 import { LevelCell } from "./level-cell";
-import type { MemberNicknameTarget } from "./member-nickname-model";
+import type { MemberNicknameTarget } from "@repo/domain/member-nickname-sheet";
 import { MemberNicknameSheet } from "./member-nickname-sheet";
 import { MemberSheet } from "./member-sheet";
 import { MemberLensRow, MemberSortSheet } from "./members-lens";
