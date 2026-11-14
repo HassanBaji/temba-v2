@@ -5,7 +5,7 @@ import { z } from "zod";
 import { gameTeams, games } from "@repo/db";
 
 import {
-  finalOrderIssue,
+  canPostFinalOrder,
   finalOrderStillOpen,
   isKingOfTheCourt,
   KING_FINAL_ORDER_MIN,
@@ -17,6 +17,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import { lockGame } from "#src/games/lock-rows";
+import { notify } from "#src/notifications/notify";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -57,23 +58,27 @@ export async function postKingFinalOrder(
     throw new TRPCError({ code: "FORBIDDEN", message: m.changeClosed });
   }
 
-  const drawnIds = (
+  const onCourtTeams = (
     await database.query.gameTeams.findMany({
       where: eq(gameTeams.gameId, game.id),
       columns: { id: true, startCourt: true },
+      with: {
+        players: { with: { gamePlayer: { columns: { userId: true } } } },
+      },
     })
-  )
-    .filter((team) => team.startCourt != null)
-    .map((team) => team.id);
-  const issue = finalOrderIssue(args.gameTeamIds, drawnIds);
-  if (issue === "too_few") {
+  ).filter((team) => team.startCourt != null);
+  const onCourt = new Set(onCourtTeams.map((team) => team.id));
+  if (
+    new Set(args.gameTeamIds).size !== args.gameTeamIds.length ||
+    args.gameTeamIds.some((id) => !onCourt.has(id))
+  ) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: m.unknownTeams });
+  }
+  if (!canPostFinalOrder(args.gameTeamIds.length, onCourt.size)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: m.placeTop(KING_FINAL_ORDER_MIN),
     });
-  }
-  if (issue) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: m.unknownTeams });
   }
 
   await database.transaction(async (tx) => {
@@ -101,6 +106,28 @@ export async function postKingFinalOrder(
         updatedAt: now,
       })
       .where(eq(games.id, game.id));
+
+    if (locked.finalOrderPostedAt == null) {
+      await notify(tx, {
+        type: "king_final_order_posted",
+        recipients: onCourtTeams.flatMap((team) =>
+          team.players.flatMap((link) =>
+            link.gamePlayer?.userId
+              ? [
+                  {
+                    userId: link.gamePlayer.userId,
+                    audience: "player" as const,
+                  },
+                ]
+              : [],
+          ),
+        ),
+        excludeUserIds: [args.organizerUserId],
+        actorUserId: args.organizerUserId,
+        groupId: game.groupId,
+        gameId: game.id,
+      });
+    }
   });
 
   return { ok: true as const };

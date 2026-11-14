@@ -4,13 +4,11 @@ import { describe, it } from "vitest";
 import {
   canPostFinalOrder,
   clampKingCourts,
-  finalOrderIssue,
   finalOrderStillOpen,
   isKingOfTheCourt,
   kingCourtCount,
   kingCourtMoves,
   kingCourtsFromOrder,
-  kingCourtsIssue,
   kingCourtTag,
   kingFinalOrderOf,
   kingFinishSlot,
@@ -22,7 +20,6 @@ import {
   postedStartingOrder,
   shuffledOrder,
   startingCourtsOf,
-  startingOrderIssue,
   swapPositions,
 } from "./tournament-king";
 
@@ -46,13 +43,6 @@ describe("courts and teams", () => {
     assert.equal(kingCourtCount(7), 4);
     assert.equal(kingCourtCount(null), 0);
   });
-
-  it("refuses an odd field or a court count out of range", () => {
-    assert.equal(kingCourtsIssue(8, "en"), null);
-    assert.notEqual(kingCourtsIssue(7, "en"), null);
-    assert.notEqual(kingCourtsIssue(14, "en"), null);
-    assert.notEqual(kingCourtsIssue(2, "en"), null);
-  });
 });
 
 describe("the draw", () => {
@@ -74,13 +64,6 @@ describe("the draw", () => {
     const order = shuffledOrder(["a", "b", "c", "d"], () => 0);
     assert.deepEqual([...order].sort(), ["a", "b", "c", "d"]);
     assert.deepEqual(order, ["b", "c", "d", "a"]);
-  });
-
-  it("needs every complete team exactly once", () => {
-    assert.equal(startingOrderIssue(["a", "b"], ["b", "a"]), null);
-    assert.equal(startingOrderIssue(["a", "a"], ["a", "b"]), "duplicate");
-    assert.equal(startingOrderIssue(["a", "x"], ["a", "b"]), "unknown");
-    assert.equal(startingOrderIssue(["a"], ["a", "b"]), "missing");
   });
 
   it("reads the posted courts back in court order", () => {
@@ -133,12 +116,8 @@ describe("kingCourtMoves", () => {
 });
 
 describe("the final order", () => {
-  it("needs the top three, each a team of the day once", () => {
-    const teams = ["a", "b", "c", "d"];
-    assert.equal(finalOrderIssue(["a", "b", "c"], teams), null);
-    assert.equal(finalOrderIssue(["a", "b"], teams), "too_few");
-    assert.equal(finalOrderIssue(["a", "a", "b"], teams), "duplicate");
-    assert.equal(finalOrderIssue(["a", "b", "x"], teams), "unknown");
+  it("unlocks from the top three, or every team in a smaller field", () => {
+    assert.equal(canPostFinalOrder(0, 8), false);
     assert.equal(canPostFinalOrder(2, 8), false);
     assert.equal(canPostFinalOrder(3, 8), true);
     assert.equal(canPostFinalOrder(2, 2), true);

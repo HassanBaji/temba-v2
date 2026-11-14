@@ -11,16 +11,18 @@ import {
 import * as React from "react";
 
 import {
+  KING_TEAMS_PER_COURT,
   kingCourtCount,
   kingCourtsFromOrder,
   kingCourtTag,
   kingFirstNames,
+  kingFullNames,
   postedStartingOrder,
   shuffledOrder,
   swapPositions,
 } from "@repo/domain/tournament-king";
 import {
-  isCompleteKingTeam,
+  kingFieldTeams,
   type KingCourtRow,
   type KingViewTeam,
 } from "@repo/domain/tournament-king-view";
@@ -40,12 +42,21 @@ import { cn } from "~/lib/utils";
 
 import { InitialsMark, ROUND_CARD } from "./tournament-round-parts";
 
-type MutationError = {
+export type MutationError = {
   message: string;
   data?: { zodError?: unknown } | null;
 } | null;
 
-function viewerOn(team: KingViewTeam, viewerUserId: string) {
+export type KingActions = {
+  courtsPending: boolean;
+  courtsError: MutationError;
+  onPostCourts: (gameTeamIds: string[]) => Promise<void>;
+  orderPending: boolean;
+  orderError: MutationError;
+  onPostFinalOrder: (gameTeamIds: string[]) => Promise<void>;
+};
+
+export function viewerOnTeam(team: KingViewTeam, viewerUserId: string) {
   return team.members.some((member) => member.id === viewerUserId);
 }
 
@@ -60,7 +71,7 @@ export function KingTeamLine({
   className?: string;
 }) {
   const m = useMessages();
-  const isViewer = viewerOn(team, viewerUserId);
+  const isViewer = viewerOnTeam(team, viewerUserId);
   return (
     <span className={cn("flex min-w-0 flex-1 items-center gap-3", className)}>
       <InitialsMark name={team.members[0]?.name ?? ""} isViewer={isViewer} />
@@ -211,18 +222,42 @@ export function KingHowItRuns({ courtCount }: { courtCount: number }) {
   );
 }
 
-function shortNames(team: KingViewTeam | undefined, viewerUserId: string) {
-  if (!team) {
-    return "";
-  }
-  return team.members
-    .map((member) =>
-      member.id === viewerUserId
-        ? null
-        : (member.name.trim().split(/\s+/)[0] ?? member.name),
-    )
-    .filter(Boolean)
-    .join(" & ");
+/** The line under a posted draw or a posted final order, with its way back in. */
+export function KingPostedNote({
+  title,
+  copy,
+  changeLabel,
+  onChange,
+}: {
+  title: string;
+  copy: string;
+  changeLabel?: string;
+  onChange?: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span
+        aria-hidden="true"
+        className="bg-ink text-paper inline-flex size-[22px] shrink-0 items-center justify-center rounded-[7px]"
+      >
+        <CheckIcon className="size-[13px]" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-body font-semibold">{title}</p>
+        <p className="text-muted-foreground text-eyebrow">{copy}</p>
+      </div>
+      {onChange && changeLabel ? (
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11 font-semibold"
+          onClick={onChange}
+        >
+          {changeLabel}
+        </Button>
+      ) : null}
+    </div>
+  );
 }
 
 /**
@@ -234,8 +269,8 @@ export function KingDrawSheet({
   onOpenChange,
   gameTeams,
   viewerUserId,
-  posted,
-  locked,
+  courtsPosted,
+  orderPosted,
   pending,
   error,
   onPost,
@@ -244,54 +279,52 @@ export function KingDrawSheet({
   onOpenChange: (open: boolean) => void;
   gameTeams: readonly KingViewTeam[];
   viewerUserId: string;
-  posted: boolean;
-  locked: boolean;
+  courtsPosted: boolean;
+  /** The final order is posted, so the starting courts can no longer change. */
+  orderPosted: boolean;
   pending: boolean;
   error: MutationError;
   onPost: (gameTeamIds: string[]) => Promise<void>;
 }) {
   const m = useMessages().tournamentKing;
-  const complete = React.useMemo(
-    () => gameTeams.filter(isCompleteKingTeam),
-    [gameTeams],
-  );
+  const field = React.useMemo(() => kingFieldTeams(gameTeams), [gameTeams]);
   const byId = React.useMemo(
-    () => new Map(complete.map((team) => [team.id, team])),
-    [complete],
+    () => new Map(field.map((team) => [team.id, team])),
+    [field],
   );
   const [order, setOrder] = React.useState<string[]>([]);
   const [selected, setSelected] = React.useState<number | null>(null);
-  const [editing, setEditing] = React.useState(!posted);
+  const [editing, setEditing] = React.useState(!courtsPosted);
 
-  const completeRef = React.useRef(complete);
-  completeRef.current = complete;
+  const fieldRef = React.useRef(field);
+  fieldRef.current = field;
 
   // Draw once per opening: a refetch while the sheet is open must not reshuffle it.
   React.useEffect(() => {
     if (!open) {
       return;
     }
-    const teams = completeRef.current;
+    const teams = fieldRef.current;
     const postedOrder = postedStartingOrder(teams);
     setOrder((postedOrder ?? shuffledOrder(teams)).map((team) => team.id));
     setSelected(null);
-    setEditing(!posted);
-  }, [open, posted]);
+    setEditing(!courtsPosted);
+  }, [open, courtsPosted]);
 
   const courts = kingCourtsFromOrder(order);
   const courtCount = kingCourtCount(order.length);
-  const playerCount = order.length * 2;
-  const showPosted = posted && !editing;
+  const playerCount = field.reduce(
+    (count, team) => count + team.members.length,
+    0,
+  );
+  const showPosted = courtsPosted && !editing;
+  const oddField = !courtsPosted && order.length % KING_TEAMS_PER_COURT !== 0;
   const selectedTeam =
     selected != null ? byId.get(order[selected] ?? "") : undefined;
   const note = showPosted
     ? m.draw.postedNote
     : selectedTeam
-      ? m.draw.swapWith(
-          viewerOn(selectedTeam, viewerUserId)
-            ? kingFirstNames(selectedTeam.members)
-            : shortNames(selectedTeam, viewerUserId),
-        )
+      ? m.draw.swapWith(kingFirstNames(selectedTeam.members))
       : m.draw.note(order.length, courtCount);
 
   function tap(position: number) {
@@ -368,9 +401,7 @@ export function KingDrawSheet({
                       key={teamId}
                       type="button"
                       aria-pressed={on}
-                      aria-label={m.draw.swapLabel(
-                        team.members.map((member) => member.name).join(" & "),
-                      )}
+                      aria-label={m.draw.swapLabel(kingFullNames(team.members))}
                       disabled={showPosted || pending}
                       onClick={() => tap(position)}
                       className={cn(
@@ -402,39 +433,23 @@ export function KingDrawSheet({
           <div className="border-rule mt-4 shrink-0 space-y-2 border-t px-[22px] pb-[22px] pt-4">
             <FormErrorSummary message={globalFormErrorMessage(error)} />
             {showPosted ? (
-              <div className="flex items-center gap-3">
-                <span
-                  aria-hidden="true"
-                  className="bg-ink text-paper inline-flex size-[22px] shrink-0 items-center justify-center rounded-[7px]"
-                >
-                  <CheckIcon className="size-[13px]" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-body font-semibold">{m.draw.posted}</p>
-                  <p className="text-muted-foreground text-eyebrow">
-                    {locked
-                      ? m.draw.changeLocked
-                      : m.draw.postedCopy(playerCount)}
-                  </p>
-                </div>
-                {locked ? null : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="min-h-11 font-semibold"
-                    onClick={() => setEditing(true)}
-                  >
-                    {m.draw.change}
-                  </Button>
-                )}
-              </div>
+              <KingPostedNote
+                title={m.draw.posted}
+                copy={
+                  orderPosted
+                    ? m.draw.changeLocked
+                    : m.draw.postedCopy(playerCount)
+                }
+                changeLabel={m.draw.change}
+                onChange={orderPosted ? undefined : () => setEditing(true)}
+              />
             ) : (
               <>
                 <Button
                   type="button"
                   size="lg"
                   className="w-full font-semibold"
-                  disabled={pending || order.length === 0}
+                  disabled={pending || order.length === 0 || oddField}
                   aria-busy={pending}
                   onClick={() => void post()}
                 >
@@ -453,8 +468,11 @@ export function KingDrawSheet({
                   <ShuffleIcon aria-hidden="true" className="size-4" />
                   {m.draw.again}
                 </Button>
-                <p className="text-muted-foreground text-eyebrow text-center">
-                  {m.draw.footer}
+                <p
+                  role={oddField ? "alert" : undefined}
+                  className="text-muted-foreground text-eyebrow text-center"
+                >
+                  {oddField ? m.errors.oddTeams : m.draw.footer}
                 </p>
               </>
             )}

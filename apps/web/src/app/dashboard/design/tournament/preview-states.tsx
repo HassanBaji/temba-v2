@@ -407,6 +407,15 @@ function HomeMatchCardPreviewColumn({
   );
 }
 
+const PREVIEW_KING_ACTIONS = {
+  courtsPending: false,
+  courtsError: null,
+  onPostCourts: () => Promise.resolve(),
+  orderPending: false,
+  orderError: null,
+  onPostFinalOrder: () => Promise.resolve(),
+};
+
 function TournamentHomePreview({
   data,
   rounds,
@@ -439,6 +448,7 @@ function TournamentHomePreview({
       postError={null}
       undoPending={false}
       undoError={null}
+      kingActions={PREVIEW_KING_ACTIONS}
       onMerge={() => undefined}
       onDraw={() => undefined}
       onPost={() => undefined}

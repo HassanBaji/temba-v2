@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
+  kingFieldTeams,
   kingFinishedView,
+  kingHeroStats,
+  kingShareCard,
   kingStartingCourtRows,
   kingYourCourt,
   type KingViewTeam,
@@ -130,7 +133,7 @@ describe("kingFinishedView", () => {
       ],
     );
     assert.deepEqual(
-      view.table.map((row) => [row.team.id, row.place]),
+      view.order.map((row) => [row.team.id, row.place]),
       [
         ["lh", 1],
         ["ab", 2],
@@ -142,7 +145,7 @@ describe("kingFinishedView", () => {
         ["ah", null],
       ],
     );
-    assert.equal(view.table.find((row) => row.isViewer)?.team.id, "hh");
+    assert.equal(view.order.find((row) => row.isViewer)?.team.id, "hh");
   });
 
   it("shows one line when the viewer is king", () => {
@@ -154,5 +157,111 @@ describe("kingFinishedView", () => {
   it("says Not placed for a viewer left out", () => {
     const view = kingFinishedView({ ...GAME, viewerUserId: "rk-1" }, "en");
     assert.equal(view.podium[1]?.mainLine, "Not placed");
+  });
+});
+
+describe("kingFieldTeams", () => {
+  it("is the complete teams before the draw", () => {
+    const undrawn = TEAMS.map((item) => ({ ...item, startCourt: null }));
+    const half = { ...undrawn[0]!, members: undrawn[0]!.members.slice(0, 1) };
+    assert.deepEqual(
+      kingFieldTeams([half, ...undrawn.slice(1)]).map((item) => item.id),
+      ["ab", "na", "jk", "hh", "sf", "rk", "ah"],
+    );
+  });
+
+  it("keeps a team that lost a player after the draw, and drops an empty one", () => {
+    const half = { ...TEAMS[0]!, members: TEAMS[0]!.members.slice(0, 1) };
+    const empty = { ...TEAMS[1]!, members: [] };
+    const field = kingFieldTeams([half, empty, ...TEAMS.slice(2)]);
+    assert.deepEqual(
+      field.map((item) => item.id),
+      ["lh", "na", "jk", "hh", "sf", "rk", "ah"],
+    );
+    const rows = kingStartingCourtRows({
+      ...GAME,
+      gameTeams: [half, empty, ...TEAMS.slice(2)],
+    });
+    assert.deepEqual(
+      rows[0]?.teams.map((item) => item.id),
+      ["lh"],
+    );
+  });
+});
+
+describe("kingHeroStats", () => {
+  it("counts the teams and the courts, then the price a player pays", () => {
+    assert.deepEqual(
+      kingHeroStats(
+        { teamsAllowed: 8, pricePerPlayerFils: 3500, sides: [] },
+        "en",
+      ),
+      [
+        { value: "8", label: "teams, two a court" },
+        { value: "4", label: "courts, 1 is king" },
+        { value: "3.500", label: "BD per player" },
+      ],
+    );
+    assert.equal(
+      kingHeroStats(
+        { teamsAllowed: 8, pricePerPlayerFils: null, sides: [] },
+        "en",
+      ).length,
+      2,
+    );
+  });
+});
+
+describe("kingShareCard", () => {
+  it("shares the viewer's place when they have one", () => {
+    const card = kingShareCard(GAME, "en");
+    assert.equal(card?.kind, "placing");
+    if (card?.kind !== "placing") {
+      return;
+    }
+    assert.equal(card.placing, "3rd");
+    assert.equal(card.placingNote, "of 8 teams");
+    assert.equal(card.team, "Hassan Haji & Khalid Janahi");
+    assert.equal(card.record, null);
+    assert.deepEqual(card.results, []);
+  });
+
+  it("calls the winner king of the court", () => {
+    const card = kingShareCard({ ...GAME, viewerUserId: "lh-1" }, "en");
+    assert.equal(
+      card?.kind === "placing" ? card.placingNote : null,
+      "King of the court",
+    );
+  });
+
+  it("shares the top of the order for someone without a place", () => {
+    const card = kingShareCard({ ...GAME, viewerUserId: "organizer" }, "en");
+    assert.equal(card?.kind, "table");
+    if (card?.kind !== "table") {
+      return;
+    }
+    assert.equal(card.title, "Final order");
+    assert.deepEqual(
+      card.rows.map((row) => [row.place, row.team]),
+      [
+        ["1", "Layla Haddad & Mariam Zayani"],
+        ["2", "Ahmed Buhazza & Dana Al-Khalifa"],
+        ["3", "Hassan Haji & Khalid Janahi"],
+        ["4", "Noor Abdulla & Omar Al-Sayed"],
+      ],
+    );
+  });
+
+  it("has nothing to share before the order is posted", () => {
+    assert.equal(
+      kingShareCard(
+        {
+          ...GAME,
+          gameTeams: TEAMS.map((item) => ({ ...item, finalPlace: null })),
+        },
+        "en",
+      ),
+      null,
+    );
   });
 });

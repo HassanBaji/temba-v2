@@ -1,7 +1,12 @@
 import { messagesFor } from "@repo/i18n/messages";
 import type { Locale } from "@repo/i18n/locale";
 
-import { GAME_WINDOW_FINISH_SLOTS } from "./game-window";
+import { firstName } from "./game-card";
+import {
+  GAME_WINDOW_FINISH_SLOTS,
+  timeSlotFromMinutes,
+  timeSlotMinutes,
+} from "./game-window";
 import { shortPlayerName } from "./player-name";
 
 export const KING_OF_THE_COURT_SHAPE = "king_of_the_court";
@@ -43,21 +48,6 @@ export function kingCourtCount(teamCount: number | null | undefined) {
     return 0;
   }
   return Math.ceil(teamCount / KING_TEAMS_PER_COURT);
-}
-
-export function kingCourtsIssue(
-  teamCount: number,
-  locale: Locale,
-): string | null {
-  const courts = teamCount / KING_TEAMS_PER_COURT;
-  return Number.isInteger(courts) &&
-    courts >= KING_COURT_MIN &&
-    courts <= KING_COURT_MAX
-    ? null
-    : messagesFor(locale).tournamentKing.errors.courts(
-        KING_COURT_MIN,
-        KING_COURT_MAX,
-      );
 }
 
 /** The court a position in the drawn order lands on: two a court, from Court 1 down. */
@@ -158,40 +148,7 @@ export function swapPositions<T>(
   return next;
 }
 
-export type KingOrderIssue = "duplicate" | "unknown" | "missing";
-
-/** The drawn order must hold every complete team exactly once. */
-export function startingOrderIssue(
-  order: readonly string[],
-  completeTeamIds: readonly string[],
-): KingOrderIssue | null {
-  if (new Set(order).size !== order.length) {
-    return "duplicate";
-  }
-  const complete = new Set(completeTeamIds);
-  if (order.some((id) => !complete.has(id))) {
-    return "unknown";
-  }
-  return order.length === complete.size ? null : "missing";
-}
-
-/** A final order names teams of the day once each, at least the top three. */
-export function finalOrderIssue(
-  order: readonly string[],
-  teamIds: readonly string[],
-): KingOrderIssue | "too_few" | null {
-  if (new Set(order).size !== order.length) {
-    return "duplicate";
-  }
-  const known = new Set(teamIds);
-  if (order.some((id) => !known.has(id))) {
-    return "unknown";
-  }
-  return order.length < Math.min(KING_FINAL_ORDER_MIN, known.size)
-    ? "too_few"
-    : null;
-}
-
+/** Post unlocks from the top three, or from every team in a smaller field. */
 export function canPostFinalOrder(placed: number, teamCount: number) {
   return placed >= Math.min(KING_FINAL_ORDER_MIN, teamCount) && placed > 0;
 }
@@ -231,9 +188,7 @@ type Member = { id: string; name: string };
 
 /** "Layla & Mariam": first names, as the Games card names the king. */
 export function kingFirstNames(members: readonly Member[]) {
-  return members
-    .map((member) => member.name.trim().split(/\s+/)[0] ?? member.name)
-    .join(" & ");
+  return members.map((member) => firstName(member.name)).join(" & ");
 }
 
 export function kingFullNames(members: readonly Member[]) {
@@ -263,23 +218,6 @@ export function kingPlayMinutesLabel(minutes: number, locale: Locale) {
   );
 }
 
-export function kingPlayMinutes(
-  windowStart: Date | string | null | undefined,
-  windowEnd: Date | string | null | undefined,
-) {
-  if (!windowStart || !windowEnd) {
-    return null;
-  }
-  const minutes = Math.round(
-    (new Date(windowEnd).getTime() - new Date(windowStart).getTime()) / 60_000,
-  );
-  return Number.isFinite(minutes) && minutes > 0 ? minutes : null;
-}
-
-export function kingFormatLabel(courtCount: number, locale: Locale) {
-  return messagesFor(locale).tournamentKing.create.reviewFormat(courtCount);
-}
-
 /** The shuffle the draw sheet starts from, before the Organizer swaps anything. */
 export function shuffledOrder<T>(
   items: readonly T[],
@@ -299,25 +237,19 @@ export function shuffledOrder<T>(
   return result;
 }
 
-function slotMinutes(slot: string) {
-  const match = /^(\d{2}):(\d{2})$/.exec(slot);
-  return match ? Number(match[1]) * 60 + Number(match[2]) : null;
-}
-
 /** The finish slot a play time gives from a start slot, or null past the last finish. */
 export function kingFinishSlot(startTime: string, playMinutes: number) {
-  const start = slotMinutes(startTime);
+  const start = timeSlotMinutes(startTime);
   if (start == null) {
     return null;
   }
-  const total = start + playMinutes;
-  const slot = `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+  const slot = timeSlotFromMinutes(start + playMinutes);
   return GAME_WINDOW_FINISH_SLOTS.includes(slot) ? slot : null;
 }
 
 export function kingSlotPlayMinutes(startTime: string, finishTime: string) {
-  const start = slotMinutes(startTime);
-  const finish = slotMinutes(finishTime);
+  const start = timeSlotMinutes(startTime);
+  const finish = timeSlotMinutes(finishTime);
   return start == null || finish == null || finish <= start
     ? null
     : finish - start;

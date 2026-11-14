@@ -1,28 +1,7 @@
 import { plural } from "../../plural";
+import { tournamentRounds } from "./tournament-rounds";
 
-const PLACE_WORDS = [
-  "First",
-  "Second",
-  "Third",
-  "Fourth",
-  "Fifth",
-  "Sixth",
-  "Seventh",
-  "Eighth",
-  "Ninth",
-  "Tenth",
-  "Eleventh",
-  "Twelfth",
-];
-
-function ordinal(place: number) {
-  const mod100 = place % 100;
-  if (mod100 >= 11 && mod100 <= 13) {
-    return `${place}th`;
-  }
-  const suffix = ["th", "st", "nd", "rd"][place % 10] ?? "th";
-  return `${place}${suffix}`;
-}
+const { ordinal } = tournamentRounds.shareCard;
 
 const teams = (n: number) =>
   plural("en", n, { one: "1 team", other: "{n} teams" });
@@ -36,7 +15,6 @@ export const tournamentKing = {
     title: "King of the court",
     description: "Winners move up a court, losers move down",
   },
-  formatName: "king of the court",
   create: {
     courts: "Courts",
     courtsMax: (max: number) => `Max ${max}`,
@@ -46,7 +24,6 @@ export const tournamentKing = {
     moreCourts: "More courts",
     courtsHelp: (courtCount: number, teamCount: number) =>
       `Two teams start on every court, so ${courts(courtCount)} is ${teams(teamCount)}. Winners move up a court, losers move down, and Court 1 is the king’s court. This replaces the team count from step 2.`,
-    teamsLabel: "teams",
     courtsLabel: courts,
     playTime: "Play time",
     setPlayTime: "Set",
@@ -75,6 +52,8 @@ export const tournamentKing = {
     copy: "Two teams start on each court. Whoever holds Court 1 at the end is king of the court. No rounds to make and no scores to enter: you post the final order when it’s over.",
   },
   hero: {
+    perPlayer: (currency: string) => `${currency} per player`,
+    entry: "entry",
     statusSeated:
       "You are in. The starting courts are drawn once every seat is taken.",
     statusUnseated: (seatsLeft: number, organizerFirstName: string | null) => {
@@ -140,7 +119,6 @@ export const tournamentKing = {
   },
   yourCourt: {
     startOn: (team: string) => `${team} start on`,
-    youStartOn: "You start on",
     against: "against",
     winUp: "Win and you move up to",
     winStay: "Win and you stay on",
@@ -153,7 +131,6 @@ export const tournamentKing = {
     meta: "first round only",
     footer:
       "After the first round teams move between courts on the day. The final order is posted on the Final order tab when it ends.",
-    bye: "No team drawn here",
   },
   finalOrder: {
     title: "Final order",
@@ -182,7 +159,7 @@ export const tournamentKing = {
     numberHeader: "#",
     teamHeader: "Team",
     note: "Final. Set by the organizer when it ended.",
-    tableLabel: "Final order",
+    listLabel: "Final order",
   },
   finished: {
     dateLine: (day: string) => `Finished, ${day}`,
@@ -194,7 +171,7 @@ export const tournamentKing = {
     kingSmall: "King of the court",
     heldCourtOne: "Held Court 1 at the end",
     placeOf: (place: number, teamCount: number) =>
-      `${PLACE_WORDS[place - 1] ?? ordinal(place)} of ${teamCount}`,
+      `${tournamentRounds.finished.place(place)} of ${teamCount}`,
     notPlaced: "Not placed",
     startedOn: (court: number) => `Started on Court ${court}`,
     you: (partner: string | null) => (partner ? `You & ${partner}` : "You"),
@@ -219,6 +196,8 @@ export const tournamentKing = {
     ratingFinished: "Not counted, nothing was scored",
   },
   errors: {
+    oddTeams:
+      "Two teams start on each court, so an even number of teams must be complete.",
     courts: (min: number, max: number) =>
       `King of the court needs ${min} to ${max} courts.`,
     notKing: "This tournament is not King of the court.",

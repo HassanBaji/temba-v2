@@ -3,7 +3,6 @@
 import {
   ArrowDownIcon,
   ArrowUpIcon,
-  CheckIcon,
   CrownIcon,
   PlusIcon,
   XIcon,
@@ -17,10 +16,11 @@ import {
   finalOrderStillOpen,
   KING_FINAL_ORDER_MIN,
   kingFinalOrderOf,
+  kingFullNames,
   kingPairName,
 } from "@repo/domain/tournament-king";
 import {
-  isCompleteKingTeam,
+  kingFieldTeams,
   kingFinishedView,
   kingStartingCourtRows,
   kingYourCourt,
@@ -32,6 +32,7 @@ import {
 import { PageTitle } from "~/components/layout/page-title";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
+import { ShareButton } from "~/components/ui/nav-icon-button";
 import { Surface } from "~/components/ui/surface";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -39,21 +40,19 @@ import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
-import { PlaceChip } from "./tournament-finished-parts";
 import { TournamentHeaderBar } from "./tournament-header-bar";
+import { shareResultHref } from "./played/played-game-view";
+import { FinishedShareLink, PlaceChip } from "./tournament-finished-parts";
 import {
   KingCourtCard,
-  KingDrawSheet,
+  KingPostedNote,
   KingTeamLine,
+  viewerOnTeam,
+  type MutationError,
 } from "./tournament-king-parts";
 import { InitialsMark, ROUND_CARD } from "./tournament-round-parts";
 
 type Tab = "teams" | "courts" | "final";
-
-type MutationError = {
-  message: string;
-  data?: { zodError?: unknown } | null;
-} | null;
 
 function hasStarted(windowStart: Date | string | null) {
   return windowStart == null || new Date(windowStart).getTime() <= Date.now();
@@ -64,9 +63,7 @@ export function TournamentKingHome({
   backHref,
   actions,
   album,
-  courtsPending,
-  courtsError,
-  onPostCourts,
+  onChangeCourts,
   orderPending,
   orderError,
   onPostFinalOrder,
@@ -75,9 +72,8 @@ export function TournamentKingHome({
   backHref: string;
   actions?: React.ReactNode;
   album?: React.ReactNode;
-  courtsPending: boolean;
-  courtsError: MutationError;
-  onPostCourts: (gameTeamIds: string[]) => Promise<void>;
+  /** Opens the Starting courts sheet, which the tournament screen owns. */
+  onChangeCourts: () => void;
   orderPending: boolean;
   orderError: MutationError;
   onPostFinalOrder: (gameTeamIds: string[]) => Promise<void>;
@@ -86,10 +82,10 @@ export function TournamentKingHome({
   const m = messages.tournamentKing;
   const locale = useLocale();
   const teams = React.useMemo(
-    () => data.gameTeams.filter(isCompleteKingTeam),
+    () => kingFieldTeams(data.gameTeams),
     [data.gameTeams],
   );
-  const posted = data.finalOrderPostedAt != null;
+  const orderPosted = data.finalOrderPostedAt != null;
   const organizer = data.isOrganizer && !data.cancelledAt;
   const started = hasStarted(data.windowStart);
   const canEditOrder =
@@ -97,10 +93,9 @@ export function TournamentKingHome({
     started &&
     finalOrderStillOpen(data.finalOrderPostedAt, new Date());
   const [tab, setTab] = React.useState<Tab>(() =>
-    posted || (organizer && started) ? "final" : "courts",
+    orderPosted || (organizer && started) ? "final" : "courts",
   );
-  const [drawOpen, setDrawOpen] = React.useState(false);
-  const finished = posted ? kingFinishedView(data, locale) : null;
+  const finished = orderPosted ? kingFinishedView(data, locale) : null;
   const chip = data.isOrganizer
     ? messages.tournamentRounds.organizerChip
     : null;
@@ -114,7 +109,7 @@ export function TournamentKingHome({
   const leads: Record<Tab, string> = {
     teams: m.lead.teams,
     courts: m.lead.courts,
-    final: posted
+    final: orderPosted
       ? m.lead.finalOrderPosted
       : organizer
         ? started
@@ -128,6 +123,7 @@ export function TournamentKingHome({
       {finished ? (
         <KingFinishedHeader
           view={finished}
+          gameId={data.id}
           backHref={backHref}
           chip={chip}
           actions={actions}
@@ -195,16 +191,17 @@ export function TournamentKingHome({
         <TabsContent value="courts" className="pt-[22px]">
           <KingCourtsTab
             data={data}
-            onChange={
-              organizer && !posted ? () => setDrawOpen(true) : undefined
-            }
+            onChange={organizer && !orderPosted ? onChangeCourts : undefined}
           />
         </TabsContent>
 
         <TabsContent value="final" className="pt-[22px]">
           {finished && organizer && !canEditOrder ? (
             <div className="pb-4">
-              <FinalOrderPostedNote canChange={false} />
+              <KingPostedNote
+                title={m.finalOrder.posted}
+                copy={m.finalOrder.postedFinal}
+              />
             </div>
           ) : null}
           {canEditOrder ? (
@@ -212,13 +209,13 @@ export function TournamentKingHome({
               key={String(data.finalOrderPostedAt ?? "draft")}
               teams={teams}
               viewerUserId={data.viewerUserId}
-              posted={posted}
+              posted={orderPosted}
               pending={orderPending}
               error={orderError}
               onPost={onPostFinalOrder}
             />
           ) : finished ? (
-            <KingFinalOrderTable
+            <KingFinalOrderList
               view={finished}
               viewerUserId={data.viewerUserId}
             />
@@ -232,25 +229,16 @@ export function TournamentKingHome({
 
       {album ? <div className="pt-[26px] empty:hidden">{album}</div> : null}
 
-      {organizer ? (
-        <KingDrawSheet
-          open={drawOpen}
-          onOpenChange={setDrawOpen}
-          gameTeams={data.gameTeams}
-          viewerUserId={data.viewerUserId}
-          posted
-          locked={posted}
-          pending={courtsPending}
-          error={courtsError}
-          onPost={onPostCourts}
-        />
+      {finished ? (
+        <div className="pt-6">
+          <FinishedShareLink
+            gameId={data.id}
+            label={messages.tournamentRounds.finished.shareYourDay}
+          />
+        </div>
       ) : null}
     </div>
   );
-}
-
-function viewerOnTeam(team: KingViewTeam, viewerUserId: string) {
-  return team.members.some((member) => member.id === viewerUserId);
 }
 
 /** 2c: where the viewer starts, then every starting court. */
@@ -283,9 +271,7 @@ function KingCourtsTab({
               <p className="text-body mt-2">
                 {m.yourCourt.against}{" "}
                 <span dir="auto" className="font-semibold">
-                  {yourCourt.opponent.members
-                    .map((member) => member.name)
-                    .join(" & ")}
+                  {kingFullNames(yourCourt.opponent.members)}
                 </span>
               </p>
             ) : null}
@@ -377,18 +363,16 @@ function KingFinalOrderEditor({
     () => new Map(teams.map((team) => [team.id, team])),
     [teams],
   );
-  const [rank, setRank] = React.useState<string[]>(() =>
+  const [placedIds, setPlacedIds] = React.useState<string[]>(() =>
     kingFinalOrderOf(teams).placed.map((team) => team.id),
   );
   const [editing, setEditing] = React.useState(!posted);
-  const left = teams.filter((team) => !rank.includes(team.id));
-  const canPost = canPostFinalOrder(rank.length, teams.length);
-  const teamName = (team: KingViewTeam) =>
-    team.members.map((member) => member.name).join(" & ");
+  const left = teams.filter((team) => !placedIds.includes(team.id));
+  const canPost = canPostFinalOrder(placedIds.length, teams.length);
 
   async function post() {
     try {
-      await onPost(rank);
+      await onPost(placedIds);
       setEditing(false);
     } catch {
       return;
@@ -403,16 +387,16 @@ function KingFinalOrderEditor({
             {m.title}
           </h2>
           <p className="text-muted-foreground text-meta">
-            {m.placed(rank.length, teams.length)}
+            {m.placed(placedIds.length, teams.length)}
           </p>
         </div>
-        {rank.length === 0 ? (
+        {placedIds.length === 0 ? (
           <p className="border-rule rounded-card text-muted-foreground text-meta border border-dashed px-4 py-5 text-center">
             {m.nobody}
           </p>
         ) : (
           <ol className={cn(ROUND_CARD, "divide-rule divide-y")}>
-            {rank.map((teamId, index) => {
+            {placedIds.map((teamId, index) => {
               const team = byId.get(teamId);
               if (!team) {
                 return null;
@@ -442,9 +426,9 @@ function KingFinalOrderEditor({
                           type="button"
                           variant="outline"
                           size="icon"
-                          aria-label={m.moveUp(teamName(team))}
+                          aria-label={m.moveUp(kingFullNames(team.members))}
                           onClick={() =>
-                            setRank((current) => {
+                            setPlacedIds((current) => {
                               const next = [...current];
                               next[index - 1] = teamId;
                               next[index] = current[index - 1] ?? teamId;
@@ -459,9 +443,9 @@ function KingFinalOrderEditor({
                         type="button"
                         variant="outline"
                         size="icon"
-                        aria-label={m.takeOut(teamName(team))}
+                        aria-label={m.takeOut(kingFullNames(team.members))}
                         onClick={() =>
-                          setRank((current) =>
+                          setPlacedIds((current) =>
                             current.filter((id) => id !== teamId),
                           )
                         }
@@ -484,7 +468,7 @@ function KingFinalOrderEditor({
               {m.stillToPlace}
             </h2>
             <p className="text-muted-foreground text-meta">
-              {m.nextTap(rank.length + 1)}
+              {m.nextTap(placedIds.length + 1)}
             </p>
           </div>
           <ul className={cn(ROUND_CARD, "divide-rule divide-y")}>
@@ -492,8 +476,10 @@ function KingFinalOrderEditor({
               <li key={team.id}>
                 <button
                   type="button"
-                  aria-label={m.place(teamName(team))}
-                  onClick={() => setRank((current) => [...current, team.id])}
+                  aria-label={m.place(kingFullNames(team.members))}
+                  onClick={() =>
+                    setPlacedIds((current) => [...current, team.id])
+                  }
                   className="hover:bg-wash focus-visible:ring-ink flex w-full items-center gap-3 px-4 py-2.5 text-start outline-none focus-visible:ring-2 focus-visible:ring-inset"
                 >
                   <KingTeamLine team={team} viewerUserId={viewerUserId} />
@@ -519,8 +505,8 @@ function KingFinalOrderEditor({
               type="button"
               variant="outline"
               className="min-h-12 flex-none px-5"
-              disabled={pending || rank.length === 0}
-              onClick={() => setRank([])}
+              disabled={pending || placedIds.length === 0}
+              onClick={() => setPlacedIds([])}
             >
               {m.clear}
             </Button>
@@ -540,51 +526,20 @@ function KingFinalOrderEditor({
             </Button>
           </div>
         ) : (
-          <FinalOrderPostedNote canChange onChange={() => setEditing(true)} />
+          <KingPostedNote
+            title={m.posted}
+            copy={m.postedCanChange}
+            changeLabel={m.change}
+            onChange={() => setEditing(true)}
+          />
         )}
       </div>
     </div>
   );
 }
 
-function FinalOrderPostedNote({
-  canChange,
-  onChange,
-}: {
-  canChange: boolean;
-  onChange?: () => void;
-}) {
-  const m = useMessages().tournamentKing.finalOrder;
-  return (
-    <div className="flex items-center gap-3">
-      <span
-        aria-hidden="true"
-        className="bg-ink text-paper inline-flex size-[22px] shrink-0 items-center justify-center rounded-[7px]"
-      >
-        <CheckIcon className="size-[13px]" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-body font-semibold">{m.posted}</p>
-        <p className="text-muted-foreground text-eyebrow">
-          {canChange ? m.postedCanChange : m.postedFinal}
-        </p>
-      </div>
-      {canChange && onChange ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11 font-semibold"
-          onClick={onChange}
-        >
-          {m.change}
-        </Button>
-      ) : null}
-    </div>
-  );
-}
-
 /** 3b: the whole order, the king crowned, teams left out at the bottom. */
-function KingFinalOrderTable({
+function KingFinalOrderList({
   view,
   viewerUserId,
 }: {
@@ -594,11 +549,18 @@ function KingFinalOrderTable({
   const m = useMessages().tournamentKing.finalOrder;
   return (
     <div>
+      <div
+        aria-hidden="true"
+        className="text-muted-foreground text-eyebrow flex items-center gap-3 px-4 pb-2"
+      >
+        <span className="w-6 text-center">{m.numberHeader}</span>
+        <span>{m.teamHeader}</span>
+      </div>
       <ol
-        aria-label={m.tableLabel}
+        aria-label={m.listLabel}
         className={cn(ROUND_CARD, "divide-rule divide-y")}
       >
-        {view.table.map((row) => (
+        {view.order.map((row) => (
           <li
             key={row.team.id}
             className={cn(
@@ -631,15 +593,18 @@ function KingFinalOrderTable({
 /** 3b: a white header, the king first and then the viewer's place. */
 function KingFinishedHeader({
   view,
+  gameId,
   backHref,
   chip,
   actions,
 }: {
   view: KingFinishedView;
+  gameId: string;
   backHref: string;
   chip: string | null;
   actions?: React.ReactNode;
 }) {
+  const shareLabel = useMessages().tournamentRounds.finished.shareYourDay;
   return (
     <Surface
       as="header"
@@ -647,6 +612,12 @@ function KingFinishedHeader({
       className={cn("pb-[22px] pt-[22px] md:-mt-6", pageBleed)}
     >
       <TournamentHeaderBar surface="paper" backHref={backHref} chip={chip}>
+        <ShareButton
+          variant="boxed"
+          surface="paper"
+          href={shareResultHref(gameId)}
+          label={shareLabel}
+        />
         {actions}
       </TournamentHeaderBar>
       {view.dateLine ? (

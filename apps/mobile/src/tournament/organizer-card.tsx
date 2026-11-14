@@ -115,7 +115,20 @@ export function OrganizerCard({
     );
   }
 
-  if (organizer.showDrawEntry) {
+  if (
+    home.kingOfTheCourt &&
+    organizer.active &&
+    game.finalOrderPostedAt == null
+  ) {
+    blocks.push(
+      <Block key="king">
+        <Text weight="medium">{messages.tournamentKing.shape.title}</Text>
+        <Text size="meta" tone="muted">
+          {m.kingOnWeb}
+        </Text>
+      </Block>,
+    );
+  } else if (organizer.showDrawEntry) {
     const hasDraft = knockoutOnly
       ? hasDraftKnockoutDraw(game.gameTeams)
       : hasDraftPoolDraw(game.gameTeams);

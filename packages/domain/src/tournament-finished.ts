@@ -16,6 +16,7 @@ import {
   type KnockoutViewTeam,
 } from "./tournament-knockout-view";
 import { isKingOfTheCourt } from "./tournament-king";
+import { kingShareCard } from "./tournament-king-view";
 import { hasKnockout, isKnockoutOnly } from "./tournament-rounds";
 
 type FinishedGame = Pick<
@@ -24,6 +25,7 @@ type FinishedGame = Pick<
   | "format"
   | "tournamentShape"
   | "drawPostedAt"
+  | "finalOrderPostedAt"
   | "cancelledAt"
   | "poolTables"
   | "knockout"
@@ -630,6 +632,9 @@ export function tournamentShareCard(
 ): TournamentShareCard | null {
   if (!isTournamentFinished(game)) {
     return null;
+  }
+  if (isKingOfTheCourt(game.format, game.tournamentShape)) {
+    return kingShareCard(game, locale);
   }
   const m = messagesFor(locale).tournamentRounds.shareCard;
   const podium = tournamentFinishedPodium(game, locale);

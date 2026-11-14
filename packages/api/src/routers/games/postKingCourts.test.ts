@@ -22,9 +22,11 @@ import {
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
 import { gameById } from "#src/routers/games/byId";
+import { kick } from "#src/routers/games/kick";
 import { postKingCourts } from "#src/routers/games/postKingCourts";
 import { postKingFinalOrder } from "#src/routers/games/postKingFinalOrder";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
+import { registerSeat } from "#src/routers/games/registerSeat";
 
 const START = new Date("2026-09-25T09:00:00");
 const END = new Date("2026-09-25T11:00:00");
@@ -216,6 +218,83 @@ describe("postKingCourts", () => {
       (caught: unknown) => caught,
     );
     expect(error).toBeInstanceOf(TRPCError);
+  });
+
+  it("needs an even number of complete teams, and no Half team", async () => {
+    const database = await testDatabase();
+    const organizer = await insertKingUser(database, "Hassan Haji");
+    const gameId = await insertKingTournament(database, {
+      createdBy: organizer.id,
+      courts: 3,
+      windowStart: START,
+      windowEnd: END,
+    });
+    const players = await insertKingPlayers(database, 11);
+    const teamIds = await seatKingTeams(database, gameId, players.slice(0, 10));
+    await expectRefused(
+      () =>
+        postKingCourts(database, {
+          gameId,
+          organizerUserId: organizer.id,
+          gameTeamIds: teamIds,
+        }),
+      /even number/,
+    );
+
+    await registerSeat(database, {
+      gameId,
+      userId: players[10]!.id,
+      sideIndex: 6,
+      position: "left",
+    });
+    await expectRefused(
+      () =>
+        postKingCourts(database, {
+          gameId,
+          organizerUserId: organizer.id,
+          gameTeamIds: teamIds,
+        }),
+      /missing a partner/,
+    );
+  });
+
+  it("keeps a team that lost a player on its court, and can still move it", async () => {
+    const { database, organizer, gameId, teamIds } = await fullTournament();
+    await postKingCourts(database, {
+      gameId,
+      organizerUserId: organizer.id,
+      gameTeamIds: teamIds,
+    });
+    const first = await database.query.gameTeams.findFirst({
+      where: eq(gameTeams.id, teamIds[0]!),
+      with: { players: { with: { gamePlayer: true } } },
+    });
+    await kick(database, {
+      gameId,
+      organizerUserId: organizer.id,
+      userId: first!.players[0]!.gamePlayer.userId!,
+    });
+
+    const moved = [...teamIds].reverse();
+    await postKingCourts(database, {
+      gameId,
+      organizerUserId: organizer.id,
+      gameTeamIds: moved,
+    });
+
+    const courts = await startCourts(database, gameId);
+    expect(courts.get(teamIds[0]!)).toBe(3);
+    const detail = await gameById(database, { gameId, userId: organizer.id });
+    const half = detail.gameTeams.find((team) => team.id === teamIds[0]);
+    expect(half?.members).toHaveLength(1);
+    expect(half?.startCourt).toBe(3);
+
+    await postKingFinalOrder(database, {
+      gameId,
+      organizerUserId: organizer.id,
+      gameTeamIds: [teamIds[0]!, teamIds[1]!, teamIds[2]!],
+      now: new Date("2026-09-25T11:05:00"),
+    });
   });
 
   it("is closed once the final order is posted", async () => {

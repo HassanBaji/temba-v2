@@ -1213,18 +1213,20 @@ export default function GameHomePage({
               onUndo={async () => {
                 await undoPoolDraw.mutateAsync({ gameId: id });
               }}
-              kingCourtsPending={postKingCourts.isPending}
-              kingCourtsError={postKingCourts.error}
-              onPostKingCourts={async (gameTeamIds) => {
-                await postKingCourts.mutateAsync({ gameId: id, gameTeamIds });
-              }}
-              kingOrderPending={postKingFinalOrder.isPending}
-              kingOrderError={postKingFinalOrder.error}
-              onPostKingFinalOrder={async (gameTeamIds) => {
-                await postKingFinalOrder.mutateAsync({
-                  gameId: id,
-                  gameTeamIds,
-                });
+              kingActions={{
+                courtsPending: postKingCourts.isPending,
+                courtsError: postKingCourts.error,
+                onPostCourts: async (gameTeamIds) => {
+                  await postKingCourts.mutateAsync({ gameId: id, gameTeamIds });
+                },
+                orderPending: postKingFinalOrder.isPending,
+                orderError: postKingFinalOrder.error,
+                onPostFinalOrder: async (gameTeamIds) => {
+                  await postKingFinalOrder.mutateAsync({
+                    gameId: id,
+                    gameTeamIds,
+                  });
+                },
               }}
               onShare={canManageGameInvites ? shareInviteLink : undefined}
               onInvite={

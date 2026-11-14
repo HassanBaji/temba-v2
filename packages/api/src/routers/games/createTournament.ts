@@ -18,7 +18,11 @@ import {
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import { sportOrDefault } from "@repo/domain/sport";
-import { kingCourtsIssue } from "@repo/domain/tournament-king";
+import {
+  KING_COURT_MAX,
+  KING_COURT_MIN,
+  KING_TEAMS_PER_COURT,
+} from "@repo/domain/tournament-king";
 import {
   sizeFriendlyTournament,
   tournamentTeamCountIssue,
@@ -87,9 +91,22 @@ function sizeTournamentShape(
     };
   }
   if (value.tournamentShape === "king_of_the_court") {
-    const issue = kingCourtsIssue(value.teamCount, locale);
-    if (issue) {
-      return { ok: false, issue: { path: "teamCount", message: issue } };
+    const courts = value.teamCount / KING_TEAMS_PER_COURT;
+    if (
+      !Number.isInteger(courts) ||
+      courts < KING_COURT_MIN ||
+      courts > KING_COURT_MAX
+    ) {
+      return {
+        ok: false,
+        issue: {
+          path: "teamCount",
+          message: messagesFor(locale).tournamentKing.errors.courts(
+            KING_COURT_MIN,
+            KING_COURT_MAX,
+          ),
+        },
+      };
     }
     return {
       ok: true,

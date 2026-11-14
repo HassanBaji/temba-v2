@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
   afterAll,
   beforeAll,
@@ -10,7 +10,7 @@ import {
   vi,
 } from "vitest";
 
-import { gameTeams, games } from "@repo/db/schema";
+import { gameTeams, games, notifications } from "@repo/db/schema";
 import { createPgliteDb } from "@repo/db/testing";
 
 import {
@@ -161,6 +161,48 @@ describe("postKingFinalOrder", () => {
   });
 });
 
+describe("King of the court notifications", () => {
+  async function countOf(
+    database: Awaited<ReturnType<typeof drawnTournament>>["database"],
+    gameId: string,
+    type: "king_courts_posted" | "king_final_order_posted",
+  ) {
+    const rows = await database.query.notifications.findMany({
+      where: and(
+        eq(notifications.gameId, gameId),
+        eq(notifications.type, type),
+      ),
+    });
+    return rows.length;
+  }
+
+  it("tells every player once when the courts post and once when the order posts", async () => {
+    const { database, organizer, gameId, teamIds } = await drawnTournament();
+    expect(await countOf(database, gameId, "king_courts_posted")).toBe(12);
+
+    await postKingCourts(database, {
+      gameId,
+      organizerUserId: organizer.id,
+      gameTeamIds: [...teamIds].reverse(),
+    });
+    expect(await countOf(database, gameId, "king_courts_posted")).toBe(12);
+
+    await postKingFinalOrder(database, {
+      gameId,
+      organizerUserId: organizer.id,
+      gameTeamIds: teamIds.slice(0, 3),
+      now: AFTER,
+    });
+    await postKingFinalOrder(database, {
+      gameId,
+      organizerUserId: organizer.id,
+      gameTeamIds: teamIds.slice(0, 4),
+      now: AFTER,
+    });
+    expect(await countOf(database, gameId, "king_final_order_posted")).toBe(12);
+  });
+});
+
 describe("King of the court on the Games lists", () => {
   it("is one Played row with the viewer's place and the king once posted", async () => {
     const { database, organizer, gameId, teamIds, players } =
@@ -217,6 +259,22 @@ describe("King of the court on the Games lists", () => {
 
     const after = await listMyGamesHubRows(database, viewer.id, START);
     expect(after.some((row) => row.id === gameId)).toBe(false);
+  });
+
+  it("stays in a non-playing Organizer's My Games after the window until the order is posted", async () => {
+    const { database, organizer, gameId, teamIds } = await drawnTournament();
+    const waiting = await listMyGamesHubRows(database, organizer.id, AFTER);
+    expect(waiting.some((row) => row.id === gameId)).toBe(true);
+
+    await postKingFinalOrder(database, {
+      gameId,
+      organizerUserId: organizer.id,
+      gameTeamIds: teamIds.slice(0, 3),
+      now: AFTER,
+    });
+
+    const done = await listMyGamesHubRows(database, organizer.id, AFTER);
+    expect(done.some((row) => row.id === gameId)).toBe(false);
   });
 
   it("is a Played row waiting for the order once the window has passed", async () => {

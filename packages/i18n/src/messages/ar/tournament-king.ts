@@ -1,25 +1,9 @@
 import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { tournamentKing as source } from "../en/tournament-king";
+import { tournamentRounds } from "./tournament-rounds";
 
-const PLACE_WORDS = [
-  "الأول",
-  "الثاني",
-  "الثالث",
-  "الرابع",
-  "الخامس",
-  "السادس",
-  "السابع",
-  "الثامن",
-  "التاسع",
-  "العاشر",
-  "الحادي عشر",
-  "الثاني عشر",
-];
-
-function placeWord(place: number) {
-  return PLACE_WORDS[place - 1] ?? `رقم ${place}`;
-}
+const placeWord = tournamentRounds.shareCard.ordinal;
 
 const teams = (n: number) =>
   plural("ar", n, {
@@ -54,7 +38,6 @@ export const tournamentKing = {
     title: "ملك الملعب",
     description: "الفائز يصعد ملعبًا والخاسر ينزل",
   },
-  formatName: "ملك الملعب",
   create: {
     courts: "الملاعب",
     courtsMax: (max: number) => `الحد الأقصى ${max}`,
@@ -71,7 +54,6 @@ export const tournamentKing = {
     moreCourts: "ملاعب أكثر",
     courtsHelp: (courtCount: number, teamCount: number) =>
       `يبدأ فريقان على كل ملعب، فـ${courts(courtCount)} تعني ${teams(teamCount)}. الفائز يصعد ملعبًا والخاسر ينزل، والملعب 1 هو ملعب الملك. هذا يحل محل عدد الفرق من الخطوة 2.`,
-    teamsLabel: "فرق",
     courtsLabel: courts,
     playTime: "مدة اللعب",
     setPlayTime: "تحديد",
@@ -99,6 +81,8 @@ export const tournamentKing = {
     copy: "يبدأ فريقان على كل ملعب. من يحتفظ بالملعب 1 في النهاية هو ملك الملعب. لا جولات تُعدّ ولا نتائج تُدخل: تنشر الترتيب النهائي عند الانتهاء.",
   },
   hero: {
+    perPlayer: (currency: string) => `${currency} لكل لاعب`,
+    entry: "الدخول",
     statusSeated: "أنت مشارك. تُسحب ملاعب البداية عندما تمتلئ كل المقاعد.",
     statusUnseated: (seatsLeft: number, organizerFirstName: string | null) => {
       const seats =
@@ -167,7 +151,6 @@ export const tournamentKing = {
   },
   yourCourt: {
     startOn: (team: string) => `${team} تبدآن على`,
-    youStartOn: "تبدأ على",
     against: "ضد",
     winUp: "اربح لتصعد إلى",
     winStay: "اربح لتبقى على",
@@ -180,7 +163,6 @@ export const tournamentKing = {
     meta: "الجولة الأولى فقط",
     footer:
       "بعد الجولة الأولى تتنقل الفرق بين الملاعب في يوم اللعب. يُنشر الترتيب النهائي في قسم الترتيب النهائي عند الانتهاء.",
-    bye: "لا فريق هنا",
   },
   finalOrder: {
     title: "الترتيب النهائي",
@@ -213,7 +195,7 @@ export const tournamentKing = {
     numberHeader: "#",
     teamHeader: "الفريق",
     note: "نهائي. حدده المنظّم عند الانتهاء.",
-    tableLabel: "الترتيب النهائي",
+    listLabel: "الترتيب النهائي",
   },
   finished: {
     dateLine: (day: string) => `انتهت، ${day}`,
@@ -250,6 +232,7 @@ export const tournamentKing = {
     ratingFinished: "لم تُحتسب، لم يُسجَّل شيء",
   },
   errors: {
+    oddTeams: "يبدأ فريقان على كل ملعب، لذا يجب أن يكتمل عدد زوجي من الفرق.",
     courts: (min: number, max: number) =>
       `يحتاج ملك الملعب من ${min} إلى ${max} ملاعب.`,
     notKing: "هذه البطولة ليست ملك الملعب.",

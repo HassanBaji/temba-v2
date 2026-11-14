@@ -25,6 +25,8 @@ const GAME_TYPES = new Set([
   "game_side_changed",
   "game_moved_to_waitlist",
   "game_team_changed",
+  "king_courts_posted",
+  "king_final_order_posted",
   "match_score_to_confirm",
   "game_finished",
   "mark_received",

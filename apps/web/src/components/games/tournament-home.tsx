@@ -42,6 +42,7 @@ import {
   KingDrawEntry,
   KingDrawSheet,
   KingHowItRuns,
+  type KingActions,
 } from "~/components/games/tournament-king-parts";
 import {
   useMatchStamping,
@@ -99,13 +100,6 @@ import { cn } from "~/lib/utils";
 
 type GameDetail = TournamentDetails;
 
-type MutationError = {
-  message: string;
-  data?: { zodError?: unknown } | null;
-} | null;
-
-const notWired = () => Promise.resolve();
-
 type OpenSeatHandler = (
   seat: { sideIndex: number; position: "left" | "right" },
   canJoin: boolean,
@@ -153,12 +147,7 @@ export function TournamentHome({
   onCancelKnockoutMatch,
   linkToPlayers = false,
   roundsPreview,
-  kingCourtsPending = false,
-  kingCourtsError = null,
-  onPostKingCourts,
-  kingOrderPending = false,
-  kingOrderError = null,
-  onPostKingFinalOrder,
+  kingActions,
 }: {
   data: GameDetail;
   sharePending: boolean;
@@ -207,12 +196,8 @@ export function TournamentHome({
   onCancelKnockoutMatch?: (place: KnockoutMatchPlace) => void;
   linkToPlayers?: boolean;
   roundsPreview?: ComponentProps<typeof TournamentDrawnHome>["preview"];
-  kingCourtsPending?: boolean;
-  kingCourtsError?: MutationError;
-  onPostKingCourts?: (gameTeamIds: string[]) => Promise<void>;
-  kingOrderPending?: boolean;
-  kingOrderError?: MutationError;
-  onPostKingFinalOrder?: (gameTeamIds: string[]) => Promise<void>;
+  /** The King of the court posts: the starting courts and the final order. */
+  kingActions: KingActions;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -306,12 +291,10 @@ export function TournamentHome({
             backHref={backHref}
             actions={actionsMenu(data.finalOrderPostedAt == null)}
             album={album}
-            courtsPending={kingCourtsPending}
-            courtsError={kingCourtsError}
-            onPostCourts={onPostKingCourts ?? notWired}
-            orderPending={kingOrderPending}
-            orderError={kingOrderError}
-            onPostFinalOrder={onPostKingFinalOrder ?? notWired}
+            onChangeCourts={() => setDrawOpen(true)}
+            orderPending={kingActions.orderPending}
+            orderError={kingActions.orderError}
+            onPostFinalOrder={kingActions.onPostFinalOrder}
           />
         ) : roundsAsYouGo ? (
           <>
@@ -378,6 +361,7 @@ export function TournamentHome({
               startLine={view.hero.startLine}
               sizeLine={view.hero.sizeLine}
               statusLine={view.hero.statusLine}
+              stats={view.hero.stats}
               viewerUserId={data.viewerUserId}
               left={view.viewerSide?.left ?? null}
               right={view.viewerSide?.right ?? null}
@@ -404,15 +388,7 @@ export function TournamentHome({
               matchMinutes={data.matchMinutes}
               courtNames={data.recordedCourts.map((court) => court.name)}
               knockoutOnly={view.knockoutOnly}
-              king={
-                king
-                  ? {
-                      pending: kingCourtsPending,
-                      error: kingCourtsError,
-                      onPost: onPostKingCourts ?? notWired,
-                    }
-                  : null
-              }
+              king={king}
               showMergeBanner={showMergeBanner}
               showMergeEntry={showMergeEntry}
               showDrawEntry={showDrawEntry}
@@ -479,6 +455,21 @@ export function TournamentHome({
         />
 
         <GameLevelRangePanel game={data} />
+
+        {/* Above the pre-draw and drawn screens, so it stays open across the post. */}
+        {king && isOrganizerActive ? (
+          <KingDrawSheet
+            open={drawOpen}
+            onOpenChange={setDrawOpen}
+            gameTeams={data.gameTeams}
+            viewerUserId={data.viewerUserId}
+            courtsPosted={drawn}
+            orderPosted={data.finalOrderPostedAt != null}
+            pending={kingActions.courtsPending}
+            error={kingActions.courtsError}
+            onPost={kingActions.onPostCourts}
+          />
+        ) : null}
 
         {showJoinBar ? (
           <TournamentJoinBar
@@ -548,11 +539,7 @@ function TournamentPredrawTree({
   courtNames: readonly string[];
   knockoutOnly: boolean;
   /** King of the court swaps the Pool draw and the Rounds for the starting courts. */
-  king: {
-    pending: boolean;
-    error: MutationError;
-    onPost: (gameTeamIds: string[]) => Promise<void>;
-  } | null;
+  king: boolean;
   showMergeBanner: boolean;
   showMergeEntry: boolean;
   showDrawEntry: boolean;
@@ -631,22 +618,7 @@ function TournamentPredrawTree({
         knockoutOnly={knockoutOnly}
         linkToPlayers={linkToPlayers}
       />
-      {king ? (
-        <KingDrawSheet
-          open={drawOpen}
-          onOpenChange={onDrawOpenChange}
-          gameTeams={gameTeams}
-          viewerUserId={viewerUserId}
-          posted={false}
-          locked={false}
-          pending={king.pending}
-          error={king.error}
-          onPost={async (gameTeamIds) => {
-            await king.onPost(gameTeamIds);
-            onDrawOpenChange(false);
-          }}
-        />
-      ) : (
+      {king ? null : (
         <TournamentDrawDrawer
           open={drawOpen}
           onOpenChange={onDrawOpenChange}

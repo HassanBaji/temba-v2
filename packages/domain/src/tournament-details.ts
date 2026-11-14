@@ -25,6 +25,7 @@ import {
 } from "./tournament-home";
 import { tournamentShowsTakeSeat } from "./tournament-join";
 import { isKingOfTheCourt, kingCourtCount } from "./tournament-king";
+import { kingHeroStats } from "./tournament-king-view";
 import {
   knockoutChampion,
   knockoutChampionLine,
@@ -110,8 +111,8 @@ export type TournamentDetailsGameTeam = {
   sideIndex: number | null;
   poolIndex: number | null;
   knockoutSeed: number | null;
-  startCourt?: number | null;
-  finalPlace?: number | null;
+  startCourt: number | null;
+  finalPlace: number | null;
   members: {
     id: string;
     name: string;
@@ -156,7 +157,7 @@ export type TournamentDetails = {
   roundCount: number | null;
   matchMinutes: number | null;
   drawPostedAt: Date | null;
-  finalOrderPostedAt?: Date | null;
+  finalOrderPostedAt: Date | null;
   canUndoDraw: boolean;
   sport: string | null;
   cancelledAt: Date | null;
@@ -389,6 +390,8 @@ export type TournamentHomeView = {
     startLine: string | null;
     sizeLine: string | null;
     statusLine: string;
+    /** King of the court: teams, courts and the price, as tiles under the title. */
+    stats: { value: string; label: string }[];
   };
   detailRows: TournamentDetailRow[];
   canLeaveGame: boolean;
@@ -495,6 +498,7 @@ export function tournamentHomeView(
               )
             : null,
       statusLine,
+      stats: king ? kingHeroStats(game, locale) : [],
     },
     detailRows: tournamentDetailRows({
       organizerName,

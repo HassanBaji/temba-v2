@@ -195,13 +195,20 @@ export function tournamentTeamsLine(game: TournamentCardInput, locale: Locale) {
 
 /**
  * After the draw of a tournament with a Knockout: the Champion once the
- * Final is decided, else the Knockout round now being played. Null on a
- * Groups only tournament.
+ * Final is decided, else the Knockout round now being played. King of the
+ * court says its final order is still to come. Null on a Groups only
+ * tournament.
  */
 export function tournamentCardKnockoutLine(
   game: TournamentCardInput,
   locale: Locale,
 ) {
+  if (
+    game.tournament?.drawPosted &&
+    isKingOfTheCourt(game.format, game.tournamentShape)
+  ) {
+    return messagesFor(locale).tournamentKing.card.toCome;
+  }
   const knockout = game.tournament?.knockout;
   if (
     !game.tournament?.drawPosted ||

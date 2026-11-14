@@ -13,10 +13,11 @@ import {
   poolCountForDrawnField,
   TOURNAMENT_TEAM_MIN,
 } from "@repo/domain/tournament-sizing";
-import { isKingOfTheCourt } from "@repo/domain/tournament-king";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
+import { drawOccupantName } from "#src/games/helpers/draw-occupant-name";
+import { assertNotKingOfTheCourt } from "#src/games/assert-not-king-of-the-court";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
@@ -55,25 +56,6 @@ function cryptoShuffle<T>(items: readonly T[]): T[] {
   return result;
 }
 
-function occupantName(
-  team: {
-    sideIndex: number | null;
-    players: readonly {
-      gamePlayer: { user: { name: string } | null } | null;
-    }[];
-  },
-  locale: Locale = DEFAULT_LOCALE,
-) {
-  const name = team.players[0]?.gamePlayer?.user?.name;
-  if (name) {
-    return name;
-  }
-  if (team.sideIndex != null) {
-    return messagesFor(locale).tournament.errors.teamNumber(team.sideIndex);
-  }
-  return messagesFor(locale).tournament.gameTeam;
-}
-
 export async function drawPools(
   database: DbClient,
   args: {
@@ -99,12 +81,7 @@ export async function drawPools(
       message: messagesFor(locale).tournament.errors.drawFriendly,
     });
   }
-  if (isKingOfTheCourt(game.format, game.tournamentShape)) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: messagesFor(locale).tournamentKing.errors.useStartingCourts,
-    });
-  }
+  assertNotKingOfTheCourt(game, locale);
   assertPoolDrawNotPosted(game, locale);
 
   const teamRows = await database.query.gameTeams.findMany({
@@ -146,7 +123,7 @@ export async function drawPools(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: messagesFor(locale).tournament.errors.drawHalfTeams(
-        halfTeams.map((team) => occupantName(team, locale)).join(", "),
+        halfTeams.map((team) => drawOccupantName(team, locale)).join(", "),
       ),
     });
   }

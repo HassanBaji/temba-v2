@@ -443,6 +443,7 @@ export function FriendlyTournamentSteps({
                 id="tournament-court-count"
                 label={k.create.courts}
                 labelClassName={STEPPER_LABEL}
+                meta={k.create.courtsMax(KING_COURT_MAX)}
                 value={kingCourts}
                 unit={k.create.courtsUnit(kingCourts)}
                 min={KING_COURT_MIN}
