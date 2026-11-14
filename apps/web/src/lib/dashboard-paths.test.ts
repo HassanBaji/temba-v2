@@ -24,6 +24,10 @@ describe("titleFromPath", () => {
     );
   });
 
+  it("titles the All requests page", () => {
+    assert.equal(titleFromPath("/dashboard/requests", en), "Requests");
+  });
+
   it("titles Settings for the Profile settings route", () => {
     assert.equal(titleFromPath("/dashboard/you/settings", en), "Settings");
   });
@@ -75,6 +79,10 @@ describe("detailBackHref", () => {
 
   it("returns Home for the Notifications page", () => {
     assert.equal(detailBackHref("/dashboard/notifications"), "/dashboard");
+  });
+
+  it("returns Home for the All requests page", () => {
+    assert.equal(detailBackHref("/dashboard/requests"), "/dashboard");
   });
 
   it("leaves the Invites page without a back target", () => {

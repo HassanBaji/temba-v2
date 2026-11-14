@@ -221,7 +221,6 @@ export const game = {
     sentence: (text: string) => `${text}.`,
     decline: "Decline",
     approveSeatAndMembership: "Approve seat and membership",
-    note: "Any organizer of the Group can decide. A held seat frees itself when the hold runs out or when you decline.",
     approvedToast: (name: string) => `${name} approved`,
     declinedToast: (name: string) => `${name} declined`,
   },

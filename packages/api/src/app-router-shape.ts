@@ -229,7 +229,8 @@ type ExpectedNotifications =
   | "list"
   | "unreadCount"
   | "markRead"
-  | "markAllRead";
+  | "markAllRead"
+  | "waitingRequests";
 
 type ExpectedRatings =
   | "me"
