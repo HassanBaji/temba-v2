@@ -272,6 +272,19 @@ export function notificationCopy(
     };
   }
   if (
+    item.type === "game_payment_claimed" &&
+    item.audience === "admin" &&
+    item.game
+  ) {
+    return {
+      title: m.gamePaymentClaimed(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: sub.gamePaymentClaimed,
+    };
+  }
+  if (
     item.type === "game_payment_not_received" &&
     item.audience === "player" &&
     item.game

@@ -10,13 +10,16 @@ import { type db } from "#src/db";
 import { assertGameOrganizer } from "#src/games/access";
 import {
   clearPayment,
+  lockTrackedGame,
   requirePayer,
-  requireTrackedGame,
-} from "#src/game-payments/payers";
+} from "#src/game-payments/ledger";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-/** The Organizer or a Group admin takes a confirmed payment back to not paid. */
+/**
+ * The Organizer or a Group admin takes a confirmed payment back to not paid,
+ * including one kept by a player who has since come to play free.
+ */
 export async function undoPayment(
   database: DbClient,
   args: {
@@ -24,19 +27,33 @@ export async function undoPayment(
     actorUserId: string;
     playerUserId: string;
     locale?: Locale;
+    now?: Date;
   },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
-  const game = await requireTrackedGame(database, args.gameId, locale);
-  await assertGameOrganizer(database, game, args.actorUserId, locale);
-  const payer = await requirePayer(database, game, args.playerUserId, locale);
-  if (payer.record?.status !== "paid") {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: messagesFor(locale).gamePayments.errors.notPaid,
+  const now = args.now ?? new Date();
+  await database.transaction(async (tx) => {
+    const game = await lockTrackedGame(tx, args.gameId, locale);
+    await assertGameOrganizer(tx, game, args.actorUserId, locale);
+    const payer = await requirePayer(tx, game, args.playerUserId, {
+      now,
+      locale,
+      allowFree: true,
     });
-  }
-  await clearPayment(database, { gameId: game.id, userId: args.playerUserId });
+    if (payer.record?.status !== "paid") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: messagesFor(locale).gamePayments.errors.notPaid,
+      });
+    }
+    await clearPayment(tx, {
+      gameId: game.id,
+      userId: args.playerUserId,
+      actorUserId: args.actorUserId,
+      action: "undone",
+      now,
+    });
+  });
   return { status: null };
 }
 

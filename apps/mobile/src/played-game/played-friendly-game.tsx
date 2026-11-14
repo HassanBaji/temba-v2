@@ -161,10 +161,7 @@ export function PlayedFriendlyGame({
         task={
           <GamePaymentsSection
             gameId={gameId}
-            tracked={gamePaymentsTracked({
-              trackPayments: game.trackPayments ?? false,
-              pricePerPlayerFils: game.pricePerPlayerFils,
-            })}
+            tracked={gamePaymentsTracked(game)}
           />
         }
         refreshing={refreshing}

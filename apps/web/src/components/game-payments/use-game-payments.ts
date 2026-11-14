@@ -45,14 +45,20 @@ export function usePaymentActions(gameId: string) {
     options(copy.organizer.toast.undone),
   );
   const confirmAll = api.gamePayments.confirmAll.useMutation({
-    onSuccess: (result) =>
-      toast.success(copy.organizer.toast.confirmedAll(result.confirmed)),
+    onSuccess: (result) => {
+      if (result.confirmed > 0) {
+        toast.success(copy.organizer.toast.confirmedAll(result.confirmed));
+      }
+    },
     onError: failure,
     onSettled: refresh,
   });
   const remind = api.gamePayments.remind.useMutation({
-    onSuccess: (result) =>
-      toast.success(copy.organizer.toast.reminded(result.reminded)),
+    onSuccess: (result) => {
+      if (result.reminded > 0) {
+        toast.success(copy.organizer.toast.reminded(result.reminded));
+      }
+    },
     onError: failure,
     onSettled: refresh,
   });

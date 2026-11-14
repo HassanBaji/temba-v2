@@ -662,6 +662,7 @@ function NewGameForm() {
         isPublic,
         allowSoloRegister,
         rated,
+        trackPayments,
       },
       session.now,
       groupVerified,
@@ -1200,6 +1201,8 @@ function NewGameForm() {
                 setPricePerPlayer(next);
                 clearField("pricePerPlayerFils");
               }}
+              trackPayments={trackPayments}
+              onTrackPayments={setTrackPayments}
               isPublic={isPublic}
               onIsPublic={setIsPublic}
               allowSoloRegister={allowSoloRegister}

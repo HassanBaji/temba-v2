@@ -1,7 +1,14 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { KEEPERS_PER_GAME } from "./football-lineup";
+import {
+  KEEPERS_PER_GAME,
+  footballBibName,
+  type FootballBib,
+  type FootballPosition,
+  type FootballRole,
+} from "./football-lineup";
+import { formatGameSideLabel } from "./game-side-label";
 import { formatNotificationTime } from "./notification-copy";
 import { formatPricePerPlayerFils } from "./price-per-player";
 
@@ -40,14 +47,6 @@ export function gamePaymentsTracked(game: TrackedGame) {
   return game.trackPayments && (game.pricePerPlayerFils ?? 0) > 0;
 }
 
-/** Whoever holds a keeper spot owes nothing when the Game lets keepers play free. */
-export function playsFree(
-  game: { keepersPlayFree: boolean },
-  player: { footballRole: string | null },
-) {
-  return game.keepersPlayFree && player.footballRole === "keeper";
-}
-
 export function paymentMark(
   status: GamePaymentStatus | null,
   free: boolean,
@@ -64,36 +63,16 @@ export function paymentMark(
   return "due";
 }
 
+/** Counts only: what every player may see of the Game's payments. */
 export type PaymentTally = {
   paid: number;
   claimed: number;
   due: number;
   free: number;
   payers: number;
-  collectedFils: number;
-  expectedFils: number;
 };
 
-export function paymentTally(
-  marks: readonly PaymentMark[],
-  priceFils: number,
-): PaymentTally {
-  const count = (mark: PaymentMark) =>
-    marks.filter((item) => item === mark).length;
-  const paid = count("paid");
-  const claimed = count("claimed");
-  const due = count("due");
-  const payers = paid + claimed + due;
-  return {
-    paid,
-    claimed,
-    due,
-    free: count("free"),
-    payers,
-    collectedFils: paid * priceFils,
-    expectedFils: payers * priceFils,
-  };
-}
+export const PADEL_FRIENDLY_GAME_PLAYERS = 4;
 
 /** How many owe once every seat is taken; football keepers drop out when free. */
 export function payersWhenFull(args: {
@@ -107,7 +86,14 @@ export function payersWhenFull(args: {
 /** What an Organizer acts on for one row of the payments list. */
 export type PaymentRowAction = "confirm" | "mark_paid" | "undo";
 
-export function paymentRowActions(mark: PaymentMark): {
+/**
+ * A player who now plays free keeps any payment already recorded, so the
+ * Organizer can still take it back or send the claim back.
+ */
+export function paymentRowActions(
+  mark: PaymentMark,
+  status: GamePaymentStatus | null = null,
+): {
   primary: PaymentRowAction | null;
   canSendBack: boolean;
 } {
@@ -119,7 +105,25 @@ export function paymentRowActions(mark: PaymentMark): {
     case "paid":
       return { primary: "undo", canSendBack: false };
     case "free":
-      return { primary: null, canSendBack: false };
+      return {
+        primary: status === "paid" ? "undo" : null,
+        canSendBack: status === "claimed",
+      };
+  }
+}
+
+export function paymentRowActionLabel(
+  action: PaymentRowAction,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).gamePayments.organizer;
+  switch (action) {
+    case "confirm":
+      return m.confirm;
+    case "mark_paid":
+      return m.markPaid;
+    case "undo":
+      return m.undo;
   }
 }
 
@@ -214,6 +218,8 @@ export type PaymentRowInput = {
   mark: PaymentMark;
   status: GamePaymentStatus | null;
   claimedAt: Date | string | null;
+  /** Who made it paid; null unless the payment is paid. */
+  paidBy?: { isViewer: boolean; name: string | null } | null;
 };
 
 /** The line under a name in the Organizer's payments list. */
@@ -225,9 +231,17 @@ export function paymentRowSubline(
   const m = messagesFor(locale).gamePayments.organizer;
   switch (row.mark) {
     case "free":
-      return m.rowFree;
+      if (row.status === "paid") {
+        return m.rowFreePaid;
+      }
+      return row.status === "claimed" ? m.rowFreeClaimed : m.rowFree;
     case "paid":
-      return m.rowPaid;
+      if (row.paidBy?.isViewer) {
+        return m.rowPaidByYou;
+      }
+      return row.paidBy?.name
+        ? m.rowPaidBy(messagesFor(locale).common.isolate(row.paidBy.name))
+        : m.rowPaid;
     case "claimed":
       return m.rowClaimed(
         row.claimedAt ? formatNotificationTime(row.claimedAt, locale, now) : "",
@@ -235,6 +249,131 @@ export function paymentRowSubline(
     case "due":
       return row.status === "not_received" ? m.rowReturned : m.rowDue;
   }
+}
+
+export type PaymentReminders = {
+  /** Players not paid, other than the viewer, not yet reminded today. */
+  toRemind: number;
+  remindedToday: number;
+};
+
+/** The Organizer's two shortcuts: confirm every claim, remind who has not paid. */
+export function paymentShortcuts(
+  tally: PaymentTally,
+  reminders: PaymentReminders,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).gamePayments.organizer;
+  return {
+    confirmAll: {
+      label:
+        tally.claimed > 0 ? m.confirmAll(tally.claimed) : m.nothingToConfirm,
+      enabled: tally.claimed > 0,
+    },
+    remind: {
+      label:
+        reminders.toRemind > 0
+          ? m.remind(reminders.toRemind)
+          : reminders.remindedToday > 0
+            ? m.reminded
+            : tally.due > 0
+              ? m.nobodyToRemind
+              : m.everyonePaid,
+      enabled: reminders.toRemind > 0,
+    },
+  };
+}
+
+export type PaymentLineupPlayer = {
+  userId: string;
+  name: string;
+  image: string | null;
+  isViewer: boolean;
+  mark: PaymentMark;
+  sideIndex: number | null;
+  role: FootballRole | null;
+  position: FootballPosition | null;
+};
+
+export type PaymentLineupGroup = {
+  key: string;
+  title: string;
+  paidLine: string;
+  rows: (PaymentLineupPlayer & { displayName: string; subline: string })[];
+};
+
+function lineupSubline(player: PaymentLineupPlayer, locale: Locale) {
+  const m = messagesFor(locale).gamePayments;
+  if (player.mark === "free") {
+    return m.lineup.keeperFree;
+  }
+  const spot =
+    player.role === "keeper"
+      ? m.lineup.keeper
+      : player.position
+        ? messagesFor(locale).football.lineup.positions[player.position]
+        : null;
+  return spot
+    ? m.lineup.positionAndMark(spot, m.mark[player.mark])
+    : m.mark[player.mark];
+}
+
+/**
+ * What everyone sees on the Game: each side's players with their mark and
+ * how many of the side have paid. Players on no side share one group.
+ */
+export function paymentLineupGroups(
+  args: {
+    format: string;
+    players: readonly PaymentLineupPlayer[];
+    sides: readonly { sideIndex: number; bib: FootballBib | null }[];
+  },
+  locale: Locale,
+): PaymentLineupGroup[] {
+  const m = messagesFor(locale);
+  const group = (
+    key: string,
+    title: string,
+    players: PaymentLineupPlayer[],
+  ): PaymentLineupGroup => {
+    const payers = players.filter((player) => player.mark !== "free");
+    return {
+      key,
+      title,
+      paidLine: m.gamePayments.lineup.paidCount(
+        payers.filter((player) => player.mark === "paid").length,
+        payers.length,
+      ),
+      rows: players.map((player) => ({
+        ...player,
+        displayName: player.isViewer ? m.common.you : player.name,
+        subline: lineupSubline(player, locale),
+      })),
+    };
+  };
+  const sided = [...args.sides]
+    .sort((a, b) => a.sideIndex - b.sideIndex)
+    .map((side) => {
+      const players = args.players.filter(
+        (player) => player.sideIndex === side.sideIndex,
+      );
+      const football = players.some((player) => player.role != null);
+      return group(
+        `side-${side.sideIndex}`,
+        football && (side.sideIndex === 1 || side.sideIndex === 2)
+          ? footballBibName(side.bib, side.sideIndex, locale)
+          : formatGameSideLabel(args.format, side.sideIndex, locale),
+        players,
+      );
+    })
+    .filter((item) => item.rows.length > 0);
+  const sideIndexes = new Set(args.sides.map((side) => side.sideIndex));
+  const unsided = args.players.filter(
+    (player) => player.sideIndex == null || !sideIndexes.has(player.sideIndex),
+  );
+  return unsided.length > 0
+    ? [...sided, group("unsided", m.gamePayments.lineup.players, unsided)]
+    : sided;
 }
 
 /** The create step's summary: what the Organizer collects once it is full. */
@@ -262,10 +401,4 @@ export function createPaymentSummary(
         ? m.summaryKeepersFree(payers, price)
         : m.summaryKeepersPay(payers, price),
   };
-}
-
-/** Major units without the currency, `18.000`, for the large figure. */
-export function formatPaymentFigure(fils: number) {
-  const whole = Math.trunc(fils / 1000);
-  return `${whole}.${String(fils % 1000).padStart(3, "0")}`;
 }

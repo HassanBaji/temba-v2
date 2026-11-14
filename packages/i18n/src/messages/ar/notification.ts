@@ -143,6 +143,12 @@ export const notification = {
       plain(" بالدفع لـ "),
       strong(game),
     ],
+    gamePaymentClaimed: (actor: string, game: string) => [
+      plain("يقول "),
+      strong(actor),
+      plain(" إنه دفع لـ "),
+      strong(game),
+    ],
     gamePaymentNotReceived: (actor: string, game: string) => [
       plain("لم يستلم "),
       strong(actor),
@@ -355,6 +361,7 @@ export const notification = {
       "قيّم زملاءك، والخصوم إن أردت، خلال 24 ساعة. لا أحد يرى من أعطى ماذا.",
     tierPlaces: "الفئات مراكز، فحين يتحرّك لاعب يتحرّك غيره في الاتجاه الآخر.",
     gamePaymentReminder: "ادفع للمنظّم، ثم أخبره من صفحة المباراة.",
+    gamePaymentClaimed: "أكّده حين تستلم المال.",
     levelConfirmed:
       "لم يعد المسار مخطّطًا. يواصل التحرّك في المباريات الموثّقة.",
     ratingsClosed: (rating: string, delta: string, points: string) =>

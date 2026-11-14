@@ -2,7 +2,7 @@ import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
 import { isSport } from "@repo/domain/sport";
 
-import { gamePath, gameRatePath } from "../games/games-model";
+import { gamePath, gamePaymentsPath, gameRatePath } from "../games/games-model";
 import { groupTierHistoryPath } from "../groups/groups-model";
 import { ratingsPath } from "../profile/ratings-path";
 
@@ -67,6 +67,9 @@ export function notificationPath(item: {
   }
   if (item.game && item.type === "performance_ratings_open") {
     return gameRatePath(item.game.id);
+  }
+  if (item.game && item.type === "game_payment_claimed") {
+    return gamePaymentsPath(item.game.id);
   }
   if (item.group && item.type === "tier_points_adjusted") {
     return groupTierHistoryPath(item.group.id);

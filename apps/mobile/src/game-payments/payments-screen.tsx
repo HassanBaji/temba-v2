@@ -1,13 +1,17 @@
 import { radii } from "@repo/design-tokens";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import {
-  formatPaymentFigure,
+  paymentRowActionLabel,
   paymentRowActions,
   paymentRowSubline,
+  paymentShortcuts,
   type PaymentMark,
 } from "@repo/domain/game-payments";
 import { formatNotificationTime } from "@repo/domain/notification-copy";
-import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+import {
+  formatMajorUnitsFromFils,
+  formatPricePerPlayerFils,
+} from "@repo/domain/price-per-player";
 import { useLocalSearchParams } from "expo-router";
 import { Bell, X } from "lucide-react-native";
 import { useState } from "react";
@@ -39,7 +43,8 @@ import {
 const BAR_HEIGHT = 10;
 const ROW_BUTTON = 36;
 
-type ManageRow = NonNullable<TrackedGamePayments["manage"]>[number];
+type Manage = NonNullable<TrackedGamePayments["manage"]>;
+type ManageRow = Manage["rows"][number];
 
 function ProgressBar({ tally }: { tally: TrackedGamePayments["tally"] }) {
   const colors = useColors();
@@ -83,9 +88,11 @@ function ProgressBar({ tally }: { tally: TrackedGamePayments["tally"] }) {
 
 function Summary({
   payments,
+  manage,
   startLine,
 }: {
   payments: TrackedGamePayments;
+  manage: Manage;
   startLine: string | null;
 }) {
   const colors = useColors();
@@ -122,12 +129,12 @@ function Summary({
       </View>
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
         <Text size="display" width="expanded" weight="bold">
-          {formatPaymentFigure(tally.collectedFils)}
+          {formatMajorUnitsFromFils(manage.collectedFils)}
         </Text>
         <Text tone="muted">
           {copy.organizer.collectedOf(
             m.createGame.price.currency,
-            formatPaymentFigure(tally.expectedFils),
+            formatMajorUnitsFromFils(manage.expectedFils),
           )}
         </Text>
       </View>
@@ -181,16 +188,14 @@ function PlayerRow({
   const colors = useColors();
   const locale = useLocale();
   const now = useNow();
-  const copy = useMessages().gamePayments.organizer;
-  const actions = paymentRowActions(row.mark);
-  const name = row.isViewer ? copy.you : row.name;
+  const m = useMessages();
+  const copy = m.gamePayments.organizer;
+  const actions = paymentRowActions(row.mark, row.status);
+  const name = row.isViewer ? m.common.you : row.name;
   const subline = paymentRowSubline(row, locale, now);
-  const primaryLabel =
-    actions.primary === "confirm"
-      ? copy.confirm
-      : actions.primary === "mark_paid"
-        ? copy.markPaid
-        : copy.undo;
+  const primaryLabel = actions.primary
+    ? paymentRowActionLabel(actions.primary, locale)
+    : "";
   return (
     <View
       style={{
@@ -216,7 +221,7 @@ function PlayerRow({
         </Text>
         <Text
           size="eyebrow"
-          tone={row.mark === "claimed" ? "default" : "muted"}
+          tone={row.status === "claimed" ? "default" : "muted"}
           numberOfLines={1}
         >
           {subline}
@@ -272,7 +277,8 @@ export function GamePaymentsScreen({ gameId }: { gameId: string }) {
   );
 
   const data = query.data;
-  if (!data || !data.tracked || !data.manage) {
+  const manage = data?.tracked ? data.manage : null;
+  if (!data || !data.tracked || !manage) {
     return (
       <Screen>
         {header}
@@ -299,10 +305,10 @@ export function GamePaymentsScreen({ gameId }: { gameId: string }) {
   const startLine = game.data?.windowStart
     ? formatGameStart(game.data.windowStart, locale)
     : null;
-  const { tally } = data;
+  const shortcuts = paymentShortcuts(data.tally, manage.reminders, locale);
 
   const onPrimary = (row: ManageRow) => {
-    const action = paymentRowActions(row.mark).primary;
+    const action = paymentRowActions(row.mark, row.status).primary;
     if (action === "undo") {
       actions.undo.mutate({ gameId, userId: row.userId });
     } else if (action) {
@@ -333,27 +339,23 @@ export function GamePaymentsScreen({ gameId }: { gameId: string }) {
       }}
     >
       {header}
-      <Summary payments={data} startLine={startLine} />
+      <Summary payments={data} manage={manage} startLine={startLine} />
       <View style={{ flexDirection: "row", gap: 8 }}>
         <View style={{ flex: 1 }}>
           <Button
-            label={
-              tally.claimed > 0
-                ? copy.confirmAll(tally.claimed)
-                : copy.nothingToConfirm
-            }
+            label={shortcuts.confirmAll.label}
             variant="outline"
-            disabled={tally.claimed === 0 || actions.pending}
+            disabled={!shortcuts.confirmAll.enabled || actions.pending}
             pending={actions.confirmAll.isPending}
             onPress={() => actions.confirmAll.mutate({ gameId })}
           />
         </View>
         <View style={{ flex: 1 }}>
           <Button
-            label={tally.due > 0 ? copy.remind(tally.due) : copy.everyonePaid}
+            label={shortcuts.remind.label}
             variant="outline"
             icon={<Bell size={14} color={colors.ink} />}
-            disabled={tally.due === 0 || actions.pending}
+            disabled={!shortcuts.remind.enabled || actions.pending}
             pending={actions.remind.isPending}
             onPress={() => actions.remind.mutate({ gameId })}
           />
@@ -362,10 +364,10 @@ export function GamePaymentsScreen({ gameId }: { gameId: string }) {
       <View style={{ gap: 10 }}>
         <PaymentSectionHead
           title={copy.players}
-          meta={String(data.manage.length)}
+          meta={String(manage.rows.length)}
         />
         <PaymentBox>
-          {data.manage.map((row, index) => (
+          {manage.rows.map((row, index) => (
             <PlayerRow
               key={row.userId}
               row={row}

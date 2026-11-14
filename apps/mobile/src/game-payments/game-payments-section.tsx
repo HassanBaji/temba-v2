@@ -1,5 +1,7 @@
-import { useRouter, type Href } from "expo-router";
+import { useRouter } from "expo-router";
 import { View } from "react-native";
+
+import { gamePaymentsPath } from "../games/games-model";
 
 import { PaymentCard } from "./payment-card";
 import { PaymentLineup } from "./payment-lineup";
@@ -38,7 +40,7 @@ export function GamePaymentsSection({
         payments={data}
         onManage={
           data.canManage
-            ? () => router.push(`/games/${gameId}/payments` as Href)
+            ? () => router.push(gamePaymentsPath(gameId))
             : undefined
         }
       />

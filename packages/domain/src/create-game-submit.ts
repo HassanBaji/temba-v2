@@ -423,6 +423,7 @@ export function validateFriendlyTournamentSubmit(
       ...(draft.courtIds.length > 0 ? { courtIds: [...draft.courtIds] } : {}),
       ...ratedInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
+      ...trackPaymentsInput(draft, priced.fils),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }
         : {}),

@@ -107,7 +107,7 @@ export const createGameInputSchema = z
       .optional(),
     /** How the MVP is decided; Friendly game only. Omitted = players vote. */
     mvpMode: z.enum(MVP_MODES).optional(),
-    /** Friendly game with a price above zero only. */
+    /** Only with a price above zero. */
     trackPayments: z.boolean().optional(),
     /** Football only: keepers owe nothing while payments are tracked. */
     keepersPlayFree: z.boolean().optional(),
@@ -185,10 +185,7 @@ export const createGameInputSchema = z
         path: ["mvpMode"],
       });
     }
-    if (
-      value.trackPayments &&
-      (value.format !== "friendly_game" || (value.pricePerPlayerFils ?? 0) <= 0)
-    ) {
+    if (value.trackPayments && (value.pricePerPlayerFils ?? 0) <= 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: PAYMENTS_NEED_PRICE,
@@ -515,6 +512,7 @@ async function createGameOnGroup(
         playersAllowed,
         teamsAllowed: null,
         pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+        trackPayments: input.trackPayments ?? false,
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,

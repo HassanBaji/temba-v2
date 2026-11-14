@@ -678,3 +678,18 @@ describe("track payments on submit", () => {
     }
   });
 });
+
+describe("track payments on a tournament", () => {
+  it("sends tracking with a price above zero", () => {
+    const result = validateFriendlyTournamentSubmit(
+      { ...tournament, pricePerPlayer: "2", trackPayments: true },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal(result.input.trackPayments, true);
+    }
+  });
+});

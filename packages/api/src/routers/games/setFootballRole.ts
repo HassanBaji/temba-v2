@@ -39,9 +39,11 @@ export async function setFootballRole(
     role: FootballRole;
     position: FootballPosition;
     locale?: Locale;
+    now?: Date;
   },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
+  const now = args.now ?? new Date();
   const game = await requireGame(database, args.gameId, locale);
   assertFootballGame(game, locale);
   assertGameNotCancelled(game, locale);
@@ -50,7 +52,7 @@ export async function setFootballRole(
       eq(gamePlayers.gameId, game.id),
       eq(gamePlayers.userId, args.userId),
     ),
-    columns: { id: true, footballRole: true },
+    columns: { id: true, footballRole: true, kickoffFootballRole: true },
   });
   if (!player) {
     throw new TRPCError({
@@ -61,12 +63,19 @@ export async function setFootballRole(
   if (args.role === "keeper" && player.footballRole !== "keeper") {
     await assertKeeperSeatOpen(database, game.id, args.userId, locale);
   }
+  // Who plays free is fixed at kick-off (keepers on a Game that tracks
+  // payments), so the first change after it keeps the role held then.
+  const kickedOff =
+    game.windowStart != null && now.getTime() >= game.windowStart.getTime();
   await database
     .update(gamePlayers)
     .set({
       footballRole: args.role,
       footballPosition: args.position,
-      updatedAt: new Date(),
+      ...(kickedOff && player.kickoffFootballRole == null
+        ? { kickoffFootballRole: player.footballRole }
+        : {}),
+      updatedAt: now,
     })
     .where(eq(gamePlayers.id, player.id));
   return { ok: true as const };

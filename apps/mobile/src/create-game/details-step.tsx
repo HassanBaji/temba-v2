@@ -14,6 +14,7 @@ import {
 } from "@repo/domain/create-game-flow";
 import type { CreateVenuePicker } from "@repo/domain/create-game-flow";
 import { friendlyTournamentPlan } from "@repo/domain/create-game-submit";
+import { PADEL_FRIENDLY_GAME_PLAYERS } from "@repo/domain/game-payments";
 import { unratedLabel } from "@repo/domain/game-rating-impact";
 import { gameRatingScopeLabel } from "@repo/domain/game-rating-scope";
 import { LEVEL_BAND_SELECT_NONE } from "@repo/domain/level-range";
@@ -189,7 +190,11 @@ export function FootballDetailsStep(props: DetailsProps) {
         <LevelRangeField {...props} sport="football" encouraged={publicGame} />
       ) : null}
       <PriceField {...props} />
-      <PaymentTrackingField {...props} football />
+      <PaymentTrackingField
+        {...props}
+        football
+        playersAllowed={draft.playersAllowed}
+      />
       <FriendlyMvpField {...props} />
       <ReviewCard
         rows={[
@@ -278,7 +283,10 @@ export function GameDetailsStep(props: DetailsProps) {
       <CustomNameField {...props} />
       <LevelRangeField {...props} encouraged={isPublicGameDraft(draft)} />
       <PriceField {...props} />
-      <PaymentTrackingField {...props} />
+      <PaymentTrackingField
+        {...props}
+        playersAllowed={PADEL_FRIENDLY_GAME_PLAYERS}
+      />
       <FriendlyMvpField {...props} />
       <DetailsRatingField {...props} />
       <ReviewCard
@@ -408,6 +416,7 @@ function tournamentReviewRows(
       value: minutes.ok ? m.dates.minutes(minutes.minutes) : review.gameLength,
     },
     ratingReviewRow(props, locale),
+    ...optionalRow(paymentReviewValue(draft, false, m, locale)),
   ];
 }
 
@@ -422,6 +431,7 @@ export function TournamentDetailsStep(props: DetailsProps) {
     <View style={{ gap: spacing.section }}>
       <WhoCanEnter {...props} />
       <PriceField {...props} teamPrice />
+      <PaymentTrackingField {...props} playersAllowed={draft.teamCount * 2} />
       <StepSection title={m.mobileCreateGame.name.title}>
         <TextField
           label={m.mobileCreateGame.name.tournamentLabel}

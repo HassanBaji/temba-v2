@@ -143,6 +143,8 @@ export type TournamentDetails = {
   windowStart: Date | null;
   windowEnd: Date | null;
   pricePerPlayerFils: number | null;
+  /** Payments are tracked only with a price above zero. */
+  trackPayments: boolean;
   levelMinTenths: number | null;
   levelMaxTenths: number | null;
   playersAllowed: number | null;

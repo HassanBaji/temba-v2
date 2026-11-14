@@ -35,6 +35,7 @@ import {
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
+import { PADEL_FRIENDLY_GAME_PLAYERS } from "@repo/domain/game-payments";
 import {
   CREATE_FLOW_DURATIONS,
   createFlowPriceChips,
@@ -768,7 +769,9 @@ export function FriendlyGameSteps({
             idPrefix="game"
             price={price}
             football={football}
-            playersAllowed={playersAllowed}
+            playersAllowed={
+              football ? playersAllowed : PADEL_FRIENDLY_GAME_PLAYERS
+            }
             trackPayments={trackPayments}
             onTrackPayments={onTrackPayments}
             keepersPlayFree={keepersPlayFree}

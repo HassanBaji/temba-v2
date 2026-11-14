@@ -15,6 +15,7 @@ import {
   gameLevelRangeRequests,
   gameMemberInvites,
   gameMvpVotes,
+  gamePaymentEvents,
   gamePayments,
   gamePlayers,
   gameTeamPlayers,
@@ -220,6 +221,8 @@ const plainUserReferences: PgColumn[] = [
   gamePayments.paidByUserId,
   gamePayments.returnedByUserId,
   gamePayments.updatedByUserId,
+  gamePaymentEvents.userId,
+  gamePaymentEvents.actorUserId,
 ];
 
 /** Every column referencing `user.id` that the merge reassigns or resolves. */

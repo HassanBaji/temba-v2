@@ -5,7 +5,6 @@ import {
   GAME_PAYMENT_RETURN_REASONS,
   type GamePaymentReturnReason,
 } from "@repo/domain/game-payments";
-import { initials } from "@repo/domain/initials";
 import * as React from "react";
 
 import {
@@ -24,10 +23,12 @@ import { Label } from "~/components/ui/label";
 
 import { PaymentBox } from "./payment-card";
 import { PaymentMarkIcon } from "./payment-mark";
+import { PlayerTile } from "./player-tile";
 
 export type NotReceivedTarget = {
   userId: string;
   name: string;
+  image: string | null;
   claimedLine: string;
   price: string;
 };
@@ -80,12 +81,7 @@ export function NotReceivedDialog({
           {target ? (
             <PaymentBox>
               <div className="flex items-center gap-3 px-4 py-3">
-                <span
-                  aria-hidden="true"
-                  className="border-rule bg-paper text-eyebrow flex size-9 shrink-0 items-center justify-center rounded-md border font-semibold"
-                >
-                  {initials(target.name)}
-                </span>
+                <PlayerTile name={target.name} image={target.image} size="lg" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{target.name}</p>
                   <p className="text-eyebrow text-muted-foreground tabular-nums">

@@ -1,10 +1,14 @@
-import type { PaymentMark } from "@repo/domain/game-payments";
+import {
+  paymentLineupGroups,
+  type PaymentLineupGroup,
+  type PaymentMark,
+} from "@repo/domain/game-payments";
 import { ChevronDown, ChevronRight } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { mirrorInRtl } from "../i18n/rtl";
-import { useMessages } from "../i18n/locale-provider";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { InitialsTile } from "../primitives/initials-tile";
 import { Text } from "../primitives/text";
@@ -14,43 +18,30 @@ import { PaymentLegend, PaymentMarkIcon } from "./payment-mark";
 import type { TrackedGamePayments } from "./use-game-payments";
 
 const COLLAPSED_ROWS = 5;
+const LEGEND_ORDER: readonly PaymentMark[] = ["paid", "claimed", "due", "free"];
+const FOOTER_ROW = {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+} as const;
 
-/**
- * What everyone sees on the Game: the mark next to each name, no amounts or
- * notes (design Payments 2c). The Organizer gets a way into the full list.
- */
-export function PaymentLineup({
-  payments,
-  onManage,
-}: {
-  payments: TrackedGamePayments;
-  onManage?: () => void;
-}) {
+function LineupGroup({ group }: { group: PaymentLineupGroup }) {
   const colors = useColors();
   const m = useMessages().gamePayments;
   const [expanded, setExpanded] = useState(false);
-  const rows = expanded
-    ? payments.players
-    : payments.players.slice(0, COLLAPSED_ROWS);
-  const hidden = payments.players.length - rows.length;
-  const marks = new Set<PaymentMark>(payments.players.map((row) => row.mark));
-
-  if (payments.players.length === 0) {
-    return null;
-  }
-
+  const rows = expanded ? group.rows : group.rows.slice(0, COLLAPSED_ROWS);
+  const hidden = group.rows.length - rows.length;
   return (
     <View style={{ gap: 10 }}>
-      <PaymentSectionHead
-        title={m.organizer.title}
-        meta={m.lineup.paidCount(payments.tally.paid, payments.tally.payers)}
-      />
+      <PaymentSectionHead title={group.title} meta={group.paidLine} />
       <PaymentBox>
         {rows.map((row, index) => (
           <View
             key={row.userId}
             accessible
-            accessibilityLabel={`${row.isViewer ? m.organizer.you : row.name}, ${m.mark[row.mark]}`}
+            accessibilityLabel={`${row.displayName}, ${row.subline}`}
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -61,13 +52,18 @@ export function PaymentLineup({
               borderTopColor: colors.rule,
             }}
           >
-            <InitialsTile name={row.name} uri={row.image} size="xs" />
+            <InitialsTile
+              name={row.name}
+              uri={row.image}
+              size="xs"
+              tone={row.isViewer ? "control" : "inverse"}
+            />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text weight="semibold" numberOfLines={1}>
-                {row.isViewer ? m.organizer.you : row.name}
+                {row.displayName}
               </Text>
               <Text size="eyebrow" tone="muted">
-                {m.mark[row.mark]}
+                {row.subline}
               </Text>
             </View>
             <PaymentMarkIcon mark={row.mark} />
@@ -78,11 +74,7 @@ export function PaymentLineup({
             accessibilityRole="button"
             onPress={() => setExpanded(true)}
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingHorizontal: 16,
-              paddingVertical: 12,
+              ...FOOTER_ROW,
               borderTopWidth: hairline,
               borderTopColor: colors.rule,
             }}
@@ -93,32 +85,53 @@ export function PaymentLineup({
             <ChevronDown size={16} color={colors.ink} />
           </Pressable>
         ) : null}
-        {onManage ? (
+      </PaymentBox>
+    </View>
+  );
+}
+
+/**
+ * What everyone sees on the Game: each side's players with the mark next to
+ * each name, no amounts or notes (design Payments 2c). The Organizer gets a
+ * way into the full list.
+ */
+export function PaymentLineup({
+  payments,
+  onManage,
+}: {
+  payments: TrackedGamePayments;
+  onManage?: () => void;
+}) {
+  const colors = useColors();
+  const locale = useLocale();
+  const m = useMessages().gamePayments;
+  const groups = paymentLineupGroups(payments, locale);
+  const present = new Set(payments.players.map((row) => row.mark));
+
+  if (groups.length === 0) {
+    return null;
+  }
+
+  return (
+    <View style={{ gap: 16 }}>
+      {groups.map((group) => (
+        <LineupGroup key={group.key} group={group} />
+      ))}
+      <PaymentLegend marks={LEGEND_ORDER.filter((mark) => present.has(mark))} />
+      {onManage ? (
+        <PaymentBox>
           <Pressable
             accessibilityRole="button"
             onPress={onManage}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              borderTopWidth: hairline,
-              borderTopColor: colors.rule,
-            }}
+            style={FOOTER_ROW}
           >
             <Text size="meta" weight="semibold">
               {m.lineup.manage}
             </Text>
             <ChevronRight size={16} color={colors.ink} style={mirrorInRtl} />
           </Pressable>
-        ) : null}
-      </PaymentBox>
-      <PaymentLegend
-        marks={(["paid", "claimed", "due", "free"] as const).filter((mark) =>
-          marks.has(mark),
-        )}
-      />
+        </PaymentBox>
+      ) : null}
     </View>
   );
 }

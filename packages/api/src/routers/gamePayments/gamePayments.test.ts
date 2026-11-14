@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   courts,
+  gamePaymentEvents,
   gamePayments as gamePaymentsTable,
   groupMembers,
   groups,
@@ -15,6 +16,7 @@ import { type db } from "#src/db";
 import { insertUser } from "#src/marks/marks.test-support";
 import { createGame } from "#src/routers/games/create";
 import { register } from "#src/routers/games/register";
+import { setFootballRole } from "#src/routers/games/setFootballRole";
 import { claimPayment } from "#src/routers/gamePayments/claim";
 import { confirmAllPayments } from "#src/routers/gamePayments/confirmAll";
 import { gamePaymentsForGame } from "#src/routers/gamePayments/forGame";
@@ -41,11 +43,7 @@ async function withDb(run: (db: TestDatabase) => Promise<void>) {
 
 async function footballGame(
   database: TestDatabase,
-  options: {
-    trackPayments?: boolean;
-    keepersPlayFree?: boolean;
-    price?: number;
-  } = {},
+  options: { trackPayments?: boolean; keepersPlayFree?: boolean } = {},
 ) {
   const organizer = await insertUser(database, "Organizer");
   const [venue] = await database
@@ -82,22 +80,25 @@ async function footballGame(
     courtId: pitch!.id,
     windowStart,
     windowEnd: new Date(windowStart.getTime() + HOUR),
-    pricePerPlayerFils: options.price ?? 1500,
+    pricePerPlayerFils: 1500,
     trackPayments: options.trackPayments ?? true,
     keepersPlayFree: options.keepersPlayFree ?? true,
   });
+  async function join(userId: string, keeper = false) {
+    await register(asDb(database), {
+      gameId: created.id,
+      userId,
+      football: keeper
+        ? { role: "keeper", position: "def" }
+        : { role: "outfield", position: "mid" },
+    });
+  }
   async function addPlayer(name: string, keeper = false) {
     const player = await insertUser(database, name);
     await database
       .insert(groupMembers)
       .values({ groupId: group!.id, userId: player.id });
-    await register(asDb(database), {
-      gameId: created.id,
-      userId: player.id,
-      football: keeper
-        ? { role: "keeper", position: "def" }
-        : { role: "outfield", position: "mid" },
-    });
+    await join(player.id, keeper);
     return player;
   }
   const yousif = await addPlayer("Yousif");
@@ -107,7 +108,9 @@ async function footballGame(
   const outsider = await insertUser(database, "Outsider");
   return {
     gameId: created.id,
+    kickOff: windowStart,
     organizer,
+    organizerJoins: () => join(organizer.id),
     yousif,
     ali,
     salman,
@@ -130,6 +133,17 @@ async function statusOf(
   return row?.status ?? null;
 }
 
+async function tracked(
+  database: TestDatabase,
+  args: { gameId: string; userId: string; now?: Date },
+) {
+  const result = await gamePaymentsForGame(asDb(database), args);
+  if (!result.tracked) {
+    throw new Error("Expected a Game that tracks payments");
+  }
+  return result;
+}
+
 describe("gamePayments", () => {
   it("stores tracking at create", async () => {
     await withDb(async (database) => {
@@ -142,36 +156,35 @@ describe("gamePayments", () => {
     });
   });
 
-  it("runs claim, confirm, send back and undo, with only a confirmation making it paid", async () => {
+  it("runs claim, confirm, send back and undo, and records who made each change", async () => {
     await withDb(async (database) => {
       const game = await footballGame(database);
       const d = asDb(database);
+      const { gameId } = game;
 
-      await claimPayment(d, { gameId: game.gameId, userId: game.yousif.id });
-      expect(await statusOf(database, game.gameId, game.yousif.id)).toBe(
-        "claimed",
-      );
+      await claimPayment(d, { gameId, userId: game.yousif.id });
+      expect(await statusOf(database, gameId, game.yousif.id)).toBe("claimed");
 
-      const asYousif = await gamePaymentsForGame(d, {
-        gameId: game.gameId,
+      const asYousif = await tracked(database, {
+        gameId,
         userId: game.yousif.id,
       });
-      expect(asYousif.tracked && asYousif.viewer?.status).toBe("claimed");
-      expect(asYousif.tracked && asYousif.manage).toBeNull();
-      expect(asYousif.tracked && asYousif.tally).toMatchObject({
+      expect(asYousif.viewer?.status).toBe("claimed");
+      expect(asYousif.manage).toBeNull();
+      expect(asYousif.tally).toEqual({
         paid: 0,
         claimed: 1,
         due: 2,
         free: 1,
-        expectedFils: 4500,
+        payers: 3,
       });
 
-      await unclaimPayment(d, { gameId: game.gameId, userId: game.yousif.id });
-      expect(await statusOf(database, game.gameId, game.yousif.id)).toBeNull();
+      await unclaimPayment(d, { gameId, userId: game.yousif.id });
+      expect(await statusOf(database, gameId, game.yousif.id)).toBeNull();
 
-      await claimPayment(d, { gameId: game.gameId, userId: game.yousif.id });
+      await claimPayment(d, { gameId, userId: game.yousif.id });
       await markPaymentNotReceived(d, {
-        gameId: game.gameId,
+        gameId,
         actorUserId: game.organizer.id,
         playerUserId: game.yousif.id,
         reason: "nothing_arrived",
@@ -191,25 +204,82 @@ describe("gamePayments", () => {
       });
       expect(notice?.type).toBe("game_payment_not_received");
 
-      await claimPayment(d, { gameId: game.gameId, userId: game.yousif.id });
+      await claimPayment(d, { gameId, userId: game.yousif.id });
       await markPaymentPaid(d, {
-        gameId: game.gameId,
+        gameId,
         actorUserId: game.organizer.id,
         playerUserId: game.yousif.id,
       });
-      expect(await statusOf(database, game.gameId, game.yousif.id)).toBe(
-        "paid",
-      );
+      expect(await statusOf(database, gameId, game.yousif.id)).toBe("paid");
+      const asOrganizer = await tracked(database, {
+        gameId,
+        userId: game.organizer.id,
+      });
+      expect(
+        asOrganizer.manage?.rows.find((row) => row.userId === game.yousif.id)
+          ?.paidBy,
+      ).toEqual({ isViewer: true, name: "Organizer" });
       await expect(
-        unclaimPayment(d, { gameId: game.gameId, userId: game.yousif.id }),
+        unclaimPayment(d, { gameId, userId: game.yousif.id }),
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
       await undoPayment(d, {
-        gameId: game.gameId,
+        gameId,
         actorUserId: game.organizer.id,
         playerUserId: game.yousif.id,
       });
-      expect(await statusOf(database, game.gameId, game.yousif.id)).toBeNull();
+      expect(await statusOf(database, gameId, game.yousif.id)).toBeNull();
+
+      const events = await database.query.gamePaymentEvents.findMany({
+        where: eq(gamePaymentEvents.gameId, gameId),
+        orderBy: (table, { asc }) => [asc(table.createdAt), asc(table.id)],
+      });
+      expect(
+        events
+          .map((event) => [
+            event.action,
+            event.actorUserId === game.organizer.id ? "organizer" : "player",
+          ])
+          .sort(),
+      ).toEqual(
+        [
+          ["claimed", "player"],
+          ["unclaimed", "player"],
+          ["claimed", "player"],
+          ["not_received", "organizer"],
+          ["claimed", "player"],
+          ["paid", "organizer"],
+          ["undone", "organizer"],
+        ].sort(),
+      );
+    });
+  });
+
+  it("tells the Game admins of a claim once, and again after it is sent back", async () => {
+    await withDb(async (database) => {
+      const game = await footballGame(database);
+      const d = asDb(database);
+      const { gameId } = game;
+      const claims = () =>
+        database.query.notifications.findMany({
+          where: eq(notifications.type, "game_payment_claimed"),
+        });
+
+      await claimPayment(d, { gameId, userId: game.yousif.id });
+      await unclaimPayment(d, { gameId, userId: game.yousif.id });
+      await claimPayment(d, { gameId, userId: game.yousif.id });
+      await claimPayment(d, { gameId, userId: game.yousif.id });
+      expect(
+        (await claims()).map((row) => [row.recipientUserId, row.audience]),
+      ).toEqual([[game.organizer.id, "admin"]]);
+
+      await markPaymentNotReceived(d, {
+        gameId,
+        actorUserId: game.organizer.id,
+        playerUserId: game.yousif.id,
+      });
+      await claimPayment(d, { gameId, userId: game.yousif.id });
+      expect(await claims()).toHaveLength(2);
     });
   });
 
@@ -217,64 +287,177 @@ describe("gamePayments", () => {
     await withDb(async (database) => {
       const game = await footballGame(database);
       const d = asDb(database);
-      await claimPayment(d, { gameId: game.gameId, userId: game.ali.id });
+      const { gameId } = game;
+      await claimPayment(d, { gameId, userId: game.ali.id });
       await expect(
         markPaymentPaid(d, {
-          gameId: game.gameId,
+          gameId,
           actorUserId: game.yousif.id,
           playerUserId: game.ali.id,
         }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
       await expect(
-        claimPayment(d, { gameId: game.gameId, userId: game.outsider.id }),
+        claimPayment(d, { gameId, userId: game.outsider.id }),
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
       await expect(
-        claimPayment(d, { gameId: game.gameId, userId: game.hamad.id }),
+        claimPayment(d, { gameId, userId: game.hamad.id }),
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
-      const asOrganizer = await gamePaymentsForGame(d, {
-        gameId: game.gameId,
+      const asOrganizer = await tracked(database, {
+        gameId,
         userId: game.organizer.id,
       });
-      expect(asOrganizer.tracked && asOrganizer.canManage).toBe(true);
+      expect(asOrganizer.canManage).toBe(true);
       expect(
-        asOrganizer.tracked &&
-          asOrganizer.manage?.find((row) => row.userId === game.hamad.id)?.mark,
+        asOrganizer.manage?.rows.find((row) => row.userId === game.hamad.id)
+          ?.mark,
       ).toBe("free");
+      expect(asOrganizer.manage).toMatchObject({
+        collectedFils: 0,
+        expectedFils: 4500,
+      });
     });
   });
 
-  it("confirms every claim at once and reminds only who has not paid", async () => {
+  it("confirms every claim at once", async () => {
     await withDb(async (database) => {
       const game = await footballGame(database);
       const d = asDb(database);
-      await claimPayment(d, { gameId: game.gameId, userId: game.yousif.id });
-      await claimPayment(d, { gameId: game.gameId, userId: game.ali.id });
-
+      const { gameId } = game;
+      await claimPayment(d, { gameId, userId: game.yousif.id });
+      await claimPayment(d, { gameId, userId: game.ali.id });
       await expect(
-        confirmAllPayments(d, {
-          gameId: game.gameId,
-          actorUserId: game.organizer.id,
-        }),
+        confirmAllPayments(d, { gameId, actorUserId: game.organizer.id }),
       ).resolves.toEqual({ confirmed: 2 });
-      expect(await statusOf(database, game.gameId, game.ali.id)).toBe("paid");
+      expect(await statusOf(database, gameId, game.ali.id)).toBe("paid");
+    });
+  });
+
+  it("reminds who has not paid, never the sender, and once a day", async () => {
+    await withDb(async (database) => {
+      const game = await footballGame(database);
+      const d = asDb(database);
+      const { gameId } = game;
+      await game.organizerJoins();
+      await markPaymentPaid(d, {
+        gameId,
+        actorUserId: game.organizer.id,
+        playerUserId: game.yousif.id,
+      });
+
+      const before = await tracked(database, {
+        gameId,
+        userId: game.organizer.id,
+      });
+      expect(before.tally.due).toBe(3);
+      expect(before.manage?.reminders).toEqual({
+        toRemind: 2,
+        remindedToday: 0,
+      });
 
       await expect(
-        remindPayments(d, {
-          gameId: game.gameId,
-          actorUserId: game.organizer.id,
-        }),
-      ).resolves.toEqual({ reminded: 1 });
-      await remindPayments(d, {
-        gameId: game.gameId,
-        actorUserId: game.organizer.id,
-      });
+        remindPayments(d, { gameId, actorUserId: game.organizer.id }),
+      ).resolves.toEqual({ reminded: 2 });
+      await expect(
+        remindPayments(d, { gameId, actorUserId: game.organizer.id }),
+      ).resolves.toEqual({ reminded: 0 });
       const reminders = await database.query.notifications.findMany({
         where: eq(notifications.type, "game_payment_reminder"),
       });
-      expect(reminders.map((row) => row.recipientUserId)).toEqual([
-        game.salman.id,
-      ]);
+      expect(reminders.map((row) => row.recipientUserId).sort()).toEqual(
+        [game.ali.id, game.salman.id].sort(),
+      );
+      const after = await tracked(database, {
+        gameId,
+        userId: game.organizer.id,
+      });
+      expect(after.manage?.reminders).toEqual({
+        toRemind: 0,
+        remindedToday: 2,
+      });
+    });
+  });
+
+  it("follows the keeper spot until kick-off and fixes it from then on", async () => {
+    await withDb(async (database) => {
+      const game = await footballGame(database);
+      const d = asDb(database);
+      const { gameId } = game;
+      const markOf = async (userId: string, now?: Date) =>
+        (
+          await tracked(database, { gameId, userId: game.organizer.id, now })
+        ).players.find((row) => row.userId === userId)?.mark;
+
+      await setFootballRole(d, {
+        gameId,
+        userId: game.yousif.id,
+        role: "keeper",
+        position: "def",
+      });
+      expect(await markOf(game.yousif.id)).toBe("free");
+      await setFootballRole(d, {
+        gameId,
+        userId: game.yousif.id,
+        role: "outfield",
+        position: "mid",
+      });
+      expect(await markOf(game.yousif.id)).toBe("due");
+
+      const afterKickOff = new Date(game.kickOff.getTime() + 10 * 60 * 1000);
+      await setFootballRole(d, {
+        gameId,
+        userId: game.hamad.id,
+        role: "outfield",
+        position: "mid",
+        now: afterKickOff,
+      });
+      await setFootballRole(d, {
+        gameId,
+        userId: game.ali.id,
+        role: "keeper",
+        position: "def",
+        now: afterKickOff,
+      });
+      expect(await markOf(game.hamad.id, afterKickOff)).toBe("free");
+      expect(await markOf(game.ali.id, afterKickOff)).toBe("due");
+    });
+  });
+
+  it("keeps a paid player's payment within the Organizer's reach once they play free", async () => {
+    await withDb(async (database) => {
+      const game = await footballGame(database);
+      const d = asDb(database);
+      const { gameId } = game;
+      await markPaymentPaid(d, {
+        gameId,
+        actorUserId: game.organizer.id,
+        playerUserId: game.yousif.id,
+      });
+      await setFootballRole(d, {
+        gameId,
+        userId: game.yousif.id,
+        role: "keeper",
+        position: "def",
+      });
+
+      const asOrganizer = await tracked(database, {
+        gameId,
+        userId: game.organizer.id,
+      });
+      expect(
+        asOrganizer.manage?.rows.find((row) => row.userId === game.yousif.id),
+      ).toMatchObject({ mark: "free", status: "paid" });
+      expect(asOrganizer.manage).toMatchObject({
+        collectedFils: 1500,
+        expectedFils: 3000,
+      });
+
+      await undoPayment(d, {
+        gameId,
+        actorUserId: game.organizer.id,
+        playerUserId: game.yousif.id,
+      });
+      expect(await statusOf(database, gameId, game.yousif.id)).toBeNull();
     });
   });
 
@@ -283,7 +466,10 @@ describe("gamePayments", () => {
       const game = await footballGame(database, { trackPayments: false });
       const d = asDb(database);
       await expect(
-        gamePaymentsForGame(d, { gameId: game.gameId, userId: game.yousif.id }),
+        gamePaymentsForGame(d, {
+          gameId: game.gameId,
+          userId: game.yousif.id,
+        }),
       ).resolves.toEqual({ tracked: false });
       await expect(
         claimPayment(d, { gameId: game.gameId, userId: game.yousif.id }),

@@ -97,6 +97,10 @@ export function footballScorePath(gameId: string) {
   return `/games/${gameId}/score`;
 }
 
+export function gamePaymentsPath(gameId: string) {
+  return `/games/${gameId}/payments`;
+}
+
 export function gameRatePath(gameId: string) {
   return `/games/${gameId}/rate`;
 }

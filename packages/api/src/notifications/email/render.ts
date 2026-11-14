@@ -68,6 +68,9 @@ export function notificationEmailDestination(
   if (item.type === "performance_ratings_open" && item.game) {
     return { kind: "game", path: `/dashboard/games/${item.game.id}/rate` };
   }
+  if (item.type === "game_payment_claimed" && item.game) {
+    return { kind: "game", path: `/dashboard/games/${item.game.id}/payments` };
+  }
   if (
     (item.type === "group_member_joined" ||
       item.type === "level_set" ||

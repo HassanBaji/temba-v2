@@ -5,15 +5,13 @@ import { Hand, Wallet, type LucideIcon } from "lucide-react";
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Switch } from "~/components/ui/switch";
+import { createPaymentSummary } from "@repo/domain/game-payments";
 import {
-  createPaymentSummary,
-  formatPaymentFigure,
-} from "@repo/domain/game-payments";
-import { parseOptionalPricePerPlayerFils } from "@repo/domain/price-per-player";
+  formatMajorUnitsFromFils,
+  parseOptionalPricePerPlayerFils,
+} from "@repo/domain/price-per-player";
 import type { Locale } from "@repo/i18n/locale";
 import type { Messages } from "@repo/i18n/messages";
-
-const PADEL_PLAYERS = 4;
 
 function pricedFils(price: string, locale: Locale) {
   const parsed = parseOptionalPricePerPlayerFils(price, locale);
@@ -82,6 +80,7 @@ export function PaymentTrackingField({
   idPrefix: string;
   price: string;
   football: boolean;
+  /** Seats that pay when the Game is full, before any keepers are left out. */
   playersAllowed: number;
   trackPayments: boolean;
   onTrackPayments: (value: boolean) => void;
@@ -98,7 +97,7 @@ export function PaymentTrackingField({
   const summary = createPaymentSummary(
     {
       priceFils: fils,
-      playersAllowed: football ? playersAllowed : PADEL_PLAYERS,
+      playersAllowed,
       football,
       keepersPlayFree,
     },
@@ -136,7 +135,7 @@ export function PaymentTrackingField({
           <p className="text-eyebrow text-muted-foreground">{copy.toCollect}</p>
           <p className="mt-1.5 flex items-baseline gap-2">
             <span className="font-expanded text-display tabular-nums">
-              {formatPaymentFigure(summary.totalFils)}
+              {formatMajorUnitsFromFils(summary.totalFils)}
             </span>
             <span className="text-muted-foreground">
               {m.createGame.price.currency}

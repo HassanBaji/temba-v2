@@ -9,10 +9,10 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer } from "#src/games/access";
 import {
+  lockTrackedGame,
   requirePayer,
-  requireTrackedGame,
   writePayment,
-} from "#src/game-payments/payers";
+} from "#src/game-payments/ledger";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -32,22 +32,28 @@ export async function markPaymentPaid(
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
-  const game = await requireTrackedGame(database, args.gameId, locale);
-  await assertGameOrganizer(database, game, args.actorUserId, locale);
-  const payer = await requirePayer(database, game, args.playerUserId, locale);
-  if (payer.record?.status === "paid") {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: messagesFor(locale).gamePayments.errors.alreadyPaid,
+  await database.transaction(async (tx) => {
+    const game = await lockTrackedGame(tx, args.gameId, locale);
+    await assertGameOrganizer(tx, game, args.actorUserId, locale);
+    const payer = await requirePayer(tx, game, args.playerUserId, {
+      now,
+      locale,
     });
-  }
-  await writePayment(database, {
-    gameId: game.id,
-    userId: args.playerUserId,
-    actorUserId: args.actorUserId,
-    status: "paid",
-    now,
-    fields: { paidAt: now, paidByUserId: args.actorUserId },
+    if (payer.record?.status === "paid") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: messagesFor(locale).gamePayments.errors.alreadyPaid,
+      });
+    }
+    await writePayment(tx, {
+      gameId: game.id,
+      userId: args.playerUserId,
+      actorUserId: args.actorUserId,
+      action: "paid",
+      status: "paid",
+      now,
+      fields: { paidAt: now, paidByUserId: args.actorUserId },
+    });
   });
   return { status: "paid" as const };
 }

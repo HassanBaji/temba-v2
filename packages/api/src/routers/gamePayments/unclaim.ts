@@ -9,30 +9,43 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import {
   clearPayment,
+  lockTrackedGame,
   requirePayer,
-  requireTrackedGame,
-} from "#src/game-payments/payers";
+} from "#src/game-payments/ledger";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /** A player takes back their claim. Only an unconfirmed claim can be undone. */
 export async function unclaimPayment(
   database: DbClient,
-  args: { gameId: string; userId: string; locale?: Locale },
+  args: { gameId: string; userId: string; locale?: Locale; now?: Date },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
-  const game = await requireTrackedGame(database, args.gameId, locale);
-  const payer = await requirePayer(database, game, args.userId, locale);
-  if (payer.record?.status !== "claimed") {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message:
-        payer.record?.status === "paid"
-          ? messagesFor(locale).gamePayments.errors.alreadyPaid
-          : messagesFor(locale).gamePayments.errors.notClaimed,
+  const now = args.now ?? new Date();
+  await database.transaction(async (tx) => {
+    const game = await lockTrackedGame(tx, args.gameId, locale);
+    const payer = await requirePayer(tx, game, args.userId, {
+      now,
+      locale,
+      allowFree: true,
     });
-  }
-  await clearPayment(database, { gameId: game.id, userId: args.userId });
+    if (payer.record?.status !== "claimed") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message:
+          payer.record?.status === "paid"
+            ? messagesFor(locale).gamePayments.errors.alreadyPaid
+            : messagesFor(locale).gamePayments.errors.notClaimed,
+      });
+    }
+    await clearPayment(tx, {
+      gameId: game.id,
+      userId: args.userId,
+      actorUserId: args.userId,
+      action: "unclaimed",
+      now,
+    });
+  });
   return { status: null };
 }
 

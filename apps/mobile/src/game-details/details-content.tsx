@@ -200,10 +200,7 @@ export function GameDetailsContent({
       />
       <GamePaymentsSection
         gameId={game.id}
-        tracked={gamePaymentsTracked({
-          trackPayments: game.trackPayments ?? false,
-          pricePerPlayerFils: game.pricePerPlayerFils,
-        })}
+        tracked={gamePaymentsTracked(game)}
       />
       {live && firstMatch ? (
         <ScoreCard

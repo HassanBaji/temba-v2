@@ -2,14 +2,17 @@
 
 import { formatGameStart } from "@repo/domain/format-game-start";
 import {
-  formatPaymentFigure,
+  paymentRowActionLabel,
   paymentRowActions,
   paymentRowSubline,
+  paymentShortcuts,
   type PaymentMark,
 } from "@repo/domain/game-payments";
-import { initials } from "@repo/domain/initials";
 import { formatNotificationTime } from "@repo/domain/notification-copy";
-import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+import {
+  formatMajorUnitsFromFils,
+  formatPricePerPlayerFils,
+} from "@repo/domain/price-per-player";
 import { BellIcon, XIcon } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
@@ -33,13 +36,15 @@ import {
 } from "./not-received-dialog";
 import { PaymentBox, PaymentSectionHead } from "./payment-card";
 import { PaymentMarkIcon } from "./payment-mark";
+import { PlayerTile } from "./player-tile";
 import {
   useGamePayments,
   usePaymentActions,
   type TrackedGamePayments,
 } from "./use-game-payments";
 
-export type ManageRow = NonNullable<TrackedGamePayments["manage"]>[number];
+type Manage = NonNullable<TrackedGamePayments["manage"]>;
+export type ManageRow = Manage["rows"][number];
 
 function Frame({
   gameId,
@@ -111,9 +116,11 @@ function TallyItem({ mark, label }: { mark: PaymentMark; label: string }) {
 
 function Summary({
   payments,
+  manage,
   startLine,
 }: {
   payments: TrackedGamePayments;
+  manage: Manage;
   startLine: string | null;
 }) {
   const locale = useLocale();
@@ -129,12 +136,12 @@ function Summary({
       </div>
       <p className="mt-2.5 flex items-baseline gap-2">
         <span className="font-expanded text-display tabular-nums">
-          {formatPaymentFigure(tally.collectedFils)}
+          {formatMajorUnitsFromFils(manage.collectedFils)}
         </span>
         <span className="text-muted-foreground">
           {copy.organizer.collectedOf(
             m.createGame.price.currency,
-            formatPaymentFigure(tally.expectedFils),
+            formatMajorUnitsFromFils(manage.expectedFils),
           )}
         </span>
       </p>
@@ -169,36 +176,28 @@ function PlayerRow({
 }) {
   const locale = useLocale();
   const now = useNow();
-  const copy = useMessages().gamePayments.organizer;
-  const actions = paymentRowActions(row.mark);
-  const name = row.isViewer ? copy.you : row.name;
-  const primaryLabel =
-    actions.primary === "confirm"
-      ? copy.confirm
-      : actions.primary === "mark_paid"
-        ? copy.markPaid
-        : copy.undo;
+  const m = useMessages();
+  const copy = m.gamePayments.organizer;
+  const actions = paymentRowActions(row.mark, row.status);
+  const name = row.isViewer ? m.common.you : row.name;
+  const primaryLabel = actions.primary
+    ? paymentRowActionLabel(actions.primary, locale)
+    : "";
   return (
     <li className="border-rule flex items-center gap-[11px] border-t py-[11px] pe-3.5 ps-4 first:border-t-0">
-      <span
-        aria-hidden="true"
-        className={cn(
-          "text-eyebrow flex size-[34px] shrink-0 items-center justify-center rounded-[9px] border font-semibold",
-          row.isViewer
-            ? "border-ink bg-ink text-paper"
-            : row.mark === "free"
-              ? "border-muted-foreground bg-paper text-ink border-dashed"
-              : "border-rule bg-paper text-ink",
-        )}
-      >
-        {initials(row.name)}
-      </span>
+      <PlayerTile
+        name={row.name}
+        image={row.image}
+        size="md"
+        viewer={row.isViewer}
+        dashed={row.mark === "free"}
+      />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-semibold">{name}</span>
         <span
           className={cn(
             "text-eyebrow block truncate",
-            row.mark === "claimed" ? "text-ink" : "text-muted-foreground",
+            row.status === "claimed" ? "text-ink" : "text-muted-foreground",
           )}
         >
           {paymentRowSubline(row, locale, now)}
@@ -235,6 +234,7 @@ function PlayerRow({
 /** The list itself, fed by `GamePaymentsPage` (design Payments 2a). */
 export function PaymentsManageView({
   payments,
+  manage,
   startLine,
   pending,
   confirmAllPending,
@@ -245,6 +245,7 @@ export function PaymentsManageView({
   onRemind,
 }: {
   payments: TrackedGamePayments;
+  manage: Manage;
   startLine: string | null;
   pending: boolean;
   confirmAllPending: boolean;
@@ -254,34 +255,33 @@ export function PaymentsManageView({
   onConfirmAll: () => void;
   onRemind: () => void;
 }) {
+  const locale = useLocale();
   const copy = useMessages().gamePayments.organizer;
-  const { tally } = payments;
-  const rows = payments.manage ?? [];
+  const rows = manage.rows;
+  const shortcuts = paymentShortcuts(payments.tally, manage.reminders, locale);
   return (
     <>
-      <Summary payments={payments} startLine={startLine} />
+      <Summary payments={payments} manage={manage} startLine={startLine} />
       <div className="grid grid-cols-2 gap-2">
         <Button
           type="button"
           variant="outline"
           className="border-ink"
-          disabled={tally.claimed === 0 || pending}
+          disabled={!shortcuts.confirmAll.enabled || pending}
           aria-busy={confirmAllPending}
           onClick={onConfirmAll}
         >
-          {tally.claimed > 0
-            ? copy.confirmAll(tally.claimed)
-            : copy.nothingToConfirm}
+          {shortcuts.confirmAll.label}
         </Button>
         <Button
           type="button"
           variant="outline"
-          disabled={tally.due === 0 || pending}
+          disabled={!shortcuts.remind.enabled || pending}
           aria-busy={remindPending}
           onClick={onRemind}
         >
           <BellIcon aria-hidden="true" />
-          {tally.due > 0 ? copy.remind(tally.due) : copy.everyonePaid}
+          {shortcuts.remind.label}
         </Button>
       </div>
       <section
@@ -347,7 +347,8 @@ export function GamePaymentsPage({ gameId }: { gameId: string }) {
       </Frame>
     );
   }
-  if (!data.tracked || !data.manage) {
+  const manage = data.tracked ? data.manage : null;
+  if (!data.tracked || !manage) {
     return (
       <Frame gameId={gameId}>
         <p className="text-muted-foreground">
@@ -361,7 +362,7 @@ export function GamePaymentsPage({ gameId }: { gameId: string }) {
   const windowStart = game.data?.windowStart;
   const startLine = windowStart ? formatGameStart(windowStart, locale) : null;
   const onPrimary = (row: ManageRow) => {
-    const action = paymentRowActions(row.mark).primary;
+    const action = paymentRowActions(row.mark, row.status).primary;
     if (action === "undo") {
       actions.undo.mutate({ gameId, userId: row.userId });
       return;
@@ -386,6 +387,7 @@ export function GamePaymentsPage({ gameId }: { gameId: string }) {
     <Frame gameId={gameId}>
       <PaymentsManageView
         payments={data}
+        manage={manage}
         startLine={startLine}
         pending={actions.pending}
         confirmAllPending={actions.confirmAll.isPending}
@@ -397,6 +399,7 @@ export function GamePaymentsPage({ gameId }: { gameId: string }) {
           setSendBack({
             userId: row.userId,
             name: row.name,
+            image: row.image,
             price,
             claimedLine: m.gamePayments.notReceivedSheet.claimedAgo(
               row.name,

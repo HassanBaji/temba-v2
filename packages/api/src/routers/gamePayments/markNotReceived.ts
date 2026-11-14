@@ -14,10 +14,10 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer } from "#src/games/access";
 import {
+  lockTrackedGame,
   requirePayer,
-  requireTrackedGame,
   writePayment,
-} from "#src/game-payments/payers";
+} from "#src/game-payments/ledger";
 import { notify } from "#src/notifications/notify";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -40,22 +40,27 @@ export async function markPaymentNotReceived(
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
-  const game = await requireTrackedGame(database, args.gameId, locale);
-  await assertGameOrganizer(database, game, args.actorUserId, locale);
-  const payer = await requirePayer(database, game, args.playerUserId, locale);
-  if (payer.record?.status !== "claimed") {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: messagesFor(locale).gamePayments.errors.notClaimed,
-    });
-  }
   const trimmed = args.note?.trim() ?? "";
   const note = trimmed === "" ? null : trimmed;
   await database.transaction(async (tx) => {
+    const game = await lockTrackedGame(tx, args.gameId, locale);
+    await assertGameOrganizer(tx, game, args.actorUserId, locale);
+    const payer = await requirePayer(tx, game, args.playerUserId, {
+      now,
+      locale,
+      allowFree: true,
+    });
+    if (payer.record?.status !== "claimed") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: messagesFor(locale).gamePayments.errors.notClaimed,
+      });
+    }
     await writePayment(tx, {
       gameId: game.id,
       userId: args.playerUserId,
       actorUserId: args.actorUserId,
+      action: "not_received",
       status: "not_received",
       now,
       fields: {

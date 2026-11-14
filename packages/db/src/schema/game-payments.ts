@@ -84,3 +84,42 @@ export const gamePaymentRelations = relations(gamePayments, ({ one }) => ({
   game: one(games, { fields: [gamePayments.gameId], references: [games.id] }),
   user: one(user, { fields: [gamePayments.userId], references: [user.id] }),
 }));
+
+export const GAME_PAYMENT_EVENT_ACTION_VALUES = [
+  "claimed",
+  "unclaimed",
+  "paid",
+  "not_received",
+  "undone",
+] as const;
+
+export const gamePaymentEventActions = pgEnum(
+  "game_payment_event_action",
+  GAME_PAYMENT_EVENT_ACTION_VALUES,
+);
+
+/** Every change to a player's payment, with who made it. Never rewritten. */
+export const gamePaymentEvents = pgTable(
+  "game_payment_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gameId: uuid("game_id")
+      .notNull()
+      .references(() => games.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    actorUserId: uuid("actor_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    action: gamePaymentEventActions("action").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    gameIdx: index("game_payment_events_game_id_idx").on(
+      table.gameId,
+      table.createdAt,
+    ),
+    userIdx: index("game_payment_events_user_id_idx").on(table.userId),
+  }),
+);

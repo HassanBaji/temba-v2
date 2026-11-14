@@ -377,6 +377,7 @@ function baseTournament(args: {
     windowStart,
     windowEnd,
     pricePerPlayerFils: PRICE_FILS,
+    trackPayments: false,
     levelMinTenths: null,
     levelMaxTenths: null,
     playersAllowed: TEAM_COUNT * 2,

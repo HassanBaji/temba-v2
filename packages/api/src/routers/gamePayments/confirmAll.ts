@@ -8,9 +8,9 @@ import { type db } from "#src/db";
 import { assertGameOrganizer } from "#src/games/access";
 import {
   loadPayers,
-  requireTrackedGame,
+  lockTrackedGame,
   writePayment,
-} from "#src/game-payments/payers";
+} from "#src/game-payments/ledger";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -21,24 +21,24 @@ export async function confirmAllPayments(
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
-  const game = await requireTrackedGame(database, args.gameId, locale);
-  await assertGameOrganizer(database, game, args.actorUserId, locale);
-  const claimed = (await loadPayers(database, game)).filter(
-    (payer) => payer.mark === "claimed",
-  );
-  await database.transaction(async (tx) => {
+  return database.transaction(async (tx) => {
+    const game = await lockTrackedGame(tx, args.gameId, locale);
+    await assertGameOrganizer(tx, game, args.actorUserId, locale);
+    const { payers } = await loadPayers(tx, game, now);
+    const claimed = payers.filter((payer) => payer.mark === "claimed");
     for (const payer of claimed) {
       await writePayment(tx, {
         gameId: game.id,
         userId: payer.userId,
         actorUserId: args.actorUserId,
+        action: "paid",
         status: "paid",
         now,
         fields: { paidAt: now, paidByUserId: args.actorUserId },
       });
     }
+    return { confirmed: claimed.length };
   });
-  return { confirmed: claimed.length };
 }
 
 export const confirmAllProcedure = protectedProcedure

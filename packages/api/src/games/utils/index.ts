@@ -245,7 +245,7 @@ export type CreateGameInput = {
   levelMaxTenths?: number | null;
   /** Friendly game only. Omitted = players vote. */
   mvpMode?: MvpMode;
-  /** Friendly game with a price above zero only. */
+  /** Only with a price above zero. */
   trackPayments?: boolean;
   /** Football only, with tracking. */
   keepersPlayFree?: boolean;

@@ -71,29 +71,37 @@ export const gamePayments = {
   },
   organizer: {
     title: "Payments",
-    entryHint: (paid: number, payers: number) => `${paid} of ${payers} paid`,
     collectedOf: (currency: string, total: string) =>
       `${currency} in, of ${total}`,
-    confirmed: (n: number) => `${n} confirmed`,
+    confirmed: (n: number) =>
+      plural("en", n, { one: "{n} confirmed", other: "{n} confirmed" }),
     claimed: (n: number) =>
       plural("en", n, {
         one: "{n} says they paid",
         other: "{n} say they paid",
       }),
-    due: (n: number) => `${n} not yet`,
+    due: (n: number) =>
+      plural("en", n, { one: "{n} not yet", other: "{n} not yet" }),
     free: (n: number) =>
       plural("en", n, { one: "{n} keeper, free", other: "{n} keepers, free" }),
-    confirmAll: (n: number) => `Confirm all ${n}`,
+    confirmAll: (n: number) =>
+      plural("en", n, { one: "Confirm {n}", other: "Confirm all {n}" }),
     nothingToConfirm: "Nothing to confirm",
-    remind: (n: number) => `Remind ${n}`,
+    remind: (n: number) =>
+      plural("en", n, { one: "Remind {n}", other: "Remind {n}" }),
+    reminded: "Reminded",
+    nobodyToRemind: "Nobody to remind",
     everyonePaid: "Everyone has paid",
     players: "Players",
-    you: "You",
     rowPaid: "Paid",
+    rowPaidByYou: "Paid, confirmed by you",
+    rowPaidBy: (name: string) => `Paid, confirmed by ${name}`,
     rowClaimed: (when: string) => `Says they paid, ${when}`,
     rowDue: "Not paid yet",
     rowReturned: "Not received",
     rowFree: "Keeper, plays free",
+    rowFreePaid: "Keeper, plays free. Already paid",
+    rowFreeClaimed: "Keeper, plays free. Says they paid",
     confirm: "Confirm",
     markPaid: "Mark paid",
     undo: "Undo",
@@ -137,16 +145,18 @@ export const gamePayments = {
     undone: "Undone",
   },
   lineup: {
-    more: (n: number) => `${n} more`,
+    more: (n: number) =>
+      plural("en", n, { one: "{n} more", other: "{n} more" }),
+    players: "Players",
+    keeper: "Keeper",
+    keeperFree: "Keeper, plays free",
+    positionAndMark: (position: string, mark: string) => `${position}, ${mark}`,
     manage: "Confirm and mark payments",
     paidCount: (paid: number, payers: number) => `${paid} of ${payers} paid`,
-    youPaid: "You’re in, and paid",
-    confirmedByOrganizer: "Confirmed by the organizer",
   },
   errors: {
     notTracked: "This game doesn’t track payments",
     needsPrice: "Set a price to track payments",
-    keepersFootballOnly: "Only a football game can let keepers play free",
     notPlayer: "Only players in this game pay",
     nothingToPay: "You have nothing to pay in this game",
     alreadyPaid: "Already confirmed as paid",

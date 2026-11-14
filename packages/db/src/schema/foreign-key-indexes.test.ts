@@ -60,6 +60,7 @@ const ALLOWED_UNINDEXED: Record<string, string> = {
   "game_payments.paid_by_user_id": USER_ACTOR,
   "game_payments.returned_by_user_id": USER_ACTOR,
   "game_payments.updated_by_user_id": USER_ACTOR,
+  "game_payment_events.actor_user_id": USER_ACTOR,
   "game_courts.court_id": RARE_PARENT,
   "matches.court_id": RARE_PARENT,
   "match_result_confirmations.user_id": USER_OWN,

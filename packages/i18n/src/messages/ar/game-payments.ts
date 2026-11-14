@@ -82,11 +82,17 @@ export const gamePayments = {
   },
   organizer: {
     title: "الدفع",
-    entryHint: (paid: number, payers: number) =>
-      `دفع ${isolate(String(paid))} من ${isolate(String(payers))}`,
     collectedOf: (currency: string, total: string) =>
       `${currency} مستلمة، من ${isolate(total)}`,
-    confirmed: (n: number) => `${isolate(String(n))} مؤكَّد`,
+    confirmed: (n: number) =>
+      plural("ar", n, {
+        zero: "لا دفعات مؤكَّدة",
+        one: "دفعة واحدة مؤكَّدة",
+        two: "دفعتان مؤكَّدتان",
+        few: "{n} دفعات مؤكَّدة",
+        many: "{n} دفعة مؤكَّدة",
+        other: "{n} دفعة مؤكَّدة",
+      }),
     claimed: (n: number) =>
       plural("ar", n, {
         zero: "لا أحد يقول إنه دفع",
@@ -96,7 +102,15 @@ export const gamePayments = {
         many: "{n} يقولون إنهم دفعوا",
         other: "{n} يقولون إنهم دفعوا",
       }),
-    due: (n: number) => `${isolate(String(n))} لم يدفعوا بعد`,
+    due: (n: number) =>
+      plural("ar", n, {
+        zero: "لا أحد لم يدفع",
+        one: "واحد لم يدفع بعد",
+        two: "اثنان لم يدفعا بعد",
+        few: "{n} لم يدفعوا بعد",
+        many: "{n} لم يدفعوا بعد",
+        other: "{n} لم يدفعوا بعد",
+      }),
     free: (n: number) =>
       plural("ar", n, {
         zero: "لا حرّاس مجانًا",
@@ -106,17 +120,38 @@ export const gamePayments = {
         many: "{n} حارسًا، مجانًا",
         other: "{n} حارس، مجانًا",
       }),
-    confirmAll: (n: number) => `أكّد الكل (${isolate(String(n))})`,
+    confirmAll: (n: number) =>
+      plural("ar", n, {
+        zero: "لا شيء لتأكيده",
+        one: "أكّد دفعة واحدة",
+        two: "أكّد الدفعتين",
+        few: "أكّد الكل ({n})",
+        many: "أكّد الكل ({n})",
+        other: "أكّد الكل ({n})",
+      }),
     nothingToConfirm: "لا شيء لتأكيده",
-    remind: (n: number) => `ذكّر ${isolate(String(n))}`,
+    remind: (n: number) =>
+      plural("ar", n, {
+        zero: "لا أحد لتذكيره",
+        one: "ذكّر لاعبًا واحدًا",
+        two: "ذكّر لاعبَين",
+        few: "ذكّر {n} لاعبين",
+        many: "ذكّر {n} لاعبًا",
+        other: "ذكّر {n} لاعب",
+      }),
+    reminded: "تم التذكير",
+    nobodyToRemind: "لا أحد لتذكيره",
     everyonePaid: "دفع الجميع",
     players: "اللاعبون",
-    you: "أنت",
     rowPaid: "مدفوع",
+    rowPaidByYou: "مدفوع، أكّدته أنت",
+    rowPaidBy: (name: string) => `مدفوع، أكّده ${isolate(name)}`,
     rowClaimed: (when: string) => `يقول إنه دفع، ${isolate(when)}`,
     rowDue: "لم يدفع بعد",
     rowReturned: "لم يُستلم",
     rowFree: "حارس، يلعب مجانًا",
+    rowFreePaid: "حارس، يلعب مجانًا. دفع مسبقًا",
+    rowFreeClaimed: "حارس، يلعب مجانًا. يقول إنه دفع",
     confirm: "أكّد",
     markPaid: "سجّل الدفع",
     undo: "تراجع",
@@ -168,17 +203,26 @@ export const gamePayments = {
     undone: "تم التراجع",
   },
   lineup: {
-    more: (n: number) => `${isolate(String(n))} آخرون`,
+    more: (n: number) =>
+      plural("ar", n, {
+        zero: "لا آخرين",
+        one: "لاعب آخر",
+        two: "لاعبان آخران",
+        few: "{n} آخرين",
+        many: "{n} آخرًا",
+        other: "{n} آخر",
+      }),
+    players: "اللاعبون",
+    keeper: "حارس",
+    keeperFree: "حارس، يلعب مجانًا",
+    positionAndMark: (position: string, mark: string) => `${position}، ${mark}`,
     manage: "أكّد الدفعات وسجّلها",
     paidCount: (paid: number, payers: number) =>
       `دفع ${isolate(String(paid))} من ${isolate(String(payers))}`,
-    youPaid: "أنت مشارك، ودفعت",
-    confirmedByOrganizer: "أكّده المنظّم",
   },
   errors: {
     notTracked: "هذه المباراة لا تتتبّع الدفع",
     needsPrice: "حدّد سعرًا لتتبّع الدفع",
-    keepersFootballOnly: "مباراة كرة القدم وحدها تتيح للحرّاس اللعب مجانًا",
     notPlayer: "يدفع لاعبو هذه المباراة فقط",
     nothingToPay: "لا شيء لتدفعه في هذه المباراة",
     alreadyPaid: "تأكّد الدفع مسبقًا",

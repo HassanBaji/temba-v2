@@ -117,7 +117,7 @@ export type FriendlyGameDetails = {
   windowEnd: Date | null;
   pricePerPlayerFils: number | null;
   /** Payments are tracked only with a price above zero. */
-  trackPayments?: boolean;
+  trackPayments: boolean;
   levelMinTenths: number | null;
   levelMaxTenths: number | null;
   playersAllowed: number | null;

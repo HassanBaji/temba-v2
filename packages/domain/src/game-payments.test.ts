@@ -2,15 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import {
   createPaymentSummary,
-  formatPaymentFigure,
   gamePaymentsTracked,
+  paymentLineupGroups,
   paymentMark,
+  paymentRowActionLabel,
   paymentRowActions,
   paymentRowSubline,
-  paymentTally,
+  paymentShortcuts,
   payersWhenFull,
-  playsFree,
   viewerPaymentCard,
+  type PaymentLineupPlayer,
   type ViewerPayment,
 } from "./game-payments";
 
@@ -25,6 +26,23 @@ const due: ViewerPayment = {
   returnReason: null,
   returnNote: null,
 };
+
+function player(
+  name: string,
+  overrides: Partial<PaymentLineupPlayer> = {},
+): PaymentLineupPlayer {
+  return {
+    userId: name,
+    name,
+    image: null,
+    isViewer: false,
+    mark: "due",
+    sideIndex: null,
+    role: null,
+    position: null,
+    ...overrides,
+  };
+}
 
 describe("gamePaymentsTracked", () => {
   it("needs both the switch and a price above zero", () => {
@@ -43,20 +61,6 @@ describe("gamePaymentsTracked", () => {
   });
 });
 
-describe("playsFree", () => {
-  it("follows the keeper spot only when keepers play free", () => {
-    expect(
-      playsFree({ keepersPlayFree: true }, { footballRole: "keeper" }),
-    ).toBe(true);
-    expect(
-      playsFree({ keepersPlayFree: true }, { footballRole: "outfield" }),
-    ).toBe(false);
-    expect(
-      playsFree({ keepersPlayFree: false }, { footballRole: "keeper" }),
-    ).toBe(false);
-  });
-});
-
 describe("paymentMark", () => {
   it("never counts a claim or a sent-back payment as paid", () => {
     expect(paymentMark("claimed", false)).toBe("claimed");
@@ -67,24 +71,6 @@ describe("paymentMark", () => {
 
   it("marks a free player free even with a recorded payment", () => {
     expect(paymentMark("paid", true)).toBe("free");
-  });
-});
-
-describe("paymentTally", () => {
-  it("leaves free players out of the money expected", () => {
-    const tally = paymentTally(
-      ["paid", "paid", "claimed", "due", "free", "free"],
-      1500,
-    );
-    expect(tally).toEqual({
-      paid: 2,
-      claimed: 1,
-      due: 1,
-      free: 2,
-      payers: 4,
-      collectedFils: 3000,
-      expectedFils: 6000,
-    });
   });
 });
 
@@ -101,7 +87,7 @@ describe("payersWhenFull", () => {
 
 describe("paymentRowActions", () => {
   it("offers confirm and send back on a claim", () => {
-    expect(paymentRowActions("claimed")).toEqual({
+    expect(paymentRowActions("claimed", "claimed")).toEqual({
       primary: "confirm",
       canSendBack: true,
     });
@@ -109,14 +95,31 @@ describe("paymentRowActions", () => {
       primary: "mark_paid",
       canSendBack: false,
     });
-    expect(paymentRowActions("paid")).toEqual({
+    expect(paymentRowActions("paid", "paid")).toEqual({
       primary: "undo",
       canSendBack: false,
     });
+  });
+
+  it("keeps a free player's recorded payment within the Organizer's reach", () => {
     expect(paymentRowActions("free")).toEqual({
       primary: null,
       canSendBack: false,
     });
+    expect(paymentRowActions("free", "paid")).toEqual({
+      primary: "undo",
+      canSendBack: false,
+    });
+    expect(paymentRowActions("free", "claimed")).toEqual({
+      primary: null,
+      canSendBack: true,
+    });
+  });
+
+  it("labels each action", () => {
+    expect(paymentRowActionLabel("confirm", "en")).toBe("Confirm");
+    expect(paymentRowActionLabel("mark_paid", "en")).toBe("Mark paid");
+    expect(paymentRowActionLabel("undo", "en")).toBe("Undo");
   });
 });
 
@@ -139,7 +142,7 @@ describe("viewerPaymentCard", () => {
       viewerPaymentCard({ ...due, free: true }, 1500, "en", NOW),
     ).toMatchObject({
       kind: "free",
-      note: expect.stringContaining("1.500 BD"),
+      note: expect.stringContaining("1.500 BD") as string,
     });
   });
 
@@ -156,7 +159,6 @@ describe("viewerPaymentCard", () => {
       "en",
       NOW,
     );
-    expect(card).toMatchObject({ kind: "returned" });
     expect(card.kind === "returned" && card.note).toContain(
       "Only 1 BD came through",
     );
@@ -181,7 +183,7 @@ describe("viewerPaymentCard", () => {
 });
 
 describe("paymentRowSubline", () => {
-  it("says when a player claimed", () => {
+  it("says when a player claimed and who confirmed", () => {
     expect(
       paymentRowSubline(
         {
@@ -200,6 +202,152 @@ describe("paymentRowSubline", () => {
         NOW,
       ),
     ).toBe("Not received");
+    expect(
+      paymentRowSubline(
+        {
+          mark: "paid",
+          status: "paid",
+          claimedAt: null,
+          paidBy: { isViewer: true, name: "Hassan" },
+        },
+        "en",
+        NOW,
+      ),
+    ).toBe("Paid, confirmed by you");
+    expect(
+      paymentRowSubline(
+        {
+          mark: "paid",
+          status: "paid",
+          claimedAt: null,
+          paidBy: { isViewer: false, name: "Noor" },
+        },
+        "en",
+        NOW,
+      ),
+    ).toBe("Paid, confirmed by Noor");
+  });
+
+  it("keeps a free player's recorded payment in view", () => {
+    expect(
+      paymentRowSubline(
+        { mark: "free", status: "paid", claimedAt: null },
+        "en",
+        NOW,
+      ),
+    ).toBe("Keeper, plays free. Already paid");
+    expect(
+      paymentRowSubline(
+        { mark: "free", status: null, claimedAt: null },
+        "en",
+        NOW,
+      ),
+    ).toBe("Keeper, plays free");
+  });
+});
+
+describe("paymentShortcuts", () => {
+  const tally = { paid: 1, claimed: 2, due: 3, free: 0, payers: 6 };
+
+  it("counts only who a reminder would reach", () => {
+    expect(
+      paymentShortcuts(tally, { toRemind: 2, remindedToday: 0 }, "en"),
+    ).toEqual({
+      confirmAll: { label: "Confirm all 2", enabled: true },
+      remind: { label: "Remind 2", enabled: true },
+    });
+  });
+
+  it("reads Reminded once today's reminders are out", () => {
+    expect(
+      paymentShortcuts(tally, { toRemind: 0, remindedToday: 3 }, "en").remind,
+    ).toEqual({ label: "Reminded", enabled: false });
+  });
+
+  it("says so when only the Organizer has not paid, or nobody is left", () => {
+    expect(
+      paymentShortcuts(
+        { ...tally, claimed: 0, due: 1 },
+        { toRemind: 0, remindedToday: 0 },
+        "en",
+      ),
+    ).toEqual({
+      confirmAll: { label: "Nothing to confirm", enabled: false },
+      remind: { label: "Nobody to remind", enabled: false },
+    });
+    expect(
+      paymentShortcuts(
+        { ...tally, due: 0 },
+        { toRemind: 0, remindedToday: 0 },
+        "en",
+      ).remind.label,
+    ).toBe("Everyone has paid");
+  });
+});
+
+describe("paymentLineupGroups", () => {
+  it("groups a football Game by bib with each side's paid count", () => {
+    const groups = paymentLineupGroups(
+      {
+        format: "friendly_game",
+        sides: [
+          { sideIndex: 2, bib: "white" },
+          { sideIndex: 1, bib: "black" },
+        ],
+        players: [
+          player("Hamad", { sideIndex: 1, role: "keeper", mark: "free" }),
+          player("Yousif", {
+            sideIndex: 1,
+            role: "outfield",
+            position: "mid",
+            mark: "claimed",
+          }),
+          player("Hassan", {
+            sideIndex: 1,
+            role: "outfield",
+            position: "def",
+            mark: "paid",
+            isViewer: true,
+          }),
+          player("Bo", {
+            sideIndex: 2,
+            role: "keeper",
+            position: "def",
+            mark: "due",
+          }),
+        ],
+      },
+      "en",
+    );
+    expect(groups.map((group) => [group.title, group.paidLine])).toEqual([
+      ["Black", "1 of 2 paid"],
+      ["White", "0 of 1 paid"],
+    ]);
+    expect(
+      groups[0]?.rows.map((row) => [row.displayName, row.subline]),
+    ).toEqual([
+      ["Hamad", "Keeper, plays free"],
+      ["Yousif", "Midfield, says paid"],
+      ["You", "Defender, paid"],
+    ]);
+    expect(groups[1]?.rows[0]?.subline).toBe("Keeper, not yet");
+  });
+
+  it("lists players on no side together", () => {
+    const groups = paymentLineupGroups(
+      {
+        format: "friendly_game",
+        sides: [],
+        players: [player("Ali", { mark: "paid" }), player("Noor")],
+      },
+      "en",
+    );
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toMatchObject({
+      title: "Players",
+      paidLine: "1 of 2 paid",
+    });
+    expect(groups[0]?.rows[1]?.subline).toBe("not yet");
   });
 });
 
@@ -233,12 +381,5 @@ describe("createPaymentSummary", () => {
         "en",
       ).totalFils,
     ).toBe(8000);
-  });
-});
-
-describe("formatPaymentFigure", () => {
-  it("keeps three decimals", () => {
-    expect(formatPaymentFigure(18000)).toBe("18.000");
-    expect(formatPaymentFigure(1500)).toBe("1.500");
   });
 });

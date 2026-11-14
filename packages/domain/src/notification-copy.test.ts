@@ -1577,3 +1577,65 @@ describe("notificationCopy: a confirmed Level", () => {
     }
   });
 });
+
+describe("notificationCopy for payment tracking", () => {
+  const game = {
+    name: "Friday Football",
+    format: "friendly_game",
+    windowStart: bahrainDate(2026, 9, 11, 19, 0, 0),
+  };
+
+  function text(
+    type: string,
+    audience: string,
+    item: Partial<NotificationCopyInput> = {},
+  ) {
+    const copy = notificationCopy(
+      {
+        type,
+        audience,
+        actor: { name: "Sara" },
+        group: null,
+        game,
+        ...item,
+      },
+      "en",
+    );
+    return copy
+      ? {
+          title: copy.title.map((part) => part.text).join(""),
+          subline: copy.subline,
+        }
+      : null;
+  }
+
+  it("reminds a player to pay the Organizer", () => {
+    assert.deepEqual(text("game_payment_reminder", "player"), {
+      title: "Sara reminded you to pay for Friday Football",
+      subline: "Pay the organizer, then tell them on the game.",
+    });
+  });
+
+  it("tells a player their payment has not arrived", () => {
+    assert.deepEqual(text("game_payment_not_received", "player"), {
+      title: "Sara hasn’t received your payment for Friday Football",
+      subline: null,
+    });
+  });
+
+  it("tells an admin a player says they paid", () => {
+    assert.deepEqual(text("game_payment_claimed", "admin"), {
+      title: "Sara says they paid for Friday Football",
+      subline: "Confirm it once you have the money.",
+    });
+  });
+
+  it("returns null for the wrong audience or without the Game", () => {
+    assert.equal(text("game_payment_claimed", "player"), null);
+    assert.equal(text("game_payment_reminder", "admin"), null);
+    assert.equal(
+      text("game_payment_not_received", "player", { game: null }),
+      null,
+    );
+  });
+});

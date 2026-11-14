@@ -160,6 +160,23 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens the payments list when a player says they paid, and the Game for the player's own notices", () => {
+    assert.equal(
+      notificationHref({
+        type: "game_payment_claimed",
+        group: { id: "g2" },
+        game: { id: "g1" },
+      }),
+      "/dashboard/games/g1/payments",
+    );
+    for (const type of ["game_payment_reminder", "game_payment_not_received"]) {
+      assert.equal(
+        notificationHref({ type, group: { id: "g2" }, game: { id: "g1" } }),
+        "/dashboard/games/g1",
+      );
+    }
+  });
+
   it("opens the Operator Disputes page for a raised dispute, and the Game once decided", () => {
     assert.equal(
       notificationHref({
