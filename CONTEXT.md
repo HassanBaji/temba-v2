@@ -676,8 +676,12 @@ _Avoid_: email preferences, subscription, opt-in, unsubscribe (when you mean the
 The Locale the API keeps for a User, written by the clients whenever the language they show changes, and read wherever the product speaks to the User away from a client, such as a Notification email. English until the User has used Temba in another language.
 _Avoid_: language preference, user language, locale setting, Accept-Language
 
+**Waiting request**:
+A request that waits on the viewer as an Organizer or Group approver: a Game Level range request on an upcoming Game they organize, a Group join request with a live Seat hold on an upcoming Game, or any other pending Group join request in a Group they approve for. Listed most urgent first (seats before Group join requests, then whichever hold or Game start runs out first, then the oldest ask) on Home, in the Requests section of Notifications and on All requests, as one card. An answer waits a few seconds with Undo before it is sent (ADR-0087).
+_Avoid_: inbox item, pending action, notification (a Notification only tells; a Waiting request needs an answer)
+
 **Notifications page**:
-The Web App page at `/dashboard/notifications`, opened from the bell, listing the signed-in User's Notifications newest first, with a link to pending invites when there are any.
+The Web App page at `/dashboard/notifications`, opened from the bell, listing the signed-in User's Waiting requests in their own section on top, then their Notifications newest first, with a link to pending invites when there are any.
 _Avoid_: feed, inbox (when you mean this page), activity log, Home
 
 **Standing**:

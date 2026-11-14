@@ -5,7 +5,6 @@ import {
   eq,
   gt,
   inArray,
-  isNotNull,
   isNull,
   lt,
   ne,
@@ -148,8 +147,11 @@ export async function listWaitingRequests(
       or(isNull(games.windowStart), gt(games.windowStart, now)),
       or(
         groupIds.length > 0 ? inArray(games.groupId, groupIds) : undefined,
-        and(isNull(games.groupId), eq(games.createdBy, viewerId)),
-        isNotNull(games.challengeId),
+        and(
+          isNull(games.groupId),
+          isNull(games.challengeId),
+          eq(games.createdBy, viewerId),
+        ),
       ),
     ),
     columns: { id: true },
@@ -278,7 +280,7 @@ export async function listWaitingRequests(
         row.userId,
         group.sport,
       ),
-      group: { id: group.id, name: group.name, sport: group.sport },
+      group: { id: group.id, name: group.name, sport: group.sport ?? "padel" },
       source: row.source,
       note: row.note,
       gamesWithMembers: await gamesWithMembers(database, {
