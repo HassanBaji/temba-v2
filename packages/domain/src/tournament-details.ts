@@ -24,6 +24,7 @@ import {
   tournamentViewerSide,
 } from "./tournament-home";
 import { tournamentShowsTakeSeat } from "./tournament-join";
+import { isKingOfTheCourt, kingCourtCount } from "./tournament-king";
 import {
   knockoutChampion,
   knockoutChampionLine,
@@ -109,6 +110,8 @@ export type TournamentDetailsGameTeam = {
   sideIndex: number | null;
   poolIndex: number | null;
   knockoutSeed: number | null;
+  startCourt?: number | null;
+  finalPlace?: number | null;
   members: {
     id: string;
     name: string;
@@ -153,6 +156,7 @@ export type TournamentDetails = {
   roundCount: number | null;
   matchMinutes: number | null;
   drawPostedAt: Date | null;
+  finalOrderPostedAt?: Date | null;
   canUndoDraw: boolean;
   sport: string | null;
   cancelledAt: Date | null;
@@ -278,6 +282,35 @@ function ratingDetailRow(
   };
 }
 
+function kingDetailRows(
+  head: TournamentDetailRow[],
+  pricePerPlayerFils: number | null,
+  king: { finished: boolean },
+  locale: Locale,
+): TournamentDetailRow[] {
+  const m = messagesFor(locale);
+  const k = m.tournamentKing.details;
+  const rows = [...head];
+  const price = formatPricePerPlayerFils(pricePerPlayerFils, locale);
+  if (price) {
+    rows.push({
+      label: m.tournament.home.priceRow,
+      value: m.createGame.price.perPlayer(price),
+    });
+  }
+  rows.push(
+    {
+      label: k.scores,
+      value: king.finished ? k.scoresPosted : k.scoresNone,
+    },
+    {
+      label: k.rating,
+      value: king.finished ? k.ratingFinished : k.ratingNo,
+    },
+  );
+  return rows;
+}
+
 export function tournamentDetailRows(args: {
   organizerName: string | null;
   groupName: string | null;
@@ -287,9 +320,11 @@ export function tournamentDetailRows(args: {
   seated: boolean;
   totalFils: number | null;
   locale: Locale;
+  /** King of the court: no Matches, so Scores and rating replace the Match rows. */
+  king?: { finished: boolean };
 }): TournamentDetailRow[] {
   const m = messagesFor(args.locale);
-  const rows: TournamentDetailRow[] = [
+  const head: TournamentDetailRow[] = [
     {
       label: m.tournament.home.organizerRow,
       value: args.organizerName ?? m.tournament.home.organizerRow,
@@ -298,6 +333,17 @@ export function tournamentDetailRows(args: {
       label: m.tournament.home.groupRow,
       value: args.groupName?.trim() ? args.groupName : "—",
     },
+  ];
+  if (args.king) {
+    return kingDetailRows(
+      head,
+      args.pricePerPlayerFils,
+      args.king,
+      args.locale,
+    );
+  }
+  const rows: TournamentDetailRow[] = [
+    ...head,
     {
       label: m.tournament.sizing.eachMatchRow,
       value: m.tournament.details.minutes(
@@ -328,6 +374,7 @@ export function tournamentDetailRows(args: {
 export type TournamentHomeView = {
   drawn: boolean;
   knockoutOnly: boolean;
+  kingOfTheCourt: boolean;
   thenKnockout: boolean;
   partnerRequired: boolean;
   seated: boolean;
@@ -359,13 +406,14 @@ export function tournamentHomeView(
   locale: Locale,
 ): TournamentHomeView {
   const knockoutOnly = isKnockoutOnly(game.format, game.tournamentShape);
+  const king = isKingOfTheCourt(game.format, game.tournamentShape);
   const thenKnockout =
     !knockoutOnly && hasKnockout(game.format, game.tournamentShape);
   const sizing =
     game.poolCount != null && game.teamsAllowed != null
       ? sizeFriendlyTournament(game.teamsAllowed, game.poolCount)
       : null;
-  const roundCount = tournamentRoundCount(game);
+  const roundCount = king ? null : tournamentRoundCount(game);
   const field = tournamentFieldSummary(game.sides);
   const viewerSide = tournamentViewerSide(game.sides, game.viewerUserId);
   const seated = Boolean(viewerSide);
@@ -386,9 +434,10 @@ export function tournamentHomeView(
     organizerName,
     locale,
     knockoutOnly,
+    king,
     thenKnockout,
   });
-  const matchesForViewer = viewerTournamentMatchCount(game);
+  const matchesForViewer = king ? null : viewerTournamentMatchCount(game);
   const totalFils =
     seated && matchesForViewer != null
       ? viewerTournamentTotalFils(game.pricePerPlayerFils, matchesForViewer)
@@ -408,6 +457,7 @@ export function tournamentHomeView(
   return {
     drawn,
     knockoutOnly,
+    kingOfTheCourt: king,
     thenKnockout,
     partnerRequired,
     seated,
@@ -431,15 +481,19 @@ export function tournamentHomeView(
         game.venue?.name ?? null,
         locale,
       ),
-      sizeLine: knockoutOnly
-        ? knockoutSizeLine(game.teamsAllowed ?? game.sides.length, locale)
-        : sizing?.ok
-          ? tournamentSizeLine(
-              sizing.sizing,
-              locale,
-              plannedKnockoutRoundCount(game),
-            )
-          : null,
+      sizeLine: king
+        ? messagesFor(locale).tournamentKing.hero.courtsLine(
+            kingCourtCount(game.teamsAllowed ?? game.sides.length),
+          )
+        : knockoutOnly
+          ? knockoutSizeLine(game.teamsAllowed ?? game.sides.length, locale)
+          : sizing?.ok
+            ? tournamentSizeLine(
+                sizing.sizing,
+                locale,
+                plannedKnockoutRoundCount(game),
+              )
+            : null,
       statusLine,
     },
     detailRows: tournamentDetailRows({
@@ -451,6 +505,7 @@ export function tournamentHomeView(
       seated,
       totalFils,
       locale,
+      king: king ? { finished: game.finalOrderPostedAt != null } : undefined,
     }),
     // The API refuses a leave once the draw is posted.
     canLeaveGame:

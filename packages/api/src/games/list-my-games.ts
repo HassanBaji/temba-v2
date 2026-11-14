@@ -88,10 +88,13 @@ export async function listMyGamesHubRows(
       hubGameMayBeLive(database, now, FOOTBALL_RESULT_MS),
     ),
   );
-  const candidates = (rows as HubQueryRow[]).map((row) => ({
-    ...row,
-    viewerIsParticipant: viewerIsParticipantOnRow(row, viewer),
-  }));
+  const candidates = (rows as HubQueryRow[])
+    // A King of the court Game moves to Played once its final order is posted.
+    .filter((row) => row.finalOrderPostedAt == null)
+    .map((row) => ({
+      ...row,
+      viewerIsParticipant: viewerIsParticipantOnRow(row, viewer),
+    }));
   const upcoming = filterAndSortMyGamesHubGames(
     candidates,
     viewer.memberGroupIds,

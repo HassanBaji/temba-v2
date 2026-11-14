@@ -29,6 +29,10 @@ export const gameTeams = pgTable(
     sideIndex: integer("side_index"),
     poolIndex: integer("pool_index"),
     knockoutSeed: integer("knockout_seed"),
+    /** King of the court: the Court this team starts on, 1 being the king's court. */
+    startCourt: integer("start_court"),
+    /** King of the court: the place the Organizer posted, null when not placed. */
+    finalPlace: integer("final_place"),
     bib: footballBibs("bib"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

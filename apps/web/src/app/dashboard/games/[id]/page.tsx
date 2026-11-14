@@ -370,6 +370,31 @@ export default function GameHomePage({
     },
   });
 
+  const postKingCourts = api.games.postKingCourts.useMutation({
+    onSuccess: async () => {
+      toast.success(m.tournamentKing.draw.postedNote);
+      await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const postKingFinalOrder = api.games.postKingFinalOrder.useMutation({
+    onSuccess: async () => {
+      toast.success(m.tournamentKing.finalOrder.posted);
+      await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
+      await utils.games.listMyMatchHistory.invalidate();
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
   const postPoolDraw = api.games.postPoolDraw.useMutation({
     onSuccess: async () => {
       toast.success(
@@ -1187,6 +1212,19 @@ export default function GameHomePage({
               undoError={undoPoolDraw.error}
               onUndo={async () => {
                 await undoPoolDraw.mutateAsync({ gameId: id });
+              }}
+              kingCourtsPending={postKingCourts.isPending}
+              kingCourtsError={postKingCourts.error}
+              onPostKingCourts={async (gameTeamIds) => {
+                await postKingCourts.mutateAsync({ gameId: id, gameTeamIds });
+              }}
+              kingOrderPending={postKingFinalOrder.isPending}
+              kingOrderError={postKingFinalOrder.error}
+              onPostKingFinalOrder={async (gameTeamIds) => {
+                await postKingFinalOrder.mutateAsync({
+                  gameId: id,
+                  gameTeamIds,
+                });
               }}
               onShare={canManageGameInvites ? shareInviteLink : undefined}
               onInvite={

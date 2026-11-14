@@ -18,6 +18,7 @@ import {
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import { sportOrDefault } from "@repo/domain/sport";
+import { kingCourtsIssue } from "@repo/domain/tournament-king";
 import {
   sizeFriendlyTournament,
   tournamentTeamCountIssue,
@@ -63,7 +64,11 @@ type ShapeSizing =
 
 function sizeTournamentShape(
   value: {
-    tournamentShape?: "groups_only" | "groups_then_knockout" | "knockout_only";
+    tournamentShape?:
+      | "groups_only"
+      | "groups_then_knockout"
+      | "knockout_only"
+      | "king_of_the_court";
     teamCount: number;
     poolCount?: number;
     roundCount?: number | null;
@@ -79,6 +84,21 @@ function sizeTournamentShape(
         path: "qualifiersPerPool",
         message: messagesFor(locale).tournament.errors.qualifiersShape,
       },
+    };
+  }
+  if (value.tournamentShape === "king_of_the_court") {
+    const issue = kingCourtsIssue(value.teamCount, locale);
+    if (issue) {
+      return { ok: false, issue: { path: "teamCount", message: issue } };
+    }
+    return {
+      ok: true,
+      tournamentShape: TournamentShapeEnum.KING_OF_THE_COURT,
+      playerCount: value.teamCount * 2,
+      teamCount: value.teamCount,
+      poolCount: null,
+      roundCount: null,
+      qualifiersPerPool: null,
     };
   }
   if (value.tournamentShape === "knockout_only") {
@@ -150,7 +170,12 @@ export const createTournamentInputSchema = z
     registrationMode: z.literal("individual").optional(),
     allowSoloRegister: z.boolean().optional().default(true),
     tournamentShape: z
-      .enum(["groups_only", "groups_then_knockout", "knockout_only"])
+      .enum([
+        "groups_only",
+        "groups_then_knockout",
+        "knockout_only",
+        "king_of_the_court",
+      ])
       .optional(),
     teamCount: z.number().int(),
     poolCount: z.number().int().optional(),
@@ -278,6 +303,7 @@ export async function createTournament(
     locale,
   });
 
+  const king = sized.tournamentShape === TournamentShapeEnum.KING_OF_THE_COURT;
   const created = await database.transaction(async (tx) => {
     const [game] = await tx
       .insert(games)
@@ -297,17 +323,20 @@ export async function createTournament(
         poolCount: sized.poolCount,
         roundCount: sized.roundCount,
         qualifiersPerPool: sized.qualifiersPerPool,
-        matchMinutes: input.matchMinutes,
+        matchMinutes: king ? null : input.matchMinutes,
         pricePerPlayerFils: input.pricePerPlayerFils ?? null,
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
-        ...ratingFlagsAtCreate({
-          hasGroup: true,
-          groupVerified,
-          sport: "padel",
-          rated: input.rated ?? true,
-        }),
+        // Nothing is scored in King of the court, so it never moves a Level.
+        ...(king
+          ? { rated: false, groupRated: false }
+          : ratingFlagsAtCreate({
+              hasGroup: true,
+              groupVerified,
+              sport: "padel",
+              rated: input.rated ?? true,
+            })),
         createdBy: input.createdBy,
       })
       .returning();

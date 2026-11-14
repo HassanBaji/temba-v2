@@ -22,6 +22,7 @@ import {
   resolveRoundCount,
   TOURNAMENT_TEAM_MIN,
 } from "@repo/domain/tournament-sizing";
+import { isKingOfTheCourt } from "@repo/domain/tournament-king";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
@@ -306,6 +307,12 @@ export async function postPoolDraw(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: messagesFor(locale).tournament.errors.postDrawFriendly,
+    });
+  }
+  if (isKingOfTheCourt(game.format, game.tournamentShape)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).tournamentKing.errors.useStartingCourts,
     });
   }
   const knockoutOnly = isKnockoutOnly(game.format, game.tournamentShape);

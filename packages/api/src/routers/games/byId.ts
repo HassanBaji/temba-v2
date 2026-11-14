@@ -1301,6 +1301,7 @@ export async function gameById(
     roundCount: game.roundCount,
     matchMinutes: game.matchMinutes,
     drawPostedAt: game.drawPostedAt,
+    finalOrderPostedAt: game.finalOrderPostedAt,
     canUndoDraw:
       game.drawPostedAt != null &&
       !matchRows.some(
@@ -1412,6 +1413,8 @@ export async function gameById(
       sideIndex: row.sideIndex,
       poolIndex: row.poolIndex,
       knockoutSeed: row.knockoutSeed,
+      startCourt: row.startCourt,
+      finalPlace: row.finalPlace,
       members: row.players.flatMap((link) =>
         link.gamePlayer.user
           ? [

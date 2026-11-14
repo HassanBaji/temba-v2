@@ -15,6 +15,7 @@ import {
   knockoutFinalists,
   type KnockoutViewTeam,
 } from "./tournament-knockout-view";
+import { isKingOfTheCourt } from "./tournament-king";
 import { hasKnockout, isKnockoutOnly } from "./tournament-rounds";
 
 type FinishedGame = Pick<
@@ -46,10 +47,16 @@ export function isTournamentFinished(
   game: Pick<
     FinishedGame,
     "format" | "tournamentShape" | "drawPostedAt" | "cancelledAt" | "knockout"
-  > & { poolTables: { finished: boolean } | null },
+  > & {
+    poolTables: { finished: boolean } | null;
+    finalOrderPostedAt?: Date | string | null;
+  },
 ): boolean {
   if (game.drawPostedAt == null || game.cancelledAt != null) {
     return false;
+  }
+  if (isKingOfTheCourt(game.format, game.tournamentShape)) {
+    return game.finalOrderPostedAt != null;
   }
   if (hasKnockout(game.format, game.tournamentShape)) {
     return knockoutFinalists(game.knockout) != null;
@@ -452,7 +459,11 @@ export function tournamentFinishedView(
   game: FinishedGame,
   locale: Locale,
 ): TournamentFinishedView | null {
-  if (!isTournamentFinished(game)) {
+  // King of the court has no table or Matches; its finished view is its own.
+  if (
+    isKingOfTheCourt(game.format, game.tournamentShape) ||
+    !isTournamentFinished(game)
+  ) {
     return null;
   }
   const m = messagesFor(locale).tournamentRounds.finished;

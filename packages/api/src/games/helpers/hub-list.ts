@@ -83,6 +83,7 @@ export const hubListColumns = {
   roundCount: true,
   allowSoloRegister: true,
   drawPostedAt: true,
+  finalOrderPostedAt: true,
   sideSize: true,
   challengeId: true,
 } as const;
@@ -209,6 +210,7 @@ export type HubQueryRow = {
   roundCount: number | null;
   allowSoloRegister: boolean;
   drawPostedAt: Date | null;
+  finalOrderPostedAt?: Date | null;
   sideSize: number | null;
   challengeId: string | null;
   group: {

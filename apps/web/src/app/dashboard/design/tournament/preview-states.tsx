@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { StepperField } from "~/components/games/stepper-field";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import { TournamentHome } from "~/components/games/tournament-home";
+import { KingPlayedCard } from "~/components/games/tournament-king-played-card";
 import { ScaledCanvas } from "~/components/share-result/scaled-canvas";
 import {
   TOURNAMENT_CARD_SIZE,
@@ -19,6 +20,8 @@ import { buttonVariants } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import type { TournamentFixture } from "@repo/domain/tournament-details-fixtures";
+import type { createKingTournamentFixtures } from "@repo/domain/tournament-king-fixtures";
+import { kingPlayedSummary } from "@repo/domain/tournament-king-view";
 import type {
   TournamentCardFixture,
   TournamentCardFixtures,
@@ -88,8 +91,10 @@ const WITH_A_PARTNER_ONLY_LABEL = PREVIEW.tournament.sizing.withPartnerOnly;
 export function TournamentPreviewStates({
   fixtures,
   cardFixtures,
+  kingFixtures,
 }: {
   cardFixtures: TournamentCardFixtures;
+  kingFixtures: ReturnType<typeof createKingTournamentFixtures>;
   fixtures: {
     preDrawWithoutSeat: TournamentFixture;
     preDrawSeatedHalfOpen: TournamentFixture;
@@ -100,8 +105,47 @@ export function TournamentPreviewStates({
     finished: TournamentFixture;
   };
 }) {
+  const kingPlayed = kingPlayedSummary(kingFixtures.playerFinished, "en");
   return (
     <div className="space-y-10">
+      <section className="space-y-4" data-preview="king-of-the-court">
+        <h2 className="text-title font-semibold">King of the court</h2>
+        <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-4">
+          <PreviewColumn
+            title="Organizer, full, ready to draw"
+            data={kingFixtures.organizerReadyToDraw}
+          />
+          <PreviewColumn
+            title="Player, the Courts tab"
+            data={kingFixtures.playerCourts}
+          />
+          <PreviewColumn
+            title="Organizer, final order"
+            data={kingFixtures.organizerFinalOrder}
+          />
+          <PreviewColumn
+            title="Player, finished"
+            data={kingFixtures.playerFinished}
+          />
+        </div>
+        {kingPlayed ? (
+          <ul className="max-w-column">
+            <KingPlayedCard
+              game={{
+                id: kingFixtures.playerFinished.id,
+                name: kingFixtures.playerFinished.name,
+                windowStart: kingFixtures.playerFinished.windowStart,
+                displayTime: kingFixtures.playerFinished.createdAt,
+                groupName: kingFixtures.playerFinished.groupName,
+                venue: {
+                  name: kingFixtures.playerFinished.venue?.name ?? "",
+                },
+                kingOfTheCourt: kingPlayed,
+              }}
+            />
+          </ul>
+        ) : null}
+      </section>
       <section className="space-y-4">
         <h2 className="text-title font-semibold">Rounds</h2>
         <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-4">

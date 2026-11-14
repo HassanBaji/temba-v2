@@ -8,6 +8,7 @@ import {
   isDrawnTournament,
   isKnockoutOnly,
 } from "@repo/domain/tournament-rounds";
+import { isKingOfTheCourt } from "@repo/domain/tournament-king";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
@@ -43,6 +44,12 @@ export async function undoPoolDraw(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: messagesFor(locale).tournament.errors.undoFriendly,
+    });
+  }
+  if (isKingOfTheCourt(game.format, game.tournamentShape)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).tournamentKing.errors.useStartingCourts,
     });
   }
   if (game.drawPostedAt == null) {
