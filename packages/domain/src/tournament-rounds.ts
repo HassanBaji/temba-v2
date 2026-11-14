@@ -21,7 +21,8 @@ import {
 export type TournamentShape =
   | "groups_only"
   | "groups_then_knockout"
-  | "knockout_only";
+  | "knockout_only"
+  | "king_of_the_court";
 
 export const KNOCKOUT_ONLY_SHAPE = "knockout_only" satisfies TournamentShape;
 
