@@ -27,17 +27,13 @@ Columns on `group_members` (migration `0103_member_nicknames`): `nickname varcha
 
 ## Where it shows
 
-Every place below marks the nickname with the tag icon. Only the Members list puts the Temba name under it; everywhere else the nickname stands alone, and avatars keep the Temba name's initials.
+Both Apps show the same places. Every one marks the nickname with the tag icon. Only the Members list puts the Temba name under it; everywhere else the nickname stands alone, and avatars keep the Temba name's initials.
 
-- Members (mobile): nickname first, Temba name under it; search matches both. In Manage, a member without one shows "Add name", the approver's own row included. The member menu has a "Name in this Group" row with the current name on the right. A legend line explains the tag.
-- Name in this Group sheet (mobile): name field with counter, live preview row (nickname over Temba name), Who sees it, Save and Clear name. Naming yourself reads "For you" and its own notes.
-- The player's own card (mobile): only for a name set for the whole Group.
-- Standing (mobile, all lenses).
-- Line-ups: padel court seats and football pool tiles and team columns, on mobile and web. The viewer's own seat stays "You".
-- Team making (mobile).
+- Members: nickname first, Temba name under it; search matches both. In Manage, a member without one shows "Add name", the approver's own row included. The member menu has a "Name in this Group" row with the current name on the right. A legend line explains the tag.
+- Name in this Group (a sheet on mobile, a dialog on web): name field with counter, live preview row (nickname over Temba name), Who sees it, Save and Clear name. Naming yourself reads "For you" and its own notes. The copy lives in `group.nickname` and the view in `@repo/domain/member-nickname-sheet`, shared by both Apps.
+- The player's own card: only for a name set for the whole Group.
+- Standing (all lenses). The viewer's own row keeps their Temba name ("You" on mobile).
+- Line-ups: padel court seats and football pool tiles and team columns. The viewer's own seat stays "You".
+- Team making.
 - Game Add players: nickname alone; search matches both names. The picked-players summary uses nicknames.
 - Share images, the score screen and the player sheet keep Temba names.
-
-## Not yet
-
-- The web App has no editor, and its Members list, Standing and Make teams show Temba names. Its members search ignores nicknames so it never matches a name the row doesn't show.

@@ -1,6 +1,5 @@
 "use client";
 
-import { Tag as TagIcon } from "lucide-react";
 import {
   ovrLabel,
   ovrSpoken,
@@ -10,6 +9,7 @@ import {
   type BoardPlayer,
 } from "@repo/domain/football-board";
 
+import { NicknameName } from "~/components/temba/nickname-name";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Hatch } from "~/components/ui/hatch";
@@ -87,14 +87,11 @@ function PlayerTile({
         ) : null}
       </span>
       <span className="flex items-baseline justify-between gap-1">
-        <span className="flex min-w-0 items-center gap-1 text-[12px]">
-          {isNickname ? (
-            <TagIcon aria-hidden className="size-3 shrink-0" />
-          ) : null}
-          <span dir="auto" className="truncate">
-            {name}
-          </span>
-        </span>
+        <NicknameName
+          name={name}
+          isNickname={isNickname}
+          className="text-[12px]"
+        />
         <span dir="ltr" className="font-expanded text-meta">
           {ovrLabel(player)}
         </span>

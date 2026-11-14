@@ -775,6 +775,7 @@ export default function GroupHomePage({
                   phoneMasked: entry.phoneMasked,
                   phoneNumber: entry.phoneNumber,
                   canRename: entry.canRename,
+                  nickname: entry.nickname ?? null,
                 }))}
                 linkToPlayers={groupMemberRowsLink(data.membership)}
                 canInvite={canManageInvites}
@@ -785,6 +786,7 @@ export default function GroupHomePage({
                 canRemovePlayers={data.canRemovePlayers}
                 onRemovePlayer={setRemoving}
                 canAppointOrganizers={data.canAppointOrganizers}
+                canSetNicknames={data.canSetMemberNicknames}
                 pendingInvites={
                   data.canManageLookupInvites
                     ? (lookupInvites.data ?? []).map((invite) => ({
