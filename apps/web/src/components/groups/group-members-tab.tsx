@@ -114,9 +114,7 @@ function savedLevelOf(member: GroupMember | undefined): SavedLevel | null {
 }
 
 function adjustingMember(members: GroupMember[], userId: string | null) {
-  const member = members.find(
-    (entry) => entry.userId === userId && !entry.isViewer && entry.tier,
-  );
+  const member = members.find((entry) => entry.userId === userId && entry.tier);
   return member ? { userId: member.userId, image: member.image } : null;
 }
 
@@ -702,11 +700,11 @@ export function GroupMembersTab({
       : undefined;
     const target = { userId: member.userId, name: member.name };
     const onAdjustTier =
-      canAdjustTier && !member.isViewer && member.tier != null
+      canAdjustTier && member.tier != null
         ? () => setAdjustingUserId(member.userId)
         : undefined;
     const tierHistoryHref =
-      canAdjustTier && !member.isViewer && member.tier != null
+      canAdjustTier && member.tier != null
         ? groupTierHistoryHref(groupId, member.userId)
         : undefined;
     const onRename =

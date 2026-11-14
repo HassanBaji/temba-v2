@@ -143,7 +143,7 @@ async function pointsRow(
 }
 
 describe("groups.adjustTierPoints", () => {
-  it("refuses a member who is not an Organizer, the Organizer's own points and a missing reason", async () => {
+  it("refuses a member who is not an Organizer and a missing reason", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const { groupId, ids, owner } = await seedThursday(db);
@@ -160,29 +160,6 @@ describe("groups.adjustTierPoints", () => {
         }),
       );
       expect(notOrganizer.code).toBe("FORBIDDEN");
-
-      const own = await rejection(
-        adjustTierPoints(database, {
-          groupId,
-          organizerUserId: owner,
-          userId: owner,
-          points: 1500,
-          reason: "correcting_a_mistake",
-        }),
-      );
-      expect(own.code).toBe("BAD_REQUEST");
-      expect(own.message).toBe("You can’t adjust your own tier points.");
-
-      const appointedOwn = await rejection(
-        adjustTierPoints(database, {
-          groupId,
-          organizerUserId: ids["Yousif K"]!,
-          userId: ids["Yousif K"]!,
-          points: 1350,
-          reason: "correcting_a_mistake",
-        }),
-      );
-      expect(appointedOwn.code).toBe("BAD_REQUEST");
 
       const noReason = await rejection(
         adjustTierPoints(database, {
@@ -244,6 +221,54 @@ describe("groups.adjustTierPoints", () => {
         );
         expect(error.code).toBe("PRECONDITION_FAILED");
       }
+    } finally {
+      await close();
+    }
+  });
+
+  it("lets an Organizer adjust their own points without telling themselves", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { groupId, ids, owner } = await seedThursday(db);
+      const yousif = ids["Yousif K"]!;
+
+      for (const organizer of [owner, yousif]) {
+        const before = (await pointsRow(db, groupId, organizer))!.points;
+        const result = await adjustTierPoints(apiDb(db), {
+          groupId,
+          organizerUserId: organizer,
+          userId: organizer,
+          points: before - 30,
+          reason: "correcting_a_mistake",
+        });
+        expect(result).toMatchObject({
+          userId: organizer,
+          points: before - 30,
+          delta: -30,
+        });
+        expect((await pointsRow(db, groupId, organizer))?.points).toBe(
+          before - 30,
+        );
+        expect(
+          (await notificationsOf(db, organizer)).filter(
+            (row) => row.type === "tier_points_adjusted",
+          ),
+        ).toEqual([]);
+      }
+
+      const events = await db
+        .select({
+          userId: groupTierEvents.userId,
+          setByUserId: groupTierEvents.setByUserId,
+        })
+        .from(groupTierEvents)
+        .where(eq(groupTierEvents.kind, "adjustment"));
+      expect(events).toEqual(
+        expect.arrayContaining([
+          { userId: owner, setByUserId: owner },
+          { userId: yousif, setByUserId: yousif },
+        ]),
+      );
     } finally {
       await close();
     }

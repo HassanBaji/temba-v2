@@ -61,8 +61,8 @@ describe("tierBandCounts", () => {
     });
   });
 
-  it("gives no fish below four ranked members", () => {
-    expect(tierBandCounts(3)).toEqual({
+  it("gives no fish below two ranked members", () => {
+    expect(tierBandCounts(1)).toEqual({
       shark: 0,
       hamour: 0,
       kanaad: 0,
@@ -70,7 +70,7 @@ describe("tierBandCounts", () => {
     });
   });
 
-  it("places everyone exactly once with one Shark from 4 to 30 ranked", () => {
+  it("places everyone exactly once with one Shark from 2 to 30 ranked", () => {
     for (let ranked = TIER_MIN_RANKED; ranked <= 30; ranked += 1) {
       const counts = tierBandCounts(ranked);
       const rest = ranked - 1;
@@ -147,19 +147,31 @@ describe("tierTable", () => {
     });
   });
 
-  it("shows places and no fish with three ranked members", () => {
+  it("shows a place and no fish with one ranked member", () => {
     const table = tierTable([
       member("a", 1300),
-      member("b", 1250),
-      member("c", 1220),
-      member("d", 1210, { gamesCounted: 4 }),
+      member("b", 1210, { gamesCounted: 4 }),
     ]);
     expect(table.showsBands).toBe(false);
     expect(table.rows.map((row) => [row.place, row.band])).toEqual([
       [1, null],
-      [2, null],
-      [3, null],
       [null, null],
+    ]);
+  });
+
+  it("gives a Shark and a Safi with two ranked, and a Kanaad between with three", () => {
+    const two = tierTable([member("a", 1300), member("b", 1250)]);
+    expect(two.showsBands).toBe(true);
+    expect(two.rows.map((row) => row.band)).toEqual(["shark", "safi"]);
+    const three = tierTable([
+      member("a", 1300),
+      member("b", 1250),
+      member("c", 1220),
+    ]);
+    expect(three.rows.map((row) => row.band)).toEqual([
+      "shark",
+      "kanaad",
+      "safi",
     ]);
   });
 

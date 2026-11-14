@@ -268,11 +268,11 @@ export function memberRowView(
     tier,
     selectable:
       (canSetLevel && !entry.isViewer) ||
-      (canAdjustTier && entry.tier != null && !entry.isViewer) ||
+      (canAdjustTier && entry.tier != null) ||
       memberIsRemovable(entry, canRemovePlayers) ||
       memberOrganizerAction(entry, canAppointOrganizers) != null ||
       memberIsCallable(entry) ||
-      canSetNicknames,
+      (canSetNicknames && !entry.isViewer),
     accessibilityLabel: [
       entry.isViewer ? m.mobileGroup.members.rowYou(spokenName) : spokenName,
       entry.unclaimed ? m.group.addPlayer.notOnTembaYet : null,

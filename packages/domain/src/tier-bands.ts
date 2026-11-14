@@ -18,7 +18,10 @@ export const TIER_BANDS = ["shark", "hamour", "kanaad", "safi"] as const;
 export type TierBand = (typeof TIER_BANDS)[number];
 
 /** Below this many ranked members, rows show place and points, no fish. */
-export const TIER_MIN_RANKED = 4;
+export const TIER_MIN_RANKED = 2;
+
+/** Below this many ranked members, a start hint ignores their points. */
+const TIER_HINT_MIN_RANKED = 4;
 
 export const TIER_HAMOUR_SHARE = 0.15;
 export const TIER_KANAAD_SHARE = 0.35;
@@ -245,7 +248,7 @@ function median(values: readonly number[]) {
 }
 
 /**
- * What a start hint is read against. With enough ranked members for fish, it
+ * What a start hint is read against. With four or more ranked members, it
  * is their median points, their median OVR and their range of points. With
  * fewer, places are noise: the start of 1,200, the median OVR of everyone who
  * has one, and one adjustment either way. Null when nobody has an OVR.
@@ -257,7 +260,7 @@ export function tierHintReference(
   const rankedOvrs = ranked.flatMap((member) =>
     member.ovr == null ? [] : [member.ovr],
   );
-  if (ranked.length >= TIER_MIN_RANKED && rankedOvrs.length > 0) {
+  if (ranked.length >= TIER_HINT_MIN_RANKED && rankedOvrs.length > 0) {
     const points = ranked.map((member) => member.points);
     return {
       medianPoints: median(points),
