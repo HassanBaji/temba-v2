@@ -47,7 +47,7 @@ export function Demo() {
       <Sequence durationInFrames={scenes.intro.to} name="Intro">
         <Intro />
       </Sequence>
-      <Sequence from={scenes.group.from} durationInFrames={scenes.tiers.to - scenes.group.from} name="App">
+      <Sequence from={scenes.game.from} durationInFrames={scenes.challenges.to - scenes.game.from} name="App">
         <Stage />
       </Sequence>
       <Sequence from={scenes.end.from} durationInFrames={scenes.end.to - scenes.end.from} name="End card">

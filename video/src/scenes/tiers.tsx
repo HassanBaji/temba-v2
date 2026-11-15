@@ -1,6 +1,6 @@
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 
-import { group, memberCount, players, provisional, sharkWeeks } from "../data";
+import { group, memberCount, players, provisional } from "../data";
 import { Screen } from "../phone";
 import { ProvisionalSlot, TierFish } from "../primitives/fish";
 import { Surface } from "../primitives/surface";
@@ -9,14 +9,13 @@ import { c, radii, snap, snappy } from "../theme";
 import { after, bandLabel, before, formatPoints, placeOf, type Band } from "../tiers";
 import { GroupTabs } from "./group-tabs";
 
-export const SHARK_AT = 8;
-export const ROWS_FROM = 14;
-export const ROW_EVERY = 4;
-export const MOVE_AT = 54;
+export const ROWS_FROM = 16;
+export const ROW_EVERY = 3;
+export const MOVE_AT = 56;
 export const REORDER_AT = 68;
 export const PROMOTE_AT = 79;
 
-const ROW = 50;
+const ROW = 48;
 const TIER_WIDTH = 44;
 const POINTS_WIDTH = 56;
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
@@ -32,41 +31,51 @@ function caption(index: number, band: Band) {
   return index === 0 ? `${bandLabel[band]}, organizer` : bandLabel[band];
 }
 
-function SharkCard() {
+const LADDER: Band[] = ["safi", "kanaad", "hamour", "shark"];
+export const LADDER_FROM = 10;
+export const LADDER_EVERY = 9;
+
+/** Safi to Shark: the four Tier bands, with an outlined selector climbing them. */
+function TierLadder() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const swim = spring({ frame: frame - SHARK_AT, fps, config: snappy, durationInFrames: 24 });
-  const wobble = Math.sin(swim * Math.PI * 2) * (1 - swim) * 8;
-  const shark = players[0]!;
-  const moved = interpolate(frame, [MOVE_AT, MOVE_AT + 20], [0, shark.move], clamp);
+  const step = LADDER.reduce((at, _, i) => at + spring({ frame: frame - (LADDER_FROM + i * LADDER_EVERY), fps, config: snappy, durationInFrames: 10 }), 0) - 1;
+  const position = Math.max(0, step);
+  const CELL = 320 / LADDER.length;
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-        padding: "14px 16px",
-        borderRadius: radii.card,
-        border: `1px solid ${c.rule}`,
-        background: c.wash,
-        marginTop: 14,
-      }}
-    >
-      <div style={{ transform: `translateX(${(1 - swim) * -46}px) rotate(${wobble}deg)` }}>
-        <TierFish band="shark" width={74} height={44} cutout={c.wash} />
+    <Surface style={{ marginTop: 12, padding: "12px 0 14px" }}>
+      <div style={{ position: "relative", display: "flex" }}>
+        <div
+          style={{
+            position: "absolute",
+            top: -4,
+            left: position * CELL + 8,
+            width: CELL - 16,
+            height: 66,
+            borderRadius: radii.lg,
+            border: `1.5px solid ${c.ink}`,
+            boxSizing: "border-box",
+            opacity: step >= 0 ? 1 : 0,
+          }}
+        />
+        {LADDER.map((band, i) => {
+          const reached = position >= i - 0.01 && step >= 0;
+          return (
+            <div key={band} style={{ width: CELL, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, paddingTop: 4 }}>
+              <div style={{ opacity: reached ? 1 : 0.18 }}>
+                <TierFish band={band} />
+              </div>
+              <Text size="eyebrow" weight={reached ? "semibold" : "regular"} muted={!reached}>
+                {bandLabel[band]}
+              </Text>
+            </div>
+          );
+        })}
       </div>
-      <div style={{ minWidth: 0 }}>
-        <Text size="eyebrow" muted>
-          The Shark
-        </Text>
-        <Text size="title" weight="bold" expanded style={{ marginTop: 2 }}>
-          {shark.name}
-        </Text>
-        <Text size="meta" muted style={{ marginTop: 2 }}>
-          {formatPoints(shark.points + moved)} points, a Shark for {sharkWeeks} weeks
-        </Text>
+      <div style={{ position: "relative", height: 2, margin: "14px 18px 0", background: c.rule }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${(position / (LADDER.length - 1)) * 100}%`, background: c.ink }} />
       </div>
-    </div>
+    </Surface>
   );
 }
 
@@ -171,9 +180,9 @@ function ProvisionalRow({ index }: { index: number }) {
 /** A tier Group's Members tab: the Shark card, then fish, players and Tier points. */
 export function TiersScreen() {
   return (
-    <Screen title={group.name} tab="groups">
+    <Screen title={group.name}>
       <GroupTabs active="Members" />
-      <SharkCard />
+      <TierLadder />
       <Surface style={{ marginTop: 12 }}>
         <div style={{ height: 34, display: "flex", alignItems: "center", gap: 8, padding: "0 12px 0 10px", background: c.wash }}>
           <Text size="eyebrow" muted align="center" style={{ width: TIER_WIDTH }}>

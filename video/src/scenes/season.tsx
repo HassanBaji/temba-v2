@@ -1,101 +1,127 @@
-import { Trophy } from "lucide-react";
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 
-import { group, standing } from "../data";
+import { group, players, standing } from "../data";
 import { Screen } from "../phone";
 import { Avatar } from "../primitives/avatar";
+import { Button } from "../primitives/button";
 import { Hairline, Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { c, snap, snappy } from "../theme";
 import { GroupTabs } from "./group-tabs";
-import { c, snappy } from "../theme";
 
-export const ROWS_FROM = 12;
-export const ROW_EVERY = 5;
-const COUNT_FRAMES = 30;
-export const FLIP_AT = 74;
-const ROW = 50;
+export const ROWS_FROM = 10;
+export const ROW_EVERY = 4;
+export const UPDATE_AT = 48;
+export const REORDER_AT = 62;
+export const SHARE_AT = 90;
 
+const ROW = 44;
 const POSITION = 22;
-const COUNT = 24;
-const POINTS = 32;
+const COUNT = 26;
+const POINTS = 34;
+const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
+const YOUSIF = 2;
 
-function Row({ index }: { index: number }) {
+const pts = (w: number, d: number) => w * 3 + d;
+const beforeSlots = standing.map((_, slot) => slot);
+const afterOrder = standing
+  .map((row, slot) => ({ slot, pts: pts(row.w + (row.won ? 1 : 0), row.d), w: row.w + (row.won ? 1 : 0) }))
+  .sort((a, b) => b.pts - a.pts || b.w - a.w)
+  .map((row) => row.slot);
+
+function Row({ slot }: { slot: number }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const row = standing[index]!;
-  const at = ROWS_FROM + index * ROW_EVERY;
-  const drop = spring({ frame: frame - at, fps, config: snappy, durationInFrames: 14 });
-  const points = Math.round(
-    interpolate(frame, [at + 4, at + 4 + COUNT_FRAMES], [0, row.pts], {
-      extrapolateLeft: "clamp",
-      extrapolateRight: "clamp",
-      easing: (t) => 1 - Math.pow(1 - t, 3),
-    }),
-  );
-  const flip = index === 0 ? spring({ frame: frame - FLIP_AT, fps, config: { damping: 22, stiffness: 160, mass: 0.8 } }) * 180 : 0;
-  const back = flip > 90;
-  const ink = back ? c.paper : c.ink;
-  const muted = back ? c.dim : c.muted;
-  const angle = (back ? flip - 180 : flip) + (1 - drop) * -90;
+  const row = standing[slot]!;
+  const player = players[row.index]!;
+  const enter = spring({ frame: frame - (ROWS_FROM + slot * ROW_EVERY), fps, config: snappy, durationInFrames: 12 });
+  const update = interpolate(frame, [UPDATE_AT, UPDATE_AT + 12], [0, 1], clamp);
+  const reorder = spring({ frame: frame - REORDER_AT, fps, config: snappy, durationInFrames: 20 });
+  const from = beforeSlots.indexOf(slot);
+  const to = afterOrder.indexOf(slot);
+  const y = (from + (to - from) * reorder) * ROW;
+  const position = (reorder > 0.5 ? to : from) + 1;
+  const updated = frame >= UPDATE_AT;
+  const p = row.p + (updated ? 1 : 0);
+  const w = row.w + (updated && row.won ? 1 : 0);
+  const points = Math.round(pts(row.w, row.d) + (row.won ? 3 * update : 0));
+  const isYousif = row.index === YOUSIF;
+  const outline = isYousif ? interpolate(frame, [UPDATE_AT, UPDATE_AT + 6], [0, 1], clamp) : 0;
+  const gain = spring({ frame: frame - UPDATE_AT, fps, config: snap });
 
   return (
-    <div style={{ perspective: 700 }}>
-      {index > 0 ? <Hairline /> : null}
-      <div
-        style={{
-          height: ROW,
-          display: "flex",
-          alignItems: "center",
-          gap: 7,
-          padding: "0 12px",
-          background: back ? c.ink : c.paper,
-          transform: `rotateX(${angle}deg)`,
-          transformOrigin: index === 0 && flip > 0 ? "50% 50%" : "50% 0%",
-          opacity: drop > 0.02 ? 1 : 0,
-        }}
-      >
-        <Text size="lead" expanded color={ink} style={{ width: POSITION }}>
-          {index + 1}
+    <div
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        top: y,
+        height: ROW,
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "0 12px",
+        boxSizing: "border-box",
+        background: c.paper,
+        borderTop: from === 0 && to === 0 ? "none" : `1px solid ${c.rule}`,
+        boxShadow: outline > 0 ? `inset 0 0 0 1px rgba(0,0,0,${outline})` : undefined,
+        zIndex: isYousif ? 2 : 1,
+        clipPath: `inset(0 ${(1 - enter) * 100}% 0 0)`,
+      }}
+    >
+      <Text size="lead" expanded style={{ width: POSITION }}>
+        {position}
+      </Text>
+      <Avatar name={player.name} size={24} />
+      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 6 }}>
+        <Text weight={isYousif ? "semibold" : "regular"} style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+          {player.name}
         </Text>
-        <Avatar name={row.name} size={26} solid={back} style={back ? { background: c.raised, borderColor: c.hairline } : undefined} />
-        <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 6 }}>
-          <Text weight={index === 0 ? "semibold" : "regular"} color={ink} style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-            {row.name}
+        {isYousif && updated ? (
+          <Text size="meta" weight="semibold" style={{ transform: `scale(${gain})` }}>
+            +3
           </Text>
-          {back ? <Trophy size={14} color={c.paper} strokeWidth={2.4} /> : null}
-        </div>
-        <Text color={muted} align="center" style={{ width: COUNT }}>
-          {row.p}
-        </Text>
-        <Text color={muted} align="center" style={{ width: COUNT }}>
-          {row.w}
-        </Text>
-        <Text size="lead" expanded color={ink} align="right" style={{ width: POINTS }}>
-          {points}
-        </Text>
+        ) : null}
       </div>
+      <Text muted align="center" style={{ width: COUNT }}>
+        {p}
+      </Text>
+      <Text muted align="center" style={{ width: COUNT }}>
+        {w}
+      </Text>
+      <Text size="lead" expanded align="right" style={{ width: POINTS }}>
+        {points}
+      </Text>
     </div>
   );
 }
 
 export function SeasonScreen() {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const share = spring({ frame: frame - SHARE_AT, fps, config: snap });
   return (
-    <Screen title={group.name} tab="groups">
+    <Screen title={group.name}>
       <GroupTabs active="Standing" />
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginTop: 18, marginBottom: 12 }}>
-        <Text size="title" weight="semibold">
-          Season 3
-        </Text>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: 14, marginBottom: 10 }}>
+        <div>
+          <Text size="title" weight="semibold">
+            Season 3
+          </Text>
+          <Text size="meta" muted>
+            Sep to Dec
+          </Text>
+        </div>
         <Text size="meta" muted>
-          Sep – Dec · 12 games
+          After 54 days
         </Text>
       </div>
       <Surface>
-        <div style={{ height: 36, display: "flex", alignItems: "center", gap: 7, padding: "0 12px" }}>
+        <div style={{ height: 34, display: "flex", alignItems: "center", gap: 8, padding: "0 12px" }}>
           <Text size="eyebrow" muted style={{ width: POSITION }}>
             #
           </Text>
-          <Text size="eyebrow" muted style={{ flex: 1, paddingLeft: 33 }}>
+          <Text size="eyebrow" muted style={{ flex: 1, paddingLeft: 32 }}>
             Player
           </Text>
           <Text size="eyebrow" muted align="center" style={{ width: COUNT }}>
@@ -109,13 +135,18 @@ export function SeasonScreen() {
           </Text>
         </div>
         <Hairline />
-        {standing.map((_, index) => (
-          <Row key={index} index={index} />
-        ))}
+        <div style={{ position: "relative", height: standing.length * ROW }}>
+          {standing.map((_, slot) => (
+            <Row key={slot} slot={slot} />
+          ))}
+        </div>
       </Surface>
-      <Text size="meta" muted style={{ marginTop: 12 }}>
-        Win 3 · draw 1 · confirmed scores only
+      <Text size="meta" muted style={{ marginTop: 10 }}>
+        Win 3, draw 1, loss 0. Confirmed scores only.
       </Text>
+      <div style={{ marginTop: 10, opacity: frame >= SHARE_AT ? Math.min(1, share * 1.5) : 0, transform: `scale(${frame >= SHARE_AT ? 0.92 + share * 0.08 : 1})` }}>
+        <Button height={44}>Share standings</Button>
+      </div>
     </Screen>
   );
 }

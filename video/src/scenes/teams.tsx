@@ -1,27 +1,28 @@
 import { Lock, Shuffle } from "lucide-react";
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 
-import { finalSplit, firstSplit, players } from "../data";
+import { FAISAL, finalSplit, firstSplit, players, QASSIM } from "../data";
 import { Screen } from "../phone";
-import { Avatar } from "../primitives/avatar";
 import { TierFish } from "../primitives/fish";
 import { Text } from "../primitives/text";
 import { c, radii, snap, snappy } from "../theme";
 import { averagePoints, before, formatPoints, placeOf } from "../tiers";
 
-export const SPLIT_AT = 26;
-export const SHUFFLE_AT = 58;
-export const LOCK_AT = 86;
+export const SPLIT_AT = 24;
+export const SWAP_AT = 54;
+export const LOCK_AT = 84;
 
 const WIDTH = 320;
 const COLUMN = 150;
 const GAP = WIDTH - COLUMN * 2;
-const LIST_ROW = 45;
+const LIST_ROW = 44;
 const HEADER = 62;
-const COLUMN_ROW = 54;
-const CHIP = 44;
+const COLUMN_ROW = 52;
+const CHIP = 42;
 
 type Split = { a: number[]; b: number[] };
+
+const poolOrder = players.map((_, index) => index).sort((x, y) => players[y]!.points - players[x]!.points);
 
 function slotIn(split: Split, index: number) {
   const a = split.a.indexOf(index);
@@ -33,68 +34,64 @@ function columnPosition(split: Split, index: number) {
   return { x: team * (COLUMN + GAP), y: HEADER + row * COLUMN_ROW };
 }
 
-function Chip({ index, split, shuffle }: { index: number; split: number; shuffle: number }) {
+function Chip({ index, split, swap }: { index: number; split: number; swap: number }) {
   const player = players[index]!;
-  const list = { x: 0, y: index * LIST_ROW };
+  const list = { x: 0, y: poolOrder.indexOf(index) * LIST_ROW };
   const first = columnPosition(firstSplit, index);
   const final = columnPosition(finalSplit, index);
-  const moves = slotIn(firstSplit, index).team !== slotIn(finalSplit, index).team;
-  const x = interpolate(split, [0, 1], [list.x, first.x]) + (final.x - first.x) * shuffle;
-  const y = interpolate(split, [0, 1], [list.y, first.y]) + (final.y - first.y) * shuffle;
-  const width = interpolate(split, [0, 1], [WIDTH, COLUMN]);
-  const lift = moves ? Math.sin(shuffle * Math.PI) : 0;
-  // Swapped players arc past each other instead of crossing on one line.
-  const arc = lift * (slotIn(firstSplit, index).team === 0 ? -26 : 26);
+  const swaps = index === FAISAL || index === QASSIM;
+  const lift = swaps ? Math.sin(swap * Math.PI) : 0;
+  const swapping = swaps && swap > 0.01 && swap < 0.99;
+  const arc = lift * (slotIn(firstSplit, index).team === 0 ? -24 : 24);
+  const x = interpolate(split, [0, 1], [list.x, first.x]) + (final.x - first.x) * swap;
+  const y = interpolate(split, [0, 1], [list.y, first.y]) + (final.y - first.y) * swap + arc;
   return (
     <div
       style={{
         position: "absolute",
         left: x,
-        top: y + arc,
-        width,
+        top: y,
+        width: interpolate(split, [0, 1], [WIDTH, COLUMN]),
         height: CHIP,
         borderRadius: radii.lg,
-        border: `1px solid ${lift > 0.05 ? c.ink : c.rule}`,
+        border: swapping ? `1.5px solid ${c.ink}` : `1px solid ${c.rule}`,
         background: c.paper,
         display: "flex",
         alignItems: "center",
         gap: 7,
-        padding: "0 9px 0 6px",
+        padding: "0 10px 0 8px",
         boxSizing: "border-box",
-        transform: `scale(${1 + lift * 0.06})`,
-        zIndex: moves ? 2 : 1,
+        transform: `scale(${1 + lift * 0.05})`,
+        zIndex: swaps ? 2 : 1,
       }}
     >
-      <Avatar name={player.name} size={26} />
+      <TierFish band={placeOf(before, index).band} width={30} height={18} />
       <Text size={14} weight="medium" style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>
         {player.short}
       </Text>
-      <TierFish band={placeOf(before, index).band} width={30} height={18} />
+      <Text size="meta" muted>
+        {formatPoints(player.points)}
+      </Text>
     </div>
   );
-}
-
-function Bib({ fill }: { fill: string }) {
-  return <div style={{ width: 14, height: 14, borderRadius: 4, background: fill, border: `1px solid ${c.ink}` }} />;
 }
 
 export function TeamsScreen() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const split = spring({ frame: frame - SPLIT_AT, fps, config: snappy, durationInFrames: 22 });
-  const shuffle = spring({ frame: frame - SHUFFLE_AT, fps, config: snappy, durationInFrames: 22 });
+  const swap = spring({ frame: frame - SWAP_AT, fps, config: snappy, durationInFrames: 22 });
   const lock = spring({ frame: frame - LOCK_AT, fps, config: snap });
   const locked = frame >= LOCK_AT;
-  const split0 = [averagePoints(firstSplit.a), averagePoints(firstSplit.b)];
-  const split1 = [averagePoints(finalSplit.a), averagePoints(finalSplit.b)];
-  const averages = split0.map((value, team) => value + (split1[team]! - value) * shuffle);
+  const from = [averagePoints(firstSplit.a), averagePoints(firstSplit.b)];
+  const to = [averagePoints(finalSplit.a), averagePoints(finalSplit.b)];
+  const averages = from.map((value, team) => value + (to[team]! - value) * swap);
 
   return (
     <Screen
       title="Make teams"
-      tab="games"
       trailing={
-        <div style={{ display: "flex", alignItems: "center", gap: 6, paddingRight: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, paddingRight: 6, color: locked ? c.ink : c.muted }}>
           {locked ? (
             <div style={{ display: "flex", alignItems: "center", gap: 5, transform: `scale(${lock})` }}>
               <Lock size={16} strokeWidth={2.4} />
@@ -103,20 +100,20 @@ export function TeamsScreen() {
               </Text>
             </div>
           ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: 5, color: c.muted }}>
+            <>
               <Shuffle size={16} strokeWidth={2.2} />
               <Text size="meta" muted>
                 Shuffle
               </Text>
-            </div>
+            </>
           )}
         </div>
       }
     >
       <Text size="meta" muted style={{ marginTop: 2 }}>
-        By level · 10 in the pool · balanced on tier points
+        Balanced on group tier points
       </Text>
-      <div style={{ position: "relative", height: 470, marginTop: 18 }}>
+      <div style={{ position: "relative", height: 452, marginTop: 18 }}>
         {[0, 1].map((team) => (
           <div
             key={team}
@@ -125,17 +122,17 @@ export function TeamsScreen() {
               left: team * (COLUMN + GAP) - 7,
               top: -7,
               width: COLUMN + 14,
-              height: HEADER + COLUMN_ROW * 5 + 6,
+              height: HEADER + COLUMN_ROW * 5 + 4,
               borderRadius: radii.surface,
               border: `${locked ? 1.5 : 1}px solid ${locked ? c.ink : c.rule}`,
-              background: c.wash,
+              background: c.paper,
               opacity: split,
               boxSizing: "border-box",
               padding: "12px 13px",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Bib fill={team === 0 ? c.ink : c.paper} />
+              <div style={{ width: 14, height: 14, borderRadius: 4, background: team === 0 ? c.ink : c.paper, border: `1.5px solid ${c.ink}`, boxSizing: "border-box" }} />
               <Text size="lead" weight="semibold">
                 {team === 0 ? "Team A" : "Team B"}
               </Text>
@@ -146,8 +143,15 @@ export function TeamsScreen() {
           </div>
         ))}
         {players.map((_, index) => (
-          <Chip key={index} index={index} split={split} shuffle={shuffle} />
+          <Chip key={index} index={index} split={split} swap={swap} />
         ))}
+      </div>
+      <div style={{ marginTop: -116, clipPath: `inset(0 ${(1 - lock) * 100}% 0 0)` }}>
+        {locked ? (
+          <Text size="meta" weight="semibold">
+            Difference of 1 point. Teams locked.
+          </Text>
+        ) : null}
       </div>
     </Screen>
   );

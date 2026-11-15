@@ -35,12 +35,12 @@ export const DURATION = 1020;
 /** Scene boundaries in frames. */
 export const scenes = {
   intro: { from: 0, to: 90 },
-  group: { from: 90, to: 240 },
-  game: { from: 240, to: 390 },
-  teams: { from: 390, to: 510 },
-  result: { from: 510, to: 660 },
-  season: { from: 660, to: 780 },
-  tiers: { from: 780, to: 900 },
+  game: { from: 90, to: 216 },
+  teams: { from: 216, to: 336 },
+  result: { from: 336, to: 492 },
+  season: { from: 492, to: 612 },
+  tiers: { from: 612, to: 732 },
+  challenges: { from: 732, to: 900 },
   end: { from: 900, to: 1020 },
 } as const;
 

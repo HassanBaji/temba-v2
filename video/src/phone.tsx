@@ -70,12 +70,17 @@ export function StatusBar() {
   return (
     <div
       style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 10,
+        background: c.paper,
         height: 46,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         padding: "6px 26px 0 30px",
-        position: "relative",
       }}
     >
       <Text size={15} weight="semibold">
@@ -177,30 +182,25 @@ export function TabBar({ active }: { active: Tab }) {
   );
 }
 
-/** A screen inside the phone: status bar, top bar, content, tabs. */
+/** One screen's content between the fixed status bar and tab bar. */
 export function Screen({
   title,
   back = true,
-  tab,
   trailing,
   children,
 }: {
   title?: string;
   back?: boolean;
-  tab: Tab;
   trailing?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <div style={{ position: "absolute", inset: 0, background: c.paper }}>
-      <StatusBar />
+    <div style={{ position: "absolute", inset: 0, paddingTop: 46, background: c.paper }}>
       {title !== undefined ? <TopBar title={title} back={back} trailing={trailing} /> : null}
-      <div style={{ padding: "0 20px" }}>{children}</div>
-      <TabBar active={tab} />
+      <div style={{ padding: "0 20px", position: "relative" }}>{children}</div>
     </div>
   );
 }
-
 
 function TopBar({ title, back, trailing }: { title: string; back: boolean; trailing?: ReactNode }) {
   return (

@@ -448,6 +448,15 @@ sfx["promote"] = () => {
   return reverb(out, { wet: 0.35, tail: 1 });
 };
 
+/** The MVP coin landing: a bright metallic ding with a short ring. */
+sfx["coin"] = () => {
+  const out = stereo(1.6);
+  mix(out, bell(96, 1.2, 3.2), 0, 0.6, -0.15);
+  mix(out, bell(103, 1.0, 4), 0.06, 0.4, 0.15);
+  mix(out, sfx.tick(), 0, 0.5);
+  return reverb(out, { wet: 0.3, tail: 0.8 });
+};
+
 sfx["shimmer"] = () => {
   const out = stereo(2.6);
   [81, 88, 93, 96, 100].forEach((midi, k) => mix(out, bell(midi, 2.2, 1.4), k * 0.045, 0.32, (k - 2) * 0.3));

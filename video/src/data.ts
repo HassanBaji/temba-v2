@@ -1,34 +1,39 @@
-export const group = {
-  name: "Juffair Thursday 5s",
-  meta: "Football · 5-a-side · Manama",
+export const group = { name: "Juffair Thursday 5s" };
+
+export const game = {
+  format: "5-a-side football",
+  time: "8:00",
+  meridiem: "PM",
+  day: "Thursday 19 Nov",
+  venue: "Juffair Sports Hub",
+  pitch: "Pitch 2, Manama",
+  price: "BD 2.500",
 };
 
-export const members = [
-  { name: "Ali Al-Mahroos", line: "Organizer" },
-  { name: "سيد محمود العلوي", line: "Joined just now" },
-  { name: "Yousif Janahi", line: "Joined just now" },
-  { name: "Hussain Ebrahim", line: "Joined just now" },
-  { name: "عبدالله الدوسري", line: "Joined just now" },
-  { name: "Faisal Al-Qassab", line: "Joined just now" },
-];
-
 /**
- * The ten who join the Game, in sign-up order. A football Group that is not
- * Verified is a tier Group: each member holds Tier points (from 1,200) and
- * Make teams balances on them. `move` is what the 5–3 Game did to them.
+ * The ten who play, in sign-up order. The Group is a football tier Group:
+ * `points` are Tier points before the Game and `move` what the 5–3 result
+ * did to them (winners up, losers down).
  */
 export const players = [
-  { name: "Ali Al-Mahroos", short: "Ali", points: 1486, move: 14 },
-  { name: "سيد محمود", short: "محمود", points: 1441, move: -15 },
-  { name: "Yousif Janahi", short: "Yousif", points: 1312, move: 16 },
-  { name: "Hussain Ebrahim", short: "Hussain", points: 1287, move: -21 },
-  { name: "عبدالله الدوسري", short: "عبدالله", points: 1254, move: 17 },
-  { name: "Faisal Al-Qassab", short: "Faisal", points: 1241, move: 38 },
-  { name: "Mohamed Buhiji", short: "Mohd", points: 1398, move: -16 },
-  { name: "Ahmed Al-Aali", short: "Ahmed", points: 1148, move: 22 },
-  { name: "Abbas Radhi", short: "Abbas", points: 1176, move: -18 },
-  { name: "قاسم عيسى", short: "قاسم", points: 1121, move: -12 },
+  { name: "Ali Al-Mahroos", short: "Ali", points: 1560, move: 12 },
+  { name: "سيد محمود", short: "محمود", points: 1512, move: -14 },
+  { name: "Yousif Janahi", short: "Yousif", points: 1420, move: 16 },
+  { name: "Hussain Ebrahim", short: "Hussain", points: 1221, move: -19 },
+  { name: "عبدالله الدوسري", short: "عبدالله", points: 1204, move: 15 },
+  { name: "Faisal Al-Qassab", short: "Faisal", points: 1188, move: 38 },
+  { name: "Mohamed Buhiji", short: "Mohd", points: 1470, move: -17 },
+  { name: "Ahmed Al-Aali", short: "Ahmed", points: 1138, move: 22 },
+  { name: "Abbas Radhi", short: "Abbas", points: 1172, move: -18 },
+  { name: "قاسم عيسى", short: "قاسم", points: 1130, move: -12 },
 ];
+
+export const FAISAL = 5;
+export const QASSIM = 9;
+
+/** Team indices into `players`, by row. The one shuffle swaps Faisal and قاسم. */
+export const firstSplit = { a: [0, 2, 4, 7, QASSIM], b: [1, 6, 3, 8, FAISAL] };
+export const finalSplit = { a: [0, 2, 4, 7, FAISAL], b: [1, 6, 3, 8, QASSIM] };
 
 /** Members still Provisional: no fish and no place until five Games. */
 export const provisional = [
@@ -37,50 +42,60 @@ export const provisional = [
 ];
 
 export const memberCount = players.length + provisional.length;
-export const sharkWeeks = 3;
 
-export const game = {
-  sport: "Football · 5-a-side",
-  day: "Thursday 19 Nov",
-  time: "8:00",
-  meridiem: "PM",
-  venue: "Juffair Sports Hub",
-  pitch: "Pitch 2 · Manama",
-  price: "BD 2.500",
-};
+export const score = { a: 5, b: 3, line: "Final, Thursday 19 Nov" };
 
-/** Team indices into `players`: the first split, then the one shuffle. */
-export const firstSplit = { a: [0, 2, 4, 6, 8], b: [1, 3, 5, 7, 9] };
-export const finalSplit = { a: [0, 2, 4, 7, 5], b: [1, 3, 8, 6, 9] };
+export const mvpVotes = [
+  { index: 0, votes: 5 },
+  { index: 2, votes: 3 },
+  { index: FAISAL, votes: 2 },
+];
 
-export const profile = {
-  name: "Ali Al-Mahroos",
-  group: "Juffair Thursday 5s",
-  form: ["won", "won", "lost", "won", "lost", "won", "won", "won"] as const,
-  played: 24,
-  won: 15,
-  winRate: 63,
-  goals: 31,
-  /** Win rate after each Game this season. */
-  trend: [40, 45, 42, 48, 52, 50, 55, 53, 58, 57, 61, 60, 63],
-};
+export type MarkKind = "mvp" | "goal_machine" | "great_wall" | "let_him_cook" | "mr_fumble" | "sayed_malek";
 
+/** Mark names as the catalog has them (`marks.ts`). */
+export const marks: { index: number; kind: MarkKind; name: string }[] = [
+  { index: 0, kind: "mvp", name: "MVP" },
+  { index: 2, kind: "goal_machine", name: "Goal Machine" },
+  { index: 3, kind: "great_wall", name: "The Great Wall" },
+  { index: 6, kind: "let_him_cook", name: "Let him cook" },
+  { index: FAISAL, kind: "mr_fumble", name: "Mr Fumble" },
+  { index: 8, kind: "sayed_malek", name: "Sayed Malek" },
+];
+
+/** Season 3 Standing before the Game; `won` marks Team A. Pts are win 3, draw 1. */
 export const standing = [
-  { name: "Ali Al-Mahroos", p: 12, w: 9, pts: 28 },
-  { name: "سيد محمود", p: 12, w: 8, pts: 25 },
-  { name: "Mohamed Buhiji", p: 11, w: 7, pts: 22 },
-  { name: "Yousif Janahi", p: 12, w: 6, pts: 20 },
-  { name: "عبدالله الدوسري", p: 10, w: 6, pts: 19 },
-  { name: "Faisal Al-Qassab", p: 12, w: 5, pts: 16 },
-  { name: "Hussain Ebrahim", p: 9, w: 4, pts: 13 },
-  { name: "Abbas Radhi", p: 11, w: 3, pts: 11 },
+  { index: 0, p: 12, w: 9, d: 1, won: true },
+  { index: 1, p: 12, w: 8, d: 1, won: false },
+  { index: 6, p: 11, w: 7, d: 0, won: false },
+  { index: 2, p: 12, w: 6, d: 1, won: true },
+  { index: 3, p: 12, w: 5, d: 2, won: false },
+  { index: 4, p: 10, w: 4, d: 1, won: true },
+  { index: FAISAL, p: 11, w: 3, d: 2, won: true },
+  { index: 8, p: 11, w: 3, d: 1, won: false },
+];
+
+export const challenge = {
+  team: "Juffair FC",
+  lines: ["5-a-side, level around 1,300", "Juffair Sports Hub or Isa Town", "Thu or Fri, after 8 PM"],
+  note: "Looking for a regular Thursday rival.",
+  proposer: "Seef Strikers",
+  proposal: ["Thu 26 Nov, 9:00 PM", "Juffair Sports Hub"],
+  squad: ["Ali", "Yousif", "Faisal", "Mohd", "عبدالله"],
+};
+
+export const rivals = [
+  { team: "Seef Strikers", won: 3, lost: 2, games: 5, form: ["won", "won", "lost", "won", "lost"] as const },
+  { team: "Riffa Lions", won: 1, lost: 1, games: 2, form: ["won", "lost"] as const },
 ];
 
 export const captions = {
-  group: "ابتدي قروبك",
   game: "نزّل القيم والشباب يسجلون",
-  teams: "سوّ التقسيمة",
-  result: "سجّل النتيجة وتتحدّث إحصائياتك",
-  season: "موسم وترتيب لكل مجموعة",
+  teams: "تقسيمة متوازنة بضغطة",
+  mvp: "صوّتوا لأفضل لاعب",
+  marks: "ووزّعوا الأوسمة",
+  season: "موسم وترتيب لكل قروب",
   tiers: "فئة لكل لاعب: من صافي إلى قرش",
+  challenge: "كوّن فريقك وتحدّى الفرق",
+  rivals: "وخصومك راس براس",
 };
