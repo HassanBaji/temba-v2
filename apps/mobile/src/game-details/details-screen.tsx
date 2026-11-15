@@ -81,6 +81,8 @@ import {
 } from "../tournament/tournament-model";
 import { TournamentPlayerSheet } from "../tournament/tournament-player-sheet";
 import { useTournamentOrganizer } from "../tournament/use-tournament-organizer";
+import { useTournamentEdit } from "../tournament/use-tournament-edit";
+import { GameEditSheet } from "./game-edit-sheet";
 import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api } from "../trpc/react";
 import { AddPlayerSheet } from "./add-player-sheet";
@@ -349,11 +351,18 @@ export function GameDetailsScreen({
     setConfirm,
   });
 
+  const tournamentEdit = useTournamentEdit({
+    gameId,
+    game: tournament ? data : null,
+    refresh,
+  });
+
   const tournamentOrganizer = useTournamentOrganizer({
     gameId,
     game: tournament ? data : null,
     refresh,
     setConfirm,
+    onEdit: tournamentEdit.onOpen,
   });
 
   const saveSets = useCallback(
@@ -709,6 +718,15 @@ export function GameDetailsScreen({
           {...tournamentOrganizer.sheets}
           game={details}
         />
+        {tournamentEdit.context ? (
+          <GameEditSheet
+            visible={tournamentEdit.open}
+            onClose={tournamentEdit.onClose}
+            edit={tournamentEdit.edit}
+            sections={tournamentEdit.sections}
+            context={tournamentEdit.context}
+          />
+        ) : null}
         <TournamentPlayerSheet
           player={tournamentSelected}
           canOpenProfile={Boolean(onOpenPlayer)}

@@ -92,9 +92,12 @@ export function useGameEdit({
   });
   const catalog = api.games.listCreateVenues.useQuery(
     { groupId: game.groupId ?? undefined },
-    { enabled: open && sections.place },
+    { enabled: open && (sections.place || sections.courts) },
   );
   const updateCaps = api.games.updateCaps.useMutation({ meta: OWN_ERROR_UI });
+  const updateCourts = api.games.updateCourts.useMutation({
+    meta: OWN_ERROR_UI,
+  });
   const updatePrice = api.games.updatePricePerPlayer.useMutation({
     meta: OWN_ERROR_UI,
   });
@@ -138,6 +141,16 @@ export function useGameEdit({
         });
         return result.movedToWaitlist.length;
       }
+      case "teams": {
+        const result = await updateCaps.mutateAsync({
+          gameId,
+          teamsAllowed: step.teamCount,
+        });
+        return result.movedToWaitlist.length;
+      }
+      case "courts":
+        await updateCourts.mutateAsync({ gameId, courtIds: step.courtIds });
+        return 0;
       case "price":
         await updatePrice.mutateAsync({
           gameId,
@@ -241,6 +254,12 @@ export function useGameEdit({
     onClose();
   }
 
+  const venueChoices = gameEditVenueChoices(
+    catalog.data?.venues ?? [],
+    sportOrDefault(game.sport),
+    { id: saved.venueId, name: game.venue?.name ?? null },
+  );
+
   return {
     now,
     saved,
@@ -252,11 +271,13 @@ export function useGameEdit({
       loading: catalog.isLoading,
       error: catalog.error?.message ?? null,
       locked: catalog.data?.locked ?? false,
-      venues: gameEditVenueChoices(
-        catalog.data?.venues ?? [],
-        sportOrDefault(game.sport),
-        { id: saved.venueId, name: game.venue?.name ?? null },
-      ),
+      venues: venueChoices,
+    },
+    courts: {
+      loading: catalog.isLoading,
+      error: catalog.error?.message ?? null,
+      choices:
+        venueChoices.find((venue) => venue.id === saved.venueId)?.courts ?? [],
     },
     changed,
     note,

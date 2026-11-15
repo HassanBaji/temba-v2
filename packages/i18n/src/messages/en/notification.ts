@@ -71,6 +71,12 @@ export const notification = {
       strong(game),
       plain(". You're on the Waitlist and get your spot back when one opens"),
     ],
+    tournamentMovedToWaitlist: (actor: string, game: string) => [
+      strong(actor),
+      plain(" lowered the teams on "),
+      strong(game),
+      plain(". You're on the Waitlist and get your spot back when one opens"),
+    ],
     matchScoreToConfirm: (actor: string, game: string) => [
       strong(actor),
       plain(" entered your score in "),

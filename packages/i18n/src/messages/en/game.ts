@@ -677,10 +677,17 @@ export const game = {
     friendlyCapsFixed: "Friendly game caps are fixed at 4 players / 2 Teams",
     teamsAtLeastTwo: "Teams allowed must be at least 2",
     capBelowRegistered: "Cannot lower cap below the current registered count",
+    teamsAfterDraw: "The draw is posted, so the number of teams can't change",
+    teamsTournamentOnly:
+      "Only a Friendly tournament changes its number of teams",
+    teamsNotForShape: (teamCount: number) =>
+      `This tournament's format can't take ${teamCount} teams`,
+    teamsBelowJoinedPairsOnly: (joined: number) =>
+      `This tournament takes pairs only and has no waiting list. Keep at least ${joined} teams, or remove teams first.`,
+    courtsTournamentOnly: "Only a Friendly tournament changes its Courts here",
+    courtsAtLeastOne: "Pick at least one Court",
     playersAtLeastFour: "Players allowed must be at least 4",
     playersMultipleOfFour: "Players allowed must be a multiple of 4",
-    capBelowOccupiedSide:
-      "Cannot lower cap below the highest occupied side. Empty high-index placeholders may disappear; occupied ones may not.",
     sidesSet: "The sides are set, so the shape of the Game can't change",
     customNameFriendly: "Only a Friendly game takes a custom name",
     seasonNeedsDay: "Set the Game's day before linking a season",

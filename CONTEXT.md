@@ -76,7 +76,7 @@ A physical facility: one addressable site with a name, location, and Courts. Not
 _Avoid_: club (product copy may say club; the entity is a Venue), Community (retired, ADR-0055), facility, location (when you mean this entity), Court (that is a playing surface inside a Venue)
 
 **Court**:
-A named playing surface that belongs to one Venue. A Match may point at one optional Court on the Game’s Venue. An Americano or Friendly tournament may record multiple Courts on the Game at create for later Match assignment. A Court has one **Court sport**. A Match or Booking Court must have the Game’s or the Customer’s sport.
+A named playing surface that belongs to one Venue. A Match may point at one optional Court on the Game’s Venue. An Americano or Friendly tournament may record multiple Courts on the Game at create for later Match assignment; a Friendly tournament's Organizer may change them until its window ends, and Matches already posted keep their Court. A Court has one **Court sport**. A Match or Booking Court must have the Game’s or the Customer’s sport.
 _Avoid_: Venue, pitch (as the entity name; football product copy may say pitch), field, club (when you mean this entity)
 
 **Court sport**:
@@ -581,7 +581,7 @@ A Game format with exactly one Match, created with the Game. The Booking Game, t
 _Avoid_: Single, Friendly tournament, Americano
 
 **Waitlist**:
-The queue to join a Game after its cap is reached, first come first served. When an Organizer drops players allowed under the number joined, the latest joiners move here, latest first, keeping the moment they joined as their place, so they lead anyone who waitlisted after them and get a spot back as soon as one opens.
+The queue to join a Game after its cap is reached, first come first served. When an Organizer drops players allowed under the number joined, the latest joiners move here, latest first, keeping the moment they joined as their place, so they lead anyone who waitlisted after them and get a spot back as soon as one opens. On a Friendly tournament the Organizer changes the number of Game teams instead, until the draw is posted: a Game team keeps its place by when its first player joined, the latest Game teams past the new number move here with every player keeping their own moment, and the Game teams that stay fill the sides that remain. A tournament that does not allow registering alone has no Waitlist, so its number of Game teams never drops under the number joined.
 _Avoid_: player (when you mean someone waitlisted), guest
 
 **Game admit**:
