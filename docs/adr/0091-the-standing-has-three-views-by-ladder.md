@@ -38,4 +38,4 @@ All-time from each member's first Level (it rewards joining early, not improving
 ## Consequences
 
 - Tier points appear on the Standing for the first time, as a Season's gain only.
-- The design's share sheet (section 02) is not part of this decision.
+- Sharing the views is [ADR-0092](./0092-the-standing-shares-as-images-a-pdf-a-csv-or-a-link.md).

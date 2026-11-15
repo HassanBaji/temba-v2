@@ -45,7 +45,7 @@ import {
 } from "@repo/domain/standing-views";
 import { isRtl } from "@repo/i18n/locale";
 import { useRouter, type Href } from "expo-router";
-import { Lock, Plus, UserPlus } from "lucide-react-native";
+import { Lock, Plus, Share, UserPlus } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
@@ -74,6 +74,7 @@ import {
 import { NicknameName } from "../primitives/nickname-name";
 import { groupSeasonsPath } from "./groups-model";
 import { Notice } from "./notice";
+import { StandingShareSheet } from "./standing-share-sheet";
 
 type Season = GroupSeasonData & { status: GroupSeasonStatus };
 
@@ -404,7 +405,7 @@ function ViewChips({
     <View
       accessibilityRole="tablist"
       accessibilityLabel={m.group.standing.views.label}
-      style={{ flexDirection: "row", gap: 8 }}
+      style={{ flex: 1, flexDirection: "row", gap: 8 }}
     >
       {options.map((option) => {
         const selected = option.view === shown;
@@ -1336,6 +1337,7 @@ export function StandingTab({
     : (lens.data?.gamesCounted ?? 0);
   const season = seasons.find((row) => row.id === lensId) ?? null;
   const [pickedView, setPickedView] = useState<StandingView>("overall");
+  const [shareOpen, setShareOpen] = useState(false);
   const viewOptions = standingViewOptions(
     {
       verified: data.verified,
@@ -1413,6 +1415,10 @@ export function StandingTab({
   }
 
   const levelData = levels.data;
+  const canShare =
+    rows.length > 0 &&
+    !(!lensIsDefault && lens.isLoading) &&
+    (view === "overall" || levelData != null);
   let table: React.ReactNode;
   if (
     (!lensIsDefault && lens.isLoading) ||
@@ -1481,8 +1487,60 @@ export function StandingTab({
           onPick={setLensId}
         />
       ) : null}
-      {viewOptions.length > 0 ? (
-        <ViewChips options={viewOptions} shown={view} onPick={setPickedView} />
+      {viewOptions.length > 0 || canShare ? (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: 8,
+          }}
+        >
+          {viewOptions.length > 0 ? (
+            <ViewChips
+              options={viewOptions}
+              shown={view}
+              onPick={setPickedView}
+            />
+          ) : null}
+          {canShare ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={m.group.standing.share.open}
+              hitSlop={(sizes.touchTarget - VIEW_CHIP_HEIGHT) / 2}
+              onPress={() => setShareOpen(true)}
+              style={({ pressed }) => ({
+                width: VIEW_CHIP_HEIGHT,
+                height: VIEW_CHIP_HEIGHT,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: radii.md,
+                borderWidth: hairlineWidth,
+                borderColor: colors.rule,
+                backgroundColor: pressed ? colors.wash : colors.paper,
+              })}
+            >
+              <Share size={16} color={colors.ink} />
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+      {canShare ? (
+        <StandingShareSheet
+          visible={shareOpen}
+          onClose={() => setShareOpen(false)}
+          groupId={data.id}
+          input={{
+            view,
+            rows: entries,
+            levels: levelData ?? null,
+            season,
+            groupName: data.name ?? m.mobileGroup.unnamedMember,
+            sport: data.sport,
+            since: data.createdAt,
+            now,
+          }}
+        />
       ) : null}
       {view === "overall" && season?.status === "closed" && !lens.isLoading ? (
         <Podium rows={rows} season={season} />

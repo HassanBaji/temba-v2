@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import { Lock, Plus, UserRoundPlus, Users } from "lucide-react";
+import { Lock, Plus, Share, UserRoundPlus, Users } from "lucide-react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { LinkedTableRow } from "~/components/common/linked-table-row";
@@ -62,6 +62,8 @@ import { cardFrame } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
+import { StandingShareSheet } from "./standing-share-sheet";
+
 export type StandingEntry = {
   userId: string;
   name: string | null;
@@ -77,6 +79,8 @@ export type StandingEntry = {
   isViewer: boolean;
   unclaimed: boolean;
   nickname?: MemberNicknameData | null;
+  /** Set or score difference, for the PDF and CSV. */
+  diff?: number;
 };
 
 /** Another member's Member nickname; the viewer's own row keeps their Temba name. */
@@ -477,7 +481,7 @@ function ViewChips({
     <div
       role="tablist"
       aria-label={m.group.standing.views.label}
-      className="flex gap-2"
+      className="flex min-w-0 flex-1 gap-2"
     >
       {options.map((option) => {
         const selected = option.view === shown;
@@ -1217,6 +1221,10 @@ export function GroupStandingTab({
   verified = false,
   ratingSettingsLine = null,
   onOpenMembers,
+  groupName = null,
+  groupCreatedAt = null,
+  initialSeasonId,
+  initialView,
   now = new Date(),
 }: {
   canInvite?: boolean;
@@ -1241,11 +1249,20 @@ export function GroupStandingTab({
   ratingSettingsLine?: string | null;
   /** Switches to the Members tab, where the Group Tier lives. */
   onOpenMembers?: () => void;
+  groupName?: string | null;
+  /** All-time shares read "Since" this day. */
+  groupCreatedAt?: Date | string | null;
+  /** A shared link's lens and view; `undefined` keeps the default. */
+  initialSeasonId?: string | null;
+  initialView?: StandingView;
   now?: Date;
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const [lensId, setLensId] = useState<string | null>(defaultSeasonId);
+  const [lensId, setLensId] = useState<string | null>(
+    initialSeasonId === undefined ? defaultSeasonId : initialSeasonId,
+  );
+  const [shareOpen, setShareOpen] = useState(false);
   const lensIsDefault = lensId === defaultSeasonId;
   const lens = api.groups.seasonStanding.useQuery(
     { groupId, seasonId: lensId },
@@ -1256,7 +1273,9 @@ export function GroupStandingTab({
     : (lens.data?.rows ?? []);
   const counted = lensIsDefault ? gamesCounted : (lens.data?.gamesCounted ?? 0);
   const season = seasons.find((row) => row.id === lensId) ?? null;
-  const [pickedView, setPickedView] = useState<StandingView>("overall");
+  const [pickedView, setPickedView] = useState<StandingView>(
+    initialView ?? "overall",
+  );
   const viewOptions = standingViewOptions(
     {
       verified,
@@ -1343,6 +1362,10 @@ export function GroupStandingTab({
   }
 
   const viewError = view !== "overall" ? levels.error : null;
+  const canShare =
+    rows.length > 0 &&
+    !(!lensIsDefault && lens.isLoading) &&
+    (view === "overall" || levelData != null);
   let table: ReactNode;
   if (
     (!lensIsDefault && lens.isLoading) ||
@@ -1419,8 +1442,43 @@ export function GroupStandingTab({
           onPick={setLensId}
         />
       ) : null}
-      {viewOptions.length > 0 ? (
-        <ViewChips options={viewOptions} shown={view} onPick={setPickedView} />
+      {viewOptions.length > 0 || canShare ? (
+        <div className="flex items-center justify-end gap-2">
+          {viewOptions.length > 0 ? (
+            <ViewChips
+              options={viewOptions}
+              shown={view}
+              onPick={setPickedView}
+            />
+          ) : null}
+          {canShare ? (
+            <button
+              type="button"
+              aria-label={m.group.standing.share.open}
+              onClick={() => setShareOpen(true)}
+              className="border-rule bg-paper hover:bg-wash focus-visible:ring-ring flex size-[34px] shrink-0 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-2"
+            >
+              <Share aria-hidden="true" className="size-4" />
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {canShare ? (
+        <StandingShareSheet
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          groupId={groupId}
+          input={{
+            view,
+            rows,
+            levels: levelData ?? null,
+            season,
+            groupName: groupName ?? m.webGroup.memberFallback,
+            sport,
+            since: groupCreatedAt,
+            now,
+          }}
+        />
       ) : null}
       {view === "overall" && season?.status === "closed" && !lens.isLoading ? (
         <Podium rows={rows} season={season} />
