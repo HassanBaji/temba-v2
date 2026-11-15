@@ -45,7 +45,7 @@ describe("playerMatchKindLabel", () => {
       "Autumn Cup, Round 2",
     );
     expect(playerMatchKindLabel({ ...pool, name: null }, "en")).toBe(
-      "Friendly tournament, Round 2",
+      "Social, Round 2",
     );
   });
 
@@ -74,7 +74,7 @@ describe("playerMatchKindLabel", () => {
         },
         "en",
       ),
-    ).toBe("Friendly tournament, Quarter-final");
+    ).toBe("Social, Quarter-final");
   });
 
   it("names every Americano Match plainly", () => {

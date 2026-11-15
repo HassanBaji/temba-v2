@@ -37,7 +37,7 @@ export const createGame = {
       rating: "تُحتسب في مستواك",
     },
     friendlyTournament: {
-      title: "بطولة ودية",
+      title: "سوشيال",
       description: "عدة فرق تتنافس في يوم واحد.",
       rating: "تُحتسب في مستواك",
     },
@@ -83,7 +83,7 @@ export const createGame = {
     pickStartTime: "اختر وقت البداية",
     pickFinishTime: "اختر وقت النهاية",
     finishAfterStart: "يجب أن يكون وقت النهاية عند وقت البداية أو بعده",
-    nameTournament: "سمِّ البطولة",
+    nameTournament: "سمِّ السوشيال",
     pickSideSize: "اختر حجم الفريق",
     playersAllowedBetween: (min: number, max: number) =>
       `يجب أن يكون عدد اللاعبين المسموح به بين ${min} و${max}`,
@@ -125,8 +125,8 @@ export const createGame = {
     lockedNote: "النتيجة مؤكَّدة، لذا لا يمكن تغيير طريقة اختيار نجم المباراة.",
   },
   tournament: {
-    defaultName: (day: string) => `بطولة ودية · ${day}`,
-    defaultNameNoDay: "بطولة ودية",
+    defaultName: (day: string) => `سوشيال · ${day}`,
+    defaultNameNoDay: "سوشيال",
     groups: (n: number) =>
       plural("ar", n, {
         one: "مجموعة واحدة",
@@ -160,7 +160,7 @@ export const createGame = {
   format: {
     friendlyGame: "مباراة ودية",
     americano: "أمريكانو",
-    friendlyTournament: "بطولة ودية",
+    friendlyTournament: "سوشيال",
   },
   side: {
     letter: (n: number): string | undefined =>
@@ -299,7 +299,7 @@ export const createGame = {
           other: "فريقان في كل ملعب، {n} ملعب",
         }),
       partnerOnlyHint:
-        "تقبل هذه البطولة الأزواج فقط ولا قائمة انتظار لها، لذا لا يمكن خفض عدد الفرق عن عدد المنضمين.",
+        "يقبل هذا السوشيال الأزواج فقط ولا قائمة انتظار له، لذا لا يمكن خفض عدد الفرق عن عدد المنضمين.",
     },
     courts: {
       title: "الملاعب",

@@ -73,8 +73,8 @@ export const webDashboard = {
     pickGameType: "اختر نوع المباراة",
     cannotCreateInGroup: "لا يمكنك إنشاء مباراة في هذه المجموعة.",
     gameCreatedToast: "تم إنشاء المباراة",
-    tournamentCreatedToast: "تم إنشاء البطولة",
-    createTournament: "إنشاء بطولة",
+    tournamentCreatedToast: "تم إنشاء السوشيال",
+    createTournament: "إنشاء سوشيال",
     createGameAction: "إنشاء المباراة",
     pickGroupFirst: "اختر مجموعة أولًا. قواعد النادي تعتمد على المجموعة.",
     noGroups: {

@@ -89,7 +89,7 @@ export const profile = {
   },
   matches: {
     friendlyGame: "Friendly game",
-    friendlyTournament: "Friendly tournament",
+    friendlyTournament: "Social",
     americano: "Americano",
     tournamentRound: (name: string, round: string) => `${name}, ${round}`,
     tournamentRoundNumber: (name: string, round: number) =>

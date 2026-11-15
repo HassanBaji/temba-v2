@@ -161,7 +161,7 @@ describe("homeComingUpRows", () => {
     assert.equal(row?.kind, "tournament");
     assert.equal(
       row?.kind === "tournament" ? row.actionLabel : null,
-      "Join tournament",
+      "Join Social",
     );
   });
 

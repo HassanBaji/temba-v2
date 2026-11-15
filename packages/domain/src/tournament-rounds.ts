@@ -153,8 +153,8 @@ export function showsDrawnTournamentSeats(
 }
 
 export const PARTNER_REQUIRED_REFUSAL_MESSAGE =
-  "This tournament does not allow registering alone";
-export const PARTNER_REQUIRED_FULL_MESSAGE = "This tournament is full";
+  "This Social does not allow registering alone";
+export const PARTNER_REQUIRED_FULL_MESSAGE = "This Social is full";
 
 export function isPartnerRequiredGame(game: {
   format: string;

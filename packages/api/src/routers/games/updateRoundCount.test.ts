@@ -398,7 +398,7 @@ describe("updateRoundCount", () => {
             roundCount: 2,
           }),
         "BAD_REQUEST",
-        "Change Rounds on a Friendly tournament",
+        "Change Rounds on a Social",
       );
       expect(await storedRoundCount(db, friendly.id)).toBeNull();
     } finally {

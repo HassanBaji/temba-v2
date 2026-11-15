@@ -45,7 +45,7 @@ describe("tournamentHomeView", () => {
     assert.equal(view.canJoin, true);
     assert.equal(view.canTakeSeat, true);
     assert.equal(view.canLeaveGame, false);
-    assert.match(view.hero.eyebrow, /^Friendly tournament/);
+    assert.match(view.hero.eyebrow, /^Social/);
   });
 
   it("shows the viewer's team and a leave action once seated", () => {

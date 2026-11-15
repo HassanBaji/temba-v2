@@ -276,7 +276,7 @@ describe("create game type cards", () => {
   it("offers Friendly game and Friendly tournament, both rated", () => {
     assert.deepEqual(
       createGameTypeCards("en").map((card) => card.title),
-      ["Friendly game", "Friendly tournament"],
+      ["Friendly game", "Social"],
     );
     assert.deepEqual(
       createGameTypeCards("en").map((card) => card.rating),
@@ -592,16 +592,16 @@ describe("friendly tournament branch", () => {
       assert.equal(empty.field, "name");
       assert.equal(empty.elementId, "tournament-name");
     }
-    const named = validateTournamentName("  Friendly tournament · Fri  ", "en");
+    const named = validateTournamentName("  Social · Fri  ", "en");
     assert.equal(named.ok, true);
     if (named.ok) {
-      assert.equal(named.name, "Friendly tournament · Fri");
+      assert.equal(named.name, "Social · Fri");
     }
   });
 
   it("prefills the name from the day without a year", () => {
     const name = friendlyTournamentDefaultName("2026-09-25", "en");
-    assert.match(name, /^Friendly tournament · /);
+    assert.match(name, /^Social · /);
     assert.equal(name.includes("2026"), false);
     assert.match(name, /25/);
   });

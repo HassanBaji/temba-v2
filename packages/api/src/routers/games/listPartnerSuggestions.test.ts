@@ -516,7 +516,7 @@ describe("listPartnerSuggestions", () => {
         expectTrpc(
           error,
           "BAD_REQUEST",
-          "Register with a partner on a Friendly game or tournament",
+          "Register with a partner on a Friendly game or Social",
         );
         return true;
       });

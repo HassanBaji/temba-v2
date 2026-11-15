@@ -706,14 +706,14 @@ describe("Groups only copy does not advertise a knockout or a message", () => {
 
 describe("tournamentEyebrow", () => {
   it("ships Friendly tournament and the Round count", () => {
-    assert.equal(tournamentEyebrow(3, "en"), "Friendly tournament, 3 Rounds");
-    assert.equal(tournamentEyebrow(1, "en"), "Friendly tournament, 1 Round");
+    assert.equal(tournamentEyebrow(3, "en"), "Social, 3 Rounds");
+    assert.equal(tournamentEyebrow(1, "en"), "Social, 1 Round");
   });
 
   it("names the knockout instead of counting Rounds on Knockout only", () => {
     assert.equal(
       tournamentEyebrow(4, "en", true),
-      "Friendly tournament, knockout",
+      "Social, knockout",
     );
   });
 });
@@ -734,7 +734,7 @@ describe("tournamentRoundCount", () => {
     assert.equal(explicit, 5);
     assert.equal(
       tournamentEyebrow(explicit ?? 0, "en"),
-      "Friendly tournament, 5 Rounds",
+      "Social, 5 Rounds",
     );
   });
 
@@ -963,7 +963,7 @@ describe("Arabic copy", () => {
       }),
       "تبقّت 5 أماكن. يُجري Jonas قرعة المجموعات عندما تمتلئ الفرق، وهي عشوائية.",
     );
-    assert.equal(tournamentEyebrow(3, "ar"), "بطولة ودية، 3 جولات");
+    assert.equal(tournamentEyebrow(3, "ar"), "سوشيال، 3 جولات");
     assert.equal(tournamentCollapsedTeamsLabel(6, "ar"), "6 فرق مكتملة أخرى");
   });
 });

@@ -93,7 +93,7 @@ describe("stepHeader", () => {
 
   it("states the rating and Game team range for a Friendly tournament", () => {
     const expected = {
-      title: ["Friendly", "tournament"],
+      title: ["Social"],
       subtitle: null,
       context: {
         icon: "trophy",

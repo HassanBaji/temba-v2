@@ -7,7 +7,7 @@ export const mobileCreateGame = {
   timeRange: (start: string, end: string) => `${start} to ${end}`,
   toast: {
     gameCreated: "Game created",
-    tournamentCreated: "Tournament created",
+    tournamentCreated: "Social created",
   },
   validation: {
     pickGameType: "Pick a Game type",
@@ -16,7 +16,7 @@ export const mobileCreateGame = {
     whatTitle: "What are you\nsetting up?",
     whatSubtitle:
       "Both start with a Venue and a time. The rest of the form follows your pick.",
-    tournamentTitle: "Friendly\ntournament",
+    tournamentTitle: "Social",
     teamRange: (min: number, max: number) => `${min} to ${max} Game teams`,
     gameTitle: "Friendly\ngame",
     startWithGroup: "Start with the Group. Venue rules depend on it.",
@@ -180,7 +180,7 @@ export const mobileCreateGame = {
     title: "Name",
     gameLabel: "Game name",
     hint: "Shown on the Game and at the top of the invite message.",
-    tournamentLabel: "Tournament name",
+    tournamentLabel: "Social name",
   },
   football: {
     sideSize: "Side size",

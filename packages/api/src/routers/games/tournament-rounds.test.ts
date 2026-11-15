@@ -519,7 +519,7 @@ describe("tournament scores", () => {
           matchId,
           userId: seeded.owner.id,
         }),
-      ).rejects.toThrow("Enter a tournament score with enterTournamentScore");
+      ).rejects.toThrow("Enter a Social score with enterTournamentScore");
       await enterTournamentScore(database, {
         gameId: seeded.gameId,
         matchId,
@@ -539,7 +539,7 @@ describe("tournament scores", () => {
           slot1GamesWon: 0,
           slot2GamesWon: 6,
         }),
-      ).rejects.toThrow("Enter a tournament score with enterTournamentScore");
+      ).rejects.toThrow("Enter a Social score with enterTournamentScore");
       await expect(
         removeSet(database, {
           gameId: seeded.gameId,
@@ -547,7 +547,7 @@ describe("tournament scores", () => {
           setId: set!.id,
           userId: seeded.opponent.id,
         }),
-      ).rejects.toThrow("Enter a tournament score with enterTournamentScore");
+      ).rejects.toThrow("Enter a Social score with enterTournamentScore");
     });
   });
 

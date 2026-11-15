@@ -189,7 +189,7 @@ describe("roundCancelCopy", () => {
         5,
         "en",
       ),
-      "Round 5 comes off the schedule. The tournament will have 4 Rounds.",
+      "Round 5 comes off the schedule. The Social will have 4 Rounds.",
     );
   });
 
