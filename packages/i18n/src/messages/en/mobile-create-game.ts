@@ -79,10 +79,6 @@ export const mobileCreateGame = {
     setsSchedule: "Sets the schedule",
     venueHasNoCourts: "This Venue has no Courts.",
     venueHasNoPitches: "This Venue has no pitches.",
-    allCourts: (n: number) =>
-      plural("en", n, { one: "All 1 Court", other: "All {n} Courts" }),
-    allPitches: (n: number) =>
-      plural("en", n, { one: "All 1 pitch", other: "All {n} pitches" }),
     noCourt: "No Court",
     noPitch: "No pitch",
     settleCourtAtVenue: "Leave on None to settle the Court at the Venue.",

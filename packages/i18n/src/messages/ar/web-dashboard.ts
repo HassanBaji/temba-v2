@@ -118,15 +118,6 @@ export const webDashboard = {
     court: "الملعب",
     pitch: "الملعب",
     courts: "الملاعب",
-    allCount: (courts: string) => `الكل: ${courts}`,
-    allCourts: (n: number) =>
-      plural("ar", n, {
-        one: "الملعب الوحيد",
-        two: "الملعبان",
-        few: "كل الملاعب الـ{n}",
-        many: "كل الملاعب الـ{n}",
-        other: "كل الملاعب الـ{n}",
-      }),
     settleAtVenue: {
       court: "اتركه على «لا شيء» لتحديد الملعب في النادي.",
       pitch: "اتركه على «لا شيء» لتحديد الملعب في النادي.",
