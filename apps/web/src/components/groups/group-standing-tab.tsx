@@ -1225,6 +1225,7 @@ export function GroupStandingTab({
   groupCreatedAt = null,
   initialSeasonId,
   initialView,
+  onLensChange,
   now = new Date(),
 }: {
   canInvite?: boolean;
@@ -1255,6 +1256,7 @@ export function GroupStandingTab({
   /** A shared link's lens and view; `undefined` keeps the default. */
   initialSeasonId?: string | null;
   initialView?: StandingView;
+  onLensChange?: (seasonId: string | null, view: StandingView) => void;
   now?: Date;
 }) {
   const m = useMessages();
@@ -1439,7 +1441,10 @@ export function GroupStandingTab({
           seasons={seasons}
           lensId={lensId}
           now={now}
-          onPick={setLensId}
+          onPick={(seasonId) => {
+            setLensId(seasonId);
+            onLensChange?.(seasonId, pickedView);
+          }}
         />
       ) : null}
       {viewOptions.length > 0 || canShare ? (
@@ -1448,7 +1453,10 @@ export function GroupStandingTab({
             <ViewChips
               options={viewOptions}
               shown={view}
-              onPick={setPickedView}
+              onPick={(picked) => {
+                setPickedView(picked);
+                onLensChange?.(lensId, picked);
+              }}
             />
           ) : null}
           {canShare ? (

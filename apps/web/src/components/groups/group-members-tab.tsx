@@ -731,6 +731,8 @@ export function GroupMembersTab({
   canSetLevel,
   savedUserId,
   onDismissSaved,
+  query,
+  onQueryChange,
   onInvite,
   canAddPlayers = false,
   onAddPlayer,
@@ -778,6 +780,9 @@ export function GroupMembersTab({
   /** The member whose Level was just set, from the Set Level page. */
   savedUserId: string | null;
   onDismissSaved: () => void;
+  /** The search box, kept by the page so it survives a round trip. */
+  query: string;
+  onQueryChange: (query: string) => void;
   onInvite: () => void;
   /** Lookup invites not yet accepted; only an inviter is given them. */
   pendingInvites?: GroupPendingInvite[];
@@ -790,7 +795,6 @@ export function GroupMembersTab({
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const [query, setQuery] = useState("");
   const [managing, setManaging] = useState(false);
   const [invitesOpen, setInvitesOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
@@ -962,7 +966,7 @@ export function GroupMembersTab({
               <Input
                 type="search"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => onQueryChange(event.target.value)}
                 placeholder={m.webGroup.searchMembers}
                 aria-label={m.webGroup.searchMembers}
                 className="min-w-0 flex-1"
@@ -1062,7 +1066,7 @@ export function GroupMembersTab({
                         type="button"
                         variant="outline"
                         onClick={() => {
-                          setQuery("");
+                          onQueryChange("");
                           setFilter("all");
                         }}
                       >
