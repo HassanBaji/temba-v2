@@ -149,7 +149,7 @@ import {
   isKnockoutOnly,
   showsDrawnTournamentSeats,
 } from "@repo/domain/tournament-rounds";
-import { gameCustomName, gameDisplayName } from "@repo/domain/game-custom-name";
+import { gameDisplayName } from "@repo/domain/game-custom-name";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { gamePlayersLink } from "~/lib/game-player-links";
 import { shareLinkWithFeedback } from "~/lib/share-link";
@@ -596,7 +596,7 @@ export default function GameHomePage({
       shortUrl: url,
       roster: row
         ? {
-            customName: gameCustomName(row),
+            gameName: gameDisplayName(row, locale),
             venueName: row.venue?.name ?? m.webDashboard.venue.title,
             courtName: row.matches[0]?.courtName ?? null,
             windowStart: row.windowStart,
