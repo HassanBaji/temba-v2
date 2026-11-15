@@ -2,7 +2,6 @@ import { radii, spacing } from "@repo/design-tokens";
 import {
   isPublicGameDraft,
   publicGameOffered,
-  visibleCreateCourts,
 } from "@repo/domain/create-game-flow";
 import { courtFace } from "@repo/domain/court-sport-copy";
 import {
@@ -11,7 +10,6 @@ import {
   TOURNAMENT_TEAM_MIN,
   TOURNAMENT_TEAM_STEP,
 } from "@repo/domain/tournament-sizing";
-import { useState } from "react";
 import { View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
@@ -42,23 +40,10 @@ export function WhereStep({
   const copy = m.mobileCreateGame;
   const pitch = courtFace(state.sport) === "pitch";
   const courtTitle = pitch ? copy.court.pitchTitle : copy.court.courtTitle;
-  const [courtsExpanded, setCourtsExpanded] = useState(false);
   const pickerData = picker?.status === "ready" ? picker.value : null;
   const venues = pickerData?.venues ?? [];
   const selectedVenue = venues.find((venue) => venue.id === draft.venueId);
   const courts = selectedVenue?.courts ?? [];
-  const visibleCourts = courtsExpanded
-    ? courts
-    : visibleCreateCourts(
-        courts,
-        pickerData?.recentCourtIds ?? [],
-        tournament
-          ? draft.courtIds
-          : draft.courtId === "none"
-            ? []
-            : [draft.courtId],
-      );
-  const moreCourts = !courtsExpanded && courts.length > visibleCourts.length;
   const publicGame = isPublicGameDraft(draft);
 
   return (
@@ -97,10 +82,7 @@ export function WhereStep({
         sport={state.sport}
         error={errors.venueId}
         initialSheetQuery={initialVenueSheetQuery}
-        onSelect={(venueId) => {
-          setCourtsExpanded(false);
-          dispatch({ kind: "setVenue", venueId });
-        }}
+        onSelect={(venueId) => dispatch({ kind: "setVenue", venueId })}
       />
 
       {tournament ? (
@@ -120,21 +102,12 @@ export function WhereStep({
               label={copy.court.inUse}
               multiple
               columns={TOURNAMENT_COURT_COLUMNS}
-              chips={visibleCourts.map((court) => ({
+              chips={courts.map((court) => ({
                 value: court.id,
                 label: court.name,
               }))}
               isSelected={(id) => draft.courtIds.includes(id)}
               onSelect={(courtId) => dispatch({ kind: "toggleCourt", courtId })}
-              escape={
-                moreCourts
-                  ? {
-                      label: m.common.more,
-                      accessibilityLabel: copy.court.allCourts(courts.length),
-                      onPress: () => setCourtsExpanded(true),
-                    }
-                  : undefined
-              }
             />
           )}
           <FieldError message={errors.courtIds} />
@@ -166,24 +139,13 @@ export function WhereStep({
                       ? copy.court.noPitch
                       : copy.court.noCourt,
                   },
-                  ...visibleCourts.map((court) => ({
+                  ...courts.map((court) => ({
                     value: court.id,
                     label: court.name,
                   })),
                 ]}
                 isSelected={(id) => draft.courtId === id}
                 onSelect={(courtId) => dispatch({ kind: "setCourt", courtId })}
-                escape={
-                  moreCourts
-                    ? {
-                        label: m.common.more,
-                        accessibilityLabel: pitch
-                          ? copy.court.allPitches(courts.length)
-                          : copy.court.allCourts(courts.length),
-                        onPress: () => setCourtsExpanded(true),
-                      }
-                    : undefined
-                }
               />
               <Text size="meta" tone="muted">
                 {pitch

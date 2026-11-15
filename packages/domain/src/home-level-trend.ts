@@ -87,10 +87,14 @@ export function homeTrendView(
     window,
     points,
     baselineY: points[0]?.y ?? box.height / 2,
-    startLabel: present.has("set")
-      ? copy.changesAgo(steps.length)
-      : copy.matchesAgo(steps.length),
-    legend: LEGEND_ORDER.filter((kind) => present.has(kind))
+    startLabel:
+      present.has("set") || present.has("placed")
+        ? copy.changesAgo(steps.length)
+        : copy.matchesAgo(steps.length),
+    // A Place award is wins against the field, so it reads as a won point.
+    legend: LEGEND_ORDER.filter(
+      (kind) => present.has(kind) || (kind === "won" && present.has("placed")),
+    )
       .map((kind) => copy.legend[kind])
       .join(copy.legendSeparator),
     spoken: copy.spoken(from, to, window),

@@ -1070,7 +1070,6 @@ function NewGameForm() {
                 clearField("venueId");
               }}
               emptyCatalog={emptyCatalog}
-              recentCourtIds={picker.data?.recentCourtIds ?? []}
               courtIds={courtIds}
               courtError={courtError}
               onToggleCourt={(courtIdToToggle) => {
@@ -1298,7 +1297,6 @@ function NewGameForm() {
                 clearField("venueId");
               }}
               emptyCatalog={emptyCatalog}
-              recentCourtIds={picker.data?.recentCourtIds ?? []}
               courtId={courtId}
               courtError={courtError}
               onCourtId={(nextCourtId) => {

@@ -458,6 +458,33 @@ describe("ratingHistoryLine", () => {
     expect(band("safi", null).title).toBe("No longer a Safi");
   });
 
+  it("reads a King of the court Place award with the place and the venue", () => {
+    const line = ratingHistoryLine(
+      item({
+        kind: "king_place",
+        id: "award",
+        at: THU_12_NOV,
+        sport: "padel",
+        muBefore: muFromLevel(3.4),
+        muAfter: muFromLevel(3.55),
+        venueName: "Janabiyah Padel Park",
+        finalPlace: 1,
+        teamCount: 8,
+      }),
+      VIEWER,
+      "en",
+    );
+    expect(line).toMatchObject({
+      key: "award",
+      icon: { kind: "level" },
+      title: "Level, King of the court",
+      detail: "Finished 1st of 8, Janabiyah Padel Park",
+      byline: null,
+      delta: "+0.15",
+      after: "3.55",
+    });
+  });
+
   it("marks the Match that confirmed a Level as a milestone", () => {
     const confirmed = item({
       kind: "level_confirmed",

@@ -43,7 +43,6 @@ import {
   createRatingChoice,
   reconcileWindowForDay,
   selectStartSlot,
-  visibleCreateCourts,
   type CreateTournamentShape,
 } from "@repo/domain/create-game-flow";
 import { formatGameClock } from "@repo/domain/format-game-start";
@@ -104,7 +103,6 @@ export function FriendlyTournamentSteps({
   venueError,
   onVenueId,
   emptyCatalog,
-  recentCourtIds,
   courtIds,
   courtError,
   onToggleCourt,
@@ -172,7 +170,6 @@ export function FriendlyTournamentSteps({
   venueError?: string;
   onVenueId: (venueId: string) => void;
   emptyCatalog: boolean;
-  recentCourtIds: readonly string[];
   courtIds: readonly string[];
   courtError?: string;
   onToggleCourt: (courtId: string) => void;
@@ -234,9 +231,6 @@ export function FriendlyTournamentSteps({
   const c = m.webDashboard.createGame;
   const sizingCopy = m.tournament.sizing;
   const ratingChoice = createRatingChoice({ groupVerified, rated, locale });
-  const [courtsExpandedVenueId, setCourtsExpandedVenueId] = React.useState<
-    string | null
-  >(null);
   const [startExpanded, setStartExpanded] = React.useState(false);
   const [finishExpanded, setFinishExpanded] = React.useState(false);
 
@@ -252,10 +246,6 @@ export function FriendlyTournamentSteps({
   );
   const selectedVenue = venues.find((venue) => venue.id === venueId);
   const courts = selectedVenue?.courts ?? [];
-  const courtsExpanded = courtsExpandedVenueId === venueId;
-  const visibleCourts = courtsExpanded
-    ? courts
-    : visibleCreateCourts(courts, recentCourtIds, courtIds);
   const plan = friendlyTournamentPlan({
     teamCount,
     poolCount,
@@ -361,8 +351,7 @@ export function FriendlyTournamentSteps({
                   {selectedVenue ? c.noCourtsToRecord : c.pickVenueForCourts}
                 </p>
               ) : (
-                <>
-                  {visibleCourts.map((court) => {
+                courts.map((court) => {
                     const selected = courtIds.includes(court.id);
                     return (
                       <ChoiceChip
@@ -376,18 +365,7 @@ export function FriendlyTournamentSteps({
                         {court.name}
                       </ChoiceChip>
                     );
-                  })}
-                  {!courtsExpanded && courts.length > visibleCourts.length ? (
-                    <ChoiceChip
-                      dashed
-                      onClick={() => {
-                        setCourtsExpandedVenueId(venueId);
-                      }}
-                    >
-                      {c.allCourts(courts.length)}
-                    </ChoiceChip>
-                  ) : null}
-                </>
+                })
               )}
             </div>
             <FieldError id="game-court-error">{courtError}</FieldError>
@@ -1034,14 +1012,12 @@ export function FriendlyTournamentSteps({
             </RovingRadioGroup>
           </section>
 
-          {kingOfTheCourt ? null : (
-            <RatingField
-              idPrefix="tournament"
-              groupVerified={groupVerified}
-              rated={rated}
-              onRated={onRated}
-            />
-          )}
+          <RatingField
+            idPrefix="tournament"
+            groupVerified={groupVerified}
+            rated={rated}
+            onRated={onRated}
+          />
 
           <section className="flex flex-col gap-3">
             <SectionHeading
@@ -1130,27 +1106,20 @@ export function FriendlyTournamentSteps({
               label={c.courts}
               value={friendlyTournamentCourtsLabel(selectedCourtNames, locale)}
             />
-            {kingOfTheCourt ? (
+            {kingOfTheCourt ? null : (
               <ReviewRow
-                label={k.create.reviewRating}
-                value={k.create.reviewRatingValue}
+                label={c.gameLength}
+                value={
+                  parsedMinutes.ok
+                    ? c.minutes(parsedMinutes.minutes)
+                    : c.gameLength
+                }
               />
-            ) : (
-              <>
-                <ReviewRow
-                  label={c.gameLength}
-                  value={
-                    parsedMinutes.ok
-                      ? c.minutes(parsedMinutes.minutes)
-                      : c.gameLength
-                  }
-                />
-                <ReviewRow
-                  label={ratingChoice.title}
-                  value={ratingChoice.scopeLabel}
-                />
-              </>
             )}
+            <ReviewRow
+              label={ratingChoice.title}
+              value={ratingChoice.scopeLabel}
+            />
             {paymentReview ? (
               <ReviewRow
                 label={m.gamePayments.create.reviewLabel}

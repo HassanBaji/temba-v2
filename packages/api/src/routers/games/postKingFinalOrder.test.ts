@@ -223,7 +223,7 @@ describe("King of the court on the Games lists", () => {
     expect(rows[0]).toMatchObject({
       id: gameId,
       matchId: gameId,
-      rated: false,
+      rated: true,
       kingOfTheCourt: {
         posted: true,
         place: 3,

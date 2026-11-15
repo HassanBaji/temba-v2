@@ -49,7 +49,7 @@ Refused once the Knockout has started.
 `games.createTournament` takes `tournamentShape: "rounds"`. New doors `games.addRound`
 (`{ gameId, post? }`) and `games.cancelRound` (`{ gameId, roundNumber }`). `games.tournamentRounds`
 gains `canAddRound`, `maxRoundCount` and, per Round, `cancelEffect` and the `cancelled` state.
-Schema: enum value `rounds` on `tournament_shape` (migration `0125_tournament_rounds_shape`).
+Schema: enum value `rounds` on `tournament_shape` (migration `0126_tournament_rounds_shape`).
 
 ## Not built
 

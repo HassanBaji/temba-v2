@@ -3,6 +3,7 @@
 import { CrownIcon } from "lucide-react";
 
 import { ratingScopeTag } from "@repo/domain/game-rating-impact";
+import type { GameRatingScope } from "@repo/domain/game-rating-scope";
 import {
   kingPlayedCardModel,
   type KingPlayedSummary,
@@ -21,6 +22,8 @@ type KingPlayedGame = {
   displayTime: Date;
   groupName: string | null;
   venue: { name: string };
+  rated?: boolean;
+  ratingScope?: GameRatingScope;
   kingOfTheCourt: KingPlayedSummary;
 };
 
@@ -29,7 +32,10 @@ export function KingPlayedCard({ game }: { game: KingPlayedGame }) {
   const locale = useLocale();
   const view = kingPlayedCardModel(game, locale);
   const scopeTag = ratingScopeTag(
-    { rated: false, ratingScope: "unrated" },
+    {
+      rated: game.rated ?? false,
+      ratingScope: game.ratingScope ?? "unrated",
+    },
     locale,
   );
 

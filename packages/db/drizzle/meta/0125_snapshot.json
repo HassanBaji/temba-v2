@@ -1,5 +1,5 @@
 {
-  "id": "622f7329-b330-4c40-8f7b-50ee895d4357",
+  "id": "e56157a9-61a9-468c-87f1-fb85b9e6a451",
   "prevId": "ef7faef6-7709-4c0f-8e53-f0f28142f62a",
   "version": "7",
   "dialect": "postgresql",
@@ -1105,6 +1105,183 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.king_place_awards": {
+      "name": "king_place_awards",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sport": {
+          "name": "sport",
+          "type": "group_sport",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "game_id": {
+          "name": "game_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "final_place": {
+          "name": "final_place",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wins": {
+          "name": "wins",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "field_mu": {
+          "name": "field_mu",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "field_phi": {
+          "name": "field_phi",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "had_rating": {
+          "name": "had_rating",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mu_before": {
+          "name": "mu_before",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phi_before": {
+          "name": "phi_before",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sigma_before": {
+          "name": "sigma_before",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mu_after": {
+          "name": "mu_after",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phi_after": {
+          "name": "phi_after",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sigma_after": {
+          "name": "sigma_after",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "level_band_before": {
+          "name": "level_band_before",
+          "type": "rating_level_band",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_rated_at_before": {
+          "name": "last_rated_at_before",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "king_place_awards_game_id_idx": {
+          "name": "king_place_awards_game_id_idx",
+          "columns": [
+            {
+              "expression": "game_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "king_place_awards_user_id_user_id_fk": {
+          "name": "king_place_awards_user_id_user_id_fk",
+          "tableFrom": "king_place_awards",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "king_place_awards_game_id_games_id_fk": {
+          "name": "king_place_awards_game_id_games_id_fk",
+          "tableFrom": "king_place_awards",
+          "tableTo": "games",
+          "columnsFrom": [
+            "game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "king_place_awards_user_id_game_id_unique": {
+          "name": "king_place_awards_user_id_game_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id",
+            "game_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -11089,8 +11266,7 @@
         "groups_only",
         "groups_then_knockout",
         "knockout_only",
-        "king_of_the_court",
-        "rounds"
+        "king_of_the_court"
       ]
     },
     "public.match_dispute_status": {
@@ -11333,7 +11509,8 @@
         "king_final_order_posted",
         "game_payment_reminder",
         "game_payment_not_received",
-        "game_payment_claimed"
+        "game_payment_claimed",
+        "king_place_awarded"
       ]
     }
   },
