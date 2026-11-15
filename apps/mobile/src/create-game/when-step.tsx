@@ -196,17 +196,20 @@ export function TournamentWhenStep(props: StepProps) {
         note={m.common.required}
       >
         <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
-          {tournamentShapeOptions(locale).map((option) => (
-            <ChoiceCard
-              key={option.id}
-              role="radio"
-              variant="row"
-              title={option.title}
-              description={option.description}
-              selected={draft.tournamentShape === option.id}
-              onPress={() => dispatch({ kind: "setShape", shape: option.id })}
-            />
-          ))}
+          {tournamentShapeOptions(locale)
+            // King of the court runs on the web App only for now (ADR-0087).
+            .filter((option) => option.id !== "king_of_the_court")
+            .map((option) => (
+              <ChoiceCard
+                key={option.id}
+                role="radio"
+                variant="row"
+                title={option.title}
+                description={option.description}
+                selected={draft.tournamentShape === option.id}
+                onPress={() => dispatch({ kind: "setShape", shape: option.id })}
+              />
+            ))}
         </View>
         <ShapeSteppers {...props} plan={plan} />
       </StepSection>

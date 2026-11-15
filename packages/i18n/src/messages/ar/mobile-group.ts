@@ -159,7 +159,6 @@ export const mobileGroup = {
     },
   },
   requests: {
-    review: "مراجعة طلبات الانضمام",
     changeWhoCanJoin: "تغيير من يمكنه الانضمام",
     row: (name: string, meta: string) => `${name}. ${meta}`,
     quotedNote: (note: string) => `«${note}»`,

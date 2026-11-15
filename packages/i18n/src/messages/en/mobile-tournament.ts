@@ -74,6 +74,8 @@ export const mobileTournament = {
     confirmScore: (score: string) => `Confirm ${score}`,
   },
   organizer: {
+    kingOnWeb:
+      "Draw the starting courts and post the final order on the web for now.",
     roundsSaved: "Rounds saved",
     changeRounds: "Change Rounds",
     kickSr: (name: string) => `Kick ${name}`,

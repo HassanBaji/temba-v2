@@ -78,6 +78,7 @@ export function TournamentHero({
   startLine,
   sizeLine,
   statusLine,
+  stats = [],
   viewerUserId,
   left,
   right,
@@ -93,6 +94,8 @@ export function TournamentHero({
   startLine: string | null;
   sizeLine: string | null;
   statusLine: string;
+  /** Number tiles under the title, such as teams, courts and the price. */
+  stats?: readonly { value: string; label: string }[];
   viewerUserId: string;
   left: TournamentHeroSeat;
   right: TournamentHeroSeat;
@@ -138,6 +141,23 @@ export function TournamentHero({
       </PageTitle>
       {startLine ? <p className="text-lead mt-2.5">{startLine}</p> : null}
       {sizeLine ? <p className="text-dim text-meta mt-1">{sizeLine}</p> : null}
+      {stats.length > 0 ? (
+        <dl className="mt-[18px] flex gap-2">
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="border-dimrule bg-raised min-w-0 flex-1 rounded-md border px-3 py-2.5"
+            >
+              <dd className="font-expanded truncate text-[22px] leading-none tracking-[-0.03em]">
+                {stat.value}
+              </dd>
+              <dt className="text-dim mt-1.5 text-[11px] leading-tight">
+                {stat.label}
+              </dt>
+            </div>
+          ))}
+        </dl>
+      ) : null}
 
       <div className="bg-dimrule my-[22px] h-px" />
 

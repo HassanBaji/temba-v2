@@ -834,7 +834,12 @@ export function FootballGameDetails({
           </Surface>
         ) : null}
         {requests ? (
-          <RequestsSection requests={requests} decisions={decisions} />
+          <RequestsSection
+            gameId={gameId}
+            groupName={game.groupName}
+            requests={requests}
+            decisions={decisions}
+          />
         ) : null}
         {levelCard ? (
           <LevelRequestCard

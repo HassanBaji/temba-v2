@@ -61,6 +61,7 @@ import {
   type CreateTournamentShape,
   type FriendlyGameDraft,
 } from "@repo/domain/create-game-flow";
+import { kingCourtCount } from "@repo/domain/tournament-king";
 import {
   applyTeamCountChange,
   friendlyTournamentPlan,
@@ -895,7 +896,11 @@ function NewGameForm() {
           <span className="text-dim text-[18px] leading-none">
             {c.gameTeams}
           </span>
-          {tournamentKnockout ? (
+          {tournamentPlan.kingOfTheCourt ? (
+            <span className="text-dim text-body leading-none">
+              {m.tournamentKing.create.courtsLabel(kingCourtCount(teamCount))}
+            </span>
+          ) : tournamentKnockout ? (
             <span className="text-dim text-body leading-none">
               {knockoutMatchCountLabel(tournamentKnockout.matchCount, locale)}
             </span>

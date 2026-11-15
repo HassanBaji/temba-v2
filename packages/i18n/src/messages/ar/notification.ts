@@ -93,6 +93,20 @@ export const notification = {
       strong(game),
       plain(". أكّدها أو صحّحها"),
     ],
+    kingCourtsPosted: (actor: string, game: string) => [
+      plain("نشر "),
+      strong(actor),
+      plain(" ملاعب البداية في "),
+      strong(game),
+      plain(". اطّلع على ملعبك"),
+    ],
+    kingFinalOrderPosted: (actor: string, game: string) => [
+      plain("نشر "),
+      strong(actor),
+      plain(" الترتيب النهائي في "),
+      strong(game),
+      plain(". اطّلع على ترتيبك"),
+    ],
     historyLinked: (gameCount: number) => [
       plain("ربطنا "),
       strong(

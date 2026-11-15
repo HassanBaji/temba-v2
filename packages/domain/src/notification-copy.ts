@@ -235,6 +235,24 @@ export function notificationCopy(
       subline: null,
     };
   }
+  if (item.type === "king_courts_posted" && item.game) {
+    return {
+      title: m.kingCourtsPosted(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (item.type === "king_final_order_posted" && item.game) {
+    return {
+      title: m.kingFinalOrderPosted(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
   if (
     item.type === "game_team_changed" &&
     item.audience === "player" &&

@@ -855,6 +855,20 @@
       "when": 1794588828114,
       "tag": "0121_tier_event_member_count",
       "breakpoints": true
+    },
+    {
+      "idx": 122,
+      "version": "7",
+      "when": 1794662151012,
+      "tag": "0122_king_of_the_court",
+      "breakpoints": true
+    },
+    {
+      "idx": 123,
+      "version": "7",
+      "when": 1794666466915,
+      "tag": "0123_king_of_the_court_notifications",
+      "breakpoints": true
     }
   ]
 }

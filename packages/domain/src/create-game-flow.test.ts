@@ -666,10 +666,19 @@ describe("friendly tournament branch", () => {
     );
   });
 
-  it("offers Groups only first, then Knockout only and Groups then knockout", () => {
+  it("offers Groups only first, then Knockout only, Groups then knockout and King of the court", () => {
     assert.deepEqual(
       tournamentShapeOptions("en").map((option) => option.id),
-      ["groups_only", "knockout_only", "groups_then_knockout"],
+      [
+        "groups_only",
+        "knockout_only",
+        "groups_then_knockout",
+        "king_of_the_court",
+      ],
+    );
+    assert.equal(
+      tournamentShapeOptions("en")[3]?.description,
+      "Winners move up a court, losers move down",
     );
     assert.equal(
       tournamentShapeOptions("en")[2]?.title,

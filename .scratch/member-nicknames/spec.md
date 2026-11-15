@@ -29,7 +29,7 @@ Columns on `group_members` (migration `0103_member_nicknames`): `nickname varcha
 
 Both Apps show the same places. Every one marks the nickname with the tag icon. Only the Members list puts the Temba name under it; everywhere else the nickname stands alone, and avatars keep the Temba name's initials.
 
-- Members: nickname first, Temba name under it; search matches both. In Manage, a member without one shows "Add name", the approver's own row included. The member menu has a "Name in this Group" row with the current name on the right. A legend line explains the tag.
+- Members: nickname first, Temba name under it; search matches both. In Manage, the member menu has an "Add a Group nickname" row for a member without one, the approver's own row included, and a "Name in this Group" row with the current name on the right for a member with one. A legend line explains the tag.
 - Name in this Group (a sheet on mobile, a dialog on web): name field with counter, live preview row (nickname over Temba name), Who sees it, Save and Clear name. Naming yourself reads "For you" and its own notes. The copy lives in `group.nickname` and the view in `@repo/domain/member-nickname-sheet`, shared by both Apps.
 - The player's own card: only for a name set for the whole Group.
 - Standing (all lenses). The viewer's own row keeps their Temba name ("You" on mobile).

@@ -159,6 +159,8 @@ function gameTeamsFromSides(
       sideIndex: side.sideIndex,
       poolIndex: poolIndexes ? poolIndexForSide(side.sideIndex) : null,
       knockoutSeed: null,
+      startCourt: null,
+      finalPlace: null,
       members,
     };
   });
@@ -387,6 +389,7 @@ function baseTournament(args: {
     roundCount: null,
     matchMinutes: null,
     drawPostedAt: args.drawPostedAt,
+    finalOrderPostedAt: null,
     canUndoDraw: args.drawPostedAt != null,
     sport: "padel",
     cancelledAt: null,

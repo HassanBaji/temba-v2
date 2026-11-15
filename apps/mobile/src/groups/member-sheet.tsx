@@ -98,9 +98,13 @@ export function MemberSheet({
         onNickname ? (
           <SheetMenuRow
             key="nickname"
-            label={m.group.nickname.menuLabel}
+            label={
+              member.nickname
+                ? m.group.nickname.menuLabel
+                : m.group.nickname.addMenuLabel
+            }
             hint={m.group.nickname.menuHint}
-            value={member.nickname ?? m.group.nickname.notSet}
+            value={member.nickname ?? undefined}
             trailing="chevron"
             onPress={onNickname}
           />

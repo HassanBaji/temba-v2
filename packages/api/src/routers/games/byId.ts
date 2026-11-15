@@ -139,6 +139,7 @@ import {
   type RatingWindowState,
 } from "@repo/domain/performance-rating";
 import { settleRatingWindowIfDue } from "#src/ratings/settle-rating-window";
+import { isKingOfTheCourt } from "@repo/domain/tournament-king";
 import { messagesFor } from "@repo/i18n/messages";
 import { loadTeamDisplayNames } from "#src/challenges/challenge-proposals";
 import { loadChallengeSides } from "#src/games/challenge-squad";
@@ -1317,8 +1318,10 @@ export async function gameById(
     roundCount: game.roundCount,
     matchMinutes: game.matchMinutes,
     drawPostedAt: game.drawPostedAt,
+    finalOrderPostedAt: game.finalOrderPostedAt,
     canUndoDraw:
       game.drawPostedAt != null &&
+      !isKingOfTheCourt(game.format, game.tournamentShape) &&
       !matchRows.some(
         (match) =>
           match.sets.length > 0 ||
@@ -1428,6 +1431,8 @@ export async function gameById(
       sideIndex: row.sideIndex,
       poolIndex: row.poolIndex,
       knockoutSeed: row.knockoutSeed,
+      startCourt: row.startCourt,
+      finalPlace: row.finalPlace,
       members: row.players.flatMap((link) =>
         link.gamePlayer.user
           ? [

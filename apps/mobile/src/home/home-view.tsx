@@ -3,6 +3,7 @@ import { View } from "react-native";
 
 import { useNow } from "../games/use-now";
 import { useLocale, useMessages } from "../i18n/locale-provider";
+import { HomeRequests } from "../requests/home-requests";
 import { HomeHeader } from "./home-header";
 import type { HomeModel } from "./home-model";
 import type { HomeNavTarget } from "./home-target";
@@ -54,6 +55,7 @@ export function HomeView({
         unreadNotificationCount={model.unreadNotificationCount}
         onNotifications={() => onNavigate({ kind: "notifications" })}
       />
+      <HomeRequests onAll={() => onNavigate({ kind: "requests" })} />
       {model.checklist ? (
         <ProfileChecklistCard
           list={model.checklist.list}

@@ -73,6 +73,8 @@ export type TournamentStatusLineInput = {
   organizerName: string | null;
   locale: Locale;
   knockoutOnly?: boolean;
+  /** King of the court: the draw is the starting courts. */
+  king?: boolean;
   /** Groups then knockout: the line says the groups lead to a knockout. */
   thenKnockout?: boolean;
 };
@@ -305,6 +307,12 @@ export function tournamentStatusLine(input: TournamentStatusLineInput): string {
 }
 
 function drawStatusLine(input: TournamentStatusLineInput): string {
+  if (input.king) {
+    const k = messagesFor(input.locale).tournamentKing.hero;
+    return input.seated
+      ? k.statusSeated
+      : k.statusUnseated(input.seatsLeft, firstName(input.organizerName));
+  }
   const m = messagesFor(input.locale).tournament.home;
   if (input.seated) {
     if (input.seatsLeft === 0) {

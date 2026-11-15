@@ -83,33 +83,6 @@ function YouMark() {
   );
 }
 
-function AddNameButton({
-  name,
-  onPress,
-}: {
-  name: string;
-  onPress: () => void;
-}) {
-  const m = useMessages();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={m.group.nickname.addNameFor(name)}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        minHeight: sizes.touchTarget,
-        justifyContent: "center",
-        paddingHorizontal: 4,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <Text size="eyebrow" tone="muted">
-        {m.group.nickname.addName}
-      </Text>
-    </Pressable>
-  );
-}
-
 function MemberRow({
   row,
   showLevel,
@@ -117,7 +90,6 @@ function MemberRow({
   managing,
   onOpen,
   onManage,
-  onAddName,
 }: {
   row: MemberRowView;
   showLevel: boolean;
@@ -125,8 +97,6 @@ function MemberRow({
   managing: boolean;
   onOpen?: () => void;
   onManage?: () => void;
-  /** While managing, a member with no Member nickname offers one. */
-  onAddName?: () => void;
 }) {
   const m = useMessages();
   const colors = useColors();
@@ -193,9 +163,6 @@ function MemberRow({
         >
           {content}
         </View>
-        {onAddName ? (
-          <AddNameButton name={row.tembaName} onPress={onAddName} />
-        ) : null}
         {onManage ? (
           <Pressable
             accessibilityRole="button"
@@ -693,17 +660,12 @@ export function MembersTab({
                 onOpen={onOpenMember ? () => onOpenMember(row.key) : undefined}
                 onManage={
                   row.isViewer && !row.selectable
-                    ? canSetNicknames && row.nickname != null
+                    ? canSetNicknames
                       ? () => openNaming(row.key)
                       : undefined
                     : row.selectable
                       ? () => setSelectedUserId(row.key)
                       : undefined
-                }
-                onAddName={
-                  canSetNicknames && row.nickname == null
-                    ? () => openNaming(row.key)
-                    : undefined
                 }
               />
             </View>

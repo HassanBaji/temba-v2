@@ -183,21 +183,6 @@ export const group = {
         `عبر رابط دعوة من ${name}، ${when}`,
       viaInviteLink: (when: string) => `عبر رابط دعوة، ${when}`,
     },
-    requestsBanner: (n: number) =>
-      plural("ar", n, {
-        one: "شخص واحد يريد الانضمام",
-        two: "شخصان يريدان الانضمام",
-        few: "{n} أشخاص يريدون الانضمام",
-        many: "{n} شخصًا يريدون الانضمام",
-        other: "{n} شخص يريدون الانضمام",
-      }),
-    requestsHeading: (n: number) =>
-      plural("ar", n, {
-        one: "1 يريد الانضمام",
-        two: "2 يريدان الانضمام",
-        other: "{n} يريدون الانضمام",
-      }),
-    reviewLabel: "مراجعة",
     changeLabel: "تغيير",
     policy: {
       approve: "يوافق المنظّمون على الأعضاء الجدد",
@@ -767,9 +752,7 @@ export const group = {
       `${nickname}، اسم ${name} في هذه المجموعة`,
     menuLabel: "الاسم في هذه المجموعة",
     menuHint: "ما تناديه به هنا، لتميّز بين اللاعبين",
-    notSet: "غير محدّد",
-    addName: "أضف اسمًا",
-    addNameFor: (name: string) => `أضف اسمًا لـ${name}`,
+    addMenuLabel: "أضف لقبًا في المجموعة",
     title: "الاسم في هذه المجموعة",
     forMember: (name: string, group: string) => `لـ${name}، في ${group} فقط.`,
     forYou: (group: string) => `لك، في ${group} فقط.`,

@@ -14,6 +14,8 @@ import {
 
 const HOME_TAB = ["(home)"];
 
+export const REQUESTS_PATH = "/requests";
+
 export type HomeNavTarget =
   | HomeTarget
   | HomeNoGamesCreateAction["target"]
@@ -28,6 +30,7 @@ export type HomeNavTarget =
   | { kind: "book"; sport: Sport }
   | { kind: "invites" }
   | { kind: "notifications" }
+  | { kind: "requests" }
   | { kind: "profile-task"; task: ProfileTaskId }
   | { kind: "complete-profile" };
 
@@ -65,6 +68,8 @@ export function homePath(target: HomeNavTarget): string {
       return "/profile/invites";
     case "notifications":
       return "/notifications";
+    case "requests":
+      return REQUESTS_PATH;
     case "profile-task":
       return profileTaskPath(target.task);
     case "complete-profile":

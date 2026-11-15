@@ -269,7 +269,6 @@ export const game = {
     sentence: (text: string) => `${text}.`,
     decline: "رفض",
     approveSeatAndMembership: "الموافقة على المكان والعضوية",
-    note: "يمكن لأي منظّم في المجموعة أن يقرّر. يتحرّر المكان المحجوز عند انتهاء الحجز أو عند الرفض.",
     approvedToast: (name: string) => `تمت الموافقة على ${name}`,
     declinedToast: (name: string) => `رُفض ${name}`,
   },

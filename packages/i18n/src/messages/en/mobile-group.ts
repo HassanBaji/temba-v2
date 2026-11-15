@@ -130,7 +130,6 @@ export const mobileGroup = {
     },
   },
   requests: {
-    review: "Review join requests",
     changeWhoCanJoin: "Change who can join",
     row: (name: string, meta: string) => `${name}. ${meta}`,
     quotedNote: (note: string) => `“${note}”`,

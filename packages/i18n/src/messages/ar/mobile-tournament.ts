@@ -91,6 +91,7 @@ export const mobileTournament = {
     confirmScore: (score: string) => `أكّد ${score}`,
   },
   organizer: {
+    kingOnWeb: "اسحب ملاعب البداية وانشر الترتيب النهائي من الموقع حاليًا.",
     roundsSaved: "تم حفظ الجولات",
     changeRounds: "تغيير الجولات",
     kickSr: (name: string) => `أخرِج ${name}`,

@@ -77,6 +77,18 @@ export const notification = {
       strong(game),
       plain(". Confirm it or correct it"),
     ],
+    kingCourtsPosted: (actor: string, game: string) => [
+      strong(actor),
+      plain(" posted the starting courts for "),
+      strong(game),
+      plain(". See where you start"),
+    ],
+    kingFinalOrderPosted: (actor: string, game: string) => [
+      strong(actor),
+      plain(" posted the final order for "),
+      strong(game),
+      plain(". See where you finished"),
+    ],
     historyLinked: (gameCount: number) => [
       plain("We linked "),
       strong(plural("en", gameCount, { one: "1 Game", other: "{n} Games" })),
