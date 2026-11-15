@@ -71,19 +71,19 @@ function sheet(
 
 describe("tierAdjustSheet (screen 2d)", () => {
   it("reads the member as they stand before any move", () => {
-    const view = sheet("mahmood", 0);
+    const view = sheet("jassim", 0);
     expect(view.subtitle).toBe(
       "Thursday Football. A manual change, on top of what the games did.",
     );
-    expect(view.nowLine).toBe("Now 1,248, Kanaad, #4 of 13");
-    expect(view.pointsLabel).toBe("1,248");
+    expect(view.nowLine).toBe("Now 1,214, Kanaad, #5 of 13");
+    expect(view.pointsLabel).toBe("1,214");
     expect(view.deltaLabel).toBe("no change");
-    expect(view.placeLabel).toBe("#4");
+    expect(view.placeLabel).toBe("#5");
     expect(view.bandLabel).toBe("Kanaad");
     expect(view.effect).toBe(
       "No change yet. Tiers are places in the group, so when one player moves, someone moves the other way.",
     );
-    expect(view.why).toBe("Why? Mahmood will see this.");
+    expect(view.why).toBe("Why? Jassim will see this.");
     expect(view.canSave).toBe(false);
     expect(view.saveLabel).toBe("Move the points first");
     expect(view.steps.map((step) => step.label)).toEqual([
@@ -102,33 +102,33 @@ describe("tierAdjustSheet (screen 2d)", () => {
   });
 
   it("offers the jumps into Hamour and into Safi on a round ten", () => {
-    expect(sheet("mahmood", 0).jumps).toEqual([
-      { band: "hamour", label: "into Hamour", delta: 62 },
-      { band: "safi", label: "into Safi", delta: -98 },
+    expect(sheet("jassim", 0).jumps).toEqual([
+      { band: "hamour", label: "into Hamour", delta: 36 },
+      { band: "safi", label: "into Safi", delta: -64 },
     ]);
   });
 
   it("says who moves the other way when a Kanaad passes the last Hamour", () => {
-    const view = sheet("mahmood", 62);
-    expect(view.pointsLabel).toBe("1,310");
-    expect(view.deltaLabel).toBe("+62");
-    expect(view.placeLabel).toBe("#3");
+    const view = sheet("jassim", 40);
+    expect(view.pointsLabel).toBe("1,254");
+    expect(view.deltaLabel).toBe("+40");
+    expect(view.placeLabel).toBe("#4");
     expect(view.band).toBe("hamour");
     expect(view.bands.find((band) => band.current)?.band).toBe("hamour");
     expect(view.effect).toBe(
-      "Mahmood passes Yousif K and takes a Hamour place. Yousif K becomes a Kanaad.",
+      "Jassim passes Mahmood S and takes a Hamour place. Mahmood S becomes a Kanaad.",
     );
   });
 
   it("names only the player passed last when the drop passes many", () => {
-    expect(sheet("mahmood", -98).effect).toBe(
-      "Mahmood drops below Ahmed N into Safi. Ahmed N moves up to Kanaad.",
+    expect(sheet("jassim", -60).effect).toBe(
+      "Jassim drops below Ahmed N into Safi. Ahmed N moves up to Kanaad.",
     );
   });
 
   it("keeps the band when the move stays inside it", () => {
-    expect(sheet("mahmood", -40).effect).toBe(
-      "Still a Kanaad, now #5 of 13. Nobody else changes tier.",
+    expect(sheet("jassim", -20).effect).toBe(
+      "Still a Kanaad, now #6 of 13. Nobody else changes tier.",
     );
   });
 
@@ -136,7 +136,7 @@ describe("tierAdjustSheet (screen 2d)", () => {
     const view = sheet("khalid", 300);
     expect(view.nowLine).toBe("Now 1,200, provisional, 3 of 5 games");
     expect(view.effect).toBe(
-      "Khalid is ranked #1 of 13, a Shark. Hussain A becomes a Hamour. Yousif K becomes a Kanaad. Salman R becomes a Safi.",
+      "Khalid is ranked #1 of 13, a Shark. Yousif K becomes a Hamour. Mahmood S becomes a Kanaad. Salman R becomes a Safi.",
     );
   });
 
@@ -183,7 +183,7 @@ describe("tierAdjustSheet (screen 2d)", () => {
   });
 
   it("reads in Arabic", () => {
-    const view = sheet("mahmood", 62, "new_to_group", "ar");
+    const view = sheet("jassim", 40, "new_to_group", "ar");
     expect(view.bandLabel).toBe("هامور");
     expect(view.reasons[0]?.label).toBe("جديد هنا، مستواه معروف");
   });

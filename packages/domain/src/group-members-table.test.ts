@@ -530,7 +530,7 @@ describe("a tier Group's Members table (screen 2b)", () => {
     expect(groupTierSharkCard(summary, now, "en")).toEqual({
       title: "The Shark",
       name: "Hussain A",
-      line: "1,412 points, top for 5 weeks",
+      line: "1,412 points, a Shark for 5 weeks",
       fishLabel: "Shark",
     });
     expect(

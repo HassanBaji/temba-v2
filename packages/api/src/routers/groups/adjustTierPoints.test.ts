@@ -293,7 +293,7 @@ describe("groups.adjustTierPoints", () => {
       expect(result).toMatchObject({
         provisional: false,
         place: 4,
-        band: "kanaad",
+        band: "hamour",
         rankedCount: 12,
         memberCount: 13,
       });
@@ -303,7 +303,7 @@ describe("groups.adjustTierPoints", () => {
         points: 1250,
         gamesCounted: 3,
         confirmedAt: now,
-        band: "kanaad",
+        band: "hamour",
       });
 
       const view = await groupById(db, { groupId, userId: ids["Ali M"]! });
@@ -313,7 +313,7 @@ describe("groups.adjustTierPoints", () => {
       expect(tier).toMatchObject({
         provisional: false,
         place: 4,
-        band: "kanaad",
+        band: "hamour",
         points: 1250,
       });
 
@@ -332,7 +332,7 @@ describe("groups.adjustTierPoints", () => {
         pointsBefore: 1200,
         pointsAfter: 1250,
         bandBefore: null,
-        bandAfter: "kanaad",
+        bandAfter: "hamour",
         placeAfter: 4,
         rankedCount: 12,
         memberCount: 13,
@@ -346,25 +346,25 @@ describe("groups.adjustTierPoints", () => {
     }
   });
 
-  it("makes a Kanaad who passes the second Hamour a Hamour and the passed player a Kanaad, one Notification each", async () => {
+  it("makes a Kanaad who passes the Hamour a Hamour and the passed player a Kanaad, one Notification each", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const { groupId, ids, owner } = await seedThursday(db);
+      const jassim = ids["Jassim H"]!;
       const mahmood = ids["Mahmood S"]!;
-      const yousif = ids["Yousif K"]!;
       const ali = ids["Ali M"]!;
 
       const result = await adjustTierPoints(apiDb(db), {
         groupId,
         organizerUserId: owner,
-        userId: mahmood,
-        points: 1310,
+        userId: jassim,
+        points: 1254,
         reason: "plays_above_results",
       });
-      expect(result).toMatchObject({ place: 3, band: "hamour", delta: 62 });
+      expect(result).toMatchObject({ place: 4, band: "hamour", delta: 40 });
 
-      expect((await pointsRow(db, groupId, mahmood))?.band).toBe("hamour");
-      expect((await pointsRow(db, groupId, yousif))?.band).toBe("kanaad");
+      expect((await pointsRow(db, groupId, jassim))?.band).toBe("hamour");
+      expect((await pointsRow(db, groupId, mahmood))?.band).toBe("kanaad");
 
       const bandChanges = await db
         .select({
@@ -377,35 +377,35 @@ describe("groups.adjustTierPoints", () => {
       expect(bandChanges).toHaveLength(2);
       expect(bandChanges).toEqual(
         expect.arrayContaining([
-          { userId: mahmood, bandBefore: "kanaad", bandAfter: "hamour" },
-          { userId: yousif, bandBefore: "hamour", bandAfter: "kanaad" },
+          { userId: jassim, bandBefore: "kanaad", bandAfter: "hamour" },
+          { userId: mahmood, bandBefore: "hamour", bandAfter: "kanaad" },
         ]),
       );
 
-      expect(await notificationsOf(db, mahmood)).toEqual([
+      expect(await notificationsOf(db, jassim)).toEqual([
         { type: "tier_points_adjusted", actorUserId: owner },
       ]);
-      expect(await notificationsOf(db, yousif)).toEqual([
+      expect(await notificationsOf(db, mahmood)).toEqual([
         { type: "tier_band_changed", actorUserId: owner },
       ]);
       expect(await notificationsOf(db, ali)).toEqual([]);
       expect(await notificationsOf(db, owner)).toEqual([]);
 
       const [adjusted] = await loadNotificationItems(db, {
-        where: eq(notifications.recipientUserId, mahmood),
+        where: eq(notifications.recipientUserId, jassim),
         limit: 10,
       });
       expect(adjusted?.item.tier).toEqual({
         bandAfter: "hamour",
-        pointsBefore: 1248,
-        pointsAfter: 1310,
-        delta: 62,
+        pointsBefore: 1214,
+        pointsAfter: 1254,
+        delta: 40,
         ratingHundredths: null,
         reason: "plays_above_results",
         note: null,
       });
       const [passed] = await loadNotificationItems(db, {
-        where: eq(notifications.recipientUserId, yousif),
+        where: eq(notifications.recipientUserId, mahmood),
         limit: 10,
       });
       expect(passed?.item.tier?.bandAfter).toBe("kanaad");

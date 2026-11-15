@@ -105,9 +105,13 @@ describe("groups.byId on a tier Group (screen 2b)", () => {
         gamesOfFive: 5,
         gamesCounted: 8,
       });
+      expect(tierOf(result, ids.kanaad!)).toMatchObject({
+        place: 3,
+        band: "shark",
+      });
       expect(tierOf(result, ids.owner!)).toMatchObject({
         place: 4,
-        band: "safi",
+        band: "kanaad",
       });
       expect(tierOf(result, ids.newcomer!)).toEqual({
         band: null,
