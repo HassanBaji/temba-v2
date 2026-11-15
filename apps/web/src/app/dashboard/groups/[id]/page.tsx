@@ -6,7 +6,7 @@ import {
   groupLinkRequestBannerText,
   groupPartOfVenueLine,
 } from "@repo/domain/group-link-request";
-import { notFound, usePathname, useRouter } from "next/navigation";
+import { notFound, useRouter, useSearchParams } from "next/navigation";
 import { use, useRef, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
 
@@ -18,10 +18,7 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { DeleteGroupSheet } from "~/components/groups/delete-group-sheet";
 import { GroupAddPlayerDialog } from "~/components/groups/group-add-player-dialog";
 import { GroupGamesTab } from "~/components/groups/group-games-tab";
-import {
-  DEFAULT_GROUP_PLAYED_FILTER,
-  type GroupPlayedFilter,
-} from "@repo/domain/group-played-filter";
+import { type GroupPlayedFilter } from "@repo/domain/group-played-filter";
 import { VenueLinkRequestActions } from "~/components/groups/venue-link-request-actions";
 import { GroupHomeChrome } from "~/components/groups/group-home-chrome";
 import {
@@ -39,12 +36,20 @@ import {
 } from "~/components/groups/group-join-requests-section";
 import { RequestJoinDialog } from "~/components/groups/request-join-dialog";
 import { GroupMembersTab } from "~/components/groups/group-members-tab";
-import { standingViewFromQuery } from "@repo/domain/standing-share";
+import {
+  standingShareQuery,
+  standingViewFromQuery,
+} from "@repo/domain/standing-share";
 import { GroupStandingTab } from "~/components/groups/group-standing-tab";
 import { InviteDoorDialog } from "~/components/invites/invite-door-dialog";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
-import { groupMembersTabHref } from "~/lib/dashboard-paths";
+import {
+  groupHomeTabQueryValue,
+  groupPlayedFilterFromQuery,
+  groupPlayedFilterQueryValue,
+  replaceGroupHomeQuery,
+} from "~/lib/group-home-query";
 import {
   globalFormErrorMessage,
   toastGlobalFormError,
@@ -62,10 +67,7 @@ import {
   groupHomeNextJoinableGame,
   groupHomeOverflowItems,
 } from "@repo/domain/group-home-cta";
-import {
-  groupHomeTabFromQuery,
-  groupHomeTabQuery,
-} from "@repo/domain/group-home-tab";
+import { groupHomeTabFromQuery } from "@repo/domain/group-home-tab";
 import {
   ENTITY_IMAGE_ACCEPT,
   entityImageFileError,
@@ -111,26 +113,20 @@ const TAB_PANEL =
 
 export default function GroupHomePage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{
-    tab?: string | string[];
-    saved?: string | string[];
-    season?: string | string[];
-    view?: string | string[];
-  }>;
 }) {
   const { id } = use(params);
-  const query = use(searchParams);
-  const tabParam = Array.isArray(query.tab) ? query.tab[0] : query.tab;
-  const [tab, setTabState] = useState(() => groupHomeTabFromQuery(tabParam));
-  const savedUserId =
-    (Array.isArray(query.saved) ? query.saved[0] : query.saved) ?? null;
+  // Not the page's searchParams prop: going back restores the page with the
+  // query it was first loaded with, not the one replaceGroupHomeQuery wrote.
+  const query = useSearchParams();
+  const [tab, setTabState] = useState(() =>
+    groupHomeTabFromQuery(query.get("tab")),
+  );
+  const savedUserId = query.get("saved");
   const m = useMessages();
   const locale = useLocale();
   const router = useRouter();
-  const pathname = usePathname() ?? `/dashboard/groups/${id}`;
   const utils = api.useUtils();
   const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const desktopMenuTriggerRef = useRef<HTMLButtonElement>(null);
@@ -156,8 +152,11 @@ export default function GroupHomePage({
     "desktop",
   );
 
-  const [playedFilter, setPlayedFilter] = useState<GroupPlayedFilter>(
-    DEFAULT_GROUP_PLAYED_FILTER,
+  const [playedFilter, setPlayedFilterState] = useState<GroupPlayedFilter>(() =>
+    groupPlayedFilterFromQuery(query.get("played")),
+  );
+  const [memberSearch, setMemberSearchState] = useState(
+    () => query.get("search") ?? "",
   );
   const group = api.groups.byId.useQuery(
     { id, gameHistory: { status: playedFilter } },
@@ -421,14 +420,17 @@ export default function GroupHomePage({
       return;
     }
     setTabState(resolved);
-    // router.replace would refetch the page from the server and remount it on
-    // every switch. Next keeps useSearchParams in step with replaceState, so
-    // the URL still records the tab without the round trip.
-    window.history.replaceState(
-      null,
-      "",
-      `${pathname}${groupHomeTabQuery(resolved)}`,
-    );
+    replaceGroupHomeQuery({ tab: groupHomeTabQueryValue(resolved) });
+  }
+
+  function setPlayedFilter(filter: GroupPlayedFilter) {
+    setPlayedFilterState(filter);
+    replaceGroupHomeQuery({ played: groupPlayedFilterQueryValue(filter) });
+  }
+
+  function setMemberSearch(search: string) {
+    setMemberSearchState(search);
+    replaceGroupHomeQuery({ search });
   }
 
   function onJoin() {
@@ -514,10 +516,7 @@ export default function GroupHomePage({
   const data = group.data;
   const groupName = data.name ?? m.invite.kind.group;
   const sharedStanding = standingViewFromQuery(
-    {
-      season: Array.isArray(query.season) ? query.season[0] : query.season,
-      view: Array.isArray(query.view) ? query.view[0] : query.view,
-    },
+    { season: query.get("season"), view: query.get("view") },
     data.seasons.map((season) => season.id),
   );
   const venueName = data.venue?.name ?? m.webDashboard.group.theVenue;
@@ -715,6 +714,9 @@ export default function GroupHomePage({
               groupCreatedAt={data.createdAt}
               initialSeasonId={sharedStanding.seasonId}
               initialView={sharedStanding.view}
+              onLensChange={(seasonId, view) =>
+                replaceGroupHomeQuery(standingShareQuery(seasonId, view))
+              }
               ratingSettingsLine={data.ratingSettingsLine}
               onOpenMembers={() => setTab("members")}
             />
@@ -758,9 +760,9 @@ export default function GroupHomePage({
                   leaderboard: data.standing.leaderboard,
                 })}
                 savedUserId={savedUserId}
-                onDismissSaved={() =>
-                  router.replace(groupMembersTabHref(id), { scroll: false })
-                }
+                onDismissSaved={() => replaceGroupHomeQuery({ saved: null })}
+                query={memberSearch}
+                onQueryChange={setMemberSearch}
                 members={data.standing.leaderboard.map((entry) => ({
                   userId: entry.userId,
                   name: entry.name ?? m.webGroup.memberFallback,
