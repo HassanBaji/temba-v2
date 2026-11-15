@@ -393,6 +393,42 @@ export const group = {
       membersLink: "Members",
       after: ".",
     },
+    views: {
+      label: "Standing view",
+      overall: "Overall",
+      byLevel: "By level",
+      mostImproved: "Most improved",
+      mostImprovedSeasonOnly: "Most improved is for one season",
+      category: (letter: string) => `Category ${letter}`,
+      levelRange: (low: number, high: number) => `Level ${low} to ${high}`,
+      noLevel: "No level yet",
+      players: (n: number) =>
+        plural("en", n, { one: "1 player", other: "{n} players" }),
+      staysBand: (band: string) => `stays ${band}`,
+      bandChange: (from: string, to: string) => `${from} to ${to}`,
+      noGain: "No gain",
+      levelFlatOrDown: "Level flat or down",
+      pointsFlatOrDown: "Points flat or down",
+      columns: { start: "Start", now: "Now", close: "Close", gain: "Gain" },
+      footer: {
+        byLevelPadel:
+          "Same points as Overall, ranked inside each category. A player sits in the category their level is in now, or was in when the season closed.",
+        byLevelFootball:
+          "Same points as Overall, ranked inside each level range. Football levels are numbers, so the categories are ranges of 15. A player sits in the range their level is in now, or was in when the season closed.",
+        gainLevel: "Gain is the change in level since the season opened.",
+        gainTier: "Gain is the change in tier points since the season opened.",
+        playToRank: (n: number) =>
+          plural("en", n, {
+            one: "Play a game in the group this season to be ranked.",
+            other: "Play {n} games in the group this season to be ranked.",
+          }),
+      },
+      spoken: {
+        gain: (start: string, end: string, gain: string) =>
+          `from ${start} to ${end}, ${gain}.`,
+        noLevel: "no level yet.",
+      },
+    },
   },
   settings: {
     sportSublabel: {

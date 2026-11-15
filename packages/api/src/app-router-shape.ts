@@ -206,6 +206,7 @@ type ExpectedGroups =
   | "createSeason"
   | "closeSeason"
   | "seasonStanding"
+  | "standingLevels"
   | "adjustTierPoints"
   | "tierHistory"
   | "ratingSettings"

@@ -489,6 +489,57 @@ export const group = {
       membersLink: "الأعضاء",
       after: ".",
     },
+    views: {
+      label: "عرض الترتيب",
+      overall: "الإجمالي",
+      byLevel: "حسب المستوى",
+      mostImproved: "الأكثر تحسنًا",
+      mostImprovedSeasonOnly: "الأكثر تحسنًا لموسم واحد",
+      category: (letter: string) => `الفئة ${isolate(letter)}`,
+      levelRange: (low: number, high: number) => `المستوى ${low} إلى ${high}`,
+      noLevel: "لا مستوى بعد",
+      players: (n: number) =>
+        plural("ar", n, {
+          one: "لاعب واحد",
+          two: "لاعبان",
+          few: "{n} لاعبين",
+          many: "{n} لاعبًا",
+          other: "{n} لاعب",
+        }),
+      staysBand: (band: string) => `يبقى ${isolate(band)}`,
+      bandChange: (from: string, to: string) =>
+        `من ${isolate(from)} إلى ${isolate(to)}`,
+      noGain: "بلا تقدم",
+      levelFlatOrDown: "المستوى ثابت أو أقل",
+      pointsFlatOrDown: "النقاط ثابتة أو أقل",
+      columns: {
+        start: "البداية",
+        now: "الآن",
+        close: "الختام",
+        gain: "التقدم",
+      },
+      footer: {
+        byLevelPadel:
+          "النقاط نفسها في الإجمالي، والترتيب داخل كل فئة. يوضع اللاعب في فئة مستواه الآن، أو مستواه عند ختام الموسم.",
+        byLevelFootball:
+          "النقاط نفسها في الإجمالي، والترتيب داخل كل نطاق مستوى. مستويات كرة القدم أرقام، لذا الفئات نطاقات من 15. يوضع اللاعب في نطاق مستواه الآن، أو مستواه عند ختام الموسم.",
+        gainLevel: "التقدم هو تغير المستوى منذ بداية الموسم.",
+        gainTier: "التقدم هو تغير نقاط الفئة منذ بداية الموسم.",
+        playToRank: (n: number) =>
+          plural("ar", n, {
+            one: "العب مباراة واحدة في المجموعة هذا الموسم لتُرتَّب.",
+            two: "العب مباراتين في المجموعة هذا الموسم لتُرتَّب.",
+            few: "العب {n} مباريات في المجموعة هذا الموسم لتُرتَّب.",
+            many: "العب {n} مباراة في المجموعة هذا الموسم لتُرتَّب.",
+            other: "العب {n} مباراة في المجموعة هذا الموسم لتُرتَّب.",
+          }),
+      },
+      spoken: {
+        gain: (start: string, end: string, gain: string) =>
+          `من ${isolate(start)} إلى ${isolate(end)}، ${isolate(gain)}.`,
+        noLevel: "لا مستوى بعد.",
+      },
+    },
   },
   settings: {
     sportSublabel: {

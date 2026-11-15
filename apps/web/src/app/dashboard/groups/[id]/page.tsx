@@ -700,6 +700,7 @@ export default function GroupHomePage({
               onInvite={() => setInvitesOpen(true)}
               canManageSeasons={data.canManageSeasons}
               hasTier={data.hasTier}
+              verified={data.verified}
               ratingSettingsLine={data.ratingSettingsLine}
               onOpenMembers={() => setTab("members")}
             />

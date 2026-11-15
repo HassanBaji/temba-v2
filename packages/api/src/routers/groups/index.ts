@@ -42,6 +42,7 @@ import { resetInviteLinkProcedure as resetInviteLink } from "./resetInviteLink";
 import { revokeLookupInviteProcedure as revokeLookupInvite } from "./revokeLookupInvite";
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
 import { seasonStandingProcedure as seasonStanding } from "./seasonStanding";
+import { standingLevelsProcedure as standingLevels } from "./standingLevels";
 import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvite";
 import { setMemberNicknameProcedure as setMemberNickname } from "./setMemberNickname";
 import { setOrganizerProcedure as setOrganizer } from "./setOrganizer";
@@ -103,6 +104,7 @@ export const groupsRouter = createTRPCRouter({
   createSeason,
   closeSeason,
   seasonStanding,
+  standingLevels,
   adjustTierPoints,
   tierHistory,
   ratingSettings,
