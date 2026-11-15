@@ -448,6 +448,29 @@ describe("validateFriendlyTournamentSubmit", () => {
   });
 });
 
+describe("validateFriendlyTournamentSubmit, King of the court", () => {
+  const king = {
+    ...tournament,
+    tournamentShape: "king_of_the_court",
+    teamCount: 8,
+  } as const;
+
+  it("keeps the creator's Rating choice", () => {
+    const rated = validateFriendlyTournamentSubmit(king, NOW, true, "en");
+    const unrated = validateFriendlyTournamentSubmit(
+      { ...king, rated: false },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(rated.ok && unrated.ok);
+    if (rated.ok && unrated.ok) {
+      assert.equal("rated" in rated.input, false);
+      assert.equal(unrated.input.rated, false);
+    }
+  });
+});
+
 describe("validateFriendlyTournamentSubmit Rating choice", () => {
   it("sends rated false when the creator picked Unrated", () => {
     const result = validateFriendlyTournamentSubmit(

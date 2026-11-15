@@ -114,7 +114,7 @@ export type RatingsLevelData = {
 };
 
 export type RatingsLastMatch = {
-  outcome: Exclude<LevelHistoryStep, "set">;
+  outcome: Exclude<LevelHistoryStep, "set" | "placed">;
   /** The scored Sets from the player's side; football has one, the goals. */
   sets: { own: number; opponent: number }[] | null;
   muBefore: number;

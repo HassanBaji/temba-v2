@@ -18,13 +18,16 @@ import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import { lockGame } from "#src/games/lock-rows";
 import { notify } from "#src/notifications/notify";
+import { applyKingPlaceAwards } from "#src/ratings/apply-king-place-awards";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
  * Posts the King of the court final order: `gameTeamIds` first place first,
  * at least the top three. Teams left out show as not placed. The Organizer
- * can post again for 24 hours after the first post.
+ * can post again for 24 hours after the first post. On a Game that counts for
+ * Temba Level every post writes the Place awards of the order it leaves
+ * (ADR-0089), taking back those of the order before.
  */
 export async function postKingFinalOrder(
   database: DbClient,
@@ -106,6 +109,8 @@ export async function postKingFinalOrder(
         updatedAt: now,
       })
       .where(eq(games.id, game.id));
+
+    await applyKingPlaceAwards(tx, locked, now);
 
     if (locked.finalOrderPostedAt == null) {
       await notify(tx, {

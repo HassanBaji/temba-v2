@@ -37,6 +37,17 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens the King of the court Game a Place award came from", () => {
+    assert.equal(
+      notificationHref({
+        type: "king_place_awarded",
+        group: { id: "g1" },
+        game: { id: "x1", sport: "padel" },
+      }),
+      "/dashboard/games/x1",
+    );
+  });
+
   it("opens the Game a Game leave is about", () => {
     assert.equal(
       notificationHref({

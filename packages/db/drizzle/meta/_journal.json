@@ -876,6 +876,13 @@
       "when": 1794728758928,
       "tag": "0124_game_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 125,
+      "version": "7",
+      "when": 1794730130903,
+      "tag": "0125_king_place_awards",
+      "breakpoints": true
     }
   ]
 }

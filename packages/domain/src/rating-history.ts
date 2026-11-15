@@ -330,6 +330,19 @@ export type RatingHistoryItemData =
       reason: LevelOverrideReason | null;
       note: string | null;
     }
+  | {
+      /** A King of the court Place award (ADR-0089). */
+      kind: "king_place";
+      id: string;
+      at: Date | string;
+      sport: Sport;
+      muBefore: number;
+      muAfter: number;
+      venueName: string | null;
+      finalPlace: number;
+      /** The Game teams on a court: the "of" beside the place. */
+      teamCount: number;
+    }
   | (TierGameEntry & { group: GroupRef; band: TierBand | null })
   | (TierAdjustmentEntry & { group: GroupRef; band: TierBand | null })
   | {
@@ -569,7 +582,11 @@ export function ratingHistoryLine(
     delta = level;
     after = m.confirmed.set;
     valueSpoken = m.confirmed.spoken(level);
-  } else if (item.kind === "level_match" || item.kind === "level_override") {
+  } else if (
+    item.kind === "level_match" ||
+    item.kind === "level_override" ||
+    item.kind === "king_place"
+  ) {
     const before = levelFace(item.sport, item.muBefore);
     const afterFace = levelFace(item.sport, item.muAfter);
     delta = levelDelta(item.sport, before, afterFace);
@@ -577,6 +594,14 @@ export function ratingHistoryLine(
     if (item.kind === "level_match") {
       icon = { kind: "level" };
       ({ title, detail } = levelMatchLine(item, locale));
+    } else if (item.kind === "king_place") {
+      icon = { kind: "level" };
+      title = m.kingPlace.title;
+      const place = all.tournamentKing.card.finishedPlace(
+        item.finalPlace,
+        item.teamCount,
+      );
+      detail = item.venueName ? m.level.detail(place, item.venueName) : place;
     } else {
       icon = { kind: "override" };
       title = m.override.title[item.setByRole];

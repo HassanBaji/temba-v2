@@ -107,6 +107,13 @@ export const notification = {
       strong(game),
       plain(". اطّلع على ترتيبك"),
     ],
+    kingPlaceAwarded: (place: string, game: string) => [
+      plain("حلولك في المركز "),
+      strong(place),
+      plain(" في "),
+      strong(game),
+      plain(" حرّك مستواك"),
+    ],
     historyLinked: (gameCount: number) => [
       plain("ربطنا "),
       strong(
@@ -378,6 +385,8 @@ export const notification = {
     gamePaymentClaimed: "أكّده حين تستلم المال.",
     levelConfirmed:
       "لم يعد المسار مخطّطًا. يواصل التحرّك في المباريات الموثّقة.",
+    kingPlaceAwarded: (from: string, to: string) =>
+      `المستوى من ${isolate(from)} إلى ${isolate(to)}.`,
     ratingsClosed: (rating: string, delta: string, points: string) =>
       `تقييمك ${isolate(rating)}. نقاط الفئة ${isolate(delta)}، والآن ${isolate(points)}.`,
     ratingsClosedResultOnly: (delta: string, points: string) =>

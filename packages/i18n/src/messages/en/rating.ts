@@ -419,6 +419,9 @@ export const rating = {
         plural("en", n, { one: "1 goal", other: "{n} goals" }),
       mvp: "MVP",
     },
+    kingPlace: {
+      title: "Level, King of the court",
+    },
     override: {
       title: {
         verifier: "Level calibrated by a verifier",

@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   groupTierEvents,
   groups,
+  kingPlaceAwards,
   levelOverrides,
   matchGoals,
   performanceRatingResults,
@@ -25,6 +26,7 @@ import { votedMvpUserId } from "#src/marks/settle-mvp";
 import { levelConfirmations } from "#src/ratings/level-confirmed";
 import { olderThanShown, shownAt, shownAtIso } from "#src/ratings/shown-at";
 import {
+  kingPlaceGames,
   ratingHistoryMatches,
   setsFromSideOf,
   setterNames,
@@ -80,9 +82,10 @@ function shows(ladder: RatingHistoryLadder, part: "level" | "tier") {
 
 /**
  * A User's own Rating history (ADR-0073): the union of their
- * Rated Matches (`rating_events`), Level overrides (`level_overrides`) and
- * tier Group moves (`group_tier_events`), newest first, keyset-paged across
- * all three. Manual changes carry who set them, by which door, the Venue a
+ * Rated Matches (`rating_events`), Level overrides (`level_overrides`),
+ * King of the court Place awards (`king_place_awards`, ADR-0089) and tier
+ * Group moves (`group_tier_events`), newest first, keyset-paged across all
+ * four. Manual changes carry who set them, by which door, the Venue a
  * Verifier calibrated from, the reason and the note. A derived "Level
  * confirmed" milestone sits just before the Match that confirmed each sport's
  * Level, and a change of fish is its own line, whoever caused it. The Rank
@@ -112,70 +115,94 @@ export async function ratingHistory(
   const level = shows(args.ladder, "level");
   const tier = shows(args.ladder, "tier") && sport !== "padel";
 
-  const [confirmations, events, overrides, tierRows] = await Promise.all([
-    level ? levelConfirmations(database, { userIds: [userId], sport }) : [],
-    level
-      ? database
-          .select({
-            event: ratingEvents,
-            shownAt: shownAtIso(ratingEvents.createdAt),
-          })
-          .from(ratingEvents)
-          .where(
-            and(
-              eq(ratingEvents.userId, userId),
-              sport ? eq(ratingEvents.sport, sport) : undefined,
-              olderThanShown(ratingEvents, cursor, cursor?.milestone),
-            ),
-          )
-          .orderBy(desc(shownAt(ratingEvents.createdAt)), desc(ratingEvents.id))
-          .limit(limit + 1)
-      : [],
-    level
-      ? database
-          .select({
-            override: levelOverrides,
-            venueName: venues.name,
-            shownAt: shownAtIso(levelOverrides.createdAt),
-          })
-          .from(levelOverrides)
-          .leftJoin(venues, eq(venues.id, levelOverrides.venueId))
-          .where(
-            and(
-              eq(levelOverrides.userId, userId),
-              sport ? eq(levelOverrides.sport, sport) : undefined,
-              olderThanShown(levelOverrides, cursor),
-            ),
-          )
-          .orderBy(
-            desc(shownAt(levelOverrides.createdAt)),
-            desc(levelOverrides.id),
-          )
-          .limit(limit + 1)
-      : [],
-    tier
-      ? database
-          .select({
-            event: groupTierEvents,
-            group: { id: groups.id, name: groups.name },
-            shownAt: shownAtIso(groupTierEvents.createdAt),
-          })
-          .from(groupTierEvents)
-          .innerJoin(groups, eq(groups.id, groupTierEvents.groupId))
-          .where(
-            and(
-              eq(groupTierEvents.userId, userId),
-              sport ? eq(groups.sport, sport) : undefined,
-              olderThanShown(groupTierEvents, cursor),
-            ),
-          )
-          .orderBy(
-            desc(shownAt(groupTierEvents.createdAt)),
-            desc(groupTierEvents.id),
-          )
-          .limit(limit + 1)
-      : [],
-  ]);
+  const [confirmations, events, overrides, awards, tierRows] =
+    await Promise.all([
+      level ? levelConfirmations(database, { userIds: [userId], sport }) : [],
+      level
+        ? database
+            .select({
+              event: ratingEvents,
+              shownAt: shownAtIso(ratingEvents.createdAt),
+            })
+            .from(ratingEvents)
+            .where(
+              and(
+                eq(ratingEvents.userId, userId),
+                sport ? eq(ratingEvents.sport, sport) : undefined,
+                olderThanShown(ratingEvents, cursor, cursor?.milestone),
+              ),
+            )
+            .orderBy(
+              desc(shownAt(ratingEvents.createdAt)),
+              desc(ratingEvents.id),
+            )
+            .limit(limit + 1)
+        : [],
+      level
+        ? database
+            .select({
+              override: levelOverrides,
+              venueName: venues.name,
+              shownAt: shownAtIso(levelOverrides.createdAt),
+            })
+            .from(levelOverrides)
+            .leftJoin(venues, eq(venues.id, levelOverrides.venueId))
+            .where(
+              and(
+                eq(levelOverrides.userId, userId),
+                sport ? eq(levelOverrides.sport, sport) : undefined,
+                olderThanShown(levelOverrides, cursor),
+              ),
+            )
+            .orderBy(
+              desc(shownAt(levelOverrides.createdAt)),
+              desc(levelOverrides.id),
+            )
+            .limit(limit + 1)
+        : [],
+      level
+        ? database
+            .select({
+              award: kingPlaceAwards,
+              shownAt: shownAtIso(kingPlaceAwards.createdAt),
+            })
+            .from(kingPlaceAwards)
+            .where(
+              and(
+                eq(kingPlaceAwards.userId, userId),
+                sport ? eq(kingPlaceAwards.sport, sport) : undefined,
+                olderThanShown(kingPlaceAwards, cursor),
+              ),
+            )
+            .orderBy(
+              desc(shownAt(kingPlaceAwards.createdAt)),
+              desc(kingPlaceAwards.id),
+            )
+            .limit(limit + 1)
+        : [],
+      tier
+        ? database
+            .select({
+              event: groupTierEvents,
+              group: { id: groups.id, name: groups.name },
+              shownAt: shownAtIso(groupTierEvents.createdAt),
+            })
+            .from(groupTierEvents)
+            .innerJoin(groups, eq(groups.id, groupTierEvents.groupId))
+            .where(
+              and(
+                eq(groupTierEvents.userId, userId),
+                sport ? eq(groups.sport, sport) : undefined,
+                olderThanShown(groupTierEvents, cursor),
+              ),
+            )
+            .orderBy(
+              desc(shownAt(groupTierEvents.createdAt)),
+              desc(groupTierEvents.id),
+            )
+            .limit(limit + 1)
+        : [],
+    ]);
 
   const confirmationByEvent = new Map(
     confirmations.map((row) => [row.eventId, row]),
@@ -185,6 +212,7 @@ export async function ratingHistory(
       | { source: "event"; row: (typeof events)[0] }
       | { source: "confirmed"; row: (typeof confirmations)[0] }
       | { source: "override"; row: (typeof overrides)[0] }
+      | { source: "award"; row: (typeof awards)[0] }
       | { source: "tier"; row: (typeof tierRows)[0] }
     );
   const merged: Row[] = [
@@ -220,6 +248,15 @@ export async function ratingHistory(
         row,
       }),
     ),
+    ...awards.map(
+      (row): Row => ({
+        source: "award",
+        id: row.award.id,
+        createdAt: new Date(row.shownAt),
+        milestone: false,
+        row,
+      }),
+    ),
     ...tierRows.map(
       (row): Row => ({
         source: "tier",
@@ -241,6 +278,9 @@ export async function ratingHistory(
   const pageOverrides = page.flatMap((entry) =>
     entry.source === "override" ? [entry.row] : [],
   );
+  const pageAwards = page.flatMap((entry) =>
+    entry.source === "award" ? [entry.row.award] : [],
+  );
   const pageTier = page.flatMap((entry) =>
     entry.source === "tier" ? [entry.row] : [],
   );
@@ -248,56 +288,64 @@ export async function ratingHistory(
     event.sport === "football" ? [event.matchId] : [],
   );
 
-  const [matchById, setterById, tierEntries, ratingByMatch, goalsByMatch] =
-    await Promise.all([
-      ratingHistoryMatches(
-        database,
-        pageEvents.map((event) => event.matchId),
+  const [
+    matchById,
+    setterById,
+    kingGameById,
+    tierEntries,
+    ratingByMatch,
+    goalsByMatch,
+  ] = await Promise.all([
+    ratingHistoryMatches(
+      database,
+      pageEvents.map((event) => event.matchId),
+    ),
+    setterNames(
+      database,
+      pageOverrides.map((row) => row.override.setByUserId),
+    ),
+    kingPlaceGames(
+      database,
+      pageAwards.map((award) => award.gameId),
+    ),
+    tierHistoryEntries(
+      database,
+      userId,
+      pageTier.flatMap((row) =>
+        row.event.kind === "band_change" ? [] : [row.event],
       ),
-      setterNames(
-        database,
-        pageOverrides.map((row) => row.override.setByUserId),
-      ),
-      tierHistoryEntries(
-        database,
-        userId,
-        pageTier.flatMap((row) =>
-          row.event.kind === "band_change" ? [] : [row.event],
-        ),
-      ),
-      footballMatchIds.length === 0
-        ? new Map<string, number>()
-        : database
-            .select({
-              matchId: performanceRatingResults.matchId,
-              ratingHundredths: performanceRatingResults.ratingHundredths,
-            })
-            .from(performanceRatingResults)
-            .where(
-              and(
-                eq(performanceRatingResults.userId, userId),
-                inArray(performanceRatingResults.matchId, footballMatchIds),
-              ),
-            )
-            .then(
-              (rows) =>
-                new Map(rows.map((row) => [row.matchId, row.ratingHundredths])),
+    ),
+    footballMatchIds.length === 0
+      ? new Map<string, number>()
+      : database
+          .select({
+            matchId: performanceRatingResults.matchId,
+            ratingHundredths: performanceRatingResults.ratingHundredths,
+          })
+          .from(performanceRatingResults)
+          .where(
+            and(
+              eq(performanceRatingResults.userId, userId),
+              inArray(performanceRatingResults.matchId, footballMatchIds),
             ),
-      footballMatchIds.length === 0
-        ? new Map<string, number>()
-        : database
-            .select({ matchId: matchGoals.matchId, goals: matchGoals.goals })
-            .from(matchGoals)
-            .where(
-              and(
-                eq(matchGoals.userId, userId),
-                inArray(matchGoals.matchId, footballMatchIds),
-              ),
-            )
-            .then(
-              (rows) => new Map(rows.map((row) => [row.matchId, row.goals])),
+          )
+          .then(
+            (rows) =>
+              new Map(rows.map((row) => [row.matchId, row.ratingHundredths])),
+          ),
+    footballMatchIds.length === 0
+      ? new Map<string, number>()
+      : database
+          .select({ matchId: matchGoals.matchId, goals: matchGoals.goals })
+          .from(matchGoals)
+          .where(
+            and(
+              eq(matchGoals.userId, userId),
+              inArray(matchGoals.matchId, footballMatchIds),
             ),
-    ]);
+          )
+          .then((rows) => new Map(rows.map((row) => [row.matchId, row.goals]))),
+  ]);
   const tierEntryById = new Map(tierEntries.map((entry) => [entry.id, entry]));
 
   const entries = page.flatMap((entry): RatingHistoryItemData[] => {
@@ -362,6 +410,23 @@ export async function ratingHistory(
           venueName,
           reason: override.reason,
           note: override.note,
+        },
+      ];
+    }
+    if (entry.source === "award") {
+      const { award } = entry.row;
+      const game = kingGameById.get(award.gameId);
+      return [
+        {
+          kind: "king_place",
+          id: award.id,
+          at: award.createdAt,
+          sport: award.sport,
+          muBefore: award.muBefore,
+          muAfter: award.muAfter,
+          venueName: game?.venueName ?? null,
+          finalPlace: award.finalPlace,
+          teamCount: game?.teamCount ?? 0,
         },
       ];
     }
