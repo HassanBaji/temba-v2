@@ -1,4 +1,5 @@
 import { bibColors, radii, sizes } from "@repo/design-tokens";
+import type { FishSize } from "@repo/design-tokens/fish";
 import {
   type FootballBalanceOn,
   type FootballBib,
@@ -30,7 +31,13 @@ import {
 const ROW_HEIGHT = 44;
 
 /** A player's fish on a paper tile, so it reads on any bib colour. */
-export function TierMark({ cell }: { cell: GroupMemberTierCell }) {
+export function TierMark({
+  cell,
+  size,
+}: {
+  cell: GroupMemberTierCell;
+  size?: FishSize;
+}) {
   const colors = useColors();
   return (
     <View
@@ -41,7 +48,7 @@ export function TierMark({ cell }: { cell: GroupMemberTierCell }) {
         backgroundColor: colors.paper,
       }}
     >
-      <TierCell cell={cell} />
+      <TierCell cell={cell} size={size} />
     </View>
   );
 }
