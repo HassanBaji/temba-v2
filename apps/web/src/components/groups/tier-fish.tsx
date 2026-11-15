@@ -54,10 +54,16 @@ export function TierFish({
 }
 
 /** The Tier column of a Members row: a fish, a place, or "not yet". */
-export function TierCell({ cell }: { cell: GroupMemberTierCell }) {
-  const { width, height } = fishSizes.row;
+export function TierCell({
+  cell,
+  size = "row",
+}: {
+  cell: GroupMemberTierCell;
+  size?: FishSize;
+}) {
+  const { width, height } = fishSizes[size];
   if (cell.kind === "fish") {
-    return <TierFish band={cell.band} label={cell.label} />;
+    return <TierFish band={cell.band} label={cell.label} size={size} />;
   }
   if (cell.kind === "place") {
     return (
