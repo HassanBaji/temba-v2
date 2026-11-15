@@ -52,6 +52,7 @@ import { consoleVenue } from "./console-venue";
 import { venue } from "./venue";
 import { gameAlbum } from "./game-album";
 import { editTeams } from "./edit-teams";
+import { gamePayments } from "./game-payments";
 
 import type { en } from "../en/index";
 
@@ -112,4 +113,5 @@ export const ar: Messages = {
   venue,
   gameAlbum,
   editTeams,
+  gamePayments,
 };

@@ -210,6 +210,8 @@ export const createTournamentInputSchema = z
       .max(PRICE_PER_PLAYER_MAX_FILS)
       .nullable()
       .optional(),
+    /** Only with a price above zero. */
+    trackPayments: z.boolean().optional(),
     levelMinTenths: z
       .number()
       .int()
@@ -234,6 +236,13 @@ export const createTournamentInputSchema = z
     path: ["windowEnd"],
   })
   .superRefine((value, ctx) => {
+    if (value.trackPayments && (value.pricePerPlayerFils ?? 0) <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: messagesFor(DEFAULT_LOCALE).gamePayments.errors.needsPrice,
+        path: ["trackPayments"],
+      });
+    }
     const sized = sizeTournamentShape(value);
     if (!sized.ok) {
       ctx.addIssue({
@@ -342,6 +351,7 @@ export async function createTournament(
         qualifiersPerPool: sized.qualifiersPerPool,
         matchMinutes: king ? null : input.matchMinutes,
         pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+        trackPayments: input.trackPayments ?? false,
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,

@@ -54,8 +54,19 @@ export const createBookingGameInputSchema = z
     levelMaxTenths: levelTenths,
     sideSize: z.number().int().optional(),
     playersAllowed: z.number().int().optional(),
+    /** Only with a price above zero. */
+    trackPayments: z.boolean().optional(),
+    /** Football only: keepers owe nothing while payments are tracked. */
+    keepersPlayFree: z.boolean().optional(),
   })
   .superRefine((value, ctx) => {
+    if (value.trackPayments && (value.pricePerPlayerFils ?? 0) <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: messagesFor(DEFAULT_LOCALE).gamePayments.errors.needsPrice,
+        path: ["trackPayments"],
+      });
+    }
     if (
       value.levelMinTenths != null &&
       value.levelMaxTenths != null &&
@@ -173,6 +184,8 @@ export async function createBookingGame(
           windowStart: booking.startsAt,
           windowEnd: booking.endsAt,
           pricePerPlayerFils: args.pricePerPlayerFils ?? null,
+          trackPayments: args.trackPayments,
+          keepersPlayFree: args.keepersPlayFree,
           sideSize,
           playersAllowed: args.playersAllowed ?? 2 * sideSize,
           ...ratingFlagsAtCreate({
@@ -208,6 +221,7 @@ export async function createBookingGame(
         windowStart: booking.startsAt,
         windowEnd: booking.endsAt,
         pricePerPlayerFils: args.pricePerPlayerFils ?? null,
+        trackPayments: args.trackPayments,
         levelMinTenths: args.levelMinTenths ?? null,
         levelMaxTenths: args.levelMaxTenths ?? null,
       },

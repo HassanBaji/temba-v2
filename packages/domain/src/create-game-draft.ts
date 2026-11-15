@@ -52,6 +52,10 @@ export type CreateGameDraft = {
   playersAllowed: number;
   /** False when the creator picked Unrated (ADR-0053). */
   rated: boolean;
+  /** Sent only with a price above zero. */
+  trackPayments: boolean;
+  /** Football only, read while payments are tracked. */
+  keepersPlayFree: boolean;
 };
 
 type DraftStorage = {
@@ -99,6 +103,8 @@ export function initialCreateGameDraft(
     sideSize: DEFAULT_FOOTBALL_SIDE_SIZE,
     playersAllowed: 2 * DEFAULT_FOOTBALL_SIDE_SIZE,
     rated: true,
+    trackPayments: false,
+    keepersPlayFree: true,
   };
 }
 
@@ -135,6 +141,8 @@ export function serializeCreateGameDraft(draft: CreateGameDraft) {
     sideSize: draft.sideSize,
     playersAllowed: draft.playersAllowed,
     rated: draft.rated,
+    trackPayments: draft.trackPayments,
+    keepersPlayFree: draft.keepersPlayFree,
   });
 }
 
@@ -185,6 +193,10 @@ export function parseCreateGameDraft(
       : record.playersAllowed;
   const customName = record.customName === undefined ? "" : record.customName;
   const rated = record.rated === undefined ? true : record.rated;
+  const trackPayments =
+    record.trackPayments === undefined ? false : record.trackPayments;
+  const keepersPlayFree =
+    record.keepersPlayFree === undefined ? true : record.keepersPlayFree;
   const publicSport =
     record.publicSport === undefined ? DEFAULT_SPORT : record.publicSport;
   const strings = [
@@ -221,6 +233,8 @@ export function parseCreateGameDraft(
     !isCount(playersAllowed) ||
     typeof customName !== "string" ||
     typeof rated !== "boolean" ||
+    typeof trackPayments !== "boolean" ||
+    typeof keepersPlayFree !== "boolean" ||
     !isSport(publicSport) ||
     parseDateInputValue(record.day as string) === undefined
   ) {
@@ -253,6 +267,8 @@ export function parseCreateGameDraft(
     sideSize,
     playersAllowed,
     rated,
+    trackPayments,
+    keepersPlayFree,
   };
 }
 

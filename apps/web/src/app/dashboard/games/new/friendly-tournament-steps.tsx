@@ -8,6 +8,10 @@ import {
   type CreateGroup,
 } from "~/app/dashboard/games/new/_parts/group-field";
 import { LevelBandRow } from "~/app/dashboard/games/new/_parts/level-band-row";
+import {
+  PaymentTrackingField,
+  paymentReviewValue,
+} from "~/app/dashboard/games/new/_parts/payment-tracking-field";
 import { RatingField } from "~/app/dashboard/games/new/_parts/rating-field";
 import { ReviewRow } from "~/app/dashboard/games/new/_parts/review-row";
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
@@ -142,6 +146,8 @@ export function FriendlyTournamentSteps({
   price,
   priceError,
   onPrice,
+  trackPayments,
+  onTrackPayments,
   isPublic,
   onIsPublic,
   allowSoloRegister,
@@ -211,6 +217,8 @@ export function FriendlyTournamentSteps({
   price: string;
   priceError?: string;
   onPrice: (price: string) => void;
+  trackPayments: boolean;
+  onTrackPayments: (value: boolean) => void;
   isPublic: boolean;
   onIsPublic: (isPublic: boolean) => void;
   allowSoloRegister: boolean;
@@ -282,6 +290,11 @@ export function FriendlyTournamentSteps({
     .filter((court) => courtIds.includes(court.id))
     .map((court) => court.name);
   const teamPrice = gameTeamOfTwoCopy(price, locale);
+  const paymentReview = paymentReviewValue(
+    { price, football: false, trackPayments, keepersPlayFree: false },
+    m,
+    locale,
+  );
   const k = m.tournamentKing;
   const kingCourts = kingCourtCount(teamCount);
   const kingPlayMinutes =
@@ -975,6 +988,17 @@ export function FriendlyTournamentSteps({
             </FieldError>
           </section>
 
+          <PaymentTrackingField
+            idPrefix="tournament"
+            price={price}
+            football={false}
+            playersAllowed={teamCount * 2}
+            trackPayments={trackPayments}
+            onTrackPayments={onTrackPayments}
+            keepersPlayFree={false}
+            onKeepersPlayFree={() => undefined}
+          />
+
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="tournament-public-label"
@@ -1118,6 +1142,12 @@ export function FriendlyTournamentSteps({
                 />
               </>
             )}
+            {paymentReview ? (
+              <ReviewRow
+                label={m.gamePayments.create.reviewLabel}
+                value={paymentReview}
+              />
+            ) : null}
           </div>
         </>
       ) : null}

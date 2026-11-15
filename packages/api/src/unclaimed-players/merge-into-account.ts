@@ -15,6 +15,8 @@ import {
   gameLevelRangeRequests,
   gameMemberInvites,
   gameMvpVotes,
+  gamePaymentEvents,
+  gamePayments,
   gamePlayers,
   gameTeamPlayers,
   games,
@@ -92,6 +94,7 @@ const uniqueUserReferences: UniqueUserReference[] = [
     sameKeys: [matchResultConfirmations.matchId],
   },
   { column: matchGoals.userId, sameKeys: [matchGoals.matchId] },
+  { column: gamePayments.userId, sameKeys: [gamePayments.gameId] },
   {
     column: marks.receiverUserId,
     sameKeys: [marks.matchId, marks.giverUserId],
@@ -215,6 +218,11 @@ const plainUserReferences: PgColumn[] = [
   levelOverrides.setByUserId,
   groupLevelOverrides.setByUserId,
   groupTierEvents.setByUserId,
+  gamePayments.paidByUserId,
+  gamePayments.returnedByUserId,
+  gamePayments.updatedByUserId,
+  gamePaymentEvents.userId,
+  gamePaymentEvents.actorUserId,
 ];
 
 /** Every column referencing `user.id` that the merge reassigns or resolves. */

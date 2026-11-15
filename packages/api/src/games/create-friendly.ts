@@ -91,6 +91,9 @@ export async function createFootballGame(
         pricePerPlayerFils: input.pricePerPlayerFils ?? null,
         sport: GameSportEnum.Football,
         sideSize: input.sideSize,
+        trackPayments: input.trackPayments ?? false,
+        keepersPlayFree:
+          (input.trackPayments ?? false) && (input.keepersPlayFree ?? false),
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         rated: input.rated ?? false,
@@ -193,6 +196,7 @@ export async function createFriendlyGame(
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
+        trackPayments: input.trackPayments ?? false,
         rated: input.rated ?? true,
         groupRated: input.groupRated ?? false,
         mvpMode: input.mvpMode ?? "vote",

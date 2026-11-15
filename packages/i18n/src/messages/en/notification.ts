@@ -123,6 +123,21 @@ export const notification = {
       plain(" Level is confirmed"),
     ],
     gameFinished: (game: string) => [strong(game), plain(" has finished")],
+    gamePaymentReminder: (actor: string, game: string) => [
+      strong(actor),
+      plain(" reminded you to pay for "),
+      strong(game),
+    ],
+    gamePaymentClaimed: (actor: string, game: string) => [
+      strong(actor),
+      plain(" says they paid for "),
+      strong(game),
+    ],
+    gamePaymentNotReceived: (actor: string, game: string) => [
+      strong(actor),
+      plain(" hasn’t received your payment for "),
+      strong(game),
+    ],
     markReceived: (actor: string, kind: string, game: string) => [
       strong(actor),
       plain(" gave you "),
@@ -325,6 +340,8 @@ export const notification = {
       "Score your teammates and, if you want, opponents, within 24 hours. Nobody sees who gave what.",
     tierPlaces:
       "Tiers are places, so when one player moves, someone moves the other way.",
+    gamePaymentReminder: "Pay the organizer, then tell them on the game.",
+    gamePaymentClaimed: "Confirm it once you have the money.",
     levelConfirmed:
       "The track is no longer hatched. It keeps moving on verified matches.",
     ratingsClosed: (rating: string, delta: string, points: string) =>

@@ -149,6 +149,15 @@ describe("renderNotificationEmail", () => {
     );
   });
 
+  it("sends an admin to the payments list when a player says they paid", () => {
+    const email = render(
+      item({ type: "game_payment_claimed", audience: "admin", game: GAME }),
+    );
+    expect(email.html).toContain(
+      `href="${ORIGIN}/dashboard/games/${GAME.id}/payments"`,
+    );
+  });
+
   it("sends a player to the Game once ratings close", () => {
     const email = render(
       item({
