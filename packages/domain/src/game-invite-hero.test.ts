@@ -105,6 +105,8 @@ describe("Level", () => {
         isSignedIn: false,
         viewerLevelTenths: null,
         viewerPassesLevelRange: null,
+        levelMinTenths: 20,
+        levelMaxTenths: 35,
       }),
     ).toBe("signed_out");
     expect(
@@ -112,6 +114,8 @@ describe("Level", () => {
         isSignedIn: true,
         viewerLevelTenths: null,
         viewerPassesLevelRange: null,
+        levelMinTenths: 20,
+        levelMaxTenths: 35,
       }),
     ).toBe("no_level");
     expect(
@@ -119,6 +123,8 @@ describe("Level", () => {
         isSignedIn: true,
         viewerLevelTenths: 30,
         viewerPassesLevelRange: false,
+        levelMinTenths: 20,
+        levelMaxTenths: 35,
       }),
     ).toBe("outside");
     expect(
@@ -126,8 +132,43 @@ describe("Level", () => {
         isSignedIn: true,
         viewerLevelTenths: 30,
         viewerPassesLevelRange: true,
+        levelMinTenths: 20,
+        levelMaxTenths: 35,
       }),
     ).toBe("fits");
+  });
+
+  it("tells a viewer the organizer let in apart from one who fits", () => {
+    expect(
+      gameInviteLevelFit({
+        isSignedIn: true,
+        viewerLevelTenths: 30,
+        viewerPassesLevelRange: true,
+        levelMinTenths: 35,
+        levelMaxTenths: null,
+      }),
+    ).toBe("approved");
+  });
+
+  it("says the organizer approved a viewer outside the range", () => {
+    const card = gameInviteLevelCard({
+      levelMinTenths: 35,
+      levelMaxTenths: null,
+      viewerLevelTenths: 30,
+      fit: "approved",
+      asksAboutGroup: false,
+      locale: "en",
+    });
+    expect(card?.text).toMatch(/, and the organizer approved you\.$/);
+    expect(card?.text).not.toMatch(/so you fit/);
+    expect(
+      gameInviteLevelRow({
+        levelMinTenths: 35,
+        levelMaxTenths: null,
+        fit: "approved",
+        locale: "en",
+      }),
+    ).toMatch(/, the organizer approved you$/);
   });
 
   it("says the range fits in the row", () => {

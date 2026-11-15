@@ -60,6 +60,7 @@ export const mobileInvite = {
       organizerRow: "المنظّم",
       levelFits: (range: string) => `${range}، مستواك مناسب`,
       levelOutside: (range: string) => `${range}، خارج مستواك`,
+      levelApproved: (range: string) => `${range}، وافق عليك المنظّم`,
       memberNote: (group: string) => `${group}. أنت عضو.`,
       joinedNote: (group: string) => `${group}. انضممت اليوم.`,
       levelCard: {
@@ -67,6 +68,8 @@ export const mobileInvite = {
           `هذه المباراة لمستوى ${range}. مستواك ${yours}، فأنت مناسب.`,
         outside: (range: string, yours: string) =>
           `هذه المباراة لمستوى ${range}. مستواك ${yours}، فالانضمام يسأل المنظّم.`,
+        approved: (range: string, yours: string) =>
+          `هذه المباراة لمستوى ${range}. مستواك ${yours}، وقد وافق عليك المنظّم.`,
         noLevel: (range: string) =>
           `هذه المباراة لمستوى ${range}. حدّد مستواك لترى إن كنت مناسبًا.`,
         signedOut: (range: string) =>
@@ -149,6 +152,7 @@ export const mobileInvite = {
       landingNote: (group: string) =>
         `المباريات تعيش داخل المجموعات. يمكنك أخذ هذا المكان، أو الانضمام إلى ${group} فقط واختيار مباراة لاحقًا.`,
       joinGroup: "الانضمام إلى المجموعة",
+      goToGroup: "الذهاب إلى المجموعة",
       joinGame: "الانضمام إلى المباراة",
       seatsOpen: (n: number) =>
         plural("ar", n, {
