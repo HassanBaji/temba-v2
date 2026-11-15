@@ -224,7 +224,6 @@ describe("King of the court on the Games lists", () => {
       id: gameId,
       matchId: gameId,
       rated: true,
-      levelMove: null,
       kingOfTheCourt: {
         posted: true,
         place: 3,

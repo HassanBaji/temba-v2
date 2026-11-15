@@ -1,4 +1,5 @@
 import {
+  boolean,
   doublePrecision,
   index,
   integer,
@@ -35,6 +36,8 @@ export const kingPlaceAwards = pgTable(
     /** The field the wins were against: the mean μ and φ of everyone on a court. */
     fieldMu: doublePrecision("field_mu").notNull(),
     fieldPhi: doublePrecision("field_phi").notNull(),
+    /** False when the award created the player's Rating row, so taking it back removes the row. */
+    hadRating: boolean("had_rating").notNull(),
     muBefore: doublePrecision("mu_before").notNull(),
     phiBefore: doublePrecision("phi_before").notNull(),
     sigmaBefore: doublePrecision("sigma_before").notNull(),

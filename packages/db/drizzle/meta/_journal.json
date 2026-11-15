@@ -876,6 +876,13 @@
       "when": 1794669677914,
       "tag": "0124_king_place_awards",
       "breakpoints": true
+    },
+    {
+      "idx": 125,
+      "version": "7",
+      "when": 1794726394011,
+      "tag": "0125_king_place_awards_on_post",
+      "breakpoints": true
     }
   ]
 }

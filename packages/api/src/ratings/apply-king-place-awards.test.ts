@@ -20,8 +20,6 @@ import {
   user,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
-import { KING_FINAL_ORDER_CHANGE_MS } from "@repo/domain/tournament-king";
-
 import { wrongScoreReversalEligibility } from "#src/games/wrong-score-reversal";
 import {
   insertKingPlayers,
@@ -29,7 +27,6 @@ import {
   insertKingUser,
   seatKingTeams,
 } from "#src/games/king-of-the-court.test-support";
-import { handle } from "#src/jobs/handlers/king.place-awards";
 import { recordJobs } from "#src/jobs/job-sink.test-support";
 import { gameById } from "#src/routers/games/byId";
 import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
@@ -41,7 +38,7 @@ import { loadRatingsMe } from "#src/routers/ratings/me";
 const START = new Date("2026-09-25T09:00:00");
 const END = new Date("2026-09-25T11:00:00");
 const POSTED = new Date("2026-09-25T11:05:00");
-const CLOSED = new Date(POSTED.getTime() + KING_FINAL_ORDER_CHANGE_MS);
+const CORRECTED = new Date("2026-09-25T12:05:00");
 
 beforeAll(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -92,13 +89,15 @@ async function postOrder(
   });
 }
 
-function settle(drawn: Drawn, now = CLOSED) {
-  return handle(asDb(drawn.database), { gameId: drawn.gameId }, undefined, now);
-}
-
 async function awardsOf(drawn: Drawn) {
   return drawn.database.query.kingPlaceAwards.findMany({
     where: eq(kingPlaceAwards.gameId, drawn.gameId),
+  });
+}
+
+async function ratingOf(drawn: Drawn, userId: string) {
+  return drawn.database.query.ratings.findFirst({
+    where: eq(ratings.userId, userId),
   });
 }
 
@@ -127,22 +126,28 @@ function gainOf(
   return award ? award.muAfter - award.muBefore : null;
 }
 
-describe("settleKingPlaceAwards", () => {
+async function toldOf(drawn: Drawn) {
+  const rows = await drawn.database.query.notifications.findMany({
+    where: and(
+      eq(notifications.gameId, drawn.gameId),
+      eq(notifications.type, "king_place_awarded"),
+    ),
+  });
+  return rows.map((row) => row.recipientUserId).sort();
+}
+
+function idsOf(players: readonly { id: string }[]) {
+  return players.map((player) => player.id).sort();
+}
+
+describe("applyKingPlaceAwards", () => {
   const jobs = recordJobs();
 
-  it("waits for the Final order to close, then counts first to fourth place as 2, 1, a half and a quarter of a win", async () => {
+  it("counts first to fourth place as 2, 1, a half and a quarter of a win the moment the order is posted", async () => {
     const drawn = await drawnTournament();
-    const { database, gameId, teamIds, players } = drawn;
+    const { players, teamIds } = drawn;
     await postOrder(drawn, teamIds.slice(0, 6));
 
-    expect(
-      jobs.added.find((job) => job.name === "king.place-awards"),
-    ).toMatchObject({ payload: { gameId }, runAt: CLOSED });
-
-    await settle(drawn, new Date(CLOSED.getTime() - 1000));
-    expect(await awardsOf(drawn)).toHaveLength(0);
-
-    await settle(drawn);
     const awards = await awardsOf(drawn);
     expect(awards).toHaveLength(8);
     expect(
@@ -165,74 +170,115 @@ describe("settleKingPlaceAwards", () => {
     expect(gainOf(awards, players[8]?.id)).toBeNull();
     expect(gainOf(awards, players[14]?.id)).toBeNull();
 
-    const king = await database.query.ratings.findFirst({
-      where: eq(ratings.userId, players[0]!.id),
-    });
+    const king = await ratingOf(drawn, players[0]!.id);
     const kingAward = awards.find((row) => row.userId === players[0]!.id);
     expect(king?.mu).toBe(kingAward?.muAfter);
-    expect(king?.lastRatedAt).toEqual(CLOSED);
-
-    const game = await database.query.games.findFirst({
-      where: eq(games.id, gameId),
-    });
-    expect(game?.placeAwardsSettledAt).toEqual(CLOSED);
+    expect(king?.lastRatedAt).toEqual(POSTED);
+    expect(jobs.added.some((job) => job.name.startsWith("king."))).toBe(false);
   });
 
-  it("writes once, however often it runs", async () => {
-    const drawn = await drawnTournament();
-    await postOrder(drawn, drawn.teamIds.slice(0, 4));
-    await settle(drawn);
-    const first = await awardsOf(drawn);
+  it("redoes the awards when the order is corrected, as if the right order had been posted first", async () => {
+    const corrected = await drawnTournament();
+    const { teamIds, players } = corrected;
+    await postOrder(corrected, teamIds.slice(0, 4));
+    const fixedOrder = [teamIds[7]!, teamIds[0]!, teamIds[1]!];
+    await postOrder(corrected, fixedOrder, CORRECTED);
 
-    await settle(drawn, new Date(CLOSED.getTime() + 60_000));
-    const second = await awardsOf(drawn);
-    expect(second).toHaveLength(8);
-    expect(second.map((row) => row.muAfter).sort()).toEqual(
-      first.map((row) => row.muAfter).sort(),
-    );
-  });
-
-  it("goes by the order as it stood when the 24 hours ended", async () => {
-    const drawn = await drawnTournament();
-    const { teamIds, players } = drawn;
-    await postOrder(drawn, teamIds.slice(0, 4));
-    await postOrder(
-      drawn,
-      [teamIds[7]!, teamIds[0]!, teamIds[1]!],
-      new Date(POSTED.getTime() + 60 * 60 * 1000),
-    );
-    await settle(drawn);
-
-    const awards = await awardsOf(drawn);
+    const awards = await awardsOf(corrected);
     expect(awards).toHaveLength(6);
     expect(
       awards.find((row) => row.userId === players[14]!.id)?.finalPlace,
     ).toBe(1);
     expect(awards.find((row) => row.userId === players[0]!.id)?.wins).toBe(1);
-    expect(gainOf(awards, players[6]!.id)).toBeNull();
+    // Third and fourth place of the first order are placed no longer: their
+    // Rating rows, which the first award created, are gone with it.
+    for (const index of [4, 5, 6, 7]) {
+      expect(gainOf(awards, players[index]!.id)).toBeNull();
+      expect(await ratingOf(corrected, players[index]!.id)).toBeUndefined();
+    }
+
+    const direct = await drawnTournament();
+    await postOrder(
+      direct,
+      [direct.teamIds[7]!, direct.teamIds[0]!, direct.teamIds[1]!],
+      CORRECTED,
+    );
+    const directAwards = await awardsOf(direct);
+    for (const index of [14, 15, 0, 1, 2, 3]) {
+      expect(gainOf(awards, players[index]!.id)).toBeCloseTo(
+        gainOf(directAwards, direct.players[index]!.id) ?? NaN,
+        9,
+      );
+      const rating = await ratingOf(corrected, players[index]!.id);
+      const directRating = await ratingOf(direct, direct.players[index]!.id);
+      expect(rating?.mu).toBeCloseTo(directRating?.mu ?? NaN, 9);
+      expect(rating?.phi).toBeCloseTo(directRating?.phi ?? NaN, 9);
+    }
+  });
+
+  it("restores a Rating that was there before to exactly what it was", async () => {
+    const drawn = await drawnTournament();
+    const { database, teamIds, players } = drawn;
+    await setLevel(database, idsOf(players), 1700);
+    await postOrder(drawn, teamIds.slice(0, 4));
+    expect((await ratingOf(drawn, players[6]!.id))?.mu).toBeGreaterThan(1700);
+
+    await postOrder(drawn, teamIds.slice(0, 3), CORRECTED);
+    expect(await ratingOf(drawn, players[6]!.id)).toMatchObject({
+      mu: 1700,
+      phi: 150,
+      sigma: 0.06,
+      levelBand: "C2",
+      lastRatedAt: null,
+    });
+  });
+
+  it("leaves the same awards when the same order is posted again", async () => {
+    const drawn = await drawnTournament();
+    await postOrder(drawn, drawn.teamIds.slice(0, 4));
+    const first = await awardsOf(drawn);
+    await postOrder(drawn, drawn.teamIds.slice(0, 4), CORRECTED);
+    const second = await awardsOf(drawn);
+
+    expect(second).toHaveLength(8);
+    for (const award of first) {
+      const again = second.find((row) => row.userId === award.userId);
+      expect(again?.muBefore).toBe(award.muBefore);
+      expect(again?.muAfter).toBeCloseTo(award.muAfter, 9);
+    }
+  });
+
+  it("takes only its own move off a Rating something else has moved since", async () => {
+    const drawn = await drawnTournament();
+    const { database, teamIds, players } = drawn;
+    const fourth = players[6]!;
+    await setLevel(database, idsOf(players), 1700);
+    await postOrder(drawn, teamIds.slice(0, 4));
+    const award = (await awardsOf(drawn)).find(
+      (row) => row.userId === fourth.id,
+    );
+    const gain = (award?.muAfter ?? 0) - (award?.muBefore ?? 0);
+    const later = new Date("2026-09-25T11:30:00");
+    await database
+      .update(ratings)
+      .set({ mu: 1900, phi: 120, lastRatedAt: later })
+      .where(eq(ratings.userId, fourth.id));
+
+    await postOrder(drawn, teamIds.slice(0, 3), CORRECTED);
+    const rating = await ratingOf(drawn, fourth.id);
+    expect(rating?.mu).toBeCloseTo(1900 - gain, 9);
+    expect(rating?.phi).toBe(120);
+    expect(rating?.lastRatedAt).toEqual(later);
   });
 
   it("gains more the stronger the field is", async () => {
     const weak = await drawnTournament();
-    await setLevel(
-      weak.database,
-      weak.players.map((player) => player.id),
-      1500,
-    );
+    await setLevel(weak.database, idsOf(weak.players), 1500);
     const strong = await drawnTournament();
-    await setLevel(
-      strong.database,
-      strong.players.slice(0, 2).map((player) => player.id),
-      1500,
-    );
-    await setLevel(
-      strong.database,
-      strong.players.slice(2).map((player) => player.id),
-      2000,
-    );
+    await setLevel(strong.database, idsOf(strong.players.slice(0, 2)), 1500);
+    await setLevel(strong.database, idsOf(strong.players.slice(2)), 2000);
     for (const drawn of [weak, strong]) {
       await postOrder(drawn, drawn.teamIds.slice(0, 3));
-      await settle(drawn);
     }
 
     const [weakAwards, strongAwards] = await Promise.all([
@@ -256,15 +302,9 @@ describe("settleKingPlaceAwards", () => {
       .where(eq(games.id, drawn.gameId));
     await postOrder(drawn, drawn.teamIds.slice(0, 4));
 
-    expect(jobs.added.some((job) => job.name === "king.place-awards")).toBe(
-      false,
-    );
-    await settle(drawn);
     expect(await awardsOf(drawn)).toHaveLength(0);
-    const game = await drawn.database.query.games.findFirst({
-      where: eq(games.id, drawn.gameId),
-    });
-    expect(game?.placeAwardsSettledAt).toBeNull();
+    expect(await ratingOf(drawn, drawn.players[0]!.id)).toBeUndefined();
+    expect(await toldOf(drawn)).toEqual([]);
   });
 
   it("neither rates a Guest player nor counts them in the field", async () => {
@@ -273,7 +313,7 @@ describe("settleKingPlaceAwards", () => {
     const guest = players[1]!;
     await setLevel(
       database,
-      players.filter((player) => player.id !== guest.id).map((p) => p.id),
+      idsOf(players.filter((player) => player.id !== guest.id)),
       1600,
     );
     await database
@@ -281,7 +321,6 @@ describe("settleKingPlaceAwards", () => {
       .set({ guestAt: START, addedAt: START, email: null })
       .where(eq(user.id, guest.id));
     await postOrder(drawn, teamIds.slice(0, 3));
-    await settle(drawn);
 
     const awards = await awardsOf(drawn);
     expect(gainOf(awards, guest.id)).toBeNull();
@@ -290,23 +329,22 @@ describe("settleKingPlaceAwards", () => {
     expect(partner?.wins).toBe(2);
   });
 
-  it("tells each player who moved, once", async () => {
+  it("tells each player who moved once, and a corrected order tells only who it places", async () => {
     const drawn = await drawnTournament();
-    await postOrder(drawn, drawn.teamIds.slice(0, 5));
-    await settle(drawn);
-    await settle(drawn, new Date(CLOSED.getTime() + 60_000));
+    const { teamIds, players } = drawn;
+    await postOrder(drawn, teamIds.slice(0, 4));
+    expect(await toldOf(drawn)).toEqual(idsOf(players.slice(0, 8)));
 
-    const rows = await drawn.database.query.notifications.findMany({
-      where: and(
-        eq(notifications.gameId, drawn.gameId),
-        eq(notifications.type, "king_place_awarded"),
-      ),
-    });
-    expect(rows.map((row) => row.recipientUserId).sort()).toEqual(
-      drawn.players
-        .slice(0, 8)
-        .map((player) => player.id)
-        .sort(),
+    await postOrder(drawn, teamIds.slice(0, 4), CORRECTED);
+    expect(await toldOf(drawn)).toEqual(idsOf(players.slice(0, 8)));
+
+    await postOrder(
+      drawn,
+      [teamIds[7]!, teamIds[0]!, teamIds[1]!],
+      new Date(CORRECTED.getTime() + 60_000),
+    );
+    expect(await toldOf(drawn)).toEqual(
+      idsOf([...players.slice(0, 4), ...players.slice(14)]),
     );
   });
 });
@@ -314,29 +352,30 @@ describe("settleKingPlaceAwards", () => {
 describe("a Place award on the screens that read the Level", () => {
   recordJobs();
 
-  it("is written by the Game read when the Job is late, with the viewer's own move", async () => {
+  it("is on the Game read with the viewer's own move, before and after a correction", async () => {
     const drawn = await drawnTournament();
     const { database, gameId, players, teamIds } = drawn;
+    const before = await gameById(database, { gameId, userId: players[0]!.id });
+    expect(before.viewerPlaceAward).toBeNull();
+
     await postOrder(drawn, teamIds.slice(0, 4));
-
-    vi.setSystemTime(new Date(CLOSED.getTime() - 60_000));
-    const open = await gameById(database, { gameId, userId: players[0]!.id });
-    expect(open.placeAwardsSettledAt).toBeNull();
-    expect(open.viewerPlaceAward).toBeNull();
-
-    vi.setSystemTime(new Date(CLOSED.getTime() + 60_000));
-    const closed = await gameById(database, { gameId, userId: players[0]!.id });
-    expect(closed.placeAwardsSettledAt).not.toBeNull();
-    expect(closed.viewerPlaceAward?.wins).toBe(2);
-    expect(closed.viewerPlaceAward?.muAfter).toBeGreaterThan(
-      closed.viewerPlaceAward?.muBefore ?? Infinity,
+    const posted = await gameById(database, { gameId, userId: players[0]!.id });
+    expect(posted.viewerPlaceAward?.wins).toBe(2);
+    expect(posted.viewerPlaceAward?.muAfter).toBeGreaterThan(
+      posted.viewerPlaceAward?.muBefore ?? Infinity,
     );
     const unplaced = await gameById(database, {
       gameId,
       userId: players[15]!.id,
     });
     expect(unplaced.viewerPlaceAward).toBeNull();
-    vi.setSystemTime(new Date("2026-09-01T12:00:00"));
+
+    await postOrder(drawn, [teamIds[1]!, teamIds[0]!, teamIds[2]!], CORRECTED);
+    const corrected = await gameById(database, {
+      gameId,
+      userId: players[0]!.id,
+    });
+    expect(corrected.viewerPlaceAward?.wins).toBe(1);
   });
 
   it("is a line of Rating history, a point on the trend and the move on the Played row", async () => {
@@ -344,7 +383,6 @@ describe("a Place award on the screens that read the Level", () => {
     const { database, gameId, players, teamIds } = drawn;
     const runnerUp = players[2]!;
     await postOrder(drawn, teamIds.slice(0, 4));
-    await settle(drawn);
 
     const history = await ratingHistory(asDb(database) as never, {
       userId: runnerUp.id,
@@ -368,7 +406,7 @@ describe("a Place award on the screens that read the Level", () => {
     expect(me.ratedMatchCount).toBe(0);
     expect(me.rating?.provisional).toBe(true);
 
-    const played = await listMyMatchHistoryRows(database, runnerUp.id, CLOSED, {
+    const played = await listMyMatchHistoryRows(database, runnerUp.id, POSTED, {
       limit: 20,
       kingOfTheCourt: true,
     });
@@ -409,7 +447,6 @@ describe("a Place award on the screens that read the Level", () => {
     ).toEqual({ eligible: true });
 
     await postOrder(drawn, teamIds.slice(0, 3));
-    await settle(drawn);
 
     const eligibility = await wrongScoreReversalEligibility(
       asDb(database),

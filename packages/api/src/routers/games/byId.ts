@@ -139,7 +139,6 @@ import {
   type RatingWindowMode,
   type RatingWindowState,
 } from "@repo/domain/performance-rating";
-import { settleKingPlaceAwardsIfDue } from "#src/ratings/settle-king-place-awards";
 import { settleRatingWindowIfDue } from "#src/ratings/settle-rating-window";
 import { isKingOfTheCourt } from "@repo/domain/tournament-king";
 import { messagesFor } from "@repo/i18n/messages";
@@ -531,16 +530,7 @@ export async function gameById(
   const viewsToStampOnly = reach === "stamp_only";
 
   const now = new Date();
-  // A King of the court Game's Place awards (ADR-0089), written here when
-  // their Job is late, before the viewer's own is read.
-  const placeAwardsSettledAt = (await settleKingPlaceAwardsIfDue(
-    database,
-    game,
-    now,
-  ))
-    ? now
-    : game.placeAwardsSettledAt;
-  const viewerPlaceAward = placeAwardsSettledAt
+  const viewerPlaceAward = game.finalOrderPostedAt
     ? await database.query.kingPlaceAwards.findFirst({
         where: and(
           eq(kingPlaceAwards.gameId, game.id),
@@ -1339,8 +1329,6 @@ export async function gameById(
     matchMinutes: game.matchMinutes,
     drawPostedAt: game.drawPostedAt,
     finalOrderPostedAt: game.finalOrderPostedAt,
-    /** King of the court: when the Final order closed and its Place awards were written. */
-    placeAwardsSettledAt,
     /** The viewer's Place award on a King of the court Game; null without one. */
     viewerPlaceAward: viewerPlaceAward ?? null,
     canUndoDraw:

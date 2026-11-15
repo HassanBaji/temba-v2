@@ -344,15 +344,10 @@ describe("tournamentDetailRows, King of the court rating", () => {
     });
   });
 
-  it("waits out the 24 hours, then shows the viewer's own move", () => {
-    assert.equal(
-      ratingRow("temba", { finished: true })?.value,
-      "Yes, 24 hours after the final order",
-    );
+  it("shows the viewer's own move once the final order is posted", () => {
     assert.deepEqual(
       ratingRow("temba", {
         finished: true,
-        placeAwardsSettled: true,
         viewerPlaceAward: { muBefore: 1700, muAfter: 1775 },
       }),
       {
@@ -361,10 +356,10 @@ describe("tournamentDetailRows, King of the court rating", () => {
         note: "Your Level moved from 3.40 to 3.55.",
       },
     );
-    assert.equal(
-      ratingRow("temba", { finished: true, placeAwardsSettled: true })?.note,
-      undefined,
-    );
+    assert.deepEqual(ratingRow("temba", { finished: true }), {
+      label: "Counts for rating",
+      value: "Counted for first to fourth place",
+    });
   });
 
   it("says no on an Unrated Game", () => {

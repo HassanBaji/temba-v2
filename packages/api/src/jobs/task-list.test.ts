@@ -87,7 +87,6 @@ describe("task list", () => {
       "booking:reconcile",
       "challenge.expire",
       "challenge.squad-due",
-      "king.place-awards",
       "marks.settle-mvp",
       "match.confirm-window",
       "match.score-stands",

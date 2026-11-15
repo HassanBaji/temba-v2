@@ -164,7 +164,6 @@ export type TournamentDetails = {
   matchMinutes: number | null;
   drawPostedAt: Date | null;
   finalOrderPostedAt: Date | null;
-  placeAwardsSettledAt?: Date | null;
   viewerPlaceAward?: { muBefore: number; muAfter: number } | null;
   canUndoDraw: boolean;
   sport: string | null;
@@ -293,9 +292,7 @@ function ratingDetailRow(
 
 export type KingDetailState = {
   finished: boolean;
-  /** The Final order has closed and its Place awards are written (ADR-0089). */
-  placeAwardsSettled?: boolean;
-  /** The viewer's own Place award, as μ either side of it. */
+  /** The viewer's own Place award (ADR-0089), as μ either side of it. */
   viewerPlaceAward?: { muBefore: number; muAfter: number } | null;
 };
 
@@ -312,13 +309,6 @@ function kingRatingRow(
   }
   if (!king.finished) {
     return { label: k.rating, value: k.ratingYes, note: k.ratingYesNote };
-  }
-  if (!king.placeAwardsSettled) {
-    return {
-      label: k.rating,
-      value: k.ratingPending,
-      note: k.ratingPendingNote,
-    };
   }
   const move = king.viewerPlaceAward;
   return {
@@ -563,7 +553,6 @@ export function tournamentHomeView(
       king: king
         ? {
             finished: game.finalOrderPostedAt != null,
-            placeAwardsSettled: game.placeAwardsSettledAt != null,
             viewerPlaceAward: game.viewerPlaceAward,
           }
         : undefined,

@@ -193,9 +193,6 @@ export const tournamentKing = {
     ratingYes: "Yes, for first to fourth place",
     ratingYesNote:
       "First place counts as 2 wins against the field, second as 1, third as a half and fourth as a quarter. The field is the average Level of everyone on a court.",
-    ratingPending: "Yes, 24 hours after the final order",
-    ratingPendingNote:
-      "First to fourth place move up once the final order can no longer change.",
     ratingCounted: "Counted for first to fourth place",
     ratingYourMove: (from: string, to: string) =>
       `Your Level moved from ${from} to ${to}.`,

@@ -74,12 +74,12 @@ which team starts on which court, and a place to post who finished where.
   Unrated. Create step 4 shows the rating choice and Review shows it as any tournament does.
 - First to fourth place in the Final order count as 2, 1, a half and a quarter of a win against the
   field, the average Level of everyone on a court. Nobody moves down.
-- The Levels move once, when the Final order closes, 24 hours after it is first posted. Each player
-  who moved is told once, with the place and the Level either side.
-- Detail row "Counts for rating": "Yes, for first to fourth place" before the order, "Yes, 24 hours
-  after the final order" while it can still change, then "Counted for first to fourth place" with
-  "Your Level moved from 3.40 to 3.55." for a player who moved. An Unrated Game reads "No", then
-  "Not counted".
+- The Levels move when the Organizer posts the Final order. Changing the order in its 24 hours
+  takes the first moves back and writes the moves of the corrected order. Each player who moved is
+  told once, with the place and the Level either side; the Notification follows a correction.
+- Detail row "Counts for rating": "Yes, for first to fourth place" before the order, then "Counted
+  for first to fourth place" with "Your Level moved from 3.40 to 3.55." for a player who moved. An
+  Unrated Game reads "No", then "Not counted".
 - Rating history lists it as "Level, King of the court", "Finished 1st of 8, <venue>". The Home trend
   draws it as a won point. The Played card carries the Game's rating tag.
 
@@ -95,9 +95,9 @@ which team starts on which court, and a place to post who finished where.
   `game_teams.final_place`, `games.final_order_posted_at` (migration `0122_king_of_the_court`).
 - Notification types `king_courts_posted` and `king_final_order_posted` (migration
   `0123_king_of_the_court_notifications`).
-- Place awards (migration `0124_king_place_awards`): table `king_place_awards`,
-  `games.place_awards_settled_at`, Notification type `king_place_awarded`, Job `king.place-awards`.
-  `games.byId` adds `placeAwardsSettledAt` and `viewerPlaceAward`; `ratings.history` adds the
+- Place awards (migrations `0124_king_place_awards` and `0125_king_place_awards_on_post`): table
+  `king_place_awards`, Notification type `king_place_awarded`. `games.postKingFinalOrder` writes
+  them. `games.byId` adds `viewerPlaceAward`; `ratings.history` adds the
   `king_place` line; `ratings.me` history steps add `placed`; a King of the court Played row
   carries its real `rated`, `ratingScope` and `levelMove`.
 

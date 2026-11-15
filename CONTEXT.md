@@ -485,11 +485,11 @@ The King of the court draw: which court each Game team starts on, for the first 
 _Avoid_: Pool draw, seeding, bracket
 
 **Final order**:
-The King of the court result: the Game teams in the order the Organizer says they finished, at least the top three; the first is king of the court and teams left out are not placed. It can change for 24 hours after it is first posted; when those 24 hours end it closes and its Place awards are written. Not a Pool table and not a Standing.
+The King of the court result: the Game teams in the order the Organizer says they finished, at least the top three; the first is king of the court and teams left out are not placed. It can change for 24 hours after it is first posted. Every post writes its Place awards, taking back those of the order before. Not a Pool table and not a Standing.
 _Avoid_: standings, table, ranking, leaderboard
 
 **Place award**:
-What a King of the court Final order moves (ADR-0089, `king_place_awards`): each player of the Game teams placed first to fourth is rated as 2, 1, a half and a quarter of a win against the field, the average Level of everyone on a court. Written once, when the Final order closes, on a Game that counts for Temba Level. It only moves a Level up. Not a Rated Match: it does not count towards confirming a Level, the Rated Match count, Last 10 or the win rate, and it shows in Rating history as "Level, King of the court".
+What a King of the court Final order moves (ADR-0089, `king_place_awards`): each player of the Game teams placed first to fourth is rated as 2, 1, a half and a quarter of a win against the field, the average Level of everyone on a court. Written when the Final order is posted, on a Game that counts for Temba Level, and redone when the order is corrected: the awards of the order before are taken back first. It only moves a Level up. Not a Rated Match: it does not count towards confirming a Level, the Rated Match count, Last 10 or the win rate, and it shows in Rating history as "Level, King of the court".
 _Avoid_: bonus, prize, Rated Match, Level override
 
 **Knockout**:
