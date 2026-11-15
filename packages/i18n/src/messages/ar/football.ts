@@ -73,6 +73,7 @@ export const football = {
       `مجموع أهداف مسجّلي ${team} يتجاوز ${score}.`,
   },
   board: {
+    tileName: (first: string, initial: string) => `${first} ${initial}.`,
     outfieldLine: (inCount: number, seats: number) =>
       plural("ar", seats, {
         one: `${inCount} من لاعب واحد`,

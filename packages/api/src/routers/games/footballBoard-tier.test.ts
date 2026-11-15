@@ -240,6 +240,33 @@ describe("games.footballBoard outside a tier Group", () => {
     return { rated, unrated, ovrs };
   }
 
+  it("marks a player whose football Rating is still Provisional", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const f = await footballGame(db, { verified: true });
+      const { rated, unrated } = await seedOvrRoster(f);
+      const provisional = await addMember(f, "provisional");
+      await f.db.insert(ratings).values({
+        userId: provisional,
+        sport: "football",
+        mu: muFromOvr(58),
+        phi: 300,
+        sigma: 0.06,
+        levelBand: "C2",
+      });
+      const board = await footballBoard(db, {
+        gameId: f.gameId,
+        userId: f.organizerId,
+      });
+
+      expect(playerOf(board, provisional).ovrProvisional).toBe(true);
+      expect(playerOf(board, rated[0]!).ovrProvisional).toBe(false);
+      expect(playerOf(board, unrated).ovrProvisional).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+
   it("balances a Verified Group's Game on OVR for every player", async () => {
     const { db, close } = await createPgliteDb();
     try {

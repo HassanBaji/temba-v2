@@ -20,6 +20,7 @@ import {
 } from "@repo/domain/football-lineup";
 import { ovrBalanceStrength, wholeOvrFromMu } from "@repo/domain/football-ovr";
 import { groupHasTier } from "@repo/domain/game-rating-scope";
+import { isProvisional } from "@repo/domain/level";
 import type { GroupMemberTierData } from "@repo/domain/group-data";
 import { type LevelBand } from "@repo/domain/level-bands";
 import { TIER_POINTS_START } from "@repo/domain/tier-points";
@@ -229,16 +230,20 @@ export async function footballBoard(
   const userIds = roster.flatMap((row) => (row.user ? [row.user.id] : []));
 
   const levelByUser = new Map<string, BoardLevel>();
+  const provisionalUserIds = new Set<string>();
   if (userIds.length > 0) {
     const rows = await database.query.ratings.findMany({
       where: and(
         inArray(ratings.userId, userIds),
         eq(ratings.sport, "football"),
       ),
-      columns: { userId: true, levelBand: true, mu: true },
+      columns: { userId: true, levelBand: true, mu: true, phi: true },
     });
     for (const row of rows) {
       levelByUser.set(row.userId, { levelBand: row.levelBand, mu: row.mu });
+      if (isProvisional(row.phi)) {
+        provisionalUserIds.add(row.userId);
+      }
     }
   }
 
@@ -361,6 +366,7 @@ export async function footballBoard(
           position: row.footballPosition,
           levelBand: level?.levelBand ?? null,
           ovr: level ? wholeOvrFromMu(level.mu) : null,
+          ovrProvisional: !guest && provisionalUserIds.has(row.user.id),
           balanceStrength: balanceStrengthOf(row.user.id),
           tier: tierByUser?.get(row.user.id)?.tier ?? null,
           sideIndex: sideByUser.get(row.user.id) ?? null,

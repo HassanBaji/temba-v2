@@ -58,6 +58,7 @@ export const football = {
       `${team} scorers add up to more than ${score}.`,
   },
   board: {
+    tileName: (first: string, initial: string) => `${first} ${initial}.`,
     outfieldLine: (inCount: number, seats: number) =>
       `${inCount} of ${seats} in`,
     keeperNoteClaimed: (perGame: number, name: string) =>

@@ -12,16 +12,21 @@ import { Hatch } from "../primitives/hatch";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 
-/** A Tier band's fish. `cutout` is the colour behind it, for the Shark's eye. */
+/**
+ * A Tier band's fish in `color`, ink by default. `cutout` is the colour
+ * behind it, for the Shark's eye.
+ */
 export function TierFish({
   band,
   label,
   size = "row",
+  color,
   cutout,
 }: {
   band: FishBand;
   label: string;
   size?: FishSize;
+  color?: string;
   cutout?: string;
 }) {
   const colors = useColors();
@@ -31,7 +36,7 @@ export function TierFish({
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={label}>
       <Svg width={width} height={height} viewBox={glyph.viewBox}>
-        <Path d={glyph.body} fill={colors.ink} />
+        <Path d={glyph.body} fill={color ?? colors.ink} />
         {glyph.cutouts.map((part) =>
           part.paint === "fill" ? (
             <Path key={part.d} d={part.d} fill={behind} />
