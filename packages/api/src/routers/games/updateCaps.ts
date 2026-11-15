@@ -1,4 +1,13 @@
 import { TRPCError } from "@trpc/server";
+
+import {
+  AMERICANO_PLAYER_MAX,
+  AMERICANO_PLAYER_MIN,
+  americanoPlayersOfTeamCount,
+  americanoTeamCountOfPlayers,
+  isAmericano,
+  isAmericanoPlayerCount,
+} from "@repo/domain/tournament-americano";
 import { desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
@@ -245,6 +254,48 @@ async function resizeTournament(
   return movedToWaitlist;
 }
 
+/**
+ * An Americano's seats change in fours until its Rounds are made, never
+ * under the players already in (ADR-0094).
+ */
+async function resizeAmericano(
+  database: Tx,
+  game: GameRow,
+  players: number | null,
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
+  if (game.drawPostedAt) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: m.tournamentAmericano.errors.roundsMade,
+    });
+  }
+  if (players == null || !isAmericanoPlayerCount(players)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: m.tournamentAmericano.errors.players(
+        AMERICANO_PLAYER_MIN,
+        AMERICANO_PLAYER_MAX,
+      ),
+    });
+  }
+  if (players < (await registeredUserCount(database, game.id))) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: m.game.errors.capBelowRegistered,
+    });
+  }
+  await database
+    .update(games)
+    .set({
+      playersAllowed: players,
+      teamsAllowed: americanoTeamCountOfPlayers(players),
+      updatedAt: new Date(),
+    })
+    .where(eq(games.id, game.id));
+}
+
 /** A raised cap fills its new places from the Waitlist, in queue order. */
 async function promoteIntoRaisedCap(
   database: Tx,
@@ -306,6 +357,15 @@ async function updateGameCapsOnGame(
       code: "BAD_REQUEST",
       message: messagesFor(locale).game.errors.friendlyCapsFixed,
     });
+  }
+  if (isAmericano(game.format, game.tournamentShape)) {
+    const players =
+      input.playersAllowed ??
+      (input.teamsAllowed != null
+        ? americanoPlayersOfTeamCount(input.teamsAllowed)
+        : null);
+    await resizeAmericano(database, game, players, locale);
+    return [];
   }
   if (game.format === "friendly_tournament") {
     const teamCount =

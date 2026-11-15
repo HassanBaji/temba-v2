@@ -70,9 +70,11 @@ export function seatJoinRequest(
 }
 
 export function waitlistJoinRequest(
-  game: Pick<HubGameRow, "id" | "format"> & Partial<Pick<HubGameRow, "sport">>,
+  game: Pick<HubGameRow, "id" | "format"> &
+    Partial<Pick<HubGameRow, "sport" | "tournamentShape">>,
 ): JoinRequest {
-  return hubWaitlistJoinCall(game.format, game.sport) === "register"
+  return hubWaitlistJoinCall(game.format, game.sport, game.tournamentShape) ===
+    "register"
     ? { door: "register", input: { gameId: game.id } }
     : { door: "registerSeat", input: { gameId: game.id } };
 }

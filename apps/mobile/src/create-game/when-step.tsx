@@ -197,8 +197,12 @@ export function TournamentWhenStep(props: StepProps) {
       >
         <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
           {tournamentShapeOptions(locale)
-            // King of the court runs on the web App only for now (ADR-0087).
-            .filter((option) => option.id !== "king_of_the_court")
+            // King of the court and Americano run on the web App only for
+            // now (ADR-0087, ADR-0094).
+            .filter(
+              (option) =>
+                option.id !== "king_of_the_court" && option.id !== "americano",
+            )
             .map((option) => (
               <ChoiceCard
                 key={option.id}

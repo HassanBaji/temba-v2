@@ -31,6 +31,10 @@ import {
 } from "./tournament-knockout";
 import { sizeTournamentRounds } from "./tournament-schedule";
 import {
+  americanoPlayersOfTeamCount,
+  clampAmericanoRounds,
+} from "./tournament-americano";
+import {
   clampQualifiersPerPool,
   defaultPoolCount,
   defaultRoundsShapeRoundCount,
@@ -409,19 +413,26 @@ export function validateFriendlyTournamentSubmit(
       allowSoloRegister: draft.allowSoloRegister,
       teamCount: draft.teamCount,
       tournamentShape: draft.tournamentShape,
-      ...(draft.tournamentShape === "rounds"
+      ...(draft.tournamentShape === "americano"
         ? {
-            poolCount: ROUNDS_SHAPE_POOL_COUNT,
-            ...roundsShapeRoundCountInput(draft),
+            roundCount: clampAmericanoRounds(
+              draft.roundCount,
+              americanoPlayersOfTeamCount(draft.teamCount),
+            ),
           }
-        : createShapeHasPools(draft.tournamentShape)
+        : draft.tournamentShape === "rounds"
           ? {
-              poolCount: draft.poolCount,
-              ...(draft.roundCount !== null
-                ? { roundCount: draft.roundCount }
-                : {}),
+              poolCount: ROUNDS_SHAPE_POOL_COUNT,
+              ...roundsShapeRoundCountInput(draft),
             }
-          : {}),
+          : createShapeHasPools(draft.tournamentShape)
+            ? {
+                poolCount: draft.poolCount,
+                ...(draft.roundCount !== null
+                  ? { roundCount: draft.roundCount }
+                  : {}),
+              }
+            : {}),
       ...(draft.tournamentShape === "groups_then_knockout"
         ? { qualifiersPerPool: draft.qualifiersPerPool }
         : {}),
@@ -430,7 +441,7 @@ export function validateFriendlyTournamentSubmit(
       windowEnd: placed.when.windowEnd,
       venueId: draft.venueId,
       ...(draft.courtIds.length > 0 ? { courtIds: [...draft.courtIds] } : {}),
-      ...ratedInput(draft),
+      ...(draft.tournamentShape === "americano" ? {} : ratedInput(draft)),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
       ...trackPaymentsInput(draft, priced.fils),
       ...(priced.levelMinTenths !== null
@@ -523,6 +534,7 @@ export function friendlyTournamentPlan(input: {
 }) {
   const knockoutOnly = input.tournamentShape === "knockout_only";
   const kingOfTheCourt = input.tournamentShape === "king_of_the_court";
+  const americano = input.tournamentShape === "americano";
   const groupsThenKnockout = input.tournamentShape === "groups_then_knockout";
   const knockoutTree = knockoutOnly
     ? buildKnockoutTree({ entrantCount: input.teamCount })
@@ -533,7 +545,9 @@ export function friendlyTournamentPlan(input: {
     roundsShape ? ROUNDS_SHAPE_POOL_COUNT : input.poolCount,
   );
   const sizing =
-    !knockoutOnly && !kingOfTheCourt && sized.ok ? sized.sizing : null;
+    !knockoutOnly && !kingOfTheCourt && !americano && sized.ok
+      ? sized.sizing
+      : null;
   const resolvedRoundCount = sizing
     ? resolveCreateRoundCount(
         input.tournamentShape,
@@ -559,6 +573,7 @@ export function friendlyTournamentPlan(input: {
   return {
     knockoutOnly,
     kingOfTheCourt,
+    americano,
     groupsThenKnockout,
     roundsShape,
     knockoutTree,

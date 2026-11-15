@@ -12,16 +12,23 @@ export const FOOTBALL_PLAYERS_ALLOWED_MAX = 40;
 export type GameShape = {
   format: string;
   sport?: string | null;
+  tournamentShape?: string | null;
 };
 
 export function isFootballGame(game: Pick<GameShape, "sport">) {
   return game.sport === "football";
 }
 
+/**
+ * Players join alone and hold no Position: the legacy Americano format, every
+ * football Friendly game, and the Americano Tournament shape (ADR-0094).
+ */
 export function isRosterRegistrationGame(game: GameShape) {
   return (
     game.format === "americano" ||
-    (game.format === "friendly_game" && isFootballGame(game))
+    (game.format === "friendly_game" && isFootballGame(game)) ||
+    (game.format === "friendly_tournament" &&
+      game.tournamentShape === "americano")
   );
 }
 

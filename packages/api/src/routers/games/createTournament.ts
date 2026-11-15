@@ -19,6 +19,13 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import { sportOrDefault } from "@repo/domain/sport";
 import {
+  AMERICANO_PLAYER_MAX,
+  AMERICANO_PLAYER_MIN,
+  americanoPlayersOfTeamCount,
+  americanoRoundMax,
+  isAmericanoPlayerCount,
+} from "@repo/domain/tournament-americano";
+import {
   KING_COURT_MAX,
   KING_COURT_MIN,
   KING_TEAMS_PER_COURT,
@@ -75,7 +82,8 @@ function sizeTournamentShape(
       | "groups_then_knockout"
       | "knockout_only"
       | "king_of_the_court"
-      | "rounds";
+      | "rounds"
+      | "americano";
     teamCount: number;
     poolCount?: number;
     roundCount?: number | null;
@@ -91,6 +99,47 @@ function sizeTournamentShape(
         path: "qualifiersPerPool",
         message: messagesFor(locale).tournament.errors.qualifiersShape,
       },
+    };
+  }
+  if (value.tournamentShape === "americano") {
+    // The create flow sends the pairs on court in one Round as the team count.
+    const players = americanoPlayersOfTeamCount(value.teamCount);
+    if (!isAmericanoPlayerCount(players)) {
+      return {
+        ok: false,
+        issue: {
+          path: "teamCount",
+          message: messagesFor(locale).tournamentAmericano.errors.players(
+            AMERICANO_PLAYER_MIN,
+            AMERICANO_PLAYER_MAX,
+          ),
+        },
+      };
+    }
+    const roundMax = americanoRoundMax(players);
+    if (
+      value.roundCount == null ||
+      !Number.isInteger(value.roundCount) ||
+      value.roundCount < 1 ||
+      value.roundCount > roundMax
+    ) {
+      return {
+        ok: false,
+        issue: {
+          path: "roundCount",
+          message:
+            messagesFor(locale).tournamentAmericano.errors.rounds(roundMax),
+        },
+      };
+    }
+    return {
+      ok: true,
+      tournamentShape: TournamentShapeEnum.AMERICANO,
+      playerCount: players,
+      teamCount: value.teamCount,
+      poolCount: null,
+      roundCount: value.roundCount,
+      qualifiersPerPool: null,
     };
   }
   if (value.tournamentShape === "king_of_the_court") {
@@ -217,6 +266,7 @@ export const createTournamentInputSchema = z
         "knockout_only",
         "king_of_the_court",
         "rounds",
+        "americano",
       ])
       .optional(),
     teamCount: z.number().int(),
@@ -355,6 +405,8 @@ export async function createTournament(
   });
 
   const king = sized.tournamentShape === TournamentShapeEnum.KING_OF_THE_COURT;
+  // An Americano is friendly: nothing it scores moves a Level (ADR-0094).
+  const americano = sized.tournamentShape === TournamentShapeEnum.AMERICANO;
   const created = await database.transaction(async (tx) => {
     const [game] = await tx
       .insert(games)
@@ -362,7 +414,7 @@ export async function createTournament(
         name: input.name,
         format: GameFormatEnum.FRIENDLY_TOURNAMENT,
         registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
-        allowSoloRegister: input.allowSoloRegister ?? true,
+        allowSoloRegister: americano ? true : (input.allowSoloRegister ?? true),
         groupId: input.groupId,
         venueId: input.venueId,
         isPublic: input.isPublic,
@@ -384,7 +436,7 @@ export async function createTournament(
           hasGroup: true,
           groupVerified,
           sport: "padel",
-          rated: input.rated ?? true,
+          rated: americano ? false : (input.rated ?? true),
         }),
         createdBy: input.createdBy,
       })

@@ -23,6 +23,7 @@ import {
   requireNotChallengeGame,
 } from "#src/games/access";
 import { isPoolDrawPosted } from "#src/games/assert-pool-draw-not-posted";
+import { isAmericano } from "@repo/domain/tournament-americano";
 import { placeKnockoutQualifiers } from "#src/games/knockout-advance";
 import { leaveRegisteredSeat } from "#src/games/leave-registered-seat";
 import { notifyIfGameFinished } from "#src/notifications/notify-game-finished";
@@ -139,6 +140,16 @@ export async function kick(
     });
   }
   const userId = args.userId;
+  // Every player of an Americano sits in every Round once they are made.
+  if (
+    isAmericano(game.format, game.tournamentShape) &&
+    isPoolDrawPosted(game)
+  ) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: messagesFor(locale).tournamentAmericano.errors.kickAfterRounds,
+    });
+  }
   const removesDrawnTeam =
     isDrawnTournament(game.format, game.poolCount, game.tournamentShape) &&
     isPoolDrawPosted(game);

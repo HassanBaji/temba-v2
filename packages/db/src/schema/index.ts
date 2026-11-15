@@ -5,6 +5,7 @@ export * from "./user-merges";
 export * from "./ratings";
 export * from "./level-overrides";
 export * from "./king-place-awards";
+export * from "./americano-seats";
 export * from "./group-ratings";
 export * from "./group-tiers";
 export * from "./verification";

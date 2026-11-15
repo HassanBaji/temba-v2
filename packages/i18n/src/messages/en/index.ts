@@ -22,6 +22,7 @@ import { webGame } from "./web-game";
 import { webTournament } from "./web-tournament";
 import { tournamentRounds } from "./tournament-rounds";
 import { tournamentKing } from "./tournament-king";
+import { tournamentAmericano } from "./tournament-americano";
 import { webDashboard } from "./web-dashboard";
 import { webGroup } from "./web-group";
 import { webUi } from "./web-ui";
@@ -79,6 +80,7 @@ export const en = {
   webTournament,
   tournamentRounds,
   tournamentKing,
+  tournamentAmericano,
   webDashboard,
   webGroup,
   webUi,

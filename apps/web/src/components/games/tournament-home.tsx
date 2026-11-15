@@ -39,6 +39,7 @@ import {
   TournamentFinishedHeader,
 } from "~/components/games/tournament-finished-parts";
 import { TournamentHero } from "~/components/games/tournament-hero";
+import { TournamentAmericanoHome } from "~/components/games/tournament-americano-home";
 import { TournamentKingHome } from "~/components/games/tournament-king-home";
 import {
   KingDrawEntry,
@@ -97,6 +98,7 @@ import {
 } from "@repo/domain/tournament-knockout-view";
 import { hasDraftPoolDraw } from "@repo/domain/tournament-pool-draw";
 import { kingCourtCount } from "@repo/domain/tournament-king";
+import { isAmericano } from "@repo/domain/tournament-americano";
 import { type TournamentRoundScheduleEntry } from "@repo/domain/tournament-rounds";
 import { cn } from "~/lib/utils";
 
@@ -269,6 +271,25 @@ export function TournamentHome({
         }
       />
     ) : null;
+
+  if (isAmericano(data.format, data.tournamentShape)) {
+    return (
+      <TournamentAmericanoHome
+        data={data}
+        backHref={backHref}
+        actions={actionsMenu(!finished)}
+        album={album}
+        sharePending={sharePending}
+        leavePending={leavePending}
+        kickPending={kickPending}
+        onShare={onShare}
+        onInvite={onInvite}
+        onLeaveGame={onLeaveGame}
+        onLeaveWaitlist={onLeaveWaitlist}
+        onKick={onKick}
+      />
+    );
+  }
 
   return (
     <TournamentPlayerActionsProvider

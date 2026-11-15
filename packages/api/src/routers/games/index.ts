@@ -51,6 +51,9 @@ import { poolTablesProcedure as poolTables } from "./poolTables";
 import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
 import { postKingCourtsProcedure as postKingCourts } from "./postKingCourts";
 import { postKingFinalOrderProcedure as postKingFinalOrder } from "./postKingFinalOrder";
+import { americanoBoardProcedure as americanoBoard } from "./americanoBoard";
+import { postAmericanoRoundsProcedure as postAmericanoRounds } from "./postAmericanoRounds";
+import { swapAmericanoPlayersProcedure as swapAmericanoPlayers } from "./swapAmericanoPlayers";
 import { enterTournamentScoreProcedure as enterTournamentScore } from "./enterTournamentScore";
 import { addRoundProcedure as addRound } from "./addRound";
 import { cancelRoundProcedure as cancelRound } from "./cancelRound";
@@ -108,6 +111,9 @@ export const gamesRouter = createTRPCRouter({
   postPoolDraw,
   postKingCourts,
   postKingFinalOrder,
+  americanoBoard,
+  postAmericanoRounds,
+  swapAmericanoPlayers,
   undoPoolDraw,
   tournamentRounds,
   generateRounds,

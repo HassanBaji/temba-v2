@@ -99,6 +99,13 @@ function Stepper({
   );
 }
 
+export type ScoreOutcomeCopy = (args: {
+  first: number;
+  second: number;
+  firstTeam: RoundsTeam | undefined;
+  secondTeam: RoundsTeam | undefined;
+}) => { title: string; subline: string };
+
 function OutcomeLine({
   first,
   second,
@@ -106,6 +113,7 @@ function OutcomeLine({
   secondTeam,
   viewerIsFirst,
   rated,
+  describe,
 }: {
   first: number;
   second: number;
@@ -113,13 +121,22 @@ function OutcomeLine({
   secondTeam: RoundsTeam | undefined;
   viewerIsFirst: boolean | null;
   rated: boolean;
+  describe?: ScoreOutcomeCopy;
 }) {
   const m = useMessages().tournamentRounds.score;
   const outcome = tournamentScoreOutcome(first, second);
   let title: string;
   let subline: string;
   let variant: "won" | "lost" | "draw";
-  if (outcome === "draw") {
+  if (describe) {
+    ({ title, subline } = describe({ first, second, firstTeam, secondTeam }));
+    variant =
+      outcome === "draw"
+        ? "draw"
+        : (outcome === "slot1") === (viewerIsFirst ?? true)
+          ? "won"
+          : "lost";
+  } else if (outcome === "draw") {
     title = m.draw;
     subline = m.drawLine;
     variant = "draw";
@@ -163,8 +180,11 @@ export function TournamentScoreDrawer({
   actions,
   onClose,
   onCorrect,
+  describeOutcome,
 }: {
   gameId: string;
+  /** Replaces the Pool points line, for a format that ranks on games won. */
+  describeOutcome?: ScoreOutcomeCopy;
   target: ScoreSheetTarget | null;
   teams: ReadonlyMap<string, RoundsTeam>;
   viewerUserId: string;
@@ -350,6 +370,7 @@ export function TournamentScoreDrawer({
               secondTeam={secondTeam}
               viewerIsFirst={viewerSlot != null ? true : null}
               rated={rated}
+              describe={describeOutcome}
             />
 
             {target.mode === "confirm" ? (
