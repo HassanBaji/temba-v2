@@ -2,7 +2,6 @@ import { gamePaymentsTracked } from "@repo/domain/game-payments";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { canEditTeams, editTeamsSpotLabel } from "@repo/domain/edit-teams";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
-import { gameCustomName } from "@repo/domain/game-custom-name";
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
 import { courtFigures } from "@repo/domain/friendly-game-court";
 import {
@@ -468,7 +467,7 @@ export function GameDetailsScreen({
     : null;
   const shareContext = data
     ? {
-        customName: gameCustomName(data),
+        gameName: gameTitle(data, locale),
         format: data.format,
         registrationMode: data.registrationMode,
         venueName: data.venue?.name ?? null,

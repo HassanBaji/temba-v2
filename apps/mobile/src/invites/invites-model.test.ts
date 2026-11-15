@@ -115,6 +115,32 @@ describe("share messages", () => {
       expect(roster.endsWith("https://temba.example/g/AbCd1234")).toBe(true);
     }
   });
+
+  it("opens every Game share with the Game's name", () => {
+    const game = {
+      gameName: "Friday Cup",
+      registrationMode: "team_only",
+      venueName: "Padel Hub",
+      courtName: null,
+      windowStart: new Date("2026-03-10T17:00:00Z"),
+      windowEnd: new Date("2026-03-10T18:30:00Z"),
+      sides: [],
+    };
+    const link = {
+      shortUrl: "https://temba.example/g/AbCd1234",
+      inviteUrl: "x",
+    };
+    expect(
+      gameShareMessage({ ...game, format: "friendly_tournament" }, link, "en"),
+    ).toBe("Friday Cup\nhttps://temba.example/g/AbCd1234");
+    expect(
+      gameShareMessage(
+        { ...game, format: "friendly_game", registrationMode: "individual" },
+        link,
+        "en",
+      ).startsWith("Friday Cup\n\n📍 Padel Hub\n"),
+    ).toBe(true);
+  });
 });
 
 describe("gameInviteSubtitle", () => {

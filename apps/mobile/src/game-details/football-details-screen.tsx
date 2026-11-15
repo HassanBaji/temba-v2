@@ -1,7 +1,6 @@
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { squadButtonCopy } from "@repo/domain/matchday-squad";
 import { challengeHeroSubLine } from "@repo/domain/challenge-game-details";
-import { gameCustomName } from "@repo/domain/game-custom-name";
 import { ratingScopeOf, ratingScopeTag } from "@repo/domain/game-rating-impact";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import { footballReportWrongScoreAction } from "@repo/domain/friendly-game-actions";
@@ -806,7 +805,7 @@ export function FootballGameDetails({
                 onPress={() =>
                   void shareGame(
                     {
-                      customName: gameCustomName(game),
+                      gameName: gameTitle(game, locale),
                       format: game.format,
                       sport: game.sport,
                       registrationMode: game.registrationMode,
@@ -1034,7 +1033,7 @@ export function FootballGameDetails({
             canLookup: inviteAccess.canSendLookup,
             canLink: true,
             share: {
-              customName: gameCustomName(game),
+              gameName: gameTitle(game, locale),
               format: game.format,
               sport: game.sport,
               registrationMode: game.registrationMode,
