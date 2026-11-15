@@ -241,11 +241,60 @@ describe("gameInviteClipboardText", () => {
     expect(
       gameInviteClipboardText({
         format: "friendly_tournament",
-        registrationMode: "individual",
+        registrationMode: "team_only",
         shortUrl,
         roster,
       }),
     ).toBe(shortUrl);
+  });
+
+  it("copies every Team of an individual Friendly tournament in the Friendly game layout", () => {
+    const windowStart = new Date("2026-11-16T16:00:00.000Z");
+    const windowEnd = new Date("2026-11-16T19:00:00.000Z");
+    const message = gameInviteClipboardText({
+      format: "friendly_tournament",
+      registrationMode: "individual",
+      shortUrl,
+      roster: {
+        customName: "Friday Cup",
+        venueName: "Padel Club",
+        courtName: "Court 2",
+        windowStart,
+        windowEnd,
+        sides: [
+          { sideIndex: 3, left: null, right: null },
+          { sideIndex: 1, left: { name: "Ada" }, right: { name: "Lin" } },
+          { sideIndex: 2, left: { name: "Sam" }, right: null },
+        ],
+        shortUrl,
+        locale: "en",
+      },
+    });
+
+    expect(message).toBe(
+      [
+        "Friday Cup",
+        "",
+        "📍 Padel Club",
+        "📅 Monday, 16 Nov",
+        `🕗 ${formatGameTimeWindow(windowStart, windowEnd, windowStart, "en")}`,
+        "",
+        "👕 Team 1",
+        "- Left: Ada",
+        "- Right: Lin",
+        "",
+        "👕 Team 2",
+        "- Left: Sam",
+        "- Right: Open",
+        "",
+        "👕 Team 3",
+        "- Left: Open",
+        "- Right: Open",
+        "",
+        "🔗 Join:",
+        shortUrl,
+      ].join("\n"),
+    );
   });
 
   it("copies the football details with players and keepers listed apart for a football Friendly game", () => {

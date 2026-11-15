@@ -757,10 +757,16 @@ export const game = {
     friendlyCapsFixed: "حدّ المباراة الودية ثابت: 4 لاعبين / فريقان",
     teamsAtLeastTwo: "يجب ألا يقل عدد الفرق المسموح به عن 2",
     capBelowRegistered: "لا يمكن خفض الحد عن عدد المسجّلين حاليًا",
+    teamsAfterDraw: "نُشرت القرعة، لذا لا يمكن تغيير عدد الفرق",
+    teamsTournamentOnly: "تغيير عدد الفرق للبطولات الودية فقط",
+    teamsNotForShape: (teamCount: number) =>
+      `لا يتسع نظام هذه البطولة لـ${teamCount} فرق`,
+    teamsBelowJoinedPairsOnly: (joined: number) =>
+      `تقبل هذه البطولة الأزواج فقط ولا قائمة انتظار لها. أبقِ ${joined} فرق على الأقل، أو أزل فرقًا أولًا.`,
+    courtsTournamentOnly: "تغيير الملاعب من هنا للبطولات الودية فقط",
+    courtsAtLeastOne: "اختر ملعبًا واحدًا على الأقل",
     playersAtLeastFour: "يجب ألا يقل عدد اللاعبين المسموح به عن 4",
     playersMultipleOfFour: "يجب أن يكون عدد اللاعبين المسموح به من مضاعفات 4",
-    capBelowOccupiedSide:
-      "لا يمكن خفض الحد عن أعلى جهة مشغولة. قد تختفي الأماكن الشاغرة الأخيرة، أما المشغولة فلا.",
     sidesSet: "حُددت الجهات، لذا لا يمكن تغيير شكل المباراة",
     customNameFriendly: "الاسم المخصص للمباراة الودية فقط",
     seasonNeedsDay: "حدّد يوم المباراة قبل ربطها بموسم",

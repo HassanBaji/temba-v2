@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  boardTierCell,
   ovrLabel,
   ovrSpoken,
   poolSections,
@@ -14,6 +15,8 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Hatch } from "~/components/ui/hatch";
 import { cn } from "~/lib/utils";
+
+import { TierMark } from "./football-team-columns";
 
 function OpenTile() {
   const m = useMessages();
@@ -38,6 +41,7 @@ function PlayerTile({
   const locale = useLocale();
   const { name, spoken, isNickname } = lineupName(player, locale);
   const code = slotCode(player, locale);
+  const tierCell = boardTierCell(player, locale);
   const Tag = onPress ? "button" : "div";
   return (
     <Tag
@@ -46,7 +50,7 @@ function PlayerTile({
       aria-label={[
         spoken,
         code,
-        ovrSpoken(player, locale),
+        tierCell ? tierCell.label : ovrSpoken(player, locale),
         player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
         player.guest ? m.group.addPlayer.guest.tag : null,
       ]
@@ -86,21 +90,33 @@ function PlayerTile({
           </span>
         ) : null}
       </span>
-      <span className="flex items-baseline justify-between gap-1">
+      <span
+        className={cn(
+          "flex justify-between gap-1",
+          tierCell ? "items-center" : "items-baseline",
+        )}
+      >
         <NicknameName
           name={name}
           isNickname={isNickname}
           className="text-[12px]"
         />
-        <span dir="ltr" className="font-expanded text-meta">
-          {ovrLabel(player)}
-        </span>
+        {tierCell ? (
+          <TierMark cell={tierCell} size="tile" />
+        ) : (
+          <span dir="ltr" className="font-expanded text-meta">
+            {ovrLabel(player)}
+          </span>
+        )}
       </span>
     </Tag>
   );
 }
 
-/** Players four to a row, then hatched open seats. */
+/**
+ * Players four to a row, then hatched open seats. A tile ends on the
+ * player's OVR, or their Group Tier in a tier Group.
+ */
 export function PoolGrid({
   players,
   open,

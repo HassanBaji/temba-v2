@@ -80,7 +80,7 @@ describe("share messages", () => {
     );
   });
 
-  it("shares only the link for a tournament and the roster for a Friendly game", () => {
+  it("shares the roster for a Friendly game and an individual tournament, and only the link for a team-only tournament", () => {
     const base = {
       registrationMode: "individual",
       venueName: "Padel Hub",
@@ -98,19 +98,22 @@ describe("share messages", () => {
     };
     expect(
       gameShareMessage(
-        { ...base, format: "friendly_tournament" },
+        {
+          ...base,
+          format: "friendly_tournament",
+          registrationMode: "team_only",
+        },
         shortLink,
         "en",
       ),
     ).toBe("https://temba.example/g/AbCd1234");
-    const roster = gameShareMessage(
-      { ...base, format: "friendly_game" },
-      shortLink,
-      "en",
-    );
-    expect(roster).toContain("Padel Hub");
-    expect(roster).toContain("- Left: Ada");
-    expect(roster.endsWith("https://temba.example/g/AbCd1234")).toBe(true);
+    for (const format of ["friendly_game", "friendly_tournament"]) {
+      const roster = gameShareMessage({ ...base, format }, shortLink, "en");
+      expect(roster).toContain("Padel Hub");
+      expect(roster).toContain("👕 Team 2");
+      expect(roster).toContain("- Left: Ada");
+      expect(roster.endsWith("https://temba.example/g/AbCd1234")).toBe(true);
+    }
   });
 });
 

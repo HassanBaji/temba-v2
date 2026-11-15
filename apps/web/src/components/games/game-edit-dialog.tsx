@@ -42,6 +42,7 @@ import {
   joinedCountLabel,
   playersAllowedForSideSize,
   playersCapWaitNote,
+  teamsCapWaitNote,
   venueLockedLine,
   windowDurationLabel,
   type GameEditSections,
@@ -57,6 +58,11 @@ import {
   type GameSeasonChoice,
 } from "@repo/domain/game-season-link";
 import { footballPlayersAllowedBounds } from "@repo/domain/game-shape";
+import {
+  tournamentTeamCountStep,
+  type TournamentResizeShape,
+} from "@repo/domain/tournament-resize";
+import { kingCourtCount } from "@repo/domain/tournament-king";
 import { mvpModeCopy } from "@repo/domain/marks";
 import {
   formatSeasonRange,
@@ -69,6 +75,13 @@ export type GameEditContext = {
   courtName: string | null;
   groupName: string | null;
   joined: number;
+  /** A Friendly tournament's team count and what it may change to. */
+  teams: {
+    joined: number;
+    shape: TournamentResizeShape;
+    king: boolean;
+    partnerOnly: boolean;
+  } | null;
   seasons: readonly GroupSeasonData[];
   canChangeSeason: boolean;
   rounds: {
@@ -568,6 +581,120 @@ function PlaceSection({
   );
 }
 
+function TeamsSection({
+  edit,
+  teams,
+  error,
+}: {
+  edit: GameEditController;
+  teams: NonNullable<GameEditContext["teams"]>;
+  error: string | undefined;
+}) {
+  const locale = useLocale();
+  const m = useMessages();
+  const copy = m.createGame.edit.teams;
+  const { draft, update } = edit;
+  const teamCount = draft.teamCount ?? teams.joined;
+  const down = tournamentTeamCountStep(teams.shape, teamCount, -1);
+  const up = tournamentTeamCountStep(teams.shape, teamCount, 1);
+  const blockedDown = teams.partnerOnly && down != null && down < teams.joined;
+  return (
+    <section className="space-y-3">
+      <SectionHead
+        title={copy.title}
+        meta={joinedCountLabel(teams.joined, locale)}
+      />
+      <CompactStepper
+        id="edit-team-count"
+        label={copy.label}
+        display={String(teamCount)}
+        canDecrease={down != null && !blockedDown}
+        canIncrease={up != null}
+        onDecrease={() => down != null && update({ teamCount: down })}
+        onIncrease={() => up != null && update({ teamCount: up })}
+        decreaseLabel={copy.fewer}
+        increaseLabel={copy.more}
+      />
+      <FieldError id="edit-team-count-error">{error}</FieldError>
+      <div className="space-y-1">
+        {teams.king ? (
+          <Hint>{copy.kingCourts(kingCourtCount(teamCount))}</Hint>
+        ) : null}
+        <Hint>{teamsCapWaitNote(teamCount, teams.joined, locale)}</Hint>
+        <Hint>{teams.partnerOnly ? copy.partnerOnlyHint : copy.hint}</Hint>
+      </div>
+    </section>
+  );
+}
+
+function CourtsSection({
+  edit,
+  error,
+}: {
+  edit: GameEditController;
+  error: string | undefined;
+}) {
+  const copy = useMessages().createGame.edit.courts;
+  const { draft, update, courts } = edit;
+  const picked = new Set(draft.courtIds);
+  function toggle(courtId: string) {
+    const next = new Set(picked);
+    if (next.has(courtId)) {
+      next.delete(courtId);
+    } else {
+      next.add(courtId);
+    }
+    update({ courtIds: [...next] });
+  }
+  return (
+    <section className="space-y-3">
+      <SectionHead
+        title={copy.title}
+        titleId="edit-courts-label"
+        meta={courts.loading ? copy.loading : null}
+      />
+      {!courts.loading && courts.choices.length === 0 ? (
+        <Hint>{copy.none}</Hint>
+      ) : (
+        <div
+          role="group"
+          aria-labelledby="edit-courts-label"
+          aria-describedby="edit-courts-copy"
+          className="flex flex-wrap gap-2"
+        >
+          {courts.choices.map((court) => {
+            const selected = picked.has(court.id);
+            return (
+              <button
+                key={court.id}
+                type="button"
+                role="checkbox"
+                aria-checked={selected}
+                onClick={() => toggle(court.id)}
+                className={cn(
+                  "focus-visible:ring-ring/50 text-body flex h-11 items-center gap-1.5 rounded-lg border px-3.5 outline-none focus-visible:ring-[3px]",
+                  selected
+                    ? "border-ink bg-control text-on-control"
+                    : "border-rule hover:bg-wash",
+                )}
+              >
+                {selected ? (
+                  <Check aria-hidden="true" className="size-3.5" />
+                ) : null}
+                {court.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <FieldError id="edit-courts-error">{error ?? courts.error}</FieldError>
+      <div id="edit-courts-copy">
+        <Hint>{copy.hint}</Hint>
+      </div>
+    </section>
+  );
+}
+
 function MvpSection({
   mvp,
   onPick,
@@ -784,6 +911,16 @@ export function GameEditDialog({
                   venueName={context.venueName}
                   error={errorFor("place")}
                 />
+              ) : null}
+              {sections.teams && context.teams ? (
+                <TeamsSection
+                  edit={edit}
+                  teams={context.teams}
+                  error={errorFor("teams")}
+                />
+              ) : null}
+              {sections.courts ? (
+                <CourtsSection edit={edit} error={errorFor("courts")} />
               ) : null}
               <section className="space-y-3">
                 <SectionHead

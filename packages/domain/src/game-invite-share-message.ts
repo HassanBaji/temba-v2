@@ -126,19 +126,36 @@ function waitlistLines(input: GameInviteShareMessageInput) {
 export function formatGameInviteShareMessage(
   input: GameInviteShareMessageInput,
 ) {
+  return padelRosterMessage(input, [1, 2]);
+}
+
+/**
+ * The Friendly game roster with one block per Team. The Court line is left
+ * out: a Tournament plays across Courts, so its first Match's Court misleads.
+ */
+export function formatTournamentInviteShareMessage(
+  input: GameInviteShareMessageInput,
+) {
+  const sideIndexes = [...input.sides]
+    .map((side) => side.sideIndex)
+    .sort((a, b) => a - b);
+  return padelRosterMessage({ ...input, courtName: null }, sideIndexes);
+}
+
+function padelRosterMessage(
+  input: GameInviteShareMessageInput,
+  sideIndexes: readonly number[],
+) {
   const m = messagesFor(input.locale).createGame.share;
   const lines = whereAndWhenLines(input, "🎾");
   lines.push("");
-  const team1 = sideSeats(input.sides, 1, input.locale);
-  const team2 = sideSeats(input.sides, 2, input.locale);
-  lines.push(m.team(1));
-  lines.push(m.left(team1.left));
-  lines.push(m.right(team1.right));
-  lines.push("");
-  lines.push(m.team(2));
-  lines.push(m.left(team2.left));
-  lines.push(m.right(team2.right));
-  lines.push("");
+  sideIndexes.forEach((sideIndex, index) => {
+    const seats = sideSeats(input.sides, sideIndex, input.locale);
+    lines.push(m.team(index + 1));
+    lines.push(m.left(seats.left));
+    lines.push(m.right(seats.right));
+    lines.push("");
+  });
   lines.push(...waitlistLines(input));
   lines.push(m.join);
   lines.push(input.shortUrl);
@@ -213,6 +230,13 @@ export function gameInviteClipboardText(input: {
       input.roster,
       input.roster.football,
     );
+  }
+  if (
+    input.format === "friendly_tournament" &&
+    input.registrationMode === "individual" &&
+    input.roster != null
+  ) {
+    return formatTournamentInviteShareMessage(input.roster);
   }
   if (
     isRosterRegistrationGame(input) ||

@@ -1135,6 +1135,7 @@ export function FootballGameDetails({
               game.booking?.courtName ?? game.recordedCourts[0]?.name ?? null,
             groupName: game.groupName,
             joined: game.registeredUserCount,
+            teams: null,
             seasons: game.groupSeasons,
             canChangeSeason: game.canChangeSeason,
             rounds: null,

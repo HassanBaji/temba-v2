@@ -143,6 +143,7 @@ import {
 } from "@repo/domain/tournament-join";
 import { isTournamentFinished } from "@repo/domain/tournament-finished";
 import { tournamentRoundsPlan } from "@repo/domain/tournament-organizer";
+import { isKingOfTheCourt } from "@repo/domain/tournament-king";
 import {
   isPartnerRequiredGame,
   isKnockoutOnly,
@@ -646,6 +647,7 @@ export default function GameHomePage({
     tournamentRounds: data?.format === "friendly_tournament",
     booked: data?.booking != null,
     challenge: data?.challenge != null,
+    drawPosted: data?.drawPostedAt != null,
   });
   const edit = useGameEdit({
     gameId: id,
@@ -821,7 +823,10 @@ export default function GameHomePage({
     ? friendlyGameHomeTitle(data.groupId, data.groupName, locale)
     : g.title;
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
-  const roundsPlan = tournamentRoundsPlan(data, edit.draft.roundCount);
+  const roundsPlan = tournamentRoundsPlan(
+    { ...data, teamsAllowed: edit.draft.teamCount ?? data.teamsAllowed },
+    edit.draft.roundCount,
+  );
   const showMenu = isOrganizerActive;
   const primaryLeave = data.isRegistered && data.canLeave && !data.isWaitlisted;
   const primaryLeaveWaitlist = data.isWaitlisted;
@@ -1603,6 +1608,15 @@ export default function GameHomePage({
               data.booking?.courtName ?? data.recordedCourts[0]?.name ?? null,
             groupName: data.groupName,
             joined: data.registeredUserCount,
+            teams:
+              data.format === "friendly_tournament"
+                ? {
+                    joined: data.registeredTeamCount,
+                    shape: data,
+                    king: isKingOfTheCourt(data.format, data.tournamentShape),
+                    partnerOnly: isPartnerRequiredGame(data),
+                  }
+                : null,
             seasons: data.groupSeasons,
             canChangeSeason: data.canChangeSeason,
             rounds: roundsPlan

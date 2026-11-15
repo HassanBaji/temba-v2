@@ -86,6 +86,7 @@ import { setFootballRoleProcedure as setFootballRole } from "./setFootballRole";
 import { stampMatchProcedure as stampMatch } from "./stampMatch";
 import { undoPoolDrawProcedure as undoPoolDraw } from "./undoPoolDraw";
 import { updateCaps } from "./updateCaps";
+import { updateCourts } from "./updateCourts";
 import { updatePlace } from "./updatePlace";
 import { updateLevelRange } from "./updateLevelRange";
 import { updateMatchProcedure as updateMatch } from "./updateMatch";
@@ -153,6 +154,7 @@ export const gamesRouter = createTRPCRouter({
   approveLevelRangeRequest,
   rejectLevelRangeRequest,
   updateCaps,
+  updateCourts,
   updatePlace,
   listCourts,
   addMatch,

@@ -16,6 +16,7 @@ import type {
   FootballBib,
 } from "@repo/domain/football-lineup";
 import type { GroupMemberTierCell } from "@repo/domain/group-members-table";
+import type { FishSize } from "@repo/design-tokens/fish";
 
 import { NicknameName } from "~/components/temba/nickname-name";
 import { UserAvatar } from "~/components/common/user-avatar";
@@ -26,10 +27,16 @@ import { cn } from "~/lib/utils";
 import { BibChip, bibStyle } from "./football-bibs";
 
 /** A player's fish on a paper tile, so it reads on any bib colour. */
-export function TierMark({ cell }: { cell: GroupMemberTierCell }) {
+export function TierMark({
+  cell,
+  size,
+}: {
+  cell: GroupMemberTierCell;
+  size?: FishSize;
+}) {
   return (
     <span className="bg-paper text-ink flex shrink-0 items-center rounded-sm px-1 py-0.5">
-      <TierCell cell={cell} />
+      <TierCell cell={cell} size={size} />
     </span>
   );
 }

@@ -23,6 +23,7 @@ type Options = {
   game: TournamentDetails | null;
   refresh: () => Promise<unknown>;
   setConfirm: (request: ConfirmRequest | null) => void;
+  onEdit?: () => void;
 };
 
 export type PostedRound =
@@ -41,6 +42,7 @@ export function useTournamentOrganizer({
   game,
   refresh,
   setConfirm,
+  onEdit,
 }: Options) {
   const toast = useToast();
   const locale = useLocale();
@@ -238,6 +240,8 @@ export function useTournamentOrganizer({
     onKickWaitlist: (waitlistId) => askKick({ waitlistId }),
     onAddPlayer: () => setAddPlayerOpen(true),
     onEditTeams: () => setEditTeamsOpen(true),
+    onEdit:
+      onEdit && game?.isOrganizer && game.cancelledAt == null ? onEdit : null,
     postedRounds:
       managesRounds && postedRounds.data
         ? {

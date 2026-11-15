@@ -212,6 +212,8 @@ export const createGame = {
       price: "price",
       levelRange: "level range",
       rounds: "rounds",
+      teams: "teams",
+      courts: "courts",
       seasonUnlinked: "season unlinked",
       seasonLinked: "season linked",
       seasonChanged: "season changed",
@@ -230,6 +232,31 @@ export const createGame = {
       }),
     capWait: (moving: number, joined: number) =>
       `${moving} of the ${joined} joined move to the waiting list, latest to join first.`,
+    teamsCapWait: (moving: number, joined: number) =>
+      plural("en", moving, {
+        one: `1 of the ${joined} teams that joined moves to the waiting list, latest to join first.`,
+        other: `{n} of the ${joined} teams that joined move to the waiting list, latest to join first.`,
+      }),
+    teams: {
+      title: "Teams",
+      label: "Teams",
+      fewer: "Fewer teams",
+      more: "More teams",
+      hint: "Dropping teams below the number joined moves the latest teams to join to the waiting list and lets their players know. Teams lock once the draw is posted.",
+      kingCourts: (courts: number) =>
+        plural("en", courts, {
+          one: "Two teams a court, 1 court",
+          other: "Two teams a court, {n} courts",
+        }),
+      partnerOnlyHint:
+        "This tournament takes pairs only and has no waiting list, so teams can't drop below the number joined.",
+    },
+    courts: {
+      title: "Courts",
+      loading: "Loading Courts…",
+      none: "This Venue has no Courts for this sport.",
+      hint: "Rounds are scheduled on these Courts. Matches already posted keep their Court.",
+    },
   },
   season: {
     none: "No season",

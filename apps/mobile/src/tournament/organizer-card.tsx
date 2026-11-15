@@ -1,7 +1,7 @@
 import { spacing } from "@repo/design-tokens";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { canEditTeams } from "@repo/domain/edit-teams";
-import { kickAction } from "@repo/domain/game-copy";
+import { editGameAction, kickAction } from "@repo/domain/game-copy";
 import type {
   TournamentDetails,
   TournamentHomeView,
@@ -43,6 +43,8 @@ export type OrganizerCardHandlers = {
   onKickWaitlist: (waitlistId: string) => void;
   onAddPlayer: () => void;
   onEditTeams: () => void;
+  /** Opens the Edit game sheet: teams, Courts, when, price and level. */
+  onEdit: (() => void) | null;
   /** Set once the draw is posted on a Pool tournament: Rounds are added and cancelled from here. */
   postedRounds: {
     roundCount: number;
@@ -262,6 +264,20 @@ export function OrganizerCard({
             label={messages.group.addPlayer.action}
             variant="outline"
             onPress={handlers.onAddPlayer}
+          />
+        </Action>
+      </Block>,
+    );
+  }
+
+  if (handlers.onEdit) {
+    blocks.push(
+      <Block key="edit">
+        <Action>
+          <Button
+            label={editGameAction(locale)}
+            variant="outline"
+            onPress={handlers.onEdit}
           />
         </Action>
       </Block>,

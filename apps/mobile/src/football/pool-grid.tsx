@@ -10,7 +10,9 @@ import { SurfaceToneContext } from "../primitives/surface-context";
 import { tonePalette } from "../primitives/tone-palette";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
+import { TierMark } from "./team-columns";
 import {
+  boardTierCell,
   ovrLabel,
   ovrSpoken,
   poolSections,
@@ -68,6 +70,7 @@ function PlayerTile({
   const palette = tonePalette(tone, colors);
   const { name, spoken, isNickname } = lineupName(player, locale);
   const code = slotCode(player, locale);
+  const tierCell = boardTierCell(player, locale);
   return (
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
@@ -75,7 +78,7 @@ function PlayerTile({
         accessibilityLabel={[
           spoken,
           code,
-          ovrSpoken(player, locale),
+          tierCell ? tierCell.label : ovrSpoken(player, locale),
           player.guest ? messages.group.addPlayer.guest.tag : null,
         ]
           .filter(Boolean)
@@ -113,7 +116,7 @@ function PlayerTile({
         <View
           style={{
             flexDirection: "row",
-            alignItems: "baseline",
+            alignItems: tierCell ? "center" : "baseline",
             justifyContent: "space-between",
             gap: 4,
           }}
@@ -125,9 +128,13 @@ function PlayerTile({
             weight="regular"
             iconSize={sizes.iconRow - 4}
           />
-          <Text size="meta" width="expanded" weight="bold" ltr>
-            {ovrLabel(player)}
-          </Text>
+          {tierCell ? (
+            <TierMark cell={tierCell} size="tile" />
+          ) : (
+            <Text size="meta" width="expanded" weight="bold" ltr>
+              {ovrLabel(player)}
+            </Text>
+          )}
         </View>
       </Pressable>
     </SurfaceToneContext.Provider>
@@ -153,7 +160,10 @@ function OpenTile() {
   );
 }
 
-/** Players four to a row, then hatched open seats. */
+/**
+ * Players four to a row, then hatched open seats. A tile ends on the
+ * player's OVR, or their Group Tier in a tier Group.
+ */
 export function PoolGrid({
   players,
   open,

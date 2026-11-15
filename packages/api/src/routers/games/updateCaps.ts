@@ -1,10 +1,10 @@
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { type Locale, DEFAULT_LOCALE } from "@repo/i18n/locale";
 
-import { gamePlayers, gameWaitlist, games } from "@repo/db";
+import { gamePlayers, gameTeams, gameWaitlist, games } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -23,16 +23,15 @@ import {
 import { footballSides } from "#src/games/football-lineup";
 import { notify } from "#src/notifications/notify";
 import { promoteWaitlist } from "#src/games/promote-waitlist";
-import {
-  firstVacantPosition,
-  highestOccupiedSideIndex,
-  isIndividualSeatGame,
-} from "#src/games/seats";
+import { removeGameTeamAndPlayers } from "#src/games/remove-game-team-and-players";
+import { firstVacantPosition, isIndividualSeatGame } from "#src/games/seats";
 import {
   footballPlayersAllowedBounds,
   isFootballGame,
   isFootballSideSize,
 } from "@repo/domain/game-shape";
+import { tournamentTeamCountFits } from "@repo/domain/tournament-resize";
+import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 import { messagesFor } from "@repo/i18n/messages";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -124,6 +123,128 @@ async function updateFootballShape(
   return movedToWaitlist;
 }
 
+/**
+ * A Friendly tournament's team count, until the draw is posted. Its Game
+ * teams keep their place by when their first player joined; the latest teams
+ * past the new count move to the Waitlist, each player keeping the moment
+ * they joined. The teams that stay fill sides 1 to the new count, so a team
+ * on a side that no longer exists moves to the lowest free one.
+ */
+async function resizeTournament(
+  database: Tx,
+  game: GameRow,
+  teamCount: number | null,
+  locale: Locale,
+): Promise<string[]> {
+  const m = messagesFor(locale).game.errors;
+  if (game.drawPostedAt != null) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: m.teamsAfterDraw });
+  }
+  if (
+    teamCount == null ||
+    !Number.isInteger(teamCount) ||
+    !tournamentTeamCountFits(game, teamCount)
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: m.teamsNotForShape(teamCount ?? 0),
+    });
+  }
+
+  const teams = await database.query.gameTeams.findMany({
+    where: eq(gameTeams.gameId, game.id),
+    columns: { id: true, sideIndex: true },
+    with: {
+      players: {
+        columns: { id: true },
+        with: {
+          gamePlayer: { columns: { id: true, userId: true, createdAt: true } },
+        },
+      },
+    },
+  });
+  const occupied = teams
+    .map((team) => {
+      const players = team.players.flatMap((link) =>
+        link.gamePlayer ? [link.gamePlayer] : [],
+      );
+      return {
+        id: team.id,
+        sideIndex: team.sideIndex,
+        players,
+        joinedAt: Math.min(
+          ...players.map((player) => player.createdAt.getTime()),
+        ),
+      };
+    })
+    .filter((team) => team.players.length > 0)
+    .sort(
+      (left, right) =>
+        left.joinedAt - right.joinedAt ||
+        (left.sideIndex ?? Infinity) - (right.sideIndex ?? Infinity),
+    );
+  const staying = occupied.slice(0, teamCount);
+  const leaving = occupied.slice(teamCount);
+  if (leaving.length > 0 && isPartnerRequiredGame(game)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: m.teamsBelowJoinedPairsOnly(occupied.length),
+    });
+  }
+
+  const movedToWaitlist: string[] = [];
+  for (const team of leaving) {
+    await removeGameTeamAndPlayers(database, team.id);
+    for (const player of team.players) {
+      if (!player.userId) {
+        continue;
+      }
+      await database.insert(gameWaitlist).values({
+        gameId: game.id,
+        userId: player.userId,
+        createdAt: player.createdAt,
+      });
+      movedToWaitlist.push(player.userId);
+    }
+  }
+  const emptyTeamIds = teams
+    .filter((team) => team.players.length === 0)
+    .map((team) => team.id);
+  if (emptyTeamIds.length > 0) {
+    await database.delete(gameTeams).where(inArray(gameTeams.id, emptyTeamIds));
+  }
+
+  const takenSides = new Set(
+    staying
+      .map((team) => team.sideIndex)
+      .filter((side): side is number => side != null && side <= teamCount),
+  );
+  const movingTeams = staying
+    .filter((team) => team.sideIndex == null || team.sideIndex > teamCount)
+    .sort((left, right) => (left.sideIndex ?? 0) - (right.sideIndex ?? 0));
+  let nextSide = 1;
+  for (const team of movingTeams) {
+    while (takenSides.has(nextSide)) {
+      nextSide += 1;
+    }
+    takenSides.add(nextSide);
+    await database
+      .update(gameTeams)
+      .set({ sideIndex: nextSide, updatedAt: new Date() })
+      .where(eq(gameTeams.id, team.id));
+  }
+
+  await database
+    .update(games)
+    .set({
+      playersAllowed: teamCount * 2,
+      teamsAllowed: teamCount,
+      updatedAt: new Date(),
+    })
+    .where(eq(games.id, game.id));
+  return movedToWaitlist;
+}
+
 /** A raised cap fills its new places from the Waitlist, in queue order. */
 async function promoteIntoRaisedCap(
   database: Tx,
@@ -155,7 +276,7 @@ async function promoteIntoRaisedCap(
 }
 
 async function updateGameCapsOnGame(
-  database: DbClient,
+  database: Tx,
   game: GameRow,
   input: {
     playersAllowed?: number;
@@ -185,6 +306,12 @@ async function updateGameCapsOnGame(
       code: "BAD_REQUEST",
       message: messagesFor(locale).game.errors.friendlyCapsFixed,
     });
+  }
+  if (game.format === "friendly_tournament") {
+    const teamCount =
+      input.teamsAllowed ??
+      (input.playersAllowed != null ? input.playersAllowed / 2 : null);
+    return resizeTournament(database, game, teamCount, locale);
   }
 
   const nextPlayers = input.playersAllowed ?? game.playersAllowed;
@@ -229,16 +356,6 @@ async function updateGameCapsOnGame(
       code: "BAD_REQUEST",
       message: messagesFor(locale).game.errors.capBelowRegistered,
     });
-  }
-  if (game.format === "friendly_tournament") {
-    const nextN = Math.floor(nextPlayers / 2);
-    const highest = await highestOccupiedSideIndex(database, game.id);
-    if (highest != null && highest > nextN) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: messagesFor(locale).game.errors.capBelowOccupiedSide,
-      });
-    }
   }
   await database
     .update(games)
