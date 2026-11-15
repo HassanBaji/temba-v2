@@ -20,7 +20,6 @@ export const mobileGroup = {
     tabs: { mine: "Mine", public: "Public" },
     loading: "Loading Groups",
     nextGame: "Next Game",
-    yourFormHere: "your form here",
     filterBySport: "Filter by sport",
     rowSportName: (sport: string, name: string) => `${sport}, ${name}`,
     rowNextGame: (name: string, meta: string, weekday: string) =>

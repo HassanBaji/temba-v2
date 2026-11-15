@@ -185,7 +185,6 @@ export const webDashboard = {
     publicErrorTitle: "Public Groups could not be loaded",
     filterBySport: "Filter by sport",
     nextGame: "Next Game",
-    yourFormHere: "your form here",
     start: {
       title: "Start a group",
       description:

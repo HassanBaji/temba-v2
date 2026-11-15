@@ -17,7 +17,6 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { ChoiceRow } from "../lib/choice-row";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
-import { FormSlot } from "../primitives/form-slot";
 import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
 import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
@@ -33,7 +32,6 @@ import {
 } from "./groups-model";
 
 const NEXT_GAME_WIDTH = 52;
-const MARK_WIDTH = 28;
 
 export type GroupsViewProps = {
   tab: GroupsTab;
@@ -165,24 +163,6 @@ function MyGroupRow({
           </View>
         )}
       </View>
-      {row.formMarks.length > 0 ? (
-        <View
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-        >
-          <View style={{ flexDirection: "row", gap: 4 }}>
-            {row.formMarks.map((mark, index) => (
-              <View key={index} style={{ width: MARK_WIDTH }}>
-                <FormSlot variant={mark} compact />
-              </View>
-            ))}
-          </View>
-          <Text size="eyebrow" tone="muted" mono uppercase>
-            {m.mobileGroup.list.yourFormHere}
-          </Text>
-        </View>
-      ) : null}
     </Pressable>
   );
 }
