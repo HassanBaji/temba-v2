@@ -16,6 +16,7 @@ import {
   LEVEL_BAND_SELECT_NONE,
   type LevelBandSelectValue,
 } from "./level-range";
+import { DEFAULT_SPORT, isSport, type Sport } from "./sport";
 import {
   DEFAULT_QUALIFIERS_PER_POOL,
   defaultPoolCount,
@@ -44,11 +45,17 @@ export type CreateGameDraft = {
   nameTouched: boolean;
   customName: string;
   isPublic: boolean;
+  /** A Public Game has no Group to take its sport from, so the creator picks it. */
+  publicSport: Sport;
   allowSoloRegister: boolean;
   sideSize: number;
   playersAllowed: number;
   /** False when the creator picked Unrated (ADR-0053). */
   rated: boolean;
+  /** Sent only with a price above zero. */
+  trackPayments: boolean;
+  /** Football only, read while payments are tracked. */
+  keepersPlayFree: boolean;
 };
 
 type DraftStorage = {
@@ -91,10 +98,13 @@ export function initialCreateGameDraft(
     nameTouched: false,
     customName: "",
     isPublic: false,
+    publicSport: DEFAULT_SPORT,
     allowSoloRegister: true,
     sideSize: DEFAULT_FOOTBALL_SIDE_SIZE,
     playersAllowed: 2 * DEFAULT_FOOTBALL_SIDE_SIZE,
     rated: true,
+    trackPayments: false,
+    keepersPlayFree: true,
   };
 }
 
@@ -126,10 +136,13 @@ export function serializeCreateGameDraft(draft: CreateGameDraft) {
     nameTouched: draft.nameTouched,
     customName: draft.customName,
     isPublic: draft.isPublic,
+    publicSport: draft.publicSport,
     allowSoloRegister: draft.allowSoloRegister,
     sideSize: draft.sideSize,
     playersAllowed: draft.playersAllowed,
     rated: draft.rated,
+    trackPayments: draft.trackPayments,
+    keepersPlayFree: draft.keepersPlayFree,
   });
 }
 
@@ -180,6 +193,12 @@ export function parseCreateGameDraft(
       : record.playersAllowed;
   const customName = record.customName === undefined ? "" : record.customName;
   const rated = record.rated === undefined ? true : record.rated;
+  const trackPayments =
+    record.trackPayments === undefined ? false : record.trackPayments;
+  const keepersPlayFree =
+    record.keepersPlayFree === undefined ? true : record.keepersPlayFree;
+  const publicSport =
+    record.publicSport === undefined ? DEFAULT_SPORT : record.publicSport;
   const strings = [
     "groupId",
     "venueId",
@@ -214,6 +233,9 @@ export function parseCreateGameDraft(
     !isCount(playersAllowed) ||
     typeof customName !== "string" ||
     typeof rated !== "boolean" ||
+    typeof trackPayments !== "boolean" ||
+    typeof keepersPlayFree !== "boolean" ||
+    !isSport(publicSport) ||
     parseDateInputValue(record.day as string) === undefined
   ) {
     return null;
@@ -240,10 +262,13 @@ export function parseCreateGameDraft(
     nameTouched: record.nameTouched as boolean,
     customName,
     isPublic: record.isPublic as boolean,
+    publicSport,
     allowSoloRegister: record.allowSoloRegister as boolean,
     sideSize,
     playersAllowed,
     rated,
+    trackPayments,
+    keepersPlayFree,
   };
 }
 

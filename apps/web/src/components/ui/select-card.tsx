@@ -3,8 +3,8 @@ import type * as React from "react";
 
 import { cn } from "~/lib/utils";
 
-const ON_INK_MUTED =
-  "text-muted-foreground group-data-[selected=true]/select-card:text-dim";
+const ON_CONTROL_MUTED =
+  "text-muted-foreground group-data-[selected=true]/select-card:text-on-control-muted";
 
 export function SelectCard({
   selected = false,
@@ -49,7 +49,9 @@ export function SelectCard({
             aria-hidden="true"
             className={cn(
               "inline-flex size-11 shrink-0 items-center justify-center rounded-lg border",
-              selected ? "border-dimrule bg-raised" : "border-rule bg-paper",
+              selected
+                ? "border-control-rule bg-control-raised"
+                : "border-rule bg-paper",
             )}
           >
             {icon}
@@ -62,7 +64,7 @@ export function SelectCard({
               className={cn(
                 "mt-0.5 block",
                 layout === "card" ? "text-eyebrow" : "text-meta",
-                ON_INK_MUTED,
+                ON_CONTROL_MUTED,
               )}
             >
               {description}
@@ -74,7 +76,7 @@ export function SelectCard({
             aria-hidden="true"
             className={cn(
               "size-[18px] shrink-0 rtl:-scale-x-100",
-              ON_INK_MUTED,
+              ON_CONTROL_MUTED,
             )}
           />
         ) : null}
@@ -92,7 +94,7 @@ export function SelectCardNote({ children }: { children: React.ReactNode }) {
     <span
       className={cn(
         "font-mono text-[10px] uppercase tracking-wide",
-        ON_INK_MUTED,
+        ON_CONTROL_MUTED,
       )}
     >
       {children}

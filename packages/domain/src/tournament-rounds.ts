@@ -21,9 +21,24 @@ import {
 export type TournamentShape =
   | "groups_only"
   | "groups_then_knockout"
-  | "knockout_only";
+  | "knockout_only"
+  | "king_of_the_court"
+  | "rounds";
 
 export const KNOCKOUT_ONLY_SHAPE = "knockout_only" satisfies TournamentShape;
+
+export const ROUNDS_SHAPE = "rounds" satisfies TournamentShape;
+
+/**
+ * One Pool playing the Rounds the Organizer picked. Its Round count is always
+ * a number: it never follows the drawn field the way a Groups shape does.
+ */
+export function isRoundsShape(
+  format: string,
+  tournamentShape: string | null | undefined,
+) {
+  return format === "friendly_tournament" && tournamentShape === ROUNDS_SHAPE;
+}
 
 /**
  * A Friendly tournament whose Matches come from the draw, in any Tournament
@@ -40,7 +55,7 @@ export function isDrawnTournament(
   );
 }
 
-/** A drawn tournament with a Pool stage: Groups only, or Groups then knockout. */
+/** A drawn tournament with a Pool stage: Groups only, Groups then knockout, or Rounds. */
 export function hasPools(format: string, poolCount: number | null | undefined) {
   return format === "friendly_tournament" && poolCount != null;
 }

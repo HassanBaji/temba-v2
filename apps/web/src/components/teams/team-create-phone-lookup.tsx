@@ -81,7 +81,9 @@ export function TeamCreatePhoneLookup({
       return;
     }
     const isNew = previewData.kind === "new";
-    const listedName = isNew ? name.trim() : (previewData.name ?? "");
+    const listedName = isNew
+      ? name.trim()
+      : (previewData.name ?? previewData.phoneMasked ?? "");
     if (listedName.length === 0) {
       return;
     }
@@ -93,6 +95,7 @@ export function TeamCreatePhoneLookup({
       kind: previewData.kind,
       phoneMasked: previewData.phoneMasked,
       levelBand: previewData.levelBand ?? null,
+      ovr: previewData.ovr ?? null,
       footballRole: previewData.footballRole ?? null,
       footballPosition: previewData.footballPosition ?? null,
       football:
@@ -190,7 +193,9 @@ export function TeamCreatePhoneLookup({
                           <span
                             className={cn(
                               "text-[10px] leading-3",
-                              selected ? "text-dim" : "text-muted-foreground",
+                              selected
+                                ? "text-on-control-muted"
+                                : "text-muted-foreground",
                             )}
                           >
                             {choice.name}

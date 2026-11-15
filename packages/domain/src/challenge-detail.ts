@@ -16,9 +16,9 @@ import {
   formatGameDay,
   formatGameStart,
 } from "./format-game-start";
+import { formatOvr } from "./football-ovr";
 import { initials } from "./initials";
-import { displayLabelFromStoredBand } from "./level-bands";
-import { tenthsToLevelBand } from "./level-range";
+import { formatLevelRangeFaceLabel } from "./level-range";
 import { shortPlayerName } from "./player-name";
 import { formatPricePerPlayerFils } from "./price-per-player";
 import { sportLabel } from "./sport";
@@ -49,7 +49,7 @@ export type ChallengeTeamFace = {
   displayName: string;
   sport: string;
   rosterCount: number;
-  teamLevel: { band: string } | null;
+  teamLevel: { band: string; ovr?: number | null } | null;
   members: readonly { name: string | null; isViewer: boolean }[];
 };
 
@@ -64,7 +64,7 @@ function joinNames(names: readonly string[], locale: Locale) {
 
 /**
  * "C+, Khalid A and Mahmood S" on padel (the viewer reads "you", first);
- * "C. 12 on the roster" on football; "Padel, C+, you and Ali M" with the sport.
+ * "OVR 72. 12 on the roster" on football; "Padel, C+, you and Ali M" with the sport.
  */
 export function challengeTeamFaceLine(
   face: ChallengeTeamFace,
@@ -73,12 +73,14 @@ export function challengeTeamFaceLine(
 ) {
   const m = messagesFor(locale);
   const copy = m.challenge.detailScreen;
-  const level = face.teamLevel?.band ?? null;
   let line: string;
   if (face.sport === "football") {
+    const ovr = face.teamLevel?.ovr;
+    const level = ovr != null ? m.rating.ovr.value(formatOvr(ovr)) : null;
     const roster = m.team.onRoster(face.rosterCount);
     line = level ? copy.footballLine(level, roster) : roster;
   } else {
+    const level = face.teamLevel?.band ?? null;
     const names = [...face.members]
       .sort((a, b) => Number(b.isViewer) - Number(a.isViewer))
       .map((member) =>
@@ -137,29 +139,17 @@ export function challengeDetailStatusLine(
   }
 }
 
-function bandLabel(tenths: number) {
-  return displayLabelFromStoredBand(tenthsToLevelBand(tenths));
-}
-
-/** "C to B−", "B and up", "Any level". */
+/** "OVR 60 to 72" on football, "2.8 and up" on padel, "Any level". */
 export function challengeLevelValue(
   levelMinTenths: number | null,
   levelMaxTenths: number | null,
   locale: Locale,
+  sport: string,
 ) {
-  const m = messagesFor(locale).challenge.detailScreen.level;
-  const min = levelMinTenths == null ? null : bandLabel(levelMinTenths);
-  const max = levelMaxTenths == null ? null : bandLabel(levelMaxTenths);
-  if (min && max) {
-    return min === max ? min : m.range(min, max);
-  }
-  if (min) {
-    return m.andUp(min);
-  }
-  if (max) {
-    return m.andUnder(max);
-  }
-  return m.any;
+  return (
+    formatLevelRangeFaceLabel(levelMinTenths, levelMaxTenths, locale, sport) ??
+    messagesFor(locale).challenge.detailScreen.level.any
+  );
 }
 
 function sameSet(
@@ -253,6 +243,7 @@ export function challengeDetailRows(
         input.levelMinTenths,
         input.levelMaxTenths,
         locale,
+        input.sport,
       ),
     },
     {
@@ -396,6 +387,15 @@ export type ChallengeProposalCardView = ReturnType<
 export function challengeProposalFootnote(sport: string, locale: Locale) {
   const m = messagesFor(locale).challenge.detailScreen.proposal.footnote;
   return sport === "football" ? m.football : m.padel;
+}
+
+/** The "Make it a game?" line: a football Game also says when it counts for Temba Level. */
+export function challengeConfirmSheetDescription(
+  sport: string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).challenge.proposal.confirmSheet;
+  return sport === "football" ? m.descriptionFootball : m.description;
 }
 
 export type ChallengeConfirmedInput = {

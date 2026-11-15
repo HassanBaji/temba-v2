@@ -34,6 +34,8 @@ export const gameWaitlist = pgTable(
     uniqueGameTeam: uniqueIndex("game_waitlist_game_id_team_id_unique")
       .on(table.gameId, table.teamId)
       .where(sql`${table.teamId} is not null`),
+    userIdx: index("game_waitlist_user_id_idx").on(table.userId),
+    teamIdx: index("game_waitlist_team_id_idx").on(table.teamId),
   }),
 );
 

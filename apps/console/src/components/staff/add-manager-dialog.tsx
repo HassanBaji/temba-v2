@@ -15,6 +15,7 @@ import {
 import { Input } from "~/components/ui/input";
 import { useDebouncedValue } from "~/hooks/use-debounced-value";
 import { api } from "~/trpc/react";
+import { useMessages } from "~/components/locale-provider";
 
 import { PersonMonogram } from "./person-monogram";
 import { candidateManagers, type ManagerPerson } from "./staff-model";
@@ -30,6 +31,7 @@ export function AddManagerDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const m = useMessages().consoleVenue.staff;
   const utils = api.useUtils();
   const [query, setQuery] = React.useState("");
   const debouncedQuery = useDebouncedValue(query.trim(), 250);
@@ -41,7 +43,7 @@ export function AddManagerDialog({
 
   const addManager = api.venues.addManager.useMutation({
     onSuccess: async () => {
-      toast.success("Venue manager added");
+      toast.success(m.addedToast);
       setQuery("");
       onOpenChange(false);
       await utils.venues.managedById.invalidate({ venueId });
@@ -70,33 +72,30 @@ export function AddManagerDialog({
     >
       <DialogContent className="rounded-card gap-5 p-6 shadow-none">
         <DialogHeader>
-          <DialogTitle>Add manager</DialogTitle>
-          <DialogDescription>
-            Search Temba Users by name, email or phone. They manage this Venue
-            with the account they play with.
-          </DialogDescription>
+          <DialogTitle>{m.add}</DialogTitle>
+          <DialogDescription>{m.addDescription}</DialogDescription>
         </DialogHeader>
 
         <div className="relative">
           <Search
             aria-hidden="true"
-            className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-[15px] -translate-y-1/2"
+            className="text-muted-foreground pointer-events-none absolute start-3 top-1/2 size-[15px] -translate-y-1/2"
           />
           <Input
-            aria-label="Search Users"
+            aria-label={m.searchLabel}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by name, email or phone"
+            placeholder={m.searchPlaceholder}
             maxLength={100}
             autoComplete="off"
             autoFocus
-            className="rounded-control h-10 min-h-10 pl-9 text-[13px] shadow-none"
+            className="rounded-control h-10 min-h-10 ps-9 text-[13px] shadow-none"
           />
         </div>
 
         <div aria-live="polite" className="min-h-10">
           {search.isLoading && debouncedQuery.length > 0 ? (
-            <p className="text-muted-foreground text-[13px]">Searching…</p>
+            <p className="text-muted-foreground text-[13px]">{m.searching}</p>
           ) : null}
           {search.error ? (
             <p role="alert" className="text-destructive text-[13px]">
@@ -104,7 +103,7 @@ export function AddManagerDialog({
             </p>
           ) : null}
           {searched && !search.isLoading && candidates.length === 0 ? (
-            <p className="text-muted-foreground text-[13px]">No Users found.</p>
+            <p className="text-muted-foreground text-[13px]">{m.noUsers}</p>
           ) : null}
           {candidates.length > 0 ? (
             <ul className="border-border divide-border rounded-block divide-y overflow-hidden border text-[13px]">
@@ -121,26 +120,26 @@ export function AddManagerDialog({
                     <span className="block truncate">{candidate.name}</span>
                     {candidate.username ? (
                       <span className="text-muted-foreground block truncate">
-                        @{candidate.username}
+                        {`@${candidate.username}`}
                       </span>
                     ) : null}
                   </span>
                   <Button
                     type="button"
                     size="sm"
-                    aria-label={`Add ${candidate.name} as Venue manager`}
+                    aria-label={m.addNamed(candidate.name)}
                     className="rounded-block"
                     pending={
                       addManager.isPending &&
                       addManager.variables?.userId === candidate.id
                     }
-                    pendingLabel="Adding…"
+                    pendingLabel={m.adding}
                     disabled={addManager.isPending}
                     onClick={() =>
                       addManager.mutate({ venueId, userId: candidate.id })
                     }
                   >
-                    Add
+                    {m.addButton}
                   </Button>
                 </li>
               ))}

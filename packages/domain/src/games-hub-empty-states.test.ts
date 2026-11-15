@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   gamesHubEmptyLine,
   gamesHubEmptySeats,
+  publicGamesEmptyLine,
+  publicGamesEmptyTitle,
 } from "./games-hub-empty-states";
 
 describe("gamesHubEmptySeats", () => {
@@ -29,6 +31,18 @@ describe("gamesHubEmptyLine", () => {
   it("names the filtered sport in Arabic", () => {
     expect(gamesHubEmptyLine("football", "ar")).toBe(
       "تظهر هنا مباريات كرة القدم التي تنشئها أو تنضم إليها.",
+    );
+  });
+});
+
+describe("publicGamesEmptyLine", () => {
+  it("names the filtered sport", () => {
+    expect(publicGamesEmptyTitle("en")).toBe("No public games right now");
+    expect(publicGamesEmptyLine("all", "en")).toBe(
+      "Public games at partner venues show here. Make one and anyone in its Level range can join.",
+    );
+    expect(publicGamesEmptyLine("padel", "en")).toBe(
+      "Padel public games at partner venues show here. Make one and anyone in its Level range can join.",
     );
   });
 });

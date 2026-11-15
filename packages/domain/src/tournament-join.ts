@@ -6,6 +6,7 @@ import type { FriendlyGameJoinSeat } from "./friendly-game-cta";
 import {
   firstFullyVacantSideIndex,
   partnerVacantSideRaceMessage,
+  type GameHomeTarget,
 } from "./friendly-game-partner";
 import { isPreferredPosition } from "./preferred-position";
 import { remainingJoinSeatOnSide, defaultJoinSeat } from "./preferred-seat";
@@ -197,8 +198,10 @@ export function tournamentShowsWaitlistCta(args: {
   return args.canWaitlist && !args.partnerRequired;
 }
 
-export function tournamentPartnerInviteLandingHref(gameId: string) {
-  return `/dashboard/games/${gameId}?join=partner`;
+export function tournamentPartnerInviteLandingTarget(
+  gameId: string,
+): GameHomeTarget {
+  return { gameId, join: "partner" };
 }
 
 export function tournamentInviteLandingOpensPartnerSheet(

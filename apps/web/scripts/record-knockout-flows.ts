@@ -9,7 +9,7 @@
  * router functions the tRPC doors call, as the seated players. A caption on
  * every step says which is which.
  *
- *   RECORD_USERNAME=... RECORD_PASSWORD=... pnpm --filter web record:knockout
+ *   RECORD_PHONE=+1555... RECORD_PASSWORD=... pnpm --filter web record:knockout
  *   RECORD_ONLY=ko-02,ko-03   # optional subset
  */
 import { execFileSync } from "node:child_process";
@@ -44,6 +44,8 @@ import { selfDeclareRating } from "@repo/api/routers/ratings/selfDeclare";
 import { markOnboardingComplete } from "@repo/api/routers/users/completeOnboarding";
 import { writePreferredPosition } from "@repo/api/routers/users/setPreferredPosition";
 import { knockoutMatchCode } from "@repo/domain/tournament-knockout";
+
+import { signInWithPhone } from "./sign-in";
 
 const BASE_URL = process.env.RECORD_BASE_URL ?? "http://localhost:3000";
 const OUT_DIR = join(process.cwd(), "recordings", "knockout");
@@ -635,29 +637,6 @@ function expectValue(step: string, ok: boolean, note?: string) {
   checks.push({ flow: currentFlow, step, ok, note: ok ? undefined : note });
   console.log(`    ${ok ? "✓" : "✗"} ${step}${ok ? "" : `: ${note}`}`);
   return ok;
-}
-
-async function signIn(page: Page, username: string, password: string) {
-  await page.goto(`${BASE_URL}/login`);
-  await page.waitForFunction(
-    () => (window as { Clerk?: { loaded?: boolean } }).Clerk?.loaded === true,
-    undefined,
-    { timeout: 60_000 },
-  );
-  await page.locator("#sign-in-identifier").fill(username);
-  await page.locator("#sign-in-password").fill(password);
-  await page.getByRole("button", { name: /^sign in$/i }).click();
-  await page.waitForURL(/\/(dashboard|onboarding|login\/factor-two)/, {
-    timeout: 60_000,
-  });
-  if (page.url().includes("/login/factor-two")) {
-    await page
-      .locator("#second-factor-code")
-      .fill(process.env.RECORD_OTP ?? "424242");
-    const verify = page.getByRole("button", { name: /^verify$/i });
-    if (await verify.isEnabled().catch(() => false)) await verify.click();
-    await page.waitForURL(/\/(dashboard|onboarding)/, { timeout: 60_000 });
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1869,16 +1848,22 @@ const FLOWS: Flow[] = [
 // ---------------------------------------------------------------------------
 
 async function authState(browser: Browser) {
-  const username = process.env.RECORD_USERNAME;
+  const phone = process.env.RECORD_PHONE;
   const password = process.env.RECORD_PASSWORD;
-  if (!username || !password) {
+  if (!phone || !password) {
     throw new Error(
-      "Set RECORD_USERNAME and RECORD_PASSWORD for the `me` persona.",
+      "Set RECORD_PHONE and RECORD_PASSWORD for the `me` persona.",
     );
   }
   const context = await browser.newContext({ viewport: VIEWPORT });
   const page = await context.newPage();
-  await signIn(page, username, password);
+  await signInWithPhone(page, {
+    baseUrl: BASE_URL,
+    phone,
+    password,
+    otp: process.env.RECORD_OTP,
+    timeout: 60_000,
+  });
   await context.storageState({ path: AUTH_STATE });
   await context.close();
   return AUTH_STATE;

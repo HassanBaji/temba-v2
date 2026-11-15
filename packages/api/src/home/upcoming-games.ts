@@ -2,7 +2,7 @@
  * Group-home and membership-only Game lists (parent events, ADR-0008 / TEM-35):
  * live, not cancelled, Group id in the caller's membership set. Soft-archived
  * Club Group Games still appear (TEM-43). The Games hub My Games tab also
- * includes private Games the User created or is part of — see
+ * includes Games the User created or is part of — see
  * `isMyGamesHubGame`. Public pickup excludes Soft-archived Club Group Games
  * separately. Home's hero carousel uses `listHomeCarouselGames`, not these
  * hub filters.
@@ -94,8 +94,8 @@ export type MyGamesHubListCandidate = GameListCandidate & {
 
 /**
  * Games hub My Games: live upcoming Games on Groups the User belongs to
- * plus private Games they created or are registered/waitlisted on. Public
- * groupless pickup stays on Public. Sorted soonest start first.
+ * plus Games they created or are registered/waitlisted on, public or not.
+ * Other public Games stay on Public. Sorted soonest start first.
  */
 export function isMyGamesHubGame(
   game: MyGamesHubListCandidate,
@@ -108,9 +108,6 @@ export function isMyGamesHubGame(
   }
   if (game.groupId !== null && memberGroupIds.has(game.groupId)) {
     return true;
-  }
-  if (game.isPublic) {
-    return false;
   }
   return game.createdBy === userId || game.viewerIsParticipant;
 }
@@ -126,23 +123,24 @@ export function filterAndSortMyGamesHubGames<T extends MyGamesHubListCandidate>(
     .sort((a, b) => gameListTime(a).getTime() - gameListTime(b).getTime());
 }
 
-export type PublicHubListCandidate = GameListCandidate & {
-  isPublic: boolean;
-};
+export type PublicHubListCandidate = MyGamesHubListCandidate;
 
 /**
- * Public hub: live `isPublic` Games (groupless allowed). Games on Groups the
- * User belongs to are excluded (My Games preferred).
+ * Public hub: live `isPublic` Games (groupless allowed) the User may still
+ * join. Games already on My Games are excluded (My Games preferred): those on
+ * Groups the User belongs to, and those they created or hold a seat or a
+ * Waitlist place on.
  */
 export function isPublicHubGame(
   game: PublicHubListCandidate,
   memberGroupIds: ReadonlySet<string>,
+  userId: string,
   now: Date,
 ): boolean {
   if (!game.isPublic) {
     return false;
   }
-  if (game.groupId !== null && memberGroupIds.has(game.groupId)) {
+  if (isMyGamesHubGame(game, memberGroupIds, userId, now)) {
     return false;
   }
   return isGameLive(game, now);
@@ -151,9 +149,10 @@ export function isPublicHubGame(
 export function filterAndSortPublicHubGames<T extends PublicHubListCandidate>(
   games: readonly T[],
   memberGroupIds: ReadonlySet<string>,
+  userId: string,
   now: Date,
 ): T[] {
   return games
-    .filter((game) => isPublicHubGame(game, memberGroupIds, now))
+    .filter((game) => isPublicHubGame(game, memberGroupIds, userId, now))
     .sort((a, b) => gameListTime(a).getTime() - gameListTime(b).getTime());
 }

@@ -8,7 +8,6 @@ import {
   footballResultCard,
   formatFootballResultShareMessage,
   formatPadelResultShareMessage,
-  gameResultPath,
   padelResultCard,
   padelStickerLine,
   resultCardMvp,
@@ -288,12 +287,6 @@ describe("footballResultCard", () => {
     assert.equal(draw.venue, "Temba");
     assert.equal(draw.when, "");
     assert.equal(draw.you, null);
-  });
-});
-
-describe("gameResultPath", () => {
-  it("opens the Game on the web", () => {
-    assert.equal(gameResultPath("g1"), "/dashboard/games/g1");
   });
 });
 

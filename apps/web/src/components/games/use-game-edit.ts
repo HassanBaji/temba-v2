@@ -9,6 +9,7 @@ import {
   gameEditDraftFrom,
   gameEditPlan,
   gameEditSeasonFix,
+  gameEditVenueChoices,
   type GameEditDraft,
   type GameEditSections,
   type GameEditSource,
@@ -16,6 +17,7 @@ import {
 } from "@repo/domain/game-edit-form";
 import type { GroupSeasonData } from "@repo/domain/group-season";
 import type { MvpMode } from "@repo/domain/marks";
+import { sportOrDefault } from "@repo/domain/sport";
 import type { Messages } from "@repo/i18n/messages";
 import {
   gameEditMvp,
@@ -23,6 +25,7 @@ import {
 } from "~/components/games/game-edit-mvp";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 export type GameEditField = GameEditStep["kind"] | "mvp";
 
@@ -80,14 +83,34 @@ export function useGameEdit({
     }
   }, [open, saved]);
 
-  const updateName = api.games.updateName.useMutation();
-  const updateWindow = api.games.updateWindow.useMutation();
-  const updateCaps = api.games.updateCaps.useMutation();
-  const updatePrice = api.games.updatePricePerPlayer.useMutation();
-  const updateLevel = api.games.updateLevelRange.useMutation();
-  const updateRounds = api.games.updateRoundCount.useMutation();
-  const updateSeason = api.games.updateSeason.useMutation();
-  const setMvpMode = api.marks.setMvpMode.useMutation();
+  const updateName = api.games.updateName.useMutation({ meta: OWN_ERROR_UI });
+  const updateWindow = api.games.updateWindow.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const updatePlace = api.games.updatePlace.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const catalog = api.games.listCreateVenues.useQuery(
+    { groupId: game.groupId ?? undefined },
+    { enabled: open && (sections.place || sections.courts) },
+  );
+  const updateCaps = api.games.updateCaps.useMutation({ meta: OWN_ERROR_UI });
+  const updateCourts = api.games.updateCourts.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const updatePrice = api.games.updatePricePerPlayer.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const updateLevel = api.games.updateLevelRange.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const updateRounds = api.games.updateRoundCount.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const updateSeason = api.games.updateSeason.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const setMvpMode = api.marks.setMvpMode.useMutation({ meta: OWN_ERROR_UI });
 
   async function runStep(step: GameEditStep): Promise<number> {
     switch (step.kind) {
@@ -103,6 +126,13 @@ export function useGameEdit({
           ...(step.seasonId !== undefined ? { seasonId: step.seasonId } : {}),
         });
         return 0;
+      case "place":
+        await updatePlace.mutateAsync({
+          gameId,
+          venueId: step.venueId,
+          courtId: step.courtId,
+        });
+        return 0;
       case "caps": {
         const result = await updateCaps.mutateAsync({
           gameId,
@@ -111,6 +141,16 @@ export function useGameEdit({
         });
         return result.movedToWaitlist.length;
       }
+      case "teams": {
+        const result = await updateCaps.mutateAsync({
+          gameId,
+          teamsAllowed: step.teamCount,
+        });
+        return result.movedToWaitlist.length;
+      }
+      case "courts":
+        await updateCourts.mutateAsync({ gameId, courtIds: step.courtIds });
+        return 0;
       case "price":
         await updatePrice.mutateAsync({
           gameId,
@@ -214,6 +254,12 @@ export function useGameEdit({
     onClose();
   }
 
+  const venueChoices = gameEditVenueChoices(
+    catalog.data?.venues ?? [],
+    sportOrDefault(game.sport),
+    { id: saved.venueId, name: game.venue?.name ?? null },
+  );
+
   return {
     now,
     saved,
@@ -221,6 +267,18 @@ export function useGameEdit({
     update,
     mvp,
     pickMvpMode,
+    place: {
+      loading: catalog.isLoading,
+      error: catalog.error?.message ?? null,
+      locked: catalog.data?.locked ?? false,
+      venues: venueChoices,
+    },
+    courts: {
+      loading: catalog.isLoading,
+      error: catalog.error?.message ?? null,
+      choices:
+        venueChoices.find((venue) => venue.id === saved.venueId)?.courts ?? [],
+    },
     changed,
     note,
     seasonFix,

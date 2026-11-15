@@ -10,6 +10,8 @@ import {
   swapPairing,
   swapRepairSeed,
 } from "@repo/domain/tournament-pairing";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -40,13 +42,15 @@ export async function swapRoundPairing(
     roundNumber: number;
     gameTeamId: string;
     opponentGameTeamId: string;
+    locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.organizerUserId);
-  assertMakesPoolRounds(game);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.organizerUserId, locale);
+  assertMakesPoolRounds(game, locale);
   const context = await loadTournamentRoundContext(database, game);
-  assertRoundInRange(context, args.roundNumber);
+  assertRoundInRange(context, args.roundNumber, locale);
 
   const postedRows = context.posted.get(args.roundNumber) ?? [];
   const draft = context.drafts.get(args.roundNumber) ?? [];
@@ -54,7 +58,9 @@ export async function swapRoundPairing(
   if (current.length === 0) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `Round ${args.roundNumber} is not made yet`,
+      message: messagesFor(locale).tournament.errors.roundNotMade(
+        args.roundNumber,
+      ),
     });
   }
   const swapped = swapPairing(
@@ -65,7 +71,7 @@ export async function swapRoundPairing(
   if (!swapped) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Pick a team playing someone else in this Round",
+      message: messagesFor(locale).tournament.errors.pickPairedTeam,
     });
   }
   if (
@@ -79,7 +85,7 @@ export async function swapRoundPairing(
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Pair two teams from the same Pool",
+      message: messagesFor(locale).tournament.errors.samePool,
     });
   }
 
@@ -101,7 +107,7 @@ export async function swapRoundPairing(
       ) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "A Match with a score keeps its teams",
+          message: messagesFor(locale).tournament.errors.scoredMatchKeepsTeams,
         });
       }
     }
@@ -168,5 +174,6 @@ export const swapRoundPairingProcedure = protectedProcedure
       roundNumber: input.roundNumber,
       gameTeamId: input.gameTeamId,
       opponentGameTeamId: input.opponentGameTeamId,
+      locale: ctx.locale,
     });
   });

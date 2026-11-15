@@ -13,6 +13,7 @@ import { Field, FieldError, FieldLabel } from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
+import { useMessages } from "~/components/locale-provider";
 import { api } from "~/trpc/react";
 
 import { controlClass, labelClass, textareaClass } from "./details-styles";
@@ -37,6 +38,8 @@ export function DetailsForm() {
 }
 
 function DetailsFormFields({ venue }: { venue: ManagedVenue }) {
+  const { consoleVenue, common } = useMessages();
+  const m = consoleVenue.details;
   const venueId = venue.id;
   const utils = api.useUtils();
   const [phone, setPhone] = React.useState(venue.phone ?? "");
@@ -77,7 +80,7 @@ function DetailsFormFields({ venue }: { venue: ManagedVenue }) {
       updateText.mutateAsync({ venueId, description, bookingNotes }),
     ]);
     if (results.every((result) => result.status === "fulfilled")) {
-      toast.success("Details saved");
+      toast.success(m.savedToast);
     }
     await refresh();
   }
@@ -104,7 +107,7 @@ function DetailsFormFields({ venue }: { venue: ManagedVenue }) {
           <div className="grid gap-5 sm:grid-cols-2">
             <Field data-invalid={phoneError ? true : undefined}>
               <FieldLabel htmlFor={FIELD_IDS.phone} className={labelClass}>
-                Phone
+                {m.phone}
               </FieldLabel>
               <Input
                 id={FIELD_IDS.phone}
@@ -124,7 +127,7 @@ function DetailsFormFields({ venue }: { venue: ManagedVenue }) {
             </Field>
             <Field data-invalid={websiteError ? true : undefined}>
               <FieldLabel htmlFor={FIELD_IDS.website} className={labelClass}>
-                Website
+                {m.website}
               </FieldLabel>
               <Input
                 id={FIELD_IDS.website}
@@ -144,7 +147,7 @@ function DetailsFormFields({ venue }: { venue: ManagedVenue }) {
           </div>
           <Field data-invalid={descriptionError ? true : undefined}>
             <FieldLabel htmlFor={FIELD_IDS.description} className={labelClass}>
-              Description
+              {m.venueDescription}
             </FieldLabel>
             <textarea
               id={FIELD_IDS.description}
@@ -164,7 +167,7 @@ function DetailsFormFields({ venue }: { venue: ManagedVenue }) {
           </Field>
           <Field data-invalid={notesError ? true : undefined}>
             <FieldLabel htmlFor={FIELD_IDS.bookingNotes} className={labelClass}>
-              Booking notes
+              {m.bookingNotes}
             </FieldLabel>
             <textarea
               id={FIELD_IDS.bookingNotes}
@@ -172,7 +175,7 @@ function DetailsFormFields({ venue }: { venue: ManagedVenue }) {
               onChange={(event) => setBookingNotes(event.target.value)}
               maxLength={1000}
               rows={3}
-              placeholder="Shown to players when they book: parking, entrance, what to bring."
+              placeholder={m.bookingNotesPlaceholder}
               className={textareaClass}
               aria-invalid={notesError ? true : undefined}
               aria-describedby={
@@ -193,16 +196,14 @@ function DetailsFormFields({ venue }: { venue: ManagedVenue }) {
         </div>
 
         <div className="flex items-center justify-between gap-4 px-6 py-4">
-          <p className="text-muted-foreground text-xs">
-            Name, city and country are managed by an Operator.
-          </p>
+          <p className="text-muted-foreground text-xs">{m.operatorManaged}</p>
           <Button
             type="submit"
             className={cn(controlClass, "px-4")}
             pending={saving}
-            pendingLabel="Saving…"
+            pendingLabel={common.saving}
           >
-            Save
+            {common.save}
           </Button>
         </div>
       </form>

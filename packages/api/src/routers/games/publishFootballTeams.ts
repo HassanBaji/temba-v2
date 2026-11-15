@@ -22,6 +22,7 @@ import {
   footballBibName,
   footballSidesProblem,
 } from "@repo/domain/football-lineup";
+import { messagesFor } from "@repo/i18n/messages";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -50,14 +51,15 @@ function assertCoversRoster(
   registered: readonly string[],
   slot1: readonly string[],
   slot2: readonly string[],
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const placed = [...slot1, ...slot2];
   if (new Set(placed).size !== placed.length) {
-    refuse("A player can be on one team only");
+    refuse(messagesFor(locale).football.errors.oneTeamOnly);
   }
   const roster = new Set(registered);
   if (placed.some((userId) => !roster.has(userId))) {
-    refuse("Only registered players can be placed on a team");
+    refuse(messagesFor(locale).football.errors.registeredOnly);
   }
 }
 
@@ -112,13 +114,13 @@ export async function publishFootballTeams(
   },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
-  const game = await requireGame(database, args.gameId);
+  const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, locale);
-  assertFootballGame(game);
-  assertGameNotCancelled(game);
-  await assertGameOrganizer(database, game, args.userId);
+  assertFootballGame(game, locale);
+  assertGameNotCancelled(game, locale);
+  await assertGameOrganizer(database, game, args.userId, locale);
   if (args.bibs.slot1 === args.bibs.slot2) {
-    refuse("Pick two different bib colours");
+    refuse(messagesFor(locale).football.errors.differentBibs);
   }
 
   const roster = await database.query.gamePlayers.findMany({
@@ -126,7 +128,7 @@ export async function publishFootballTeams(
     columns: { id: true, userId: true },
   });
   const registered = roster.flatMap((row) => (row.userId ? [row.userId] : []));
-  assertCoversRoster(registered, args.slot1, args.slot2);
+  assertCoversRoster(registered, args.slot1, args.slot2, locale);
   const problem = footballSidesProblem(
     {
       slot1: args.slot1,
@@ -150,7 +152,7 @@ export async function publishFootballTeams(
       footballScoreOf(await footballScoreSet(database, existingMatch.id)) !=
         null;
     if (scored) {
-      refuse("The score is in, so the teams are fixed");
+      refuse(messagesFor(locale).football.errors.teamsFixed);
     }
   }
 

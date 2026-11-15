@@ -5,6 +5,8 @@ import { z } from "zod";
 import { gameMvpVotes, games, matches } from "@repo/db";
 
 import { canCastMvpVote, type MvpRefusal } from "@repo/domain/marks";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -32,12 +34,21 @@ function refuse(reason: MvpRefusal): never {
  */
 export async function castMvpVote(
   database: DbClient,
-  args: { gameId: string; userId: string; candidateUserId: string },
+  args: {
+    gameId: string;
+    userId: string;
+    candidateUserId: string;
+    locale?: Locale;
+  },
   now: Date = new Date(),
 ): Promise<{ ok: true }> {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   if (!(await canViewGame(database, game, args.userId))) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).game.errors.notFound,
+    });
   }
   const match = await marksMatch(database, game);
   if (!match) {
@@ -108,5 +119,6 @@ export const castMvpVoteProcedure = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       candidateUserId: input.candidateUserId,
+      locale: ctx.locale,
     });
   });

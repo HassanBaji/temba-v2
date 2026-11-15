@@ -19,7 +19,6 @@ export async function createLooseGroup(args: {
   type: GroupTypeEnum;
   createdBy: string;
   requiresApproval?: boolean;
-  verifiedBy?: string;
 }) {
   const created = await args.database.transaction(async (tx) => {
     const [group] = await tx
@@ -30,8 +29,6 @@ export async function createLooseGroup(args: {
         type: args.type,
         sport: args.sport,
         createdBy: args.createdBy,
-        verifiedAt: args.verifiedBy ? new Date() : null,
-        verifiedBy: args.verifiedBy ?? null,
         requiresApproval:
           args.type === GroupTypeEnum.PUBLIC
             ? Boolean(args.requiresApproval)

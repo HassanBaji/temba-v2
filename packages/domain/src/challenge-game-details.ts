@@ -132,10 +132,21 @@ export function challengeCostLine(
     : m.gameDetails.costSplitWays(players);
 }
 
-/** Football counts for both records and the named; padel also moves Levels. */
-export function challengeCountsForLine(sport: string | null, locale: Locale) {
+/**
+ * Both records and the named; padel also moves Levels, and so does a
+ * football Challenge Game that counts for Temba Level, once each Team
+ * confirms (ADR-0069). An older football one is Unrated.
+ */
+export function challengeCountsForLine(
+  sport: string | null,
+  rated: boolean,
+  locale: Locale,
+) {
   const m = messagesFor(locale).challenge.gameDetails.countsForLine;
-  return isFootball(sport) ? m.football : m.padel;
+  if (!isFootball(sport)) {
+    return m.padel;
+  }
+  return rated ? m.footballLevel : m.football;
 }
 
 /** "Pitch 1, 6-a-side, 90 min. Confirmed by both teams" under a Challenge Game's day line. */
@@ -182,6 +193,7 @@ export type ChallengeDetailsRow = {
 export function challengeGameDetailsRows(
   input: {
     sport: string | null;
+    rated: boolean;
     postedByTeamName: string | null;
     postedAt: Date | string | null;
     proposedByTeamName: string | null;
@@ -231,7 +243,7 @@ export function challengeGameDetailsRows(
     {
       key: "counts",
       label: copy.countsFor,
-      value: challengeCountsForLine(input.sport, locale),
+      value: challengeCountsForLine(input.sport, input.rated, locale),
     },
   ];
 }

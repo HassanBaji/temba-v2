@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import { teamMembers } from "@repo/db";
 import { teamIsSquad } from "@repo/domain/team-roster";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -14,9 +16,10 @@ type DbClient = typeof db;
 
 export async function leave(
   database: DbClient,
-  args: { teamId: string; userId: string },
+  args: { teamId: string; userId: string; locale?: Locale },
 ) {
-  const team = await requireTeam(database, args.teamId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const team = await requireTeam(database, args.teamId, locale);
 
   const membership = await database.query.teamMembers.findFirst({
     where: and(
@@ -28,21 +31,21 @@ export async function leave(
   if (!membership) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only a Team member can leave this Team",
+      message: messagesFor(locale).team.errors.memberLeaves,
     });
   }
 
   if (!teamIsSquad(team.sport)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Dissolve the Team instead",
+      message: messagesFor(locale).team.errors.dissolveInstead,
     });
   }
 
   if (team.createdBy === args.userId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "The creator cannot leave; dissolve the Team instead",
+      message: messagesFor(locale).team.errors.creatorCannotLeave,
     });
   }
 
@@ -58,5 +61,9 @@ export const leaveProcedure = protectedProcedure
   .input(z.object({ teamId: z.string().uuid() }))
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return leave(ctx.db, { teamId: input.teamId, userId: appUser.id });
+    return leave(ctx.db, {
+      teamId: input.teamId,
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   });

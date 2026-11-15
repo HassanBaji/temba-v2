@@ -15,9 +15,17 @@ export type AvatarProps = {
   size?: keyof typeof SIZES;
   /** Defaults to a circle. */
   radius?: number;
+  /** A Guest player: a dashed outline, since no account stands behind it. */
+  guest?: boolean;
 };
 
-export function Avatar({ name, uri, size = "default", radius }: AvatarProps) {
+export function Avatar({
+  name,
+  uri,
+  size = "default",
+  radius,
+  guest = false,
+}: AvatarProps) {
   const palette = useTonePalette();
   const [failed, setFailed] = useState(false);
   const dimension = SIZES[size];
@@ -34,9 +42,10 @@ export function Avatar({ name, uri, size = "default", radius }: AvatarProps) {
         overflow: "hidden",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: palette.wash,
+        backgroundColor: guest ? palette.background : palette.wash,
         borderWidth: hairline,
-        borderColor: palette.rule,
+        borderStyle: guest ? "dashed" : "solid",
+        borderColor: guest ? palette.foreground : palette.rule,
       }}
     >
       {uri && !failed ? (

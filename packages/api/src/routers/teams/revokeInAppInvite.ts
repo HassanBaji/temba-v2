@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { teamMemberInvites } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -14,8 +16,9 @@ type DbClient = typeof db;
 
 export async function revokeInAppInvite(
   database: DbClient,
-  args: { inviteId: string; userId: string },
+  args: { inviteId: string; userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const invite = await database.query.teamMemberInvites.findFirst({
     where: eq(teamMemberInvites.id, args.inviteId),
   });
@@ -23,23 +26,23 @@ export async function revokeInAppInvite(
   if (!invite) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Team invite not found",
+      message: messagesFor(locale).team.errors.inviteNotFound,
     });
   }
 
-  const team = await requireTeam(database, invite.teamId);
+  const team = await requireTeam(database, invite.teamId, locale);
 
   if (team.createdBy !== args.userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the creator can revoke Team invites",
+      message: messagesFor(locale).team.errors.creatorRevokesInvites,
     });
   }
 
   if (invite.acceptedAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Accepted invites cannot be revoked",
+      message: messagesFor(locale).team.errors.acceptedNoRevoke,
     });
   }
 
@@ -55,7 +58,7 @@ export async function revokeInAppInvite(
   if (!revoked.ok && revoked.reason === "already_accepted") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Accepted invites cannot be revoked",
+      message: messagesFor(locale).team.errors.acceptedNoRevoke,
     });
   }
   if (!revoked.ok) {
@@ -75,5 +78,6 @@ export const revokeInAppInviteProcedure = protectedProcedure
     return revokeInAppInvite(ctx.db, {
       inviteId: input.inviteId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

@@ -1,3 +1,6 @@
+import { gamePaymentsTracked } from "@repo/domain/game-payments";
+import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
+import { canEditTeams, editTeamsSpotLabel } from "@repo/domain/edit-teams";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
@@ -8,6 +11,7 @@ import {
 } from "@repo/domain/friendly-game-cta";
 import {
   friendlyGameDetailsPlan,
+  seatedPlayerCanRename,
   type FriendlyGameDetails,
 } from "@repo/domain/friendly-game-details";
 import {
@@ -16,8 +20,6 @@ import {
   partnerVacantSideRaceRecovery,
 } from "@repo/domain/friendly-game-partner";
 import {
-  completeMatchAction,
-  completeMatchConsequence,
   gameJoinToast,
   gameToast,
   leaveGameAction,
@@ -39,19 +41,27 @@ import {
 import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import { gameInviteAccess } from "@repo/domain/invites";
 import type { PlayedRow } from "@repo/domain/played-game";
+import { kickableTournamentOccupants } from "@repo/domain/tournament-organizer";
+import { isTournamentFinished } from "@repo/domain/tournament-finished";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 import { useRouter, useSegments } from "expo-router";
+import { ArrowLeftRight, LogIn, UserPlus } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { Linking, Platform, View } from "react-native";
 
 import { directionsUrl } from "../booking/booking-model";
+import { EditTeamsSheet } from "../edit-teams/edit-teams-sheet";
 import { useNow } from "../games/use-now";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { InviteEntry } from "../invites/invite-entry";
 import { slotOf } from "../lib/slot-of";
+import { GamePaymentsSection } from "../game-payments/game-payments-section";
 import { PlayedFriendlyGame } from "../played-game/played-friendly-game";
-import { PlayedMenuSheet } from "../played-game/played-menu-sheet";
+import {
+  PlayedMenuSheet,
+  type PlayedMenuItem,
+} from "../played-game/played-menu-sheet";
 import { PlayedPlayerSheet } from "../played-game/played-player-sheet";
 import { gamePlayersLink } from "../player-profile/game-player-links";
 import { playerPath } from "../player-profile/player-path";
@@ -63,8 +73,17 @@ import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
 import { TournamentBar } from "../tournament/tournament-bar";
 import { OrganizerSheets as TournamentOrganizerSheets } from "../tournament/organizer-sheets";
+import { TournamentAlbum } from "../tournament/tournament-album";
 import { TournamentContent } from "../tournament/tournament-content";
+import {
+  tournamentPlayer,
+  type TournamentPlayer,
+} from "../tournament/tournament-model";
+import { TournamentPlayerSheet } from "../tournament/tournament-player-sheet";
 import { useTournamentOrganizer } from "../tournament/use-tournament-organizer";
+import { useTournamentEdit } from "../tournament/use-tournament-edit";
+import { GameEditSheet } from "./game-edit-sheet";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api } from "../trpc/react";
 import { AddPlayerSheet } from "./add-player-sheet";
 import { RenamePlayerSheet } from "./rename-player-sheet";
@@ -88,6 +107,7 @@ import {
   unsupportedFormatCopy,
 } from "./details-model";
 import { JoinSheet } from "./join-sheet";
+import { useErrorMessage } from "../lib/use-error-message";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
@@ -151,6 +171,7 @@ export function GameDetailsScreen({
   const router = useRouter();
   const segments = useSegments();
   const toast = useToast();
+  const errorText = useErrorMessage();
   const utils = api.useUtils();
   const now = useNow();
   const [refreshing, setRefreshing] = useState(false);
@@ -166,11 +187,20 @@ export function GameDetailsScreen({
   const [renaming, setRenaming] = useState<{
     userId: string;
     name: string;
+    guest?: boolean;
   } | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayedRow | null>(null);
+  const [tournamentSelected, setTournamentSelected] =
+    useState<TournamentPlayer | null>(null);
   const [addSeat, setAddSeat] = useState<FriendlyGameJoinSeat | null>(null);
+  const [openSpot, setOpenSpot] = useState<{
+    seat: FriendlyGameJoinSeat;
+    own: "move" | "join";
+  } | null>(null);
+  const [editTeamsOpen, setEditTeamsOpen] = useState(false);
+  const [addSide, setAddSide] = useState<number | null>(null);
   const shareGame = useShareGame(gameId);
 
   const game = api.games.byId.useQuery({ id: gameId }, REFETCH_ON_FOREGROUND);
@@ -209,6 +239,12 @@ export function GameDetailsScreen({
         utils.users.home.invalidate(),
       ]),
     [utils, gameId],
+  );
+
+  const groupId = data?.groupId;
+  const refreshWithRatings = useCallback(
+    () => Promise.all([refresh(), invalidateRatingReads(utils, { groupId })]),
+    [refresh, utils, groupId],
   );
 
   const failure = (error: { message: string }) => toast.show(error.message);
@@ -276,10 +312,16 @@ export function GameDetailsScreen({
   const confirmResult = api.games.confirmMatchResult.useMutation({
     onSuccess: () => toast.show(copy.toast.resultConfirmed),
     onError: failure,
-    onSettled: async () => {
-      await refresh();
-      await utils.ratings.me.invalidate();
-    },
+    onSettled: refreshWithRatings,
+  });
+  const stampMatch = api.games.stampMatch.useMutation({
+    onSuccess: () => toast.show(m.rating.verifier.stamp.stamped),
+    onError: failure,
+    onSettled: () =>
+      Promise.all([
+        refreshWithRatings(),
+        utils.games.listMatchesToStamp.invalidate(),
+      ]),
   });
   const requestLevel = api.games.requestLevelRange.useMutation({
     onSuccess: () => toast.show(m.level.request.sent),
@@ -293,11 +335,11 @@ export function GameDetailsScreen({
     onError: failure,
     onSettled: refresh,
   });
-  const addSet = api.games.addSet.useMutation({
+  const enterTournamentScore = api.games.enterTournamentScore.useMutation({
+    onSuccess: () => toast.show(copy.toast.setSaved),
     onError: failure,
-    onSettled: refresh,
+    onSettled: refreshWithRatings,
   });
-  const completeMatch = api.games.completeMatch.useMutation();
 
   const firstMatchId = data?.matches[0]?.id;
 
@@ -309,11 +351,18 @@ export function GameDetailsScreen({
     setConfirm,
   });
 
+  const tournamentEdit = useTournamentEdit({
+    gameId,
+    game: tournament ? data : null,
+    refresh,
+  });
+
   const tournamentOrganizer = useTournamentOrganizer({
     gameId,
     game: tournament ? data : null,
     refresh,
     setConfirm,
+    onEdit: tournamentEdit.onOpen,
   });
 
   const saveSets = useCallback(
@@ -342,10 +391,10 @@ export function GameDetailsScreen({
         toast.show(copy.toast.setSaved);
       } catch (error) {
         toast.show(
-          error instanceof Error ? error.message : copy.toast.couldNotSave,
+          error instanceof Error ? errorText(error) : copy.toast.couldNotSave,
         );
       } finally {
-        await refresh();
+        await refreshWithRatings();
       }
     },
     [
@@ -354,7 +403,7 @@ export function GameDetailsScreen({
       firstMatchId,
       gameId,
       locale,
-      refresh,
+      refreshWithRatings,
       scoreSet,
       toast,
     ],
@@ -406,66 +455,6 @@ export function GameDetailsScreen({
     });
   }
 
-  async function saveTournamentSets(
-    matchId: string,
-    payloads: {
-      setId: string;
-      slot1GamesWon: number;
-      slot2GamesWon: number;
-    }[],
-  ) {
-    for (const payload of payloads) {
-      await scoreSet.mutateAsync({ gameId, matchId, ...payload });
-    }
-  }
-
-  async function saveScore(
-    matchId: string,
-    payloads: Parameters<typeof saveTournamentSets>[1],
-  ) {
-    if (payloads.length === 0) {
-      toast.show(scoreIncompleteMessage(locale));
-      return;
-    }
-    try {
-      await saveTournamentSets(matchId, payloads);
-      toast.show(copy.toast.setSaved);
-    } catch (error) {
-      toast.show(
-        error instanceof Error ? error.message : copy.toast.couldNotSave,
-      );
-    } finally {
-      await refresh();
-    }
-  }
-
-  function askCompleteMatch(
-    matchId: string,
-    payloads: Parameters<typeof saveTournamentSets>[1],
-  ) {
-    async function run() {
-      try {
-        await saveTournamentSets(matchId, payloads);
-        await completeMatch.mutateAsync({ gameId, matchId });
-        toast.show(copy.toast.matchCompleted);
-      } catch (error) {
-        toast.show(
-          error instanceof Error ? error.message : copy.toast.completeFailed,
-        );
-      } finally {
-        setConfirm(null);
-        await refresh();
-        await utils.ratings.me.invalidate();
-      }
-    }
-    setConfirm({
-      title: copy.confirm.completeMatchTitle,
-      description: completeMatchConsequence(locale),
-      confirmLabel: completeMatchAction(locale),
-      onConfirm: () => void run(),
-    });
-  }
-
   const inviteAccess = data
     ? gameInviteAccess({
         friendlyChrome: friendly,
@@ -474,6 +463,7 @@ export function GameDetailsScreen({
         cancelledAt: data.cancelledAt,
         registrationMode: data.registrationMode,
         partnerRequired: isPartnerRequiredGame(data),
+        over: isTournamentFinished(data),
       })
     : null;
   const shareContext = data
@@ -565,7 +555,6 @@ export function GameDetailsScreen({
           pending={
             leaveGame.isPending ||
             leaveWaitlist.isPending ||
-            completeMatch.isPending ||
             organizer.confirmPending ||
             tournamentOrganizer.confirmPending
           }
@@ -605,8 +594,18 @@ export function GameDetailsScreen({
     );
   }
 
+  const guestIds = new Set(
+    data.registeredPlayers
+      .filter((player) => player.guest)
+      .map((player) => player.id),
+  );
   const onOpenPlayer = gamePlayersLink(data)
-    ? (userId: string) => router.push(playerPath(segments, userId))
+    ? (userId: string) => {
+        if (guestIds.has(userId)) {
+          return;
+        }
+        router.push(playerPath(segments, userId));
+      }
     : undefined;
 
   if (football) {
@@ -615,6 +614,7 @@ export function GameDetailsScreen({
         gameId={gameId}
         game={data}
         openJoin={intent === "join"}
+        openAddPhotos={intent === "addPhotos"}
         refreshing={refreshing}
         onRefresh={onRefresh}
       />
@@ -623,13 +623,50 @@ export function GameDetailsScreen({
 
   if (tournament) {
     const details: TournamentDetails = data;
+    const addPlayerToSide = (sideIndex: number) => {
+      setAddSide(sideIndex);
+      tournamentOrganizer.addPlayer.onOpen();
+    };
     const firstTeamId = details.eligibleTeams[0]?.id ?? "";
+    const kickableUserIds = new Set(
+      kickableTournamentOccupants(details).map((occupant) => occupant.userId),
+    );
+    const playerOpensActions = (userId: string) => kickableUserIds.has(userId);
+    const openTournamentPlayer =
+      onOpenPlayer || kickableUserIds.size > 0
+        ? (userId: string) => {
+            const player = playerOpensActions(userId)
+              ? tournamentPlayer(details, userId)
+              : null;
+            if (player) {
+              setTournamentSelected(player);
+            } else {
+              onOpenPlayer?.(userId);
+            }
+          }
+        : undefined;
     return (
       <View style={{ flex: 1 }}>
-        <Screen refreshing={refreshing} onRefresh={onRefresh}>
+        <Screen
+          refreshing={refreshing}
+          onRefresh={() => {
+            void utils.gameAlbum.forGame.invalidate({ gameId });
+            return onRefresh();
+          }}
+        >
           {inviteEntry}
+          <GamePaymentsSection
+            gameId={gameId}
+            tracked={gamePaymentsTracked(data)}
+          />
           <TournamentContent
             game={details}
+            album={
+              <TournamentAlbum
+                game={details}
+                openAdd={intent === "addPhotos"}
+              />
+            }
             organizer={{
               card: tournamentOrganizer.handlers,
               onCancelMatch: tournamentOrganizer.openWalkover,
@@ -641,17 +678,28 @@ export function GameDetailsScreen({
               teamId: teamId || firstTeamId,
               onTeamIdChange: setTeamId,
               onTakeSeat: (seat) => openJoin(seat),
+              onOpenSeat: organizerCanAddPlayer(details)
+                ? (seat, canJoin) => {
+                    if (canJoin) {
+                      setOpenSpot({ seat, own: "join" });
+                      return;
+                    }
+                    addPlayerToSide(seat.sideIndex);
+                  }
+                : undefined,
               onRegisterTeam: (id) =>
                 registerTeam.mutate({ gameId, teamId: id }),
               onRequestLevel: () => requestLevel.mutate({ gameId }),
               onLeave: askLeaveGame,
-              scorePending: scoreSet.isPending,
-              addSetPending: addSet.isPending,
-              completePending: completeMatch.isPending,
-              onSave: (matchId, payloads) => void saveScore(matchId, payloads),
-              onAddSet: (matchId) => addSet.mutate({ gameId, matchId }),
-              onComplete: askCompleteMatch,
-              onOpenPlayer,
+              scorePending: enterTournamentScore.isPending,
+              onSave: (matchId, score) =>
+                enterTournamentScore.mutate({ gameId, matchId, ...score }),
+              confirmPending: confirmResult.isPending,
+              onConfirm: (matchId) => confirmResult.mutate({ gameId, matchId }),
+              stampPending: stampMatch.isPending,
+              onStamp: (matchId) => stampMatch.mutate({ matchId }),
+              onOpenPlayer: openTournamentPlayer,
+              playerOpensActions,
             }}
           />
         </Screen>
@@ -670,16 +718,95 @@ export function GameDetailsScreen({
           {...tournamentOrganizer.sheets}
           game={details}
         />
-        {details.isOrganizer ? (
-          <AddPlayerSheet
-            visible={tournamentOrganizer.addPlayer.open}
-            onClose={tournamentOrganizer.addPlayer.onClose}
-            gameId={gameId}
-            placement="side"
-            sides={details.sides}
-            groupName={details.groupName}
-            onAdded={refresh}
+        {tournamentEdit.context ? (
+          <GameEditSheet
+            visible={tournamentEdit.open}
+            onClose={tournamentEdit.onClose}
+            edit={tournamentEdit.edit}
+            sections={tournamentEdit.sections}
+            context={tournamentEdit.context}
           />
+        ) : null}
+        <TournamentPlayerSheet
+          player={tournamentSelected}
+          canOpenProfile={Boolean(onOpenPlayer)}
+          kickPending={tournamentOrganizer.handlers.kickPending}
+          onClose={() => setTournamentSelected(null)}
+          onOpenProfile={(userId) => {
+            setTournamentSelected(null);
+            onOpenPlayer?.(userId);
+          }}
+          onKick={(userId) => {
+            setTournamentSelected(null);
+            tournamentOrganizer.handlers.onKickPlayer(userId);
+          }}
+        />
+        {details.isOrganizer ? (
+          <>
+            <AddPlayerSheet
+              visible={tournamentOrganizer.addPlayer.open}
+              onClose={() => {
+                setAddSide(null);
+                tournamentOrganizer.addPlayer.onClose();
+              }}
+              gameId={gameId}
+              placement="side"
+              sides={details.sides}
+              initialSide={addSide}
+              groupName={details.groupName}
+              onAdded={refresh}
+            />
+            <EditTeamsSheet
+              visible={
+                tournamentOrganizer.editTeams.open && canEditTeams(details)
+              }
+              onClose={tournamentOrganizer.editTeams.onClose}
+              gameId={gameId}
+              format="friendly_tournament"
+              sides={details.sides}
+              matches={details.matches}
+              rules={{
+                fullSidesOnly: isPartnerRequiredGame(details),
+                fixedSides: details.drawPostedAt != null,
+              }}
+              viewerUserId={details.viewerUserId}
+              onSaved={refresh}
+            />
+            <PlayedMenuSheet
+              visible={openSpot != null}
+              title={
+                openSpot
+                  ? m.editTeams.openSpot.title(
+                      editTeamsSpotLabel(
+                        "friendly_tournament",
+                        openSpot.seat,
+                        locale,
+                      ),
+                    )
+                  : ""
+              }
+              items={
+                openSpot
+                  ? [
+                      {
+                        key: "add_player",
+                        label: m.editTeams.openSpot.addPlayer,
+                        hint: m.editTeams.openSpot.addPlayerHint,
+                        icon: UserPlus,
+                        onPress: () => addPlayerToSide(openSpot.seat.sideIndex),
+                      },
+                      {
+                        key: "join",
+                        label: m.editTeams.openSpot.join,
+                        icon: LogIn,
+                        onPress: () => openJoin(openSpot.seat),
+                      },
+                    ]
+                  : []
+              }
+              onClose={() => setOpenSpot(null)}
+            />
+          </>
         ) : null}
       </View>
     );
@@ -698,26 +825,65 @@ export function GameDetailsScreen({
 
   const details: FriendlyGameDetails = data;
   const canAddAtSeat = organizer.plan?.canAddPlayer ?? false;
+  const editsTeams = canEditTeams(data);
+  function addPlayerAt(seat: FriendlyGameJoinSeat) {
+    setAddSeat(seat);
+    organizer.handlers.onAddPlayer();
+  }
+  function openSpotItems(): PlayedMenuItem[] {
+    if (!openSpot) {
+      return [];
+    }
+    const { seat, own } = openSpot;
+    const spotCopy = m.editTeams.openSpot;
+    return [
+      {
+        key: "add_player",
+        label: spotCopy.addPlayer,
+        hint: spotCopy.addPlayerHint,
+        icon: UserPlus,
+        onPress: () => addPlayerAt(seat),
+      },
+      own === "join"
+        ? {
+            key: "join",
+            label: spotCopy.join,
+            icon: LogIn,
+            onPress: () => openJoin(seat),
+          }
+        : {
+            key: "move",
+            label: spotCopy.move,
+            icon: ArrowLeftRight,
+            onPress: () =>
+              moveSeat.mutate({
+                gameId,
+                sideIndex: seat.sideIndex,
+                position: seat.position,
+              }),
+          },
+    ];
+  }
   const canTapPlayers = Boolean(onOpenPlayer) || organizer.plan != null;
   const handlers: DetailsHandlers = {
     movePending: moveSeat.isPending,
     scorePending: scoreSet.isPending,
     confirmPending: confirmResult.isPending,
+    stampPending: stampMatch.isPending,
     levelRequestPending: requestLevel.isPending,
     onMove: (sideIndex, position) =>
       moveSeat.mutate({ gameId, sideIndex, position }),
     onJoinSeat: (seat) => openJoin(seat),
-    onAddPlayerAt: canAddAtSeat
-      ? (seat) => {
-          setAddSeat(seat);
-          organizer.handlers.onAddPlayer();
-        }
+    onAddPlayerAt: canAddAtSeat ? addPlayerAt : undefined,
+    onChooseOpenSpot: canAddAtSeat
+      ? (seat, own) => setOpenSpot({ seat, own })
       : undefined,
     onInvite: inviteAccess?.canManage ? () => setInviteOpen(true) : undefined,
     onPressPlayer: canTapPlayers ? setSelectedPlayer : undefined,
     onSaveSets: (payloads) => void saveSets(payloads),
     onConfirm: () =>
       firstMatchId && confirmResult.mutate({ gameId, matchId: firstMatchId }),
+    onStamp: () => firstMatchId && stampMatch.mutate({ matchId: firstMatchId }),
     onRequestLevel: () => requestLevel.mutate({ gameId }),
   };
 
@@ -745,6 +911,7 @@ export function GameDetailsScreen({
       }
       organizer.onFooterAction(kind);
     },
+    onEditTeams: editsTeams ? () => setEditTeamsOpen(true) : undefined,
     messages: m,
     locale,
   });
@@ -786,6 +953,7 @@ export function GameDetailsScreen({
           organizer={organizer}
           onOpenPlayer={onOpenPlayer}
           onRenameUnclaimed={details.isOrganizer ? setRenaming : undefined}
+          openAddPhotos={intent === "addPhotos"}
         />
       ) : (
         <>
@@ -816,6 +984,7 @@ export function GameDetailsScreen({
               <ChallengeDetailsCard
                 challenge={data.challenge}
                 sport={data.sport}
+                rated={data.rated}
               />
             ) : null}
             <GameDetailsContent
@@ -845,6 +1014,29 @@ export function GameDetailsScreen({
       {organizer.plan ? (
         <>
           <OrganizerSheets {...organizer.sheets} />
+          <EditTeamsSheet
+            visible={editTeamsOpen && editsTeams}
+            onClose={() => setEditTeamsOpen(false)}
+            gameId={gameId}
+            format="friendly_game"
+            sides={details.sides}
+            matches={details.matches}
+            rules={{ fullSidesOnly: false, fixedSides: false }}
+            viewerUserId={details.viewerUserId}
+            onSaved={refresh}
+          />
+          <PlayedMenuSheet
+            visible={openSpot != null}
+            title={
+              openSpot
+                ? m.editTeams.openSpot.title(
+                    editTeamsSpotLabel("friendly_game", openSpot.seat, locale),
+                  )
+                : ""
+            }
+            items={openSpotItems()}
+            onClose={() => setOpenSpot(null)}
+          />
           <AddPlayerSheet
             visible={organizer.addPlayer.open}
             onClose={() => {
@@ -878,7 +1070,9 @@ export function GameDetailsScreen({
               )
             }
             canRename={
-              details.isOrganizer && Boolean(selectedPlayer?.unclaimed)
+              details.isOrganizer &&
+              selectedPlayer != null &&
+              seatedPlayerCanRename(details.sides, selectedPlayer.userId)
             }
             onClose={() => setSelectedPlayer(null)}
             onOpenProfile={(userId) => {

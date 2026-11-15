@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import type { ManagedVenue } from "~/components/console/managed-venue-context";
 import { Hatch } from "~/components/ui/hatch";
 import { cn } from "~/lib/utils";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { initials } from "@repo/domain/initials";
 import {
   venueCardImage,
@@ -93,27 +94,29 @@ function Pill({ children }: { children: ReactNode }) {
 }
 
 function VenueListPreview({ venue, now }: { venue: ManagedVenue; now: Date }) {
+  const { mobileBooking, consoleVenue } = useMessages();
+  const locale = useLocale();
   const windows = todayWindows(venue.openingHours, now);
   const open = windows.length > 0;
-  const price = fromPriceLabel(venue.pricingRules);
+  const price = fromPriceLabel(venue.pricingRules, locale);
 
   return (
     <div className="flex flex-col gap-3 px-[22px] pb-6 pt-5">
-      <p className="font-expanded text-h1">Book a court</p>
+      <p className="font-expanded text-h1">{mobileBooking.bookTitle.court}</p>
       <div className="border-border text-muted-foreground text-meta rounded-control flex h-10 items-center border px-3">
-        Area or venue
+        {mobileBooking.venues.searchPlaceholder}
       </div>
       <div className="border-border bg-paper overflow-hidden rounded-[16px] border">
         <Banner image={venueCardImage(venue)} height={CARD_BANNER_HEIGHT}>
           <span
             className={cn(
-              "text-eyebrow rounded-xs absolute bottom-3 left-3 border px-2 py-[3px] font-mono",
+              "text-eyebrow rounded-xs absolute bottom-3 start-3 border px-2 py-[3px] font-mono",
               open
                 ? "border-ink bg-ink text-paper"
                 : "border-border bg-paper text-muted-foreground",
             )}
           >
-            {openToLabel(windows)}
+            {openToLabel(windows, locale)}
           </span>
         </Banner>
         <div className="border-border flex items-center gap-3 border-t p-[18px]">
@@ -123,14 +126,21 @@ function VenueListPreview({ venue, now }: { venue: ManagedVenue; now: Date }) {
               <p className="text-lead truncate font-semibold">{venue.name}</p>
               {price ? (
                 <p className="text-meta shrink-0">
-                  <span className="text-muted-foreground">from </span>
+                  <span className="text-muted-foreground">
+                    {mobileBooking.venues.fromPrefix}{" "}
+                  </span>
                   <span className="font-semibold">{price}</span>
-                  <span className="text-muted-foreground">/h</span>
+                  <span className="text-muted-foreground">
+                    {mobileBooking.venues.perHour}
+                  </span>
                 </p>
               ) : null}
             </div>
             <p className="text-meta text-muted-foreground truncate">
-              {`${venue.city} / ${courtCountLabel(venue.courts.length)}`}
+              {consoleVenue.photos.cityAndCourts(
+                venue.city,
+                courtCountLabel(venue.courts.length, locale),
+              )}
             </p>
           </div>
         </div>
@@ -141,13 +151,15 @@ function VenueListPreview({ venue, now }: { venue: ManagedVenue; now: Date }) {
 }
 
 function VenuePagePreview({ venue, now }: { venue: ManagedVenue; now: Date }) {
+  const { mobileBooking, common } = useMessages();
+  const locale = useLocale();
   const windows = todayWindows(venue.openingHours, now);
 
   return (
     <div>
       <Banner image={venuePageImage(venue)} height={PAGE_BANNER_HEIGHT}>
-        <span className="border-border bg-paper absolute left-[22px] top-4 flex size-10 items-center justify-center rounded-full border">
-          <ChevronLeft aria-hidden="true" className="size-5" />
+        <span className="border-border bg-paper absolute start-[22px] top-4 flex size-10 items-center justify-center rounded-full border">
+          <ChevronLeft aria-hidden="true" className="size-5 rtl:rotate-180" />
         </span>
       </Banner>
       <div className="flex flex-col gap-3 px-[22px] pb-6 pt-5">
@@ -156,7 +168,9 @@ function VenuePagePreview({ venue, now }: { venue: ManagedVenue; now: Date }) {
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <p className="font-expanded text-h1">{venue.name}</p>
             <p className="text-meta text-muted-foreground">
-              {[venue.city, venue.country].filter(Boolean).join(", ")}
+              {[venue.city, venue.country]
+                .filter(Boolean)
+                .join(common.listSeparator)}
             </p>
           </div>
         </div>
@@ -164,11 +178,11 @@ function VenuePagePreview({ venue, now }: { venue: ManagedVenue; now: Date }) {
           <p className="text-meta line-clamp-4">{venue.description}</p>
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <Pill>{courtCountLabel(venue.courts.length)}</Pill>
-          <Pill>{openToLabel(windows)}</Pill>
+          <Pill>{courtCountLabel(venue.courts.length, locale)}</Pill>
+          <Pill>{openToLabel(windows, locale)}</Pill>
         </div>
         <p className="text-eyebrow text-muted-foreground mt-2 font-mono uppercase">
-          Day
+          {mobileBooking.venueScreen.day}
         </p>
         <div className="flex gap-2">
           {[0, 1, 2, 3, 4].map((key) => (
@@ -190,14 +204,11 @@ export function AppPreview({
   screen: AppPreviewScreen;
   now: Date;
 }) {
+  const m = useMessages().consoleVenue.photos;
   return (
     <div
       role="img"
-      aria-label={
-        screen === "list"
-          ? "Preview of your venue card in the App's venue list"
-          : "Preview of the top of your venue page in the App"
-      }
+      aria-label={screen === "list" ? m.previewListLabel : m.previewPageLabel}
       className="border-ink bg-paper mx-auto w-full overflow-hidden rounded-[28px] border"
       style={{ maxWidth: PHONE_WIDTH }}
     >

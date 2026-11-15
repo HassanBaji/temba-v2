@@ -134,6 +134,7 @@ describe("loadHome standing", () => {
       const result = await loadHome(db, { userId: viewer.id });
       expect(result.standing).toHaveLength(1);
       expect(result.standing[0]?.position).toBeNull();
+      expect(result.standing[0]?.countedGames).toBe(0);
     } finally {
       await close();
     }

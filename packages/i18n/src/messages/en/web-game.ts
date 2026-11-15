@@ -181,12 +181,15 @@ export const webGame = {
     stepLabel: {
       name: "Name",
       window: "When",
+      place: "Where",
       caps: "Players",
       price: "Price",
       level: "Level range",
       rounds: "Rounds",
       season: "Season",
       mvp: "MVP",
+      teams: "Teams",
+      courts: "Courts",
     },
     stepFailed: (step: string, message: string) => `${step}: ${message}`,
     movedToWaitlist: (n: number) =>

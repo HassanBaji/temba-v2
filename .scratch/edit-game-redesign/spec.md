@@ -14,7 +14,7 @@ One sheet, four short sections, one Save, on web and mobile:
 - The locked Venue and Court sit in the header. The footer shows what changed ("None yet", "Day moved. Season needs a fix.") and the one Save.
 - Save sends the changed sections in order (name, window with any season fix, caps, price, Level range, rounds, season) through the existing doors. A failing step stops the run; the Game reloads with what saved, the draft keeps the rest, and the error names the section.
 - Dropping players allowed under the joined count moves the latest joiners to the Waitlist, latest first, keeping their join time as their place (`games.updateCaps` returns `movedToWaitlist`). Growing the A-side lifts players allowed to two full sides. Neither is allowed once the Football sides are published.
-- A Game links to a Season of its Group (`games.season_id`, ADR-0050). The picker offers "No season" and the Seasons that hold the game day; closed Seasons and Seasons that miss the day are dimmed. Moving the day outside the linked Season shows the fix card: move to the Season that covers the day, unlink, or move the day back.
+- A Game links to a Season of its Group (`games.season_id`, ADR-0082). The picker offers "No season" and the Seasons that hold the game day; closed Seasons and Seasons that miss the day are dimmed. Moving the day outside the linked Season shows the fix card: move to the Season that covers the day, unlink, or move the day back.
 
 ## Pure modules
 

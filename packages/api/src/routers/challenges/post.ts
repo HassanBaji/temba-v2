@@ -144,7 +144,7 @@ export async function postChallenge(
   const locale = args.locale ?? DEFAULT_LOCALE;
   const m = messagesFor(locale);
 
-  const team = await requireTeam(database, input.teamId);
+  const team = await requireTeam(database, input.teamId, locale);
   if (!(await userActsForTeam(database, team, args.userId))) {
     throw new TRPCError({
       code: "FORBIDDEN",

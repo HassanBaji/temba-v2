@@ -5,12 +5,15 @@ import {
   footballFormatNote,
   footballSideSizeStep,
   gameEditChangeNote,
+  gameEditChangedSections,
   gameEditDraftFrom,
   gameEditPlan,
   gameEditSeasonFix,
   gameEditSectionsFor,
+  gameEditVenueChoices,
   playersAllowedForSideSize,
   playersCapWaitNote,
+  teamsCapWaitNote,
   venueLockedLine,
   windowDurationLabel,
   type GameEditDraft,
@@ -38,6 +41,10 @@ const saved: GameEditDraft = {
   levelMax: "none",
   roundCount: null,
   seasonId: "s3",
+  venueId: "v1",
+  courtId: "pitch-1",
+  teamCount: null,
+  courtIds: [],
 };
 
 const s3: GroupSeasonData = {
@@ -69,6 +76,8 @@ describe("gameEditDraftFrom", () => {
       levelMaxTenths: null,
       roundCount: null,
       seasonId: "s3",
+      venueId: "v1",
+      recordedCourts: [{ id: "pitch-1" }],
     });
     expect(draft).toEqual({
       customName: "Monday kickabout",
@@ -82,14 +91,43 @@ describe("gameEditDraftFrom", () => {
       levelMax: "none",
       roundCount: null,
       seasonId: "s3",
+      venueId: "v1",
+      courtId: "pitch-1",
+      teamCount: null,
+      courtIds: ["pitch-1"],
     });
+  });
+
+  it("reads the Court from the live Match before the recorded one", () => {
+    expect(
+      gameEditDraftFrom({
+        name: null,
+        windowStart: null,
+        windowEnd: null,
+        pricePerPlayerFils: null,
+        playersAllowed: 4,
+        sideSize: null,
+        levelMinTenths: null,
+        levelMaxTenths: null,
+        roundCount: null,
+        seasonId: null,
+        matches: [
+          { status: "cancelled", courtId: "old" },
+          { status: "scheduled", courtId: "court-2" },
+        ],
+        recordedCourts: [],
+      }).courtId,
+    ).toBe("court-2");
   });
 
   it("shows the sections a Game needs", () => {
     expect(football).toEqual({
       name: true,
       window: true,
+      place: true,
       caps: true,
+      teams: false,
+      courts: false,
       price: true,
       level: false,
       rounds: false,
@@ -105,12 +143,89 @@ describe("gameEditDraftFrom", () => {
     ).toEqual({
       name: false,
       window: true,
+      place: false,
       caps: false,
+      teams: true,
+      courts: true,
       price: true,
       level: true,
       rounds: true,
       season: false,
     });
+  });
+});
+
+describe("place section", () => {
+  it("locks the place of a booked or Challenge Game", () => {
+    const base = {
+      format: "friendly_game",
+      sport: "padel",
+      groupId: null,
+      tournamentRounds: false,
+    };
+    expect(gameEditSectionsFor({ ...base, booked: true }).place).toBe(false);
+    expect(gameEditSectionsFor({ ...base, challenge: true }).place).toBe(false);
+    expect(gameEditSectionsFor(base).place).toBe(true);
+  });
+
+  it("sends the place after the window and names a football Court a pitch", () => {
+    const draft = { ...saved, startTime: "20:00", courtId: "pitch-2" };
+    const plan = gameEditPlan(saved, draft, football, "en");
+    expect(plan.ok && plan.steps.map((step) => step.kind)).toEqual([
+      "window",
+      "place",
+    ]);
+    expect(plan.ok && plan.steps[1]).toEqual({
+      kind: "place",
+      venueId: "v1",
+      courtId: "pitch-2",
+    });
+    expect(
+      gameEditChangeNote(saved, { ...saved, courtId: null }, football, "en"),
+    ).toBe("Pitch changed");
+    expect(
+      gameEditChangeNote(
+        { ...saved, sideSize: null },
+        { ...saved, sideSize: null, courtId: null },
+        football,
+        "en",
+      ),
+    ).toBe("Court changed");
+  });
+
+  it("sends a new Venue with its Court and calls it a venue move", () => {
+    const draft = { ...saved, venueId: "v2", courtId: null };
+    expect(gameEditPlan(saved, draft, football, "en")).toMatchObject({
+      ok: true,
+      steps: [{ kind: "place", venueId: "v2", courtId: null }],
+    });
+    expect(gameEditChangeNote(saved, draft, football, "en")).toBe(
+      "Venue moved",
+    );
+  });
+
+  it("offers each Venue's Courts of the sport and keeps the Game's own Venue", () => {
+    const venues = [
+      {
+        id: "v2",
+        name: "Marina",
+        courts: [
+          { id: "p1", name: "Pitch 1", sport: "football" },
+          { id: "c1", name: "Court 1", sport: "padel" },
+        ],
+      },
+    ];
+    expect(
+      gameEditVenueChoices(venues, "football", { id: "v1", name: "Old" }),
+    ).toEqual([
+      { id: "v1", name: "Old", courts: [] },
+      { id: "v2", name: "Marina", courts: [{ id: "p1", name: "Pitch 1" }] },
+    ]);
+    expect(
+      gameEditVenueChoices(venues, "padel", { id: "v2", name: "Marina" }),
+    ).toEqual([
+      { id: "v2", name: "Marina", courts: [{ id: "c1", name: "Court 1" }] },
+    ]);
   });
 });
 
@@ -312,6 +427,66 @@ describe("Arabic copy", () => {
     );
     expect(venueLockedLine("Karbabad Turf", "Pitch 2", "ar")).toBe(
       `${isolate("Karbabad Turf")}، ${isolate("Pitch 2")}. لا يمكن تغيير النادي.`,
+    );
+  });
+});
+
+describe("tournament teams and courts", () => {
+  const tournament = gameEditSectionsFor({
+    format: "friendly_tournament",
+    sport: "padel",
+    groupId: "g1",
+    tournamentRounds: true,
+  });
+  const before: GameEditDraft = {
+    ...saved,
+    playersAllowed: 16,
+    sideSize: null,
+    teamCount: 8,
+    courtIds: ["c1", "c2"],
+  };
+
+  it("locks the team count once the draw is posted", () => {
+    expect(
+      gameEditSectionsFor({
+        format: "friendly_tournament",
+        sport: "padel",
+        groupId: "g1",
+        tournamentRounds: true,
+        drawPosted: true,
+      }),
+    ).toMatchObject({ teams: false, courts: true });
+  });
+
+  it("plans a teams step and a courts step, courts compared as a set", () => {
+    expect(
+      gameEditChangedSections(
+        before,
+        { ...before, courtIds: ["c2", "c1"] },
+        tournament,
+      ),
+    ).toEqual([]);
+    const plan = gameEditPlan(
+      before,
+      { ...before, teamCount: 6, courtIds: ["c3", "c1"] },
+      tournament,
+      "en",
+    );
+    expect(plan).toMatchObject({
+      ok: true,
+      steps: [
+        { kind: "teams", teamCount: 6 },
+        { kind: "courts", courtIds: ["c1", "c3"] },
+      ],
+    });
+  });
+
+  it("names who moves to the waiting list", () => {
+    expect(teamsCapWaitNote(6, 8, "en")).toBe(
+      "2 of the 8 teams that joined move to the waiting list, latest to join first.",
+    );
+    expect(teamsCapWaitNote(8, 8, "en")).toBe(
+      "Everyone who joined keeps their spot.",
     );
   });
 });

@@ -13,6 +13,8 @@ import {
   gamesHubEmptyLine,
   gamesHubEmptySeats,
   gamesHubEmptyTitle,
+  publicGamesEmptyLine,
+  publicGamesEmptyTitle,
 } from "@repo/domain/games-hub-empty-states";
 import { groupsTabQuery } from "@repo/domain/groups-tab";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -79,6 +81,39 @@ export function GamesHubUpcomingEmpty({
           </Link>
         </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The Public tab with no Public Game to show: an open Game drawn with every
+ * seat hatched, and the way to make one.
+ */
+export function GamesHubPublicEmpty({
+  sportFilter,
+}: {
+  sportFilter: SportFilter;
+}) {
+  const locale = useLocale();
+  const m = useMessages();
+  return (
+    <div className="flex flex-col gap-[22px]">
+      <section className={cardFrame}>
+        <div className="flex flex-col gap-[18px] p-5">
+          <div aria-hidden="true" className="flex flex-wrap gap-1.5">
+            {Array.from({ length: gamesHubEmptySeats(sportFilter) }, (_, i) => (
+              <span key={i} className="hatch size-[34px] rounded-[9px]" />
+            ))}
+          </div>
+          <EmptyHeading
+            title={publicGamesEmptyTitle(locale)}
+            line={publicGamesEmptyLine(sportFilter, locale)}
+          />
+        </div>
+      </section>
+      <Button asChild size="lg" className="text-body w-full font-semibold">
+        <Link href="/dashboard/games/new">{m.webGame.hubEmpty.createGame}</Link>
+      </Button>
     </div>
   );
 }

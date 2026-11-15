@@ -19,5 +19,5 @@ if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='temba'
   sudo -u postgres createdb temba
 fi
 
-# Apply schema migrations (no-op when already up to date).
-pnpm exec turbo run db:migrate
+# Apply schema migrations to the local database (no-op when already up to date).
+bash scripts/cloud/local-database.sh pnpm exec turbo run db:migrate

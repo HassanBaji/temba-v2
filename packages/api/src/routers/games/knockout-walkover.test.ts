@@ -18,29 +18,18 @@ import {
   knockoutChampion,
   type KnockoutViewRound,
 } from "@repo/domain/tournament-knockout-view";
-import { addSet } from "#src/routers/games/addSet";
 import { gameById } from "#src/routers/games/byId";
 import { cancelGame } from "#src/routers/games/cancel";
-import {
-  KNOCKOUT_MATCH_ALREADY_COMPLETED_MESSAGE,
-  POOL_MATCH_NOT_AWARDED_MESSAGE,
-  cancelMatch,
-} from "#src/routers/games/cancelMatch";
-import { completeMatch } from "#src/routers/games/completeMatch";
+import { cancelMatch } from "#src/routers/games/cancelMatch";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
+import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { kick } from "#src/routers/games/kick";
 import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
 import { listPoolTables } from "#src/routers/games/poolTables";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
-import { scoreSet } from "#src/routers/games/scoreSet";
-import {
-  POOL_CORRECTION_REFUSED_MESSAGE,
-  WALKOVER_TEAM_NOT_ON_MATCH_MESSAGE,
-  WALKOVER_TEAM_REQUIRED_MESSAGE,
-} from "#src/games/knockout-advance";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 const AFTER_THE_DAY = new Date("2026-09-21T12:00:00");
@@ -240,24 +229,13 @@ async function settle(
   match: { id: string },
   winner: 1 | 2,
 ) {
-  const set = await addSet(database, {
+  tick();
+  await enterTournamentScore(database, {
     gameId: seeded.gameId,
     matchId: match.id,
-    userId: seeded.owner.id,
-  });
-  await scoreSet(database, {
-    gameId: seeded.gameId,
-    matchId: match.id,
-    setId: set.id,
     userId: seeded.owner.id,
     slot1GamesWon: winner === 1 ? 6 : 2,
     slot2GamesWon: winner === 1 ? 2 : 6,
-  });
-  tick();
-  await completeMatch(database, {
-    gameId: seeded.gameId,
-    matchId: match.id,
-    userId: seeded.owner.id,
   });
 }
 
@@ -324,7 +302,7 @@ describe("cancelling a Knockout Match with both sides present", () => {
             matchId: q2.id,
           }),
         "BAD_REQUEST",
-        WALKOVER_TEAM_REQUIRED_MESSAGE,
+        "Choose which team goes through",
       );
       await expectRefused(
         () =>
@@ -335,7 +313,7 @@ describe("cancelling a Knockout Match with both sides present", () => {
             advancingGameTeamId: seeded.team(1),
           }),
         "BAD_REQUEST",
-        WALKOVER_TEAM_NOT_ON_MATCH_MESSAGE,
+        "That team is not on this Match",
       );
 
       const unchanged = await matchAt(db, seeded.gameId, 1, 2);
@@ -430,7 +408,7 @@ describe("cancelling a Knockout Match with both sides present", () => {
             advancingGameTeamId: seeded.team(5),
           }),
         "BAD_REQUEST",
-        KNOCKOUT_MATCH_ALREADY_COMPLETED_MESSAGE,
+        "This Knockout Match is already completed",
       );
       expect((await matchAt(db, seeded.gameId, 1, 2)).status).toBe(
         MatchStatusEnum.COMPLETED,
@@ -462,7 +440,7 @@ describe("cancelling a Knockout Match with one side present", () => {
             advancingGameTeamId: seeded.team(3),
           }),
         "BAD_REQUEST",
-        WALKOVER_TEAM_NOT_ON_MATCH_MESSAGE,
+        "That team is not on this Match",
       );
 
       await cancelMatch(db, {
@@ -739,7 +717,7 @@ describe("Pool Matches and the tournament keep their cancel rules", () => {
             advancingGameTeamId: first!.slot1GameTeamId!,
           }),
         "BAD_REQUEST",
-        POOL_MATCH_NOT_AWARDED_MESSAGE,
+        "A Pool Match is voided, not awarded, so no team goes through",
       );
       await cancelMatch(db, {
         gameId: seeded.gameId,
@@ -779,7 +757,7 @@ describe("Pool Matches and the tournament keep their cancel rules", () => {
             userId: seeded.owner.id,
           }),
         "CONFLICT",
-        POOL_CORRECTION_REFUSED_MESSAGE,
+        "A Knockout Match has started, so this group result can no longer be reversed",
       );
       expect((await matchAt(db, seeded.gameId, 2, 1)).slot2GameTeamId).toBe(
         seeded.team(2),

@@ -389,7 +389,9 @@ function NewTeamForm() {
                         <span
                           className={cn(
                             "text-[11px] leading-4",
-                            selected ? "text-dim" : "text-muted-foreground",
+                            selected
+                              ? "text-on-control-muted"
+                              : "text-muted-foreground",
                           )}
                         >
                           {choice.detail}

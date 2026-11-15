@@ -666,6 +666,230 @@
       "when": 1794224310186,
       "tag": "0094_team_image",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1794238756468,
+      "tag": "0095_clerk_user_deletion",
+      "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1794240934344,
+      "tag": "0096_proposal_change_count",
+      "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1794241228822,
+      "tag": "0097_booking_payment_refund_pending",
+      "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1794241917876,
+      "tag": "0098_rating_event_band_before",
+      "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1794242063334,
+      "tag": "0099_audit_indexes_constraints",
+      "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1794417132523,
+      "tag": "0100_game_moved_to_waitlist",
+      "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1794468039842,
+      "tag": "0101_game_album_and_notes",
+      "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1794479218529,
+      "tag": "0102_game_team_changed",
+      "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1794498019002,
+      "tag": "0103_member_nicknames",
+      "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1794500887003,
+      "tag": "0104_guest_players",
+      "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1794500888003,
+      "tag": "0105_group_tiers",
+      "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1794500889003,
+      "tag": "0106_tier_adjustment_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1794500890003,
+      "tag": "0107_group_rating_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1794500891003,
+      "tag": "0108_performance_ratings",
+      "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1794500892003,
+      "tag": "0109_performance_ratings_closed",
+      "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1794500893003,
+      "tag": "0110_football_level_parts",
+      "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1794500894003,
+      "tag": "0111_level_override_note_and_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 112,
+      "version": "7",
+      "when": 1794500895003,
+      "tag": "0112_padel_group_games_unrated",
+      "breakpoints": true
+    },
+    {
+      "idx": 113,
+      "version": "7",
+      "when": 1794500896003,
+      "tag": "0113_venue_partner",
+      "breakpoints": true
+    },
+    {
+      "idx": 114,
+      "version": "7",
+      "when": 1794505599954,
+      "tag": "0114_match_stood_unconfirmed",
+      "breakpoints": true
+    },
+    {
+      "idx": 115,
+      "version": "7",
+      "when": 1794515026577,
+      "tag": "0115_venue_verifiers",
+      "breakpoints": true
+    },
+    {
+      "idx": 116,
+      "version": "7",
+      "when": 1794519132606,
+      "tag": "0116_match_verifier_stamps",
+      "breakpoints": true
+    },
+    {
+      "idx": 117,
+      "version": "7",
+      "when": 1794523108245,
+      "tag": "0117_match_disputes",
+      "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1794533575082,
+      "tag": "0118_level_confirmed_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1794562145317,
+      "tag": "0119_user_is_operator",
+      "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1794577794434,
+      "tag": "0120_match_dispute_superseded",
+      "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1794588828114,
+      "tag": "0121_tier_event_member_count",
+      "breakpoints": true
+    },
+    {
+      "idx": 122,
+      "version": "7",
+      "when": 1794662151012,
+      "tag": "0122_king_of_the_court",
+      "breakpoints": true
+    },
+    {
+      "idx": 123,
+      "version": "7",
+      "when": 1794666466915,
+      "tag": "0123_king_of_the_court_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 124,
+      "version": "7",
+      "when": 1794728758928,
+      "tag": "0124_game_payments",
+      "breakpoints": true
+    },
+    {
+      "idx": 125,
+      "version": "7",
+      "when": 1794730130903,
+      "tag": "0125_king_place_awards",
+      "breakpoints": true
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1794736918409,
+      "tag": "0126_tournament_rounds_shape",
+      "breakpoints": true
     }
   ]
 }

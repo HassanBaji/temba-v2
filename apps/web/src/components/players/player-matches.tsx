@@ -61,7 +61,7 @@ export function PlayerMatches({ userId }: { userId: string }) {
     return (
       <ErrorState
         title={m.webUi.player.gamesLoadError}
-        message={profile.error?.message}
+        error={profile.error}
         onRetry={() => {
           void profile.refetch();
         }}

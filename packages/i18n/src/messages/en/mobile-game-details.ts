@@ -135,12 +135,15 @@ export const mobileGameDetails = {
     step: {
       name: "Name",
       window: "When",
+      place: "Where",
       caps: "Players",
       price: "Price",
       level: "Level range",
       rounds: "Rounds",
       season: "Season",
       mvp: "MVP",
+      teams: "Teams",
+      courts: "Courts",
     },
     movedToWaitlist: (n: number) =>
       plural("en", n, {

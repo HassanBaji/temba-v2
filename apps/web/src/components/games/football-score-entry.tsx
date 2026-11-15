@@ -7,7 +7,7 @@ import {
   scorersNote,
   scorersPayload,
   shortName,
-  sideAverage,
+  sideOvrAverage,
   type Bibs,
   type BoardPlayer,
   type ScoreDraft,
@@ -23,6 +23,7 @@ import {
   formatWindowDuration,
 } from "@repo/domain/format-game-start";
 import { sideSizeLabel } from "@repo/domain/game-shape";
+import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { Minus, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -36,7 +37,9 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 import { BibChip } from "./football-bibs";
 import { sideMembers } from "./football-team-columns";
@@ -55,6 +58,7 @@ function SideStepper({
   onStep: (delta: -1 | 1) => void;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   const t = m.webTournament.footballScore;
   return (
     <div className="flex flex-1 flex-col items-center gap-2.5 py-5">
@@ -88,7 +92,7 @@ function SideStepper({
         </Button>
       </div>
       <span className="text-muted-foreground text-meta">
-        {m.game.played.avg(sideAverage(members))}
+        {m.game.played.avg(sideOvrAverage(members, locale))}
       </span>
     </div>
   );
@@ -131,7 +135,7 @@ function ScorerChip({
         <span
           className={cn(
             "text-[12px]",
-            scored ? "text-dim" : "text-muted-foreground",
+            scored ? "text-on-control-muted" : "text-muted-foreground",
           )}
         >
           {scored ? m.game.played.goals(goals) : team}
@@ -142,7 +146,7 @@ function ScorerChip({
           type="button"
           aria-label={t.takeGoalAway(player.name)}
           onClick={onRemove}
-          className="border-dimrule focus-visible:ring-ring/50 flex h-full items-center border-s px-2 outline-none focus-visible:ring-[3px]"
+          className="border-control-rule focus-visible:ring-ring/50 flex h-full items-center border-s px-2 outline-none focus-visible:ring-[3px]"
         >
           <Minus aria-hidden="true" className="size-3.5" />
         </button>
@@ -162,9 +166,19 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
   const router = useRouter();
   const utils = api.useUtils();
   const game = api.games.byId.useQuery({ id: gameId });
-  const board = api.games.footballBoard.useQuery({ gameId });
+  const isFootball = game.data ? isFootballRosterGame(game.data) : null;
+  const board = api.games.footballBoard.useQuery(
+    { gameId },
+    { enabled: isFootball === true },
+  );
   const [draft, setDraft] = React.useState<ScoreDraft | null>(null);
   const gameHref = `/dashboard/games/${gameId}`;
+
+  React.useEffect(() => {
+    if (isFootball === false) {
+      router.replace(gameHref);
+    }
+  }, [isFootball, router, gameHref]);
 
   React.useEffect(() => {
     if (board.data && draft == null) {
@@ -183,12 +197,14 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
   }, [board.data, draft]);
 
   const save = api.games.saveFootballScore.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(t.savedToast);
       await Promise.all([
         utils.games.footballBoard.invalidate({ gameId }),
         utils.games.byId.invalidate({ id: gameId }),
         utils.games.listMyGames.invalidate(),
+        invalidateRatingReads(utils),
       ]);
       router.push(gameHref);
     },
@@ -219,12 +235,18 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
     .join(". ");
 
   let body: React.ReactNode;
-  if (board.error) {
+  const loadError = game.error ?? board.error;
+  if (loadError) {
     body = (
       <ErrorState
         title={t.loadFailed}
-        message={board.error.message}
-        onRetry={() => void board.refetch()}
+        error={loadError}
+        onRetry={() => {
+          void game.refetch();
+          if (isFootball) {
+            void board.refetch();
+          }
+        }}
       />
     );
   } else if (board.data && (!teams || !board.data.viewer.canEnterScore)) {

@@ -1,9 +1,11 @@
 import { and, eq } from "drizzle-orm";
+import type { JobHelpers } from "graphile-worker";
 import { z } from "zod";
 
 import { bookingPayments, paymentWebhookDeliveries, type Db } from "@repo/db";
 
 import { applyChargeState } from "#src/bookings/payments";
+import { logPaymentJobGaveUp } from "#src/jobs/handler";
 import { JOB, MAX_ATTEMPTS } from "#src/jobs/specs";
 import { paymentProvider } from "#src/payments/index";
 
@@ -14,11 +16,30 @@ export const maxAttempts = MAX_ATTEMPTS.processWebhook;
 export async function handle(
   db: Db,
   payload: z.infer<typeof payloadSchema>,
-  _helpers?: unknown,
+  helpers?: Pick<JobHelpers, "job">,
   now: Date = new Date(),
 ): Promise<void> {
+  const ids: { deliveryId: string; reference?: string; paymentId?: string } = {
+    deliveryId: payload.deliveryId,
+  };
+  try {
+    await processDelivery(db, payload.deliveryId, ids, now);
+  } catch (error) {
+    if (helpers && helpers.job.attempts >= helpers.job.max_attempts) {
+      logPaymentJobGaveUp(jobName, ids, error);
+    }
+    throw error;
+  }
+}
+
+async function processDelivery(
+  db: Db,
+  deliveryId: string,
+  ids: { reference?: string; paymentId?: string },
+  now: Date,
+) {
   const delivery = await db.query.paymentWebhookDeliveries.findFirst({
-    where: eq(paymentWebhookDeliveries.id, payload.deliveryId),
+    where: eq(paymentWebhookDeliveries.id, deliveryId),
   });
   if (!delivery || delivery.processedAt) {
     return;
@@ -35,6 +56,7 @@ export async function handle(
       .where(eq(paymentWebhookDeliveries.id, delivery.id));
     return;
   }
+  ids.reference = verified.reference;
 
   const payment = await db.query.bookingPayments.findFirst({
     where: and(
@@ -46,6 +68,7 @@ export async function handle(
     // The webhook can outrun create-charge storing the reference; retry.
     throw new Error(`No Payment for charge ${verified.reference} yet`);
   }
+  ids.paymentId = payment.id;
 
   await db.transaction(async (tx) => {
     await applyChargeState(tx, {

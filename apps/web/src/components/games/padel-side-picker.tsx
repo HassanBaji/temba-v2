@@ -12,7 +12,7 @@ import { cn } from "~/lib/utils";
 /** A two-cell court half: the filled cell is the side, Either hatches both. */
 function SideGlyph({ side, onInk }: { side: SideChoice; onInk: boolean }) {
   const filled = onInk ? "bg-on-control" : "bg-ink";
-  const hatched = onInk ? "hatch hatch-on-ink" : "hatch";
+  const hatched = onInk ? "hatch hatch-on-control" : "hatch";
   const cell = (on: boolean) =>
     side === "either" ? hatched : on ? filled : "bg-transparent";
   return (

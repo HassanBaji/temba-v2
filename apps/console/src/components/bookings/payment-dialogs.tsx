@@ -14,15 +14,16 @@ import {
 import { Button } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import {
+  filsToMajorInput,
   formatBookingPriceFils,
   parseOptionalPricePerPlayerFils,
 } from "@repo/domain/price-per-player";
 
 import { FilterSelect } from "./filter-select";
 import {
-  MANUAL_METHODS,
+  manualMethodOptions,
   usePaymentMutations,
   type ManualMethod,
   type RefundResult,
@@ -43,6 +44,8 @@ export function MarkPaidDialog({
   priceFils: number;
   restoreFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
+  const { consoleBookings: m, common } = useMessages();
+  const locale = useLocale();
   const [method, setMethod] = React.useState<ManualMethod>("cash");
   const [reference, setReference] = React.useState("");
   const { settle } = usePaymentMutations(bookingId);
@@ -84,26 +87,29 @@ export function MarkPaidDialog({
       >
         <form onSubmit={onSubmit} className="flex flex-col gap-[18px]">
           <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>Mark as paid</ResponsiveDialogTitle>
+            <ResponsiveDialogTitle>{m.markPaid.title}</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              {formatBookingPriceFils(priceFils, CONSOLE_LOCALE)} taken at the
-              Venue.
+              {m.markPaid.description(
+                formatBookingPriceFils(priceFils, locale),
+              )}
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field>
-              <FieldLabel htmlFor={`method-${bookingId}`}>Method</FieldLabel>
+              <FieldLabel htmlFor={`method-${bookingId}`}>
+                {m.markPaid.method}
+              </FieldLabel>
               <FilterSelect
                 id={`method-${bookingId}`}
                 value={method}
                 onChange={(value) => setMethod(value as ManualMethod)}
-                options={MANUAL_METHODS}
+                options={manualMethodOptions(m)}
                 className="w-full"
               />
             </Field>
             <Field>
               <FieldLabel htmlFor={`reference-${bookingId}`}>
-                Reference, optional
+                {m.markPaid.reference}
               </FieldLabel>
               <Input
                 id={`reference-${bookingId}`}
@@ -122,15 +128,15 @@ export function MarkPaidDialog({
               disabled={settle.isPending}
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {common.cancel}
             </Button>
             <Button
               type="submit"
               className={controlClass}
               pending={settle.isPending}
-              pendingLabel="Saving…"
+              pendingLabel={common.saving}
             >
-              Mark as paid
+              {m.markPaid.title}
             </Button>
           </ResponsiveDialogFooter>
         </form>
@@ -154,13 +160,15 @@ export function RefundDialog({
   onRefund?: (result: RefundResult) => void;
   restoreFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
+  const { consoleBookings: m, common } = useMessages();
+  const locale = useLocale();
   const [amount, setAmount] = React.useState("");
   const [reference, setReference] = React.useState("");
   const { refund } = usePaymentMutations(bookingId, { onRefund });
 
   React.useEffect(() => {
     if (open) {
-      setAmount((refundableFils / 1000).toFixed(3));
+      setAmount(filsToMajorInput(refundableFils));
       setReference("");
     }
   }, [open, refundableFils]);
@@ -170,14 +178,14 @@ export function RefundDialog({
     if (refund.isPending) {
       return;
     }
-    const parsed = parseOptionalPricePerPlayerFils(amount, CONSOLE_LOCALE);
+    const parsed = parseOptionalPricePerPlayerFils(amount, locale);
     if (!parsed.ok || parsed.fils === null || parsed.fils <= 0) {
-      toast.error("Enter a refund amount");
+      toast.error(m.refund.enterAmount);
       return;
     }
     if (parsed.fils > refundableFils) {
       toast.error(
-        `At most ${formatBookingPriceFils(refundableFils, CONSOLE_LOCALE)} can be refunded`,
+        m.refund.atMost(formatBookingPriceFils(refundableFils, locale)),
       );
       return;
     }
@@ -207,16 +215,17 @@ export function RefundDialog({
       >
         <form onSubmit={onSubmit} className="flex flex-col gap-[18px]">
           <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>Record refund</ResponsiveDialogTitle>
+            <ResponsiveDialogTitle>{m.refund.title}</ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              Up to {formatBookingPriceFils(refundableFils, CONSOLE_LOCALE)} can
-              still be refunded.
+              {m.refund.description(
+                formatBookingPriceFils(refundableFils, locale),
+              )}
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field>
               <FieldLabel htmlFor={`refund-amount-${bookingId}`}>
-                Amount (BD)
+                {m.refund.amount}
               </FieldLabel>
               <Input
                 id={`refund-amount-${bookingId}`}
@@ -228,7 +237,7 @@ export function RefundDialog({
             </Field>
             <Field>
               <FieldLabel htmlFor={`refund-reference-${bookingId}`}>
-                Reference, optional
+                {m.refund.reference}
               </FieldLabel>
               <Input
                 id={`refund-reference-${bookingId}`}
@@ -247,15 +256,15 @@ export function RefundDialog({
               disabled={refund.isPending}
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {common.cancel}
             </Button>
             <Button
               type="submit"
               className={controlClass}
               pending={refund.isPending}
-              pendingLabel="Refunding…"
+              pendingLabel={m.refund.refunding}
             >
-              Record refund
+              {m.refund.title}
             </Button>
           </ResponsiveDialogFooter>
         </form>

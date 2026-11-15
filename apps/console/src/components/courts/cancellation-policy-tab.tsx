@@ -17,7 +17,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { describeCancellationPolicy } from "@repo/domain/booking-refund";
 import {
   CANCELLATION_POLICY_PRESETS,
@@ -51,6 +51,9 @@ function CancellationPolicyDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { consoleCourts, common } = useMessages();
+  const m = consoleCourts.policy;
+  const locale = useLocale();
   const venue = useManagedVenue();
   const utils = api.useUtils();
   const [policy, setPolicy] = React.useState<CancellationPolicy>(
@@ -65,7 +68,7 @@ function CancellationPolicyDialog({
 
   const update = api.venues.updateCancellationPolicy.useMutation({
     onSuccess: async () => {
-      toast.success("Cancellation policy saved");
+      toast.success(m.savedToast);
       onOpenChange(false);
       await utils.venues.managedById.invalidate({ venueId: venue.id });
     },
@@ -119,11 +122,8 @@ function CancellationPolicyDialog({
           }}
         >
           <DialogHeader>
-            <DialogTitle>Cancellation policy</DialogTitle>
-            <DialogDescription>
-              How much of a Booking is refunded, by how long before it starts.
-              Applies to Bookings made from now on.
-            </DialogDescription>
+            <DialogTitle>{m.title}</DialogTitle>
+            <DialogDescription>{m.description}</DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-wrap gap-2">
@@ -140,7 +140,7 @@ function CancellationPolicyDialog({
                   })
                 }
               >
-                {preset.label}
+                {m.presets[preset.key]}
               </Button>
             ))}
           </div>
@@ -148,8 +148,8 @@ function CancellationPolicyDialog({
           <div className="flex flex-col gap-2.5">
             {policy.tiers.length > 0 ? (
               <div className="eyebrow-mono grid grid-cols-[1fr_1fr_auto] gap-2">
-                <span>Hours before start</span>
-                <span>Refund %</span>
+                <span>{m.hoursBeforeStart}</span>
+                <span>{m.refundPercent}</span>
                 <span className="w-16" />
               </div>
             ) : null}
@@ -163,7 +163,7 @@ function CancellationPolicyDialog({
                   type="number"
                   inputMode="numeric"
                   min={1}
-                  aria-label={`Tier ${index + 1} hours before start`}
+                  aria-label={m.tierHours(index + 1)}
                   value={numberInput(tier.hoursBefore)}
                   onChange={(event) =>
                     setTier(index, {
@@ -177,7 +177,7 @@ function CancellationPolicyDialog({
                   inputMode="numeric"
                   min={0}
                   max={100}
-                  aria-label={`Tier ${index + 1} refund percent`}
+                  aria-label={m.tierPercent(index + 1)}
                   value={numberInput(tier.refundPercent)}
                   onChange={(event) =>
                     setTier(index, {
@@ -189,7 +189,7 @@ function CancellationPolicyDialog({
                   type="button"
                   variant="outline"
                   className={cn(outlineButtonClass, "h-9 min-h-9 w-16 px-0")}
-                  aria-label={`Remove tier ${index + 1}`}
+                  aria-label={m.removeTier(index + 1)}
                   onClick={() =>
                     setPolicy({
                       ...policy,
@@ -197,7 +197,7 @@ function CancellationPolicyDialog({
                     })
                   }
                 >
-                  Remove
+                  {m.remove}
                 </Button>
               </div>
             ))}
@@ -207,14 +207,14 @@ function CancellationPolicyDialog({
               disabled={policy.tiers.length >= MAX_CANCELLATION_TIERS}
               onClick={addTier}
             >
-              Add tier
+              {m.addTier}
             </button>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="late-refund-percent" className="text-meta">
-                Refund % after the last tier
+                {m.lateRefund}
               </Label>
               <Input
                 id="late-refund-percent"
@@ -234,7 +234,7 @@ function CancellationPolicyDialog({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="customer-cancel-until" className="text-meta">
-                In-app cancel until (min before)
+                {m.cancelUntil}
               </Label>
               <Input
                 id="customer-cancel-until"
@@ -255,14 +255,12 @@ function CancellationPolicyDialog({
           </div>
 
           <div className="border-border rounded-block border px-3.5 py-3">
-            <p className="eyebrow-mono mb-1.5">What players see</p>
+            <p className="eyebrow-mono mb-1.5">{m.playersSee}</p>
             {parsed.success ? (
               <ul className="text-meta flex flex-col gap-0.5">
-                {describeCancellationPolicy(parsed.data, CONSOLE_LOCALE).map(
-                  (line) => (
-                    <li key={line}>{line}</li>
-                  ),
-                )}
+                {describeCancellationPolicy(parsed.data, locale).map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
               </ul>
             ) : (
               <p role="alert" className="text-destructive text-meta">
@@ -279,16 +277,16 @@ function CancellationPolicyDialog({
               disabled={update.isPending}
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {common.cancel}
             </Button>
             <Button
               type="submit"
               className={inkButtonClass}
               disabled={Boolean(problem)}
               pending={update.isPending}
-              pendingLabel="Saving…"
+              pendingLabel={common.saving}
             >
-              Save policy
+              {m.save}
             </Button>
           </DialogFooter>
         </form>
@@ -298,23 +296,23 @@ function CancellationPolicyDialog({
 }
 
 export function CancellationPolicyCard() {
+  const m = useMessages().consoleCourts.policy;
+  const locale = useLocale();
   const venue = useManagedVenue();
   const [editing, setEditing] = React.useState(false);
-  const lines = cancellationPolicyLines(venue.cancellationPolicy);
+  const lines = cancellationPolicyLines(venue.cancellationPolicy, locale);
 
   return (
     <section className="border-border rounded-card flex flex-1 flex-col gap-3 border px-5 py-[18px]">
-      <h2 className="text-body font-semibold">Cancellation policy</h2>
-      <p className="text-muted-foreground text-eyebrow">
-        Shown to every player before they pay.
-      </p>
+      <h2 className="text-body font-semibold">{m.title}</h2>
+      <p className="text-muted-foreground text-eyebrow">{m.shownToPlayers}</p>
       {lines.map((line) => (
         <div
           key={line.label}
           className="text-meta flex items-center justify-between gap-4"
         >
           <span className="text-muted-foreground">{line.label}</span>
-          <span className="text-right">{line.value}</span>
+          <span className="text-end">{line.value}</span>
         </div>
       ))}
       <Button
@@ -323,7 +321,7 @@ export function CancellationPolicyCard() {
         className={cn(outlineButtonClass, "mt-auto w-full")}
         onClick={() => setEditing(true)}
       >
-        Edit policy
+        {m.editPolicy}
       </Button>
       <CancellationPolicyDialog open={editing} onOpenChange={setEditing} />
     </section>

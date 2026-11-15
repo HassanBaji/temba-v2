@@ -12,7 +12,7 @@ import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { formatDayMonth } from "@repo/domain/format-game-start";
 import { productDayKey } from "@repo/domain/product-timezone";
 
@@ -27,12 +27,9 @@ import { WeekCalendar } from "./week-calendar";
 
 const CALENDAR_STATUSES = ["confirmed", "pending_payment", "no_show"] as const;
 
-const VIEWS = [
-  { value: "day", label: "Day" },
-  { value: "week", label: "Week" },
-] as const;
+const VIEWS = ["day", "week"] as const;
 
-type View = (typeof VIEWS)[number]["value"];
+type View = (typeof VIEWS)[number];
 
 function useNow(intervalMs = 60_000) {
   const [now, setNow] = useState(() => new Date());
@@ -44,6 +41,8 @@ function useNow(intervalMs = 60_000) {
 }
 
 export function ScheduleScreen() {
+  const m = useMessages().consoleSchedule;
+  const locale = useLocale();
   const venue = useManagedVenue();
   const now = useNow();
   const today = productDayKey(now);
@@ -88,7 +87,6 @@ export function ScheduleScreen() {
     { placeholderData: keepPreviousData },
   );
   const step = view === "week" ? 7 : 1;
-  const unit = view === "week" ? "week" : "day";
 
   const data = calendar.data;
   const selected = data?.bookings.find((b) => b.id === selectedId) ?? null;
@@ -103,17 +101,20 @@ export function ScheduleScreen() {
 
   const label =
     view === "week"
-      ? `${formatDayMonth(dayStart(range.from), CONSOLE_LOCALE)} to ${formatDayMonth(dayStart(range.to), CONSOLE_LOCALE)}`
-      : formatDayMonth(dayStart(day), CONSOLE_LOCALE, { weekday: "short" });
+      ? m.weekRange(
+          formatDayMonth(dayStart(range.from), locale),
+          formatDayMonth(dayStart(range.to), locale),
+        )
+      : formatDayMonth(dayStart(day), locale, { weekday: "short" });
   const hint =
     view === "week"
       ? week.includes(today)
-        ? "This week"
+        ? m.thisWeek
         : undefined
       : day === today
-        ? "Today"
+        ? m.today
         : undefined;
-  const takenLabel = view === "day" && day === today ? "taken today" : "taken";
+  const takenLabel = view === "day" && day === today ? m.takenToday : m.taken;
 
   return (
     <ConsolePage className="min-h-0 gap-0 overflow-hidden p-0">
@@ -121,17 +122,17 @@ export function ScheduleScreen() {
         <DateStepper
           label={label}
           hint={hint}
-          previousLabel={`Previous ${unit}`}
-          nextLabel={`Next ${unit}`}
+          previousLabel={view === "week" ? m.previousWeek : m.previousDay}
+          nextLabel={view === "week" ? m.nextWeek : m.nextDay}
           onPrevious={() => setDay(addDays(day, -step))}
           onNext={() => setDay(addDays(day, step))}
           onToday={() => setDay(today)}
         />
         <SegmentedControl
           value={view}
-          options={VIEWS}
+          options={VIEWS.map((value) => ({ value, label: m.views[value] }))}
           onChange={setView}
-          label="Calendar view"
+          label={m.views.label}
         />
         <ScheduleLegend />
         {canBook ? (
@@ -141,7 +142,7 @@ export function ScheduleScreen() {
             onClick={() => startDraft({}, false)}
           >
             <Plus aria-hidden="true" className="size-4" />
-            New booking
+            {m.newBooking}
           </Button>
         ) : null}
       </header>
@@ -157,16 +158,16 @@ export function ScheduleScreen() {
       <div className="border-rule mt-[18px] flex min-h-0 flex-1 border-t">
         <div
           className={cn(
-            "min-w-0 flex-1 overflow-auto pl-7 transition-opacity",
+            "min-w-0 flex-1 overflow-auto ps-7 transition-opacity",
             calendar.isPlaceholderData && "opacity-60",
           )}
           aria-busy={calendar.isFetching || undefined}
         >
           {calendar.isLoading ? (
-            <Skeleton className="mr-7 mt-4 h-80" />
+            <Skeleton className="me-7 mt-4 h-80" />
           ) : calendar.error || !data ? (
             <ErrorState
-              title="Bookings could not be loaded"
+              title={m.loadError}
               message={calendar.error?.message}
               onRetry={() => {
                 void calendar.refetch();

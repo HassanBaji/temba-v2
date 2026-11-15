@@ -1,5 +1,8 @@
 import { TRPCError } from "@trpc/server";
 
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import { isAppointedOrganizer } from "#src/groups/helpers/appointed-organizers";
 import { requireGroup } from "#src/groups/helpers/require-group";
 import { type db } from "#src/db";
@@ -11,8 +14,9 @@ export async function requireGroupInviter(
   database: DbClient,
   groupId: string,
   callerId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
-  const group = await requireGroup(database, groupId);
+  const group = await requireGroup(database, groupId, locale);
 
   if (
     group.createdBy !== callerId &&
@@ -20,7 +24,7 @@ export async function requireGroupInviter(
   ) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the creator or an Organizer can manage invites for this Group",
+      message: messagesFor(locale).group.errors.inviterOnly,
     });
   }
 

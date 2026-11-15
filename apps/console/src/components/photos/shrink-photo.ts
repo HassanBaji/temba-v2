@@ -4,6 +4,8 @@ import {
   fileToBase64,
   type EntityImageContentType,
 } from "@repo/domain/entity-image-file";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 /** Long edge after shrinking: sharp on a retina console and a phone, small enough to stay under 2 MB. */
 export const PHOTO_MAX_EDGE = 2400;
@@ -24,12 +26,16 @@ export function fitWithin(
   };
 }
 
-export function photoFileError(file: { type: string; size: number }) {
+export function photoFileError(
+  file: { type: string; size: number },
+  locale: Locale,
+) {
+  const m = messagesFor(locale).consoleVenue.photos;
   if (!asEntityImageContentType(file.type)) {
-    return "Photo must be a JPEG, PNG, or WebP image";
+    return m.wrongType;
   }
   if (file.size > PHOTO_SOURCE_MAX_BYTES) {
-    return "Photo must be at most 25 MB";
+    return m.tooLarge;
   }
   return null;
 }
@@ -40,7 +46,8 @@ function canvasBlob(canvas: HTMLCanvasElement, quality: number) {
   );
 }
 
-async function shrunkJpeg(file: File): Promise<Blob> {
+async function shrunkJpeg(file: File, locale: Locale): Promise<Blob> {
+  const m = messagesFor(locale).consoleVenue.photos;
   const bitmap = await createImageBitmap(file);
   const size = fitWithin(bitmap.width, bitmap.height, PHOTO_MAX_EDGE);
   const canvas = document.createElement("canvas");
@@ -48,7 +55,7 @@ async function shrunkJpeg(file: File): Promise<Blob> {
   canvas.height = size.height;
   const context = canvas.getContext("2d");
   if (!context) {
-    throw new Error("Photo could not be resized");
+    throw new Error(m.notResized);
   }
   context.drawImage(bitmap, 0, 0, size.width, size.height);
   bitmap.close();
@@ -58,23 +65,26 @@ async function shrunkJpeg(file: File): Promise<Blob> {
       return blob;
     }
   }
-  throw new Error("Photo is too detailed to fit 2 MB. Try a smaller one.");
+  throw new Error(m.tooDetailed);
 }
 
 /** A photo over the API's 2 MB cap is redrawn as a JPEG in the browser before upload. */
-export async function photoUploadInput(file: File): Promise<{
+export async function photoUploadInput(
+  file: File,
+  locale: Locale,
+): Promise<{
   contentType: EntityImageContentType;
   dataBase64: string;
 }> {
-  const error = photoFileError(file);
+  const error = photoFileError(file, locale);
   const contentType = asEntityImageContentType(file.type);
   if (error || !contentType) {
-    throw new Error(error ?? "Photo must be a JPEG, PNG, or WebP image");
+    throw new Error(error ?? messagesFor(locale).consoleVenue.photos.wrongType);
   }
   if (file.size <= ENTITY_IMAGE_MAX_BYTES) {
     return { contentType, dataBase64: await fileToBase64(file) };
   }
-  const shrunk = new File([await shrunkJpeg(file)], file.name, {
+  const shrunk = new File([await shrunkJpeg(file, locale)], file.name, {
     type: "image/jpeg",
   });
   return { contentType: "image/jpeg", dataBase64: await fileToBase64(shrunk) };

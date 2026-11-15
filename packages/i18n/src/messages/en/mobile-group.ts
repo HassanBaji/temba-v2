@@ -20,7 +20,6 @@ export const mobileGroup = {
     tabs: { mine: "Mine", public: "Public" },
     loading: "Loading Groups",
     nextGame: "Next Game",
-    yourFormHere: "your form here",
     filterBySport: "Filter by sport",
     rowSportName: (sport: string, name: string) => `${sport}, ${name}`,
     rowNextGame: (name: string, meta: string, weekday: string) =>
@@ -123,13 +122,13 @@ export const mobileGroup = {
     latestSet: (text: string) => `Latest Level set: ${text}`,
     sheet: {
       viewProfile: "View profile",
+      call: "Call",
       setLevel: "Set Level",
       stillProvisional: "Still Provisional",
       noLevelMark: "–",
     },
   },
   requests: {
-    review: "Review join requests",
     changeWhoCanJoin: "Change who can join",
     row: (name: string, meta: string) => `${name}. ${meta}`,
     quotedNote: (note: string) => `“${note}”`,
@@ -170,6 +169,8 @@ export const mobileGroup = {
     newLevel: "New Level",
     readout: (band: string, level: string, delta: string) =>
       `New Level ${band} ${level}, ${delta}`,
+    readoutOvr: (ovr: string, delta: string) =>
+      `New Level OVR ${ovr}, ${delta}`,
     toNext: (distance: string, label: string) => `${distance} to ${label}`,
     topOfScale: "Top of the scale",
     throughRung: (percent: number, rung: string) =>
@@ -177,8 +178,13 @@ export const mobileGroup = {
     nowMarker: (label: string) => `Now ${label}`,
     decrease: "Decrease Level by 0.1",
     increase: "Increase Level by 0.1",
+    decreaseOvr: "Decrease OVR by 1",
+    increaseOvr: "Increase OVR by 1",
     reset: "Reset",
-    reason: "Reason",
+    why: (name: string) => `Why? ${name} will see this.`,
+    noteLabel: "Note",
+    notePlaceholder: "Add a note (optional)",
+    pickReason: "Pick a reason to save",
     note: "A Level you set counts as confirmed. Rated Matches keep moving it from here.",
     noteProvisional: (firstName: string) =>
       `${firstName} will no longer be Provisional, and setting again will not change that.`,
@@ -189,10 +195,38 @@ export const mobileGroup = {
     savedReason: (reason: string) => `Reason: ${reason}.`,
     dismiss: "Dismiss",
   },
-  setGroupLevel: {
-    groupLevel: (label: string) => `Group level ${label}`,
-    tembaLevel: (label: string) => `Temba level ${label}`,
-    noTembaLevel: "no Temba level yet",
-    tembaMarker: (label: string) => `Temba ${label}`,
+  seasons: {
+    title: "Seasons",
+    manage: "Manage seasons",
+    setUp: "Set up seasons",
+    loadFailed: "Seasons could not be loaded",
+    empty: "No seasons yet. The standing counts every game ever played.",
+    newSeason: "New season",
+    pointsPerGame: "Points per game",
+    winDrawLoss: "Win, draw, loss",
+    close: {
+      ends: "Ends",
+      leader: "Leader",
+      leaderValue: (name: string, points: number) =>
+        plural("en", points, {
+          one: `${name}, 1 pt`,
+          other: `${name}, {n} pts`,
+        }),
+      nobodyRanked: "Nobody ranked yet",
+      levels: "Levels",
+      unchanged: "Unchanged",
+      confirm: "Close season and lock standing",
+      keepOpen: "Keep it open",
+    },
+    create: {
+      title: "New season",
+      name: "Name",
+      nameRequired: "Give the season a name.",
+      starts: "Starts",
+      ends: "Ends",
+      submit: (name: string) => `Create ${name}`,
+      seasonWord: "season",
+      ownerOnly: "Only the Group owner can open a season",
+    },
   },
 };

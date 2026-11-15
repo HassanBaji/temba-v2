@@ -5,9 +5,9 @@
  * Needs a browser that can reach Clerk (every page load does a Clerk
  * handshake in development). Sign-in uses the real /login form, so the
  * `me` persona must be linked to a Clerk dev User (SEED_CLERK_ID_ME) whose
- * username/password you pass here. See scripts/README.md.
+ * phone number (E.164) and password you pass here. See scripts/README.md.
  *
- *   RECORD_USERNAME=... RECORD_PASSWORD=... pnpm --filter web record:flows
+ *   RECORD_PHONE=+1555... RECORD_PASSWORD=... pnpm --filter web record:flows
  *   RECORD_ONLY=home,games-hub   # optional subset
  */
 import { mkdir, rename, rm } from "node:fs/promises";
@@ -19,6 +19,8 @@ import { chromium, type Browser, type Page } from "playwright";
 import { games, groups, teams } from "@repo/db";
 
 import { db } from "@repo/db";
+
+import { signInWithPhone } from "./sign-in";
 
 const BASE_URL = process.env.RECORD_BASE_URL ?? "http://localhost:3000";
 const OUT_DIR = join(process.cwd(), "recordings");
@@ -88,31 +90,6 @@ async function openTab(page: Page, name: RegExp) {
     return;
   }
   console.warn(`    (no "${name.source}" tab on ${page.url()})`);
-}
-
-async function signIn(page: Page, username: string, password: string) {
-  await page.goto(`${BASE_URL}/login`);
-  // The form ignores submit until Clerk has loaded.
-  await page.waitForFunction(
-    () => (window as { Clerk?: { loaded?: boolean } }).Clerk?.loaded === true,
-    undefined,
-    { timeout: 30_000 },
-  );
-  await page.locator("#sign-in-identifier").fill(username);
-  await page.locator("#sign-in-password").fill(password);
-  await page.getByRole("button", { name: /^sign in$/i }).click();
-  await page.waitForURL(/\/(dashboard|onboarding|login\/factor-two)/, {
-    timeout: 30_000,
-  });
-  // Clerk's new-device check. Test phone numbers accept 424242.
-  if (page.url().includes("/login/factor-two")) {
-    await page
-      .locator("#second-factor-code")
-      .fill(process.env.RECORD_OTP ?? "424242");
-    const verify = page.getByRole("button", { name: /^verify$/i });
-    if (await verify.isEnabled().catch(() => false)) await verify.click();
-    await page.waitForURL(/\/(dashboard|onboarding)/, { timeout: 30_000 });
-  }
 }
 
 type Flow = {
@@ -306,14 +283,19 @@ async function flows(): Promise<Flow[]> {
 
 async function authState(browser: Browser, persona: "me" | "newbie") {
   const prefix = persona === "me" ? "RECORD" : "RECORD_NEWBIE";
-  const username = process.env[`${prefix}_USERNAME`];
+  const phone = process.env[`${prefix}_PHONE`];
   const password = process.env[`${prefix}_PASSWORD`];
-  if (!username || !password) return null;
+  if (!phone || !password) return null;
   const path =
     persona === "me" ? AUTH_STATE : join(OUT_DIR, ".auth-newbie.json");
   const context = await browser.newContext({ viewport: VIEWPORT });
   const page = await context.newPage();
-  await signIn(page, username, password);
+  await signInWithPhone(page, {
+    baseUrl: BASE_URL,
+    phone,
+    password,
+    otp: process.env.RECORD_OTP,
+  });
   await context.storageState({ path });
   await context.close();
   return path;

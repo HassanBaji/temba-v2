@@ -26,25 +26,34 @@ export type PlayedGameViewProps = {
   board: React.ReactNode;
   /** The MVP row, last in the hero. */
   heroFooter?: React.ReactNode;
+  /** A task that closes soon, such as Rate the game, first under the hero. */
+  task?: React.ReactNode;
   /** The marks rows, between the columns and the facts. */
   marks?: React.ReactNode;
+  /** Album and Notes, between the facts and Share. */
+  album?: React.ReactNode;
   columns: [PlayedColumn, PlayedColumn];
   unplaced?: PlayedRow[];
   facts: PlayedFact[];
+  /** The Match dispute row, under the facts. */
+  dispute?: React.ReactNode;
   onPressPlayer?: (row: PlayedRow) => void;
 };
 
-/** A played Game: the result on black, the roster, the facts, then share. */
+/** A played Game: the result on black, the roster, the facts, the Album and Notes, then share. */
 export function PlayedGameView({
   gameId,
   hero,
   menu,
   board,
   heroFooter,
+  task,
   marks,
+  album,
   columns,
   unplaced,
   facts,
+  dispute,
   onPressPlayer,
 }: PlayedGameViewProps) {
   const m = useMessages();
@@ -58,7 +67,7 @@ export function PlayedGameView({
             <Button
               size="icon"
               variant="ghost"
-              className="bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus rounded-md"
+              className="border-dimrule bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus rounded-md border"
               asChild
             >
               <Link href={href} aria-label={m.game.cta.shareResult}>
@@ -72,6 +81,7 @@ export function PlayedGameView({
       >
         {board}
       </PlayedHero>
+      {task}
       <PlayedColumns
         columns={columns}
         unplaced={unplaced}
@@ -79,6 +89,8 @@ export function PlayedGameView({
       />
       {marks}
       <FootballInfoRows rows={facts} />
+      {dispute}
+      {album}
       <Button size="lg" className="w-full" asChild>
         <Link href={href}>
           <Share aria-hidden="true" />

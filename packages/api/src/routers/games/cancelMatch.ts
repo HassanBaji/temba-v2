@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { MatchStatusEnum, matches } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -12,7 +14,10 @@ import {
   requireGame,
   type GameRow,
 } from "#src/games/access";
-import { cancelGameRecord } from "#src/games/helpers/cancel-game-record";
+import {
+  assertGameCancellable,
+  cancelGameRecord,
+} from "#src/games/helpers/cancel-game-record";
 import {
   awardKnockoutWalkover,
   isKnockoutMatch,
@@ -22,27 +27,23 @@ import { notifyIfGameFinished } from "#src/notifications/notify-game-finished";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-export const POOL_MATCH_NOT_AWARDED_MESSAGE =
-  "A Pool Match is voided, not awarded, so no team goes through";
-export const KNOCKOUT_MATCH_ALREADY_COMPLETED_MESSAGE =
-  "This Knockout Match is already completed";
-
 async function cancelMatchOnGame(
   database: Tx,
   game: GameRow,
   matchId: string,
   advancingGameTeamId: string | undefined,
+  locale: Locale,
 ) {
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Game is already cancelled",
+      message: messagesFor(locale).game.errors.alreadyCancelled,
     });
   }
   if (game.format === "americano") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Americano has no Matches; cancel the Game",
+      message: messagesFor(locale).game.errors.americanoNoMatches,
     });
   }
 
@@ -54,18 +55,19 @@ async function cancelMatchOnGame(
   if (match?.gameId !== game.id) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Match not found",
+      message: messagesFor(locale).game.errors.matchNotFound,
     });
   }
   if (match.status === MatchStatusEnum.CANCELLED) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Match is already cancelled",
+      message: messagesFor(locale).game.errors.matchAlreadyCancelled,
     });
   }
 
   if (game.format === "friendly_game") {
-    await cancelGameRecord(database, game);
+    await assertGameCancellable(database, game, locale);
+    await cancelGameRecord(database, game, locale);
     return { cancelledGame: true as const };
   }
 
@@ -73,17 +75,17 @@ async function cancelMatchOnGame(
     if (match.status === MatchStatusEnum.COMPLETED) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: KNOCKOUT_MATCH_ALREADY_COMPLETED_MESSAGE,
+        message: messagesFor(locale).tournament.errors.knockoutMatchCompleted,
       });
     }
-    await awardKnockoutWalkover(database, match, advancingGameTeamId);
+    await awardKnockoutWalkover(database, match, advancingGameTeamId, locale);
     await notifyIfGameFinished(database, game);
     return { cancelledGame: false as const };
   }
   if (advancingGameTeamId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: POOL_MATCH_NOT_AWARDED_MESSAGE,
+      message: messagesFor(locale).tournament.errors.poolMatchNotAwarded,
     });
   }
 
@@ -104,12 +106,20 @@ export async function cancelMatch(
     userId: string;
     matchId: string;
     advancingGameTeamId?: string;
+    locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.userId, locale);
   return database.transaction(async (tx) => {
-    return cancelMatchOnGame(tx, game, args.matchId, args.advancingGameTeamId);
+    return cancelMatchOnGame(
+      tx,
+      game,
+      args.matchId,
+      args.advancingGameTeamId,
+      args.locale ?? DEFAULT_LOCALE,
+    );
   });
 }
 
@@ -128,5 +138,6 @@ export const cancelMatchProcedure = protectedProcedure
       userId: appUser.id,
       matchId: input.matchId,
       advancingGameTeamId: input.advancingGameTeamId,
+      locale: ctx.locale,
     });
   });

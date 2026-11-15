@@ -29,6 +29,7 @@ export const webDashboard = {
     createAction: "Create Game",
     tabs: {
       upcoming: "Upcoming",
+      public: "Public",
       played: "Played",
     },
   },
@@ -106,9 +107,6 @@ export const webDashboard = {
     court: "Court",
     pitch: "Pitch",
     courts: "Courts",
-    allCount: (courts: string) => `All ${courts}`,
-    allCourts: (n: number) =>
-      plural("en", n, { one: "All 1 court", other: "All {n} courts" }),
     settleAtVenue: {
       court: "Leave on None to settle the court at the venue.",
       pitch: "Leave on None to settle the pitch at the venue.",
@@ -187,7 +185,6 @@ export const webDashboard = {
     publicErrorTitle: "Public Groups could not be loaded",
     filterBySport: "Filter by sport",
     nextGame: "Next Game",
-    yourFormHere: "your form here",
     start: {
       title: "Start a group",
       description:
@@ -277,7 +274,7 @@ export const webDashboard = {
       removeConfirm: {
         title: (name: string) => `Remove verification from ${name}?`,
         description:
-          "Existing Games keep their rating and public settings. New Games in this Group will count for the group rating only and be private.",
+          "Existing Games keep their rating and public settings. New Games in this Group will not count for Temba Level and will be private.",
       },
     },
     levels: {
@@ -322,6 +319,15 @@ export const webDashboard = {
     softArchiveAction: "Soft-archive",
     unarchiveAction: "Unarchive",
     softArchivedBadge: "Soft-archived",
+    partner: {
+      title: "Partner venue",
+      description:
+        "A partner Venue hosts Public Games, which count for Temba Level.",
+      badge: "Partner",
+      archivedNote: "Unarchive this Venue to make it a partner.",
+      onToast: "Marked as a partner Venue",
+      offToast: "No longer a partner Venue",
+    },
     logoReadError: "Logo could not be read",
     unarchiving: "Unarchiving…",
     toast: {
@@ -378,7 +384,7 @@ export const webDashboard = {
       unlinkConfirm: {
         title: (group: string) => `Unlink ${group}?`,
         description: (group: string) =>
-          `${group} becomes a Loose Group again. New Games will count for the group rating only, unless an Operator has verified it. Past Games and members stay as they are.`,
+          `${group} becomes a Loose Group again. New Games will not count for Temba Level, unless an Operator has verified it. Past Games and members stay as they are.`,
         confirmLabel: "Unlink Group",
       },
       unlinkedToast: (group: string) => `${group} unlinked`,

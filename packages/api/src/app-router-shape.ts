@@ -14,6 +14,8 @@ type AssertTrue<T extends true> = T;
 type ExpectedTopLevel =
   | "bookings"
   | "challenges"
+  | "gameAlbum"
+  | "gamePayments"
   | "games"
   | "groups"
   | "marks"
@@ -60,7 +62,6 @@ type ExpectedChallenges =
   | "confirmProposal";
 
 type ExpectedGames =
-  | "hello"
   | "listMyGames"
   | "listMyMatchHistory"
   | "listPublicPickup"
@@ -70,12 +71,16 @@ type ExpectedGames =
   | "createTournament"
   | "drawPools"
   | "postPoolDraw"
+  | "postKingCourts"
+  | "postKingFinalOrder"
   | "undoPoolDraw"
   | "tournamentRounds"
   | "generateRounds"
   | "saveRoundPairings"
   | "swapRoundPairing"
   | "postRounds"
+  | "addRound"
+  | "cancelRound"
   | "enterTournamentScore"
   | "markMatchNotFinished"
   | "byId"
@@ -85,6 +90,7 @@ type ExpectedGames =
   | "moveSeat"
   | "setSeatSide"
   | "setTeamSides"
+  | "editTeams"
   | "searchPartnerUsers"
   | "listPartnerSuggestions"
   | "registerWithPartner"
@@ -95,6 +101,7 @@ type ExpectedGames =
   | "kick"
   | "previewPlayerByPhone"
   | "addPlayerByPhone"
+  | "addGuestPlayer"
   | "listGroupMembersToAdd"
   | "addGroupMembers"
   | "closeRegistration"
@@ -112,6 +119,8 @@ type ExpectedGames =
   | "approveLevelRangeRequest"
   | "rejectLevelRangeRequest"
   | "updateCaps"
+  | "updateCourts"
+  | "updatePlace"
   | "listCourts"
   | "addMatch"
   | "updateMatch"
@@ -120,12 +129,21 @@ type ExpectedGames =
   | "removeSet"
   | "completeMatch"
   | "confirmMatchResult"
+  | "stampMatch"
+  | "listMatchesToStamp"
+  | "disputeMatchResult"
+  | "listDisputesForOperator"
+  | "decideDispute"
   | "footballBoard"
   | "resultLink"
   | "setFootballRole"
   | "publishFootballTeams"
   | "saveFootballScore"
   | "nameChallengeSquad"
+  | "performanceRatingSheet"
+  | "performanceRatingResult"
+  | "performanceRatingSummary"
+  | "submitPerformanceRatings"
   | "reportWrongScore"
   | "searchLookupUsers"
   | "sendLookupInvite"
@@ -138,8 +156,7 @@ type ExpectedGames =
   | "inviteLinkByShortCode"
   | "previewInviteLink"
   | "acceptInviteLink"
-  | "joinGroupFromInviteLink"
-  | "getSecretMessage";
+  | "joinGroupFromInviteLink";
 
 type ExpectedGroups =
   | "createLoosePublic"
@@ -184,11 +201,35 @@ type ExpectedGroups =
   | "addPlayerByPhone"
   | "removeUnclaimedPlayer"
   | "removePlayer"
+  | "setMemberNickname"
   | "setOrganizer"
   | "listSeasons"
   | "createSeason"
   | "closeSeason"
-  | "seasonStanding";
+  | "seasonStanding"
+  | "adjustTierPoints"
+  | "tierHistory"
+  | "ratingSettings"
+  | "updateRatingSettings"
+  | "myStandings";
+
+type ExpectedGameAlbum =
+  | "forGame"
+  | "addPhoto"
+  | "removePhoto"
+  | "saveNote"
+  | "deleteNote"
+  | "myNotes";
+
+type ExpectedGamePayments =
+  | "forGame"
+  | "claim"
+  | "unclaim"
+  | "markPaid"
+  | "markNotReceived"
+  | "undo"
+  | "confirmAll"
+  | "remind";
 
 type ExpectedMarks =
   | "forGame"
@@ -204,7 +245,8 @@ type ExpectedNotifications =
   | "list"
   | "unreadCount"
   | "markRead"
-  | "markAllRead";
+  | "markAllRead"
+  | "waitingRequests";
 
 type ExpectedRatings =
   | "me"
@@ -212,7 +254,10 @@ type ExpectedRatings =
   | "setLevel"
   | "listForOperator"
   | "setLevelAsOperator"
+  | "setLevelAsVerifier"
   | "myGroupLevels"
+  | "myGroupTiers"
+  | "history"
   | "setGroupLevel";
 
 type ExpectedTeams =
@@ -277,6 +322,10 @@ type ExpectedVenues =
   | "setDisplayPhotos"
   | "softArchive"
   | "unarchive"
+  | "setPartner"
+  | "addVerifier"
+  | "removeVerifier"
+  | "listVerifiers"
   | "listLinkedGroups"
   | "searchLinkableGroups"
   | "sendGroupLinkRequest"
@@ -305,6 +354,12 @@ type _Challenges = AssertTrue<
 >;
 type _Games = AssertTrue<Equal<keyof RouterInputs["games"], ExpectedGames>>;
 type _Groups = AssertTrue<Equal<keyof RouterInputs["groups"], ExpectedGroups>>;
+type _GameAlbum = AssertTrue<
+  Equal<keyof RouterInputs["gameAlbum"], ExpectedGameAlbum>
+>;
+type _GamePayments = AssertTrue<
+  Equal<keyof RouterInputs["gamePayments"], ExpectedGamePayments>
+>;
 type _Marks = AssertTrue<Equal<keyof RouterInputs["marks"], ExpectedMarks>>;
 type _Notifications = AssertTrue<
   Equal<keyof RouterInputs["notifications"], ExpectedNotifications>
@@ -322,6 +377,8 @@ export type AppRouterShapeChecks = [
   _Challenges,
   _Games,
   _Groups,
+  _GameAlbum,
+  _GamePayments,
   _Marks,
   _Notifications,
   _Ratings,

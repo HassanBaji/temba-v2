@@ -1,4 +1,4 @@
-import { pgTable, uuid, timestamp, unique } from "drizzle-orm/pg-core";
+import { index, pgTable, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { user } from "./user";
 import { teams } from "./teams";
@@ -21,6 +21,7 @@ export const teamMembers = pgTable(
       table.teamId,
       table.userId,
     ),
+    userIdx: index("team_members_user_id_idx").on(table.userId),
   }),
 );
 

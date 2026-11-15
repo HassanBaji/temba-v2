@@ -28,6 +28,7 @@ import { gameHasLevelRange } from "#src/games/user-allowed-by-level-range";
 import { previewLink } from "#src/invites/doors";
 import { tournamentInvitePreviewNeedsSeatPick } from "@repo/domain/tournament-join";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 type DbClient = typeof db;
 
@@ -79,8 +80,9 @@ async function footballJoinPreview(
 
 export async function previewInviteLink(
   database: DbClient,
-  args: { token: string; userId?: string },
+  args: { token: string; userId?: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const previewed = await previewLink(database, "game", args.token);
   if (previewed.status !== "ready") {
     return { status: previewed.status };
@@ -91,7 +93,7 @@ export async function previewInviteLink(
   if (!link) {
     return { status: "invalid" as const };
   }
-  const gameRow = await requireGame(database, link.gameId);
+  const gameRow = await requireGame(database, link.gameId, locale);
   const organizer = args.userId
     ? await isGameOrganizer(database, gameRow, args.userId)
     : false;
@@ -174,5 +176,9 @@ export const previewInviteLinkProcedure = publicProcedure
       const appUser = await resolveAppUser(ctx.userId);
       userId = appUser.id;
     }
-    return previewInviteLink(ctx.db, { token: input.token, userId });
+    return previewInviteLink(ctx.db, {
+      token: input.token,
+      userId,
+      locale: ctx.locale,
+    });
   });

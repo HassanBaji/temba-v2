@@ -76,7 +76,7 @@ export function ChipTile({
           size="eyebrow"
           numberOfLines={1}
           style={{
-            color: selected ? colors.dim : colors.muted,
+            color: selected ? colors.onControlMuted : colors.muted,
             textDecorationLine: lineThrough,
           }}
         >

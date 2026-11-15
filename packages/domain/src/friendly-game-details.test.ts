@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { friendlyGameDetailsPlan } from "./friendly-game-details";
+import {
+  friendlyGameDetailsPlan,
+  seatedPlayerCanRename,
+  type FriendlyGameDetailsSide,
+} from "./friendly-game-details";
 import { createFriendlyGameDetailsFixtures } from "./friendly-game-details-fixtures";
 
 const NOW = new Date("2026-10-04T12:00:00Z");
@@ -76,5 +80,35 @@ describe("friendlyGameDetailsPlan", () => {
       friendlyGameDetailsPlan(fixtures.cancelled).ctaFamily.kind,
       "browse",
     );
+  });
+});
+
+describe("seatedPlayerCanRename", () => {
+  const seat = (userId: string, canRename?: boolean) => ({
+    userId,
+    name: userId,
+    image: null,
+    levelBand: null,
+    unclaimed: true,
+    canRename,
+  });
+  const sides: FriendlyGameDetailsSide[] = [
+    { sideIndex: 1, gameTeamId: null, left: seat("ali", true), right: null },
+    {
+      sideIndex: 2,
+      gameTeamId: null,
+      left: seat("sara", false),
+      right: seat("omar"),
+    },
+  ];
+
+  it("follows the seat's flag from the server", () => {
+    assert.equal(seatedPlayerCanRename(sides, "ali"), true);
+    assert.equal(seatedPlayerCanRename(sides, "sara"), false);
+  });
+
+  it("refuses a seat without the flag and a player not seated", () => {
+    assert.equal(seatedPlayerCanRename(sides, "omar"), false);
+    assert.equal(seatedPlayerCanRename(sides, "nobody"), false);
   });
 });

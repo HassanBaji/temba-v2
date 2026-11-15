@@ -2,6 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { FOOTBALL_POSITIONS } from "./football-lineup";
+import { formatOvr } from "./football-ovr";
 import { formatGameDay, formatMonth, formatWeekday } from "./format-game-start";
 import { initials } from "./initials";
 import { displayLabelFromStoredBand } from "./level-bands";
@@ -13,7 +14,7 @@ import {
   type MatchOutcome,
   type ResultMarkVariant,
 } from "./result-mark";
-import { sportLabel } from "./sport";
+import { sportLabel, sportOrDefault } from "./sport";
 import { teamLevel } from "./team-level";
 import {
   headToHeadLine,
@@ -98,9 +99,19 @@ function sinceLine(createdAt: Date | string, locale: Locale) {
 function heroSubtitle(data: TeamDetailInput, locale: Locale) {
   const m = messagesFor(locale).team;
   const sport = sportLabel(data.sport, locale);
-  const level = teamLevel(data.members.map((member) => member.level));
+  const level = teamLevel(
+    data.members.map((member) => member.level),
+    sportOrDefault(data.sport),
+  );
+  const levelText = level
+    ? level.ovr != null
+      ? messagesFor(locale).rating.ovr.value(formatOvr(level.ovr))
+      : level.band
+    : null;
   const lead =
-    sport && level ? m.detail.sportLevel(sport, level.band) : (sport ?? null);
+    sport && levelText
+      ? m.detail.sportLevel(sport, levelText)
+      : (sport ?? null);
   const groupName = data.groupTag?.name?.trim();
   const group = data.groupTag
     ? m.groupTag.line(
@@ -307,9 +318,13 @@ function memberSeat(
 
 function memberLevel(
   member: TeamHomeMemberInput,
+  sport: string,
   squad: boolean,
   locale: Locale,
 ) {
+  if (sport === "football") {
+    return member.ovr != null ? formatOvr(member.ovr) : null;
+  }
   if (!member.levelBand) {
     return null;
   }
@@ -349,7 +364,9 @@ function membersView(
     const note = [base?.addedLabel ?? null, base?.phoneMasked ?? null]
       .filter((part): part is string => part != null)
       .join(m.common.listSeparator);
-    const level = memberLevel(member, squad, locale);
+    const level = memberLevel(member, data.sport, squad, locale);
+    const spokenLevel =
+      level && data.sport === "football" ? m.rating.ovr.value(level) : level;
     return {
       id: member.id,
       name,
@@ -361,7 +378,7 @@ function membersView(
       level,
       profileUserId: member.unclaimed ? null : (member.userId ?? null),
       remove: base?.remove ?? null,
-      accessibilityLabel: [name, line, note, level]
+      accessibilityLabel: [name, line, note, spokenLevel]
         .filter((part): part is string => Boolean(part))
         .join(m.group.metaSeparator),
     };

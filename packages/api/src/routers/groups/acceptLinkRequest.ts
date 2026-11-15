@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -8,6 +8,8 @@ import {
   groups,
   venues,
 } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -19,11 +21,14 @@ type DbClient = typeof db;
 /**
  * The Group creator accepts a Venue's Group link request: the Loose Group
  * becomes a Club Group of that Venue, and its other pending requests lapse.
+ * The Venue, then the Group, is locked, so two Venues' requests for the same
+ * Group cannot both be accepted.
  */
 export async function acceptLinkRequest(
   database: DbClient,
-  args: { requestId: string; userId: string },
+  args: { requestId: string; userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   return database.transaction(async (tx) => {
     const unlocked = await tx.query.groupLinkRequests.findFirst({
       where: eq(groupLinkRequests.id, args.requestId),
@@ -32,7 +37,7 @@ export async function acceptLinkRequest(
     if (!unlocked) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Group link request not found",
+        message: messagesFor(locale).group.errors.linkRequestNotFound,
       });
     }
 
@@ -46,7 +51,10 @@ export async function acceptLinkRequest(
       .where(eq(venues.id, unlocked.venueId))
       .for("update");
     if (!venue) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: messagesFor(locale).venue.errors.notFound,
+      });
     }
 
     const request = await tx.query.groupLinkRequests.findFirst({
@@ -55,31 +63,43 @@ export async function acceptLinkRequest(
     if (request?.status !== "pending") {
       throw new TRPCError({
         code: "CONFLICT",
-        message: "Group link request is no longer pending",
+        message: messagesFor(locale).group.errors.linkRequestNotPending,
       });
     }
 
-    const group = await tx.query.groups.findFirst({
-      where: eq(groups.id, request.groupId),
-    });
+    const [group] = await tx
+      .select()
+      .from(groups)
+      .where(and(eq(groups.id, request.groupId), isNull(groups.deletedAt)))
+      .for("update");
     if (!group) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: messagesFor(locale).group.errors.notFound,
+      });
     }
     if (group.createdBy !== args.userId) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Only the Group creator can decide this request",
+        message: messagesFor(locale).group.errors.creatorDecides,
       });
     }
     if (group.venueId) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Only a Loose Group can be linked to a Venue",
+        message: messagesFor(locale).group.errors.looseOnlyLink,
+      });
+    }
+    if (group.type !== "public") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: messagesFor(args.locale ?? DEFAULT_LOCALE).group.linkRequest
+          .publicOnly,
       });
     }
     refuseIfFrozen(consult({ archivedAt: venue.archivedAt }), "host", {
-      frozenMessage: "Cannot link a Group to a Soft-archived Venue",
-      notFoundMessage: "Venue not found",
+      frozenMessage: messagesFor(locale).group.errors.linkArchivedVenue,
+      notFoundMessage: messagesFor(locale).venue.errors.notFound,
     });
 
     const now = new Date();
@@ -125,5 +145,6 @@ export const acceptLinkRequestProcedure = protectedProcedure
     return acceptLinkRequest(ctx.db, {
       requestId: input.requestId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

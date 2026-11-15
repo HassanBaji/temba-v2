@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { StepperField } from "~/components/games/stepper-field";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import { TournamentHome } from "~/components/games/tournament-home";
+import { KingPlayedCard } from "~/components/games/tournament-king-played-card";
+import { ScaledCanvas } from "~/components/share-result/scaled-canvas";
+import {
+  TOURNAMENT_CARD_SIZE,
+  TournamentShareCard,
+} from "~/components/share-result/tournament-share-card";
 import {
   HomeTournamentMatchCard,
   TournamentMatchCard,
@@ -14,6 +20,8 @@ import { buttonVariants } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import type { TournamentFixture } from "@repo/domain/tournament-details-fixtures";
+import type { createKingTournamentFixtures } from "@repo/domain/tournament-king-fixtures";
+import { kingPlayedSummary } from "@repo/domain/tournament-king-view";
 import type {
   TournamentCardFixture,
   TournamentCardFixtures,
@@ -22,6 +30,7 @@ import { formatGameClock } from "@repo/domain/format-game-start";
 import { zonedDateTimeToInstant } from "@repo/domain/product-timezone";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import type { TournamentMatchPhase } from "@repo/domain/tournament-card";
+import { tournamentShareCard } from "@repo/domain/tournament-finished";
 import {
   courtCountValue,
   defaultPoolCount,
@@ -82,8 +91,10 @@ const WITH_A_PARTNER_ONLY_LABEL = PREVIEW.tournament.sizing.withPartnerOnly;
 export function TournamentPreviewStates({
   fixtures,
   cardFixtures,
+  kingFixtures,
 }: {
   cardFixtures: TournamentCardFixtures;
+  kingFixtures: ReturnType<typeof createKingTournamentFixtures>;
   fixtures: {
     preDrawWithoutSeat: TournamentFixture;
     preDrawSeatedHalfOpen: TournamentFixture;
@@ -94,8 +105,47 @@ export function TournamentPreviewStates({
     finished: TournamentFixture;
   };
 }) {
+  const kingPlayed = kingPlayedSummary(kingFixtures.playerFinished, "en");
   return (
     <div className="space-y-10">
+      <section className="space-y-4" data-preview="king-of-the-court">
+        <h2 className="text-title font-semibold">King of the court</h2>
+        <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-4">
+          <PreviewColumn
+            title="Organizer, full, ready to draw"
+            data={kingFixtures.organizerReadyToDraw}
+          />
+          <PreviewColumn
+            title="Player, the Courts tab"
+            data={kingFixtures.playerCourts}
+          />
+          <PreviewColumn
+            title="Organizer, final order"
+            data={kingFixtures.organizerFinalOrder}
+          />
+          <PreviewColumn
+            title="Player, finished"
+            data={kingFixtures.playerFinished}
+          />
+        </div>
+        {kingPlayed ? (
+          <ul className="max-w-column">
+            <KingPlayedCard
+              game={{
+                id: kingFixtures.playerFinished.id,
+                name: kingFixtures.playerFinished.name,
+                windowStart: kingFixtures.playerFinished.windowStart,
+                displayTime: kingFixtures.playerFinished.createdAt,
+                groupName: kingFixtures.playerFinished.groupName,
+                venue: {
+                  name: kingFixtures.playerFinished.venue?.name ?? "",
+                },
+                kingOfTheCourt: kingPlayed,
+              }}
+            />
+          </ul>
+        ) : null}
+      </section>
       <section className="space-y-4">
         <h2 className="text-title font-semibold">Rounds</h2>
         <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-4">
@@ -118,6 +168,16 @@ export function TournamentPreviewStates({
             title="Player, Round 2 on court"
             data={fixtures.postedMid}
             rounds="live"
+          />
+          <PreviewColumn
+            title="Player, finished"
+            data={fixtures.finished}
+            rounds="finished"
+          />
+          <PreviewColumn
+            title="Organizer, finished"
+            data={{ ...fixtures.finished, isOrganizer: true }}
+            rounds="finished"
           />
         </div>
       </section>
@@ -145,8 +205,22 @@ export function TournamentPreviewStates({
         <PreviewColumn
           title="Finished, group winner"
           data={fixtures.finished}
+          rounds="finished"
         />
       </div>
+      <section className="space-y-4">
+        <h2 className="text-title font-semibold">Finished share card</h2>
+        <div className="grid items-start gap-10 lg:grid-cols-2">
+          <div className="max-w-column w-full" data-preview="share-placing">
+            <ShareCardPreview data={fixtures.finished} />
+          </div>
+          <div className="max-w-column w-full" data-preview="share-table">
+            <ShareCardPreview
+              data={{ ...fixtures.finished, isOrganizer: true }}
+            />
+          </div>
+        </div>
+      </section>
       <section className="space-y-4">
         <h2 className="text-title font-semibold">Games list card</h2>
         <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-4">
@@ -250,6 +324,23 @@ function PreviewColumn({
   );
 }
 
+function ShareCardPreview({ data }: { data: TournamentFixture }) {
+  const canvasRef = useRef<HTMLDivElement | null>(null);
+  const card = tournamentShareCard(data, "en");
+  if (!card) {
+    return null;
+  }
+  return (
+    <ScaledCanvas
+      canvasRef={canvasRef}
+      canvasWidth={TOURNAMENT_CARD_SIZE}
+      canvasHeight={TOURNAMENT_CARD_SIZE}
+    >
+      <TournamentShareCard card={card} />
+    </ScaledCanvas>
+  );
+}
+
 function CardPreviewColumn({
   title,
   game,
@@ -316,6 +407,15 @@ function HomeMatchCardPreviewColumn({
   );
 }
 
+const PREVIEW_KING_ACTIONS = {
+  courtsPending: false,
+  courtsError: null,
+  onPostCourts: () => Promise.resolve(),
+  orderPending: false,
+  orderError: null,
+  onPostFinalOrder: () => Promise.resolve(),
+};
+
 function TournamentHomePreview({
   data,
   rounds,
@@ -348,6 +448,7 @@ function TournamentHomePreview({
       postError={null}
       undoPending={false}
       undoError={null}
+      kingActions={PREVIEW_KING_ACTIONS}
       onMerge={() => undefined}
       onDraw={() => undefined}
       onPost={() => undefined}

@@ -1,4 +1,5 @@
 import { plural } from "../../plural";
+import { isolate } from "../../bidi";
 import type { mobileGroup as source } from "../en/mobile-group";
 
 export const mobileGroup = {
@@ -21,7 +22,6 @@ export const mobileGroup = {
     tabs: { mine: "مجموعاتي", public: "عامة" },
     loading: "جارٍ تحميل المجموعات",
     nextGame: "المباراة القادمة",
-    yourFormHere: "أداؤك الأخير هنا",
     filterBySport: "تصفية حسب الرياضة",
     rowSportName: (sport: string, name: string) => `${sport}، ${name}`,
     rowNextGame: (name: string, meta: string, weekday: string) =>
@@ -151,13 +151,13 @@ export const mobileGroup = {
     latestSet: (text: string) => `آخر تحديد للمستوى: ${text}`,
     sheet: {
       viewProfile: "عرض الملف",
+      call: "اتصال",
       setLevel: "تحديد المستوى",
       stillProvisional: "ما زال مبدئيًا",
       noLevelMark: "–",
     },
   },
   requests: {
-    review: "مراجعة طلبات الانضمام",
     changeWhoCanJoin: "تغيير من يمكنه الانضمام",
     row: (name: string, meta: string) => `${name}. ${meta}`,
     quotedNote: (note: string) => `«${note}»`,
@@ -202,14 +202,21 @@ export const mobileGroup = {
     newLevel: "المستوى الجديد",
     readout: (band: string, level: string, delta: string) =>
       `المستوى الجديد ${band} ${level}، ${delta}`,
+    readoutOvr: (ovr: string, delta: string) =>
+      `المستوى الجديد ${isolate("OVR")} ${isolate(ovr)}، ${delta}`,
     toNext: (distance: string, label: string) => `${distance} حتى ${label}`,
     topOfScale: "أعلى المقياس",
     throughRung: (percent: number, rung: string) => `${percent}% من ${rung}`,
     nowMarker: (label: string) => `الآن ${label}`,
     decrease: "خفض المستوى بمقدار 0.1",
     increase: "رفع المستوى بمقدار 0.1",
+    decreaseOvr: "خفض OVR بمقدار 1",
+    increaseOvr: "رفع OVR بمقدار 1",
     reset: "إعادة ضبط",
-    reason: "السبب",
+    why: (name: string) => `لماذا؟ سيرى ${name} هذا.`,
+    noteLabel: "ملاحظة",
+    notePlaceholder: "أضف ملاحظة (اختياري)",
+    pickReason: "اختر سببًا للحفظ",
     note: "المستوى الذي تحدده يُعدّ مؤكدًا. تواصل المباريات المصنّفة تحريكه من هنا.",
     noteProvisional: (firstName: string) =>
       `لن يعود ${firstName} مبدئيًا، ولن يغيّر التحديد مجددًا ذلك.`,
@@ -221,10 +228,41 @@ export const mobileGroup = {
     savedReason: (reason: string) => `السبب: ${reason}.`,
     dismiss: "إغلاق",
   },
-  setGroupLevel: {
-    groupLevel: (label: string) => `مستوى المجموعة ${label}`,
-    tembaLevel: (label: string) => `مستوى Temba ${label}`,
-    noTembaLevel: "لا مستوى Temba بعد",
-    tembaMarker: (label: string) => `Temba ${label}`,
+  seasons: {
+    title: "المواسم",
+    manage: "إدارة المواسم",
+    setUp: "إعداد المواسم",
+    loadFailed: "تعذّر تحميل المواسم",
+    empty: "لا توجد مواسم بعد. الترتيب يحتسب كل مباراة لُعبت على الإطلاق.",
+    newSeason: "موسم جديد",
+    pointsPerGame: "النقاط لكل مباراة",
+    winDrawLoss: "فوز، تعادل، خسارة",
+    close: {
+      ends: "ينتهي",
+      leader: "المتصدّر",
+      leaderValue: (name: string, points: number) =>
+        plural("ar", points, {
+          one: `${name}، نقطة واحدة`,
+          two: `${name}، نقطتان`,
+          few: `${name}، {n} نقاط`,
+          many: `${name}، {n} نقطة`,
+          other: `${name}، {n} نقطة`,
+        }),
+      nobodyRanked: "لا أحد في الترتيب بعد",
+      levels: "المستويات",
+      unchanged: "دون تغيير",
+      confirm: "إغلاق الموسم وتثبيت الترتيب",
+      keepOpen: "إبقاؤه مفتوحًا",
+    },
+    create: {
+      title: "موسم جديد",
+      name: "الاسم",
+      nameRequired: "أعطِ الموسم اسمًا.",
+      starts: "يبدأ",
+      ends: "ينتهي",
+      submit: (name: string) => `إنشاء ${name}`,
+      seasonWord: "الموسم",
+      ownerOnly: "مالك المجموعة وحده يمكنه فتح موسم",
+    },
   },
 } satisfies typeof source;

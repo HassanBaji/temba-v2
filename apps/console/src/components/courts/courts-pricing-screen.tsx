@@ -5,6 +5,7 @@ import * as React from "react";
 
 import { ConsolePage } from "~/components/console/console-page";
 import { PageHeader } from "~/components/console/page-header";
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 
 import { BookingRulesCard } from "./booking-settings-tab";
@@ -14,13 +15,14 @@ import { AddCourtDialog, CourtCards } from "./courts-tab";
 import { RateCard } from "./pricing-tab";
 
 export function CourtsPricingScreen() {
+  const m = useMessages().consoleCourts;
   const [adding, setAdding] = React.useState(false);
 
   return (
     <ConsolePage className="gap-[26px]">
       <PageHeader
-        title="Courts & pricing"
-        description="Courts come from the Temba venue catalog. Pricing is yours: a rate per 60 minutes per time band, per court."
+        title={m.pageTitle}
+        description={m.pageDescription}
         action={
           <Button
             type="button"
@@ -28,7 +30,7 @@ export function CourtsPricingScreen() {
             onClick={() => setAdding(true)}
           >
             <Plus aria-hidden="true" className="size-[15px]" />
-            Add court
+            {m.addCourt}
           </Button>
         }
       />

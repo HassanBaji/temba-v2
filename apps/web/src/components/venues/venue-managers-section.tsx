@@ -13,6 +13,7 @@ import { Button } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 function useDebouncedValue(value: string, delayMs: number) {
   const [debounced, setDebounced] = React.useState(value);
@@ -50,6 +51,7 @@ export function VenueManagersSection({ venueId }: { venueId: string }) {
   });
 
   const removeManager = api.venues.removeManager.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(m.removedToast);
       await utils.venues.managedById.invalidate({ venueId });
@@ -72,7 +74,7 @@ export function VenueManagersSection({ venueId }: { venueId: string }) {
         <ErrorState
           headingLevel={3}
           title={m.loadError}
-          message={managers.error.message}
+          error={managers.error}
           onRetry={() => {
             void managers.refetch();
           }}

@@ -11,14 +11,22 @@ import {
 import { viewerSidePartnerName } from "./friendly-game-partner";
 import type { GameRatingScope } from "./game-rating-scope";
 import type { LevelBand } from "./level-bands";
+import type { MemberNicknameData } from "./member-nickname";
 
 export type FriendlyGameDetailsSeat = {
   userId: string;
   name: string;
+  /** The Member nickname on a private Group Game, when the viewer may see it. */
+  nickname?: MemberNicknameData | null;
   image: string | null;
   levelBand: LevelBand | null;
   unclaimed?: boolean;
+  guest?: boolean;
   phoneMasked?: string | null;
+  /** E.164, sent only to a Group approver for a current member (ADR-0078). */
+  phoneNumber?: string | null;
+  /** The viewer may fix this Unclaimed player's name here. */
+  canRename?: boolean;
   /** Joined without picking a Position. */
   eitherSide?: boolean;
 };
@@ -42,6 +50,15 @@ export type FriendlyGameDetailsMatch = {
   durationInMinutes: number | null;
   courtName: string | null;
   status: string | null;
+  stoodUnconfirmed?: boolean;
+  /** The Verifier who stamped the score (ADR-0072). */
+  stamp?: { verifierName: string } | null;
+  /** The viewer is a Verifier of the Venue who may stamp it now. */
+  canStamp?: boolean;
+  /** The viewer is a seated player who may dispute the counted result. */
+  canDispute?: boolean;
+  /** The Match dispute waiting on an Operator. */
+  openDispute?: { raisedByViewer: boolean } | null;
   slot1GameTeamId: string | null;
   slot2GameTeamId: string | null;
   canScoreSets: boolean;
@@ -60,11 +77,14 @@ export type FriendlyGameDetailsConfirmation = {
   confirmedAt: Date | null;
   organizerSides?: { slot: 1 | 2; confirmed: boolean }[];
   confirmedByOrganizer?: boolean;
+  viewerConfirmsAsOrganizer?: boolean;
 };
 
 export type FriendlyGameDetailsRatingImpact = {
   levelChange: number;
   newLevel: number;
+  muBefore: number;
+  muAfter: number;
   newLevelBand: LevelBand;
   isProvisional: boolean;
   ratedMatchesRemainingToConfirm: number | null;
@@ -98,6 +118,8 @@ export type FriendlyGameDetails = {
   windowStart: Date | null;
   windowEnd: Date | null;
   pricePerPlayerFils: number | null;
+  /** Payments are tracked only with a price above zero. */
+  trackPayments: boolean;
   levelMinTenths: number | null;
   levelMaxTenths: number | null;
   playersAllowed: number | null;
@@ -124,6 +146,8 @@ export type FriendlyGameDetails = {
   matchResultConfirmation: FriendlyGameDetailsConfirmation | null;
   rated: boolean;
   ratingScope?: GameRatingScope;
+  isPublic?: boolean;
+  confirmWindow?: { closesAt: Date; viewerMayConfirm: boolean } | null;
   booking?: FriendlyGameDetailsBooking | null;
   ratingImpact: FriendlyGameDetailsRatingImpact | null;
   canReportWrongScore: { eligible: boolean; reason?: string } | null;
@@ -142,6 +166,18 @@ export type FriendlyGameDetailsPlan<
   overflowItems: FriendlyGameOverflowItem[];
   canLeaveGame: boolean;
 };
+
+/** Whether the viewer may fix the name of the Unclaimed player in this seat. */
+export function seatedPlayerCanRename(
+  sides: readonly FriendlyGameDetailsSide[],
+  userId: string,
+) {
+  return sides.some((side) =>
+    [side.left, side.right].some(
+      (seat) => seat?.userId === userId && seat.canRename === true,
+    ),
+  );
+}
 
 export function friendlyGameDetailsPlan<Game extends FriendlyGameDetails>(
   game: Game,

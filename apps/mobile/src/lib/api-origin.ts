@@ -11,7 +11,7 @@ export function resolveApiOrigin({
   if (explicit) return explicit;
 
   const host = devServerHostUri?.split(":")[0]?.trim();
-  if (host) return `https://${host}:${API_PORT}`;
+  if (host) return `http://${host}:${API_PORT}`;
 
   throw new Error(
     "Cannot find the API. Set EXPO_PUBLIC_API_ORIGIN, or start the App from the Expo dev server.",

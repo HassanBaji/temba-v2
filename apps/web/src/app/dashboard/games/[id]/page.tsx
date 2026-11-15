@@ -15,12 +15,16 @@ import { use } from "react";
 import * as React from "react";
 import { toast } from "sonner";
 
+import { gamePaymentsTracked } from "@repo/domain/game-payments";
+
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaimed-player-dialog";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { AddPlayerDialog } from "~/components/games/add-player-dialog";
+import { EditTeamsDialog } from "~/components/games/edit-teams-dialog";
+import { OpenSpotDialog } from "~/components/games/open-spot-dialog";
 import { FootballGameDetails } from "~/components/games/football-game-details";
 import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
@@ -49,6 +53,7 @@ import {
 } from "~/components/games/game-rating-impact-block";
 import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
+import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { TournamentHome } from "~/components/games/tournament-home";
 import { TournamentKnockoutCancelDialog } from "~/components/games/tournament-knockout-cancel-dialog";
 import { TournamentPoolTablesPanel } from "~/components/games/tournament-pool-tables-panel";
@@ -61,6 +66,7 @@ import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { useGameEdit } from "~/components/games/use-game-edit";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import {
   cancelGameConsequence,
@@ -116,7 +122,10 @@ import {
   organizerCanAddPlayer,
 } from "@repo/domain/add-player-by-phone";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
-import { friendlyGameDetailsPlan } from "@repo/domain/friendly-game-details";
+import {
+  friendlyGameDetailsPlan,
+  seatedPlayerCanRename,
+} from "@repo/domain/friendly-game-details";
 import { friendlyGameHeroInput } from "@repo/domain/friendly-game-hero";
 import { friendlyGameHomeTitle } from "@repo/domain/friendly-game-chrome";
 import {
@@ -125,13 +134,16 @@ import {
   gameHomeTabQuery,
 } from "~/lib/game-home-tab";
 import { gameViewerStatus } from "@repo/domain/game-summary-cta";
+import { canEditTeams, editTeamsSpotLabel } from "@repo/domain/edit-teams";
 import { gameDetailsChrome } from "@repo/domain/tournament-home";
 import { type KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
 import {
   tournamentInviteLandingOpensPartnerSheet,
   tournamentLeaveOrKickConfirmCopy,
 } from "@repo/domain/tournament-join";
+import { isTournamentFinished } from "@repo/domain/tournament-finished";
 import { tournamentRoundsPlan } from "@repo/domain/tournament-organizer";
+import { isKingOfTheCourt } from "@repo/domain/tournament-king";
 import {
   isPartnerRequiredGame,
   isKnockoutOnly,
@@ -142,6 +154,7 @@ import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { gamePlayersLink } from "~/lib/game-player-links";
 import { shareLinkWithFeedback } from "~/lib/share-link";
 import { cn } from "~/lib/utils";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api } from "~/trpc/react";
 
 const EMPTY_EDIT_SOURCE = {
@@ -222,6 +235,7 @@ export default function GameHomePage({
   const [renaming, setRenaming] = React.useState<{
     userId: string;
     name: string;
+    guest?: boolean;
   } | null>(null);
   const [cancelGameOpen, setCancelGameOpen] = React.useState(false);
   const [leaveGameOpen, setLeaveGameOpen] = React.useState(false);
@@ -240,6 +254,12 @@ export default function GameHomePage({
     null,
   );
   const [markAsNotPlayedOpen, setMarkAsNotPlayedOpen] = React.useState(false);
+  const [editTeamsOpen, setEditTeamsOpen] = React.useState(false);
+  const [addSide, setAddSide] = React.useState<number | null>(null);
+  const [openSpot, setOpenSpot] = React.useState<{
+    seat: FriendlyGameJoinSeat;
+    own: "move" | "join";
+  } | null>(null);
   const [addSeat, setAddSeat] = React.useState<FriendlyGameJoinSeat | null>(
     null,
   );
@@ -354,6 +374,31 @@ export default function GameHomePage({
     },
   });
 
+  const postKingCourts = api.games.postKingCourts.useMutation({
+    onSuccess: async () => {
+      toast.success(m.tournamentKing.draw.postedNote);
+      await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const postKingFinalOrder = api.games.postKingFinalOrder.useMutation({
+    onSuccess: async () => {
+      toast.success(m.tournamentKing.finalOrder.posted);
+      await utils.games.byId.invalidate({ id });
+      await utils.games.listMyGames.invalidate();
+      await utils.games.listMyMatchHistory.invalidate();
+      await utils.users.home.invalidate();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
   const postPoolDraw = api.games.postPoolDraw.useMutation({
     onSuccess: async () => {
       toast.success(
@@ -409,6 +454,10 @@ export default function GameHomePage({
       toastGlobalFormError(error);
     },
   });
+
+  function refreshRatings() {
+    return invalidateRatingReads(utils, { groupId: game.data?.groupId });
+  }
 
   async function refreshGame() {
     await utils.games.byId.invalidate({ id });
@@ -485,6 +534,7 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(g.toast.setSaved);
       await refreshGame();
+      await refreshRatings();
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -495,7 +545,7 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(g.toast.matchCompleted);
       await refreshGame();
-      await utils.ratings.me.invalidate();
+      await refreshRatings();
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -506,7 +556,21 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(g.toast.resultConfirmed);
       await refreshGame();
-      await utils.ratings.me.invalidate();
+      await refreshRatings();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const stampMatch = api.games.stampMatch.useMutation({
+    onSuccess: async () => {
+      toast.success(m.rating.verifier.stamp.stamped);
+      await Promise.all([
+        refreshGame(),
+        refreshRatings(),
+        utils.games.listMatchesToStamp.invalidate(),
+      ]);
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -517,7 +581,7 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(g.toast.scoreReopened);
       await refreshGame();
-      await utils.ratings.me.invalidate();
+      await refreshRatings();
     },
     onError: (error) => {
       toastGlobalFormError(error);
@@ -581,6 +645,9 @@ export default function GameHomePage({
     sport: data?.sport,
     groupId: data?.groupId ?? null,
     tournamentRounds: data?.format === "friendly_tournament",
+    booked: data?.booking != null,
+    challenge: data?.challenge != null,
+    drawPosted: data?.drawPostedAt != null,
   });
   const edit = useGameEdit({
     gameId: id,
@@ -633,6 +700,7 @@ export default function GameHomePage({
         cancelledAt: data.cancelledAt,
         registrationMode: data.registrationMode,
         partnerRequired: isPartnerRequiredGame(data),
+        over: isTournamentFinished(data),
       })
     : { canManage: false, canSendLookup: false };
   const canMintInvite = data ? friendlyGameCanMintInvite(data) : false;
@@ -717,7 +785,7 @@ export default function GameHomePage({
       <DashboardShell title={g.title}>
         <ErrorState
           title={g.errorTitle}
-          message={game.error.message}
+          error={game.error}
           onRetry={() => {
             void game.refetch();
           }}
@@ -755,7 +823,10 @@ export default function GameHomePage({
     ? friendlyGameHomeTitle(data.groupId, data.groupName, locale)
     : g.title;
   const isOrganizerActive = data.isOrganizer && !data.cancelledAt;
-  const roundsPlan = tournamentRoundsPlan(data, edit.draft.roundCount);
+  const roundsPlan = tournamentRoundsPlan(
+    { ...data, teamsAllowed: edit.draft.teamCount ?? data.teamsAllowed },
+    edit.draft.roundCount,
+  );
   const showMenu = isOrganizerActive;
   const primaryLeave = data.isRegistered && data.canLeave && !data.isWaitlisted;
   const primaryLeaveWaitlist = data.isWaitlisted;
@@ -763,6 +834,17 @@ export default function GameHomePage({
   const addPlacement = addPlayerPlacement(data);
   const canAddPlayer = organizerCanAddPlayer(data);
   const openAddPlayer = canAddPlayer ? () => setAddPlayerOpen(true) : undefined;
+  const editsTeams =
+    (usesFriendlyChrome || usesDrawnTournamentChrome) && canEditTeams(data);
+  const openEditTeams = editsTeams ? () => setEditTeamsOpen(true) : undefined;
+  const addPlayerToSeat = (seat: FriendlyGameJoinSeat) => {
+    setAddSeat(seat);
+    setAddPlayerOpen(true);
+  };
+  const addPlayerToSide = (sideIndex: number) => {
+    setAddSide(sideIndex);
+    setAddPlayerOpen(true);
+  };
   const { firstMatch, winningGameTeamId, canLeaveGame } = plan;
   const playedMatch =
     usesFriendlyChrome && data.phase === "final" ? firstMatch : undefined;
@@ -830,6 +912,7 @@ export default function GameHomePage({
         onCloseRegistration={() => closeRegistration.mutate({ gameId: id })}
         onReopenRegistration={() => reopenRegistration.mutate({ gameId: id })}
         onAddPlayer={openAddPlayer}
+        onEditTeams={openEditTeams}
         onFooterAction={(kind) => footerHandlers[kind]()}
         onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
       />
@@ -850,7 +933,7 @@ export default function GameHomePage({
           size="icon"
           variant="ghost"
           aria-label={g.shareGame}
-          className="bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus rounded-md"
+          className="border-dimrule bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus rounded-md border"
           onClick={
             shareLink === "invite_link" ? shareInviteLink : shareGamePage
           }
@@ -892,6 +975,15 @@ export default function GameHomePage({
   ): OpenSeatAction | null => {
     const sideLabel = formatGameSideLabel("friendly_game", sideIndex, locale);
     const positionLabel = courtPositionLabel(position, locale);
+    if ((vacantAction === "move" || vacantAction === "join") && canAddAtSeat) {
+      const own = vacantAction;
+      return {
+        label: m.editTeams.openSpot.title(
+          editTeamsSpotLabel("friendly_game", { sideIndex, position }, locale),
+        ),
+        onClick: () => setOpenSpot({ seat: { sideIndex, position }, own }),
+      };
+    }
     if (vacantAction === "move" || vacantAction === "join") {
       return {
         label:
@@ -910,10 +1002,7 @@ export default function GameHomePage({
     return canAddAtSeat
       ? {
           label: g.addPlayerTo(sideLabel, positionLabel),
-          onClick: () => {
-            setAddSeat({ sideIndex, position });
-            setAddPlayerOpen(true);
-          },
+          onClick: () => addPlayerToSeat({ sideIndex, position }),
         }
       : null;
   };
@@ -1097,7 +1186,6 @@ export default function GameHomePage({
 
         {usesDrawnTournamentChrome ? (
           <>
-            <GameRatingScopeBlock scope={data.ratingScope} />
             <TournamentHome
               data={data}
               linkToPlayers={gamePlayersLink(data)}
@@ -1133,6 +1221,21 @@ export default function GameHomePage({
               onUndo={async () => {
                 await undoPoolDraw.mutateAsync({ gameId: id });
               }}
+              kingActions={{
+                courtsPending: postKingCourts.isPending,
+                courtsError: postKingCourts.error,
+                onPostCourts: async (gameTeamIds) => {
+                  await postKingCourts.mutateAsync({ gameId: id, gameTeamIds });
+                },
+                orderPending: postKingFinalOrder.isPending,
+                orderError: postKingFinalOrder.error,
+                onPostFinalOrder: async (gameTeamIds) => {
+                  await postKingFinalOrder.mutateAsync({
+                    gameId: id,
+                    gameTeamIds,
+                  });
+                },
+              }}
               onShare={canManageGameInvites ? shareInviteLink : undefined}
               onInvite={
                 canManageGameInvites ? () => setInvitesOpen(true) : undefined
@@ -1166,6 +1269,18 @@ export default function GameHomePage({
               onKick={(userId) => requestKick({ userId })}
               onKickWaitlist={(waitlistId) => requestKick({ waitlistId })}
               onAddPlayer={openAddPlayer}
+              onEditTeams={openEditTeams}
+              onOpenSeat={
+                canAddPlayer && addPlacement === "side"
+                  ? (seat, canJoin) => {
+                      if (canJoin) {
+                        setOpenSpot({ seat, own: "join" });
+                        return;
+                      }
+                      addPlayerToSide(seat.sideIndex);
+                    }
+                  : undefined
+              }
               onCancelKnockoutMatch={setCancelKnockoutPlace}
             />
           </>
@@ -1258,6 +1373,7 @@ export default function GameHomePage({
               <ChallengeDetailsBlock
                 challenge={data.challenge}
                 sport={data.sport}
+                rated={data.rated}
               />
             ) : null}
             {data.booking ? (
@@ -1266,7 +1382,11 @@ export default function GameHomePage({
                 ratingScope={data.ratingScope}
               />
             ) : (
-              <GameRatingScopeBlock scope={data.ratingScope} />
+              <GameRatingScopeBlock
+                scope={data.ratingScope}
+                sport={data.sport}
+                publicGame={isPublicGame(data)}
+              />
             )}
             <GameLineupSection
               sides={data.sides}
@@ -1314,6 +1434,10 @@ export default function GameHomePage({
                   : undefined
               }
             />
+            <GamePaymentsSection
+              gameId={id}
+              tracked={gamePaymentsTracked(data)}
+            />
             {data.phase && data.phase !== "cancelled" && firstMatch ? (
               <div ref={resultsSectionRef}>
                 <GameScoreSection
@@ -1323,10 +1447,15 @@ export default function GameHomePage({
                   viewerUserId={data.viewerUserId}
                   winningGameTeamId={winningGameTeamId}
                   matchResultConfirmation={data.matchResultConfirmation}
-                  isOrganizer={data.isOrganizer}
+                  confirmWindow={data.confirmWindow}
+                  isOrganizer={
+                    data.matchResultConfirmation?.viewerConfirmsAsOrganizer ??
+                    false
+                  }
                   courtFull={vacantSeatCount === 0}
                   scorePending={scoreSet.isPending}
                   confirmPending={confirmMatchResult.isPending}
+                  stampPending={stampMatch.isPending}
                   onScoreSet={(input) =>
                     scoreSet.mutateAsync({
                       gameId: id,
@@ -1342,6 +1471,7 @@ export default function GameHomePage({
                       matchId: firstMatch.id,
                     })
                   }
+                  onStamp={() => stampMatch.mutate({ matchId: firstMatch.id })}
                 />
               </div>
             ) : null}
@@ -1427,6 +1557,9 @@ export default function GameHomePage({
                 scorePending={scoreSet.isPending}
                 completePending={completeMatch.isPending}
                 cancelPending={cancelMatch.isPending}
+                updatePending={updateMatch.isPending}
+                stampPending={stampMatch.isPending}
+                onStamp={(matchId) => stampMatch.mutate({ matchId })}
                 onScoreSet={(input) =>
                   scoreSet.mutate({
                     gameId: id,
@@ -1471,15 +1604,26 @@ export default function GameHomePage({
           sections={{ ...editSections, rounds: roundsPlan != null }}
           context={{
             venueName: data.venue?.name ?? null,
-            courtName: data.recordedCourts[0]?.name ?? null,
+            courtName:
+              data.booking?.courtName ?? data.recordedCourts[0]?.name ?? null,
             groupName: data.groupName,
             joined: data.registeredUserCount,
+            teams:
+              data.format === "friendly_tournament"
+                ? {
+                    joined: data.registeredTeamCount,
+                    shape: data,
+                    king: isKingOfTheCourt(data.format, data.tournamentShape),
+                    partnerOnly: isPartnerRequiredGame(data),
+                  }
+                : null,
             seasons: data.groupSeasons,
             canChangeSeason: data.canChangeSeason,
             rounds: roundsPlan
               ? {
                   poolSizes: roundsPlan.poolSizes,
                   overruns: roundsPlan.overruns,
+                  chosen: roundsPlan.chosen,
                 }
               : null,
           }}
@@ -1541,16 +1685,73 @@ export default function GameHomePage({
             setAddPlayerOpen(open);
             if (!open) {
               setAddSeat(null);
+              setAddSide(null);
             }
           }}
           gameId={id}
           placement={addPlacement}
           sides={data.sides}
           initialSeat={addSeat}
+          initialSide={addSide}
           groupName={data.groupName}
           onAdded={() => utils.games.byId.invalidate({ id })}
         />
       ) : null}
+
+      {editsTeams ? (
+        <EditTeamsDialog
+          open={editTeamsOpen}
+          onOpenChange={setEditTeamsOpen}
+          gameId={id}
+          format={usesFriendlyChrome ? "friendly_game" : "friendly_tournament"}
+          sides={data.sides}
+          matches={data.matches}
+          rules={{
+            fullSidesOnly: isPartnerRequiredGame(data),
+            fixedSides: data.drawPostedAt != null,
+          }}
+          viewerUserId={data.viewerUserId}
+          onSaved={() => utils.games.byId.invalidate({ id })}
+        />
+      ) : null}
+
+      <OpenSpotDialog
+        spotLabel={
+          openSpot
+            ? editTeamsSpotLabel(
+                usesFriendlyChrome ? "friendly_game" : "friendly_tournament",
+                openSpot.seat,
+                locale,
+              )
+            : null
+        }
+        own={openSpot?.own ?? "join"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setOpenSpot(null);
+          }
+        }}
+        onAddPlayer={() => {
+          if (!openSpot) {
+            return;
+          }
+          if (usesFriendlyChrome) {
+            addPlayerToSeat(openSpot.seat);
+          } else {
+            addPlayerToSide(openSpot.seat.sideIndex);
+          }
+        }}
+        onOwn={() => {
+          if (!openSpot) {
+            return;
+          }
+          if (openSpot.own === "move") {
+            moveSeat.mutate({ gameId: id, ...openSpot.seat });
+          } else {
+            openJoinPicker(openSpot.seat);
+          }
+        }}
+      />
 
       {usesFriendlyChrome && !playedMatch ? (
         <PlayedPlayerDialog
@@ -1564,7 +1765,11 @@ export default function GameHomePage({
               isViewer: selectedPlayer.userId === data.viewerUserId,
             })
           }
-          canRename={data.isOrganizer}
+          canRename={
+            data.isOrganizer &&
+            selectedPlayer != null &&
+            seatedPlayerCanRename(data.sides, selectedPlayer.userId)
+          }
           onOpenChange={(open) => {
             if (!open) {
               setSelectedPlayer(null);

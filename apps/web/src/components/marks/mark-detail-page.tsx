@@ -143,7 +143,7 @@ export function MarkDetailPage({
     return (
       <ErrorState
         title={m.webMarks.cabinet.loadError}
-        message={error.message}
+        error={error}
         onRetry={() => {
           void query.refetch();
           void cabinet.refetch();

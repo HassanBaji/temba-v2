@@ -1,6 +1,7 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { formatOvrFromTenths } from "./football-ovr";
 import { displayLabelFromStoredBand } from "./level-bands";
 import { tenthsToLevelBand } from "./level-range";
 import { levelRangeRequestRowMeta } from "./level-range-request";
@@ -22,7 +23,7 @@ export type OrganizerRequest = {
   name: string;
   image: string | null;
   meta: string;
-  /** The requester's band beside their name, `C−`. */
+  /** The requester's band beside their name, `C−`, or their OVR on football, `72`. */
   level: string | null;
   /** What they asked for, in a sentence or two. */
   detail: string;
@@ -40,11 +41,19 @@ export type GameRequestsInput = {
     heldSeat?: HeldSeat | null;
   }[];
   pendingSeatHolds?: SeatHoldRequestRow[];
+  sport?: string | null;
 };
 
-function levelBandOf(tenths: number | null) {
-  return tenths == null
-    ? null
+/** The requester's Level beside their name: a band, or the bare OVR on football. */
+export function organizerRequestLevel(
+  tenths: number | null,
+  sport: string | null | undefined,
+) {
+  if (tenths == null) {
+    return null;
+  }
+  return sport === "football"
+    ? formatOvrFromTenths(tenths)
     : displayLabelFromStoredBand(tenthsToLevelBand(tenths));
 }
 
@@ -68,7 +77,7 @@ export function gameOrganizerRequests(
         name: request.user.name ?? fallback,
         image: request.user.image,
         meta: seatHoldRequestRowMeta(request, locale, now),
-        level: levelBandOf(request.levelTenths),
+        level: organizerRequestLevel(request.levelTenths, game.sport),
         detail: seatHoldRequestDetail(request, locale),
         held: seatHoldRemainingLabel(request.seatHeldUntil, locale, now),
       }),
@@ -79,8 +88,8 @@ export function gameOrganizerRequests(
         kind: "level_range",
         name: request.user.name ?? fallback,
         image: request.user.image,
-        meta: levelRangeRequestRowMeta(request, locale, now),
-        level: levelBandOf(request.levelTenths),
+        meta: levelRangeRequestRowMeta(request, locale, now, game.sport),
+        level: organizerRequestLevel(request.levelTenths, game.sport),
         detail: m.game.requests.sentence(
           heldSeatLabel(request.heldSeat, locale)
             ? `${m.game.requests.outsideRange} (${heldSeatLabel(request.heldSeat, locale)})`

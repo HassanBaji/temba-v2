@@ -15,6 +15,16 @@ describe("gamePlayersLink", () => {
     );
   });
 
+  it("links for a Verifier who may calibrate the Game's players", () => {
+    expect(
+      gamePlayersLink({
+        isRegistered: false,
+        isGroupMember: false,
+        viewerMayCalibratePlayers: true,
+      }),
+    ).toBe(true);
+  });
+
   it("does not link for a public browser, a waitlisted viewer or an Organizer outside the Group", () => {
     expect(gamePlayersLink({ isRegistered: false, isGroupMember: false })).toBe(
       false,
@@ -41,8 +51,20 @@ describe("gameTeamPlayers", () => {
 
   it("lists both players of a Game team", () => {
     expect(gameTeamPlayers(gameTeams, "team-1")).toEqual([
-      { id: "u1", name: "Sofia L", image: null },
-      { id: "u2", name: "Adam R", image: "https://img/u2" },
+      { id: "u1", name: "Sofia L", image: null, guest: false },
+      { id: "u2", name: "Adam R", image: "https://img/u2", guest: false },
+    ]);
+  });
+
+  it("keeps a Guest player's mark", () => {
+    const withGuest = [
+      {
+        id: "team-3",
+        members: [{ id: "g1", name: "Fahad", image: null, guest: true }],
+      },
+    ];
+    expect(gameTeamPlayers(withGuest, "team-3")).toEqual([
+      { id: "g1", name: "Fahad", image: null, guest: true },
     ]);
   });
 

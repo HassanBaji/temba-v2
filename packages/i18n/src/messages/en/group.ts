@@ -132,14 +132,6 @@ export const group = {
         `Via invite link from ${name}, ${when}`,
       viaInviteLink: (when: string) => `Via invite link, ${when}`,
     },
-    requestsBanner: (n: number) =>
-      plural("en", n, {
-        one: "1 person wants to join",
-        other: "{n} people want to join",
-      }),
-    requestsHeading: (n: number) =>
-      plural("en", n, { one: "1 wants to join", other: "{n} want to join" }),
-    reviewLabel: "Review",
     changeLabel: "Change",
     policy: {
       approve: "Organizers approve new members",
@@ -215,6 +207,7 @@ export const group = {
   },
   linkRequest: {
     venueRequestsTitle: "Venue requests",
+    publicOnly: "Only a Public Group can be linked to a Venue by request",
     rowMeta: "Only you can decide, as the Group creator.",
     acceptLabel: "Accept",
     declineLabel: "Decline",
@@ -252,7 +245,7 @@ export const group = {
     leaveVenueConfirm: {
       title: (venue: string) => `Unlink from ${venue}?`,
       description: (group: string) =>
-        `${group} becomes a Loose Group again. New Games will count for the group rating only, unless an Operator has verified the Group.`,
+        `${group} becomes a Loose Group again. New Games will not count for Temba Level, unless an Operator has verified the Group.`,
       confirmLabel: "Unlink",
       cancelLabel: "Stay linked",
       pendingLabel: "Unlinking…",
@@ -265,7 +258,7 @@ export const group = {
     venueUnlinkConfirm: {
       title: (group: string) => `Unlink ${group}?`,
       description: (group: string) =>
-        `${group} is no longer linked to your Venue and becomes a Loose Group. New Games will count for the group rating only, unless an Operator has verified it. Past Games and members stay as they are.`,
+        `${group} is no longer linked to your Venue and becomes a Loose Group. New Games will not count for Temba Level, unless an Operator has verified it. Past Games and members stay as they are.`,
       confirmLabel: "Unlink Group",
       cancelLabel: "Keep linked",
     },
@@ -295,6 +288,7 @@ export const group = {
           joined: { label: "Recently joined", hint: "Newest members first" },
           name: { label: "Name", hint: "A to Z" },
           level: { label: "Level", hint: "Highest first, no Level last" },
+          tier: { label: "Tier", hint: "Sharks first, Provisional last" },
         },
       },
       filters: {
@@ -393,6 +387,12 @@ export const group = {
     },
     oneGameRanks: "One game ranks you.",
     playGamesToRank: (n: number) => `Play ${n} games to be ranked.`,
+    tierFootnote: {
+      season: "Counts this season’s games and starts again next season.",
+      before: "How strong each player is in the group, their tier, is on ",
+      membersLink: "Members",
+      after: ".",
+    },
   },
   settings: {
     sportSublabel: {
@@ -435,6 +435,7 @@ export const group = {
     },
     linkCopiedToast: "Group link copied",
     linkResetToast: "Link reset. Old links stop working.",
+    linkResetOwnerOnly: "Only the Group owner can reset the Invite link",
     ownerLeave: {
       title: (name: string) => `Hand ${name} to someone first`,
       description:
@@ -542,9 +543,25 @@ export const group = {
       `Remove ${name} from this Group? Their Games stay in history.`,
     removedToast: (name: string) => `${name} removed`,
     renameAction: "Edit name",
+    whatsAppAction: "WhatsApp",
+    whatsAppFor: (name: string) => `Message ${name} on WhatsApp`,
     renameDescription:
       "Their phone stays the same. If the number is wrong, remove them and add them again.",
     renamedToast: (name: string) => `Name changed to ${name}`,
+    guest: {
+      tab: "Guest",
+      description:
+        "A guest plays this game by name only. No phone, no account.",
+      nameLabel: "Name",
+      levelNote:
+        "Their level counts as the average of the other players in each match, and only real players' levels move.",
+      submit: (name: string) =>
+        name ? `Add ${name} as a guest` : "Add as a guest",
+      addedToast: (name: string) => `${name} added as a guest`,
+      tag: "Guest",
+      nameGuest: (name: string) => `${name}, guest`,
+      renameDescription: "What they're called in this game.",
+    },
     fromGroup: {
       tab: "From group",
       phoneTab: "By phone",
@@ -592,10 +609,102 @@ export const group = {
     lastRequired: "Enter your last name",
     tooLong: (max: number) => `Keep it under ${max} characters`,
   },
-  teams: {
-    title: "Teams",
-    createLabel: "Create team",
-    empty: "No Teams are tagged to this Group yet.",
-    openTeam: (team: string) => `Open ${team}`,
+  nickname: {
+    spoken: (nickname: string, name: string) =>
+      `${nickname}, this Group's name for ${name}`,
+    menuLabel: "Name in this Group",
+    menuHint: "What you call them here, so you can tell people apart",
+    addMenuLabel: "Add a Group nickname",
+    title: "Name in this Group",
+    forMember: (name: string, group: string) =>
+      `For ${name}, in ${group} only.`,
+    forYou: (group: string) => `For you, in ${group} only.`,
+    fieldLabel: "Name",
+    placeholder: "What do you call them?",
+    counter: (count: number, max: number) => `${count} of ${max}`,
+    counterSpoken: (count: number, max: number) =>
+      `${count} of ${max} characters`,
+    previewLabel: "How they'll appear in this Group",
+    noNickname: "No name in this Group",
+    whoSees: "Who sees it",
+    visibility: {
+      approvers: {
+        title: "Organizers only",
+        description: "A working label for the people who run games.",
+      },
+      group: {
+        title: "Everyone in the Group",
+        description: "The name the whole Group uses for them.",
+      },
+    },
+    approversNote: (firstName: string) =>
+      `${firstName} won't see this name. Only the Group's Organizers do.`,
+    groupNote: (firstName: string) =>
+      `${firstName} and everyone else in the Group will see it next to their name.`,
+    approversNoteSelf:
+      "Only the Group's Organizers see this name, you included.",
+    groupNoteSelf: "Everyone in the Group will see it next to your name.",
+    save: (nickname: string) => `Save “${nickname}”`,
+    typeFirst: "Type a name first",
+    clear: "Clear name",
+    savedToast: (nickname: string) => `Saved “${nickname}”`,
+    clearedToast: (name: string) => `${name} has no name in this Group now`,
+    youAre: "In this Group you're",
+    youAreNote:
+      "A name the Group's Organizers gave you. Everyone in this Group sees it next to your name. It isn't shown anywhere else.",
+    youAreSpoken: (nickname: string) =>
+      `In this Group you're ${nickname}. A name the Group's Organizers gave you. Everyone in this Group sees it next to your name. It isn't shown anywhere else.`,
+    legend:
+      "A tag marks a name this Group gave. It shows in this Group only; the player's Temba name and profile don't change.",
+  },
+  errors: {
+    notFound: "Group not found",
+    cannotJoin: "You can't join this Group",
+    approverOnly: "Only a Group approver can do that",
+    inviterOnly:
+      "Only the creator or an Organizer can manage invites for this Group",
+    seasonsOwnerOnly: "Only the Group owner can manage seasons",
+    notLinkedToVenue: "This Group is not linked to the Venue",
+    deleteOwnerOnly: "Only the Group owner can delete this Group",
+    editOwnerOnly: "Only the Group owner can edit this Group",
+    transferOwnerOnly: "Only the Group owner can transfer ownership",
+    alreadyMember: "You are already a member of this Group",
+    userAlreadyMember: "User is already a member of this Group",
+    notMember: "You are not a member of this Group",
+    linkRequestNotFound: "Group link request not found",
+    linkRequestNotPending: "Group link request is no longer pending",
+    creatorDecides: "Only the Group creator can decide this request",
+    looseOnlyLink: "Only a Loose Group can be linked to a Venue",
+    linkArchivedVenue: "Cannot link a Group to a Soft-archived Venue",
+    creatorUnlinks:
+      "Only the Group creator can unlink the Group from its Venue",
+    pendingLinkRequest:
+      "This Group already has a pending link request from this Venue",
+    playerAlreadyIn: (name: string) => `${name} is already in this Group`,
+    joinRequestNotFound: "Join request not found",
+    joinRequestNotPending: "Join request is not pending",
+    joinRequestNotDecided: "Join request has not been decided",
+    alreadyPlayed: "They have already played in this Group",
+    isOrganizer: "They are an Organizer of this Group",
+    seasonNotFound: "Season not found",
+    seasonNotActive: "Only an active season can be closed",
+    privateNoUrlJoin: "Private Groups cannot be joined via the Group URL",
+    requiresApproval: "This Group requires approval. Request to join instead.",
+    cannotRequestJoin: "You cannot request to join this Group",
+    playerNotInGroup: "This player is not in the Group",
+    ownerCannotLeave:
+      "Transfer ownership to another member before leaving, or delete the Group",
+    cannotRemoveCreator: "The Group creator cannot be removed",
+    removeSelf: "Leave the Group instead",
+    onlyUnclaimedRemovable: "Only players not on Temba yet can be removed",
+    sportLocked: "The sport is locked once the Group has a Game",
+    alwaysOrganizer: "The Group creator is always an Organizer",
+    unclaimedOrganizer: "Players not on Temba yet cannot be Organizers",
+    alreadyOwner: "They already own this Group",
+    unclaimedOwner: "Players not on Temba yet cannot own a Group",
+    standingMembersOnly: "Join the Group to see its Standing",
+    approvalPublicOnly: "Require approval only applies to Public Groups",
+    imageEmpty: "Image file is empty",
+    nicknameTooLong: (max: number) => `Keep the name to ${max} characters`,
   },
 };

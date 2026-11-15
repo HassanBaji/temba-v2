@@ -9,6 +9,7 @@ import {
 import { useLocale } from "../i18n/locale-provider";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
+import { useErrorMessage } from "../lib/use-error-message";
 
 /**
  * The hero's share: the Organizer mints the Game's invite link, everyone
@@ -16,6 +17,7 @@ import { api } from "../trpc/react";
  */
 export function useShareGame(gameId: string) {
   const toast = useToast();
+  const errorText = useErrorMessage();
   const locale = useLocale();
   const utils = api.useUtils();
   const createLink = api.games.createInviteLink.useMutation({
@@ -28,7 +30,7 @@ export function useShareGame(gameId: string) {
       const page = await utils.games.resultLink.fetch({ gameId });
       return { shortUrl: null, inviteUrl: page.url };
     } catch (error) {
-      toast.show(error instanceof Error ? error.message : String(error));
+      toast.show(errorText(error));
       return null;
     }
   }

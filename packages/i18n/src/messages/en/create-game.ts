@@ -41,6 +41,10 @@ export const createGame = {
       title: "Groups only",
       description: "Everyone plays the same number of games",
     },
+    rounds: {
+      title: "Rounds",
+      description: "One table. You pick how many Rounds are played",
+    },
     knockoutOnly: {
       title: "Knockout only",
       description: "Lose once and you are done for the day",
@@ -78,6 +82,8 @@ export const createGame = {
     lockedLinked: (optional: string) =>
       `Venue is this Group’s linked Venue and cannot be changed. ${optional}`,
     pick: (optional: string) => `Pick a Venue. ${optional}`,
+    pickPartner: (optional: string) =>
+      `Only partner Venues host public games. ${optional}`,
     cardMeta: (courts: string, city: string) => `${courts} · ${city}`,
   },
   price: {
@@ -171,20 +177,43 @@ export const createGame = {
     whenHint:
       "Today or later, 30-minute steps. For today only upcoming times are listed.",
     playersAndPriceHint:
-      "Dropping players below the number joined moves the latest joiners to the waiting list. They get a spot back if someone leaves. Price changes apply to players who join from now on.",
+      "Dropping players below the number joined moves the latest joiners to the waiting list and lets them know. They get a spot back if someone leaves. Price changes apply to players who join from now on.",
     everyoneKeepsSpot: "Everyone who joined keeps their spot.",
     venueLocked: (place: string) => `${place}. Venue can't change.`,
     venueLockedNoPlace: "Venue can't change.",
+    place: {
+      title: "Where",
+      venue: "Venue",
+      venueHint: "A new Venue clears the Court. Pick one there.",
+      clubVenue: "This Club Group plays at its own Venue.",
+    },
+    court: {
+      title: "Court",
+      none: "No Court",
+      loading: "Loading Courts…",
+      hint: "Courts at this Venue only.",
+    },
+    pitch: {
+      title: "Pitch",
+      none: "No Pitch",
+      loading: "Loading Pitches…",
+      hint: "Pitches at this Venue only.",
+    },
     windowIncomplete: "Pick a day, a start time and a finish time",
     change: {
       name: "name",
       dayMoved: "day moved",
       timeChanged: "time changed",
+      venue: "venue moved",
+      court: "court changed",
+      pitch: "pitch changed",
       players: "players",
       aside: "a-side",
       price: "price",
       levelRange: "level range",
       rounds: "rounds",
+      teams: "teams",
+      courts: "courts",
       seasonUnlinked: "season unlinked",
       seasonLinked: "season linked",
       seasonChanged: "season changed",
@@ -203,6 +232,31 @@ export const createGame = {
       }),
     capWait: (moving: number, joined: number) =>
       `${moving} of the ${joined} joined move to the waiting list, latest to join first.`,
+    teamsCapWait: (moving: number, joined: number) =>
+      plural("en", moving, {
+        one: `1 of the ${joined} teams that joined moves to the waiting list, latest to join first.`,
+        other: `{n} of the ${joined} teams that joined move to the waiting list, latest to join first.`,
+      }),
+    teams: {
+      title: "Teams",
+      label: "Teams",
+      fewer: "Fewer teams",
+      more: "More teams",
+      hint: "Dropping teams below the number joined moves the latest teams to join to the waiting list and lets their players know. Teams lock once the draw is posted.",
+      kingCourts: (courts: number) =>
+        plural("en", courts, {
+          one: "Two teams a court, 1 court",
+          other: "Two teams a court, {n} courts",
+        }),
+      partnerOnlyHint:
+        "This tournament takes pairs only and has no waiting list, so teams can't drop below the number joined.",
+    },
+    courts: {
+      title: "Courts",
+      loading: "Loading Courts…",
+      none: "This Venue has no Courts for this sport.",
+      hint: "Rounds are scheduled on these Courts. Matches already posted keep their Court.",
+    },
   },
   season: {
     none: "No season",

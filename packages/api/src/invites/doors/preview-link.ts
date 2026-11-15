@@ -5,7 +5,6 @@ import {
   games,
   groupInviteLinks,
   groups,
-  GroupTypeEnum,
   teamInviteLinks,
   teams,
 } from "@repo/db";
@@ -50,7 +49,7 @@ export async function previewLink(
       status: "ready",
       name: group?.name ?? "Group",
       requiresApproval:
-        group?.type === GroupTypeEnum.PUBLIC && group.requiresApproval,
+        group?.type === "public" && group.requiresApproval,
     };
   }
 

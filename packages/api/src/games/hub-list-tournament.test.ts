@@ -12,16 +12,15 @@ import {
   matches,
   user,
   venues,
+  matchSets,
 } from "@repo/db/schema";
 
-import { addSet } from "#src/routers/games/addSet";
 import { cancelMatch } from "#src/routers/games/cancelMatch";
 import { completeMatch } from "#src/routers/games/completeMatch";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
-import { scoreSet } from "#src/routers/games/scoreSet";
 import { groupById } from "#src/routers/groups/byId";
 import { createFriendlyGame } from "#src/games/create-friendly";
 import { listMyGamesHubRows } from "#src/games/list-my-games";
@@ -420,21 +419,15 @@ async function completeWithSets(
     sets: { slot1GamesWon: number; slot2GamesWon: number }[];
   },
 ) {
-  for (const set of args.sets) {
-    const created = await addSet(database, {
-      gameId: args.gameId,
+  // A tournament score is one Set (ADR-0062), so a Match of several Sets is
+  // seeded straight into the table.
+  await database.insert(matchSets).values(
+    args.sets.map((set, index) => ({
       matchId: args.matchId,
-      userId: args.organizerUserId,
-    });
-    await scoreSet(database, {
-      gameId: args.gameId,
-      matchId: args.matchId,
-      setId: created.id,
-      userId: args.organizerUserId,
-      slot1GamesWon: set.slot1GamesWon,
-      slot2GamesWon: set.slot2GamesWon,
-    });
-  }
+      setNumber: index + 1,
+      ...set,
+    })),
+  );
   await completeMatch(database, {
     gameId: args.gameId,
     matchId: args.matchId,
@@ -569,8 +562,8 @@ describe("hub row poolMatch field", { timeout: 30_000 }, () => {
   });
 });
 
-describe("Home carousel Pool Match rows", { timeout: 30_000 }, () => {
-  it("carry the tournament and poolMatch fields with the upcoming phase", async () => {
+describe("Home carousel drawn tournament row", { timeout: 30_000 }, () => {
+  it("is one row for the Game with the tournament fields and the upcoming phase", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const seeded = await seedPostedTournament(db, "carousel-upcoming");
@@ -578,21 +571,16 @@ describe("Home carousel Pool Match rows", { timeout: 30_000 }, () => {
       const rows = (
         await listHomeCarouselGames(db, seeded.viewer.id, NOW)
       ).filter((row) => row.id === seeded.gameId);
-      expect(rows.map((row) => row.roundNumber)).toEqual([1, 2, 3]);
+      expect(rows).toHaveLength(1);
       const [next] = rows;
       expect(next).toMatchObject({
-        matchId: expect.any(String),
+        matchId: null,
+        roundNumber: null,
         poolCount: 1,
-        roundCount: 3,
         phase: "upcoming",
         canAddResults: false,
         tournament: { roundCount: 3, drawPosted: true },
-        poolMatch: {
-          poolLabel: "A",
-          poolSize: 4,
-          viewerPosition: null,
-          lastResult: null,
-        },
+        poolMatch: null,
       });
       expect(next?.tournament?.teams).toHaveLength(4);
       expect(next?.tournament?.teams[0]?.isViewerTeam).toBe(true);
@@ -625,22 +613,14 @@ describe("Home carousel Pool Match rows", { timeout: 30_000 }, () => {
       const rows = (
         await listHomeCarouselGames(db, seeded.viewer.id, afterWindow)
       ).filter((row) => row.id === seeded.gameId);
-      expect(rows.map((row) => row.roundNumber)).toEqual([2, 3]);
-      for (const row of rows) {
-        expect(row).toMatchObject({
-          phase: "needs_results",
-          canAddResults: true,
-          tournament: { drawPosted: true },
-          poolMatch: {
-            viewerPosition: 1,
-            lastResult: {
-              roundNumber: 1,
-              outcome: "won",
-              viewerSets: [{ viewer: 6, opponent: 2 }],
-            },
-          },
-        });
-      }
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        matchId: null,
+        phase: "needs_results",
+        canAddResults: true,
+        tournament: { drawPosted: true },
+        poolMatch: null,
+      });
     } finally {
       await close();
     }

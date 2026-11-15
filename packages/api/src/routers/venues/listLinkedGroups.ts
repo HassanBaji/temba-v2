@@ -7,6 +7,7 @@ import {
   groupMembers,
   groups,
 } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -27,12 +28,15 @@ export async function listLinkedGroups(
       userId: string;
       publicMetadata: Record<string, unknown> | undefined;
     };
+    locale?: Locale;
   },
 ) {
-  const venue = await requireVenue(database, args.venueId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const venue = await requireVenue(database, args.venueId, locale);
   await requireVenueManager(database, {
     venueId: venue.id,
     ...args.actor,
+    locale,
   });
 
   const clubGroups = await database
@@ -114,5 +118,6 @@ export const listLinkedGroupsProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

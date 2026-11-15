@@ -2,8 +2,6 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { gamePlayers, games, groups, user, venues } from "@repo/db/schema";
-
-import { PARTNER_REQUIRED_REFUSAL_MESSAGE } from "@repo/domain/tournament-rounds";
 import { acceptInviteLink } from "#src/routers/games/acceptInviteLink";
 import { createInviteLink } from "#src/routers/games/createInviteLink";
 import { createTournament } from "#src/routers/games/createTournament";
@@ -151,7 +149,7 @@ describe("partner-required Invite link landing", () => {
         }),
       ).rejects.toMatchObject({
         code: "FORBIDDEN",
-        message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+        message: "This tournament does not allow registering alone",
       });
       await expect(
         acceptInviteLink(db, {
@@ -162,7 +160,7 @@ describe("partner-required Invite link landing", () => {
         }),
       ).rejects.toMatchObject({
         code: "FORBIDDEN",
-        message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+        message: "This tournament does not allow registering alone",
       });
 
       const seated = await db.query.gamePlayers.findMany({

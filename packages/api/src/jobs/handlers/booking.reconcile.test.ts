@@ -8,6 +8,7 @@ import {
   asDb,
   chargedBooking,
   createHeldBooking,
+  insertBooking,
   insertPayment,
   recordJobs,
   useFakeProvider,
@@ -131,6 +132,31 @@ describe("booking.reconcile", () => {
       jobs.clear();
       await run(db, minutes(30));
       expect(jobs.added).toEqual([]);
+    });
+  });
+
+  it("re-polls a recently failed Tap charge, which may yet be captured", async () => {
+    await withBookableVenue(async (db, f) => {
+      const recent = await chargedBooking(db, f);
+      await db
+        .update(bookingPayments)
+        .set({ status: "failed" })
+        .where(eq(bookingPayments.id, recent.payment.id));
+      const earlier = await insertBooking(db, f, {
+        courtId: f.court2,
+        status: "expired",
+      });
+      await insertPayment(db, earlier.id, {
+        provider: "tap",
+        providerReference: "chg_old",
+        status: "failed",
+        createdAt: days(-2),
+      });
+      jobs.clear();
+      await run(db, minutes(5));
+      expect(jobs.added.map((job) => [job.name, job.payload])).toEqual([
+        ["payment.poll-charge", { paymentId: recent.payment.id, round: 0 }],
+      ]);
     });
   });
 });

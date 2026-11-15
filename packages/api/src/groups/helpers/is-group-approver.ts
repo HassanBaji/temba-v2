@@ -2,6 +2,8 @@ import type { DbClient, DbTx } from "@repo/db";
 import { TRPCError } from "@trpc/server";
 
 import type { groups } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import {
   appointedOrganizerUserIds,
@@ -40,12 +42,13 @@ export async function assertGroupApprover(
   database: DbOrTx,
   group: GroupForApprover,
   userId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (await isGroupApprover(database, group, userId)) {
     return;
   }
   throw new TRPCError({
     code: "FORBIDDEN",
-    message: "Only a Group approver can do that",
+    message: messagesFor(locale).group.errors.approverOnly,
   });
 }

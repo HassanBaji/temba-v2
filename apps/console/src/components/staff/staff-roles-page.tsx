@@ -7,6 +7,7 @@ import * as React from "react";
 import { ConsolePage } from "~/components/console/console-page";
 import { useManagedVenue } from "~/components/console/managed-venue-context";
 import { PageHeader } from "~/components/console/page-header";
+import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 
 import { AddManagerDialog } from "./add-manager-dialog";
@@ -14,6 +15,7 @@ import { ManagerCapabilitiesCard } from "./manager-capabilities-card";
 import { ManagersTable } from "./managers-table";
 
 export function StaffRolesPage() {
+  const m = useMessages().consoleVenue.staff;
   const venue = useManagedVenue();
   const { user } = useUser();
   const isOperator = user?.publicMetadata.operator === true;
@@ -22,8 +24,8 @@ export function StaffRolesPage() {
   return (
     <ConsolePage>
       <PageHeader
-        title="Staff & roles"
-        description="Venue managers sign in with the same Temba account they play with."
+        title={m.title}
+        description={m.description}
         action={
           isOperator ? (
             <Button
@@ -32,7 +34,7 @@ export function StaffRolesPage() {
               onClick={() => setAddOpen(true)}
             >
               <Plus aria-hidden="true" className="size-[15px]" />
-              Add manager
+              {m.add}
             </Button>
           ) : undefined
         }

@@ -198,8 +198,8 @@ describe("setVerified", () => {
         isPublic: false,
         format: "friendly_game" as const,
         registrationMode: "individual" as const,
-        windowStart: new Date(`2026-09-${day}T10:00:00`),
-        windowEnd: new Date(`2026-09-${day}T12:00:00`),
+        windowStart: new Date(`2027-09-${day}T10:00:00`),
+        windowEnd: new Date(`2027-09-${day}T12:00:00`),
       });
       const before = await createGame(db, gameInput(20));
 

@@ -4,9 +4,9 @@ import { Check, Search } from "lucide-react";
 import * as React from "react";
 
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
-import { useMessages } from "~/components/locale-provider";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { ChoiceChip } from "~/components/temba/choice-chip";
-import { FieldError } from "~/components/ui/field";
+import { FieldDescription, FieldError } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import {
@@ -16,9 +16,11 @@ import {
   SheetTitle,
 } from "~/components/ui/sheet";
 import {
+  publicGameSportOptions,
   visibleCreateGroups,
   VISIBLE_GROUP_CHIP_COUNT,
 } from "@repo/domain/create-game-flow";
+import type { Sport } from "@repo/domain/sport";
 import type { Messages } from "@repo/i18n/messages";
 
 export type CreateGroup = {
@@ -37,15 +39,65 @@ function groupOptionLabel(group: CreateGroup, m: Messages) {
   return `${name} · ${group.venueName}`;
 }
 
+/**
+ * The Public game chip beside the Groups: a Public Game has no Group, so it
+ * also takes the sport a Group would have given it.
+ */
+export type PublicGameChoice = {
+  label: string;
+  note: string;
+  selected: boolean;
+  onSelect: () => void;
+  sport: Sport;
+  onSport: (sport: Sport) => void;
+};
+
+function PublicGameSportRow({ choice }: { choice: PublicGameChoice }) {
+  const m = useMessages();
+  const locale = useLocale();
+  return (
+    <div className="flex flex-col gap-2">
+      <p
+        id="game-public-sport-label"
+        className="text-meta text-muted-foreground"
+      >
+        {m.rating.publicGame.sport}
+      </p>
+      <RovingRadioGroup
+        aria-labelledby="game-public-sport-label"
+        className="flex flex-wrap gap-2"
+      >
+        {publicGameSportOptions(choice.sport, locale).map((option) => (
+          <ChoiceChip
+            key={option.sport}
+            role="radio"
+            selected={option.selected}
+            onClick={() => {
+              choice.onSport(option.sport);
+            }}
+          >
+            {option.selected ? (
+              <Check aria-hidden="true" className="size-3.5" />
+            ) : null}
+            {option.label}
+          </ChoiceChip>
+        ))}
+      </RovingRadioGroup>
+    </div>
+  );
+}
+
 function GroupChips({
   groups,
   selectedGroupId,
   labelledBy,
+  publicChoice,
   onSelect,
 }: {
   groups: readonly CreateGroup[];
   selectedGroupId: string;
   labelledBy?: string;
+  publicChoice?: PublicGameChoice;
   onSelect: (groupId: string) => void;
 }) {
   const m = useMessages();
@@ -73,6 +125,21 @@ function GroupChips({
           </ChoiceChip>
         );
       })}
+      {publicChoice ? (
+        <ChoiceChip
+          role="radio"
+          selected={publicChoice.selected}
+          aria-describedby={
+            publicChoice.selected ? "game-group-public-copy" : undefined
+          }
+          onClick={publicChoice.onSelect}
+        >
+          {publicChoice.selected ? (
+            <Check aria-hidden="true" className="size-3.5" />
+          ) : null}
+          {publicChoice.label}
+        </ChoiceChip>
+      ) : null}
     </RovingRadioGroup>
   );
 }
@@ -81,11 +148,13 @@ export function GroupField({
   groups,
   selectedGroupId,
   groupError,
+  publicChoice,
   onGroupId,
 }: {
   groups: readonly CreateGroup[];
   selectedGroupId: string;
   groupError?: string;
+  publicChoice?: PublicGameChoice;
   onGroupId: (groupId: string) => void;
 }) {
   const m = useMessages();
@@ -117,9 +186,18 @@ export function GroupField({
           groups={visibleGroups}
           selectedGroupId={selectedGroupId}
           labelledBy="game-group-label"
+          publicChoice={publicChoice}
           onSelect={onGroupId}
         />
       </div>
+      {publicChoice?.selected ? (
+        <>
+          <FieldDescription id="game-group-public-copy">
+            {publicChoice.note}
+          </FieldDescription>
+          <PublicGameSportRow choice={publicChoice} />
+        </>
+      ) : null}
       {groups.length > VISIBLE_GROUP_CHIP_COUNT ? (
         <ChoiceChip
           dashed

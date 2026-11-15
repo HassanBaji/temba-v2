@@ -12,6 +12,8 @@ import {
   footballPositionSchema,
   footballRoleSchema,
 } from "@repo/validators/football";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -36,33 +38,44 @@ export async function setFootballRole(
     userId: string;
     role: FootballRole;
     position: FootballPosition;
+    locale?: Locale;
+    now?: Date;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  assertFootballGame(game);
-  assertGameNotCancelled(game);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const now = args.now ?? new Date();
+  const game = await requireGame(database, args.gameId, locale);
+  assertFootballGame(game, locale);
+  assertGameNotCancelled(game, locale);
   const player = await database.query.gamePlayers.findFirst({
     where: and(
       eq(gamePlayers.gameId, game.id),
       eq(gamePlayers.userId, args.userId),
     ),
-    columns: { id: true, footballRole: true },
+    columns: { id: true, footballRole: true, kickoffFootballRole: true },
   });
   if (!player) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You are not registered on this Game",
+      message: messagesFor(locale).game.errors.notRegistered,
     });
   }
   if (args.role === "keeper" && player.footballRole !== "keeper") {
-    await assertKeeperSeatOpen(database, game.id, args.userId);
+    await assertKeeperSeatOpen(database, game.id, args.userId, locale);
   }
+  // Who plays free is fixed at kick-off (keepers on a Game that tracks
+  // payments), so the first change after it keeps the role held then.
+  const kickedOff =
+    game.windowStart != null && now.getTime() >= game.windowStart.getTime();
   await database
     .update(gamePlayers)
     .set({
       footballRole: args.role,
       footballPosition: args.position,
-      updatedAt: new Date(),
+      ...(kickedOff && player.kickoffFootballRole == null
+        ? { kickoffFootballRole: player.footballRole }
+        : {}),
+      updatedAt: now,
     })
     .where(eq(gamePlayers.id, player.id));
   return { ok: true as const };
@@ -78,5 +91,9 @@ export const setFootballRoleProcedure = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return setFootballRole(ctx.db, { ...input, userId: appUser.id });
+    return setFootballRole(ctx.db, {
+      ...input,
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   });

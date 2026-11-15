@@ -7,6 +7,8 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { SPORTS, sportsPlayed } from "@repo/domain/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -16,7 +18,11 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
  * the Stored Locale and the sports they set up. Only the User reads their own
  * birth date, home area and nationality.
  */
-export async function loadProfileDetails(database: DbClient, userId: string) {
+export async function loadProfileDetails(
+  database: DbClient,
+  userId: string,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   const row = await database.query.user.findFirst({
     where: eq(user.id, userId),
     columns: {
@@ -46,7 +52,10 @@ export async function loadProfileDetails(database: DbClient, userId: string) {
     },
   });
   if (!row) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).profile.errors.userNotFound,
+    });
   }
   return {
     ...row,
@@ -62,5 +71,5 @@ export async function loadProfileDetails(database: DbClient, userId: string) {
 
 export const profileDetails = protectedProcedure.query(async ({ ctx }) => {
   const appUser = await resolveAppUser(ctx.userId);
-  return loadProfileDetails(ctx.db, appUser.id);
+  return loadProfileDetails(ctx.db, appUser.id, ctx.locale);
 });

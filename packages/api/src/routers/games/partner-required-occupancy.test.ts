@@ -11,10 +11,7 @@ import {
   venues,
 } from "@repo/db/schema";
 
-import {
-  PARTNER_REQUIRED_FULL_MESSAGE,
-  PARTNER_REQUIRED_REFUSAL_MESSAGE,
-} from "@repo/domain/tournament-rounds";
+import { PARTNER_REQUIRED_FULL_MESSAGE } from "@repo/domain/tournament-rounds";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
 import { gameById } from "#src/routers/games/byId";
@@ -147,7 +144,7 @@ describe("partner-required occupancy", () => {
         }),
       ).rejects.toMatchObject({
         code: "BAD_REQUEST",
-        message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+        message: "This tournament does not allow registering alone",
       });
       await expect(
         registerSeat(db, {
@@ -156,7 +153,7 @@ describe("partner-required occupancy", () => {
         }),
       ).rejects.toMatchObject({
         code: "BAD_REQUEST",
-        message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+        message: "This tournament does not allow registering alone",
       });
 
       await db.insert(gamePlayers).values({
@@ -172,7 +169,7 @@ describe("partner-required occupancy", () => {
         }),
       ).rejects.toMatchObject({
         code: "BAD_REQUEST",
-        message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+        message: "This tournament does not allow registering alone",
       });
     } finally {
       await close();
@@ -263,7 +260,7 @@ describe("partner-required occupancy", () => {
         }),
       ).rejects.toMatchObject({
         code: "BAD_REQUEST",
-        message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+        message: "This tournament does not allow registering alone",
       });
       await expect(
         moveSeat(db, {
@@ -274,7 +271,7 @@ describe("partner-required occupancy", () => {
         }),
       ).rejects.toMatchObject({
         code: "BAD_REQUEST",
-        message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+        message: "This tournament does not allow registering alone",
       });
       await expect(
         mergeHalfTeams(db, {
@@ -287,7 +284,7 @@ describe("partner-required occupancy", () => {
         }),
       ).rejects.toMatchObject({
         code: "BAD_REQUEST",
-        message: PARTNER_REQUIRED_REFUSAL_MESSAGE,
+        message: "This tournament does not allow registering alone",
       });
     } finally {
       await close();

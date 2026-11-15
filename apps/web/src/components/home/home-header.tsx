@@ -5,9 +5,11 @@ import { NotificationBell } from "~/components/notifications/notification-bell";
 
 export function HomeHeader({
   name,
+  dateLine,
   image,
 }: {
   name: string;
+  dateLine: string;
   image?: string | null;
 }) {
   return (
@@ -18,8 +20,13 @@ export function HomeHeader({
         size="lg"
         className="bg-control text-on-control [&_[data-slot=avatar-fallback]]:bg-control [&_[data-slot=avatar-fallback]]:text-on-control"
       />
-      <p className="font-expanded text-h2 min-w-0 flex-1 truncate">{name}</p>
-      <NotificationBell className="lg:hidden" />
+      <div className="min-w-0 flex-1">
+        <p className="text-eyebrow text-muted-foreground truncate">
+          {dateLine}
+        </p>
+        <p className="font-expanded text-h2 truncate">{name}</p>
+      </div>
+      <NotificationBell className="rounded-lg lg:hidden" />
     </div>
   );
 }

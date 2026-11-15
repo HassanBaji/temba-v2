@@ -6,7 +6,6 @@ import {
   GroupJoinRequestStatusEnum,
   groupMembers,
   groups,
-  GroupTypeEnum,
   user,
 } from "@repo/db";
 
@@ -37,7 +36,7 @@ export type GameInviteLinkGroupRow = Pick<
 export function groupDecidesJoins(
   group: Pick<GameInviteLinkGroupRow, "type" | "requiresApproval">,
 ) {
-  return group.type === GroupTypeEnum.PUBLIC && group.requiresApproval;
+  return group.type === "public" && group.requiresApproval;
 }
 
 export async function loadGameInviteLinkGroup(

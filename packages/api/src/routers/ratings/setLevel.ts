@@ -11,13 +11,17 @@ import { requireGroup } from "#src/groups/helpers/require-group";
 import { notify } from "#src/notifications/notify";
 import {
   applyLevelOverride,
+  assertLevelOverrideReason,
   assertLevelTenths,
 } from "#src/ratings/apply-level-override";
 import { LEVEL_TENTHS_MAX, LEVEL_TENTHS_MIN } from "@repo/domain/level-range";
 import {
+  LEVEL_OVERRIDE_NOTE_MAX,
   LEVEL_OVERRIDE_REASONS,
   type LevelOverrideReason,
 } from "@repo/domain/level-slider";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -36,7 +40,10 @@ async function isGroupMember(
   return row !== undefined;
 }
 
-/** A Level setter sets a Group member's Level, as a Level override. */
+/**
+ * A Level setter sets a Group member's Level, as a Level override with a
+ * reason the member is told at once (ADR-0073).
+ */
 export async function setMemberLevel(
   database: DbClient,
   args: {
@@ -45,51 +52,60 @@ export async function setMemberLevel(
     targetUserId: string;
     levelTenths: number;
     reason?: LevelOverrideReason | null;
+    note?: string | null;
+    locale?: Locale;
   },
 ) {
-  assertLevelTenths(args.levelTenths);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  assertLevelTenths(args.levelTenths, locale);
 
-  const group = await requireGroup(database, args.groupId);
+  const group = await requireGroup(database, args.groupId, locale);
   const sport = group.sport;
   if (!sport) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Group has no sport, so it has no Levels",
+      message: messagesFor(locale).level.errors.noSport,
     });
   }
   if (sport === "football") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Football Levels arrive with results",
+      message: messagesFor(locale).level.errors.footballFromResults,
     });
   }
   if (!(await isGroupMember(database, group.id, args.setterUserId))) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only Group members can set a Level",
+      message: messagesFor(locale).level.errors.groupMembersSet,
     });
   }
   if (args.targetUserId === args.setterUserId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You cannot set your own Level",
+      message: messagesFor(locale).level.errors.ownLevel,
     });
   }
   if (!(await isGroupMember(database, group.id, args.targetUserId))) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "That User is not a member of this Group",
+      message: messagesFor(locale).level.errors.notGroupMember,
     });
   }
+
+  const reason = args.reason;
+  assertLevelOverrideReason(reason, locale);
 
   return database.transaction(async (tx) => {
     const result = await applyLevelOverride(tx, {
       sport,
       setterUserId: args.setterUserId,
+      setByRole: "level_setter",
       targetUserId: args.targetUserId,
       groupId: group.id,
-      levelTenths: args.levelTenths,
-      reason: args.reason,
+      level: args.levelTenths / 10,
+      reason,
+      note: args.note,
+      locale,
     });
     await notify(tx, {
       type: "level_set",
@@ -110,6 +126,7 @@ export const setLevel = levelSetterProcedure
       userId: z.string().uuid(),
       levelTenths: z.number().int().min(LEVEL_TENTHS_MIN).max(LEVEL_TENTHS_MAX),
       reason: z.enum(LEVEL_OVERRIDE_REASONS).optional(),
+      note: z.string().trim().max(LEVEL_OVERRIDE_NOTE_MAX).optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -120,5 +137,7 @@ export const setLevel = levelSetterProcedure
       targetUserId: input.userId,
       levelTenths: input.levelTenths,
       reason: input.reason,
+      note: input.note,
+      locale: ctx.locale,
     });
   });

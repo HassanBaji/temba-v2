@@ -1,4 +1,5 @@
 import { spacing } from "@repo/design-tokens";
+import { formatPadelLevel } from "@repo/domain/level";
 import { View } from "react-native";
 
 import { useMessages } from "../i18n/locale-provider";
@@ -138,8 +139,8 @@ export function LevelHero({ view }: { view: HeroView }) {
             values={view.curve.values}
             labels={curveGuideLabels(view.curve.values)}
             accessibilityLabel={m.mobileYou.curveSpoken(
-              first.toFixed(2),
-              last.toFixed(2),
+              formatPadelLevel(first, 2),
+              formatPadelLevel(last, 2),
             )}
           />
         </View>

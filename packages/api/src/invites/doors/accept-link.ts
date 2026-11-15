@@ -1,4 +1,4 @@
-import { type Locale } from "@repo/i18n/locale";
+import { type Locale, DEFAULT_LOCALE } from "@repo/i18n/locale";
 import { and, eq, isNull } from "drizzle-orm";
 
 import {
@@ -8,7 +8,6 @@ import {
   GroupJoinRequestStatusEnum,
   groupMembers,
   groups,
-  GroupTypeEnum,
   teamInviteLinks,
   teamMembers,
 } from "@repo/db";
@@ -84,6 +83,7 @@ export async function acceptLink(
   hostKind: InviteHost["kind"],
   args: { token: string; userId: string; seat?: AcceptSeat; locale: Locale },
 ): Promise<AcceptLinkResult> {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   if (hostKind === "group") {
     const link = await database.query.groupInviteLinks.findFirst({
       where: eq(groupInviteLinks.token, args.token),
@@ -128,7 +128,7 @@ export async function acceptLink(
     if (await isBlockedFromGroup(database, host.id, args.userId)) {
       return { ok: false, reason: "blocked" };
     }
-    if (group.type === GroupTypeEnum.PUBLIC && group.requiresApproval) {
+    if (group.type === "public" && group.requiresApproval) {
       await requestGroupJoinFromLink(database, {
         group,
         userId: args.userId,
@@ -203,7 +203,7 @@ export async function acceptLink(
       ? { ok: false, reason: "frozen" }
       : { ok: false, reason: "not_found" };
   }
-  const game = await requireGame(writeDb(database), host.id);
+  const game = await requireGame(writeDb(database), host.id, locale);
   if (game.registrationMode === "team_only") {
     const consent = await recordTeamInviteLinkConsent(database as Tx, {
       game,

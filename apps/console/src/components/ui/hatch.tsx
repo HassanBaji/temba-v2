@@ -21,7 +21,7 @@ export function Hatch({
       aria-hidden="true"
       className={cn(
         "hatch",
-        tone === "ink" && "hatch-on-ink",
+        tone === "ink" && "hatch-on-control",
         radius && surfaceRadiusClass[radius],
         className,
       )}

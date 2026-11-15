@@ -2,7 +2,10 @@ import {
   isSameJoinPick,
   type FriendlyGameJoinPick,
 } from "@repo/domain/friendly-game-cta";
-import { friendlyGameResultsSaveSets } from "@repo/domain/friendly-game-results";
+import {
+  friendlyGameResultsSaveSets,
+  friendlySetGamesInRange,
+} from "@repo/domain/friendly-game-results";
 import {
   gameDisplayName,
   type GameDisplayNameInput,
@@ -95,6 +98,16 @@ function gamesFromText(text: string | undefined) {
     return null;
   }
   return Number(text);
+}
+
+/** Whether a typed box holds more games than a Set allows. */
+export function draftsOutOfRange(drafts: ScoreDrafts) {
+  return Object.values(drafts).some((draft) =>
+    [draft.slot1, draft.slot2].some((text) => {
+      const games = gamesFromText(text);
+      return games != null && !friendlySetGamesInRange(games);
+    }),
+  );
 }
 
 export function setsToSave(sets: readonly DraftSet[], drafts: ScoreDrafts) {

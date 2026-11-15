@@ -5,7 +5,6 @@ import {
   groupJoinRequests,
   GroupJoinRequestStatusEnum,
   groupMembers,
-  GroupTypeEnum,
   type groups,
 } from "@repo/db";
 
@@ -40,7 +39,7 @@ export async function groupJoinMode(
     return "none";
   }
 
-  if (group.type !== GroupTypeEnum.PUBLIC) {
+  if (group.type !== "public") {
     return "none";
   }
 

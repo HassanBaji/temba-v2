@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { isNull } from "drizzle-orm";
 
 import { venues } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import type {
   CommitResult,
@@ -16,13 +18,13 @@ export function refuseIfFrozen(
   args: {
     frozenMessage: string;
     frozenCode?: "BAD_REQUEST" | "FORBIDDEN";
-    notFoundMessage?: string;
+    notFoundMessage: string;
   },
 ): asserts view is SoftArchiveView {
   if (!view.ok) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: args.notFoundMessage ?? "Venue not found",
+      message: args.notFoundMessage,
     });
   }
   if (view.freeze(kind)) {
@@ -35,24 +37,19 @@ export function refuseIfFrozen(
 
 export function throwCommitFailure(
   result: Extract<CommitResult, { ok: false }>,
-  subjectLabel: "Venue" = "Venue",
+  locale: Locale = DEFAULT_LOCALE,
 ): never {
+  const errors = messagesFor(locale).venue.errors;
   if (result.reason === "not_found") {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: `${subjectLabel} not found`,
-    });
+    throw new TRPCError({ code: "NOT_FOUND", message: errors.notFound });
   }
   if (result.reason === "already_archived") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `${subjectLabel} is already Soft-archived`,
+      message: errors.alreadyArchived,
     });
   }
-  throw new TRPCError({
-    code: "BAD_REQUEST",
-    message: `${subjectLabel} is not Soft-archived`,
-  });
+  throw new TRPCError({ code: "BAD_REQUEST", message: errors.notArchived });
 }
 
 /** Bulk live-Venue WHERE. Adapter-only; not a Soft-archive public export. */

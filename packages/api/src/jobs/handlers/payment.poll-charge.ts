@@ -34,7 +34,10 @@ export async function handle(
   const payment = await db.query.bookingPayments.findFirst({
     where: eq(bookingPayments.id, payload.paymentId),
   });
-  if (payment?.status !== "pending" || !payment.providerReference) {
+  // A failed charge is polled too, since Tap can still capture it later.
+  const pollable =
+    payment?.status === "pending" || payment?.status === "failed";
+  if (!pollable || !payment.providerReference) {
     return;
   }
 

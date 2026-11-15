@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { isForbiddenError } from "./is-forbidden-error";
 import {
-  groupTeamRowView,
   teamCardView,
   teamCreateFromGroupOptions,
   teamCreateInput,
@@ -111,6 +110,27 @@ describe("teamHomeView", () => {
     expect(teamHomeView(fixtures.home.complete, "en").rivalsEmptyCopy).toBe(
       "Play the same Team twice and they become a Rival.",
     );
+  });
+
+  it("reads a football Team Level and each member's Level as OVR, never a band", () => {
+    const base = fixtures.home.footballRecord;
+    const view = teamHomeView(
+      {
+        ...base,
+        members: [
+          { ...base.members[0]!, level: "3.9", levelBand: "C3", ovr: 73 },
+          { ...base.members[1]!, level: "2.8", levelBand: "C2", ovr: 64 },
+          { ...base.members[2]!, level: null, levelBand: null, ovr: null },
+        ],
+      },
+      "en",
+    );
+    expect(view.teamLevel).toBe("avg OVR 69");
+    expect(view.members.map((member) => member.levelLabel)).toEqual([
+      "OVR 73",
+      "OVR 64",
+      null,
+    ]);
   });
 
   it("shows the Team Level, each member's Level and seat, and the games", () => {
@@ -388,44 +408,6 @@ describe("teamHomeView Group tag", () => {
     const view = teamHomeView(fixtures.home.footballTagged, "ar");
     expect(view.groupTag.line).toContain("Gooz of Arad");
     expect(view.rosterHero?.label).toBe("قائمة الفريق 12 من 20");
-  });
-});
-
-describe("groupTeamRowView", () => {
-  it("shows the Roster count and record on football", () => {
-    expect(
-      groupTeamRowView(
-        {
-          id: "team-1",
-          displayName: "Arad Lions",
-          sport: "football",
-          rosterCount: 12,
-          record: { gamesPlayed: 6, wins: 3, draws: 1, losses: 2 },
-        },
-        "en",
-      ),
-    ).toEqual({
-      id: "team-1",
-      title: "Arad Lions",
-      meta: "12 on the roster, 3–1–2",
-      accessibilityLabel:
-        "Open Arad Lions, 12 on the roster, Won 3, drew 1, lost 2",
-    });
-  });
-
-  it("shows only the record on padel", () => {
-    expect(
-      groupTeamRowView(
-        {
-          id: "team-2",
-          displayName: "Ada & Kim",
-          sport: "padel",
-          rosterCount: 2,
-          record: { gamesPlayed: 3, wins: 2, draws: 0, losses: 1 },
-        },
-        "en",
-      ).meta,
-    ).toBe("2–1");
   });
 });
 

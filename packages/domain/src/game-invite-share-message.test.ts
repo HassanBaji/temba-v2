@@ -1,7 +1,7 @@
 import { bahrainDayFromToday } from "./bahrain-date.test-support";
 import { describe, expect, it } from "vitest";
 
-import { formatGameTimeWindow, formatRelativeDay } from "./format-game-start";
+import { formatGameTimeWindow } from "./format-game-start";
 import {
   formatFootballInviteShareMessage,
   formatGameInviteShareMessage,
@@ -13,8 +13,8 @@ const shortUrl = "https://app.example/g/A3F8K2PQ";
 
 describe("formatGameInviteShareMessage", () => {
   it("writes the canonical English emoji roster with each Position, Open seats and the short join URL", () => {
-    const windowStart = bahrainDayFromToday(0, 19);
-    const windowEnd = bahrainDayFromToday(0, 20);
+    const windowStart = new Date("2026-11-16T16:00:00.000Z");
+    const windowEnd = new Date("2026-11-16T17:00:00.000Z");
     const message = formatGameInviteShareMessage({
       venueName: "Padel Club",
       courtName: "Court 2",
@@ -40,7 +40,7 @@ describe("formatGameInviteShareMessage", () => {
       [
         "📍 Padel Club",
         "🎾 Court 2",
-        `📅 ${formatRelativeDay(windowStart, "en")}`,
+        "📅 Monday, 16 Nov",
         `🕗 ${formatGameTimeWindow(windowStart, windowEnd, windowStart, "en")}`,
         "",
         "👕 Team 1",
@@ -56,6 +56,38 @@ describe("formatGameInviteShareMessage", () => {
       ].join("\n"),
     );
     expect(message).not.toContain("Court Court");
+  });
+
+  describe("day line", () => {
+    const dayLine = (windowStart: Date, locale: "en" | "ar" = "en") =>
+      formatGameInviteShareMessage({
+        venueName: "Padel Club",
+        courtName: null,
+        windowStart,
+        windowEnd: windowStart,
+        sides: [],
+        shortUrl,
+        locale,
+      }).split("\n")[1];
+
+    it("writes the weekday and date, never Tonight or Tomorrow", () => {
+      expect(dayLine(new Date("2026-11-16T16:00:00.000Z"))).toBe(
+        "📅 Monday, 16 Nov",
+      );
+      expect(dayLine(new Date())).toMatch(/^📅 \w+day, \d{1,2} \w{3}$/);
+    });
+
+    it("keeps a midnight start on the evening before", () => {
+      expect(dayLine(new Date("2026-11-16T21:00:00.000Z"))).toBe(
+        "📅 Monday, 16 Nov",
+      );
+    });
+
+    it("writes the weekday and date in Arabic", () => {
+      expect(dayLine(new Date("2026-11-16T16:00:00.000Z"), "ar")).toBe(
+        "📅 الاثنين، 16 نوفمبر",
+      );
+    });
   });
 
   it("omits the court line when the Match has no Court", () => {
@@ -217,8 +249,8 @@ describe("gameInviteClipboardText", () => {
   });
 
   it("copies the football details with players and keepers listed apart for a football Friendly game", () => {
-    const windowStart = bahrainDayFromToday(1, 20);
-    const windowEnd = bahrainDayFromToday(1, 21);
+    const windowStart = new Date("2026-11-16T17:00:00.000Z");
+    const windowEnd = new Date("2026-11-16T18:00:00.000Z");
     const message = gameInviteClipboardText({
       format: "friendly_game",
       sport: "football",
@@ -248,7 +280,7 @@ describe("gameInviteClipboardText", () => {
       [
         "📍 Pitch Club",
         "⚽ Pitch 1",
-        `📅 ${formatRelativeDay(windowStart, "en")}`,
+        "📅 Monday, 16 Nov",
         `🕗 ${formatGameTimeWindow(windowStart, windowEnd, windowStart, "en")}`,
         "👥 2-a-side",
         "",

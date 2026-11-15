@@ -87,7 +87,7 @@ function VenueCards({
 }
 
 export function VenueField({
-  selectedGroupId,
+  unlocked,
   venueCopy,
   venues,
   venuesLocked,
@@ -96,9 +96,10 @@ export function VenueField({
   venueError,
   onVenueId,
   emptyCatalog,
+  emptyCatalogMessage,
   sport = DEFAULT_SPORT,
 }: {
-  selectedGroupId: string;
+  unlocked: boolean;
   venueCopy: string;
   venues: readonly CreateVenue[];
   venuesLocked: boolean;
@@ -107,6 +108,8 @@ export function VenueField({
   venueError?: string;
   onVenueId: (venueId: string) => void;
   emptyCatalog: boolean;
+  /** Replaces the no live Venues line, as on a Public Game. */
+  emptyCatalogMessage?: string;
   sport?: Sport;
 }) {
   const m = useMessages();
@@ -124,9 +127,9 @@ export function VenueField({
       <SectionHeading
         id="game-venue-label"
         title={m.webDashboard.venue.title}
-        meta={selectedGroupId ? m.common.required : undefined}
+        meta={unlocked ? m.common.required : undefined}
       />
-      {!selectedGroupId ? (
+      {!unlocked ? (
         <div className="border-rule hatch rounded-card flex min-h-11 items-center gap-3 px-[18px] py-4">
           <Lock
             aria-hidden="true"
@@ -135,7 +138,7 @@ export function VenueField({
           <p className="text-muted-foreground text-body">{venueCopy}</p>
         </div>
       ) : null}
-      {selectedGroupId && venuesPending ? (
+      {unlocked && venuesPending ? (
         <div
           aria-busy="true"
           className="border-rule rounded-card overflow-hidden border"
@@ -153,7 +156,7 @@ export function VenueField({
           ))}
         </div>
       ) : null}
-      {selectedGroupId && !venuesPending && venuesLocked ? (
+      {unlocked && !venuesPending && venuesLocked ? (
         <div
           id="game-venue"
           tabIndex={-1}
@@ -174,10 +177,10 @@ export function VenueField({
           ) : null}
         </div>
       ) : null}
-      {selectedGroupId && !venuesPending && emptyCatalog ? (
+      {unlocked && !venuesPending && emptyCatalog ? (
         <div id="game-venue" tabIndex={-1} className="outline-none" />
       ) : null}
-      {selectedGroupId && !venuesPending && !venuesLocked && !emptyCatalog ? (
+      {unlocked && !venuesPending && !venuesLocked && !emptyCatalog ? (
         <>
           <VenueCards
             sport={sport}
@@ -237,11 +240,12 @@ export function VenueField({
           </Sheet>
         </>
       ) : null}
-      {selectedGroupId ? (
+      {unlocked ? (
         <FieldDescription id="game-venue-copy">{venueCopy}</FieldDescription>
       ) : null}
       <FieldError id="game-venue-error">
-        {venueError ?? (emptyCatalog ? c.noLiveVenues : undefined)}
+        {venueError ??
+          (emptyCatalog ? (emptyCatalogMessage ?? c.noLiveVenues) : undefined)}
       </FieldError>
     </section>
   );

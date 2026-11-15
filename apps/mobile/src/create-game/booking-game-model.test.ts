@@ -65,11 +65,13 @@ describe("bookingGameReviewRows", () => {
       { label: "Rating", value: "Counts for Temba rating" },
     ]);
     expect(
-      bookingGameReviewRows(booking, "en", undefined, {
-        name: "Thursday padel",
-        ratingScope: "group",
-      }).at(-1),
-    ).toEqual({ label: "Rating", value: "Counts for group rating" });
+      bookingGameReviewRows(
+        { ...booking, court: { name: "Pitch 1", sport: "football" } },
+        "en",
+        undefined,
+        { name: "Thursday football", ratingScope: "group" },
+      ).at(-1),
+    ).toEqual({ label: "Rating", value: "Counts for group tier" });
     expect(
       bookingGameReviewRows(booking, "en", undefined, {
         name: "Thursday padel",
@@ -82,6 +84,35 @@ describe("bookingGameReviewRows", () => {
     expect(bookingGameReviewRows(booking, "ar")[3]).toEqual({
       label: "من يمكنه الانضمام",
       value: "من تدعوهم",
+    });
+  });
+});
+
+describe("bookingGameRequest with Track payments", () => {
+  const priced = { ...open, pricePerPlayer: "4.500", trackPayments: true };
+
+  it("sends tracking only once the Game has a price", () => {
+    const padel = bookingGameRequest("booking-1", priced, "en");
+    expect(padel.ok && padel.input).toMatchObject({ trackPayments: true });
+    expect(padel.ok && "keepersPlayFree" in padel.input).toBe(false);
+    const free = bookingGameRequest(
+      "booking-1",
+      { ...open, trackPayments: true },
+      "en",
+    );
+    expect(free.ok && "trackPayments" in free.input).toBe(false);
+  });
+
+  it("sends the keepers choice on football", () => {
+    const football = bookingGameRequest(
+      "booking-1",
+      { ...priced, sideSize: 7, playersAllowed: 14, keepersPlayFree: true },
+      "en",
+      "football",
+    );
+    expect(football.ok && football.input).toMatchObject({
+      trackPayments: true,
+      keepersPlayFree: true,
     });
   });
 });
@@ -243,6 +274,26 @@ describe("a football Booking Game", () => {
         sideSize: 7,
         playersAllowed: 16,
         pricePerPlayerFils: 1_125,
+      },
+    });
+  });
+
+  it("sends the Unrated choice for a Group", () => {
+    expect(
+      bookingGameRequest(
+        "booking-1",
+        { ...open, groupId: "group-1", rated: false },
+        "en",
+        "football",
+      ),
+    ).toEqual({
+      ok: true,
+      input: {
+        bookingId: "booking-1",
+        groupId: "group-1",
+        rated: false,
+        sideSize: 7,
+        playersAllowed: 16,
       },
     });
   });

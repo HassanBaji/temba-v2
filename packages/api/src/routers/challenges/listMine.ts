@@ -142,7 +142,7 @@ async function loadChallengeGames(
       return {
         challengeId: game.challengeId,
         gameId: game.id,
-        sport: game.sport ?? "padel",
+        sport: game.sport,
         startsAt: game.windowStart,
         played:
           match?.status === "completed" ||

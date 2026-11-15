@@ -1,0 +1,3 @@
+ALTER TABLE "booking_payments" ADD COLUMN "refund_pending_fils" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "booking_payments" ADD COLUMN "refund_pending_key" varchar(255);--> statement-breakpoint
+ALTER TABLE "booking_payments" ADD CONSTRAINT "booking_payments_refund_pending_check" CHECK ("booking_payments"."refund_pending_fils" >= 0 and "booking_payments"."refunded_fils" + "booking_payments"."refund_pending_fils" <= "booking_payments"."amount_fils");

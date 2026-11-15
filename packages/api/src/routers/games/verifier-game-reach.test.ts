@@ -1,0 +1,318 @@
+import { eq } from "drizzle-orm";
+import { describe, expect, it } from "vitest";
+
+import {
+  MatchStatusEnum,
+  gameWaitlist,
+  games,
+  groupMembers,
+  groupSeasons,
+  groups,
+  matches,
+  user,
+  venueVerifiers,
+  venues,
+} from "@repo/db/schema";
+import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
+import { MARK_KINDS } from "@repo/domain/marks";
+import { messagesFor } from "@repo/i18n/messages";
+
+import { gameById } from "#src/routers/games/byId";
+import { completeMatch } from "#src/routers/games/completeMatch";
+import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
+import { listMatchesToStamp } from "#src/routers/games/listMatchesToStamp";
+import { seatedPublicGame } from "#src/routers/games/public-game.test-support";
+import { registerSeat } from "#src/routers/games/registerSeat";
+import { scoreSet } from "#src/routers/games/scoreSet";
+import { stampMatch } from "#src/routers/games/stampMatch";
+import { updateGameName } from "#src/routers/games/updateName";
+import { forGame as marksForGame } from "#src/routers/marks/forGame";
+import { give as giveMark } from "#src/routers/marks/give";
+import { mayViewPlayer } from "#src/routers/users/playerProfile";
+
+const errors = messagesFor("en").game.errors;
+
+async function withDb(run: (db: TestDatabase) => Promise<void>) {
+  const { db, close } = await createPgliteDb();
+  try {
+    await run(db);
+  } finally {
+    await close();
+  }
+}
+
+async function insertUser(db: TestDatabase, name: string) {
+  const [row] = await db
+    .insert(user)
+    .values({ name, email: `${name}-${crypto.randomUUID()}@example.com` })
+    .returning({ id: user.id });
+  return row!.id;
+}
+
+async function verifierAt(db: TestDatabase, venueId: string) {
+  const userId = await insertUser(db, "Sara");
+  await db.insert(venueVerifiers).values({ venueId, userId, kind: "referee" });
+  return userId;
+}
+
+/**
+ * A private Group Game at a Venue with its four seats taken by Group members,
+ * and the creator's 6-3 entered on its Match unless `scored` is false.
+ */
+async function enteredGroupGame(db: TestDatabase, scored = true) {
+  const g = await seatedPublicGame(db);
+  const game = await db.query.games.findFirst({
+    where: eq(games.id, g.gameId),
+    columns: { venueId: true },
+  });
+  const [group] = await db
+    .insert(groups)
+    .values({ name: "Tuesday Crew", createdBy: g.creator })
+    .returning({ id: groups.id });
+  for (const userId of [g.creator, g.b, g.c, g.d]) {
+    await db.insert(groupMembers).values({ groupId: group!.id, userId });
+  }
+  await db
+    .update(games)
+    .set({ isPublic: false, groupId: group!.id })
+    .where(eq(games.id, g.gameId));
+  if (!scored) {
+    return { ...g, venueId: game!.venueId! };
+  }
+  await scoreSet(db, {
+    gameId: g.gameId,
+    matchId: g.matchId,
+    setId: g.setId,
+    userId: g.creator,
+    slot1GamesWon: 6,
+    slot2GamesWon: 3,
+  });
+  return { ...g, venueId: game!.venueId! };
+}
+
+describe("games.byId for a Verifier (ADR-0072)", () => {
+  it("opens a private Group Game at the Verifier's Venue, with the stamp and nothing else to do", async () => {
+    await withDb(async (db) => {
+      const g = await enteredGroupGame(db);
+      const verifier = await verifierAt(db, g.venueId);
+
+      const details = await gameById(db, {
+        gameId: g.gameId,
+        userId: verifier,
+      });
+
+      expect(details.matches[0]).toMatchObject({
+        id: g.matchId,
+        canStamp: true,
+        canAddSet: false,
+        canScoreSets: false,
+        canConfirmScore: false,
+        canComplete: false,
+        canDispute: false,
+      });
+      expect(details).toMatchObject({
+        isOrganizer: false,
+        isGroupMember: false,
+        isRegistered: false,
+        canRegister: false,
+        canWaitlist: false,
+        canJoin: false,
+        canLeave: false,
+        canInvite: false,
+        canAddPlayer: false,
+        canRequestLevelRange: false,
+        canChangeSeason: false,
+      });
+
+      await stampMatch(db, { matchId: g.matchId, userId: verifier });
+      const match = await db.query.matches.findFirst({
+        where: eq(matches.id, g.matchId),
+        columns: { status: true },
+      });
+      expect(match?.status).toBe(MatchStatusEnum.COMPLETED);
+    });
+  });
+
+  it("keeps the waitlist and the Group's Seasons from a Verifier who only stamps", async () => {
+    await withDb(async (db) => {
+      const g = await enteredGroupGame(db);
+      const verifier = await verifierAt(db, g.venueId);
+      const waiting = await insertUser(db, "Waiting");
+      await db
+        .insert(gameWaitlist)
+        .values({ gameId: g.gameId, userId: waiting });
+      const game = await db.query.games.findFirst({
+        where: eq(games.id, g.gameId),
+        columns: { groupId: true },
+      });
+      await db.insert(groupSeasons).values({
+        groupId: game!.groupId!,
+        name: "Autumn",
+        startsOn: "2026-09-01",
+        endsOn: "2026-12-01",
+        createdBy: g.creator,
+      });
+
+      const asMember = await gameById(db, { gameId: g.gameId, userId: g.b });
+      expect(asMember.waitlist.map((row) => row.userId)).toEqual([waiting]);
+      expect(asMember.groupSeasons).toHaveLength(1);
+
+      const asVerifier = await gameById(db, {
+        gameId: g.gameId,
+        userId: verifier,
+      });
+      expect(asVerifier.waitlist).toEqual([]);
+      expect(asVerifier.groupSeasons).toEqual([]);
+      expect(asVerifier.registeredPlayers.map((row) => row.id)).toEqual(
+        expect.arrayContaining([g.creator, g.b, g.c, g.d]),
+      );
+    });
+  });
+
+  it("links the players to their profiles once the Verifier may calibrate them all", async () => {
+    await withDb(async (db) => {
+      const g = await enteredGroupGame(db);
+      const verifier = await verifierAt(db, g.venueId);
+      const view = () => gameById(db, { gameId: g.gameId, userId: verifier });
+
+      expect((await view()).viewerMayCalibratePlayers).toBe(false);
+      await expect(
+        mayViewPlayer(db, { viewerId: verifier, playerId: g.b }),
+      ).resolves.toBe(false);
+
+      await stampMatch(db, { matchId: g.matchId, userId: verifier });
+
+      expect((await view()).viewerMayCalibratePlayers).toBe(true);
+      for (const playerId of [g.creator, g.b, g.c, g.d]) {
+        await expect(
+          mayViewPlayer(db, { viewerId: verifier, playerId }),
+        ).resolves.toBe(true);
+      }
+      const asPlayer = await gameById(db, { gameId: g.gameId, userId: g.b });
+      expect(asPlayer.viewerMayCalibratePlayers).toBe(false);
+    });
+  });
+
+  it("does not open a private Group Game at another Venue", async () => {
+    await withDb(async (db) => {
+      const g = await enteredGroupGame(db);
+      const [elsewhere] = await db
+        .insert(venues)
+        .values({ name: "Elsewhere", city: "Manama", country: "BH" })
+        .returning({ id: venues.id });
+      const verifier = await verifierAt(db, elsewhere!.id);
+
+      await expect(
+        gameById(db, { gameId: g.gameId, userId: verifier }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  it("refuses the Verifier every write but the stamp", async () => {
+    await withDb(async (db) => {
+      const g = await enteredGroupGame(db);
+      const verifier = await verifierAt(db, g.venueId);
+
+      await expect(
+        registerSeat(db, { gameId: g.gameId, userId: verifier }),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        message: errors.groupMembersRegister,
+      });
+      await expect(
+        scoreSet(db, {
+          gameId: g.gameId,
+          matchId: g.matchId,
+          setId: g.setId,
+          userId: verifier,
+          slot1GamesWon: 3,
+          slot2GamesWon: 6,
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(
+        confirmMatchResult(db, {
+          gameId: g.gameId,
+          matchId: g.matchId,
+          userId: verifier,
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(
+        updateGameName(db, {
+          gameId: g.gameId,
+          userId: verifier,
+          customName: "Renamed",
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(
+        completeMatch(db, {
+          gameId: g.gameId,
+          matchId: g.matchId,
+          userId: verifier,
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+      const match = await db.query.matches.findFirst({
+        where: eq(matches.id, g.matchId),
+        columns: { status: true },
+      });
+      expect(match?.status).toBe(MatchStatusEnum.PENDING);
+    });
+  });
+
+  it("keeps Marks closed to a Verifier who only stamps", async () => {
+    await withDb(async (db) => {
+      const g = await enteredGroupGame(db);
+      const verifier = await verifierAt(db, g.venueId);
+      await stampMatch(db, { matchId: g.matchId, userId: verifier });
+
+      await expect(
+        marksForGame(db, { gameId: g.gameId, userId: verifier }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      await expect(
+        giveMark(db, {
+          gameId: g.gameId,
+          userId: verifier,
+          receiverUserId: g.b,
+          kind: MARK_KINDS[0],
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+});
+
+describe("games.listMatchesToStamp (ADR-0072)", () => {
+  it("lists a scored Match at the Verifier's Venue until it is stamped", async () => {
+    await withDb(async (db) => {
+      const g = await enteredGroupGame(db);
+      const verifier = await verifierAt(db, g.venueId);
+
+      expect(await listMatchesToStamp(db, { userId: verifier })).toEqual([
+        expect.objectContaining({
+          matchId: g.matchId,
+          gameId: g.gameId,
+          sport: "padel",
+        }),
+      ]);
+
+      await stampMatch(db, { matchId: g.matchId, userId: verifier });
+      expect(await listMatchesToStamp(db, { userId: verifier })).toEqual([]);
+    });
+  });
+
+  it("leaves out a Match with no score, one at another Venue, and one the Verifier sits in", async () => {
+    await withDb(async (db) => {
+      const unscored = await enteredGroupGame(db, false);
+      const scored = await enteredGroupGame(db);
+      const verifier = await verifierAt(db, unscored.venueId);
+      await db
+        .insert(venueVerifiers)
+        .values({ venueId: scored.venueId, userId: scored.c, kind: "referee" });
+
+      expect(await listMatchesToStamp(db, { userId: verifier })).toEqual([]);
+      expect(await listMatchesToStamp(db, { userId: scored.c })).toEqual([]);
+      expect(await listMatchesToStamp(db, { userId: scored.creator })).toEqual(
+        [],
+      );
+    });
+  });
+});

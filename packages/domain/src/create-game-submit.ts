@@ -3,8 +3,10 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import {
   CREATE_FLOW_FIELD_IDS,
+  createShapeChoosesPools,
   createShapeHasPools,
   friendlyTournamentSchedule,
+  isPublicGameDraft,
   parseCreateMatchMinutes,
   validateFriendlyGameWhen,
   validateFriendlyGameWhere,
@@ -17,6 +19,7 @@ import { normalizeGameCustomName } from "./game-custom-name";
 import { footballPlayersAllowedBounds, isFootballSideSize } from "./game-shape";
 import { formatGameWindowName, parseRequiredGameWindow } from "./game-window";
 import {
+  LEVEL_BAND_SELECT_NONE,
   levelRangeInvertedMessage,
   parseLevelBandSelectTenths,
   type LevelBandSelectValue,
@@ -30,9 +33,12 @@ import { sizeTournamentRounds } from "./tournament-schedule";
 import {
   clampQualifiersPerPool,
   defaultPoolCount,
+  defaultRoundsShapeRoundCount,
   poolCountOptions,
   qualifiersPerPoolRange,
   resolveRoundCount,
+  roundCountRange,
+  ROUNDS_SHAPE_POOL_COUNT,
   sizeFriendlyTournament,
 } from "./tournament-sizing";
 
@@ -52,9 +58,15 @@ type GameFields = {
   levelMax: LevelBandSelectValue;
   customName?: string;
   rated?: boolean;
+  /** With no Group, a Public Game (ADR-0071). */
+  isPublic?: boolean;
+  trackPayments?: boolean;
 };
 
-type TournamentFields = Omit<GameFields, "courtId" | "customName"> & {
+type TournamentFields = Omit<
+  GameFields,
+  "courtId" | "customName" | "isPublic"
+> & {
   courtIds: readonly string[];
   teamCount: number;
   tournamentShape: CreateTournamentShape;
@@ -70,6 +82,20 @@ type TournamentFields = Omit<GameFields, "courtId" | "customName"> & {
 function customNameInput(draft: Pick<GameFields, "customName">) {
   const customName = normalizeGameCustomName(draft.customName);
   return customName ? { customName } : {};
+}
+
+/** Tracking needs a price above zero, so a free Game never sends it. */
+function trackPaymentsInput(
+  draft: Pick<GameFields, "trackPayments">,
+  fils: number | null,
+  keepersPlayFree?: boolean,
+) {
+  if (!draft.trackPayments || fils === null || fils <= 0) {
+    return {};
+  }
+  return keepersPlayFree === undefined
+    ? { trackPayments: true }
+    : { trackPayments: true, keepersPlayFree };
 }
 
 /** Rated is the server default, so only the Unrated choice is sent. */
@@ -91,8 +117,14 @@ function validateWhereAndWhen(
   >,
   now: Date,
   locale: Locale,
+  publicGame = false,
 ) {
-  const where = validateFriendlyGameWhere(draft.groupId, draft.venueId, locale);
+  const where = validateFriendlyGameWhere(
+    draft.groupId,
+    draft.venueId,
+    locale,
+    publicGame,
+  );
   if (!where.ok) {
     return { failed: true as const, issue: issueAtStep(where, 2) };
   }
@@ -107,26 +139,6 @@ function validateWhereAndWhen(
     return { failed: true as const, issue: issueAtStep(when, 3) };
   }
   return { failed: false as const, when };
-}
-
-function validatePrice(
-  draft: Pick<GameFields, "pricePerPlayer">,
-  locale: Locale,
-) {
-  const price = parseOptionalPricePerPlayerFils(draft.pricePerPlayer, locale);
-  if (!price.ok) {
-    return {
-      failed: true as const,
-      issue: {
-        ok: false as const,
-        field: "pricePerPlayerFils",
-        message: price.message,
-        elementId: CREATE_FLOW_FIELD_IDS.pricePerPlayerFils ?? "",
-        step: 4 as const,
-      },
-    };
-  }
-  return { failed: false as const, fils: price.fils };
 }
 
 function validatePriceAndLevel(
@@ -177,7 +189,8 @@ export function validateFriendlyGameSubmit(
   now: Date,
   locale: Locale,
 ) {
-  const placed = validateWhereAndWhen(draft, now, locale);
+  const publicGame = isPublicGameDraft(draft);
+  const placed = validateWhereAndWhen(draft, now, locale, publicGame);
   if (placed.failed) {
     return placed.issue;
   }
@@ -194,8 +207,8 @@ export function validateFriendlyGameSubmit(
         draft.finishTime,
         locale,
       ),
-      groupId: draft.groupId,
-      isPublic: false,
+      ...(publicGame ? {} : { groupId: draft.groupId }),
+      isPublic: publicGame,
       format: "friendly_game" as const,
       registrationMode: "individual" as const,
       windowStart: placed.when.windowStart,
@@ -203,8 +216,9 @@ export function validateFriendlyGameSubmit(
       venueId: draft.venueId,
       courtId: draft.courtId === "none" ? undefined : draft.courtId,
       ...customNameInput(draft),
-      ...ratedInput(draft),
+      ...(publicGame ? {} : ratedInput(draft)),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
+      ...trackPaymentsInput(draft, priced.fils),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }
         : {}),
@@ -215,21 +229,24 @@ export function validateFriendlyGameSubmit(
   };
 }
 
-export type FootballGameFields = Omit<
-  GameFields,
-  "levelMin" | "levelMax" | "rated"
-> & {
+export type FootballGameFields = Omit<GameFields, "levelMin" | "levelMax"> & {
   sideSize: number;
+  keepersPlayFree?: boolean;
   playersAllowed: number;
+  /** Read only when the Game counts for Temba Level (`createLevelRangeShown`). */
+  levelMin?: LevelBandSelectValue;
+  levelMax?: LevelBandSelectValue;
 };
 
 export function validateFootballGameSubmit(
   draft: FootballGameFields,
   now: Date,
   locale: Locale,
+  options: { levelRange?: boolean } = {},
 ) {
   const m = messagesFor(locale).createGame.validation;
-  const placed = validateWhereAndWhen(draft, now, locale);
+  const publicGame = isPublicGameDraft(draft);
+  const placed = validateWhereAndWhen(draft, now, locale, publicGame);
   if (placed.failed) {
     return placed.issue;
   }
@@ -256,7 +273,18 @@ export function validateFootballGameSubmit(
       step: 4 as const,
     };
   }
-  const priced = validatePrice(draft, locale);
+  const priced = validatePriceAndLevel(
+    {
+      ...draft,
+      levelMin: options.levelRange
+        ? (draft.levelMin ?? LEVEL_BAND_SELECT_NONE)
+        : LEVEL_BAND_SELECT_NONE,
+      levelMax: options.levelRange
+        ? (draft.levelMax ?? LEVEL_BAND_SELECT_NONE)
+        : LEVEL_BAND_SELECT_NONE,
+    },
+    locale,
+  );
   if (priced.failed) {
     return priced.issue;
   }
@@ -269,8 +297,10 @@ export function validateFootballGameSubmit(
         draft.finishTime,
         locale,
       ),
-      groupId: draft.groupId,
-      isPublic: false,
+      ...(publicGame
+        ? { sport: "football" as const }
+        : { groupId: draft.groupId }),
+      isPublic: publicGame,
       format: "friendly_game" as const,
       registrationMode: "individual" as const,
       windowStart: placed.when.windowStart,
@@ -279,8 +309,16 @@ export function validateFootballGameSubmit(
       courtId: draft.courtId === "none" ? undefined : draft.courtId,
       sideSize: draft.sideSize,
       playersAllowed: draft.playersAllowed,
+      ...(publicGame ? {} : ratedInput(draft)),
       ...customNameInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
+      ...trackPaymentsInput(draft, priced.fils, draft.keepersPlayFree ?? false),
+      ...(priced.levelMinTenths !== null
+        ? { levelMinTenths: priced.levelMinTenths }
+        : {}),
+      ...(priced.levelMaxTenths !== null
+        ? { levelMaxTenths: priced.levelMaxTenths }
+        : {}),
     },
   };
 }
@@ -320,7 +358,7 @@ export function validateTournamentStepThree(
     };
   }
   if (
-    createShapeHasPools(draft.tournamentShape) &&
+    createShapeChoosesPools(draft.tournamentShape) &&
     !sizeFriendlyTournament(draft.teamCount, draft.poolCount).ok
   ) {
     return {
@@ -371,14 +409,19 @@ export function validateFriendlyTournamentSubmit(
       allowSoloRegister: draft.allowSoloRegister,
       teamCount: draft.teamCount,
       tournamentShape: draft.tournamentShape,
-      ...(createShapeHasPools(draft.tournamentShape)
+      ...(draft.tournamentShape === "rounds"
         ? {
-            poolCount: draft.poolCount,
-            ...(draft.roundCount !== null
-              ? { roundCount: draft.roundCount }
-              : {}),
+            poolCount: ROUNDS_SHAPE_POOL_COUNT,
+            ...roundsShapeRoundCountInput(draft),
           }
-        : {}),
+        : createShapeHasPools(draft.tournamentShape)
+          ? {
+              poolCount: draft.poolCount,
+              ...(draft.roundCount !== null
+                ? { roundCount: draft.roundCount }
+                : {}),
+            }
+          : {}),
       ...(draft.tournamentShape === "groups_then_knockout"
         ? { qualifiersPerPool: draft.qualifiersPerPool }
         : {}),
@@ -389,6 +432,7 @@ export function validateFriendlyTournamentSubmit(
       ...(draft.courtIds.length > 0 ? { courtIds: [...draft.courtIds] } : {}),
       ...ratedInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
+      ...trackPaymentsInput(draft, priced.fils),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }
         : {}),
@@ -397,6 +441,46 @@ export function validateFriendlyTournamentSubmit(
         : {}),
     },
   };
+}
+
+function roundsShapeRoundCountInput(
+  draft: Pick<TournamentFields, "teamCount" | "roundCount">,
+) {
+  const sized = sizeFriendlyTournament(
+    draft.teamCount,
+    ROUNDS_SHAPE_POOL_COUNT,
+  );
+  if (!sized.ok) {
+    return {};
+  }
+  const roundCount = resolveCreateRoundCount(
+    "rounds",
+    sized.sizing.poolSizes,
+    draft.roundCount,
+  );
+  return roundCount == null ? {} : { roundCount };
+}
+
+/**
+ * The Round count a create draft stands for. A Groups shape with nothing
+ * picked follows the suggestion; the Rounds shape starts on its own default
+ * and always sends a number.
+ */
+export function resolveCreateRoundCount(
+  tournamentShape: CreateTournamentShape,
+  poolSizes: readonly number[],
+  roundCount: number | null,
+): number | null {
+  if (tournamentShape !== "rounds") {
+    return resolveRoundCount(poolSizes, roundCount);
+  }
+  if (poolSizes.length === 0) {
+    return null;
+  }
+  return Math.min(
+    roundCount ?? defaultRoundsShapeRoundCount(poolSizes),
+    roundCountRange(poolSizes).max,
+  );
 }
 
 export function reclampQualifiersPerPool(
@@ -438,14 +522,24 @@ export function friendlyTournamentPlan(input: {
   tournamentShape: CreateTournamentShape;
 }) {
   const knockoutOnly = input.tournamentShape === "knockout_only";
+  const kingOfTheCourt = input.tournamentShape === "king_of_the_court";
   const groupsThenKnockout = input.tournamentShape === "groups_then_knockout";
   const knockoutTree = knockoutOnly
     ? buildKnockoutTree({ entrantCount: input.teamCount })
     : null;
-  const sized = sizeFriendlyTournament(input.teamCount, input.poolCount);
-  const sizing = !knockoutOnly && sized.ok ? sized.sizing : null;
+  const roundsShape = input.tournamentShape === "rounds";
+  const sized = sizeFriendlyTournament(
+    input.teamCount,
+    roundsShape ? ROUNDS_SHAPE_POOL_COUNT : input.poolCount,
+  );
+  const sizing =
+    !knockoutOnly && !kingOfTheCourt && sized.ok ? sized.sizing : null;
   const resolvedRoundCount = sizing
-    ? resolveRoundCount(sizing.poolSizes, input.roundCount)
+    ? resolveCreateRoundCount(
+        input.tournamentShape,
+        sizing.poolSizes,
+        input.roundCount,
+      )
     : null;
   const rounds =
     sizing && resolvedRoundCount != null
@@ -464,7 +558,9 @@ export function friendlyTournamentPlan(input: {
       : null;
   return {
     knockoutOnly,
+    kingOfTheCourt,
     groupsThenKnockout,
+    roundsShape,
     knockoutTree,
     sizing,
     rounds,

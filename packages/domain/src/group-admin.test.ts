@@ -5,8 +5,6 @@ import {
   groupJoinPolicyLine,
   groupJoinRequestDecidedToast,
   groupJoinRequestMeta,
-  groupJoinRequestsBannerText,
-  groupJoinRequestsHeading,
   groupJoinRequestsSummary,
   groupManageActions,
   groupRejectRequestCopy,
@@ -69,15 +67,6 @@ describe("groupJoinRequestMeta", () => {
         now,
       ),
     ).toBe("عبر رابط دعوة، اليوم");
-  });
-});
-
-describe("join request counts", () => {
-  it("counts people in the banner and the card heading", () => {
-    expect(groupJoinRequestsBannerText(1, "en")).toBe("1 person wants to join");
-    expect(groupJoinRequestsBannerText(3, "en")).toBe("3 people want to join");
-    expect(groupJoinRequestsHeading(1, "en")).toBe("1 wants to join");
-    expect(groupJoinRequestsHeading(3, "en")).toBe("3 want to join");
   });
 });
 

@@ -202,12 +202,15 @@ export const webGame = {
     stepLabel: {
       name: "الاسم",
       window: "الموعد",
+      place: "المكان",
       caps: "اللاعبون",
       price: "السعر",
       level: "نطاق المستوى",
       rounds: "الجولات",
       season: "الموسم",
       mvp: "نجم المباراة",
+      teams: "الفرق",
+      courts: "الملاعب",
     },
     stepFailed: (step: string, message: string) => `${step}: ${message}`,
     movedToWaitlist: (n: number) =>

@@ -27,6 +27,7 @@ export async function listBookableVenues(
       country: venues.country,
       logoImageUrl: venues.logoImageUrl,
       coverPhotoId: venues.coverPhotoId,
+      partnerAt: venues.partnerAt,
     })
     .from(venues)
     .where(
@@ -101,7 +102,7 @@ export async function listBookableVenues(
   );
   const lowestRate = new Map(lowestRates.map((row) => [row.venueId, row.rate]));
 
-  return candidates.flatMap(({ coverPhotoId, ...venue }) => {
+  return candidates.flatMap(({ coverPhotoId, partnerAt, ...venue }) => {
     const count = courtCount.get(venue.id) ?? 0;
     const fromHourlyRateFils = lowestRate.get(venue.id);
     if (count === 0 || fromHourlyRateFils === undefined) {
@@ -111,6 +112,7 @@ export async function listBookableVenues(
       {
         ...venue,
         coverImageUrl: venuePhotoUrlOrNull(venue.id, coverPhotoId),
+        isPartner: partnerAt !== null,
         courtCount: count,
         fromHourlyRateFils,
         todayOpen: hours

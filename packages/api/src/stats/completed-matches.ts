@@ -99,7 +99,12 @@ export async function loadCompletedMatchesForUser(
               gamePlayer: {
                 with: {
                   user: {
-                    columns: { id: true, name: true, image: true },
+                    columns: {
+                      id: true,
+                      name: true,
+                      image: true,
+                      guestAt: true,
+                    },
                   },
                 },
               },
@@ -114,7 +119,12 @@ export async function loadCompletedMatchesForUser(
               gamePlayer: {
                 with: {
                   user: {
-                    columns: { id: true, name: true, image: true },
+                    columns: {
+                      id: true,
+                      name: true,
+                      image: true,
+                      guestAt: true,
+                    },
                   },
                 },
               },

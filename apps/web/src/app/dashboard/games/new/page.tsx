@@ -42,8 +42,14 @@ import {
   resetCreateBranch,
   changeCreateGroup,
   changeCreateVenue,
+  choosePublicGame,
+  choosePublicGameSport,
+  createDraftSport,
+  isPublicGameDraft,
+  publicGameOffered,
   toggleCreateCourt,
   changeCreateDay,
+  createLevelRangeShown,
   parseCreateMatchMinutes,
   validateFriendlyGameWhen,
   validateFriendlyGameWhere,
@@ -55,6 +61,7 @@ import {
   type CreateTournamentShape,
   type FriendlyGameDraft,
 } from "@repo/domain/create-game-flow";
+import { kingCourtCount } from "@repo/domain/tournament-king";
 import {
   applyTeamCountChange,
   friendlyTournamentPlan,
@@ -93,7 +100,7 @@ import {
   TOURNAMENT_DEFAULT_TEAM_COUNT,
 } from "@repo/domain/tournament-sizing";
 import type { MvpMode } from "@repo/domain/marks";
-import { sportOrDefault } from "@repo/domain/sport";
+import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { api } from "~/trpc/react";
 
 type FormFailure = Parameters<typeof focusFormFailure>[0];
@@ -158,6 +165,7 @@ function NewGameForm() {
   const [customName, setCustomName] = React.useState("");
   const [preferLevelRange, setPreferLevelRange] = React.useState(false);
   const [isPublic, setIsPublic] = React.useState(false);
+  const [publicSport, setPublicSport] = React.useState<Sport>(DEFAULT_SPORT);
   const [allowSoloRegister, setAllowSoloRegister] = React.useState(true);
   const [sideSize, setSideSize] = React.useState(
     () => initialCreateGameDraft(session.now, locale).sideSize,
@@ -166,6 +174,8 @@ function NewGameForm() {
     () => initialCreateGameDraft(session.now, locale).playersAllowed,
   );
   const [rated, setRated] = React.useState(true);
+  const [trackPayments, setTrackPayments] = React.useState(false);
+  const [keepersPlayFree, setKeepersPlayFree] = React.useState(true);
   const [mvpMode, setMvpMode] = React.useState<MvpMode>("vote");
   const [errors, setErrors] = React.useState<
     Record<string, string | undefined>
@@ -196,10 +206,13 @@ function NewGameForm() {
     setNameTouched(next.nameTouched);
     setCustomName(next.customName);
     setIsPublic(next.isPublic);
+    setPublicSport(next.publicSport);
     setAllowSoloRegister(next.allowSoloRegister);
     setSideSize(next.sideSize);
     setPlayersAllowed(next.playersAllowed);
     setRated(next.rated);
+    setTrackPayments(next.trackPayments);
+    setKeepersPlayFree(next.keepersPlayFree);
   }
 
   React.useEffect(() => {
@@ -215,19 +228,26 @@ function NewGameForm() {
     setDraftRestored(true);
   }, [draftRestored, typeParam]);
 
+  const publicGame =
+    typeParam === "friendly_game" &&
+    isPublicGameDraft({ groupId: selectedGroupId, isPublic });
   const draft: FriendlyGameDraft & { matchMinutes: string } = {
     groupId: selectedGroupId,
     venueId,
     day,
     startTime,
     finishTime,
+    isPublic: publicGame,
     matchMinutes: matchMinutesInput,
   };
   const createGroups = api.games.listCreateGroups.useQuery();
   const selectedGroup = createGroups.data?.find(
     (group) => group.id === selectedGroupId,
   );
-  const sport = sportOrDefault(selectedGroup?.sport);
+  const sport = createDraftSport(
+    { groupId: selectedGroupId, isPublic: publicGame, publicSport },
+    selectedGroup?.sport,
+  );
   const football = sport === "football";
   const firstStep = createFlowFirstStep(sport);
   const flowType = football ? "friendly_game" : typeParam;
@@ -239,9 +259,10 @@ function NewGameForm() {
   });
   const displayedStep = Math.max(resolvedStep, firstStep) as CreateFlowStep;
   const groupVerified = selectedGroup?.verified ?? false;
+  const venuesWanted = Boolean(selectedGroupId) || publicGame;
   const picker = api.games.listCreateVenues.useQuery(
-    { groupId: selectedGroupId },
-    { enabled: Boolean(selectedGroupId) },
+    publicGame ? { publicGame: true, sport } : { groupId: selectedGroupId },
+    { enabled: venuesWanted },
   );
   const selectedVenue = picker.data?.venues.find(
     (venue) => venue.id === venueId,
@@ -297,10 +318,13 @@ function NewGameForm() {
     nameTouched,
     customName,
     isPublic,
+    publicSport,
     allowSoloRegister,
     sideSize,
     playersAllowed,
     rated,
+    trackPayments,
+    keepersPlayFree,
   };
   const initialGroupId =
     requestedGroupId &&
@@ -561,7 +585,12 @@ function NewGameForm() {
         focusElement("game-venue");
         return;
       }
-      const where = validateFriendlyGameWhere(selectedGroupId, venueId, locale);
+      const where = validateFriendlyGameWhere(
+        selectedGroupId,
+        venueId,
+        locale,
+        publicGame,
+      );
       if (!where.ok) {
         const message =
           where.field === "groupId" && groupFieldError
@@ -634,6 +663,7 @@ function NewGameForm() {
         isPublic,
         allowSoloRegister,
         rated,
+        trackPayments,
       },
       session.now,
       groupVerified,
@@ -667,9 +697,24 @@ function NewGameForm() {
           sideSize,
           playersAllowed,
           customName,
+          rated,
+          trackPayments,
+          keepersPlayFree,
+          levelMin,
+          levelMax,
+          isPublic: publicGame,
         },
         session.now,
         locale,
+        {
+          levelRange: createLevelRangeShown({
+            sport: "football",
+            hasGroup: Boolean(selectedGroupId),
+            groupVerified,
+            rated,
+            isPublic: publicGame,
+          }),
+        },
       );
       if (!footballResult.ok) {
         reportSubmitIssue(footballResult);
@@ -691,6 +736,8 @@ function NewGameForm() {
         levelMax,
         customName,
         rated,
+        trackPayments,
+        isPublic: publicGame,
       },
       session.now,
       locale,
@@ -711,12 +758,13 @@ function NewGameForm() {
   const formError = tournamentBranch
     ? createTournament.error
     : createGame.error;
-  const venueCopy = !selectedGroupId
+  const venueCopy = !venuesWanted
     ? c.pickGroupFirst
     : picker.data
       ? createVenueCopy(picker.data, locale, {
           manyCourts: tournamentBranch,
           sport,
+          publicGame,
         })
       : m.createGame.venue.pick(
           tournamentBranch
@@ -728,7 +776,10 @@ function NewGameForm() {
   const kickoff = friendlyGameKickoff(day, startTime, finishTime, locale);
   const previewLines = friendlyGamePreviewLines({
     day: startTime ? day : "",
-    groupName: selectedGroup?.name ?? selectedGroup?.venueName ?? null,
+    groupName:
+      selectedGroup?.name ??
+      selectedGroup?.venueName ??
+      (publicGame ? m.rating.publicGame.label : null),
     venueName: selectedVenue?.name ?? null,
     courtName:
       courtId !== "none"
@@ -784,7 +835,9 @@ function NewGameForm() {
     levelMax !== LEVEL_BAND_SELECT_NONE;
   const reviewGroupName = selectedGroup
     ? (selectedGroup.name ?? m.group.untitled)
-    : m.invite.kind.group;
+    : publicGame
+      ? m.rating.publicGame.label
+      : m.invite.kind.group;
 
   if (createGroups.isLoading || !draftRestored) {
     return (
@@ -803,7 +856,7 @@ function NewGameForm() {
       <DashboardShell title={m.webDashboard.games.createAction}>
         <ErrorState
           title={m.webDashboard.groups.errorTitle}
-          message={createGroups.error.message}
+          error={createGroups.error}
           onRetry={() => {
             void createGroups.refetch();
           }}
@@ -812,7 +865,7 @@ function NewGameForm() {
     );
   }
 
-  if (createGroups.data?.length === 0) {
+  if (createGroups.data?.length === 0 && !publicGame) {
     return (
       <DashboardShell title={m.webDashboard.games.createAction}>
         <EmptyState
@@ -820,9 +873,23 @@ function NewGameForm() {
           title={c.noGroups.title}
           description={c.noGroups.description}
           action={
-            <Button asChild>
-              <Link href="/dashboard/groups/new">{c.noGroups.action}</Link>
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button asChild>
+                <Link href="/dashboard/groups/new">{c.noGroups.action}</Link>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  applyDraft(choosePublicGame(createDraft));
+                  router.push(
+                    createGameFlowHref({ type: "friendly_game", step: 2 }),
+                  );
+                }}
+              >
+                {m.rating.publicGame.createAction}
+              </Button>
+            </div>
           }
         />
       </DashboardShell>
@@ -839,7 +906,11 @@ function NewGameForm() {
           <span className="text-dim text-[18px] leading-none">
             {c.gameTeams}
           </span>
-          {tournamentKnockout ? (
+          {tournamentPlan.kingOfTheCourt ? (
+            <span className="text-dim text-body leading-none">
+              {m.tournamentKing.create.courtsLabel(kingCourtCount(teamCount))}
+            </span>
+          ) : tournamentKnockout ? (
             <span className="text-dim text-body leading-none">
               {knockoutMatchCountLabel(tournamentKnockout.matchCount, locale)}
             </span>
@@ -960,7 +1031,13 @@ function NewGameForm() {
             ref={summaryRef}
             message={
               globalFormErrorMessage(formError) ??
-              (displayedStep === 2 && emptyCatalog ? c.noLiveVenues : null) ??
+              (displayedStep === 2 && emptyCatalog
+                ? publicGame
+                  ? football
+                    ? m.rating.publicGame.noPartnerPitches
+                    : m.rating.publicGame.noPartnerVenues
+                  : c.noLiveVenues
+                : null) ??
               (picker.error ? picker.error.message : null)
             }
           />
@@ -985,7 +1062,7 @@ function NewGameForm() {
               venueCopy={venueCopy}
               venues={picker.data?.venues ?? []}
               venuesLocked={picker.data?.locked === true}
-              venuesPending={Boolean(selectedGroupId) && picker.isLoading}
+              venuesPending={venuesWanted && picker.isLoading}
               venueId={venueId}
               venueError={venueError}
               onVenueId={(nextVenueId) => {
@@ -993,7 +1070,6 @@ function NewGameForm() {
                 clearField("venueId");
               }}
               emptyCatalog={emptyCatalog}
-              recentCourtIds={picker.data?.recentCourtIds ?? []}
               courtIds={courtIds}
               courtError={courtError}
               onToggleCourt={(courtIdToToggle) => {
@@ -1010,6 +1086,7 @@ function NewGameForm() {
               tournamentShape={tournamentShape}
               onTournamentShape={(next) => {
                 setTournamentShape(next);
+                setRoundCount(null);
                 clearField("tournamentShape");
                 clearField("poolCount");
                 clearField("roundCount");
@@ -1129,6 +1206,8 @@ function NewGameForm() {
                 setPricePerPlayer(next);
                 clearField("pricePerPlayerFils");
               }}
+              trackPayments={trackPayments}
+              onTrackPayments={setTrackPayments}
               isPublic={isPublic}
               onIsPublic={setIsPublic}
               allowSoloRegister={allowSoloRegister}
@@ -1180,10 +1259,37 @@ function NewGameForm() {
                 setGroupFieldError(undefined);
                 clearField("groupId");
               }}
+              publicChoice={
+                publicGameOffered(flowType)
+                  ? {
+                      label: m.rating.publicGame.label,
+                      note: m.rating.publicGame.createNote,
+                      selected: publicGame,
+                      sport,
+                      onSport: (next) => {
+                        applyDraft(choosePublicGameSport(createDraft, next));
+                        clearField("venueId");
+                      },
+                      onSelect: () => {
+                        applyDraft(choosePublicGame(createDraft));
+                        setGroupFieldError(undefined);
+                        clearField("groupId");
+                        if (typeParam !== "friendly_game") {
+                          router.push(
+                            createGameFlowHref({
+                              type: "friendly_game",
+                              step: 2,
+                            }),
+                          );
+                        }
+                      },
+                    }
+                  : undefined
+              }
               venueCopy={venueCopy}
               venues={picker.data?.venues ?? []}
               venuesLocked={picker.data?.locked === true}
-              venuesPending={Boolean(selectedGroupId) && picker.isLoading}
+              venuesPending={venuesWanted && picker.isLoading}
               venueId={venueId}
               venueError={venueError}
               onVenueId={(nextVenueId) => {
@@ -1191,7 +1297,6 @@ function NewGameForm() {
                 clearField("venueId");
               }}
               emptyCatalog={emptyCatalog}
-              recentCourtIds={picker.data?.recentCourtIds ?? []}
               courtId={courtId}
               courtError={courtError}
               onCourtId={(nextCourtId) => {
@@ -1250,6 +1355,10 @@ function NewGameForm() {
                 setPricePerPlayer(next);
                 clearField("pricePerPlayerFils");
               }}
+              trackPayments={trackPayments}
+              onTrackPayments={setTrackPayments}
+              keepersPlayFree={keepersPlayFree}
+              onKeepersPlayFree={setKeepersPlayFree}
               customName={customName}
               customNameError={
                 errors.customName ??

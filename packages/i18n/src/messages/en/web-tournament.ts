@@ -6,6 +6,11 @@ export const webTournament = {
   gameActions: "Game actions",
   kickName: (name: string) => `Kick ${name}`,
   kickFromWaitlist: (name: string) => `Kick ${name} from the waitlist`,
+  player: {
+    openActions: (name: string) => `${name}, open player actions`,
+    level: (level: string) => `Level ${level}`,
+    viewProfile: "View profile",
+  },
   draw: {
     undoing: "Undoing…",
     posting: "Posting…",
@@ -141,7 +146,7 @@ export const webTournament = {
   footballPlayer: {
     prefers: (label: string) => `Prefers ${label.toLowerCase()}`,
     noPositionYet: "No position yet",
-    subtitle: (role: string, level: string) => `${role}, Level ${level}`,
+    subtitle: (role: string, ovr: string) => `${role}, OVR ${ovr}`,
     viewProfile: "View profile",
     renameLabel: (name: string) => `Edit name: ${name}`,
   },

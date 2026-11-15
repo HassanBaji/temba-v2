@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -11,9 +13,15 @@ type DbClient = typeof db;
 
 export async function getInviteLink(
   database: DbClient,
-  args: { teamId: string; userId: string; origin: string },
+  args: { teamId: string; userId: string; origin: string; locale?: Locale },
 ) {
-  await requireIncompleteTeamCreator(database, args.teamId, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  await requireIncompleteTeamCreator(
+    database,
+    args.teamId,
+    args.userId,
+    locale,
+  );
 
   const newest = await getLiveLink(database, {
     kind: "team",
@@ -39,5 +47,6 @@ export const getInviteLinkProcedure = protectedProcedure
       teamId: input.teamId,
       userId: appUser.id,
       origin: ctx.webOrigin,
+      locale: ctx.locale,
     });
   });

@@ -1,0 +1,76 @@
+import {
+  MEMBER_NICKNAME_MAX_LENGTH,
+  normalizeMemberNickname,
+  type MemberNicknameData,
+  type MemberNicknameVisibility,
+} from "./member-nickname";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
+import { firstName } from "./game-card";
+
+export type MemberNicknameTarget = {
+  userId: string;
+  name: string;
+  imageUri: string | null;
+  nickname: MemberNicknameData | null;
+  /** An approver naming themselves. */
+  isViewer: boolean;
+};
+
+/** "For Ahmed S, in Karbabad Friday Football only.", or "For you" when naming yourself. */
+export function memberNicknameSheetSubtitle(
+  member: Pick<MemberNicknameTarget, "name" | "isViewer">,
+  groupName: string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).group.nickname;
+  return member.isViewer
+    ? m.forYou(groupName)
+    : m.forMember(member.name, groupName);
+}
+
+/** The "Name in this Group" sheet (design "Group names" 1c) for a draft. */
+export function memberNicknameSheetView(
+  input: {
+    member: MemberNicknameTarget;
+    draft: string;
+    visibility: MemberNicknameVisibility;
+    groupName: string;
+  },
+  locale: Locale,
+) {
+  const m = messagesFor(locale).group.nickname;
+  const next = normalizeMemberNickname(input.draft);
+  const current = input.member.nickname;
+  const changed =
+    next !== (current?.name ?? null) ||
+    (next != null && input.visibility !== current?.visibility);
+  const length = input.draft.length;
+  const first = firstName(input.member.name);
+  const self = input.member.isViewer;
+  return {
+    subtitle: memberNicknameSheetSubtitle(
+      input.member,
+      input.groupName,
+      locale,
+    ),
+    counter: m.counter(length, MEMBER_NICKNAME_MAX_LENGTH),
+    counterSpoken: m.counterSpoken(length, MEMBER_NICKNAME_MAX_LENGTH),
+    preview: next
+      ? { main: next, sub: input.member.name, isNickname: true }
+      : { main: input.member.name, sub: m.noNickname, isNickname: false },
+    note:
+      input.visibility === "approvers"
+        ? self
+          ? m.approversNoteSelf
+          : m.approversNote(first)
+        : self
+          ? m.groupNoteSelf
+          : m.groupNote(first),
+    nickname: next,
+    saveLabel: next ? m.save(next) : m.typeFirst,
+    canSave: next != null && changed,
+    canClear: current != null,
+  };
+}

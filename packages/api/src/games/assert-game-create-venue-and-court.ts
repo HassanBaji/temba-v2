@@ -4,6 +4,8 @@ import { eq, inArray } from "drizzle-orm";
 import { courts, venues } from "@repo/db";
 
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type db } from "#src/db";
 import { loadGameCreateVenueContext } from "#src/games/helpers/load-game-create-venue-context";
@@ -20,9 +22,15 @@ export async function assertGameCreateVenueAndCourt(
     courtId: string | null | undefined;
     courtIds?: string[];
     sport?: Sport;
+    locale?: Locale;
   },
 ) {
-  const context = await loadGameCreateVenueContext(database, input.groupId);
+  const locale = input.locale ?? DEFAULT_LOCALE;
+  const context = await loadGameCreateVenueContext(
+    database,
+    input.groupId,
+    locale,
+  );
   const venue = await database.query.venues.findFirst({
     where: eq(venues.id, input.venueId),
     columns: { id: true, archivedAt: true },
@@ -32,13 +40,13 @@ export async function assertGameCreateVenueAndCourt(
     if (!context.linkedVenueId || input.venueId !== context.linkedVenueId) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Venue must be this Group’s linked Venue",
+        message: messagesFor(locale).game.errors.venueNotLinked,
       });
     }
     if (!venue) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Venue not found",
+        message: messagesFor(locale).venue.errors.notFound,
       });
     }
     if (
@@ -47,7 +55,7 @@ export async function assertGameCreateVenueAndCourt(
     ) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Skip Court when the linked Venue is Soft-archived",
+        message: messagesFor(locale).game.errors.skipCourtArchived,
       });
     }
   } else {
@@ -58,19 +66,19 @@ export async function assertGameCreateVenueAndCourt(
     if (!liveVenue) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "No live Venues. Create is not available.",
+        message: messagesFor(locale).game.errors.noLiveVenues,
       });
     }
     if (!venue) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Venue not found",
+        message: messagesFor(locale).venue.errors.notFound,
       });
     }
     if (consult({ archivedAt: venue.archivedAt }).freeze("catalog")) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Venue must be a live Operator Venue",
+        message: messagesFor(locale).game.errors.venueNotLive,
       });
     }
   }
@@ -89,7 +97,7 @@ export async function assertGameCreateVenueAndCourt(
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Duplicate courtIds",
+      message: messagesFor(locale).game.errors.duplicateCourts,
     });
   }
 
@@ -101,13 +109,13 @@ export async function assertGameCreateVenueAndCourt(
   if (found.length !== uniqueCourtIds.length) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Court not found",
+      message: messagesFor(locale).venue.errors.courtNotFound,
     });
   }
   if (found.some((court) => court.venueId !== input.venueId)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Court must belong to the selected Venue",
+      message: messagesFor(locale).game.errors.courtNotSelectedVenue,
     });
   }
   const sport = input.sport ?? DEFAULT_SPORT;
@@ -116,8 +124,8 @@ export async function assertGameCreateVenueAndCourt(
       code: "BAD_REQUEST",
       message:
         sport === "football"
-          ? "Pick a football pitch"
-          : "Court must be a padel Court",
+          ? messagesFor(locale).game.errors.pickFootballPitch
+          : messagesFor(locale).game.errors.padelCourtRequired,
     });
   }
 }

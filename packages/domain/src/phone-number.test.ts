@@ -6,11 +6,13 @@ import {
   assembleE164,
   callingCountryName,
   countryFlagEmoji,
+  formatE164,
   formatInternationalNumber,
   formatNationalNumber,
   nationalDigits,
   parseE164,
   phoneShapePlaceholder,
+  whatsAppHref,
 } from "./phone-number";
 
 const SAMPLES: Record<
@@ -138,6 +140,24 @@ describe("formatInternationalNumber", () => {
   it("prefixes the calling code for display", () => {
     assert.equal(formatInternationalNumber("BH", "36124408"), "+973 3612 4408");
     assert.equal(formatInternationalNumber("BH", ""), "");
+  });
+});
+
+describe("formatE164", () => {
+  it("groups a stored number by its country", () => {
+    assert.equal(formatE164("+97336124408"), "+973 3612 4408");
+    assert.equal(formatE164("+971501234567"), "+971 50 123 4567");
+  });
+
+  it("leaves a number from an unlisted country as stored", () => {
+    assert.equal(formatE164("+447700900123"), "+447700900123");
+  });
+});
+
+describe("whatsAppHref", () => {
+  it("opens a chat with the number as digits only", () => {
+    assert.equal(whatsAppHref("+97336124408"), "https://wa.me/97336124408");
+    assert.equal(whatsAppHref("+447700900123"), "https://wa.me/447700900123");
   });
 });
 

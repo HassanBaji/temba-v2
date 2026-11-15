@@ -5,14 +5,14 @@ import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { FilterSelect } from "~/components/bookings/filter-select";
-import { MANUAL_METHODS } from "~/components/bookings/payment-mutations";
+import { manualMethodOptions } from "~/components/bookings/payment-mutations";
 import type { ManagedVenue } from "~/components/console/managed-venue-context";
 import { SegmentedControl } from "~/components/console/segmented-control";
 import { mutationErrorMessage } from "~/components/courts/mutation-error";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { api } from "~/trpc/react";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { managerDurationOptions } from "@repo/domain/booking-slots";
 import { formatDayMonth } from "@repo/domain/format-game-start";
 import {
@@ -33,10 +33,10 @@ import {
 } from "./new-booking-model";
 
 const PAYMENT_CHOICES = [
-  { value: "later", label: "Pay later" },
-  { value: "paid", label: "Paid now" },
-  { value: "waived", label: "Waived" },
-] as const satisfies readonly { value: PaymentChoice; label: string }[];
+  "later",
+  "paid",
+  "waived",
+] as const satisfies readonly PaymentChoice[];
 
 const fieldClass = "rounded-control h-10 min-h-10 text-[13px] shadow-none";
 
@@ -55,12 +55,15 @@ export function NewBookingPanel({
   onClose: () => void;
   onCreated: (bookingId: string) => void;
 }) {
+  const { consoleSchedule, consoleBookings } = useMessages();
+  const m = consoleSchedule.create;
+  const locale = useLocale();
   const utils = api.useUtils();
   const [problem, setProblem] = useState<string | null>(null);
   const create = api.bookings.createForVenue.useMutation({
     onSuccess: async (booking) => {
       await utils.bookings.listForVenue.invalidate();
-      toast.success("Booking added");
+      toast.success(m.toast);
       onCreated(booking.id);
     },
     onError: (error) => setProblem(mutationErrorMessage(error)),
@@ -82,14 +85,17 @@ export function NewBookingPanel({
     starts.sort((a, b) => a - b);
   }
   const durations = managerDurationOptions(venue.slotMinutes).map(
-    (minutes) => ({ value: String(minutes), label: `${minutes} min` }),
+    (minutes) => ({
+      value: String(minutes),
+      label: consoleBookings.minutes(minutes),
+    }),
   );
 
   const quote = quotedPriceFils(venue.pricingRules, draft);
   const typed =
     draft.priceInput === null
       ? null
-      : parseOptionalPricePerPlayerFils(draft.priceInput, CONSOLE_LOCALE);
+      : parseOptionalPricePerPlayerFils(draft.priceInput, locale);
   const shownFils =
     typed?.ok && typed.fils !== null ? typed.fils : typed ? null : quote;
 
@@ -98,7 +104,7 @@ export function NewBookingPanel({
     if (create.isPending) {
       return;
     }
-    const result = draftToInput(venue.id, draft, quote);
+    const result = draftToInput(venue.id, draft, quote, locale);
     if (!result.ok) {
       setProblem(result.message);
       return;
@@ -108,29 +114,27 @@ export function NewBookingPanel({
 
   return (
     <aside
-      aria-label="New booking"
-      className="border-rule bg-paper flex w-[var(--console-panel-width)] shrink-0 flex-col overflow-y-auto border-l"
+      aria-label={m.title}
+      className="border-rule bg-paper flex w-[var(--console-panel-width)] shrink-0 flex-col overflow-y-auto border-s"
     >
       <form onSubmit={submit} className="flex min-h-full flex-col">
         <div className="flex items-center justify-between gap-3 px-[22px] pt-5">
-          <h2 className="font-expanded text-[20px]">New booking</h2>
+          <h2 className="font-expanded text-[20px]">{m.title}</h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={m.close}
             className="text-muted-foreground hover:bg-wash hover:text-ink rounded-block flex size-8 shrink-0 items-center justify-center transition-colors"
           >
             <X aria-hidden="true" className="size-4" />
           </button>
         </div>
         <p className="text-muted-foreground px-[22px] pt-1 text-[13px]">
-          {pickedFromGrid && court
-            ? `${court.name}, picked from the grid. Change anything below.`
-            : "For a Temba player or someone new."}
+          {pickedFromGrid && court ? m.pickedFromGrid(court.name) : m.intro}
         </p>
 
         <div className="flex flex-col gap-4 px-[22px] pt-5">
-          <Group label="Customer">
+          <Group label={m.customer}>
             <HolderPicker
               venueId={venue.id}
               holder={draft.holder}
@@ -139,7 +143,7 @@ export function NewBookingPanel({
           </Group>
 
           <div className="grid grid-cols-2 gap-2.5">
-            <Group label="Court" htmlFor="new-booking-court">
+            <Group label={m.court} htmlFor="new-booking-court">
               <FilterSelect
                 id="new-booking-court"
                 value={draft.courtId}
@@ -151,7 +155,7 @@ export function NewBookingPanel({
                 className="w-full"
               />
             </Group>
-            <Group label="Day" htmlFor="new-booking-day">
+            <Group label={m.day} htmlFor="new-booking-day">
               <Input
                 id="new-booking-day"
                 type="date"
@@ -168,7 +172,7 @@ export function NewBookingPanel({
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
-            <Group label="Start" htmlFor="new-booking-start">
+            <Group label={m.start} htmlFor="new-booking-start">
               {starts.length > 0 ? (
                 <FilterSelect
                   id="new-booking-start"
@@ -180,22 +184,22 @@ export function NewBookingPanel({
                   }
                   options={[
                     ...(draft.startMinute === null
-                      ? [{ value: "", label: "Pick a time" }]
+                      ? [{ value: "", label: m.pickTime }]
                       : []),
                     ...starts.map((minute) => ({
                       value: String(minute),
-                      label: formatAxisClock(minute, "meridiem"),
+                      label: formatAxisClock(minute, "meridiem", locale),
                     })),
                   ]}
                   className="w-full"
                 />
               ) : (
                 <p className="text-muted-foreground flex h-10 items-center text-[13px]">
-                  Closed this day
+                  {m.closedThisDay}
                 </p>
               )}
             </Group>
-            <Group label="Duration" htmlFor="new-booking-duration">
+            <Group label={m.duration} htmlFor="new-booking-duration">
               <FilterSelect
                 id="new-booking-duration"
                 value={String(draft.durationMinutes)}
@@ -206,14 +210,12 @@ export function NewBookingPanel({
             </Group>
           </div>
 
-          <Group label="Price (BD)" htmlFor="new-booking-price">
+          <Group label={m.price} htmlFor="new-booking-price">
             <Input
               id="new-booking-price"
               inputMode="decimal"
               value={draft.priceInput ?? filsToMajorInput(quote)}
-              placeholder={
-                quote === null ? "No rate covers this time" : undefined
-              }
+              placeholder={quote === null ? m.noRate : undefined}
               className={fieldClass}
               onChange={(event) => update({ priceInput: event.target.value })}
             />
@@ -223,33 +225,36 @@ export function NewBookingPanel({
                 onClick={() => update({ priceInput: null })}
                 className="text-muted-foreground hover:text-ink self-start text-xs underline-offset-2 hover:underline"
               >
-                Use the rate, {formatBookingPriceFils(quote, CONSOLE_LOCALE)}
+                {m.useRate(formatBookingPriceFils(quote, locale))}
               </button>
             ) : null}
           </Group>
 
-          <Group label="Payment">
+          <Group label={m.payment}>
             <SegmentedControl
               value={draft.payment}
-              options={PAYMENT_CHOICES}
+              options={PAYMENT_CHOICES.map((value) => ({
+                value,
+                label: m.paymentChoices[value],
+              }))}
               onChange={(payment) => update({ payment })}
-              label="Payment"
+              label={m.payment}
               className="[&>button]:flex-1"
             />
             {draft.payment === "paid" ? (
               <div className="grid grid-cols-2 gap-2.5 pt-1">
                 <FilterSelect
-                  label="Method"
+                  label={m.method}
                   value={draft.method}
                   onChange={(method) =>
                     update({ method: method as ManualMethod })
                   }
-                  options={MANUAL_METHODS}
+                  options={manualMethodOptions(consoleBookings)}
                   className="w-full"
                 />
                 <Input
-                  aria-label="Reference, optional"
-                  placeholder="Reference, optional"
+                  aria-label={m.reference}
+                  placeholder={m.reference}
                   value={draft.reference}
                   maxLength={255}
                   className={fieldClass}
@@ -261,7 +266,7 @@ export function NewBookingPanel({
             ) : null}
           </Group>
 
-          <Group label="Notes, optional" htmlFor="new-booking-notes">
+          <Group label={m.notes} htmlFor="new-booking-notes">
             <textarea
               id="new-booking-notes"
               rows={2}
@@ -276,15 +281,17 @@ export function NewBookingPanel({
         <div className="border-rule mt-auto flex flex-col gap-2.5 border-t px-[22px] py-[18px]">
           <div className="flex items-baseline justify-between gap-3 text-[13px]">
             <span className="text-muted-foreground">
-              {formatDayMonth(dayStart(draft.day), CONSOLE_LOCALE, {
-                weekday: "short",
-              })}
-              , {draft.durationMinutes} min
+              {m.summary(
+                formatDayMonth(dayStart(draft.day), locale, {
+                  weekday: "short",
+                }),
+                consoleBookings.minutes(draft.durationMinutes),
+              )}
             </span>
             <span className="font-semibold tabular-nums">
               {shownFils === null
-                ? "No price"
-                : formatBookingPriceFils(shownFils, CONSOLE_LOCALE)}
+                ? m.noPrice
+                : formatBookingPriceFils(shownFils, locale)}
             </span>
           </div>
           {problem ? (
@@ -296,9 +303,9 @@ export function NewBookingPanel({
             type="submit"
             className="rounded-control h-10 min-h-10 w-full text-sm font-semibold"
             pending={create.isPending}
-            pendingLabel="Booking…"
+            pendingLabel={m.booking}
           >
-            {court ? `Book ${court.name}` : "Book"}
+            {court ? m.bookCourt(court.name) : m.book}
           </Button>
         </div>
       </form>

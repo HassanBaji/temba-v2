@@ -3,6 +3,7 @@ import { createTRPCRouter } from "#src/trpc";
 import { addClosureProcedure as addClosure } from "./addClosure";
 import { addCourtProcedure as addCourt } from "./addCourt";
 import { addManagerProcedure as addManager } from "./addManager";
+import { addVerifierProcedure as addVerifier } from "./addVerifier";
 import { byId } from "./byId";
 import { cancelGroupLinkRequestProcedure as cancelGroupLinkRequest } from "./cancelGroupLinkRequest";
 import { clearLogoProcedure as clearLogo } from "./clearLogo";
@@ -13,8 +14,10 @@ import { linkGroupProcedure as linkGroup } from "./linkGroup";
 import { list } from "./list";
 import { listLinkedGroupsProcedure as listLinkedGroups } from "./listLinkedGroups";
 import { listManagedProcedure as listManaged } from "./listManaged";
+import { listVerifiersProcedure as listVerifiers } from "./listVerifiers";
 import { managedById } from "./managedById";
 import { removeManagerProcedure as removeManager } from "./removeManager";
+import { removeVerifierProcedure as removeVerifier } from "./removeVerifier";
 import { removeClosureProcedure as removeClosure } from "./removeClosure";
 import { renameCourtProcedure as renameCourt } from "./renameCourt";
 import { searchGroupsToLinkProcedure as searchGroupsToLink } from "./searchGroupsToLink";
@@ -25,6 +28,7 @@ import { sendGroupLinkRequestProcedure as sendGroupLinkRequest } from "./sendGro
 import { unlinkGroupProcedure as unlinkGroup } from "./unlinkGroup";
 import { setDisplayPhotosProcedure as setDisplayPhotos } from "./setDisplayPhotos";
 import { setOpeningHoursProcedure as setOpeningHours } from "./setOpeningHours";
+import { setPartnerProcedure as setPartner } from "./setPartner";
 import { setPricingRulesProcedure as setPricingRules } from "./setPricingRules";
 import { softArchiveProcedure as softArchive } from "./softArchive";
 import { unarchiveProcedure as unarchive } from "./unarchive";
@@ -63,6 +67,10 @@ export const venuesRouter = createTRPCRouter({
   setDisplayPhotos,
   softArchive,
   unarchive,
+  setPartner,
+  addVerifier,
+  removeVerifier,
+  listVerifiers,
   listLinkedGroups,
   searchLinkableGroups,
   sendGroupLinkRequest,

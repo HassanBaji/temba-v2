@@ -22,14 +22,17 @@ import {
   groupMemberSortCaption,
   groupMembersLens,
   groupMemberTableCaption,
+  groupMemberTierView,
   type GroupMemberSort,
   type GroupMembersLensInput,
+  type GroupMemberTierView,
 } from "@repo/domain/group-members-table";
 import {
   levelOverrideCaption,
-  levelOverrideReasonLabel,
+  levelOverrideWhy,
 } from "@repo/domain/level-slider";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
+import { formatE164, whatsAppHref } from "@repo/domain/phone-number";
 import type { ResultMarkVariant } from "@repo/domain/result-mark";
 import { paddedForm, standingRecordLabel } from "@repo/domain/season-standing";
 import { isolate } from "@repo/i18n/bidi";
@@ -87,6 +90,8 @@ export type StandingRowView = {
   position: number | null;
   ranked: boolean;
   name: string;
+  /** `name` is this Group's Member nickname for them. */
+  isNickname: boolean;
   played: number;
   wins: number;
   draws: number;
@@ -103,18 +108,22 @@ export function standingRowView(
   locale: Locale,
 ): StandingRowView {
   const m = messagesFor(locale);
-  const name = entry.isViewer
-    ? m.common.you
-    : (entry.name ?? m.mobileGroup.unnamedMember);
-  const spokenName = entry.unclaimed
-    ? m.mobileGroup.standing.nameNotOnTemba(name)
+  const tembaName = entry.name ?? m.mobileGroup.unnamedMember;
+  const nickname = entry.isViewer ? null : (entry.nickname?.name ?? null);
+  const name = entry.isViewer ? m.common.you : (nickname ?? tembaName);
+  const shownName = nickname
+    ? m.group.nickname.spoken(nickname, tembaName)
     : name;
+  const spokenName = entry.unclaimed
+    ? m.mobileGroup.standing.nameNotOnTemba(shownName)
+    : shownName;
   const record = standingRecordLabel(entry);
   return {
     key: entry.userId,
     position: entry.position,
     ranked: entry.ranked,
     name,
+    isNickname: nickname != null,
     played: entry.played,
     wins: entry.wins,
     draws: entry.draws,
@@ -150,17 +159,23 @@ export function standingStats(data: GroupHomeData, locale: Locale) {
 
 export type MemberRowView = {
   key: string;
+  /** The Member nickname when the viewer may see one, else the Temba name. */
   name: string;
+  tembaName: string;
+  nickname: string | null;
   imageUri: string | null;
   isViewer: boolean;
   unclaimed: boolean;
   caption: string | null;
   level: LevelCellView;
   levelText: string | null;
+  /** Set on a tier Group's rows. */
+  tier: GroupMemberTierView | null;
   selectable: boolean;
   accessibilityLabel: string;
 };
 
+/** The OVR face already carries its number; the Level face adds the Level. */
 function levelSpokenLabel(
   view: LevelCellView,
   levelText: string | null,
@@ -170,9 +185,21 @@ function levelSpokenLabel(
   if (view.kind === "label") {
     return m.levelSpoken(levelText ? `${view.label} ${levelText}` : view.label);
   }
-  return view.label && levelText
-    ? m.levelSpokenProvisional(`${view.label} ${levelText}`)
-    : m.levelStillProvisional;
+  if (view.label && levelText) {
+    return m.levelSpokenProvisional(`${view.label} ${levelText}`);
+  }
+  return m.levelStillProvisional;
+}
+
+/** A football member's Level read out as OVR, with no band (ADR-0087). */
+export function ovrSpokenLabel(view: LevelCellView, locale: Locale) {
+  const m = messagesFor(locale);
+  if (!view.label) {
+    return m.mobileGroup.members.levelStillProvisional;
+  }
+  return view.kind === "label"
+    ? m.rating.ovr.value(view.label)
+    : m.rating.ovr.valueProvisional(view.label);
 }
 
 export function memberIsRemovable(
@@ -180,6 +207,11 @@ export function memberIsRemovable(
   canRemovePlayers: boolean,
 ) {
   return canRemovePlayers && groupMemberIsRemovable(entry);
+}
+
+/** A Group approver is sent members' numbers; their own row has nothing to call. */
+export function memberIsCallable(entry: GroupLeaderboardEntryData) {
+  return !entry.isViewer && entry.phoneNumber != null;
 }
 
 export function memberOrganizerAction(
@@ -197,38 +229,61 @@ export function memberRowView(
   canRemovePlayers = false,
   canAppointOrganizers = false,
   sort: GroupMemberSort = "level",
-  canSetGroupLevel = false,
+  canAdjustTier = false,
+  canSetNicknames = false,
 ): MemberRowView {
   const m = messagesFor(locale);
-  const name = entry.name ?? m.mobileGroup.unnamedMember;
-  const caption = [
-    groupMemberSortCaption(entry, sort, locale),
+  const tembaName = entry.name ?? m.mobileGroup.unnamedMember;
+  const nickname = entry.nickname?.name ?? null;
+  const name = nickname ?? tembaName;
+  const tier = groupMemberTierView(entry, locale);
+  const details = [
+    tier && sort === "tier"
+      ? tier.caption
+      : groupMemberSortCaption(entry, sort, locale),
     entry.phoneMasked ? isolate(entry.phoneMasked) : null,
     canSetLevel && entry.levelOverride
       ? levelOverrideCaption({ ...entry.levelOverride, locale })
       : null,
-  ]
+  ].filter(Boolean);
+  const caption = [nickname ? tembaName : null, ...details]
     .filter(Boolean)
     .join(" · ");
-  const level = levelCellView(entry.levelBand, entry.levelProvisional);
+  const spokenName = nickname
+    ? m.group.nickname.spoken(nickname, tembaName)
+    : name;
+  const ovr = entry.ovr ?? null;
+  const level = levelCellView(entry.levelBand, entry.levelProvisional, ovr);
   return {
     key: entry.userId,
     name,
+    tembaName,
+    nickname,
     imageUri: mediaUrl(entry.image, apiOrigin),
     isViewer: entry.isViewer,
     unclaimed: entry.unclaimed,
     caption: caption || null,
     level,
     levelText: entry.level,
+    tier,
     selectable:
-      ((canSetLevel || canSetGroupLevel) && !entry.isViewer) ||
+      (canSetLevel && !entry.isViewer) ||
+      (canAdjustTier && entry.tier != null) ||
       memberIsRemovable(entry, canRemovePlayers) ||
-      memberOrganizerAction(entry, canAppointOrganizers) != null,
+      memberOrganizerAction(entry, canAppointOrganizers) != null ||
+      memberIsCallable(entry) ||
+      (canSetNicknames && !entry.isViewer),
     accessibilityLabel: [
-      entry.isViewer ? m.mobileGroup.members.rowYou(name) : name,
+      entry.isViewer ? m.mobileGroup.members.rowYou(spokenName) : spokenName,
       entry.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
-      caption || null,
-      levelSpokenLabel(level, entry.level, locale),
+      ...details,
+      tier
+        ? sort === "tier"
+          ? tier.pointsSpoken
+          : tier.spoken
+        : ovr == null
+          ? levelSpokenLabel(level, entry.level, locale)
+          : ovrSpokenLabel(level, locale),
     ]
       .filter(Boolean)
       .join(". "),
@@ -255,7 +310,8 @@ export function memberList(
   canRemovePlayers = false,
   canAppointOrganizers = false,
   lens: MemberLens = LEVEL_ORDER,
-  canSetGroupLevel = false,
+  canAdjustTier = false,
+  canSetNicknames = false,
 ) {
   const unnamed = messagesFor(locale).mobileGroup.unnamedMember;
   const view = groupMembersLens(
@@ -275,7 +331,8 @@ export function memberList(
         canRemovePlayers,
         canAppointOrganizers,
         view.sort,
-        canSetGroupLevel,
+        canAdjustTier,
+        canSetNicknames,
       ),
     ),
   };
@@ -283,10 +340,15 @@ export function memberList(
 
 export type MemberSheetView = {
   name: string;
+  nickname: string | null;
   imageUri: string | null;
   caption: string | null;
   unclaimed: boolean;
   phoneMasked: string | null;
+  /** The full number, isolated for display, when the viewer may call. */
+  phone: string | null;
+  phoneHref: string | null;
+  whatsAppHref: string | null;
   summary: string;
   letter: string | null;
   level: string | null;
@@ -309,12 +371,17 @@ export function memberSheetView(
   const caption = override
     ? levelOverrideCaption({ ...override, locale })
     : null;
+  const callable = memberIsCallable(entry) ? entry.phoneNumber : null;
   return {
     name,
+    nickname: entry.nickname?.name ?? null,
     imageUri: mediaUrl(entry.image, apiOrigin),
     caption: groupMemberTableCaption(entry, locale),
     unclaimed: entry.unclaimed,
     phoneMasked: entry.phoneMasked,
+    phone: callable ? isolate(formatE164(callable)) : null,
+    phoneHref: callable ? `tel:${callable}` : null,
+    whatsAppHref: callable ? whatsAppHref(callable) : null,
     summary: [caption, m.members.ratedMatches(entry.ratedMatchCount)]
       .filter(Boolean)
       .join(" · "),
@@ -325,13 +392,12 @@ export function memberSheetView(
     provisionalNote: entry.levelProvisional
       ? m.members.provisionalNote(firstName(name))
       : null,
-    latestSet: caption
-      ? override?.reason
+    latestSet:
+      caption && override
         ? m.members.latestSetWithReason(
             caption,
-            levelOverrideReasonLabel(override.reason, locale),
+            levelOverrideWhy({ ...override, locale }),
           )
-        : caption
-      : null,
+        : null,
   };
 }

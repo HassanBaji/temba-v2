@@ -4,7 +4,7 @@ import { type db } from "#src/db";
 type DbClient = typeof db;
 
 export async function listVenues(database: DbClient) {
-  return database.query.venues.findMany({
+  const rows = await database.query.venues.findMany({
     columns: {
       id: true,
       name: true,
@@ -13,6 +13,7 @@ export async function listVenues(database: DbClient) {
       latitude: true,
       longitude: true,
       archivedAt: true,
+      partnerAt: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -22,6 +23,10 @@ export async function listVenues(database: DbClient) {
       asc(table.country),
     ],
   });
+  return rows.map(({ partnerAt, ...venue }) => ({
+    ...venue,
+    isPartner: partnerAt !== null,
+  }));
 }
 
 export const list = operatorProcedure.query(async ({ ctx }) => {

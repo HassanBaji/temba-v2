@@ -15,7 +15,7 @@ import {
 
 import { groupById } from "#src/routers/groups/byId";
 import { createLoosePublic } from "#src/routers/groups/createLoosePublic";
-import { editGroup, SPORT_LOCKED_MESSAGE } from "#src/routers/groups/edit";
+import { editGroup } from "#src/routers/groups/edit";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, email: string) {
@@ -141,7 +141,9 @@ describe("editGroup", () => {
       const error = await rejection(
         editGroup(db, { groupId: group.id, userId: owner.id, sport: "padel" }),
       );
-      expect(error.message).toBe(SPORT_LOCKED_MESSAGE);
+      expect(error.message).toBe(
+        "The sport is locked once the Group has a Game",
+      );
       expect(
         (await groupById(db, { groupId: group.id, userId: owner.id }))
           .canChangeSport,

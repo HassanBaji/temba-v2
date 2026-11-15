@@ -5,6 +5,7 @@ export const mobileTournament = {
     createGame: "Create Game",
     findAGroup: "Find a Group",
     upcomingTab: "Upcoming",
+    publicTab: "Public",
     playedTab: "Played",
     sport: "Sport",
     couldNotLoad: "Games could not be loaded",
@@ -66,13 +67,15 @@ export const mobileTournament = {
   score: {
     sectionTitle: "Score your Matches",
     sectionNote:
-      "Enter the games each team won in every Set, then complete the Match.",
+      "Enter the games each team won. The other team gets a tap to confirm.",
     completeFailed: "Could not complete the Match",
     box: (team: string, set: string) => `${team}, ${set}`,
-    addASet: "Add a Set",
     saveScore: "Save score",
+    confirmScore: (score: string) => `Confirm ${score}`,
   },
   organizer: {
+    kingOnWeb:
+      "Draw the starting courts and post the final order on the web for now.",
     roundsSaved: "Rounds saved",
     changeRounds: "Change Rounds",
     kickSr: (name: string) => `Kick ${name}`,
@@ -103,6 +106,7 @@ export const mobileTournament = {
     takeLeft: "Take left",
     takeRight: "Take right",
     opensProfileHint: "Opens their Player profile",
+    opensPlayerActionsHint: "Opens player actions",
     showFewerTeams: "Show fewer Game teams",
     needCompleteTeam:
       "You need a complete Team whose both partners are allowed on this Game.",
@@ -178,7 +182,7 @@ export const mobileTournament = {
   playerSheet: {
     prefers: (position: string) => `Prefers ${position.toLowerCase()}`,
     noPositionYet: "No position yet",
-    roleAndLevel: (role: string, level: string) => `${role}, Level ${level}`,
+    roleAndOvr: (role: string, ovr: string) => `${role}, OVR ${ovr}`,
     viewProfile: "View profile",
   },
   pool: {

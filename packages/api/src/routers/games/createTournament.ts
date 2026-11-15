@@ -15,14 +15,21 @@ import {
   LEVEL_TENTHS_MAX,
   LEVEL_TENTHS_MIN,
 } from "@repo/domain/level-range";
-import { DEFAULT_LOCALE } from "@repo/i18n/locale";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import { sportOrDefault } from "@repo/domain/sport";
 import {
+  KING_COURT_MAX,
+  KING_COURT_MIN,
+  KING_TEAMS_PER_COURT,
+} from "@repo/domain/tournament-king";
+import {
+  ROUNDS_SHAPE_POOL_COUNT,
   sizeFriendlyTournament,
   tournamentTeamCountIssue,
   validateQualifiersPerPool,
   validateRoundCount,
+  validateRoundsShapeRoundCount,
   type TournamentSizingIssue,
 } from "@repo/domain/tournament-sizing";
 import { protectedProcedure } from "#src/trpc";
@@ -33,13 +40,11 @@ import { assertGameCreateVenueAndCourt } from "#src/games/assert-game-create-ven
 import { requireGroup } from "#src/games/helpers/require-group";
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import { ratingFlagsAtCreate } from "@repo/domain/game-rating-scope";
+import { messagesFor } from "@repo/i18n/messages";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-
-const ONE_DAY_WINDOW_MESSAGE =
-  "Finish time must be within 24 hours of the start";
 
 function windowWithinOneDay(windowStart: Date, windowEnd: Date) {
   return windowEnd.getTime() - windowStart.getTime() <= ONE_DAY_MS;
@@ -47,9 +52,6 @@ function windowWithinOneDay(windowStart: Date, windowEnd: Date) {
 
 type RoundCountIssue = { path: "roundCount"; message: string };
 type QualifiersIssue = { path: "qualifiersPerPool"; message: string };
-
-const QUALIFIERS_SHAPE_MESSAGE =
-  "Through from each group applies to Groups, then knockout only";
 
 type ShapeSizing =
   | {
@@ -66,18 +68,57 @@ type ShapeSizing =
       issue: TournamentSizingIssue | RoundCountIssue | QualifiersIssue;
     };
 
-function sizeTournamentShape(value: {
-  tournamentShape?: "groups_only" | "groups_then_knockout" | "knockout_only";
-  teamCount: number;
-  poolCount?: number;
-  roundCount?: number | null;
-  qualifiersPerPool?: number | null;
-}): ShapeSizing {
+function sizeTournamentShape(
+  value: {
+    tournamentShape?:
+      | "groups_only"
+      | "groups_then_knockout"
+      | "knockout_only"
+      | "king_of_the_court"
+      | "rounds";
+    teamCount: number;
+    poolCount?: number;
+    roundCount?: number | null;
+    qualifiersPerPool?: number | null;
+  },
+  locale: Locale = DEFAULT_LOCALE,
+): ShapeSizing {
   const groupsThenKnockout = value.tournamentShape === "groups_then_knockout";
   if (!groupsThenKnockout && value.qualifiersPerPool != null) {
     return {
       ok: false,
-      issue: { path: "qualifiersPerPool", message: QUALIFIERS_SHAPE_MESSAGE },
+      issue: {
+        path: "qualifiersPerPool",
+        message: messagesFor(locale).tournament.errors.qualifiersShape,
+      },
+    };
+  }
+  if (value.tournamentShape === "king_of_the_court") {
+    const courts = value.teamCount / KING_TEAMS_PER_COURT;
+    if (
+      !Number.isInteger(courts) ||
+      courts < KING_COURT_MIN ||
+      courts > KING_COURT_MAX
+    ) {
+      return {
+        ok: false,
+        issue: {
+          path: "teamCount",
+          message: messagesFor(locale).tournamentKing.errors.courts(
+            KING_COURT_MIN,
+            KING_COURT_MAX,
+          ),
+        },
+      };
+    }
+    return {
+      ok: true,
+      tournamentShape: TournamentShapeEnum.KING_OF_THE_COURT,
+      playerCount: value.teamCount * 2,
+      teamCount: value.teamCount,
+      poolCount: null,
+      roundCount: null,
+      qualifiersPerPool: null,
     };
   }
   if (value.tournamentShape === "knockout_only") {
@@ -95,11 +136,30 @@ function sizeTournamentShape(value: {
       qualifiersPerPool: null,
     };
   }
-  const sized = sizeFriendlyTournament(value.teamCount, value.poolCount ?? NaN);
+  const roundsShape = value.tournamentShape === "rounds";
+  if (
+    roundsShape &&
+    value.poolCount != null &&
+    value.poolCount !== ROUNDS_SHAPE_POOL_COUNT
+  ) {
+    return {
+      ok: false,
+      issue: {
+        path: "poolCount",
+        message: messagesFor(locale).tournament.errors.roundsShapeOneGroup,
+      },
+    };
+  }
+  const sized = sizeFriendlyTournament(
+    value.teamCount,
+    roundsShape ? ROUNDS_SHAPE_POOL_COUNT : (value.poolCount ?? NaN),
+  );
   if (!sized.ok) {
     return sized;
   }
-  const rounds = validateRoundCount(sized.sizing.poolSizes, value.roundCount);
+  const rounds = roundsShape
+    ? validateRoundsShapeRoundCount(sized.sizing.poolSizes, value.roundCount)
+    : validateRoundCount(sized.sizing.poolSizes, value.roundCount);
   if (!rounds.ok) {
     return rounds;
   }
@@ -113,7 +173,9 @@ function sizeTournamentShape(value: {
     ok: true,
     tournamentShape: groupsThenKnockout
       ? TournamentShapeEnum.GROUPS_THEN_KNOCKOUT
-      : TournamentShapeEnum.GROUPS_ONLY,
+      : roundsShape
+        ? TournamentShapeEnum.ROUNDS
+        : TournamentShapeEnum.GROUPS_ONLY,
     playerCount: sized.sizing.playerCount,
     teamCount: sized.sizing.teamCount,
     poolCount: sized.sizing.poolCount,
@@ -122,7 +184,10 @@ function sizeTournamentShape(value: {
   };
 }
 
-function assertMatchMinutes(matchMinutes: number) {
+function assertMatchMinutes(
+  matchMinutes: number,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   if (
     !Number.isInteger(matchMinutes) ||
     matchMinutes < 10 ||
@@ -131,7 +196,7 @@ function assertMatchMinutes(matchMinutes: number) {
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Match length must be from 10 to 120 minutes, in steps of 5",
+      message: messagesFor(locale).createGame.matchMinutes,
     });
   }
 }
@@ -146,7 +211,13 @@ export const createTournamentInputSchema = z
     registrationMode: z.literal("individual").optional(),
     allowSoloRegister: z.boolean().optional().default(true),
     tournamentShape: z
-      .enum(["groups_only", "groups_then_knockout", "knockout_only"])
+      .enum([
+        "groups_only",
+        "groups_then_knockout",
+        "knockout_only",
+        "king_of_the_court",
+        "rounds",
+      ])
       .optional(),
     teamCount: z.number().int(),
     poolCount: z.number().int().optional(),
@@ -164,6 +235,8 @@ export const createTournamentInputSchema = z
       .max(PRICE_PER_PLAYER_MAX_FILS)
       .nullable()
       .optional(),
+    /** Only with a price above zero. */
+    trackPayments: z.boolean().optional(),
     levelMinTenths: z
       .number()
       .int()
@@ -184,10 +257,17 @@ export const createTournamentInputSchema = z
     path: ["windowEnd"],
   })
   .refine((value) => windowWithinOneDay(value.windowStart, value.windowEnd), {
-    message: ONE_DAY_WINDOW_MESSAGE,
+    message: "Finish time must be within 24 hours of the start",
     path: ["windowEnd"],
   })
   .superRefine((value, ctx) => {
+    if (value.trackPayments && (value.pricePerPlayerFils ?? 0) <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: messagesFor(DEFAULT_LOCALE).gamePayments.errors.needsPrice,
+        path: ["trackPayments"],
+      });
+    }
     const sized = sizeTournamentShape(value);
     if (!sized.ok) {
       ctx.addIssue({
@@ -233,16 +313,17 @@ export type CreateTournamentInput = z.input<
 export async function createTournament(
   database: DbClient,
   input: CreateTournamentInput,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
-  assertMatchMinutes(input.matchMinutes);
+  assertMatchMinutes(input.matchMinutes, locale);
   if (!windowWithinOneDay(input.windowStart, input.windowEnd)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: ONE_DAY_WINDOW_MESSAGE,
+      message: messagesFor(locale).tournament.errors.oneDayWindow,
     });
   }
 
-  const sized = sizeTournamentShape(input);
+  const sized = sizeTournamentShape(input, locale);
   if (!sized.ok) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -250,19 +331,19 @@ export async function createTournament(
     });
   }
 
-  const group = await requireGroup(database, input.groupId);
+  const group = await requireGroup(database, input.groupId, locale);
   if (sportOrDefault(group.sport) === "football") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Football Games are Friendly games",
+      message: messagesFor(locale).football.errors.friendlyOnly,
     });
   }
-  await assertMayCreateGameOnGroup(database, group, input.createdBy);
+  await assertMayCreateGameOnGroup(database, group, input.createdBy, locale);
   const groupVerified = groupIsVerified(group);
   if (input.isPublic && !groupVerified) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only a Verified Group can open a Game to anyone with the link",
+      message: messagesFor(locale).game.errors.verifiedGroupOpen,
     });
   }
   await assertGameCreateVenueAndCourt(database, {
@@ -270,8 +351,10 @@ export async function createTournament(
     venueId: input.venueId,
     courtId: undefined,
     courtIds: input.courtIds,
+    locale,
   });
 
+  const king = sized.tournamentShape === TournamentShapeEnum.KING_OF_THE_COURT;
   const created = await database.transaction(async (tx) => {
     const [game] = await tx
       .insert(games)
@@ -291,8 +374,9 @@ export async function createTournament(
         poolCount: sized.poolCount,
         roundCount: sized.roundCount,
         qualifiersPerPool: sized.qualifiersPerPool,
-        matchMinutes: input.matchMinutes,
+        matchMinutes: king ? null : input.matchMinutes,
         pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+        trackPayments: input.trackPayments ?? false,
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
@@ -332,8 +416,12 @@ export const createTournamentProcedure = protectedProcedure
   .input(createTournamentInputSchema)
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return createTournament(ctx.db, {
-      ...input,
-      createdBy: appUser.id,
-    });
+    return createTournament(
+      ctx.db,
+      {
+        ...input,
+        createdBy: appUser.id,
+      },
+      ctx.locale,
+    );
   });

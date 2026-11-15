@@ -40,6 +40,9 @@ export const bookingPayments = pgTable(
     }),
     refundedAt: timestamp("refunded_at"),
     refundFailureReason: varchar("refund_failure_reason", { length: 500 }),
+    /** Held by the one refund job talking to the provider, until it records or gives up. */
+    refundPendingFils: integer("refund_pending_fils").notNull().default(0),
+    refundPendingKey: varchar("refund_pending_key", { length: 255 }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -53,6 +56,10 @@ export const bookingPayments = pgTable(
     refundedCheck: check(
       "booking_payments_refunded_check",
       sql`${table.refundedFils} >= 0 and ${table.refundedFils} <= ${table.amountFils}`,
+    ),
+    refundPendingCheck: check(
+      "booking_payments_refund_pending_check",
+      sql`${table.refundPendingFils} >= 0 and ${table.refundedFils} + ${table.refundPendingFils} <= ${table.amountFils}`,
     ),
   }),
 );

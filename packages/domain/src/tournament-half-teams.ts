@@ -10,6 +10,7 @@ export type HalfTeamOccupant = {
   name: string;
   image: string | null;
   levelBand?: LevelBand | null;
+  guest?: boolean;
 };
 
 export type HalfTeam = {

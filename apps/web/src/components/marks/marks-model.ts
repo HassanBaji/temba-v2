@@ -161,7 +161,10 @@ export function mvpRowModel(
   }
   const m = messagesFor(locale);
   const mm = m.webMarks;
-  const when = formatMarksClose(marksWindow.closesAt, locale);
+  // On a Match that counts for Temba Level the MVP closes with the Rating
+  // window, before the Marks window.
+  const mvpClosesAt = mvp.closesAt ?? marksWindow.closesAt;
+  const when = formatMarksClose(mvpClosesAt, locale);
 
   if (mvp.state === "decided" && mvp.userId) {
     const participant = participantOf(data, mvp.userId);
@@ -192,7 +195,7 @@ export function mvpRowModel(
     };
   }
 
-  if (marksWindow.state === "closed") {
+  if (marksWindow.state === "closed" || mvp.settledAt) {
     return null;
   }
 
@@ -205,7 +208,7 @@ export function mvpRowModel(
           : mm.mvp.tieWaiting(when)
         : mm.mvp.votePending(
             mvpModeCopy("vote", locale).label,
-            voteProgressCopy(mvp.votes, marksWindow.closesAt, locale),
+            voteProgressCopy(mvp.votes, mvpClosesAt, locale),
           );
   return {
     state: "pending",

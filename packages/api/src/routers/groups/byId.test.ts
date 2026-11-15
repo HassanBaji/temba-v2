@@ -13,17 +13,24 @@ import {
   gameTeams,
   gameWaitlist,
   games,
+  groupMemberInvites,
   groupMembers,
+  groupRatings,
+  GroupMemberRoleEnum,
   groups,
+  GroupTypeEnum,
   matchSets,
   matches,
   ratingEvents,
   ratings,
   user,
+  venueManagers,
   venues,
 } from "@repo/db/schema";
 
+import { applyLevelOverride } from "#src/ratings/apply-level-override";
 import { groupById } from "#src/routers/groups/byId";
+import { listSeasons } from "#src/routers/groups/listSeasons";
 import { loadRatingsMe } from "#src/routers/ratings/me";
 import { setMemberLevel } from "#src/routers/ratings/setLevel";
 import { nextMatchSetNumber } from "#src/games/next-match-set-number";
@@ -543,6 +550,19 @@ describe("groupById standing facts", () => {
         levelBand: "B1",
         phi: 100,
       });
+      // A Level override confirms the Level (ADR-0080).
+      await applyLevelOverride(
+        db as unknown as Parameters<typeof applyLevelOverride>[0],
+        {
+          sport: "padel",
+          setterUserId: rival.id,
+          setByRole: "operator",
+          targetUserId: viewer.id,
+          groupId: null,
+          level: 5.95,
+          reason: "plays_above_results",
+        },
+      );
       await insertRating(db, {
         userId: rival.id,
         sport: GroupSportEnum.PADEL,
@@ -590,7 +610,7 @@ describe("groupById standing facts", () => {
     }
   });
 
-  it("returns Level and Rated Match count, with idle-aware Provisional matching ratings.me", async () => {
+  it("returns Level and Rated Match count, with Provisional matching ratings.me whatever φ or idle time", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const viewer = await insertUser(db, "level-viewer@example.com");
@@ -651,10 +671,11 @@ describe("groupById standing facts", () => {
         detail.standing.leaderboard.map((entry) => [entry.userId, entry]),
       );
 
+      // One Rated Match in a Verified Group of the five that confirm.
       expect(byUserId.get(viewer.id)).toMatchObject({
         level: "3.8",
         ratedMatchCount: 1,
-        levelProvisional: false,
+        levelProvisional: true,
       });
       expect(byUserId.get(idle.id)).toMatchObject({
         level: "3.8",
@@ -668,8 +689,13 @@ describe("groupById standing facts", () => {
         levelProvisional: true,
       });
 
-      const me = await loadRatingsMe(db, { userId: idle.id });
-      expect(me.rating?.provisional).toBe(true);
+      const me = await loadRatingsMe(db, { userId: viewer.id });
+      expect(me.rating).toMatchObject({
+        provisional: true,
+        ratedMatchesRemaining: 4,
+      });
+      const idleMe = await loadRatingsMe(db, { userId: idle.id });
+      expect(idleMe.rating?.provisional).toBe(true);
     } finally {
       await close();
     }
@@ -698,6 +724,43 @@ describe("groupById standing facts", () => {
         levelBand: null,
         levelProvisional: true,
       });
+    } finally {
+      await close();
+    }
+  });
+
+  it("reads no Group Level on a padel Group, and a football one only for the Tier start hint", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const viewer = await insertUser(db, "standing-grouplevel@example.com");
+      const padel = await insertGroup(db, viewer.id);
+      const football = await insertGroup(db, viewer.id, {
+        sport: GroupSportEnum.FOOTBALL,
+      });
+      await db.insert(groupRatings).values(
+        [padel, football].map((group) => ({
+          userId: viewer.id,
+          groupId: group.id,
+          mu: 1500,
+          phi: 100,
+          sigma: 0.06,
+          levelBand: "C2" as const,
+        })),
+      );
+
+      const padelDetail = await groupById(db, {
+        groupId: padel.id,
+        userId: viewer.id,
+        now: NOW,
+      });
+      const footballDetail = await groupById(db, {
+        groupId: football.id,
+        userId: viewer.id,
+        now: NOW,
+      });
+
+      expect(padelDetail.standing.leaderboard[0]?.groupLevel).toBeNull();
+      expect(footballDetail.standing.leaderboard[0]?.groupLevel).not.toBeNull();
     } finally {
       await close();
     }
@@ -847,6 +910,60 @@ describe("groupById imageUrl", () => {
         "/api/media/group-images/home/image?v=1",
       );
       expect(plainDetail.imageUrl).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("groupById member phone numbers", () => {
+  it("sends every member's number to the creator and Appointed Organizers, and none to a member", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "byid-phone-creator@example.com");
+      const organizer = await insertUser(
+        db,
+        "byid-phone-organizer@example.com",
+      );
+      const member = await insertUser(db, "byid-phone-member@example.com");
+      const silent = await insertUser(db, "byid-phone-silent@example.com");
+      const group = await insertGroup(db, creator.id, {
+        members: [member.id, silent.id],
+      });
+      await db.insert(groupMembers).values({
+        groupId: group.id,
+        userId: organizer.id,
+        role: GroupMemberRoleEnum.ORGANIZER,
+      });
+      for (const [id, phoneNumber] of [
+        [creator.id, "+97336110000"],
+        [organizer.id, "+97336110001"],
+        [member.id, "+97336110002"],
+      ] as const) {
+        await db.update(user).set({ phoneNumber }).where(eq(user.id, id));
+      }
+
+      const phonesSeenBy = async (viewerId: string) =>
+        Object.fromEntries(
+          (
+            await groupById(db, { groupId: group.id, userId: viewerId })
+          ).standing.leaderboard.map((row) => [row.userId, row.phoneNumber]),
+        );
+      const everyNumber = {
+        [creator.id]: "+97336110000",
+        [organizer.id]: "+97336110001",
+        [member.id]: "+97336110002",
+        [silent.id]: null,
+      };
+
+      expect(await phonesSeenBy(creator.id)).toEqual(everyNumber);
+      expect(await phonesSeenBy(organizer.id)).toEqual(everyNumber);
+      expect(Object.values(await phonesSeenBy(member.id))).toEqual([
+        null,
+        null,
+        null,
+        null,
+      ]);
     } finally {
       await close();
     }
@@ -1152,6 +1269,10 @@ describe("groupById Level setter fields", () => {
           .viewerCanSetLevel,
       ).toBe(false);
       expect((await groupById(db, args)).viewerCanSetLevel).toBe(false);
+      await db
+        .update(groups)
+        .set({ type: GroupTypeEnum.PUBLIC })
+        .where(eq(groups.id, group.id));
       expect(
         (
           await groupById(db, {
@@ -1184,6 +1305,7 @@ describe("groupById Level setter fields", () => {
         setterUserId: viewer.id,
         targetUserId: member.id,
         levelTenths: 30,
+        reason: "new_to_group",
       });
       await new Promise((resolve) => setTimeout(resolve, 5));
       await setMemberLevel(db, {
@@ -1192,6 +1314,7 @@ describe("groupById Level setter fields", () => {
         targetUserId: member.id,
         levelTenths: 46,
         reason: "plays_above_results",
+        note: "Ready for the B group.",
       });
 
       const asSetter = await groupById(db, {
@@ -1206,6 +1329,7 @@ describe("groupById Level setter fields", () => {
           setByName: "ls-viewer",
           setByIsViewer: true,
           reason: "plays_above_results",
+          note: "Ready for the B group.",
         },
       });
       expect(leaderboardEntry(asSetter, viewer.id)?.levelOverride).toBeNull();
@@ -1220,6 +1344,74 @@ describe("groupById Level setter fields", () => {
         levelProvisional: false,
         levelOverride: null,
       });
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("groupById on a Private Group", () => {
+  it("is NOT_FOUND to an outsider, and open to members, invitees, its Venue's managers and Operators", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "private-owner@example.com");
+      const member = await insertUser(db, "private-member@example.com");
+      const outsider = await insertUser(db, "private-outsider@example.com");
+      const invitee = await insertUser(db, "private-invitee@example.com");
+      const manager = await insertUser(db, "private-manager@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, owner.id, { members: [member.id] });
+      await db
+        .update(groups)
+        .set({ venueId: venue.id })
+        .where(eq(groups.id, group.id));
+      await db.insert(groupMemberInvites).values({
+        groupId: group.id,
+        userId: invitee.id,
+        invitedBy: owner.id,
+      });
+      await db
+        .insert(venueManagers)
+        .values({ venueId: venue.id, userId: manager.id });
+
+      const notFound = { code: "NOT_FOUND", message: "Group not found" };
+      await expect(
+        groupById(db, { groupId: group.id, userId: outsider.id }),
+      ).rejects.toMatchObject(notFound);
+      await expect(
+        groupById(db, {
+          groupId: group.id,
+          userId: outsider.id,
+          getPublicMetadata: async () => ({ levelSetter: true }),
+        }),
+      ).rejects.toMatchObject(notFound);
+      await expect(
+        listSeasons(db, { groupId: group.id, userId: outsider.id }),
+      ).rejects.toMatchObject(notFound);
+
+      for (const viewer of [owner, member, invitee, manager]) {
+        await expect(
+          groupById(db, { groupId: group.id, userId: viewer.id }),
+        ).resolves.toMatchObject({ id: group.id });
+      }
+      await expect(
+        groupById(db, {
+          groupId: group.id,
+          userId: outsider.id,
+          getPublicMetadata: async () => ({ operator: true }),
+        }),
+      ).resolves.toMatchObject({ id: group.id });
+      await expect(
+        listSeasons(db, { groupId: group.id, userId: member.id }),
+      ).resolves.toMatchObject({ groupId: group.id, isMember: true });
+
+      await db
+        .update(groups)
+        .set({ type: GroupTypeEnum.PUBLIC })
+        .where(eq(groups.id, group.id));
+      await expect(
+        groupById(db, { groupId: group.id, userId: outsider.id }),
+      ).resolves.toMatchObject({ id: group.id });
     } finally {
       await close();
     }

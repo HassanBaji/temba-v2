@@ -29,10 +29,12 @@ export function CrestTile({
   initials,
   tone = "paper",
   size = "lg",
+  className,
 }: {
   initials: string;
   tone?: SurfaceTone;
   size?: "sm" | "lg";
+  className?: string;
 }) {
   return (
     <span
@@ -45,6 +47,7 @@ export function CrestTile({
         tone === "ink"
           ? "bg-focus-control text-on-focus-control"
           : "bg-control text-on-control",
+        className,
       )}
     >
       {initials}

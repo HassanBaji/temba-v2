@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { games } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -32,19 +33,20 @@ export async function updateGameSeason(
     locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, args.locale);
-  await assertGameOrganizer(database, game, args.userId);
+  await assertGameOrganizer(database, game, args.userId, locale);
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot edit a cancelled Game",
+      message: messagesFor(locale).game.errors.editCancelled,
     });
   }
   if (!game.windowStart) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Set the Game's day before linking a season",
+      message: messagesFor(locale).game.errors.seasonNeedsDay,
     });
   }
   const season = await resolveGameSeasonLink(database, {

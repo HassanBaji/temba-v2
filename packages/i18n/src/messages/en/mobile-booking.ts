@@ -183,6 +183,8 @@ export const mobileBooking = {
     loadingUpcoming: "Loading upcoming bookings",
     cardLabel: (name: string, city: string, price: string, open: string) =>
       `${name}, ${city}, from ${price} an hour, ${open}`,
+    partner: "Partner venue",
+    partnerCardLabel: (card: string) => `${card}, partner venue`,
     fromPrefix: "from",
     perHour: "/h",
   },

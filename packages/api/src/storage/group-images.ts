@@ -1,5 +1,8 @@
 import { TRPCError } from "@trpc/server";
 
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import { deleteS3Object, putS3Object } from "#src/storage/s3";
 
 export const GROUP_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
@@ -58,18 +61,21 @@ function groupImageObjectPath(groupId: string): string {
   return `group-images/${groupId}/image`;
 }
 
-export function decodeGroupImageBase64(dataBase64: string): Buffer {
+export function decodeGroupImageBase64(
+  dataBase64: string,
+  locale: Locale = DEFAULT_LOCALE,
+): Buffer {
   const buffer = Buffer.from(dataBase64, "base64");
   if (buffer.length === 0) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Image file is empty",
+      message: messagesFor(locale).group.errors.imageEmpty,
     });
   }
   if (buffer.length > GROUP_IMAGE_MAX_BYTES) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Image must be at most 2 MB",
+      message: messagesFor(locale).createGame.image.imageTooLarge,
     });
   }
   return buffer;
@@ -78,12 +84,13 @@ export function decodeGroupImageBase64(dataBase64: string): Buffer {
 export function assertGroupImageType(
   bytes: Uint8Array,
   declaredType: GroupImageContentType,
+  locale: Locale = DEFAULT_LOCALE,
 ): GroupImageContentType {
   const detected = detectGroupImageContentType(bytes);
   if (!detected || detected !== declaredType) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Image must be a JPEG, PNG, or WebP image",
+      message: messagesFor(locale).createGame.image.imageType,
     });
   }
   return detected;

@@ -13,11 +13,7 @@ import {
 
 import { groupById } from "#src/routers/groups/byId";
 import { createLoosePrivate } from "#src/routers/groups/createLoosePrivate";
-import {
-  CANNOT_REMOVE_CREATOR_MESSAGE,
-  CANNOT_REMOVE_SELF_MESSAGE,
-  removePlayer,
-} from "#src/routers/groups/removePlayer";
+import { removePlayer } from "#src/routers/groups/removePlayer";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, name: string) {
@@ -142,7 +138,7 @@ describe("groups.removePlayer", () => {
           userId: f.creator,
         }),
       );
-      expect(creator.message).toBe(CANNOT_REMOVE_CREATOR_MESSAGE);
+      expect(creator.message).toBe("The Group creator cannot be removed");
 
       const self = await rejection(
         removePlayer(db, {
@@ -151,7 +147,7 @@ describe("groups.removePlayer", () => {
           userId: f.organizer,
         }),
       );
-      expect(self.message).toBe(CANNOT_REMOVE_SELF_MESSAGE);
+      expect(self.message).toBe("Leave the Group instead");
 
       await expect(
         removePlayer(db, {
@@ -228,7 +224,7 @@ describe("groups.removePlayer", () => {
           userId: f.creator,
         }),
       );
-      expect(creator.message).toBe(CANNOT_REMOVE_CREATOR_MESSAGE);
+      expect(creator.message).toBe("The Group creator cannot be removed");
 
       const asManager = await rejection(
         removePlayer(db, {

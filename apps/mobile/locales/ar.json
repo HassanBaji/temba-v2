@@ -1,0 +1,6 @@
+{
+  "ios": {
+    "NSPhotoLibraryUsageDescription": "يستخدم Temba مكتبة الصور لتختار منها صورة ملفك الشخصي.",
+    "NSPhotoLibraryAddUsageDescription": "يحفظ Temba بطاقات النتائج والملصقات في مكتبة الصور."
+  }
+}

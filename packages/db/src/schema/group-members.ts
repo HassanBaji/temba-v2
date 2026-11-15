@@ -1,7 +1,19 @@
-import { pgTable, uuid, timestamp, integer, unique } from "drizzle-orm/pg-core";
+import {
+  index,
+  integer,
+  pgTable,
+  timestamp,
+  unique,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { user } from "./user";
 import { groups } from "./groups";
-import { GroupMemberRoleEnum, groupMemberRoles } from "./group-enums";
+import {
+  GroupMemberRoleEnum,
+  groupMemberRoles,
+  memberNicknameVisibilities,
+} from "./group-enums";
 import { relations } from "drizzle-orm";
 
 export const groupMembers = pgTable(
@@ -18,6 +30,16 @@ export const groupMembers = pgTable(
     totalGamesPlayed: integer("total_games_played").notNull().default(0),
     totalPointsWon: integer("total_points_won").notNull().default(0),
     totalSetsWon: integer("total_sets_won").notNull().default(0),
+    /** The Member nickname a Group approver gave this member, in this Group only. */
+    nickname: varchar("nickname", { length: 24 }),
+    nicknameVisibility: memberNicknameVisibilities("nickname_visibility")
+      .notNull()
+      .default("approvers"),
+    nicknameUpdatedById: uuid("nickname_updated_by_id").references(
+      () => user.id,
+      { onDelete: "set null" },
+    ),
+    nicknameUpdatedAt: timestamp("nickname_updated_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -26,6 +48,7 @@ export const groupMembers = pgTable(
       table.groupId,
       table.userId,
     ),
+    userIdx: index("group_members_user_id_idx").on(table.userId),
   }),
 );
 

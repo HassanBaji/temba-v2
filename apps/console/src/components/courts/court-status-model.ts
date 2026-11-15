@@ -3,7 +3,8 @@ import {
   formatGameClock,
 } from "@repo/domain/format-game-start";
 import { productDaysBetween } from "@repo/domain/product-timezone";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 export type ClosureLike = {
   courtId: string | null;
@@ -41,9 +42,10 @@ export function courtAvailability(args: {
 }
 
 /** `Closed to 5:00 PM` today, otherwise `Closed to Sat 7 Nov`. */
-export function closedUntilLabel(until: Date, now: Date) {
+export function closedUntilLabel(until: Date, now: Date, locale: Locale) {
+  const { closedTo } = messagesFor(locale).consoleCourts.availability;
   if (productDaysBetween(now, until) === 0) {
-    return `Closed to ${formatGameClock(until, CONSOLE_LOCALE)}`;
+    return closedTo(formatGameClock(until, locale));
   }
-  return `Closed to ${formatDayMonth(until, CONSOLE_LOCALE, { weekday: "short" })}`;
+  return closedTo(formatDayMonth(until, locale, { weekday: "short" }));
 }

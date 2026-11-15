@@ -15,9 +15,15 @@ import { formatPricePerPlayerFils } from "./price-per-player";
  * Every input is already on `games.byId` — do not add a server field for this.
  */
 
+/**
+ * Where a Game link lands: Game home, opening Pick a partner when `join` is
+ * "partner". Each App maps it to its own route.
+ */
+export type GameHomeTarget = { gameId: string; join?: "partner" };
+
 /** Game home for this Game. Close and deep-link recovery land here. */
-export function friendlyGameHomeHref(gameId: string) {
-  return `/dashboard/games/${gameId}`;
+export function friendlyGameHomeTarget(gameId: string): GameHomeTarget {
+  return { gameId };
 }
 
 /** Deep link when the Game no longer offers partner join. */

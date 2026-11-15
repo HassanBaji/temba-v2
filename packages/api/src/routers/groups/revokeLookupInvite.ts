@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { groupMemberInvites } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -14,8 +16,9 @@ type DbClient = typeof db;
 
 export async function revokeLookupInvite(
   database: DbClient,
-  args: { inviteId: string; userId: string },
+  args: { inviteId: string; userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const invite = await database.query.groupMemberInvites.findFirst({
     where: eq(groupMemberInvites.id, args.inviteId),
   });
@@ -23,16 +26,16 @@ export async function revokeLookupInvite(
   if (!invite) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Lookup invite not found",
+      message: messagesFor(locale).invite.errors.lookupNotFound,
     });
   }
 
-  await requireGroupLookupSender(database, invite.groupId, args.userId);
+  await requireGroupLookupSender(database, invite.groupId, args.userId, locale);
 
   if (invite.acceptedAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Accepted Lookup invites cannot be revoked",
+      message: messagesFor(locale).invite.errors.lookupAcceptedNoRevoke,
     });
   }
 
@@ -48,7 +51,7 @@ export async function revokeLookupInvite(
   if (!revoked.ok) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Accepted Lookup invites cannot be revoked",
+      message: messagesFor(locale).invite.errors.lookupAcceptedNoRevoke,
     });
   }
 
@@ -62,5 +65,6 @@ export const revokeLookupInviteProcedure = protectedProcedure
     return revokeLookupInvite(ctx.db, {
       inviteId: input.inviteId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

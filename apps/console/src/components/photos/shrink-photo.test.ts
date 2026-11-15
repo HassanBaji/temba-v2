@@ -15,16 +15,18 @@ describe("fitWithin", () => {
 
 describe("photoFileError", () => {
   it("accepts a large JPEG, PNG or WebP", () => {
-    expect(photoFileError({ type: "image/jpeg", size: 9_000_000 })).toBeNull();
-    expect(photoFileError({ type: "image/webp", size: 10 })).toBeNull();
+    expect(
+      photoFileError({ type: "image/jpeg", size: 9_000_000 }, "en"),
+    ).toBeNull();
+    expect(photoFileError({ type: "image/webp", size: 10 }, "en")).toBeNull();
   });
 
   it("refuses other types and very large files", () => {
-    expect(photoFileError({ type: "image/heic", size: 10 })).toBe(
+    expect(photoFileError({ type: "image/heic", size: 10 }, "en")).toBe(
       "Photo must be a JPEG, PNG, or WebP image",
     );
-    expect(photoFileError({ type: "image/png", size: 26 * 1024 * 1024 })).toBe(
-      "Photo must be at most 25 MB",
-    );
+    expect(
+      photoFileError({ type: "image/png", size: 26 * 1024 * 1024 }, "en"),
+    ).toBe("Photo must be at most 25 MB");
   });
 });

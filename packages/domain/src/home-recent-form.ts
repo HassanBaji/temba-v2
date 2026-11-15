@@ -116,3 +116,10 @@ export function recentFormWinRateCopy(
   }
   return { value: `${form.winRatePercent}%`, caption: m.winRate };
 }
+
+/** Last 10 reads oldest first, with the unplayed slots hatched at the end. */
+export function lastTenOrder(bars: RecentFormBar[]): RecentFormBar[] {
+  const played = bars.filter((bar) => bar.kind === "played").reverse();
+  const empty = bars.filter((bar) => bar.kind === "empty");
+  return [...played, ...empty];
+}

@@ -104,9 +104,9 @@ describe("upNextWeekLabel", () => {
   it("counts what starts in the coming seven days", () => {
     const later = game({ id: "later", startTime: new Date("2026-11-09") });
     const items = upNextItems([game(), later], [booking()]);
-    assert.equal(upNextWeekLabel(items, NOW, "en"), "2 this week");
-    assert.equal(upNextWeekLabel(items, NOW, "ar"), "مباراتان هذا الأسبوع");
-    assert.equal(upNextWeekLabel([], NOW, "en"), "Nothing this week");
+    assert.equal(upNextWeekLabel(items, NOW, "en"), "1 of 2 this week");
+    assert.equal(upNextWeekLabel(items, NOW, "ar"), "1 من 2 هذا الأسبوع");
+    assert.equal(upNextWeekLabel([], NOW, "en"), "nothing this week");
   });
 });
 

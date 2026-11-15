@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { groups } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -26,14 +27,16 @@ export async function uploadImage(
     contentType: GroupImageContentType;
     dataBase64: string;
     userId: string;
+    locale?: Locale;
   },
 ) {
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
 
-  await assertGroupApprover(database, group, args.userId);
+  await assertGroupApprover(database, group, args.userId, locale);
 
-  const bytes = decodeGroupImageBase64(args.dataBase64);
-  const contentType = assertGroupImageType(bytes, args.contentType);
+  const bytes = decodeGroupImageBase64(args.dataBase64, locale);
+  const contentType = assertGroupImageType(bytes, args.contentType, locale);
   const imageUrl = await uploadGroupImageObject({
     groupId: args.groupId,
     bytes,
@@ -77,5 +80,6 @@ export const uploadImageProcedure = protectedProcedure
       contentType: input.contentType,
       dataBase64: input.dataBase64,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

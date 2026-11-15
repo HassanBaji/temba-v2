@@ -13,12 +13,37 @@ import {
   RATED_MATCHES_TO_CONFIRM,
   bandFromLevel,
   bandWithHysteresis,
+  formatPadelLevel,
   confirmedPhiForOverride,
   initialRatingFromChoice,
   levelFromMu,
+  matchesTowardConfirming,
+  padelMatchesRemainingToConfirm,
   progressToNextBand,
   ratedMatchesRemainingToConfirm,
+  tembaLevelView,
+  UNCONFIRMED_PADEL,
 } from "./level";
+
+describe("formatPadelLevel", () => {
+  it("floors the face at 1.0 and keeps the stored value below it", () => {
+    expect(formatPadelLevel(0.35, 2)).toBe("1.00");
+    expect(formatPadelLevel(0, 1)).toBe("1.0");
+    expect(formatPadelLevel(0.96, 2)).toBe("1.00");
+  });
+
+  it("shows two decimals on the hero and one in dense lists", () => {
+    expect(formatPadelLevel(3.449, 2)).toBe("3.45");
+    expect(formatPadelLevel(3.449, 1)).toBe("3.4");
+    expect(formatPadelLevel(1.005, 2)).toBe("1.01");
+  });
+
+  it("tops out at 7.0", () => {
+    expect(formatPadelLevel(7, 2)).toBe("7.00");
+    expect(formatPadelLevel(6.999, 2)).toBe("7.00");
+    expect(formatPadelLevel(9, 1)).toBe("7.0");
+  });
+});
 
 describe("bandFromLevel", () => {
   it("still uses stored D3…A, not display letters", () => {
@@ -141,6 +166,80 @@ describe("ratedMatchesRemainingToConfirm", () => {
   it("scales remaining with φ between a fresh Rating and the threshold", () => {
     expect(ratedMatchesRemainingToConfirm(275)).toBe(3);
     expect(ratedMatchesRemainingToConfirm(260)).toBe(2);
+  });
+});
+
+describe("padelMatchesRemainingToConfirm", () => {
+  it("counts down the five Rated Matches in a Verified Group", () => {
+    expect(padelMatchesRemainingToConfirm(UNCONFIRMED_PADEL)).toBe(5);
+    expect(
+      padelMatchesRemainingToConfirm({ verifiedMatches: 4, overridden: false }),
+    ).toBe(1);
+    expect(
+      padelMatchesRemainingToConfirm({ verifiedMatches: 5, overridden: false }),
+    ).toBe(0);
+    expect(
+      padelMatchesRemainingToConfirm({ verifiedMatches: 9, overridden: false }),
+    ).toBe(0);
+  });
+
+  it("is 0 once a Level override set the Level", () => {
+    expect(
+      padelMatchesRemainingToConfirm({ verifiedMatches: 1, overridden: true }),
+    ).toBe(0);
+  });
+});
+
+describe("matchesTowardConfirming", () => {
+  it("is the confirming Matches played out of five", () => {
+    expect(matchesTowardConfirming(5)).toBe(0);
+    expect(matchesTowardConfirming(2)).toBe(3);
+    expect(matchesTowardConfirming(0)).toBe(5);
+  });
+});
+
+describe("tembaLevelView", () => {
+  const padel = {
+    sport: "padel",
+    mu: 1500,
+    phi: 260,
+    levelBand: "C2",
+  } as const;
+
+  it("keeps a padel Level Provisional until its fifth Match in a Verified Group, whatever its φ", () => {
+    expect(
+      tembaLevelView(
+        { ...padel, phi: 120 },
+        { verifiedMatches: 4, overridden: false },
+      ),
+    ).toEqual({
+      level: "3.0",
+      levelBand: "C2",
+      provisional: true,
+      ratedMatchesRemaining: 1,
+    });
+    expect(
+      tembaLevelView(padel, { verifiedMatches: 5, overridden: false }),
+    ).toMatchObject({ provisional: false, ratedMatchesRemaining: 0 });
+  });
+
+  it("confirms a padel Level a Level override set", () => {
+    expect(
+      tembaLevelView(padel, { verifiedMatches: 0, overridden: true }),
+    ).toMatchObject({ provisional: false, ratedMatchesRemaining: 0 });
+  });
+
+  it("reads a football Level's Provisional from its φ", () => {
+    const football = { ...padel, sport: "football" };
+    expect(
+      tembaLevelView({ ...football, phi: 260 }, UNCONFIRMED_PADEL),
+    ).toMatchObject({ provisional: true, ratedMatchesRemaining: 2 });
+    expect(
+      tembaLevelView(
+        { ...football, phi: 150 },
+        { verifiedMatches: 0, overridden: false },
+      ),
+    ).toMatchObject({ provisional: false, ratedMatchesRemaining: 0 });
   });
 });
 

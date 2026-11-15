@@ -25,6 +25,8 @@ import { scoreSet } from "#src/routers/games/scoreSet";
 import { loadGroupStandings } from "#src/standing/load-group-standing";
 import { loadCompletedMatchesForUser } from "#src/stats/completed-matches";
 import { summarizeCompletedMatchStats } from "@repo/domain/completed-matches";
+import { glicko2Step } from "@repo/domain/glicko2";
+import { formatLevel, levelFromMu } from "@repo/domain/level";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, label: string) {
@@ -41,16 +43,30 @@ async function insertUser(database: TestDatabase, label: string) {
   return row;
 }
 
-async function setUpMatch(database: TestDatabase, options: { rated: boolean }) {
-  const [a, b, c, d] = await Promise.all(
-    ["a", "b", "c", "d"].map((label) => insertUser(database, label)),
-  );
+type TestUser = Awaited<ReturnType<typeof insertUser>>;
+
+async function setUpMatch(
+  database: TestDatabase,
+  options: {
+    rated: boolean;
+    players?: [TestUser, TestUser, TestUser, TestUser];
+  },
+) {
+  const [a, b, c, d] =
+    options.players ??
+    (await Promise.all(
+      ["a", "b", "c", "d"].map((label) => insertUser(database, label)),
+    ));
   if (!a || !b || !c || !d) {
     throw new Error("Failed to insert Users");
   }
   const [venue] = await database
     .insert(venues)
-    .values({ name: "Club", city: "Lisbon", country: "PT" })
+    .values({
+      name: `Club ${crypto.randomUUID()}`,
+      city: "Lisbon",
+      country: "PT",
+    })
     .returning();
   const [group] = await database
     .insert(groups)
@@ -156,6 +172,158 @@ async function seedRating(database: TestDatabase, userId: string) {
   }
   return row;
 }
+
+async function seedPadelRating(
+  database: TestDatabase,
+  userId: string,
+  mu: number,
+) {
+  await database.insert(ratings).values({
+    userId,
+    sport: "padel",
+    mu,
+    phi: 200,
+    sigma: 0.06,
+    levelBand: "C2",
+  });
+}
+
+async function eventFor(
+  database: TestDatabase,
+  matchId: string,
+  userId: string,
+) {
+  const event = await database.query.ratingEvents.findFirst({
+    where: and(
+      eq(ratingEvents.matchId, matchId),
+      eq(ratingEvents.userId, userId),
+    ),
+  });
+  if (!event) {
+    throw new Error("Expected a rating event");
+  }
+  return event;
+}
+
+/** μ after the step ADR-0009 took: the opposing pair's mean, the partner ignored. */
+function muAfterIgnoringPartner(
+  event: Awaited<ReturnType<typeof eventFor>>,
+  opposingPair: { mu: number; phi: number },
+) {
+  const before = {
+    mu: event.muBefore,
+    phi: event.phiBefore,
+    sigma: event.sigmaBefore,
+  };
+  const star = glicko2Step(before, opposingPair, event.outcomeScore);
+  return before.mu + event.weight * (star.mu - before.mu);
+}
+
+describe("Partner weighting (ADR-0070)", () => {
+  it("moves four players of equal μ exactly as before", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { gameId, matchId, a, b, c, d } = await setUpMatch(db, {
+        rated: true,
+      });
+      for (const member of [a, b, c, d]) {
+        await seedPadelRating(db, member.id, 1500);
+      }
+
+      await completeMatch(db, { gameId, matchId, userId: a.id });
+
+      for (const member of [a, b, c, d]) {
+        const event = await eventFor(db, matchId, member.id);
+        expect(event.muAfter).toBe(
+          muAfterIgnoringPartner(event, { mu: 1500, phi: 200 }),
+        );
+      }
+    } finally {
+      await close();
+    }
+  });
+
+  it("gives the 1300 player beside a 1700 partner less for beating two 1500s, and the partner more", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { gameId, matchId, a, b, c, d } = await setUpMatch(db, {
+        rated: true,
+      });
+      await seedPadelRating(db, a.id, 1300);
+      await seedPadelRating(db, b.id, 1700);
+      await seedPadelRating(db, c.id, 1500);
+      await seedPadelRating(db, d.id, 1500);
+
+      await completeMatch(db, { gameId, matchId, userId: a.id });
+
+      const weak = await eventFor(db, matchId, a.id);
+      const strongPartner = await eventFor(db, matchId, b.id);
+      const opposingPair = { mu: 1500, phi: 200 };
+      expect(weak.outcomeScore).toBe(1);
+      expect(weak.muAfter).toBeGreaterThan(weak.muBefore);
+      expect(weak.muAfter).toBeLessThan(
+        muAfterIgnoringPartner(weak, opposingPair),
+      );
+      expect(strongPartner.muAfter).toBeGreaterThan(
+        muAfterIgnoringPartner(strongPartner, opposingPair),
+      );
+
+      const detail = await gameById(db, { gameId, userId: a.id });
+      expect(detail.ratingImpact?.levelChange).toBe(
+        Math.round(
+          (Number(formatLevel(levelFromMu(weak.muAfter))) -
+            Number(formatLevel(levelFromMu(weak.muBefore)))) *
+            10,
+        ) / 10,
+      );
+    } finally {
+      await close();
+    }
+  });
+
+  it("leaves the rating events of earlier Matches untouched", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const first = await setUpMatch(db, { rated: true });
+      const { a, b, c, d } = first;
+      await seedPadelRating(db, a.id, 1300);
+      await seedPadelRating(db, b.id, 1700);
+      await seedPadelRating(db, c.id, 1500);
+      await seedPadelRating(db, d.id, 1500);
+      await completeMatch(db, {
+        gameId: first.gameId,
+        matchId: first.matchId,
+        userId: a.id,
+      });
+      const earlier = await db.query.ratingEvents.findMany({
+        where: eq(ratingEvents.matchId, first.matchId),
+      });
+
+      const second = await setUpMatch(db, {
+        rated: true,
+        players: [a, b, c, d],
+      });
+      await completeMatch(db, {
+        gameId: second.gameId,
+        matchId: second.matchId,
+        userId: a.id,
+      });
+
+      expect(
+        await db.query.ratingEvents.findMany({
+          where: eq(ratingEvents.matchId, first.matchId),
+        }),
+      ).toEqual(earlier);
+      expect(
+        await db.query.ratingEvents.findMany({
+          where: eq(ratingEvents.matchId, second.matchId),
+        }),
+      ).toHaveLength(4);
+    } finally {
+      await close();
+    }
+  });
+});
 
 describe("Unrated Games", () => {
   it("writes no rating events and leaves ratings untouched when the organizer completes", async () => {

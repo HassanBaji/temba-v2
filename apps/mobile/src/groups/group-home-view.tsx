@@ -6,8 +6,9 @@ import {
   groupHomeCanShowCreateGame,
 } from "@repo/domain/group-home-cta";
 import {
+  groupLevelFace,
   groupShowsLevel,
-  viewerMaySetGroupLevel,
+  viewerMayAdjustTier,
   type GroupMemberOrganizerAction,
 } from "@repo/domain/group-home-chrome";
 import {
@@ -16,11 +17,10 @@ import {
   groupPartOfVenueLine,
 } from "@repo/domain/group-link-request";
 import { groupMemberRowsLink } from "@repo/domain/player-profile";
-import type { GroupJoinDoor } from "@repo/domain/group-join";
+import { groupDisplayName, type GroupJoinDoor } from "@repo/domain/group-join";
 import type { GroupMenuItem } from "@repo/domain/group-settings";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { EllipsisVertical, UserRoundPlus } from "lucide-react-native";
-import { useRef } from "react";
 import { View } from "react-native";
 
 import {
@@ -36,9 +36,12 @@ import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { GamesTab, type GamesTabProps } from "./games-tab";
-import { JoinRequestsBanner, JoinRequestsCard } from "./group-approver-view";
+import {
+  GroupRequestsSection,
+  JoinRequestsCard,
+  useGroupRequests,
+} from "./group-approver-view";
 import { GroupMenuSheet } from "./group-menu-sheet";
-import { GroupTeamsRow } from "./group-teams-row";
 import { RejectRequestSheet, WhoCanJoinSheet } from "./join-request-sheets";
 import type { GroupApproverHandlers } from "./use-group-admin";
 import { groupHomeHeader, groupJoinCta } from "./group-home-model";
@@ -58,6 +61,8 @@ export type GroupMenuProps = {
   roleLine: string | null;
   /** Why Leave is disabled, or `null` when the viewer may leave. */
   leaveBlockedHint: string | null;
+  /** The current Rating settings, under their row. */
+  ratingSettingsHint: string | null;
   copyPending: boolean;
   onOpen: () => void;
   onPick: (item: GroupMenuItem) => void;
@@ -90,7 +95,7 @@ export type GroupHomeViewProps = {
   pendingInviteNames?: string[];
   onOpenMember: (userId: string) => void;
   onSetLevel: (userId: string) => void;
-  onSetGroupLevel: (userId: string) => void;
+  onOpenTierHistory?: (userId: string) => void;
   saved: SavedLevel | null;
   onDismissSaved: () => void;
   games: Omit<
@@ -117,10 +122,6 @@ export type GroupHomeViewProps = {
   venueRequestPendingId: string | null;
   onAcceptVenueRequest: (request: GroupLinkRequestRow) => void;
   onDeclineVenueRequest: (request: GroupLinkRequestRow) => void;
-  /** Scrolls the screen so `target` is in view. */
-  onScrollTo: (target: View | null) => void;
-  onOpenTeam: (teamId: string) => void;
-  onCreateTeam: () => void;
 };
 
 const TABS: GroupHomeTab[] = ["standing", "games", "members"];
@@ -136,10 +137,8 @@ export function GroupHomeView(props: GroupHomeViewProps) {
   const createGameHref = groupHomeCanShowCreateGame(data)
     ? ({ pathname: "/games/new", params: { groupId: data.id } } as const)
     : undefined;
-  const requestsRef = useRef<View>(null);
   const { approver } = props.admin;
-  const requestCount =
-    approver.requests.status === "ready" ? approver.requests.value.length : 0;
+  const groupRequests = useGroupRequests(data.id, approver.requests);
 
   return (
     <View style={{ gap: spacing.compact }}>
@@ -187,14 +186,6 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           {groupPartOfVenueLine(data.venue.name, locale)}
         </Text>
       ) : null}
-
-      <GroupTeamsRow
-        teams={data.teams}
-        isMember={data.membership != null}
-        canCreateTeam={data.canCreateTeam}
-        onOpenTeam={props.onOpenTeam}
-        onCreateTeam={props.onCreateTeam}
-      />
 
       {data.canUnlinkFromVenue && data.venue ? (
         <View style={{ flexDirection: "row" }}>
@@ -270,6 +261,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
               ? props.onOpenMember
               : undefined
           }
+          onOpenMembers={() => props.onTabChange("members")}
         />
       ) : null}
       {props.tab === "games" ? (
@@ -304,48 +296,50 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           }
           apiOrigin={props.apiOrigin}
           canSetLevel={data.viewerCanSetLevel && groupShowsLevel(data.sport)}
-          showLevel={groupShowsLevel(data.sport)}
+          showLevel={groupShowsLevel(data.sport, data.verified)}
+          levelFace={groupLevelFace(data.sport)}
+          tierSummary={data.hasTier ? (data.tierSummary ?? null) : null}
+          groupName={groupDisplayName(data.name, locale)}
+          canAdjustTier={viewerMayAdjustTier({
+            hasTier: data.hasTier,
+            leaderboard: data.standing.leaderboard,
+          })}
+          onOpenTierHistory={props.onOpenTierHistory}
           onSetLevel={props.onSetLevel}
-          onSetGroupLevel={
-            viewerMaySetGroupLevel({
-              sport: data.sport,
-              canCreateGame: data.canCreateGame,
-              leaderboard: data.standing.leaderboard,
-            })
-              ? props.onSetGroupLevel
-              : undefined
-          }
           canAddPlayers={data.canAddPlayers}
           onRenameUnclaimed={props.onRenameUnclaimed}
           canRemovePlayers={data.canRemovePlayers}
           onRemovePlayer={props.onRemovePlayer}
           canAppointOrganizers={data.canAppointOrganizers}
           onOrganizerAction={props.onOrganizerAction}
+          canSetNicknames={data.canSetMemberNicknames}
           pendingInviteNames={props.pendingInviteNames}
           onOpenInvites={onInvite}
           onAddPlayer={props.onAddPlayer}
           top={
-            data.canDecideJoinRequests ? (
-              <JoinRequestsBanner
-                count={requestCount}
-                onReview={() => props.onScrollTo(requestsRef.current)}
-              />
-            ) : null
-          }
-          afterTable={
-            data.canDecideJoinRequests ? (
-              <JoinRequestsCard
-                ref={requestsRef}
-                requests={approver.requests}
+            data.canDecideJoinRequests && groupRequests.any ? (
+              <GroupRequestsSection
+                rows={groupRequests.rows}
+                own={groupRequests.own}
                 requiresApproval={data.requiresApproval}
-                approvedToday={data.joinRequestsApprovedToday}
                 apiOrigin={props.apiOrigin}
                 showLevel={groupShowsLevel(data.sport)}
                 approvePendingId={approver.approvePendingId}
                 rejectPendingId={approver.rejectPendingId}
                 onApprove={approver.onApprove}
                 onAskReject={approver.onAskReject}
+                onAskBlock={approver.onAskBlock}
                 onOpenProfile={props.onOpenMember}
+                onChangePolicy={approver.onChangePolicy}
+              />
+            ) : null
+          }
+          afterTable={
+            data.canDecideJoinRequests && !groupRequests.any ? (
+              <JoinRequestsCard
+                requests={approver.requests}
+                requiresApproval={data.requiresApproval}
+                approvedToday={data.joinRequestsApprovedToday}
                 onChangePolicy={approver.onChangePolicy}
                 onRetry={approver.onRetry}
               />
@@ -359,6 +353,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
             {...approver.rejectSheet}
             apiOrigin={props.apiOrigin}
           />
+          <ConfirmSheet {...approver.blockSheet} />
           <WhoCanJoinSheet
             {...approver.whoCanJoinSheet}
             requiresApproval={data.requiresApproval}
@@ -386,6 +381,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         roleLine={props.menu.roleLine}
         items={props.menu.items}
         leaveBlockedHint={props.menu.leaveBlockedHint}
+        ratingSettingsHint={props.menu.ratingSettingsHint}
         copyPending={props.menu.copyPending}
         onPick={props.menu.onPick}
         onClose={props.menu.onClose}

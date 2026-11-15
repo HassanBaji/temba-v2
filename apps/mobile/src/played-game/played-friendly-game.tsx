@@ -1,8 +1,11 @@
+import { gamePaymentsTracked } from "@repo/domain/game-payments";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
-import type {
-  FriendlyGameDetails,
-  FriendlyGameDetailsMatch,
+import {
+  seatedPlayerCanRename,
+  type FriendlyGameDetails,
+  type FriendlyGameDetailsMatch,
 } from "@repo/domain/friendly-game-details";
 import { occupiedFriendlyPositions } from "@repo/domain/game-invite-open-graph";
 import {
@@ -19,6 +22,10 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { MarksSection } from "../marks/marks-section";
 import { MvpRow } from "../marks/mvp-row";
 import { useGameMarks } from "../marks/use-game-marks";
+import { GamePaymentsSection } from "../game-payments/game-payments-section";
+import { MatchDisputeSection } from "./match-dispute-section";
+import { GameAlbumSections } from "../game-album/game-album-sections";
+import { useGameAlbum } from "../game-album/use-game-album";
 import { PlayedGameView } from "./played-game-view";
 import { PlayedMenuSheet, type PlayedMenuItem } from "./played-menu-sheet";
 import { PlayedPadelBoard } from "./played-padel-board";
@@ -40,6 +47,7 @@ export function PlayedFriendlyGame({
   organizer,
   onOpenPlayer,
   onRenameUnclaimed,
+  openAddPhotos = false,
 }: {
   gameId: string;
   game: FriendlyGameDetails;
@@ -49,6 +57,8 @@ export function PlayedFriendlyGame({
   organizer: Organizer;
   onOpenPlayer?: (userId: string) => void;
   onRenameUnclaimed?: (player: { userId: string; name: string }) => void;
+  /** Opened from the Played list's Add photos. */
+  openAddPhotos?: boolean;
 }) {
   const router = useRouter();
   const locale = useLocale();
@@ -56,6 +66,7 @@ export function PlayedFriendlyGame({
   const [menuOpen, setMenuOpen] = useState(false);
   const [selected, setSelected] = useState<PlayedRow | null>(null);
   const marks = useGameMarks(gameId);
+  const album = useGameAlbum(gameId);
 
   const model = useMemo(
     () =>
@@ -71,6 +82,7 @@ export function PlayedFriendlyGame({
           groupName: game.groupName,
           rated: game.rated,
           ratingScope: game.ratingScope,
+          publicGame: isPublicGame(game),
           ratingImpact: game.ratingImpact,
           confirmation: game.matchResultConfirmation,
         },
@@ -135,12 +147,28 @@ export function PlayedFriendlyGame({
         }
         heroFooter={<MvpRow marks={marks} onOpenPlayer={onOpenPlayer} />}
         marks={<MarksSection marks={marks} />}
+        album={
+          <GameAlbumSections
+            album={album}
+            place={model.venueLine ?? ""}
+            context={model.dateLine}
+            openAdd={openAddPhotos}
+          />
+        }
         columns={model.columns}
         facts={model.facts}
+        dispute={<MatchDisputeSection match={match} />}
+        task={
+          <GamePaymentsSection
+            gameId={gameId}
+            tracked={gamePaymentsTracked(game)}
+          />
+        }
         refreshing={refreshing}
         onRefresh={() => {
           onRefresh();
           void marks.refetch();
+          void album.refetch();
         }}
         onShare={() => router.push(sharePath(gameId))}
         onMore={menuItems.length > 0 ? () => setMenuOpen(true) : undefined}
@@ -156,7 +184,11 @@ export function PlayedFriendlyGame({
         player={selected}
         canOpenProfile={Boolean(onOpenPlayer)}
         canKick={selected != null && kickable.includes(selected.userId)}
-        canRename={Boolean(onRenameUnclaimed)}
+        canRename={
+          selected != null &&
+          Boolean(onRenameUnclaimed) &&
+          seatedPlayerCanRename(game.sides, selected.userId)
+        }
         onClose={() => setSelected(null)}
         onOpenProfile={(userId) => {
           setSelected(null);

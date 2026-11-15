@@ -8,10 +8,11 @@ import {
   type GroupMemberRowView,
 } from "@repo/domain/add-player-from-group";
 import type { FootballRole } from "@repo/domain/football-lineup";
-import { Check, Phone, UsersRound } from "lucide-react-native";
+import { Check, Phone, UserRound, UsersRound } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
+import { NicknameName } from "../primitives/nickname-name";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { NotOnTembaMark } from "../primitives/not-on-temba-mark";
@@ -27,20 +28,30 @@ const MARK_SIZE = 24;
 const AVATAR_COLUMN = 52;
 const COMPACT_HEIGHT = 40;
 
-const MODE_ICONS = { group: UsersRound, phone: Phone } as const;
+const MODE_ICONS = {
+  group: UsersRound,
+  phone: Phone,
+  guest: UserRound,
+} as const;
+
+/** How the Add player sheet adds: from the Group, by phone, or as a guest. */
+export type AddPlayerSheetMode = AddPlayerMode | "guest";
 
 export function AddPlayerModeSwitch({
   mode,
+  modes,
   onChange,
 }: {
-  mode: AddPlayerMode;
-  onChange: (mode: AddPlayerMode) => void;
+  mode: AddPlayerSheetMode;
+  modes: readonly AddPlayerSheetMode[];
+  onChange: (mode: AddPlayerSheetMode) => void;
 }) {
   const colors = useColors();
   const m = useMessages();
   const labels = {
     group: m.group.addPlayer.fromGroup.tab,
     phone: m.group.addPlayer.fromGroup.phoneTab,
+    guest: m.group.addPlayer.guest.tab,
   };
   return (
     <View
@@ -54,7 +65,7 @@ export function AddPlayerModeSwitch({
         backgroundColor: colors.wash,
       }}
     >
-      {(["group", "phone"] as const).map((entry) => {
+      {modes.map((entry) => {
         const selected = entry === mode;
         const Icon = MODE_ICONS[entry];
         const foreground = selected ? colors.ink : colors.muted;
@@ -237,11 +248,14 @@ function MemberRow({
           opacity: unavailable ? 0.45 : pressed ? 0.6 : 1,
         })}
       >
-        <Avatar name={row.name} uri={image} size="lg" radius={radii.md} />
+        <Avatar
+          name={row.tembaName ?? row.name}
+          uri={image}
+          size="lg"
+          radius={radii.md}
+        />
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <Text weight="semibold" numberOfLines={1}>
-            {row.name}
-          </Text>
+          <NicknameName name={row.name} isNickname={row.isNickname === true} />
           {unclaimed ? <NotOnTembaMark /> : null}
           {row.meta ? (
             <Text size="eyebrow" tone="muted" numberOfLines={1}>

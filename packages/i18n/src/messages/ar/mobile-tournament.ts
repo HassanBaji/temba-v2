@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { mobileTournament as source } from "../en/mobile-tournament";
 
@@ -6,6 +7,7 @@ export const mobileTournament = {
     createGame: "إنشاء مباراة",
     findAGroup: "ابحث عن مجموعة",
     upcomingTab: "القادمة",
+    publicTab: "عامة",
     playedTab: "السابقة",
     sport: "الرياضة",
     couldNotLoad: "تعذّر تحميل المباريات",
@@ -82,13 +84,14 @@ export const mobileTournament = {
   score: {
     sectionTitle: "سجّل نتائج مبارياتك",
     sectionNote:
-      "أدخل عدد الألعاب التي فاز بها كل فريق في كل شوط، ثم أنهِ المباراة.",
+      "أدخل عدد الألعاب التي فاز بها كل فريق. يؤكّدها الفريق الآخر بضغطة.",
     completeFailed: "تعذّر إنهاء المباراة",
     box: (team: string, set: string) => `${team}، ${set}`,
-    addASet: "أضف شوطًا",
     saveScore: "حفظ النتيجة",
+    confirmScore: (score: string) => `أكّد ${score}`,
   },
   organizer: {
+    kingOnWeb: "اسحب ملاعب البداية وانشر الترتيب النهائي من الموقع حاليًا.",
     roundsSaved: "تم حفظ الجولات",
     changeRounds: "تغيير الجولات",
     kickSr: (name: string) => `أخرِج ${name}`,
@@ -125,6 +128,7 @@ export const mobileTournament = {
     takeLeft: "خذ اليسار",
     takeRight: "خذ اليمين",
     opensProfileHint: "يفتح ملفه الشخصي",
+    opensPlayerActionsHint: "يفتح إجراءات اللاعب",
     showFewerTeams: "عرض فرق أقل",
     needCompleteTeam:
       "تحتاج إلى فريق مكتمل يُسمح لكلا شريكيه باللعب في هذه المباراة.",
@@ -204,7 +208,8 @@ export const mobileTournament = {
   playerSheet: {
     prefers: (position: string) => `يفضّل ${position}`,
     noPositionYet: "لا مركز بعد",
-    roleAndLevel: (role: string, level: string) => `${role}، المستوى ${level}`,
+    roleAndOvr: (role: string, ovr: string) =>
+      `${role}، ${isolate("OVR")} ${isolate(ovr)}`,
     viewProfile: "عرض الملف الشخصي",
   },
   pool: {

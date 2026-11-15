@@ -3,7 +3,9 @@ import type { Locale } from "@repo/i18n/locale";
 
 import type { SeatHoldRequestRow } from "./seat-hold-request";
 import { formatGameCardDay } from "./format-game-start";
+import { ratingScopeNotice, ratingScopeOf } from "./game-rating-impact";
 import type { GameRatingScope } from "./game-rating-scope";
+import { formatPadelLevel, levelFromMu } from "./level";
 import type { LevelBand } from "./level-bands";
 import type { ComputedPoolTables } from "./pool-table";
 import { formatPricePerPlayerFils } from "./price-per-player";
@@ -23,6 +25,8 @@ import {
   tournamentViewerSide,
 } from "./tournament-home";
 import { tournamentShowsTakeSeat } from "./tournament-join";
+import { isKingOfTheCourt, kingCourtCount } from "./tournament-king";
+import { kingHeroStats } from "./tournament-king-view";
 import {
   knockoutChampion,
   knockoutChampionLine,
@@ -53,6 +57,9 @@ type Occupant = {
   name: string;
   image: string | null;
   levelBand: LevelBand | null;
+  guest?: boolean;
+  /** E.164, sent only to a Group approver for a current member (ADR-0078). */
+  phoneNumber?: string | null;
 };
 
 export type TournamentDetailsSide = {
@@ -87,6 +94,10 @@ export type TournamentDetailsMatch = {
   bothSidesComplete: boolean;
   canAddSet: boolean;
   canScoreSets: boolean;
+  /** The viewer may confirm the other team's pending score (ADR-0062). */
+  canConfirmScore: boolean;
+  /** The viewer is a Verifier who may stamp the entered score (ADR-0072). */
+  canStamp?: boolean;
   canComplete: boolean;
   outcome: {
     slot1SetWins: number;
@@ -103,11 +114,16 @@ export type TournamentDetailsGameTeam = {
   sideIndex: number | null;
   poolIndex: number | null;
   knockoutSeed: number | null;
+  startCourt: number | null;
+  finalPlace: number | null;
   members: {
     id: string;
     name: string;
     image: string | null;
     position: string | null;
+    guest?: boolean;
+    /** E.164, sent only to a Group approver for a current member (ADR-0078). */
+    phoneNumber?: string | null;
   }[];
 };
 
@@ -137,6 +153,8 @@ export type TournamentDetails = {
   windowStart: Date | null;
   windowEnd: Date | null;
   pricePerPlayerFils: number | null;
+  /** Payments are tracked only with a price above zero. */
+  trackPayments: boolean;
   levelMinTenths: number | null;
   levelMaxTenths: number | null;
   playersAllowed: number | null;
@@ -147,6 +165,8 @@ export type TournamentDetails = {
   roundCount: number | null;
   matchMinutes: number | null;
   drawPostedAt: Date | null;
+  finalOrderPostedAt: Date | null;
+  viewerPlaceAward?: { muBefore: number; muAfter: number } | null;
   canUndoDraw: boolean;
   sport: string | null;
   cancelledAt: Date | null;
@@ -248,19 +268,106 @@ export function tournamentPeople(
   return people;
 }
 
-export type TournamentDetailRow = { label: string; value: string };
+export type TournamentDetailRow = {
+  label: string;
+  value: string;
+  note?: string;
+};
+
+function ratingDetailRow(
+  scope: GameRatingScope,
+  locale: Locale,
+): TournamentDetailRow {
+  const m = messagesFor(locale);
+  const value = {
+    temba: m.common.yes,
+    group: m.common.no,
+    unrated: m.common.no,
+  }[scope];
+  const note = ratingScopeNotice(scope, locale)?.line;
+  return {
+    label: m.tournament.home.countsForRating,
+    value,
+    ...(note ? { note } : {}),
+  };
+}
+
+export type KingDetailState = {
+  finished: boolean;
+  /** The viewer's own Place award (ADR-0089), as μ either side of it. */
+  viewerPlaceAward?: { muBefore: number; muAfter: number } | null;
+};
+
+function kingRatingRow(
+  scope: GameRatingScope,
+  king: KingDetailState,
+  locale: Locale,
+): TournamentDetailRow {
+  const k = messagesFor(locale).tournamentKing.details;
+  if (scope !== "temba") {
+    return king.finished
+      ? { label: k.rating, value: k.ratingNotCounted }
+      : { ...ratingDetailRow(scope, locale), label: k.rating };
+  }
+  if (!king.finished) {
+    return { label: k.rating, value: k.ratingYes, note: k.ratingYesNote };
+  }
+  const move = king.viewerPlaceAward;
+  return {
+    label: k.rating,
+    value: k.ratingCounted,
+    ...(move
+      ? {
+          note: k.ratingYourMove(
+            formatPadelLevel(levelFromMu(move.muBefore), 2),
+            formatPadelLevel(levelFromMu(move.muAfter), 2),
+          ),
+        }
+      : {}),
+  };
+}
+
+function kingDetailRows(
+  head: TournamentDetailRow[],
+  pricePerPlayerFils: number | null,
+  ratingScope: GameRatingScope,
+  king: KingDetailState,
+  locale: Locale,
+): TournamentDetailRow[] {
+  const m = messagesFor(locale);
+  const k = m.tournamentKing.details;
+  const rows = [...head];
+  const price = formatPricePerPlayerFils(pricePerPlayerFils, locale);
+  if (price) {
+    rows.push({
+      label: m.tournament.home.priceRow,
+      value: m.createGame.price.perPlayer(price),
+    });
+  }
+  rows.push(
+    {
+      label: k.scores,
+      value: king.finished ? k.scoresPosted : k.scoresNone,
+    },
+    kingRatingRow(ratingScope, king, locale),
+  );
+  return rows;
+}
 
 export function tournamentDetailRows(args: {
   organizerName: string | null;
   groupName: string | null;
   matchMinutes: number | null;
   pricePerPlayerFils: number | null;
+  ratingScope: GameRatingScope;
   seated: boolean;
   totalFils: number | null;
   locale: Locale;
+  /** King of the court: no Matches, so Scores and rating replace the Match rows. */
+  king?: KingDetailState;
 }): TournamentDetailRow[] {
   const m = messagesFor(args.locale);
-  const rows: TournamentDetailRow[] = [
+  const head: TournamentDetailRow[] = [
     {
       label: m.tournament.home.organizerRow,
       value: args.organizerName ?? m.tournament.home.organizerRow,
@@ -269,6 +376,18 @@ export function tournamentDetailRows(args: {
       label: m.tournament.home.groupRow,
       value: args.groupName?.trim() ? args.groupName : "—",
     },
+  ];
+  if (args.king) {
+    return kingDetailRows(
+      head,
+      args.pricePerPlayerFils,
+      args.ratingScope,
+      args.king,
+      args.locale,
+    );
+  }
+  const rows: TournamentDetailRow[] = [
+    ...head,
     {
       label: m.tournament.sizing.eachMatchRow,
       value: m.tournament.details.minutes(
@@ -283,10 +402,7 @@ export function tournamentDetailRows(args: {
       value: m.tournament.details.pricePerMatchValue(price),
     });
   }
-  rows.push({
-    label: m.tournament.home.countsForRating,
-    value: m.common.yes,
-  });
+  rows.push(ratingDetailRow(args.ratingScope, args.locale));
   if (args.seated && args.totalFils != null) {
     const amount = formatPricePerPlayerFils(args.totalFils, args.locale);
     if (amount) {
@@ -302,6 +418,7 @@ export function tournamentDetailRows(args: {
 export type TournamentHomeView = {
   drawn: boolean;
   knockoutOnly: boolean;
+  kingOfTheCourt: boolean;
   thenKnockout: boolean;
   partnerRequired: boolean;
   seated: boolean;
@@ -316,6 +433,8 @@ export type TournamentHomeView = {
     startLine: string | null;
     sizeLine: string | null;
     statusLine: string;
+    /** King of the court: teams, courts and the price, as tiles under the title. */
+    stats: { value: string; label: string }[];
   };
   detailRows: TournamentDetailRow[];
   canLeaveGame: boolean;
@@ -333,13 +452,14 @@ export function tournamentHomeView(
   locale: Locale,
 ): TournamentHomeView {
   const knockoutOnly = isKnockoutOnly(game.format, game.tournamentShape);
+  const king = isKingOfTheCourt(game.format, game.tournamentShape);
   const thenKnockout =
     !knockoutOnly && hasKnockout(game.format, game.tournamentShape);
   const sizing =
     game.poolCount != null && game.teamsAllowed != null
       ? sizeFriendlyTournament(game.teamsAllowed, game.poolCount)
       : null;
-  const roundCount = tournamentRoundCount(game);
+  const roundCount = king ? null : tournamentRoundCount(game);
   const field = tournamentFieldSummary(game.sides);
   const viewerSide = tournamentViewerSide(game.sides, game.viewerUserId);
   const seated = Boolean(viewerSide);
@@ -360,9 +480,10 @@ export function tournamentHomeView(
     organizerName,
     locale,
     knockoutOnly,
+    king,
     thenKnockout,
   });
-  const matchesForViewer = viewerTournamentMatchCount(game);
+  const matchesForViewer = king ? null : viewerTournamentMatchCount(game);
   const totalFils =
     seated && matchesForViewer != null
       ? viewerTournamentTotalFils(game.pricePerPlayerFils, matchesForViewer)
@@ -377,10 +498,12 @@ export function tournamentHomeView(
         })
       : [];
   const canJoin = joinKind === "join";
+  const drawn = isTournamentStandingsView(game.drawPostedAt);
 
   return {
-    drawn: isTournamentStandingsView(game.drawPostedAt),
+    drawn,
     knockoutOnly,
+    kingOfTheCourt: king,
     thenKnockout,
     partnerRequired,
     seated,
@@ -404,27 +527,41 @@ export function tournamentHomeView(
         game.venue?.name ?? null,
         locale,
       ),
-      sizeLine: knockoutOnly
-        ? knockoutSizeLine(game.teamsAllowed ?? game.sides.length, locale)
-        : sizing?.ok
-          ? tournamentSizeLine(
-              sizing.sizing,
-              locale,
-              plannedKnockoutRoundCount(game),
-            )
-          : null,
+      sizeLine: king
+        ? messagesFor(locale).tournamentKing.hero.courtsLine(
+            kingCourtCount(game.teamsAllowed ?? game.sides.length),
+          )
+        : knockoutOnly
+          ? knockoutSizeLine(game.teamsAllowed ?? game.sides.length, locale)
+          : sizing?.ok
+            ? tournamentSizeLine(
+                sizing.sizing,
+                locale,
+                plannedKnockoutRoundCount(game),
+              )
+            : null,
       statusLine,
+      stats: king ? kingHeroStats(game, locale) : [],
     },
     detailRows: tournamentDetailRows({
       organizerName,
       groupName: game.groupName,
       matchMinutes: game.matchMinutes,
       pricePerPlayerFils: game.pricePerPlayerFils,
+      ratingScope: ratingScopeOf(game),
       seated,
       totalFils,
       locale,
+      king: king
+        ? {
+            finished: game.finalOrderPostedAt != null,
+            viewerPlaceAward: game.viewerPlaceAward,
+          }
+        : undefined,
     }),
+    // The API refuses a leave once the draw is posted.
     canLeaveGame:
+      !drawn &&
       (game.isSeated || game.isRegistered) &&
       game.canLeave &&
       !game.isWaitlisted,

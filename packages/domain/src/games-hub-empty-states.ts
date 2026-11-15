@@ -35,3 +35,14 @@ export function gamesHubEmptyLine(filter: SportFilter, locale: Locale) {
   const sport = filter === "all" ? null : sportLabel(filter, locale);
   return sport ? m.sportLine(sport) : m.line;
 }
+
+/** The Public tab before any Public Game the viewer may join (ADR-0071). */
+export function publicGamesEmptyTitle(locale: Locale) {
+  return messagesFor(locale).rating.publicGame.hub.emptyTitle;
+}
+
+export function publicGamesEmptyLine(filter: SportFilter, locale: Locale) {
+  const m = messagesFor(locale).rating.publicGame.hub;
+  const sport = filter === "all" ? null : sportLabel(filter, locale);
+  return sport ? m.emptySportLine(sport) : m.emptyLine;
+}

@@ -15,6 +15,7 @@ import { BackButton } from "~/components/ui/nav-icon-button";
 import { entityImageUploadInput } from "@repo/domain/entity-image-file";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 /** Design "Group create and edit flow" 01. */
 export default function NewLooseGroupPage() {
@@ -35,7 +36,9 @@ export default function NewLooseGroupPage() {
     },
   });
 
-  const uploadImage = api.groups.uploadImage.useMutation();
+  const uploadImage = api.groups.uploadImage.useMutation({
+    meta: OWN_ERROR_UI,
+  });
 
   const isPending =
     createLoosePublic.isPending ||

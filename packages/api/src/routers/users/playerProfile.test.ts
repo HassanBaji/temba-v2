@@ -5,6 +5,7 @@ import {
   GameFormatEnum,
   GameRegistrationModeEnum,
   GameSportEnum,
+  GroupMemberRoleEnum,
   GroupSportEnum,
   MatchStatusEnum,
   gamePlayers,
@@ -13,6 +14,7 @@ import {
   gameWaitlist,
   games,
   groupMembers,
+  groupTierPoints,
   groups,
   matchSets,
   matches,
@@ -21,6 +23,7 @@ import {
   teamMembers,
   teams,
   user,
+  venueVerifiers,
   venues,
 } from "@repo/db/schema";
 
@@ -455,6 +458,91 @@ describe("mayViewPlayer", () => {
   });
 });
 
+describe("mayViewPlayer for a Verifier", () => {
+  async function verifierAt(database: TestDatabase, venueId: string) {
+    const verifier = await insertUser(database, "Sara Verifier");
+    await database
+      .insert(venueVerifiers)
+      .values({ venueId, userId: verifier.id, kind: "referee" });
+    return verifier;
+  }
+
+  it("opens a player who played a completed Match at the Verifier's Venue", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      await friendlyMatch(db, people, { sets: WIN, startTime: at(1) });
+      const verifier = await verifierAt(db, people.venue.id);
+      expect(
+        await mayViewPlayer(db, {
+          viewerId: verifier.id,
+          playerId: people.player.id,
+        }),
+      ).toBe(true);
+      const profile = await loadPlayerProfile(db, {
+        viewerId: verifier.id,
+        playerId: people.player.id,
+        now: NOW,
+      });
+      expect(profile.viewerMayCalibrate).toBe(true);
+    });
+  });
+
+  it("opens a member of one of the Venue's Club Groups", async () => {
+    await withDb(async (db) => {
+      const venue = await insertVenue(db, "Club Court");
+      const member = await insertUser(db, "Club Member");
+      const group = await insertGroup(db, {
+        createdBy: member.id,
+        venueId: venue.id,
+      });
+      await joinGroup(db, group.id, [member.id]);
+      const verifier = await verifierAt(db, venue.id);
+      expect(
+        await mayViewPlayer(db, { viewerId: verifier.id, playerId: member.id }),
+      ).toBe(true);
+    });
+  });
+
+  it("refuses a player whose Matches were all at another Venue", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      await friendlyMatch(db, people, { sets: WIN, startTime: at(1) });
+      const elsewhere = await insertVenue(db, "Elsewhere");
+      const verifier = await verifierAt(db, elsewhere.id);
+      expect(
+        await mayViewPlayer(db, {
+          viewerId: verifier.id,
+          playerId: people.player.id,
+        }),
+      ).toBe(false);
+      await expect(
+        loadPlayerProfile(db, {
+          viewerId: verifier.id,
+          playerId: people.player.id,
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  it("refuses a player whose only Match at the Venue was in a cancelled Game", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      await friendlyMatch(db, people, {
+        sets: WIN,
+        startTime: at(1),
+        cancelledAt: at(2),
+      });
+      const verifier = await verifierAt(db, people.venue.id);
+      expect(
+        await mayViewPlayer(db, {
+          viewerId: verifier.id,
+          playerId: people.player.id,
+        }),
+      ).toBe(false);
+    });
+  });
+});
+
 describe("loadPlayerProfile", () => {
   it("throws NOT_FOUND for an unknown and for an unshared User alike", async () => {
     await withDb(async (db) => {
@@ -506,6 +594,8 @@ describe("loadPlayerProfile", () => {
         lastMatches: [],
         partners: [],
         withViewer: null,
+        viewerMayCalibrate: false,
+        sharedGroupTiers: [],
       });
     });
   });
@@ -727,7 +817,7 @@ describe("loadPlayerProfile", () => {
     });
   });
 
-  it("reads the padel Rating the way ratings.me does, with idle inflation", async () => {
+  it("reads the padel Rating the way ratings.me does: Provisional by its Matches in a Verified Group, whatever its φ or idle time", async () => {
     await withDb(async (db) => {
       const people = await seedFour(db);
       const match = await friendlyMatch(db, people, {
@@ -766,12 +856,13 @@ describe("loadPlayerProfile", () => {
         playerId: people.player.id,
         now: new Date("2020-01-02T00:00:00.000Z"),
       });
+      // A groupless Game's Match moves the Level but does not confirm it.
       expect(fresh.rating).toEqual({
         level: "4.6",
         levelBand: "B3",
-        provisional: false,
+        provisional: true,
         ratedMatchCount: 1,
-        ratedMatchesRemaining: 0,
+        ratedMatchesRemaining: 5,
         levelValue: expect.closeTo(4.55, 6),
       });
 
@@ -780,8 +871,7 @@ describe("loadPlayerProfile", () => {
         playerId: people.player.id,
         now: NOW,
       });
-      expect(idle.rating?.provisional).toBe(true);
-      expect(idle.rating?.ratedMatchesRemaining).toBeGreaterThan(0);
+      expect(idle.rating).toEqual(fresh.rating);
     });
   });
 
@@ -864,7 +954,8 @@ describe("loadPlayerProfile", () => {
           image: null,
           levelBand: "B3",
           level: "4.3",
-          provisional: false,
+          provisional: true,
+          guest: false,
         },
         {
           userId: people.right.id,
@@ -873,6 +964,7 @@ describe("loadPlayerProfile", () => {
           levelBand: null,
           level: null,
           provisional: false,
+          guest: false,
         },
       ]);
       expect(newest?.slot2.map((player) => player.userId)).toEqual([
@@ -1002,6 +1094,8 @@ describe("loadPlayerProfile", () => {
           bandBefore: "C1",
           bandAfter: "B3",
           levelChange: 0.1,
+          muBefore: muFromLevel(4.18),
+          muAfter: muFromLevel(4.31),
         },
         {
           levelBefore: 4.1,
@@ -1009,6 +1103,8 @@ describe("loadPlayerProfile", () => {
           bandBefore: "C1",
           bandAfter: "C1",
           levelChange: 0.1,
+          muBefore: muFromLevel(4.12),
+          muAfter: muFromLevel(4.18),
         },
       ]);
       expect(result.trend).toEqual({ levelChange: 0.2 });
@@ -1159,6 +1255,173 @@ describe("loadPlayerProfile", () => {
 
       expect(result.withViewer).toBeNull();
       expect(result.partners).toEqual([]);
+    });
+  });
+});
+
+describe("loadPlayerProfile sharedGroupTiers", () => {
+  async function footballGroup(
+    database: TestDatabase,
+    args: {
+      name: string;
+      createdBy: string;
+      memberIds: readonly string[];
+      sport?: (typeof GroupSportEnum)[keyof typeof GroupSportEnum];
+      verifiedAt?: Date;
+    },
+  ) {
+    const [group] = await database
+      .insert(groups)
+      .values({
+        name: args.name,
+        createdBy: args.createdBy,
+        sport: args.sport ?? GroupSportEnum.FOOTBALL,
+        verifiedAt: args.verifiedAt ?? null,
+      })
+      .returning({ id: groups.id });
+    if (!group) {
+      throw new Error("Failed to insert group");
+    }
+    await joinGroup(database, group.id, [...args.memberIds]);
+    return group.id;
+  }
+
+  async function members(database: TestDatabase, count: number) {
+    const rows = [];
+    for (let index = 0; index < count; index += 1) {
+      rows.push(await insertUser(database, `Member ${index + 1}`));
+    }
+    return rows.map((row) => row.id);
+  }
+
+  it("shows the player's fish in the tier Groups the viewer is also in, and nowhere else", async () => {
+    await withDb(async (db) => {
+      const player = await insertUser(db, "Mahmood");
+      const viewer = await insertUser(db, "Hussain");
+      const others = await members(db, 4);
+      const shared = await footballGroup(db, {
+        name: "Thursday Football",
+        createdBy: viewer.id,
+        memberIds: [player.id, viewer.id, ...others],
+      });
+      await footballGroup(db, {
+        name: "Karbabad Friday Football",
+        createdBy: player.id,
+        memberIds: [player.id, ...others],
+      });
+      await footballGroup(db, {
+        name: "Verified Football",
+        createdBy: viewer.id,
+        memberIds: [player.id, viewer.id],
+        verifiedAt: new Date(),
+      });
+      await footballGroup(db, {
+        name: "Padel Crew",
+        createdBy: viewer.id,
+        memberIds: [player.id, viewer.id],
+        sport: GroupSportEnum.PADEL,
+      });
+      const ranked = [player.id, viewer.id, ...others];
+      await db.insert(groupTierPoints).values(
+        ranked.map((userId, index) => ({
+          groupId: shared,
+          userId,
+          points: [1320, 1260, 1240, 1200, 1180, 1100][index]!,
+          gamesCounted: 5,
+        })),
+      );
+
+      const result = await loadPlayerProfile(db, {
+        viewerId: viewer.id,
+        playerId: player.id,
+        now: NOW,
+      });
+
+      expect(result.sharedGroupTiers).toEqual([
+        {
+          groupId: shared,
+          name: "Thursday Football",
+          imageUrl: null,
+          memberCount: 6,
+          rankedCount: 6,
+          band: "shark",
+          place: 1,
+          points: 1320,
+          provisional: false,
+          gamesOfFive: 5,
+        },
+      ]);
+    });
+  });
+
+  it("shows no fish to a viewer who shares no tier Group, only a Game", async () => {
+    await withDb(async (db) => {
+      const people = await seedFour(db);
+      await footballGroup(db, {
+        name: "Thursday Football",
+        createdBy: people.player.id,
+        memberIds: [people.player.id, ...(await members(db, 4))],
+      });
+      await friendlyMatch(db, people, { sets: WIN, startTime: at(1) });
+
+      const result = await loadPlayerProfile(db, {
+        viewerId: people.right.id,
+        playerId: people.player.id,
+        now: NOW,
+      });
+
+      expect(result.sharedGroupTiers).toEqual([]);
+    });
+  });
+
+  it("shows a Provisional player's points to the player and the Group's Organizers, never to other members", async () => {
+    await withDb(async (db) => {
+      const player = await insertUser(db, "Mahmood");
+      const creator = await insertUser(db, "Hussain");
+      const appointed = await insertUser(db, "Yousif");
+      const member = await insertUser(db, "Salman");
+      const group = await footballGroup(db, {
+        name: "Gooz of Arad",
+        createdBy: creator.id,
+        memberIds: [player.id, creator.id, appointed.id, member.id],
+      });
+      await db
+        .update(groupMembers)
+        .set({ role: GroupMemberRoleEnum.ORGANIZER })
+        .where(
+          and(
+            eq(groupMembers.groupId, group),
+            eq(groupMembers.userId, appointed.id),
+          ),
+        );
+      await db.insert(groupTierPoints).values({
+        groupId: group,
+        userId: player.id,
+        points: 1230,
+        gamesCounted: 2,
+      });
+
+      const tiersSeenBy = async (viewerId: string) =>
+        (
+          await loadPlayerProfile(db, {
+            viewerId,
+            playerId: player.id,
+            now: NOW,
+          })
+        ).sharedGroupTiers;
+
+      expect(await tiersSeenBy(member.id)).toMatchObject([
+        { groupId: group, provisional: true, band: null, points: null },
+      ]);
+      expect(await tiersSeenBy(creator.id)).toMatchObject([
+        { groupId: group, provisional: true, band: null, points: 1230 },
+      ]);
+      expect(await tiersSeenBy(appointed.id)).toMatchObject([
+        { groupId: group, provisional: true, band: null, points: 1230 },
+      ]);
+      expect(await tiersSeenBy(player.id)).toMatchObject([
+        { groupId: group, provisional: true, points: 1230 },
+      ]);
     });
   });
 });

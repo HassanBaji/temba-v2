@@ -6,9 +6,14 @@ import { DayField } from "~/app/dashboard/games/new/_parts/day-field";
 import {
   GroupField,
   type CreateGroup,
+  type PublicGameChoice,
 } from "~/app/dashboard/games/new/_parts/group-field";
 import { LevelBandRow } from "~/app/dashboard/games/new/_parts/level-band-row";
 import { MvpModeField } from "~/app/dashboard/games/new/_parts/mvp-mode-field";
+import {
+  PaymentTrackingField,
+  paymentReviewValue,
+} from "~/app/dashboard/games/new/_parts/payment-tracking-field";
 import { RatingField } from "~/app/dashboard/games/new/_parts/rating-field";
 import { ReviewRow } from "~/app/dashboard/games/new/_parts/review-row";
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
@@ -25,9 +30,11 @@ import { Input } from "~/components/ui/input";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import {
   LEVEL_BAND_SELECT_NONE,
+  levelBandSelectOvr,
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
+import { PADEL_FRIENDLY_GAME_PLAYERS } from "@repo/domain/game-payments";
 import {
   CREATE_FLOW_DURATIONS,
   createFlowPriceChips,
@@ -43,11 +50,11 @@ import {
   openLevelRange,
   previewStartSlots,
   priceChipIsSelected,
+  createLevelRangeShown,
   createRatingChoice,
   createRatingChoiceShown,
-  visibleCreateCourts,
 } from "@repo/domain/create-game-flow";
-import { courtCountLabel, courtFace } from "@repo/domain/court-sport-copy";
+import { courtFace } from "@repo/domain/court-sport-copy";
 import {
   FOOTBALL_PLAYERS_ALLOWED_MAX,
   FOOTBALL_SIDE_SIZES,
@@ -59,6 +66,7 @@ import {
   upcomingGameWindowFinishSlots,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
+import { gameRatingScopeLabel } from "@repo/domain/game-rating-scope";
 import { mvpModeCopy, type MvpMode } from "@repo/domain/marks";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 
@@ -79,6 +87,7 @@ export function FriendlyGameSteps({
   selectedGroupId,
   groupError,
   onGroupId,
+  publicChoice,
   venueCopy,
   venues,
   venuesLocked,
@@ -87,7 +96,6 @@ export function FriendlyGameSteps({
   venueError,
   onVenueId,
   emptyCatalog,
-  recentCourtIds,
   courtId,
   courtError,
   onCourtId,
@@ -108,6 +116,10 @@ export function FriendlyGameSteps({
   price,
   priceError,
   onPrice,
+  trackPayments,
+  onTrackPayments,
+  keepersPlayFree,
+  onKeepersPlayFree,
   customName,
   customNameError,
   onCustomName,
@@ -132,6 +144,8 @@ export function FriendlyGameSteps({
   selectedGroupId: string;
   groupError?: string;
   onGroupId: (groupId: string) => void;
+  /** Offered on a Friendly game: a Public Game has no Group. */
+  publicChoice?: PublicGameChoice;
   venueCopy: string;
   venues: readonly CreateVenue[];
   venuesLocked: boolean;
@@ -140,7 +154,6 @@ export function FriendlyGameSteps({
   venueError?: string;
   onVenueId: (venueId: string) => void;
   emptyCatalog: boolean;
-  recentCourtIds: readonly string[];
   courtId: string;
   courtError?: string;
   onCourtId: (courtId: string) => void;
@@ -164,6 +177,10 @@ export function FriendlyGameSteps({
   price: string;
   priceError?: string;
   onPrice: (price: string) => void;
+  trackPayments: boolean;
+  onTrackPayments: (value: boolean) => void;
+  keepersPlayFree: boolean;
+  onKeepersPlayFree: (value: boolean) => void;
   customName: string;
   customNameError?: string;
   onCustomName: (customName: string) => void;
@@ -178,9 +195,6 @@ export function FriendlyGameSteps({
   const m = useMessages();
   const locale = useLocale();
   const c = m.webDashboard.createGame;
-  const [courtsExpandedVenueId, setCourtsExpandedVenueId] = React.useState<
-    string | null
-  >(null);
   const [startExpanded, setStartExpanded] = React.useState(false);
   const [customFinishOpen, setCustomFinishOpen] = React.useState(false);
 
@@ -194,15 +208,12 @@ export function FriendlyGameSteps({
     customFinishOpen || (Boolean(finishTime) && durationPreset == null);
   const selectedVenue = venues.find((venue) => venue.id === venueId);
   const courts = selectedVenue?.courts ?? [];
-  const courtsExpanded = courtsExpandedVenueId === venueId;
-  const visibleCourts = courtsExpanded
-    ? courts
-    : visibleCreateCourts(
-        courts,
-        recentCourtIds,
-        courtId === "none" ? [] : [courtId],
-      );
   const football = sport === "football";
+  const paymentReview = paymentReviewValue(
+    { price, football, trackPayments, keepersPlayFree },
+    m,
+    locale,
+  );
   const courtWord = courtFace(sport);
   const courtTitle = football ? c.pitch : c.court;
   const playerBounds = footballPlayersAllowedBounds(sideSize);
@@ -211,12 +222,130 @@ export function FriendlyGameSteps({
   const ratingShown = createRatingChoiceShown({
     sport,
     hasGroup: Boolean(selectedGroupId),
+    groupVerified,
   });
   const ratingChoice = createRatingChoice({
     groupVerified,
     rated: ratingShown && rated,
     locale,
+    sport,
   });
+  const levelBoundLabel = (
+    value: LevelBandSelectValue,
+    bound: "min" | "max",
+  ) => {
+    if (value === LEVEL_BAND_SELECT_NONE) {
+      return c.openBound;
+    }
+    if (!football) {
+      return value;
+    }
+    const ovr = levelBandSelectOvr(value, bound);
+    return ovr == null ? c.openBound : m.level.ovr(ovr);
+  };
+  const publicGame = publicChoice?.selected === true;
+  const levelRangeShown = createLevelRangeShown({
+    sport,
+    hasGroup: Boolean(selectedGroupId),
+    groupVerified,
+    rated,
+    isPublic: publicGame,
+  });
+  const levelRangeSection = (
+    <section className="flex flex-col gap-3">
+      <SectionHeading
+        id="game-level-label"
+        title={c.levelRange}
+        meta={
+          publicGame ? m.rating.publicGame.levelRangeNote : m.common.optional
+        }
+      />
+      {publicGame ? (
+        <FieldDescription>
+          {m.rating.publicGame.levelRangeHint}
+        </FieldDescription>
+      ) : null}
+      <LevelBandRow
+        id="game-level-min"
+        label={c.minimumLevel}
+        bound="min"
+        value={levelMin}
+        other={levelMax}
+        invalid={Boolean(levelMinError)}
+        describedBy={
+          levelMinError ? "game-level-min-error" : "game-level-range-copy"
+        }
+        sport={sport}
+        onSelect={(band) => {
+          onLevelRange(
+            applyLevelBoundChange(
+              { min: levelMin, max: levelMax },
+              "min",
+              band,
+            ),
+          );
+        }}
+      />
+      <FieldError id="game-level-min-error">{levelMinError}</FieldError>
+      <LevelBandRow
+        id="game-level-max"
+        label={c.maximumLevel}
+        bound="max"
+        value={levelMax}
+        other={levelMin}
+        invalid={Boolean(levelMaxError)}
+        describedBy={
+          levelMaxError ? "game-level-max-error" : "game-level-range-copy"
+        }
+        sport={sport}
+        onSelect={(band) => {
+          onLevelRange(
+            applyLevelBoundChange(
+              { min: levelMin, max: levelMax },
+              "max",
+              band,
+            ),
+          );
+        }}
+      />
+      <div className="text-body flex items-center justify-between gap-3">
+        <p className="text-muted-foreground">
+          {levelOpen ? (
+            c.openToAnyone
+          ) : (
+            <>
+              {c.minimum}{" "}
+              <span className="text-foreground font-semibold">
+                {levelBoundLabel(levelMin, "min")}
+              </span>
+              {" · "}
+              {c.maximum}{" "}
+              <span className="text-foreground font-semibold">
+                {levelBoundLabel(levelMax, "max")}
+              </span>
+            </>
+          )}
+        </p>
+        {levelOpen ? null : (
+          <button
+            type="button"
+            className="text-muted-foreground focus-visible:ring-ring/50 inline-flex min-h-11 items-center underline outline-none focus-visible:ring-[3px]"
+            onClick={() => {
+              onLevelRange(openLevelRange());
+            }}
+          >
+            {c.openToAnyone}
+          </button>
+        )}
+      </div>
+      <FieldDescription id="game-level-range-copy">
+        {football
+          ? m.level.rangeFieldDescriptionFootball
+          : m.level.rangeFieldDescription}
+      </FieldDescription>
+      <FieldError id="game-level-max-error">{levelMaxError}</FieldError>
+    </section>
+  );
 
   function selectDay(next: string) {
     onDay(next);
@@ -262,11 +391,19 @@ export function FriendlyGameSteps({
             groups={groups}
             selectedGroupId={selectedGroupId}
             groupError={groupError}
+            publicChoice={publicChoice}
             onGroupId={onGroupId}
           />
 
           <VenueField
-            selectedGroupId={selectedGroupId}
+            unlocked={Boolean(selectedGroupId) || publicGame}
+            emptyCatalogMessage={
+              publicGame
+                ? football
+                  ? m.rating.publicGame.noPartnerPitches
+                  : m.rating.publicGame.noPartnerVenues
+                : undefined
+            }
             venueCopy={venueCopy}
             venues={venues}
             venuesLocked={venuesLocked}
@@ -304,7 +441,7 @@ export function FriendlyGameSteps({
               >
                 {m.common.none}
               </ChoiceChip>
-              {visibleCourts.map((court) => (
+              {courts.map((court) => (
                 <ChoiceChip
                   key={court.id}
                   role="radio"
@@ -316,16 +453,6 @@ export function FriendlyGameSteps({
                   {court.name}
                 </ChoiceChip>
               ))}
-              {!courtsExpanded && courts.length > visibleCourts.length ? (
-                <ChoiceChip
-                  dashed
-                  onClick={() => {
-                    setCourtsExpandedVenueId(venueId);
-                  }}
-                >
-                  {c.allCount(courtCountLabel(courts.length, sport, locale))}
-                </ChoiceChip>
-              ) : null}
             </RovingRadioGroup>
             <FieldDescription id="game-court-copy">
               {c.settleAtVenue[courtWord]}
@@ -567,104 +694,10 @@ export function FriendlyGameSteps({
                   </p>
                 }
               />
+              {levelRangeShown ? levelRangeSection : null}
             </>
           ) : (
-            <>
-              <section className="flex flex-col gap-3">
-                <SectionHeading
-                  id="game-level-label"
-                  title={c.levelRange}
-                  meta={m.common.optional}
-                />
-                <LevelBandRow
-                  id="game-level-min"
-                  label={c.minimumLevel}
-                  bound="min"
-                  value={levelMin}
-                  other={levelMax}
-                  invalid={Boolean(levelMinError)}
-                  describedBy={
-                    levelMinError
-                      ? "game-level-min-error"
-                      : "game-level-range-copy"
-                  }
-                  onSelect={(band) => {
-                    onLevelRange(
-                      applyLevelBoundChange(
-                        { min: levelMin, max: levelMax },
-                        "min",
-                        band,
-                      ),
-                    );
-                  }}
-                />
-                <FieldError id="game-level-min-error">
-                  {levelMinError}
-                </FieldError>
-                <LevelBandRow
-                  id="game-level-max"
-                  label={c.maximumLevel}
-                  bound="max"
-                  value={levelMax}
-                  other={levelMin}
-                  invalid={Boolean(levelMaxError)}
-                  describedBy={
-                    levelMaxError
-                      ? "game-level-max-error"
-                      : "game-level-range-copy"
-                  }
-                  onSelect={(band) => {
-                    onLevelRange(
-                      applyLevelBoundChange(
-                        { min: levelMin, max: levelMax },
-                        "max",
-                        band,
-                      ),
-                    );
-                  }}
-                />
-                <div className="text-body flex items-center justify-between gap-3">
-                  <p className="text-muted-foreground">
-                    {levelOpen ? (
-                      c.openToAnyone
-                    ) : (
-                      <>
-                        {c.minimum}{" "}
-                        <span className="text-foreground font-semibold">
-                          {levelMin === LEVEL_BAND_SELECT_NONE
-                            ? c.openBound
-                            : levelMin}
-                        </span>
-                        {" · "}
-                        {c.maximum}{" "}
-                        <span className="text-foreground font-semibold">
-                          {levelMax === LEVEL_BAND_SELECT_NONE
-                            ? c.openBound
-                            : levelMax}
-                        </span>
-                      </>
-                    )}
-                  </p>
-                  {levelOpen ? null : (
-                    <button
-                      type="button"
-                      className="text-muted-foreground focus-visible:ring-ring/50 inline-flex min-h-11 items-center underline outline-none focus-visible:ring-[3px]"
-                      onClick={() => {
-                        onLevelRange(openLevelRange());
-                      }}
-                    >
-                      {c.openToAnyone}
-                    </button>
-                  )}
-                </div>
-                <FieldDescription id="game-level-range-copy">
-                  {m.level.rangeFieldDescription}
-                </FieldDescription>
-                <FieldError id="game-level-max-error">
-                  {levelMaxError}
-                </FieldError>
-              </section>
-            </>
+            levelRangeSection
           )}
 
           <section className="flex flex-col gap-3">
@@ -713,12 +746,26 @@ export function FriendlyGameSteps({
             </FieldError>
           </section>
 
+          <PaymentTrackingField
+            idPrefix="game"
+            price={price}
+            football={football}
+            playersAllowed={
+              football ? playersAllowed : PADEL_FRIENDLY_GAME_PLAYERS
+            }
+            trackPayments={trackPayments}
+            onTrackPayments={onTrackPayments}
+            keepersPlayFree={keepersPlayFree}
+            onKeepersPlayFree={onKeepersPlayFree}
+          />
+
           <MvpModeField idPrefix="game" mode={mvpMode} onMode={onMvpMode} />
 
           {ratingShown ? (
             <RatingField
               idPrefix="game"
               groupVerified={groupVerified}
+              sport={sport}
               rated={rated}
               onRated={onRated}
             />
@@ -740,8 +787,18 @@ export function FriendlyGameSteps({
             />
             <ReviewRow
               label={ratingChoice.title}
-              value={ratingChoice.scopeLabel}
+              value={
+                publicGame
+                  ? gameRatingScopeLabel("temba", locale, sport)
+                  : ratingChoice.scopeLabel
+              }
             />
+            {paymentReview ? (
+              <ReviewRow
+                label={m.gamePayments.create.reviewLabel}
+                value={paymentReview}
+              />
+            ) : null}
             <ReviewRow
               label={m.createGame.mvp.title}
               value={mvpModeCopy(mvpMode, locale).label}

@@ -2,7 +2,8 @@ import {
   filsToMajorInput,
   parseOptionalPricePerPlayerFils,
 } from "@repo/domain/price-per-player";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 export type PricingRuleDraft = {
   key: string;
@@ -58,7 +59,7 @@ export function draftsFromRules(rules: SavedPricingRule[]): PricingRuleDraft[] {
   }));
 }
 
-export function baseRateDraft(rate: string): PricingRuleDraft {
+export function baseRateDraft(rate: string, label: string): PricingRuleDraft {
   return {
     key: newDraftKey(),
     courtId: null,
@@ -66,16 +67,17 @@ export function baseRateDraft(rate: string): PricingRuleDraft {
     startMinutes: 0,
     endMinutes: ALL_DAY_END_MINUTES,
     rate,
-    label: "Base rate",
+    label,
   };
 }
 
 export function withBaseRate(
   drafts: PricingRuleDraft[],
   rate: string,
+  label: string,
 ): PricingRuleDraft[] {
   return [
-    baseRateDraft(rate),
+    baseRateDraft(rate, label),
     ...drafts.filter((draft) => draft.courtId !== null),
   ];
 }
@@ -106,38 +108,44 @@ export function nextRuleDraft(
 
 export function parseHourlyRate(
   value: string,
+  locale: Locale,
 ): { ok: true; fils: number } | { ok: false; message: string } {
-  const parsed = parseOptionalPricePerPlayerFils(value, CONSOLE_LOCALE);
+  const parsed = parseOptionalPricePerPlayerFils(value, locale);
   if (!parsed.ok || parsed.fils === null) {
     return {
       ok: false,
-      message: "Enter an hourly rate with up to three decimal places",
+      message: messagesFor(locale).consoleCourts.rates.badRate,
     };
   }
   return { ok: true, fils: parsed.fils };
 }
 
-export function draftProblem(draft: PricingRuleDraft): string | null {
+export function draftProblem(
+  draft: PricingRuleDraft,
+  locale: Locale,
+): string | null {
+  const m = messagesFor(locale).consoleCourts.rates;
   if (draft.weekdays.length === 0) {
-    return "Choose at least one weekday";
+    return m.noWeekday;
   }
   if (draft.endMinutes <= draft.startMinutes) {
-    return "The rule must end after it starts";
+    return m.endBeforeStart;
   }
-  const rate = parseHourlyRate(draft.rate);
+  const rate = parseHourlyRate(draft.rate, locale);
   return rate.ok ? null : rate.message;
 }
 
 export function draftsToInput(
   drafts: PricingRuleDraft[],
+  locale: Locale,
 ): { ok: true; rules: PricingRuleInput[] } | { ok: false; message: string } {
   const rules: PricingRuleInput[] = [];
   for (const draft of drafts) {
-    const problem = draftProblem(draft);
+    const problem = draftProblem(draft, locale);
     if (problem) {
       return { ok: false, message: problem };
     }
-    const rate = parseHourlyRate(draft.rate);
+    const rate = parseHourlyRate(draft.rate, locale);
     if (!rate.ok) {
       return rate;
     }
@@ -156,33 +164,31 @@ export function draftsToInput(
 
 export const MAX_END_MINUTES = 1800;
 
-export const WEEKDAY_SHORT = [
-  "Sun",
-  "Mon",
-  "Tue",
-  "Wed",
-  "Thu",
-  "Fri",
-  "Sat",
-] as const;
-
 /** `7:00 AM`, `11:30 PM`; minutes past midnight wrap onto the next day's clock. */
-export function formatClock(minutes: number) {
+export function formatClock(minutes: number, locale: Locale) {
+  const { am, pm } = messagesFor(locale).consoleShell.clock;
   const inDay = ((minutes % 1440) + 1440) % 1440;
   const hour24 = Math.floor(inDay / 60);
   const minute = inDay % 60;
   const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-  return `${hour12}:${String(minute).padStart(2, "0")} ${hour24 < 12 ? "AM" : "PM"}`;
+  return `${hour12}:${String(minute).padStart(2, "0")} ${hour24 < 12 ? am : pm}`;
 }
 
-export function formatTimeWindow(startMinutes: number, endMinutes: number) {
-  return `${formatClock(startMinutes)} to ${formatClock(endMinutes)}`;
+export function formatTimeWindow(
+  startMinutes: number,
+  endMinutes: number,
+  locale: Locale,
+) {
+  return messagesFor(locale).consoleShell.clock.range(
+    formatClock(startMinutes, locale),
+    formatClock(endMinutes, locale),
+  );
 }
 
-export function rateTimeOptions(slotMinutes: number) {
+export function rateTimeOptions(slotMinutes: number, locale: Locale) {
   const options: { value: number; label: string }[] = [];
   for (let minutes = 0; minutes <= MAX_END_MINUTES; minutes += slotMinutes) {
-    options.push({ value: minutes, label: formatClock(minutes) });
+    options.push({ value: minutes, label: formatClock(minutes, locale) });
   }
   return options;
 }
@@ -205,22 +211,25 @@ function circularRunStart(days: number[]): number | null {
 }
 
 /** `All days`, `Sun to Thu`, `Thu, Fri`: the design's DAYS column. */
-export function describeWeekdays(weekdays: number[]) {
+export function describeWeekdays(weekdays: number[], locale: Locale) {
+  const { consoleShell, consoleCourts } = messagesFor(locale);
+  const m = consoleCourts.rates;
+  const names = consoleShell.weekdaysShort;
   const days = [...new Set(weekdays)].sort((a, b) => a - b);
   if (days.length === 0) {
-    return "No days";
+    return m.noDays;
   }
   if (days.length === 7) {
-    return "All days";
+    return m.allDays;
   }
   const start = circularRunStart(days);
   if (start !== null && days.length >= 3) {
     const end = (start + days.length - 1) % 7;
-    return `${WEEKDAY_SHORT[start]} to ${WEEKDAY_SHORT[end]}`;
+    return m.dayRange(names[start]!, names[end]!);
   }
   const ordered =
     start === null ? days : days.map((_, index) => (start + index) % 7);
-  return ordered.map((day) => WEEKDAY_SHORT[day]!).join(", ");
+  return ordered.map((day) => names[day]!).join(m.daySeparator);
 }
 
 export function draftsAreEqual(a: PricingRuleDraft[], b: PricingRuleDraft[]) {

@@ -1,12 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { gameIsPlayed } from "@repo/domain/played-game";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { requireGame } from "#src/games/access";
+import { gameFrozenReason, requireGame } from "#src/games/access";
 import { changeOwnSide, type SeatChoice } from "#src/games/seats";
 import { notify } from "#src/notifications/notify";
 
@@ -15,19 +16,26 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 /** A seated User picks Left, Right or Either for themselves before the Game. */
 export async function setSeatSide(
   database: DbClient,
-  args: { gameId: string; userId: string; side: SeatChoice; now?: Date },
+  args: {
+    gameId: string;
+    userId: string;
+    side: SeatChoice;
+    now?: Date;
+    locale?: Locale;
+  },
 ) {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   if (game.format !== "friendly_game" || game.sport === "football") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Sides are picked on a padel Friendly game",
+      message: messagesFor(locale).game.errors.sidesPadelFriendly,
     });
   }
-  if (game.cancelledAt || gameIsPlayed(game, args.now ?? new Date())) {
+  if (await gameFrozenReason(database, game, args.now ?? new Date())) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Sides can be changed until the Game starts",
+      message: messagesFor(locale).game.errors.sidesUntilStart,
     });
   }
   await database.transaction(async (tx) => {
@@ -36,6 +44,7 @@ export async function setSeatSide(
       game,
       args.userId,
       args.side,
+      locale,
     );
     if (movedPartnerUserId) {
       await notify(tx, {
@@ -64,5 +73,6 @@ export const setSeatSideProcedure = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       side: input.side,
+      locale: ctx.locale,
     });
   });

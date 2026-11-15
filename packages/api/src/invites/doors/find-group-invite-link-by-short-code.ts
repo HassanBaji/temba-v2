@@ -1,10 +1,11 @@
-import { sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { groupInviteLinks } from "@repo/db";
 
 import { parseGameInviteShortCode } from "#src/invites/tokens";
 import type { InviteDb } from "#src/invites/doors/utils";
 
+/** Codes are minted upper-case, so the parsed code meets the unique index as is. */
 export async function findGroupInviteLinkByShortCode(
   database: InviteDb,
   rawCode: string,
@@ -14,6 +15,6 @@ export async function findGroupInviteLinkByShortCode(
     return undefined;
   }
   return database.query.groupInviteLinks.findFirst({
-    where: sql`upper(${groupInviteLinks.shortCode}) = ${code}`,
+    where: eq(groupInviteLinks.shortCode, code),
   });
 }

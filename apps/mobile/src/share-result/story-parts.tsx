@@ -1,4 +1,4 @@
-import { bibColors, palettes } from "@repo/design-tokens";
+import { bibColors, invertedFocusPalettes } from "@repo/design-tokens";
 import type { FootballBib } from "@repo/domain/football-lineup";
 import { View } from "react-native";
 
@@ -9,7 +9,7 @@ import { Text, type TextProps } from "../primitives/text";
 import { LightScheme } from "../theme/theme-provider";
 
 // Share cards render on black in both modes: they leave the App.
-const colors = palettes.light;
+const colors = invertedFocusPalettes.light;
 
 /** Type at the card's own scale: these cards are laid out in export pixels. */
 export function Big({
@@ -67,11 +67,7 @@ export function BibSquare({
 }) {
   const { fill } = bibColors[bib];
   const edge =
-    fill === colors.ink
-      ? colors.muted
-      : fill === colors.paper
-        ? colors.rule
-        : fill;
+    bib === "black" ? colors.muted : bib === "white" ? colors.rule : fill;
   return (
     <View
       accessibilityElementsHidden
@@ -108,7 +104,7 @@ export function InitialsSquare({
     variant === "solid"
       ? colors.ink
       : variant === "outline-muted"
-        ? colors.dim
+        ? colors.onControlMuted
         : colors.paper;
   return (
     <View

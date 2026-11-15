@@ -4,6 +4,7 @@ import { StepperField } from "~/components/games/stepper-field";
 import { Badge } from "~/components/ui/badge";
 import { sizeTournamentRounds } from "@repo/domain/tournament-schedule";
 import {
+  defaultRoundsShapeRoundCount,
   formatRoundMatchesPerTeam,
   resolveRoundCount,
   roundCountRange,
@@ -19,6 +20,7 @@ export function RoundCountField({
   onRoundCount,
   error,
   labelClassName,
+  chosen = false,
 }: {
   id: string;
   poolSizes: readonly number[];
@@ -26,10 +28,17 @@ export function RoundCountField({
   onRoundCount: (roundCount: number | null) => void;
   error?: string;
   labelClassName?: string;
+  /** The Rounds shape: the count is the Organizer's number, never "suggested". */
+  chosen?: boolean;
 }) {
   const locale = useLocale();
   const m = useMessages();
-  const value = resolveRoundCount(poolSizes, roundCount);
+  const value = resolveRoundCount(
+    poolSizes,
+    chosen
+      ? (roundCount ?? defaultRoundsShapeRoundCount(poolSizes))
+      : roundCount,
+  );
   if (value == null) {
     return null;
   }
@@ -48,14 +57,14 @@ export function RoundCountField({
       max={range.max}
       step={1}
       onChange={(next) => {
-        onRoundCount(next === range.suggested ? null : next);
+        onRoundCount(!chosen && next === range.suggested ? null : next);
       }}
       decreaseLabel={m.webGame.roundCount.fewer}
       increaseLabel={m.webGame.roundCount.more}
       error={error}
       description={
         <div className="flex flex-col gap-1">
-          {onSuggestion ? (
+          {chosen ? null : onSuggestion ? (
             <Badge variant="outline">{m.tournament.sizing.suggestedTag}</Badge>
           ) : (
             <button

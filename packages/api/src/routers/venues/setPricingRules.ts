@@ -5,6 +5,8 @@ import { z } from "zod";
 import { courts, venuePricingRules, venues } from "@repo/db";
 import type { DbClient } from "@repo/db";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { protectedProcedure } from "#src/trpc";
@@ -35,37 +37,41 @@ function badRequest(message: string): never {
   throw new TRPCError({ code: "BAD_REQUEST", message });
 }
 
-function validateRule(rule: RuleInput, slotMinutes: number) {
+function validateRule(
+  rule: RuleInput,
+  slotMinutes: number,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   if (
     rule.weekdays.length === 0 ||
     rule.weekdays.some((day) => !Number.isInteger(day) || day < 0 || day > 6)
   ) {
-    badRequest("Choose at least one weekday, between 0 (Sunday) and 6");
+    badRequest(messagesFor(locale).venue.errors.pricingWeekday);
   }
   if (
     !Number.isInteger(rule.startMinutes) ||
     !Number.isInteger(rule.endMinutes) ||
     rule.startMinutes < 0
   ) {
-    badRequest("Pricing times must be whole minutes from midnight");
+    badRequest(messagesFor(locale).venue.errors.pricingWholeMinutes);
   }
   if (rule.endMinutes <= rule.startMinutes) {
-    badRequest("A Pricing rule must end after it starts");
+    badRequest(messagesFor(locale).venue.errors.pricingEndAfterStart);
   }
   if (rule.endMinutes > MAX_END_MINUTES) {
-    badRequest("A Pricing rule cannot run later than 06:00 the next day");
+    badRequest(messagesFor(locale).venue.errors.pricingLatestEnd);
   }
   if (
     rule.startMinutes % slotMinutes !== 0 ||
     rule.endMinutes % slotMinutes !== 0
   ) {
-    badRequest(`Times must fall on the ${slotMinutes}-minute grid`);
+    badRequest(messagesFor(locale).venue.errors.onGrid(slotMinutes));
   }
   if (!Number.isInteger(rule.hourlyRateFils) || rule.hourlyRateFils < 0) {
-    badRequest("The hourly rate cannot be negative");
+    badRequest(messagesFor(locale).venue.errors.rateNegative);
   }
   if (rule.hourlyRateFils > PRICE_PER_PLAYER_MAX_FILS) {
-    badRequest("The hourly rate is too large");
+    badRequest(messagesFor(locale).venue.errors.rateTooLarge);
   }
 }
 
@@ -79,7 +85,7 @@ function weekOccupancy(rules: RuleInput[]) {
   );
 }
 
-function assertNoOverlap(rules: RuleInput[]) {
+function assertNoOverlap(rules: RuleInput[], locale: Locale = DEFAULT_LOCALE) {
   const occupancy = weekOccupancy(rules);
   for (let first = 0; first < occupancy.length; first += 1) {
     for (let second = first + 1; second < occupancy.length; second += 1) {
@@ -89,9 +95,7 @@ function assertNoOverlap(rules: RuleInput[]) {
         (shift) => a.start < b.end + shift && b.start + shift < a.end,
       );
       if (overlaps) {
-        badRequest(
-          "Pricing rules for the same Courts must not overlap in weekday and time",
-        );
+        badRequest(messagesFor(locale).venue.errors.pricingOverlap);
       }
     }
   }
@@ -103,15 +107,18 @@ export async function setPricingRules(
     venueId: string;
     rules: RuleInput[];
     actor: Actor;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   if (args.rules.length > MAX_RULES) {
-    badRequest(`A Venue can have at most ${MAX_RULES} Pricing rules`);
+    badRequest(messagesFor(locale).venue.errors.pricingRuleLimit(MAX_RULES));
   }
 
   await requireVenueManager(database, {
     venueId: args.venueId,
     ...args.actor,
+    locale,
   });
 
   return database.transaction(async (tx) => {
@@ -122,13 +129,18 @@ export async function setPricingRules(
       .for("update");
 
     if (!venue) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: messagesFor(locale).venue.errors.notFound,
+      });
     }
 
     for (const rule of args.rules) {
-      validateRule(rule, venue.slotMinutes);
+      validateRule(rule, venue.slotMinutes, locale);
       if ((rule.label?.trim().length ?? 0) > MAX_LABEL_LENGTH) {
-        badRequest(`Labels can be at most ${MAX_LABEL_LENGTH} characters`);
+        badRequest(
+          messagesFor(locale).venue.errors.labelTooLong(MAX_LABEL_LENGTH),
+        );
       }
     }
 
@@ -140,7 +152,7 @@ export async function setPricingRules(
     if (
       args.rules.some((rule) => rule.courtId && !courtIds.has(rule.courtId))
     ) {
-      badRequest("A Pricing rule names a Court that is not in this Venue");
+      badRequest(messagesFor(locale).venue.errors.pricingCourtNotAtVenue);
     }
 
     const scopes = new Map<string, RuleInput[]>();
@@ -149,7 +161,7 @@ export async function setPricingRules(
       scopes.set(key, [...(scopes.get(key) ?? []), rule]);
     }
     for (const scoped of scopes.values()) {
-      assertNoOverlap(scoped);
+      assertNoOverlap(scoped, locale);
     }
 
     const existing = await tx
@@ -236,5 +248,6 @@ export const setPricingRulesProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

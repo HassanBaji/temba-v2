@@ -40,7 +40,9 @@ import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import { shouldFocusStepHeading } from "~/lib/onboarding-step";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 /**
  * The "ready" summary is gone: the last sport step saves and returns to the
@@ -105,8 +107,12 @@ export function OnboardingQuestionnaire({
     initialOnboardingAnswers(state),
   );
   const complete = api.users.completeOnboarding.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
-      await utils.users.onboardingState.invalidate();
+      await Promise.all([
+        utils.users.onboardingState.invalidate(),
+        invalidateRatingReads(utils),
+      ]);
       onDone();
     },
   });

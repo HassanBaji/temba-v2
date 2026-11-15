@@ -8,6 +8,7 @@ import { isIndividualSeatGame } from "#src/games/seats";
 import { type db } from "#src/db";
 import type { SeatPosition } from "#src/games/utils";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -34,6 +35,7 @@ export async function promoteWaitlist(
   database: Tx,
   game: GameRow,
   vacated?: { sideIndex: number; position: SeatPosition },
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const entries = await database.query.gameWaitlist.findMany({
     where: eq(gameWaitlist.gameId, game.id),
@@ -79,6 +81,7 @@ export async function promoteWaitlist(
             position: vacated.position,
           },
         },
+        locale,
       });
       if (!admitted.ok) {
         if (
@@ -118,6 +121,7 @@ export async function promoteWaitlist(
         game,
         door: "promote",
         party: { kind: "user", userId: entry.userId },
+        locale,
       });
       if (!admitted.ok) {
         if (admitted.reason === "full" || admitted.reason === "join_frozen") {
@@ -155,6 +159,7 @@ export async function promoteWaitlist(
         game,
         door: "promote",
         party: { kind: "team", teamId: entry.teamId },
+        locale,
       });
       if (!admitted.ok) {
         if (

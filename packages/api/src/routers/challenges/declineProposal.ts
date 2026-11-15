@@ -2,12 +2,13 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { challengeProposals, challenges, teams } from "@repo/db";
+import { challengeProposals, teams } from "@repo/db";
 import { isProposalPending } from "@repo/domain/challenge-clock";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import { lockProposalWithChallenge } from "#src/challenges/lock-proposal";
 import { type db } from "#src/db";
 import { enqueueAt, removeJob } from "#src/jobs/enqueue";
 import { challengeExpireJob, proposalExpireJobKey } from "#src/jobs/specs";
@@ -36,22 +37,14 @@ export async function declineProposal(
   const now = args.now ?? new Date();
   const m = messagesFor(args.locale ?? DEFAULT_LOCALE).challenge;
   return database.transaction(async (tx) => {
-    const [proposal] = await tx
-      .select()
-      .from(challengeProposals)
-      .where(eq(challengeProposals.id, args.proposalId))
-      .for("update");
-    if (!proposal) {
+    const locked = await lockProposalWithChallenge(tx, args.proposalId);
+    if (!locked) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: m.errors.proposalNotFound,
       });
     }
-    const [challenge] = await tx
-      .select()
-      .from(challenges)
-      .where(eq(challenges.id, proposal.challengeId))
-      .for("update");
+    const { proposal, challenge } = locked;
     if (!challenge) {
       throw new TRPCError({ code: "NOT_FOUND", message: m.detail.notFound });
     }

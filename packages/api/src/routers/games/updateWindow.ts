@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -10,6 +11,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import {
   assertGameOrganizer,
+  gameFrozenReason,
   requireGame,
   type GameRow,
 } from "#src/games/access";
@@ -31,13 +33,19 @@ async function updateGameWindowOnGame(
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot edit a cancelled Game",
+      message: messagesFor(locale).game.errors.editCancelled,
+    });
+  }
+  if ((await gameFrozenReason(database, game, now)) === "played") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).game.errors.played,
     });
   }
   if (windowEnd.getTime() < windowStart.getTime()) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Finish time must be at or after start time",
+      message: messagesFor(locale).createGame.validation.finishAfterStart,
     });
   }
 
@@ -96,8 +104,9 @@ export async function updateGameWindow(
     now?: Date;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.userId, locale);
   await database.transaction(async (tx) => {
     await updateGameWindowOnGame(
       tx,

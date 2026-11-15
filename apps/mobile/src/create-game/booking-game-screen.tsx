@@ -1,3 +1,4 @@
+import { PADEL_FRIENDLY_GAME_PLAYERS } from "@repo/domain/game-payments";
 import { spacing } from "@repo/design-tokens";
 import {
   createRatingChoice,
@@ -42,6 +43,7 @@ import { FootballSizeFields } from "./football-size-fields";
 import { GroupField, groupLabel } from "./group-field";
 import { LevelRangeField } from "./level-range-field";
 import { MoneyField } from "./money-field";
+import { PaymentTrackingField } from "./payment-tracking-field";
 import { RatingField } from "./rating-field";
 import { ReviewCard } from "./review-card";
 import { StepFooter, StepShell } from "./step-shell";
@@ -154,11 +156,13 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
   const ratingShown = createRatingChoiceShown({
     sport,
     hasGroup: Boolean(selectedGroup),
+    groupVerified,
   });
   const ratingScope = createRatingChoice({
     groupVerified,
     rated: ratingShown && state.draft.rated,
     locale,
+    sport,
   }).scope;
 
   const createGame = api.bookings.createGame.useMutation({
@@ -259,10 +263,19 @@ function BookingGameForm({ booking }: { booking: BookingGameSource }) {
             {football ? copy.priceNotePlayer : copy.priceNoteSeat}
           </HelperNote>
         </StepSection>
+        <PaymentTrackingField
+          state={state}
+          dispatch={onDispatch}
+          football={football}
+          playersAllowed={
+            football ? state.draft.playersAllowed : PADEL_FRIENDLY_GAME_PLAYERS
+          }
+        />
         {football ? null : <LevelRangeField {...step} />}
         {ratingShown ? (
           <RatingField
             groupVerified={groupVerified}
+            sport={sport}
             rated={state.draft.rated}
             onRated={(rated) => onDispatch({ kind: "setRated", rated })}
           />

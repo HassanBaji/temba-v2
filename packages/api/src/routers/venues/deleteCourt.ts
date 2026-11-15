@@ -3,6 +3,8 @@ import { and, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 
 import { bookings, courts } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { occupyingBookings } from "#src/bookings/occupying";
@@ -19,20 +21,25 @@ type Actor = {
 
 export async function deleteCourt(
   database: DbClient,
-  args: { courtId: string; actor: Actor; now?: Date },
+  args: { courtId: string; actor: Actor; now?: Date; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const existing = await database.query.courts.findFirst({
     where: eq(courts.id, args.courtId),
     columns: { id: true, venueId: true },
   });
 
   if (!existing) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Court not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).venue.errors.courtNotFound,
+    });
   }
 
   await requireVenueManager(database, {
     venueId: existing.venueId,
     ...args.actor,
+    locale,
   });
 
   const [upcoming] = await database
@@ -49,7 +56,7 @@ export async function deleteCourt(
   if (upcoming) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "Cancel its Bookings first",
+      message: messagesFor(locale).venue.errors.cancelBookingsFirst,
     });
   }
 
@@ -61,7 +68,7 @@ export async function deleteCourt(
   if (anyBooking) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "This Court has Booking history and cannot be deleted",
+      message: messagesFor(locale).venue.errors.courtHasHistory,
     });
   }
 
@@ -79,5 +86,6 @@ export const deleteCourtProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

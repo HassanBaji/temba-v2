@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   WEEKDAY_ORDER,
@@ -8,6 +8,7 @@ import {
   hoursAreEqual,
   nextWindowAfter,
   productDateTimeInputToInstant,
+  saveWeekdays,
   timeOptions,
   windowsProblem,
 } from "./opening-hours-model";
@@ -18,37 +19,47 @@ describe("opening hours model", () => {
   });
 
   it("formats minutes, marking the next day", () => {
-    expect(formatMinutes(0)).toBe("00:00");
-    expect(formatMinutes(570)).toBe("09:30");
-    expect(formatMinutes(1560)).toBe("02:00 (next day)");
+    expect(formatMinutes(0, "en")).toBe("00:00");
+    expect(formatMinutes(570, "en")).toBe("09:30");
+    expect(formatMinutes(1560, "en")).toBe("02:00 (next day)");
+    expect(formatMinutes(1560, "ar")).toBe("02:00 (اليوم التالي)");
   });
 
   it("formats clock times on a 12-hour clock", () => {
-    expect(formatClock(7 * 60)).toBe("7:00 AM");
-    expect(formatClock(23 * 60)).toBe("11:00 PM");
-    expect(formatClock(1500)).toBe("1:00 AM");
+    expect(formatClock(7 * 60, "en")).toBe("7:00 AM");
+    expect(formatClock(23 * 60, "en")).toBe("11:00 PM");
+    expect(formatClock(1500, "en")).toBe("1:00 AM");
   });
 
   it("lists the grid up to 30:00", () => {
-    const options = timeOptions(60);
+    const options = timeOptions(60, "en");
     expect(options[0]).toEqual({ value: 0, label: "12:00 AM" });
     expect(options[options.length - 1]?.value).toBe(1800);
-    expect(timeOptions(30)).toHaveLength(61);
+    expect(timeOptions(30, "en")).toHaveLength(61);
   });
 
   it("totals the open hours of a day", () => {
-    expect(formatOpenHours([])).toBe("0h");
+    expect(formatOpenHours([], "en")).toBe("0h");
     expect(
-      formatOpenHours([{ opensAtMinutes: 7 * 60, closesAtMinutes: 23 * 60 }]),
+      formatOpenHours(
+        [{ opensAtMinutes: 7 * 60, closesAtMinutes: 23 * 60 }],
+        "en",
+      ),
     ).toBe("16h");
     expect(
-      formatOpenHours([
-        { opensAtMinutes: 7 * 60, closesAtMinutes: 12 * 60 },
-        { opensAtMinutes: 16 * 60, closesAtMinutes: 23 * 60 + 30 },
-      ]),
+      formatOpenHours(
+        [
+          { opensAtMinutes: 7 * 60, closesAtMinutes: 12 * 60 },
+          { opensAtMinutes: 16 * 60, closesAtMinutes: 23 * 60 + 30 },
+        ],
+        "en",
+      ),
     ).toBe("12.5h");
     expect(
-      formatOpenHours([{ opensAtMinutes: 7 * 60, closesAtMinutes: 1500 }]),
+      formatOpenHours(
+        [{ opensAtMinutes: 7 * 60, closesAtMinutes: 1500 }],
+        "en",
+      ),
     ).toBe("18h");
   });
 
@@ -73,10 +84,10 @@ describe("opening hours model", () => {
 
   it("explains the first problem found", () => {
     expect(
-      windowsProblem([{ opensAtMinutes: 600, closesAtMinutes: 600 }], 30),
+      windowsProblem([{ opensAtMinutes: 600, closesAtMinutes: 600 }], 30, "en"),
     ).toMatch(/after opening/);
     expect(
-      windowsProblem([{ opensAtMinutes: 615, closesAtMinutes: 700 }], 30),
+      windowsProblem([{ opensAtMinutes: 615, closesAtMinutes: 700 }], 30, "en"),
     ).toMatch(/grid/);
     expect(
       windowsProblem(
@@ -85,11 +96,35 @@ describe("opening hours model", () => {
           { opensAtMinutes: 690, closesAtMinutes: 900 },
         ],
         30,
+        "en",
       ),
     ).toMatch(/overlap/);
     expect(
-      windowsProblem([{ opensAtMinutes: 480, closesAtMinutes: 720 }], 30),
+      windowsProblem([{ opensAtMinutes: 480, closesAtMinutes: 720 }], 30, "en"),
     ).toBeNull();
+  });
+
+  it("refreshes after a partial save and still reports the failure", async () => {
+    const saved: number[] = [];
+    const refresh = vi.fn(async () => undefined);
+    const save = async (weekday: number) => {
+      if (weekday === 3) {
+        throw new Error("refused");
+      }
+      saved.push(weekday);
+    };
+
+    await expect(saveWeekdays([1, 2, 3, 4], save, refresh)).rejects.toThrow(
+      "refused",
+    );
+    expect(saved).toEqual([1, 2]);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("refreshes once after every weekday saves", async () => {
+    const refresh = vi.fn(async () => undefined);
+    await saveWeekdays([0, 6], async () => undefined, refresh);
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 
   it("parses a datetime-local value", () => {

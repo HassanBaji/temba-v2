@@ -16,6 +16,8 @@ import {
   footballPositionSchema,
   footballRoleSchema,
 } from "@repo/validators/football";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type db } from "#src/db";
 import { unorderedPairIsReserved } from "#src/teams/helpers/unordered-pair-is-reserved";
@@ -65,10 +67,11 @@ function isFootballPlacement(
 function startingLevelFor(
   sport: Sport,
   level: AddPlayerLevel | undefined,
+  locale: Locale = DEFAULT_LOCALE,
 ): UnclaimedPlayerStartingLevel {
   if (sport === "football") {
     if (level !== undefined && !isFootballPlacement(level)) {
-      refuse("Pick a football Level");
+      refuse(messagesFor(locale).level.errors.pickFootball);
     }
     return {
       sport: "football",
@@ -76,7 +79,7 @@ function startingLevelFor(
     };
   }
   if (level !== undefined && isFootballPlacement(level)) {
-    refuse("Pick a padel Level");
+    refuse(messagesFor(locale).level.errors.pickPadel);
   }
   return { sport: "padel", level: level ?? "not_sure" };
 }
@@ -90,14 +93,15 @@ type TeamForPhone = { id: string; sport: Sport };
 export function parseTeamPhonePlayer(
   team: Pick<TeamForPhone, "sport">,
   input: TeamPhonePlayerInput,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (input.football && team.sport !== "football") {
-    refuse("Only a football Team takes a role and position");
+    refuse(messagesFor(locale).team.errors.roleOnFootballTeam);
   }
   return {
-    phoneNumber: requireE164(input.countryIso, input.nationalNumber),
+    phoneNumber: requireE164(input.countryIso, input.nationalNumber, locale),
     name: input.name?.trim(),
-    startingLevel: startingLevelFor(team.sport, input.level),
+    startingLevel: startingLevelFor(team.sport, input.level, locale),
     football: input.football ?? null,
   };
 }
@@ -115,11 +119,13 @@ export async function addPhonePlayerToTeam(
     team: TeamForPhone;
     captainUserId: string;
     player: ParsedTeamPhonePlayer;
+    locale?: Locale;
   },
 ): Promise<
   | { outcome: "account"; user: { id: string; name: string } }
   | { outcome: "added"; user: { id: string; name: string } }
 > {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const { team, player } = args;
   const resolved = await resolvePhonePlayer(tx, player.phoneNumber);
   if (resolved.kind === "account") {
@@ -129,13 +135,14 @@ export async function addPhonePlayerToTeam(
   let unclaimed;
   if (resolved.kind === "new") {
     if (!player.name) {
-      refuse("Enter their name");
+      refuse(messagesFor(locale).profile.errors.enterTheirName);
     }
     ({ user: unclaimed } = await createUnclaimedPlayer(tx, {
       phoneNumber: player.phoneNumber,
       name: player.name,
       addedByUserId: args.captainUserId,
       startingLevel: player.startingLevel,
+      locale,
     }));
     // The Matchday squad seat reads the role from the User, so a new
     // player's picked role is written there; nobody else's is overwritten.
@@ -164,7 +171,9 @@ export async function addPhonePlayerToTeam(
   if (existing) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: `${unclaimed.name} is already on the Roster`,
+      message: messagesFor(locale).team.errors.playerAlreadyOnRoster(
+        unclaimed.name,
+      ),
     });
   }
   if (
@@ -173,7 +182,7 @@ export async function addPhonePlayerToTeam(
   ) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "This pair already has a Team or a pending invite",
+      message: messagesFor(locale).team.errors.pairTaken,
     });
   }
 

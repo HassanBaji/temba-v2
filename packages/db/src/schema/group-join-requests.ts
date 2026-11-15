@@ -1,4 +1,5 @@
 import {
+  index,
   jsonb,
   pgTable,
   uuid,
@@ -89,6 +90,7 @@ export const groupJoinRequests = pgTable(
       table.groupId,
       table.userId,
     ),
+    userIdx: index("group_join_requests_user_id_idx").on(table.userId),
   }),
 );
 

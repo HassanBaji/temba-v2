@@ -8,6 +8,10 @@ import {
   type CreateGroup,
 } from "~/app/dashboard/games/new/_parts/group-field";
 import { LevelBandRow } from "~/app/dashboard/games/new/_parts/level-band-row";
+import {
+  PaymentTrackingField,
+  paymentReviewValue,
+} from "~/app/dashboard/games/new/_parts/payment-tracking-field";
 import { RatingField } from "~/app/dashboard/games/new/_parts/rating-field";
 import { ReviewRow } from "~/app/dashboard/games/new/_parts/review-row";
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
@@ -39,7 +43,6 @@ import {
   createRatingChoice,
   reconcileWindowForDay,
   selectStartSlot,
-  visibleCreateCourts,
   type CreateTournamentShape,
 } from "@repo/domain/create-game-flow";
 import { formatGameClock } from "@repo/domain/format-game-start";
@@ -64,10 +67,23 @@ import {
   playersInPairsLine,
   poolCountOptions,
   reviewRoundsValue,
+  roundCountLabel,
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
   TOURNAMENT_TEAM_STEP,
 } from "@repo/domain/tournament-sizing";
+import {
+  clampKingCourts,
+  KING_COURT_CHIPS,
+  KING_COURT_MAX,
+  KING_COURT_MIN,
+  KING_PLAY_MINUTE_CHIPS,
+  kingCourtCount,
+  kingFinishSlot,
+  kingPlayMinutesLabel,
+  kingSlotPlayMinutes,
+  kingTeamCount,
+} from "@repo/domain/tournament-king";
 import { cn } from "~/lib/utils";
 
 const STEPPER_LABEL = "text-foreground font-expanded text-title font-normal";
@@ -87,7 +103,6 @@ export function FriendlyTournamentSteps({
   venueError,
   onVenueId,
   emptyCatalog,
-  recentCourtIds,
   courtIds,
   courtError,
   onToggleCourt,
@@ -130,6 +145,8 @@ export function FriendlyTournamentSteps({
   price,
   priceError,
   onPrice,
+  trackPayments,
+  onTrackPayments,
   isPublic,
   onIsPublic,
   allowSoloRegister,
@@ -153,7 +170,6 @@ export function FriendlyTournamentSteps({
   venueError?: string;
   onVenueId: (venueId: string) => void;
   emptyCatalog: boolean;
-  recentCourtIds: readonly string[];
   courtIds: readonly string[];
   courtError?: string;
   onToggleCourt: (courtId: string) => void;
@@ -199,6 +215,8 @@ export function FriendlyTournamentSteps({
   price: string;
   priceError?: string;
   onPrice: (price: string) => void;
+  trackPayments: boolean;
+  onTrackPayments: (value: boolean) => void;
   isPublic: boolean;
   onIsPublic: (isPublic: boolean) => void;
   allowSoloRegister: boolean;
@@ -213,9 +231,6 @@ export function FriendlyTournamentSteps({
   const c = m.webDashboard.createGame;
   const sizingCopy = m.tournament.sizing;
   const ratingChoice = createRatingChoice({ groupVerified, rated, locale });
-  const [courtsExpandedVenueId, setCourtsExpandedVenueId] = React.useState<
-    string | null
-  >(null);
   const [startExpanded, setStartExpanded] = React.useState(false);
   const [finishExpanded, setFinishExpanded] = React.useState(false);
 
@@ -231,10 +246,6 @@ export function FriendlyTournamentSteps({
   );
   const selectedVenue = venues.find((venue) => venue.id === venueId);
   const courts = selectedVenue?.courts ?? [];
-  const courtsExpanded = courtsExpandedVenueId === venueId;
-  const visibleCourts = courtsExpanded
-    ? courts
-    : visibleCreateCourts(courts, recentCourtIds, courtIds);
   const plan = friendlyTournamentPlan({
     teamCount,
     poolCount,
@@ -244,6 +255,8 @@ export function FriendlyTournamentSteps({
   });
   const {
     knockoutOnly,
+    kingOfTheCourt,
+    roundsShape,
     knockoutTree,
     sizing,
     rounds,
@@ -269,6 +282,15 @@ export function FriendlyTournamentSteps({
     .filter((court) => courtIds.includes(court.id))
     .map((court) => court.name);
   const teamPrice = gameTeamOfTwoCopy(price, locale);
+  const paymentReview = paymentReviewValue(
+    { price, football: false, trackPayments, keepersPlayFree: false },
+    m,
+    locale,
+  );
+  const k = m.tournamentKing;
+  const kingCourts = kingCourtCount(teamCount);
+  const kingPlayMinutes =
+    startTime && finishTime ? kingSlotPlayMinutes(startTime, finishTime) : null;
 
   function selectDay(next: string) {
     onDay(next);
@@ -300,7 +322,7 @@ export function FriendlyTournamentSteps({
           />
 
           <VenueField
-            selectedGroupId={selectedGroupId}
+            unlocked={Boolean(selectedGroupId)}
             venueCopy={venueCopy}
             venues={venues}
             venuesLocked={venuesLocked}
@@ -329,8 +351,7 @@ export function FriendlyTournamentSteps({
                   {selectedVenue ? c.noCourtsToRecord : c.pickVenueForCourts}
                 </p>
               ) : (
-                <>
-                  {visibleCourts.map((court) => {
+                courts.map((court) => {
                     const selected = courtIds.includes(court.id);
                     return (
                       <ChoiceChip
@@ -344,42 +365,33 @@ export function FriendlyTournamentSteps({
                         {court.name}
                       </ChoiceChip>
                     );
-                  })}
-                  {!courtsExpanded && courts.length > visibleCourts.length ? (
-                    <ChoiceChip
-                      dashed
-                      onClick={() => {
-                        setCourtsExpandedVenueId(venueId);
-                      }}
-                    >
-                      {c.allCourts(courts.length)}
-                    </ChoiceChip>
-                  ) : null}
-                </>
+                })
               )}
             </div>
             <FieldError id="game-court-error">{courtError}</FieldError>
           </section>
 
-          <StepperField
-            id="tournament-team-count"
-            label={c.gameTeams}
-            labelClassName={STEPPER_LABEL}
-            value={teamCount}
-            unit={c.gameTeams}
-            min={TOURNAMENT_TEAM_MIN}
-            max={TOURNAMENT_TEAM_MAX}
-            step={TOURNAMENT_TEAM_STEP}
-            onChange={onTeamCount}
-            decreaseLabel={c.fewerGameTeams}
-            increaseLabel={c.moreGameTeams}
-            error={teamCountError}
-            description={
-              <p className="text-muted-foreground text-meta">
-                {playersInPairsLine(teamCount, locale)}
-              </p>
-            }
-          />
+          {kingOfTheCourt ? null : (
+            <StepperField
+              id="tournament-team-count"
+              label={c.gameTeams}
+              labelClassName={STEPPER_LABEL}
+              value={teamCount}
+              unit={c.gameTeams}
+              min={TOURNAMENT_TEAM_MIN}
+              max={TOURNAMENT_TEAM_MAX}
+              step={TOURNAMENT_TEAM_STEP}
+              onChange={onTeamCount}
+              decreaseLabel={c.fewerGameTeams}
+              increaseLabel={c.moreGameTeams}
+              error={teamCountError}
+              description={
+                <p className="text-muted-foreground text-meta">
+                  {playersInPairsLine(teamCount, locale)}
+                </p>
+              }
+            />
+          )}
         </>
       ) : null}
 
@@ -407,13 +419,62 @@ export function FriendlyTournamentSteps({
                   trailing="check"
                   onClick={() => {
                     onTournamentShape(option.id);
+                    if (option.id === "king_of_the_court") {
+                      onTeamCount(
+                        kingTeamCount(clampKingCourts(teamCount / 2)),
+                      );
+                    }
                   }}
                 />
               ))}
             </RovingRadioGroup>
           </section>
 
-          {knockoutOnly ? null : (
+          {kingOfTheCourt ? (
+            <section className="flex flex-col gap-3">
+              <StepperField
+                id="tournament-court-count"
+                label={k.create.courts}
+                labelClassName={STEPPER_LABEL}
+                meta={k.create.courtsMax(KING_COURT_MAX)}
+                value={kingCourts}
+                unit={k.create.courtsUnit(kingCourts)}
+                min={KING_COURT_MIN}
+                max={KING_COURT_MAX}
+                step={1}
+                onChange={(courts) => {
+                  onTeamCount(kingTeamCount(courts));
+                }}
+                decreaseLabel={k.create.fewerCourts}
+                increaseLabel={k.create.moreCourts}
+                error={teamCountError}
+                description={
+                  <p className="text-muted-foreground text-meta leading-relaxed">
+                    {k.create.courtsHelp(kingCourts, teamCount)}
+                  </p>
+                }
+              />
+              <RovingRadioGroup
+                aria-label={k.create.courts}
+                className="grid grid-cols-4 gap-1.5"
+              >
+                {KING_COURT_CHIPS.map((courts) => (
+                  <ChoiceChip
+                    key={courts}
+                    role="radio"
+                    selected={kingCourts === courts}
+                    onClick={() => {
+                      onTeamCount(kingTeamCount(courts));
+                    }}
+                  >
+                    {courts}
+                  </ChoiceChip>
+                ))}
+              </RovingRadioGroup>
+            </section>
+          ) : null}
+
+          {knockoutOnly || kingOfTheCourt || roundsShape ? null : (
             <StepperField
               id="tournament-pool-count"
               label={c.groups}
@@ -452,6 +513,7 @@ export function FriendlyTournamentSteps({
               roundCount={roundCount}
               onRoundCount={onRoundCount}
               error={roundCountError}
+              chosen={roundsShape}
             />
           ) : null}
 
@@ -544,7 +606,66 @@ export function FriendlyTournamentSteps({
             <FieldError id="game-window-start-error">{startError}</FieldError>
           </section>
 
-          <section className="flex flex-col gap-3">
+          {kingOfTheCourt ? (
+            <section className="flex flex-col gap-3">
+              <SectionHeading
+                id="king-play-time-label"
+                title={k.create.playTime}
+                meta={
+                  finishTime
+                    ? formatTimeSlotLabel(finishTime, locale)
+                    : undefined
+                }
+              />
+              <RovingRadioGroup
+                aria-labelledby="king-play-time-label"
+                className="grid grid-cols-4 gap-1.5"
+              >
+                {KING_PLAY_MINUTE_CHIPS.map((minutes) => {
+                  const finish = startTime
+                    ? kingFinishSlot(startTime, minutes)
+                    : null;
+                  return (
+                    <ChoiceChip
+                      key={minutes}
+                      role="radio"
+                      selected={!finishExpanded && kingPlayMinutes === minutes}
+                      disabled={!finish}
+                      onClick={() => {
+                        if (finish) {
+                          setFinishExpanded(false);
+                          onFinishTime(finish);
+                        }
+                      }}
+                    >
+                      {kingPlayMinutesLabel(minutes, locale)}
+                    </ChoiceChip>
+                  );
+                })}
+                <ChoiceChip
+                  dashed={!finishExpanded}
+                  disabled={!startTime}
+                  onClick={() => {
+                    setFinishExpanded((open) => !open);
+                  }}
+                >
+                  {finishExpanded ? m.common.less : k.create.setPlayTime}
+                </ChoiceChip>
+              </RovingRadioGroup>
+              {!startTime ? (
+                <p className="text-muted-foreground text-body">
+                  {c.pickStartFirst}
+                </p>
+              ) : null}
+            </section>
+          ) : null}
+
+          <section
+            className={cn(
+              "flex flex-col gap-3",
+              kingOfTheCourt && !finishExpanded && "hidden",
+            )}
+          >
             <SectionHeading
               id="game-window-finish-label"
               title={c.finish}
@@ -598,7 +719,9 @@ export function FriendlyTournamentSteps({
             <FieldError id="game-window-finish-error">{finishError}</FieldError>
           </section>
 
-          <section className="flex flex-col gap-3">
+          <section
+            className={cn("flex flex-col gap-3", kingOfTheCourt && "hidden")}
+          >
             <SectionHeading
               id="tournament-match-minutes-label"
               title={c.gameLength}
@@ -652,7 +775,25 @@ export function FriendlyTournamentSteps({
             </FieldError>
           </section>
 
-          {schedule ? (
+          {kingOfTheCourt && startTime && finishTime && kingPlayMinutes ? (
+            <div className="border-ink rounded-card border px-[18px] py-4">
+              <p className="font-expanded text-lead leading-snug tracking-[-0.03em]">
+                {k.create.summaryTitle(
+                  teamCount,
+                  formatTimeSlotLabel(startTime, locale),
+                  formatTimeSlotLabel(finishTime, locale),
+                )}
+              </p>
+              <p className="text-muted-foreground text-meta mt-2 leading-relaxed">
+                {k.create.summaryCopy(
+                  kingCourts,
+                  kingPlayMinutesLabel(kingPlayMinutes, locale),
+                )}
+              </p>
+            </div>
+          ) : null}
+
+          {schedule && !kingOfTheCourt ? (
             <div className="border-ink rounded-card border px-[18px] py-4">
               {schedule.line ? (
                 <p className="text-lead leading-snug">{schedule.line}</p>
@@ -828,6 +969,17 @@ export function FriendlyTournamentSteps({
             </FieldError>
           </section>
 
+          <PaymentTrackingField
+            idPrefix="tournament"
+            price={price}
+            football={false}
+            playersAllowed={teamCount * 2}
+            trackPayments={trackPayments}
+            onTrackPayments={onTrackPayments}
+            keepersPlayFree={false}
+            onKeepersPlayFree={() => undefined}
+          />
+
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="tournament-public-label"
@@ -906,13 +1058,17 @@ export function FriendlyTournamentSteps({
             <ReviewRow
               label={m.createGame.tournamentFormat}
               value={
-                knockoutOnly
-                  ? m.createGame.knockoutOnly
-                  : friendlyTournamentFormatLabel(
-                      sizing?.poolCount ?? poolCount,
-                      locale,
-                      poolKnockoutTree != null,
-                    )
+                kingOfTheCourt
+                  ? k.create.reviewFormat(kingCourts)
+                  : knockoutOnly
+                    ? m.createGame.knockoutOnly
+                    : roundsShape
+                      ? m.createGame.shapes.rounds.title
+                      : friendlyTournamentFormatLabel(
+                          sizing?.poolCount ?? poolCount,
+                          locale,
+                          poolKnockoutTree != null,
+                        )
               }
             />
             {knockoutTree ? (
@@ -935,29 +1091,41 @@ export function FriendlyTournamentSteps({
             {sizing && rounds ? (
               <ReviewRow
                 label={sizingCopy.roundsLabel}
-                value={reviewRoundsValue(
-                  rounds.roundCount,
-                  sizing.roundCount,
-                  locale,
-                )}
+                value={
+                  roundsShape
+                    ? roundCountLabel(rounds.roundCount, locale)
+                    : reviewRoundsValue(
+                        rounds.roundCount,
+                        sizing.roundCount,
+                        locale,
+                      )
+                }
               />
             ) : null}
             <ReviewRow
               label={c.courts}
               value={friendlyTournamentCourtsLabel(selectedCourtNames, locale)}
             />
-            <ReviewRow
-              label={c.gameLength}
-              value={
-                parsedMinutes.ok
-                  ? c.minutes(parsedMinutes.minutes)
-                  : c.gameLength
-              }
-            />
+            {kingOfTheCourt ? null : (
+              <ReviewRow
+                label={c.gameLength}
+                value={
+                  parsedMinutes.ok
+                    ? c.minutes(parsedMinutes.minutes)
+                    : c.gameLength
+                }
+              />
+            )}
             <ReviewRow
               label={ratingChoice.title}
               value={ratingChoice.scopeLabel}
             />
+            {paymentReview ? (
+              <ReviewRow
+                label={m.gamePayments.create.reviewLabel}
+                value={paymentReview}
+              />
+            ) : null}
           </div>
         </>
       ) : null}

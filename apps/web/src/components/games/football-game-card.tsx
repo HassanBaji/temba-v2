@@ -12,17 +12,21 @@ import {
   type FootballBib,
 } from "@repo/domain/football-lineup";
 import { gameCustomName } from "@repo/domain/game-custom-name";
+import { ratingScopeTag } from "@repo/domain/game-rating-impact";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { sideSizeLabel } from "@repo/domain/game-shape";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
 import type {
   HubGameFootballSide,
   HubGameRow,
 } from "@repo/domain/hub-game-row";
+import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import Link from "next/link";
 
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { ScoreText } from "~/components/temba/score-text";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 
 import { BibChip, bibStyle } from "./football-bibs";
@@ -189,6 +193,37 @@ function ResultBody({ game }: { game: HubGameRow }) {
         </div>
         {chip(2)}
       </div>
+    </div>
+  );
+}
+
+/** A Public Game says it counts for Temba Level; any Game says who may join. */
+function ScopeLine({ game }: { game: HubGameRow }) {
+  const locale = useLocale();
+  const tag = isPublicGame(game)
+    ? ratingScopeTag({ ...game, publicGame: true }, locale)
+    : null;
+  const range = formatLevelRangeLabel(
+    game.levelMinTenths,
+    game.levelMaxTenths,
+    locale,
+    game.sport,
+  );
+  if (!tag && !range) {
+    return null;
+  }
+  return (
+    <div className="text-meta flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+      {tag ? (
+        <Badge variant="outline" data-slot="game-card-rating-scope">
+          {tag}
+        </Badge>
+      ) : (
+        <span />
+      )}
+      {range ? (
+        <span className="text-muted-foreground tabular-nums">{range}</span>
+      ) : null}
     </div>
   );
 }
@@ -384,7 +419,7 @@ export function FootballGameCard({
   return (
     <li>
       <SummaryCardShell href={href} linkLabel={label}>
-        <SummaryCardBody>
+        <SummaryCardBody className="space-y-4">
           {section === "result" ? (
             <ResultBody game={game} />
           ) : section === "teams" ? (
@@ -392,6 +427,7 @@ export function FootballGameCard({
           ) : (
             <OpenBody game={game} />
           )}
+          {section === "result" ? null : <ScopeLine game={game} />}
         </SummaryCardBody>
         {footer}
       </SummaryCardShell>

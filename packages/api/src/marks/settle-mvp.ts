@@ -1,10 +1,16 @@
 import { eq } from "drizzle-orm";
 
-import { MatchStatusEnum, gameMvpVotes, games, matches } from "@repo/db";
+import {
+  MatchStatusEnum,
+  gameMvpVotes,
+  games,
+  matchRatingWindows,
+  matches,
+} from "@repo/db";
 
 import {
-  marksWindow,
   mvpOutcome,
+  mvpWindow,
   type MvpPick,
   type MvpQuestion,
   type MvpVote,
@@ -32,6 +38,53 @@ function storedPick(
     : null;
 }
 
+/**
+ * The Game's MVP when a settled vote chose them. Only a voted MVP moves OVR
+ * (ADR-0069); an Organizer's pick does not.
+ */
+export function votedMvpUserId(
+  game:
+    | Pick<GameRow, "mvpUserId" | "mvpDecidedBy" | "mvpSettledAt">
+    | null
+    | undefined,
+) {
+  return game?.mvpSettledAt && game.mvpDecidedBy === "vote"
+    ? game.mvpUserId
+    : null;
+}
+
+/**
+ * The Match's Rating window, when it has one that a wrong score has not
+ * suspended. The MVP closes with it (ADR-0068): the player's result card and
+ * OVR's MVP part both need the MVP known when the window's move is written.
+ */
+async function ratingWindowOf(database: DbClient, matchId: string) {
+  const window = await database.query.matchRatingWindows.findFirst({
+    where: eq(matchRatingWindows.matchId, matchId),
+    columns: {
+      mode: true,
+      closesAt: true,
+      settledAt: true,
+      suspendedAt: true,
+    },
+  });
+  return window && window.mode !== "off" && !window.suspendedAt ? window : null;
+}
+
+async function gameMvpWindow(
+  database: DbClient,
+  match: Pick<MatchRow, "id" | "status" | "completedAt"> | null,
+  now: Date,
+) {
+  return match?.status === MatchStatusEnum.COMPLETED
+    ? mvpWindow(
+        match.completedAt,
+        now,
+        await ratingWindowOf(database, match.id),
+      )
+    : null;
+}
+
 /** A Game's MVP question on its Match, judged by the server clock at `now`. */
 export async function mvpQuestion(
   database: DbClient,
@@ -54,10 +107,7 @@ export async function mvpQuestion(
       : [];
   return {
     mode: args.game.mvpMode,
-    window:
-      args.match?.status === MatchStatusEnum.COMPLETED
-        ? marksWindow(args.match.completedAt, args.now)
-        : null,
+    window: await gameMvpWindow(database, args.match, args.now),
     participants: args.participants,
     votes,
     pick: storedPick(args.game),
@@ -161,8 +211,8 @@ export async function settleMvp(
 }
 
 /**
- * The read-time fallback for a late or failed Job: once the window has closed,
- * a read settles the MVP so nobody sees "pending" past the close.
+ * The read-time fallback for a late or failed Job: once the MVP's window has
+ * closed, a read settles the MVP so nobody sees "pending" past the close.
  */
 export async function settleMvpIfDue(
   database: DbClient,
@@ -173,8 +223,7 @@ export async function settleMvpIfDue(
   if (
     game.mvpMode === "none" ||
     game.mvpSettledAt ||
-    match?.status !== MatchStatusEnum.COMPLETED ||
-    marksWindow(match.completedAt, now)?.state !== "closed"
+    (await gameMvpWindow(database, match, now))?.state !== "closed"
   ) {
     return false;
   }
@@ -182,32 +231,34 @@ export async function settleMvpIfDue(
 }
 
 /**
- * Called by both completion paths: the Job settles the MVP when the window
- * closes. A Match completing again after a wrong score may find that everyone
- * has already voted, and then the vote settles at once as it would have.
+ * Called by both completion paths, after the Match's Rating window has
+ * opened if it has one: the Job settles the MVP when its window closes. A
+ * Match completing again after a wrong score may find that everyone has
+ * already voted, and then the vote settles at once as it would have.
  */
 export async function scheduleMvpSettle(
   tx: DbClient,
-  gameId: string,
-  completedAt: Date,
+  args: { gameId: string; matchId: string; completedAt: Date },
 ): Promise<void> {
   const game = await tx.query.games.findFirst({
-    where: eq(games.id, gameId),
+    where: eq(games.id, args.gameId),
     columns: { format: true, mvpMode: true },
   });
-  const window = marksWindow(completedAt, completedAt);
-  if (
-    !game ||
-    !window ||
-    game.format !== "friendly_game" ||
-    game.mvpMode === "none"
-  ) {
+  if (game?.format !== "friendly_game" || game.mvpMode === "none") {
     return;
   }
-  if (await settleMvp(tx, gameId, completedAt)) {
+  const window = mvpWindow(
+    args.completedAt,
+    args.completedAt,
+    await ratingWindowOf(tx, args.matchId),
+  );
+  if (!window) {
     return;
   }
-  await enqueueAt(tx, settleMvpJob(gameId), window.closesAt);
+  if (await settleMvp(tx, args.gameId, args.completedAt)) {
+    return;
+  }
+  await enqueueAt(tx, settleMvpJob(args.gameId), window.closesAt);
 }
 
 /**

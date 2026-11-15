@@ -1,0 +1,1 @@
+ALTER TYPE "public"."tournament_shape" ADD VALUE 'rounds';

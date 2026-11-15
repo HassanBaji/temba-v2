@@ -14,18 +14,25 @@ import {
   type TournamentRoundState,
 } from "@repo/domain/tournament-round-state";
 import { tournamentMatchMinutes } from "@repo/domain/tournament-sizing";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { canViewGame, isGameOrganizer, requireGame } from "#src/games/access";
+import { isGameOrganizer, requireGame } from "#src/games/access";
+import { gameReach } from "#src/games/verifier-stamp";
 import {
   assertMakesPoolRounds,
   loadTournamentRoundContext,
+  roundCancelEffect,
   teamPoints,
   type PostedPoolMatch,
 } from "#src/games/tournament-round-context";
-import { enteredScore } from "#src/games/tournament-score";
+import {
+  enteredScore,
+  mayConfirmEnteredScore,
+} from "#src/games/tournament-score";
 import { matchSideSeats } from "#src/games/match-result-confirmations";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -65,6 +72,12 @@ export type TournamentRound = {
   expectedMatchCount: number;
   slots: { courtName: string | null; startTime: Date }[];
   matches: TournamentRoundMatch[];
+  /**
+   * What the Organizer's Cancel does to this Round: `remove` takes it off the
+   * schedule, `void` keeps it as cancelled and drops its scores. Null when
+   * the viewer may not cancel it.
+   */
+  cancelEffect: "remove" | "void" | null;
 };
 
 /**
@@ -74,14 +87,18 @@ export type TournamentRound = {
  */
 export async function tournamentRounds(
   database: DbClient,
-  args: { gameId: string; userId: string; now?: Date },
+  args: { gameId: string; userId: string; now?: Date; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
-  const game = await requireGame(database, args.gameId);
-  if (!(await canViewGame(database, game, args.userId))) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+  const game = await requireGame(database, args.gameId, locale);
+  if (!(await gameReach(database, game, args.userId))) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).game.errors.notFound,
+    });
   }
-  assertMakesPoolRounds(game);
+  assertMakesPoolRounds(game, locale);
   const organizer = await isGameOrganizer(database, game, args.userId);
   const context = await loadTournamentRoundContext(database, game);
 
@@ -192,10 +209,12 @@ export async function tournamentRounds(
       canEnterScore:
         (organizer && (live || state === "confirmed")) ||
         (viewerSlot != null && live),
-      canConfirm:
-        state === "awaiting_confirmation" &&
-        ((viewerSlot != null && entered?.slot !== viewerSlot) ||
-          (organizer && viewerSlot == null)),
+      canConfirm: mayConfirmEnteredScore({
+        state,
+        viewerSlot,
+        enteredSlot: entered?.slot ?? null,
+        organizer,
+      }),
       canMarkNotFinished:
         (organizer || viewerSlot != null) &&
         (state === "on_court" || state === "awaiting_confirmation"),
@@ -204,6 +223,15 @@ export async function tournamentRounds(
         (state === "scheduled" || state === "on_court") &&
         match.sets.length === 0,
     };
+  }
+
+  function cancelEffectFor(roundNumber: number) {
+    const effect = roundCancelEffect(context, roundNumber);
+    if (effect === "none") {
+      return null;
+    }
+    const removable = context.roundCount > 1 && !context.knockoutStarted;
+    return effect === "remove" && !removable ? null : effect;
   }
 
   const rounds: TournamentRound[] = [];
@@ -260,6 +288,7 @@ export async function tournamentRounds(
         startTime: slot.startTime,
       })),
       matches,
+      cancelEffect: organizer ? cancelEffectFor(roundNumber) : null,
     });
   }
 
@@ -267,6 +296,11 @@ export async function tournamentRounds(
     isOrganizer: organizer,
     roundCount: context.roundCount,
     suggestedRoundCount: context.suggested,
+    maxRoundCount: context.maxRoundCount,
+    canAddRound:
+      organizer &&
+      context.roundCount < context.maxRoundCount &&
+      !context.knockoutStarted,
     poolCount: context.pools.length,
     courtCount: context.courtIds.length,
     matchMinutes: tournamentMatchMinutes(game.matchMinutes),
@@ -288,5 +322,6 @@ export const tournamentRoundsProcedure = protectedProcedure
     return tournamentRounds(ctx.db, {
       gameId: input.gameId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

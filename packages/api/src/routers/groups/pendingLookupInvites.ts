@@ -1,7 +1,7 @@
 import type { DbClient } from "@repo/db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
-import { groupMemberInvites } from "@repo/db";
+import { groupMemberInvites, groups } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -15,6 +15,13 @@ export async function pendingLookupInvites(
       eq(groupMemberInvites.userId, args.userId),
       isNull(groupMemberInvites.acceptedAt),
       isNull(groupMemberInvites.revokedAt),
+      inArray(
+        groupMemberInvites.groupId,
+        database
+          .select({ id: groups.id })
+          .from(groups)
+          .where(isNull(groups.deletedAt)),
+      ),
     ),
     with: {
       group: true,
@@ -22,7 +29,6 @@ export async function pendingLookupInvites(
         columns: {
           id: true,
           name: true,
-          email: true,
           image: true,
         },
       },
@@ -38,7 +44,6 @@ export async function pendingLookupInvites(
     invitedBy: {
       id: row.invitedBy.id,
       name: row.invitedBy.name,
-      email: row.invitedBy.email,
       image: row.invitedBy.image,
     },
     createdAt: row.createdAt,

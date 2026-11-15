@@ -42,9 +42,13 @@
   --color-raised: var(--on-ink-raised);
   --color-focus: var(--focus);
   --color-on-focus: var(--on-focus);
+  --color-focus-edge: var(--focus-edge);
   --color-control: var(--control);
   --color-on-control: var(--on-control);
   --color-control-edge: var(--control-edge);
+  --color-on-control-muted: var(--on-control-muted);
+  --color-control-rule: var(--control-rule);
+  --color-control-raised: var(--control-raised);
   --color-focus-control: var(--focus-control);
   --color-on-focus-control: var(--on-focus-control);
   --color-sheet: var(--sheet);
@@ -54,38 +58,46 @@
 :root, .light {
   color-scheme: light;
   --background: #ffffff;
-  --surface-raised: #fafaf8;
+  --surface-raised: #fafafa;
   --card: #ffffff;
   --popover: #ffffff;
-  --muted: #f5f5f5;
-  --secondary: #f5f5f5;
-  --accent: #f5f5f5;
+  --muted: #f4f4f4;
+  --secondary: #f4f4f4;
+  --accent: #f4f4f4;
   --muted-foreground: #6e6e6e;
-  --border: #e5e5e2;
+  --border: #e6e6e6;
   --input: #8c8c8c;
-  --primary: #0a0a0a;
+  --primary: #000000;
   --primary-foreground: #ffffff;
-  --ring: #0a0a0a;
-  --on-ink-muted: #8e8e8e;
-  --on-ink-border: #2e2e2e;
-  --on-ink-raised: #1c1c1c;
-  --focus: #0a0a0a;
-  --on-focus: #ffffff;
-  --control: #0a0a0a;
+  --ring: #000000;
+  --on-ink-muted: #6e6e6e;
+  --on-ink-border: #e0e0e0;
+  --on-ink-raised: #ffffff;
+  --focus: #f4f4f4;
+  --on-focus: #000000;
+  --focus-edge: #e6e6e6;
+  --control: #000000;
   --on-control: #ffffff;
-  --control-edge: #0a0a0a;
-  --focus-control: #ffffff;
-  --on-focus-control: #0a0a0a;
+  --control-edge: #000000;
+  --on-control-muted: #8e8e8e;
+  --control-rule: #2e2e2e;
+  --control-raised: #1c1c1c;
+  --focus-control: #000000;
+  --on-focus-control: #ffffff;
   --sheet: #ffffff;
   --scrim: rgba(10, 10, 10, 0.5);
-  --hatch-stroke-paper: #dcdcdc;
-  --hatch-stroke-ink: #333333;
-  --chart-1: #0a0a0a;
-  --sidebar: #0a0a0a;
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: #ffffff;
-  --sidebar-primary-foreground: #0a0a0a;
-  --sidebar-ring: #ffffff;
+  --hatch-stroke-paper: #e6e6e6;
+  --hatch-stroke-ink: #d4d4d4;
+  --hatch-stroke-control: #333333;
+  --chart-1: #000000;
+  --sidebar: #f4f4f4;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #000000;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #000000;
+  --sidebar-accent: #ffffff;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #e0e0e0;
 }
 
 .dark {
@@ -108,21 +120,29 @@
   --on-ink-raised: #262626;
   --focus: #141414;
   --on-focus: #e6e6e6;
+  --focus-edge: #3a3a3a;
   --control: #262626;
   --on-control: #e6e6e6;
   --control-edge: #3a3a3a;
+  --on-control-muted: #8e8e8e;
+  --control-rule: #3a3a3a;
+  --control-raised: #262626;
   --focus-control: #262626;
   --on-focus-control: #e6e6e6;
   --sheet: #0f0f0f;
   --scrim: rgba(0, 0, 0, 0.72);
   --hatch-stroke-paper: #2e2e2e;
   --hatch-stroke-ink: #3a3a3a;
+  --hatch-stroke-control: #3a3a3a;
   --chart-1: #e6e6e6;
   --sidebar: #141414;
   --sidebar-foreground: #e6e6e6;
   --sidebar-primary: #262626;
   --sidebar-primary-foreground: #e6e6e6;
   --sidebar-ring: #e6e6e6;
+  --sidebar-accent: #262626;
+  --sidebar-accent-foreground: #e6e6e6;
+  --sidebar-border: #3a3a3a;
 }
 
 @utility font-expanded {
@@ -141,4 +161,9 @@
 @utility hatch-on-ink {
   --hatch-stroke: var(--hatch-stroke-ink);
   --hatch-inset: var(--color-dimrule);
+}
+
+@utility hatch-on-control {
+  --hatch-stroke: var(--hatch-stroke-control);
+  --hatch-inset: var(--color-control-rule);
 }

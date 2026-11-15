@@ -28,8 +28,10 @@ describe("closures model", () => {
   });
 
   it("titles a Closure by scope and reason", () => {
-    expect(closureTitle("Court 3", "resurfacing")).toBe("Court 3, resurfacing");
-    expect(closureTitle("All courts", null)).toBe("All courts");
+    expect(closureTitle("Court 3", "resurfacing", "en")).toBe(
+      "Court 3, resurfacing",
+    );
+    expect(closureTitle("All courts", null, "en")).toBe("All courts");
   });
 
   it("describes a same-day window relative to today", () => {
@@ -38,6 +40,7 @@ describe("closures model", () => {
         bahrain(2026, 11, 3, 7),
         bahrain(2026, 11, 3, 17),
         now,
+        "en",
       ),
     ).toBe("Today, 7:00 AM to 5:00 PM");
     expect(
@@ -45,16 +48,27 @@ describe("closures model", () => {
         bahrain(2026, 11, 4, 7),
         bahrain(2026, 11, 4, 17),
         now,
+        "en",
       ),
     ).toBe("Tomorrow, 7:00 AM to 5:00 PM");
   });
 
   it("reads a midnight-to-midnight window as all day", () => {
     expect(
-      describeClosureWindow(bahrain(2026, 12, 16), bahrain(2026, 12, 17), now),
+      describeClosureWindow(
+        bahrain(2026, 12, 16),
+        bahrain(2026, 12, 17),
+        now,
+        "en",
+      ),
     ).toBe("Wed 16 Dec, all day");
     expect(
-      describeClosureWindow(bahrain(2026, 12, 16), bahrain(2026, 12, 18), now),
+      describeClosureWindow(
+        bahrain(2026, 12, 16),
+        bahrain(2026, 12, 18),
+        now,
+        "en",
+      ),
     ).toBe("Wed 16 to Thu 17 Dec, all day");
   });
 
@@ -64,6 +78,7 @@ describe("closures model", () => {
         bahrain(2026, 11, 6, 8),
         bahrain(2026, 11, 7, 20),
         now,
+        "en",
       ),
     ).toBe("Fri 6 to Sat 7 Nov, 8:00 AM to 8:00 PM");
     expect(
@@ -71,6 +86,7 @@ describe("closures model", () => {
         bahrain(2026, 11, 30, 8),
         bahrain(2026, 12, 2, 20),
         now,
+        "en",
       ),
     ).toBe("Mon 30 Nov to Wed 2 Dec, 8:00 AM to 8:00 PM");
   });

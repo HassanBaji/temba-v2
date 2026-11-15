@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  playerCalibratePath,
   playerMarkPath,
   playerMarksPath,
   playerMatchesPath,
@@ -87,5 +88,16 @@ describe("playerMarkPath", () => {
         "football",
       ),
     ).toBe(`/games/players/${USER}/marks/clutch?sport=football`);
+  });
+});
+
+describe("playerCalibratePath", () => {
+  it("opens the calibration in the current tab, on the profile's sport", () => {
+    expect(
+      playerCalibratePath(["(app)", "groups", "[id]"], USER, "football"),
+    ).toBe(`/groups/players/${USER}/calibrate?sport=football`);
+    expect(playerCalibratePath(["(app)", "(home)"], USER, "padel")).toBe(
+      `/players/${USER}/calibrate?sport=padel`,
+    );
   });
 });

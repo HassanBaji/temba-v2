@@ -4,7 +4,6 @@ import {
   LEVEL_OVERRIDE_REASONS,
   levelOverrideReasonLabel,
   levelSliderLabel,
-  levelSliderStartTenths,
   type LevelOverrideReason,
 } from "@repo/domain/level-slider";
 import type { Locale } from "@repo/i18n/locale";
@@ -64,53 +63,6 @@ export function setLevelConfirmLabel(tenths: number, locale: Locale) {
 
 export function setLevelPath(groupId: string, userId: string) {
   return `/groups/set-level?groupId=${encodeURIComponent(groupId)}&userId=${encodeURIComponent(userId)}`;
-}
-
-export type SetGroupLevelView = {
-  userId: string;
-  name: string;
-  /** The Group Level, or the Temba Level a first one starts from (ADR-0053). */
-  startTenths: number;
-  startLabel: string;
-  /** Marks the Temba Level on the slider; none without one. */
-  markerLabel: string | null;
-  note: string;
-};
-
-export function setGroupLevelView(
-  entry: GroupLeaderboardEntryData,
-  groupName: string,
-  locale: Locale,
-): SetGroupLevelView {
-  const messages = messagesFor(locale);
-  const m = messages.mobileGroup.setGroupLevel;
-  const name = entry.name ?? messages.mobileGroup.unnamedMember;
-  const groupLevel = entry.groupLevel?.level ?? null;
-  const startTenths = levelSliderStartTenths(groupLevel ?? entry.level);
-  const label = levelSliderLabel(startTenths);
-  const note = messages.you.setGroupLevel.body(name, groupName);
-  if (groupLevel) {
-    return {
-      userId: entry.userId,
-      name,
-      startTenths,
-      startLabel: m.groupLevel(label),
-      markerLabel: messages.mobileGroup.setLevel.nowMarker(label),
-      note,
-    };
-  }
-  return {
-    userId: entry.userId,
-    name,
-    startTenths,
-    startLabel: entry.level ? m.tembaLevel(label) : m.noTembaLevel,
-    markerLabel: entry.level ? m.tembaMarker(label) : null,
-    note,
-  };
-}
-
-export function setGroupLevelPath(groupId: string, userId: string) {
-  return `/groups/set-group-level?groupId=${encodeURIComponent(groupId)}&userId=${encodeURIComponent(userId)}`;
 }
 
 export type SavedLevel = {

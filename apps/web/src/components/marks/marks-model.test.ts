@@ -92,6 +92,25 @@ describe("mvpRowModel", () => {
     expect(mvpRowModel(fixtures.notCompleted, "en")).toBeNull();
   });
 
+  it("closes the vote with the Rating window on a Match that counts for Temba Level", () => {
+    const data = fixtures.mvpVoting;
+    const closesAt = new Date(data.window!.opensAt.getTime() + 24 * HOUR_MS);
+    expect(
+      mvpRowModel({ ...data, mvp: { ...data.mvp, closesAt } }, "en")?.line,
+    ).toBe(
+      `Players vote. 2 of 4 have voted, closes ${formatMarksClose(closesAt, "en")}`,
+    );
+    expect(
+      mvpRowModel(
+        {
+          ...data,
+          mvp: { ...data.mvp, state: "none", settledAt: closesAt },
+        },
+        "en",
+      ),
+    ).toBeNull();
+  });
+
   it("asks the Organizer to break a tie", () => {
     expect(mvpRowModel(fixtures.mvpTie, "en")).toMatchObject({
       state: "pending",

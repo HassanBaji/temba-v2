@@ -9,6 +9,8 @@ import {
 } from "@repo/domain/product-timezone";
 import type { Sport } from "@repo/domain/sport";
 import { sportSchema } from "@repo/validators/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { type db } from "#src/db";
 
 import {
@@ -23,12 +25,22 @@ const dayKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 
 export async function venueAvailability(
   database: DbClient,
-  args: { venueId: string; day: string; sport?: Sport; now?: Date },
+  args: {
+    venueId: string;
+    day: string;
+    sport?: Sport;
+    now?: Date;
+    locale?: Locale;
+  },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
   const context = await loadVenueSlotContext(database, args.venueId, now);
   if (!context || !isBookableVenue(context)) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Venue not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).venue.errors.notFound,
+    });
   }
 
   const [year, month, date] = args.day.split("-").map(Number);
@@ -38,13 +50,16 @@ export async function venueAvailability(
     day: date ?? Number.NaN,
   });
   if (productDayKey(midnight) !== args.day) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Not a valid day" });
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).booking.errors.invalidDay,
+    });
   }
   const daysAhead = productDaysBetween(now, midnight);
   if (daysAhead < 0 || daysAhead >= context.input.settings.bookingHorizonDays) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "That day is outside the booking window",
+      message: messagesFor(locale).booking.errors.outsideWindow,
     });
   }
 
@@ -72,4 +87,6 @@ export const venueAvailabilityProcedure = protectedProcedure
       sport: sportSchema.optional(),
     }),
   )
-  .query(async ({ ctx, input }) => venueAvailability(ctx.db, input));
+  .query(async ({ ctx, input }) =>
+    venueAvailability(ctx.db, { ...input, locale: ctx.locale }),
+  );

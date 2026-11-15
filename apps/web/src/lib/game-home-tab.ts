@@ -1,3 +1,5 @@
+import type { GameHomeTarget } from "@repo/domain/friendly-game-partner";
+
 export type GameHomeTab = "overview" | "players" | "results";
 
 export function gameHomeTabFromQuery(
@@ -25,4 +27,9 @@ export function gameHomeIntentFromQuery(
 
 export function gameHomeIntentHref(gameId: string, intent: GameHomeIntent) {
   return `/dashboard/games/${gameId}?intent=${intent}`;
+}
+
+export function gameHomeTargetHref(target: GameHomeTarget) {
+  const path = `/dashboard/games/${target.gameId}`;
+  return target.join ? `${path}?join=${target.join}` : path;
 }

@@ -5,12 +5,14 @@ import { useState } from "react";
 
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
+import { MyNotesLink } from "~/components/game-album/my-notes-link";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { cabinetRowModel } from "~/components/marks/cabinet-model";
 import { CabinetRow } from "~/components/marks/cabinet-row";
 import { FootballTab } from "~/components/you/football-tab";
 import { PadelTab } from "~/components/you/padel-tab";
 import { SetUpSportCard } from "~/components/you/set-up-sport-card";
+import { MatchesToStamp } from "~/components/you/matches-to-stamp";
 import { SportChips } from "~/components/you/you-chips";
 import {
   YouHeader,
@@ -57,7 +59,7 @@ export default function YouPage() {
           <ErrorState
             variant="inline"
             className="rounded-card px-5"
-            message={details.error.message}
+            error={details.error}
             onRetry={() => {
               void details.refetch();
             }}
@@ -72,6 +74,8 @@ export default function YouPage() {
               homeArea={details.data.homeArea}
               memberSince={details.data.createdAt}
             />
+            <MatchesToStamp />
+            <MyNotesLink />
             {sport === null ? (
               <SetUpSportCard />
             ) : (

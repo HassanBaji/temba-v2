@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { venues } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { protectedProcedure } from "#src/trpc";
@@ -31,16 +32,19 @@ export async function uploadLogo(
     contentType: VenueLogoContentType;
     dataBase64: string;
     actor: Actor;
+    locale?: Locale;
   },
 ) {
-  await requireVenue(database, args.venueId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  await requireVenue(database, args.venueId, locale);
   await requireVenueManager(database, {
     venueId: args.venueId,
     ...args.actor,
+    locale,
   });
 
-  const bytes = decodeVenueLogoBase64(args.dataBase64);
-  const contentType = assertVenueLogoType(bytes, args.contentType);
+  const bytes = decodeVenueLogoBase64(args.dataBase64, locale);
+  const contentType = assertVenueLogoType(bytes, args.contentType, locale);
   const logoImageUrl = await uploadVenueLogoObject({
     venueId: args.venueId,
     bytes,
@@ -87,5 +91,6 @@ export const uploadLogoProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

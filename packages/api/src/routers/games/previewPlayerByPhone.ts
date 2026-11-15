@@ -1,7 +1,13 @@
 import { z } from "zod";
 
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import {
+  enforceUserRateLimit,
+  userRateLimits,
+} from "#src/rate-limit/user-rate-limits";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import { assertOrganizerAddFormat } from "#src/games/assert-organizer-add-format";
@@ -26,12 +32,14 @@ export async function previewPlayerByPhone(
     organizerUserId: string;
     countryIso: string;
     nationalNumber: string;
+    locale?: Locale;
   },
 ): Promise<PhonePlayerPreview> {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.organizerUserId);
-  assertOrganizerAddFormat(game);
-  const phoneNumber = requireE164(args.countryIso, args.nationalNumber);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.organizerUserId, locale);
+  assertOrganizerAddFormat(game, locale);
+  const phoneNumber = requireE164(args.countryIso, args.nationalNumber, locale);
 
   const resolved = await resolvePhonePlayer(database, phoneNumber);
   if (resolved.kind === "new") {
@@ -62,11 +70,13 @@ export const previewPlayerByPhoneProcedure = protectedProcedure
     }),
   )
   .query(async ({ ctx, input }) => {
+    enforceUserRateLimit(userRateLimits.phonePreview, ctx.userId, ctx.locale);
     const appUser = await resolveAppUser(ctx.userId);
     return previewPlayerByPhone(ctx.db, {
       gameId: input.gameId,
       organizerUserId: appUser.id,
       countryIso: input.countryIso,
       nationalNumber: input.nationalNumber,
+      locale: ctx.locale,
     });
   });

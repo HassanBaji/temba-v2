@@ -9,7 +9,7 @@ describe("termsUpdatedLabel", () => {
   });
 
   it("writes the date in the reader's language", () => {
-    assert.equal(termsUpdatedLabel("en"), "27 October 2026");
-    assert.equal(termsUpdatedLabel("ar"), "27 أكتوبر 2026");
+    assert.equal(termsUpdatedLabel("en"), "12 November 2026");
+    assert.equal(termsUpdatedLabel("ar"), "12 نوفمبر 2026");
   });
 });

@@ -25,7 +25,11 @@ function connect(): Db {
   if (!databaseUrl) {
     throw new Error("DATABASE_URL is not set");
   }
-  const conn = globalForDb.conn ?? postgres(databaseUrl);
+  // Every timestamp column is `without time zone` and defaults to now(), so
+  // the session zone decides what those defaults store.
+  const conn =
+    globalForDb.conn ??
+    postgres(databaseUrl, { connection: { TimeZone: "UTC" } });
   if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;
   return drizzle(conn, { schema });
 }

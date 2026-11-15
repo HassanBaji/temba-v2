@@ -1,7 +1,12 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { formatGameTimeWindow, formatRelativeDay } from "./format-game-start";
+import {
+  formatGameDay,
+  formatGameTimeWindow,
+  formatWeekday,
+} from "./format-game-start";
+import { gameDayStart } from "./game-day";
 import { KEEPERS_PER_GAME } from "./football-lineup";
 import {
   isFootballGame,
@@ -62,6 +67,15 @@ function sideSeats(
   };
 }
 
+/** Always the weekday and date (`Monday, 12 Nov`): a pasted message outlives "Tonight". */
+function shareDay(start: Date | string, locale: Locale) {
+  const date = start instanceof Date ? start : new Date(start);
+  return messagesFor(locale).dates.weekdayAndDate(
+    formatWeekday(gameDayStart(date), "long", locale),
+    formatGameDay(date, locale),
+  );
+}
+
 function whereAndWhenLines(
   input: GameInviteShareMessageInput,
   courtEmoji: string,
@@ -76,7 +90,7 @@ function whereAndWhenLines(
   if (input.courtName) {
     lines.push(`${courtEmoji} ${input.courtName}`);
   }
-  lines.push(`📅 ${formatRelativeDay(start, input.locale)}`);
+  lines.push(`📅 ${shareDay(start, input.locale)}`);
   lines.push(
     `🕗 ${formatGameTimeWindow(input.windowStart, input.windowEnd, start, input.locale)}`,
   );
@@ -84,6 +98,7 @@ function whereAndWhenLines(
     input.levelMinTenths,
     input.levelMaxTenths,
     input.locale,
+    input.football ? "football" : "padel",
   );
   if (levelRange) {
     lines.push(messagesFor(input.locale).createGame.share.level(levelRange));

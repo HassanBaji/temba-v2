@@ -11,7 +11,8 @@ import {
   productDaysBetween,
   zonedDateTimeToInstant,
 } from "@repo/domain/product-timezone";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor, type Messages } from "@repo/i18n/messages";
 
 const MS_PER_MINUTE = 60_000;
 
@@ -21,11 +22,12 @@ export type ListScope = (typeof LIST_SCOPES)[number];
 export const UPCOMING_DAYS = 7;
 export const PAST_DAYS = 30;
 
-export const SCOPE_OPTIONS: readonly { value: ListScope; label: string }[] = [
-  { value: "upcoming", label: "Upcoming" },
-  { value: "past", label: "Past" },
-  { value: "cancelled", label: "Cancelled" },
-];
+export function scopeOptions(
+  locale: Locale,
+): readonly { value: ListScope; label: string }[] {
+  const words = messagesFor(locale).consoleBookings.scope;
+  return LIST_SCOPES.map((value) => ({ value, label: words[value] }));
+}
 
 export type ListStatus =
   | "pending_payment"
@@ -122,79 +124,109 @@ export function matchesSearch(
 }
 
 /** "Today 6:00 PM", "Tomorrow 7:00 PM", "Fri 5:00 PM" within the week, else "Thu 15 Oct 7:00 PM". */
-export function whenLabel(startsAt: Date, now: Date): string {
+export function whenLabel(startsAt: Date, now: Date, locale: Locale): string {
+  const m = messagesFor(locale).consoleBookings;
   const days = productDaysBetween(now, startsAt);
   const day =
     days === 0
-      ? "Today"
+      ? m.today
       : days === 1
-        ? "Tomorrow"
+        ? m.tomorrow
         : days === -1
-          ? "Yesterday"
+          ? m.yesterday
           : Math.abs(days) < 7
-            ? formatWeekday(startsAt, "short", CONSOLE_LOCALE)
-            : formatDayMonth(startsAt, CONSOLE_LOCALE, { weekday: "short" });
-  return `${day} ${formatGameClock(startsAt, CONSOLE_LOCALE)}`;
+            ? formatWeekday(startsAt, "short", locale)
+            : formatDayMonth(startsAt, locale, { weekday: "short" });
+  return m.dayAndTime(day, formatGameClock(startsAt, locale));
 }
 
-export function durationLabel(startsAt: Date, endsAt: Date): string {
+export function durationLabel(
+  startsAt: Date,
+  endsAt: Date,
+  locale: Locale,
+): string {
   const minutes = Math.round(
     (endsAt.getTime() - startsAt.getTime()) / MS_PER_MINUTE,
   );
-  return `${minutes} min`;
+  return messagesFor(locale).consoleBookings.minutes(minutes);
 }
 
 /** "7:00 to 8:30 PM", repeating the meridiem only when it changes. */
-export function timeRangeLabel(startsAt: Date, endsAt: Date): string {
-  const start = formatGameClock(startsAt, CONSOLE_LOCALE);
-  const end = formatGameClock(endsAt, CONSOLE_LOCALE);
+export function timeRangeLabel(
+  startsAt: Date,
+  endsAt: Date,
+  locale: Locale,
+): string {
+  const start = formatGameClock(startsAt, locale);
+  const end = formatGameClock(endsAt, locale);
   const sameMeridiem = start.split(" ").at(-1) === end.split(" ").at(-1);
-  return `${sameMeridiem ? formatGameClockWithoutMeridiem(startsAt, CONSOLE_LOCALE) : start} to ${end}`;
+  return messagesFor(locale).consoleBookings.timeRange(
+    sameMeridiem ? formatGameClockWithoutMeridiem(startsAt, locale) : start,
+    end,
+  );
 }
 
 /** "Court 2, Thu 15 Oct 7:00 to 8:30 PM". */
-export function bookingTitle(booking: {
-  court: { name: string };
-  startsAt: Date;
-  endsAt: Date;
-}): string {
-  return `${booking.court.name}, ${formatDayMonth(booking.startsAt, CONSOLE_LOCALE, { weekday: "short" })} ${timeRangeLabel(booking.startsAt, booking.endsAt)}`;
+export function bookingTitle(
+  booking: {
+    court: { name: string };
+    startsAt: Date;
+    endsAt: Date;
+  },
+  locale: Locale,
+): string {
+  return messagesFor(locale).consoleBookings.title(
+    booking.court.name,
+    formatDayMonth(booking.startsAt, locale, { weekday: "short" }),
+    timeRangeLabel(booking.startsAt, booking.endsAt, locale),
+  );
 }
 
-export function sourceLabel(source: "app" | "venue"): string {
-  return source === "venue" ? "Manual" : "App";
+export function sourceLabel(source: "app" | "venue", locale: Locale): string {
+  return messagesFor(locale).consoleBookings.source[source];
 }
 
 export type PaymentMark = "paid" | "open" | "failed";
 
 const PAYMENT_WORDS: Record<
   PaymentStatus,
-  { mark: PaymentMark; word: string }
+  {
+    mark: PaymentMark;
+    word: keyof Messages["consoleBookings"]["payment"];
+  }
 > = {
-  pending: { mark: "open", word: "Unpaid" },
-  paid: { mark: "paid", word: "Paid" },
-  failed: { mark: "failed", word: "Failed" },
-  refunded: { mark: "paid", word: "Refunded" },
-  partially_refunded: { mark: "paid", word: "Part refunded" },
-  waived: { mark: "paid", word: "Waived" },
+  pending: { mark: "open", word: "unpaid" },
+  paid: { mark: "paid", word: "paid" },
+  failed: { mark: "failed", word: "failed" },
+  refunded: { mark: "paid", word: "refunded" },
+  partially_refunded: { mark: "paid", word: "partiallyRefunded" },
+  waived: { mark: "paid", word: "waived" },
 };
 
 /** The inline mark and word the design uses in place of a badge. */
-export function paymentWord(status: PaymentStatus): {
+export function paymentWord(
+  status: PaymentStatus,
+  locale: Locale,
+): {
   mark: PaymentMark;
   word: string;
 } {
-  return PAYMENT_WORDS[status];
+  const { mark, word } = PAYMENT_WORDS[status];
+  return { mark, word: messagesFor(locale).consoleBookings.payment[word] };
 }
 
-export function countLabel(scope: ListScope, count: number): string {
-  const noun = count === 1 ? "booking" : "bookings";
+export function countLabel(
+  scope: ListScope,
+  count: number,
+  locale: Locale,
+): string {
+  const words = messagesFor(locale).consoleBookings.count;
   switch (scope) {
     case "upcoming":
-      return `${count} ${noun}, next ${UPCOMING_DAYS} days`;
+      return words.upcoming(count, UPCOMING_DAYS);
     case "past":
-      return `${count} ${noun}, last ${PAST_DAYS} days`;
+      return words.past(count, PAST_DAYS);
     case "cancelled":
-      return `${count} cancelled or expired, last ${PAST_DAYS} days`;
+      return words.cancelled(count, PAST_DAYS);
   }
 }

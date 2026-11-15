@@ -3,7 +3,8 @@ import {
   type PricingRuleInput,
 } from "@repo/domain/booking-price";
 import { parseOptionalPricePerPlayerFils } from "@repo/domain/price-per-player";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { dayStart, weekdayOf, type GridWindow } from "./booking-model";
 
@@ -110,7 +111,10 @@ export function draftToInput(
   venueId: string,
   draft: NewBookingDraft,
   quotedFils: number | null,
+  locale: Locale,
 ): DraftResult {
+  const { consoleSchedule, consoleBookings } = messagesFor(locale);
+  const m = consoleSchedule.create;
   const holder =
     draft.holder.kind === "user"
       ? { userId: draft.holder.userId }
@@ -121,30 +125,27 @@ export function draftToInput(
           }
         : null;
   if (!holder) {
-    return { ok: false, message: "Pick a Customer or add a new one" };
+    return { ok: false, message: m.pickCustomer };
   }
   if ("guestName" in holder && (!holder.guestName || !holder.guestPhone)) {
-    return { ok: false, message: "A new Customer needs a name and a phone" };
+    return { ok: false, message: m.guestNeedsNameAndPhone };
   }
   if (!draft.courtId) {
-    return { ok: false, message: "Pick a Court" };
+    return { ok: false, message: m.pickCourt };
   }
   if (draft.startMinute === null) {
-    return { ok: false, message: "Pick a start time" };
+    return { ok: false, message: m.pickStart };
   }
 
   let priceFils: number | undefined;
   if (draft.priceInput !== null) {
-    const parsed = parseOptionalPricePerPlayerFils(
-      draft.priceInput,
-      CONSOLE_LOCALE,
-    );
+    const parsed = parseOptionalPricePerPlayerFils(draft.priceInput, locale);
     if (!parsed.ok || parsed.fils === null) {
-      return { ok: false, message: "Enter the price in BD, like 18.000" };
+      return { ok: false, message: consoleBookings.edit.badPrice };
     }
     priceFils = parsed.fils;
   } else if (quotedFils === null) {
-    return { ok: false, message: "No rate covers this time. Type a price" };
+    return { ok: false, message: consoleBookings.edit.noRate };
   }
 
   const reference = draft.reference.trim();

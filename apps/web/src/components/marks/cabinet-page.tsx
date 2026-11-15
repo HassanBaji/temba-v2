@@ -347,7 +347,7 @@ export function CabinetPage({
     return (
       <ErrorState
         title={m.webMarks.cabinet.loadError}
-        message={query.error.message}
+        error={query.error}
         onRetry={() => {
           void query.refetch();
         }}

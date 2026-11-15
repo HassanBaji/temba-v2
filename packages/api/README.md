@@ -13,6 +13,18 @@ Both the Web App and the Mobile App authenticate the same way.
 - **Verification.** `CLERK_JWT_KEY` (optional) verifies tokens without a network call. Without it, `@clerk/backend` fetches the instance's JWKS.
 - **Public metadata.** `ctx.getPublicMetadata()` calls Clerk at most once per request, and only when a procedure asks (the Operator check).
 
+## Operator directory
+
+The Operator check reads the session's public metadata. To find every Operator (the Match dispute Notification), procedures read `user.is_operator`, which the Clerk webhook copies from `public_metadata.operator` on every `user.created` and `user.updated` (ADR-0081).
+
+**One-time step after the `0119_user_is_operator` migration deploys.** Operators granted before it have the column false until Clerk next sends a `user.updated` for them. Run the backfill once against each environment, with that environment's `CLERK_SECRET_KEY` and `DATABASE_URL` in the shell or in `packages/api/.env`:
+
+```bash
+pnpm --filter @repo/api db:backfill-operators
+```
+
+It pages through every Clerk User and writes what Clerk says now, so it is safe to rerun, for example after a webhook outage.
+
 ## Error codes
 
 | HTTP | tRPC code           | When                                                                                                              |

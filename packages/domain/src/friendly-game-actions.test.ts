@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
+  footballReportWrongScoreAction,
   friendlyGameCtaCopy,
   friendlyGameFooterActions,
 } from "./friendly-game-actions";
@@ -89,6 +90,47 @@ describe("friendlyGameFooterActions", () => {
     });
     assert.equal(action?.kind, "report_wrong_score_locked");
     assert.equal(action?.enabled, false);
+  });
+});
+
+describe("footballReportWrongScoreAction", () => {
+  const groupGame = {
+    groupId: "group",
+    challenge: null,
+    canReportWrongScore: { eligible: true },
+  };
+
+  it("offers Report a wrong score to the Organizer of a played football Group Game", () => {
+    const action = footballReportWrongScoreAction(groupGame, "en");
+    assert.equal(action?.kind, "report_wrong_score");
+    assert.equal(action?.label, "Report a wrong score");
+    assert.equal(action?.enabled, true);
+  });
+
+  it("locks it when the Match is not eligible", () => {
+    const action = footballReportWrongScoreAction(
+      { ...groupGame, canReportWrongScore: { eligible: false } },
+      "en",
+    );
+    assert.equal(action?.kind, "report_wrong_score_locked");
+    assert.equal(action?.enabled, false);
+  });
+
+  it("offers nothing to a player, on a groupless Game or on a Challenge Game", () => {
+    for (const game of [
+      { ...groupGame, canReportWrongScore: null },
+      { ...groupGame, groupId: null },
+      { ...groupGame, challenge: { sides: [] } },
+    ]) {
+      assert.equal(footballReportWrongScoreAction(game, "en"), null);
+    }
+  });
+
+  it("writes the label in Arabic", () => {
+    assert.equal(
+      footballReportWrongScoreAction(groupGame, "ar")?.label,
+      "الإبلاغ عن نتيجة خاطئة",
+    );
   });
 });
 

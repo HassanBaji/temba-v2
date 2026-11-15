@@ -496,6 +496,83 @@ export const tournament = {
     viewKnockout: "View knockout",
     viewGroup: "View group",
   },
+  gamesCard: {
+    roundOfCount: (roundNumber: number, roundCount: number) =>
+      `round ${roundNumber} of ${roundCount}`,
+    allRoundsPlayed: "All rounds played",
+    dayLine: (relativeDay: string, day: string) => `${relativeDay}, ${day}`,
+    untilClock: (clock: string) => `to ${clock}`,
+    courtsCount: (n: number) =>
+      plural("en", n, { one: "1 court", other: "{n} courts" }),
+    groupPlace: (label: string, place: string, size: number) =>
+      `Group ${label}, ${place} of ${size}`,
+    groupPlaceSoFar: (label: string, place: string, size: number) =>
+      `Group ${label}, ${place} of ${size} so far`,
+    yourRounds: "Your rounds",
+    roundsTonight: (n: number) => `${n} tonight`,
+    roundsCount: (n: number) =>
+      plural("en", n, { one: "1 round", other: "{n} rounds" }),
+    playedWon: (played: number, won: number) => `${played} played, ${won} won`,
+    next: "Next",
+    onCourt: "On court",
+    noScore: "no score",
+    cancelled: "Cancelled",
+    withCourt: (line: string, court: string) => `${line}, ${court}`,
+    firstUp: (opponent: string) => `First up: ${opponent}`,
+    nextUp: (opponent: string) => `Next: ${opponent}`,
+    playing: (opponent: string) => `Playing ${opponent}`,
+    firstUpBody: (rounds: number) =>
+      plural("en", rounds, {
+        one: "One round, one card for the whole night. Scores go in from here.",
+        other:
+          "{n} rounds, one card for the whole night. Scores go in from here.",
+      }),
+    roundsToGo: (n: number) =>
+      plural("en", n, { one: "1 round to go.", other: "{n} rounds to go." }),
+    playingBody: "Enter the score when you finish.",
+    playingBodyThenNext: (opponent: string) =>
+      `Enter the score when you finish. ${opponent} are next.`,
+    playingBodyThenNextOnCourt: (opponent: string, court: string) =>
+      `Enter the score when you finish. ${opponent} are next, on ${court}.`,
+    details: "Details",
+    viewTournament: "View tournament",
+    tournament: "Tournament",
+    enterScore: "Enter score",
+    place: (n: number) => {
+      const mod100 = n % 100;
+      const mod10 = n % 10;
+      if (mod100 >= 11 && mod100 <= 13) {
+        return `${n}th`;
+      }
+      return `${n}${mod10 === 1 ? "st" : mod10 === 2 ? "nd" : mod10 === 3 ? "rd" : "th"}`;
+    },
+    ofTeams: (size: number) => `of ${teamsWord(size)}`,
+    ofTeamsInGroup: (size: number, label: string) =>
+      `of ${size} in group ${label}`,
+    soFar: "so far",
+    withPartner: (name: string) => `with ${name}`,
+    record: (won: number, drawn: number, lost: number) =>
+      drawn > 0
+        ? `${won} won, ${drawn} drawn, ${lost} lost.`
+        : `${won} won, ${lost} lost.`,
+    wonIt: (pair: string) => `${pair} won it`,
+    noScoreYet: (n: number) =>
+      plural("en", n, {
+        one: "One round has no score yet",
+        other: "{n} rounds have no score yet",
+      }),
+    roundHasNoScore: (round: string) => `${round} has no score`,
+    roundsHaveNoScore: (n: number) => `${n} rounds have no score`,
+    addScore: "Add the score",
+    cellWon: (score: string) => (score ? `won ${score}` : "won"),
+    cellLost: (score: string) => (score ? `lost ${score}` : "lost"),
+    cellDrew: (score: string) => (score ? `drew ${score}` : "drew"),
+    cellLabel: (round: string, state: string, opponent: string) =>
+      opponent
+        ? `${round}, ${state}, against ${opponent}`
+        : `${round}, ${state}`,
+    later: "later",
+  },
   details: {
     fallbackName: "Tournament",
     minutes: (n: number) => `${n} min`,
@@ -509,5 +586,101 @@ export const tournament = {
     takeSeatOn: (seat: string, team: string) =>
       `Take the ${seat} seat on ${team}`,
     openSeatOn: (seat: string, team: string) => `Open ${seat} seat on ${team}`,
+  },
+  errors: {
+    roundsPoolOnly: "Rounds are made on a Pool tournament",
+    cancelled: "This tournament is cancelled",
+    postDrawFirst: "Post the draw before making Rounds",
+    roundsShapeOneGroup: "A Rounds tournament has one group",
+    roundsKnockoutStarted:
+      "Rounds cannot be added or removed once the knockout has started",
+    roundsAtMost: (max: number) =>
+      `This tournament can have ${max} Rounds at most`,
+    keepOneRound: "A tournament keeps at least one Round",
+    roundAlreadyCancelled: (round: number) =>
+      `Round ${round} is already cancelled`,
+    cancelRoundRatedLater: (round: number) =>
+      `Round ${round} cannot be cancelled: one of its players has a later rated Match, so its scores can no longer be taken back`,
+    roundsRange: (count: number) => `This tournament has Rounds 1 to ${count}`,
+    roundPosted: (round: number) => `Round ${round} is posted`,
+    roundNotMade: (round: number) => `Round ${round} is not made yet`,
+    postRoundFirst: (round: number) => `Post Round ${round} first`,
+    roundNotComplete: (round: number) => `Round ${round} is not complete`,
+    roundRecordCourts: "Record Courts before posting a Round",
+    roundAlreadyPosted: "That Round is already posted",
+    pickPairedTeam: "Pick a team playing someone else in this Round",
+    samePool: "Pair two teams from the same Pool",
+    poolSitsOut: "That Pool sits this Round out",
+    teamOncePerRound: "A team plays once a Round",
+    teamNotInTournament: "That team is not in this tournament",
+    scoredMatchKeepsTeams: "A Match with a score keeps its teams",
+    knockoutSidesFromDraw: "The sides of a Knockout Match come from the draw",
+    knockoutByHand: "Knockout Matches come from the draw",
+    editMatchesFriendly: "Edit Matches on a Friendly tournament",
+    addMatchCancelled: "Cannot add a Match on a cancelled Game",
+    addMatchesFriendly: "Add Matches on a Friendly tournament",
+    poolMatchNotAwarded:
+      "A Pool Match is voided, not awarded, so no team goes through",
+    knockoutMatchCompleted: "This Knockout Match is already completed",
+    oneDayWindow: "Finish time must be within 24 hours of the start",
+    qualifiersShape:
+      "Through from each group applies to Groups, then knockout only",
+    drawCancelled: "Cannot draw the groups on a cancelled Game",
+    drawFriendly: "Draw the groups on a Friendly tournament",
+    drawHalfTeams: (names: string) =>
+      `Cannot draw the groups while Half teams remain: ${names}`,
+    drawBelowMinimum: "Need at least 4 complete Game teams to draw the groups",
+    teamNumber: (side: number) => `Team ${side}`,
+    scoreGamesBetween: (min: number, max: number) =>
+      `Games won must be between ${min} and ${max}`,
+    scoreOnTournamentMatch: "Enter a tournament score on a tournament Match",
+    scoreTeamsOrOrganizer:
+      "Only the two teams or an organizer can enter this score",
+    scoreConfirmed: "This score is confirmed; ask the organizer to change it",
+    scoreNeedsTwoPlayers: "Both teams need two players before a score",
+    knockoutNeedsWinner: "A knockout Match needs a winner",
+    notFinishedTournamentOnly:
+      "Only a tournament Match can be marked not finished",
+    teamsOrOrganizer: "Only the two teams or an organizer can do that",
+    notFinishedInPlay:
+      "Only a Match still being played can be marked not finished",
+    mergeCancelled: "Cannot merge Half teams on a cancelled Game",
+    mergeFriendly: "Merge Half teams on a Friendly tournament",
+    mergeIndividual: "Merge Half teams on an individual Friendly tournament",
+    pickTwoHalfTeams: "Pick two different Half teams",
+    notHalfTeams: "Both Game teams must be Half teams",
+    postDrawCancelled: "Cannot post the group draw on a cancelled Game",
+    postDrawFriendly: "Post the group draw on a Friendly tournament",
+    postDrawWindow: "Set the tournament window before posting the group draw",
+    postHalfTeams: (names: string) =>
+      `Cannot post the group draw while Half teams remain: ${names}`,
+    postBelowMinimum:
+      "Need at least 4 complete Game teams to post the group draw",
+    postRecordCourts: "Record Courts before posting the group draw",
+    drawNoMatches: "The group draw did not produce any Matches",
+    drawKnockoutFirst: "Draw the knockout before posting",
+    drawGroupsFirst: "Draw the groups before posting",
+    groupsDrawn: "The groups are drawn",
+    undoCancelled: {
+      draw: "Cannot undo the draw on a cancelled Game",
+      groupDraw: "Cannot undo the group draw on a cancelled Game",
+    },
+    undoFriendly: "Undo the group draw on a Friendly tournament",
+    notPosted: {
+      draw: "The draw has not been posted",
+      groupDraw: "The group draw has not been posted",
+    },
+    undoAfterSet: "Cannot undo the group draw after a Set has been played",
+    undoKnockoutAfterSet: "Cannot undo the draw after a Set has been played",
+    roundCountFriendly: "Change Rounds on a Friendly tournament",
+    knockoutEmptySide:
+      "This Knockout Match has an empty side. Sets open once both teams are in.",
+    knockoutTakeBackRefused:
+      "The Match this result feeds has started, so this result can no longer be reversed",
+    poolCorrectionRefused:
+      "A Knockout Match has started, so this group result can no longer be reversed",
+    walkoverTeamRequired: "Choose which team goes through",
+    walkoverTeamNotOnMatch: "That team is not on this Match",
+    partnerRequired: "This tournament does not allow registering alone",
   },
 };

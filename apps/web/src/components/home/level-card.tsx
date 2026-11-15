@@ -1,15 +1,107 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Check, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { useId } from "react";
 
-import { SurfaceLabel } from "~/components/common/surface-label";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Hatch } from "~/components/ui/hatch";
-import { homeLevelView, type HomeLevelInput } from "@repo/domain/home-level";
-import type { Sport } from "@repo/domain/sport";
+import { youRatingsHref } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
+import { hatch } from "@repo/design-tokens";
+import { homeLevelView, type HomeLevelView } from "@repo/domain/home-level";
+import { gaugeArc } from "@repo/domain/home-level-chart";
+import type { Sport } from "@repo/domain/sport";
 
+import { FootballLevelFace } from "./football-level-face";
 import { noLevelCopy, type HomeLevel } from "./home-model";
+import { SectionTitle } from "./section-title";
+
+const VIEWBOX = 120;
+const RADIUS = 50;
+const STROKE = 10;
+
+function Gauge({ percent, band }: { percent: number; band: string }) {
+  const patternId = `gauge-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const arc = gaugeArc(percent, RADIUS);
+  const center = VIEWBOX / 2;
+  return (
+    <span className="relative flex size-[104px] shrink-0 items-center justify-center">
+      <svg
+        aria-hidden="true"
+        viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}
+        className="absolute inset-0 size-full"
+      >
+        <defs>
+          <pattern
+            id={patternId}
+            patternUnits="userSpaceOnUse"
+            width={hatch.period}
+            height={hatch.period}
+            patternTransform={`rotate(${hatch.angle})`}
+          >
+            <rect
+              width={hatch.stroke * 1.5}
+              height={hatch.period}
+              style={{ fill: "var(--hatch-stroke-paper)" }}
+            />
+          </pattern>
+        </defs>
+        <circle
+          cx={center}
+          cy={center}
+          r={RADIUS}
+          fill="none"
+          stroke={`url(#${patternId})`}
+          strokeWidth={STROKE}
+        />
+        {arc > 0 ? (
+          <circle
+            cx={center}
+            cy={center}
+            r={RADIUS}
+            fill="none"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeDasharray={`${arc} ${2 * Math.PI * RADIUS}`}
+            transform={`rotate(-90 ${center} ${center})`}
+            className="stroke-ink"
+          />
+        ) : null}
+      </svg>
+      <span
+        dir="ltr"
+        className="font-expanded relative text-[36px] leading-none"
+      >
+        {band}
+      </span>
+    </span>
+  );
+}
+
+function Status({
+  provisional,
+  label,
+}: {
+  provisional: boolean;
+  label: string;
+}) {
+  return (
+    <p className="text-meta flex shrink-0 items-center gap-1.5">
+      {provisional ? (
+        <Hatch className="size-3 rounded-[2px]" />
+      ) : (
+        <Check aria-hidden="true" className="size-3.5" />
+      )}
+      <span className={provisional ? "text-muted-foreground" : undefined}>
+        {label}
+      </span>
+    </p>
+  );
+}
+
+const CARD_LINK =
+  "border-rule bg-paper hover:bg-wash focus-visible:ring-ring/50 rounded-card block border outline-none transition-colors focus-visible:ring-[3px]";
 
 export function LevelCard({
   level,
@@ -20,108 +112,111 @@ export function LevelCard({
 }) {
   const m = useMessages();
   const locale = useLocale();
+  const view =
+    level.kind === "rated" ? homeLevelView(level.input, locale) : null;
   return (
-    <section className="border-rule bg-paper overflow-hidden rounded-xl border">
-      <SurfaceLabel>{m.home.level.heading[sport]}</SurfaceLabel>
-      {level.kind === "rated" ? (
-        <RatedLevel input={level.input} />
+    <section className="flex flex-col gap-3">
+      <SectionTitle
+        title={m.home.levelSection.title[sport]}
+        status={
+          view ? (
+            <Status provisional={view.provisional} label={view.status} />
+          ) : undefined
+        }
+      />
+      {view ? (
+        <Link
+          href={youRatingsHref(sport)}
+          aria-label={view.spoken}
+          title={m.home.levelSection.opensRatings}
+          className={cn(CARD_LINK, "divide-rule divide-y overflow-hidden")}
+        >
+          <RatedLevel view={view} />
+        </Link>
       ) : (
-        <div className="flex items-center gap-5 px-[22px] pb-[22px]">
-          <Hatch radius="lg" className="size-[74px] shrink-0" />
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <p className="text-lead font-semibold">
+        <Link
+          href={youRatingsHref(sport)}
+          title={m.home.levelSection.opensRatings}
+          className={cn(CARD_LINK, "flex items-center gap-5 p-[22px]")}
+        >
+          <Hatch className="size-[74px] shrink-0 rounded-full" />
+          <span className="flex min-w-0 flex-col gap-1.5">
+            <span className="text-lead font-semibold">
               {m.profile.levelCard.noLevelYet}
-            </p>
-            <p className="text-meta text-muted-foreground">
+            </span>
+            <span className="text-meta text-muted-foreground">
               {noLevelCopy(sport, locale)}
-            </p>
-          </div>
-        </div>
+            </span>
+          </span>
+        </Link>
       )}
     </section>
   );
 }
 
-function RatedLevel({ input }: { input: HomeLevelInput }) {
-  const m = useMessages();
-  const locale = useLocale();
-  const [drawn, setDrawn] = useState(false);
-  useEffect(() => {
-    setDrawn(true);
-  }, []);
-
-  const view = homeLevelView(input, locale);
-
+function RatedLevel({ view }: { view: HomeLevelView }) {
+  if (view.scale) {
+    return (
+      <FootballLevelFace
+        numberLabel={view.numberLabel}
+        number={view.level}
+        scale={view.scale}
+        change={
+          view.change
+            ? {
+                amount: view.change.signedAmount,
+                caption: view.change.caption,
+                points: view.change.points,
+              }
+            : null
+        }
+        start={view.start}
+        footer={view.footer}
+        tone="paper"
+        opens
+      />
+    );
+  }
   return (
     <>
-      <div className="flex items-stretch gap-4 px-[22px] pb-[22px]">
-        <p className="font-expanded text-[88px] leading-none">
-          <span className="sr-only">{`${m.webAuth.home.levelBandSpoken} `}</span>
-          <span dir="ltr">{view.displayBand}</span>
-        </p>
-        <div className="bg-rule w-px self-stretch" />
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
-          <p className="flex items-baseline gap-2">
-            <span className="font-expanded text-h2 tabular-nums">
-              {view.level}
-            </span>
-            <span className="text-meta text-muted-foreground">
-              {m.home.level.numberLabel}
-            </span>
-          </p>
+      <span className="flex items-center gap-5 p-[22px]">
+        <Gauge percent={view.percent} band={view.displayBand ?? ""} />
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-eyebrow text-muted-foreground">
+            {view.numberLabel}
+          </span>
+          <span className="font-expanded text-hero tabular-nums leading-none">
+            {view.level}
+          </span>
           {view.change ? (
-            <p className="flex items-baseline gap-1.5">
-              <span className="font-expanded text-h2 tabular-nums">
+            <span className="mt-1 flex items-baseline gap-2">
+              <span className="font-expanded tabular-nums">
                 {view.change.signedAmount}
               </span>
-              <span className="text-meta text-muted-foreground truncate">
-                {view.change.windowLabel}
+              <span className="text-eyebrow text-muted-foreground truncate">
+                {view.change.caption}
               </span>
-            </p>
+            </span>
           ) : null}
-        </div>
-      </div>
-
-      {view.progress ? (
-        <div className="border-rule space-y-2 border-t px-[22px] pb-4 pt-3.5">
-          <p className="text-meta text-muted-foreground">
-            {view.progress.label}
-          </p>
-          <div
-            aria-hidden="true"
-            className={cn(
-              "h-2 w-full overflow-hidden rounded-full",
-              view.provisional ? "hatch" : "bg-wash",
-            )}
-          >
-            <div
-              className="bg-ink h-full"
-              style={{
-                width: drawn ? `${view.progress.percent}%` : "0%",
-                transition: "width 700ms ease-out",
-              }}
-            />
-          </div>
-        </div>
-      ) : (
-        <p className="border-rule text-meta border-t px-[22px] py-3">
-          {m.profile.level.topBand}
-        </p>
-      )}
-
-      <div className="border-rule text-meta flex items-start gap-2 border-t px-[22px] py-3">
-        <span
+        </span>
+      </span>
+      <span className="text-meta text-muted-foreground flex items-center gap-3 px-[22px] py-3.5">
+        <span className="shrink-0">{view.footer.label}</span>
+        <span className="min-w-0 flex-1 truncate text-end">
+          {view.footer.value ? (
+            <>
+              <span dir="ltr" className="font-expanded text-ink">
+                {view.footer.value}
+              </span>
+              {view.footer.detail}
+            </>
+          ) : null}
+        </span>
+        <ChevronRight
           aria-hidden="true"
-          className={cn(
-            "mt-[3px] size-3 shrink-0",
-            view.provisional ? "hatch" : "bg-ink",
-          )}
+          className="size-4 shrink-0 rtl:-scale-x-100"
         />
-        <p>
-          <span className="font-semibold">{view.legend.lead}</span>
-          {view.legend.rest}
-        </p>
-      </div>
+      </span>
     </>
   );
 }

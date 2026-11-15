@@ -31,6 +31,8 @@ import {
   tournamentMatchMinutes,
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
+  defaultRoundsShapeRoundCount,
+  validateRoundsShapeRoundCount,
 } from "./tournament-sizing";
 
 describe("sizeFriendlyTournament", () => {
@@ -524,5 +526,40 @@ describe("Arabic copy", () => {
       ),
       "يلعب كل فريق 3 مباريات",
     );
+  });
+});
+
+describe("the Rounds shape Round count", () => {
+  it("starts on four Rounds, or one Pass when that is shorter", () => {
+    assert.equal(defaultRoundsShapeRoundCount([12]), 4);
+    assert.equal(defaultRoundsShapeRoundCount([6]), 4);
+    assert.equal(defaultRoundsShapeRoundCount([4]), 3);
+  });
+
+  it("keeps the picked number, even when it equals one Pass", () => {
+    assert.deepEqual(validateRoundsShapeRoundCount([8], 7), {
+      ok: true,
+      roundCount: 7,
+    });
+    assert.deepEqual(validateRoundsShapeRoundCount([8], 2), {
+      ok: true,
+      roundCount: 2,
+    });
+  });
+
+  it("stores the default for an omitted count, never null", () => {
+    assert.deepEqual(validateRoundsShapeRoundCount([8], null), {
+      ok: true,
+      roundCount: 4,
+    });
+    assert.deepEqual(validateRoundsShapeRoundCount([4], undefined), {
+      ok: true,
+      roundCount: 3,
+    });
+  });
+
+  it("refuses 0 and more than two Passes", () => {
+    assert.equal(validateRoundsShapeRoundCount([8], 0).ok, false);
+    assert.equal(validateRoundsShapeRoundCount([8], 15).ok, false);
   });
 });

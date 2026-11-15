@@ -1,3 +1,5 @@
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import { requireGroupInviter } from "#src/groups/helpers/require-group-inviter";
 import { type db } from "#src/db";
 
@@ -7,6 +9,7 @@ export async function requireGroupInviteLinkMinter(
   database: DbClient,
   groupId: string,
   callerId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
-  return requireGroupInviter(database, groupId, callerId);
+  return requireGroupInviter(database, groupId, callerId, locale);
 }

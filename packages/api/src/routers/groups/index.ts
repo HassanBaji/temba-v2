@@ -3,6 +3,7 @@ import { createTRPCRouter } from "#src/trpc";
 import { acceptInviteLinkProcedure as acceptInviteLink } from "./acceptInviteLink";
 import { acceptLinkRequestProcedure as acceptLinkRequest } from "./acceptLinkRequest";
 import { acceptLookupInviteProcedure as acceptLookupInvite } from "./acceptLookupInvite";
+import { adjustTierPointsProcedure as adjustTierPoints } from "./adjustTierPoints";
 import { addPlayerByPhoneProcedure as addPlayerByPhone } from "./addPlayerByPhone";
 import { approveJoinRequestProcedure as approveJoinRequest } from "./approveJoinRequest";
 import { byId } from "./byId";
@@ -25,12 +26,14 @@ import { listPublicProcedure as listPublic } from "./listPublic";
 import { listSeasonsProcedure as listSeasons } from "./listSeasons";
 import { mineProcedure as mine } from "./mine";
 import { mineLooseProcedure as mineLoose } from "./mineLoose";
+import { myStandingsProcedure as myStandings } from "./myStandings";
 import { pendingLinkRequestsProcedure as pendingLinkRequests } from "./pendingLinkRequests";
 import { unlinkFromVenueProcedure as unlinkFromVenue } from "./unlinkFromVenue";
 import { pendingLookupInvitesProcedure as pendingLookupInvites } from "./pendingLookupInvites";
 import { inviteLinkByShortCodeProcedure as inviteLinkByShortCode } from "./inviteLinkByShortCode";
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
 import { previewPlayerByPhoneProcedure as previewPlayerByPhone } from "./previewPlayerByPhone";
+import { ratingSettingsProcedure as ratingSettings } from "./ratingSettings";
 import { rejectJoinRequestProcedure as rejectJoinRequest } from "./rejectJoinRequest";
 import { removePlayerProcedure as removePlayer } from "./removePlayer";
 import { removeUnclaimedPlayerProcedure as removeUnclaimedPlayer } from "./removeUnclaimedPlayer";
@@ -40,11 +43,14 @@ import { revokeLookupInviteProcedure as revokeLookupInvite } from "./revokeLooku
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
 import { seasonStandingProcedure as seasonStanding } from "./seasonStanding";
 import { sendLookupInviteProcedure as sendLookupInvite } from "./sendLookupInvite";
+import { setMemberNicknameProcedure as setMemberNickname } from "./setMemberNickname";
 import { setOrganizerProcedure as setOrganizer } from "./setOrganizer";
 import { setVerifiedProcedure as setVerified } from "./setVerified";
+import { tierHistoryProcedure as tierHistory } from "./tierHistory";
 import { transferOwnershipProcedure as transferOwnership } from "./transferOwnership";
 import { setRequiresApprovalProcedure as setRequiresApproval } from "./setRequiresApproval";
 import { undoJoinRequestDecisionProcedure as undoJoinRequestDecision } from "./undoJoinRequestDecision";
+import { updateRatingSettingsProcedure as updateRatingSettings } from "./updateRatingSettings";
 import { uploadImageProcedure as uploadImage } from "./uploadImage";
 import { withdrawJoinRequestProcedure as withdrawJoinRequest } from "./withdrawJoinRequest";
 
@@ -91,9 +97,15 @@ export const groupsRouter = createTRPCRouter({
   addPlayerByPhone,
   removeUnclaimedPlayer,
   removePlayer,
+  setMemberNickname,
   setOrganizer,
   listSeasons,
   createSeason,
   closeSeason,
   seasonStanding,
+  adjustTierPoints,
+  tierHistory,
+  ratingSettings,
+  updateRatingSettings,
+  myStandings,
 });

@@ -3,6 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { groupJoinRequests, GroupJoinRequestStatusEnum } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -15,9 +17,15 @@ type DbClient = typeof db;
 
 export async function requestJoin(
   database: DbClient,
-  args: { groupId: string; userId: string; note?: string | null },
+  args: {
+    groupId: string;
+    userId: string;
+    note?: string | null;
+    locale?: Locale;
+  },
 ) {
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
   const mode = await groupJoinMode(database, group, args.userId);
 
   if (mode === "requested") {
@@ -40,7 +48,7 @@ export async function requestJoin(
   if (mode !== "request") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You cannot request to join this Group",
+      message: messagesFor(locale).group.errors.cannotRequestJoin,
     });
   }
 
@@ -112,5 +120,6 @@ export const requestJoinProcedure = protectedProcedure
       groupId: input.groupId,
       userId: appUser.id,
       note: input.note,
+      locale: ctx.locale,
     });
   });

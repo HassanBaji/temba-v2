@@ -84,6 +84,7 @@ export const challenges = pgTable(
     teamOpenUnique: uniqueIndex("challenges_team_open_uq")
       .on(table.teamId)
       .where(sql`${table.status} = 'open'`),
+    teamIdx: index("challenges_team_id_idx").on(table.teamId),
     sideSizeCheck: check(
       "challenges_side_size_check",
       sql`${table.sideSize} is null or ${table.sideSize} in (5, 6, 7)`,

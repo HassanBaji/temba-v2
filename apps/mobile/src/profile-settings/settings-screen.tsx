@@ -5,6 +5,7 @@ import {
   isFootballPosition,
   isFootballRole,
 } from "@repo/domain/football-lineup";
+import { shownLevel } from "@repo/domain/player-profile-level";
 import { playWindowsSummary } from "@repo/domain/profile-details";
 import { LOCALES, LOCALE_LABELS } from "@repo/i18n/locale";
 import { useRouter } from "expo-router";
@@ -374,7 +375,7 @@ function SettingsBody({ details }: { details: Details }) {
               label={
                 hasFootball
                   ? footballRating
-                    ? displayBand(footballRating.levelBand)
+                    ? shownLevel(footballRating.levelValue, "ovr")
                     : "–"
                   : null
               }
@@ -384,7 +385,7 @@ function SettingsBody({ details }: { details: Details }) {
           sub={
             hasFootball
               ? footballSportSub(
-                  footballRating?.levelBand ?? null,
+                  footballRating?.levelValue ?? null,
                   footballRole,
                   locale,
                 )

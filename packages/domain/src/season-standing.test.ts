@@ -8,6 +8,7 @@ import {
   standingRecordLabel,
   standingRulesLine,
   standingShowsDraws,
+  standingTierFootnote,
   type SeasonStandingMatch,
   unrankedNote,
 } from "./season-standing";
@@ -308,6 +309,46 @@ describe("standing copy", () => {
     expect(standingLegend(false, "ar")).toBe(
       "ل لعب، ف فوز، خ خسارة. الفوز 3 نقاط.",
     );
+  });
+});
+
+describe("standingTierFootnote", () => {
+  it("says it is the season and points to Members on a tier Group", () => {
+    expect(
+      standingTierFootnote({ hasTier: true, seasonInView: true }, "en"),
+    ).toEqual({
+      before:
+        "Counts this season’s games and starts again next season. How strong each player is in the group, their tier, is on ",
+      membersLink: "Members",
+      after: ".",
+    });
+  });
+
+  it("drops the season sentence when no Season is in view", () => {
+    expect(
+      standingTierFootnote({ hasTier: true, seasonInView: false }, "en"),
+    ).toEqual({
+      before: "How strong each player is in the group, their tier, is on ",
+      membersLink: "Members",
+      after: ".",
+    });
+  });
+
+  it("is absent on a Group with no tier", () => {
+    expect(
+      standingTierFootnote({ hasTier: false, seasonInView: true }, "en"),
+    ).toBeNull();
+  });
+
+  it("reads in Arabic", () => {
+    expect(
+      standingTierFootnote({ hasTier: true, seasonInView: true }, "ar"),
+    ).toEqual({
+      before:
+        "يحتسب الترتيب مباريات هذا الموسم ويبدأ من جديد في الموسم القادم. قوة كل لاعب في المجموعة، أي فئته، تجدها في ",
+      membersLink: "الأعضاء",
+      after: ".",
+    });
   });
 });
 

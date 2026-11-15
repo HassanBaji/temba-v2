@@ -13,6 +13,7 @@ import {
   computePoolTables,
   type ComputedPoolTables,
 } from "@repo/domain/pool-table";
+import { messagesFor } from "@repo/i18n/messages";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -24,11 +25,12 @@ export async function listPoolTables(
   database: DbClient,
   args: { gameId: string; userId: string; locale?: Locale },
 ): Promise<ComputedPoolTables | null> {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   if (!(await canViewGame(database, game, args.userId))) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Game not found",
+      message: messagesFor(locale).game.errors.notFound,
     });
   }
 

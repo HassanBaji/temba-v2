@@ -6,8 +6,6 @@ import {
   savedLevelFromParams,
   savedLevelPath,
   savedLevelText,
-  setGroupLevelPath,
-  setGroupLevelView,
   setLevelConfirmLabel,
   setLevelPath,
   setLevelUnchanged,
@@ -68,59 +66,6 @@ describe("setLevelView", () => {
   });
 });
 
-describe("setGroupLevelView", () => {
-  it("starts from the Temba Level and names the Group", () => {
-    const view = setGroupLevelView(
-      entry({ level: "3.8", levelBand: "C2", levelProvisional: false }),
-      "Tuesday padel",
-      "en",
-    );
-    expect(view.startTenths).toBe(38);
-    expect(view.startLabel).toBe("Temba level C+ 3.8");
-    expect(view.markerLabel).toBe("Temba C+ 3.8");
-    expect(view.note).toBe(
-      "Sara Karlsson's level in Tuesday padel. Results in this group move it from there. Their Temba level does not change.",
-    );
-  });
-
-  it("starts from the Group Level once the member has one", () => {
-    const view = setGroupLevelView(
-      entry({
-        level: "3.8",
-        levelBand: "C2",
-        groupLevel: {
-          level: "4.4",
-          rating: 4.41,
-          levelBand: "B1",
-          provisional: false,
-        },
-      }),
-      "Tuesday padel",
-      "en",
-    );
-    expect(view.startTenths).toBe(44);
-    expect(view.startLabel).toMatch(/^Group level .* 4\.4$/);
-    expect(view.markerLabel).toMatch(/^Now .* 4\.4$/);
-  });
-
-  it("starts a member with no Temba Level at 3.0, unmarked", () => {
-    const view = setGroupLevelView(
-      entry({ level: null, levelBand: null, levelProvisional: true }),
-      "Tuesday padel",
-      "en",
-    );
-    expect(view.startTenths).toBe(30);
-    expect(view.startLabel).toBe("no Temba level yet");
-    expect(view.markerLabel).toBeNull();
-  });
-
-  it("reads in Arabic", () => {
-    const view = setGroupLevelView(entry({ level: "2.4" }), "Ladder", "ar");
-    expect(view.startLabel).toMatch(/[\u0600-\u06FF]/);
-    expect(view.note).toContain("Ladder");
-  });
-});
-
 describe("setLevelUnchanged", () => {
   it("blocks only an unchanged value on an already confirmed Level", () => {
     const confirmed = setLevelView(
@@ -148,9 +93,6 @@ describe("paths and saved banner", () => {
   it("builds the screen path", () => {
     expect(setLevelPath("g 1", "u1")).toBe(
       "/groups/set-level?groupId=g%201&userId=u1",
-    );
-    expect(setGroupLevelPath("g 1", "u1")).toBe(
-      "/groups/set-group-level?groupId=g%201&userId=u1",
     );
   });
 

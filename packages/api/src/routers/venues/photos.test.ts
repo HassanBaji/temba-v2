@@ -230,17 +230,40 @@ describe("Venue photo doors", () => {
     const { db, close } = await createPgliteDb();
     try {
       const s = await seed(db);
-      await db
-        .insert(venuePhotos)
-        .values(
-          Array.from({ length: VENUE_PHOTO_LIMIT }, () => ({
-            venueId: s.mine,
-          })),
-        );
+      await db.insert(venuePhotos).values(
+        Array.from({ length: VENUE_PHOTO_LIMIT }, () => ({
+          venueId: s.mine,
+        })),
+      );
       await expect(upload(db, s.mine, s.manager)).rejects.toMatchObject({
         code: "BAD_REQUEST",
       });
       expect(putS3Object).not.toHaveBeenCalled();
+    } finally {
+      await close();
+    }
+  });
+
+  it("re-counts under the Venue lock when other uploads land first", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const s = await seed(db);
+      putS3Object.mockImplementationOnce(async () => {
+        await db.insert(venuePhotos).values(
+          Array.from({ length: VENUE_PHOTO_LIMIT }, () => ({
+            venueId: s.mine,
+          })),
+        );
+      });
+      await expect(upload(db, s.mine, s.manager)).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+      });
+      const rows = await db
+        .select({ id: venuePhotos.id })
+        .from(venuePhotos)
+        .where(eq(venuePhotos.venueId, s.mine));
+      expect(rows).toHaveLength(VENUE_PHOTO_LIMIT);
+      expect(deleteS3Object).toHaveBeenCalledTimes(1);
     } finally {
       await close();
     }

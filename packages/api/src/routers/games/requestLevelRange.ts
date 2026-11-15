@@ -19,6 +19,8 @@ import {
   footballPositionSchema,
   footballRoleSchema,
 } from "@repo/validators/football";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -91,11 +93,12 @@ async function canAuthorizeLevelRangeRequest(
 function refuseIfNotOpenForRequests(
   game: Awaited<ReturnType<typeof requireGame>>,
   now: Date,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (game.cancelledAt || !isRegistrationOpen(game, now)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This Game is not open for registration",
+      message: messagesFor(locale).game.errors.notOpen,
     });
   }
 }
@@ -130,8 +133,9 @@ function heldSeatOf(
 export async function requestLevelRange(
   database: DbClient,
   args: RequestLevelRangeArgs,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
-  const game = await requireGame(database, args.gameId);
+  const game = await requireGame(database, args.gameId, locale);
   const now = new Date();
   const heldSeat = heldSeatOf(game, args);
 
@@ -145,38 +149,38 @@ export async function requestLevelRange(
   ) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Game not found",
+      message: messagesFor(locale).game.errors.notFound,
     });
   }
 
   if (!gameHasLevelRange(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Game has no Level range",
+      message: messagesFor(locale).game.errors.noLevelRange,
     });
   }
 
   if (await isGameOrganizer(database, game, args.userId)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Organizers do not request a Level range exception",
+      message: messagesFor(locale).game.errors.organizersNoLevelRequest,
     });
   }
 
   if (await userAlreadyOnGame(database, game.id, args.userId)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You are already registered on this Game",
+      message: messagesFor(locale).game.errors.alreadyRegistered,
     });
   }
   if (await userAlreadyWaitlisted(database, game.id, args.userId)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "You are already on the waitlist",
+      message: messagesFor(locale).game.errors.alreadyWaitlisted,
     });
   }
 
-  refuseIfNotOpenForRequests(game, now);
+  refuseIfNotOpenForRequests(game, now, locale);
 
   const existing = await database.query.gameLevelRangeRequests.findFirst({
     where: and(
@@ -200,7 +204,7 @@ export async function requestLevelRange(
   if (tenths != null && displayedLevelPassesRange(tenths, game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Your Level is already within this Game's range",
+      message: messagesFor(locale).game.errors.levelWithinRange,
     });
   }
 
@@ -270,12 +274,16 @@ export const requestLevelRangeProcedure = protectedProcedure
   )
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return requestLevelRange(ctx.db, {
-      gameId: input.gameId,
-      userId: appUser.id,
-      inviteToken: input.inviteToken,
-      sideIndex: input.sideIndex,
-      position: input.position,
-      football: input.football,
-    });
+    return requestLevelRange(
+      ctx.db,
+      {
+        gameId: input.gameId,
+        userId: appUser.id,
+        inviteToken: input.inviteToken,
+        sideIndex: input.sideIndex,
+        position: input.position,
+        football: input.football,
+      },
+      ctx.locale,
+    );
   });

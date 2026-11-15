@@ -23,6 +23,7 @@ import {
   standingRecordLabel,
   standingRulesLine,
   standingShowsDraws,
+  standingTierFootnote,
   unrankedNote,
 } from "@repo/domain/season-standing";
 import { isRtl } from "@repo/i18n/locale";
@@ -50,6 +51,8 @@ import {
   standingStats,
   type StandingRowView,
 } from "./group-home-model";
+import { NicknameName } from "../primitives/nickname-name";
+import { groupSeasonsPath } from "./groups-model";
 import { Notice } from "./notice";
 
 type Season = GroupSeasonData & { status: GroupSeasonStatus };
@@ -165,13 +168,12 @@ function StandingRow({
         importantForAccessibility="no-hide-descendants"
         style={{ flex: 1, minWidth: 0 }}
       >
-        <Text
+        <NicknameName
+          name={row.name}
+          isNickname={row.isNickname}
           weight={row.isViewer ? "semibold" : "regular"}
           tone={muted ? "muted" : "default"}
-          numberOfLines={1}
-        >
-          {row.name}
-        </Text>
+        />
         <FormStrip form={row.form} />
       </View>
       {notPlayedYet ? (
@@ -368,13 +370,12 @@ function Podium({ rows, season }: { rows: StandingRowView[]; season: Season }) {
             >
               {row.position}
             </Text>
-            <Text
+            <NicknameName
+              name={row.name}
+              isNickname={row.isNickname}
               weight={row.isViewer ? "semibold" : "regular"}
-              numberOfLines={1}
-              style={{ flex: 1, minWidth: 0 }}
-            >
-              {row.name}
-            </Text>
+              style={{ flex: 1 }}
+            />
             <Text size="meta" tone="muted">
               {standingRecordLabel(row)}
             </Text>
@@ -738,13 +739,12 @@ function StandingPreview({
               uri={mediaUrl(entry.image, apiOrigin)}
               radius={radii.sm}
             />
-            <Text
+            <NicknameName
+              name={row.name}
+              isNickname={row.isNickname}
               weight={row.isViewer ? "semibold" : "regular"}
-              numberOfLines={1}
-              style={{ flex: 1, minWidth: 0 }}
-            >
-              {row.name}
-            </Text>
+              style={{ flex: 1 }}
+            />
             <Text
               width="expanded"
               weight="bold"
@@ -864,16 +864,58 @@ function TableSkeleton() {
   );
 }
 
+function TierFootnote({
+  hasTier,
+  seasonInView,
+  ratingSettingsLine,
+  onOpenMembers,
+}: {
+  hasTier: boolean;
+  seasonInView: boolean;
+  ratingSettingsLine: string | null;
+  onOpenMembers?: () => void;
+}) {
+  const locale = useLocale();
+  const footnote = standingTierFootnote({ hasTier, seasonInView }, locale);
+  if (!footnote) {
+    return null;
+  }
+  return (
+    <View style={{ gap: 6, paddingHorizontal: spacing.surface }}>
+      <Text size="meta" tone="muted">
+        {footnote.before}
+        <Text
+          size="meta"
+          accessibilityRole="link"
+          onPress={onOpenMembers}
+          style={{ textDecorationLine: "underline" }}
+        >
+          {footnote.membersLink}
+        </Text>
+        {footnote.after}
+      </Text>
+      {ratingSettingsLine ? (
+        <Text size="meta" tone="muted">
+          {ratingSettingsLine}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
 export function StandingTab({
   data,
   apiOrigin,
   onOpenMember,
+  onOpenMembers,
   onInvite,
   createGameHref,
 }: {
   data: GroupHomeData;
   apiOrigin: string;
   onOpenMember?: (userId: string) => void;
+  /** Switches to the Members tab, where the Group Tier lives. */
+  onOpenMembers?: () => void;
   onInvite?: () => void;
   createGameHref?: Href;
 }) {
@@ -909,6 +951,17 @@ export function StandingTab({
   if (state.kind === "not-member") {
     return <Notice {...m.mobileGroup.standing.notMember} />;
   }
+  const manageSeasons = data.canManageSeasons ? (
+    <Button
+      label={
+        seasons.length > 0
+          ? m.mobileGroup.seasons.manage
+          : m.mobileGroup.seasons.setUp
+      }
+      variant="outline"
+      onPress={() => router.push(groupSeasonsPath(data.id))}
+    />
+  ) : null;
   if (seasons.length === 0 && state.showNoResultsNotice && state.showTable) {
     const firstGameHref = state.showCreateFirstGame
       ? createGameHref
@@ -944,6 +997,7 @@ export function StandingTab({
           </View>
         ) : null}
         <StatPair data={data} muted />
+        {manageSeasons}
       </View>
     );
   }
@@ -990,7 +1044,14 @@ export function StandingTab({
         <Podium rows={rows} season={season} />
       ) : null}
       {table}
+      <TierFootnote
+        hasTier={data.hasTier ?? false}
+        seasonInView={season != null}
+        ratingSettingsLine={data.ratingSettingsLine ?? null}
+        onOpenMembers={onOpenMembers}
+      />
       {seasons.length === 0 ? <StatPair data={data} /> : null}
+      {manageSeasons}
     </View>
   );
 }

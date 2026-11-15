@@ -97,7 +97,7 @@ export function SettingsChoices<T extends string>({
               <span
                 className={cn(
                   "text-eyebrow font-sans font-normal normal-case",
-                  selected ? "text-dim" : "text-muted-foreground",
+                  selected ? "text-on-control-muted" : "text-muted-foreground",
                 )}
               >
                 {choice.detail}

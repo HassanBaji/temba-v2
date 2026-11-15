@@ -3,7 +3,10 @@ import { and, eq } from "drizzle-orm";
 import { bookingPayments, bookings } from "@repo/db";
 import type { DbClient, DbTx } from "@repo/db";
 
-import { expiredAfterCaptureRefundKey } from "#src/bookings/payments";
+import {
+  expiredAfterCaptureRefundKey,
+  refundableFils,
+} from "#src/bookings/payments";
 import { enqueue } from "#src/jobs/enqueue";
 import { refundJob } from "#src/jobs/specs";
 
@@ -50,11 +53,14 @@ export async function expireLapsedHold(
       ),
     );
   for (const payment of paid) {
+    if (refundableFils(payment) <= 0) {
+      continue;
+    }
     await enqueue(
       database,
       refundJob({
         paymentId: payment.id,
-        amountFils: payment.amountFils - payment.refundedFils,
+        amountFils: refundableFils(payment),
         reason: "expired_after_capture",
         refundKey: expiredAfterCaptureRefundKey(payment.id),
       }),

@@ -1,3 +1,5 @@
+import { gamePaymentsTracked } from "@repo/domain/game-payments";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import {
   friendlyGameDetailsPlan,
   type FriendlyGameDetails,
@@ -12,6 +14,7 @@ import {
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
+import { editTeamsSpotLabel } from "@repo/domain/edit-teams";
 import type { FriendlyGameOrganizerPlan } from "@repo/domain/friendly-game-organizer";
 import {
   friendlyGameVacantSeatAction,
@@ -41,6 +44,7 @@ import {
 import type { setsToSave } from "./details-model";
 import { LevelRequestCard } from "./level-request-card";
 import { LineupCard, type OpenSeatAction } from "./lineup-card";
+import { GamePaymentsSection } from "../game-payments/game-payments-section";
 import {
   OrganizerCard,
   RequestsSection,
@@ -55,14 +59,18 @@ export type DetailsHandlers = {
   movePending: boolean;
   scorePending: boolean;
   confirmPending: boolean;
+  stampPending?: boolean;
   levelRequestPending: boolean;
   onMove: (sideIndex: number, position: "left" | "right") => void;
   onJoinSeat: (seat: FriendlyGameJoinSeat) => void;
   onAddPlayerAt?: (seat: FriendlyGameJoinSeat) => void;
+  /** An Organizer who could also take the spot picks: add a player, or themselves. */
+  onChooseOpenSpot?: (seat: FriendlyGameJoinSeat, own: "move" | "join") => void;
   onInvite?: () => void;
   onPressPlayer?: (row: PlayedRow) => void;
   onSaveSets: (payloads: ReturnType<typeof setsToSave>) => void;
   onConfirm: () => void;
+  onStamp?: () => void;
   onRequestLevel: () => void;
 };
 
@@ -91,6 +99,15 @@ function openSeatActionFor(
     const sideLabel = formatGameSideLabel("friendly_game", sideIndex, locale);
     const positionLabel = courtPositionLabel(position, locale);
     const seat = { sideIndex, position };
+    const chooseOpenSpot = handlers.onChooseOpenSpot;
+    if ((action === "move" || action === "join") && chooseOpenSpot) {
+      return {
+        accessibilityLabel: messages.editTeams.openSpot.title(
+          editTeamsSpotLabel("friendly_game", seat, locale),
+        ),
+        onPress: () => chooseOpenSpot(seat, action),
+      };
+    }
     if (action === "move" || action === "join") {
       return {
         accessibilityLabel:
@@ -150,6 +167,8 @@ export function GameDetailsContent({
       ) : null}
       {organizer?.plan.showRequests ? (
         <RequestsSection
+          gameId={game.id}
+          groupName={game.groupName}
           requests={organizer.plan.requests}
           decisions={organizer.handlers}
         />
@@ -157,7 +176,11 @@ export function GameDetailsContent({
       {game.booking ? (
         <BookedCard booking={game.booking} ratingScope={ratingScopeOf(game)} />
       ) : (
-        <RatingScopeCard scope={ratingScopeOf(game)} />
+        <RatingScopeCard
+          scope={ratingScopeOf(game)}
+          sport={game.sport}
+          publicGame={isPublicGame(game)}
+        />
       )}
       {levelCard ? (
         <LevelRequestCard
@@ -175,6 +198,11 @@ export function GameDetailsContent({
         openSeatAction={openSeatActionFor(game, handlers, m, locale)}
         onInvite={canInvite ? handlers.onInvite : undefined}
         onPressPlayer={handlers.onPressPlayer}
+        isOrganizer={game.isOrganizer}
+      />
+      <GamePaymentsSection
+        gameId={game.id}
+        tracked={gamePaymentsTracked(game)}
       />
       {live && firstMatch ? (
         <ScoreCard
@@ -184,12 +212,17 @@ export function GameDetailsContent({
           viewerUserId={game.viewerUserId}
           winningGameTeamId={plan.winningGameTeamId}
           confirmation={game.matchResultConfirmation}
-          isOrganizer={game.isOrganizer}
+          confirmWindow={game.confirmWindow}
+          isOrganizer={
+            game.matchResultConfirmation?.viewerConfirmsAsOrganizer ?? false
+          }
           courtFull={vacantSeatCount === 0}
           scorePending={handlers.scorePending}
           confirmPending={handlers.confirmPending}
+          stampPending={handlers.stampPending}
           onSaveSets={handlers.onSaveSets}
           onConfirm={handlers.onConfirm}
+          onStamp={handlers.onStamp}
         />
       ) : null}
       {phase === "final" && game.ratingImpact ? (

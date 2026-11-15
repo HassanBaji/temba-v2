@@ -2,7 +2,9 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { groupMembers } from "@repo/db";
+import { groupMembers, groupTierPoints } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -12,31 +14,34 @@ import { requireGroup } from "#src/groups/helpers/require-group";
 
 type DbClient = typeof db;
 
-export const CANNOT_REMOVE_CREATOR_MESSAGE =
-  "The Group creator cannot be removed";
-export const CANNOT_REMOVE_SELF_MESSAGE = "Leave the Group instead";
-
 /**
  * A Group approver removing any player. The creator stays. The player's Games
- * stay in history.
+ * stay in history; their Tier points here are cleared and the events that
+ * moved them stay in Rating history.
  */
 export async function removePlayer(
   database: DbClient,
-  args: { groupId: string; approverUserId: string; userId: string },
+  args: {
+    groupId: string;
+    approverUserId: string;
+    userId: string;
+    locale?: Locale;
+  },
 ) {
-  const group = await requireGroup(database, args.groupId);
-  await assertGroupApprover(database, group, args.approverUserId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
+  await assertGroupApprover(database, group, args.approverUserId, locale);
 
   if (args.userId === args.approverUserId) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: CANNOT_REMOVE_SELF_MESSAGE,
+      message: messagesFor(locale).group.errors.removeSelf,
     });
   }
   if (args.userId === group.createdBy) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: CANNOT_REMOVE_CREATOR_MESSAGE,
+      message: messagesFor(locale).group.errors.cannotRemoveCreator,
     });
   }
 
@@ -50,11 +55,21 @@ export async function removePlayer(
   if (!membership) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "This player is not in the Group",
+      message: messagesFor(locale).group.errors.playerNotInGroup,
     });
   }
 
-  await database.delete(groupMembers).where(eq(groupMembers.id, membership.id));
+  await database.transaction(async (tx) => {
+    await tx.delete(groupMembers).where(eq(groupMembers.id, membership.id));
+    await tx
+      .delete(groupTierPoints)
+      .where(
+        and(
+          eq(groupTierPoints.groupId, group.id),
+          eq(groupTierPoints.userId, args.userId),
+        ),
+      );
+  });
 
   return { ok: true as const, groupId: group.id, userId: args.userId };
 }
@@ -72,5 +87,6 @@ export const removePlayerProcedure = protectedProcedure
       groupId: input.groupId,
       approverUserId: appUser.id,
       userId: input.userId,
+      locale: ctx.locale,
     });
   });

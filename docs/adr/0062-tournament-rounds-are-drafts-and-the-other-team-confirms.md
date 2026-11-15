@@ -2,7 +2,9 @@
 
 **Status:** accepted. Amends [ADR-0011](./0011-match-result-confirmation.md),
 [ADR-0017](./0017-friendly-tournament-is-a-pool-round-robin.md) and
-[ADR-0019](./0019-organizer-chooses-the-round-count.md) for drawn Friendly tournaments.
+[ADR-0019](./0019-organizer-chooses-the-round-count.md) for drawn Friendly tournaments. Amended by
+[ADR-0075](./0075-a-playing-organizers-tournament-score-is-final.md): an Organizer who plays sets the score outright too. Amended by
+[ADR-0090](./0090-rounds-is-a-shape-and-a-round-is-added-or-cancelled-after-the-draw.md): a Round is added or cancelled after the draw.
 
 Posting the Pool draw used to insert every Pool Match at once, in the circle method's order. The
 redesign (`.scratch/tournament-rounds/spec.md`) lets the Organizer make Rounds three ways — all at

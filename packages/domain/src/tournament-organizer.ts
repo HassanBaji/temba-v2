@@ -14,7 +14,7 @@ import {
   canOpenOrganizerDrawDrawer,
   canShowUndoPoolDraw,
 } from "./tournament-pool-draw";
-import { hasPools } from "./tournament-rounds";
+import { hasPools, isRoundsShape } from "./tournament-rounds";
 import {
   isOneDayTournamentWindow,
   sizeTournamentRounds,
@@ -144,6 +144,7 @@ export function mergeSelection(args: {
 
 export type TournamentRoundsGame = {
   format: string;
+  tournamentShape?: string | null;
   poolCount: number | null;
   drawPostedAt: Date | null;
   teamsAllowed: number | null;
@@ -159,6 +160,8 @@ export type TournamentRoundsPlan = {
   roundCount: number;
   rounds: ReturnType<typeof sizeTournamentRounds>;
   overruns: boolean;
+  /** The Rounds shape: the count is the Organizer's number, with no suggestion to fall back to. */
+  chosen: boolean;
 };
 
 export function tournamentRoundsPlan(
@@ -200,5 +203,6 @@ export function tournamentRoundsPlan(
     roundCount,
     rounds,
     overruns,
+    chosen: isRoundsShape(game.format, game.tournamentShape),
   };
 }

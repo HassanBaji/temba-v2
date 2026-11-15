@@ -1,6 +1,7 @@
-import { radii } from "@repo/design-tokens";
+import { radii, sizes } from "@repo/design-tokens";
 import { Pressable, View } from "react-native";
 
+import { NicknameName } from "../primitives/nickname-name";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
@@ -10,9 +11,10 @@ import { tonePalette } from "../primitives/tone-palette";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import {
-  levelLabel,
+  ovrLabel,
+  ovrSpoken,
   poolSections,
-  shortName,
+  lineupName,
   slotCode,
   type BoardPlayer,
 } from "@repo/domain/football-board";
@@ -64,13 +66,18 @@ function PlayerTile({
   const tone = player.isViewer ? "ink" : "paper";
   const colors = useColors();
   const palette = tonePalette(tone, colors);
-  const name = player.isViewer ? messages.common.you : shortName(player.name);
+  const { name, spoken, isNickname } = lineupName(player, locale);
   const code = slotCode(player, locale);
   return (
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
         accessibilityRole={onPress ? "button" : undefined}
-        accessibilityLabel={[name, code, levelLabel(player.levelBand)]
+        accessibilityLabel={[
+          spoken,
+          code,
+          ovrSpoken(player, locale),
+          player.guest ? messages.group.addPlayer.guest.tag : null,
+        ]
           .filter(Boolean)
           .join(messages.tournament.listSeparator)}
         disabled={!onPress}
@@ -95,7 +102,12 @@ function PlayerTile({
             justifyContent: "space-between",
           }}
         >
-          <Avatar name={player.name} uri={player.image} size="sm" />
+          <Avatar
+            name={player.name}
+            uri={player.image}
+            size="sm"
+            guest={player.guest}
+          />
           <CodeTag code={code} keeper={player.role === "keeper"} />
         </View>
         <View
@@ -106,11 +118,15 @@ function PlayerTile({
             gap: 4,
           }}
         >
-          <Text size="eyebrow" numberOfLines={1} style={{ flexShrink: 1 }}>
-            {name}
-          </Text>
+          <NicknameName
+            name={name}
+            isNickname={isNickname}
+            size="eyebrow"
+            weight="regular"
+            iconSize={sizes.iconRow - 4}
+          />
           <Text size="meta" width="expanded" weight="bold" ltr>
-            {levelLabel(player.levelBand)}
+            {ovrLabel(player)}
           </Text>
         </View>
       </Pressable>

@@ -17,11 +17,14 @@ import {
   footballPositionSchema,
   footballRoleSchema,
 } from "@repo/validators/football";
+import { messagesFor } from "@repo/i18n/messages";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import {
+  assertGameNotFrozen,
   assertUserPassesJoinGate,
+  lockGameForAdmit,
   requireGame,
   requireNotChallengeGame,
 } from "#src/games/access";
@@ -44,55 +47,57 @@ export async function register(
   },
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
-  const game = await requireGame(database, args.gameId);
+  const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, locale);
   const now = new Date();
 
   if (!isRosterRegistrationGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Register as yourself on an Americano or a football Game",
+      message: messagesFor(locale).game.errors.registerAsYourself,
     });
   }
   if (game.registrationMode !== "individual") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Game is team-only",
+      message: messagesFor(locale).game.errors.teamOnly,
     });
   }
 
   if (args.football && !isFootballGame(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Only a football Game takes a role and position",
+      message: messagesFor(locale).football.errors.roleOnFootball,
     });
   }
 
-  await assertUserPassesJoinGate(database, game, args.userId);
+  await assertGameNotFrozen(database, game, now, locale);
+  await assertUserPassesJoinGate(database, game, args.userId, locale);
 
   if (await userAlreadyOnGame(database, game.id, args.userId)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "You are already registered on this Game",
+      message: messagesFor(locale).game.errors.alreadyRegistered,
     });
   }
   if (await userAlreadyWaitlisted(database, game.id, args.userId)) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "You are already on the waitlist",
+      message: messagesFor(locale).game.errors.alreadyWaitlisted,
     });
   }
 
-  if (args.football?.role === "keeper") {
-    await assertKeeperSeatOpen(database, game.id);
-  }
-
   return database.transaction(async (tx) => {
+    const locked = await lockGameForAdmit(tx, game.id, locale);
+    if (args.football?.role === "keeper") {
+      await assertKeeperSeatOpen(tx, locked.id, undefined, locale);
+    }
     const admitted = await admit(tx, {
-      game,
+      game: locked,
       door: "register",
       party: { kind: "user", userId: args.userId },
       now,
+      locale,
     });
     if (!admitted.ok) {
       if (admitted.reason === "full") {

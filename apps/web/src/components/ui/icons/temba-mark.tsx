@@ -30,13 +30,13 @@ export function TembaMark({
         cx="50"
         cy="50"
         r="44"
-        className={reversed ? "fill-paper" : "fill-ink"}
+        className={reversed ? "fill-on-focus" : "fill-ink"}
       />
       <path
         d={ARC}
         fill="none"
         strokeWidth={6}
-        className={reversed ? "stroke-ink" : "stroke-paper"}
+        className={reversed ? "stroke-focus" : "stroke-paper"}
       />
     </svg>
   );

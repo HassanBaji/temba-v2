@@ -1,32 +1,17 @@
 import { radii, sizes, spacing } from "@repo/design-tokens";
+import type { InYourGroupsRow } from "@repo/domain/ratings-screen";
 import { Pressable, View } from "react-native";
 
 import { useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { FormSlot } from "../primitives/form-slot";
 import { Hairline } from "../primitives/hairline";
-import { hairline } from "../primitives/hairline-width";
 import { ResultMark } from "../primitives/result-mark";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
-import {
-  DifferenceBox,
-  GroupTile,
-  SectionHead,
-  ShareBar,
-} from "./profile-parts";
-import type {
-  FormSlotView,
-  GroupLevelRowView,
-  PartnerRow,
-  RecentRow,
-  ScaleView,
-} from "./profile-model";
-
-const MARKER = 12;
-const GENERAL_MARKER = 16;
-const SCALE_HEIGHT = 50;
+import { GroupTile, SectionHead, ShareBar } from "./profile-parts";
+import type { FormSlotView, PartnerRow, RecentRow } from "./profile-model";
 
 function ListCard({ children }: { children: React.ReactNode[] }) {
   return (
@@ -41,99 +26,18 @@ function ListCard({ children }: { children: React.ReactNode[] }) {
   );
 }
 
-function LevelScale({ scale }: { scale: ScaleView }) {
-  const palette = useTonePalette();
-  return (
-    <View style={{ padding: 16, gap: 6 }}>
-      <View style={{ height: SCALE_HEIGHT }}>
-        <View
-          style={{
-            position: "absolute",
-            start: 0,
-            end: 0,
-            top: 30,
-            height: hairline,
-            backgroundColor: palette.rule,
-          }}
-        />
-        {scale.markers.map((marker) => {
-          const size = marker.general ? GENERAL_MARKER : MARKER;
-          return (
-            <View
-              key={marker.key}
-              accessible
-              accessibilityLabel={marker.spoken}
-              style={{
-                position: "absolute",
-                start: `${marker.percent}%`,
-                top: 0,
-                width: 36,
-                marginStart: -18,
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              <Text
-                size="eyebrow"
-                mono
-                tone={marker.general ? "default" : "muted"}
-                weight={marker.general ? "semibold" : "regular"}
-              >
-                {marker.tag}
-              </Text>
-              <View
-                style={{
-                  marginTop: (GENERAL_MARKER - size) / 2,
-                  width: size,
-                  height: size,
-                  borderRadius: size / 2,
-                  borderWidth: 1.5,
-                  borderColor: palette.foreground,
-                  backgroundColor: marker.general
-                    ? palette.foreground
-                    : palette.background,
-                }}
-              />
-            </View>
-          );
-        })}
-      </View>
-      <View style={{ height: 16 }}>
-        {scale.ticks.map((tick, index) => (
-          <Text
-            key={tick.key}
-            size="eyebrow"
-            mono
-            tone="muted"
-            style={{
-              position: "absolute",
-              start: `${tick.percent}%`,
-              marginStart: index === 0 ? 0 : index === 1 ? -10 : -24,
-            }}
-          >
-            {tick.label}
-          </Text>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-export function GroupLevelRowItem({
+function InYourGroupsItem({
   row,
-  selected = false,
   onPress,
 }: {
-  row: GroupLevelRowView;
-  selected?: boolean;
-  onPress?: () => void;
+  row: InYourGroupsRow;
+  onPress: () => void;
 }) {
   const palette = useTonePalette();
   return (
     <Pressable
-      accessibilityRole={onPress ? "button" : undefined}
-      accessibilityState={onPress ? { selected } : undefined}
-      disabled={!onPress}
+      accessibilityRole="button"
+      accessibilityLabel={row.spoken}
       onPress={onPress}
       style={({ pressed }) => ({
         minHeight: sizes.touchTarget,
@@ -142,72 +46,61 @@ export function GroupLevelRowItem({
         gap: 12,
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor:
-          pressed || selected ? palette.wash : palette.background,
+        backgroundColor: pressed ? palette.wash : palette.background,
       })}
     >
-      <GroupTile initials={row.initials} hatched={row.provisional} />
+      <GroupTile initials={row.initials} hatched={false} />
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <Text weight="semibold" numberOfLines={1}>
           {row.name}
         </Text>
         <Text size="eyebrow" tone="muted" numberOfLines={1}>
-          {row.sub}
+          {row.record}
         </Text>
       </View>
-      <View style={{ alignItems: "flex-end", gap: 3 }}>
-        <View style={{ flexDirection: "row", alignItems: "baseline", gap: 5 }}>
-          <Text weight="bold" width="expanded" ltr>
-            {row.band}
-          </Text>
-          <Text size="meta" tone="muted">
-            {row.level}
-          </Text>
-        </View>
-        {row.difference ? (
-          <DifferenceBox
-            label={row.difference.label}
-            above={row.difference.above}
-          />
-        ) : null}
-      </View>
+      <Text
+        size={row.ranked ? "body" : "meta"}
+        weight={row.ranked ? "bold" : "regular"}
+        width={row.ranked ? "expanded" : undefined}
+        tone={row.ranked ? "default" : "muted"}
+      >
+        {row.place}
+      </Text>
     </Pressable>
   );
 }
 
-export function LevelsByGroup({
+/** "In your groups": won, lost and place in each Group. */
+export function InYourGroups({
   title,
   meta,
   note,
-  scale,
   rows,
   onOpenGroup,
 }: {
   title: string;
-  meta?: string;
-  note: string;
-  scale: ScaleView | null;
-  rows: GroupLevelRowView[];
-  onOpenGroup?: (groupId: string) => void;
+  meta: string;
+  note?: string | null;
+  rows: InYourGroupsRow[];
+  onOpenGroup: (groupId: string) => void;
 }) {
   return (
     <View style={{ gap: 12 }}>
       <SectionHead title={title} meta={meta} />
       <ListCard>
-        {[
-          scale ? <LevelScale key="scale" scale={scale} /> : null,
-          ...rows.map((row) => (
-            <GroupLevelRowItem
-              key={row.groupId}
-              row={row}
-              onPress={onOpenGroup ? () => onOpenGroup(row.groupId) : undefined}
-            />
-          )),
-        ].filter((child) => child !== null)}
+        {rows.map((row) => (
+          <InYourGroupsItem
+            key={row.groupId}
+            row={row}
+            onPress={() => onOpenGroup(row.groupId)}
+          />
+        ))}
       </ListCard>
-      <Text size="eyebrow" tone="muted">
-        {note}
-      </Text>
+      {note ? (
+        <Text size="eyebrow" tone="muted">
+          {note}
+        </Text>
+      ) : null}
     </View>
   );
 }

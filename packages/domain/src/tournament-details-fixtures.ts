@@ -159,6 +159,8 @@ function gameTeamsFromSides(
       sideIndex: side.sideIndex,
       poolIndex: poolIndexes ? poolIndexForSide(side.sideIndex) : null,
       knockoutSeed: null,
+      startCourt: null,
+      finalPlace: null,
       members,
     };
   });
@@ -286,6 +288,7 @@ function detailMatches(
       bothSidesComplete: bothSlotsFilled,
       canAddSet: !frozen,
       canScoreSets: !frozen,
+      canConfirmScore: false,
       canComplete: !frozen && outcome.result !== "none",
       outcome,
       sets: scoredSets,
@@ -376,6 +379,7 @@ function baseTournament(args: {
     windowStart,
     windowEnd,
     pricePerPlayerFils: PRICE_FILS,
+    trackPayments: false,
     levelMinTenths: null,
     levelMaxTenths: null,
     playersAllowed: TEAM_COUNT * 2,
@@ -386,6 +390,7 @@ function baseTournament(args: {
     roundCount: null,
     matchMinutes: null,
     drawPostedAt: args.drawPostedAt,
+    finalOrderPostedAt: null,
     canUndoDraw: args.drawPostedAt != null,
     sport: "padel",
     cancelledAt: null,
@@ -738,6 +743,7 @@ function knockoutTournament(args: {
       bothSidesComplete: bothSlotsFilled,
       canAddSet: !frozen && bothSlotsFilled && onSides,
       canScoreSets: !frozen && bothSlotsFilled && onSides,
+      canConfirmScore: false,
       canComplete:
         !frozen &&
         bothSlotsFilled &&

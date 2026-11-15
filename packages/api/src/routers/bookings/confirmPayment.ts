@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { bookings } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -15,14 +17,15 @@ type DbClient = typeof db;
 
 export async function confirmPayment(
   database: DbClient,
-  args: { bookingId: string; userId: string; now?: Date },
+  args: { bookingId: string; userId: string; now?: Date; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
   const provider = paymentProvider();
   if (provider.id === "manual") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Booking is paid at the Venue",
+      message: messagesFor(locale).booking.errors.paidAtVenue,
     });
   }
 
@@ -31,12 +34,15 @@ export async function confirmPayment(
     columns: { userId: true, status: true },
   });
   if (!booking) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Booking not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).booking.errors.notFound,
+    });
   }
   if (booking.userId !== args.userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the holder can confirm this payment",
+      message: messagesFor(locale).booking.errors.holderConfirms,
     });
   }
 
@@ -60,7 +66,7 @@ export async function confirmPayment(
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "There is no payment to confirm for this Booking",
+      message: messagesFor(locale).booking.errors.noPaymentToConfirm,
     });
   }
 
@@ -69,7 +75,7 @@ export async function confirmPayment(
       reference: payment.providerReference,
     });
     await database.transaction((tx) =>
-      applyChargeState(tx, { paymentId: payment.id, state, now }),
+      applyChargeState(tx, { paymentId: payment.id, state, now, locale }),
     );
   }
   return loadBooking();
@@ -82,5 +88,6 @@ export const confirmPaymentProcedure = protectedProcedure
     return confirmPayment(ctx.db, {
       bookingId: input.bookingId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

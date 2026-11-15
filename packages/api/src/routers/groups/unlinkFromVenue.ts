@@ -1,6 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { requireGroup } from "#src/groups/helpers/require-group";
@@ -11,16 +14,17 @@ type DbClient = typeof db;
 
 export async function unlinkFromVenue(
   database: DbClient,
-  args: { groupId: string; userId: string },
+  args: { groupId: string; userId: string; locale?: Locale },
 ) {
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
   if (group.createdBy !== args.userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the Group creator can unlink the Group from its Venue",
+      message: messagesFor(locale).group.errors.creatorUnlinks,
     });
   }
-  return unlinkGroupFromVenue(database, { groupId: group.id });
+  return unlinkGroupFromVenue(database, { groupId: group.id, locale });
 }
 
 export const unlinkFromVenueProcedure = protectedProcedure
@@ -30,5 +34,6 @@ export const unlinkFromVenueProcedure = protectedProcedure
     return unlinkFromVenue(ctx.db, {
       groupId: input.groupId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

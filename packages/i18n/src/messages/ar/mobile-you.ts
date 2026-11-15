@@ -3,7 +3,6 @@ import { plural } from "../../plural";
 
 export const mobileYou = {
   names: (names: string[]) => names.join(" و"),
-  same: "مثله",
   goals: "أهداف",
   goalsAGame: "هدف لكل مباراة",
   goalsInMatch: (n: number) =>
@@ -16,8 +15,6 @@ export const mobileYou = {
       other: "{n} هدف",
     }),
   curveSpoken: (from: string, to: string) => `التصنيف من ${from} إلى ${to}`,
-  scaleSpoken: (name: string, band: string, level: string) =>
-    `${name}، ${band} ${level}`,
   leftName: "اسمك",
   sportAdded: (sport: string) => `أضيفت ${sport} إلى ملفك`,
   sportRemoved: (sport: string) => `أزيلت ${sport} من ملفك`,

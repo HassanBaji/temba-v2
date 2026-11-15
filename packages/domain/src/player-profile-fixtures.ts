@@ -3,6 +3,7 @@ import type {
   PlayerPositionInput,
   PlayerStreaksInput,
 } from "./player-profile";
+import { muFromLevel } from "./level";
 import type { PlayerLevelInput } from "./player-profile-level";
 import type {
   PlayerMatchGame,
@@ -160,6 +161,8 @@ function rated(
     bandBefore,
     bandAfter,
     levelChange: Math.round((levelAfter - levelBefore) * 10) / 10,
+    muBefore: muFromLevel(levelBefore),
+    muAfter: muFromLevel(levelAfter),
   };
 }
 

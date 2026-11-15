@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
 import { games } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { assertCourtAssignable } from "#src/games/assert-court-assignable";
 import { assertGameTeamOnGame } from "#src/games/assert-game-team-on-game";
@@ -14,6 +16,7 @@ export async function applyMatchSides(
   database: Tx,
   gameId: string,
   input: TournamentMatchInput,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (
     input.slot1GameTeamId &&
@@ -22,7 +25,7 @@ export async function applyMatchSides(
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "A Match cannot use the same Game team in both slots",
+      message: messagesFor(locale).game.errors.sameTeamBothSlots,
     });
   }
   if (input.courtId) {
@@ -32,15 +35,15 @@ export async function applyMatchSides(
     if (!game) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Game not found",
+        message: messagesFor(locale).game.errors.notFound,
       });
     }
-    await assertCourtAssignable(database, game, input.courtId);
+    await assertCourtAssignable(database, game, input.courtId, locale);
   }
   if (input.slot1GameTeamId) {
-    await assertGameTeamOnGame(database, gameId, input.slot1GameTeamId);
+    await assertGameTeamOnGame(database, gameId, input.slot1GameTeamId, locale);
   }
   if (input.slot2GameTeamId) {
-    await assertGameTeamOnGame(database, gameId, input.slot2GameTeamId);
+    await assertGameTeamOnGame(database, gameId, input.slot2GameTeamId, locale);
   }
 }

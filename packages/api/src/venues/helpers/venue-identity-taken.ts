@@ -6,9 +6,6 @@ import { type db } from "#src/db";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-export const duplicateVenueMessage =
-  "A Venue with this name, city, and country already exists";
-
 export async function venueIdentityTaken(
   database: DbClient,
   name: string,

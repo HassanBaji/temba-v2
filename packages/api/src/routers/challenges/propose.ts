@@ -87,7 +87,7 @@ export async function proposeOnChallenge(
         refuse(m.errors.notOpen);
       }
 
-      const team = (await loadViewerTeams(tx, args.userId, now)).find(
+      const team = (await loadViewerTeams(tx, args.userId)).find(
         (candidate) => candidate.id === input.teamId,
       );
       if (!team) {

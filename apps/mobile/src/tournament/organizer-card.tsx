@@ -1,6 +1,7 @@
 import { spacing } from "@repo/design-tokens";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
-import { kickAction } from "@repo/domain/game-copy";
+import { canEditTeams } from "@repo/domain/edit-teams";
+import { editGameAction, kickAction } from "@repo/domain/game-copy";
 import type {
   TournamentDetails,
   TournamentHomeView,
@@ -11,7 +12,6 @@ import {
   mergePairCopy,
 } from "@repo/domain/tournament-half-teams";
 import {
-  kickableTournamentOccupants,
   tournamentRoundsPlan,
   type TournamentOrganizerView,
 } from "@repo/domain/tournament-organizer";
@@ -42,6 +42,18 @@ export type OrganizerCardHandlers = {
   onKickPlayer: (userId: string) => void;
   onKickWaitlist: (waitlistId: string) => void;
   onAddPlayer: () => void;
+  onEditTeams: () => void;
+  /** Opens the Edit game sheet: teams, Courts, when, price and level. */
+  onEdit: (() => void) | null;
+  /** Set once the draw is posted on a Pool tournament: Rounds are added and cancelled from here. */
+  postedRounds: {
+    roundCount: number;
+    canAdd: boolean;
+    canCancel: boolean;
+    addPending: boolean;
+  } | null;
+  onAddRound: () => void;
+  onOpenCancelRound: () => void;
 };
 
 function Block({ children }: { children: React.ReactNode }) {
@@ -114,7 +126,20 @@ export function OrganizerCard({
     );
   }
 
-  if (organizer.showDrawEntry) {
+  if (
+    home.kingOfTheCourt &&
+    organizer.active &&
+    game.finalOrderPostedAt == null
+  ) {
+    blocks.push(
+      <Block key="king">
+        <Text weight="medium">{messages.tournamentKing.shape.title}</Text>
+        <Text size="meta" tone="muted">
+          {m.kingOnWeb}
+        </Text>
+      </Block>,
+    );
+  } else if (organizer.showDrawEntry) {
     const hasDraft = knockoutOnly
       ? hasDraftKnockoutDraw(game.gameTeams)
       : hasDraftPoolDraw(game.gameTeams);
@@ -164,6 +189,38 @@ export function OrganizerCard({
     );
   }
 
+  const posted = organizer.active ? handlers.postedRounds : null;
+  if (posted && (posted.canAdd || posted.canCancel)) {
+    const manage = messages.tournamentRounds.manage;
+    blocks.push(
+      <Block key="posted-rounds">
+        <View>
+          <Text weight="medium">{messages.tournament.sizing.roundsLabel}</Text>
+          <Text size="meta" tone="muted">
+            {roundCountLabel(posted.roundCount, locale)}
+          </Text>
+        </View>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {posted.canAdd ? (
+            <Button
+              label={manage.add}
+              variant="outline"
+              pending={posted.addPending}
+              onPress={handlers.onAddRound}
+            />
+          ) : null}
+          {posted.canCancel ? (
+            <Button
+              label={manage.cancelAction}
+              variant="outline"
+              onPress={handlers.onOpenCancelRound}
+            />
+          ) : null}
+        </View>
+      </Block>,
+    );
+  }
+
   if (organizer.showUndo) {
     blocks.push(
       <Block key="undo">
@@ -173,6 +230,23 @@ export function OrganizerCard({
             variant="outline"
             pending={handlers.undoPending}
             onPress={handlers.onUndo}
+          />
+        </Action>
+      </Block>,
+    );
+  }
+
+  if (canEditTeams(game)) {
+    blocks.push(
+      <Block key="edit-teams">
+        <Text size="meta" tone="muted">
+          {messages.editTeams.tournamentCardCopy}
+        </Text>
+        <Action>
+          <Button
+            label={messages.editTeams.action}
+            variant="outline"
+            onPress={handlers.onEditTeams}
           />
         </Action>
       </Block>,
@@ -196,32 +270,27 @@ export function OrganizerCard({
     );
   }
 
-  const occupants = organizer.active ? kickableTournamentOccupants(game) : [];
+  if (handlers.onEdit) {
+    blocks.push(
+      <Block key="edit">
+        <Action>
+          <Button
+            label={editGameAction(locale)}
+            variant="outline"
+            onPress={handlers.onEdit}
+          />
+        </Action>
+      </Block>,
+    );
+  }
+
   const waitlist = organizer.active ? game.waitlist : [];
-  if (occupants.length > 0 || waitlist.length > 0) {
+  if (waitlist.length > 0) {
     blocks.push(
       <Block key="kick">
         <Text weight="medium" accessibilityRole="header">
           {messages.common.players}
         </Text>
-        {occupants.map((occupant) => (
-          <View
-            key={occupant.userId}
-            style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
-          >
-            <Text style={{ flex: 1, minWidth: 0 }} numberOfLines={1}>
-              {occupant.name}
-            </Text>
-            <Button
-              label={kick}
-              accessibilityLabel={m.kickSr(occupant.name)}
-              size="sm"
-              variant="outline"
-              disabled={handlers.kickPending}
-              onPress={() => handlers.onKickPlayer(occupant.userId)}
-            />
-          </View>
-        ))}
         {waitlist.map((entry) => (
           <View
             key={entry.id}

@@ -120,7 +120,7 @@ export default function InvitesPage() {
       {error ? (
         <ErrorState
           title={m.invite.inbox.errorTitle}
-          message={error.message}
+          error={error}
           onRetry={() => {
             void groupInvites.refetch();
             void teamInvites.refetch();

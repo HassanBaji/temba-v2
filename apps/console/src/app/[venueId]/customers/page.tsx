@@ -5,6 +5,7 @@ import { use } from "react";
 import { ConsolePage } from "~/components/console/console-page";
 import { PageHeader } from "~/components/console/page-header";
 import { CustomersList } from "~/components/customers/customers-list";
+import { useMessages } from "~/components/locale-provider";
 
 export default function CustomersPage({
   params,
@@ -12,13 +13,11 @@ export default function CustomersPage({
   params: Promise<{ venueId: string }>;
 }) {
   const { venueId } = use(params);
+  const m = useMessages().consoleVenue.customers;
 
   return (
     <ConsolePage>
-      <PageHeader
-        title="Customers"
-        description="Everyone who has booked here, in the app or at the desk. Guests are yours only."
-      />
+      <PageHeader title={m.title} description={m.description} />
       <CustomersList venueId={venueId} />
     </ConsolePage>
   );

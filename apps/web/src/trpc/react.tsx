@@ -2,24 +2,31 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
-import { httpBatchStreamLink, loggerLink } from "@trpc/client";
+import {
+  httpBatchStreamLink,
+  httpLink,
+  loggerLink,
+  splitLink,
+} from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import SuperJSON from "superjson";
 
 import { type AppRouter } from "@repo/api/types";
+import { messagesFor } from "@repo/i18n/messages";
 import { useLocale } from "~/components/locale-provider";
 import { createQueryClient } from "./query-client";
 
 let clientQueryClientSingleton: QueryClient | undefined = undefined;
-const getQueryClient = () => {
+const getQueryClient = (onUnhandledMutationError: (error: unknown) => void) => {
   if (typeof window === "undefined") {
     // Server: always make a new query client
     return createQueryClient();
   }
   // Browser: use singleton pattern to keep the same query client
-  clientQueryClientSingleton ??= createQueryClient();
+  clientQueryClientSingleton ??= createQueryClient(onUnhandledMutationError);
 
   return clientQueryClientSingleton;
 };
@@ -41,13 +48,15 @@ export type RouterInputs = inferRouterInputs<AppRouter>;
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 export function TRPCReactProvider(props: { children: React.ReactNode }) {
-  const queryClient = getQueryClient();
-  const { getToken } = useAuth();
-  const getTokenRef = useRef(getToken);
-  getTokenRef.current = getToken;
   const locale = useLocale();
   const localeRef = useRef(locale);
   localeRef.current = locale;
+  const queryClient = getQueryClient(() => {
+    toast.error(messagesFor(localeRef.current).webUi.errorState.fallback);
+  });
+  const { getToken } = useAuth();
+  const getTokenRef = useRef(getToken);
+  getTokenRef.current = getToken;
   const lastLocale = useRef(locale);
   useEffect(() => {
     if (lastLocale.current !== locale) {
@@ -56,29 +65,44 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
     }
   }, [locale, queryClient]);
 
-  const [trpcClient] = useState(() =>
-    api.createClient({
+  const [trpcClient] = useState(() => {
+    const url = getBaseUrl() + "/api/trpc";
+    const headers = async () => {
+      const headers = new Headers();
+      headers.set("x-trpc-source", "nextjs-react");
+      headers.set("accept-language", localeRef.current);
+      const token = await getTokenRef.current();
+      if (token) headers.set("authorization", `Bearer ${token}`);
+      return headers;
+    };
+    return api.createClient({
       links: [
         loggerLink({
           enabled: (op) =>
             process.env.NODE_ENV === "development" ||
             (op.direction === "down" && op.result instanceof Error),
         }),
-        httpBatchStreamLink({
-          transformer: SuperJSON,
-          url: getBaseUrl() + "/api/trpc",
-          headers: async () => {
-            const headers = new Headers();
-            headers.set("x-trpc-source", "nextjs-react");
-            headers.set("accept-language", localeRef.current);
-            const token = await getTokenRef.current();
-            if (token) headers.set("authorization", `Bearer ${token}`);
-            return headers;
-          },
+        splitLink({
+          // A call marked `keepalive` is sent on its own so the browser
+          // finishes it after the page is left.
+          condition: (op) => op.context.keepalive === true,
+          true: httpLink({
+            transformer: SuperJSON,
+            url,
+            headers,
+            fetch: (input, init) => fetch(input, { ...init, keepalive: true }),
+          }),
+          false: httpBatchStreamLink({
+            transformer: SuperJSON,
+            url,
+            // The API rejects a batch of more than 20 calls.
+            maxItems: 20,
+            headers,
+          }),
         }),
       ],
-    }),
-  );
+    });
+  });
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -8,11 +8,13 @@ import { EmptyState } from "~/components/common/empty-state";
 import { LinkedTableRow } from "~/components/common/linked-table-row";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { NicknameName } from "~/components/temba/nickname-name";
 import { ResultMark } from "~/components/temba/result-mark";
 import { NotOnTembaTag, YouTag } from "~/components/temba/seat";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Surface } from "~/components/ui/surface";
+import type { MemberNicknameData } from "@repo/domain/member-nickname";
 import { groupStandingState } from "@repo/domain/group-join";
 import {
   groupStandingEmptyFooter,
@@ -38,6 +40,7 @@ import {
   standingRecordLabel,
   standingRulesLine,
   standingShowsDraws,
+  standingTierFootnote,
   unrankedNote,
 } from "@repo/domain/season-standing";
 import { isRtl } from "@repo/i18n/locale";
@@ -60,7 +63,13 @@ export type StandingEntry = {
   form: ResultMarkVariant[];
   isViewer: boolean;
   unclaimed: boolean;
+  nickname?: MemberNicknameData | null;
 };
+
+/** Another member's Member nickname; the viewer's own row keeps their Temba name. */
+function standingNickname(entry: StandingEntry) {
+  return entry.isViewer ? null : (entry.nickname?.name ?? null);
+}
 
 export type StandingSeason = GroupSeasonData & { status: GroupSeasonStatus };
 
@@ -104,17 +113,17 @@ function PlayerCell({
 }) {
   const m = useMessages();
   const name = entry.name ?? m.webGroup.memberFallback;
+  const nickname = standingNickname(entry);
   const label = (
-    <span
-      dir="auto"
+    <NicknameName
+      name={nickname ?? name}
+      isNickname={nickname != null}
       className={cn(
-        "text-body block min-w-0 truncate",
+        "text-body",
         entry.isViewer && "font-semibold",
         muted && "text-muted-foreground",
       )}
-    >
-      {name}
-    </span>
+    />
   );
   return (
     <span className="flex min-w-0 flex-col">
@@ -122,6 +131,9 @@ function PlayerCell({
         {linkToPlayers ? (
           <Link
             href={playerProfilePath(entry.userId)}
+            aria-label={
+              nickname ? m.group.nickname.spoken(nickname, name) : undefined
+            }
             className="block min-w-0 truncate outline-none focus-visible:underline"
           >
             {label}
@@ -423,15 +435,15 @@ function Podium({
               {entry.position}
             </span>
             <span className="flex min-w-0 flex-1 items-center gap-1.5">
-              <span
-                dir="auto"
-                className={cn(
-                  "text-body truncate",
-                  entry.isViewer && "font-semibold",
-                )}
-              >
-                {entry.name ?? m.webGroup.memberFallback}
-              </span>
+              <NicknameName
+                name={
+                  standingNickname(entry) ??
+                  entry.name ??
+                  m.webGroup.memberFallback
+                }
+                isNickname={standingNickname(entry) != null}
+                className={cn("text-body", entry.isViewer && "font-semibold")}
+              />
               {entry.isViewer ? <YouTag /> : null}
             </span>
             <span className="text-meta text-muted-foreground tabular-nums">
@@ -618,16 +630,17 @@ function StandingPreview({
       </div>
       <ol>
         {leaderboard.map((entry, index) => {
+          const nickname = standingNickname(entry);
           const name = entry.isViewer
             ? m.common.you
-            : (entry.name ?? m.webGroup.memberFallback);
+            : (nickname ?? entry.name ?? m.webGroup.memberFallback);
           return (
             <li
               key={entry.userId}
               className={cn(
                 PREVIEW_ROW,
                 "border-rule border-t px-[18px] first:border-t-0",
-                entry.isViewer && "bg-control text-on-control",
+                entry.isViewer && "bg-wash",
                 linkToPlayers && "relative",
               )}
             >
@@ -639,30 +652,37 @@ function StandingPreview({
                   className={cn(
                     "size-7 rounded-lg [&_[data-slot=avatar-fallback]]:rounded-none [&_[data-slot=avatar-fallback]]:text-[11px] [&_[data-slot=avatar-fallback]]:font-semibold",
                     entry.isViewer &&
-                      "[&_[data-slot=avatar-fallback]]:bg-paper [&_[data-slot=avatar-fallback]]:text-ink",
+                      "[&_[data-slot=avatar-fallback]]:bg-control [&_[data-slot=avatar-fallback]]:text-on-control",
                   )}
                 />
                 {linkToPlayers ? (
                   <Link
                     href={playerProfilePath(entry.userId)}
                     dir="auto"
+                    aria-label={
+                      nickname
+                        ? m.group.nickname.spoken(
+                            nickname,
+                            entry.name ?? m.webGroup.memberFallback,
+                          )
+                        : undefined
+                    }
                     className={cn(
                       "text-body block min-w-0 truncate after:absolute after:inset-0",
                       entry.isViewer && "font-semibold",
                     )}
                   >
-                    {name}
+                    <NicknameName name={name} isNickname={nickname != null} />
                   </Link>
                 ) : (
-                  <span
-                    dir="auto"
+                  <NicknameName
+                    name={name}
+                    isNickname={nickname != null}
                     className={cn(
-                      "text-body block min-w-0 truncate",
+                      "text-body",
                       entry.isViewer && "font-semibold",
                     )}
-                  >
-                    {name}
-                  </span>
+                  />
                 )}
                 {entry.unclaimed ? <NotOnTembaTag /> : null}
               </span>
@@ -779,6 +799,40 @@ function ManageSeasonsLink({
   );
 }
 
+function TierFootnote({
+  hasTier,
+  seasonInView,
+  ratingSettingsLine,
+  onOpenMembers,
+}: {
+  hasTier: boolean;
+  seasonInView: boolean;
+  ratingSettingsLine: string | null;
+  onOpenMembers?: () => void;
+}) {
+  const locale = useLocale();
+  const footnote = standingTierFootnote({ hasTier, seasonInView }, locale);
+  if (!footnote) {
+    return null;
+  }
+  return (
+    <div className="text-meta text-muted-foreground flex flex-col gap-1.5">
+      <p>
+        {footnote.before}
+        <button
+          type="button"
+          onClick={onOpenMembers}
+          className="text-foreground underline underline-offset-2"
+        >
+          {footnote.membersLink}
+        </button>
+        {footnote.after}
+      </p>
+      {ratingSettingsLine ? <p>{ratingSettingsLine}</p> : null}
+    </div>
+  );
+}
+
 export function GroupStandingTab({
   isMember,
   linkToPlayers,
@@ -795,6 +849,9 @@ export function GroupStandingTab({
   canInvite = false,
   onInvite,
   canManageSeasons = false,
+  hasTier = false,
+  ratingSettingsLine = null,
+  onOpenMembers,
   now = new Date(),
 }: {
   canInvite?: boolean;
@@ -813,6 +870,10 @@ export function GroupStandingTab({
   totalGamesPlayed: number;
   awaitingScoreCount: number;
   canManageSeasons?: boolean;
+  hasTier?: boolean;
+  ratingSettingsLine?: string | null;
+  /** Switches to the Members tab, where the Group Tier lives. */
+  onOpenMembers?: () => void;
   now?: Date;
 }) {
   const m = useMessages();
@@ -955,6 +1016,12 @@ export function GroupStandingTab({
         <Podium rows={rows} season={season} />
       ) : null}
       {table}
+      <TierFootnote
+        hasTier={hasTier}
+        seasonInView={season != null}
+        ratingSettingsLine={ratingSettingsLine}
+        onOpenMembers={onOpenMembers}
+      />
       {seasons.length === 0 ? (
         <StatPair
           totalGamesPlayed={totalGamesPlayed}

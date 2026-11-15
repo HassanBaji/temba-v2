@@ -4,19 +4,23 @@ import { eq } from "drizzle-orm";
 import { courts } from "@repo/db";
 
 import { sportOrDefault } from "@repo/domain/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type GameRow } from "#src/games/access";
-import { recordedCourtIdsForGame } from "#src/games/helpers/recorded-court-ids-for-game";
+import { recordedCourtPool } from "#src/games/helpers/recorded-court-ids-for-game";
 import { venueForGame } from "#src/games/helpers/venue-for-game";
 import { consult } from "#src/soft-archive";
 import { type db } from "#src/db";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-export async function assertCourtAssignable(
+/** A live Court of the Game's Venue in the Game's sport. */
+export async function assertCourtAtGameVenue(
   database: DbClient,
   game: GameRow,
   courtId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const court = await database.query.courts.findFirst({
     where: eq(courts.id, courtId),
@@ -25,7 +29,7 @@ export async function assertCourtAssignable(
   if (!court) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Court not found",
+      message: messagesFor(locale).venue.errors.courtNotFound,
     });
   }
 
@@ -33,34 +37,42 @@ export async function assertCourtAssignable(
   if (!venue) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Venue not found",
+      message: messagesFor(locale).venue.errors.notFound,
     });
   }
   if (consult({ archivedAt: venue.archivedAt }).freeze("host")) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Cannot assign a Court on an archived Venue",
+      message: messagesFor(locale).game.errors.courtArchivedVenue,
     });
   }
   if (court.venueId !== game.venueId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Court must belong to this Game's Venue",
+      message: messagesFor(locale).game.errors.courtNotGameVenue,
     });
   }
 
   if (court.sport !== sportOrDefault(game.sport)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Court must be of this Game's sport",
+      message: messagesFor(locale).game.errors.courtWrongSport,
     });
   }
+}
 
-  const recordedCourtIds = await recordedCourtIdsForGame(database, game.id);
+export async function assertCourtAssignable(
+  database: DbClient,
+  game: GameRow,
+  courtId: string,
+  locale: Locale = DEFAULT_LOCALE,
+) {
+  await assertCourtAtGameVenue(database, game, courtId, locale);
+  const recordedCourtIds = await recordedCourtPool(database, game);
   if (recordedCourtIds != null && !recordedCourtIds.includes(courtId)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Court must be one of the Courts recorded on this Game",
+      message: messagesFor(locale).game.errors.courtNotRecorded,
     });
   }
 }

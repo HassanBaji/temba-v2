@@ -7,11 +7,16 @@ import {
 } from "@repo/domain/home-recent-form";
 import type { HomeStandingRow } from "@repo/domain/home-standing";
 import type { ProfileChecklist } from "@repo/domain/profile-checklist";
+import type { SportSwitchLevel } from "@repo/domain/ratings-screen";
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import type { RouterOutputs } from "../trpc/react";
+import type { LatestMark } from "@repo/domain/home-latest";
+import type { HomeStats } from "@repo/domain/home-stats";
+import type { OpenWeekRow } from "@repo/domain/home-open-week";
+
 import type { UpNextItem } from "./up-next-model";
 
 export type Slot<T> =
@@ -30,13 +35,19 @@ export type HomeModel = {
   name: string;
   imageUri: string | null;
   pendingInviteCount: number;
+  unreadNotificationCount: number;
   checklist: HomeChecklist | null;
   upNext: Slot<UpNextItem[]>;
   noGamesAction: HomeNoGamesCreateAction;
-  venueCounts: Record<Sport, number | null>;
+  openGames: OpenWeekRow[];
+  latest: LatestMark | null;
+  dateLine: string;
+  sports: Sport[];
   sport: Sport;
+  levels: Partial<Record<Sport, SportSwitchLevel | null>>;
   level: Slot<HomeLevel>;
   recentForm: Slot<RecentFormView>;
+  stats: Slot<HomeStats | null>;
   standing: Slot<HomeStandingRow[]>;
 };
 
@@ -49,13 +60,20 @@ export function levelFromApi(data: ApiRating): HomeLevel {
   return {
     kind: "rated",
     input: {
-      band: data.rating.levelBand,
-      level: data.rating.level,
-      provisional: data.rating.provisional,
-      ratedMatchesRemaining: data.rating.ratedMatchesRemaining,
+      sport: data.face === "ovr" ? "football" : "padel",
+      face: data.face,
+      levelValue: data.levelValue,
+      rating: {
+        levelBand: data.rating.levelBand,
+        provisional: data.rating.provisional,
+        ratedMatchesRemaining: data.rating.ratedMatchesRemaining,
+      },
+      ratedMatchCount: data.ratedMatchCount,
+      changeOverLast: data.changeOverLast,
+      lastMatch: data.lastMatch,
       history: data.history,
+      historySteps: data.historySteps,
       historyMatchCount: data.historyMatchCount,
-      progressPercent: data.progressPercent,
     },
   };
 }
@@ -83,19 +101,4 @@ export function homeChecklist(
   skipped: boolean,
 ): HomeChecklist | null {
   return list && !list.complete ? { list, skipped } : null;
-}
-
-export function standingCountLabel(count: number, locale: Locale): string {
-  return messagesFor(locale).mobileHome.standing.groupCount(count);
-}
-
-export function venueCountLabel(
-  count: number | null,
-  locale: Locale,
-): string | null {
-  if (count == null) {
-    return null;
-  }
-  const m = messagesFor(locale).mobileHome.venues;
-  return count === 0 ? m.none : m.nearby(count);
 }

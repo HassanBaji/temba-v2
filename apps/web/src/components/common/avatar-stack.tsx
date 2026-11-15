@@ -10,6 +10,7 @@ const VISIBLE_COUNT = 4;
 export type AvatarStackPerson = {
   name: string;
   image?: string | null;
+  guest?: boolean;
 };
 
 export function AvatarStack({
@@ -49,6 +50,7 @@ export function AvatarStack({
           name={person.name}
           image={person.image}
           size={size}
+          guest={person.guest}
         />
       ))}
       {openSeats > 0

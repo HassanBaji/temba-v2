@@ -14,6 +14,7 @@ import {
   selfDeclareChoiceFromFootballPlacement,
   type FootballSelfPlacement,
 } from "@repo/domain/football-self-placement";
+import { shownLevel } from "@repo/domain/player-profile-level";
 import { isPreferredPosition } from "@repo/domain/preferred-position";
 import { SPORTS, type Sport } from "@repo/domain/sport";
 import { useState } from "react";
@@ -33,8 +34,8 @@ import { ScreenHeader, useLeaveScreen } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
-import { footballLevelWord } from "../profile/profile-model";
 import { useColors } from "../theme/theme-provider";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "../trpc/react";
 import { footballSavePlan } from "./settings-model";
 
@@ -117,8 +118,8 @@ function FootballProfileForm({
     Promise.all([
       utils.users.profileDetails.invalidate(),
       utils.users.onboardingState.invalidate(),
-      utils.users.footballProfile.invalidate(),
       utils.users.home.invalidate(),
+      invalidateRatingReads(utils),
     ]);
 
   async function run(work: () => Promise<unknown>, done: string) {
@@ -243,7 +244,7 @@ function FootballProfileForm({
           <Surface radius="card" style={{ gap: 6 }}>
             <Text size="h2" weight="bold">
               {rating
-                ? footballLevelWord(rating.levelBand, locale)
+                ? m.rating.ovr.value(shownLevel(rating.levelValue, "ovr"))
                 : m.you.hero.noLevel}
             </Text>
             <Text size="eyebrow" tone="muted">

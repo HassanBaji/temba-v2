@@ -4,16 +4,19 @@ import {
   nextHistoryCursor,
 } from "@repo/domain/match-history-card";
 import type { SportFilter } from "@repo/domain/football-hub";
-import { useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { gamesHubTabFromQuery } from "@repo/domain/games-hub-tab";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useMessages } from "../i18n/locale-provider";
 import { Screen } from "../primitives/screen";
 import { useToast } from "../primitives/toast";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api } from "../trpc/react";
 import type { Slot } from "../home/home-model";
 import { slotOf } from "../lib/slot-of";
 import {
+  addPhotosPath,
   footballJoinPath,
   footballScorePath,
   gamePath,
@@ -32,17 +35,27 @@ export function GamesScreen() {
   const toast = useToast();
   const m = useMessages();
   const utils = api.useUtils();
-  const [tab, setTab] = useState<GamesTab>("my-games");
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const [tab, setTab] = useState<GamesTab>(gamesHubTabFromQuery(params.tab));
+  useEffect(() => {
+    if (params.tab) {
+      setTab(gamesHubTabFromQuery(params.tab));
+    }
+  }, [params.tab]);
   const [sportFilter, setSportFilter] = useState<SportFilter>("all");
   const [pickerGame, setPickerGame] = useState<HubGameRow | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const myGames = api.games.listMyGames.useQuery(
+    { groupTournaments: true },
+    REFETCH_ON_FOREGROUND,
+  );
+  const publicGames = api.games.listPublicPickup.useQuery(
     undefined,
     REFETCH_ON_FOREGROUND,
   );
   const history = api.games.listMyMatchHistory.useInfiniteQuery(
-    { limit: HISTORY_PAGE_SIZE },
+    { limit: HISTORY_PAGE_SIZE, groupTournaments: true, kingOfTheCourt: true },
     { ...REFETCH_ON_FOREGROUND, getNextPageParam: nextHistoryCursor },
   );
   const historyRows = useMemo(() => history.data?.pages.flat(), [history.data]);
@@ -51,7 +64,12 @@ export function GamesScreen() {
   const confirmScore = api.games.confirmMatchResult.useMutation({
     onSuccess: () => toast.show(m.mobileTournament.games.scoreConfirmed),
     onError: (error) => toast.show(error.message),
-    onSettled: () => utils.games.listMyGames.invalidate(),
+    onSettled: () =>
+      Promise.all([
+        utils.games.listMyGames.invalidate(),
+        utils.games.listPublicPickup.invalidate(),
+        invalidateRatingReads(utils),
+      ]),
   });
   const confirmingGameId = confirmScore.isPending
     ? (confirmScore.variables?.gameId ?? null)
@@ -60,11 +78,15 @@ export function GamesScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([myGames.refetch(), history.refetch()]);
+      await Promise.all([
+        myGames.refetch(),
+        publicGames.refetch(),
+        history.refetch(),
+      ]);
     } finally {
       setRefreshing(false);
     }
-  }, [myGames, history]);
+  }, [myGames, publicGames, history]);
 
   const loadMore = useCallback(() => {
     if (history.hasNextPage && !history.isFetchingNextPage) {
@@ -88,6 +110,7 @@ export function GamesScreen() {
         tab={tab}
         onTabChange={setTab}
         myGames={slotOf(myGames)}
+        publicGames={slotOf(publicGames)}
         history={historySlot}
         historyHasMore={history.hasNextPage}
         historyLoadingMore={history.isFetchingNextPage}
@@ -98,6 +121,7 @@ export function GamesScreen() {
         pickerGame={pickerGame}
         onOpenPicker={setPickerGame}
         onOpen={(gameId) => router.push(gamePath(gameId))}
+        onAddPhotos={(gameId) => router.push(addPhotosPath(gameId))}
         onJoinSeat={(gameId, sideIndex, position) =>
           join(seatJoinRequest(gameId, sideIndex, position))
         }

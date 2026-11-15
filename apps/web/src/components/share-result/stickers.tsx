@@ -30,7 +30,10 @@ function StickerFrame({
       >
         <div className="flex items-center justify-between gap-6">
           <Wordmark mark={40} px={28} />
-          <Label px={20} className="text-dim shrink-0 whitespace-nowrap">
+          <Label
+            px={20}
+            className="text-on-control-muted shrink-0 whitespace-nowrap"
+          >
             {typeLine}
           </Label>
         </div>
@@ -49,12 +52,12 @@ function StickerFoot({
 }) {
   return (
     <div
-      className="border-dimrule flex items-center justify-between gap-6 border-t"
+      className="border-control-rule flex items-center justify-between gap-6 border-t"
       style={{ paddingTop: 24 }}
     >
       {children}
       {whenShort ? (
-        <Big px={24} className="text-dim shrink-0 text-end">
+        <Big px={24} className="text-on-control-muted shrink-0 text-end">
           {whenShort}
         </Big>
       ) : null}
@@ -81,14 +84,14 @@ function FootballSticker({ card }: { card: FootballResultCard }) {
     >
       <BibSquare bib={team.bib} size={28} radius={8} />
       <Big px={34} className={strong ? "truncate font-semibold" : "truncate"}>
-        <span style={{ color: strong ? colors.paper : colors.dim }}>
+        <span style={{ color: strong ? colors.paper : colors.onControlMuted }}>
           {team.name}
         </span>
       </Big>
       <Label
         px={20}
         tracking={0.14}
-        className={strong ? "text-dim" : "text-muted-foreground"}
+        className={strong ? "text-on-control-muted" : "text-muted-foreground"}
       >
         {word}
       </Label>
@@ -127,7 +130,7 @@ function FootballSticker({ card }: { card: FootballResultCard }) {
               <Big px={28} className="truncate font-semibold">
                 {card.you.name}
               </Big>
-              <Label px={20} className="text-dim">
+              <Label px={20} className="text-on-control-muted">
                 {[m.webUi.shareResult.goalsTag(card.you.goals), card.you.code]
                   .filter(Boolean)
                   .join(" · ")}
@@ -135,7 +138,7 @@ function FootballSticker({ card }: { card: FootballResultCard }) {
             </div>
           </div>
         ) : (
-          <Label px={20} className="text-dim flex-1">
+          <Label px={20} className="text-on-control-muted flex-1">
             {card.typeNote}
           </Label>
         )}
@@ -156,7 +159,7 @@ function PadelSticker({ card }: { card: PadelResultCard }) {
         variant={strong ? "solid" : "outline-muted"}
       />
       <Big px={34} className={strong ? "truncate font-semibold" : "truncate"}>
-        <span style={{ color: strong ? colors.paper : colors.dim }}>
+        <span style={{ color: strong ? colors.paper : colors.onControlMuted }}>
           {line}
         </span>
       </Big>
@@ -197,7 +200,10 @@ function PadelSticker({ card }: { card: PadelResultCard }) {
         </div>
       </div>
       <StickerFoot whenShort={card.whenShort}>
-        <Label px={20} className="text-dim min-w-0 flex-1 truncate">
+        <Label
+          px={20}
+          className="text-on-control-muted min-w-0 flex-1 truncate"
+        >
           {padelStickerLine(card, locale)}
         </Label>
       </StickerFoot>

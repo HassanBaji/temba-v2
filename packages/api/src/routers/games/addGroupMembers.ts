@@ -10,6 +10,7 @@ import {
   footballPositionSchema,
   footballRoleSchema,
 } from "@repo/validators/football";
+import { messagesFor } from "@repo/i18n/messages";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -49,21 +50,21 @@ export async function addGroupMembers(
   } & OrganizerAddPlacement,
 ) {
   const locale = args.locale ?? DEFAULT_LOCALE;
-  const game = await requireGame(database, args.gameId);
+  const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, locale);
-  await assertGameOrganizer(database, game, args.organizerUserId);
-  assertOrganizerAddFormat(game);
+  await assertGameOrganizer(database, game, args.organizerUserId, locale);
+  assertOrganizerAddFormat(game, locale);
   if (!game.groupId) {
-    refuse("This Game has no Group");
+    refuse(messagesFor(locale).game.errors.gameHasNoGroup);
   }
   const groupId = game.groupId;
   const football = isFootballGame(game);
   if (!football && args.players.some((player) => player.football)) {
-    refuse("Only a football Game takes a role and position");
+    refuse(messagesFor(locale).football.errors.roleOnFootball);
   }
   const userIds = args.players.map((player) => player.userId);
   if (new Set(userIds).size !== userIds.length) {
-    refuse("Pick each member once");
+    refuse(messagesFor(locale).game.errors.pickEachMemberOnce);
   }
 
   return database.transaction(async (tx) => {
@@ -88,7 +89,7 @@ export async function addGroupMembers(
     for (const [index, entry] of args.players.entries()) {
       const player = byId.get(entry.userId);
       if (!player) {
-        refuse("Only members of this Group can be added from it");
+        refuse(messagesFor(locale).game.errors.groupMembersOnly);
       }
       await organizerAddPlayer(tx, {
         game,

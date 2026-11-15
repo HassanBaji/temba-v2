@@ -114,7 +114,11 @@ export function bookingGameReviewRows(
     },
     {
       label: m.review.rating,
-      value: gameRatingScopeLabel(group?.ratingScope ?? "unrated", locale),
+      value: gameRatingScopeLabel(
+        group?.ratingScope ?? "unrated",
+        locale,
+        sport,
+      ),
     },
   ];
 }
@@ -139,7 +143,15 @@ export function bookingGameRequest(
   bookingId: string,
   draft: Pick<CreateGameDraft, "pricePerPlayer" | "levelMin" | "levelMax"> &
     Partial<
-      Pick<CreateGameDraft, "groupId" | "sideSize" | "playersAllowed" | "rated">
+      Pick<
+        CreateGameDraft,
+        | "groupId"
+        | "sideSize"
+        | "playersAllowed"
+        | "rated"
+        | "trackPayments"
+        | "keepersPlayFree"
+      >
     >,
   locale: Locale,
   sport: Sport = "padel",
@@ -150,6 +162,9 @@ export function bookingGameRequest(
     return { ok: false, errors: { pricePerPlayerFils: price.message } };
   }
   const group = draft.groupId ? { groupId: draft.groupId } : {};
+  const unrated =
+    draft.groupId && draft.rated === false ? { rated: false as const } : {};
+  const tracked = draft.trackPayments && (price.fils ?? 0) > 0;
   if (sport === "football") {
     const { sideSize, playersAllowed } = draft;
     if (!isFootballSideSize(sideSize)) {
@@ -174,9 +189,16 @@ export function bookingGameRequest(
       input: {
         bookingId,
         ...group,
+        ...unrated,
         sideSize,
         playersAllowed,
         ...(price.fils !== null ? { pricePerPlayerFils: price.fils } : {}),
+        ...(tracked
+          ? {
+              trackPayments: true,
+              keepersPlayFree: draft.keepersPlayFree ?? false,
+            }
+          : {}),
       },
     };
   }
@@ -197,10 +219,9 @@ export function bookingGameRequest(
     input: {
       bookingId,
       ...group,
-      ...(draft.groupId && draft.rated === false
-        ? { rated: false as const }
-        : {}),
+      ...unrated,
       ...(price.fils !== null ? { pricePerPlayerFils: price.fils } : {}),
+      ...(tracked ? { trackPayments: true } : {}),
       ...(levelMinTenths !== null ? { levelMinTenths } : {}),
       ...(levelMaxTenths !== null ? { levelMaxTenths } : {}),
     },

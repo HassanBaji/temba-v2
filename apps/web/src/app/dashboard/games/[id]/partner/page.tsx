@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
-import { friendlyGameHomeHref } from "@repo/domain/friendly-game-partner";
+import { friendlyGameHomeTarget } from "@repo/domain/friendly-game-partner";
+import { gameHomeTargetHref } from "~/lib/game-home-tab";
 
 export default async function PickAPartnerPage({
   params,
@@ -8,5 +9,5 @@ export default async function PickAPartnerPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  redirect(friendlyGameHomeHref(id));
+  redirect(gameHomeTargetHref(friendlyGameHomeTarget(id)));
 }

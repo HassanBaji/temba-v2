@@ -165,10 +165,7 @@ export const challenge = {
     partSeparator: ", ",
     avg: (level: string) => `avg ${level}`,
     sportLine: (parts: string, wants: string) => `${parts}. ${wants}`,
-    wants: (min: string, max: string) => `Wants ${min} to ${max}`,
-    wantsOnly: (band: string) => `Wants ${band}`,
-    wantsAndUp: (band: string) => `Wants ${band} and up`,
-    wantsAndUnder: (band: string) => `Wants ${band} and under`,
+    wants: (range: string) => `Wants ${range}`,
     anyLevel: "Open to any level",
     anyVenue: "Any venue",
     proposals: (n: number) =>
@@ -261,9 +258,6 @@ export const challenge = {
     addSlot: "Add slot",
     removeSlot: (slot: string) => `Remove ${slot}`,
     level: "Level wanted",
-    levelRange: (min: string, max: string) => `${min} to ${max}`,
-    levelAndUp: (band: string) => `${band} and up`,
-    levelAndUnder: (band: string) => `${band} and under`,
     anyLevel: "Any level",
     note: "A line about you",
     noteShown: "Shown on the card",
@@ -342,6 +336,14 @@ export const challenge = {
       "Your Team already has a pending proposal here. Change it instead.",
     proposalNotFound: "Proposal not found",
     proposalNotPending: "This proposal is no longer pending",
+    confirmOwnProposal:
+      "You act for both Teams, so the other Team has to confirm this proposal",
+    changeLimit: (max: number) =>
+      plural("en", max, {
+        one: "A proposal can be changed once. Withdraw it and send a new one.",
+        other:
+          "A proposal can be changed {n} times. Withdraw it and send a new one.",
+      }),
     setByChallenge: "Teams are set by the challenge; captains name the squads",
     nameBothSquads: "Name both squads first",
     squad: {
@@ -402,6 +404,8 @@ export const challenge = {
       title: "Make it a game?",
       description:
         "The Game is created with both Teams on it. The other proposals are passed over and told.",
+      descriptionFootball:
+        "The Game is created with both Teams on it and counts for Temba Level once someone from each Team confirms the score. The other proposals are passed over and told.",
       confirm: "Confirm, make it a game",
     },
     confirmed: "It's a game",
@@ -567,6 +571,8 @@ export const challenge = {
     countsForLine: {
       padel: "Both teams' records, the players named and rating",
       football: "Both teams' records and the players named",
+      footballLevel:
+        "Both teams' records, the players named and Temba Level, once each team confirms the score",
     },
     costSplitWays: (n: number) => `Split ${n} ways, pay at the venue`,
     squadsTitle: "Squads",
@@ -602,9 +608,6 @@ export const challenge = {
       posted: "Posted",
     },
     level: {
-      range: (min: string, max: string) => `${min} to ${max}`,
-      andUp: (band: string) => `${band} and up`,
-      andUnder: (band: string) => `${band} and under`,
       any: "Any level",
     },
     timingRanges: {

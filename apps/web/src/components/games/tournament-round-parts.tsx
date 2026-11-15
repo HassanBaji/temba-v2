@@ -25,18 +25,18 @@ export function teamFullName(team: RoundsTeam | undefined) {
   return team?.members.map((member) => member.name).join(" / ") ?? "";
 }
 
-export function TeamMark({
-  team,
+/** A team's initials tile: solid for the viewer's team, outlined otherwise. */
+export function InitialsMark({
+  name,
   isViewer,
   muted = false,
   className,
 }: {
-  team: RoundsTeam | undefined;
+  name: string;
   isViewer: boolean;
   muted?: boolean;
   className?: string;
 }) {
-  const first = team?.members[0]?.name ?? "";
   return (
     <span
       aria-hidden="true"
@@ -49,9 +49,21 @@ export function TeamMark({
         className,
       )}
     >
-      {initials(first)}
+      {initials(name)}
     </span>
   );
+}
+
+export function TeamMark({
+  team,
+  ...props
+}: {
+  team: RoundsTeam | undefined;
+  isViewer: boolean;
+  muted?: boolean;
+  className?: string;
+}) {
+  return <InitialsMark name={team?.members[0]?.name ?? ""} {...props} />;
 }
 
 /** Both names on their own lines, never one name cut short with ellipses. */

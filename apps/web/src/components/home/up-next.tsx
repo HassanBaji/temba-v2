@@ -1,351 +1,68 @@
 "use client";
 
-import {
-  ArrowRight,
-  MapPin,
-  Plus,
-  Search,
-  UserPlus,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowRight, Plus, Search, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
 import { SportGlyph } from "~/components/temba/sport-glyph";
 import { Hatch } from "~/components/ui/hatch";
 import { Surface } from "~/components/ui/surface";
-import { formatGameClock } from "@repo/domain/format-game-start";
-import { ratingScopeTag } from "@repo/domain/game-rating-impact";
-import { formatHomeKickoff } from "@repo/domain/home-countdown";
-import { homeComingUpRows } from "@repo/domain/home-coming-up";
-import {
-  homeGameKind,
-  homeHeroTitle,
-  homeHeroUntil,
-} from "@repo/domain/home-game-lines";
-import {
-  homeNextGameActions,
-  homeNextGameStatus,
-} from "@repo/domain/home-next-game";
 import type { HomeNoGamesCreateAction } from "@repo/domain/home-no-games";
-import { homeNextGameSeats } from "@repo/domain/home-seats";
-import { sportLabel, type Sport } from "@repo/domain/sport";
+import type { OpenWeekRow } from "@repo/domain/home-open-week";
+import type { Sport } from "@repo/domain/sport";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { useNow } from "~/hooks/use-now";
 import { cn } from "~/lib/utils";
 
 import { createHref, gameHref } from "./home-model";
-import {
-  startsInLabel,
-  upNextHeroDay,
-  upNextRowView,
-  type UpNextItem,
-  type UpNextRowView,
-} from "./up-next-model";
+import { SectionTitle } from "./section-title";
+import { upNextRowView, type UpNextItem } from "./up-next-model";
 
 const FOCUS_RING =
   "focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]";
 
 export function UpNextHeading({ label }: { label: string }) {
   const m = useMessages();
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <h2 className="text-lead font-semibold">{m.webAuth.home.upNext}</h2>
-      <p className="text-eyebrow text-muted-foreground font-mono uppercase">
-        {label}
-      </p>
-    </div>
-  );
+  return <SectionTitle title={m.webAuth.home.upNext} meta={label} />;
 }
 
-function Chip({ sport, kind }: { sport: Sport; kind: string }) {
-  const m = useMessages();
-  const locale = useLocale();
+function DayTime({ day, time }: { day: string; time: string }) {
   return (
-    <span className="border-dimrule text-eyebrow rounded-xs inline-flex shrink-0 items-center gap-1.5 border py-[3px] pe-2 ps-1.5 font-mono uppercase">
-      <SportGlyph sport={sport} className="text-on-focus size-[13px]" />
-      <span>
-        {sportLabel(sport, locale)}
-        <span className="text-dim">{m.webAuth.home.withEmphasis(kind)}</span>
+    <span aria-hidden="true" className="w-[50px] shrink-0">
+      <span className="text-eyebrow text-muted-foreground block truncate">
+        {day}
       </span>
+      <span className="font-expanded block truncate tabular-nums">{time}</span>
     </span>
   );
 }
 
-function CardAction({
-  href,
-  label,
-  icon: Icon,
-  primary = false,
-}: {
-  href: string;
-  label: string;
-  icon?: LucideIcon;
-  primary?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "text-meta flex h-9 min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border px-3 transition-opacity hover:opacity-85",
-        FOCUS_RING,
-        primary
-          ? "border-focus-control bg-focus-control text-on-focus-control flex-1 font-semibold"
-          : "border-dimrule text-on-focus",
-      )}
-    >
-      {Icon ? <Icon aria-hidden="true" className="size-3.5" /> : null}
-      {label}
-    </Link>
-  );
-}
-
-function HeroFrame({
-  href,
-  sport,
-  kind,
-  when,
-  spoken,
-  children,
-  actions,
-}: {
-  href: string;
-  sport: Sport;
-  kind: string;
-  when: { day: string | null; emphasis: string | null };
-  spoken: string;
-  children: React.ReactNode;
-  actions: React.ReactNode;
-}) {
-  const m = useMessages();
-  return (
-    <Surface as="article" tone="ink" radius="surface" className="p-[18px]">
-      <Link
-        href={href}
-        aria-label={spoken}
-        className={cn("-m-1 flex flex-col gap-3.5 rounded-lg p-1", FOCUS_RING)}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <Chip sport={sport} kind={kind} />
-          <p className="text-meta text-dim min-w-0 truncate">
-            {when.day}
-            {when.emphasis ? (
-              <span className="text-on-focus">
-                {when.day
-                  ? m.webAuth.home.withEmphasis(when.emphasis)
-                  : when.emphasis}
-              </span>
-            ) : null}
-          </p>
-        </div>
-        {children}
-      </Link>
-      <div className="border-dimrule mt-3.5 flex gap-1.5 border-t pt-3.5">
-        {actions}
-      </div>
-    </Surface>
-  );
-}
-
-function Kickoff({
-  startsAt,
-  endsAt,
-}: {
-  startsAt: Date;
-  endsAt: Date | null;
-}) {
-  const locale = useLocale();
-  const kickoff = formatHomeKickoff(startsAt, locale);
-  return (
-    <div className="flex flex-wrap items-baseline gap-x-2.5">
-      <p className="flex items-baseline gap-[5px]">
-        <span className="font-expanded text-[52px] tabular-nums leading-none">
-          {kickoff.time}
-        </span>
-        {kickoff.meridiem ? (
-          <span className="font-expanded text-[22px] leading-none">
-            {kickoff.meridiem}
-          </span>
-        ) : null}
-      </p>
-      {endsAt ? (
-        <p className="text-meta text-dim">
-          {homeHeroUntil(startsAt, endsAt, locale)}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function Headline({
+function TitleLines({
   title,
   detail,
-  icon: Icon,
+  sport,
 }: {
   title: string;
   detail: string | null;
-  icon?: LucideIcon;
+  sport: Sport;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <p
-        dir="auto"
-        className="text-lead line-clamp-2 text-start font-semibold leading-snug"
-      >
+    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <span dir="auto" className="truncate text-start font-semibold">
         {title}
-      </p>
+      </span>
       {detail ? (
-        <p className="text-meta text-dim flex min-w-0 items-center gap-1.5">
-          {Icon ? (
-            <Icon aria-hidden="true" className="size-3.5 shrink-0" />
-          ) : null}
+        <span className="text-eyebrow text-muted-foreground flex min-w-0 items-center gap-1.5">
+          <SportGlyph sport={sport} className="size-3 shrink-0" />
           <span dir="auto" className="min-w-0 truncate">
             {detail}
           </span>
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-export function UpNextHero({ item }: { item: UpNextItem }) {
-  const m = useMessages();
-  const locale = useLocale();
-  const now = useNow();
-  const { game, startsAt, sport } = item;
-  const endsAt = game.windowEnd ? new Date(game.windowEnd) : null;
-  const day = upNextHeroDay(startsAt, now, locale);
-  const href = gameHref({ kind: "game", gameId: game.id });
-  const [row] = homeComingUpRows([game], locale);
-
-  if (row?.kind === "tournament") {
-    const label = row.actionLabel ?? m.home.nextGame.viewGame;
-    return (
-      <HeroFrame
-        href={href}
-        sport={sport}
-        kind={m.webAuth.home.kind.tournament}
-        when={{ day, emphasis: null }}
-        spoken={m.webAuth.home.nextUpSpoken(
-          row.title,
-          day,
-          formatGameClock(startsAt, locale),
-        )}
-        actions={<CardAction primary href={href} label={label} />}
-      >
-        <Kickoff startsAt={startsAt} endsAt={null} />
-        <Headline title={row.title} detail={row.teamsLine} />
-      </HeroFrame>
-    );
-  }
-
-  const seats = homeNextGameSeats(
-    game.sides,
-    game.registeredUserCount,
-    game.playersAllowed,
-  );
-  const { primary, details } = homeNextGameActions({
-    gameId: game.id,
-    phase: game.phase,
-    hasOpenSeat: seats.some((seat) => !seat.filled),
-    locale,
-  });
-  const live =
-    game.phase === "ongoing" ||
-    (game.phase === "upcoming" &&
-      startsAt.getTime() <= now.getTime() &&
-      (endsAt == null || endsAt.getTime() > now.getTime()));
-  const status = live
-    ? m.home.nextGame.playingNow
-    : game.phase === "upcoming"
-      ? (startsInLabel(startsAt, endsAt ?? startsAt, now, locale) ??
-        homeNextGameStatus(game.phase, startsAt, now, locale))
-      : homeNextGameStatus(game.phase, startsAt, now, locale);
-  const title = homeHeroTitle(game, locale);
-  const ratingTag = ratingScopeTag(game, locale);
-  const place = m.home.comingUp.parts(
-    [game.venue?.name, game.courtName].filter((part): part is string =>
-      Boolean(part),
-    ),
-  );
-
-  return (
-    <HeroFrame
-      href={href}
-      sport={sport}
-      kind={homeGameKind(game.format, locale)}
-      when={{ day: live ? null : day, emphasis: status }}
-      spoken={m.webAuth.home.nextUpSpokenAt(
-        title,
-        day,
-        formatGameClock(startsAt, locale),
-        place,
-      )}
-      actions={
-        <>
-          {details ? (
-            <CardAction
-              href={gameHref(details)}
-              label={m.webAuth.home.details}
-            />
-          ) : null}
-          <CardAction
-            primary
-            href={gameHref(primary.target)}
-            label={primary.label}
-            icon={
-              primary.label === m.home.nextGame.invitePlayer
-                ? UserPlus
-                : undefined
-            }
-          />
-        </>
-      }
-    >
-      <Kickoff startsAt={startsAt} endsAt={endsAt} />
-      <Headline title={title} detail={place || null} icon={MapPin} />
-      {ratingTag ? (
-        <p className="text-meta font-semibold">{ratingTag}</p>
-      ) : null}
-    </HeroFrame>
-  );
-}
-
-function SeatBars({ bars }: { bars: readonly ("taken" | "open")[] }) {
-  return (
-    <span className="flex h-4 gap-[3px]">
-      {bars.map((kind, index) =>
-        kind === "taken" ? (
-          <span key={index} className="bg-ink w-[7px] rounded-[2px]" />
-        ) : (
-          <Hatch key={index} className="w-[7px] rounded-[2px]" />
-        ),
-      )}
-    </span>
-  );
-}
-
-function Trailing({ row }: { row: UpNextRowView }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="flex shrink-0 flex-col items-end gap-[5px]"
-    >
-      <SportGlyph sport={row.sport} className="text-muted-foreground size-4" />
-      {row.trailing?.kind === "bars" ? (
-        <SeatBars bars={row.trailing.bars} />
-      ) : row.trailing?.kind === "tag" ? (
-        <span className="text-eyebrow font-mono uppercase">
-          {row.trailing.label}
-        </span>
-      ) : row.trailing ? (
-        <span className="text-eyebrow text-muted-foreground tabular-nums">
-          {row.trailing.label}
         </span>
       ) : null}
     </span>
   );
 }
 
+/** The games after the card, then All games as the list's last row. */
 export function UpNextList({ items }: { items: readonly UpNextItem[] }) {
   const m = useMessages();
   const locale = useLocale();
@@ -355,56 +72,50 @@ export function UpNextList({ items }: { items: readonly UpNextItem[] }) {
       radius="card"
       className="border-rule divide-rule divide-y overflow-hidden border"
     >
-      {items.length > 0 ? (
-        <ul className="divide-rule divide-y">
-          {items.map((item) => {
-            const row = upNextRowView(item, now, locale);
-            return (
-              <li key={row.key}>
-                <Link
-                  href={gameHref({ kind: "game", gameId: item.game.id })}
-                  aria-label={row.spoken}
-                  className={cn(
-                    "hover:bg-wash flex min-h-14 items-center gap-3.5 px-4 py-3.5 transition-colors",
-                    FOCUS_RING,
-                    "focus-visible:ring-inset",
-                  )}
-                >
-                  <span aria-hidden="true" className="w-[58px] shrink-0">
-                    <span className="font-expanded text-lead block">
-                      {row.day}
-                    </span>
-                    <span className="text-eyebrow text-muted-foreground block truncate">
-                      {row.time}
-                    </span>
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold">
-                      {row.title}
-                    </span>
-                    {row.detail ? (
-                      <span className="text-meta text-muted-foreground block truncate">
-                        {row.detail}
-                      </span>
-                    ) : null}
-                  </span>
-                  <Trailing row={row} />
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
+      {items.map((item) => {
+        const row = upNextRowView(item, now, locale);
+        const trailing =
+          row.trailing && row.trailing.kind !== "bars"
+            ? row.trailing.label
+            : null;
+        return (
+          <Link
+            key={row.key}
+            href={gameHref({ kind: "game", gameId: item.game.id })}
+            aria-label={row.spoken}
+            className={cn(
+              "hover:bg-wash flex min-h-14 items-center gap-3 px-4 py-3 transition-colors",
+              FOCUS_RING,
+              "focus-visible:ring-inset",
+            )}
+          >
+            <DayTime day={row.day} time={row.time} />
+            <TitleLines
+              title={row.title}
+              detail={row.detail}
+              sport={row.sport}
+            />
+            {trailing ? (
+              <span
+                aria-hidden="true"
+                className="text-eyebrow text-muted-foreground shrink-0 tabular-nums"
+              >
+                {trailing}
+              </span>
+            ) : null}
+          </Link>
+        );
+      })}
       <Link
         href="/dashboard/games"
         className={cn(
-          "text-meta hover:bg-wash flex min-h-11 items-center justify-between px-4 font-semibold transition-colors",
+          "hover:bg-wash flex min-h-12 items-center justify-between px-4 font-semibold transition-colors",
           FOCUS_RING,
           "focus-visible:ring-inset",
         )}
       >
-        {m.webAuth.home.allGames}
-        <ArrowRight aria-hidden="true" className="size-3.5 rtl:-scale-x-100" />
+        {m.home.upNextCard.allGames}
+        <ArrowRight aria-hidden="true" className="size-4 rtl:-scale-x-100" />
       </Link>
     </Surface>
   );
@@ -423,38 +134,81 @@ function OutlineTile({
     <Link
       href={href}
       className={cn(
-        "border-rule bg-paper hover:bg-wash flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border font-semibold transition-colors",
+        "border-rule bg-paper hover:bg-wash flex h-12 flex-1 items-center justify-center gap-2 rounded-lg border font-semibold transition-colors",
         FOCUS_RING,
       )}
     >
-      <Icon aria-hidden="true" className="size-3.5" />
+      <Icon aria-hidden="true" className="size-4" />
       {label}
     </Link>
   );
 }
 
+function OpenGameRow({ row }: { row: OpenWeekRow }) {
+  const m = useMessages();
+  const href = gameHref({ kind: "game", gameId: row.gameId });
+  return (
+    <li className="flex items-center gap-3 px-4 py-3">
+      <Link
+        href={href}
+        aria-label={m.home.comingUp.parts(
+          [row.title, row.day, row.time, row.detail ?? ""].filter(Boolean),
+        )}
+        className={cn(
+          "flex min-w-0 flex-1 items-center gap-3 rounded-md",
+          FOCUS_RING,
+        )}
+      >
+        <DayTime day={row.day} time={row.time} />
+        <TitleLines title={row.title} detail={row.detail} sport={row.sport} />
+      </Link>
+      <Link
+        href={href}
+        aria-label={m.home.upNextCard.joinSpoken(row.title)}
+        className={cn(
+          "bg-ink text-paper text-meta flex h-9 shrink-0 items-center rounded-md px-3.5 font-semibold transition-opacity hover:opacity-85",
+          FOCUS_RING,
+        )}
+      >
+        {m.home.upNextCard.join}
+      </Link>
+    </li>
+  );
+}
+
+/** Nothing booked this week: open seats in the User's Groups, then find or create. */
 export function UpNextEmpty({
+  openGames,
   createAction,
 }: {
+  openGames: readonly OpenWeekRow[];
   createAction: HomeNoGamesCreateAction;
 }) {
   const m = useMessages();
   return (
-    <Surface radius="surface" className="border-rule overflow-hidden border">
-      <div className="border-rule relative flex flex-col gap-3 border-b px-[18px] pb-4 pt-[18px]">
+    <Surface
+      radius="surface"
+      className="border-rule divide-rule divide-y overflow-hidden border"
+    >
+      <div className="relative flex flex-col gap-2.5 px-[18px] pb-[18px] pt-[22px]">
         <Hatch className="absolute inset-0 shadow-none" />
-        <p className="border-rule bg-paper text-eyebrow rounded-xs relative self-start border px-2 py-[3px] font-mono uppercase">
-          {m.webAuth.home.empty.thisWeek}
-          <span className="text-muted-foreground">{` / ${m.webAuth.home.empty.free}`}</span>
-        </p>
         <h3 className="font-expanded text-h1-lg relative whitespace-pre-line">
           {m.webAuth.home.empty.headline}
         </h3>
         <p className="text-meta text-muted-foreground relative">
-          {m.webAuth.home.empty.description}
+          {openGames.length > 0
+            ? m.home.upNextCard.openWeekBody(openGames.length)
+            : m.webAuth.home.empty.description}
         </p>
       </div>
-      <div className="flex gap-2 px-[18px] pb-4 pt-3">
+      {openGames.length > 0 ? (
+        <ul className="divide-rule divide-y">
+          {openGames.map((row) => (
+            <OpenGameRow key={row.key} row={row} />
+          ))}
+        </ul>
+      ) : null}
+      <div className="flex gap-2 p-4">
         <OutlineTile
           href="/dashboard/games"
           label={m.webAuth.home.empty.findAGame}

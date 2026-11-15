@@ -11,17 +11,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 export function ActionMenu({
   children,
-  label = "More actions",
+  label,
   triggerRef,
 }: {
   children: React.ReactNode;
   label?: string;
   triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }) {
+  const m = useMessages().consoleShell;
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
@@ -29,7 +31,7 @@ export function ActionMenu({
           ref={triggerRef}
           type="button"
           variant="ghost"
-          aria-label={label}
+          aria-label={label ?? m.moreActions}
           className="size-11 min-h-11 min-w-11 p-0"
         >
           <MoreVertical aria-hidden="true" className="size-5" strokeWidth={2} />

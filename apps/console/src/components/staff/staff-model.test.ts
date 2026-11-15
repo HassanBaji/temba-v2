@@ -8,23 +8,27 @@ import {
 
 describe("managerSubtitle", () => {
   it("shows the handle for another manager who has one", () => {
-    expect(managerSubtitle({ username: "reem", isViewer: false })).toBe(
+    expect(managerSubtitle({ username: "reem", isViewer: false }, "en")).toBe(
       "@reem",
     );
   });
 
   it("appends ', you' for the signed-in manager with a handle", () => {
-    expect(managerSubtitle({ username: "noor", isViewer: true })).toBe(
+    expect(managerSubtitle({ username: "noor", isViewer: true }, "en")).toBe(
       "@noor, you",
     );
   });
 
   it("says 'you' for the signed-in manager without a username", () => {
-    expect(managerSubtitle({ username: null, isViewer: true })).toBe("you");
+    expect(managerSubtitle({ username: null, isViewer: true }, "en")).toBe(
+      "you",
+    );
   });
 
   it("is empty for another manager without a username", () => {
-    expect(managerSubtitle({ username: null, isViewer: false })).toBe(null);
+    expect(managerSubtitle({ username: null, isViewer: false }, "en")).toBe(
+      null,
+    );
   });
 });
 
@@ -40,8 +44,8 @@ describe("candidateManagers", () => {
 
 describe("MANAGER_CAPABILITIES", () => {
   it("lists the glossary's Venue manager scope", () => {
-    expect(MANAGER_CAPABILITIES).toContain("Pricing rules");
-    expect(MANAGER_CAPABILITIES).toContain("Customers and reports");
+    expect(MANAGER_CAPABILITIES).toContain("pricingRules");
+    expect(MANAGER_CAPABILITIES).toContain("customersAndReports");
     expect(new Set(MANAGER_CAPABILITIES).size).toBe(
       MANAGER_CAPABILITIES.length,
     );

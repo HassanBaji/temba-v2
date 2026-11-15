@@ -79,10 +79,6 @@ export const mobileCreateGame = {
     setsSchedule: "Sets the schedule",
     venueHasNoCourts: "This Venue has no Courts.",
     venueHasNoPitches: "This Venue has no pitches.",
-    allCourts: (n: number) =>
-      plural("en", n, { one: "All 1 Court", other: "All {n} Courts" }),
-    allPitches: (n: number) =>
-      plural("en", n, { one: "All 1 pitch", other: "All {n} pitches" }),
     noCourt: "No Court",
     noPitch: "No pitch",
     settleCourtAtVenue: "Leave on None to settle the Court at the Venue.",
@@ -161,6 +157,8 @@ export const mobileCreateGame = {
     maximumLevel: "Maximum Level",
     minimumLevelBand: (band: string) => `Minimum Level ${band}`,
     maximumLevelBand: (band: string) => `Maximum Level ${band}`,
+    minimumOvr: (ovr: string) => `Minimum OVR ${ovr}`,
+    maximumOvr: (ovr: string) => `Maximum OVR ${ovr}`,
     summaryA11y: (minimum: string, maximum: string) =>
       `Minimum ${minimum}, Maximum ${maximum}`,
     openToAnyone: "Open to anyone",

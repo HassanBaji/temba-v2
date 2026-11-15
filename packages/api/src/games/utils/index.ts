@@ -8,7 +8,7 @@ import type {
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { games, matches } from "@repo/db";
 
-import type { HubGameFootball } from "@repo/domain/hub-game-row";
+import type { HubGameFootball, MyTournament } from "@repo/domain/hub-game-row";
 import type { Sport } from "@repo/domain/sport";
 import type { GameRatingScope } from "@repo/domain/game-rating-scope";
 import type { MvpMode } from "@repo/domain/marks";
@@ -84,6 +84,8 @@ export type HubListKnockoutMatch = {
 
 export type HubListFootball = HubGameFootball;
 
+export type HubListMyTournament = MyTournament;
+
 export type HubListRow = {
   id: string;
   name: string | null;
@@ -128,6 +130,8 @@ export type HubListRow = {
   poolMatch: HubListPoolMatch | null;
   /** Only on expanded Knockout Match rows, which carry no Round number. */
   knockoutMatch: HubListKnockoutMatch | null;
+  /** The viewer's Game team, group place and Rounds on a posted Groups only tournament. */
+  myTournament?: HubListMyTournament | null;
   /** Only on football Games. */
   football?: HubListFootball | null;
   /** A Challenge Game: sides set by the Challenge, nobody joins. */
@@ -148,6 +152,8 @@ export type GameCreateVenueOption = {
   city: string;
   country: string;
   archivedAt: Date | null;
+  /** A partner Venue hosts Public Games (ADR-0071). */
+  isPartner: boolean;
   courts: { id: string; name: string; sport: Sport }[];
 };
 
@@ -157,8 +163,10 @@ export type CreateFriendlyGameInput = {
   createdBy: string;
   name?: string | null;
   hasCustomName?: boolean;
-  /** Null only for a Booking Game. */
+  /** Null only for a Booking Game or a Public Game. */
   groupId: string | null;
+  /** True only for a Public Game (ADR-0071). Omitted = private. */
+  isPublic?: boolean;
   venueId: string;
   courtId?: string | null;
   windowStart: Date;
@@ -174,14 +182,18 @@ export type CreateFriendlyGameInput = {
   levelMaxTenths?: number | null;
   /** How the MVP is decided. Omitted = players vote. */
   mvpMode?: MvpMode;
+  /** Only with a price above zero. Omitted = not tracked. */
+  trackPayments?: boolean;
 };
 
 export type CreateFootballGameInput = {
   createdBy: string;
   name?: string | null;
   hasCustomName?: boolean;
-  /** Null only for a Booking Game. */
+  /** Null only for a Booking Game or a Public Game. */
   groupId: string | null;
+  /** True only for a Public Game (ADR-0071). Omitted = private. */
+  isPublic?: boolean;
   venueId: string;
   courtId?: string | null;
   windowStart: Date;
@@ -191,6 +203,15 @@ export type CreateFootballGameInput = {
   playersAllowed: number;
   /** How the MVP is decided. Omitted = players vote. */
   mvpMode?: MvpMode;
+  /** From `ratingFlagsAtCreate`. Omitted = moves nothing. */
+  rated?: boolean;
+  groupRated?: boolean;
+  /** Only on a Game that counts for Temba Level (ADR-0069). */
+  levelMinTenths?: number | null;
+  levelMaxTenths?: number | null;
+  /** Only with a price above zero. Omitted = not tracked. */
+  trackPayments?: boolean;
+  keepersPlayFree?: boolean;
 };
 
 export type CreateFriendlyGameResult = {
@@ -202,8 +223,11 @@ export type CreateGameInput = {
   createdBy: string;
   name?: string;
   customName?: string;
-  groupId: string;
+  /** Omitted only for a Public Game (ADR-0071). */
+  groupId?: string;
   isPublic: boolean;
+  /** A Public Game's sport. Omitted = padel. */
+  sport?: Sport;
   /** False makes the Game Unrated (ADR-0053). Omitted = rated. */
   rated?: boolean;
   format: "friendly_game" | "americano" | "friendly_tournament";
@@ -221,6 +245,10 @@ export type CreateGameInput = {
   levelMaxTenths?: number | null;
   /** Friendly game only. Omitted = players vote. */
   mvpMode?: MvpMode;
+  /** Only with a price above zero. */
+  trackPayments?: boolean;
+  /** Football only, with tracking. */
+  keepersPlayFree?: boolean;
 };
 
 export type SeatPosition = "left" | "right";

@@ -13,7 +13,6 @@ import {
   venues,
 } from "@repo/db/schema";
 
-import { addSet } from "#src/routers/games/addSet";
 import { gameById } from "#src/routers/games/byId";
 import { cancelMatch } from "#src/routers/games/cancelMatch";
 import { completeMatch } from "#src/routers/games/completeMatch";
@@ -23,7 +22,6 @@ import { drawPools } from "#src/routers/games/drawPools";
 import { listPoolTables } from "#src/routers/games/poolTables";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
-import { scoreSet } from "#src/routers/games/scoreSet";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 // Fixture windows sit on fixed dates, so registration must still read as open.
@@ -230,21 +228,15 @@ async function completeSets(
     sets: { slot1GamesWon: number; slot2GamesWon: number }[];
   },
 ) {
-  for (const set of args.sets) {
-    const created = await addSet(database, {
-      gameId: args.gameId,
+  // A tournament score is one Set (ADR-0062), so a Match of several Sets is
+  // seeded straight into the table.
+  await database.insert(matchSets).values(
+    args.sets.map((set, index) => ({
       matchId: args.matchId,
-      userId: args.organizerUserId,
-    });
-    await scoreSet(database, {
-      gameId: args.gameId,
-      matchId: args.matchId,
-      setId: created.id,
-      userId: args.organizerUserId,
-      slot1GamesWon: set.slot1GamesWon,
-      slot2GamesWon: set.slot2GamesWon,
-    });
-  }
+      setNumber: index + 1,
+      ...set,
+    })),
+  );
   await completeMatch(database, {
     gameId: args.gameId,
     matchId: args.matchId,

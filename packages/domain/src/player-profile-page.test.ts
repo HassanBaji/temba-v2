@@ -1,6 +1,8 @@
 import { isolate } from "@repo/i18n/bidi";
 import { describe, expect, it } from "vitest";
 
+import { levelFromOvr } from "./football-ovr";
+import { BAND_MIDPOINTS, muFromLevel } from "./level";
 import {
   earlyDaysView,
   footballPositionView,
@@ -13,6 +15,7 @@ import {
   profileHeroSubtitle,
   profileLevelView,
   profileStreaksView,
+  profileTierView,
   sportSwitchView,
   withViewerView,
 } from "./player-profile-page";
@@ -106,12 +109,26 @@ describe("profileLevelView", () => {
       status: "Confirmed",
       statusDetail: "31 rated matches",
       band: "B",
-      level: "4.2",
+      level: "4.20",
       trend: "+0.2 since Sep",
       hatched: false,
     });
     expect(view.kind === "level" && view.lead).toMatch(/ to B\+$/);
     expect(view.kind === "level" && view.trail).toMatch(/% of the way$/);
+  });
+
+  it("reads a padel Level from 1.00 with two decimals", () => {
+    const options = { sport: "padel" as const, hasSwitch: true, trend: null };
+    const shown = (levelValue: number) => {
+      const view = profileLevelView(
+        { ...confirmed, levelValue },
+        options,
+        "en",
+      );
+      return view.kind === "level" ? view.level : null;
+    };
+    expect(shown(3.449)).toBe("3.45");
+    expect(shown(0.35)).toBe("1.00");
   });
 
   it("reads an unrated football Level as the starting one, hatched", () => {
@@ -132,6 +149,88 @@ describe("profileLevelView", () => {
     });
   });
 
+  it("reads a football Level as OVR with no band: a self-placed Competitive is 72", () => {
+    expect(
+      profileLevelView(
+        {
+          levelBand: "C1",
+          levelValue: BAND_MIDPOINTS.C1,
+          provisional: true,
+          ratedMatchCount: 0,
+          ratedMatchesRemaining: 5,
+        },
+        { sport: "football", hasSwitch: false, trend: null },
+        "en",
+      ),
+    ).toMatchObject({
+      band: null,
+      level: "72",
+      unit: "OVR",
+      spoken:
+        "Football level OVR 72, Starting level, Set at sign up, Doesn’t move with games yet",
+    });
+  });
+
+  it("fills a Confirmed football OVR along the scale, with no way to a next band", () => {
+    expect(
+      profileLevelView(
+        {
+          levelBand: "C1",
+          levelValue: levelFromOvr(74),
+          provisional: false,
+          ratedMatchCount: 6,
+          ratedMatchesRemaining: 0,
+        },
+        { sport: "football", hasSwitch: true, trend: null },
+        "en",
+      ),
+    ).toEqual({
+      kind: "level",
+      label: "Level",
+      status: "Confirmed",
+      statusDetail: "6 rated matches",
+      band: null,
+      level: "74",
+      unit: "OVR",
+      trend: null,
+      lead: null,
+      trail: null,
+      percent: 58,
+      hatched: false,
+      spoken: "Level OVR 74, Confirmed, 6 rated matches",
+    });
+  });
+
+  it("reads a football OVR at the top of the scale without a top band line", () => {
+    const view = profileLevelView(
+      {
+        levelBand: "A",
+        levelValue: 7,
+        provisional: false,
+        ratedMatchCount: 40,
+        ratedMatchesRemaining: 0,
+      },
+      { sport: "football", hasSwitch: true, trend: null },
+      "en",
+    );
+    expect(view).toMatchObject({
+      band: null,
+      level: "99",
+      lead: null,
+      percent: 100,
+    });
+  });
+
+  it("keeps a padel Level's band and no unit", () => {
+    expect(
+      profileLevelView(
+        confirmed,
+        { sport: "padel", hasSwitch: true, trend: null },
+        "en",
+      ),
+    ).toMatchObject({ band: "B", unit: null });
+  });
+
   it("reads no Level", () => {
     expect(
       profileLevelView(
@@ -143,18 +242,22 @@ describe("profileLevelView", () => {
   });
 });
 
+function move(before: number, after: number) {
+  return { muBefore: muFromLevel(before), muAfter: muFromLevel(after) };
+}
+
 describe("levelTrendSince", () => {
   it("sums the rated changes and names the oldest rated month", () => {
     expect(
       levelTrendSince(
         [
-          { playedAt: NOV_4, rating: { levelChange: 0.1 } },
+          { playedAt: NOV_4, rating: move(3.56, 3.68) },
           { playedAt: NOV_2, rating: null },
-          { playedAt: SEP_29, rating: { levelChange: 0.1 } },
+          { playedAt: SEP_29, rating: move(3.5, 3.56) },
         ],
         "en",
       ),
-    ).toBe("+0.2 since Sep");
+    ).toBe("+0.18 since Sep");
     expect(levelTrendSince([{ playedAt: NOV_4, rating: null }], "en")).toBe(
       null,
     );
@@ -382,5 +485,73 @@ describe("records in Arabic", () => {
         "ar",
       )[1]?.value,
     ).toBe(isolate("14–4–6"));
+  });
+});
+
+describe("profileTierView", () => {
+  const kanaad = {
+    groupId: "t1",
+    name: "Thursday Football",
+    memberCount: 13,
+    band: "kanaad" as const,
+    place: 6,
+    points: 1201,
+    provisional: false,
+    gamesOfFive: 5,
+  };
+
+  it("shows nothing when the viewer shares no tier Group", () => {
+    expect(
+      profileTierView([], { playerName: "Mahmood Ali", isViewer: false }, "en"),
+    ).toBeNull();
+  });
+
+  it("draws the player's fish in each shared tier Group, as screen 1a does", () => {
+    const view = profileTierView(
+      [
+        kanaad,
+        {
+          ...kanaad,
+          groupId: "t2",
+          name: "Gooz of Arad",
+          band: null,
+          place: null,
+          points: null,
+          provisional: true,
+          gamesOfFive: 2,
+        },
+      ],
+      { playerName: "Mahmood Ali", isViewer: false },
+      "en",
+    );
+    expect(view).toMatchObject({
+      title: "Group tier",
+      meta: "2 shared groups",
+      note: "Where Mahmood stands in the groups you’re both in. Set by each group’s own games and its organizers; it never touches their Level.",
+    });
+    expect(view?.rows[0]).toMatchObject({
+      cell: { kind: "fish", band: "kanaad" },
+      caption: "Kanaad, #6 of 13",
+      points: "1,201",
+    });
+    expect(view?.rows[1]).toMatchObject({
+      cell: { kind: "provisional" },
+      caption: "Provisional, 2 of 5 games",
+      points: null,
+    });
+  });
+
+  it("reads as the player's own on their own profile, and in Arabic", () => {
+    expect(
+      profileTierView([kanaad], { playerName: "Mahmood", isViewer: true }, "en")
+        ?.meta,
+    ).toBe("1 group");
+    const ar = profileTierView(
+      [kanaad],
+      { playerName: "Mahmood", isViewer: false },
+      "ar",
+    );
+    expect(ar?.meta).toBe("مجموعة مشتركة واحدة");
+    expect(ar?.rows[0]?.caption).toBe(`كنعد، ${isolate("#6 من 13")}`);
   });
 });

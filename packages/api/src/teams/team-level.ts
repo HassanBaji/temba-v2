@@ -2,7 +2,7 @@ import type { DbClient, DbTx } from "@repo/db";
 import { and, inArray } from "drizzle-orm";
 
 import { ratings, teamMembers, type GroupSportEnum } from "@repo/db";
-import { youRatingViewAfterIdle } from "@repo/domain/idle";
+import { levelFromMu } from "@repo/domain/level";
 import { teamLevel, type TeamLevel } from "@repo/domain/team-level";
 
 type DbOrTx = DbClient | DbTx;
@@ -14,12 +14,12 @@ type TeamForLevel = {
 
 /**
  * Team Level per Team: the mean displayed Level of its rated Roster members
- * for the Team's sport, or null when none is rated.
+ * for the Team's sport, or null when none is rated. Idle inflation moves φ
+ * only, so the Level is read from μ.
  */
 export async function loadTeamLevels(
   database: DbOrTx,
   teams: readonly TeamForLevel[],
-  now: Date = new Date(),
 ): Promise<Map<string, TeamLevel | null>> {
   const levels = new Map<string, TeamLevel | null>();
   if (teams.length === 0) {
@@ -46,7 +46,7 @@ export async function loadTeamLevels(
   const levelOf = new Map(
     ratingRows.map((row) => [
       `${row.userId}:${row.sport}`,
-      youRatingViewAfterIdle(row, now).level,
+      levelFromMu(row.mu),
     ]),
   );
   for (const team of teams) {
@@ -58,6 +58,7 @@ export async function loadTeamLevels(
           .map(
             (member) => levelOf.get(`${member.userId}:${team.sport}`) ?? null,
           ),
+        team.sport === "football" ? "football" : "padel",
       ),
     );
   }

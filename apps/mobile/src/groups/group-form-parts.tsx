@@ -110,7 +110,7 @@ export function PhotoTile({
               bottom: 0,
               paddingVertical: 4,
               alignItems: "center",
-              backgroundColor: uri ? colors.control : colors.dimrule,
+              backgroundColor: uri ? colors.control : colors.controlRaised,
             }}
           >
             <Text
@@ -267,7 +267,7 @@ export function SportSegment({
             </Text>
             <Text
               size="eyebrow"
-              style={{ color: selected ? colors.dim : colors.muted }}
+              style={{ color: selected ? colors.onControlMuted : colors.muted }}
             >
               {groupSportSublabel(sport, locale)}
             </Text>

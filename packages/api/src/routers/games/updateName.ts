@@ -14,6 +14,7 @@ import {
   gameWindowLabel,
   normalizeGameCustomName,
 } from "@repo/domain/game-custom-name";
+import { messagesFor } from "@repo/i18n/messages";
 
 export async function updateGameName(
   database: typeof db,
@@ -24,18 +25,19 @@ export async function updateGameName(
     locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.userId, locale);
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot edit a cancelled Game",
+      message: messagesFor(locale).game.errors.editCancelled,
     });
   }
   if (game.format !== "friendly_game") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Only a Friendly game takes a custom name",
+      message: messagesFor(locale).game.errors.customNameFriendly,
     });
   }
 

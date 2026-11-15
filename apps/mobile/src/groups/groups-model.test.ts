@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { createGroupFixtures } from "@repo/domain/group-fixtures";
 
-import { groupPath, groupRowView, publicGroupRowView } from "./groups-model";
+import {
+  groupNewSeasonPath,
+  groupRatingSettingsPath,
+  groupPath,
+  groupRowView,
+  groupSeasonsPath,
+  publicGroupRowView,
+} from "./groups-model";
 
 const ORIGIN = "https://api.example.com";
 const fixtures = createGroupFixtures(new Date("2026-03-10T12:00:00Z"));
@@ -101,5 +108,27 @@ describe("publicGroupRowView", () => {
 describe("groupPath", () => {
   it("opens the Group home", () => {
     expect(groupPath("g1")).toBe("/groups/g1");
+  });
+});
+
+describe("groupSeasonsPath", () => {
+  it("opens the Group's Seasons and the new Season form", () => {
+    expect(groupSeasonsPath("g1")).toEqual({
+      pathname: "/groups/seasons",
+      params: { groupId: "g1" },
+    });
+    expect(groupNewSeasonPath("g1")).toEqual({
+      pathname: "/groups/new-season",
+      params: { groupId: "g1" },
+    });
+  });
+});
+
+describe("groupRatingSettingsPath", () => {
+  it("opens the Group's Rating settings", () => {
+    expect(groupRatingSettingsPath("g1")).toEqual({
+      pathname: "/groups/rating-settings",
+      params: { groupId: "g1" },
+    });
   });
 });

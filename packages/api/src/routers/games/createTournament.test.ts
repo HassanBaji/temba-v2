@@ -108,6 +108,25 @@ function tournamentFields() {
 }
 
 describe("createTournamentInputSchema", () => {
+  it("takes Track payments only with a price above zero", () => {
+    const priced = createTournamentInputSchema.safeParse({
+      ...tournamentFields(),
+      pricePerPlayerFils: 2000,
+      trackPayments: true,
+    });
+    expect(priced.success && priced.data.trackPayments).toBe(true);
+    const free = createTournamentInputSchema.safeParse({
+      ...tournamentFields(),
+      trackPayments: true,
+    });
+    expect(free.success).toBe(false);
+    if (!free.success) {
+      expect(free.error.flatten().fieldErrors.trackPayments?.[0]).toBe(
+        "Set a price to track payments",
+      );
+    }
+  });
+
   it("refuses a team count below 4", () => {
     const parsed = createTournamentInputSchema.safeParse({
       name: "Autumn Friendly",
@@ -689,16 +708,21 @@ describe("createTournament", () => {
       const owner = await insertUser(db, "tournament-legacy@example.com");
       const venue = await insertVenue(db);
       const group = await insertGroup(db, { createdBy: owner.id });
-      const created = await createGame(db, {
-        createdBy: owner.id,
-        groupId: group.id,
-        isPublic: false,
-        format: "friendly_tournament",
-        registrationMode: "individual",
-        playersAllowed: 8,
-        venueId: venue.id,
-        ...windowTimes(),
-      });
+      const window = windowTimes();
+      const created = await createGame(
+        db,
+        {
+          createdBy: owner.id,
+          groupId: group.id,
+          isPublic: false,
+          format: "friendly_tournament",
+          registrationMode: "individual",
+          playersAllowed: 8,
+          venueId: venue.id,
+          ...window,
+        },
+        { now: window.windowStart },
+      );
       const row = await db.query.games.findFirst({
         where: eq(games.id, created.id),
       });

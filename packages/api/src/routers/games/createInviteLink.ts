@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { type Locale } from "@repo/i18n/locale";
+import { type Locale, DEFAULT_LOCALE } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -21,10 +21,11 @@ export async function createInviteLink(
   database: DbClient,
   args: { gameId: string; userId: string; origin: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, args.locale);
-  await assertGameOrganizer(database, game, args.userId);
-  await assertGameInviteDoorsOpen(database, game);
+  await assertGameOrganizer(database, game, args.userId, locale);
+  await assertGameInviteDoorsOpen(database, game, undefined, locale);
   const minted = await mintLink(
     database,
     { kind: "game", id: game.id },

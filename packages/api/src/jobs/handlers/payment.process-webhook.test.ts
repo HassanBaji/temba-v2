@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import type { JobHelpers } from "graphile-worker";
+import { describe, expect, it, vi } from "vitest";
 
 import { bookingPayments, bookings, paymentWebhookDeliveries } from "@repo/db";
 
@@ -158,5 +159,40 @@ describe("payment.process-webhook", () => {
         await expectLedgerConsistent(db, booking.id);
       });
     }
+  });
+
+  it("logs the delivery and charge when the last attempt fails", async () => {
+    await withBookableVenue(async (db) => {
+      const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+      provider.fake.webhookResult = {
+        ok: true,
+        deliveryKey: "chg_unknown:CAPTURED:1",
+        reference: "chg_unknown",
+        state: paid,
+      };
+      await receivePaymentWebhook(
+        { provider: "tap", headers: new Headers(), body: "{}" },
+        asDb(db),
+      );
+      const [delivery] = await db.select().from(paymentWebhookDeliveries);
+      const attempt = (attempts: number) =>
+        handle(
+          asDb(db),
+          { deliveryId: delivery!.id },
+          { job: { attempts, max_attempts: 10 } } as unknown as JobHelpers,
+          NOW,
+        );
+      await expect(attempt(9)).rejects.toThrow("chg_unknown");
+      expect(errors).not.toHaveBeenCalled();
+      await expect(attempt(10)).rejects.toThrow("chg_unknown");
+      expect(JSON.parse(String(errors.mock.calls[0]?.[0]))).toEqual({
+        event: "payment_job_gave_up",
+        name: "payment.process-webhook",
+        deliveryId: delivery!.id,
+        reference: "chg_unknown",
+        error: "No Payment for charge chg_unknown yet",
+      });
+      errors.mockRestore();
+    });
   });
 });

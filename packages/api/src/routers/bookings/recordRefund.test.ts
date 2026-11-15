@@ -124,4 +124,25 @@ describe("bookings.recordRefund", () => {
       });
     });
   });
+
+  it("counts a refund still with the provider as gone", async () => {
+    await withBookableVenue(async (db, f) => {
+      const booking = await insertBooking(db, f, {
+        paymentStatus: "paid",
+        priceFils: 12_000,
+      });
+      await db
+        .update(bookingPayments)
+        .set({ refundPendingFils: 5_000, refundPendingKey: "k1" })
+        .where(eq(bookingPayments.bookingId, booking.id));
+      await expect(
+        recordBookingRefund(db, {
+          bookingId: booking.id,
+          amountFils: 7_001,
+          actor: manager(f.manager),
+          now: NOW,
+        }),
+      ).rejects.toThrow("At most 7000 fils can still be refunded");
+    });
+  });
 });

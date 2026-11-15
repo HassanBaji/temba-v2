@@ -1,6 +1,12 @@
 import { spacing } from "@repo/design-tokens";
 import { useMemo } from "react";
-import { RefreshControl, ScrollView, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "../theme/theme-provider";
@@ -82,72 +88,80 @@ export function Screen({
           paddingTop: bleedHeader && header ? 0 : insets.top,
         }}
       >
-        {scroll ? (
-          <ScrollView
-            ref={scrollRef}
-            style={{ backgroundColor: colors.paper }}
-            contentContainerStyle={header ? undefined : content}
-            keyboardShouldPersistTaps="handled"
-            stickyHeaderIndices={sticky ? [stickyIndex] : undefined}
-            onLayout={
-              onViewportHeight
-                ? ({ nativeEvent }) =>
-                    onViewportHeight(nativeEvent.layout.height)
-                : undefined
-            }
-            automaticallyAdjustKeyboardInsets
-            scrollEventThrottle={onNearEnd ? 100 : undefined}
-            onScroll={
-              onNearEnd
-                ? ({ nativeEvent }) => {
-                    if (
-                      isNearEnd({
-                        contentOffsetY: nativeEvent.contentOffset.y,
-                        layoutHeight: nativeEvent.layoutMeasurement.height,
-                        contentHeight: nativeEvent.contentSize.height,
-                      })
-                    ) {
-                      onNearEnd();
+        <KeyboardAvoidingView
+          enabled={Boolean(footer)}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          {scroll ? (
+            <ScrollView
+              ref={scrollRef}
+              style={{ backgroundColor: colors.paper }}
+              contentContainerStyle={header ? undefined : content}
+              keyboardShouldPersistTaps="handled"
+              stickyHeaderIndices={sticky ? [stickyIndex] : undefined}
+              onLayout={
+                onViewportHeight
+                  ? ({ nativeEvent }) =>
+                      onViewportHeight(nativeEvent.layout.height)
+                  : undefined
+              }
+              automaticallyAdjustKeyboardInsets={!footer}
+              scrollEventThrottle={onNearEnd ? 100 : undefined}
+              onScroll={
+                onNearEnd
+                  ? ({ nativeEvent }) => {
+                      if (
+                        isNearEnd({
+                          contentOffsetY: nativeEvent.contentOffset.y,
+                          layoutHeight: nativeEvent.layoutMeasurement.height,
+                          contentHeight: nativeEvent.contentSize.height,
+                        })
+                      ) {
+                        onNearEnd();
+                      }
                     }
-                  }
-                : undefined
-            }
-            refreshControl={
-              onRefresh ? (
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  tintColor={colors.muted}
-                />
-              ) : undefined
-            }
-          >
-            {body}
-          </ScrollView>
-        ) : header ? (
-          <View style={{ flex: 1, backgroundColor: colors.paper }}>{body}</View>
-        ) : (
-          <View style={[{ flex: 1, backgroundColor: colors.paper }, content]}>
-            {children}
-          </View>
-        )}
-        {footer ? (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 10,
-              paddingTop: FOOTER_PADDING_Y,
-              paddingBottom: FOOTER_PADDING_Y + insets.bottom,
-              paddingHorizontal: spacing.surface,
-              borderTopWidth: hairline,
-              borderTopColor: colors.rule,
-              backgroundColor: colors.paper,
-            }}
-          >
-            {footer}
-          </View>
-        ) : null}
+                  : undefined
+              }
+              refreshControl={
+                onRefresh ? (
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    tintColor={colors.muted}
+                  />
+                ) : undefined
+              }
+            >
+              {body}
+            </ScrollView>
+          ) : header ? (
+            <View style={{ flex: 1, backgroundColor: colors.paper }}>
+              {body}
+            </View>
+          ) : (
+            <View style={[{ flex: 1, backgroundColor: colors.paper }, content]}>
+              {children}
+            </View>
+          )}
+          {footer ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                paddingTop: FOOTER_PADDING_Y,
+                paddingBottom: FOOTER_PADDING_Y + insets.bottom,
+                paddingHorizontal: spacing.surface,
+                borderTopWidth: hairline,
+                borderTopColor: colors.rule,
+                backgroundColor: colors.paper,
+              }}
+            >
+              {footer}
+            </View>
+          ) : null}
+        </KeyboardAvoidingView>
       </View>
     </InkRegistryContext.Provider>
   );

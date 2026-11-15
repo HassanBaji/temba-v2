@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { groupSeasons } from "@repo/db";
+import { groups, groupSeasons } from "@repo/db";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import {
@@ -43,39 +43,51 @@ export async function createSeason(
     locale?: Locale;
   },
 ) {
-  const group = await requireGroup(database, args.groupId);
-  assertCanManageSeasons(group, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
+  assertCanManageSeasons(group, args.userId, locale);
   const now = args.now ?? new Date();
 
-  const existing = await database.query.groupSeasons.findMany({
-    where: eq(groupSeasons.groupId, group.id),
-    columns: { startsOn: true, endsOn: true },
-  });
-  const error = seasonDatesError(args, existing, args.locale ?? DEFAULT_LOCALE);
-  if (error) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: error });
-  }
-
-  const [created] = await database
-    .insert(groupSeasons)
-    .values({
-      groupId: group.id,
-      name: args.name,
-      startsOn: args.startsOn,
-      endsOn: args.endsOn,
-      createdBy: args.userId,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .returning();
-  if (!created) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to create the season",
+  return database.transaction(async (tx) => {
+    await tx
+      .select({ id: groups.id })
+      .from(groups)
+      .where(eq(groups.id, group.id))
+      .for("update");
+    const existing = await tx.query.groupSeasons.findMany({
+      where: eq(groupSeasons.groupId, group.id),
+      columns: { startsOn: true, endsOn: true },
     });
-  }
-  await linkUnlinkedGamesToSeason(database, created);
-  return toSeasonRow(created, now);
+    const error = seasonDatesError(
+      args,
+      existing,
+      args.locale ?? DEFAULT_LOCALE,
+    );
+    if (error) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: error });
+    }
+
+    const [created] = await tx
+      .insert(groupSeasons)
+      .values({
+        groupId: group.id,
+        name: args.name,
+        startsOn: args.startsOn,
+        endsOn: args.endsOn,
+        createdBy: args.userId,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    if (!created) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to create the season",
+      });
+    }
+    await linkUnlinkedGamesToSeason(tx, created);
+    return toSeasonRow(created, now);
+  });
 }
 
 export const createSeasonProcedure = protectedProcedure

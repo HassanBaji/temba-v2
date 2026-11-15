@@ -137,12 +137,15 @@ export const mobileGameDetails = {
     step: {
       name: "الاسم",
       window: "الوقت",
+      place: "المكان",
       caps: "اللاعبون",
       price: "السعر",
       level: "نطاق المستوى",
       rounds: "الجولات",
       season: "الموسم",
       mvp: "نجم المباراة",
+      teams: "الفرق",
+      courts: "الملاعب",
     },
     movedToWaitlist: (n: number) =>
       plural("ar", n, {

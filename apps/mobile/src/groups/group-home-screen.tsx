@@ -4,7 +4,10 @@ import {
   removePlayerToast,
 } from "@repo/domain/add-player-by-phone";
 import type { GroupHomeData } from "@repo/domain/group-data";
-import type { GroupHomeTab } from "@repo/domain/group-home-tab";
+import {
+  groupHomeTabFromQuery,
+  type GroupHomeTab,
+} from "@repo/domain/group-home-tab";
 import {
   DEFAULT_GROUP_PLAYED_FILTER,
   type GroupPlayedFilter,
@@ -26,6 +29,7 @@ import {
   type GroupMenuItem,
 } from "@repo/domain/group-settings";
 import { groupMemberOrganizerToast } from "@repo/domain/group-home-chrome";
+import { ratingSettingsSummary } from "@repo/domain/group-rating-settings";
 import {
   groupLeaveVenueConfirm,
   groupLeftVenueToast,
@@ -33,8 +37,7 @@ import {
 import { groupLookupNote } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { useLocalSearchParams, useRouter, useSegments } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
-import type { ScrollView, View } from "react-native";
+import { useCallback, useMemo, useState } from "react";
 
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
 import { RenamePlayerSheet } from "../game-details/rename-player-sheet";
@@ -59,15 +62,14 @@ import { groupEditPath } from "./group-edit-model";
 import { RequestJoinSheet } from "./request-join-sheet";
 import { groupHomeHeader } from "./group-home-model";
 import { GroupHomeView } from "./group-home-view";
+import { groupRatingSettingsPath, groupTierHistoryPath } from "./groups-model";
 import { Notice } from "./notice";
 import { TransferOwnershipSheet } from "./transfer-ownership-sheet";
 import {
   savedLevelFromParams,
-  setGroupLevelPath,
   setLevelPath,
   type SavedLevelParams,
 } from "./set-level-model";
-import { newTeamPath, teamPath } from "../teams/teams-model";
 import { useGroupAdmin } from "./use-group-admin";
 import { useGroupInviteLink } from "./use-group-invite-link";
 import { useGroupJoin } from "./use-group-join";
@@ -82,18 +84,18 @@ type OlderPages = {
   exhausted: boolean;
 };
 
-const SCROLL_TARGET_INSET = 16;
-
 export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const m = useMessages();
   const locale = useLocale();
   const router = useRouter();
   const segments = useSegments();
-  const params = useLocalSearchParams<SavedLevelParams>();
+  const params = useLocalSearchParams<SavedLevelParams & { tab?: string }>();
   const saved = savedLevelFromParams(params);
   const toast = useToast();
   const utils = api.useUtils();
-  const [tab, setTab] = useState<GroupHomeTab>("standing");
+  const [tab, setTab] = useState<GroupHomeTab>(() =>
+    groupHomeTabFromQuery(params.tab),
+  );
   const [memberQuery, setMemberQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
@@ -244,10 +246,6 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     (userId: string) => router.push(setLevelPath(groupId, userId)),
     [router, groupId],
   );
-  const openSetGroupLevelScreen = useCallback(
-    (userId: string) => router.push(setGroupLevelPath(groupId, userId)),
-    [router, groupId],
-  );
   const dismissSaved = useCallback(
     () =>
       router.setParams({
@@ -257,22 +255,6 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
       }),
     [router],
   );
-  const scrollRef = useRef<ScrollView>(null);
-  const scrollTo = useCallback((target: View | null) => {
-    const scroll = scrollRef.current;
-    // React Native types the inner content node as `any`; it is a host node.
-    const content = scroll?.getInnerViewNode() as number | null | undefined;
-    if (!target || !scroll || content == null) {
-      return;
-    }
-    target.measureLayout(content, (_x, y) =>
-      scroll.scrollTo({
-        y: Math.max(0, y - SCROLL_TARGET_INSET),
-        animated: true,
-      }),
-    );
-  }, []);
-
   const header = <ScreenHeader nav="back" fallback="/groups" />;
 
   if (isNotFoundError(group.error)) {
@@ -336,6 +318,9 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
       case "copy_link":
         void inviteLink.copy();
         return;
+      case "rating_settings":
+        router.push(groupRatingSettingsPath(groupId));
+        return;
       case "leave":
         if (data.isOwner && data.isLoose) {
           askOwnerLeave();
@@ -346,11 +331,8 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   };
 
   return (
-    <Screen refreshing={refreshing} onRefresh={onRefresh} scrollRef={scrollRef}>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
       <GroupHomeView
-        onScrollTo={scrollTo}
-        onOpenTeam={(teamId) => router.push(teamPath(teamId))}
-        onCreateTeam={() => router.push(newTeamPath(groupId))}
         data={data}
         apiOrigin={apiOrigin}
         tab={tab}
@@ -401,6 +383,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
             canEdit: data.canEdit,
             canInvite: groupHomeCanManageInvites(data),
             canCopyLink: data.canManageInviteLinks,
+            canChangeRatingSettings: data.ratingSettings != null,
           }),
           roleLine: groupMenuRoleLine({
             isOwner: data.isOwner,
@@ -413,6 +396,9 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
             isLoose: data.isLoose,
             locale,
           }),
+          ratingSettingsHint: data.ratingSettings
+            ? ratingSettingsSummary(data.ratingSettings, locale)
+            : null,
           copyPending: inviteLink.copyPending,
           onOpen: () => setMenuOpen(true),
           onPick: pickMenuItem,
@@ -460,7 +446,9 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
         }
         onOpenMember={(userId) => router.push(playerPath(segments, userId))}
         onSetLevel={openSetLevelScreen}
-        onSetGroupLevel={openSetGroupLevelScreen}
+        onOpenTierHistory={(userId) =>
+          router.push(groupTierHistoryPath(groupId, userId))
+        }
         saved={saved}
         onDismissSaved={dismissSaved}
         games={{

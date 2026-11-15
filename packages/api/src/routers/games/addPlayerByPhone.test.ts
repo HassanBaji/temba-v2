@@ -25,10 +25,7 @@ import {
   withBookableVenue,
 } from "#src/bookings/booking.test-support";
 import { balanceFootballSides } from "@repo/domain/football-lineup";
-import { PARTNER_REQUIRED_REFUSAL_MESSAGE } from "@repo/domain/tournament-rounds";
 import { createFriendlyGame } from "#src/games/create-friendly";
-import { ORGANIZER_ADD_TEAM_ONLY_MESSAGE } from "#src/games/assert-organizer-add-format";
-import { POOL_DRAW_POSTED_MESSAGE } from "#src/games/assert-pool-draw-not-posted";
 import { createBookingGame } from "#src/routers/bookings/createGame";
 import { addPlayerByPhone } from "#src/routers/games/addPlayerByPhone";
 import { gameById } from "#src/routers/games/byId";
@@ -751,7 +748,7 @@ describe("games.previewPlayerByPhone and games.addPlayerByPhone", () => {
             organizerUserId: f.organizer,
             ...bahrain("36124408"),
           }),
-        ).rejects.toThrow(ORGANIZER_ADD_TEAM_ONLY_MESSAGE);
+        ).rejects.toThrow("This Game is team-only");
         await expect(
           addPlayerByPhone(db, {
             gameId: teamOnly!.id,
@@ -760,7 +757,7 @@ describe("games.previewPlayerByPhone and games.addPlayerByPhone", () => {
             name: "Ali",
             side: { sideIndex: 1 },
           }),
-        ).rejects.toThrow(ORGANIZER_ADD_TEAM_ONLY_MESSAGE);
+        ).rejects.toThrow("This Game is team-only");
       } finally {
         await close();
       }
@@ -1061,7 +1058,7 @@ describe("games.addPlayerByPhone on a Friendly tournament", () => {
           sideIndex: 1,
           position: "right",
         }),
-      ).rejects.toThrow(PARTNER_REQUIRED_REFUSAL_MESSAGE);
+      ).rejects.toThrow("This tournament does not allow registering alone");
       let details = await gameById(db, {
         gameId: f.tournamentId,
         userId: f.organizer,
@@ -1100,7 +1097,7 @@ describe("games.addPlayerByPhone on a Friendly tournament", () => {
           organizerUserId: f.organizer,
           ...bahrain("36124408"),
         }),
-      ).rejects.toThrow(POOL_DRAW_POSTED_MESSAGE);
+      ).rejects.toThrow("The groups are drawn");
       await expect(
         addPlayerByPhone(db, {
           gameId: f.tournamentId,
@@ -1109,7 +1106,7 @@ describe("games.addPlayerByPhone on a Friendly tournament", () => {
           name: "Ali",
           side: { sideIndex: 1 },
         }),
-      ).rejects.toThrow(POOL_DRAW_POSTED_MESSAGE);
+      ).rejects.toThrow("The groups are drawn");
       expect(
         await db.query.user.findFirst({
           where: eq(user.phoneNumber, "+97336124408"),

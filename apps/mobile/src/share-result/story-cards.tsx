@@ -1,4 +1,4 @@
-import { palettes } from "@repo/design-tokens";
+import { invertedFocusPalettes } from "@repo/design-tokens";
 import type {
   FootballResultCard,
   PadelResultCard,
@@ -21,7 +21,7 @@ import {
 import { STORY_HEIGHT, STORY_WIDTH } from "./story-canvas";
 
 // Share cards render on black in both modes: they leave the App.
-const colors = palettes.light;
+const colors = invertedFocusPalettes.light;
 
 const PAD_X = 72;
 const PAD_TOP = 180;
@@ -138,7 +138,7 @@ function PadelSide({
   count: number;
   strong: boolean;
 }) {
-  const ink = strong ? colors.paper : colors.dim;
+  const ink = strong ? colors.paper : colors.onControlMuted;
   return (
     <View
       style={{
@@ -147,14 +147,14 @@ function PadelSide({
         gap: 40,
         paddingBottom: 36,
         borderBottomWidth: RULE,
-        borderBottomColor: colors.dimrule,
+        borderBottomColor: colors.controlRule,
       }}
     >
       <View style={{ flex: 1, minWidth: 0, gap: 14 }}>
         <Label
           px={26}
           tracking={0.14}
-          style={{ color: strong ? colors.dim : colors.muted }}
+          style={{ color: strong ? colors.onControlMuted : colors.muted }}
         >
           {word}
         </Label>
@@ -257,7 +257,7 @@ function PadelStory({ card }: { card: PadelResultCard }) {
                 paddingVertical: 22,
                 paddingHorizontal: 28,
                 borderRadius: 20,
-                backgroundColor: colors.raised,
+                backgroundColor: colors.controlRaised,
               }}
             >
               <View
@@ -322,7 +322,7 @@ function FootballScoreRow({
   word: string;
   strong: boolean;
 }) {
-  const ink = strong ? colors.paper : colors.dim;
+  const ink = strong ? colors.paper : colors.onControlMuted;
   return (
     <View
       style={{
@@ -331,7 +331,7 @@ function FootballScoreRow({
         gap: 36,
         paddingBottom: 36,
         borderBottomWidth: RULE,
-        borderBottomColor: colors.dimrule,
+        borderBottomColor: colors.controlRule,
       }}
     >
       <View
@@ -356,7 +356,7 @@ function FootballScoreRow({
           <Label
             px={20}
             tracking={0.14}
-            style={{ color: strong ? colors.dim : colors.muted }}
+            style={{ color: strong ? colors.onControlMuted : colors.muted }}
           >
             {word}
           </Label>
@@ -399,8 +399,8 @@ function ScorerSheet({ card }: { card: FootballResultCard }) {
           ? colors.ink
           : scorer.onWinningSide
             ? colors.paper
-            : colors.dim;
-        const sub = scorer.isYou ? colors.muted : colors.dim;
+            : colors.onControlMuted;
+        const sub = scorer.isYou ? colors.muted : colors.onControlMuted;
         return (
           <View
             key={scorer.userId}
@@ -461,7 +461,10 @@ function LineupGrid({
       <Label
         px={26}
         tracking={0.14}
-        style={{ color: strong ? colors.dim : colors.muted, paddingBottom: 4 }}
+        style={{
+          color: strong ? colors.onControlMuted : colors.muted,
+          paddingBottom: 4,
+        }}
       >
         {word}
       </Label>
@@ -475,7 +478,11 @@ function LineupGrid({
       >
         {people.slice(0, MAX_LINEUP).map((person) => {
           const you = strong && person.isYou;
-          const ink = you ? colors.ink : strong ? colors.paper : colors.dim;
+          const ink = you
+            ? colors.ink
+            : strong
+              ? colors.paper
+              : colors.onControlMuted;
           return (
             <View
               key={person.userId}

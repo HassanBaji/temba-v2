@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { groupMemberInvites } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -17,6 +18,7 @@ export async function acceptLookupInvite(
   database: DbClient,
   args: { inviteId: string; userId: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const invite = await database.query.groupMemberInvites.findFirst({
     where: eq(groupMemberInvites.id, args.inviteId),
   });
@@ -24,18 +26,18 @@ export async function acceptLookupInvite(
   if (!invite || invite.acceptedAt || invite.revokedAt) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Lookup invite is not available",
+      message: messagesFor(locale).invite.errors.lookupUnavailable,
     });
   }
 
   if (invite.userId !== args.userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This invite is for a different User",
+      message: messagesFor(locale).invite.errors.differentUser,
     });
   }
 
-  const group = await requireGroup(database, invite.groupId);
+  const group = await requireGroup(database, invite.groupId, locale);
   const accepted = await database.transaction((tx) =>
     acceptLookup(
       tx,
@@ -49,17 +51,22 @@ export async function acceptLookupInvite(
   );
   if (!accepted.ok) {
     if (accepted.reason === "frozen") {
-      throwInviteFrozen({ kind: "group", id: group.id }, "accept", "frozen");
+      throwInviteFrozen(
+        { kind: "group", id: group.id },
+        "accept",
+        "frozen",
+        locale,
+      );
     }
     if (accepted.reason === "wrong_user") {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "This invite is for a different User",
+        message: messagesFor(locale).invite.errors.differentUser,
       });
     }
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Lookup invite is not available",
+      message: messagesFor(locale).invite.errors.lookupUnavailable,
     });
   }
 

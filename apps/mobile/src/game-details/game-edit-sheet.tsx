@@ -5,9 +5,12 @@ import {
   asideLabel,
   footballFormatNote,
   footballSideSizeStep,
+  gameEditCourtCopy,
+  gamePlaceLine,
   joinedCountLabel,
   playersAllowedForSideSize,
   playersCapWaitNote,
+  teamsCapWaitNote,
   venueLockedLine,
   windowDurationLabel,
   type GameEditSections,
@@ -21,6 +24,11 @@ import {
   seasonsOpenForDay,
 } from "@repo/domain/game-season-link";
 import { footballPlayersAllowedBounds } from "@repo/domain/game-shape";
+import { kingCourtCount } from "@repo/domain/tournament-king";
+import {
+  tournamentTeamCountStep,
+  type TournamentResizeShape,
+} from "@repo/domain/tournament-resize";
 import {
   formatDayLabel,
   formatTimeSlotLabel,
@@ -64,6 +72,13 @@ export type GameEditContext = {
   courtName: string | null;
   groupName: string | null;
   joined: number;
+  /** A Friendly tournament's team count and what it may change to. */
+  teams?: {
+    joined: number;
+    shape: TournamentResizeShape;
+    king: boolean;
+    partnerOnly: boolean;
+  } | null;
   seasons: readonly GroupSeasonData[];
   canChangeSeason: boolean;
 };
@@ -181,6 +196,182 @@ function ValueStepper({
         disabled={!canIncrease}
         onPress={onIncrease}
       />
+    </View>
+  );
+}
+
+const NO_COURT = "none";
+
+function PlaceSection({
+  edit,
+  venueName,
+  error,
+}: {
+  edit: GameEditController;
+  venueName: string | null;
+  error: string | undefined;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const placeCopy = m.createGame.edit.place;
+  const copy = gameEditCourtCopy(edit.draft.sideSize, locale);
+  const { draft, update, place } = edit;
+  if (place.status !== "ready") {
+    return (
+      <View style={{ gap: SECTION_GAP }}>
+        <SectionHead title={placeCopy.title} />
+        {place.status === "loading" ? (
+          <Text tone="muted">{copy.loading}</Text>
+        ) : (
+          <FieldError message={place.message} />
+        )}
+      </View>
+    );
+  }
+  const { locked, venues } = place.value;
+  const venue = venues.find((choice) => choice.id === draft.venueId);
+  return (
+    <View style={{ gap: SECTION_GAP }}>
+      <SectionHead title={placeCopy.title} />
+      <Text weight="medium">{placeCopy.venue}</Text>
+      {locked ? (
+        <>
+          <Text>{venue?.name ?? venueName ?? ""}</Text>
+          <Hint>{placeCopy.clubVenue}</Hint>
+        </>
+      ) : (
+        <>
+          <ChipGrid
+            label={placeCopy.venue}
+            columns={1}
+            chips={venues.map((choice) => ({
+              value: choice.id,
+              label: choice.name,
+            }))}
+            isSelected={(value) => value === draft.venueId}
+            onSelect={(venueId) => update({ venueId, courtId: null })}
+          />
+          <Hint>{placeCopy.venueHint}</Hint>
+        </>
+      )}
+      <Text weight="medium">{copy.title}</Text>
+      <ChipGrid
+        label={copy.title}
+        chips={[
+          { value: NO_COURT, label: copy.none },
+          ...(venue?.courts ?? []).map((court) => ({
+            value: court.id,
+            label: court.name,
+          })),
+        ]}
+        isSelected={(value) => value === (draft.courtId ?? NO_COURT)}
+        onSelect={(value) =>
+          update({ courtId: value === NO_COURT ? null : value })
+        }
+      />
+      <FieldError message={error} />
+      <Hint>{copy.hint}</Hint>
+    </View>
+  );
+}
+
+function TeamsSection({
+  edit,
+  teams,
+  error,
+}: {
+  edit: GameEditController;
+  teams: NonNullable<GameEditContext["teams"]>;
+  error: string | undefined;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.createGame.edit.teams;
+  const { draft, update } = edit;
+  const teamCount = draft.teamCount ?? teams.joined;
+  const down = tournamentTeamCountStep(teams.shape, teamCount, -1);
+  const up = tournamentTeamCountStep(teams.shape, teamCount, 1);
+  const blockedDown = teams.partnerOnly && down != null && down < teams.joined;
+  return (
+    <View style={{ gap: SECTION_GAP }}>
+      <SectionHead
+        title={copy.title}
+        meta={joinedCountLabel(teams.joined, locale)}
+      />
+      <View style={{ flexDirection: "row" }}>
+        <ValueStepper
+          label={copy.label}
+          display={String(teamCount)}
+          accessibilityValue={String(teamCount)}
+          canDecrease={down != null && !blockedDown}
+          canIncrease={up != null}
+          onDecrease={() => {
+            if (down != null) {
+              update({ teamCount: down });
+            }
+          }}
+          onIncrease={() => {
+            if (up != null) {
+              update({ teamCount: up });
+            }
+          }}
+          decreaseLabel={copy.fewer}
+          increaseLabel={copy.more}
+        />
+      </View>
+      <FieldError message={error} />
+      {teams.king ? (
+        <Hint>{copy.kingCourts(kingCourtCount(teamCount))}</Hint>
+      ) : null}
+      <Hint>{teamsCapWaitNote(teamCount, teams.joined, locale)}</Hint>
+      <Hint>{teams.partnerOnly ? copy.partnerOnlyHint : copy.hint}</Hint>
+    </View>
+  );
+}
+
+function CourtsSection({
+  edit,
+  error,
+}: {
+  edit: GameEditController;
+  error: string | undefined;
+}) {
+  const copy = useMessages().createGame.edit.courts;
+  const { draft, update, courts } = edit;
+  const picked = new Set(draft.courtIds);
+  function toggle(courtId: string) {
+    const next = new Set(picked);
+    if (next.has(courtId)) {
+      next.delete(courtId);
+    } else {
+      next.add(courtId);
+    }
+    update({ courtIds: [...next] });
+  }
+  return (
+    <View style={{ gap: SECTION_GAP }}>
+      <SectionHead title={copy.title} />
+      {courts.status === "loading" ? (
+        <Text tone="muted">{copy.loading}</Text>
+      ) : courts.status === "error" ? (
+        <FieldError message={courts.message} />
+      ) : courts.value.length === 0 ? (
+        <Hint>{copy.none}</Hint>
+      ) : (
+        <ChipGrid
+          label={copy.title}
+          multiple
+          check
+          chips={courts.value.map((court) => ({
+            value: court.id,
+            label: court.name,
+          }))}
+          isSelected={(value) => picked.has(value)}
+          onSelect={toggle}
+        />
+      )}
+      <FieldError message={error} />
+      <Hint>{copy.hint}</Hint>
     </View>
   );
 }
@@ -587,7 +778,14 @@ export function GameEditSheet({
       subtitle={
         pickingSeason
           ? null
-          : venueLockedLine(context.venueName, context.courtName, locale)
+          : sections.place &&
+              !(edit.place.status === "ready" && edit.place.value.locked)
+            ? gamePlaceLine(context.venueName, context.courtName, locale)
+            : venueLockedLine(
+                context.venueName,
+                sections.place ? null : context.courtName,
+                locale,
+              )
       }
       action={
         <Button
@@ -685,6 +883,23 @@ export function GameEditSheet({
             <FieldError message={errorFor("window")} />
             <Hint>{editCopy.whenHint}</Hint>
           </View>
+          {sections.place ? (
+            <PlaceSection
+              edit={edit}
+              venueName={context.venueName}
+              error={errorFor("place")}
+            />
+          ) : null}
+          {sections.teams && context.teams ? (
+            <TeamsSection
+              edit={edit}
+              teams={context.teams}
+              error={errorFor("teams")}
+            />
+          ) : null}
+          {sections.courts ? (
+            <CourtsSection edit={edit} error={errorFor("courts")} />
+          ) : null}
           <View style={{ gap: SECTION_GAP }}>
             <SectionHead
               title={sections.caps ? copy.playersAndPrice : copy.price}

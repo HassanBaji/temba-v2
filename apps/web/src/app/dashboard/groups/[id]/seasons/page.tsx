@@ -2,6 +2,7 @@
 
 import { ChevronRight, Lock, Plus } from "lucide-react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { use, useState } from "react";
 import { toast } from "sonner";
 
@@ -35,6 +36,7 @@ import {
 import { groupNewSeasonHref } from "~/lib/dashboard-paths";
 import { cardFrame } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
+import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { api, type RouterOutputs } from "~/trpc/react";
 
 type Season = RouterOutputs["groups"]["listSeasons"]["seasons"][number];
@@ -249,12 +251,16 @@ export default function GroupSeasonsPage({
     );
   }
 
+  if (isNotFoundError(seasons.error)) {
+    notFound();
+  }
+
   if (!seasons.data) {
     return (
       <SeasonsFrame groupId={id} groupName={null}>
         <ErrorState
           title={m.webDashboard.seasons.errorTitle}
-          message={seasons.error?.message}
+          error={seasons.error}
           onRetry={() => {
             void seasons.refetch();
           }}

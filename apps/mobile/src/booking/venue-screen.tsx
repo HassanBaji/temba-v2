@@ -261,7 +261,9 @@ export function VenueScreen({
               >
                 <Text
                   size="eyebrow"
-                  style={{ color: isSelected ? colors.dim : colors.muted }}
+                  style={{
+                    color: isSelected ? colors.onControlMuted : colors.muted,
+                  }}
                 >
                   {entry.weekday}
                 </Text>

@@ -1,4 +1,4 @@
-import { type Locale } from "@repo/i18n/locale";
+import { type Locale, DEFAULT_LOCALE } from "@repo/i18n/locale";
 import { and, eq, isNull } from "drizzle-orm";
 
 import {
@@ -80,6 +80,7 @@ export async function acceptLookup(
   host: InviteHost,
   args: { inviteId: string; userId: string; seat?: AcceptSeat; locale: Locale },
 ): Promise<AcceptLookupResult> {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const invite = await loadLookupInvite(database, host, args.inviteId);
   if (!invite || invite.acceptedAt || invite.revokedAt) {
     return { ok: false, reason: "unavailable" };
@@ -156,7 +157,7 @@ export async function acceptLookup(
     return { ok: true, alreadyMember: false, hostId: host.id };
   }
 
-  const game = await requireGame(writeDb(database), host.id);
+  const game = await requireGame(writeDb(database), host.id, locale);
   if (isIndividualSeatGame(game) && !args.seat) {
     return { ok: false, reason: "seat_required" };
   }

@@ -26,10 +26,16 @@ import {
   type SportFilter,
 } from "@repo/domain/football-hub";
 import { hubItems, tabCount, type GamesTab } from "./games-model";
-import { PlayedEmpty, UpcomingEmpty } from "./games-empty";
+import { PlayedEmpty, PublicEmpty, UpcomingEmpty } from "./games-empty";
 import { HistoryCard } from "./history-card";
+import { KingPlayedCard } from "./king-played-card";
 import { SeatPickerSheet } from "./seat-picker-sheet";
 import { TournamentCard, TournamentMatchCard } from "./tournament-cards";
+import {
+  TournamentGamesCard,
+  TournamentPlayedCard,
+} from "./tournament-games-cards";
+import { isTournamentGamesCardRow } from "@repo/domain/tournament-games-card";
 import { useNow } from "./use-now";
 
 const LIST_GAP = 12;
@@ -38,6 +44,7 @@ export type GamesViewProps = {
   tab: GamesTab;
   onTabChange: (tab: GamesTab) => void;
   myGames: Slot<HubGameRow[]>;
+  publicGames: Slot<HubGameRow[]>;
   history: Slot<HubHistoryRow[]>;
   historyHasMore: boolean;
   historyLoadingMore: boolean;
@@ -46,6 +53,8 @@ export type GamesViewProps = {
   pickerGame: HubGameRow | null;
   onOpenPicker: (game: HubGameRow | null) => void;
   onOpen: (gameId: string) => void;
+  /** A Played card's Add photos: the Game with the Add photos sheet up. */
+  onAddPhotos?: (gameId: string) => void;
   onJoinSeat: (
     gameId: string,
     sideIndex: number,
@@ -147,17 +156,20 @@ function TabButtons({
   tab,
   onTabChange,
   myGamesCount,
+  publicCount,
   historyCount,
 }: {
   tab: GamesTab;
   onTabChange: (tab: GamesTab) => void;
   myGamesCount: number | null;
+  publicCount: number | null;
   historyCount: number | null;
 }) {
   const m = useMessages().mobileTournament.games;
   const colors = useColors();
   const tabs = [
     { key: "my-games", label: m.upcomingTab, count: myGamesCount },
+    { key: "public", label: m.publicTab, count: publicCount },
     { key: "history", label: m.playedTab, count: historyCount },
   ] as const;
   return (
@@ -250,7 +262,7 @@ function SectionHead({ title, meta }: { title: string; meta: string }) {
 }
 
 export function GamesView(props: GamesViewProps) {
-  const { tab, myGames, history } = props;
+  const { tab, myGames, publicGames, history } = props;
   const m = useMessages();
   const actions: GameCardActions = {
     onOpen: props.onOpen,
@@ -260,6 +272,8 @@ export function GamesView(props: GamesViewProps) {
   };
   const myGamesCount =
     myGames.status === "ready" ? tabCount(myGames.value.length) : null;
+  const publicCount =
+    publicGames.status === "ready" ? tabCount(publicGames.value.length) : null;
   const historyCount =
     history.status === "ready" && !props.historyHasMore
       ? tabCount(history.value.length)
@@ -281,16 +295,40 @@ export function GamesView(props: GamesViewProps) {
         tab={tab}
         onTabChange={props.onTabChange}
         myGamesCount={myGamesCount}
+        publicCount={publicCount}
         historyCount={historyCount}
       />
-      {tab === "my-games" ? (
+      {tab !== "history" ? (
         <SportFilterRow
           filter={props.sportFilter}
           onChange={props.onSportFilterChange}
         />
       ) : null}
       {tab === "my-games" ? (
-        <MyGamesList {...props} actions={actions} />
+        <HubGamesList
+          {...props}
+          games={myGames}
+          actions={actions}
+          empty={
+            <UpcomingEmpty
+              sportFilter={props.sportFilter}
+              onCreate={props.onCreate}
+              onFindGroup={props.onFindGroup}
+            />
+          }
+        />
+      ) : tab === "public" ? (
+        <HubGamesList
+          {...props}
+          games={publicGames}
+          actions={actions}
+          empty={
+            <PublicEmpty
+              sportFilter={props.sportFilter}
+              onCreate={props.onCreate}
+            />
+          }
+        />
       ) : (
         <HistoryList {...props} />
       )}
@@ -307,8 +345,14 @@ export function GamesView(props: GamesViewProps) {
   );
 }
 
-function MyGamesList(props: GamesViewProps & { actions: GameCardActions }) {
-  const { myGames, actions } = props;
+function HubGamesList(
+  props: GamesViewProps & {
+    games: Slot<HubGameRow[]>;
+    actions: GameCardActions;
+    empty: React.ReactNode;
+  },
+) {
+  const { games, actions } = props;
   const now = useNow();
   const locale = useLocale();
   const footballActions: FootballCardActions = {
@@ -316,21 +360,15 @@ function MyGamesList(props: GamesViewProps & { actions: GameCardActions }) {
     onOpen: actions.onOpen,
     onJoinWaitlist: actions.onJoinWaitlist,
   };
-  if (myGames.status === "loading") {
+  if (games.status === "loading") {
     return <ListSkeleton />;
   }
-  if (myGames.status === "error") {
-    return <Failure message={myGames.message} onRetry={props.onRetry} />;
+  if (games.status === "error") {
+    return <Failure message={games.message} onRetry={props.onRetry} />;
   }
-  const rows = filterBySport(myGames.value, props.sportFilter);
+  const rows = filterBySport(games.value, props.sportFilter);
   if (rows.length === 0) {
-    return (
-      <UpcomingEmpty
-        sportFilter={props.sportFilter}
-        onCreate={props.onCreate}
-        onFindGroup={props.onFindGroup}
-      />
-    );
+    return props.empty;
   }
   if (props.sportFilter === "football") {
     return (
@@ -353,8 +391,18 @@ function MyGamesList(props: GamesViewProps & { actions: GameCardActions }) {
   }
   return (
     <View style={{ gap: LIST_GAP }}>
-      {hubItems(rows).map((item) => {
+      {hubItems(rows).map((item, index) => {
         const pending = props.pendingGameId === item.game.id;
+        if (item.kind === "my-tournament") {
+          return (
+            <TournamentGamesCard
+              key={item.key}
+              game={item.game}
+              lifted={index === 0}
+              onOpen={() => actions.onOpen(item.game.id)}
+            />
+          );
+        }
         if (item.kind === "football") {
           return (
             <FootballGameCard
@@ -412,9 +460,28 @@ function HistoryList(props: GamesViewProps) {
   }
   return (
     <View style={{ gap: LIST_GAP }}>
-      {history.value.map((row) => (
-        <HistoryCard key={row.matchId} row={row} onOpen={props.onOpen} />
-      ))}
+      {history.value.map((row) =>
+        row.kingOfTheCourt ? (
+          <KingPlayedCard
+            key={row.matchId}
+            row={{ ...row, kingOfTheCourt: row.kingOfTheCourt }}
+            onOpen={() => props.onOpen(row.id)}
+          />
+        ) : isTournamentGamesCardRow(row) ? (
+          <TournamentPlayedCard
+            key={row.matchId}
+            row={{ ...row, myTournament: row.myTournament }}
+            onOpen={() => props.onOpen(row.id)}
+          />
+        ) : (
+          <HistoryCard
+            key={row.matchId}
+            row={row}
+            onOpen={props.onOpen}
+            onAddPhotos={props.onAddPhotos}
+          />
+        ),
+      )}
       {props.historyLoadMoreFailed ? (
         <Failure
           message={props.historyLoadMoreFailed}

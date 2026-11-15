@@ -2,7 +2,13 @@ import {
   groupMenuLabel,
   type GroupMenuItem,
 } from "@repo/domain/group-settings";
-import { Link, LogOut, Pencil, UserRoundPlus } from "lucide-react-native";
+import {
+  Link,
+  LogOut,
+  Pencil,
+  SlidersHorizontal,
+  UserRoundPlus,
+} from "lucide-react-native";
 
 import { useLocale } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
@@ -13,6 +19,7 @@ const ICONS = {
   edit: Pencil,
   invite: UserRoundPlus,
   copy_link: Link,
+  rating_settings: SlidersHorizontal,
   leave: LogOut,
 } as const;
 
@@ -23,6 +30,7 @@ export function GroupMenuSheet({
   roleLine,
   items,
   leaveBlockedHint,
+  ratingSettingsHint,
   copyPending,
   onPick,
   onClose,
@@ -32,6 +40,7 @@ export function GroupMenuSheet({
   roleLine: string | null;
   items: GroupMenuItem[];
   leaveBlockedHint: string | null;
+  ratingSettingsHint: string | null;
   copyPending: boolean;
   onPick: (item: GroupMenuItem) => void;
   onClose: () => void;
@@ -54,6 +63,7 @@ export function GroupMenuSheet({
             <SheetMenuRow
               key={item}
               label={groupMenuLabel(item, locale)}
+              hint={item === "rating_settings" ? ratingSettingsHint : null}
               icon={ICONS[item]}
               trailing="chevron"
               pending={item === "copy_link" && copyPending}

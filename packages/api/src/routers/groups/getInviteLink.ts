@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -11,12 +13,14 @@ type DbClient = typeof db;
 
 export async function getInviteLink(
   database: DbClient,
-  args: { groupId: string; userId: string; origin: string },
+  args: { groupId: string; userId: string; origin: string; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const group = await requireGroupInviteLinkMinter(
     database,
     args.groupId,
     args.userId,
+    locale,
   );
 
   const newest = await getLiveLink(database, { kind: "group", id: group.id });
@@ -44,5 +48,6 @@ export const getInviteLinkProcedure = protectedProcedure
       groupId: input.groupId,
       userId: appUser.id,
       origin: ctx.webOrigin,
+      locale: ctx.locale,
     });
   });

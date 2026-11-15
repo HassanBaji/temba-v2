@@ -69,7 +69,7 @@ function InvitedTo({
           headingLevel={3}
           className="py-6"
           title={m.invite.inbox.errorTitle}
-          message={error.message}
+          error={error}
           onRetry={onRetry}
         />
       </section>

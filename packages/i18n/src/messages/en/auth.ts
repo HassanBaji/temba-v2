@@ -16,6 +16,8 @@ export const auth = {
     passwordPwned:
       "That password has appeared in a data breach. Choose a different one.",
   },
+  /** Stored as the name of a User whose Clerk account was deleted. */
+  deletedAccountName: "Deleted player",
   country: {
     bh: "Bahrain",
     kw: "Kuwait",
@@ -31,4 +33,8 @@ export const auth = {
       one: "Resend code, available in 1 second",
       other: "Resend code, available in {n} seconds",
     }),
+  errors: {
+    levelSetterOnly: "Only Level setters can set a Level",
+    operatorOnly: "Only Operators can do this",
+  },
 };

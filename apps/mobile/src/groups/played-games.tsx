@@ -92,7 +92,7 @@ function FilterChip({
         size="eyebrow"
         mono
         tone="muted"
-        style={selected ? { color: colors.dim } : undefined}
+        style={selected ? { color: colors.onControlMuted } : undefined}
       >
         {chip.count}
       </Text>

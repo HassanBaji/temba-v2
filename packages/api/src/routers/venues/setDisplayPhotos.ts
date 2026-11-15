@@ -3,6 +3,8 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { venuePhotos, venues } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -29,12 +31,15 @@ export async function setDisplayPhotos(
     coverPhotoId?: string;
     detailPhotoId?: string;
     actor: Actor;
+    locale?: Locale;
   },
 ) {
-  await requireVenue(database, args.venueId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  await requireVenue(database, args.venueId, locale);
   await requireVenueManager(database, {
     venueId: args.venueId,
     ...args.actor,
+    locale,
   });
 
   const picked = [args.coverPhotoId, args.detailPhotoId].filter(
@@ -52,7 +57,10 @@ export async function setDisplayPhotos(
       );
     const foundIds = new Set(found.map((row) => row.id));
     if (picked.some((id) => !foundIds.has(id))) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Photo not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: messagesFor(locale).venue.errors.photoNotFound,
+      });
     }
   }
 
@@ -98,5 +106,6 @@ export const setDisplayPhotosProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

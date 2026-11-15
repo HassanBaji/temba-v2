@@ -5,12 +5,14 @@ import { describe, it } from "vitest";
 import { messagesFor } from "@repo/i18n/messages";
 
 import type { BoardPlayer } from "./football-board";
+import { muFromOvr } from "./football-ovr";
 import type { FriendlyGameDetailsSide } from "./friendly-game-details";
 import {
   gameIsPlayed,
   padelPairLine,
   playedDurationLabel,
   playedFootballModel,
+  playedFootballRatingLine,
   playedPadelModel,
   playedRatingLine,
   playedTagLabel,
@@ -134,6 +136,50 @@ describe("playedPadelModel", () => {
     ]);
   });
 
+  it("says a Public Game's unconfirmed score stood and did not count", () => {
+    const stood = playedPadelModel(
+      {
+        ...place,
+        sides,
+        viewerUserId: VIEWER,
+        match: { ...match, stoodUnconfirmed: true },
+        groupName: null,
+        rated: true,
+        publicGame: true,
+        ratingImpact: null,
+        confirmation: { confirmedByOrganizer: false },
+      },
+      "en",
+    );
+    assert.equal(
+      stood.you?.ratingLine,
+      "Not confirmed in time. It did not count.",
+    );
+    assert.deepEqual(stood.facts, [
+      { label: "Confirmed", value: "Not in time" },
+      { label: "Format", value: "3 sets" },
+      { label: "Rating", value: "Counts for Temba Level" },
+    ]);
+  });
+
+  it("names the Verifier who stamped the score", () => {
+    const stamped = playedPadelModel(
+      {
+        ...place,
+        sides,
+        viewerUserId: VIEWER,
+        match: { ...match, stamp: { verifierName: "Sara Ali" } },
+        groupName: null,
+        rated: true,
+        publicGame: true,
+        ratingImpact: null,
+        confirmation: { confirmedByOrganizer: false },
+      },
+      "en",
+    );
+    assert.equal(stamped.facts[0]?.value, "Stamped by Sara Ali");
+  });
+
   it("names a group rated Match by its Rating scope", () => {
     const group = playedPadelModel(
       {
@@ -149,10 +195,10 @@ describe("playedPadelModel", () => {
       },
       "en",
     );
-    assert.equal(group.you?.ratingLine, "Counts for group rating");
+    assert.equal(group.you?.ratingLine, "Did not count for Temba Level");
     assert.deepEqual(group.facts.at(-1), {
       label: "Rating",
-      value: "Counts for group rating",
+      value: "Did not count for Temba Level",
     });
   });
 
@@ -278,7 +324,7 @@ function player(
 
 const footballPlayers: BoardPlayer[] = [
   player("u1", "Jassim Ahmed", 1, { role: "keeper", position: null }),
-  player("u2", "Nematulla Said", 1, { goals: 4, levelBand: "B2" }),
+  player("u2", "Nematulla Said", 1, { goals: 4, levelBand: "B2", ovr: 81 }),
   player("u3", "Mohamed Jaber", 1, { goals: 2 }),
   player("u4", "Hassan Ibrahim", 2, { role: "keeper", position: null }),
   player(VIEWER, "Elin Larsson", 2, { goals: 3, isViewer: true }),
@@ -306,6 +352,67 @@ describe("playedFootballModel", () => {
     },
     "en",
   );
+
+  it("says a football Public Game's unconfirmed score stood and did not count", () => {
+    const stood = playedFootballModel(
+      {
+        windowStart: new Date("2026-11-02T16:00:00.000Z"),
+        windowEnd: new Date("2026-11-02T17:30:00.000Z"),
+        venue: { name: "Fantasy FC", city: "Arad" },
+        courtName: "Pitch 2",
+        players: footballPlayers,
+        bibs: { slot1: "black", slot2: "white" },
+        score: { slot1: 6, slot2: 7 },
+        confirmed: { slot1: true, slot2: false },
+        enteredByName: "Nematulla Said",
+        teamsMethod: "manual",
+        sideSize: 6,
+        groupName: null,
+        rated: true,
+        ratingImpact: null,
+        stoodUnconfirmed: true,
+      },
+      "en",
+    );
+    assert.equal(
+      stood.you?.ratingLine,
+      "Not confirmed in time. It did not count.",
+    );
+    const fact = (label: string) =>
+      stood.facts.find((row) => row.label === label)?.value;
+    assert.equal(fact("Confirmed"), "Not in time");
+    assert.equal(
+      fact(messagesFor("en").game.played.countsForRatingLabel),
+      "No",
+    );
+  });
+
+  it("names the Verifier who stamped a football score", () => {
+    const stamped = playedFootballModel(
+      {
+        windowStart: new Date("2026-11-02T16:00:00.000Z"),
+        windowEnd: new Date("2026-11-02T17:30:00.000Z"),
+        venue: { name: "Fantasy FC", city: "Arad" },
+        courtName: "Pitch 2",
+        players: footballPlayers,
+        bibs: { slot1: "black", slot2: "white" },
+        score: { slot1: 6, slot2: 7 },
+        confirmed: { slot1: true, slot2: false },
+        enteredByName: "Nematulla Said",
+        teamsMethod: "manual",
+        sideSize: 6,
+        groupName: null,
+        rated: true,
+        ratingImpact: null,
+        stampedByName: "Sara Ali",
+      },
+      "en",
+    );
+    assert.equal(
+      stamped.facts.find((row) => row.label === "Confirmed")?.value,
+      "Stamped by Sara Ali",
+    );
+  });
 
   it("scores both teams and names the winner", () => {
     assert.equal(model.dateLine, "Played, Mon 2 Nov");
@@ -349,13 +456,15 @@ describe("playedFootballModel", () => {
     assert.equal(black.bib, "black");
     assert.equal(black.word, "Lost");
     assert.deepEqual(
-      black.players.map((row) => [row.name, row.meta, row.trailing]),
+      black.players.map((row) => [row.name, row.meta, row.level, row.trailing]),
       [
-        ["Jassim A", "GK", null],
-        ["Nematulla S", "MID", "4 goals"],
-        ["Mohamed J", "MID", "2 goals"],
+        ["Jassim A", "GK", "–", null],
+        ["Nematulla S", "MID", "81", "4 goals"],
+        ["Mohamed J", "MID", "–", "2 goals"],
       ],
     );
+    assert.equal(black.players[1]?.levelSpoken, "OVR 81");
+    assert.equal(black.players[0]?.levelSpoken, null);
     assert.equal(white.word, "Won");
     assert.deepEqual(
       model.unplaced.map((row) => row.name),
@@ -389,7 +498,7 @@ describe("playedFootballModel", () => {
         sideSize: null,
         groupName: null,
         rated: true,
-        ratingImpact: { levelChange: 0, newLevelBand: "C1" },
+        ratingImpact: { levelChange: 0, muAfter: muFromOvr(72) },
       },
       "en",
     );
@@ -399,7 +508,7 @@ describe("playedFootballModel", () => {
     assert.equal(draw.result.line, "Draw, both sides level");
     assert.equal(draw.result.hasWinner, false);
     assert.equal(draw.you?.tag, "DRAW");
-    assert.equal(draw.you?.ratingLine, "Counts for rating, C+ holds");
+    assert.equal(draw.you?.ratingLine, "Counts for rating, OVR 72 holds");
     assert.deepEqual(
       draw.columns.map((column) => column.word),
       ["Draw", "Draw"],
@@ -425,6 +534,18 @@ describe("played lines", () => {
     assert.equal(
       playedRatingLine(true, { levelChange: -0.3, newLevelBand: "C2" }, "en"),
       "Counts for rating, C moves down",
+    );
+    assert.equal(
+      playedFootballRatingLine(
+        true,
+        { levelChange: 0.4, muAfter: muFromOvr(72) },
+        "en",
+      ),
+      "Counts for rating, OVR 72 moves up",
+    );
+    assert.equal(
+      playedFootballRatingLine(false, null, "en"),
+      "Friendly, does not count for rating",
     );
   });
 });

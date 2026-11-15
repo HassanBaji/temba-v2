@@ -43,7 +43,6 @@ const REASON_ORDER: readonly ChallengeIneligibleReason[] = [
 export async function loadViewerTeams(
   database: DbOrTx,
   userId: string,
-  now: Date = new Date(),
 ): Promise<ViewerTeam[]> {
   const teams = await teamsUserActsFor(database, userId);
   if (teams.length === 0) {
@@ -58,7 +57,7 @@ export async function loadViewerTeams(
     with: { user: { columns: { name: true } } },
     orderBy: (table, { asc }) => [asc(table.createdAt)],
   });
-  const levels = await loadTeamLevels(database, teams, now);
+  const levels = await loadTeamLevels(database, teams);
   return teams.map((team) => {
     const roster = members.filter((member) => member.teamId === team.id);
     return {

@@ -27,7 +27,7 @@ const buttonVariants = cva(
         link: "text-primary underline underline-offset-4",
         inverse: "bg-paper text-ink hover:bg-paper/90",
         "outline-inverse":
-          "border border-dimrule bg-transparent text-paper hover:bg-raised",
+          "border border-control-rule bg-transparent text-paper hover:bg-control-raised",
       },
       size: {
         default: "h-11 min-h-11 px-4 py-2 has-[>svg]:px-3",

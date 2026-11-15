@@ -21,6 +21,8 @@ const ROW_PADDING_X = 18;
 export type SheetMenuRowProps = {
   label: string;
   hint?: string | null;
+  /** The current setting, read before the trailing mark. */
+  value?: string | null;
   icon?: ComponentType<{
     size: number;
     color: ColorValue;
@@ -44,6 +46,7 @@ function MenuChevron(props: { size: number; color: ColorValue }) {
 export function SheetMenuRow({
   label,
   hint,
+  value,
   icon: Icon,
   iconStyle,
   trailing,
@@ -61,7 +64,7 @@ export function SheetMenuRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={
-        accessibilityLabel ?? (hint ? `${label}. ${hint}` : label)
+        accessibilityLabel ?? [label, hint, value].filter(Boolean).join(". ")
       }
       accessibilityState={{ disabled: inactive, busy: pending }}
       disabled={inactive}
@@ -90,6 +93,16 @@ export function SheetMenuRow({
           </Text>
         ) : null}
       </View>
+      {value ? (
+        <Text
+          size="meta"
+          tone="muted"
+          numberOfLines={1}
+          style={{ maxWidth: "40%" }}
+        >
+          {value}
+        </Text>
+      ) : null}
       {Trailing ? (
         <Trailing
           size={sizes.iconRow}

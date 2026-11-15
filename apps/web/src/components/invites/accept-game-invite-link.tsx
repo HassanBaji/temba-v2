@@ -54,7 +54,8 @@ import {
 } from "@repo/domain/invites";
 import { authCrossLinkUrl } from "~/lib/auth-redirect";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
-import { tournamentPartnerInviteLandingHref } from "@repo/domain/tournament-join";
+import { tournamentPartnerInviteLandingTarget } from "@repo/domain/tournament-join";
+import { gameHomeTargetHref } from "~/lib/game-home-tab";
 import { api } from "~/trpc/react";
 
 type SheetState = { open: boolean; picked: InviteSeatPick | null };
@@ -194,6 +195,7 @@ export function AcceptGameInviteLink({
       return;
     }
     if (
+      preview.data.hero.players.some((player) => player.isViewer) ||
       preview.data.viewerPassesLevelRange === false ||
       preview.data.partnerRequiredJoin ||
       preview.data.sides.length > 0 ||
@@ -294,7 +296,7 @@ export function AcceptGameInviteLink({
     return (
       <ErrorState
         title={m.webAuth.invites.couldNotJoin}
-        message={accept.error.message}
+        error={accept.error}
         onRetry={() => accept.mutate(accept.variables ?? { token })}
         headingLevel={1}
       />
@@ -318,6 +320,8 @@ export function AcceptGameInviteLink({
     isSignedIn,
     viewerLevelTenths: ready.viewerLevelTenths,
     viewerPassesLevelRange: ready.viewerPassesLevelRange,
+    levelMinTenths: ready.levelMinTenths,
+    levelMaxTenths: ready.levelMaxTenths,
   });
   const asksAboutGroup =
     isSignedIn && (groupGate === "open" || groupGate === "approval");
@@ -328,6 +332,7 @@ export function AcceptGameInviteLink({
     fit,
     asksAboutGroup,
     locale,
+    sport: hero.sport,
   });
   const barOpenSeats =
     football || ready.vacantSeats.length > 0
@@ -346,6 +351,7 @@ export function AcceptGameInviteLink({
     joinGroup.isPending &&
     !joinGroup.variables?.holdSeat &&
     levelAfterJoin.current == null;
+  const viewerOnGame = hero.players.some((player) => player.isViewer);
   const groupAction = !isSignedIn ? (
     <Button variant="outline-inverse" size="sm" asChild>
       <Link href={signInHref}>{groupCopy.joinGroup}</Link>
@@ -359,6 +365,10 @@ export function AcceptGameInviteLink({
       onClick={() => joinGroup.mutate({ token })}
     >
       {groupCopy.joinGroup}
+    </Button>
+  ) : group && groupGate === "none" && !justJoinedGroup ? (
+    <Button variant="link" size="sm" className="text-on-focus px-0" asChild>
+      <Link href={`/dashboard/groups/${group.id}`}>{groupCopy.goToGroup}</Link>
     </Button>
   ) : null;
   const signInBar = (
@@ -375,7 +385,11 @@ export function AcceptGameInviteLink({
 
   const requestedGate = isSignedIn && groupGate === "requested";
   const canSit =
-    !partnerRequiredJoin && !joinFrozen && !requestedGate && !levelPending;
+    !viewerOnGame &&
+    !partnerRequiredJoin &&
+    !joinFrozen &&
+    !requestedGate &&
+    !levelPending;
   const onSit = !canSit
     ? null
     : isSignedIn
@@ -480,6 +494,24 @@ export function AcceptGameInviteLink({
     return page({ bar: signInBar });
   }
 
+  if (viewerOnGame) {
+    return page({
+      bar: (
+        <GameInviteBar
+          title={heroCopy.playingTitle}
+          subline={null}
+          action={
+            <Button variant="inverse" size="lg" asChild>
+              <Link href={`/dashboard/games/${ready.gameId}`}>
+                {heroCopy.openGameTitle}
+              </Link>
+            </Button>
+          }
+        />
+      ),
+    });
+  }
+
   if (requestedGate && group) {
     const request = group.pendingRequest;
     const heldLabel = request?.seatHeldUntil
@@ -527,7 +559,11 @@ export function AcceptGameInviteLink({
           subline={null}
           action={
             <Button variant="inverse" size="lg" asChild>
-              <Link href={tournamentPartnerInviteLandingHref(ready.gameId)}>
+              <Link
+                href={gameHomeTargetHref(
+                  tournamentPartnerInviteLandingTarget(ready.gameId),
+                )}
+              >
                 {m.tournament.join.pickAPartner}
               </Link>
             </Button>

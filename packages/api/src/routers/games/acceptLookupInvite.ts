@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { gameMemberInvites } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -28,25 +29,26 @@ export async function acceptLookupInvite(
     locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const invite = await database.query.gameMemberInvites.findFirst({
     where: eq(gameMemberInvites.id, args.inviteId),
   });
   if (!invite || invite.acceptedAt || invite.revokedAt) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Lookup invite is not available",
+      message: messagesFor(locale).invite.errors.lookupUnavailable,
     });
   }
   if (invite.userId !== args.userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "This invite is for a different User",
+      message: messagesFor(locale).invite.errors.differentUser,
     });
   }
-  const game = await requireGame(database, invite.gameId);
-  assertPoolDrawNotPosted(game);
-  await assertGameInviteDoorsOpen(database, game);
-  await assertInviteeAllowedOnGame(database, game, args.userId);
+  const game = await requireGame(database, invite.gameId, locale);
+  assertPoolDrawNotPosted(game, locale);
+  await assertGameInviteDoorsOpen(database, game, undefined, locale);
+  await assertInviteeAllowedOnGame(database, game, args.userId, locale);
 
   const accepted = await acceptLookup(
     database,
@@ -65,15 +67,20 @@ export async function acceptLookupInvite(
     if (accepted.reason === "seat_required") {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Pick a vacant Position",
+        message: messagesFor(locale).game.errors.pickVacantPosition,
       });
     }
     if (accepted.reason === "frozen") {
-      throwInviteFrozen({ kind: "game", id: game.id }, "accept", "frozen");
+      throwInviteFrozen(
+        { kind: "game", id: game.id },
+        "accept",
+        "frozen",
+        locale,
+      );
     }
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Lookup invite is not available",
+      message: messagesFor(locale).invite.errors.lookupUnavailable,
     });
   }
 

@@ -13,14 +13,19 @@ import type {
   FootballPosition,
   FootballRole,
 } from "@repo/domain/football-lineup";
+import { wholeOvrFromMu } from "@repo/domain/football-ovr";
 import { isFootballGame } from "@repo/domain/game-shape";
 import type { LevelBand } from "@repo/domain/level-bands";
+import type { MemberNicknameData } from "@repo/domain/member-nickname";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import { assertOrganizerAddFormat } from "#src/games/assert-organizer-add-format";
 import { remainingCapacity } from "#src/games/seats";
+import { isGroupApprover } from "#src/groups/helpers/is-group-approver";
+import { visibleMemberNickname } from "#src/groups/helpers/visible-member-nickname";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db;
@@ -30,9 +35,12 @@ export type GroupMemberToAddStatus = "in_game" | "waitlisted" | null;
 export type GroupMemberToAdd = {
   userId: string;
   name: string;
+  nickname: MemberNicknameData | null;
   image: string | null;
   unclaimed: boolean;
   levelBand: LevelBand | null;
+  /** The whole OVR on a football Game, null on padel or without a Rating. */
+  ovr: number | null;
   footballRole: FootballRole | null;
   footballPosition: FootballPosition | null;
   status: GroupMemberToAddStatus;
@@ -44,25 +52,30 @@ export type ListGroupMembersToAddResult = {
   members: GroupMemberToAdd[];
 } | null;
 
+function ovrOf(rating: { mu: number } | undefined, football: boolean) {
+  return football && rating ? wholeOvrFromMu(rating.mu) : null;
+}
+
 /** The Game's Group members, for the Organizer's Add player sheet. Null without a Group. */
 export async function listGroupMembersToAdd(
   database: DbClient,
-  args: { gameId: string; organizerUserId: string },
+  args: { gameId: string; organizerUserId: string; locale?: Locale },
 ): Promise<ListGroupMembersToAddResult> {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.organizerUserId);
-  assertOrganizerAddFormat(game);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.organizerUserId, locale);
+  assertOrganizerAddFormat(game, locale);
   if (!game.groupId) {
     return null;
   }
 
   const group = await database.query.groups.findFirst({
     where: eq(groups.id, game.groupId),
-    columns: { name: true },
+    columns: { id: true, name: true, createdBy: true },
   });
   const rows = await database.query.groupMembers.findMany({
     where: eq(groupMembers.groupId, game.groupId),
-    columns: { userId: true },
+    columns: { userId: true, nickname: true, nicknameVisibility: true },
     with: {
       user: {
         columns: {
@@ -78,6 +91,7 @@ export async function listGroupMembersToAdd(
     },
   });
   const userIds = rows.map((row) => row.userId);
+  const football = isFootballGame(game);
   const [seated, waitlisted, levels] =
     userIds.length === 0
       ? [[], [], []]
@@ -99,25 +113,31 @@ export async function listGroupMembersToAdd(
           database.query.ratings.findMany({
             where: and(
               inArray(ratings.userId, userIds),
-              eq(ratings.sport, isFootballGame(game) ? "football" : "padel"),
+              eq(ratings.sport, football ? "football" : "padel"),
             ),
-            columns: { userId: true, levelBand: true },
+            columns: { userId: true, levelBand: true, mu: true },
           }),
         ]);
   const seatedIds = new Set(seated.map((row) => row.userId));
   const waitlistedIds = new Set(waitlisted.map((row) => row.userId));
-  const levelByUserId = new Map(
-    levels.map((row) => [row.userId, row.levelBand]),
-  );
+  const levelByUserId = new Map(levels.map((row) => [row.userId, row]));
 
+  const viewer = {
+    isApprover:
+      group != null &&
+      (await isGroupApprover(database, group, args.organizerUserId)),
+    isMember: rows.some((row) => row.userId === args.organizerUserId),
+  };
   const members = rows
     .map(
-      ({ user }): GroupMemberToAdd => ({
+      ({ user, ...membership }): GroupMemberToAdd => ({
         userId: user.id,
         name: user.name,
+        nickname: visibleMemberNickname(membership, viewer),
         image: user.image ?? null,
         unclaimed: isUnclaimed(user),
-        levelBand: levelByUserId.get(user.id) ?? null,
+        levelBand: levelByUserId.get(user.id)?.levelBand ?? null,
+        ovr: ovrOf(levelByUserId.get(user.id), football),
         footballRole: user.preferredFootballRole ?? null,
         footballPosition: user.preferredFootballPosition ?? null,
         status: seatedIds.has(user.id)
@@ -143,5 +163,6 @@ export const listGroupMembersToAddProcedure = protectedProcedure
     return listGroupMembersToAdd(ctx.db, {
       gameId: input.gameId,
       organizerUserId: appUser.id,
+      locale: ctx.locale,
     });
   });

@@ -24,8 +24,23 @@ describe("titleFromPath", () => {
     );
   });
 
+  it("titles the All requests page", () => {
+    assert.equal(titleFromPath("/dashboard/requests", en), "Requests");
+  });
+
   it("titles Settings for the Profile settings route", () => {
     assert.equal(titleFromPath("/dashboard/you/settings", en), "Settings");
+  });
+
+  it("titles Ratings for the Ratings page", () => {
+    assert.equal(titleFromPath("/dashboard/you/ratings", en), "Ratings");
+  });
+
+  it("titles Rating history for its page", () => {
+    assert.equal(
+      titleFromPath("/dashboard/you/ratings/history", en),
+      "Rating history",
+    );
   });
 
   it("titles Profile for the rest of /dashboard/you", () => {
@@ -51,8 +66,23 @@ describe("detailBackHref", () => {
     assert.equal(detailBackHref("/dashboard/you/settings/"), "/dashboard/you");
   });
 
+  it("returns Profile for the Ratings page", () => {
+    assert.equal(detailBackHref("/dashboard/you/ratings"), "/dashboard/you");
+  });
+
+  it("returns Ratings for the Rating history page", () => {
+    assert.equal(
+      detailBackHref("/dashboard/you/ratings/history"),
+      "/dashboard/you/ratings",
+    );
+  });
+
   it("returns Home for the Notifications page", () => {
     assert.equal(detailBackHref("/dashboard/notifications"), "/dashboard");
+  });
+
+  it("returns Home for the All requests page", () => {
+    assert.equal(detailBackHref("/dashboard/requests"), "/dashboard");
   });
 
   it("leaves the Invites page without a back target", () => {
@@ -68,6 +98,10 @@ describe("detailBackHref", () => {
       titleFromPath("/dashboard/operator/groups", en),
       "Verify Groups",
     );
+  });
+
+  it("titles the Operator Disputes page", () => {
+    assert.equal(titleFromPath("/dashboard/operator/disputes", en), "Disputes");
   });
 
   it("keeps existing detail back targets", () => {

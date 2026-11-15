@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   GamePositionEnum,
@@ -90,15 +90,20 @@ function dayAt(iso: string) {
 }
 
 async function createOn(f: Fixture, iso: string) {
-  const created = await createGame(f.db, {
-    createdBy: f.owner.id,
-    groupId: f.group.id,
-    venueId: f.venue.id,
-    isPublic: false,
-    format: "friendly_game",
-    registrationMode: "individual",
-    ...dayAt(iso),
-  });
+  const window = dayAt(iso);
+  const created = await createGame(
+    f.db,
+    {
+      createdBy: f.owner.id,
+      groupId: f.group.id,
+      venueId: f.venue.id,
+      isPublic: false,
+      format: "friendly_game",
+      registrationMode: "individual",
+      ...window,
+    },
+    { now: window.windowStart },
+  );
   return created.id;
 }
 
@@ -174,6 +179,15 @@ async function completeMatch(f: Fixture, gameId: string) {
 }
 
 describe("a Game's Season link", () => {
+  // gameById reads the clock itself; freeze Date only so PGlite's timers still run.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("starts in the Season that holds the game day and reads it on byId", async () => {
     const f = await fixture();
     try {
@@ -275,6 +289,7 @@ describe("a Game's Season link", () => {
         gameId,
         userId: f.owner.id,
         name: "Sun 7:00 PM - 8:30 PM",
+        now: NOW,
       };
 
       await expect(

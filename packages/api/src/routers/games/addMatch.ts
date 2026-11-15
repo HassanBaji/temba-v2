@@ -4,6 +4,8 @@ import { z } from "zod";
 import { matches } from "@repo/db";
 
 import { hasKnockout } from "@repo/domain/tournament-rounds";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -18,33 +20,31 @@ import { type TournamentMatchInput } from "#src/games/utils";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-export const KNOCKOUT_MATCH_BY_HAND_MESSAGE =
-  "Knockout Matches come from the draw";
-
 export async function addTournamentMatch(
   database: Tx,
   game: GameRow,
   input: TournamentMatchInput,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot add a Match on a cancelled Game",
+      message: messagesFor(locale).tournament.errors.addMatchCancelled,
     });
   }
   if (game.format !== "friendly_tournament") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Add Matches on a Friendly tournament",
+      message: messagesFor(locale).tournament.errors.addMatchesFriendly,
     });
   }
   if (hasKnockout(game.format, game.tournamentShape)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: KNOCKOUT_MATCH_BY_HAND_MESSAGE,
+      message: messagesFor(locale).tournament.errors.knockoutByHand,
     });
   }
-  await applyMatchSides(database, game.id, input);
+  await applyMatchSides(database, game.id, input, locale);
   const values = matchTimes(input);
   const [match] = await database
     .insert(matches)
@@ -73,19 +73,26 @@ export async function addMatch(
     courtId: string | null;
     slot1GameTeamId: string | null;
     slot2GameTeamId: string | null;
+    locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.userId, locale);
   return database.transaction(async (tx) => {
-    return addTournamentMatch(tx, game, {
-      startTime: args.startTime,
-      endTime: args.endTime,
-      durationInMinutes: args.durationInMinutes,
-      courtId: args.courtId,
-      slot1GameTeamId: args.slot1GameTeamId,
-      slot2GameTeamId: args.slot2GameTeamId,
-    });
+    return addTournamentMatch(
+      tx,
+      game,
+      {
+        startTime: args.startTime,
+        endTime: args.endTime,
+        durationInMinutes: args.durationInMinutes,
+        courtId: args.courtId,
+        slot1GameTeamId: args.slot1GameTeamId,
+        slot2GameTeamId: args.slot2GameTeamId,
+      },
+      locale,
+    );
   });
 }
 
@@ -112,5 +119,6 @@ export const addMatchProcedure = protectedProcedure
       courtId: input.courtId ?? null,
       slot1GameTeamId: input.slot1GameTeamId ?? null,
       slot2GameTeamId: input.slot2GameTeamId ?? null,
+      locale: ctx.locale,
     });
   });

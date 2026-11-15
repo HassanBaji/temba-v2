@@ -56,6 +56,13 @@ describe("tournamentHomeView", () => {
     assert.equal(view.viewerSide?.left?.userId, "user-viewer");
   });
 
+  it("drops the leave action once the draw is posted", () => {
+    for (const game of [pool.postedMid, pool.finished]) {
+      const seated = { ...game, isSeated: true, canLeave: true };
+      assert.equal(tournamentHomeView(seated, "en").canLeaveGame, false);
+    }
+  });
+
   it("marks a posted draw as drawn", () => {
     assert.equal(tournamentHomeView(pool.postedMid, "en").drawn, true);
   });
@@ -94,6 +101,7 @@ describe("tournamentDetailRows", () => {
       groupName: "  ",
       matchMinutes: null,
       pricePerPlayerFils: null,
+      ratingScope: "temba",
       seated: false,
       totalFils: null,
       locale: "en",
@@ -109,12 +117,41 @@ describe("tournamentDetailRows", () => {
     );
   });
 
+  it("reads the rating scope into the Counts for rating row and its note", () => {
+    const ratingRow = (ratingScope: "temba" | "group" | "unrated") =>
+      tournamentDetailRows({
+        organizerName: null,
+        groupName: null,
+        matchMinutes: null,
+        pricePerPlayerFils: null,
+        ratingScope,
+        seated: false,
+        totalFils: null,
+        locale: "en",
+      }).find((row) => row.label === "Counts for rating");
+    assert.deepEqual(ratingRow("temba"), {
+      label: "Counts for rating",
+      value: "Yes",
+    });
+    assert.deepEqual(ratingRow("group"), {
+      label: "Counts for rating",
+      value: "No",
+      note: "It counted for a group level, which padel no longer has. It moved no Temba Level.",
+    });
+    assert.deepEqual(ratingRow("unrated"), {
+      label: "Counts for rating",
+      value: "No",
+      note: "This Game doesn't change anyone's Level.",
+    });
+  });
+
   it("adds Price and You owe when there is a cost", () => {
     const rows = tournamentDetailRows({
       organizerName: "Jonas B",
       groupName: "Bromma",
       matchMinutes: 30,
       pricePerPlayerFils: 12000,
+      ratingScope: "temba",
       seated: true,
       totalFils: 36000,
       locale: "en",
@@ -284,6 +321,56 @@ describe("tournamentSeatLabel", () => {
   });
 });
 
+describe("tournamentDetailRows, King of the court rating", () => {
+  const base = {
+    organizerName: "Hassan",
+    groupName: "Sunday Social",
+    matchMinutes: null,
+    pricePerPlayerFils: null,
+    seated: true,
+    totalFils: null,
+    locale: "en",
+  } as const;
+  const ratingRow = (
+    ratingScope: "temba" | "unrated",
+    king: Parameters<typeof tournamentDetailRows>[0]["king"],
+  ) => tournamentDetailRows({ ...base, ratingScope, king }).at(-1);
+
+  it("says which places count before the final order", () => {
+    assert.deepEqual(ratingRow("temba", { finished: false }), {
+      label: "Counts for rating",
+      value: "Yes, for first to fourth place",
+      note: "First place counts as 2 wins against the field, second as 1, third as a half and fourth as a quarter. The field is the average Level of everyone on a court.",
+    });
+  });
+
+  it("shows the viewer's own move once the final order is posted", () => {
+    assert.deepEqual(
+      ratingRow("temba", {
+        finished: true,
+        viewerPlaceAward: { muBefore: 1700, muAfter: 1775 },
+      }),
+      {
+        label: "Counts for rating",
+        value: "Counted for first to fourth place",
+        note: "Your Level moved from 3.40 to 3.55.",
+      },
+    );
+    assert.deepEqual(ratingRow("temba", { finished: true }), {
+      label: "Counts for rating",
+      value: "Counted for first to fourth place",
+    });
+  });
+
+  it("says no on an Unrated Game", () => {
+    assert.equal(ratingRow("unrated", { finished: false })?.value, "No");
+    assert.equal(
+      ratingRow("unrated", { finished: true })?.value,
+      "Not counted",
+    );
+  });
+});
+
 describe("Arabic copy", () => {
   it("reads the detail rows, the standings heading and the seat label in Arabic", () => {
     const rows = tournamentDetailRows({
@@ -291,6 +378,7 @@ describe("Arabic copy", () => {
       groupName: null,
       matchMinutes: null,
       pricePerPlayerFils: null,
+      ratingScope: "temba",
       seated: false,
       totalFils: null,
       locale: "ar",

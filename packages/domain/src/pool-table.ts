@@ -24,9 +24,47 @@ function recordPoints(record: PoolRecordOrderInput) {
   return poolPoints({ won: record.won, drawn: record.drawn ?? 0 });
 }
 
-export function comparePoolRecords(
+function stableOrder(a: PoolRecordOrderInput, b: PoolRecordOrderInput) {
+  if (a.poolOrder !== b.poolOrder) {
+    return a.poolOrder - b.poolOrder;
+  }
+  return a.gameTeamId < b.gameTeamId ? -1 : a.gameTeamId > b.gameTeamId ? 1 : 0;
+}
+
+/**
+ * Head-to-head as a mini-table: the points a team took from the other teams
+ * level with it on points. Pairwise head-to-head is not transitive (A beat B,
+ * B beat C, C beat A), so it would order a three-way tie by input order.
+ */
+function miniTablePoints(
+  records: readonly PoolRecordOrderInput[],
+): Map<string, number> {
+  const points = new Map<string, number>();
+  for (const record of records) {
+    if (record.played === 0) {
+      continue;
+    }
+    const tied = records.filter(
+      (other) =>
+        other.gameTeamId !== record.gameTeamId &&
+        other.played !== 0 &&
+        recordPoints(other) === recordPoints(record),
+    );
+    points.set(
+      record.gameTeamId,
+      tied.reduce(
+        (sum, other) => sum + (record.headToHead[other.gameTeamId] ?? 0),
+        0,
+      ),
+    );
+  }
+  return points;
+}
+
+function compareWithMiniTable(
   a: PoolRecordOrderInput,
   b: PoolRecordOrderInput,
+  headToHead: ReadonlyMap<string, number>,
 ): number {
   if (a.played === 0 && b.played !== 0) {
     return 1;
@@ -35,20 +73,16 @@ export function comparePoolRecords(
     return -1;
   }
   if (a.played === 0 && b.played === 0) {
-    return a.poolOrder - b.poolOrder;
+    return stableOrder(a, b);
   }
   const pointsA = recordPoints(a);
   const pointsB = recordPoints(b);
   if (pointsB !== pointsA) {
     return pointsB - pointsA;
   }
-  const headToHeadA = a.headToHead[b.gameTeamId];
-  const headToHeadB = b.headToHead[a.gameTeamId];
-  if (
-    headToHeadA != null &&
-    headToHeadB != null &&
-    headToHeadA !== headToHeadB
-  ) {
+  const headToHeadA = headToHead.get(a.gameTeamId) ?? 0;
+  const headToHeadB = headToHead.get(b.gameTeamId) ?? 0;
+  if (headToHeadA !== headToHeadB) {
     return headToHeadB - headToHeadA;
   }
   if (b.setDifference !== a.setDifference) {
@@ -57,13 +91,27 @@ export function comparePoolRecords(
   if (b.gamesDifference !== a.gamesDifference) {
     return b.gamesDifference - a.gamesDifference;
   }
-  return a.poolOrder - b.poolOrder;
+  return stableOrder(a, b);
 }
 
+/** Two records alone: their head-to-head is the mini-table of the pair. */
+export function comparePoolRecords(
+  a: PoolRecordOrderInput,
+  b: PoolRecordOrderInput,
+): number {
+  return compareWithMiniTable(a, b, miniTablePoints([a, b]));
+}
+
+/**
+ * Points, then head-to-head among every team level on points, then Set
+ * difference, then games difference, then the Pool order and id, so the
+ * order never depends on the order the records came in.
+ */
 export function sortPoolRecords<T extends PoolRecordOrderInput>(
   records: readonly T[],
 ): T[] {
-  return [...records].sort(comparePoolRecords);
+  const headToHead = miniTablePoints(records);
+  return [...records].sort((a, b) => compareWithMiniTable(a, b, headToHead));
 }
 
 export type PoolTableTeamInput = {

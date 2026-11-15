@@ -1,5 +1,8 @@
 import { TRPCError } from "@trpc/server";
 
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+
 import { deleteS3Object, putS3Object } from "#src/storage/s3";
 import {
   detectVenueLogoContentType,
@@ -14,18 +17,21 @@ export const VENUE_PHOTO_CONTENT_TYPES = VENUE_LOGO_CONTENT_TYPES;
 
 export type VenuePhotoContentType = VenueLogoContentType;
 
-export function decodeVenuePhotoBase64(dataBase64: string): Buffer {
+export function decodeVenuePhotoBase64(
+  dataBase64: string,
+  locale: Locale = DEFAULT_LOCALE,
+): Buffer {
   const buffer = Buffer.from(dataBase64, "base64");
   if (buffer.length === 0) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Photo file is empty",
+      message: messagesFor(locale).venue.errors.photoEmpty,
     });
   }
   if (buffer.length > VENUE_PHOTO_MAX_BYTES) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Photo must be at most 2 MB",
+      message: messagesFor(locale).venue.errors.photoTooLarge,
     });
   }
   return buffer;
@@ -34,12 +40,13 @@ export function decodeVenuePhotoBase64(dataBase64: string): Buffer {
 export function assertVenuePhotoType(
   bytes: Uint8Array,
   declaredType: VenuePhotoContentType,
+  locale: Locale = DEFAULT_LOCALE,
 ): VenuePhotoContentType {
   const detected = detectVenueLogoContentType(bytes);
   if (!detected || detected !== declaredType) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Photo must be a JPEG, PNG, or WebP image",
+      message: messagesFor(locale).consoleVenue.photos.wrongType,
     });
   }
   return detected;

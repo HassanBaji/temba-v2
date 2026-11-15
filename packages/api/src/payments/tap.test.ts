@@ -88,6 +88,7 @@ describe("tap begin", () => {
       redirect: { url: "https://api.example/payments/return?bookingId=b1" },
       post: { url: WEBHOOK_URL },
       metadata: { paymentId: "pay_1" },
+      reference: { transaction: "pay_1", order: "b1", idempotent: "pay_1" },
     });
   });
 
@@ -144,9 +145,9 @@ describe("tap retrieve", () => {
     ["charge-failed.json", "failed", undefined],
     ["charge-abandoned.json", "failed", undefined],
     ["charge-cancelled.json", "failed", undefined],
-    ["charge-timedout.json", "failed", undefined],
+    ["charge-timedout.json", "pending", undefined],
     ["charge-restricted.json", "failed", undefined],
-    ["charge-unknown.json", "failed", undefined],
+    ["charge-unknown.json", "pending", undefined],
     ["charge-initiated.json", "pending", undefined],
     ["charge-in-progress.json", "pending", undefined],
   ])("maps %s to %s", async (file, status, method) => {
@@ -176,6 +177,53 @@ describe("tap retrieve", () => {
     ]);
     const state = await tap.retrieve({ reference: "chg_1" });
     expect(state.method).toBe(method);
+  });
+
+  it("reports the amount and currency Tap says it took", async () => {
+    const { tap } = provider([{ body: fixture("charge-captured.json") }]);
+    const state = await tap.retrieve({ reference: "chg_1" });
+    expect(state.charged).toEqual({ amountFils: 12_500, currency: "BHD" });
+  });
+
+  it.each([
+    ["a fraction of a fils", 12.5004],
+    ["no amount", undefined],
+    ["text that is not a number", "twelve"],
+  ])("reports an unusable amount for %s", async (_label, amount) => {
+    const captured = JSON.parse(fixture("charge-captured.json"));
+    const { tap } = provider([
+      { body: JSON.stringify({ ...captured, amount }) },
+    ]);
+    const state = await tap.retrieve({ reference: "chg_1" });
+    expect(state.charged?.amountFils).toBeNaN();
+  });
+
+  it("dates a capture by its CAPTURED activity, else the transaction", async () => {
+    const captured = JSON.parse(fixture("charge-captured.json"));
+    const withActivity = provider([
+      {
+        body: JSON.stringify({
+          ...captured,
+          activities: [
+            { status: "INITIATED", created: 1790000000000 },
+            { status: "CAPTURED", created: 1790000300000 },
+          ],
+        }),
+      },
+    ]);
+    expect(
+      (await withActivity.tap.retrieve({ reference: "chg_1" })).capturedAt,
+    ).toEqual(new Date(1790000300000));
+
+    const bare = provider([{ body: fixture("charge-captured.json") }]);
+    expect(
+      (await bare.tap.retrieve({ reference: "chg_1" })).capturedAt,
+    ).toEqual(new Date(1790000000000));
+
+    const declined = provider([{ body: fixture("charge-declined.json") }]);
+    expect(
+      (await declined.tap.retrieve({ reference: "chg_1" })).capturedAt,
+    ).toBeUndefined();
   });
 
   it("carries the decline reason", async () => {

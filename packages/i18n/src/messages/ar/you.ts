@@ -4,13 +4,13 @@ import { plural } from "../../plural";
 export const you = {
   ratingScope: {
     temba: "تُحتسب في تصنيف Temba",
-    group: "تُحتسب في تصنيف المجموعة",
+    group: "لم تُحتسب لمستوى Temba",
     unrated: "غير مصنّفة",
     title: "التصنيف",
     rated: "مصنّفة",
-    temba_note: "تحرّك مستوى Temba للجميع ومستواهم في هذه المجموعة.",
+    temba_note: "تحرّك مستوى Temba للجميع.",
     group_note:
-      "تحرّك المستويات في هذه المجموعة فقط. مستويات Temba تتحرّك في المجموعات الموثّقة.",
+      "احتُسبت في مستوى مجموعة، ولم يعد للبادل مستوى مجموعة. لم تحرّك أي مستوى Temba.",
     unrated_note: "تُحتسب النتائج في الترتيب، لكن لا يتحرّك أي مستوى.",
   },
   header: {
@@ -21,23 +21,15 @@ export const you = {
     settings: "الإعدادات",
     addSport: (sport: string) => `إضافة ${sport}`,
   },
-  scope: {
-    general: "العام",
-    chipSpoken: (name: string, band: string) => `${name}، ${band}`,
-  },
   hero: {
-    generalLevel: "المستوى العام",
-    groupLevel: (group: string) => `المستوى في ${group}`,
+    generalLevel: "مستوى Temba",
     confirmed: (n: number) => `مؤكد · ${n} مصنّفة`,
     provisional: "مبدئي",
     provisionalRated: (n: number) => `مبدئي · ${n} مصنّفة`,
-    groupRated: (n: number) => `مستوى المجموعة · ${n} مصنّفة`,
-    setByOrganizer: "حدّده المنظّم",
     rating: "التصنيف",
     percentThrough: (percent: number) => `${percent}% عبر الفئة`,
     toConfirm: (done: number, total: number) => `${done} من ${total} للتأكيد`,
     thisWeek: (delta: string) => `${delta} هذا الأسبوع`,
-    vsGeneral: (delta: string) => `${delta} مقارنة بالعام`,
     toNext: (distance: string, band: string) => `${distance} إلى ${band}.`,
     winsToNext: (n: number) =>
       plural("ar", n, {
@@ -47,30 +39,17 @@ export const you = {
         many: "{n} فوزًا آخر مثل الأخيرة يوصلك إليه.",
         other: "{n} فوز آخر مثل الأخيرة يوصلك إليه.",
       }),
-    toNextInGroup: (distance: string, band: string) =>
-      `${distance} إلى ${band} في هذه المجموعة.`,
     settles: (n: number) =>
       plural("ar", n, {
-        one: "يستقر مستواك بعد مباراة مصنّفة واحدة تقريبًا. حتى ذلك الحين يتحرّك أسرع.",
-        two: "يستقر مستواك بعد مباراتين مصنّفتين تقريبًا. حتى ذلك الحين يتحرّك أسرع.",
-        few: "يستقر مستواك بعد نحو {n} مباريات مصنّفة. حتى ذلك الحين يتحرّك أسرع.",
-        many: "يستقر مستواك بعد نحو {n} مباراة مصنّفة. حتى ذلك الحين يتحرّك أسرع.",
+        one: "يستقر مستواك بعد مباراة مصنّفة واحدة في مجموعة موثّقة. حتى ذلك الحين يتحرّك أسرع.",
+        two: "يستقر مستواك بعد مباراتين مصنّفتين في مجموعة موثّقة. حتى ذلك الحين يتحرّك أسرع.",
+        few: "يستقر مستواك بعد {n} مباريات مصنّفة في مجموعة موثّقة. حتى ذلك الحين يتحرّك أسرع.",
+        many: "يستقر مستواك بعد {n} مباراة مصنّفة في مجموعة موثّقة. حتى ذلك الحين يتحرّك أسرع.",
         other:
-          "يستقر مستواك بعد نحو {n} مباراة مصنّفة. حتى ذلك الحين يتحرّك أسرع.",
+          "يستقر مستواك بعد {n} مباراة مصنّفة في مجموعة موثّقة. حتى ذلك الحين يتحرّك أسرع.",
       }),
-    groupSettles: (n: number) =>
-      plural("ar", n, {
-        one: "مباراة مصنّفة واحدة أخرى في هذه المجموعة لتأكيده.",
-        two: "مباراتان مصنّفتان أخريان في هذه المجموعة لتأكيده.",
-        few: "{n} مباريات مصنّفة أخرى في هذه المجموعة لتأكيده.",
-        many: "{n} مباراة مصنّفة أخرى في هذه المجموعة لتأكيده.",
-        other: "{n} مباراة مصنّفة أخرى في هذه المجموعة لتأكيده.",
-      }),
-    setOn: (who: string, when: string) =>
-      `حدّده ${who} في ${when}. نتائج هذه المجموعة تحرّكه من هناك.`,
     topBand: "أعلى فئة مستوى.",
     graphTitle: (n: number) => `التصنيف، آخر ${n} مصنّفة`,
-    graphTitleGroup: (group: string) => `التصنيف في ${group}`,
     graphSpan: (from: string, to: string) => `${from} إلى ${to}`,
     noLevel: "لا يوجد مستوى بعد",
     noLevelNote: "العب مباراة مصنّفة لتحصل على مستوى.",
@@ -78,32 +57,13 @@ export const you = {
     winRateAfter: (n: number) => `نسبة الفوز بعد ${n}`,
     matches: "مباراة",
     streak: "سلسلة",
-    standing: (n: number) => `من ${n} في الترتيب`,
-    unranked: "بلا ترتيب",
     streakWon: (n: number) => `ف${n}`,
     streakLost: (n: number) => `خ${n}`,
     spoken: (band: string, level: string, status: string) =>
       `المستوى ${band} ${level}. ${status}`,
   },
-  groups: {
-    title: "المستوى حسب المجموعة",
-    vsGeneral: (band: string, level: string) =>
-      `مقارنة بالعام ${band} ${level}`,
-    general: "العام",
-    rankOf: (rank: number, of: number, rated: number) =>
-      `#${rank} من ${of} · ${rated} مصنّفة`,
-    rated: (n: number) => `${n} مصنّفة`,
-    provisionalLeft: (n: number) => `مبدئي · ${n} للتأكيد`,
-    setBy: (name: string) => `حدّده ${name}، منظّم`,
-    note: "المستوى العام يحتسب كل مباراة مصنّفة. مستوى المجموعة يحتسب مباريات تلك المجموعة فقط، ويمكن للمنظّمين تحديده.",
-    footballNote:
-      "تبدأ مستويات كرة القدم من مستواك. يمكن للمنظّمين تحديد مستوى مختلف لمجموعتهم.",
-    empty:
-      "العب مباراة مصنّفة في مجموعة لتحصل على مستوى فيها. كل مباريات المجموعة تُحتسب إلا إذا جعلها المنظّم غير مصنّفة.",
-  },
   form: {
     lastTen: "آخر 10",
-    lastTenIn: (group: string) => `آخر 10 في ${group}`,
     record: (won: number, lost: number) => `${won} فوز، ${lost} خسارة`,
     recordWithDrawn: (won: number, lost: number, drawn: number) =>
       `${won} فوز، ${lost} خسارة، ${drawn} تعادل`,
@@ -133,7 +93,6 @@ export const you = {
     title: "الشركاء",
     teammates: "الزملاء",
     mostPlayed: "الأكثر لعبًا معهم",
-    inGroup: (group: string) => `في ${group}`,
     record: (won: number, lost: number) => `${won}–${lost}`,
     spoken: (name: string, won: number, lost: number, percent: number) =>
       `${name}، ${won} فوز، ${lost} خسارة، ${percent}%`,
@@ -189,7 +148,7 @@ export const you = {
     sportProfiles: "ملفات الرياضة",
     notSetUp: "غير مُعدّ",
     setUp: "إعداد",
-    padelSub: (level: string, side: string) => `${level} عام · ${side}`,
+    padelSub: (level: string, side: string) => `${level} · ${side}`,
     padelSubNoLevel: (side: string) => `لا يوجد مستوى بعد · ${side}`,
     footballSub: (level: string, role: string) => `${level} · ${role}`,
     account: "الحساب",
@@ -287,7 +246,7 @@ export const you = {
   padel: {
     title: "ملف البادل",
     level: "المستوى",
-    general: "عام",
+    general: "مستوى Temba",
     lockNote:
       "تحدّده نتائجك المصنّفة. يتحرّك بعد كل مباراة مصنّفة ولم يعد ممكنًا تحديده يدويًا.",
     lockNoteProvisional:
@@ -375,13 +334,6 @@ export const you = {
       weekend_evening: "مساء العطلة",
     },
     joinSummary: (parts: string[]) => parts.join("، "),
-  },
-  setGroupLevel: {
-    title: "تحديد مستوى المجموعة",
-    body: (name: string, group: string) =>
-      `مستوى ${name} في ${group}. نتائج هذه المجموعة تحرّكه من هناك. لا يتغيّر مستواه في Temba.`,
-    save: "تحديد مستوى المجموعة",
-    saved: "حُدّد مستوى المجموعة",
   },
   areas: {
     Adliya: "العدلية",

@@ -48,6 +48,7 @@ export type HomeCarouselCandidate = GameListCandidate & {
 export type HomeCarouselGame = HubListRow & {
   phase: HomeCarouselPhase;
   canAddResults: boolean;
+  viewerIsOrganizer: boolean;
 };
 
 const PHASE_ORDER: Record<HomeCarouselPhase, number> = {
@@ -280,6 +281,7 @@ export async function listHomeCarouselGames(
       canAddResults:
         phase === "needs_results" &&
         viewerCanAddResults(row, userId, row.viewerIsOrganizer),
+      viewerIsOrganizer: row.viewerIsOrganizer,
     };
   });
 }

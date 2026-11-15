@@ -21,21 +21,18 @@ import {
   viewerMissedKnockout,
 } from "@repo/domain/tournament-knockout-view";
 import { roundsPlayedLabel } from "@repo/domain/tournament-rounds";
-import { addSet } from "#src/routers/games/addSet";
 import { gameById } from "#src/routers/games/byId";
 import { cancelMatch } from "#src/routers/games/cancelMatch";
-import { completeMatch } from "#src/routers/games/completeMatch";
 import {
   createTournament,
   createTournamentInputSchema,
 } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
+import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { listPoolTables } from "#src/routers/games/poolTables";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
-import { scoreSet } from "#src/routers/games/scoreSet";
-import { POOL_CORRECTION_REFUSED_MESSAGE } from "#src/games/knockout-advance";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 beforeAll(() => {
@@ -244,25 +241,20 @@ async function settleWithWinner(
   },
   winner: 1 | 2,
 ) {
-  const set = await addSet(database, {
+  tick();
+  await enterTournamentScore(database, {
     gameId: seeded.gameId,
     matchId: match.id,
-    userId: seeded.owner.id,
-  });
-  await scoreSet(database, {
-    gameId: seeded.gameId,
-    matchId: match.id,
-    setId: set.id,
     userId: seeded.owner.id,
     slot1GamesWon: winner === 1 ? 6 : 2,
     slot2GamesWon: winner === 1 ? 2 : 6,
   });
-  tick();
-  await completeMatch(database, {
-    gameId: seeded.gameId,
-    matchId: match.id,
-    userId: seeded.owner.id,
+  const set = await database.query.matchSets.findFirst({
+    where: eq(matchSets.matchId, match.id),
   });
+  if (!set) {
+    throw new Error("Expected the scored Set");
+  }
   return set;
 }
 
@@ -760,18 +752,13 @@ describe("Pool score correction after placement", () => {
       }
 
       const team2Slot = decider.slot1GameTeamId === seeded.team(2) ? 1 : 2;
-      await scoreSet(db, {
+      expect(sets.get(decider.id)).toBeDefined();
+      await enterTournamentScore(db, {
         gameId: seeded.gameId,
         matchId: decider.id,
-        setId: sets.get(decider.id)!,
         userId: seeded.owner.id,
         slot1GamesWon: team2Slot === 1 ? 6 : 1,
         slot2GamesWon: team2Slot === 1 ? 1 : 6,
-      });
-      await completeMatch(db, {
-        gameId: seeded.gameId,
-        matchId: decider.id,
-        userId: seeded.owner.id,
       });
 
       expect(await expectPlacedFromTables(db, seeded)).toBe(6);
@@ -800,11 +787,7 @@ describe("Pool score correction after placement", () => {
       const q2 = (await knockoutMatches(db, seeded.gameId)).find(
         (match) => match.knockoutRound === 1 && match.knockoutPosition === 2,
       )!;
-      await addSet(db, {
-        gameId: seeded.gameId,
-        matchId: q2.id,
-        userId: seeded.owner.id,
-      });
+      await db.insert(matchSets).values({ matchId: q2.id, setNumber: 1 });
 
       const last = pool[pool.length - 1]!;
       await expectRefused(
@@ -815,7 +798,7 @@ describe("Pool score correction after placement", () => {
             userId: seeded.owner.id,
           }),
         "CONFLICT",
-        POOL_CORRECTION_REFUSED_MESSAGE,
+        "A Knockout Match has started, so this group result can no longer be reversed",
       );
       const unchanged = await db.query.matches.findFirst({
         where: eq(matches.id, last.id),

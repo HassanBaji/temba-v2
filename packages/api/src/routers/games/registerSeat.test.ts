@@ -1,12 +1,21 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { games, groups, notifications, user, venues } from "@repo/db/schema";
+import {
+  gameWaitlist,
+  games,
+  groups,
+  notifications,
+  user,
+  venues,
+} from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 import { createFriendlyGame } from "#src/games/create-friendly";
 import { resolveTeamSeat } from "#src/games/seats";
 import { gameById } from "#src/routers/games/byId";
+import { cancelGame } from "#src/routers/games/cancel";
+import { closeRegistration } from "#src/routers/games/closeRegistration";
 import { leaveGame } from "#src/routers/games/leave";
 import { moveSeat } from "#src/routers/games/moveSeat";
 import { registerSeat } from "#src/routers/games/registerSeat";
@@ -423,6 +432,69 @@ describe("setTeamSides", () => {
           leftUserId: ada.id,
         }),
       ).rejects.toThrow("Only an organizer can do that");
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("registerSeat on a full Game", () => {
+  async function fullFriendly(database: TestDatabase) {
+    const organizer = await insertUser(database, "Owner");
+    const game = await insertPublicFriendly(database, organizer.id);
+    const seats = [
+      [organizer.id, 1, "left"],
+      [(await insertUser(database, "Bea")).id, 1, "right"],
+      [(await insertUser(database, "Cyd")).id, 2, "left"],
+      [(await insertUser(database, "Dov")).id, 2, "right"],
+    ] as const;
+    for (const [userId, sideIndex, position] of seats) {
+      await registerSeat(database, {
+        gameId: game.id,
+        userId,
+        sideIndex,
+        position,
+      });
+    }
+    return { game, organizer };
+  }
+
+  async function waitlist(database: TestDatabase, gameId: string) {
+    return database.query.gameWaitlist.findMany({
+      where: eq(gameWaitlist.gameId, gameId),
+    });
+  }
+
+  it("waitlists a User while registration is open", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { game } = await fullFriendly(db);
+      const late = await insertUser(db, "Late");
+      await expect(
+        registerSeat(db, { gameId: game.id, userId: late.id }),
+      ).resolves.toEqual({ ok: true, waitlisted: true });
+      expect(await waitlist(db, game.id)).toHaveLength(1);
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses the Waitlist once the Organizer closes registration or cancels", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { game, organizer } = await fullFriendly(db);
+      await closeRegistration(db, { gameId: game.id, userId: organizer.id });
+      const late = await insertUser(db, "Late");
+      await expect(
+        registerSeat(db, { gameId: game.id, userId: late.id }),
+      ).rejects.toThrow("This Game is not open for registration");
+
+      await cancelGame(db, { gameId: game.id, userId: organizer.id });
+      const later = await insertUser(db, "Later");
+      await expect(
+        registerSeat(db, { gameId: game.id, userId: later.id }),
+      ).rejects.toThrow("This Game is not open for registration");
+      expect(await waitlist(db, game.id)).toEqual([]);
     } finally {
       await close();
     }

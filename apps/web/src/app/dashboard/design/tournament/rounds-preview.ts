@@ -18,7 +18,7 @@ import type {
 } from "~/components/games/tournament-round-parts";
 import type { TournamentRoundsActions } from "~/components/games/use-tournament-rounds";
 
-export type RoundsPreviewVariant = "empty" | "drafted" | "live";
+export type RoundsPreviewVariant = "empty" | "drafted" | "live" | "finished";
 
 const SCORES: readonly [number, number][] = [
   [6, 3],
@@ -44,6 +44,8 @@ export const previewRoundsActions: TournamentRoundsActions = {
   },
   swap: stub({ repeats: [] }),
   post: stub({ ok: true as const, matchCount: 0 }),
+  addRound: stub({ ok: true as const, roundCount: 0, posted: false }),
+  cancelRound: stub({ ok: true as const, removed: true, roundCount: 0 }),
   enterScore: stub({ ok: true as const, final: false }),
   confirm: stub({ ok: true as const }),
   notFinished: stub({ ok: true as const }),
@@ -51,7 +53,8 @@ export const previewRoundsActions: TournamentRoundsActions = {
 
 /**
  * The Rounds a fixture tournament would show in each state: nothing made,
- * every Round drafted, or Round 1 played and Round 2 on court.
+ * every Round drafted, Round 1 played and Round 2 on court, or every Round
+ * played.
  */
 export function roundsPreviewData(
   game: TournamentFixture,
@@ -98,7 +101,8 @@ export function roundsPreviewData(
     team.members.some((member) => member.id === game.viewerUserId),
   );
   const points = new Map<string, number>();
-  const postedThrough = variant === "live" ? 2 : 0;
+  const postedThrough =
+    variant === "live" ? 2 : variant === "finished" ? roundCount + 1 : 0;
 
   const rounds: RoundsRound[] = made.map((round) => {
     const roundSlots = slots.get(round.roundNumber) ?? [];
@@ -189,6 +193,7 @@ export function roundsPreviewData(
         startTime: slot.startTime,
       })),
       matches,
+      cancelEffect: !game.isOrganizer ? null : posted ? "void" : "remove",
     };
   });
 
@@ -196,11 +201,14 @@ export function roundsPreviewData(
     isOrganizer: game.isOrganizer,
     roundCount,
     suggestedRoundCount: suggested,
+    maxRoundCount: roundCount + 1,
+    canAddRound: game.isOrganizer,
     poolCount: pools.length,
     courtCount: courts.length,
     matchMinutes: game.matchMinutes ?? 45,
     viewerGameTeamId: viewerTeam?.id ?? null,
-    currentRoundNumber: postedThrough > 0 ? postedThrough : null,
+    currentRoundNumber:
+      variant === "live" && postedThrough > 0 ? postedThrough : null,
     pools,
     teams: drawnTeams.map((team) => ({
       gameTeamId: team.id,

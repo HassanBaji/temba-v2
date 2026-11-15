@@ -13,10 +13,6 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { RenameUnclaimedPlayerDialog } from "~/components/common/rename-unclaimed-player-dialog";
-import {
-  SetGroupLevelDialog,
-  type SetGroupLevelMember,
-} from "~/components/groups/set-group-level-dialog";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { DeleteGroupSheet } from "~/components/groups/delete-group-sheet";
@@ -30,27 +26,28 @@ import { VenueLinkRequestActions } from "~/components/groups/venue-link-request-
 import { GroupHomeChrome } from "~/components/groups/group-home-chrome";
 import {
   groupMemberOrganizerToast,
+  groupLevelFace,
   groupShowsLevel,
-  viewerMaySetGroupLevel,
+  viewerMayAdjustTier,
 } from "@repo/domain/group-home-chrome";
 import { GroupHomeOverflowMenu } from "~/components/groups/group-home-overflow-menu";
 import { GroupHomeSkeleton } from "~/components/groups/group-home-skeleton";
 import {
-  JoinRequestsBanner,
-  JoinRequestsCard,
-  RejectRequestDialog,
+  GroupJoinPolicySummary,
+  GroupJoinRequests,
   WhoCanJoinDialog,
-  type JoinRequest,
 } from "~/components/groups/group-join-requests-section";
 import { RequestJoinDialog } from "~/components/groups/request-join-dialog";
 import { GroupMembersTab } from "~/components/groups/group-members-tab";
 import { GroupStandingTab } from "~/components/groups/group-standing-tab";
-import { GroupTeamsRow } from "~/components/groups/group-teams-row";
 import { InviteDoorDialog } from "~/components/invites/invite-door-dialog";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
 import { groupMembersTabHref } from "~/lib/dashboard-paths";
-import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import {
+  globalFormErrorMessage,
+  toastGlobalFormError,
+} from "~/lib/form-mutation-error";
 import { gameJoinToast } from "@repo/domain/game-copy";
 import {
   addGroupPlayerIsFootball,
@@ -86,19 +83,23 @@ import {
 } from "@repo/domain/group-join";
 import {
   groupJoinRequestDecidedToast,
+  groupRejectRequestCopy,
   type GroupJoinRequestDecision,
   groupRemoveImageConfirm,
 } from "@repo/domain/group-admin";
+import { type WaitingRequest } from "@repo/domain/waiting-requests";
 import {
   groupLeaveBlockedHint,
   groupMenuRoleLine,
   groupSeasonCount,
 } from "@repo/domain/group-settings";
+import { ratingSettingsSummary } from "@repo/domain/group-rating-settings";
 import { groupInviteClipboardText } from "@repo/domain/group-invite-share-message";
 import { groupLookupNote } from "@repo/domain/invites";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { groupMemberRowsLink } from "@repo/domain/player-profile";
 import { api, type RouterOutputs } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 type ScheduledGame = RouterOutputs["groups"]["byId"]["upcomingGames"][number];
 
@@ -139,8 +140,7 @@ export default function GroupHomePage({
   const [addPlayerOpen, setAddPlayerOpen] = useState(false);
   const [requestJoinOpen, setRequestJoinOpen] = useState(false);
   const [whoCanJoinOpen, setWhoCanJoinOpen] = useState(false);
-  const [rejecting, setRejecting] = useState<JoinRequest | null>(null);
-  const joinRequestsRef = useRef<HTMLElement>(null);
+  const [blocking, setBlocking] = useState<WaitingRequest | null>(null);
   const [removing, setRemoving] = useState<{
     userId: string;
     name: string;
@@ -149,8 +149,6 @@ export default function GroupHomePage({
     userId: string;
     name: string;
   } | null>(null);
-  const [settingGroupLevel, setSettingGroupLevel] =
-    useState<SetGroupLevelMember | null>(null);
   const [restoreFocus, setRestoreFocus] = useState<"mobile" | "desktop">(
     "desktop",
   );
@@ -208,16 +206,12 @@ export default function GroupHomePage({
     },
   });
 
-  const joinRequests = api.groups.listJoinRequests.useQuery(
-    { groupId: id },
-    { enabled: Boolean(group.data?.canDecideJoinRequests) },
-  );
-
   async function refreshJoinRequests() {
     await Promise.all([
       utils.groups.byId.invalidate({ id }),
       utils.groups.mine.invalidate(),
       utils.groups.listJoinRequests.invalidate({ groupId: id }),
+      utils.notifications.waitingRequests.invalidate(),
     ]);
   }
 
@@ -230,7 +224,7 @@ export default function GroupHomePage({
     });
 
   function toastJoinRequestDecided(
-    request: JoinRequest,
+    request: { id: string; user: { name: string | null } },
     decision: GroupJoinRequestDecision,
   ) {
     toast.success(
@@ -249,13 +243,6 @@ export default function GroupHomePage({
     );
   }
 
-  const approveJoinRequest = api.groups.approveJoinRequest.useMutation({
-    onSettled: refreshJoinRequests,
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
   const rejectJoinRequest = api.groups.rejectJoinRequest.useMutation({
     onSettled: refreshJoinRequests,
     onError: (error) => {
@@ -264,6 +251,7 @@ export default function GroupHomePage({
   });
 
   const leaveGroup = api.groups.leave.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(groupLeaveToast(locale));
       await utils.groups.byId.invalidate({ id });
@@ -281,6 +269,7 @@ export default function GroupHomePage({
   });
 
   const unlinkFromVenue = api.groups.unlinkFromVenue.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(
         groupLeftVenueToast(
@@ -297,6 +286,7 @@ export default function GroupHomePage({
   });
 
   const deleteGroup = api.groups.delete.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(m.group.admin.deletedToast);
       await utils.groups.mine.invalidate();
@@ -324,6 +314,7 @@ export default function GroupHomePage({
   });
 
   const clearImage = api.groups.clearImage.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(m.group.admin.imageRemovedToast);
       await invalidateGroupImage();
@@ -338,6 +329,7 @@ export default function GroupHomePage({
   }
 
   const removePlayer = api.groups.removePlayer.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       await utils.groups.byId.invalidate({ id });
     },
@@ -494,7 +486,7 @@ export default function GroupHomePage({
       <DashboardShell title={m.invite.kind.group}>
         <ErrorState
           title={m.webDashboard.group.errorTitle}
-          message={group.error.message}
+          error={group.error}
           onRetry={() => {
             void group.refetch();
           }}
@@ -522,11 +514,6 @@ export default function GroupHomePage({
   const canShowCreateGame = groupHomeCanShowCreateGame({
     canCreateGame: data.canCreateGame,
   });
-  const canSetGroupLevel = viewerMaySetGroupLevel({
-    sport: data.sport,
-    canCreateGame: data.canCreateGame,
-    leaderboard: data.standing.leaderboard,
-  });
   const canManageInvites = groupHomeCanManageInvites({
     canManageLookupInvites: data.canManageLookupInvites,
     canManageInviteLinks: data.canManageInviteLinks,
@@ -552,8 +539,13 @@ export default function GroupHomePage({
     canUnlinkVenue: data.canUnlinkFromVenue,
     canManageSeasons: data.canManageSeasons,
     canEdit: data.canEdit,
+    canChangeRatingSettings: data.ratingSettings != null,
   });
   const leaveConfirm = groupLeaveConfirm(groupName, locale);
+  const blockCopy = groupRejectRequestCopy(
+    blocking?.user.name ?? m.webGroup.userFallback,
+    locale,
+  );
   const leaveVenueConfirm = groupLeaveVenueConfirm(
     groupName,
     venueName,
@@ -581,6 +573,11 @@ export default function GroupHomePage({
         isLoose: data.isLoose,
         locale,
       })}
+      ratingSettingsHint={
+        data.ratingSettings
+          ? ratingSettingsSummary(data.ratingSettings, locale)
+          : null
+      }
       venueName={data.venue?.name ?? null}
       triggerRef={
         which === "mobile" ? mobileMenuTriggerRef : desktopMenuTriggerRef
@@ -610,6 +607,7 @@ export default function GroupHomePage({
       }}
       onDelete={() => {
         setRestoreFocus(which);
+        deleteGroup.reset();
         setDeleteOpen(true);
       }}
     />
@@ -665,13 +663,6 @@ export default function GroupHomePage({
             </p>
           ) : null}
 
-          <GroupTeamsRow
-            groupId={id}
-            teams={data.teams}
-            isMember={data.membership != null}
-            canCreateTeam={data.canCreateTeam}
-          />
-
           {ctaFamily.kind === "join_group" ? (
             <Button
               type="button"
@@ -708,6 +699,9 @@ export default function GroupHomePage({
               canInvite={canManageInvites}
               onInvite={() => setInvitesOpen(true)}
               canManageSeasons={data.canManageSeasons}
+              hasTier={data.hasTier}
+              ratingSettingsLine={data.ratingSettingsLine}
+              onOpenMembers={() => setTab("members")}
             />
           </TabsContent>
           <TabsContent value="games" forceMount className={TAB_PANEL}>
@@ -740,10 +734,14 @@ export default function GroupHomePage({
                 canSetLevel={
                   data.viewerCanSetLevel && groupShowsLevel(data.sport)
                 }
-                onSetGroupLevel={
-                  canSetGroupLevel ? setSettingGroupLevel : undefined
-                }
-                showLevel={groupShowsLevel(data.sport)}
+                showLevel={groupShowsLevel(data.sport, data.verified)}
+                levelFace={groupLevelFace(data.sport)}
+                tierSummary={data.hasTier ? data.tierSummary : null}
+                groupName={data.name ?? m.webGroup.groupFallback}
+                canAdjustTier={viewerMayAdjustTier({
+                  hasTier: data.hasTier,
+                  leaderboard: data.standing.leaderboard,
+                })}
                 savedUserId={savedUserId}
                 onDismissSaved={() =>
                   router.replace(groupMembersTabHref(id), { scroll: false })
@@ -760,11 +758,16 @@ export default function GroupHomePage({
                   levelBand: entry.levelBand,
                   levelProvisional: entry.levelProvisional,
                   level: entry.level,
+                  ovr: entry.ovr,
                   ratedMatchCount: entry.ratedMatchCount,
                   levelOverride: entry.levelOverride,
                   groupLevel: entry.groupLevel,
+                  tier: entry.tier,
                   unclaimed: entry.unclaimed,
                   phoneMasked: entry.phoneMasked,
+                  phoneNumber: entry.phoneNumber,
+                  canRename: entry.canRename,
+                  nickname: entry.nickname ?? null,
                 }))}
                 linkToPlayers={groupMemberRowsLink(data.membership)}
                 canInvite={canManageInvites}
@@ -775,6 +778,7 @@ export default function GroupHomePage({
                 canRemovePlayers={data.canRemovePlayers}
                 onRemovePlayer={setRemoving}
                 canAppointOrganizers={data.canAppointOrganizers}
+                canSetNicknames={data.canSetMemberNicknames}
                 pendingInvites={
                   data.canManageLookupInvites
                     ? (lookupInvites.data ?? []).map((invite) => ({
@@ -794,54 +798,21 @@ export default function GroupHomePage({
                 }
                 top={
                   data.canDecideJoinRequests ? (
-                    <JoinRequestsBanner
-                      count={joinRequests.data?.length ?? 0}
-                      onReview={() => {
-                        joinRequestsRef.current?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "start",
-                        });
-                        joinRequestsRef.current?.focus({
-                          preventScroll: true,
-                        });
-                      }}
+                    <GroupJoinRequests
+                      groupId={id}
+                      requiresApproval={data.requiresApproval}
+                      linkToProfiles={groupMemberRowsLink(data.membership)}
+                      onBlock={setBlocking}
+                      onChangePolicy={() => setWhoCanJoinOpen(true)}
                     />
                   ) : null
                 }
                 afterTable={
                   data.canDecideJoinRequests ? (
-                    <JoinRequestsCard
-                      ref={joinRequestsRef}
-                      requests={joinRequests.data}
-                      loading={joinRequests.isLoading}
-                      error={joinRequests.error?.message}
-                      onRetry={() => {
-                        void joinRequests.refetch();
-                      }}
+                    <GroupJoinPolicySummary
+                      groupId={id}
                       requiresApproval={data.requiresApproval}
                       approvedToday={data.joinRequestsApprovedToday}
-                      showLevel={groupShowsLevel(data.sport)}
-                      linkToProfiles={groupMemberRowsLink(data.membership)}
-                      approvePendingId={
-                        approveJoinRequest.isPending
-                          ? approveJoinRequest.variables?.requestId
-                          : undefined
-                      }
-                      rejectPendingId={
-                        rejectJoinRequest.isPending
-                          ? rejectJoinRequest.variables?.requestId
-                          : undefined
-                      }
-                      onApprove={(request) =>
-                        approveJoinRequest.mutate(
-                          { requestId: request.id },
-                          {
-                            onSuccess: () =>
-                              toastJoinRequestDecided(request, "approved"),
-                          },
-                        )
-                      }
-                      onAskReject={setRejecting}
                       onChangePolicy={() => setWhoCanJoinOpen(true)}
                     />
                   ) : null
@@ -882,35 +853,26 @@ export default function GroupHomePage({
       />
       {data.canDecideJoinRequests ? (
         <>
-          <RejectRequestDialog
-            request={rejecting}
-            pending={
-              rejectJoinRequest.isPending
-                ? rejectJoinRequest.variables?.block
-                  ? "block"
-                  : "reject"
-                : null
-            }
+          <ConfirmDialog
+            open={blocking != null}
             onOpenChange={(open) => {
               if (!open) {
-                setRejecting(null);
+                setBlocking(null);
               }
             }}
-            onReject={(block) => {
-              if (!rejecting) {
+            title={blockCopy.title}
+            description={blockCopy.description}
+            confirmLabel={blockCopy.blockLabel}
+            pending={rejectJoinRequest.isPending}
+            onConfirm={() => {
+              if (!blocking) {
                 return;
               }
-              const request = rejecting;
+              const request = blocking;
               rejectJoinRequest.mutate(
-                { requestId: request.id, block },
+                { requestId: request.id, block: true },
                 {
-                  onSuccess: () => {
-                    setRejecting(null);
-                    toastJoinRequestDecided(
-                      request,
-                      block ? "blocked" : "rejected",
-                    );
-                  },
+                  onSuccess: () => toastJoinRequestDecided(request, "blocked"),
                 },
               );
             }}
@@ -964,6 +926,7 @@ export default function GroupHomePage({
         memberCount={data.standing.memberCount}
         seasonCount={groupSeasonCount(data.createdAt)}
         pending={deleteGroup.isPending}
+        error={globalFormErrorMessage(deleteGroup.error)}
         restoreFocusRef={restoreFocusRef}
         onDelete={() => deleteGroup.mutate({ groupId: id })}
         onOpenChange={setDeleteOpen}
@@ -1005,15 +968,6 @@ export default function GroupHomePage({
           }
         }}
       />
-
-      {canSetGroupLevel ? (
-        <SetGroupLevelDialog
-          groupId={id}
-          groupName={data.name ?? m.webGroup.groupFallback}
-          member={settingGroupLevel}
-          onClose={() => setSettingGroupLevel(null)}
-        />
-      ) : null}
 
       {data.canAddPlayers ? (
         <RenameUnclaimedPlayerDialog

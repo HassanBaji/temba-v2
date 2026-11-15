@@ -3,15 +3,16 @@
 import { bibColors, colors } from "@repo/design-tokens";
 import {
   balancedSides,
+  boardTierCell,
   draftSummary,
   initialTeamsDraft,
   keeperWord,
-  levelLabel,
   moveAcross,
+  ovrLabel,
   placeOn,
-  sideAverage,
   slotCode,
   switchMethod,
+  teamsSideAverage,
   type BoardPlayer,
   type Side,
   type TeamsDraft,
@@ -21,6 +22,7 @@ import {
   type FootballBib,
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
+import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import { ArrowLeft, ArrowRight, Shuffle } from "lucide-react";
 import Link from "next/link";
@@ -28,6 +30,7 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 
+import { NicknameName } from "~/components/temba/nickname-name";
 import { ErrorState } from "~/components/common/error-state";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
@@ -36,9 +39,15 @@ import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 import { BibChip, BibPicker, bibStyle } from "./football-bibs";
-import { BibRow } from "./football-team-columns";
+import { BibRow, TierMark } from "./football-team-columns";
+
+/** The Member nickname when the viewer may see one, else the full Temba name. */
+function teamsName(player: Pick<BoardPlayer, "name" | "nickname">) {
+  return player.nickname?.name ?? player.name;
+}
 
 function MethodToggle({
   method,
@@ -104,7 +113,10 @@ function BalanceCard({
           <BibChip bib={bib} className="size-4" />
           <span className="font-semibold">{name}</span>
           <span className="text-muted-foreground text-meta flex-1">
-            {t.avgAndKeepers(sideAverage(members), keeperWord(members, locale))}
+            {t.avgAndKeepers(
+              teamsSideAverage(members, locale, summary.balanceOn),
+              keeperWord(members, locale),
+            )}
           </span>
           <span className="font-expanded tabular-nums">
             {draft.method === "manual"
@@ -157,11 +169,12 @@ function LevelColumns({
             <BibRow
               player={player}
               bib={bib}
+              showTier
               trailing={
                 <button
                   type="button"
                   aria-label={m.webTournament.footballTeams.moveToOtherTeam(
-                    player.name,
+                    teamsName(player),
                   )}
                   onClick={() => onMove(player.userId)}
                   className="focus-visible:ring-ring/50 flex size-[26px] shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
@@ -242,6 +255,7 @@ function ManualRow({
   const bib =
     side === 1 ? draft.bibs.slot1 : side === 2 ? draft.bibs.slot2 : null;
   const code = slotCode(player, locale);
+  const tierCell = boardTierCell(player, locale);
   return (
     <li
       className={cn(
@@ -252,26 +266,38 @@ function ManualRow({
     >
       <UserAvatar name={player.name} image={player.image} />
       <div className="min-w-0 flex-1">
-        <p dir="auto" className="truncate [text-align:match-parent]">
-          {player.isViewer ? m.common.you : player.name}
-        </p>
+        <NicknameName
+          name={player.isViewer ? m.common.you : teamsName(player)}
+          isNickname={!player.isViewer && player.nickname != null}
+          className="[text-align:match-parent]"
+        />
         {code ? (
           <p className="font-mono text-[11px] opacity-70">{code}</p>
         ) : null}
       </div>
-      <span dir="ltr" className="font-expanded">
-        {levelLabel(player.levelBand)}
-      </span>
+      {tierCell ? (
+        <TierMark cell={tierCell} />
+      ) : (
+        <span dir="ltr" className="font-expanded">
+          {ovrLabel(player)}
+        </span>
+      )}
       <SwatchButton
         bib={draft.bibs.slot1}
         selected={side === 1}
-        label={m.webTournament.footballTeams.putIn(player.name, names.slot1)}
+        label={m.webTournament.footballTeams.putIn(
+          teamsName(player),
+          names.slot1,
+        )}
         onClick={() => onPlace(1)}
       />
       <SwatchButton
         bib={draft.bibs.slot2}
         selected={side === 2}
-        label={m.webTournament.footballTeams.putIn(player.name, names.slot2)}
+        label={m.webTournament.footballTeams.putIn(
+          teamsName(player),
+          names.slot2,
+        )}
         onClick={() => onPlace(2)}
       />
     </li>
@@ -355,9 +381,19 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
   const router = useRouter();
   const utils = api.useUtils();
   const game = api.games.byId.useQuery({ id: gameId });
-  const board = api.games.footballBoard.useQuery({ gameId });
+  const isFootball = game.data ? isFootballRosterGame(game.data) : null;
+  const board = api.games.footballBoard.useQuery(
+    { gameId },
+    { enabled: isFootball === true },
+  );
   const [draft, setDraft] = React.useState<TeamsDraft | null>(null);
   const gameHref = `/dashboard/games/${gameId}`;
+
+  React.useEffect(() => {
+    if (isFootball === false) {
+      router.replace(gameHref);
+    }
+  }, [isFootball, router, gameHref]);
 
   React.useEffect(() => {
     if (board.data && draft == null) {
@@ -366,6 +402,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
   }, [board.data, draft]);
 
   const publish = api.games.publishFootballTeams.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(t.publishedToast);
       await Promise.all([
@@ -378,7 +415,9 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
   });
 
   const players = board.data?.players ?? [];
-  const summary = draft ? draftSummary(draft, players, locale) : null;
+  const summary = draft
+    ? draftSummary(draft, players, locale, board.data?.balanceOn)
+    : null;
   const back = (
     <Button variant="outline" asChild>
       <Link href={gameHref}>{m.webTournament.backToGame}</Link>
@@ -390,7 +429,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
     body = (
       <ErrorState
         title={t.poolLoadFailed}
-        message={board.error.message}
+        error={board.error}
         onRetry={() => void board.refetch()}
       />
     );

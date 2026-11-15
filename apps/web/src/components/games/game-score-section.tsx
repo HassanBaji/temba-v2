@@ -17,6 +17,7 @@ import {
 } from "@repo/domain/friendly-game-results";
 import {
   scoreDeciderNote,
+  scoreGamesRangeNote,
   scoreLockedLine,
   scoreSetsMeta,
   scoreTeamFirstNames,
@@ -26,6 +27,7 @@ import {
   organizerConfirmNote,
   scoreCanConfirm,
   scoreCanEnter,
+  scoreConfirmWindowLine,
   scoreConfirmationRows,
   scoreFooterNote,
   scoreGamesWonForSide,
@@ -37,10 +39,13 @@ import {
   scoreSetBoxState,
   scoreSetNeverPlayed,
   scoreShowsConfirmations,
+  scoreShownSets,
   scorePhaseFlags,
   type FriendlyScorePhase,
+  type ScoreConfirmWindow,
   type SetBoxState,
 } from "@repo/domain/friendly-game-score";
+import { useNow } from "~/hooks/use-now";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 
@@ -77,7 +82,7 @@ function SetBox({
   value: number | null;
   label: string;
   saving?: boolean;
-  onChange?: (value: number | null) => void;
+  onChange?: (value: number | null, capped: boolean) => void;
 }) {
   const locale = useLocale();
   if (state === "locked" || state === "unplayed") {
@@ -134,13 +139,16 @@ function SetBox({
       onChange={(event) => {
         const raw = event.target.value;
         if (raw === "") {
-          onChange?.(null);
+          onChange?.(null, false);
           return;
         }
         const parsed = Number(raw);
-        onChange?.(
-          Number.isFinite(parsed) ? clampFriendlySetGames(parsed) : null,
-        );
+        if (!Number.isFinite(parsed)) {
+          onChange?.(null, false);
+          return;
+        }
+        const capped = clampFriendlySetGames(parsed);
+        onChange?.(capped, capped !== parsed);
       }}
       className={cn(
         "h-12 w-14 shrink-0 rounded-lg p-0 text-center text-xl font-bold tabular-nums",
@@ -155,10 +163,12 @@ function ScoreFooterNote({
   phase,
   confirmedAtLabel,
   confirmedByOrganizer,
+  stampedByName,
 }: {
   phase: GameScoreSectionPhase;
   confirmedAtLabel: string | null;
   confirmedByOrganizer: boolean;
+  stampedByName: string | null;
 }) {
   const locale = useLocale();
   const { isFinal } = scorePhaseFlags(phase);
@@ -167,6 +177,7 @@ function ScoreFooterNote({
     confirmedAtLabel,
     locale,
     confirmedByOrganizer,
+    stampedByName,
   );
 
   return (
@@ -183,6 +194,33 @@ function ScoreFooterNote({
   );
 }
 
+/** A Verifier of the Venue, not seated in the Match, stamps its score (ADR-0072). */
+function VerifierStamp({
+  pending,
+  onStamp,
+}: {
+  pending: boolean;
+  onStamp: () => void;
+}) {
+  const m = useMessages();
+  const copy = m.rating.verifier.stamp;
+  return (
+    <div className="border-rule space-y-2 border-t pt-4">
+      <p className="text-muted-foreground text-meta">{copy.note}</p>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={onStamp}
+        pending={pending}
+        pendingLabel={m.common.saving}
+      >
+        {copy.action}
+      </Button>
+    </div>
+  );
+}
+
 function MatchResultConfirmations({
   confirmation,
   viewerUserId,
@@ -191,6 +229,7 @@ function MatchResultConfirmations({
   organizerCanConfirm,
   confirmPending,
   onConfirm,
+  windowLine,
 }: {
   confirmation: GameScoreSectionConfirmation;
   viewerUserId: string;
@@ -199,6 +238,7 @@ function MatchResultConfirmations({
   organizerCanConfirm: boolean;
   confirmPending: boolean;
   onConfirm: () => void;
+  windowLine: string | null;
 }) {
   const locale = useLocale();
   const m = useMessages();
@@ -233,6 +273,9 @@ function MatchResultConfirmations({
           {line}
         </p>
       ))}
+      {windowLine ? (
+        <p className="text-muted-foreground text-meta">{windowLine}</p>
+      ) : null}
       {organizerCanConfirm ? (
         <div className="space-y-2">
           <Button
@@ -308,12 +351,15 @@ export function GameScoreSection({
   viewerUserId,
   winningGameTeamId,
   matchResultConfirmation,
+  confirmWindow = null,
   isOrganizer,
   courtFull,
   scorePending,
   confirmPending,
+  stampPending = false,
   onScoreSet,
   onConfirm,
+  onStamp,
 }: {
   phase: GameScoreSectionPhase;
   match: GameScoreSectionMatch;
@@ -321,20 +367,26 @@ export function GameScoreSection({
   viewerUserId: string;
   winningGameTeamId: string | null;
   matchResultConfirmation: GameScoreSectionConfirmation | null;
+  /** A Public Game's 24 hours for the other side (ADR-0071). */
+  confirmWindow?: ScoreConfirmWindow | null;
   isOrganizer: boolean;
   courtFull: boolean;
   scorePending: boolean;
   confirmPending: boolean;
+  stampPending?: boolean;
   onScoreSet: (input: {
     setId: string;
     slot1GamesWon: number;
     slot2GamesWon: number;
   }) => void | Promise<unknown>;
   onConfirm: () => void;
+  onStamp?: () => void;
 }) {
   const locale = useLocale();
   const m = useMessages();
   const [drafts, setDrafts] = React.useState<Record<string, SetDraft>>({});
+  const [capped, setCapped] = React.useState(false);
+  const now = useNow();
 
   React.useEffect(() => {
     const next: Record<string, SetDraft> = {};
@@ -342,6 +394,7 @@ export function GameScoreSection({
       next[set.id] = { slot1: set.slot1GamesWon, slot2: set.slot2GamesWon };
     }
     setDrafts(next);
+    setCapped(false);
   }, [match.sets]);
 
   if (scorePhaseFlags(phase).isUpcoming) {
@@ -349,6 +402,7 @@ export function GameScoreSection({
   }
 
   const canEnter = scoreCanEnter(phase, match.canScoreSets);
+  const shownSets = scoreShownSets(phase, match.sets);
   const hasResult = match.outcome.result !== "none";
   const names = scoreNameByUserId(sides);
 
@@ -378,6 +432,7 @@ export function GameScoreSection({
     hasResult,
     phase,
     viewerUserId,
+    confirmWindow,
   });
   const organizerCanConfirm = scoreOrganizerCanConfirm({
     confirmation: matchResultConfirmation,
@@ -439,15 +494,16 @@ export function GameScoreSection({
         value={value}
         label={boxLabel}
         saving={scorePending}
-        onChange={(next) =>
+        onChange={(next, wasCapped) => {
+          setCapped(wasCapped);
           setDrafts((current) => ({
             ...current,
             [set.id]: {
               slot1: side.sideIndex === 1 ? next : draft.slot1,
               slot2: side.sideIndex === 2 ? next : draft.slot2,
             },
-          }))
-        }
+          }));
+        }}
       />
     );
   }
@@ -460,13 +516,13 @@ export function GameScoreSection({
       <div className="flex items-baseline justify-between gap-3 px-[18px] py-3.5">
         <h2 className="text-base font-semibold">{m.webGame.score.title}</h2>
         <p className="text-muted-foreground text-meta">
-          {scoreSetsMeta(match.sets.length, locale)}
+          {scoreSetsMeta(shownSets.length, locale)}
         </p>
       </div>
       <div className="space-y-2.5 px-[18px] pb-[18px]">
         <div aria-hidden="true" className="flex gap-2">
           <span className="flex-1" />
-          {match.sets.map((set, index) => (
+          {shownSets.map((set, index) => (
             <span
               key={set.id}
               className="text-muted-foreground w-14 text-center text-[11px] uppercase tracking-[0.06em]"
@@ -486,9 +542,15 @@ export function GameScoreSection({
                 {scoreTeamFirstNames(side, locale)}
               </p>
             </div>
-            {match.sets.map((set, index) => box(set, index, side))}
+            {shownSets.map((set, index) => box(set, index, side))}
           </div>
         ))}
+
+        {canEnter && capped ? (
+          <p role="alert" className="text-meta text-ink font-medium">
+            {scoreGamesRangeNote(locale)}
+          </p>
+        ) : null}
 
         {canEnter ? (
           <div className="flex items-center justify-between gap-3 pt-1.5">
@@ -522,7 +584,12 @@ export function GameScoreSection({
             organizerCanConfirm={organizerCanConfirm}
             confirmPending={confirmPending}
             onConfirm={onConfirm}
+            windowLine={scoreConfirmWindowLine(confirmWindow, now, locale)}
           />
+        ) : null}
+
+        {match.canStamp && onStamp ? (
+          <VerifierStamp pending={stampPending} onStamp={onStamp} />
         ) : null}
 
         {canEnter ? null : (
@@ -536,6 +603,7 @@ export function GameScoreSection({
             confirmedByOrganizer={
               matchResultConfirmation?.confirmedByOrganizer ?? false
             }
+            stampedByName={match.stamp?.verifierName ?? null}
           />
         )}
       </div>

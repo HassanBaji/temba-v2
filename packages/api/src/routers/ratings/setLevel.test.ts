@@ -15,6 +15,7 @@ import { listNotifications } from "#src/routers/notifications/list";
 import { loadRatingsMe } from "#src/routers/ratings/me";
 import { setMemberLevel } from "#src/routers/ratings/setLevel";
 import { INITIAL_MU, muFromLevel } from "@repo/domain/level";
+import { notificationCopy } from "@repo/domain/notification-copy";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 async function insertUser(database: TestDatabase, name: string) {
@@ -122,8 +123,10 @@ describe("setMemberLevel", () => {
         userId: target.id,
         sport: GroupSportEnum.PADEL,
         setByUserId: setter.id,
+        setByRole: "level_setter",
         groupId: group.id,
         reason: "back_from_injury",
+        note: null,
         hadRating: true,
         phiBefore: 320,
         sigmaBefore: 0.055,
@@ -136,6 +139,7 @@ describe("setMemberLevel", () => {
       expect(audit?.muAfter).toBeCloseTo(muFromLevel(4.6), 9);
       expect(result.level).toEqual({
         level: "4.6",
+        ovr: null,
         levelBand: "B3",
         provisional: false,
       });
@@ -162,10 +166,10 @@ describe("setMemberLevel", () => {
         setterUserId: setter.id,
         targetUserId: target.id,
         levelTenths: 30,
+        reason: "new_to_group",
       });
 
       expect((await ratingFor(db, target.id))?.phi).toBe(90);
-      expect((await overridesFor(db, target.id))[0]?.reason).toBeNull();
     } finally {
       await close();
     }
@@ -181,6 +185,7 @@ describe("setMemberLevel", () => {
         setterUserId: setter.id,
         targetUserId: target.id,
         levelTenths: 55,
+        reason: "new_to_group",
       });
 
       const row = await ratingFor(db, target.id);
@@ -209,7 +214,11 @@ describe("setMemberLevel", () => {
         targetUserId: target.id,
       };
 
-      await setMemberLevel(db, { ...args, levelTenths: 55 });
+      await setMemberLevel(db, {
+        ...args,
+        levelTenths: 55,
+        reason: "new_to_group",
+      });
       await setMemberLevel(db, {
         ...args,
         levelTenths: 45,
@@ -250,6 +259,7 @@ describe("setMemberLevel", () => {
         setterUserId: setter.id,
         targetUserId: target.id,
         levelTenths: 30,
+        reason: "new_to_group",
       });
 
       const row = await ratingFor(db, target.id);
@@ -270,6 +280,7 @@ describe("setMemberLevel", () => {
         setterUserId: setter.id,
         targetUserId: target.id,
         levelTenths: 46,
+        reason: "new_to_group",
       });
 
       const me = await loadRatingsMe(db, { userId: target.id });
@@ -296,6 +307,7 @@ describe("setMemberLevel", () => {
             setterUserId: outsider.id,
             targetUserId: target.id,
             levelTenths: 40,
+            reason: "new_to_group",
           }),
         ).rejects.toMatchObject({ code: "FORBIDDEN" });
       } finally {
@@ -313,6 +325,7 @@ describe("setMemberLevel", () => {
             setterUserId: setter.id,
             targetUserId: outsider.id,
             levelTenths: 40,
+            reason: "new_to_group",
           }),
         ).rejects.toMatchObject({ code: "BAD_REQUEST" });
         expect(await ratingFor(db, outsider.id)).toBeUndefined();
@@ -331,6 +344,7 @@ describe("setMemberLevel", () => {
             setterUserId: setter.id,
             targetUserId: setter.id,
             levelTenths: 40,
+            reason: "new_to_group",
           }),
         ).rejects.toMatchObject({ code: "BAD_REQUEST" });
       } finally {
@@ -353,6 +367,7 @@ describe("setMemberLevel", () => {
             setterUserId: setter.id,
             targetUserId: target.id,
             levelTenths: 40,
+            reason: "new_to_group",
           }),
         ).rejects.toMatchObject({ code: "BAD_REQUEST" });
       } finally {
@@ -370,8 +385,32 @@ describe("setMemberLevel", () => {
             setterUserId: setter.id,
             targetUserId: target.id,
             levelTenths: 40,
+            reason: "new_to_group",
           }),
         ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      } finally {
+        await close();
+      }
+    });
+
+    it("refuses a save with no reason and writes nothing", async () => {
+      const { db, close } = await createPgliteDb();
+      try {
+        const { setter, target, group } = await setUp(db);
+        await expect(
+          setMemberLevel(db, {
+            groupId: group.id,
+            setterUserId: setter.id,
+            targetUserId: target.id,
+            levelTenths: 40,
+          }),
+        ).rejects.toMatchObject({
+          code: "BAD_REQUEST",
+          message: "Pick a reason. The player will see it.",
+        });
+        expect(await overridesFor(db, target.id)).toHaveLength(0);
+        expect(await ratingFor(db, target.id)).toBeUndefined();
+        expect(await notificationsFor(db, target.id)).toHaveLength(0);
       } finally {
         await close();
       }
@@ -387,6 +426,7 @@ describe("setMemberLevel", () => {
             setterUserId: setter.id,
             targetUserId: target.id,
             levelTenths,
+            reason: "new_to_group",
           }),
         ).rejects.toMatchObject({ code: "BAD_REQUEST" });
         expect(await overridesFor(db, target.id)).toHaveLength(0);
@@ -443,6 +483,7 @@ describe("setMemberLevel", () => {
             setterUserId: setter.id,
             targetUserId: target.id,
             levelTenths,
+            reason: "new_to_group",
           });
         }
         expect(await notificationsFor(db, target.id)).toHaveLength(2);
@@ -461,6 +502,7 @@ describe("setMemberLevel", () => {
             setterUserId: setter.id,
             targetUserId: setter.id,
             levelTenths: 40,
+            reason: "new_to_group",
           }),
         ).rejects.toMatchObject({ code: "BAD_REQUEST" });
         expect(await db.query.notifications.findMany()).toHaveLength(0);
@@ -500,7 +542,7 @@ describe("setMemberLevel", () => {
       }
     });
 
-    it("lists a set without a reason with a null reason", async () => {
+    it("lists the setter's note with the reason, and reads them out", async () => {
       const { db, close } = await createPgliteDb();
       try {
         const { setter, target, group } = await setUp(db);
@@ -509,14 +551,66 @@ describe("setMemberLevel", () => {
           setterUserId: setter.id,
           targetUserId: target.id,
           levelTenths: 46,
+          reason: "back_from_injury",
+          note: "  Two months out, start him lower.  ",
         });
 
         const { items } = await listNotifications(db, { userId: target.id });
         expect(items[0]?.levelSet).toEqual({
           level: "4.6",
           levelBand: "B3",
-          reason: null,
+          sport: "padel",
+          reason: "back_from_injury",
+          note: "Two months out, start him lower.",
+          venue: null,
         });
+        const item = items[0];
+        if (!item) {
+          throw new Error("Missing the level_set Notification");
+        }
+        expect(notificationCopy(item, "en")?.subline).toBe(
+          "Back from injury: “Two months out, start him lower.”",
+        );
+      } finally {
+        await close();
+      }
+    });
+
+    it("reads an override from before reasons were required as no reason given", async () => {
+      const { db, close } = await createPgliteDb();
+      try {
+        const { setter, target, group } = await setUp(db);
+        const result = await setMemberLevel(db, {
+          groupId: group.id,
+          setterUserId: setter.id,
+          targetUserId: target.id,
+          levelTenths: 46,
+          reason: "new_to_group",
+        });
+        await db
+          .update(levelOverrides)
+          .set({ reason: null })
+          .where(eq(levelOverrides.id, result.overrideId));
+
+        const { items } = await listNotifications(db, { userId: target.id });
+        const item = items[0];
+        if (!item) {
+          throw new Error("Missing the level_set Notification");
+        }
+        expect(item.levelSet).toMatchObject({ level: "4.6", reason: null });
+        expect(notificationCopy(item, "en")?.subline).toBe("No reason given");
+
+        await setMemberLevel(db, {
+          groupId: group.id,
+          setterUserId: setter.id,
+          targetUserId: target.id,
+          levelTenths: 50,
+          reason: "correcting_a_mistake",
+        });
+        expect((await ratingFor(db, target.id))?.mu).toBeCloseTo(
+          muFromLevel(5),
+          9,
+        );
       } finally {
         await close();
       }

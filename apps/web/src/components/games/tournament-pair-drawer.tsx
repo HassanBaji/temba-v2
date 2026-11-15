@@ -199,14 +199,14 @@ export function TournamentPairDrawer({
     >
       <DrawerContent className="mt-0 h-dvh max-h-dvh rounded-none p-0 data-[vaul-drawer-direction=bottom]:mt-0 data-[vaul-drawer-direction=bottom]:max-h-dvh [&>div.bg-muted]:hidden">
         <div className="flex h-full min-h-0 flex-col">
-          <div className="bg-ink text-paper shrink-0 px-[22px] pb-[22px] pt-[22px]">
+          <div className="surface-ink bg-focus text-on-focus border-focus-edge shrink-0 border-b px-[22px] pb-[22px] pt-[22px]">
             <CloseButton
               variant="boxed"
               surface="ink"
               onClick={onClose}
               disabled={busy}
             />
-            <DrawerTitle className="text-paper font-expanded text-display mt-6 leading-none tracking-[-0.03em]">
+            <DrawerTitle className="text-on-focus font-expanded text-display mt-6 leading-none tracking-[-0.03em]">
               {m.pair.title(roundNumber)}
             </DrawerTitle>
             <DrawerDescription className="text-dim text-meta mt-2.5 leading-relaxed">
@@ -380,11 +380,11 @@ export function TournamentPairDrawer({
             ) : null}
           </div>
 
-          <div className="border-rule flex shrink-0 gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
+          <div className="border-rule flex shrink-0 flex-col gap-2.5 border-t px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-5">
             <Button
               type="button"
               size="lg"
-              className="flex-1 font-semibold"
+              className="w-full font-semibold"
               disabled={busy || left > 0}
               aria-busy={actions.post.isPending}
               onClick={() => void post()}
@@ -398,6 +398,7 @@ export function TournamentPairDrawer({
                 type="button"
                 size="lg"
                 variant="outline"
+                className="w-full font-semibold"
                 disabled={busy}
                 aria-busy={actions.save.isPending}
                 onClick={() => void store(pairings, true)}

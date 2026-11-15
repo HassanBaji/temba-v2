@@ -2,16 +2,19 @@ import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { marks } from "@repo/db";
+import { MatchStatusEnum, marks } from "@repo/db";
 
 import {
   MARK_KINDS,
   gameMvpView,
+  marksWindow,
   remainingMarks,
   type GameMarks,
   type MarkKind,
 } from "@repo/domain/marks";
 import { sportOrDefault } from "@repo/domain/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -43,22 +46,28 @@ function receivedKinds(receiverUserId: string, rows: GameMarks["marks"]) {
 /**
  * The Marks on a Game, for the Game screen: the window, who sat on which
  * side, every mark with its giver, what the viewer may still give, and the
- * MVP. Visible to anyone who may open the Game, roasts included. Once the
- * window has closed, a read settles an MVP the Job has not settled yet.
+ * MVP, whose own window closes with the Rating window on a Match that counts
+ * for Temba Level. Visible to anyone who may open the Game, roasts included.
+ * Once the MVP's window has closed, a read settles an MVP the Job has not
+ * settled yet.
  */
 export async function forGame(
   database: DbClient,
-  args: { gameId: string; userId: string },
+  args: { gameId: string; userId: string; locale?: Locale },
   now: Date = new Date(),
 ): Promise<GameMarks> {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   if (!(await canViewGame(database, game, args.userId))) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).game.errors.notFound,
+    });
   }
 
   const match = await marksMatch(database, game);
   const current = (await settleMvpIfDue(database, game, match, now))
-    ? await requireGame(database, game.id)
+    ? await requireGame(database, game.id, locale)
     : game;
   const participants = match
     ? await loadMatchParticipants(database, match, game)
@@ -69,7 +78,10 @@ export async function forGame(
     participants,
     now,
   });
-  const windowState = question.window;
+  const windowState =
+    match?.status === MatchStatusEnum.COMPLETED
+      ? marksWindow(match.completedAt, now)
+      : null;
   const mvp = gameMvpView({
     question,
     stored: {
@@ -134,5 +146,9 @@ export const forGameProcedure = protectedProcedure
   .input(z.object({ gameId: z.string().uuid() }))
   .query(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return forGame(ctx.db, { gameId: input.gameId, userId: appUser.id });
+    return forGame(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   });

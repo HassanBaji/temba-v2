@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
 import { groups } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type db } from "#src/db";
 import type { GameCreateVenueContext } from "#src/games/utils";
@@ -12,6 +14,7 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 export async function loadGameCreateVenueContext(
   database: DbClient,
   groupId: string | undefined,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<GameCreateVenueContext> {
   if (!groupId) {
     return { locked: false, groupKind: "none", linkedVenueId: null };
@@ -24,7 +27,7 @@ export async function loadGameCreateVenueContext(
   if (!group) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Group not found",
+      message: messagesFor(locale).group.errors.notFound,
     });
   }
   if (!group.venueId) {

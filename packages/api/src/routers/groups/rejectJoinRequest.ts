@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { groupJoinRequests, GroupJoinRequestStatusEnum } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -15,8 +17,9 @@ type DbClient = typeof db;
 
 export async function rejectJoinRequest(
   database: DbClient,
-  args: { requestId: string; userId: string; block?: boolean },
+  args: { requestId: string; userId: string; block?: boolean; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const request = await database.query.groupJoinRequests.findFirst({
     where: eq(groupJoinRequests.id, args.requestId),
   });
@@ -24,22 +27,26 @@ export async function rejectJoinRequest(
   if (!request) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Join request not found",
+      message: messagesFor(locale).group.errors.joinRequestNotFound,
     });
   }
 
-  const group = await requireGroup(database, request.groupId);
+  const group = await requireGroup(database, request.groupId, locale);
 
-  await assertGroupApprover(database, group, args.userId);
-
-  if (request.status !== "pending") {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Join request is not pending",
-    });
-  }
+  await assertGroupApprover(database, group, args.userId, locale);
 
   await database.transaction(async (tx) => {
+    const [locked] = await tx
+      .select({ status: groupJoinRequests.status })
+      .from(groupJoinRequests)
+      .where(eq(groupJoinRequests.id, request.id))
+      .for("update");
+    if (locked?.status !== "pending") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: messagesFor(locale).group.errors.joinRequestNotPending,
+      });
+    }
     const [updated] = await tx
       .update(groupJoinRequests)
       .set({
@@ -86,5 +93,6 @@ export const rejectJoinRequestProcedure = protectedProcedure
       requestId: input.requestId,
       userId: appUser.id,
       block: input.block,
+      locale: ctx.locale,
     });
   });

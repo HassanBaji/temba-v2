@@ -13,7 +13,11 @@ import {
   poolCountForDrawnField,
   TOURNAMENT_TEAM_MIN,
 } from "@repo/domain/tournament-sizing";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
+import { drawOccupantName } from "#src/games/helpers/draw-occupant-name";
+import { assertNotKingOfTheCourt } from "#src/games/assert-not-king-of-the-court";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
@@ -22,10 +26,6 @@ import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted"
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export type Shuffle = <T>(items: readonly T[]) => T[];
-
-const HALF_TEAMS_PREFIX = "Cannot draw the groups while Half teams remain: ";
-const BELOW_MINIMUM_MESSAGE =
-  "Need at least 4 complete Game teams to draw the groups";
 
 function randomIndex(exclusiveMax: number) {
   if (exclusiveMax <= 1) {
@@ -56,46 +56,33 @@ function cryptoShuffle<T>(items: readonly T[]): T[] {
   return result;
 }
 
-function occupantName(team: {
-  sideIndex: number | null;
-  players: readonly {
-    gamePlayer: { user: { name: string } | null } | null;
-  }[];
-}) {
-  const name = team.players[0]?.gamePlayer?.user?.name;
-  if (name) {
-    return name;
-  }
-  if (team.sideIndex != null) {
-    return `Team ${team.sideIndex}`;
-  }
-  return "Game team";
-}
-
 export async function drawPools(
   database: DbClient,
   args: {
     gameId: string;
     organizerUserId: string;
     shuffle?: Shuffle;
+    locale?: Locale;
   },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.organizerUserId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.organizerUserId, locale);
 
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Cannot draw the groups on a cancelled Game",
+      message: messagesFor(locale).tournament.errors.drawCancelled,
     });
   }
   if (!isDrawnTournament(game.format, game.poolCount, game.tournamentShape)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Draw the groups on a Friendly tournament",
+      message: messagesFor(locale).tournament.errors.drawFriendly,
     });
   }
-  assertPoolDrawNotPosted(game);
+  assertNotKingOfTheCourt(game, locale);
+  assertPoolDrawNotPosted(game, locale);
 
   const teamRows = await database.query.gameTeams.findMany({
     where: eq(gameTeams.gameId, game.id),
@@ -135,13 +122,15 @@ export async function drawPools(
     });
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `${HALF_TEAMS_PREFIX}${halfTeams.map(occupantName).join(", ")}`,
+      message: messagesFor(locale).tournament.errors.drawHalfTeams(
+        halfTeams.map((team) => drawOccupantName(team, locale)).join(", "),
+      ),
     });
   }
   if (complete.length < TOURNAMENT_TEAM_MIN) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: BELOW_MINIMUM_MESSAGE,
+      message: messagesFor(locale).tournament.errors.drawBelowMinimum,
     });
   }
 
@@ -181,7 +170,7 @@ export async function drawPools(
   if (game.poolCount == null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Draw the groups on a Friendly tournament",
+      message: messagesFor(locale).tournament.errors.drawFriendly,
     });
   }
 
@@ -223,5 +212,6 @@ export const drawPoolsProcedure = protectedProcedure
     return drawPools(ctx.db, {
       gameId: input.gameId,
       organizerUserId: appUser.id,
+      locale: ctx.locale,
     });
   });

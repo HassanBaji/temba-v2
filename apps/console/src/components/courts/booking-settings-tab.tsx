@@ -18,6 +18,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 import { describeHorizon, describeLeadTime } from "./booking-rules-model";
 import {
@@ -42,7 +43,7 @@ function RuleLine({
   return (
     <div className="text-meta flex items-center justify-between gap-4">
       <span className="text-muted-foreground">{label}</span>
-      <span className="text-right">{children}</span>
+      <span className="text-end">{children}</span>
     </div>
   );
 }
@@ -75,8 +76,8 @@ function SettingSwitch({
       <span
         aria-hidden="true"
         className={cn(
-          "absolute left-[3px] top-[3px] size-3 rounded-full transition-transform",
-          checked ? "bg-paper translate-x-4" : "bg-ink",
+          "absolute start-[3px] top-[3px] size-3 rounded-full transition-transform",
+          checked ? "bg-paper translate-x-4 rtl:-translate-x-4" : "bg-ink",
         )}
       />
     </button>
@@ -90,6 +91,8 @@ function BookingSettingsDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { consoleCourts, common } = useMessages();
+  const m = consoleCourts.rules;
   const venue = useManagedVenue();
   const utils = api.useUtils();
   const [slotMinutes, setSlotMinutes] = React.useState(venue.slotMinutes);
@@ -116,7 +119,7 @@ function BookingSettingsDialog({
 
   const update = api.venues.updateBookingSettings.useMutation({
     onSuccess: async () => {
-      toast.success("Booking rules saved");
+      toast.success(m.savedToast);
       onOpenChange(false);
       await utils.venues.managedById.invalidate({ venueId: venue.id });
     },
@@ -147,30 +150,27 @@ function BookingSettingsDialog({
       <DialogContent className={cn(dialogClass, "sm:max-w-md")}>
         <form className="contents" onSubmit={onSubmit}>
           <DialogHeader>
-            <DialogTitle>Booking rules</DialogTitle>
-            <DialogDescription>
-              What players can pick when they book. Changes apply to new
-              Bookings only.
-            </DialogDescription>
+            <DialogTitle>{m.title}</DialogTitle>
+            <DialogDescription>{m.description}</DialogDescription>
           </DialogHeader>
 
           <div className="grid grid-cols-3 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="slot-minutes" className="text-meta">
-                Start steps
+                {m.startSteps}
               </Label>
               <NativeSelect
                 id="slot-minutes"
                 value={slotMinutes}
                 onChange={(event) => setSlotMinutes(Number(event.target.value))}
               >
-                <option value={30}>Every 30 min</option>
-                <option value={60}>Every 60 min</option>
+                <option value={30}>{m.everyMinutes(30)}</option>
+                <option value={60}>{m.everyMinutes(60)}</option>
               </NativeSelect>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="booking-horizon" className="text-meta">
-                Book ahead (days)
+                {m.bookAheadDays}
               </Label>
               <Input
                 id="booking-horizon"
@@ -186,7 +186,7 @@ function BookingSettingsDialog({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="min-lead" className="text-meta">
-                Last minute (min)
+                {m.lastMinuteMinutes}
               </Label>
               <Input
                 id="min-lead"
@@ -203,7 +203,9 @@ function BookingSettingsDialog({
           </div>
 
           <fieldset className="flex flex-col gap-2">
-            <legend className="text-meta mb-2 font-medium">Durations</legend>
+            <legend className="text-meta mb-2 font-medium">
+              {m.durations}
+            </legend>
             <div className="grid grid-cols-4 gap-2">
               {DURATION_CHOICES.map((minutes) => {
                 const offGrid = minutes % slotMinutes !== 0;
@@ -227,7 +229,7 @@ function BookingSettingsDialog({
                         )
                       }
                     />
-                    {minutes} min
+                    {m.minutes(minutes)}
                   </label>
                 );
               })}
@@ -236,7 +238,7 @@ function BookingSettingsDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="venue-description" className="text-meta">
-              Description
+              {m.venueDescription}
             </Label>
             <Input
               id="venue-description"
@@ -248,7 +250,7 @@ function BookingSettingsDialog({
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="booking-notes" className="text-meta">
-              Notes shown when booking
+              {m.bookingNotes}
             </Label>
             <Input
               id="booking-notes"
@@ -267,16 +269,16 @@ function BookingSettingsDialog({
               disabled={update.isPending}
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {common.cancel}
             </Button>
             <Button
               type="submit"
               className={inkButtonClass}
               disabled={durations.length === 0}
               pending={update.isPending}
-              pendingLabel="Saving…"
+              pendingLabel={common.saving}
             >
-              Save
+              {common.save}
             </Button>
           </DialogFooter>
         </form>
@@ -286,6 +288,8 @@ function BookingSettingsDialog({
 }
 
 export function BookingRulesCard() {
+  const m = useMessages().consoleCourts.rules;
+  const locale = useLocale();
   const venue = useManagedVenue();
   const utils = api.useUtils();
   const [editing, setEditing] = React.useState(false);
@@ -293,7 +297,7 @@ export function BookingRulesCard() {
   const toggleAccepting = api.venues.updateBookingSettings.useMutation({
     onSuccess: async (updated) => {
       toast.success(
-        updated.acceptingBookings ? "Accepting bookings" : "Bookings paused",
+        updated.acceptingBookings ? m.acceptingToast : m.pausedToast,
       );
       await utils.venues.managedById.invalidate({ venueId: venue.id });
     },
@@ -303,9 +307,7 @@ export function BookingRulesCard() {
   const togglePayAtVenue = api.venues.updateBookingSettings.useMutation({
     onSuccess: async (updated) => {
       toast.success(
-        updated.payAtVenueAllowed
-          ? "Players can pay at the venue"
-          : "Players pay online when they book",
+        updated.payAtVenueAllowed ? m.payAtVenueToast : m.payOnlineToast,
       );
       await utils.venues.managedById.invalidate({ venueId: venue.id });
     },
@@ -315,16 +317,16 @@ export function BookingRulesCard() {
   return (
     <section className="border-border rounded-card flex flex-col gap-3 border px-5 py-[18px]">
       <header className="flex items-center justify-between gap-4">
-        <h2 className="text-body font-semibold">Booking rules</h2>
+        <h2 className="text-body font-semibold">{m.title}</h2>
         <button
           type="button"
           className={linkButtonClass}
           onClick={() => setEditing(true)}
         >
-          Edit
+          {m.edit}
         </button>
       </header>
-      <RuleLine label="Durations">
+      <RuleLine label={m.durations}>
         <span className="flex gap-1.5">
           {venue.durationOptionsMinutes.map((minutes) => (
             <span
@@ -336,17 +338,19 @@ export function BookingRulesCard() {
           ))}
         </span>
       </RuleLine>
-      <RuleLine label="Start steps">Every {venue.slotMinutes} min</RuleLine>
-      <RuleLine label="Book ahead">
-        {describeHorizon(venue.bookingHorizonDays)}
+      <RuleLine label={m.startSteps}>
+        {m.everyMinutes(venue.slotMinutes)}
       </RuleLine>
-      <RuleLine label="Last minute">
-        {describeLeadTime(venue.minLeadMinutes)}
+      <RuleLine label={m.bookAhead}>
+        {describeHorizon(venue.bookingHorizonDays, locale)}
+      </RuleLine>
+      <RuleLine label={m.lastMinute}>
+        {describeLeadTime(venue.minLeadMinutes, locale)}
       </RuleLine>
       <div className="border-border text-meta flex items-center justify-between gap-4 border-t pt-3">
-        <span className="font-medium">Accepting bookings</span>
+        <span className="font-medium">{m.accepting}</span>
         <SettingSwitch
-          label="Accepting bookings"
+          label={m.accepting}
           checked={venue.acceptingBookings}
           pending={toggleAccepting.isPending}
           onChange={(next) =>
@@ -359,15 +363,15 @@ export function BookingRulesCard() {
       </div>
       <div className="text-meta flex items-center justify-between gap-4">
         <span className="flex flex-col gap-0.5">
-          <span className="font-medium">Pay at the venue</span>
+          <span className="font-medium">{m.payAtVenue}</span>
           <span className="text-muted-foreground">
             {venue.onlinePaymentAvailable
-              ? "Let players book now and pay at the desk."
-              : "Online payment is not on yet, so players pay at the desk."}
+              ? m.payAtVenueOn
+              : m.payAtVenueOnlineOff}
           </span>
         </span>
         <SettingSwitch
-          label="Pay at the venue"
+          label={m.payAtVenue}
           checked={venue.payAtVenueAllowed}
           pending={togglePayAtVenue.isPending}
           onChange={(next) =>

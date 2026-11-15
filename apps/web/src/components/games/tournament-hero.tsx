@@ -13,7 +13,7 @@ import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
 const ACTION_BOX_DARK =
-  "bg-raised text-on-focus focus-visible:ring-ring/50 inline-flex size-11 min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]";
+  "border-dimrule bg-raised text-on-focus focus-visible:ring-ring/50 inline-flex border size-11 min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]";
 
 export type TournamentHeroSeat = {
   userId: string;
@@ -38,7 +38,7 @@ function TournamentHeroSeatBlock({
 
   if (!occupant) {
     return (
-      <div className="bg-raised relative flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 overflow-hidden rounded-md px-3">
+      <div className="border-dimrule bg-raised relative flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 overflow-hidden rounded-md border px-3">
         <span
           aria-hidden="true"
           className="hatch hatch-on-ink absolute inset-0 rounded-md"
@@ -51,7 +51,7 @@ function TournamentHeroSeatBlock({
   const displayName = isViewer ? m.common.you : occupant.name;
 
   return (
-    <div className="bg-raised flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3">
+    <div className="border-dimrule bg-raised flex h-16 min-h-16 min-w-0 flex-1 items-center gap-2.5 rounded-md border px-3">
       <UserAvatar
         name={occupant.name}
         image={occupant.image}
@@ -78,6 +78,7 @@ export function TournamentHero({
   startLine,
   sizeLine,
   statusLine,
+  stats = [],
   viewerUserId,
   left,
   right,
@@ -93,6 +94,8 @@ export function TournamentHero({
   startLine: string | null;
   sizeLine: string | null;
   statusLine: string;
+  /** Number tiles under the title, such as teams, courts and the price. */
+  stats?: readonly { value: string; label: string }[];
   viewerUserId: string;
   left: TournamentHeroSeat;
   right: TournamentHeroSeat;
@@ -138,6 +141,23 @@ export function TournamentHero({
       </PageTitle>
       {startLine ? <p className="text-lead mt-2.5">{startLine}</p> : null}
       {sizeLine ? <p className="text-dim text-meta mt-1">{sizeLine}</p> : null}
+      {stats.length > 0 ? (
+        <dl className="mt-[18px] flex gap-2">
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="border-dimrule bg-raised min-w-0 flex-1 rounded-md border px-3 py-2.5"
+            >
+              <dd className="font-expanded truncate text-[22px] leading-none tracking-[-0.03em]">
+                {stat.value}
+              </dd>
+              <dt className="text-dim mt-1.5 text-[11px] leading-tight">
+                {stat.label}
+              </dt>
+            </div>
+          ))}
+        </dl>
+      ) : null}
 
       <div className="bg-dimrule my-[22px] h-px" />
 

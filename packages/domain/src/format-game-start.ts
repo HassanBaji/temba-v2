@@ -138,16 +138,19 @@ export function formatGameTimeWindow(
   return formatGameClock(startTime, locale);
 }
 
-function daysUntilGameDay(date: Date) {
-  return productDaysBetween(new Date(), gameDayStart(date));
+function daysUntilGameDay(date: Date, now = new Date()) {
+  return productDaysBetween(now, gameDayStart(date));
 }
 
 export type GameDayProximity = "today" | "tomorrow" | "later";
 
 /** Lets cards tint the day label without re-parsing the relative-day copy. */
-export function gameDayProximity(startTime: Date | string): GameDayProximity {
+export function gameDayProximity(
+  startTime: Date | string,
+  now?: Date,
+): GameDayProximity {
   const date = startTime instanceof Date ? startTime : new Date(startTime);
-  const diffDays = daysUntilGameDay(date);
+  const diffDays = daysUntilGameDay(date, now);
 
   if (diffDays === 0) {
     return "today";

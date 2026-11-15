@@ -13,6 +13,13 @@ import {
   LEVEL_TENTHS_MIN,
   tenthsToLevelBand,
 } from "./level-range";
+import {
+  OVR_MAX,
+  OVR_MIN,
+  OVR_SCALE_TICKS,
+  ovrFromLevel,
+  ovrScalePercent,
+} from "./football-ovr";
 import { shortPlayerName } from "./player-name";
 import { formatPastDay } from "./request-meta";
 
@@ -106,6 +113,8 @@ export function levelSliderReadout(args: {
       label: rung.label,
       lowerTenths: rung.lowerTenths,
       upperTenths: rung.upperTenths,
+      lowerLabel: formatTenths(rung.lowerTenths),
+      upperLabel: formatTenths(rung.upperTenths),
     },
     percentThroughRung: Math.round(((tenths - rung.lowerTenths) / span) * 100),
     toNext: next
@@ -114,6 +123,69 @@ export function levelSliderReadout(args: {
           distanceLabel: formatTenths(rung.upperTenths - tenths),
         }
       : null,
+  };
+}
+
+const OVR_SLIDER_INNER_TICKS = OVR_SCALE_TICKS.slice(1, -1);
+
+/**
+ * The OVR slider's marks: the football scale's numbers, 40 and 99 at the
+ * ends and 55, 70 and 85 between, with no band letters (ADR-0087).
+ */
+export const OVR_SLIDER_TICKS = {
+  edges: OVR_SLIDER_INNER_TICKS,
+  marks: OVR_SLIDER_INNER_TICKS.map((ovr) => ({ label: String(ovr), at: ovr })),
+  startLabel: String(OVR_MIN),
+  endLabel: String(OVR_MAX),
+};
+
+export function clampOvrInput(value: number): number {
+  return Math.min(OVR_MAX, Math.max(OVR_MIN, Math.round(value)));
+}
+
+/** Where the OVR slider starts: the member's OVR, or Level 3.0's without one. */
+export function ovrSliderStart(ovr: number | null): number {
+  return clampOvrInput(ovr ?? ovrFromLevel(LEVEL_SLIDER_DEFAULT_TENTHS / 10));
+}
+
+/** The compact OVR value the slider's thumb shows: `72`. */
+export function ovrSliderLabel(ovr: number): string {
+  return String(clampOvrInput(ovr));
+}
+
+/** The OVR value in prose and toasts: `OVR 72`. */
+export function ovrSliderValueText(ovr: number, locale: Locale): string {
+  return messagesFor(locale).level.ovr(ovrSliderLabel(ovr));
+}
+
+/**
+ * The readout of the OVR slider: the big OVR and its change, with a bar
+ * filled along the 40 to 99 scale. Football reads no band, so there is no
+ * rung or way to the next one (ADR-0087).
+ */
+export function ovrSliderReadout(args: {
+  ovr: number;
+  currentOvr: number;
+  locale: Locale;
+}) {
+  const ovr = clampOvrInput(args.ovr);
+  const delta = ovr - clampOvrInput(args.currentOvr);
+
+  let deltaLabel = "0";
+  if (delta > 0) {
+    deltaLabel = `+${delta}`;
+  } else if (delta < 0) {
+    deltaLabel = `−${-delta}`;
+  }
+
+  return {
+    ovrLabel: String(ovr),
+    deltaLabel: messagesFor(args.locale).common.isolate(deltaLabel),
+    percentOfScale: ovrScalePercent(ovr),
+    scale: {
+      lowerLabel: OVR_SLIDER_TICKS.startLabel,
+      upperLabel: OVR_SLIDER_TICKS.endLabel,
+    },
   };
 }
 
@@ -144,6 +216,29 @@ export function levelOverrideReasonLabel(
     case "correcting_a_mistake":
       return m.correctingAMistake;
   }
+}
+
+/** The longest note a Level override keeps (ADR-0073). */
+export const LEVEL_OVERRIDE_NOTE_MAX = 280;
+
+/**
+ * Why a Level was set, as the player reads it: the reason, with the setter's
+ * note when there is one. An override from before reasons were required reads
+ * "No reason given".
+ */
+export function levelOverrideWhy(args: {
+  reason: LevelOverrideReason | null;
+  note?: string | null;
+  locale: Locale;
+}): string {
+  const m = messagesFor(args.locale);
+  if (!args.reason) {
+    return m.level.noReasonGiven;
+  }
+  const label = levelOverrideReasonLabel(args.reason, args.locale);
+  return args.note
+    ? m.level.overrideWhyWithNote(label, m.common.isolate(args.note))
+    : label;
 }
 
 /** `Set by you, today` or `Set by Sara K, 3 days ago`. */

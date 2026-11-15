@@ -1,4 +1,4 @@
-import { palettes } from "@repo/design-tokens";
+import { invertedFocusPalettes } from "@repo/design-tokens";
 import {
   padelStickerLine,
   type FootballResultCard,
@@ -19,7 +19,7 @@ import {
 import { STICKER_WIDTH } from "./story-canvas";
 
 // Share cards render on black in both modes: they leave the App.
-const colors = palettes.light;
+const colors = invertedFocusPalettes.light;
 
 const RULE = 1;
 
@@ -82,7 +82,7 @@ function StickerFoot({
         gap: 24,
         paddingTop: 24,
         borderTopWidth: RULE,
-        borderTopColor: colors.dimrule,
+        borderTopColor: colors.controlRule,
       }}
     >
       {children}
@@ -117,14 +117,17 @@ function FootballSticker({ card }: { card: FootballResultCard }) {
         px={34}
         weight={strong ? "semibold" : "regular"}
         numberOfLines={1}
-        style={{ color: strong ? colors.paper : colors.dim, textAlign: align }}
+        style={{
+          color: strong ? colors.paper : colors.onControlMuted,
+          textAlign: align,
+        }}
       >
         {team.name}
       </Big>
       <Label
         px={20}
         tracking={0.14}
-        style={{ color: strong ? colors.dim : colors.muted }}
+        style={{ color: strong ? colors.onControlMuted : colors.muted }}
       >
         {word}
       </Label>
@@ -222,7 +225,10 @@ function PadelSticker({ card }: { card: PadelResultCard }) {
         px={34}
         weight={strong ? "semibold" : "regular"}
         numberOfLines={1}
-        style={{ flexShrink: 1, color: strong ? colors.paper : colors.dim }}
+        style={{
+          flexShrink: 1,
+          color: strong ? colors.paper : colors.onControlMuted,
+        }}
       >
         {line}
       </Big>

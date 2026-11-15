@@ -9,26 +9,19 @@ import {
   games,
   groups,
   matches,
+  matchSets,
   user,
   venues,
 } from "@repo/db/schema";
 
-import {
-  addMatch,
-  KNOCKOUT_MATCH_BY_HAND_MESSAGE,
-} from "#src/routers/games/addMatch";
-import { addSet } from "#src/routers/games/addSet";
+import { addMatch } from "#src/routers/games/addMatch";
 import { gameById } from "#src/routers/games/byId";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
-import {
-  UNDO_KNOCKOUT_AFTER_SET_MESSAGE,
-  undoPoolDraw,
-} from "#src/routers/games/undoPoolDraw";
+import { undoPoolDraw } from "#src/routers/games/undoPoolDraw";
 import { updateMatch } from "#src/routers/games/updateMatch";
-import { KNOCKOUT_MATCH_SIDES_MESSAGE } from "#src/games/update-tournament-match";
 import { fewWeeksRoundStarts } from "@repo/domain/tournament-schedule";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
@@ -688,11 +681,9 @@ describe("undoPoolDraw on Knockout only", () => {
     const { db, close } = await createPgliteDb();
     try {
       const seeded = await seedPosted(db, "undo-ko-set");
-      await addSet(db, {
-        gameId: seeded.gameId,
-        matchId: seeded.at(1, 2).id,
-        userId: seeded.owner.id,
-      });
+      await db
+        .insert(matchSets)
+        .values({ matchId: seeded.at(1, 2).id, setNumber: 1 });
       await expectRefused(
         () =>
           undoPoolDraw(db, {
@@ -700,7 +691,7 @@ describe("undoPoolDraw on Knockout only", () => {
             organizerUserId: seeded.owner.id,
           }),
         "FORBIDDEN",
-        UNDO_KNOCKOUT_AFTER_SET_MESSAGE,
+        "Cannot undo the draw after a Set has been played",
       );
       const detail = await gameById(db, {
         gameId: seeded.gameId,
@@ -759,7 +750,7 @@ describe("editing a Knockout Match", () => {
             slot1GameTeamId: other.slot1GameTeamId,
           }),
         "BAD_REQUEST",
-        KNOCKOUT_MATCH_SIDES_MESSAGE,
+        "The sides of a Knockout Match come from the draw",
       );
       await expectRefused(
         () =>
@@ -771,7 +762,7 @@ describe("editing a Knockout Match", () => {
             slot2GameTeamId: match.slot1GameTeamId,
           }),
         "BAD_REQUEST",
-        KNOCKOUT_MATCH_SIDES_MESSAGE,
+        "The sides of a Knockout Match come from the draw",
       );
     } finally {
       await close();
@@ -795,7 +786,7 @@ describe("editing a Knockout Match", () => {
             slot2GameTeamId: null,
           }),
         "BAD_REQUEST",
-        KNOCKOUT_MATCH_BY_HAND_MESSAGE,
+        "Knockout Matches come from the draw",
       );
     } finally {
       await close();

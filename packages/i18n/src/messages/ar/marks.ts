@@ -174,4 +174,9 @@ export const marks = {
       closed: "لم يعد اختيار نجم المباراة مفتوحًا.",
     },
   },
+  errors: {
+    mvpFriendlyOnly: "نجم المباراة للمباراة الودية فقط",
+    mvpModeFixed: "تُثبَّت طريقة اختيار نجم المباراة بعد تأكيد النتيجة",
+    markNotFound: "الوسام غير موجود",
+  },
 } satisfies typeof source;

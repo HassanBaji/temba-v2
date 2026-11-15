@@ -203,6 +203,8 @@ export const mobileBooking = {
     loadingUpcoming: "جارٍ تحميل الحجوزات القادمة",
     cardLabel: (name: string, city: string, price: string, open: string) =>
       `${name}، ${city}، من ${price} للساعة، ${open}`,
+    partner: "نادٍ شريك",
+    partnerCardLabel: (card: string) => `${card}، نادٍ شريك`,
     fromPrefix: "من",
     perHour: "/س",
   },

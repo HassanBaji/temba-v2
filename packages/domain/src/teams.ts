@@ -2,8 +2,8 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { isFootballPosition } from "./football-lineup";
+import { formatOvr } from "./football-ovr";
 import { formatGameDay } from "./format-game-start";
-import type { GroupTeamData } from "./group-data";
 import { groupHomeSportLabel } from "./group-home-chrome";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import { historyScoreLine } from "./match-history-card";
@@ -13,7 +13,7 @@ import {
   type MatchOutcome,
   type ResultMarkVariant,
 } from "./result-mark";
-import type { Sport } from "./sport";
+import { sportOrDefault, type Sport } from "./sport";
 import { teamAvatarPeople } from "./team-avatar-people";
 import { teamLevelLabel } from "./team-level";
 import {
@@ -210,6 +210,8 @@ export type TeamHomeMemberInput = {
   isViewer: boolean;
   level: string | null;
   levelBand: LevelBand | null;
+  /** Football only: the member's whole OVR; null without a Rating. */
+  ovr?: number | null;
   preferredPosition: string | null;
   footballRole: string | null;
   footballPosition: string | null;
@@ -356,9 +358,19 @@ function memberSeatLabel(
     : null;
 }
 
-function memberLevelLabel(member: TeamHomeMemberInput, locale: Locale) {
+function memberLevelLabel(
+  member: TeamHomeMemberInput,
+  sport: string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
+  if (sport === "football") {
+    return member.ovr != null
+      ? m.rating.ovr.value(formatOvr(member.ovr))
+      : null;
+  }
   return member.levelBand && member.level
-    ? messagesFor(locale).team.level.member(
+    ? m.team.level.member(
         displayLabelFromStoredBand(member.levelBand),
         member.level,
       )
@@ -408,6 +420,7 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
     badges,
     teamLevel: teamLevelLabel(
       data.members.map((member) => member.level),
+      sportOrDefault(data.sport),
       locale,
     ),
     people: data.members.map((member) => ({
@@ -463,7 +476,7 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
       isViewer: member.isViewer,
       captainLabel: member.isCreator ? m.team.captainLabel : null,
       seatLabel: memberSeatLabel(member, data.sport, locale),
-      levelLabel: memberLevelLabel(member, locale),
+      levelLabel: memberLevelLabel(member, data.sport, locale),
       userId: member.userId ?? null,
       addedLabel: member.unclaimed ? m.team.draft.added : null,
       phoneMasked: member.phoneMasked ?? null,
@@ -492,32 +505,3 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
 }
 
 export type TeamHomeView = ReturnType<typeof teamHomeView>;
-
-/** One Team on its Group's page: name, Roster count on football, record. */
-export function groupTeamRowView(team: GroupTeamData, locale: Locale) {
-  const m = messagesFor(locale);
-  const squad = team.sport === "football";
-  const record = headToHeadLine(team.record, team.sport, locale);
-  const spoken = squad
-    ? m.team.recordSpokenWithDraws(
-        team.record.wins,
-        team.record.draws,
-        team.record.losses,
-      )
-    : m.team.recordSpoken(team.record.wins, team.record.losses);
-  const roster = squad ? m.team.onRoster(team.rosterCount) : null;
-  return {
-    id: team.id,
-    title: team.displayName ?? m.team.fallbackName,
-    meta: [roster, record]
-      .filter((part): part is string => part != null)
-      .join(m.group.metaSeparator),
-    accessibilityLabel: [
-      m.group.teams.openTeam(team.displayName ?? m.team.fallbackName),
-      roster,
-      spoken,
-    ]
-      .filter((part): part is string => part != null)
-      .join(m.group.metaSeparator),
-  };
-}

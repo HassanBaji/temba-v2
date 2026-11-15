@@ -1,3 +1,5 @@
+import type { KingPlayedSummary } from "./tournament-king-view";
+import type { GameAlbumSummary } from "./game-album";
 import type { GameRatingScope } from "./game-rating-scope";
 import type { MarkKind } from "./marks";
 
@@ -25,6 +27,42 @@ export type HubGameTournamentTeam = {
   right: HubGameOccupant | null;
 };
 
+export type MyTournamentPair = {
+  left: HubGameOccupant | null;
+  right: HubGameOccupant | null;
+};
+
+/** One Pool Match of the viewer's Game team, in Round order. */
+export type MyTournamentRound = {
+  matchId: string;
+  roundNumber: number | null;
+  startTime: Date | null;
+  courtName: string | null;
+  completed: boolean;
+  cancelled: boolean;
+  outcome: "won" | "lost" | "draw" | null;
+  viewerSets: { viewer: number; opponent: number }[];
+  opponent: MyTournamentPair;
+};
+
+/**
+ * The viewer's side of a posted Groups only tournament, so the Games list
+ * can show the whole tournament as one card (ADR-0074).
+ */
+export type MyTournament = {
+  viewerTeam: MyTournamentPair;
+  poolLabel: string;
+  poolSize: number;
+  poolCount: number;
+  /** Null until the viewer's Game team has played. */
+  viewerPosition: number | null;
+  /** Every Match of the viewer's Pool is settled, so the place is final. */
+  poolFinished: boolean;
+  /** The Pool winner, once the Pool is finished. */
+  winner: MyTournamentPair | null;
+  rounds: MyTournamentRound[];
+};
+
 export type HubGameFootballSide = {
   sideIndex: 1 | 2;
   bib: string;
@@ -35,6 +73,8 @@ export type HubGameFootballSide = {
 export type HubGameFootball = {
   sideSize: number | null;
   sides: HubGameFootballSide[] | null;
+  /** Who is in so far: keepers by role, outfield players by Position. */
+  positions?: { keepers: number; def: number; mid: number; fwd: number };
   viewer: {
     sideIndex: 1 | 2 | null;
     role: "outfield" | "keeper" | null;
@@ -107,6 +147,8 @@ export type HubGameRow = {
     } | null;
   } | null;
   knockoutMatch: { round: number; roundCount: number } | null;
+  /** Set on a posted Groups only tournament the viewer plays in. */
+  myTournament?: MyTournament | null;
   football?: HubGameFootball | null;
   /** A Challenge Game: both sides are set by the Challenge and nobody joins. */
   challenge?: boolean;
@@ -139,4 +181,11 @@ export type HubHistoryRow = {
   rated: boolean;
   viewerMarks: MarkKind[];
   viewerIsMvp: boolean;
+  /** What the Match moved the viewer's Temba Level, when it counted. */
+  levelMove?: { muBefore: number; muAfter: number } | null;
+  /** Set when the history groups a Groups only tournament into one row. */
+  myTournament?: MyTournament | null;
+  /** Set on a King of the court row: it has no Match, only a place and a king. */
+  kingOfTheCourt?: KingPlayedSummary | null;
+  album?: GameAlbumSummary;
 };

@@ -7,6 +7,8 @@ import {
   USER_NAME_MAX_LENGTH,
   userDisplayName,
 } from "@repo/domain/user-display-name";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -29,11 +31,20 @@ export const setNameSchema = z.object({
  */
 export async function writeUserName(
   database: DbClient,
-  args: { userId: string; firstName: string; lastName: string },
+  args: {
+    userId: string;
+    firstName: string;
+    lastName: string;
+    locale?: Locale;
+  },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const name = userDisplayName(args);
   if (!name) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Enter your name" });
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).profile.errors.enterYourName,
+    });
   }
   const [updated] = await database
     .update(user)
@@ -51,7 +62,10 @@ export async function writeUserName(
     });
 
   if (!updated) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).profile.errors.userNotFound,
+    });
   }
 
   return updated;
@@ -61,5 +75,9 @@ export const setName = protectedProcedure
   .input(setNameSchema)
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return writeUserName(ctx.db, { userId: appUser.id, ...input });
+    return writeUserName(ctx.db, {
+      userId: appUser.id,
+      ...input,
+      locale: ctx.locale,
+    });
   });

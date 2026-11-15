@@ -8,6 +8,8 @@ import {
   cancellationPolicySchema,
   type CancellationPolicy,
 } from "@repo/validators/cancellation-policy";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { protectedProcedure } from "#src/trpc";
@@ -25,19 +27,24 @@ export async function updateCancellationPolicy(
       userId: string;
       publicMetadata: Record<string, unknown> | undefined;
     };
+    locale?: Locale;
   },
 ) {
-  await requireVenue(database, args.venueId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  await requireVenue(database, args.venueId, locale);
   await requireVenueManager(database, {
     venueId: args.venueId,
     ...args.actor,
+    locale,
   });
 
   const parsed = cancellationPolicySchema.safeParse(args.policy);
   if (!parsed.success) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: parsed.error.issues[0]?.message ?? "Invalid Cancellation policy",
+      message:
+        parsed.error.issues[0]?.message ??
+        messagesFor(locale).venue.errors.invalidCancellationPolicy,
     });
   }
 
@@ -74,5 +81,6 @@ export const updateCancellationPolicyProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

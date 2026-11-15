@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import type { JobHelpers } from "graphile-worker";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { bookingPayments, bookings } from "@repo/db";
 
@@ -14,6 +14,7 @@ import {
   useFakeProvider,
   withBookableVenue,
 } from "#src/bookings/booking.test-support";
+import { refundableFils } from "#src/bookings/payments";
 
 import { handle } from "./payment.refund";
 
@@ -134,7 +135,7 @@ describe("payment.refund", () => {
     });
   });
 
-  it("throws on a retryable failure and leaves the ledger untouched", async () => {
+  it("throws on a retryable failure, keeping the amount reserved and the ledger untouched", async () => {
     await withBookableVenue(async (db, f) => {
       const { booking, payment } = await paidCharge(db, f);
       const before = await db.query.bookingPayments.findFirst({
@@ -155,7 +156,11 @@ describe("payment.refund", () => {
         await db.query.bookingPayments.findFirst({
           where: eq(bookingPayments.id, payment.id),
         }),
-      ).toEqual(before);
+      ).toEqual({
+        ...before,
+        refundPendingFils: 1_000,
+        refundPendingKey: "k1",
+      });
       expect(
         jobs.added.filter((job) => job.name === "notification.booking"),
       ).toEqual([]);
@@ -205,6 +210,200 @@ describe("payment.refund", () => {
           })
         )?.refundFailureReason,
       ).toBe("Nothing left to refund");
+    });
+  });
+
+  describe("with a refund in flight", () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    const stored = (db: Parameters<typeof asDb>[0], id: string) =>
+      db.query.bookingPayments.findFirst({
+        where: eq(bookingPayments.id, id),
+      });
+
+    /** Runs `during` while the provider is handling the first refund call. */
+    function interleave(during: () => Promise<unknown>) {
+      const original = provider.fake.refund.bind(provider.fake);
+      let ran = false;
+      provider.fake.refund = async (args) => {
+        if (!ran) {
+          ran = true;
+          await during();
+        }
+        return original(args);
+      };
+    }
+
+    it("lets only one of two full refunds reach the provider and records the other as failed", async () => {
+      await withBookableVenue(async (db, f) => {
+        const { payment } = await paidCharge(db, f);
+        const total = payment.amountFils;
+        let duringFlight: unknown;
+        interleave(async () => {
+          expect(await stored(db, payment.id)).toMatchObject({
+            refundPendingFils: total,
+            refundPendingKey: "k1",
+          });
+          duringFlight = await handle(
+            asDb(db),
+            payload(payment.id, total, "k2"),
+            undefined,
+            NOW,
+          );
+        });
+
+        await handle(
+          asDb(db),
+          payload(payment.id, total, "k1"),
+          undefined,
+          NOW,
+        );
+
+        expect(duringFlight).toBeUndefined();
+        expect(provider.fake.refundCalls.map((c) => c.idempotencyKey)).toEqual([
+          "k1",
+        ]);
+        expect(await stored(db, payment.id)).toMatchObject({
+          status: "refunded",
+          refundedFils: total,
+          refundPendingFils: 0,
+          refundPendingKey: null,
+          refundFailureReason: null,
+        });
+      });
+    });
+
+    it("records the loser's failure before the winner records its refund", async () => {
+      await withBookableVenue(async (db, f) => {
+        const { payment } = await paidCharge(db, f);
+        interleave(async () => {
+          await handle(
+            asDb(db),
+            payload(payment.id, payment.amountFils, "k2"),
+            undefined,
+            NOW,
+          );
+          expect((await stored(db, payment.id))?.refundFailureReason).toBe(
+            "Nothing left to refund",
+          );
+        });
+        await handle(
+          asDb(db),
+          payload(payment.id, payment.amountFils, "k1"),
+          undefined,
+          NOW,
+        );
+      });
+    });
+
+    it("makes a refund that would fit wait, and records it once out of attempts", async () => {
+      await withBookableVenue(async (db, f) => {
+        const { payment } = await paidCharge(db, f);
+        const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+        interleave(async () => {
+          await expect(
+            handle(asDb(db), payload(payment.id, 1_000, "k2"), undefined, NOW),
+          ).rejects.toThrow("still in progress");
+          await expect(
+            handle(
+              asDb(db),
+              payload(payment.id, 1_000, "k2"),
+              {
+                job: { attempts: 8, max_attempts: 8 },
+              } as unknown as JobHelpers,
+              NOW,
+            ),
+          ).rejects.toThrow("still in progress");
+        });
+        await handle(
+          asDb(db),
+          payload(payment.id, 4_000, "k1"),
+          undefined,
+          NOW,
+        );
+
+        expect(provider.fake.refundCalls).toHaveLength(1);
+        expect(await stored(db, payment.id)).toMatchObject({
+          refundedFils: 4_000,
+          refundPendingFils: 0,
+        });
+        expect(
+          errors.mock.calls.map((call) => JSON.parse(String(call[0]))),
+        ).toEqual([
+          expect.objectContaining({
+            event: "payment_job_gave_up",
+            name: "payment.refund",
+            paymentId: payment.id,
+            refundKey: "k2",
+          }),
+        ]);
+      });
+    });
+
+    it("keeps the reservation across a retryable failure and carries on with it", async () => {
+      await withBookableVenue(async (db, f) => {
+        const { payment } = await paidCharge(db, f);
+        provider.fake.refundResult = {
+          failed: "Gateway timeout",
+          retryable: true,
+        };
+        await expect(
+          handle(asDb(db), payload(payment.id, 4_000, "k1"), undefined, NOW),
+        ).rejects.toThrow("Gateway timeout");
+        const held = await stored(db, payment.id);
+        expect(held).toMatchObject({
+          refundPendingFils: 4_000,
+          refundPendingKey: "k1",
+        });
+        expect(refundableFils(held!)).toBe(payment.amountFils - 4_000);
+
+        provider.fake.refundResult = { reference: "rfd_fake" };
+        await handle(
+          asDb(db),
+          payload(payment.id, 4_000, "k1"),
+          undefined,
+          NOW,
+        );
+        expect(await stored(db, payment.id)).toMatchObject({
+          refundedFils: 4_000,
+          refundPendingFils: 0,
+          refundPendingKey: null,
+        });
+      });
+    });
+
+    it("releases the reservation on a permanent failure and on the last attempt", async () => {
+      await withBookableVenue(async (db, f) => {
+        const { payment } = await paidCharge(db, f);
+        vi.spyOn(console, "error").mockImplementation(() => {});
+        provider.fake.refundResult = { failed: "Rejected", retryable: false };
+        await handle(
+          asDb(db),
+          payload(payment.id, 4_000, "k1"),
+          undefined,
+          NOW,
+        );
+        expect(await stored(db, payment.id)).toMatchObject({
+          refundPendingFils: 0,
+          refundPendingKey: null,
+          refundFailureReason: "Rejected",
+        });
+
+        provider.fake.refundResult = new Error("socket hang up");
+        await expect(
+          handle(
+            asDb(db),
+            payload(payment.id, 4_000, "k2"),
+            { job: { attempts: 8, max_attempts: 8 } } as unknown as JobHelpers,
+            NOW,
+          ),
+        ).rejects.toThrow("socket hang up");
+        expect(await stored(db, payment.id)).toMatchObject({
+          refundPendingFils: 0,
+          refundPendingKey: null,
+          refundFailureReason: "The provider could not be reached",
+        });
+      });
     });
   });
 });

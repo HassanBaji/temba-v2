@@ -69,6 +69,16 @@
       "types": "./dist/routers/groups/index.d.ts",
       "default": "./src/routers/groups/index.ts"
     },
+    "#src/routers/gameAlbum": {
+      "temba-source": "./src/routers/gameAlbum/index.ts",
+      "types": "./dist/routers/gameAlbum/index.d.ts",
+      "default": "./src/routers/gameAlbum/index.ts"
+    },
+    "#src/routers/gamePayments": {
+      "temba-source": "./src/routers/gamePayments/index.ts",
+      "types": "./dist/routers/gamePayments/index.d.ts",
+      "default": "./src/routers/gamePayments/index.ts"
+    },
     "#src/routers/marks": {
       "temba-source": "./src/routers/marks/index.ts",
       "types": "./dist/routers/marks/index.d.ts",
@@ -131,6 +141,7 @@
     "test": "vitest run",
     "db:seed": "tsx scripts/seed.ts",
     "db:seed:football-pitches": "tsx --env-file-if-exists=.env scripts/seed-football-pitches.ts",
+    "db:backfill-operators": "tsx --env-file-if-exists=.env scripts/backfill-operators.ts",
     "format:check": "prettier --check \"**/*.{ts,js}\" --cache",
     "format:write": "prettier --write \"**/*.{ts,js}\" --cache"
   },

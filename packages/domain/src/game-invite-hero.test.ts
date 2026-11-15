@@ -105,6 +105,8 @@ describe("Level", () => {
         isSignedIn: false,
         viewerLevelTenths: null,
         viewerPassesLevelRange: null,
+        levelMinTenths: 20,
+        levelMaxTenths: 35,
       }),
     ).toBe("signed_out");
     expect(
@@ -112,6 +114,8 @@ describe("Level", () => {
         isSignedIn: true,
         viewerLevelTenths: null,
         viewerPassesLevelRange: null,
+        levelMinTenths: 20,
+        levelMaxTenths: 35,
       }),
     ).toBe("no_level");
     expect(
@@ -119,6 +123,8 @@ describe("Level", () => {
         isSignedIn: true,
         viewerLevelTenths: 30,
         viewerPassesLevelRange: false,
+        levelMinTenths: 20,
+        levelMaxTenths: 35,
       }),
     ).toBe("outside");
     expect(
@@ -126,8 +132,43 @@ describe("Level", () => {
         isSignedIn: true,
         viewerLevelTenths: 30,
         viewerPassesLevelRange: true,
+        levelMinTenths: 20,
+        levelMaxTenths: 35,
       }),
     ).toBe("fits");
+  });
+
+  it("tells a viewer the organizer let in apart from one who fits", () => {
+    expect(
+      gameInviteLevelFit({
+        isSignedIn: true,
+        viewerLevelTenths: 30,
+        viewerPassesLevelRange: true,
+        levelMinTenths: 35,
+        levelMaxTenths: null,
+      }),
+    ).toBe("approved");
+  });
+
+  it("says the organizer approved a viewer outside the range", () => {
+    const card = gameInviteLevelCard({
+      levelMinTenths: 35,
+      levelMaxTenths: null,
+      viewerLevelTenths: 30,
+      fit: "approved",
+      asksAboutGroup: false,
+      locale: "en",
+    });
+    expect(card?.text).toMatch(/, and the organizer approved you\.$/);
+    expect(card?.text).not.toMatch(/so you fit/);
+    expect(
+      gameInviteLevelRow({
+        levelMinTenths: 35,
+        levelMaxTenths: null,
+        fit: "approved",
+        locale: "en",
+      }),
+    ).toMatch(/, the organizer approved you$/);
   });
 
   it("says the range fits in the row", () => {
@@ -146,6 +187,18 @@ describe("Level", () => {
         locale: "en",
       }),
     ).toBeNull();
+  });
+
+  it("reads a football Game's range in OVR in the row", () => {
+    expect(
+      gameInviteLevelRow({
+        levelMinTenths: 20,
+        levelMaxTenths: 35,
+        fit: "fits",
+        locale: "en",
+        sport: "football",
+      }),
+    ).toBe("OVR 57 to 70, yours fits");
   });
 
   it("asks a signed-out holder to sign in on the card", () => {
@@ -175,19 +228,35 @@ describe("Level", () => {
       /so you fit\. Joining asks about the group first\.$/,
     );
   });
+
+  it("shows the viewer's OVR, not a band, on a football card", () => {
+    const card = gameInviteLevelCard({
+      levelMinTenths: 20,
+      levelMaxTenths: 35,
+      viewerLevelTenths: 30,
+      fit: "outside",
+      asksAboutGroup: false,
+      locale: "en",
+      sport: "football",
+    });
+    expect(card).toEqual({
+      band: "65",
+      text: "This game is OVR 57 to 70. You're OVR 65, so joining asks the organizer.",
+    });
+  });
 });
 
 describe("rows", () => {
   it("lists the organizer, the Group and the Level", () => {
     const rows = gameInviteInfoRows({
       hero: hero(),
-      levelRow: "C−/C+, yours fits",
+      levelRow: "OVR 57 to 70, yours fits",
       locale: "en",
     });
     expect(rows).toEqual([
       { label: "Organizer", value: "Yousif Kadhem" },
       { label: "Group", value: "Gooz of Arad, football, 14 members" },
-      { label: "Level", value: "C−/C+, yours fits" },
+      { label: "Level", value: "OVR 57 to 70, yours fits" },
     ]);
   });
 

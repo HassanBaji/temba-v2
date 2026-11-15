@@ -11,6 +11,17 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens the member's own Points and history for a Tier adjustment", () => {
+    assert.equal(
+      notificationHref({ type: "tier_points_adjusted", group: { id: "g1" } }),
+      "/dashboard/groups/g1/points",
+    );
+    assert.equal(
+      notificationHref({ type: "tier_band_changed", group: { id: "g1" } }),
+      "/dashboard/groups/g1",
+    );
+  });
+
   it("opens the Game a Game join is about", () => {
     assert.equal(
       notificationHref({
@@ -23,6 +34,17 @@ describe("notificationHref", () => {
     assert.equal(
       notificationHref({ type: "game_player_joined", group: null, game: null }),
       null,
+    );
+  });
+
+  it("opens the King of the court Game a Place award came from", () => {
+    assert.equal(
+      notificationHref({
+        type: "king_place_awarded",
+        group: { id: "g1" },
+        game: { id: "x1", sport: "padel" },
+      }),
+      "/dashboard/games/x1",
     );
   });
 
@@ -138,12 +160,97 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens Rate the game when ratings open for the Organizer", () => {
+    assert.equal(
+      notificationHref({
+        type: "performance_ratings_open",
+        group: { id: "g2" },
+        game: { id: "g1" },
+      }),
+      "/dashboard/games/g1/rate",
+    );
+  });
+
+  it("opens the payments list when a player says they paid, and the Game for the player's own notices", () => {
+    assert.equal(
+      notificationHref({
+        type: "game_payment_claimed",
+        group: { id: "g2" },
+        game: { id: "g1" },
+      }),
+      "/dashboard/games/g1/payments",
+    );
+    for (const type of ["game_payment_reminder", "game_payment_not_received"]) {
+      assert.equal(
+        notificationHref({ type, group: { id: "g2" }, game: { id: "g1" } }),
+        "/dashboard/games/g1",
+      );
+    }
+  });
+
+  it("opens the Operator Disputes page for a raised dispute, and the Game once decided", () => {
+    assert.equal(
+      notificationHref({
+        type: "match_dispute_raised",
+        group: null,
+        game: { id: "g1" },
+      }),
+      "/dashboard/operator/disputes",
+    );
+    assert.equal(
+      notificationHref({
+        type: "match_dispute_decided",
+        group: null,
+        game: { id: "g1" },
+      }),
+      "/dashboard/games/g1",
+    );
+  });
+
+  it("opens the Game when ratings close, on a Group's Game or one with no Group", () => {
+    assert.equal(
+      notificationHref({
+        type: "performance_ratings_closed",
+        group: { id: "g2" },
+        game: { id: "g1" },
+      }),
+      "/dashboard/games/g1",
+    );
+    assert.equal(
+      notificationHref({
+        type: "performance_ratings_closed",
+        group: null,
+        game: { id: "g1" },
+      }),
+      "/dashboard/games/g1",
+    );
+  });
+
   it("opens the Group a Level set was made in", () => {
     assert.equal(
       notificationHref({ type: "level_set", group: { id: "g2" } }),
       "/dashboard/groups/g2",
     );
     assert.equal(notificationHref({ type: "level_set", group: null }), null);
+  });
+
+  it("opens Ratings on the sport whose Level was confirmed", () => {
+    assert.equal(
+      notificationHref({
+        type: "level_confirmed",
+        group: null,
+        game: { id: "g1", sport: "padel" },
+      }),
+      "/dashboard/you/ratings?sport=padel",
+    );
+    assert.equal(
+      notificationHref({
+        type: "level_confirmed",
+        group: null,
+        game: { id: "g1", sport: null },
+      }),
+      null,
+    );
   });
 
   it("has no target without a Group or for a type it does not know", () => {

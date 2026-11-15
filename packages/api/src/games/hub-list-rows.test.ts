@@ -102,7 +102,7 @@ async function insertGame(
 }
 
 describe("My Games hub rows", () => {
-  it("includes Group Games plus private Games the User created or joined", async () => {
+  it("includes Group Games plus Games the User created or joined, public or not", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const viewer = await insertUser(db, "viewer-my-games@example.com");
@@ -161,9 +161,9 @@ describe("My Games hub rows", () => {
           privateCreated.id,
           privateJoined.id,
           privateWaitlisted.id,
+          publicCreated.id,
         ].sort(),
       );
-      expect(ids).not.toContain(publicCreated.id);
       expect(ids).not.toContain(strangerPrivate.id);
     } finally {
       await close();

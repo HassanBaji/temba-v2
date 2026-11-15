@@ -195,16 +195,17 @@ describe("settleActions", () => {
 
 describe("time axis", () => {
   it("formats the axis clock on a 12-hour dial", () => {
-    expect(formatAxisClock(14 * 60, "meridiem")).toBe("2:00 PM");
-    expect(formatAxisClock(0, "meridiem")).toBe("12:00 AM");
-    expect(formatAxisClock(12 * 60 + 30, "meridiem")).toBe("12:30 PM");
-    expect(formatAxisClock(25 * 60, "meridiem")).toBe("1:00 AM");
-    expect(formatAxisClock(15 * 60)).toBe("3:00");
+    expect(formatAxisClock(14 * 60, "meridiem", "en")).toBe("2:00 PM");
+    expect(formatAxisClock(0, "meridiem", "en")).toBe("12:00 AM");
+    expect(formatAxisClock(12 * 60 + 30, "meridiem", "en")).toBe("12:30 PM");
+    expect(formatAxisClock(25 * 60, "meridiem", "en")).toBe("1:00 AM");
+    expect(formatAxisClock(15 * 60, "bare", "en")).toBe("3:00");
+    expect(formatAxisClock(14 * 60, "meridiem", "ar")).toBe("2:00 م");
   });
 
   it("marks whole hours, with the meridiem on the first and at noon", () => {
     expect(
-      hourMarks({ startMinute: 10 * 60 + 30, endMinute: 14 * 60 }),
+      hourMarks({ startMinute: 10 * 60 + 30, endMinute: 14 * 60 }, "en"),
     ).toEqual([
       { minute: 660, label: "11:00 AM" },
       { minute: 720, label: "12:00 PM" },
@@ -222,14 +223,22 @@ describe("time axis", () => {
   it("labels a Closure by the edge it leaves open", () => {
     const grid = { startMinute: 14 * 60, endMinute: 24 * 60 };
     expect(
-      closureTimeLabel({ startMinute: 13 * 60, endMinute: 17 * 60 }, grid),
+      closureTimeLabel(
+        { startMinute: 13 * 60, endMinute: 17 * 60 },
+        grid,
+        "en",
+      ),
     ).toBe("Until 5:00 PM");
     expect(
-      closureTimeLabel({ startMinute: 20 * 60, endMinute: 26 * 60 }, grid),
+      closureTimeLabel(
+        { startMinute: 20 * 60, endMinute: 26 * 60 },
+        grid,
+        "en",
+      ),
     ).toBe("From 8:00 PM");
-    expect(closureTimeLabel({ startMinute: 0, endMinute: 24 * 60 }, grid)).toBe(
-      "All day",
-    );
+    expect(
+      closureTimeLabel({ startMinute: 0, endMinute: 24 * 60 }, grid, "en"),
+    ).toBe("All day");
   });
 });
 
@@ -252,24 +261,36 @@ describe("blocks", () => {
   it("writes the duration and payment on the second line", () => {
     const span = { startsAt: at(7, 18), endsAt: at(7, 19, 30) };
     expect(
-      blockDetailLine({ ...span, status: "confirmed", paymentStatus: "paid" }),
+      blockDetailLine(
+        { ...span, status: "confirmed", paymentStatus: "paid" },
+        "en",
+      ),
     ).toBe("90 min, paid");
     expect(
-      blockDetailLine({
-        ...span,
-        status: "confirmed",
-        paymentStatus: "pending",
-      }),
+      blockDetailLine(
+        {
+          ...span,
+          status: "confirmed",
+          paymentStatus: "pending",
+        },
+        "en",
+      ),
     ).toBe("90 min, unpaid");
     expect(
-      blockDetailLine({
-        ...span,
-        status: "pending_payment",
-        paymentStatus: "pending",
-      }),
+      blockDetailLine(
+        {
+          ...span,
+          status: "pending_payment",
+          paymentStatus: "pending",
+        },
+        "en",
+      ),
     ).toBe("90 min, awaiting payment");
     expect(
-      blockDetailLine({ ...span, status: "no_show", paymentStatus: "paid" }),
+      blockDetailLine(
+        { ...span, status: "no_show", paymentStatus: "paid" },
+        "en",
+      ),
     ).toBe("90 min, no-show");
   });
 });

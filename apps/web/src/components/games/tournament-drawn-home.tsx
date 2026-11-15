@@ -12,16 +12,26 @@ import {
   groupsThenKnockoutReviewValue,
 } from "@repo/domain/tournament-knockout";
 import { type KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
+import {
+  confirmedMatchCount,
+  type TournamentFinishedView,
+} from "@repo/domain/tournament-finished";
 import { poolLabel } from "@repo/domain/tournament-pool-draw";
 
 import { PageTitle } from "~/components/layout/page-title";
-import { BackButton } from "~/components/ui/nav-icon-button";
 import { Surface } from "~/components/ui/surface";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 
+import { type MatchStamping } from "./match-stamp";
+import {
+  FinishedScoresNote,
+  FinishedShareLink,
+  TournamentFinishedHeader,
+} from "./tournament-finished-parts";
+import { TournamentHeaderBar } from "./tournament-header-bar";
 import { TournamentKnockoutTree } from "./tournament-knockout-tree";
 import { TournamentPairDrawer } from "./tournament-pair-drawer";
 import {
@@ -76,23 +86,43 @@ function roundsLead(
   );
 }
 
+/** Organizers and a Verifier with a Match to stamp open on where they act. */
+function openingTab(data: GameDetail, showBracket: boolean): Tab {
+  if (data.isOrganizer && !data.cancelledAt) {
+    return "rounds";
+  }
+  const toStamp = data.matches.filter((match) => match.canStamp);
+  if (toStamp.some((match) => match.knockoutRound == null)) {
+    return "rounds";
+  }
+  return toStamp.length > 0 && showBracket ? "bracket" : "standings";
+}
+
 export function TournamentDrawnHome({
   data,
   standings,
+  finished,
   backHref,
   actions,
+  album,
   details,
   gameTeams,
   onCancelMatch,
+  stamping,
   preview,
 }: {
   data: GameDetail;
   standings: TournamentStandingsView;
+  /** The finished view once the day is over; null while it runs. */
+  finished: TournamentFinishedView | null;
   backHref: string;
   actions?: React.ReactNode;
+  /** Album and Notes, under the tabs and above Share. */
+  album?: React.ReactNode;
   details?: React.ReactNode;
   gameTeams?: GameDetail["gameTeams"];
   onCancelMatch?: (place: KnockoutMatchPlace) => void;
+  stamping?: MatchStamping;
   /** Fixture Rounds for the design preview, which has no API to call. */
   preview?: { rounds: TournamentRoundsData; actions: TournamentRoundsActions };
 }) {
@@ -102,8 +132,9 @@ export function TournamentDrawnHome({
   const loaded = useTournamentRounds(data.id, preview == null);
   const rounds = preview?.rounds ?? loaded.rounds.data;
   const roundsActions = preview?.actions ?? loaded.actions;
-  const [tab, setTab] = React.useState<Tab>(
-    data.isOrganizer && !data.cancelledAt ? "rounds" : "standings",
+  const showBracket = standings.groupsThenKnockout && data.knockout != null;
+  const [tab, setTab] = React.useState<Tab>(() =>
+    openingTab(data, showBracket),
   );
   const [scoreTarget, setScoreTarget] = React.useState<ScoreSheetTarget | null>(
     null,
@@ -131,7 +162,6 @@ export function TournamentDrawnHome({
   const choosingWay =
     rounds?.isOrganizer === true &&
     rounds.rounds.every((round) => round.matches.length === 0);
-  const showBracket = standings.groupsThenKnockout && data.knockout != null;
   const afterGroup = React.useMemo(() => {
     const { poolCount, qualifiersPerPool } = data;
     if (!standings.groupsThenKnockout || !poolCount || !qualifiersPerPool) {
@@ -173,40 +203,44 @@ export function TournamentDrawnHome({
 
   return (
     <div>
-      <Surface
-        as="header"
-        tone="ink"
-        className={cn("pb-[22px] pt-[22px] md:-mt-6", pageBleed)}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <BackButton variant="boxed" surface="ink" href={backHref} />
-          <div className="flex items-center gap-2">
-            {chip ? (
-              <span className="border-dimrule text-dim text-eyebrow rounded-sm border px-2 py-1 uppercase tracking-[0.1em]">
-                {chip}
-              </span>
-            ) : null}
+      {finished ? (
+        <TournamentFinishedHeader
+          view={finished}
+          gameId={data.id}
+          backHref={backHref}
+          chip={chip}
+          actions={actions}
+        />
+      ) : (
+        <Surface
+          as="header"
+          tone="ink"
+          className={cn("pb-[22px] pt-[22px] md:-mt-6", pageBleed)}
+        >
+          <TournamentHeaderBar surface="ink" backHref={backHref} chip={chip}>
             {actions}
+          </TournamentHeaderBar>
+          <div className="text-dim text-meta mt-7 flex items-baseline justify-between gap-3">
+            <p className="min-w-0 truncate">{eyebrow}</p>
+            {data.windowStart ? (
+              <p className="shrink-0">
+                {formatAbsoluteDay(data.windowStart, locale)}
+              </p>
+            ) : null}
           </div>
-        </div>
-        <div className="text-dim text-meta mt-7 flex items-baseline justify-between gap-3">
-          <p className="min-w-0 truncate">{eyebrow}</p>
-          {data.windowStart ? (
-            <p className="shrink-0">
-              {formatAbsoluteDay(data.windowStart, locale)}
+          <PageTitle variant="hero" className="mt-1.5">
+            {titles[tab]}
+          </PageTitle>
+          <p className="text-dim text-meta mt-2 leading-relaxed">
+            {leads[tab]}
+          </p>
+          {standings.championLine ? (
+            <p className="text-body mt-2 font-semibold">
+              {standings.championLine}
             </p>
           ) : null}
-        </div>
-        <PageTitle variant="hero" className="mt-1.5">
-          {titles[tab]}
-        </PageTitle>
-        <p className="text-dim text-meta mt-2 leading-relaxed">{leads[tab]}</p>
-        {standings.championLine ? (
-          <p className="text-body mt-2 font-semibold">
-            {standings.championLine}
-          </p>
-        ) : null}
-      </Surface>
+        </Surface>
+      )}
 
       <Tabs
         value={tab}
@@ -227,6 +261,7 @@ export function TournamentDrawnHome({
         </TabsList>
 
         {rounds &&
+        !finished &&
         (tab === "standings" || (tab === "rounds" && !choosingWay)) ? (
           <div className="pt-[18px]">
             <RoundProgressStrip
@@ -253,6 +288,13 @@ export function TournamentDrawnHome({
           {details ? <div className="pt-6">{details}</div> : null}
         </TabsContent>
         <TabsContent value="rounds" className="pt-[22px]">
+          {finished && rounds?.isOrganizer ? (
+            <div className="pb-[22px]">
+              <FinishedScoresNote
+                scoreCount={confirmedMatchCount(rounds.rounds)}
+              />
+            </div>
+          ) : null}
           {rounds ? (
             <TournamentRoundsTab
               gameId={data.id}
@@ -262,6 +304,7 @@ export function TournamentDrawnHome({
               actions={roundsActions}
               details={details}
               afterGroup={afterGroup}
+              stamping={stamping}
               onEnterScore={setScoreTarget}
               onSwap={setSwapTarget}
               onPair={setPairRound}
@@ -278,6 +321,7 @@ export function TournamentDrawnHome({
               teams={teams}
               viewerUserId={data.viewerUserId}
               onEnterScore={setScoreTarget}
+              finished={finished}
             />
           ) : null}
         </TabsContent>
@@ -291,11 +335,19 @@ export function TournamentDrawnHome({
             <TournamentKnockoutTree
               rounds={data.knockout}
               onCancelMatch={onCancelMatch}
+              stamping={stamping}
               gameTeams={gameTeams}
             />
           </TabsContent>
         ) : null}
       </Tabs>
+
+      {album ? <div className="pt-[26px] empty:hidden">{album}</div> : null}
+      {finished ? (
+        <div className="pt-6">
+          <FinishedShareLink gameId={data.id} label={finished.share.label} />
+        </div>
+      ) : null}
 
       {rounds ? (
         <>

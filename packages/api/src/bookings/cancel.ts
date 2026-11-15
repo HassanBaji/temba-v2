@@ -7,6 +7,8 @@ import {
   refundForCancellation,
   type RefundPolicy,
 } from "@repo/domain/booking-refund";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { refundableFils, refundablePayment } from "#src/bookings/payments";
 import { cancelGameRecord } from "#src/games/helpers/cancel-game-record";
@@ -69,8 +71,10 @@ export async function cancelBooking(
     actorUserId: string;
     reason?: string | null;
     now: Date;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const { booking, now } = args;
 
   const payment = await refundablePayment(database, booking.id);
@@ -105,7 +109,7 @@ export async function cancelBooking(
   if (!cancelled) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "This Booking was already changed",
+      message: messagesFor(locale).booking.errors.alreadyChanged,
     });
   }
 
@@ -114,7 +118,7 @@ export async function cancelBooking(
       where: eq(games.id, cancelled.gameId),
     });
     if (game && !game.cancelledAt) {
-      await cancelGameRecord(database, game);
+      await cancelGameRecord(database, game, locale);
     }
   }
 

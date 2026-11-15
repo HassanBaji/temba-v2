@@ -22,6 +22,7 @@ import {
   type SplitFormError,
 } from "~/lib/form-mutation-error";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { splitClerkAuthError } from "@repo/domain/clerk-auth-error";
 import {
   validateUserNames,
@@ -60,6 +61,7 @@ function Fields({
   );
   const [savingClerk, setSavingClerk] = React.useState(false);
   const setName = api.users.setName.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       await utils.users.invalidate();
       router.replace(backHref);

@@ -35,6 +35,10 @@ function item(
     challenge: null,
     game: null,
     levelSet: null,
+    tier: null,
+    ovrMove: null,
+    placeAward: null,
+    dispute: null,
     ...overrides,
   };
 }
@@ -126,6 +130,99 @@ describe("renderNotificationEmail", () => {
     expect(seated.html).not.toContain('<p style="margin:0 0 8px;"></p>');
   });
 
+  it("sends a move to the Waitlist to the Game page", () => {
+    const email = render(
+      item({ type: "game_moved_to_waitlist", audience: "player", game: GAME }),
+    );
+    expect(email.subject).toBe(
+      "Omar Aziz lowered the players on Thursday Padel. You're on the Waitlist and get your spot back when one opens",
+    );
+    expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
+  });
+
+  it("sends the Organizer to rate the game when ratings open", () => {
+    const email = render(
+      item({ type: "performance_ratings_open", actor: null, game: GAME }),
+    );
+    expect(email.subject).toBe("Rate the players of Thursday Padel");
+    expect(email.html).toContain(
+      `href="${ORIGIN}/dashboard/games/${GAME.id}/rate"`,
+    );
+  });
+
+  it("sends an admin to the payments list when a player says they paid", () => {
+    const email = render(
+      item({ type: "game_payment_claimed", audience: "admin", game: GAME }),
+    );
+    expect(email.html).toContain(
+      `href="${ORIGIN}/dashboard/games/${GAME.id}/payments"`,
+    );
+  });
+
+  it("sends a player to the Game once ratings close", () => {
+    const email = render(
+      item({
+        type: "performance_ratings_closed",
+        audience: "player",
+        actor: null,
+        game: GAME,
+        tier: {
+          bandAfter: "kanaad",
+          pointsBefore: 1201,
+          pointsAfter: 1219,
+          delta: 18,
+          ratingHundredths: 740,
+          reason: null,
+          note: null,
+        },
+      }),
+    );
+    expect(email.subject).toBe("Ratings are in for Thursday Padel");
+    expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
+  });
+
+  it("sends a player to the Game once ratings close on a Game with no Group", () => {
+    const email = render(
+      item({
+        type: "performance_ratings_closed",
+        audience: "player",
+        actor: null,
+        game: GAME,
+        ovrMove: { before: 74.2, after: 75, ratingHundredths: 780 },
+      }),
+    );
+    expect(email.subject).toBe("Ratings are in for Thursday Padel");
+    expect(email.text).toContain("You were rated 7.8. OVR +0.8, now 75.");
+    expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
+  });
+
+  it("tells a player what a King of the court place moved, and opens the Game", () => {
+    const email = render(
+      item({
+        type: "king_place_awarded",
+        audience: "player",
+        actor: null,
+        game: GAME,
+        placeAward: { finalPlace: 1, levelBefore: "3.40", levelAfter: "3.55" },
+      }),
+    );
+    expect(email.subject).toBe(
+      "Finishing 1st in Thursday Padel moved your Level",
+    );
+    expect(email.text).toContain("Level 3.40 to 3.55.");
+    expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
+  });
+
+  it("sends changed teams to the Game page", () => {
+    const email = render(
+      item({ type: "game_team_changed", audience: "player", game: GAME }),
+    );
+    expect(email.subject).toBe(
+      "Omar Aziz changed the teams on Thursday Padel. See where you play now",
+    );
+    expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
+  });
+
   it("sends a changed side to the Game page", () => {
     const email = render(
       item({ type: "game_side_changed", audience: "player", game: GAME }),
@@ -147,6 +244,24 @@ describe("renderNotificationEmail", () => {
       `href="${ORIGIN}/dashboard/groups/${GROUP.id}"`,
     );
     expect(email.text.split("\n")[1]).not.toBe("");
+  });
+
+  it("emails a set football Level as OVR, with no band", () => {
+    const email = render(
+      item({
+        type: "level_set",
+        audience: "player",
+        group: GROUP,
+        levelSet: {
+          level: "72",
+          levelBand: "C1",
+          sport: "football",
+          reason: "plays_above_results",
+        },
+      }),
+    );
+    expect(email.subject).toBe("Omar Aziz set your Level to OVR 72");
+    expect(email.text).not.toContain("C+");
   });
 
   it("sends the linked history to the Games hub History tab", () => {
@@ -238,6 +353,43 @@ describe("renderNotificationEmail", () => {
         }),
       ).toEqual({ kind: "game", path: `/dashboard/games/${GAME.id}` });
     }
+  });
+
+  it("sends a raised Match dispute to the Operator Disputes page and a decided one to the Game", () => {
+    const raised = render(
+      item({
+        type: "match_dispute_raised",
+        game: GAME,
+        dispute: { status: "open", note: "It finished 4–3" },
+      }),
+    );
+    expect(raised.html).toContain(
+      `href="${ORIGIN}/dashboard/operator/disputes"`,
+    );
+    expect(raised.text).toContain("It finished 4–3");
+    expect(
+      notificationEmailDestination({
+        type: "match_dispute_decided",
+        group: null,
+        game: GAME,
+      }),
+    ).toEqual({ kind: "game", path: `/dashboard/games/${GAME.id}` });
+  });
+
+  it("sends a confirmed Level to the Ratings page on its sport", () => {
+    const email = render(
+      item({
+        type: "level_confirmed",
+        audience: "player",
+        actor: null,
+        game: { ...GAME, sport: "football" },
+      }),
+    );
+    expect(email.subject).toBe("Your Football Level is confirmed");
+    expect(email.html).toContain(
+      `href="${ORIGIN}/dashboard/you/ratings?sport=football"`,
+    );
+    expect(email.html).toContain("Open your ratings");
   });
 
   it("renders Arabic right-to-left from the Arabic catalog", () => {

@@ -2,7 +2,9 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { groupMembers } from "@repo/db";
+import { groupMembers, groupTierPoints } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -13,15 +15,18 @@ import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db;
 
-export const ONLY_UNCLAIMED_REMOVABLE_MESSAGE =
-  "Only players not on Temba yet can be removed";
-
 export async function removeUnclaimedPlayer(
   database: DbClient,
-  args: { groupId: string; approverUserId: string; userId: string },
+  args: {
+    groupId: string;
+    approverUserId: string;
+    userId: string;
+    locale?: Locale;
+  },
 ) {
-  const group = await requireGroup(database, args.groupId);
-  await assertGroupApprover(database, group, args.approverUserId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
+  await assertGroupApprover(database, group, args.approverUserId, locale);
 
   const membership = await database.query.groupMembers.findFirst({
     where: and(
@@ -34,17 +39,27 @@ export async function removeUnclaimedPlayer(
   if (!membership) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "This player is not in the Group",
+      message: messagesFor(locale).group.errors.playerNotInGroup,
     });
   }
   if (!isUnclaimed(membership.user)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: ONLY_UNCLAIMED_REMOVABLE_MESSAGE,
+      message: messagesFor(locale).group.errors.onlyUnclaimedRemovable,
     });
   }
 
-  await database.delete(groupMembers).where(eq(groupMembers.id, membership.id));
+  await database.transaction(async (tx) => {
+    await tx.delete(groupMembers).where(eq(groupMembers.id, membership.id));
+    await tx
+      .delete(groupTierPoints)
+      .where(
+        and(
+          eq(groupTierPoints.groupId, group.id),
+          eq(groupTierPoints.userId, args.userId),
+        ),
+      );
+  });
 
   return { ok: true as const, groupId: group.id, userId: args.userId };
 }
@@ -62,5 +77,6 @@ export const removeUnclaimedPlayerProcedure = protectedProcedure
       groupId: input.groupId,
       approverUserId: appUser.id,
       userId: input.userId,
+      locale: ctx.locale,
     });
   });

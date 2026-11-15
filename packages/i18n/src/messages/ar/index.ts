@@ -14,12 +14,14 @@ import { profile } from "./profile";
 import { onboarding } from "./onboarding";
 import { booking } from "./booking";
 import { notification } from "./notification";
+import { requests } from "./requests";
 import { email } from "./email";
 import { marks } from "./marks";
 import { auth } from "./auth";
 import { webGame } from "./web-game";
 import { webTournament } from "./web-tournament";
 import { tournamentRounds } from "./tournament-rounds";
+import { tournamentKing } from "./tournament-king";
 import { webDashboard } from "./web-dashboard";
 import { webGroup } from "./web-group";
 import { webUi } from "./web-ui";
@@ -32,6 +34,7 @@ import { mobileTournament } from "./mobile-tournament";
 import { mobileHome } from "./mobile-home";
 import { mobilePlayer } from "./mobile-player";
 import { you } from "./you";
+import { rating } from "./rating";
 import { mobileYou } from "./mobile-you";
 import { mobileInvite } from "./mobile-invite";
 import { mobileTeam } from "./mobile-team";
@@ -40,6 +43,16 @@ import { mobileChallenge } from "./mobile-challenge";
 import { webChallenge } from "./web-challenge";
 import { webYou } from "./web-you";
 import { webMarks } from "./web-marks";
+import { consoleShell } from "./console-shell";
+import { consoleBookings } from "./console-bookings";
+import { consoleSchedule } from "./console-schedule";
+import { consoleCourts } from "./console-courts";
+import { consoleHours } from "./console-hours";
+import { consoleVenue } from "./console-venue";
+import { venue } from "./venue";
+import { gameAlbum } from "./game-album";
+import { editTeams } from "./edit-teams";
+import { gamePayments } from "./game-payments";
 
 import type { en } from "../en/index";
 
@@ -62,12 +75,14 @@ export const ar: Messages = {
   onboarding,
   booking,
   notification,
+  requests,
   email,
   marks,
   auth,
   webGame,
   webTournament,
   tournamentRounds,
+  tournamentKing,
   webDashboard,
   webGroup,
   webUi,
@@ -80,6 +95,7 @@ export const ar: Messages = {
   mobileHome,
   mobilePlayer,
   you,
+  rating,
   mobileYou,
   webYou,
   webMarks,
@@ -88,4 +104,14 @@ export const ar: Messages = {
   mobileMarks,
   mobileChallenge,
   webChallenge,
+  consoleShell,
+  consoleBookings,
+  consoleSchedule,
+  consoleCourts,
+  consoleHours,
+  consoleVenue,
+  venue,
+  gameAlbum,
+  editTeams,
+  gamePayments,
 };

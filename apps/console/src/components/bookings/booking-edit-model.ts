@@ -9,7 +9,8 @@ import {
   minutesFromDayStart,
 } from "~/components/schedule/booking-model";
 import { draftStartsAt } from "~/components/schedule/new-booking-model";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 export type EditableBooking = {
   courtId: string;
@@ -90,6 +91,7 @@ export function editToInput(
   booking: EditableBooking,
   draft: EditDraft,
   quotedFils: number | null,
+  locale: Locale,
 ): EditResult {
   const moved = isMoved(booking, draft);
   const input: UpdateInput = { bookingId };
@@ -105,12 +107,12 @@ export function editToInput(
       input.priceFils = booking.priceFils;
     }
   } else if (draft.priceInput !== null) {
-    const parsed = parseOptionalPricePerPlayerFils(
-      draft.priceInput,
-      CONSOLE_LOCALE,
-    );
+    const parsed = parseOptionalPricePerPlayerFils(draft.priceInput, locale);
     if (!parsed.ok || parsed.fils === null) {
-      return { ok: false, message: "Enter the price in BD, like 18.000" };
+      return {
+        ok: false,
+        message: messagesFor(locale).consoleBookings.edit.badPrice,
+      };
     }
     const unchanged = moved
       ? parsed.fils === quotedFils
@@ -119,7 +121,10 @@ export function editToInput(
       input.priceFils = parsed.fils;
     }
   } else if (moved && quotedFils === null) {
-    return { ok: false, message: "No rate covers this time. Type a price" };
+    return {
+      ok: false,
+      message: messagesFor(locale).consoleBookings.edit.noRate,
+    };
   }
 
   const notes = draft.notes.trim();

@@ -6,6 +6,7 @@ import { BookingsList } from "~/components/bookings/bookings-list";
 import { ConsolePage } from "~/components/console/console-page";
 import { useManagedVenue } from "~/components/console/managed-venue-context";
 import { PageHeader } from "~/components/console/page-header";
+import { useMessages } from "~/components/locale-provider";
 
 export default function BookingsPage({
   params,
@@ -14,13 +15,11 @@ export default function BookingsPage({
 }) {
   const { venueId } = use(params);
   const venue = useManagedVenue();
+  const m = useMessages().consoleBookings;
 
   return (
     <ConsolePage>
-      <PageHeader
-        title="Bookings"
-        description="Everything on the books, app and manual."
-      />
+      <PageHeader title={m.pageTitle} description={m.pageDescription} />
       <BookingsList venueId={venueId} courts={venue.courts} />
     </ConsolePage>
   );

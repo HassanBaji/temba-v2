@@ -1,6 +1,6 @@
 # Dark mode
 
-Source: the "Temba Sports Community App, Dark Mode" design board (rendered in `design.png` beside this file). ADR-0055 records the decision.
+Source: the "Temba Sports Community App, Dark Mode" design board (rendered in `design.png` beside this file). ADR-0064 records the decision.
 
 ## The rule
 

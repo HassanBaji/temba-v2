@@ -3,6 +3,8 @@ import { and, eq, gt, lt, ne, sql } from "drizzle-orm";
 
 import { bookings } from "@repo/db";
 import type { DbClient, DbTx } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { occupyingBookings } from "#src/bookings/occupying";
 
@@ -22,8 +24,10 @@ export async function requireFreeCourt(
     endsAt: Date;
     now: Date;
     excludeBookingId?: string;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   await database.execute(
     sql`select pg_advisory_xact_lock(hashtext(${args.courtId}::text))`,
   );
@@ -46,21 +50,23 @@ export async function requireFreeCourt(
   if (clash) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: "That slot was just taken",
+      message: messagesFor(locale).booking.slotRefusal.taken,
     });
   }
 }
 
 export async function reserveBooking(
   database: DbOrTx,
-  args: { values: typeof bookings.$inferInsert; now: Date },
+  args: { values: typeof bookings.$inferInsert; now: Date; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const { values, now } = args;
   await requireFreeCourt(database, {
     courtId: values.courtId,
     startsAt: values.startsAt,
     endsAt: values.endsAt,
     now,
+    locale,
   });
 
   const [inserted] = await database.insert(bookings).values(values).returning();

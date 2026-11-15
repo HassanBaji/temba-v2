@@ -14,6 +14,7 @@ import {
 import { bookingPath } from "~/lib/console-paths";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
+import { useMessages } from "~/components/locale-provider";
 
 import {
   BookingActionDialogs,
@@ -39,6 +40,7 @@ export function BookingRowMenu({
   venueId: string;
   booking: VenueBooking;
 }) {
+  const m = useMessages().consoleBookings;
   const [open, setOpen] = React.useState(false);
   const [dialog, setDialog] = React.useState<Dialog>(null);
   const triggerRef = React.useRef<HTMLButtonElement | null>(null);
@@ -72,7 +74,7 @@ export function BookingRowMenu({
           <button
             ref={triggerRef}
             type="button"
-            aria-label="Actions for this Booking"
+            aria-label={m.rowMenu.label}
             className={cn(
               "rounded-block text-muted-foreground hover:bg-wash focus-visible:ring-ring/50 flex size-8 items-center justify-center outline-none transition-colors focus-visible:ring-[3px]",
               open && "bg-ink text-paper hover:bg-ink",
@@ -83,39 +85,41 @@ export function BookingRowMenu({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="z-[60] min-w-48">
           <ActionMenuItem asChild>
-            <Link href={bookingPath(venueId, booking.id)}>Open booking</Link>
+            <Link href={bookingPath(venueId, booking.id)}>
+              {m.rowMenu.open}
+            </Link>
           </ActionMenuItem>
           {mayAct && view.isLoading ? (
-            <ActionMenuItem disabled>Loading…</ActionMenuItem>
+            <ActionMenuItem disabled>{m.rowMenu.loading}</ActionMenuItem>
           ) : null}
           {actions.pay ? (
             <ActionMenuItem onSelect={() => setDialog("paid")}>
-              Mark as paid
+              {m.actions.markPaid}
             </ActionMenuItem>
           ) : null}
           {actions.waive ? (
             <ActionMenuItem onSelect={() => setDialog("waive")}>
-              Waive
+              {m.actions.waive}
             </ActionMenuItem>
           ) : null}
           {refundable > 0 ? (
             <ActionMenuItem onSelect={() => setDialog("refund")}>
-              Record refund
+              {m.actions.recordRefund}
             </ActionMenuItem>
           ) : null}
           {allowed.edit ? (
             <ActionMenuItem onSelect={() => setDialog("edit")}>
-              Edit
+              {m.actions.edit}
             </ActionMenuItem>
           ) : null}
           {allowed.noShow ? (
             <ActionMenuItem onSelect={() => setDialog("noShow")}>
-              Mark no-show
+              {m.actions.noShow}
             </ActionMenuItem>
           ) : null}
           {allowed.cancel ? (
             <ActionMenuItem onSelect={() => setDialog("cancel")}>
-              Cancel booking
+              {m.actions.cancel}
             </ActionMenuItem>
           ) : null}
         </DropdownMenuContent>
@@ -131,9 +135,9 @@ export function BookingRowMenu({
       <ConfirmDialog
         open={dialog === "waive"}
         onOpenChange={(next) => setDialog(next ? "waive" : null)}
-        title="Waive this payment?"
-        description="The Booking stays, nothing is owed on it."
-        confirmLabel="Waive"
+        title={m.rowMenu.waiveTitle}
+        description={m.rowMenu.waiveDescription}
+        confirmLabel={m.actions.waive}
         variant="default"
         pending={settle.isPending}
         restoreFocusRef={triggerRef}

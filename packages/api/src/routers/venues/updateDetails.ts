@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { venues } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type db } from "#src/db";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -28,9 +29,11 @@ export async function updateVenueDetails(
     publicMetadata: Record<string, unknown> | undefined;
     phone?: string | null;
     website?: string | null;
+    locale?: Locale;
   },
 ) {
-  await requireVenue(database, args.venueId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  await requireVenue(database, args.venueId, locale);
   await requireVenueManager(database, args);
 
   const [updated] = await database
@@ -77,5 +80,6 @@ export const updateDetails = protectedProcedure
       publicMetadata: await ctx.getPublicMetadata(),
       phone: input.phone,
       website: input.website,
+      locale: ctx.locale,
     });
   });

@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { USER_PREFERRED_POSITION_VALUES, user } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -24,8 +26,13 @@ export const preferredPositionSchema = z.enum(USER_PREFERRED_POSITION_VALUES);
  */
 export async function writePreferredPosition(
   database: DbClient,
-  args: { userId: string; preferredPosition: PreferredPosition },
+  args: {
+    userId: string;
+    preferredPosition: PreferredPosition;
+    locale?: Locale;
+  },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const [updated] = await database
     .update(user)
     .set({
@@ -38,7 +45,7 @@ export async function writePreferredPosition(
   if (!updated) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "User not found",
+      message: messagesFor(locale).profile.errors.userNotFound,
     });
   }
 
@@ -52,5 +59,6 @@ export const setPreferredPosition = protectedProcedure
     return writePreferredPosition(ctx.db, {
       userId: appUser.id,
       preferredPosition: input.preferredPosition,
+      locale: ctx.locale,
     });
   });

@@ -25,11 +25,6 @@ import {
   type PlayedPlace,
 } from "./played-game";
 
-/** The web page a shared result opens on. */
-export function gameResultPath(gameId: string) {
-  return `/dashboard/games/${gameId}`;
-}
-
 export type ResultCardPerson = {
   userId: string;
   init: string;

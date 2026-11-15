@@ -5,6 +5,7 @@ import { describe, it } from "vitest";
 import {
   scoreCanConfirm,
   scoreCanEnter,
+  scoreConfirmWindowLine,
   scoreConfirmationRows,
   scoreFooterNote,
   scoreGamesWonForSide,
@@ -14,8 +15,11 @@ import {
   scoreSetBoxAccessibleLabel,
   scoreSetBoxState,
   scoreShowsConfirmations,
+  scoreShownSets,
   scoreTeamNamesLabel,
 } from "./friendly-game-score";
+import { scoreGamesRangeNote } from "./friendly-game-court";
+import { friendlySetGamesInRange } from "./friendly-game-results";
 
 const sides = [
   {
@@ -142,6 +146,13 @@ describe("score helpers", () => {
     );
   });
 
+  it("names the Verifier who stamped the score", () => {
+    assert.equal(
+      scoreFooterNote("final", "Mon 5 Oct", "en", false, "Sara"),
+      "Stamped by Sara. Nothing else needed.",
+    );
+  });
+
   it("writes the footer note in Arabic", () => {
     assert.equal(
       scoreFooterNote("final", null, "ar", true),
@@ -235,6 +246,70 @@ describe("confirmations", () => {
       false,
     );
   });
+
+  it("lets a Public Game viewer confirm only while their side has not", () => {
+    const input = {
+      confirmation: { ...confirmation, viewerHasConfirmed: false },
+      hasResult: true,
+      phase: "needs_results" as const,
+      viewerUserId: "u2",
+    };
+    const closesAt = new Date("2026-11-13T18:00:00.000Z");
+    assert.equal(
+      scoreCanConfirm({
+        ...input,
+        confirmWindow: { closesAt, viewerMayConfirm: true },
+      }),
+      true,
+    );
+    assert.equal(
+      scoreCanConfirm({
+        ...input,
+        confirmWindow: { closesAt, viewerMayConfirm: false },
+      }),
+      false,
+    );
+  });
+});
+
+describe("scoreConfirmWindowLine", () => {
+  const closesAt = new Date("2026-11-13T18:00:00.000Z");
+  const hoursBefore = (hours: number) =>
+    new Date(closesAt.getTime() - hours * 60 * 60 * 1000);
+
+  it("says nothing without a window", () => {
+    assert.equal(scoreConfirmWindowLine(null, hoursBefore(1), "en"), null);
+  });
+
+  it("tells the waited-on side and everyone else the time left", () => {
+    assert.equal(
+      scoreConfirmWindowLine(
+        { closesAt, viewerMayConfirm: true },
+        hoursBefore(23.5),
+        "en",
+      ),
+      "23 hours left to confirm. If your side doesn’t, the score stands and doesn’t count for Temba Level.",
+    );
+    assert.equal(
+      scoreConfirmWindowLine(
+        { closesAt, viewerMayConfirm: false },
+        hoursBefore(0.5),
+        "en",
+      ),
+      "30 minutes left for the other side to confirm. If they don’t, the score stands and doesn’t count for Temba Level.",
+    );
+  });
+
+  it("says the score stood once the window has run out", () => {
+    assert.equal(
+      scoreConfirmWindowLine(
+        { closesAt, viewerMayConfirm: true },
+        hoursBefore(0),
+        "en",
+      ),
+      "Not confirmed in time. It did not count.",
+    );
+  });
 });
 
 describe("Organizer confirmation for a side with no account holder", () => {
@@ -302,5 +377,33 @@ describe("Organizer confirmation for a side with no account holder", () => {
       }),
       false,
     );
+  });
+});
+
+describe("scoreShownSets", () => {
+  const sets = [
+    { slot1GamesWon: 6, slot2GamesWon: 6 },
+    { slot1GamesWon: 7, slot2GamesWon: 0 },
+    { slot1GamesWon: null, slot2GamesWon: null },
+  ];
+
+  it("shows every Set while the score is entered", () => {
+    assert.equal(scoreShownSets("needs_results", sets).length, 3);
+  });
+
+  it("leaves a never-played Set shell out of a final score", () => {
+    assert.deepEqual(scoreShownSets("final", sets), sets.slice(0, 2));
+  });
+});
+
+describe("games won range", () => {
+  it("accepts 0 to 7 and names the range when an entry is out of it", () => {
+    assert.equal(friendlySetGamesInRange(7), true);
+    assert.equal(friendlySetGamesInRange(9), false);
+    assert.equal(
+      scoreGamesRangeNote("en"),
+      "Games won in a Set go from 0 to 7.",
+    );
+    assert.ok(scoreGamesRangeNote("ar").length > 0);
   });
 });

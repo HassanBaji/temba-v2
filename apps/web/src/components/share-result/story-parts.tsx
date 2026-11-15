@@ -111,11 +111,7 @@ export function BibSquare({
 }) {
   const { fill } = bibColors[bib];
   const edge =
-    fill === colors.ink
-      ? colors.muted
-      : fill === colors.paper
-        ? colors.rule
-        : fill;
+    bib === "black" ? colors.muted : bib === "white" ? colors.rule : fill;
   return (
     <span
       aria-hidden="true"
@@ -151,7 +147,7 @@ export function InitialsSquare({
     variant === "solid"
       ? colors.ink
       : variant === "outline-muted"
-        ? colors.dim
+        ? colors.onControlMuted
         : colors.paper;
   return (
     <span

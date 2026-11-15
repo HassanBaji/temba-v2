@@ -11,6 +11,7 @@ import {
   venues,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import { groupJoinMode } from "#src/groups/helpers/group-join-mode";
@@ -512,6 +513,76 @@ describe("acceptLinkRequest", () => {
       expect(linked.map((row) => row.id).sort()).toEqual(
         [group.id, football.id].sort(),
       );
+    } finally {
+      await close();
+    }
+  });
+
+  it("accepts only one of two Venues' requests for the same Group, even at once", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { venue, manager, creator, group } = await setup(db);
+      const other = await insertVenue(db, { name: "Other Club" });
+      await insertManager(db, { venueId: other.id, userId: manager.id });
+      const requests = [
+        await send(db, {
+          venueId: venue.id,
+          groupId: group.id,
+          managerId: manager.id,
+        }),
+        await send(db, {
+          venueId: other.id,
+          groupId: group.id,
+          managerId: manager.id,
+        }),
+      ];
+
+      const results = await Promise.allSettled(
+        requests.map((request) =>
+          acceptLinkRequest(db, { requestId: request.id, userId: creator.id }),
+        ),
+      );
+      const accepted = results.flatMap((result) =>
+        result.status === "fulfilled" ? [result.value] : [],
+      );
+      expect(accepted).toHaveLength(1);
+      expect((await readGroup(db, group.id)).venueId).toBe(
+        accepted[0]?.venueId,
+      );
+    } finally {
+      await close();
+    }
+  });
+
+  it("is refused once the Group is deleted or made Private", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { venue, manager, creator, group } = await setup(db);
+      const request = await send(db, {
+        venueId: venue.id,
+        groupId: group.id,
+        managerId: manager.id,
+      });
+
+      await db
+        .update(groups)
+        .set({ type: "private" })
+        .where(eq(groups.id, group.id));
+      await expect(
+        acceptLinkRequest(db, { requestId: request.id, userId: creator.id }),
+      ).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+        message: messagesFor("en").group.linkRequest.publicOnly,
+      });
+
+      await db
+        .update(groups)
+        .set({ type: "public", deletedAt: new Date() })
+        .where(eq(groups.id, group.id));
+      await expect(
+        acceptLinkRequest(db, { requestId: request.id, userId: creator.id }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      expect((await readGroup(db, group.id)).venueId).toBeNull();
     } finally {
       await close();
     }

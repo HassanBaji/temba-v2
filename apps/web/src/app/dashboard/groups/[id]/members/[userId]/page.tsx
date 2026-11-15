@@ -78,7 +78,7 @@ export default function SetLevelPage({
       <SetLevelPageFrame groupId={id}>
         <ErrorState
           title={m.webDashboard.group.errorTitle}
-          message={group.error?.message}
+          error={group.error}
           onRetry={() => {
             void group.refetch();
           }}

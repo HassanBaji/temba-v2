@@ -1,53 +1,64 @@
 import type { RefundPolicy } from "@repo/domain/booking-refund";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor, type Messages } from "@repo/i18n/messages";
 
 export type PolicyLine = { label: string; value: string };
 
-function refundLabel(percent: number) {
+type PolicyMessages = Messages["consoleCourts"]["policy"];
+
+function refundLabel(percent: number, m: PolicyMessages) {
   if (percent >= 100) {
-    return "Full refund";
+    return m.fullRefund;
   }
   if (percent <= 0) {
-    return "No refund";
+    return m.noRefund;
   }
-  return `${percent}% refund`;
+  return m.percentRefund(percent);
 }
 
-export function describeMinutesShort(minutes: number) {
+export function describeMinutesShort(minutes: number, locale: Locale) {
+  const m = messagesFor(locale).consoleCourts.policy;
   if (minutes % 60 === 0) {
-    return `${minutes / 60}h`;
+    return m.hoursShort(minutes / 60);
   }
-  return `${minutes} min`;
+  return m.minutesShort(minutes);
 }
 
 /** The design's tier lines: `More than 24h before`, `6 to 24h before`, `Under 6h`. */
-export function cancellationPolicyLines(policy: RefundPolicy): PolicyLine[] {
+export function cancellationPolicyLines(
+  policy: RefundPolicy,
+  locale: Locale,
+): PolicyLine[] {
+  const m = messagesFor(locale).consoleCourts.policy;
   const lines: PolicyLine[] = [];
   const tiers = policy.tiers;
   if (tiers.length === 0) {
     lines.push({
-      label: "Any time",
-      value: refundLabel(policy.lateRefundPercent),
+      label: m.anyTime,
+      value: refundLabel(policy.lateRefundPercent, m),
     });
   } else {
     tiers.forEach((tier, index) => {
       const previous = tiers[index - 1];
       lines.push({
         label: previous
-          ? `${tier.hoursBefore} to ${previous.hoursBefore}h before`
-          : `More than ${tier.hoursBefore}h before`,
-        value: refundLabel(tier.refundPercent),
+          ? m.betweenHours(tier.hoursBefore, previous.hoursBefore)
+          : m.moreThanHours(tier.hoursBefore),
+        value: refundLabel(tier.refundPercent, m),
       });
     });
     const last = tiers[tiers.length - 1]!;
     lines.push({
-      label: `Under ${last.hoursBefore}h`,
-      value: refundLabel(policy.lateRefundPercent),
+      label: m.underHours(last.hoursBefore),
+      value: refundLabel(policy.lateRefundPercent, m),
     });
   }
   if (policy.customerCancelUntilMinutes > 0) {
     lines.push({
-      label: "Cancel in the app",
-      value: `Until ${describeMinutesShort(policy.customerCancelUntilMinutes)} before`,
+      label: m.cancelInApp,
+      value: m.untilBefore(
+        describeMinutesShort(policy.customerCancelUntilMinutes, locale),
+      ),
     });
   }
   return lines;

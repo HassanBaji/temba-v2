@@ -50,6 +50,7 @@ export async function nameChallengeSquad(
     now?: Date;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const errors = messagesFor(args.locale ?? DEFAULT_LOCALE).challenge.errors;
   const now = args.now ?? new Date();
   if (new Set(args.userIds).size !== args.userIds.length) {
@@ -63,7 +64,10 @@ export async function nameChallengeSquad(
       .where(eq(games.id, args.gameId))
       .for("update");
     if (!game) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: messagesFor(locale).game.errors.notFound,
+      });
     }
     if (!game.challengeId) {
       refuse(errors.squad.notFootball);

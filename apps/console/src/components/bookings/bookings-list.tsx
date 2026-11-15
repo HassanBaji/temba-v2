@@ -15,14 +15,14 @@ import { api } from "~/trpc/react";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 import { productDayKey } from "@repo/domain/product-timezone";
 import { cn } from "~/lib/utils";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 import {
   countLabel,
   durationLabel,
   inScope,
   matchesSearch,
-  SCOPE_OPTIONS,
+  scopeOptions,
   scopeQuery,
   sourceLabel,
   whenLabel,
@@ -34,13 +34,14 @@ import { holderName, type VenueBooking } from "./booking-types";
 import { FilterSelect } from "./filter-select";
 import { PaymentBadge } from "./payment-badge";
 
-const SOURCE_OPTIONS = [
-  { value: "", label: "Any source" },
-  { value: "app", label: "App" },
-  { value: "venue", label: "Manual" },
+const COLUMNS = [
+  "when",
+  "customer",
+  "court",
+  "game",
+  "source",
+  "payment",
 ] as const;
-
-const COLUMNS = ["When", "Customer", "Court", "Game", "Source", "Payment"];
 
 const webOrigin = process.env.NEXT_PUBLIC_WEB_ORIGIN;
 
@@ -51,6 +52,8 @@ export function BookingsList({
   venueId: string;
   courts: readonly { id: string; name: string }[];
 }) {
+  const m = useMessages().consoleBookings;
+  const locale = useLocale();
   const router = useRouter();
   const now = React.useMemo(() => new Date(), []);
   const today = React.useMemo(() => productDayKey(now), [now]);
@@ -82,7 +85,7 @@ export function BookingsList({
   }, [list.data, scope, now, search]);
 
   const courtOptions = [
-    { value: "", label: "All courts" },
+    { value: "", label: m.list.allCourts },
     ...courts.map((court) => ({ value: court.id, label: court.name })),
   ];
 
@@ -93,34 +96,38 @@ export function BookingsList({
           <Search aria-hidden="true" className="size-[15px] shrink-0" />
           <input
             type="search"
-            aria-label="Search Bookings"
-            placeholder="Name, phone or booking ref"
+            aria-label={m.list.searchLabel}
+            placeholder={m.list.searchPlaceholder}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             className="text-foreground placeholder:text-muted-foreground h-full w-full min-w-0 bg-transparent text-[13px] outline-none"
           />
         </label>
         <SegmentedControl
-          label="Which Bookings"
+          label={m.scope.label}
           value={scope}
-          options={SCOPE_OPTIONS}
+          options={scopeOptions(locale)}
           onChange={setScope}
         />
         <FilterSelect
-          label="Court"
+          label={m.list.courtFilter}
           value={courtId}
           onChange={setCourtId}
           options={courtOptions}
         />
         <FilterSelect
-          label="Source"
+          label={m.source.label}
           value={source}
           onChange={setSource}
-          options={SOURCE_OPTIONS}
+          options={[
+            { value: "", label: m.source.any },
+            { value: "app", label: m.source.app },
+            { value: "venue", label: m.source.venue },
+          ]}
         />
         {list.data ? (
-          <span className="text-muted-foreground ml-auto text-[13px]">
-            {countLabel(scope, rows.length)}
+          <span className="text-muted-foreground ms-auto text-[13px]">
+            {countLabel(scope, rows.length, locale)}
           </span>
         ) : null}
       </div>
@@ -135,7 +142,7 @@ export function BookingsList({
         </TableFrame>
       ) : list.error ? (
         <ErrorState
-          title="Bookings could not be loaded"
+          title={m.list.loadError}
           message={list.error.message}
           onRetry={() => {
             void list.refetch();
@@ -144,13 +151,9 @@ export function BookingsList({
       ) : rows.length === 0 ? (
         <EmptyState
           icon={CalendarDays}
-          title={
-            search.trim() ? "No Bookings match" : "Nothing on the books here"
-          }
+          title={search.trim() ? m.list.noMatchTitle : m.list.emptyTitle}
           description={
-            search.trim()
-              ? "Try another name, phone or booking reference."
-              : "Change the court, source or period to see more."
+            search.trim() ? m.list.noMatchDescription : m.list.emptyDescription
           }
         />
       ) : (
@@ -173,6 +176,7 @@ export function BookingsList({
 }
 
 function TableFrame({ children }: { children: React.ReactNode }) {
+  const m = useMessages().consoleBookings;
   return (
     <div className="border-border rounded-card overflow-hidden border">
       <table className="w-full table-fixed border-collapse text-[13px]">
@@ -192,19 +196,19 @@ function TableFrame({ children }: { children: React.ReactNode }) {
               <th
                 key={column}
                 scope="col"
-                className="eyebrow-mono px-[18px] py-3 text-left font-normal"
+                className="eyebrow-mono px-[18px] py-3 text-start font-normal"
               >
-                {column}
+                {m.list.columns[column]}
               </th>
             ))}
             <th
               scope="col"
-              className="eyebrow-mono px-[18px] py-3 text-right font-normal"
+              className="eyebrow-mono px-[18px] py-3 text-end font-normal"
             >
-              Amount
+              {m.list.columns.amount}
             </th>
             <th scope="col" className="px-[18px] py-3">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{m.list.columns.actions}</span>
             </th>
           </tr>
         </thead>
@@ -227,6 +231,8 @@ function BookingRow({
   now: Date;
   onOpen: () => void;
 }) {
+  const m = useMessages().consoleBookings;
+  const locale = useLocale();
   const holder = booking.holder;
   const pending = booking.status === "pending_payment";
   return (
@@ -239,24 +245,24 @@ function BookingRow({
           : null,
       )}
     >
-      <td className={cn(cellClass, "pl-[18px]")}>
+      <td className={cn(cellClass, "ps-[18px]")}>
         <Link
           href={bookingPath(venueId, booking.id)}
           onClick={(event) => event.stopPropagation()}
           className="focus-visible:ring-ring/50 block rounded-sm font-semibold outline-none focus-visible:ring-[3px]"
         >
-          {whenLabel(booking.startsAt, now)}
+          {whenLabel(booking.startsAt, now, locale)}
         </Link>
         <span className="text-muted-foreground block">
-          {durationLabel(booking.startsAt, booking.endsAt)}
-          {pending ? " · awaiting payment" : null}
+          {durationLabel(booking.startsAt, booking.endsAt, locale)}
+          {pending ? m.list.awaitingPaymentSuffix : null}
         </span>
       </td>
       <td className={cellClass}>
         <span className="flex items-center gap-2.5">
           <BookingMonogram holder={holder} />
           <span className="min-w-0">
-            <span className="block truncate">{holderName(holder)}</span>
+            <span className="block truncate">{holderName(holder, locale)}</span>
             {holder.kind === "guest" && holder.phone ? (
               <span className="text-muted-foreground block truncate">
                 {holder.phone}
@@ -281,23 +287,23 @@ function BookingRow({
               onClick={(event) => event.stopPropagation()}
               className="underline-offset-4 hover:underline"
             >
-              Game
+              {m.list.game}
             </a>
           ) : (
-            "Game"
+            m.list.game
           )
         ) : (
-          <span className="text-muted-foreground/70">None</span>
+          <span className="text-muted-foreground/70">{m.list.none}</span>
         )}
       </td>
-      <td className={cellClass}>{sourceLabel(booking.source)}</td>
+      <td className={cellClass}>{sourceLabel(booking.source, locale)}</td>
       <td className={cellClass}>
         <PaymentBadge status={booking.paymentStatus} />
       </td>
-      <td className={cn(cellClass, "text-right tabular-nums")}>
-        {formatBookingPriceFils(booking.priceFils, CONSOLE_LOCALE)}
+      <td className={cn(cellClass, "text-end tabular-nums")}>
+        {formatBookingPriceFils(booking.priceFils, locale)}
       </td>
-      <td className={cn(cellClass, "pr-3")}>
+      <td className={cn(cellClass, "pe-3")}>
         <BookingRowMenu venueId={venueId} booking={booking} />
       </td>
     </tr>
@@ -333,7 +339,7 @@ function SkeletonRow() {
         <Skeleton className="h-4 w-14" />
       </td>
       <td className={cellClass}>
-        <Skeleton className="ml-auto h-4 w-16" />
+        <Skeleton className="ms-auto h-4 w-16" />
       </td>
       <td className={cellClass} />
     </tr>

@@ -10,20 +10,13 @@ import { Text } from "../primitives/text";
 import { HeroStats } from "./level-hero";
 import { LevelRing } from "./level-ring";
 import {
-  footballLevelWord,
   footballTabView,
-  groupLevelRows,
   partnerRows,
   type FootballProfile,
-  type GroupLevel,
   type MyProfile,
 } from "./profile-model";
-import {
-  LastTenStrip,
-  LevelsByGroup,
-  PartnersCard,
-  SECTION_GAP,
-} from "./profile-sections";
+import { LastTenStrip, PartnersCard, SECTION_GAP } from "./profile-sections";
+import { RatingsLink } from "./ratings-screen";
 
 const BAR_HEIGHT = 56;
 
@@ -115,24 +108,21 @@ function RecordBar({
   );
 }
 
-/** Football: self-placed or set Level, goals, Last 10, record, Group Levels, Teammates. */
+/** Football: self-placed or set Level, goals, Last 10, record, Teammates. */
 export function FootballTab({
   football,
   teammates,
-  groups,
   onOpenPlayer,
+  onOpenRatings,
 }: {
   football: FootballProfile;
   teammates: MyProfile["partners"];
-  groups: GroupLevel[];
   onOpenPlayer: (userId: string) => void;
+  onOpenRatings: () => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
   const view = footballTabView(football, locale);
-  const rows = groupLevelRows(groups, locale, (group) =>
-    footballLevelWord(group.levelBand, locale),
-  );
 
   return (
     <View style={{ gap: SECTION_GAP }}>
@@ -154,18 +144,32 @@ export function FootballTab({
           ) : null}
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-          <LevelRing percent={view.winRate.percent ?? 0}>
-            <Text size="title" width="expanded" weight="bold">
-              {view.winRate.value}
-            </Text>
-            <Text size="eyebrow" tone="muted">
-              {view.winRate.label}
-            </Text>
-          </LevelRing>
+          {view.level ? (
+            <View
+              accessible
+              accessibilityLabel={m.rating.ovr.value(view.level.ovr)}
+            >
+              <LevelRing percent={view.level.ringPercent}>
+                <Text size="h1Lg" width="expanded" weight="bold">
+                  {view.level.ovr}
+                </Text>
+                <Text size="eyebrow" tone="muted">
+                  {view.level.ovrLabel}
+                </Text>
+              </LevelRing>
+            </View>
+          ) : null}
           <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-            <Text size="h2" width="expanded" weight="bold" numberOfLines={1}>
-              {view.level?.word ?? m.you.hero.noLevel}
-            </Text>
+            {view.level == null ? (
+              <Text size="h2" width="expanded" weight="bold" numberOfLines={1}>
+                {m.you.hero.noLevel}
+              </Text>
+            ) : null}
+            {view.level?.placement ? (
+              <Text size="meta" tone="muted">
+                {view.level.placement}
+              </Text>
+            ) : null}
             <Text size="meta">{view.roleLine}</Text>
             <Text size="eyebrow" tone="muted">
               {m.you.football.adjustNote}
@@ -192,6 +196,8 @@ export function FootballTab({
         <Hairline />
         <HeroStats stats={view.stats} />
       </Surface>
+
+      <RatingsLink sport="football" onOpen={onOpenRatings} />
 
       <LastTenStrip
         title={m.you.form.lastTen}
@@ -250,20 +256,6 @@ export function FootballTab({
           ) : null}
         </View>
       </Surface>
-
-      {rows.length > 0 ? (
-        <LevelsByGroup
-          title={m.you.groups.title}
-          meta={
-            view.level
-              ? m.you.groups.vsGeneral(view.level.band, view.level.level)
-              : undefined
-          }
-          note={m.you.groups.footballNote}
-          scale={null}
-          rows={rows}
-        />
-      ) : null}
 
       <PartnersCard
         title={m.you.partners.teammates}

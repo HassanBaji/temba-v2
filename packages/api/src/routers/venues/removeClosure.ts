@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { venueClosures } from "@repo/db";
 import type { DbClient } from "@repo/db";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { protectedProcedure } from "#src/trpc";
@@ -16,8 +17,10 @@ export async function removeClosure(
       userId: string;
       publicMetadata: Record<string, unknown> | undefined;
     };
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const closure = await database.query.venueClosures.findFirst({
     where: eq(venueClosures.id, args.closureId),
     columns: { id: true, venueId: true },
@@ -30,6 +33,7 @@ export async function removeClosure(
   await requireVenueManager(database, {
     venueId: closure.venueId,
     ...args.actor,
+    locale,
   });
 
   await database
@@ -49,5 +53,6 @@ export const removeClosureProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

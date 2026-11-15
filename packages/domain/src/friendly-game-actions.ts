@@ -73,19 +73,7 @@ export function friendlyGameFooterActions(input: {
   }
   if (input.isOrganizer && input.phase === "final") {
     actions.push(
-      input.canReportWrongScore?.eligible
-        ? {
-            kind: "report_wrong_score",
-            label: reportWrongScoreAction(locale),
-            consequence: reportWrongScoreConsequence(locale),
-            enabled: true,
-          }
-        : {
-            kind: "report_wrong_score_locked",
-            label: reportWrongScoreAction(locale),
-            consequence: reportWrongScoreLockedConsequence(locale),
-            enabled: false,
-          },
+      reportWrongScoreFooterAction(input.canReportWrongScore, locale),
     );
   }
   if (input.canLeaveGame && isUpcoming) {
@@ -97,6 +85,49 @@ export function friendlyGameFooterActions(input: {
     });
   }
   return actions;
+}
+
+function reportWrongScoreFooterAction(
+  canReportWrongScore: { eligible: boolean } | null,
+  locale: Locale,
+): FriendlyGameFooterAction {
+  return canReportWrongScore?.eligible
+    ? {
+        kind: "report_wrong_score",
+        label: reportWrongScoreAction(locale),
+        consequence: reportWrongScoreConsequence(locale),
+        enabled: true,
+      }
+    : {
+        kind: "report_wrong_score_locked",
+        label: reportWrongScoreAction(locale),
+        consequence: reportWrongScoreLockedConsequence(locale),
+        enabled: false,
+      };
+}
+
+/**
+ * Report a wrong score on a played football Group Game, for its Organizer:
+ * reopening the Match takes back its Tier points (ADR-0067). `games.byId`
+ * gives `canReportWrongScore` only to an Organizer once the Match is final.
+ * A Challenge Game is not a Group Game and is left out.
+ */
+export function footballReportWrongScoreAction(
+  game: {
+    groupId: string | null;
+    challenge: unknown;
+    canReportWrongScore: { eligible: boolean } | null;
+  },
+  locale: Locale,
+): FriendlyGameFooterAction | null {
+  if (
+    game.groupId == null ||
+    game.challenge != null ||
+    game.canReportWrongScore == null
+  ) {
+    return null;
+  }
+  return reportWrongScoreFooterAction(game.canReportWrongScore, locale);
 }
 
 export type FriendlyGameCtaCopy = {

@@ -1,7 +1,9 @@
 import { type TRPCContextHost } from "@repo/api/trpc";
 import { Hono } from "hono";
+import { secureHeaders } from "hono/secure-headers";
 
 import { type Authenticate } from "./context";
+import { type RateLimiter } from "./rate-limit";
 import { healthRoute } from "./routes/health";
 import { paymentsRoute } from "./routes/payments";
 import { trpcRoute } from "./routes/trpc";
@@ -13,15 +15,33 @@ export function createApp(options: {
   webOrigin: string;
   webhookSigningSecret: string;
   paymentReturnUrl?: string;
+  trustProxyHops?: number;
+  rateLimiter?: RateLimiter;
 }) {
   return new Hono()
-    .route("/", healthRoute)
-    .route("/", webhooksRoute({ signingSecret: options.webhookSigningSecret }))
+    .use(secureHeaders({ xFrameOptions: "DENY" }))
+    .route("/", healthRoute({ db: options.db }))
+    .route(
+      "/",
+      webhooksRoute({
+        signingSecret: options.webhookSigningSecret,
+        db: options.db,
+      }),
+    )
     .route(
       "/",
       paymentsRoute({
         returnUrl: options.paymentReturnUrl ?? "temba://book/bookings",
       }),
     )
-    .route("/", trpcRoute(options));
+    .route(
+      "/",
+      trpcRoute({
+        db: options.db,
+        authenticate: options.authenticate,
+        webOrigin: options.webOrigin,
+        limiter: options.rateLimiter,
+        trustProxyHops: options.trustProxyHops,
+      }),
+    );
 }

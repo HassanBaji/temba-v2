@@ -53,6 +53,8 @@ function publicCandidate(
   return {
     ...candidate(overrides),
     isPublic: true,
+    createdBy: OTHER_USER,
+    viewerIsParticipant: false,
     ...overrides,
   };
 }
@@ -94,12 +96,21 @@ describe("My Games hub list", () => {
     assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), false);
   });
 
-  it("excludes public groupless Games from My Games", () => {
+  it("includes public groupless Games the User created", () => {
     const game = myGamesCandidate({
       id: "groupless-public",
       groupId: null,
       isPublic: true,
       createdBy: VIEWER_ID,
+    });
+    assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), true);
+  });
+
+  it("excludes public groupless Games the User is not part of", () => {
+    const game = myGamesCandidate({
+      id: "groupless-public-stranger",
+      groupId: null,
+      isPublic: true,
     });
     assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), false);
   });
@@ -142,14 +153,14 @@ describe("My Games hub list", () => {
     assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), false);
   });
 
-  it("excludes public Games the User is part of when they are not a Group member", () => {
+  it("includes public Games the User is part of when they are not a Group member", () => {
     const game = myGamesCandidate({
       id: "public-participant",
       groupId: null,
       isPublic: true,
       viewerIsParticipant: true,
     });
-    assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), false);
+    assert.equal(isMyGamesHubGame(game, memberGroupIds, VIEWER_ID, NOW), true);
   });
 
   it("sorts My Games soonest first", () => {
@@ -217,8 +228,38 @@ describe("Public hub list", () => {
       id: "public-groupless",
       groupId: null,
     });
-    assert.equal(isPublicHubGame(grouped, memberGroupIds, NOW), true);
-    assert.equal(isPublicHubGame(groupless, memberGroupIds, NOW), true);
+    assert.equal(
+      isPublicHubGame(grouped, memberGroupIds, VIEWER_ID, NOW),
+      true,
+    );
+    assert.equal(
+      isPublicHubGame(groupless, memberGroupIds, VIEWER_ID, NOW),
+      true,
+    );
+  });
+
+  it("excludes public Games on the viewer's own seats or Waitlist place", () => {
+    const seated = publicCandidate({
+      id: "public-seated",
+      groupId: null,
+      viewerIsParticipant: true,
+    });
+    assert.equal(
+      isPublicHubGame(seated, memberGroupIds, VIEWER_ID, NOW),
+      false,
+    );
+  });
+
+  it("excludes public Games the viewer created", () => {
+    const created = publicCandidate({
+      id: "public-created",
+      groupId: null,
+      createdBy: VIEWER_ID,
+    });
+    assert.equal(
+      isPublicHubGame(created, memberGroupIds, VIEWER_ID, NOW),
+      false,
+    );
   });
 
   it("excludes public Games already listed on My Games (My preferred)", () => {
@@ -239,7 +280,7 @@ describe("Public hub list", () => {
       ),
       true,
     );
-    assert.equal(isPublicHubGame(game, memberGroupIds, NOW), false);
+    assert.equal(isPublicHubGame(game, memberGroupIds, VIEWER_ID, NOW), false);
   });
 
   it("excludes non-live public Games", () => {
@@ -250,7 +291,7 @@ describe("Public hub list", () => {
       windowEnd: new Date("2026-08-01T20:00:00.000Z"),
       matches: [],
     });
-    assert.equal(isPublicHubGame(game, memberGroupIds, NOW), false);
+    assert.equal(isPublicHubGame(game, memberGroupIds, VIEWER_ID, NOW), false);
   });
 
   it("excludes non-public Games", () => {
@@ -259,7 +300,7 @@ describe("Public hub list", () => {
       groupId: OTHER_GROUP,
       isPublic: false,
     });
-    assert.equal(isPublicHubGame(game, memberGroupIds, NOW), false);
+    assert.equal(isPublicHubGame(game, memberGroupIds, VIEWER_ID, NOW), false);
   });
 
   it("sorts Public soonest first and drops member-Group duplicates", () => {
@@ -279,6 +320,7 @@ describe("Public hub list", () => {
     const sorted = filterAndSortPublicHubGames(
       [later, mine, sooner],
       memberGroupIds,
+      VIEWER_ID,
       NOW,
     );
     assert.deepEqual(

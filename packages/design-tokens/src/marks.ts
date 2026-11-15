@@ -1211,7 +1211,7 @@ function notYetTones(surface: "paper" | "ink", greys: CoinGreys) {
 
 /**
  * The colour each tone paints, or `null` when the state drops it. An earned
- * coin is data and keeps the light ink and paper in both schemes (ADR-0055);
+ * coin is data and keeps the light ink and paper in both schemes (ADR-0064);
  * only a not-yet coin reads `greys`.
  */
 export function coinToneColors(

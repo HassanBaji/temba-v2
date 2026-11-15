@@ -44,13 +44,20 @@ export function levelFromApi(data: ApiRating): HomeLevel {
   return {
     kind: "rated",
     input: {
-      band: data.rating.levelBand,
-      level: data.rating.level,
-      provisional: data.rating.provisional,
-      ratedMatchesRemaining: data.rating.ratedMatchesRemaining,
+      sport: data.face === "ovr" ? "football" : "padel",
+      face: data.face,
+      levelValue: data.levelValue,
+      rating: {
+        levelBand: data.rating.levelBand,
+        provisional: data.rating.provisional,
+        ratedMatchesRemaining: data.rating.ratedMatchesRemaining,
+      },
+      ratedMatchCount: data.ratedMatchCount,
+      changeOverLast: data.changeOverLast,
+      lastMatch: data.lastMatch,
       history: data.history,
+      historySteps: data.historySteps,
       historyMatchCount: data.historyMatchCount,
-      progressPercent: data.progressPercent,
     },
   };
 }
@@ -66,10 +73,6 @@ export function standingInSport(
   return rows.filter((row) => sportOrDefault(row.sport) === sport);
 }
 
-export function standingCountLabel(count: number, locale: Locale): string {
-  return messagesFor(locale).webAuth.home.groupsCount(count);
-}
-
 export function gameHref(target: HomeTarget): string {
   return target.intent
     ? gameHomeIntentHref(target.gameId, target.intent)
@@ -80,4 +83,11 @@ export function createHref(action: HomeNoGamesCreateAction): string {
   return action.kind === "group"
     ? "/dashboard/groups/new"
     : "/dashboard/games/new";
+}
+
+/** Google Maps directions to a Venue by name and city; it opens the maps app on phones. */
+export function directionsHref(venue: { name: string; city: string }): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+    `${venue.name}, ${venue.city}`,
+  )}`;
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "challenge_proposals" ADD COLUMN "change_count" integer DEFAULT 0 NOT NULL;

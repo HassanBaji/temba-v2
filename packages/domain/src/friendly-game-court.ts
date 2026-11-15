@@ -8,6 +8,10 @@ import {
   heroDurationFigure,
   type FriendlyGameHeroMatch,
 } from "./friendly-game-hero";
+import {
+  FRIENDLY_SET_GAMES_MAX,
+  FRIENDLY_SET_GAMES_MIN,
+} from "./friendly-game-results";
 import { formatMatchSlotLabel } from "./game-side-label";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 import type { PlayedRow } from "./played-game";
@@ -56,7 +60,10 @@ export function courtSeatRow(
   const isYou = seat.userId === viewerUserId;
   return {
     userId: seat.userId,
-    name: isYou ? messagesFor(locale).common.you : shortName(seat.name),
+    name: isYou
+      ? messagesFor(locale).common.you
+      : (seat.nickname?.name ?? shortName(seat.name)),
+    isNickname: !isYou && seat.nickname != null,
     fullName: seat.name,
     image: seat.image,
     isYou,
@@ -64,7 +71,9 @@ export function courtSeatRow(
     level: levelLabel(seat.levelBand),
     trailing: null,
     unclaimed: Boolean(seat.unclaimed),
+    guest: Boolean(seat.guest),
     phoneMasked: seat.phoneMasked ?? null,
+    phoneNumber: seat.phoneNumber ?? null,
   };
 }
 
@@ -150,6 +159,14 @@ export function scoreDeciderNote(setCount: number, locale: Locale) {
   }
   const half = (setCount - 1) / 2;
   return messagesFor(locale).game.court.decider(setCount, `${half}–${half}`);
+}
+
+/** Shown beside a score box whose entry was out of range and was capped. */
+export function scoreGamesRangeNote(locale: Locale) {
+  return messagesFor(locale).game.court.gamesRange(
+    FRIENDLY_SET_GAMES_MIN,
+    FRIENDLY_SET_GAMES_MAX,
+  );
 }
 
 /**

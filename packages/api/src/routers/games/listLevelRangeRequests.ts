@@ -12,16 +12,18 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import { displayedLevelTenthsForUser } from "#src/games/user-allowed-by-level-range";
-import { isProvisional } from "@repo/domain/level";
+import { readTembaLevelView } from "#src/ratings/level-confirmed";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function listLevelRangeRequests(
   database: DbClient,
-  args: { gameId: string; userId: string },
+  args: { gameId: string; userId: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.userId, locale);
 
   const rows = await database.query.gameLevelRangeRequests.findMany({
     where: and(
@@ -50,7 +52,6 @@ export async function listLevelRangeRequests(
           eq(ratings.userId, row.userId),
           eq(ratings.sport, ratingSport),
         ),
-        columns: { phi: true },
       });
       return {
         id: row.id,
@@ -61,7 +62,9 @@ export async function listLevelRangeRequests(
           image: row.user.image,
         },
         levelTenths: tenths,
-        provisional: rating ? isProvisional(rating.phi) : false,
+        provisional: rating
+          ? (await readTembaLevelView(database, rating)).provisional
+          : false,
         heldSeat: row.heldSeat,
       };
     }),
@@ -75,5 +78,6 @@ export const listLevelRangeRequestsProcedure = protectedProcedure
     return listLevelRangeRequests(ctx.db, {
       gameId: input.gameId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

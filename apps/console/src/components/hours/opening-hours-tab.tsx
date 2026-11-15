@@ -12,18 +12,19 @@ import { useManagedVenue } from "~/components/console/managed-venue-context";
 import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 import { cn } from "~/lib/utils";
+import { useLocale, useMessages } from "~/components/locale-provider";
 
 import { inkButtonClass, linkButtonClass } from "./classes";
 import { toastMutationError } from "./mutation-error";
 import { NativeSelect } from "./native-select";
 import {
   type HoursWindow,
-  WEEKDAY_NAMES,
   WEEKDAY_ORDER,
   formatMinutes,
   formatOpenHours,
   hoursAreEqual,
   nextWindowAfter,
+  saveWeekdays,
   timeOptions,
   windowsProblem,
 } from "./opening-hours-model";
@@ -48,6 +49,9 @@ function draftsFromHours(
 }
 
 export function WeeklyHoursCard() {
+  const { consoleHours, consoleShell, common } = useMessages();
+  const m = consoleHours.weekly;
+  const locale = useLocale();
   const venue = useManagedVenue();
   const utils = api.useUtils();
   const saved = React.useMemo(
@@ -66,14 +70,17 @@ export function WeeklyHoursCard() {
   });
 
   const slotMinutes = venue.slotMinutes;
-  const options = React.useMemo(() => timeOptions(slotMinutes), [slotMinutes]);
+  const options = React.useMemo(
+    () => timeOptions(slotMinutes, locale),
+    [slotMinutes, locale],
+  );
   const changedWeekdays = WEEKDAY_ORDER.filter(
     (weekday) => !hoursAreEqual(drafts[weekday] ?? [], saved[weekday] ?? []),
   );
   const problems = Object.fromEntries(
     WEEKDAY_ORDER.map((weekday) => [
       weekday,
-      windowsProblem(drafts[weekday] ?? [], slotMinutes),
+      windowsProblem(drafts[weekday] ?? [], slotMinutes, locale),
     ]),
   ) as Record<number, string | null>;
   const hasProblem = Object.values(problems).some(Boolean);
@@ -98,15 +105,17 @@ export function WeeklyHoursCard() {
   async function saveAll() {
     setSaving(true);
     try {
-      for (const weekday of changedWeekdays) {
-        await setOpeningHours.mutateAsync({
-          venueId: venue.id,
-          weekday,
-          windows: drafts[weekday] ?? [],
-        });
-      }
-      toast.success("Hours saved");
-      await utils.venues.managedById.invalidate({ venueId: venue.id });
+      await saveWeekdays(
+        changedWeekdays,
+        (weekday) =>
+          setOpeningHours.mutateAsync({
+            venueId: venue.id,
+            weekday,
+            windows: drafts[weekday] ?? [],
+          }),
+        () => utils.venues.managedById.invalidate({ venueId: venue.id }),
+      );
+      toast.success(m.savedToast);
     } catch {
       // the mutation's onError already reported it
     } finally {
@@ -116,11 +125,11 @@ export function WeeklyHoursCard() {
 
   return (
     <ConsoleCard className="flex flex-col overflow-hidden">
-      <ConsoleCardHeader title="Weekly hours" />
+      <ConsoleCardHeader title={m.title} />
       <ul className="divide-border divide-y">
         {WEEKDAY_ORDER.map((weekday) => {
           const windows = drafts[weekday] ?? [];
-          const name = WEEKDAY_NAMES[weekday];
+          const name = consoleShell.weekdaysLong[weekday]!;
           const problem = problems[weekday];
           return (
             <li key={weekday} className="px-5 py-3">
@@ -128,7 +137,7 @@ export function WeeklyHoursCard() {
                 <div className={rowGrid}>
                   <span className="text-meta">{name}</span>
                   <span className="text-muted-foreground text-meta col-span-2 flex items-center gap-3">
-                    Closed
+                    {m.closed}
                     <button
                       type="button"
                       className={linkButtonClass}
@@ -139,11 +148,11 @@ export function WeeklyHoursCard() {
                         ])
                       }
                     >
-                      Add window
+                      {m.addWindow}
                     </button>
                   </span>
-                  <span className="text-muted-foreground text-meta text-right">
-                    —
+                  <span className="text-muted-foreground text-meta text-end">
+                    {m.none}
                   </span>
                 </div>
               ) : (
@@ -154,7 +163,7 @@ export function WeeklyHoursCard() {
                         {index === 0 ? name : ""}
                       </span>
                       <NativeSelect
-                        aria-label={`${name} window ${index + 1} opens`}
+                        aria-label={m.opens(name, index + 1)}
                         disabled={saving}
                         value={window.opensAtMinutes}
                         onChange={(event) =>
@@ -171,7 +180,7 @@ export function WeeklyHoursCard() {
                       </NativeSelect>
                       <span className="flex items-center gap-1.5">
                         <NativeSelect
-                          aria-label={`${name} window ${index + 1} closes`}
+                          aria-label={m.closes(name, index + 1)}
                           disabled={saving}
                           value={window.closesAtMinutes}
                           onChange={(event) =>
@@ -190,9 +199,16 @@ export function WeeklyHoursCard() {
                           type="button"
                           variant="ghost"
                           size="icon-sm"
-                          className="text-muted-foreground hover:bg-wash hover:text-ink rounded-block -mr-2 shrink-0"
+                          className="text-muted-foreground hover:bg-wash hover:text-ink rounded-block -me-2 shrink-0"
                           disabled={saving}
-                          aria-label={`Remove ${name} window ${index + 1} (${formatMinutes(window.opensAtMinutes)} to ${formatMinutes(window.closesAtMinutes)})`}
+                          aria-label={m.remove(
+                            name,
+                            index + 1,
+                            consoleShell.clock.range(
+                              formatMinutes(window.opensAtMinutes, locale),
+                              formatMinutes(window.closesAtMinutes, locale),
+                            ),
+                          )}
                           onClick={() =>
                             setWindows(
                               weekday,
@@ -203,8 +219,8 @@ export function WeeklyHoursCard() {
                           <X aria-hidden="true" className="size-3.5" />
                         </Button>
                       </span>
-                      <span className="text-muted-foreground text-meta text-right">
-                        {index === 0 ? formatOpenHours(windows) : ""}
+                      <span className="text-muted-foreground text-meta text-end">
+                        {index === 0 ? formatOpenHours(windows, locale) : ""}
                       </span>
                     </div>
                   ))}
@@ -222,13 +238,13 @@ export function WeeklyHoursCard() {
                           ])
                         }
                       >
-                        Add window
+                        {m.addWindow}
                       </button>
                       <button
                         type="button"
                         className={linkButtonClass}
                         disabled={saving || Boolean(problem)}
-                        aria-label={`Copy ${name} to every day`}
+                        aria-label={m.copyLabel(name)}
                         onClick={() =>
                           setDrafts((current) =>
                             Object.fromEntries(
@@ -242,7 +258,7 @@ export function WeeklyHoursCard() {
                           )
                         }
                       >
-                        Copy to every day
+                        {m.copy}
                       </button>
                     </span>
                     <span />
@@ -259,18 +275,16 @@ export function WeeklyHoursCard() {
         })}
       </ul>
       <footer className="border-border mt-auto flex items-center justify-between gap-4 border-t px-5 py-3.5">
-        <p className="text-muted-foreground text-eyebrow">
-          Changes apply to new bookings only.
-        </p>
+        <p className="text-muted-foreground text-eyebrow">{m.footer}</p>
         <Button
           type="button"
           className={cn(inkButtonClass, "text-meta h-[38px] min-h-[38px]")}
           disabled={changedWeekdays.length === 0 || hasProblem || saving}
           pending={saving}
-          pendingLabel="Saving…"
+          pendingLabel={common.saving}
           onClick={() => void saveAll()}
         >
-          Save hours
+          {m.save}
         </Button>
       </footer>
     </ConsoleCard>

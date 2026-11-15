@@ -12,6 +12,13 @@ import {
   type HistoryTeamRow,
 } from "@repo/domain/match-history-card";
 import { markName } from "@repo/domain/marks";
+import {
+  albumStripTiles,
+  albumSummaryLine,
+  type GameAlbumSummary,
+} from "@repo/domain/game-album";
+import { ArrowRightIcon, PlusIcon } from "lucide-react";
+import Link from "next/link";
 import { resultMarkLabel } from "@repo/domain/result-mark";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
@@ -102,6 +109,66 @@ function TeamRow({ team }: { team: HistoryTeamRow }) {
       </span>
 
       <TeamScores team={team} />
+    </div>
+  );
+}
+
+/** Six small tiles when the Game has photos, hatched where empty; then the counts and where to go. */
+function AlbumFooter({
+  gameId,
+  album,
+}: {
+  gameId: string;
+  album: GameAlbumSummary;
+}) {
+  const locale = useLocale();
+  const m = useMessages().gameAlbum.played;
+  const withPhotos = album.photoCount > 0;
+  return (
+    <div className={cn("flex flex-col gap-2.5 pb-3", CARD_INSET)}>
+      {withPhotos ? (
+        <span aria-hidden="true" className="grid grid-cols-6 gap-1">
+          {albumStripTiles(album).map((tile, index) =>
+            tile.kind === "photo" ? (
+              // eslint-disable-next-line @next/next/no-img-element -- presigned bucket URLs are not static assets
+              <img
+                key={index}
+                src={tile.url}
+                alt=""
+                loading="lazy"
+                className="aspect-square w-full rounded-lg object-cover"
+              />
+            ) : (
+              <span
+                key={index}
+                className="hatch border-rule aspect-square w-full rounded-lg border"
+              />
+            ),
+          )}
+        </span>
+      ) : null}
+      <span className="text-eyebrow flex items-center justify-between gap-3">
+        <span className="text-muted-foreground truncate">
+          {albumSummaryLine(album, locale)}
+        </span>
+        {withPhotos ? (
+          <span className="flex shrink-0 items-center gap-1 font-semibold">
+            {m.open}
+            <ArrowRightIcon
+              aria-hidden="true"
+              className="size-3 rtl:-scale-x-100"
+            />
+          </span>
+        ) : (
+          <Link
+            href={`/dashboard/games/${gameId}?intent=addPhotos`}
+            className="pointer-events-auto relative z-20 flex shrink-0 items-center gap-1 font-semibold underline-offset-4 hover:underline"
+          >
+            {m.addPhotos}
+            <PlusIcon aria-hidden="true" className="size-3" />
+          </Link>
+        )}
+      </span>
     </div>
   );
 }
@@ -207,6 +274,7 @@ export function MatchHistoryCard({ row }: { row: MatchHistoryRow }) {
           >
             <span className="block truncate">{model.place}</span>
           </div>
+          {row.album ? <AlbumFooter gameId={row.id} album={row.album} /> : null}
         </div>
       </SummaryCardShell>
     </li>

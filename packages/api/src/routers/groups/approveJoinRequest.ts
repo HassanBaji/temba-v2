@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -11,6 +11,7 @@ import {
 } from "@repo/db";
 
 import { isSeatHoldLive } from "@repo/domain/invites";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -70,22 +71,26 @@ export async function approveJoinRequest(
   if (!request) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Join request not found",
+      message: messagesFor(locale).group.errors.joinRequestNotFound,
     });
   }
 
-  const group = await requireGroup(database, request.groupId);
+  const group = await requireGroup(database, request.groupId, locale);
 
-  await assertGroupApprover(database, group, args.userId);
-
-  if (request.status !== "pending") {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Join request is not pending",
-    });
-  }
+  await assertGroupApprover(database, group, args.userId, locale);
 
   const heldSeat = await database.transaction(async (tx) => {
+    const [locked] = await tx
+      .select()
+      .from(groupJoinRequests)
+      .where(eq(groupJoinRequests.id, request.id))
+      .for("update");
+    if (locked?.status !== "pending") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: messagesFor(locale).group.errors.joinRequestNotPending,
+      });
+    }
     const [updated] = await tx
       .update(groupJoinRequests)
       .set({
@@ -103,25 +108,21 @@ export async function approveJoinRequest(
       });
     }
 
-    const existing = await tx.query.groupMembers.findFirst({
-      where: and(
-        eq(groupMembers.groupId, group.id),
-        eq(groupMembers.userId, request.userId),
-      ),
-      columns: { id: true },
-    });
-    if (!existing) {
-      await tx.insert(groupMembers).values({
-        groupId: group.id,
-        userId: request.userId,
-      });
+    const [joined] = await tx
+      .insert(groupMembers)
+      .values({ groupId: group.id, userId: request.userId })
+      .onConflictDoNothing({
+        target: [groupMembers.groupId, groupMembers.userId],
+      })
+      .returning({ id: groupMembers.id });
+    if (joined) {
       await notifyGroupJoined(tx, {
         group,
         joinerUserId: request.userId,
         decidedByUserId: args.userId,
       });
     }
-    const heldSeat = await seatHeldGame(tx, request, args.userId, locale, now);
+    const heldSeat = await seatHeldGame(tx, locked, args.userId, locale, now);
     await notifyGroupJoinDecided(tx, {
       group,
       requesterUserId: request.userId,
@@ -129,7 +130,7 @@ export async function approveJoinRequest(
       approved: true,
       gameId:
         heldSeat === "registered" || heldSeat === "waitlisted"
-          ? request.heldGameId
+          ? locked.heldGameId
           : null,
     });
     return heldSeat;

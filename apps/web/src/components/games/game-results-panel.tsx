@@ -52,6 +52,7 @@ export type GameResultsMatch = {
   bothSidesComplete: boolean;
   canScoreSets: boolean;
   canComplete: boolean;
+  canStamp: boolean;
   outcome: {
     result: string;
     slot1SetWins: number;
@@ -158,8 +159,11 @@ export function GameResultsPanel({
   scorePending,
   completePending,
   cancelPending,
+  updatePending,
+  stampPending,
   onScoreSet,
   onComplete,
+  onStamp,
   onUpdateCourt,
   onUpdateSlots,
   onCancelMatch,
@@ -173,6 +177,8 @@ export function GameResultsPanel({
   scorePending: boolean;
   completePending: boolean;
   cancelPending: boolean;
+  updatePending: boolean;
+  stampPending: boolean;
   onScoreSet: (input: {
     matchId: string;
     setId: string;
@@ -180,6 +186,7 @@ export function GameResultsPanel({
     slot2GamesWon: number;
   }) => void;
   onComplete: (matchId: string) => void;
+  onStamp: (matchId: string) => void;
   onUpdateCourt: (input: { matchId: string; courtId: string | null }) => void;
   onUpdateSlots: (input: {
     matchId: string;
@@ -480,6 +487,24 @@ export function GameResultsPanel({
               </Button>
             ) : null}
 
+            {match.canStamp ? (
+              <div className="space-y-2">
+                <p className="text-muted-foreground text-meta">
+                  {m.rating.verifier.stamp.note}
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onStamp(match.id)}
+                  pending={stampPending}
+                  pendingLabel={m.common.saving}
+                >
+                  {m.rating.verifier.stamp.action}
+                </Button>
+              </div>
+            ) : null}
+
             {canEditMatch && !matchCancelled ? (
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field>
@@ -488,6 +513,7 @@ export function GameResultsPanel({
                   </FieldLabel>
                   <Select
                     value={match.courtId ?? "none"}
+                    disabled={updatePending}
                     onValueChange={(value) => {
                       const courtId = optionalSelectId(value);
                       if (format === "friendly_game") {
@@ -531,6 +557,7 @@ export function GameResultsPanel({
                       </FieldLabel>
                       <Select
                         value={match.slot1GameTeamId ?? "none"}
+                        disabled={updatePending}
                         onValueChange={(value) =>
                           onUpdateSlots({
                             matchId: match.id,
@@ -564,6 +591,7 @@ export function GameResultsPanel({
                       </FieldLabel>
                       <Select
                         value={match.slot2GameTeamId ?? "none"}
+                        disabled={updatePending}
                         onValueChange={(value) =>
                           onUpdateSlots({
                             matchId: match.id,

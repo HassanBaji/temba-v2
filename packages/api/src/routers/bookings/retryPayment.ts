@@ -8,6 +8,8 @@ import {
   isOnlinePaymentMethod,
   type OnlinePaymentMethod,
 } from "@repo/domain/booking-payment";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -26,14 +28,16 @@ export async function retryPayment(
     userId: string;
     paymentMethod?: OnlinePaymentMethod;
     now?: Date;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
   const provider = paymentProvider();
   if (provider.id === "manual") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Booking is paid at the Venue",
+      message: messagesFor(locale).booking.errors.paidAtVenue,
     });
   }
 
@@ -44,12 +48,15 @@ export async function retryPayment(
       .where(eq(bookings.id, args.bookingId))
       .for("update");
     if (!booking) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Booking not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: messagesFor(locale).booking.errors.notFound,
+      });
     }
     if (booking.userId !== args.userId) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Only the holder can retry this payment",
+        message: messagesFor(locale).booking.errors.holderRetries,
       });
     }
     if (
@@ -59,14 +66,14 @@ export async function retryPayment(
     ) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "This Booking is no longer waiting for payment",
+        message: messagesFor(locale).booking.errors.notAwaitingPayment,
       });
     }
     const latest = await latestPayment(tx, booking.id);
     if (latest?.status !== "failed") {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "The last payment has not failed",
+        message: messagesFor(locale).booking.errors.lastPaymentNotFailed,
       });
     }
 
@@ -76,7 +83,7 @@ export async function retryPayment(
     if (method && !onlinePaymentMethods().includes(method)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "That way to pay is not available",
+        message: messagesFor(locale).booking.errors.payMethodUnavailable,
       });
     }
 
@@ -105,5 +112,6 @@ export const retryPaymentProcedure = protectedProcedure
       bookingId: input.bookingId,
       paymentMethod: input.paymentMethod,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

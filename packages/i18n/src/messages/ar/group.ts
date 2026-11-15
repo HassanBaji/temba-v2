@@ -183,21 +183,6 @@ export const group = {
         `عبر رابط دعوة من ${name}، ${when}`,
       viaInviteLink: (when: string) => `عبر رابط دعوة، ${when}`,
     },
-    requestsBanner: (n: number) =>
-      plural("ar", n, {
-        one: "شخص واحد يريد الانضمام",
-        two: "شخصان يريدان الانضمام",
-        few: "{n} أشخاص يريدون الانضمام",
-        many: "{n} شخصًا يريدون الانضمام",
-        other: "{n} شخص يريدون الانضمام",
-      }),
-    requestsHeading: (n: number) =>
-      plural("ar", n, {
-        one: "1 يريد الانضمام",
-        two: "2 يريدان الانضمام",
-        other: "{n} يريدون الانضمام",
-      }),
-    reviewLabel: "مراجعة",
     changeLabel: "تغيير",
     policy: {
       approve: "يوافق المنظّمون على الأعضاء الجدد",
@@ -251,8 +236,7 @@ export const group = {
     approvalHelp:
       "يطلب الأشخاص الانضمام. توافق عليهم أو ترفضهم في صفحة المجموعة.",
     submit: "إنشاء مجموعة",
-    description:
-      "مجموعة من الأشخاص الذين تلعب معهم. تنضم إليها كأول عضو.",
+    description: "مجموعة من الأشخاص الذين تلعب معهم. تنضم إليها كأول عضو.",
     createdToast: "تم إنشاء المجموعة",
     screen: {
       title: "إنشاء مجموعة",
@@ -271,12 +255,12 @@ export const group = {
   },
   linkRequest: {
     venueRequestsTitle: "طلبات النوادي",
+    publicOnly: "لا تُربط بنادٍ عبر طلب إلا مجموعة عامة",
     rowMeta: "أنت وحدك من يقرر، بصفتك منشئ المجموعة.",
     acceptLabel: "قبول",
     declineLabel: "رفض",
     declinedToast: "تم رفض الطلب",
-    rowTitle: (venue: string, group: string) =>
-      `يريد ${venue} ربط ${group}`,
+    rowTitle: (venue: string, group: string) => `يريد ${venue} ربط ${group}`,
     yourGroup: "مجموعتك",
     thisGroup: "هذه المجموعة",
     bannerText: (venue: string) => `يريد ${venue} ربط هذه المجموعة.`,
@@ -308,7 +292,7 @@ export const group = {
     leaveVenueConfirm: {
       title: (venue: string) => `فك الارتباط بـ ${venue}؟`,
       description: (group: string) =>
-        `تعود ${group} مجموعة حرة. ستُحتسب المباريات الجديدة في تصنيف المجموعة فقط، ما لم يوثّق مشغّل المجموعة.`,
+        `تعود ${group} مجموعة حرة. لن تُحتسب المباريات الجديدة لمستوى Temba، ما لم يوثّق مشغّل المجموعة.`,
       confirmLabel: "فك الارتباط",
       cancelLabel: "إبقاء الارتباط",
       pendingLabel: "جارٍ فك الارتباط…",
@@ -321,7 +305,7 @@ export const group = {
     venueUnlinkConfirm: {
       title: (group: string) => `فك ارتباط ${group}؟`,
       description: (group: string) =>
-        `لم تعد ${group} مرتبطة بناديك وتصبح مجموعة حرة. ستُحتسب المباريات الجديدة في تصنيف المجموعة فقط، ما لم يوثّقها مشغّل. تبقى المباريات السابقة والأعضاء كما هم.`,
+        `لم تعد ${group} مرتبطة بناديك وتصبح مجموعة حرة. لن تُحتسب المباريات الجديدة لمستوى Temba، ما لم يوثّقها مشغّل. تبقى المباريات السابقة والأعضاء كما هم.`,
       confirmLabel: "فك ارتباط المجموعة",
       cancelLabel: "إبقاء الارتباط",
     },
@@ -353,6 +337,10 @@ export const group = {
           level: {
             label: "المستوى",
             hint: "الأعلى أولًا، ومن بلا مستوى أخيرًا",
+          },
+          tier: {
+            label: "الفئة",
+            hint: "القروش أولًا، والمبدئيون أخيرًا",
           },
         },
       },
@@ -494,6 +482,13 @@ export const group = {
         many: "العب {n} مباراة لتُرتَّب.",
         other: "العب {n} مباراة لتُرتَّب.",
       }),
+    tierFootnote: {
+      season:
+        "يحتسب الترتيب مباريات هذا الموسم ويبدأ من جديد في الموسم القادم.",
+      before: "قوة كل لاعب في المجموعة، أي فئته، تجدها في ",
+      membersLink: "الأعضاء",
+      after: ".",
+    },
   },
   settings: {
     sportSublabel: {
@@ -538,6 +533,7 @@ export const group = {
     },
     linkCopiedToast: "تم نسخ رابط المجموعة",
     linkResetToast: "أُعيد تعيين الرابط. الروابط القديمة لم تعد تعمل.",
+    linkResetOwnerOnly: "مالك المجموعة وحده يستطيع إعادة تعيين رابط الدعوة",
     ownerLeave: {
       title: (name: string) => `سلّم ${name} لشخص آخر أولًا`,
       description:
@@ -663,9 +659,24 @@ export const group = {
       `إزالة ${name} من هذه المجموعة؟ تبقى مبارياته في السجل.`,
     removedToast: (name: string) => `أُزيل ${name}`,
     renameAction: "تعديل الاسم",
+    whatsAppAction: "واتساب",
+    whatsAppFor: (name: string) => `مراسلة ${name} على واتساب`,
     renameDescription:
       "يبقى هاتفه كما هو. إن كان الرقم خاطئًا، أزله ثم أضفه مجددًا.",
     renamedToast: (name: string) => `تغيّر الاسم إلى ${name}`,
+    guest: {
+      tab: "ضيف",
+      description: "يلعب الضيف هذه المباراة باسمه فقط. دون هاتف ودون حساب.",
+      nameLabel: "الاسم",
+      levelNote:
+        "يُحتسب مستواه كمتوسط مستوى اللاعبين الآخرين في كل مباراة، ولا تتغير إلا مستويات اللاعبين الحقيقيين.",
+      submit: (name: string) =>
+        name ? `إضافة ${isolate(name)} كضيف` : "إضافة كضيف",
+      addedToast: (name: string) => `أُضيف ${isolate(name)} كضيف`,
+      tag: "ضيف",
+      nameGuest: (name: string) => `${isolate(name)}، ضيف`,
+      renameDescription: "اسمه في هذه المباراة.",
+    },
     fromGroup: {
       tab: "من المجموعة",
       phoneTab: "بالهاتف",
@@ -736,10 +747,103 @@ export const group = {
         other: "لا يتجاوز {n} حرف",
       }),
   },
-  teams: {
-    title: "الفرق",
-    createLabel: "إنشاء فريق",
-    empty: "لا فرق موسومة بهذه المجموعة بعد.",
-    openTeam: (team: string) => `فتح ${team}`,
+  nickname: {
+    spoken: (nickname: string, name: string) =>
+      `${nickname}، اسم ${name} في هذه المجموعة`,
+    menuLabel: "الاسم في هذه المجموعة",
+    menuHint: "ما تناديه به هنا، لتميّز بين اللاعبين",
+    addMenuLabel: "أضف لقبًا في المجموعة",
+    title: "الاسم في هذه المجموعة",
+    forMember: (name: string, group: string) => `لـ${name}، في ${group} فقط.`,
+    forYou: (group: string) => `لك، في ${group} فقط.`,
+    fieldLabel: "الاسم",
+    placeholder: "بماذا تناديه؟",
+    counter: (count: number, max: number) => `${count} من ${max}`,
+    counterSpoken: (count: number, max: number) => `${count} من ${max} حرفًا`,
+    previewLabel: "كيف سيظهر في هذه المجموعة",
+    noNickname: "لا اسم في هذه المجموعة",
+    whoSees: "من يراه",
+    visibility: {
+      approvers: {
+        title: "المنظّمون فقط",
+        description: "تسمية عمل لمن يدير المباريات.",
+      },
+      group: {
+        title: "كل من في المجموعة",
+        description: "الاسم الذي تناديه به المجموعة كلها.",
+      },
+    },
+    approversNote: (firstName: string) =>
+      `لن يرى ${firstName} هذا الاسم. يراه منظّمو المجموعة فقط.`,
+    groupNote: (firstName: string) =>
+      `سيراه ${firstName} وكل من في المجموعة بجانب اسمه.`,
+    approversNoteSelf: "يرى هذا الاسم منظّمو المجموعة فقط، وأنت منهم.",
+    groupNoteSelf: "سيراه كل من في المجموعة بجانب اسمك.",
+    save: (nickname: string) => `احفظ «${nickname}»`,
+    typeFirst: "اكتب اسمًا أولًا",
+    clear: "امسح الاسم",
+    savedToast: (nickname: string) => `حُفظ «${nickname}»`,
+    clearedToast: (name: string) => `لم يعد لـ${name} اسم في هذه المجموعة`,
+    youAre: "اسمك في هذه المجموعة",
+    youAreNote:
+      "اسم أعطاك إياه منظّمو المجموعة. يراه كل من في المجموعة بجانب اسمك، ولا يظهر في أي مكان آخر.",
+    youAreSpoken: (nickname: string) =>
+      `اسمك في هذه المجموعة ${nickname}. اسم أعطاك إياه منظّمو المجموعة. يراه كل من في المجموعة بجانب اسمك، ولا يظهر في أي مكان آخر.`,
+    legend:
+      "علامة الوسم تعني اسمًا أعطته هذه المجموعة. يظهر في هذه المجموعة فقط، ولا يتغيّر اسم اللاعب في Temba ولا ملفه.",
+  },
+  errors: {
+    notFound: "المجموعة غير موجودة",
+    cannotJoin: "لا يمكنك الانضمام إلى هذه المجموعة",
+    approverOnly: "هذا لمن يوافق على أعضاء المجموعة فقط",
+    inviterOnly: "لا يدير دعوات هذه المجموعة إلا منشئها أو أحد منظّميها",
+    seasonsOwnerOnly: "مالك المجموعة وحده يستطيع إدارة المواسم",
+    notLinkedToVenue: "هذه المجموعة غير مرتبطة بالنادي",
+    deleteOwnerOnly: "مالك المجموعة وحده يستطيع حذفها",
+    editOwnerOnly: "مالك المجموعة وحده يستطيع تعديلها",
+    transferOwnerOnly: "مالك المجموعة وحده يستطيع نقل الملكية",
+    alreadyMember: "أنت عضو في هذه المجموعة بالفعل",
+    userAlreadyMember: "هذا المستخدم عضو في هذه المجموعة بالفعل",
+    notMember: "لست عضوًا في هذه المجموعة",
+    linkRequestNotFound: "طلب ربط المجموعة غير موجود",
+    linkRequestNotPending: "لم يعد طلب ربط المجموعة معلّقًا",
+    creatorDecides: "منشئ المجموعة وحده يستطيع البتّ في هذا الطلب",
+    looseOnlyLink: "لا تُربط بنادٍ إلا مجموعة حرة",
+    linkArchivedVenue: "لا يمكن ربط مجموعة بنادٍ مؤرشف",
+    creatorUnlinks: "منشئ المجموعة وحده يستطيع فك ارتباطها بالنادي",
+    pendingLinkRequest: "لدى هذه المجموعة طلب ربط معلّق من هذا النادي بالفعل",
+    playerAlreadyIn: (name: string) =>
+      `${isolate(name)} في هذه المجموعة بالفعل`,
+    joinRequestNotFound: "طلب الانضمام غير موجود",
+    joinRequestNotPending: "لم يعد طلب الانضمام معلّقًا",
+    joinRequestNotDecided: "لم يُبتّ في طلب الانضمام بعد",
+    alreadyPlayed: "سبق أن لعب في هذه المجموعة",
+    isOrganizer: "إنه منظّم في هذه المجموعة",
+    seasonNotFound: "الموسم غير موجود",
+    seasonNotActive: "لا يُغلق إلا الموسم النشط",
+    privateNoUrlJoin: "لا يمكن الانضمام إلى المجموعات الخاصة عبر رابط المجموعة",
+    requiresApproval: "تتطلب هذه المجموعة موافقة. اطلب الانضمام بدلًا من ذلك.",
+    cannotRequestJoin: "لا يمكنك طلب الانضمام إلى هذه المجموعة",
+    playerNotInGroup: "هذا اللاعب ليس في المجموعة",
+    ownerCannotLeave: "انقل الملكية إلى عضو آخر قبل المغادرة، أو احذف المجموعة",
+    cannotRemoveCreator: "لا يمكن إزالة منشئ المجموعة",
+    removeSelf: "غادر المجموعة بدلًا من ذلك",
+    onlyUnclaimedRemovable: "لا يُزال إلا اللاعبون الذين ليسوا على Temba بعد",
+    sportLocked: "تُثبَّت الرياضة بعد أول مباراة في المجموعة",
+    alwaysOrganizer: "منشئ المجموعة منظّم دائمًا",
+    unclaimedOrganizer: "لا يكون منظّمًا من ليس على Temba بعد",
+    alreadyOwner: "إنه مالك هذه المجموعة بالفعل",
+    unclaimedOwner: "لا يملك مجموعةً من ليس على Temba بعد",
+    standingMembersOnly: "انضم إلى المجموعة لترى ترتيبها",
+    approvalPublicOnly: "اشتراط الموافقة للمجموعات العامة فقط",
+    imageEmpty: "ملف الصورة فارغ",
+    nicknameTooLong: (max: number) =>
+      plural("ar", max, {
+        one: "لا يتجاوز الاسم حرفًا واحدًا",
+        two: "لا يتجاوز الاسم حرفين",
+        few: "لا يتجاوز الاسم {n} أحرف",
+        many: "لا يتجاوز الاسم {n} حرفًا",
+        other: "لا يتجاوز الاسم {n} حرف",
+      }),
   },
 } satisfies typeof source;

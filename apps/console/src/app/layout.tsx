@@ -5,20 +5,25 @@ import { type Appearance } from "@clerk/ui";
 import { shadcn } from "@clerk/ui/themes";
 import { type Metadata } from "next";
 
+import { LocaleProvider } from "~/components/locale-provider";
 import { Toaster } from "~/components/ui/sonner";
+import { getRequestLocale, getRequestMessages } from "~/lib/request-locale";
 import { TRPCReactProvider } from "~/trpc/react";
+import { localeDirection } from "@repo/i18n/locale";
 
-import { display, mono, sans } from "./fonts";
+import { arabic, display, mono, sans } from "./fonts";
 
-export const metadata: Metadata = {
-  title: {
-    template: "%s · Venue console · Temba",
-    default: "Venue console · Temba",
-  },
-  description:
-    "Run your Venue on Temba: schedule, Bookings, Courts and pricing.",
-  icons: [{ rel: "icon", url: "/favicon.svg", type: "image/svg+xml" }],
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const m = (await getRequestMessages()).consoleShell;
+  return {
+    title: {
+      template: m.metaTitleTemplate("%s"),
+      default: m.metaTitle,
+    },
+    description: m.metaDescription,
+    icons: [{ rel: "icon", url: "/favicon.svg", type: "image/svg+xml" }],
+  };
+}
 
 const clerkAppearance = {
   theme: shadcn,
@@ -36,13 +41,16 @@ const clerkAppearance = {
   },
 } satisfies Appearance;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getRequestLocale();
+
   return (
     <html
-      lang="en"
-      className={`${sans.variable} ${mono.variable} ${display.variable}`}
+      lang={locale}
+      dir={localeDirection(locale)}
+      className={`${sans.variable} ${mono.variable} ${display.variable} ${arabic.variable}`}
     >
       <body className="font-sans antialiased">
         <ClerkProvider
@@ -50,10 +58,12 @@ export default function RootLayout({
           signInUrl="/login"
           signInFallbackRedirectUrl="/"
         >
-          <TRPCReactProvider>
-            {children}
-            <Toaster />
-          </TRPCReactProvider>
+          <LocaleProvider locale={locale}>
+            <TRPCReactProvider>
+              {children}
+              <Toaster />
+            </TRPCReactProvider>
+          </LocaleProvider>
         </ClerkProvider>
       </body>
     </html>

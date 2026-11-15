@@ -4,6 +4,7 @@ import { db } from "@repo/db";
 import { createApp } from "./app";
 import { clerkAuthenticator } from "./context";
 import { env } from "./env";
+import { gracefulShutdown } from "./shutdown";
 import { startWorker } from "./worker";
 
 const app = createApp({
@@ -22,6 +23,7 @@ const app = createApp({
   webOrigin: env.WEB_ORIGIN,
   webhookSigningSecret: env.CLERK_WEBHOOK_SIGNING_SECRET,
   paymentReturnUrl: env.PAYMENT_RETURN_URL,
+  trustProxyHops: env.TRUST_PROXY_HOPS,
 });
 
 const server = env.API_ENABLED
@@ -37,8 +39,7 @@ const worker = env.WORKER_ENABLED
     })
   : undefined;
 
-process.once("SIGTERM", () => {
-  server?.close();
-  void worker?.stop().finally(() => process.exit(0));
-  if (!worker) process.exit(0);
-});
+const shutdown = gracefulShutdown({ server, worker });
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+  process.once(signal, () => void shutdown(signal));
+}

@@ -1,13 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import {
-  levelFromApi,
-  noLevelCopy,
-  standingCountLabel,
-  standingInSport,
-  venueCountLabel,
-} from "./home-model";
+import { levelFromApi, noLevelCopy, standingInSport } from "./home-model";
 import type { RouterOutputs } from "../trpc/react";
 
 type ApiRating = RouterOutputs["ratings"]["me"];
@@ -15,13 +9,19 @@ type ApiRating = RouterOutputs["ratings"]["me"];
 describe("levelFromApi", () => {
   it("has no Level before the first Rating in a sport", () => {
     const data = {
+      face: "level",
+      ovr: null,
+      levelValue: null,
       rating: null,
       canSelfDeclare: true,
       progressPercent: null,
       nextBand: null,
       history: [],
+      historySteps: [],
       historyMatchCount: 0,
       ratedMatchCount: 0,
+      changeOverLast: null,
+      lastMatch: null,
     } as ApiRating;
     assert.deepEqual(levelFromApi(data), { kind: "none" });
     assert.equal(
@@ -30,24 +30,63 @@ describe("levelFromApi", () => {
     );
   });
 
-  it("carries the band, Level and progress of a Rating", () => {
+  it("carries what the Ratings screen reads: the Level, its status and the last counting Matches", () => {
     const data = {
+      face: "level",
       rating: {
         levelBand: "C3",
         level: "2.8",
         provisional: true,
         ratedMatchesRemaining: 3,
       },
-      progressPercent: 1,
-      history: ["3.2", "2.8"],
+      levelValue: 2.79,
+      ratedMatchCount: 2,
+      changeOverLast: { matches: 2, delta: -0.4, points: [3.19, 2.79] },
+      lastMatch: null,
+      history: ["3.19", "2.79"],
+      historySteps: ["lost"],
       historyMatchCount: 1,
     } as unknown as ApiRating;
+    assert.deepEqual(levelFromApi(data), {
+      kind: "rated",
+      input: {
+        sport: "padel",
+        face: "level",
+        levelValue: 2.79,
+        rating: {
+          levelBand: "C3",
+          provisional: true,
+          ratedMatchesRemaining: 3,
+        },
+        ratedMatchCount: 2,
+        changeOverLast: { matches: 2, delta: -0.4, points: [3.19, 2.79] },
+        lastMatch: null,
+        history: ["3.19", "2.79"],
+        historySteps: ["lost"],
+        historyMatchCount: 1,
+      },
+    });
+  });
+
+  it("reads a football Level on the OVR face", () => {
+    const data = {
+      face: "ovr",
+      ovr: 72,
+      rating: {
+        levelBand: "C1",
+        level: "3.9",
+        provisional: true,
+        ratedMatchesRemaining: 5,
+      },
+      levelValue: 3.9,
+      ratedMatchCount: 0,
+      changeOverLast: null,
+      lastMatch: null,
+    } as unknown as ApiRating;
     const level = levelFromApi(data);
-    assert.equal(level.kind, "rated");
-    if (level.kind !== "rated") return;
-    assert.equal(level.input.level, "2.8");
-    assert.equal(level.input.progressPercent, 1);
-    assert.equal(level.input.historyMatchCount, 1);
+    if (level.kind !== "rated") throw new Error("Expected a rated Level");
+    assert.equal(level.input.sport, "football");
+    assert.equal(level.input.face, "ovr");
   });
 });
 
@@ -84,15 +123,6 @@ describe("per-sport sections", () => {
       standingInSport(rows, "football").map((row) => row.groupId),
       ["b"],
     );
-    assert.equal(standingCountLabel(1, "en"), "1 group");
-    assert.equal(standingCountLabel(7, "en"), "7 groups");
-  });
-
-  it("counts bookable Venues for the empty Up next", () => {
-    assert.equal(venueCountLabel(null, "en"), null);
-    assert.equal(venueCountLabel(0, "en"), "No venues yet");
-    assert.equal(venueCountLabel(1, "en"), "1 venue nearby");
-    assert.equal(venueCountLabel(3, "en"), "3 venues nearby");
   });
 
   it("reads its labels from the Arabic catalog", () => {
@@ -100,7 +130,5 @@ describe("per-sport sections", () => {
       noLevelCopy("padel", "ar"),
       "العب مباراة بادل مصنّفة ويظهر مستواك في البادل.",
     );
-    assert.equal(standingCountLabel(2, "ar"), "مجموعتان");
-    assert.equal(venueCountLabel(3, "ar"), "3 أندية قريبة");
   });
 });

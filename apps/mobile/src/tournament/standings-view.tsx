@@ -458,11 +458,13 @@ export function StandingsView({
   standings,
   onCancelMatch,
   onOpenPlayer,
+  playerOpensActions,
 }: {
   game: TournamentDetails;
   standings: TournamentStandingsView;
   onCancelMatch?: ComponentProps<typeof KnockoutTree>["onCancelMatch"];
   onOpenPlayer?: (userId: string) => void;
+  playerOpensActions?: (userId: string) => boolean;
 }) {
   const messages = useMessages();
   const { poolTables, knockout } = game;
@@ -510,6 +512,7 @@ export function StandingsView({
           team={openTeam}
           onClose={() => setOpenTeam(null)}
           onOpenPlayer={onOpenPlayer}
+          opensActions={playerOpensActions}
         />
       ) : null}
     </View>

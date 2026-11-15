@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # SessionStart hook for Claude Code on the web. Installs workspace packages,
-# writes the .env files, starts PostgreSQL and applies migrations. A no-op
+# writes the .env files, starts PostgreSQL and applies migrations to it (never
+# to the environment's own DATABASE_URL, see scripts/cloud/local-database.sh). A no-op
 # outside the cloud. Running processes do not survive a paused session, so this
 # also runs on resume; every step is idempotent.
 set -euo pipefail
@@ -63,7 +64,13 @@ start_database() {
 step "pnpm install" install_packages
 step ".env files" bash scripts/cloud/sync-env.sh
 step "PostgreSQL on :5432" start_database
-step "db:migrate" pnpm exec turbo run db:migrate
+step "db:migrate" bash scripts/cloud/local-database.sh pnpm exec turbo run db:migrate
+
+# The environment's DATABASE_URL wins over the .env files, so the session's
+# shells get the local one unless the remote one is opted into.
+if [ -n "${CLAUDE_ENV_FILE:-}" ] && [ "${TEMBA_ALLOW_REMOTE_DATABASE:-}" != "1" ]; then
+  echo "export DATABASE_URL=\"$(bash scripts/cloud/local-database.sh --print)\"" >>"$CLAUDE_ENV_FILE"
+fi
 
 if ! grep -q '^NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_' apps/web/.env; then
   if [ -n "${CLAUDE_ENV_FILE:-}" ]; then

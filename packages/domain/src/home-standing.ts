@@ -10,6 +10,8 @@ export type HomeStandingRow = {
   /** Null until the User has a counted Match in the Season. */
   position: number | null;
   memberCount: number;
+  /** The User's counted Matches in the Group's Season. */
+  countedGames?: number;
 };
 
 export type HomeStandingRowView = {
@@ -32,5 +34,19 @@ export function homeStandingRowView(
     rank: row.position == null ? m.unranked : `#${row.position}`,
     ofCount:
       row.position == null ? m.noCountedGames : m.ofCount(row.memberCount),
+  };
+}
+
+/** Groups where the User has counted games, and how many fold into one row. */
+export function standingSplit(rows: readonly HomeStandingRow[]): {
+  counted: HomeStandingRow[];
+  uncounted: number;
+  total: number;
+} {
+  const counted = rows.filter((row) => row.position != null);
+  return {
+    counted,
+    uncounted: rows.length - counted.length,
+    total: rows.length,
   };
 }

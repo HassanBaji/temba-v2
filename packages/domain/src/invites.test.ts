@@ -239,6 +239,14 @@ describe("gameInviteAccess", () => {
     ).toBe(false);
   });
 
+  it("closes the doors once a tournament is over", () => {
+    const tournament = { ...base, friendlyChrome: false };
+    expect(gameInviteAccess({ ...tournament, over: true })).toEqual({
+      canManage: false,
+      canSendLookup: false,
+    });
+  });
+
   it("keeps the link but drops Lookup invites for Team-only and partner-only", () => {
     expect(
       gameInviteAccess({ ...base, registrationMode: "team_only" }),

@@ -10,21 +10,24 @@ import {
 describe("openToLabel", () => {
   it("names the last closing time of the day", () => {
     expect(
-      openToLabel([
-        { opensAtMinutes: 360, closesAtMinutes: 720 },
-        { opensAtMinutes: 960, closesAtMinutes: 1410 },
-      ]),
+      openToLabel(
+        [
+          { opensAtMinutes: 360, closesAtMinutes: 720 },
+          { opensAtMinutes: 960, closesAtMinutes: 1410 },
+        ],
+        "en",
+      ),
     ).toBe("Open to 11:30 PM");
-    expect(openToLabel([{ opensAtMinutes: 360, closesAtMinutes: 1440 }])).toBe(
-      "Open to Midnight",
-    );
-    expect(openToLabel([{ opensAtMinutes: 960, closesAtMinutes: 1500 }])).toBe(
-      "Open to 1 AM",
-    );
+    expect(
+      openToLabel([{ opensAtMinutes: 360, closesAtMinutes: 1440 }], "en"),
+    ).toBe("Open to Midnight");
+    expect(
+      openToLabel([{ opensAtMinutes: 960, closesAtMinutes: 1500 }], "en"),
+    ).toBe("Open to 1 AM");
   });
 
   it("says closed for a day without windows", () => {
-    expect(openToLabel([])).toBe("Closed today");
+    expect(openToLabel([], "en")).toBe("Closed today");
   });
 });
 
@@ -46,15 +49,18 @@ describe("todayWindows", () => {
 describe("fromPriceLabel", () => {
   it("prices from the cheapest rule", () => {
     expect(
-      fromPriceLabel([{ hourlyRateFils: 12_000 }, { hourlyRateFils: 8_000 }]),
-    ).toBe(fromPriceLabel([{ hourlyRateFils: 8_000 }]));
-    expect(fromPriceLabel([])).toBeNull();
+      fromPriceLabel(
+        [{ hourlyRateFils: 12_000 }, { hourlyRateFils: 8_000 }],
+        "en",
+      ),
+    ).toBe(fromPriceLabel([{ hourlyRateFils: 8_000 }], "en"));
+    expect(fromPriceLabel([], "en")).toBeNull();
   });
 });
 
 describe("courtCountLabel", () => {
   it("counts courts", () => {
-    expect(courtCountLabel(1)).toBe("1 court");
-    expect(courtCountLabel(4)).toBe("4 courts");
+    expect(courtCountLabel(1, "en")).toBe("1 court");
+    expect(courtCountLabel(4, "en")).toBe("4 courts");
   });
 });

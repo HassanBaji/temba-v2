@@ -8,6 +8,7 @@ import {
   groupJoiningToggleHelp,
   groupLeaveBlockedHint,
   groupMenuItems,
+  groupMenuLabel,
   groupMenuRoleLine,
   groupSeasonCount,
   groupTransferCandidates,
@@ -34,6 +35,20 @@ describe("groupMenuItems", () => {
         canCopyLink: false,
       }),
     ).toEqual(["leave"]);
+  });
+
+  it("gives an Organizer of a tier Group Rating settings, before Leave", () => {
+    expect(
+      groupMenuItems({
+        isMember: true,
+        canEdit: false,
+        canInvite: true,
+        canCopyLink: true,
+        canChangeRatingSettings: true,
+      }),
+    ).toEqual(["invite", "copy_link", "rating_settings", "leave"]);
+    expect(groupMenuLabel("rating_settings", "en")).toBe("Rating settings");
+    expect(groupMenuLabel("rating_settings", "ar")).toBe("إعدادات التقييم");
   });
 
   it("is empty for someone outside the Group with no powers", () => {

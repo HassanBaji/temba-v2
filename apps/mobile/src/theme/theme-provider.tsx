@@ -1,4 +1,8 @@
-import { palettes, type ColorScheme, type Palette } from "@repo/design-tokens";
+import {
+  invertedFocusPalettes,
+  type ColorScheme,
+  type Palette,
+} from "@repo/design-tokens";
 import {
   createContext,
   useCallback,
@@ -27,7 +31,7 @@ const ThemeContext = createContext<ThemeContextValue>({
   appearance: DEFAULT_APPEARANCE,
   setAppearance: () => undefined,
   scheme: "light",
-  colors: palettes.light,
+  colors: invertedFocusPalettes.light,
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -61,7 +65,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<ThemeContextValue>(() => {
     const scheme = resolveColorScheme(appearance, system);
-    return { appearance, setAppearance, scheme, colors: palettes[scheme] };
+    return {
+      appearance,
+      setAppearance,
+      scheme,
+      colors: invertedFocusPalettes[scheme],
+    };
   }, [appearance, setAppearance, system]);
 
   return (
@@ -76,7 +85,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 export function LightScheme({ children }: { children: React.ReactNode }) {
   const outer = useContext(ThemeContext);
   const value = useMemo<ThemeContextValue>(
-    () => ({ ...outer, scheme: "light", colors: palettes.light }),
+    () => ({ ...outer, scheme: "light", colors: invertedFocusPalettes.light }),
     [outer],
   );
   return (

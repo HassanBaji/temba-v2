@@ -14,13 +14,13 @@ import { settleActions } from "~/components/bookings/booking-ledger-model";
 import { MarkPaidDialog } from "~/components/bookings/payment-dialogs";
 import { bookingPath } from "~/lib/console-paths";
 import { api } from "~/trpc/react";
-import { CONSOLE_LOCALE } from "~/lib/locale";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { paymentStatusLabel } from "@repo/domain/booking-payment";
 import { formatDayMonth } from "@repo/domain/format-game-start";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
 
 import { bookingTimeLabel } from "./booking-block";
-import { durationMinutes } from "./booking-model";
+import { durationLabel } from "~/components/bookings/booking-list-model";
 import { holderName, type VenueBooking } from "./booking-types";
 
 export function BookingPanel({
@@ -32,6 +32,8 @@ export function BookingPanel({
   booking: VenueBooking;
   onClose: () => void;
 }) {
+  const m = useMessages().consoleSchedule.panel;
+  const locale = useLocale();
   const settled =
     booking.status !== "pending_payment" && booking.status !== "cancelled";
   const [markingPaid, setMarkingPaid] = useState(false);
@@ -47,55 +49,59 @@ export function BookingPanel({
 
   return (
     <aside
-      aria-label="Selected Booking"
-      className="border-rule bg-paper flex w-[var(--console-panel-width)] shrink-0 flex-col overflow-y-auto border-l"
+      aria-label={m.selectedBooking}
+      className="border-rule bg-paper flex w-[var(--console-panel-width)] shrink-0 flex-col overflow-y-auto border-s"
     >
       <div className="flex items-center justify-between gap-3 px-[22px] pt-5">
         <h2 className="font-expanded min-w-0 truncate text-[20px]">
-          {holderName(booking.holder)}
+          {holderName(booking.holder, locale)}
         </h2>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={m.close}
           className="text-muted-foreground hover:bg-wash hover:text-ink rounded-block flex size-8 shrink-0 items-center justify-center transition-colors"
         >
           <X aria-hidden="true" className="size-4" />
         </button>
       </div>
       <p className="text-muted-foreground px-[22px] pt-1 text-[13px]">
-        {formatDayMonth(booking.startsAt, CONSOLE_LOCALE, { weekday: "long" })},{" "}
-        {bookingTimeLabel(booking)}
+        {m.dateAndTime(
+          formatDayMonth(booking.startsAt, locale, { weekday: "long" }),
+          bookingTimeLabel(booking, locale),
+        )}
       </p>
 
       <dl className="flex flex-col gap-4 px-[22px] pt-5">
-        <Row label="Customer">
+        <Row label={m.customer}>
           {booking.holder.kind === "guest"
-            ? booking.holder.phone || "Guest"
-            : "Temba account"}
+            ? booking.holder.phone || m.guest
+            : m.tembaAccount}
         </Row>
-        <Row label="Court">{booking.courtName}</Row>
-        <Row label="Time">{bookingTimeLabel(booking)}</Row>
-        <Row label="Duration">{durationMinutes(booking)} min</Row>
-        <Row label="Price">
-          {formatBookingPriceFils(booking.priceFils, CONSOLE_LOCALE)}
+        <Row label={m.court}>{booking.courtName}</Row>
+        <Row label={m.time}>{bookingTimeLabel(booking, locale)}</Row>
+        <Row label={m.duration}>
+          {durationLabel(booking.startsAt, booking.endsAt, locale)}
         </Row>
-        <Row label="Payment">
+        <Row label={m.price}>
+          {formatBookingPriceFils(booking.priceFils, locale)}
+        </Row>
+        <Row label={m.payment}>
           {settled ? (
             <Badge
               variant={booking.paymentStatus === "paid" ? "default" : "outline"}
             >
-              {paymentStatusLabel(booking.paymentStatus, CONSOLE_LOCALE)}
+              {paymentStatusLabel(booking.paymentStatus, locale)}
             </Badge>
           ) : (
             <Badge variant="outline">{booking.statusLabel}</Badge>
           )}
         </Row>
-        <Row label="Source">
-          {booking.source === "venue" ? "Manual" : "App booking"}
+        <Row label={m.source}>
+          {booking.source === "venue" ? m.manual : m.appBooking}
         </Row>
         {booking.status === "no_show" ? (
-          <Row label="Status">{booking.statusLabel}</Row>
+          <Row label={m.status}>{booking.statusLabel}</Row>
         ) : null}
       </dl>
 
@@ -108,20 +114,14 @@ export function BookingPanel({
             className="rounded-control h-10 min-h-10 w-full text-sm font-semibold shadow-none"
             onClick={() => setMarkingPaid(true)}
           >
-            Mark as paid
+            {m.markPaid}
           </Button>
         ) : null}
         {allowed?.edit || allowed?.noShow || allowed?.cancel ? (
           <div className="flex gap-2">
-            {(
-              [
-                ["edit", "Edit"],
-                ["noShow", "No-show"],
-                ["cancel", "Cancel"],
-              ] as const
-            )
-              .filter(([key]) => allowed[key])
-              .map(([key, label]) => (
+            {(["edit", "noShow", "cancel"] as const)
+              .filter((key) => allowed[key])
+              .map((key) => (
                 <Button
                   key={key}
                   type="button"
@@ -132,7 +132,7 @@ export function BookingPanel({
                     setAction(key);
                   }}
                 >
-                  {label}
+                  {m[key]}
                 </Button>
               ))}
           </div>
@@ -141,7 +141,7 @@ export function BookingPanel({
           asChild
           className="rounded-control h-10 min-h-10 w-full text-sm font-semibold"
         >
-          <Link href={bookingPath(venueId, booking.id)}>Open booking</Link>
+          <Link href={bookingPath(venueId, booking.id)}>{m.openBooking}</Link>
         </Button>
       </div>
 
@@ -168,7 +168,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4 text-[13px]">
       <dt className="text-muted-foreground shrink-0">{label}</dt>
-      <dd className="min-w-0 truncate text-right font-semibold">{children}</dd>
+      <dd className="min-w-0 truncate text-end font-semibold">{children}</dd>
     </div>
   );
 }

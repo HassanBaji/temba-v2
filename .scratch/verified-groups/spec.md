@@ -510,7 +510,7 @@ Settled: who grants (D1, D2), the name (D6), link grants permission and unlink r
 On 2026-10-24 the user accepted the recommended default (in bold) for every question below. Treat Q3–Q25 as settled.
 
 Carried over from the first draft:
-- **Q3.** Do Groups created by a `groupCreator` User start Verified? **Yes.**
+- **Q3.** Do Groups created by a `groupCreator` User start Verified? **Yes.** Reversed by ADR-0088: no new Group starts Verified.
 - **Q4.** One permission or two (rated vs public)? **One.**
 - **Q5.** Does Create Game open to every Organizer without `groupCreator`? **Yes.**
 - **Q6.** Does Create Club Group open to every Owner or Admin without `groupCreator`? **Yes.** Create Community stays staff-only.

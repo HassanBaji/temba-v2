@@ -50,6 +50,7 @@ export const mobileInvite = {
       organizerRow: "Organizer",
       levelFits: (range: string) => `${range}, yours fits`,
       levelOutside: (range: string) => `${range}, outside yours`,
+      levelApproved: (range: string) => `${range}, the organizer approved you`,
       memberNote: (group: string) => `${group}. You're a member.`,
       joinedNote: (group: string) => `${group}. You joined today.`,
       levelCard: {
@@ -57,6 +58,8 @@ export const mobileInvite = {
           `This game is ${range}. You're ${yours}, so you fit.`,
         outside: (range: string, yours: string) =>
           `This game is ${range}. You're ${yours}, so joining asks the organizer.`,
+        approved: (range: string, yours: string) =>
+          `This game is ${range}. You're ${yours}, and the organizer approved you.`,
         noLevel: (range: string) =>
           `This game is ${range}. Set your level to see if you fit.`,
         signedOut: (range: string) =>
@@ -139,6 +142,7 @@ export const mobileInvite = {
       landingNote: (group: string) =>
         `Games live inside groups. You can take this seat, or just join ${group} and pick a game later.`,
       joinGroup: "Join group",
+      goToGroup: "Go to group",
       joinGame: "Join game",
       seatsOpen: (n: number) =>
         plural("en", n, { one: "1 seat open", other: "{n} seats open" }),

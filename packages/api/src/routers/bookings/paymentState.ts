@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import { bookings } from "@repo/db";
 import { paymentStateFor } from "@repo/domain/booking-payment";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -14,19 +16,23 @@ type DbClient = typeof db;
 
 export async function getPaymentState(
   database: DbClient,
-  args: { bookingId: string; userId: string; now?: Date },
+  args: { bookingId: string; userId: string; now?: Date; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const booking = await database.query.bookings.findFirst({
     where: eq(bookings.id, args.bookingId),
     columns: { userId: true, status: true, holdExpiresAt: true },
   });
   if (!booking) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Booking not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).booking.errors.notFound,
+    });
   }
   if (booking.userId !== args.userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Only the holder can see this Booking's payment",
+      message: messagesFor(locale).booking.errors.holderSeesPayment,
     });
   }
 
@@ -45,5 +51,6 @@ export const paymentStateProcedure = protectedProcedure
     return getPaymentState(ctx.db, {
       bookingId: input.bookingId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

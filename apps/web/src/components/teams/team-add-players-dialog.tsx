@@ -54,6 +54,7 @@ import {
   toggleTeamGroupPick,
 } from "@repo/domain/team-roster-draft";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 type AddTab = "phone" | "temba" | "group";
 
@@ -151,6 +152,7 @@ export function TeamAddPlayersDialog({
   const isNew = previewData?.kind === "new";
 
   const addByPhone = api.teams.addPlayerByPhone.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async (result) => {
       toast.success(addGroupPlayerDoneToast(result, locale));
       resetPhone();
@@ -168,7 +170,7 @@ export function TeamAddPlayersDialog({
         open && tab === "temba" && query.trim().length >= SEARCH_MIN_LENGTH,
     },
   );
-  const inviteInApp = api.teams.inviteInApp.useMutation();
+  const inviteInApp = api.teams.inviteInApp.useMutation({ meta: OWN_ERROR_UI });
 
   const groupMembers = api.teams.listGroupMembersToAdd.useQuery(
     { groupId: activeGroupId ?? "", teamId },

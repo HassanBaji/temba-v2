@@ -1,6 +1,7 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { formatPadelLevel } from "./level";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 
 /**
@@ -212,7 +213,7 @@ export function friendlyGameLevelUpdatedLine(
 ): string {
   return messagesFor(locale).game.cta.levelUpdatedLine(
     displayLabelFromStoredBand(newLevelBand),
-    newLevel.toFixed(1),
+    formatPadelLevel(newLevel, 1),
   );
 }
 

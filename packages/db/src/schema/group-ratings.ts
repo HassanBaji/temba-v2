@@ -76,6 +76,9 @@ export const groupRatingEvents = pgTable(
     muAfter: doublePrecision("mu_after").notNull(),
     phiAfter: doublePrecision("phi_after").notNull(),
     sigmaAfter: doublePrecision("sigma_after").notNull(),
+    /** As on `rating_events`: restored by a wrong-score reversal. */
+    levelBandBefore: ratingLevelBands("level_band_before"),
+    lastRatedAtBefore: timestamp("last_rated_at_before"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => ({
@@ -86,6 +89,7 @@ export const groupRatingEvents = pgTable(
     userGroupCreatedAt: index(
       "group_rating_events_user_id_group_id_created_at_idx",
     ).on(table.userId, table.groupId, table.createdAt),
+    matchIdx: index("group_rating_events_match_id_idx").on(table.matchId),
   }),
 );
 
@@ -115,7 +119,7 @@ export const groupLevelOverrides = pgTable(
       .references(() => groups.id, { onDelete: "cascade" })
       .notNull(),
     setByUserId: uuid("set_by_user_id")
-      .references(() => user.id, { onDelete: "cascade" })
+      .references(() => user.id, { onDelete: "restrict" })
       .notNull(),
     muBefore: doublePrecision("mu_before").notNull(),
     phiBefore: doublePrecision("phi_before").notNull(),

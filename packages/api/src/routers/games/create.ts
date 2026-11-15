@@ -1,12 +1,15 @@
 import { TRPCError } from "@trpc/server";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
   GameFormatEnum,
   GameRegistrationModeEnum,
   GameSportEnum,
+  courts,
   gameCourts,
   games,
+  venues,
 } from "@repo/db";
 
 import { protectedProcedure } from "#src/trpc";
@@ -30,10 +33,12 @@ import {
   LEVEL_TENTHS_MAX,
   LEVEL_TENTHS_MIN,
 } from "@repo/domain/level-range";
-import { DEFAULT_LOCALE } from "@repo/i18n/locale";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_FOOTBALL_SIDE_SIZE } from "@repo/domain/game-shape";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
-import { sportOrDefault } from "@repo/domain/sport";
+import { DEFAULT_SPORT, sportOrDefault, type Sport } from "@repo/domain/sport";
+import { sportSchema } from "@repo/validators/sport";
 import { ratingFlagsAtCreate } from "@repo/domain/game-rating-scope";
 import { MVP_MODES } from "@repo/domain/marks";
 import {
@@ -42,6 +47,14 @@ import {
 } from "@repo/domain/game-custom-name";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+type GroupGameInput = CreateGameInput & { groupId: string };
+
+// The input schema is parsed before the request Locale is known, so its
+// issues read in the default Locale.
+const PICK_GROUP = messagesFor(DEFAULT_LOCALE).createGame.validation.pickGroup;
+const PAYMENTS_NEED_PRICE =
+  messagesFor(DEFAULT_LOCALE).gamePayments.errors.needsPrice;
 
 const registrationModeSchema = z.enum(["individual", "team_only"]);
 const createFormatSchema = z.enum([
@@ -54,8 +67,11 @@ export const createGameInputSchema = z
   .object({
     name: z.string().trim().max(255).optional(),
     customName: z.string().trim().max(GAME_CUSTOM_NAME_MAX_LENGTH).optional(),
-    groupId: z.string().uuid({ message: "Pick a Group" }),
+    /** Omitted only for a Public Game (ADR-0071). */
+    groupId: z.string().uuid({ message: PICK_GROUP }).optional(),
     isPublic: z.boolean(),
+    /** A Public Game's sport; a Group's Game takes its Group's. Omitted = padel. */
+    sport: sportSchema.optional(),
     /** False makes the Game Unrated (ADR-0053). */
     rated: z.boolean().optional(),
     format: createFormatSchema.default("friendly_game"),
@@ -91,6 +107,10 @@ export const createGameInputSchema = z
       .optional(),
     /** How the MVP is decided; Friendly game only. Omitted = players vote. */
     mvpMode: z.enum(MVP_MODES).optional(),
+    /** Only with a price above zero. */
+    trackPayments: z.boolean().optional(),
+    /** Football only: keepers owe nothing while payments are tracked. */
+    keepersPlayFree: z.boolean().optional(),
   })
   .refine((value) => value.windowEnd.getTime() >= value.windowStart.getTime(), {
     message: "Finish time must be at or after start time",
@@ -130,6 +150,20 @@ export const createGameInputSchema = z
     },
   )
   .superRefine((value, ctx) => {
+    if (value.groupId === undefined && !value.isPublic) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: PICK_GROUP,
+        path: ["groupId"],
+      });
+    }
+    if (value.groupId !== undefined && value.sport !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: messagesFor(DEFAULT_LOCALE).game.errors.publicGameSportOnly,
+        path: ["sport"],
+      });
+    }
     if (value.format === "friendly_game" && value.courtIds !== undefined) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -149,6 +183,13 @@ export const createGameInputSchema = z
         code: z.ZodIssueCode.custom,
         message: "Only a Friendly game has an MVP",
         path: ["mvpMode"],
+      });
+    }
+    if (value.trackPayments && (value.pricePerPlayerFils ?? 0) <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: PAYMENTS_NEED_PRICE,
+        path: ["trackPayments"],
       });
     }
     if (
@@ -190,50 +231,210 @@ function friendlyGameNameFields(
 
 async function createFootballGameOnGroup(
   database: DbClient,
-  input: CreateGameInput,
+  input: GroupGameInput,
+  flags: { rated: boolean; groupRated: boolean },
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (input.format !== "friendly_game") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Football Games are Friendly games",
+      message: messagesFor(locale).football.errors.friendlyOnly,
     });
   }
-  if (input.levelMinTenths != null || input.levelMaxTenths != null) {
+  // A Level range gates who may join on their Temba Level, so only a Game
+  // that counts for it has one (ADR-0069).
+  if (
+    !flags.rated &&
+    (input.levelMinTenths != null || input.levelMaxTenths != null)
+  ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Football Games have no Level range",
+      message: messagesFor(locale).football.errors.noLevelRange,
     });
   }
   const sideSize = input.sideSize ?? DEFAULT_FOOTBALL_SIDE_SIZE;
-  const created = await createFootballGame(database, {
-    createdBy: input.createdBy,
-    ...friendlyGameNameFields(input),
-    groupId: input.groupId,
-    venueId: input.venueId,
-    courtId: input.courtId,
-    windowStart: input.windowStart,
-    windowEnd: input.windowEnd,
-    pricePerPlayerFils: input.pricePerPlayerFils ?? null,
-    sideSize,
-    playersAllowed: input.playersAllowed ?? 2 * sideSize,
-    mvpMode: input.mvpMode,
-  });
+  const created = await createFootballGame(
+    database,
+    {
+      createdBy: input.createdBy,
+      ...friendlyGameNameFields(input),
+      groupId: input.groupId,
+      venueId: input.venueId,
+      courtId: input.courtId,
+      windowStart: input.windowStart,
+      windowEnd: input.windowEnd,
+      pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+      sideSize,
+      playersAllowed: input.playersAllowed ?? 2 * sideSize,
+      mvpMode: input.mvpMode,
+      levelMinTenths: input.levelMinTenths ?? null,
+      levelMaxTenths: input.levelMaxTenths ?? null,
+      trackPayments: input.trackPayments,
+      keepersPlayFree: input.keepersPlayFree,
+      ...flags,
+    },
+    locale,
+  );
   return { id: created.game.id, matchId: null as string | null };
 }
 
-export async function createGame(database: DbClient, input: CreateGameInput) {
-  const created = await createGameOnGroup(database, input);
+/** A Game may start a little before it is saved, never earlier. */
+const WINDOW_START_GRACE_MS = 15 * 60 * 1000;
+
+export async function createGame(
+  database: DbClient,
+  input: CreateGameInput,
+  options: { now?: Date; locale?: Locale } = {},
+) {
+  const locale = options.locale ?? DEFAULT_LOCALE;
+  const now = options.now ?? new Date();
+  if (input.windowStart.getTime() < now.getTime() - WINDOW_START_GRACE_MS) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(options.locale ?? DEFAULT_LOCALE).game.errors
+        .startInPast,
+    });
+  }
+  const created = input.groupId
+    ? await createGameOnGroup(
+        database,
+        { ...input, groupId: input.groupId },
+        locale,
+      )
+    : await createPublicGame(database, input, locale);
   await linkNewGameToSeason(database, {
     id: created.id,
-    groupId: input.groupId,
+    groupId: input.groupId ?? null,
     windowStart: input.windowStart,
   });
   return created;
 }
 
-async function createGameOnGroup(database: DbClient, input: CreateGameInput) {
-  const group = await requireGroup(database, input.groupId);
-  await assertMayCreateGameOnGroup(database, group, input.createdBy);
+/**
+ * Only a partner Venue hosts a Public Game, read from the stored mark, never
+ * inferred (ADR-0071), and it must offer the Game's sport.
+ */
+async function assertPublicGameVenue(
+  database: DbClient,
+  venueId: string,
+  sport: Sport,
+  locale: Locale,
+) {
+  const errors = messagesFor(locale).game.errors;
+  const venue = await database.query.venues.findFirst({
+    where: eq(venues.id, venueId),
+    columns: { id: true, partnerAt: true },
+  });
+  if (!venue) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).venue.errors.notFound,
+    });
+  }
+  if (venue.partnerAt === null) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: errors.publicGamePartnerVenue,
+    });
+  }
+  const court = await database.query.courts.findFirst({
+    where: and(eq(courts.venueId, venueId), eq(courts.sport, sport)),
+    columns: { id: true },
+  });
+  if (!court) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        sport === "football"
+          ? errors.publicGameFootballVenue
+          : errors.publicGamePadelVenue,
+    });
+  }
+}
+
+/**
+ * A Public Game: a groupless Friendly game at a partner Venue that anyone
+ * inside its Level range may join (ADR-0071). It counts for Temba Level once
+ * one player from each side confirms its score within 24 hours. A football
+ * one keeps the usual side size and reads its Level range in OVR.
+ */
+async function createPublicGame(
+  database: DbClient,
+  input: CreateGameInput,
+  locale: Locale,
+) {
+  if (!input.isPublic || input.format !== "friendly_game") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).game.errors.publicGameOnly,
+    });
+  }
+  const sport = input.sport ?? DEFAULT_SPORT;
+  await assertPublicGameVenue(database, input.venueId, sport, locale);
+  const flags = ratingFlagsAtCreate({
+    hasGroup: false,
+    groupVerified: false,
+    sport,
+    rated: true,
+    isPublic: true,
+  });
+  if (sport === "football") {
+    const sideSize = input.sideSize ?? DEFAULT_FOOTBALL_SIDE_SIZE;
+    const created = await createFootballGame(
+      database,
+      {
+        createdBy: input.createdBy,
+        ...friendlyGameNameFields(input),
+        groupId: null,
+        isPublic: true,
+        venueId: input.venueId,
+        courtId: input.courtId,
+        windowStart: input.windowStart,
+        windowEnd: input.windowEnd,
+        pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+        sideSize,
+        playersAllowed: input.playersAllowed ?? 2 * sideSize,
+        mvpMode: input.mvpMode,
+        levelMinTenths: input.levelMinTenths ?? null,
+        levelMaxTenths: input.levelMaxTenths ?? null,
+        trackPayments: input.trackPayments,
+        keepersPlayFree: input.keepersPlayFree,
+        ...flags,
+      },
+      locale,
+    );
+    return { id: created.game.id, matchId: null as string | null };
+  }
+  const created = await createFriendlyGame(
+    database,
+    {
+      createdBy: input.createdBy,
+      ...friendlyGameNameFields(input),
+      groupId: null,
+      isPublic: true,
+      venueId: input.venueId,
+      courtId: input.courtId,
+      windowStart: input.windowStart,
+      windowEnd: input.windowEnd,
+      pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+      levelMinTenths: input.levelMinTenths ?? null,
+      levelMaxTenths: input.levelMaxTenths ?? null,
+      ...flags,
+      mvpMode: input.mvpMode,
+      trackPayments: input.trackPayments,
+    },
+    locale,
+  );
+  return { id: created.game.id, matchId: created.matchId };
+}
+
+async function createGameOnGroup(
+  database: DbClient,
+  input: GroupGameInput,
+  locale: Locale = DEFAULT_LOCALE,
+) {
+  const group = await requireGroup(database, input.groupId, locale);
+  await assertMayCreateGameOnGroup(database, group, input.createdBy, locale);
 
   const isAmericano = input.format === "americano";
   const isTournament = input.format === "friendly_tournament";
@@ -245,25 +446,35 @@ async function createGameOnGroup(database: DbClient, input: CreateGameInput) {
   });
 
   if (sportOrDefault(group.sport) === "football") {
-    return createFootballGameOnGroup(database, input);
+    return createFootballGameOnGroup(
+      database,
+      input,
+      { rated, groupRated },
+      locale,
+    );
   }
 
   if (!isAmericano && !isTournament) {
-    const created = await createFriendlyGame(database, {
-      createdBy: input.createdBy,
-      ...friendlyGameNameFields(input),
-      groupId: input.groupId,
-      venueId: input.venueId,
-      courtId: input.courtId,
-      windowStart: input.windowStart,
-      windowEnd: input.windowEnd,
-      pricePerPlayerFils: input.pricePerPlayerFils ?? null,
-      levelMinTenths: input.levelMinTenths ?? null,
-      levelMaxTenths: input.levelMaxTenths ?? null,
-      rated,
-      groupRated,
-      mvpMode: input.mvpMode,
-    });
+    const created = await createFriendlyGame(
+      database,
+      {
+        createdBy: input.createdBy,
+        ...friendlyGameNameFields(input),
+        groupId: input.groupId,
+        venueId: input.venueId,
+        courtId: input.courtId,
+        windowStart: input.windowStart,
+        windowEnd: input.windowEnd,
+        pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+        levelMinTenths: input.levelMinTenths ?? null,
+        levelMaxTenths: input.levelMaxTenths ?? null,
+        rated,
+        groupRated,
+        mvpMode: input.mvpMode,
+        trackPayments: input.trackPayments,
+      },
+      locale,
+    );
     return {
       id: created.game.id,
       matchId: created.matchId,
@@ -275,6 +486,7 @@ async function createGameOnGroup(database: DbClient, input: CreateGameInput) {
     venueId: input.venueId,
     courtId: input.courtId,
     courtIds: input.courtIds,
+    locale,
   });
 
   const windowStart = input.windowStart;
@@ -300,6 +512,7 @@ async function createGameOnGroup(database: DbClient, input: CreateGameInput) {
         playersAllowed,
         teamsAllowed: null,
         pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+        trackPayments: input.trackPayments ?? false,
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
@@ -337,8 +550,9 @@ export const create = protectedProcedure
   .input(createGameInputSchema)
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return createGame(ctx.db, {
-      ...input,
-      createdBy: appUser.id,
-    });
+    return createGame(
+      ctx.db,
+      { ...input, createdBy: appUser.id },
+      { locale: ctx.locale },
+    );
   });

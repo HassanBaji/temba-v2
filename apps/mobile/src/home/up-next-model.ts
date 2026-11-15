@@ -104,11 +104,11 @@ export function upNextWeekLabel(
   now: Date,
   locale: Locale,
 ): string {
-  const m = messagesFor(locale).mobileHome.upNext;
+  const card = messagesFor(locale).home.upNextCard;
   const count = items.filter(
     (item) => productDaysBetween(now, gameDayStart(item.startsAt)) < WEEK_DAYS,
   ).length;
-  return count === 0 ? m.nothingThisWeek : m.thisWeek(count);
+  return count === 0 ? card.nothingThisWeek : card.oneOfThisWeek(count);
 }
 
 /** "Today", a weekday inside the coming week, then a date. */

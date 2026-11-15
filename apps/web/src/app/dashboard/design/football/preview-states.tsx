@@ -262,6 +262,7 @@ export function FootballPreviewStates() {
             players={teams}
             bibs={BIBS}
             names={names}
+            balanceOn="ovr"
             muted="text-dim"
             onOpenPlayer={() => undefined}
           />

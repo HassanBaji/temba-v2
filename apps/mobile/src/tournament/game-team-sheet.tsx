@@ -7,6 +7,7 @@ import type {
 } from "../player-profile/game-player-links";
 import { useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
+import { GuestMark } from "../primitives/guest-mark";
 import { Hairline } from "../primitives/hairline";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
@@ -23,12 +24,15 @@ export function GameTeamSheet({
   team,
   onClose,
   onOpenPlayer,
+  opensActions,
 }: {
   team: GameTeamSheetTeam | null;
   onClose: () => void;
   onOpenPlayer: (userId: string) => void;
+  opensActions?: (userId: string) => boolean;
 }) {
-  const m = useMessages().mobileTournament.predraw;
+  const messages = useMessages();
+  const m = messages.mobileTournament.predraw;
   return (
     <Sheet visible={team != null} onClose={onClose} title={team?.name}>
       {team ? (
@@ -38,8 +42,17 @@ export function GameTeamSheet({
               {index > 0 ? <Hairline /> : null}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={player.name}
-                accessibilityHint={m.opensProfileHint}
+                accessibilityLabel={
+                  player.guest === true
+                    ? `${player.name}${messages.tournament.listSeparator}${messages.group.addPlayer.guest.tag}`
+                    : player.name
+                }
+                accessibilityHint={
+                  opensActions?.(player.id)
+                    ? m.opensPlayerActionsHint
+                    : m.opensProfileHint
+                }
+                disabled={player.guest === true && !opensActions?.(player.id)}
                 onPress={() => {
                   onClose();
                   onOpenPlayer(player.id);
@@ -53,10 +66,15 @@ export function GameTeamSheet({
                   opacity: pressed ? 0.6 : 1,
                 })}
               >
-                <Avatar name={player.name} uri={player.image} />
+                <Avatar
+                  name={player.name}
+                  uri={player.image}
+                  guest={player.guest === true}
+                />
                 <Text numberOfLines={1} style={{ flexShrink: 1 }}>
                   {player.name}
                 </Text>
+                {player.guest === true ? <GuestMark /> : null}
               </Pressable>
             </View>
           ))}

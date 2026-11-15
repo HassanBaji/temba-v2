@@ -17,6 +17,7 @@ import { Switch } from "~/components/ui/switch";
 import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import { cn } from "~/lib/utils";
 import { api, type RouterOutputs } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 import {
   PLAY_WINDOW_DAYS,
   PLAY_WINDOW_PARTS,
@@ -36,6 +37,7 @@ function Form({ details }: { details: Details }) {
   );
   const [seatAlerts, setSeatAlerts] = React.useState(details.seatAlerts);
   const save = api.users.setPlayWindows.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(copy.saved);
       await utils.users.profileDetails.invalidate();

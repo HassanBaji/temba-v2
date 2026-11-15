@@ -59,4 +59,37 @@ describe("env", () => {
     });
     expect(env.EMAIL_FROM).toBe("Temba <notifications@temba.example>");
   });
+
+  it("parses flags and numbers when validation is skipped", async () => {
+    const { env } = await loadEnv({
+      SKIP_ENV_VALIDATION: "1",
+      ACCEPT_SESSION_COOKIE: "false",
+      WORKER_ENABLED: "false",
+      API_ENABLED: "",
+      PORT: "4100",
+      WORKER_CONCURRENCY: "",
+    });
+    expect(env.ACCEPT_SESSION_COOKIE).toBe(false);
+    expect(env.WORKER_ENABLED).toBe(false);
+    expect(env.API_ENABLED).toBe(true);
+    expect(env.PORT).toBe(4100);
+    expect(env.WORKER_CONCURRENCY).toBe(5);
+    expect(env.TRUST_PROXY_HOPS).toBe(1);
+  });
+
+  it("falls back to the defaults for values it cannot parse when validation is skipped", async () => {
+    const { env } = await loadEnv({
+      SKIP_ENV_VALIDATION: "1",
+      ACCEPT_SESSION_COOKIE: "yes",
+      PORT: "not-a-port",
+    });
+    expect(env.ACCEPT_SESSION_COOKIE).toBe(false);
+    expect(env.PORT).toBe(4000);
+  });
+
+  it("treats an unset NODE_ENV as production and refuses an unknown one", async () => {
+    const { env } = await loadEnv({ NODE_ENV: "" });
+    expect(env.NODE_ENV).toBe("production");
+    await expect(loadEnv({ NODE_ENV: "staging" })).rejects.toThrow();
+  });
 });

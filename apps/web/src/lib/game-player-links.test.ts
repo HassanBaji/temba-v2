@@ -15,6 +15,16 @@ describe("gamePlayersLink", () => {
     );
   });
 
+  it("links for a Verifier who may calibrate the Game's players", () => {
+    expect(
+      gamePlayersLink({
+        isRegistered: false,
+        isGroupMember: false,
+        viewerMayCalibratePlayers: true,
+      }),
+    ).toBe(true);
+  });
+
   it("does not link for a public browser, a waitlisted viewer or an Organizer outside the Group", () => {
     expect(gamePlayersLink({ isRegistered: false, isGroupMember: false })).toBe(
       false,

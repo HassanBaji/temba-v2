@@ -10,6 +10,7 @@ import {
   PADEL_NOT_SURE_LEVEL,
   type PadelLevelChoice,
 } from "@repo/domain/onboarding-answers";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type db } from "#src/db";
 import { selfDeclareRating } from "#src/routers/ratings/selfDeclare";
@@ -38,8 +39,10 @@ export async function createUnclaimedPlayer(
     name: string;
     addedByUserId: string;
     startingLevel: UnclaimedPlayerStartingLevel;
+    locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const [created] = await database
     .insert(user)
     .values({
@@ -62,6 +65,7 @@ export async function createUnclaimedPlayer(
     created.id,
     args.startingLevel.sport,
     selfDeclareChoice(args.startingLevel),
+    locale,
   );
 
   return { user: created, rating };

@@ -7,9 +7,12 @@ import {
   groupMembers,
   groups,
   matches,
+  matchResultConfirmations,
+  matchSets,
   notifications,
   tournamentDraftMatches,
   user,
+  venueVerifiers,
   venues,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
@@ -18,6 +21,8 @@ import { type Db } from "@repo/db";
 import { handle as scoreStands } from "#src/jobs/handlers/match.score-stands";
 import { recordJobs } from "#src/jobs/job-sink.test-support";
 import { scoreStandsJobKey } from "#src/jobs/specs";
+import { addSet } from "#src/routers/games/addSet";
+import { gameById } from "#src/routers/games/byId";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
@@ -28,7 +33,10 @@ import { listPoolTables } from "#src/routers/games/poolTables";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { postRounds } from "#src/routers/games/postRounds";
 import { registerSeat } from "#src/routers/games/registerSeat";
+import { removeSet } from "#src/routers/games/removeSet";
 import { saveRoundPairings } from "#src/routers/games/saveRoundPairings";
+import { scoreSet } from "#src/routers/games/scoreSet";
+import { stampMatch } from "#src/routers/games/stampMatch";
 import { swapRoundPairing } from "#src/routers/games/swapRoundPairing";
 import { tournamentRounds } from "#src/routers/games/tournamentRounds";
 import { undoPoolDraw } from "#src/routers/games/undoPoolDraw";
@@ -461,6 +469,88 @@ describe("tournament scores", () => {
     });
   });
 
+  it("keeps the ten minutes when the team that entered the score taps again", async () => {
+    await withDb(async (database) => {
+      const seeded = await postedRound1(database);
+      const matchId = seeded.match.matchId!;
+      await enterTournamentScore(database, {
+        gameId: seeded.gameId,
+        matchId,
+        userId: seeded.players[0]!.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 4,
+      });
+      vi.setSystemTime(new Date(NOW.getTime() + 5 * 60 * 1000));
+      for (const userId of [seeded.players[0]!.id, seeded.teammate.id]) {
+        await confirmMatchResult(database, {
+          gameId: seeded.gameId,
+          matchId,
+          userId,
+        });
+      }
+      vi.setSystemTime(NOW);
+      const rows = await database.query.matchResultConfirmations.findMany({
+        where: eq(matchResultConfirmations.matchId, matchId),
+      });
+      expect(rows.map((row) => [row.userId, row.confirmedAt])).toEqual([
+        [seeded.players[0]!.id, NOW],
+      ]);
+
+      await scoreStands(
+        database as unknown as Db,
+        { matchId },
+        undefined,
+        new Date(NOW.getTime() + 10 * 60 * 1000 + 1000),
+      );
+      const stood = await database.query.matches.findFirst({
+        where: eq(matches.id, matchId),
+      });
+      expect(stood?.status).toBe("completed");
+    });
+  });
+
+  it("keeps a tournament score off the generic Set doors", async () => {
+    await withDb(async (database) => {
+      const seeded = await postedRound1(database);
+      const matchId = seeded.match.matchId!;
+      await expect(
+        addSet(database, {
+          gameId: seeded.gameId,
+          matchId,
+          userId: seeded.owner.id,
+        }),
+      ).rejects.toThrow("Enter a tournament score with enterTournamentScore");
+      await enterTournamentScore(database, {
+        gameId: seeded.gameId,
+        matchId,
+        userId: seeded.players[0]!.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 4,
+      });
+      const [set] = await database.query.matchSets.findMany({
+        where: eq(matchSets.matchId, matchId),
+      });
+      await expect(
+        scoreSet(database, {
+          gameId: seeded.gameId,
+          matchId,
+          setId: set!.id,
+          userId: seeded.opponent.id,
+          slot1GamesWon: 0,
+          slot2GamesWon: 6,
+        }),
+      ).rejects.toThrow("Enter a tournament score with enterTournamentScore");
+      await expect(
+        removeSet(database, {
+          gameId: seeded.gameId,
+          matchId,
+          setId: set!.id,
+          userId: seeded.opponent.id,
+        }),
+      ).rejects.toThrow("Enter a tournament score with enterTournamentScore");
+    });
+  });
+
   it("takes an Organizer's score as final and lets them change a confirmed one", async () => {
     await withDb(async (database) => {
       const seeded = await postedRound1(database);
@@ -487,6 +577,76 @@ describe("tournament scores", () => {
       expect(sets.map((set) => [set.slot1GamesWon, set.slot2GamesWon])).toEqual(
         [[3, 6]],
       );
+    });
+  });
+
+  it("takes the score of an Organizer playing in the Match as final", async () => {
+    await withDb(async (database) => {
+      const seeded = await postedRound1(database);
+      const game = await database.query.games.findFirst({
+        where: eq(games.id, seeded.gameId),
+      });
+      await database
+        .update(groups)
+        .set({ createdBy: seeded.players[0]!.id })
+        .where(eq(groups.id, game!.groupId!));
+
+      const result = await enterTournamentScore(database, {
+        gameId: seeded.gameId,
+        matchId: seeded.match.matchId!,
+        userId: seeded.players[0]!.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 3,
+      });
+
+      expect(result.final).toBe(true);
+      const match = await database.query.matches.findFirst({
+        where: eq(matches.id, seeded.match.matchId!),
+      });
+      expect(match?.status).toBe("completed");
+      expect(jobs.added.map((job) => job.key)).not.toContain(
+        scoreStandsJobKey(seeded.match.matchId!),
+      );
+    });
+  });
+
+  it("lets an Organizer playing in the Match confirm their teammate's score", async () => {
+    await withDb(async (database) => {
+      const seeded = await postedRound1(database);
+      const game = await database.query.games.findFirst({
+        where: eq(games.id, seeded.gameId),
+      });
+      await database
+        .update(groups)
+        .set({ createdBy: seeded.players[0]!.id })
+        .where(eq(groups.id, game!.groupId!));
+      await enterTournamentScore(database, {
+        gameId: seeded.gameId,
+        matchId: seeded.match.matchId!,
+        userId: seeded.teammate.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 3,
+      });
+
+      const view = await tournamentRounds(database, {
+        gameId: seeded.gameId,
+        userId: seeded.players[0]!.id,
+      });
+      const row = view.rounds[0]!.matches.find(
+        (match) => match.matchId === seeded.match.matchId,
+      )!;
+      expect(row.state).toBe("awaiting_confirmation");
+      expect(row.canConfirm).toBe(true);
+
+      await confirmMatchResult(database, {
+        gameId: seeded.gameId,
+        matchId: seeded.match.matchId!,
+        userId: seeded.players[0]!.id,
+      });
+      const match = await database.query.matches.findFirst({
+        where: eq(matches.id, seeded.match.matchId!),
+      });
+      expect(match?.status).toBe("completed");
     });
   });
 
@@ -552,6 +712,80 @@ describe("tournament scores", () => {
         "Only the two teams or an organizer can enter this score",
       );
       expect(outsider).toBeDefined();
+    });
+  });
+});
+
+describe("a Verifier on a tournament's Rounds (ADR-0072)", () => {
+  recordJobs();
+
+  it("opens the Rounds of a private tournament at their Venue and stamps an entered score", async () => {
+    await withDb(async (database) => {
+      const seeded = await postedRound1(database);
+      const game = await database.query.games.findFirst({
+        where: eq(games.id, seeded.gameId),
+        columns: { venueId: true },
+      });
+      const verifier = await insertUser(database, "Sara");
+      await database.insert(venueVerifiers).values({
+        venueId: game!.venueId,
+        userId: verifier.id,
+        kind: "referee",
+      });
+      const outsider = await insertUser(database, "Outsider");
+      const matchId = seeded.match.matchId!;
+      await enterTournamentScore(database, {
+        gameId: seeded.gameId,
+        matchId,
+        userId: seeded.players[0]!.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 4,
+      });
+
+      await expect(
+        tournamentRounds(database, {
+          gameId: seeded.gameId,
+          userId: outsider.id,
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      const view = await tournamentRounds(database, {
+        gameId: seeded.gameId,
+        userId: verifier.id,
+      });
+      expect(view.isOrganizer).toBe(false);
+      expect(
+        view.rounds
+          .flatMap((round) => round.matches)
+          .every(
+            (match) =>
+              match.viewerSlot === null &&
+              !match.canEnterScore &&
+              !match.canConfirm &&
+              !match.canMarkNotFinished &&
+              !match.canSwap,
+          ),
+      ).toBe(true);
+
+      const details = await gameById(database, {
+        gameId: seeded.gameId,
+        userId: verifier.id,
+      });
+      expect(
+        details.matches.flatMap((match) => (match.canStamp ? [match.id] : [])),
+      ).toEqual([matchId]);
+      await expect(
+        markMatchNotFinished(database, {
+          gameId: seeded.gameId,
+          matchId,
+          userId: verifier.id,
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+      await stampMatch(database, { matchId, userId: verifier.id });
+      const done = await database.query.matches.findFirst({
+        where: eq(matches.id, matchId),
+      });
+      expect(done?.status).toBe("completed");
     });
   });
 });

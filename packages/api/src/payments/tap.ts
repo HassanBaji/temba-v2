@@ -2,15 +2,15 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 import type { OnlinePaymentMethod } from "@repo/domain/booking-payment";
 
-import type {
-  ChargeState,
-  PaymentProvider,
-  RefundResult,
-  WebhookVerification,
+import {
+  PAYMENT_CURRENCY,
+  type ChargeState,
+  type PaymentProvider,
+  type RefundResult,
+  type WebhookVerification,
 } from "./provider";
 
 const TAP_API = "https://api.tap.company/v2";
-const CURRENCY = "BHD";
 const REFUND_PAGE_LIMIT = 50;
 const REFUND_MAX_PAGES = 10;
 
@@ -40,6 +40,7 @@ type TapCharge = {
   source?: { id?: string; payment_method?: string; payment_type?: string };
   transaction?: { url?: string; created?: string | number };
   reference?: { gateway?: string; payment?: string };
+  activities?: { status?: string; created?: string | number }[];
 };
 
 type TapRefund = {
@@ -50,14 +51,14 @@ type TapRefund = {
 };
 
 const PAID = new Set(["CAPTURED"]);
+// TIMEDOUT and UNKNOWN are left pending: Tap can still capture such a charge,
+// so it is polled again rather than written off.
 const FAILED = new Set([
   "FAILED",
   "DECLINED",
   "RESTRICTED",
   "ABANDONED",
   "CANCELLED",
-  "TIMEDOUT",
-  "UNKNOWN",
   "VOID",
 ]);
 const REFUND_REJECTED = new Set(["FAILED", "DECLINED", "RESTRICTED", "ERROR"]);
@@ -66,8 +67,31 @@ export function filsToTapAmount(fils: number): number {
   return Number((fils / 1000).toFixed(3));
 }
 
+/** NaN unless the amount is a whole number of fils. */
+export function tapAmountToFils(amount: number | string | undefined): number {
+  const value = Number(amount);
+  const fils = Math.round(value * 1000);
+  return Number.isFinite(value) && filsToTapAmount(fils) === value
+    ? fils
+    : Number.NaN;
+}
+
 function amountText(amount: number | string | undefined): string {
   return Number(amount ?? 0).toFixed(3);
+}
+
+function tapTime(value: string | number | undefined): Date | undefined {
+  const millis = Number(value);
+  return value !== undefined && Number.isFinite(millis) && millis > 0
+    ? new Date(millis)
+    : undefined;
+}
+
+function capturedAt(charge: TapCharge): Date | undefined {
+  const captured = charge.activities?.find(
+    (activity) => activity.status === "CAPTURED",
+  );
+  return tapTime(captured?.created) ?? tapTime(charge.transaction?.created);
 }
 
 function chargeState(charge: TapCharge): ChargeState {
@@ -82,6 +106,11 @@ function chargeState(charge: TapCharge): ChargeState {
     providerStatus,
     method: status === "paid" ? paidMethod(charge) : undefined,
     reason: status === "failed" ? charge.response?.message : undefined,
+    charged: {
+      amountFils: tapAmountToFils(charge.amount),
+      currency: charge.currency ?? "",
+    },
+    capturedAt: status === "paid" ? capturedAt(charge) : undefined,
   };
 }
 
@@ -186,7 +215,7 @@ export function createTapProvider(config: TapConfig): PaymentProvider {
     async begin(args) {
       const created = await call<TapCharge>("POST", "/charges", {
         amount: filsToTapAmount(args.amountFils),
-        currency: CURRENCY,
+        currency: PAYMENT_CURRENCY,
         customer: {
           first_name: args.customer.name,
           ...(args.customer.email ? { email: args.customer.email } : {}),
@@ -194,7 +223,13 @@ export function createTapProvider(config: TapConfig): PaymentProvider {
         source: { id: args.method ? TAP_SOURCES[args.method] : ALL_SOURCES },
         redirect: { url: args.returnUrl },
         post: { url: config.webhookUrl },
-        reference: { transaction: args.paymentId, order: args.bookingId },
+        // A retried job sends the same idempotent key, so Tap hands back the
+        // charge it already opened instead of a second one.
+        reference: {
+          transaction: args.paymentId,
+          order: args.bookingId,
+          idempotent: args.paymentId,
+        },
         metadata: { paymentId: args.paymentId, bookingId: args.bookingId },
       });
       if (!created.ok) {
@@ -248,7 +283,7 @@ export function createTapProvider(config: TapConfig): PaymentProvider {
         created = await call<TapRefund>("POST", "/refunds", {
           charge_id: reference,
           amount: filsToTapAmount(amountFils),
-          currency: CURRENCY,
+          currency: PAYMENT_CURRENCY,
           reason: "requested_by_customer",
           reference: { merchant: idempotencyKey },
           metadata: { idempotencyKey },

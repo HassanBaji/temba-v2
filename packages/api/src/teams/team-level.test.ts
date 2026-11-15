@@ -32,6 +32,7 @@ describe("loadTeamLevels", () => {
         tenths: 34,
         level: "3.4",
         band: "C",
+        ovr: 69,
       });
       expect(levels.get(padel.id)).toBeNull();
     });
@@ -39,7 +40,7 @@ describe("loadTeamLevels", () => {
 });
 
 describe("teamLevelInRange", () => {
-  const level = { tenths: 28, level: "2.8", band: "C" as const };
+  const level = { tenths: 28, level: "2.8", band: "C" as const, ovr: null };
 
   it("passes any Team when no Level is wanted and none without a Team Level otherwise", () => {
     expect(

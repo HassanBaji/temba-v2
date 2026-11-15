@@ -14,11 +14,13 @@ type GameChallenge = NonNullable<RouterOutputs["games"]["byId"]["challenge"]>;
 export function challengeInfoRows(
   challenge: GameChallenge,
   sport: string | null,
+  rated: boolean,
   locale: Locale,
 ): InfoRow[] {
   return challengeGameDetailsRows(
     {
       sport,
+      rated,
       postedByTeamName: challenge.postedByTeamName,
       postedAt: challenge.postedAt,
       proposedByTeamName: challenge.proposedBy.teamName,
@@ -36,9 +38,11 @@ export function challengeInfoRows(
 export function ChallengeDetailsCard({
   challenge,
   sport,
+  rated,
 }: {
   challenge: GameChallenge;
   sport: string | null;
+  rated: boolean;
 }) {
   const locale = useLocale();
   return (
@@ -46,7 +50,7 @@ export function ChallengeDetailsCard({
       <Surface>
         <TeamVsTeamRow sides={challenge.sides} sport={sport} />
       </Surface>
-      <InfoRows rows={challengeInfoRows(challenge, sport, locale)} />
+      <InfoRows rows={challengeInfoRows(challenge, sport, rated, locale)} />
     </View>
   );
 }

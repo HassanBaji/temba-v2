@@ -5,6 +5,8 @@ import {
   productDayKey,
   zonedDateTimeToInstant,
 } from "@repo/domain/product-timezone";
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor, type Messages } from "@repo/i18n/messages";
 
 const MS_PER_MINUTE = 60_000;
 const MINUTES_PER_DAY = 24 * 60;
@@ -175,26 +177,34 @@ export function formatClock(minute: number): string {
 /** The time axis clock: `2:00 PM` with the meridiem, `3:00` without. */
 export function formatAxisClock(
   minute: number,
-  style: "meridiem" | "bare" = "bare",
+  style: "meridiem" | "bare",
+  locale: Locale,
 ): string {
   const inDay = minuteInDay(minute);
   const hours = Math.floor(inDay / 60);
   const clock = `${((hours + 11) % 12) + 1}:${String(inDay % 60).padStart(2, "0")}`;
-  return style === "meridiem" ? `${clock} ${hours < 12 ? "AM" : "PM"}` : clock;
+  if (style === "bare") {
+    return clock;
+  }
+  const m = messagesFor(locale).consoleShell.clock;
+  return `${clock} ${hours < 12 ? m.am : m.pm}`;
 }
 
 /**
  * The whole hours inside the grid, labelled like the design: the first mark
  * and each noon or midnight carry the meridiem, the rest are bare.
  */
-export function hourMarks(grid: { startMinute: number; endMinute: number }) {
+export function hourMarks(
+  grid: { startMinute: number; endMinute: number },
+  locale: Locale,
+) {
   const marks: { minute: number; label: string }[] = [];
   const first = Math.ceil(grid.startMinute / 60) * 60;
   for (let minute = first; minute < grid.endMinute; minute += 60) {
     const meridiem = marks.length === 0 || minuteInDay(minute) % 720 === 0;
     marks.push({
       minute,
-      label: formatAxisClock(minute, meridiem ? "meridiem" : "bare"),
+      label: formatAxisClock(minute, meridiem ? "meridiem" : "bare", locale),
     });
   }
   return marks;
@@ -216,16 +226,18 @@ export function nowOffset(
 export function closureTimeLabel(
   placed: PlacedInterval,
   grid: { startMinute: number; endMinute: number },
+  locale: Locale,
 ): string {
+  const m = messagesFor(locale).consoleSchedule;
   const coversStart = placed.startMinute <= grid.startMinute;
   const coversEnd = placed.endMinute >= grid.endMinute;
   if (coversStart && coversEnd) {
-    return "All day";
+    return m.allDay;
   }
   if (coversEnd) {
-    return `From ${formatAxisClock(placed.startMinute, "meridiem")}`;
+    return m.fromTime(formatAxisClock(placed.startMinute, "meridiem", locale));
   }
-  return `Until ${formatAxisClock(placed.endMinute, "meridiem")}`;
+  return m.untilTime(formatAxisClock(placed.endMinute, "meridiem", locale));
 }
 
 export type BookingStatus =
@@ -260,34 +272,47 @@ export function durationMinutes(interval: {
   );
 }
 
-const PAYMENT_WORDS: Record<PaymentStatus, string> = {
-  pending: "unpaid",
+const PAYMENT_WORDS: Record<
+  PaymentStatus,
+  keyof Messages["consoleSchedule"]["paymentWords"]
+> = {
+  pending: "pending",
   paid: "paid",
-  failed: "payment failed",
+  failed: "failed",
   refunded: "refunded",
-  partially_refunded: "partly refunded",
+  partially_refunded: "partiallyRefunded",
   waived: "waived",
 };
 
 /** The block's second line: `90 min, paid`. */
-export function blockDetailLine(booking: {
-  startsAt: Date;
-  endsAt: Date;
-  status: BookingStatus;
-  paymentStatus: PaymentStatus;
-}): string {
-  const minutes = `${durationMinutes(booking)} min`;
+export function blockDetailLine(
+  booking: {
+    startsAt: Date;
+    endsAt: Date;
+    status: BookingStatus;
+    paymentStatus: PaymentStatus;
+  },
+  locale: Locale,
+): string {
+  const messages = messagesFor(locale);
+  const line = messages.consoleSchedule.detailLine;
+  const minutes = messages.consoleBookings.minutes(durationMinutes(booking));
   switch (booking.status) {
     case "pending_payment":
-      return `${minutes}, awaiting payment`;
+      return line.awaitingPayment(minutes);
     case "no_show":
-      return `${minutes}, no-show`;
+      return line.noShow(minutes);
     case "cancelled":
-      return `${minutes}, cancelled`;
+      return line.cancelled(minutes);
     case "expired":
-      return `${minutes}, expired`;
+      return line.expired(minutes);
     default:
-      return `${minutes}, ${PAYMENT_WORDS[booking.paymentStatus]}`;
+      return line.payment(
+        minutes,
+        messages.consoleSchedule.paymentWords[
+          PAYMENT_WORDS[booking.paymentStatus]
+        ],
+      );
   }
 }
 

@@ -21,7 +21,8 @@ import {
   GroupLinkRequestStatusEnum,
   groupMembers,
   groupRatings,
-  GroupTypeEnum,
+  groupTierEvents,
+  groupTierPoints,
   levelOverrides,
   MatchStatusEnum,
   ratingEvents,
@@ -33,7 +34,17 @@ import {
   type GroupSportEnum,
 } from "@repo/db";
 
+import type {
+  GroupMemberTierData,
+  GroupTierSummaryData,
+} from "@repo/domain/group-data";
+import { groupHasTier } from "@repo/domain/game-rating-scope";
+import {
+  ratingSettingsLine,
+  type GroupRatingSettings,
+} from "@repo/domain/group-rating-settings";
 import type { LevelBand } from "@repo/domain/level-bands";
+import { wholeOvrFromMu } from "@repo/domain/football-ovr";
 import { levelFromMu } from "@repo/domain/level";
 import { protectedProcedure } from "#src/trpc";
 import { isLevelSetterPublicMetadata } from "#src/auth/require-level-setter";
@@ -64,9 +75,15 @@ import {
 } from "@repo/domain/match-slots";
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import {
+  groupTierTable,
+  tierPointsShownTo,
+} from "#src/ratings/group-tier-table";
+import { tembaLevelViews } from "#src/ratings/level-confirmed";
+import {
   appointedOrganizerUserIds,
   isAppointedOrganizer,
 } from "#src/groups/helpers/appointed-organizers";
+import { assertCanViewGroup } from "#src/groups/helpers/assert-can-view-group";
 import { groupHasGames } from "#src/groups/helpers/group-has-games";
 import { isGroupOwner } from "#src/groups/helpers/group-owner";
 import { groupJoinMode } from "#src/groups/helpers/group-join-mode";
@@ -90,8 +107,10 @@ import { startOfProductDay } from "@repo/domain/product-timezone";
 import { seasonStandingPosition } from "@repo/domain/season-standing";
 import { canManageSeasons } from "#src/groups/helpers/season-access";
 import { loadGroupStandings } from "#src/standing/load-group-standing";
+import { visibleMemberNickname } from "#src/groups/helpers/visible-member-nickname";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
+import { mayRenameUnclaimedPlayer } from "#src/unclaimed-players/may-rename-unclaimed-player";
 import { teamDisplayName } from "#src/teams/helpers/team-display-name";
 import { loadTeamMatches, teamRecordFromMatches } from "#src/teams/team-record";
 
@@ -323,6 +342,94 @@ async function loadTaggedTeams(database: DbClient, groupId: string) {
   });
 }
 
+/**
+ * Every member's Group Tier in a tier Group (ADR-0067). A member with no Tier
+ * points yet is Provisional at the start. Points of a Provisional member are
+ * shown only to that member and the Group's Organizers.
+ */
+async function loadGroupTiers(
+  database: DbClient,
+  args: {
+    groupId: string;
+    members: readonly { userId: string; createdAt: Date; name: string }[];
+    viewerUserId: string;
+    viewerOrganizes: boolean;
+  },
+): Promise<{
+  tierByUserId: Map<string, GroupMemberTierData>;
+  summary: GroupTierSummaryData;
+}> {
+  const memberIds = args.members.map((member) => member.userId);
+  const rows =
+    memberIds.length === 0
+      ? []
+      : await database.query.groupTierPoints.findMany({
+          where: and(
+            eq(groupTierPoints.groupId, args.groupId),
+            inArray(groupTierPoints.userId, memberIds),
+          ),
+        });
+  const rowByUser = new Map(rows.map((row) => [row.userId, row]));
+  const table = groupTierTable(
+    args.members.map((member) => ({
+      userId: member.userId,
+      joinedAt: member.createdAt,
+    })),
+    (userId) => rowByUser.get(userId),
+  );
+
+  const viewer = {
+    userId: args.viewerUserId,
+    organizes: args.viewerOrganizes,
+  };
+  const tierByUserId = new Map<string, GroupMemberTierData>();
+  for (const row of table.rows) {
+    tierByUserId.set(row.userId, {
+      band: row.band,
+      place: row.place,
+      points: tierPointsShownTo(row, viewer),
+      provisional: row.provisional,
+      gamesOfFive: row.gamesOfFive,
+      gamesCounted: row.gamesCounted,
+    });
+  }
+
+  const sharkRow = table.rows.find((row) => row.band === "shark");
+  let shark: GroupTierSummaryData["shark"] = null;
+  if (sharkRow) {
+    const [became] = await database
+      .select({ createdAt: groupTierEvents.createdAt })
+      .from(groupTierEvents)
+      .where(
+        and(
+          eq(groupTierEvents.groupId, args.groupId),
+          eq(groupTierEvents.userId, sharkRow.userId),
+          eq(groupTierEvents.kind, "band_change"),
+          eq(groupTierEvents.bandAfter, "shark"),
+        ),
+      )
+      .orderBy(desc(groupTierEvents.createdAt))
+      .limit(1);
+    shark = {
+      userId: sharkRow.userId,
+      name:
+        args.members.find((member) => member.userId === sharkRow.userId)
+          ?.name ?? "",
+      points: sharkRow.points,
+      since: became?.createdAt ?? null,
+    };
+  }
+
+  return {
+    tierByUserId,
+    summary: {
+      shark,
+      rankedCount: table.rankedCount,
+      provisionalCount: table.provisionalCount,
+    },
+  };
+}
+
 export async function groupById(
   database: DbClient,
   args: {
@@ -334,7 +441,15 @@ export async function groupById(
     locale?: Locale;
   },
 ) {
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
+  await assertCanViewGroup(
+    database,
+    group,
+    args.userId,
+    args.getPublicMetadata,
+    locale,
+  );
 
   const membership = await database.query.groupMembers.findFirst({
     where: and(
@@ -393,8 +508,7 @@ export async function groupById(
     args.userId,
   );
   const isApprover = await isGroupApprover(database, group, args.userId);
-  const canSetRequiresApproval =
-    isApprover && group.type === GroupTypeEnum.PUBLIC;
+  const canSetRequiresApproval = isApprover && group.type === "public";
   const canDecideJoinRequests = canSetRequiresApproval;
   const pendingJoinRequestCount = canDecideJoinRequests
     ? ((
@@ -439,6 +553,7 @@ export async function groupById(
           image: true,
           clerkId: true,
           addedAt: true,
+          addedByUserId: true,
           phoneNumber: true,
         },
       },
@@ -447,15 +562,55 @@ export async function groupById(
 
   const memberUserIds = memberRows.map((row) => row.userId);
   const memberMarkByUserId = new Map(
-    memberRows.map((row) => {
-      const unclaimed = isUnclaimed(row.user);
-      const phoneMasked =
-        isApprover && unclaimed && row.user.phoneNumber
-          ? maskPhone(row.user.phoneNumber)
-          : null;
-      return [row.userId, { unclaimed, phoneMasked }] as const;
-    }),
+    await Promise.all(
+      memberRows.map(async (row) => {
+        const unclaimed = isUnclaimed(row.user);
+        const phoneMasked =
+          isApprover && unclaimed && row.user.phoneNumber
+            ? maskPhone(row.user.phoneNumber)
+            : null;
+        const canRename =
+          unclaimed &&
+          (await mayRenameUnclaimedPlayer(database, {
+            playerId: row.userId,
+            adderId: row.user.addedByUserId,
+            callerId: args.userId,
+          }));
+        const phoneNumber = isApprover ? row.user.phoneNumber : null;
+        const nickname = visibleMemberNickname(row, {
+          isApprover,
+          isMember: membership !== undefined,
+        });
+        return [
+          row.userId,
+          { unclaimed, phoneMasked, phoneNumber, canRename, nickname },
+        ] as const;
+      }),
+    ),
   );
+
+  const hasTier = groupHasTier({
+    sport: group.sport,
+    verified: groupIsVerified(group),
+  });
+  const groupRatingSettings: GroupRatingSettings = {
+    mode: group.performanceRatingMode,
+    weightPercent: group.performanceWeightPercent,
+    organizerCountsDouble: group.organizerCountsDouble,
+  };
+  const groupTiers = hasTier
+    ? await loadGroupTiers(database, {
+        groupId: group.id,
+        members: memberRows.map((row) => ({
+          userId: row.userId,
+          createdAt: row.createdAt,
+          name: row.user.name,
+        })),
+        viewerUserId: args.userId,
+        viewerOrganizes:
+          group.createdBy === args.userId || viewerIsAppointedOrganizer,
+      })
+    : null;
 
   const now = args.now ?? new Date();
   const groupStanding = (
@@ -484,6 +639,7 @@ export async function groupById(
       levelBand: LevelBand;
       provisional: boolean;
       level: string;
+      ovr: number | null;
       ratedMatchCount: number;
     }
   >();
@@ -507,22 +663,32 @@ export async function groupById(
     const ratedMatchCountByUserId = new Map(
       matchCountRows.map((row) => [row.userId, Number(row.ratedMatchCount)]),
     );
+    const levelView = await tembaLevelViews(database, ratingRows);
     for (const row of ratingRows) {
-      const view = youRatingViewAfterIdle(row, now);
+      const view = levelView(row);
       ratingByUserId.set(row.userId, {
         levelBand: view.levelBand,
         provisional: view.provisional,
         level: view.level,
+        ovr: group.sport === "football" ? wholeOvrFromMu(row.mu) : null,
         ratedMatchCount: ratedMatchCountByUserId.get(row.userId) ?? 0,
       });
     }
   }
 
+  // A padel Group keeps only a Standing (ADR-0066), so it reads no Group
+  // Level. A football Group Level an Organizer set earlier is read only as the
+  // Tier start hint's preferred Level, never shown and never copied.
   const groupLevelByUserId = new Map<
     string,
-    { level: string; rating: number; levelBand: LevelBand; provisional: boolean }
+    {
+      level: string;
+      rating: number;
+      levelBand: LevelBand;
+      provisional: boolean;
+    }
   >();
-  if (memberUserIds.length > 0) {
+  if (group.sport === "football" && memberUserIds.length > 0) {
     const groupRatingRows = await database.query.groupRatings.findMany({
       where: and(
         eq(groupRatings.groupId, group.id),
@@ -555,6 +721,7 @@ export async function groupById(
       setByIsViewer: boolean;
       createdAt: Date;
       reason: (typeof levelOverrides.$inferSelect)["reason"];
+      note: string | null;
     }
   >();
   if (viewerCanSetLevel && group.sport && memberUserIds.length > 0) {
@@ -565,6 +732,7 @@ export async function groupById(
         setByName: user.name,
         createdAt: levelOverrides.createdAt,
         reason: levelOverrides.reason,
+        note: levelOverrides.note,
       })
       .from(levelOverrides)
       .innerJoin(user, eq(user.id, levelOverrides.setByUserId))
@@ -582,6 +750,7 @@ export async function groupById(
           setByIsViewer: row.setByUserId === args.userId,
           createdAt: row.createdAt,
           reason: row.reason,
+          note: row.note,
         });
       }
     }
@@ -625,7 +794,14 @@ export async function groupById(
                   gamePlayer: {
                     columns: { userId: true },
                     with: {
-                      user: { columns: { id: true, name: true, image: true } },
+                      user: {
+                        columns: {
+                          id: true,
+                          name: true,
+                          image: true,
+                          guestAt: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -641,7 +817,14 @@ export async function groupById(
                   gamePlayer: {
                     columns: { userId: true },
                     with: {
-                      user: { columns: { id: true, name: true, image: true } },
+                      user: {
+                        columns: {
+                          id: true,
+                          name: true,
+                          image: true,
+                          guestAt: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -764,12 +947,20 @@ export async function groupById(
       levelBand: rating?.levelBand ?? null,
       levelProvisional: rating?.provisional ?? true,
       level: rating?.level ?? null,
+      /** The whole-number OVR on a football Group (ADR-0069); null elsewhere. */
+      ovr: rating?.ovr ?? null,
       ratedMatchCount: rating?.ratedMatchCount ?? 0,
       levelOverride: levelOverrideByUserId.get(entry.userId) ?? null,
-      /** The member's Group Level (ADR-0053), null before their first. */
+      /**
+       * Null on padel, whose Group Level is retired (ADR-0066). On football,
+       * a Group Level an Organizer set earlier, read only by the Tier start
+       * hint.
+       */
       groupLevel: groupLevelByUserId.get(entry.userId) ?? null,
       formMarks: groupFormMarks(formMatches, entry.userId, now),
       lastPlayedAt: memberLastPlayedAt(formMatches, entry.userId),
+      /** The member's Group Tier; null outside a tier Group (ADR-0067). */
+      tier: groupTiers?.tierByUserId.get(entry.userId) ?? null,
       joinedAt: memberRowByUserId.get(entry.userId)?.createdAt ?? null,
       isOrganizer:
         entry.userId === group.createdBy || appointedUserIds.has(entry.userId),
@@ -777,6 +968,9 @@ export async function groupById(
         appointedUserIds.has(entry.userId) && entry.userId !== group.createdBy,
       unclaimed: memberMarkByUserId.get(entry.userId)?.unclaimed ?? false,
       phoneMasked: memberMarkByUserId.get(entry.userId)?.phoneMasked ?? null,
+      phoneNumber: memberMarkByUserId.get(entry.userId)?.phoneNumber ?? null,
+      canRename: memberMarkByUserId.get(entry.userId)?.canRename ?? false,
+      nickname: memberMarkByUserId.get(entry.userId)?.nickname ?? null,
     };
   });
 
@@ -836,6 +1030,17 @@ export async function groupById(
     joinMode,
     requiresApproval: group.requiresApproval,
     verified: groupIsVerified(group),
+    hasTier,
+    tierSummary: groupTiers?.summary ?? null,
+    /** How ratings work in a tier Group, read-only under Standing. */
+    ratingSettingsLine: hasTier
+      ? ratingSettingsLine(groupRatingSettings, locale)
+      : null,
+    /** Set only for an Organizer of a tier Group, who may change them. */
+    ratingSettings:
+      hasTier && (group.createdBy === args.userId || viewerIsAppointedOrganizer)
+        ? groupRatingSettings
+        : null,
     venue: venue ? { id: venue.id, name: venue.name } : null,
     pendingLinkRequestCount,
     canUnlinkFromVenue,
@@ -855,6 +1060,7 @@ export async function groupById(
     canAddPlayers: isApprover,
     canRemovePlayers: isApprover,
     canAppointOrganizers: isApprover,
+    canSetMemberNicknames: isApprover,
     viewerCanSetLevel,
     memberUserIds,
     hasInviteLink: canManageInviteLinks,

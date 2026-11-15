@@ -17,7 +17,7 @@ function InkBibChip({ bib }: { bib: FootballBib }) {
       className="size-3.5 shrink-0 rounded-[4px] border"
       style={{
         backgroundColor: fill,
-        borderColor: fill === colors.ink ? colors.dim : fill,
+        borderColor: bib === "black" ? colors.dim : fill,
       }}
     />
   );

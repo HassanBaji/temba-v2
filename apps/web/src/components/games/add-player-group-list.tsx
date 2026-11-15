@@ -2,6 +2,7 @@
 
 import { Check, Search } from "lucide-react";
 
+import { NicknameName } from "~/components/temba/nickname-name";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { NotOnTembaTag } from "~/components/temba/seat";
@@ -75,7 +76,9 @@ function CompactChoices<T extends string>({
                 <span
                   className={cn(
                     "text-eyebrow truncate",
-                    selected ? "text-dim" : "text-muted-foreground",
+                    selected
+                      ? "text-on-control-muted"
+                      : "text-muted-foreground",
                   )}
                 >
                   {choice.detail}
@@ -137,13 +140,17 @@ function MemberRow({
         )}
       >
         <UserAvatar
-          name={row.name}
+          name={row.tembaName ?? row.name}
           image={image}
           size="lg"
           className="rounded-md"
         />
         <span className="min-w-0 flex-1 space-y-0.5">
-          <span className="block truncate font-semibold">{row.name}</span>
+          <NicknameName
+            name={row.name}
+            isNickname={row.isNickname === true}
+            className="font-semibold"
+          />
           {unclaimed ? <NotOnTembaTag /> : null}
           {row.meta ? (
             <span className="text-eyebrow text-muted-foreground block truncate">

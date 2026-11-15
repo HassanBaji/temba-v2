@@ -3,15 +3,14 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { courts } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { protectedProcedure } from "#src/trpc";
 import { type db } from "#src/db";
 import { isUniqueViolation } from "#src/db/is-unique-violation";
-import {
-  courtNameTaken,
-  duplicateCourtMessage,
-} from "#src/venues/helpers/court-name-taken";
+import { courtNameTaken } from "#src/venues/helpers/court-name-taken";
 import { requireVenueManager } from "#src/venues/helpers/require-venue-manager";
 
 type DbClient = typeof db;
@@ -23,20 +22,25 @@ type Actor = {
 
 export async function renameCourt(
   database: DbClient,
-  args: { courtId: string; name: string; actor: Actor },
+  args: { courtId: string; name: string; actor: Actor; locale?: Locale },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const existing = await database.query.courts.findFirst({
     where: eq(courts.id, args.courtId),
     columns: { id: true, venueId: true },
   });
 
   if (!existing) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Court not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).venue.errors.courtNotFound,
+    });
   }
 
   await requireVenueManager(database, {
     venueId: existing.venueId,
     ...args.actor,
+    locale,
   });
 
   if (
@@ -44,7 +48,7 @@ export async function renameCourt(
   ) {
     throw new TRPCError({
       code: "CONFLICT",
-      message: duplicateCourtMessage,
+      message: messagesFor(locale).venue.errors.duplicateCourt,
     });
   }
 
@@ -76,7 +80,7 @@ export async function renameCourt(
     if (isUniqueViolation(error)) {
       throw new TRPCError({
         code: "CONFLICT",
-        message: duplicateCourtMessage,
+        message: messagesFor(locale).venue.errors.duplicateCourt,
       });
     }
     throw error;
@@ -99,5 +103,6 @@ export const renameCourtProcedure = protectedProcedure
         userId: appUser.id,
         publicMetadata: await ctx.getPublicMetadata(),
       },
+      locale: ctx.locale,
     });
   });

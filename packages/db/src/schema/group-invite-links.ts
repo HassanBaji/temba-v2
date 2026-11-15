@@ -1,23 +1,29 @@
-import { pgTable, uuid, varchar, timestamp } from "drizzle-orm/pg-core";
+import { index, pgTable, uuid, varchar, timestamp } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { user } from "./user";
 import { groups } from "./groups";
 
-export const groupInviteLinks = pgTable("group_invite_links", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  groupId: uuid("group_id")
-    .references(() => groups.id, { onDelete: "restrict" })
-    .notNull(),
-  createdBy: uuid("created_by")
-    .references(() => user.id, { onDelete: "restrict" })
-    .notNull(),
-  token: varchar("token", { length: 64 }).notNull().unique(),
-  shortCode: varchar("short_code", { length: 8 }).unique(),
-  revokedAt: timestamp("revoked_at"),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+export const groupInviteLinks = pgTable(
+  "group_invite_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    groupId: uuid("group_id")
+      .references(() => groups.id, { onDelete: "restrict" })
+      .notNull(),
+    createdBy: uuid("created_by")
+      .references(() => user.id, { onDelete: "restrict" })
+      .notNull(),
+    token: varchar("token", { length: 64 }).notNull().unique(),
+    shortCode: varchar("short_code", { length: 8 }).unique(),
+    revokedAt: timestamp("revoked_at"),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    groupIdx: index("group_invite_links_group_id_idx").on(table.groupId),
+  }),
+);
 
 export const groupInviteLinkRelations = relations(
   groupInviteLinks,

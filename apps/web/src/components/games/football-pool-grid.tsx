@@ -1,13 +1,15 @@
 "use client";
 
 import {
-  levelLabel,
+  ovrLabel,
+  ovrSpoken,
   poolSections,
-  shortName,
+  lineupName,
   slotCode,
   type BoardPlayer,
 } from "@repo/domain/football-board";
 
+import { NicknameName } from "~/components/temba/nickname-name";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Hatch } from "~/components/ui/hatch";
@@ -34,7 +36,7 @@ function PlayerTile({
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const name = player.isViewer ? m.common.you : shortName(player.name);
+  const { name, spoken, isNickname } = lineupName(player, locale);
   const code = slotCode(player, locale);
   const Tag = onPress ? "button" : "div";
   return (
@@ -42,10 +44,11 @@ function PlayerTile({
       type={onPress ? "button" : undefined}
       onClick={onPress ? () => onPress(player.userId) : undefined}
       aria-label={[
-        name,
+        spoken,
         code,
-        levelLabel(player.levelBand),
+        ovrSpoken(player, locale),
         player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
+        player.guest ? m.group.addPlayer.guest.tag : null,
       ]
         .filter(Boolean)
         .join(m.tournament.listSeparator)}
@@ -54,12 +57,18 @@ function PlayerTile({
         player.isViewer
           ? "bg-control text-on-control border-control-edge"
           : "bg-paper border-rule",
-        player.unclaimed && "border-ink border-dashed",
+        (Boolean(player.unclaimed) || Boolean(player.guest)) &&
+          "border-ink border-dashed",
         onPress && !player.isViewer && "hover:bg-wash",
       )}
     >
       <span className="flex items-center justify-between">
-        <UserAvatar name={player.name} image={player.image} size="sm" />
+        <UserAvatar
+          name={player.name}
+          image={player.image}
+          size="sm"
+          guest={player.guest}
+        />
         {player.role === "keeper" ? (
           <span className="bg-control text-on-control rounded-[4px] px-1 font-mono text-[11px]">
             {code}
@@ -68,7 +77,9 @@ function PlayerTile({
           <span
             className={cn(
               "font-mono text-[11px]",
-              player.isViewer ? "text-dim" : "text-muted-foreground",
+              player.isViewer
+                ? "text-on-control-muted"
+                : "text-muted-foreground",
             )}
           >
             {code}
@@ -76,11 +87,13 @@ function PlayerTile({
         ) : null}
       </span>
       <span className="flex items-baseline justify-between gap-1">
-        <span dir="auto" className="truncate text-[12px]">
-          {name}
-        </span>
+        <NicknameName
+          name={name}
+          isNickname={isNickname}
+          className="text-[12px]"
+        />
         <span dir="ltr" className="font-expanded text-meta">
-          {levelLabel(player.levelBand)}
+          {ovrLabel(player)}
         </span>
       </span>
     </Tag>

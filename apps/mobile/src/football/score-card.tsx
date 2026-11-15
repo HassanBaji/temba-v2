@@ -104,9 +104,17 @@ export type FootballScoreCardProps = {
   canEnterScore: boolean;
   canConfirm: boolean;
   canConfirmAsOrganizer: boolean;
+  /** A Public Game's time left for the other side to confirm (ADR-0071). */
+  confirmWindowLine?: string | null;
   confirmPending: boolean;
+  /** The viewer is a Verifier of the Venue who may stamp the score (ADR-0072). */
+  canStamp?: boolean;
+  stampPending?: boolean;
+  /** The Verifier who stamped the score. */
+  stampedByName?: string | null;
   onEnterScore: () => void;
   onConfirm: () => void;
+  onStamp?: () => void;
 };
 
 /**
@@ -115,7 +123,9 @@ export type FootballScoreCardProps = {
  */
 export function FootballScoreCard(props: FootballScoreCardProps) {
   const locale = useLocale();
-  const m = useMessages().mobileTournament.scoreCard;
+  const messages = useMessages();
+  const m = messages.mobileTournament.scoreCard;
+  const stampCopy = messages.rating.verifier.stamp;
   const score = props.match?.score ?? null;
   const completed = props.match?.status === "completed";
   if (!score) {
@@ -209,6 +219,31 @@ export function FootballScoreCard(props: FootballScoreCardProps) {
         {props.canConfirmAsOrganizer ? (
           <Text size="meta" tone="muted">
             {organizerConfirmNote(locale)}
+          </Text>
+        ) : null}
+        {props.confirmWindowLine && !completed ? (
+          <Text size="meta" tone="muted">
+            {props.confirmWindowLine}
+          </Text>
+        ) : null}
+        {props.canStamp && props.onStamp && !completed ? (
+          <View style={{ gap: 8 }}>
+            <Text size="meta" tone="muted">
+              {stampCopy.note}
+            </Text>
+            <View style={{ flexDirection: "row" }}>
+              <Button
+                label={stampCopy.action}
+                variant="outline"
+                pending={props.stampPending}
+                onPress={props.onStamp}
+              />
+            </View>
+          </View>
+        ) : null}
+        {props.stampedByName && completed ? (
+          <Text size="meta" tone="muted">
+            {stampCopy.stampedBy(props.stampedByName)}
           </Text>
         ) : null}
       </View>

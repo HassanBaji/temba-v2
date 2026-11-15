@@ -150,7 +150,7 @@ describe("challengeMinePostedView", () => {
       "en",
     );
     expect(view.title).toBe("Gooz FC, football");
-    expect(view.line).toBe("Fri, Sat evenings, Fantasy FC. Wants C to B-");
+    expect(view.line).toBe("Fri, Sat evenings, Fantasy FC. Wants OVR 64 to 80");
     expect(view.proposalsLine).toBe("0 proposals");
     expect(view.daysLeftLine).toBe("6 days left");
   });

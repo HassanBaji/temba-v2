@@ -12,6 +12,28 @@ describe("hubItems", () => {
     ).toEqual(["match", "match", "match", "tournament"]);
   });
 
+  it("shows a row carrying the viewer's tournament as one card", () => {
+    const [row] = fixtures.tournamentMatches.myGames;
+    if (!row) {
+      throw new Error("Expected a tournament fixture row");
+    }
+    const myTournament = {
+      viewerTeam: { left: null, right: null },
+      poolLabel: "A",
+      poolSize: 4,
+      poolCount: 1,
+      viewerPosition: null,
+      poolFinished: false,
+      winner: null,
+      rounds: [],
+    };
+    expect(
+      hubItems([{ ...row, matchId: null, myTournament }]).map(
+        (item) => item.kind,
+      ),
+    ).toEqual(["my-tournament"]);
+  });
+
   it("plans a Join on an open Friendly roster", () => {
     const [first] = hubItems(fixtures.mixed.myGames);
     expect(first?.kind).toBe("game");

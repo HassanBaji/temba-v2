@@ -1,4 +1,6 @@
 import type { groups } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { TRPCError } from "@trpc/server";
 
 import { isGroupOwner } from "#src/groups/helpers/group-owner";
@@ -17,12 +19,13 @@ export function canManageSeasons(
 export function assertCanManageSeasons(
   group: Pick<typeof groups.$inferSelect, "createdBy">,
   userId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (canManageSeasons(group, userId)) {
     return;
   }
   throw new TRPCError({
     code: "FORBIDDEN",
-    message: "Only the Group owner can manage seasons",
+    message: messagesFor(locale).group.errors.seasonsOwnerOnly,
   });
 }

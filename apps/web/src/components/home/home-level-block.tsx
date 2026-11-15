@@ -10,6 +10,7 @@ import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { type SelfDeclareChoice } from "@repo/domain/level-bands";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { cn } from "~/lib/utils";
+import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api } from "~/trpc/react";
 
 export function HomeDeclareLevel({
@@ -27,7 +28,7 @@ export function HomeDeclareLevel({
     onSuccess: async () => {
       toast.success(m.webAuth.home.declare.levelSaved);
       setDialogOpen(false);
-      await utils.ratings.me.invalidate();
+      await invalidateRatingReads(utils);
     },
     onError: (error) => {
       toastGlobalFormError(error);

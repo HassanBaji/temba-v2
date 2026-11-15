@@ -48,10 +48,13 @@ import {
 } from "./game-shape";
 import {
   gameRatingScopeLabel,
+  groupRatingScopeNote,
   ratedScopeForGroup,
+  ratingFlagsAtCreate,
+  tembaRatingScopeNote,
   type GameRatingScope,
 } from "./game-rating-scope";
-import { DEFAULT_SPORT, type Sport } from "./sport";
+import { DEFAULT_SPORT, SPORTS, sportOrDefault, type Sport } from "./sport";
 
 export const CREATE_FLOW_STEP_COUNT = 4;
 
@@ -153,14 +156,37 @@ export function changeFootballPlayersAllowed<
 
 /** A court price split across `players`, rounded up so the cap covers it. */
 /**
- * The Rating choice on create (ADR-0053). Only a padel Game on a Group
- * rates, so football and groupless Games skip it and stay Unrated.
+ * The Rating choice on create (ADR-0066, ADR-0069). A Game rates on a
+ * Verified Group (the Temba Level) and, on football, on a tier Group (Tier
+ * points). A padel Group that is not Verified keeps only a Standing, so its
+ * Games and every groupless Game skip the choice and stay Unrated.
  */
 export function createRatingChoiceShown(args: {
   sport: Sport;
   hasGroup: boolean;
+  groupVerified?: boolean;
 }) {
-  return args.hasGroup && args.sport === "padel";
+  return (
+    args.hasGroup && (args.sport === "football" || args.groupVerified === true)
+  );
+}
+
+/**
+ * Whether the create flow offers a Level range: always on padel, and on
+ * football only for a Game that counts for Temba Level (ADR-0069), since the
+ * range gates joining on that Level.
+ */
+export function createLevelRangeShown(args: {
+  sport: Sport;
+  hasGroup: boolean;
+  groupVerified: boolean;
+  rated: boolean;
+  isPublic?: boolean;
+}) {
+  if (args.sport !== "football") {
+    return true;
+  }
+  return ratingFlagsAtCreate(args).rated;
 }
 
 export type CreateRatingOption = {
@@ -173,6 +199,7 @@ export function createRatingChoice(args: {
   groupVerified: boolean;
   rated: boolean;
   locale: Locale;
+  sport?: Sport;
 }): {
   title: string;
   scope: GameRatingScope;
@@ -181,23 +208,23 @@ export function createRatingChoice(args: {
   options: readonly CreateRatingOption[];
 } {
   const m = messagesFor(args.locale).you.ratingScope;
-  const ratedScope = ratedScopeForGroup(args.groupVerified);
+  const ratedScope = ratedScopeForGroup(args.groupVerified, args.sport);
   const scope = args.rated ? ratedScope : "unrated";
   const notes: Record<GameRatingScope, string> = {
-    temba: m.temba_note,
-    group: m.group_note,
+    temba: tembaRatingScopeNote(args.locale, args.sport),
+    group: groupRatingScopeNote(args.locale, args.sport),
     unrated: m.unrated_note,
   };
   return {
     title: m.title,
     scope,
-    scopeLabel: gameRatingScopeLabel(scope, args.locale),
+    scopeLabel: gameRatingScopeLabel(scope, args.locale, args.sport),
     note: notes[scope],
     options: [
       {
         rated: true,
         label: m.rated,
-        description: gameRatingScopeLabel(ratedScope, args.locale),
+        description: gameRatingScopeLabel(ratedScope, args.locale, args.sport),
       },
       { rated: false, label: m.unrated, description: null },
     ],
@@ -217,7 +244,9 @@ export const DEFAULT_MATCH_MINUTES = 45;
 export type CreateTournamentShape =
   | "groups_only"
   | "groups_then_knockout"
-  | "knockout_only";
+  | "knockout_only"
+  | "king_of_the_court"
+  | "rounds";
 
 export const DEFAULT_TOURNAMENT_SHAPE: CreateTournamentShape = "groups_only";
 
@@ -226,11 +255,14 @@ export function tournamentShapeOptions(locale: Locale): readonly {
   title: string;
   description: string;
 }[] {
-  const m = messagesFor(locale).createGame.shapes;
+  const messages = messagesFor(locale);
+  const m = messages.createGame.shapes;
   return [
     { id: "groups_only", ...m.groupsOnly },
+    { id: "rounds", ...m.rounds },
     { id: "knockout_only", ...m.knockoutOnly },
     { id: "groups_then_knockout", ...m.groupsThenKnockout },
+    { id: "king_of_the_court", ...messages.tournamentKing.shape },
   ];
 }
 
@@ -239,20 +271,25 @@ export function parseCreateTournamentShape(
 ): CreateTournamentShape | null {
   return value === "groups_only" ||
     value === "groups_then_knockout" ||
-    value === "knockout_only"
+    value === "knockout_only" ||
+    value === "king_of_the_court" ||
+    value === "rounds"
     ? value
     : null;
 }
 
 export function createShapeHasPools(shape: CreateTournamentShape) {
-  return shape !== "knockout_only";
+  return shape !== "knockout_only" && shape !== "king_of_the_court";
+}
+
+/** The Rounds shape is always one Pool, so it has no Groups control. */
+export function createShapeChoosesPools(shape: CreateTournamentShape) {
+  return createShapeHasPools(shape) && shape !== "rounds";
 }
 
 export type CreateFlowDuration = (typeof CREATE_FLOW_DURATIONS)[number];
 
 export const VISIBLE_GROUP_CHIP_COUNT = 3;
-
-export const VISIBLE_COURT_CHIP_COUNT = 3;
 
 export const VISIBLE_START_SLOT_COUNT = 7;
 
@@ -312,7 +349,24 @@ export type FriendlyGameDraft = {
   day: string;
   startTime: string;
   finishTime: string;
+  /** With no Group, the draft is a Public Game. */
+  isPublic?: boolean;
 };
+
+/**
+ * A Public Game is a groupless Friendly game at a partner Venue (ADR-0071),
+ * so the create flow offers it only on the Friendly game type.
+ */
+export function publicGameOffered(type: CreateGameTypeId | null) {
+  return type === "friendly_game";
+}
+
+export function isPublicGameDraft(draft: {
+  groupId: string;
+  isPublic?: boolean;
+}) {
+  return !draft.groupId && draft.isPublic === true;
+}
 
 export type CreateFlowFieldIssue = {
   ok: false;
@@ -325,9 +379,10 @@ export function validateFriendlyGameWhere(
   groupId: string,
   venueId: string,
   locale: Locale,
+  publicGame = false,
 ): { ok: true } | CreateFlowFieldIssue {
   const m = messagesFor(locale).createGame.validation;
-  if (!groupId) {
+  if (!groupId && !publicGame) {
     return {
       ok: false,
       field: "groupId",
@@ -460,7 +515,7 @@ export function firstIncompleteFriendlyGameStep(
   draft: FriendlyGameDraft,
   now: Date = new Date(),
 ): 2 | 3 | 4 {
-  if (!draft.groupId || !draft.venueId) {
+  if ((!draft.groupId && !isPublicGameDraft(draft)) || !draft.venueId) {
     return 2;
   }
   if (
@@ -553,7 +608,7 @@ export function createVenueCopy(
     venues: { archivedAt: Date | string | null }[];
   },
   locale: Locale,
-  options?: { manyCourts?: boolean; sport?: Sport },
+  options?: { manyCourts?: boolean; sport?: Sport; publicGame?: boolean },
 ) {
   const m = messagesFor(locale).createGame.venue;
   const football = options?.sport === "football";
@@ -573,7 +628,7 @@ export function createVenueCopy(
     }
     return m.lockedLinked(optional);
   }
-  return m.pick(optional);
+  return options?.publicGame ? m.pickPartner(optional) : m.pick(optional);
 }
 
 export function venueCardMeta(
@@ -601,37 +656,6 @@ export function venueMatchesQuery(
   return [venue.name, venue.city].some((part) =>
     part.toLowerCase().includes(needle),
   );
-}
-
-export function visibleCreateCourts<T extends { id: string }>(
-  courts: readonly T[],
-  recentCourtIds: readonly string[],
-  selectedIds: readonly string[] = [],
-  count = VISIBLE_COURT_CHIP_COUNT,
-): T[] {
-  const byId = new Map(courts.map((court) => [court.id, court]));
-  const recent: T[] = [];
-  for (const id of recentCourtIds) {
-    const court = byId.get(id);
-    if (!court || recent.some((item) => item.id === court.id)) {
-      continue;
-    }
-    recent.push(court);
-    if (recent.length === count) {
-      break;
-    }
-  }
-  const visible = recent.length > 0 ? [...recent] : courts.slice(0, count);
-  for (const id of selectedIds) {
-    if (!id || visible.some((court) => court.id === id)) {
-      continue;
-    }
-    const selected = byId.get(id);
-    if (selected) {
-      visible.push(selected);
-    }
-  }
-  return visible;
 }
 
 export function visibleCreateGroups<T extends { id: string }>(
@@ -1060,7 +1084,12 @@ export function resetCreateBranch(
       allowSoloRegister: true,
     };
   }
-  return { ...draft, courtId: "none", customName: "" };
+  return {
+    ...draft,
+    courtId: "none",
+    customName: "",
+    isPublic: isPublicGameDraft(draft) ? false : draft.isPublic,
+  };
 }
 
 export function changeCreateDay<
@@ -1087,6 +1116,51 @@ export function changeCreateGroup(
     courtIds: [],
     isPublic: false,
   };
+}
+
+/** Picking Public game drops the Group and its Venue: a Public Game has none. */
+export function choosePublicGame(draft: CreateGameDraft): CreateGameDraft {
+  return { ...changeCreateGroup(draft, ""), isPublic: true };
+}
+
+/**
+ * A Public Game's sport is the creator's pick. The partner Venues on offer
+ * depend on it, so a new sport drops the Venue and its Court.
+ */
+export function choosePublicGameSport(
+  draft: CreateGameDraft,
+  sport: Sport,
+): CreateGameDraft {
+  if (sport === draft.publicSport) {
+    return draft;
+  }
+  return {
+    ...draft,
+    publicSport: sport,
+    venueId: "",
+    courtId: "none",
+    courtIds: [],
+  };
+}
+
+/** The sport being created: a Public Game's pick, else the Group's. */
+export function createDraftSport(
+  draft: Pick<CreateGameDraft, "groupId" | "isPublic" | "publicSport">,
+  groupSport: string | null | undefined,
+): Sport {
+  return isPublicGameDraft(draft)
+    ? draft.publicSport
+    : sportOrDefault(groupSport);
+}
+
+/** The sport chips under the Public game choice. */
+export function publicGameSportOptions(selected: Sport, locale: Locale) {
+  const m = messagesFor(locale).common;
+  return SPORTS.map((sport) => ({
+    sport,
+    label: m[sport],
+    selected: sport === selected,
+  }));
 }
 
 export function changeCreateVenue(

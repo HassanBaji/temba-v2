@@ -12,10 +12,13 @@ import {
   type MarkRefusal,
 } from "@repo/domain/marks";
 import { sportOrDefault } from "@repo/domain/sport";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { canViewGame, requireGame } from "#src/games/access";
+import { markReceivedDedupeKey } from "#src/marks/mark-received-notification";
 import {
   loadMatchParticipants,
   marksMatch,
@@ -41,12 +44,17 @@ export async function give(
     userId: string;
     receiverUserId: string;
     kind: MarkKind;
+    locale?: Locale;
   },
   now: Date = new Date(),
 ): Promise<{ markId: string }> {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   if (!(await canViewGame(database, game, args.userId))) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).game.errors.notFound,
+    });
   }
   const match = await marksMatch(database, game);
   if (!match) {
@@ -107,7 +115,7 @@ export async function give(
       groupId: game.groupId,
       gameId: game.id,
       markKind: args.kind,
-      dedupeKey: `mark_received:${inserted.id}`,
+      dedupeKey: markReceivedDedupeKey(locked.id, args.userId),
     });
 
     return { markId: inserted.id };
@@ -129,5 +137,6 @@ export const giveProcedure = protectedProcedure
       userId: appUser.id,
       receiverUserId: input.receiverUserId,
       kind: input.kind,
+      locale: ctx.locale,
     });
   });

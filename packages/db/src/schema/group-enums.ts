@@ -6,6 +6,22 @@ export const groupMemberRoles = pgEnum("group_member_role", [
   "member",
   "organizer",
 ]);
+export const memberNicknameVisibilities = pgEnum("member_nickname_visibility", [
+  "approvers",
+  "group",
+]);
+
+export const PERFORMANCE_RATING_MODE_VALUES = [
+  "off",
+  "organizer",
+  "everyone",
+] as const;
+
+/** Who gives Performance ratings in a tier Group (ADR-0068). */
+export const performanceRatingModes = pgEnum(
+  "performance_rating_mode",
+  PERFORMANCE_RATING_MODE_VALUES,
+);
 
 export enum GroupTypeEnum {
   PUBLIC = "public",

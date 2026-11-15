@@ -5,6 +5,8 @@ import {
   gameLevelRangeRequests,
   GameLevelRangeRequestStatusEnum,
 } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type db } from "#src/db";
 import {
@@ -66,6 +68,7 @@ export async function requirePendingLevelRangeRequest(
   requestId: string,
   actorUserId: string,
   action: "approve" | "reject",
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const request = await database.query.gameLevelRangeRequests.findFirst({
     where: eq(gameLevelRangeRequests.id, requestId),
@@ -73,23 +76,23 @@ export async function requirePendingLevelRangeRequest(
   if (!request) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Level range request not found",
+      message: messagesFor(locale).game.errors.levelRequestNotFound,
     });
   }
-  const game = await requireGame(database, request.gameId);
-  await assertGameOrganizer(database, game, actorUserId);
+  const game = await requireGame(database, request.gameId, locale);
+  await assertGameOrganizer(database, game, actorUserId, locale);
 
   if (game.cancelledAt) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: `Cannot ${action} Level range requests for this Game`,
+      message: messagesFor(locale).game.errors.levelRequestClosed[action],
     });
   }
 
   if (request.status !== "pending") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Level range request is not pending",
+      message: messagesFor(locale).game.errors.levelRequestNotPending,
     });
   }
 

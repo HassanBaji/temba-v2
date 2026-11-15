@@ -78,12 +78,12 @@ export function ChallengeCardBody({
   return (
     <>
       <div className="flex items-start gap-3.5">
-        {card.levelBand ? (
+        {card.levelBadge ? (
           <span
             aria-hidden="true"
             className="font-expanded text-h1 w-13 shrink-0 leading-none"
           >
-            {card.levelBand}
+            {card.levelBadge}
           </span>
         ) : (
           <span aria-hidden="true" className="w-13 shrink-0">

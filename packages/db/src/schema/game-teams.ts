@@ -1,4 +1,5 @@
 import {
+  index,
   integer,
   pgTable,
   timestamp,
@@ -28,6 +29,10 @@ export const gameTeams = pgTable(
     sideIndex: integer("side_index"),
     poolIndex: integer("pool_index"),
     knockoutSeed: integer("knockout_seed"),
+    /** King of the court: the Court this team starts on, 1 being the king's court. */
+    startCourt: integer("start_court"),
+    /** King of the court: the place the Organizer posted, null when not placed. */
+    finalPlace: integer("final_place"),
     bib: footballBibs("bib"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -39,6 +44,8 @@ export const gameTeams = pgTable(
     uniqueLiveSide: uniqueIndex("game_teams_game_id_side_index_unique")
       .on(table.gameId, table.sideIndex)
       .where(sql`${table.sideIndex} is not null`),
+    gameIdx: index("game_teams_game_id_idx").on(table.gameId),
+    teamIdx: index("game_teams_team_id_idx").on(table.teamId),
   }),
 );
 

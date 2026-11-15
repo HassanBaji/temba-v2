@@ -1,6 +1,8 @@
 import { TRPCError } from "@trpc/server";
 
 import { teamIsFull, teamRosterRule } from "@repo/domain/team-roster";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { listTeamMembers } from "#src/teams/helpers/list-team-members";
 import { requireTeam } from "#src/teams/helpers/require-team";
@@ -12,15 +14,16 @@ export async function requireIncompleteTeamCreator(
   database: DbClient,
   teamId: string,
   userId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
-  const team = await requireTeam(database, teamId);
+  const team = await requireTeam(database, teamId, locale);
 
   if (team.createdBy !== userId) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: teamRosterRule(team.sport).pairIsUnique
-        ? "Only the creator can invite a partner while the Team is incomplete"
-        : "Only the creator can invite into this Team",
+        ? messagesFor(locale).team.errors.creatorInvitesPartner
+        : messagesFor(locale).team.errors.creatorInvites,
     });
   }
 
@@ -28,7 +31,7 @@ export async function requireIncompleteTeamCreator(
   if (teamIsFull(memberRows.length, team.sport)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "This Team is full",
+      message: messagesFor(locale).team.errors.full,
     });
   }
 

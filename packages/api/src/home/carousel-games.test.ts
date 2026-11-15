@@ -715,7 +715,7 @@ describe("Home carousel list", () => {
         (row) => row.id,
       );
       expect(hubIds).toContain(spectatorGame.id);
-      expect(hubIds).not.toContain(joined.id);
+      expect(hubIds).toContain(joined.id);
     } finally {
       await close();
     }

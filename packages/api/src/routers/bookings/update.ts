@@ -8,6 +8,7 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { managerBookingActions } from "@repo/domain/booking-manager-actions";
 import { evaluateSlot } from "@repo/domain/booking-slots";
 import { formatBookingPriceFils } from "@repo/domain/price-per-player";
+import { messagesFor } from "@repo/i18n/messages";
 import { type db } from "#src/db";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -48,6 +49,7 @@ export async function updateBookingForVenue(
     locale?: Locale;
   },
 ) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
 
   return database.transaction(async (tx) => {
@@ -56,8 +58,8 @@ export async function updateBookingForVenue(
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: venueArchived
-          ? "This Venue is archived"
-          : "Only a confirmed Booking that has not ended can be edited",
+          ? messagesFor(locale).booking.errors.venueArchived
+          : messagesFor(locale).booking.errors.editConfirmedOnly,
       });
     }
 
@@ -86,7 +88,7 @@ export async function updateBookingForVenue(
         if (game && !game.cancelledAt) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "A Game is planned on this Booking. Cancel the Game first",
+            message: messagesFor(locale).booking.errors.gamePlanned,
           });
         }
       }
@@ -97,7 +99,7 @@ export async function updateBookingForVenue(
       if (!context?.courts.some((court) => court.id === courtId)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "That Court does not belong to this Venue",
+          message: messagesFor(locale).booking.errors.courtNotAtVenue,
         });
       }
       const check = evaluateSlot(
@@ -112,7 +114,7 @@ export async function updateBookingForVenue(
           code: check.reason === "taken" ? "CONFLICT" : "BAD_REQUEST",
           message:
             check.reason === "no_price"
-              ? "No Pricing rule covers that time. Type a price"
+              ? messagesFor(locale).booking.errors.noPricingRule
               : slotRefusalMessage(check.reason, args.locale ?? DEFAULT_LOCALE),
         });
       }
@@ -122,6 +124,7 @@ export async function updateBookingForVenue(
         endsAt,
         now,
         excludeBookingId: booking.id,
+        locale,
       });
     }
 
@@ -131,9 +134,10 @@ export async function updateBookingForVenue(
           code: "BAD_REQUEST",
           message:
             args.priceFils === undefined
-              ? // The Venue console is English-only, so the price matches the sentence.
-                `The payment is settled, so the price stays ${formatBookingPriceFils(booking.priceFils, "en")}. Type it as the price to move this Booking`
-              : "The payment is settled, so the price cannot change",
+              ? messagesFor(locale).booking.errors.priceSettled(
+                  formatBookingPriceFils(booking.priceFils, locale),
+                )
+              : messagesFor(locale).booking.errors.priceLocked,
         });
       }
       const payment = await latestPayment(tx, booking.id);
@@ -159,7 +163,7 @@ export async function updateBookingForVenue(
         updatedAt: now,
       })
       .where(eq(bookings.id, booking.id));
-    return bookingWithLedger(tx, booking.id);
+    return bookingWithLedger(tx, booking.id, locale);
   });
 }
 

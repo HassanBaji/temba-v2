@@ -12,7 +12,7 @@ import {
   homeGameRowLines,
   homeOpenSpotsLabel,
 } from "@repo/domain/home-game-lines";
-import { gameDayMinutes, gameDayStart } from "@repo/domain/game-day";
+import { gameDayStart } from "@repo/domain/game-day";
 import { productDaysBetween } from "@repo/domain/product-timezone";
 import { sportOrDefault, type Sport } from "@repo/domain/sport";
 import type { Locale } from "@repo/i18n/locale";
@@ -47,9 +47,6 @@ export type UpNextRowView = {
 };
 
 const WEEK_DAYS = 7;
-const EVENING_HOUR = 17;
-const MS_PER_MINUTE = 60_000;
-const MINUTES_PER_DAY = 24 * 60;
 
 /** Games across both sports, soonest first. */
 export function upNextItems(games: readonly UpNextGame[]): UpNextItem[] {
@@ -74,11 +71,11 @@ export function upNextWeekLabel(
   now: Date,
   locale: Locale,
 ): string {
-  const m = messagesFor(locale).webAuth.home;
+  const m = messagesFor(locale).home.upNextCard;
   const count = items.filter(
     (item) => productDaysBetween(now, gameDayStart(item.startsAt)) < WEEK_DAYS,
   ).length;
-  return count === 0 ? m.nothingThisWeek : m.thisWeekCount(count);
+  return count === 0 ? m.nothingThisWeek : m.oneOfThisWeek(count);
 }
 
 /** "Today", a weekday inside the coming week, then a date. */
@@ -96,52 +93,6 @@ export function upNextDayLabel(
     return formatWeekday(day, "short", locale);
   }
   return formatDayMonth(day, locale);
-}
-
-/** "Tonight", "Today", "Tomorrow" or "Tue 20 Oct". */
-export function upNextHeroDay(
-  startsAt: Date,
-  now: Date,
-  locale: Locale,
-): string {
-  const m = messagesFor(locale);
-  const day = gameDayStart(startsAt);
-  const days = productDaysBetween(now, day);
-  if (days === 0) {
-    return gameDayMinutes(startsAt) >= EVENING_HOUR * 60
-      ? m.dates.tonight
-      : m.common.today;
-  }
-  if (days === 1) {
-    return m.common.tomorrow;
-  }
-  return formatDayMonth(day, locale, { weekday: "short" });
-}
-
-/** "in 2 h 15 min" inside the coming day, "on now" while it runs. */
-export function startsInLabel(
-  startsAt: Date,
-  endsAt: Date,
-  now: Date,
-  locale: Locale,
-): string | null {
-  const m = messagesFor(locale).webAuth.home;
-  if (startsAt.getTime() <= now.getTime()) {
-    return endsAt.getTime() > now.getTime() ? m.onNow : null;
-  }
-  const total = Math.max(
-    1,
-    Math.floor((startsAt.getTime() - now.getTime()) / MS_PER_MINUTE),
-  );
-  if (total >= MINUTES_PER_DAY) {
-    return null;
-  }
-  const hours = Math.floor(total / 60);
-  const minutes = total % 60;
-  if (hours === 0) {
-    return m.inMinutes(minutes);
-  }
-  return minutes === 0 ? m.inHours(hours) : m.inHoursMinutes(hours, minutes);
 }
 
 export function upNextRowView(

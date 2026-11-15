@@ -2,7 +2,9 @@ import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { squadButtonCopy } from "@repo/domain/matchday-squad";
 import { challengeHeroSubLine } from "@repo/domain/challenge-game-details";
 import { gameCustomName } from "@repo/domain/game-custom-name";
+import { ratingScopeOf, ratingScopeTag } from "@repo/domain/game-rating-impact";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
+import { footballReportWrongScoreAction } from "@repo/domain/friendly-game-actions";
 import {
   gameOrganizerRequests,
   gameRequestsVisible,
@@ -27,6 +29,8 @@ import {
   leaveGameConsequence,
   leaveWaitlistAction,
   leaveWaitlistConsequence,
+  reportWrongScoreAction,
+  reportWrongScoreConsequence,
 } from "@repo/domain/game-copy";
 import {
   gameKickConfirmCopy,
@@ -34,12 +38,15 @@ import {
   type GameKickRequest,
 } from "@repo/domain/game-kick-confirm";
 import { gameInviteAccess } from "@repo/domain/invites";
+import { levelRangeRequestCard } from "@repo/domain/level-range-request";
+import { scoreConfirmWindowLine } from "@repo/domain/friendly-game-score";
 import {
   gameIsPlayed,
   playedFootballModel,
   type PlayedRow,
 } from "@repo/domain/played-game";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+import { gamePaymentsTracked } from "@repo/domain/game-payments";
 import { useRouter, useSegments, type Href } from "expo-router";
 import { Share } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
@@ -66,10 +73,17 @@ import { InviteIconEntry } from "../invites/invite-entry";
 import { MarksSection } from "../marks/marks-section";
 import { MvpRow } from "../marks/mvp-row";
 import { useGameMarks } from "../marks/use-game-marks";
+import { GameAlbumSections } from "../game-album/game-album-sections";
+import { GamePaymentsSection } from "../game-payments/game-payments-section";
+import { useGameAlbum } from "../game-album/use-game-album";
 import { PlayedFootballBoard } from "../played-game/played-football-board";
 import { sharePath } from "../played-game/played-friendly-game";
+import { MatchDisputeSection } from "../played-game/match-dispute-section";
 import { PlayedGameView } from "../played-game/played-game-view";
-import { PlayedMenuSheet } from "../played-game/played-menu-sheet";
+import {
+  PlayedMenuSheet,
+  type PlayedMenuItem,
+} from "../played-game/played-menu-sheet";
 import { PlayedPlayerSheet } from "../played-game/played-player-sheet";
 import { gamePlayersLink } from "../player-profile/game-player-links";
 import { playerPath } from "../player-profile/player-path";
@@ -80,6 +94,7 @@ import { HeaderIconButton } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "../trpc/react";
 import { AddPlayerSheet } from "./add-player-sheet";
 import { BottomBar } from "./bottom-bar";
@@ -88,7 +103,12 @@ import { gameTitle } from "./details-model";
 import { FootballHero, SeatBar } from "./football-hero";
 import { FootballOrganizerCard } from "./football-organizer-card";
 import { RequestsSection } from "./organizer-card";
+import { OvrImpactCard } from "./ovr-impact-card";
+import { PerformanceResultCard } from "./performance-result-card";
+import { RateGameCard } from "./rate-game-card";
+import { RatingSummaryCard } from "./rating-summary-card";
 import { GameEditSheet } from "./game-edit-sheet";
+import { LevelRequestCard } from "./level-request-card";
 import { challengeInfoRows } from "./challenge-details-card";
 import { NameSquadSheet } from "./name-squad-sheet";
 import { ChallengeSquads } from "./squad-grid";
@@ -128,12 +148,15 @@ export function FootballGameDetails({
   gameId,
   game,
   openJoin,
+  openAddPhotos = false,
   refreshing,
   onRefresh,
 }: {
   gameId: string;
   game: FootballGame;
   openJoin: boolean;
+  /** Opened from the Played list's Add photos. */
+  openAddPhotos?: boolean;
   refreshing: boolean;
   onRefresh: () => void;
 }) {
@@ -167,6 +190,7 @@ export function FootballGameDetails({
   const viewer = players.find((player) => player.isViewer) ?? null;
   const preferences = api.users.onboardingState.useQuery().data;
   const marks = useGameMarks(gameId, board.data?.match?.status === "completed");
+  const album = useGameAlbum(gameId, board.data?.match?.status === "completed");
 
   const input: FootballGameDetailsInput = {
     ...game,
@@ -178,6 +202,7 @@ export function FootballGameDetails({
     now,
   );
   const price = formatPricePerPlayerFils(game.pricePerPlayerFils, locale);
+  const paymentsTracked = gamePaymentsTracked(game);
   const layout = poolLayout(players, game.sideSize, game.playersAllowed);
   const baseLines = footballHeroLines(
     {
@@ -217,6 +242,8 @@ export function FootballGameDetails({
       utils.games.listPublicPickup.invalidate(),
       utils.users.home.invalidate(),
     ]);
+  const refreshRatings = () =>
+    invalidateRatingReads(utils, { groupId: game.groupId });
   const failure = (error: { message: string }) => toast.show(error.message);
   const settled = async () => {
     setConfirm(null);
@@ -246,7 +273,17 @@ export function FootballGameDetails({
   const confirmScore = api.games.confirmMatchResult.useMutation({
     onSuccess: () => toast.show(copy.toast.scoreConfirmed),
     onError: failure,
-    onSettled: refresh,
+    onSettled: () => Promise.all([refresh(), refreshRatings()]),
+  });
+  const stampMatch = api.games.stampMatch.useMutation({
+    onSuccess: () => toast.show(m.rating.verifier.stamp.stamped),
+    onError: failure,
+    onSettled: () =>
+      Promise.all([
+        refresh(),
+        refreshRatings(),
+        utils.games.listMatchesToStamp.invalidate(),
+      ]),
   });
   const leave = api.games.leave.useMutation({
     onSuccess: () => toast.show(gameToast(locale).left),
@@ -277,11 +314,29 @@ export function FootballGameDetails({
     onError: failure,
     onSettled: refresh,
   });
+  const requestLevel = api.games.requestLevelRange.useMutation({
+    onSuccess: () => toast.show(m.level.request.sent),
+    onError: failure,
+    onSettled: refresh,
+  });
+  const levelCard = game.cancelledAt
+    ? null
+    : levelRangeRequestCard(game, locale);
+  const reportWrongScore = api.games.reportWrongScore.useMutation({
+    onSuccess: () => toast.show(copy.toast.scoreReopened),
+    onError: failure,
+    onSettled: async () => {
+      await settled();
+      await refreshRatings();
+    },
+  });
   const editSections = gameEditSectionsFor({
     format: game.format,
     sport: game.sport,
     groupId: game.groupId,
     tournamentRounds: false,
+    booked: game.booking != null,
+    challenge: game.challenge != null,
   });
   const edit = useGameEdit({
     gameId,
@@ -358,6 +413,15 @@ export function FootballGameDetails({
     });
   }
 
+  function askReportWrongScore(matchId: string) {
+    setConfirm({
+      title: copy.confirm.reportWrongScoreTitle,
+      description: reportWrongScoreConsequence(locale),
+      confirmLabel: reportWrongScoreAction(locale),
+      onConfirm: () => reportWrongScore.mutate({ gameId, matchId }),
+    });
+  }
+
   function submitJoin(role: FootballRole, position: FootballPosition) {
     if (joinMode === "edit") {
       setRole.mutate({ gameId, role, position });
@@ -378,8 +442,12 @@ export function FootballGameDetails({
     : { canManage: false, canSendLookup: false };
   const canAddPlayer = game.canAddPlayer && organizerCanAddPlayer(game);
   const canOpenProfile = gamePlayersLink(game);
-  const openProfile = (userId: string) =>
+  const openProfile = (userId: string) => {
+    if (players.some((row) => row.userId === userId && row.guest)) {
+      return;
+    }
     router.push(playerPath(segments, userId, "football"));
+  };
   const onPressPlayer = (userId: string) => {
     const player = players.find((row) => row.userId === userId);
     if (player && model.organizer && !player.isViewer) {
@@ -437,7 +505,7 @@ export function FootballGameDetails({
     },
   ];
   const infoRows = challenge
-    ? challengeInfoRows(challenge, game.sport, locale)
+    ? challengeInfoRows(challenge, game.sport, game.rated, locale)
     : gameInfoRows;
   const squadSide = challenge?.sides.find(
     (side) => side.teamId === squadTeamId,
@@ -518,6 +586,7 @@ export function FootballGameDetails({
           players={players}
           bibs={teams.bibs}
           names={names}
+          balanceOn={board.data?.balanceOn ?? "ovr"}
           onOpenPlayer={onPressPlayer}
         />
         <Text size="meta" tone="muted">
@@ -591,6 +660,9 @@ export function FootballGameDetails({
   );
 
   const score = board.data?.match?.score ?? null;
+  const boardMatch = game.matches.find(
+    (match) => match.id === board.data?.match?.id,
+  );
   const playedModel =
     teams && names && score && board.data?.match?.status === "completed"
       ? playedFootballModel(
@@ -609,25 +681,43 @@ export function FootballGameDetails({
             groupName: game.groupName,
             rated: game.rated,
             ratingImpact: game.ratingImpact,
+            stoodUnconfirmed: boardMatch?.stoodUnconfirmed ?? false,
+            stampedByName: boardMatch?.stamp?.verifierName ?? null,
           },
           locale,
         )
       : null;
-  const playedMenuItems = canAddPlayer
-    ? [
-        {
-          key: "add_player",
-          label: m.group.addPlayer.action,
-          hint: m.group.addPlayer.menuHint,
-          onPress: () => setAddPlayerOpen(true),
-        },
-      ]
-    : [];
+  const playedMatchId = board.data?.match?.id;
+  const wrongScore = footballReportWrongScoreAction(game, locale);
+  const playedMenuItems: PlayedMenuItem[] = [
+    ...(canAddPlayer
+      ? [
+          {
+            key: "add_player",
+            label: m.group.addPlayer.action,
+            hint: m.group.addPlayer.menuHint,
+            onPress: () => setAddPlayerOpen(true),
+          },
+        ]
+      : []),
+    ...(wrongScore && playedMatchId
+      ? [
+          {
+            key: wrongScore.kind,
+            label: wrongScore.label,
+            hint: wrongScore.consequence,
+            disabled: !wrongScore.enabled,
+            onPress: () => askReportWrongScore(playedMatchId),
+          },
+        ]
+      : []),
+  ];
   const refreshAll = () => {
     onRefresh();
     void board.refetch();
     if (playedModel) {
       void marks.refetch();
+      void album.refetch();
     }
   };
 
@@ -655,10 +745,32 @@ export function FootballGameDetails({
           onOpenPlayer={canOpenProfile ? openProfile : undefined}
         />
       }
+      task={
+        <>
+          <GamePaymentsSection gameId={gameId} tracked={paymentsTracked} />
+          <OvrImpactCard ratingImpact={game.ratingImpact} />
+          <RateGameCard gameId={gameId} window={game.ratingWindow} />
+          <PerformanceResultCard gameId={gameId} window={game.ratingWindow} />
+          <RatingSummaryCard
+            gameId={gameId}
+            window={game.ratingWindow}
+            isOrganizer={game.isOrganizer}
+          />
+        </>
+      }
       marks={<MarksSection marks={marks} />}
+      album={
+        <GameAlbumSections
+          album={album}
+          place={playedModel.venueLine ?? ""}
+          context={playedModel.dateLine}
+          openAdd={openAddPhotos}
+        />
+      }
       columns={playedModel.columns}
       unplaced={playedModel.unplaced}
       facts={playedModel.facts}
+      dispute={<MatchDisputeSection match={boardMatch} />}
       refreshing={refreshing}
       onRefresh={refreshAll}
       onShare={() => router.push(sharePath(gameId))}
@@ -678,7 +790,13 @@ export function FootballGameDetails({
         <FootballHero
           tone={model.hero.tone}
           lines={lines}
-          tag={challenge ? m.challenge.gameDetails.tag : undefined}
+          tag={
+            ratingScopeOf(game) === "temba"
+              ? (ratingScopeTag(game, locale) ?? undefined)
+              : challenge
+                ? m.challenge.gameDetails.tag
+                : undefined
+          }
           actions={
             challenge && !game.cancelledAt ? (
               <HeaderIconButton
@@ -720,7 +838,19 @@ export function FootballGameDetails({
           </Surface>
         ) : null}
         {requests ? (
-          <RequestsSection requests={requests} decisions={decisions} />
+          <RequestsSection
+            gameId={gameId}
+            groupName={game.groupName}
+            requests={requests}
+            decisions={decisions}
+          />
+        ) : null}
+        {levelCard ? (
+          <LevelRequestCard
+            card={levelCard}
+            pending={requestLevel.isPending}
+            onRequest={() => requestLevel.mutate({ gameId })}
+          />
         ) : null}
         {board.error ? (
           <Surface accessibilityRole="alert" style={{ gap: 8 }}>
@@ -762,7 +892,15 @@ export function FootballGameDetails({
             canConfirmAsOrganizer={
               board.data?.viewer.canConfirmAsOrganizer ?? false
             }
+            confirmWindowLine={scoreConfirmWindowLine(
+              game.confirmWindow,
+              now,
+              locale,
+            )}
             confirmPending={confirmScore.isPending}
+            canStamp={boardMatch?.canStamp ?? false}
+            stampPending={stampMatch.isPending}
+            stampedByName={boardMatch?.stamp?.verifierName ?? null}
             onEnterScore={() => router.push(scorePath)}
             onConfirm={() => {
               const matchId = board.data?.match?.id;
@@ -770,8 +908,14 @@ export function FootballGameDetails({
                 confirmScore.mutate({ gameId, matchId });
               }
             }}
+            onStamp={() => {
+              if (boardMatch) {
+                stampMatch.mutate({ matchId: boardMatch.id });
+              }
+            }}
           />
         ) : null}
+        <GamePaymentsSection gameId={gameId} tracked={paymentsTracked} />
         <InfoRows rows={infoRows} />
         {model.organizer ? (
           <FootballOrganizerCard
@@ -962,7 +1106,8 @@ export function FootballGameDetails({
           sections={editSections}
           context={{
             venueName: game.venue?.name ?? null,
-            courtName: game.recordedCourts[0]?.name ?? null,
+            courtName:
+              game.booking?.courtName ?? game.recordedCourts[0]?.name ?? null,
             groupName: game.groupName,
             joined: game.registeredUserCount,
             seasons: game.groupSeasons,
@@ -990,7 +1135,8 @@ export function FootballGameDetails({
           leave.isPending ||
           leaveWaitlist.isPending ||
           kick.isPending ||
-          cancel.isPending
+          cancel.isPending ||
+          reportWrongScore.isPending
         }
         onClose={() => setConfirm(null)}
       />

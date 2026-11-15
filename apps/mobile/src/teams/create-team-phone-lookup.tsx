@@ -213,7 +213,9 @@ export function CreateTeamPhoneLookup({
       return;
     }
     const isNew = previewData.kind === "new";
-    const listedName = isNew ? name.trim() : (previewData.name ?? "");
+    const listedName = isNew
+      ? name.trim()
+      : (previewData.name ?? previewData.phoneMasked ?? "");
     if (listedName.length === 0) {
       return;
     }
@@ -225,6 +227,7 @@ export function CreateTeamPhoneLookup({
       kind: previewData.kind,
       phoneMasked: previewData.phoneMasked,
       levelBand: previewData.levelBand ?? null,
+      ovr: previewData.ovr ?? null,
       footballRole: previewData.footballRole ?? null,
       footballPosition: previewData.footballPosition ?? null,
       football:
@@ -358,7 +361,11 @@ export function CreateTeamPhoneLookup({
                         <Text
                           size="eyebrow"
                           tone="muted"
-                          style={selected ? { color: colors.dim } : undefined}
+                          style={
+                            selected
+                              ? { color: colors.onControlMuted }
+                              : undefined
+                          }
                         >
                           {choice.name}
                         </Text>

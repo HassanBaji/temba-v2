@@ -13,6 +13,7 @@ import {
 import type { Locale } from "@repo/i18n/locale";
 import type { Messages } from "@repo/i18n/messages";
 import {
+  ArrowLeftRight,
   CalendarX,
   CircleCheck,
   CircleX,
@@ -52,11 +53,14 @@ export function gameMenuItems({
   handlers,
   footerActions,
   onFooterAction,
+  onEditTeams,
   messages,
   locale,
 }: {
   plan: FriendlyGameOrganizerPlan | null;
   handlers: OrganizerHandlers | null;
+  /** Set when the Organizer may still edit the teams. */
+  onEditTeams?: () => void;
   footerActions: FriendlyGameFooterAction[];
   onFooterAction: (kind: FriendlyGameFooterActionKind) => void;
   messages: Messages;
@@ -88,6 +92,15 @@ export function gameMenuItems({
         hint: messages.group.addPlayer.menuHint,
         icon: UserPlus,
         onPress: handlers.onAddPlayer,
+      });
+    }
+    if (onEditTeams) {
+      items.push({
+        key: "edit_teams",
+        label: messages.editTeams.action,
+        hint: messages.editTeams.gameMenuHint,
+        icon: ArrowLeftRight,
+        onPress: onEditTeams,
       });
     }
     if (plan.court) {

@@ -4,13 +4,13 @@ import { plural } from "../../plural";
 export const you = {
   ratingScope: {
     temba: "Counts for Temba rating",
-    group: "Counts for group rating",
+    group: "Did not count for Temba Level",
     unrated: "Unrated",
     title: "Rating",
     rated: "Rated",
-    temba_note: "Moves everyone's Temba level and their level in this group.",
+    temba_note: "Moves everyone's Temba level.",
     group_note:
-      "Moves levels in this group only. Temba levels move in verified groups.",
+      "It counted for a group level, which padel no longer has. It moved no Temba Level.",
     unrated_note: "Results count in the standings, but no level moves.",
   },
   header: {
@@ -21,13 +21,8 @@ export const you = {
     settings: "Settings",
     addSport: (sport: string) => `Add ${sport}`,
   },
-  scope: {
-    general: "General",
-    chipSpoken: (name: string, band: string) => `${name}, ${band}`,
-  },
   hero: {
-    generalLevel: "General level",
-    groupLevel: (group: string) => `${group} level`,
+    generalLevel: "Temba Level",
     confirmed: (n: number) =>
       plural("en", n, {
         one: "Confirmed · 1 rated",
@@ -39,46 +34,29 @@ export const you = {
         one: "Provisional · 1 rated",
         other: "Provisional · {n} rated",
       }),
-    groupRated: (n: number) =>
-      plural("en", n, {
-        one: "Group level · 1 rated",
-        other: "Group level · {n} rated",
-      }),
-    setByOrganizer: "Set by organizer",
     rating: "rating",
     percentThrough: (percent: number) => `${percent}% through`,
     toConfirm: (done: number, total: number) =>
       `${done} of ${total} to confirm`,
     thisWeek: (delta: string) => `${delta} this week`,
-    vsGeneral: (delta: string) => `${delta} vs general`,
     toNext: (distance: string, band: string) => `${distance} to ${band}.`,
     winsToNext: (n: number) =>
       plural("en", n, {
         one: "One more win like your last gets you there.",
         other: "{n} more wins like your recent ones get you there.",
       }),
-    toNextInGroup: (distance: string, band: string) =>
-      `${distance} to ${band} in this group.`,
     settles: (n: number) =>
       plural("en", n, {
-        one: "Your level settles after about 1 more rated match. Until then it moves faster.",
+        one: "Your level settles after 1 more rated match in a verified group. Until then it moves faster.",
         other:
-          "Your level settles after about {n} more rated matches. Until then it moves faster.",
+          "Your level settles after {n} more rated matches in a verified group. Until then it moves faster.",
       }),
-    groupSettles: (n: number) =>
-      plural("en", n, {
-        one: "1 more rated match in this group to confirm it.",
-        other: "{n} more rated matches in this group to confirm it.",
-      }),
-    setOn: (who: string, when: string) =>
-      `${who} set this on ${when}. Results in this group move it from there.`,
     topBand: "Top level band.",
     graphTitle: (n: number) =>
       plural("en", n, {
         one: "Rating, last 1 rated",
         other: "Rating, last {n} rated",
       }),
-    graphTitleGroup: (group: string) => `Rating in ${group}`,
     graphSpan: (from: string, to: string) => `${from} to ${to}`,
     noLevel: "No level yet",
     noLevelNote: "Play a rated match to get a level.",
@@ -86,39 +64,13 @@ export const you = {
     winRateAfter: (n: number) => `win rate after ${n}`,
     matches: "matches",
     streak: "streak",
-    standing: (n: number) => `of ${n} in standings`,
-    unranked: "unranked",
     streakWon: (n: number) => `W${n}`,
     streakLost: (n: number) => `L${n}`,
     spoken: (band: string, level: string, status: string) =>
       `Level ${band} ${level}. ${status}`,
   },
-  groups: {
-    title: "Levels by group",
-    vsGeneral: (band: string, level: string) => `vs general ${band} ${level}`,
-    general: "GEN",
-    rankOf: (rank: number, of: number, rated: number) =>
-      plural("en", rated, {
-        one: `#${rank} of ${of} · 1 rated`,
-        other: `#${rank} of ${of} · {n} rated`,
-      }),
-    rated: (n: number) =>
-      plural("en", n, { one: "1 rated", other: "{n} rated" }),
-    provisionalLeft: (n: number) =>
-      plural("en", n, {
-        one: "Provisional · 1 more to confirm",
-        other: "Provisional · {n} more to confirm",
-      }),
-    setBy: (name: string) => `Set by ${name}, organizer`,
-    note: "General counts every rated match. A group level counts only that group's matches, and organizers can set it.",
-    footballNote:
-      "Football levels start from yours. Organizers can set a different one for their group.",
-    empty:
-      "Play a rated game in a group to get a level there. Every group game counts unless its organizer makes it Unrated.",
-  },
   form: {
     lastTen: "Last 10",
-    lastTenIn: (group: string) => `Last 10 in ${group}`,
     record: (won: number, lost: number) => `${won} won, ${lost} lost`,
     recordWithDrawn: (won: number, lost: number, drawn: number) =>
       `${won} won, ${lost} lost, ${drawn} drawn`,
@@ -141,7 +93,6 @@ export const you = {
     title: "Partners",
     teammates: "Teammates",
     mostPlayed: "most played",
-    inGroup: (group: string) => `in ${group}`,
     record: (won: number, lost: number) => `${won}–${lost}`,
     spoken: (name: string, won: number, lost: number, percent: number) =>
       `${name}, ${won} won, ${lost} lost, ${percent}%`,
@@ -191,7 +142,7 @@ export const you = {
     sportProfiles: "Sport profiles",
     notSetUp: "Not set up",
     setUp: "Set up",
-    padelSub: (level: string, side: string) => `${level} general · ${side}`,
+    padelSub: (level: string, side: string) => `${level} · ${side}`,
     padelSubNoLevel: (side: string) => `No level yet · ${side}`,
     footballSub: (level: string, role: string) => `${level} · ${role}`,
     account: "Account",
@@ -289,7 +240,7 @@ export const you = {
   padel: {
     title: "Padel profile",
     level: "Level",
-    general: "general",
+    general: "Temba Level",
     lockNote:
       "Set by your rated results. It moves after every rated match and can no longer be declared by hand.",
     lockNoteProvisional:
@@ -382,13 +333,6 @@ export const you = {
       parts
         .map((part, index) => (index === 0 ? part : part.toLowerCase()))
         .join(", "),
-  },
-  setGroupLevel: {
-    title: "Set group level",
-    body: (name: string, group: string) =>
-      `${name}'s level in ${group}. Results in this group move it from there. Their Temba level does not change.`,
-    save: "Set group level",
-    saved: "Group level set",
   },
   areas: {
     Adliya: "Adliya",

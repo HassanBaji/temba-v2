@@ -15,6 +15,8 @@ import {
   footballPlayersAllowedBounds,
   isFootballSideSize,
 } from "@repo/domain/game-shape";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type db } from "#src/db";
 import {
@@ -41,11 +43,12 @@ export const FRIENDLY_SET_SHELL_COUNT = 3;
 export async function createFootballGame(
   database: CreateFriendlyDb,
   input: CreateFootballGameInput,
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   if (!isFootballSideSize(input.sideSize)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Side size must be 5, 6, 7, 8, 9 or 11",
+      message: messagesFor(locale).game.errors.sideSize,
     });
   }
   const bounds = footballPlayersAllowedBounds(input.sideSize);
@@ -56,7 +59,10 @@ export async function createFootballGame(
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `Players allowed must be between ${bounds.min} and ${bounds.max}`,
+      message: messagesFor(locale).game.errors.playersBetween(
+        bounds.min,
+        bounds.max,
+      ),
     });
   }
   await assertGameCreateVenueAndCourt(writeDb(database), {
@@ -64,6 +70,7 @@ export async function createFootballGame(
     venueId: input.venueId,
     courtId: input.courtId,
     sport: "football",
+    locale,
   });
 
   return writeDb(database).transaction(async (tx) => {
@@ -76,7 +83,7 @@ export async function createFootballGame(
         registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
         groupId: input.groupId,
         venueId: input.venueId,
-        isPublic: false,
+        isPublic: input.isPublic ?? false,
         windowStart: input.windowStart,
         windowEnd: input.windowEnd,
         playersAllowed: input.playersAllowed,
@@ -84,7 +91,13 @@ export async function createFootballGame(
         pricePerPlayerFils: input.pricePerPlayerFils ?? null,
         sport: GameSportEnum.Football,
         sideSize: input.sideSize,
-        rated: false,
+        trackPayments: input.trackPayments ?? false,
+        keepersPlayFree:
+          (input.trackPayments ?? false) && (input.keepersPlayFree ?? false),
+        levelMinTenths: input.levelMinTenths ?? null,
+        levelMaxTenths: input.levelMaxTenths ?? null,
+        rated: input.rated ?? false,
+        groupRated: input.groupRated ?? false,
         mvpMode: input.mvpMode ?? "vote",
         createdBy: input.createdBy,
       })
@@ -147,12 +160,14 @@ export async function backfillFriendlySetShells(database: CreateFriendlyDb) {
 export async function createFriendlyGame(
   database: CreateFriendlyDb,
   input: CreateFriendlyGameInput,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<CreateFriendlyGameResult> {
   await backfillFriendlySetShells(database);
   await assertGameCreateVenueAndCourt(writeDb(database), {
     groupId: input.groupId ?? undefined,
     venueId: input.venueId,
     courtId: input.courtId,
+    locale,
   });
 
   const durationInMinutes = Math.max(
@@ -172,7 +187,7 @@ export async function createFriendlyGame(
         registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
         groupId: input.groupId,
         venueId: input.venueId,
-        isPublic: false,
+        isPublic: input.isPublic ?? false,
         windowStart: input.windowStart,
         windowEnd: input.windowEnd,
         playersAllowed: FRIENDLY_PLAYERS_ALLOWED,
@@ -181,6 +196,7 @@ export async function createFriendlyGame(
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
+        trackPayments: input.trackPayments ?? false,
         rated: input.rated ?? true,
         groupRated: input.groupRated ?? false,
         mvpMode: input.mvpMode ?? "vote",

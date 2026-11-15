@@ -2,6 +2,7 @@ import { plural } from "../../plural";
 import type { invite as source } from "../en/invite";
 
 export const invite = {
+  rateLimited: "محاولات كثيرة جدًا. انتظر بضع دقائق ثم حاول مجددًا.",
   kind: {
     group: "المجموعة",
     team: "الفريق",
@@ -16,6 +17,7 @@ export const invite = {
     invitePlayers: "دعوة لاعبين",
     resultsHeading: "النتائج",
     suggestedHeading: "مقترحون",
+    searchHint: "اكتب اسمًا، أو البريد الإلكتروني أو رقم الهاتف كاملًا.",
     noMatch: (query: string) => `لا أحد على Temba يطابق «${query}».`,
     noMatchTryOtherWays: (query: string) =>
       `لا أحد على Temba يطابق «${query}».\nجرّب رقم هاتفه أو أرسل له الرابط.`,
@@ -125,5 +127,25 @@ export const invite = {
     invitationLineSport: (name: string, sport: string) =>
       `أنت مدعو للانضمام إلى «${name}» للعب «${sport}»`,
     joinLine: (url: string) => `انضم: ${url}`,
+  },
+  errors: {
+    linkInvalid: "رابط الدعوة غير صالح أو منتهي الصلاحية",
+    linkUnavailable: "رابط الدعوة غير متاح",
+    lookupUnavailable: "الدعوة المباشرة غير متاحة",
+    lookupNotFound: "الدعوة المباشرة غير موجودة",
+    differentUser: "هذه الدعوة لمستخدم آخر",
+    lookupAcceptedNoRevoke: "لا يمكن إلغاء دعوة مباشرة مقبولة",
+    teamOnlyNoLookup: "مباريات الفرق لا تستخدم الدعوات المباشرة",
+    lookupSelf: "لا يمكنك دعوة نفسك",
+    lookupExists: "توجد بالفعل دعوة مباشرة غير مستخدمة لهذا المستخدم",
+    unknownUser: "مستخدم غير معروف",
+    frozenMint: {
+      group: "لا تقبل هذه المجموعة دعوات حاليًا",
+      team: "لا يقبل هذا الفريق دعوات حاليًا",
+    },
+    frozenAccept: {
+      group: "لا تقبل هذه المجموعة أعضاء جددًا حاليًا",
+      team: "لا يقبل هذا الفريق أعضاء جددًا حاليًا",
+    },
   },
 } satisfies typeof source;

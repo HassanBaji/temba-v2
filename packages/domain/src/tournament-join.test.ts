@@ -19,7 +19,7 @@ import {
   tournamentJoinSheetOpeningStep,
   tournamentJoinTakeSeatLabel,
   tournamentLeaveOrKickConfirmCopy,
-  tournamentPartnerInviteLandingHref,
+  tournamentPartnerInviteLandingTarget,
   tournamentPartnerVacantSideRaceMessage,
   tournamentShowsTakeSeat,
   tournamentShowsWaitlistCta,
@@ -290,10 +290,10 @@ describe("partner-required join surfaces", () => {
   });
 
   it("lands Invite links on Game home with Pick a partner, not a seat pick", () => {
-    assert.equal(
-      tournamentPartnerInviteLandingHref("game-1"),
-      "/dashboard/games/game-1?join=partner",
-    );
+    assert.deepEqual(tournamentPartnerInviteLandingTarget("game-1"), {
+      gameId: "game-1",
+      join: "partner",
+    });
     assert.equal(tournamentInviteLandingOpensPartnerSheet("partner"), true);
     assert.equal(tournamentInviteLandingOpensPartnerSheet("seat"), false);
     assert.equal(

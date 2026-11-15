@@ -15,7 +15,7 @@ export function isGroupOwner(group: GroupForOwner, userId: string) {
 export function assertGroupOwner(
   group: GroupForOwner,
   userId: string,
-  message = "Only the Group owner can do that",
+  message: string,
 ) {
   if (isGroupOwner(group, userId)) {
     return;

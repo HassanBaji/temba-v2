@@ -7,6 +7,7 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
+import { GuestMark } from "../primitives/guest-mark";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
@@ -77,24 +78,13 @@ function SheetPlayerRow({
   onOpen: (userId: string) => void;
 }) {
   const m = useMessages();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={player.accessibilityLabel}
-      accessibilityHint={m.mobilePlayer.profile.opensPlayerProfile}
-      onPress={() => onOpen(player.userId)}
-      style={({ pressed }) => ({
-        minHeight: sizes.touchTarget,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <Avatar name={player.name} uri={player.imageUri} />
+  const body = (
+    <>
+      <Avatar name={player.name} uri={player.imageUri} guest={player.guest} />
       <Text numberOfLines={1} style={{ flexShrink: 1 }}>
         {player.name}
       </Text>
+      {player.guest ? <GuestMark /> : null}
       {player.level ? (
         <Text size="meta" tone="muted">
           {player.level}
@@ -104,6 +94,34 @@ function SheetPlayerRow({
           <Hatch />
         </View>
       )}
+    </>
+  );
+  const rowStyle = {
+    minHeight: sizes.touchTarget,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  } as const;
+  if (player.guest) {
+    return (
+      <View
+        accessible
+        accessibilityLabel={`${player.accessibilityLabel}${m.tournament.listSeparator}${m.group.addPlayer.guest.tag}`}
+        style={rowStyle}
+      >
+        {body}
+      </View>
+    );
+  }
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={player.accessibilityLabel}
+      accessibilityHint={m.mobilePlayer.profile.opensPlayerProfile}
+      onPress={() => onOpen(player.userId)}
+      style={({ pressed }) => ({ ...rowStyle, opacity: pressed ? 0.6 : 1 })}
+    >
+      {body}
     </Pressable>
   );
 }

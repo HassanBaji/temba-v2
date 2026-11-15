@@ -10,6 +10,7 @@ import {
   games,
   groups,
   matches,
+  notifications,
   ratings,
   user,
   venues,
@@ -24,6 +25,8 @@ import { acceptInviteLink } from "#src/routers/games/acceptInviteLink";
 import { createInviteLink } from "#src/routers/games/createInviteLink";
 import { previewInviteLink } from "#src/routers/games/previewInviteLink";
 import { gameById } from "#src/routers/games/byId";
+import { footballBoard } from "#src/routers/games/footballBoard";
+import { setMemberNickname } from "#src/routers/groups/setMemberNickname";
 import { kick } from "#src/routers/games/kick";
 import { leaveGame } from "#src/routers/games/leave";
 import { listAssignableCourts } from "#src/routers/games/listCourts";
@@ -35,6 +38,7 @@ import { registerSeat } from "#src/routers/games/registerSeat";
 import { registerWithPartner } from "#src/routers/games/registerWithPartner";
 import { setMemberLevel } from "#src/routers/ratings/setLevel";
 import { updateGameCaps } from "#src/routers/games/updateCaps";
+import { updateGameLevelRange } from "#src/routers/games/updateLevelRange";
 import {
   isHomeCarouselAtCap,
   isHomeCarouselNeedsResults,
@@ -209,6 +213,48 @@ describe("games.create on a football Group", () => {
     });
   });
 
+  it("counts for Temba Level on a Verified Group, with a Level range", async () => {
+    await withFootball(async (f) => {
+      await f.db
+        .update(groups)
+        .set({ verifiedAt: new Date() })
+        .where(eq(groups.id, f.group.id));
+      const game = await createFootball(f, {
+        levelMinTenths: 35,
+        levelMaxTenths: 49,
+      });
+      expect(game).toMatchObject({
+        rated: true,
+        groupRated: false,
+        levelMinTenths: 35,
+        levelMaxTenths: 49,
+      });
+      const unrated = await createFootball(f, { rated: false });
+      expect(unrated).toMatchObject({ rated: false, groupRated: false });
+      await expect(
+        createFootball(f, { rated: false, levelMinTenths: 35 }),
+      ).rejects.toThrow("counts for Temba Level has a Level range");
+      await expect(
+        updateGameLevelRange(f.db, {
+          gameId: unrated.id,
+          userId: f.organizer.id,
+          levelMinTenths: 35,
+          levelMaxTenths: null,
+        }),
+      ).rejects.toThrow("counts for Temba Level has a Level range");
+      await updateGameLevelRange(f.db, {
+        gameId: game.id,
+        userId: f.organizer.id,
+        levelMinTenths: 42,
+        levelMaxTenths: null,
+      });
+      const updated = await f.db.query.games.findFirst({
+        where: eq(games.id, game.id),
+      });
+      expect(updated?.levelMinTenths).toBe(42);
+    });
+  });
+
   it("takes side size and cap within bounds", async () => {
     await withFootball(async (f) => {
       const game = await createFootball(f, { sideSize: 7, playersAllowed: 16 });
@@ -229,7 +275,7 @@ describe("games.create on a football Group", () => {
   it("refuses a Level range, a padel Court, Americano and a tournament", async () => {
     await withFootball(async (f) => {
       await expect(createFootball(f, { levelMinTenths: 10 })).rejects.toThrow(
-        "no Level range",
+        "counts for Temba Level has a Level range",
       );
       await expect(
         createFootball(f, { courtId: f.padelCourtId }),
@@ -623,6 +669,20 @@ describe("games.updateCaps on a football Game", () => {
         players[11]!.id,
         players[10]!.id,
       ]);
+      const moved = await f.db.query.notifications.findMany({
+        where: and(
+          eq(notifications.gameId, game.id),
+          eq(notifications.type, "game_moved_to_waitlist"),
+        ),
+      });
+      expect(
+        moved.map((row) => [row.recipientUserId, row.actorUserId]).sort(),
+      ).toEqual(
+        [
+          [players[10]!.id, f.organizer.id],
+          [players[11]!.id, f.organizer.id],
+        ].sort(),
+      );
 
       const registered = await f.db.query.gamePlayers.findMany({
         where: eq(gamePlayers.gameId, game.id),
@@ -801,6 +861,42 @@ describe("games side size checks", () => {
       await f.db
         .insert(games)
         .values({ ...base, sport: "football", sideSize: 11 });
+    });
+  });
+});
+
+describe("Member nicknames on a football Group Game", () => {
+  it("shows the nickname on the line-up of a Group Game, public or private", async () => {
+    await withFootball(async (f) => {
+      const keeper = await insertMember(f, "Ahmed Nasser");
+      const viewer = await insertMember(f, "Salman H");
+      await setMemberNickname(f.db, {
+        groupId: f.group.id,
+        approverUserId: f.organizer.id,
+        userId: keeper.id,
+        nickname: "Ahmed keeper",
+        visibility: "group",
+      });
+      const nicknameOn = async (isPublic: boolean) => {
+        const game = await createFootball(f);
+        await f.db.update(games).set({ isPublic }).where(eq(games.id, game.id));
+        await register(f.db, { gameId: game.id, userId: keeper.id });
+        const board = await footballBoard(f.db, {
+          gameId: game.id,
+          userId: viewer.id,
+        });
+        return board.players.find((player) => player.userId === keeper.id)
+          ?.nickname;
+      };
+
+      expect(await nicknameOn(false)).toEqual({
+        name: "Ahmed keeper",
+        visibility: "group",
+      });
+      expect(await nicknameOn(true)).toEqual({
+        name: "Ahmed keeper",
+        visibility: "group",
+      });
     });
   });
 });

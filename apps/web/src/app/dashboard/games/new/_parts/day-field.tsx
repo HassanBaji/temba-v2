@@ -123,7 +123,9 @@ export function DayField({
               <span
                 className={cn(
                   "text-[11px]",
-                  day === value ? "text-dim" : "text-muted-foreground",
+                  day === value
+                    ? "text-on-control-muted"
+                    : "text-muted-foreground",
                 )}
               >
                 {label}

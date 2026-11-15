@@ -3,15 +3,15 @@ import {
   tournamentStandingsView,
   type TournamentDetails,
 } from "@repo/domain/tournament-details";
-import { ratingScopeOf } from "@repo/domain/game-rating-impact";
 import { tournamentOrganizerView } from "@repo/domain/tournament-organizer";
 import type { KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
+import type { ReactNode } from "react";
 import { View } from "react-native";
 
-import { RatingScopeCard } from "../game-details/rating-impact-card";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { KingView } from "./king-view";
 import { OrganizerCard, type OrganizerCardHandlers } from "./organizer-card";
 import {
   PreDrawView,
@@ -39,10 +39,13 @@ export function TournamentContent({
   game,
   handlers,
   organizer,
+  album,
 }: {
   game: TournamentDetails;
   handlers: TournamentHandlers;
   organizer?: TournamentOrganizerHandlers;
+  /** Album and Notes, under the scores and above the details. */
+  album?: ReactNode;
 }) {
   const locale = useLocale();
   const m = useMessages().mobileTournament.content;
@@ -59,8 +62,9 @@ export function TournamentContent({
           </Text>
         </Surface>
       ) : null}
-      <RatingScopeCard scope={ratingScopeOf(game)} />
-      {view.drawn ? (
+      {view.drawn && view.kingOfTheCourt ? (
+        <KingView game={game} />
+      ) : view.drawn ? (
         <StandingsView
           game={game}
           standings={tournamentStandingsView(game, locale)}
@@ -68,6 +72,7 @@ export function TournamentContent({
             organizerView?.active ? organizer?.onCancelMatch : undefined
           }
           onOpenPlayer={handlers.onOpenPlayer}
+          playerOpensActions={handlers.playerOpensActions}
         />
       ) : (
         <PreDrawView game={game} view={view} handlers={handlers} />
@@ -81,6 +86,7 @@ export function TournamentContent({
         />
       ) : null}
       <ScoreMatchesCard matches={matches} handlers={handlers} />
+      {album}
       <TournamentTail
         view={view}
         leavePending={handlers.leavePending}

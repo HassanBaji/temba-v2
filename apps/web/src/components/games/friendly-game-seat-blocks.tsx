@@ -61,7 +61,12 @@ function FriendlySeatRow({
       <SeatRow
         occupant={occupant}
         isViewer={isViewer}
-        href={linked ? playerProfilePath(occupant.userId) : undefined}
+        href={
+          linked && !occupant.guest
+            ? playerProfilePath(occupant.userId)
+            : undefined
+        }
+        guest={occupant.guest}
         subline={positionLabel}
         trailing={
           canKick ? (

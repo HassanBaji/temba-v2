@@ -63,7 +63,7 @@ export function PhotoFrame({
       style={{
         width: "100%",
         aspectRatio: 9 / 16,
-        backgroundColor: colors.raised,
+        backgroundColor: colors.controlRaised,
         alignItems: "center",
         justifyContent: "center",
       }}
@@ -77,8 +77,8 @@ export function PhotoFrame({
         />
       ) : (
         <View style={{ alignItems: "center", gap: 8 }}>
-          <ImageIcon size={28} color={colors.dim} />
-          <Text size="eyebrow" style={{ color: colors.dim }}>
+          <ImageIcon size={28} color={colors.onControlMuted} />
+          <Text size="eyebrow" style={{ color: colors.onControlMuted }}>
             {m.yourPhoto}
           </Text>
         </View>

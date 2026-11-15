@@ -213,7 +213,7 @@ export function TournamentScoreDrawer({
     actions.confirm.isPending ||
     actions.notFinished.isPending;
   const court = match?.courtName ?? "";
-  const final = isOrganizer && viewerSlot == null;
+  const final = isOrganizer;
   const opponents = teamShortName(secondTeam);
 
   async function save() {

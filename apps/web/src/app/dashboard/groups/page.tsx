@@ -20,7 +20,6 @@ import {
 } from "~/components/invites/pending-invites-section";
 import { PageCreateAction } from "~/components/layout/page-create-action";
 import { ChoiceChip } from "~/components/temba/choice-chip";
-import { FormStrip } from "~/components/temba/form-strip";
 import { Button } from "~/components/ui/button";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -103,7 +102,6 @@ function NextGameCell({ startTime }: { startTime: Date | string | null }) {
 }
 
 function GroupRows({ groups }: { groups: GroupRow[] }) {
-  const m = useMessages();
   const locale = useLocale();
   return (
     <RowList variant="card">
@@ -125,16 +123,6 @@ function GroupRows({ groups }: { groups: GroupRow[] }) {
               locale,
             })}
             trailing={<NextGameCell startTime={group.nextGameStartTime} />}
-            footer={
-              group.formMarks.length > 0 ? (
-                <div className="flex items-center gap-2">
-                  <FormStrip marks={group.formMarks} size={18} gap={6} />
-                  <span className="text-eyebrow text-muted-foreground ms-auto">
-                    {m.webDashboard.groups.yourFormHere}
-                  </span>
-                </div>
-              ) : undefined
-            }
           >
             <Link href={`/dashboard/groups/${group.id}`} />
           </ListRow>
@@ -353,7 +341,7 @@ export default function GroupsIndexPage({
             {groups.error ? (
               <ErrorState
                 title={m.webDashboard.groups.errorTitle}
-                message={groups.error.message}
+                error={groups.error}
                 onRetry={() => {
                   void groups.refetch();
                 }}
@@ -408,7 +396,7 @@ export default function GroupsIndexPage({
             {publicGroups.error ? (
               <ErrorState
                 title={m.webDashboard.groups.publicErrorTitle}
-                message={publicGroups.error.message}
+                error={publicGroups.error}
                 onRetry={() => {
                   void publicGroups.refetch();
                 }}

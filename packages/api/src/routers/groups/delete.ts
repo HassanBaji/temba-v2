@@ -1,7 +1,9 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { games, groups, MatchStatusEnum, teams } from "@repo/db";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -21,27 +23,48 @@ type DbClient = typeof db;
  */
 export async function deleteGroup(
   database: DbClient,
-  args: { groupId: string; userId: string; now?: Date },
+  args: { groupId: string; userId: string; now?: Date; locale?: Locale },
 ) {
-  const group = await requireGroup(database, args.groupId);
-  assertGroupOwner(group, args.userId, "Only the Group owner can delete this Group");
-
-  const now = args.now ?? new Date();
-  const liveGames = await database.query.games.findMany({
-    where: and(eq(games.groupId, group.id), isNull(games.cancelledAt)),
-    with: {
-      matches: { columns: { status: true, startTime: true } },
-    },
-  });
-  const upcoming = liveGames.filter(
-    (game) =>
-      gameListTime(game).getTime() > now.getTime() &&
-      !game.matches.some((match) => match.status === MatchStatusEnum.COMPLETED),
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
+  assertGroupOwner(
+    group,
+    args.userId,
+    messagesFor(locale).group.errors.deleteOwnerOnly,
   );
 
-  await database.transaction(async (tx) => {
+  const now = args.now ?? new Date();
+
+  const cancelled = await database.transaction(async (tx) => {
+    const locked = await tx
+      .select({ id: games.id })
+      .from(games)
+      .where(and(eq(games.groupId, group.id), isNull(games.cancelledAt)))
+      .for("update");
+    const liveGames =
+      locked.length === 0
+        ? []
+        : await tx.query.games.findMany({
+            where: and(
+              inArray(
+                games.id,
+                locked.map((row) => row.id),
+              ),
+              isNull(games.cancelledAt),
+            ),
+            with: {
+              matches: { columns: { status: true, startTime: true } },
+            },
+          });
+    const upcoming = liveGames.filter(
+      (game) =>
+        gameListTime(game).getTime() > now.getTime() &&
+        !game.matches.some(
+          (match) => match.status === MatchStatusEnum.COMPLETED,
+        ),
+    );
     for (const game of upcoming) {
-      await cancelGameRecord(tx, game);
+      await cancelGameRecord(tx, game, locale);
     }
     await tx
       .update(groups)
@@ -51,12 +74,13 @@ export async function deleteGroup(
       .update(teams)
       .set({ groupId: null, updatedAt: now })
       .where(eq(teams.groupId, group.id));
+    return upcoming.length;
   });
 
   return {
     ok: true as const,
     groupId: group.id,
-    cancelledGameCount: upcoming.length,
+    cancelledGameCount: cancelled,
   };
 }
 
@@ -67,5 +91,6 @@ export const deleteProcedure = protectedProcedure
     return deleteGroup(ctx.db, {
       groupId: input.groupId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

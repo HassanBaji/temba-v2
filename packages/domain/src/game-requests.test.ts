@@ -20,6 +20,29 @@ const hold = {
 };
 
 describe("gameOrganizerRequests", () => {
+  it("shows a padel requester's band and a football requester's OVR", () => {
+    const game = {
+      pendingSeatHolds: [hold],
+      pendingLevelRangeRequests: [
+        {
+          id: "level-1",
+          levelTenths: 24,
+          provisional: false,
+          createdAt: NOW,
+          user: { id: "u3", name: "Omar T", image: null },
+        },
+      ],
+    };
+    expect(
+      gameOrganizerRequests(game, "en", NOW).map((request) => request.level),
+    ).toEqual(["C-", "C-"]);
+    expect(
+      gameOrganizerRequests({ ...game, sport: "football" }, "en", NOW).map(
+        (request) => request.level,
+      ),
+    ).toEqual(["60", "60"]);
+  });
+
   it("lists link requests first, held or not, then Level range requests", () => {
     const requests = gameOrganizerRequests(
       {

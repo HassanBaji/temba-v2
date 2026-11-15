@@ -8,6 +8,20 @@ const PLAYER_MATCHES = /^\/dashboard\/players\/([^/]+)\/matches\/?$/;
 const PLAYER_MARKS = /^\/dashboard\/players\/([^/]+)\/marks\/?$/;
 const PLAYER_MARK = /^\/dashboard\/players\/([^/]+)\/marks\/([^/]+)\/?$/;
 
+const YOU_RATINGS_HREF = "/dashboard/you/ratings";
+
+/** All requests: every request waiting on the viewer as an Organizer or Group approver. */
+export const REQUESTS_HREF = "/dashboard/requests";
+const YOU_RATING_HISTORY_HREF = `${YOU_RATINGS_HREF}/history`;
+
+export function youRatingsHref(sport: Sport) {
+  return `${YOU_RATINGS_HREF}?sport=${sport}`;
+}
+
+export function youRatingHistoryHref(sport: Sport) {
+  return `${YOU_RATING_HISTORY_HREF}?sport=${sport}`;
+}
+
 /** The Player profile, opened on `sport` when given. */
 export function playerProfilePath(userId: string, sport?: Sport) {
   const path = `/dashboard/players/${userId}`;
@@ -52,6 +66,12 @@ export function titleFromPath(pathname: string, m: Messages) {
   if (pathname.startsWith("/dashboard/you/settings")) {
     return m.common.settings;
   }
+  if (pathname.startsWith(YOU_RATING_HISTORY_HREF)) {
+    return m.rating.ratingHistory.title;
+  }
+  if (pathname.startsWith(YOU_RATINGS_HREF)) {
+    return m.rating.screen.title;
+  }
   if (pathname.startsWith("/dashboard/you")) {
     return m.common.profile;
   }
@@ -61,8 +81,14 @@ export function titleFromPath(pathname: string, m: Messages) {
   if (pathname.startsWith("/dashboard/notifications")) {
     return m.common.notifications;
   }
+  if (pathname.startsWith(REQUESTS_HREF)) {
+    return m.requests.title;
+  }
   if (pathname.startsWith("/dashboard/operator/groups")) {
     return m.webUi.nav.verifyGroups;
+  }
+  if (pathname.startsWith(OPERATOR_DISPUTES_HREF)) {
+    return m.rating.dispute.operator.title;
   }
   if (pathname.startsWith("/dashboard/groups/new")) {
     return titles.createGroup;
@@ -131,10 +157,19 @@ export function detailBackHref(pathname: string | null): string | undefined {
   if (!pathname) {
     return undefined;
   }
-  if (pathname.startsWith("/dashboard/you/settings")) {
+  if (pathname.startsWith(YOU_RATING_HISTORY_HREF)) {
+    return YOU_RATINGS_HREF;
+  }
+  if (
+    pathname.startsWith("/dashboard/you/settings") ||
+    pathname.startsWith(YOU_RATINGS_HREF)
+  ) {
     return "/dashboard/you";
   }
-  if (pathname.startsWith("/dashboard/notifications")) {
+  if (
+    pathname.startsWith("/dashboard/notifications") ||
+    pathname.startsWith(REQUESTS_HREF)
+  ) {
     return "/dashboard";
   }
   const playerMatches = PLAYER_MATCHES.exec(pathname);
@@ -164,6 +199,25 @@ export function detailBackHref(pathname: string | null): string | undefined {
   return undefined;
 }
 
+export function gameHomeHref(gameId: string) {
+  return `/dashboard/games/${gameId}`;
+}
+
+/** The Operator's open Match disputes. */
+export const OPERATOR_DISPUTES_HREF = "/dashboard/operator/disputes";
+
+export function gamePaymentsHref(gameId: string) {
+  return `/dashboard/games/${gameId}/payments`;
+}
+
+export function gameRateHref(gameId: string) {
+  return `/dashboard/games/${gameId}/rate`;
+}
+
+export function gameRatingSummaryHref(gameId: string) {
+  return `/dashboard/games/${gameId}/ratings`;
+}
+
 export function groupSeasonsHref(groupId: string) {
   return `/dashboard/groups/${groupId}/seasons`;
 }
@@ -172,8 +226,24 @@ export function groupEditHref(groupId: string) {
   return `/dashboard/groups/${groupId}/edit`;
 }
 
+export function groupHomeHref(groupId: string) {
+  return `/dashboard/groups/${groupId}`;
+}
+
+export function groupRatingSettingsHref(groupId: string) {
+  return `/dashboard/groups/${groupId}/rating-settings`;
+}
+
 export function groupNewSeasonHref(groupId: string) {
   return `/dashboard/groups/${groupId}/seasons/new`;
+}
+
+/** Points and history; without `userId`, the viewer's own. */
+export function groupTierHistoryHref(groupId: string, userId?: string) {
+  const path = `/dashboard/groups/${groupId}/points`;
+  return userId
+    ? `${path}?${new URLSearchParams({ member: userId }).toString()}`
+    : path;
 }
 
 export function groupMemberSetLevelHref(groupId: string, userId: string) {

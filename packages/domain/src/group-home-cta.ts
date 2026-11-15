@@ -23,6 +23,7 @@ export type GroupHomeOverflowItem =
   | "change_image"
   | "remove_image"
   | "seasons"
+  | "rating_settings"
   | "unlink_venue"
   | "leave"
   | "delete";
@@ -39,6 +40,8 @@ export type GroupHomeOverflowInput = {
   canUnlinkVenue?: boolean;
   canManageSeasons?: boolean;
   canEdit?: boolean;
+  /** An Organizer of a tier Group (ADR-0068). */
+  canChangeRatingSettings?: boolean;
 };
 
 export function groupHomeCanShowCreateGame(input: { canCreateGame: boolean }) {
@@ -171,6 +174,9 @@ export function groupHomeOverflowItems(
   }
   if (input.canManageSeasons) {
     items.push("seasons");
+  }
+  if (input.canChangeRatingSettings) {
+    items.push("rating_settings");
   }
   if (input.canUnlinkVenue) {
     items.push("unlink_venue");

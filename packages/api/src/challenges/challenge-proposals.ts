@@ -78,7 +78,7 @@ export async function loadTeamFaces(
     with: { user: { columns: { name: true } } },
     orderBy: (table, { asc }) => [asc(table.createdAt)],
   });
-  const levels = await loadTeamLevels(database, teamRows, args.now);
+  const levels = await loadTeamLevels(database, teamRows);
   return teamRows.map((team) => {
     const roster = memberRows.filter((member) => member.teamId === team.id);
     const level = levels.get(team.id) ?? null;
@@ -90,7 +90,9 @@ export async function loadTeamFaces(
       ),
       sport: team.sport,
       rosterCount: roster.length,
-      teamLevel: level ? { band: level.band, level: level.level } : null,
+      teamLevel: level
+        ? { band: level.band, level: level.level, ovr: level.ovr }
+        : null,
       members: roster.slice(0, TEAM_FACE_MEMBERS).map((member) => ({
         name: member.user.name,
         isViewer: member.userId === args.userId,

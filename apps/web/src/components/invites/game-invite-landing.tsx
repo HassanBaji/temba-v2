@@ -39,7 +39,9 @@ function Tile({ tile }: { tile: GameInviteHeroTile }) {
     <span
       className={cn(
         "text-meta flex h-11 items-center justify-center rounded-[9px] font-semibold",
-        tile.isViewer ? "bg-on-focus text-focus" : "bg-raised text-on-focus",
+        tile.isViewer
+          ? "bg-on-focus text-focus"
+          : "border-dimrule bg-raised text-on-focus border",
       )}
     >
       {tile.initials}
@@ -82,7 +84,7 @@ function SeatTile({
   const m = useMessages();
   if (seat.occupant) {
     return (
-      <div className="bg-raised flex min-h-[64px] items-center gap-2.5 rounded-[10px] px-3 py-2.5">
+      <div className="border-dimrule bg-raised flex min-h-[64px] items-center gap-2.5 rounded-[10px] border px-3 py-2.5">
         <span className="bg-on-focus text-focus text-eyebrow flex size-8 shrink-0 items-center justify-center rounded-lg font-semibold">
           {initials(seat.occupant.name)}
         </span>
@@ -132,6 +134,7 @@ export function InviteSeatCourt({
   court: InviteSeatCourtModel[];
   onSit: ((seat: InviteSeatTile) => void) | null;
 }) {
+  const m = useMessages();
   return (
     <div className="space-y-2">
       {court.map((side, index) => (
@@ -139,8 +142,8 @@ export function InviteSeatCourt({
           {index > 0 ? (
             <div className="flex items-center gap-3">
               <span className="bg-dimrule h-px flex-1" />
-              <span className="text-dim text-[11px] font-semibold tracking-[0.08em]">
-                VS
+              <span className="text-dim text-[11px] font-semibold uppercase tracking-[0.08em]">
+                {m.webGame.joinSheet.versus}
               </span>
               <span className="bg-dimrule h-px flex-1" />
             </div>
@@ -248,7 +251,7 @@ export function GameInviteCard({
   );
 }
 
-/** Design 3a, 3b: the viewer's band against the Game's range. */
+/** Design 3a, 3b: the viewer's band, or OVR on football, against the Game's range. */
 export function GameInviteLevelCard({
   card,
 }: {
@@ -261,7 +264,7 @@ export function GameInviteLevelCard({
           {card.band}
         </span>
       ) : (
-        <span className="bg-raised flex size-9 shrink-0 items-center justify-center rounded-lg">
+        <span className="border-dimrule bg-raised flex size-9 shrink-0 items-center justify-center rounded-lg border">
           <UserRound aria-hidden="true" className="size-4" />
         </span>
       )}
@@ -290,7 +293,7 @@ export function GameInviteGroupCard({
         ) : (
           <span
             aria-hidden="true"
-            className="bg-raised text-meta flex size-12 shrink-0 items-center justify-center rounded-lg font-semibold"
+            className="border-dimrule bg-raised text-meta flex size-12 shrink-0 items-center justify-center rounded-lg border font-semibold"
           >
             {initials(name)}
           </span>

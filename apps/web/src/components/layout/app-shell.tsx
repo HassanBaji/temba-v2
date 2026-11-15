@@ -71,6 +71,7 @@ export function AppShell({
               pageGutterX,
               "pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom,0px)+1rem)] lg:pb-6",
               width === "wide" ? "max-w-wide" : "max-w-content",
+              isSubPage && !hideMobileTopBar && "max-md:pt-4",
             )}
           >
             {hidePageHeader || !title ? null : (

@@ -4,6 +4,7 @@ import {
   gameEditDraftFrom,
   gameEditPlan,
   gameEditSeasonFix,
+  gameEditVenueChoices,
   type GameEditDraft,
   type GameEditSections,
   type GameEditSource,
@@ -11,12 +12,15 @@ import {
 } from "@repo/domain/game-edit-form";
 import type { GroupSeasonData } from "@repo/domain/group-season";
 import type { MvpMode } from "@repo/domain/marks";
+import { sportOrDefault } from "@repo/domain/sport";
 import { useEffect, useMemo, useState } from "react";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { useToast } from "../primitives/toast";
 import { api } from "../trpc/react";
 import { gameEditMvp, gameEditMvpChanged } from "./game-edit-mvp";
+import { slotOf } from "../lib/slot-of";
+import { useErrorMessage } from "../lib/use-error-message";
 
 export type GameEditField = GameEditStep["kind"] | "mvp";
 
@@ -52,6 +56,7 @@ export function useGameEdit({
   const m = useMessages();
   const locale = useLocale();
   const toast = useToast();
+  const errorText = useErrorMessage();
   const utils = api.useUtils();
   const [now] = useState(() => new Date());
   const saved = useMemo(() => gameEditDraftFrom(game), [game]);
@@ -73,7 +78,38 @@ export function useGameEdit({
 
   const updateName = api.games.updateName.useMutation();
   const updateWindow = api.games.updateWindow.useMutation();
+  const updatePlace = api.games.updatePlace.useMutation();
+  const catalog = api.games.listCreateVenues.useQuery(
+    { groupId: game.groupId ?? undefined },
+    { enabled: open && (sections.place || sections.courts) },
+  );
+  const placeCatalog = slotOf(catalog);
+  const venueChoices =
+    placeCatalog.status === "ready"
+      ? gameEditVenueChoices(
+          placeCatalog.value.venues,
+          sportOrDefault(game.sport),
+          { id: saved.venueId, name: game.venue?.name ?? null },
+        )
+      : [];
+  const place =
+    placeCatalog.status === "ready"
+      ? {
+          status: "ready" as const,
+          value: { locked: placeCatalog.value.locked, venues: venueChoices },
+        }
+      : placeCatalog;
+  const courts =
+    placeCatalog.status === "ready"
+      ? {
+          status: "ready" as const,
+          value:
+            venueChoices.find((venue) => venue.id === saved.venueId)?.courts ??
+            [],
+        }
+      : placeCatalog;
   const updateCaps = api.games.updateCaps.useMutation();
+  const updateCourts = api.games.updateCourts.useMutation();
   const updatePrice = api.games.updatePricePerPlayer.useMutation();
   const updateLevel = api.games.updateLevelRange.useMutation();
   const updateRounds = api.games.updateRoundCount.useMutation();
@@ -94,6 +130,13 @@ export function useGameEdit({
           ...(step.seasonId !== undefined ? { seasonId: step.seasonId } : {}),
         });
         return 0;
+      case "place":
+        await updatePlace.mutateAsync({
+          gameId,
+          venueId: step.venueId,
+          courtId: step.courtId,
+        });
+        return 0;
       case "caps": {
         const result = await updateCaps.mutateAsync({
           gameId,
@@ -102,6 +145,16 @@ export function useGameEdit({
         });
         return result.movedToWaitlist.length;
       }
+      case "teams": {
+        const result = await updateCaps.mutateAsync({
+          gameId,
+          teamsAllowed: step.teamCount,
+        });
+        return result.movedToWaitlist.length;
+      }
+      case "courts":
+        await updateCourts.mutateAsync({ gameId, courtIds: step.courtIds });
+        return 0;
       case "price":
         await updatePrice.mutateAsync({
           gameId,
@@ -164,7 +217,7 @@ export function useGameEdit({
       } catch (caught) {
         const message =
           caught instanceof Error
-            ? caught.message
+            ? errorText(caught)
             : m.common.somethingWentWrong;
         failed = { field: step.kind, message };
         break;
@@ -178,7 +231,7 @@ export function useGameEdit({
           field: "mvp",
           message:
             caught instanceof Error
-              ? caught.message
+              ? errorText(caught)
               : m.common.somethingWentWrong,
         };
       }
@@ -214,6 +267,8 @@ export function useGameEdit({
     update,
     mvp,
     pickMvpMode,
+    place,
+    courts,
     changed,
     note,
     seasonFix,

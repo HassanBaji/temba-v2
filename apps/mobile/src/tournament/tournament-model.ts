@@ -1,4 +1,5 @@
 import { gameTeamDisplayName } from "@repo/domain/game-side-label";
+import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import type {
   TournamentDetails,
   TournamentDetailsMatch,
@@ -19,7 +20,24 @@ export type ScorableMatch = {
   sets: TournamentDetailsMatch["sets"];
   needsDecidingSet: boolean;
   note: string | null;
+  canEnter: boolean;
+  /** The other team's pending score, for the viewer to confirm (ADR-0062). */
+  scoreToConfirm: string | null;
+  /** The viewer is a Verifier who may stamp the entered score (ADR-0072). */
+  canStamp: boolean;
 };
+
+function pendingScore(match: TournamentDetailsMatch) {
+  const [set] = match.sets;
+  if (
+    !match.canConfirmScore ||
+    set?.slot1GamesWon == null ||
+    set.slot2GamesWon == null
+  ) {
+    return null;
+  }
+  return `${set.slot1GamesWon}–${set.slot2GamesWon}`;
+}
 
 function teamLabel(
   game: TournamentDetails,
@@ -80,7 +98,12 @@ export function scorableMatches(
 ): ScorableMatch[] {
   const decidingSet = messagesFor(locale).tournament.knockoutView.decidingSet;
   return game.matches
-    .filter((match) => match.canScoreSets)
+    .filter(
+      (match) =>
+        match.canScoreSets ||
+        pendingScore(match) != null ||
+        match.canStamp === true,
+    )
     .map((match) => {
       const needsDecidingSet =
         match.knockoutRound != null && match.outcome.result === "draw";
@@ -92,8 +115,55 @@ export function scorableMatches(
         sets: match.sets,
         needsDecidingSet,
         note: needsDecidingSet ? decidingSet : null,
+        canEnter: match.canScoreSets,
+        scoreToConfirm: pendingScore(match),
+        canStamp: match.canStamp === true,
       };
     });
 }
 
-export const COMPLETE_FAILED_FALLBACK = "Could not complete the Match";
+export type TournamentPlayer = {
+  userId: string;
+  name: string;
+  image: string | null;
+  level: string | null;
+  guest: boolean;
+  phoneNumber: string | null;
+};
+
+/** A seated or drawn player on the Tournament, looked up by user id. */
+export function tournamentPlayer(
+  game: Pick<TournamentDetails, "sides" | "gameTeams">,
+  userId: string,
+): TournamentPlayer | null {
+  for (const side of game.sides) {
+    for (const occupant of [side.left, side.right]) {
+      if (occupant?.userId === userId) {
+        return {
+          userId,
+          name: occupant.name,
+          image: occupant.image ?? null,
+          level: occupant.levelBand
+            ? displayLabelFromStoredBand(occupant.levelBand)
+            : null,
+          guest: "guest" in occupant && occupant.guest === true,
+          phoneNumber: occupant.phoneNumber ?? null,
+        };
+      }
+    }
+  }
+  for (const team of game.gameTeams) {
+    const member = team.members.find((candidate) => candidate.id === userId);
+    if (member) {
+      return {
+        userId,
+        name: member.name,
+        image: member.image,
+        level: null,
+        guest: "guest" in member && member.guest === true,
+        phoneNumber: member.phoneNumber ?? null,
+      };
+    }
+  }
+  return null;
+}

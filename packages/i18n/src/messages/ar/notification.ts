@@ -2,6 +2,7 @@ import type {
   NotificationTitlePart,
   notification as source,
 } from "../en/notification";
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 
 function strong(text: string): NotificationTitlePart {
@@ -71,12 +72,54 @@ export const notification = {
       plain(" جهتك في "),
       strong(game),
     ],
+    gameTeamChanged: (actor: string, game: string) => [
+      plain("غيّر "),
+      strong(actor),
+      plain(" الفرق في "),
+      strong(game),
+      plain(". اطّلع على مكانك الجديد"),
+    ],
+    gameMovedToWaitlist: (actor: string, game: string) => [
+      plain("خفّض "),
+      strong(actor),
+      plain(" عدد اللاعبين في "),
+      strong(game),
+      plain(". أنت الآن في قائمة الانتظار وتستعيد مكانك حين يتوفر"),
+    ],
+    tournamentMovedToWaitlist: (actor: string, game: string) => [
+      plain("خفّض "),
+      strong(actor),
+      plain(" عدد الفرق في "),
+      strong(game),
+      plain(". أنت الآن في قائمة الانتظار وتستعيد مكانك حين يتوفر"),
+    ],
     matchScoreToConfirm: (actor: string, game: string) => [
       plain("أدخل "),
       strong(actor),
       plain(" نتيجتك في "),
       strong(game),
       plain(". أكّدها أو صحّحها"),
+    ],
+    kingCourtsPosted: (actor: string, game: string) => [
+      plain("نشر "),
+      strong(actor),
+      plain(" ملاعب البداية في "),
+      strong(game),
+      plain(". اطّلع على ملعبك"),
+    ],
+    kingFinalOrderPosted: (actor: string, game: string) => [
+      plain("نشر "),
+      strong(actor),
+      plain(" الترتيب النهائي في "),
+      strong(game),
+      plain(". اطّلع على ترتيبك"),
+    ],
+    kingPlaceAwarded: (place: string, game: string) => [
+      plain("حلولك في المركز "),
+      strong(place),
+      plain(" في "),
+      strong(game),
+      plain(" حرّك مستواك"),
     ],
     historyLinked: (gameCount: number) => [
       plain("ربطنا "),
@@ -97,7 +140,49 @@ export const notification = {
       plain(" مستواك عند "),
       strong(level),
     ],
+    levelCalibrated: (actor: string, venue: string, level: string) => [
+      plain("عاير "),
+      strong(actor),
+      plain(" ("),
+      strong(venue),
+      plain(") مستواك عند "),
+      strong(level),
+    ],
+    tierPointsAdjusted: (actor: string, group: string) => [
+      plain("عدّل "),
+      strong(actor),
+      plain(" نقاط فئتك في "),
+      strong(group),
+    ],
+    tierBandChanged: (band: string, group: string) => [
+      plain("صرت الآن "),
+      strong(band),
+      plain(" في "),
+      strong(group),
+    ],
+    levelConfirmed: (sport: string) => [
+      plain("تأكّد مستواك في "),
+      strong(sport),
+    ],
     gameFinished: (game: string) => [plain("انتهت "), strong(game)],
+    gamePaymentReminder: (actor: string, game: string) => [
+      plain("ذكّرك "),
+      strong(actor),
+      plain(" بالدفع لـ "),
+      strong(game),
+    ],
+    gamePaymentClaimed: (actor: string, game: string) => [
+      plain("يقول "),
+      strong(actor),
+      plain(" إنه دفع لـ "),
+      strong(game),
+    ],
+    gamePaymentNotReceived: (actor: string, game: string) => [
+      plain("لم يستلم "),
+      strong(actor),
+      plain(" دفعتك لـ "),
+      strong(game),
+    ],
     markReceived: (actor: string, kind: string, game: string) => [
       plain("منحك "),
       strong(actor),
@@ -112,6 +197,46 @@ export const notification = {
       strong(game),
     ],
     youAreMvp: (game: string) => [plain("أنت نجم مباراة "), strong(game)],
+    performanceRatingsOpen: (game: string) => [
+      plain("قيّم لاعبي "),
+      strong(game),
+    ],
+    performanceRatingsClosed: (game: string) => [
+      plain("صدرت تقييمات "),
+      strong(game),
+    ],
+    matchDisputeRaised: (actor: string, game: string) => [
+      plain("اعترض "),
+      strong(actor),
+      plain(" على نتيجة "),
+      strong(game),
+    ],
+    matchDisputeUpheld: (game: string) => [
+      plain("قبل Temba اعتراضك على "),
+      strong(game),
+    ],
+    matchDisputeUpheldFor: (actor: string, game: string) => [
+      plain("قبل Temba اعتراض "),
+      strong(actor),
+      plain(" على "),
+      strong(game),
+    ],
+    matchDisputeDismissed: (game: string) => [
+      plain("رفض Temba اعتراضك على "),
+      strong(game),
+    ],
+    matchDisputeDismissedFor: (actor: string, game: string) => [
+      plain("رفض Temba اعتراض "),
+      strong(actor),
+      plain(" على "),
+      strong(game),
+    ],
+    matchDisputeSuperseded: (actor: string, game: string) => [
+      plain("أعاد "),
+      strong(actor),
+      plain(" فتح نتيجة "),
+      strong(game),
+    ],
     mvpTieBreak: (game: string) => [
       plain("تعادل في التصويت على "),
       strong(game),
@@ -250,6 +375,37 @@ export const notification = {
     kickOffTomorrow: "تنطلق المباراة بعد 24 ساعة.",
     seeWhoIsNamed: "اطّلع على المباراة ومن سُمّي معك.",
     acceptRematch: "اقبله لتقترح وقتًا وملعبًا.",
+    tierAdjusted: (reason: string, from: string, to: string) =>
+      `${reason}. من ${isolate(from)} إلى ${isolate(to)}.`,
+    tierAdjustedWithNote: (
+      reason: string,
+      note: string,
+      from: string,
+      to: string,
+    ) => `${reason}: «${note}» من ${isolate(from)} إلى ${isolate(to)}.`,
+    ratingsOpen:
+      "امنح كل لاعب من 1 إلى 10 خلال 24 ساعة. تتحرّك النقاط حين ترسلها.",
+    ratingsOpenEveryone:
+      "قيّم زملاءك، والخصوم إن أردت، خلال 24 ساعة. لا أحد يرى من أعطى ماذا.",
+    tierPlaces: "الفئات مراكز، فحين يتحرّك لاعب يتحرّك غيره في الاتجاه الآخر.",
+    gamePaymentReminder: "ادفع للمنظّم، ثم أخبره من صفحة المباراة.",
+    gamePaymentClaimed: "أكّده حين تستلم المال.",
+    levelConfirmed:
+      "لم يعد المسار مخطّطًا. يواصل التحرّك في المباريات الموثّقة.",
+    kingPlaceAwarded: (from: string, to: string) =>
+      `المستوى من ${isolate(from)} إلى ${isolate(to)}.`,
+    ratingsClosed: (rating: string, delta: string, points: string) =>
+      `تقييمك ${isolate(rating)}. نقاط الفئة ${isolate(delta)}، والآن ${isolate(points)}.`,
+    ratingsClosedResultOnly: (delta: string, points: string) =>
+      `لا تقييم لك هذه المرة. نقاط الفئة ${isolate(delta)} على النتيجة، والآن ${isolate(points)}.`,
+    ratingsClosedOvr: (rating: string, delta: string, ovr: string) =>
+      `تقييمك ${isolate(rating)}. OVR ${isolate(delta)}، والآن ${isolate(ovr)}.`,
+    ratingsClosedOvrNoRating: (delta: string, ovr: string) =>
+      `لا تقييم لك هذه المرة. OVR ${isolate(delta)}، والآن ${isolate(ovr)}.`,
+    disputeUpheld: "النتيجة مفتوحة من جديد. أدخل النتيجة الصحيحة.",
+    disputeDismissed: "تبقى النتيجة.",
+    disputeSuperseded:
+      "أُغلق اعتراضك. إن كانت النتيجة الجديدة خاطئة أيضًا فيمكنك الاعتراض عليها.",
   },
   gameNameWithDay: (format: string, day: string) => `${format} · ${day}`,
   metaWithGroup: (time: string, group: string) => `${time} · ${group}`,

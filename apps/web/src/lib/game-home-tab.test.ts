@@ -6,6 +6,7 @@ import {
   gameHomeIntentHref,
   gameHomeTabFromQuery,
   gameHomeTabQuery,
+  gameHomeTargetHref,
 } from "./game-home-tab";
 
 describe("gameHomeTabFromQuery", () => {
@@ -60,6 +61,16 @@ describe("gameHomeIntentHref", () => {
     assert.equal(
       gameHomeIntentHref("g1", "results"),
       "/dashboard/games/g1?intent=results",
+    );
+  });
+});
+
+describe("gameHomeTargetHref", () => {
+  it("opens Game home, with Pick a partner when the target asks", () => {
+    assert.equal(gameHomeTargetHref({ gameId: "g1" }), "/dashboard/games/g1");
+    assert.equal(
+      gameHomeTargetHref({ gameId: "g1", join: "partner" }),
+      "/dashboard/games/g1?join=partner",
     );
   });
 });

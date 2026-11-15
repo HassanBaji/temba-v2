@@ -8,6 +8,11 @@ export const webTournament = {
   gameActions: "إجراءات المباراة",
   kickName: (name: string) => `أخرِج ${name}`,
   kickFromWaitlist: (name: string) => `أخرِج ${name} من قائمة الانتظار`,
+  player: {
+    openActions: (name: string) => `${name}، افتح إجراءات اللاعب`,
+    level: (level: string) => `المستوى ${isolate(level)}`,
+    viewProfile: "عرض الملف الشخصي",
+  },
   draw: {
     undoing: "جارٍ التراجع…",
     posting: "جارٍ النشر…",
@@ -176,8 +181,8 @@ export const webTournament = {
   footballPlayer: {
     prefers: (label: string) => `يفضّل ${label}`,
     noPositionYet: "لا مركز بعد",
-    subtitle: (role: string, level: string) =>
-      `${role}، المستوى ${isolate(level)}`,
+    subtitle: (role: string, ovr: string) =>
+      `${role}، ${isolate("OVR")} ${isolate(ovr)}`,
     viewProfile: "عرض الملف الشخصي",
     renameLabel: (name: string) => `تعديل الاسم: ${name}`,
   },

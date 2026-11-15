@@ -5,10 +5,13 @@ import { z } from "zod";
 import { MatchStatusEnum, marks, matches } from "@repo/db";
 
 import { marksWindow, type MarkRefusal } from "@repo/domain/marks";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { canViewGame, requireGame } from "#src/games/access";
+import { withdrawUnseenMarkReceived } from "#src/marks/mark-received-notification";
 import { marksMatch } from "#src/marks/match-participants";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -17,16 +20,26 @@ const WINDOW_CLOSED: MarkRefusal = "window_closed";
 
 /**
  * A giver takes back the Mark they gave a receiver while the Marks window is
- * open, so a mistap is not permanent. The receiver's Notification stays.
+ * open, so a mistap is not permanent. The receiver's Notification goes too
+ * while it is unread and not emailed; once seen it stays.
  */
 export async function retract(
   database: DbClient,
-  args: { gameId: string; userId: string; receiverUserId: string },
+  args: {
+    gameId: string;
+    userId: string;
+    receiverUserId: string;
+    locale?: Locale;
+  },
   now: Date = new Date(),
 ): Promise<{ ok: true }> {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   if (!(await canViewGame(database, game, args.userId))) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Game not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).game.errors.notFound,
+    });
   }
   const match = await marksMatch(database, game);
   if (!match) {
@@ -57,8 +70,16 @@ export async function retract(
       )
       .returning({ id: marks.id });
     if (removed.length === 0) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Mark not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: messagesFor(locale).marks.errors.markNotFound,
+      });
     }
+    await withdrawUnseenMarkReceived(tx, {
+      matchId: locked.id,
+      giverUserId: args.userId,
+      receiverUserId: args.receiverUserId,
+    });
   });
 
   return { ok: true };
@@ -77,5 +98,6 @@ export const retractProcedure = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       receiverUserId: input.receiverUserId,
+      locale: ctx.locale,
     });
   });

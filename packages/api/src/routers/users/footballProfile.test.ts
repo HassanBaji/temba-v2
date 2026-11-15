@@ -13,6 +13,7 @@ import {
   matchGoals,
   matchSets,
   matches,
+  ratingEvents,
   ratings,
   user,
   venues,
@@ -20,6 +21,7 @@ import {
 
 import { loadFootballProfile } from "#src/routers/users/footballProfile";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
+import { muFromOvr } from "@repo/domain/football-ovr";
 import { muFromLevel } from "@repo/domain/level";
 
 const T1 = new Date("2026-01-10T12:00:00.000Z");
@@ -223,6 +225,20 @@ describe("loadFootballProfile", () => {
         playerGoals: 5,
       });
 
+      const move = { muBefore: muFromOvr(71), muAfter: muFromOvr(72) };
+      await db.insert(ratingEvents).values({
+        userId: people.player.id,
+        sport: GroupSportEnum.FOOTBALL,
+        matchId: won.match.id,
+        outcomeScore: 1,
+        weight: 1,
+        ...move,
+        phiBefore: 350,
+        sigmaBefore: 0.06,
+        phiAfter: 320,
+        sigmaAfter: 0.06,
+      });
+
       const result = await loadFootballProfile(db, {
         viewerId: people.opponent.id,
         playerId: people.player.id,
@@ -246,6 +262,11 @@ describe("loadFootballProfile", () => {
         ["draw", { us: 2, them: 2 }, 0],
         ["lost", { us: 1, them: 4 }, 1],
         ["won", { us: 5, them: 3 }, 2],
+      ]);
+      expect(result.lastMatches.map((match) => match.levelMove)).toEqual([
+        null,
+        null,
+        move,
       ]);
       expect(result.lastMatches.at(-1)).toMatchObject({
         gameId: won.game.id,

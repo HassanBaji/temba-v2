@@ -8,11 +8,15 @@ import {
   seasonStandingTable,
   standingDiffUnit,
 } from "@repo/domain/season-standing";
+import { messagesFor } from "@repo/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
+import { isGroupApprover } from "#src/groups/helpers/is-group-approver";
 import { requireGroup } from "#src/groups/helpers/require-group";
+import { visibleMemberNickname } from "#src/groups/helpers/visible-member-nickname";
 import {
   countCompletedMatches,
   matchesInLens,
@@ -35,9 +39,11 @@ export async function seasonStanding(
     seasonId: string | null;
     userId: string;
     now?: Date;
+    locale?: Locale;
   },
 ) {
-  const group = await requireGroup(database, args.groupId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const group = await requireGroup(database, args.groupId, locale);
   const now = args.now ?? new Date();
 
   const membership = await database.query.groupMembers.findFirst({
@@ -50,7 +56,7 @@ export async function seasonStanding(
   if (!membership) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Join the Group to see its Standing",
+      message: messagesFor(locale).group.errors.standingMembersOnly,
     });
   }
 
@@ -63,13 +69,16 @@ export async function seasonStanding(
       })
     : null;
   if (args.seasonId && !season) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Season not found" });
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: messagesFor(locale).group.errors.seasonNotFound,
+    });
   }
 
   const [memberRows, gameRows] = await Promise.all([
     database.query.groupMembers.findMany({
       where: eq(groupMembers.groupId, group.id),
-      columns: { userId: true },
+      columns: { userId: true, nickname: true, nicknameVisibility: true },
       with: {
         user: {
           columns: { name: true, image: true, clerkId: true, addedAt: true },
@@ -121,6 +130,13 @@ export async function seasonStanding(
     standingMatchesFromGames(gameRows),
     season ? toSeasonRow(season, now) : null,
   );
+  const viewer = {
+    isApprover: await isGroupApprover(database, group, args.userId),
+    isMember: true,
+  };
+  const nicknameByUserId = new Map(
+    memberRows.map((row) => [row.userId, visibleMemberNickname(row, viewer)]),
+  );
   const rows = seasonStandingTable(
     matches,
     memberRows.map((row) => ({
@@ -136,7 +152,10 @@ export async function seasonStanding(
   return {
     seasonId: season?.id ?? null,
     season: season ? toSeasonRow(season, now) : null,
-    rows,
+    rows: rows.map((row) => ({
+      ...row,
+      nickname: nicknameByUserId.get(row.userId) ?? null,
+    })),
     gamesCounted: countCompletedMatches(matches),
   };
 }
@@ -154,5 +173,6 @@ export const seasonStandingProcedure = protectedProcedure
       groupId: input.groupId,
       seasonId: input.seasonId,
       userId: appUser.id,
+      locale: ctx.locale,
     });
   });

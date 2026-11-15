@@ -4,6 +4,7 @@ import { z } from "zod";
 import { courts } from "@repo/db";
 
 import { sportOrDefault } from "@repo/domain/sport";
+import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -12,7 +13,7 @@ import {
   requireGame,
   type GameRow,
 } from "#src/games/access";
-import { recordedCourtIdsForGame } from "#src/games/helpers/recorded-court-ids-for-game";
+import { recordedCourtPool } from "#src/games/helpers/recorded-court-ids-for-game";
 import { venueForGame } from "#src/games/helpers/venue-for-game";
 import { consult } from "#src/soft-archive";
 
@@ -25,7 +26,7 @@ export async function listAssignableCourts(database: DbClient, game: GameRow) {
   }
 
   const sport = sportOrDefault(game.sport);
-  const recordedCourtIds = await recordedCourtIdsForGame(database, game.id);
+  const recordedCourtIds = await recordedCourtPool(database, game);
   const rows = await database.query.courts.findMany({
     where:
       recordedCourtIds == null
@@ -49,10 +50,11 @@ export async function listAssignableCourts(database: DbClient, game: GameRow) {
 
 export async function listCourts(
   database: DbClient,
-  args: { gameId: string; userId: string },
+  args: { gameId: string; userId: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
-  await assertGameOrganizer(database, game, args.userId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
+  await assertGameOrganizer(database, game, args.userId, locale);
   return listAssignableCourts(database, game);
 }
 
@@ -60,5 +62,9 @@ export const listCourtsProcedure = protectedProcedure
   .input(z.object({ gameId: z.string().uuid() }))
   .query(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
-    return listCourts(ctx.db, { gameId: input.gameId, userId: appUser.id });
+    return listCourts(ctx.db, {
+      gameId: input.gameId,
+      userId: appUser.id,
+      locale: ctx.locale,
+    });
   });

@@ -11,6 +11,7 @@ import {
   validateFriendlyGameSubmit,
   validateFriendlyTournamentSubmit,
   validateTournamentStepThree,
+  resolveCreateRoundCount,
 } from "./create-game-submit";
 import { levelRangeInvertedMessage } from "./level-range";
 
@@ -157,6 +158,95 @@ const football = {
   playersAllowed: 12,
 } as const;
 
+describe("validateFriendlyGameSubmit Public Game", () => {
+  it("sends no Group, isPublic and no Rating choice", () => {
+    const result = validateFriendlyGameSubmit(
+      {
+        ...game,
+        groupId: "",
+        isPublic: true,
+        rated: false,
+        levelMin: "C",
+        levelMax: "B",
+      },
+      NOW,
+      "en",
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal("groupId" in result.input, false);
+      assert.equal(result.input.isPublic, true);
+      assert.equal("rated" in result.input, false);
+      assert.equal(typeof result.input.levelMinTenths, "number");
+    }
+  });
+
+  it("still asks for a Group when the draft is not public", () => {
+    const result = validateFriendlyGameSubmit(
+      { ...game, groupId: "" },
+      NOW,
+      "en",
+    );
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.field, "groupId");
+      assert.equal(result.step, 2);
+    }
+  });
+
+  it("asks a Public Game for a Venue", () => {
+    const result = validateFriendlyGameSubmit(
+      { ...game, groupId: "", venueId: "", isPublic: true },
+      NOW,
+      "en",
+    );
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.field, "venueId");
+    }
+  });
+});
+
+describe("validateFootballGameSubmit Public Game", () => {
+  it("sends football with no Group, isPublic, the OVR range and no Rating choice", () => {
+    const result = validateFootballGameSubmit(
+      {
+        ...football,
+        groupId: "",
+        isPublic: true,
+        rated: false,
+        levelMin: "C+",
+        levelMax: "B",
+      },
+      NOW,
+      "en",
+      { levelRange: true },
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal("groupId" in result.input, false);
+      assert.equal(result.input.isPublic, true);
+      assert.equal(
+        "sport" in result.input ? result.input.sport : null,
+        "football",
+      );
+      assert.equal("rated" in result.input, false);
+      assert.equal(result.input.sideSize, 5);
+      assert.equal(result.input.levelMinTenths, 35);
+      assert.equal(result.input.levelMaxTenths, 55);
+    }
+  });
+
+  it("still needs a Venue", () => {
+    const result = validateFootballGameSubmit(
+      { ...football, groupId: "", venueId: "", isPublic: true },
+      NOW,
+      "en",
+    );
+    assert.equal(result.ok ? null : result.field, "venueId");
+  });
+});
+
 describe("validateFootballGameSubmit", () => {
   it("sends the side size and cap with no sport, Level range or seats", () => {
     const result = validateFootballGameSubmit(
@@ -176,6 +266,48 @@ describe("validateFootballGameSubmit", () => {
       assert.equal("sport" in result.input, false);
       assert.equal("levelMinTenths" in result.input, false);
       assert.equal("levelMaxTenths" in result.input, false);
+    }
+  });
+
+  it("sends a Level range only on a Game that counts for Temba Level", () => {
+    const draft = { ...football, levelMin: "C+", levelMax: "B" } as const;
+    const ignored = validateFootballGameSubmit(draft, NOW, "en");
+    assert.ok(ignored.ok);
+    if (ignored.ok) {
+      assert.equal("levelMinTenths" in ignored.input, false);
+    }
+    const counting = validateFootballGameSubmit(draft, NOW, "en", {
+      levelRange: true,
+    });
+    assert.ok(counting.ok);
+    if (counting.ok) {
+      assert.equal(counting.input.levelMinTenths, 35);
+      assert.equal(typeof counting.input.levelMaxTenths, "number");
+    }
+    const inverted = validateFootballGameSubmit(
+      { ...football, levelMin: "B", levelMax: "C+" },
+      NOW,
+      "en",
+      { levelRange: true },
+    );
+    assert.equal(inverted.ok, false);
+  });
+
+  it("sends only the Unrated choice", () => {
+    const unrated = validateFootballGameSubmit(
+      { ...football, rated: false },
+      NOW,
+      "en",
+    );
+    const rated = validateFootballGameSubmit(
+      { ...football, rated: true },
+      NOW,
+      "en",
+    );
+    assert.ok(unrated.ok && rated.ok);
+    if (unrated.ok && rated.ok) {
+      assert.equal(unrated.input.rated, false);
+      assert.equal("rated" in rated.input, false);
     }
   });
 
@@ -313,6 +445,29 @@ describe("validateFriendlyTournamentSubmit", () => {
     if (!name.ok) {
       assert.equal(name.step, 4);
       assert.equal(name.message, "Name the tournament");
+    }
+  });
+});
+
+describe("validateFriendlyTournamentSubmit, King of the court", () => {
+  const king = {
+    ...tournament,
+    tournamentShape: "king_of_the_court",
+    teamCount: 8,
+  } as const;
+
+  it("keeps the creator's Rating choice", () => {
+    const rated = validateFriendlyTournamentSubmit(king, NOW, true, "en");
+    const unrated = validateFriendlyTournamentSubmit(
+      { ...king, rated: false },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(rated.ok && unrated.ok);
+    if (rated.ok && unrated.ok) {
+      assert.equal("rated" in rated.input, false);
+      assert.equal(unrated.input.rated, false);
     }
   });
 });
@@ -500,5 +655,127 @@ describe("Arabic validation", () => {
         "يجب أن يكون عدد اللاعبين المسموح به بين 10 و40",
       );
     }
+  });
+});
+
+describe("track payments on submit", () => {
+  it("sends tracking only with a price above zero", () => {
+    const priced = validateFriendlyGameSubmit(
+      { ...game, pricePerPlayer: "1.5", trackPayments: true },
+      NOW,
+      "en",
+    );
+    const free = validateFriendlyGameSubmit(
+      { ...game, pricePerPlayer: "0", trackPayments: true },
+      NOW,
+      "en",
+    );
+    const off = validateFriendlyGameSubmit(
+      { ...game, pricePerPlayer: "1.5", trackPayments: false },
+      NOW,
+      "en",
+    );
+    assert.ok(priced.ok && free.ok && off.ok);
+    if (priced.ok && free.ok && off.ok) {
+      assert.equal(priced.input.trackPayments, true);
+      assert.equal("keepersPlayFree" in priced.input, false);
+      assert.equal("trackPayments" in free.input, false);
+      assert.equal("trackPayments" in off.input, false);
+    }
+  });
+
+  it("sends the keepers choice with a tracked football Game", () => {
+    const result = validateFootballGameSubmit(
+      {
+        ...football,
+        pricePerPlayer: "1.500",
+        trackPayments: true,
+        keepersPlayFree: true,
+      },
+      NOW,
+      "en",
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal(result.input.trackPayments, true);
+      assert.equal(result.input.keepersPlayFree, true);
+    }
+  });
+});
+
+describe("track payments on a tournament", () => {
+  it("sends tracking with a price above zero", () => {
+    const result = validateFriendlyTournamentSubmit(
+      { ...tournament, pricePerPlayer: "2", trackPayments: true },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal(result.input.trackPayments, true);
+    }
+  });
+});
+
+describe("the Rounds shape at create", () => {
+  it("submits one group and the picked Round count as a number", () => {
+    const untouched = validateFriendlyTournamentSubmit(
+      { ...tournament, tournamentShape: "rounds", poolCount: 3 },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(untouched.ok);
+    if (untouched.ok) {
+      assert.equal(untouched.input.tournamentShape, "rounds");
+      assert.equal(untouched.input.poolCount, 1);
+      assert.equal(untouched.input.roundCount, 4);
+      assert.equal("qualifiersPerPool" in untouched.input, false);
+    }
+    const picked = validateFriendlyTournamentSubmit(
+      { ...tournament, tournamentShape: "rounds", roundCount: 11 },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(picked.ok);
+    if (picked.ok) {
+      assert.equal(picked.input.roundCount, 11);
+    }
+  });
+
+  it("does not ask for a groups count at step 3", () => {
+    assert.equal(
+      validateTournamentStepThree(
+        { ...tournament, tournamentShape: "rounds", poolCount: 99 },
+        NOW,
+        "en",
+      ),
+      null,
+    );
+  });
+
+  it("plans one Pool and the default or picked Rounds", () => {
+    const plan = friendlyTournamentPlan({
+      teamCount: 12,
+      poolCount: 3,
+      roundCount: null,
+      qualifiersPerPool: 2,
+      tournamentShape: "rounds",
+    });
+    assert.equal(plan.roundsShape, true);
+    assert.deepEqual(plan.sizing?.poolSizes, [12]);
+    assert.equal(plan.rounds?.roundCount, 4);
+    assert.equal(plan.rounds?.poolMatches, 24);
+    assert.equal(plan.qualifiersRange, null);
+  });
+
+  it("resolves a Groups draft on the suggestion and a Rounds draft on its own default", () => {
+    assert.equal(resolveCreateRoundCount("groups_only", [4, 4, 4], null), 3);
+    assert.equal(resolveCreateRoundCount("rounds", [12], null), 4);
+    assert.equal(resolveCreateRoundCount("rounds", [12], 9), 9);
+    assert.equal(resolveCreateRoundCount("rounds", [4], 9), 6);
+    assert.equal(resolveCreateRoundCount("rounds", [], 3), null);
   });
 });

@@ -96,46 +96,65 @@ describe("labels", () => {
   const now = at(10, 12);
 
   it("names the day relative to now within a week and by date beyond it", () => {
-    expect(whenLabel(at(10, 18), now)).toBe("Today 6:00 PM");
-    expect(whenLabel(at(11, 19), now)).toBe("Tomorrow 7:00 PM");
-    expect(whenLabel(at(9, 20), now)).toBe("Yesterday 8:00 PM");
-    expect(whenLabel(at(13, 17), now)).toBe("Sun 5:00 PM");
-    expect(whenLabel(at(17, 17), now)).toBe("Thu 17 Jan 5:00 PM");
-    expect(whenLabel(at(1, 9, 30), now)).toBe("Tue 1 Jan 9:30 AM");
+    expect(whenLabel(at(10, 18), now, "en")).toBe("Today 6:00 PM");
+    expect(whenLabel(at(11, 19), now, "en")).toBe("Tomorrow 7:00 PM");
+    expect(whenLabel(at(9, 20), now, "en")).toBe("Yesterday 8:00 PM");
+    expect(whenLabel(at(13, 17), now, "en")).toBe("Sun 5:00 PM");
+    expect(whenLabel(at(17, 17), now, "en")).toBe("Thu 17 Jan 5:00 PM");
+    expect(whenLabel(at(1, 9, 30), now, "en")).toBe("Tue 1 Jan 9:30 AM");
   });
 
   it("writes the duration in minutes", () => {
-    expect(durationLabel(at(10, 18), at(10, 19, 30))).toBe("90 min");
-    expect(durationLabel(at(10, 18), at(10, 19))).toBe("60 min");
+    expect(durationLabel(at(10, 18), at(10, 19, 30), "en")).toBe("90 min");
+    expect(durationLabel(at(10, 18), at(10, 19), "en")).toBe("60 min");
   });
 
   it("repeats the meridiem only when it changes across the slot", () => {
-    expect(timeRangeLabel(at(10, 19), at(10, 20, 30))).toBe("7:00 to 8:30 PM");
-    expect(timeRangeLabel(at(10, 11), at(10, 12, 30))).toBe(
+    expect(timeRangeLabel(at(10, 19), at(10, 20, 30), "en")).toBe(
+      "7:00 to 8:30 PM",
+    );
+    expect(timeRangeLabel(at(10, 11), at(10, 12, 30), "en")).toBe(
       "11:00 AM to 12:30 PM",
     );
     expect(
-      bookingTitle({
-        court: { name: "Court 2" },
-        startsAt: at(17, 19),
-        endsAt: at(17, 20, 30),
-      }),
+      bookingTitle(
+        {
+          court: { name: "Court 2" },
+          startsAt: at(17, 19),
+          endsAt: at(17, 20, 30),
+        },
+        "en",
+      ),
     ).toBe("Court 2, Thu 17 Jan 7:00 to 8:30 PM");
   });
 
   it("names the source and the payment mark", () => {
-    expect(sourceLabel("app")).toBe("App");
-    expect(sourceLabel("venue")).toBe("Manual");
-    expect(paymentWord("paid")).toEqual({ mark: "paid", word: "Paid" });
-    expect(paymentWord("pending")).toEqual({ mark: "open", word: "Unpaid" });
-    expect(paymentWord("failed").mark).toBe("failed");
+    expect(sourceLabel("app", "en")).toBe("App");
+    expect(sourceLabel("venue", "en")).toBe("Manual");
+    expect(paymentWord("paid", "en")).toEqual({ mark: "paid", word: "Paid" });
+    expect(paymentWord("pending", "en")).toEqual({
+      mark: "open",
+      word: "Unpaid",
+    });
+    expect(paymentWord("failed", "en").mark).toBe("failed");
   });
 
   it("counts for the scope", () => {
-    expect(countLabel("upcoming", 61)).toBe("61 bookings, next 7 days");
-    expect(countLabel("past", 1)).toBe("1 booking, last 30 days");
-    expect(countLabel("cancelled", 0)).toBe(
+    expect(countLabel("upcoming", 61, "en")).toBe("61 bookings, next 7 days");
+    expect(countLabel("past", 1, "en")).toBe("1 booking, last 30 days");
+    expect(countLabel("cancelled", 0, "en")).toBe(
       "0 cancelled or expired, last 30 days",
     );
+  });
+
+  it("counts in Arabic with the Arabic plural forms", () => {
+    expect(countLabel("upcoming", 1, "ar")).toBe(
+      "حجز واحد، في الأيام الـ7 القادمة",
+    );
+    expect(countLabel("upcoming", 2, "ar")).toBe(
+      "حجزان، في الأيام الـ7 القادمة",
+    );
+    expect(countLabel("past", 5, "ar")).toBe("5 حجوزات، في آخر 30 يومًا");
+    expect(sourceLabel("venue", "ar")).toBe("يدوي");
   });
 });

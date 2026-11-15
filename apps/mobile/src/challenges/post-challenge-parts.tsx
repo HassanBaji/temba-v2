@@ -264,7 +264,7 @@ export function PostChallengeTeamCard({
           </Text>
           <Text
             size="eyebrow"
-            style={{ color: selected ? colors.dim : colors.muted }}
+            style={{ color: selected ? colors.onControlMuted : colors.muted }}
           >
             {detail}
           </Text>

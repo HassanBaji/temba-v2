@@ -20,6 +20,8 @@ export type GameInviteOpenGraphInput = {
   occupiedCount: number;
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
+  /** A football Game reads its range in OVR. */
+  sport?: string | null;
   locale: Locale;
 };
 
@@ -49,13 +51,14 @@ function withLevelRange(
   description: string,
   input: Pick<
     GameInviteOpenGraphInput,
-    "levelMinTenths" | "levelMaxTenths" | "locale"
+    "levelMinTenths" | "levelMaxTenths" | "sport" | "locale"
   >,
 ) {
   const range = formatLevelRangeProseLabel(
     input.levelMinTenths,
     input.levelMaxTenths,
     input.locale,
+    input.sport,
   );
   return range
     ? messagesFor(input.locale).createGame.openGraph.withLevelRange(

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { challengeProposals, challenges, teams, type Db } from "@repo/db";
 
+import { lockProposalWithChallenge } from "#src/challenges/lock-proposal";
 import { enqueueAt } from "#src/jobs/enqueue";
 import { JOB, MAX_ATTEMPTS, proposalExpireJob } from "#src/jobs/specs";
 import { notifyProposalExpired } from "#src/notifications/notify-challenge";
@@ -33,11 +34,8 @@ export async function handle(
   now: Date = new Date(),
 ): Promise<void> {
   await db.transaction(async (tx) => {
-    const [proposal] = await tx
-      .select()
-      .from(challengeProposals)
-      .where(eq(challengeProposals.id, payload.proposalId))
-      .for("update");
+    const proposal = (await lockProposalWithChallenge(tx, payload.proposalId))
+      ?.proposal;
     if (proposal?.status !== "pending") {
       return;
     }

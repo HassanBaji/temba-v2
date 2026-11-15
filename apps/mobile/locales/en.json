@@ -1,0 +1,6 @@
+{
+  "ios": {
+    "NSPhotoLibraryUsageDescription": "Temba uses your photo library so you can choose a profile photo.",
+    "NSPhotoLibraryAddUsageDescription": "Temba saves result cards and stickers to your photo library."
+  }
+}

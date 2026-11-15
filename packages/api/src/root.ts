@@ -1,5 +1,7 @@
 import { bookingsRouter } from "#src/routers/bookings";
 import { challengesRouter } from "#src/routers/challenges";
+import { gameAlbumRouter } from "#src/routers/gameAlbum";
+import { gamePaymentsRouter } from "#src/routers/gamePayments";
 import { gamesRouter } from "#src/routers/games";
 import { groupsRouter } from "#src/routers/groups";
 import { marksRouter } from "#src/routers/marks";
@@ -18,6 +20,8 @@ import { createCallerFactory, createTRPCRouter } from "#src/trpc";
 export const appRouter = createTRPCRouter({
   bookings: bookingsRouter,
   challenges: challengesRouter,
+  gameAlbum: gameAlbumRouter,
+  gamePayments: gamePaymentsRouter,
   games: gamesRouter,
   groups: groupsRouter,
   marks: marksRouter,

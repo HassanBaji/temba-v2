@@ -58,6 +58,7 @@ type SheetOccupant = {
   image: string | null;
   levelBand: LevelBand | null;
   eitherSide?: boolean;
+  guest?: boolean;
 };
 
 export type JoinSheetSide = {
@@ -193,7 +194,12 @@ function SeatTile({
     >
       {occupant ? null : <Hatch radius={10} bordered={false} />}
       {occupant ? (
-        <Avatar name={occupant.name} uri={occupant.image} size="sm" />
+        <Avatar
+          name={occupant.name}
+          uri={occupant.image}
+          size="sm"
+          guest={occupant.guest === true}
+        />
       ) : null}
       <Text
         size="eyebrow"

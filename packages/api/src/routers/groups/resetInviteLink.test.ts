@@ -1,7 +1,13 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { groupInviteLinks, user } from "@repo/db/schema";
+import {
+  GroupMemberRoleEnum,
+  groupInviteLinks,
+  groupMembers,
+  user,
+} from "@repo/db/schema";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { createInviteLink } from "#src/routers/groups/createInviteLink";
 import { createLoosePublic } from "#src/routers/groups/createLoosePublic";
@@ -61,6 +67,51 @@ describe("resetInviteLink", () => {
       });
       expect(old?.expiresAt).not.toBeNull();
       expect(old!.expiresAt!.getTime()).toBeLessThanOrEqual(Date.now());
+    } finally {
+      await close();
+    }
+  });
+
+  it("is the owner's: an Appointed Organizer may copy the link but not reset it", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "reset-owner@example.com");
+      const organizer = await insertUser(db, "reset-organizer@example.com");
+      const group = await createLoosePublic(db, {
+        name: "Crew",
+        sport: "padel",
+        userId: owner.id,
+      });
+      await db.insert(groupMembers).values({
+        groupId: group.id,
+        userId: organizer.id,
+        role: GroupMemberRoleEnum.ORGANIZER,
+      });
+      const live = await createInviteLink(db, {
+        groupId: group.id,
+        userId: organizer.id,
+        origin: ORIGIN,
+      });
+
+      await expect(
+        resetInviteLink(db, {
+          groupId: group.id,
+          userId: organizer.id,
+          origin: ORIGIN,
+        }),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        message: messagesFor("en").group.settings.linkResetOwnerOnly,
+      });
+      expect(
+        (
+          await getInviteLink(db, {
+            groupId: group.id,
+            userId: organizer.id,
+            origin: ORIGIN,
+          })
+        )?.id,
+      ).toBe(live.id);
     } finally {
       await close();
     }

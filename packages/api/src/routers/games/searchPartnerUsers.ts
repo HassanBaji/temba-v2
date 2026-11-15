@@ -3,6 +3,10 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
+import {
+  enforceUserRateLimit,
+  userRateLimits,
+} from "#src/rate-limit/user-rate-limits";
 import { type db } from "#src/db";
 import { requireGame } from "#src/games/access";
 import { assertCanRegisterWithPartner } from "#src/games/helpers/assert-can-register-with-partner";
@@ -15,7 +19,8 @@ export async function searchPartnerUsers(
   database: DbClient,
   args: { gameId: string; userId: string; query: string; locale?: Locale },
 ) {
-  const game = await requireGame(database, args.gameId);
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const game = await requireGame(database, args.gameId, locale);
   const now = new Date();
   await assertCanRegisterWithPartner(
     database,
@@ -51,6 +56,7 @@ export const searchPartnerUsersProcedure = protectedProcedure
     }),
   )
   .query(async ({ ctx, input }) => {
+    enforceUserRateLimit(userRateLimits.lookupSearch, ctx.userId, ctx.locale);
     const appUser = await resolveAppUser(ctx.userId);
     return searchPartnerUsers(ctx.db, {
       gameId: input.gameId,

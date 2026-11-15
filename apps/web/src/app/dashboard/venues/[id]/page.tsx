@@ -18,7 +18,9 @@ import { EntityHomeHeader } from "~/components/layout/entity-home-header";
 import { Section } from "~/components/layout/section";
 import { VenueLinkedGroupsSection } from "~/components/venues/venue-linked-groups-section";
 import { VenueManagersSection } from "~/components/venues/venue-managers-section";
+import { VenueVerifiersSection } from "~/components/venues/venue-verifiers-section";
 import { SoftArchiveBanner } from "~/components/temba/soft-archive-banner";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
   Field,
@@ -36,6 +38,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { Input } from "~/components/ui/input";
+import { Switch } from "~/components/ui/switch";
 import {
   fieldErrorMessage,
   focusFormFailure,
@@ -51,6 +54,7 @@ import {
   parseOptionalCoord,
 } from "@repo/domain/parse-optional-coord";
 import { api } from "~/trpc/react";
+import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 export default function VenueHomePage({
   params,
@@ -167,6 +171,7 @@ export default function VenueHomePage({
   });
 
   const deleteCourt = api.venues.deleteCourt.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(v.toast.courtDeleted);
       await utils.venues.byId.invalidate({ id });
@@ -186,6 +191,7 @@ export default function VenueHomePage({
   });
 
   const clearLogo = api.venues.clearLogo.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(v.toast.logoCleared);
       await utils.venues.byId.invalidate({ id });
@@ -193,6 +199,7 @@ export default function VenueHomePage({
   });
 
   const softArchive = api.venues.softArchive.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
       toast.success(v.toast.archived);
       await utils.venues.byId.invalidate({ id });
@@ -203,6 +210,17 @@ export default function VenueHomePage({
   const unarchive = api.venues.unarchive.useMutation({
     onSuccess: async () => {
       toast.success(v.toast.unarchived);
+      await utils.venues.byId.invalidate({ id });
+      await utils.venues.list.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const setPartner = api.venues.setPartner.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.isPartner ? v.partner.onToast : v.partner.offToast);
       await utils.venues.byId.invalidate({ id });
       await utils.venues.list.invalidate();
     },
@@ -262,7 +280,7 @@ export default function VenueHomePage({
       <DashboardShell title={v.title} isSubPage>
         <ErrorState
           title={v.errorTitle}
-          message={venue.error.message}
+          error={venue.error}
           onRetry={() => {
             void venue.refetch();
           }}
@@ -302,6 +320,11 @@ export default function VenueHomePage({
             />
           }
           title={venueName}
+          badges={
+            data.isPartner ? (
+              <Badge variant="secondary">{v.partner.badge}</Badge>
+            ) : undefined
+          }
           meta={v.location(data.city, data.country)}
           primaryAction={
             data.archivedAt ? (
@@ -333,6 +356,29 @@ export default function VenueHomePage({
             {v.archivedBanner.body}
           </SoftArchiveBanner>
         ) : null}
+
+        <Section
+          title={v.partner.title}
+          description={v.partner.description}
+          action={
+            <Switch
+              checked={data.isPartner}
+              disabled={
+                setPartner.isPending || (!data.isPartner && !!data.archivedAt)
+              }
+              onCheckedChange={(partner) =>
+                setPartner.mutate({ venueId: id, partner })
+              }
+              aria-label={v.partner.title}
+            />
+          }
+        >
+          {data.archivedAt && !data.isPartner ? (
+            <p className="text-body text-muted-foreground">
+              {v.partner.archivedNote}
+            </p>
+          ) : null}
+        </Section>
 
         <VenueLinkedGroupsSection venueId={id} venueName={venueName} />
 
@@ -519,6 +565,8 @@ export default function VenueHomePage({
         </Section>
 
         <VenueManagersSection venueId={id} />
+
+        <VenueVerifiersSection venueId={id} />
 
         <Section title={v.courts.title} description={v.courts.description}>
           <form onSubmit={onAddCourt} className="space-y-3">

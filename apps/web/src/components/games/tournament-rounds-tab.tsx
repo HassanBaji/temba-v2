@@ -6,14 +6,18 @@ import {
   ChevronDownIcon,
   HandIcon,
   LayersIcon,
+  PlusIcon,
   ShuffleIcon,
   SparklesIcon,
   StepForwardIcon,
 } from "lucide-react";
 import * as React from "react";
+import { toast } from "sonner";
 
 import { formatGameClock } from "@repo/domain/format-game-start";
+import { roundCancelCopy } from "@repo/domain/tournament-round-state";
 
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ScoreText } from "~/components/temba/score-text";
 import { Button } from "~/components/ui/button";
 import { Hatch } from "~/components/ui/hatch";
@@ -32,6 +36,7 @@ import {
   type RoundsTeam,
   type TournamentRoundsData,
 } from "./tournament-round-parts";
+import { StampScoreButton, type MatchStamping } from "./match-stamp";
 import { type ScoreSheetTarget } from "./tournament-score-drawer";
 import { type SwapTarget } from "./tournament-swap-drawer";
 import { type TournamentRoundsActions } from "./use-tournament-rounds";
@@ -41,6 +46,8 @@ const WAYS: readonly Way[] = ["all", "next", "byHand"];
 
 const SMALL_ACTION =
   "border-rule focus-visible:ring-ring/50 text-meta inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md border px-2.5 font-semibold outline-none focus-visible:ring-[3px]";
+const QUIET_ACTION =
+  "text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 text-meta inline-flex min-h-11 items-center underline underline-offset-4 outline-none focus-visible:ring-[3px]";
 const INK_ACTION =
   "bg-ink text-paper focus-visible:ring-ring/50 text-meta inline-flex min-h-11 shrink-0 items-center rounded-md px-2.5 font-semibold outline-none focus-visible:ring-[3px]";
 
@@ -63,6 +70,9 @@ export function roundMetaLine(
   if (round.state === "played") {
     return `${time}, ${count}, ${m.round.played}`;
   }
+  if (round.state === "cancelled") {
+    return `${time}, ${count}, ${m.round.cancelled}`;
+  }
   if (round.state === "on_court") {
     const scored = round.matches.filter(
       (match) => match.state === "confirmed" || match.state === "cancelled",
@@ -76,12 +86,14 @@ function MatchTrailing({
   roundNumber,
   match,
   teams,
+  stamping,
   onEnterScore,
   onSwap,
 }: {
   roundNumber: number;
   match: RoundsMatch;
   teams: ReadonlyMap<string, RoundsTeam>;
+  stamping?: MatchStamping;
   onEnterScore: (target: ScoreSheetTarget) => void;
   onSwap: (target: SwapTarget) => void;
 }) {
@@ -89,6 +101,15 @@ function MatchTrailing({
   const team1 = teamShortName(teams.get(match.slot1GameTeamId));
   const team2 = teamShortName(teams.get(match.slot2GameTeamId));
   const score = scoreLabel(match);
+  const stamp =
+    match.matchId != null && stamping?.canStamp(match.matchId) ? (
+      <span className="flex shrink-0 items-center gap-2">
+        <ScoreText className="font-expanded text-muted-foreground text-[16px]">
+          {score ?? ""}
+        </ScoreText>
+        <StampScoreButton matchId={match.matchId} stamping={stamping} />
+      </span>
+    ) : null;
 
   if (
     match.state === "draft" ||
@@ -107,15 +128,21 @@ function MatchTrailing({
     );
   }
   if (match.state === "awaiting_confirmation") {
-    return match.canConfirm ? (
-      <button
-        type="button"
-        onClick={() => onEnterScore({ roundNumber, match, mode: "confirm" })}
-        className={INK_ACTION}
-      >
-        {m.confirm.confirm(score ?? "")}
-      </button>
-    ) : (
+    if (match.canConfirm) {
+      return (
+        <button
+          type="button"
+          onClick={() => onEnterScore({ roundNumber, match, mode: "confirm" })}
+          className={INK_ACTION}
+        >
+          {m.confirm.confirm(score ?? "")}
+        </button>
+      );
+    }
+    if (stamp) {
+      return stamp;
+    }
+    return (
       <span className="flex shrink-0 flex-col items-end">
         <ScoreText className="font-expanded text-muted-foreground text-[16px]">
           {score ?? ""}
@@ -186,6 +213,7 @@ function MatchRow({
   viewerUserId,
   viewerGameTeamId,
   showTime,
+  stamping,
   onEnterScore,
   onSwap,
 }: {
@@ -195,6 +223,7 @@ function MatchRow({
   viewerUserId: string;
   viewerGameTeamId: string | null;
   showTime: boolean;
+  stamping?: MatchStamping;
   onEnterScore: (target: ScoreSheetTarget) => void;
   onSwap: (target: SwapTarget) => void;
 }) {
@@ -237,6 +266,7 @@ function MatchRow({
         roundNumber={roundNumber}
         match={match}
         teams={teams}
+        stamping={stamping}
         onEnterScore={onEnterScore}
         onSwap={onSwap}
       />
@@ -251,8 +281,10 @@ function RoundCard({
   teams,
   viewerUserId,
   viewerGameTeamId,
+  stamping,
   onEnterScore,
   onSwap,
+  onCancel,
 }: {
   round: RoundsRound;
   open: boolean;
@@ -260,8 +292,10 @@ function RoundCard({
   teams: ReadonlyMap<string, RoundsTeam>;
   viewerUserId: string;
   viewerGameTeamId: string | null;
+  stamping?: MatchStamping;
   onEnterScore: (target: ScoreSheetTarget) => void;
   onSwap: (target: SwapTarget) => void;
+  onCancel?: () => void;
 }) {
   const m = useMessages().tournamentRounds;
   const locale = useLocale();
@@ -295,21 +329,33 @@ function RoundCard({
         </button>
       </h3>
       {open ? (
-        <ul id={listId} className="border-rule divide-rule divide-y border-t">
-          {round.matches.map((match) => (
-            <MatchRow
-              key={match.matchId ?? `draft-${match.position}`}
-              roundNumber={round.roundNumber}
-              match={match}
-              teams={teams}
-              viewerUserId={viewerUserId}
-              viewerGameTeamId={viewerGameTeamId}
-              showTime={round.state === "draft" || round.state === "scheduled"}
-              onEnterScore={onEnterScore}
-              onSwap={onSwap}
-            />
-          ))}
-        </ul>
+        <div id={listId} className="border-rule border-t">
+          <ul className="divide-rule divide-y">
+            {round.matches.map((match) => (
+              <MatchRow
+                key={match.matchId ?? `draft-${match.position}`}
+                roundNumber={round.roundNumber}
+                match={match}
+                teams={teams}
+                viewerUserId={viewerUserId}
+                viewerGameTeamId={viewerGameTeamId}
+                showTime={
+                  round.state === "draft" || round.state === "scheduled"
+                }
+                stamping={stamping}
+                onEnterScore={onEnterScore}
+                onSwap={onSwap}
+              />
+            ))}
+          </ul>
+          {onCancel ? (
+            <div className="border-rule border-t px-4">
+              <button type="button" onClick={onCancel} className={QUIET_ACTION}>
+                {m.manage.cancel(round.roundNumber)}
+              </button>
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );
@@ -336,7 +382,9 @@ function WayCard({
     <label
       className={cn(
         "rounded-card has-focus-visible:ring-ring/50 has-focus-visible:ring-[3px] has-disabled:opacity-60 flex w-full cursor-pointer items-center gap-4 border p-5 text-start",
-        selected ? "bg-ink text-paper border-ink" : "border-rule bg-paper",
+        selected
+          ? "border-ink bg-control text-on-control"
+          : "border-rule bg-paper text-ink hover:bg-wash",
       )}
     >
       <input
@@ -351,8 +399,8 @@ function WayCard({
       <span
         aria-hidden="true"
         className={cn(
-          "inline-flex size-10 shrink-0 items-center justify-center self-start rounded-md",
-          selected ? "bg-raised" : "border-rule border",
+          "inline-flex size-10 shrink-0 items-center justify-center self-start rounded-md border",
+          selected ? "border-control-rule bg-control-raised" : "border-rule",
         )}
       >
         {icon}
@@ -362,7 +410,7 @@ function WayCard({
         <span
           className={cn(
             "text-meta mt-1 block leading-relaxed",
-            selected ? "text-dim" : "text-muted-foreground",
+            selected ? "text-on-control-muted" : "text-muted-foreground",
           )}
         >
           {body}
@@ -372,10 +420,12 @@ function WayCard({
         aria-hidden="true"
         className={cn(
           "inline-flex size-6 shrink-0 items-center justify-center rounded-full border",
-          selected ? "bg-paper border-paper" : "border-rule",
+          selected ? "bg-on-control border-on-control" : "border-rule",
         )}
       >
-        {selected ? <span className="bg-ink size-2.5 rounded-full" /> : null}
+        {selected ? (
+          <span className="bg-control size-2.5 rounded-full" />
+        ) : null}
       </span>
     </label>
   );
@@ -406,6 +456,7 @@ function NotMadeCard({
   onGenerate,
   onGenerateRest,
   onPair,
+  onCancel,
 }: {
   round: RoundsRound;
   restCount: number;
@@ -413,6 +464,7 @@ function NotMadeCard({
   onGenerate: () => void;
   onGenerateRest: () => void;
   onPair: () => void;
+  onCancel?: () => void;
 }) {
   const m = useMessages().tournamentRounds;
   const locale = useLocale();
@@ -468,6 +520,11 @@ function NotMadeCard({
         <p className="text-muted-foreground text-meta mt-4 leading-relaxed">
           {m.notMade.note}
         </p>
+        {onCancel ? (
+          <button type="button" onClick={onCancel} className={QUIET_ACTION}>
+            {m.manage.cancel(round.roundNumber)}
+          </button>
+        ) : null}
       </div>
     </section>
   );
@@ -502,6 +559,7 @@ export function TournamentRoundsTab({
   actions,
   details,
   afterGroup,
+  stamping,
   onEnterScore,
   onSwap,
   onPair,
@@ -513,6 +571,7 @@ export function TournamentRoundsTab({
   actions: TournamentRoundsActions;
   details?: React.ReactNode;
   afterGroup?: { label: string; value: string } | null;
+  stamping?: MatchStamping;
   onEnterScore: (target: ScoreSheetTarget) => void;
   onSwap: (target: SwapTarget) => void;
   onPair: (roundNumber: number) => void;
@@ -561,6 +620,70 @@ export function TournamentRoundsTab({
     }
   }
 
+  const [cancelling, setCancelling] = React.useState<RoundsRound | null>(null);
+  const adding = actions.addRound.isPending;
+
+  async function addRound() {
+    try {
+      const added = await actions.addRound.mutateAsync({ gameId });
+      toast.success(m.manage.added(added.roundCount));
+    } catch {
+      return;
+    }
+  }
+
+  function cancelOf(round: RoundsRound) {
+    return round.cancelEffect ? () => setCancelling(round) : undefined;
+  }
+
+  const addButton = data.canAddRound ? (
+    <Button
+      type="button"
+      variant="outline"
+      className="w-full"
+      disabled={adding}
+      aria-busy={adding}
+      onClick={() => void addRound()}
+    >
+      <PlusIcon aria-hidden="true" />
+      {adding ? m.manage.adding : m.manage.add}
+    </Button>
+  ) : null;
+
+  const cancelDialog = (
+    <ConfirmDialog
+      open={cancelling != null}
+      onOpenChange={(next) => {
+        if (!next) {
+          setCancelling(null);
+        }
+      }}
+      title={cancelling ? m.manage.cancelTitle(cancelling.roundNumber) : ""}
+      description={
+        cancelling
+          ? roundCancelCopy(cancelling, data.roundCount, locale)
+          : undefined
+      }
+      confirmLabel={cancelling ? m.manage.cancel(cancelling.roundNumber) : ""}
+      cancelLabel={m.manage.keep}
+      pending={actions.cancelRound.isPending}
+      onConfirm={async () => {
+        if (!cancelling) {
+          return;
+        }
+        try {
+          await actions.cancelRound.mutateAsync({
+            gameId,
+            roundNumber: cancelling.roundNumber,
+          });
+          toast.success(m.manage.cancelled(cancelling.roundNumber));
+        } catch {
+          // The Rounds hook shows the failure as a toast.
+        }
+      }}
+    />
+  );
+
   if (!data.isOrganizer) {
     const firstHidden = notMade[0]?.roundNumber;
     const lastHidden = notMade[notMade.length - 1]?.roundNumber;
@@ -575,6 +698,7 @@ export function TournamentRoundsTab({
             teams={teams}
             viewerUserId={viewerUserId}
             viewerGameTeamId={data.viewerGameTeamId}
+            stamping={stamping}
             onEnterScore={onEnterScore}
             onSwap={onSwap}
           />
@@ -594,6 +718,7 @@ export function TournamentRoundsTab({
 
   if (made.length === 0) {
     const firstSlot = data.rounds[0]?.slots[0];
+    const lastRound = data.rounds[data.rounds.length - 1];
     const ways: Record<
       Way,
       { icon: React.ReactNode; title: string; body: string; next: string }
@@ -675,6 +800,19 @@ export function TournamentRoundsTab({
         <p className="text-muted-foreground text-meta leading-relaxed">
           {m.ways.footer}
         </p>
+        {addButton}
+        {lastRound?.cancelEffect ? (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={cancelOf(lastRound)}
+              className={QUIET_ACTION}
+            >
+              {m.manage.cancel(lastRound.roundNumber)}
+            </button>
+          </div>
+        ) : null}
+        {cancelDialog}
         <div
           className={cn(
             "border-rule bg-background sticky bottom-0 z-10 mt-3 flex items-center gap-4 border-t pb-[max(0.875rem,env(safe-area-inset-bottom))] pt-3.5",
@@ -768,8 +906,10 @@ export function TournamentRoundsTab({
           teams={teams}
           viewerUserId={viewerUserId}
           viewerGameTeamId={data.viewerGameTeamId}
+          stamping={stamping}
           onEnterScore={onEnterScore}
           onSwap={onSwap}
+          onCancel={cancelOf(round)}
         />
       ))}
 
@@ -781,6 +921,7 @@ export function TournamentRoundsTab({
           onGenerate={() => void generate("next")}
           onGenerateRest={() => void generate("rest")}
           onPair={() => onPair(nextNotMade.roundNumber)}
+          onCancel={cancelOf(nextNotMade)}
         />
       ) : null}
       {laterFrom != null && laterTo != null ? (
@@ -788,6 +929,8 @@ export function TournamentRoundsTab({
           {m.notMade.laterShort(laterFrom, laterTo)}
         </p>
       ) : null}
+      {addButton}
+      {cancelDialog}
 
       {firstDraft ? (
         <div className="border-rule space-y-2.5 border-t pt-5">

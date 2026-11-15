@@ -14,6 +14,8 @@ export const webGroup = {
   members: {
     roleFor: (name: string) => `Role for ${name}`,
     manageName: (name: string) => `Manage ${name}`,
+    callPhone: (phone: string) => `Call ${phone}`,
+    whatsAppPhone: (phone: string) => `WhatsApp ${phone}`,
     setLevel: "Set Level",
     savedLevel: (name: string, level: string) => `${name} set to ${level}.`,
     savedReason: (reason: string) =>
@@ -89,14 +91,7 @@ export const webGroup = {
   },
   requests: {
     title: "Join requests",
-    reviewAria: "Review join requests",
-    level: (label: string) => `Level ${label}`,
-    levelProvisional: (label: string) => `Level ${label}, still Provisional`,
     changePolicyAria: "Change who can join",
-    approve: "Approve",
-    reject: "Reject",
-    approveName: (name: string) => `Approve ${name}`,
-    rejectName: (name: string) => `Reject ${name}`,
   },
   standing: {
     position: "Position",
@@ -141,19 +136,17 @@ export const webGroup = {
       `${percent}% through ${band}`,
     decrease: "Decrease Level by 0.1",
     increase: "Increase Level by 0.1",
+    decreaseOvr: "Decrease OVR by 1",
+    increaseOvr: "Increase OVR by 1",
     reset: "Reset",
-    reason: "Reason",
+    why: (name: string) => `Why? ${name} will see this.`,
+    noteLabel: "Note",
+    notePlaceholder: "Add a note (optional)",
+    pickReason: "Pick a reason to save",
     confirmedNote:
       "A Level you set counts as confirmed. Rated Matches keep moving it from here.",
     provisionalNote: (name: string) =>
       `${name} will no longer be Provisional, and setting again will not change that.`,
     setTo: (level: string) => `Set to ${level}`,
-  },
-  setGroupLevel: {
-    current: (level: string) => `Their group level now, ${level}`,
-    tembaMarker: (level: string) => `Temba ${level}`,
-    startsFrom: (level: string) => `Starts from their Temba level, ${level}`,
-    startsFromDefault: "No Temba level yet, so it starts from 3.0",
-    level: "Group level",
   },
 };

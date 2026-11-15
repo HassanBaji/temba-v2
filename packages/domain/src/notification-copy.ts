@@ -1,16 +1,19 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { formatOvr, formatOvrDelta } from "./football-ovr";
 import { formatDayMonth, formatGameDay } from "./format-game-start";
 import { gameFormatLabel } from "./game-format-label";
 import { groupDisplayName } from "./group-join";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
-import {
-  levelOverrideReasonLabel,
-  type LevelOverrideReason,
-} from "./level-slider";
+import { levelOverrideWhy, type LevelOverrideReason } from "./level-slider";
 import { formatMarksClose, isMarkKind, markName } from "./marks";
+import { formatTierPoints } from "./group-members-table";
 import { productDaysBetween, zonedParts } from "./product-timezone";
+import { formatPerformanceRating } from "./performance-rating";
+import { isTierBand, tierBandLabel } from "./tier-bands";
+import { formatTierDelta } from "./tier-adjust";
+import { isSport, sportLabel } from "./sport";
 
 export type NotificationTitlePart = { text: string; strong: boolean };
 
@@ -30,15 +33,65 @@ export type NotificationCopyInput = {
   game?: NotificationGame | null;
   gameCount?: number | null;
   levelSet?: NotificationLevelSet | null;
+  tier?: NotificationTier | null;
+  ovrMove?: NotificationOvrMove | null;
+  placeAward?: NotificationPlaceAward | null;
+  dispute?: NotificationDispute | null;
   markKind?: string | null;
   /** The recipient is the actor, as on the MVP's own `mvp_decided` row. */
   actorIsRecipient?: boolean;
 };
 
 type NotificationLevelSet = {
+  /** The one-decimal Level on padel, the whole OVR on football. */
   level: string;
   levelBand: LevelBand;
+  /** Football reads `OVR 72`, with no band (ADR-0087). */
+  sport?: string | null;
   reason: LevelOverrideReason | null;
+  note?: string | null;
+  /** Set when a Verifier calibrated the Level from this Venue. */
+  venue?: { name: string } | null;
+};
+
+/**
+ * The Tier event a `tier_points_adjusted`, `tier_band_changed` or
+ * `performance_ratings_closed` row is about.
+ */
+type NotificationTier = {
+  bandAfter: string | null;
+  pointsBefore: number;
+  pointsAfter: number;
+  delta?: number;
+  /** The settled Performance rating, in hundredths; null without one. */
+  ratingHundredths?: number | null;
+  reason: LevelOverrideReason | null;
+  note: string | null;
+};
+
+/** The Place award a `king_place_awarded` row is about (ADR-0089). */
+type NotificationPlaceAward = {
+  finalPlace: number;
+  /** The Level either side of it, as padel shows it. */
+  levelBefore: string;
+  levelAfter: string;
+};
+
+/**
+ * The OVR move a `performance_ratings_closed` row is about, on a Match that
+ * counts for Temba Level.
+ */
+type NotificationOvrMove = {
+  before: number;
+  after: number;
+  /** The settled Performance rating, in hundredths; null without one. */
+  ratingHundredths: number | null;
+};
+
+/** The Match dispute a raised or decided Notification is about. */
+type NotificationDispute = {
+  status: string;
+  note: string;
 };
 
 type NotificationGame = {
@@ -191,6 +244,107 @@ export function notificationCopy(
       subline: null,
     };
   }
+  if (item.type === "king_courts_posted" && item.game) {
+    return {
+      title: m.kingCourtsPosted(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (item.type === "king_final_order_posted" && item.game) {
+    return {
+      title: m.kingFinalOrderPosted(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (item.type === "king_place_awarded" && item.game && item.placeAward) {
+    return {
+      title: m.kingPlaceAwarded(
+        messagesFor(locale).tournamentRounds.shareCard.ordinal(
+          item.placeAward.finalPlace,
+        ),
+        notificationGameName(item.game, locale),
+      ),
+      subline: sub.kingPlaceAwarded(
+        item.placeAward.levelBefore,
+        item.placeAward.levelAfter,
+      ),
+    };
+  }
+  if (
+    item.type === "game_team_changed" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: m.gameTeamChanged(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (
+    item.type === "game_moved_to_waitlist" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    const moved =
+      item.game.format === "friendly_tournament"
+        ? m.tournamentMovedToWaitlist
+        : m.gameMovedToWaitlist;
+    return {
+      title: moved(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (
+    item.type === "game_payment_reminder" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: m.gamePaymentReminder(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: sub.gamePaymentReminder,
+    };
+  }
+  if (
+    item.type === "game_payment_claimed" &&
+    item.audience === "admin" &&
+    item.game
+  ) {
+    return {
+      title: m.gamePaymentClaimed(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: sub.gamePaymentClaimed,
+    };
+  }
+  if (
+    item.type === "game_payment_not_received" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: m.gamePaymentNotReceived(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
   if (
     item.type === "game_seated_by_organizer" &&
     item.audience === "player" &&
@@ -219,13 +373,62 @@ export function notificationCopy(
     item.audience === "player" &&
     item.levelSet
   ) {
-    const { level, levelBand, reason } = item.levelSet;
+    const { level, levelBand, sport, reason, note, venue } = item.levelSet;
+    const actor = actorName(item.actor, locale);
+    const shown =
+      sport === "football"
+        ? messagesFor(locale).level.ovr(level)
+        : `${displayLabelFromStoredBand(levelBand)} ${level}`;
     return {
-      title: m.levelSet(
+      title: venue
+        ? m.levelCalibrated(actor, venue.name, shown)
+        : m.levelSet(actor, shown),
+      subline: levelOverrideWhy({ reason, note, locale }),
+    };
+  }
+  if (
+    item.type === "tier_points_adjusted" &&
+    item.audience === "player" &&
+    item.tier?.reason
+  ) {
+    const { reason, note, pointsBefore, pointsAfter } = item.tier;
+    const label = messagesFor(locale).rating.adjust.reasons[reason];
+    const from = formatTierPoints(pointsBefore);
+    const to = formatTierPoints(pointsAfter);
+    return {
+      title: m.tierPointsAdjusted(
         actorName(item.actor, locale),
-        `${displayLabelFromStoredBand(levelBand)} ${level}`,
+        groupName(item.group, locale),
       ),
-      subline: reason ? levelOverrideReasonLabel(reason, locale) : null,
+      subline: note
+        ? sub.tierAdjustedWithNote(label, userName(note, locale), from, to)
+        : sub.tierAdjusted(label, from, to),
+    };
+  }
+  const bandAfter = item.tier?.bandAfter;
+  if (
+    item.type === "tier_band_changed" &&
+    item.audience === "player" &&
+    isTierBand(bandAfter)
+  ) {
+    return {
+      title: m.tierBandChanged(
+        tierBandLabel(bandAfter, locale),
+        groupName(item.group, locale),
+      ),
+      subline: sub.tierPlaces,
+    };
+  }
+  if (
+    item.type === "level_confirmed" &&
+    item.audience === "player" &&
+    isSport(item.game?.sport)
+  ) {
+    return {
+      title: m.levelConfirmed(
+        sportLabel(item.game.sport, locale) ?? item.game.sport,
+      ),
+      subline: sub.levelConfirmed,
     };
   }
   if (
@@ -250,6 +453,117 @@ export function notificationCopy(
         ? m.youAreMvp(game)
         : m.mvpDecided(actorName(item.actor, locale), game),
       subline: null,
+    };
+  }
+  if (
+    item.type === "performance_ratings_open" &&
+    (item.audience === "admin" || item.audience === "player") &&
+    item.game
+  ) {
+    return {
+      title: m.performanceRatingsOpen(notificationGameName(item.game, locale)),
+      subline:
+        item.audience === "admin" ? sub.ratingsOpen : sub.ratingsOpenEveryone,
+    };
+  }
+  if (
+    item.type === "performance_ratings_closed" &&
+    item.audience === "player" &&
+    item.game &&
+    item.tier
+  ) {
+    const { ratingHundredths, pointsBefore, pointsAfter } = item.tier;
+    const delta = formatTierDelta(
+      item.tier.delta ?? pointsAfter - pointsBefore,
+    );
+    const points = formatTierPoints(pointsAfter);
+    return {
+      title: m.performanceRatingsClosed(
+        notificationGameName(item.game, locale),
+      ),
+      subline:
+        ratingHundredths == null
+          ? sub.ratingsClosedResultOnly(delta, points)
+          : sub.ratingsClosed(
+              formatPerformanceRating(ratingHundredths),
+              delta,
+              points,
+            ),
+    };
+  }
+  if (
+    item.type === "performance_ratings_closed" &&
+    item.audience === "player" &&
+    item.game &&
+    item.ovrMove
+  ) {
+    const { ratingHundredths, before, after } = item.ovrMove;
+    const delta = formatOvrDelta(after - before);
+    const ovr = formatOvr(after);
+    return {
+      title: m.performanceRatingsClosed(
+        notificationGameName(item.game, locale),
+      ),
+      subline:
+        ratingHundredths == null
+          ? sub.ratingsClosedOvrNoRating(delta, ovr)
+          : sub.ratingsClosedOvr(
+              formatPerformanceRating(ratingHundredths),
+              delta,
+              ovr,
+            ),
+    };
+  }
+  if (
+    item.type === "match_dispute_raised" &&
+    item.audience === "admin" &&
+    item.game &&
+    item.dispute
+  ) {
+    return {
+      title: m.matchDisputeRaised(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: userName(item.dispute.note, locale),
+    };
+  }
+  if (
+    item.type === "match_dispute_decided" &&
+    item.audience === "player" &&
+    item.game &&
+    item.dispute?.status === "superseded"
+  ) {
+    return {
+      title: m.matchDisputeSuperseded(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: sub.disputeSuperseded,
+    };
+  }
+  if (
+    item.type === "match_dispute_decided" &&
+    (item.audience === "admin" || item.audience === "player") &&
+    item.game &&
+    (item.dispute?.status === "upheld" || item.dispute?.status === "dismissed")
+  ) {
+    const game = notificationGameName(item.game, locale);
+    const actor = actorName(item.actor, locale);
+    const upheld = item.dispute.status === "upheld";
+    if (item.actorIsRecipient) {
+      return {
+        title: upheld
+          ? m.matchDisputeUpheld(game)
+          : m.matchDisputeDismissed(game),
+        subline: upheld ? sub.disputeUpheld : sub.disputeDismissed,
+      };
+    }
+    return {
+      title: upheld
+        ? m.matchDisputeUpheldFor(actor, game)
+        : m.matchDisputeDismissedFor(actor, game),
+      subline: upheld ? sub.disputeUpheld : sub.disputeDismissed,
     };
   }
   if (item.type === "mvp_tie_break" && item.audience === "admin" && item.game) {

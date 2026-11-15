@@ -1,10 +1,14 @@
 "use client";
 
+import { gamePaymentsTracked } from "@repo/domain/game-payments";
+import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
-import type {
-  FriendlyGameDetails,
-  FriendlyGameDetailsMatch,
+import {
+  seatedPlayerCanRename,
+  type FriendlyGameDetails,
+  type FriendlyGameDetailsMatch,
 } from "@repo/domain/friendly-game-details";
 import { friendlyGameCanKickPlayer } from "@repo/domain/friendly-game-players";
 import { gameDisplayName } from "@repo/domain/game-custom-name";
@@ -18,12 +22,14 @@ import { FlagIcon, UserPlusIcon } from "lucide-react";
 import * as React from "react";
 
 import { ACTION_MENU_INK_BOXED_TRIGGER } from "~/components/common/action-menu";
+import { GameAlbumSections } from "~/components/game-album/game-album-sections";
 import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { MarksSection } from "~/components/marks/marks-section";
 import { MvpRow } from "~/components/marks/mvp-row";
 import { useGameMarks } from "~/components/marks/use-game-marks";
 
+import { MatchDisputeRow } from "./match-dispute-row";
 import { PlayedGameView } from "./played-game-view";
 import { PlayedPadelBoard } from "./played-padel-board";
 import { PlayedPlayerDialog } from "./played-player-dialog";
@@ -66,6 +72,7 @@ export function PlayedFriendlyGame({
           groupName: game.groupName,
           rated: game.rated,
           ratingScope: game.ratingScope,
+          publicGame: isPublicGame(game),
           ratingImpact: game.ratingImpact,
           confirmation: game.matchResultConfirmation,
         },
@@ -147,9 +154,23 @@ export function PlayedFriendlyGame({
           <PlayedPadelBoard setLabels={model.setLabels} rows={model.board} />
         }
         heroFooter={<MvpRow marks={marks} canOpenProfile={linkToPlayers} />}
+        task={
+          <GamePaymentsSection
+            gameId={gameId}
+            tracked={gamePaymentsTracked(game)}
+          />
+        }
         marks={<MarksSection marks={marks} />}
+        album={
+          <GameAlbumSections
+            gameId={gameId}
+            place={model.venueLine ?? ""}
+            context={model.dateLine}
+          />
+        }
         columns={model.columns}
         facts={model.facts}
+        dispute={<MatchDisputeRow match={match} />}
         onPressPlayer={
           linkToPlayers || game.isOrganizer ? setSelected : undefined
         }
@@ -158,7 +179,11 @@ export function PlayedFriendlyGame({
         player={selected}
         canOpenProfile={linkToPlayers}
         canKick={selected != null && canKick(selected.userId)}
-        canRename={Boolean(onRename) && game.isOrganizer}
+        canRename={
+          selected != null &&
+          Boolean(onRename) &&
+          seatedPlayerCanRename(game.sides, selected.userId)
+        }
         onOpenChange={(open) => {
           if (!open) {
             setSelected(null);

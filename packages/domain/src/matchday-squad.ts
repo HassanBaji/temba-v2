@@ -6,10 +6,10 @@ import {
   type FootballPosition,
   type FootballRole,
 } from "./football-lineup";
+import { formatOvr } from "./football-ovr";
 import { formatWeekday } from "./format-game-start";
 import { sideSizeLabel } from "./game-shape";
 import { initials } from "./initials";
-import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
 
 /** Seats beyond the side on a Matchday squad. */
 export const SQUAD_RESERVE_SEATS = 3;
@@ -158,7 +158,7 @@ export function squadRosterPreview<T>(
 }
 
 /**
- * A Roster row's line: "You, captain. DEF", "MID, C+", "GK. Added by you,
+ * A Roster row's line: "You, captain. DEF", "MID, 72", "GK. Added by you,
  * not on Temba". Only the Captain adds players who are not on Temba.
  */
 export function squadRosterRowMeta(
@@ -177,7 +177,7 @@ export function squadRosterRowMeta(
           : null;
   const play = [
     footballSlotCode(member.role, member.position, locale),
-    member.levelBand ? displayLabelFromStoredBand(member.levelBand) : null,
+    ovrPart(member),
   ]
     .filter((part): part is string => part != null)
     .join(m.metaJoin);
@@ -288,20 +288,25 @@ export type SquadPlayer = {
   name: string;
   role: FootballRole | null;
   position: FootballPosition | null;
-  levelBand?: LevelBand | null;
+  /** The whole-number OVR; null without a football Rating. */
+  ovr?: number | null;
   unclaimed?: boolean;
 };
+
+function ovrPart(player: SquadPlayer) {
+  return player.ovr == null ? null : formatOvr(player.ovr);
+}
 
 function roleName(role: FootballRole | null, locale: Locale) {
   const m = messagesFor(locale).team.seat;
   return role === "keeper" ? m.keeper : m.outfield;
 }
 
-/** "GK · C+" for a Roster row or a named tile: the position code and the Level band. */
+/** "GK · 72" for a Roster row or a named tile: the position code and the OVR. */
 export function squadPlayerMeta(player: SquadPlayer, locale: Locale) {
   return [
     footballSlotCode(player.role, player.position, locale),
-    player.levelBand ? displayLabelFromStoredBand(player.levelBand) : null,
+    ovrPart(player),
   ]
     .filter((part): part is string => part != null)
     .join(" · ");
