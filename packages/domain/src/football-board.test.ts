@@ -16,6 +16,8 @@ import {
   ovrLabel,
   ovrSpoken,
   placeOn,
+  poolTileName,
+  poolTileTier,
   poolLayout,
   poolSections,
   removeGoal,
@@ -24,6 +26,7 @@ import {
   scorersPayload,
   shortName,
   switchMethod,
+  tileShortName,
   sideOvrAverage,
   teamsSideAverage,
   viewerSideLine,
@@ -274,6 +277,93 @@ describe("teams draft in a tier Group", () => {
       ),
     ).toEqual({ kind: "provisional", label: "Provisional" });
     expect(boardTierCell(player("a"), "en")).toBeNull();
+  });
+});
+
+describe("pool tiles", () => {
+  it("shortens a name to the first name and last initial, or the first name alone past ten characters", () => {
+    expect(tileShortName("Abdulla Saleh", "en")).toBe("Abdulla S.");
+    expect(tileShortName("Abdulrahman Al-Mahmood", "en")).toBe("Abdulrahman");
+    expect(tileShortName("Mohammed Jaber", "en")).toBe("Mohammed");
+    expect(tileShortName("Faisal", "en")).toBe("Faisal");
+    expect(tileShortName("  omar   bin   talal ", "en")).toBe("omar T.");
+  });
+
+  it("names the viewer You and keeps a Member nickname whole", () => {
+    expect(
+      poolTileName(player("a", { name: "Hassan Habib", isViewer: true }), "en")
+        .name,
+    ).toBe("You");
+    expect(
+      poolTileName(
+        player("a", {
+          name: "Ali Mansoor",
+          nickname: { name: "Captain Ali the Great", visibility: "group" },
+        }),
+        "en",
+      ),
+    ).toMatchObject({ name: "Captain Ali the Great", isNickname: true });
+    expect(poolTileName(player("a", { name: "Ali Mansoor" }), "en").name).toBe(
+      "Ali M.",
+    );
+  });
+
+  const tier = {
+    band: "hamour" as const,
+    place: 2,
+    points: 1356,
+    provisional: false,
+    gamesOfFive: 5,
+  };
+
+  it("shows the fish and its band, the place, or Provisional in a tier Group", () => {
+    expect(poolTileTier(player("a", { tier }), "en")).toEqual({
+      mark: { kind: "fish", band: "hamour" },
+      label: "Hamour",
+      spoken: "Hamour",
+    });
+    expect(
+      poolTileTier(player("a", { tier: { ...tier, band: null } }), "en"),
+    ).toEqual({ mark: null, label: "#2", spoken: "#2" });
+    expect(
+      poolTileTier(
+        player("a", {
+          tier: { ...tier, band: null, place: null, provisional: true },
+          ovr: 70,
+        }),
+        "en",
+      ),
+    ).toEqual({
+      mark: { kind: "hatch" },
+      label: "Provisional",
+      spoken: "Provisional",
+    });
+  });
+
+  it("shows the OVR outside a tier Group, hatched while Provisional", () => {
+    expect(poolTileTier(player("a", { ovr: 69 }), "en")).toEqual({
+      mark: null,
+      label: "OVR 69",
+      spoken: "OVR 69",
+    });
+    expect(
+      poolTileTier(player("a", { ovr: 58, ovrProvisional: true }), "en"),
+    ).toEqual({
+      mark: { kind: "hatch" },
+      label: "OVR 58",
+      spoken: "OVR 58, Provisional",
+    });
+    expect(poolTileTier(player("a"), "en")).toEqual({
+      mark: null,
+      label: "–",
+      spoken: null,
+    });
+  });
+
+  it("shows Guest for a guest, who has no tier", () => {
+    expect(
+      poolTileTier(player("a", { guest: true, ovr: 64, tier }), "en"),
+    ).toEqual({ mark: null, label: "Guest", spoken: "Guest" });
   });
 });
 

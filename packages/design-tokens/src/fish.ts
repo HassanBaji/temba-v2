@@ -21,7 +21,7 @@ export type FishGlyph = {
 
 export const fishSizes = {
   row: { width: 40, height: 24 },
-  tile: { width: 30, height: 18 },
+  tile: { width: 20, height: 12 },
   card: { width: 90, height: 54 },
 } as const;
 

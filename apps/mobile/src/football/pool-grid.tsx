@@ -1,29 +1,32 @@
-import { radii, sizes } from "@repo/design-tokens";
+import { radii } from "@repo/design-tokens";
+import { fishSizes } from "@repo/design-tokens/fish";
 import { Pressable, View } from "react-native";
 
+import { TierFish } from "../groups/tier-fish";
 import { NicknameName } from "../primitives/nickname-name";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
-import { SurfaceToneContext } from "../primitives/surface-context";
+import {
+  SurfaceToneContext,
+  useTonePalette,
+} from "../primitives/surface-context";
 import { tonePalette } from "../primitives/tone-palette";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
-import { TierMark } from "./team-columns";
 import {
-  boardTierCell,
-  ovrLabel,
-  ovrSpoken,
   poolSections,
-  lineupName,
+  poolTileName,
+  poolTileTier,
   slotCode,
   type BoardPlayer,
+  type PoolTileTier,
 } from "@repo/domain/football-board";
 
-const COLUMNS = 4;
+const COLUMNS = 3;
 const GAP = 8;
-const TILE_HEIGHT = 74;
+const TILE_HEIGHT = 108;
 
 type Cell =
   | { kind: "player"; player: BoardPlayer }
@@ -37,9 +40,9 @@ function CodeTag({ code, keeper }: { code: string | null; keeper: boolean }) {
         <View
           style={{
             backgroundColor: colors.control,
-            borderRadius: 4,
-            paddingHorizontal: 4,
-            paddingVertical: 1,
+            borderRadius: radii.slot,
+            paddingHorizontal: 5,
+            paddingVertical: 2,
           }}
         >
           <Text size="eyebrow" mono>
@@ -50,10 +53,69 @@ function CodeTag({ code, keeper }: { code: string | null; keeper: boolean }) {
     );
   }
   return code ? (
-    <Text size="eyebrow" tone="muted" mono>
+    <Text size="eyebrow" tone="muted" mono style={{ paddingTop: 3 }}>
       {code}
     </Text>
   ) : null;
+}
+
+/** The hatched "not yet" badge, the width of a fish. */
+function ProvisionalBadge() {
+  const palette = useTonePalette();
+  return (
+    <View
+      style={{
+        ...fishSizes.tile,
+        borderRadius: 4,
+        borderWidth: hairline,
+        borderColor: palette.muted,
+        overflow: "hidden",
+      }}
+    >
+      <Hatch radius={0} bordered={false} />
+    </View>
+  );
+}
+
+function TierLine({
+  tier,
+  background,
+}: {
+  tier: PoolTileTier;
+  background: string;
+}) {
+  const palette = useTonePalette();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5,
+        marginTop: 4,
+        minWidth: 0,
+      }}
+    >
+      {tier.mark?.kind === "fish" ? (
+        <TierFish
+          band={tier.mark.band}
+          label={tier.label}
+          size="tile"
+          color={palette.foreground}
+          cutout={background}
+        />
+      ) : tier.mark?.kind === "hatch" ? (
+        <ProvisionalBadge />
+      ) : null}
+      <Text
+        size="eyebrow"
+        tone="muted"
+        numberOfLines={1}
+        style={{ flexShrink: 1 }}
+      >
+        {tier.label}
+      </Text>
+    </View>
+  );
 }
 
 function PlayerTile({
@@ -68,32 +130,28 @@ function PlayerTile({
   const tone = player.isViewer ? "ink" : "paper";
   const colors = useColors();
   const palette = tonePalette(tone, colors);
-  const { name, spoken, isNickname } = lineupName(player, locale);
+  const { name, spoken, isNickname } = poolTileName(player, locale);
   const code = slotCode(player, locale);
-  const tierCell = boardTierCell(player, locale);
+  const tier = poolTileTier(player, locale);
+  const background = player.isViewer ? colors.control : palette.background;
   return (
     <SurfaceToneContext.Provider value={tone}>
       <Pressable
         accessibilityRole={onPress ? "button" : undefined}
-        accessibilityLabel={[
-          spoken,
-          code,
-          tierCell ? tierCell.label : ovrSpoken(player, locale),
-          player.guest ? messages.group.addPlayer.guest.tag : null,
-        ]
+        accessibilityLabel={[spoken, code, tier.spoken]
           .filter(Boolean)
           .join(messages.tournament.listSeparator)}
         disabled={!onPress}
         onPress={() => onPress?.(player.userId)}
         style={{
           flex: 1,
-          height: TILE_HEIGHT,
-          padding: 8,
+          minWidth: 0,
+          minHeight: TILE_HEIGHT,
+          padding: 12,
+          gap: 10,
           justifyContent: "space-between",
-          borderRadius: radii.md,
-          backgroundColor: player.isViewer
-            ? colors.control
-            : palette.background,
+          borderRadius: radii.card,
+          backgroundColor: background,
           borderWidth: hairline,
           borderColor: player.isViewer ? colors.controlEdge : palette.rule,
         }}
@@ -101,40 +159,17 @@ function PlayerTile({
         <View
           style={{
             flexDirection: "row",
-            alignItems: "center",
+            alignItems: "flex-start",
             justifyContent: "space-between",
+            gap: 6,
           }}
         >
-          <Avatar
-            name={player.name}
-            uri={player.image}
-            size="sm"
-            guest={player.guest}
-          />
+          <Avatar name={player.name} uri={player.image} guest={player.guest} />
           <CodeTag code={code} keeper={player.role === "keeper"} />
         </View>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: tierCell ? "center" : "baseline",
-            justifyContent: "space-between",
-            gap: 4,
-          }}
-        >
-          <NicknameName
-            name={name}
-            isNickname={isNickname}
-            size="eyebrow"
-            weight="regular"
-            iconSize={sizes.iconRow - 4}
-          />
-          {tierCell ? (
-            <TierMark cell={tierCell} size="tile" />
-          ) : (
-            <Text size="meta" width="expanded" weight="bold" ltr>
-              {ovrLabel(player)}
-            </Text>
-          )}
+        <View style={{ minWidth: 0 }}>
+          <NicknameName name={name} isNickname={isNickname} size="meta" />
+          <TierLine tier={tier} background={background} />
         </View>
       </Pressable>
     </SurfaceToneContext.Provider>
@@ -147,13 +182,13 @@ function OpenTile() {
     <View
       style={{
         flex: 1,
-        height: TILE_HEIGHT,
+        minHeight: TILE_HEIGHT,
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <Hatch radius={radii.md} />
-      <Text size="eyebrow" tone="muted">
+      <Hatch radius={radii.card} />
+      <Text size="meta" tone="muted">
         {m.open}
       </Text>
     </View>
@@ -161,8 +196,8 @@ function OpenTile() {
 }
 
 /**
- * Players four to a row, then hatched open seats. A tile ends on the
- * player's OVR, or their Group Tier in a tier Group.
+ * Players three to a row, then hatched open seats. Under each name, its own
+ * line for the player's Group Tier in a tier Group, or their OVR elsewhere.
  */
 export function PoolGrid({
   players,
