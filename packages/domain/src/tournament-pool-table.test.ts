@@ -16,7 +16,7 @@ describe("Pool table copy", () => {
   it("names the group table, group winner, and finished tournament", () => {
     assert.equal(copy.heading, "group table");
     assert.equal(copy.winner, "group winner");
-    assert.equal(copy.finished, "This tournament is finished.");
+    assert.equal(copy.finished, "This Social is finished.");
     assert.equal(copy.yourRounds, "Your Rounds");
     assert.equal(copy.results, "group results");
     assert.equal(UNPLAYED_RECORD_DISPLAY, "—");
@@ -38,6 +38,6 @@ describe("Pool table copy", () => {
   it("reads the headings in Arabic", () => {
     const arabic = messagesFor("ar").tournament.poolTable;
     assert.equal(arabic.heading, "جدول المجموعة");
-    assert.equal(arabic.finished, "انتهت هذه البطولة.");
+    assert.equal(arabic.finished, "انتهى هذا السوشيال.");
   });
 });

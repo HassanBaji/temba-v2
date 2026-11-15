@@ -144,7 +144,7 @@ describe("partner-required occupancy", () => {
         }),
       ).rejects.toMatchObject({
         code: "BAD_REQUEST",
-        message: "This tournament does not allow registering alone",
+        message: "This Social does not allow registering alone",
       });
       await expect(
         registerSeat(db, {
@@ -153,7 +153,7 @@ describe("partner-required occupancy", () => {
         }),
       ).rejects.toMatchObject({
         code: "BAD_REQUEST",
-        message: "This tournament does not allow registering alone",
+        message: "This Social does not allow registering alone",
       });
 
       await db.insert(gamePlayers).values({
@@ -169,7 +169,7 @@ describe("partner-required occupancy", () => {
         }),
       ).rejects.toMatchObject({
         code: "BAD_REQUEST",
-        message: "This tournament does not allow registering alone",
+        message: "This Social does not allow registering alone",
       });
     } finally {
       await close();
@@ -260,7 +260,7 @@ describe("partner-required occupancy", () => {
         }),
       ).rejects.toMatchObject({
         code: "BAD_REQUEST",
-        message: "This tournament does not allow registering alone",
+        message: "This Social does not allow registering alone",
       });
       await expect(
         moveSeat(db, {
@@ -271,7 +271,7 @@ describe("partner-required occupancy", () => {
         }),
       ).rejects.toMatchObject({
         code: "BAD_REQUEST",
-        message: "This tournament does not allow registering alone",
+        message: "This Social does not allow registering alone",
       });
       await expect(
         mergeHalfTeams(db, {
@@ -284,7 +284,7 @@ describe("partner-required occupancy", () => {
         }),
       ).rejects.toMatchObject({
         code: "BAD_REQUEST",
-        message: "This tournament does not allow registering alone",
+        message: "This Social does not allow registering alone",
       });
     } finally {
       await close();

@@ -141,7 +141,7 @@ describe("tournamentGamesCardModel", () => {
     });
     expect(model.secondary).toEqual({ label: "Details", target: "tournament" });
     expect(model.primary).toEqual({
-      label: "View tournament",
+      label: "View Social",
       target: "results",
     });
   });
@@ -180,7 +180,7 @@ describe("tournamentGamesCardModel", () => {
     });
     expect(model.primary).toEqual({ label: "Enter score", target: "results" });
     expect(model.secondary).toEqual({
-      label: "Tournament",
+      label: "Social",
       target: "tournament",
     });
   });
@@ -239,7 +239,7 @@ describe("tournamentPlayedCardModel", () => {
       }),
       "en",
     );
-    expect(model.bandLabel).toBe("Friendly tournament");
+    expect(model.bandLabel).toBe("Social");
     expect(model.day).toBe("Wed 11 Nov");
     expect(model.venueLine).toBe(
       "Tuesday Night Padel, World Padel Academy Bahrain",

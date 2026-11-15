@@ -72,8 +72,8 @@ export const webDashboard = {
     pickGameType: "Pick a Game type",
     cannotCreateInGroup: "You cannot create a Game in that Group.",
     gameCreatedToast: "Game created",
-    tournamentCreatedToast: "Tournament created",
-    createTournament: "Create tournament",
+    tournamentCreatedToast: "Social created",
+    createTournament: "Create Social",
     createGameAction: "Create Game",
     pickGroupFirst: "Pick a Group first. Venue rules depend on the Group.",
     noGroups: {

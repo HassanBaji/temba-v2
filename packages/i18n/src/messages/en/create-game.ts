@@ -17,7 +17,7 @@ export const createGame = {
       rating: "Counts for your rating",
     },
     friendlyTournament: {
-      title: "Friendly tournament",
+      title: "Social",
       description: "Several Game teams over one day.",
       rating: "Counts for your rating",
     },
@@ -64,7 +64,7 @@ export const createGame = {
     pickStartTime: "Pick a start time",
     pickFinishTime: "Pick a finish time",
     finishAfterStart: "Finish time must be at or after start time",
-    nameTournament: "Name the tournament",
+    nameTournament: "Name the Social",
     pickSideSize: "Pick a side size",
     playersAllowedBetween: (min: number, max: number) =>
       `Players allowed must be between ${min} and ${max}`,
@@ -107,8 +107,8 @@ export const createGame = {
       "The score is confirmed, so how the MVP is decided can’t change.",
   },
   tournament: {
-    defaultName: (day: string) => `Friendly tournament · ${day}`,
-    defaultNameNoDay: "Friendly tournament",
+    defaultName: (day: string) => `Social · ${day}`,
+    defaultNameNoDay: "Social",
     groups: (n: number) =>
       plural("en", n, { one: "1 group", other: "{n} groups" }),
     groupsThenKnockout: (groups: string) => `${groups}, then knockout`,
@@ -127,7 +127,7 @@ export const createGame = {
   format: {
     friendlyGame: "Friendly game",
     americano: "Americano",
-    friendlyTournament: "Friendly tournament",
+    friendlyTournament: "Social",
   },
   side: {
     letter: (n: number): string | undefined =>
@@ -249,7 +249,7 @@ export const createGame = {
           other: "Two teams a court, {n} courts",
         }),
       partnerOnlyHint:
-        "This tournament takes pairs only and has no waiting list, so teams can't drop below the number joined.",
+        "This Social takes pairs only and has no waiting list, so teams can't drop below the number joined.",
     },
     courts: {
       title: "Courts",

@@ -40,7 +40,7 @@ function ordinal(place: number) {
 
 export const tournamentRounds = {
   tabs: {
-    label: "Tournament sections",
+    label: "Social sections",
     teams: "Teams",
     rounds: "Rounds",
     standings: "Standings",
@@ -154,7 +154,7 @@ export const tournamentRounds = {
     cancel: (round: number) => `Cancel Round ${round}`,
     cancelTitle: (round: number) => `Cancel Round ${round}?`,
     cancelRemove: (round: number, left: number) =>
-      `Round ${round} comes off the schedule. The tournament will have ${rounds(left)}.`,
+      `Round ${round} comes off the schedule. The Social will have ${rounds(left)}.`,
     cancelVoid: (round: number) =>
       `Round ${round} stays in the list as cancelled and its games are not played. This cannot be undone.`,
     cancelVoidScored: (round: number, scores: number) =>
@@ -359,7 +359,7 @@ export const tournamentRounds = {
     shareTable: "Share the final table",
   },
   shareCard: {
-    tag: "Tournament",
+    tag: "Social",
     eyebrow: (name: string, day: string | null, venue: string | null) =>
       [day ? `${name}, ${day}` : name, venue].filter(Boolean).join(". "),
     ordinal,

@@ -85,7 +85,7 @@ describe("create game draft", () => {
       initial.name,
       friendlyTournamentDefaultName("2026-09-29", "ar"),
     );
-    assert.ok(initial.name.startsWith("بطولة ودية · "));
+    assert.ok(initial.name.startsWith("سوشيال · "));
   });
 
   it("round-trips every field", () => {

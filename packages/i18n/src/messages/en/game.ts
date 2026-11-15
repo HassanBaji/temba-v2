@@ -558,13 +558,13 @@ export const game = {
     setsOrganizerOrPlayers:
       "Only the organizer or Users on this Match’s Game teams can do that",
     footballScoreDoor: "Enter a football Score with saveFootballScore",
-    tournamentScoreDoor: "Enter a tournament score with enterTournamentScore",
+    tournamentScoreDoor: "Enter a Social score with enterTournamentScore",
     sideSize: "Side size must be 5, 6, 7, 8, 9 or 11",
     playersBetween: (min: number, max: number) =>
       `Players allowed must be between ${min} and ${max}`,
     sameTeamBothSlots: "A Match cannot use the same Game team in both slots",
     partnerFriendlyOnly:
-      "Register with a partner on a Friendly game or tournament",
+      "Register with a partner on a Friendly game or Social",
     teamOnlyRegisterTeam: "This Game is team-only; register a complete Team",
     teamOnly: "This Game is team-only",
     individual: "This Game is individual",
@@ -589,14 +589,14 @@ export const game = {
       "You must have exactly one complete Team that is allowed on this Game",
     partnerMustAccept: "Your Team partner must accept this Invite link",
     teamMemberRequired: "You must be a member of that Team",
-    registerTeamFriendly: "Register a Team on a Friendly game or tournament",
+    registerTeamFriendly: "Register a Team on a Friendly game or Social",
     registerAsYourself:
       "Register as yourself on an Americano or a football Game",
     registerWithSelf: "You cannot register with yourself",
     pickSeatIndividual:
-      "Pick a seat on an individual Friendly game or tournament",
+      "Pick a seat on an individual Friendly game or Social",
     moveSeatIndividual:
-      "Move a seat on an individual Friendly game or tournament",
+      "Move a seat on an individual Friendly game or Social",
     levelRequestNotFound: "Level range request not found",
     levelRequestClosed: {
       approve: "Cannot approve Level range requests for this Game",
@@ -626,7 +626,7 @@ export const game = {
     sideHasUser: "That side already has a User",
     positionOccupied: "That Position is occupied",
     sideHasTwoUsers: "That side already has two Users",
-    tournamentPosition: "Pick a Position on a tournament",
+    tournamentPosition: "Pick a Position on a Social",
     notSeated: "You are not seated on this Game",
     alreadyInPosition: "You are already in that Position",
     moveAfterCompleted: "You cannot move after sitting on a completed Match",
@@ -679,12 +679,12 @@ export const game = {
     capBelowRegistered: "Cannot lower cap below the current registered count",
     teamsAfterDraw: "The draw is posted, so the number of teams can't change",
     teamsTournamentOnly:
-      "Only a Friendly tournament changes its number of teams",
+      "Only a Social changes its number of teams",
     teamsNotForShape: (teamCount: number) =>
-      `This tournament's format can't take ${teamCount} teams`,
+      `This Social's format can't take ${teamCount} teams`,
     teamsBelowJoinedPairsOnly: (joined: number) =>
-      `This tournament takes pairs only and has no waiting list. Keep at least ${joined} teams, or remove teams first.`,
-    courtsTournamentOnly: "Only a Friendly tournament changes its Courts here",
+      `This Social takes pairs only and has no waiting list. Keep at least ${joined} teams, or remove teams first.`,
+    courtsTournamentOnly: "Only a Social changes its Courts here",
     courtsAtLeastOne: "Pick at least one Court",
     playersAtLeastFour: "Players allowed must be at least 4",
     playersMultipleOfFour: "Players allowed must be a multiple of 4",

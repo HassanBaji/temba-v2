@@ -25,7 +25,7 @@ function smallCardinal(count: number) {
 
 export const home = {
   comingUp: {
-    tournamentFallback: "Tournament",
+    tournamentFallback: "Social",
     gameFallback: "Game",
     allSeatsFilled: "All seats filled",
     openSeats: (n: number) =>

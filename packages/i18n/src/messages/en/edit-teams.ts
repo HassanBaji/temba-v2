@@ -105,7 +105,7 @@ export const editTeams = {
   refused: {
     locked:
       "This team has played, so it stays together. You can still swap its sides.",
-    halfSide: "Every team on this tournament needs two players.",
+    halfSide: "Every team on this Social needs two players.",
     fixedSides:
       "Once the draw is posted, swap players instead of moving them to an open spot.",
   },
@@ -119,7 +119,7 @@ export const editTeams = {
       `The first player you pick goes to ${team}. The rest fill the next open spots.`,
   },
   errors: {
-    format: "Teams can be edited on padel games and friendly tournaments",
+    format: "Teams can be edited on padel games and Socials",
     scoreIn: "The score is in, so the teams are fixed",
     lineupChanged:
       "Someone joined or left while you were editing. Check the teams and try again.",

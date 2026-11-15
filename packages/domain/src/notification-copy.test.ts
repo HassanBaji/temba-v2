@@ -219,7 +219,7 @@ describe("notificationCopy for a Game leave", () => {
       left({ actor: null, game: { ...game, name: null } })
         ?.title.map((part) => part.text)
         .join(""),
-      "Someone left Friendly tournament · Thu 8 Oct",
+      "Someone left Social · Thu 8 Oct",
     );
   });
 

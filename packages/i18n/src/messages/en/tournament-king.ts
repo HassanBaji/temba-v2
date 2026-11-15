@@ -99,7 +99,7 @@ export const tournamentKing = {
     changeLocked: "The final order is posted, so the starting courts are set.",
   },
   tabs: {
-    label: "Tournament sections",
+    label: "Social sections",
     teams: "Teams",
     courts: "Courts",
     finalOrder: "Final order",
@@ -203,9 +203,9 @@ export const tournamentKing = {
       "Two teams start on each court, so an even number of teams must be complete.",
     courts: (min: number, max: number) =>
       `King of the court needs ${min} to ${max} courts.`,
-    notKing: "This tournament is not King of the court.",
+    notKing: "This Social is not King of the court.",
     useStartingCourts: "Draw the starting courts instead.",
-    cancelled: "This tournament is cancelled.",
+    cancelled: "This Social is cancelled.",
     halfTeams: (names: string) =>
       `These Game teams are missing a partner: ${names}. Merge or remove them first.`,
     belowMinimum: (min: number) =>
@@ -214,9 +214,9 @@ export const tournamentKing = {
     finalOrderPosted:
       "The final order is posted, so the starting courts are set.",
     notDrawn: "Post the starting courts first.",
-    notStarted: "Post the final order once the tournament has started.",
+    notStarted: "Post the final order once the Social has started.",
     placeTop: (min: number) => `Place at least the top ${min} teams.`,
-    unknownTeams: "Place only teams from this tournament, each once.",
+    unknownTeams: "Place only teams from this Social, each once.",
     changeClosed: "The final order can only be changed for 24 hours.",
   },
 };

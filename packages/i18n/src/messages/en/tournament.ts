@@ -105,7 +105,7 @@ export const tournament = {
     toBeDecided: "To be decided",
     heading: "Knockout",
     notThrough:
-      "Your team did not go through. The tournament is over for your team.",
+      "Your team did not go through. The Social is over for your team.",
   },
   poolDraw: {
     poolLabel: (letter: string) => `group ${letter}`,
@@ -156,7 +156,7 @@ export const tournament = {
   poolTable: {
     heading: "group table",
     winner: "group winner",
-    finished: "This tournament is finished.",
+    finished: "This Social is finished.",
     yourRounds: "Your Rounds",
     results: "group results",
   },
@@ -169,9 +169,9 @@ export const tournament = {
   sizing: {
     oneDayOverrun:
       "This runs past your finish time. Add a Court, cut Rounds, or take fewer Game teams.",
-    createHeadingLead: "New tournament,",
+    createHeadingLead: "New Social,",
     createHeadingTrail: "several Rounds",
-    createHeading: "New tournament, several Rounds",
+    createHeading: "New Social, several Rounds",
     createSubline:
       "Same as setting up a Friendly game, only it runs a few Rounds.",
     createFooter:
@@ -183,7 +183,7 @@ export const tournament = {
     eachMatchRow: "Each Match",
     courtsRow: "Courts",
     oneDayCallout: "The day",
-    createPrimaryAction: "Create tournament",
+    createPrimaryAction: "Create Social",
     howLongItRuns: "How long it runs",
     oneDay: "One day",
     fewWeeks: "A few weeks",
@@ -231,12 +231,12 @@ export const tournament = {
       }),
   },
   home: {
-    eyebrowPrefix: "Friendly tournament",
-    eyebrowKnockout: "Friendly tournament, knockout",
+    eyebrowPrefix: "Social",
+    eyebrowKnockout: "Social, knockout",
     eyebrowRounds: (n: number) =>
       plural("en", n, {
-        one: "Friendly tournament, 1 Round",
-        other: "Friendly tournament, {n} Rounds",
+        one: "Social, 1 Round",
+        other: "Social, {n} Rounds",
       }),
     yourTeam: "Your team",
     leftSeat: "Left seat",
@@ -357,7 +357,7 @@ export const tournament = {
     partnerVacantSideRace:
       "That side was taken while you were registering. Pick another partner if a side is still fully open.",
     partnerInviteLanding:
-      "This tournament is with a partner only. Continue to pick a partner.",
+      "This Social is with a partner only. Continue to pick a partner.",
     pickAPartner: "Pick a partner",
     sitWithCount: (halfOpen: number) =>
       plural("en", halfOpen, {
@@ -431,8 +431,8 @@ export const tournament = {
       `${halfTeamCount} Game teams have one Position each.`,
   },
   card: {
-    bandLabel: "Friendly tournament",
-    matchBandLabel: "Your tournament",
+    bandLabel: "Social",
+    matchBandLabel: "Your Social",
     noTeamsYet: "No teams yet",
     knockoutBandMeta: "Knockout",
     fromDay: (day: string) => `From ${day}`,
@@ -450,10 +450,10 @@ export const tournament = {
     teamsIn: (registered: number, allowed: number) =>
       `${registered} of ${allowed} teams in`,
     teamsCount: (n: number) => teamsWord(n),
-    joinAction: "Join tournament",
+    joinAction: "Join Social",
     joinWaitlistAction: "Join waitlist",
     invitePartnerAction: "Invite a partner",
-    viewAction: "View tournament",
+    viewAction: "View Social",
     openSeat: "open seat",
     pair: (first: string, second: string) => `${first} and ${second}`,
     roundN: (roundNumber: number) => `Round ${roundNumber}`,
@@ -535,8 +535,8 @@ export const tournament = {
     playingBodyThenNextOnCourt: (opponent: string, court: string) =>
       `Enter the score when you finish. ${opponent} are next, on ${court}.`,
     details: "Details",
-    viewTournament: "View tournament",
-    tournament: "Tournament",
+    viewTournament: "View Social",
+    tournament: "Social",
     enterScore: "Enter score",
     place: (n: number) => {
       const mod100 = n % 100;
@@ -574,7 +574,7 @@ export const tournament = {
     later: "later",
   },
   details: {
-    fallbackName: "Tournament",
+    fallbackName: "Social",
     minutes: (n: number) => `${n} min`,
     pricePerMatchValue: (price: string) => `${price} per Match`,
     youOweValue: (amount: string) => `${amount}, after each Match`,
@@ -588,20 +588,20 @@ export const tournament = {
     openSeatOn: (seat: string, team: string) => `Open ${seat} seat on ${team}`,
   },
   errors: {
-    roundsPoolOnly: "Rounds are made on a Pool tournament",
-    cancelled: "This tournament is cancelled",
+    roundsPoolOnly: "Rounds are made on a Pool Social",
+    cancelled: "This Social is cancelled",
     postDrawFirst: "Post the draw before making Rounds",
-    roundsShapeOneGroup: "A Rounds tournament has one group",
+    roundsShapeOneGroup: "A Rounds Social has one group",
     roundsKnockoutStarted:
       "Rounds cannot be added or removed once the knockout has started",
     roundsAtMost: (max: number) =>
-      `This tournament can have ${max} Rounds at most`,
-    keepOneRound: "A tournament keeps at least one Round",
+      `This Social can have ${max} Rounds at most`,
+    keepOneRound: "A Social keeps at least one Round",
     roundAlreadyCancelled: (round: number) =>
       `Round ${round} is already cancelled`,
     cancelRoundRatedLater: (round: number) =>
       `Round ${round} cannot be cancelled: one of its players has a later rated Match, so its scores can no longer be taken back`,
-    roundsRange: (count: number) => `This tournament has Rounds 1 to ${count}`,
+    roundsRange: (count: number) => `This Social has Rounds 1 to ${count}`,
     roundPosted: (round: number) => `Round ${round} is posted`,
     roundNotMade: (round: number) => `Round ${round} is not made yet`,
     postRoundFirst: (round: number) => `Post Round ${round} first`,
@@ -612,13 +612,13 @@ export const tournament = {
     samePool: "Pair two teams from the same Pool",
     poolSitsOut: "That Pool sits this Round out",
     teamOncePerRound: "A team plays once a Round",
-    teamNotInTournament: "That team is not in this tournament",
+    teamNotInTournament: "That team is not in this Social",
     scoredMatchKeepsTeams: "A Match with a score keeps its teams",
     knockoutSidesFromDraw: "The sides of a Knockout Match come from the draw",
     knockoutByHand: "Knockout Matches come from the draw",
-    editMatchesFriendly: "Edit Matches on a Friendly tournament",
+    editMatchesFriendly: "Edit Matches on a Social",
     addMatchCancelled: "Cannot add a Match on a cancelled Game",
-    addMatchesFriendly: "Add Matches on a Friendly tournament",
+    addMatchesFriendly: "Add Matches on a Social",
     poolMatchNotAwarded:
       "A Pool Match is voided, not awarded, so no team goes through",
     knockoutMatchCompleted: "This Knockout Match is already completed",
@@ -626,32 +626,32 @@ export const tournament = {
     qualifiersShape:
       "Through from each group applies to Groups, then knockout only",
     drawCancelled: "Cannot draw the groups on a cancelled Game",
-    drawFriendly: "Draw the groups on a Friendly tournament",
+    drawFriendly: "Draw the groups on a Social",
     drawHalfTeams: (names: string) =>
       `Cannot draw the groups while Half teams remain: ${names}`,
     drawBelowMinimum: "Need at least 4 complete Game teams to draw the groups",
     teamNumber: (side: number) => `Team ${side}`,
     scoreGamesBetween: (min: number, max: number) =>
       `Games won must be between ${min} and ${max}`,
-    scoreOnTournamentMatch: "Enter a tournament score on a tournament Match",
+    scoreOnTournamentMatch: "Enter a Social score on a Social Match",
     scoreTeamsOrOrganizer:
       "Only the two teams or an organizer can enter this score",
     scoreConfirmed: "This score is confirmed; ask the organizer to change it",
     scoreNeedsTwoPlayers: "Both teams need two players before a score",
     knockoutNeedsWinner: "A knockout Match needs a winner",
     notFinishedTournamentOnly:
-      "Only a tournament Match can be marked not finished",
+      "Only a Social Match can be marked not finished",
     teamsOrOrganizer: "Only the two teams or an organizer can do that",
     notFinishedInPlay:
       "Only a Match still being played can be marked not finished",
     mergeCancelled: "Cannot merge Half teams on a cancelled Game",
-    mergeFriendly: "Merge Half teams on a Friendly tournament",
-    mergeIndividual: "Merge Half teams on an individual Friendly tournament",
+    mergeFriendly: "Merge Half teams on a Social",
+    mergeIndividual: "Merge Half teams on an individual Social",
     pickTwoHalfTeams: "Pick two different Half teams",
     notHalfTeams: "Both Game teams must be Half teams",
     postDrawCancelled: "Cannot post the group draw on a cancelled Game",
-    postDrawFriendly: "Post the group draw on a Friendly tournament",
-    postDrawWindow: "Set the tournament window before posting the group draw",
+    postDrawFriendly: "Post the group draw on a Social",
+    postDrawWindow: "Set the Social window before posting the group draw",
     postHalfTeams: (names: string) =>
       `Cannot post the group draw while Half teams remain: ${names}`,
     postBelowMinimum:
@@ -665,14 +665,14 @@ export const tournament = {
       draw: "Cannot undo the draw on a cancelled Game",
       groupDraw: "Cannot undo the group draw on a cancelled Game",
     },
-    undoFriendly: "Undo the group draw on a Friendly tournament",
+    undoFriendly: "Undo the group draw on a Social",
     notPosted: {
       draw: "The draw has not been posted",
       groupDraw: "The group draw has not been posted",
     },
     undoAfterSet: "Cannot undo the group draw after a Set has been played",
     undoKnockoutAfterSet: "Cannot undo the draw after a Set has been played",
-    roundCountFriendly: "Change Rounds on a Friendly tournament",
+    roundCountFriendly: "Change Rounds on a Social",
     knockoutEmptySide:
       "This Knockout Match has an empty side. Sets open once both teams are in.",
     knockoutTakeBackRefused:
@@ -681,6 +681,6 @@ export const tournament = {
       "A Knockout Match has started, so this group result can no longer be reversed",
     walkoverTeamRequired: "Choose which team goes through",
     walkoverTeamNotOnMatch: "That team is not on this Match",
-    partnerRequired: "This tournament does not allow registering alone",
+    partnerRequired: "This Social does not allow registering alone",
   },
 };
