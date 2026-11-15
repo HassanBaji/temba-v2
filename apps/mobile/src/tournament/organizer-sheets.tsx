@@ -29,6 +29,7 @@ import {
   hasDraftPoolDraw,
   knockoutDrawDrawerLead,
 } from "@repo/domain/tournament-pool-draw";
+import { tournamentRoundStateLabel } from "@repo/domain/tournament-round-state";
 import {
   formatRoundMatchesPerTeam,
   roundMeetsCopy,
@@ -44,7 +45,7 @@ import { Sheet } from "../primitives/sheet";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { KnockoutTree } from "./knockout-tree";
-import type { TournamentSheet } from "./use-tournament-organizer";
+import type { PostedRound, TournamentSheet } from "./use-tournament-organizer";
 
 const SCROLL_MAX_HEIGHT = 420;
 
@@ -62,6 +63,8 @@ export type OrganizerSheetsProps = {
   onClose: () => void;
   roundCount: number | null;
   onRoundCountChange: (roundCount: number | null) => void;
+  postedRounds: readonly PostedRound[];
+  onCancelRound: (round: PostedRound) => void;
   pending: {
     merge: boolean;
     draw: boolean;
@@ -452,7 +455,9 @@ function RoundsSheet({
         min={range.min}
         max={range.max}
         step={1}
-        onChange={(next) => onChange(next === range.suggested ? null : next)}
+        onChange={(next) =>
+          onChange(!plan.chosen && next === range.suggested ? null : next)
+        }
         decreaseLabel={m.fewerRounds}
         increaseLabel={m.moreRounds}
         hint={m.roundsHint(
@@ -461,7 +466,7 @@ function RoundsSheet({
         )}
         error={error ?? undefined}
       />
-      {plan.roundCount === range.suggested ? (
+      {plan.chosen ? null : plan.roundCount === range.suggested ? (
         <Text size="meta" tone="muted">
           {sizing.suggestedTag}
         </Text>
@@ -486,6 +491,52 @@ function RoundsSheet({
         pending={pending}
         onPress={onSave}
       />
+    </>
+  );
+}
+
+function CancelRoundSheet({
+  rounds,
+  onCancelRound,
+}: {
+  rounds: readonly PostedRound[];
+  onCancelRound: (round: PostedRound) => void;
+}) {
+  const locale = useLocale();
+  const m = useMessages().tournamentRounds;
+  const cancellable = rounds.filter((round) => round.cancelEffect != null);
+  if (cancellable.length === 0) {
+    return <Text tone="muted">{m.manage.loadFailed}</Text>;
+  }
+  return (
+    <>
+      <Text size="meta" tone="muted">
+        {m.manage.cancelPick}
+      </Text>
+      <ScrollView style={{ maxHeight: SCROLL_MAX_HEIGHT }}>
+        <View style={{ gap: 10 }}>
+          {cancellable.map((round) => (
+            <View
+              key={round.roundNumber}
+              style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
+            >
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text weight="medium">{m.round.title(round.roundNumber)}</Text>
+                <Text size="meta" tone="muted">
+                  {tournamentRoundStateLabel(round.state, locale)}
+                </Text>
+              </View>
+              <Button
+                label={m.manage.cancelRow}
+                accessibilityLabel={m.manage.cancelRowSr(round.roundNumber)}
+                size="sm"
+                variant="outline"
+                onPress={() => onCancelRound(round)}
+              />
+            </View>
+          ))}
+        </View>
+      </ScrollView>
     </>
   );
 }
@@ -608,6 +659,18 @@ export function OrganizerSheets(props: OrganizerSheetsProps) {
             error={errors.rounds}
             onChange={props.onRoundCountChange}
             onSave={props.onSaveRounds}
+          />
+        ) : null}
+      </Sheet>
+      <Sheet
+        visible={sheet === "cancelRound"}
+        onClose={onClose}
+        title={messages.tournamentRounds.manage.cancelAction}
+      >
+        {sheet === "cancelRound" ? (
+          <CancelRoundSheet
+            rounds={props.postedRounds}
+            onCancelRound={props.onCancelRound}
           />
         ) : null}
       </Sheet>

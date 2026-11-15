@@ -111,6 +111,7 @@ export const tournamentRounds = {
     posted: "posted",
     onCourt: "on court",
     played: "played",
+    cancelled: "cancelled",
     scoresIn: (scored: number, total: number) => `${scored} of ${total} in`,
     expand: (round: number) => `Show Round ${round}`,
     collapse: (round: number) => `Hide Round ${round}`,
@@ -145,6 +146,34 @@ export const tournamentRounds = {
     complete: (round: number, total: number) =>
       `Round ${round} complete, ${total} of ${total} scores in`,
     completeLine: "Standings updated.",
+  },
+  manage: {
+    add: "Add a Round",
+    adding: "Adding…",
+    added: (round: number) => `Round ${round} added`,
+    cancel: (round: number) => `Cancel Round ${round}`,
+    cancelTitle: (round: number) => `Cancel Round ${round}?`,
+    cancelRemove: (round: number, left: number) =>
+      `Round ${round} comes off the schedule. The tournament will have ${rounds(left)}.`,
+    cancelVoid: (round: number) =>
+      `Round ${round} stays in the list as cancelled and its games are not played. This cannot be undone.`,
+    cancelVoidScored: (round: number, scores: number) =>
+      `Round ${round} stays in the list as cancelled. ${plural("en", scores, {
+        one: "Its 1 score is discarded: it leaves",
+        other: "Its {n} scores are discarded: they leave",
+      })} the standings and the players' ratings. This cannot be undone.`,
+    addTitle: "Add a Round?",
+    addCopy: (round: number) =>
+      `Round ${round} is paired from the standings and posted to every team right away.`,
+    addConfirm: (round: number) => `Add Round ${round}`,
+    cancelAction: "Cancel a Round",
+    cancelPick: "Pick the Round to cancel.",
+    cancelRow: "Cancel",
+    cancelRowSr: (round: number) => `Cancel Round ${round}`,
+    notMade: "not made yet",
+    loadFailed: "The Rounds could not be loaded.",
+    keep: "Keep it",
+    cancelled: (round: number) => `Round ${round} cancelled`,
   },
   notMade: {
     title: (round: number) => `Round ${round}, not made yet`,

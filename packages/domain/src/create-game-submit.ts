@@ -3,6 +3,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import {
   CREATE_FLOW_FIELD_IDS,
+  createShapeChoosesPools,
   createShapeHasPools,
   friendlyTournamentSchedule,
   isPublicGameDraft,
@@ -32,9 +33,12 @@ import { sizeTournamentRounds } from "./tournament-schedule";
 import {
   clampQualifiersPerPool,
   defaultPoolCount,
+  defaultRoundsShapeRoundCount,
   poolCountOptions,
   qualifiersPerPoolRange,
   resolveRoundCount,
+  roundCountRange,
+  ROUNDS_SHAPE_POOL_COUNT,
   sizeFriendlyTournament,
 } from "./tournament-sizing";
 
@@ -354,7 +358,7 @@ export function validateTournamentStepThree(
     };
   }
   if (
-    createShapeHasPools(draft.tournamentShape) &&
+    createShapeChoosesPools(draft.tournamentShape) &&
     !sizeFriendlyTournament(draft.teamCount, draft.poolCount).ok
   ) {
     return {
@@ -405,14 +409,19 @@ export function validateFriendlyTournamentSubmit(
       allowSoloRegister: draft.allowSoloRegister,
       teamCount: draft.teamCount,
       tournamentShape: draft.tournamentShape,
-      ...(createShapeHasPools(draft.tournamentShape)
+      ...(draft.tournamentShape === "rounds"
         ? {
-            poolCount: draft.poolCount,
-            ...(draft.roundCount !== null
-              ? { roundCount: draft.roundCount }
-              : {}),
+            poolCount: ROUNDS_SHAPE_POOL_COUNT,
+            ...roundsShapeRoundCountInput(draft),
           }
-        : {}),
+        : createShapeHasPools(draft.tournamentShape)
+          ? {
+              poolCount: draft.poolCount,
+              ...(draft.roundCount !== null
+                ? { roundCount: draft.roundCount }
+                : {}),
+            }
+          : {}),
       ...(draft.tournamentShape === "groups_then_knockout"
         ? { qualifiersPerPool: draft.qualifiersPerPool }
         : {}),
@@ -434,6 +443,46 @@ export function validateFriendlyTournamentSubmit(
         : {}),
     },
   };
+}
+
+function roundsShapeRoundCountInput(
+  draft: Pick<TournamentFields, "teamCount" | "roundCount">,
+) {
+  const sized = sizeFriendlyTournament(
+    draft.teamCount,
+    ROUNDS_SHAPE_POOL_COUNT,
+  );
+  if (!sized.ok) {
+    return {};
+  }
+  const roundCount = resolveCreateRoundCount(
+    "rounds",
+    sized.sizing.poolSizes,
+    draft.roundCount,
+  );
+  return roundCount == null ? {} : { roundCount };
+}
+
+/**
+ * The Round count a create draft stands for. A Groups shape with nothing
+ * picked follows the suggestion; the Rounds shape starts on its own default
+ * and always sends a number.
+ */
+export function resolveCreateRoundCount(
+  tournamentShape: CreateTournamentShape,
+  poolSizes: readonly number[],
+  roundCount: number | null,
+): number | null {
+  if (tournamentShape !== "rounds") {
+    return resolveRoundCount(poolSizes, roundCount);
+  }
+  if (poolSizes.length === 0) {
+    return null;
+  }
+  return Math.min(
+    roundCount ?? defaultRoundsShapeRoundCount(poolSizes),
+    roundCountRange(poolSizes).max,
+  );
 }
 
 export function reclampQualifiersPerPool(
@@ -480,11 +529,19 @@ export function friendlyTournamentPlan(input: {
   const knockoutTree = knockoutOnly
     ? buildKnockoutTree({ entrantCount: input.teamCount })
     : null;
-  const sized = sizeFriendlyTournament(input.teamCount, input.poolCount);
+  const roundsShape = input.tournamentShape === "rounds";
+  const sized = sizeFriendlyTournament(
+    input.teamCount,
+    roundsShape ? ROUNDS_SHAPE_POOL_COUNT : input.poolCount,
+  );
   const sizing =
     !knockoutOnly && !kingOfTheCourt && sized.ok ? sized.sizing : null;
   const resolvedRoundCount = sizing
-    ? resolveRoundCount(sizing.poolSizes, input.roundCount)
+    ? resolveCreateRoundCount(
+        input.tournamentShape,
+        sizing.poolSizes,
+        input.roundCount,
+      )
     : null;
   const rounds =
     sizing && resolvedRoundCount != null
@@ -505,6 +562,7 @@ export function friendlyTournamentPlan(input: {
     knockoutOnly,
     kingOfTheCourt,
     groupsThenKnockout,
+    roundsShape,
     knockoutTree,
     sizing,
     rounds,

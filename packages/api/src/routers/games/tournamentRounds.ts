@@ -25,6 +25,7 @@ import { gameReach } from "#src/games/verifier-stamp";
 import {
   assertMakesPoolRounds,
   loadTournamentRoundContext,
+  roundCancelEffect,
   teamPoints,
   type PostedPoolMatch,
 } from "#src/games/tournament-round-context";
@@ -71,6 +72,12 @@ export type TournamentRound = {
   expectedMatchCount: number;
   slots: { courtName: string | null; startTime: Date }[];
   matches: TournamentRoundMatch[];
+  /**
+   * What the Organizer's Cancel does to this Round: `remove` takes it off the
+   * schedule, `void` keeps it as cancelled and drops its scores. Null when
+   * the viewer may not cancel it.
+   */
+  cancelEffect: "remove" | "void" | null;
 };
 
 /**
@@ -218,6 +225,15 @@ export async function tournamentRounds(
     };
   }
 
+  function cancelEffectFor(roundNumber: number) {
+    const effect = roundCancelEffect(context, roundNumber);
+    if (effect === "none") {
+      return null;
+    }
+    const removable = context.roundCount > 1 && !context.knockoutStarted;
+    return effect === "remove" && !removable ? null : effect;
+  }
+
   const rounds: TournamentRound[] = [];
   for (
     let roundNumber = 1;
@@ -272,6 +288,7 @@ export async function tournamentRounds(
         startTime: slot.startTime,
       })),
       matches,
+      cancelEffect: organizer ? cancelEffectFor(roundNumber) : null,
     });
   }
 
@@ -279,6 +296,11 @@ export async function tournamentRounds(
     isOrganizer: organizer,
     roundCount: context.roundCount,
     suggestedRoundCount: context.suggested,
+    maxRoundCount: context.maxRoundCount,
+    canAddRound:
+      organizer &&
+      context.roundCount < context.maxRoundCount &&
+      !context.knockoutStarted,
     poolCount: context.pools.length,
     courtCount: context.courtIds.length,
     matchMinutes: tournamentMatchMinutes(game.matchMinutes),

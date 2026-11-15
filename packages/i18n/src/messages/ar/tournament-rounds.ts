@@ -165,6 +165,7 @@ export const tournamentRounds = {
     posted: "منشورة",
     onCourt: "في الملعب",
     played: "لُعبت",
+    cancelled: "ملغاة",
     scoresIn: (scored: number, total: number) => `وصلت ${scored} من ${total}`,
     expand: (round: number) => `اعرض الجولة ${round}`,
     collapse: (round: number) => `أخفِ الجولة ${round}`,
@@ -195,6 +196,37 @@ export const tournamentRounds = {
     complete: (round: number, total: number) =>
       `اكتملت الجولة ${round}، وصلت ${total} من ${total} نتائج`,
     completeLine: "تحدّث الترتيب.",
+  },
+  manage: {
+    add: "أضف جولة",
+    adding: "جارٍ الإضافة…",
+    added: (round: number) => `أُضيفت الجولة ${round}`,
+    cancel: (round: number) => `ألغِ الجولة ${round}`,
+    cancelTitle: (round: number) => `إلغاء الجولة ${round}؟`,
+    cancelRemove: (round: number, left: number) =>
+      `تُحذف الجولة ${round} من الجدول. ستصبح البطولة ${rounds(left)}.`,
+    cancelVoid: (round: number) =>
+      `تبقى الجولة ${round} في القائمة ملغاة ولا تُلعب مبارياتها. لا يمكن التراجع عن ذلك.`,
+    cancelVoidScored: (round: number, scores: number) =>
+      `تبقى الجولة ${round} في القائمة ملغاة. ${plural("ar", scores, {
+        one: "تُحذف نتيجتها الواحدة",
+        two: "تُحذف نتيجتاها",
+        few: "تُحذف نتائجها الـ{n}",
+        many: "تُحذف نتائجها الـ{n}",
+        other: "تُحذف نتائجها الـ{n}",
+      })} من الترتيب ومن تصنيف اللاعبين. لا يمكن التراجع عن ذلك.`,
+    addTitle: "إضافة جولة؟",
+    addCopy: (round: number) =>
+      `تُقرَن الجولة ${round} حسب الترتيب وتُنشر لكل الفرق فورًا.`,
+    addConfirm: (round: number) => `أضف الجولة ${round}`,
+    cancelAction: "ألغِ جولة",
+    cancelPick: "اختر الجولة التي تريد إلغاءها.",
+    cancelRow: "ألغِ",
+    cancelRowSr: (round: number) => `ألغِ الجولة ${round}`,
+    notMade: "لم تُصنع بعد",
+    loadFailed: "تعذّر تحميل الجولات.",
+    keep: "أبقِها",
+    cancelled: (round: number) => `أُلغيت الجولة ${round}`,
   },
   notMade: {
     title: (round: number) => `الجولة ${round}، لم تُصنع بعد`,

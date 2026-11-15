@@ -24,10 +24,12 @@ import {
   KING_TEAMS_PER_COURT,
 } from "@repo/domain/tournament-king";
 import {
+  ROUNDS_SHAPE_POOL_COUNT,
   sizeFriendlyTournament,
   tournamentTeamCountIssue,
   validateQualifiersPerPool,
   validateRoundCount,
+  validateRoundsShapeRoundCount,
   type TournamentSizingIssue,
 } from "@repo/domain/tournament-sizing";
 import { protectedProcedure } from "#src/trpc";
@@ -72,7 +74,8 @@ function sizeTournamentShape(
       | "groups_only"
       | "groups_then_knockout"
       | "knockout_only"
-      | "king_of_the_court";
+      | "king_of_the_court"
+      | "rounds";
     teamCount: number;
     poolCount?: number;
     roundCount?: number | null;
@@ -133,11 +136,30 @@ function sizeTournamentShape(
       qualifiersPerPool: null,
     };
   }
-  const sized = sizeFriendlyTournament(value.teamCount, value.poolCount ?? NaN);
+  const roundsShape = value.tournamentShape === "rounds";
+  if (
+    roundsShape &&
+    value.poolCount != null &&
+    value.poolCount !== ROUNDS_SHAPE_POOL_COUNT
+  ) {
+    return {
+      ok: false,
+      issue: {
+        path: "poolCount",
+        message: messagesFor(locale).tournament.errors.roundsShapeOneGroup,
+      },
+    };
+  }
+  const sized = sizeFriendlyTournament(
+    value.teamCount,
+    roundsShape ? ROUNDS_SHAPE_POOL_COUNT : (value.poolCount ?? NaN),
+  );
   if (!sized.ok) {
     return sized;
   }
-  const rounds = validateRoundCount(sized.sizing.poolSizes, value.roundCount);
+  const rounds = roundsShape
+    ? validateRoundsShapeRoundCount(sized.sizing.poolSizes, value.roundCount)
+    : validateRoundCount(sized.sizing.poolSizes, value.roundCount);
   if (!rounds.ok) {
     return rounds;
   }
@@ -151,7 +173,9 @@ function sizeTournamentShape(
     ok: true,
     tournamentShape: groupsThenKnockout
       ? TournamentShapeEnum.GROUPS_THEN_KNOCKOUT
-      : TournamentShapeEnum.GROUPS_ONLY,
+      : roundsShape
+        ? TournamentShapeEnum.ROUNDS
+        : TournamentShapeEnum.GROUPS_ONLY,
     playerCount: sized.sizing.playerCount,
     teamCount: sized.sizing.teamCount,
     poolCount: sized.sizing.poolCount,
@@ -192,6 +216,7 @@ export const createTournamentInputSchema = z
         "groups_then_knockout",
         "knockout_only",
         "king_of_the_court",
+        "rounds",
       ])
       .optional(),
     teamCount: z.number().int(),

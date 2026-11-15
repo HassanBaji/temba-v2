@@ -245,7 +245,8 @@ export type CreateTournamentShape =
   | "groups_only"
   | "groups_then_knockout"
   | "knockout_only"
-  | "king_of_the_court";
+  | "king_of_the_court"
+  | "rounds";
 
 export const DEFAULT_TOURNAMENT_SHAPE: CreateTournamentShape = "groups_only";
 
@@ -258,6 +259,7 @@ export function tournamentShapeOptions(locale: Locale): readonly {
   const m = messages.createGame.shapes;
   return [
     { id: "groups_only", ...m.groupsOnly },
+    { id: "rounds", ...m.rounds },
     { id: "knockout_only", ...m.knockoutOnly },
     { id: "groups_then_knockout", ...m.groupsThenKnockout },
     { id: "king_of_the_court", ...messages.tournamentKing.shape },
@@ -270,13 +272,19 @@ export function parseCreateTournamentShape(
   return value === "groups_only" ||
     value === "groups_then_knockout" ||
     value === "knockout_only" ||
-    value === "king_of_the_court"
+    value === "king_of_the_court" ||
+    value === "rounds"
     ? value
     : null;
 }
 
 export function createShapeHasPools(shape: CreateTournamentShape) {
   return shape !== "knockout_only" && shape !== "king_of_the_court";
+}
+
+/** The Rounds shape is always one Pool, so it has no Groups control. */
+export function createShapeChoosesPools(shape: CreateTournamentShape) {
+  return createShapeHasPools(shape) && shape !== "rounds";
 }
 
 export type CreateFlowDuration = (typeof CREATE_FLOW_DURATIONS)[number];

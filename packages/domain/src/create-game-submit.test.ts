@@ -11,6 +11,7 @@ import {
   validateFriendlyGameSubmit,
   validateFriendlyTournamentSubmit,
   validateTournamentStepThree,
+  resolveCreateRoundCount,
 } from "./create-game-submit";
 import { levelRangeInvertedMessage } from "./level-range";
 
@@ -691,5 +692,67 @@ describe("track payments on a tournament", () => {
     if (result.ok) {
       assert.equal(result.input.trackPayments, true);
     }
+  });
+});
+
+describe("the Rounds shape at create", () => {
+  it("submits one group and the picked Round count as a number", () => {
+    const untouched = validateFriendlyTournamentSubmit(
+      { ...tournament, tournamentShape: "rounds", poolCount: 3 },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(untouched.ok);
+    if (untouched.ok) {
+      assert.equal(untouched.input.tournamentShape, "rounds");
+      assert.equal(untouched.input.poolCount, 1);
+      assert.equal(untouched.input.roundCount, 4);
+      assert.equal("qualifiersPerPool" in untouched.input, false);
+    }
+    const picked = validateFriendlyTournamentSubmit(
+      { ...tournament, tournamentShape: "rounds", roundCount: 11 },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(picked.ok);
+    if (picked.ok) {
+      assert.equal(picked.input.roundCount, 11);
+    }
+  });
+
+  it("does not ask for a groups count at step 3", () => {
+    assert.equal(
+      validateTournamentStepThree(
+        { ...tournament, tournamentShape: "rounds", poolCount: 99 },
+        NOW,
+        "en",
+      ),
+      null,
+    );
+  });
+
+  it("plans one Pool and the default or picked Rounds", () => {
+    const plan = friendlyTournamentPlan({
+      teamCount: 12,
+      poolCount: 3,
+      roundCount: null,
+      qualifiersPerPool: 2,
+      tournamentShape: "rounds",
+    });
+    assert.equal(plan.roundsShape, true);
+    assert.deepEqual(plan.sizing?.poolSizes, [12]);
+    assert.equal(plan.rounds?.roundCount, 4);
+    assert.equal(plan.rounds?.poolMatches, 24);
+    assert.equal(plan.qualifiersRange, null);
+  });
+
+  it("resolves a Groups draft on the suggestion and a Rounds draft on its own default", () => {
+    assert.equal(resolveCreateRoundCount("groups_only", [4, 4, 4], null), 3);
+    assert.equal(resolveCreateRoundCount("rounds", [12], null), 4);
+    assert.equal(resolveCreateRoundCount("rounds", [12], 9), 9);
+    assert.equal(resolveCreateRoundCount("rounds", [4], 9), 6);
+    assert.equal(resolveCreateRoundCount("rounds", [], 3), null);
   });
 });

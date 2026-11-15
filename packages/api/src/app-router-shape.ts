@@ -79,6 +79,8 @@ type ExpectedGames =
   | "saveRoundPairings"
   | "swapRoundPairing"
   | "postRounds"
+  | "addRound"
+  | "cancelRound"
   | "enterTournamentScore"
   | "markMatchNotFinished"
   | "byId"

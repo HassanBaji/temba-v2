@@ -18,6 +18,8 @@ export type TournamentRoundsActions = {
   save: Door<"saveRoundPairings">;
   swap: Door<"swapRoundPairing">;
   post: Door<"postRounds">;
+  addRound: Door<"addRound">;
+  cancelRound: Door<"cancelRound">;
   enterScore: Door<"enterTournamentScore">;
   confirm: Door<"confirmMatchResult">;
   notFinished: Door<"markMatchNotFinished">;
@@ -54,6 +56,8 @@ export function useTournamentRounds(gameId: string, enabled: boolean) {
     save: api.games.saveRoundPairings.useMutation(options),
     swap: api.games.swapRoundPairing.useMutation(options),
     post: api.games.postRounds.useMutation(options),
+    addRound: api.games.addRound.useMutation(options),
+    cancelRound: api.games.cancelRound.useMutation(rated),
     enterScore: api.games.enterTournamentScore.useMutation(rated),
     confirm: api.games.confirmMatchResult.useMutation(rated),
     notFinished: api.games.markMatchNotFinished.useMutation(options),

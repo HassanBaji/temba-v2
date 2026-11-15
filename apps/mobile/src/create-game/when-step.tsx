@@ -239,6 +239,9 @@ function ShapeSteppers({ state, errors, dispatch, plan }: PlanProps) {
       <HelperNote>{knockoutOnlyReviewValue(knockoutTree, locale)}</HelperNote>
     ) : null;
   }
+  if (plan.roundsShape) {
+    return null;
+  }
 
   return (
     <View style={{ flexDirection: "row", gap: 10 }}>
@@ -293,6 +296,7 @@ function Rounds({ errors, dispatch, plan }: PlanProps) {
     return null;
   }
   const range = roundCountRange(sizing.poolSizes);
+  const chosen = plan.roundsShape;
   const suggested = rounds.roundCount === range.suggested;
   const sizingCopy = m.tournament.sizing;
   const copy = m.mobileCreateGame.when;
@@ -300,9 +304,9 @@ function Rounds({ errors, dispatch, plan }: PlanProps) {
   return (
     <StepSection
       title={sizingCopy.roundsLabel}
-      note={suggested ? sizingCopy.suggestedTag : undefined}
+      note={suggested && !chosen ? sizingCopy.suggestedTag : undefined}
       link={
-        suggested
+        suggested || chosen
           ? undefined
           : {
               label: suggestedRoundsResetLabel(range.suggested, locale),
@@ -321,7 +325,7 @@ function Rounds({ errors, dispatch, plan }: PlanProps) {
         onChange={(next) =>
           dispatch({
             kind: "setRoundCount",
-            roundCount: next === range.suggested ? null : next,
+            roundCount: !chosen && next === range.suggested ? null : next,
           })
         }
         decreaseLabel={copy.fewerRounds}

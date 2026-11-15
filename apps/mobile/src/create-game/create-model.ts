@@ -241,7 +241,7 @@ export function createReducer(
         ),
       );
     case "setShape":
-      return patch(state, { tournamentShape: action.shape });
+      return patch(state, { tournamentShape: action.shape, roundCount: null });
     case "setPoolCount":
       return patch(state, {
         poolCount: action.poolCount,

@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNotNull } from "drizzle-orm";
 
 import {
   MatchStatusEnum,
@@ -21,10 +21,13 @@ import { pointsForOutcome } from "@repo/domain/tournament-round-state";
 import { hasPools, isDrawnTournament } from "@repo/domain/tournament-rounds";
 import {
   poolRoundSlots,
+  scheduleRoundSlots,
+  sizeTournamentRounds,
   type RoundSlot,
 } from "@repo/domain/tournament-schedule";
 import {
   resolveRoundCount,
+  roundCountRange,
   suggestedRoundCount,
 } from "@repo/domain/tournament-sizing";
 import { messagesFor } from "@repo/i18n/messages";
@@ -32,6 +35,7 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
 import { type db } from "#src/db";
 import { type GameRow } from "#src/games/access";
+import { matchTimes } from "#src/games/helpers/match-times";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -45,6 +49,9 @@ export type TournamentRoundContext = {
   poolOf: Map<string, number>;
   suggested: number;
   roundCount: number;
+  maxRoundCount: number;
+  /** A Knockout Match has a Set, a result or a Walkover. */
+  knockoutStarted: boolean;
   courtIds: string[];
   slots: Map<number, RoundSlot[]>;
   drafts: Map<number, RoundPairing[]>;
@@ -202,6 +209,15 @@ export async function loadTournamentRoundContext(
     poolOf,
     suggested: suggestedRoundCount(poolSizes),
     roundCount,
+    maxRoundCount: roundCountRange(poolSizes).max,
+    knockoutStarted: matchRows.some(
+      (match) =>
+        match.knockoutRound != null &&
+        (match.sets.length > 0 ||
+          match.walkoverGameTeamId != null ||
+          match.status === MatchStatusEnum.COMPLETED ||
+          match.status === MatchStatusEnum.CANCELLED),
+    ),
     courtIds,
     slots,
     drafts,
@@ -232,10 +248,15 @@ export function madeRounds(context: TournamentRoundContext): RoundSlotState[] {
   ) {
     const postedRows = context.posted.get(roundNumber);
     if (postedRows && postedRows.length > 0) {
+      // A cancelled Match was never played, so its pair has not met.
       rounds.push({
         roundNumber,
         draft: false,
-        pairings: postedPairings(postedRows),
+        pairings: postedPairings(
+          postedRows.filter(
+            (match) => match.status !== MatchStatusEnum.CANCELLED,
+          ),
+        ),
       });
       continue;
     }
@@ -338,4 +359,135 @@ export function teamPoints(
     }
   }
   return points;
+}
+
+export type RoundCancelEffect = "remove" | "void" | "none";
+
+function roundIsUntouched(matchRows: readonly PostedPoolMatch[]) {
+  return matchRows.every(
+    (match) =>
+      match.status === MatchStatusEnum.PENDING &&
+      match.sets.length === 0 &&
+      match.notFinishedAt == null,
+  );
+}
+
+/**
+ * What cancelling a Round does. A Round nobody has seen played, with no
+ * posted Round after it, comes off the schedule and the Rounds after it move
+ * up. Any other posted Round stays where it is with its Matches cancelled,
+ * so the Rounds players already know keep their numbers.
+ */
+export function roundCancelEffect(
+  context: TournamentRoundContext,
+  roundNumber: number,
+): RoundCancelEffect {
+  const posted = context.posted.get(roundNumber) ?? [];
+  if (posted.length === 0) {
+    return "remove";
+  }
+  if (posted.every((match) => match.status === MatchStatusEnum.CANCELLED)) {
+    return "none";
+  }
+  const postedLater = [...context.posted.entries()].some(
+    ([number, rows]) => number > roundNumber && rows.length > 0,
+  );
+  return roundIsUntouched(posted) && !postedLater ? "remove" : "void";
+}
+
+/** Adding a Round or taking one off moves the Knockout, so neither is allowed once it has started. */
+export function assertKnockoutNotStarted(
+  context: TournamentRoundContext,
+  locale: Locale = DEFAULT_LOCALE,
+) {
+  if (context.knockoutStarted) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: messagesFor(locale).tournament.errors.roundsKnockoutStarted,
+    });
+  }
+}
+
+/**
+ * Puts the Knockout after `poolRoundCount` Pool Rounds: its Round numbers
+ * follow the last Pool Round, and its Courts and times are laid out again the
+ * way posting the draw laid them out.
+ */
+export async function moveKnockoutAfterPoolRounds(
+  database: DbClient,
+  context: TournamentRoundContext,
+  poolRoundCount: number,
+) {
+  const knockoutRows = await database
+    .select()
+    .from(matches)
+    .where(
+      and(
+        eq(matches.gameId, context.game.id),
+        isNotNull(matches.knockoutRound),
+      ),
+    )
+    .orderBy(asc(matches.knockoutRound), asc(matches.knockoutPosition))
+    .for("update");
+  if (knockoutRows.length === 0) {
+    return;
+  }
+
+  type KnockoutRow = (typeof knockoutRows)[number];
+  const byKnockoutRound = new Map<number, KnockoutRow[]>();
+  for (const row of knockoutRows) {
+    const list = byKnockoutRound.get(row.knockoutRound ?? 0) ?? [];
+    list.push(row);
+    byKnockoutRound.set(row.knockoutRound ?? 0, list);
+  }
+  const poolSizes = context.pools.map((pool) => pool.gameTeamIds.length);
+  const rounds: { roundNumber: number; items: (KnockoutRow | null)[] }[] = [
+    ...sizeTournamentRounds(poolSizes, poolRoundCount).roundMatches.map(
+      (count, index) => ({
+        roundNumber: index + 1,
+        items: Array.from({ length: count }, () => null),
+      }),
+    ),
+    ...[...byKnockoutRound.entries()].map(([knockoutRound, items]) => ({
+      roundNumber: poolRoundCount + knockoutRound,
+      items,
+    })),
+  ];
+
+  const { windowStart, windowEnd } = context.game;
+  const scheduled =
+    windowStart && windowEnd
+      ? scheduleRoundSlots({
+          rounds,
+          courtIds: context.courtIds,
+          windowStart,
+          windowEnd,
+          matchMinutes: context.game.matchMinutes,
+        })
+      : [];
+  const slotOf = new Map(
+    scheduled.flatMap((slot) => (slot.item ? [[slot.item.id, slot]] : [])),
+  );
+
+  const now = new Date();
+  for (const row of knockoutRows) {
+    const slot = slotOf.get(row.id);
+    await database
+      .update(matches)
+      .set({
+        roundNumber: poolRoundCount + (row.knockoutRound ?? 0),
+        ...(slot
+          ? matchTimes({
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              durationInMinutes: null,
+              courtId: slot.courtId,
+              slot1GameTeamId: row.slot1GameTeamId,
+              slot2GameTeamId: row.slot2GameTeamId,
+            })
+          : {}),
+        updatedAt: now,
+      })
+      .where(eq(matches.id, row.id));
+  }
 }
