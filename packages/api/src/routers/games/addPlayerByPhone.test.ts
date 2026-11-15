@@ -1058,7 +1058,7 @@ describe("games.addPlayerByPhone on a Friendly tournament", () => {
           sideIndex: 1,
           position: "right",
         }),
-      ).rejects.toThrow("This tournament does not allow registering alone");
+      ).rejects.toThrow("This Social does not allow registering alone");
       let details = await gameById(db, {
         gameId: f.tournamentId,
         userId: f.organizer,

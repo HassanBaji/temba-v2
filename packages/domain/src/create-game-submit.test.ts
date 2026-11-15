@@ -444,7 +444,7 @@ describe("validateFriendlyTournamentSubmit", () => {
     assert.ok(!name.ok);
     if (!name.ok) {
       assert.equal(name.step, 4);
-      assert.equal(name.message, "Name the tournament");
+      assert.equal(name.message, "Name the Social");
     }
   });
 });

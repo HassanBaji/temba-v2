@@ -40,6 +40,7 @@ import {
 } from "./level-bands";
 import type { MemberNicknameData } from "./member-nickname";
 import { nameInitial } from "./player-name";
+import type { TierBand } from "./tier-bands";
 
 export type Side = 1 | 2;
 
@@ -68,6 +69,8 @@ export type BoardPlayer = {
   balanceStrength?: number | null;
   /** The whole-number OVR; null without a football Rating. */
   ovr?: number | null;
+  /** The football Rating is still Provisional. */
+  ovrProvisional?: boolean;
   /** The player's Group Tier on a tier Group's Game; null elsewhere. */
   tier?: GroupMemberTierData | null;
 };
@@ -103,6 +106,29 @@ export function shortName(name: string) {
   return last ? `${first} ${nameInitial(last) ?? ""}` : (first ?? name);
 }
 
+const TILE_NAME_LIMIT = 10;
+
+/**
+ * A name on a line-up tile: "Abdulla S.", or the first name alone when that
+ * passes ten characters, so "Abdulrahman Al-Mahmood" reads "Abdulrahman".
+ */
+export function tileShortName(name: string, locale: Locale) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const first = parts[0];
+  if (!first) {
+    return name;
+  }
+  const initial = parts.length > 1 ? nameInitial(parts.at(-1)!) : undefined;
+  if (!initial) {
+    return first;
+  }
+  const short = messagesFor(locale).football.board.tileName(
+    first,
+    initial.toUpperCase(),
+  );
+  return Array.from(short).length > TILE_NAME_LIMIT ? first : short;
+}
+
 /**
  * A player's name on a line-up and how a screen reader says it: "You" for
  * the viewer, else the Member nickname in full, else the short Temba name.
@@ -110,6 +136,22 @@ export function shortName(name: string) {
 export function lineupName(
   player: Pick<BoardPlayer, "name" | "nickname" | "isViewer">,
   locale: Locale,
+) {
+  return nameOnLineup(player, locale, shortName);
+}
+
+/** `lineupName` for a pool tile, whose short name is `tileShortName`. */
+export function poolTileName(
+  player: Pick<BoardPlayer, "name" | "nickname" | "isViewer">,
+  locale: Locale,
+) {
+  return nameOnLineup(player, locale, (name) => tileShortName(name, locale));
+}
+
+function nameOnLineup(
+  player: Pick<BoardPlayer, "name" | "nickname" | "isViewer">,
+  locale: Locale,
+  shorten: (name: string) => string,
 ) {
   const m = messagesFor(locale);
   if (player.isViewer) {
@@ -123,7 +165,7 @@ export function lineupName(
       isNickname: true,
     };
   }
-  const name = shortName(player.name);
+  const name = shorten(player.name);
   return { name, spoken: name, isNickname: false };
 }
 
@@ -464,6 +506,53 @@ export function boardTierCell(
       locale,
     )?.cell ?? null
   );
+}
+
+export type PoolTileTier = {
+  /** A fish, the hatched "not yet" badge, or no mark. */
+  mark: { kind: "fish"; band: TierBand } | { kind: "hatch" } | null;
+  label: string;
+  /** How a screen reader says the line; null when it says nothing. */
+  spoken: string | null;
+};
+
+/**
+ * The line under a name on a pool tile. In a tier Group, the fish and its
+ * band, or the place, or Provisional with the hatched badge. Elsewhere the
+ * OVR, keeping the hatched badge while the football Rating is Provisional.
+ * A guest has no tier and reads Guest.
+ */
+export function poolTileTier(
+  player: Pick<BoardPlayer, "tier" | "ovr" | "ovrProvisional" | "guest">,
+  locale: Locale,
+): PoolTileTier {
+  const m = messagesFor(locale);
+  if (player.guest) {
+    const label = m.group.addPlayer.guest.tag;
+    return { mark: null, label, spoken: label };
+  }
+  const cell = boardTierCell(player, locale);
+  if (cell) {
+    const mark =
+      cell.kind === "fish"
+        ? { kind: "fish" as const, band: cell.band }
+        : cell.kind === "provisional"
+          ? { kind: "hatch" as const }
+          : null;
+    return { mark, label: cell.label, spoken: cell.label };
+  }
+  if (player.ovr == null) {
+    return { mark: null, label: ovrLabel(player), spoken: null };
+  }
+  const label = m.level.ovr(formatOvr(player.ovr));
+  if (!player.ovrProvisional) {
+    return { mark: null, label, spoken: label };
+  }
+  return {
+    mark: { kind: "hatch" },
+    label,
+    spoken: [label, m.rating.provisional].join(m.common.listSeparator),
+  };
 }
 
 /**

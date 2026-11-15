@@ -389,7 +389,7 @@ describe("tournamentCardAction", () => {
   it("offers Join tournament when the viewer can register before the draw", () => {
     const action = tournamentCardAction(game({ canRegister: true }));
     assert.equal(action, "join");
-    assert.equal(tournamentCardActionLabel(action, "en"), "Join tournament");
+    assert.equal(tournamentCardActionLabel(action, "en"), "Join Social");
   });
 
   it("offers Join waitlist when the tournament is full", () => {
@@ -424,7 +424,7 @@ describe("tournamentCardAction", () => {
       tournamentCardAction(game({ canRegister: true }, [], true)),
       "view",
     );
-    assert.equal(tournamentCardActionLabel("view", "en"), "View tournament");
+    assert.equal(tournamentCardActionLabel("view", "en"), "View Social");
   });
 
   it("shows View tournament when the Level range blocks joining", () => {
@@ -766,7 +766,7 @@ describe("tournamentMatchAction", () => {
       tournamentMatchActionLabel("add_results", "en"),
       "Add results",
     );
-    assert.equal(tournamentMatchActionLabel("view", "en"), "View tournament");
+    assert.equal(tournamentMatchActionLabel("view", "en"), "View Social");
   });
 });
 
@@ -1015,7 +1015,7 @@ describe("Arabic copy", () => {
       tournamentTeamsLine(game({ registeredTeamCount: 9 }), "ar"),
       "9 من 12 فريقًا مشاركًا",
     );
-    assert.equal(tournamentCardActionLabel("join", "ar"), "انضم إلى البطولة");
+    assert.equal(tournamentCardActionLabel("join", "ar"), "انضم إلى السوشيال");
     assert.equal(
       tournamentMatchRoundLine(null, null, "ar", { round: 3, roundCount: 3 }),
       "النهائي",

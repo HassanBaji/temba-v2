@@ -4,7 +4,7 @@ import { plural } from "../../plural";
 
 export const home = {
   comingUp: {
-    tournamentFallback: "بطولة",
+    tournamentFallback: "سوشيال",
     gameFallback: "مباراة",
     allSeatsFilled: "جميع الأماكن ممتلئة",
     openSeats: (n: number) =>

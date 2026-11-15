@@ -80,7 +80,7 @@ export function groupShareMessage(
 }
 
 export type GameShareContext = {
-  customName?: string | null;
+  gameName?: string | null;
   format: string;
   sport?: string | null;
   registrationMode: string;
@@ -111,7 +111,7 @@ export function gameShareMessage(
     registrationMode: game.registrationMode,
     shortUrl: url,
     roster: {
-      customName: game.customName,
+      gameName: game.gameName,
       venueName:
         game.venueName ?? messagesFor(locale).mobileInvite.share.venueFallback,
       courtName: game.courtName,

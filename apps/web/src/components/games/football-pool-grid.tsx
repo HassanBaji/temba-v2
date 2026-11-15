@@ -1,32 +1,78 @@
 "use client";
 
 import {
-  boardTierCell,
-  ovrLabel,
-  ovrSpoken,
   poolSections,
-  lineupName,
+  poolTileName,
+  poolTileTier,
   slotCode,
   type BoardPlayer,
+  type PoolTileTier,
 } from "@repo/domain/football-board";
+import { fishSizes } from "@repo/design-tokens/fish";
 
 import { NicknameName } from "~/components/temba/nickname-name";
 import { UserAvatar } from "~/components/common/user-avatar";
+import { TierFish } from "~/components/groups/tier-fish";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Hatch } from "~/components/ui/hatch";
 import { cn } from "~/lib/utils";
 
-import { TierMark } from "./football-team-columns";
-
 function OpenTile() {
   const m = useMessages();
   return (
-    <div className="relative flex h-[74px] items-center justify-center overflow-hidden rounded-md">
-      <Hatch radius="md" className="absolute inset-0" />
-      <span className="text-muted-foreground relative text-[12px]">
+    <div className="rounded-card relative flex h-full min-h-[108px] items-center justify-center overflow-hidden">
+      <Hatch radius="card" className="absolute inset-0" />
+      <span className="text-muted-foreground text-meta relative">
         {m.webTournament.footballPool.openTile}
       </span>
     </div>
+  );
+}
+
+/** The hatched "not yet" badge, the width of a fish. */
+function ProvisionalBadge({ onControl }: { onControl: boolean }) {
+  return (
+    <span
+      className={cn(
+        "hatch block shrink-0 rounded-[4px] border",
+        onControl
+          ? "hatch-on-control border-on-control-muted"
+          : "border-muted-foreground",
+      )}
+      style={fishSizes.tile}
+    />
+  );
+}
+
+function TierLine({
+  tier,
+  onControl,
+}: {
+  tier: PoolTileTier;
+  onControl: boolean;
+}) {
+  return (
+    <span
+      className={cn(
+        "mt-1 flex min-w-0 items-center gap-[5px] text-[12px] leading-4",
+        onControl ? "text-on-control-muted" : "text-muted-foreground",
+      )}
+    >
+      {tier.mark?.kind === "fish" ? (
+        <TierFish
+          band={tier.mark.band}
+          label={tier.label}
+          size="tile"
+          className={onControl ? "text-on-control" : undefined}
+          cutout={onControl ? "var(--color-control)" : undefined}
+        />
+      ) : tier.mark?.kind === "hatch" ? (
+        <ProvisionalBadge onControl={onControl} />
+      ) : null}
+      <span dir="auto" className="truncate">
+        {tier.label}
+      </span>
+    </span>
   );
 }
 
@@ -39,9 +85,9 @@ function PlayerTile({
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const { name, spoken, isNickname } = lineupName(player, locale);
+  const { name, spoken, isNickname } = poolTileName(player, locale);
   const code = slotCode(player, locale);
-  const tierCell = boardTierCell(player, locale);
+  const tier = poolTileTier(player, locale);
   const Tag = onPress ? "button" : "div";
   return (
     <Tag
@@ -50,14 +96,13 @@ function PlayerTile({
       aria-label={[
         spoken,
         code,
-        tierCell ? tierCell.label : ovrSpoken(player, locale),
+        tier.spoken,
         player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
-        player.guest ? m.group.addPlayer.guest.tag : null,
       ]
         .filter(Boolean)
         .join(m.tournament.listSeparator)}
       className={cn(
-        "focus-visible:ring-ring/50 flex h-[74px] w-full min-w-0 flex-col justify-between rounded-md border p-2 text-start outline-none focus-visible:ring-[3px]",
+        "focus-visible:ring-ring/50 rounded-card flex h-full min-h-[108px] w-full min-w-0 flex-col justify-between gap-2.5 border p-3 text-start outline-none focus-visible:ring-[3px]",
         player.isViewer
           ? "bg-control text-on-control border-control-edge"
           : "bg-paper border-rule",
@@ -66,21 +111,20 @@ function PlayerTile({
         onPress && !player.isViewer && "hover:bg-wash",
       )}
     >
-      <span className="flex items-center justify-between">
+      <span className="flex items-start justify-between gap-1.5">
         <UserAvatar
           name={player.name}
           image={player.image}
-          size="sm"
           guest={player.guest}
         />
         {player.role === "keeper" ? (
-          <span className="bg-control text-on-control rounded-[4px] px-1 font-mono text-[11px]">
+          <span className="bg-control text-on-control rounded-xs shrink-0 px-[5px] py-0.5 font-mono text-[11px]">
             {code}
           </span>
         ) : code ? (
           <span
             className={cn(
-              "font-mono text-[11px]",
+              "shrink-0 pt-[3px] font-mono text-[11px]",
               player.isViewer
                 ? "text-on-control-muted"
                 : "text-muted-foreground",
@@ -90,32 +134,21 @@ function PlayerTile({
           </span>
         ) : null}
       </span>
-      <span
-        className={cn(
-          "flex justify-between gap-1",
-          tierCell ? "items-center" : "items-baseline",
-        )}
-      >
+      <span className="block min-w-0">
         <NicknameName
           name={name}
           isNickname={isNickname}
-          className="text-[12px]"
+          className="text-[14px] font-semibold leading-[18px]"
         />
-        {tierCell ? (
-          <TierMark cell={tierCell} size="tile" />
-        ) : (
-          <span dir="ltr" className="font-expanded text-meta">
-            {ovrLabel(player)}
-          </span>
-        )}
+        <TierLine tier={tier} onControl={player.isViewer} />
       </span>
     </Tag>
   );
 }
 
 /**
- * Players four to a row, then hatched open seats. A tile ends on the
- * player's OVR, or their Group Tier in a tier Group.
+ * Players three to a row, then hatched open seats. Under each name, its own
+ * line for the player's Group Tier in a tier Group, or their OVR elsewhere.
  */
 export function PoolGrid({
   players,
@@ -128,7 +161,7 @@ export function PoolGrid({
 }) {
   const m = useMessages();
   return (
-    <ul className="grid grid-cols-4 gap-2">
+    <ul className="grid grid-cols-3 gap-2">
       {players.map((player) => (
         <li key={player.userId} className="min-w-0">
           <PlayerTile player={player} onPress={onOpenPlayer} />

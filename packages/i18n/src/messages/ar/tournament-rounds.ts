@@ -100,7 +100,7 @@ function placeWord(place: number) {
 
 export const tournamentRounds = {
   tabs: {
-    label: "أقسام البطولة",
+    label: "أقسام السوشيال",
     teams: "الفرق",
     rounds: "الجولات",
     standings: "الترتيب",
@@ -204,7 +204,7 @@ export const tournamentRounds = {
     cancel: (round: number) => `ألغِ الجولة ${round}`,
     cancelTitle: (round: number) => `إلغاء الجولة ${round}؟`,
     cancelRemove: (round: number, left: number) =>
-      `تُحذف الجولة ${round} من الجدول. ستصبح البطولة ${rounds(left)}.`,
+      `تُحذف الجولة ${round} من الجدول. سيصبح السوشيال ${rounds(left)}.`,
     cancelVoid: (round: number) =>
       `تبقى الجولة ${round} في القائمة ملغاة ولا تُلعب مبارياتها. لا يمكن التراجع عن ذلك.`,
     cancelVoidScored: (round: number, scores: number) =>
@@ -420,7 +420,7 @@ export const tournamentRounds = {
     shareTable: "شارك الترتيب النهائي",
   },
   shareCard: {
-    tag: "بطولة",
+    tag: "سوشيال",
     eyebrow: (name: string, day: string | null, venue: string | null) =>
       [day ? `${name}، ${day}` : name, venue].filter(Boolean).join(". "),
     ordinal: (place: number) => placeWord(place),

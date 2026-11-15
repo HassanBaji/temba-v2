@@ -118,7 +118,7 @@ export const profile = {
   },
   matches: {
     friendlyGame: "مباراة ودية",
-    friendlyTournament: "بطولة ودية",
+    friendlyTournament: "سوشيال",
     americano: "أمريكانو",
     tournamentRound: (name: string, round: string) => `${name}، ${round}`,
     tournamentRoundNumber: (name: string, round: number) =>

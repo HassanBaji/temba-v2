@@ -9,7 +9,7 @@ export const mobileCreateGame = {
   timeRange: (start: string, end: string) => `من ${start} إلى ${end}`,
   toast: {
     gameCreated: "أُنشئت المباراة",
-    tournamentCreated: "أُنشئت البطولة",
+    tournamentCreated: "أُنشئ السوشيال",
   },
   validation: {
     pickGameType: "اختر نوع المباراة",
@@ -17,7 +17,7 @@ export const mobileCreateGame = {
   header: {
     whatTitle: "ماذا\nتنظّم؟",
     whatSubtitle: "نبدأ بالملعب والوقت، ثم نكمل حسب اختيارك.",
-    tournamentTitle: "بطولة\nودية",
+    tournamentTitle: "سوشيال",
     teamRange: (min: number, max: number) =>
       plural("ar", max, {
         one: `من ${min} إلى فريق واحد`,
@@ -216,7 +216,7 @@ export const mobileCreateGame = {
     title: "الاسم",
     gameLabel: "اسم المباراة",
     hint: "يظهر على المباراة وفي رسالة الدعوة.",
-    tournamentLabel: "اسم البطولة",
+    tournamentLabel: "اسم السوشيال",
   },
   football: {
     sideSize: "حجم الفريق",

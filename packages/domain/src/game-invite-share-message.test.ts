@@ -108,10 +108,10 @@ describe("formatGameInviteShareMessage", () => {
     expect(message).toContain(shortUrl);
   });
 
-  it("opens with the Game's custom name when it has one", () => {
+  it("opens with the Game's name", () => {
     const windowStart = new Date();
     const message = formatGameInviteShareMessage({
-      customName: "  Thursday Smash ",
+      gameName: "  Thursday Smash ",
       venueName: "Padel Club",
       courtName: null,
       windowStart,
@@ -123,10 +123,10 @@ describe("formatGameInviteShareMessage", () => {
     expect(message.startsWith("Thursday Smash\n\n📍 Padel Club\n")).toBe(true);
   });
 
-  it("skips a blank custom name", () => {
+  it("skips a blank Game name", () => {
     const windowStart = new Date();
     const message = formatGameInviteShareMessage({
-      customName: "   ",
+      gameName: "   ",
       venueName: "Padel Club",
       courtName: null,
       windowStart,
@@ -256,7 +256,7 @@ describe("gameInviteClipboardText", () => {
       registrationMode: "individual",
       shortUrl,
       roster: {
-        customName: "Friday Cup",
+        gameName: "Friday Cup",
         venueName: "Padel Club",
         courtName: "Court 2",
         windowStart,
@@ -389,7 +389,7 @@ describe("gameInviteClipboardText", () => {
     ).toBe(shortUrl);
   });
 
-  it("puts the custom name above the link when only the link is copied", () => {
+  it("puts the Game name above the link when only the link is copied", () => {
     expect(
       gameInviteClipboardText({
         format: "friendly_game",
@@ -397,7 +397,7 @@ describe("gameInviteClipboardText", () => {
         registrationMode: "individual",
         shortUrl,
         roster: {
-          customName: "Friday Five",
+          gameName: "Friday Five",
           venueName: "Pitch Club",
           courtName: null,
           windowStart: new Date(),

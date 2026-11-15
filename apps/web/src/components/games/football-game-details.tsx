@@ -359,7 +359,7 @@ export function FootballGameDetails({
       shortUrl: url,
       sport: game.sport,
       roster: {
-        customName: savedCustomName,
+        gameName: gameDisplayName(game, locale),
         venueName: game.venue?.name ?? t.venueFallback,
         courtName: game.recordedCourts[0]?.name ?? null,
         windowStart: game.windowStart,

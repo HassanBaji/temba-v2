@@ -132,7 +132,7 @@ export const tournamentKing = {
     changeLocked: "نُشر الترتيب النهائي، لذا ثبتت ملاعب البداية.",
   },
   tabs: {
-    label: "أقسام البطولة",
+    label: "أقسام السوشيال",
     teams: "الفرق",
     courts: "الملاعب",
     finalOrder: "الترتيب النهائي",
@@ -238,9 +238,9 @@ export const tournamentKing = {
     oddTeams: "يبدأ فريقان على كل ملعب، لذا يجب أن يكتمل عدد زوجي من الفرق.",
     courts: (min: number, max: number) =>
       `يحتاج ملك الملعب من ${min} إلى ${max} ملاعب.`,
-    notKing: "هذه البطولة ليست ملك الملعب.",
+    notKing: "هذا السوشيال ليس ملك الملعب.",
     useStartingCourts: "اسحب ملاعب البداية بدلًا من ذلك.",
-    cancelled: "هذه البطولة ملغاة.",
+    cancelled: "هذا السوشيال ملغى.",
     halfTeams: (names: string) =>
       `فرق اللعب هذه ينقصها شريك: ${names}. ادمجها أو أزلها أولًا.`,
     belowMinimum: (min: number) =>
@@ -248,9 +248,9 @@ export const tournamentKing = {
     wrongTeams: "ضع كل فريق مكتمل على ملعب مرة واحدة بالضبط.",
     finalOrderPosted: "نُشر الترتيب النهائي، لذا ثبتت ملاعب البداية.",
     notDrawn: "انشر ملاعب البداية أولًا.",
-    notStarted: "انشر الترتيب النهائي بعد أن تبدأ البطولة.",
+    notStarted: "انشر الترتيب النهائي بعد أن يبدأ السوشيال.",
     placeTop: (min: number) => `رتّب أول ${min} فرق على الأقل.`,
-    unknownTeams: "رتّب فرق هذه البطولة فقط، كل فريق مرة واحدة.",
+    unknownTeams: "رتّب فرق هذا السوشيال فقط، كل فريق مرة واحدة.",
     changeClosed: "لا يمكن تغيير الترتيب النهائي إلا خلال 24 ساعة.",
   },
 } satisfies typeof source;

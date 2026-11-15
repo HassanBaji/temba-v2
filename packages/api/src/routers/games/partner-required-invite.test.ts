@@ -149,7 +149,7 @@ describe("partner-required Invite link landing", () => {
         }),
       ).rejects.toMatchObject({
         code: "FORBIDDEN",
-        message: "This tournament does not allow registering alone",
+        message: "This Social does not allow registering alone",
       });
       await expect(
         acceptInviteLink(db, {
@@ -160,7 +160,7 @@ describe("partner-required Invite link landing", () => {
         }),
       ).rejects.toMatchObject({
         code: "FORBIDDEN",
-        message: "This tournament does not allow registering alone",
+        message: "This Social does not allow registering alone",
       });
 
       const seated = await db.query.gamePlayers.findMany({
