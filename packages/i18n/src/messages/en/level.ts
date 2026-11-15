@@ -5,6 +5,8 @@ export const level = {
   between: "Level must be between 0.0 and 7.0",
   rangeFieldDescription:
     "Optional. Inclusive Level bands. None means no bound. Both None means no Level range. Users without a Level must request to play when a range is set.",
+  rangeFieldDescriptionFootball:
+    "Optional. Inclusive OVR range. None means no bound. Both None means no range. Players without a football Level must request to play when a range is set.",
   rangeInverted: "Minimum Level cannot be greater than Maximum Level",
   rangeOutside: "Your Level is outside this Game's range",
   rangeOutsideParty: "A User's Level is outside this Game's range",

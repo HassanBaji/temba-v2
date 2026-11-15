@@ -239,7 +239,7 @@ export function NameSquadDialog({
                         name: member.name,
                         role: member.footballRole,
                         position: member.footballPosition,
-                        levelBand: member.levelBand,
+                        ovr: member.ovr,
                         unclaimed: member.unclaimed,
                         isViewer: member.isViewer,
                         isCaptain: member.isCreator,

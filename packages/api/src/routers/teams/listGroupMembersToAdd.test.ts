@@ -6,9 +6,11 @@ import {
   GroupSportEnum,
   groupMembers,
   groups,
+  ratings,
   teamMembers,
   user,
 } from "@repo/db/schema";
+import { wholeOvrFromMu } from "@repo/domain/football-ovr";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
 import { createTeam } from "./create";
@@ -125,6 +127,75 @@ describe("teams.listGroupMembersToAdd", () => {
         "Captain",
         "Plain",
         "Sara",
+      ]);
+    });
+  });
+
+  it("sends each member's whole OVR on football beside the band", async () => {
+    await withDb(async (database, db) => {
+      const f = await seed(database);
+      await database.insert(ratings).values([
+        {
+          userId: f.ali,
+          sport: "football",
+          mu: 1400,
+          phi: 150,
+          sigma: 0.06,
+          levelBand: "C2",
+        },
+        {
+          userId: f.badr,
+          sport: "padel",
+          mu: 1600,
+          phi: 150,
+          sigma: 0.06,
+          levelBand: "B3",
+        },
+      ]);
+      const listed = await listGroupMembersToAdd(db, {
+        groupId: f.groupId,
+        userId: f.captain,
+      });
+      const byName = new Map(
+        listed.members.map((member) => [member.name, member]),
+      );
+      expect(byName.get("Ali")).toMatchObject({
+        levelBand: "C2",
+        ovr: wholeOvrFromMu(1400),
+      });
+      expect(byName.get("Badr")).toMatchObject({ levelBand: null, ovr: null });
+    });
+  });
+
+  it("sends no OVR on a padel Group", async () => {
+    await withDb(async (database, db) => {
+      const f = await seed(database);
+      const [padel] = await database
+        .insert(groups)
+        .values({
+          name: "Thursday Padel",
+          createdBy: f.captain,
+          sport: GroupSportEnum.PADEL,
+        })
+        .returning({ id: groups.id });
+      await database.insert(groupMembers).values([
+        { groupId: padel!.id, userId: f.captain },
+        { groupId: padel!.id, userId: f.ali },
+      ]);
+      await database.insert(ratings).values({
+        userId: f.ali,
+        sport: "padel",
+        mu: 1400,
+        phi: 150,
+        sigma: 0.06,
+        levelBand: "C2",
+      });
+      const listed = await listGroupMembersToAdd(db, {
+        groupId: padel!.id,
+        userId: f.captain,
+      });
+      expect(listed.members).toMatchObject([
+        { name: "Ali", levelBand: "C2", ovr: null },
       ]);
     });
   });

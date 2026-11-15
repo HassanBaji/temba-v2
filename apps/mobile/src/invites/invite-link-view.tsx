@@ -497,6 +497,7 @@ function useGameLayout(
       levelMaxTenths: game.levelMaxTenths,
       fit,
       locale,
+      sport: hero.sport,
     }),
     locale,
   });
@@ -658,6 +659,7 @@ function useGameLayout(
               levelMaxTenths: game.levelMaxTenths,
               viewerLevelTenths: game.viewerLevelTenths,
               locale,
+              sport: hero.sport,
             })}
           </Text>
         </Surface>
@@ -808,10 +810,13 @@ function GameReadyWithoutHero({
 }) {
   const locale = useLocale();
   const name = gameDisplayName(game.game, locale);
+  // Without the hero the preview names no sport; only a joinable football
+  // Game carries its football preview.
   const rangeLabel = formatLevelRangeLabel(
     game.levelMinTenths,
     game.levelMaxTenths,
     locale,
+    game.football ? "football" : null,
   );
   return (
     <PlainScreen props={props}>

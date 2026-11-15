@@ -1,6 +1,6 @@
 # Rated and public Games need a Verified Group
 
-**Status:** accepted. Spec: `.scratch/verified-groups/spec.md`. Unrated Games feed a Standing since [ADR-0045](./0045-a-standing-counts-unrated-games.md). Amended by [ADR-0066](./0066-a-football-group-that-is-not-verified-has-a-group-tier.md), which changes what a Game on a Group that is not Verified moves. Amended by [ADR-0071](./0071-a-public-game-at-a-partner-venue-counts-for-temba-level.md), which lets a Public Game at a partner Venue be public and count.
+**Status:** accepted. Spec: `.scratch/verified-groups/spec.md`. Unrated Games feed a Standing since [ADR-0045](./0045-a-standing-counts-unrated-games.md). Amended by [ADR-0066](./0066-a-football-group-that-is-not-verified-has-a-group-tier.md), which changes what a Game on a Group that is not Verified moves. Amended by [ADR-0071](./0071-a-public-game-at-a-partner-venue-counts-for-temba-level.md), which lets a Public Game at a partner Venue be public and count. Amended by [ADR-0088](./0088-a-new-group-is-never-verified-at-create.md), which stops verifying a Group at create for `groupCreator` callers.
 
 Group creation was limited to a few Users by a client-only Clerk flag, `publicMetadata.groupCreator`, and every Group Game was rated. The product wants anyone to create a Group. Without a guard, any Group could move Levels and Standings or open Games to anyone with the link.
 

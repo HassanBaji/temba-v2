@@ -2,6 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { isFootballPosition } from "./football-lineup";
+import { formatOvr } from "./football-ovr";
 import { formatGameDay } from "./format-game-start";
 import { groupHomeSportLabel } from "./group-home-chrome";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
@@ -209,6 +210,8 @@ export type TeamHomeMemberInput = {
   isViewer: boolean;
   level: string | null;
   levelBand: LevelBand | null;
+  /** Football only: the member's whole OVR; null without a Rating. */
+  ovr?: number | null;
   preferredPosition: string | null;
   footballRole: string | null;
   footballPosition: string | null;
@@ -355,9 +358,19 @@ function memberSeatLabel(
     : null;
 }
 
-function memberLevelLabel(member: TeamHomeMemberInput, locale: Locale) {
+function memberLevelLabel(
+  member: TeamHomeMemberInput,
+  sport: string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
+  if (sport === "football") {
+    return member.ovr != null
+      ? m.rating.ovr.value(formatOvr(member.ovr))
+      : null;
+  }
   return member.levelBand && member.level
-    ? messagesFor(locale).team.level.member(
+    ? m.team.level.member(
         displayLabelFromStoredBand(member.levelBand),
         member.level,
       )
@@ -463,7 +476,7 @@ export function teamHomeView(data: TeamHomeInput, locale: Locale) {
       isViewer: member.isViewer,
       captainLabel: member.isCreator ? m.team.captainLabel : null,
       seatLabel: memberSeatLabel(member, data.sport, locale),
-      levelLabel: memberLevelLabel(member, locale),
+      levelLabel: memberLevelLabel(member, data.sport, locale),
       userId: member.userId ?? null,
       addedLabel: member.unclaimed ? m.team.draft.added : null,
       phoneMasked: member.phoneMasked ?? null,

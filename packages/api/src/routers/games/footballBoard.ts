@@ -54,6 +54,7 @@ import {
 } from "#src/games/match-result-confirmations";
 import { guestStandInBand } from "@repo/domain/guest-player";
 import { gameMemberNicknames } from "#src/groups/helpers/game-member-nicknames";
+import { gameMemberPhoneNumbers } from "#src/groups/helpers/game-member-phone-numbers";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
 
@@ -254,6 +255,12 @@ export async function footballBoard(
   const levelOf = (userId: string) =>
     guestIds.has(userId) ? guestLevel : levelByUser.get(userId);
   const nicknameByUser = await gameMemberNicknames(database, game, args.userId);
+  const phoneNumberByUser = await gameMemberPhoneNumbers(
+    database,
+    game,
+    args.userId,
+    roster.flatMap((row) => (row.user ? [row.user] : [])),
+  );
 
   // Group Tier is the Group's own; a Verifier who opens the Game only to
   // stamp it reads the teams and the Score (ADR-0072).
@@ -365,6 +372,7 @@ export async function footballBoard(
             organizer && unclaimed && row.user.phoneNumber
               ? maskPhone(row.user.phoneNumber)
               : null,
+          phoneNumber: phoneNumberByUser.get(row.user.id) ?? null,
         },
       ];
     }),

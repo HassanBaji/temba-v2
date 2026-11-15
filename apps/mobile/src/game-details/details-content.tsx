@@ -167,6 +167,8 @@ export function GameDetailsContent({
       ) : null}
       {organizer?.plan.showRequests ? (
         <RequestsSection
+          gameId={game.id}
+          groupName={game.groupName}
           requests={organizer.plan.requests}
           decisions={organizer.handlers}
         />

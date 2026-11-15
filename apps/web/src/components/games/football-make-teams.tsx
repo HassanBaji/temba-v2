@@ -7,8 +7,8 @@ import {
   draftSummary,
   initialTeamsDraft,
   keeperWord,
-  makeTeamsLevelLabel,
   moveAcross,
+  ovrLabel,
   placeOn,
   slotCode,
   switchMethod,
@@ -19,7 +19,6 @@ import {
 } from "@repo/domain/football-board";
 import {
   FOOTBALL_TEAMS_METHODS,
-  type FootballBalanceOn,
   type FootballBib,
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
@@ -31,6 +30,7 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 
+import { NicknameName } from "~/components/temba/nickname-name";
 import { ErrorState } from "~/components/common/error-state";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
@@ -43,6 +43,11 @@ import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 import { BibChip, BibPicker, bibStyle } from "./football-bibs";
 import { BibRow, TierMark } from "./football-team-columns";
+
+/** The Member nickname when the viewer may see one, else the full Temba name. */
+function teamsName(player: Pick<BoardPlayer, "name" | "nickname">) {
+  return player.nickname?.name ?? player.name;
+}
 
 function MethodToggle({
   method,
@@ -165,12 +170,11 @@ function LevelColumns({
               player={player}
               bib={bib}
               showTier
-              balanceOn={summary.balanceOn}
               trailing={
                 <button
                   type="button"
                   aria-label={m.webTournament.footballTeams.moveToOtherTeam(
-                    player.name,
+                    teamsName(player),
                   )}
                   onClick={() => onMove(player.userId)}
                   className="focus-visible:ring-ring/50 flex size-[26px] shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
@@ -238,13 +242,11 @@ function ManualRow({
   player,
   draft,
   names,
-  balanceOn,
   onPlace,
 }: {
   player: BoardPlayer;
   draft: TeamsDraft;
   names: { slot1: string; slot2: string };
-  balanceOn: FootballBalanceOn;
   onPlace: (side: Side) => void;
 }) {
   const m = useMessages();
@@ -264,9 +266,11 @@ function ManualRow({
     >
       <UserAvatar name={player.name} image={player.image} />
       <div className="min-w-0 flex-1">
-        <p dir="auto" className="truncate [text-align:match-parent]">
-          {player.isViewer ? m.common.you : player.name}
-        </p>
+        <NicknameName
+          name={player.isViewer ? m.common.you : teamsName(player)}
+          isNickname={!player.isViewer && player.nickname != null}
+          className="[text-align:match-parent]"
+        />
         {code ? (
           <p className="font-mono text-[11px] opacity-70">{code}</p>
         ) : null}
@@ -275,19 +279,25 @@ function ManualRow({
         <TierMark cell={tierCell} />
       ) : (
         <span dir="ltr" className="font-expanded">
-          {makeTeamsLevelLabel(player, balanceOn)}
+          {ovrLabel(player)}
         </span>
       )}
       <SwatchButton
         bib={draft.bibs.slot1}
         selected={side === 1}
-        label={m.webTournament.footballTeams.putIn(player.name, names.slot1)}
+        label={m.webTournament.footballTeams.putIn(
+          teamsName(player),
+          names.slot1,
+        )}
         onClick={() => onPlace(1)}
       />
       <SwatchButton
         bib={draft.bibs.slot2}
         selected={side === 2}
-        label={m.webTournament.footballTeams.putIn(player.name, names.slot2)}
+        label={m.webTournament.footballTeams.putIn(
+          teamsName(player),
+          names.slot2,
+        )}
         onClick={() => onPlace(2)}
       />
     </li>
@@ -324,7 +334,6 @@ function ManualLists({
               player={player}
               draft={draft}
               names={summary.names}
-              balanceOn={summary.balanceOn}
               onPlace={(side) => onPlace(player.userId, side)}
             />
           ))}

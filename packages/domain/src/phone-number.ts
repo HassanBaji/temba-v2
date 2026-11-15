@@ -207,3 +207,8 @@ export function formatE164(e164: string): string {
   const parsed = parseE164(e164);
   return parsed ? formatInternationalNumber(parsed.iso, parsed.national) : e164;
 }
+
+/** WhatsApp's click-to-chat link, which takes the number as digits only. */
+export function whatsAppHref(e164: string): string {
+  return `https://wa.me/${e164.replace(/\D/g, "")}`;
+}

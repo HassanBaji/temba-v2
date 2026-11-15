@@ -6,6 +6,7 @@ import type {
   FootballPosition,
   FootballRole,
 } from "@repo/domain/football-lineup";
+import { wholeOvrFromMu } from "@repo/domain/football-ovr";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { type Sport } from "@repo/domain/sport";
 import { sportSchema } from "@repo/validators/sport";
@@ -35,6 +36,8 @@ export type TeamPhonePlayerPreview = {
   phoneMasked?: string;
   /** Set for someone already on Temba: their Level in the Team's sport. */
   levelBand?: LevelBand | null;
+  /** Football only: their whole OVR, which football shows in place of the band. */
+  ovr?: number | null;
   footballRole?: FootballRole | null;
   footballPosition?: FootballPosition | null;
   /** Games the viewer and this player were both in, cancelled ones aside. */
@@ -82,12 +85,13 @@ async function playerDetails(
           eq(ratings.userId, args.player.id),
           eq(ratings.sport, args.sport),
         ),
-        columns: { levelBand: true },
+        columns: { levelBand: true, mu: true },
       })
     : undefined;
   const football = args.sport === "football";
   return {
     levelBand: rating?.levelBand ?? null,
+    ovr: football && rating ? wholeOvrFromMu(rating.mu) : null,
     footballRole: football ? args.player.preferredFootballRole : null,
     footballPosition: football ? args.player.preferredFootballPosition : null,
     gamesWithYou: await gamesTogether(database, args.viewerId, args.player.id),

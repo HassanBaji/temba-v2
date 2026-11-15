@@ -63,7 +63,7 @@ export function teamLevel(
   };
 }
 
-/** "C, avg 2.8", "C+, avg OVR 72" on football, or null for a Team with no rated member. */
+/** "C, avg 2.8", "avg OVR 72" on football, or null for a Team with no rated member. */
 export function teamLevelLabel(
   memberLevels: readonly MemberLevel[],
   sport: Sport,
@@ -76,5 +76,5 @@ export function teamLevelLabel(
   const m = messagesFor(locale);
   return value.ovr == null
     ? m.team.level.team(value.band, value.level)
-    : m.rating.ovr.team(value.band, formatOvr(value.ovr));
+    : m.rating.ovr.avg(formatOvr(value.ovr));
 }

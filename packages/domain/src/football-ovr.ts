@@ -49,9 +49,24 @@ export function muFromOvr(ovr: number) {
   return muFromLevel(levelFromOvr(ovr));
 }
 
+/** The labels under the football level scale, lowest to highest. */
+export const OVR_SCALE_TICKS = [40, 55, 70, 85, 99] as const;
+
+/** How far along the 40 to 99 scale an OVR sits, to one decimal. */
+export function ovrScalePercent(ovr: number) {
+  return (
+    Math.round(((clampOvr(ovr) - OVR_MIN) / (OVR_MAX - OVR_MIN)) * 1000) / 10
+  );
+}
+
 /** OVR is always shown as a whole number. */
 export function formatOvr(ovr: number) {
   return String(Math.round(clampOvr(ovr)));
+}
+
+/** The whole-number OVR of a Level in tenths, as a Level range bound or a Team Level reads. */
+export function formatOvrFromTenths(tenths: number) {
+  return formatOvr(ovrFromLevel(tenths / 10));
 }
 
 /** The whole-number OVR of a stored μ, as every surface shows it. */

@@ -118,6 +118,7 @@ describe("team roster draft", () => {
               userId: "u1",
               name: "Yousif Kadhem",
               levelBand: "C1",
+              ovr: 70,
               footballRole: "outfield",
               footballPosition: "mid",
               source: { kind: "group", groupName: "Thursday Padel" },
@@ -128,7 +129,7 @@ describe("team roster draft", () => {
         HAMAD,
         "football",
       ),
-      { ...AHMED, levelBand: "C2", footballPosition: "fwd" },
+      { ...AHMED, levelBand: "C2", ovr: 64, footballPosition: "fwd" },
       "football",
     );
     const view = rosterDraftView(
@@ -138,6 +139,7 @@ describe("team roster draft", () => {
         captain: {
           name: "Hassan Haji",
           levelBand: "C1",
+          ovr: 71,
           footballRole: "outfield",
           footballPosition: "def",
         },
@@ -154,16 +156,16 @@ describe("team roster draft", () => {
         row.statusDetail,
       ]),
       [
-        ["HH", "in", "DEF, C+", "captain", null],
+        ["HH", "in", "DEF, 71", "captain", null],
         [
           "YK",
           "invited",
-          "MID, C+. Invited from Thursday Padel",
+          "MID, 70. Invited from Thursday Padel",
           "Invited",
           "waiting",
         ],
         ["H", "added", "GK. +973 3612 4401", "Added by you", "not on Temba"],
-        ["AA", "invited", "FWD, C. Invited by phone", "Invited", "waiting"],
+        ["AA", "invited", "FWD, 64. Invited by phone", "Invited", "waiting"],
       ],
     );
     assert.equal(view.rows[0]?.removeLabel, null);
@@ -385,7 +387,8 @@ describe("team From a group rows", () => {
       userId: "a",
       name: "Ali",
       unclaimed: false,
-      levelBand: null,
+      levelBand: "C1" as const,
+      ovr: 70,
       footballRole: "keeper" as const,
       invited: false,
     },
@@ -435,12 +438,26 @@ describe("team From a group rows", () => {
         row.blocked,
       ]),
       [
-        ["Ali", "Keeper", null, true, false],
+        ["Ali", "Keeper, OVR 70", null, true, false],
         ["Badr", "", "Invited", false, false],
         ["Camal", "", "Not on Temba yet. Add them by phone.", false, false],
         ["Dana", "Outfield", null, false, true],
       ],
     );
+  });
+
+  it("keeps the band on padel", () => {
+    const rows = teamGroupMemberRows(
+      {
+        members,
+        picked: [],
+        listedUserIds: [],
+        spotsLeft: 5,
+        sport: "padel",
+      },
+      "en",
+    );
+    assert.equal(rows[0]?.meta, "Level C+");
   });
 
   it("narrows to the search", () => {
@@ -478,6 +495,7 @@ describe("team phone lookup card", () => {
     alreadyOnTeam: false,
     alreadyInvited: false,
     levelBand: "C2" as const,
+    ovr: 64,
     footballRole: "outfield" as const,
     footballPosition: "fwd" as const,
     gamesWithYou: 9,
@@ -490,14 +508,20 @@ describe("team phone lookup card", () => {
         kind: "found",
         name: "Ali Mansoor",
         initials: "AM",
-        line: "On Temba. Football C, FWD. 9 games with you",
+        line: "On Temba. Football OVR 64, FWD. 9 games with you",
         note: "Ali gets the invite in the app. The seat shows as waiting until they accept; you can post challenges meanwhile.",
         action: "Invite",
         actionA11y: "Invite Ali Mansoor",
       },
     );
     const bare = teamPhoneLookupCard(
-      { ...found, levelBand: null, footballPosition: null, gamesWithYou: 0 },
+      {
+        ...found,
+        levelBand: null,
+        ovr: null,
+        footballPosition: null,
+        gamesWithYou: 0,
+      },
       { listed: false, sport: "football" },
       "en",
     );
@@ -593,6 +617,7 @@ describe("team from a group", () => {
       name: "Yousif Kadhem",
       unclaimed: false,
       levelBand: "C1" as const,
+      ovr: 70,
       footballRole: "outfield" as const,
       footballPosition: "mid" as const,
       invited: false,
@@ -647,6 +672,7 @@ describe("team from a group", () => {
         userId: "y",
         name: "Yousif Kadhem",
         levelBand: "C1",
+        ovr: 70,
         footballRole: "outfield",
         footballPosition: "mid",
         source: { kind: "group", groupName: "Gooz of Arad" },
@@ -671,7 +697,7 @@ describe("team from a group", () => {
       ).map((row) => [row.initials, row.meta, row.picked, row.disabled]),
       [
         ["HH", "You, captain", true, true],
-        ["YK", "MID, C+", true, false],
+        ["YK", "MID, 70", true, false],
         ["KR", "Not on Temba yet. Add them by phone.", false, true],
       ],
     );

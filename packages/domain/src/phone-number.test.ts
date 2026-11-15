@@ -12,6 +12,7 @@ import {
   nationalDigits,
   parseE164,
   phoneShapePlaceholder,
+  whatsAppHref,
 } from "./phone-number";
 
 const SAMPLES: Record<
@@ -150,6 +151,13 @@ describe("formatE164", () => {
 
   it("leaves a number from an unlisted country as stored", () => {
     assert.equal(formatE164("+447700900123"), "+447700900123");
+  });
+});
+
+describe("whatsAppHref", () => {
+  it("opens a chat with the number as digits only", () => {
+    assert.equal(whatsAppHref("+97336124408"), "https://wa.me/97336124408");
+    assert.equal(whatsAppHref("+447700900123"), "https://wa.me/447700900123");
   });
 });
 

@@ -51,7 +51,7 @@ function CalibrateLevelForm({
   const [reason, setReason] = useState<LevelOverrideReason | null>(null);
   const [note, setNote] = useState("");
   const unchanged = calibrateLevelUnchanged(view, value);
-  const label = calibrateLevelLabel(view.face, value);
+  const label = calibrateLevelLabel(view.face, value, locale);
 
   const calibrate = api.ratings.setLevelAsVerifier.useMutation({
     onSuccess: async () => {

@@ -23,6 +23,8 @@ export type FriendlyGameDetailsSeat = {
   unclaimed?: boolean;
   guest?: boolean;
   phoneMasked?: string | null;
+  /** E.164, sent only to a Group approver for a current member (ADR-0078). */
+  phoneNumber?: string | null;
   /** The viewer may fix this Unclaimed player's name here. */
   canRename?: boolean;
   /** Joined without picking a Position. */

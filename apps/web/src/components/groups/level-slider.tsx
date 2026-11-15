@@ -1,6 +1,6 @@
 "use client";
 
-import { useMessages } from "~/components/locale-provider";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { Slider, SLIDER_THUMB_PX } from "~/components/ui/slider";
 import { OVR_MAX, OVR_MIN, type LevelFace } from "@repo/domain/football-ovr";
 import {
@@ -8,6 +8,7 @@ import {
   levelSliderLabel,
   OVR_SLIDER_TICKS,
   ovrSliderLabel,
+  ovrSliderValueText,
 } from "@repo/domain/level-slider";
 import { LEVEL_TENTHS_MAX, LEVEL_TENTHS_MIN } from "@repo/domain/level-range";
 
@@ -24,18 +25,17 @@ const SCALES = {
     startLabel: LEVEL_SLIDER_TICKS.startLabel,
     endLabel: LEVEL_SLIDER_TICKS.endLabel,
     label: levelSliderLabel,
+    valueText: (value: number) => levelSliderLabel(value),
   },
   ovr: {
     min: OVR_MIN,
     max: OVR_MAX,
     edges: OVR_SLIDER_TICKS.edges,
-    letters: OVR_SLIDER_TICKS.letters.map((letter) => ({
-      label: letter.label,
-      at: letter.centre,
-    })),
+    letters: OVR_SLIDER_TICKS.marks,
     startLabel: OVR_SLIDER_TICKS.startLabel,
     endLabel: OVR_SLIDER_TICKS.endLabel,
     label: ovrSliderLabel,
+    valueText: ovrSliderValueText,
   },
 } satisfies Record<LevelFace, unknown>;
 
@@ -58,6 +58,7 @@ export function LevelSlider({
   currentLabel?: string;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   const scale = SCALES[face];
 
   /** Where a value sits from the start side along the thumb's travel, which stops half a thumb short of each end. */
@@ -90,7 +91,7 @@ export function LevelSlider({
             }
           }}
           thumbLabel={m.common.level}
-          thumbValueText={scale.label(value)}
+          thumbValueText={scale.valueText(value, locale)}
         >
           <span
             data-slot="level-slider-now"
@@ -122,7 +123,8 @@ export function LevelSlider({
             className="text-muted-foreground text-meta absolute -translate-x-1/2 whitespace-nowrap rtl:translate-x-1/2"
             style={{ insetInlineStart: insetAt(currentValue) }}
           >
-            {currentLabel ?? m.webGroup.setLevel.now(scale.label(currentValue))}
+            {currentLabel ??
+              m.webGroup.setLevel.now(scale.valueText(currentValue, locale))}
           </span>
         </div>
       </div>

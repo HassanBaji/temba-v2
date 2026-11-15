@@ -10,15 +10,21 @@ import {
 
 /**
  * A Tier band is a place among a tier Group's ranked members (ADR-0067): the
- * Shark is first, Hamour the next 15% of the rest, Kanaad the next 35%, Safi
- * everyone else. Top band first.
+ * top three are Sharks, Hamour the next 15% of the rest, Kanaad the next 35%,
+ * Safi everyone else. Top band first.
  */
 export const TIER_BANDS = ["shark", "hamour", "kanaad", "safi"] as const;
 
 export type TierBand = (typeof TIER_BANDS)[number];
 
 /** Below this many ranked members, rows show place and points, no fish. */
-export const TIER_MIN_RANKED = 4;
+export const TIER_MIN_RANKED = 2;
+
+/** Below this many ranked members, a start hint ignores their points. */
+const TIER_HINT_MIN_RANKED = 4;
+
+/** Fewer while the Group is small, so at least one ranked member is not a Shark. */
+export const TIER_SHARK_PLACES = 3;
 
 export const TIER_HAMOUR_SHARE = 0.15;
 export const TIER_KANAAD_SHARE = 0.35;
@@ -52,10 +58,11 @@ export function tierBandCounts(ranked: number): Record<TierBand, number> {
   if (ranked < TIER_MIN_RANKED) {
     return { shark: 0, hamour: 0, kanaad: 0, safi: 0 };
   }
-  const rest = ranked - 1;
+  const shark = Math.min(TIER_SHARK_PLACES, ranked - 1);
+  const rest = ranked - shark;
   const hamour = Math.round(TIER_HAMOUR_SHARE * rest);
   const kanaad = Math.round(TIER_KANAAD_SHARE * rest);
-  return { shark: 1, hamour, kanaad, safi: rest - hamour - kanaad };
+  return { shark, hamour, kanaad, safi: rest - hamour - kanaad };
 }
 
 export type TierTableRow = TierStanding & {
@@ -245,7 +252,7 @@ function median(values: readonly number[]) {
 }
 
 /**
- * What a start hint is read against. With enough ranked members for fish, it
+ * What a start hint is read against. With four or more ranked members, it
  * is their median points, their median OVR and their range of points. With
  * fewer, places are noise: the start of 1,200, the median OVR of everyone who
  * has one, and one adjustment either way. Null when nobody has an OVR.
@@ -257,7 +264,7 @@ export function tierHintReference(
   const rankedOvrs = ranked.flatMap((member) =>
     member.ovr == null ? [] : [member.ovr],
   );
-  if (ranked.length >= TIER_MIN_RANKED && rankedOvrs.length > 0) {
+  if (ranked.length >= TIER_HINT_MIN_RANKED && rankedOvrs.length > 0) {
     const points = ranked.map((member) => member.points);
     return {
       medianPoints: median(points),

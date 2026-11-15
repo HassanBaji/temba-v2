@@ -140,6 +140,7 @@ function football(overrides: Partial<TeamDetailInput> = {}): TeamDetailInput {
     isViewer: true,
     level: "2.8",
     levelBand: "C2",
+    ovr: 64,
     footballRole: "outfield",
     footballPosition: "def",
   });
@@ -221,7 +222,7 @@ describe("teamDetailView hero", () => {
   it("reads a football Team with draws, its Group and Formats, and the Roster strip", () => {
     const view = teamDetailView(football(), NOW, "en");
     expect(view.hero.subtitle).toBe(
-      "Football, C. Gooz of Arad's team. Plays 5, 6 and 7-a-side",
+      "Football, OVR 64. Gooz of Arad's team. Plays 5, 6 and 7-a-side",
     );
     expect(view.hero.record).toMatchObject({
       value: "4–1–2",
@@ -347,7 +348,10 @@ describe("teamDetailView members", () => {
     expect(view.members.title).toBe("Roster");
     expect(view.members.count).toBe("12 of 20");
     expect(view.members.rows[0]?.line).toBe("You, captain. DEF");
-    expect(view.members.rows[0]?.level).toBe("C");
+    expect(view.members.rows[0]?.level).toBe("64");
+    expect(view.members.rows[0]?.accessibilityLabel).toBe(
+      "Hassan Haji, You, captain. DEF, OVR 64",
+    );
     expect(view.members.rows[1]?.line).toBe("GK");
     expect(view.members.more).toBe("and 6 more");
     expect(view.members.openSeat).toEqual({

@@ -17,12 +17,7 @@ import { globalFormErrorMessage } from "~/lib/form-mutation-error";
 import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
-import {
-  formatOvr,
-  OVR_MAX,
-  OVR_MIN,
-  type LevelFace,
-} from "@repo/domain/football-ovr";
+import { OVR_MAX, OVR_MIN, type LevelFace } from "@repo/domain/football-ovr";
 import type { GroupLevelOverrideData } from "@repo/domain/group-data";
 import type { LevelBand } from "@repo/domain/level-bands";
 import { LEVEL_TENTHS_MAX, LEVEL_TENTHS_MIN } from "@repo/domain/level-range";
@@ -39,9 +34,9 @@ import {
   ovrSliderLabel,
   ovrSliderReadout,
   ovrSliderStart,
+  ovrSliderValueText,
   type LevelOverrideReason,
 } from "@repo/domain/level-slider";
-import type { Locale } from "@repo/i18n/locale";
 
 export type SetLevelMember = {
   userId: string;
@@ -65,19 +60,15 @@ const FACES = {
     min: LEVEL_TENTHS_MIN,
     max: LEVEL_TENTHS_MAX,
     clamp: clampLevelTenths,
-    label: levelSliderLabel,
+    label: (value: number) => levelSliderLabel(value),
     start: (member: SetLevelMember) => currentTenthsOf(member),
-    readout: (value: number, current: number, locale: Locale) =>
-      levelSliderReadout({ tenths: value, currentTenths: current, locale }),
   },
   ovr: {
     min: OVR_MIN,
     max: OVR_MAX,
     clamp: clampOvrInput,
-    label: ovrSliderLabel,
+    label: ovrSliderValueText,
     start: (member: SetLevelMember) => ovrSliderStart(member.ovr ?? null),
-    readout: (value: number, current: number, locale: Locale) =>
-      ovrSliderReadout({ ovr: value, currentOvr: current, locale }),
   },
 } satisfies Record<LevelFace, unknown>;
 
@@ -113,7 +104,8 @@ export function SetLevelMemberSummary({
         </div>
         <LevelCell
           band={member.levelBand}
-          level={member.ovr == null ? member.level : formatOvr(member.ovr)}
+          level={member.level}
+          ovr={member.ovr}
           provisional={member.levelProvisional}
           className="w-16 shrink-0"
         />
@@ -176,6 +168,110 @@ export function SetLevelForm({
   );
 }
 
+function LevelReadout({
+  value,
+  currentValue,
+}: {
+  value: number;
+  currentValue: number;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.webGroup.setLevel;
+  const readout = levelSliderReadout({
+    tenths: value,
+    currentTenths: currentValue,
+    locale,
+  });
+  return (
+    <>
+      <p className="font-expanded flex items-baseline gap-3" aria-live="polite">
+        <span dir="ltr" className="text-[60px] leading-[0.94]">
+          {readout.displayBand}
+        </span>
+        <span className="text-[28px]">{readout.levelLabel}</span>
+        <span className="text-body ms-auto">{readout.deltaLabel}</span>
+      </p>
+      <div className="text-meta flex justify-between">
+        <span>
+          {readout.toNext
+            ? copy.toNext(readout.toNext.distanceLabel, readout.toNext.label)
+            : copy.topOfScale}
+        </span>
+        <span>
+          {copy.throughRung(readout.percentThroughRung, readout.rung.label)}
+        </span>
+      </div>
+      <ReadoutBar
+        percent={readout.percentThroughRung}
+        lowerLabel={readout.rung.lowerLabel}
+        upperLabel={readout.rung.upperLabel}
+      />
+    </>
+  );
+}
+
+/** Football's readout: the big OVR and its change, the bar along 40 to 99 (ADR-0087). */
+function OvrReadout({
+  value,
+  currentValue,
+}: {
+  value: number;
+  currentValue: number;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const readout = ovrSliderReadout({
+    ovr: value,
+    currentOvr: currentValue,
+    locale,
+  });
+  return (
+    <>
+      <p className="font-expanded flex items-baseline gap-3" aria-live="polite">
+        <span className="sr-only">{m.rating.ovr.label}</span>
+        <span dir="ltr" className="text-[60px] leading-[0.94]">
+          {readout.ovrLabel}
+        </span>
+        <span className="text-body ms-auto">{readout.deltaLabel}</span>
+      </p>
+      <ReadoutBar
+        percent={readout.percentOfScale}
+        lowerLabel={readout.scale.lowerLabel}
+        upperLabel={readout.scale.upperLabel}
+      />
+    </>
+  );
+}
+
+function ReadoutBar({
+  percent,
+  lowerLabel,
+  upperLabel,
+}: {
+  percent: number;
+  lowerLabel: string;
+  upperLabel: string;
+}) {
+  return (
+    <>
+      <div
+        aria-hidden="true"
+        className="bg-on-focus/25 h-1.5 overflow-hidden rounded-full"
+      >
+        <div className="bg-on-focus h-full" style={{ width: `${percent}%` }} />
+      </div>
+      <div
+        aria-hidden="true"
+        className="text-meta flex justify-between opacity-70"
+      >
+        <span>{lowerLabel}</span>
+        <span>{upperLabel}</span>
+      </div>
+    </>
+  );
+}
+
 /**
  * The slider, reason, note and submit of a Level override, for any caller's
  * mutation. `face` "ovr" sets a football Level in whole OVR; the value handed
@@ -207,11 +303,18 @@ export function SetLevelFields({
   const [reason, setReason] = React.useState<LevelOverrideReason | null>(null);
   const [note, setNote] = React.useState("");
 
-  const readout = scale.readout(value, currentValue, locale);
+  const stepperLabel =
+    face === "ovr"
+      ? ovrSliderLabel(value)
+      : levelSliderReadout({
+          tenths: value,
+          currentTenths: currentValue,
+          locale,
+        }).levelLabel;
   const alreadyConfirmed = member.level !== null && !member.levelProvisional;
   const unchanged = alreadyConfirmed && value === currentValue;
   const wasLabel = member.level
-    ? copy.was(scale.label(currentValue))
+    ? copy.was(scale.label(currentValue, locale))
     : copy.noLevelYet;
 
   function step(delta: number) {
@@ -225,42 +328,11 @@ export function SetLevelFields({
           <p className="text-meta font-semibold">{copy.newLevel}</p>
           <p className="text-meta opacity-70">{wasLabel}</p>
         </div>
-        <p
-          className="font-expanded flex items-baseline gap-3"
-          aria-live="polite"
-        >
-          <span dir="ltr" className="text-[60px] leading-[0.94]">
-            {readout.displayBand}
-          </span>
-          <span className="text-[28px]">{readout.levelLabel}</span>
-          <span className="text-body ms-auto">{readout.deltaLabel}</span>
-        </p>
-        <div className="text-meta flex justify-between">
-          <span>
-            {readout.toNext
-              ? copy.toNext(readout.toNext.distanceLabel, readout.toNext.label)
-              : copy.topOfScale}
-          </span>
-          <span>
-            {copy.throughRung(readout.percentThroughRung, readout.rung.label)}
-          </span>
-        </div>
-        <div
-          aria-hidden="true"
-          className="bg-on-focus/25 h-1.5 overflow-hidden rounded-full"
-        >
-          <div
-            className="bg-on-focus h-full"
-            style={{ width: `${readout.percentThroughRung}%` }}
-          />
-        </div>
-        <div
-          aria-hidden="true"
-          className="text-meta flex justify-between opacity-70"
-        >
-          <span>{readout.rung.lowerLabel}</span>
-          <span>{readout.rung.upperLabel}</span>
-        </div>
+        {face === "ovr" ? (
+          <OvrReadout value={value} currentValue={currentValue} />
+        ) : (
+          <LevelReadout value={value} currentValue={currentValue} />
+        )}
       </Surface>
 
       <LevelSlider
@@ -282,7 +354,7 @@ export function SetLevelFields({
           <Minus aria-hidden="true" />
         </Button>
         <span className="font-expanded text-lead min-w-14 text-center">
-          {readout.levelLabel}
+          {stepperLabel}
         </span>
         <Button
           type="button"
@@ -360,7 +432,7 @@ export function SetLevelFields({
       >
         {reason === null && !unchanged
           ? copy.pickReason
-          : copy.setTo(scale.label(value))}
+          : copy.setTo(scale.label(value, locale))}
       </Button>
     </div>
   );

@@ -1,6 +1,6 @@
 {
-  "id": "34a72f7b-4636-4f51-9e97-eec89db2d046",
-  "prevId": "e376ad1a-5878-4c5d-b91d-54abb83e4966",
+  "id": "8947d332-e2d8-4092-af72-9c6c330b42b1",
+  "prevId": "f06bcbde-98cd-44d5-bceb-1715b83521c9",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -4273,6 +4273,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "final_order_posted_at": {
+          "name": "final_order_posted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
         "allow_solo_register": {
           "name": "allow_solo_register",
           "type": "boolean",
@@ -4291,20 +4297,6 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": false
-        },
-        "track_payments": {
-          "name": "track_payments",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "keepers_play_free": {
-          "name": "keepers_play_free",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "level_min_tenths": {
           "name": "level_min_tenths",
@@ -5418,13 +5410,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "kickoff_football_role": {
-          "name": "kickoff_football_role",
-          "type": "football_role",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -5528,328 +5513,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.game_payment_events": {
-      "name": "game_payment_events",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "game_id": {
-          "name": "game_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "actor_user_id": {
-          "name": "actor_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "action": {
-          "name": "action",
-          "type": "game_payment_event_action",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "game_payment_events_game_id_idx": {
-          "name": "game_payment_events_game_id_idx",
-          "columns": [
-            {
-              "expression": "game_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "game_payment_events_user_id_idx": {
-          "name": "game_payment_events_user_id_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "game_payment_events_game_id_games_id_fk": {
-          "name": "game_payment_events_game_id_games_id_fk",
-          "tableFrom": "game_payment_events",
-          "tableTo": "games",
-          "columnsFrom": [
-            "game_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "game_payment_events_user_id_user_id_fk": {
-          "name": "game_payment_events_user_id_user_id_fk",
-          "tableFrom": "game_payment_events",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "game_payment_events_actor_user_id_user_id_fk": {
-          "name": "game_payment_events_actor_user_id_user_id_fk",
-          "tableFrom": "game_payment_events",
-          "tableTo": "user",
-          "columnsFrom": [
-            "actor_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.game_payments": {
-      "name": "game_payments",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "game_id": {
-          "name": "game_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "game_payment_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "claimed_at": {
-          "name": "claimed_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "paid_at": {
-          "name": "paid_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "paid_by_user_id": {
-          "name": "paid_by_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "returned_at": {
-          "name": "returned_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "returned_by_user_id": {
-          "name": "returned_by_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "return_reason": {
-          "name": "return_reason",
-          "type": "game_payment_return_reason",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "return_note": {
-          "name": "return_note",
-          "type": "varchar(200)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_by_user_id": {
-          "name": "updated_by_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "game_payments_user_id_idx": {
-          "name": "game_payments_user_id_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "game_payments_game_id_games_id_fk": {
-          "name": "game_payments_game_id_games_id_fk",
-          "tableFrom": "game_payments",
-          "tableTo": "games",
-          "columnsFrom": [
-            "game_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "game_payments_user_id_user_id_fk": {
-          "name": "game_payments_user_id_user_id_fk",
-          "tableFrom": "game_payments",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "game_payments_paid_by_user_id_user_id_fk": {
-          "name": "game_payments_paid_by_user_id_user_id_fk",
-          "tableFrom": "game_payments",
-          "tableTo": "user",
-          "columnsFrom": [
-            "paid_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "game_payments_returned_by_user_id_user_id_fk": {
-          "name": "game_payments_returned_by_user_id_user_id_fk",
-          "tableFrom": "game_payments",
-          "tableTo": "user",
-          "columnsFrom": [
-            "returned_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "game_payments_updated_by_user_id_user_id_fk": {
-          "name": "game_payments_updated_by_user_id_user_id_fk",
-          "tableFrom": "game_payments",
-          "tableTo": "user",
-          "columnsFrom": [
-            "updated_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "game_payments_game_id_user_id_unique": {
-          "name": "game_payments_game_id_user_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "game_id",
-            "user_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.game_teams": {
       "name": "game_teams",
       "schema": "",
@@ -5893,6 +5556,18 @@
         },
         "knockout_seed": {
           "name": "knockout_seed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "start_court": {
+          "name": "start_court",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "final_place": {
+          "name": "final_place",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
@@ -11070,7 +10745,8 @@
       "values": [
         "groups_only",
         "groups_then_knockout",
-        "knockout_only"
+        "knockout_only",
+        "king_of_the_court"
       ]
     },
     "public.match_dispute_status": {
@@ -11081,35 +10757,6 @@
         "upheld",
         "dismissed",
         "superseded"
-      ]
-    },
-    "public.game_payment_event_action": {
-      "name": "game_payment_event_action",
-      "schema": "public",
-      "values": [
-        "claimed",
-        "unclaimed",
-        "paid",
-        "not_received",
-        "undone"
-      ]
-    },
-    "public.game_payment_return_reason": {
-      "name": "game_payment_return_reason",
-      "schema": "public",
-      "values": [
-        "nothing_arrived",
-        "wrong_amount",
-        "sent_elsewhere"
-      ]
-    },
-    "public.game_payment_status": {
-      "name": "game_payment_status",
-      "schema": "public",
-      "values": [
-        "claimed",
-        "paid",
-        "not_received"
       ]
     },
     "public.mark_kind": {
@@ -11309,9 +10956,8 @@
         "match_dispute_raised",
         "match_dispute_decided",
         "level_confirmed",
-        "game_payment_reminder",
-        "game_payment_not_received",
-        "game_payment_claimed"
+        "king_courts_posted",
+        "king_final_order_posted"
       ]
     }
   },

@@ -5,6 +5,8 @@ import {
   byKeeperThenLevel,
   bibNames,
   levelLabel,
+  ovrLabel,
+  ovrSpoken,
   shortName,
   sideOvrAverage,
   slotCode,
@@ -16,6 +18,7 @@ import {
   type FootballBib,
   type FootballTeamsMethod,
 } from "./football-lineup";
+import { wholeOvrFromMu } from "./football-ovr";
 import { formatGameClock, formatGameDay } from "./format-game-start";
 import type { FriendlyGameDetailsSide } from "./friendly-game-details";
 import type { FriendlyGameHeroMatch } from "./friendly-game-hero";
@@ -43,12 +46,19 @@ export type PlayedRow = {
   /** LEFT or RIGHT on padel; GK, DEF, MID or FWD on football. */
   meta: string | null;
   level: string;
+  /**
+   * How a screen reader says `level`: "OVR 72" on football, null without
+   * one; padel leaves it to the App.
+   */
+  levelSpoken?: string | null;
   /** "2 goals" on football, nothing on padel. */
   trailing: string | null;
   unclaimed: boolean;
   /** A Guest player: a name only, nothing opens on tap for players. */
   guest: boolean;
   phoneMasked: string | null;
+  /** E.164, sent only to a Group approver for a current member (ADR-0078). */
+  phoneNumber: string | null;
 };
 
 export type PlayedColumn = {
@@ -79,6 +89,12 @@ export type PlayedYouLine = {
 export type PlayedRatingImpact = {
   levelChange: number;
   newLevelBand: LevelBand;
+};
+
+/** A football Match's Rating move, read in OVR from the μ it left (ADR-0087). */
+export type PlayedFootballRatingImpact = {
+  levelChange: number;
+  muAfter: number;
 };
 
 export type PlayedPlace = {
@@ -153,6 +169,30 @@ export function playedRatingLine(
     return m.ratingMovesDown(band);
   }
   return m.ratingHolds(band);
+}
+
+/** "Counts for rating, OVR 72 moves up": the football line names the OVR the Match left, never a band. */
+export function playedFootballRatingLine(
+  rated: boolean,
+  impact: PlayedFootballRatingImpact | null,
+  locale: Locale,
+) {
+  const messages = messagesFor(locale);
+  const m = messages.game.played;
+  if (!rated) {
+    return m.friendlyNoRating;
+  }
+  if (!impact) {
+    return m.countsForRating;
+  }
+  const ovr = messages.rating.ovr.value(String(wholeOvrFromMu(impact.muAfter)));
+  if (impact.levelChange > 0) {
+    return m.ratingMovesUp(ovr);
+  }
+  if (impact.levelChange < 0) {
+    return m.ratingMovesDown(ovr);
+  }
+  return m.ratingHolds(ovr);
 }
 
 export function playedWord(won: boolean, hasWinner: boolean): PlayedWord {
@@ -329,6 +369,7 @@ function padelRows(
         unclaimed: Boolean(seat.unclaimed),
         guest: Boolean(seat.guest),
         phoneMasked: seat.phoneMasked ?? null,
+        phoneNumber: seat.phoneNumber ?? null,
       },
     ];
   });
@@ -489,7 +530,7 @@ export type PlayedFootballInput = PlayedPlace & {
   sideSize: number | null;
   groupName: string | null;
   rated: boolean;
-  ratingImpact: PlayedRatingImpact | null;
+  ratingImpact: PlayedFootballRatingImpact | null;
   /** A Public Game's score the other side did not confirm in time (ADR-0071). */
   stoodUnconfirmed?: boolean;
   /** The Verifier who stamped the score (ADR-0072). */
@@ -525,11 +566,13 @@ function footballRow(player: BoardPlayer, locale: Locale): PlayedRow {
     image: player.image,
     isYou: player.isViewer,
     meta: slotCode(player, locale),
-    level: levelLabel(player.levelBand),
+    level: ovrLabel(player),
+    levelSpoken: ovrSpoken(player, locale),
     trailing: player.goals > 0 ? goalsLabel(player.goals, locale) : null,
     unclaimed: Boolean(player.unclaimed),
     guest: Boolean(player.guest),
     phoneMasked: player.phoneMasked ?? null,
+    phoneNumber: player.phoneNumber ?? null,
   };
 }
 
@@ -601,7 +644,7 @@ export function playedFootballModel(
           })(),
           ratingLine: input.stoodUnconfirmed
             ? messages.rating.publicGame.stood
-            : playedRatingLine(input.rated, input.ratingImpact, locale),
+            : playedFootballRatingLine(input.rated, input.ratingImpact, locale),
           tag: youTag(youWord),
           won: viewerWon,
         }

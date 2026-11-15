@@ -362,33 +362,29 @@ describe("Verification changes after create", () => {
 });
 
 describe("Group create", () => {
-  it("sets verified_at and verified_by only when verifiedBy is passed", async () => {
+  it("never verifies a new Group, whoever creates it", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const creator = await insertUser(db, "creator-flag@example.com");
+      const creator = await insertUser(db, "creator@example.com");
 
-      const flagged = await createLoosePublic(db, {
-        name: "Flagged",
-        sport: "padel",
-        userId: creator.id,
-        verifiedBy: creator.id,
-      });
-      const plain = await createLoosePrivate(db, {
-        name: "Plain",
+      const publicGroup = await createLoosePublic(db, {
+        name: "Public",
         sport: "padel",
         userId: creator.id,
       });
+      const privateGroup = await createLoosePrivate(db, {
+        name: "Private",
+        sport: "padel",
+        userId: creator.id,
+      });
 
-      const flaggedRow = await db.query.groups.findFirst({
-        where: eq(groups.id, flagged.id),
-      });
-      const plainRow = await db.query.groups.findFirst({
-        where: eq(groups.id, plain.id),
-      });
-      expect(flaggedRow?.verifiedAt).toBeInstanceOf(Date);
-      expect(flaggedRow?.verifiedBy).toBe(creator.id);
-      expect(plainRow?.verifiedAt).toBeNull();
-      expect(plainRow?.verifiedBy).toBeNull();
+      for (const created of [publicGroup, privateGroup]) {
+        const row = await db.query.groups.findFirst({
+          where: eq(groups.id, created.id),
+        });
+        expect(row?.verifiedAt).toBeNull();
+        expect(row?.verifiedBy).toBeNull();
+      }
     } finally {
       await close();
     }

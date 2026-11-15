@@ -329,6 +329,7 @@ export function AcceptGameInviteLink({
     fit,
     asksAboutGroup,
     locale,
+    sport: hero.sport,
   });
   const barOpenSeats =
     football || ready.vacantSeats.length > 0

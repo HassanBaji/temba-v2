@@ -30,7 +30,11 @@ function member(
 
 const members = [
   member("yk", "Yousif Khalil", { status: "in_game", footballPosition: "fwd" }),
-  member("ma", "Mohamed Alawi", { footballRole: "keeper", levelBand: "C2" }),
+  member("ma", "Mohamed Alawi", {
+    footballRole: "keeper",
+    levelBand: "C2",
+    ovr: 66,
+  }),
   member("ha", "Hamad Al Sayed", { footballPosition: "mid" }),
 ];
 
@@ -43,7 +47,7 @@ describe("groupMemberRows", () => {
     assert.deepEqual(
       rows.map((row) => [row.userId, row.meta, row.status]),
       [
-        ["ma", "Goalkeeper · Level C", null],
+        ["ma", "Goalkeeper · OVR 66", null],
         ["ha", "Midfielder", null],
         ["yk", "Forward", "In game"],
       ],
@@ -67,11 +71,30 @@ describe("groupMemberRows", () => {
       "en",
     );
     const byId = new Map(rows.map((row) => [row.userId, row]));
-    assert.equal(byId.get("ma")?.meta, "Level C");
+    assert.equal(byId.get("ma")?.meta, "OVR 66");
     assert.equal(byId.get("ma")?.selected, true);
     assert.equal(byId.get("ha")?.blocked, true);
     assert.equal(byId.get("ha")?.meta, "Midfielder · no spots left");
     assert.equal(byId.get("yk")?.blocked, false);
+  });
+
+  it("never shows a band on a football Game, even without an OVR", () => {
+    const rows = groupMemberRows(
+      {
+        members: [
+          member("ma", "Mohamed Alawi", {
+            levelBand: "C2",
+            footballRole: "keeper",
+          }),
+        ],
+        query: "",
+        picked: [],
+        openSpots: 4,
+        isFootball: true,
+      },
+      "en",
+    );
+    assert.equal(rows[0]?.meta, "Goalkeeper");
   });
 
   it("shows only the Level on a padel Game", () => {

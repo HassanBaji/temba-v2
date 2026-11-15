@@ -2,7 +2,12 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
-import { httpBatchStreamLink, loggerLink } from "@trpc/client";
+import {
+  httpBatchStreamLink,
+  httpLink,
+  loggerLink,
+  splitLink,
+} from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
 import { useEffect, useRef, useState } from "react";
@@ -60,31 +65,44 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
     }
   }, [locale, queryClient]);
 
-  const [trpcClient] = useState(() =>
-    api.createClient({
+  const [trpcClient] = useState(() => {
+    const url = getBaseUrl() + "/api/trpc";
+    const headers = async () => {
+      const headers = new Headers();
+      headers.set("x-trpc-source", "nextjs-react");
+      headers.set("accept-language", localeRef.current);
+      const token = await getTokenRef.current();
+      if (token) headers.set("authorization", `Bearer ${token}`);
+      return headers;
+    };
+    return api.createClient({
       links: [
         loggerLink({
           enabled: (op) =>
             process.env.NODE_ENV === "development" ||
             (op.direction === "down" && op.result instanceof Error),
         }),
-        httpBatchStreamLink({
-          transformer: SuperJSON,
-          url: getBaseUrl() + "/api/trpc",
-          // The API rejects a batch of more than 20 calls.
-          maxItems: 20,
-          headers: async () => {
-            const headers = new Headers();
-            headers.set("x-trpc-source", "nextjs-react");
-            headers.set("accept-language", localeRef.current);
-            const token = await getTokenRef.current();
-            if (token) headers.set("authorization", `Bearer ${token}`);
-            return headers;
-          },
+        splitLink({
+          // A call marked `keepalive` is sent on its own so the browser
+          // finishes it after the page is left.
+          condition: (op) => op.context.keepalive === true,
+          true: httpLink({
+            transformer: SuperJSON,
+            url,
+            headers,
+            fetch: (input, init) => fetch(input, { ...init, keepalive: true }),
+          }),
+          false: httpBatchStreamLink({
+            transformer: SuperJSON,
+            url,
+            // The API rejects a batch of more than 20 calls.
+            maxItems: 20,
+            headers,
+          }),
         }),
       ],
-    }),
-  );
+    });
+  });
 
   return (
     <QueryClientProvider client={queryClient}>

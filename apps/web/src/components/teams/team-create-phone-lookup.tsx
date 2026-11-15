@@ -95,6 +95,7 @@ export function TeamCreatePhoneLookup({
       kind: previewData.kind,
       phoneMasked: previewData.phoneMasked,
       levelBand: previewData.levelBand ?? null,
+      ovr: previewData.ovr ?? null,
       footballRole: previewData.footballRole ?? null,
       footballPosition: previewData.footballPosition ?? null,
       football:

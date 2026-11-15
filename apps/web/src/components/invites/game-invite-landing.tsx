@@ -251,7 +251,7 @@ export function GameInviteCard({
   );
 }
 
-/** Design 3a, 3b: the viewer's band against the Game's range. */
+/** Design 3a, 3b: the viewer's band, or OVR on football, against the Game's range. */
 export function GameInviteLevelCard({
   card,
 }: {

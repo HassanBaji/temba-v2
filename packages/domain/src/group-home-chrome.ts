@@ -180,7 +180,8 @@ export type LevelCellView =
  * when the Rating is still Provisional (ADR-0009) or the member has no Rating
  * for the Group's sport. A Provisional member with a band still carries its
  * letter, for the Members tab to draw on the hatch. Given the member's OVR,
- * the label is the football face, `C+ 72` (ADR-0069).
+ * the label is the football face: the whole OVR, `72`, with no band
+ * (ADR-0087).
  */
 export function levelCellView(
   band: LevelBand | null | undefined,
@@ -190,8 +191,7 @@ export function levelCellView(
   if (!band) {
     return { kind: "provisional", label: null };
   }
-  const letter = displayLabelFromStoredBand(band);
-  const label = ovr == null ? letter : `${letter} ${formatOvr(ovr)}`;
+  const label = ovr == null ? displayLabelFromStoredBand(band) : formatOvr(ovr);
   return provisional
     ? { kind: "provisional", label }
     : { kind: "label", label };

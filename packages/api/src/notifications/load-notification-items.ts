@@ -277,6 +277,7 @@ export async function loadNotificationItems(
                   ? formatOvr(ovrFromMu(levelOverride.muAfter))
                   : displayedLevelFromMu(levelOverride.muAfter),
               levelBand: levelOverride.levelBandAfter,
+              sport: levelOverride.sport,
               reason: levelOverride.reason,
               note: levelOverride.note,
               venue: levelOverride.venue ?? null,

@@ -277,7 +277,9 @@ describe("football", () => {
     assert.equal(view.level?.placement, "Competitive");
     assert.equal(view.level?.status, "Self-placed");
     assert.equal(view.level?.ovr, "72");
-    assert.equal(view.level?.band, "C+");
+    assert.equal(view.level?.spoken, "OVR 72. Competitive");
+    assert.equal(view.level != null && "band" in view.level, false);
+    assert.equal(view.level != null && "progress" in view.level, false);
     assert.equal(view.goals.total, "2 goals");
     assert.equal(view.goals.bars.length, 10);
     assert.equal(view.goals.bars[0]?.goals, 0);

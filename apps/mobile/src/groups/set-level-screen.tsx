@@ -12,6 +12,7 @@ import {
   OVR_SLIDER_TICKS,
   ovrSliderLabel,
   ovrSliderReadout,
+  ovrSliderValueText,
   type LevelOverrideReason,
 } from "@repo/domain/level-slider";
 import type { Locale } from "@repo/i18n/locale";
@@ -54,9 +55,8 @@ const FACES = {
     min: LEVEL_TENTHS_MIN,
     max: LEVEL_TENTHS_MAX,
     clamp: clampLevelTenths,
-    label: levelSliderLabel,
-    readout: (value: number, current: number, locale: Locale) =>
-      levelSliderReadout({ tenths: value, currentTenths: current, locale }),
+    label: (value: number) => levelSliderLabel(value),
+    valueText: (value: number) => levelSliderLabel(value),
     ticks: {
       startLabel: LEVEL_SLIDER_TICKS.startLabel,
       endLabel: LEVEL_SLIDER_TICKS.endLabel,
@@ -71,20 +71,142 @@ const FACES = {
     min: OVR_MIN,
     max: OVR_MAX,
     clamp: clampOvrInput,
-    label: ovrSliderLabel,
-    readout: (value: number, current: number, locale: Locale) =>
-      ovrSliderReadout({ ovr: value, currentOvr: current, locale }),
+    label: (value: number) => ovrSliderLabel(value),
+    valueText: (value: number, locale: Locale) =>
+      ovrSliderValueText(value, locale),
     ticks: {
       startLabel: OVR_SLIDER_TICKS.startLabel,
       endLabel: OVR_SLIDER_TICKS.endLabel,
       edges: OVR_SLIDER_TICKS.edges,
-      marks: OVR_SLIDER_TICKS.letters.map((letter) => ({
-        value: letter.centre,
-        label: letter.label,
+      marks: OVR_SLIDER_TICKS.marks.map((mark) => ({
+        value: mark.at,
+        label: mark.label,
       })),
     },
   },
 } satisfies Record<LevelFace, unknown>;
+
+function LevelReadout({
+  value,
+  currentValue,
+}: {
+  value: number;
+  currentValue: number;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.mobileGroup.setLevel;
+  const readout = levelSliderReadout({
+    tenths: value,
+    currentTenths: currentValue,
+    locale,
+  });
+  return (
+    <>
+      <View
+        accessible
+        accessibilityLiveRegion="polite"
+        accessibilityLabel={copy.readout(
+          readout.displayBand,
+          readout.levelLabel,
+          readout.deltaLabel,
+        )}
+        style={{ flexDirection: "row", alignItems: "baseline", gap: 12 }}
+      >
+        <Text size="hero" width="expanded" weight="bold" ltr>
+          {readout.displayBand}
+        </Text>
+        <Text size="h1" width="expanded" weight="bold">
+          {readout.levelLabel}
+        </Text>
+        <Text style={{ marginStart: "auto" }}>{readout.deltaLabel}</Text>
+      </View>
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        <Text size="meta">
+          {readout.toNext
+            ? copy.toNext(readout.toNext.distanceLabel, readout.toNext.label)
+            : copy.topOfScale}
+        </Text>
+        <Text size="meta">
+          {copy.throughRung(readout.percentThroughRung, readout.rung.label)}
+        </Text>
+      </View>
+      <ReadoutBar
+        percent={readout.percentThroughRung}
+        lowerLabel={readout.rung.lowerLabel}
+        upperLabel={readout.rung.upperLabel}
+      />
+    </>
+  );
+}
+
+/** Football's readout: the big OVR and its change, the bar along 40 to 99 (ADR-0087). */
+function OvrReadout({
+  value,
+  currentValue,
+}: {
+  value: number;
+  currentValue: number;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const readout = ovrSliderReadout({
+    ovr: value,
+    currentOvr: currentValue,
+    locale,
+  });
+  return (
+    <>
+      <View
+        accessible
+        accessibilityLiveRegion="polite"
+        accessibilityLabel={m.mobileGroup.setLevel.readoutOvr(
+          readout.ovrLabel,
+          readout.deltaLabel,
+        )}
+        style={{ flexDirection: "row", alignItems: "baseline", gap: 12 }}
+      >
+        <Text size="hero" width="expanded" weight="bold" ltr>
+          {readout.ovrLabel}
+        </Text>
+        <Text style={{ marginStart: "auto" }}>{readout.deltaLabel}</Text>
+      </View>
+      <ReadoutBar
+        percent={readout.percentOfScale}
+        lowerLabel={readout.scale.lowerLabel}
+        upperLabel={readout.scale.upperLabel}
+      />
+    </>
+  );
+}
+
+function ReadoutBar({
+  percent,
+  lowerLabel,
+  upperLabel,
+}: {
+  percent: number;
+  lowerLabel: string;
+  upperLabel: string;
+}) {
+  return (
+    <>
+      <MountFill percent={percent} />
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{ flexDirection: "row", justifyContent: "space-between" }}
+      >
+        <Text size="meta" tone="muted">
+          {lowerLabel}
+        </Text>
+        <Text size="meta" tone="muted">
+          {upperLabel}
+        </Text>
+      </View>
+    </>
+  );
+}
 
 /**
  * The readout, slider and stepper of a Level override, shared by the Level
@@ -114,7 +236,14 @@ export function LevelPicker({
   const colors = useColors();
   const copy = m.mobileGroup.setLevel;
   const scale = FACES[face];
-  const readout = scale.readout(value, currentValue, locale);
+  const stepperLabel =
+    face === "ovr"
+      ? ovrSliderLabel(value)
+      : levelSliderReadout({
+          tenths: value,
+          currentTenths: currentValue,
+          locale,
+        }).levelLabel;
 
   function step(delta: number) {
     onValue(scale.clamp(value + delta));
@@ -131,47 +260,11 @@ export function LevelPicker({
             {wasLabel}
           </Text>
         </View>
-        <View
-          accessible
-          accessibilityLiveRegion="polite"
-          accessibilityLabel={copy.readout(
-            readout.displayBand,
-            readout.levelLabel,
-            readout.deltaLabel,
-          )}
-          style={{ flexDirection: "row", alignItems: "baseline", gap: 12 }}
-        >
-          <Text size="hero" width="expanded" weight="bold" ltr>
-            {readout.displayBand}
-          </Text>
-          <Text size="h1" width="expanded" weight="bold">
-            {readout.levelLabel}
-          </Text>
-          <Text style={{ marginStart: "auto" }}>{readout.deltaLabel}</Text>
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text size="meta">
-            {readout.toNext
-              ? copy.toNext(readout.toNext.distanceLabel, readout.toNext.label)
-              : copy.topOfScale}
-          </Text>
-          <Text size="meta">
-            {copy.throughRung(readout.percentThroughRung, readout.rung.label)}
-          </Text>
-        </View>
-        <MountFill percent={readout.percentThroughRung} />
-        <View
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          style={{ flexDirection: "row", justifyContent: "space-between" }}
-        >
-          <Text size="meta" tone="muted">
-            {readout.rung.lowerLabel}
-          </Text>
-          <Text size="meta" tone="muted">
-            {readout.rung.upperLabel}
-          </Text>
-        </View>
+        {face === "ovr" ? (
+          <OvrReadout value={value} currentValue={currentValue} />
+        ) : (
+          <LevelReadout value={value} currentValue={currentValue} />
+        )}
       </Surface>
 
       <Slider
@@ -190,7 +283,9 @@ export function LevelPicker({
             ? undefined
             : {
                 value: currentValue,
-                label: markerLabel ?? copy.nowMarker(scale.label(currentValue)),
+                label:
+                  markerLabel ??
+                  copy.nowMarker(scale.valueText(currentValue, locale)),
               }
         }
         disabled={disabled}
@@ -217,7 +312,7 @@ export function LevelPicker({
           width="expanded"
           style={{ minWidth: 56, textAlign: "center" }}
         >
-          {readout.levelLabel}
+          {stepperLabel}
         </Text>
         <Button
           label={face === "ovr" ? copy.increaseOvr : copy.increase}

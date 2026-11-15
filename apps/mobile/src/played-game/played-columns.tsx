@@ -89,7 +89,9 @@ function PlayerRow({
       row.isYou ? m.game.score.youSuffix(row.fullName) : row.fullName,
       row.guest ? m.group.addPlayer.guest.tag : null,
       row.meta,
-      m.mobilePlayer.played.levelLine(row.level),
+      row.levelSpoken === undefined
+        ? m.mobilePlayer.played.levelLine(row.level)
+        : row.levelSpoken,
       row.trailing,
     ].filter((part): part is string => Boolean(part)),
   );

@@ -46,7 +46,6 @@ describe("challengeCardView", () => {
   it("reads the football card lines", () => {
     const view = challengeCardView(card(), "en", now);
     expect(view.title).toBe("Gooz FC");
-    expect(view.levelBand).toBe("C");
     expect(view.sportLine).toBe(
       "Football, 6-a-side, avg 2.8. Wants OVR 64 to 80",
     );
@@ -90,6 +89,15 @@ describe("challengeCardView", () => {
     expect(view.sportLine).toBe(
       "Football, 6-a-side, avg OVR 72. Wants OVR 64 to 80",
     );
+    expect(view.levelBadge).toBe("72");
+  });
+
+  it("puts the Team's band beside a padel card, never on football", () => {
+    expect(
+      challengeCardView(card({ sport: "padel", sideSize: null }), "en", now)
+        .levelBadge,
+    ).toBe("C");
+    expect(challengeCardView(card(), "en", now).levelBadge).toBeNull();
   });
 
   it("reads a padel card without a Team Level or Level wanted", () => {
@@ -113,7 +121,7 @@ describe("challengeCardView", () => {
       "en",
       now,
     );
-    expect(view.levelBand).toBeNull();
+    expect(view.levelBadge).toBeNull();
     expect(view.sportLine).toBe("Padel. Open to any level");
     expect(view.whenLine).toBe("Any day · Any time");
     expect(view.daysLine).toBe("Any day · Any time");
@@ -279,6 +287,45 @@ describe("board filters", () => {
       ["Any", false],
       ["Lisbon", false],
       ["Porto", true],
+    ]);
+  });
+});
+
+describe("challengeBoardFilterGroups Level", () => {
+  const levelLabels = (sport: "padel" | "football" | null) =>
+    challengeBoardFilterGroups(
+      { ...NO_CHALLENGE_BOARD_FILTERS, sport, level: "C+" },
+      [],
+      "en",
+    )[1]!;
+
+  it("lists bands for padel or any sport, and OVR spans for football", () => {
+    expect(levelLabels(null).summary).toBe("C+");
+    expect(levelLabels("padel").options.map((option) => option.label)).toEqual([
+      "Any",
+      "D",
+      "D+",
+      "C-",
+      "C",
+      "C+",
+      "B-",
+      "B",
+      "B+",
+      "A",
+    ]);
+    const football = levelLabels("football");
+    expect(football.summary).toBe("70–75");
+    expect(football.options.map((option) => option.label)).toEqual([
+      "Any",
+      "40–51",
+      "52–57",
+      "58–63",
+      "64–69",
+      "70–75",
+      "75–80",
+      "81–86",
+      "87–92",
+      "93–99",
     ]);
   });
 });

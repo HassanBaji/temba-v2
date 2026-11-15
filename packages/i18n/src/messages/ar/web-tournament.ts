@@ -181,8 +181,8 @@ export const webTournament = {
   footballPlayer: {
     prefers: (label: string) => `يفضّل ${label}`,
     noPositionYet: "لا مركز بعد",
-    subtitle: (role: string, level: string) =>
-      `${role}، المستوى ${isolate(level)}`,
+    subtitle: (role: string, ovr: string) =>
+      `${role}، ${isolate("OVR")} ${isolate(ovr)}`,
     viewProfile: "عرض الملف الشخصي",
     renameLabel: (name: string) => `تعديل الاسم: ${name}`,
   },

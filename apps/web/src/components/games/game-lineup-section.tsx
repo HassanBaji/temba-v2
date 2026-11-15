@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, Plus, Tag, UserPlus } from "lucide-react";
+import { ArrowLeftRight, Plus, UserPlus } from "lucide-react";
 import { Fragment } from "react";
 
 import {
@@ -19,6 +19,7 @@ import {
   teamHasNoSidesPicked,
 } from "@repo/domain/padel-sides";
 import type { PlayedRow } from "@repo/domain/played-game";
+import { NicknameName } from "~/components/temba/nickname-name";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { GuestTag, NotOnTembaTag } from "~/components/temba/seat";
@@ -52,15 +53,14 @@ function SeatLabels({
 }) {
   return (
     <span className="flex max-w-full flex-col items-center gap-0.5">
-      <span
+      <NicknameName
+        name={title}
+        isNickname={isNickname}
         className={cn(
-          "flex max-w-full items-center gap-1 text-sm",
+          "max-w-full text-sm",
           strong ? "font-semibold" : "font-medium",
         )}
-      >
-        {isNickname ? <Tag aria-hidden className="size-3 shrink-0" /> : null}
-        <span className="truncate">{title}</span>
-      </span>
+      />
       {unclaimed ? <NotOnTembaTag /> : null}
       {guest ? <GuestTag /> : null}
       <span className="text-muted-foreground text-meta max-w-full truncate">

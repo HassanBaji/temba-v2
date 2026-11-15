@@ -14,6 +14,10 @@ import { type db } from "#src/db";
 import { userHasRatedMatch } from "#src/ratings/has-rated-match";
 import { readTembaLevelView } from "#src/ratings/level-confirmed";
 import {
+  ratingHistoryMatches,
+  setsFromSideOf,
+} from "#src/ratings/rating-history-entries";
+import {
   formatOvr,
   levelFaceFor,
   ovrFromMu,
@@ -27,6 +31,7 @@ import {
   type LevelBand,
 } from "@repo/domain/level";
 import type { LevelHistoryStep } from "@repo/domain/home-level-chart";
+import type { RatingsLastMatch } from "@repo/domain/ratings-screen";
 import type { Sport } from "@repo/domain/sport";
 import { sportSchema } from "@repo/validators/sport";
 
@@ -46,7 +51,9 @@ function shownOnFace(face: LevelFace, mu: number) {
   return face === "ovr" ? formatOvr(ovrFromMu(mu)) : displayedLevelFromMu(mu);
 }
 
-function stepFromOutcomeScore(outcomeScore: number): LevelHistoryStep {
+function stepFromOutcomeScore(
+  outcomeScore: number,
+): RatingsLastMatch["outcome"] {
   if (outcomeScore > 0.5) {
     return "won";
   }
@@ -171,6 +178,39 @@ async function changeOverLast(
   };
 }
 
+/**
+ * The newest Rated Match for football's "Last match" line: how it ended, its
+ * Score from the player's side, and the Level either side of it.
+ */
+async function lastRatedMatch(
+  database: DbClient,
+  userId: string,
+  sport: GroupSportEnum,
+): Promise<RatingsLastMatch | null> {
+  const event = await database.query.ratingEvents.findFirst({
+    where: and(eq(ratingEvents.userId, userId), eq(ratingEvents.sport, sport)),
+    orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
+    columns: {
+      matchId: true,
+      outcomeScore: true,
+      muBefore: true,
+      muAfter: true,
+    },
+  });
+  if (!event) {
+    return null;
+  }
+  const match = (await ratingHistoryMatches(database, [event.matchId])).get(
+    event.matchId,
+  );
+  return {
+    outcome: stepFromOutcomeScore(event.outcomeScore),
+    sets: match ? setsFromSideOf(match, userId) : null,
+    muBefore: event.muBefore,
+    muAfter: event.muAfter,
+  };
+}
+
 async function ratedMatchCount(
   database: DbClient,
   userId: string,
@@ -193,7 +233,8 @@ async function ratedMatchCount(
  * `ovr` is the whole-number OVR and the history is in OVR (ADR-0069).
  * `levelValue` is the continuous Level padel shows from 1.00 (ADR-0070).
  * `changeOverLast` is what the last eight counting Matches moved it, on the
- * face, for the Ratings screen.
+ * face, for the Ratings screen. `lastMatch` is the newest Rated Match, for
+ * football's "Last match" line.
  */
 export async function loadRatingsMe(
   database: DbClient,
@@ -219,16 +260,18 @@ export async function loadRatingsMe(
       historyMatchCount: 0,
       ratedMatchCount: 0,
       changeOverLast: null as Awaited<ReturnType<typeof changeOverLast>>,
+      lastMatch: null as RatingsLastMatch | null,
     };
   }
 
   const rating = await readTembaLevelView(database, row);
   const levelValue = levelFromMu(row.mu);
   const progress = progressToNextBand(levelValue, rating.levelBand);
-  const [history, matchCount, change] = await Promise.all([
+  const [history, matchCount, change, lastMatch] = await Promise.all([
     levelHistory(database, args.userId, sport, face),
     ratedMatchCount(database, args.userId, sport),
     changeOverLast(database, args.userId, sport, face),
+    lastRatedMatch(database, args.userId, sport),
   ]);
 
   return {
@@ -244,6 +287,7 @@ export async function loadRatingsMe(
     historyMatchCount: history.matchCount,
     ratedMatchCount: matchCount,
     changeOverLast: change,
+    lastMatch,
   };
 }
 

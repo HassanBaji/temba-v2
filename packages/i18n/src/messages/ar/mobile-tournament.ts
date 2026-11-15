@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { mobileTournament as source } from "../en/mobile-tournament";
 
@@ -90,6 +91,7 @@ export const mobileTournament = {
     confirmScore: (score: string) => `أكّد ${score}`,
   },
   organizer: {
+    kingOnWeb: "اسحب ملاعب البداية وانشر الترتيب النهائي من الموقع حاليًا.",
     roundsSaved: "تم حفظ الجولات",
     changeRounds: "تغيير الجولات",
     kickSr: (name: string) => `أخرِج ${name}`,
@@ -206,7 +208,8 @@ export const mobileTournament = {
   playerSheet: {
     prefers: (position: string) => `يفضّل ${position}`,
     noPositionYet: "لا مركز بعد",
-    roleAndLevel: (role: string, level: string) => `${role}، المستوى ${level}`,
+    roleAndOvr: (role: string, ovr: string) =>
+      `${role}، ${isolate("OVR")} ${isolate(ovr)}`,
     viewProfile: "عرض الملف الشخصي",
   },
   pool: {

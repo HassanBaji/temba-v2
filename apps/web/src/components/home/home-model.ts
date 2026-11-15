@@ -54,6 +54,7 @@ export function levelFromApi(data: ApiRating): HomeLevel {
       },
       ratedMatchCount: data.ratedMatchCount,
       changeOverLast: data.changeOverLast,
+      lastMatch: data.lastMatch,
       history: data.history,
       historySteps: data.historySteps,
       historyMatchCount: data.historyMatchCount,

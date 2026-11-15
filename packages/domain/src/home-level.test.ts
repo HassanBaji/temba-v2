@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { isolate } from "@repo/i18n/bidi";
 import { describe, it } from "vitest";
 
-import { levelFromOvr } from "./football-ovr";
+import { levelFromOvr, muFromOvr } from "./football-ovr";
 import { homeLevelView, type HomeLevelInput } from "./home-level";
 import { ratingsLevelView } from "./ratings-screen";
 
@@ -16,6 +16,12 @@ const football: HomeLevelInput = {
   history: ["72", "73", "74"],
   historySteps: ["won", "won"],
   historyMatchCount: 2,
+  lastMatch: {
+    outcome: "won",
+    sets: [{ own: 5, opponent: 3 }],
+    muBefore: muFromOvr(73),
+    muAfter: muFromOvr(74),
+  },
 };
 
 const padel: HomeLevelInput = {
@@ -31,20 +37,26 @@ const padel: HomeLevelInput = {
 };
 
 describe("homeLevelView", () => {
-  it("reads a football Level as screen 1a: Level 74, band C+, +2 over the last 8", () => {
+  it("reads a football Level as the number alone: Level 74 on the 40 to 99 scale, +2 over the last 8", () => {
     const view = homeLevelView(football, "en");
     assert.ok(view);
     assert.equal(view.numberLabel, "Level");
     assert.equal(view.level, "74");
-    assert.equal(view.displayBand, "C+");
+    assert.equal(view.displayBand, null);
+    assert.deepEqual(view.scale, {
+      percent: 57.6,
+      ticks: ["40", "55", "70", "85", "99"],
+    });
     assert.equal(view.status, "Confirmed");
     assert.deepEqual(view.change, {
       signedAmount: isolate("+2"),
       caption: "last 8",
       points: [72, 72.6, 74.2],
     });
-    assert.equal(view.footer.label, "Next band");
-    assert.equal(view.footer.value, "B-");
+    assert.equal(view.start, null);
+    assert.equal(view.footer.label, "Last match");
+    assert.equal(view.footer.result, "Won 5–3");
+    assert.equal(view.footer.value, "+1");
   });
 
   it("says what the Ratings screen says", () => {
@@ -64,6 +76,7 @@ describe("homeLevelView", () => {
     assert.ok(view);
     assert.equal(view.level, "3.45");
     assert.equal(view.displayBand, "C");
+    assert.equal(view.scale, null);
     assert.equal(view.provisional, true);
     assert.equal(view.status, "Provisional");
     assert.equal(view.change?.signedAmount, isolate("−0.15"));
@@ -71,13 +84,19 @@ describe("homeLevelView", () => {
       label: "To confirm",
       value: "2 of 5 matches",
       detail: null,
+      result: null,
+      pips: null,
     });
     assert.equal(view.percent, 40);
   });
 
-  it("has no change line before a counting Match", () => {
-    const view = homeLevelView({ ...football, changeOverLast: null }, "en");
+  it("has no change line before a counting Match, and says where the number came from", () => {
+    const view = homeLevelView(
+      { ...football, changeOverLast: null, historySteps: [] },
+      "en",
+    );
     assert.equal(view?.change, null);
+    assert.equal(view?.start, "Starting level, from sign-up");
   });
 
   it("has no Level before the first Rating", () => {

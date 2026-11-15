@@ -6,7 +6,7 @@ import { homeNoGamesCreateAction } from "@repo/domain/home-no-games";
 import { openWeekRows } from "@repo/domain/home-open-week";
 import { homeSport, homeSports } from "@repo/domain/home-sports";
 import { homeStats } from "@repo/domain/home-stats";
-import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
+import { sportSwitchLevel } from "@repo/domain/ratings-screen";
 import type { Sport } from "@repo/domain/sport";
 import { useRouter, type Href } from "expo-router";
 import { useCallback, useState } from "react";
@@ -14,6 +14,7 @@ import { useCallback, useState } from "react";
 import { useNow } from "../games/use-now";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Screen } from "../primitives/screen";
+import { useRequestAnswers } from "../requests/request-answers-provider";
 import { checklistFrom } from "../profile-tasks/profile-tasks-model";
 import { api } from "../trpc/react";
 import {
@@ -50,18 +51,6 @@ function slotOf<T, U>(
   return { status: "ready", value: map(query.data) };
 }
 
-type RatingData = { rating: { levelBand: string } | null } | undefined;
-
-function bandOf(data: RatingData): string | null {
-  return data?.rating
-    ? displayLabelFromStoredBand(
-        data.rating.levelBand as Parameters<
-          typeof displayLabelFromStoredBand
-        >[0],
-      )
-    : null;
-}
-
 export function HomeScreen() {
   const m = useMessages();
   const locale = useLocale();
@@ -72,6 +61,7 @@ export function HomeScreen() {
   const [chosenSport, setChosenSport] = useState<Sport | null>(null);
   const { skipped, setChecklistSkipped } = useChecklistSkipped();
   const { seen, ready: seenReady, markSeen } = useLatestSeen();
+  const { refetch: refetchRequests } = useRequestAnswers();
 
   const home = api.users.home.useQuery(undefined, REFETCH_ON_FOREGROUND);
   const onboarding = api.users.onboardingState.useQuery(
@@ -163,10 +153,10 @@ export function HomeScreen() {
     dateLine: formatDayMonth(now, locale, { weekday: "long", month: "long" }),
     sports: twoSports ? sports : [sport],
     sport,
-    bands: twoSports
+    levels: twoSports
       ? {
-          padel: bandOf(padelRating.data),
-          football: bandOf(footballRating.data),
+          padel: sportSwitchLevel("padel", padelRating.data, locale),
+          football: sportSwitchLevel("football", footballRating.data, locale),
         }
       : {},
     level: slotOf(rating, levelFromApi),
@@ -189,6 +179,7 @@ export function HomeScreen() {
         onboarding.refetch(),
         details.refetch(),
         unread.refetch(),
+        refetchRequests(),
         user?.reload(),
       ]),
     [
@@ -203,6 +194,7 @@ export function HomeScreen() {
       onboarding,
       details,
       unread,
+      refetchRequests,
       user,
     ],
   );

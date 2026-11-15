@@ -217,6 +217,7 @@ export const home = {
   },
   sportSwitch: {
     spoken: (sport: string, band: string) => `${sport}, ${band}`,
+    spokenOvr: (sport: string, ovr: string) => `${sport}, level ${ovr}`,
   },
   levelSection: {
     title: {

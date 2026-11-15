@@ -34,9 +34,10 @@ type DbClient = typeof db;
 
 /**
  * An Organizer moves a member's Tier points by hand, a Tier adjustment
- * (ADR-0073): never their own, at most 400 from the current points, with a
- * reason the player sees. It ends a Provisional tier, re-cuts the Group's
- * fish and tells the member and everyone whose fish moved.
+ * (ADR-0073): any member's, their own included, at most 400 from the
+ * current points, with a reason the player sees. It ends a Provisional
+ * tier, re-cuts the Group's fish and tells the member and everyone whose
+ * fish moved.
  */
 export async function adjustTierPoints(
   database: DbClient,
@@ -56,9 +57,6 @@ export async function adjustTierPoints(
   const group = await requireGroup(database, args.groupId, locale);
   if (!(await mayOrganizeGroupGames(database, group, args.organizerUserId))) {
     throw new TRPCError({ code: "FORBIDDEN", message: errors.organizerOnly });
-  }
-  if (args.userId === args.organizerUserId) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: errors.notYourOwn });
   }
   if (!groupHasTier({ sport: group.sport, verified: groupIsVerified(group) })) {
     throw new TRPCError({

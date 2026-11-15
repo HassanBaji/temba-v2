@@ -61,11 +61,11 @@ describe("the team-vs-team box", () => {
       displayName: "Gooz FC",
       sport: "football",
       rosterCount: 12,
-      teamLevel: { band: "C" },
+      teamLevel: { band: "C", ovr: 66 },
       members: [],
     };
     expect(challengeTeamFaceLine(gooz, "en", { withSport: true })).toBe(
-      "Football, C. 12 on the roster",
+      "Football, OVR 66. 12 on the roster",
     );
     expect(challengeTeamFaceLine({ ...gooz, teamLevel: null }, "en")).toBe(
       "12 on the roster",

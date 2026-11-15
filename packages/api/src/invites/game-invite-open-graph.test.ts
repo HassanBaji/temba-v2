@@ -98,4 +98,39 @@ describe("loadGameInviteOpenGraph", () => {
       await close();
     }
   });
+
+  it("reads a football Game's Level range in OVR, not bands", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "og-football@example.com");
+      const game = await insertFriendlyGame(db, owner.id, "Pitch Club");
+      await db
+        .update(games)
+        .set({
+          sport: "football",
+          sideSize: 5,
+          playersAllowed: 10,
+          levelMinTenths: 30,
+          levelMaxTenths: 45,
+        })
+        .where(eq(games.id, game.id));
+      const minted = await mintLink(
+        db,
+        { kind: "game", id: game.id },
+        { createdBy: owner.id },
+      );
+      if (!minted.ok) {
+        throw new Error("Failed to mint link");
+      }
+      const preview = await loadGameInviteOpenGraph(
+        db,
+        minted.link.shortCode!,
+        "en",
+      );
+      expect(preview.description).toMatch(/, OVR 65 to 78$/);
+      expect(preview.description).not.toContain("Level C");
+    } finally {
+      await close();
+    }
+  });
 });

@@ -421,7 +421,9 @@ export function validateFriendlyTournamentSubmit(
       windowEnd: placed.when.windowEnd,
       venueId: draft.venueId,
       ...(draft.courtIds.length > 0 ? { courtIds: [...draft.courtIds] } : {}),
-      ...ratedInput(draft),
+      ...(draft.tournamentShape === "king_of_the_court"
+        ? { rated: false }
+        : ratedInput(draft)),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
       ...trackPaymentsInput(draft, priced.fils),
       ...(priced.levelMinTenths !== null
@@ -473,12 +475,14 @@ export function friendlyTournamentPlan(input: {
   tournamentShape: CreateTournamentShape;
 }) {
   const knockoutOnly = input.tournamentShape === "knockout_only";
+  const kingOfTheCourt = input.tournamentShape === "king_of_the_court";
   const groupsThenKnockout = input.tournamentShape === "groups_then_knockout";
   const knockoutTree = knockoutOnly
     ? buildKnockoutTree({ entrantCount: input.teamCount })
     : null;
   const sized = sizeFriendlyTournament(input.teamCount, input.poolCount);
-  const sizing = !knockoutOnly && sized.ok ? sized.sizing : null;
+  const sizing =
+    !knockoutOnly && !kingOfTheCourt && sized.ok ? sized.sizing : null;
   const resolvedRoundCount = sizing
     ? resolveRoundCount(sizing.poolSizes, input.roundCount)
     : null;
@@ -499,6 +503,7 @@ export function friendlyTournamentPlan(input: {
       : null;
   return {
     knockoutOnly,
+    kingOfTheCourt,
     groupsThenKnockout,
     knockoutTree,
     sizing,

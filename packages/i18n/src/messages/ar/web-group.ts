@@ -17,6 +17,7 @@ export const webGroup = {
     roleFor: (name: string) => `دور ${name}`,
     manageName: (name: string) => `إدارة ${name}`,
     callPhone: (phone: string) => `اتصال بـ ${isolate(phone)}`,
+    whatsAppPhone: (phone: string) => `واتساب ${isolate(phone)}`,
     setLevel: "تحديد المستوى",
     savedLevel: (name: string, level: string) =>
       `تم تحديد مستوى ${name} إلى ${level}.`,
@@ -97,14 +98,7 @@ export const webGroup = {
   },
   requests: {
     title: "طلبات الانضمام",
-    reviewAria: "مراجعة طلبات الانضمام",
-    level: (label: string) => `المستوى ${label}`,
-    levelProvisional: (label: string) => `المستوى ${label}، ما زال مبدئيًا`,
     changePolicyAria: "تغيير من يمكنه الانضمام",
-    approve: "قبول",
-    reject: "رفض",
-    approveName: (name: string) => `قبول ${name}`,
-    rejectName: (name: string) => `رفض ${name}`,
   },
   standing: {
     position: "المركز",

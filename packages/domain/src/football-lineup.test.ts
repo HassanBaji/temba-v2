@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  averageLevelLabel,
   balanceFootballSides,
   footballBalanceStrength,
   footballBibName,
@@ -319,12 +318,5 @@ describe("Arabic copy", () => {
         "ar",
       ),
     ).toBe("أسود يفوز بفارق 1.");
-  });
-});
-
-describe("averageLevelLabel", () => {
-  it("averages known Levels and ignores unknown ones", () => {
-    expect(averageLevelLabel(["C1", "C1", null])).toBe("C+");
-    expect(averageLevelLabel([null])).toBeNull();
   });
 });

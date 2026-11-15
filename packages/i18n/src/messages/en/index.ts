@@ -14,12 +14,14 @@ import { profile } from "./profile";
 import { onboarding } from "./onboarding";
 import { booking } from "./booking";
 import { notification } from "./notification";
+import { requests } from "./requests";
 import { email } from "./email";
 import { marks } from "./marks";
 import { auth } from "./auth";
 import { webGame } from "./web-game";
 import { webTournament } from "./web-tournament";
 import { tournamentRounds } from "./tournament-rounds";
+import { tournamentKing } from "./tournament-king";
 import { webDashboard } from "./web-dashboard";
 import { webGroup } from "./web-group";
 import { webUi } from "./web-ui";
@@ -69,12 +71,14 @@ export const en = {
   onboarding,
   booking,
   notification,
+  requests,
   email,
   marks,
   auth,
   webGame,
   webTournament,
   tournamentRounds,
+  tournamentKing,
   webDashboard,
   webGroup,
   webUi,

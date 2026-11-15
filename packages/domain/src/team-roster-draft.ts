@@ -8,6 +8,7 @@ import {
   type FootballPosition,
   type FootballRole,
 } from "./football-lineup";
+import { formatOvr } from "./football-ovr";
 import type { FootballSelfPlacement } from "./football-self-placement";
 import { initials } from "./initials";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
@@ -19,6 +20,8 @@ import { teamCreateInput } from "./teams";
 /** What the row under a player's name says about how they play. */
 export type TeamRosterPlayerTag = {
   levelBand?: LevelBand | null;
+  /** Football only: the whole OVR football shows in place of the band. */
+  ovr?: number | null;
   footballRole?: FootballRole | null;
   footballPosition?: FootballPosition | null;
 };
@@ -147,8 +150,15 @@ function phoneKey(phone: TeamRosterDraftPhone) {
   return `phone:${phone.e164}`;
 }
 
+function tagLevel(sport: Sport, tag: TeamRosterPlayerTag) {
+  if (sport === "football") {
+    return tag.ovr != null ? formatOvr(tag.ovr) : null;
+  }
+  return tag.levelBand ? displayLabelFromStoredBand(tag.levelBand) : null;
+}
+
 /**
- * "DEF, C+" for football and "C+" for padel: the short position, then the
+ * "DEF, 72" for football and "C+" for padel: the short position, then the
  * Level, whichever are known.
  */
 export function teamPlayerTag(
@@ -165,9 +175,7 @@ export function teamPlayerTag(
           locale,
         )
       : null;
-  const level = tag.levelBand
-    ? displayLabelFromStoredBand(tag.levelBand)
-    : null;
+  const level = tagLevel(sport, tag);
   const parts = [slot, level].filter((part): part is string => Boolean(part));
   return parts.length > 0 ? parts.join(all.common.listSeparator) : null;
 }
@@ -438,7 +446,7 @@ export type TeamPhoneLookupCard =
   | { kind: "new"; title: string; line: string };
 
 /**
- * The card under the phone field: "On Temba. Football C, FWD. 9 games with
+ * The card under the phone field: "On Temba. Football OVR 72, FWD. 9 games with
  * you" with Invite, or "Not on Temba yet" with a name to add them by.
  */
 export function teamPhoneLookupCard(
@@ -479,9 +487,11 @@ export function teamPhoneLookupCard(
     };
   }
   const sportName = all.team.create.sport[input.sport].name;
-  const level = preview.levelBand
-    ? displayLabelFromStoredBand(preview.levelBand)
-    : null;
+  const tagged = tagLevel(input.sport, preview);
+  const level =
+    tagged && input.sport === "football"
+      ? all.rating.ovr.value(tagged)
+      : tagged;
   const slot =
     input.sport === "football"
       ? footballSlotCode(
@@ -550,6 +560,8 @@ export type TeamGroupMemberToAdd = {
   name: string;
   unclaimed: boolean;
   levelBand: LevelBand | null;
+  /** Football only: the whole OVR; null on padel or without a Rating. */
+  ovr?: number | null;
   footballRole: FootballRole | null;
   footballPosition?: FootballPosition | null;
   invited: boolean;
@@ -605,10 +617,11 @@ export function teamGroupMemberRows(
           ? all.team.seat.keeper
           : all.team.seat.outfield
         : null;
-    const level = member.levelBand
-      ? all.group.addPlayer.fromGroup.level(
-          displayLabelFromStoredBand(member.levelBand),
-        )
+    const tagged = tagLevel(input.sport, member);
+    const level = tagged
+      ? input.sport === "football"
+        ? all.rating.ovr.value(tagged)
+        : all.group.addPlayer.fromGroup.level(tagged)
       : null;
     return {
       userId: member.userId,
@@ -740,6 +753,7 @@ export function toggleDraftGroupMember(
         userId: member.userId,
         name: member.name,
         levelBand: member.levelBand,
+        ovr: member.ovr ?? null,
         footballRole: member.footballRole,
         footballPosition: member.footballPosition ?? null,
         source: { kind: "group", groupName: input.groupName },

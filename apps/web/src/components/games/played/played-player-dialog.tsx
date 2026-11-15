@@ -1,5 +1,6 @@
 "use client";
 
+import { whatsAppHref } from "@repo/domain/phone-number";
 import type { PlayedRow } from "@repo/domain/played-game";
 import type { Sport } from "@repo/domain/sport";
 import Link from "next/link";
@@ -77,6 +78,18 @@ export function PlayedPlayerDialog({
               </div>
             </ResponsiveDialogHeader>
             <div className="flex flex-wrap gap-2 px-4 pb-4 sm:px-0 sm:pb-0">
+              {player.phoneNumber ? (
+                <Button variant="outline" asChild>
+                  <a
+                    href={whatsAppHref(player.phoneNumber)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={m.group.addPlayer.whatsAppFor(player.fullName)}
+                  >
+                    {m.group.addPlayer.whatsAppAction}
+                  </a>
+                </Button>
+              ) : null}
               {canOpenProfile && !player.guest ? (
                 <Button variant="outline" asChild>
                   <Link href={playerProfilePath(player.userId, sport)}>

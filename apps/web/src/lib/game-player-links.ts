@@ -21,6 +21,8 @@ export type GameTeamPlayer = {
   name: string;
   image: string | null;
   guest?: boolean;
+  /** E.164, sent only to a Group approver for a current member (ADR-0078). */
+  phoneNumber?: string | null;
 };
 
 /** A Game team's players, or none for an unknown or empty Game team. */
@@ -33,10 +35,11 @@ export function gameTeamPlayers(
 ): GameTeamPlayer[] {
   const members =
     gameTeams.find((team) => team.id === gameTeamId)?.members ?? [];
-  return members.map(({ id, name, image, guest }) => ({
+  return members.map(({ id, name, image, guest, phoneNumber }) => ({
     id,
     name,
     image,
     guest,
+    phoneNumber,
   }));
 }

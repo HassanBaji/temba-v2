@@ -112,7 +112,7 @@ describe("ratings.myGroupTiers", () => {
           imageUrl: null,
           memberCount: 6,
           rankedCount: 6,
-          band: "hamour",
+          band: "shark",
           place: 2,
           points: 1260,
           provisional: false,
@@ -163,7 +163,34 @@ describe("ratings.myGroupTiers", () => {
     }
   });
 
-  it("shows a place without fish while fewer than four are ranked", async () => {
+  it("shows a place without fish while fewer than two are ranked", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const players = await insertUsers(db, 3);
+      const ids = players.map((player) => player.id);
+      const groupId = await insertGroup(db, {
+        name: "Small Football",
+        createdBy: ids[0]!,
+        memberIds: ids,
+      });
+      await db.insert(groupTierPoints).values(
+        ids.map((userId, index) => ({
+          groupId,
+          userId,
+          points: 1300 - index * 50,
+          gamesCounted: index === 0 ? 6 : 2,
+        })),
+      );
+
+      const [row] = await myGroupTiers(db as never, { userId: ids[0]! });
+
+      expect(row).toMatchObject({ place: 1, band: null, rankedCount: 1 });
+    } finally {
+      await close();
+    }
+  });
+
+  it("gives two Sharks and a Safi while three are ranked", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const players = await insertUsers(db, 3);
@@ -184,7 +211,7 @@ describe("ratings.myGroupTiers", () => {
 
       const [row] = await myGroupTiers(db as never, { userId: ids[1]! });
 
-      expect(row).toMatchObject({ place: 2, band: null, rankedCount: 3 });
+      expect(row).toMatchObject({ place: 2, band: "shark", rankedCount: 3 });
     } finally {
       await close();
     }

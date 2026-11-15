@@ -20,6 +20,7 @@ export function StepperField({
   error,
   description,
   labelClassName,
+  meta,
 }: {
   id: string;
   label: string;
@@ -34,6 +35,8 @@ export function StepperField({
   error?: string;
   description?: ReactNode;
   labelClassName?: string;
+  /** A short note across from the label, such as the limit. */
+  meta?: string;
 }) {
   const canDecrease = value - step >= min;
   const canIncrease = value + step <= max;
@@ -48,15 +51,20 @@ export function StepperField({
 
   return (
     <Field>
-      <FieldTitle
-        id={`${id}-label`}
-        className={cn(
-          "text-muted-foreground text-meta font-normal",
-          labelClassName,
-        )}
-      >
-        {label}
-      </FieldTitle>
+      <div className="flex items-baseline justify-between gap-3">
+        <FieldTitle
+          id={`${id}-label`}
+          className={cn(
+            "text-muted-foreground text-meta font-normal",
+            labelClassName,
+          )}
+        >
+          {label}
+        </FieldTitle>
+        {meta ? (
+          <span className="text-muted-foreground text-eyebrow">{meta}</span>
+        ) : null}
+      </div>
       <div
         id={id}
         tabIndex={-1}

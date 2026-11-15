@@ -52,17 +52,23 @@ describe("tierIsProvisional", () => {
 });
 
 describe("tierBandCounts", () => {
-  it("gives eleven ranked members 1 Shark, 2 Hamour, 4 Kanaad, 4 Safi", () => {
+  it("gives eleven ranked members 3 Shark, 1 Hamour, 3 Kanaad, 4 Safi", () => {
     expect(tierBandCounts(11)).toEqual({
-      shark: 1,
-      hamour: 2,
-      kanaad: 4,
+      shark: 3,
+      hamour: 1,
+      kanaad: 3,
       safi: 4,
     });
   });
 
-  it("gives no fish below four ranked members", () => {
-    expect(tierBandCounts(3)).toEqual({
+  it("leaves at least one ranked member out of the Sharks while the Group is small", () => {
+    expect(tierBandCounts(2).shark).toBe(1);
+    expect(tierBandCounts(3).shark).toBe(2);
+    expect(tierBandCounts(4).shark).toBe(3);
+  });
+
+  it("gives no fish below two ranked members", () => {
+    expect(tierBandCounts(1)).toEqual({
       shark: 0,
       hamour: 0,
       kanaad: 0,
@@ -70,11 +76,12 @@ describe("tierBandCounts", () => {
     });
   });
 
-  it("places everyone exactly once with one Shark from 4 to 30 ranked", () => {
+  it("places everyone exactly once with up to three Sharks from 2 to 30 ranked", () => {
     for (let ranked = TIER_MIN_RANKED; ranked <= 30; ranked += 1) {
       const counts = tierBandCounts(ranked);
-      const rest = ranked - 1;
-      expect(counts.shark, `${ranked}`).toBe(1);
+      const sharks = Math.min(3, ranked - 1);
+      const rest = ranked - sharks;
+      expect(counts.shark, `${ranked}`).toBe(sharks);
       expect(counts.hamour, `${ranked}`).toBe(Math.round(0.15 * rest));
       expect(counts.kanaad, `${ranked}`).toBe(Math.round(0.35 * rest));
       expect(counts.safi, `${ranked}`).toBeGreaterThanOrEqual(0);
@@ -95,9 +102,9 @@ describe("tierTable", () => {
     expect(table.showsBands).toBe(true);
     expect(table.rows.map((row) => [row.userId, row.place, row.band])).toEqual([
       ["hussain", 1, "shark"],
-      ["ali", 2, "hamour"],
-      ["yousif", 3, "hamour"],
-      ["mahmood", 4, "kanaad"],
+      ["ali", 2, "shark"],
+      ["yousif", 3, "shark"],
+      ["mahmood", 4, "hamour"],
       ["jassim", 5, "kanaad"],
       ["you", 6, "kanaad"],
       ["salman", 7, "kanaad"],
@@ -112,21 +119,25 @@ describe("tierTable", () => {
     expect(khalid).toMatchObject({ provisional: true, gamesOfFive: 3 });
   });
 
-  it("counts the points to the next band up, 53 to Hamour on screen 2e", () => {
+  it("counts the points to the next band up, to the last place of that band", () => {
     const rows = new Map(
       tierTable(THURSDAY).rows.map((row) => [row.userId, row]),
     );
-    expect(rows.get("mahmood")).toMatchObject({
+    expect(rows.get("jassim")).toMatchObject({
       nextBand: "hamour",
-      pointsToNextBand: 53,
+      pointsToNextBand: 34,
     });
     expect(rows.get("hussain")).toMatchObject({
       nextBand: null,
       pointsToNextBand: null,
     });
-    expect(rows.get("ali")).toMatchObject({
+    expect(rows.get("yousif")).toMatchObject({
+      nextBand: null,
+      pointsToNextBand: null,
+    });
+    expect(rows.get("mahmood")).toMatchObject({
       nextBand: "shark",
-      pointsToNextBand: 56,
+      pointsToNextBand: 53,
     });
   });
 
@@ -147,19 +158,31 @@ describe("tierTable", () => {
     });
   });
 
-  it("shows places and no fish with three ranked members", () => {
+  it("shows a place and no fish with one ranked member", () => {
     const table = tierTable([
       member("a", 1300),
-      member("b", 1250),
-      member("c", 1220),
-      member("d", 1210, { gamesCounted: 4 }),
+      member("b", 1210, { gamesCounted: 4 }),
     ]);
     expect(table.showsBands).toBe(false);
     expect(table.rows.map((row) => [row.place, row.band])).toEqual([
       [1, null],
-      [2, null],
-      [3, null],
       [null, null],
+    ]);
+  });
+
+  it("gives a Shark and a Safi with two ranked, and two Sharks with three", () => {
+    const two = tierTable([member("a", 1300), member("b", 1250)]);
+    expect(two.showsBands).toBe(true);
+    expect(two.rows.map((row) => row.band)).toEqual(["shark", "safi"]);
+    const three = tierTable([
+      member("a", 1300),
+      member("b", 1250),
+      member("c", 1220),
+    ]);
+    expect(three.rows.map((row) => row.band)).toEqual([
+      "shark",
+      "shark",
+      "safi",
     ]);
   });
 
@@ -187,14 +210,14 @@ describe("tierTable", () => {
 describe("tierAdjustPreview", () => {
   it("returns the new place and band and who moves the other way", () => {
     const table = tierTable(THURSDAY);
-    const preview = tierAdjustPreview(table, "mahmood", 1320);
+    const preview = tierAdjustPreview(table, "jassim", 1260);
     expect(preview).toMatchObject({
-      place: 3,
+      place: 4,
       band: "hamour",
       rankedCount: 11,
     });
     expect(preview.others).toEqual([
-      { userId: "yousif", from: "hamour", to: "kanaad" },
+      { userId: "mahmood", from: "hamour", to: "kanaad" },
     ]);
   });
 
@@ -203,7 +226,7 @@ describe("tierAdjustPreview", () => {
     const preview = tierAdjustPreview(table, "khalid", 1500);
     expect(preview).toMatchObject({ place: 1, band: "shark", rankedCount: 12 });
     expect(preview.others).toContainEqual({
-      userId: "hussain",
+      userId: "yousif",
       from: "shark",
       to: "hamour",
     });

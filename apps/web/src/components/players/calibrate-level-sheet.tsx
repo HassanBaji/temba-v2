@@ -21,7 +21,10 @@ import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { levelFaceFor, ovrFromLevel } from "@repo/domain/football-ovr";
-import { levelSliderLabel, ovrSliderLabel } from "@repo/domain/level-slider";
+import {
+  levelSliderLabel,
+  ovrSliderValueText,
+} from "@repo/domain/level-slider";
 import { sportLabel, type Sport } from "@repo/domain/sport";
 
 type ProfileRating = RouterOutputs["users"]["playerProfile"]["rating"];
@@ -77,7 +80,7 @@ export function CalibrateLevelAction({
           name,
           variables.ovr === undefined
             ? levelSliderLabel(variables.levelTenths ?? 0)
-            : ovrSliderLabel(variables.ovr),
+            : ovrSliderValueText(variables.ovr, locale),
         ),
       );
       setOpen(false);

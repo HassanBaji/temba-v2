@@ -1,12 +1,11 @@
 "use client";
 
-import { Tag as TagIcon } from "lucide-react";
 import {
   boardTierCell,
   byKeeperThenLevel,
-  levelLabel,
   lineupName,
-  makeTeamsLevelLabel,
+  ovrLabel,
+  ovrSpoken,
   sideOvrAverage,
   slotCode,
   type Bibs,
@@ -18,6 +17,7 @@ import type {
 } from "@repo/domain/football-lineup";
 import type { GroupMemberTierCell } from "@repo/domain/group-members-table";
 
+import { NicknameName } from "~/components/temba/nickname-name";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { TierCell } from "~/components/groups/tier-fish";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -36,8 +36,8 @@ export function TierMark({ cell }: { cell: GroupMemberTierCell }) {
 
 /**
  * A player row in their team's bib colour; the viewer's row is ringed.
- * `showTier` puts the player's fish where the Level sits, in a tier Group;
- * `balanceOn` shows the OVR there when Make teams balances on it.
+ * The OVR sits at the end, or with `showTier` the player's fish in a tier
+ * Group.
  */
 export function BibRow({
   player,
@@ -45,27 +45,23 @@ export function BibRow({
   trailing,
   onPress,
   showTier = false,
-  balanceOn,
 }: {
   player: BoardPlayer;
   bib: FootballBib;
   trailing?: React.ReactNode;
   onPress?: () => void;
   showTier?: boolean;
-  balanceOn?: FootballBalanceOn;
 }) {
   const m = useMessages();
   const locale = useLocale();
   const { name, spoken, isNickname } = lineupName(player, locale);
   const code = slotCode(player, locale);
   const tierCell = showTier ? boardTierCell(player, locale) : null;
-  const level = balanceOn
-    ? makeTeamsLevelLabel(player, balanceOn)
-    : levelLabel(player.levelBand);
+  const level = ovrLabel(player);
   const label = [
     spoken,
     code,
-    tierCell ? tierCell.label : level,
+    tierCell ? tierCell.label : ovrSpoken(player, locale),
     player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
     player.guest ? m.group.addPlayer.guest.tag : null,
   ]
@@ -79,19 +75,14 @@ export function BibRow({
         size="sm"
         guest={player.guest}
       />
-      <span
+      <NicknameName
+        name={name}
+        isNickname={isNickname}
         className={cn(
-          "text-meta flex min-w-0 flex-1 items-center gap-1",
+          "text-meta flex-1 [text-align:match-parent]",
           player.isViewer && "font-semibold",
         )}
-      >
-        {isNickname ? (
-          <TagIcon aria-hidden className="size-3 shrink-0" />
-        ) : null}
-        <span dir="auto" className="truncate [text-align:match-parent]">
-          {name}
-        </span>
-      </span>
+      />
       {code ? (
         <span className="font-mono text-[11px] opacity-70">{code}</span>
       ) : null}
@@ -213,7 +204,6 @@ export function TeamColumns({
                 player={player}
                 bib={bib}
                 showTier={balanceOn === "tierPoints"}
-                balanceOn={balanceOn}
                 onPress={
                   onOpenPlayer ? () => onOpenPlayer(player.userId) : undefined
                 }

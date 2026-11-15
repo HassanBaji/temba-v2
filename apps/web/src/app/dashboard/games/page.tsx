@@ -52,6 +52,7 @@ import {
   nextHistoryCursor,
 } from "@repo/domain/match-history-card";
 import { isTournamentMatchRow } from "@repo/domain/tournament-card";
+import { KingPlayedCard } from "~/components/games/tournament-king-played-card";
 import { isTournamentGamesCardRow } from "@repo/domain/tournament-games-card";
 import {
   isDrawnTournament,
@@ -377,7 +378,12 @@ function HistoryTabPanel({
     <>
       <ul className="flex flex-col gap-3">
         {rows.map((row) =>
-          isTournamentGamesCardRow(row) ? (
+          row.kingOfTheCourt ? (
+            <KingPlayedCard
+              key={row.matchId}
+              game={{ ...row, kingOfTheCourt: row.kingOfTheCourt }}
+            />
+          ) : isTournamentGamesCardRow(row) ? (
             <TournamentPlayedCard
               key={row.matchId}
               game={{ ...row, myTournament: row.myTournament }}
@@ -510,7 +516,7 @@ export default function GamesHubPage({
 
   const myGames = api.games.listMyGames.useQuery({ groupTournaments: true });
   const history = api.games.listMyMatchHistory.useInfiniteQuery(
-    { limit: HISTORY_PAGE_SIZE, groupTournaments: true },
+    { limit: HISTORY_PAGE_SIZE, groupTournaments: true, kingOfTheCourt: true },
     {
       getNextPageParam: nextHistoryCursor,
     },

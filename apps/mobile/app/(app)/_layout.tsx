@@ -5,6 +5,7 @@ import { AuthLoading } from "../../src/auth/auth-loading";
 import { OnboardingGate } from "../../src/auth/onboarding-gate";
 import { StoredLocaleSync } from "../../src/i18n/stored-locale-sync";
 import { AppTabs } from "../../src/navigation/app-tabs";
+import { RequestAnswersProvider } from "../../src/requests/request-answers-provider";
 
 export default function SignedInLayout() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -18,7 +19,9 @@ export default function SignedInLayout() {
   return (
     <OnboardingGate>
       <StoredLocaleSync />
-      <AppTabs />
+      <RequestAnswersProvider>
+        <AppTabs />
+      </RequestAnswersProvider>
     </OnboardingGate>
   );
 }

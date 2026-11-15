@@ -2,7 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatDayMonth, formatMonth } from "./format-game-start";
-import { levelFaceFor } from "./football-ovr";
+import { ovrFromLevel, ovrScalePercent } from "./football-ovr";
 import {
   displayLabelFromStoredBand,
   nextDistinctDisplayRung,
@@ -142,10 +142,13 @@ export type ProfileLevelView =
       label: string;
       status: string;
       statusDetail: string;
-      band: string;
+      /** Null on football, which reads its Level as OVR with no band. */
+      band: string | null;
       level: string;
+      /** "OVR" beside a football Level; null on padel. */
+      unit: string | null;
       trend: string | null;
-      lead: string;
+      lead: string | null;
       trail: string | null;
       percent: number;
       /** The track is hatched while the Level is not settled yet. */
@@ -187,10 +190,10 @@ function clampPercent(value: number) {
 }
 
 /**
- * The Level block in the hero. A football Level reads as OVR, and one that no
- * rated Match has moved is the starting one and its track is hatched;
- * otherwise both sports read the same: Provisional while confirming, then the
- * distance to the next band.
+ * The Level block in the hero. A football Level reads as OVR with no band,
+ * and one that no rated Match has moved is the starting one and its track is
+ * hatched. Both sports read Provisional while confirming; then padel shows
+ * the distance to the next band and football fills along the OVR scale.
  */
 export function profileLevelView(
   input: PlayerLevelInput | null,
@@ -213,9 +216,9 @@ export function profileLevelView(
     };
   }
 
-  const face = levelFaceFor(options.sport);
-  const band = displayLabelFromStoredBand(input.levelBand);
-  const level = shownLevel(input.levelValue, face);
+  const football = options.sport === "football";
+  const band = football ? null : displayLabelFromStoredBand(input.levelBand);
+  const level = shownLevel(input.levelValue, football ? "ovr" : "level");
   const shape = (
     parts: Pick<
       Extract<ProfileLevelView, { kind: "level" }>,
@@ -226,10 +229,13 @@ export function profileLevelView(
     label,
     band,
     level,
+    unit: football ? all.rating.ovr.label : null,
     ...parts,
     spoken: join(
       [
-        `${label} ${band} ${level}`,
+        football
+          ? `${label} ${all.rating.ovr.value(level)}`
+          : `${label} ${band} ${level}`,
         parts.status,
         parts.statusDetail,
         parts.lead,
@@ -239,7 +245,7 @@ export function profileLevelView(
     ),
   });
 
-  if (options.sport === "football" && input.ratedMatchCount === 0) {
+  if (football && input.ratedMatchCount === 0) {
     return shape({
       status: m.startingLevel,
       statusDetail: m.setAtSignUp,
@@ -266,6 +272,18 @@ export function profileLevelView(
     });
   }
 
+  if (football) {
+    return shape({
+      status: m.confirmed,
+      statusDetail,
+      lead: null,
+      trail: null,
+      percent: clampPercent(ovrScalePercent(ovrFromLevel(input.levelValue))),
+      hatched: false,
+      trend: options.trend,
+    });
+  }
+
   const next = nextDistinctDisplayRung(input.levelBand);
   if (next == null) {
     return shape({
@@ -282,7 +300,7 @@ export function profileLevelView(
   return shape({
     status: m.confirmed,
     statusDetail,
-    lead: m.toNext(distanceToNextRung(input.levelValue, next, face), next),
+    lead: m.toNext(distanceToNextRung(input.levelValue, next), next),
     trail: m.ofTheWay(percent),
     percent,
     hatched: false,

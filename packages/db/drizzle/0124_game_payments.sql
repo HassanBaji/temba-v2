@@ -1,7 +1,18 @@
+CREATE TYPE "public"."game_payment_event_action" AS ENUM('claimed', 'unclaimed', 'paid', 'not_received', 'undone');--> statement-breakpoint
 CREATE TYPE "public"."game_payment_return_reason" AS ENUM('nothing_arrived', 'wrong_amount', 'sent_elsewhere');--> statement-breakpoint
 CREATE TYPE "public"."game_payment_status" AS ENUM('claimed', 'paid', 'not_received');--> statement-breakpoint
 ALTER TYPE "public"."notification_type" ADD VALUE 'game_payment_reminder';--> statement-breakpoint
 ALTER TYPE "public"."notification_type" ADD VALUE 'game_payment_not_received';--> statement-breakpoint
+ALTER TYPE "public"."notification_type" ADD VALUE 'game_payment_claimed';--> statement-breakpoint
+CREATE TABLE "game_payment_events" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"game_id" uuid NOT NULL,
+	"user_id" uuid NOT NULL,
+	"actor_user_id" uuid,
+	"action" "game_payment_event_action" NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "game_payments" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"game_id" uuid NOT NULL,
@@ -22,9 +33,15 @@ CREATE TABLE "game_payments" (
 --> statement-breakpoint
 ALTER TABLE "games" ADD COLUMN "track_payments" boolean DEFAULT false NOT NULL;--> statement-breakpoint
 ALTER TABLE "games" ADD COLUMN "keepers_play_free" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "game_players" ADD COLUMN "kickoff_football_role" "football_role";--> statement-breakpoint
+ALTER TABLE "game_payment_events" ADD CONSTRAINT "game_payment_events_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "game_payment_events" ADD CONSTRAINT "game_payment_events_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "game_payment_events" ADD CONSTRAINT "game_payment_events_actor_user_id_user_id_fk" FOREIGN KEY ("actor_user_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "game_payments" ADD CONSTRAINT "game_payments_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "game_payments" ADD CONSTRAINT "game_payments_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "game_payments" ADD CONSTRAINT "game_payments_paid_by_user_id_user_id_fk" FOREIGN KEY ("paid_by_user_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "game_payments" ADD CONSTRAINT "game_payments_returned_by_user_id_user_id_fk" FOREIGN KEY ("returned_by_user_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "game_payments" ADD CONSTRAINT "game_payments_updated_by_user_id_user_id_fk" FOREIGN KEY ("updated_by_user_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "game_payment_events_game_id_idx" ON "game_payment_events" USING btree ("game_id","created_at");--> statement-breakpoint
+CREATE INDEX "game_payment_events_user_id_idx" ON "game_payment_events" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "game_payments_user_id_idx" ON "game_payments" USING btree ("user_id");

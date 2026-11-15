@@ -15,6 +15,7 @@ import {
   venues,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
+import { wholeOvrFromMu } from "@repo/domain/football-ovr";
 
 import { addPlayerByPhone } from "./addPlayerByPhone";
 import { teamById } from "./byId";
@@ -106,6 +107,7 @@ describe("teams phone door", () => {
         alreadyOnTeam: false,
         alreadyInvited: false,
         levelBand: null,
+        ovr: null,
         footballRole: null,
         footballPosition: null,
         gamesWithYou: 0,
@@ -194,6 +196,7 @@ describe("teams phone door", () => {
         alreadyInvited: false,
         phoneMasked: "+973 •••• 4408",
         levelBand: "D3",
+        ovr: 43,
         footballRole: null,
         footballPosition: null,
         gamesWithYou: 0,
@@ -281,6 +284,7 @@ describe("teams phone door", () => {
         alreadyOnTeam: false,
         alreadyInvited: false,
         levelBand: "C2",
+        ovr: wholeOvrFromMu(1400),
         footballRole: "outfield",
         footballPosition: "fwd",
         gamesWithYou: 2,
@@ -293,6 +297,7 @@ describe("teams phone door", () => {
         }),
       ).resolves.toMatchObject({
         levelBand: null,
+        ovr: null,
         footballRole: null,
         footballPosition: null,
       });

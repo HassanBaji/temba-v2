@@ -92,7 +92,7 @@ A set of people who play Games of one sport. Every Group is either a Club Group 
 _Avoid_: Team, lobby, channel, club (when you mean a Group)
 
 **Verified Group**:
-A Group that may host Rated Games and public Games: one an Operator verified, one created by a User with Group creator access, or a Club Group. Every other Group's new Games are private. A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; a Club Group's verification is derived from its Venue link, not stored.
+A Group that may host Rated Games and public Games: one an Operator verified, or a Club Group. A new Group is never Verified at create, whoever creates it (ADR-0088). Every other Group's new Games are private. A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; a Club Group's verification is derived from its Venue link, not stored.
 _Avoid_: ranked Group, official Group, premium Group, permitted Group, groupCreator (that is a Clerk key)
 
 **Club Group**:
@@ -136,7 +136,7 @@ A Group join request a Group approver rejected with "Reject and block". A blocke
 _Avoid_: ban (when you mean this Group-level refusal)
 
 **Group approver**:
-Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, make or unmake Appointed Organizers and, on a tier Group, make a Tier adjustment for any other member and change the Rating settings: the Group creator and Appointed Organizers, on a Loose Group and a Club Group alike. Removing a player never removes the Group creator; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. A Group approver also sees every member's full phone number, in the member menu on the Members tab, and no one else in the Group does (ADR-0078).
+Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, make or unmake Appointed Organizers and, on a tier Group, make a Tier adjustment for any member, themselves included, and change the Rating settings: the Group creator and Appointed Organizers, on a Loose Group and a Club Group alike. Removing a player never removes the Group creator; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. A Group approver also sees every member's full phone number, in the member menu on the Members tab and in the player dialog on the Group's Games, with doors to call them or message them on WhatsApp, and no one else in the Group does (ADR-0078, ADR-0087).
 _Avoid_: organizer (when you mean this write permission), group admin, Group owner (when you mean this permission rather than the one User who owns the Group)
 
 **Member nickname**:
@@ -296,7 +296,7 @@ A period when a whole Venue, or one Court, cannot be booked, set by a Venue mana
 _Avoid_: blackout, holiday, block
 
 **Payment tracking**:
-A Game's ledger of who has paid the Organizer their Price per player (ADR-0087), switched on at create and in force only while the price is above zero. Any Game with a price may have it: a Friendly game, a Friendly tournament or a Booking Game. Temba moves no money. A player says they paid (a claim, a ring mark), which tells the Game admins once; only the Organizer or a Group admin makes it paid (solid), either by confirming a claim or by marking money already handed over, and may send a claim back as not received with a reason or note, or take a paid one back. Not paid is hatched. On football, Keepers play free leaves whoever holds a keeper spot at kick-off out of who owes (dashed): it follows the spot until kick-off and is fixed from then on. A payment already recorded for a player who comes to play free stays with the Organizer to take back. Other players see only the marks, never amounts, notes or who confirmed. Every change is kept with who made it. The screens call the list "Payments".
+A Game's ledger of who has paid the Organizer their Price per player (ADR-0089), switched on at create and in force only while the price is above zero. Any Game with a price may have it: a Friendly game, a Friendly tournament or a Booking Game. Temba moves no money. A player says they paid (a claim, a ring mark), which tells the Game admins once; only the Organizer or a Group admin makes it paid (solid), either by confirming a claim or by marking money already handed over, and may send a claim back as not received with a reason or note, or take a paid one back. Not paid is hatched. On football, Keepers play free leaves whoever holds a keeper spot at kick-off out of who owes (dashed): it follows the spot until kick-off and is fixed from then on. A payment already recorded for a player who comes to play free stays with the Organizer to take back. Other players see only the marks, never amounts, notes or who confirmed. Every change is kept with who made it. The screens call the list "Payments".
 _Avoid_: checkout, charge, fee, Payment (alone, which is a Booking's)
 
 **Pricing rule**:
@@ -473,12 +473,24 @@ A Game format with individual-only registration and rotating partners across mul
 _Avoid_: Friendly tournament, Friendly game, tournament, team-only (illegal on this format)
 
 **Friendly tournament**:
-A Game format whose Game teams are drawn at random and whose Matches are generated by the draw; the organizer does not add them by hand. Its Tournament shape says which stages it plays: Pools, a Knockout, or Pools then a Knockout. In a Pool stage each Pool plays a round robin across several Rounds — one Pass by default, cut short or played twice by the organizer's Round count.
+A Game format whose Game teams are drawn at random and whose Matches are generated by the draw; the organizer does not add them by hand. Its Tournament shape says which stages it plays: Pools, a Knockout, or Pools then a Knockout. In a Pool stage each Pool plays a round robin across several Rounds — one Pass by default, cut short or played twice by the organizer's Round count. King of the court is the exception: its draw is the Starting courts and it has no Matches (ADR-0087).
 _Avoid_: Americano, Friendly game, league
 
 **Tournament shape**:
-Which stages a Friendly tournament plays: Groups only, Knockout only, or Groups then knockout. Chosen at create; Groups only by default. Not a Game format — the format stays Friendly tournament (ADR-0020). Shown to users as _Format_.
+Which stages a Friendly tournament plays: Groups only, Knockout only, Groups then knockout, or King of the court. Chosen at create; Groups only by default. Not a Game format — the format stays Friendly tournament (ADR-0020). Shown to users as _Format_.
 _Avoid_: Game format, mode, type, tournament format
+
+**King of the court**:
+A Tournament shape with no Matches. Two Game teams start on each court, two to six courts, Court 1 being the king's court; on the day winners move up a court and losers move down, run by the players. The Organizer draws the Starting courts and, when it ends, posts the Final order. Never rated: nothing is scored (ADR-0087).
+_Avoid_: ladder, king's court (that is Court 1), Americano
+
+**Starting courts**:
+The King of the court draw: which court each Game team starts on, for the first round only. The Organizer can redraw or swap teams and post again until the Final order is posted. Posting closes the seats.
+_Avoid_: Pool draw, seeding, bracket
+
+**Final order**:
+The King of the court result: the Game teams in the order the Organizer says they finished, at least the top three; the first is king of the court and teams left out are not placed. It can change for 24 hours after it is first posted. Not a Pool table and not a Standing.
+_Avoid_: standings, table, ranking, leaderboard
 
 **Knockout**:
 The single-elimination stage of a Friendly tournament: a Game team that loses a Knockout Match is out.
@@ -577,7 +589,7 @@ The display-only amount one User pays to occupy a seat on that Game, shown in BD
 _Avoid_: fee, cost, entry fee, registration price (registration is the open/closed window), total price, price per team, Match price, player (when you mean User outside this term)
 
 **Organizer**:
-Of a Group Game: that Group’s creator and its Appointed Organizers. Of a Challenge Game: whoever acts for either Team, who may cancel it, score and confirm it (on a football one that counts for Temba Level, for their own Team's side only, and for one side when they act for both Teams), and edit its name, window and price, but not add, kick, invite, publish sides or change its shape. Of any other groupless Game: its creator. Those people may create the Game, cancel it or a Match, confirm a score for everyone, kick registered or waitlisted entries, edit the Game in one sheet (name, window, players allowed and Side size, price per player, Game Level range, Season), decide Game Level range requests, and add players by phone: a User with an account is seated straight away, any other number becomes or reuses an Unclaimed player. An Organizer's add skips the registration window, the Group join gate and the Game Level range, never waitlists, and never adds the person to the Group. The Organizers of a tier Group also make Tier adjustments for its other members, never for themselves, change its Rating settings and, in Organizer mode, give the Performance ratings of its Games.
+Of a Group Game: that Group’s creator and its Appointed Organizers. Of a Challenge Game: whoever acts for either Team, who may cancel it, score and confirm it (on a football one that counts for Temba Level, for their own Team's side only, and for one side when they act for both Teams), and edit its name, window and price, but not add, kick, invite, publish sides or change its shape. Of any other groupless Game: its creator. Those people may create the Game, cancel it or a Match, confirm a score for everyone, kick registered or waitlisted entries, edit the Game in one sheet (name, window, players allowed and Side size, price per player, Game Level range, Season), decide Game Level range requests, and add players by phone: a User with an account is seated straight away, any other number becomes or reuses an Unclaimed player. An Organizer's add skips the registration window, the Group join gate and the Game Level range, never waitlists, and never adds the person to the Group. The Organizers of a tier Group also make Tier adjustments for its members, themselves included, change its Rating settings and, in Organizer mode, give the Performance ratings of its Games.
 _Avoid_: creator (when you mean this set), host, admin (when you mean this), game admin, co-host
 
 **Appointed Organizer**:
@@ -680,8 +692,12 @@ _Avoid_: email preferences, subscription, opt-in, unsubscribe (when you mean the
 The Locale the API keeps for a User, written by the clients whenever the language they show changes, and read wherever the product speaks to the User away from a client, such as a Notification email. English until the User has used Temba in another language.
 _Avoid_: language preference, user language, locale setting, Accept-Language
 
+**Waiting request**:
+A request that waits on the viewer as an Organizer or Group approver: a Game Level range request on an upcoming Game they organize, a Group join request with a live Seat hold on an upcoming Game, or any other pending Group join request in a Group they approve for. Listed most urgent first (seats before Group join requests, then whichever hold or Game start runs out first, then the oldest ask) on Home, in the Requests section of Notifications and on All requests, as one card. An answer waits a few seconds with Undo before it is sent (ADR-0087).
+_Avoid_: inbox item, pending action, notification (a Notification only tells; a Waiting request needs an answer)
+
 **Notifications page**:
-The Web App page at `/dashboard/notifications`, opened from the bell, listing the signed-in User's Notifications newest first, with a link to pending invites when there are any.
+The Web App page at `/dashboard/notifications`, opened from the bell, listing the signed-in User's Waiting requests in their own section on top, then their Notifications newest first, with a link to pending invites when there are any.
 _Avoid_: feed, inbox (when you mean this page), activity log, Home
 
 **Standing**:
@@ -701,7 +717,7 @@ The continuous 0.0–7.0 skill state derived from a Rating’s μ. Product copy 
 _Avoid_: rank (reserved for Official Rank), ELO, Level band (that is the discrete label)
 
 **OVR**:
-The football face of a Level, 40 to 99, shown as a whole number: `40 + 59 × Level / 7` on the stored μ, so no Rating row is rewritten (ADR-0069). The Level bands apply unchanged, 5.9 OVR each (C+ is 69.5 to 75.4). Home, the You page, the Player profile, Team Level and the Operator's Player Levels page show a football Level as OVR with its band. A move that would pass 40 or 99 stops there: "What moved your OVR" shows each part as the player earned it and one more line, "Held at 40" or "Held at 99", for what the bound kept out, so the lines add up to the move.
+The football face of a Level, 40 to 99, shown as a whole number: `40 + 59 × Level / 7` on the stored μ, so no Rating row is rewritten (ADR-0069). The Level bands apply unchanged, 5.9 OVR each (C+ is 69.5 to 75.4). A football Level is shown as OVR alone, never with a band letter (ADR-0087): the Level card, the sport switch, line-ups, profiles, Team Level, Challenges, Game Level ranges, notifications and the Operator and Verifier tools. The band is still stored and still drives gates and pickers, which label their options in OVR. A move that would pass 40 or 99 stops there: "What moved your OVR" shows each part as the player earned it and one more line, "Held at 40" or "Held at 99", for what the bound kept out, so the lines add up to the move.
 _Avoid_: overall (in copy), football rating
 
 **Level band**:
@@ -745,7 +761,7 @@ The number behind a Group Tier (`group_tier_points`). Starts at 1,200 and moves 
 _Avoid_: Elo, group Elo, rating points, Standing points
 
 **Tier band**:
-Shark, Hamour, Kanaad or Safi, shown as a fish. A place, not a threshold: the Shark is first, Hamour the next 15% of the other ranked members, Kanaad the next 35%, Safi the rest. Only members out of Provisional are ranked, and there are no fish until four are. A place is shown against the Group's member count ("#6 of 13" in a Group of 13 with two still Provisional), wherever it is shown; an event keeps the count from when its place was cut. A member whose fish moves is told once per write (`tier_band_changed`), whether a Game settling, a wrong-score reversal or another member's Tier adjustment moved it; a member left with no fish is not told. Pure in `@repo/domain/tier-bands`.
+Shark, Hamour, Kanaad or Safi, shown as a fish. A place, not a threshold: the top three are Sharks (fewer while only two to four are ranked, so at least one member is not a Shark), Hamour the next 15% of the other ranked members, Kanaad the next 35%, Safi the rest. Only members out of Provisional are ranked, and there are no fish until two are. A place is shown against the Group's member count ("#6 of 13" in a Group of 13 with two still Provisional), wherever it is shown; an event keeps the count from when its place was cut. A member whose fish moves is told once per write (`tier_band_changed`), whether a Game settling, a wrong-score reversal or another member's Tier adjustment moved it; a member left with no fish is not told. Pure in `@repo/domain/tier-bands`.
 _Avoid_: badge, rank, Level band, league
 
 **Tier adjustment**:

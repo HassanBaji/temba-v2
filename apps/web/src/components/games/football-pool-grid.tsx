@@ -1,14 +1,15 @@
 "use client";
 
-import { Tag as TagIcon } from "lucide-react";
 import {
-  levelLabel,
+  ovrLabel,
+  ovrSpoken,
   poolSections,
   lineupName,
   slotCode,
   type BoardPlayer,
 } from "@repo/domain/football-board";
 
+import { NicknameName } from "~/components/temba/nickname-name";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Hatch } from "~/components/ui/hatch";
@@ -45,7 +46,7 @@ function PlayerTile({
       aria-label={[
         spoken,
         code,
-        levelLabel(player.levelBand),
+        ovrSpoken(player, locale),
         player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
         player.guest ? m.group.addPlayer.guest.tag : null,
       ]
@@ -86,16 +87,13 @@ function PlayerTile({
         ) : null}
       </span>
       <span className="flex items-baseline justify-between gap-1">
-        <span className="flex min-w-0 items-center gap-1 text-[12px]">
-          {isNickname ? (
-            <TagIcon aria-hidden className="size-3 shrink-0" />
-          ) : null}
-          <span dir="auto" className="truncate">
-            {name}
-          </span>
-        </span>
+        <NicknameName
+          name={name}
+          isNickname={isNickname}
+          className="text-[12px]"
+        />
         <span dir="ltr" className="font-expanded text-meta">
-          {levelLabel(player.levelBand)}
+          {ovrLabel(player)}
         </span>
       </span>
     </Tag>

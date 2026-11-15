@@ -199,6 +199,7 @@ function TeamSeat({
           image: occupant.image ?? null,
           levelBand: occupant.levelBand,
           guest: occupant.guest,
+          phoneNumber: occupant.phoneNumber,
         })
     : undefined;
 

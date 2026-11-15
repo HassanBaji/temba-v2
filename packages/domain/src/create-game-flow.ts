@@ -244,7 +244,8 @@ export const DEFAULT_MATCH_MINUTES = 45;
 export type CreateTournamentShape =
   | "groups_only"
   | "groups_then_knockout"
-  | "knockout_only";
+  | "knockout_only"
+  | "king_of_the_court";
 
 export const DEFAULT_TOURNAMENT_SHAPE: CreateTournamentShape = "groups_only";
 
@@ -253,11 +254,13 @@ export function tournamentShapeOptions(locale: Locale): readonly {
   title: string;
   description: string;
 }[] {
-  const m = messagesFor(locale).createGame.shapes;
+  const messages = messagesFor(locale);
+  const m = messages.createGame.shapes;
   return [
     { id: "groups_only", ...m.groupsOnly },
     { id: "knockout_only", ...m.knockoutOnly },
     { id: "groups_then_knockout", ...m.groupsThenKnockout },
+    { id: "king_of_the_court", ...messages.tournamentKing.shape },
   ];
 }
 
@@ -266,13 +269,14 @@ export function parseCreateTournamentShape(
 ): CreateTournamentShape | null {
   return value === "groups_only" ||
     value === "groups_then_knockout" ||
-    value === "knockout_only"
+    value === "knockout_only" ||
+    value === "king_of_the_court"
     ? value
     : null;
 }
 
 export function createShapeHasPools(shape: CreateTournamentShape) {
-  return shape !== "knockout_only";
+  return shape !== "knockout_only" && shape !== "king_of_the_court";
 }
 
 export type CreateFlowDuration = (typeof CREATE_FLOW_DURATIONS)[number];

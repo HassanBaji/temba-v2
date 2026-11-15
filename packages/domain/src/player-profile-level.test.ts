@@ -146,6 +146,36 @@ describe("playerLevelCardView", () => {
     ).toMatchObject({ displayBand: "D", level: "1.00" });
   });
 
+  it("reads the OVR face with no band or way to the next one", () => {
+    expect(
+      playerLevelCardView(fixtures.topBand.rating, "en", "ovr"),
+    ).toMatchObject({
+      displayBand: null,
+      lines: ["Confirmed, 120 rated matches"],
+    });
+    expect(
+      playerLevelCardView(
+        {
+          levelBand: "C1",
+          levelValue: 3.85,
+          provisional: false,
+          ratedMatchCount: 8,
+          ratedMatchesRemaining: 0,
+        },
+        "en",
+        "ovr",
+      ),
+    ).toEqual({
+      kind: "rated",
+      displayBand: null,
+      level: "72",
+      provisional: false,
+      lines: ["Confirmed, 8 rated matches"],
+      fillPercent: 55,
+      accessibilityLabel: "OVR 72. Confirmed, 8 rated matches",
+    });
+  });
+
   it("fills the top band and says so", () => {
     expect(playerLevelCardView(fixtures.topBand.rating, "en")).toMatchObject({
       displayBand: "A",

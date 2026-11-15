@@ -152,6 +152,7 @@ export const typeScale = {
 
 export const numerals = {
   levelBand: 88,
+  levelNumber: 92,
   heroTime: 56,
   record: 52,
   statTotal: 34,

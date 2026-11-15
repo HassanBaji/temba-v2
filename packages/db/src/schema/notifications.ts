@@ -59,6 +59,8 @@ export const NOTIFICATION_TYPE_VALUES = [
   "match_dispute_raised",
   "match_dispute_decided",
   "level_confirmed",
+  "king_courts_posted",
+  "king_final_order_posted",
   "game_payment_reminder",
   "game_payment_not_received",
   "game_payment_claimed",

@@ -18,7 +18,8 @@ describe("calibrateLevelView", () => {
     );
     expect(view.face).toBe("ovr");
     expect(view.currentValue).toBe(70);
-    expect(view.wasLabel).toBe(`was ${calibrateLevelLabel("ovr", 70)}`);
+    expect(view.wasLabel).toBe("was OVR 70");
+    expect(calibrateLevelLabel("ovr", 72, "en")).toBe("OVR 72");
     expect(calibrateLevelUnchanged(view, 70)).toBe(true);
     expect(calibrateLevelUnchanged(view, 71)).toBe(false);
   });
@@ -31,6 +32,7 @@ describe("calibrateLevelView", () => {
     expect(view.face).toBe("level");
     expect(view.currentValue).toBe(30);
     expect(view.wasLabel).toBe("no Level yet");
+    expect(calibrateLevelLabel("level", 32, "en")).toBe("C 3.2");
     expect(calibrateLevelUnchanged(view, 30)).toBe(false);
   });
 

@@ -25,6 +25,8 @@ import {
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
+import { drawOccupantName } from "#src/games/helpers/draw-occupant-name";
+import { assertNotKingOfTheCourt } from "#src/games/assert-not-king-of-the-court";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted";
@@ -33,25 +35,6 @@ import { matchTimes } from "#src/games/helpers/match-times";
 import { lockGame } from "#src/games/lock-rows";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-function occupantName(
-  team: {
-    sideIndex: number | null;
-    players: readonly {
-      gamePlayer: { user: { name: string } | null } | null;
-    }[];
-  },
-  locale: Locale = DEFAULT_LOCALE,
-) {
-  const name = team.players[0]?.gamePlayer?.user?.name;
-  if (name) {
-    return name;
-  }
-  if (team.sideIndex != null) {
-    return messagesFor(locale).tournament.errors.teamNumber(team.sideIndex);
-  }
-  return messagesFor(locale).tournament.gameTeam;
-}
 
 type DrawnSlots = {
   knockoutRound: number | null;
@@ -308,6 +291,7 @@ export async function postPoolDraw(
       message: messagesFor(locale).tournament.errors.postDrawFriendly,
     });
   }
+  assertNotKingOfTheCourt(game, locale);
   const knockoutOnly = isKnockoutOnly(game.format, game.tournamentShape);
   assertPoolDrawNotPosted(game, locale);
   if (!game.windowStart || !game.windowEnd) {
@@ -355,7 +339,7 @@ export async function postPoolDraw(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: messagesFor(locale).tournament.errors.postHalfTeams(
-        halfTeams.map((team) => occupantName(team, locale)).join(", "),
+        halfTeams.map((team) => drawOccupantName(team, locale)).join(", "),
       ),
     });
   }

@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { mobileCreateGame as source } from "../en/mobile-create-game";
 
@@ -193,6 +194,8 @@ export const mobileCreateGame = {
     maximumLevel: "المستوى الأقصى",
     minimumLevelBand: (band: string) => `المستوى الأدنى ${band}`,
     maximumLevelBand: (band: string) => `المستوى الأقصى ${band}`,
+    minimumOvr: (ovr: string) => `الأدنى OVR ${isolate(ovr)}`,
+    maximumOvr: (ovr: string) => `الأقصى OVR ${isolate(ovr)}`,
     summaryA11y: (minimum: string, maximum: string) =>
       `الأدنى ${minimum}، الأقصى ${maximum}`,
     openToAnyone: "مفتوح للجميع",

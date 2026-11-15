@@ -32,7 +32,7 @@ import {
   levelOverrideWhy,
 } from "@repo/domain/level-slider";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
-import { formatE164 } from "@repo/domain/phone-number";
+import { formatE164, whatsAppHref } from "@repo/domain/phone-number";
 import type { ResultMarkVariant } from "@repo/domain/result-mark";
 import { paddedForm, standingRecordLabel } from "@repo/domain/season-standing";
 import { isolate } from "@repo/i18n/bidi";
@@ -180,7 +180,6 @@ function levelSpokenLabel(
   view: LevelCellView,
   levelText: string | null,
   locale: Locale,
-  carriesValue = false,
 ) {
   const m = messagesFor(locale).mobileGroup.members;
   if (view.kind === "label") {
@@ -189,9 +188,18 @@ function levelSpokenLabel(
   if (view.label && levelText) {
     return m.levelSpokenProvisional(`${view.label} ${levelText}`);
   }
-  return view.label && carriesValue
-    ? m.levelSpokenProvisional(view.label)
-    : m.levelStillProvisional;
+  return m.levelStillProvisional;
+}
+
+/** A football member's Level read out as OVR, with no band (ADR-0087). */
+export function ovrSpokenLabel(view: LevelCellView, locale: Locale) {
+  const m = messagesFor(locale);
+  if (!view.label) {
+    return m.mobileGroup.members.levelStillProvisional;
+  }
+  return view.kind === "label"
+    ? m.rating.ovr.value(view.label)
+    : m.rating.ovr.valueProvisional(view.label);
 }
 
 export function memberIsRemovable(
@@ -260,11 +268,11 @@ export function memberRowView(
     tier,
     selectable:
       (canSetLevel && !entry.isViewer) ||
-      (canAdjustTier && entry.tier != null && !entry.isViewer) ||
+      (canAdjustTier && entry.tier != null) ||
       memberIsRemovable(entry, canRemovePlayers) ||
       memberOrganizerAction(entry, canAppointOrganizers) != null ||
       memberIsCallable(entry) ||
-      canSetNicknames,
+      (canSetNicknames && !entry.isViewer),
     accessibilityLabel: [
       entry.isViewer ? m.mobileGroup.members.rowYou(spokenName) : spokenName,
       entry.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
@@ -275,7 +283,7 @@ export function memberRowView(
           : tier.spoken
         : ovr == null
           ? levelSpokenLabel(level, entry.level, locale)
-          : levelSpokenLabel(level, null, locale, true),
+          : ovrSpokenLabel(level, locale),
     ]
       .filter(Boolean)
       .join(". "),
@@ -340,6 +348,7 @@ export type MemberSheetView = {
   /** The full number, isolated for display, when the viewer may call. */
   phone: string | null;
   phoneHref: string | null;
+  whatsAppHref: string | null;
   summary: string;
   letter: string | null;
   level: string | null;
@@ -372,6 +381,7 @@ export function memberSheetView(
     phoneMasked: entry.phoneMasked,
     phone: callable ? isolate(formatE164(callable)) : null,
     phoneHref: callable ? `tel:${callable}` : null,
+    whatsAppHref: callable ? whatsAppHref(callable) : null,
     summary: [caption, m.members.ratedMatches(entry.ratedMatchCount)]
       .filter(Boolean)
       .join(" · "),

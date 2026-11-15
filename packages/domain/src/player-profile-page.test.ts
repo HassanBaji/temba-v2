@@ -149,7 +149,7 @@ describe("profileLevelView", () => {
     });
   });
 
-  it("reads a football Level as OVR: a self-placed Competitive is 72, an OVR of 74 is C+ on its way to B-", () => {
+  it("reads a football Level as OVR with no band: a self-placed Competitive is 72", () => {
     expect(
       profileLevelView(
         {
@@ -162,7 +162,16 @@ describe("profileLevelView", () => {
         { sport: "football", hasSwitch: false, trend: null },
         "en",
       ),
-    ).toMatchObject({ band: "C+", level: "72" });
+    ).toMatchObject({
+      band: null,
+      level: "72",
+      unit: "OVR",
+      spoken:
+        "Football level OVR 72, Starting level, Set at sign up, Doesn’t move with games yet",
+    });
+  });
+
+  it("fills a Confirmed football OVR along the scale, with no way to a next band", () => {
     expect(
       profileLevelView(
         {
@@ -175,12 +184,51 @@ describe("profileLevelView", () => {
         { sport: "football", hasSwitch: true, trend: null },
         "en",
       ),
-    ).toMatchObject({
-      band: "C+",
+    ).toEqual({
+      kind: "level",
+      label: "Level",
+      status: "Confirmed",
+      statusDetail: "6 rated matches",
+      band: null,
       level: "74",
-      lead: "2 to B-",
-      trail: "76% of the way",
+      unit: "OVR",
+      trend: null,
+      lead: null,
+      trail: null,
+      percent: 58,
+      hatched: false,
+      spoken: "Level OVR 74, Confirmed, 6 rated matches",
     });
+  });
+
+  it("reads a football OVR at the top of the scale without a top band line", () => {
+    const view = profileLevelView(
+      {
+        levelBand: "A",
+        levelValue: 7,
+        provisional: false,
+        ratedMatchCount: 40,
+        ratedMatchesRemaining: 0,
+      },
+      { sport: "football", hasSwitch: true, trend: null },
+      "en",
+    );
+    expect(view).toMatchObject({
+      band: null,
+      level: "99",
+      lead: null,
+      percent: 100,
+    });
+  });
+
+  it("keeps a padel Level's band and no unit", () => {
+    expect(
+      profileLevelView(
+        confirmed,
+        { sport: "padel", hasSwitch: true, trend: null },
+        "en",
+      ),
+    ).toMatchObject({ band: "B", unit: null });
   });
 
   it("reads no Level", () => {

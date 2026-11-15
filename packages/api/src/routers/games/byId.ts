@@ -126,6 +126,7 @@ import { toSeasonRow } from "#src/standing/load-group-standing";
 import { MATCH_STATUS } from "@repo/domain/match-status";
 import { guestStandInBand } from "@repo/domain/guest-player";
 import { gameMemberNicknames } from "#src/groups/helpers/game-member-nicknames";
+import { gameMemberPhoneNumbers } from "#src/groups/helpers/game-member-phone-numbers";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 import { maskPhone } from "#src/unclaimed-players/mask-phone";
 import { mayRenameUnclaimedPlayer } from "#src/unclaimed-players/may-rename-unclaimed-player";
@@ -138,6 +139,7 @@ import {
   type RatingWindowState,
 } from "@repo/domain/performance-rating";
 import { settleRatingWindowIfDue } from "#src/ratings/settle-rating-window";
+import { isKingOfTheCourt } from "@repo/domain/tournament-king";
 import { messagesFor } from "@repo/i18n/messages";
 import { loadTeamDisplayNames } from "#src/challenges/challenge-proposals";
 import { loadChallengeSides } from "#src/games/challenge-squad";
@@ -686,6 +688,12 @@ export async function gameById(
     game,
     args.userId,
   );
+  const phoneNumberByUserId = await gameMemberPhoneNumbers(
+    database,
+    game,
+    args.userId,
+    playerRows.flatMap((row) => (row.user ? [row.user] : [])),
+  );
   const playerMarkByUserId = new Map(
     await Promise.all(
       playerRows.flatMap((row) => {
@@ -709,9 +717,17 @@ export async function gameById(
                 callerId: args.userId,
               }));
             const nickname = nicknameByUserId.get(player.id) ?? null;
+            const phoneNumber = phoneNumberByUserId.get(player.id) ?? null;
             return [
               player.id,
-              { unclaimed, guest, phoneMasked, canRename, nickname },
+              {
+                unclaimed,
+                guest,
+                phoneMasked,
+                phoneNumber,
+                canRename,
+                nickname,
+              },
             ] as const;
           })(),
         ];
@@ -723,6 +739,7 @@ export async function gameById(
       unclaimed: false,
       guest: false,
       phoneMasked: null,
+      phoneNumber: null,
       canRename: false,
       nickname: nicknameByUserId.get(userId) ?? null,
     };
@@ -1303,8 +1320,10 @@ export async function gameById(
     roundCount: game.roundCount,
     matchMinutes: game.matchMinutes,
     drawPostedAt: game.drawPostedAt,
+    finalOrderPostedAt: game.finalOrderPostedAt,
     canUndoDraw:
       game.drawPostedAt != null &&
+      !isKingOfTheCourt(game.format, game.tournamentShape) &&
       !matchRows.some(
         (match) =>
           match.sets.length > 0 ||
@@ -1414,6 +1433,8 @@ export async function gameById(
       sideIndex: row.sideIndex,
       poolIndex: row.poolIndex,
       knockoutSeed: row.knockoutSeed,
+      startCourt: row.startCourt,
+      finalPlace: row.finalPlace,
       members: row.players.flatMap((link) =>
         link.gamePlayer.user
           ? [

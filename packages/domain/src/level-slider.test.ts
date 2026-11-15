@@ -16,10 +16,8 @@ import {
   ovrSliderLabel,
   ovrSliderReadout,
   ovrSliderStart,
+  ovrSliderValueText,
 } from "./level-slider";
-import { levelFromOvr } from "./football-ovr";
-import { bandFromLevel } from "./level";
-import { displayLabelFromStoredBand } from "./level-bands";
 
 const readout = (tenths: number, currentTenths = 24) =>
   levelSliderReadout({ tenths, currentTenths, locale: "en" });
@@ -212,54 +210,48 @@ describe("levelOverrideCaption", () => {
 });
 
 describe("OVR slider", () => {
-  it("marks the same letters on the 40 to 99 face", () => {
+  it("marks the football scale's numbers, with no letters", () => {
     expect(OVR_SLIDER_TICKS.startLabel).toBe("40");
     expect(OVR_SLIDER_TICKS.endLabel).toBe("99");
-    expect(OVR_SLIDER_TICKS.letters.map((letter) => letter.label)).toEqual([
-      "D",
-      "D+",
-      "C-",
-      "C",
-      "C+",
-      "B-",
-      "B",
-      "B+",
-      "A",
+    expect(OVR_SLIDER_TICKS.edges).toEqual([55, 70, 85]);
+    expect(OVR_SLIDER_TICKS.marks).toEqual([
+      { label: "55", at: 55 },
+      { label: "70", at: 70 },
+      { label: "85", at: 85 },
     ]);
-    expect(OVR_SLIDER_TICKS.edges[0]).toBeCloseTo(51.8, 9);
   });
 
-  it("labels every whole OVR with the letter the server stores", () => {
-    for (let ovr = 40; ovr <= 99; ovr++) {
-      const letter = displayLabelFromStoredBand(
-        bandFromLevel(levelFromOvr(ovr)),
-      );
-      expect(ovrSliderLabel(ovr)).toBe(`${letter} ${ovr}`);
-    }
-    expect(ovrSliderLabel(72)).toBe("C+ 72");
-    expect(ovrSliderLabel(120)).toBe("A 99");
+  it("labels the thumb with the bare whole OVR", () => {
+    expect(ovrSliderLabel(72)).toBe("72");
+    expect(ovrSliderLabel(71.6)).toBe("72");
+    expect(ovrSliderLabel(120)).toBe("99");
+    expect(ovrSliderLabel(12)).toBe("40");
   });
 
-  it("reads C+ as 70 to 75, with the way to B-", () => {
+  it("reads OVR 72 in prose, with no band", () => {
+    expect(ovrSliderValueText(72, "en")).toBe("OVR 72");
+    expect(ovrSliderValueText(72, "ar")).toBe(`OVR ${isolate("72")}`);
+  });
+
+  it("reads the big OVR and fills the bar along 40 to 99, with no band", () => {
     const view = ovrSliderReadout({ ovr: 72, currentOvr: 68, locale: "en" });
-    expect(view).toMatchObject({
-      displayBand: "C+",
-      levelLabel: "72",
+    expect(view).toEqual({
+      ovrLabel: "72",
       deltaLabel: "+4",
-      rung: { label: "C+", lowerLabel: "70", upperLabel: "75" },
-      toNext: { label: "B-", distanceLabel: "4" },
+      percentOfScale: 54.2,
+      scale: { lowerLabel: "40", upperLabel: "99" },
     });
-    expect(view.percentThroughRung).toBe(42);
     expect(
       ovrSliderReadout({ ovr: 65, currentOvr: 68, locale: "en" }).deltaLabel,
     ).toBe("−3");
-  });
-
-  it("has no next letter at the top", () => {
-    const view = ovrSliderReadout({ ovr: 99, currentOvr: 99, locale: "en" });
-    expect(view.toNext).toBeNull();
-    expect(view.rung.upperLabel).toBe("99");
-    expect(view.percentThroughRung).toBe(100);
+    expect(
+      ovrSliderReadout({ ovr: 99, currentOvr: 99, locale: "en" })
+        .percentOfScale,
+    ).toBe(100);
+    expect(
+      ovrSliderReadout({ ovr: 40, currentOvr: 99, locale: "en" })
+        .percentOfScale,
+    ).toBe(0);
   });
 
   it("starts from the member's OVR, or Level 3.0's without one", () => {

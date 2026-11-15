@@ -1,4 +1,5 @@
 import { radii, sizes } from "@repo/design-tokens";
+import type { SportSwitchLevel } from "@repo/domain/ratings-screen";
 import type { Sport } from "@repo/domain/sport";
 import { Pressable, View } from "react-native";
 
@@ -9,16 +10,19 @@ import { useColors } from "../theme/theme-provider";
 
 const GLYPH = 16;
 
-/** A track with a solid thumb; each side shows the sport and its band. */
+/**
+ * A track with a solid thumb; each side shows the sport and its Level: the
+ * band on padel, the number on football.
+ */
 export function SportSwitch({
   sports,
   value,
-  bands,
+  levels,
   onSelect,
 }: {
   sports: readonly Sport[];
   value: Sport;
-  bands: Partial<Record<Sport, string | null>>;
+  levels: Partial<Record<Sport, SportSwitchLevel | null>>;
   onSelect: (sport: Sport) => void;
 }) {
   const m = useMessages();
@@ -38,17 +42,13 @@ export function SportSwitch({
       {sports.map((sport) => {
         const selected = sport === value;
         const color = selected ? colors.paper : colors.muted;
-        const band = bands[sport] ?? null;
+        const level = levels[sport] ?? null;
         return (
           <Pressable
             key={sport}
             accessibilityRole="radio"
             accessibilityState={{ checked: selected }}
-            accessibilityLabel={
-              band
-                ? m.home.sportSwitch.spoken(m.common[sport], band)
-                : m.common[sport]
-            }
+            accessibilityLabel={level ? level.spoken : m.common[sport]}
             onPress={() => onSelect(sport)}
             style={({ pressed }) => ({
               flex: 1,
@@ -66,7 +66,7 @@ export function SportSwitch({
             <Text weight={selected ? "semibold" : "regular"} style={{ color }}>
               {m.common[sport]}
             </Text>
-            {band ? (
+            {level ? (
               <Text
                 size="meta"
                 width="expanded"
@@ -74,7 +74,7 @@ export function SportSwitch({
                 ltr
                 style={{ color, opacity: selected ? 0.6 : 1 }}
               >
-                {band}
+                {level.label}
               </Text>
             ) : null}
           </Pressable>

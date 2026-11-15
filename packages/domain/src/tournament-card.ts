@@ -13,6 +13,7 @@ import {
   knockoutRoundName,
   knockoutStartWord,
 } from "./tournament-knockout";
+import { isKingOfTheCourt, kingCourtCount } from "./tournament-king";
 import { knockoutNowLine } from "./tournament-knockout-view";
 import {
   hasKnockout,
@@ -115,6 +116,9 @@ export function tournamentCardBandMeta(
   game?: { format: string; tournamentShape: string | null },
 ) {
   const m = messagesFor(locale).tournament.card;
+  if (game && isKingOfTheCourt(game.format, game.tournamentShape)) {
+    return messagesFor(locale).tournamentKing.shape.title;
+  }
   if (game && isKnockoutOnly(game.format, game.tournamentShape)) {
     return m.knockoutBandMeta;
   }
@@ -156,6 +160,17 @@ export function tournamentOpenFlagLabel(openTeams: number, locale: Locale) {
 export function tournamentTeamsLine(game: TournamentCardInput, locale: Locale) {
   const m = messagesFor(locale).tournament.card;
   const tournament = game.tournament;
+  if (isKingOfTheCourt(game.format, game.tournamentShape)) {
+    const teamCount = tournament?.drawPosted
+      ? tournament.teams.length
+      : (game.teamsAllowed ?? 0);
+    return tournament?.drawPosted
+      ? messagesFor(locale).tournamentKing.card.teamsCourts(
+          teamCount,
+          kingCourtCount(teamCount),
+        )
+      : m.teamsIn(game.registeredTeamCount, game.teamsAllowed ?? 0);
+  }
   if (tournament?.drawPosted) {
     const drawn = tournament.teams.filter((team) => team.poolIndex != null);
     const teamCount = drawn.length > 0 ? drawn.length : tournament.teams.length;
@@ -180,13 +195,20 @@ export function tournamentTeamsLine(game: TournamentCardInput, locale: Locale) {
 
 /**
  * After the draw of a tournament with a Knockout: the Champion once the
- * Final is decided, else the Knockout round now being played. Null on a
- * Groups only tournament.
+ * Final is decided, else the Knockout round now being played. King of the
+ * court says its final order is still to come. Null on a Groups only
+ * tournament.
  */
 export function tournamentCardKnockoutLine(
   game: TournamentCardInput,
   locale: Locale,
 ) {
+  if (
+    game.tournament?.drawPosted &&
+    isKingOfTheCourt(game.format, game.tournamentShape)
+  ) {
+    return messagesFor(locale).tournamentKing.card.toCome;
+  }
   const knockout = game.tournament?.knockout;
   if (
     !game.tournament?.drawPosted ||

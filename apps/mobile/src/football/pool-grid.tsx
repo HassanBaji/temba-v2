@@ -11,7 +11,8 @@ import { tonePalette } from "../primitives/tone-palette";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import {
-  levelLabel,
+  ovrLabel,
+  ovrSpoken,
   poolSections,
   lineupName,
   slotCode,
@@ -74,7 +75,7 @@ function PlayerTile({
         accessibilityLabel={[
           spoken,
           code,
-          levelLabel(player.levelBand),
+          ovrSpoken(player, locale),
           player.guest ? messages.group.addPlayer.guest.tag : null,
         ]
           .filter(Boolean)
@@ -125,7 +126,7 @@ function PlayerTile({
             iconSize={sizes.iconRow - 4}
           />
           <Text size="meta" width="expanded" weight="bold" ltr>
-            {levelLabel(player.levelBand)}
+            {ovrLabel(player)}
           </Text>
         </View>
       </Pressable>

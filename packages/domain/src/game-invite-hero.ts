@@ -2,6 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { footballHeroLines, shortName } from "./football-board";
+import { formatOvrFromTenths } from "./football-ovr";
 import { formatGameStart } from "./format-game-start";
 import { sideSizeLabel } from "./game-shape";
 import { initials } from "./initials";
@@ -145,9 +146,16 @@ export function gameInviteLevelFit(args: {
   return args.viewerPassesLevelRange === false ? "outside" : "fits";
 }
 
-function viewerBandOf(tenths: number | null) {
-  return tenths == null
-    ? null
+/** The viewer's Level as the card's big value: their band, or their OVR on football. */
+function viewerLevelOf(
+  tenths: number | null,
+  sport: string | null | undefined,
+) {
+  if (tenths == null) {
+    return null;
+  }
+  return sport === "football"
+    ? formatOvrFromTenths(tenths)
     : displayLabelFromStoredBand(tenthsToLevelBand(tenths));
 }
 
@@ -157,11 +165,13 @@ export function gameInviteLevelRow(args: {
   levelMaxTenths: number | null;
   fit: GameInviteLevelFit;
   locale: Locale;
+  sport?: string | null;
 }) {
   const range = formatLevelRangeLabel(
     args.levelMinTenths,
     args.levelMaxTenths,
     args.locale,
+    args.sport,
   );
   if (!range) {
     return null;
@@ -176,7 +186,10 @@ export function gameInviteLevelRow(args: {
   return range;
 }
 
-/** The web landing's Level card (design 3a, 3b): the band in large type and a sentence. */
+/**
+ * The web landing's Level card (design 3a, 3b): the viewer's band in large
+ * type, or their OVR on football, and a sentence.
+ */
 export function gameInviteLevelCard(args: {
   levelMinTenths: number | null;
   levelMaxTenths: number | null;
@@ -184,17 +197,24 @@ export function gameInviteLevelCard(args: {
   fit: GameInviteLevelFit;
   asksAboutGroup: boolean;
   locale: Locale;
+  sport?: string | null;
 }) {
   const range = formatLevelRangeLabel(
     args.levelMinTenths,
     args.levelMaxTenths,
     args.locale,
+    args.sport,
   );
   if (!range) {
     return null;
   }
-  const m = messagesFor(args.locale).mobileInvite.link.hero.levelCard;
-  const yours = viewerBandOf(args.viewerLevelTenths);
+  const messages = messagesFor(args.locale);
+  const m = messages.mobileInvite.link.hero.levelCard;
+  const viewerLevel = viewerLevelOf(args.viewerLevelTenths, args.sport);
+  const yours =
+    viewerLevel != null && args.sport === "football"
+      ? messages.level.ovr(viewerLevel)
+      : viewerLevel;
   const sentence =
     args.fit === "signed_out"
       ? m.signedOut(range)
@@ -207,7 +227,7 @@ export function gameInviteLevelCard(args: {
     args.asksAboutGroup && args.fit === "fits"
       ? `${sentence} ${m.asksFirst}`
       : sentence;
-  return { band: args.fit === "signed_out" ? null : yours, text };
+  return { band: args.fit === "signed_out" ? null : viewerLevel, text };
 }
 
 /** Rows under the hero on both Apps: who organizes, the Group, the Level. */

@@ -112,6 +112,27 @@ describe("teamHomeView", () => {
     );
   });
 
+  it("reads a football Team Level and each member's Level as OVR, never a band", () => {
+    const base = fixtures.home.footballRecord;
+    const view = teamHomeView(
+      {
+        ...base,
+        members: [
+          { ...base.members[0]!, level: "3.9", levelBand: "C3", ovr: 73 },
+          { ...base.members[1]!, level: "2.8", levelBand: "C2", ovr: 64 },
+          { ...base.members[2]!, level: null, levelBand: null, ovr: null },
+        ],
+      },
+      "en",
+    );
+    expect(view.teamLevel).toBe("avg OVR 69");
+    expect(view.members.map((member) => member.levelLabel)).toEqual([
+      "OVR 73",
+      "OVR 64",
+      null,
+    ]);
+  });
+
   it("shows the Team Level, each member's Level and seat, and the games", () => {
     const view = teamHomeView(fixtures.home.record, "en");
     expect(view.teamLevel).toBe("C, avg 3.1");

@@ -3,6 +3,7 @@ import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { isLevelBoundDisabled } from "@repo/domain/create-game-flow";
 import { ASSIGNABLE_DISPLAY_LEVEL_BANDS } from "@repo/domain/level-bands";
 import {
+  displayRungOvrBound,
   LEVEL_BAND_SELECT_NONE,
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
@@ -15,6 +16,7 @@ export function LevelBandRow({
   other,
   invalid,
   describedBy,
+  sport,
   onSelect,
 }: {
   id: string;
@@ -24,6 +26,8 @@ export function LevelBandRow({
   other: LevelBandSelectValue;
   invalid: boolean;
   describedBy?: string;
+  /** A football Game still stores bands but labels each one with OVR. */
+  sport?: string | null;
   onSelect: (band: LevelBandSelectValue) => void;
 }) {
   return (
@@ -50,7 +54,7 @@ export function LevelBandRow({
               onSelect(value === band ? LEVEL_BAND_SELECT_NONE : band);
             }}
           >
-            {band}
+            {sport === "football" ? displayRungOvrBound(band, bound) : band}
           </ChoiceChip>
         ))}
       </RovingRadioGroup>

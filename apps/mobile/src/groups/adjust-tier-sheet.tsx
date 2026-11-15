@@ -173,7 +173,13 @@ function BandStrip({ view }: { view: TierAdjustSheetView }) {
             }}
           >
             <TierFish band={band.band} label={band.label} />
-            <Text size="eyebrow">{band.label}</Text>
+            <Text
+              size="eyebrow"
+              weight={band.current ? "semibold" : "regular"}
+              numberOfLines={1}
+            >
+              {band.label}
+            </Text>
           </View>
         ))}
       </View>

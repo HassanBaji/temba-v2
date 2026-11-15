@@ -15,6 +15,7 @@ export const webGroup = {
     roleFor: (name: string) => `Role for ${name}`,
     manageName: (name: string) => `Manage ${name}`,
     callPhone: (phone: string) => `Call ${phone}`,
+    whatsAppPhone: (phone: string) => `WhatsApp ${phone}`,
     setLevel: "Set Level",
     savedLevel: (name: string, level: string) => `${name} set to ${level}.`,
     savedReason: (reason: string) =>
@@ -90,14 +91,7 @@ export const webGroup = {
   },
   requests: {
     title: "Join requests",
-    reviewAria: "Review join requests",
-    level: (label: string) => `Level ${label}`,
-    levelProvisional: (label: string) => `Level ${label}, still Provisional`,
     changePolicyAria: "Change who can join",
-    approve: "Approve",
-    reject: "Reject",
-    approveName: (name: string) => `Approve ${name}`,
-    rejectName: (name: string) => `Reject ${name}`,
   },
   standing: {
     position: "Position",

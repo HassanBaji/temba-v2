@@ -74,6 +74,8 @@ export const mobileTournament = {
     confirmScore: (score: string) => `Confirm ${score}`,
   },
   organizer: {
+    kingOnWeb:
+      "Draw the starting courts and post the final order on the web for now.",
     roundsSaved: "Rounds saved",
     changeRounds: "Change Rounds",
     kickSr: (name: string) => `Kick ${name}`,
@@ -180,7 +182,7 @@ export const mobileTournament = {
   playerSheet: {
     prefers: (position: string) => `Prefers ${position.toLowerCase()}`,
     noPositionYet: "No position yet",
-    roleAndLevel: (role: string, level: string) => `${role}, Level ${level}`,
+    roleAndOvr: (role: string, ovr: string) => `${role}, OVR ${ovr}`,
     viewProfile: "View profile",
   },
   pool: {

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { levelFromOvr, muFromOvr } from "./football-ovr";
+import {
+  levelFromOvr,
+  muFromOvr,
+  ovrFromLevel,
+  ovrScalePercent,
+} from "./football-ovr";
 import { BAND_MIDPOINTS } from "./level";
 import {
   footballHeroLevelView,
@@ -57,11 +62,13 @@ describe("footballLevelCardView", () => {
     );
     expect(view).toMatchObject({
       kind: "rated",
-      displayBand: "C+",
+      displayBand: null,
       level: "70",
       provisional: true,
       fillPercent: 0,
       lines: ["Starting Level", "Games that count for Temba Level move it"],
+      accessibilityLabel:
+        "OVR 70. Starting Level. Games that count for Temba Level move it",
     });
   });
 
@@ -79,7 +86,28 @@ describe("footballLevelCardView", () => {
     expect(view.kind === "rated" && view.lines).not.toContain("Starting Level");
   });
 
-  it("reads an OVR of 74 as C+, on its way to B-", () => {
+  it("reads a Provisional OVR with the confirmation caption and no band", () => {
+    const view = footballLevelCardView(
+      {
+        levelBand: "C1",
+        levelValue: levelFromOvr(74),
+        provisional: true,
+        ratedMatchCount: 2,
+        ratedMatchesRemaining: 3,
+      },
+      "en",
+    );
+    expect(view).toMatchObject({
+      kind: "rated",
+      displayBand: null,
+      level: "74",
+      lines: ["2 of 5 matches to confirm"],
+      fillPercent: 40,
+      accessibilityLabel: "OVR 74, Provisional. 2 of 5 matches to confirm",
+    });
+  });
+
+  it("reads a Confirmed OVR of 74 with no band, filled along the OVR scale", () => {
     const view = footballLevelCardView(
       {
         levelBand: "C1",
@@ -90,12 +118,14 @@ describe("footballLevelCardView", () => {
       },
       "en",
     );
-    expect(view).toMatchObject({
+    expect(view).toEqual({
       kind: "rated",
-      displayBand: "C+",
+      displayBand: null,
       level: "74",
-      fillPercent: 76,
-      lines: ["Confirmed, 6 rated matches", "2 to B- · 76% through C+"],
+      provisional: false,
+      fillPercent: 58,
+      lines: ["Confirmed, 6 rated matches"],
+      accessibilityLabel: "OVR 74. Confirmed, 6 rated matches",
     });
   });
 });
@@ -124,7 +154,7 @@ describe("footballHeroLevelView", () => {
     ]);
   });
 
-  it("rings an OVR of 74 as C+ on its way to B-, without the placement word once a Match counts", () => {
+  it("rings an OVR of 74 along the OVR scale with no band, without the placement word once a Match counts", () => {
     expect(
       footballHeroLevelView(
         {
@@ -139,27 +169,45 @@ describe("footballHeroLevelView", () => {
     ).toEqual({
       ovr: "74",
       ovrLabel: "OVR",
-      band: "C+",
-      ringPercent: 76,
-      progress: "76% of the way to B-",
+      ringPercent: 57.6,
       placement: null,
-      spoken: "OVR 74, band C+. 76% of the way to B-",
+      spoken: "OVR 74",
     });
   });
 
-  it("fills the ring at the top band", () => {
+  it("speaks the OVR and the placement word, never a band", () => {
     const view = footballHeroLevelView(
       {
-        levelBand: "A",
-        levelValue: 6.8,
-        provisional: false,
-        ratedMatchCount: 9,
-        ratedMatchesRemaining: 0,
+        levelBand: "C1",
+        levelValue: BAND_MIDPOINTS.C1,
+        provisional: true,
+        ratedMatchCount: 0,
+        ratedMatchesRemaining: 5,
       },
-      "ar",
+      "en",
     );
-    expect(view.ringPercent).toBe(100);
-    expect(view.placement).toBeNull();
+    expect(view.spoken).toBe("OVR 72. Competitive");
+    expect(view.ringPercent).toBe(
+      ovrScalePercent(ovrFromLevel(BAND_MIDPOINTS.C1)),
+    );
+  });
+
+  it("fills the ring only at the top of the OVR scale", () => {
+    const top = (levelValue: number) =>
+      footballHeroLevelView(
+        {
+          levelBand: "A",
+          levelValue,
+          provisional: false,
+          ratedMatchCount: 9,
+          ratedMatchesRemaining: 0,
+        },
+        "ar",
+      );
+    expect(top(6.8).ringPercent).toBe(ovrScalePercent(ovrFromLevel(6.8)));
+    expect(top(6.8).ringPercent).toBeLessThan(100);
+    expect(top(7).ringPercent).toBe(100);
+    expect(top(6.8).placement).toBeNull();
   });
 });
 

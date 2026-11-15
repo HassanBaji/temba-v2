@@ -111,6 +111,10 @@ export const profile = {
       `المستوى ${band} ${level}، مبدئي. ${caption}`,
     spokenLevel: (band: string, level: string, details: string) =>
       `المستوى ${band} ${level}. ${details}`,
+    spokenOvrProvisional: (ovr: string, caption: string) =>
+      `${isolate("OVR")} ${isolate(ovr)}، مبدئي. ${caption}`,
+    spokenOvr: (ovr: string, details: string) =>
+      `${isolate("OVR")} ${isolate(ovr)}. ${details}`,
   },
   matches: {
     friendlyGame: "مباراة ودية",
