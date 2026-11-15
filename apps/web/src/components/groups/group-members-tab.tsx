@@ -1,14 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
-import { ChevronRight, UserPlus, Users, X } from "lucide-react";
-
+import { useRef, useState, type ReactNode } from "react";
 import {
-  ActionMenu,
-  ActionMenuItem,
-  ActionMenuSeparator,
-} from "~/components/common/action-menu";
+  ChevronRight,
+  Gauge,
+  History,
+  MessageCircle,
+  MoreVertical,
+  Pencil,
+  Phone,
+  ShieldCheck,
+  ShieldOff,
+  SlidersHorizontal,
+  Tag,
+  UserMinus,
+  UserPlus,
+  UserRound,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+
 import { EmptyState } from "~/components/common/empty-state";
 import {
   GroupMembersLensRow,
@@ -27,6 +40,7 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
+import { SheetMenu, SheetMenuRow } from "~/components/common/sheet-menu";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { LevelCell } from "~/components/temba/level-cell";
@@ -184,8 +198,23 @@ function SavedBanner({
   );
 }
 
+type MemberSheetRow = {
+  key: string;
+  label: string;
+  value?: string;
+  icon: LucideIcon;
+  iconClassName?: string;
+  href?: string;
+  /** Leaves Temba (a call or a chat), so no chevron. */
+  external?: boolean;
+  newTab?: boolean;
+  onSelect?: () => void;
+};
+
+/** The row menu on the Members tab while managing, as a bottom sheet. */
 function MemberActionsMenu({
   name,
+  caption,
   phoneNumber,
   nickname,
   onNickname,
@@ -199,6 +228,7 @@ function MemberActionsMenu({
   onRemove,
 }: {
   name: string;
+  caption?: string;
   /** Given to a Group approver, for any member with a number. */
   phoneNumber?: string;
   nickname?: string;
@@ -214,95 +244,161 @@ function MemberActionsMenu({
 }) {
   const m = useMessages();
   const locale = useLocale();
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const contact: MemberSheetRow[] = phoneNumber
+    ? [
+        {
+          key: "call",
+          label: m.webGroup.members.callPhone(formatE164(phoneNumber)),
+          icon: Phone,
+          href: `tel:${phoneNumber}`,
+          external: true,
+        },
+        {
+          key: "whatsapp",
+          label: m.webGroup.members.whatsAppPhone(formatE164(phoneNumber)),
+          icon: MessageCircle,
+          href: whatsAppHref(phoneNumber),
+          external: true,
+          newTab: true,
+        },
+      ]
+    : [];
+  const manageRows: (MemberSheetRow | false | undefined | "")[] = [
+    onNickname && {
+      key: "nickname",
+      label: nickname
+        ? m.group.nickname.menuLabel
+        : m.group.nickname.addMenuLabel,
+      value: nickname,
+      icon: Tag,
+      onSelect: onNickname,
+    },
+    setLevelHref && {
+      key: "level",
+      label: m.webGroup.members.setLevel,
+      icon: Gauge,
+      href: setLevelHref,
+    },
+    profileHref && {
+      key: "profile",
+      label: m.webGroup.viewProfile,
+      icon: UserRound,
+      href: profileHref,
+    },
+    tierHistoryHref && {
+      key: "tier-history",
+      label: m.rating.history.menuRow,
+      icon: History,
+      iconClassName: "rtl:-scale-x-100",
+      href: tierHistoryHref,
+    },
+    onAdjustTier && {
+      key: "adjust-tier",
+      label: m.rating.adjust.menuRow,
+      icon: SlidersHorizontal,
+      onSelect: onAdjustTier,
+    },
+    organizerAction &&
+      onOrganizerAction && {
+        key: "organizer",
+        label: groupMemberOrganizerActionLabel(organizerAction, locale),
+        icon: organizerAction === "appoint" ? ShieldCheck : ShieldOff,
+        onSelect: onOrganizerAction,
+      },
+    onRename && {
+      key: "rename",
+      label: m.group.addPlayer.renameAction,
+      icon: Pencil,
+      onSelect: onRename,
+    },
+  ];
+  const manage = manageRows.filter((row): row is MemberSheetRow =>
+    Boolean(row),
+  );
+
+  const renderRow = (row: MemberSheetRow) =>
+    row.href !== undefined ? (
+      <SheetMenuRow
+        key={row.key}
+        label={row.label}
+        icon={row.icon}
+        iconClassName={row.iconClassName}
+        trailing={row.external ? undefined : "chevron"}
+        href={row.href}
+        newTab={row.newTab}
+        onSelect={() => setOpen(false)}
+      />
+    ) : (
+      <SheetMenuRow
+        key={row.key}
+        label={row.label}
+        value={row.value}
+        icon={row.icon}
+        iconClassName={row.iconClassName}
+        trailing="chevron"
+        onSelect={() => {
+          setOpen(false);
+          row.onSelect?.();
+        }}
+      />
+    );
+
   return (
-    <ActionMenu label={m.webGroup.members.manageName(name)}>
-      {phoneNumber ? (
-        <>
-          <ActionMenuItem asChild>
-            <a href={`tel:${phoneNumber}`}>
-              {m.webGroup.members.callPhone(formatE164(phoneNumber))}
-            </a>
-          </ActionMenuItem>
-          <ActionMenuItem asChild>
-            <a
-              href={whatsAppHref(phoneNumber)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {m.webGroup.members.whatsAppPhone(formatE164(phoneNumber))}
-            </a>
-          </ActionMenuItem>
-          {onNickname ||
-          setLevelHref ||
-          profileHref ||
-          tierHistoryHref ||
-          onAdjustTier ||
-          organizerAction ||
-          onRename ||
-          onRemove ? (
-            <ActionMenuSeparator />
-          ) : null}
-        </>
-      ) : null}
-      {onNickname ? (
-        <ActionMenuItem onSelect={onNickname}>
-          {nickname ? (
-            <span className="flex w-full min-w-0 items-center justify-between gap-4">
-              <span>{m.group.nickname.menuLabel}</span>
-              <span className="text-muted-foreground truncate">{nickname}</span>
-            </span>
+    <ResponsiveDialog open={open} onOpenChange={setOpen}>
+      <Button
+        ref={triggerRef}
+        type="button"
+        variant="ghost"
+        aria-label={m.webGroup.members.manageName(name)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+        className="size-11 min-h-11 min-w-11 p-0"
+      >
+        <MoreVertical aria-hidden="true" className="size-5" strokeWidth={2} />
+      </Button>
+      <ResponsiveDialogContent showCloseButton restoreFocusRef={triggerRef}>
+        <ResponsiveDialogHeader className="pe-14">
+          <ResponsiveDialogTitle className="text-lead font-semibold tracking-normal [font-variation-settings:normal]">
+            {name}
+          </ResponsiveDialogTitle>
+          {caption ? (
+            <ResponsiveDialogDescription className="text-meta">
+              {caption}
+            </ResponsiveDialogDescription>
           ) : (
-            m.group.nickname.addMenuLabel
+            <ResponsiveDialogDescription className="sr-only">
+              {m.webGroup.members.manageName(name)}
+            </ResponsiveDialogDescription>
           )}
-        </ActionMenuItem>
-      ) : null}
-      {setLevelHref ? (
-        <ActionMenuItem asChild>
-          <Link href={setLevelHref}>{m.webGroup.members.setLevel}</Link>
-        </ActionMenuItem>
-      ) : null}
-      {profileHref ? (
-        <ActionMenuItem asChild>
-          <Link href={profileHref}>{m.webGroup.viewProfile}</Link>
-        </ActionMenuItem>
-      ) : null}
-      {tierHistoryHref ? (
-        <ActionMenuItem asChild>
-          <Link href={tierHistoryHref}>{m.rating.history.menuRow}</Link>
-        </ActionMenuItem>
-      ) : null}
-      {onAdjustTier ? (
-        <ActionMenuItem onSelect={onAdjustTier}>
-          {m.rating.adjust.menuRow}
-        </ActionMenuItem>
-      ) : null}
-      {organizerAction && onOrganizerAction ? (
-        <ActionMenuItem onSelect={onOrganizerAction}>
-          {groupMemberOrganizerActionLabel(organizerAction, locale)}
-        </ActionMenuItem>
-      ) : null}
-      {onRename ? (
-        <ActionMenuItem onSelect={onRename}>
-          {m.group.addPlayer.renameAction}
-        </ActionMenuItem>
-      ) : null}
-      {onRemove ? (
-        <>
-          {onNickname ||
-          setLevelHref ||
-          profileHref ||
-          tierHistoryHref ||
-          onAdjustTier ||
-          organizerAction ||
-          onRename ? (
-            <ActionMenuSeparator />
+        </ResponsiveDialogHeader>
+        <div className="flex flex-col gap-2.5 px-4 pb-4 md:px-0 md:pb-0">
+          {contact.length > 0 ? (
+            <SheetMenu>{contact.map(renderRow)}</SheetMenu>
           ) : null}
-          <ActionMenuItem variant="destructive" onSelect={onRemove}>
-            {m.group.addPlayer.removeAction}
-          </ActionMenuItem>
-        </>
-      ) : null}
-    </ActionMenu>
+          {manage.length > 0 ? (
+            <SheetMenu>{manage.map(renderRow)}</SheetMenu>
+          ) : null}
+          {onRemove ? (
+            <SheetMenu>
+              <SheetMenuRow
+                label={m.group.addPlayer.removeAction}
+                icon={UserMinus}
+                iconClassName="rtl:-scale-x-100"
+                tone="danger"
+                onSelect={() => {
+                  setOpen(false);
+                  onRemove();
+                }}
+              />
+            </SheetMenu>
+          ) : null}
+        </div>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 
@@ -825,7 +921,8 @@ export function GroupMembersTab({
     }
     return (
       <MemberActionsMenu
-        name={member.name}
+        name={member.nickname?.name ?? member.name}
+        caption={memberCaption(member, canSetLevel, view.sort, locale)}
         phoneNumber={phoneNumber}
         nickname={member.nickname?.name}
         onNickname={onNickname}

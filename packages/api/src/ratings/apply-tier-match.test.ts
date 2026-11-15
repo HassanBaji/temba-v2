@@ -311,11 +311,29 @@ describe("Tier points on a completed football Match (ADR-0067)", () => {
       const p2 = await addMember(f, "p2");
       const p3 = await insertUser(db, "p3");
       const p4 = await insertUser(db, "p4");
+      const top1 = await insertUser(db, "top1");
+      const top2 = await insertUser(db, "top2");
       await db.insert(groupMembers).values([
         { groupId: f.groupId, userId: p3 },
         { groupId: f.groupId, userId: p4 },
+        { groupId: f.groupId, userId: top1 },
+        { groupId: f.groupId, userId: top2 },
       ]);
       await db.insert(groupTierPoints).values([
+        {
+          groupId: f.groupId,
+          userId: top1,
+          points: 1500,
+          gamesCounted: 9,
+          band: "shark",
+        },
+        {
+          groupId: f.groupId,
+          userId: top2,
+          points: 1450,
+          gamesCounted: 9,
+          band: "shark",
+        },
         {
           groupId: f.groupId,
           userId: p1,
@@ -367,9 +385,9 @@ describe("Tier points on a completed football Match (ADR-0067)", () => {
       expect(winner).toMatchObject({
         bandBefore: "kanaad",
         bandAfter: "shark",
-        placeAfter: 1,
-        rankedCount: 4,
-        memberCount: 5,
+        placeAfter: 3,
+        rankedCount: 6,
+        memberCount: 7,
       });
       const stored = await db.query.groupTierPoints.findFirst({
         where: eq(groupTierPoints.userId, p2),

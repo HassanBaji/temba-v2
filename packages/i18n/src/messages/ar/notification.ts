@@ -158,6 +158,24 @@ export const notification = {
       strong(sport),
     ],
     gameFinished: (game: string) => [plain("انتهت "), strong(game)],
+    gamePaymentReminder: (actor: string, game: string) => [
+      plain("ذكّرك "),
+      strong(actor),
+      plain(" بالدفع لـ "),
+      strong(game),
+    ],
+    gamePaymentClaimed: (actor: string, game: string) => [
+      plain("يقول "),
+      strong(actor),
+      plain(" إنه دفع لـ "),
+      strong(game),
+    ],
+    gamePaymentNotReceived: (actor: string, game: string) => [
+      plain("لم يستلم "),
+      strong(actor),
+      plain(" دفعتك لـ "),
+      strong(game),
+    ],
     markReceived: (actor: string, kind: string, game: string) => [
       plain("منحك "),
       strong(actor),
@@ -363,6 +381,8 @@ export const notification = {
     ratingsOpenEveryone:
       "قيّم زملاءك، والخصوم إن أردت، خلال 24 ساعة. لا أحد يرى من أعطى ماذا.",
     tierPlaces: "الفئات مراكز، فحين يتحرّك لاعب يتحرّك غيره في الاتجاه الآخر.",
+    gamePaymentReminder: "ادفع للمنظّم، ثم أخبره من صفحة المباراة.",
+    gamePaymentClaimed: "أكّده حين تستلم المال.",
     levelConfirmed:
       "لم يعد المسار مخطّطًا. يواصل التحرّك في المباريات الموثّقة.",
     kingPlaceAwarded: (from: string, to: string) =>

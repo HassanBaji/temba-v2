@@ -8,6 +8,7 @@ CREATE TABLE "king_place_awards" (
 	"wins" double precision NOT NULL,
 	"field_mu" double precision NOT NULL,
 	"field_phi" double precision NOT NULL,
+	"had_rating" boolean NOT NULL,
 	"mu_before" double precision NOT NULL,
 	"phi_before" double precision NOT NULL,
 	"sigma_before" double precision NOT NULL,
@@ -20,7 +21,6 @@ CREATE TABLE "king_place_awards" (
 	CONSTRAINT "king_place_awards_user_id_game_id_unique" UNIQUE("user_id","game_id")
 );
 --> statement-breakpoint
-ALTER TABLE "games" ADD COLUMN "place_awards_settled_at" timestamp;--> statement-breakpoint
 ALTER TABLE "king_place_awards" ADD CONSTRAINT "king_place_awards_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "king_place_awards" ADD CONSTRAINT "king_place_awards_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "king_place_awards_game_id_idx" ON "king_place_awards" USING btree ("game_id");

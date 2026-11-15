@@ -173,12 +173,18 @@ describe("reportWrongScore on a football Group Game (ADR-0067)", () => {
       const p2 = await addMember(f, "p2");
       const p3 = (await insertUser(db, "p3")).id;
       const p4 = (await insertUser(db, "p4")).id;
+      const top1 = (await insertUser(db, "top1")).id;
+      const top2 = (await insertUser(db, "top2")).id;
       await db.insert(groupMembers).values([
         { groupId: f.groupId, userId: p3 },
         { groupId: f.groupId, userId: p4 },
+        { groupId: f.groupId, userId: top1 },
+        { groupId: f.groupId, userId: top2 },
       ]);
       const ranked = { gamesCounted: 9, groupId: f.groupId };
       await db.insert(groupTierPoints).values([
+        { ...ranked, userId: top1, points: 1500, band: "shark" },
+        { ...ranked, userId: top2, points: 1450, band: "shark" },
         { ...ranked, userId: p1, points: 1300, band: "shark" },
         { ...ranked, userId: p2, points: 1290, band: "kanaad" },
         { ...ranked, userId: p3, points: 1200, band: "safi" },

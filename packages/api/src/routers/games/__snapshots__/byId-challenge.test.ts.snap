@@ -94,6 +94,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "isRegistered": true,
   "isSeated": true,
   "isWaitlisted": false,
+  "keepersPlayFree": false,
   "knockout": null,
   "levelMaxTenths": null,
   "levelMinTenths": null,
@@ -280,6 +281,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "sport": "padel",
   "teamsAllowed": 2,
   "tournamentShape": null,
+  "trackPayments": false,
   "unseatedPlayers": [],
   "venue": {
     "archivedAt": null,
@@ -397,6 +399,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "isRegistered": false,
   "isSeated": false,
   "isWaitlisted": false,
+  "keepersPlayFree": false,
   "knockout": null,
   "levelMaxTenths": null,
   "levelMinTenths": null,
@@ -583,6 +586,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "sport": "padel",
   "teamsAllowed": 2,
   "tournamentShape": null,
+  "trackPayments": false,
   "unseatedPlayers": [],
   "venue": {
     "archivedAt": null,
@@ -639,6 +643,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "isRegistered": false,
   "isSeated": false,
   "isWaitlisted": false,
+  "keepersPlayFree": false,
   "knockout": null,
   "levelMaxTenths": null,
   "levelMinTenths": null,
@@ -730,6 +735,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "sport": "football",
   "teamsAllowed": null,
   "tournamentShape": null,
+  "trackPayments": false,
   "unseatedPlayers": [
     {
       "canRename": false,
@@ -809,6 +815,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "isRegistered": true,
   "isSeated": false,
   "isWaitlisted": false,
+  "keepersPlayFree": false,
   "knockout": null,
   "levelMaxTenths": null,
   "levelMinTenths": null,
@@ -900,6 +907,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "sport": "football",
   "teamsAllowed": null,
   "tournamentShape": null,
+  "trackPayments": false,
   "unseatedPlayers": [
     {
       "canRename": false,

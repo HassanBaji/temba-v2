@@ -56,6 +56,7 @@ const VIEWER_DEFAULTS = {
   canRequestLevelRange: false,
   levelRangeRequest: null,
   canReportWrongScore: null,
+  trackPayments: false,
 } satisfies Partial<FriendlyGameDetails>;
 
 function seat(

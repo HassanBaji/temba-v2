@@ -88,6 +88,35 @@ describe("bookingGameReviewRows", () => {
   });
 });
 
+describe("bookingGameRequest with Track payments", () => {
+  const priced = { ...open, pricePerPlayer: "4.500", trackPayments: true };
+
+  it("sends tracking only once the Game has a price", () => {
+    const padel = bookingGameRequest("booking-1", priced, "en");
+    expect(padel.ok && padel.input).toMatchObject({ trackPayments: true });
+    expect(padel.ok && "keepersPlayFree" in padel.input).toBe(false);
+    const free = bookingGameRequest(
+      "booking-1",
+      { ...open, trackPayments: true },
+      "en",
+    );
+    expect(free.ok && "trackPayments" in free.input).toBe(false);
+  });
+
+  it("sends the keepers choice on football", () => {
+    const football = bookingGameRequest(
+      "booking-1",
+      { ...priced, sideSize: 7, playersAllowed: 14, keepersPlayFree: true },
+      "en",
+      "football",
+    );
+    expect(football.ok && football.input).toMatchObject({
+      trackPayments: true,
+      keepersPlayFree: true,
+    });
+  });
+});
+
 describe("splitCourtCost", () => {
   it("shares the court price across four seats, rounding up to the fils", () => {
     expect(splitCourtCost(18_000)).toBe("4.500");

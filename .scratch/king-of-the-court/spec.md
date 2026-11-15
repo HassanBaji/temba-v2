@@ -95,7 +95,7 @@ which team starts on which court, and a place to post who finished where.
   `game_teams.final_place`, `games.final_order_posted_at` (migration `0122_king_of_the_court`).
 - Notification types `king_courts_posted` and `king_final_order_posted` (migration
   `0123_king_of_the_court_notifications`).
-- Place awards (migrations `0124_king_place_awards` and `0125_king_place_awards_on_post`): table
+- Place awards (migration `0125_king_place_awards`): table
   `king_place_awards`, Notification type `king_place_awarded`. `games.postKingFinalOrder` writes
   them. `games.byId` adds `viewerPlaceAward`; `ratings.history` adds the
   `king_place` line; `ratings.me` history steps add `placed`; a King of the court Played row

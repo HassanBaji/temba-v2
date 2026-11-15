@@ -22,6 +22,11 @@ export const gamePlayers = pgTable(
     userId: uuid("user_id").references(() => user.id, { onDelete: "cascade" }),
     footballRole: footballRoles("football_role"),
     footballPosition: footballPositions("football_position"),
+    /**
+     * The role held at kick-off, written the first time the role changes
+     * after it. Null means the current role is still the kick-off role.
+     */
+    kickoffFootballRole: footballRoles("kickoff_football_role"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

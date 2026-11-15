@@ -10,6 +10,10 @@ import {
 } from "~/app/dashboard/games/new/_parts/group-field";
 import { LevelBandRow } from "~/app/dashboard/games/new/_parts/level-band-row";
 import { MvpModeField } from "~/app/dashboard/games/new/_parts/mvp-mode-field";
+import {
+  PaymentTrackingField,
+  paymentReviewValue,
+} from "~/app/dashboard/games/new/_parts/payment-tracking-field";
 import { RatingField } from "~/app/dashboard/games/new/_parts/rating-field";
 import { ReviewRow } from "~/app/dashboard/games/new/_parts/review-row";
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
@@ -30,6 +34,7 @@ import {
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
+import { PADEL_FRIENDLY_GAME_PLAYERS } from "@repo/domain/game-payments";
 import {
   CREATE_FLOW_DURATIONS,
   createFlowPriceChips,
@@ -113,6 +118,10 @@ export function FriendlyGameSteps({
   price,
   priceError,
   onPrice,
+  trackPayments,
+  onTrackPayments,
+  keepersPlayFree,
+  onKeepersPlayFree,
   customName,
   customNameError,
   onCustomName,
@@ -171,6 +180,10 @@ export function FriendlyGameSteps({
   price: string;
   priceError?: string;
   onPrice: (price: string) => void;
+  trackPayments: boolean;
+  onTrackPayments: (value: boolean) => void;
+  keepersPlayFree: boolean;
+  onKeepersPlayFree: (value: boolean) => void;
   customName: string;
   customNameError?: string;
   onCustomName: (customName: string) => void;
@@ -210,6 +223,11 @@ export function FriendlyGameSteps({
         courtId === "none" ? [] : [courtId],
       );
   const football = sport === "football";
+  const paymentReview = paymentReviewValue(
+    { price, football, trackPayments, keepersPlayFree },
+    m,
+    locale,
+  );
   const courtWord = courtFace(sport);
   const courtTitle = football ? c.pitch : c.court;
   const playerBounds = footballPlayersAllowedBounds(sideSize);
@@ -752,6 +770,19 @@ export function FriendlyGameSteps({
             </FieldError>
           </section>
 
+          <PaymentTrackingField
+            idPrefix="game"
+            price={price}
+            football={football}
+            playersAllowed={
+              football ? playersAllowed : PADEL_FRIENDLY_GAME_PLAYERS
+            }
+            trackPayments={trackPayments}
+            onTrackPayments={onTrackPayments}
+            keepersPlayFree={keepersPlayFree}
+            onKeepersPlayFree={onKeepersPlayFree}
+          />
+
           <MvpModeField idPrefix="game" mode={mvpMode} onMode={onMvpMode} />
 
           {ratingShown ? (
@@ -786,6 +817,12 @@ export function FriendlyGameSteps({
                   : ratingChoice.scopeLabel
               }
             />
+            {paymentReview ? (
+              <ReviewRow
+                label={m.gamePayments.create.reviewLabel}
+                value={paymentReview}
+              />
+            ) : null}
             <ReviewRow
               label={m.createGame.mvp.title}
               value={mvpModeCopy(mvpMode, locale).label}

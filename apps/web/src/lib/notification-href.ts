@@ -3,6 +3,7 @@ import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
 import { isSport } from "@repo/domain/sport";
 
 import {
+  gamePaymentsHref,
   gameRateHref,
   groupTierHistoryHref,
   OPERATOR_DISPUTES_HREF,
@@ -25,6 +26,9 @@ export function notificationHref(item: {
   if (item.type === "performance_ratings_open" && item.game) {
     return gameRateHref(item.game.id);
   }
+  if (item.type === "game_payment_claimed" && item.game) {
+    return gamePaymentsHref(item.game.id);
+  }
   if (item.type === "tier_points_adjusted" && item.group) {
     return groupTierHistoryHref(item.group.id);
   }
@@ -45,6 +49,8 @@ export function notificationHref(item: {
       item.type === "game_player_left" ||
       item.type === "game_seated_by_organizer" ||
       item.type === "game_side_changed" ||
+      item.type === "game_payment_reminder" ||
+      item.type === "game_payment_not_received" ||
       item.type === "game_moved_to_waitlist" ||
       item.type === "game_team_changed" ||
       item.type === "king_courts_posted" ||

@@ -295,6 +295,10 @@ _Avoid_: schedule, availability (that is derived from Opening hours, Closures an
 A period when a whole Venue, or one Court, cannot be booked, set by a Venue manager (maintenance, a private event). It never cancels Bookings by itself; the manager sees which Bookings fall inside and decides.
 _Avoid_: blackout, holiday, block
 
+**Payment tracking**:
+A Game's ledger of who has paid the Organizer their Price per player (ADR-0089), switched on at create and in force only while the price is above zero. Any Game with a price may have it: a Friendly game, a Friendly tournament or a Booking Game. Temba moves no money. A player says they paid (a claim, a ring mark), which tells the Game admins once; only the Organizer or a Group admin makes it paid (solid), either by confirming a claim or by marking money already handed over, and may send a claim back as not received with a reason or note, or take a paid one back. Not paid is hatched. On football, Keepers play free leaves whoever holds a keeper spot at kick-off out of who owes (dashed): it follows the spot until kick-off and is fixed from then on. A payment already recorded for a player who comes to play free stays with the Organizer to take back. Other players see only the marks, never amounts, notes or who confirmed. Every change is kept with who made it. The screens call the list "Payments".
+_Avoid_: checkout, charge, fee, Payment (alone, which is a Booking's)
+
 **Pricing rule**:
 An hourly rate in fils for a set of weekdays and a time range, for every Court or for one Court. A Court rule beats a Venue-wide rule. Rules on one scope never overlap, and a window that runs past midnight prices on the weekday it opened. The rule covering a Booking's start time prices its whole length; the price is fixed at the moment the Booking is made, and a start no rule covers cannot be booked. A Venue-wide rule for every weekday, 00:00–24:00 is the base rate.
 _Avoid_: tariff, rate card, price list, Price per player (that is a Game field), fee
@@ -761,7 +765,7 @@ The number behind a Group Tier (`group_tier_points`). Starts at 1,200 and moves 
 _Avoid_: Elo, group Elo, rating points, Standing points
 
 **Tier band**:
-Shark, Hamour, Kanaad or Safi, shown as a fish. A place, not a threshold: the Shark is first, Hamour the next 15% of the other ranked members, Kanaad the next 35%, Safi the rest. Only members out of Provisional are ranked, and there are no fish until two are. A place is shown against the Group's member count ("#6 of 13" in a Group of 13 with two still Provisional), wherever it is shown; an event keeps the count from when its place was cut. A member whose fish moves is told once per write (`tier_band_changed`), whether a Game settling, a wrong-score reversal or another member's Tier adjustment moved it; a member left with no fish is not told. Pure in `@repo/domain/tier-bands`.
+Shark, Hamour, Kanaad or Safi, shown as a fish. A place, not a threshold: the top three are Sharks (fewer while only two to four are ranked, so at least one member is not a Shark), Hamour the next 15% of the other ranked members, Kanaad the next 35%, Safi the rest. Only members out of Provisional are ranked, and there are no fish until two are. A place is shown against the Group's member count ("#6 of 13" in a Group of 13 with two still Provisional), wherever it is shown; an event keeps the count from when its place was cut. A member whose fish moves is told once per write (`tier_band_changed`), whether a Game settling, a wrong-score reversal or another member's Tier adjustment moved it; a member left with no fish is not told. Pure in `@repo/domain/tier-bands`.
 _Avoid_: badge, rank, Level band, league
 
 **Tier adjustment**:

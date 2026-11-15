@@ -69,6 +69,9 @@ export function notificationEmailDestination(
   if (item.type === "performance_ratings_open" && item.game) {
     return { kind: "game", path: `/dashboard/games/${item.game.id}/rate` };
   }
+  if (item.type === "game_payment_claimed" && item.game) {
+    return { kind: "game", path: `/dashboard/games/${item.game.id}/payments` };
+  }
   if (
     (item.type === "group_member_joined" ||
       item.type === "level_set" ||
@@ -87,6 +90,8 @@ export function notificationEmailDestination(
       item.type === "game_player_left" ||
       item.type === "game_seated_by_organizer" ||
       item.type === "game_side_changed" ||
+      item.type === "game_payment_reminder" ||
+      item.type === "game_payment_not_received" ||
       item.type === "game_moved_to_waitlist" ||
       item.type === "game_team_changed" ||
       item.type === "king_courts_posted" ||
