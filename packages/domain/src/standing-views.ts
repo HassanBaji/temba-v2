@@ -95,7 +95,10 @@ export type StandingLevelData = {
   band: LevelBand | null;
   /** The whole football OVR the member is placed by: now, or at close. */
   ovr: number | null;
-  /** Season lens only: the value when the Season opened. */
+  /**
+   * Season lens only: the value when the Season opened, moved by any Level
+   * override or Tier adjustment since, so `end - start` is what Games gained.
+   */
   start: number | null;
   /** Season lens only: the value now, or when the Season closed. */
   end: number | null;
@@ -295,8 +298,8 @@ function bandChangeLine(
 }
 
 /**
- * Most improved (design 1c): the gain from the Season's open to now, or to its
- * close. Members with at least `minRankedGames` results this Season and a gain
+ * Most improved (design 1c): the gain from Games between the Season's open
+ * and now, or its close. Members with at least `minRankedGames` results this Season and a gain
  * above zero are ranked, biggest gain first; members flat or down follow
  * without a place, then members short of the games to rank. Equal gains keep
  * their Overall order.

@@ -415,8 +415,10 @@ export const group = {
           "Same points as Overall, ranked inside each category. A player sits in the category their level is in now, or was in when the season closed.",
         byLevelFootball:
           "Same points as Overall, ranked inside each level range. Football levels are numbers, so the categories are ranges of 15. A player sits in the range their level is in now, or was in when the season closed.",
-        gainLevel: "Gain is the change in level since the season opened.",
-        gainTier: "Gain is the change in tier points since the season opened.",
+        gainLevel:
+          "Gain is the level won in games since the season opened. Level changes made by hand don’t count.",
+        gainTier:
+          "Gain is the tier points won in games since the season opened. Tier adjustments don’t count.",
         playToRank: (n: number) =>
           plural("en", n, {
             one: "Play a game in the group this season to be ranked.",

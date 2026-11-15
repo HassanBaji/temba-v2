@@ -292,7 +292,7 @@ describe("copy", () => {
         3,
       ),
     ).toBe(
-      "Gain is the change in level since the season opened. Play 3 games in the group this season to be ranked.",
+      "Gain is the level won in games since the season opened. Level changes made by hand don’t count. Play 3 games in the group this season to be ranked.",
     );
     expect(
       standingViewFooter(
@@ -302,7 +302,7 @@ describe("copy", () => {
         1,
       ),
     ).toBe(
-      "Gain is the change in tier points since the season opened. Play a game in the group this season to be ranked.",
+      "Gain is the tier points won in games since the season opened. Tier adjustments don’t count. Play a game in the group this season to be ranked.",
     );
     expect(
       standingViewFooter(

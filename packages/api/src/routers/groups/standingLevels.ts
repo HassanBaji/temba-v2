@@ -41,8 +41,17 @@ type LevelChange = {
   userId: string;
   createdAt: Date;
   muBefore: number;
+  muAfter: number;
   levelBandBefore: LevelBand | null;
+  /** A Rated Match or a Place award; false for a Level override. */
+  fromGame: boolean;
 };
+
+type LensWindow = { start: Date; end: Date };
+
+function inWindow(at: Date, window: LensWindow) {
+  return at > window.start && at <= window.end;
+}
 
 /** Padel in hundredths on the 1.0 to 7.0 face; football as whole OVR. */
 function faceValue(mu: number, sport: string | null) {
@@ -87,6 +96,7 @@ async function levelChangesSince(
     userId: true,
     createdAt: true,
     muBefore: true,
+    muAfter: true,
     levelBandBefore: true,
   } as const;
   const [events, overrides, awards] = await Promise.all([
@@ -104,7 +114,12 @@ async function levelChangesSince(
     }),
   ]);
   const byUser = new Map<string, LevelChange[]>();
-  for (const change of [...events, ...overrides, ...awards].sort(
+  const all: LevelChange[] = [
+    ...events.map((change) => ({ ...change, fromGame: true })),
+    ...overrides.map((change) => ({ ...change, fromGame: false })),
+    ...awards.map((change) => ({ ...change, fromGame: true })),
+  ];
+  for (const change of all.sort(
     (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
   )) {
     const list = byUser.get(change.userId) ?? [];
@@ -119,7 +134,7 @@ async function temba(
   args: {
     userIds: string[];
     sport: "padel" | "football";
-    window: { start: Date; end: Date } | null;
+    window: LensWindow | null;
     placeAt: Date | null;
   },
 ): Promise<StandingLevelData[]> {
@@ -143,7 +158,8 @@ async function temba(
 
   return ratingRows.map((row) => {
     const now: LevelState = { mu: row.mu, band: row.levelBand };
-    const history = (changes.get(row.userId) ?? []).map((change) => ({
+    const userChanges = changes.get(row.userId) ?? [];
+    const history = userChanges.map((change) => ({
       createdAt: change.createdAt,
       before: {
         mu: change.muBefore,
@@ -154,16 +170,44 @@ async function temba(
     const at = (instant: Date | null) =>
       instant ? stateAt(history, now, instant) : now;
     const placed = at(args.placeAt);
-    const start = args.window ? at(args.window.start) : null;
-    const end = args.window ? at(args.window.end) : null;
-    return {
+    const base = {
       userId: row.userId,
       band: args.sport === "football" ? null : placed.band,
       ovr: args.sport === "football" ? wholeOvrFromMu(placed.mu) : null,
-      start: start ? faceValue(start.mu, args.sport) : null,
-      end: end ? faceValue(end.mu, args.sport) : null,
-      startBand: args.sport === "football" ? null : (start?.band ?? null),
-      endBand: args.sport === "football" ? null : (end?.band ?? null),
+    };
+    const window = args.window;
+    if (!window) {
+      return {
+        ...base,
+        start: null,
+        end: null,
+        startBand: null,
+        endBand: null,
+      };
+    }
+    const opened = at(window.start);
+    const end = at(window.end);
+    const endValue = faceValue(end.mu, args.sport);
+    const gamesGain = userChanges
+      .filter((change) => change.fromGame && inWindow(change.createdAt, window))
+      .reduce(
+        (sum, change) =>
+          sum +
+          faceValue(change.muAfter, args.sport) -
+          faceValue(change.muBefore, args.sport),
+        0,
+      );
+    const startValue = endValue - gamesGain;
+    const startBand =
+      startValue === faceValue(opened.mu, args.sport)
+        ? opened.band
+        : bandFromLevel(startValue / 100);
+    return {
+      ...base,
+      start: startValue,
+      end: endValue,
+      startBand: args.sport === "football" ? null : startBand,
+      endBand: args.sport === "football" ? null : end.band,
     };
   });
 }
@@ -173,7 +217,7 @@ async function tier(
   args: {
     groupId: string;
     userIds: string[];
-    window: { start: Date; end: Date } | null;
+    window: LensWindow | null;
     /** Provisional points stay hidden from other members (as on Members). */
     seesProvisional: (userId: string) => boolean;
   },
@@ -199,7 +243,13 @@ async function tier(
           inArray(groupTierEvents.userId, args.userIds),
           gt(groupTierEvents.createdAt, window.start),
         ),
-        columns: { userId: true, createdAt: true, pointsBefore: true },
+        columns: {
+          userId: true,
+          kind: true,
+          createdAt: true,
+          pointsBefore: true,
+          pointsAfter: true,
+        },
       })
     : [];
 
@@ -219,21 +269,26 @@ async function tier(
     }
     // Points are cleared when a member leaves; a ledger line from before the
     // current points row belongs to an earlier membership.
-    const history = events
+    const ledger = events
       .filter(
         (event) =>
           event.userId === row.userId && event.createdAt >= row.createdAt,
       )
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-      .map((event) => ({
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    const end = stateAt(
+      ledger.map((event) => ({
         createdAt: event.createdAt,
         before: event.pointsBefore,
-      }));
-    return {
-      ...base,
-      start: stateAt(history, row.points, window.start),
-      end: stateAt(history, row.points, window.end),
-    };
+      })),
+      row.points,
+      window.end,
+    );
+    const gamesGain = ledger
+      .filter(
+        (event) => event.kind === "game" && inWindow(event.createdAt, window),
+      )
+      .reduce((sum, event) => sum + event.pointsAfter - event.pointsBefore, 0);
+    return { ...base, start: end - gamesGain, end };
   });
 }
 
@@ -245,6 +300,11 @@ async function tier(
  * Season, the level when it opened and now or at close. A tier Group reads
  * Tier points for the Season. A padel Group that is not Verified has neither.
  * Members only.
+ *
+ * Most improved counts only what Games moved: Rated Matches and Place awards
+ * on the Level, `game` events on Tier points. A Level override or Tier
+ * adjustment in the Season moves `start` with it, so `end - start` is the
+ * gain from Games and the row still reads start to end.
  */
 export async function standingLevels(
   database: DbClient,

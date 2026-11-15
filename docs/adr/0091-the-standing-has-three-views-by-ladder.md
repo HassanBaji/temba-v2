@@ -2,7 +2,8 @@
 
 **Status:** accepted. Design: "Group standings" (section 01). Amends
 [ADR-0066](./0066-a-football-group-that-is-not-verified-has-a-group-tier.md) for where Tier points
-are shown.
+are shown. Amended by
+[ADR-0093](./0093-most-improved-counts-only-what-games-moved.md): the gain counts Games only.
 
 A Group's Standing ranks points. Groups also wanted to see who leads among players of their own
 level, and who improved most in a Season. Both questions need a ladder, and not every Group has one.

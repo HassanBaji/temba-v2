@@ -2,14 +2,19 @@ import { TRPCError } from "@trpc/server";
 import { describe, expect, it } from "vitest";
 
 import {
+  games,
   groupMembers,
   groupSeasons,
   groupTierEvents,
   groupTierPoints,
   groups,
+  kingPlaceAwards,
   levelOverrides,
+  matches,
+  ratingEvents,
   ratings,
   user,
+  venues,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { muFromOvr } from "@repo/domain/football-ovr";
@@ -131,8 +136,84 @@ async function insertOverride(
   });
 }
 
+async function insertGame(database: TestDatabase, createdBy: string) {
+  const [venue] = await database
+    .insert(venues)
+    .values({
+      name: `Venue ${crypto.randomUUID()}`,
+      city: "Doha",
+      country: "QA",
+    })
+    .returning({ id: venues.id });
+  const [game] = await database
+    .insert(games)
+    .values({ name: "Tuesday", venueId: venue!.id, createdBy })
+    .returning({ id: games.id });
+  return game!.id;
+}
+
+type LevelMove = {
+  userId: string;
+  sport: "padel" | "football";
+  muBefore: number;
+  bandBefore: LevelBand;
+  muAfter: number;
+  createdAt: Date;
+};
+
+async function insertRatedMatch(
+  database: TestDatabase,
+  args: LevelMove & { createdBy: string },
+) {
+  const gameId = await insertGame(database, args.createdBy);
+  const [match] = await database
+    .insert(matches)
+    .values({ gameId })
+    .returning({ id: matches.id });
+  await database.insert(ratingEvents).values({
+    userId: args.userId,
+    sport: args.sport,
+    matchId: match!.id,
+    outcomeScore: 1,
+    weight: 1,
+    muBefore: args.muBefore,
+    phiBefore: INITIAL_PHI,
+    sigmaBefore: INITIAL_SIGMA,
+    muAfter: args.muAfter,
+    phiAfter: INITIAL_PHI,
+    sigmaAfter: INITIAL_SIGMA,
+    levelBandBefore: args.bandBefore,
+    createdAt: args.createdAt,
+  });
+}
+
+async function insertPlaceAward(
+  database: TestDatabase,
+  args: LevelMove & { createdBy: string },
+) {
+  const gameId = await insertGame(database, args.createdBy);
+  await database.insert(kingPlaceAwards).values({
+    userId: args.userId,
+    sport: args.sport,
+    gameId,
+    finalPlace: 1,
+    wins: 3,
+    fieldMu: args.muBefore,
+    fieldPhi: INITIAL_PHI,
+    hadRating: true,
+    muBefore: args.muBefore,
+    phiBefore: INITIAL_PHI,
+    sigmaBefore: INITIAL_SIGMA,
+    muAfter: args.muAfter,
+    phiAfter: INITIAL_PHI,
+    sigmaAfter: INITIAL_SIGMA,
+    levelBandBefore: args.bandBefore,
+    createdAt: args.createdAt,
+  });
+}
+
 describe("standingLevels", () => {
-  it("reads a Verified padel Group's Level at the Season's open, now and at close", async () => {
+  it("reads a Verified padel Group's Level now and at close, gained by Games only", async () => {
     await withDb(async (database) => {
       const owner = await insertUser(database, "owner");
       const noor = await insertUser(database, "noor");
@@ -169,24 +250,41 @@ describe("standingLevels", () => {
         mu: muFromLevel(3.1),
         levelBand: "C2",
       });
-      await insertOverride(database, {
+      await insertRatedMatch(database, {
+        createdBy: owner,
         userId: noor,
-        setBy: owner,
         sport: "padel",
         muBefore: muFromLevel(3.3),
         bandBefore: "C2",
         muAfter: muFromLevel(3.45),
-        bandAfter: "C2",
         createdAt: new Date("2026-10-10T09:00:00Z"),
+      });
+      await insertRatedMatch(database, {
+        createdBy: owner,
+        userId: noor,
+        sport: "padel",
+        muBefore: muFromLevel(3.45),
+        bandBefore: "C2",
+        muAfter: muFromLevel(3.48),
+        createdAt: new Date("2026-11-10T09:00:00Z"),
       });
       await insertOverride(database, {
         userId: noor,
         setBy: owner,
         sport: "padel",
-        muBefore: muFromLevel(3.45),
+        muBefore: muFromLevel(3.48),
         bandBefore: "C2",
-        muAfter: muFromLevel(3.75),
+        muAfter: muFromLevel(3.65),
         bandAfter: "C1",
+        createdAt: new Date("2026-11-15T09:00:00Z"),
+      });
+      await insertPlaceAward(database, {
+        createdBy: owner,
+        userId: noor,
+        sport: "padel",
+        muBefore: muFromLevel(3.65),
+        bandBefore: "C1",
+        muAfter: muFromLevel(3.75),
         createdAt: new Date("2026-11-20T09:00:00Z"),
       });
 
@@ -198,13 +296,15 @@ describe("standingLevels", () => {
       });
       expect(current.ladder).toBe("level");
       const byUser = new Map(current.members.map((row) => [row.userId, row]));
+      // Opened at 3.45; the override's +0.17 moves the start, so the gain is
+      // the Rated Match's +0.03 and the Place award's +0.10.
       expect(byUser.get(noor)).toEqual({
         userId: noor,
         band: "C1",
         ovr: null,
-        start: 345,
+        start: 362,
         end: 375,
-        startBand: "C2",
+        startBand: "C1",
         endBand: "C1",
       });
       expect(byUser.get(khalil)).toEqual(
@@ -239,7 +339,7 @@ describe("standingLevels", () => {
     });
   });
 
-  it("reads a Verified football Group in whole OVR", async () => {
+  it("reads a Verified football Group in whole OVR, gained by Games only", async () => {
     await withDb(async (database) => {
       const owner = await insertUser(database, "owner");
       const groupId = await insertGroup(database, {
@@ -267,9 +367,18 @@ describe("standingLevels", () => {
         sport: "football",
         muBefore: muFromOvr(66),
         bandBefore: "C2",
-        muAfter: muFromOvr(70),
+        muAfter: muFromOvr(68),
         bandAfter: "C1",
         createdAt: new Date("2026-11-15T09:00:00Z"),
+      });
+      await insertRatedMatch(database, {
+        createdBy: owner,
+        userId: owner,
+        sport: "football",
+        muBefore: muFromOvr(68),
+        bandBefore: "C1",
+        muAfter: muFromOvr(70),
+        createdAt: new Date("2026-11-20T09:00:00Z"),
       });
 
       const result = await standingLevels(apiDb(database), {
@@ -283,7 +392,7 @@ describe("standingLevels", () => {
           userId: owner,
           band: null,
           ovr: 70,
-          start: 66,
+          start: 68,
           end: 70,
           startBand: null,
           endBand: null,
@@ -292,7 +401,7 @@ describe("standingLevels", () => {
     });
   });
 
-  it("reads a tier Group's Tier points for the Season and hides Provisional points from other members", async () => {
+  it("reads a tier Group's Tier points gained by Games and hides Provisional points from other members", async () => {
     await withDb(async (database) => {
       const owner = await insertUser(database, "owner");
       const ali = await insertUser(database, "ali");
@@ -314,8 +423,9 @@ describe("standingLevels", () => {
         {
           groupId,
           userId: ali,
-          points: 1260,
+          points: 1300,
           gamesCounted: 7,
+          confirmedAt: new Date("2026-11-20T09:00:00Z"),
           createdAt: new Date("2026-10-01T09:00:00Z"),
         },
         {
@@ -347,6 +457,16 @@ describe("standingLevels", () => {
         },
         {
           groupId,
+          userId: ali,
+          kind: "adjustment",
+          delta: 40,
+          pointsBefore: 1260,
+          pointsAfter: 1300,
+          setByUserId: owner,
+          createdAt: new Date("2026-11-20T09:00:00Z"),
+        },
+        {
+          groupId,
           userId: sami,
           kind: "game",
           delta: 15,
@@ -365,7 +485,7 @@ describe("standingLevels", () => {
       expect(asSami.ladder).toBe("tier");
       const byUser = new Map(asSami.members.map((row) => [row.userId, row]));
       expect(byUser.get(ali)).toEqual(
-        expect.objectContaining({ start: 1230, end: 1260 }),
+        expect.objectContaining({ start: 1270, end: 1300 }),
       );
       expect(byUser.get(sami)).toEqual(
         expect.objectContaining({ start: 1200, end: 1215 }),
