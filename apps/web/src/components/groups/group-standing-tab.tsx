@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import { Lock, Plus, UserRoundPlus, Users } from "lucide-react";
+import { Lock, Plus, Share, UserRoundPlus, Users } from "lucide-react";
 
 import { EmptyState } from "~/components/common/empty-state";
 import { LinkedTableRow } from "~/components/common/linked-table-row";
@@ -43,11 +43,26 @@ import {
   standingTierFootnote,
   unrankedNote,
 } from "@repo/domain/season-standing";
+import {
+  mostImprovedColumns,
+  mostImprovedNoGainNote,
+  mostImprovedTable,
+  standingByLevel,
+  standingViewFooter,
+  standingViewOptions,
+  standingViewShown,
+  type MostImprovedRow,
+  type StandingLevelsData,
+  type StandingView,
+  type StandingViewOption,
+} from "@repo/domain/standing-views";
 import { isRtl } from "@repo/i18n/locale";
 import { groupSeasonsHref, playerProfilePath } from "~/lib/dashboard-paths";
 import { cardFrame } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
+
+import { StandingShareSheet } from "./standing-share-sheet";
 
 export type StandingEntry = {
   userId: string;
@@ -64,6 +79,8 @@ export type StandingEntry = {
   isViewer: boolean;
   unclaimed: boolean;
   nickname?: MemberNicknameData | null;
+  /** Set or score difference, for the PDF and CSV. */
+  diff?: number;
 };
 
 /** Another member's Member nickname; the viewer's own row keeps their Temba name. */
@@ -106,10 +123,16 @@ function PlayerCell({
   entry,
   linkToPlayers,
   muted = false,
+  levelLabel = null,
+  caption,
 }: {
   entry: StandingEntry;
   linkToPlayers: boolean;
   muted?: boolean;
+  /** By level: the band or OVR beside the form strip. */
+  levelLabel?: string | null;
+  /** Replaces the form strip, as Most improved's change line does. */
+  caption?: ReactNode;
 }) {
   const m = useMessages();
   const name = entry.name ?? m.webGroup.memberFallback;
@@ -144,7 +167,18 @@ function PlayerCell({
         {entry.isViewer ? <YouTag /> : null}
         {entry.unclaimed ? <NotOnTembaTag /> : null}
       </span>
-      <FormStrip form={entry.form} />
+      {caption !== undefined ? (
+        caption
+      ) : (
+        <span className="flex items-center gap-1.5">
+          <FormStrip form={entry.form} />
+          {levelLabel ? (
+            <span className="text-eyebrow text-muted-foreground mt-1 tabular-nums">
+              {levelLabel}
+            </span>
+          ) : null}
+        </span>
+      )}
     </span>
   );
 }
@@ -188,10 +222,12 @@ function StandingRow({
   entry,
   linkToPlayers,
   showDraws,
+  levelLabel,
 }: {
   entry: StandingEntry;
   linkToPlayers: boolean;
   showDraws: boolean;
+  levelLabel?: string | null;
 }) {
   const href = linkToPlayers ? playerProfilePath(entry.userId) : undefined;
   const className = cn(
@@ -218,6 +254,7 @@ function StandingRow({
           entry={entry}
           linkToPlayers={linkToPlayers}
           muted={!entry.ranked}
+          levelLabel={levelLabel}
         />
       </td>
       <CountCells entry={entry} muted={!entry.ranked} showDraws={showDraws} />
@@ -237,10 +274,12 @@ function NotPlayedRow({
   entry,
   linkToPlayers,
   showDraws,
+  levelLabel,
 }: {
   entry: StandingEntry;
   linkToPlayers: boolean;
   showDraws: boolean;
+  levelLabel?: string | null;
 }) {
   const hatched = (
     <span
@@ -257,7 +296,12 @@ function NotPlayedRow({
         />
       </td>
       <td className={cn(COL_PLAYER, BODY_CELL)}>
-        <PlayerCell entry={entry} linkToPlayers={linkToPlayers} muted />
+        <PlayerCell
+          entry={entry}
+          linkToPlayers={linkToPlayers}
+          muted
+          levelLabel={levelLabel}
+        />
       </td>
       <td className={cn(COL_COUNT, BODY_CELL)}>{hatched}</td>
       <td className={cn(COL_COUNT, BODY_CELL)}>{hatched}</td>
@@ -272,6 +316,84 @@ function NotPlayedRow({
         />
       </td>
     </tr>
+  );
+}
+
+function RecordHead({ showDraws }: { showDraws: boolean }) {
+  const m = useMessages();
+  const columns = m.webGroup.standing;
+  const head = cn(HEAD_CELL, "text-eyebrow text-muted-foreground");
+  return (
+    <thead className="bg-wash">
+      <tr>
+        <th scope="col" className={cn(COL_POSITION, head)}>
+          <span className="sr-only">{columns.position}</span>
+        </th>
+        <th scope="col" className={cn(COL_PLAYER, head)}>
+          {columns.player}
+        </th>
+        <th scope="col" title={columns.played} className={cn(COL_COUNT, head)}>
+          {columns.playedAbbrev}
+        </th>
+        <th scope="col" title={columns.won} className={cn(COL_COUNT, head)}>
+          {columns.wonAbbrev}
+        </th>
+        {showDraws ? (
+          <th scope="col" title={columns.drawn} className={cn(COL_COUNT, head)}>
+            {columns.drawnAbbrev}
+          </th>
+        ) : null}
+        <th scope="col" title={columns.lost} className={cn(COL_COUNT, head)}>
+          {columns.lostAbbrev}
+        </th>
+        <th
+          scope="col"
+          title={columns.points}
+          className={cn(
+            COL_POINTS,
+            HEAD_CELL,
+            "text-eyebrow text-ink font-semibold",
+          )}
+        >
+          {columns.pointsAbbrev}
+        </th>
+      </tr>
+    </thead>
+  );
+}
+
+/** A section heading inside a table: Unranked, a category, No gain. */
+function DividerRow({
+  colSpan,
+  label,
+  note,
+}: {
+  colSpan: number;
+  label: string;
+  note: string;
+}) {
+  return (
+    <tr className="border-rule bg-wash border-t">
+      <th
+        scope="colgroup"
+        colSpan={colSpan}
+        className="text-eyebrow text-muted-foreground px-4 py-2 text-start font-normal"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <span className="uppercase tracking-[0.06em]">{label}</span>
+          <span>{note}</span>
+        </div>
+      </th>
+    </tr>
+  );
+}
+
+function TableFooter({ legend, footer }: { legend?: string; footer: string }) {
+  return (
+    <div className="border-rule text-meta flex flex-col gap-1.5 border-t px-4 py-3.5">
+      {legend ? <p>{legend}</p> : null}
+      <p className="text-muted-foreground">{footer}</p>
+    </div>
   );
 }
 
@@ -293,60 +415,12 @@ function StandingTable({
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const columns = m.webGroup.standing;
   const ranked = rows.filter((row) => row.ranked);
   const unranked = rows.filter((row) => !row.ranked);
-  const head = cn(HEAD_CELL, "text-eyebrow text-muted-foreground");
   return (
     <div className={cardFrame}>
       <table className="w-full table-fixed">
-        <thead className="bg-wash">
-          <tr>
-            <th scope="col" className={cn(COL_POSITION, head)}>
-              <span className="sr-only">{columns.position}</span>
-            </th>
-            <th scope="col" className={cn(COL_PLAYER, head)}>
-              {columns.player}
-            </th>
-            <th
-              scope="col"
-              title={columns.played}
-              className={cn(COL_COUNT, head)}
-            >
-              {columns.playedAbbrev}
-            </th>
-            <th scope="col" title={columns.won} className={cn(COL_COUNT, head)}>
-              {columns.wonAbbrev}
-            </th>
-            {showDraws ? (
-              <th
-                scope="col"
-                title={columns.drawn}
-                className={cn(COL_COUNT, head)}
-              >
-                {columns.drawnAbbrev}
-              </th>
-            ) : null}
-            <th
-              scope="col"
-              title={columns.lost}
-              className={cn(COL_COUNT, head)}
-            >
-              {columns.lostAbbrev}
-            </th>
-            <th
-              scope="col"
-              title={columns.points}
-              className={cn(
-                COL_POINTS,
-                HEAD_CELL,
-                "text-eyebrow text-ink font-semibold",
-              )}
-            >
-              {columns.pointsAbbrev}
-            </th>
-          </tr>
-        </thead>
+        <RecordHead showDraws={showDraws} />
         <tbody>
           {notPlayedYet
             ? rows.map((entry) => (
@@ -369,19 +443,11 @@ function StandingTable({
                 />
               ))}
           {!notPlayedYet && unranked.length > 0 ? (
-            <tr className="border-rule bg-wash border-t">
-              <td
-                colSpan={showDraws ? 7 : 6}
-                className="text-eyebrow text-muted-foreground px-4 py-2"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="uppercase tracking-[0.06em]">
-                    {columns.unranked}
-                  </span>
-                  <span>{unrankedNote(locale)}</span>
-                </div>
-              </td>
-            </tr>
+            <DividerRow
+              colSpan={showDraws ? 7 : 6}
+              label={m.webGroup.standing.unranked}
+              note={unrankedNote(locale)}
+            />
           ) : null}
           {!notPlayedYet
             ? unranked.map((entry) => (
@@ -395,10 +461,312 @@ function StandingTable({
             : null}
         </tbody>
       </table>
-      <div className="border-rule text-meta flex flex-col gap-1.5 border-t px-4 py-3.5">
-        <p>{legend}</p>
-        <p className="text-muted-foreground">{footer}</p>
-      </div>
+      <TableFooter legend={legend} footer={footer} />
+    </div>
+  );
+}
+
+/** Design 1a: Overall, By level, Most improved, under the Season chips. */
+function ViewChips({
+  options,
+  shown,
+  onPick,
+}: {
+  options: StandingViewOption[];
+  shown: StandingView;
+  onPick: (view: StandingView) => void;
+}) {
+  const m = useMessages();
+  return (
+    <div
+      role="tablist"
+      aria-label={m.group.standing.views.label}
+      className="flex min-w-0 flex-1 gap-2"
+    >
+      {options.map((option) => {
+        const selected = option.view === shown;
+        return (
+          <button
+            key={option.view}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            disabled={!option.enabled}
+            title={
+              option.enabled
+                ? undefined
+                : m.group.standing.views.mostImprovedSeasonOnly
+            }
+            onClick={() => onPick(option.view)}
+            className={cn(
+              "text-meta focus-visible:ring-ring h-[34px] min-w-0 flex-1 truncate rounded-[10px] border px-2 outline-none focus-visible:ring-2",
+              selected
+                ? "bg-control text-on-control border-ink font-semibold"
+                : "border-rule bg-paper hover:bg-wash",
+              !option.enabled &&
+                "text-muted-foreground hover:bg-paper cursor-not-allowed",
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Design 1b, 1d, 1e: the Overall points, one table per Level category. */
+function ByLevelTable({
+  rows,
+  levels,
+  linkToPlayers,
+  notPlayedYet,
+  showDraws,
+  legend,
+}: {
+  rows: StandingEntry[];
+  levels: StandingLevelsData;
+  linkToPlayers: boolean;
+  notPlayedYet: boolean;
+  showDraws: boolean;
+  legend: string;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const { sections, unranked } = standingByLevel(
+    rows,
+    levels.members,
+    levels.sport,
+    locale,
+  );
+  const colSpan = showDraws ? 7 : 6;
+  const row = (entry: (typeof unranked)[number]) =>
+    notPlayedYet ? (
+      <NotPlayedRow
+        key={entry.userId}
+        entry={entry}
+        linkToPlayers={linkToPlayers}
+        showDraws={showDraws}
+        levelLabel={entry.levelLabel}
+      />
+    ) : (
+      <StandingRow
+        key={entry.userId}
+        entry={entry}
+        linkToPlayers={linkToPlayers}
+        showDraws={showDraws}
+        levelLabel={entry.levelLabel}
+      />
+    );
+  return (
+    <div className={cardFrame}>
+      <table className="w-full table-fixed">
+        <RecordHead showDraws={showDraws} />
+        {sections.map((section) => (
+          <tbody key={section.key}>
+            <DividerRow
+              colSpan={colSpan}
+              label={section.title}
+              note={section.countLabel}
+            />
+            {section.rows.map(row)}
+          </tbody>
+        ))}
+        {unranked.length > 0 ? (
+          <tbody>
+            <DividerRow
+              colSpan={colSpan}
+              label={m.webGroup.standing.unranked}
+              note={unrankedNote(locale)}
+            />
+            {unranked.map(row)}
+          </tbody>
+        ) : null}
+      </table>
+      <TableFooter
+        legend={legend}
+        footer={standingViewFooter(
+          "by-level",
+          { ladder: "level", sport: levels.sport },
+          locale,
+        )}
+      />
+    </div>
+  );
+}
+
+const COL_GAIN_VALUE = "w-[60px] ps-2 pe-0 text-end";
+const COL_GAIN = "w-[84px] ps-3 pe-4 text-end";
+
+function HatchedValue() {
+  return (
+    <span
+      aria-hidden="true"
+      className="hatch ms-auto block size-3.5 rounded-[4px]"
+    />
+  );
+}
+
+function MostImprovedLine({
+  row,
+  linkToPlayers,
+}: {
+  row: MostImprovedRow<StandingEntry>;
+  linkToPlayers: boolean;
+}) {
+  const muted = row.position == null;
+  const href = linkToPlayers ? playerProfilePath(row.userId) : undefined;
+  const className = cn(
+    "border-rule border-t",
+    row.isViewer && "bg-wash",
+    href && "hover:bg-wash",
+  );
+  const value = cn(
+    COL_GAIN_VALUE,
+    BODY_CELL,
+    "text-body text-muted-foreground tabular-nums",
+  );
+  const cells = (
+    <>
+      <td className={cn(COL_POSITION, BODY_CELL)}>
+        {row.position != null ? (
+          <span className="font-expanded block text-[20px] tabular-nums">
+            {row.position}
+          </span>
+        ) : (
+          <span
+            aria-hidden="true"
+            className="hatch block size-[22px] rounded-[6px]"
+          />
+        )}
+      </td>
+      <td className={cn(COL_PLAYER, BODY_CELL)}>
+        <PlayerCell
+          entry={row}
+          linkToPlayers={linkToPlayers}
+          muted={muted}
+          caption={
+            row.changeLine ? (
+              <span className="text-eyebrow text-muted-foreground mt-0.5">
+                {row.changeLine}
+              </span>
+            ) : null
+          }
+        />
+      </td>
+      <td className={value}>{row.start ?? <HatchedValue />}</td>
+      <td className={value}>{row.end ?? <HatchedValue />}</td>
+      <td
+        className={cn(
+          COL_GAIN,
+          BODY_CELL,
+          "font-expanded text-[18px] tabular-nums",
+          muted && "text-muted-foreground",
+        )}
+      >
+        {row.gain ?? <HatchedValue />}
+      </td>
+    </>
+  );
+  return href ? (
+    <LinkedTableRow href={href} className={className}>
+      {cells}
+    </LinkedTableRow>
+  ) : (
+    <tr className={className}>{cells}</tr>
+  );
+}
+
+/** Design 1c: ranked by level gained since the Season opened. */
+function MostImprovedTable({
+  rows,
+  levels,
+  status,
+  linkToPlayers,
+}: {
+  rows: StandingEntry[];
+  levels: StandingLevelsData & {
+    ladder: NonNullable<StandingLevelsData["ladder"]>;
+  };
+  status: GroupSeasonStatus;
+  linkToPlayers: boolean;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const { ranked, noGain, unranked } = mostImprovedTable(
+    rows,
+    levels.members,
+    levels.ladder,
+    levels.sport,
+    locale,
+  );
+  const columns = mostImprovedColumns(status, locale);
+  const head = cn(HEAD_CELL, "text-eyebrow text-muted-foreground");
+  const line = (row: MostImprovedRow<StandingEntry>) => (
+    <MostImprovedLine
+      key={row.userId}
+      row={row}
+      linkToPlayers={linkToPlayers}
+    />
+  );
+  return (
+    <div className={cardFrame}>
+      <table className="w-full table-fixed">
+        <thead className="bg-wash">
+          <tr>
+            <th scope="col" className={cn(COL_POSITION, head)}>
+              <span className="sr-only">{m.webGroup.standing.position}</span>
+            </th>
+            <th scope="col" className={cn(COL_PLAYER, head)}>
+              {m.webGroup.standing.player}
+            </th>
+            <th scope="col" className={cn(COL_GAIN_VALUE, head)}>
+              {columns.start}
+            </th>
+            <th scope="col" className={cn(COL_GAIN_VALUE, head)}>
+              {columns.end}
+            </th>
+            <th
+              scope="col"
+              className={cn(
+                COL_GAIN,
+                HEAD_CELL,
+                "text-eyebrow text-ink font-semibold",
+              )}
+            >
+              {columns.gain}
+            </th>
+          </tr>
+        </thead>
+        <tbody>{ranked.map(line)}</tbody>
+        {noGain.length > 0 ? (
+          <tbody>
+            <DividerRow
+              colSpan={5}
+              label={m.group.standing.views.noGain}
+              note={mostImprovedNoGainNote(levels.ladder, locale)}
+            />
+            {noGain.map(line)}
+          </tbody>
+        ) : null}
+        {unranked.length > 0 ? (
+          <tbody>
+            <DividerRow
+              colSpan={5}
+              label={m.webGroup.standing.unranked}
+              note={unrankedNote(locale)}
+            />
+            {unranked.map(line)}
+          </tbody>
+        ) : null}
+      </table>
+      <TableFooter
+        footer={standingViewFooter(
+          "most-improved",
+          { ladder: levels.ladder, sport: levels.sport },
+          locale,
+        )}
+      />
     </div>
   );
 }
@@ -850,8 +1218,13 @@ export function GroupStandingTab({
   onInvite,
   canManageSeasons = false,
   hasTier = false,
+  verified = false,
   ratingSettingsLine = null,
   onOpenMembers,
+  groupName = null,
+  groupCreatedAt = null,
+  initialSeasonId,
+  initialView,
   now = new Date(),
 }: {
   canInvite?: boolean;
@@ -871,14 +1244,25 @@ export function GroupStandingTab({
   awaitingScoreCount: number;
   canManageSeasons?: boolean;
   hasTier?: boolean;
+  /** A Verified Group adds By level and Most improved on the Temba Level. */
+  verified?: boolean;
   ratingSettingsLine?: string | null;
   /** Switches to the Members tab, where the Group Tier lives. */
   onOpenMembers?: () => void;
+  groupName?: string | null;
+  /** All-time shares read "Since" this day. */
+  groupCreatedAt?: Date | string | null;
+  /** A shared link's lens and view; `undefined` keeps the default. */
+  initialSeasonId?: string | null;
+  initialView?: StandingView;
   now?: Date;
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const [lensId, setLensId] = useState<string | null>(defaultSeasonId);
+  const [lensId, setLensId] = useState<string | null>(
+    initialSeasonId === undefined ? defaultSeasonId : initialSeasonId,
+  );
+  const [shareOpen, setShareOpen] = useState(false);
   const lensIsDefault = lensId === defaultSeasonId;
   const lens = api.groups.seasonStanding.useQuery(
     { groupId, seasonId: lensId },
@@ -889,6 +1273,24 @@ export function GroupStandingTab({
     : (lens.data?.rows ?? []);
   const counted = lensIsDefault ? gamesCounted : (lens.data?.gamesCounted ?? 0);
   const season = seasons.find((row) => row.id === lensId) ?? null;
+  const [pickedView, setPickedView] = useState<StandingView>(
+    initialView ?? "overall",
+  );
+  const viewOptions = standingViewOptions(
+    {
+      verified,
+      hasTier,
+      hasSeasons: seasons.length > 0,
+      seasonInView: season != null,
+    },
+    locale,
+  );
+  const view = standingViewShown(pickedView, viewOptions);
+  const levels = api.groups.standingLevels.useQuery(
+    { groupId, seasonId: lensId },
+    { enabled: isMember && view !== "overall" },
+  );
+  const levelData = levels.data;
   const footer = standingRulesLine(standingDiffUnit(sport), locale);
   const showDraws = standingShowsDraws(sport, rows);
 
@@ -959,15 +1361,23 @@ export function GroupStandingTab({
     );
   }
 
+  const viewError = view !== "overall" ? levels.error : null;
+  const canShare =
+    rows.length > 0 &&
+    !(!lensIsDefault && lens.isLoading) &&
+    (view === "overall" || levelData != null);
   let table: ReactNode;
-  if (!lensIsDefault && lens.isLoading) {
+  if (
+    (!lensIsDefault && lens.isLoading) ||
+    (view !== "overall" && levels.isLoading)
+  ) {
     table = <TableSkeleton />;
-  } else if (!lensIsDefault && lens.error) {
+  } else if ((!lensIsDefault && lens.error) || viewError) {
     table = (
       <EmptyState
         icon={Users}
         title={m.webGroup.standing.errorTitle}
-        description={lens.error.message}
+        description={(lens.error ?? viewError)?.message}
       />
     );
   } else if (rows.length === 0) {
@@ -984,6 +1394,26 @@ export function GroupStandingTab({
             </Button>
           ) : null
         }
+      />
+    );
+  } else if (view === "by-level" && levelData) {
+    table = (
+      <ByLevelTable
+        rows={rows}
+        levels={levelData}
+        linkToPlayers={linkToPlayers}
+        notPlayedYet={counted === 0}
+        showDraws={showDraws}
+        legend={standingLegend(showDraws, locale)}
+      />
+    );
+  } else if (view === "most-improved" && levelData?.ladder && season) {
+    table = (
+      <MostImprovedTable
+        rows={rows}
+        levels={{ ...levelData, ladder: levelData.ladder }}
+        status={season.status}
+        linkToPlayers={linkToPlayers}
       />
     );
   } else {
@@ -1012,7 +1442,45 @@ export function GroupStandingTab({
           onPick={setLensId}
         />
       ) : null}
-      {season?.status === "closed" && !lens.isLoading ? (
+      {viewOptions.length > 0 || canShare ? (
+        <div className="flex items-center justify-end gap-2">
+          {viewOptions.length > 0 ? (
+            <ViewChips
+              options={viewOptions}
+              shown={view}
+              onPick={setPickedView}
+            />
+          ) : null}
+          {canShare ? (
+            <button
+              type="button"
+              aria-label={m.group.standing.share.open}
+              onClick={() => setShareOpen(true)}
+              className="border-rule bg-paper hover:bg-wash focus-visible:ring-ring flex size-[34px] shrink-0 items-center justify-center rounded-[10px] border outline-none focus-visible:ring-2"
+            >
+              <Share aria-hidden="true" className="size-4" />
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {canShare ? (
+        <StandingShareSheet
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          groupId={groupId}
+          input={{
+            view,
+            rows,
+            levels: levelData ?? null,
+            season,
+            groupName: groupName ?? m.webGroup.memberFallback,
+            sport,
+            since: groupCreatedAt,
+            now,
+          }}
+        />
+      ) : null}
+      {view === "overall" && season?.status === "closed" && !lens.isLoading ? (
         <Podium rows={rows} season={season} />
       ) : null}
       {table}

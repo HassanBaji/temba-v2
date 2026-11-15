@@ -1,5 +1,8 @@
 import { radii, sizes, spacing } from "@repo/design-tokens";
-import type { GroupHomeData } from "@repo/domain/group-data";
+import type {
+  GroupHomeData,
+  GroupStandingRowData,
+} from "@repo/domain/group-data";
 import {
   groupStandingEmptyFooter,
   groupStandingOpenSeats,
@@ -26,9 +29,23 @@ import {
   standingTierFootnote,
   unrankedNote,
 } from "@repo/domain/season-standing";
+import {
+  mostImprovedColumns,
+  mostImprovedNoGainNote,
+  mostImprovedSpoken,
+  mostImprovedTable,
+  standingByLevel,
+  standingViewFooter,
+  standingViewOptions,
+  standingViewShown,
+  type MostImprovedRow,
+  type StandingLevelsData,
+  type StandingView,
+  type StandingViewOption,
+} from "@repo/domain/standing-views";
 import { isRtl } from "@repo/i18n/locale";
 import { useRouter, type Href } from "expo-router";
-import { Lock, Plus, UserPlus } from "lucide-react-native";
+import { Lock, Plus, Share, UserPlus } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
@@ -42,7 +59,10 @@ import { hairline as hairlineWidth } from "../primitives/hairline-width";
 import { ResultMark } from "../primitives/result-mark";
 import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
-import { useTonePalette } from "../primitives/surface-context";
+import {
+  SurfaceToneContext,
+  useTonePalette,
+} from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import { api } from "../trpc/react";
@@ -54,6 +74,7 @@ import {
 import { NicknameName } from "../primitives/nickname-name";
 import { groupSeasonsPath } from "./groups-model";
 import { Notice } from "./notice";
+import { StandingShareSheet } from "./standing-share-sheet";
 
 type Season = GroupSeasonData & { status: GroupSeasonStatus };
 
@@ -115,11 +136,14 @@ function StandingRow({
   row,
   notPlayedYet,
   showDraws,
+  levelLabel,
   onOpen,
 }: {
   row: StandingRowView;
   notPlayedYet: boolean;
   showDraws: boolean;
+  /** By level: the band or OVR beside the form strip. */
+  levelLabel?: string | null;
   onOpen?: (userId: string) => void;
 }) {
   const m = useMessages();
@@ -174,7 +198,14 @@ function StandingRow({
           weight={row.isViewer ? "semibold" : "regular"}
           tone={muted ? "muted" : "default"}
         />
-        <FormStrip form={row.form} />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <FormStrip form={row.form} />
+          {levelLabel ? (
+            <Text size="eyebrow" tone="muted" style={{ marginTop: 3 }}>
+              {levelLabel}
+            </Text>
+          ) : null}
+        </View>
       </View>
       {notPlayedYet ? (
         <>
@@ -224,6 +255,83 @@ function StandingRow({
   );
 }
 
+function RecordHeader({ showDraws }: { showDraws: boolean }) {
+  const m = useMessages();
+  const colors = useColors();
+  const columns = m.mobileGroup.standing.columns;
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingHorizontal: spacing.surface,
+        paddingVertical: 10,
+        backgroundColor: colors.wash,
+      }}
+    >
+      <View style={{ width: POSITION_WIDTH }} />
+      <HeaderCell label={columns.player} align="left" />
+      <HeaderCell label={columns.played} width={COUNT_WIDTH} />
+      <HeaderCell label={columns.wins} width={COUNT_WIDTH} />
+      {showDraws ? (
+        <HeaderCell label={columns.draws} width={COUNT_WIDTH} />
+      ) : null}
+      <HeaderCell label={columns.losses} width={COUNT_WIDTH} />
+      <HeaderCell
+        label={columns.points}
+        width={POINTS_WIDTH}
+        strong
+        align="right"
+      />
+    </View>
+  );
+}
+
+/** A section heading inside a table: Unranked, a category, No gain. */
+function TableDivider({ label, note }: { label: string; note: string }) {
+  const colors = useColors();
+  return (
+    <>
+      <Hairline />
+      <View
+        accessibilityRole="header"
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          gap: 12,
+          paddingHorizontal: spacing.surface,
+          paddingVertical: 6,
+          backgroundColor: colors.wash,
+        }}
+      >
+        <Text size="eyebrow" tone="muted" mono uppercase>
+          {label}
+        </Text>
+        <Text size="eyebrow" tone="muted">
+          {note}
+        </Text>
+      </View>
+    </>
+  );
+}
+
+function TableFooter({ legend, footer }: { legend?: string; footer: string }) {
+  return (
+    <>
+      <Hairline />
+      <View style={{ padding: spacing.surface, gap: 6 }}>
+        {legend ? <Text size="meta">{legend}</Text> : null}
+        <Text size="meta" tone="muted">
+          {footer}
+        </Text>
+      </View>
+    </>
+  );
+}
+
 function StandingTable({
   rows,
   notPlayedYet,
@@ -241,10 +349,318 @@ function StandingTable({
 }) {
   const locale = useLocale();
   const m = useMessages();
-  const colors = useColors();
-  const columns = m.mobileGroup.standing.columns;
   const ranked = notPlayedYet ? rows : rows.filter((row) => row.ranked);
   const unranked = notPlayedYet ? [] : rows.filter((row) => !row.ranked);
+  return (
+    <Surface padded={false} style={{ overflow: "hidden" }}>
+      <RecordHeader showDraws={showDraws} />
+      {ranked.map((row) => (
+        <View key={row.key}>
+          <Hairline />
+          <StandingRow
+            row={row}
+            notPlayedYet={notPlayedYet}
+            showDraws={showDraws}
+            onOpen={onOpenMember}
+          />
+        </View>
+      ))}
+      {unranked.length > 0 ? (
+        <TableDivider
+          label={m.mobileGroup.standing.unranked}
+          note={unrankedNote(locale)}
+        />
+      ) : null}
+      {unranked.map((row) => (
+        <View key={row.key}>
+          <Hairline />
+          <StandingRow
+            row={row}
+            notPlayedYet={false}
+            showDraws={showDraws}
+            onOpen={onOpenMember}
+          />
+        </View>
+      ))}
+      <TableFooter legend={legend} footer={footer} />
+    </Surface>
+  );
+}
+
+const VIEW_CHIP_HEIGHT = 34;
+
+/** Design 1a: Overall, By level, Most improved, under the Season chips. */
+function ViewChips({
+  options,
+  shown,
+  onPick,
+}: {
+  options: StandingViewOption[];
+  shown: StandingView;
+  onPick: (view: StandingView) => void;
+}) {
+  const m = useMessages();
+  const colors = useColors();
+  return (
+    <View
+      accessibilityRole="tablist"
+      accessibilityLabel={m.group.standing.views.label}
+      style={{ flex: 1, flexDirection: "row", gap: 8 }}
+    >
+      {options.map((option) => {
+        const selected = option.view === shown;
+        return (
+          <SurfaceToneContext.Provider
+            key={option.view}
+            value={selected ? "ink" : "paper"}
+          >
+            <Pressable
+              accessibilityRole="tab"
+              accessibilityState={{ selected, disabled: !option.enabled }}
+              accessibilityHint={
+                option.enabled
+                  ? undefined
+                  : m.group.standing.views.mostImprovedSeasonOnly
+              }
+              disabled={!option.enabled}
+              hitSlop={{
+                top: (sizes.touchTarget - VIEW_CHIP_HEIGHT) / 2,
+                bottom: (sizes.touchTarget - VIEW_CHIP_HEIGHT) / 2,
+              }}
+              onPress={() => onPick(option.view)}
+              style={({ pressed }) => ({
+                flex: 1,
+                height: VIEW_CHIP_HEIGHT,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingHorizontal: 8,
+                borderRadius: radii.md,
+                borderWidth: hairlineWidth,
+                borderColor: selected ? colors.ink : colors.rule,
+                backgroundColor: selected
+                  ? colors.control
+                  : pressed
+                    ? colors.wash
+                    : colors.paper,
+              })}
+            >
+              <Text
+                size="meta"
+                weight={selected ? "semibold" : "regular"}
+                tone={option.enabled ? "default" : "muted"}
+                numberOfLines={1}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          </SurfaceToneContext.Provider>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Design 1b, 1d, 1e: the Overall points, one table per Level category. */
+function ByLevelTable({
+  entries,
+  levels,
+  notPlayedYet,
+  showDraws,
+  legend,
+  onOpenMember,
+}: {
+  entries: GroupStandingRowData[];
+  levels: StandingLevelsData;
+  notPlayedYet: boolean;
+  showDraws: boolean;
+  legend: string;
+  onOpenMember?: (userId: string) => void;
+}) {
+  const locale = useLocale();
+  const m = useMessages();
+  const { sections, unranked } = standingByLevel(
+    entries,
+    levels.members,
+    levels.sport,
+    locale,
+  );
+  const row = (entry: (typeof unranked)[number]) => (
+    <View key={entry.userId}>
+      <Hairline />
+      <StandingRow
+        row={standingRowView(entry, locale)}
+        notPlayedYet={notPlayedYet}
+        showDraws={showDraws}
+        levelLabel={entry.levelLabel}
+        onOpen={onOpenMember}
+      />
+    </View>
+  );
+  return (
+    <Surface padded={false} style={{ overflow: "hidden" }}>
+      <RecordHeader showDraws={showDraws} />
+      {sections.map((section) => (
+        <View key={section.key}>
+          <TableDivider label={section.title} note={section.countLabel} />
+          {section.rows.map(row)}
+        </View>
+      ))}
+      {unranked.length > 0 ? (
+        <TableDivider
+          label={m.mobileGroup.standing.unranked}
+          note={unrankedNote(locale)}
+        />
+      ) : null}
+      {unranked.map(row)}
+      <TableFooter
+        legend={legend}
+        footer={standingViewFooter(
+          "by-level",
+          { ladder: "level", sport: levels.sport },
+          locale,
+        )}
+      />
+    </Surface>
+  );
+}
+
+const GAIN_VALUE_WIDTH = 46;
+const GAIN_WIDTH = 62;
+
+function MostImprovedLine({
+  row,
+  onOpen,
+}: {
+  row: MostImprovedRow<GroupStandingRowData>;
+  onOpen?: (userId: string) => void;
+}) {
+  const locale = useLocale();
+  const m = useMessages();
+  const colors = useColors();
+  const view = standingRowView(row, locale);
+  const label = mostImprovedSpoken(row, view.name, locale);
+  const muted = row.position == null;
+  const value = (text: string | null, strong = false) =>
+    text == null ? (
+      <HatchedCell width={strong ? GAIN_WIDTH : GAIN_VALUE_WIDTH} />
+    ) : (
+      <Text
+        size={strong ? "lead" : "body"}
+        width={strong ? "expanded" : undefined}
+        weight={strong ? "bold" : "regular"}
+        tone={strong && !muted ? "default" : "muted"}
+        style={{
+          width: strong ? GAIN_WIDTH : GAIN_VALUE_WIDTH,
+          textAlign: "right",
+        }}
+      >
+        {text}
+      </Text>
+    );
+  const body = (
+    <View
+      accessible={onOpen == null}
+      accessibilityLabel={onOpen ? undefined : label}
+      style={{
+        minHeight: 56,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingHorizontal: spacing.surface,
+        paddingVertical: 10,
+        backgroundColor: row.isViewer ? colors.wash : undefined,
+      }}
+    >
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{ width: POSITION_WIDTH }}
+      >
+        {row.position != null ? (
+          <Text size="lead" width="expanded" weight="bold">
+            {row.position}
+          </Text>
+        ) : (
+          <View style={{ width: 20, height: 20 }}>
+            <Hatch radius={5} />
+          </View>
+        )}
+      </View>
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{ flex: 1, minWidth: 0 }}
+      >
+        <NicknameName
+          name={view.name}
+          isNickname={view.isNickname}
+          weight={row.isViewer ? "semibold" : "regular"}
+          tone={muted ? "muted" : "default"}
+        />
+        {row.changeLine ? (
+          <Text size="eyebrow" tone="muted" style={{ marginTop: 2 }}>
+            {row.changeLine}
+          </Text>
+        ) : null}
+      </View>
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+      >
+        {value(row.start)}
+        {value(row.end)}
+        {value(row.gain, true)}
+      </View>
+    </View>
+  );
+  if (!onOpen) {
+    return body;
+  }
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={m.mobileGroup.opensPlayerProfile}
+      onPress={() => onOpen(row.userId)}
+      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+    >
+      {body}
+    </Pressable>
+  );
+}
+
+/** Design 1c: ranked by level gained since the Season opened. */
+function MostImprovedTable({
+  entries,
+  levels,
+  status,
+  onOpenMember,
+}: {
+  entries: GroupStandingRowData[];
+  levels: StandingLevelsData & {
+    ladder: NonNullable<StandingLevelsData["ladder"]>;
+  };
+  status: GroupSeasonStatus;
+  onOpenMember?: (userId: string) => void;
+}) {
+  const locale = useLocale();
+  const m = useMessages();
+  const colors = useColors();
+  const { ranked, noGain, unranked } = mostImprovedTable(
+    entries,
+    levels.members,
+    levels.ladder,
+    levels.sport,
+    locale,
+  );
+  const columns = mostImprovedColumns(status, locale);
+  const line = (row: MostImprovedRow<GroupStandingRowData>) => (
+    <View key={row.userId}>
+      <Hairline />
+      <MostImprovedLine row={row} onOpen={onOpenMember} />
+    </View>
+  );
   return (
     <Surface padded={false} style={{ overflow: "hidden" }}>
       <View
@@ -260,70 +676,49 @@ function StandingTable({
         }}
       >
         <View style={{ width: POSITION_WIDTH }} />
-        <HeaderCell label={columns.player} align="left" />
-        <HeaderCell label={columns.played} width={COUNT_WIDTH} />
-        <HeaderCell label={columns.wins} width={COUNT_WIDTH} />
-        {showDraws ? (
-          <HeaderCell label={columns.draws} width={COUNT_WIDTH} />
-        ) : null}
-        <HeaderCell label={columns.losses} width={COUNT_WIDTH} />
         <HeaderCell
-          label={columns.points}
-          width={POINTS_WIDTH}
+          label={m.mobileGroup.standing.columns.player}
+          align="left"
+        />
+        <HeaderCell
+          label={columns.start}
+          width={GAIN_VALUE_WIDTH}
+          align="right"
+        />
+        <HeaderCell
+          label={columns.end}
+          width={GAIN_VALUE_WIDTH}
+          align="right"
+        />
+        <HeaderCell
+          label={columns.gain}
+          width={GAIN_WIDTH}
           strong
           align="right"
         />
       </View>
-      {ranked.map((row) => (
-        <View key={row.key}>
-          <Hairline />
-          <StandingRow
-            row={row}
-            notPlayedYet={notPlayedYet}
-            showDraws={showDraws}
-            onOpen={onOpenMember}
-          />
-        </View>
-      ))}
-      {unranked.length > 0 ? (
-        <>
-          <Hairline />
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              paddingHorizontal: spacing.surface,
-              paddingVertical: 6,
-              backgroundColor: colors.wash,
-            }}
-          >
-            <Text size="eyebrow" tone="muted" mono uppercase>
-              {m.mobileGroup.standing.unranked}
-            </Text>
-            <Text size="eyebrow" tone="muted">
-              {unrankedNote(locale)}
-            </Text>
-          </View>
-        </>
+      {ranked.map(line)}
+      {noGain.length > 0 ? (
+        <TableDivider
+          label={m.group.standing.views.noGain}
+          note={mostImprovedNoGainNote(levels.ladder, locale)}
+        />
       ) : null}
-      {unranked.map((row) => (
-        <View key={row.key}>
-          <Hairline />
-          <StandingRow
-            row={row}
-            notPlayedYet={false}
-            showDraws={showDraws}
-            onOpen={onOpenMember}
-          />
-        </View>
-      ))}
-      <Hairline />
-      <View style={{ padding: spacing.surface, gap: 6 }}>
-        <Text size="meta">{legend}</Text>
-        <Text size="meta" tone="muted">
-          {footer}
-        </Text>
-      </View>
+      {noGain.map(line)}
+      {unranked.length > 0 ? (
+        <TableDivider
+          label={m.mobileGroup.standing.unranked}
+          note={unrankedNote(locale)}
+        />
+      ) : null}
+      {unranked.map(line)}
+      <TableFooter
+        footer={standingViewFooter(
+          "most-improved",
+          { ladder: levels.ladder, sport: levels.sport },
+          locale,
+        )}
+      />
     </Surface>
   );
 }
@@ -933,13 +1328,30 @@ export function StandingTab({
     { groupId: data.id, seasonId: lensId },
     { enabled: isMember && !lensIsDefault },
   );
-  const rows = (
-    lensIsDefault ? data.standing.leaderboard : (lens.data?.rows ?? [])
-  ).map((entry) => standingRowView(entry, locale));
+  const entries: GroupStandingRowData[] = lensIsDefault
+    ? data.standing.leaderboard
+    : (lens.data?.rows ?? []);
+  const rows = entries.map((entry) => standingRowView(entry, locale));
   const counted = lensIsDefault
     ? data.standing.gamesCounted
     : (lens.data?.gamesCounted ?? 0);
   const season = seasons.find((row) => row.id === lensId) ?? null;
+  const [pickedView, setPickedView] = useState<StandingView>("overall");
+  const [shareOpen, setShareOpen] = useState(false);
+  const viewOptions = standingViewOptions(
+    {
+      verified: data.verified,
+      hasTier: data.hasTier ?? false,
+      hasSeasons: seasons.length > 0,
+      seasonInView: season != null,
+    },
+    locale,
+  );
+  const view = standingViewShown(pickedView, viewOptions);
+  const levels = api.groups.standingLevels.useQuery(
+    { groupId: data.id, seasonId: lensId },
+    { enabled: isMember && view !== "overall" },
+  );
   const footer = standingRulesLine(standingDiffUnit(data.sport), locale);
   const showDraws = standingShowsDraws(data.sport, rows);
 
@@ -1002,8 +1414,16 @@ export function StandingTab({
     );
   }
 
+  const levelData = levels.data;
+  const canShare =
+    rows.length > 0 &&
+    !(!lensIsDefault && lens.isLoading) &&
+    (view === "overall" || levelData != null);
   let table: React.ReactNode;
-  if (!lensIsDefault && lens.isLoading) {
+  if (
+    (!lensIsDefault && lens.isLoading) ||
+    (view !== "overall" && levels.isLoading)
+  ) {
     table = <TableSkeleton />;
   } else if (!lensIsDefault && lens.error) {
     table = (
@@ -1012,8 +1432,35 @@ export function StandingTab({
         description={lens.error.message}
       />
     );
+  } else if (view !== "overall" && levels.error) {
+    table = (
+      <Notice
+        title={m.mobileGroup.loadFailed.standing}
+        description={levels.error.message}
+      />
+    );
   } else if (rows.length === 0) {
     table = <Notice title={m.mobileGroup.standing.noResultsTitle} />;
+  } else if (view === "by-level" && levelData) {
+    table = (
+      <ByLevelTable
+        entries={entries}
+        levels={levelData}
+        notPlayedYet={counted === 0}
+        showDraws={showDraws}
+        legend={standingLegend(showDraws, locale)}
+        onOpenMember={onOpenMember}
+      />
+    );
+  } else if (view === "most-improved" && levelData?.ladder && season) {
+    table = (
+      <MostImprovedTable
+        entries={entries}
+        levels={{ ...levelData, ladder: levelData.ladder }}
+        status={season.status}
+        onOpenMember={onOpenMember}
+      />
+    );
   } else {
     table = (
       <StandingTable
@@ -1040,7 +1487,62 @@ export function StandingTab({
           onPick={setLensId}
         />
       ) : null}
-      {season?.status === "closed" && !lens.isLoading ? (
+      {viewOptions.length > 0 || canShare ? (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: 8,
+          }}
+        >
+          {viewOptions.length > 0 ? (
+            <ViewChips
+              options={viewOptions}
+              shown={view}
+              onPick={setPickedView}
+            />
+          ) : null}
+          {canShare ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={m.group.standing.share.open}
+              hitSlop={(sizes.touchTarget - VIEW_CHIP_HEIGHT) / 2}
+              onPress={() => setShareOpen(true)}
+              style={({ pressed }) => ({
+                width: VIEW_CHIP_HEIGHT,
+                height: VIEW_CHIP_HEIGHT,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: radii.md,
+                borderWidth: hairlineWidth,
+                borderColor: colors.rule,
+                backgroundColor: pressed ? colors.wash : colors.paper,
+              })}
+            >
+              <Share size={16} color={colors.ink} />
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+      {canShare ? (
+        <StandingShareSheet
+          visible={shareOpen}
+          onClose={() => setShareOpen(false)}
+          groupId={data.id}
+          input={{
+            view,
+            rows: entries,
+            levels: levelData ?? null,
+            season,
+            groupName: data.name ?? m.mobileGroup.unnamedMember,
+            sport: data.sport,
+            since: data.createdAt,
+            now,
+          }}
+        />
+      ) : null}
+      {view === "overall" && season?.status === "closed" && !lens.isLoading ? (
         <Podium rows={rows} season={season} />
       ) : null}
       {table}

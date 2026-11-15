@@ -716,6 +716,14 @@ _Avoid_: feed, inbox (when you mean this page), activity log, Home
 A User's position among the other Users of one Group, shown as position and member count ("#4 of 13"). It counts every completed Match of the Group's Games, Rated or Unrated, padel or football (ADR-0045), scoring win 3, draw 1, loss 0 to every player on the side. Ties break on wins, then head-to-head, then set difference (padel) or score difference (football), then fewer games played. A member with no result in the lens is listed Unranked, below the ranked rows, without a position; one result is enough to hold a rank. When the Group has a Season, the Standing reads the Season's window; the All-time lens reads every Match. A Standing is a position among others, so it is never a Level, a Level band, a Rating or a Group Tier.
 _Avoid_: ranking, leaderboard position (when you mean this entity), player standing (Level, Recent form and All time are not a Standing), rank (reserved for Official Rank), Pool table (that ranks Game teams inside a tournament Pool)
 
+**Standing view**:
+How the Standing tab reads one lens, picked under the Season chips (ADR-0091): Overall, the Standing itself; By level, the same points split into one table per Level category with its own 1st place (padel by band letter, football by OVR ranges of 15 from 40), placed by the Level now or at close for a closed Season; and Most improved, members ranked by Level gained since the Season opened (padel in hundredths, football in OVR). A Verified Group has all three. A tier Group has Overall and Most improved, which reads Tier points. A padel Group that is not Verified has Overall only. Most improved is a Season view: it is off on All-time and absent without a Season. Members flat or down, and members short of a result, are listed without a place.
+_Avoid_: leaderboard, ranking mode, filter (the views are not filters)
+
+**Standing share**:
+The sheet that shares the lens and Standing view on screen (ADR-0092): a story image (the top 8), a square image (the top 5), the full table as a one-page A4 PDF, the same table as CSV, or a web link that opens the same lens and view on Group home. Any member may use every format. Highlight me, off by default, marks the sharer's row on the images and the PDF. By level shares one category per image; Most improved leads with the top gainer.
+_Avoid_: export (as the feature name), download, report
+
 **Season**:
 An optional date window the Group owner (or Owner and Admin on a Club Group) sets on a Group, inclusive on both product-timezone days. A Group Game links to at most one Season of its Group, and the Standing for a Season reads the completed Matches of the Games linked to it (ADR-0082); a Game with no Season is a friendly that updates Levels but no Standing. A new Game starts in the open Season that holds its day; an Organizer may link, move or unlink it in Edit game while the Season holds the game day and no score is confirmed. A Season is Upcoming before its first day, Active until its last day, and Closed after it or once closed early, which moves its last day to the closing day; closing re-homes its Games that start after the close, later that day included. Seasons never overlap. A Level is never reset by a Season. The Standing tab opens on the Active Season, else the next one to start, else the latest Closed one, else All-time.
 _Avoid_: league, campaign, term, period (when you mean this entity), reset (a Season does not reset Levels)
@@ -765,7 +773,7 @@ Retired with the Group Level (ADR-0066). Was a Group Level an Organizer of the G
 _Avoid_: group rating override
 
 **Group Tier**:
-A football Group member's strength inside one tier Group, a football Group that is not Verified (ADR-0066): Tier points, a place and a Tier band. Moved by that Group's Games and its Organizers. Never moves a Level and is never moved by one. Shown on the Group's Members tab, not on the Standing.
+A football Group member's strength inside one tier Group, a football Group that is not Verified (ADR-0066): Tier points, a place and a Tier band. Moved by that Group's Games and its Organizers. Never moves a Level and is never moved by one. Shown on the Group's Members tab; the Standing shows only what Tier points a Season gained, in its Most improved view (ADR-0091).
 _Avoid_: group level, group rating, local level, badge
 
 **Tier points**:

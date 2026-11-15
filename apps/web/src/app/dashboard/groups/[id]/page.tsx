@@ -39,6 +39,7 @@ import {
 } from "~/components/groups/group-join-requests-section";
 import { RequestJoinDialog } from "~/components/groups/request-join-dialog";
 import { GroupMembersTab } from "~/components/groups/group-members-tab";
+import { standingViewFromQuery } from "@repo/domain/standing-share";
 import { GroupStandingTab } from "~/components/groups/group-standing-tab";
 import { InviteDoorDialog } from "~/components/invites/invite-door-dialog";
 import { Button } from "~/components/ui/button";
@@ -116,6 +117,8 @@ export default function GroupHomePage({
   searchParams: Promise<{
     tab?: string | string[];
     saved?: string | string[];
+    season?: string | string[];
+    view?: string | string[];
   }>;
 }) {
   const { id } = use(params);
@@ -510,6 +513,13 @@ export default function GroupHomePage({
 
   const data = group.data;
   const groupName = data.name ?? m.invite.kind.group;
+  const sharedStanding = standingViewFromQuery(
+    {
+      season: Array.isArray(query.season) ? query.season[0] : query.season,
+      view: Array.isArray(query.view) ? query.view[0] : query.view,
+    },
+    data.seasons.map((season) => season.id),
+  );
   const venueName = data.venue?.name ?? m.webDashboard.group.theVenue;
   const canShowCreateGame = groupHomeCanShowCreateGame({
     canCreateGame: data.canCreateGame,
@@ -700,6 +710,11 @@ export default function GroupHomePage({
               onInvite={() => setInvitesOpen(true)}
               canManageSeasons={data.canManageSeasons}
               hasTier={data.hasTier}
+              verified={data.verified}
+              groupName={groupName}
+              groupCreatedAt={data.createdAt}
+              initialSeasonId={sharedStanding.seasonId}
+              initialView={sharedStanding.view}
               ratingSettingsLine={data.ratingSettingsLine}
               onOpenMembers={() => setTab("members")}
             />
@@ -713,7 +728,7 @@ export default function GroupHomePage({
               onPlayedFilterChange={setPlayedFilter}
               filtering={group.isPlaceholderData}
               groupId={id}
-              groupName={data.name}
+              groupName={groupName}
               canShowCreateGame={canShowCreateGame}
               pendingGameId={pendingGameId}
               onJoinSeat={onJoinSeat}

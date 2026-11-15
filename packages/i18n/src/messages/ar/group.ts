@@ -489,6 +489,212 @@ export const group = {
       membersLink: "الأعضاء",
       after: ".",
     },
+    views: {
+      label: "عرض الترتيب",
+      overall: "الإجمالي",
+      byLevel: "حسب المستوى",
+      mostImproved: "الأكثر تحسنًا",
+      mostImprovedSeasonOnly: "الأكثر تحسنًا لموسم واحد",
+      category: (letter: string) => `الفئة ${isolate(letter)}`,
+      levelRange: (low: number, high: number) => `المستوى ${low} إلى ${high}`,
+      noLevel: "لا مستوى بعد",
+      players: (n: number) =>
+        plural("ar", n, {
+          one: "لاعب واحد",
+          two: "لاعبان",
+          few: "{n} لاعبين",
+          many: "{n} لاعبًا",
+          other: "{n} لاعب",
+        }),
+      staysBand: (band: string) => `يبقى ${isolate(band)}`,
+      bandChange: (from: string, to: string) =>
+        `من ${isolate(from)} إلى ${isolate(to)}`,
+      noGain: "بلا تقدم",
+      levelFlatOrDown: "المستوى ثابت أو أقل",
+      pointsFlatOrDown: "النقاط ثابتة أو أقل",
+      columns: {
+        start: "البداية",
+        now: "الآن",
+        close: "الختام",
+        gain: "التقدم",
+      },
+      footer: {
+        byLevelPadel:
+          "النقاط نفسها في الإجمالي، والترتيب داخل كل فئة. يوضع اللاعب في فئة مستواه الآن، أو مستواه عند ختام الموسم.",
+        byLevelFootball:
+          "النقاط نفسها في الإجمالي، والترتيب داخل كل نطاق مستوى. مستويات كرة القدم أرقام، لذا الفئات نطاقات من 15. يوضع اللاعب في نطاق مستواه الآن، أو مستواه عند ختام الموسم.",
+        gainLevel: "التقدم هو تغير المستوى منذ بداية الموسم.",
+        gainTier: "التقدم هو تغير نقاط الفئة منذ بداية الموسم.",
+        playToRank: (n: number) =>
+          plural("ar", n, {
+            one: "العب مباراة واحدة في المجموعة هذا الموسم لتُرتَّب.",
+            two: "العب مباراتين في المجموعة هذا الموسم لتُرتَّب.",
+            few: "العب {n} مباريات في المجموعة هذا الموسم لتُرتَّب.",
+            many: "العب {n} مباراة في المجموعة هذا الموسم لتُرتَّب.",
+            other: "العب {n} مباراة في المجموعة هذا الموسم لتُرتَّب.",
+          }),
+      },
+      spoken: {
+        gain: (start: string, end: string, gain: string) =>
+          `من ${isolate(start)} إلى ${isolate(end)}، ${isolate(gain)}.`,
+        noLevel: "لا مستوى بعد.",
+      },
+    },
+    share: {
+      open: "شارك الترتيب",
+      title: "شارك الترتيب",
+      onScreen: "ما على الشاشة:",
+      what: (lens: string, view: string) => `${lens}، ${view}`,
+      viewNames: {
+        overall: "الإجمالي",
+        byLevel: "حسب المستوى",
+        mostImproved: "الأكثر تحسنًا",
+      },
+      formatLabel: "الصيغة",
+      formats: {
+        story: {
+          title: "صورة قصة",
+          description: "أفضل 8. 1080 × 1920، لحالة واتساب وإنستغرام",
+          preview: "PNG، 1080 × 1920. أفضل 8.",
+        },
+        square: {
+          title: "صورة مربعة",
+          description: "أفضل 5. 1080 × 1080، لمحادثة المجموعة",
+          preview: "PNG، 1080 × 1080. أفضل 5.",
+        },
+        pdf: {
+          title: "الجدول كاملًا، PDF",
+          description: "كل لاعب وكل عمود في صفحة واحدة، للطباعة أو التثبيت",
+          preview: "صفحة A4 واحدة. كل لاعب وكل عمود.",
+        },
+        csv: {
+          title: "جدول بيانات، CSV",
+          description: "كل الصفوف والأعمدة، يفتح في Excel أو Sheets",
+          preview: "صف لكل لاعب، وكل الأعمدة.",
+        },
+        link: {
+          title: "رابط",
+          description: "يفتح هذا العرض في Temba. لأعضاء المجموعة فقط",
+          preview: "يفتح هذا الموسم وهذا العرض في Temba.",
+        },
+      },
+      highlighted: "صفك مميز.",
+      highlight: {
+        label: "ميّزني",
+        description: "يميز صفك. عند الإيقاف تبدو كل الصفوف متشابهة",
+      },
+      actions: {
+        shareImage: "شارك الصورة",
+        saveToPhotos: "احفظ في الصور",
+        sharePdf: "شارك PDF",
+        saveToFiles: "احفظ في الملفات",
+        exportCsv: "صدّر CSV",
+        copyLink: "انسخ الرابط",
+      },
+      toasts: {
+        savedToPhotos: "حُفظت في الصور",
+        saved: "حُفظ",
+        linkCopied: "نُسخ الرابط",
+        linkLoading: "ما زال الرابط قيد التحميل. حاول بعد لحظة.",
+        failed: "تعذرت المشاركة. حاول مرة أخرى.",
+        permissionRefused: "اسمح لـ Temba بالإضافة إلى الصور لحفظ الصورة.",
+        sharingUnavailable: "المشاركة غير متاحة على هذا الجهاز.",
+      },
+      card: {
+        standing: "الترتيب",
+        mostImproved: "الأكثر تحسنًا",
+        allTime: "كل الأوقات",
+        since: (date: string) => `منذ ${date}`,
+        afterDays: (n: number) =>
+          plural("ar", n, {
+            one: "بعد يوم واحد",
+            two: "بعد يومين",
+            few: "بعد {n} أيام",
+            many: "بعد {n} يومًا",
+            other: "بعد {n} يوم",
+          }),
+        final: "نهائي",
+        everyGame: "كل المباريات",
+        notStarted: "لم يبدأ",
+        caption: (view: string, progress: string) => `${view}، ${progress}`,
+        byLevel: (group: string) => `${group}، حسب المستوى`,
+        levelGained: (group: string, progress: string) =>
+          `${group}، تقدم المستوى ${progress}`,
+        pointsGained: (group: string, progress: string) =>
+          `${group}، تقدم نقاط الفئة ${progress}`,
+        recordColumn: "ف–ت–خ",
+        pointsColumn: "نقاط",
+        gainColumn: "التقدم",
+        moreRanked: (n: number) =>
+          plural("ar", n, {
+            one: "ولاعب آخر مرتب",
+            two: "ولاعبان آخران مرتبان",
+            few: "و{n} لاعبين آخرين مرتبين",
+            many: "و{n} لاعبًا آخر مرتبًا",
+            other: "و{n} لاعب آخر مرتب",
+          }),
+        unranked: (n: number) =>
+          plural("ar", n, {
+            one: "لاعب غير مرتب",
+            two: "لاعبان غير مرتبين",
+            few: "{n} لاعبين غير مرتبين",
+            many: "{n} لاعبًا غير مرتب",
+            other: "{n} لاعب غير مرتب",
+          }),
+        pointsRule: (win: number, draw: number) =>
+          `الفوز ${win}، التعادل ${draw}`,
+        sentence: (first: string, second: string) => `${first}. ${second}`,
+        rankedOnly: "اللاعبون المرتبون فقط",
+        valueChange: (start: string, end: string) =>
+          `${isolate(start)} إلى ${isolate(end)}`,
+        noResults: "لا نتائج بعد",
+        noGains: "لا تقدم بعد",
+        member: "عضو",
+      },
+      table: {
+        standingTitle: (lens: string, view: string) => `ترتيب ${lens}، ${view}`,
+        afterDaysOf: (n: number, total: number) =>
+          plural("ar", n, {
+            one: `بعد يوم واحد من ${total}`,
+            two: `بعد يومين من ${total}`,
+            few: `بعد {n} أيام من ${total}`,
+            many: `بعد {n} يومًا من ${total}`,
+            other: `بعد {n} يوم من ${total}`,
+          }),
+        final: "نهائي",
+        everyGame: "كل المباريات",
+        player: "اللاعب",
+        played: "ل",
+        won: "ف",
+        drawn: "ت",
+        lost: "خ",
+        points: "نقاط",
+        unranked: "غير مرتب",
+        level: "المستوى",
+        sets: "الأشواط",
+        difference: "الفارق",
+        change: "التغير",
+        diffNote: (column: string, meaning: string) =>
+          `${column} هو ${meaning}.`,
+        csv: {
+          section: "القسم",
+          position: "المركز",
+          player: "اللاعب",
+          level: "المستوى",
+          played: "لعب",
+          won: "فوز",
+          drawn: "تعادل",
+          lost: "خسارة",
+          setDifference: "فارق الأشواط",
+          scoreDifference: "فارق النتيجة",
+          points: "النقاط",
+          start: "البداية",
+          end: "النهاية",
+          gain: "التقدم",
+          change: "التغير",
+        },
+      },
+    },
   },
   settings: {
     sportSublabel: {

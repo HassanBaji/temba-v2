@@ -393,6 +393,179 @@ export const group = {
       membersLink: "Members",
       after: ".",
     },
+    views: {
+      label: "Standing view",
+      overall: "Overall",
+      byLevel: "By level",
+      mostImproved: "Most improved",
+      mostImprovedSeasonOnly: "Most improved is for one season",
+      category: (letter: string) => `Category ${letter}`,
+      levelRange: (low: number, high: number) => `Level ${low} to ${high}`,
+      noLevel: "No level yet",
+      players: (n: number) =>
+        plural("en", n, { one: "1 player", other: "{n} players" }),
+      staysBand: (band: string) => `stays ${band}`,
+      bandChange: (from: string, to: string) => `${from} to ${to}`,
+      noGain: "No gain",
+      levelFlatOrDown: "Level flat or down",
+      pointsFlatOrDown: "Points flat or down",
+      columns: { start: "Start", now: "Now", close: "Close", gain: "Gain" },
+      footer: {
+        byLevelPadel:
+          "Same points as Overall, ranked inside each category. A player sits in the category their level is in now, or was in when the season closed.",
+        byLevelFootball:
+          "Same points as Overall, ranked inside each level range. Football levels are numbers, so the categories are ranges of 15. A player sits in the range their level is in now, or was in when the season closed.",
+        gainLevel: "Gain is the change in level since the season opened.",
+        gainTier: "Gain is the change in tier points since the season opened.",
+        playToRank: (n: number) =>
+          plural("en", n, {
+            one: "Play a game in the group this season to be ranked.",
+            other: "Play {n} games in the group this season to be ranked.",
+          }),
+      },
+      spoken: {
+        gain: (start: string, end: string, gain: string) =>
+          `from ${start} to ${end}, ${gain}.`,
+        noLevel: "no level yet.",
+      },
+    },
+    share: {
+      open: "Share standing",
+      title: "Share standing",
+      onScreen: "What’s on screen:",
+      what: (lens: string, view: string) => `${lens}, ${view}`,
+      viewNames: {
+        overall: "overall",
+        byLevel: "by level",
+        mostImproved: "most improved",
+      },
+      formatLabel: "Format",
+      formats: {
+        story: {
+          title: "Story image",
+          description: "Top 8. 1080 × 1920, for WhatsApp status and Instagram",
+          preview: "PNG, 1080 × 1920. The top 8.",
+        },
+        square: {
+          title: "Square image",
+          description: "Top 5. 1080 × 1080, for the group chat",
+          preview: "PNG, 1080 × 1080. The top 5.",
+        },
+        pdf: {
+          title: "Full table, PDF",
+          description:
+            "Every player and every column on one page, to print or pin",
+          preview: "One A4 page. Every player and every column.",
+        },
+        csv: {
+          title: "Spreadsheet, CSV",
+          description: "All rows and columns, opens in Excel or Sheets",
+          preview: "One row per player, every column.",
+        },
+        link: {
+          title: "Link",
+          description: "Opens this view in Temba. Members of the group only",
+          preview: "Opens this season and view in Temba.",
+        },
+      },
+      highlighted: "Your row is highlighted.",
+      highlight: {
+        label: "Highlight me",
+        description: "Marks your row. Off, every row looks the same",
+      },
+      actions: {
+        shareImage: "Share image",
+        saveToPhotos: "Save to Photos",
+        sharePdf: "Share PDF",
+        saveToFiles: "Save to Files",
+        exportCsv: "Export CSV",
+        copyLink: "Copy link",
+      },
+      toasts: {
+        savedToPhotos: "Saved to Photos",
+        saved: "Saved",
+        linkCopied: "Link copied",
+        linkLoading: "The link is still loading. Try again in a moment.",
+        failed: "Could not share. Try again.",
+        permissionRefused: "Allow Temba to add to Photos to save the image.",
+        sharingUnavailable: "Sharing is not available on this device.",
+      },
+      card: {
+        standing: "Standing",
+        mostImproved: "Most improved",
+        allTime: "All-time",
+        since: (date: string) => `Since ${date}`,
+        afterDays: (n: number) =>
+          plural("en", n, { one: "after 1 day", other: "after {n} days" }),
+        final: "final",
+        everyGame: "every game",
+        notStarted: "not started",
+        caption: (view: string, progress: string) => `${view}, ${progress}`,
+        byLevel: (group: string) => `${group}, by level`,
+        levelGained: (group: string, progress: string) =>
+          `${group}, level gained ${progress}`,
+        pointsGained: (group: string, progress: string) =>
+          `${group}, tier points gained ${progress}`,
+        recordColumn: "W–D–L",
+        pointsColumn: "PTS",
+        gainColumn: "GAIN",
+        moreRanked: (n: number) =>
+          plural("en", n, {
+            one: "and 1 more ranked",
+            other: "and {n} more ranked",
+          }),
+        unranked: (n: number) =>
+          plural("en", n, { one: "1 unranked", other: "{n} unranked" }),
+        pointsRule: (win: number, draw: number) => `Win ${win}, draw ${draw}`,
+        sentence: (first: string, second: string) => `${first}. ${second}`,
+        rankedOnly: "Ranked players only",
+        valueChange: (start: string, end: string) => `${start} to ${end}`,
+        noResults: "No results yet",
+        noGains: "No gains yet",
+        member: "Member",
+      },
+      table: {
+        standingTitle: (lens: string, view: string) =>
+          `${lens} standing, ${view}`,
+        afterDaysOf: (n: number, total: number) =>
+          plural("en", n, {
+            one: `After 1 day of ${total}`,
+            other: `After {n} days of ${total}`,
+          }),
+        final: "Final",
+        everyGame: "Every game",
+        player: "Player",
+        played: "P",
+        won: "W",
+        drawn: "D",
+        lost: "L",
+        points: "PTS",
+        unranked: "Unranked",
+        level: "Level",
+        sets: "Sets",
+        difference: "Diff",
+        change: "Change",
+        diffNote: (column: string, meaning: string) =>
+          `${column.toUpperCase()} is ${meaning}.`,
+        csv: {
+          section: "Section",
+          position: "Position",
+          player: "Player",
+          level: "Level",
+          played: "Played",
+          won: "Won",
+          drawn: "Drawn",
+          lost: "Lost",
+          setDifference: "Set difference",
+          scoreDifference: "Score difference",
+          points: "Points",
+          start: "Start",
+          end: "End",
+          gain: "Gain",
+          change: "Change",
+        },
+      },
+    },
   },
   settings: {
     sportSublabel: {
