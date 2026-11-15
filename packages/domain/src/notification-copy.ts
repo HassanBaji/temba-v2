@@ -294,8 +294,12 @@ export function notificationCopy(
     item.audience === "player" &&
     item.game
   ) {
+    const moved =
+      item.game.format === "friendly_tournament"
+        ? m.tournamentMovedToWaitlist
+        : m.gameMovedToWaitlist;
     return {
-      title: m.gameMovedToWaitlist(
+      title: moved(
         actorName(item.actor, locale),
         notificationGameName(item.game, locale),
       ),

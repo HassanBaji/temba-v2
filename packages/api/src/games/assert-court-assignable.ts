@@ -15,7 +15,8 @@ import { type db } from "#src/db";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-export async function assertCourtAssignable(
+/** A live Court of the Game's Venue in the Game's sport. */
+export async function assertCourtAtGameVenue(
   database: DbClient,
   game: GameRow,
   courtId: string,
@@ -58,7 +59,15 @@ export async function assertCourtAssignable(
       message: messagesFor(locale).game.errors.courtWrongSport,
     });
   }
+}
 
+export async function assertCourtAssignable(
+  database: DbClient,
+  game: GameRow,
+  courtId: string,
+  locale: Locale = DEFAULT_LOCALE,
+) {
+  await assertCourtAtGameVenue(database, game, courtId, locale);
   const recordedCourtIds = await recordedCourtPool(database, game);
   if (recordedCourtIds != null && !recordedCourtIds.includes(courtId)) {
     throw new TRPCError({

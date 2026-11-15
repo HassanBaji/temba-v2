@@ -299,6 +299,22 @@ describe("notificationCopy for an Organizer's add", () => {
     );
   });
 
+  it("tells a tournament player the Organizer lowered the teams", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          type: "game_moved_to_waitlist",
+          audience: "player",
+          actor: { name: "Sara" },
+          group: { name: "Night Crew" },
+          game: { ...game, format: "friendly_tournament" },
+        },
+        "en",
+      ).title[1],
+      { text: " lowered the teams on ", strong: false },
+    );
+  });
+
   it("tells a Player the Organizer changed the teams", () => {
     assert.deepEqual(
       notificationCopy(

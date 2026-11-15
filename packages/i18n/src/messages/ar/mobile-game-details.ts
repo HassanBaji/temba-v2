@@ -144,6 +144,8 @@ export const mobileGameDetails = {
       rounds: "الجولات",
       season: "الموسم",
       mvp: "نجم المباراة",
+      teams: "الفرق",
+      courts: "الملاعب",
     },
     movedToWaitlist: (n: number) =>
       plural("ar", n, {

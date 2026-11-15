@@ -69,6 +69,10 @@ export type GameEditDraft = {
   seasonId: string | null;
   venueId: string | null;
   courtId: string | null;
+  /** A Friendly tournament's Game team count. */
+  teamCount: number | null;
+  /** A tournament's recorded Courts, sorted. */
+  courtIds: string[];
 };
 
 export type GameEditSource = {
@@ -78,6 +82,7 @@ export type GameEditSource = {
   windowEnd: Date | string | null;
   pricePerPlayerFils: number | null;
   playersAllowed: number | null;
+  teamsAllowed?: number | null;
   sideSize: number | null;
   levelMinTenths: number | null;
   levelMaxTenths: number | null;
@@ -141,6 +146,19 @@ export function gameEditVenueChoices(
   return choices;
 }
 
+function sortedCourtIds(ids: readonly string[] | undefined) {
+  return [...(ids ?? [])].sort();
+}
+
+function sameCourtIds(left: readonly string[], right: readonly string[]) {
+  const sortedLeft = sortedCourtIds(left);
+  const sortedRight = sortedCourtIds(right);
+  return (
+    sortedLeft.length === sortedRight.length &&
+    sortedLeft.every((id, index) => id === sortedRight[index])
+  );
+}
+
 export function gameEditDraftFrom(game: GameEditSource): GameEditDraft {
   const window = splitGameWindow(game.windowStart, game.windowEnd);
   return {
@@ -157,6 +175,8 @@ export function gameEditDraftFrom(game: GameEditSource): GameEditDraft {
     seasonId: game.seasonId,
     venueId: game.venueId ?? null,
     courtId: gameEditCourtId(game),
+    teamCount: game.teamsAllowed ?? null,
+    courtIds: sortedCourtIds(game.recordedCourts?.map((court) => court.id)),
   };
 }
 
@@ -165,6 +185,8 @@ export const GAME_EDIT_SECTION_KEYS = [
   "window",
   "place",
   "caps",
+  "teams",
+  "courts",
   "price",
   "level",
   "rounds",
@@ -185,14 +207,19 @@ export function gameEditSectionsFor(game: {
   booked?: boolean;
   /** A Challenge Game plays where its Challenge confirmed. */
   challenge?: boolean;
+  /** A posted Pool draw, Knockout draw or Starting courts freezes the seats. */
+  drawPosted?: boolean;
 }): GameEditSections {
   const friendly = game.format === "friendly_game";
+  const tournament = game.format === "friendly_tournament";
   const football = game.sport === "football";
   return {
     name: friendly,
     window: true,
     place: friendly && !game.booked && !game.challenge,
     caps: friendly && football,
+    teams: tournament && !game.drawPosted,
+    courts: tournament,
     price: true,
     level: !football,
     rounds: game.tournamentRounds,
@@ -211,6 +238,8 @@ export type GameEditStep =
     }
   | { kind: "place"; venueId: string; courtId: string | null }
   | { kind: "caps"; playersAllowed?: number; sideSize?: number }
+  | { kind: "teams"; teamCount: number }
+  | { kind: "courts"; courtIds: string[] }
   | { kind: "price"; pricePerPlayerFils: number | null }
   | {
       kind: "level";
@@ -266,6 +295,12 @@ export function gameEditChangedSections(
       saved.sideSize !== draft.sideSize)
   ) {
     changed.push("caps");
+  }
+  if (sections.teams && saved.teamCount !== draft.teamCount) {
+    changed.push("teams");
+  }
+  if (sections.courts && !sameCourtIds(saved.courtIds, draft.courtIds)) {
+    changed.push("courts");
   }
   if (sections.price) {
     // Only `.ok` and the fils are read here, so the message's language is moot.
@@ -346,6 +381,12 @@ export function gameEditPlan(
         : {}),
     });
   }
+  if (has("teams") && draft.teamCount != null) {
+    steps.push({ kind: "teams", teamCount: draft.teamCount });
+  }
+  if (has("courts")) {
+    steps.push({ kind: "courts", courtIds: sortedCourtIds(draft.courtIds) });
+  }
   if (has("price")) {
     const parsed = parseOptionalPricePerPlayerFils(draft.price, locale);
     if (!parsed.ok) {
@@ -400,6 +441,10 @@ function changePhrase(
       }
       return phrases;
     }
+    case "teams":
+      return [m.teams];
+    case "courts":
+      return [m.courts];
     case "price":
       return [m.price];
     case "level":
@@ -504,6 +549,19 @@ export function playersCapWaitNote(
     return m.everyoneKeepsSpot;
   }
   return m.capWait(joined - playersAllowed, joined);
+}
+
+/** `"2 of the 9 teams that joined move to the waiting list, latest to join first."` */
+export function teamsCapWaitNote(
+  teamCount: number,
+  joinedTeams: number,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).createGame.edit;
+  if (teamCount >= joinedTeams) {
+    return m.everyoneKeepsSpot;
+  }
+  return m.teamsCapWait(joinedTeams - teamCount, joinedTeams);
 }
 
 export function asideLabel(sideSize: number) {

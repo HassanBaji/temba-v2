@@ -142,6 +142,8 @@ export const mobileGameDetails = {
       rounds: "Rounds",
       season: "Season",
       mvp: "MVP",
+      teams: "Teams",
+      courts: "Courts",
     },
     movedToWaitlist: (n: number) =>
       plural("en", n, {

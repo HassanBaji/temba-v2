@@ -81,24 +81,35 @@ export function useGameEdit({
   const updatePlace = api.games.updatePlace.useMutation();
   const catalog = api.games.listCreateVenues.useQuery(
     { groupId: game.groupId ?? undefined },
-    { enabled: open && sections.place },
+    { enabled: open && (sections.place || sections.courts) },
   );
   const placeCatalog = slotOf(catalog);
+  const venueChoices =
+    placeCatalog.status === "ready"
+      ? gameEditVenueChoices(
+          placeCatalog.value.venues,
+          sportOrDefault(game.sport),
+          { id: saved.venueId, name: game.venue?.name ?? null },
+        )
+      : [];
   const place =
     placeCatalog.status === "ready"
       ? {
           status: "ready" as const,
-          value: {
-            locked: placeCatalog.value.locked,
-            venues: gameEditVenueChoices(
-              placeCatalog.value.venues,
-              sportOrDefault(game.sport),
-              { id: saved.venueId, name: game.venue?.name ?? null },
-            ),
-          },
+          value: { locked: placeCatalog.value.locked, venues: venueChoices },
+        }
+      : placeCatalog;
+  const courts =
+    placeCatalog.status === "ready"
+      ? {
+          status: "ready" as const,
+          value:
+            venueChoices.find((venue) => venue.id === saved.venueId)?.courts ??
+            [],
         }
       : placeCatalog;
   const updateCaps = api.games.updateCaps.useMutation();
+  const updateCourts = api.games.updateCourts.useMutation();
   const updatePrice = api.games.updatePricePerPlayer.useMutation();
   const updateLevel = api.games.updateLevelRange.useMutation();
   const updateRounds = api.games.updateRoundCount.useMutation();
@@ -134,6 +145,16 @@ export function useGameEdit({
         });
         return result.movedToWaitlist.length;
       }
+      case "teams": {
+        const result = await updateCaps.mutateAsync({
+          gameId,
+          teamsAllowed: step.teamCount,
+        });
+        return result.movedToWaitlist.length;
+      }
+      case "courts":
+        await updateCourts.mutateAsync({ gameId, courtIds: step.courtIds });
+        return 0;
       case "price":
         await updatePrice.mutateAsync({
           gameId,
@@ -247,6 +268,7 @@ export function useGameEdit({
     mvp,
     pickMvpMode,
     place,
+    courts,
     changed,
     note,
     seasonFix,
