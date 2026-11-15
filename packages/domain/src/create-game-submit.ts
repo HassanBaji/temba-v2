@@ -3,6 +3,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import {
   CREATE_FLOW_FIELD_IDS,
+  createShapeChoosesPools,
   createShapeHasPools,
   friendlyTournamentSchedule,
   isPublicGameDraft,
@@ -32,9 +33,12 @@ import { sizeTournamentRounds } from "./tournament-schedule";
 import {
   clampQualifiersPerPool,
   defaultPoolCount,
+  defaultRoundsShapeRoundCount,
   poolCountOptions,
   qualifiersPerPoolRange,
   resolveRoundCount,
+  roundCountRange,
+  ROUNDS_SHAPE_POOL_COUNT,
   sizeFriendlyTournament,
 } from "./tournament-sizing";
 
@@ -56,6 +60,7 @@ type GameFields = {
   rated?: boolean;
   /** With no Group, a Public Game (ADR-0071). */
   isPublic?: boolean;
+  trackPayments?: boolean;
 };
 
 type TournamentFields = Omit<
@@ -77,6 +82,20 @@ type TournamentFields = Omit<
 function customNameInput(draft: Pick<GameFields, "customName">) {
   const customName = normalizeGameCustomName(draft.customName);
   return customName ? { customName } : {};
+}
+
+/** Tracking needs a price above zero, so a free Game never sends it. */
+function trackPaymentsInput(
+  draft: Pick<GameFields, "trackPayments">,
+  fils: number | null,
+  keepersPlayFree?: boolean,
+) {
+  if (!draft.trackPayments || fils === null || fils <= 0) {
+    return {};
+  }
+  return keepersPlayFree === undefined
+    ? { trackPayments: true }
+    : { trackPayments: true, keepersPlayFree };
 }
 
 /** Rated is the server default, so only the Unrated choice is sent. */
@@ -199,6 +218,7 @@ export function validateFriendlyGameSubmit(
       ...customNameInput(draft),
       ...(publicGame ? {} : ratedInput(draft)),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
+      ...trackPaymentsInput(draft, priced.fils),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }
         : {}),
@@ -211,6 +231,7 @@ export function validateFriendlyGameSubmit(
 
 export type FootballGameFields = Omit<GameFields, "levelMin" | "levelMax"> & {
   sideSize: number;
+  keepersPlayFree?: boolean;
   playersAllowed: number;
   /** Read only when the Game counts for Temba Level (`createLevelRangeShown`). */
   levelMin?: LevelBandSelectValue;
@@ -291,6 +312,7 @@ export function validateFootballGameSubmit(
       ...(publicGame ? {} : ratedInput(draft)),
       ...customNameInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
+      ...trackPaymentsInput(draft, priced.fils, draft.keepersPlayFree ?? false),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }
         : {}),
@@ -336,7 +358,7 @@ export function validateTournamentStepThree(
     };
   }
   if (
-    createShapeHasPools(draft.tournamentShape) &&
+    createShapeChoosesPools(draft.tournamentShape) &&
     !sizeFriendlyTournament(draft.teamCount, draft.poolCount).ok
   ) {
     return {
@@ -387,14 +409,19 @@ export function validateFriendlyTournamentSubmit(
       allowSoloRegister: draft.allowSoloRegister,
       teamCount: draft.teamCount,
       tournamentShape: draft.tournamentShape,
-      ...(createShapeHasPools(draft.tournamentShape)
+      ...(draft.tournamentShape === "rounds"
         ? {
-            poolCount: draft.poolCount,
-            ...(draft.roundCount !== null
-              ? { roundCount: draft.roundCount }
-              : {}),
+            poolCount: ROUNDS_SHAPE_POOL_COUNT,
+            ...roundsShapeRoundCountInput(draft),
           }
-        : {}),
+        : createShapeHasPools(draft.tournamentShape)
+          ? {
+              poolCount: draft.poolCount,
+              ...(draft.roundCount !== null
+                ? { roundCount: draft.roundCount }
+                : {}),
+            }
+          : {}),
       ...(draft.tournamentShape === "groups_then_knockout"
         ? { qualifiersPerPool: draft.qualifiersPerPool }
         : {}),
@@ -403,10 +430,9 @@ export function validateFriendlyTournamentSubmit(
       windowEnd: placed.when.windowEnd,
       venueId: draft.venueId,
       ...(draft.courtIds.length > 0 ? { courtIds: [...draft.courtIds] } : {}),
-      ...(draft.tournamentShape === "king_of_the_court"
-        ? { rated: false }
-        : ratedInput(draft)),
+      ...ratedInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
+      ...trackPaymentsInput(draft, priced.fils),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }
         : {}),
@@ -415,6 +441,46 @@ export function validateFriendlyTournamentSubmit(
         : {}),
     },
   };
+}
+
+function roundsShapeRoundCountInput(
+  draft: Pick<TournamentFields, "teamCount" | "roundCount">,
+) {
+  const sized = sizeFriendlyTournament(
+    draft.teamCount,
+    ROUNDS_SHAPE_POOL_COUNT,
+  );
+  if (!sized.ok) {
+    return {};
+  }
+  const roundCount = resolveCreateRoundCount(
+    "rounds",
+    sized.sizing.poolSizes,
+    draft.roundCount,
+  );
+  return roundCount == null ? {} : { roundCount };
+}
+
+/**
+ * The Round count a create draft stands for. A Groups shape with nothing
+ * picked follows the suggestion; the Rounds shape starts on its own default
+ * and always sends a number.
+ */
+export function resolveCreateRoundCount(
+  tournamentShape: CreateTournamentShape,
+  poolSizes: readonly number[],
+  roundCount: number | null,
+): number | null {
+  if (tournamentShape !== "rounds") {
+    return resolveRoundCount(poolSizes, roundCount);
+  }
+  if (poolSizes.length === 0) {
+    return null;
+  }
+  return Math.min(
+    roundCount ?? defaultRoundsShapeRoundCount(poolSizes),
+    roundCountRange(poolSizes).max,
+  );
 }
 
 export function reclampQualifiersPerPool(
@@ -461,11 +527,19 @@ export function friendlyTournamentPlan(input: {
   const knockoutTree = knockoutOnly
     ? buildKnockoutTree({ entrantCount: input.teamCount })
     : null;
-  const sized = sizeFriendlyTournament(input.teamCount, input.poolCount);
+  const roundsShape = input.tournamentShape === "rounds";
+  const sized = sizeFriendlyTournament(
+    input.teamCount,
+    roundsShape ? ROUNDS_SHAPE_POOL_COUNT : input.poolCount,
+  );
   const sizing =
     !knockoutOnly && !kingOfTheCourt && sized.ok ? sized.sizing : null;
   const resolvedRoundCount = sizing
-    ? resolveRoundCount(sizing.poolSizes, input.roundCount)
+    ? resolveCreateRoundCount(
+        input.tournamentShape,
+        sizing.poolSizes,
+        input.roundCount,
+      )
     : null;
   const rounds =
     sizing && resolvedRoundCount != null
@@ -486,6 +560,7 @@ export function friendlyTournamentPlan(input: {
     knockoutOnly,
     kingOfTheCourt,
     groupsThenKnockout,
+    roundsShape,
     knockoutTree,
     sizing,
     rounds,

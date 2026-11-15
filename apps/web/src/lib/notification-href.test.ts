@@ -37,6 +37,17 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens the King of the court Game a Place award came from", () => {
+    assert.equal(
+      notificationHref({
+        type: "king_place_awarded",
+        group: { id: "g1" },
+        game: { id: "x1", sport: "padel" },
+      }),
+      "/dashboard/games/x1",
+    );
+  });
+
   it("opens the Game a Game leave is about", () => {
     assert.equal(
       notificationHref({
@@ -158,6 +169,23 @@ describe("notificationHref", () => {
       }),
       "/dashboard/games/g1/rate",
     );
+  });
+
+  it("opens the payments list when a player says they paid, and the Game for the player's own notices", () => {
+    assert.equal(
+      notificationHref({
+        type: "game_payment_claimed",
+        group: { id: "g2" },
+        game: { id: "g1" },
+      }),
+      "/dashboard/games/g1/payments",
+    );
+    for (const type of ["game_payment_reminder", "game_payment_not_received"]) {
+      assert.equal(
+        notificationHref({ type, group: { id: "g2" }, game: { id: "g1" } }),
+        "/dashboard/games/g1",
+      );
+    }
   });
 
   it("opens the Operator Disputes page for a raised dispute, and the Game once decided", () => {

@@ -130,12 +130,35 @@ export function gameInviteHeroModel(
   };
 }
 
-export type GameInviteLevelFit = "fits" | "outside" | "no_level" | "signed_out";
+export type GameInviteLevelFit =
+  | "fits"
+  | "approved"
+  | "outside"
+  | "no_level"
+  | "signed_out";
 
+function levelInRange(
+  tenths: number,
+  minTenths: number | null,
+  maxTenths: number | null,
+) {
+  return (
+    (minTenths == null || tenths >= minTenths) &&
+    (maxTenths == null || tenths <= maxTenths)
+  );
+}
+
+/**
+ * How the viewer stands to the Game's Level range. "approved" is a viewer
+ * outside the range whom the organizer let in anyway, by approving a Level
+ * request or inviting them by name.
+ */
 export function gameInviteLevelFit(args: {
   isSignedIn: boolean;
   viewerLevelTenths: number | null;
   viewerPassesLevelRange: boolean | null;
+  levelMinTenths: number | null;
+  levelMaxTenths: number | null;
 }): GameInviteLevelFit {
   if (!args.isSignedIn) {
     return "signed_out";
@@ -143,7 +166,16 @@ export function gameInviteLevelFit(args: {
   if (args.viewerLevelTenths == null) {
     return "no_level";
   }
-  return args.viewerPassesLevelRange === false ? "outside" : "fits";
+  if (args.viewerPassesLevelRange === false) {
+    return "outside";
+  }
+  return levelInRange(
+    args.viewerLevelTenths,
+    args.levelMinTenths,
+    args.levelMaxTenths,
+  )
+    ? "fits"
+    : "approved";
 }
 
 /** The viewer's Level as the card's big value: their band, or their OVR on football. */
@@ -179,6 +211,9 @@ export function gameInviteLevelRow(args: {
   const m = messagesFor(args.locale).mobileInvite.link.hero;
   if (args.fit === "fits") {
     return m.levelFits(range);
+  }
+  if (args.fit === "approved") {
+    return m.levelApproved(range);
   }
   if (args.fit === "outside") {
     return m.levelOutside(range);
@@ -222,9 +257,11 @@ export function gameInviteLevelCard(args: {
         ? m.noLevel(range)
         : args.fit === "outside"
           ? m.outside(range, yours)
-          : m.fits(range, yours);
+          : args.fit === "approved"
+            ? m.approved(range, yours)
+            : m.fits(range, yours);
   const text =
-    args.asksAboutGroup && args.fit === "fits"
+    args.asksAboutGroup && (args.fit === "fits" || args.fit === "approved")
       ? `${sentence} ${m.asksFirst}`
       : sentence;
   return { band: args.fit === "signed_out" ? null : viewerLevel, text };

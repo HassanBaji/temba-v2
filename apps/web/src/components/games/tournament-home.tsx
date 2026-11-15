@@ -1,5 +1,7 @@
 "use client";
 
+import { gamePaymentsTracked } from "@repo/domain/game-payments";
+import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import {
   ArrowLeftRight,
   Ban,
@@ -470,6 +472,11 @@ export function TournamentHome({
             onPost={kingActions.onPostCourts}
           />
         ) : null}
+
+        <GamePaymentsSection
+          gameId={data.id}
+          tracked={gamePaymentsTracked(data)}
+        />
 
         {showJoinBar ? (
           <TournamentJoinBar

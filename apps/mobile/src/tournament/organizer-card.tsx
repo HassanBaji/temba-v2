@@ -43,6 +43,15 @@ export type OrganizerCardHandlers = {
   onKickWaitlist: (waitlistId: string) => void;
   onAddPlayer: () => void;
   onEditTeams: () => void;
+  /** Set once the draw is posted on a Pool tournament: Rounds are added and cancelled from here. */
+  postedRounds: {
+    roundCount: number;
+    canAdd: boolean;
+    canCancel: boolean;
+    addPending: boolean;
+  } | null;
+  onAddRound: () => void;
+  onOpenCancelRound: () => void;
 };
 
 function Block({ children }: { children: React.ReactNode }) {
@@ -174,6 +183,38 @@ export function OrganizerCard({
             onPress={handlers.onOpenRounds}
           />
         </Action>
+      </Block>,
+    );
+  }
+
+  const posted = organizer.active ? handlers.postedRounds : null;
+  if (posted && (posted.canAdd || posted.canCancel)) {
+    const manage = messages.tournamentRounds.manage;
+    blocks.push(
+      <Block key="posted-rounds">
+        <View>
+          <Text weight="medium">{messages.tournament.sizing.roundsLabel}</Text>
+          <Text size="meta" tone="muted">
+            {roundCountLabel(posted.roundCount, locale)}
+          </Text>
+        </View>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {posted.canAdd ? (
+            <Button
+              label={manage.add}
+              variant="outline"
+              pending={posted.addPending}
+              onPress={handlers.onAddRound}
+            />
+          ) : null}
+          {posted.canCancel ? (
+            <Button
+              label={manage.cancelAction}
+              variant="outline"
+              onPress={handlers.onOpenCancelRound}
+            />
+          ) : null}
+        </View>
       </Block>,
     );
   }

@@ -41,6 +41,10 @@ export const createGame = {
       title: "Groups only",
       description: "Everyone plays the same number of games",
     },
+    rounds: {
+      title: "Rounds",
+      description: "One table. You pick how many Rounds are played",
+    },
     knockoutOnly: {
       title: "Knockout only",
       description: "Lose once and you are done for the day",

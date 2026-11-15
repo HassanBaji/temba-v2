@@ -44,6 +44,8 @@ export const previewRoundsActions: TournamentRoundsActions = {
   },
   swap: stub({ repeats: [] }),
   post: stub({ ok: true as const, matchCount: 0 }),
+  addRound: stub({ ok: true as const, roundCount: 0, posted: false }),
+  cancelRound: stub({ ok: true as const, removed: true, roundCount: 0 }),
   enterScore: stub({ ok: true as const, final: false }),
   confirm: stub({ ok: true as const }),
   notFinished: stub({ ok: true as const }),
@@ -191,6 +193,7 @@ export function roundsPreviewData(
         startTime: slot.startTime,
       })),
       matches,
+      cancelEffect: !game.isOrganizer ? null : posted ? "void" : "remove",
     };
   });
 
@@ -198,6 +201,8 @@ export function roundsPreviewData(
     isOrganizer: game.isOrganizer,
     roundCount,
     suggestedRoundCount: suggested,
+    maxRoundCount: roundCount + 1,
+    canAddRound: game.isOrganizer,
     poolCount: pools.length,
     courtCount: courts.length,
     matchMinutes: game.matchMinutes ?? 45,

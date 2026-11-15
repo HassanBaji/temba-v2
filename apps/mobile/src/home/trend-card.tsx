@@ -23,7 +23,7 @@ function Dot({ point }: { point: TrendPoint }) {
   if (kind === "start" || kind === "set") {
     return <Circle cx={x} cy={y} r={SMALL_DOT} fill={palette.muted} />;
   }
-  if (kind === "won") {
+  if (kind === "won" || kind === "placed") {
     return <Circle cx={x} cy={y} r={DOT} fill={palette.foreground} />;
   }
   return (

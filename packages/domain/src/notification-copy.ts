@@ -35,6 +35,7 @@ export type NotificationCopyInput = {
   levelSet?: NotificationLevelSet | null;
   tier?: NotificationTier | null;
   ovrMove?: NotificationOvrMove | null;
+  placeAward?: NotificationPlaceAward | null;
   dispute?: NotificationDispute | null;
   markKind?: string | null;
   /** The recipient is the actor, as on the MVP's own `mvp_decided` row. */
@@ -66,6 +67,14 @@ type NotificationTier = {
   ratingHundredths?: number | null;
   reason: LevelOverrideReason | null;
   note: string | null;
+};
+
+/** The Place award a `king_place_awarded` row is about (ADR-0089). */
+type NotificationPlaceAward = {
+  finalPlace: number;
+  /** The Level either side of it, as padel shows it. */
+  levelBefore: string;
+  levelAfter: string;
 };
 
 /**
@@ -253,6 +262,20 @@ export function notificationCopy(
       subline: null,
     };
   }
+  if (item.type === "king_place_awarded" && item.game && item.placeAward) {
+    return {
+      title: m.kingPlaceAwarded(
+        messagesFor(locale).tournamentRounds.shareCard.ordinal(
+          item.placeAward.finalPlace,
+        ),
+        notificationGameName(item.game, locale),
+      ),
+      subline: sub.kingPlaceAwarded(
+        item.placeAward.levelBefore,
+        item.placeAward.levelAfter,
+      ),
+    };
+  }
   if (
     item.type === "game_team_changed" &&
     item.audience === "player" &&
@@ -273,6 +296,45 @@ export function notificationCopy(
   ) {
     return {
       title: m.gameMovedToWaitlist(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (
+    item.type === "game_payment_reminder" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: m.gamePaymentReminder(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: sub.gamePaymentReminder,
+    };
+  }
+  if (
+    item.type === "game_payment_claimed" &&
+    item.audience === "admin" &&
+    item.game
+  ) {
+    return {
+      title: m.gamePaymentClaimed(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: sub.gamePaymentClaimed,
+    };
+  }
+  if (
+    item.type === "game_payment_not_received" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: m.gamePaymentNotReceived(
         actorName(item.actor, locale),
         notificationGameName(item.game, locale),
       ),

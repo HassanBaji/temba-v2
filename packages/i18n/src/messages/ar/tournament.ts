@@ -656,6 +656,14 @@ export const tournament = {
     roundsPoolOnly: "تُنشأ الجولات في بطولة المجموعات",
     cancelled: "هذه البطولة ملغاة",
     postDrawFirst: "انشر القرعة قبل إنشاء الجولات",
+    roundsShapeOneGroup: "بطولة الجولات لها مجموعة واحدة",
+    roundsKnockoutStarted:
+      "لا يمكن إضافة الجولات أو حذفها بعد بدء خروج المغلوب",
+    roundsAtMost: (max: number) => `الحد الأقصى لجولات هذه البطولة ${max}`,
+    keepOneRound: "تبقى في البطولة جولة واحدة على الأقل",
+    roundAlreadyCancelled: (round: number) => `الجولة ${round} ملغاة بالفعل`,
+    cancelRoundRatedLater: (round: number) =>
+      `لا يمكن إلغاء الجولة ${round}: لأحد لاعبيها مباراة مصنّفة أحدث، فلا يمكن التراجع عن نتائجها`,
     roundsRange: (count: number) => `جولات هذه البطولة من 1 إلى ${count}`,
     roundPosted: (round: number) => `نُشرت الجولة ${round}`,
     roundNotMade: (round: number) => `لم تُنشأ الجولة ${round} بعد`,

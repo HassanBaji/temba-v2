@@ -15,6 +15,8 @@ import {
   gameLevelRangeRequests,
   gameMemberInvites,
   gameMvpVotes,
+  gamePaymentEvents,
+  gamePayments,
   gamePlayers,
   gameTeamPlayers,
   games,
@@ -34,6 +36,7 @@ import {
   groups,
   levelOverrides,
   marks,
+  kingPlaceAwards,
   gameNotes,
   gamePhotos,
   matchGoals,
@@ -92,6 +95,7 @@ const uniqueUserReferences: UniqueUserReference[] = [
     sameKeys: [matchResultConfirmations.matchId],
   },
   { column: matchGoals.userId, sameKeys: [matchGoals.matchId] },
+  { column: gamePayments.userId, sameKeys: [gamePayments.gameId] },
   {
     column: marks.receiverUserId,
     sameKeys: [marks.matchId, marks.giverUserId],
@@ -148,6 +152,7 @@ const ratingUserReferences: PgColumn[] = [
   ratings.userId,
   ratingEvents.userId,
   levelOverrides.userId,
+  kingPlaceAwards.userId,
 ];
 
 const groupRatingUserReferences: PgColumn[] = [
@@ -215,6 +220,11 @@ const plainUserReferences: PgColumn[] = [
   levelOverrides.setByUserId,
   groupLevelOverrides.setByUserId,
   groupTierEvents.setByUserId,
+  gamePayments.paidByUserId,
+  gamePayments.returnedByUserId,
+  gamePayments.updatedByUserId,
+  gamePaymentEvents.userId,
+  gamePaymentEvents.actorUserId,
 ];
 
 /** Every column referencing `user.id` that the merge reassigns or resolves. */
@@ -355,6 +365,11 @@ async function deleteRatingHistory(tx: DbTx, userId: string, sport: Sport) {
     .where(
       and(eq(levelOverrides.userId, userId), eq(levelOverrides.sport, sport)),
     );
+  await tx
+    .delete(kingPlaceAwards)
+    .where(
+      and(eq(kingPlaceAwards.userId, userId), eq(kingPlaceAwards.sport, sport)),
+    );
 }
 
 async function moveRatingHistory(tx: DbTx, sport: Sport, ids: MergeIds) {
@@ -381,11 +396,20 @@ async function moveRatingHistory(tx: DbTx, sport: Sport, ids: MergeIds) {
         eq(levelOverrides.sport, sport),
       ),
     );
+  await tx
+    .update(kingPlaceAwards)
+    .set(survivor)
+    .where(
+      and(
+        eq(kingPlaceAwards.userId, ids.mergedUserId),
+        eq(kingPlaceAwards.sport, sport),
+      ),
+    );
 }
 
 async function sportsWithRatingHistory(tx: DbTx, ids: MergeIds) {
   const both = [ids.survivorUserId, ids.mergedUserId];
-  const [ratingRows, eventRows, overrideRows] = await Promise.all([
+  const [ratingRows, eventRows, overrideRows, awardRows] = await Promise.all([
     tx
       .select({ userId: ratings.userId, sport: ratings.sport })
       .from(ratings)
@@ -398,11 +422,16 @@ async function sportsWithRatingHistory(tx: DbTx, ids: MergeIds) {
       .selectDistinct({ sport: levelOverrides.sport })
       .from(levelOverrides)
       .where(inArray(levelOverrides.userId, both)),
+    tx
+      .selectDistinct({ sport: kingPlaceAwards.sport })
+      .from(kingPlaceAwards)
+      .where(inArray(kingPlaceAwards.userId, both)),
   ]);
   const sports = new Set<Sport>([
     ...ratingRows.map((row) => row.sport),
     ...eventRows.map((row) => row.sport),
     ...overrideRows.map((row) => row.sport),
+    ...awardRows.map((row) => row.sport),
   ]);
   return { sports, ratingRows };
 }
@@ -410,7 +439,8 @@ async function sportsWithRatingHistory(tx: DbTx, ids: MergeIds) {
 /**
  * Per sport, the Rating with more Rated Matches stays and the account's wins a
  * tie; a side without a Rating row never beats one with it. The other Rating,
- * its rating events and its Level overrides are deleted, never averaged.
+ * its rating events, Level overrides and Place awards are deleted, never
+ * averaged.
  */
 async function resolveRatings(tx: DbTx, ids: MergeIds) {
   const { sports, ratingRows } = await sportsWithRatingHistory(tx, ids);

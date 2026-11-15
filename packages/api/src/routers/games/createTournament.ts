@@ -24,10 +24,12 @@ import {
   KING_TEAMS_PER_COURT,
 } from "@repo/domain/tournament-king";
 import {
+  ROUNDS_SHAPE_POOL_COUNT,
   sizeFriendlyTournament,
   tournamentTeamCountIssue,
   validateQualifiersPerPool,
   validateRoundCount,
+  validateRoundsShapeRoundCount,
   type TournamentSizingIssue,
 } from "@repo/domain/tournament-sizing";
 import { protectedProcedure } from "#src/trpc";
@@ -72,7 +74,8 @@ function sizeTournamentShape(
       | "groups_only"
       | "groups_then_knockout"
       | "knockout_only"
-      | "king_of_the_court";
+      | "king_of_the_court"
+      | "rounds";
     teamCount: number;
     poolCount?: number;
     roundCount?: number | null;
@@ -133,11 +136,30 @@ function sizeTournamentShape(
       qualifiersPerPool: null,
     };
   }
-  const sized = sizeFriendlyTournament(value.teamCount, value.poolCount ?? NaN);
+  const roundsShape = value.tournamentShape === "rounds";
+  if (
+    roundsShape &&
+    value.poolCount != null &&
+    value.poolCount !== ROUNDS_SHAPE_POOL_COUNT
+  ) {
+    return {
+      ok: false,
+      issue: {
+        path: "poolCount",
+        message: messagesFor(locale).tournament.errors.roundsShapeOneGroup,
+      },
+    };
+  }
+  const sized = sizeFriendlyTournament(
+    value.teamCount,
+    roundsShape ? ROUNDS_SHAPE_POOL_COUNT : (value.poolCount ?? NaN),
+  );
   if (!sized.ok) {
     return sized;
   }
-  const rounds = validateRoundCount(sized.sizing.poolSizes, value.roundCount);
+  const rounds = roundsShape
+    ? validateRoundsShapeRoundCount(sized.sizing.poolSizes, value.roundCount)
+    : validateRoundCount(sized.sizing.poolSizes, value.roundCount);
   if (!rounds.ok) {
     return rounds;
   }
@@ -151,7 +173,9 @@ function sizeTournamentShape(
     ok: true,
     tournamentShape: groupsThenKnockout
       ? TournamentShapeEnum.GROUPS_THEN_KNOCKOUT
-      : TournamentShapeEnum.GROUPS_ONLY,
+      : roundsShape
+        ? TournamentShapeEnum.ROUNDS
+        : TournamentShapeEnum.GROUPS_ONLY,
     playerCount: sized.sizing.playerCount,
     teamCount: sized.sizing.teamCount,
     poolCount: sized.sizing.poolCount,
@@ -192,6 +216,7 @@ export const createTournamentInputSchema = z
         "groups_then_knockout",
         "knockout_only",
         "king_of_the_court",
+        "rounds",
       ])
       .optional(),
     teamCount: z.number().int(),
@@ -210,6 +235,8 @@ export const createTournamentInputSchema = z
       .max(PRICE_PER_PLAYER_MAX_FILS)
       .nullable()
       .optional(),
+    /** Only with a price above zero. */
+    trackPayments: z.boolean().optional(),
     levelMinTenths: z
       .number()
       .int()
@@ -234,6 +261,13 @@ export const createTournamentInputSchema = z
     path: ["windowEnd"],
   })
   .superRefine((value, ctx) => {
+    if (value.trackPayments && (value.pricePerPlayerFils ?? 0) <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: messagesFor(DEFAULT_LOCALE).gamePayments.errors.needsPrice,
+        path: ["trackPayments"],
+      });
+    }
     const sized = sizeTournamentShape(value);
     if (!sized.ok) {
       ctx.addIssue({
@@ -342,18 +376,16 @@ export async function createTournament(
         qualifiersPerPool: sized.qualifiersPerPool,
         matchMinutes: king ? null : input.matchMinutes,
         pricePerPlayerFils: input.pricePerPlayerFils ?? null,
+        trackPayments: input.trackPayments ?? false,
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
-        // Nothing is scored in King of the court, so it never moves a Level.
-        ...(king
-          ? { rated: false, groupRated: false }
-          : ratingFlagsAtCreate({
-              hasGroup: true,
-              groupVerified,
-              sport: "padel",
-              rated: input.rated ?? true,
-            })),
+        ...ratingFlagsAtCreate({
+          hasGroup: true,
+          groupVerified,
+          sport: "padel",
+          rated: input.rated ?? true,
+        }),
         createdBy: input.createdBy,
       })
       .returning();

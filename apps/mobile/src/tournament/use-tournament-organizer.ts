@@ -6,13 +6,14 @@ import {
 } from "@repo/domain/game-kick-confirm";
 import type { TournamentDetails } from "@repo/domain/tournament-details";
 import type { KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
-import { isKnockoutOnly } from "@repo/domain/tournament-rounds";
+import { roundCancelCopy } from "@repo/domain/tournament-round-state";
+import { hasPools, isKnockoutOnly } from "@repo/domain/tournament-rounds";
 import { useState } from "react";
 
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { useToast } from "../primitives/toast";
-import { api } from "../trpc/react";
+import { api, type RouterOutputs } from "../trpc/react";
 import type { OrganizerSheetsProps } from "./organizer-sheets";
 import type { OrganizerCardHandlers } from "./organizer-card";
 import { drawToast } from "./organizer-model";
@@ -24,10 +25,14 @@ type Options = {
   setConfirm: (request: ConfirmRequest | null) => void;
 };
 
+export type PostedRound =
+  RouterOutputs["games"]["tournamentRounds"]["rounds"][number];
+
 export type TournamentSheet =
   | "merge"
   | "draw"
   | "rounds"
+  | "cancelRound"
   | { walkover: KnockoutMatchPlace }
   | null;
 
@@ -52,6 +57,36 @@ export function useTournamentOrganizer({
     setConfirm(null);
     await refresh();
   };
+
+  // Rounds change after the draw only on a Pool tournament, and only for its Organizer.
+  const managesRounds =
+    game != null &&
+    game.isOrganizer &&
+    game.drawPostedAt != null &&
+    game.cancelledAt == null &&
+    hasPools(game.format, game.poolCount);
+  const utils = api.useUtils();
+  const postedRounds = api.games.tournamentRounds.useQuery(
+    { gameId },
+    { enabled: managesRounds },
+  );
+  const roundsSettled = async () => {
+    setConfirm(null);
+    await Promise.all([
+      refresh(),
+      utils.games.tournamentRounds.invalidate({ gameId }),
+    ]);
+  };
+  const addRound = api.games.addRound.useMutation({
+    onSuccess: (added) =>
+      toast.show(m.tournamentRounds.manage.added(added.roundCount)),
+    onError: failure,
+    onSettled: roundsSettled,
+  });
+  const cancelRound = api.games.cancelRound.useMutation({
+    onError: failure,
+    onSettled: roundsSettled,
+  });
 
   const merge = api.games.mergeHalfTeams.useMutation({
     onSuccess: () => {
@@ -139,6 +174,40 @@ export function useTournamentOrganizer({
     });
   }
 
+  function askAddRound() {
+    const round = (postedRounds.data?.roundCount ?? 0) + 1;
+    const copy = m.tournamentRounds.manage;
+    setConfirm({
+      title: copy.addTitle,
+      description: copy.addCopy(round),
+      confirmLabel: copy.addConfirm(round),
+      cancelLabel: m.common.cancel,
+      onConfirm: () => addRound.mutate({ gameId, post: true }),
+    });
+  }
+
+  function askCancelRound(round: PostedRound) {
+    const copy = m.tournamentRounds.manage;
+    setSheet(null);
+    setConfirm({
+      title: copy.cancelTitle(round.roundNumber),
+      description: roundCancelCopy(
+        round,
+        postedRounds.data?.roundCount ?? round.roundNumber,
+        locale,
+      ),
+      confirmLabel: copy.cancel(round.roundNumber),
+      cancelLabel: copy.keep,
+      onConfirm: () =>
+        cancelRound.mutate(
+          { gameId, roundNumber: round.roundNumber },
+          {
+            onSuccess: () => toast.show(copy.cancelled(round.roundNumber)),
+          },
+        ),
+    });
+  }
+
   function openRounds() {
     updateRounds.reset();
     setRoundCount(game?.roundCount ?? null);
@@ -169,6 +238,19 @@ export function useTournamentOrganizer({
     onKickWaitlist: (waitlistId) => askKick({ waitlistId }),
     onAddPlayer: () => setAddPlayerOpen(true),
     onEditTeams: () => setEditTeamsOpen(true),
+    postedRounds:
+      managesRounds && postedRounds.data
+        ? {
+            roundCount: postedRounds.data.roundCount,
+            canAdd: postedRounds.data.canAddRound,
+            canCancel: postedRounds.data.rounds.some(
+              (round) => round.cancelEffect != null,
+            ),
+            addPending: addRound.isPending,
+          }
+        : null,
+    onAddRound: askAddRound,
+    onOpenCancelRound: () => setSheet("cancelRound"),
   };
 
   const sheets: Omit<OrganizerSheetsProps, "game"> = {
@@ -177,6 +259,8 @@ export function useTournamentOrganizer({
     onClose: () => setSheet(null),
     roundCount,
     onRoundCountChange: setRoundCount,
+    postedRounds: postedRounds.data?.rounds ?? [],
+    onCancelRound: askCancelRound,
     pending: {
       merge: merge.isPending,
       draw: draw.isPending,
@@ -220,6 +304,10 @@ export function useTournamentOrganizer({
       open: editTeamsOpen,
       onClose: () => setEditTeamsOpen(false),
     },
-    confirmPending: undo.isPending || kick.isPending,
+    confirmPending:
+      undo.isPending ||
+      kick.isPending ||
+      addRound.isPending ||
+      cancelRound.isPending,
   };
 }

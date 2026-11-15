@@ -143,7 +143,15 @@ export function bookingGameRequest(
   bookingId: string,
   draft: Pick<CreateGameDraft, "pricePerPlayer" | "levelMin" | "levelMax"> &
     Partial<
-      Pick<CreateGameDraft, "groupId" | "sideSize" | "playersAllowed" | "rated">
+      Pick<
+        CreateGameDraft,
+        | "groupId"
+        | "sideSize"
+        | "playersAllowed"
+        | "rated"
+        | "trackPayments"
+        | "keepersPlayFree"
+      >
     >,
   locale: Locale,
   sport: Sport = "padel",
@@ -156,6 +164,7 @@ export function bookingGameRequest(
   const group = draft.groupId ? { groupId: draft.groupId } : {};
   const unrated =
     draft.groupId && draft.rated === false ? { rated: false as const } : {};
+  const tracked = draft.trackPayments && (price.fils ?? 0) > 0;
   if (sport === "football") {
     const { sideSize, playersAllowed } = draft;
     if (!isFootballSideSize(sideSize)) {
@@ -184,6 +193,12 @@ export function bookingGameRequest(
         sideSize,
         playersAllowed,
         ...(price.fils !== null ? { pricePerPlayerFils: price.fils } : {}),
+        ...(tracked
+          ? {
+              trackPayments: true,
+              keepersPlayFree: draft.keepersPlayFree ?? false,
+            }
+          : {}),
       },
     };
   }
@@ -206,6 +221,7 @@ export function bookingGameRequest(
       ...group,
       ...unrated,
       ...(price.fils !== null ? { pricePerPlayerFils: price.fils } : {}),
+      ...(tracked ? { trackPayments: true } : {}),
       ...(levelMinTenths !== null ? { levelMinTenths } : {}),
       ...(levelMaxTenths !== null ? { levelMaxTenths } : {}),
     },

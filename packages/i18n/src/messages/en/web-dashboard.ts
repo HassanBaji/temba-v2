@@ -107,9 +107,6 @@ export const webDashboard = {
     court: "Court",
     pitch: "Pitch",
     courts: "Courts",
-    allCount: (courts: string) => `All ${courts}`,
-    allCourts: (n: number) =>
-      plural("en", n, { one: "All 1 court", other: "All {n} courts" }),
     settleAtVenue: {
       court: "Leave on None to settle the court at the venue.",
       pitch: "Leave on None to settle the pitch at the venue.",
@@ -188,7 +185,6 @@ export const webDashboard = {
     publicErrorTitle: "Public Groups could not be loaded",
     filterBySport: "Filter by sport",
     nextGame: "Next Game",
-    yourFormHere: "your form here",
     start: {
       title: "Start a group",
       description:

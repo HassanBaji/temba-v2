@@ -20,6 +20,7 @@ export const tournamentShapes = pgEnum("tournament_shape", [
   "groups_then_knockout",
   "knockout_only",
   "king_of_the_court",
+  "rounds",
 ]);
 
 export const gameRegistrationModes = pgEnum("game_registration_mode", [
@@ -94,6 +95,7 @@ export enum TournamentShapeEnum {
   GROUPS_THEN_KNOCKOUT = "groups_then_knockout",
   KNOCKOUT_ONLY = "knockout_only",
   KING_OF_THE_COURT = "king_of_the_court",
+  ROUNDS = "rounds",
 }
 
 export enum GameRegistrationModeEnum {

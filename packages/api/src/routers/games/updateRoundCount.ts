@@ -4,10 +4,11 @@ import { z } from "zod";
 
 import { games } from "@repo/db";
 
-import { hasPools } from "@repo/domain/tournament-rounds";
+import { hasPools, isRoundsShape } from "@repo/domain/tournament-rounds";
 import {
   sizeFriendlyTournament,
   validateRoundCount,
+  validateRoundsShapeRoundCount,
 } from "@repo/domain/tournament-sizing";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
@@ -53,7 +54,9 @@ export async function updateGameRoundCount(
       message: sized.issue.message,
     });
   }
-  const rounds = validateRoundCount(sized.sizing.poolSizes, args.roundCount);
+  const rounds = isRoundsShape(game.format, game.tournamentShape)
+    ? validateRoundsShapeRoundCount(sized.sizing.poolSizes, args.roundCount)
+    : validateRoundCount(sized.sizing.poolSizes, args.roundCount);
   if (!rounds.ok) {
     throw new TRPCError({
       code: "BAD_REQUEST",

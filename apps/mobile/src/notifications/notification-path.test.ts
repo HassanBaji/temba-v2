@@ -38,6 +38,7 @@ describe("notificationPath", () => {
       "match_score_to_confirm",
       "mvp_decided",
       "challenge_squad_due",
+      "king_place_awarded",
     ]) {
       expect(notificationPath({ type, group: null, game })).toBe("/games/x1");
     }
@@ -63,6 +64,15 @@ describe("notificationPath", () => {
     expect(
       notificationPath({ type: "performance_ratings_open", group, game }),
     ).toBe("/games/x1/rate");
+  });
+
+  it("opens the payments list when a player says they paid, and the Game for the player's own notices", () => {
+    expect(
+      notificationPath({ type: "game_payment_claimed", group, game }),
+    ).toBe("/games/x1/payments");
+    for (const type of ["game_payment_reminder", "game_payment_not_received"]) {
+      expect(notificationPath({ type, group, game })).toBe("/games/x1");
+    }
   });
 
   it("opens the Game for a Match dispute, raised or decided", () => {

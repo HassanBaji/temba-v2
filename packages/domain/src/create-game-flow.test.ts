@@ -48,9 +48,11 @@ import {
   validateTournamentName,
   venueCardMeta,
   venueMatchesQuery,
-  visibleCreateCourts,
   visibleCreateGroups,
   DEFAULT_TOURNAMENT_SHAPE,
+  createShapeChoosesPools,
+  createShapeHasPools,
+  parseCreateTournamentShape,
   tournamentShapeOptions,
   friendlyTournamentFormatLabel,
   changeCreateDay,
@@ -331,30 +333,6 @@ describe("where helpers", () => {
     assert.equal(venueMatchesQuery(venue, "  karbabad "), true);
     assert.equal(venueMatchesQuery(venue, "manama"), true);
     assert.equal(venueMatchesQuery(venue, "riffa"), false);
-  });
-
-  it("shows recent booking courts, or the first three", () => {
-    const courts = [
-      { id: "a" },
-      { id: "b" },
-      { id: "c" },
-      { id: "d" },
-      { id: "e" },
-    ];
-    assert.deepEqual(
-      visibleCreateCourts(courts, ["e", "b", "a", "missing"]).map(
-        (court) => court.id,
-      ),
-      ["e", "b", "a"],
-    );
-    assert.deepEqual(
-      visibleCreateCourts(courts, []).map((court) => court.id),
-      ["a", "b", "c"],
-    );
-    assert.deepEqual(
-      visibleCreateCourts(courts, [], ["e"]).map((court) => court.id),
-      ["a", "b", "c", "e"],
-    );
   });
 
   it("shows the first groups and keeps a selected group visible", () => {
@@ -666,34 +644,47 @@ describe("friendly tournament branch", () => {
     );
   });
 
-  it("offers Groups only first, then Knockout only, Groups then knockout and King of the court", () => {
+  it("offers Groups only first, then Rounds, Knockout only, Groups then knockout and King of the court", () => {
+    const options = tournamentShapeOptions("en");
+    const option = (id: string) => options.find((item) => item.id === id);
     assert.deepEqual(
-      tournamentShapeOptions("en").map((option) => option.id),
+      options.map((item) => item.id),
       [
         "groups_only",
+        "rounds",
         "knockout_only",
         "groups_then_knockout",
         "king_of_the_court",
       ],
     );
     assert.equal(
-      tournamentShapeOptions("en")[3]?.description,
+      option("king_of_the_court")?.description,
       "Winners move up a court, losers move down",
     );
+    assert.equal(option("rounds")?.title, "Rounds");
     assert.equal(
-      tournamentShapeOptions("en")[2]?.title,
+      option("rounds")?.description,
+      "One table. You pick how many Rounds are played",
+    );
+    assert.equal(
+      option("groups_then_knockout")?.title,
       "Groups, then knockout",
     );
     assert.equal(
-      tournamentShapeOptions("en")[2]?.description,
+      option("groups_then_knockout")?.description,
       "The best in each group carry on",
     );
     assert.equal(createFlowStepForField("qualifiersPerPool"), 3);
     assert.equal(DEFAULT_TOURNAMENT_SHAPE, "groups_only");
     assert.equal(
-      tournamentShapeOptions("en")[1]?.description,
+      option("knockout_only")?.description,
       "Lose once and you are done for the day",
     );
+    assert.equal(parseCreateTournamentShape("rounds"), "rounds");
+    assert.equal(createShapeHasPools("rounds"), true);
+    assert.equal(createShapeChoosesPools("rounds"), false);
+    assert.equal(createShapeChoosesPools("groups_only"), true);
+    assert.equal(createShapeChoosesPools("knockout_only"), false);
     assert.equal(createFlowStepForField("tournamentShape"), 3);
   });
 

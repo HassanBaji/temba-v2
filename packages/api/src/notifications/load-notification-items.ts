@@ -2,6 +2,7 @@ import type { DbClient } from "@repo/db";
 import { and, eq, inArray, type SQL } from "drizzle-orm";
 
 import {
+  kingPlaceAwards,
   performanceRatingResults,
   ratingEvents,
   type MatchDisputeStatus,
@@ -9,7 +10,11 @@ import {
   type NotificationType,
 } from "@repo/db";
 import { formatOvr, ovrFromMu } from "@repo/domain/football-ovr";
-import { displayedLevelFromMu } from "@repo/domain/level";
+import {
+  displayedLevelFromMu,
+  formatPadelLevel,
+  levelFromMu,
+} from "@repo/domain/level";
 import { type LevelBand } from "@repo/domain/level-bands";
 import { type LevelOverrideReason } from "@repo/domain/level-slider";
 import { marksWindow, type MarkKind } from "@repo/domain/marks";
@@ -72,6 +77,13 @@ export type NotificationItem = {
     after: number;
     /** The settled Performance rating, in hundredths; null without one. */
     ratingHundredths: number | null;
+  } | null;
+  /** The Place award a King of the court Notification is about (ADR-0089). */
+  placeAward: {
+    finalPlace: number;
+    /** The Level either side of it, as padel shows it, two decimals. */
+    levelBefore: string;
+    levelAfter: string;
   } | null;
   /** The Match dispute a raised or decided Notification is about. */
   dispute: { status: MatchDisputeStatus; note: string } | null;
@@ -164,6 +176,45 @@ async function levelRatingsClosedMoves(
     moves.get(key(userId, matchId)) ?? null;
 }
 
+/** Each User's Place award on each King of the court Game. */
+async function placeAwardsOf(
+  database: DbClient,
+  pairs: readonly { userId: string; gameId: string }[],
+) {
+  const awards = new Map<string, NonNullable<NotificationItem["placeAward"]>>();
+  const key = (userId: string, gameId: string) => `${userId}:${gameId}`;
+  if (pairs.length > 0) {
+    const rows = await database
+      .select({
+        userId: kingPlaceAwards.userId,
+        gameId: kingPlaceAwards.gameId,
+        finalPlace: kingPlaceAwards.finalPlace,
+        muBefore: kingPlaceAwards.muBefore,
+        muAfter: kingPlaceAwards.muAfter,
+      })
+      .from(kingPlaceAwards)
+      .where(
+        and(
+          inArray(kingPlaceAwards.userId, [
+            ...new Set(pairs.map((pair) => pair.userId)),
+          ]),
+          inArray(kingPlaceAwards.gameId, [
+            ...new Set(pairs.map((pair) => pair.gameId)),
+          ]),
+        ),
+      );
+    for (const row of rows) {
+      awards.set(key(row.userId, row.gameId), {
+        finalPlace: row.finalPlace,
+        levelBefore: formatPadelLevel(levelFromMu(row.muBefore), 2),
+        levelAfter: formatPadelLevel(levelFromMu(row.muAfter), 2),
+      });
+    }
+  }
+  return (userId: string, gameId: string) =>
+    awards.get(key(userId, gameId)) ?? null;
+}
+
 /**
  * The one read behind the Notifications list and the Notification email, so
  * both channels join the same names at the same moment (ADR-0054). Newest first.
@@ -245,6 +296,15 @@ export async function loadNotificationItems(
     ),
   );
 
+  const placeAwardOf = await placeAwardsOf(
+    database,
+    rows.flatMap((row) =>
+      row.type === "king_place_awarded" && row.game
+        ? [{ userId: row.recipientUserId, gameId: row.game.id }]
+        : [],
+    ),
+  );
+
   return rows.map(
     ({
       levelOverride,
@@ -290,6 +350,10 @@ export async function loadNotificationItems(
                 const move = ovrMoveOf(recipientUserId, match.id);
                 return move ? [move] : [];
               })[0] ?? null)
+            : null,
+        placeAward:
+          item.type === "king_place_awarded" && game
+            ? placeAwardOf(recipientUserId, game.id)
             : null,
         dispute: matchDispute ?? null,
       },

@@ -14,6 +14,7 @@ import {
 } from "@repo/domain/create-game-flow";
 import type { CreateVenuePicker } from "@repo/domain/create-game-flow";
 import { friendlyTournamentPlan } from "@repo/domain/create-game-submit";
+import { PADEL_FRIENDLY_GAME_PLAYERS } from "@repo/domain/game-payments";
 import { unratedLabel } from "@repo/domain/game-rating-impact";
 import { gameRatingScopeLabel } from "@repo/domain/game-rating-scope";
 import { LEVEL_BAND_SELECT_NONE } from "@repo/domain/level-range";
@@ -25,10 +26,9 @@ import {
   knockoutOnlyReviewValue,
 } from "@repo/domain/tournament-knockout";
 import {
-  resolveRoundCount,
   reviewRoundsValue,
+  roundCountLabel,
 } from "@repo/domain/tournament-sizing";
-import { sizeTournamentRounds } from "@repo/domain/tournament-schedule";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 import { View } from "react-native";
@@ -44,6 +44,10 @@ import {
 } from "./level-range-field";
 import { MoneyField } from "./money-field";
 import { MvpModeField } from "./mvp-mode-field";
+import {
+  PaymentTrackingField,
+  paymentReviewValue,
+} from "./payment-tracking-field";
 import { RatingField } from "./rating-field";
 import { ReviewCard, type ReviewRow } from "./review-card";
 import type { StepProps } from "./step-props";
@@ -134,6 +138,10 @@ function mvpReviewRows(mode: MvpMode, locale: Locale): ReviewRow[] {
   ];
 }
 
+function optionalRow(row: ReviewRow | null): ReviewRow[] {
+  return row ? [row] : [];
+}
+
 function customNameReviewRows(customName: string, locale: Locale): ReviewRow[] {
   const trimmed = customName.trim();
   return trimmed
@@ -181,6 +189,11 @@ export function FootballDetailsStep(props: DetailsProps) {
         <LevelRangeField {...props} sport="football" encouraged={publicGame} />
       ) : null}
       <PriceField {...props} />
+      <PaymentTrackingField
+        {...props}
+        football
+        playersAllowed={draft.playersAllowed}
+      />
       <FriendlyMvpField {...props} />
       <ReviewCard
         rows={[
@@ -202,6 +215,7 @@ export function FootballDetailsStep(props: DetailsProps) {
             : ratingShown
               ? ratingReviewRow(props, locale, "football")
               : { label: review.rating, value: unratedLabel(locale) },
+          ...optionalRow(paymentReviewValue(draft, true, m, locale)),
           ...mvpReviewRows(state.mvpMode, locale),
         ]}
       />
@@ -254,7 +268,8 @@ export function GameDetailsStep(props: DetailsProps) {
   const { state, groupName, picker } = props;
   const { draft } = state;
   const locale = useLocale();
-  const review = useMessages().mobileCreateGame.review;
+  const m = useMessages();
+  const review = m.mobileCreateGame.review;
   const venue = picker?.venues.find((item) => item.id === draft.venueId);
   const court =
     draft.courtId === "none"
@@ -267,6 +282,10 @@ export function GameDetailsStep(props: DetailsProps) {
       <CustomNameField {...props} />
       <LevelRangeField {...props} encouraged={isPublicGameDraft(draft)} />
       <PriceField {...props} />
+      <PaymentTrackingField
+        {...props}
+        playersAllowed={PADEL_FRIENDLY_GAME_PLAYERS}
+      />
       <FriendlyMvpField {...props} />
       <DetailsRatingField {...props} />
       <ReviewCard
@@ -286,6 +305,7 @@ export function GameDetailsStep(props: DetailsProps) {
           isPublicGameDraft(draft)
             ? publicGameRatingReviewRow(locale, "padel")
             : ratingReviewRow(props, locale),
+          ...optionalRow(paymentReviewValue(draft, false, m, locale)),
           ...mvpReviewRows(state.mvpMode, locale),
         ]}
       />
@@ -334,21 +354,20 @@ function tournamentReviewRows(
   const { draft } = state;
   const m = messagesFor(locale);
   const review = m.mobileCreateGame.review;
-  const { sizing, knockoutTree, poolKnockoutTree, knockoutOnly } =
-    friendlyTournamentPlan(draft);
+  const {
+    sizing,
+    rounds,
+    knockoutTree,
+    poolKnockoutTree,
+    knockoutOnly,
+    roundsShape,
+  } = friendlyTournamentPlan(draft);
   const venue = picker?.venues.find((item) => item.id === draft.venueId);
   const courtNames =
     venue?.courts
       .filter((item) => draft.courtIds.includes(item.id))
       .map((item) => item.name) ?? [];
   const minutes = parseCreateMatchMinutes(draft.matchMinutes, locale);
-  const resolvedRounds = sizing
-    ? resolveRoundCount(sizing.poolSizes, draft.roundCount)
-    : null;
-  const rounds =
-    sizing && resolvedRounds != null
-      ? sizeTournamentRounds(sizing.poolSizes, resolvedRounds)
-      : null;
   const knockout = knockoutTree
     ? knockoutOnlyReviewValue(knockoutTree, locale)
     : poolKnockoutTree && sizing
@@ -367,22 +386,22 @@ function tournamentReviewRows(
       label: m.createGame.tournamentFormat,
       value: knockoutOnly
         ? m.createGame.knockoutOnly
-        : friendlyTournamentFormatLabel(
-            sizing?.poolCount ?? draft.poolCount,
-            locale,
-            poolKnockoutTree != null,
-          ),
+        : roundsShape
+          ? m.createGame.shapes.rounds.title
+          : friendlyTournamentFormatLabel(
+              sizing?.poolCount ?? draft.poolCount,
+              locale,
+              poolKnockoutTree != null,
+            ),
     },
     ...(knockout ? [{ label: m.createGame.knockout, value: knockout }] : []),
     ...(sizing && rounds
       ? [
           {
             label: m.tournament.sizing.roundsLabel,
-            value: reviewRoundsValue(
-              rounds.roundCount,
-              sizing.roundCount,
-              locale,
-            ),
+            value: roundsShape
+              ? roundCountLabel(rounds.roundCount, locale)
+              : reviewRoundsValue(rounds.roundCount, sizing.roundCount, locale),
           },
         ]
       : []),
@@ -395,6 +414,7 @@ function tournamentReviewRows(
       value: minutes.ok ? m.dates.minutes(minutes.minutes) : review.gameLength,
     },
     ratingReviewRow(props, locale),
+    ...optionalRow(paymentReviewValue(draft, false, m, locale)),
   ];
 }
 
@@ -409,6 +429,7 @@ export function TournamentDetailsStep(props: DetailsProps) {
     <View style={{ gap: spacing.section }}>
       <WhoCanEnter {...props} />
       <PriceField {...props} teamPrice />
+      <PaymentTrackingField {...props} playersAllowed={draft.teamCount * 2} />
       <StepSection title={m.mobileCreateGame.name.title}>
         <TextField
           label={m.mobileCreateGame.name.tournamentLabel}

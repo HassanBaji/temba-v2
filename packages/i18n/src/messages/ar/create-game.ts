@@ -61,6 +61,10 @@ export const createGame = {
       title: "مجموعات فقط",
       description: "يلعب الجميع العدد نفسه من المباريات",
     },
+    rounds: {
+      title: "جولات",
+      description: "جدول واحد. أنت تحدد عدد الجولات",
+    },
     knockoutOnly: {
       title: "خروج المغلوب فقط",
       description: "اخسر مرة واحدة وينتهي يومك",

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import {
   GroupSportEnum,
+  kingPlaceAwards,
   levelOverrides,
   ratingEvents,
   ratings,
@@ -63,8 +64,8 @@ function stepFromOutcomeScore(
 /**
  * Level points oldest first, on the sport's face (OVR on football), what
  * moved the Level into each point after the first, and how many of those
- * changes came from Rated Matches. Level overrides move the line too but are
- * not Matches.
+ * changes came from Rated Matches. Level overrides and King of the court
+ * Place awards move the line too but are not Matches.
  */
 async function levelHistory(
   database: DbClient,
@@ -76,7 +77,7 @@ async function levelHistory(
   steps: LevelHistoryStep[];
   matchCount: number;
 }> {
-  const [events, overrides] = await Promise.all([
+  const [events, overrides, awards] = await Promise.all([
     database.query.ratingEvents.findMany({
       where: and(
         eq(ratingEvents.userId, userId),
@@ -101,12 +102,22 @@ async function levelHistory(
       limit: HISTORY_CHANGE_LIMIT,
       columns: { id: true, createdAt: true, muBefore: true, muAfter: true },
     }),
+    database.query.kingPlaceAwards.findMany({
+      where: and(
+        eq(kingPlaceAwards.userId, userId),
+        eq(kingPlaceAwards.sport, sport),
+      ),
+      orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
+      limit: HISTORY_CHANGE_LIMIT,
+      columns: { id: true, createdAt: true, muBefore: true, muAfter: true },
+    }),
   ]);
 
   const outcomeById = new Map(
     events.map((event) => [event.id, event.outcomeScore]),
   );
-  const changes = [...events, ...overrides]
+  const awardIds = new Set(awards.map((award) => award.id));
+  const changes = [...events, ...overrides, ...awards]
     .sort(
       (a, b) =>
         a.createdAt.getTime() - b.createdAt.getTime() ||
@@ -126,9 +137,10 @@ async function levelHistory(
     ],
     steps: changes.map((change) => {
       const outcomeScore = outcomeById.get(change.id);
-      return outcomeScore === undefined
-        ? "set"
-        : stepFromOutcomeScore(outcomeScore);
+      if (outcomeScore !== undefined) {
+        return stepFromOutcomeScore(outcomeScore);
+      }
+      return awardIds.has(change.id) ? "placed" : "set";
     }),
     matchCount: changes.filter((change) => outcomeById.has(change.id)).length,
   };

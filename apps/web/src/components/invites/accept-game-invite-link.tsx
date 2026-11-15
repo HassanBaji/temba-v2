@@ -195,6 +195,7 @@ export function AcceptGameInviteLink({
       return;
     }
     if (
+      preview.data.hero.players.some((player) => player.isViewer) ||
       preview.data.viewerPassesLevelRange === false ||
       preview.data.partnerRequiredJoin ||
       preview.data.sides.length > 0 ||
@@ -319,6 +320,8 @@ export function AcceptGameInviteLink({
     isSignedIn,
     viewerLevelTenths: ready.viewerLevelTenths,
     viewerPassesLevelRange: ready.viewerPassesLevelRange,
+    levelMinTenths: ready.levelMinTenths,
+    levelMaxTenths: ready.levelMaxTenths,
   });
   const asksAboutGroup =
     isSignedIn && (groupGate === "open" || groupGate === "approval");
@@ -348,6 +351,7 @@ export function AcceptGameInviteLink({
     joinGroup.isPending &&
     !joinGroup.variables?.holdSeat &&
     levelAfterJoin.current == null;
+  const viewerOnGame = hero.players.some((player) => player.isViewer);
   const groupAction = !isSignedIn ? (
     <Button variant="outline-inverse" size="sm" asChild>
       <Link href={signInHref}>{groupCopy.joinGroup}</Link>
@@ -361,6 +365,10 @@ export function AcceptGameInviteLink({
       onClick={() => joinGroup.mutate({ token })}
     >
       {groupCopy.joinGroup}
+    </Button>
+  ) : group && groupGate === "none" && !justJoinedGroup ? (
+    <Button variant="link" size="sm" className="text-on-focus px-0" asChild>
+      <Link href={`/dashboard/groups/${group.id}`}>{groupCopy.goToGroup}</Link>
     </Button>
   ) : null;
   const signInBar = (
@@ -377,7 +385,11 @@ export function AcceptGameInviteLink({
 
   const requestedGate = isSignedIn && groupGate === "requested";
   const canSit =
-    !partnerRequiredJoin && !joinFrozen && !requestedGate && !levelPending;
+    !viewerOnGame &&
+    !partnerRequiredJoin &&
+    !joinFrozen &&
+    !requestedGate &&
+    !levelPending;
   const onSit = !canSit
     ? null
     : isSignedIn
@@ -480,6 +492,24 @@ export function AcceptGameInviteLink({
 
   if (!isSignedIn) {
     return page({ bar: signInBar });
+  }
+
+  if (viewerOnGame) {
+    return page({
+      bar: (
+        <GameInviteBar
+          title={heroCopy.playingTitle}
+          subline={null}
+          action={
+            <Button variant="inverse" size="lg" asChild>
+              <Link href={`/dashboard/games/${ready.gameId}`}>
+                {heroCopy.openGameTitle}
+              </Link>
+            </Button>
+          }
+        />
+      ),
+    });
   }
 
   if (requestedGate && group) {

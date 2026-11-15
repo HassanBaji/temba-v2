@@ -11,6 +11,7 @@ import {
   validateFriendlyGameSubmit,
   validateFriendlyTournamentSubmit,
   validateTournamentStepThree,
+  resolveCreateRoundCount,
 } from "./create-game-submit";
 import { levelRangeInvertedMessage } from "./level-range";
 
@@ -448,6 +449,29 @@ describe("validateFriendlyTournamentSubmit", () => {
   });
 });
 
+describe("validateFriendlyTournamentSubmit, King of the court", () => {
+  const king = {
+    ...tournament,
+    tournamentShape: "king_of_the_court",
+    teamCount: 8,
+  } as const;
+
+  it("keeps the creator's Rating choice", () => {
+    const rated = validateFriendlyTournamentSubmit(king, NOW, true, "en");
+    const unrated = validateFriendlyTournamentSubmit(
+      { ...king, rated: false },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(rated.ok && unrated.ok);
+    if (rated.ok && unrated.ok) {
+      assert.equal("rated" in rated.input, false);
+      assert.equal(unrated.input.rated, false);
+    }
+  });
+});
+
 describe("validateFriendlyTournamentSubmit Rating choice", () => {
   it("sends rated false when the creator picked Unrated", () => {
     const result = validateFriendlyTournamentSubmit(
@@ -631,5 +655,127 @@ describe("Arabic validation", () => {
         "يجب أن يكون عدد اللاعبين المسموح به بين 10 و40",
       );
     }
+  });
+});
+
+describe("track payments on submit", () => {
+  it("sends tracking only with a price above zero", () => {
+    const priced = validateFriendlyGameSubmit(
+      { ...game, pricePerPlayer: "1.5", trackPayments: true },
+      NOW,
+      "en",
+    );
+    const free = validateFriendlyGameSubmit(
+      { ...game, pricePerPlayer: "0", trackPayments: true },
+      NOW,
+      "en",
+    );
+    const off = validateFriendlyGameSubmit(
+      { ...game, pricePerPlayer: "1.5", trackPayments: false },
+      NOW,
+      "en",
+    );
+    assert.ok(priced.ok && free.ok && off.ok);
+    if (priced.ok && free.ok && off.ok) {
+      assert.equal(priced.input.trackPayments, true);
+      assert.equal("keepersPlayFree" in priced.input, false);
+      assert.equal("trackPayments" in free.input, false);
+      assert.equal("trackPayments" in off.input, false);
+    }
+  });
+
+  it("sends the keepers choice with a tracked football Game", () => {
+    const result = validateFootballGameSubmit(
+      {
+        ...football,
+        pricePerPlayer: "1.500",
+        trackPayments: true,
+        keepersPlayFree: true,
+      },
+      NOW,
+      "en",
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal(result.input.trackPayments, true);
+      assert.equal(result.input.keepersPlayFree, true);
+    }
+  });
+});
+
+describe("track payments on a tournament", () => {
+  it("sends tracking with a price above zero", () => {
+    const result = validateFriendlyTournamentSubmit(
+      { ...tournament, pricePerPlayer: "2", trackPayments: true },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal(result.input.trackPayments, true);
+    }
+  });
+});
+
+describe("the Rounds shape at create", () => {
+  it("submits one group and the picked Round count as a number", () => {
+    const untouched = validateFriendlyTournamentSubmit(
+      { ...tournament, tournamentShape: "rounds", poolCount: 3 },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(untouched.ok);
+    if (untouched.ok) {
+      assert.equal(untouched.input.tournamentShape, "rounds");
+      assert.equal(untouched.input.poolCount, 1);
+      assert.equal(untouched.input.roundCount, 4);
+      assert.equal("qualifiersPerPool" in untouched.input, false);
+    }
+    const picked = validateFriendlyTournamentSubmit(
+      { ...tournament, tournamentShape: "rounds", roundCount: 11 },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(picked.ok);
+    if (picked.ok) {
+      assert.equal(picked.input.roundCount, 11);
+    }
+  });
+
+  it("does not ask for a groups count at step 3", () => {
+    assert.equal(
+      validateTournamentStepThree(
+        { ...tournament, tournamentShape: "rounds", poolCount: 99 },
+        NOW,
+        "en",
+      ),
+      null,
+    );
+  });
+
+  it("plans one Pool and the default or picked Rounds", () => {
+    const plan = friendlyTournamentPlan({
+      teamCount: 12,
+      poolCount: 3,
+      roundCount: null,
+      qualifiersPerPool: 2,
+      tournamentShape: "rounds",
+    });
+    assert.equal(plan.roundsShape, true);
+    assert.deepEqual(plan.sizing?.poolSizes, [12]);
+    assert.equal(plan.rounds?.roundCount, 4);
+    assert.equal(plan.rounds?.poolMatches, 24);
+    assert.equal(plan.qualifiersRange, null);
+  });
+
+  it("resolves a Groups draft on the suggestion and a Rounds draft on its own default", () => {
+    assert.equal(resolveCreateRoundCount("groups_only", [4, 4, 4], null), 3);
+    assert.equal(resolveCreateRoundCount("rounds", [12], null), 4);
+    assert.equal(resolveCreateRoundCount("rounds", [12], 9), 9);
+    assert.equal(resolveCreateRoundCount("rounds", [4], 9), 6);
+    assert.equal(resolveCreateRoundCount("rounds", [], 3), null);
   });
 });

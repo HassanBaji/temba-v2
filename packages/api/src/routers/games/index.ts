@@ -52,6 +52,8 @@ import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
 import { postKingCourtsProcedure as postKingCourts } from "./postKingCourts";
 import { postKingFinalOrderProcedure as postKingFinalOrder } from "./postKingFinalOrder";
 import { enterTournamentScoreProcedure as enterTournamentScore } from "./enterTournamentScore";
+import { addRoundProcedure as addRound } from "./addRound";
+import { cancelRoundProcedure as cancelRound } from "./cancelRound";
 import { generateRoundsProcedure as generateRounds } from "./generateRounds";
 import { markMatchNotFinishedProcedure as markMatchNotFinished } from "./markMatchNotFinished";
 import { postRoundsProcedure as postRounds } from "./postRounds";
@@ -111,6 +113,8 @@ export const gamesRouter = createTRPCRouter({
   saveRoundPairings,
   swapRoundPairing,
   postRounds,
+  addRound,
+  cancelRound,
   enterTournamentScore,
   markMatchNotFinished,
   byId,

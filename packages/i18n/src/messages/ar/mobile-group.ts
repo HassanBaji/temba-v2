@@ -22,7 +22,6 @@ export const mobileGroup = {
     tabs: { mine: "مجموعاتي", public: "عامة" },
     loading: "جارٍ تحميل المجموعات",
     nextGame: "المباراة القادمة",
-    yourFormHere: "أداؤك الأخير هنا",
     filterBySport: "تصفية حسب الرياضة",
     rowSportName: (sport: string, name: string) => `${sport}، ${name}`,
     rowNextGame: (name: string, meta: string, weekday: string) =>

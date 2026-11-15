@@ -174,6 +174,8 @@ function NewGameForm() {
     () => initialCreateGameDraft(session.now, locale).playersAllowed,
   );
   const [rated, setRated] = React.useState(true);
+  const [trackPayments, setTrackPayments] = React.useState(false);
+  const [keepersPlayFree, setKeepersPlayFree] = React.useState(true);
   const [mvpMode, setMvpMode] = React.useState<MvpMode>("vote");
   const [errors, setErrors] = React.useState<
     Record<string, string | undefined>
@@ -209,6 +211,8 @@ function NewGameForm() {
     setSideSize(next.sideSize);
     setPlayersAllowed(next.playersAllowed);
     setRated(next.rated);
+    setTrackPayments(next.trackPayments);
+    setKeepersPlayFree(next.keepersPlayFree);
   }
 
   React.useEffect(() => {
@@ -319,6 +323,8 @@ function NewGameForm() {
     sideSize,
     playersAllowed,
     rated,
+    trackPayments,
+    keepersPlayFree,
   };
   const initialGroupId =
     requestedGroupId &&
@@ -657,6 +663,7 @@ function NewGameForm() {
         isPublic,
         allowSoloRegister,
         rated,
+        trackPayments,
       },
       session.now,
       groupVerified,
@@ -691,6 +698,8 @@ function NewGameForm() {
           playersAllowed,
           customName,
           rated,
+          trackPayments,
+          keepersPlayFree,
           levelMin,
           levelMax,
           isPublic: publicGame,
@@ -727,6 +736,7 @@ function NewGameForm() {
         levelMax,
         customName,
         rated,
+        trackPayments,
         isPublic: publicGame,
       },
       session.now,
@@ -1060,7 +1070,6 @@ function NewGameForm() {
                 clearField("venueId");
               }}
               emptyCatalog={emptyCatalog}
-              recentCourtIds={picker.data?.recentCourtIds ?? []}
               courtIds={courtIds}
               courtError={courtError}
               onToggleCourt={(courtIdToToggle) => {
@@ -1077,6 +1086,7 @@ function NewGameForm() {
               tournamentShape={tournamentShape}
               onTournamentShape={(next) => {
                 setTournamentShape(next);
+                setRoundCount(null);
                 clearField("tournamentShape");
                 clearField("poolCount");
                 clearField("roundCount");
@@ -1196,6 +1206,8 @@ function NewGameForm() {
                 setPricePerPlayer(next);
                 clearField("pricePerPlayerFils");
               }}
+              trackPayments={trackPayments}
+              onTrackPayments={setTrackPayments}
               isPublic={isPublic}
               onIsPublic={setIsPublic}
               allowSoloRegister={allowSoloRegister}
@@ -1285,7 +1297,6 @@ function NewGameForm() {
                 clearField("venueId");
               }}
               emptyCatalog={emptyCatalog}
-              recentCourtIds={picker.data?.recentCourtIds ?? []}
               courtId={courtId}
               courtError={courtError}
               onCourtId={(nextCourtId) => {
@@ -1344,6 +1355,10 @@ function NewGameForm() {
                 setPricePerPlayer(next);
                 clearField("pricePerPlayerFils");
               }}
+              trackPayments={trackPayments}
+              onTrackPayments={setTrackPayments}
+              keepersPlayFree={keepersPlayFree}
+              onKeepersPlayFree={setKeepersPlayFree}
               customName={customName}
               customNameError={
                 errors.customName ??

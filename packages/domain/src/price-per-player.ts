@@ -79,7 +79,8 @@ export function filsToMajorInput(fils: number | null | undefined): string {
   return formatMajorUnitsFromFils(fils);
 }
 
-function formatMajorUnitsFromFils(fils: number): string {
+/** Major units without the currency, `18.000`. */
+export function formatMajorUnitsFromFils(fils: number): string {
   const abs = fils < 0 ? -fils : fils;
   const whole = Math.trunc(abs / 1000);
   const fraction = abs % 1000;

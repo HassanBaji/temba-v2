@@ -591,6 +591,16 @@ export const tournament = {
     roundsPoolOnly: "Rounds are made on a Pool tournament",
     cancelled: "This tournament is cancelled",
     postDrawFirst: "Post the draw before making Rounds",
+    roundsShapeOneGroup: "A Rounds tournament has one group",
+    roundsKnockoutStarted:
+      "Rounds cannot be added or removed once the knockout has started",
+    roundsAtMost: (max: number) =>
+      `This tournament can have ${max} Rounds at most`,
+    keepOneRound: "A tournament keeps at least one Round",
+    roundAlreadyCancelled: (round: number) =>
+      `Round ${round} is already cancelled`,
+    cancelRoundRatedLater: (round: number) =>
+      `Round ${round} cannot be cancelled: one of its players has a later rated Match, so its scores can no longer be taken back`,
     roundsRange: (count: number) => `This tournament has Rounds 1 to ${count}`,
     roundPosted: (round: number) => `Round ${round} is posted`,
     roundNotMade: (round: number) => `Round ${round} is not made yet`,

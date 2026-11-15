@@ -10,6 +10,8 @@ import {
   tournamentMatchState,
   tournamentRoundState,
   tournamentScoreOutcome,
+  roundCancelCopy,
+  tournamentRoundStateLabel,
 } from "./tournament-round-state";
 
 const NOW = new Date("2026-11-08T10:10:00Z");
@@ -128,6 +130,97 @@ describe("allPoolRoundsPosted", () => {
         2,
       ),
       true,
+    );
+  });
+});
+
+describe("a cancelled Round", () => {
+  it("is cancelled only when every Match in it is", () => {
+    assert.equal(
+      tournamentRoundState({
+        draftCount: 0,
+        matchStates: ["cancelled", "cancelled"],
+      }),
+      "cancelled",
+    );
+    assert.equal(
+      tournamentRoundState({
+        draftCount: 0,
+        matchStates: ["cancelled", "confirmed"],
+      }),
+      "played",
+    );
+  });
+
+  it("is never the current Round while another posted Round stands", () => {
+    assert.equal(
+      currentRoundNumber([
+        { roundNumber: 1, state: "played" },
+        { roundNumber: 2, state: "cancelled" },
+        { roundNumber: 3, state: "scheduled" },
+      ]),
+      3,
+    );
+    assert.equal(
+      currentRoundNumber([
+        { roundNumber: 1, state: "played" },
+        { roundNumber: 2, state: "cancelled" },
+        { roundNumber: 3, state: "not_made" },
+      ]),
+      1,
+    );
+    assert.equal(
+      currentRoundNumber([{ roundNumber: 1, state: "cancelled" }]),
+      1,
+    );
+  });
+
+  it("is labelled for the Organizer's list", () => {
+    assert.equal(tournamentRoundStateLabel("cancelled", "en"), "cancelled");
+    assert.equal(tournamentRoundStateLabel("not_made", "en"), "not made yet");
+  });
+});
+
+describe("roundCancelCopy", () => {
+  it("says a Round nobody played comes off the schedule", () => {
+    assert.equal(
+      roundCancelCopy(
+        { roundNumber: 5, cancelEffect: "remove", matches: [] },
+        5,
+        "en",
+      ),
+      "Round 5 comes off the schedule. The tournament will have 4 Rounds.",
+    );
+  });
+
+  it("counts the scores a kept Round loses", () => {
+    assert.equal(
+      roundCancelCopy(
+        {
+          roundNumber: 2,
+          cancelEffect: "void",
+          matches: [
+            { state: "confirmed" },
+            { state: "awaiting_confirmation" },
+            { state: "on_court" },
+          ],
+        },
+        4,
+        "en",
+      ),
+      "Round 2 stays in the list as cancelled. Its 2 scores are discarded: they leave the standings and the players' ratings. This cannot be undone.",
+    );
+    assert.equal(
+      roundCancelCopy(
+        {
+          roundNumber: 2,
+          cancelEffect: "void",
+          matches: [{ state: "scheduled" }],
+        },
+        4,
+        "en",
+      ),
+      "Round 2 stays in the list as cancelled and its games are not played. This cannot be undone.",
     );
   });
 });

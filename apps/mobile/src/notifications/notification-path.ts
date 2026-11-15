@@ -2,7 +2,7 @@ import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
 import { isSport } from "@repo/domain/sport";
 
-import { gamePath, gameRatePath } from "../games/games-model";
+import { gamePath, gamePaymentsPath, gameRatePath } from "../games/games-model";
 import { groupTierHistoryPath } from "../groups/groups-model";
 import { ratingsPath } from "../profile/ratings-path";
 
@@ -23,10 +23,13 @@ const GAME_TYPES = new Set([
   "game_player_left",
   "game_seated_by_organizer",
   "game_side_changed",
+  "game_payment_reminder",
+  "game_payment_not_received",
   "game_moved_to_waitlist",
   "game_team_changed",
   "king_courts_posted",
   "king_final_order_posted",
+  "king_place_awarded",
   "match_score_to_confirm",
   "game_finished",
   "mark_received",
@@ -67,6 +70,9 @@ export function notificationPath(item: {
   }
   if (item.game && item.type === "performance_ratings_open") {
     return gameRatePath(item.game.id);
+  }
+  if (item.game && item.type === "game_payment_claimed") {
+    return gamePaymentsPath(item.game.id);
   }
   if (item.group && item.type === "tier_points_adjusted") {
     return groupTierHistoryPath(item.group.id);

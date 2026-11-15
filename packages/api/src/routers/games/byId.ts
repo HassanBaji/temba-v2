@@ -15,6 +15,7 @@ import {
   gameWaitlist,
   games,
   groups,
+  kingPlaceAwards,
   matchDisputes,
   matchGoals,
   matchRatingWindows,
@@ -529,6 +530,15 @@ export async function gameById(
   const viewsToStampOnly = reach === "stamp_only";
 
   const now = new Date();
+  const viewerPlaceAward = game.finalOrderPostedAt
+    ? await database.query.kingPlaceAwards.findFirst({
+        where: and(
+          eq(kingPlaceAwards.gameId, game.id),
+          eq(kingPlaceAwards.userId, args.userId),
+        ),
+        columns: { wins: true, muBefore: true, muAfter: true },
+      })
+    : undefined;
   const organizer = await isGameOrganizer(database, game, args.userId);
   const viewerConfirmsAsOrganizer =
     organizer && (await confirmsAsOrganizer(database, game, args.userId));
@@ -1308,6 +1318,8 @@ export async function gameById(
     windowStart: game.windowStart,
     windowEnd: game.windowEnd,
     pricePerPlayerFils: game.pricePerPlayerFils,
+    trackPayments: game.trackPayments,
+    keepersPlayFree: game.keepersPlayFree,
     levelMinTenths: game.levelMinTenths,
     levelMaxTenths: game.levelMaxTenths,
     playersAllowed: game.playersAllowed,
@@ -1319,6 +1331,8 @@ export async function gameById(
     matchMinutes: game.matchMinutes,
     drawPostedAt: game.drawPostedAt,
     finalOrderPostedAt: game.finalOrderPostedAt,
+    /** The viewer's Place award on a King of the court Game; null without one. */
+    viewerPlaceAward: viewerPlaceAward ?? null,
     canUndoDraw:
       game.drawPostedAt != null &&
       !isKingOfTheCourt(game.format, game.tournamentShape) &&

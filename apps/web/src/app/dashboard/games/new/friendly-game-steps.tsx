@@ -10,6 +10,10 @@ import {
 } from "~/app/dashboard/games/new/_parts/group-field";
 import { LevelBandRow } from "~/app/dashboard/games/new/_parts/level-band-row";
 import { MvpModeField } from "~/app/dashboard/games/new/_parts/mvp-mode-field";
+import {
+  PaymentTrackingField,
+  paymentReviewValue,
+} from "~/app/dashboard/games/new/_parts/payment-tracking-field";
 import { RatingField } from "~/app/dashboard/games/new/_parts/rating-field";
 import { ReviewRow } from "~/app/dashboard/games/new/_parts/review-row";
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
@@ -30,6 +34,7 @@ import {
   type LevelBandSelectValue,
 } from "@repo/domain/level-range";
 import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
+import { PADEL_FRIENDLY_GAME_PLAYERS } from "@repo/domain/game-payments";
 import {
   CREATE_FLOW_DURATIONS,
   createFlowPriceChips,
@@ -48,9 +53,8 @@ import {
   createLevelRangeShown,
   createRatingChoice,
   createRatingChoiceShown,
-  visibleCreateCourts,
 } from "@repo/domain/create-game-flow";
-import { courtCountLabel, courtFace } from "@repo/domain/court-sport-copy";
+import { courtFace } from "@repo/domain/court-sport-copy";
 import {
   FOOTBALL_PLAYERS_ALLOWED_MAX,
   FOOTBALL_SIDE_SIZES,
@@ -92,7 +96,6 @@ export function FriendlyGameSteps({
   venueError,
   onVenueId,
   emptyCatalog,
-  recentCourtIds,
   courtId,
   courtError,
   onCourtId,
@@ -113,6 +116,10 @@ export function FriendlyGameSteps({
   price,
   priceError,
   onPrice,
+  trackPayments,
+  onTrackPayments,
+  keepersPlayFree,
+  onKeepersPlayFree,
   customName,
   customNameError,
   onCustomName,
@@ -147,7 +154,6 @@ export function FriendlyGameSteps({
   venueError?: string;
   onVenueId: (venueId: string) => void;
   emptyCatalog: boolean;
-  recentCourtIds: readonly string[];
   courtId: string;
   courtError?: string;
   onCourtId: (courtId: string) => void;
@@ -171,6 +177,10 @@ export function FriendlyGameSteps({
   price: string;
   priceError?: string;
   onPrice: (price: string) => void;
+  trackPayments: boolean;
+  onTrackPayments: (value: boolean) => void;
+  keepersPlayFree: boolean;
+  onKeepersPlayFree: (value: boolean) => void;
   customName: string;
   customNameError?: string;
   onCustomName: (customName: string) => void;
@@ -185,9 +195,6 @@ export function FriendlyGameSteps({
   const m = useMessages();
   const locale = useLocale();
   const c = m.webDashboard.createGame;
-  const [courtsExpandedVenueId, setCourtsExpandedVenueId] = React.useState<
-    string | null
-  >(null);
   const [startExpanded, setStartExpanded] = React.useState(false);
   const [customFinishOpen, setCustomFinishOpen] = React.useState(false);
 
@@ -201,15 +208,12 @@ export function FriendlyGameSteps({
     customFinishOpen || (Boolean(finishTime) && durationPreset == null);
   const selectedVenue = venues.find((venue) => venue.id === venueId);
   const courts = selectedVenue?.courts ?? [];
-  const courtsExpanded = courtsExpandedVenueId === venueId;
-  const visibleCourts = courtsExpanded
-    ? courts
-    : visibleCreateCourts(
-        courts,
-        recentCourtIds,
-        courtId === "none" ? [] : [courtId],
-      );
   const football = sport === "football";
+  const paymentReview = paymentReviewValue(
+    { price, football, trackPayments, keepersPlayFree },
+    m,
+    locale,
+  );
   const courtWord = courtFace(sport);
   const courtTitle = football ? c.pitch : c.court;
   const playerBounds = footballPlayersAllowedBounds(sideSize);
@@ -437,7 +441,7 @@ export function FriendlyGameSteps({
               >
                 {m.common.none}
               </ChoiceChip>
-              {visibleCourts.map((court) => (
+              {courts.map((court) => (
                 <ChoiceChip
                   key={court.id}
                   role="radio"
@@ -449,16 +453,6 @@ export function FriendlyGameSteps({
                   {court.name}
                 </ChoiceChip>
               ))}
-              {!courtsExpanded && courts.length > visibleCourts.length ? (
-                <ChoiceChip
-                  dashed
-                  onClick={() => {
-                    setCourtsExpandedVenueId(venueId);
-                  }}
-                >
-                  {c.allCount(courtCountLabel(courts.length, sport, locale))}
-                </ChoiceChip>
-              ) : null}
             </RovingRadioGroup>
             <FieldDescription id="game-court-copy">
               {c.settleAtVenue[courtWord]}
@@ -752,6 +746,19 @@ export function FriendlyGameSteps({
             </FieldError>
           </section>
 
+          <PaymentTrackingField
+            idPrefix="game"
+            price={price}
+            football={football}
+            playersAllowed={
+              football ? playersAllowed : PADEL_FRIENDLY_GAME_PLAYERS
+            }
+            trackPayments={trackPayments}
+            onTrackPayments={onTrackPayments}
+            keepersPlayFree={keepersPlayFree}
+            onKeepersPlayFree={onKeepersPlayFree}
+          />
+
           <MvpModeField idPrefix="game" mode={mvpMode} onMode={onMvpMode} />
 
           {ratingShown ? (
@@ -786,6 +793,12 @@ export function FriendlyGameSteps({
                   : ratingChoice.scopeLabel
               }
             />
+            {paymentReview ? (
+              <ReviewRow
+                label={m.gamePayments.create.reviewLabel}
+                value={paymentReview}
+              />
+            ) : null}
             <ReviewRow
               label={m.createGame.mvp.title}
               value={mvpModeCopy(mvpMode, locale).label}

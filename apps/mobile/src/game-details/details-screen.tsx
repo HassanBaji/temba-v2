@@ -1,3 +1,4 @@
+import { gamePaymentsTracked } from "@repo/domain/game-payments";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { canEditTeams, editTeamsSpotLabel } from "@repo/domain/edit-teams";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
@@ -55,6 +56,7 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { InviteEntry } from "../invites/invite-entry";
 import { slotOf } from "../lib/slot-of";
+import { GamePaymentsSection } from "../game-payments/game-payments-section";
 import { PlayedFriendlyGame } from "../played-game/played-friendly-game";
 import {
   PlayedMenuSheet,
@@ -644,6 +646,10 @@ export function GameDetailsScreen({
           }}
         >
           {inviteEntry}
+          <GamePaymentsSection
+            gameId={gameId}
+            tracked={gamePaymentsTracked(data)}
+          />
           <TournamentContent
             game={details}
             album={
