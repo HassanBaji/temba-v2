@@ -201,7 +201,6 @@ export const webDashboard = {
     publicErrorTitle: "تعذّر تحميل المجموعات العامة",
     filterBySport: "تصفية حسب الرياضة",
     nextGame: "المباراة التالية",
-    yourFormHere: "أداؤك هنا",
     start: {
       title: "ابدأ مجموعة",
       description:

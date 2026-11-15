@@ -16,7 +16,6 @@ import {
 } from "@repo/domain/groups-list";
 import { sportLabel } from "@repo/domain/sport";
 import { memberCountLabel } from "@repo/domain/member-count-label";
-import type { FormMark } from "@repo/domain/member-form-marks";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -64,7 +63,6 @@ export type GroupRowView = {
   sportLabel: string | null;
   meta: string;
   nextGameWeekday: string | null;
-  formMarks: FormMark[];
   accessibilityLabel: string;
 };
 
@@ -92,7 +90,6 @@ export function groupRowView(
     sportLabel: rowSportLabel,
     meta,
     nextGameWeekday,
-    formMarks: row.formMarks,
     accessibilityLabel: nextGameWeekday
       ? m.rowNextGame(spokenName, meta, nextGameWeekday)
       : m.rowNoGame(spokenName, meta),
