@@ -105,8 +105,6 @@ export const mobileCreateGame = {
     setsSchedule: "يحدد الجدول",
     venueHasNoCourts: "لا توجد ملاعب في هذا النادي.",
     venueHasNoPitches: "لا توجد ملاعب في هذا النادي.",
-    allCourts: (n: number) => `كل الملاعب (${n})`,
-    allPitches: (n: number) => `كل الملاعب (${n})`,
     noCourt: "بلا ملعب",
     noPitch: "بلا ملعب",
     settleCourtAtVenue: "اتركه على «لا شيء» لتحديد الملعب في النادي.",

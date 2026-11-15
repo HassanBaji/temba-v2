@@ -48,7 +48,6 @@ import {
   validateTournamentName,
   venueCardMeta,
   venueMatchesQuery,
-  visibleCreateCourts,
   visibleCreateGroups,
   DEFAULT_TOURNAMENT_SHAPE,
   tournamentShapeOptions,
@@ -331,30 +330,6 @@ describe("where helpers", () => {
     assert.equal(venueMatchesQuery(venue, "  karbabad "), true);
     assert.equal(venueMatchesQuery(venue, "manama"), true);
     assert.equal(venueMatchesQuery(venue, "riffa"), false);
-  });
-
-  it("shows recent booking courts, or the first three", () => {
-    const courts = [
-      { id: "a" },
-      { id: "b" },
-      { id: "c" },
-      { id: "d" },
-      { id: "e" },
-    ];
-    assert.deepEqual(
-      visibleCreateCourts(courts, ["e", "b", "a", "missing"]).map(
-        (court) => court.id,
-      ),
-      ["e", "b", "a"],
-    );
-    assert.deepEqual(
-      visibleCreateCourts(courts, []).map((court) => court.id),
-      ["a", "b", "c"],
-    );
-    assert.deepEqual(
-      visibleCreateCourts(courts, [], ["e"]).map((court) => court.id),
-      ["a", "b", "c", "e"],
-    );
   });
 
   it("shows the first groups and keeps a selected group visible", () => {

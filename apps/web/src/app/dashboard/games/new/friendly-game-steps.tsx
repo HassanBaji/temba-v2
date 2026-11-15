@@ -53,9 +53,8 @@ import {
   createLevelRangeShown,
   createRatingChoice,
   createRatingChoiceShown,
-  visibleCreateCourts,
 } from "@repo/domain/create-game-flow";
-import { courtCountLabel, courtFace } from "@repo/domain/court-sport-copy";
+import { courtFace } from "@repo/domain/court-sport-copy";
 import {
   FOOTBALL_PLAYERS_ALLOWED_MAX,
   FOOTBALL_SIDE_SIZES,
@@ -97,7 +96,6 @@ export function FriendlyGameSteps({
   venueError,
   onVenueId,
   emptyCatalog,
-  recentCourtIds,
   courtId,
   courtError,
   onCourtId,
@@ -156,7 +154,6 @@ export function FriendlyGameSteps({
   venueError?: string;
   onVenueId: (venueId: string) => void;
   emptyCatalog: boolean;
-  recentCourtIds: readonly string[];
   courtId: string;
   courtError?: string;
   onCourtId: (courtId: string) => void;
@@ -198,9 +195,6 @@ export function FriendlyGameSteps({
   const m = useMessages();
   const locale = useLocale();
   const c = m.webDashboard.createGame;
-  const [courtsExpandedVenueId, setCourtsExpandedVenueId] = React.useState<
-    string | null
-  >(null);
   const [startExpanded, setStartExpanded] = React.useState(false);
   const [customFinishOpen, setCustomFinishOpen] = React.useState(false);
 
@@ -214,14 +208,6 @@ export function FriendlyGameSteps({
     customFinishOpen || (Boolean(finishTime) && durationPreset == null);
   const selectedVenue = venues.find((venue) => venue.id === venueId);
   const courts = selectedVenue?.courts ?? [];
-  const courtsExpanded = courtsExpandedVenueId === venueId;
-  const visibleCourts = courtsExpanded
-    ? courts
-    : visibleCreateCourts(
-        courts,
-        recentCourtIds,
-        courtId === "none" ? [] : [courtId],
-      );
   const football = sport === "football";
   const paymentReview = paymentReviewValue(
     { price, football, trackPayments, keepersPlayFree },
@@ -455,7 +441,7 @@ export function FriendlyGameSteps({
               >
                 {m.common.none}
               </ChoiceChip>
-              {visibleCourts.map((court) => (
+              {courts.map((court) => (
                 <ChoiceChip
                   key={court.id}
                   role="radio"
@@ -467,16 +453,6 @@ export function FriendlyGameSteps({
                   {court.name}
                 </ChoiceChip>
               ))}
-              {!courtsExpanded && courts.length > visibleCourts.length ? (
-                <ChoiceChip
-                  dashed
-                  onClick={() => {
-                    setCourtsExpandedVenueId(venueId);
-                  }}
-                >
-                  {c.allCount(courtCountLabel(courts.length, sport, locale))}
-                </ChoiceChip>
-              ) : null}
             </RovingRadioGroup>
             <FieldDescription id="game-court-copy">
               {c.settleAtVenue[courtWord]}
