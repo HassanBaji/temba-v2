@@ -12,19 +12,32 @@ export const members = [
   { name: "Faisal Al-Qassab", line: "Joined just now" },
 ];
 
-/** The ten who join the Game, in sign-up order. */
+/**
+ * The ten who join the Game, in sign-up order. A football Group that is not
+ * Verified is a tier Group: each member holds Tier points (from 1,200) and
+ * Make teams balances on them. `move` is what the 5–3 Game did to them.
+ */
 export const players = [
-  { name: "Ali Al-Mahroos", short: "Ali", level: 6.8 },
-  { name: "سيد محمود", short: "محمود", level: 7.2 },
-  { name: "Yousif Janahi", short: "Yousif", level: 6.1 },
-  { name: "Hussain Ebrahim", short: "Hussain", level: 5.9 },
-  { name: "عبدالله الدوسري", short: "عبدالله", level: 6.6 },
-  { name: "Faisal Al-Qassab", short: "Faisal", level: 6.4 },
-  { name: "Mohamed Buhiji", short: "Mohamed", level: 7.0 },
-  { name: "Ahmed Al-Aali", short: "Ahmed", level: 5.7 },
-  { name: "Abbas Radhi", short: "Abbas", level: 6.3 },
-  { name: "قاسم عيسى", short: "قاسم", level: 6.0 },
+  { name: "Ali Al-Mahroos", short: "Ali", points: 1486, move: 14 },
+  { name: "سيد محمود", short: "محمود", points: 1441, move: -15 },
+  { name: "Yousif Janahi", short: "Yousif", points: 1312, move: 16 },
+  { name: "Hussain Ebrahim", short: "Hussain", points: 1287, move: -21 },
+  { name: "عبدالله الدوسري", short: "عبدالله", points: 1254, move: 17 },
+  { name: "Faisal Al-Qassab", short: "Faisal", points: 1241, move: 38 },
+  { name: "Mohamed Buhiji", short: "Mohd", points: 1398, move: -16 },
+  { name: "Ahmed Al-Aali", short: "Ahmed", points: 1148, move: 22 },
+  { name: "Abbas Radhi", short: "Abbas", points: 1176, move: -18 },
+  { name: "قاسم عيسى", short: "قاسم", points: 1121, move: -12 },
 ];
+
+/** Members still Provisional: no fish and no place until five Games. */
+export const provisional = [
+  { name: "Salman Fakhro", games: 3 },
+  { name: "Jassim Kooheji", games: 1 },
+];
+
+export const memberCount = players.length + provisional.length;
+export const sharkWeeks = 3;
 
 export const game = {
   sport: "Football · 5-a-side",
@@ -38,7 +51,7 @@ export const game = {
 
 /** Team indices into `players`: the first split, then the one shuffle. */
 export const firstSplit = { a: [0, 2, 4, 6, 8], b: [1, 3, 5, 7, 9] };
-export const finalSplit = { a: [0, 3, 4, 6, 9], b: [1, 2, 5, 7, 8] };
+export const finalSplit = { a: [0, 2, 4, 7, 5], b: [1, 3, 8, 6, 9] };
 
 export const profile = {
   name: "Ali Al-Mahroos",
@@ -69,4 +82,5 @@ export const captions = {
   teams: "سوّ التقسيمة",
   result: "حط النتيجة وتنحسب إحصائياتك",
   season: "موسم و leaderboard لكل قروب",
+  tiers: "تير لكل لاعب: من صافي إلى قرش",
 };

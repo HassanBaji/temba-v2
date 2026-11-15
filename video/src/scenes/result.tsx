@@ -1,13 +1,15 @@
 import { Check } from "lucide-react";
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 
-import { game, profile } from "../data";
+import { game, memberCount, profile } from "../data";
 import { Screen } from "../phone";
 import { Avatar } from "../primitives/avatar";
+import { TierFish } from "../primitives/fish";
 import { FormSlot, ResultMark } from "../primitives/marks";
 import { Hairline, Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { c, radii, snap } from "../theme";
+import { after, bandLabel, placeOf } from "../tiers";
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
@@ -44,7 +46,10 @@ export function ScoreScreen() {
       <Text size="meta" muted style={{ marginTop: 2 }}>
         {game.day} · {game.venue}
       </Text>
-      <Surface style={{ marginTop: 22, padding: "24px 14px 24px" }}>
+      <Text size="meta" weight="semibold" style={{ marginTop: 10 }}>
+        Counts for group tier
+      </Text>
+      <Surface style={{ marginTop: 14, padding: "24px 14px 24px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "0 10px" }}>
           {["Team A", "Team B"].map((name, index) => (
             <div key={name} style={{ display: "flex", alignItems: "center", gap: 7 }}>
@@ -94,7 +99,7 @@ export function ScoreScreen() {
         </Text>
       </div>
       <Text size="meta" muted align="center" style={{ marginTop: 12 }}>
-        {confirmed ? "Stats updated for all 10 players" : "Both captains confirm the final score"}
+        {confirmed ? "Tier points moved for all 10 players" : "Moves tier points in this group only"}
       </Text>
     </Screen>
   );
@@ -145,6 +150,8 @@ function Stat({ label, value, suffix = "", frame }: { label: string; value: numb
   );
 }
 
+const ali = placeOf(after, 0);
+
 export function ProfileScreen() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -156,9 +163,12 @@ export function ProfileScreen() {
           <Text size="h2" weight="bold">
             {profile.name}
           </Text>
-          <Text size="meta" muted style={{ marginTop: 2 }}>
-            {profile.group}
-          </Text>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 4 }}>
+            <TierFish band={ali.band} width={30} height={18} />
+            <Text size="meta" weight="semibold">
+              {bandLabel[ali.band]}, #{ali.place} of {memberCount}
+            </Text>
+          </div>
         </div>
       </div>
 

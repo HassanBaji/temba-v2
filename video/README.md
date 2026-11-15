@@ -1,6 +1,6 @@
 # Temba demo video
 
-A 30-second vertical (1080×1920, 30 fps) product demo built with Remotion. It stands outside the pnpm Workspace and has its own `package-lock.json`.
+A 34-second vertical (1080×1920, 30 fps) product demo built with Remotion. It stands outside the pnpm Workspace and has its own `package-lock.json`.
 
 ```bash
 cd video
@@ -25,7 +25,8 @@ To use your own track, drop it at `public/music.mp3`. It replaces the generated 
 
 ## Where things come from
 
-- Radii, hatch geometry, the result-mark arc, type scale, numeral sizes and the expanded width come from `packages/design-tokens/src/tokens.ts`.
+- Radii, hatch geometry, the result-mark arc, type scale, numeral sizes and the expanded width come from `packages/design-tokens/src/tokens.ts`; the Tier band fish from `packages/design-tokens/src/fish.ts`.
+- The Group is a tier Group (a football Group that is not Verified, ADR-0066): Make teams balances on Tier points and the Members tab shows fish, places and points. `src/tiers.ts` cuts the bands with the same rule as `@repo/domain/tier-bands` (top three Sharks, Hamour the next 15%, Kanaad the next 35%, Safi the rest).
 - Colors are the launch palette in `src/theme.ts`: the app's roles in pure black and white.
 - Screens are static rebuilds of the mobile App's primitives (`Text`, `Surface`, `Hatch`, `Avatar`, `ResultMark`, `FormSlot`, tab bar), because the originals are React Native. Icons are Lucide, as in the App.
 - Scene timings live in `scenes` in `src/theme.ts`; sample data in `src/data.ts`.

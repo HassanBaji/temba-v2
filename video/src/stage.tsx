@@ -8,6 +8,7 @@ import { GroupScreen } from "./scenes/group";
 import { ProfileScreen, ScoreScreen } from "./scenes/result";
 import { SeasonScreen } from "./scenes/season";
 import { TeamsScreen } from "./scenes/teams";
+import { TiersScreen } from "./scenes/tiers";
 import { c, font, scenes, snappy } from "./theme";
 
 const base = scenes.group.from;
@@ -22,6 +23,7 @@ export const S = {
   teams: local(scenes.teams),
   result: local(scenes.result),
   season: local(scenes.season),
+  tiers: local(scenes.tiers),
 };
 
 /** Where the score hands over to the player's profile inside scene 5. */
@@ -34,6 +36,7 @@ const POSES = [
   { at: S.teams.from, ry: -2, rx: 2, swing: -9 },
   { at: S.result.from, ry: 2, rx: 1.5, swing: 9 },
   { at: S.season.from, ry: -2, rx: 2, swing: -9 },
+  { at: S.tiers.from, ry: 2, rx: 1.5, swing: 9 },
 ];
 
 function usePose() {
@@ -64,6 +67,7 @@ const CAPTIONS = [
   { ...S.teams, text: captions.teams },
   { ...S.result, text: captions.result },
   { ...S.season, text: captions.season },
+  { ...S.tiers, text: captions.tiers },
 ];
 
 /** An RTL wipe in from the right, and out the same way before the next scene. */
@@ -73,7 +77,7 @@ function Caption({ text, from, to }: { text: string; from: number; to: number })
   const enter = spring({ frame: frame - from - 4, fps, config: snappy, durationInFrames: 20 });
   const exit = spring({ frame: frame - (to - 9), fps, config: snappy, durationInFrames: 9 });
   if (frame < from || frame >= to) return null;
-  const last = to === S.season.to;
+  const last = to === S.tiers.to;
   const out = last ? 0 : exit;
   return (
     <div
@@ -87,6 +91,7 @@ function Caption({ text, from, to }: { text: string; from: number; to: number })
         justifyContent: "center",
         padding: "0 70px",
         textAlign: "center",
+        textWrap: "balance",
         fontFamily: font.arabic,
         fontWeight: 700,
         fontSize: 88,
@@ -164,8 +169,11 @@ export function Stage() {
             <Push from={PROFILE_AT} to={S.result.to}>
               <ProfileScreen />
             </Push>
-            <Push from={S.season.from} to={S.season.to + 30}>
+            <Push from={S.season.from} to={S.season.to}>
               <SeasonScreen />
+            </Push>
+            <Push from={S.tiers.from} to={S.tiers.to + 30}>
+              <TiersScreen />
             </Push>
           </PhoneFrame>
         </div>

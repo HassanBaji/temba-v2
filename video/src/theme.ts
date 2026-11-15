@@ -30,7 +30,7 @@ export const c = {
 export const FPS = 30;
 export const WIDTH = 1080;
 export const HEIGHT = 1920;
-export const DURATION = 900;
+export const DURATION = 1020;
 
 /** Scene boundaries in frames. */
 export const scenes = {
@@ -40,7 +40,8 @@ export const scenes = {
   teams: { from: 390, to: 510 },
   result: { from: 510, to: 660 },
   season: { from: 660, to: 780 },
-  end: { from: 780, to: 900 },
+  tiers: { from: 780, to: 900 },
+  end: { from: 900, to: 1020 },
 } as const;
 
 export const font = {

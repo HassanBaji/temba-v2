@@ -433,6 +433,21 @@ sfx["impact"] = () => {
   return reverb([x, Float32Array.from(x)], { wet: 0.35, room: 0.86, tail: 1.5 });
 };
 
+/** Points ticking up together: a quick run of soft ticks. */
+sfx["tally"] = () => {
+  const out = stereo(0.9);
+  for (let k = 0; k < 9; k++) mix(out, sfx.tick(), k * 0.07, 0.55 - k * 0.03, k % 2 ? 0.3 : -0.3);
+  return out;
+};
+
+/** Moving up a band: a rising three-note pluck over a soft bell. */
+sfx["promote"] = () => {
+  const out = stereo(2.2);
+  [76, 81, 88].forEach((midi, k) => mix(out, pluck(midi, 1.4, 0.8), k * 0.085, 0.6, (k - 1) * 0.35));
+  mix(out, bell(93, 1.6, 2.2), 0.22, 0.35, 0);
+  return reverb(out, { wet: 0.35, tail: 1 });
+};
+
 sfx["shimmer"] = () => {
   const out = stereo(2.6);
   [81, 88, 93, 96, 100].forEach((midi, k) => mix(out, bell(midi, 2.2, 1.4), k * 0.045, 0.32, (k - 2) * 0.3));
@@ -444,13 +459,13 @@ sfx["shimmer"] = () => {
 /**
  * 120 BPM, A minor, Am–F–C–G. One beat is 0.5 s (15 frames), so every scene
  * change in the video lands on a beat. The groove starts at 3 s with the
- * first app screen and stops at 26 s for the end card.
+ * first app screen and stops at 30 s for the end card.
  */
 function bed() {
-  const LENGTH = 30;
+  const LENGTH = 34;
   const BEAT = 0.5;
   const START = 3;
-  const STOP = 26;
+  const STOP = 30;
   const drums = stereo(LENGTH);
   const bass = stereo(LENGTH);
   const pads = stereo(LENGTH);

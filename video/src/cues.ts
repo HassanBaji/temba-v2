@@ -6,6 +6,7 @@ import { INTRO } from "./scenes/intro";
 import { A_EVERY, B_EVERY, CHART_FROM, CONFIRM_AT, FORM_EVERY, FORM_FROM, SCORE, SCORE_FROM } from "./scenes/result";
 import { FLIP_AT, ROW_EVERY, ROWS_FROM } from "./scenes/season";
 import { LOCK_AT, SHUFFLE_AT, SPLIT_AT } from "./scenes/teams";
+import { MOVE_AT, PROMOTE_AT, REORDER_AT, ROWS_FROM as TIER_ROWS_FROM, ROW_EVERY as TIER_ROW_EVERY, SHARK_AT } from "./scenes/tiers";
 import { PROFILE_AT, S } from "./stage";
 import { scenes } from "./theme";
 
@@ -25,7 +26,7 @@ export function buildCues(): Cue[] {
 
   // The phone arrives, then each screen pushes in.
   at(app - 2, "whoosh", 0.5);
-  for (const frame of [S.game.from, S.teams.from, S.result.from, PROFILE_AT, S.season.from]) at(app + frame, "whoosh", 0.38);
+  for (const frame of [S.game.from, S.teams.from, S.result.from, PROFILE_AT, S.season.from, S.tiers.from]) at(app + frame, "whoosh", 0.38);
 
   // Group: the name types in, members pop into the list.
   for (let i = 1; i <= group.name.length; i++) {
@@ -60,6 +61,15 @@ export function buildCues(): Cue[] {
   const season = app + S.season.from;
   standing.forEach((_, i) => at(season + ROWS_FROM + i * ROW_EVERY, "tick-low", 0.22));
   at(season + FLIP_AT, "flip", 0.5);
+
+  // Tiers: the Shark swims in, fish fill the table, the Game's moves land
+  // and one player swims up a band.
+  const tiers = app + S.tiers.from;
+  at(tiers + SHARK_AT, "swish", 0.3);
+  for (let i = 0; i < 8; i++) at(tiers + TIER_ROWS_FROM + i * TIER_ROW_EVERY, "tick-low", 0.2);
+  at(tiers + MOVE_AT, "tally", 0.35);
+  at(tiers + REORDER_AT, "swish", 0.32);
+  at(tiers + PROMOTE_AT, "promote", 0.45);
 
   // End card.
   const end = scenes.end.from;

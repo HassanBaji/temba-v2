@@ -137,6 +137,7 @@ export function TabBar({ active }: { active: Tab }) {
         display: "flex",
         paddingTop: 7,
         boxSizing: "border-box",
+        zIndex: 10,
       }}
     >
       {TABS.map(({ slot, title, Icon }) => {

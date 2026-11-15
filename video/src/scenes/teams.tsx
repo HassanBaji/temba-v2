@@ -4,8 +4,10 @@ import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { finalSplit, firstSplit, players } from "../data";
 import { Screen } from "../phone";
 import { Avatar } from "../primitives/avatar";
+import { TierFish } from "../primitives/fish";
 import { Text } from "../primitives/text";
 import { c, radii, snap, snappy } from "../theme";
+import { averagePoints, before, formatPoints, placeOf } from "../tiers";
 
 export const SPLIT_AT = 26;
 export const SHUFFLE_AT = 58;
@@ -29,10 +31,6 @@ function slotIn(split: Split, index: number) {
 function columnPosition(split: Split, index: number) {
   const { team, row } = slotIn(split, index);
   return { x: team * (COLUMN + GAP), y: HEADER + row * COLUMN_ROW };
-}
-
-function average(indices: number[]) {
-  return indices.reduce((sum, i) => sum + players[i]!.level, 0) / indices.length;
 }
 
 function Chip({ index, split, shuffle }: { index: number; split: number; shuffle: number }) {
@@ -71,9 +69,7 @@ function Chip({ index, split, shuffle }: { index: number; split: number; shuffle
       <Text size={14} weight="medium" style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>
         {player.short}
       </Text>
-      <Text size="meta" muted>
-        {player.level.toFixed(1)}
-      </Text>
+      <TierFish band={placeOf(before, index).band} width={30} height={18} />
     </div>
   );
 }
@@ -89,11 +85,13 @@ export function TeamsScreen() {
   const shuffle = spring({ frame: frame - SHUFFLE_AT, fps, config: snappy, durationInFrames: 22 });
   const lock = spring({ frame: frame - LOCK_AT, fps, config: snap });
   const locked = frame >= LOCK_AT;
-  const levels = shuffle > 0.5 ? [average(finalSplit.a), average(finalSplit.b)] : [average(firstSplit.a), average(firstSplit.b)];
+  const split0 = [averagePoints(firstSplit.a), averagePoints(firstSplit.b)];
+  const split1 = [averagePoints(finalSplit.a), averagePoints(finalSplit.b)];
+  const averages = split0.map((value, team) => value + (split1[team]! - value) * shuffle);
 
   return (
     <Screen
-      title="Teams"
+      title="Make teams"
       tab="games"
       trailing={
         <div style={{ display: "flex", alignItems: "center", gap: 6, paddingRight: 6 }}>
@@ -116,7 +114,7 @@ export function TeamsScreen() {
       }
     >
       <Text size="meta" muted style={{ marginTop: 2 }}>
-        10 players · balanced by Level
+        By level · 10 in the pool · balanced on tier points
       </Text>
       <div style={{ position: "relative", height: 470, marginTop: 18 }}>
         {[0, 1].map((team) => (
@@ -143,7 +141,7 @@ export function TeamsScreen() {
               </Text>
             </div>
             <Text size="meta" muted style={{ marginTop: 3 }}>
-              Level {levels[team]!.toFixed(1)}
+              avg {formatPoints(averages[team]!)} points
             </Text>
           </div>
         ))}

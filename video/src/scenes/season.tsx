@@ -6,6 +6,7 @@ import { Screen } from "../phone";
 import { Avatar } from "../primitives/avatar";
 import { Hairline, Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { GroupTabs } from "./group-tabs";
 import { c, snappy } from "../theme";
 
 export const ROWS_FROM = 12;
@@ -80,15 +81,7 @@ function Row({ index }: { index: number }) {
 export function SeasonScreen() {
   return (
     <Screen title={group.name} tab="groups">
-      <div style={{ display: "flex", gap: 22, borderBottom: `1px solid ${c.rule}`, marginTop: 2 }}>
-        {["Standing", "Games", "Members"].map((tab, index) => (
-          <div key={tab} style={{ paddingBottom: 10, borderBottom: index === 0 ? `2px solid ${c.ink}` : "2px solid transparent", marginBottom: -1 }}>
-            <Text weight={index === 0 ? "semibold" : "medium"} muted={index !== 0}>
-              {tab}
-            </Text>
-          </div>
-        ))}
-      </div>
+      <GroupTabs active="Standing" />
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginTop: 18, marginBottom: 12 }}>
         <Text size="title" weight="semibold">
           Season 3
