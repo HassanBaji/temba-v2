@@ -94,7 +94,7 @@ export function buildCues(): Cue[] {
   const end = scenes.end.from;
   at(end + END.markAt, "impact", 0.45);
   at(end + END.wordAt, "shimmer", 0.3);
-  at(end + END.downloadAt, "tick", 0.3);
+  at(end + END.urlAt, "tick", 0.3);
 
   return cues.sort((a, b) => a.frame - b.frame);
 }

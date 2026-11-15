@@ -23,7 +23,7 @@ On a machine without Remotion's own Chrome download, point it at a local Chrome 
 | 16.4–20.4 s | موسم وترتيب لكل قروب | Standing: Yousif +3 climbs to third, Share standings |
 | 20.4–24.4 s | فئة لكل لاعب: من صافي إلى قرش | Members: the tier ladder, Faisal +38 from Safi to Kanaad |
 | 24.4–30.0 s | كوّن فريقك وتحدّى الفرق، وخصومك راس براس | Challenges: a proposal accepted into a Challenge game, then Rivals |
-| 30–34 s | | Logo end card, حمّل التطبيق with App Store and Google Play |
+| 30–34 s | | Logo end card with temba.app |
 
 Screens crossfade over 0.2 s while the phone, status bar and tab bar stay fixed. Timings are `scenes` in `src/theme.ts`; captions and sample data are in `src/data.ts`. The sample Tier points are chosen so every figure agrees across scenes: the team averages, Faisal's move and the band cuts.
 
