@@ -1,3 +1,6 @@
+import type { Locale } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+
 import { MATCH_STATUS } from "./match-status";
 
 /** An entered tournament score stands on its own once this long passes unanswered. */
@@ -53,7 +56,8 @@ export type TournamentRoundState =
   | "draft"
   | "scheduled"
   | "on_court"
-  | "played";
+  | "played"
+  | "cancelled";
 
 export function tournamentRoundState(args: {
   draftCount: number;
@@ -61,6 +65,9 @@ export function tournamentRoundState(args: {
 }): TournamentRoundState {
   if (args.matchStates.length === 0) {
     return args.draftCount > 0 ? "draft" : "not_made";
+  }
+  if (args.matchStates.every((state) => state === "cancelled")) {
+    return "cancelled";
   }
   if (args.matchStates.every(isSettledTournamentMatch)) {
     return "played";
@@ -73,7 +80,8 @@ export function tournamentRoundState(args: {
 
 /**
  * The Round shown as current: the first posted Round not yet played, else
- * the last played one.
+ * the last played one. A cancelled Round is never current while another
+ * posted Round stands.
  */
 export function currentRoundNumber(
   rounds: readonly { roundNumber: number; state: TournamentRoundState }[],
@@ -81,8 +89,14 @@ export function currentRoundNumber(
   const posted = rounds.filter(
     (round) => round.state !== "not_made" && round.state !== "draft",
   );
-  const live = posted.find((round) => round.state !== "played");
-  return live?.roundNumber ?? posted[posted.length - 1]?.roundNumber ?? null;
+  const standing = posted.filter((round) => round.state !== "cancelled");
+  const live = standing.find((round) => round.state !== "played");
+  return (
+    live?.roundNumber ??
+    standing[standing.length - 1]?.roundNumber ??
+    posted[posted.length - 1]?.roundNumber ??
+    null
+  );
 }
 
 export type TournamentScoreOutcome = "slot1" | "slot2" | "draw";
@@ -139,4 +153,51 @@ export function allPoolRoundsPosted(
     }
   }
   return true;
+}
+
+export function tournamentRoundStateLabel(
+  state: TournamentRoundState,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).tournamentRounds;
+  switch (state) {
+    case "not_made":
+      return m.manage.notMade;
+    case "draft":
+      return m.round.draft;
+    case "scheduled":
+      return m.round.posted;
+    case "on_court":
+      return m.round.onCourt;
+    case "played":
+      return m.round.played;
+    case "cancelled":
+      return m.round.cancelled;
+  }
+}
+
+/**
+ * What the Organizer is told before cancelling a Round: whether it comes off
+ * the schedule or stays as cancelled, and how many scores go with it.
+ */
+export function roundCancelCopy(
+  round: {
+    roundNumber: number;
+    cancelEffect: "remove" | "void" | null;
+    matches: readonly { state: TournamentMatchState | "draft" }[];
+  },
+  roundCount: number,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).tournamentRounds.manage;
+  if (round.cancelEffect === "remove") {
+    return m.cancelRemove(round.roundNumber, roundCount - 1);
+  }
+  const scores = round.matches.filter(
+    (match) =>
+      match.state === "confirmed" || match.state === "awaiting_confirmation",
+  ).length;
+  return scores > 0
+    ? m.cancelVoidScored(round.roundNumber, scores)
+    : m.cancelVoid(round.roundNumber);
 }

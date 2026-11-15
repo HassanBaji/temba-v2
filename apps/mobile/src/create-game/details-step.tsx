@@ -26,10 +26,9 @@ import {
   knockoutOnlyReviewValue,
 } from "@repo/domain/tournament-knockout";
 import {
-  resolveRoundCount,
   reviewRoundsValue,
+  roundCountLabel,
 } from "@repo/domain/tournament-sizing";
-import { sizeTournamentRounds } from "@repo/domain/tournament-schedule";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 import { View } from "react-native";
@@ -355,21 +354,20 @@ function tournamentReviewRows(
   const { draft } = state;
   const m = messagesFor(locale);
   const review = m.mobileCreateGame.review;
-  const { sizing, knockoutTree, poolKnockoutTree, knockoutOnly } =
-    friendlyTournamentPlan(draft);
+  const {
+    sizing,
+    rounds,
+    knockoutTree,
+    poolKnockoutTree,
+    knockoutOnly,
+    roundsShape,
+  } = friendlyTournamentPlan(draft);
   const venue = picker?.venues.find((item) => item.id === draft.venueId);
   const courtNames =
     venue?.courts
       .filter((item) => draft.courtIds.includes(item.id))
       .map((item) => item.name) ?? [];
   const minutes = parseCreateMatchMinutes(draft.matchMinutes, locale);
-  const resolvedRounds = sizing
-    ? resolveRoundCount(sizing.poolSizes, draft.roundCount)
-    : null;
-  const rounds =
-    sizing && resolvedRounds != null
-      ? sizeTournamentRounds(sizing.poolSizes, resolvedRounds)
-      : null;
   const knockout = knockoutTree
     ? knockoutOnlyReviewValue(knockoutTree, locale)
     : poolKnockoutTree && sizing
@@ -388,22 +386,22 @@ function tournamentReviewRows(
       label: m.createGame.tournamentFormat,
       value: knockoutOnly
         ? m.createGame.knockoutOnly
-        : friendlyTournamentFormatLabel(
-            sizing?.poolCount ?? draft.poolCount,
-            locale,
-            poolKnockoutTree != null,
-          ),
+        : roundsShape
+          ? m.createGame.shapes.rounds.title
+          : friendlyTournamentFormatLabel(
+              sizing?.poolCount ?? draft.poolCount,
+              locale,
+              poolKnockoutTree != null,
+            ),
     },
     ...(knockout ? [{ label: m.createGame.knockout, value: knockout }] : []),
     ...(sizing && rounds
       ? [
           {
             label: m.tournament.sizing.roundsLabel,
-            value: reviewRoundsValue(
-              rounds.roundCount,
-              sizing.roundCount,
-              locale,
-            ),
+            value: roundsShape
+              ? roundCountLabel(rounds.roundCount, locale)
+              : reviewRoundsValue(rounds.roundCount, sizing.roundCount, locale),
           },
         ]
       : []),

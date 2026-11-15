@@ -67,6 +67,7 @@ import {
   playersInPairsLine,
   poolCountOptions,
   reviewRoundsValue,
+  roundCountLabel,
   TOURNAMENT_TEAM_MAX,
   TOURNAMENT_TEAM_MIN,
   TOURNAMENT_TEAM_STEP,
@@ -255,6 +256,7 @@ export function FriendlyTournamentSteps({
   const {
     knockoutOnly,
     kingOfTheCourt,
+    roundsShape,
     knockoutTree,
     sizing,
     rounds,
@@ -472,7 +474,7 @@ export function FriendlyTournamentSteps({
             </section>
           ) : null}
 
-          {knockoutOnly || kingOfTheCourt ? null : (
+          {knockoutOnly || kingOfTheCourt || roundsShape ? null : (
             <StepperField
               id="tournament-pool-count"
               label={c.groups}
@@ -511,6 +513,7 @@ export function FriendlyTournamentSteps({
               roundCount={roundCount}
               onRoundCount={onRoundCount}
               error={roundCountError}
+              chosen={roundsShape}
             />
           ) : null}
 
@@ -1059,11 +1062,13 @@ export function FriendlyTournamentSteps({
                   ? k.create.reviewFormat(kingCourts)
                   : knockoutOnly
                     ? m.createGame.knockoutOnly
-                    : friendlyTournamentFormatLabel(
-                        sizing?.poolCount ?? poolCount,
-                        locale,
-                        poolKnockoutTree != null,
-                      )
+                    : roundsShape
+                      ? m.createGame.shapes.rounds.title
+                      : friendlyTournamentFormatLabel(
+                          sizing?.poolCount ?? poolCount,
+                          locale,
+                          poolKnockoutTree != null,
+                        )
               }
             />
             {knockoutTree ? (
@@ -1086,11 +1091,15 @@ export function FriendlyTournamentSteps({
             {sizing && rounds ? (
               <ReviewRow
                 label={sizingCopy.roundsLabel}
-                value={reviewRoundsValue(
-                  rounds.roundCount,
-                  sizing.roundCount,
-                  locale,
-                )}
+                value={
+                  roundsShape
+                    ? roundCountLabel(rounds.roundCount, locale)
+                    : reviewRoundsValue(
+                        rounds.roundCount,
+                        sizing.roundCount,
+                        locale,
+                      )
+                }
               />
             ) : null}
             <ReviewRow

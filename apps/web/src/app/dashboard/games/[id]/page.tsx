@@ -1609,6 +1609,7 @@ export default function GameHomePage({
               ? {
                   poolSizes: roundsPlan.poolSizes,
                   overruns: roundsPlan.overruns,
+                  chosen: roundsPlan.chosen,
                 }
               : null,
           }}

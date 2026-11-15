@@ -158,6 +158,32 @@ export function validateRoundCount(
   };
 }
 
+export const ROUNDS_SHAPE_POOL_COUNT = 1;
+export const ROUNDS_SHAPE_DEFAULT_ROUND_COUNT = 4;
+
+/** Where the Rounds shape's stepper starts: four Rounds, or one Pass if that is shorter. */
+export function defaultRoundsShapeRoundCount(
+  poolSizes: readonly number[],
+): number {
+  return Math.min(
+    ROUNDS_SHAPE_DEFAULT_ROUND_COUNT,
+    Math.max(suggestedRoundCount(poolSizes), 1),
+  );
+}
+
+/**
+ * The Rounds shape stores the number the Organizer sees, so a smaller drawn
+ * field keeps it instead of falling back to one Pass.
+ */
+export function validateRoundsShapeRoundCount(
+  poolSizes: readonly number[],
+  roundCount: number | null | undefined,
+): RoundCountValidation {
+  const requested = roundCount ?? defaultRoundsShapeRoundCount(poolSizes);
+  const validated = validateRoundCount(poolSizes, requested);
+  return validated.ok ? { ok: true, roundCount: requested } : validated;
+}
+
 export const DEFAULT_QUALIFIERS_PER_POOL = 2;
 
 export type QualifiersPerPoolRange = { min: number; max: number };

@@ -71,7 +71,11 @@ export type GameEditContext = {
   joined: number;
   seasons: readonly GroupSeasonData[];
   canChangeSeason: boolean;
-  rounds: { poolSizes: readonly number[]; overruns: boolean } | null;
+  rounds: {
+    poolSizes: readonly number[];
+    overruns: boolean;
+    chosen: boolean;
+  } | null;
 };
 
 function SectionHead({
@@ -940,6 +944,7 @@ export function GameEditDialog({
                     roundCount={draft.roundCount}
                     onRoundCount={(roundCount) => update({ roundCount })}
                     error={errorFor("rounds")}
+                    chosen={context.rounds.chosen}
                   />
                   {context.rounds.overruns ? (
                     <Hint>{m.tournament.sizing.oneDayOverrun}</Hint>

@@ -1086,6 +1086,7 @@ function NewGameForm() {
               tournamentShape={tournamentShape}
               onTournamentShape={(next) => {
                 setTournamentShape(next);
+                setRoundCount(null);
                 clearField("tournamentShape");
                 clearField("poolCount");
                 clearField("roundCount");
