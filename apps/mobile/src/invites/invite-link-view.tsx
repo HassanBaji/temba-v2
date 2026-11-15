@@ -489,6 +489,8 @@ function useGameLayout(
     isSignedIn: true,
     viewerLevelTenths: game.viewerLevelTenths,
     viewerPassesLevelRange: game.viewerPassesLevelRange,
+    levelMinTenths: game.levelMinTenths,
+    levelMaxTenths: game.levelMaxTenths,
   });
   const rows = gameInviteInfoRows({
     hero,
