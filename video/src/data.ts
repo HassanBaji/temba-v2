@@ -76,12 +76,11 @@ export const standing = [
   { name: "Abbas Radhi", p: 11, w: 3, pts: 11 },
 ];
 
-/** Captions in white Arabic, with the App's own Arabic terms (المجموعة، المباراة، الفئة). */
 export const captions = {
-  group: "أنشئ مجموعتك",
-  game: "انشر المباراة والكل يسجّل",
-  teams: "كوّن الفرق",
-  result: "سجّل النتيجة وتتحدّث إحصاءاتك",
+  group: "ابتدي قروبك",
+  game: "نزّل القيم والشباب يسجلون",
+  teams: "سوّ التقسيمة",
+  result: "سجّل النتيجة وتتحدّث إحصائياتك",
   season: "موسم وترتيب لكل مجموعة",
   tiers: "فئة لكل لاعب: من صافي إلى قرش",
 };
