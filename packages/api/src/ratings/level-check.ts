@@ -1,25 +1,36 @@
-import { and, eq, gt, inArray } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, lt, lte, ne } from "drizzle-orm";
 
 import {
   GroupSportEnum,
   levelCheckBallots,
   levelCheckResults,
   levelOverrides,
+  matches,
+  matchRatingWindows,
   ratings,
-  type matches,
 } from "@repo/db";
-import { bandWithHysteresis, levelFromMu } from "@repo/domain/level";
+import {
+  bandWithHysteresis,
+  levelFromMu,
+  padelMatchesRemainingToConfirm,
+} from "@repo/domain/level";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import {
+  LEVEL_CHECK_OUTLIER_MATCHES_RUNNING,
+  levelCheckRaterDistances,
+  levelCheckRaterWeights,
   levelCheckStep,
-  levelCheckVerdict,
+  levelCheckVerdicts,
   levelCheckVerdictHundredths,
+  type LevelCheckBallot,
   type LevelCheckPick,
+  type PreviousLevelCheckDistances,
 } from "@repo/domain/level-check";
 
 import { type db } from "#src/db";
 import { sideUserIds } from "#src/ratings/apply-tier-match";
 import { ratingWeightForGame } from "#src/ratings/game-rating-weight";
+import { padelConfirmations } from "#src/ratings/level-confirmed";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -44,15 +55,14 @@ export function levelCheckAsked(
 }
 
 /**
- * The answers a Level check counts on a Match, by the player they are about:
- * from a seated player about another seated player, each marked by whether
- * the rater sat on the opposing Game team. A Guest player is seated on
- * neither side.
+ * The answers a Level check counts on a Match: from a seated player about
+ * another seated player, each marked by whether the rater sat on the
+ * opposing Game team. A Guest player is seated on neither side.
  */
-export async function levelCheckPicks(
+export async function countedLevelCheckBallots(
   database: DbClient,
   match: SidedMatch,
-): Promise<Map<string, LevelCheckPick[]>> {
+): Promise<LevelCheckBallot[]> {
   const [slot1, slot2] = await Promise.all(
     [match.slot1GameTeamId, match.slot2GameTeamId].map(async (gameTeamId) =>
       gameTeamId
@@ -70,36 +80,172 @@ export async function levelCheckPicks(
     })
     .from(levelCheckBallots)
     .where(eq(levelCheckBallots.matchId, match.id));
-  const picks = new Map<string, LevelCheckPick[]>();
-  for (const ballot of ballots) {
+  return ballots.flatMap((ballot) => {
     const raterSide = sideOf(ballot.raterUserId);
     const rateeSide = sideOf(ballot.rateeUserId);
-    if (raterSide === null || rateeSide === null) {
-      continue;
-    }
+    return raterSide === null || rateeSide === null
+      ? []
+      : [
+          {
+            raterUserId: ballot.raterUserId,
+            rateeUserId: ballot.rateeUserId,
+            band: displayLabelFromStoredBand(ballot.band),
+            fromOpponent: raterSide !== rateeSide,
+          },
+        ];
+  });
+}
+
+/** The counted answers on a Match, by the player they are about. */
+export async function levelCheckPicks(
+  database: DbClient,
+  match: SidedMatch,
+): Promise<Map<string, LevelCheckPick[]>> {
+  const picks = new Map<string, LevelCheckPick[]>();
+  for (const ballot of await countedLevelCheckBallots(database, match)) {
     const list = picks.get(ballot.rateeUserId) ?? [];
-    list.push({
-      band: displayLabelFromStoredBand(ballot.band),
-      fromOpponent: raterSide !== rateeSide,
-    });
+    list.push({ band: ballot.band, fromOpponent: ballot.fromOpponent });
     picks.set(ballot.rateeUserId, list);
   }
   return picks;
 }
 
 /**
+ * Each rater's mean distance from the verdicts in their previous two Matches
+ * with a Level check before this one, newest first: Matches they answered on
+ * whose window had settled by `settledBefore`. Read from the stored answers
+ * and results.
+ */
+export async function previousLevelCheckDistances(
+  database: DbClient,
+  args: {
+    match: Pick<typeof matches.$inferSelect, "id" | "completedAt">;
+    raterUserIds: readonly string[];
+    settledBefore: Date;
+  },
+): Promise<PreviousLevelCheckDistances> {
+  const distances = new Map<string, (number | null)[]>();
+  for (const raterUserId of args.raterUserIds) {
+    const previous = await database
+      .selectDistinct({
+        matchId: levelCheckBallots.matchId,
+        completedAt: matches.completedAt,
+      })
+      .from(levelCheckBallots)
+      .innerJoin(
+        matchRatingWindows,
+        eq(matchRatingWindows.matchId, levelCheckBallots.matchId),
+      )
+      .innerJoin(matches, eq(matches.id, levelCheckBallots.matchId))
+      .where(
+        and(
+          eq(levelCheckBallots.raterUserId, raterUserId),
+          ne(levelCheckBallots.matchId, args.match.id),
+          lte(matchRatingWindows.settledAt, args.settledBefore),
+          args.match.completedAt
+            ? lt(matches.completedAt, args.match.completedAt)
+            : undefined,
+        ),
+      )
+      .orderBy(desc(matches.completedAt))
+      .limit(LEVEL_CHECK_OUTLIER_MATCHES_RUNNING - 1);
+    const row: (number | null)[] = [];
+    for (const { matchId } of previous) {
+      const ballots = await database
+        .select({
+          raterUserId: levelCheckBallots.raterUserId,
+          rateeUserId: levelCheckBallots.rateeUserId,
+          band: levelCheckBallots.band,
+        })
+        .from(levelCheckBallots)
+        .where(
+          and(
+            eq(levelCheckBallots.matchId, matchId),
+            eq(levelCheckBallots.raterUserId, raterUserId),
+          ),
+        );
+      const results = await database
+        .select({
+          userId: levelCheckResults.userId,
+          verdictLevelHundredths: levelCheckResults.verdictLevelHundredths,
+        })
+        .from(levelCheckResults)
+        .where(
+          and(
+            eq(levelCheckResults.matchId, matchId),
+            inArray(
+              levelCheckResults.userId,
+              ballots.map((ballot) => ballot.rateeUserId),
+            ),
+          ),
+        );
+      row.push(
+        levelCheckRaterDistances(
+          ballots.map((ballot) => ({
+            ...ballot,
+            band: displayLabelFromStoredBand(ballot.band),
+          })),
+          new Map(
+            results.map((result) => [
+              result.userId,
+              result.verdictLevelHundredths / 100,
+            ]),
+          ),
+        ).get(raterUserId) ?? null,
+      );
+    }
+    distances.set(raterUserId, row);
+  }
+  return distances;
+}
+
+/**
+ * Each rater's weight in this Match's Level check, as they stand when the
+ * window settles: half for a Provisional padel Level, half again for an
+ * outlier. Read from the ledger and the stored answers; nothing is written.
+ */
+async function levelCheckWeights(
+  database: DbClient,
+  args: {
+    match: SidedMatch & Pick<typeof matches.$inferSelect, "completedAt">;
+    ballots: readonly LevelCheckBallot[];
+    now: Date;
+  },
+) {
+  const raterUserIds = [
+    ...new Set(args.ballots.map((ballot) => ballot.raterUserId)),
+  ];
+  const [confirmationOf, previousDistances] = await Promise.all([
+    padelConfirmations(database, { userIds: raterUserIds }),
+    previousLevelCheckDistances(database, {
+      match: args.match,
+      raterUserIds,
+      settledBefore: args.now,
+    }),
+  ]);
+  return levelCheckRaterWeights(args.ballots, {
+    provisionalRaterIds: new Set(
+      raterUserIds.filter(
+        (userId) => padelMatchesRemainingToConfirm(confirmationOf(userId)) > 0,
+      ),
+    ),
+    previousDistances,
+  });
+}
+
+/**
  * Settles a padel Match's Level check with its Rating window: each player
- * with enough answers, one of them from an opponent, gets the verdict blended
- * into their Level at the Game's weight, and one result row keeps the verdict
- * and the Rating either side. Not a rating event: it is not a Rated Match,
- * and `last_rated_at`, σ and Reliability stay. Writes nothing for a Match
- * that already has results, so settling twice writes once. Returns the
- * players it settled.
+ * with enough answers, one of them from an opponent, gets the verdict, the
+ * weighted median of the answers, blended into their Level at the Game's
+ * weight, and one result row keeps the verdict and the Rating either side.
+ * Not a rating event: it is not a Rated Match, and `last_rated_at`, σ and
+ * Reliability stay. Writes nothing for a Match that already has results, so
+ * settling twice writes once. Returns the players it settled.
  */
 export async function settleLevelChecks(
   database: DbClient,
   args: {
-    match: SidedMatch;
+    match: SidedMatch & Pick<typeof matches.$inferSelect, "completedAt">;
     game: { groupId: string | null; isPublic: boolean };
     now: Date;
   },
@@ -112,11 +258,16 @@ export async function settleLevelChecks(
   if (existing.length > 0) {
     return [];
   }
-  const picks = await levelCheckPicks(database, args.match);
-  const verdicts = [...picks.entries()].flatMap(([userId, userPicks]) => {
-    const verdict = levelCheckVerdict(userPicks);
-    return verdict.kind === "verdict" ? [{ userId, verdict }] : [];
+  const ballots = await countedLevelCheckBallots(database, args.match);
+  const weights = await levelCheckWeights(database, {
+    match: args.match,
+    ballots,
+    now: args.now,
   });
+  const verdicts = [...levelCheckVerdicts(ballots, weights)].flatMap(
+    ([userId, verdict]) =>
+      verdict.kind === "verdict" ? [{ userId, verdict }] : [],
+  );
   if (verdicts.length === 0) {
     return [];
   }

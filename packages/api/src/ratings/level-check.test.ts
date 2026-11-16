@@ -23,7 +23,10 @@ import {
   addMember,
   setUpMatch,
 } from "#src/ratings/group-rated-match.test-support";
-import { settleLevelChecks } from "#src/ratings/level-check";
+import {
+  settleLevelChecks,
+  takeBackLevelChecks,
+} from "#src/ratings/level-check";
 import { padelConfirmations } from "#src/ratings/level-confirmed";
 import { applyPadelReplay } from "#src/ratings/padel-replay";
 import { settleRatingWindow } from "#src/ratings/settle-rating-window";
@@ -501,6 +504,169 @@ describe("settling the Level check", () => {
         reason:
           "a Level check has settled, and the recalculation does not replay one",
       });
+    });
+  });
+});
+
+describe("weighing the raters", () => {
+  recordJobs();
+
+  it("weighs a Provisional rater half: one confirmed rater against two Provisional ones settles at the mean of the two middles", async () => {
+    await withDb(async (db) => {
+      const match = await setUpMatch(db, { rated: true, groupRated: false });
+      await applyLevelOverride(api(db), {
+        sport: "padel",
+        setterUserId: match.d.id,
+        setByRole: "operator",
+        targetUserId: match.a.id,
+        groupId: null,
+        level: 3,
+        reason: "new_to_group",
+      });
+      await completeMatch(api(db), {
+        gameId: match.gameId,
+        matchId: match.matchId,
+        userId: match.a.id,
+      });
+      await setRating(db, match.c.id, {
+        level: 3.15,
+        phi: 250,
+        levelBand: "C2",
+      });
+      await answer(db, match, match.a, [[match.c, "B"]]);
+      await answer(db, match, match.b, [[match.c, "C+"]]);
+      await answer(db, match, match.d, [[match.c, "C+"]]);
+      await closeRatingWindow(db, match.matchId);
+
+      const [result] = await resultsOf(db, match.matchId);
+      expect(result).toMatchObject({
+        userId: match.c.id,
+        verdictLevelHundredths: 455,
+        ballotsCounted: 3,
+      });
+
+      const own = await performanceRatingResult(api(db), {
+        gameId: match.gameId,
+        userId: match.c.id,
+      });
+      expect(own.levelCheck).toEqual({
+        kind: "checked",
+        agreed: false,
+        verdictLevelHundredths: 455,
+        muBefore: result!.muBefore,
+        muAfter: result!.muAfter,
+        ballotsCounted: 3,
+      });
+    });
+  });
+
+  it("lets two confirmed raters on one band outweigh a Provisional one", async () => {
+    await withDb(async (db) => {
+      const match = await setUpMatch(db, { rated: true, groupRated: false });
+      for (const rater of [match.a, match.b]) {
+        await applyLevelOverride(api(db), {
+          sport: "padel",
+          setterUserId: match.d.id,
+          setByRole: "operator",
+          targetUserId: rater.id,
+          groupId: null,
+          level: 3,
+          reason: "new_to_group",
+        });
+      }
+      await completeMatch(api(db), {
+        gameId: match.gameId,
+        matchId: match.matchId,
+        userId: match.a.id,
+      });
+      await answer(db, match, match.a, [[match.c, "B"]]);
+      await answer(db, match, match.b, [[match.c, "B"]]);
+      await answer(db, match, match.d, [[match.c, "D"]]);
+      await closeRatingWindow(db, match.matchId);
+
+      const [result] = await resultsOf(db, match.matchId);
+      expect(result?.verdictLevelHundredths).toBe(525);
+    });
+  });
+
+  it("weighs a rater half once they were far from the verdicts in this Match and their previous two, never before", async () => {
+    await withDb(async (db) => {
+      const verdictOnC = async (
+        match: PadelMatch,
+        answers: [Player, AssignableDisplayLevelBand][],
+      ) => {
+        await setRating(db, match.c.id, {
+          level: 3.15,
+          phi: 250,
+          levelBand: "C2",
+        });
+        for (const [rater, band] of answers) {
+          await answer(db, match, rater, [[match.c, band]]);
+        }
+        await closeRatingWindow(db, match.matchId);
+        const [result] = await resultsOf(db, match.matchId);
+        return result?.verdictLevelHundredths;
+      };
+
+      const first = await playedPadel(db);
+      expect(
+        await verdictOnC(first, [
+          [first.a, "A"],
+          [first.b, "C"],
+          [first.d, "C"],
+        ]),
+      ).toBe(315);
+
+      // One earlier Match: a and b still split the weight evenly.
+      const second = await playedPadel(db, { existing: again(first) });
+      expect(
+        await verdictOnC(second, [
+          [second.a, "A"],
+          [second.b, "C"],
+        ]),
+      ).toBe(490);
+
+      // Far in this Match and the previous two: a counts half of b.
+      const third = await playedPadel(db, { existing: again(first) });
+      expect(
+        await verdictOnC(third, [
+          [third.a, "A"],
+          [third.b, "C"],
+        ]),
+      ).toBe(315);
+
+      const [original] = await resultsOf(db, third.matchId);
+      await takeBackLevelChecks(api(db), third.matchId, new Date());
+      const stored = await db.query.matches.findFirst({
+        where: (table, { eq: equals }) => equals(table.id, third.matchId),
+      });
+      const window = await db.query.matchRatingWindows.findFirst({
+        where: (table, { eq: equals }) => equals(table.matchId, third.matchId),
+      });
+      await settleLevelChecks(api(db), {
+        match: stored!,
+        game: { groupId: third.groupId, isPublic: false },
+        now: window!.closesAt,
+      });
+      const [resettled] = await resultsOf(db, third.matchId);
+      expect(resettled?.verdictLevelHundredths).toBe(
+        original?.verdictLevelHundredths,
+      );
+
+      const ballotColumns = Object.keys(
+        (await db.query.levelCheckBallots.findFirst())!,
+      ).sort();
+      expect(ballotColumns).toEqual(
+        [
+          "id",
+          "matchId",
+          "raterUserId",
+          "rateeUserId",
+          "band",
+          "createdAt",
+          "updatedAt",
+        ].sort(),
+      );
     });
   });
 });

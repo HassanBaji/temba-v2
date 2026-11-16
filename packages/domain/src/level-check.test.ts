@@ -3,13 +3,19 @@ import { describe, expect, it } from "vitest";
 import { muFromLevel } from "./level";
 import {
   LEVEL_CHECK_CAP_MU,
+  levelCheckBandPosition,
   levelCheckDraft,
+  levelCheckRaterDistances,
+  levelCheckRaterWeights,
   levelCheckResultView,
   levelCheckRows,
   levelCheckStep,
   levelCheckSubmission,
   levelCheckVerdict,
+  levelCheckVerdictHundredths,
+  levelCheckVerdicts,
   setLevelCheckAnswer,
+  type LevelCheckBallot,
   type LevelCheckPick,
   type LevelCheckSheet,
 } from "./level-check";
@@ -73,6 +79,191 @@ describe("levelCheckVerdict", () => {
     expect(levelCheckVerdict([opponent("D"), opponent("D")])).toMatchObject({
       level: 0.7,
     });
+  });
+});
+
+const ballot = (
+  raterUserId: string,
+  band: LevelCheckBallot["band"],
+  options: { fromOpponent?: boolean; rateeUserId?: string } = {},
+): LevelCheckBallot => ({
+  raterUserId,
+  rateeUserId: options.rateeUserId ?? "ratee",
+  band,
+  fromOpponent: options.fromOpponent ?? true,
+});
+
+const verdictOf = (
+  ballots: readonly LevelCheckBallot[],
+  weights: ReadonlyMap<string, number>,
+) => levelCheckVerdicts(ballots, weights).get("ratee");
+
+const noHistory = new Map<string, readonly (number | null)[]>();
+
+describe("levelCheckRaterWeights", () => {
+  it("halves a Provisional rater, so two confirmed raters on one band settle it", () => {
+    const ballots = [
+      ballot("confirmed-1", "C"),
+      ballot("confirmed-2", "C", { fromOpponent: false }),
+      ballot("provisional", "A"),
+    ];
+    const weights = levelCheckRaterWeights(ballots, {
+      provisionalRaterIds: new Set(["provisional"]),
+      previousDistances: noHistory,
+    });
+    expect(weights.get("provisional")).toBe(0.5);
+    expect(weights.get("confirmed-1")).toBe(1);
+    expect(verdictOf(ballots, weights)).toEqual({
+      kind: "verdict",
+      level: 3.15,
+      ballotsCounted: 3,
+    });
+  });
+
+  it("splits one confirmed rater against two Provisional raters evenly, at the mean of the two middles", () => {
+    const ballots = [
+      ballot("confirmed", "C"),
+      ballot("provisional-1", "B", { fromOpponent: false }),
+      ballot("provisional-2", "B"),
+    ];
+    const weights = levelCheckRaterWeights(ballots, {
+      provisionalRaterIds: new Set(["provisional-1", "provisional-2"]),
+      previousDistances: noHistory,
+    });
+    const verdict = verdictOf(ballots, weights);
+    expect(verdict?.kind).toBe("verdict");
+    expect(verdict?.kind === "verdict" && verdict.level).toBeCloseTo(
+      (3.15 + 5.25) / 2,
+      10,
+    );
+    expect(verdict?.ballotsCounted).toBe(3);
+  });
+
+  it("halves a rater far from the verdicts in this Match and each of their previous two", () => {
+    const ballots = [
+      ballot("steady-1", "C"),
+      ballot("steady-2", "C", { fromOpponent: false }),
+      ballot("far", "A"),
+    ];
+    const weights = levelCheckRaterWeights(ballots, {
+      provisionalRaterIds: new Set(),
+      previousDistances: new Map([["far", [2, 1.6, 0]]]),
+    });
+    expect(weights.get("far")).toBe(0.5);
+    expect(weights.get("steady-1")).toBe(1);
+  });
+
+  it("weighs a rater who is Provisional and an outlier 0.25", () => {
+    const weights = levelCheckRaterWeights(
+      [
+        ballot("steady-1", "C"),
+        ballot("steady-2", "C", { fromOpponent: false }),
+        ballot("far", "D"),
+      ],
+      {
+        provisionalRaterIds: new Set(["far"]),
+        previousDistances: new Map([["far", [3, 2]]]),
+      },
+    );
+    expect(weights.get("far")).toBe(0.25);
+  });
+
+  it("never halves a rater with fewer than two earlier Matches, one close Match among them or no verdict in one", () => {
+    const ballots = [
+      ballot("steady-1", "C"),
+      ballot("steady-2", "C", { fromOpponent: false }),
+      ballot("new", "A"),
+      ballot("close-once", "A"),
+      ballot("unsettled", "A"),
+    ];
+    const weights = levelCheckRaterWeights(ballots, {
+      provisionalRaterIds: new Set(),
+      previousDistances: new Map([
+        ["new", [4]],
+        ["close-once", [4, 1.5]],
+        ["unsettled", [4, null]],
+      ]),
+    });
+    expect(weights.get("new")).toBe(1);
+    expect(weights.get("close-once")).toBe(1);
+    expect(weights.get("unsettled")).toBe(1);
+  });
+
+  it("never halves a rater exactly 1.5 bands from this Match's verdicts", () => {
+    const on = (rateeUserId: string) => [
+      ballot("steady-1", "C", { rateeUserId }),
+      ballot("steady-2", "C", { rateeUserId, fromOpponent: false }),
+    ];
+    const ballots = [
+      ...on("ratee"),
+      ballot("edge", "C+", { rateeUserId: "ratee" }),
+      ...on("other"),
+      ballot("edge", "B-", { rateeUserId: "other" }),
+    ];
+    expect(
+      levelCheckRaterDistances(
+        ballots,
+        new Map([
+          ["ratee", 3.15],
+          ["other", 3.15],
+        ]),
+      ).get("edge"),
+    ).toBe(1.5);
+    const weights = levelCheckRaterWeights(ballots, {
+      provisionalRaterIds: new Set(),
+      previousDistances: new Map([["edge", [2, 2]]]),
+    });
+    expect(weights.get("edge")).toBe(1);
+  });
+
+  it("counts answers, not weights, for the two-answer minimum and the opponent rule", () => {
+    const weights = new Map([
+      ["a", 0.25],
+      ["b", 0.25],
+    ]);
+    expect(
+      verdictOf([ballot("a", "C"), ballot("b", "C")], weights),
+    ).toMatchObject({ kind: "verdict", ballotsCounted: 2 });
+    expect(
+      verdictOf(
+        [
+          ballot("a", "C", { fromOpponent: false }),
+          ballot("b", "C", { fromOpponent: false }),
+        ],
+        new Map(),
+      ),
+    ).toEqual({ kind: "no_opponent", ballotsCounted: 2 });
+    expect(verdictOf([ballot("a", "C")], new Map())).toEqual({
+      kind: "too_few",
+      ballotsCounted: 1,
+    });
+  });
+});
+
+describe("levelCheckRaterDistances", () => {
+  it("measures in display bands, a split verdict counting as halfway", () => {
+    expect(levelCheckBandPosition(0.7)).toBe(0);
+    expect(levelCheckBandPosition(3.15)).toBe(3);
+    expect(levelCheckBandPosition((0.7 + 3.15) / 2)).toBe(1.5);
+    expect(levelCheckBandPosition(3.5)).toBe(3.5);
+    expect(
+      levelCheckBandPosition(
+        levelCheckVerdictHundredths((0.7 + 3.15) / 2) / 100,
+      ),
+    ).toBe(1.5);
+    expect(
+      levelCheckRaterDistances(
+        [
+          ballot("rater", "A"),
+          ballot("rater", "D", { rateeUserId: "other" }),
+          ballot("rater", "C", { rateeUserId: "unsettled" }),
+        ],
+        new Map([
+          ["ratee", 3.15],
+          ["other", (0.7 + 3.15) / 2],
+        ]),
+      ),
+    ).toEqual(new Map([["rater", (5 + 1.5) / 2]]));
   });
 });
 

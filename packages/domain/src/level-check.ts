@@ -26,6 +26,12 @@ export const LEVEL_CHECK_R = 250;
 /** 0.35 Level: the most one check moves μ, before the Game's weight. */
 export const LEVEL_CHECK_CAP_MU = 175;
 export const LEVEL_CHECK_MIN_BALLOTS = 2;
+/** A rater whose own padel Level is Provisional when the window settles (ADR-0080). */
+export const LEVEL_CHECK_PROVISIONAL_RATER_WEIGHT = 0.5;
+export const LEVEL_CHECK_OUTLIER_WEIGHT = 0.5;
+/** Mean distance from the verdicts, in display bands, past which a Match counts against a rater. */
+export const LEVEL_CHECK_OUTLIER_BANDS = 1.5;
+export const LEVEL_CHECK_OUTLIER_MATCHES_RUNNING = 3;
 
 export const LEVEL_CHECK_BANDS = ASSIGNABLE_DISPLAY_LEVEL_BANDS;
 
@@ -57,8 +63,14 @@ export function isLevelCheckBand(
 export type LevelCheckPick = {
   band: AssignableDisplayLevelBand;
   fromOpponent: boolean;
-  /** 1 unless a later rule weighs a rater down. */
+  /** 1 unless the rater is Provisional or an outlier. */
   weight?: number;
+};
+
+/** A counted answer on one Match, with who gave it and who it is about. */
+export type LevelCheckBallot = Omit<LevelCheckPick, "weight"> & {
+  raterUserId: string;
+  rateeUserId: string;
 };
 
 export type LevelCheckVerdict =
@@ -106,6 +118,159 @@ export function levelCheckVerdict(
     }
   }
   return { kind: "too_few", ballotsCounted };
+}
+
+/**
+ * Each player's verdict on one Match, weighing each rater by `raterWeights`;
+ * a rater missing from it weighs 1. The two-answer minimum and the opponent
+ * rule count answers, not weights.
+ */
+export function levelCheckVerdicts(
+  ballots: readonly LevelCheckBallot[],
+  raterWeights: ReadonlyMap<string, number> = new Map(),
+): Map<string, LevelCheckVerdict> {
+  const picks = new Map<string, LevelCheckPick[]>();
+  for (const ballot of ballots) {
+    const list = picks.get(ballot.rateeUserId) ?? [];
+    list.push({
+      band: ballot.band,
+      fromOpponent: ballot.fromOpponent,
+      weight: raterWeights.get(ballot.raterUserId) ?? 1,
+    });
+    picks.set(ballot.rateeUserId, list);
+  }
+  return new Map(
+    [...picks].map(([userId, list]) => [userId, levelCheckVerdict(list)]),
+  );
+}
+
+/**
+ * Where each verdict Level a Match can reach sits on the nine display bands,
+ * by its hundredths as `level_check_results` stores them: a band's index, or
+ * halfway between two when the weight split evenly across them.
+ */
+const VERDICT_BAND_POSITIONS = new Map<number, number>(
+  LEVEL_CHECK_BANDS.flatMap((low, lowIndex) =>
+    LEVEL_CHECK_BANDS.slice(lowIndex).map(
+      (high, offset) =>
+        [
+          levelCheckVerdictHundredths(
+            (LEVEL_CHECK_BAND_LEVELS[low] + LEVEL_CHECK_BAND_LEVELS[high]) / 2,
+          ),
+          lowIndex + offset / 2,
+        ] as const,
+    ),
+  ),
+);
+
+/** A verdict's place on the nine display bands, counting a split verdict as halfway. */
+export function levelCheckBandPosition(level: number): number {
+  return (
+    VERDICT_BAND_POSITIONS.get(levelCheckVerdictHundredths(level)) ??
+    LEVEL_CHECK_BANDS.indexOf(levelCheckVerdictBand(level))
+  );
+}
+
+/**
+ * Each rater's mean distance, in display bands, from the verdicts on the
+ * players they answered about. A rater none of whose players got a verdict
+ * has no distance.
+ */
+export function levelCheckRaterDistances(
+  ballots: readonly Pick<
+    LevelCheckBallot,
+    "raterUserId" | "rateeUserId" | "band"
+  >[],
+  verdictLevels: ReadonlyMap<string, number>,
+): Map<string, number> {
+  const totals = new Map<string, { sum: number; count: number }>();
+  for (const ballot of ballots) {
+    const level = verdictLevels.get(ballot.rateeUserId);
+    if (level === undefined || ballot.raterUserId === ballot.rateeUserId) {
+      continue;
+    }
+    const total = totals.get(ballot.raterUserId) ?? { sum: 0, count: 0 };
+    total.sum += Math.abs(
+      LEVEL_CHECK_BANDS.indexOf(ballot.band) - levelCheckBandPosition(level),
+    );
+    total.count += 1;
+    totals.set(ballot.raterUserId, total);
+  }
+  return new Map(
+    [...totals].map(([raterUserId, total]) => [
+      raterUserId,
+      total.sum / total.count,
+    ]),
+  );
+}
+
+/**
+ * Each rater's mean distance in their previous Matches with a Level check,
+ * newest first; null for a Match where none of the players they answered
+ * about got a verdict.
+ */
+export type PreviousLevelCheckDistances = ReadonlyMap<
+  string,
+  readonly (number | null)[]
+>;
+
+function isFar(distance: number | null | undefined) {
+  return distance != null && distance > LEVEL_CHECK_OUTLIER_BANDS;
+}
+
+function verdictLevels(verdicts: ReadonlyMap<string, LevelCheckVerdict>) {
+  return new Map(
+    [...verdicts].flatMap(([userId, verdict]) =>
+      verdict.kind === "verdict" ? [[userId, verdict.level] as const] : [],
+    ),
+  );
+}
+
+/**
+ * Each rater's weight in one Match's Level check: 1, half for a rater whose
+ * own padel Level is Provisional, and half again for an outlier, a rater far
+ * from the verdicts in this Match and in each of their previous two Matches
+ * with a Level check. This Match's distance is measured against the verdicts
+ * as they settle with the Provisional weights alone. Derived from the
+ * answers every time, so nothing records a judgement of a rater (ADR-0068).
+ */
+export function levelCheckRaterWeights(
+  ballots: readonly LevelCheckBallot[],
+  options: {
+    provisionalRaterIds: ReadonlySet<string>;
+    previousDistances: PreviousLevelCheckDistances;
+  },
+): Map<string, number> {
+  const raters = new Set(ballots.map((ballot) => ballot.raterUserId));
+  const weights = new Map(
+    [...raters].map((raterUserId) => [
+      raterUserId,
+      options.provisionalRaterIds.has(raterUserId)
+        ? LEVEL_CHECK_PROVISIONAL_RATER_WEIGHT
+        : 1,
+    ]),
+  );
+  const distances = levelCheckRaterDistances(
+    ballots,
+    verdictLevels(levelCheckVerdicts(ballots, weights)),
+  );
+  for (const [raterUserId, distance] of distances) {
+    const earlier = (options.previousDistances.get(raterUserId) ?? []).slice(
+      0,
+      LEVEL_CHECK_OUTLIER_MATCHES_RUNNING - 1,
+    );
+    if (
+      isFar(distance) &&
+      earlier.length === LEVEL_CHECK_OUTLIER_MATCHES_RUNNING - 1 &&
+      earlier.every(isFar)
+    ) {
+      weights.set(
+        raterUserId,
+        (weights.get(raterUserId) ?? 1) * LEVEL_CHECK_OUTLIER_WEIGHT,
+      );
+    }
+  }
+  return weights;
 }
 
 /** The display band a verdict's Level falls in. */
