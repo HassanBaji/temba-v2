@@ -16,6 +16,11 @@ import {
 import type { LevelHistoryStep } from "./home-level-chart";
 import { initials } from "./initials";
 import {
+  FULL_RELIABILITY,
+  formatReliability,
+  reliabilityLossExtraPercent,
+} from "./level-reliability";
+import {
   formatPadelLevel,
   matchesTowardConfirming,
   RATED_MATCHES_TO_CONFIRM,
@@ -111,6 +116,8 @@ export type RatingsLevelData = {
   lastMatch?: RatingsLastMatch | null;
   /** What moved each recent history point; a "set" means someone set the Level. */
   historySteps?: readonly LevelHistoryStep[];
+  /** Reliability, 0 to 100 (ADR-0095); full when left out. */
+  reliability?: number | null;
 };
 
 export type RatingsLastMatch = {
@@ -272,6 +279,19 @@ function lastMatchResult(lastMatch: RatingsLastMatch, locale: Locale) {
   return all.screen.level.lastResult[lastMatch.outcome](score);
 }
 
+/** The card's note, led by Reliability while it is below 100. */
+function levelNote(data: RatingsLevelData, note: string, locale: Locale) {
+  const reliability = data.reliability ?? FULL_RELIABILITY;
+  if (Math.round(reliability) >= FULL_RELIABILITY) {
+    return note;
+  }
+  const line = messagesFor(locale).rating.screen.level.reliability(
+    formatReliability(reliability),
+    reliabilityLossExtraPercent(reliability),
+  );
+  return `${line} ${note}`;
+}
+
 function footerLine(footer: RatingsLevelFooter) {
   return [footer.label, footer.result, footer.value, footer.detail]
     .filter((part): part is string => part != null)
@@ -333,7 +353,7 @@ function footballLevelView(
     change,
     start,
     footer,
-    note: m.noteFootball,
+    note: levelNote(data, m.noteFootball, locale),
     spoken: m.spokenOvr(
       number,
       [status, change?.spoken ?? start, footerLine(footer)]
@@ -419,7 +439,7 @@ export function ratingsLevelView(
     change,
     start: null,
     footer,
-    note: m.notePadel,
+    note: levelNote(data, m.notePadel, locale),
     spoken: m.spoken(
       band,
       number,

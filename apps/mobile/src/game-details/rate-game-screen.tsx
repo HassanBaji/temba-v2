@@ -94,7 +94,7 @@ export function Hero({ hero }: { hero: RateGameView["hero"] }) {
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-          <BibChip bib={hero.slot1.bib} />
+          {hero.slot1.bib ? <BibChip bib={hero.slot1.bib} /> : null}
           <Text weight="semibold">{hero.slot1.name}</Text>
         </View>
         {hero.score ? (
@@ -103,7 +103,7 @@ export function Hero({ hero }: { hero: RateGameView["hero"] }) {
           </Text>
         ) : null}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-          <BibChip bib={hero.slot2.bib} />
+          {hero.slot2.bib ? <BibChip bib={hero.slot2.bib} /> : null}
           <Text>{hero.slot2.name}</Text>
         </View>
       </View>
@@ -347,7 +347,7 @@ function SideBlock({
           minHeight: sizes.touchTarget,
         }}
       >
-        <BibChip bib={side.bib} />
+        {side.bib ? <BibChip bib={side.bib} /> : null}
         <Text size="meta" weight="semibold">
           {side.name}
         </Text>

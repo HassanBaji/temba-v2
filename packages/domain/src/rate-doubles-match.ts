@@ -16,6 +16,11 @@ export type DoublesOutcome = "slot1" | "slot2" | "draw";
 export type DoublesPlayerInput = {
   state: RatingGlickoState;
   lastRatedAt: Date | null | undefined;
+  /**
+   * How many times further a lost Match moves this player's μ, from their
+   * Reliability (ADR-0095). 1 when left out.
+   */
+  lossFactor?: number;
 };
 
 export type DoublesPlayerResult = {
@@ -23,6 +28,8 @@ export type DoublesPlayerResult = {
   after: ClassicGlicko;
   score: 0 | 0.5 | 1;
   levelBand: LevelBand;
+  /** The share of the μ move that low Reliability added to a loss; 0 or below. */
+  reliabilityPart: number;
 };
 
 type Pair<T> = [T, T];
@@ -105,14 +112,19 @@ function ratePlayer(
   opponent: ClassicGlickoOpponent,
   score: 0 | 0.5 | 1,
   weight: number,
+  lossFactor: number,
 ): DoublesPlayerResult {
   const star = glicko2Step(before, opponent, score);
-  const after = blendWeightedStep(before, star, weight);
+  const stepped = blendWeightedStep(before, star, weight);
+  const reliabilityPart =
+    score === 0 ? (lossFactor - 1) * (stepped.mu - before.mu) : 0;
+  const after = { ...stepped, mu: stepped.mu + reliabilityPart };
   return {
     before,
     after,
     score,
     levelBand: bandWithHysteresis(levelFromMu(after.mu), before.levelBand),
+    reliabilityPart,
   };
 }
 
@@ -120,7 +132,8 @@ function ratePlayer(
  * Each player faces the opposing pair as one composite opponent, shifted by
  * half the gap to their partner so the pair shares one expected score, steps
  * once in Glicko-2 by their own φ, and the step is blended by `weight`. Idle
- * RD inflation runs per player before composites are built.
+ * RD inflation runs per player before composites are built. A player who
+ * lost moves `lossFactor` times as far.
  */
 export function rateDoublesMatch(
   input: RateDoublesMatchInput,
@@ -136,6 +149,8 @@ export function rateDoublesMatch(
   const slot2Composite = compositeOpponent(slot2[0], slot2[1]);
   const slot1Score = scoreForSlot(outcome, "slot1");
   const slot2Score = scoreForSlot(outcome, "slot2");
+  const lossFactorOf = (player: DoublesPlayerInput) =>
+    Math.max(1, player.lossFactor ?? 1);
 
   return {
     slot1: [
@@ -144,12 +159,14 @@ export function rateDoublesMatch(
         partnerWeightedOpponent(slot2Composite, slot1[0], slot1[1]),
         slot1Score,
         weight,
+        lossFactorOf(input.slot1[0]),
       ),
       ratePlayer(
         slot1[1],
         partnerWeightedOpponent(slot2Composite, slot1[1], slot1[0]),
         slot1Score,
         weight,
+        lossFactorOf(input.slot1[1]),
       ),
     ],
     slot2: [
@@ -158,12 +175,14 @@ export function rateDoublesMatch(
         partnerWeightedOpponent(slot1Composite, slot2[0], slot2[1]),
         slot2Score,
         weight,
+        lossFactorOf(input.slot2[0]),
       ),
       ratePlayer(
         slot2[1],
         partnerWeightedOpponent(slot1Composite, slot2[1], slot2[0]),
         slot2Score,
         weight,
+        lossFactorOf(input.slot2[1]),
       ),
     ],
   };

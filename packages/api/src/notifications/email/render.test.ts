@@ -37,6 +37,7 @@ function item(
     levelSet: null,
     tier: null,
     ovrMove: null,
+    reliabilityMove: null,
     placeAward: null,
     dispute: null,
     ...overrides,

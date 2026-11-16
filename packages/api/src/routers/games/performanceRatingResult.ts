@@ -8,12 +8,14 @@ import {
   matchRatingWindows,
   performanceRatingResults,
   performanceRatings,
+  ratings,
 } from "@repo/db";
 
 import { DEFAULT_FOOTBALL_BIBS } from "@repo/domain/football-lineup";
 import { gameMvpView } from "@repo/domain/marks";
 import {
   TRIM_FROM_BALLOTS,
+  minBallotsFor,
   ratingWindowState,
   type NoPerformanceReason,
   type PerformanceRatingResultData,
@@ -27,7 +29,6 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { canViewGame, gameAdminUserIds, requireGame } from "#src/games/access";
 import {
-  assertFootballGame,
   footballMatch,
   footballScoreOf,
   footballScoreSet,
@@ -49,7 +50,9 @@ type DbClient = typeof db;
  * average, the result part and the performance part of their Tier points
  * move, the new points, place and fish, and the MVP. Before the window
  * settles it returns the closing time and no rating. A viewer who did not
- * play gets no result. A window past its close is settled first.
+ * play gets no result. A window past its close is settled first. On a Match
+ * that counts for Temba Level, padel included, a player gets what they were
+ * rated and where it left their Reliability instead (ADR-0095).
  */
 export async function performanceRatingResult(
   database: DbClient,
@@ -64,9 +67,10 @@ export async function performanceRatingResult(
       message: messagesFor(locale).game.errors.notFound,
     });
   }
-  assertFootballGame(game, locale);
-
-  const match = await footballMatch(database, game.id);
+  const match =
+    game.format === "friendly_game"
+      ? await footballMatch(database, game.id)
+      : null;
   if (match) {
     await settleRatingWindowIfDue(database, match.id, now);
   }
@@ -95,7 +99,17 @@ export async function performanceRatingResult(
     mode: window.mode,
     closesAt: window.closesAt,
     played,
+    sport: game.sport,
     countsForLevel: window.countsForLevel,
+    reliability:
+      state === "settled" && played && window.countsForLevel
+        ? await reliabilityResult(database, {
+            match,
+            game,
+            window,
+            userId: args.userId,
+          })
+        : null,
     result: null,
   };
   if (state !== "settled" || !played || !game.groupId) {
@@ -267,6 +281,57 @@ export async function performanceRatingResult(
             }
           : null,
     },
+  };
+}
+
+/**
+ * What a settled window did to the caller's Reliability: the two sides of the
+ * step their rating made, or where it stands when too few rated them.
+ */
+async function reliabilityResult(
+  database: DbClient,
+  args: {
+    match: Parameters<typeof countedBallots>[1]["match"];
+    game: Parameters<typeof countedBallots>[1]["game"] & {
+      sport: "padel" | "football";
+    };
+    window: Parameters<typeof countedBallots>[1]["window"];
+    userId: string;
+  },
+): Promise<PerformanceRatingResultData["reliability"]> {
+  const [own, rating, counted] = await Promise.all([
+    database.query.performanceRatingResults.findFirst({
+      where: and(
+        eq(performanceRatingResults.matchId, args.match.id),
+        eq(performanceRatingResults.userId, args.userId),
+      ),
+    }),
+    database.query.ratings.findFirst({
+      where: and(
+        eq(ratings.userId, args.userId),
+        eq(ratings.sport, args.game.sport),
+      ),
+      columns: { reliability: true },
+    }),
+    countedBallots(database, args),
+  ]);
+  if (!rating) {
+    return null;
+  }
+  const moved =
+    own?.reliabilityBefore != null && own.reliabilityAfter != null
+      ? { before: own.reliabilityBefore, after: own.reliabilityAfter }
+      : { before: rating.reliability, after: rating.reliability };
+  return {
+    ratingHundredths: own?.ratingHundredths ?? null,
+    ballotsReceived: counted.ballots.filter(
+      (ballot) => ballot.rateeUserId === args.userId,
+    ).length,
+    ballotsNeeded: minBallotsFor(
+      args.window.mode === "organizer" ? "organizer" : "everyone",
+      args.game.sport,
+    ),
+    ...moved,
   };
 }
 

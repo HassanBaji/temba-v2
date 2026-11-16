@@ -246,7 +246,8 @@ async function ratedMatchCount(
  * `levelValue` is the continuous Level padel shows from 1.00 (ADR-0070).
  * `changeOverLast` is what the last eight counting Matches moved it, on the
  * face, for the Ratings screen. `lastMatch` is the newest Rated Match, for
- * football's "Last match" line.
+ * football's "Last match" line. `reliability` is the Rating's Reliability,
+ * 0 to 100 (ADR-0095).
  */
 export async function loadRatingsMe(
   database: DbClient,
@@ -273,6 +274,7 @@ export async function loadRatingsMe(
       ratedMatchCount: 0,
       changeOverLast: null as Awaited<ReturnType<typeof changeOverLast>>,
       lastMatch: null as RatingsLastMatch | null,
+      reliability: null as number | null,
     };
   }
 
@@ -300,6 +302,7 @@ export async function loadRatingsMe(
     ratedMatchCount: matchCount,
     changeOverLast: change,
     lastMatch,
+    reliability: row.reliability,
   };
 }
 

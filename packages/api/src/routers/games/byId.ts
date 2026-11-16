@@ -422,6 +422,7 @@ async function footballOvrImpact(
       performancePart: number | null;
       goalsPart: number | null;
       mvpPart: number | null;
+      reliabilityPart: number | null;
     };
   },
 ): Promise<OvrImpact> {
@@ -493,6 +494,7 @@ async function footballOvrImpact(
       performance: args.event.performancePart,
       goals: args.event.goalsPart,
       mvp: args.event.mvpPart,
+      reliability: args.event.reliabilityPart,
     },
     rating: own
       ? {
@@ -1059,12 +1061,18 @@ export async function gameById(
   let canReportWrongScore: WrongScoreReversalEligibility | null = null;
 
   // A football Match's Rating window (ADR-0068), settled here when its Job
-  // is late, before the move it writes is read.
+  // is late, before the move it writes is read. A padel Friendly game on a
+  // Verified Group has one too (ADR-0095).
   const footballMatchRow = isFootballGame(game)
     ? matchRows.find((match) => match.status !== MatchStatusEnum.CANCELLED)
     : undefined;
-  if (footballMatchRow) {
-    await settleRatingWindowIfDue(database, footballMatchRow.id, now);
+  const ratingWindowMatchRow =
+    footballMatchRow ??
+    (game.format === "friendly_game"
+      ? matchRows.find((match) => match.status !== MatchStatusEnum.CANCELLED)
+      : undefined);
+  if (ratingWindowMatchRow) {
+    await settleRatingWindowIfDue(database, ratingWindowMatchRow.id, now);
   }
 
   if (isIndividualFriendlyGame && friendlyMatch) {
@@ -1112,6 +1120,7 @@ export async function gameById(
               performancePart: true,
               goalsPart: true,
               mvpPart: true,
+              reliabilityPart: true,
             },
           })
         : undefined;
@@ -1204,8 +1213,9 @@ export async function gameById(
     }
   }
 
-  // The football Match's Rating window and whether the viewer may rate on
-  // it. One that counts for Temba Level moves OVR when it settles.
+  // The Match's Rating window and whether the viewer may rate on it. One
+  // that counts for Temba Level moves OVR when it settles on football, and
+  // Reliability on both sports.
   let ratingWindow: {
     matchId: string;
     mode: RatingWindowMode;
@@ -1213,24 +1223,26 @@ export async function gameById(
     closesAt: Date;
     viewerMayRate: boolean;
     countsForLevel: boolean;
+    sport: "padel" | "football";
   } | null = null;
-  if (footballMatchRow) {
+  if (ratingWindowMatchRow) {
     const window = await database.query.matchRatingWindows.findFirst({
-      where: eq(matchRatingWindows.matchId, footballMatchRow.id),
+      where: eq(matchRatingWindows.matchId, ratingWindowMatchRow.id),
     });
     if (window && window.mode !== "off") {
       ratingWindow = {
-        matchId: footballMatchRow.id,
+        matchId: ratingWindowMatchRow.id,
         mode: window.mode,
         state: ratingWindowState(window, now),
         closesAt: window.closesAt,
         countsForLevel: window.countsForLevel,
+        sport: game.sport,
         viewerMayRate:
           window.mode === "organizer"
             ? organizer
-            : (await matchSeatedUserIds(database, footballMatchRow)).includes(
-                args.userId,
-              ),
+            : (
+                await matchSeatedUserIds(database, ratingWindowMatchRow)
+              ).includes(args.userId),
       };
     }
   }

@@ -25,6 +25,10 @@ import {
   levelFromMu,
   type LevelBand,
 } from "@repo/domain/level";
+import {
+  FULL_RELIABILITY,
+  reliabilityLossFactor,
+} from "@repo/domain/level-reliability";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -164,6 +168,7 @@ export async function applyFootballLevelMatch(
       goals: args.goals.get(userId) ?? 0,
       goalsRole: args.goalsRoles.get(userId),
       performance: args.performance.get(userId) ?? null,
+      lossFactor: reliabilityLossFactor(row?.reliability ?? FULL_RELIABILITY),
     };
   };
   const moves = rateFootballMatch({
@@ -206,6 +211,8 @@ export async function applyFootballLevelMatch(
         performancePart: move.performancePart,
         goalsPart: move.goalsPart,
         mvpPart: move.mvpPart,
+        reliabilityPart:
+          move.reliabilityPart === 0 ? null : move.reliabilityPart,
         createdAt: args.now,
       })
       .onConflictDoNothing({

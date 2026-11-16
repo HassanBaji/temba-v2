@@ -17,6 +17,7 @@ import {
   levelFromMu,
   muFromLevel,
 } from "@repo/domain/level";
+import { FULL_RELIABILITY } from "@repo/domain/level-reliability";
 import {
   formatOvr,
   levelFromOvr,
@@ -175,6 +176,8 @@ export async function applyLevelOverride(
       phi: confirmedPhiForOverride(existing?.phi ?? null),
       sigma: before.sigma,
       levelBand: bandFromLevel(level),
+      // Whoever set it vouches for it, so Reliability starts over (ADR-0095).
+      reliability: FULL_RELIABILITY,
     };
     const now = new Date();
 

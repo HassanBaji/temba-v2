@@ -19,6 +19,8 @@ import { useMemo, useState } from "react";
 import { gameTitle } from "../game-details/details-model";
 import type { useOrganizerActions } from "../game-details/use-organizer-actions";
 import { useLocale, useMessages } from "../i18n/locale-provider";
+import { PerformanceResultCard } from "../game-details/performance-result-card";
+import { RateGameCard } from "../game-details/rate-game-card";
 import { MarksSection } from "../marks/marks-section";
 import { MvpRow } from "../marks/mvp-row";
 import { useGameMarks } from "../marks/use-game-marks";
@@ -159,10 +161,17 @@ export function PlayedFriendlyGame({
         facts={model.facts}
         dispute={<MatchDisputeSection match={match} />}
         task={
-          <GamePaymentsSection
-            gameId={gameId}
-            tracked={gamePaymentsTracked(game)}
-          />
+          <>
+            <GamePaymentsSection
+              gameId={gameId}
+              tracked={gamePaymentsTracked(game)}
+            />
+            <RateGameCard gameId={gameId} window={game.ratingWindow ?? null} />
+            <PerformanceResultCard
+              gameId={gameId}
+              window={game.ratingWindow ?? null}
+            />
+          </>
         }
         refreshing={refreshing}
         onRefresh={() => {

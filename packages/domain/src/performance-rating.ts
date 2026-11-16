@@ -12,8 +12,15 @@ import {
   formatGameDay,
   formatWeekday,
 } from "./format-game-start";
+import { formatMatchSlotLabel } from "./game-side-label";
 import { formatTierPoints, tierPointsCount } from "./group-members-table";
 import { initials } from "./initials";
+import {
+  FULL_RELIABILITY,
+  formatReliability,
+  formatReliabilityDelta,
+  reliabilityLossExtraPercent,
+} from "./level-reliability";
 import { productDaysBetween } from "./product-timezone";
 import { formatTierDelta } from "./tier-adjust";
 import type { TierBand } from "./tier-bands";
@@ -35,6 +42,10 @@ export const TRIM_FROM_BALLOTS = 5;
 export const USUAL_PRIOR_GAMES = 3;
 export const USUAL_RECENT_GAMES = 10;
 export const ORGANIZER_DOUBLE_WEIGHT = 2;
+/** A padel Match seats four, so a player has at most three ballots. */
+export const PADEL_MIN_BALLOTS = 2;
+/** What an Operator's or a Level setter's ballot weighs (ADR-0095). */
+export const TRUSTED_RATER_WEIGHT = 3;
 export const OUTLIER_MEAN_DISTANCE = 2;
 export const OUTLIER_GAMES_RUNNING = 3;
 export const OUTLIER_WEIGHT_FACTOR = 0.5;
@@ -46,6 +57,27 @@ export const PERFORMANCE_RATING_VALUES: readonly number[] = Array.from(
 
 /** Who rates on a Match that has a Rating window: never Off. */
 export type RatingWindowMode = "organizer" | "everyone";
+
+/**
+ * What the rater was when they rated, kept on the ballot: being an Operator
+ * or a Level setter lives in the session, which a settling Job does not have.
+ */
+export const RATER_ROLES = ["player", "level_setter", "operator"] as const;
+export type RaterRole = (typeof RATER_ROLES)[number];
+
+export function isTrustedRater(role: RaterRole | null | undefined) {
+  return role === "operator" || role === "level_setter";
+}
+
+export function raterRoleOf(flags: {
+  operator: boolean;
+  levelSetter: boolean;
+}): RaterRole {
+  if (flags.operator) {
+    return "operator";
+  }
+  return flags.levelSetter ? "level_setter" : "player";
+}
 
 export function isPerformanceRatingValue(value: unknown): value is number {
   return (
@@ -83,17 +115,35 @@ export function ratingWindowState(
   return new Date(window.closesAt).getTime() <= now.getTime() ? "due" : "open";
 }
 
-/** In Everyone mode a player needs three ballots; the Organizer's one is enough. */
-export function minBallotsFor(mode: RatingWindowMode) {
-  return mode === "everyone" ? MIN_BALLOTS : 1;
+/**
+ * In Everyone mode a player needs three ballots, two on padel; the
+ * Organizer's one is enough.
+ */
+export function minBallotsFor(
+  mode: RatingWindowMode,
+  sport: "padel" | "football" = "football",
+) {
+  if (mode !== "everyone") {
+    return 1;
+  }
+  return sport === "padel" ? PADEL_MIN_BALLOTS : MIN_BALLOTS;
 }
 
-/** An Organizer's ballot counts twice when everyone rates and the setting is on. */
+/**
+ * An Organizer's ballot counts twice when everyone rates and the setting is
+ * on. On a Match that counts for Temba Level an Operator's or a Level
+ * setter's counts three times instead (ADR-0095).
+ */
 export function raterWeight(args: {
   mode: RatingWindowMode;
   organizerCountsDouble: boolean;
   raterIsOrganizer: boolean;
+  countsForLevel?: boolean;
+  raterRole?: RaterRole | null;
 }) {
+  if (args.countsForLevel && isTrustedRater(args.raterRole)) {
+    return TRUSTED_RATER_WEIGHT;
+  }
   return args.mode === "everyone" &&
     args.organizerCountsDouble &&
     args.raterIsOrganizer
@@ -131,11 +181,39 @@ function isCountedBallot(
   );
 }
 
+export type SettleRules = {
+  mode: RatingWindowMode;
+  /** Defaults to what the mode needs on football. */
+  minBallots?: number;
+  /**
+   * Operators and Level setters: one of their ballots is enough on its own,
+   * and it is never the highest or lowest that is dropped.
+   */
+  trustedRaterIds?: ReadonlySet<string>;
+};
+
+function trimmed(
+  sorted: readonly PerformanceBallot[],
+  trusted: ReadonlySet<string>,
+) {
+  if (sorted.length < TRIM_FROM_BALLOTS) {
+    return sorted;
+  }
+  const droppable = sorted.filter((ballot) => !trusted.has(ballot.raterUserId));
+  if (droppable.length < 2) {
+    return sorted;
+  }
+  const dropped = new Set([droppable[0], droppable[droppable.length - 1]]);
+  return sorted.filter((ballot) => !dropped.has(ballot));
+}
+
 function settleAtWeights(
   ballots: readonly PerformanceBallot[],
   raterWeights: ReadonlyMap<string, number>,
-  mode: RatingWindowMode,
+  rules: SettleRules,
 ): SettledPerformanceRating[] {
+  const minBallots = rules.minBallots ?? minBallotsFor(rules.mode);
+  const trusted = rules.trustedRaterIds ?? new Set<string>();
   const byRatee = new Map<string, PerformanceBallot[]>();
   for (const ballot of ballots) {
     if (!isCountedBallot(ballot, raterWeights)) {
@@ -148,12 +226,13 @@ function settleAtWeights(
 
   const settled: SettledPerformanceRating[] = [];
   for (const [userId, list] of byRatee) {
-    if (list.length < minBallotsFor(mode)) {
+    if (
+      list.length < minBallots &&
+      !list.some((ballot) => trusted.has(ballot.raterUserId))
+    ) {
       continue;
     }
-    const sorted = [...list].sort(byValueThenRater);
-    const counted =
-      sorted.length >= TRIM_FROM_BALLOTS ? sorted.slice(1, -1) : sorted;
+    const counted = trimmed([...list].sort(byValueThenRater), trusted);
     let weighted = 0;
     let weights = 0;
     for (const ballot of counted) {
@@ -224,17 +303,14 @@ function isFar(distance: number | null | undefined) {
 export function outlierRaterIds(
   ballots: readonly PerformanceBallot[],
   raterWeights: ReadonlyMap<string, number>,
-  options: {
-    mode: RatingWindowMode;
-    previousDistances: PreviousRaterDistances;
-  },
+  options: SettleRules & { previousDistances: PreviousRaterDistances },
 ): Set<string> {
   const counted = ballots.filter((ballot) =>
     isCountedBallot(ballot, raterWeights),
   );
   const distances = raterDistances(
     counted,
-    settleAtWeights(counted, raterWeights, options.mode),
+    settleAtWeights(counted, raterWeights, options),
   );
   const outliers = new Set<string>();
   for (const [raterUserId, distance] of distances) {
@@ -258,25 +334,26 @@ export function outlierRaterIds(
  * dropping the highest and the lowest from five ballots up. A player with
  * fewer ballots than the mode needs has no settled rating. A ballot to
  * oneself never counts; a rater missing from `raterWeights` weighs 1. Given
- * the raters' previous distances, an outlier rater's weight is halved.
+ * the raters' previous distances, an outlier rater's weight is halved. One
+ * ballot from an Operator or a Level setter settles a player on its own and
+ * is never dropped.
  */
 export function settlePerformanceRatings(
   ballots: readonly PerformanceBallot[],
   raterWeights: ReadonlyMap<string, number> = new Map(),
-  options: {
-    mode: RatingWindowMode;
-    previousDistances?: PreviousRaterDistances;
-  } = { mode: "everyone" },
+  options: SettleRules & { previousDistances?: PreviousRaterDistances } = {
+    mode: "everyone",
+  },
 ): SettledPerformanceRating[] {
   if (!options.previousDistances) {
-    return settleAtWeights(ballots, raterWeights, options.mode);
+    return settleAtWeights(ballots, raterWeights, options);
   }
   const outliers = outlierRaterIds(ballots, raterWeights, {
-    mode: options.mode,
+    ...options,
     previousDistances: options.previousDistances,
   });
   if (outliers.size === 0) {
-    return settleAtWeights(ballots, raterWeights, options.mode);
+    return settleAtWeights(ballots, raterWeights, options);
   }
   const weights = new Map(raterWeights);
   for (const raterUserId of outliers) {
@@ -285,7 +362,7 @@ export function settlePerformanceRatings(
       (raterWeights.get(raterUserId) ?? 1) * OUTLIER_WEIGHT_FACTOR,
     );
   }
-  return settleAtWeights(ballots, weights, options.mode);
+  return settleAtWeights(ballots, weights, options);
 }
 
 /** The mean settled rating of a Match, or null when nobody was rated. */
@@ -357,6 +434,8 @@ export type RateGamePlayer = {
 };
 
 export type RateGameSheet = {
+  /** Football when left out. A padel Match has no Bibs, roles or MVP star. */
+  sport?: "padel" | "football";
   mode: RatingWindowMode;
   weightPercent: number;
   state: "open" | "settled" | "suspended";
@@ -464,7 +543,8 @@ export type RateGameRow = {
 
 export type RateGameSide = {
   slot: 1 | 2;
-  bib: FootballBib;
+  /** Null on padel, whose sides have no Bib. */
+  bib: FootballBib | null;
   name: string;
   /** Beside the open side's name: the result, or "your side" when everyone rates. */
   aside: string | null;
@@ -488,8 +568,8 @@ export type RateGameView = {
     sport: string;
     groupName: string | null;
     status: string;
-    slot1: { bib: FootballBib; name: string };
-    slot2: { bib: FootballBib; name: string };
+    slot1: { bib: FootballBib | null; name: string };
+    slot2: { bib: FootballBib | null; name: string };
     score: string | null;
     line: string | null;
   };
@@ -593,10 +673,19 @@ export function rateGameView(
   const messages = messagesFor(locale);
   const m = messages.rating.performance;
   const everyone = sheet.mode === "everyone";
-  const names = {
-    slot1: footballBibName(sheet.bibs.slot1, 1, locale),
-    slot2: footballBibName(sheet.bibs.slot2, 2, locale),
-  };
+  const padel = sheet.sport === "padel";
+  const names = padel
+    ? {
+        slot1: formatMatchSlotLabel("friendly_game", 1, locale),
+        slot2: formatMatchSlotLabel("friendly_game", 2, locale),
+      }
+    : {
+        slot1: footballBibName(sheet.bibs.slot1, 1, locale),
+        slot2: footballBibName(sheet.bibs.slot2, 2, locale),
+      };
+  const bibs = padel
+    ? { slot1: null, slot2: null }
+    : { slot1: sheet.bibs.slot1, slot2: sheet.bibs.slot2 };
   const open = sheet.state === "open";
   const firstSlot: 1 | 2 = sheet.viewerSide ?? 1;
   const nameOf = new Map(
@@ -649,7 +738,7 @@ export function rateGameView(
     const ownSide = slot === sheet.viewerSide;
     return {
       slot,
-      bib: slot === 1 ? sheet.bibs.slot1 : sheet.bibs.slot2,
+      bib: slot === 1 ? bibs.slot1 : bibs.slot2,
       name,
       aside: everyone
         ? ownSide
@@ -689,11 +778,11 @@ export function rateGameView(
   return {
     title: m.title,
     hero: {
-      sport: messages.common.football,
+      sport: padel ? messages.common.padel : messages.common.football,
       groupName: sheet.groupName,
       status: m.hero.final,
-      slot1: { bib: sheet.bibs.slot1, name: names.slot1 },
-      slot2: { bib: sheet.bibs.slot2, name: names.slot2 },
+      slot1: { bib: bibs.slot1, name: names.slot1 },
+      slot2: { bib: bibs.slot2, name: names.slot2 },
       score: sheet.score
         ? m.hero.score(sheet.score.slot1, sheet.score.slot2)
         : null,
@@ -716,14 +805,20 @@ export function rateGameView(
           ),
         }
       : null,
-    heading: everyone ? m.everyone.heading : m.heading,
+    heading: padel
+      ? m.padel.heading
+      : everyone
+        ? m.everyone.heading
+        : m.heading,
     headingAside: sides[0]!.ratedLine,
     sides,
-    footnote: everyone
-      ? m.everyone.footnote
-      : sheet.mvp.pickable
-        ? `${m.footnote(sheet.weightPercent)} ${m.footnoteStar}`
-        : m.footnote(sheet.weightPercent),
+    footnote: padel
+      ? m.padel.footnote
+      : everyone
+        ? m.everyone.footnote
+        : sheet.mvp.pickable
+          ? `${m.footnote(sheet.weightPercent)} ${m.footnoteStar}`
+          : m.footnote(sheet.weightPercent),
     footer: everyone
       ? {
           title:
@@ -747,7 +842,9 @@ export function rateGameView(
         },
     notice:
       sheet.state === "settled"
-        ? m.closed
+        ? padel
+          ? m.padel.closed
+          : m.closed
         : sheet.state === "suspended"
           ? m.suspended
           : null,
@@ -771,6 +868,7 @@ export function rateGameEntry(
     state: RatingWindowState;
     closesAt: Date | string;
     viewerMayRate: boolean;
+    sport?: "padel" | "football";
   } | null,
   locale: Locale,
 ) {
@@ -782,7 +880,11 @@ export function rateGameEntry(
   return {
     title: m.title,
     description:
-      window.mode === "organizer" ? m.organizer(closes) : m.everyone(closes),
+      window.sport === "padel"
+        ? m.padel(closes)
+        : window.mode === "organizer"
+          ? m.organizer(closes)
+          : m.everyone(closes),
     cta: m.cta,
   };
 }
@@ -809,8 +911,21 @@ export type PerformanceRatingResultData = {
   mode: RatingWindowMode;
   closesAt: Date | string;
   played: boolean;
+  sport?: "padel" | "football";
   /** The window moves OVR, shown on the Game as "What moved your OVR", not here. */
   countsForLevel?: boolean;
+  /**
+   * On a Match that counts for Temba Level, once the window has settled: the
+   * caller's rating and their Reliability either side of it (ADR-0095).
+   * `before` equals `after` when too few rated them.
+   */
+  reliability?: {
+    ratingHundredths: number | null;
+    ballotsReceived: number;
+    ballotsNeeded: number;
+    before: number;
+    after: number;
+  } | null;
   result: {
     groupName: string | null;
     windowStart: Date | string | null;
@@ -868,6 +983,28 @@ export type PerformanceResultRow = {
 
 export type PerformanceResultView =
   | { kind: "pending"; title: string; description: string }
+  | {
+      /** A Match that counts for Temba Level: the rating and Reliability (ADR-0095). */
+      kind: "reliability";
+      title: string;
+      rating: {
+        value: string;
+        ofTen: string;
+        spoken: string;
+        note: string;
+      } | null;
+      /** Why there is no rating, when too few rated the player. */
+      noRating: string | null;
+      reliability: {
+        title: string;
+        value: string;
+        /** Null when it did not move. */
+        delta: string | null;
+        spoken: string;
+        line: string;
+      };
+      footnote: string;
+    }
   | {
       kind: "settled";
       groupName: string | null;
@@ -1072,6 +1209,49 @@ function mvpView(
   };
 }
 
+function reliabilityView(
+  data: NonNullable<PerformanceRatingResultData["reliability"]>,
+  locale: Locale,
+): PerformanceResultView {
+  const m = messagesFor(locale).rating.performance.result;
+  const copy = m.reliability;
+  const value = formatReliability(data.after);
+  const moved = Math.round(data.after) - Math.round(data.before);
+  const delta = moved === 0 ? null : formatReliabilityDelta(moved);
+  const rating =
+    data.ratingHundredths == null
+      ? null
+      : formatPerformanceRating(data.ratingHundredths);
+  return {
+    kind: "reliability",
+    title: copy.cardTitle,
+    rating: rating
+      ? {
+          value: rating,
+          ofTen: m.rating.ofTen,
+          spoken: m.rating.spoken(rating),
+          note: m.rating.from(data.ballotsReceived),
+        }
+      : null,
+    noRating: rating
+      ? null
+      : data.ballotsReceived === 0
+        ? copy.nobody(data.ballotsNeeded)
+        : copy.tooFew(data.ballotsReceived, data.ballotsNeeded),
+    reliability: {
+      title: copy.title,
+      value,
+      delta,
+      spoken: delta ? copy.spokenMoved(value, delta) : copy.spoken(value),
+      line:
+        Math.round(data.after) >= FULL_RELIABILITY
+          ? copy.full
+          : copy.low(reliabilityLossExtraPercent(data.after)),
+    },
+    footnote: copy.footnote,
+  };
+}
+
 /**
  * The viewer's result card on Game details, or the line that says when it will arrive. While
  * the viewer may still rate, the Rate the game card says when it closes, so
@@ -1101,14 +1281,18 @@ export function performanceResultView(
       description:
         data.mode === "organizer"
           ? pending.organizer(formatRatingWindowClose(data.closesAt, locale))
-          : data.countsForLevel
-            ? pending.everyoneOvr(closesLine(data.closesAt, now, locale))
-            : pending.everyone(closesLine(data.closesAt, now, locale)),
+          : data.sport === "padel"
+            ? pending.everyoneReliability(
+                closesLine(data.closesAt, now, locale),
+              )
+            : data.countsForLevel
+              ? pending.everyoneOvr(closesLine(data.closesAt, now, locale))
+              : pending.everyone(closesLine(data.closesAt, now, locale)),
     };
   }
   const result = data.result;
   if (!result) {
-    return null;
+    return data.reliability ? reliabilityView(data.reliability, locale) : null;
   }
   const copy = m.result;
   const names = {

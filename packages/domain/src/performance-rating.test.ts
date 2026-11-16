@@ -4,7 +4,9 @@ import {
   MIN_BALLOTS,
   ORGANIZER_DOUBLE_WEIGHT,
   OUTLIER_WEIGHT_FACTOR,
+  PADEL_MIN_BALLOTS,
   RATING_WINDOW_HOURS,
+  TRUSTED_RATER_WEIGHT,
   gameAverageRating,
   isPerformanceRatingValue,
   minBallotsFor,
@@ -13,6 +15,7 @@ import {
   performanceResultView,
   performanceScores,
   raterDistances,
+  raterRoleOf,
   raterWeight,
   rateGameDraft,
   rateGameEntry,
@@ -134,6 +137,69 @@ describe("settlePerformanceRatings", () => {
   it("averages the game over the rated players", () => {
     expect(gameAverageRating([])).toBeNull();
     expect(gameAverageRating([{ rating: 7 }, { rating: 6 }])).toBe(6.5);
+  });
+});
+
+describe("an Operator or a Level setter rating (ADR-0095)", () => {
+  it("weighs three times on a Match that counts for Temba Level only", () => {
+    const base = {
+      mode: "everyone" as const,
+      organizerCountsDouble: false,
+      raterIsOrganizer: false,
+    };
+    for (const raterRole of ["operator", "level_setter"] as const) {
+      expect(raterWeight({ ...base, countsForLevel: true, raterRole })).toBe(
+        TRUSTED_RATER_WEIGHT,
+      );
+      expect(raterWeight({ ...base, countsForLevel: false, raterRole })).toBe(
+        1,
+      );
+    }
+    expect(
+      raterWeight({ ...base, countsForLevel: true, raterRole: "player" }),
+    ).toBe(1);
+  });
+
+  it("reads the role from the session flags, Operator first", () => {
+    expect(raterRoleOf({ operator: true, levelSetter: true })).toBe("operator");
+    expect(raterRoleOf({ operator: false, levelSetter: true })).toBe(
+      "level_setter",
+    );
+    expect(raterRoleOf({ operator: false, levelSetter: false })).toBe("player");
+  });
+
+  it("settles a player on one such ballot", () => {
+    const one = ballots("p", [3]);
+    expect(
+      settlePerformanceRatings(one, new Map(), { mode: "everyone" }),
+    ).toEqual([]);
+    expect(
+      settlePerformanceRatings(one, new Map([["rater-0", 3]]), {
+        mode: "everyone",
+        trustedRaterIds: new Set(["rater-0"]),
+      }),
+    ).toEqual([{ userId: "p", rating: 3, ballotsCounted: 1 }]);
+  });
+
+  it("is never the highest or lowest that is dropped", () => {
+    const five = ballots("p", [2, 6, 7, 8, 10]);
+    const [settled] = settlePerformanceRatings(
+      five,
+      new Map([["rater-0", TRUSTED_RATER_WEIGHT]]),
+      { mode: "everyone", trustedRaterIds: new Set(["rater-0"]) },
+    );
+    expect(settled!.ballotsCounted).toBe(3);
+    expect(settled!.rating).toBeCloseTo((3 * 2 + 7 + 8) / 5, 10);
+  });
+
+  it("needs two ballots on padel", () => {
+    expect(minBallotsFor("everyone", "padel")).toBe(PADEL_MIN_BALLOTS);
+    expect(minBallotsFor("organizer", "padel")).toBe(1);
+    const [two] = settlePerformanceRatings(ballots("p", [4, 5]), new Map(), {
+      mode: "everyone",
+      minBallots: PADEL_MIN_BALLOTS,
+    });
+    expect(two).toEqual({ userId: "p", rating: 4.5, ballotsCounted: 2 });
   });
 });
 
@@ -506,6 +572,134 @@ describe("rateGameView when everyone rates (screen 4b)", () => {
     expect(rateGameView(input, blanked, "en", now).footer.title).toBe(
       "Nothing rated yet",
     );
+  });
+});
+
+describe("rateGameView on padel (ADR-0095)", () => {
+  const padel = sheet({
+    sport: "padel",
+    mode: "everyone",
+    weightPercent: 0,
+    score: { slot1: 2, slot2: 0 },
+    viewerIsOrganizer: false,
+  });
+
+  it("names the sides Team A and Team B, with no Bibs", () => {
+    const view = rateGameView(padel, rateGameDraft(padel), "en");
+    expect(view.hero.sport).toBe("Padel");
+    expect(view.hero.slot1).toEqual({ bib: null, name: "Team A" });
+    expect(view.hero.slot2).toEqual({ bib: null, name: "Team B" });
+    expect(view.hero.score).toBe("2–0");
+    expect(view.sides.map((side) => side.bib)).toEqual([null, null]);
+  });
+
+  it("asks about the partner and says what the ratings do", () => {
+    const view = rateGameView(padel, rateGameDraft(padel), "en");
+    expect(view.heading).toBe("Your partner");
+    expect(view.footnote).toBe(
+      "6 is an ordinary game. Ratings do not move a level. Low ratings from several players lower reliability, and a loss then costs more.",
+    );
+  });
+
+  it("opens from a card that speaks of a partner", () => {
+    expect(
+      rateGameEntry(
+        {
+          mode: "everyone",
+          state: "open",
+          closesAt: new Date("2026-11-13T17:30:00Z"),
+          viewerMayRate: true,
+          sport: "padel",
+        },
+        "en",
+      )?.description,
+    ).toBe(
+      "Score your partner and, if you want, your opponents. Nobody sees who gave what. Closes Fri 8:30 PM.",
+    );
+  });
+});
+
+describe("performanceResultView on a Match that counts for Temba Level (ADR-0095)", () => {
+  const settled: PerformanceRatingResultData = {
+    state: "settled",
+    mode: "everyone",
+    closesAt: new Date("2026-11-13T17:30:00Z"),
+    played: true,
+    sport: "padel",
+    countsForLevel: true,
+    reliability: {
+      ratingHundredths: 300,
+      ballotsReceived: 2,
+      ballotsNeeded: 2,
+      before: 100,
+      after: 80,
+    },
+    result: null,
+  };
+
+  it("shows the rating and where it left Reliability", () => {
+    expect(performanceResultView(settled, "en")).toEqual({
+      kind: "reliability",
+      title: "Your rating",
+      rating: {
+        value: "3.0",
+        ofTen: "of 10",
+        spoken: "Rated 3.0 of 10",
+        note: "From 2 ratings.",
+      },
+      noRating: null,
+      reliability: {
+        title: "Reliability",
+        value: "80%",
+        delta: "−20",
+        spoken: "Reliability 80%, −20",
+        line: "Below 100% a loss costs more. At yours, 10% more.",
+      },
+      footnote:
+        "Low ratings from several players lower it. An ordinary game or better brings it back.",
+    });
+  });
+
+  it("says why there is no rating and that Reliability stayed", () => {
+    const view = performanceResultView(
+      {
+        ...settled,
+        reliability: {
+          ratingHundredths: null,
+          ballotsReceived: 1,
+          ballotsNeeded: 2,
+          before: 100,
+          after: 100,
+        },
+      },
+      "en",
+    );
+    expect(view).toMatchObject({
+      kind: "reliability",
+      rating: null,
+      noRating:
+        "Only 1 player rated you, and it takes 2. Your reliability stays where it was.",
+      reliability: {
+        value: "100%",
+        delta: null,
+        line: "At 100% a loss costs only what the result says.",
+      },
+    });
+  });
+
+  it("says when the rating arrives while the window is open", () => {
+    expect(
+      performanceResultView(
+        { ...settled, state: "open", reliability: null },
+        "en",
+        { now: new Date("2026-11-12T18:00:00Z") },
+      ),
+    ).toEqual({
+      kind: "pending",
+      title: "Your rating is on its way",
+      description:
+        "Closes tomorrow, 8:30 PM. Then you see your rating and what it did to your reliability.",
+    });
   });
 });
 

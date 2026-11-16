@@ -4,6 +4,7 @@ import type {
   GAME_PAYMENT_STATUS_VALUES,
   MARK_KIND_VALUES,
   MatchStatusEnum,
+  PERFORMANCE_RATER_ROLE_VALUES,
   RATING_LEVEL_BAND_VALUES,
   WEEKDAY_VALUES,
 } from "@repo/db/schema";
@@ -20,6 +21,7 @@ import type {
 import type { LEVEL_BANDS } from "@repo/domain/level-bands";
 import type { MARK_KINDS } from "@repo/domain/marks";
 import type { MatchStatus } from "@repo/domain/match-status";
+import type { RATER_ROLES } from "@repo/domain/performance-rating";
 
 type Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
@@ -58,6 +60,12 @@ export type DomainEnumParity = [
     Equal<
       (typeof CHALLENGE_TIMINGS)[number],
       (typeof CHALLENGE_TIMING_VALUES)[number]
+    >
+  >,
+  AssertTrue<
+    Equal<
+      (typeof RATER_ROLES)[number],
+      (typeof PERFORMANCE_RATER_ROLE_VALUES)[number]
     >
   >,
 ];

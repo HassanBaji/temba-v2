@@ -28,6 +28,10 @@ import {
   type RatingGlickoState,
 } from "@repo/domain/level";
 import {
+  FULL_RELIABILITY,
+  reliabilityLossFactor,
+} from "@repo/domain/level-reliability";
+import {
   rateDoublesMatch,
   type DoublesOutcome,
 } from "@repo/domain/rate-doubles-match";
@@ -208,10 +212,12 @@ export async function persistRatedUser(args: {
  * Rating window, whose settling moves every seated player's OVR; on a tier
  * Group it moves their Tier points. A padel Group Level is retired
  * (ADR-0066), so a padel Game's group scope moves nothing; its Matches still
- * count in the Standing. Skips when the Match is not a Rated Match (cancelled
- * or Unrated Game, missing sides, not four Users, or four Guest players). A
- * Guest player plays at the mean of the others and is never rated
- * (ADR-0079). Idempotent per User+Match.
+ * count in the Standing. A padel player below full Reliability who lost
+ * moves further, and a padel Friendly game on a Verified Group then opens a
+ * Rating window whose ratings move Reliability (ADR-0095). Skips when the
+ * Match is not a Rated Match (cancelled or Unrated Game, missing sides, not
+ * four Users, or four Guest players). A Guest player plays at the mean of
+ * the others and is never rated (ADR-0079). Idempotent per User+Match.
  */
 export async function applyRatedMatch(
   database: DbClient,
@@ -230,6 +236,7 @@ export async function applyRatedMatch(
       groupId: true,
       isPublic: true,
       sport: true,
+      format: true,
       rated: true,
       groupRated: true,
     },
@@ -295,6 +302,7 @@ export async function applyRatedMatch(
     return;
   }
 
+  const now = new Date();
   await applyTembaRatedMatch(database, {
     game: liveGame,
     sport: ratingSportFromGame(liveGame.sport),
@@ -302,8 +310,20 @@ export async function applyRatedMatch(
     slots,
     guestIds,
     result,
-    now: new Date(),
+    now,
   });
+  // A padel Friendly game on a Verified Group asks its four players to rate
+  // each other. The Level has already moved; the ratings move Reliability
+  // when the window settles (ADR-0095).
+  if (liveGame.groupId && liveGame.format === "friendly_game") {
+    await openRatingWindow(database, {
+      game: { ...game, groupId: liveGame.groupId },
+      matchId: match.id,
+      now,
+      countsForLevel: true,
+      sport: "padel",
+    });
+  }
 }
 
 /**
@@ -350,6 +370,9 @@ async function applyTembaRatedMatch(
   const playerInput = withGuestStandIns(userIds, guestIds, (userId) => ({
     state: snapshotState(rowByUser.get(userId)),
     lastRatedAt: rowByUser.get(userId)?.lastRatedAt,
+    lossFactor: reliabilityLossFactor(
+      rowByUser.get(userId)?.reliability ?? FULL_RELIABILITY,
+    ),
   }));
   const rated = rateDoublesMatch({
     slot1: [playerInput(slots.slot1[0]), playerInput(slots.slot1[1])],
@@ -372,7 +395,7 @@ async function applyTembaRatedMatch(
       continue;
     }
 
-    const { before, after, score, levelBand } = player;
+    const { before, after, score, levelBand, reliabilityPart } = player;
 
     try {
       const [inserted] = await database
@@ -391,6 +414,7 @@ async function applyTembaRatedMatch(
           sigmaAfter: after.sigma,
           levelBandBefore: playerInput(player.userId).state.levelBand,
           lastRatedAtBefore: rowByUser.get(player.userId)?.lastRatedAt ?? null,
+          reliabilityPart: reliabilityPart === 0 ? null : reliabilityPart,
           createdAt: now,
         })
         .onConflictDoNothing({

@@ -98,6 +98,8 @@ export const rating = {
       noLevel: "لا يوجد مستوى بعد",
       noLevelFootball: "العب مباراة تُحتسب لمستوى Temba لتحصل على OVR.",
       noLevelPadel: "العب مباراة تُحتسب لمستوى Temba لتحصل على مستوى.",
+      reliability: (value: string, extra: number) =>
+        `الموثوقية ${isolate(value)}: الخسارة أغلى بنسبة ${isolate(`${extra}%`)} إلى أن يقيّمك اللاعبون بمباراة عادية أو أفضل.`,
       noteFootball:
         "مدى جودتك، في المباريات الموثّقة فقط. يمتد OVR من 40 إلى 99 ولا يُعاد ضبطه أبدًا.",
       notePadel:
@@ -191,6 +193,8 @@ export const rating = {
     mvpYou: "اختارك اللاعبون نجمًا للمباراة",
     mvpOther: "ليس هذه المرة. الأوسمة الأخرى لا تحرّك OVR",
     mvpNone: "لم يُصوَّت لنجم المباراة. وحده النجم المختار بالتصويت يحرّك OVR",
+    reliability: "الموثوقية",
+    reliabilityLine: "كانت موثوقيتك تحت 100%، فصارت الخسارة أغلى",
     heldAt: (bound: string) => `ثابت عند ${isolate(bound)}`,
     heldFloor: (bound: string) =>
       `لا ينزل OVR عن ${isolate(bound)}، لذا لم يُخصم باقي هذا الهبوط`,
@@ -566,7 +570,18 @@ export const rating = {
         `امنح كل لاعب من 1 إلى 10. يُغلق ${isolate(closes)}، وبعدها تتحرّك النقاط بالنتيجة وحدها.`,
       everyone: (closes: string) =>
         `قيّم زملاءك، والخصوم إن أردت. لا أحد يرى من أعطى ماذا. يُغلق ${isolate(closes)}.`,
+      padel: (closes: string) =>
+        `قيّم شريكك، والخصوم إن أردت. لا أحد يرى من أعطى ماذا. يُغلق ${isolate(closes)}.`,
       cta: "قيّم",
+    },
+    padel: {
+      heading: "شريكك",
+      footnote:
+        "6 مباراة عادية. التقييمات لا تحرّك المستوى. التقييمات المنخفضة من عدّة لاعبين تُنزل الموثوقية، فتصير الخسارة أغلى.",
+      closed: {
+        title: "أُغلقت التقييمات",
+        description: "وصلت تقييمات هذه المباراة. لا شيء آخر لتقييمه.",
+      },
     },
     hero: {
       final: "نهائية",
@@ -661,6 +676,8 @@ export const rating = {
           `${closes}. بعدها ترى تقييمك وما فعله بنقاط فئتك.`,
         everyoneOvr: (closes: string) =>
           `${closes}. بعدها ترى تقييمك وما الذي حرّك OVR الخاص بك.`,
+        everyoneReliability: (closes: string) =>
+          `${closes}. بعدها ترى تقييمك وما فعله بموثوقيتك.`,
         organizer: (closes: string) =>
           `المنظّم يقيّم الجميع. ترى تقييمك وما فعله بنقاط فئتك حين يرسل تقييماته، وفي موعد أقصاه ${isolate(closes)}.`,
       },
@@ -711,6 +728,29 @@ export const rating = {
           `الأداء ${isolate(`${weight}%`)} من الحركة في هذه المجموعة`,
         spoken: (title: string, delta: string, count: number) =>
           `${title}، ${pointsMoved(delta, count)}`,
+      },
+      reliability: {
+        cardTitle: "تقييمك",
+        title: "الموثوقية",
+        spoken: (value: string) => `الموثوقية ${isolate(value)}`,
+        spokenMoved: (value: string, delta: string) =>
+          `الموثوقية ${isolate(value)}، ${isolate(delta)}`,
+        full: "عند 100% تكلّفك الخسارة ما تقوله النتيجة فقط.",
+        low: (extra: number) =>
+          `تحت 100% تصير الخسارة أغلى. عند موثوقيتك أغلى بنسبة ${isolate(`${extra}%`)}.`,
+        nobody: (min: number) =>
+          `لم يقيّمك أحد، ويلزم ${min}. تبقى موثوقيتك كما كانت.`,
+        tooFew: (n: number, min: number) =>
+          plural("ar", n, {
+            zero: `لم يقيّمك أحد، ويلزم ${min}. تبقى موثوقيتك كما كانت.`,
+            one: `قيّمك لاعب واحد فقط، ويلزم ${min}. تبقى موثوقيتك كما كانت.`,
+            two: `قيّمك لاعبان فقط، ويلزم ${min}. تبقى موثوقيتك كما كانت.`,
+            few: `قيّمك {n} لاعبين فقط، ويلزم ${min}. تبقى موثوقيتك كما كانت.`,
+            many: `قيّمك {n} لاعبًا فقط، ويلزم ${min}. تبقى موثوقيتك كما كانت.`,
+            other: `قيّمك {n} لاعب فقط، ويلزم ${min}. تبقى موثوقيتك كما كانت.`,
+          }),
+        footnote:
+          "التقييمات المنخفضة من عدّة لاعبين تُنزلها. مباراة عادية أو أفضل تعيدها.",
       },
       noRating: {
         organizerRated: "قيّمت هذه المباراة، فتحرّكت نقاطك على النتيجة وحدها.",
