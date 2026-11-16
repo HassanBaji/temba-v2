@@ -17,6 +17,7 @@ import {
   gameRates,
   gameRatesGroup,
 } from "@repo/domain/game-rating-eligibility";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { applyTierMatch } from "#src/ratings/apply-tier-match";
 import {
   notifyLevelConfirmed,
@@ -219,8 +220,9 @@ export async function persistRatedUser(args: {
  * Group it moves their Tier points. A padel Group Level is retired
  * (ADR-0066), so a padel Game's group scope moves nothing; its Matches still
  * count in the Standing. A padel player below full Reliability who lost
- * moves further, and a padel Friendly game on a Verified Group then opens a
- * Rating window whose ratings move Reliability (ADR-0095). A padel player
+ * moves further, and a padel Friendly game on a Verified Group or a padel
+ * Public Game then opens a Rating window whose ratings move Reliability
+ * (ADR-0095) and whose Level check moves the Level (ADR-0099). A padel player
  * who declared C or above and whose Level is not yet confirmed moves further
  * on a lost Match against a pair at about their level (ADR-0097). Skips when
  * the Match is not a Rated Match (cancelled or Unrated Game, missing sides,
@@ -320,10 +322,15 @@ export async function applyRatedMatch(
     result,
     now,
   });
-  // A padel Friendly game on a Verified Group asks its four players to rate
-  // each other. The Level has already moved; the ratings move Reliability
-  // when the window settles (ADR-0095).
-  if (liveGame.groupId && liveGame.format === "friendly_game") {
+  // A padel Friendly game on a Verified Group, or a Public Game whose score
+  // both sides confirmed, asks its four players to rate each other and check
+  // each other's Level. The Level has already moved; the ratings move
+  // Reliability and the Level check moves the Level again when the window
+  // settles (ADR-0095, ADR-0099).
+  if (
+    liveGame.format === "friendly_game" &&
+    (liveGame.groupId || isPublicGame(liveGame))
+  ) {
     await openRatingWindow(database, {
       game: { ...game, groupId: liveGame.groupId },
       matchId: match.id,

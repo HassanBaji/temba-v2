@@ -43,9 +43,9 @@ type SidedMatch = Pick<
 
 /**
  * A Rating window asks the Level check when it is a padel window that counts
- * for Temba Level: today a padel Friendly game on a Verified Group (ADR-0095).
- * Football windows, tier Groups, tournaments and Challenge Games open no such
- * window.
+ * for Temba Level: a padel Friendly game on a Verified Group (ADR-0095) or a
+ * padel Public Game whose score both sides confirmed. Football windows, tier
+ * Groups, tournaments and Challenge Games open no such window.
  */
 export function levelCheckAsked(
   window: { countsForLevel: boolean },

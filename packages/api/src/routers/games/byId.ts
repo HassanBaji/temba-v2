@@ -1087,7 +1087,7 @@ export async function gameById(
 
   // A football Match's Rating window (ADR-0068), settled here when its Job
   // is late, before the move it writes is read. A padel Friendly game on a
-  // Verified Group has one too (ADR-0095).
+  // Verified Group and a padel Public Game have one too (ADR-0095).
   const footballMatchRow = isFootballGame(game)
     ? matchRows.find((match) => match.status !== MatchStatusEnum.CANCELLED)
     : undefined;

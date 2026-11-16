@@ -94,10 +94,10 @@ export type MatchRatingWindow = typeof matchRatingWindows.$inferSelect;
  * the settings, so a later change applies from the next Game. A Match that
  * counts for Temba Level always opens one, in Everyone mode at OVR's fixed
  * weight, and its OVR move waits for it (ADR-0069). A padel Friendly game on
- * a Verified Group opens one too, at no weight: its Level has moved, and the
- * ratings move Reliability (ADR-0095). A window a wrong-score
- * report suspended reopens for a fresh 24 hours with its snapshot and its
- * ballots. The Organizers, or when everyone rates every seated account
+ * a Verified Group or a padel Public Game opens one too, at no weight: its
+ * Level has moved, and the ratings move Reliability (ADR-0095). A window a
+ * wrong-score report suspended reopens for a fresh 24 hours with its snapshot
+ * and its ballots. The Organizers, or when everyone rates every seated account
  * holder, are asked to rate. Returns whether the Match has a window.
  */
 export async function openRatingWindow(
