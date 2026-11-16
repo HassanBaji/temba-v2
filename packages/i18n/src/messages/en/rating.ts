@@ -65,6 +65,8 @@ export const rating = {
       noLevel: "No level yet",
       noLevelFootball: "Play a game that counts for Temba Level to get an OVR.",
       noLevelPadel: "Play a match that counts for Temba Level to get a Level.",
+      reliability: (value: string, extra: number) =>
+        `Reliability ${value}: a loss costs ${extra}% more until players rate you an ordinary game or better.`,
       noteFootball:
         "How good you are, on verified matches only. OVR runs 40 to 99 and never resets.",
       notePadel:
@@ -138,6 +140,8 @@ export const rating = {
     mvpYou: "Voted MVP by the players",
     mvpOther: "Not this time. Other marks don’t move OVR",
     mvpNone: "No MVP was voted. Only a voted MVP moves OVR",
+    reliability: "Reliability",
+    reliabilityLine: "Yours was below 100%, so the loss cost more",
     heldAt: (bound: string) => `Held at ${bound}`,
     heldFloor: (bound: string) =>
       `OVR does not go below ${bound}, so the rest of this drop was not taken`,
@@ -488,7 +492,18 @@ export const rating = {
         `Score everyone 1 to 10. Closes ${closes}, then points move on the result alone.`,
       everyone: (closes: string) =>
         `Score your teammates and, if you want, opponents. Nobody sees who gave what. Closes ${closes}.`,
+      padel: (closes: string) =>
+        `Score your partner and, if you want, your opponents. Nobody sees who gave what. Closes ${closes}.`,
       cta: "Rate",
+    },
+    padel: {
+      heading: "Your partner",
+      footnote:
+        "6 is an ordinary game. Ratings do not move a level. Low ratings from several players lower reliability, and a loss then costs more.",
+      closed: {
+        title: "Ratings are closed",
+        description: "This game’s ratings are in. Nothing more to rate.",
+      },
     },
     hero: {
       final: "Final",
@@ -578,6 +593,8 @@ export const rating = {
           `${closes}. Then you see your rating and what it did to your tier points.`,
         everyoneOvr: (closes: string) =>
           `${closes}. Then you see your rating and what moved your OVR.`,
+        everyoneReliability: (closes: string) =>
+          `${closes}. Then you see your rating and what it did to your reliability.`,
         organizer: (closes: string) =>
           `The organizer rates everyone. You see your rating and what it did to your tier points once they submit, by ${closes} at the latest.`,
       },
@@ -623,6 +640,25 @@ export const rating = {
           `Performance counts for ${weight}% in this group`,
         spoken: (title: string, delta: string, count: number) =>
           `${title}, ${pointsCount(delta, count)}`,
+      },
+      reliability: {
+        cardTitle: "Your rating",
+        title: "Reliability",
+        spoken: (value: string) => `Reliability ${value}`,
+        spokenMoved: (value: string, delta: string) =>
+          `Reliability ${value}, ${delta}`,
+        full: "At 100% a loss costs only what the result says.",
+        low: (extra: number) =>
+          `Below 100% a loss costs more. At yours, ${extra}% more.`,
+        nobody: (min: number) =>
+          `Nobody rated you, and it takes ${min}. Your reliability stays where it was.`,
+        tooFew: (n: number, min: number) =>
+          plural("en", n, {
+            one: `Only 1 player rated you, and it takes ${min}. Your reliability stays where it was.`,
+            other: `Only {n} players rated you, and it takes ${min}. Your reliability stays where it was.`,
+          }),
+        footnote:
+          "Low ratings from several players lower it. An ordinary game or better brings it back.",
       },
       noRating: {
         organizerRated:

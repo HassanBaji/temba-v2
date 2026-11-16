@@ -22,6 +22,7 @@ import { ImpactRow } from "./impact-row";
 
 type RatingWindow = RouterOutputs["games"]["byId"]["ratingWindow"];
 type SettledView = Extract<PerformanceResultView, { kind: "settled" }>;
+type ReliabilityView = Extract<PerformanceResultView, { kind: "reliability" }>;
 
 const MVP_TILE = 36;
 const MVP_ICON = 16;
@@ -29,7 +30,8 @@ const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
 /**
  * On a played Game, once the Rating window closes: the viewer's rating and
- * what it did to their tier points; before that, when it arrives.
+ * what it did to their tier points, or on a Match that counts for Temba Level
+ * to their Reliability; before that, when it arrives.
  */
 export function PerformanceResultCard({
   gameId,
@@ -74,7 +76,66 @@ export function PerformanceResultCard({
       </Surface>
     );
   }
+  if (view.kind === "reliability") {
+    return <ReliabilityResult view={view} />;
+  }
   return <SettledResult view={view} />;
+}
+
+function ReliabilityResult({ view }: { view: ReliabilityView }) {
+  return (
+    <Surface style={{ gap: 10 }}>
+      <Text size="meta" tone="muted" accessibilityRole="header">
+        {view.title}
+      </Text>
+      {view.rating ? (
+        <>
+          <View
+            accessible
+            accessibilityLabel={view.rating.spoken}
+            style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}
+          >
+            <Text size="record" weight="bold" width="expanded">
+              {view.rating.value}
+            </Text>
+            <Text tone="muted">{view.rating.ofTen}</Text>
+          </View>
+          <Text size="meta" tone="muted">
+            {view.rating.note}
+          </Text>
+        </>
+      ) : (
+        <Text size="meta">{view.noRating}</Text>
+      )}
+      <Hairline />
+      <View
+        accessible
+        accessibilityLabel={view.reliability.spoken}
+        style={{
+          flexDirection: "row",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <Text weight="semibold">{view.reliability.title}</Text>
+        <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
+          {view.reliability.delta ? (
+            <Text size="meta" tone="muted">
+              {view.reliability.delta}
+            </Text>
+          ) : null}
+          <Text weight="semibold">{view.reliability.value}</Text>
+        </View>
+      </View>
+      <Text size="meta" tone="muted">
+        {view.reliability.line}
+      </Text>
+      <Text size="meta" tone="muted">
+        {view.footnote}
+      </Text>
+    </Surface>
+  );
 }
 
 function SettledResult({ view }: { view: SettledView }) {

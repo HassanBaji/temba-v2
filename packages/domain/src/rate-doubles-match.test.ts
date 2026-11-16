@@ -224,3 +224,56 @@ describe("rateDoublesMatch", () => {
     );
   });
 });
+
+describe("rateDoublesMatch with low Reliability (ADR-0095)", () => {
+  const even = (lossFactor?: number): DoublesPlayerInput => ({
+    ...player(1500, 150),
+    lossFactor,
+  });
+
+  it("moves a loser further and leaves a winner alone", () => {
+    const plain = rateDoublesMatch({
+      slot1: [even(), even()],
+      slot2: [even(), even()],
+      outcome: "slot1",
+      weight: 1,
+      now,
+    });
+    const low = rateDoublesMatch({
+      slot1: [even(1.5), even()],
+      slot2: [even(1.5), even()],
+      outcome: "slot1",
+      weight: 1,
+      now,
+    });
+
+    expect(low.slot1[0].after.mu).toBe(plain.slot1[0].after.mu);
+    expect(low.slot1[0].reliabilityPart).toBe(0);
+
+    const plainLoss = plain.slot2[0].after.mu - plain.slot2[0].before.mu;
+    const lowLoss = low.slot2[0].after.mu - low.slot2[0].before.mu;
+    expect(plainLoss).toBeLessThan(0);
+    expect(lowLoss).toBeCloseTo(plainLoss * 1.5, 8);
+    expect(low.slot2[0].reliabilityPart).toBeCloseTo(plainLoss * 0.5, 8);
+    expect(low.slot2[1].after.mu).toBe(plain.slot2[1].after.mu);
+    expect(low.slot2[0].after.phi).toBe(plain.slot2[0].after.phi);
+  });
+
+  it("never softens a loss", () => {
+    const plain = rateDoublesMatch({
+      slot1: [even(), even()],
+      slot2: [even(), even()],
+      outcome: "slot1",
+      weight: 1,
+      now,
+    });
+    const odd = rateDoublesMatch({
+      slot1: [even(), even()],
+      slot2: [even(0.2), even()],
+      outcome: "slot1",
+      weight: 1,
+      now,
+    });
+    expect(odd.slot2[0].after.mu).toBe(plain.slot2[0].after.mu);
+  });
+});

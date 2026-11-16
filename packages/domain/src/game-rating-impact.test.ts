@@ -301,6 +301,41 @@ describe("ovrImpactView", () => {
     assert.equal(view.footnote, null);
   });
 
+  it("adds a row for what low Reliability made a loss cost (ADR-0095)", () => {
+    const view = ovrImpactView(
+      {
+        ...resultOnly,
+        ovr: {
+          ...resultOnly.ovr,
+          before: 74.2,
+          after: 73.3,
+          resultPart: -0.6,
+          outcome: "lost" as const,
+          parts: {
+            result: -0.6,
+            performance: null,
+            goals: null,
+            mvp: null,
+            reliability: -0.3,
+          },
+        },
+      },
+      "en",
+    );
+    assert.deepEqual(
+      view.rows.map((row) => [row.title, row.delta]),
+      [
+        ["Result 40%", "−0.6"],
+        ["Reliability", "−0.3"],
+      ],
+    );
+    assert.equal(
+      view.rows[1]?.detail,
+      "Yours was below 100%, so the loss cost more",
+    );
+    assert.equal(view.total.delta, "−0.9");
+  });
+
   it("says where the move left the OVR, never a band", () => {
     assert.equal(
       ovrImpactView(resultOnly, "en").total.detail,

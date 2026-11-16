@@ -78,6 +78,16 @@ export type NotificationItem = {
     /** The settled Performance rating, in hundredths; null without one. */
     ratingHundredths: number | null;
   } | null;
+  /**
+   * The settled rating and the Reliability either side of it that a
+   * ratings-closed Notification is about on a padel Match (ADR-0095); null on
+   * football, and once it is reversed.
+   */
+  reliabilityMove: {
+    before: number;
+    after: number;
+    ratingHundredths: number;
+  } | null;
   /** The Place award a King of the court Notification is about (ADR-0089). */
   placeAward: {
     finalPlace: number;
@@ -169,6 +179,55 @@ async function levelRatingsClosedMoves(
         after: ovrFromMu(event.muAfter),
         ratingHundredths:
           ratingOf.get(key(event.userId, event.matchId)) ?? null,
+      });
+    }
+  }
+  return (userId: string, matchId: string) =>
+    moves.get(key(userId, matchId)) ?? null;
+}
+
+/**
+ * Each User's settled rating and Reliability step on each Match, read from
+ * the Match's results: what a ratings-closed Notification says on a padel
+ * Match. A reversed Match has none.
+ */
+async function reliabilityRatingsClosedMoves(
+  database: DbClient,
+  pairs: readonly { userId: string; matchId: string }[],
+) {
+  const moves = new Map<
+    string,
+    NonNullable<NotificationItem["reliabilityMove"]>
+  >();
+  const key = (userId: string, matchId: string) => `${userId}:${matchId}`;
+  if (pairs.length > 0) {
+    const results = await database
+      .select({
+        userId: performanceRatingResults.userId,
+        matchId: performanceRatingResults.matchId,
+        ratingHundredths: performanceRatingResults.ratingHundredths,
+        reliabilityBefore: performanceRatingResults.reliabilityBefore,
+        reliabilityAfter: performanceRatingResults.reliabilityAfter,
+      })
+      .from(performanceRatingResults)
+      .where(
+        and(
+          inArray(performanceRatingResults.userId, [
+            ...new Set(pairs.map((pair) => pair.userId)),
+          ]),
+          inArray(performanceRatingResults.matchId, [
+            ...new Set(pairs.map((pair) => pair.matchId)),
+          ]),
+        ),
+      );
+    for (const row of results) {
+      if (row.reliabilityBefore == null || row.reliabilityAfter == null) {
+        continue;
+      }
+      moves.set(key(row.userId, row.matchId), {
+        before: row.reliabilityBefore,
+        after: row.reliabilityAfter,
+        ratingHundredths: row.ratingHundredths,
       });
     }
   }
@@ -296,6 +355,18 @@ export async function loadNotificationItems(
     ),
   );
 
+  const reliabilityMoveOf = await reliabilityRatingsClosedMoves(
+    database,
+    rows.flatMap((row) =>
+      row.type === "performance_ratings_closed" && row.game?.sport === "padel"
+        ? row.game.matches.map((match) => ({
+            userId: row.recipientUserId,
+            matchId: match.id,
+          }))
+        : [],
+    ),
+  );
+
   const placeAwardOf = await placeAwardsOf(
     database,
     rows.flatMap((row) =>
@@ -348,6 +419,13 @@ export async function loadNotificationItems(
           item.type === "performance_ratings_closed" && game && !groupTierEvent
             ? (game.matches.flatMap((match) => {
                 const move = ovrMoveOf(recipientUserId, match.id);
+                return move ? [move] : [];
+              })[0] ?? null)
+            : null,
+        reliabilityMove:
+          item.type === "performance_ratings_closed" && game?.sport === "padel"
+            ? (game.matches.flatMap((match) => {
+                const move = reliabilityMoveOf(recipientUserId, match.id);
                 return move ? [move] : [];
               })[0] ?? null)
             : null,

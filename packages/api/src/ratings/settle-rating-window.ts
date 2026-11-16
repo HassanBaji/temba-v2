@@ -2,6 +2,7 @@ import {
   and,
   desc,
   eq,
+  gt,
   inArray,
   isNotNull,
   lt,
@@ -16,6 +17,7 @@ import {
   games,
   groupTierEvents,
   groups,
+  levelOverrides,
   matchGoals,
   matchRatingWindows,
   matchSets,
@@ -23,17 +25,26 @@ import {
   performanceRatingResults,
   performanceRatings,
   ratingEvents,
+  ratings,
 } from "@repo/db";
 
 import { footballGoalsRole, OVR_PART_WEIGHTS } from "@repo/domain/football-ovr";
 import { gameRates } from "@repo/domain/game-rating-eligibility";
+import { tembaLevelView } from "@repo/domain/level";
+import {
+  clampReliability,
+  reliabilityStep,
+} from "@repo/domain/level-reliability";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import {
   fromHundredths,
   gameAverageRating,
+  isTrustedRater,
+  minBallotsFor,
   performanceScores,
   raterWeight,
   ratingWindowClosesAt,
+  ratingWindowHoldsMove,
   ratingWindowState,
   raterDistances,
   settlePerformanceRatings,
@@ -43,6 +54,7 @@ import {
   USUAL_RECENT_GAMES,
   type PerformanceBallot,
   type PreviousRaterDistances,
+  type SettledPerformanceRating,
 } from "@repo/domain/performance-rating";
 
 import { type db } from "#src/db";
@@ -63,6 +75,7 @@ import {
   type TierPerformance,
 } from "#src/ratings/apply-tier-match";
 import { ratingWeightForGame } from "#src/ratings/game-rating-weight";
+import { padelConfirmations } from "#src/ratings/level-confirmed";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -74,7 +87,9 @@ export type MatchRatingWindow = typeof matchRatingWindows.$inferSelect;
  * points move: the move waits for the window to settle. The window snapshots
  * the settings, so a later change applies from the next Game. A Match that
  * counts for Temba Level always opens one, in Everyone mode at OVR's fixed
- * weight, and its OVR move waits for it (ADR-0069). A window a wrong-score
+ * weight, and its OVR move waits for it (ADR-0069). A padel Friendly game on
+ * a Verified Group opens one too, at no weight: its Level has moved, and the
+ * ratings move Reliability (ADR-0095). A window a wrong-score
  * report suspended reopens for a fresh 24 hours with its snapshot and its
  * ballots. The Organizers, or when everyone rates every seated account
  * holder, are asked to rate. Returns whether the Match has a window.
@@ -86,6 +101,7 @@ export async function openRatingWindow(
     matchId: string;
     now: Date;
     countsForLevel?: boolean;
+    sport?: "padel" | "football";
   },
 ): Promise<boolean> {
   const countsForLevel = args.countsForLevel ?? false;
@@ -118,7 +134,10 @@ export async function openRatingWindow(
         matchId: args.matchId,
         closesAt,
         mode: "everyone",
-        weightPercent: Math.round(OVR_PART_WEIGHTS.performance * 100),
+        weightPercent:
+          args.sport === "padel"
+            ? 0
+            : Math.round(OVR_PART_WEIGHTS.performance * 100),
         organizerCountsDouble: false,
         countsForLevel: true,
         createdAt: args.now,
@@ -243,7 +262,9 @@ async function pastLevelRatings(
 /**
  * The ballots a Rating window counts and each rater's weight: from a seated
  * player when everyone rates, from an Organizer of the Game when the
- * Organizer rates, about a seated player.
+ * Organizer rates, about a seated player. On a Match that counts for Temba
+ * Level an Operator's or a Level setter's ballot weighs more, and `trusted`
+ * names those raters (ADR-0095).
  */
 export async function countedBallots(
   database: DbClient,
@@ -253,12 +274,16 @@ export async function countedBallots(
       "id" | "slot1GameTeamId" | "slot2GameTeamId"
     >;
     game: Pick<GameRow, "id" | "groupId" | "createdBy" | "challengeId">;
-    window: Pick<MatchRatingWindow, "mode" | "organizerCountsDouble">;
+    window: Pick<
+      MatchRatingWindow,
+      "mode" | "organizerCountsDouble" | "countsForLevel"
+    >;
   },
 ): Promise<{
   ballots: PerformanceBallot[];
   weights: Map<string, number>;
   raters: Set<string>;
+  trusted: Set<string>;
 }> {
   const { match, window } = args;
   const mode = window.mode === "organizer" ? "organizer" : "everyone";
@@ -277,6 +302,7 @@ export async function countedBallots(
         raterUserId: performanceRatings.raterUserId,
         rateeUserId: performanceRatings.rateeUserId,
         value: performanceRatings.value,
+        raterRole: performanceRatings.raterRole,
       })
       .from(performanceRatings)
       .where(eq(performanceRatings.matchId, match.id))
@@ -288,6 +314,10 @@ export async function countedBallots(
         : organizerIds.has(ballot.raterUserId)),
   );
   const raters = new Set(ballots.map((ballot) => ballot.raterUserId));
+  // A rater's ballots on one Match are written together, so they share a role.
+  const roleOf = new Map(
+    ballots.map((ballot) => [ballot.raterUserId, ballot.raterRole]),
+  );
   const weights = new Map(
     [...raters].map((raterUserId) => [
       raterUserId,
@@ -295,10 +325,28 @@ export async function countedBallots(
         mode,
         organizerCountsDouble: window.organizerCountsDouble,
         raterIsOrganizer: organizerIds.has(raterUserId),
+        countsForLevel: window.countsForLevel,
+        raterRole: roleOf.get(raterUserId),
       }),
     ]),
   );
-  return { ballots, weights, raters };
+  const trusted = new Set(
+    window.countsForLevel
+      ? [...raters].filter((raterUserId) =>
+          isTrustedRater(roleOf.get(raterUserId)),
+        )
+      : [],
+  );
+  return {
+    ballots: ballots.map(({ raterUserId, rateeUserId, value }) => ({
+      raterUserId,
+      rateeUserId,
+      value,
+    })),
+    weights,
+    raters,
+    trusted,
+  };
 }
 
 /**
@@ -451,8 +499,11 @@ async function applySettledLevelMatch(
  * Level the OVR move with all four parts. In Organizer mode the Organizers
  * who rated move on the result alone, and only an Organizer's ballots count.
  * A player nobody rated, or with fewer ballots than the mode needs, has no
- * performance part. The MVP closes with the window, whichever ladder it
- * moves. Idempotent on `settled_at`; a suspended window waits for
+ * performance part. On a Match that counts for Temba Level each settled
+ * rating then moves the player's Reliability (ADR-0095); a padel Match's
+ * Level moved at completion, so that is all its window does. The MVP closes
+ * with a window that holds a move, whichever ladder it moves. Idempotent on `settled_at`; a
+ * suspended window waits for
  * the next completion. Without `force` it settles only once `closes_at` has
  * passed. Returns whether this call settled it.
  */
@@ -499,6 +550,7 @@ export async function settleRatingWindow(
       challengeId: true,
       rated: true,
       cancelledAt: true,
+      sport: true,
     },
   });
   if (!game || (!window.countsForLevel && !game.groupId)) {
@@ -506,7 +558,7 @@ export async function settleRatingWindow(
   }
   const groupId = game.groupId;
   const mode = window.mode;
-  const { ballots, weights, raters } = await countedBallots(database, {
+  const { ballots, weights, raters, trusted } = await countedBallots(database, {
     match,
     game,
     window,
@@ -518,6 +570,8 @@ export async function settleRatingWindow(
   });
   const settled = settlePerformanceRatings(ballots, weights, {
     mode,
+    minBallots: minBallotsFor(mode, game.sport),
+    trustedRaterIds: trusted,
     previousDistances,
   }).filter((row) => mode === "everyone" || !raters.has(row.userId));
   const average = gameAverageRating(settled);
@@ -568,7 +622,11 @@ export async function settleRatingWindow(
   });
   const outcome = matchOutcome(sets);
   if (window.countsForLevel) {
-    if (outcome.result !== "none" && gameRates(game)) {
+    if (
+      game.sport === "football" &&
+      outcome.result !== "none" &&
+      gameRates(game)
+    ) {
       await applySettledLevelMatch(database, {
         game,
         matchId,
@@ -580,6 +638,12 @@ export async function settleRatingWindow(
         now,
       });
     }
+    await applyReliability(database, {
+      matchId,
+      sport: game.sport,
+      settled,
+      now,
+    });
   } else if (outcome.result !== "none" && groupId) {
     await applyTierMatch(database, {
       groupId,
@@ -597,8 +661,16 @@ export async function settleRatingWindow(
     .update(matchRatingWindows)
     .set({ settledAt: now, updatedAt: now })
     .where(eq(matchRatingWindows.matchId, matchId));
-  await settleMvp(database, game.id, now);
-  if (window.countsForLevel) {
+  if (ratingWindowHoldsMove(window)) {
+    await settleMvp(database, game.id, now);
+  }
+  if (window.countsForLevel && game.sport === "padel") {
+    await notifyReliabilityRatingsClosed(database, {
+      match,
+      gameId: game.id,
+      groupId,
+    });
+  } else if (window.countsForLevel) {
     await notifyLevelRatingsClosed(database, {
       match,
       gameId: game.id,
@@ -608,6 +680,168 @@ export async function settleRatingWindow(
     await notifyRatingsClosed(database, { match, gameId: game.id, groupId });
   }
   return true;
+}
+
+/**
+ * Moves each rated player's Reliability by their settled rating (ADR-0095)
+ * and keeps both sides of the step on their result, so a wrong-score report
+ * can take it back. A Provisional player, as they stand once the Match has
+ * moved their Level, moves twice as far. A player with no Rating in the
+ * sport, such as a Guest player, has no Reliability to move.
+ */
+async function applyReliability(
+  database: DbClient,
+  args: {
+    matchId: string;
+    sport: "padel" | "football";
+    settled: readonly SettledPerformanceRating[];
+    now: Date;
+  },
+) {
+  const userIds = args.settled.map((row) => row.userId);
+  if (userIds.length === 0) {
+    return;
+  }
+  const rows = await database
+    .select()
+    .from(ratings)
+    .where(and(inArray(ratings.userId, userIds), eq(ratings.sport, args.sport)))
+    .orderBy(ratings.userId)
+    .for("update");
+  const rowByUser = new Map(rows.map((row) => [row.userId, row]));
+  const confirmationOf = await padelConfirmations(database, { userIds });
+  for (const result of args.settled) {
+    const row = rowByUser.get(result.userId);
+    if (!row) {
+      continue;
+    }
+    const { provisional } = tembaLevelView(row, confirmationOf(result.userId));
+    const after = clampReliability(
+      row.reliability + reliabilityStep(result.rating, { provisional }),
+    );
+    await database
+      .update(ratings)
+      .set({ reliability: after, updatedAt: args.now })
+      .where(eq(ratings.id, row.id));
+    await database
+      .update(performanceRatingResults)
+      .set({ reliabilityBefore: row.reliability, reliabilityAfter: after })
+      .where(
+        and(
+          eq(performanceRatingResults.matchId, args.matchId),
+          eq(performanceRatingResults.userId, result.userId),
+        ),
+      );
+  }
+}
+
+/**
+ * Gives back what a Match's settled ratings did to each player's Reliability.
+ * A Level override set since then started it over at 100, so that player's
+ * stays as it is.
+ */
+async function reverseReliability(
+  database: DbClient,
+  matchId: string,
+  now: Date,
+) {
+  const results = await database
+    .select({
+      userId: performanceRatingResults.userId,
+      reliabilityBefore: performanceRatingResults.reliabilityBefore,
+      reliabilityAfter: performanceRatingResults.reliabilityAfter,
+      settledAt: performanceRatingResults.createdAt,
+      sport: games.sport,
+    })
+    .from(performanceRatingResults)
+    .innerJoin(matches, eq(matches.id, performanceRatingResults.matchId))
+    .innerJoin(games, eq(games.id, matches.gameId))
+    .where(
+      and(
+        eq(performanceRatingResults.matchId, matchId),
+        isNotNull(performanceRatingResults.reliabilityAfter),
+      ),
+    )
+    .orderBy(performanceRatingResults.userId);
+  for (const result of results) {
+    if (result.reliabilityBefore == null || result.reliabilityAfter == null) {
+      continue;
+    }
+    const [row] = await database
+      .select({ id: ratings.id, reliability: ratings.reliability })
+      .from(ratings)
+      .where(
+        and(eq(ratings.userId, result.userId), eq(ratings.sport, result.sport)),
+      )
+      .for("update");
+    if (!row) {
+      continue;
+    }
+    const overriddenSince = await database.query.levelOverrides.findFirst({
+      where: and(
+        eq(levelOverrides.userId, result.userId),
+        eq(levelOverrides.sport, result.sport),
+        gt(levelOverrides.createdAt, result.settledAt),
+      ),
+      columns: { id: true },
+    });
+    if (overriddenSince) {
+      continue;
+    }
+    await database
+      .update(ratings)
+      .set({
+        reliability: clampReliability(
+          row.reliability -
+            (result.reliabilityAfter - result.reliabilityBefore),
+        ),
+        updatedAt: now,
+      })
+      .where(eq(ratings.id, row.id));
+  }
+}
+
+/**
+ * Tells each padel player whose rating settled what they were rated and
+ * where it left their Reliability, one row per player. A player with no
+ * settled rating has nothing to be told: their Level moved at completion.
+ */
+async function notifyReliabilityRatingsClosed(
+  database: DbClient,
+  args: {
+    match: typeof matches.$inferSelect;
+    gameId: string;
+    groupId: string | null;
+  },
+) {
+  const accountHolders = new Set(
+    await matchSeatedUserIds(database, args.match),
+  );
+  const results = await database
+    .select({
+      id: performanceRatingResults.id,
+      userId: performanceRatingResults.userId,
+    })
+    .from(performanceRatingResults)
+    .where(
+      and(
+        eq(performanceRatingResults.matchId, args.match.id),
+        isNotNull(performanceRatingResults.reliabilityAfter),
+      ),
+    );
+  for (const result of results) {
+    if (!accountHolders.has(result.userId)) {
+      continue;
+    }
+    await notify(database, {
+      type: "performance_ratings_closed",
+      recipients: [{ userId: result.userId, audience: "player" }],
+      excludeUserIds: [],
+      groupId: args.groupId,
+      gameId: args.gameId,
+      dedupeKey: `performance_ratings_closed:${result.id}`,
+    });
+  }
 }
 
 /**
@@ -709,8 +943,9 @@ export async function settleRatingWindowIfDue(
 }
 
 /**
- * A wrong-score report suspends the window: its results go, the Job is
- * removed, and the ballots stay for when the Match completes again.
+ * A wrong-score report suspends the window: its results go and with them
+ * what they did to Reliability, the Job is removed, and the ballots stay for
+ * when the Match completes again.
  */
 export async function suspendRatingWindow(
   database: DbClient,
@@ -725,6 +960,7 @@ export async function suspendRatingWindow(
   if (!window) {
     return;
   }
+  await reverseReliability(database, matchId, now);
   await database
     .delete(performanceRatingResults)
     .where(eq(performanceRatingResults.matchId, matchId));

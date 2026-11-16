@@ -146,6 +146,27 @@ describe("ratingsLevelView", () => {
     );
   });
 
+  it("leads the note with Reliability only while it is below 100 (ADR-0095)", () => {
+    const low = ratingsLevelView(
+      footballLevel({ reliability: 70 }),
+      "football",
+      "en",
+    );
+    if (low.kind !== "rated") throw new Error("Expected a rated Level");
+    expect(low.note).toBe(
+      "Reliability 70%: a loss costs 15% more until players rate you an ordinary game or better. How good you are, on verified matches only. OVR runs 40 to 99 and never resets.",
+    );
+    const full = ratingsLevelView(
+      footballLevel({ reliability: 100 }),
+      "football",
+      "en",
+    );
+    if (full.kind !== "rated") throw new Error("Expected a rated Level");
+    expect(full.note).toBe(
+      "How good you are, on verified matches only. OVR runs 40 to 99 and never resets.",
+    );
+  });
+
   it("names no football band, not even when spoken", () => {
     const view = ratingsLevelView(footballLevel(), "football", "en");
     if (view.kind !== "rated") throw new Error("Expected a rated Level");

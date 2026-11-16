@@ -56,6 +56,12 @@ export const ratings = pgTable(
     phi: doublePrecision("phi").notNull(),
     sigma: doublePrecision("sigma").notNull(),
     levelBand: ratingLevelBands("level_band").notNull(),
+    /**
+     * Reliability, 0 to 100 (ADR-0095): moved by settled Performance ratings
+     * on Matches that count for Temba Level. Below 100 a lost Match costs
+     * more.
+     */
+    reliability: doublePrecision("reliability").notNull().default(100),
     selfDeclaredAt: timestamp("self_declared_at"),
     lastRatedAt: timestamp("last_rated_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -110,6 +116,11 @@ export const ratingEvents = pgTable(
     performancePart: doublePrecision("performance_part"),
     goalsPart: doublePrecision("goals_part"),
     mvpPart: doublePrecision("mvp_part"),
+    /**
+     * What low Reliability added to a lost Match's move (ADR-0095): OVR
+     * points on football, μ points on padel. Null when it added nothing.
+     */
+    reliabilityPart: doublePrecision("reliability_part"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => ({

@@ -214,6 +214,8 @@ export type OvrImpact = {
     performance: number | null;
     goals: number | null;
     mvp: number | null;
+    /** What low Reliability added to a loss (ADR-0095); null when nothing. */
+    reliability?: number | null;
   };
   /** The viewer's settled rating and how many ratings they received; null without one. */
   rating: { hundredths: number; ballots: number } | null;
@@ -290,7 +292,8 @@ export function ovrMoveHeldAt(
     ovr.parts.result +
     (ovr.parts.performance ?? 0) +
     (ovr.parts.goals ?? 0) +
-    (ovr.parts.mvp ?? 0);
+    (ovr.parts.mvp ?? 0) +
+    (ovr.parts.reliability ?? 0);
   const heldBack = ovr.after - ovr.before - earned;
   if (Math.round(Math.abs(heldBack) * 10) === 0) {
     return null;
@@ -305,7 +308,8 @@ export function ovrMoveHeldAt(
 }
 
 /**
- * "What moved your OVR": one row per part the Match wrote, then
+ * "What moved your OVR": one row per part the Match wrote, one more when low
+ * Reliability made a loss cost more, then
  * the move in one decimal with where the Level stands. The shown rows add up
  * to the shown move. A move cut at the 40 floor or the 99 ceiling shows each
  * part as earned and one more row for what the bound held back.
@@ -359,6 +363,13 @@ export function ovrImpactView(
             ? copy.mvpOther
             : copy.mvpNone,
       part: ovr.parts.mvp,
+    });
+  }
+  if (ovr.parts.reliability) {
+    rows.push({
+      title: copy.reliability,
+      detail: copy.reliabilityLine,
+      part: ovr.parts.reliability,
     });
   }
   const earned = rows.map((row) => row.part);

@@ -265,15 +265,16 @@ describe("notifications.list", () => {
       const closesAt = new Date(completedAt!.getTime() + 48 * MARKS_HOUR);
 
       const open = await listNotifications(db, { userId: game.b.id });
+      // The Game finishing and its Rating window opening are told in the
+      // same instant, so their order is not fixed.
       expect(
-        open.items.map((item) => [
-          item.type,
-          item.markKind,
-          item.game?.marksClosesAt,
-        ]),
+        open.items
+          .map((item) => [item.type, item.markKind, item.game?.marksClosesAt])
+          .sort(([left], [right]) => String(left).localeCompare(String(right))),
       ).toEqual([
-        ["mark_received", "dynamo", closesAt],
         ["game_finished", null, closesAt],
+        ["mark_received", "dynamo", closesAt],
+        ["performance_ratings_open", null, closesAt],
       ]);
 
       const closed = await listNotifications(db, {
@@ -281,6 +282,7 @@ describe("notifications.list", () => {
         now: closesAt,
       });
       expect(closed.items.map((item) => item.game?.marksClosesAt)).toEqual([
+        null,
         null,
         null,
       ]);

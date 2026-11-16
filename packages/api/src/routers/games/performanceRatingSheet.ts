@@ -6,6 +6,7 @@ import {
   gamePlayers,
   groups,
   matchRatingWindows,
+  matchSets,
   performanceRatings,
   venues,
 } from "@repo/db";
@@ -15,6 +16,7 @@ import {
   type FootballPosition,
 } from "@repo/domain/football-lineup";
 import { marksWindow } from "@repo/domain/marks";
+import { matchOutcome } from "@repo/domain/match-outcome";
 import {
   ratingWindowState,
   type RateGameSheet,
@@ -27,7 +29,6 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { canViewGame, isGameOrganizer, requireGame } from "#src/games/access";
 import {
-  assertFootballGame,
   footballMatch,
   footballScoreOf,
   footballScoreSet,
@@ -39,13 +40,13 @@ import { settleRatingWindowIfDue } from "#src/ratings/settle-rating-window";
 type DbClient = typeof db;
 
 /**
- * What the viewer rates on a football Match with a Rating window: the
+ * What the viewer rates on a Friendly game's Match with a Rating window: the
  * players of both sides, the viewer's own ballots, how many of
  * the seated account holders have rated and, in Organizer mode, whether the
  * star may pick the MVP. In Organizer mode only an Organizer of the Game
  * reads it; when everyone rates, a seated player. Nobody else's ballots are
  * sent, and the count never says who rated what. A window past its close is
- * settled first.
+ * settled first. A padel Match's score is the Sets each side won.
  */
 export async function performanceRatingSheet(
   database: DbClient,
@@ -61,9 +62,10 @@ export async function performanceRatingSheet(
       message: messagesFor(locale).game.errors.notFound,
     });
   }
-  assertFootballGame(game, locale);
-
-  const match = await footballMatch(database, game.id);
+  const match =
+    game.format === "friendly_game"
+      ? await footballMatch(database, game.id)
+      : null;
   if (match) {
     await settleRatingWindowIfDue(database, match.id, now);
   }
@@ -137,7 +139,10 @@ export async function performanceRatingSheet(
             ),
           )
       : [];
-  const score = footballScoreOf(await footballScoreSet(database, match.id));
+  const score =
+    game.sport === "padel"
+      ? await padelSetWins(database, match.id)
+      : footballScoreOf(await footballScoreSet(database, match.id));
   const state = ratingWindowState(window, now);
 
   const player = (row: (typeof participants)[number]) => ({
@@ -154,6 +159,7 @@ export async function performanceRatingSheet(
   const sheet = {
     gameId: game.id,
     matchId: match.id,
+    sport: game.sport,
     mode: window.mode,
     weightPercent: window.weightPercent,
     state: state === "open" || state === "suspended" ? state : "settled",
@@ -189,6 +195,18 @@ export async function performanceRatingSheet(
     },
   } satisfies RateGameSheet & Record<string, unknown>;
   return sheet;
+}
+
+async function padelSetWins(database: DbClient, matchId: string) {
+  const outcome = matchOutcome(
+    await database.query.matchSets.findMany({
+      where: eq(matchSets.matchId, matchId),
+      columns: { slot1GamesWon: true, slot2GamesWon: true },
+    }),
+  );
+  return outcome.result === "none"
+    ? null
+    : { slot1: outcome.slot1SetWins, slot2: outcome.slot2SetWins };
 }
 
 export const performanceRatingSheetProcedure = protectedProcedure

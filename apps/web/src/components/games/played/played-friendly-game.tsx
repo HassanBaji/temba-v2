@@ -25,6 +25,8 @@ import { ACTION_MENU_INK_BOXED_TRIGGER } from "~/components/common/action-menu";
 import { GameAlbumSections } from "~/components/game-album/game-album-sections";
 import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { PerformanceResultCard } from "~/components/games/performance-result-card";
+import { RateGameCard } from "~/components/games/rate-game-card";
 import { MarksSection } from "~/components/marks/marks-section";
 import { MvpRow } from "~/components/marks/mvp-row";
 import { useGameMarks } from "~/components/marks/use-game-marks";
@@ -155,10 +157,17 @@ export function PlayedFriendlyGame({
         }
         heroFooter={<MvpRow marks={marks} canOpenProfile={linkToPlayers} />}
         task={
-          <GamePaymentsSection
-            gameId={gameId}
-            tracked={gamePaymentsTracked(game)}
-          />
+          <>
+            <GamePaymentsSection
+              gameId={gameId}
+              tracked={gamePaymentsTracked(game)}
+            />
+            <RateGameCard gameId={gameId} window={game.ratingWindow ?? null} />
+            <PerformanceResultCard
+              gameId={gameId}
+              window={game.ratingWindow ?? null}
+            />
+          </>
         }
         marks={<MarksSection marks={marks} />}
         album={

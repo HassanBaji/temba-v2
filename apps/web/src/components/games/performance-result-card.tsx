@@ -18,10 +18,12 @@ import { api, type RouterOutputs } from "~/trpc/react";
 
 type RatingWindow = RouterOutputs["games"]["byId"]["ratingWindow"];
 type SettledView = Extract<PerformanceResultView, { kind: "settled" }>;
+type ReliabilityView = Extract<PerformanceResultView, { kind: "reliability" }>;
 
 /**
  * On a played Game, once the Rating window closes: the viewer's rating and
- * what it did to their tier points; before that, when it arrives.
+ * what it did to their tier points, or on a Match that counts for Temba Level
+ * to their Reliability; before that, when it arrives.
  */
 export function PerformanceResultCard({
   gameId,
@@ -66,7 +68,61 @@ export function PerformanceResultCard({
       </section>
     );
   }
+  if (view.kind === "reliability") {
+    return <ReliabilityResult view={view} />;
+  }
   return <SettledResult view={view} />;
+}
+
+function ReliabilityResult({ view }: { view: ReliabilityView }) {
+  return (
+    <section className="border-rule bg-wash rounded-[16px] border px-5 py-[18px]">
+      <h2 className="text-meta text-muted-foreground">{view.title}</h2>
+      {view.rating ? (
+        <>
+          <p className="mt-2.5 flex items-baseline gap-1">
+            <span className="sr-only">{view.rating.spoken}</span>
+            <span
+              aria-hidden="true"
+              className="font-expanded text-[52px] font-bold tabular-nums leading-[0.9] tracking-[-0.03em]"
+            >
+              {view.rating.value}
+            </span>
+            <span aria-hidden="true" className="text-muted-foreground">
+              {view.rating.ofTen}
+            </span>
+          </p>
+          <p className="text-meta text-muted-foreground mt-2">
+            {view.rating.note}
+          </p>
+        </>
+      ) : (
+        <p className="text-meta mt-2">{view.noRating}</p>
+      )}
+      <div className="border-dimrule mt-3.5 border-t pt-3">
+        <p className="flex items-baseline justify-between gap-3">
+          <span className="sr-only">{view.reliability.spoken}</span>
+          <span aria-hidden="true" className="font-semibold">
+            {view.reliability.title}
+          </span>
+          <span aria-hidden="true" className="flex items-baseline gap-2">
+            {view.reliability.delta ? (
+              <span className="text-meta text-muted-foreground tabular-nums">
+                {view.reliability.delta}
+              </span>
+            ) : null}
+            <span className="font-semibold tabular-nums">
+              {view.reliability.value}
+            </span>
+          </span>
+        </p>
+        <p className="text-meta text-muted-foreground mt-1">
+          {view.reliability.line}
+        </p>
+        <p className="text-meta text-muted-foreground mt-1">{view.footnote}</p>
+      </div>
+    </section>
+  );
 }
 
 function SettledResult({ view }: { view: SettledView }) {
