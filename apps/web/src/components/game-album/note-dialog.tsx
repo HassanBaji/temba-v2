@@ -20,9 +20,11 @@ import { SelectCard } from "~/components/ui/select-card";
 import { AlbumSheet } from "./album-sheet";
 
 /**
- * Your one note on a played Game. The two cards pick who reads it; the hint,
- * the counter and the save button follow the choice, so the last thing you
- * read before saving says who will read it.
+ * Your one note on a played Game, shared with everyone who played unless you
+ * keep it to yourself. The field leads, so it stays in view above a phone's
+ * keyboard. The cards under it pick who reads it; the hint under the field and
+ * the save button follow that choice, so the last thing you read before
+ * saving says who will read it.
  */
 export function NoteDialog({
   open,
@@ -48,13 +50,13 @@ export function NoteDialog({
   const hintId = React.useId();
   const [body, setBody] = React.useState("");
   const [visibility, setVisibility] =
-    React.useState<GameNoteVisibility>("private");
+    React.useState<GameNoteVisibility>("public");
   const [confirmDelete, setConfirmDelete] = React.useState(false);
 
   React.useEffect(() => {
     if (open) {
       setBody(mine?.body ?? "");
-      setVisibility(mine?.visibility ?? "private");
+      setVisibility(mine?.visibility ?? "public");
       setConfirmDelete(false);
     }
   }, [open, mine]);
@@ -82,6 +84,7 @@ export function NoteDialog({
       onClose={onClose}
       title={m.title}
       subtitle={[context, m.subtitle].filter(Boolean).join(" ")}
+      quietWhileTyping
       footer={
         <Button
           size="lg"
@@ -99,6 +102,32 @@ export function NoteDialog({
         </Button>
       }
     >
+      <div className="flex flex-col gap-2">
+        <label htmlFor={fieldId} className="sr-only">
+          {m.fieldLabel}
+        </label>
+        <textarea
+          id={fieldId}
+          value={body}
+          onChange={(event) => setBody(event.target.value)}
+          placeholder={m.placeholder}
+          maxLength={GAME_NOTE_MAX_LENGTH}
+          aria-describedby={hintId}
+          rows={5}
+          className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 md:text-body min-h-32 resize-none rounded-md border bg-transparent px-3 py-2.5 text-base outline-none focus-visible:ring-[3px]"
+        />
+        <div
+          id={hintId}
+          className="text-eyebrow text-muted-foreground flex justify-between gap-3"
+        >
+          <span>
+            {isPrivate ? m.privateHint : noteReadersHint(album.readers, locale)}
+          </span>
+          <span className="tabular-nums">
+            {noteCharacterCount(body, locale)}
+          </span>
+        </div>
+      </div>
       <div className="flex flex-col gap-2">
         <span className="text-meta text-muted-foreground" id={`${fieldId}-who`}>
           {m.who}
@@ -132,32 +161,6 @@ export function NoteDialog({
             description={m.onlyMeHint}
             onClick={() => setVisibility("private")}
           />
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        <label htmlFor={fieldId} className="sr-only">
-          {m.fieldLabel}
-        </label>
-        <textarea
-          id={fieldId}
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          placeholder={m.placeholder}
-          maxLength={GAME_NOTE_MAX_LENGTH}
-          aria-describedby={hintId}
-          rows={5}
-          className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 md:text-body min-h-32 resize-none rounded-md border bg-transparent px-3 py-2.5 text-base outline-none focus-visible:ring-[3px]"
-        />
-        <div
-          id={hintId}
-          className="text-eyebrow text-muted-foreground flex justify-between gap-3"
-        >
-          <span>
-            {isPrivate ? m.privateHint : noteReadersHint(album.readers, locale)}
-          </span>
-          <span className="tabular-nums">
-            {noteCharacterCount(body, locale)}
-          </span>
         </div>
       </div>
       {mine ? (

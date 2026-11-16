@@ -8,8 +8,8 @@ import {
   type GameNoteVisibility,
 } from "@repo/domain/game-album";
 import { Lock, Users } from "lucide-react-native";
-import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Pressable, type ScrollView, View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
@@ -18,14 +18,17 @@ import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
 import { useToast } from "../primitives/toast";
+import { useKeyboardVisible } from "../primitives/use-keyboard-visible";
 import { useColors } from "../theme/theme-provider";
 
 const ICON = 17;
 
 /**
- * Your one note on a played Game. The two cards pick who reads it; the hint,
- * the counter and the save button follow the choice, so the last thing you
- * read before saving says who will read it.
+ * Your one note on a played Game, shared with everyone who played unless you
+ * keep it to yourself. The field leads, so it stays in view above the
+ * keyboard. The cards under it pick who reads it; the hint under the field and
+ * the save button follow that choice, so the last thing you read before
+ * saving says who will read it.
  */
 export function NoteSheet({
   visible,
@@ -51,16 +54,19 @@ export function NoteSheet({
   const m = useMessages().gameAlbum.note;
   const mine = album.notes.mine;
   const [body, setBody] = useState("");
-  const [visibility, setVisibility] = useState<GameNoteVisibility>("private");
+  const [visibility, setVisibility] = useState<GameNoteVisibility>("public");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setBody(mine?.body ?? "");
-      setVisibility(mine?.visibility ?? "private");
+      setVisibility(mine?.visibility ?? "public");
       setConfirmDelete(false);
     }
   }, [visible, mine]);
+
+  const keyboardVisible = useKeyboardVisible();
+  const scrollRef = useRef<ScrollView>(null);
 
   const isPrivate = visibility === "private";
   const players = album.readers.length + 1;
@@ -84,10 +90,13 @@ export function NoteSheet({
       visible={visible}
       onClose={onClose}
       title={m.title}
-      subtitle={[context, m.subtitle].filter(Boolean).join(" ")}
+      subtitle={
+        keyboardVisible ? null : [context, m.subtitle].filter(Boolean).join(" ")
+      }
       closeButton
       tall
       keyboardShouldPersistTaps="handled"
+      scrollRef={scrollRef}
       footer={
         <Button
           label={isPrivate ? m.savePrivate : m.savePublic(players)}
@@ -105,6 +114,29 @@ export function NoteSheet({
         />
       }
     >
+      <TextField
+        label={m.fieldLabel}
+        value={body}
+        onChangeText={setBody}
+        placeholder={m.placeholder}
+        multiline
+        maxLength={GAME_NOTE_MAX_LENGTH}
+        onFocus={() => scrollRef.current?.scrollTo({ y: 0 })}
+      />
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <Text size="eyebrow" tone="muted" style={{ flexShrink: 1 }}>
+          {isPrivate ? m.privateHint : noteReadersHint(album.readers, locale)}
+        </Text>
+        <Text size="eyebrow" tone="muted">
+          {noteCharacterCount(body, locale)}
+        </Text>
+      </View>
       <Text size="meta" tone="muted">
         {m.who}
       </Text>
@@ -125,28 +157,6 @@ export function NoteSheet({
           leading={Lock}
           onPress={() => setVisibility("private")}
         />
-      </View>
-      <TextField
-        label={m.fieldLabel}
-        value={body}
-        onChangeText={setBody}
-        placeholder={m.placeholder}
-        multiline
-        maxLength={GAME_NOTE_MAX_LENGTH}
-      />
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
-      >
-        <Text size="eyebrow" tone="muted" style={{ flexShrink: 1 }}>
-          {isPrivate ? m.privateHint : noteReadersHint(album.readers, locale)}
-        </Text>
-        <Text size="eyebrow" tone="muted">
-          {noteCharacterCount(body, locale)}
-        </Text>
       </View>
       {mine ? (
         confirmDelete ? (
