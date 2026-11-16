@@ -355,7 +355,7 @@ export const notification = {
     ratingsOpenEveryone:
       "Score your teammates and, if you want, opponents, within 24 hours. Nobody sees who gave what.",
     ratingsOpenPadel:
-      "Score your partner and, if you want, your opponents, within 24 hours. Nobody sees who gave what.",
+      "Score your partner and, if you want, your opponents, and say what level each player played at, within 24 hours. Nobody sees who gave what.",
     tierPlaces:
       "Tiers are places, so when one player moves, someone moves the other way.",
     gamePaymentReminder: "Pay the organizer, then tell them on the game.",
@@ -379,6 +379,12 @@ export const notification = {
     ) => `You were rated ${rating}. Reliability ${delta}, now ${reliability}.`,
     ratingsClosedReliabilitySame: (rating: string, reliability: string) =>
       `You were rated ${rating}. Reliability stays at ${reliability}.`,
+    ratingsClosedLevelCheck: (band: string, from: string, to: string) =>
+      `Players placed you at ${band}: level ${from} to ${to}.`,
+    ratingsClosedLevelCheckAgreed: (level: string) =>
+      `Players agreed with your level, ${level}.`,
+    ratingsClosedBoth: (rating: string, levelCheck: string) =>
+      `${rating} ${levelCheck}`,
     disputeUpheld: "The score is open again. Enter the right one.",
     disputeDismissed: "The result stands.",
     disputeSuperseded:

@@ -5,12 +5,14 @@ import {
   groupTierEvents,
   groups,
   kingPlaceAwards,
+  levelCheckResults,
   levelOverrides,
   matchGoals,
   performanceRatingResults,
   ratingEvents,
   venues,
 } from "@repo/db";
+import { levelCheckVerdictBand } from "@repo/domain/level-check";
 import {
   RATING_HISTORY_LADDERS,
   type RatingHistoryItemData,
@@ -83,9 +85,9 @@ function shows(ladder: RatingHistoryLadder, part: "level" | "tier") {
 /**
  * A User's own Rating history (ADR-0073): the union of their
  * Rated Matches (`rating_events`), Level overrides (`level_overrides`),
- * King of the court Place awards (`king_place_awards`, ADR-0089) and tier
- * Group moves (`group_tier_events`), newest first, keyset-paged across all
- * four. Manual changes carry who set them, by which door, the Venue a
+ * King of the court Place awards (`king_place_awards`, ADR-0089), Level
+ * checks (`level_check_results`, ADR-0099) and tier Group moves
+ * (`group_tier_events`), newest first, keyset-paged across all five. Manual changes carry who set them, by which door, the Venue a
  * Verifier calibrated from, the reason and the note. A derived "Level
  * confirmed" milestone sits just before the Match that confirmed each sport's
  * Level, and a change of fish is its own line, whoever caused it. The Rank
@@ -115,7 +117,7 @@ export async function ratingHistory(
   const level = shows(args.ladder, "level");
   const tier = shows(args.ladder, "tier") && sport !== "padel";
 
-  const [confirmations, events, overrides, awards, tierRows] =
+  const [confirmations, events, overrides, awards, checks, tierRows] =
     await Promise.all([
       level ? levelConfirmations(database, { userIds: [userId], sport }) : [],
       level
@@ -180,6 +182,26 @@ export async function ratingHistory(
             )
             .limit(limit + 1)
         : [],
+      level
+        ? database
+            .select({
+              check: levelCheckResults,
+              shownAt: shownAtIso(levelCheckResults.createdAt),
+            })
+            .from(levelCheckResults)
+            .where(
+              and(
+                eq(levelCheckResults.userId, userId),
+                sport ? eq(levelCheckResults.sport, sport) : undefined,
+                olderThanShown(levelCheckResults, cursor),
+              ),
+            )
+            .orderBy(
+              desc(shownAt(levelCheckResults.createdAt)),
+              desc(levelCheckResults.id),
+            )
+            .limit(limit + 1)
+        : [],
       tier
         ? database
             .select({
@@ -213,6 +235,7 @@ export async function ratingHistory(
       | { source: "confirmed"; row: (typeof confirmations)[0] }
       | { source: "override"; row: (typeof overrides)[0] }
       | { source: "award"; row: (typeof awards)[0] }
+      | { source: "check"; row: (typeof checks)[0] }
       | { source: "tier"; row: (typeof tierRows)[0] }
     );
   const merged: Row[] = [
@@ -257,6 +280,15 @@ export async function ratingHistory(
         row,
       }),
     ),
+    ...checks.map(
+      (row): Row => ({
+        source: "check",
+        id: row.check.id,
+        createdAt: new Date(row.shownAt),
+        milestone: false,
+        row,
+      }),
+    ),
     ...tierRows.map(
       (row): Row => ({
         source: "tier",
@@ -281,6 +313,9 @@ export async function ratingHistory(
   const pageAwards = page.flatMap((entry) =>
     entry.source === "award" ? [entry.row.award] : [],
   );
+  const pageChecks = page.flatMap((entry) =>
+    entry.source === "check" ? [entry.row.check] : [],
+  );
   const pageTier = page.flatMap((entry) =>
     entry.source === "tier" ? [entry.row] : [],
   );
@@ -296,10 +331,10 @@ export async function ratingHistory(
     ratingByMatch,
     goalsByMatch,
   ] = await Promise.all([
-    ratingHistoryMatches(
-      database,
-      pageEvents.map((event) => event.matchId),
-    ),
+    ratingHistoryMatches(database, [
+      ...pageEvents.map((event) => event.matchId),
+      ...pageChecks.map((check) => check.matchId),
+    ]),
     setterNames(
       database,
       pageOverrides.map((row) => row.override.setByUserId),
@@ -427,6 +462,24 @@ export async function ratingHistory(
           venueName: game?.venueName ?? null,
           finalPlace: award.finalPlace,
           teamCount: game?.teamCount ?? 0,
+        },
+      ];
+    }
+    if (entry.source === "check") {
+      const { check } = entry.row;
+      return [
+        {
+          kind: "level_check",
+          id: check.id,
+          at: check.createdAt,
+          sport: check.sport,
+          muBefore: check.muBefore,
+          muAfter: check.muAfter,
+          venueName: matchById.get(check.matchId)?.game?.venue?.name ?? null,
+          verdictBand: levelCheckVerdictBand(
+            check.verdictLevelHundredths / 100,
+          ),
+          agreed: check.agreed,
         },
       ];
     }

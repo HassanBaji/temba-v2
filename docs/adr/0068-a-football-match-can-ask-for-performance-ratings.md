@@ -1,6 +1,6 @@
 # A football Match can ask for Performance ratings
 
-**Status:** accepted. Spec: `.scratch/rating-redesign/spec.md`. Amends the Marks window for the MVP on Matches that have a Rating window.
+**Status:** accepted. Spec: `.scratch/rating-redesign/spec.md`. Amends the Marks window for the MVP on Matches that have a Rating window. Amended by [ADR-0099](./0099-the-other-players-check-a-padel-level.md): a padel window also asks the Level check.
 
 A result alone says who won. The owner's design also asks how each player played: a 1 to 10 rating from the people on the pitch, feeding 20 to 50% of a tier move and 30% of an OVR move.
 

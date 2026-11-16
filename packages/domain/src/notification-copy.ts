@@ -37,6 +37,7 @@ export type NotificationCopyInput = {
   tier?: NotificationTier | null;
   ovrMove?: NotificationOvrMove | null;
   reliabilityMove?: NotificationReliabilityMove | null;
+  levelCheckMove?: NotificationLevelCheckMove | null;
   placeAward?: NotificationPlaceAward | null;
   dispute?: NotificationDispute | null;
   markKind?: string | null;
@@ -98,6 +99,18 @@ type NotificationReliabilityMove = {
   before: number;
   after: number;
   ratingHundredths: number;
+};
+
+/**
+ * The Level check a `performance_ratings_closed` row is about on a padel
+ * Match: the verdict band and the Level either side of it.
+ */
+type NotificationLevelCheckMove = {
+  agreed: boolean;
+  band: string;
+  /** The Level either side of it, as padel shows it. */
+  levelBefore: string;
+  levelAfter: string;
 };
 
 /** The Match dispute a raised or decided Notification is about. */
@@ -187,6 +200,26 @@ function gameFinishedSubline(
 }
 
 /** Null for a `type` or `audience` this client does not know, so the row is skipped. */
+function reliabilitySubline(move: NotificationReliabilityMove, locale: Locale) {
+  const sub = messagesFor(locale).notification.subline;
+  const rating = formatPerformanceRating(move.ratingHundredths);
+  const moved = Math.round(move.after) - Math.round(move.before);
+  return moved === 0
+    ? sub.ratingsClosedReliabilitySame(rating, formatReliability(move.after))
+    : sub.ratingsClosedReliability(
+        rating,
+        formatReliabilityDelta(moved),
+        formatReliability(move.after),
+      );
+}
+
+function levelCheckSubline(move: NotificationLevelCheckMove, locale: Locale) {
+  const sub = messagesFor(locale).notification.subline;
+  return move.agreed
+    ? sub.ratingsClosedLevelCheckAgreed(move.levelAfter)
+    : sub.ratingsClosedLevelCheck(move.band, move.levelBefore, move.levelAfter);
+}
+
 export function notificationCopy(
   item: NotificationCopyInput,
   locale: Locale,
@@ -537,23 +570,22 @@ export function notificationCopy(
     item.type === "performance_ratings_closed" &&
     item.audience === "player" &&
     item.game &&
-    item.reliabilityMove
+    (item.reliabilityMove || item.levelCheckMove)
   ) {
-    const { ratingHundredths, before, after } = item.reliabilityMove;
-    const rating = formatPerformanceRating(ratingHundredths);
-    const moved = Math.round(after) - Math.round(before);
+    const reliability = item.reliabilityMove
+      ? reliabilitySubline(item.reliabilityMove, locale)
+      : null;
+    const levelCheck = item.levelCheckMove
+      ? levelCheckSubline(item.levelCheckMove, locale)
+      : null;
     return {
       title: m.performanceRatingsClosed(
         notificationGameName(item.game, locale),
       ),
       subline:
-        moved === 0
-          ? sub.ratingsClosedReliabilitySame(rating, formatReliability(after))
-          : sub.ratingsClosedReliability(
-              rating,
-              formatReliabilityDelta(moved),
-              formatReliability(after),
-            ),
+        reliability && levelCheck
+          ? sub.ratingsClosedBoth(reliability, levelCheck)
+          : (reliability ?? levelCheck),
     };
   }
   if (

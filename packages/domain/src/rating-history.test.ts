@@ -485,6 +485,37 @@ describe("ratingHistoryLine", () => {
     });
   });
 
+  it("reads a Level check with the verdict and the venue", () => {
+    const check = (agreed: boolean) =>
+      ratingHistoryLine(
+        item({
+          kind: "level_check",
+          id: "check",
+          at: THU_12_NOV,
+          sport: "padel",
+          muBefore: muFromLevel(2.45),
+          muAfter: muFromLevel(agreed ? 2.45 : 2.61),
+          venueName: "Janabiyah Padel Park",
+          verdictBand: agreed ? "C-" : "C",
+          agreed,
+        }),
+        VIEWER,
+        "en",
+      );
+    expect(check(false)).toMatchObject({
+      key: "check",
+      icon: { kind: "level" },
+      title: "Level check",
+      detail: "Players placed you at C, Janabiyah Padel Park",
+      delta: "+0.16",
+      after: "2.61",
+    });
+    expect(check(true)).toMatchObject({
+      detail: "Players agreed with your level, Janabiyah Padel Park",
+      delta: "0.00",
+    });
+  });
+
   it("marks the Match that confirmed a Level as a milestone", () => {
     const confirmed = item({
       kind: "level_confirmed",

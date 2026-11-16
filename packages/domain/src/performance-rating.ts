@@ -16,6 +16,12 @@ import { formatMatchSlotLabel } from "./game-side-label";
 import { formatTierPoints, tierPointsCount } from "./group-members-table";
 import { initials } from "./initials";
 import {
+  levelCheckResultView,
+  type LevelCheckResultData,
+  type LevelCheckResultView,
+  type LevelCheckSheet,
+} from "./level-check";
+import {
   FULL_RELIABILITY,
   formatReliability,
   formatReliabilityDelta,
@@ -463,6 +469,8 @@ export type RateGameSheet = {
   /** How many of the seated account holders have rated, never who gave what. */
   progress: { raters: number; players: number };
   mvp: { pickable: boolean; userId: string | null };
+  /** The Level check a padel Match asks beside the ratings; null when it asks none. */
+  levelCheck?: LevelCheckSheet | null;
 };
 
 export type RateGameDraft = {
@@ -683,6 +691,7 @@ export function rateGameView(
   const m = messages.rating.performance;
   const everyone = sheet.mode === "everyone";
   const padel = sheet.sport === "padel";
+  const levelCheck = padel && sheet.levelCheck != null;
   const names = padel
     ? {
         slot1: formatMatchSlotLabel("friendly_game", 1, locale),
@@ -752,18 +761,20 @@ export function rateGameView(
       aside: everyone
         ? ownSide
           ? m.everyone.yourSide
-          : m.everyone.optional
+          : levelCheck
+            ? null
+            : m.everyone.optional
         : sideResult(sheet.score, slot, locale),
       ratedLine: m.side.ratedOf(rated, rateable.length),
       collapsedLine:
         rated > 0
           ? m.side.ratedOf(rated, rateable.length)
-          : everyone && !ownSide
+          : everyone && !ownSide && !levelCheck
             ? m.everyone.opponentsOptional(rateable.length)
             : m.side.notRatedYet(rateable.length),
       showLabel: m.side.show(name),
       hideLabel: m.side.hide(name),
-      openByDefault: slot === firstSlot,
+      openByDefault: slot === firstSlot || levelCheck,
       rows: rateable.map(row),
       self: viewer
         ? {
@@ -814,20 +825,24 @@ export function rateGameView(
           ),
         }
       : null,
-    heading: padel
-      ? m.padel.heading
-      : everyone
-        ? m.everyone.heading
-        : m.heading,
+    heading: levelCheck
+      ? m.heading
+      : padel
+        ? m.padel.heading
+        : everyone
+          ? m.everyone.heading
+          : m.heading,
     headingAside: sides[0]!.ratedLine,
     sides,
-    footnote: padel
-      ? m.padel.footnote
-      : everyone
-        ? m.everyone.footnote
-        : sheet.mvp.pickable
-          ? `${m.footnote(sheet.weightPercent)} ${m.footnoteStar}`
-          : m.footnote(sheet.weightPercent),
+    footnote: levelCheck
+      ? `${m.padel.footnote} ${messages.rating.levelCheck.footnote}`
+      : padel
+        ? m.padel.footnote
+        : everyone
+          ? m.everyone.footnote
+          : sheet.mvp.pickable
+            ? `${m.footnote(sheet.weightPercent)} ${m.footnoteStar}`
+            : m.footnote(sheet.weightPercent),
     footer: everyone
       ? {
           title:
@@ -935,6 +950,11 @@ export type PerformanceRatingResultData = {
     before: number;
     after: number;
   } | null;
+  /**
+   * On a padel Match that asks the Level check, once the window has settled:
+   * the caller's verdict and the move, or why none settled.
+   */
+  levelCheck?: LevelCheckResultData | null;
   result: {
     groupName: string | null;
     windowStart: Date | string | null;
@@ -1012,6 +1032,8 @@ export type PerformanceResultView =
         spoken: string;
         line: string;
       };
+      /** The Level check on a padel Match that asked one. */
+      levelCheck: LevelCheckResultView | null;
       footnote: string;
     }
   | {
@@ -1220,6 +1242,7 @@ function mvpView(
 
 function reliabilityView(
   data: NonNullable<PerformanceRatingResultData["reliability"]>,
+  levelCheck: LevelCheckResultData | null | undefined,
   locale: Locale,
 ): PerformanceResultView {
   const m = messagesFor(locale).rating.performance.result;
@@ -1257,6 +1280,7 @@ function reliabilityView(
           ? copy.full
           : copy.low(reliabilityLossExtraPercent(data.after)),
     },
+    levelCheck: levelCheck ? levelCheckResultView(levelCheck, locale) : null,
     footnote: copy.footnote,
   };
 }
@@ -1301,7 +1325,9 @@ export function performanceResultView(
   }
   const result = data.result;
   if (!result) {
-    return data.reliability ? reliabilityView(data.reliability, locale) : null;
+    return data.reliability
+      ? reliabilityView(data.reliability, data.levelCheck, locale)
+      : null;
   }
   const copy = m.result;
   const names = {

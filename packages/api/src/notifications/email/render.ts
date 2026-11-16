@@ -26,6 +26,7 @@ export type NotificationEmailInput = Pick<
   | "tier"
   | "ovrMove"
   | "reliabilityMove"
+  | "levelCheckMove"
   | "placeAward"
   | "dispute"
 >;

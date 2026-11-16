@@ -10,6 +10,8 @@ import {
   groupLevelOverrides,
   groups,
   groupSeasons,
+  levelCheckBallots,
+  levelCheckResults,
   levelOverrides,
   matches,
   ratingReplayBackups,
@@ -75,6 +77,7 @@ async function failureCode(promise: Promise<unknown>) {
 const NOT_NULL_VIOLATION = "23502";
 const RESTRICT_VIOLATION = "23001";
 const UNIQUE_VIOLATION = "23505";
+const CHECK_VIOLATION = "23514";
 
 describe("defaults the code reads as always set", () => {
   it("keeps a Game's sport and a Group's type", async () => {
@@ -285,5 +288,67 @@ describe("Level recalculation backups", () => {
 
     await db.delete(ratingReplayRuns).where(eq(ratingReplayRuns.id, run!.id));
     expect(await db.$count(ratingReplayBackups)).toBe(0);
+  });
+});
+
+describe("Level checks", () => {
+  it("keeps one answer per rater and player on a Match, never about oneself", async () => {
+    const rater = await insertUser("rater");
+    const ratee = await insertUser("ratee");
+    const game = await insertGame(rater);
+    const [match] = await db
+      .insert(matches)
+      .values({ gameId: game.id })
+      .returning({ id: matches.id });
+    const ballot = {
+      matchId: match!.id,
+      raterUserId: rater,
+      rateeUserId: ratee,
+      band: "C2" as const,
+    };
+    await db.insert(levelCheckBallots).values(ballot);
+
+    expect(await failureCode(db.insert(levelCheckBallots).values(ballot))).toBe(
+      UNIQUE_VIOLATION,
+    );
+    expect(
+      await failureCode(
+        db.insert(levelCheckBallots).values({ ...ballot, rateeUserId: rater }),
+      ),
+    ).toBe(CHECK_VIOLATION);
+    await db
+      .insert(levelCheckBallots)
+      .values({ ...ballot, raterUserId: ratee, rateeUserId: rater });
+  });
+
+  it("keeps one result per player and Match, and goes with its Match", async () => {
+    const player = await insertUser("player");
+    const game = await insertGame(player);
+    const [match] = await db
+      .insert(matches)
+      .values({ gameId: game.id })
+      .returning({ id: matches.id });
+    const result = {
+      userId: player,
+      sport: "padel" as const,
+      matchId: match!.id,
+      verdictLevelHundredths: 315,
+      agreed: false,
+      ballotsCounted: 2,
+      weight: 1,
+      muBefore: 875,
+      phiBefore: 250,
+      muAfter: 1050,
+      phiAfter: 177,
+      levelBandBefore: "D1" as const,
+    };
+    await db.insert(levelCheckResults).values(result);
+
+    expect(await failureCode(db.insert(levelCheckResults).values(result))).toBe(
+      UNIQUE_VIOLATION,
+    );
+
+    await db.delete(matches).where(eq(matches.id, match!.id));
+    expect(await db.$count(levelCheckResults)).toBe(0);
   });
 });

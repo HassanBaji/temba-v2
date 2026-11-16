@@ -60,6 +60,7 @@ import { requestLevelRange } from "#src/routers/games/requestLevelRange";
 import { saveFootballScore } from "#src/routers/games/saveFootballScore";
 import { scoreSet } from "#src/routers/games/scoreSet";
 import { sendLookupInvite as sendGameLookupInvite } from "#src/routers/games/sendLookupInvite";
+import { submitLevelChecks } from "#src/routers/games/submitLevelChecks";
 import { submitPerformanceRatings } from "#src/routers/games/submitPerformanceRatings";
 import { castMvpVote } from "#src/routers/marks/castMvpVote";
 import { acceptLookupInvite as acceptGroupLookupInvite } from "#src/routers/groups/acceptLookupInvite";
@@ -96,7 +97,11 @@ import { softArchive as softArchiveVenue } from "#src/routers/venues/softArchive
 import { updateBookingSettings } from "#src/routers/venues/updateBookingSettings";
 import { updateCancellationPolicy } from "#src/routers/venues/updateCancellationPolicy";
 
-import type { SelfDeclareChoice } from "@repo/domain/level-bands";
+import {
+  displayLabelFromStoredBand,
+  nextDistinctDisplayRung,
+  type SelfDeclareChoice,
+} from "@repo/domain/level-bands";
 import { addProductDays, zonedParts } from "@repo/domain/product-timezone";
 import { tierTable } from "@repo/domain/tier-bands";
 import type { Sport } from "@repo/domain/sport";
@@ -2587,6 +2592,87 @@ async function seedVerifiedFootball(u: Users, v: Venues) {
   await game("Saturday Galali five-a-side", at(3, 18), 28);
 }
 
+/**
+ * Padel Central Club is a Verified padel Group on Padel Central, so its
+ * Friendly games count for Temba Level at full weight and ask the Level
+ * check (ADR-0099). Last night's Game has settled: the other three placed
+ * Maya a band above the one she showed, and agreed with Tom's.
+ */
+async function seedVerifiedPadel(u: Users, v: Venues) {
+  const group = await createLoosePublic(db, {
+    name: "Padel Central Club",
+    description: "Verified padel at Padel Central. Your games move your level.",
+    sport: "padel",
+    userId: u.me!.id,
+  });
+  await db
+    .update(groups)
+    .set({ verifiedAt: new Date(), venueId: v.central.id })
+    .where(eq(groups.id, group.id));
+  const keys: [string, string, string, string] = ["me", "omar", "maya", "tom"];
+  for (const key of keys.slice(1)) {
+    await joinPublic(db, { groupId: group.id, userId: u[key]!.id });
+  }
+  const played = await friendly(u, {
+    groupId: group.id,
+    organizerKey: "me",
+    venueId: v.central.id,
+    courtId: v.central.courtIds[1],
+    name: "Club night",
+    start: at(2, 19),
+    seats: seats(keys),
+  });
+  await moveIntoPast(played.id, at(-1, 19));
+  await playFriendly(
+    u,
+    played,
+    "me",
+    [
+      [4, 6],
+      [3, 6],
+    ],
+    ["omar", "maya", "tom"],
+  );
+
+  const shown = async (key: string) => {
+    const row = await db.query.ratings.findFirst({
+      where: (table, { and: both, eq: equals }) =>
+        both(equals(table.userId, u[key]!.id), equals(table.sport, "padel")),
+      columns: { levelBand: true },
+    });
+    return row!.levelBand;
+  };
+  const maya = await shown("maya");
+  const placedMaya =
+    nextDistinctDisplayRung(maya) ?? displayLabelFromStoredBand(maya);
+  const agreedTom = displayLabelFromStoredBand(await shown("tom"));
+  const answers: Record<string, { key: string; band: typeof agreedTom }[]> = {
+    me: [
+      { key: "maya", band: placedMaya },
+      { key: "tom", band: agreedTom },
+    ],
+    omar: [
+      { key: "maya", band: placedMaya },
+      { key: "tom", band: agreedTom },
+    ],
+    maya: [{ key: "tom", band: agreedTom }],
+    tom: [{ key: "maya", band: placedMaya }],
+  };
+  for (const [rater, rows] of Object.entries(answers)) {
+    await submitLevelChecks(db, {
+      gameId: played.id,
+      userId: u[rater]!.id,
+      answers: rows.map((row) => ({ userId: u[row.key]!.id, band: row.band })),
+    });
+  }
+  const window = await db.query.matchRatingWindows.findFirst({
+    where: eq(matchRatingWindows.matchId, played.matchId),
+  });
+  await db.transaction((tx) =>
+    settleRatingWindow(tx, played.matchId, window!.closesAt),
+  );
+}
+
 async function main() {
   assertLocalDatabase();
   // The graphile_worker schema only exists once the API worker has booted, and
@@ -2602,6 +2688,7 @@ async function main() {
   await step("games", () => seedGames(u, g, v));
   await step("football", () => seedFootball(u, v));
   await step("verified football", () => seedVerifiedFootball(u, v));
+  await step("verified padel", () => seedVerifiedPadel(u, v));
   await step("partner venues", async () => {
     for (const venueId of [v.central.id, v.pitches.id]) {
       await setPartner(db, {

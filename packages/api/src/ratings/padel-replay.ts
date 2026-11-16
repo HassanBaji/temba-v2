@@ -19,6 +19,7 @@ import {
   games,
   GroupSportEnum,
   kingPlaceAwards,
+  levelCheckResults,
   levelOverrides,
   matches,
   ratingEvents,
@@ -1787,6 +1788,18 @@ async function replayAndReport(
 }
 
 /**
+ * Why the Level recalculation can no longer run, or null. It does not replay
+ * a Level check, so once any Level check has settled it refuses (RQ-4).
+ */
+export async function levelCheckRefusal(
+  database: DbClient | DbTx,
+): Promise<string | null> {
+  return (await database.$count(levelCheckResults)) > 0
+    ? "a Level check has settled, and the recalculation does not replay one"
+    : null;
+}
+
+/**
  * The dry run: reads the padel ledger in one read-only, repeatable-read
  * transaction, replays it under the Declared band rules and under the
  * baseline, and reports what would change. Writes nothing.
@@ -2040,6 +2053,10 @@ export async function applyPadelReplay(
         host: args.host,
         now: appliedAt,
       });
+      const levelChecked = await levelCheckRefusal(tx);
+      if (levelChecked) {
+        return { kind: "refused", reason: levelChecked, report };
+      }
       if (report.failed) {
         return {
           kind: "refused",

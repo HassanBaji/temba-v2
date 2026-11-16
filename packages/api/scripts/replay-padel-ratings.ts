@@ -18,6 +18,9 @@
  * Refuses once a padel Rated Match, Level override or Place award was
  * written after the run.
  *
+ * Every command refuses once a Level check has settled: the recalculation
+ * does not replay one, so it runs only before the Level check deploys.
+ *
  * Needs DATABASE_URL (read from .env if present).
  *
  * Run: pnpm --filter @repo/api db:replay-padel-ratings
@@ -32,6 +35,7 @@ import {
   applyPadelReplay,
   dryRunPadelReplay,
   formatPadelReplayReport,
+  levelCheckRefusal,
   padelReplayCsv,
   restorePadelReplay,
   type PadelReplayReport,
@@ -102,6 +106,11 @@ async function writeReport(report: PadelReplayReport, path: string | null) {
 async function main() {
   const command = parseCommand(process.argv.slice(2));
   const host = databaseHost();
+  const refusal = await levelCheckRefusal(db);
+  if (refusal) {
+    console.error(`Refused against ${host}: ${refusal}. Nothing was written.`);
+    return 1;
+  }
 
   if (command.kind === "restore") {
     const result = await restorePadelReplay(db, { runId: command.runId });

@@ -819,6 +819,63 @@ describe("notificationCopy for the MVP", () => {
     assert.match(closed(780, "ar")?.subline ?? "", /تقييمك/);
   });
 
+  it("tells a padel player their rating and their Level check together, or either alone", () => {
+    const closed = (
+      moves: {
+        reliabilityMove?: {
+          before: number;
+          after: number;
+          ratingHundredths: number;
+        } | null;
+        levelCheckMove?: {
+          agreed: boolean;
+          band: string;
+          levelBefore: string;
+          levelAfter: string;
+        } | null;
+      },
+      locale: "en" | "ar" = "en",
+    ) =>
+      notificationCopy(
+        {
+          type: "performance_ratings_closed",
+          audience: "player",
+          actor: null,
+          group: null,
+          game,
+          tier: null,
+          ovrMove: null,
+          ...moves,
+        },
+        locale,
+      )?.subline;
+    const placed = {
+      agreed: false,
+      band: "C",
+      levelBefore: "2.45",
+      levelAfter: "2.61",
+    };
+    assert.equal(
+      closed({
+        reliabilityMove: { before: 100, after: 100, ratingHundredths: 700 },
+        levelCheckMove: placed,
+      }),
+      "You were rated 7.0. Reliability stays at 100%. Players placed you at C: level 2.45 to 2.61.",
+    );
+    assert.equal(
+      closed({
+        levelCheckMove: {
+          agreed: true,
+          band: "C-",
+          levelBefore: "2.45",
+          levelAfter: "2.45",
+        },
+      }),
+      "Players agreed with your level, 2.45.",
+    );
+    assert.match(closed({ levelCheckMove: placed }, "ar") ?? "", /وضعك/);
+  });
+
   it("returns null without a Game or for the wrong audience", () => {
     assert.equal(mvp({ game: null }), null);
     assert.equal(mvp({ audience: "admin" }), null);

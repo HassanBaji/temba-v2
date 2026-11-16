@@ -1,0 +1,29 @@
+# The other players check a padel Level
+
+**Status:** accepted. Spec: `.scratch/padel-declared-band-trust/spec.md`. Amends [ADR-0068](./0068-a-football-match-can-ask-for-performance-ratings.md) (the window asks a second question on padel), [ADR-0095](./0095-performance-ratings-move-reliability-and-a-loss-costs-more-below-full.md) (peers now move a padel Level) and [ADR-0011](./0011-match-result-confirmation.md)'s reversal rule (a Match's Level check is taken back first, and no later check refuses a reversal).
+
+A padel declaration sets the starting φ (ADR-0096), so a low declaration is trusted and a player who said D but plays C climbs slowly on results alone. The owner asked for a third signal: after a Match the other three players say what band the player played at, and their answer is one measurement of the Level, weighed by the player's φ so that it counts most while the Level is new. ADR-0095 had refused to let peers move a padel Level; the owner reversed that, and kept the check on for confirmed players.
+
+## Decision
+
+- **Where it is asked.** On a padel Friendly game on a Verified Group, the Match whose Rating window ADR-0095 opens, at the Game's own weight (1 on a Club Group, 0.5 on another Verified Group). Football windows, tier Groups, tournaments and Challenge Games ask none; padel Public Games are a later decision.
+- **The question.** Rate the game also asks "What level did {name} play at?" about each of the other three: the nine display bands D to A in one row, opened on the band the player shows, marked "now". Nothing is selected until tapped, and a blank is not an answer. The opponents are not optional, because the check needs one of them.
+- **Answers** (`level_check_ballots`) are their own table, one per Match, rater and player, never about oneself, holding the picked band's lower stored band. They are hidden like Performance ratings: a player reads only their own, and no door shows who answered what, an Organizer and an Operator included. They can be changed or cleared until the window closes (`games.submitLevelChecks`, whole-set semantics), and they are kept through a wrong-score report.
+- **Who is checked.** A seated player with a padel Rating, confirmed or not, with at least two answers about them and at least one from the opposing Game team. Every rater weighs 1, an Operator's and a Level setter's included.
+- **The verdict** is the median band. With the answers split evenly across two bands it is the mean of the two bands' middles. A band's middle is the middle of its span on the display face, so D is 0.70, the middle of 0.0 to 1.4.
+- **The step.** A verdict on the band the player shows moves no μ and only narrows φ. Otherwise μ moves by `k × (μ_verdict − μ)` with `k = φ² / (φ² + 250²)`, capped at 0.35 Level, then blended by the Game's weight; φ narrows as by one more measurement, `1 / sqrt(1/φ² + 1/250²)`, blended the same way. The band follows with hysteresis. At weight 1 a one-band gap moves a player at φ 250 by half of it, at φ 150 by about a quarter and at φ 100 by about a seventh. Pure in `@repo/domain/level-check`.
+- **It settles with the window**, after Reliability, by the `rating-window.settle` Job or the read-time fallback, locking `ratings` rows in user-id order.
+- **Its own ledger** (`level_check_results`): one row per player and Match with the verdict, whether it agreed, the answers counted, the weight and the Rating either side. It is not a rating event: not a Rated Match, so it never counts towards confirming a Level, and it leaves σ, `last_rated_at` and Reliability alone.
+- **Reversal.** A wrong-score report takes the Match's Level check back before it restores the Match's rating events: exactly when nothing has touched the Rating since, otherwise by subtracting its μ move, and not at all when a Level override was set since. No later Level check refuses a reversal; a Match with one settled after it has its own μ move subtracted instead of its before-values restored, so the check survives.
+- **What the player sees.** On the played Game, "Players placed you at {band}" with the Level before and after, "Agreed with your level", or why nothing settled. A "Level check" line in Rating history. The padel "ratings are in" Notification goes to a player whose rating or Level check settled and reads both.
+- **Readers that follow a Level over time** treat the ledger as they treat Place awards. A Standing's Most improved view does not count a Level check as improvement, as it does not count a Level override. An Unclaimed player merge moves the answers and results with the Rating, or deletes them with it.
+- **The Level recalculation (ADR-0098) refuses** once any Level check result exists: it does not replay one.
+
+**Considered Options**: a three-way answer, lower, same or higher (in the prototype it leaves a player who said D and plays C at 1.42 after nine Matches, against 2.28 with bands); letting agreement move μ towards the band's middle (an honest D drifts up from 0.35 to 0.57); writing the check as a rating event (one per User and Match is unique, and every row counts as a Rated Match towards confirmation); storing the answer on the Performance rating row (that row is deleted when its 1 to 10 is cleared); switching the check off at confirmation (the owner kept it on); refusing a reversal after a later check (a check is additive enough to come off by subtraction, as a Place award does).
+
+## Consequences
+
+- Four players who agree to answer high can each gain up to 0.35 Level a Match on a Club Group. The cap, the opponent rule and φ falling with every check limit it, and the ledger shows every move to an Operator.
+- With three raters a verdict says a lot about who answered what, as the 1 to 10 result already does.
+- A reversal after a later Level check restores μ by subtraction, not exactly.
+- The check starts with the first Match after this deploys, which must follow the Level recalculation's production run.

@@ -493,13 +493,13 @@ export const rating = {
       everyone: (closes: string) =>
         `Score your teammates and, if you want, opponents. Nobody sees who gave what. Closes ${closes}.`,
       padel: (closes: string) =>
-        `Score your partner and, if you want, your opponents. Nobody sees who gave what. Closes ${closes}.`,
+        `Score your partner and, if you want, your opponents, and say what level each player played at. Nobody sees who gave what. Closes ${closes}.`,
       cta: "Rate",
     },
     padel: {
       heading: "Your partner",
       footnote:
-        "6 is an ordinary game. Ratings do not move a level. Low ratings from several players lower reliability, and a loss then costs more.",
+        "6 is an ordinary game. Low ratings from several players lower reliability, and a loss then costs more.",
       closed: {
         title: "Ratings are closed",
         description: "This game’s ratings are in. Nothing more to rate.",
@@ -898,5 +898,43 @@ export const rating = {
   proveIt: {
     line: (band: string) =>
       `You declared ${band} and lost to a pair at your level, so this loss counted one and a half times.`,
+  },
+  levelCheck: {
+    question: (name: string) => `What level did ${name} play at?`,
+    now: "now",
+    notAnswered: "Not answered",
+    bandSpoken: (name: string, band: string) => `${name} played at ${band}`,
+    bandSpokenNow: (name: string, band: string) =>
+      `${name} played at ${band}, the level they show now`,
+    footnote:
+      "The middle answer about each player can move their level. Nobody sees who gave what.",
+    result: {
+      title: "Level check",
+      placed: (band: string) => `Players placed you at ${band}`,
+      agreed: "Agreed with your level",
+      moved: (from: string, to: string) => `Level ${from} to ${to}.`,
+      nobody: (min: number) =>
+        `Nobody answered about your level, and it takes ${min}. Your level stays where it was.`,
+      tooFew: (n: number, min: number) =>
+        plural("en", n, {
+          one: `Only 1 player answered about your level, and it takes ${min}. Your level stays where it was.`,
+          other: `Only {n} players answered about your level, and it takes ${min}. Your level stays where it was.`,
+        }),
+      noOpponent:
+        "No opponent answered about your level, and it takes one. Your level stays where it was.",
+    },
+    history: {
+      title: "Level check",
+      placed: (band: string) => `Players placed you at ${band}`,
+      agreed: "Players agreed with your level",
+    },
+    errors: {
+      band: "Pick one of the nine level bands.",
+      self: "You don’t answer about your own level.",
+      duplicate: "Answer once for each player.",
+      notPlayer: "You can only answer about the other players of this game.",
+      closed: "Ratings are closed for this game.",
+      noWindow: "This game asks no level check.",
+    },
   },
 };

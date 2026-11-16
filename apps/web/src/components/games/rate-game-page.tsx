@@ -1,6 +1,15 @@
 "use client";
 
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
+import type { AssignableDisplayLevelBand } from "@repo/domain/level-bands";
+import {
+  levelCheckDraft,
+  levelCheckRows,
+  levelCheckSubmission,
+  setLevelCheckAnswer,
+  type LevelCheckDraft,
+  type LevelCheckRow,
+} from "@repo/domain/level-check";
 import {
   rateGameDraft,
   rateGameSubmission,
@@ -123,16 +132,68 @@ function PrivacyPanel({
   );
 }
 
-function PlayerRow({
+function LevelCheckQuestion({
   row,
   disabled,
   onPick,
+}: {
+  row: LevelCheckRow;
+  disabled: boolean;
+  onPick: (band: AssignableDisplayLevelBand) => void;
+}) {
+  return (
+    <div className="mt-3">
+      <p className="text-eyebrow text-muted-foreground">{row.question}</p>
+      <div
+        role="radiogroup"
+        aria-label={row.question}
+        className="mt-1.5 flex gap-[3px]"
+      >
+        {row.cells.map((cell) => (
+          <button
+            key={cell.band}
+            type="button"
+            role="radio"
+            aria-checked={cell.selected}
+            aria-label={cell.spoken}
+            disabled={disabled}
+            onClick={() => onPick(cell.band)}
+            className={cn(
+              "text-eyebrow flex h-[38px] min-w-0 flex-1 flex-col items-center justify-center rounded-[7px] border",
+              cell.selected
+                ? "border-ink bg-ink text-paper"
+                : cell.now
+                  ? "border-ink bg-paper text-ink"
+                  : "border-rule bg-paper text-muted-foreground",
+            )}
+          >
+            <span className="font-semibold">{cell.band}</span>
+            {cell.now ? (
+              <span aria-hidden="true" className="text-[10px] leading-none">
+                {row.nowLabel}
+              </span>
+            ) : null}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PlayerRow({
+  row,
+  levelRow,
+  disabled,
+  onPick,
   onStar,
+  onPickLevel,
 }: {
   row: RateGameRow;
+  levelRow: LevelCheckRow | undefined;
   disabled: boolean;
   onPick: (value: number) => void;
   onStar: () => void;
+  onPickLevel: (band: AssignableDisplayLevelBand) => void;
 }) {
   return (
     <li className="border-rule border-t px-4 pb-3.5 pt-3">
@@ -199,6 +260,13 @@ function PlayerRow({
           </button>
         ))}
       </div>
+      {levelRow ? (
+        <LevelCheckQuestion
+          row={levelRow}
+          disabled={disabled}
+          onPick={onPickLevel}
+        />
+      ) : null}
     </li>
   );
 }
@@ -220,18 +288,22 @@ function SelfRow({ self }: { self: NonNullable<RateGameSide["self"]> }) {
 
 function SideBlock({
   side,
+  levelRows,
   open,
   disabled,
   onToggle,
   onPick,
   onStar,
+  onPickLevel,
 }: {
   side: RateGameSide;
+  levelRows: ReadonlyMap<string, LevelCheckRow> | null;
   open: boolean;
   disabled: boolean;
   onToggle: () => void;
   onPick: (userId: string, value: number) => void;
   onStar: (userId: string) => void;
+  onPickLevel: (userId: string, band: AssignableDisplayLevelBand) => void;
 }) {
   const Chevron = open ? ChevronUpIcon : ChevronDownIcon;
   return (
@@ -261,9 +333,11 @@ function SideBlock({
             <PlayerRow
               key={row.userId}
               row={row}
+              levelRow={levelRows?.get(row.userId)}
               disabled={disabled}
               onPick={(value) => onPick(row.userId, value)}
               onStar={() => onStar(row.userId)}
+              onPickLevel={(band) => onPickLevel(row.userId, band)}
             />
           ))}
           {side.self ? <SelfRow self={side.self} /> : null}
@@ -281,6 +355,13 @@ function RateGameForm({ gameId, sheet }: { gameId: string; sheet: Sheet }) {
   const input: RateGameSheet = sheet;
   const [draft, setDraft] = useState<RateGameDraft>(() => rateGameDraft(input));
   const view = rateGameView(input, draft, locale);
+  const levelSheet = input.levelCheck ?? null;
+  const [levels, setLevels] = useState<LevelCheckDraft>(() =>
+    levelCheckDraft(levelSheet),
+  );
+  const levelRows = levelSheet
+    ? levelCheckRows(levelSheet, levels, locale)
+    : null;
   const [open, setOpen] = useState<Record<number, boolean>>(() =>
     Object.fromEntries(
       view.sides.map((side) => [side.slot, side.openByDefault]),
@@ -290,11 +371,21 @@ function RateGameForm({ gameId, sheet }: { gameId: string; sheet: Sheet }) {
   const submit = api.games.submitPerformanceRatings.useMutation({
     meta: OWN_ERROR_UI,
   });
-  const pending = setMvp.isPending || submit.isPending;
+  const submitLevels = api.games.submitLevelChecks.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const pending =
+    setMvp.isPending || submit.isPending || submitLevels.isPending;
 
   async function send() {
     const payload = rateGameSubmission(draft, input);
     try {
+      if (levelSheet) {
+        await submitLevels.mutateAsync({
+          gameId,
+          answers: levelCheckSubmission(levels, levelSheet),
+        });
+      }
       if (payload.mvpUserId) {
         await setMvp.mutateAsync({ gameId, userId: payload.mvpUserId });
       }
@@ -340,6 +431,7 @@ function RateGameForm({ gameId, sheet }: { gameId: string; sheet: Sheet }) {
             <SideBlock
               key={side.slot}
               side={side}
+              levelRows={levelRows}
               open={open[side.slot] ?? false}
               disabled={!view.canSubmit || pending}
               onToggle={() =>
@@ -353,6 +445,11 @@ function RateGameForm({ gameId, sheet }: { gameId: string; sheet: Sheet }) {
               }
               onStar={(userId) =>
                 setDraft((current) => toggleDraftMvp(current, input, userId))
+              }
+              onPickLevel={(userId, band) =>
+                setLevels((current) =>
+                  setLevelCheckAnswer(current, userId, band),
+                )
               }
             />
           ))}
@@ -391,7 +488,9 @@ function RateGameForm({ gameId, sheet }: { gameId: string; sheet: Sheet }) {
  * Rate the game. In Organizer mode the Organizer scores every player 1 to
  * 10 and stars the MVP; Submit closes the Rating window and everyone's Tier
  * points move. When everyone rates, a player scores teammates and, if they
- * want, opponents, and may change them until the window closes.
+ * want, opponents, and may change them until the window closes. On a padel
+ * Match that asks the Level check, each other player's row also asks what
+ * band they played at.
  */
 export function RateGamePage({ gameId }: { gameId: string }) {
   const m = useMessages();

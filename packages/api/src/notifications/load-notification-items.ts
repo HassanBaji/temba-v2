@@ -3,6 +3,7 @@ import { and, eq, inArray, type SQL } from "drizzle-orm";
 
 import {
   kingPlaceAwards,
+  levelCheckResults,
   performanceRatingResults,
   ratingEvents,
   type MatchDisputeStatus,
@@ -16,6 +17,7 @@ import {
   levelFromMu,
 } from "@repo/domain/level";
 import { type LevelBand } from "@repo/domain/level-bands";
+import { levelCheckVerdictBand } from "@repo/domain/level-check";
 import { type LevelOverrideReason } from "@repo/domain/level-slider";
 import { marksWindow, type MarkKind } from "@repo/domain/marks";
 import { type TierBand } from "@repo/domain/tier-bands";
@@ -87,6 +89,17 @@ export type NotificationItem = {
     before: number;
     after: number;
     ratingHundredths: number;
+  } | null;
+  /**
+   * The Level check a ratings-closed Notification is about on a padel Match:
+   * the verdict band and the Level either side, two decimals; null on
+   * football, and once it is taken back.
+   */
+  levelCheckMove: {
+    agreed: boolean;
+    band: string;
+    levelBefore: string;
+    levelAfter: string;
   } | null;
   /** The Place award a King of the court Notification is about (ADR-0089). */
   placeAward: {
@@ -235,6 +248,50 @@ async function reliabilityRatingsClosedMoves(
     moves.get(key(userId, matchId)) ?? null;
 }
 
+/** Each User's settled Level check on each padel Match. */
+async function levelCheckMovesOf(
+  database: DbClient,
+  pairs: readonly { userId: string; matchId: string }[],
+) {
+  const moves = new Map<
+    string,
+    NonNullable<NotificationItem["levelCheckMove"]>
+  >();
+  const key = (userId: string, matchId: string) => `${userId}:${matchId}`;
+  if (pairs.length > 0) {
+    const rows = await database
+      .select({
+        userId: levelCheckResults.userId,
+        matchId: levelCheckResults.matchId,
+        agreed: levelCheckResults.agreed,
+        verdictLevelHundredths: levelCheckResults.verdictLevelHundredths,
+        muBefore: levelCheckResults.muBefore,
+        muAfter: levelCheckResults.muAfter,
+      })
+      .from(levelCheckResults)
+      .where(
+        and(
+          inArray(levelCheckResults.userId, [
+            ...new Set(pairs.map((pair) => pair.userId)),
+          ]),
+          inArray(levelCheckResults.matchId, [
+            ...new Set(pairs.map((pair) => pair.matchId)),
+          ]),
+        ),
+      );
+    for (const row of rows) {
+      moves.set(key(row.userId, row.matchId), {
+        agreed: row.agreed,
+        band: levelCheckVerdictBand(row.verdictLevelHundredths / 100),
+        levelBefore: formatPadelLevel(levelFromMu(row.muBefore), 2),
+        levelAfter: formatPadelLevel(levelFromMu(row.muAfter), 2),
+      });
+    }
+  }
+  return (userId: string, matchId: string) =>
+    moves.get(key(userId, matchId)) ?? null;
+}
+
 /** Each User's Place award on each King of the court Game. */
 async function placeAwardsOf(
   database: DbClient,
@@ -355,17 +412,19 @@ export async function loadNotificationItems(
     ),
   );
 
+  const padelClosedPairs = rows.flatMap((row) =>
+    row.type === "performance_ratings_closed" && row.game?.sport === "padel"
+      ? row.game.matches.map((match) => ({
+          userId: row.recipientUserId,
+          matchId: match.id,
+        }))
+      : [],
+  );
   const reliabilityMoveOf = await reliabilityRatingsClosedMoves(
     database,
-    rows.flatMap((row) =>
-      row.type === "performance_ratings_closed" && row.game?.sport === "padel"
-        ? row.game.matches.map((match) => ({
-            userId: row.recipientUserId,
-            matchId: match.id,
-          }))
-        : [],
-    ),
+    padelClosedPairs,
   );
+  const levelCheckMoveOf = await levelCheckMovesOf(database, padelClosedPairs);
 
   const placeAwardOf = await placeAwardsOf(
     database,
@@ -426,6 +485,13 @@ export async function loadNotificationItems(
           item.type === "performance_ratings_closed" && game?.sport === "padel"
             ? (game.matches.flatMap((match) => {
                 const move = reliabilityMoveOf(recipientUserId, match.id);
+                return move ? [move] : [];
+              })[0] ?? null)
+            : null,
+        levelCheckMove:
+          item.type === "performance_ratings_closed" && game?.sport === "padel"
+            ? (game.matches.flatMap((match) => {
+                const move = levelCheckMoveOf(recipientUserId, match.id);
                 return move ? [move] : [];
               })[0] ?? null)
             : null,

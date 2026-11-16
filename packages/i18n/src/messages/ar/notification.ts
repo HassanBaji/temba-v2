@@ -391,7 +391,7 @@ export const notification = {
     ratingsOpenEveryone:
       "قيّم زملاءك، والخصوم إن أردت، خلال 24 ساعة. لا أحد يرى من أعطى ماذا.",
     ratingsOpenPadel:
-      "قيّم شريكك، والخصوم إن أردت، خلال 24 ساعة. لا أحد يرى من أعطى ماذا.",
+      "قيّم شريكك، والخصوم إن أردت، وقل بأي مستوى لعب كل لاعب، خلال 24 ساعة. لا أحد يرى من أعطى ماذا.",
     tierPlaces: "الفئات مراكز، فحين يتحرّك لاعب يتحرّك غيره في الاتجاه الآخر.",
     gamePaymentReminder: "ادفع للمنظّم، ثم أخبره من صفحة المباراة.",
     gamePaymentClaimed: "أكّده حين تستلم المال.",
@@ -416,6 +416,12 @@ export const notification = {
       `تقييمك ${isolate(rating)}. الموثوقية ${isolate(delta)}، والآن ${isolate(reliability)}.`,
     ratingsClosedReliabilitySame: (rating: string, reliability: string) =>
       `تقييمك ${isolate(rating)}. تبقى الموثوقية عند ${isolate(reliability)}.`,
+    ratingsClosedLevelCheck: (band: string, from: string, to: string) =>
+      `وضعك اللاعبون في ${isolate(band)}: المستوى من ${isolate(from)} إلى ${isolate(to)}.`,
+    ratingsClosedLevelCheckAgreed: (level: string) =>
+      `وافق اللاعبون على مستواك، ${isolate(level)}.`,
+    ratingsClosedBoth: (rating: string, levelCheck: string) =>
+      `${rating} ${levelCheck}`,
     disputeUpheld: "النتيجة مفتوحة من جديد. أدخل النتيجة الصحيحة.",
     disputeDismissed: "تبقى النتيجة.",
     disputeSuperseded:
