@@ -25,6 +25,17 @@ pnpm --filter @repo/api db:backfill-operators
 
 It pages through every Clerk User and writes what Clerk says now, so it is safe to rerun, for example after a webhook outage.
 
+## Padel Level recalculation: dry run
+
+The dry run replays every padel Rated Match, Place award and Level override under the Declared band rules and reports per player what their Level would become (`.scratch/padel-declared-band-trust/spec.md`, section 9). It reads in one read-only, repeatable-read transaction and writes nothing. With `DATABASE_URL` in the shell or in `packages/api/.env`:
+
+```bash
+pnpm --filter @repo/api db:replay-padel-ratings
+pnpm --filter @repo/api db:replay-padel-ratings -- --report padel-levels.csv
+```
+
+The report names the database host; counts players, Matches, events, overrides and awards; says how each Declared band was read back; lists the largest moves, band letter changes, players now outside an upcoming Game's Level range and every row placed by a stated rule (RQ-5, RQ-6, RQ-7); compares a baseline pass under the rules before the Declared band; and prints the load and compute time. It exits non-zero if the recalculation would change who is confirmed. `--report` writes one CSV row per player.
+
 ## Error codes
 
 | HTTP | tRPC code           | When                                                                                                              |

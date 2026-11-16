@@ -49,7 +49,7 @@ export async function displayedLevelTenthsForUser(
 
 export function displayedLevelPassesRange(
   tenths: number,
-  game: LevelRangeGame,
+  game: Pick<LevelRangeGame, "levelMinTenths" | "levelMaxTenths">,
 ) {
   if (game.levelMinTenths != null && tenths < game.levelMinTenths) {
     return false;
