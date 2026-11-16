@@ -23,6 +23,9 @@ export function notificationHref(item: {
   if (item.type === "level_confirmed" && isSport(sport)) {
     return youRatingsHref(sport);
   }
+  if (item.type === "level_recalculated") {
+    return youRatingsHref("padel");
+  }
   if (item.type === "performance_ratings_open" && item.game) {
     return gameRateHref(item.game.id);
   }

@@ -44,14 +44,20 @@ export function at(days: number, hours = 0) {
 export async function insertUser(
   database: TestDatabase,
   name: string,
-  options: { guest?: boolean } = {},
+  options: { guest?: boolean; unclaimed?: boolean } = {},
 ) {
   const [row] = await database
     .insert(user)
     .values(
       options.guest
         ? { name, addedAt: new Date(), guestAt: new Date() }
-        : { name, email: `${name}-${crypto.randomUUID()}@example.com` },
+        : options.unclaimed
+          ? {
+              name,
+              addedAt: new Date(),
+              phoneNumber: `+9733${String(Math.floor(Math.random() * 1e7)).padStart(7, "0")}`,
+            }
+          : { name, email: `${name}-${crypto.randomUUID()}@example.com` },
     )
     .returning({ id: user.id });
   if (!row) {

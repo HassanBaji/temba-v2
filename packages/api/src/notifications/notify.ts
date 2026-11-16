@@ -39,6 +39,8 @@ export type NotifyArgs = {
   gameCount?: number | null;
   markKind?: MarkKind | null;
   dedupeKey?: string | null;
+  /** Writes the rows as already emailed, for a Notification shown in the App only: no email Job is enqueued. */
+  emailedAt?: Date | null;
 };
 
 function audienceByRecipient(
@@ -75,7 +77,8 @@ async function dropUnclaimedRecipients(
 /**
  * The only writer of `notifications` rows; call it inside the event's
  * transaction. Each inserted row also gets its Notification email Job there,
- * so an email exists only if the event commits (ADR-0054).
+ * so an email exists only if the event commits (ADR-0054), unless it is
+ * written already emailed.
  */
 export async function notify(
   database: DbOrTx,
@@ -104,14 +107,17 @@ export async function notify(
     gameCount: args.gameCount ?? null,
     markKind: args.markKind ?? null,
     dedupeKey: args.dedupeKey ?? null,
+    emailedAt: args.emailedAt ?? null,
   }));
 
   const insert = database.insert(notifications).values(rows).returning();
   const inserted = await (args.dedupeKey
     ? insert.onConflictDoNothing()
     : insert);
-  for (const { id } of inserted) {
-    await enqueue(database, notificationEmailJob(id));
+  if (!args.emailedAt) {
+    for (const { id } of inserted) {
+      await enqueue(database, notificationEmailJob(id));
+    }
   }
 
   await database

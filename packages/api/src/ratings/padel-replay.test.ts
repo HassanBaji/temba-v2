@@ -74,7 +74,12 @@ function history() {
         declaredAt?: Date;
       } = {},
     ) {
-      ledger.players.push({ id: name, name, guest: options.guest ?? false });
+      ledger.players.push({
+        id: name,
+        name,
+        guest: options.guest ?? false,
+        accountHolder: !options.guest,
+      });
       const declared =
         options.declared !== undefined || options.mu !== undefined;
       if (declared || options.rated) {
@@ -930,6 +935,57 @@ describe("the dry-run report", () => {
     expect(report.failed).toBe(true);
     expect(report.confirmationChanges.map((row) => row.userId)).toEqual([a]);
     expect(formatPadelReplayReport(report).at(-1)).toMatch(/^FAILED/);
+  });
+
+  it("tells only account holders whose Level changes on its two-decimal face or whose band letter changes", () => {
+    const h = history();
+    const names = [
+      "below one",
+      "same face",
+      "face moves",
+      "letter moves",
+      "third moves",
+      "unclaimed",
+    ];
+    for (const name of names) {
+      h.player(name, { declared: "C2" });
+    }
+    h.ledger.players.find((row) => row.id === "unclaimed")!.accountHolder =
+      false;
+    const replay = replayPadelLedger(h.ledger, "declared-band");
+    const moves: Record<
+      string,
+      { from: number; bandFrom: LevelBand; to: number; bandTo: LevelBand }
+    > = {
+      "below one": { from: 0.7, bandFrom: "D3", to: 0.56, bandTo: "D3" },
+      "same face": { from: 2.341, bandFrom: "C3", to: 2.344, bandTo: "C3" },
+      "face moves": { from: 2.34, bandFrom: "C3", to: 2.36, bandTo: "C3" },
+      "letter moves": { from: 2.8, bandFrom: "C3", to: 2.8, bandTo: "C2" },
+      "third moves": { from: 0.9, bandFrom: "D3", to: 0.9, bandTo: "D2" },
+      unclaimed: { from: 3.2, bandFrom: "C2", to: 2.6, bandTo: "C3" },
+    };
+    for (const rating of h.ledger.ratings) {
+      const move = moves[rating.userId]!;
+      rating.mu = muFromLevel(move.from);
+      rating.levelBand = move.bandFrom;
+      replay.ratings.set(rating.userId, {
+        mu: muFromLevel(move.to),
+        phi: rating.phi,
+        sigma: rating.sigma,
+        levelBand: move.bandTo,
+        lastRatedAt: null,
+        declaredBand: null,
+      });
+    }
+
+    const report = reportFor(h, replay);
+    expect(report.told.sort()).toEqual(["face moves", "letter moves"]);
+    expect(formatPadelReplayReport(report).join("\n")).toContain(
+      "Players who would be told their Level was recalculated, in the app only: 2.",
+    );
+    expect(formatPadelReplayReport(report, "apply").join("\n")).toContain(
+      "Players told their Level was recalculated, in the app only: 2.",
+    );
   });
 
   it("reports moves, band letter changes, players now outside an upcoming Game's Level range, and the CSV", () => {

@@ -164,6 +164,9 @@ export const notification = {
       plain("تأكّد مستواك في "),
       strong(sport),
     ],
+    levelRecalculated: [
+      plain("أُعيد حساب مستواك في البادل وفق قواعد المستوى الجديدة"),
+    ],
     gameFinished: (game: string) => [plain("انتهت "), strong(game)],
     gamePaymentReminder: (actor: string, game: string) => [
       plain("ذكّرك "),
@@ -394,6 +397,7 @@ export const notification = {
     gamePaymentClaimed: "أكّده حين تستلم المال.",
     levelConfirmed:
       "لم يعد المسار مخطّطًا. يواصل التحرّك في المباريات الموثّقة.",
+    levelRecalculated: "افتح التصنيفات لترى موقعك.",
     kingPlaceAwarded: (from: string, to: string) =>
       `المستوى من ${isolate(from)} إلى ${isolate(to)}.`,
     ratingsClosed: (rating: string, delta: string, points: string) =>

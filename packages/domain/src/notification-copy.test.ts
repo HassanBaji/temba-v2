@@ -1610,6 +1610,34 @@ describe("notificationCopy: a confirmed Level", () => {
     );
   });
 
+  it("says the padel Level was recalculated, with no numbers, in both Locales", () => {
+    const item = {
+      type: "level_recalculated",
+      audience: "player",
+      actor: null,
+      group: null,
+      game: null,
+    };
+    assert.deepEqual(notificationCopy(item, "en"), {
+      title: [
+        {
+          text: "Your padel level was recalculated under the new level rules",
+          strong: false,
+        },
+      ],
+      subline: "Open Ratings to see where you stand.",
+    });
+    assert.deepEqual(notificationCopy(item, "ar"), {
+      title: [
+        {
+          text: "أُعيد حساب مستواك في البادل وفق قواعد المستوى الجديدة",
+          strong: false,
+        },
+      ],
+      subline: "افتح التصنيفات لترى موقعك.",
+    });
+  });
+
   it("says which place moved the Level and where it went", () => {
     assert.deepEqual(
       notificationCopy(

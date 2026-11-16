@@ -393,6 +393,24 @@ describe("renderNotificationEmail", () => {
     expect(email.html).toContain("Open your ratings");
   });
 
+  it("sends a recalculated Level to the padel Ratings page", () => {
+    const email = render(
+      item({
+        type: "level_recalculated",
+        audience: "player",
+        actor: null,
+        group: null,
+        game: null,
+      }),
+    );
+    expect(email.subject).toBe(
+      "Your padel level was recalculated under the new level rules",
+    );
+    expect(email.html).toContain(
+      `href="${ORIGIN}/dashboard/you/ratings?sport=padel"`,
+    );
+  });
+
   it("renders Arabic right-to-left from the Arabic catalog", () => {
     const email = render(
       item({ type: "group_member_joined", group: GROUP }),

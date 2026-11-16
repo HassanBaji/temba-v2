@@ -11,6 +11,7 @@ import {
   groupTierEvents,
   groupTierPoints,
   matches,
+  notifications,
   ratingEvents,
   ratingReplayBackups,
   ratingReplayRuns,
@@ -18,7 +19,16 @@ import {
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { groupSeasonWindow } from "@repo/domain/group-season";
-import { levelFromMu } from "@repo/domain/level";
+import {
+  formatPadelLevel,
+  INITIAL_PHI,
+  initialRatingFromChoice,
+  levelFromMu,
+} from "@repo/domain/level";
+import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
+
+import { resetJobSink, setJobSink } from "#src/jobs/enqueue";
+import { RecordingJobSink } from "#src/jobs/job-sink.test-support";
 
 import { applyKingPlaceAwards } from "#src/ratings/apply-king-place-awards";
 import {
@@ -41,6 +51,7 @@ import {
   writeHistory,
 } from "#src/ratings/padel-replay-history.test-support";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
+import { ratingHistory } from "#src/routers/ratings/history";
 import { seasonStanding } from "#src/routers/groups/seasonStanding";
 import { standingLevels } from "#src/routers/groups/standingLevels";
 
@@ -110,13 +121,17 @@ async function footballChecksums(database: TestDatabase) {
   return sums;
 }
 
-/** Every table but the four the recalculation writes and its own two, plus the football rows of those four. */
+/**
+ * Every table but the four the recalculation writes, its own two and the
+ * Notifications it tells players by, plus the football rows of those four.
+ */
 async function untouchedChecksums(database: TestDatabase) {
   const sums = await tableChecksums(database);
   for (const table of [
     ...TABLES,
     "rating_replay_runs",
     "rating_replay_backups",
+    "notifications",
   ]) {
     delete sums[table];
   }
@@ -178,6 +193,42 @@ async function verifiedGroupMatchCounts(database: TestDatabase) {
     counts.set(row.userId, (counts.get(row.userId) ?? 0) + 1);
   }
   return counts;
+}
+
+/** Each padel Level as the Apps show it: two decimals and the band letter. */
+async function shownLevels(database: TestDatabase) {
+  const rows = await database
+    .select({
+      userId: ratings.userId,
+      mu: ratings.mu,
+      levelBand: ratings.levelBand,
+    })
+    .from(ratings)
+    .where(eq(ratings.sport, "padel"));
+  return new Map(
+    rows.map((row) => [
+      row.userId,
+      `${formatPadelLevel(levelFromMu(row.mu), 2)} ${displayLabelFromStoredBand(row.levelBand)}`,
+    ]),
+  );
+}
+
+async function recalculatedNotifications(database: TestDatabase) {
+  return database
+    .select()
+    .from(notifications)
+    .where(eq(notifications.type, "level_recalculated"))
+    .orderBy(notifications.recipientUserId);
+}
+
+async function historyLines(database: TestDatabase, userId: string) {
+  const { entries } = await ratingHistory(asDb(database), {
+    userId,
+    sport: "padel",
+    ladder: "all",
+    limit: 100,
+  });
+  return entries.map((entry) => `${entry.kind}:${entry.id}`);
 }
 
 async function reliabilities(database: TestDatabase) {
@@ -257,9 +308,9 @@ describe("applying the padel Level recalculation", () => {
     });
   });
 
-  it("writes nothing and records no run the second time, and a restore returns every table to its bytes", async () => {
+  it("writes nothing and records no run the second time, and a restore returns every table but the Notifications to its bytes", async () => {
     await withHistory(async (database) => {
-      const before = await tableChecksums(database);
+      const { notifications: _, ...before } = await tableChecksums(database);
       const first = await applied(database);
       const afterApply = await tableChecksums(database);
 
@@ -271,7 +322,81 @@ describe("applying the padel Level recalculation", () => {
       expect(
         await restorePadelReplay(asDb(database), { runId: first.runId }),
       ).toEqual({ kind: "restored", restored: first.summary.changed });
-      expect(await tableChecksums(database)).toEqual(before);
+      const { notifications: kept, ...restored } =
+        await tableChecksums(database);
+      expect(restored).toEqual(before);
+      expect(kept).toBe(afterApply.notifications);
+    });
+  });
+
+  it("tells each account holder whose shown Level or band letter changed once, in the app only, and no one else", async () => {
+    await withHistory(async (database, h) => {
+      const uma = await insertUser(database, "uma", { unclaimed: true });
+      vi.setSystemTime(at(53, 1));
+      await database.insert(ratings).values({
+        userId: uma,
+        sport: "padel",
+        ...initialRatingFromChoice("C2", "padel"),
+        phi: INITIAL_PHI,
+        selfDeclaredAt: at(53, 1),
+      });
+      await ratedMatch(database, h.w, {
+        where: "club",
+        slot1: [uma, h.dina],
+        slot2: [h.cleo, h.bert],
+        outcome: "slot2",
+        when: at(54),
+      });
+      const shownBefore = await shownLevels(database);
+      const linesBefore = new Map(
+        await Promise.all(
+          [...shownBefore.keys()].map(
+            async (userId) =>
+              [userId, await historyLines(database, userId)] as const,
+          ),
+        ),
+      );
+      expect(await recalculatedNotifications(database)).toEqual([]);
+
+      const jobs = new RecordingJobSink();
+      setJobSink(jobs);
+      const result = await applied(database).finally(resetJobSink);
+
+      const shownAfter = await shownLevels(database);
+      const changed = [...shownBefore]
+        .filter(([userId, shown]) => shownAfter.get(userId) !== shown)
+        .map(([userId]) => userId);
+      expect(changed).toContain(uma);
+      expect(shownBefore.has(h.ghost)).toBe(false);
+      const expected = changed.filter((userId) => userId !== uma).sort();
+      expect(expected.length).toBeGreaterThan(0);
+
+      const told = await recalculatedNotifications(database);
+      expect(told.map((row) => row.recipientUserId)).toEqual(expected);
+      expect([...result.report.told].sort()).toEqual(expected);
+      for (const row of told) {
+        expect(row).toMatchObject({
+          audience: "player",
+          emailedAt: at(60),
+          readAt: null,
+          gameId: null,
+          groupId: null,
+          dedupeKey: `level_recalculated:${result.runId}`,
+        });
+      }
+      expect(jobs.added).toEqual([]);
+      for (const [userId, lines] of linesBefore) {
+        expect(await historyLines(database, userId)).toEqual(lines);
+      }
+
+      expect((await apply(database)).kind).toBe("unchanged");
+      expect(await recalculatedNotifications(database)).toEqual(told);
+
+      expect(
+        (await restorePadelReplay(asDb(database), { runId: result.runId }))
+          .kind,
+      ).toBe("restored");
+      expect(await recalculatedNotifications(database)).toEqual(told);
     });
   });
 

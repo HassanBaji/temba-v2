@@ -9,11 +9,14 @@
  * confirmed.
  *
  * --apply: in one transaction, locks rating writes, backs up every row whose
- * values differ and writes the replayed values. Prints the run id. Refuses
- * while rows cannot be recomputed unless --carry-unplaced is passed.
+ * values differ and writes the replayed values. Tells each account holder
+ * whose shown Level or band letter changed, in the app only. Prints the run
+ * id. Refuses while rows cannot be recomputed unless --carry-unplaced is
+ * passed.
  *
- * --restore <run id>: writes that run's backup back. Refuses once a padel
- * Rated Match, Level override or Place award was written after the run.
+ * --restore <run id>: writes that run's backup back; the Notifications stay.
+ * Refuses once a padel Rated Match, Level override or Place award was
+ * written after the run.
  *
  * Needs DATABASE_URL (read from .env if present).
  *
@@ -137,7 +140,7 @@ async function main() {
     case "applied": {
       const { changed } = result.summary;
       console.log(
-        `Applied run ${result.runId}: ratings ${changed.ratings}, rating_events ${changed.rating_events}, king_place_awards ${changed.king_place_awards}, level_overrides ${changed.level_overrides} rows written, each backed up.`,
+        `Applied run ${result.runId}: ratings ${changed.ratings}, rating_events ${changed.rating_events}, king_place_awards ${changed.king_place_awards}, level_overrides ${changed.level_overrides} rows written, each backed up. ${result.report.told.length} players told their Level was recalculated, in the app only.`,
       );
       console.log(
         `To undo before anything rates on top: pnpm --filter @repo/api db:replay-padel-ratings -- --restore ${result.runId}`,

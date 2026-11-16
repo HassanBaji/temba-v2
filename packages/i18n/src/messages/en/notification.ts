@@ -135,6 +135,9 @@ export const notification = {
       strong(sport),
       plain(" Level is confirmed"),
     ],
+    levelRecalculated: [
+      plain("Your padel level was recalculated under the new level rules"),
+    ],
     gameFinished: (game: string) => [strong(game), plain(" has finished")],
     gamePaymentReminder: (actor: string, game: string) => [
       strong(actor),
@@ -359,6 +362,7 @@ export const notification = {
     gamePaymentClaimed: "Confirm it once you have the money.",
     levelConfirmed:
       "The track is no longer hatched. It keeps moving on verified matches.",
+    levelRecalculated: "Open Ratings to see where you stand.",
     kingPlaceAwarded: (from: string, to: string) => `Level ${from} to ${to}.`,
     ratingsClosed: (rating: string, delta: string, points: string) =>
       `You were rated ${rating}. Tier points ${delta}, now ${points}.`,

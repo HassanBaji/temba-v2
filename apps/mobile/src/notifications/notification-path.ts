@@ -68,6 +68,9 @@ export function notificationPath(item: {
   if (item.type === "level_confirmed" && isSport(sport)) {
     return ratingsPath(sport);
   }
+  if (item.type === "level_recalculated") {
+    return ratingsPath("padel");
+  }
   if (item.game && item.type === "performance_ratings_open") {
     return gameRatePath(item.game.id);
   }

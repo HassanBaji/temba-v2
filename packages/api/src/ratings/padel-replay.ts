@@ -37,6 +37,7 @@ import {
   bandWithHysteresis,
   confirmedPhiForOverride,
   formatLevel,
+  formatPadelLevel,
   INITIAL_MU,
   INITIAL_PHI,
   INITIAL_SIGMA,
@@ -67,7 +68,9 @@ import {
 
 import { type db } from "#src/db";
 import { displayedLevelPassesRange } from "#src/games/user-allowed-by-level-range";
+import { notify } from "#src/notifications/notify";
 import { withGuestStandIns } from "#src/ratings/guest-stand-ins";
+import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db;
 
@@ -152,7 +155,13 @@ export type ReplayKingGame = {
   teams: { finalPlace: number | null; userIds: string[] }[];
 };
 
-export type ReplayPlayer = { id: string; name: string; guest: boolean };
+/** `accountHolder`: neither an Unclaimed player nor a Guest player, so a Notification reaches them. */
+export type ReplayPlayer = {
+  id: string;
+  name: string;
+  guest: boolean;
+  accountHolder: boolean;
+};
 
 /** The padel ledger as it stands, the replay's only input. */
 export type PadelLedger = {
@@ -1221,7 +1230,13 @@ export async function loadPadelLedger(tx: DbTx): Promise<PadelLedger> {
       },
     }),
     tx
-      .select({ id: user.id, name: user.name, guestAt: user.guestAt })
+      .select({
+        id: user.id,
+        name: user.name,
+        guestAt: user.guestAt,
+        clerkId: user.clerkId,
+        addedAt: user.addedAt,
+      })
       .from(user)
       .where(
         or(
@@ -1297,6 +1312,7 @@ export async function loadPadelLedger(tx: DbTx): Promise<PadelLedger> {
       id: row.id,
       name: row.name,
       guest: row.guestAt != null,
+      accountHolder: !isUnclaimed(row),
     })),
   };
 }
@@ -1364,6 +1380,8 @@ export type PadelReplayReport = {
   largestDown: PadelReplayPlayerRow[];
   bandChanges: PadelReplayPlayerRow[];
   confirmationChanges: PadelReplayPlayerRow[];
+  /** The account holders whose shown Level or band letter changes: each is told once (spec 9.9). */
+  told: string[];
   outsideLevelRange: (UpcomingLevelRangeSeat & {
     name: string;
     levelBefore: number;
@@ -1457,6 +1475,21 @@ function emptyStarts(): PadelReplayReport["starts"] {
   };
 }
 
+function shownBandChanged(row: PadelReplayPlayerRow): boolean {
+  return (
+    displayLabelFromStoredBand(row.bandBefore) !==
+    displayLabelFromStoredBand(row.bandAfter)
+  );
+}
+
+/** A stored Level below 1.0 reads 1.00, so a move down there is not shown. */
+function shownLevelChanged(row: PadelReplayPlayerRow): boolean {
+  return (
+    formatPadelLevel(row.levelBefore, 2) !==
+      formatPadelLevel(row.levelAfter, 2) || shownBandChanged(row)
+  );
+}
+
 function displayedTenths(mu: number): number {
   return Math.round(Number(formatLevel(levelFromMu(mu))) * 10);
 }
@@ -1473,6 +1506,9 @@ export function buildPadelReplayReport(args: {
 }): PadelReplayReport {
   const { ledger, replay } = args;
   const nameOf = new Map(ledger.players.map((row) => [row.id, row.name]));
+  const accountHolders = new Set(
+    ledger.players.filter((row) => row.accountHolder).map((row) => row.id),
+  );
   const before = storedConfirmations(ledger);
   const unconfirmed = { verifiedMatches: 0, overridden: false };
   const starts = emptyStarts();
@@ -1577,12 +1613,11 @@ export function buildPadelReplayReport(args: {
       .filter((row) => row.move < 0)
       .reverse()
       .slice(0, LARGEST_MOVES),
-    bandChanges: rows.filter(
-      (row) =>
-        displayLabelFromStoredBand(row.bandBefore) !==
-        displayLabelFromStoredBand(row.bandAfter),
-    ),
+    bandChanges: rows.filter(shownBandChanged),
     confirmationChanges,
+    told: rows
+      .filter((row) => accountHolders.has(row.userId) && shownLevelChanged(row))
+      .map((row) => row.userId),
     outsideLevelRange,
     differences,
     baseline: baselineReproduction(ledger, args.baseline),
@@ -1639,6 +1674,10 @@ export function formatPadelReplayReport(
     "",
     `Band letter changes (${report.bandChanges.length}):`,
     ...report.bandChanges.map(moveLine),
+    "",
+    mode === "apply"
+      ? `Players told their Level was recalculated, in the app only: ${report.told.length}.`
+      : `Players who would be told their Level was recalculated, in the app only: ${report.told.length}.`,
     "",
     `Players crossing the confirmation line or changing their Verified Group Match count: ${report.confirmationChanges.length} (must be 0).`,
     ...report.confirmationChanges.map(
@@ -1983,9 +2022,11 @@ export type PadelReplayApply =
  * The apply (spec 9.8): in one transaction, locks rating writes, loads,
  * replays, backs up every row whose values differ and writes the replayed
  * values over it. Rows that already hold them are not touched, and a run
- * that would change nothing is not recorded. Refuses while the
- * recalculation would change who is confirmed, and while a row cannot be
- * recomputed [RQ-7] unless `carryUnplaced`.
+ * that would change nothing is not recorded. Each account holder whose
+ * shown Level or band letter changes gets one `level_recalculated`
+ * Notification, written already emailed. Refuses while the recalculation
+ * would change who is confirmed, and while a row cannot be recomputed
+ * [RQ-7] unless `carryUnplaced`.
  */
 export async function applyPadelReplay(
   database: DbClient,
@@ -2051,6 +2092,16 @@ export async function applyPadelReplay(
       for (const [table, rows] of rowsByTable) {
         await backUpAndWrite(tx, { runId: run.id, table, rows });
       }
+      await notify(tx, {
+        type: "level_recalculated",
+        recipients: report.told.map((userId) => ({
+          userId,
+          audience: "player" as const,
+        })),
+        excludeUserIds: [],
+        dedupeKey: `level_recalculated:${run.id}`,
+        emailedAt: appliedAt,
+      });
       return { kind: "applied", runId: run.id, summary, report };
     },
     { isolationLevel: "repeatable read" },
@@ -2118,7 +2169,8 @@ async function restoreRefusal(
 /**
  * `--restore <run id>`: writes every row the run backed up back as it was,
  * whole, and removes the run, so every table holds its bytes from before
- * the run. Refuses once anything has rated on top of the run.
+ * the run. The Notifications the run wrote stay. Refuses once anything has
+ * rated on top of the run.
  */
 export async function restorePadelReplay(
   database: DbClient,

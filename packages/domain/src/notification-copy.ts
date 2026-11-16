@@ -443,6 +443,9 @@ export function notificationCopy(
       subline: sub.levelConfirmed,
     };
   }
+  if (item.type === "level_recalculated" && item.audience === "player") {
+    return { title: m.levelRecalculated, subline: sub.levelRecalculated };
+  }
   if (
     item.type === "mark_received" &&
     item.audience === "player" &&
