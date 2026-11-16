@@ -10,10 +10,6 @@ import {
 } from "vitest";
 
 import { createPgliteDb } from "@repo/db/testing";
-import {
-  repeatedPartners,
-  swapPlayersInRound,
-} from "@repo/domain/tournament-americano";
 
 import {
   asDb,
@@ -25,7 +21,11 @@ import {
 import { americanoBoard } from "#src/routers/games/americanoBoard";
 import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { postAmericanoRounds } from "#src/routers/games/postAmericanoRounds";
-import { swapAmericanoPlayers } from "#src/routers/games/swapAmericanoPlayers";
+import {
+  repeatedPartners,
+  swapAmericanoPlayers,
+  swapPlayersInRound,
+} from "#src/routers/games/swapAmericanoPlayers";
 
 const START = new Date("2026-09-25T09:00:00");
 const END = new Date("2026-09-25T11:00:00");
@@ -88,8 +88,8 @@ function allowedSwap(
   const pairings = rounds.flatMap((round) =>
     round.matches.map((match) => ({
       roundNumber: round.roundNumber,
-      slot1: [match.slot1PlayerIds[0]!, match.slot1PlayerIds[1]!] as const,
-      slot2: [match.slot2PlayerIds[0]!, match.slot2PlayerIds[1]!] as const,
+      slot1: match.slot1PlayerIds,
+      slot2: match.slot2PlayerIds,
     })),
   );
   const matches = rounds[roundNumber - 1]!.matches;

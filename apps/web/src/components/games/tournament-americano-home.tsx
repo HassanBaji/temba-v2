@@ -12,12 +12,16 @@ import {
 import { shortPlayerName } from "@repo/domain/player-name";
 import { filsToMajorInput } from "@repo/domain/price-per-player";
 import { hubRegisterToast } from "@repo/domain/game-card";
-import { americanoCourtCount } from "@repo/domain/tournament-americano";
+import {
+  AMERICANO_PLAYER_MIN,
+  americanoCourtCount,
+} from "@repo/domain/tournament-americano";
 import {
   americanoHeroStats,
+  americanoResultMark,
   americanoRoundStarts,
   viewerAmericanoFocus,
-  viewerAmericanoGames,
+  viewerAmericanoMatches,
 } from "@repo/domain/tournament-americano-view";
 import { type TournamentDetails } from "@repo/domain/tournament-details";
 import { tournamentHomeView } from "@repo/domain/tournament-details";
@@ -43,7 +47,7 @@ import {
   AmericanoGameRow,
   AmericanoPlayersGrid,
   AmericanoScheduleStrip,
-  AmericanoStandingsTable,
+  AmericanoTableCard,
   AmericanoYourRounds,
   type AmericanoBoard,
   type AmericanoBoardMatch,
@@ -61,7 +65,7 @@ import {
 } from "./tournament-score-drawer";
 import { useTournamentRounds } from "./use-tournament-rounds";
 
-type Tab = "players" | "rounds" | "standings";
+type Tab = "players" | "rounds" | "table";
 
 export function TournamentAmericanoHome({
   data,
@@ -332,7 +336,7 @@ function AmericanoPredraw({
             type="button"
             variant="outline-inverse"
             onClick={onOpenDraw}
-            disabled={taken < 8}
+            disabled={taken < AMERICANO_PLAYER_MIN}
           >
             {m.drawEntry.open}
           </Button>
@@ -478,7 +482,7 @@ function AmericanoDrawnHome({
   const m = messages.tournamentAmericano;
   const locale = useLocale();
   const finished = board.finished;
-  const [tab, setTab] = React.useState<Tab>(finished ? "standings" : "rounds");
+  const [tab, setTab] = React.useState<Tab>(finished ? "table" : "rounds");
   const [scoreTarget, setScoreTarget] = React.useState<ScoreSheetTarget | null>(
     null,
   );
@@ -486,9 +490,9 @@ function AmericanoDrawnHome({
     () => new Map(board.players.map((player) => [player.gamePlayerId, player])),
     [board.players],
   );
-  const teams = React.useMemo(
-    () => new Map(board.teams.map((team) => [team.gameTeamId, team])),
-    [board.teams],
+  const scoreSheetTeams = React.useMemo(
+    () => scoreSheetPairs(board.rounds, names),
+    [board.rounds, names],
   );
   const { actions: roundActions } = useTournamentRounds(data.id, false);
   const scoreActions = React.useMemo(() => {
@@ -521,10 +525,12 @@ function AmericanoDrawnHome({
       roundNumber: round.roundNumber,
     })),
   );
-  const games = viewerAmericanoGames(allMatches, board.viewerGamePlayerId);
   const focus = finished
     ? null
-    : viewerAmericanoFocus(games, board.currentRoundNumber);
+    : viewerAmericanoFocus(
+        viewerAmericanoMatches(allMatches, board.viewerGamePlayerId),
+        board.currentRoundNumber,
+      );
   const played = board.rounds.filter(
     (round) => round.state === "played",
   ).length;
@@ -535,20 +541,20 @@ function AmericanoDrawnHome({
   const titles: Record<Tab, string> = {
     players: m.tabs.players,
     rounds: m.tabs.rounds,
-    standings: m.tabs.standings,
+    table: m.tabs.standings,
   };
   const leads: Record<Tab, string> = {
     players: m.lead.players,
     rounds: board.isOrganizer
       ? m.lead.roundsOrganizer(board.rounds.length)
       : m.lead.rounds,
-    standings: m.lead.standings,
+    table: m.lead.standings,
   };
 
   function openScore(match: AmericanoBoardMatch, roundNumber: number) {
     setScoreTarget({
       roundNumber,
-      match: { ...match, canSwap: false },
+      match: scoreSheetMatch(match),
       mode: match.canConfirm ? "confirm" : "enter",
     });
   }
@@ -636,7 +642,7 @@ function AmericanoDrawnHome({
         >
           <TabsTrigger value="players">{m.tabs.players}</TabsTrigger>
           <TabsTrigger value="rounds">{m.tabs.rounds}</TabsTrigger>
-          <TabsTrigger value="standings">{m.tabs.standings}</TabsTrigger>
+          <TabsTrigger value="table">{m.tabs.standings}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="players" className="pt-[22px]">
@@ -697,10 +703,10 @@ function AmericanoDrawnHome({
           ) : null}
         </TabsContent>
 
-        <TabsContent value="standings" className="space-y-[26px] pt-[22px]">
+        <TabsContent value="table" className="space-y-[26px] pt-[22px]">
           {finished ? null : progress}
-          <AmericanoStandingsTable
-            standings={board.standings}
+          <AmericanoTableCard
+            table={board.table}
             names={names}
             viewerGamePlayerId={board.viewerGamePlayerId}
             final={finished}
@@ -726,7 +732,7 @@ function AmericanoDrawnHome({
       <TournamentScoreDrawer
         gameId={data.id}
         target={scoreTarget}
-        teams={teams}
+        teams={scoreSheetTeams}
         viewerUserId={data.viewerUserId}
         isOrganizer={board.isOrganizer}
         matchMinutes={board.matchMinutes}
@@ -754,7 +760,60 @@ function AmericanoDrawnHome({
   );
 }
 
-/** 3a: the viewer's game in the Round on court, with the score button. */
+type ScoreSheetTeam =
+  ScoreSheetTeams extends ReadonlyMap<string, infer Team> ? Team : never;
+type ScoreSheetTeams = React.ComponentProps<
+  typeof TournamentScoreDrawer
+>["teams"];
+
+function pairKey(matchId: string, slot: 1 | 2) {
+  return `${matchId}:${slot}`;
+}
+
+/**
+ * The Social's score sheet reads each side as a Rounds team by id. An
+ * Americano pair lives for one Match, so each side is keyed by its Match and
+ * slot here, on the web, and never stored or sent as a Game team.
+ */
+function scoreSheetPairs(
+  rounds: readonly AmericanoBoardRound[],
+  names: AmericanoNames,
+): ScoreSheetTeams {
+  const teams = new Map<string, ScoreSheetTeam>();
+  const membersOf = (ids: readonly string[]) =>
+    ids.flatMap((id) => {
+      const player = names.get(id);
+      return player?.userId
+        ? [{ id: player.userId, name: player.name, image: player.image }]
+        : [];
+    });
+  for (const match of rounds.flatMap((round) => round.matches)) {
+    for (const slot of [1, 2] as const) {
+      const ids = slot === 1 ? match.slot1PlayerIds : match.slot2PlayerIds;
+      teams.set(pairKey(match.matchId, slot), {
+        gameTeamId: pairKey(match.matchId, slot),
+        poolIndex: 0,
+        members: membersOf(ids),
+        points: 0,
+      });
+    }
+  }
+  return teams;
+}
+
+function scoreSheetMatch(
+  match: AmericanoBoardMatch,
+): ScoreSheetTarget["match"] {
+  return {
+    ...match,
+    poolIndex: null,
+    slot1GameTeamId: pairKey(match.matchId, 1),
+    slot2GameTeamId: pairKey(match.matchId, 2),
+    canSwap: false,
+  };
+}
+
+/** 3a: the viewer's Match in the Round on court, with the score button. */
 function AmericanoFocusCard({
   match,
   partnerName,
@@ -968,8 +1027,8 @@ function AmericanoFinishedHeader({
   const messages = useMessages();
   const m = messages.tournamentAmericano;
   const locale = useLocale();
-  const winner = board.standings[0];
-  const viewer = board.standings.find(
+  const winner = board.table[0];
+  const viewer = board.table.find(
     (row) => row.playerId === board.viewerGamePlayerId,
   );
   const allMatches = board.rounds.flatMap((round) =>
@@ -978,7 +1037,7 @@ function AmericanoFinishedHeader({
       roundNumber: round.roundNumber,
     })),
   );
-  const results = viewerAmericanoGames(
+  const results = viewerAmericanoMatches(
     allMatches,
     board.viewerGamePlayerId,
   ).map((game) => game.outcome);
@@ -1076,9 +1135,7 @@ function AmericanoFinishedHeader({
                 {results.map((result, index) => (
                   <ResultMark
                     key={index}
-                    variant={
-                      result === "drawn" ? "draw" : (result ?? "not-played")
-                    }
+                    variant={americanoResultMark(result)}
                     decorative
                     className="size-3.5"
                   />

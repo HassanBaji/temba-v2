@@ -80,19 +80,17 @@ describe("americanoBoard", () => {
       true,
     );
     expect(board.rounds[0]?.canSwap).toBe(false);
-    expect(board.standings).toHaveLength(8);
-    expect(board.standings.every((row) => row.played === 0)).toBe(true);
+    expect(board.table).toHaveLength(8);
+    expect(board.table.every((row) => row.played === 0)).toBe(true);
     const mine = board.rounds[0]!.matches.find(
       (match) => match.viewerSlot != null,
     );
     expect(mine).toBeDefined();
-    expect(
-      board.teams.find((team) => team.gameTeamId === mine!.slot1GameTeamId)
-        ?.members,
-    ).toHaveLength(2);
+    expect(mine!.slot1PlayerIds).toHaveLength(2);
+    expect(mine!.slot2PlayerIds).toHaveLength(2);
   });
 
-  it("scores a game through the tournament doors: one pair enters, the other confirms, both players get the games", async () => {
+  it("scores a Match through the tournament doors: one pair enters, the other confirms, both players get its games", async () => {
     const { database, organizer, gameId, people, userOf } =
       await madeAmericano();
     vi.setSystemTime(new Date("2026-09-25T09:20:00"));
@@ -123,7 +121,7 @@ describe("americanoBoard", () => {
       expect(waiting.state).toBe("awaiting_confirmation");
       expect(waiting.canConfirm).toBe(true);
       expect(waiting.enteredBySlot).toBe(1);
-      expect(pending.standings.every((row) => row.played === 0)).toBe(true);
+      expect(pending.table.every((row) => row.played === 0)).toBe(true);
 
       await confirmMatchResult(asDb(database), {
         gameId,
@@ -135,14 +133,14 @@ describe("americanoBoard", () => {
         userId: people[0]!.id,
       });
       expect(board.rounds[0]!.matches[0]!.state).toBe("confirmed");
-      const winners = board.standings.slice(0, 2);
+      const winners = board.table.slice(0, 2);
       expect(winners.map((row) => row.playerId).sort()).toEqual(
         [...first.slot1PlayerIds].sort(),
       );
       expect(winners.every((row) => row.gamesWon === 6 && row.won === 1)).toBe(
         true,
       );
-      const losers = board.standings.filter((row) =>
+      const losers = board.table.filter((row) =>
         first.slot2PlayerIds.includes(row.playerId),
       );
       expect(
@@ -179,7 +177,7 @@ describe("americanoBoard", () => {
         userId: organizer.id,
       });
       expect(done.finished).toBe(true);
-      expect(done.standings.reduce((sum, row) => sum + row.played, 0)).toBe(24);
+      expect(done.table.reduce((sum, row) => sum + row.played, 0)).toBe(24);
     } finally {
       vi.setSystemTime(new Date("2026-09-01T12:00:00"));
     }

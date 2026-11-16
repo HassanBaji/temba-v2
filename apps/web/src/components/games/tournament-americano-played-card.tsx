@@ -2,6 +2,7 @@
 
 import {
   americanoPlayedCardModel,
+  americanoResultMark,
   type AmericanoPlayedSummary,
 } from "@repo/domain/tournament-americano-view";
 
@@ -83,9 +84,7 @@ export function AmericanoPlayedCard({ game }: { game: AmericanoPlayedGame }) {
               {game.americano.results.map((result, index) => (
                 <ResultMark
                   key={index}
-                  variant={
-                    result === "drawn" ? "draw" : (result ?? "not-played")
-                  }
+                  variant={americanoResultMark(result)}
                   decorative
                   className="size-3.5"
                 />

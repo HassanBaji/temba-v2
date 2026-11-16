@@ -31,6 +31,7 @@ import {
 } from "./tournament-knockout";
 import { sizeTournamentRounds } from "./tournament-schedule";
 import {
+  americanoMatchCount,
   americanoPlayersOfTeamCount,
   clampAmericanoRounds,
 } from "./tournament-americano";
@@ -396,6 +397,15 @@ export function validateFriendlyTournamentSubmit(
       step: 3 as const,
     };
   }
+  if (draft.tournamentShape === "americano" && draft.courtIds.length === 0) {
+    return {
+      ok: false as const,
+      field: "courtIds",
+      message: messagesFor(locale).tournamentAmericano.errors.courtsRequired,
+      elementId: "game-court",
+      step: 2 as const,
+    };
+  }
   const named = validateTournamentName(draft.name, locale);
   if (!named.ok) {
     return issueAtStep(named, 4);
@@ -414,12 +424,7 @@ export function validateFriendlyTournamentSubmit(
       teamCount: draft.teamCount,
       tournamentShape: draft.tournamentShape,
       ...(draft.tournamentShape === "americano"
-        ? {
-            roundCount: clampAmericanoRounds(
-              draft.roundCount,
-              americanoPlayersOfTeamCount(draft.teamCount),
-            ),
-          }
+        ? { roundCount: americanoCreateSize(draft).rounds }
         : draft.tournamentShape === "rounds"
           ? {
               poolCount: ROUNDS_SHAPE_POOL_COUNT,
@@ -525,6 +530,18 @@ export function applyTeamCountChange(
   };
 }
 
+/**
+ * An Americano's size from the create draft, which keeps one Game team count
+ * for every shape: the players are twice it.
+ */
+export function americanoCreateSize(
+  draft: Pick<TournamentFields, "teamCount" | "roundCount">,
+) {
+  const players = americanoPlayersOfTeamCount(draft.teamCount);
+  const rounds = clampAmericanoRounds(draft.roundCount, players);
+  return { players, rounds, matchCount: americanoMatchCount(players, rounds) };
+}
+
 export function friendlyTournamentPlan(input: {
   teamCount: number;
   poolCount: number;
@@ -573,7 +590,7 @@ export function friendlyTournamentPlan(input: {
   return {
     knockoutOnly,
     kingOfTheCourt,
-    americano,
+    americano: americano ? americanoCreateSize(input) : null,
     groupsThenKnockout,
     roundsShape,
     knockoutTree,

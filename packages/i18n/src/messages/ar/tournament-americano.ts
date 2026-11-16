@@ -146,6 +146,7 @@ export const tournamentAmericano = {
       matchMinutes: number,
     ) =>
       `${rounds(roundCount)}، ${matches(courtCount)} في كل جولة على ${courts(courtCount)}، ${matchMinutes} دقيقة للمباراة، متتالية. جدول واحد للاعبين في النهاية، بترتيب الأشواط المكسوبة.`,
+    noCourts: "سجّل ملعبًا واحدًا على الأقل في الخطوة 2: تُوزَّع الجولات على الملاعب.",
     waitsForCourts: (recorded: number, needed: number) =>
       `سُجّل ${courts(recorded)} لـ${matches(needed)} في الجولة، لذا تنتظر بعض المباريات ملعبًا متاحًا.`,
     finishTooLate:
@@ -313,7 +314,7 @@ export const tournamentAmericano = {
     otherGets: (pair: string, gamesWon: number) =>
       `ينال ${pair} ${games(gamesWon)} لكل منهما. الأشواط المكسوبة هي ما يرتّبك، فزت أم خسرت.`,
   },
-  standings: {
+  table: {
     place: "#",
     player: "اللاعب",
     played: "ل",
@@ -386,6 +387,12 @@ export const tournamentAmericano = {
       `فاز ${name}، ${games(gamesWon)}`,
     standings: "الترتيب",
   },
+  share: {
+    ofPlayers: (n: number) => `من ${players(n)}`,
+    record: (gamesWon: number, won: number, drawn: number, lost: number) =>
+      `${games(gamesWon)} مكسوبة. ${record(won, drawn, lost)}`,
+    gamesWon: (n: number) => `${n} أش`,
+  },
   mobile: {
     webOnly: "إعداد الجولات وتبديل اللاعبين وإدخال النتائج على الويب حاليًا.",
   },
@@ -413,5 +420,10 @@ export const tournamentAmericano = {
     useMakeRounds: "يُعدّ الأمريكانو جولاته من اللاعبين. استخدم أعدّ الجولات.",
     recordCourts:
       "سجّل ملعبًا واحدًا على الأقل في هذا السوشيال قبل إعداد الجولات.",
+    courtsRequired: "سجّل ملعبًا واحدًا على الأقل: تُوزَّع الجولات على الملاعب.",
+    windowTooShort: (finish: string) =>
+      `تحتاج الجولات حتى ${isolate(finish)}. أخّر وقت الانتهاء أو سجّل ملاعب أكثر أو العب جولات أقل.`,
+    roundsOverrun:
+      "تتجاوز الجولات نهاية هذا السوشيال. سجّل ملاعب أكثر أو أخّر وقت الانتهاء.",
   },
 } satisfies typeof source;

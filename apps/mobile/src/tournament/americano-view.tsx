@@ -1,7 +1,11 @@
 import { spacing } from "@repo/design-tokens";
 import { hubRegisterToast } from "@repo/domain/game-card";
 import { shortPlayerName } from "@repo/domain/player-name";
-import { viewerAmericanoGames } from "@repo/domain/tournament-americano-view";
+import {
+  americanoResultMark,
+  signedDifference,
+  viewerAmericanoMatches,
+} from "@repo/domain/tournament-americano-view";
 import type { TournamentDetails } from "@repo/domain/tournament-details";
 import { Fragment } from "react";
 import { View } from "react-native";
@@ -31,16 +35,9 @@ function Row({ children }: { children: React.ReactNode }) {
   );
 }
 
-function signed(value: number) {
-  if (value > 0) {
-    return `+${value}`;
-  }
-  return value < 0 ? `−${Math.abs(value)}` : "0";
-}
-
 /**
  * An Americano on the mobile App: the players before the Rounds are made,
- * then the one table of players and the viewer's games. Making the Rounds,
+ * then the one table of players and the viewer's Matches. Making the Rounds,
  * swapping players and entering scores happen on the web for now (ADR-0094).
  */
 export function AmericanoView({ game }: { game: TournamentDetails }) {
@@ -103,7 +100,7 @@ export function AmericanoView({ game }: { game: TournamentDetails }) {
           ))}
         </Card>
         <Text size="meta" tone="muted">
-          {m.players.footPlayer}
+          {game.isOrganizer ? m.mobile.webOnly : m.players.footPlayer}
         </Text>
         {canJoin ? (
           <Button
@@ -123,7 +120,7 @@ export function AmericanoView({ game }: { game: TournamentDetails }) {
         roundNumber: round.roundNumber,
       })),
     ) ?? [];
-  const games = viewerAmericanoGames(matches, viewerId);
+  const played = viewerAmericanoMatches(matches, viewerId);
   const shortName = (id: string) =>
     id === viewerId
       ? messages.common.you
@@ -149,7 +146,7 @@ export function AmericanoView({ game }: { game: TournamentDetails }) {
 
       <View style={{ gap: 8 }}>
         <Card title={m.tabs.standings}>
-          {(board.data?.standings ?? []).map((row, index) => (
+          {(board.data?.table ?? []).map((row, index) => (
             <Fragment key={row.playerId}>
               {index > 0 ? <Hairline /> : null}
               <Row>
@@ -162,13 +159,13 @@ export function AmericanoView({ game }: { game: TournamentDetails }) {
                     {row.playerId === viewerId ? (
                       <Text size="meta" tone="muted">
                         {" "}
-                        {m.standings.you}
+                        {m.table.you}
                       </Text>
                     ) : null}
                   </Text>
                 </View>
                 <Text size="meta" tone="muted">
-                  {signed(row.difference)}
+                  {signedDifference(row.difference)}
                 </Text>
                 <Text size="lead" width="expanded" weight="bold">
                   {row.gamesWon}
@@ -178,26 +175,20 @@ export function AmericanoView({ game }: { game: TournamentDetails }) {
           ))}
         </Card>
         <Text size="meta" tone="muted">
-          {finished ? m.standings.final : m.standings.live}
+          {finished ? m.table.final : m.table.live}
         </Text>
       </View>
 
-      {games.length > 0 ? (
+      {played.length > 0 ? (
         <Card
           title={finished ? m.yourRounds.finishedTitle : m.yourRounds.title}
-          meta={m.yourRounds.meta(games.length)}
+          meta={m.yourRounds.meta(played.length)}
         >
-          {games.map((entry, index) => (
+          {played.map((entry, index) => (
             <Fragment key={entry.match.matchId}>
               {index > 0 ? <Hairline /> : null}
               <Row>
-                <ResultMark
-                  variant={
-                    entry.outcome === "drawn"
-                      ? "draw"
-                      : (entry.outcome ?? "not-played")
-                  }
-                />
+                <ResultMark variant={americanoResultMark(entry.outcome)} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text size="meta" weight="semibold" numberOfLines={1}>
                     {m.yourRounds.with(

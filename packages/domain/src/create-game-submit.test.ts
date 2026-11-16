@@ -519,7 +519,11 @@ describe("friendlyTournamentPlan, Americano", () => {
       qualifiersPerPool: 1,
       tournamentShape: "americano",
     });
-    assert.equal(plan.americano, true);
+    assert.deepEqual(plan.americano, {
+      players: 16,
+      rounds: 7,
+      matchCount: 28,
+    });
     assert.equal(plan.sizing, null);
     assert.equal(plan.rounds, null);
   });

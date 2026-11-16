@@ -7,14 +7,19 @@ import { formatGameClock } from "@repo/domain/format-game-start";
 import { initials } from "@repo/domain/initials";
 import { shortPlayerName } from "@repo/domain/player-name";
 import {
-  americanoGameCount,
+  AMERICANO_PLAYER_MIN,
+  AMERICANO_PLAYERS_PER_COURT,
+  americanoMatchCount,
   americanoRoundOf,
   americanoRounds,
+  clampAmericanoRounds,
   swapInOrder,
-  type AmericanoStanding,
+  type AmericanoTableRow,
 } from "@repo/domain/tournament-americano";
 import {
-  viewerAmericanoGames,
+  americanoResultMark,
+  signedDifference,
+  viewerAmericanoMatches,
   type AmericanoViewMatch,
 } from "@repo/domain/tournament-americano-view";
 import { shuffledOrder } from "@repo/domain/tournament-king";
@@ -398,27 +403,20 @@ export function AmericanoGameRow({
   );
 }
 
-export function signed(value: number) {
-  if (value > 0) {
-    return `+${value}`;
-  }
-  return value < 0 ? `−${Math.abs(value)}` : "0";
-}
-
 /** One table of players, ranked on games won. */
-export function AmericanoStandingsTable({
-  standings,
+export function AmericanoTableCard({
+  table,
   names,
   viewerGamePlayerId,
   final,
 }: {
-  standings: readonly AmericanoStanding[];
+  table: readonly AmericanoTableRow[];
   names: AmericanoNames;
   viewerGamePlayerId: string | null;
   final: boolean;
 }) {
-  const m = useMessages().tournamentAmericano.standings;
-  const anyPlayed = standings.some((row) => row.played > 0);
+  const m = useMessages().tournamentAmericano.table;
+  const anyPlayed = table.some((row) => row.played > 0);
   return (
     <div className="space-y-3">
       <div className={ROUND_CARD}>
@@ -446,7 +444,7 @@ export function AmericanoStandingsTable({
             </tr>
           </thead>
           <tbody className="divide-rule divide-y">
-            {standings.map((row) => {
+            {table.map((row) => {
               const player = names.get(row.playerId);
               const isViewer = row.playerId === viewerGamePlayerId;
               return (
@@ -485,7 +483,7 @@ export function AmericanoStandingsTable({
                     {row.played}
                   </td>
                   <td className="text-muted-foreground text-meta py-2 text-center tabular-nums">
-                    {signed(row.difference)}
+                    {signedDifference(row.difference)}
                   </td>
                   <td className="font-expanded py-2 pe-4 text-end text-[17px] tabular-nums">
                     {row.gamesWon}
@@ -503,14 +501,7 @@ export function AmericanoStandingsTable({
   );
 }
 
-function outcomeVariant(outcome: "won" | "drawn" | "lost" | null) {
-  if (outcome === "drawn") {
-    return "draw" as const;
-  }
-  return outcome ?? ("not-played" as const);
-}
-
-/** The viewer's game in every Round: partner, opponents and the result. */
+/** The viewer's Match in every Round: partner, opponents and the result. */
 export function AmericanoYourRounds({
   matches,
   names,
@@ -527,16 +518,16 @@ export function AmericanoYourRounds({
   const m = useMessages();
   const a = m.tournamentAmericano.yourRounds;
   const locale = useLocale();
-  const games = viewerAmericanoGames(matches, viewerGamePlayerId);
-  if (games.length === 0) {
+  const played = viewerAmericanoMatches(matches, viewerGamePlayerId);
+  if (played.length === 0) {
     return null;
   }
-  const gamesFor = games.reduce(
-    (sum, game) => sum + (game.outcome ? (game.mine ?? 0) : 0),
+  const gamesFor = played.reduce(
+    (sum, entry) => sum + (entry.outcome ? (entry.mine ?? 0) : 0),
     0,
   );
-  const gamesAgainst = games.reduce(
-    (sum, game) => sum + (game.outcome ? (game.theirs ?? 0) : 0),
+  const gamesAgainst = played.reduce(
+    (sum, entry) => sum + (entry.outcome ? (entry.theirs ?? 0) : 0),
     0,
   );
   const shortNames = (ids: readonly string[]) =>
@@ -552,36 +543,36 @@ export function AmericanoYourRounds({
         <p className="text-muted-foreground text-meta">
           {finished
             ? a.finishedMeta(gamesFor, gamesAgainst)
-            : a.meta(games.length)}
+            : a.meta(played.length)}
         </p>
       </div>
       <ol className={cn(ROUND_CARD, "divide-rule divide-y")}>
-        {games.map((game) => {
-          const partner = game.partnerId ? names.get(game.partnerId) : null;
+        {played.map((entry) => {
+          const partner = entry.partnerId ? names.get(entry.partnerId) : null;
           const score =
-            game.mine != null && game.theirs != null
-              ? `${game.mine}–${game.theirs}`
+            entry.mine != null && entry.theirs != null
+              ? `${entry.mine}–${entry.theirs}`
               : null;
           const live =
-            game.match.state === "on_court" ||
-            game.match.state === "awaiting_confirmation";
+            entry.match.state === "on_court" ||
+            entry.match.state === "awaiting_confirmation";
           const line =
-            game.outcome === "won"
-              ? a.won(game.roundNumber)
-              : game.outcome === "drawn"
-                ? a.drawn(game.roundNumber)
-                : game.outcome === "lost"
-                  ? a.lost(game.roundNumber)
+            entry.outcome === "won"
+              ? a.won(entry.roundNumber)
+              : entry.outcome === "drawn"
+                ? a.drawn(entry.roundNumber)
+                : entry.outcome === "lost"
+                  ? a.lost(entry.roundNumber)
                   : live
-                    ? a.onCourt(game.roundNumber, game.match.courtName ?? "")
-                    : a.upcoming(game.roundNumber);
+                    ? a.onCourt(entry.roundNumber, entry.match.courtName ?? "")
+                    : a.upcoming(entry.roundNumber);
           return (
             <li
-              key={game.match.matchId}
+              key={entry.match.matchId}
               className="flex min-h-16 items-center gap-3 px-4 py-3"
             >
               <ResultMark
-                variant={outcomeVariant(game.outcome)}
+                variant={americanoResultMark(entry.outcome)}
                 className="size-4"
               />
               <InitialsMark name={partner?.name ?? ""} isViewer={false} />
@@ -590,21 +581,21 @@ export function AmericanoYourRounds({
                   {a.with(partner?.name ?? "")}
                 </p>
                 <p className="text-muted-foreground text-[12px] leading-snug">
-                  {a.versus(shortNames(game.opponentIds))}
+                  {a.versus(shortNames(entry.opponentIds))}
                 </p>
                 <p className="text-muted-foreground text-[12px] leading-snug">
                   {line}
                 </p>
               </div>
-              {game.match.canEnterScore &&
+              {entry.match.canEnterScore &&
               live &&
               onEnter &&
-              !game.match.canConfirm &&
-              game.match.state === "on_court" ? (
+              !entry.match.canConfirm &&
+              entry.match.state === "on_court" ? (
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onEnter(game.match, game.roundNumber)}
+                  onClick={() => onEnter(entry.match, entry.roundNumber)}
                 >
                   {m.tournamentAmericano.round.enterScore}
                 </Button>
@@ -612,11 +603,11 @@ export function AmericanoYourRounds({
                 <span className="font-expanded shrink-0 text-[17px] tabular-nums">
                   {score}
                 </span>
-              ) : game.match.startTime ? (
+              ) : entry.match.startTime ? (
                 <span className="text-muted-foreground text-meta shrink-0">
                   {a.when(
-                    formatGameClock(game.match.startTime, locale),
-                    game.match.courtName ?? "",
+                    formatGameClock(entry.match.startTime, locale),
+                    entry.match.courtName ?? "",
                   )}
                 </span>
               ) : null}
@@ -676,9 +667,10 @@ export function AmericanoDrawSheet({
     () => new Map(players.map((player) => [player.gamePlayerId, player])),
     [players],
   );
-  const inFours = ids.length > 0 && ids.length % 4 === 0;
-  const rounds = Math.min(roundCount, Math.max(1, ids.length - 1));
-  const roundOne = inFours
+  const enough = ids.length >= AMERICANO_PLAYER_MIN;
+  const ready = enough && ids.length % AMERICANO_PLAYERS_PER_COURT === 0;
+  const rounds = clampAmericanoRounds(roundCount, ids.length);
+  const roundOne = ready
     ? americanoRoundOf(americanoRounds(order, rounds), 1)
     : [];
   const courtLine =
@@ -709,7 +701,7 @@ export function AmericanoDrawSheet({
                 {m.draw.lead(
                   ids.length,
                   rounds,
-                  americanoGameCount(ids.length, rounds),
+                  americanoMatchCount(ids.length, rounds),
                 )}
               </DrawerDescription>
             </div>
@@ -720,7 +712,7 @@ export function AmericanoDrawSheet({
             />
           </div>
 
-          {rounds < roundCount && inFours ? (
+          {rounds < roundCount && ready ? (
             <p className="text-muted-foreground text-meta">
               {m.draw.fewerRounds(rounds, roundCount)}
             </p>
@@ -740,19 +732,19 @@ export function AmericanoDrawSheet({
             ) : null}
           </div>
 
-          {inFours ? (
+          {ready ? (
             <ol className="flex flex-col gap-2">
-              {roundOne.map((game) => (
+              {roundOne.map((pairing) => (
                 <li
-                  key={game.position}
+                  key={pairing.position}
                   className={cn(ROUND_CARD, "flex items-center gap-3 p-3")}
                 >
                   <span className="text-meta w-14 shrink-0">
-                    {courtNames[game.position - 1] ??
-                      m.draw.court(game.position)}
+                    {courtNames[pairing.position - 1] ??
+                      m.draw.court(pairing.position)}
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    {[game.slot1, game.slot2].map((pair, index) => (
+                    {[pairing.slot1, pairing.slot2].map((pair, index) => (
                       <React.Fragment key={index}>
                         {index === 1 ? (
                           <span className="text-muted-foreground text-center text-[11px]">
@@ -786,9 +778,9 @@ export function AmericanoDrawSheet({
             </ol>
           ) : (
             <p role="alert" className="text-destructive text-meta">
-              {ids.length < 8
-                ? m.draw.belowMinimum(8)
-                : m.draw.notInFours(ids.length)}
+              {enough
+                ? m.draw.notInFours(ids.length)
+                : m.draw.belowMinimum(AMERICANO_PLAYER_MIN)}
             </p>
           )}
 
@@ -798,7 +790,7 @@ export function AmericanoDrawSheet({
             type="button"
             size="lg"
             className="w-full font-semibold"
-            disabled={pending || !inFours || ids.length < 8}
+            disabled={pending || !ready}
             aria-busy={pending}
             onClick={() => {
               void onMake(order).then(
@@ -813,7 +805,7 @@ export function AmericanoDrawSheet({
             type="button"
             variant="outline"
             size="lg"
-            disabled={pending || !inFours}
+            disabled={pending || !ready}
             onClick={() => {
               setOrder(shuffledOrder(ids));
               setPicked(null);

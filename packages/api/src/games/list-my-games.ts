@@ -4,6 +4,7 @@ import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { games } from "@repo/db";
 
 import { isFootballGame } from "@repo/domain/game-shape";
+import { isAmericano } from "@repo/domain/tournament-americano";
 import { isKingOfTheCourt } from "@repo/domain/tournament-king";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
@@ -18,6 +19,7 @@ import {
   viewerIsParticipantOnRow,
   type HubQueryRow,
 } from "#src/games/helpers/hub-list";
+import { americanoDayFinished } from "#src/games/americano-matches";
 import { hubGameMayBeLive } from "#src/games/helpers/hub-may-be-live";
 import type { HubListRow } from "#src/games/utils";
 import { filterAndSortMyGamesHubGames } from "#src/home/upcoming-games";
@@ -107,8 +109,15 @@ export async function listMyGamesHubRows(
     ),
   );
   const candidates = (rows as HubQueryRow[])
-    // A King of the court Game moves to Played once its final order is posted.
+    // A King of the court Game moves to Played once its final order is
+    // posted, and an Americano once its day is finished.
     .filter((row) => row.finalOrderPostedAt == null)
+    .filter(
+      (row) =>
+        !isAmericano(row.format, row.tournamentShape) ||
+        row.drawPostedAt == null ||
+        !americanoDayFinished(row.matches),
+    )
     .map((row) => ({
       ...row,
       viewerIsParticipant: viewerIsParticipantOnRow(row, viewer),

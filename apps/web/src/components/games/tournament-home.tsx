@@ -233,7 +233,8 @@ export function TournamentHome({
   const showUndo = organizer.showUndo;
 
   const king = view.kingOfTheCourt;
-  const roundsAsYouGo = drawn && !view.knockoutOnly && !king;
+  const americano = isAmericano(data.format, data.tournamentShape);
+  const roundsAsYouGo = drawn && !view.knockoutOnly && !king && !americano;
   const canJoin = view.canJoin && Boolean(onJoin);
   const canJoinWaitlist = view.canWaitlist && Boolean(onJoinWaitlist);
   const showJoinBar = canJoin || canJoinWaitlist;
@@ -272,7 +273,7 @@ export function TournamentHome({
       />
     ) : null;
 
-  if (isAmericano(data.format, data.tournamentShape)) {
+  if (americano) {
     return (
       <TournamentAmericanoHome
         data={data}

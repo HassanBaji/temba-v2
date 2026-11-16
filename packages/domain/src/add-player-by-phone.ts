@@ -21,6 +21,7 @@ import {
   type PadelLevelChoice,
 } from "./onboarding-answers";
 import { assembleE164 } from "./phone-number";
+import { isAmericano } from "./tournament-americano";
 
 export type AddPlayerLevel = PadelLevelChoice | "not_sure";
 
@@ -69,11 +70,15 @@ export function addPlayerPlacement(game: {
   format: string;
   sport: string | null;
   registrationMode: string;
+  tournamentShape?: string | null;
 }): AddPlayerPlacement | null {
   if (game.registrationMode !== "individual") {
     return null;
   }
-  if (game.format === "americano") {
+  if (
+    game.format === "americano" ||
+    isAmericano(game.format, game.tournamentShape)
+  ) {
     return "roster";
   }
   if (game.format === "friendly_tournament") {
@@ -319,6 +324,7 @@ export function organizerCanAddPlayer(game: {
   format: string;
   sport: string | null;
   registrationMode: string;
+  tournamentShape?: string | null;
   sides: readonly { sideIndex: number; left: unknown; right: unknown }[];
   drawPostedAt?: Date | string | null;
   roster?: { count: number; cap: number | null } | null;
@@ -334,6 +340,10 @@ export function organizerCanAddPlayer(game: {
     return !game.drawPostedAt && vacantJoinSeats(game.sides).length > 0;
   }
   if (placement === "roster" || placement === "football") {
+    // An Americano's Rounds seat every player, so its seats close with them.
+    if (game.format === "friendly_tournament" && game.drawPostedAt) {
+      return false;
+    }
     const roster = game.roster;
     return roster != null && (roster.cap == null || roster.count < roster.cap);
   }

@@ -63,11 +63,6 @@ import {
 } from "@repo/domain/create-game-flow";
 import { kingCourtCount } from "@repo/domain/tournament-king";
 import {
-  americanoGameCount,
-  americanoPlayersOfTeamCount,
-  clampAmericanoRounds,
-} from "@repo/domain/tournament-americano";
-import {
   applyTeamCountChange,
   friendlyTournamentPlan,
   reclampQualifiersPerPool,
@@ -906,27 +901,19 @@ function NewGameForm() {
       <>
         <h1 className="flex flex-wrap items-baseline gap-x-2">
           <span className="font-expanded text-[44px] tabular-nums leading-none">
-            {tournamentPlan.americano
-              ? americanoPlayersOfTeamCount(teamCount)
-              : teamCount}
+            {tournamentPlan.americano?.players ?? teamCount}
           </span>
           <span className="text-dim text-[18px] leading-none">
             {tournamentPlan.americano
               ? m.tournamentAmericano.create.headerPlayers(
-                  americanoPlayersOfTeamCount(teamCount),
+                  tournamentPlan.americano.players,
                 )
               : c.gameTeams}
           </span>
           {tournamentPlan.americano ? (
             <span className="text-dim text-body leading-none">
               {m.tournamentAmericano.create.headerGames(
-                americanoGameCount(
-                  americanoPlayersOfTeamCount(teamCount),
-                  clampAmericanoRounds(
-                    roundCount,
-                    americanoPlayersOfTeamCount(teamCount),
-                  ),
-                ),
+                tournamentPlan.americano.matchCount,
               )}
             </span>
           ) : tournamentPlan.kingOfTheCourt ? (

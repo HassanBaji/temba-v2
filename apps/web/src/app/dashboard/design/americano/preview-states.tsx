@@ -2,10 +2,18 @@
 
 import * as React from "react";
 
-import { americanoPlayedSummary } from "@repo/domain/tournament-americano-view";
+import {
+  americanoPlayedSummary,
+  americanoShareCard,
+} from "@repo/domain/tournament-americano-view";
 
 import { TournamentAmericanoHome } from "~/components/games/tournament-americano-home";
 import { AmericanoPlayedCard } from "~/components/games/tournament-americano-played-card";
+import { ScaledCanvas } from "~/components/share-result/scaled-canvas";
+import {
+  TOURNAMENT_CARD_SIZE,
+  TournamentShareCard,
+} from "~/components/share-result/tournament-share-card";
 
 import { americanoPreviewBoard, americanoPreviewDetails } from "./fixtures";
 
@@ -32,6 +40,26 @@ function Column({
 
 const noop = () => undefined;
 
+function ShareCardPreview({
+  card,
+}: {
+  card: ReturnType<typeof americanoShareCard>;
+}) {
+  const canvasRef = React.useRef<HTMLDivElement | null>(null);
+  if (!card) {
+    return null;
+  }
+  return (
+    <ScaledCanvas
+      canvasRef={canvasRef}
+      canvasWidth={TOURNAMENT_CARD_SIZE}
+      canvasHeight={TOURNAMENT_CARD_SIZE}
+    >
+      <TournamentShareCard card={card} />
+    </ScaledCanvas>
+  );
+}
+
 export function AmericanoPreviewStates() {
   const [now] = React.useState(() => new Date());
   const later = new Date(now.getTime() + 2 * HOUR_MS);
@@ -51,20 +79,34 @@ export function AmericanoPreviewStates() {
     liveRound: false,
     start: earlier,
   });
+  const finishedMatches = finishedBoard.rounds.flatMap((round) =>
+    round.matches.map((match) => ({
+      ...match,
+      roundNumber: round.roundNumber,
+    })),
+  );
   const played = americanoPlayedSummary({
     players: finishedBoard.players,
-    matches: finishedBoard.rounds.flatMap((round) =>
-      round.matches.map((match) => ({
-        ...match,
-        roundNumber: round.roundNumber,
-      })),
-    ),
-    standings: finishedBoard.standings,
+    matches: finishedMatches,
+    table: finishedBoard.table,
     viewerGamePlayerId: finishedBoard.viewerGamePlayerId ?? "",
     roundCount: 7,
     matchMinutes: 30,
     finished: true,
   });
+  const shareCard = americanoShareCard(
+    {
+      name: "Sunday Social",
+      windowStart: earlier,
+      venueName: "World Padel Academy Bahrain",
+      players: finishedBoard.players,
+      matches: finishedMatches,
+      table: finishedBoard.table,
+      viewerGamePlayerId: finishedBoard.viewerGamePlayerId,
+      finished: true,
+    },
+    "en",
+  );
   const predrawBoard = {
     ...americanoPreviewBoard({
       isOrganizer: true,
@@ -151,6 +193,9 @@ export function AmericanoPreviewStates() {
           })}
           preview={{ board: finishedBoard }}
         />
+      </Column>
+      <Column title="share card">
+        <ShareCardPreview card={shareCard} />
       </Column>
       <Column title="4b played card">
         {played ? (

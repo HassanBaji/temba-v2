@@ -1,6 +1,8 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { isAmericano } from "./tournament-americano";
+
 export const FOOTBALL_SIDE_SIZES = [5, 6, 7, 8, 9, 11] as const;
 
 export type FootballSideSize = (typeof FOOTBALL_SIDE_SIZES)[number];
@@ -27,8 +29,7 @@ export function isRosterRegistrationGame(game: GameShape) {
   return (
     game.format === "americano" ||
     (game.format === "friendly_game" && isFootballGame(game)) ||
-    (game.format === "friendly_tournament" &&
-      game.tournamentShape === "americano")
+    isAmericano(game.format, game.tournamentShape)
   );
 }
 

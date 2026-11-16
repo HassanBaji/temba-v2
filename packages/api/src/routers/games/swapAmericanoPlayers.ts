@@ -4,11 +4,7 @@ import { z } from "zod";
 
 import { MatchStatusEnum, americanoSeats } from "@repo/db";
 
-import {
-  isAmericano,
-  repeatedPartners,
-  swapPlayersInRound,
-} from "@repo/domain/tournament-americano";
+import { isAmericano } from "@repo/domain/tournament-americano";
 import { shortPlayerName } from "@repo/domain/player-name";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
@@ -18,6 +14,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import {
+  americanoRoundHasScore,
   loadAmericanoMatches,
   loadAmericanoPlayers,
 } from "#src/games/americano-matches";
@@ -25,8 +22,54 @@ import { lockGame } from "#src/games/lock-rows";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-function pairKey(pair: readonly string[]) {
+type SeatedPairing = {
+  roundNumber: number;
+  slot1: readonly string[];
+  slot2: readonly string[];
+};
+
+function partnerKey(pair: readonly string[]) {
   return [...pair].sort().join("|");
+}
+
+/** Pairs of players who partner more than once. Empty when the rule holds. */
+export function repeatedPartners(pairings: readonly SeatedPairing[]) {
+  const seen = new Map<string, { pair: readonly string[]; count: number }>();
+  for (const pair of pairings.flatMap((pairing) => [
+    pairing.slot1,
+    pairing.slot2,
+  ])) {
+    const entry = seen.get(partnerKey(pair)) ?? { pair, count: 0 };
+    entry.count += 1;
+    seen.set(partnerKey(pair), entry);
+  }
+  return [...seen.values()]
+    .filter((entry) => entry.count > 1)
+    .map((entry) => entry.pair);
+}
+
+function swapIn(pair: readonly string[], first: string, second: string) {
+  return pair.map((player) =>
+    player === first ? second : player === second ? first : player,
+  );
+}
+
+/** Swaps two players' places in one Round only. */
+export function swapPlayersInRound<Pairing extends SeatedPairing>(
+  pairings: readonly Pairing[],
+  roundNumber: number,
+  first: string,
+  second: string,
+): Pairing[] {
+  return pairings.map((pairing) =>
+    pairing.roundNumber === roundNumber
+      ? {
+          ...pairing,
+          slot1: swapIn(pairing.slot1, first, second),
+          slot2: swapIn(pairing.slot2, first, second),
+        }
+      : pairing,
+  );
 }
 
 /**
@@ -74,12 +117,7 @@ export async function swapAmericanoPlayers(
     if (round.length === 0) {
       throw new TRPCError({ code: "NOT_FOUND", message: m.roundNotFound });
     }
-    if (
-      round.some(
-        (row) =>
-          row.sets.length > 0 || row.status === MatchStatusEnum.COMPLETED,
-      )
-    ) {
+    if (americanoRoundHasScore(round)) {
       throw new TRPCError({ code: "FORBIDDEN", message: m.roundStarted });
     }
     const seatOf = (gamePlayerId: string) =>
@@ -92,13 +130,10 @@ export async function swapAmericanoPlayers(
       throw new TRPCError({ code: "BAD_REQUEST", message: m.playerNotInRound });
     }
 
-    const live = rows.filter((row) => row.status !== MatchStatusEnum.CANCELLED);
-    const pairings = live.map((row) => ({
-      roundNumber: row.roundNumber,
-      slot1: [row.slot1[0] ?? "", row.slot1[1] ?? ""] as const,
-      slot2: [row.slot2[0] ?? "", row.slot2[1] ?? ""] as const,
-    }));
-    const before = new Set(repeatedPartners(pairings).map(pairKey));
+    const pairings = rows.filter(
+      (row) => row.status !== MatchStatusEnum.CANCELLED,
+    );
+    const before = new Set(repeatedPartners(pairings).map(partnerKey));
     const fresh = repeatedPartners(
       swapPlayersInRound(
         pairings,
@@ -106,9 +141,9 @@ export async function swapAmericanoPlayers(
         args.firstGamePlayerId,
         args.secondGamePlayerId,
       ),
-    ).filter((pair) => !before.has(pairKey(pair)));
+    ).filter((pair) => !before.has(partnerKey(pair)));
     const repeat = fresh[0];
-    if (repeat) {
+    if (repeat?.[0] && repeat[1]) {
       const players = await loadAmericanoPlayers(tx, game.id);
       const name = (gamePlayerId: string) =>
         shortPlayerName(

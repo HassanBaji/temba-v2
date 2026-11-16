@@ -6,13 +6,13 @@ import {
 } from "./game-window";
 import { circleMethodPairings } from "./tournament-schedule";
 
-export const AMERICANO_SHAPE = "americano";
+const AMERICANO_SHAPE = "americano";
 
 export const AMERICANO_PLAYERS_PER_COURT = 4;
 export const AMERICANO_PLAYER_MIN = 8;
 export const AMERICANO_PLAYER_MAX = 24;
 export const AMERICANO_PLAYER_STEP = AMERICANO_PLAYERS_PER_COURT;
-export const AMERICANO_DEFAULT_PLAYERS = 16;
+const AMERICANO_DEFAULT_PLAYERS = 16;
 export const AMERICANO_DEFAULT_ROUNDS = 7;
 export const AMERICANO_ROUND_MIN = 1;
 
@@ -77,13 +77,13 @@ export function clampAmericanoRounds(
   return Math.min(max, Math.max(AMERICANO_ROUND_MIN, Math.round(rounds)));
 }
 
-export function americanoGameCount(players: number, rounds: number) {
+export function americanoMatchCount(players: number, rounds: number) {
   return americanoCourtCount(players) * rounds;
 }
 
 /**
  * Time slots one Round takes: one when the Game records a Court for every
- * game in a Round, more when games wait for a free Court.
+ * Match in a Round, more when Matches wait for a free Court.
  */
 export function americanoSlotsPerRound(
   players: number,
@@ -161,7 +161,7 @@ function opponentCost(
 
 /**
  * Puts a Round's pairs against each other with the fewest repeat opponents:
- * an exhaustive search over the ways to split the pairs into games, cut off
+ * an exhaustive search over the ways to split the pairs into Matches, cut off
  * as soon as a split cannot beat the best so far. Twelve pairs is at most
  * 10,395 splits.
  */
@@ -259,50 +259,6 @@ export function americanoRoundOf(
     .sort((left, right) => left.position - right.position);
 }
 
-/** Pairs of players who partner more than once. Empty when the rule holds. */
-export function repeatedPartners(
-  pairings: readonly { slot1: AmericanoPair; slot2: AmericanoPair }[],
-) {
-  const counts = new Map<string, number>();
-  for (const pairing of pairings) {
-    bumpCount(counts, pairKey(...pairing.slot1));
-    bumpCount(counts, pairKey(...pairing.slot2));
-  }
-  return [...counts.entries()]
-    .filter(([, count]) => count > 1)
-    .map(([key]) => key.split("|") as [string, string]);
-}
-
-function swapIn(pair: AmericanoPair, first: string, second: string) {
-  return pair.map((player) =>
-    player === first ? second : player === second ? first : player,
-  ) as unknown as AmericanoPair;
-}
-
-/** Swaps two players' places in one Round only. */
-export function swapPlayersInRound<
-  Pairing extends {
-    roundNumber: number;
-    slot1: AmericanoPair;
-    slot2: AmericanoPair;
-  },
->(
-  pairings: readonly Pairing[],
-  roundNumber: number,
-  first: string,
-  second: string,
-) {
-  return pairings.map((pairing) =>
-    pairing.roundNumber === roundNumber
-      ? {
-          ...pairing,
-          slot1: swapIn(pairing.slot1, first, second),
-          slot2: swapIn(pairing.slot2, first, second),
-        }
-      : pairing,
-  );
-}
-
 /** Swaps two players in the drawn order, which moves them in every Round. */
 export function swapInOrder(
   order: readonly string[],
@@ -321,7 +277,7 @@ export type AmericanoResult = {
   slot2GamesWon: number;
 };
 
-export type AmericanoStanding = {
+export type AmericanoTableRow = {
   playerId: string;
   place: number;
   played: number;
@@ -338,10 +294,10 @@ export type AmericanoStanding = {
  * for both its players. Ties go to game difference, then games won outright,
  * then the order the players were given in.
  */
-export function americanoStandings(
+export function americanoTable(
   playerIds: readonly string[],
   results: readonly AmericanoResult[],
-): AmericanoStanding[] {
+): AmericanoTableRow[] {
   const rows = new Map(
     playerIds.map((playerId) => [
       playerId,

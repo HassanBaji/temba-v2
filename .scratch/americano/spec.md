@@ -26,6 +26,8 @@ collected sign-ups; it made no rounds and kept no scores.
   from the start, rounded up to the half hour, waiting for Courts when fewer are recorded than games
   in a Round. The fit box reads "28 games, 9:00 AM to 12:30 PM" and "7 rounds of 4 games on 4 courts,
   30 minutes a game, back to back…".
+- An Americano needs at least one recorded Court ("Record at least one Court in step 2…"); create
+  refuses none, and refuses a window shorter than the Rounds need.
 - Step 4: "Who can enter" notes that an Americano changes no Level; the fee line reads per player;
   the Rating choice and "How people join" are hidden. Review: Format "Americano, 7 rounds", Players
   "16 players, alone", Rating "Friendly, no change".
@@ -38,13 +40,14 @@ collected sign-ups; it made no rounds and kept no scores.
 - Organizer: "All 16 in. Make the rounds" with **Make rounds**. Everyone else: a hatched card,
   "The rounds: made when all 16 seats are taken…".
 - **Players** grid in place of Teams: the players in, then open seats. One tap to take a seat
-  (`games.register`); a full Social offers the Waitlist. An Organizer taps a player to remove them.
+  (`games.register`); a full Social offers the Waitlist. An Organizer taps a player to remove them,
+  and Add player adds someone alone. Both close once the Rounds are made.
 - **Schedule**: R1 to Rn, hatched, with start times, "partners after the draw".
 - Detail rows: Organizer, Group, Format, Scores "Either pair enters, the other confirms",
   Counts for rating "No, it's friendly".
 - **The rounds** sheet: Round 1 as it will be played, court by court. Tap two players to swap them,
-  **Shuffle again**, then **Make all 7 rounds**. Needs every player, in fours, at least eight, and
-  a recorded Court.
+  **Shuffle again**, then **Make all 7 rounds**. Needs every player, in fours, at least eight, a
+  recorded Court, and Rounds that end inside the window.
 
 ### Playing (2d, 3a–3c)
 
@@ -64,14 +67,18 @@ collected sign-ups; it made no rounds and kept no scores.
 ### When it's over (4a, 4b)
 
 - White finished header: the winner ("Won the day", games won, record), then the viewer's place
-  with record, games behind and result marks. Opens on Standings. **Share your day**.
+  with record, games behind and result marks. Opens on Standings. **Share your day** shares the
+  viewer's place, games won and results, or the top of the table for someone who did not play.
+- The day leaves My Games once every Match is settled, and Played lists it from then, or once it is
+  no longer live, so it is never on both.
 - Games list, Played: one card for the day, "Finished 3rd of 16", tags Social and Americano, the
   viewer's games won and partners with seven result marks, and "Won by Dana Al-Khalifa, 42 games".
 
 ## API (additive)
 
-- `games.createTournament` accepts `tournamentShape: "americano"` with `teamCount` = players ÷ 2
-  and `roundCount`. It stores `rated` false.
+- `games.createTournament` accepts `tournamentShape: "americano"` with `teamCount` = players ÷ 2,
+  `roundCount` and at least one `courtIds`. It refuses a window shorter than the Rounds need and
+  stores `rated` false.
 - New doors: `games.postAmericanoRounds({ gameId, gamePlayerIds })`,
   `games.swapAmericanoPlayers({ gameId, roundNumber, firstGamePlayerId, secondGamePlayerId })`,
   `games.americanoBoard({ gameId })`.
@@ -80,15 +87,20 @@ collected sign-ups; it made no rounds and kept no scores.
   takes a player count in fours until the Rounds are made.
 - Scores go through `games.enterTournamentScore`, `games.confirmMatchResult` and
   `games.markMatchNotFinished`, which read an Americano Match's sides from its seats.
+- `games.americanoBoard` sends each Match's sides as Game player ids and the table as `table`; no
+  Game team is made up for a pair.
 - `games.listMyMatchHistory` accepts `americano: true` and adds one row per Americano, with
-  `americano` set.
+  `americano` set. `games.listMyGames` drops an Americano once its day is finished.
+- Organizer add doors (`addGuestPlayer`, `addPlayerByPhone`, `addGroupMembers`) seat a player alone
+  before the Rounds.
 - Schema: `tournament_shape` value `americano`; table `americano_seats` (migration
   `0127_americano_shape`).
 
 ### Mobile App
 
 - Reads an Americano: the players and a Take a seat button before the Rounds, then the table and
-  the viewer's games. Create hides the shape. Making the Rounds, swapping and scoring point to the web.
+  the viewer's games. The tournament bar offers no seat-picker join on it. Create hides the shape.
+  Making the Rounds, swapping and scoring point to the web, for the Organizer before the Rounds too.
 
 ## Not built
 

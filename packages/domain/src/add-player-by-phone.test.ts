@@ -263,6 +263,14 @@ describe("addPlayerPlacement", () => {
     assert.equal(
       addPlayerPlacement({
         ...individual,
+        format: "friendly_tournament",
+        tournamentShape: "americano",
+      }),
+      "roster",
+    );
+    assert.equal(
+      addPlayerPlacement({
+        ...individual,
         format: "friendly_game",
         sport: "football",
       }),
@@ -410,6 +418,22 @@ describe("organizerCanAddPlayer", () => {
         ...tournament,
         sides: [{ sideIndex: 1, left: {}, right: {} }],
       }),
+      false,
+    );
+  });
+
+  it("closes an Americano Social's roster once its Rounds are made", () => {
+    const americano = {
+      ...game,
+      format: "friendly_tournament",
+      tournamentShape: "americano",
+      phase: null,
+      sides: [],
+      roster: { count: 12, cap: 16 },
+    };
+    assert.equal(organizerCanAddPlayer(americano), true);
+    assert.equal(
+      organizerCanAddPlayer({ ...americano, drawPostedAt: new Date() }),
       false,
     );
   });

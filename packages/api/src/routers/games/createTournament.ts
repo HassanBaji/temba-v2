@@ -17,10 +17,12 @@ import {
 } from "@repo/domain/level-range";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
+import { formatGameClock } from "@repo/domain/format-game-start";
 import { sportOrDefault } from "@repo/domain/sport";
 import {
   AMERICANO_PLAYER_MAX,
   AMERICANO_PLAYER_MIN,
+  americanoPlayMinutes,
   americanoPlayersOfTeamCount,
   americanoRoundMax,
   isAmericanoPlayerCount,
@@ -250,6 +252,44 @@ function assertMatchMinutes(
   }
 }
 
+/**
+ * An Americano's Rounds are laid out on its recorded Courts, back to back
+ * from the start, so it needs a Court and a window long enough for them.
+ */
+function assertAmericanoFits(
+  input: {
+    courtIds?: string[];
+    matchMinutes: number;
+    windowStart: Date;
+    windowEnd: Date;
+  },
+  sized: { playerCount: number; roundCount: number | null },
+  locale: Locale,
+) {
+  const m = messagesFor(locale).tournamentAmericano.errors;
+  const recordedCourts = input.courtIds?.length ?? 0;
+  if (recordedCourts < 1) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: m.courtsRequired });
+  }
+  const needsUntil = new Date(
+    input.windowStart.getTime() +
+      americanoPlayMinutes({
+        players: sized.playerCount,
+        rounds: sized.roundCount ?? 0,
+        matchMinutes: input.matchMinutes,
+        recordedCourts,
+      }) *
+        60 *
+        1000,
+  );
+  if (input.windowEnd.getTime() < needsUntil.getTime()) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: m.windowTooShort(formatGameClock(needsUntil, locale)),
+    });
+  }
+}
+
 export const createTournamentInputSchema = z
   .object({
     name: z.string().trim().min(1).max(255),
@@ -379,6 +419,10 @@ export async function createTournament(
       code: "BAD_REQUEST",
       message: sized.issue.message,
     });
+  }
+
+  if (sized.tournamentShape === TournamentShapeEnum.AMERICANO) {
+    assertAmericanoFits(input, sized, locale);
   }
 
   const group = await requireGroup(database, input.groupId, locale);

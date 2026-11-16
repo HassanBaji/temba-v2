@@ -14,6 +14,7 @@ import { isFootballGame } from "@repo/domain/game-shape";
 import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 
 import { type db } from "#src/db";
+import { mayHaveAmericanoSeats } from "#src/games/americano-matches";
 import { type MatchRow } from "#src/games/utils";
 import { type TeamForActing, userActsForTeam } from "#src/teams/acts-for-team";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
@@ -37,7 +38,7 @@ export async function matchSideSeats(
   database: DbClient,
   match: MatchRow,
 ): Promise<MatchSideSeats[]> {
-  if (!match.slot1GameTeamId && !match.slot2GameTeamId) {
+  if (mayHaveAmericanoSeats(match)) {
     const americano = await americanoSideSeats(database, match.id);
     if (americano) {
       return americano;

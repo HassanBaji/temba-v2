@@ -4,17 +4,28 @@ import {
   americanoFinishSlot,
   americanoRoundOf,
   americanoRounds,
-  americanoStandings,
+  americanoTable,
   clampAmericanoPlayers,
   clampAmericanoRounds,
   isAmericano,
-  repeatedPartners,
   swapInOrder,
-  swapPlayersInRound,
+  type AmericanoPairing,
 } from "./tournament-americano";
 
 const players = (count: number) =>
   Array.from({ length: count }, (_, index) => `p${index + 1}`);
+
+function partnerCounts(pairings: readonly AmericanoPairing[]) {
+  const counts = new Map<string, number>();
+  for (const pair of pairings.flatMap((pairing) => [
+    pairing.slot1,
+    pairing.slot2,
+  ])) {
+    const key = [...pair].sort().join("|");
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return counts;
+}
 
 function opponentMeetings(pairings: ReturnType<typeof americanoRounds>) {
   const counts = new Map<string, number>();
@@ -57,9 +68,12 @@ describe("americanoRounds", () => {
     const pairings = americanoRounds(players(16), 7);
     expect(pairings).toHaveLength(28);
     for (let round = 1; round <= 7; round += 1) {
-      const games = americanoRoundOf(pairings, round);
-      expect(games.map((game) => game.position)).toEqual([1, 2, 3, 4]);
-      const seen = games.flatMap((game) => [...game.slot1, ...game.slot2]);
+      const inRound = americanoRoundOf(pairings, round);
+      expect(inRound.map((pairing) => pairing.position)).toEqual([1, 2, 3, 4]);
+      const seen = inRound.flatMap((pairing) => [
+        ...pairing.slot1,
+        ...pairing.slot2,
+      ]);
       expect(new Set(seen).size).toBe(16);
     }
   });
@@ -67,7 +81,7 @@ describe("americanoRounds", () => {
   it("never gives anyone the same partner twice, up to everyone with everyone", () => {
     for (const count of [8, 12, 16, 20, 24]) {
       const pairings = americanoRounds(players(count), count - 1);
-      expect(repeatedPartners(pairings)).toEqual([]);
+      expect(Math.max(...partnerCounts(pairings).values())).toBe(1);
     }
   });
 
@@ -88,50 +102,20 @@ describe("americanoRounds", () => {
   it("moves a swapped pair of players in every Round", () => {
     const order = players(8);
     const swapped = americanoRounds(swapInOrder(order, "p1", "p2"), 3);
-    const original = americanoRounds(order, 3);
-    const renamed = original.map(
-      (pairing) =>
-        swapPlayersInRound(
-          swapPlayersInRound(
-            swapPlayersInRound([pairing], 1, "p1", "p2"),
-            2,
-            "p1",
-            "p2",
-          ),
-          3,
-          "p1",
-          "p2",
-        )[0],
-    );
+    const rename = (player: string) =>
+      player === "p1" ? "p2" : player === "p2" ? "p1" : player;
+    const renamed = americanoRounds(order, 3).map((pairing) => ({
+      ...pairing,
+      slot1: pairing.slot1.map(rename),
+      slot2: pairing.slot2.map(rename),
+    }));
     expect(swapped).toEqual(renamed);
   });
 });
 
-describe("swapPlayersInRound", () => {
-  it("can break the partner rule, which repeatedPartners reports", () => {
-    const pairings = americanoRounds(players(8), 7);
-    const first = americanoRoundOf(pairings, 1)[0]!;
-    const partnerInRoundTwo = americanoRoundOf(pairings, 2)
-      .flatMap((game) => [game.slot1, game.slot2])
-      .find((pair) => pair.includes(first.slot1[0]))!;
-    const roundTwoPartner = partnerInRoundTwo.find(
-      (player) => player !== first.slot1[0],
-    )!;
-    const swapped = swapPlayersInRound(
-      pairings,
-      2,
-      roundTwoPartner,
-      first.slot1[1],
-    );
-    expect(repeatedPartners(swapped)).toContainEqual(
-      [first.slot1[0], first.slot1[1]].sort(),
-    );
-  });
-});
-
-describe("americanoStandings", () => {
+describe("americanoTable", () => {
   it("ranks players on games won, then difference, then wins", () => {
-    const table = americanoStandings(
+    const table = americanoTable(
       ["a", "b", "c", "d"],
       [
         {
@@ -167,7 +151,7 @@ describe("americanoStandings", () => {
   });
 
   it("lists players with no result at the bottom with zeros", () => {
-    const table = americanoStandings(["a", "b"], []);
+    const table = americanoTable(["a", "b"], []);
     expect(table.map((row) => row.played)).toEqual([0, 0]);
   });
 });

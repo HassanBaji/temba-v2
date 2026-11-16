@@ -10,6 +10,10 @@ import {
 
 import { type AmericanoResult } from "@repo/domain/tournament-americano";
 import { matchOutcome } from "@repo/domain/match-outcome";
+import {
+  tournamentMatchState,
+  type TournamentMatchState,
+} from "@repo/domain/tournament-round-state";
 
 import { type db } from "#src/db";
 
@@ -17,6 +21,18 @@ type DbClient =
   | typeof db
   | Parameters<Parameters<typeof db.transaction>[0]>[0]
   | RepoDbClient;
+
+/**
+ * An Americano Match seats its players directly, so its slots hold no Game
+ * team (ADR-0094). A Knockout Match waiting for its qualifiers has empty
+ * slots too, so callers read the seats and fall back when there are none.
+ */
+export function mayHaveAmericanoSeats(match: {
+  slot1GameTeamId: string | null;
+  slot2GameTeamId: string | null;
+}) {
+  return !match.slot1GameTeamId && !match.slot2GameTeamId;
+}
 
 export type AmericanoSeatPlayer = {
   gamePlayerId: string;
@@ -96,7 +112,47 @@ export type AmericanoMatch = Awaited<
   ReturnType<typeof loadAmericanoMatches>
 >[number];
 
-/** The confirmed results the Standings count: completed Matches with a score. */
+export function americanoMatchState(
+  row: Pick<AmericanoMatch, "status" | "notFinishedAt" | "sets" | "startTime">,
+  now: Date,
+): TournamentMatchState {
+  return tournamentMatchState({
+    status: row.status,
+    notFinishedAt: row.notFinishedAt,
+    hasResult: matchOutcome(row.sets).result !== "none",
+    startTime: row.startTime,
+    now,
+  });
+}
+
+/** A Round with a score or a completed Match has started: its players stay put. */
+export function americanoRoundHasScore(
+  rows: readonly { sets: readonly unknown[]; status: string | null }[],
+) {
+  return rows.some(
+    (row) => row.sets.length > 0 || row.status === MatchStatusEnum.COMPLETED,
+  );
+}
+
+/**
+ * The day is over once every Match is settled (completed, cancelled or did
+ * not finish) and at least one completed. It then leaves My Games for Played.
+ */
+export function americanoDayFinished(
+  rows: readonly { status: string | null; notFinishedAt?: Date | null }[],
+) {
+  return (
+    rows.some((row) => row.status === MatchStatusEnum.COMPLETED) &&
+    rows.every(
+      (row) =>
+        row.status === MatchStatusEnum.COMPLETED ||
+        row.status === MatchStatusEnum.CANCELLED ||
+        row.notFinishedAt != null,
+    )
+  );
+}
+
+/** The confirmed results the Americano table counts: completed Matches with a score. */
 export function americanoResults(
   rows: readonly AmericanoMatch[],
 ): AmericanoResult[] {

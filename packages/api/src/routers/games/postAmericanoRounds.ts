@@ -138,6 +138,13 @@ export async function postAmericanoRounds(
       matchMinutes: locked.matchMinutes,
     });
 
+    const lastEnd = Math.max(
+      ...scheduled.map((slot) => slot.endTime.getTime()),
+    );
+    if (lastEnd > locked.windowEnd.getTime()) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: m.roundsOverrun });
+    }
+
     for (const slot of scheduled) {
       const [match] = await tx
         .insert(matches)

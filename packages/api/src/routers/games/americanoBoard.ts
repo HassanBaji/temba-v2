@@ -1,17 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { MatchStatusEnum } from "@repo/db";
-
-import { matchOutcome } from "@repo/domain/match-outcome";
 import {
-  americanoStandings,
+  americanoTable,
   isAmericano,
-  type AmericanoStanding,
+  type AmericanoTableRow,
 } from "@repo/domain/tournament-americano";
 import {
   currentRoundNumber,
-  tournamentMatchState,
   tournamentRoundState,
   type TournamentMatchState,
   type TournamentRoundState,
@@ -25,7 +21,10 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { isGameOrganizer, requireGame } from "#src/games/access";
 import {
+  americanoDayFinished,
+  americanoMatchState,
   americanoResults,
+  americanoRoundHasScore,
   loadAmericanoMatches,
   loadAmericanoPlayers,
   type AmericanoMatch,
@@ -39,28 +38,12 @@ import { gameReach } from "#src/games/verifier-stamp";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-type Member = { id: string; name: string; image: string | null };
-
-/**
- * A pair for one Match, shaped like a Rounds team so the tournament score
- * sheet reads it unchanged. Its id is the Match and the slot: an Americano
- * pair lives for one Match only.
- */
-export type AmericanoPairTeam = {
-  gameTeamId: string;
-  poolIndex: number;
-  members: Member[];
-  points: number;
-};
-
 export type AmericanoBoardMatch = {
   matchId: string;
   position: number;
-  poolIndex: null;
   courtName: string | null;
   startTime: Date | null;
-  slot1GameTeamId: string;
-  slot2GameTeamId: string;
+  /** The two Game players on each side: an Americano pair lives for one Match. */
   slot1PlayerIds: string[];
   slot2PlayerIds: string[];
   state: TournamentMatchState;
@@ -83,10 +66,6 @@ export type AmericanoBoardRound = {
   canSwap: boolean;
   matches: AmericanoBoardMatch[];
 };
-
-export function pairTeamId(matchId: string, slot: 1 | 2) {
-  return `${matchId}:${slot}`;
-}
 
 /**
  * An Americano's Rounds, each Match's state and what the viewer may do with
@@ -117,45 +96,18 @@ export async function americanoBoard(
     loadAmericanoPlayers(database, game.id),
     loadAmericanoMatches(database, game.id),
   ]);
-  const byPlayer = new Map(
-    players.map((player) => [player.gamePlayerId, player]),
-  );
-  const memberOf = (gamePlayerId: string): Member[] => {
-    const player = byPlayer.get(gamePlayerId);
-    return player?.userId
-      ? [{ id: player.userId, name: player.name, image: player.image }]
-      : [];
-  };
   const viewer = players.find((player) => player.userId === args.userId);
+  const nameOfUser = new Map(
+    players.flatMap((player) =>
+      player.userId ? [[player.userId, player.name] as const] : [],
+    ),
+  );
 
-  const teams: AmericanoPairTeam[] = [];
   async function boardMatch(
     row: AmericanoMatch,
     position: number,
   ): Promise<AmericanoBoardMatch> {
-    const slot1Members = row.slot1.flatMap(memberOf);
-    const slot2Members = row.slot2.flatMap(memberOf);
-    teams.push(
-      {
-        gameTeamId: pairTeamId(row.id, 1),
-        poolIndex: 0,
-        members: slot1Members,
-        points: 0,
-      },
-      {
-        gameTeamId: pairTeamId(row.id, 2),
-        poolIndex: 0,
-        members: slot2Members,
-        points: 0,
-      },
-    );
-    const state = tournamentMatchState({
-      status: row.status,
-      notFinishedAt: row.notFinishedAt,
-      hasResult: matchOutcome(row.sets).result !== "none",
-      startTime: row.startTime,
-      now,
-    });
+    const state = americanoMatchState(row, now);
     const sides = await matchSideSeats(database, row);
     const entered =
       state === "awaiting_confirmation"
@@ -171,22 +123,15 @@ export async function americanoBoard(
     return {
       matchId: row.id,
       position,
-      poolIndex: null,
       courtName: row.court?.name ?? null,
       startTime: row.startTime,
-      slot1GameTeamId: pairTeamId(row.id, 1),
-      slot2GameTeamId: pairTeamId(row.id, 2),
       slot1PlayerIds: row.slot1,
       slot2PlayerIds: row.slot2,
       state,
       slot1GamesWon: set?.slot1GamesWon ?? null,
       slot2GamesWon: set?.slot2GamesWon ?? null,
       enteredBySlot: entered?.slot ?? null,
-      enteredByName: entered
-        ? ([...slot1Members, ...slot2Members].find(
-            (member) => member.id === entered.userId,
-          )?.name ?? null)
-        : null,
+      enteredByName: entered ? (nameOfUser.get(entered.userId) ?? null) : null,
       standsAt: entered?.standsAt ?? null,
       viewerSlot,
       canEnterScore:
@@ -211,10 +156,6 @@ export async function americanoBoard(
   for (const roundNumber of roundNumbers) {
     const inRound = rows.filter((row) => row.roundNumber === roundNumber);
     const matches = await Promise.all(inRound.map(boardMatch));
-    const unscored = inRound.every(
-      (row) =>
-        row.sets.length === 0 && row.status !== MatchStatusEnum.COMPLETED,
-    );
     rounds.push({
       roundNumber,
       state: tournamentRoundState({
@@ -222,21 +163,16 @@ export async function americanoBoard(
         matchStates: matches.map((match) => match.state),
       }),
       startTime: inRound[0]?.startTime ?? null,
-      canSwap: organizer && !game.cancelledAt && unscored,
+      canSwap:
+        organizer && !game.cancelledAt && !americanoRoundHasScore(inRound),
       matches,
     });
   }
 
-  const standings: AmericanoStanding[] = americanoStandings(
+  const table: AmericanoTableRow[] = americanoTable(
     players.map((player) => player.gamePlayerId),
     americanoResults(rows),
   );
-  const finished =
-    rounds.length > 0 &&
-    rounds.every(
-      (round) => round.state === "played" || round.state === "cancelled",
-    ) &&
-    rows.some((row) => row.status === MatchStatusEnum.COMPLETED);
 
   return {
     isOrganizer: organizer,
@@ -245,11 +181,10 @@ export async function americanoBoard(
     matchMinutes: tournamentMatchMinutes(game.matchMinutes),
     viewerGamePlayerId: viewer?.gamePlayerId ?? null,
     players,
-    teams,
     rounds,
     currentRoundNumber: currentRoundNumber(rounds),
-    standings,
-    finished,
+    table,
+    finished: americanoDayFinished(rows),
   };
 }
 

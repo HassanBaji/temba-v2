@@ -1,6 +1,6 @@
 import {
   americanoRounds,
-  americanoStandings,
+  americanoTable,
   type AmericanoResult,
 } from "@repo/domain/tournament-americano";
 import type { TournamentDetails } from "@repo/domain/tournament-details";
@@ -69,7 +69,6 @@ export function americanoPreviewBoard(options: BoardOptions): AmericanoBoard {
     image: null,
   }));
   const pairings = americanoRounds(ids, ROUNDS);
-  const teams: AmericanoBoard["teams"] = [];
   const results: AmericanoResult[] = [];
   const rounds: AmericanoBoard["rounds"] = [];
   const memberOf = (id: string) => {
@@ -102,20 +101,6 @@ export function americanoPreviewBoard(options: BoardOptions): AmericanoBoard {
             slot2GamesWon: second,
           });
         }
-        teams.push(
-          {
-            gameTeamId: `${matchId}:1`,
-            poolIndex: 0,
-            members: pairing.slot1.map(memberOf),
-            points: 0,
-          },
-          {
-            gameTeamId: `${matchId}:2`,
-            poolIndex: 0,
-            members: pairing.slot2.map(memberOf),
-            points: 0,
-          },
-        );
         const state = confirmed
           ? ("confirmed" as const)
           : awaiting
@@ -128,11 +113,8 @@ export function americanoPreviewBoard(options: BoardOptions): AmericanoBoard {
         return {
           matchId,
           position: pairing.position,
-          poolIndex: null,
           courtName: COURTS[pairing.position - 1] ?? null,
           startTime,
-          slot1GameTeamId: `${matchId}:1`,
-          slot2GameTeamId: `${matchId}:2`,
           slot1PlayerIds: [...pairing.slot1],
           slot2PlayerIds: [...pairing.slot2],
           state,
@@ -176,10 +158,9 @@ export function americanoPreviewBoard(options: BoardOptions): AmericanoBoard {
     matchMinutes: MATCH_MINUTES,
     viewerGamePlayerId: playerId(VIEWER),
     players,
-    teams,
     rounds,
     currentRoundNumber: finished ? ROUNDS : options.played + 1,
-    standings: americanoStandings(ids, results),
+    table: americanoTable(ids, results),
     finished,
   };
 }

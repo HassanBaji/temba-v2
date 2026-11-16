@@ -42,20 +42,15 @@ import { MARK_KINDS, type MarkKind } from "@repo/domain/marks";
 import type { MyTournament } from "@repo/domain/hub-game-row";
 import { hasKnockout, hasPools } from "@repo/domain/tournament-rounds";
 import { isKingOfTheCourt } from "@repo/domain/tournament-king";
-import {
-  americanoStandings,
-  isAmericano,
-} from "@repo/domain/tournament-americano";
+import { americanoTable, isAmericano } from "@repo/domain/tournament-americano";
 import {
   americanoPlayedSummary,
   type AmericanoPlayedSummary,
 } from "@repo/domain/tournament-americano-view";
-import {
-  isSettledTournamentMatch,
-  tournamentMatchState,
-} from "@repo/domain/tournament-round-state";
 import { tournamentMatchMinutes } from "@repo/domain/tournament-sizing";
 import {
+  americanoDayFinished,
+  americanoMatchState,
   americanoResults,
   loadAmericanoMatches,
   loadAmericanoPlayers,
@@ -573,7 +568,7 @@ async function kingOfTheCourtRows(
 
 /**
  * One row per Americano the viewer has a seat on, once its Rounds are made
- * and the day is over: every game settled, or its window passed.
+ * and the day is over: every Match settled, or the day no longer live.
  */
 async function americanoRows(
   database: DbClient,
@@ -635,34 +630,22 @@ async function americanoRows(
       roundNumber: row.roundNumber,
       courtName: row.court?.name ?? null,
       startTime: row.startTime,
-      state: tournamentMatchState({
-        status: row.status,
-        notFinishedAt: row.notFinishedAt,
-        hasResult: matchOutcome(row.sets).result !== "none",
-        startTime: row.startTime,
-        now,
-      }),
+      state: americanoMatchState(row, now),
       slot1PlayerIds: row.slot1,
       slot2PlayerIds: row.slot2,
       slot1GamesWon: row.sets[0]?.slot1GamesWon ?? null,
       slot2GamesWon: row.sets[0]?.slot2GamesWon ?? null,
     }));
-    const settled = viewMatches.every((match) =>
-      isSettledTournamentMatch(match.state),
-    );
-    const finished =
-      settled &&
-      matchRows.some((row) => row.status === MatchStatusEnum.COMPLETED);
-    const over =
-      finished ||
-      (game.windowEnd != null && game.windowEnd.getTime() < now.getTime());
-    if (!over) {
+    // My Games keeps the day until it is finished or no longer live, so
+    // Played takes it at the same moment and it is never on both.
+    const finished = americanoDayFinished(matchRows);
+    if (!finished && isGameLive({ ...game, matches: matchRows }, now)) {
       continue;
     }
     const summary = americanoPlayedSummary({
       players,
       matches: viewMatches,
-      standings: americanoStandings(
+      table: americanoTable(
         players.map((player) => player.gamePlayerId),
         americanoResults(matchRows),
       ),

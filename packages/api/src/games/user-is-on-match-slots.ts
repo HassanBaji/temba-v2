@@ -2,6 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 
 import { americanoSeats, gamePlayers, gameTeamPlayers } from "@repo/db";
 
+import { mayHaveAmericanoSeats } from "#src/games/americano-matches";
 import { type MatchRow } from "#src/games/utils";
 import { type db } from "#src/db";
 
@@ -25,8 +26,7 @@ export async function userIsOnMatchSlots(
   if (!player) {
     return false;
   }
-  if (slotIds.length === 0) {
-    // An Americano Match seats its players directly (ADR-0094).
+  if (mayHaveAmericanoSeats(match)) {
     const seat = await database.query.americanoSeats.findFirst({
       where: and(
         eq(americanoSeats.matchId, match.id),

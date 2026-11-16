@@ -3,25 +3,28 @@ import type { Locale } from "@repo/i18n/locale";
 
 import { formatGameDay } from "./format-game-start";
 import { filsToMajorInput } from "./price-per-player";
+import type { ResultMarkVariant } from "./result-mark";
 import {
   americanoSlotsPerRound,
   americanoOutcome,
   type AmericanoOutcome,
-  type AmericanoStanding,
+  type AmericanoTableRow,
 } from "./tournament-americano";
+import type { TournamentShareCard } from "./tournament-finished";
+import type { TournamentMatchState } from "./tournament-round-state";
 
 export type AmericanoViewMatch = {
   roundNumber: number;
   courtName: string | null;
   startTime: Date | string | null;
-  state: string;
+  state: TournamentMatchState;
   slot1PlayerIds: readonly string[];
   slot2PlayerIds: readonly string[];
   slot1GamesWon: number | null;
   slot2GamesWon: number | null;
 };
 
-export type AmericanoViewerGame<Match extends AmericanoViewMatch> = {
+export type AmericanoViewerMatch<Match extends AmericanoViewMatch> = {
   match: Match;
   roundNumber: number;
   partnerId: string | null;
@@ -29,15 +32,15 @@ export type AmericanoViewerGame<Match extends AmericanoViewMatch> = {
   /** The viewer's pair's games and the other pair's, once a score is in. */
   mine: number | null;
   theirs: number | null;
-  /** Only a confirmed score has an outcome: it is what the Standings count. */
+  /** Only a confirmed score has an outcome: it is what the table counts. */
   outcome: AmericanoOutcome | null;
 };
 
-/** The viewer's own game in every Round, first Round first. */
-export function viewerAmericanoGames<Match extends AmericanoViewMatch>(
+/** The viewer's own Match in every Round, first Round first. */
+export function viewerAmericanoMatches<Match extends AmericanoViewMatch>(
   matches: readonly Match[],
   viewerId: string | null,
-): AmericanoViewerGame<Match>[] {
+): AmericanoViewerMatch<Match>[] {
   if (!viewerId) {
     return [];
   }
@@ -74,9 +77,9 @@ export function viewerAmericanoGames<Match extends AmericanoViewMatch>(
     .sort((left, right) => left.roundNumber - right.roundNumber);
 }
 
-/** The game to show first: the viewer's in the Round on court, else their next. */
+/** The Match to show first: the viewer's in the Round on court, else their next. */
 export function viewerAmericanoFocus<Match extends AmericanoViewMatch>(
-  games: readonly AmericanoViewerGame<Match>[],
+  games: readonly AmericanoViewerMatch<Match>[],
   currentRoundNumber: number | null,
 ) {
   const live = games.find(
@@ -106,7 +109,7 @@ export type AmericanoPlayedSummary = {
   matchMinutes: number;
   gamesWon: number;
   partnerCount: number;
-  /** The viewer's games in Round order: an outcome once confirmed, else null. */
+  /** The viewer's Matches in Round order: an outcome once confirmed, else null. */
   results: (AmericanoOutcome | null)[];
   viewer: { markName: string };
   winner: {
@@ -121,7 +124,7 @@ export type AmericanoPlayedSummary = {
 export function americanoPlayedSummary(input: {
   players: readonly { gamePlayerId: string; name: string }[];
   matches: readonly AmericanoViewMatch[];
-  standings: readonly AmericanoStanding[];
+  table: readonly AmericanoTableRow[];
   viewerGamePlayerId: string;
   roundCount: number;
   matchMinutes: number;
@@ -130,14 +133,17 @@ export function americanoPlayedSummary(input: {
   const nameOf = (gamePlayerId: string) =>
     input.players.find((player) => player.gamePlayerId === gamePlayerId)
       ?.name ?? "";
-  const viewerRow = input.standings.find(
+  const viewerRow = input.table.find(
     (row) => row.playerId === input.viewerGamePlayerId,
   );
   if (!viewerRow) {
     return null;
   }
-  const games = viewerAmericanoGames(input.matches, input.viewerGamePlayerId);
-  const top = input.standings[0];
+  const played = viewerAmericanoMatches(
+    input.matches,
+    input.viewerGamePlayerId,
+  );
+  const top = input.table[0];
   return {
     finished: input.finished,
     place: input.finished ? viewerRow.place : null,
@@ -146,9 +152,9 @@ export function americanoPlayedSummary(input: {
     matchMinutes: input.matchMinutes,
     gamesWon: viewerRow.gamesWon,
     partnerCount: new Set(
-      games.flatMap((game) => (game.partnerId ? [game.partnerId] : [])),
+      played.flatMap((entry) => (entry.partnerId ? [entry.partnerId] : [])),
     ).size,
-    results: games.map((game) => game.outcome),
+    results: played.map((entry) => entry.outcome),
     viewer: { markName: nameOf(input.viewerGamePlayerId) },
     winner:
       input.finished && top
@@ -256,5 +262,112 @@ export function americanoPlayedCardModel(
           trailing: m.played.standings,
         }
       : null,
+  };
+}
+
+/** "+7", "−2" or "0": a game difference as the table prints it. */
+export function signedDifference(value: number) {
+  if (value > 0) {
+    return `+${value}`;
+  }
+  return value < 0 ? `−${Math.abs(value)}` : "0";
+}
+
+export function americanoResultMark(
+  outcome: AmericanoOutcome | null,
+): ResultMarkVariant {
+  if (outcome === "drawn") {
+    return "draw";
+  }
+  return outcome ?? "not-played";
+}
+
+const SHARE_TABLE_ROWS = 6;
+
+/**
+ * The square card a finished Americano shares: the viewer's place, games won
+ * and results, or the top of the table for someone who did not play.
+ */
+export function americanoShareCard(
+  input: {
+    name: string | null;
+    windowStart: Date | string | null;
+    venueName: string | null;
+    players: readonly { gamePlayerId: string; name: string }[];
+    matches: readonly AmericanoViewMatch[];
+    table: readonly AmericanoTableRow[];
+    viewerGamePlayerId: string | null;
+    finished: boolean;
+  },
+  locale: Locale,
+): TournamentShareCard | null {
+  if (!input.finished || input.table.length === 0) {
+    return null;
+  }
+  const messages = messagesFor(locale);
+  const m = messages.tournamentRounds.shareCard;
+  const a = messages.tournamentAmericano;
+  const name = input.name ?? a.shape.title;
+  const nameOf = (gamePlayerId: string) =>
+    input.players.find((player) => player.gamePlayerId === gamePlayerId)
+      ?.name ?? "";
+  const base = {
+    tag: a.chip,
+    eyebrow: m.eyebrow(
+      name,
+      input.windowStart ? formatGameDay(input.windowStart, locale) : null,
+      input.venueName,
+    ),
+  };
+  const viewer = input.table.find(
+    (row) => row.playerId === input.viewerGamePlayerId,
+  );
+  if (viewer) {
+    const placing = m.ordinal(viewer.place);
+    const placingNote =
+      viewer.place === 1 ? m.wonTheDay : a.share.ofPlayers(input.table.length);
+    const placingLine = m.placingLine(placing, placingNote);
+    const player = nameOf(viewer.playerId);
+    return {
+      ...base,
+      kind: "placing",
+      placing,
+      placingNote,
+      markName: player,
+      team: player,
+      record: a.share.record(
+        viewer.gamesWon,
+        viewer.won,
+        viewer.drawn,
+        viewer.lost,
+      ),
+      results: viewerAmericanoMatches(input.matches, viewer.playerId).map(
+        (entry) => americanoResultMark(entry.outcome),
+      ),
+      imageLabel: m.imageLabel(placingLine, player),
+      message: m.message(name, placingLine, player),
+    };
+  }
+  const title = m.tableTitle;
+  const rows = input.table.slice(0, SHARE_TABLE_ROWS).map((row) => ({
+    place: String(row.place),
+    markName: nameOf(row.playerId),
+    team: nameOf(row.playerId),
+    points: a.share.gamesWon(row.gamesWon),
+    isViewer: false,
+  }));
+  return {
+    ...base,
+    kind: "table",
+    title,
+    rows,
+    imageLabel: m.tableImageLabel(name, title),
+    message: m.tableMessage(
+      name,
+      title,
+      rows
+        .map((row) => m.tableLine(row.place, row.team, row.points))
+        .join("\n"),
+    ),
   };
 }

@@ -59,6 +59,7 @@ export const tournamentAmericano = {
       matchMinutes: number,
     ) =>
       `${rounds(roundCount)} of ${games(courtCount)} on ${courts(courtCount)}, ${matchMinutes} minutes a game, back to back. One table of players at the end, ranked on games won.`,
+    noCourts: "Record at least one Court in step 2: the rounds are laid out on the Courts.",
     waitsForCourts: (recorded: number, needed: number) =>
       `${courts(recorded)} recorded for ${games(needed)} a round, so some games wait for a free court.`,
     finishTooLate:
@@ -211,7 +212,7 @@ export const tournamentAmericano = {
     otherGets: (pair: string, gamesWon: number) =>
       `${pair} get ${gamesWon} each. Games won is what ranks you, win or lose.`,
   },
-  standings: {
+  table: {
     place: "#",
     player: "Player",
     played: "P",
@@ -283,6 +284,12 @@ export const tournamentAmericano = {
       `Won by ${name}, ${games(gamesWon)}`,
     standings: "Standings",
   },
+  share: {
+    ofPlayers: (n: number) => `of ${players(n)}`,
+    record: (gamesWon: number, won: number, drawn: number, lost: number) =>
+      `${gamesWon} games won. ${record(won, drawn, lost)}`,
+    gamesWon: (n: number) => `${n} GW`,
+  },
   mobile: {
     webOnly:
       "Making the rounds, swapping players and entering scores happen on the web for now.",
@@ -314,5 +321,11 @@ export const tournamentAmericano = {
       "An Americano makes its rounds from the players. Use Make rounds.",
     recordCourts:
       "Record at least one Court on this Social before making the rounds.",
+    courtsRequired:
+      "Record at least one Court: the rounds are laid out on the Courts.",
+    windowTooShort: (finish: string) =>
+      `The rounds need until ${finish}. Move the finish later, record more Courts or play fewer rounds.`,
+    roundsOverrun:
+      "The rounds run past the end of this Social. Record more Courts or move the finish later.",
   },
 };

@@ -711,10 +711,7 @@ describe("tournamentEyebrow", () => {
   });
 
   it("names the knockout instead of counting Rounds on Knockout only", () => {
-    assert.equal(
-      tournamentEyebrow(4, "en", true),
-      "Social, knockout",
-    );
+    assert.equal(tournamentEyebrow(4, "en", true), "Social, knockout");
   });
 });
 
@@ -732,10 +729,7 @@ describe("tournamentRoundCount", () => {
       matches: [],
     });
     assert.equal(explicit, 5);
-    assert.equal(
-      tournamentEyebrow(explicit ?? 0, "en"),
-      "Social, 5 Rounds",
-    );
+    assert.equal(tournamentEyebrow(explicit ?? 0, "en"), "Social, 5 Rounds");
   });
 
   it("is null for a tournament without Pools", () => {

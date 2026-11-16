@@ -91,7 +91,6 @@ import {
   AMERICANO_ROUND_MIN,
   americanoCourtCount,
   americanoFinishSlot,
-  americanoGameCount,
   americanoPlayersOfTeamCount,
   americanoRoundMax,
   americanoSlotsPerRound,
@@ -305,9 +304,10 @@ export function FriendlyTournamentSteps({
   );
   const k = m.tournamentKing;
   const am = m.tournamentAmericano;
-  const americanoPlayers = americanoPlayersOfTeamCount(teamCount);
-  const americanoRounds = clampAmericanoRounds(roundCount, americanoPlayers);
+  const americanoPlayers = americano?.players ?? 0;
+  const americanoRounds = americano?.rounds ?? 0;
   const americanoCourts = americanoCourtCount(americanoPlayers);
+  const americanoShape = americano != null;
   const americanoFinish =
     americano && startTime && parsedMinutes.ok
       ? americanoFinishSlot(startTime, {
@@ -320,14 +320,14 @@ export function FriendlyTournamentSteps({
 
   // An Americano's finish follows its Rounds, back to back from the start.
   React.useEffect(() => {
-    if (!americano || !startTime) {
+    if (!americanoShape || !startTime) {
       return;
     }
     const next = americanoFinish ?? "";
     if (next !== finishTime) {
       onFinishTime(next);
     }
-  }, [americano, americanoFinish, startTime, finishTime, onFinishTime]);
+  }, [americanoShape, americanoFinish, startTime, finishTime, onFinishTime]);
   const kingCourts = kingCourtCount(teamCount);
   const kingPlayMinutes =
     startTime && finishTime ? kingSlotPlayMinutes(startTime, finishTime) : null;
@@ -895,13 +895,19 @@ export function FriendlyTournamentSteps({
             </div>
           ) : null}
 
+          {americano && courtIds.length === 0 ? (
+            <p role="note" className="text-muted-foreground text-meta">
+              {am.create.noCourts}
+            </p>
+          ) : null}
+
           {americano && startTime && parsedMinutes.ok ? (
             <div className="border-ink rounded-card border px-[18px] py-4">
               {americanoFinish ? (
                 <>
                   <p className="font-expanded text-lead leading-snug tracking-[-0.03em]">
                     {am.create.summaryTitle(
-                      americanoGameCount(americanoPlayers, americanoRounds),
+                      americano.matchCount,
                       formatTimeSlotLabel(startTime, locale),
                       formatTimeSlotLabel(americanoFinish, locale),
                     )}

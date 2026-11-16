@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { americanoSeats, gameTeamPlayers } from "@repo/db";
 
 import { bothSlotsFilled } from "#src/games/both-slots-filled";
+import { mayHaveAmericanoSeats } from "#src/games/americano-matches";
 import { type MatchRow } from "#src/games/utils";
 import { type db } from "#src/db";
 
@@ -32,7 +33,7 @@ export async function bothSlottedTeamsComplete(
   database: DbClient,
   match: MatchRow,
 ) {
-  if (!match.slot1GameTeamId && !match.slot2GameTeamId) {
+  if (mayHaveAmericanoSeats(match)) {
     return americanoSidesComplete(database, match.id);
   }
   if (

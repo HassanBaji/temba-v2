@@ -12,13 +12,14 @@ import {
 
 import {
   americanoSeats,
+  gameCourts,
   gamePlayers,
+  gameTeams,
   gameWaitlist,
   games,
   matches,
 } from "@repo/db/schema";
 import { createPgliteDb } from "@repo/db/testing";
-import { repeatedPartners } from "@repo/domain/tournament-americano";
 import {
   tournamentHomeView,
   tournamentStandingsView,
@@ -37,13 +38,17 @@ import {
   insertAmericanoUser,
   registerAmericanoPlayers,
 } from "#src/games/americano.test-support";
+import { listMyGamesHubRows } from "#src/games/list-my-games";
+import { addGuestPlayer } from "#src/routers/games/addGuestPlayer";
 import { gameById } from "#src/routers/games/byId";
+import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
 import { kick } from "#src/routers/games/kick";
 import { leaveGame } from "#src/routers/games/leave";
 import { postAmericanoRounds } from "#src/routers/games/postAmericanoRounds";
 import { register } from "#src/routers/games/register";
+import { repeatedPartners } from "#src/routers/games/swapAmericanoPlayers";
 import { registerSeat } from "#src/routers/games/registerSeat";
 
 const START = new Date("2026-09-25T09:00:00");
@@ -135,6 +140,49 @@ describe("createTournament, americano", () => {
   });
 });
 
+describe("createTournament, americano Courts and window", () => {
+  const draft = {
+    name: "Sunday Social",
+    groupId: crypto.randomUUID(),
+    isPublic: false,
+    tournamentShape: "americano" as const,
+    teamCount: 8,
+    roundCount: 7,
+    venueId: crypto.randomUUID(),
+    matchMinutes: 30,
+    windowStart: START,
+  };
+
+  it("needs a recorded Court", async () => {
+    const database = await testDatabase();
+    const organizer = await insertAmericanoUser(database, "Hassan Haji");
+    await expectRefused(
+      () =>
+        createTournament(asDb(database), {
+          ...draft,
+          createdBy: organizer.id,
+          windowEnd: END,
+        }),
+      /at least one Court/,
+    );
+  });
+
+  it("needs a window long enough for the Rounds on the recorded Courts", async () => {
+    const database = await testDatabase();
+    const organizer = await insertAmericanoUser(database, "Hassan Haji");
+    await expectRefused(
+      () =>
+        createTournament(asDb(database), {
+          ...draft,
+          createdBy: organizer.id,
+          courtIds: [crypto.randomUUID(), crypto.randomUUID()],
+          windowEnd: END,
+        }),
+      /need until \d{1,2}:\d{2}/,
+    );
+  });
+});
+
 describe("register on an americano", () => {
   it("takes a seat alone, and the player after the last seat waits", async () => {
     const database = await testDatabase();
@@ -215,11 +263,12 @@ describe("postAmericanoRounds", () => {
       const side = (slot: number) =>
         row.americanoSeats
           .filter((seat) => seat.slot === slot)
-          .map((seat) => seat.gamePlayerId) as unknown as readonly [
-          string,
-          string,
-        ];
-      return { slot1: side(1), slot2: side(2) };
+          .map((seat) => seat.gamePlayerId);
+      return {
+        roundNumber: row.roundNumber ?? 0,
+        slot1: side(1),
+        slot2: side(2),
+      };
     });
     expect(repeatedPartners(pairings)).toEqual([]);
 
@@ -321,6 +370,98 @@ describe("postAmericanoRounds", () => {
         }),
       /in fours/,
     );
+  });
+
+  it("refuses Rounds that would run past the end of the Social", async () => {
+    const { database, organizer, gameId, gamePlayerIds } = await fullAmericano(
+      8,
+      3,
+    );
+    const recorded = await database.query.gameCourts.findMany({
+      where: eq(gameCourts.gameId, gameId),
+    });
+    await database.delete(gameCourts).where(eq(gameCourts.id, recorded[0]!.id));
+    await database
+      .update(games)
+      .set({ windowEnd: new Date("2026-09-25T10:30:00") })
+      .where(eq(games.id, gameId));
+    await expectRefused(
+      () =>
+        postAmericanoRounds(asDb(database), {
+          gameId,
+          organizerUserId: organizer.id,
+          gamePlayerIds,
+        }),
+      /run past the end/,
+    );
+  });
+
+  it("lets an Organizer add a player alone before the Rounds, never after", async () => {
+    const { database, organizer, gameId } = await fullAmericano(8, 3);
+    await leaveGame(asDb(database), {
+      gameId,
+      userId: (await database.query.gamePlayers.findFirst({
+        where: eq(gamePlayers.gameId, gameId),
+      }))!.userId!,
+    });
+    await addGuestPlayer(asDb(database), {
+      gameId,
+      organizerUserId: organizer.id,
+      name: "Guest Haji",
+    });
+    const links = await database.query.gameTeams.findMany({
+      where: eq(gameTeams.gameId, gameId),
+    });
+    expect(links).toEqual([]);
+    const gamePlayerIds = (
+      await database.query.gamePlayers.findMany({
+        where: eq(gamePlayers.gameId, gameId),
+        orderBy: (table, { asc }) => [asc(table.createdAt)],
+      })
+    ).map((row) => row.id);
+    expect(gamePlayerIds).toHaveLength(8);
+    await postAmericanoRounds(asDb(database), {
+      gameId,
+      organizerUserId: organizer.id,
+      gamePlayerIds,
+    });
+    await expectRefused(
+      () =>
+        addGuestPlayer(asDb(database), {
+          gameId,
+          organizerUserId: organizer.id,
+          name: "Late Haji",
+        }),
+      /.+/,
+    );
+  });
+
+  it("leaves My Games once every Match is settled", async () => {
+    const { database, organizer, gameId, people, gamePlayerIds } =
+      await fullAmericano(8, 3);
+    await postAmericanoRounds(asDb(database), {
+      gameId,
+      organizerUserId: organizer.id,
+      gamePlayerIds,
+    });
+    const listed = async () =>
+      (await listMyGamesHubRows(asDb(database), people[0]!.id)).some(
+        (row) => row.id === gameId,
+      );
+    expect(await listed()).toBe(true);
+    const rows = await database.query.matches.findMany({
+      where: eq(matches.gameId, gameId),
+    });
+    for (const row of rows) {
+      await enterTournamentScore(asDb(database), {
+        gameId,
+        matchId: row.id,
+        userId: organizer.id,
+        slot1GamesWon: 6,
+        slot2GamesWon: 2,
+      });
+    }
+    expect(await listed()).toBe(false);
   });
 
   it("refuses the Pool draw doors", async () => {
