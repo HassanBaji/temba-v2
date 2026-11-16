@@ -1,8 +1,9 @@
 import { eq } from "drizzle-orm";
 
-import { gameTeamPlayers } from "@repo/db";
+import { americanoSeats, gameTeamPlayers } from "@repo/db";
 
 import { bothSlotsFilled } from "#src/games/both-slots-filled";
+import { mayHaveAmericanoSeats } from "#src/games/americano-matches";
 import { type MatchRow } from "#src/games/utils";
 import { type db } from "#src/db";
 
@@ -16,10 +17,25 @@ async function gameTeamHasTwoPlayers(database: DbClient, gameTeamId: string) {
   return links.length === 2;
 }
 
+/** An Americano Match is complete with two players on each side. */
+async function americanoSidesComplete(database: DbClient, matchId: string) {
+  const seats = await database.query.americanoSeats.findMany({
+    where: eq(americanoSeats.matchId, matchId),
+    columns: { slot: true },
+  });
+  return (
+    seats.filter((seat) => seat.slot === 1).length === 2 &&
+    seats.filter((seat) => seat.slot === 2).length === 2
+  );
+}
+
 export async function bothSlottedTeamsComplete(
   database: DbClient,
   match: MatchRow,
 ) {
+  if (mayHaveAmericanoSeats(match)) {
+    return americanoSidesComplete(database, match.id);
+  }
   if (
     !bothSlotsFilled(match) ||
     !match.slot1GameTeamId ||

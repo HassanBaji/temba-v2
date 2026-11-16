@@ -10,6 +10,7 @@ import { levelOverrideWhy, type LevelOverrideReason } from "./level-slider";
 import { formatMarksClose, isMarkKind, markName } from "./marks";
 import { formatTierPoints } from "./group-members-table";
 import { productDaysBetween, zonedParts } from "./product-timezone";
+import { formatReliability, formatReliabilityDelta } from "./level-reliability";
 import { formatPerformanceRating } from "./performance-rating";
 import { isTierBand, tierBandLabel } from "./tier-bands";
 import { formatTierDelta } from "./tier-adjust";
@@ -35,6 +36,7 @@ export type NotificationCopyInput = {
   levelSet?: NotificationLevelSet | null;
   tier?: NotificationTier | null;
   ovrMove?: NotificationOvrMove | null;
+  reliabilityMove?: NotificationReliabilityMove | null;
   placeAward?: NotificationPlaceAward | null;
   dispute?: NotificationDispute | null;
   markKind?: string | null;
@@ -86,6 +88,16 @@ type NotificationOvrMove = {
   after: number;
   /** The settled Performance rating, in hundredths; null without one. */
   ratingHundredths: number | null;
+};
+
+/**
+ * What a `performance_ratings_closed` row is about on a padel Match: the
+ * settled rating and the player's Reliability either side of it (ADR-0095).
+ */
+type NotificationReliabilityMove = {
+  before: number;
+  after: number;
+  ratingHundredths: number;
 };
 
 /** The Match dispute a raised or decided Notification is about. */
@@ -463,7 +475,11 @@ export function notificationCopy(
     return {
       title: m.performanceRatingsOpen(notificationGameName(item.game, locale)),
       subline:
-        item.audience === "admin" ? sub.ratingsOpen : sub.ratingsOpenEveryone,
+        item.audience === "admin"
+          ? sub.ratingsOpen
+          : item.game.sport === "padel"
+            ? sub.ratingsOpenPadel
+            : sub.ratingsOpenEveryone,
     };
   }
   if (
@@ -511,6 +527,29 @@ export function notificationCopy(
               formatPerformanceRating(ratingHundredths),
               delta,
               ovr,
+            ),
+    };
+  }
+  if (
+    item.type === "performance_ratings_closed" &&
+    item.audience === "player" &&
+    item.game &&
+    item.reliabilityMove
+  ) {
+    const { ratingHundredths, before, after } = item.reliabilityMove;
+    const rating = formatPerformanceRating(ratingHundredths);
+    const moved = Math.round(after) - Math.round(before);
+    return {
+      title: m.performanceRatingsClosed(
+        notificationGameName(item.game, locale),
+      ),
+      subline:
+        moved === 0
+          ? sub.ratingsClosedReliabilitySame(rating, formatReliability(after))
+          : sub.ratingsClosedReliability(
+              rating,
+              formatReliabilityDelta(moved),
+              formatReliability(after),
             ),
     };
   }

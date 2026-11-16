@@ -472,6 +472,63 @@ describe("validateFriendlyTournamentSubmit, King of the court", () => {
   });
 });
 
+describe("validateFriendlyTournamentSubmit, Americano", () => {
+  const americano = {
+    ...tournament,
+    tournamentShape: "americano",
+    teamCount: 8,
+  } as const;
+
+  it("sends the Rounds clamped to the players, no Pools and no Rating choice", () => {
+    const result = validateFriendlyTournamentSubmit(
+      { ...americano, roundCount: 40, rated: false, poolCount: 2 },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal(result.input.tournamentShape, "americano");
+      assert.equal(result.input.teamCount, 8);
+      assert.equal(result.input.roundCount, 15);
+      assert.equal("poolCount" in result.input, false);
+      assert.equal("rated" in result.input, false);
+    }
+  });
+
+  it("starts on seven Rounds when none is picked", () => {
+    const result = validateFriendlyTournamentSubmit(
+      { ...americano, roundCount: null },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(result.ok);
+    if (result.ok) {
+      assert.equal(result.input.roundCount, 7);
+    }
+  });
+});
+
+describe("friendlyTournamentPlan, Americano", () => {
+  it("has no Pool sizing, so no Groups or Round count control shows", () => {
+    const plan = friendlyTournamentPlan({
+      teamCount: 8,
+      poolCount: 1,
+      roundCount: 7,
+      qualifiersPerPool: 1,
+      tournamentShape: "americano",
+    });
+    assert.deepEqual(plan.americano, {
+      players: 16,
+      rounds: 7,
+      matchCount: 28,
+    });
+    assert.equal(plan.sizing, null);
+    assert.equal(plan.rounds, null);
+  });
+});
+
 describe("validateFriendlyTournamentSubmit Rating choice", () => {
   it("sends rated false when the creator picked Unrated", () => {
     const result = validateFriendlyTournamentSubmit(

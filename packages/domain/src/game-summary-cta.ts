@@ -43,7 +43,10 @@ export function gameSummaryPrimaryAction(
     return "view";
   }
 
-  if (game.format === "friendly_tournament") {
+  if (
+    game.format === "friendly_tournament" &&
+    !isRosterRegistrationGame(game)
+  ) {
     if (
       isDrawnTournament(game.format, game.poolCount, game.tournamentShape) &&
       game.canRegister &&

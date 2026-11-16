@@ -18,6 +18,7 @@ import { useColors } from "../theme/theme-provider";
 import { hairline } from "./hairline-width";
 import { SurfaceToneContext } from "./surface-context";
 import { Text } from "./text";
+import { useKeyboardVisible } from "./use-keyboard-visible";
 
 const TALL_HEIGHT_RATIO = 0.8;
 const PADDING_TOP = 10;
@@ -45,6 +46,8 @@ export type SheetProps = {
   /** Pinned under the body: under the scrolling body of a tall sheet. */
   footer?: React.ReactNode;
   keyboardShouldPersistTaps?: ScrollViewProps["keyboardShouldPersistTaps"];
+  /** The scrolling body of a tall sheet. */
+  scrollRef?: React.Ref<ScrollView>;
   children: React.ReactNode;
 };
 
@@ -60,13 +63,18 @@ export function Sheet({
   tall = false,
   footer,
   keyboardShouldPersistTaps,
+  scrollRef,
   children,
 }: SheetProps) {
   const m = useMessages();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const window = useWindowDimensions();
-  const bottomPadding = Math.max(PADDING_BOTTOM, insets.bottom + BODY_GAP);
+  const keyboardVisible = useKeyboardVisible();
+  // The keyboard covers the home indicator, so its inset is wasted room then.
+  const bottomPadding = keyboardVisible
+    ? BODY_GAP
+    : Math.max(PADDING_BOTTOM, insets.bottom + BODY_GAP);
   const trailing =
     action ?? (closeButton ? <SheetCloseButton onPress={onClose} /> : null);
   const hasHeader = Boolean(title) || Boolean(subtitle) || trailing != null;
@@ -118,6 +126,7 @@ export function Sheet({
               ) : null}
               {tall ? (
                 <ScrollView
+                  ref={scrollRef}
                   style={{ flex: 1 }}
                   contentContainerStyle={{
                     gap: BODY_GAP,

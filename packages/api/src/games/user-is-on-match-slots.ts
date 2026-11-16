@@ -1,7 +1,8 @@
 import { and, eq, inArray } from "drizzle-orm";
 
-import { gamePlayers, gameTeamPlayers } from "@repo/db";
+import { americanoSeats, gamePlayers, gameTeamPlayers } from "@repo/db";
 
+import { mayHaveAmericanoSeats } from "#src/games/americano-matches";
 import { type MatchRow } from "#src/games/utils";
 import { type db } from "#src/db";
 
@@ -15,9 +16,6 @@ export async function userIsOnMatchSlots(
   const slotIds = [match.slot1GameTeamId, match.slot2GameTeamId].filter(
     (id): id is string => Boolean(id),
   );
-  if (slotIds.length === 0) {
-    return false;
-  }
   const player = await database.query.gamePlayers.findFirst({
     where: and(
       eq(gamePlayers.gameId, match.gameId),
@@ -27,6 +25,16 @@ export async function userIsOnMatchSlots(
   });
   if (!player) {
     return false;
+  }
+  if (mayHaveAmericanoSeats(match)) {
+    const seat = await database.query.americanoSeats.findFirst({
+      where: and(
+        eq(americanoSeats.matchId, match.id),
+        eq(americanoSeats.gamePlayerId, player.id),
+      ),
+      columns: { id: true },
+    });
+    return Boolean(seat);
   }
   const link = await database.query.gameTeamPlayers.findFirst({
     where: and(

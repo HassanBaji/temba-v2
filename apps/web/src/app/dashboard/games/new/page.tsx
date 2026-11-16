@@ -901,12 +901,22 @@ function NewGameForm() {
       <>
         <h1 className="flex flex-wrap items-baseline gap-x-2">
           <span className="font-expanded text-[44px] tabular-nums leading-none">
-            {teamCount}
+            {tournamentPlan.americano?.players ?? teamCount}
           </span>
           <span className="text-dim text-[18px] leading-none">
-            {c.gameTeams}
+            {tournamentPlan.americano
+              ? m.tournamentAmericano.create.headerPlayers(
+                  tournamentPlan.americano.players,
+                )
+              : c.gameTeams}
           </span>
-          {tournamentPlan.kingOfTheCourt ? (
+          {tournamentPlan.americano ? (
+            <span className="text-dim text-body leading-none">
+              {m.tournamentAmericano.create.headerGames(
+                tournamentPlan.americano.matchCount,
+              )}
+            </span>
+          ) : tournamentPlan.kingOfTheCourt ? (
             <span className="text-dim text-body leading-none">
               {m.tournamentKing.create.courtsLabel(kingCourtCount(teamCount))}
             </span>

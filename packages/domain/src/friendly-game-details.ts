@@ -12,6 +12,7 @@ import { viewerSidePartnerName } from "./friendly-game-partner";
 import type { GameRatingScope } from "./game-rating-scope";
 import type { LevelBand } from "./level-bands";
 import type { MemberNicknameData } from "./member-nickname";
+import type { RatingWindowMode, RatingWindowState } from "./performance-rating";
 
 export type FriendlyGameDetailsSeat = {
   userId: string;
@@ -150,6 +151,16 @@ export type FriendlyGameDetails = {
   confirmWindow?: { closesAt: Date; viewerMayConfirm: boolean } | null;
   booking?: FriendlyGameDetailsBooking | null;
   ratingImpact: FriendlyGameDetailsRatingImpact | null;
+  /** The Match's Rating window and whether the viewer may rate on it (ADR-0095). */
+  ratingWindow?: {
+    matchId: string;
+    mode: RatingWindowMode;
+    state: RatingWindowState;
+    closesAt: Date;
+    viewerMayRate: boolean;
+    countsForLevel: boolean;
+    sport: "padel" | "football";
+  } | null;
   canReportWrongScore: { eligible: boolean; reason?: string } | null;
 };
 

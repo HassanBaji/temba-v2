@@ -142,6 +142,11 @@ export type FootballMatchPlayer = {
   goalsRole?: FootballGoalsRole;
   /** The Performance-rating score in −1 to 1; absent or null without a settled rating. */
   performance?: number | null;
+  /**
+   * How many times further a lost Match's result part moves this player,
+   * from their Reliability (ADR-0095). 1 when left out.
+   */
+  lossFactor?: number;
 };
 
 export type FootballMatchMove = {
@@ -157,6 +162,8 @@ export type FootballMatchMove = {
   performancePart: number;
   goalsPart: number;
   mvpPart: number;
+  /** What low Reliability added to a lost Match's result part; 0 or below. */
+  reliabilityPart: number;
 };
 
 function sideScore(outcome: FootballOutcome, side: 1 | 2): 0 | 0.5 | 1 {
@@ -280,7 +287,9 @@ function zeroSumPart(
  * raw parts are scaled so both sides carry the same total; with even sides of
  * confirmed players nothing is scaled. The other three parts are centred on
  * the players they count. A part with no input (no score, no settled rating,
- * no MVP decided by vote) is 0. OVR is clamped to 40 to 99.
+ * no MVP decided by vote) is 0. A player below full Reliability who lost
+ * takes a fifth, negative part on top, the one part that does not sum to
+ * zero (ADR-0095). OVR is clamped to 40 to 99.
  */
 export function rateFootballMatch(input: {
   slot1: readonly FootballMatchPlayer[];
@@ -373,6 +382,10 @@ export function rateFootballMatch(input: {
       const performancePart = performance.get(player.userId) ?? 0;
       const goalsPart = goals.get(player.userId) ?? 0;
       const mvpPart = mvp.get(player.userId) ?? 0;
+      const reliabilityPart =
+        score === 0 && resultPart < 0
+          ? (Math.max(1, player.lossFactor ?? 1) - 1) * resultPart
+          : 0;
       const ovrBefore = ovrFromMu(player.mu);
       return {
         userId: player.userId,
@@ -381,12 +394,18 @@ export function rateFootballMatch(input: {
         expected,
         ovrBefore,
         ovrAfter: clampOvr(
-          ovrBefore + resultPart + performancePart + goalsPart + mvpPart,
+          ovrBefore +
+            resultPart +
+            performancePart +
+            goalsPart +
+            mvpPart +
+            reliabilityPart,
         ),
         resultPart,
         performancePart,
         goalsPart,
         mvpPart,
+        reliabilityPart,
       };
     }),
   );

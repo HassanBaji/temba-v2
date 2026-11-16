@@ -73,7 +73,8 @@ export function MarksSheet({
           {action ?? <CloseButton variant="boxed" onClick={onClose} />}
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-[22px] py-5">
+        {/* A child with overflow hidden would otherwise shrink to fit and clip; the body scrolls instead. */}
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-[22px] py-5 *:shrink-0">
           {children}
         </div>
 

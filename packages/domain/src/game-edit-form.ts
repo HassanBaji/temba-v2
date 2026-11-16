@@ -209,6 +209,8 @@ export function gameEditSectionsFor(game: {
   challenge?: boolean;
   /** A posted Pool draw, Knockout draw or Starting courts freezes the seats. */
   drawPosted?: boolean;
+  /** An Americano counts players, not Game teams, and has no Pool Rounds. */
+  americano?: boolean;
 }): GameEditSections {
   const friendly = game.format === "friendly_game";
   const tournament = game.format === "friendly_tournament";
@@ -218,11 +220,11 @@ export function gameEditSectionsFor(game: {
     window: true,
     place: friendly && !game.booked && !game.challenge,
     caps: friendly && football,
-    teams: tournament && !game.drawPosted,
+    teams: tournament && !game.drawPosted && !game.americano,
     courts: tournament,
     price: true,
     level: !football,
-    rounds: game.tournamentRounds,
+    rounds: game.tournamentRounds && !game.americano,
     season: game.groupId != null,
   };
 }

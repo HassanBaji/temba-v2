@@ -42,6 +42,19 @@ import { MARK_KINDS, type MarkKind } from "@repo/domain/marks";
 import type { MyTournament } from "@repo/domain/hub-game-row";
 import { hasKnockout, hasPools } from "@repo/domain/tournament-rounds";
 import { isKingOfTheCourt } from "@repo/domain/tournament-king";
+import { americanoTable, isAmericano } from "@repo/domain/tournament-americano";
+import {
+  americanoPlayedSummary,
+  type AmericanoPlayedSummary,
+} from "@repo/domain/tournament-americano-view";
+import { tournamentMatchMinutes } from "@repo/domain/tournament-sizing";
+import {
+  americanoDayFinished,
+  americanoMatchState,
+  americanoResults,
+  loadAmericanoMatches,
+  loadAmericanoPlayers,
+} from "#src/games/americano-matches";
 import {
   kingPlayedSummary,
   type KingPlayedSummary,
@@ -94,6 +107,11 @@ export type MatchHistoryRow = {
    * no Match, so its Match fields are empty and `matchId` is the Game id.
    */
   kingOfTheCourt?: KingPlayedSummary | null;
+  /**
+   * Set on an Americano row, which `americano` asks for: one row for the
+   * whole day, so its Match fields are empty and `matchId` is the Game id.
+   */
+  americano?: AmericanoPlayedSummary | null;
   /** The Game's Album thumbnails and the notes the viewer can read; set by the Played list. */
   album?: GameAlbumSummary;
 };
@@ -113,6 +131,8 @@ const historyPageInput = z
     groupTournaments: z.boolean().optional(),
     /** Also list King of the court Games the viewer played, one row each. */
     kingOfTheCourt: z.boolean().optional(),
+    /** Also list Americano Games the viewer played, one row each (ADR-0094). */
+    americano: z.boolean().optional(),
     cursor: z
       .object({ displayTime: z.date(), matchId: z.string().uuid() })
       .optional(),
@@ -152,12 +172,16 @@ export async function listMyMatchHistoryRows(
       ),
     ),
   ];
-  if (myGameTeamIds.length === 0) {
+  const americanoDays =
+    page?.americano === true
+      ? await americanoRows(database, userId, now, page)
+      : [];
+  if (myGameTeamIds.length === 0 && americanoDays.length === 0) {
     return [];
   }
 
   const kingRows =
-    page?.kingOfTheCourt === true
+    page?.kingOfTheCourt === true && myGameTeamIds.length > 0
       ? await kingOfTheCourtRows(
           database,
           userId,
@@ -168,105 +192,108 @@ export async function listMyMatchHistoryRows(
         )
       : [];
 
-  const completedMatches = await database.query.matches.findMany({
-    where: and(
-      eq(matches.status, MatchStatusEnum.COMPLETED),
-      or(
-        inArray(matches.slot1GameTeamId, myGameTeamIds),
-        inArray(matches.slot2GameTeamId, myGameTeamIds),
-      ),
-    ),
-    columns: {
-      id: true,
-      startTime: true,
-      createdAt: true,
-      slot1GameTeamId: true,
-      slot2GameTeamId: true,
-    },
-    with: {
-      game: {
-        columns: {
-          id: true,
-          name: true,
-          hasCustomName: true,
-          format: true,
-          sport: true,
-          groupId: true,
-          poolCount: true,
-          tournamentShape: true,
-          cancelledAt: true,
-          windowStart: true,
-          windowEnd: true,
-          createdAt: true,
-          rated: true,
-          groupRated: true,
-          mvpUserId: true,
-          mvpSettledAt: true,
-        },
-        with: {
-          group: {
-            columns: { name: true },
+  const completedMatches =
+    myGameTeamIds.length === 0
+      ? []
+      : await database.query.matches.findMany({
+          where: and(
+            eq(matches.status, MatchStatusEnum.COMPLETED),
+            or(
+              inArray(matches.slot1GameTeamId, myGameTeamIds),
+              inArray(matches.slot2GameTeamId, myGameTeamIds),
+            ),
+          ),
+          columns: {
+            id: true,
+            startTime: true,
+            createdAt: true,
+            slot1GameTeamId: true,
+            slot2GameTeamId: true,
           },
-          venue: {
-            columns: { name: true },
-          },
-          matches: {
-            columns: {
-              startTime: true,
-              status: true,
+          with: {
+            game: {
+              columns: {
+                id: true,
+                name: true,
+                hasCustomName: true,
+                format: true,
+                sport: true,
+                groupId: true,
+                poolCount: true,
+                tournamentShape: true,
+                cancelledAt: true,
+                windowStart: true,
+                windowEnd: true,
+                createdAt: true,
+                rated: true,
+                groupRated: true,
+                mvpUserId: true,
+                mvpSettledAt: true,
+              },
+              with: {
+                group: {
+                  columns: { name: true },
+                },
+                venue: {
+                  columns: { name: true },
+                },
+                matches: {
+                  columns: {
+                    startTime: true,
+                    status: true,
+                  },
+                },
+              },
             },
-          },
-        },
-      },
-      sets: {
-        columns: {
-          slot1GamesWon: true,
-          slot2GamesWon: true,
-        },
-        orderBy: (table, { asc }) => [asc(table.setNumber)],
-      },
-      slot1GameTeam: {
-        with: {
-          players: {
-            with: {
-              gamePlayer: {
-                with: {
-                  user: {
-                    columns: {
-                      id: true,
-                      name: true,
-                      image: true,
-                      guestAt: true,
+            sets: {
+              columns: {
+                slot1GamesWon: true,
+                slot2GamesWon: true,
+              },
+              orderBy: (table, { asc }) => [asc(table.setNumber)],
+            },
+            slot1GameTeam: {
+              with: {
+                players: {
+                  with: {
+                    gamePlayer: {
+                      with: {
+                        user: {
+                          columns: {
+                            id: true,
+                            name: true,
+                            image: true,
+                            guestAt: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            slot2GameTeam: {
+              with: {
+                players: {
+                  with: {
+                    gamePlayer: {
+                      with: {
+                        user: {
+                          columns: {
+                            id: true,
+                            name: true,
+                            image: true,
+                            guestAt: true,
+                          },
+                        },
+                      },
                     },
                   },
                 },
               },
             },
           },
-        },
-      },
-      slot2GameTeam: {
-        with: {
-          players: {
-            with: {
-              gamePlayer: {
-                with: {
-                  user: {
-                    columns: {
-                      id: true,
-                      name: true,
-                      image: true,
-                      guestAt: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+        });
 
   const byGameId = new Map<string, typeof completedMatches>();
   for (const match of completedMatches) {
@@ -278,7 +305,7 @@ export async function listMyMatchHistoryRows(
     byGameId.set(match.game.id, list);
   }
 
-  const rows: HistoryRowDraft[] = [...kingRows];
+  const rows: HistoryRowDraft[] = [...kingRows, ...americanoDays];
   for (const gameMatches of byGameId.values()) {
     const game = gameMatches[0]?.game;
     if (!game) {
@@ -537,6 +564,134 @@ async function kingOfTheCourtRows(
       },
     ];
   });
+}
+
+/**
+ * One row per Americano the viewer has a seat on, once its Rounds are made
+ * and the day is over: every Match settled, or the day no longer live.
+ */
+async function americanoRows(
+  database: DbClient,
+  userId: string,
+  now: Date,
+  page: MatchHistoryPage,
+): Promise<HistoryRowDraft[]> {
+  const seats = await database.query.gamePlayers.findMany({
+    where: eq(gamePlayers.userId, userId),
+    columns: { id: true, gameId: true },
+    with: {
+      game: {
+        columns: {
+          format: true,
+          tournamentShape: true,
+          drawPostedAt: true,
+          cancelledAt: true,
+        },
+      },
+    },
+  });
+  const mine = seats.filter(
+    (seat) =>
+      seat.game &&
+      isAmericano(seat.game.format, seat.game.tournamentShape) &&
+      seat.game.drawPostedAt != null &&
+      seat.game.cancelledAt == null,
+  );
+  if (mine.length === 0) {
+    return [];
+  }
+  const americanoGames = await database.query.games.findMany({
+    where: inArray(
+      games.id,
+      mine.map((seat) => seat.gameId),
+    ),
+    with: {
+      group: { columns: { name: true } },
+      venue: { columns: { name: true } },
+    },
+  });
+  const rows: HistoryRowDraft[] = [];
+  for (const game of americanoGames) {
+    if (!game.venue) {
+      continue;
+    }
+    if (page?.sport && page.sport !== sportOrDefault(game.sport)) {
+      continue;
+    }
+    const viewerGamePlayerId = mine.find((seat) => seat.gameId === game.id)?.id;
+    if (!viewerGamePlayerId) {
+      continue;
+    }
+    const [players, matchRows] = await Promise.all([
+      loadAmericanoPlayers(database, game.id),
+      loadAmericanoMatches(database, game.id),
+    ]);
+    const viewMatches = matchRows.map((row) => ({
+      roundNumber: row.roundNumber,
+      courtName: row.court?.name ?? null,
+      startTime: row.startTime,
+      state: americanoMatchState(row, now),
+      slot1PlayerIds: row.slot1,
+      slot2PlayerIds: row.slot2,
+      slot1GamesWon: row.sets[0]?.slot1GamesWon ?? null,
+      slot2GamesWon: row.sets[0]?.slot2GamesWon ?? null,
+    }));
+    // My Games keeps the day until it is finished or no longer live, so
+    // Played takes it at the same moment and it is never on both.
+    const finished = americanoDayFinished(matchRows);
+    if (!finished && isGameLive({ ...game, matches: matchRows }, now)) {
+      continue;
+    }
+    const summary = americanoPlayedSummary({
+      players,
+      matches: viewMatches,
+      table: americanoTable(
+        players.map((player) => player.gamePlayerId),
+        americanoResults(matchRows),
+      ),
+      viewerGamePlayerId,
+      roundCount: game.roundCount ?? 0,
+      matchMinutes: tournamentMatchMinutes(game.matchMinutes),
+      finished,
+    });
+    const viewer = players.find(
+      (player) => player.gamePlayerId === viewerGamePlayerId,
+    );
+    if (!summary || !viewer?.userId) {
+      continue;
+    }
+    rows.push({
+      id: game.id,
+      name: game.name,
+      hasCustomName: game.hasCustomName,
+      windowStart: game.windowStart,
+      windowEnd: game.windowEnd,
+      format: game.format,
+      sport: sportOrDefault(game.sport),
+      venue: { name: game.venue.name },
+      displayTime: game.windowStart ?? game.createdAt,
+      matchId: game.id,
+      groupName: game.group?.name ?? null,
+      slot1Members: [
+        {
+          id: viewer.userId,
+          name: viewer.name,
+          image: viewer.image,
+          isViewer: true,
+        },
+      ],
+      slot2Members: [],
+      scoredSets: [],
+      viewerSlot: 1,
+      outcome: "draw",
+      rated: game.rated,
+      ratingScope: gameRatingScope(game),
+      viewerIsMvp: false,
+      groupedTournament: false,
+      americano: summary,
+    });
+  }
+  return rows;
 }
 
 async function withMyTournaments(

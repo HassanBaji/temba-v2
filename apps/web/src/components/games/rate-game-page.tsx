@@ -81,7 +81,7 @@ export function Hero({ hero }: { hero: RateGameView["hero"] }) {
       </div>
       <div className="mt-3.5 flex items-center justify-center gap-4">
         <span className="flex items-center gap-[7px] font-semibold">
-          <BibChip bib={hero.slot1.bib} />
+          {hero.slot1.bib ? <BibChip bib={hero.slot1.bib} /> : null}
           {hero.slot1.name}
         </span>
         {hero.score ? (
@@ -90,7 +90,7 @@ export function Hero({ hero }: { hero: RateGameView["hero"] }) {
           </span>
         ) : null}
         <span className="flex items-center gap-[7px]">
-          <BibChip bib={hero.slot2.bib} />
+          {hero.slot2.bib ? <BibChip bib={hero.slot2.bib} /> : null}
           {hero.slot2.name}
         </span>
       </div>
@@ -243,7 +243,7 @@ function SideBlock({
         onClick={onToggle}
         className="text-meta flex min-h-11 w-full items-center gap-2 px-4 text-left"
       >
-        <BibChip bib={side.bib} />
+        {side.bib ? <BibChip bib={side.bib} /> : null}
         <span className="font-semibold">{side.name}</span>
         <span className="text-muted-foreground min-w-0 flex-1 truncate">
           {open ? null : side.collapsedLine}

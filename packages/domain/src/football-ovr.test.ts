@@ -246,6 +246,55 @@ describe("rateFootballMatch", () => {
   });
 });
 
+describe("rateFootballMatch with low Reliability (ADR-0095)", () => {
+  it("adds to a loser's result part and to nobody else's move", () => {
+    const base = {
+      slot1: players("a", [76, 76, 76]),
+      outcome: "slot1" as const,
+      weight: 1,
+    };
+    const plain = rateFootballMatch({
+      ...base,
+      slot2: players("b", [76, 76, 76]),
+    });
+    const low = rateFootballMatch({
+      ...base,
+      slot2: players("b", [76, 76, 76]).map((player, index) =>
+        index === 0 ? { ...player, lossFactor: 1.5 } : player,
+      ),
+    });
+    const of = (moves: typeof plain, userId: string) =>
+      moves.find((move) => move.userId === userId)!;
+
+    expect(of(low, "b0").resultPart).toBeCloseTo(of(plain, "b0").resultPart);
+    expect(of(low, "b0").reliabilityPart).toBeCloseTo(
+      of(plain, "b0").resultPart * 0.5,
+    );
+    expect(of(low, "b0").ovrAfter).toBeCloseTo(
+      of(plain, "b0").ovrAfter + of(plain, "b0").resultPart * 0.5,
+    );
+    expect(of(low, "b1").ovrAfter).toBe(of(plain, "b1").ovrAfter);
+    expect(of(low, "a0").ovrAfter).toBe(of(plain, "a0").ovrAfter);
+    expect(of(low, "a0").reliabilityPart).toBe(0);
+  });
+
+  it("does not touch a winner or a draw", () => {
+    const withFactor = players("a", [76, 76, 76]).map((player) => ({
+      ...player,
+      lossFactor: 1.5,
+    }));
+    for (const outcome of ["slot1", "draw"] as const) {
+      const moves = rateFootballMatch({
+        slot1: withFactor,
+        slot2: players("b", [76, 76, 76]),
+        outcome,
+        weight: 1,
+      });
+      expect(moves.every((move) => move.reliabilityPart === 0)).toBe(true);
+    }
+  });
+});
+
 const PARTS = [
   "resultPart",
   "performancePart",

@@ -115,7 +115,7 @@ describe("MVP settlement around the Match completion", () => {
       jobs.clear();
 
       await wrongScore(db, game);
-      expect(jobs.removed).toEqual([settleMvpJobKey(game.gameId)]);
+      expect(jobs.removed).toContain(settleMvpJobKey(game.gameId));
       const suspended = await forGame(db, {
         gameId: game.gameId,
         userId: game.a.id,

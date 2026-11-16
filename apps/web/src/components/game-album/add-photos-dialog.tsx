@@ -1,6 +1,5 @@
 "use client";
 
-import { ENTITY_IMAGE_ACCEPT } from "@repo/domain/entity-image-file";
 import { GAME_ALBUM_SLOTS } from "@repo/domain/game-album";
 import { ImagesIcon } from "lucide-react";
 import * as React from "react";
@@ -10,6 +9,7 @@ import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 
 import { AlbumSheet } from "./album-sheet";
+import { ALBUM_PHOTO_ACCEPT } from "./shrink-photo";
 import type { GameAlbumController } from "./use-game-album";
 
 type Pick = { file: File; url: string };
@@ -97,7 +97,7 @@ export function AddPhotosDialog({
       <input
         ref={inputRef}
         type="file"
-        accept={ENTITY_IMAGE_ACCEPT}
+        accept={ALBUM_PHOTO_ACCEPT}
         multiple
         hidden
         onChange={(event) => {

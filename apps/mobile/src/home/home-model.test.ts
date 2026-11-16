@@ -22,6 +22,7 @@ describe("levelFromApi", () => {
       ratedMatchCount: 0,
       changeOverLast: null,
       lastMatch: null,
+      reliability: null,
     } as ApiRating;
     assert.deepEqual(levelFromApi(data), { kind: "none" });
     assert.equal(

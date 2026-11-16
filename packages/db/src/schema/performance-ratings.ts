@@ -2,8 +2,10 @@ import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  doublePrecision,
   index,
   integer,
+  pgEnum,
   pgTable,
   smallint,
   timestamp,
@@ -15,9 +17,25 @@ import { performanceRatingModes } from "./group-enums";
 import { matches } from "./matches";
 import { user } from "./user";
 
+export const PERFORMANCE_RATER_ROLE_VALUES = [
+  "player",
+  "level_setter",
+  "operator",
+] as const;
+
+/**
+ * What the rater was when they rated (ADR-0095). Being an Operator or a
+ * Level setter lives in the session, so the ballot keeps it for the settling
+ * Job.
+ */
+export const performanceRaterRoles = pgEnum(
+  "performance_rater_role",
+  PERFORMANCE_RATER_ROLE_VALUES,
+);
+
 /**
  * A 1 to 10 Performance rating one seated account holder, or an Organizer of
- * the Game, gave another player of a completed football Match (ADR-0068).
+ * the Game, gave another player of a completed Match (ADR-0068, ADR-0095).
  * Never to oneself. Kept through a wrong-score report.
  */
 export const performanceRatings = pgTable(
@@ -34,6 +52,7 @@ export const performanceRatings = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     value: smallint("value").notNull(),
+    raterRole: performanceRaterRoles("rater_role").notNull().default("player"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -61,7 +80,7 @@ export const performanceRatings = pgTable(
 );
 
 /**
- * A football Match's Rating window, opened at completion with a snapshot of
+ * A Match's Rating window, opened at completion with a snapshot of
  * the Group's Rating settings, so a later change applies from the next Game.
  * Settled once; suspended by a wrong-score report and reopened by the next
  * completion.
@@ -110,6 +129,13 @@ export const performanceRatingResults = pgTable(
     ratingHundredths: integer("rating_hundredths").notNull(),
     ballotsCounted: integer("ballots_counted").notNull(),
     gameAverageHundredths: integer("game_average_hundredths").notNull(),
+    /**
+     * The player's Reliability either side of this rating (ADR-0095). Null
+     * on a Match that does not count for Temba Level and for a player with
+     * no Rating in the sport. A wrong-score report takes the difference back.
+     */
+    reliabilityBefore: doublePrecision("reliability_before"),
+    reliabilityAfter: doublePrecision("reliability_after"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => ({

@@ -113,6 +113,7 @@ export function gameCardSportTag(
 export function gameCardRosterOccupancy(game: {
   format: string;
   sport?: string | null;
+  tournamentShape?: string | null;
   registeredUserCount: number;
   playersAllowed: number | null | undefined;
 }) {
@@ -188,8 +189,9 @@ export type HubWaitlistJoinCall = "register" | "registerSeat";
 export function hubWaitlistJoinCall(
   format: string,
   sport?: string | null,
+  tournamentShape?: string | null,
 ): HubWaitlistJoinCall {
-  return isRosterRegistrationGame({ format, sport })
+  return isRosterRegistrationGame({ format, sport, tournamentShape })
     ? "register"
     : "registerSeat";
 }

@@ -97,7 +97,9 @@ describe("games.performanceRatingResult (screen 4c)", () => {
         mode: "organizer",
         closesAt: window.closesAt,
         played: true,
+        sport: "football",
         countsForLevel: false,
+        reliability: null,
         result: null,
       });
     });

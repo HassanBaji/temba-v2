@@ -3,6 +3,7 @@ import {
   tournamentStandingsView,
   type TournamentDetails,
 } from "@repo/domain/tournament-details";
+import { isAmericano } from "@repo/domain/tournament-americano";
 import { tournamentOrganizerView } from "@repo/domain/tournament-organizer";
 import type { KnockoutMatchPlace } from "@repo/domain/tournament-knockout-view";
 import type { ReactNode } from "react";
@@ -11,6 +12,7 @@ import { View } from "react-native";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { AmericanoView } from "./americano-view";
 import { KingView } from "./king-view";
 import { OrganizerCard, type OrganizerCardHandlers } from "./organizer-card";
 import {
@@ -52,6 +54,27 @@ export function TournamentContent({
   const view = tournamentHomeView(game, locale);
   const matches = scorableMatches(game, locale);
   const organizerView = organizer ? tournamentOrganizerView(game, view) : null;
+
+  if (isAmericano(game.format, game.tournamentShape)) {
+    return (
+      <View style={{ gap: SECTION_GAP }}>
+        {game.cancelledAt ? (
+          <Surface accessibilityRole="alert">
+            <Text size="title" weight="semibold">
+              {m.gameCancelled}
+            </Text>
+          </Surface>
+        ) : null}
+        <AmericanoView game={game} />
+        {album}
+        <TournamentTail
+          view={view}
+          leavePending={handlers.leavePending}
+          onLeave={handlers.onLeave}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={{ gap: SECTION_GAP }}>
