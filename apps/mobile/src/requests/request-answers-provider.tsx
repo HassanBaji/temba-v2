@@ -185,7 +185,7 @@ export function RequestAnswersProvider({
       rows,
       answer: (request, decision) => queue.answer([request], decision),
       approveMany: (requests) => queue.answer(requests, "approve"),
-      undo: queue.undo,
+      undo: (requestId) => queue.undo(requestId),
       canUndo: (row) => canUndoAnswer(row.answer),
       refetch,
     }),
