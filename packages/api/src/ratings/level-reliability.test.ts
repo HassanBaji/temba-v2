@@ -27,6 +27,7 @@ import {
   playScore,
   setUpMatch,
 } from "#src/ratings/group-rated-match.test-support";
+import { settleRatingWindow } from "#src/ratings/settle-rating-window";
 import { gameById } from "#src/routers/games/byId";
 import { completeMatch } from "#src/routers/games/completeMatch";
 import { performanceRatingResult } from "#src/routers/games/performanceRatingResult";
@@ -410,7 +411,10 @@ describe("Reliability (ADR-0095)", () => {
         .where(eq(ratings.userId, match.a.id));
       await rate(db, match, match.c, [[match.a, 8]]);
       await rate(db, match, match.d, [[match.a, 8]]);
-      await closeRatingWindow(db, match.matchId);
+      // Settled now, not at the close a day ahead, so the override is later.
+      await settleRatingWindow(api(db), match.matchId, new Date(), {
+        force: true,
+      });
       expect(await reliabilityOf(db, match.a.id)).toBe(60);
 
       await applyLevelOverride(api(db), {

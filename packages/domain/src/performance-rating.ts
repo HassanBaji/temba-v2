@@ -116,6 +116,15 @@ export function ratingWindowState(
 }
 
 /**
+ * Whether a Rating window holds a move back until it settles. A padel one
+ * does not: its Level moved at completion, and its ratings move only
+ * Reliability (ADR-0095).
+ */
+export function ratingWindowHoldsMove(window: { weightPercent: number }) {
+  return window.weightPercent > 0;
+}
+
+/**
  * In Everyone mode a player needs three ballots, two on padel; the
  * Organizer's one is enough.
  */

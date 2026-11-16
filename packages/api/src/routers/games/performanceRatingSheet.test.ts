@@ -202,6 +202,7 @@ describe("games.performanceRatingSheet when everyone rates (screen 4b)", () => {
           "countsForLevel",
           "matchId",
           "mode",
+          "sport",
           "state",
           "viewerMayRate",
         ].sort(),

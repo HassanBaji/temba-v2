@@ -15,6 +15,7 @@ import {
   type MvpQuestion,
   type MvpVote,
 } from "@repo/domain/marks";
+import { ratingWindowHoldsMove } from "@repo/domain/performance-rating";
 
 import { type db } from "#src/db";
 import { gameAdminUserIds, type GameRow } from "#src/games/access";
@@ -57,6 +58,8 @@ export function votedMvpUserId(
  * The Match's Rating window, when it has one that a wrong score has not
  * suspended. The MVP closes with it (ADR-0068): the player's result card and
  * OVR's MVP part both need the MVP known when the window's move is written.
+ * A padel window writes no move, so its MVP keeps the Marks window
+ * (ADR-0095).
  */
 async function ratingWindowOf(database: DbClient, matchId: string) {
   const window = await database.query.matchRatingWindows.findFirst({
@@ -66,9 +69,15 @@ async function ratingWindowOf(database: DbClient, matchId: string) {
       closesAt: true,
       settledAt: true,
       suspendedAt: true,
+      weightPercent: true,
     },
   });
-  return window && window.mode !== "off" && !window.suspendedAt ? window : null;
+  return window &&
+    window.mode !== "off" &&
+    !window.suspendedAt &&
+    ratingWindowHoldsMove(window)
+    ? window
+    : null;
 }
 
 async function gameMvpWindow(

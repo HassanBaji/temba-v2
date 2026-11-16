@@ -44,6 +44,7 @@ import {
   performanceScores,
   raterWeight,
   ratingWindowClosesAt,
+  ratingWindowHoldsMove,
   ratingWindowState,
   raterDistances,
   settlePerformanceRatings,
@@ -501,7 +502,7 @@ async function applySettledLevelMatch(
  * performance part. On a Match that counts for Temba Level each settled
  * rating then moves the player's Reliability (ADR-0095); a padel Match's
  * Level moved at completion, so that is all its window does. The MVP closes
- * with the window, whichever ladder it moves. Idempotent on `settled_at`; a
+ * with a window that holds a move, whichever ladder it moves. Idempotent on `settled_at`; a
  * suspended window waits for
  * the next completion. Without `force` it settles only once `closes_at` has
  * passed. Returns whether this call settled it.
@@ -660,7 +661,9 @@ export async function settleRatingWindow(
     .update(matchRatingWindows)
     .set({ settledAt: now, updatedAt: now })
     .where(eq(matchRatingWindows.matchId, matchId));
-  await settleMvp(database, game.id, now);
+  if (ratingWindowHoldsMove(window)) {
+    await settleMvp(database, game.id, now);
+  }
   if (window.countsForLevel && game.sport === "padel") {
     await notifyReliabilityRatingsClosed(database, {
       match,

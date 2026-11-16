@@ -21,7 +21,7 @@ A football Match that counts for Temba Level already asks everyone to rate (ADR-
 
 - A football loss below full Reliability does not sum to zero across the Match. The population can only deflate, and only by what low Reliability adds.
 - Tournaments, Americano, Public Games and Challenge Games on padel open no window. Their losses still cost more at low Reliability.
-- A padel Friendly game on a Verified Group now has a Rating window, so its MVP closes with it after 24 hours, as ADR-0068 has it for every Match with one, not after the Marks window's 48. Marks keep their 48 hours.
+- A padel Rating window holds no move back, so the padel MVP does not close with it: it keeps the Marks window's 48 hours. ADR-0068's rule now reads "a Rating window that holds a move".
 - A tier Group is unchanged: its Rating settings decide who rates, and nothing there moves Reliability.
 - A Guest player has no Rating, so no Reliability. Two Guest players on a padel Match leave the other two with one ballot each, which settles nobody unless an Operator or a Level setter gave it.
 - Being an Operator or a Level setter is read when the ballot is sent. A role granted or revoked later does not change ballots already cast.
