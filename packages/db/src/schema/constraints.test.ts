@@ -12,6 +12,8 @@ import {
   groupSeasons,
   levelOverrides,
   matches,
+  ratingReplayBackups,
+  ratingReplayRuns,
   user,
   venues,
 } from "./index";
@@ -246,5 +248,42 @@ describe("posted tournament Matches", () => {
       { gameId: game.id },
       { gameId: game.id },
     ]);
+  });
+});
+
+describe("Level recalculation backups", () => {
+  const SUMMARY = {
+    changed: {
+      ratings: 1,
+      rating_events: 0,
+      king_place_awards: 0,
+      level_overrides: 0,
+    },
+    ledger: { events: 0, overrides: 0, awards: 0 },
+    carriedUnplaced: 0,
+  };
+
+  it("keeps one backup per row in a run, and goes with its run", async () => {
+    const [run] = await db
+      .insert(ratingReplayRuns)
+      .values({ rules: "declared-band", summary: SUMMARY })
+      .returning({ id: ratingReplayRuns.id });
+    const backup = {
+      runId: run!.id,
+      tableName: "ratings",
+      rowId: crypto.randomUUID(),
+      row: { mu: 1500 },
+    };
+    await db.insert(ratingReplayBackups).values(backup);
+
+    expect(
+      await failureCode(db.insert(ratingReplayBackups).values(backup)),
+    ).toBe(UNIQUE_VIOLATION);
+    await db
+      .insert(ratingReplayBackups)
+      .values({ ...backup, tableName: "rating_events" });
+
+    await db.delete(ratingReplayRuns).where(eq(ratingReplayRuns.id, run!.id));
+    expect(await db.$count(ratingReplayBackups)).toBe(0);
   });
 });

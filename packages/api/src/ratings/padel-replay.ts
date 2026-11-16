@@ -1,4 +1,16 @@
-import { and, eq, gt, inArray, isNotNull, isNull, or } from "drizzle-orm";
+import {
+  and,
+  count,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
+import { getTableConfig, type PgTable } from "drizzle-orm/pg-core";
 
 import {
   gamePlayers,
@@ -10,9 +22,13 @@ import {
   levelOverrides,
   matches,
   ratingEvents,
+  ratingReplayBackups,
+  ratingReplayRuns,
   ratings,
   user,
   type DbTx,
+  type RatingReplaySummary,
+  type RatingReplayTable,
 } from "@repo/db";
 import type { ClassicGlicko } from "@repo/domain/glicko2";
 import { applyIdleInflation } from "@repo/domain/idle";
@@ -996,7 +1012,7 @@ function sameInstantAnomalies(
 }
 
 export type ReplayDifference = {
-  table: "ratings" | "rating_events" | "king_place_awards" | "level_overrides";
+  table: RatingReplayTable;
   rowId: string;
   columns: string[];
 };
@@ -1590,7 +1606,10 @@ function moveLine(row: PadelReplayPlayerRow): string {
 }
 
 /** The report as the command prints it. */
-export function formatPadelReplayReport(report: PadelReplayReport): string[] {
+export function formatPadelReplayReport(
+  report: PadelReplayReport,
+  mode: "dry-run" | "apply" = "dry-run",
+): string[] {
   const names = new Map(report.rows.map((row) => [row.userId, row.name]));
   const userLabel = (userId: string) =>
     playerLabel({ userId, name: names.get(userId) ?? "" });
@@ -1598,7 +1617,9 @@ export function formatPadelReplayReport(report: PadelReplayReport): string[] {
   const sourceLine = (kind: ReplayStartKind) =>
     `never played ${starts[kind]["never-played"]}, first Match ${starts[kind]["first-match"]}, first override ${starts[kind]["first-override"]}, first award ${starts[kind]["first-award"]}`;
   const lines = [
-    `Padel Level recalculation, dry run against ${report.host}. Nothing is written.`,
+    mode === "apply"
+      ? `Padel Level recalculation, apply against ${report.host}, in one transaction.`
+      : `Padel Level recalculation, dry run against ${report.host}. Nothing is written.`,
     "",
     `Players ${counts.players}, Rated Matches ${counts.matches}, rating events ${counts.events}, Level overrides ${counts.overrides}, Place awards ${counts.awards}.`,
     "",
@@ -1695,6 +1716,37 @@ export function padelReplayCsv(report: PadelReplayReport): string {
   return [header.join(","), ...lines].join("\n") + "\n";
 }
 
+/** Loads the padel ledger in `tx`, replays it under both rule sets and builds the report. */
+async function replayAndReport(
+  tx: DbTx,
+  args: { host: string; now: Date },
+): Promise<{
+  ledger: PadelLedger;
+  replay: PadelReplay;
+  report: PadelReplayReport;
+}> {
+  const loadStart = performance.now();
+  const ledger = await loadPadelLedger(tx);
+  const upcoming = await loadUpcomingLevelRangeSeats(tx, args.now);
+  const loadMs = performance.now() - loadStart;
+
+  const computeStart = performance.now();
+  const replay = replayPadelLedger(ledger, "declared-band");
+  const baseline = replayPadelLedger(ledger, "baseline");
+  const computeMs = performance.now() - computeStart;
+
+  const report = buildPadelReplayReport({
+    host: args.host,
+    ledger,
+    replay,
+    baseline,
+    upcoming,
+    loadMs,
+    computeMs,
+  });
+  return { ledger, replay, report };
+}
+
 /**
  * The dry run: reads the padel ledger in one read-only, repeatable-read
  * transaction, replays it under the Declared band rules and under the
@@ -1705,28 +1757,431 @@ export async function dryRunPadelReplay(
   args: { host: string; now?: Date },
 ): Promise<PadelReplayReport> {
   const now = args.now ?? new Date();
-  const loadStart = performance.now();
-  const { ledger, upcoming } = await database.transaction(
-    async (tx) => ({
-      ledger: await loadPadelLedger(tx),
-      upcoming: await loadUpcomingLevelRangeSeats(tx, now),
-    }),
+  const { report } = await database.transaction(
+    (tx) => replayAndReport(tx, { host: args.host, now }),
     { isolationLevel: "repeatable read", accessMode: "read only" },
   );
-  const loadMs = performance.now() - loadStart;
+  return report;
+}
 
-  const computeStart = performance.now();
-  const replay = replayPadelLedger(ledger, "declared-band");
-  const baseline = replayPadelLedger(ledger, "baseline");
-  const computeMs = performance.now() - computeStart;
+const REPLAY_TABLES: Record<RatingReplayTable, PgTable> = {
+  ratings,
+  rating_events: ratingEvents,
+  king_place_awards: kingPlaceAwards,
+  level_overrides: levelOverrides,
+};
 
-  return buildPadelReplayReport({
-    host: args.host,
-    ledger,
-    replay,
-    baseline,
-    upcoming,
-    loadMs,
-    computeMs,
-  });
+type ColumnType = "float8" | "timestamp" | "rating_level_band";
+
+/**
+ * The columns a Level recalculation writes (spec 9.5), and the column each
+ * replayed row is keyed by: `ratings` by its User, unique per sport.
+ */
+const REPLAY_WRITES: Record<
+  RatingReplayTable,
+  { key: "user_id" | "id"; columns: Record<string, ColumnType> }
+> = {
+  ratings: {
+    key: "user_id",
+    columns: {
+      mu: "float8",
+      phi: "float8",
+      sigma: "float8",
+      level_band: "rating_level_band",
+      last_rated_at: "timestamp",
+      declared_band: "rating_level_band",
+      updated_at: "timestamp",
+    },
+  },
+  rating_events: {
+    key: "id",
+    columns: {
+      mu_before: "float8",
+      phi_before: "float8",
+      sigma_before: "float8",
+      mu_after: "float8",
+      phi_after: "float8",
+      sigma_after: "float8",
+      level_band_before: "rating_level_band",
+      last_rated_at_before: "timestamp",
+      reliability_part: "float8",
+      prove_it_part: "float8",
+      reliability_loss_factor: "float8",
+    },
+  },
+  king_place_awards: {
+    key: "id",
+    columns: {
+      field_mu: "float8",
+      field_phi: "float8",
+      mu_before: "float8",
+      phi_before: "float8",
+      sigma_before: "float8",
+      mu_after: "float8",
+      phi_after: "float8",
+      sigma_after: "float8",
+      level_band_before: "rating_level_band",
+      last_rated_at_before: "timestamp",
+    },
+  },
+  level_overrides: {
+    key: "id",
+    columns: {
+      mu_before: "float8",
+      phi_before: "float8",
+      sigma_before: "float8",
+      level_band_before: "rating_level_band",
+      phi_after: "float8",
+      sigma_after: "float8",
+    },
+  },
+};
+
+const LOCK_TIMEOUT = "5s";
+
+type WriteRow = Record<string, string | number | Date | null>;
+
+function replayedRow(
+  table: RatingReplayTable,
+  rowId: string,
+  replay: PadelReplay,
+  updatedAt: Date,
+): WriteRow {
+  const missing = () =>
+    new Error(`The padel replay has no value for ${table} ${rowId}`);
+  switch (table) {
+    case "ratings": {
+      const rating = replay.ratings.get(rowId);
+      if (!rating) {
+        throw missing();
+      }
+      return {
+        user_id: rowId,
+        mu: rating.mu,
+        phi: rating.phi,
+        sigma: rating.sigma,
+        level_band: rating.levelBand,
+        last_rated_at: rating.lastRatedAt,
+        declared_band: rating.declaredBand,
+        updated_at: updatedAt,
+      };
+    }
+    case "rating_events": {
+      const event = replay.events.get(rowId);
+      if (!event) {
+        throw missing();
+      }
+      return {
+        id: rowId,
+        mu_before: event.muBefore,
+        phi_before: event.phiBefore,
+        sigma_before: event.sigmaBefore,
+        mu_after: event.muAfter,
+        phi_after: event.phiAfter,
+        sigma_after: event.sigmaAfter,
+        level_band_before: event.levelBandBefore,
+        last_rated_at_before: event.lastRatedAtBefore,
+        reliability_part: event.reliabilityPart,
+        prove_it_part: event.proveItPart,
+        reliability_loss_factor: event.reliabilityLossFactor,
+      };
+    }
+    case "king_place_awards": {
+      const award = replay.awards.get(rowId);
+      if (!award) {
+        throw missing();
+      }
+      return {
+        id: rowId,
+        field_mu: award.fieldMu,
+        field_phi: award.fieldPhi,
+        mu_before: award.muBefore,
+        phi_before: award.phiBefore,
+        sigma_before: award.sigmaBefore,
+        mu_after: award.muAfter,
+        phi_after: award.phiAfter,
+        sigma_after: award.sigmaAfter,
+        level_band_before: award.levelBandBefore,
+        last_rated_at_before: award.lastRatedAtBefore,
+      };
+    }
+    case "level_overrides": {
+      const override = replay.overrides.get(rowId);
+      if (!override) {
+        throw missing();
+      }
+      return {
+        id: rowId,
+        mu_before: override.muBefore,
+        phi_before: override.phiBefore,
+        sigma_before: override.sigmaBefore,
+        level_band_before: override.levelBandBefore,
+        phi_after: override.phiAfter,
+        sigma_after: override.sigmaAfter,
+      };
+    }
+  }
+}
+
+/**
+ * Backs up, then rewrites, the padel rows of one table in two statements.
+ * The rows travel as one JSON parameter: JSON keeps every double exactly,
+ * and one parameter has no limit on rows.
+ */
+async function backUpAndWrite(
+  tx: DbTx,
+  args: { runId: string; table: RatingReplayTable; rows: WriteRow[] },
+) {
+  const { key, columns } = REPLAY_WRITES[args.table];
+  const names = Object.keys(columns);
+  const table = sql.identifier(args.table);
+  const keyColumn = sql.identifier(key);
+  const rows = JSON.stringify(args.rows);
+  await tx.execute(sql`
+    insert into rating_replay_backups (run_id, table_name, row_id, row)
+    select ${args.runId}::uuid, ${args.table}::text, t.id, to_jsonb(t)
+    from ${table} as t
+    join jsonb_to_recordset(${rows}::text::jsonb) as v(${keyColumn} uuid)
+      on t.${keyColumn} = v.${keyColumn}
+    where t.sport = ${PADEL}
+  `);
+  await tx.execute(sql`
+    update ${table} as t
+    set ${sql.join(
+      names.map(
+        (name) => sql`${sql.identifier(name)} = v.${sql.identifier(name)}`,
+      ),
+      sql`, `,
+    )}
+    from jsonb_to_recordset(${rows}::text::jsonb) as v(${keyColumn} uuid, ${sql.join(
+      names.map(
+        (name) => sql`${sql.identifier(name)} ${sql.raw(columns[name] ?? "")}`,
+      ),
+      sql`, `,
+    )})
+    where t.${keyColumn} = v.${keyColumn} and t.sport = ${PADEL}
+  `);
+}
+
+/** Takes the lock every padel rating writer waits on, before anything is read. */
+async function lockRatings(tx: DbTx) {
+  await tx.execute(sql.raw(`set local lock_timeout = '${LOCK_TIMEOUT}'`));
+  await tx.execute(sql`lock table ratings in exclusive mode`);
+}
+
+export type PadelReplayApply =
+  | {
+      kind: "applied";
+      runId: string;
+      summary: RatingReplaySummary;
+      report: PadelReplayReport;
+    }
+  | { kind: "unchanged"; report: PadelReplayReport }
+  | { kind: "refused"; reason: string; report: PadelReplayReport };
+
+/**
+ * The apply (spec 9.8): in one transaction, locks rating writes, loads,
+ * replays, backs up every row whose values differ and writes the replayed
+ * values over it. Rows that already hold them are not touched, and a run
+ * that would change nothing is not recorded. Refuses while the
+ * recalculation would change who is confirmed, and while a row cannot be
+ * recomputed [RQ-7] unless `carryUnplaced`.
+ */
+export async function applyPadelReplay(
+  database: DbClient,
+  args: { host: string; carryUnplaced: boolean; now?: Date },
+): Promise<PadelReplayApply> {
+  return database.transaction(
+    async (tx) => {
+      await lockRatings(tx);
+      const appliedAt = args.now ?? new Date();
+      const { ledger, replay, report } = await replayAndReport(tx, {
+        host: args.host,
+        now: appliedAt,
+      });
+      if (report.failed) {
+        return {
+          kind: "refused",
+          reason: "the recalculation would change who is confirmed",
+          report,
+        };
+      }
+      const carriedUnplaced = replay.anomalies
+        .filter((anomaly) => anomaly.rule === "RQ-7")
+        .reduce((sum, anomaly) => sum + anomaly.userIds.length, 0);
+      if (carriedUnplaced > 0 && !args.carryUnplaced) {
+        return {
+          kind: "refused",
+          reason: `${carriedUnplaced} rows cannot be recomputed [RQ-7]; pass --carry-unplaced to carry them over by their stored moves`,
+          report,
+        };
+      }
+      const differences = padelReplayDifferences(ledger, replay);
+      if (differences.length === 0) {
+        return { kind: "unchanged", report };
+      }
+
+      const rowsByTable = new Map<RatingReplayTable, WriteRow[]>();
+      for (const { table, rowId } of differences) {
+        const rows = rowsByTable.get(table) ?? [];
+        rows.push(replayedRow(table, rowId, replay, appliedAt));
+        rowsByTable.set(table, rows);
+      }
+      const summary: RatingReplaySummary = {
+        changed: {
+          ratings: rowsByTable.get("ratings")?.length ?? 0,
+          rating_events: rowsByTable.get("rating_events")?.length ?? 0,
+          king_place_awards: rowsByTable.get("king_place_awards")?.length ?? 0,
+          level_overrides: rowsByTable.get("level_overrides")?.length ?? 0,
+        },
+        ledger: {
+          events: ledger.events.length,
+          overrides: ledger.overrides.length,
+          awards: ledger.awards.length,
+        },
+        carriedUnplaced,
+      };
+      const [run] = await tx
+        .insert(ratingReplayRuns)
+        .values({ appliedAt, rules: replay.rules, summary })
+        .returning({ id: ratingReplayRuns.id });
+      if (!run) {
+        throw new Error("Failed to record the Level recalculation run");
+      }
+      for (const [table, rows] of rowsByTable) {
+        await backUpAndWrite(tx, { runId: run.id, table, rows });
+      }
+      return { kind: "applied", runId: run.id, summary, report };
+    },
+    { isolationLevel: "repeatable read" },
+  );
+}
+
+export type PadelReplayRestore =
+  | { kind: "restored"; restored: Record<RatingReplayTable, number> }
+  | { kind: "refused"; reason: string };
+
+/**
+ * Why a run can no longer be written back, or null. After the next padel
+ * Rated Match, Level override or Place award the fix is forward, not back;
+ * a backed-up Rating that moved since (a writer whose clock read before the
+ * run, a reversal, a Reliability step) refuses it too.
+ */
+async function restoreRefusal(
+  tx: DbTx,
+  run: { id: string; appliedAt: Date; summary: RatingReplaySummary },
+): Promise<string | null> {
+  if (
+    (await tx.$count(
+      ratingReplayRuns,
+      gt(ratingReplayRuns.appliedAt, run.appliedAt),
+    )) > 0
+  ) {
+    return "a later Level recalculation run exists";
+  }
+  const ledgerTables = [ratingEvents, levelOverrides, kingPlaceAwards];
+  const [events, overrides, awards, ...newer] = await Promise.all([
+    ...ledgerTables.map((table) => tx.$count(table, eq(table.sport, PADEL))),
+    ...ledgerTables.map((table) =>
+      tx.$count(
+        table,
+        and(eq(table.sport, PADEL), gt(table.createdAt, run.appliedAt)),
+      ),
+    ),
+  ]);
+  const { ledger } = run.summary;
+  if (
+    newer.some((count) => count > 0) ||
+    events !== ledger.events ||
+    overrides !== ledger.overrides ||
+    awards !== ledger.awards
+  ) {
+    return "a padel Rated Match, Level override or Place award was written or removed after the run";
+  }
+  const [moved] = await tx
+    .select({ count: count() })
+    .from(ratingReplayBackups)
+    .leftJoin(ratings, eq(ratings.id, ratingReplayBackups.rowId))
+    .where(
+      and(
+        eq(ratingReplayBackups.runId, run.id),
+        eq(ratingReplayBackups.tableName, "ratings"),
+        or(isNull(ratings.id), ne(ratings.updatedAt, run.appliedAt)),
+      ),
+    );
+  if (moved && moved.count > 0) {
+    return `${moved.count} recalculated Ratings changed after the run`;
+  }
+  return null;
+}
+
+/**
+ * `--restore <run id>`: writes every row the run backed up back as it was,
+ * whole, and removes the run, so every table holds its bytes from before
+ * the run. Refuses once anything has rated on top of the run.
+ */
+export async function restorePadelReplay(
+  database: DbClient,
+  args: { runId: string },
+): Promise<PadelReplayRestore> {
+  return database.transaction(
+    async (tx) => {
+      await lockRatings(tx);
+      const run = await tx.query.ratingReplayRuns.findFirst({
+        where: eq(ratingReplayRuns.id, args.runId),
+      });
+      if (!run) {
+        return {
+          kind: "refused",
+          reason: `no Level recalculation run ${args.runId}`,
+        };
+      }
+      const refusal = await restoreRefusal(tx, run);
+      if (refusal) {
+        return { kind: "refused", reason: refusal };
+      }
+
+      const restored: Record<RatingReplayTable, number> = {
+        ratings: 0,
+        rating_events: 0,
+        king_place_awards: 0,
+        level_overrides: 0,
+      };
+      const backedUp = await tx
+        .select({ tableName: ratingReplayBackups.tableName, count: count() })
+        .from(ratingReplayBackups)
+        .where(eq(ratingReplayBackups.runId, run.id))
+        .groupBy(ratingReplayBackups.tableName);
+      for (const [name, table] of Object.entries(REPLAY_TABLES) as [
+        RatingReplayTable,
+        PgTable,
+      ][]) {
+        const columns = getTableConfig(table)
+          .columns.map((column) => column.name)
+          .filter((column) => column !== "id");
+        const identifier = sql.identifier(name);
+        await tx.execute(sql`
+          update ${identifier} as t
+          set ${sql.join(
+            columns.map(
+              (column) =>
+                sql`${sql.identifier(column)} = r.${sql.identifier(column)}`,
+            ),
+            sql`, `,
+          )}
+          from (
+            select (jsonb_populate_record(null::${identifier}, b.row)).*
+            from rating_replay_backups as b
+            where b.run_id = ${run.id} and b.table_name = ${name}
+          ) as r
+          where t.id = r.id
+        `);
+        restored[name] =
+          backedUp.find((row) => row.tableName === name)?.count ?? 0;
+      }
+      await tx.delete(ratingReplayRuns).where(eq(ratingReplayRuns.id, run.id));
+      return { kind: "restored", restored };
+    },
+    { isolationLevel: "repeatable read" },
+  );
 }

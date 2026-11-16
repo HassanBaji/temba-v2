@@ -1,24 +1,47 @@
 /**
- * The Level recalculation's dry run (spec 9.8 in
- * `.scratch/padel-declared-band-trust/spec.md`): replays every padel Rated
- * Match, Place award and Level override under the Declared band rules and
- * reports per player what their Level would become. Reads in one read-only
- * transaction and writes nothing. Exits non-zero when the recalculation
- * would change who is confirmed.
+ * The Level recalculation (spec 9.8 in
+ * `.scratch/padel-declared-band-trust/spec.md`, ADR-0098): replays every
+ * padel Rated Match, Place award and Level override under the Declared band
+ * rules and reports per player what their Level would become.
+ *
+ * Dry run (the default): reads in one read-only transaction and writes
+ * nothing. Exits non-zero when the recalculation would change who is
+ * confirmed.
+ *
+ * --apply: in one transaction, locks rating writes, backs up every row whose
+ * values differ and writes the replayed values. Prints the run id. Refuses
+ * while rows cannot be recomputed unless --carry-unplaced is passed.
+ *
+ * --restore <run id>: writes that run's backup back. Refuses once a padel
+ * Rated Match, Level override or Place award was written after the run.
  *
  * Needs DATABASE_URL (read from .env if present).
  *
  * Run: pnpm --filter @repo/api db:replay-padel-ratings
  *      pnpm --filter @repo/api db:replay-padel-ratings -- --report <path>
+ *      pnpm --filter @repo/api db:replay-padel-ratings -- --apply [--carry-unplaced]
+ *      pnpm --filter @repo/api db:replay-padel-ratings -- --restore <run id>
  */
 import { writeFile } from "node:fs/promises";
 
 import { db } from "#src/db";
 import {
+  applyPadelReplay,
   dryRunPadelReplay,
   formatPadelReplayReport,
   padelReplayCsv,
+  restorePadelReplay,
+  type PadelReplayReport,
 } from "#src/ratings/padel-replay";
+
+const USAGE =
+  "Usage: [--report <path>] | --apply [--carry-unplaced] [--report <path>] | --restore <run id>";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type Command =
+  | { kind: "dry-run"; report: string | null }
+  | { kind: "apply"; report: string | null; carryUnplaced: boolean }
+  | { kind: "restore"; runId: string };
 
 function databaseHost() {
   try {
@@ -28,29 +51,100 @@ function databaseHost() {
   }
 }
 
-function reportPath(args: readonly string[]): string | null {
+function parseCommand(args: readonly string[]): Command {
   const flags = args.filter((arg) => arg !== "--");
-  const [flag, path, ...rest] = flags;
-  if (flag === undefined) {
-    return null;
+  let report: string | null = null;
+  let apply = false;
+  let carryUnplaced = false;
+  let restore: string | null = null;
+  const fail = (): never => {
+    throw new Error(`Unknown arguments: ${flags.join(" ")}. ${USAGE}`);
+  };
+  for (let index = 0; index < flags.length; index += 1) {
+    const flag = flags[index];
+    if (flag === "--apply" && !apply) {
+      apply = true;
+    } else if (flag === "--carry-unplaced" && !carryUnplaced) {
+      carryUnplaced = true;
+    } else if (flag === "--report" && report === null) {
+      report = flags[++index] ?? fail();
+    } else if (flag === "--restore" && restore === null) {
+      restore = flags[++index] ?? fail();
+    } else {
+      fail();
+    }
   }
-  if (flag !== "--report" || !path || rest.length > 0) {
-    throw new Error(
-      `Unknown arguments: ${flags.join(" ")}. The only flag is --report <path>.`,
-    );
+  if (restore !== null) {
+    if (apply || carryUnplaced || report !== null || !UUID.test(restore)) {
+      fail();
+    }
+    return { kind: "restore", runId: restore };
   }
-  return path;
+  if (apply) {
+    return { kind: "apply", report, carryUnplaced };
+  }
+  if (carryUnplaced) {
+    fail();
+  }
+  return { kind: "dry-run", report };
 }
 
-async function main() {
-  const path = reportPath(process.argv.slice(2));
-  const report = await dryRunPadelReplay(db, { host: databaseHost() });
-  console.log(formatPadelReplayReport(report).join("\n"));
+async function writeReport(report: PadelReplayReport, path: string | null) {
   if (path) {
     await writeFile(path, padelReplayCsv(report));
     console.log(`Wrote ${report.rows.length} players to ${path}.`);
   }
-  return report.failed ? 1 : 0;
+}
+
+async function main() {
+  const command = parseCommand(process.argv.slice(2));
+  const host = databaseHost();
+
+  if (command.kind === "restore") {
+    const result = await restorePadelReplay(db, { runId: command.runId });
+    if (result.kind === "refused") {
+      console.error(`Restore refused: ${result.reason}. Nothing was written.`);
+      return 1;
+    }
+    const { restored } = result;
+    console.log(
+      `Restored run ${command.runId} against ${host}: ratings ${restored.ratings}, rating_events ${restored.rating_events}, king_place_awards ${restored.king_place_awards}, level_overrides ${restored.level_overrides}. The run and its backup are removed.`,
+    );
+    return 0;
+  }
+
+  if (command.kind === "dry-run") {
+    const report = await dryRunPadelReplay(db, { host });
+    console.log(formatPadelReplayReport(report).join("\n"));
+    await writeReport(report, command.report);
+    return report.failed ? 1 : 0;
+  }
+
+  const result = await applyPadelReplay(db, {
+    host,
+    carryUnplaced: command.carryUnplaced,
+  });
+  console.log(formatPadelReplayReport(result.report, "apply").join("\n"));
+  await writeReport(result.report, command.report);
+  console.log("");
+  switch (result.kind) {
+    case "refused":
+      console.error(`Apply refused: ${result.reason}. Nothing was written.`);
+      return 1;
+    case "unchanged":
+      console.log("Nothing differs. Nothing was written and no run recorded.");
+      return 0;
+    case "applied": {
+      const { changed } = result.summary;
+      console.log(
+        `Applied run ${result.runId}: ratings ${changed.ratings}, rating_events ${changed.rating_events}, king_place_awards ${changed.king_place_awards}, level_overrides ${changed.level_overrides} rows written, each backed up.`,
+      );
+      console.log(
+        `To undo before anything rates on top: pnpm --filter @repo/api db:replay-padel-ratings -- --restore ${result.runId}`,
+      );
+      return 0;
+    }
+  }
 }
 
 main()
