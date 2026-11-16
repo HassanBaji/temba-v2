@@ -1,6 +1,7 @@
 import { and, eq, inArray, ne } from "drizzle-orm";
 
 import {
+  americanoSeats,
   gameTeamPlayers,
   gameTeams,
   games,
@@ -13,6 +14,7 @@ import { isFootballGame } from "@repo/domain/game-shape";
 import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 
 import { type db } from "#src/db";
+import { mayHaveAmericanoSeats } from "#src/games/americano-matches";
 import { type MatchRow } from "#src/games/utils";
 import { type TeamForActing, userActsForTeam } from "#src/teams/acts-for-team";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
@@ -36,6 +38,12 @@ export async function matchSideSeats(
   database: DbClient,
   match: MatchRow,
 ): Promise<MatchSideSeats[]> {
+  if (mayHaveAmericanoSeats(match)) {
+    const americano = await americanoSideSeats(database, match.id);
+    if (americano) {
+      return americano;
+    }
+  }
   const slots = [
     { slot: 1 as const, gameTeamId: match.slot1GameTeamId },
     { slot: 2 as const, gameTeamId: match.slot2GameTeamId },
@@ -74,6 +82,43 @@ export async function matchSideSeats(
       userIds: [...userIds],
       accountHolderIds: [...accountHolderIds],
     };
+  });
+}
+
+/**
+ * An Americano Match's sides, read from its seats: partners change every
+ * Round, so the slots hold no Game team (ADR-0094). Null for a Match with no
+ * seats.
+ */
+async function americanoSideSeats(
+  database: DbClient,
+  matchId: string,
+): Promise<MatchSideSeats[] | null> {
+  const seats = await database.query.americanoSeats.findMany({
+    where: eq(americanoSeats.matchId, matchId),
+    columns: { slot: true },
+    with: {
+      gamePlayer: {
+        columns: { userId: true },
+        with: { user: { columns: { clerkId: true, addedAt: true } } },
+      },
+    },
+  });
+  if (seats.length === 0) {
+    return null;
+  }
+  return ([1, 2] as const).map((slot) => {
+    const onSide = seats.filter((seat) => seat.slot === slot);
+    const userIds = onSide.flatMap((seat) =>
+      seat.gamePlayer.userId ? [seat.gamePlayer.userId] : [],
+    );
+    const accountHolderIds = onSide.flatMap((seat) =>
+      seat.gamePlayer.userId &&
+      (!seat.gamePlayer.user || !isUnclaimed(seat.gamePlayer.user))
+        ? [seat.gamePlayer.userId]
+        : [],
+    );
+    return { slot, userIds, accountHolderIds };
   });
 }
 

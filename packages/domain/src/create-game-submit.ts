@@ -31,6 +31,11 @@ import {
 } from "./tournament-knockout";
 import { sizeTournamentRounds } from "./tournament-schedule";
 import {
+  americanoMatchCount,
+  americanoPlayersOfTeamCount,
+  clampAmericanoRounds,
+} from "./tournament-americano";
+import {
   clampQualifiersPerPool,
   defaultPoolCount,
   defaultRoundsShapeRoundCount,
@@ -392,6 +397,15 @@ export function validateFriendlyTournamentSubmit(
       step: 3 as const,
     };
   }
+  if (draft.tournamentShape === "americano" && draft.courtIds.length === 0) {
+    return {
+      ok: false as const,
+      field: "courtIds",
+      message: messagesFor(locale).tournamentAmericano.errors.courtsRequired,
+      elementId: "game-court",
+      step: 2 as const,
+    };
+  }
   const named = validateTournamentName(draft.name, locale);
   if (!named.ok) {
     return issueAtStep(named, 4);
@@ -409,19 +423,21 @@ export function validateFriendlyTournamentSubmit(
       allowSoloRegister: draft.allowSoloRegister,
       teamCount: draft.teamCount,
       tournamentShape: draft.tournamentShape,
-      ...(draft.tournamentShape === "rounds"
-        ? {
-            poolCount: ROUNDS_SHAPE_POOL_COUNT,
-            ...roundsShapeRoundCountInput(draft),
-          }
-        : createShapeHasPools(draft.tournamentShape)
+      ...(draft.tournamentShape === "americano"
+        ? { roundCount: americanoCreateSize(draft).rounds }
+        : draft.tournamentShape === "rounds"
           ? {
-              poolCount: draft.poolCount,
-              ...(draft.roundCount !== null
-                ? { roundCount: draft.roundCount }
-                : {}),
+              poolCount: ROUNDS_SHAPE_POOL_COUNT,
+              ...roundsShapeRoundCountInput(draft),
             }
-          : {}),
+          : createShapeHasPools(draft.tournamentShape)
+            ? {
+                poolCount: draft.poolCount,
+                ...(draft.roundCount !== null
+                  ? { roundCount: draft.roundCount }
+                  : {}),
+              }
+            : {}),
       ...(draft.tournamentShape === "groups_then_knockout"
         ? { qualifiersPerPool: draft.qualifiersPerPool }
         : {}),
@@ -430,7 +446,7 @@ export function validateFriendlyTournamentSubmit(
       windowEnd: placed.when.windowEnd,
       venueId: draft.venueId,
       ...(draft.courtIds.length > 0 ? { courtIds: [...draft.courtIds] } : {}),
-      ...ratedInput(draft),
+      ...(draft.tournamentShape === "americano" ? {} : ratedInput(draft)),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
       ...trackPaymentsInput(draft, priced.fils),
       ...(priced.levelMinTenths !== null
@@ -514,6 +530,18 @@ export function applyTeamCountChange(
   };
 }
 
+/**
+ * An Americano's size from the create draft, which keeps one Game team count
+ * for every shape: the players are twice it.
+ */
+export function americanoCreateSize(
+  draft: Pick<TournamentFields, "teamCount" | "roundCount">,
+) {
+  const players = americanoPlayersOfTeamCount(draft.teamCount);
+  const rounds = clampAmericanoRounds(draft.roundCount, players);
+  return { players, rounds, matchCount: americanoMatchCount(players, rounds) };
+}
+
 export function friendlyTournamentPlan(input: {
   teamCount: number;
   poolCount: number;
@@ -523,6 +551,7 @@ export function friendlyTournamentPlan(input: {
 }) {
   const knockoutOnly = input.tournamentShape === "knockout_only";
   const kingOfTheCourt = input.tournamentShape === "king_of_the_court";
+  const americano = input.tournamentShape === "americano";
   const groupsThenKnockout = input.tournamentShape === "groups_then_knockout";
   const knockoutTree = knockoutOnly
     ? buildKnockoutTree({ entrantCount: input.teamCount })
@@ -533,7 +562,9 @@ export function friendlyTournamentPlan(input: {
     roundsShape ? ROUNDS_SHAPE_POOL_COUNT : input.poolCount,
   );
   const sizing =
-    !knockoutOnly && !kingOfTheCourt && sized.ok ? sized.sizing : null;
+    !knockoutOnly && !kingOfTheCourt && !americano && sized.ok
+      ? sized.sizing
+      : null;
   const resolvedRoundCount = sizing
     ? resolveCreateRoundCount(
         input.tournamentShape,
@@ -559,6 +590,7 @@ export function friendlyTournamentPlan(input: {
   return {
     knockoutOnly,
     kingOfTheCourt,
+    americano: americano ? americanoCreateSize(input) : null,
     groupsThenKnockout,
     roundsShape,
     knockoutTree,

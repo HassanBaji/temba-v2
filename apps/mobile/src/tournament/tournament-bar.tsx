@@ -1,5 +1,6 @@
 import { spacing } from "@repo/design-tokens";
 import { leaveWaitlistAction } from "@repo/domain/game-copy";
+import { isAmericano } from "@repo/domain/tournament-americano";
 import {
   tournamentHomeView,
   type TournamentDetails,
@@ -22,9 +23,11 @@ export type TournamentBarHandlers = {
 
 export function tournamentBarActions(game: TournamentDetails, locale: Locale) {
   const view = tournamentHomeView(game, locale);
+  // An Americano seats players alone: its own view offers the one-tap seat.
+  const seats = !isAmericano(game.format, game.tournamentShape);
   return {
-    join: view.canJoin,
-    waitlist: view.canWaitlist,
+    join: seats && view.canJoin,
+    waitlist: seats && view.canWaitlist,
     leaveWaitlist: game.isWaitlisted,
   };
 }

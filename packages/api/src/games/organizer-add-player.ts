@@ -8,7 +8,10 @@ import type {
   FootballPosition,
   FootballRole,
 } from "@repo/domain/football-lineup";
-import { isFootballGame } from "@repo/domain/game-shape";
+import {
+  isFootballGame,
+  isRosterRegistrationGame,
+} from "@repo/domain/game-shape";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { type db } from "#src/db";
@@ -78,8 +81,9 @@ async function organizerAddSeat(
   locale: Locale = DEFAULT_LOCALE,
 ) {
   const seats =
-    game.format === "friendly_tournament" ||
-    (game.format === "friendly_game" && !isFootballGame(game));
+    !isRosterRegistrationGame(game) &&
+    (game.format === "friendly_tournament" ||
+      (game.format === "friendly_game" && !isFootballGame(game)));
   if (!seats) {
     return undefined;
   }

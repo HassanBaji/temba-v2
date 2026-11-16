@@ -644,7 +644,7 @@ describe("friendly tournament branch", () => {
     );
   });
 
-  it("offers Groups only first, then Rounds, Knockout only, Groups then knockout and King of the court", () => {
+  it("offers Groups only first, then Rounds, Knockout only, Groups then knockout, King of the court and Americano", () => {
     const options = tournamentShapeOptions("en");
     const option = (id: string) => options.find((item) => item.id === id);
     assert.deepEqual(
@@ -655,7 +655,12 @@ describe("friendly tournament branch", () => {
         "knockout_only",
         "groups_then_knockout",
         "king_of_the_court",
+        "americano",
       ],
+    );
+    assert.equal(
+      option("americano")?.description,
+      "Sign up alone, a new partner every round",
     );
     assert.equal(
       option("king_of_the_court")?.description,

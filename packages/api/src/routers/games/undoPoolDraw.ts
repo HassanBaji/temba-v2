@@ -11,6 +11,7 @@ import {
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
+import { assertNotAmericano } from "#src/games/assert-not-americano";
 import { assertNotKingOfTheCourt } from "#src/games/assert-not-king-of-the-court";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -47,6 +48,7 @@ export async function undoPoolDraw(
     });
   }
   assertNotKingOfTheCourt(game, locale);
+  assertNotAmericano(game, locale);
   if (game.drawPostedAt == null) {
     throw new TRPCError({
       code: "BAD_REQUEST",

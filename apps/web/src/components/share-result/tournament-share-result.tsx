@@ -5,6 +5,8 @@ import {
   type TournamentShareCard as TournamentShareCardModel,
 } from "@repo/domain/tournament-finished";
 import type { TournamentDetails } from "@repo/domain/tournament-details";
+import { isAmericano } from "@repo/domain/tournament-americano";
+import { americanoShareCard } from "@repo/domain/tournament-americano-view";
 import { toPng } from "html-to-image";
 import {
   ImageDown,
@@ -20,6 +22,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
+import { api } from "~/trpc/react";
 
 import { ScaledCanvas } from "./scaled-canvas";
 import { ActionTile, ActionTileRow } from "./share-actions";
@@ -54,10 +57,38 @@ export function TournamentShareResult({
   const copy = messages.tournamentRounds.shareCard;
   const [full, setFull] = React.useState(false);
   const canvasRef = React.useRef<HTMLDivElement | null>(null);
-  const card = React.useMemo(
-    () => tournamentShareCard(game, locale),
-    [game, locale],
+  const americano = isAmericano(game.format, game.tournamentShape);
+  // An Americano ranks players, not Game teams: its card reads the board.
+  const board = api.games.americanoBoard.useQuery(
+    { gameId: game.id },
+    { enabled: americano },
   );
+  const card = React.useMemo(() => {
+    if (!americano) {
+      return tournamentShareCard(game, locale);
+    }
+    if (!board.data) {
+      return null;
+    }
+    return americanoShareCard(
+      {
+        name: game.name,
+        windowStart: game.windowStart,
+        venueName: game.venue?.name ?? null,
+        players: board.data.players,
+        matches: board.data.rounds.flatMap((round) =>
+          round.matches.map((match) => ({
+            ...match,
+            roundNumber: round.roundNumber,
+          })),
+        ),
+        table: board.data.table,
+        viewerGamePlayerId: board.data.viewerGamePlayerId,
+        finished: board.data.finished,
+      },
+      locale,
+    );
+  }, [americano, board.data, game, locale]);
 
   const share = useShareImage({
     capture: async () => {
@@ -79,6 +110,14 @@ export function TournamentShareResult({
   });
   const { pending } = share;
 
+  if (americano && board.isLoading) {
+    return (
+      <DashboardShell title={m.title} action={doneAction} isSubPage>
+        {null}
+      </DashboardShell>
+    );
+  }
+
   if (!card) {
     return (
       <DashboardShell title={m.title} action={doneAction} isSubPage>
@@ -86,7 +125,12 @@ export function TournamentShareResult({
           title={m.noResultTitle}
           message={m.noResultMessage}
           retryLabel={m.checkAgain}
-          onRetry={onRetry}
+          onRetry={() => {
+            onRetry();
+            if (americano) {
+              void board.refetch();
+            }
+          }}
         />
       </DashboardShell>
     );

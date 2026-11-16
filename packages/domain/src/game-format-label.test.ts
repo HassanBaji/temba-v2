@@ -6,9 +6,7 @@ describe("gameFormatLabel", () => {
   it("labels the known formats and passes unknown ones through", () => {
     expect(gameFormatLabel("friendly_game", "en")).toBe("Friendly game");
     expect(gameFormatLabel("americano", "en")).toBe("Americano");
-    expect(gameFormatLabel("friendly_tournament", "en")).toBe(
-      "Social",
-    );
+    expect(gameFormatLabel("friendly_tournament", "en")).toBe("Social");
     expect(gameFormatLabel("round_robin", "en")).toBe("round robin");
   });
 

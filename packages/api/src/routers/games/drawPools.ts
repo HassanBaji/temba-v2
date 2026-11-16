@@ -17,6 +17,7 @@ import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { drawOccupantName } from "#src/games/helpers/draw-occupant-name";
+import { assertNotAmericano } from "#src/games/assert-not-americano";
 import { assertNotKingOfTheCourt } from "#src/games/assert-not-king-of-the-court";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -82,6 +83,7 @@ export async function drawPools(
     });
   }
   assertNotKingOfTheCourt(game, locale);
+  assertNotAmericano(game, locale);
   assertPoolDrawNotPosted(game, locale);
 
   const teamRows = await database.query.gameTeams.findMany({

@@ -84,6 +84,20 @@ import {
   kingSlotPlayMinutes,
   kingTeamCount,
 } from "@repo/domain/tournament-king";
+import {
+  AMERICANO_PLAYER_MAX,
+  AMERICANO_PLAYER_MIN,
+  AMERICANO_PLAYER_STEP,
+  AMERICANO_ROUND_MIN,
+  americanoCourtCount,
+  americanoFinishSlot,
+  americanoPlayersOfTeamCount,
+  americanoRoundMax,
+  americanoSlotsPerRound,
+  americanoTeamCountOfPlayers,
+  clampAmericanoPlayers,
+  clampAmericanoRounds,
+} from "@repo/domain/tournament-americano";
 import { cn } from "~/lib/utils";
 
 const STEPPER_LABEL = "text-foreground font-expanded text-title font-normal";
@@ -256,6 +270,7 @@ export function FriendlyTournamentSteps({
   const {
     knockoutOnly,
     kingOfTheCourt,
+    americano,
     roundsShape,
     knockoutTree,
     sizing,
@@ -288,6 +303,31 @@ export function FriendlyTournamentSteps({
     locale,
   );
   const k = m.tournamentKing;
+  const am = m.tournamentAmericano;
+  const americanoPlayers = americano?.players ?? 0;
+  const americanoRounds = americano?.rounds ?? 0;
+  const americanoCourts = americanoCourtCount(americanoPlayers);
+  const americanoShape = americano != null;
+  const americanoFinish =
+    americano && startTime && parsedMinutes.ok
+      ? americanoFinishSlot(startTime, {
+          players: americanoPlayers,
+          rounds: americanoRounds,
+          matchMinutes: parsedMinutes.minutes,
+          recordedCourts: courtIds.length,
+        })
+      : null;
+
+  // An Americano's finish follows its Rounds, back to back from the start.
+  React.useEffect(() => {
+    if (!americanoShape || !startTime) {
+      return;
+    }
+    const next = americanoFinish ?? "";
+    if (next !== finishTime) {
+      onFinishTime(next);
+    }
+  }, [americanoShape, americanoFinish, startTime, finishTime, onFinishTime]);
   const kingCourts = kingCourtCount(teamCount);
   const kingPlayMinutes =
     startTime && finishTime ? kingSlotPlayMinutes(startTime, finishTime) : null;
@@ -352,26 +392,26 @@ export function FriendlyTournamentSteps({
                 </p>
               ) : (
                 courts.map((court) => {
-                    const selected = courtIds.includes(court.id);
-                    return (
-                      <ChoiceChip
-                        key={court.id}
-                        selected={selected}
-                        aria-pressed={selected}
-                        onClick={() => {
-                          onToggleCourt(court.id);
-                        }}
-                      >
-                        {court.name}
-                      </ChoiceChip>
-                    );
+                  const selected = courtIds.includes(court.id);
+                  return (
+                    <ChoiceChip
+                      key={court.id}
+                      selected={selected}
+                      aria-pressed={selected}
+                      onClick={() => {
+                        onToggleCourt(court.id);
+                      }}
+                    >
+                      {court.name}
+                    </ChoiceChip>
+                  );
                 })
               )}
             </div>
             <FieldError id="game-court-error">{courtError}</FieldError>
           </section>
 
-          {kingOfTheCourt ? null : (
+          {kingOfTheCourt || americano ? null : (
             <StepperField
               id="tournament-team-count"
               label={c.gameTeams}
@@ -424,6 +464,13 @@ export function FriendlyTournamentSteps({
                         kingTeamCount(clampKingCourts(teamCount / 2)),
                       );
                     }
+                    if (option.id === "americano") {
+                      const players = clampAmericanoPlayers(
+                        americanoPlayersOfTeamCount(teamCount),
+                      );
+                      onTeamCount(americanoTeamCountOfPlayers(players));
+                      onRoundCount(clampAmericanoRounds(null, players));
+                    }
                   }}
                 />
               ))}
@@ -474,7 +521,56 @@ export function FriendlyTournamentSteps({
             </section>
           ) : null}
 
-          {knockoutOnly || kingOfTheCourt || roundsShape ? null : (
+          {americano ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <StepperField
+                id="tournament-player-count"
+                label={am.create.players}
+                labelClassName={STEPPER_LABEL}
+                value={americanoPlayers}
+                unit={am.create.playersUnit(americanoPlayers)}
+                min={AMERICANO_PLAYER_MIN}
+                max={AMERICANO_PLAYER_MAX}
+                step={AMERICANO_PLAYER_STEP}
+                onChange={(players) => {
+                  onTeamCount(americanoTeamCountOfPlayers(players));
+                  onRoundCount(clampAmericanoRounds(americanoRounds, players));
+                }}
+                decreaseLabel={am.create.fewerPlayers}
+                increaseLabel={am.create.morePlayers}
+                error={teamCountError}
+                description={
+                  <p className="text-muted-foreground text-meta leading-relaxed">
+                    {am.create.playersHelp(americanoCourts)}
+                  </p>
+                }
+              />
+              <StepperField
+                id="tournament-round-count"
+                label={am.create.rounds}
+                labelClassName={STEPPER_LABEL}
+                value={americanoRounds}
+                unit={am.create.roundsUnit(americanoRounds)}
+                min={AMERICANO_ROUND_MIN}
+                max={americanoRoundMax(americanoPlayers)}
+                step={1}
+                onChange={onRoundCount}
+                decreaseLabel={am.create.fewerRounds}
+                increaseLabel={am.create.moreRounds}
+                error={roundCountError}
+                description={
+                  <p className="text-muted-foreground text-meta leading-relaxed">
+                    {am.create.roundsHelp(
+                      americanoRounds,
+                      americanoRoundMax(americanoPlayers),
+                    )}
+                  </p>
+                }
+              />
+            </div>
+          ) : null}
+
+          {knockoutOnly || kingOfTheCourt || americano || roundsShape ? null : (
             <StepperField
               id="tournament-pool-count"
               label={c.groups}
@@ -663,7 +759,9 @@ export function FriendlyTournamentSteps({
           <section
             className={cn(
               "flex flex-col gap-3",
-              kingOfTheCourt && !finishExpanded && "hidden",
+              ((kingOfTheCourt && !finishExpanded) ||
+                (americano && americanoFinish)) &&
+                "hidden",
             )}
           >
             <SectionHeading
@@ -725,7 +823,11 @@ export function FriendlyTournamentSteps({
             <SectionHeading
               id="tournament-match-minutes-label"
               title={c.gameLength}
-              meta={m.common.required}
+              meta={
+                americano && americanoFinish
+                  ? formatTimeSlotLabel(americanoFinish, locale)
+                  : m.common.required
+              }
             />
             <RovingRadioGroup
               aria-labelledby="tournament-match-minutes-label"
@@ -793,7 +895,49 @@ export function FriendlyTournamentSteps({
             </div>
           ) : null}
 
-          {schedule && !kingOfTheCourt ? (
+          {americano && courtIds.length === 0 ? (
+            <p role="note" className="text-muted-foreground text-meta">
+              {am.create.noCourts}
+            </p>
+          ) : null}
+
+          {americano && startTime && parsedMinutes.ok ? (
+            <div className="border-ink rounded-card border px-[18px] py-4">
+              {americanoFinish ? (
+                <>
+                  <p className="font-expanded text-lead leading-snug tracking-[-0.03em]">
+                    {am.create.summaryTitle(
+                      americano.matchCount,
+                      formatTimeSlotLabel(startTime, locale),
+                      formatTimeSlotLabel(americanoFinish, locale),
+                    )}
+                  </p>
+                  <p className="text-muted-foreground text-meta mt-2 leading-relaxed">
+                    {am.create.summaryCopy(
+                      americanoRounds,
+                      americanoCourts,
+                      parsedMinutes.minutes,
+                    )}
+                  </p>
+                  {americanoSlotsPerRound(americanoPlayers, courtIds.length) >
+                  1 ? (
+                    <p className="text-muted-foreground text-meta mt-2 leading-relaxed">
+                      {am.create.waitsForCourts(
+                        courtIds.length,
+                        americanoCourts,
+                      )}
+                    </p>
+                  ) : null}
+                </>
+              ) : (
+                <p className="text-muted-foreground text-meta leading-relaxed">
+                  {am.create.finishTooLate}
+                </p>
+              )}
+            </div>
+          ) : null}
+
+          {schedule && !kingOfTheCourt && !americano ? (
             <div className="border-ink rounded-card border px-[18px] py-4">
               {schedule.line ? (
                 <p className="text-lead leading-snug">{schedule.line}</p>
@@ -863,6 +1007,9 @@ export function FriendlyTournamentSteps({
                 {c.setLevelRange}
               </ChoiceChip>
             </RovingRadioGroup>
+            {americano && !showLevelRange ? (
+              <FieldDescription>{am.create.levelCopy}</FieldDescription>
+            ) : null}
             {showLevelRange ? (
               <>
                 <LevelBandRow
@@ -913,7 +1060,9 @@ export function FriendlyTournamentSteps({
                   }}
                 />
                 <FieldDescription id="game-level-range-copy">
-                  {m.level.rangeFieldDescription}
+                  {americano
+                    ? am.create.levelCopy
+                    : m.level.rangeFieldDescription}
                 </FieldDescription>
                 <FieldError id="game-level-max-error">
                   {levelMaxError}
@@ -962,7 +1111,13 @@ export function FriendlyTournamentSteps({
             </div>
             <FieldDescription id="game-price-per-player-copy">
               {m.createGame.price.fieldDescription}
-              {teamPrice ? ` ${teamPrice}` : ""}
+              {americano
+                ? price.trim()
+                  ? ` ${am.create.pricePerPlayer(price.trim())}`
+                  : ""
+                : teamPrice
+                  ? ` ${teamPrice}`
+                  : ""}
             </FieldDescription>
             <FieldError id="game-price-per-player-error">
               {priceError}
@@ -1012,14 +1167,16 @@ export function FriendlyTournamentSteps({
             </RovingRadioGroup>
           </section>
 
-          <RatingField
-            idPrefix="tournament"
-            groupVerified={groupVerified}
-            rated={rated}
-            onRated={onRated}
-          />
+          {americano ? null : (
+            <RatingField
+              idPrefix="tournament"
+              groupVerified={groupVerified}
+              rated={rated}
+              onRated={onRated}
+            />
+          )}
 
-          <section className="flex flex-col gap-3">
+          <section className={cn("flex flex-col gap-3", americano && "hidden")}>
             <SectionHeading
               id="tournament-join-label"
               title={sizingCopy.howPeopleJoin}
@@ -1060,15 +1217,17 @@ export function FriendlyTournamentSteps({
               value={
                 kingOfTheCourt
                   ? k.create.reviewFormat(kingCourts)
-                  : knockoutOnly
-                    ? m.createGame.knockoutOnly
-                    : roundsShape
-                      ? m.createGame.shapes.rounds.title
-                      : friendlyTournamentFormatLabel(
-                          sizing?.poolCount ?? poolCount,
-                          locale,
-                          poolKnockoutTree != null,
-                        )
+                  : americano
+                    ? am.create.reviewFormat(americanoRounds)
+                    : knockoutOnly
+                      ? m.createGame.knockoutOnly
+                      : roundsShape
+                        ? m.createGame.shapes.rounds.title
+                        : friendlyTournamentFormatLabel(
+                            sizing?.poolCount ?? poolCount,
+                            locale,
+                            poolKnockoutTree != null,
+                          )
               }
             />
             {knockoutTree ? (
@@ -1116,9 +1275,17 @@ export function FriendlyTournamentSteps({
                 }
               />
             )}
+            {americano ? (
+              <ReviewRow
+                label={am.create.players}
+                value={am.create.reviewPlayers(americanoPlayers)}
+              />
+            ) : null}
             <ReviewRow
-              label={ratingChoice.title}
-              value={ratingChoice.scopeLabel}
+              label={americano ? am.create.rating : ratingChoice.title}
+              value={
+                americano ? am.create.ratingValue : ratingChoice.scopeLabel
+              }
             />
             {paymentReview ? (
               <ReviewRow

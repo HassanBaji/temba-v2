@@ -144,6 +144,7 @@ import {
 import { isTournamentFinished } from "@repo/domain/tournament-finished";
 import { tournamentRoundsPlan } from "@repo/domain/tournament-organizer";
 import { isKingOfTheCourt } from "@repo/domain/tournament-king";
+import { isAmericano } from "@repo/domain/tournament-americano";
 import {
   isPartnerRequiredGame,
   isKnockoutOnly,
@@ -648,6 +649,7 @@ export default function GameHomePage({
     booked: data?.booking != null,
     challenge: data?.challenge != null,
     drawPosted: data?.drawPostedAt != null,
+    americano: isAmericano(data?.format, data?.tournamentShape),
   });
   const edit = useGameEdit({
     gameId: id,

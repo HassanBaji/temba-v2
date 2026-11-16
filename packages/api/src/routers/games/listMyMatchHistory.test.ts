@@ -23,6 +23,16 @@ import {
 } from "@repo/db/schema";
 
 import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
+import {
+  asDb,
+  insertAmericano,
+  insertAmericanoPlayers,
+  insertAmericanoUser,
+  registerAmericanoPlayers,
+} from "#src/games/americano.test-support";
+import { americanoBoard } from "#src/routers/games/americanoBoard";
+import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
+import { postAmericanoRounds } from "#src/routers/games/postAmericanoRounds";
 import { nextMatchSetNumber } from "#src/games/next-match-set-number";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { muFromOvr } from "@repo/domain/football-ovr";
@@ -1009,6 +1019,79 @@ describe("listMyMatchHistoryRows Level moves", () => {
         ["Counted", "temba", { muBefore, muAfter }],
         ["Tier game", "group", null],
       ]);
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("listMyMatchHistoryRows, americano", () => {
+  it("lists a finished Americano as one row with the viewer's place, only when asked", async () => {
+    const { db: database, close } = await createPgliteDb();
+    try {
+      const organizer = await insertAmericanoUser(database, "Hassan Haji");
+      const windowStart = new Date("2027-03-01T09:00:00");
+      const gameId = await insertAmericano(database, {
+        createdBy: organizer.id,
+        players: 8,
+        rounds: 3,
+        windowStart,
+        windowEnd: new Date("2027-03-01T11:00:00"),
+      });
+      const people = await insertAmericanoPlayers(database, 8);
+      const gamePlayerIds = await registerAmericanoPlayers(
+        database,
+        gameId,
+        people,
+      );
+      await postAmericanoRounds(asDb(database), {
+        gameId,
+        organizerUserId: organizer.id,
+        gamePlayerIds,
+      });
+      const board = await americanoBoard(asDb(database), {
+        gameId,
+        userId: organizer.id,
+        now: new Date("2027-03-01T12:00:00"),
+      });
+      for (const round of board.rounds) {
+        for (const match of round.matches) {
+          await enterTournamentScore(asDb(database), {
+            gameId,
+            matchId: match.matchId,
+            userId: organizer.id,
+            slot1GamesWon: 6,
+            slot2GamesWon: 2,
+          });
+        }
+      }
+      const viewer = people[0]!;
+      const without = await listMyMatchHistoryRows(
+        asDb(database),
+        viewer.id,
+        new Date("2027-03-02T12:00:00"),
+      );
+      expect(without).toEqual([]);
+      const rows = await listMyMatchHistoryRows(
+        asDb(database),
+        viewer.id,
+        new Date("2027-03-02T12:00:00"),
+        { limit: 20, americano: true },
+      );
+      expect(rows).toHaveLength(1);
+      const row = rows[0]!;
+      expect(row.matchId).toBe(gameId);
+      expect(row.slot1Members.map((member) => member.id)).toEqual([viewer.id]);
+      expect(row.americano).toMatchObject({
+        finished: true,
+        playerCount: 8,
+        roundCount: 3,
+        matchMinutes: 30,
+        partnerCount: 3,
+      });
+      expect(row.americano?.place).toBeGreaterThanOrEqual(1);
+      expect(row.americano?.results).toHaveLength(3);
+      expect(row.americano?.winner?.gamesWon).toBeGreaterThan(0);
     } finally {
       await close();
     }

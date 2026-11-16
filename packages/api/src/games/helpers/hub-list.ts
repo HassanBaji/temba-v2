@@ -108,6 +108,7 @@ export const hubListWith = {
       gameId: true,
       startTime: true,
       status: true,
+      notFinishedAt: true,
       slot1GameTeamId: true,
       slot2GameTeamId: true,
       roundNumber: true,
@@ -224,6 +225,7 @@ export type HubQueryRow = {
     gameId: string;
     startTime: Date | null;
     status: string | null;
+    notFinishedAt?: Date | null;
     slot1GameTeamId: string | null;
     slot2GameTeamId: string | null;
     roundNumber: number | null;

@@ -52,6 +52,7 @@ import {
   nextHistoryCursor,
 } from "@repo/domain/match-history-card";
 import { isTournamentMatchRow } from "@repo/domain/tournament-card";
+import { AmericanoPlayedCard } from "~/components/games/tournament-americano-played-card";
 import { KingPlayedCard } from "~/components/games/tournament-king-played-card";
 import { isTournamentGamesCardRow } from "@repo/domain/tournament-games-card";
 import {
@@ -378,7 +379,12 @@ function HistoryTabPanel({
     <>
       <ul className="flex flex-col gap-3">
         {rows.map((row) =>
-          row.kingOfTheCourt ? (
+          row.americano ? (
+            <AmericanoPlayedCard
+              key={row.matchId}
+              game={{ ...row, americano: row.americano }}
+            />
+          ) : row.kingOfTheCourt ? (
             <KingPlayedCard
               key={row.matchId}
               game={{ ...row, kingOfTheCourt: row.kingOfTheCourt }}
@@ -516,7 +522,12 @@ export default function GamesHubPage({
 
   const myGames = api.games.listMyGames.useQuery({ groupTournaments: true });
   const history = api.games.listMyMatchHistory.useInfiniteQuery(
-    { limit: HISTORY_PAGE_SIZE, groupTournaments: true, kingOfTheCourt: true },
+    {
+      limit: HISTORY_PAGE_SIZE,
+      groupTournaments: true,
+      kingOfTheCourt: true,
+      americano: true,
+    },
     {
       getNextPageParam: nextHistoryCursor,
     },
@@ -584,7 +595,10 @@ export default function GamesHubPage({
   }
 
   function onJoinWaitlist(game: HubGame) {
-    if (hubWaitlistJoinCall(game.format, game.sport) === "register") {
+    if (
+      hubWaitlistJoinCall(game.format, game.sport, game.tournamentShape) ===
+      "register"
+    ) {
       register.mutate({ gameId: game.id });
       return;
     }

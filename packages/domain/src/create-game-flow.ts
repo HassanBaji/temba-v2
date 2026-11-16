@@ -246,7 +246,8 @@ export type CreateTournamentShape =
   | "groups_then_knockout"
   | "knockout_only"
   | "king_of_the_court"
-  | "rounds";
+  | "rounds"
+  | "americano";
 
 export const DEFAULT_TOURNAMENT_SHAPE: CreateTournamentShape = "groups_only";
 
@@ -263,6 +264,7 @@ export function tournamentShapeOptions(locale: Locale): readonly {
     { id: "knockout_only", ...m.knockoutOnly },
     { id: "groups_then_knockout", ...m.groupsThenKnockout },
     { id: "king_of_the_court", ...messages.tournamentKing.shape },
+    { id: "americano", ...messages.tournamentAmericano.shape },
   ];
 }
 
@@ -273,13 +275,18 @@ export function parseCreateTournamentShape(
     value === "groups_then_knockout" ||
     value === "knockout_only" ||
     value === "king_of_the_court" ||
-    value === "rounds"
+    value === "rounds" ||
+    value === "americano"
     ? value
     : null;
 }
 
 export function createShapeHasPools(shape: CreateTournamentShape) {
-  return shape !== "knockout_only" && shape !== "king_of_the_court";
+  return (
+    shape !== "knockout_only" &&
+    shape !== "king_of_the_court" &&
+    shape !== "americano"
+  );
 }
 
 /** The Rounds shape is always one Pool, so it has no Groups control. */

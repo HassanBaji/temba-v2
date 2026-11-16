@@ -13,6 +13,15 @@ import {
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
+import {
+  asDb,
+  insertAmericano,
+  insertAmericanoPlayers,
+  insertAmericanoUser,
+  registerAmericanoPlayers,
+} from "#src/games/americano.test-support";
+import { leaveGame } from "#src/routers/games/leave";
+import { postAmericanoRounds } from "#src/routers/games/postAmericanoRounds";
 import { register } from "#src/routers/games/register";
 import { registerSeat } from "#src/routers/games/registerSeat";
 import { updateGameCaps } from "#src/routers/games/updateCaps";
@@ -163,6 +172,52 @@ describe("updateGameCaps raising the cap", () => {
       const roster = await rosterUserIds(db, game.id);
       expect(roster).toHaveLength(6);
       expect(roster).toEqual(expect.arrayContaining([first.id, second.id]));
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("updateGameCaps on an americano Social", () => {
+  it("changes the players in fours, never under the players in, until the Rounds are made", async () => {
+    const { db: database, close } = await createPgliteDb();
+    try {
+      const organizer = await insertAmericanoUser(database, "Hassan Haji");
+      const gameId = await insertAmericano(database, {
+        createdBy: organizer.id,
+        players: 12,
+        rounds: 3,
+        windowStart: new Date("2027-03-01T09:00:00"),
+        windowEnd: new Date("2027-03-01T12:00:00"),
+      });
+      const people = await insertAmericanoPlayers(database, 9);
+      const gamePlayerIds = await registerAmericanoPlayers(
+        database,
+        gameId,
+        people,
+      );
+      const resize = (playersAllowed: number) =>
+        updateGameCaps(asDb(database), {
+          gameId,
+          userId: organizer.id,
+          playersAllowed,
+        });
+
+      await expect(resize(10)).rejects.toThrow(/in fours/);
+      await expect(resize(8)).rejects.toThrow();
+      await resize(16);
+      const game = await database.query.games.findFirst({
+        where: eq(games.id, gameId),
+      });
+      expect(game).toMatchObject({ playersAllowed: 16, teamsAllowed: 8 });
+
+      await leaveGame(asDb(database), { gameId, userId: people[8]!.id });
+      await postAmericanoRounds(asDb(database), {
+        gameId,
+        organizerUserId: organizer.id,
+        gamePlayerIds: gamePlayerIds.slice(0, 8),
+      });
+      await expect(resize(12)).rejects.toThrow(/already made/);
     } finally {
       await close();
     }
