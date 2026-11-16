@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { glicko2Step } from "./glicko2";
 import { IDLE_PERIOD_MS } from "./idle";
-import { bandWithHysteresis, levelFromMu } from "./level";
+import {
+  bandWithHysteresis,
+  initialRatingFromChoice,
+  levelFromMu,
+  type SelfDeclareChoice,
+} from "./level";
 import {
   DOUBLES_PARTNER_WEIGHT,
   rateDoublesMatch,
@@ -275,5 +280,33 @@ describe("rateDoublesMatch with low Reliability (ADR-0095)", () => {
       now,
     });
     expect(odd.slot2[0].after.mu).toBe(plain.slot2[0].after.mu);
+  });
+});
+
+describe("A new padel declarer's first even win against settled players", () => {
+  function firstWinMove(choice: SelfDeclareChoice) {
+    const start = initialRatingFromChoice(choice, "padel");
+    const settled = (): DoublesPlayerInput => ({
+      state: { ...start, phi: 100 },
+      lastRatedAt: now,
+    });
+    const result = rateDoublesMatch({
+      slot1: [{ state: start, lastRatedAt: now }, settled()],
+      slot2: [settled(), settled()],
+      outcome: "slot1",
+      weight: 1,
+      now,
+    });
+    return levelFromMu(result.slot1[0].after.mu) - levelFromMu(start.mu);
+  }
+
+  it("moves a D declarer about 0.11 Level, a C- about 0.17 and a C about 0.23", () => {
+    expect(firstWinMove("D3")).toBeCloseTo(0.11, 2);
+    expect(firstWinMove("C3")).toBeCloseTo(0.17, 2);
+    expect(firstWinMove("C2")).toBeCloseTo(0.23, 2);
+  });
+
+  it('still moves "I don\'t know" about 0.35 Level', () => {
+    expect(firstWinMove("unknown")).toBeCloseTo(0.35, 1);
   });
 });

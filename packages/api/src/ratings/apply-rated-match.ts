@@ -35,6 +35,7 @@ import {
   rateDoublesMatch,
   type DoublesOutcome,
 } from "@repo/domain/rate-doubles-match";
+import type { Sport } from "@repo/domain/sport";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbClient = typeof db | Tx;
@@ -63,8 +64,8 @@ function ratingSportFromGame(sport: GameRow["sport"]): "padel" | "football" {
   return sport;
 }
 
-function defaultRatingState(): RatingGlickoState {
-  return initialRatingFromChoice("unknown");
+function defaultRatingState(sport: Sport): RatingGlickoState {
+  return initialRatingFromChoice("unknown", sport);
 }
 
 function twoUserIds(ids: string[]): [string, string] | null {
@@ -149,9 +150,10 @@ export function snapshotState(
         levelBand: LevelBand;
       }
     | undefined,
+  sport: Sport,
 ): RatingGlickoState {
   if (!row) {
-    return defaultRatingState();
+    return defaultRatingState(sport);
   }
   return {
     mu: row.mu,
@@ -368,7 +370,7 @@ async function applyTembaRatedMatch(
   const rowByUser = new Map(existingRows.map((row) => [row.userId, row]));
 
   const playerInput = withGuestStandIns(userIds, guestIds, (userId) => ({
-    state: snapshotState(rowByUser.get(userId)),
+    state: snapshotState(rowByUser.get(userId), sport),
     lastRatedAt: rowByUser.get(userId)?.lastRatedAt,
     lossFactor: reliabilityLossFactor(
       rowByUser.get(userId)?.reliability ?? FULL_RELIABILITY,

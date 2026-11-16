@@ -131,7 +131,7 @@ export async function applyFootballLevelMatch(
     return;
   }
 
-  const start = initialRatingFromChoice("unknown");
+  const start = initialRatingFromChoice("unknown", "football");
   await database
     .insert(ratings)
     .values(

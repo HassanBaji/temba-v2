@@ -3,6 +3,7 @@ import {
   type LevelBand,
   type SelfDeclareChoice,
 } from "./level-bands";
+import type { Sport } from "./sport";
 
 export {
   LEVEL_BANDS,
@@ -282,8 +283,28 @@ export function confirmedPhiForOverride(phi: number | null): number {
   return Math.min(phi ?? INITIAL_PHI, LEVEL_OVERRIDE_PHI);
 }
 
+/**
+ * Starting φ of a padel Declared band: the lower the band, the more it is
+ * trusted, so results that confirm it move it little (ADR-0096). Football
+ * keeps `INITIAL_PHI`, because a football φ carries its Provisional
+ * (ADR-0069).
+ */
+export const PADEL_DECLARED_START_PHI: Record<LevelBand, number> = {
+  D3: 150,
+  D2: 150,
+  D1: 150,
+  C3: 200,
+  C2: 250,
+  C1: 250,
+  B3: 250,
+  B2: 250,
+  B1: 250,
+  A: 250,
+};
+
 export function initialRatingFromChoice(
   choice: SelfDeclareChoice,
+  sport: Sport,
 ): RatingGlickoState {
   if (choice === "unknown") {
     return {
@@ -296,7 +317,7 @@ export function initialRatingFromChoice(
 
   return {
     mu: muFromBand(choice),
-    phi: INITIAL_PHI,
+    phi: sport === "padel" ? PADEL_DECLARED_START_PHI[choice] : INITIAL_PHI,
     sigma: INITIAL_SIGMA,
     levelBand: choice,
   };

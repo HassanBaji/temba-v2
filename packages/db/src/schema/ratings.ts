@@ -62,6 +62,12 @@ export const ratings = pgTable(
      * more.
      */
     reliability: doublePrecision("reliability").notNull().default(100),
+    /**
+     * The band declared when the Rating was created (ADR-0096), written once
+     * and never moved by a Match or a Level override. Null for "I don't know"
+     * and for a Rating nobody declared.
+     */
+    declaredBand: ratingLevelBands("declared_band"),
     selfDeclaredAt: timestamp("self_declared_at"),
     lastRatedAt: timestamp("last_rated_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),

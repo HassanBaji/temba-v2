@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ASSIGNABLE_DISPLAY_LEVEL_BANDS,
   selfDeclareChoiceFromDisplay,
   storedBandFromDisplayLabel,
 } from "./level-bands";
+import { PADEL_NOT_SURE_LEVEL } from "./onboarding-answers";
 
 import {
   BAND_MIDPOINTS,
@@ -16,7 +18,9 @@ import {
   formatPadelLevel,
   confirmedPhiForOverride,
   initialRatingFromChoice,
+  INITIAL_MU,
   levelFromMu,
+  muFromBand,
   matchesTowardConfirming,
   padelMatchesRemainingToConfirm,
   progressToNextBand,
@@ -67,6 +71,7 @@ describe("self-declare write-down midpoints", () => {
   it("keeps unknown as C2 / 3.0 and display picks as stored midpoints", () => {
     const unknown = initialRatingFromChoice(
       selfDeclareChoiceFromDisplay("unknown"),
+      "padel",
     );
     expect(unknown.levelBand).toBe("C2");
     expect(levelFromMu(unknown.mu)).toBe(3.0);
@@ -80,6 +85,75 @@ describe("self-declare write-down midpoints", () => {
     expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("B")]).toBe(5.25);
     expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("B+")]).toBe(5.95);
     expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("A")]).toBe(6.65);
+  });
+});
+
+describe("initialRatingFromChoice", () => {
+  const padelStartPhi = {
+    D: 150,
+    "D+": 150,
+    "C-": 200,
+    C: 250,
+    "C+": 250,
+    "B-": 250,
+    B: 250,
+    "B+": 250,
+    A: 250,
+  } as const;
+
+  it("starts a padel declaration at its band's midpoint with the band's φ", () => {
+    for (const display of ASSIGNABLE_DISPLAY_LEVEL_BANDS) {
+      const band = storedBandFromDisplayLabel(display);
+      expect(initialRatingFromChoice(band, "padel")).toEqual({
+        mu: muFromBand(band),
+        phi: padelStartPhi[display],
+        sigma: 0.06,
+        levelBand: band,
+      });
+    }
+  });
+
+  it("starts stored D2 like D", () => {
+    expect(initialRatingFromChoice("D2", "padel").phi).toBe(150);
+  });
+
+  it('starts "Not sure" as a declared D+ at φ 150', () => {
+    const notSure = initialRatingFromChoice(
+      selfDeclareChoiceFromDisplay(PADEL_NOT_SURE_LEVEL),
+      "padel",
+    );
+    expect(notSure.levelBand).toBe("D1");
+    expect(notSure.phi).toBe(150);
+  });
+
+  it('starts "I don\'t know" at μ 1500 and φ 350 in either sport', () => {
+    for (const sport of ["padel", "football"] as const) {
+      expect(initialRatingFromChoice("unknown", sport)).toMatchObject({
+        mu: INITIAL_MU,
+        phi: INITIAL_PHI,
+      });
+    }
+  });
+
+  it("starts every football self-placement at φ 350, so it reads Provisional", () => {
+    for (const band of ["D3", "C3", "C1", "B3"] as const) {
+      const start = initialRatingFromChoice(band, "football");
+      expect(start).toMatchObject({ mu: muFromBand(band), phi: INITIAL_PHI });
+      expect(
+        tembaLevelView({ ...start, sport: "football" }, UNCONFIRMED_PADEL)
+          .provisional,
+      ).toBe(true);
+    }
+  });
+
+  it("leaves a new padel declarer Provisional with none of five played, whatever its φ", () => {
+    const view = tembaLevelView(
+      { ...initialRatingFromChoice("D3", "padel"), sport: "padel" },
+      UNCONFIRMED_PADEL,
+    );
+    expect(view.provisional).toBe(true);
+    expect(view.ratedMatchesRemaining).toBe(RATED_MATCHES_TO_CONFIRM);
+    expect(matchesTowardConfirming(view.ratedMatchesRemaining)).toBe(0);
   });
 });
 

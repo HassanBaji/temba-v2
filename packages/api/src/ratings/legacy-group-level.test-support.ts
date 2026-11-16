@@ -15,6 +15,7 @@ import {
   rateDoublesMatch,
   type DoublesOutcome,
 } from "@repo/domain/rate-doubles-match";
+import type { Sport } from "@repo/domain/sport";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -25,8 +26,9 @@ const GROUP_RATING_START_PHI = 250;
 
 function groupRatingStart(
   temba: Pick<RatingGlickoState, "mu" | "phi" | "sigma"> | null,
+  sport: Sport,
 ): RatingGlickoState {
-  const base = temba ?? initialRatingFromChoice("unknown");
+  const base = temba ?? initialRatingFromChoice("unknown", sport);
   return {
     mu: base.mu,
     phi: Math.min(INITIAL_PHI, Math.max(base.phi, GROUP_RATING_START_PHI)),
@@ -105,7 +107,7 @@ export async function writeLegacyGroupLevels(
         levelBand: row.levelBand,
       };
     }
-    return groupRatingStart(tembaByUser.get(userId) ?? null);
+    return groupRatingStart(tembaByUser.get(userId) ?? null, args.sport);
   };
   const playerInput = (userId: string) => ({
     state: stateOf(userId),

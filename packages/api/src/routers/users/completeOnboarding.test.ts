@@ -14,6 +14,11 @@ import { loadOnboardingState } from "#src/routers/users/onboardingState";
 import { writePreferredPosition } from "#src/routers/users/setPreferredPosition";
 import { createUnclaimedPlayer } from "#src/unclaimed-players/create-unclaimed-player";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
+import {
+  initialOnboardingAnswers,
+  onboardingSubmission,
+  PADEL_NOT_SURE_LEVEL,
+} from "@repo/domain/onboarding-answers";
 
 async function insertUser(database: TestDatabase, clerkId: string) {
   const [row] = await database
@@ -260,6 +265,39 @@ describe("submitOnboarding", () => {
       expect(await ratingBands(db, appUser.id)).toEqual({
         padel: "C3",
         football: "B3",
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it('stores "Not sure" as a declared D+ at φ 150', async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const appUser = await insertUser(db, "submit_not_sure");
+      const answers = onboardingSubmission({
+        ...initialOnboardingAnswers({
+          sports: ["padel"],
+          preferredPosition: null,
+          preferredFootballRole: null,
+          preferredFootballPosition: null,
+        }),
+        picked: { padel: true, football: false },
+        padelLevel: PADEL_NOT_SURE_LEVEL,
+      });
+
+      await submitOnboarding(db, {
+        userId: appUser.id,
+        answers,
+      });
+
+      const rating = await db.query.ratings.findFirst({
+        where: eq(ratings.userId, appUser.id),
+      });
+      expect(rating).toMatchObject({
+        levelBand: "D1",
+        declaredBand: "D1",
+        phi: 150,
       });
     } finally {
       await close();

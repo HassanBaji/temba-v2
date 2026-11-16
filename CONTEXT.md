@@ -645,11 +645,11 @@ Someone an Organizer seated on one Game by name only: no phone, no account, no R
 _Avoid_: Guest (that is a Booking holder without an account), Unclaimed player (that one has a phone and can be claimed), placeholder, ghost, ringer
 
 **Unclaimed player**:
-A User an Organizer or Group approver added by phone and name, with no Temba account yet. They are seated, rated and shown like any User, marked "Not on Temba yet", but never found by Lookup invite or Partner search and never sent a Notification. One per phone. While unclaimed, an Organizer or Group approver of a Game or Group they are on may correct the name, when the User who added them also organizes that Game or Group; the phone never changes, so a wrong number is fixed by removing and adding them again. Signing up with that phone, verified, claims the row and its history; an existing account that verifies the phone later absorbs it (ADR-0042).
+A User an Organizer or Group approver added by phone and name, with no Temba account yet. They are seated, rated and shown like any User, marked "Not on Temba yet", but never found by Lookup invite or Partner search and never sent a Notification. One per phone. While unclaimed, an Organizer or Group approver of a Game or Group they are on may correct the name, when the User who added them also organizes that Game or Group; the phone never changes, so a wrong number is fixed by removing and adding them again. Signing up with that phone, verified, claims the row and its history; an existing account that verifies the phone later absorbs it (ADR-0042). The band the Organizer picks when adding them is their Declared band (ADR-0096).
 _Avoid_: Guest (that is a Booking holder without an account), Guest player (name only, no phone), placeholder, ghost, manual User, invitee
 
 **Onboarding questionnaire**:
-The sports, Level and side questions, now one Profile task ("Pick your sports and level") on the Profile checklist rather than a gate (ADR-0049). It first asks which **Sports played**, then padel (Level band and Preferred Position) and football (Football role, Preferred football position and a **Football self-placement**) for each picked sport, and saves every answer in one call. **Either** and **Not sure** (which starts padel at D+) are the low-commitment answers. Users who predate it are complete without answering.
+The sports, Level and side questions, now one Profile task ("Pick your sports and level") on the Profile checklist rather than a gate (ADR-0049). It first asks which **Sports played**, then padel (Level band and Preferred Position) and football (Football role, Preferred football position and a **Football self-placement**) for each picked sport, and saves every answer in one call. **Either** and **Not sure** (a declared D+, so its Declared band is D+) are the low-commitment answers. Users who predate it are complete without answering.
 _Avoid_: signup flow (that is Clerk's), profile setup, wizard, survey, onboarding (bare, when you mean this entity), Lookup invite
 
 **Profile checklist**:
@@ -737,7 +737,7 @@ An optional date window the Group owner (or Owner and Admin on a Club Group) set
 _Avoid_: league, campaign, term, period (when you mean this entity), reset (a Season does not reset Levels)
 
 **Rating**:
-A User’s sport-keyed skill state (μ, φ, σ). Not shown raw in the App. A padel Rating moves by Glicko-2; a football Rating moves by the OVR step, the sum of its parts in OVR points (only the result part so far), and its φ only carries Provisional, set from the count of counting Matches, so idle time never grows it (ADR-0069).
+A User’s sport-keyed skill state (μ, φ, σ). Not shown raw in the App. A padel Rating moves by Glicko-2; a football Rating moves by the OVR step, the sum of its parts in OVR points (only the result part so far), and its φ only carries Provisional, set from the count of counting Matches, so idle time never grows it (ADR-0069). A padel Rating starts at the φ its Declared band sets, φ 350 when there is none; a football one always starts at φ 350 (ADR-0096).
 _Avoid_: ELO, Elo, player rating (when you mean this entity), rank (reserved for Official Rank)
 
 **Level**:
@@ -747,6 +747,10 @@ _Avoid_: rank (reserved for Official Rank), ELO, Level band (that is the discret
 **OVR**:
 The football face of a Level, 40 to 99, shown as a whole number: `40 + 59 × Level / 7` on the stored μ, so no Rating row is rewritten (ADR-0069). The Level bands apply unchanged, 5.9 OVR each (C+ is 69.5 to 75.4). A football Level is shown as OVR alone, never with a band letter (ADR-0087): the Level card, the sport switch, line-ups, profiles, Team Level, Challenges, Game Level ranges, notifications and the Operator and Verifier tools. The band is still stored and still drives gates and pickers, which label their options in OVR. A move that would pass 40 or 99 stops there: "What moved your OVR" shows each part as the player earned it and one more line, "Held at 40" or "Held at 99", for what the bound kept out, so the lines add up to the move.
 _Avoid_: overall (in copy), football rating
+
+**Declared band**:
+The Level band a player picked for themselves, or an Organizer picked when adding them by phone, kept on the Rating (`ratings.declared_band`). Written once, when the Level is declared, and never changed by a Match or a Level override. "Not sure" is a declared D+; only "I don't know" has none. On padel it sets the starting φ: 150 for D and D+, 200 for C-, 250 for C and above (ADR-0096).
+_Avoid_: self-rating, initial level, Level band (that one moves)
 
 **Level band**:
 The discrete skill label D–D+–C-–C–C+–B-–B–B+–A–PRO (PRO highest) shown in the App, derived from Level with hysteresis. PRO is reserved for an elite override and is not assigned from Level.

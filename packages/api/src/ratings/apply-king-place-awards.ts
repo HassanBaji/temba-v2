@@ -189,7 +189,7 @@ export async function applyKingPlaceAwards(
   }
 
   const inputOf = (userId: string): DoublesPlayerInput => ({
-    state: snapshotState(rowByUser.get(userId)),
+    state: snapshotState(rowByUser.get(userId), "padel"),
     lastRatedAt: rowByUser.get(userId)?.lastRatedAt,
   });
   const field = kingField(fieldUserIds.map(inputOf), now);
@@ -222,7 +222,7 @@ export async function applyKingPlaceAwards(
         continue;
       }
       const row = rowByUser.get(userId);
-      const before = snapshotState(row);
+      const before = snapshotState(row, "padel");
       await tx.insert(kingPlaceAwards).values({
         userId,
         sport: PADEL,
