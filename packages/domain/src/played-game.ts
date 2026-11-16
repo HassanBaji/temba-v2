@@ -23,7 +23,11 @@ import { formatGameClock, formatGameDay } from "./format-game-start";
 import type { FriendlyGameDetailsSide } from "./friendly-game-details";
 import type { FriendlyGameHeroMatch } from "./friendly-game-hero";
 import { sideSizeLabel } from "./game-shape";
-import { ratingScopeOf } from "./game-rating-impact";
+import {
+  proveItLine,
+  ratingScopeOf,
+  type ProveItImpact,
+} from "./game-rating-impact";
 import {
   gameRatingScopeLabel,
   type GameRatingScope,
@@ -82,6 +86,8 @@ export type PlayedResultLine = {
 export type PlayedYouLine = {
   line: string;
   ratingLine: string;
+  /** Why a loss cost more: the Prove-it rule's line (ADR-0097). */
+  proveItLine?: string | null;
   tag: "WON" | "LOST" | "DRAW";
   won: boolean;
 };
@@ -89,6 +95,7 @@ export type PlayedYouLine = {
 export type PlayedRatingImpact = {
   levelChange: number;
   newLevelBand: LevelBand;
+  proveIt?: ProveItImpact | null;
 };
 
 /** A football Match's Rating move, read in OVR from the μ it left (ADR-0087). */
@@ -439,6 +446,7 @@ export function playedPadelModel(
           : scope === "group"
             ? gameRatingScopeLabel(scope, locale)
             : playedRatingLine(input.rated, input.ratingImpact, locale),
+        proveItLine: proveItLine(input.ratingImpact?.proveIt, locale),
         tag: youTag(youWord),
         won: aWon,
       }

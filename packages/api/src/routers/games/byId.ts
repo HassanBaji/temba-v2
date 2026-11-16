@@ -398,6 +398,26 @@ function individualFriendlyGamePhase(args: {
 }
 
 /**
+ * The Prove-it rule's share of the viewer's lost padel Match and the band they
+ * declared, which the played Game names (ADR-0097). Null when it added nothing.
+ */
+async function proveItImpact(
+  database: DbClient,
+  args: { userId: string; part: number | null },
+): Promise<{ part: number; declaredBand: LevelBand } | null> {
+  if (args.part === null) {
+    return null;
+  }
+  const rating = await database.query.ratings.findFirst({
+    where: and(eq(ratings.userId, args.userId), eq(ratings.sport, "padel")),
+    columns: { declaredBand: true },
+  });
+  return rating?.declaredBand
+    ? { part: args.part, declaredBand: rating.declaredBand }
+    : null;
+}
+
+/**
  * What a counting football Match did to the viewer's OVR: the
  * move and its four parts, the other side's mean OVR before the Match, the
  * viewer's settled rating and how many ratings they received, their goals
@@ -1049,6 +1069,11 @@ export async function gameById(
     newLevelBand: LevelBand;
     isProvisional: boolean;
     ratedMatchesRemainingToConfirm: number | null;
+    /**
+     * What the Prove-it rule added to a lost padel Match, in μ points, and
+     * the band the viewer declared (ADR-0097). Null when it added nothing.
+     */
+    proveIt: { part: number; declaredBand: LevelBand } | null;
     /** A football Match's move in OVR, by part (ADR-0069). */
     ovr: OvrImpact | null;
   } | null = null;
@@ -1121,6 +1146,7 @@ export async function gameById(
               goalsPart: true,
               mvpPart: true,
               reliabilityPart: true,
+              proveItPart: true,
             },
           })
         : undefined;
@@ -1158,6 +1184,10 @@ export async function gameById(
           newLevelBand,
           isProvisional: remaining > 0,
           ratedMatchesRemainingToConfirm: remaining > 0 ? remaining : null,
+          proveIt: await proveItImpact(database, {
+            userId: args.userId,
+            part: viewerRatingEvent.proveItPart,
+          }),
           ovr:
             viewerRatingEvent.sport === "football"
               ? await footballOvrImpact(database, {

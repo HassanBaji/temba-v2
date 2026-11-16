@@ -45,8 +45,14 @@ export function GameRatingImpactBlock({
 }) {
   const locale = useLocale();
   const m = useMessages();
-  const { direction, magnitude, newLevelLabel, sentence, directionText } =
-    ratingImpactView(ratingImpact, locale);
+  const {
+    direction,
+    magnitude,
+    newLevelLabel,
+    sentence,
+    directionText,
+    proveItLine,
+  } = ratingImpactView(ratingImpact, locale);
   const DirectionIcon = DIRECTION_ICON[direction];
 
   return (
@@ -85,6 +91,11 @@ export function GameRatingImpactBlock({
           <p className="text-meta">{sentence}</p>
         </div>
       </div>
+      {proveItLine ? (
+        <p className="border-rule text-muted-foreground text-meta border-t px-[22px] py-4">
+          {proveItLine}
+        </p>
+      ) : null}
     </section>
   );
 }

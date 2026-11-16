@@ -1,6 +1,6 @@
 # Performance ratings move Reliability, and a loss costs more below full
 
-**Status:** accepted. Amends [ADR-0068](./0068-a-football-match-can-ask-for-performance-ratings.md) (who rates, and how ballots weigh), [ADR-0069](./0069-a-football-level-is-an-ovr-moved-by-four-parts.md) (every part sums to zero) and [ADR-0070](./0070-a-padel-level-weighs-the-partner-and-reads-from-one.md) (the padel step).
+**Status:** accepted. Amends [ADR-0068](./0068-a-football-match-can-ask-for-performance-ratings.md) (who rates, and how ballots weigh), [ADR-0069](./0069-a-football-level-is-an-ovr-moved-by-four-parts.md) (every part sums to zero) and [ADR-0070](./0070-a-padel-level-weighs-the-partner-and-reads-from-one.md) (the padel step). Amended by [ADR-0097](./0097-a-declared-c-or-above-loses-more-at-its-own-level-until-confirmed.md): on padel the larger of its loss factor and the Prove-it rule's applies, and the factor a Match read is stored.
 
 A football Match that counts for Temba Level already asks everyone to rate (ADR-0068). A padel Match asked nobody, so a player whose Level flattered them kept it until results caught up. The owner asked that in Verified Groups everyone rates how the others played, that several low ratings lower a player's reliability so they lose more when they lose, that this weighs more on a Provisional player, and that an Operator's or a Level setter's rating weighs more.
 

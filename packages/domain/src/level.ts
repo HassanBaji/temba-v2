@@ -274,6 +274,34 @@ export function padelMatchesRemainingToConfirm(
   return Math.max(0, RATED_MATCHES_TO_CONFIRM - confirmation.verifiedMatches);
 }
 
+/**
+ * The Prove-it rule (ADR-0097): while a padel Level declared at C or above is
+ * not yet confirmed, a lost Rated Match against a pair at about the same
+ * level (expected score 0.25 to 0.75) moves it one and a half times as far.
+ */
+export const PROVE_IT_LOSS_FACTOR = 1.5;
+export const PROVE_IT_EXPECTED_MIN = 0.25;
+export const PROVE_IT_EXPECTED_MAX = 0.75;
+export const PROVE_IT_FROM_BAND: LevelBand = "C2";
+
+/** Whether the Prove-it rule covers a padel Level, read as it stood before the Match. */
+export function proveItApplies(
+  declaredBand: LevelBand | null | undefined,
+  confirmation: PadelConfirmation,
+): boolean {
+  return (
+    declaredBand != null &&
+    LEVEL_BANDS.indexOf(declaredBand) >=
+      LEVEL_BANDS.indexOf(PROVE_IT_FROM_BAND) &&
+    padelMatchesRemainingToConfirm(confirmation) > 0
+  );
+}
+
+/** Whether an expected score is close enough to even for the Prove-it rule. */
+export function expectedScoreWithinProveIt(expected: number): boolean {
+  return expected >= PROVE_IT_EXPECTED_MIN && expected <= PROVE_IT_EXPECTED_MAX;
+}
+
 /** Of the Matches that confirm a Level, how many a Provisional one has played. */
 export function matchesTowardConfirming(ratedMatchesRemaining: number): number {
   return Math.max(0, RATED_MATCHES_TO_CONFIRM - ratedMatchesRemaining);

@@ -1,4 +1,5 @@
 import {
+  classicExpectedScore,
   glicko2Step,
   type ClassicGlicko,
   type ClassicGlickoOpponent,
@@ -6,7 +7,9 @@ import {
 import { applyIdleInflation } from "./idle";
 import {
   bandWithHysteresis,
+  expectedScoreWithinProveIt,
   levelFromMu,
+  PROVE_IT_LOSS_FACTOR,
   type LevelBand,
   type RatingGlickoState,
 } from "./level";
@@ -21,6 +24,12 @@ export type DoublesPlayerInput = {
    * Reliability (ADR-0095). 1 when left out.
    */
   lossFactor?: number;
+  /**
+   * Whether the Prove-it rule covers this player (ADR-0097): a lost Match
+   * against a pair at about their level then moves them at least
+   * `PROVE_IT_LOSS_FACTOR` times as far.
+   */
+  proveIt?: boolean;
 };
 
 export type DoublesPlayerResult = {
@@ -30,6 +39,12 @@ export type DoublesPlayerResult = {
   levelBand: LevelBand;
   /** The share of the μ move that low Reliability added to a loss; 0 or below. */
   reliabilityPart: number;
+  /**
+   * The share of the μ move the Prove-it rule added to a loss beyond what
+   * Reliability did; 0 or below. With `reliabilityPart` it makes up the
+   * whole extra, never more than the larger factor alone.
+   */
+  proveItPart: number;
 };
 
 type Pair<T> = [T, T];
@@ -113,18 +128,28 @@ function ratePlayer(
   score: 0 | 0.5 | 1,
   weight: number,
   lossFactor: number,
+  proveIt: boolean,
 ): DoublesPlayerResult {
   const star = glicko2Step(before, opponent, score);
   const stepped = blendWeightedStep(before, star, weight);
-  const reliabilityPart =
-    score === 0 ? (lossFactor - 1) * (stepped.mu - before.mu) : 0;
-  const after = { ...stepped, mu: stepped.mu + reliabilityPart };
+  const step = stepped.mu - before.mu;
+  const reliabilityPart = score === 0 ? (lossFactor - 1) * step : 0;
+  const proveItFactor =
+    score === 0 &&
+    proveIt &&
+    expectedScoreWithinProveIt(classicExpectedScore(before.mu, opponent))
+      ? PROVE_IT_LOSS_FACTOR
+      : 1;
+  const proveItPart =
+    proveItFactor > lossFactor ? (proveItFactor - lossFactor) * step : 0;
+  const after = { ...stepped, mu: stepped.mu + reliabilityPart + proveItPart };
   return {
     before,
     after,
     score,
     levelBand: bandWithHysteresis(levelFromMu(after.mu), before.levelBand),
     reliabilityPart,
+    proveItPart,
   };
 }
 
@@ -133,7 +158,8 @@ function ratePlayer(
  * half the gap to their partner so the pair shares one expected score, steps
  * once in Glicko-2 by their own φ, and the step is blended by `weight`. Idle
  * RD inflation runs per player before composites are built. A player who
- * lost moves `lossFactor` times as far.
+ * lost moves `lossFactor` times as far, or `PROVE_IT_LOSS_FACTOR` times
+ * when the Prove-it rule covers them and that is larger (ADR-0097).
  */
 export function rateDoublesMatch(
   input: RateDoublesMatchInput,
@@ -160,6 +186,7 @@ export function rateDoublesMatch(
         slot1Score,
         weight,
         lossFactorOf(input.slot1[0]),
+        input.slot1[0].proveIt ?? false,
       ),
       ratePlayer(
         slot1[1],
@@ -167,6 +194,7 @@ export function rateDoublesMatch(
         slot1Score,
         weight,
         lossFactorOf(input.slot1[1]),
+        input.slot1[1].proveIt ?? false,
       ),
     ],
     slot2: [
@@ -176,6 +204,7 @@ export function rateDoublesMatch(
         slot2Score,
         weight,
         lossFactorOf(input.slot2[0]),
+        input.slot2[0].proveIt ?? false,
       ),
       ratePlayer(
         slot2[1],
@@ -183,6 +212,7 @@ export function rateDoublesMatch(
         slot2Score,
         weight,
         lossFactorOf(input.slot2[1]),
+        input.slot2[1].proveIt ?? false,
       ),
     ],
   };

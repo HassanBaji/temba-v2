@@ -3,6 +3,7 @@ import { describe, it } from "vitest";
 
 import {
   ovrImpactView,
+  proveItLine,
   ratingImpactChangeDirection,
   ratingImpactChangeMagnitude,
   ratingImpactStandingSentence,
@@ -14,6 +15,8 @@ import {
   shownOvrParts,
   unratedLabel,
 } from "./game-rating-impact";
+import { isolate } from "@repo/i18n/bidi";
+
 import { muFromLevel } from "./level";
 
 describe("ratingImpactChangeMagnitude", () => {
@@ -149,6 +152,20 @@ describe("ratingImpactView", () => {
     assert.equal(view.directionText, "Level unchanged");
   });
 
+  it("says nothing of the Prove-it rule when it added nothing", () => {
+    assert.equal(ratingImpactView(base, "en").proveItLine, null);
+  });
+
+  it("names the declared band when the Prove-it rule made the loss cost more", () => {
+    assert.equal(
+      ratingImpactView(
+        { ...base, proveIt: { part: -20, declaredBand: "C2" } },
+        "en",
+      ).proveItLine,
+      "You declared C and lost to a pair at your level, so this loss counted one and a half times.",
+    );
+  });
+
   it("uses the Provisional sentence while the Level is unconfirmed", () => {
     assert.match(
       ratingImpactView(
@@ -161,6 +178,21 @@ describe("ratingImpactView", () => {
       ).sentence,
       /3 more rated matches in a verified group/,
     );
+  });
+});
+
+describe("proveItLine", () => {
+  it("reads the display band, in English and Arabic", () => {
+    const proveIt = { part: -12, declaredBand: "B3" as const };
+    assert.equal(
+      proveItLine(proveIt, "en"),
+      "You declared B- and lost to a pair at your level, so this loss counted one and a half times.",
+    );
+    assert.equal(
+      proveItLine(proveIt, "ar"),
+      `حدّدت مستواك ${isolate("B-")} وخسرت أمام زوج في مستواك، لذا حُسبت هذه الخسارة مرة ونصفًا.`,
+    );
+    assert.equal(proveItLine(null, "en"), null);
   });
 });
 

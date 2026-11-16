@@ -18,12 +18,16 @@ import {
   gameRatesGroup,
 } from "@repo/domain/game-rating-eligibility";
 import { applyTierMatch } from "#src/ratings/apply-tier-match";
-import { notifyLevelConfirmed } from "#src/ratings/level-confirmed";
+import {
+  notifyLevelConfirmed,
+  padelConfirmations,
+} from "#src/ratings/level-confirmed";
 import { ratingWeightForGame } from "#src/ratings/game-rating-weight";
 import { openRatingWindow } from "#src/ratings/settle-rating-window";
 import { withGuestStandIns } from "#src/ratings/guest-stand-ins";
 import {
   initialRatingFromChoice,
+  proveItApplies,
   type LevelBand,
   type RatingGlickoState,
 } from "@repo/domain/level";
@@ -216,9 +220,11 @@ export async function persistRatedUser(args: {
  * (ADR-0066), so a padel Game's group scope moves nothing; its Matches still
  * count in the Standing. A padel player below full Reliability who lost
  * moves further, and a padel Friendly game on a Verified Group then opens a
- * Rating window whose ratings move Reliability (ADR-0095). Skips when the
- * Match is not a Rated Match (cancelled or Unrated Game, missing sides, not
- * four Users, or four Guest players). A Guest player plays at the mean of
+ * Rating window whose ratings move Reliability (ADR-0095). A padel player
+ * who declared C or above and whose Level is not yet confirmed moves further
+ * on a lost Match against a pair at about their level (ADR-0097). Skips when
+ * the Match is not a Rated Match (cancelled or Unrated Game, missing sides,
+ * not four Users, or four Guest players). A Guest player plays at the mean of
  * the others and is never rated (ADR-0079). Idempotent per User+Match.
  */
 export async function applyRatedMatch(
@@ -368,13 +374,27 @@ async function applyTembaRatedMatch(
     .orderBy(ratings.userId)
     .for("update");
   const rowByUser = new Map(existingRows.map((row) => [row.userId, row]));
+  // Read before this Match's events are written, so the Prove-it rule sees
+  // the Level as it stood before the Match.
+  const confirmation =
+    sport === "padel"
+      ? await padelConfirmations(database, {
+          userIds: userIds.filter((userId) => !guestIds.has(userId)),
+        })
+      : null;
+
+  const lossFactorOf = (userId: string) =>
+    reliabilityLossFactor(
+      rowByUser.get(userId)?.reliability ?? FULL_RELIABILITY,
+    );
 
   const playerInput = withGuestStandIns(userIds, guestIds, (userId) => ({
     state: snapshotState(rowByUser.get(userId), sport),
     lastRatedAt: rowByUser.get(userId)?.lastRatedAt,
-    lossFactor: reliabilityLossFactor(
-      rowByUser.get(userId)?.reliability ?? FULL_RELIABILITY,
-    ),
+    lossFactor: lossFactorOf(userId),
+    proveIt:
+      confirmation !== null &&
+      proveItApplies(rowByUser.get(userId)?.declaredBand, confirmation(userId)),
   }));
   const rated = rateDoublesMatch({
     slot1: [playerInput(slots.slot1[0]), playerInput(slots.slot1[1])],
@@ -397,7 +417,9 @@ async function applyTembaRatedMatch(
       continue;
     }
 
-    const { before, after, score, levelBand, reliabilityPart } = player;
+    const { before, after, score, levelBand, reliabilityPart, proveItPart } =
+      player;
+    const lossFactor = lossFactorOf(player.userId);
 
     try {
       const [inserted] = await database
@@ -417,6 +439,8 @@ async function applyTembaRatedMatch(
           levelBandBefore: playerInput(player.userId).state.levelBand,
           lastRatedAtBefore: rowByUser.get(player.userId)?.lastRatedAt ?? null,
           reliabilityPart: reliabilityPart === 0 ? null : reliabilityPart,
+          proveItPart: proveItPart === 0 ? null : proveItPart,
+          reliabilityLossFactor: lossFactor === 1 ? null : lossFactor,
           createdAt: now,
         })
         .onConflictDoNothing({

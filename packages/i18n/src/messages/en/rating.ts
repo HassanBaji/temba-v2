@@ -895,4 +895,8 @@ export const rating = {
         `${sport} public games at partner venues show here. Make one and anyone in its Level range can join.`,
     },
   },
+  proveIt: {
+    line: (band: string) =>
+      `You declared ${band} and lost to a pair at your level, so this loss counted one and a half times.`,
+  },
 };

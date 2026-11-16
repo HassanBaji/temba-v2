@@ -127,6 +127,16 @@ export const ratingEvents = pgTable(
      * points on football, μ points on padel. Null when it added nothing.
      */
     reliabilityPart: doublePrecision("reliability_part"),
+    /**
+     * What the Prove-it rule added to a lost padel Match's move beyond
+     * Reliability (ADR-0097), in μ points. Null when it added nothing.
+     */
+    proveItPart: doublePrecision("prove_it_part"),
+    /**
+     * The Reliability loss factor this Match read for the player
+     * (ADR-0097), so the Match can be recomputed exactly. Null when it was 1.
+     */
+    reliabilityLossFactor: doublePrecision("reliability_loss_factor"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => ({

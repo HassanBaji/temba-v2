@@ -24,6 +24,8 @@ import {
   matchesTowardConfirming,
   padelMatchesRemainingToConfirm,
   progressToNextBand,
+  proveItApplies,
+  expectedScoreWithinProveIt,
   ratedMatchesRemainingToConfirm,
   tembaLevelView,
   UNCONFIRMED_PADEL,
@@ -261,6 +263,44 @@ describe("padelMatchesRemainingToConfirm", () => {
     expect(
       padelMatchesRemainingToConfirm({ verifiedMatches: 1, overridden: true }),
     ).toBe(0);
+  });
+});
+
+describe("proveItApplies", () => {
+  const fourVerified = { verifiedMatches: 4, overridden: false };
+
+  it("covers a declared C or above until the Level is confirmed", () => {
+    for (const band of ["C2", "C1", "B3", "B2", "B1", "A"] as const) {
+      expect(proveItApplies(band, fourVerified)).toBe(true);
+    }
+    expect(proveItApplies("C2", UNCONFIRMED_PADEL)).toBe(true);
+  });
+
+  it("leaves D, D+, C- and no Declared band alone", () => {
+    for (const band of ["D3", "D2", "D1", "C3"] as const) {
+      expect(proveItApplies(band, fourVerified)).toBe(false);
+    }
+    expect(proveItApplies(null, fourVerified)).toBe(false);
+    expect(proveItApplies(undefined, fourVerified)).toBe(false);
+  });
+
+  it("ends at five Rated Matches in a Verified Group or any Level override", () => {
+    expect(
+      proveItApplies("C2", { verifiedMatches: 5, overridden: false }),
+    ).toBe(false);
+    expect(proveItApplies("C2", { verifiedMatches: 0, overridden: true })).toBe(
+      false,
+    );
+  });
+});
+
+describe("expectedScoreWithinProveIt", () => {
+  it("takes 0.25 to 0.75, both ends included", () => {
+    expect(expectedScoreWithinProveIt(0.25)).toBe(true);
+    expect(expectedScoreWithinProveIt(0.5)).toBe(true);
+    expect(expectedScoreWithinProveIt(0.75)).toBe(true);
+    expect(expectedScoreWithinProveIt(0.2499)).toBe(false);
+    expect(expectedScoreWithinProveIt(0.7501)).toBe(false);
   });
 });
 

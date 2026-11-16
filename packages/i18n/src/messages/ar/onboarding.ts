@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import type { onboarding as source } from "../en/onboarding";
 
 export const onboarding = {
@@ -57,6 +58,8 @@ export const onboarding = {
   },
   padelNotSure: (level: string) =>
     `لست متأكدًا، ابدأ عند ${level} واترك الجهة مفتوحة`,
+  padelProveItHint: (band: string) =>
+    `إذا اخترت ${isolate(band)} أو أعلى، فكل خسارة أمام زوج في مستواك تُحسب مرة ونصفًا حتى يتأكد مستواك.`,
   summary: {
     levelAlreadySet: "المستوى محدد مسبقًا",
     padelLine: (level: string, side: string) => `${level}، ${side}`,

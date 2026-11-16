@@ -310,3 +310,132 @@ describe("A new padel declarer's first even win against settled players", () => 
     expect(firstWinMove("unknown")).toBeCloseTo(0.35, 1);
   });
 });
+
+describe("rateDoublesMatch under the Prove-it rule (ADR-0097)", () => {
+  const at = (
+    mu: number,
+    extra: Partial<DoublesPlayerInput> = {},
+  ): DoublesPlayerInput => ({ ...player(mu, 150), ...extra });
+
+  function play(
+    loser: DoublesPlayerInput,
+    options: {
+      partner?: DoublesPlayerInput;
+      winners?: [DoublesPlayerInput, DoublesPlayerInput];
+      outcome?: "slot1" | "slot2" | "draw";
+      weight?: number;
+    } = {},
+  ) {
+    return rateDoublesMatch({
+      slot1: options.winners ?? [at(1500), at(1500)],
+      slot2: [loser, options.partner ?? at(1500)],
+      outcome: options.outcome ?? "slot1",
+      weight: options.weight ?? 1,
+      now,
+    });
+  }
+
+  function moveOf(result: { before: { mu: number }; after: { mu: number } }) {
+    return result.after.mu - result.before.mu;
+  }
+
+  it("moves a covered player who lost to a pair at their level one and a half times as far", () => {
+    const plain = play(at(1500));
+    const proven = play(at(1500, { proveIt: true }));
+
+    const plainLoss = moveOf(plain.slot2[0]);
+    expect(plainLoss).toBeLessThan(0);
+    expect(moveOf(proven.slot2[0])).toBeCloseTo(plainLoss * 1.5, 8);
+    expect(proven.slot2[0].proveItPart).toBeCloseTo(plainLoss * 0.5, 8);
+    expect(proven.slot2[0].reliabilityPart).toBeCloseTo(0, 12);
+    expect(proven.slot2[0].after.phi).toBe(plain.slot2[0].after.phi);
+    expect(proven.slot2[0].after.sigma).toBe(plain.slot2[0].after.sigma);
+  });
+
+  it("moves the partner and both opponents exactly as without the rule", () => {
+    const plain = play(at(1500));
+    const proven = play(at(1500, { proveIt: true }));
+
+    expect(proven.slot2[1]).toEqual(plain.slot2[1]);
+    expect(proven.slot1).toEqual(plain.slot1);
+  });
+
+  it("adds nothing on a win or a draw", () => {
+    for (const outcome of ["slot2", "draw"] as const) {
+      const plain = play(at(1500), { outcome });
+      const proven = play(at(1500, { proveIt: true }), { outcome });
+      expect(proven.slot2[0].after).toEqual(plain.slot2[0].after);
+      expect(proven.slot2[0].proveItPart).toBe(0);
+    }
+  });
+
+  it("adds nothing when the pair's expected score is below 0.25 or above 0.75", () => {
+    const outside: [DoublesPlayerInput, DoublesPlayerInput][] = [
+      [at(1800), at(1800)],
+      [at(1200), at(1200)],
+    ];
+    for (const winners of outside) {
+      const plain = play(at(1500), { winners });
+      const proven = play(at(1500, { proveIt: true }), { winners });
+      expect(proven.slot2[0].after).toEqual(plain.slot2[0].after);
+      expect(proven.slot2[0].proveItPart).toBe(0);
+    }
+  });
+
+  it("applies near the edge of the band of even Matches", () => {
+    const winners: [DoublesPlayerInput, DoublesPlayerInput] = [
+      at(1650),
+      at(1650),
+    ];
+    const proven = play(at(1500, { proveIt: true }), { winners });
+    expect(proven.slot2[0].proveItPart).toBeLessThan(0);
+  });
+
+  it("reads the pair's shared expected score, not the player's own gap", () => {
+    const partner = at(1750);
+    const plain = play(at(1250), { partner });
+    const proven = play(at(1250, { proveIt: true }), { partner });
+    expect(moveOf(proven.slot2[0])).toBeCloseTo(
+      moveOf(plain.slot2[0]) * 1.5,
+      8,
+    );
+  });
+
+  it("adds nothing for a player it does not cover", () => {
+    const plain = play(at(1500));
+    const uncovered = play(at(1500, { proveIt: false }));
+    expect(uncovered).toEqual(plain);
+  });
+
+  it("takes the larger of its factor and Reliability's, never the product, and the two parts add up", () => {
+    const plain = play(at(1500));
+    const plainLoss = moveOf(plain.slot2[0]);
+
+    const lowReliability = play(at(1500, { proveIt: true, lossFactor: 1.2 }));
+    const covered = lowReliability.slot2[0];
+    expect(moveOf(covered)).toBeCloseTo(plainLoss * 1.5, 8);
+    expect(covered.reliabilityPart).toBeCloseTo(plainLoss * 0.2, 8);
+    expect(covered.proveItPart).toBeCloseTo(plainLoss * 0.3, 8);
+    expect(covered.reliabilityPart + covered.proveItPart).toBeCloseTo(
+      plainLoss * 0.5,
+      8,
+    );
+
+    const noReliability = play(at(1500, { proveIt: true, lossFactor: 1.5 }));
+    expect(moveOf(noReliability.slot2[0])).toBeCloseTo(plainLoss * 1.5, 8);
+    expect(noReliability.slot2[0].proveItPart).toBe(0);
+    expect(noReliability.slot2[0].reliabilityPart).toBeCloseTo(
+      plainLoss * 0.5,
+      8,
+    );
+  });
+
+  it("scales with the Game's weight", () => {
+    const plain = play(at(1500), { weight: 0.5 });
+    const proven = play(at(1500, { proveIt: true }), { weight: 0.5 });
+    expect(moveOf(proven.slot2[0])).toBeCloseTo(
+      moveOf(plain.slot2[0]) * 1.5,
+      8,
+    );
+  });
+});

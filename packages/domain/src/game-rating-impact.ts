@@ -165,6 +165,25 @@ function ovrStandingSentence(args: {
 }
 
 /**
+ * What the Prove-it rule added to the viewer's lost padel Match, in μ points,
+ * and the band they declared (ADR-0097).
+ */
+export type ProveItImpact = { part: number; declaredBand: LevelBand };
+
+/** The played Game's line when the Prove-it rule made a loss cost more. */
+export function proveItLine(
+  proveIt: ProveItImpact | null | undefined,
+  locale: Locale,
+): string | null {
+  if (!proveIt) {
+    return null;
+  }
+  return messagesFor(locale).rating.proveIt.line(
+    displayLabelFromStoredBand(proveIt.declaredBand),
+  );
+}
+
+/**
  * What a rated padel Match did to the viewer's Level, read as the padel
  * Level reads everywhere: two decimals, never below 1.00.
  */
@@ -175,6 +194,7 @@ export function ratingImpactView(
     newLevelBand: LevelBand;
     isProvisional: boolean;
     ratedMatchesRemainingToConfirm: number | null;
+    proveIt?: ProveItImpact | null;
   },
   locale: Locale,
 ) {
@@ -188,6 +208,7 @@ export function ratingImpactView(
     magnitude,
     newLevelLabel: formatPadelLevel(levelFromMu(ratingImpact.muAfter), 2),
     sentence: ratingImpactStandingSentence({ ...ratingImpact, locale }),
+    proveItLine: proveItLine(ratingImpact.proveIt, locale),
     directionText:
       direction === "up"
         ? m.increasedBy(magnitude)

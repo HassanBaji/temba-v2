@@ -18,7 +18,12 @@ import {
   type LevelChoiceValue,
 } from "~/components/temba/level-choice-grid";
 import { Button } from "~/components/ui/button";
-import { Field, FieldError, FieldLabel } from "~/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "~/components/ui/field";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import {
   fieldErrorMessage,
@@ -31,13 +36,16 @@ import {
   selfDeclareChoiceFromFootballPlacement,
   type FootballSelfPlacement,
 } from "@repo/domain/football-self-placement";
+import { PROVE_IT_FROM_BAND } from "@repo/domain/level";
 import {
+  displayLabelFromStoredBand,
   selfDeclareChoiceFromDisplay,
   type SelfDeclareChoice,
 } from "@repo/domain/level-bands";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 
 const FIELD_IDS = { choice: "declare-level-choice" };
+const PROVE_IT_HINT_ID = "declare-level-prove-it-hint";
 
 type Choice = LevelChoiceValue | FootballSelfPlacement | "";
 
@@ -166,17 +174,26 @@ export function DeclareLevelDialog({
                   ))}
                 </div>
               ) : (
-                <LevelChoiceGrid
-                  id={FIELD_IDS.choice}
-                  labelledBy="declare-level-choice-label"
-                  describedBy={
-                    choiceError ? "declare-level-choice-error" : undefined
-                  }
-                  invalid={Boolean(choiceError)}
-                  value={isFootballPlacement(choice) ? "" : choice}
-                  onSelect={setChoice}
-                  disabled={pending}
-                />
+                <>
+                  <LevelChoiceGrid
+                    id={FIELD_IDS.choice}
+                    labelledBy="declare-level-choice-label"
+                    describedBy={
+                      choiceError
+                        ? `${PROVE_IT_HINT_ID} declare-level-choice-error`
+                        : PROVE_IT_HINT_ID
+                    }
+                    invalid={Boolean(choiceError)}
+                    value={isFootballPlacement(choice) ? "" : choice}
+                    onSelect={setChoice}
+                    disabled={pending}
+                  />
+                  <FieldDescription id={PROVE_IT_HINT_ID}>
+                    {m.level.declare.proveItHint(
+                      displayLabelFromStoredBand(PROVE_IT_FROM_BAND),
+                    )}
+                  </FieldDescription>
+                </>
               )}
               <FieldError id="declare-level-choice-error">
                 {choiceError}
