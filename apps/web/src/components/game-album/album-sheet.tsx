@@ -8,6 +8,8 @@ import {
   ResponsiveDialogTitle,
 } from "~/components/common/responsive-dialog";
 import { CloseButton } from "~/components/ui/nav-icon-button";
+import { useSoftKeyboardOpen } from "~/hooks/use-soft-keyboard-open";
+import { cn } from "~/lib/utils";
 
 /** A drawer on phones and a dialog from `sm` up: title, its line, close, a scrolling body and a footer. */
 export function AlbumSheet({
@@ -16,6 +18,7 @@ export function AlbumSheet({
   title,
   subtitle,
   footer,
+  quietWhileTyping = false,
   children,
 }: {
   open: boolean;
@@ -23,8 +26,12 @@ export function AlbumSheet({
   title: string;
   subtitle?: string | null;
   footer?: React.ReactNode;
+  /** Hide the subtitle while a phone keyboard is open, to keep the field in view. */
+  quietWhileTyping?: boolean;
   children: React.ReactNode;
 }) {
+  const keyboardOpen = useSoftKeyboardOpen();
+  const showSubtitle = Boolean(subtitle) && !(quietWhileTyping && keyboardOpen);
   return (
     <ResponsiveDialog
       open={open}
@@ -44,7 +51,7 @@ export function AlbumSheet({
               {title}
             </ResponsiveDialogTitle>
             <ResponsiveDialogDescription
-              className={subtitle ? "text-meta leading-relaxed" : "sr-only"}
+              className={showSubtitle ? "text-meta leading-relaxed" : "sr-only"}
             >
               {subtitle ?? title}
             </ResponsiveDialogDescription>
@@ -55,7 +62,15 @@ export function AlbumSheet({
           {children}
         </div>
         {footer ? (
-          <div className="mt-auto flex shrink-0 flex-col gap-2.5 px-[22px] pb-[max(22px,env(safe-area-inset-bottom))] pt-1">
+          <div
+            className={cn(
+              "mt-auto flex shrink-0 flex-col gap-2.5 px-[22px] pt-1",
+              // The keyboard covers the home indicator, so its inset is wasted room then.
+              keyboardOpen
+                ? "pb-3"
+                : "pb-[max(22px,env(safe-area-inset-bottom))]",
+            )}
+          >
             {footer}
           </div>
         ) : null}
