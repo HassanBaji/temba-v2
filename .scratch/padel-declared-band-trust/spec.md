@@ -1,6 +1,6 @@
 # Padel Level: trusting the declared band
 
-Status: draft, revised 2026-11-16 after the owner's first answers. No ticket exists yet. Four decisions are **settled by the owner** (section 5.1). Eight defaults were not asked and four new questions came out of the replay design; each is in force unless the owner says otherwise, and every place that depends on one carries its tag (**[OD-1]**, **[OD-2]**, **[OD-4]**, **[Q6]**, **[Q7]**, **[Q10]** to **[Q12]**, **[RQ-1]** to **[RQ-7]**) so one pass can revise it. `CONTEXT.md` and `docs/adr/` are unchanged; sections 4 and 16 list what the tickets will change.
+Status: revised 2026-11-16 after the owner's answers. Seven decisions are **settled by the owner** (section 5.1). Twelve defaults were not asked; each is in force unless the owner says otherwise, and every place that depends on one carries its tag (**[OD-1]**, **[OD-2]**, **[OD-4]**, **[Q6]**, **[Q7]**, **[Q10]** to **[Q12]**, **[RQ-4]** to **[RQ-7]**) so one pass can revise it. Tickets were published to Linear on 2026-11-16 as TEM-470 to TEM-478 (project "Rankings: Group Elo & Tiers"); section 21 has the table. `CONTEXT.md` and `docs/adr/` are unchanged; sections 4 and 16 list what the tickets will change.
 
 Source: the owner's design doc "Padel Level: trusting the self-declared band" (2026-11-16, five pages). Its rules and numbers are the source of truth. Where the code disagrees with it, section 2.9 says so.
 
@@ -125,6 +125,9 @@ Edited terms: **Level** (a Level check also moves it), **Rating** (starting φ b
 | U2 | **Existing players are brought in line by a full replay of history**, not by a φ-only backfill. Chosen knowing it was not the planner's recommendation. Section 9. |
 | U3 | **The larger of the two loss multipliers applies**, never the product. Reliability stays. (Was Q8.) |
 | U4 | **"Not sure" is a declared D+**: φ 150, `declared_band` set. No new choice on the onboarding screens. (Was Q5.) |
+| U5 | **The replay uses today's formula for every Match**, including Matches rated before ADR-0070, when the partner was ignored. The Workspace does not hold the date ADR-0070 reached production, so the older formula could not be applied by date anyway. The dry-run report keeps the baseline pass that separates this effect from the new rules. (Was RQ-1.) |
+| U6 | **Players are told once, in the app only**: a Notification to each player whose shown Level or band changed. No Notification email, no Rating history line. (Was RQ-2.) |
+| U7 | **Closed Seasons' By level tables and Most improved change with the replay.** They are derived from the ledger on every read and nothing is stored at close; no snapshot table is added. Places and points never read a Level and do not change. (Was RQ-3.) |
 
 ### 5.2 Defaults not asked, in force unless the owner says otherwise
 
@@ -139,19 +142,11 @@ Edited terms: **Level** (a Level check also moves it), **Rating** (starting φ b
 | **[Q11]** | The Prove-it rule ends only at confirmation, so it never ends for a player who only plays Public Games. | One definition of confirmed (ADR-0080); a Level override ends it. |
 | **[Q12]** | A Level check is not improvement in a Standing's Most improved view. | Like a Level override (ADR-0093): the view stays what results moved. |
 
-### 5.3 New questions from the replay, recommended answer first
-
-| Tag | Question | Recommended answer |
-| --- | --- | --- |
-| **[RQ-1]** | Matches rated before ADR-0070 used a different formula (the partner was ignored). Replay them under today's formula, or the one in force then? | **Today's formula for every Match.** One rule set, and the replay goes "through the real `rateDoublesMatch`". The Workspace does not hold the date ADR-0070 reached production, so the older formula cannot be applied by date without the owner supplying it. It means the replay also undoes ADR-0070's "nothing is replayed". |
-| **[RQ-2]** | Are players told their Level was recalculated? | **Yes, once, in the app only**: a Notification to each player whose shown Level or band changed, with no Notification email. Nothing is added to Rating history. |
-| **[RQ-3]** | Closed Seasons: their By level tables and Most improved are derived from the ledger on every read, so they will re-read from the replayed values. Accept, or freeze them? | **Accept.** Nothing is stored at close today; freezing would need a new snapshot table and a second meaning of "at close". The Standing itself, places and points, never reads a Level and does not change. |
-| **[RQ-4]** | When does it run? | **Once, after Part 2 is deployed and before Part 3 is.** The command refuses once any Level check result exists. Part 1 may deploy earlier on its own. |
-
-Technical defaults taken, tagged so they can be revisited:
+### 5.3 Defaults from the replay, in force unless the owner says otherwise
 
 | Tag | Default |
 | --- | --- |
+| **[RQ-4]** | The replay runs once, after Part 2 is deployed and before Part 3 is. The command refuses once any Level check result exists. Part 1 may deploy earlier on its own. It follows from the design: the engine does not replay a Level check. |
 | **[RQ-5]** | A declared player whose starting μ is not a band midpoint keeps that μ as the start, and the band it falls in becomes their Declared band. Listed in the report. |
 | **[RQ-6]** | A seat whose rating history was deleted by an Unclaimed player merge plays that Match as a Guest player does: at the mean of the others, unrated (ADR-0079). |
 | **[RQ-7]** | A ledger row the replay cannot recompute is carried over: its stored μ move is applied to the replayed Rating, φ and σ move by the stored ratio. `--apply` refuses while any such row exists unless `--carry-unplaced` is passed. |
@@ -170,13 +165,13 @@ Technical defaults taken, tagged so they can be revisited:
 - **D10.** A rater's Provisional and outlier weights are computed when the window settles, from the ledger and the stored ballots. Nothing is stored about a rater (ADR-0068).
 - **D11.** Taking a Level check back follows the Place award: exact when nothing has touched the Rating since, otherwise its μ move is subtracted. A wrong-score reversal takes the Match's own check back first, and no later check blocks a reversal.
 - **D12.** One new procedure, `games.submitLevelChecks`. `games.submitPerformanceRatings` keeps its input.
-- **D13.** The padel "ratings are in" notice is sent when either a rating or a Level check settled, and reads both. The only new Notification type is the recalculation's **[RQ-2]**.
+- **D13.** The padel "ratings are in" notice is sent when either a rating or a Level check settled, and reads both. The only new Notification type is the recalculation's (U6).
 - **D14.** The replay reads the ledger, not the Matches: a Match counts if and only if it has padel `rating_events` rows today (9.2).
 - **D15.** The replay is one transaction under a table lock, writes only rows whose values differ, and backs up every row it changes in that transaction (9.8).
 
 ## 6. Actors
 
-- **Player**: declares once; is asked the Level check about the other three; sees their own verdict, never who answered what; is told once if the recalculation changed their Level **[RQ-2]**.
+- **Player**: declares once; is asked the Level check about the other three; sees their own verdict, never who answered what; is told once if the recalculation changed their shown Level or band.
 - **Organizer**: picks the Declared band of an Unclaimed player they add **[Q6]**. Holds no Level check door.
 - **Level setter, Verifier, Operator**: unchanged. A Level override confirms the Level, which ends the Prove-it rule, and the replay keeps every override as the Level it set. Their Level check ballot weighs like anyone's **[Q10]**.
 - **Whoever runs the recalculation**: a developer with the production `DATABASE_URL`, after the owner has read the dry-run report.
@@ -200,7 +195,7 @@ Generated migrations, numbered at generation time (the next is `0129`). No exist
 
 `rating_replay_backups`: `run_id` (cascade), `table_name` (text), `row_id` (uuid), `row` (jsonb: the whole row as it was). Primary key `(run_id, table_name, row_id)`. One row for every row the run changed in `ratings`, `rating_events`, `king_place_awards` and `level_overrides`.
 
-A `level_recalculated` value on `notification_type` **[RQ-2]**.
+A `level_recalculated` value on `notification_type`.
 
 ### 7.4 Part 3
 
@@ -293,7 +288,7 @@ It reproduces the doc's combined results, and shows that band picks do as well a
 
 It recomputes every padel Rating from the start, as if parts 1 and 2 had always been in force, and rewrites the stored numbers to match.
 
-- **Replayed:** the starting φ by Declared band (Part 1) and the Prove-it rule (Part 2), under today's formula **[RQ-1]**.
+- **Replayed:** the starting φ by Declared band (Part 1) and the Prove-it rule (Part 2), under today's formula for every Match (U5).
 - **Not replayed: the Level check (Part 3).** No ballots exist for past Matches, so there is nothing to replay. The check starts with the first Match after Part 3 deploys.
 - **Changes:** each padel player's Level, band, φ and σ; the before and after of every padel Rated Match, Place award and Level override line.
 - **Does not change:** which Matches counted, who won, any Game, Match, Set or Standing; who is confirmed (the count reads rows, not values); Reliability; any football Rating or OVR; the Level a Level override set.
@@ -351,7 +346,7 @@ No row is inserted or deleted in these tables. Confirmation counts are not store
 | Level, band and "To confirm" on Home, You, Player profile, Members lists, line-ups | Recomputed: read from `ratings` on every request. | Yes |
 | Rating history, the Home Level chart, a played Game's rating impact, Match history moves | Recomputed: read from the ledger rows. Every past line shows the recalculated move. | `routers/ratings/history.ts`, `routers/games/byId.ts:1100-1150` |
 | Standing: places and points, open and closed Seasons | Unchanged: 3, 1, 0 by result, never a Level. | Glossary and ADR-0045; not re-read |
-| Standing's By level and Most improved, open and closed Seasons | Recomputed on read: the Level "at close" is walked back from the ledger's before-values, nothing is stored (`routers/groups/standingLevels.ts:68-76`, `:132-200`). A closed Season's categories and its Most improved order can change. **[RQ-3]** | Yes |
+| Standing's By level and Most improved, open and closed Seasons | Recomputed on read: the Level "at close" is walked back from the ledger's before-values, nothing is stored (`routers/groups/standingLevels.ts:68-76`, `:132-200`). A closed Season's categories and its Most improved order can change; the owner accepted this (U7). | Yes |
 | Game Level range, Challenge Level wanted, Team Level | Evaluated when someone joins, proposes or opens the page; the tables hold only the bounds in tenths (`games.level_min_tenths`, `challenges.level_min_tenths`). Past admits, decided Level range requests and confirmed Challenges stay. A player already seated on an upcoming Game whose new Level is outside its range stays seated; the report counts them. | Schema yes; that nothing re-checks a seated player is inferred |
 | In-app Notifications | Built on read. A Place award notice quotes the Level before and after from the award row and will show the recalculated numbers (`notifications/load-notification-items.ts:248-269`). A Level set notice quotes `mu_after`, which does not change. No Notification quotes a padel Rated Match's move: the only event read there is football's (lines 143-153). | Yes |
 | Notification emails, shared Result cards, shared Standing images, PDFs and CSVs | **Cannot be recomputed.** They left the product. | n/a |
@@ -367,13 +362,13 @@ The replay is padel only. Every query and every `UPDATE` carries `sport = 'padel
 
 - **Dry run is the default.** One read-only, repeatable-read transaction. It prints the database host and writes a per-player CSV with `--report <path>`.
 - **The report.** Counts of players, Matches, events, overrides and awards; how each Declared band was recovered (never played, first Match, first override, first award), "I don't know", and the players placed by **[RQ-5]**; per player the Level, band and φ before and after; how many move by 0.01 or more; the twenty largest moves up and down; every player whose band letter changes; players crossing the confirmation line, which must be zero and fails the run otherwise; seated players on upcoming Games now outside the Level range; and the anomalies: Matches with a missing seat **[RQ-6]**, rows carried over **[RQ-7]**, units at the same instant, and how long loading and computing took.
-- **Baseline pass.** The report also replays under today's rules (φ 350, no Prove-it rule) and counts how many stored events that reproduces. The rest were rated under an earlier formula or carry something the ledger does not explain, which tells the owner how much of each move comes from **[RQ-1]** and how much from the new rules.
+- **Baseline pass.** The report also replays under today's rules (φ 350, no Prove-it rule) and counts how many stored events that reproduces. The rest were rated under an earlier formula or carry something the ledger does not explain, which tells the owner how much of each move comes from today's formula reaching old Matches (U5) and how much from the new rules.
 - **Backup in the same transaction.** `--apply` copies every row it is about to change into `rating_replay_backups` under a new `rating_replay_runs` row, then writes. `--restore <run id>` writes them back, and refuses if any padel ledger row is newer than the run: after the next Rated Match the fix is forward, not back. A database backup on the host before the run is a human step in the runbook.
 - **One transaction, not resumable.** Glicko-2 is sequential: a half-applied replay leaves Ratings that match neither rule set, and a resumable design would have to block rating writes for its whole length anyway. All or nothing is simpler and safer.
 - **While the API is live.** The apply transaction first takes `LOCK TABLE ratings IN EXCLUSIVE MODE` with a `lock_timeout`, then loads, computes and writes. Every padel rating writer locks or writes `ratings` rows before it writes a ledger row (`apply-rated-match.ts:362-367`, `apply-level-override.ts:165-171`, `apply-king-place-awards.ts:161-172`, `reportWrongScore.ts:353-358`, `selfDeclare.ts:56`, the merge), so a Match completing mid-run waits and is then rated on top of the replayed values. Reads are not blocked. Football rating writes wait too, for the same seconds. No maintenance window is needed if the dry run's timing is a few seconds; if it is not, run it with the API's Job queue and rating doors paused. Run it at a quiet hour either way.
 - **Idempotent.** Only rows whose values differ are updated. A second run computes the same values from the same inputs, finds no difference, writes nothing and records no run.
 
-### 9.9 Telling players **[RQ-2]**
+### 9.9 Telling players
 
 In the apply transaction, one `level_recalculated` Notification for each account holder whose padel Level changes on the two-decimal face or whose band letter changes, written as already emailed so no Notification email goes out (the email Job skips a row with `emailed_at`, `jobs/handlers/notification.email.ts:33`). The copy carries no numbers: it says the Level was recalculated under the new rules and opens the Ratings screen.
 
@@ -440,7 +435,7 @@ Ten of twelve players move by 0.01 or more, two change band letter, the largest 
 | `games.performanceRatingResult` | Adds `levelCheck`: the viewer's verdict band, the Level before and after and the ballots counted, or why none settled (too few answers, no opponent answered). |
 | `games.byId` | The padel rating impact carries `proveItPart`. |
 | `ratings.history` | A `level_check` entry, a fifth source in the union. |
-| `notifications.*` | A `level_recalculated` item **[RQ-2]**. |
+| `notifications.*` | A `level_recalculated` item. |
 
 Server modules: `applyTembaRatedMatch` reads `declared_band` from the rows it already locks and `padelConfirmations` before it writes events, and stores `prove_it_part` and `reliability_loss_factor`. `settleRatingWindow` settles the Level check on a padel window after Reliability. `suspendRatingWindow` takes the results back and keeps the ballots; `reportWrongScore` calls it before it restores the Match's events (D11). The padel branch of `applyRatedMatch` also opens the window on a padel Public Game **[OD-4]**. `merge-into-account.ts`, `routers/users/myProfile.ts`, `routers/ratings/me.ts`, `routers/groups/standingLevels.ts` **[Q12]**, `routers/games/listMyMatchHistory.ts` and `notifications/load-notification-items.ts` each treat `level_check_results` where they treat `king_place_awards`, and the merge moves both new tables with the Rating.
 
@@ -452,14 +447,14 @@ View-models live in `@repo/domain/level-check` and are rendered twice.
 - **Rate the game** (web `rate-game-page.tsx`, mobile `rate-game-screen.tsx`), padel only: under each of the three other players, the question "What level did {name} play at?" and the nine display bands in one row, opened on the band the player shows, which is marked "now". Nothing is selected until tapped; a blank is not an answer **[OD-2]**. Opponents are not marked optional: the check needs one. Submit sends the Level check answers, then the ratings.
 - **Played game** (both `performance-result-card.tsx`): once the window settles, "Players placed you at {band}" with the Level before and after, or "Agreed with your level", or why nothing settled. The padel rating impact adds one line when the Prove-it rule applied.
 - **Rating history** (both Apps' Ratings screens): a "Level check" line with the Game, the verdict band and the move.
-- **Notifications** (both Apps): the `level_recalculated` item opens the Ratings screen **[RQ-2]**.
+- **Notifications** (both Apps): the `level_recalculated` item opens the Ratings screen.
 - **Mobile design rules.** Black and white, roles from `useColors()`, hairlines, text through `Text`, sizes from `@repo/design-tokens`. A selected band is Solid (`control`); an unanswered row is a `Hatch` slot. No new mount animation.
 - The console has no rating UI and is unchanged.
 
 ## 13. Notifications
 
 - `performance_ratings_open` on padel says the screen also asks for levels. `performance_ratings_closed` on padel goes to each account holder whose rating or Level check settled, once, and reads the verdict and the Level move beside the rating and Reliability (D13).
-- `level_recalculated` (new) **[RQ-2]**: once per player, from the replay's apply, in the app only.
+- `level_recalculated` (new): once per player, from the replay's apply, in the app only.
 
 ## 14. i18n
 
@@ -469,14 +464,14 @@ Every string in `en/` and `ar/`, read by property access. Proposed keys, with th
 - `rating.ts`, changed: `performance.padel.footnote` no longer says ratings do not move a level; `performance.entry.padel` names both questions.
 - `rating.ts`, new: `proveIt.line` "You declared {band} and lost to a pair at your level, so this loss counted one and a half times."
 - `level.ts` and `onboarding.ts`: `declare.proveItHint`, one line under the band picker. `padelNotSure` is unchanged.
-- `notification.ts`: the padel variants of the open and closed notices, and `levelRecalculated` "Your padel level was recalculated under the new level rules. Open Ratings to see where you stand." **[RQ-2]**
+- `notification.ts`: the padel variants of the open and closed notices, and `levelRecalculated` "Your padel level was recalculated under the new level rules. Open Ratings to see where you stand."
 - Surface-only strings go in `web-game.ts` and `mobile-game-details.ts`.
 
 ## 15. Migration of existing behaviour
 
 - New declarations get the new φ from the day Part 1 deploys. Existing Ratings keep theirs until the replay.
 - Between Part 2's deploy and the replay, the Prove-it rule skips existing players (no Declared band yet). The replay then applies it to those Matches as well, so nothing is uneven afterwards.
-- The replay is the one exception to "nothing is replayed" (ADR-0070), recorded in its own ADR. It also brings Matches rated before ADR-0070 under the partner-weighted formula **[RQ-1]**.
+- The replay is the one exception to "nothing is replayed" (ADR-0070), recorded in its own ADR. It also brings Matches rated before ADR-0070 under the partner-weighted formula (U5).
 - Level checks start with the first Match completed after Part 3 deploys, which is after the replay **[RQ-4]**.
 - The Mobile App is not released (Phase 7), and every API change here is additive anyway.
 
@@ -486,7 +481,7 @@ ADRs, numbered at writing time (the next free number is 0096; four ADRs share 00
 
 1. **A padel declaration sets the starting φ** (Part 1). Amends ADR-0009. Records the table, `declared_band`, padel only, "Not sure" as a declared D+, Organizer picks **[Q6]**.
 2. **A declared C or above loses more at its own level until confirmed** (Part 2). Amends ADR-0070 (the padel step) and ADR-0095 (the larger loss factor applies; the factor is stored). Consequences: the pool deflates a little, only from unconfirmed players; a Public Game-only player stays under it **[Q11]**.
-3. **Padel Levels were recalculated once under the declared-band rules** (the replay). Amends ADR-0070 ("New Matches only"). Records what was and was not replayed, today's formula for every Match **[RQ-1]**, overrides kept as set, closed Seasons re-read **[RQ-3]**, the inputs the ledger did not hold (9.2), the backup and the one run **[RQ-4]**.
+3. **Padel Levels were recalculated once under the declared-band rules** (the replay). Amends ADR-0070 ("New Matches only"). Records what was and was not replayed, today's formula for every Match, overrides kept as set, closed Seasons re-read, the inputs the ledger did not hold (9.2), the backup and the one run **[RQ-4]**.
 4. **The other players check a padel Level** (Part 3). Amends ADR-0068 (the window asks a second question on padel), ADR-0095 (peers now move a padel Level; a padel Public Game opens a window **[OD-4]**) and ADR-0011's reversal rule (D11). Records the own ledger, bands over a three-way answer **[OD-2]**, on after confirmation, the weights and the cap.
 
 `CONTEXT.md`: section 4, each term with its first ticket. `packages/api/README.md`: the replay runbook.
@@ -506,9 +501,9 @@ ADRs, numbered at writing time (the next free number is 0096; four ADRs share 00
 
 - Football. Its φ comes from its count of counting Matches (ADR-0069), and the replay cannot touch it.
 - Replaying Level checks, or running the replay again after Part 3.
-- Applying older formulas by date in the replay **[RQ-1]**.
-- Freezing closed Seasons' By level tables **[RQ-3]**, or re-checking players already seated on a Game against its Level range.
-- A "recalculated" line in Rating history **[RQ-2]**.
+- Applying older formulas by date in the replay.
+- Freezing closed Seasons' By level tables, or re-checking players already seated on a Game against its Level range.
+- A "recalculated" line in Rating history.
 - A Level check on tournament Matches, Americano, King of the court or Challenge Games.
 - Changing or removing the padel 1 to 10 Performance rating or Reliability.
 - Letting a player change their Declared band.
@@ -518,10 +513,10 @@ ADRs, numbered at writing time (the next free number is 0096; four ADRs share 00
 ## 19. Risks
 
 - **R1 Collusion.** Four players who agree to answer high can each gain up to 0.35 Level a Match on a Club Group, which no rule here stops: they include an opponent and agree with each other. The owner accepted this (U1). Mitigation: the cap, the opponent rule, φ falling with every check, and a ledger row an Operator can read.
-- **R2 Levels change with no Match behind the change.** After the replay a player opens the App to a different Level, band or both, for nothing they did. In the prototype ten of twelve moved. Mitigation: the dry-run report the owner reads first, and the Notification **[RQ-2]**.
+- **R2 Levels change with no Match behind the change.** After the replay a player opens the App to a different Level, band or both, for nothing they did. In the prototype ten of twelve moved. Mitigation: the dry-run report the owner reads first, and the Notification.
 - **R3 Opponents' histories change too.** A player whose own declaration rules did not change still moves, because everyone they played did. The largest move in the prototype belongs to such a player.
 - **R4 Rating history is rewritten, not appended.** Afterwards every past Match line shows the recalculated move, and the old numbers are only in the backup. A player who remembers "+0.35 that night" will not find it.
-- **R5 Two changes land at once** **[RQ-1]**. The replay applies the declared-band rules and today's partner-weighted formula to old Matches together. The baseline pass in the report separates the two.
+- **R5 Two changes land at once.** The replay applies the declared-band rules and today's partner-weighted formula to old Matches together. The baseline pass in the report separates the two.
 - **R6 Parts 1 and 2 slow correction until Part 3.** A wrong D declaration corrects more slowly than today (8.5), and the replay applies that to the past as well: a player who declared D and has won their way up is pulled back towards D. The Level override stays the fix in between.
 - **R7 Inputs the ledger does not hold** (9.2): merged-away seats, seats changed after rating, a reversal behind an override. Each is rare, reported, and has a stated rule.
 - **R8 The lock.** Rating writes wait while the apply runs. If the production ledger is much larger than expected, that is a visible stall. Mitigation: the size query and the dry run's timing come first.
@@ -533,23 +528,38 @@ ADRs, numbered at writing time (the next free number is 0096; four ADRs share 00
 
 ## 20. Open questions, with the default taken
 
-Settled by the owner: U1 to U4 (5.1). Each default below is in force unless the owner says otherwise; the tag is where the spec changes.
+Settled by the owner: U1 to U7 (5.1). Each default below is in force unless the owner says otherwise; the tag is where the spec changes.
 
 1. **[OD-1]** Padel Provisional means not yet confirmed. Already true.
 2. **[OD-2]** Pick a band; nothing preselected; agreement moves no Level.
-3. **[OD-4]** Friendly games on every Verified Group at the Game's weight, and padel Public Games.
+3. **[OD-4]** Friendly games on every Verified Group at the Game's weight, and padel Public Games. Opening the window there also brings the 1 to 10 Performance rating and Reliability to padel Public Games, which ADR-0095 left out.
 4. **[Q6]** An Organizer's pick for an Unclaimed player is a Declared band.
 5. **[Q7]** The φ 250 patch is assumed never deployed.
 6. **[Q10]** No extra weight for an Operator or a Level setter on a Level check.
 7. **[Q11]** The Prove-it rule ends only at confirmation.
 8. **[Q12]** A Level check is not improvement in Most improved.
-9. **[RQ-1]** The replay uses today's formula for every Match.
-10. **[RQ-2]** Players whose shown Level changed are told once, in the app, with no email and no Rating history line.
-11. **[RQ-3]** Closed Seasons' By level and Most improved re-read from the replayed ledger.
-12. **[RQ-4]** The replay runs once, after Part 2 and before Part 3.
-13. **[RQ-5]** An unrecognised start μ is kept, and its band becomes the Declared band.
-14. **[RQ-6]** A merged-away seat plays as a Guest player.
-15. **[RQ-7]** A row that cannot be recomputed is carried over, and the apply needs a flag to proceed.
-16. Arabic copy for the new keys, for the owner to confirm.
+9. **[RQ-4]** The replay runs once, after Part 2 and before Part 3.
+10. **[RQ-5]** An unrecognised start μ is kept, and its band becomes the Declared band.
+11. **[RQ-6]** A merged-away seat plays as a Guest player.
+12. **[RQ-7]** A row that cannot be recomputed is carried over, and the apply needs a flag to proceed.
+13. Arabic copy for the new keys, for the owner to confirm.
+
+## 21. Tickets (in Linear: TEM-470 to TEM-478)
+
+Published on 2026-11-16 to team Temba, project "Rankings: Group Elo & Tiers", labels `ready-for-agent` and `Feature`. Each ticket is a vertical slice and names the defaults from section 20 it rests on. Blocking is set as native Linear relations.
+
+| # | Ticket | Title | Blocked by |
+| --- | --- | --- | --- |
+| PL-1 | TEM-470 | A padel declaration sets the starting φ and is kept on the Rating | none |
+| PL-2 | TEM-471 | A declared C or above loses more to a pair at its own level until the Level is confirmed | TEM-470 |
+| PL-3 | TEM-472 | A dry run reports what recalculating every padel Level would change | TEM-471 |
+| PL-4 | TEM-473 | The replay rewrites padel Ratings in one transaction, with a backup and a restore | TEM-472 |
+| PL-5 | TEM-474 | A player whose shown Level changed is told once that it was recalculated | TEM-473 |
+| PL-6 | TEM-475 | The other players check a padel Level after a Friendly game on a Verified Group (web) | TEM-471 |
+| PL-7 | TEM-476 | The Level check on the Mobile App | TEM-475 |
+| PL-8 | TEM-477 | A Provisional rater and an outlier rater count half in a Level check | TEM-475 |
+| PL-9 | TEM-478 | A padel Public Game opens the Rating window and asks the Level check | TEM-475 |
+
+The production run is a human step, written as a runbook checklist on TEM-473: deploy PL-1 to PL-5, run the size query (9.11), read the dry-run report, take a database backup, apply, re-run the dry run. TEM-474 must be deployed before the apply, or nobody is told. TEM-475, TEM-476 and TEM-478 may be built earlier but must not deploy until that run is done **[RQ-4]**. TEM-478 exists only because of **[OD-4]** and is cancelled if the owner keeps the Level check to Verified Groups.
 
 ## Comments
