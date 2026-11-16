@@ -1,4 +1,13 @@
 import { radii, sizes } from "@repo/design-tokens";
+import type { AssignableDisplayLevelBand } from "@repo/domain/level-bands";
+import {
+  levelCheckDraft,
+  levelCheckRows,
+  levelCheckSubmission,
+  setLevelCheckAnswer,
+  type LevelCheckDraft,
+  type LevelCheckRow,
+} from "@repo/domain/level-check";
 import {
   rateGameDraft,
   rateGameSubmission,
@@ -44,6 +53,7 @@ import { api, type RouterOutputs } from "../trpc/react";
 type Sheet = RouterOutputs["games"]["performanceRatingSheet"];
 
 const CELL_HEIGHT = 34;
+const LEVEL_CELL_HEIGHT = 40;
 const CELL_GAP = 3;
 const STAR = 32;
 const ICON = 15;
@@ -243,16 +253,153 @@ function StarButton({
   );
 }
 
-function PlayerRow({
+function LevelCell({
+  cell,
+  nowLabel,
+  disabled,
+  onPress,
+}: {
+  cell: LevelCheckRow["cells"][number];
+  nowLabel: string;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  const onControl = cell.selected ? { color: colors.onControl } : undefined;
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityLabel={cell.spoken}
+      accessibilityState={{ checked: cell.selected, disabled }}
+      disabled={disabled}
+      hitSlop={{ top: 2, bottom: 2 }}
+      onPress={onPress}
+      style={{
+        flex: 1,
+        minWidth: 0,
+        height: LEVEL_CELL_HEIGHT,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: radii.sm,
+        borderWidth: hairline,
+        borderColor: cell.selected
+          ? colors.controlEdge
+          : cell.now
+            ? colors.ink
+            : colors.rule,
+        backgroundColor: cell.selected ? colors.control : colors.paper,
+      }}
+    >
+      <Text
+        size="eyebrow"
+        weight="semibold"
+        tone={cell.selected || cell.now ? "default" : "muted"}
+        ltr
+        style={onControl}
+      >
+        {cell.band}
+      </Text>
+      {cell.now ? (
+        <Text
+          size="eyebrow"
+          numberOfLines={1}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+          style={onControl}
+        >
+          {nowLabel}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function LevelAnswer({
+  answer,
+}: {
+  answer: AssignableDisplayLevelBand | null;
+}) {
+  const m = useMessages();
+  if (answer) {
+    return (
+      <Text
+        size="meta"
+        weight="bold"
+        ltr
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+      >
+        {answer}
+      </Text>
+    );
+  }
+  return (
+    <View
+      style={{
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: radii.slot,
+        overflow: "hidden",
+      }}
+    >
+      <Hatch />
+      <Text size="eyebrow" tone="muted">
+        {m.rating.levelCheck.notAnswered}
+      </Text>
+    </View>
+  );
+}
+
+function LevelCheckQuestion({
   row,
   disabled,
   onPick,
+}: {
+  row: LevelCheckRow;
+  disabled: boolean;
+  onPick: (band: AssignableDisplayLevelBand) => void;
+}) {
+  return (
+    <View style={{ gap: 6 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Text size="eyebrow" tone="muted" style={{ flex: 1, minWidth: 0 }}>
+          {row.question}
+        </Text>
+        <LevelAnswer answer={row.answer} />
+      </View>
+      <View
+        accessibilityRole="radiogroup"
+        accessibilityLabel={row.question}
+        style={{ flexDirection: "row", gap: CELL_GAP }}
+      >
+        {row.cells.map((cell) => (
+          <LevelCell
+            key={cell.band}
+            cell={cell}
+            nowLabel={row.nowLabel}
+            disabled={disabled}
+            onPress={() => onPick(cell.band)}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function PlayerRow({
+  row,
+  levelRow,
+  disabled,
+  onPick,
   onStar,
+  onPickLevel,
 }: {
   row: RateGameRow;
+  levelRow: LevelCheckRow | undefined;
   disabled: boolean;
   onPick: (value: number) => void;
   onStar: () => void;
+  onPickLevel: (band: AssignableDisplayLevelBand) => void;
 }) {
   return (
     <View style={{ gap: 10, paddingHorizontal: 16, paddingVertical: 12 }}>
@@ -284,6 +431,13 @@ function PlayerRow({
         ) : null}
       </View>
       <Cells row={row} disabled={disabled} onPick={onPick} />
+      {levelRow ? (
+        <LevelCheckQuestion
+          row={levelRow}
+          disabled={disabled}
+          onPick={onPickLevel}
+        />
+      ) : null}
     </View>
   );
 }
@@ -317,18 +471,22 @@ function SelfRow({ self }: { self: NonNullable<RateGameSide["self"]> }) {
 
 function SideBlock({
   side,
+  levelRows,
   open,
   disabled,
   onToggle,
   onPick,
   onStar,
+  onPickLevel,
 }: {
   side: RateGameSide;
+  levelRows: ReadonlyMap<string, LevelCheckRow> | null;
   open: boolean;
   disabled: boolean;
   onToggle: () => void;
   onPick: (userId: string, value: number) => void;
   onStar: (userId: string) => void;
+  onPickLevel: (userId: string, band: AssignableDisplayLevelBand) => void;
 }) {
   const colors = useColors();
   const Chevron = open ? ChevronUp : ChevronDown;
@@ -371,9 +529,11 @@ function SideBlock({
               <Hairline />
               <PlayerRow
                 row={row}
+                levelRow={levelRows?.get(row.userId)}
                 disabled={disabled}
                 onPick={(value) => onPick(row.userId, value)}
                 onStar={() => onStar(row.userId)}
+                onPickLevel={(band) => onPickLevel(row.userId, band)}
               />
             </View>
           ))
@@ -405,6 +565,13 @@ function RateGameForm({
   const input: RateGameSheet = sheet;
   const [draft, setDraft] = useState<RateGameDraft>(() => rateGameDraft(input));
   const view = rateGameView(input, draft, locale);
+  const levelSheet = input.levelCheck ?? null;
+  const [levels, setLevels] = useState<LevelCheckDraft>(() =>
+    levelCheckDraft(levelSheet),
+  );
+  const levelRows = levelSheet
+    ? levelCheckRows(levelSheet, levels, locale)
+    : null;
   const [open, setOpen] = useState<Record<number, boolean>>(() =>
     Object.fromEntries(
       view.sides.map((side) => [side.slot, side.openByDefault]),
@@ -413,11 +580,19 @@ function RateGameForm({
 
   const setMvp = api.marks.setMvp.useMutation();
   const submit = api.games.submitPerformanceRatings.useMutation();
-  const pending = setMvp.isPending || submit.isPending;
+  const submitLevels = api.games.submitLevelChecks.useMutation();
+  const pending =
+    setMvp.isPending || submit.isPending || submitLevels.isPending;
 
   async function send() {
     const payload = rateGameSubmission(draft, input);
     try {
+      if (levelSheet) {
+        await submitLevels.mutateAsync({
+          gameId,
+          answers: levelCheckSubmission(levels, levelSheet),
+        });
+      }
       if (payload.mvpUserId) {
         await setMvp.mutateAsync({ gameId, userId: payload.mvpUserId });
       }
@@ -504,6 +679,7 @@ function RateGameForm({
             <SideBlock
               key={side.slot}
               side={side}
+              levelRows={levelRows}
               open={open[side.slot] ?? false}
               disabled={!view.canSubmit || pending}
               onToggle={() =>
@@ -517,6 +693,11 @@ function RateGameForm({
               }
               onStar={(userId) =>
                 setDraft((current) => toggleDraftMvp(current, input, userId))
+              }
+              onPickLevel={(userId, band) =>
+                setLevels((current) =>
+                  setLevelCheckAnswer(current, userId, band),
+                )
               }
             />
           ))}
@@ -533,7 +714,9 @@ function RateGameForm({
  * Rate the game. In Organizer mode the Organizer scores every player 1 to
  * 10 and stars the MVP; Submit closes the Rating window and everyone's Tier
  * points move. When everyone rates, a player scores teammates and, if they
- * want, opponents, and may change them until the window closes.
+ * want, opponents, and may change them until the window closes. On a padel
+ * Match that asks the Level check, each other player's row also asks what
+ * band they played at.
  */
 export function RateGameScreen({ gameId }: { gameId: string }) {
   const m = useMessages();
