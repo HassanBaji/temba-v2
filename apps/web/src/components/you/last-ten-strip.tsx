@@ -34,8 +34,8 @@ function Mark({ slot }: { slot: FormSlotView }) {
 
 /**
  * Ten marks, oldest first: solid for a win, outline for a loss, hatched for
- * not played. The row follows the reading direction, so in Arabic the latest
- * is on the left.
+ * not played. The row follows the reading direction, so in Arabic it fills
+ * from the right.
  */
 export function LastTenStrip({
   title,

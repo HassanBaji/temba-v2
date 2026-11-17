@@ -13,13 +13,13 @@ describe("goalBars", () => {
       { matchId: "old", goals: 1 },
     ]);
     expect(bars).toHaveLength(10);
-    expect(bars[0]).toEqual({ key: "empty-0", goals: null, height: 0 });
-    expect(bars[8]).toEqual({ key: "old", goals: 1, height: 50 });
-    expect(bars[9]).toEqual({ key: "new", goals: 2, height: 100 });
+    expect(bars[0]).toEqual({ key: "old", goals: 1, height: 50 });
+    expect(bars[1]).toEqual({ key: "new", goals: 2, height: 100 });
+    expect(bars[2]).toEqual({ key: "empty-0", goals: null, height: 0 });
   });
 
   it("keeps empty bars flat when nobody scored", () => {
-    expect(goalBars([{ matchId: "a", goals: 0 }])[9]?.height).toBe(0);
+    expect(goalBars([{ matchId: "a", goals: 0 }])[0]?.height).toBe(0);
   });
 });
 

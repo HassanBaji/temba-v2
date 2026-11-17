@@ -10,7 +10,7 @@ export type FootballProfile = RouterOutputs["users"]["footballProfile"];
 
 export type GoalBar = { key: string; goals: number | null; height: number };
 
-/** Goals per Match over the Last 10, oldest first, each as a share of the best. */
+/** Goals per Match over the Last 10, oldest first from the start, each as a share of the best. */
 export function goalBars(
   newestFirst: readonly { matchId: string; goals: number }[],
 ): GoalBar[] {
@@ -26,7 +26,7 @@ export function goalBars(
     goals: null,
     height: 0,
   }));
-  return [...empty, ...bars];
+  return [...bars, ...empty];
 }
 
 export function footballHeroStats(

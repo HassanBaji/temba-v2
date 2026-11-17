@@ -10,7 +10,7 @@ import {
 import type { MyProfile } from "./you-hero-model";
 
 describe("lastTenSlots", () => {
-  it("pads the older side and ends on the latest Match", () => {
+  it("fills from the start, oldest first, and trails with not played", () => {
     const slots = lastTenSlots(
       [
         { matchId: "new", outcome: "won", delta: 0.04 },
@@ -19,14 +19,14 @@ describe("lastTenSlots", () => {
       "en",
     );
     expect(slots).toHaveLength(10);
-    expect(slots.slice(0, 8).every((slot) => slot.kind === "empty")).toBe(true);
-    expect(slots[8]).toMatchObject({
+    expect(slots[0]).toMatchObject({
       key: "old",
       mark: "L",
       delta: "−.03",
       spoken: "Lost −.03",
     });
-    expect(slots[9]).toMatchObject({ key: "new", mark: "W", delta: "+.04" });
+    expect(slots[1]).toMatchObject({ key: "new", mark: "W", delta: "+.04" });
+    expect(slots.slice(2).every((slot) => slot.kind === "empty")).toBe(true);
   });
 
   it("keeps only the ten newest", () => {
