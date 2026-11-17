@@ -35,7 +35,7 @@ type AloneOnlyDetails = TournamentDetails & {
   canMakeTeamsAlone?: boolean;
   aloneTeamsMinPlayers?: number;
   roster?: {
-    users: readonly { id: string; name: string }[];
+    users: readonly { id: string; name: string; image: string | null }[];
     count: number;
     cap: number | null;
   } | null;
@@ -93,7 +93,11 @@ export function TournamentAloneHome({
   });
 
   const players = (data.roster?.users ?? data.registeredPlayers).map(
-    (player) => ({ userId: player.id, name: player.name }),
+    (player) => ({
+      userId: player.id,
+      name: player.name,
+      image: player.image,
+    }),
   );
   const teamCount = data.teamsAllowed ?? 0;
   const cap = data.roster?.cap ?? data.playersAllowed ?? teamCount * 2;

@@ -65,15 +65,17 @@ export function playerShortName(
   return shortPlayerName(names.get(gamePlayerId)?.name ?? "");
 }
 
-/** A player tile: initials and a short name, solid for the viewer. */
+/** A player tile: photo or initials and a short name, solid for the viewer. */
 export function AmericanoPlayerChip({
   name,
+  image,
   isViewer,
   selected = false,
   onClick,
   label,
 }: {
   name: string;
+  image?: string | null;
   isViewer: boolean;
   selected?: boolean;
   onClick?: () => void;
@@ -82,15 +84,25 @@ export function AmericanoPlayerChip({
   const m = useMessages();
   const content = (
     <>
-      <span
-        aria-hidden="true"
-        className={cn(
-          "text-eyebrow w-6 shrink-0 font-semibold",
-          isViewer || selected ? "text-paper" : "text-ink",
-        )}
-      >
-        {initials(name)}
-      </span>
+      {image ? (
+        // eslint-disable-next-line @next/next/no-img-element -- a small avatar from the media host, as `AvatarImage` renders it
+        <img
+          src={image}
+          alt=""
+          aria-hidden="true"
+          className="size-6 shrink-0 rounded-sm object-cover"
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className={cn(
+            "text-eyebrow w-6 shrink-0 font-semibold",
+            isViewer || selected ? "text-paper" : "text-ink",
+          )}
+        >
+          {initials(name)}
+        </span>
+      )}
       <span dir="auto" className="text-meta min-w-0 truncate">
         {isViewer ? m.common.you : shortPlayerName(name)}
       </span>
@@ -161,7 +173,7 @@ export function AmericanoPlayersGrid({
   onOpenSeat,
   onPlayer,
 }: {
-  players: readonly { userId: string; name: string }[];
+  players: readonly { userId: string; name: string; image?: string | null }[];
   seatCount: number;
   viewerUserId: string;
   onOpenSeat?: () => void;
@@ -175,6 +187,7 @@ export function AmericanoPlayersGrid({
         <AmericanoPlayerChip
           key={player.userId}
           name={player.name}
+          image={player.image}
           isViewer={player.userId === viewerUserId}
           onClick={
             onPlayer && player.userId !== viewerUserId

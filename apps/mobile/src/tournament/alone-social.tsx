@@ -11,13 +11,14 @@ import {
   Shuffle,
   Users,
 } from "lucide-react-native";
-import type { ComponentType } from "react";
+import { useState, type ComponentType } from "react";
 import { Pressable, View, type ColorValue } from "react-native";
 
 import { Card } from "../home/card";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
+import { CachedImage } from "../primitives/cached-image";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
 import { initialsFor } from "../primitives/initials";
@@ -199,17 +200,23 @@ export function AloneWaitingCard({ cap }: { cap: number }) {
   );
 }
 
+const PHOTO = 24;
+
 function PlayerCell({
   name,
+  image,
   isViewer,
   onPress,
 }: {
   name: string;
+  image: string | null;
   isViewer: boolean;
   onPress?: () => void;
 }) {
   const palette = useTonePalette();
   const messages = useMessages();
+  const [failed, setFailed] = useState<string | null>(null);
+  const showImage = image != null && image.length > 0 && failed !== image;
   const shown = isViewer
     ? messages.aloneTeams.players.you
     : shortPlayerName(name);
@@ -228,15 +235,26 @@ function PlayerCell({
         backgroundColor: isViewer ? palette.control : undefined,
       }}
     >
-      <Text
-        size="eyebrow"
-        weight="semibold"
-        style={ink ? { color: ink } : undefined}
-        accessibilityElementsHidden
-        importantForAccessibility="no"
-      >
-        {initialsFor(name)}
-      </Text>
+      {showImage ? (
+        <CachedImage
+          uri={image}
+          contentFit="cover"
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+          style={{ width: PHOTO, height: PHOTO, borderRadius: radii.sm }}
+          onError={() => setFailed(image)}
+        />
+      ) : (
+        <Text
+          size="eyebrow"
+          weight="semibold"
+          style={ink ? { color: ink } : undefined}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        >
+          {initialsFor(name)}
+        </Text>
+      )}
       <Text
         size="meta"
         numberOfLines={1}
@@ -299,7 +317,7 @@ function OpenSeatCell({ onPress }: { onPress?: () => void }) {
 }
 
 type GridCell =
-  | { kind: "player"; id: string; name: string }
+  | { kind: "player"; id: string; name: string; image: string | null }
   | { kind: "open"; key: string };
 
 /** Players in sign-up order, then the open seats, two to a row. */
@@ -318,6 +336,7 @@ export function AlonePlayersCard({
       kind: "player" as const,
       id: player.id,
       name: player.name,
+      image: player.image,
     })),
     ...Array.from(
       { length: openSeatCount(players.length, cap) },
@@ -350,6 +369,7 @@ export function AlonePlayersCard({
                   <PlayerCell
                     key={cell.id}
                     name={cell.name}
+                    image={cell.image}
                     isViewer={cell.id === game.viewerUserId}
                     onPress={
                       handlers.onOpenPlayer

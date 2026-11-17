@@ -361,6 +361,7 @@ function AmericanoPredraw({
           players={data.registeredPlayers.map((player) => ({
             userId: player.id,
             name: player.name,
+            image: player.image,
           }))}
           seatCount={seatCount}
           viewerUserId={data.viewerUserId}
