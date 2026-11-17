@@ -675,7 +675,7 @@ export async function settleRatingWindow(
     await settleMvp(database, game.id, now);
   }
   if (window.countsForLevel && game.sport === "padel") {
-    await notifyReliabilityRatingsClosed(database, {
+    await notifyPadelWindowSettled(database, {
       match,
       gameId: game.id,
       groupId,
@@ -817,7 +817,7 @@ async function reverseReliability(
  * them at, one row per player. A player with neither has nothing to be told:
  * their Level moved at completion.
  */
-async function notifyReliabilityRatingsClosed(
+async function notifyPadelWindowSettled(
   database: DbClient,
   args: {
     match: typeof matches.$inferSelect;

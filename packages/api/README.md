@@ -43,18 +43,18 @@ pnpm --filter @repo/api db:replay-padel-ratings -- --restore <run id>           
 
 ### Runbook for the production run
 
-The owner, or a developer with the production database URL, ticks these in order. The Level check (TEM-475) may not deploy before the last one.
+The owner, or a developer with the production database URL, ticks these in order. The Level check's code may already be deployed: it asks nothing, and a padel Public Game opens no Rating window, until `PADEL_LEVEL_CHECK_ENABLED=1` is set on the API in the last step.
 
-1. The Declared band start φ, the Prove-it rule, the recalculation and the recalculation's Notification are deployed to production and their migrations have run.
+1. The Declared band start φ, the Prove-it rule, the recalculation and the recalculation's Notification are deployed to production and their migrations have run. `PADEL_LEVEL_CHECK_ENABLED` is unset (or `0`) on the API.
 2. Run the size query below against production and note the counts.
 3. Run the dry run against production: `pnpm --filter @repo/api db:replay-padel-ratings -- --report replay.csv`. Note the load and compute time it prints.
 4. The owner reads the report: how many players move, the largest moves up and down, who changes band, how many players would be told, the baseline pass, the anomalies. "Players crossing the confirmation line" must be 0.
 5. If the report lists rows that cannot be recomputed, the owner decides whether to pass `--carry-unplaced`.
 6. Take a database backup on the host.
 7. At a quiet hour, apply: `pnpm --filter @repo/api db:replay-padel-ratings -- --apply`. Note the run id. If the dry run's timing was more than a few seconds, pause the API's Job queue and rating doors first. If it stops on the lock timeout, nothing was written: run it again at a quieter moment.
-8. Run the dry run again. It must report no rows that would change.
+8. Run the dry run again. It must report no rows that would change. If it reports any, stop here and leave the Level check off.
 9. Open a few players' Ratings screens and Rating history and check them against the report.
-10. Only now may the Level check deploy. The recalculation is not run again.
+10. Only now set `PADEL_LEVEL_CHECK_ENABLED=1` on the API and restart it. From then on the replay refuses, since a Level check result will exist, so the recalculation is not run again.
 
 ```sql
 select

@@ -929,7 +929,6 @@ export const rating = {
       agreed: "Players agreed with your level",
     },
     errors: {
-      band: "Pick one of the nine level bands.",
       self: "You don’t answer about your own level.",
       duplicate: "Answer once for each player.",
       notPlayer: "You can only answer about the other players of this game.",

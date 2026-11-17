@@ -24,6 +24,7 @@ import {
   padelConfirmations,
 } from "#src/ratings/level-confirmed";
 import { ratingWeightForGame } from "#src/ratings/game-rating-weight";
+import { levelCheckEnabled } from "#src/ratings/level-check";
 import { openRatingWindow } from "#src/ratings/settle-rating-window";
 import { withGuestStandIns } from "#src/ratings/guest-stand-ins";
 import {
@@ -326,10 +327,11 @@ export async function applyRatedMatch(
   // both sides confirmed, asks its four players to rate each other and check
   // each other's Level. The Level has already moved; the ratings move
   // Reliability and the Level check moves the Level again when the window
-  // settles (ADR-0095, ADR-0099).
+  // settles (ADR-0095, ADR-0099). A Public Game's window exists for the Level
+  // check, so it opens none while the check is off.
   if (
     liveGame.format === "friendly_game" &&
-    (liveGame.groupId || isPublicGame(liveGame))
+    (liveGame.groupId || (isPublicGame(liveGame) && levelCheckEnabled()))
   ) {
     await openRatingWindow(database, {
       game: { ...game, groupId: liveGame.groupId },

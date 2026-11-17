@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   GamePositionEnum,
@@ -629,6 +629,25 @@ describe("A padel Public Game's Rating window (ADR-0099)", () => {
         [g.creator, g.b, g.c, g.d].sort(),
       );
     });
+  });
+
+  it("opens none while the Level check is off, and the Match still moves the Level", async () => {
+    vi.stubEnv("PADEL_LEVEL_CHECK_ENABLED", "");
+    try {
+      await withDb(async (db) => {
+        const g = await confirmedPublicGame(db);
+
+        expect(await windowOf(db, g.matchId)).toBeUndefined();
+        expect(await askedToRate(db, g.gameId)).toEqual([]);
+        expect(
+          await db.query.ratingEvents.findMany({
+            where: eq(ratingEvents.matchId, g.matchId),
+          }),
+        ).toHaveLength(4);
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("opens none when the score stood without the other side's confirmation", async () => {

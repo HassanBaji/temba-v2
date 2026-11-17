@@ -15,7 +15,7 @@ import {
 
 import { DEFAULT_FOOTBALL_BIBS } from "@repo/domain/football-lineup";
 import {
-  LEVEL_CHECK_MIN_BALLOTS,
+  LEVEL_CHECK_MIN_ANSWERS,
   levelCheckVerdict,
   type LevelCheckResultData,
 } from "@repo/domain/level-check";
@@ -44,7 +44,11 @@ import { matchSeatedUserIds } from "#src/games/match-result-confirmations";
 import { loadMatchParticipants } from "#src/marks/match-participants";
 import { mvpQuestion } from "#src/marks/settle-mvp";
 import { loadGroupTierTable } from "#src/ratings/group-tier-table";
-import { levelCheckAsked, levelCheckPicks } from "#src/ratings/level-check";
+import {
+  levelCheckAsked,
+  levelCheckAnswersByPlayer,
+  type SidedMatch,
+} from "#src/ratings/level-check";
 import {
   countedBallots,
   settleRatingWindowIfDue,
@@ -355,7 +359,7 @@ async function reliabilityResult(
 async function levelCheckResult(
   database: DbClient,
   args: {
-    match: Parameters<typeof levelCheckPicks>[1];
+    match: SidedMatch;
     userId: string;
   },
 ): Promise<LevelCheckResultData | null> {
@@ -385,7 +389,9 @@ async function levelCheckResult(
   if (!rating) {
     return null;
   }
-  const picks = (await levelCheckPicks(database, args.match)).get(args.userId);
+  const picks = (await levelCheckAnswersByPlayer(database, args.match)).get(
+    args.userId,
+  );
   const verdict = levelCheckVerdict(picks ?? []);
   return verdict.kind === "verdict"
     ? null
@@ -393,7 +399,7 @@ async function levelCheckResult(
         kind: "unsettled",
         reason: verdict.kind,
         ballotsReceived: verdict.ballotsCounted,
-        ballotsNeeded: LEVEL_CHECK_MIN_BALLOTS,
+        ballotsNeeded: LEVEL_CHECK_MIN_ANSWERS,
       };
 }
 

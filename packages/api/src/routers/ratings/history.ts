@@ -12,7 +12,10 @@ import {
   ratingEvents,
   venues,
 } from "@repo/db";
-import { levelCheckVerdictBand } from "@repo/domain/level-check";
+import {
+  levelCheckVerdictBand,
+  levelCheckVerdictLevel,
+} from "@repo/domain/level-check";
 import {
   RATING_HISTORY_LADDERS,
   type RatingHistoryItemData,
@@ -477,7 +480,7 @@ export async function ratingHistory(
           muAfter: check.muAfter,
           venueName: matchById.get(check.matchId)?.game?.venue?.name ?? null,
           verdictBand: levelCheckVerdictBand(
-            check.verdictLevelHundredths / 100,
+            levelCheckVerdictLevel(check.verdictLevelHundredths),
           ),
           agreed: check.agreed,
         },

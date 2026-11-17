@@ -16,16 +16,16 @@ import {
 } from "./level-bands";
 
 /**
- * The Level check: after a padel Match with a Rating window the other three
- * players say what band a player played at, and the verdict is blended into
- * their Level as one measurement weighed by their φ. The constants are
- * starting values and tunable (`.scratch/padel-declared-band-trust/spec.md`
- * §8.3).
+ * The Level check (ADR-0099): after a padel Match with a Rating window the
+ * other three players say what band a player played at, and the verdict is
+ * blended into their Level as one measurement weighed by their φ. The
+ * constants are starting values and tunable. This one is the φ the verdict
+ * carries as that measurement.
  */
-export const LEVEL_CHECK_R = 250;
+export const LEVEL_CHECK_VERDICT_PHI = 250;
 /** 0.35 Level: the most one check moves μ, before the Game's weight. */
 export const LEVEL_CHECK_CAP_MU = 175;
-export const LEVEL_CHECK_MIN_BALLOTS = 2;
+export const LEVEL_CHECK_MIN_ANSWERS = 2;
 /** A rater whose own padel Level is Provisional when the window settles (ADR-0080). */
 export const LEVEL_CHECK_PROVISIONAL_RATER_WEIGHT = 0.5;
 export const LEVEL_CHECK_OUTLIER_WEIGHT = 0.5;
@@ -53,14 +53,8 @@ export const LEVEL_CHECK_BAND_LEVELS: Record<
 
 const HALF_TOLERANCE = 1e-9;
 
-export function isLevelCheckBand(
-  value: string,
-): value is AssignableDisplayLevelBand {
-  return LEVEL_CHECK_BANDS.some((band) => band === value);
-}
-
 /** One answer about a player: the band picked and whether an opponent picked it. */
-export type LevelCheckPick = {
+export type WeighedLevelCheckAnswer = {
   band: AssignableDisplayLevelBand;
   fromOpponent: boolean;
   /** 1 unless the rater is Provisional or an outlier. */
@@ -68,15 +62,37 @@ export type LevelCheckPick = {
 };
 
 /** A counted answer on one Match, with who gave it and who it is about. */
-export type LevelCheckBallot = Omit<LevelCheckPick, "weight"> & {
+export type LevelCheckAnswer = Omit<WeighedLevelCheckAnswer, "weight"> & {
   raterUserId: string;
   rateeUserId: string;
+};
+
+export type SettledLevelCheckVerdict = {
+  kind: "verdict";
+  level: number;
+  /** The band the median fell on, or the two the weight split evenly across. */
+  bands: readonly AssignableDisplayLevelBand[];
+  ballotsCounted: number;
 };
 
 export type LevelCheckVerdict =
   | { kind: "too_few"; ballotsCounted: number }
   | { kind: "no_opponent"; ballotsCounted: number }
-  | { kind: "verdict"; level: number; ballotsCounted: number };
+  | SettledLevelCheckVerdict;
+
+function verdictAcross(
+  bands: readonly AssignableDisplayLevelBand[],
+  ballotsCounted: number,
+): SettledLevelCheckVerdict {
+  return {
+    kind: "verdict",
+    level:
+      bands.reduce((sum, band) => sum + LEVEL_CHECK_BAND_LEVELS[band], 0) /
+      bands.length,
+    bands: [...new Set(bands)],
+    ballotsCounted,
+  };
+}
 
 /**
  * The verdict on one player: the weighted median of the picks on the nine
@@ -85,10 +101,10 @@ export type LevelCheckVerdict =
  * Game team.
  */
 export function levelCheckVerdict(
-  picks: readonly LevelCheckPick[],
+  picks: readonly WeighedLevelCheckAnswer[],
 ): LevelCheckVerdict {
   const ballotsCounted = picks.length;
-  if (ballotsCounted < LEVEL_CHECK_MIN_BALLOTS) {
+  if (ballotsCounted < LEVEL_CHECK_MIN_ANSWERS) {
     return { kind: "too_few", ballotsCounted };
   }
   if (!picks.some((pick) => pick.fromOpponent)) {
@@ -99,22 +115,20 @@ export function levelCheckVerdict(
       LEVEL_CHECK_BANDS.indexOf(left.band) -
       LEVEL_CHECK_BANDS.indexOf(right.band),
   );
-  const weightOf = (pick: LevelCheckPick) => pick.weight ?? 1;
+  const weightOf = (pick: WeighedLevelCheckAnswer) => pick.weight ?? 1;
   const half = sorted.reduce((sum, pick) => sum + weightOf(pick), 0) / 2;
   let running = 0;
   for (const [index, pick] of sorted.entries()) {
     running += weightOf(pick);
-    const level = LEVEL_CHECK_BAND_LEVELS[pick.band];
     if (Math.abs(running - half) <= HALF_TOLERANCE) {
       const next = sorted[index + 1];
-      return {
-        kind: "verdict",
-        level: next ? (level + LEVEL_CHECK_BAND_LEVELS[next.band]) / 2 : level,
+      return verdictAcross(
+        next ? [pick.band, next.band] : [pick.band],
         ballotsCounted,
-      };
+      );
     }
     if (running > half) {
-      return { kind: "verdict", level, ballotsCounted };
+      return verdictAcross([pick.band], ballotsCounted);
     }
   }
   return { kind: "too_few", ballotsCounted };
@@ -126,10 +140,10 @@ export function levelCheckVerdict(
  * rule count answers, not weights.
  */
 export function levelCheckVerdicts(
-  ballots: readonly LevelCheckBallot[],
+  ballots: readonly LevelCheckAnswer[],
   raterWeights: ReadonlyMap<string, number> = new Map(),
 ): Map<string, LevelCheckVerdict> {
-  const picks = new Map<string, LevelCheckPick[]>();
+  const picks = new Map<string, WeighedLevelCheckAnswer[]>();
   for (const ballot of ballots) {
     const list = picks.get(ballot.rateeUserId) ?? [];
     list.push({
@@ -164,7 +178,7 @@ const VERDICT_BAND_POSITIONS = new Map<number, number>(
 );
 
 /** A verdict's place on the nine display bands, counting a split verdict as halfway. */
-export function levelCheckBandPosition(level: number): number {
+function levelCheckBandPosition(level: number): number {
   return (
     VERDICT_BAND_POSITIONS.get(levelCheckVerdictHundredths(level)) ??
     LEVEL_CHECK_BANDS.indexOf(levelCheckVerdictBand(level))
@@ -178,7 +192,7 @@ export function levelCheckBandPosition(level: number): number {
  */
 export function levelCheckRaterDistances(
   ballots: readonly Pick<
-    LevelCheckBallot,
+    LevelCheckAnswer,
     "raterUserId" | "rateeUserId" | "band"
   >[],
   verdictLevels: ReadonlyMap<string, number>,
@@ -235,7 +249,7 @@ function verdictLevels(verdicts: ReadonlyMap<string, LevelCheckVerdict>) {
  * answers every time, so nothing records a judgement of a rater (ADR-0068).
  */
 export function levelCheckRaterWeights(
-  ballots: readonly LevelCheckBallot[],
+  ballots: readonly LevelCheckAnswer[],
   options: {
     provisionalRaterIds: ReadonlySet<string>;
     previousDistances: PreviousLevelCheckDistances;
@@ -284,8 +298,13 @@ export function levelCheckVerdictHundredths(level: number) {
   return Math.round(level * 100);
 }
 
+/** A verdict's Level from its hundredths, as `level_check_results` stores it. */
+export function levelCheckVerdictLevel(verdictLevelHundredths: number) {
+  return verdictLevelHundredths / 100;
+}
+
 export type LevelCheckStep = {
-  /** The verdict was the band the player shows, so μ stays. */
+  /** The verdict agreed with the band the player shows, so μ stays. */
   agreed: boolean;
   mu: number;
   phi: number;
@@ -296,19 +315,21 @@ export type LevelCheckStep = {
  * One Level check as a measurement of the Level: μ moves by
  * `k × (μ_verdict − μ)` with `k = φ² / (φ² + r²)`, capped at 0.35 Level, and
  * φ narrows as by one more measurement; both are then blended by the Game's
- * weight. A verdict on the band the player shows moves no μ and only narrows
- * φ.
+ * weight. A verdict that agrees with the band the player shows moves no μ and
+ * only narrows φ: one on that band, or one split evenly across two bands of
+ * which it is one. A split's Level, the mean of the two middles, reads as one
+ * of the two bands or a third, so it is never compared alone (ADR-0099).
  */
 export function levelCheckStep(
   state: { mu: number; phi: number; levelBand: LevelBand },
-  verdictLevel: number,
+  verdict: Pick<SettledLevelCheckVerdict, "level" | "bands">,
   weight: number,
 ): LevelCheckStep {
-  const agreed =
-    levelCheckVerdictBand(verdictLevel) ===
-    displayLabelFromStoredBand(state.levelBand);
+  const agreed = verdict.bands.includes(
+    displayLabelFromStoredBand(state.levelBand),
+  );
   const variance = state.phi * state.phi;
-  const measurement = LEVEL_CHECK_R * LEVEL_CHECK_R;
+  const measurement = LEVEL_CHECK_VERDICT_PHI * LEVEL_CHECK_VERDICT_PHI;
   const gain = variance / (variance + measurement);
   const move = agreed
     ? 0
@@ -316,7 +337,7 @@ export function levelCheckStep(
         -LEVEL_CHECK_CAP_MU,
         Math.min(
           LEVEL_CHECK_CAP_MU,
-          gain * (muFromLevel(verdictLevel) - state.mu),
+          gain * (muFromLevel(verdict.level) - state.mu),
         ),
       );
   const mu = state.mu + weight * move;
@@ -484,7 +505,9 @@ export function levelCheckResultView(
   return {
     title: m.title,
     headline: m.placed(
-      levelCheckVerdictBand(data.verdictLevelHundredths / 100),
+      levelCheckVerdictBand(
+        levelCheckVerdictLevel(data.verdictLevelHundredths),
+      ),
     ),
     line: m.moved(padelLevel(data.muBefore), padelLevel(data.muAfter)),
   };

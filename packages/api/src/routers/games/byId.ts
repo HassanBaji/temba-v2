@@ -121,7 +121,10 @@ import { sideUserIds } from "#src/ratings/apply-tier-match";
 import { padelConfirmations } from "#src/ratings/level-confirmed";
 import { mayCalibrateAll } from "#src/ratings/verifier-calibration";
 import { ovrFromMu } from "@repo/domain/football-ovr";
-import { type OvrImpact } from "@repo/domain/game-rating-impact";
+import {
+  type OvrImpact,
+  type ProveItImpact,
+} from "@repo/domain/game-rating-impact";
 import { groupSeasonRows } from "#src/games/season-link";
 import { toSeasonRow } from "#src/standing/load-group-standing";
 import { MATCH_STATUS } from "@repo/domain/match-status";
@@ -404,7 +407,7 @@ function individualFriendlyGamePhase(args: {
 async function proveItImpact(
   database: DbClient,
   args: { userId: string; part: number | null },
-): Promise<{ part: number; declaredBand: LevelBand } | null> {
+): Promise<ProveItImpact | null> {
   if (args.part === null) {
     return null;
   }
@@ -1073,7 +1076,7 @@ export async function gameById(
      * What the Prove-it rule added to a lost padel Match, in μ points, and
      * the band the viewer declared (ADR-0097). Null when it added nothing.
      */
-    proveIt: { part: number; declaredBand: LevelBand } | null;
+    proveIt: ProveItImpact | null;
     /** A football Match's move in OVR, by part (ADR-0069). */
     ovr: OvrImpact | null;
   } | null = null;

@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   groups,
@@ -31,10 +31,12 @@ import { padelConfirmations } from "#src/ratings/level-confirmed";
 import { applyPadelReplay } from "#src/ratings/padel-replay-apply";
 import { settleRatingWindow } from "#src/ratings/settle-rating-window";
 import { completeMatch } from "#src/routers/games/completeMatch";
+import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
 import { performanceRatingResult } from "#src/routers/games/performanceRatingResult";
 import { performanceRatingSheet } from "#src/routers/games/performanceRatingSheet";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
 import { submitLevelChecks } from "#src/routers/games/submitLevelChecks";
+import { submitPerformanceRatings } from "#src/routers/games/submitPerformanceRatings";
 import { listNotifications } from "#src/routers/notifications/list";
 import { ratingHistory } from "#src/routers/ratings/history";
 
@@ -250,6 +252,62 @@ describe("answering the Level check", () => {
   });
 });
 
+describe("while the Level check is off", () => {
+  recordJobs();
+  beforeEach(() => vi.stubEnv("PADEL_LEVEL_CHECK_ENABLED", ""));
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("asks none on a padel Verified Group window, whose Performance ratings still move Reliability", async () => {
+    await withDb(async (db) => {
+      const match = await playedPadel(db);
+      const sheet = await performanceRatingSheet(api(db), {
+        gameId: match.gameId,
+        userId: match.a.id,
+      });
+      expect(sheet).toMatchObject({
+        sport: "padel",
+        mode: "everyone",
+        state: "open",
+      });
+      expect(sheet.levelCheck).toBeNull();
+      await expect(
+        answer(db, match, match.a, [[match.c, "C"]]),
+      ).rejects.toThrow("This game asks no level check.");
+
+      // Answers given before the check was turned off settle nothing either.
+      await db.insert(levelCheckBallots).values(
+        [match.a, match.b].map((rater) => ({
+          matchId: match.matchId,
+          raterUserId: rater.id,
+          rateeUserId: match.c.id,
+          band: "B1" as const,
+        })),
+      );
+      for (const rater of [match.a, match.b]) {
+        await submitPerformanceRatings(api(db), {
+          gameId: match.gameId,
+          userId: rater.id,
+          ratings: [{ userId: match.c.id, value: 3 }],
+        });
+      }
+      const before = await ratingOf(db, match.c.id);
+      expect(await closeRatingWindow(db, match.matchId)).toBe(true);
+
+      expect(await resultsOf(db, match.matchId)).toEqual([]);
+      const after = await ratingOf(db, match.c.id);
+      expect(after.mu).toBe(before.mu);
+      expect(after.phi).toBe(before.phi);
+      expect(after.reliability).toBeLessThan(before.reliability);
+      const result = await performanceRatingResult(api(db), {
+        gameId: match.gameId,
+        userId: match.c.id,
+      });
+      expect(result.reliability).not.toBeNull();
+      expect(result.levelCheck).toBeNull();
+    });
+  });
+});
+
 describe("settling the Level check", () => {
   recordJobs();
 
@@ -331,6 +389,27 @@ describe("settling the Level check", () => {
       }
     },
   );
+
+  it("blends by the weight the Match was rated at, though the Group gained its Venue before the window settled", async () => {
+    await withDb(async (db) => {
+      const match = await playedPadel(db);
+      await db
+        .update(groups)
+        .set({ venueId: match.venueId })
+        .where(eq(groups.id, match.groupId));
+      await answer(db, match, match.a, [[match.c, "A"]]);
+      await answer(db, match, match.b, [[match.c, "A"]]);
+      const before = await ratingOf(db, match.c.id);
+      await closeRatingWindow(db, match.matchId);
+
+      const [result] = await resultsOf(db, match.matchId);
+      expect(result?.weight).toBe(0.5);
+      expect((await ratingOf(db, match.c.id)).mu - before.mu).toBeCloseTo(
+        87.5,
+        8,
+      );
+    });
+  });
 
   it("never moves more than 0.35 Level, halved on a weight 0.5 Group", async () => {
     for (const [club, cap] of [
@@ -486,6 +565,29 @@ describe("settling the Level check", () => {
         "Players placed you at C: level 2.45 to 2.64.",
       );
       expect(notificationCopy(told!, "ar").subline).toMatch(/وضعك اللاعبون/);
+    });
+  });
+
+  it("leaves the Match's own move on its Match history row, as Rating history keeps the check on its own line", async () => {
+    await withDb(async (db) => {
+      const match = await playedPadel(db);
+      await answer(db, match, match.a, [[match.c, "B"]]);
+      await answer(db, match, match.b, [[match.c, "B"]]);
+      await closeRatingWindow(db, match.matchId);
+      const event = await db.query.ratingEvents.findFirst({
+        where: and(
+          eq(ratingEvents.matchId, match.matchId),
+          eq(ratingEvents.userId, match.c.id),
+        ),
+      });
+      const [result] = await resultsOf(db, match.matchId);
+      expect(result?.muAfter).not.toBe(result?.muBefore);
+
+      const [row] = await listMyMatchHistoryRows(api(db), match.c.id);
+      expect(row?.levelMove).toEqual({
+        muBefore: event!.muBefore,
+        muAfter: event!.muAfter,
+      });
     });
   });
 

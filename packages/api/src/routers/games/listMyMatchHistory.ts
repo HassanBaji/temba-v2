@@ -10,7 +10,6 @@ import {
   gamePlayers,
   games,
   kingPlaceAwards,
-  levelCheckResults,
   marks,
   matches,
   ratingEvents,
@@ -784,36 +783,19 @@ async function withLevelMoves(
   userId: string,
   rows: Omit<MatchHistoryRow, "levelMove">[],
 ): Promise<MatchHistoryRow[]> {
-  const [events, checks] =
+  const events =
     rows.length === 0
-      ? [[], []]
-      : await Promise.all([
-          database.query.ratingEvents.findMany({
-            where: and(
-              eq(ratingEvents.userId, userId),
-              inArray(
-                ratingEvents.matchId,
-                rows.map((row) => row.matchId),
-              ),
+      ? []
+      : await database.query.ratingEvents.findMany({
+          where: and(
+            eq(ratingEvents.userId, userId),
+            inArray(
+              ratingEvents.matchId,
+              rows.map((row) => row.matchId),
             ),
-            columns: { matchId: true, muBefore: true, muAfter: true },
-          }),
-          database.query.levelCheckResults.findMany({
-            where: and(
-              eq(levelCheckResults.userId, userId),
-              inArray(
-                levelCheckResults.matchId,
-                rows.map((row) => row.matchId),
-              ),
-            ),
-            columns: { matchId: true, muBefore: true, muAfter: true },
-          }),
-        ]);
-  // A Match's Level check moved the Level after it, so the row's move reads
-  // both.
-  const checkMove = new Map(
-    checks.map((check) => [check.matchId, check.muAfter - check.muBefore]),
-  );
+          ),
+          columns: { matchId: true, muBefore: true, muAfter: true },
+        });
   // A King of the court row has no Match: its `matchId` is the Game id, and
   // what moved the Level is the viewer's Place award (ADR-0089).
   const kingGameIds = rows.flatMap((row) =>
@@ -831,11 +813,7 @@ async function withLevelMoves(
         });
   const byMatch = new Map(
     [
-      ...events.map((event) => ({
-        ...event,
-        muAfter: event.muAfter + (checkMove.get(event.matchId) ?? 0),
-        key: event.matchId,
-      })),
+      ...events.map((event) => ({ ...event, key: event.matchId })),
       ...awards.map((award) => ({ ...award, key: award.gameId })),
     ].map((move) => [
       move.key,

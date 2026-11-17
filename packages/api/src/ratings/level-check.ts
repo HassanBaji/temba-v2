@@ -7,13 +7,10 @@ import {
   levelOverrides,
   matches,
   matchRatingWindows,
+  ratingEvents,
   ratings,
 } from "@repo/db";
-import {
-  bandWithHysteresis,
-  levelFromMu,
-  padelMatchesRemainingToConfirm,
-} from "@repo/domain/level";
+import { padelMatchesRemainingToConfirm } from "@repo/domain/level";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import {
   LEVEL_CHECK_OUTLIER_MATCHES_RUNNING,
@@ -22,8 +19,9 @@ import {
   levelCheckStep,
   levelCheckVerdicts,
   levelCheckVerdictHundredths,
-  type LevelCheckBallot,
-  type LevelCheckPick,
+  levelCheckVerdictLevel,
+  type LevelCheckAnswer,
+  type WeighedLevelCheckAnswer,
   type PreviousLevelCheckDistances,
 } from "@repo/domain/level-check";
 
@@ -31,27 +29,39 @@ import { type db } from "#src/db";
 import { sideUserIds } from "#src/ratings/apply-tier-match";
 import { ratingWeightForGame } from "#src/ratings/game-rating-weight";
 import { padelConfirmations } from "#src/ratings/level-confirmed";
+import { withoutMuMove } from "#src/ratings/without-mu-move";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const PADEL = GroupSportEnum.PADEL;
 
-type SidedMatch = Pick<
+export type SidedMatch = Pick<
   typeof matches.$inferSelect,
   "id" | "slot1GameTeamId" | "slot2GameTeamId"
 >;
 
 /**
- * A Rating window asks the Level check when it is a padel window that counts
- * for Temba Level: a padel Friendly game on a Verified Group (ADR-0095) or a
- * padel Public Game whose score both sides confirmed. Football windows, tier
- * Groups, tournaments and Challenge Games open no such window.
+ * Whether the API asks the Level check at all: off unless
+ * `PADEL_LEVEL_CHECK_ENABLED` is "1". The Level recalculation refuses once a
+ * Level check has settled, so the check is turned on only after the
+ * recalculation's production run (ADR-0099).
+ */
+export function levelCheckEnabled() {
+  return process.env.PADEL_LEVEL_CHECK_ENABLED === "1";
+}
+
+/**
+ * A Rating window asks the Level check when the check is on and the window
+ * is a padel one that counts for Temba Level: a padel Friendly game on a
+ * Verified Group (ADR-0095) or a padel Public Game whose score both sides
+ * confirmed. Football windows, tier Groups, tournaments and Challenge Games
+ * open no such window.
  */
 export function levelCheckAsked(
   window: { countsForLevel: boolean },
   sport: "padel" | "football",
 ) {
-  return window.countsForLevel && sport === "padel";
+  return levelCheckEnabled() && window.countsForLevel && sport === "padel";
 }
 
 /**
@@ -59,10 +69,10 @@ export function levelCheckAsked(
  * another seated player, each marked by whether the rater sat on the
  * opposing Game team. A Guest player is seated on neither side.
  */
-export async function countedLevelCheckBallots(
+export async function countedLevelCheckAnswers(
   database: DbClient,
   match: SidedMatch,
-): Promise<LevelCheckBallot[]> {
+): Promise<LevelCheckAnswer[]> {
   const [slot1, slot2] = await Promise.all(
     [match.slot1GameTeamId, match.slot2GameTeamId].map(async (gameTeamId) =>
       gameTeamId
@@ -97,12 +107,12 @@ export async function countedLevelCheckBallots(
 }
 
 /** The counted answers on a Match, by the player they are about. */
-export async function levelCheckPicks(
+export async function levelCheckAnswersByPlayer(
   database: DbClient,
   match: SidedMatch,
-): Promise<Map<string, LevelCheckPick[]>> {
-  const picks = new Map<string, LevelCheckPick[]>();
-  for (const ballot of await countedLevelCheckBallots(database, match)) {
+): Promise<Map<string, WeighedLevelCheckAnswer[]>> {
+  const picks = new Map<string, WeighedLevelCheckAnswer[]>();
+  for (const ballot of await countedLevelCheckAnswers(database, match)) {
     const list = picks.get(ballot.rateeUserId) ?? [];
     list.push({ band: ballot.band, fromOpponent: ballot.fromOpponent });
     picks.set(ballot.rateeUserId, list);
@@ -188,7 +198,7 @@ export async function previousLevelCheckDistances(
           new Map(
             results.map((result) => [
               result.userId,
-              result.verdictLevelHundredths / 100,
+              levelCheckVerdictLevel(result.verdictLevelHundredths),
             ]),
           ),
         ).get(raterUserId) ?? null,
@@ -208,7 +218,7 @@ async function levelCheckWeights(
   database: DbClient,
   args: {
     match: SidedMatch & Pick<typeof matches.$inferSelect, "completedAt">;
-    ballots: readonly LevelCheckBallot[];
+    ballots: readonly LevelCheckAnswer[];
     now: Date;
   },
 ) {
@@ -231,6 +241,31 @@ async function levelCheckWeights(
     ),
     previousDistances,
   });
+}
+
+/**
+ * The Game's weight as the Match's Rated Match stored it, so a Group that
+ * gained or lost its Venue while the window was open leaves the check at the
+ * Match's weight. Read from the Group only for a Match with no padel events.
+ */
+async function matchWeight(
+  database: DbClient,
+  args: {
+    match: SidedMatch;
+    game: { groupId: string | null; isPublic: boolean };
+  },
+) {
+  const [event] = await database
+    .select({ weight: ratingEvents.weight })
+    .from(ratingEvents)
+    .where(
+      and(
+        eq(ratingEvents.matchId, args.match.id),
+        eq(ratingEvents.sport, PADEL),
+      ),
+    )
+    .limit(1);
+  return event?.weight ?? (await ratingWeightForGame(database, args.game));
 }
 
 /**
@@ -258,7 +293,7 @@ export async function settleLevelChecks(
   if (existing.length > 0) {
     return [];
   }
-  const ballots = await countedLevelCheckBallots(database, args.match);
+  const ballots = await countedLevelCheckAnswers(database, args.match);
   const weights = await levelCheckWeights(database, {
     match: args.match,
     ballots,
@@ -287,7 +322,7 @@ export async function settleLevelChecks(
     .orderBy(ratings.userId)
     .for("update");
   const rowByUser = new Map(rows.map((row) => [row.userId, row]));
-  const weight = await ratingWeightForGame(database, args.game);
+  const weight = await matchWeight(database, args);
 
   const settled: string[] = [];
   for (const { userId, verdict } of verdicts) {
@@ -295,7 +330,7 @@ export async function settleLevelChecks(
     if (!row) {
       continue;
     }
-    const step = levelCheckStep(row, verdict.level, weight);
+    const step = levelCheckStep(row, verdict, weight);
     await database
       .update(ratings)
       .set({
@@ -379,7 +414,6 @@ export async function takeBackLevelChecks(
       continue;
     }
     const untouched = row.mu === result.muAfter && row.phi === result.phiAfter;
-    const mu = row.mu - (result.muAfter - result.muBefore);
     await database
       .update(ratings)
       .set(
@@ -390,11 +424,7 @@ export async function takeBackLevelChecks(
               levelBand: result.levelBandBefore,
               updatedAt: now,
             }
-          : {
-              mu,
-              levelBand: bandWithHysteresis(levelFromMu(mu), row.levelBand),
-              updatedAt: now,
-            },
+          : { ...withoutMuMove(row, result), updatedAt: now },
       )
       .where(eq(ratings.id, row.id));
   }

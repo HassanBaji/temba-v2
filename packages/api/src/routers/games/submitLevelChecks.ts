@@ -10,8 +10,11 @@ import {
   ratings,
 } from "@repo/db";
 
-import { storedBandFromDisplayLabel } from "@repo/domain/level-bands";
-import { LEVEL_CHECK_BANDS, isLevelCheckBand } from "@repo/domain/level-check";
+import {
+  storedBandFromDisplayLabel,
+  type AssignableDisplayLevelBand,
+} from "@repo/domain/level-bands";
+import { LEVEL_CHECK_BANDS } from "@repo/domain/level-check";
 import { ratingWindowState } from "@repo/domain/performance-rating";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
@@ -43,21 +46,17 @@ export async function submitLevelChecks(
   args: {
     gameId: string;
     userId: string;
-    answers: { userId: string; band: string }[];
+    answers: { userId: string; band: AssignableDisplayLevelBand }[];
     locale?: Locale;
   },
   now: Date = new Date(),
 ): Promise<{ ok: true }> {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const errors = messagesFor(locale).rating.levelCheck.errors;
-  const answers = args.answers.flatMap((row) =>
-    isLevelCheckBand(row.band)
-      ? [{ userId: row.userId, band: storedBandFromDisplayLabel(row.band) }]
-      : [],
-  );
-  if (answers.length !== args.answers.length) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: errors.band });
-  }
+  const answers = args.answers.map((row) => ({
+    userId: row.userId,
+    band: storedBandFromDisplayLabel(row.band),
+  }));
   if (args.answers.some((row) => row.userId === args.userId)) {
     throw new TRPCError({ code: "BAD_REQUEST", message: errors.self });
   }

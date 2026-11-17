@@ -46,10 +46,6 @@ export const level = {
     backFromInjury: "عائد من إصابة",
     correctingAMistake: "تصحيح خطأ",
   },
-  declare: {
-    proveItHint: (band: string) =>
-      `إذا اخترت ${isolate(band)} أو أعلى، فكل خسارة أمام زوج في مستواك تُحسب مرة ونصفًا حتى يتأكد مستواك.`,
-  },
   overrideCaption: (who: string, when: string) => `حدّده ${who}، ${when}`,
   overrideByYou: "أنت",
   noReasonGiven: "دون ذكر سبب",

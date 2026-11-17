@@ -18,7 +18,10 @@ import {
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
-import { levelCheckStep } from "@repo/domain/level-check";
+import {
+  levelCheckStep,
+  levelCheckVerdictLevel,
+} from "@repo/domain/level-check";
 import { TIER_K, tierExpectedScore } from "@repo/domain/tier-points";
 
 import { recordJobs } from "#src/jobs/job-sink.test-support";
@@ -622,7 +625,10 @@ describe("A padel Public Game's Rating window (ADR-0099)", () => {
       const after = await padelRatingOf(db, g.c);
       const step = levelCheckStep(
         before,
-        checked!.verdictLevelHundredths / 100,
+        {
+          level: levelCheckVerdictLevel(checked!.verdictLevelHundredths),
+          bands: ["B"],
+        },
         1,
       );
       expect(after.mu).toBe(step.mu);

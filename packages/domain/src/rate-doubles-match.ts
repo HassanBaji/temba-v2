@@ -122,14 +122,15 @@ function inflate(player: DoublesPlayerInput, now: Date): RatingGlickoState {
   };
 }
 
-function ratePlayer(
-  before: RatingGlickoState,
-  opponent: ClassicGlickoOpponent,
-  score: 0 | 0.5 | 1,
-  weight: number,
-  lossFactor: number,
-  proveIt: boolean,
-): DoublesPlayerResult {
+function ratePlayer(args: {
+  before: RatingGlickoState;
+  opponent: ClassicGlickoOpponent;
+  score: 0 | 0.5 | 1;
+  weight: number;
+  lossFactor: number;
+  proveIt: boolean;
+}): DoublesPlayerResult {
+  const { before, opponent, score, weight, lossFactor, proveIt } = args;
   const star = glicko2Step(before, opponent, score);
   const stepped = blendWeightedStep(before, star, weight);
   const step = stepped.mu - before.mu;
@@ -180,40 +181,40 @@ export function rateDoublesMatch(
 
   return {
     slot1: [
-      ratePlayer(
-        slot1[0],
-        partnerWeightedOpponent(slot2Composite, slot1[0], slot1[1]),
-        slot1Score,
+      ratePlayer({
+        before: slot1[0],
+        opponent: partnerWeightedOpponent(slot2Composite, slot1[0], slot1[1]),
+        score: slot1Score,
         weight,
-        lossFactorOf(input.slot1[0]),
-        input.slot1[0].proveIt ?? false,
-      ),
-      ratePlayer(
-        slot1[1],
-        partnerWeightedOpponent(slot2Composite, slot1[1], slot1[0]),
-        slot1Score,
+        lossFactor: lossFactorOf(input.slot1[0]),
+        proveIt: input.slot1[0].proveIt ?? false,
+      }),
+      ratePlayer({
+        before: slot1[1],
+        opponent: partnerWeightedOpponent(slot2Composite, slot1[1], slot1[0]),
+        score: slot1Score,
         weight,
-        lossFactorOf(input.slot1[1]),
-        input.slot1[1].proveIt ?? false,
-      ),
+        lossFactor: lossFactorOf(input.slot1[1]),
+        proveIt: input.slot1[1].proveIt ?? false,
+      }),
     ],
     slot2: [
-      ratePlayer(
-        slot2[0],
-        partnerWeightedOpponent(slot1Composite, slot2[0], slot2[1]),
-        slot2Score,
+      ratePlayer({
+        before: slot2[0],
+        opponent: partnerWeightedOpponent(slot1Composite, slot2[0], slot2[1]),
+        score: slot2Score,
         weight,
-        lossFactorOf(input.slot2[0]),
-        input.slot2[0].proveIt ?? false,
-      ),
-      ratePlayer(
-        slot2[1],
-        partnerWeightedOpponent(slot1Composite, slot2[1], slot2[0]),
-        slot2Score,
+        lossFactor: lossFactorOf(input.slot2[0]),
+        proveIt: input.slot2[0].proveIt ?? false,
+      }),
+      ratePlayer({
+        before: slot2[1],
+        opponent: partnerWeightedOpponent(slot1Composite, slot2[1], slot2[0]),
+        score: slot2Score,
         weight,
-        lossFactorOf(input.slot2[1]),
-        input.slot2[1].proveIt ?? false,
-      ),
+        lossFactor: lossFactorOf(input.slot2[1]),
+        proveIt: input.slot2[1].proveIt ?? false,
+      }),
     ],
   };
 }

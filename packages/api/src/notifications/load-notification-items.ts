@@ -17,7 +17,10 @@ import {
   levelFromMu,
 } from "@repo/domain/level";
 import { type LevelBand } from "@repo/domain/level-bands";
-import { levelCheckVerdictBand } from "@repo/domain/level-check";
+import {
+  levelCheckVerdictBand,
+  levelCheckVerdictLevel,
+} from "@repo/domain/level-check";
 import { type LevelOverrideReason } from "@repo/domain/level-slider";
 import { marksWindow, type MarkKind } from "@repo/domain/marks";
 import { type TierBand } from "@repo/domain/tier-bands";
@@ -282,7 +285,9 @@ async function levelCheckMovesOf(
     for (const row of rows) {
       moves.set(key(row.userId, row.matchId), {
         agreed: row.agreed,
-        band: levelCheckVerdictBand(row.verdictLevelHundredths / 100),
+        band: levelCheckVerdictBand(
+          levelCheckVerdictLevel(row.verdictLevelHundredths),
+        ),
         levelBefore: formatPadelLevel(levelFromMu(row.muBefore), 2),
         levelAfter: formatPadelLevel(levelFromMu(row.muAfter), 2),
       });
