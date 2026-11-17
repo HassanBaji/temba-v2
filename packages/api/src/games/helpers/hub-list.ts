@@ -147,6 +147,16 @@ export const hubListWith = {
       footballRole: true,
       footballPosition: true,
     },
+    with: {
+      user: {
+        columns: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
+    },
+    orderBy: asc(gamePlayers.createdAt),
   },
   waitlist: {
     columns: {
@@ -251,6 +261,7 @@ export type HubQueryRow = {
     userId: string | null;
     footballRole?: "outfield" | "keeper" | null;
     footballPosition?: "def" | "mid" | "fwd" | null;
+    user?: { id: string; name: string; image: string | null } | null;
   }[];
   waitlist: { userId: string | null; teamId: string | null }[];
   teams: {
@@ -486,6 +497,28 @@ function tournamentTeamsFromRow(
   });
 }
 
+/** Alone only, before the teams are posted: the players in sign-up order (ADR-0096). */
+function alonePlayersFromRow(
+  row: HubQueryRow,
+  viewerUserId: string,
+): HubListSideOccupant[] | null {
+  if (!awaitsOrganizerTeams(row)) {
+    return null;
+  }
+  return row.players.flatMap((player) =>
+    player.user
+      ? [
+          {
+            userId: player.user.id,
+            name: player.user.name,
+            image: player.user.image,
+            isViewer: player.user.id === viewerUserId,
+          },
+        ]
+      : [],
+  );
+}
+
 function tournamentFromRow(
   row: HubQueryRow,
   viewerUserId: string,
@@ -506,6 +539,7 @@ function tournamentFromRow(
     joinSides: awaitsOrganizerTeams(row)
       ? []
       : sidesBySideIndex(row, viewerUserId, row.teamsAllowed ?? 0),
+    alonePlayers: alonePlayersFromRow(row, viewerUserId),
     knockout: tournamentKnockoutFromRow(row, viewerUserId, locale),
   };
 }

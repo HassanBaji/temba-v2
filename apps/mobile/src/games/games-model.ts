@@ -69,12 +69,18 @@ export function seatJoinRequest(
   return { door: "registerSeat", input: { gameId, sideIndex, position } };
 }
 
+/** An Alone-only Social before its teams are posted: players sign up through `register`, with no seat (ADR-0096). */
+export function joinsAlone(game: Partial<Pick<HubGameRow, "tournament">>) {
+  return game.tournament?.alonePlayers != null;
+}
+
 export function waitlistJoinRequest(
   game: Pick<HubGameRow, "id" | "format"> &
-    Partial<Pick<HubGameRow, "sport" | "tournamentShape">>,
+    Partial<Pick<HubGameRow, "sport" | "tournamentShape" | "tournament">>,
 ): JoinRequest {
-  return hubWaitlistJoinCall(game.format, game.sport, game.tournamentShape) ===
-    "register"
+  return joinsAlone(game) ||
+    hubWaitlistJoinCall(game.format, game.sport, game.tournamentShape) ===
+      "register"
     ? { door: "register", input: { gameId: game.id } }
     : { door: "registerSeat", input: { gameId: game.id } };
 }
@@ -89,6 +95,11 @@ export function gamePath(gameId: string) {
 
 export function addPhotosPath(gameId: string) {
   return `/games/${gameId}?intent=addPhotos`;
+}
+
+/** The Game screen opens its Alone sign-up sheet. */
+export function aloneJoinPath(gameId: string) {
+  return `/games/${gameId}?intent=join`;
 }
 
 export function footballJoinPath(gameId: string) {

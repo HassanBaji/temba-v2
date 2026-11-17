@@ -58,6 +58,11 @@ export type HubListTournament = {
   teams: HubListTournamentTeam[];
   /** Every side 1..teamsAllowed, for the join sheet. */
   joinSides: HubListSide[];
+  /**
+   * Alone only, before the teams are posted: the players signed up, in
+   * sign-up order (ADR-0096). Null on every other tournament.
+   */
+  alonePlayers: HubListSideOccupant[] | null;
   /** Null on a Groups only tournament. */
   knockout: HubListTournamentKnockout | null;
 };

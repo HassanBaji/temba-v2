@@ -10,9 +10,11 @@ import {
   showsTournamentOpenFlag,
   tournamentCardAction,
   tournamentCardActionLabel,
+  tournamentCardAlonePlayers,
   tournamentCardBandMeta,
   tournamentCardDateLine,
   tournamentCardKnockoutLine,
+  tournamentCardOpenCount,
   tournamentCardPairs,
   tournamentOpenFlagLabel,
   tournamentOpenTeamCount,
@@ -372,6 +374,81 @@ describe("tournamentCardPairs", () => {
       registrationOpen: false,
     });
     assert.equal(pairs.placeholders, 0);
+  });
+});
+
+describe("an Alone-only Social before its teams are posted", () => {
+  function aloneGame(players: (typeof ADA)[], playersAllowed = 16) {
+    return game({
+      teamsAllowed: 8,
+      playersAllowed,
+      registeredTeamCount: 0,
+      canRegister: true,
+      tournament: { drawPosted: false, teams: [], alonePlayers: players },
+    });
+  }
+
+  it("counts players in, not teams", () => {
+    assert.equal(
+      tournamentTeamsLine(aloneGame([ADA, SAM, YOU]), "en"),
+      "3 of 16 players in",
+    );
+    assert.equal(
+      tournamentTeamsLine(aloneGame([ADA], 16), "ar"),
+      "1 من 16 لاعبًا مشاركًا",
+    );
+  });
+
+  it("counts open seats on the open flag", () => {
+    assert.equal(tournamentCardOpenCount(aloneGame([ADA, SAM, YOU])), 13);
+    assert.equal(
+      tournamentCardOpenCount(aloneGame(Array.from({ length: 16 }, () => ADA))),
+      0,
+    );
+  });
+
+  it("falls back to two seats a team without a player cap", () => {
+    const row = aloneGame([ADA]);
+    row.playersAllowed = null;
+    assert.equal(tournamentCardOpenCount(row), 15);
+  });
+
+  it("still counts open Game teams once the teams are posted", () => {
+    const posted = game({ teamsAllowed: 4 }, [team(), team({ right: null })]);
+    assert.equal(tournamentCardOpenCount(posted), 3);
+    assert.equal(tournamentTeamsLine(posted, "en"), "2 of 4 teams in");
+  });
+
+  it("shows one square a player, the viewer first, then open seats", () => {
+    const squares = tournamentCardAlonePlayers([ADA, SAM, YOU], {
+      cap: 16,
+      registrationOpen: true,
+    });
+    assert.deepEqual(squares.shown, [YOU, ADA, SAM]);
+    assert.equal(squares.placeholders, 5);
+    assert.equal(squares.remaining, 0);
+  });
+
+  it("caps the squares at eight and counts the rest", () => {
+    const squares = tournamentCardAlonePlayers(
+      Array.from({ length: 11 }, () => ADA),
+      { cap: 16, registrationOpen: true },
+    );
+    assert.equal(squares.shown.length, 8);
+    assert.equal(squares.remaining, 3);
+    assert.equal(squares.placeholders, 0);
+  });
+
+  it("shows no open seats once registration is not open", () => {
+    assert.equal(
+      tournamentCardAlonePlayers([ADA], { cap: 16, registrationOpen: false })
+        .placeholders,
+      0,
+    );
+  });
+
+  it("offers Join while the viewer can register", () => {
+    assert.equal(tournamentCardAction(aloneGame([ADA])), "join");
   });
 });
 

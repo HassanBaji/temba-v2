@@ -2,9 +2,11 @@
 
 import { Plus, Trophy } from "lucide-react";
 import * as React from "react";
+import { toast } from "sonner";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-sheet";
+import { AloneJoinSheet } from "~/components/games/tournament-alone-parts";
 import {
   SUMMARY_CARD_ACTION_CLASS,
   SUMMARY_CARD_INSET,
@@ -26,15 +28,19 @@ import {
   formatHomeKickoff,
 } from "@repo/domain/home-countdown";
 import { ratingScopeTag } from "@repo/domain/game-rating-impact";
+import { hubRegisterToast } from "@repo/domain/game-card";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import {
   showsTournamentOpenFlag,
   tournamentCardAction,
   tournamentCardActionLabel,
+  tournamentCardAlonePlayers,
+  tournamentCardAloneSeats,
   tournamentCardBandMeta,
   tournamentCardDateLine,
   tournamentCardKnockoutLine,
+  tournamentCardOpenCount,
   tournamentCardPairs,
   homeTournamentMatchActionLabel,
   tournamentMatchAction,
@@ -52,8 +58,8 @@ import {
   tournamentMatchup,
   tournamentMatchupName,
   tournamentMatchVenueLine,
+  tournamentOccupantLabel,
   tournamentOpenFlagLabel,
-  tournamentOpenTeamCount,
   tournamentTeamPairLabel,
   tournamentTeamsLine,
   type TournamentMatchPhase,
@@ -61,13 +67,16 @@ import {
 import { hasKnockout } from "@repo/domain/tournament-rounds";
 import type { Locale } from "@repo/i18n/locale";
 import { cn } from "~/lib/utils";
-import { type RouterOutputs } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 
 type TournamentCardGame = RouterOutputs["games"]["listMyGames"][number];
 type TournamentCardTeam = NonNullable<
   TournamentCardGame["tournament"]
 >["teams"][number];
 type TeamOccupant = TournamentCardTeam["left"];
+type AlonePlayer = NonNullable<
+  NonNullable<TournamentCardGame["tournament"]>["alonePlayers"]
+>[number];
 
 function CardBand({ label, meta }: { label: string; meta: string | null }) {
   return (
@@ -222,6 +231,56 @@ function TeamPairs({
   );
 }
 
+function AlonePlayerSquares({
+  players,
+  cap,
+  registrationOpen,
+}: {
+  players: readonly AlonePlayer[];
+  cap: number;
+  registrationOpen: boolean;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const { shown, remaining, placeholders } = tournamentCardAlonePlayers(
+    players,
+    { cap, registrationOpen },
+  );
+  if (shown.length === 0 && placeholders === 0) {
+    return (
+      <p className="text-muted-foreground text-meta">
+        {m.aloneTeams.card.noPlayersYet}
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {shown.map((player) => (
+        <span key={player.userId} className="flex flex-none">
+          <PairSquare
+            occupant={player}
+            onInk={player.isViewer}
+            overlap={false}
+          />
+          <span className="sr-only">
+            {tournamentOccupantLabel(player, locale)}
+          </span>
+        </span>
+      ))}
+      {Array.from({ length: placeholders }, (_, index) => (
+        <span key={index} aria-hidden="true" className="flex flex-none">
+          <PlaceholderSquare overlap={false} />
+        </span>
+      ))}
+      {remaining > 0 ? (
+        <span className="text-muted-foreground text-meta ms-1.5">
+          <bdi dir="ltr">+{remaining}</bdi>
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 function PriceLine({ fils }: { fils: number | null }) {
   const m = useMessages();
   const locale = useLocale();
@@ -260,9 +319,30 @@ export function TournamentSummaryCard({
 }) {
   const m = useMessages();
   const locale = useLocale();
+  const utils = api.useUtils();
   const [sheetOpen, setSheetOpen] = React.useState(false);
   const tournament = game.tournament;
   const teams = tournament?.teams ?? [];
+  const alone = tournamentCardAloneSeats(game);
+  // An Alone-only Social has no seat to pick: players sign up through `register` (ADR-0096).
+  const registerAlone = api.games.register.useMutation({
+    onSuccess: async (result) => {
+      toast.success(hubRegisterToast(result.waitlisted, locale));
+      setSheetOpen(false);
+      await Promise.all([
+        utils.games.byId.invalidate({ id: game.id }),
+        utils.games.listMyGames.invalidate(),
+        utils.games.listPublicPickup.invalidate(),
+        utils.users.home.invalidate(),
+      ]);
+    },
+    onError: (error) => {
+      if (!sheetOpen) {
+        toast.error(error.message);
+      }
+    },
+  });
+  const pending = actionPending || registerAlone.isPending;
   const title =
     game.name ?? game.venue?.name ?? m.webTournament.card.untitledGame;
   const dateLine = tournamentCardDateLine(
@@ -315,9 +395,7 @@ export function TournamentSummaryCard({
               {cancelled ? (
                 <GameStatusBadge status="cancelled" />
               ) : showsTournamentOpenFlag(game) ? (
-                <OpenFlag
-                  openTeams={tournamentOpenTeamCount(game.teamsAllowed, teams)}
-                />
+                <OpenFlag openTeams={tournamentCardOpenCount(game)} />
               ) : null}
             </span>
           </div>
@@ -342,11 +420,19 @@ export function TournamentSummaryCard({
           <p className="text-muted-foreground text-meta pb-2.5">
             {tournamentTeamsLine(game, locale)}
           </p>
-          <TeamPairs
-            teams={teams}
-            teamsAllowed={game.teamsAllowed}
-            registrationOpen={showsTournamentOpenFlag(game)}
-          />
+          {alone ? (
+            <AlonePlayerSquares
+              players={alone.players}
+              cap={alone.cap}
+              registrationOpen={showsTournamentOpenFlag(game)}
+            />
+          ) : (
+            <TeamPairs
+              teams={teams}
+              teamsAllowed={game.teamsAllowed}
+              registrationOpen={showsTournamentOpenFlag(game)}
+            />
+          )}
         </SummaryCardBody>
 
         <SummaryCardFooter>
@@ -356,18 +442,23 @@ export function TournamentSummaryCard({
               type="button"
               variant={"default"}
               className={cn(SUMMARY_CARD_ACTION_CLASS, "pointer-events-auto")}
-              disabled={actionPending}
+              disabled={pending}
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
                 if (action === "join") {
+                  registerAlone.reset();
                   setSheetOpen(true);
+                  return;
+                }
+                if (alone) {
+                  registerAlone.mutate({ gameId: game.id });
                   return;
                 }
                 onJoinWaitlist();
               }}
             >
-              {actionPending ? m.game.cta.joining : actionLabel}
+              {pending ? m.game.cta.joining : actionLabel}
             </Button>
           ) : (
             <span
@@ -384,7 +475,17 @@ export function TournamentSummaryCard({
         </SummaryCardFooter>
       </SummaryCardShell>
 
-      {action === "join" && tournament ? (
+      {action === "join" && alone ? (
+        <AloneJoinSheet
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          pending={registerAlone.isPending}
+          error={registerAlone.error}
+          onSubmit={(preferredSide) =>
+            registerAlone.mutate({ gameId: game.id, preferredSide })
+          }
+        />
+      ) : action === "join" && tournament ? (
         <FriendlyGameJoinSheet
           open={sheetOpen}
           onOpenChange={setSheetOpen}
