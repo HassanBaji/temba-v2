@@ -22,12 +22,14 @@ import {
   groupAddActionLabel,
   groupAddedToast,
   groupMemberFootballDefaults,
+  groupMemberLevelFilterChoices,
   groupMemberRows,
   groupNoMatchLine,
   groupPickedNames,
   groupSpotsLine,
   toggleGroupMemberPick,
   type GroupMemberFootballPick,
+  type GroupMemberLevelFilter,
 } from "@repo/domain/add-player-from-group";
 import type { FootballRole } from "@repo/domain/football-lineup";
 import type { FootballSelfPlacement } from "@repo/domain/football-self-placement";
@@ -113,6 +115,7 @@ export function AddPlayerSheet({
   const [guestName, setGuestName] = useState("");
   const [query, setQuery] = useState("");
   const [memberIds, setMemberIds] = useState<string[]>([]);
+  const [levels, setLevels] = useState<GroupMemberLevelFilter[]>([]);
   const [footballPicks, setFootballPicks] = useState<
     Record<string, GroupMemberFootballPick>
   >({});
@@ -124,6 +127,7 @@ export function AddPlayerSheet({
       setMode(hasGroup ? "group" : "phone");
       setGuestName("");
       setQuery("");
+      setLevels([]);
       setMemberIds([]);
       setFootballPicks({});
     }
@@ -203,9 +207,13 @@ export function AddPlayerSheet({
           picked: memberIds,
           openSpots,
           isFootball,
+          levels,
         },
         locale,
       )
+    : [];
+  const levelChoices = roster
+    ? groupMemberLevelFilterChoices(roster.members, isFootball, locale)
     : [];
 
   const addMembers = api.games.addGroupMembers.useMutation({
@@ -387,6 +395,9 @@ export function AddPlayerSheet({
             roster ? groupSpotsLine(openSpots, memberIds.length, locale) : null
           }
           full={roster != null && memberIds.length >= openSpots}
+          levelChoices={levelChoices}
+          levels={levels}
+          onLevelsChange={setLevels}
           rows={memberRows}
           detailsById={
             new Map(

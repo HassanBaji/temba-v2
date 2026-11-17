@@ -477,6 +477,23 @@ describe("team From a group rows", () => {
     );
   });
 
+  it("narrows padel to the Levels on, and ignores them on football", () => {
+    const names = (sport: "padel" | "football") =>
+      teamGroupMemberRows(
+        {
+          members,
+          picked: [],
+          listedUserIds: [],
+          spotsLeft: 5,
+          sport,
+          levels: ["C+"],
+        },
+        "en",
+      ).map((row) => row.name);
+    assert.deepEqual(names("padel"), ["Ali"]);
+    assert.equal(names("football").length, members.length);
+  });
+
   it("toggles picks up to the spots left and labels the button", () => {
     assert.deepEqual(toggleTeamGroupPick([], "a", 1), ["a"]);
     assert.deepEqual(toggleTeamGroupPick(["a"], "d", 1), ["a"]);
