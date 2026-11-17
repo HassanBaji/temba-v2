@@ -94,6 +94,7 @@ import {
   type SeatOccupant,
 } from "#src/games/seats";
 import { isRosterRegistrationGame } from "@repo/domain/game-shape";
+import { ALONE_TEAMS_MIN_PLAYERS } from "@repo/domain/alone-teams";
 import { bothSlotsFilled } from "#src/games/both-slots-filled";
 import { bothSlottedTeamsComplete } from "#src/games/both-slotted-teams-complete";
 import {
@@ -1586,6 +1587,18 @@ export async function gameById(
     canInvite: organizesOpenGame,
     canAddPlayer: organizesOpenGame,
     canMakeTeams: organizesOpenGame && isFootballGame(game),
+    organizerMakesTeams: game.organizerMakesTeams,
+    teamsPostedAt: game.teamsPostedAt,
+    viewerPreferredSide:
+      playerRows.find((row) => row.userId === args.userId)?.preferredSide ??
+      null,
+    /** Alone only: the Organizer may open Make teams and post (ADR-0096). */
+    canMakeTeamsAlone:
+      organizesOpenGame &&
+      game.organizerMakesTeams &&
+      game.drawPostedAt == null &&
+      userCount >= ALONE_TEAMS_MIN_PLAYERS,
+    aloneTeamsMinPlayers: ALONE_TEAMS_MIN_PLAYERS,
   };
 }
 

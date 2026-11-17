@@ -29,6 +29,29 @@ describe("isRosterRegistrationGame", () => {
   });
 });
 
+describe("isRosterRegistrationGame on an Alone-only Social", () => {
+  const social = { format: "friendly_tournament", sport: "padel" };
+
+  it("takes a list of players until the teams are posted", () => {
+    expect(
+      isRosterRegistrationGame({ ...social, organizerMakesTeams: true }),
+    ).toBe(true);
+    expect(
+      isRosterRegistrationGame({
+        ...social,
+        organizerMakesTeams: true,
+        teamsPostedAt: new Date(),
+      }),
+    ).toBe(false);
+  });
+
+  it("leaves a Social with the usual sign-up alone", () => {
+    expect(
+      isRosterRegistrationGame({ ...social, organizerMakesTeams: false }),
+    ).toBe(false);
+  });
+});
+
 describe("football sizes", () => {
   it("lists the allowed side sizes", () => {
     expect([...FOOTBALL_SIDE_SIZES]).toEqual([5, 6, 7, 8, 9, 11]);

@@ -904,6 +904,13 @@
       "when": 1794818126694,
       "tag": "0128_level_reliability",
       "breakpoints": true
+    },
+    {
+      "idx": 129,
+      "version": "7",
+      "when": 1794906214064,
+      "tag": "0129_alone_only_socials",
+      "breakpoints": true
     }
   ]
 }

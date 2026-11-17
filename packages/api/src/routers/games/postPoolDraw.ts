@@ -32,6 +32,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
+import { assertTeamsPosted } from "#src/games/assert-teams-posted";
 import { matchTimes } from "#src/games/helpers/match-times";
 import { lockGame } from "#src/games/lock-rows";
 
@@ -296,6 +297,7 @@ export async function postPoolDraw(
   assertNotAmericano(game, locale);
   const knockoutOnly = isKnockoutOnly(game.format, game.tournamentShape);
   assertPoolDrawNotPosted(game, locale);
+  assertTeamsPosted(game, locale);
   if (!game.windowStart || !game.windowEnd) {
     throw new TRPCError({
       code: "BAD_REQUEST",

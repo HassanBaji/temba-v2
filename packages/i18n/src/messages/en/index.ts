@@ -54,6 +54,7 @@ import { venue } from "./venue";
 import { gameAlbum } from "./game-album";
 import { editTeams } from "./edit-teams";
 import { gamePayments } from "./game-payments";
+import { aloneTeams } from "./alone-teams";
 
 export const en = {
   common,
@@ -112,4 +113,5 @@ export const en = {
   gameAlbum,
   editTeams,
   gamePayments,
+  aloneTeams,
 };

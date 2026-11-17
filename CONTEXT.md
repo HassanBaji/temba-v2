@@ -600,6 +600,14 @@ _Avoid_: join (when you mean this), enroll, registration (when you mean the open
 Organizer flag on a Friendly tournament, default yes. When no, entry is Partner registration only onto a fully vacant side. Distinct from team-only registration and from Team. Not a new Game format. Not a registration mode.
 _Avoid_: Complete Teams, matcher, registration mode (when you mean this flag), Team (that is the persistent partnership)
 
+**Alone only**:
+A sign-up choice on a padel Social, beside Allow registering alone (ADR-0096): everyone signs up alone, optionally asking for a side, and the Organizer makes the teams. Until the Organizer posts the teams it is a Roster registration, a list of players with no Game teams; posting writes the Game teams and from then on it is an ordinary Social, draw included. Partner registration is refused throughout. Not a Game format, not a Tournament shape and not a registration mode. Stored as `games.organizer_makes_teams`.
+_Avoid_: solo mode, matchmaking, random pairs
+
+**Post the teams**:
+The Organizer of an Alone-only Social turning the players into Game teams, Left then Right, from Make teams: balanced by level to start, then shuffled or swapped by hand. Tells each placed player who their partner is. Can be done again until the draw is posted; after posting, Edit teams changes them as on any Social. An odd player out stays on the list, unseated.
+_Avoid_: publish teams (that is football's sides), Pool draw, seeding
+
 **Partner registration**:
 On a padel Game, one User taking both Positions on one fully vacant side of an individual Friendly game or Friendly tournament — themselves and one named partner — in a single Game admit. The partner is seated immediately and is never asked to accept (ADR-0013). It creates an ad-hoc Game team, not a Team: no persistent partnership, and that Game team carries no Team. Refused when no side has both Positions vacant. Leaving still frees only the leaver’s Position on Friendly games and on tournaments that allow registering alone. On a tournament that does not allow registering alone, leave or kick before the Pool draw removes the whole Game team.
 _Avoid_: Team (that is the persistent partnership), Game team (that is the side this creates), Lookup invite (that is a door the invitee must accept), pair registration, team registration (that is registering a complete Team on a team-only Game)

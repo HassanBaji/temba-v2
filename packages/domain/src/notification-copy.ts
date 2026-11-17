@@ -256,6 +256,16 @@ export function notificationCopy(
       subline: null,
     };
   }
+  if (item.type === "game_teams_posted" && item.game) {
+    return {
+      title: m.teamsPosted(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+        item.partner ? userName(item.partner.name, locale) : null,
+      ),
+      subline: null,
+    };
+  }
   if (item.type === "king_courts_posted" && item.game) {
     return {
       title: m.kingCourtsPosted(

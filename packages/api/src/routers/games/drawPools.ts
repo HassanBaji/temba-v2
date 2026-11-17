@@ -22,6 +22,7 @@ import { assertNotKingOfTheCourt } from "#src/games/assert-not-king-of-the-court
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
+import { assertTeamsPosted } from "#src/games/assert-teams-posted";
 import { assertPoolDrawNotPosted } from "#src/games/assert-pool-draw-not-posted";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -85,6 +86,7 @@ export async function drawPools(
   assertNotKingOfTheCourt(game, locale);
   assertNotAmericano(game, locale);
   assertPoolDrawNotPosted(game, locale);
+  assertTeamsPosted(game, locale);
 
   const teamRows = await database.query.gameTeams.findMany({
     where: eq(gameTeams.gameId, game.id),
