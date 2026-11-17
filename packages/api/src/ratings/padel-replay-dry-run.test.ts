@@ -4,11 +4,11 @@ import { ratingEvents, ratings } from "@repo/db/schema";
 import { createPgliteDb } from "@repo/db/testing";
 
 import {
-  dryRunPadelReplay,
-  formatPadelReplayReport,
   padelReplayDifferences,
   replayPadelLedger,
 } from "#src/ratings/padel-replay";
+import { dryRunPadelReplay } from "#src/ratings/padel-replay-dry-run";
+import { formatPadelReplayReport } from "#src/ratings/padel-replay-report";
 import {
   asDb,
   at,

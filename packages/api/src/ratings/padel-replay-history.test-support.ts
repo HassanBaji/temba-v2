@@ -26,7 +26,7 @@ import {
   applyRatedMatch,
   type RatedMatchOutcome,
 } from "#src/ratings/apply-rated-match";
-import { loadPadelLedger } from "#src/ratings/padel-replay";
+import { loadPadelLedger } from "#src/ratings/padel-replay-load";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
 import { selfDeclareRating } from "#src/routers/ratings/selfDeclare";
 
@@ -217,7 +217,7 @@ export async function override(
 }
 
 /**
- * A history covering every input kind of spec 9.2 the live writers can write:
+ * A history covering every input kind the live writers can write:
  * Matches at weight 1 and 0.5, the Prove-it rule, an idle gap, Level
  * overrides before, between and after Matches and one that created the
  * Rating, a stored Reliability loss factor, a Guest player, a reversed and

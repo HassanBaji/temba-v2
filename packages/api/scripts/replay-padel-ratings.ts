@@ -1,8 +1,7 @@
 /**
- * The Level recalculation (spec 9.8 in
- * `.scratch/padel-declared-band-trust/spec.md`, ADR-0098): replays every
- * padel Rated Match, Place award and Level override under the Declared band
- * rules and reports per player what their Level would become.
+ * The Level recalculation (ADR-0098): replays every padel Rated Match, Place
+ * award and Level override under the Declared band rules and reports per
+ * player what their Level would become.
  *
  * Dry run (the default): reads in one read-only transaction and writes
  * nothing. Exits non-zero when the recalculation would change who is
@@ -14,9 +13,10 @@
  * id. Refuses while rows cannot be recomputed unless --carry-unplaced is
  * passed.
  *
- * --restore <run id>: writes that run's backup back; the Notifications stay.
- * Refuses once a padel Rated Match, Level override or Place award was
- * written after the run.
+ * --restore <run id>: writes back from that run's backup every column the run
+ * wrote; the Notifications stay. Refuses once a padel Rated Match, Level
+ * override or Place award was written after the run, or anything else wrote
+ * over the values the run wrote.
  *
  * Every command refuses once a Level check has settled: the recalculation
  * does not replay one, so it runs only before the Level check deploys.
@@ -31,15 +31,17 @@
 import { writeFile } from "node:fs/promises";
 
 import { db } from "#src/db";
+import { applyPadelReplay } from "#src/ratings/padel-replay-apply";
 import {
-  applyPadelReplay,
   dryRunPadelReplay,
-  formatPadelReplayReport,
   levelCheckRefusal,
+} from "#src/ratings/padel-replay-dry-run";
+import {
+  formatPadelReplayReport,
   padelReplayCsv,
-  restorePadelReplay,
   type PadelReplayReport,
-} from "#src/ratings/padel-replay";
+} from "#src/ratings/padel-replay-report";
+import { restorePadelReplay } from "#src/ratings/padel-replay-restore";
 
 const USAGE =
   "Usage: [--report <path>] | --apply [--carry-unplaced] [--report <path>] | --restore <run id>";

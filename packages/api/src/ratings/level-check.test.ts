@@ -28,7 +28,7 @@ import {
   takeBackLevelChecks,
 } from "#src/ratings/level-check";
 import { padelConfirmations } from "#src/ratings/level-confirmed";
-import { applyPadelReplay } from "#src/ratings/padel-replay";
+import { applyPadelReplay } from "#src/ratings/padel-replay-apply";
 import { settleRatingWindow } from "#src/ratings/settle-rating-window";
 import { completeMatch } from "#src/routers/games/completeMatch";
 import { performanceRatingResult } from "#src/routers/games/performanceRatingResult";

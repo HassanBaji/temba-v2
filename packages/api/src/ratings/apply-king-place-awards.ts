@@ -16,6 +16,8 @@ import {
   kingFieldPlayer,
   kingPlaceWins,
   rateKingPlace,
+  type KingField,
+  type KingPlaceResult,
 } from "@repo/domain/rate-king-place";
 
 import { type db } from "#src/db";
@@ -193,68 +195,44 @@ export async function applyKingPlaceAwards(
     lastRatedAt: rowByUser.get(userId)?.lastRatedAt,
   });
   const field = kingField(fieldUserIds.map(inputOf), now);
+  const placings = field
+    ? rateKingPlaces({ teams, guestIds, field, inputOf, now })
+    : [];
   const awardedUserIds: string[] = [];
-  for (const team of field ? teams : []) {
-    const wins = kingPlaceWins(team.finalPlace);
-    const [first, second] = team.userIds.filter(
-      (userId) => !guestIds.has(userId),
-    );
-    if (!field || wins === 0 || team.finalPlace == null || !first) {
-      continue;
-    }
-    // A player whose partner left is rated beside themselves, so the pair
-    // shifts nothing; a guest partner stands in at the field.
-    const partner = second
-      ? inputOf(second)
-      : team.userIds.length > 1
-        ? kingFieldPlayer(field)
-        : inputOf(first);
-    const results = rateKingPlace({
-      pair: [inputOf(first), partner],
-      field,
-      wins,
+  for (const { userId, result, ...placing } of placings) {
+    const row = rowByUser.get(userId);
+    const before = snapshotState(row, "padel");
+    await tx.insert(kingPlaceAwards).values({
+      userId,
+      sport: PADEL,
+      gameId: game.id,
+      finalPlace: placing.finalPlace,
+      wins: placing.wins,
+      fieldMu: placing.field.mu,
+      fieldPhi: placing.field.phi,
+      hadRating: row !== undefined,
+      // The stored Rating, before idle inflation, so taking the award back
+      // restores it exactly.
+      muBefore: before.mu,
+      phiBefore: before.phi,
+      sigmaBefore: before.sigma,
+      muAfter: result.after.mu,
+      phiAfter: result.after.phi,
+      sigmaAfter: result.after.sigma,
+      levelBandBefore: before.levelBand,
+      lastRatedAtBefore: row?.lastRatedAt ?? null,
+      createdAt: now,
+    });
+    await persistRatedUser({
+      database: tx,
+      userId,
+      sport: PADEL,
+      existingId: row?.id,
+      after: result.after,
+      levelBand: result.levelBand,
       now,
     });
-
-    for (const [index, userId] of [first, second].entries()) {
-      const result = results[index];
-      if (!userId || !result) {
-        continue;
-      }
-      const row = rowByUser.get(userId);
-      const before = snapshotState(row, "padel");
-      await tx.insert(kingPlaceAwards).values({
-        userId,
-        sport: PADEL,
-        gameId: game.id,
-        finalPlace: team.finalPlace,
-        wins,
-        fieldMu: field.mu,
-        fieldPhi: field.phi,
-        hadRating: row !== undefined,
-        // The stored Rating, before idle inflation, so taking the award back
-        // restores it exactly.
-        muBefore: before.mu,
-        phiBefore: before.phi,
-        sigmaBefore: before.sigma,
-        muAfter: result.after.mu,
-        phiAfter: result.after.phi,
-        sigmaAfter: result.after.sigma,
-        levelBandBefore: before.levelBand,
-        lastRatedAtBefore: row?.lastRatedAt ?? null,
-        createdAt: now,
-      });
-      await persistRatedUser({
-        database: tx,
-        userId,
-        sport: PADEL,
-        existingId: row?.id,
-        after: result.after,
-        levelBand: result.levelBand,
-        now,
-      });
-      awardedUserIds.push(userId);
-    }
+    awardedUserIds.push(userId);
   }
 
   // A player the corrected order no longer places is no longer told they moved.
@@ -280,4 +258,62 @@ export async function applyKingPlaceAwards(
     gameId: game.id,
     dedupeKey: `king_place_awarded:${game.id}`,
   });
+}
+
+export type KingPlacing = {
+  userId: string;
+  finalPlace: number;
+  wins: number;
+  field: KingField;
+  result: KingPlaceResult;
+};
+
+/**
+ * Rates the players of each placed Game team against the field, in the order
+ * of `teams`. A Guest player is not rated.
+ */
+export function rateKingPlaces(args: {
+  teams: readonly { finalPlace: number | null; userIds: readonly string[] }[];
+  guestIds: ReadonlySet<string>;
+  field: KingField;
+  inputOf: (userId: string) => DoublesPlayerInput;
+  now: Date;
+}): KingPlacing[] {
+  const { field, inputOf, now } = args;
+  const placings: KingPlacing[] = [];
+  for (const team of args.teams) {
+    const wins = kingPlaceWins(team.finalPlace);
+    const [first, second] = team.userIds.filter(
+      (userId) => !args.guestIds.has(userId),
+    );
+    if (wins === 0 || team.finalPlace == null || !first) {
+      continue;
+    }
+    // A player whose partner left is rated beside themselves, so the pair
+    // shifts nothing; a guest partner stands in at the field.
+    const partner = second
+      ? inputOf(second)
+      : team.userIds.length > 1
+        ? kingFieldPlayer(field)
+        : inputOf(first);
+    const results = rateKingPlace({
+      pair: [inputOf(first), partner],
+      field,
+      wins,
+      now,
+    });
+    for (const [index, userId] of [first, second].entries()) {
+      const result = results[index];
+      if (userId && result) {
+        placings.push({
+          userId,
+          finalPlace: team.finalPlace,
+          wins,
+          field,
+          result,
+        });
+      }
+    }
+  }
+  return placings;
 }

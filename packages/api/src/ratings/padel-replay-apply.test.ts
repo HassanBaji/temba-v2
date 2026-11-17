@@ -16,6 +16,7 @@ import {
   ratingReplayBackups,
   ratingReplayRuns,
   ratings,
+  user,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { groupSeasonWindow } from "@repo/domain/group-season";
@@ -32,12 +33,16 @@ import { RecordingJobSink } from "#src/jobs/job-sink.test-support";
 
 import { applyKingPlaceAwards } from "#src/ratings/apply-king-place-awards";
 import {
-  applyPadelReplay,
   padelReplayDifferences,
   replayPadelLedger,
-  restorePadelReplay,
   type PadelLedger,
 } from "#src/ratings/padel-replay";
+import {
+  applyPadelReplay,
+  tellRecalculated,
+  TOLD_PER_NOTIFY,
+} from "#src/ratings/padel-replay-apply";
+import { restorePadelReplay } from "#src/ratings/padel-replay-restore";
 import {
   asDb,
   at,
@@ -459,6 +464,126 @@ describe("applying the padel Level recalculation", () => {
       });
     },
   );
+
+  async function backedUpRatingId(database: TestDatabase, runId: string) {
+    const [backup] = await database
+      .select({ rowId: ratingReplayBackups.rowId })
+      .from(ratingReplayBackups)
+      .where(
+        and(
+          eq(ratingReplayBackups.runId, runId),
+          eq(ratingReplayBackups.tableName, "ratings"),
+        ),
+      )
+      .limit(1);
+    if (!backup) {
+      throw new Error("The run backed up no Rating");
+    }
+    return backup.rowId;
+  }
+
+  it("restores past a Reliability step after the run, and leaves that step in place", async () => {
+    await withHistory(async (database) => {
+      const {
+        notifications: _,
+        ratings: ratingsSum,
+        ...before
+      } = await tableChecksums(database);
+      const ratingsBefore = await rowsById(database, "ratings");
+      const run = await applied(database);
+      const stepped = await backedUpRatingId(database, run.runId);
+      await database
+        .update(ratings)
+        .set({ reliability: 55, updatedAt: at(61) })
+        .where(eq(ratings.id, stepped));
+
+      expect(
+        await restorePadelReplay(asDb(database), { runId: run.runId }),
+      ).toEqual({ kind: "restored", restored: run.summary.changed });
+
+      const {
+        notifications: __,
+        ratings: ratingsAfter,
+        ...restored
+      } = await tableChecksums(database);
+      expect(restored).toEqual(before);
+      expect(ratingsAfter).not.toBe(ratingsSum);
+      const ratingsNow = await rowsById(database, "ratings");
+      for (const [id, row] of ratingsBefore) {
+        expect(JSON.parse(ratingsNow.get(id)!)).toEqual(
+          id === stepped
+            ? { ...JSON.parse(row), reliability: 55 }
+            : JSON.parse(row),
+        );
+      }
+    });
+  });
+
+  it("refuses to restore once a column the run wrote changed after it", async () => {
+    await withHistory(async (database) => {
+      const run = await applied(database);
+      const moved = await backedUpRatingId(database, run.runId);
+      await database
+        .update(ratings)
+        .set({ mu: sql`${ratings.mu} + 1` })
+        .where(eq(ratings.id, moved));
+      const afterWrite = await tableChecksums(database);
+
+      expect(
+        await restorePadelReplay(asDb(database), { runId: run.runId }),
+      ).toEqual({
+        kind: "refused",
+        reason: "1 ratings rows the run wrote changed after it",
+      });
+      expect(await tableChecksums(database)).toEqual(afterWrite);
+    });
+  });
+
+  it("tells a list of players longer than one notify call each once", async () => {
+    const { db: database, close } = await createPgliteDb();
+    try {
+      const count = TOLD_PER_NOTIFY * 4;
+      const players = await database
+        .insert(user)
+        .values(
+          Array.from({ length: count }, (_, index) => ({
+            name: `player ${index}`,
+            email: `player-${index}@example.com`,
+          })),
+        )
+        .returning({ id: user.id });
+      const runId = crypto.randomUUID();
+      const jobs = new RecordingJobSink();
+      setJobSink(jobs);
+      await database
+        .transaction((tx) =>
+          tellRecalculated(
+            tx as unknown as Parameters<typeof tellRecalculated>[0],
+            {
+              userIds: players.map((row) => row.id),
+              runId,
+              emailedAt: at(60),
+            },
+          ),
+        )
+        .finally(resetJobSink);
+
+      const told = await recalculatedNotifications(database);
+      expect(told).toHaveLength(count);
+      expect(new Set(told.map((row) => row.recipientUserId))).toEqual(
+        new Set(players.map((row) => row.id)),
+      );
+      for (const row of told) {
+        expect(row).toMatchObject({
+          emailedAt: at(60),
+          dedupeKey: `level_recalculated:${runId}`,
+        });
+      }
+      expect(jobs.added).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
 
   it("refuses while a row cannot be recomputed, unless told to carry it over", async () => {
     await withHistory(async (database, history) => {

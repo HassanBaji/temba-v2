@@ -1,6 +1,6 @@
 # A Notification email is a Job on the Notification row, sent through one Email sender
 
-**Status:** accepted. Spec: `.scratch/email-notifications/spec.md`. Extends ADR-0022 and ADR-0030.
+**Status:** accepted. Spec: `.scratch/email-notifications/spec.md`. Extends ADR-0022 and ADR-0030. Amended by [ADR-0098](./0098-padel-levels-were-recalculated-once-under-the-declared-band-rules.md): `notify()` may write a Notification as already emailed, and enqueues no Notification email Job for it; the Level recalculation's Notification is in the app only.
 
 Users asked to hear about their Groups and Games without opening Temba. In-app Notifications are fan-out rows written in the event's transaction (ADR-0022), and Graphile Worker is the Job queue (ADR-0030). Temba had no outbound email.
 

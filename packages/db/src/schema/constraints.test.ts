@@ -273,9 +273,10 @@ describe("Level recalculation backups", () => {
       .returning({ id: ratingReplayRuns.id });
     const backup = {
       runId: run!.id,
-      tableName: "ratings",
+      tableName: "ratings" as const,
       rowId: crypto.randomUUID(),
       row: { mu: 1500 },
+      written: { mu: 1480 },
     };
     await db.insert(ratingReplayBackups).values(backup);
 

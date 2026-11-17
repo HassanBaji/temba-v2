@@ -28,14 +28,16 @@ import {
 
 import { guestStandInState } from "#src/ratings/guest-stand-ins";
 import {
-  buildPadelReplayReport,
-  formatPadelReplayReport,
-  padelReplayCsv,
   replayPadelLedger,
   type PadelLedger,
   type PadelReplay,
   type ReplayEvent,
 } from "#src/ratings/padel-replay";
+import {
+  buildPadelReplayReport,
+  formatPadelReplayReport,
+  padelReplayCsv,
+} from "#src/ratings/padel-replay-report";
 
 const DAY = 24 * 60 * 60 * 1000;
 const T0 = new Date("2026-06-01T18:00:00Z");
@@ -265,7 +267,7 @@ function afterState(
 const D = initialRatingFromChoice("D2", "padel");
 const C = initialRatingFromChoice("C2", "padel");
 
-describe("replayPadelLedger: starting state (spec 9.3)", () => {
+describe("replayPadelLedger: starting state", () => {
   it("starts each declared band at its midpoint with the φ of the table, and the baseline at φ 350", () => {
     const h = history();
     for (const band of LEVEL_BANDS) {
@@ -306,7 +308,7 @@ describe("replayPadelLedger: starting state (spec 9.3)", () => {
     expect(replay.starts.get(una)?.kind).toBe("unknown");
   });
 
-  it("keeps a declared start μ that is no band midpoint, takes the band it falls in, and reports it as RQ-5", () => {
+  it("keeps a declared start μ that is no band midpoint, takes the band it falls in, and reports it as start-mu-off-midpoint", () => {
     const h = history();
     const odd = h.player("odd", { mu: 1600 });
     const partner = h.player("partner", { declared: "C2" });
@@ -333,7 +335,49 @@ describe("replayPadelLedger: starting state (spec 9.3)", () => {
     expect(event.phiBefore).toBe(PADEL_DECLARED_START_PHI.C2);
     expect(event.proveItPart).not.toBeNull();
     expect(replay.anomalies).toContainEqual(
-      expect.objectContaining({ rule: "RQ-5", userIds: [odd] }),
+      expect.objectContaining({
+        rule: "start-mu-off-midpoint",
+        userIds: [odd],
+      }),
+    );
+  });
+
+  it("keeps a stored Declared band over the one the history would recover, for the written band, the starting φ and the Prove-it rule", () => {
+    const h = history();
+    const kept = h.player("kept", { declared: "C2" });
+    h.ledger.ratings.find((row) => row.userId === kept)!.declaredBand = "D1";
+    const [b, c, d] = ["b", "c", "d"].map((name) =>
+      h.player(name, { declared: "C2" }),
+    ) as [string, string, string];
+    const matchId = h.match({
+      at: day(1),
+      slot1: [kept, b],
+      slot2: [c, d],
+      outcome: "slot2",
+    });
+
+    const replay = replayPadelLedger(h.ledger, "declared-band");
+    expect(replay.starts.get(kept)).toEqual({
+      kind: "declared",
+      source: "first-match",
+      mu: C.mu,
+      declaredBand: "D1",
+    });
+    const event = replayedEvent(replay, h.ledger, matchId, kept);
+    expect(event.muBefore).toBe(C.mu);
+    expect(event.phiBefore).toBe(PADEL_DECLARED_START_PHI.D1);
+    expect(event.phiBefore).not.toBe(PADEL_DECLARED_START_PHI.C2);
+    expect(event.proveItPart).toBeNull();
+    expect(
+      replayedEvent(replay, h.ledger, matchId, b).proveItPart,
+    ).not.toBeNull();
+    expect(replay.ratings.get(kept)?.declaredBand).toBe("D1");
+    expect(replay.anomalies).toContainEqual(
+      expect.objectContaining({
+        rule: "declared-band-mismatch",
+        userIds: [kept],
+        detail: expect.stringContaining("stored Declared band D1 kept"),
+      }),
     );
   });
 
@@ -374,7 +418,7 @@ describe("replayPadelLedger: starting state (spec 9.3)", () => {
   });
 });
 
-describe("replayPadelLedger: inputs (spec 9.2)", () => {
+describe("replayPadelLedger: inputs", () => {
   it("recomputes Matches at their stored weight, 1 and 0.5, in order", () => {
     const h = history();
     const [a, b, c, d] = ["a", "b", "c", "d"].map((name) =>
@@ -708,7 +752,7 @@ describe("replayPadelLedger: inputs (spec 9.2)", () => {
     expect(replay.anomalies).toEqual([]);
   });
 
-  it("plays a seat with no rating event after an Unclaimed player merge as a Guest player, and reports it as RQ-6", () => {
+  it("plays a seat with no rating event after an Unclaimed player merge as a Guest player, and reports it as seat-without-event", () => {
     const h = history();
     const [a, b, c, survivor] = ["a", "b", "c", "survivor"].map((name) =>
       h.player(name, { declared: "D2" }),
@@ -734,11 +778,14 @@ describe("replayPadelLedger: inputs (spec 9.2)", () => {
     );
     expect(replay.ratings.get(survivor)?.mu).toBe(D.mu);
     expect(replay.anomalies).toContainEqual(
-      expect.objectContaining({ rule: "RQ-6", userIds: [survivor] }),
+      expect.objectContaining({
+        rule: "seat-without-event",
+        userIds: [survivor],
+      }),
     );
   });
 
-  it("carries a drawn Match whose seats no longer fit over by its stored moves, and reports it as RQ-7", () => {
+  it("carries a drawn Match whose seats no longer fit over by its stored moves, and reports it as carried-over", () => {
     const h = history();
     const [a, b, c, d, kicked] = ["a", "b", "c", "d", "kicked"].map((name) =>
       h.player(name, { declared: "D2" }),
@@ -766,7 +813,7 @@ describe("replayPadelLedger: inputs (spec 9.2)", () => {
     expect(carried.muAfter).toBe(D.mu + 12);
     expect(carried.phiAfter).toBeCloseTo(135, 9);
     expect(replay.anomalies).toContainEqual(
-      expect.objectContaining({ rule: "RQ-7" }),
+      expect.objectContaining({ rule: "carried-over" }),
     );
   });
 
@@ -877,7 +924,7 @@ describe("the dry-run report", () => {
     });
   }
 
-  it("names each player placed by RQ-5, RQ-6 and RQ-7", () => {
+  it("names each player placed by a stated rule, by the rule's name", () => {
     const h = history();
     const odd = h.player("Odd Start", { mu: 1600 });
     const [a, b, c, survivor, kicked] = [
@@ -914,9 +961,9 @@ describe("the dry-run report", () => {
       teams: { slot1: [a, odd], slot2: [b, c] },
     });
     const text = formatPadelReplayReport(reportFor(h)).join("\n");
-    expect(text).toMatch(/\[RQ-5\] Odd Start \(Odd Start\)/);
-    expect(text).toMatch(/\[RQ-6\] Merged Survivor/);
-    expect(text).toMatch(/\[RQ-7\] .*Kicked Player/);
+    expect(text).toMatch(/\[start-mu-off-midpoint\] Odd Start \(Odd Start\)/);
+    expect(text).toMatch(/\[seat-without-event\] Merged Survivor/);
+    expect(text).toMatch(/\[carried-over\] .*Kicked Player/);
     expect(text).toContain("Loaded in 12 ms, computed in 4 ms.");
     expect(text).toContain("dry run against db.example");
   });

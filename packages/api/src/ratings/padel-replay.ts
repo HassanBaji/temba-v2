@@ -1,44 +1,10 @@
-import {
-  and,
-  count,
-  eq,
-  gt,
-  inArray,
-  isNotNull,
-  isNull,
-  ne,
-  or,
-  sql,
-} from "drizzle-orm";
-import { getTableConfig, type PgTable } from "drizzle-orm/pg-core";
-
-import {
-  gamePlayers,
-  gameTeamPlayers,
-  gameTeams,
-  games,
-  GroupSportEnum,
-  kingPlaceAwards,
-  levelCheckResults,
-  levelOverrides,
-  matches,
-  ratingEvents,
-  ratingReplayBackups,
-  ratingReplayRuns,
-  ratings,
-  user,
-  type DbTx,
-  type RatingReplaySummary,
-  type RatingReplayTable,
-} from "@repo/db";
+import type { RatingReplayTable } from "@repo/db";
 import type { ClassicGlicko } from "@repo/domain/glicko2";
 import { applyIdleInflation } from "@repo/domain/idle";
 import {
   bandFromLevel,
   bandWithHysteresis,
   confirmedPhiForOverride,
-  formatLevel,
-  formatPadelLevel,
   INITIAL_MU,
   INITIAL_PHI,
   INITIAL_SIGMA,
@@ -47,33 +13,27 @@ import {
   levelFromMu,
   muFromBand,
   PADEL_DECLARED_START_PHI,
-  padelMatchesRemainingToConfirm,
   proveItApplies,
   type LevelBand,
   type PadelConfirmation,
   type RatingGlickoState,
 } from "@repo/domain/level";
-import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import {
   rateDoublesMatch,
-  type DoublesOutcome,
   type DoublesPlayerInput,
 } from "@repo/domain/rate-doubles-match";
+import { kingField } from "@repo/domain/rate-king-place";
+
 import {
-  kingField,
-  kingFieldPlayer,
-  kingPlaceWins,
-  rateKingPlace,
-  type KingPlaceResult,
-} from "@repo/domain/rate-king-place";
-
-import { type db } from "#src/db";
-import { displayedLevelPassesRange } from "#src/games/user-allowed-by-level-range";
-import { notify } from "#src/notifications/notify";
+  rateKingPlaces,
+  type KingPlacing,
+} from "#src/ratings/apply-king-place-awards";
 import { withGuestStandIns } from "#src/ratings/guest-stand-ins";
-import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
-
-type DbClient = typeof db;
+import {
+  seatsFromScores,
+  seatsFromTeams,
+  type Seats,
+} from "#src/ratings/padel-replay-seats";
 
 /**
  * "declared-band": the Declared band rules (ADR-0096, ADR-0097). "baseline":
@@ -209,10 +169,11 @@ export type ReplayedRating = {
 };
 
 /**
- * How a player's starting Rating was read back. "declared": the start μ is a
- * band midpoint. "unknown": "I don't know", μ 1500. "unrecognised": declared,
- * but the start μ is no band midpoint [RQ-5]. "not-declared": nobody
- * declared, so the Rating starts at μ 1500 when something first moves it.
+ * How a player's starting Rating was read back. "declared": the stored
+ * Declared band, or else the band whose midpoint the start μ is. "unknown":
+ * "I don't know", μ 1500. "unrecognised": declared, with no stored band and
+ * a start μ that is no band midpoint. "not-declared": nobody declared, so
+ * the Rating starts at μ 1500 when something first moves it.
  */
 export type ReplayStartKind =
   | "declared"
@@ -234,16 +195,19 @@ export type ReplayStart = {
 };
 
 /**
- * The rule the replay applied where the ledger alone could not say:
- * "RQ-5" a declared start μ that is no band midpoint, "RQ-6" a seat with no
- * rating event played as a Guest player, "RQ-7" a row carried over by its
- * stored move, "rebuilt-from-scores" a decisive Match whose seats no longer
- * fit, "same-instant" units at one instant that share a player.
+ * The rule the replay applied where the ledger alone could not say (ADR-0098):
+ * "start-mu-off-midpoint" a declared start μ that is no band midpoint,
+ * "seat-without-event" a seat with no rating event played as a Guest player,
+ * "carried-over" a row carried over by its stored move,
+ * "rebuilt-from-scores" a decisive Match whose seats no longer fit,
+ * "same-instant" units at one instant that share a player,
+ * "declared-band-mismatch" a stored Declared band kept over the one the
+ * start μ reads.
  */
 export type ReplayRule =
-  | "RQ-5"
-  | "RQ-6"
-  | "RQ-7"
+  | "start-mu-off-midpoint"
+  | "seat-without-event"
+  | "carried-over"
   | "rebuilt-from-scores"
   | "same-instant"
   | "declared-band-mismatch"
@@ -269,10 +233,20 @@ export type PadelReplay = {
 
 type State = RatingGlickoState & { lastRatedAt: Date | null };
 
-type Unit =
-  | { kind: "match"; id: string; at: Date; events: ReplayEvent[] }
-  | { kind: "override"; id: string; at: Date; override: ReplayOverride }
-  | { kind: "awards"; id: string; at: Date; awards: ReplayAward[] };
+type MatchUnit = { kind: "match"; id: string; at: Date; events: ReplayEvent[] };
+type OverrideUnit = {
+  kind: "override";
+  id: string;
+  at: Date;
+  override: ReplayOverride;
+};
+type AwardsUnit = {
+  kind: "awards";
+  id: string;
+  at: Date;
+  awards: ReplayAward[];
+};
+type Unit = MatchUnit | OverrideUnit | AwardsUnit;
 
 const UNIT_ORDER: Record<Unit["kind"], number> = {
   match: 0,
@@ -280,10 +254,12 @@ const UNIT_ORDER: Record<Unit["kind"], number> = {
   awards: 2,
 };
 
-const STAND_IN_PREFIX = "stand-in:";
-const PADEL = GroupSportEnum.PADEL;
-
 const UNKNOWN_START = initialRatingFromChoice("unknown", "padel");
+
+const UNCONFIRMED: PadelConfirmation = {
+  verifiedMatches: 0,
+  overridden: false,
+};
 
 function compareUnits(left: Unit, right: Unit): number {
   return (
@@ -365,18 +341,11 @@ function bandAtMidpoint(mu: number): LevelBand | undefined {
   return LEVEL_BANDS.find((band) => muFromBand(band) === mu);
 }
 
-/**
- * Reads back what each player started from (spec 9.3): the earliest ledger
- * row's μ before, or the Rating's own μ when nothing has moved it. Idle
- * inflation never touches μ and a reversal deletes its event, so that μ is
- * the declared one.
- */
-function recoverStarts(
-  ledger: PadelLedger,
-  units: readonly Unit[],
-  anomalies: ReplayAnomaly[],
-): Map<string, ReplayStart> {
-  const first = new Map<string, { mu: number; source: ReplayStartSource }>();
+type FirstRow = { mu: number; source: ReplayStartSource };
+
+/** Each player's earliest ledger row: its μ before, and which kind of unit it is. */
+function firstRows(units: readonly Unit[]): Map<string, FirstRow> {
+  const first = new Map<string, FirstRow>();
   for (const unit of units) {
     for (const row of unitRows(unit)) {
       if (!first.has(row.userId)) {
@@ -387,57 +356,95 @@ function recoverStarts(
       }
     }
   }
+  return first;
+}
+
+/** The start of a declared player with no stored Declared band, read back from μ alone. */
+function startFromMu(mu: number, source: ReplayStartSource): ReplayStart {
+  if (mu === INITIAL_MU) {
+    return { kind: "unknown", source, mu, declaredBand: null };
+  }
+  const midpointBand = bandAtMidpoint(mu);
+  return midpointBand
+    ? { kind: "declared", source, mu, declaredBand: midpointBand }
+    : {
+        kind: "unrecognised",
+        source,
+        mu,
+        declaredBand: bandFromLevel(levelFromMu(mu)),
+      };
+}
+
+function declaredStart(
+  userId: string,
+  storedBand: LevelBand | null,
+  first: FirstRow,
+  anomalies: ReplayAnomaly[],
+): ReplayStart {
+  const { mu, source } = first;
+  const fromMu = startFromMu(mu, source);
+  if (!storedBand) {
+    if (fromMu.kind === "unrecognised") {
+      anomalies.push({
+        rule: "start-mu-off-midpoint",
+        userIds: [userId],
+        detail: `declared start μ ${mu} is no band midpoint; kept, with Declared band ${fromMu.declaredBand}`,
+      });
+    }
+    return fromMu;
+  }
+  if (fromMu.declaredBand !== storedBand) {
+    anomalies.push({
+      rule: "declared-band-mismatch",
+      userIds: [userId],
+      detail: `stored Declared band ${storedBand} kept; the history starts at μ ${mu}, which would recover ${fromMu.declaredBand ?? "none"}`,
+    });
+  }
+  return { kind: "declared", source, mu, declaredBand: storedBand };
+}
+
+/**
+ * Reads back what each player started from: the earliest ledger row's μ
+ * before, or the Rating's own μ when nothing has moved it. Idle inflation
+ * never touches μ and a reversal deletes its event, so that μ is the
+ * declared one. A stored Declared band never changes (ADR-0096): when there
+ * is one it is kept, and the band is read back from μ only when there is not.
+ */
+function recoverStarts(
+  ledger: PadelLedger,
+  units: readonly Unit[],
+  anomalies: ReplayAnomaly[],
+): Map<string, ReplayStart> {
+  const first = firstRows(units);
   const ratingByUser = new Map(ledger.ratings.map((row) => [row.userId, row]));
   const userIds = new Set([...ratingByUser.keys(), ...first.keys()]);
   const starts = new Map<string, ReplayStart>();
   for (const userId of userIds) {
     const rating = ratingByUser.get(userId);
     const recorded = first.get(userId);
-    const mu = recorded?.mu ?? rating?.mu ?? INITIAL_MU;
-    const source = recorded?.source ?? "never-played";
-    if (!rating?.selfDeclaredAt) {
-      if (recorded && mu !== INITIAL_MU) {
-        anomalies.push({
-          rule: "undeclared-start",
-          userIds: [userId],
-          detail: `never declared, but the first ledger row starts at μ ${mu}; replayed from μ ${INITIAL_MU}`,
-        });
-      }
-      starts.set(userId, {
-        kind: "not-declared",
-        source,
-        mu,
-        declaredBand: null,
-      });
+    const start: FirstRow = {
+      mu: recorded?.mu ?? rating?.mu ?? INITIAL_MU,
+      source: recorded?.source ?? "never-played",
+    };
+    if (rating?.selfDeclaredAt) {
+      starts.set(
+        userId,
+        declaredStart(userId, rating.declaredBand, start, anomalies),
+      );
       continue;
     }
-    const midpointBand = bandAtMidpoint(mu);
-    const start: ReplayStart =
-      mu === INITIAL_MU
-        ? { kind: "unknown", source, mu, declaredBand: null }
-        : midpointBand
-          ? { kind: "declared", source, mu, declaredBand: midpointBand }
-          : {
-              kind: "unrecognised",
-              source,
-              mu,
-              declaredBand: bandFromLevel(levelFromMu(mu)),
-            };
-    if (start.kind === "unrecognised") {
+    if (recorded && start.mu !== INITIAL_MU) {
       anomalies.push({
-        rule: "RQ-5",
+        rule: "undeclared-start",
         userIds: [userId],
-        detail: `declared start μ ${mu} is no band midpoint; kept, with Declared band ${start.declaredBand}`,
+        detail: `never declared, but the first ledger row starts at μ ${start.mu}; replayed from μ ${INITIAL_MU}`,
       });
     }
-    if (rating.declaredBand && rating.declaredBand !== start.declaredBand) {
-      anomalies.push({
-        rule: "declared-band-mismatch",
-        userIds: [userId],
-        detail: `stored Declared band ${rating.declaredBand}, recovered ${start.declaredBand ?? "none"} from μ ${mu}`,
-      });
-    }
-    starts.set(userId, start);
+    starts.set(userId, {
+      kind: "not-declared",
+      ...start,
+      declaredBand: rating?.declaredBand ?? null,
+    });
   }
   return starts;
 }
@@ -450,16 +457,12 @@ function startState(
   if (!band) {
     return UNKNOWN_START;
   }
-  const declared =
-    start.kind === "declared"
-      ? initialRatingFromChoice(band, "padel")
-      : {
-          mu: start.mu,
-          phi: PADEL_DECLARED_START_PHI[band],
-          sigma: INITIAL_SIGMA,
-          levelBand: band,
-        };
-  return rules === "baseline" ? { ...declared, phi: INITIAL_PHI } : declared;
+  return {
+    mu: start.mu,
+    phi: rules === "baseline" ? INITIAL_PHI : PADEL_DECLARED_START_PHI[band],
+    sigma: INITIAL_SIGMA,
+    levelBand: band,
+  };
 }
 
 function glickoOf(state: State): RatingGlickoState {
@@ -489,6 +492,11 @@ export function replayLossFactor(event: ReplayEvent): number {
   return Number.isFinite(derived) ? derived : 1;
 }
 
+function storedLossFactor(event: ReplayEvent): number | null {
+  const factor = replayLossFactor(event);
+  return factor === 1 ? null : factor;
+}
+
 function nullWhenZero(value: number): number | null {
   return value === 0 ? null : value;
 }
@@ -501,115 +509,349 @@ function carriedMove(before: ClassicGlicko, row: LedgerValues): ClassicGlicko {
   };
 }
 
-type Seats = {
-  slot1: [string, string];
-  slot2: [string, string];
-  outcome: DoublesOutcome;
-  standIns: Set<string>;
+/** One walk over the time line: what it reads, and what it has replayed so far. */
+type Walk = {
+  rules: PadelReplayRules;
+  starts: Map<string, ReplayStart>;
+  ratingByUser: Map<string, ReplayRating>;
+  matchById: Map<string, ReplayMatch>;
+  kingGameById: Map<string, ReplayKingGame>;
+  guestIds: Set<string>;
+  states: Map<string, State>;
+  confirmations: Map<string, PadelConfirmation>;
+  events: Map<string, ReplayedEvent>;
+  overrides: Map<string, ReplayedOverride>;
+  awards: Map<string, ReplayedAward>;
+  anomalies: ReplayAnomaly[];
 };
 
-function twoDistinct(
-  userIds: readonly string[] | null,
-): [string, string] | null {
-  const unique = [...new Set(userIds ?? [])];
-  const [first, second] = unique;
-  return unique.length === 2 && first && second ? [first, second] : null;
-}
-
-function outcomeForSlot1(score: number): DoublesOutcome | null {
-  if (score === 1) {
-    return "slot1";
-  }
-  if (score === 0) {
-    return "slot2";
-  }
-  return score === 0.5 ? "draw" : null;
-}
-
-/**
- * The sides from the Match's two Game teams, when they still fit its events:
- * every rated User on one side, partners sharing one outcome score.
- */
-function seatsFromTeams(
-  match: ReplayMatch | undefined,
-  events: readonly ReplayEvent[],
-): Omit<Seats, "standIns"> | null {
-  const slot1 = twoDistinct(match?.slot1 ?? null);
-  const slot2 = twoDistinct(match?.slot2 ?? null);
-  if (!slot1 || !slot2 || new Set([...slot1, ...slot2]).size !== 4) {
-    return null;
-  }
-  const scoreOf = (side: readonly string[]) => {
-    const scores = new Set(
-      events
-        .filter((event) => side.includes(event.userId))
-        .map((event) => event.outcomeScore),
-    );
-    return scores.size > 1 ? Number.NaN : [...scores][0];
-  };
-  if (
-    events.some(
-      (event) => !slot1.includes(event.userId) && !slot2.includes(event.userId),
-    )
-  ) {
-    return null;
-  }
-  const score1 = scoreOf(slot1);
-  const score2 = scoreOf(slot2);
-  if (score1 === undefined && score2 === undefined) {
-    return null;
-  }
-  if (score1 !== undefined && score2 !== undefined && score1 + score2 !== 1) {
-    return null;
-  }
-  const outcome = outcomeForSlot1(score1 ?? 1 - (score2 ?? Number.NaN));
-  return outcome ? { slot1, slot2, outcome } : null;
-}
-
-/** A decisive Match whose seats no longer fit, rebuilt with the winners together. */
-function seatsFromScores(
-  matchId: string,
-  events: readonly ReplayEvent[],
-): Seats | null {
-  if (
-    events.some((event) => event.outcomeScore !== 0 && event.outcomeScore !== 1)
-  ) {
-    return null;
-  }
-  const winners = events.filter((event) => event.outcomeScore === 1);
-  const losers = events.filter((event) => event.outcomeScore === 0);
-  if (winners.length > 2 || losers.length > 2) {
-    return null;
-  }
-  const standIns = new Set<string>();
-  const side = (rows: readonly ReplayEvent[], label: string) => {
-    const userIds = rows.map((event) => event.userId);
-    while (userIds.length < 2) {
-      const standIn = `${STAND_IN_PREFIX}${matchId}:${label}:${userIds.length}`;
-      standIns.add(standIn);
-      userIds.push(standIn);
-    }
-    return userIds as [string, string];
-  };
-  return {
-    slot1: side(winners, "won"),
-    slot2: side(losers, "lost"),
-    outcome: "slot1",
-    standIns,
-  };
-}
-
-/**
- * Replays the padel ledger under one rule set (spec 9.4): one walk over every
- * Rated Match, Level override and Game's Place awards, in order, through the
- * same domain functions the live writers call, so a history the live writers
- * wrote under these rules replays to exactly what they stored. Pure: reads
- * only `ledger`, and refuses a football row.
- */
-export function replayPadelLedger(
+function newWalk(
   ledger: PadelLedger,
   rules: PadelReplayRules,
-): PadelReplay {
+  starts: Map<string, ReplayStart>,
+  anomalies: ReplayAnomaly[],
+): Walk {
+  return {
+    rules,
+    starts,
+    ratingByUser: new Map(ledger.ratings.map((row) => [row.userId, row])),
+    matchById: new Map(ledger.matches.map((row) => [row.id, row])),
+    kingGameById: new Map(ledger.kingGames.map((row) => [row.id, row])),
+    guestIds: new Set(
+      ledger.players
+        .filter((player) => player.guest)
+        .map((player) => player.id),
+    ),
+    states: new Map(),
+    confirmations: new Map(),
+    events: new Map(),
+    overrides: new Map(),
+    awards: new Map(),
+    anomalies,
+  };
+}
+
+function confirmationOf(walk: Walk, userId: string): PadelConfirmation {
+  return walk.confirmations.get(userId) ?? UNCONFIRMED;
+}
+
+/** The Rating a live writer would have read at `at`: none until it was declared or first moved. */
+function stateAt(walk: Walk, userId: string, at: Date): State {
+  const replayed = walk.states.get(userId);
+  if (replayed) {
+    return replayed;
+  }
+  const start = walk.starts.get(userId);
+  const rating = walk.ratingByUser.get(userId);
+  if (
+    start &&
+    rating?.selfDeclaredAt &&
+    start.kind !== "not-declared" &&
+    rating.selfDeclaredAt <= at
+  ) {
+    return { ...startState(start, walk.rules), lastRatedAt: null };
+  }
+  return { ...UNKNOWN_START, lastRatedAt: null };
+}
+
+function inputOf(walk: Walk, userId: string, at: Date): DoublesPlayerInput {
+  const state = stateAt(walk, userId, at);
+  return { state: glickoOf(state), lastRatedAt: state.lastRatedAt };
+}
+
+function countMatch(walk: Walk, userId: string, verified: boolean) {
+  const confirmation = confirmationOf(walk, userId);
+  walk.confirmations.set(userId, {
+    ...confirmation,
+    verifiedMatches: confirmation.verifiedMatches + (verified ? 1 : 0),
+  });
+}
+
+function carryOverEvent(
+  walk: Walk,
+  event: ReplayEvent,
+  at: Date,
+  verified: boolean,
+) {
+  const state = stateAt(walk, event.userId, at);
+  const before = applyIdleInflation(state, state.lastRatedAt, at);
+  const after = carriedMove(before, event);
+  walk.events.set(event.id, {
+    muBefore: before.mu,
+    phiBefore: before.phi,
+    sigmaBefore: before.sigma,
+    muAfter: after.mu,
+    phiAfter: after.phi,
+    sigmaAfter: after.sigma,
+    levelBandBefore: state.levelBand,
+    lastRatedAtBefore: state.lastRatedAt,
+    reliabilityPart: event.reliabilityPart,
+    proveItPart: event.proveItPart,
+    reliabilityLossFactor: storedLossFactor(event),
+  });
+  walk.states.set(event.userId, {
+    ...after,
+    levelBand: bandWithHysteresis(levelFromMu(after.mu), state.levelBand),
+    lastRatedAt: at,
+  });
+  countMatch(walk, event.userId, verified);
+}
+
+/** The Match's seats, from its Game teams or else rebuilt from its scores; null when neither fits. */
+function matchSeats(
+  walk: Walk,
+  unit: MatchUnit,
+  eventByUser: ReadonlyMap<string, ReplayEvent>,
+): Seats | null {
+  const fromTeams = seatsFromTeams(walk.matchById.get(unit.id), unit.events);
+  if (fromTeams) {
+    const missing = [...fromTeams.slot1, ...fromTeams.slot2].filter(
+      (userId) => !eventByUser.has(userId),
+    );
+    const merged = missing.filter((userId) => !walk.guestIds.has(userId));
+    if (merged.length > 0) {
+      walk.anomalies.push({
+        rule: "seat-without-event",
+        userIds: merged,
+        detail: `Match ${unit.id}: a seat with no rating event plays as a Guest player`,
+      });
+    }
+    return { ...fromTeams, standIns: new Set(missing) };
+  }
+  const fromScores = seatsFromScores(unit.id, unit.events);
+  if (fromScores) {
+    walk.anomalies.push({
+      rule: "rebuilt-from-scores",
+      userIds: unit.events.map((row) => row.userId),
+      detail: `Match ${unit.id}: the seats no longer fit its events; rebuilt with the winners together`,
+    });
+  }
+  return fromScores;
+}
+
+/** Each seat's input as the live writer builds it: the stored loss factor, the Prove-it rule, a Guest player at the mean. */
+function seatInputs(
+  walk: Walk,
+  seats: Seats,
+  eventByUser: ReadonlyMap<string, ReplayEvent>,
+  at: Date,
+) {
+  return withGuestStandIns(
+    [...seats.slot1, ...seats.slot2],
+    seats.standIns,
+    (userId) => {
+      const event = eventByUser.get(userId);
+      return {
+        ...inputOf(walk, userId, at),
+        lossFactor: event ? replayLossFactor(event) : 1,
+        proveIt:
+          walk.rules === "declared-band" &&
+          proveItApplies(
+            walk.starts.get(userId)?.declaredBand,
+            confirmationOf(walk, userId),
+          ),
+      };
+    },
+  );
+}
+
+/** Rates the Match through `rateDoublesMatch` on the replayed Ratings, as the live writer does. */
+function rateMatch(
+  walk: Walk,
+  unit: MatchUnit,
+  seats: Seats,
+  eventByUser: ReadonlyMap<string, ReplayEvent>,
+  verified: boolean,
+) {
+  const { at } = unit;
+  const { slot1, slot2, outcome } = seats;
+  const playerInput = seatInputs(walk, seats, eventByUser, at);
+  const rated = rateDoublesMatch({
+    slot1: [playerInput(slot1[0]), playerInput(slot1[1])],
+    slot2: [playerInput(slot2[0]), playerInput(slot2[1])],
+    outcome,
+    weight: unit.events[0]?.weight ?? 1,
+    now: at,
+  });
+  const results = [
+    [slot1[0], rated.slot1[0]],
+    [slot1[1], rated.slot1[1]],
+    [slot2[0], rated.slot2[0]],
+    [slot2[1], rated.slot2[1]],
+  ] as const;
+  for (const [userId, result] of results) {
+    const event = eventByUser.get(userId);
+    if (!event) {
+      continue;
+    }
+    const input = playerInput(userId);
+    walk.events.set(event.id, {
+      muBefore: result.before.mu,
+      phiBefore: result.before.phi,
+      sigmaBefore: result.before.sigma,
+      muAfter: result.after.mu,
+      phiAfter: result.after.phi,
+      sigmaAfter: result.after.sigma,
+      levelBandBefore: input.state.levelBand,
+      lastRatedAtBefore: input.lastRatedAt ?? null,
+      reliabilityPart: nullWhenZero(result.reliabilityPart),
+      proveItPart: nullWhenZero(result.proveItPart),
+      reliabilityLossFactor: storedLossFactor(event),
+    });
+    walk.states.set(userId, {
+      ...result.after,
+      levelBand: result.levelBand,
+      lastRatedAt: at,
+    });
+    countMatch(walk, userId, verified);
+  }
+}
+
+function replayMatch(walk: Walk, unit: MatchUnit) {
+  const verified = walk.matchById.get(unit.id)?.verified ?? false;
+  const eventByUser = new Map(unit.events.map((row) => [row.userId, row]));
+  const seats = matchSeats(walk, unit, eventByUser);
+  if (seats) {
+    rateMatch(walk, unit, seats, eventByUser, verified);
+    return;
+  }
+  walk.anomalies.push({
+    rule: "carried-over",
+    userIds: unit.events.map((row) => row.userId),
+    detail: `Match ${unit.id}: drawn or unplaceable, carried over by its stored moves`,
+  });
+  for (const event of unit.events) {
+    carryOverEvent(walk, event, unit.at, verified);
+  }
+}
+
+function replayOverride(walk: Walk, override: ReplayOverride) {
+  const state = stateAt(walk, override.userId, override.createdAt);
+  const phiAfter = confirmedPhiForOverride(state.phi);
+  walk.overrides.set(override.id, {
+    muBefore: state.mu,
+    phiBefore: state.phi,
+    sigmaBefore: state.sigma,
+    levelBandBefore: state.levelBand,
+    phiAfter,
+    sigmaAfter: state.sigma,
+  });
+  walk.states.set(override.userId, {
+    mu: override.muAfter,
+    phi: phiAfter,
+    sigma: state.sigma,
+    levelBand: override.levelBandAfter,
+    lastRatedAt: state.lastRatedAt,
+  });
+  walk.confirmations.set(override.userId, {
+    ...confirmationOf(walk, override.userId),
+    overridden: true,
+  });
+}
+
+/** Each placed player of a Game, rated by the live writer's own pairing from the Ratings before the Game's awards. */
+function placeKingGame(walk: Walk, unit: AwardsUnit): Map<string, KingPlacing> {
+  const { at } = unit;
+  const teams = walk.kingGameById.get(unit.id)?.teams ?? [];
+  const fieldUserIds = [
+    ...new Set(teams.flatMap((team) => team.userIds)),
+  ].filter((userId) => !walk.guestIds.has(userId));
+  const field = kingField(
+    fieldUserIds.map((userId) => inputOf(walk, userId, at)),
+    at,
+  );
+  const placings = field
+    ? rateKingPlaces({
+        teams,
+        guestIds: walk.guestIds,
+        field,
+        inputOf: (userId) => inputOf(walk, userId, at),
+        now: at,
+      })
+    : [];
+  return new Map(placings.map((placing) => [placing.userId, placing]));
+}
+
+/** A Game's Place awards, every one read from the Ratings as they stood before the Game's awards. */
+function replayAwards(walk: Walk, unit: AwardsUnit) {
+  const { at } = unit;
+  const placed = placeKingGame(walk, unit);
+  const next = new Map<string, State>();
+  for (const award of unit.awards) {
+    const state = stateAt(walk, award.userId, at);
+    const result = placed.get(award.userId);
+    const recomputed =
+      result?.wins === award.wins && result.finalPlace === award.finalPlace
+        ? result
+        : null;
+    if (!recomputed) {
+      walk.anomalies.push({
+        rule: "carried-over",
+        userIds: [award.userId],
+        detail: `Place award ${award.id} on Game ${unit.id}: the Game teams no longer place this player; carried over by its stored move`,
+      });
+    }
+    const after = recomputed?.result.after ?? carriedMove(state, award);
+    walk.awards.set(award.id, {
+      fieldMu: recomputed ? recomputed.field.mu : award.fieldMu,
+      fieldPhi: recomputed ? recomputed.field.phi : award.fieldPhi,
+      muBefore: state.mu,
+      phiBefore: state.phi,
+      sigmaBefore: state.sigma,
+      muAfter: after.mu,
+      phiAfter: after.phi,
+      sigmaAfter: after.sigma,
+      levelBandBefore: state.levelBand,
+      lastRatedAtBefore: state.lastRatedAt,
+    });
+    next.set(award.userId, {
+      ...after,
+      levelBand:
+        recomputed?.result.levelBand ??
+        bandWithHysteresis(levelFromMu(after.mu), state.levelBand),
+      lastRatedAt: at,
+    });
+  }
+  for (const [userId, state] of next) {
+    walk.states.set(userId, state);
+  }
+}
+
+function replayUnit(walk: Walk, unit: Unit) {
+  switch (unit.kind) {
+    case "match":
+      replayMatch(walk, unit);
+      break;
+    case "override":
+      replayOverride(walk, unit.override);
+      break;
+    case "awards":
+      replayAwards(walk, unit);
+      break;
+  }
+}
+
+function refuseFootball(ledger: PadelLedger) {
   for (const row of [
     ...ledger.ratings,
     ...ledger.events,
@@ -620,322 +862,20 @@ export function replayPadelLedger(
       throw new Error(`The padel replay refuses a ${row.sport} row`);
     }
   }
+}
 
-  const anomalies: ReplayAnomaly[] = [];
-  const units = timeLine(ledger);
-  const starts = recoverStarts(ledger, units, anomalies);
-  const ratingByUser = new Map(ledger.ratings.map((row) => [row.userId, row]));
-  const matchById = new Map(ledger.matches.map((row) => [row.id, row]));
-  const kingGameById = new Map(ledger.kingGames.map((row) => [row.id, row]));
-  const guestIds = new Set(
-    ledger.players.filter((player) => player.guest).map((player) => player.id),
-  );
-
-  const states = new Map<string, State>();
-  const confirmations = new Map<string, PadelConfirmation>();
-  const events = new Map<string, ReplayedEvent>();
-  const overrides = new Map<string, ReplayedOverride>();
-  const awards = new Map<string, ReplayedAward>();
-
-  const confirmationOf = (userId: string): PadelConfirmation =>
-    confirmations.get(userId) ?? { verifiedMatches: 0, overridden: false };
-
-  /** The Rating a live writer would have read at `at`: none until it was declared or first moved. */
-  const stateAt = (userId: string, at: Date): State => {
-    const replayed = states.get(userId);
-    if (replayed) {
-      return replayed;
-    }
-    const start = starts.get(userId);
-    const rating = ratingByUser.get(userId);
-    if (
-      start &&
-      rating?.selfDeclaredAt &&
-      start.kind !== "not-declared" &&
-      rating.selfDeclaredAt <= at
-    ) {
-      return { ...startState(start, rules), lastRatedAt: null };
-    }
-    return { ...UNKNOWN_START, lastRatedAt: null };
-  };
-
-  const inputOf = (userId: string, at: Date): DoublesPlayerInput => {
-    const state = stateAt(userId, at);
-    return { state: glickoOf(state), lastRatedAt: state.lastRatedAt };
-  };
-
-  const countMatch = (userId: string, verified: boolean) => {
-    const confirmation = confirmationOf(userId);
-    confirmations.set(userId, {
-      ...confirmation,
-      verifiedMatches: confirmation.verifiedMatches + (verified ? 1 : 0),
-    });
-  };
-
-  const carryOverEvent = (event: ReplayEvent, at: Date, verified: boolean) => {
-    const state = stateAt(event.userId, at);
-    const before = applyIdleInflation(state, state.lastRatedAt, at);
-    const after = carriedMove(before, event);
-    const factor = replayLossFactor(event);
-    events.set(event.id, {
-      muBefore: before.mu,
-      phiBefore: before.phi,
-      sigmaBefore: before.sigma,
-      muAfter: after.mu,
-      phiAfter: after.phi,
-      sigmaAfter: after.sigma,
-      levelBandBefore: state.levelBand,
-      lastRatedAtBefore: state.lastRatedAt,
-      reliabilityPart: event.reliabilityPart,
-      proveItPart: event.proveItPart,
-      reliabilityLossFactor: factor === 1 ? null : factor,
-    });
-    states.set(event.userId, {
-      ...after,
-      levelBand: bandWithHysteresis(levelFromMu(after.mu), state.levelBand),
-      lastRatedAt: at,
-    });
-    countMatch(event.userId, verified);
-  };
-
-  const replayMatch = (unit: Extract<Unit, { kind: "match" }>) => {
-    const { at } = unit;
-    const match = matchById.get(unit.id);
-    const verified = match?.verified ?? false;
-    const eventByUser = new Map(unit.events.map((row) => [row.userId, row]));
-    const fromTeams = seatsFromTeams(match, unit.events);
-    let seats: Seats | null = null;
-    if (fromTeams) {
-      const missing = [...fromTeams.slot1, ...fromTeams.slot2].filter(
-        (userId) => !eventByUser.has(userId),
-      );
-      const merged = missing.filter((userId) => !guestIds.has(userId));
-      if (merged.length > 0) {
-        anomalies.push({
-          rule: "RQ-6",
-          userIds: merged,
-          detail: `Match ${unit.id}: a seat with no rating event plays as a Guest player`,
-        });
-      }
-      seats = { ...fromTeams, standIns: new Set(missing) };
-    } else {
-      seats = seatsFromScores(unit.id, unit.events);
-      if (seats) {
-        anomalies.push({
-          rule: "rebuilt-from-scores",
-          userIds: unit.events.map((row) => row.userId),
-          detail: `Match ${unit.id}: the seats no longer fit its events; rebuilt with the winners together`,
-        });
-      }
-    }
-    if (!seats) {
-      anomalies.push({
-        rule: "RQ-7",
-        userIds: unit.events.map((row) => row.userId),
-        detail: `Match ${unit.id}: drawn or unplaceable, carried over by its stored moves`,
-      });
-      for (const event of unit.events) {
-        carryOverEvent(event, at, verified);
-      }
-      return;
-    }
-
-    const { slot1, slot2, outcome, standIns } = seats;
-    const playerInput = withGuestStandIns(
-      [...slot1, ...slot2],
-      standIns,
-      (userId) => {
-        const event = eventByUser.get(userId);
-        return {
-          ...inputOf(userId, at),
-          lossFactor: event ? replayLossFactor(event) : 1,
-          proveIt:
-            rules === "declared-band" &&
-            proveItApplies(
-              starts.get(userId)?.declaredBand,
-              confirmationOf(userId),
-            ),
-        };
-      },
-    );
-    const weight = unit.events[0]?.weight ?? 1;
-    const rated = rateDoublesMatch({
-      slot1: [playerInput(slot1[0]), playerInput(slot1[1])],
-      slot2: [playerInput(slot2[0]), playerInput(slot2[1])],
-      outcome,
-      weight,
-      now: at,
-    });
-    const results = [
-      [slot1[0], rated.slot1[0]],
-      [slot1[1], rated.slot1[1]],
-      [slot2[0], rated.slot2[0]],
-      [slot2[1], rated.slot2[1]],
-    ] as const;
-    for (const [userId, result] of results) {
-      const event = eventByUser.get(userId);
-      if (!event) {
-        continue;
-      }
-      const input = playerInput(userId);
-      const factor = replayLossFactor(event);
-      events.set(event.id, {
-        muBefore: result.before.mu,
-        phiBefore: result.before.phi,
-        sigmaBefore: result.before.sigma,
-        muAfter: result.after.mu,
-        phiAfter: result.after.phi,
-        sigmaAfter: result.after.sigma,
-        levelBandBefore: input.state.levelBand,
-        lastRatedAtBefore: input.lastRatedAt ?? null,
-        reliabilityPart: nullWhenZero(result.reliabilityPart),
-        proveItPart: nullWhenZero(result.proveItPart),
-        reliabilityLossFactor: factor === 1 ? null : factor,
-      });
-      states.set(userId, {
-        ...result.after,
-        levelBand: result.levelBand,
-        lastRatedAt: at,
-      });
-      countMatch(userId, verified);
-    }
-  };
-
-  const replayOverride = (override: ReplayOverride) => {
-    const state = stateAt(override.userId, override.createdAt);
-    const phiAfter = confirmedPhiForOverride(state.phi);
-    overrides.set(override.id, {
-      muBefore: state.mu,
-      phiBefore: state.phi,
-      sigmaBefore: state.sigma,
-      levelBandBefore: state.levelBand,
-      phiAfter,
-      sigmaAfter: state.sigma,
-    });
-    states.set(override.userId, {
-      mu: override.muAfter,
-      phi: phiAfter,
-      sigma: state.sigma,
-      levelBand: override.levelBandAfter,
-      lastRatedAt: state.lastRatedAt,
-    });
-    confirmations.set(override.userId, {
-      ...confirmationOf(override.userId),
-      overridden: true,
-    });
-  };
-
-  /** A Game's Place awards, every one read from the Ratings as they stood before the Game's awards. */
-  const replayAwards = (unit: Extract<Unit, { kind: "awards" }>) => {
-    const { at } = unit;
-    const teams = kingGameById.get(unit.id)?.teams ?? [];
-    const fieldUserIds = [
-      ...new Set(teams.flatMap((team) => team.userIds)),
-    ].filter((userId) => !guestIds.has(userId));
-    const field = kingField(
-      fieldUserIds.map((userId) => inputOf(userId, at)),
-      at,
-    );
-    const placed = new Map<
-      string,
-      KingPlaceResult & { wins: number; finalPlace: number }
-    >();
-    for (const team of field ? teams : []) {
-      const wins = kingPlaceWins(team.finalPlace);
-      const [first, second] = team.userIds.filter(
-        (userId) => !guestIds.has(userId),
-      );
-      if (!field || wins === 0 || team.finalPlace == null || !first) {
-        continue;
-      }
-      const partner = second
-        ? inputOf(second, at)
-        : team.userIds.length > 1
-          ? kingFieldPlayer(field)
-          : inputOf(first, at);
-      const [firstResult, secondResult] = rateKingPlace({
-        pair: [inputOf(first, at), partner],
-        field,
-        wins,
-        now: at,
-      });
-      placed.set(first, { ...firstResult, wins, finalPlace: team.finalPlace });
-      if (second) {
-        placed.set(second, {
-          ...secondResult,
-          wins,
-          finalPlace: team.finalPlace,
-        });
-      }
-    }
-
-    const next = new Map<string, State>();
-    for (const award of unit.awards) {
-      const state = stateAt(award.userId, at);
-      const result = placed.get(award.userId);
-      const recomputed =
-        field &&
-        result?.wins === award.wins &&
-        result.finalPlace === award.finalPlace
-          ? result
-          : null;
-      if (!recomputed) {
-        anomalies.push({
-          rule: "RQ-7",
-          userIds: [award.userId],
-          detail: `Place award ${award.id} on Game ${unit.id}: the Game teams no longer place this player; carried over by its stored move`,
-        });
-      }
-      const after = recomputed?.after ?? carriedMove(state, award);
-      awards.set(award.id, {
-        fieldMu: recomputed && field ? field.mu : award.fieldMu,
-        fieldPhi: recomputed && field ? field.phi : award.fieldPhi,
-        muBefore: state.mu,
-        phiBefore: state.phi,
-        sigmaBefore: state.sigma,
-        muAfter: after.mu,
-        phiAfter: after.phi,
-        sigmaAfter: after.sigma,
-        levelBandBefore: state.levelBand,
-        lastRatedAtBefore: state.lastRatedAt,
-      });
-      next.set(award.userId, {
-        ...after,
-        levelBand:
-          recomputed?.levelBand ??
-          bandWithHysteresis(levelFromMu(after.mu), state.levelBand),
-        lastRatedAt: at,
-      });
-    }
-    for (const [userId, state] of next) {
-      states.set(userId, state);
-    }
-  };
-
-  for (const unit of units) {
-    switch (unit.kind) {
-      case "match":
-        replayMatch(unit);
-        break;
-      case "override":
-        replayOverride(unit.override);
-        break;
-      case "awards":
-        replayAwards(unit);
-        break;
-    }
-  }
-
-  anomalies.push(...sameInstantAnomalies(units, matchById, kingGameById));
-
+/** Each Rating at the end of the walk: as replayed, or its start when nothing moved it. */
+function finalRatings(
+  walk: Walk,
+  ledger: PadelLedger,
+): Map<string, ReplayedRating> {
   const replayedRatings = new Map<string, ReplayedRating>();
   for (const rating of ledger.ratings) {
-    const start = starts.get(rating.userId);
-    const replayed = states.get(rating.userId);
+    const start = walk.starts.get(rating.userId);
     const state: State =
-      replayed ??
+      walk.states.get(rating.userId) ??
       (start && start.kind !== "not-declared"
-        ? { ...startState(start, rules), lastRatedAt: null }
+        ? { ...startState(start, walk.rules), lastRatedAt: null }
         : rating);
     replayedRatings.set(rating.userId, {
       mu: state.mu,
@@ -946,28 +886,88 @@ export function replayPadelLedger(
       declaredBand: start?.declaredBand ?? null,
     });
   }
-  const withoutRating = [...states.keys()].filter(
-    (userId) => !ratingByUser.has(userId),
-  );
-  if (withoutRating.length > 0) {
-    anomalies.push({
-      rule: "ledger-without-rating",
-      userIds: withoutRating,
-      detail:
-        "ledger rows whose player has no padel Rating; replayed as opponents only",
-    });
-  }
+  return replayedRatings;
+}
 
+function withoutRatingAnomalies(walk: Walk): ReplayAnomaly[] {
+  const withoutRating = [...walk.states.keys()].filter(
+    (userId) => !walk.ratingByUser.has(userId),
+  );
+  return withoutRating.length === 0
+    ? []
+    : [
+        {
+          rule: "ledger-without-rating",
+          userIds: withoutRating,
+          detail:
+            "ledger rows whose player has no padel Rating; replayed as opponents only",
+        },
+      ];
+}
+
+/**
+ * Replays the padel ledger under one rule set (ADR-0098): one walk over
+ * every Rated Match, Level override and Game's Place awards, in order,
+ * through the same functions the live writers call, so a history the live
+ * writers wrote under these rules replays to exactly what they stored. Pure:
+ * reads only `ledger`, and refuses a football row.
+ */
+export function replayPadelLedger(
+  ledger: PadelLedger,
+  rules: PadelReplayRules,
+): PadelReplay {
+  refuseFootball(ledger);
+  const anomalies: ReplayAnomaly[] = [];
+  const units = timeLine(ledger);
+  const walk = newWalk(
+    ledger,
+    rules,
+    recoverStarts(ledger, units, anomalies),
+    anomalies,
+  );
+  for (const unit of units) {
+    replayUnit(walk, unit);
+  }
+  anomalies.push(
+    ...sameInstantAnomalies(units, walk.matchById, walk.kingGameById),
+  );
+  const ratings = finalRatings(walk, ledger);
+  anomalies.push(...withoutRatingAnomalies(walk));
   return {
     rules,
-    ratings: replayedRatings,
-    events,
-    overrides,
-    awards,
-    starts,
-    confirmations,
+    ratings,
+    events: walk.events,
+    overrides: walk.overrides,
+    awards: walk.awards,
+    starts: walk.starts,
+    confirmations: walk.confirmations,
     anomalies,
   };
+}
+
+function unitParticipants(
+  unit: Unit,
+  matchById: ReadonlyMap<string, ReplayMatch>,
+  kingGameById: ReadonlyMap<string, ReplayKingGame>,
+): string[] {
+  switch (unit.kind) {
+    case "match": {
+      const match = matchById.get(unit.id);
+      return [
+        ...unit.events.map((row) => row.userId),
+        ...(match?.slot1 ?? []),
+        ...(match?.slot2 ?? []),
+      ];
+    }
+    case "override":
+      return [unit.override.userId];
+    case "awards":
+      return [
+        ...unit.awards.map((row) => row.userId),
+        ...(kingGameById.get(unit.id)?.teams.flatMap((team) => team.userIds) ??
+          []),
+      ];
+  }
 }
 
 function sameInstantAnomalies(
@@ -975,27 +975,6 @@ function sameInstantAnomalies(
   matchById: ReadonlyMap<string, ReplayMatch>,
   kingGameById: ReadonlyMap<string, ReplayKingGame>,
 ): ReplayAnomaly[] {
-  const participants = (unit: Unit): string[] => {
-    switch (unit.kind) {
-      case "match": {
-        const match = matchById.get(unit.id);
-        return [
-          ...unit.events.map((row) => row.userId),
-          ...(match?.slot1 ?? []),
-          ...(match?.slot2 ?? []),
-        ];
-      }
-      case "override":
-        return [unit.override.userId];
-      case "awards":
-        return [
-          ...unit.awards.map((row) => row.userId),
-          ...(kingGameById
-            .get(unit.id)
-            ?.teams.flatMap((team) => team.userIds) ?? []),
-        ];
-    }
-  };
   const anomalies: ReplayAnomaly[] = [];
   for (const sameAt of groupBy(units, (unit) =>
     String(unit.at.getTime()),
@@ -1005,7 +984,9 @@ function sameInstantAnomalies(
     }
     const seen = new Map<string, number>();
     for (const unit of sameAt) {
-      for (const userId of new Set(participants(unit))) {
+      for (const userId of new Set(
+        unitParticipants(unit, matchById, kingGameById),
+      )) {
         seen.set(userId, (seen.get(userId) ?? 0) + 1);
       }
     }
@@ -1054,7 +1035,7 @@ export function padelReplayDifferences(
 ): ReplayDifference[] {
   const differences: ReplayDifference[] = [];
   const check = <T extends object>(
-    table: ReplayDifference["table"],
+    table: RatingReplayTable,
     rowId: string,
     stored: T,
     replayed: Partial<T> | undefined,
@@ -1084,1173 +1065,4 @@ export function padelReplayDifferences(
     );
   }
   return differences;
-}
-
-export type UpcomingLevelRangeSeat = {
-  gameId: string;
-  userId: string;
-  levelMinTenths: number | null;
-  levelMaxTenths: number | null;
-};
-
-/**
- * Reads the padel ledger: every padel Rating, rating event, Level override
- * and Place award, each event's Match with its Game teams, each Place award's
- * Game teams, and the players they seat. Never reads a football row.
- */
-export async function loadPadelLedger(tx: DbTx): Promise<PadelLedger> {
-  const padelMatchIds = tx
-    .selectDistinct({ id: ratingEvents.matchId })
-    .from(ratingEvents)
-    .where(eq(ratingEvents.sport, PADEL));
-  const matchGameIds = tx
-    .selectDistinct({ id: matches.gameId })
-    .from(matches)
-    .where(inArray(matches.id, padelMatchIds));
-  const kingGameIds = tx
-    .selectDistinct({ id: kingPlaceAwards.gameId })
-    .from(kingPlaceAwards)
-    .where(eq(kingPlaceAwards.sport, PADEL));
-
-  const [
-    ratingRows,
-    eventRows,
-    overrideRows,
-    awardRows,
-    matchRows,
-    slotLinks,
-    kingTeams,
-    playerRows,
-  ] = await Promise.all([
-    tx
-      .select({
-        userId: ratings.userId,
-        sport: ratings.sport,
-        mu: ratings.mu,
-        phi: ratings.phi,
-        sigma: ratings.sigma,
-        levelBand: ratings.levelBand,
-        declaredBand: ratings.declaredBand,
-        selfDeclaredAt: ratings.selfDeclaredAt,
-        lastRatedAt: ratings.lastRatedAt,
-        createdAt: ratings.createdAt,
-      })
-      .from(ratings)
-      .where(eq(ratings.sport, PADEL)),
-    tx
-      .select({
-        id: ratingEvents.id,
-        userId: ratingEvents.userId,
-        sport: ratingEvents.sport,
-        matchId: ratingEvents.matchId,
-        outcomeScore: ratingEvents.outcomeScore,
-        weight: ratingEvents.weight,
-        muBefore: ratingEvents.muBefore,
-        phiBefore: ratingEvents.phiBefore,
-        sigmaBefore: ratingEvents.sigmaBefore,
-        muAfter: ratingEvents.muAfter,
-        phiAfter: ratingEvents.phiAfter,
-        sigmaAfter: ratingEvents.sigmaAfter,
-        levelBandBefore: ratingEvents.levelBandBefore,
-        lastRatedAtBefore: ratingEvents.lastRatedAtBefore,
-        reliabilityPart: ratingEvents.reliabilityPart,
-        proveItPart: ratingEvents.proveItPart,
-        reliabilityLossFactor: ratingEvents.reliabilityLossFactor,
-        createdAt: ratingEvents.createdAt,
-      })
-      .from(ratingEvents)
-      .where(eq(ratingEvents.sport, PADEL)),
-    tx
-      .select({
-        id: levelOverrides.id,
-        userId: levelOverrides.userId,
-        sport: levelOverrides.sport,
-        muBefore: levelOverrides.muBefore,
-        phiBefore: levelOverrides.phiBefore,
-        sigmaBefore: levelOverrides.sigmaBefore,
-        levelBandBefore: levelOverrides.levelBandBefore,
-        muAfter: levelOverrides.muAfter,
-        phiAfter: levelOverrides.phiAfter,
-        sigmaAfter: levelOverrides.sigmaAfter,
-        levelBandAfter: levelOverrides.levelBandAfter,
-        createdAt: levelOverrides.createdAt,
-      })
-      .from(levelOverrides)
-      .where(eq(levelOverrides.sport, PADEL)),
-    tx
-      .select({
-        id: kingPlaceAwards.id,
-        userId: kingPlaceAwards.userId,
-        sport: kingPlaceAwards.sport,
-        gameId: kingPlaceAwards.gameId,
-        finalPlace: kingPlaceAwards.finalPlace,
-        wins: kingPlaceAwards.wins,
-        fieldMu: kingPlaceAwards.fieldMu,
-        fieldPhi: kingPlaceAwards.fieldPhi,
-        muBefore: kingPlaceAwards.muBefore,
-        phiBefore: kingPlaceAwards.phiBefore,
-        sigmaBefore: kingPlaceAwards.sigmaBefore,
-        muAfter: kingPlaceAwards.muAfter,
-        phiAfter: kingPlaceAwards.phiAfter,
-        sigmaAfter: kingPlaceAwards.sigmaAfter,
-        levelBandBefore: kingPlaceAwards.levelBandBefore,
-        lastRatedAtBefore: kingPlaceAwards.lastRatedAtBefore,
-        createdAt: kingPlaceAwards.createdAt,
-      })
-      .from(kingPlaceAwards)
-      .where(eq(kingPlaceAwards.sport, PADEL)),
-    tx
-      .select({
-        id: matches.id,
-        groupId: games.groupId,
-        slot1GameTeamId: matches.slot1GameTeamId,
-        slot2GameTeamId: matches.slot2GameTeamId,
-      })
-      .from(matches)
-      .innerJoin(games, eq(games.id, matches.gameId))
-      .where(inArray(matches.id, padelMatchIds)),
-    // The same read as `applyRatedMatch`'s, so each side's players come back
-    // in the order the live writer saw them.
-    tx.query.gameTeamPlayers.findMany({
-      where: inArray(
-        gameTeamPlayers.gameTeamId,
-        tx
-          .select({ id: gameTeams.id })
-          .from(gameTeams)
-          .where(inArray(gameTeams.gameId, matchGameIds)),
-      ),
-      columns: { gameTeamId: true },
-      with: { gamePlayer: { columns: { userId: true } } },
-    }),
-    // The same read as `applyKingPlaceAwards`'s, for the same reason.
-    tx.query.gameTeams.findMany({
-      where: inArray(gameTeams.gameId, kingGameIds),
-      columns: { gameId: true, startCourt: true, finalPlace: true },
-      with: {
-        players: { with: { gamePlayer: { columns: { userId: true } } } },
-      },
-    }),
-    tx
-      .select({
-        id: user.id,
-        name: user.name,
-        guestAt: user.guestAt,
-        clerkId: user.clerkId,
-        addedAt: user.addedAt,
-      })
-      .from(user)
-      .where(
-        or(
-          inArray(
-            user.id,
-            tx
-              .select({ id: ratings.userId })
-              .from(ratings)
-              .where(eq(ratings.sport, PADEL)),
-          ),
-          inArray(
-            user.id,
-            tx
-              .select({ id: gamePlayers.userId })
-              .from(gamePlayers)
-              .where(
-                or(
-                  inArray(gamePlayers.gameId, matchGameIds),
-                  inArray(gamePlayers.gameId, kingGameIds),
-                ),
-              ),
-          ),
-        ),
-      ),
-  ]);
-
-  const usersByTeam = new Map<string, string[]>();
-  for (const link of slotLinks) {
-    const userId = link.gamePlayer.userId;
-    if (!userId) {
-      continue;
-    }
-    usersByTeam.set(link.gameTeamId, [
-      ...(usersByTeam.get(link.gameTeamId) ?? []),
-      userId,
-    ]);
-  }
-  const teamsByGame = new Map<string, ReplayKingGame["teams"]>();
-  for (const team of kingTeams) {
-    if (team.startCourt == null) {
-      continue;
-    }
-    teamsByGame.set(team.gameId, [
-      ...(teamsByGame.get(team.gameId) ?? []),
-      {
-        finalPlace: team.finalPlace,
-        userIds: [
-          ...new Set(
-            team.players.flatMap((link) => link.gamePlayer.userId ?? []),
-          ),
-        ],
-      },
-    ]);
-  }
-
-  return {
-    ratings: ratingRows,
-    events: eventRows,
-    overrides: overrideRows,
-    awards: awardRows,
-    matches: matchRows.map((row) => ({
-      id: row.id,
-      verified: row.groupId != null,
-      slot1: row.slot1GameTeamId
-        ? (usersByTeam.get(row.slot1GameTeamId) ?? [])
-        : null,
-      slot2: row.slot2GameTeamId
-        ? (usersByTeam.get(row.slot2GameTeamId) ?? [])
-        : null,
-    })),
-    kingGames: [...teamsByGame].map(([id, teams]) => ({ id, teams })),
-    players: playerRows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      guest: row.guestAt != null,
-      accountHolder: !isUnclaimed(row),
-    })),
-  };
-}
-
-/** Every player seated on an upcoming padel Game that has a Game Level range. */
-async function loadUpcomingLevelRangeSeats(
-  tx: DbTx,
-  now: Date,
-): Promise<UpcomingLevelRangeSeat[]> {
-  const rows = await tx
-    .select({
-      gameId: games.id,
-      userId: gamePlayers.userId,
-      levelMinTenths: games.levelMinTenths,
-      levelMaxTenths: games.levelMaxTenths,
-    })
-    .from(games)
-    .innerJoin(gamePlayers, eq(gamePlayers.gameId, games.id))
-    .where(
-      and(
-        eq(games.sport, PADEL),
-        isNull(games.cancelledAt),
-        gt(games.windowStart, now),
-        isNotNull(gamePlayers.userId),
-        or(isNotNull(games.levelMinTenths), isNotNull(games.levelMaxTenths)),
-      ),
-    );
-  return rows.flatMap((row) =>
-    row.userId ? [{ ...row, userId: row.userId }] : [],
-  );
-}
-
-export type PadelReplayPlayerRow = {
-  userId: string;
-  name: string;
-  start: ReplayStartKind;
-  startSource: ReplayStartSource;
-  declaredBand: LevelBand | null;
-  levelBefore: number;
-  levelAfter: number;
-  move: number;
-  bandBefore: LevelBand;
-  bandAfter: LevelBand;
-  phiBefore: number;
-  phiAfter: number;
-  verifiedMatchesBefore: number;
-  verifiedMatchesAfter: number;
-  confirmedBefore: boolean;
-  confirmedAfter: boolean;
-};
-
-export type PadelReplayReport = {
-  host: string;
-  counts: {
-    players: number;
-    matches: number;
-    events: number;
-    overrides: number;
-    awards: number;
-  };
-  starts: Record<ReplayStartKind, Record<ReplayStartSource, number>>;
-  rows: PadelReplayPlayerRow[];
-  moved: number;
-  largestUp: PadelReplayPlayerRow[];
-  largestDown: PadelReplayPlayerRow[];
-  bandChanges: PadelReplayPlayerRow[];
-  confirmationChanges: PadelReplayPlayerRow[];
-  /** The account holders whose shown Level or band letter changes: each is told once (spec 9.9). */
-  told: string[];
-  outsideLevelRange: (UpcomingLevelRangeSeat & {
-    name: string;
-    levelBefore: number;
-    levelAfter: number;
-    wasOutside: boolean;
-  })[];
-  differences: Record<ReplayDifference["table"], number>;
-  baseline: { events: number; reproduced: number; withinTolerance: number };
-  anomalies: ReplayAnomaly[];
-  loadMs: number;
-  computeMs: number;
-  /** True when the run must fail: someone's confirmation would change. */
-  failed: boolean;
-};
-
-const LARGEST_MOVES = 20;
-const MOVE_REPORTED = 0.01;
-const MOVE_ROUNDING = 1e-9;
-const BASELINE_TOLERANCE = 1e-6;
-const SIX_VALUES = [
-  "muBefore",
-  "phiBefore",
-  "sigmaBefore",
-  "muAfter",
-  "phiAfter",
-  "sigmaAfter",
-] as const;
-
-function storedConfirmations(
-  ledger: PadelLedger,
-): Map<string, PadelConfirmation> {
-  const verifiedMatchIds = new Set(
-    ledger.matches.filter((row) => row.verified).map((row) => row.id),
-  );
-  const confirmations = new Map<string, PadelConfirmation>();
-  const of = (userId: string) =>
-    confirmations.get(userId) ?? { verifiedMatches: 0, overridden: false };
-  for (const event of ledger.events) {
-    const confirmation = of(event.userId);
-    confirmations.set(event.userId, {
-      ...confirmation,
-      verifiedMatches:
-        confirmation.verifiedMatches +
-        (verifiedMatchIds.has(event.matchId) ? 1 : 0),
-    });
-  }
-  for (const override of ledger.overrides) {
-    confirmations.set(override.userId, {
-      ...of(override.userId),
-      overridden: true,
-    });
-  }
-  return confirmations;
-}
-
-function baselineReproduction(ledger: PadelLedger, baseline: PadelReplay) {
-  let reproduced = 0;
-  let withinTolerance = 0;
-  for (const event of ledger.events) {
-    const replayed = baseline.events.get(event.id);
-    if (!replayed) {
-      continue;
-    }
-    if (SIX_VALUES.every((column) => event[column] === replayed[column])) {
-      reproduced += 1;
-    }
-    if (
-      SIX_VALUES.every(
-        (column) =>
-          Math.abs(event[column] - replayed[column]) <= BASELINE_TOLERANCE,
-      )
-    ) {
-      withinTolerance += 1;
-    }
-  }
-  return { events: ledger.events.length, reproduced, withinTolerance };
-}
-
-function emptyStarts(): PadelReplayReport["starts"] {
-  const sources = (): Record<ReplayStartSource, number> => ({
-    "never-played": 0,
-    "first-match": 0,
-    "first-override": 0,
-    "first-award": 0,
-  });
-  return {
-    declared: sources(),
-    unknown: sources(),
-    unrecognised: sources(),
-    "not-declared": sources(),
-  };
-}
-
-function shownBandChanged(row: PadelReplayPlayerRow): boolean {
-  return (
-    displayLabelFromStoredBand(row.bandBefore) !==
-    displayLabelFromStoredBand(row.bandAfter)
-  );
-}
-
-/** A stored Level below 1.0 reads 1.00, so a move down there is not shown. */
-function shownLevelChanged(row: PadelReplayPlayerRow): boolean {
-  return (
-    formatPadelLevel(row.levelBefore, 2) !==
-      formatPadelLevel(row.levelAfter, 2) || shownBandChanged(row)
-  );
-}
-
-function displayedTenths(mu: number): number {
-  return Math.round(Number(formatLevel(levelFromMu(mu))) * 10);
-}
-
-/** The dry-run report (spec 9.8) from the ledger and both passes over it. */
-export function buildPadelReplayReport(args: {
-  host: string;
-  ledger: PadelLedger;
-  replay: PadelReplay;
-  baseline: PadelReplay;
-  upcoming: readonly UpcomingLevelRangeSeat[];
-  loadMs: number;
-  computeMs: number;
-}): PadelReplayReport {
-  const { ledger, replay } = args;
-  const nameOf = new Map(ledger.players.map((row) => [row.id, row.name]));
-  const accountHolders = new Set(
-    ledger.players.filter((row) => row.accountHolder).map((row) => row.id),
-  );
-  const before = storedConfirmations(ledger);
-  const unconfirmed = { verifiedMatches: 0, overridden: false };
-  const starts = emptyStarts();
-
-  const rows: PadelReplayPlayerRow[] = ledger.ratings.map((rating) => {
-    const after = replay.ratings.get(rating.userId) ?? rating;
-    const start = replay.starts.get(rating.userId) ?? {
-      kind: "not-declared" as const,
-      source: "never-played" as const,
-      mu: rating.mu,
-      declaredBand: null,
-    };
-    starts[start.kind][start.source] += 1;
-    const confirmationBefore = before.get(rating.userId) ?? unconfirmed;
-    const confirmationAfter =
-      replay.confirmations.get(rating.userId) ?? unconfirmed;
-    const levelBefore = levelFromMu(rating.mu);
-    const levelAfter = levelFromMu(after.mu);
-    return {
-      userId: rating.userId,
-      name: nameOf.get(rating.userId) ?? "",
-      start: start.kind,
-      startSource: start.source,
-      declaredBand: start.declaredBand,
-      levelBefore,
-      levelAfter,
-      move: levelAfter - levelBefore,
-      bandBefore: rating.levelBand,
-      bandAfter: after.levelBand,
-      phiBefore: rating.phi,
-      phiAfter: after.phi,
-      verifiedMatchesBefore: confirmationBefore.verifiedMatches,
-      verifiedMatchesAfter: confirmationAfter.verifiedMatches,
-      confirmedBefore: padelMatchesRemainingToConfirm(confirmationBefore) === 0,
-      confirmedAfter: padelMatchesRemainingToConfirm(confirmationAfter) === 0,
-    };
-  });
-
-  const byMove = [...rows].sort((left, right) => right.move - left.move);
-  const confirmationChanges = rows.filter(
-    (row) =>
-      row.confirmedBefore !== row.confirmedAfter ||
-      row.verifiedMatchesBefore !== row.verifiedMatchesAfter,
-  );
-  const rowByUser = new Map(rows.map((row) => [row.userId, row]));
-  const storedMuOf = new Map(
-    ledger.ratings.map((rating) => [rating.userId, rating.mu]),
-  );
-  const outsideLevelRange = args.upcoming.flatMap((seat) => {
-    const row = rowByUser.get(seat.userId);
-    if (!row) {
-      return [];
-    }
-    const passes = (mu: number) =>
-      displayedLevelPassesRange(displayedTenths(mu), seat);
-    const storedMu = storedMuOf.get(seat.userId);
-    const replayedMu = replay.ratings.get(seat.userId)?.mu;
-    if (
-      storedMu === undefined ||
-      replayedMu === undefined ||
-      passes(replayedMu)
-    ) {
-      return [];
-    }
-    return [
-      {
-        ...seat,
-        name: row.name,
-        levelBefore: row.levelBefore,
-        levelAfter: row.levelAfter,
-        wasOutside: !passes(storedMu),
-      },
-    ];
-  });
-
-  const differences: PadelReplayReport["differences"] = {
-    ratings: 0,
-    rating_events: 0,
-    king_place_awards: 0,
-    level_overrides: 0,
-  };
-  for (const difference of padelReplayDifferences(ledger, replay)) {
-    differences[difference.table] += 1;
-  }
-
-  return {
-    host: args.host,
-    counts: {
-      players: ledger.ratings.length,
-      matches: new Set(ledger.events.map((row) => row.matchId)).size,
-      events: ledger.events.length,
-      overrides: ledger.overrides.length,
-      awards: ledger.awards.length,
-    },
-    starts,
-    rows,
-    moved: rows.filter(
-      (row) => Math.abs(row.move) >= MOVE_REPORTED - MOVE_ROUNDING,
-    ).length,
-    largestUp: byMove.filter((row) => row.move > 0).slice(0, LARGEST_MOVES),
-    largestDown: byMove
-      .filter((row) => row.move < 0)
-      .reverse()
-      .slice(0, LARGEST_MOVES),
-    bandChanges: rows.filter(shownBandChanged),
-    confirmationChanges,
-    told: rows
-      .filter((row) => accountHolders.has(row.userId) && shownLevelChanged(row))
-      .map((row) => row.userId),
-    outsideLevelRange,
-    differences,
-    baseline: baselineReproduction(ledger, args.baseline),
-    anomalies: replay.anomalies,
-    loadMs: args.loadMs,
-    computeMs: args.computeMs,
-    failed: confirmationChanges.length > 0,
-  };
-}
-
-function signed(value: number): string {
-  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
-}
-
-function playerLabel(row: { name: string; userId: string }): string {
-  return row.name ? `${row.name} (${row.userId})` : row.userId;
-}
-
-function moveLine(row: PadelReplayPlayerRow): string {
-  return `  ${signed(row.move)}  ${playerLabel(row)}: ${row.levelBefore.toFixed(2)} ${displayLabelFromStoredBand(row.bandBefore)} φ ${row.phiBefore.toFixed(0)} → ${row.levelAfter.toFixed(2)} ${displayLabelFromStoredBand(row.bandAfter)} φ ${row.phiAfter.toFixed(0)}`;
-}
-
-/** The report as the command prints it. */
-export function formatPadelReplayReport(
-  report: PadelReplayReport,
-  mode: "dry-run" | "apply" = "dry-run",
-): string[] {
-  const names = new Map(report.rows.map((row) => [row.userId, row.name]));
-  const userLabel = (userId: string) =>
-    playerLabel({ userId, name: names.get(userId) ?? "" });
-  const { counts, starts } = report;
-  const sourceLine = (kind: ReplayStartKind) =>
-    `never played ${starts[kind]["never-played"]}, first Match ${starts[kind]["first-match"]}, first override ${starts[kind]["first-override"]}, first award ${starts[kind]["first-award"]}`;
-  const lines = [
-    mode === "apply"
-      ? `Padel Level recalculation, apply against ${report.host}, in one transaction.`
-      : `Padel Level recalculation, dry run against ${report.host}. Nothing is written.`,
-    "",
-    `Players ${counts.players}, Rated Matches ${counts.matches}, rating events ${counts.events}, Level overrides ${counts.overrides}, Place awards ${counts.awards}.`,
-    "",
-    "Declared bands recovered:",
-    `  declared: ${sourceLine("declared")}`,
-    `  "I don't know": ${sourceLine("unknown")}`,
-    `  start μ not a band midpoint [RQ-5]: ${sourceLine("unrecognised")}`,
-    `  never declared: ${sourceLine("not-declared")}`,
-    "",
-    `Players whose Level moves by 0.01 or more: ${report.moved} of ${counts.players}.`,
-    `Rows that would change: ratings ${report.differences.ratings}, rating_events ${report.differences.rating_events}, king_place_awards ${report.differences.king_place_awards}, level_overrides ${report.differences.level_overrides}.`,
-    "",
-    `Largest moves up (${report.largestUp.length}):`,
-    ...report.largestUp.map(moveLine),
-    `Largest moves down (${report.largestDown.length}):`,
-    ...report.largestDown.map(moveLine),
-    "",
-    `Band letter changes (${report.bandChanges.length}):`,
-    ...report.bandChanges.map(moveLine),
-    "",
-    mode === "apply"
-      ? `Players told their Level was recalculated, in the app only: ${report.told.length}.`
-      : `Players who would be told their Level was recalculated, in the app only: ${report.told.length}.`,
-    "",
-    `Players crossing the confirmation line or changing their Verified Group Match count: ${report.confirmationChanges.length} (must be 0).`,
-    ...report.confirmationChanges.map(
-      (row) =>
-        `  ${playerLabel(row)}: ${row.verifiedMatchesBefore} → ${row.verifiedMatchesAfter} Verified Group Matches, confirmed ${row.confirmedBefore} → ${row.confirmedAfter}`,
-    ),
-    "",
-    `Seated on upcoming Games and outside the Game Level range after the recalculation: ${report.outsideLevelRange.length} (${report.outsideLevelRange.filter((seat) => !seat.wasOutside).length} newly outside).`,
-    ...report.outsideLevelRange.map(
-      (seat) =>
-        `  ${playerLabel({ name: seat.name, userId: seat.userId })} on Game ${seat.gameId}: ${seat.levelBefore.toFixed(2)} → ${seat.levelAfter.toFixed(2)}, range ${seat.levelMinTenths ?? "–"} to ${seat.levelMaxTenths ?? "–"} tenths${seat.wasOutside ? ", already outside" : ""}`,
-    ),
-    "",
-    `Baseline pass (φ 350, no Prove-it rule): reproduces ${report.baseline.reproduced} of ${report.baseline.events} stored rating events exactly, ${report.baseline.withinTolerance} within ${BASELINE_TOLERANCE}.`,
-    "",
-    `Anomalies (${report.anomalies.length}):`,
-    ...report.anomalies.map(
-      (anomaly) =>
-        `  [${anomaly.rule}] ${anomaly.userIds.map(userLabel).join(", ")}: ${anomaly.detail}`,
-    ),
-    "",
-    `Loaded in ${report.loadMs.toFixed(0)} ms, computed in ${report.computeMs.toFixed(0)} ms.`,
-  ];
-  if (report.failed) {
-    lines.push(
-      "FAILED: the recalculation would change who is confirmed. Nothing may be applied.",
-    );
-  }
-  return lines;
-}
-
-function csvCell(value: string | number | boolean | null): string {
-  const text = value === null ? "" : String(value);
-  return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
-}
-
-/** One CSV row per padel player, for `--report <path>`. */
-export function padelReplayCsv(report: PadelReplayReport): string {
-  const header = [
-    "user_id",
-    "name",
-    "start",
-    "start_source",
-    "declared_band",
-    "level_before",
-    "level_after",
-    "move",
-    "band_before",
-    "band_after",
-    "phi_before",
-    "phi_after",
-    "verified_matches",
-    "confirmed",
-  ];
-  const lines = report.rows.map((row) =>
-    [
-      row.userId,
-      row.name,
-      row.start,
-      row.startSource,
-      row.declaredBand,
-      row.levelBefore.toFixed(4),
-      row.levelAfter.toFixed(4),
-      row.move.toFixed(4),
-      displayLabelFromStoredBand(row.bandBefore),
-      displayLabelFromStoredBand(row.bandAfter),
-      row.phiBefore.toFixed(2),
-      row.phiAfter.toFixed(2),
-      row.verifiedMatchesAfter,
-      row.confirmedAfter,
-    ]
-      .map(csvCell)
-      .join(","),
-  );
-  return [header.join(","), ...lines].join("\n") + "\n";
-}
-
-/** Loads the padel ledger in `tx`, replays it under both rule sets and builds the report. */
-async function replayAndReport(
-  tx: DbTx,
-  args: { host: string; now: Date },
-): Promise<{
-  ledger: PadelLedger;
-  replay: PadelReplay;
-  report: PadelReplayReport;
-}> {
-  const loadStart = performance.now();
-  const ledger = await loadPadelLedger(tx);
-  const upcoming = await loadUpcomingLevelRangeSeats(tx, args.now);
-  const loadMs = performance.now() - loadStart;
-
-  const computeStart = performance.now();
-  const replay = replayPadelLedger(ledger, "declared-band");
-  const baseline = replayPadelLedger(ledger, "baseline");
-  const computeMs = performance.now() - computeStart;
-
-  const report = buildPadelReplayReport({
-    host: args.host,
-    ledger,
-    replay,
-    baseline,
-    upcoming,
-    loadMs,
-    computeMs,
-  });
-  return { ledger, replay, report };
-}
-
-/**
- * Why the Level recalculation can no longer run, or null. It does not replay
- * a Level check, so once any Level check has settled it refuses (RQ-4).
- */
-export async function levelCheckRefusal(
-  database: DbClient | DbTx,
-): Promise<string | null> {
-  return (await database.$count(levelCheckResults)) > 0
-    ? "a Level check has settled, and the recalculation does not replay one"
-    : null;
-}
-
-/**
- * The dry run: reads the padel ledger in one read-only, repeatable-read
- * transaction, replays it under the Declared band rules and under the
- * baseline, and reports what would change. Writes nothing.
- */
-export async function dryRunPadelReplay(
-  database: DbClient,
-  args: { host: string; now?: Date },
-): Promise<PadelReplayReport> {
-  const now = args.now ?? new Date();
-  const { report } = await database.transaction(
-    (tx) => replayAndReport(tx, { host: args.host, now }),
-    { isolationLevel: "repeatable read", accessMode: "read only" },
-  );
-  return report;
-}
-
-const REPLAY_TABLES: Record<RatingReplayTable, PgTable> = {
-  ratings,
-  rating_events: ratingEvents,
-  king_place_awards: kingPlaceAwards,
-  level_overrides: levelOverrides,
-};
-
-type ColumnType = "float8" | "timestamp" | "rating_level_band";
-
-/**
- * The columns a Level recalculation writes (spec 9.5), and the column each
- * replayed row is keyed by: `ratings` by its User, unique per sport.
- */
-const REPLAY_WRITES: Record<
-  RatingReplayTable,
-  { key: "user_id" | "id"; columns: Record<string, ColumnType> }
-> = {
-  ratings: {
-    key: "user_id",
-    columns: {
-      mu: "float8",
-      phi: "float8",
-      sigma: "float8",
-      level_band: "rating_level_band",
-      last_rated_at: "timestamp",
-      declared_band: "rating_level_band",
-      updated_at: "timestamp",
-    },
-  },
-  rating_events: {
-    key: "id",
-    columns: {
-      mu_before: "float8",
-      phi_before: "float8",
-      sigma_before: "float8",
-      mu_after: "float8",
-      phi_after: "float8",
-      sigma_after: "float8",
-      level_band_before: "rating_level_band",
-      last_rated_at_before: "timestamp",
-      reliability_part: "float8",
-      prove_it_part: "float8",
-      reliability_loss_factor: "float8",
-    },
-  },
-  king_place_awards: {
-    key: "id",
-    columns: {
-      field_mu: "float8",
-      field_phi: "float8",
-      mu_before: "float8",
-      phi_before: "float8",
-      sigma_before: "float8",
-      mu_after: "float8",
-      phi_after: "float8",
-      sigma_after: "float8",
-      level_band_before: "rating_level_band",
-      last_rated_at_before: "timestamp",
-    },
-  },
-  level_overrides: {
-    key: "id",
-    columns: {
-      mu_before: "float8",
-      phi_before: "float8",
-      sigma_before: "float8",
-      level_band_before: "rating_level_band",
-      phi_after: "float8",
-      sigma_after: "float8",
-    },
-  },
-};
-
-const LOCK_TIMEOUT = "5s";
-
-type WriteRow = Record<string, string | number | Date | null>;
-
-function replayedRow(
-  table: RatingReplayTable,
-  rowId: string,
-  replay: PadelReplay,
-  updatedAt: Date,
-): WriteRow {
-  const missing = () =>
-    new Error(`The padel replay has no value for ${table} ${rowId}`);
-  switch (table) {
-    case "ratings": {
-      const rating = replay.ratings.get(rowId);
-      if (!rating) {
-        throw missing();
-      }
-      return {
-        user_id: rowId,
-        mu: rating.mu,
-        phi: rating.phi,
-        sigma: rating.sigma,
-        level_band: rating.levelBand,
-        last_rated_at: rating.lastRatedAt,
-        declared_band: rating.declaredBand,
-        updated_at: updatedAt,
-      };
-    }
-    case "rating_events": {
-      const event = replay.events.get(rowId);
-      if (!event) {
-        throw missing();
-      }
-      return {
-        id: rowId,
-        mu_before: event.muBefore,
-        phi_before: event.phiBefore,
-        sigma_before: event.sigmaBefore,
-        mu_after: event.muAfter,
-        phi_after: event.phiAfter,
-        sigma_after: event.sigmaAfter,
-        level_band_before: event.levelBandBefore,
-        last_rated_at_before: event.lastRatedAtBefore,
-        reliability_part: event.reliabilityPart,
-        prove_it_part: event.proveItPart,
-        reliability_loss_factor: event.reliabilityLossFactor,
-      };
-    }
-    case "king_place_awards": {
-      const award = replay.awards.get(rowId);
-      if (!award) {
-        throw missing();
-      }
-      return {
-        id: rowId,
-        field_mu: award.fieldMu,
-        field_phi: award.fieldPhi,
-        mu_before: award.muBefore,
-        phi_before: award.phiBefore,
-        sigma_before: award.sigmaBefore,
-        mu_after: award.muAfter,
-        phi_after: award.phiAfter,
-        sigma_after: award.sigmaAfter,
-        level_band_before: award.levelBandBefore,
-        last_rated_at_before: award.lastRatedAtBefore,
-      };
-    }
-    case "level_overrides": {
-      const override = replay.overrides.get(rowId);
-      if (!override) {
-        throw missing();
-      }
-      return {
-        id: rowId,
-        mu_before: override.muBefore,
-        phi_before: override.phiBefore,
-        sigma_before: override.sigmaBefore,
-        level_band_before: override.levelBandBefore,
-        phi_after: override.phiAfter,
-        sigma_after: override.sigmaAfter,
-      };
-    }
-  }
-}
-
-/**
- * Backs up, then rewrites, the padel rows of one table in two statements.
- * The rows travel as one JSON parameter: JSON keeps every double exactly,
- * and one parameter has no limit on rows.
- */
-async function backUpAndWrite(
-  tx: DbTx,
-  args: { runId: string; table: RatingReplayTable; rows: WriteRow[] },
-) {
-  const { key, columns } = REPLAY_WRITES[args.table];
-  const names = Object.keys(columns);
-  const table = sql.identifier(args.table);
-  const keyColumn = sql.identifier(key);
-  const rows = JSON.stringify(args.rows);
-  await tx.execute(sql`
-    insert into rating_replay_backups (run_id, table_name, row_id, row)
-    select ${args.runId}::uuid, ${args.table}::text, t.id, to_jsonb(t)
-    from ${table} as t
-    join jsonb_to_recordset(${rows}::text::jsonb) as v(${keyColumn} uuid)
-      on t.${keyColumn} = v.${keyColumn}
-    where t.sport = ${PADEL}
-  `);
-  await tx.execute(sql`
-    update ${table} as t
-    set ${sql.join(
-      names.map(
-        (name) => sql`${sql.identifier(name)} = v.${sql.identifier(name)}`,
-      ),
-      sql`, `,
-    )}
-    from jsonb_to_recordset(${rows}::text::jsonb) as v(${keyColumn} uuid, ${sql.join(
-      names.map(
-        (name) => sql`${sql.identifier(name)} ${sql.raw(columns[name] ?? "")}`,
-      ),
-      sql`, `,
-    )})
-    where t.${keyColumn} = v.${keyColumn} and t.sport = ${PADEL}
-  `);
-}
-
-/** Takes the lock every padel rating writer waits on, before anything is read. */
-async function lockRatings(tx: DbTx) {
-  await tx.execute(sql.raw(`set local lock_timeout = '${LOCK_TIMEOUT}'`));
-  await tx.execute(sql`lock table ratings in exclusive mode`);
-}
-
-export type PadelReplayApply =
-  | {
-      kind: "applied";
-      runId: string;
-      summary: RatingReplaySummary;
-      report: PadelReplayReport;
-    }
-  | { kind: "unchanged"; report: PadelReplayReport }
-  | { kind: "refused"; reason: string; report: PadelReplayReport };
-
-/**
- * The apply (spec 9.8): in one transaction, locks rating writes, loads,
- * replays, backs up every row whose values differ and writes the replayed
- * values over it. Rows that already hold them are not touched, and a run
- * that would change nothing is not recorded. Each account holder whose
- * shown Level or band letter changes gets one `level_recalculated`
- * Notification, written already emailed. Refuses while the recalculation
- * would change who is confirmed, and while a row cannot be recomputed
- * [RQ-7] unless `carryUnplaced`.
- */
-export async function applyPadelReplay(
-  database: DbClient,
-  args: { host: string; carryUnplaced: boolean; now?: Date },
-): Promise<PadelReplayApply> {
-  return database.transaction(
-    async (tx) => {
-      await lockRatings(tx);
-      const appliedAt = args.now ?? new Date();
-      const { ledger, replay, report } = await replayAndReport(tx, {
-        host: args.host,
-        now: appliedAt,
-      });
-      const levelChecked = await levelCheckRefusal(tx);
-      if (levelChecked) {
-        return { kind: "refused", reason: levelChecked, report };
-      }
-      if (report.failed) {
-        return {
-          kind: "refused",
-          reason: "the recalculation would change who is confirmed",
-          report,
-        };
-      }
-      const carriedUnplaced = replay.anomalies
-        .filter((anomaly) => anomaly.rule === "RQ-7")
-        .reduce((sum, anomaly) => sum + anomaly.userIds.length, 0);
-      if (carriedUnplaced > 0 && !args.carryUnplaced) {
-        return {
-          kind: "refused",
-          reason: `${carriedUnplaced} rows cannot be recomputed [RQ-7]; pass --carry-unplaced to carry them over by their stored moves`,
-          report,
-        };
-      }
-      const differences = padelReplayDifferences(ledger, replay);
-      if (differences.length === 0) {
-        return { kind: "unchanged", report };
-      }
-
-      const rowsByTable = new Map<RatingReplayTable, WriteRow[]>();
-      for (const { table, rowId } of differences) {
-        const rows = rowsByTable.get(table) ?? [];
-        rows.push(replayedRow(table, rowId, replay, appliedAt));
-        rowsByTable.set(table, rows);
-      }
-      const summary: RatingReplaySummary = {
-        changed: {
-          ratings: rowsByTable.get("ratings")?.length ?? 0,
-          rating_events: rowsByTable.get("rating_events")?.length ?? 0,
-          king_place_awards: rowsByTable.get("king_place_awards")?.length ?? 0,
-          level_overrides: rowsByTable.get("level_overrides")?.length ?? 0,
-        },
-        ledger: {
-          events: ledger.events.length,
-          overrides: ledger.overrides.length,
-          awards: ledger.awards.length,
-        },
-        carriedUnplaced,
-      };
-      const [run] = await tx
-        .insert(ratingReplayRuns)
-        .values({ appliedAt, rules: replay.rules, summary })
-        .returning({ id: ratingReplayRuns.id });
-      if (!run) {
-        throw new Error("Failed to record the Level recalculation run");
-      }
-      for (const [table, rows] of rowsByTable) {
-        await backUpAndWrite(tx, { runId: run.id, table, rows });
-      }
-      await notify(tx, {
-        type: "level_recalculated",
-        recipients: report.told.map((userId) => ({
-          userId,
-          audience: "player" as const,
-        })),
-        excludeUserIds: [],
-        dedupeKey: `level_recalculated:${run.id}`,
-        emailedAt: appliedAt,
-      });
-      return { kind: "applied", runId: run.id, summary, report };
-    },
-    { isolationLevel: "repeatable read" },
-  );
-}
-
-export type PadelReplayRestore =
-  | { kind: "restored"; restored: Record<RatingReplayTable, number> }
-  | { kind: "refused"; reason: string };
-
-/**
- * Why a run can no longer be written back, or null. After the next padel
- * Rated Match, Level override or Place award the fix is forward, not back;
- * a backed-up Rating that moved since (a writer whose clock read before the
- * run, a reversal, a Reliability step) refuses it too.
- */
-async function restoreRefusal(
-  tx: DbTx,
-  run: { id: string; appliedAt: Date; summary: RatingReplaySummary },
-): Promise<string | null> {
-  if (
-    (await tx.$count(
-      ratingReplayRuns,
-      gt(ratingReplayRuns.appliedAt, run.appliedAt),
-    )) > 0
-  ) {
-    return "a later Level recalculation run exists";
-  }
-  const ledgerTables = [ratingEvents, levelOverrides, kingPlaceAwards];
-  const [events, overrides, awards, ...newer] = await Promise.all([
-    ...ledgerTables.map((table) => tx.$count(table, eq(table.sport, PADEL))),
-    ...ledgerTables.map((table) =>
-      tx.$count(
-        table,
-        and(eq(table.sport, PADEL), gt(table.createdAt, run.appliedAt)),
-      ),
-    ),
-  ]);
-  const { ledger } = run.summary;
-  if (
-    newer.some((count) => count > 0) ||
-    events !== ledger.events ||
-    overrides !== ledger.overrides ||
-    awards !== ledger.awards
-  ) {
-    return "a padel Rated Match, Level override or Place award was written or removed after the run";
-  }
-  const [moved] = await tx
-    .select({ count: count() })
-    .from(ratingReplayBackups)
-    .leftJoin(ratings, eq(ratings.id, ratingReplayBackups.rowId))
-    .where(
-      and(
-        eq(ratingReplayBackups.runId, run.id),
-        eq(ratingReplayBackups.tableName, "ratings"),
-        or(isNull(ratings.id), ne(ratings.updatedAt, run.appliedAt)),
-      ),
-    );
-  if (moved && moved.count > 0) {
-    return `${moved.count} recalculated Ratings changed after the run`;
-  }
-  return null;
-}
-
-/**
- * `--restore <run id>`: writes every row the run backed up back as it was,
- * whole, and removes the run, so every table holds its bytes from before
- * the run. The Notifications the run wrote stay. Refuses once anything has
- * rated on top of the run.
- */
-export async function restorePadelReplay(
-  database: DbClient,
-  args: { runId: string },
-): Promise<PadelReplayRestore> {
-  return database.transaction(
-    async (tx) => {
-      await lockRatings(tx);
-      const run = await tx.query.ratingReplayRuns.findFirst({
-        where: eq(ratingReplayRuns.id, args.runId),
-      });
-      if (!run) {
-        return {
-          kind: "refused",
-          reason: `no Level recalculation run ${args.runId}`,
-        };
-      }
-      const refusal = await restoreRefusal(tx, run);
-      if (refusal) {
-        return { kind: "refused", reason: refusal };
-      }
-
-      const restored: Record<RatingReplayTable, number> = {
-        ratings: 0,
-        rating_events: 0,
-        king_place_awards: 0,
-        level_overrides: 0,
-      };
-      const backedUp = await tx
-        .select({ tableName: ratingReplayBackups.tableName, count: count() })
-        .from(ratingReplayBackups)
-        .where(eq(ratingReplayBackups.runId, run.id))
-        .groupBy(ratingReplayBackups.tableName);
-      for (const [name, table] of Object.entries(REPLAY_TABLES) as [
-        RatingReplayTable,
-        PgTable,
-      ][]) {
-        const columns = getTableConfig(table)
-          .columns.map((column) => column.name)
-          .filter((column) => column !== "id");
-        const identifier = sql.identifier(name);
-        await tx.execute(sql`
-          update ${identifier} as t
-          set ${sql.join(
-            columns.map(
-              (column) =>
-                sql`${sql.identifier(column)} = r.${sql.identifier(column)}`,
-            ),
-            sql`, `,
-          )}
-          from (
-            select (jsonb_populate_record(null::${identifier}, b.row)).*
-            from rating_replay_backups as b
-            where b.run_id = ${run.id} and b.table_name = ${name}
-          ) as r
-          where t.id = r.id
-        `);
-        restored[name] =
-          backedUp.find((row) => row.tableName === name)?.count ?? 0;
-      }
-      await tx.delete(ratingReplayRuns).where(eq(ratingReplayRuns.id, run.id));
-      return { kind: "restored", restored };
-    },
-    { isolationLevel: "repeatable read" },
-  );
 }
