@@ -77,7 +77,6 @@ export function TournamentAmericanoHome({
   kickPending,
   onShare,
   onInvite,
-  onLeaveGame,
   onLeaveWaitlist,
   onKick,
   preview,
@@ -93,7 +92,6 @@ export function TournamentAmericanoHome({
   kickPending: boolean;
   onShare?: () => void;
   onInvite?: () => void;
-  onLeaveGame?: () => void;
   onLeaveWaitlist?: () => void;
   onKick?: (userId: string) => void;
 }) {
@@ -206,17 +204,6 @@ export function TournamentAmericanoHome({
 
       <TournamentDetailRows rows={detailRows} />
 
-      {!drawn && data.isRegistered && data.canLeave && onLeaveGame ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11 w-full"
-          disabled={leavePending}
-          onClick={onLeaveGame}
-        >
-          {m.join.leave}
-        </Button>
-      ) : null}
       {data.isWaitlisted && onLeaveWaitlist ? (
         <Button
           type="button"

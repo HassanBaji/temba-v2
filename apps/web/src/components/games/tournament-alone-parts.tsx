@@ -31,20 +31,13 @@ export function aloneShareTeamsHref(gameId: string) {
   return `/dashboard/games/${gameId}/share-teams`;
 }
 
-/** The hero's "Social" and "Alone" tags, on ink. */
-export function AloneTags() {
+/** The hero's sport tag, on ink. */
+export function HeroPadelTag() {
   const m = useMessages();
   return (
-    <>
-      {[m.tournament.home.eyebrowPrefix, m.aloneTeams.hero.tag].map((tag) => (
-        <span
-          key={tag}
-          className="border-dimrule text-dim text-eyebrow rounded-sm border px-2 py-1 uppercase tracking-[0.1em]"
-        >
-          {tag}
-        </span>
-      ))}
-    </>
+    <span className="border-dimrule text-dim text-eyebrow rounded-sm border px-2 py-1 uppercase tracking-[0.1em]">
+      {m.common.padel}
+    </span>
   );
 }
 
@@ -124,13 +117,11 @@ export function AloneWaitingCard({ cap }: { cap: number }) {
 export function AlonePostedOrganizerCard({
   gameId,
   title,
-  canMakeTeams,
   onOpenDraw,
   onEditTeams,
 }: {
   gameId: string;
   title: string;
-  canMakeTeams: boolean;
   onOpenDraw: () => void;
   onEditTeams?: () => void;
 }) {
@@ -177,18 +168,6 @@ export function AlonePostedOrganizerCard({
           </Button>
         ) : null}
       </div>
-      {canMakeTeams ? (
-        <Button
-          variant="ghost"
-          className="text-muted-foreground min-h-11 w-full"
-          asChild
-        >
-          <Link href={aloneMakeTeamsHref(gameId)}>
-            <UsersIcon aria-hidden="true" />
-            {m.makeAgain}
-          </Link>
-        </Button>
-      ) : null}
     </div>
   );
 }

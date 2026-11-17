@@ -48,23 +48,23 @@ type AloneOnlyDetails = TournamentDetails & {
 export function TournamentAloneHome({
   data,
   backHref,
+  tags,
   actions,
   sharePending,
   leavePending,
   onShare,
   onInvite,
-  onLeaveGame,
   onLeaveWaitlist,
   onKick,
 }: {
   data: AloneOnlyDetails;
   backHref: string;
+  tags?: React.ReactNode;
   actions?: React.ReactNode;
   sharePending: boolean;
   leavePending: boolean;
   onShare?: () => void;
   onInvite?: () => void;
-  onLeaveGame?: () => void;
   onLeaveWaitlist?: () => void;
   onKick?: (userId: string) => void;
 }) {
@@ -134,6 +134,7 @@ export function TournamentAloneHome({
         onShare={onShare}
         sharePending={sharePending}
         onInvite={organizer ? onInvite : undefined}
+        tags={tags}
         actions={actions}
       />
 
@@ -192,17 +193,6 @@ export function TournamentAloneHome({
 
       <TournamentDetailRows rows={view.detailRows} />
 
-      {view.canLeaveGame && onLeaveGame ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11 w-full"
-          disabled={leavePending}
-          onClick={onLeaveGame}
-        >
-          {messages.tournament.home.leaveTheSeat}
-        </Button>
-      ) : null}
       {data.isWaitlisted && onLeaveWaitlist ? (
         <Button
           type="button"
