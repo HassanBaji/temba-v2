@@ -4,7 +4,12 @@ import { messagesFor } from "@repo/i18n/messages";
 import type { AddPlayerFootballPosition } from "./add-player-by-phone";
 import { footballPositionChoices, type FootballRole } from "./football-lineup";
 import { formatOvr } from "./football-ovr";
-import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
+import {
+  ASSIGNABLE_DISPLAY_LEVEL_BANDS,
+  displayLabelFromStoredBand,
+  type AssignableDisplayLevelBand,
+  type LevelBand,
+} from "./level-bands";
 import { memberMatchesQuery, type MemberNicknameData } from "./member-nickname";
 
 export type AddPlayerMode = "group" | "phone";
@@ -80,9 +85,79 @@ function memberLevel(
     : null;
 }
 
+/** A Level the From group list can narrow to; `none` is a member with no Level yet. */
+export type GroupMemberLevelFilter = AssignableDisplayLevelBand | "none";
+
+export type GroupMemberLevelFilterChoice = {
+  value: GroupMemberLevelFilter;
+  name: string;
+  accessibilityLabel: string;
+};
+
+function memberLevelFilter(
+  member: Pick<GroupMemberToAdd, "levelBand">,
+): GroupMemberLevelFilter {
+  return member.levelBand
+    ? displayLabelFromStoredBand(member.levelBand)
+    : "none";
+}
+
 /**
- * Members matching the search, those who can still be added first. A picked
- * member's line drops the role, since the choices under the row show it.
+ * The Levels the roster holds, lowest first, then members with none. Football
+ * shows OVR rather than a band (ADR-0087), so it gets no Level filter; nor does
+ * a roster with a single Level, which has nothing to narrow.
+ */
+export function groupMemberLevelFilterChoices(
+  members: readonly Pick<GroupMemberToAdd, "levelBand">[],
+  isFootball: boolean,
+  locale: Locale,
+): GroupMemberLevelFilterChoice[] {
+  if (isFootball) {
+    return [];
+  }
+  const m = messagesFor(locale).group.addPlayer.fromGroup;
+  const present = new Set(members.map(memberLevelFilter));
+  const values: GroupMemberLevelFilter[] = [
+    ...ASSIGNABLE_DISPLAY_LEVEL_BANDS,
+    "none",
+  ];
+  const choices = values
+    .filter((value) => present.has(value))
+    .map((value) => ({
+      value,
+      name: value === "none" ? m.noLevel : value,
+      accessibilityLabel: value === "none" ? m.noLevel : m.level(value),
+    }));
+  return choices.length < 2 ? [] : choices;
+}
+
+/** Empty `levels` lets everyone through; a pick always stays, so it can be unpicked. */
+export function groupMemberPassesLevelFilter(
+  member: Pick<GroupMemberToAdd, "levelBand">,
+  levels: readonly GroupMemberLevelFilter[],
+  selected: boolean,
+): boolean {
+  return (
+    levels.length === 0 ||
+    selected ||
+    levels.includes(memberLevelFilter(member))
+  );
+}
+
+/** Several Levels can be on at once; none on means every Level. */
+export function toggleGroupMemberLevelFilter(
+  levels: readonly GroupMemberLevelFilter[],
+  level: GroupMemberLevelFilter,
+): GroupMemberLevelFilter[] {
+  return levels.includes(level)
+    ? levels.filter((entry) => entry !== level)
+    : [...levels, level];
+}
+
+/**
+ * Members matching the search and the Level filter, those who can still be
+ * added first. A picked member's line drops the role, since the choices under
+ * the row show it.
  */
 export function groupMemberRows(
   input: {
@@ -91,13 +166,23 @@ export function groupMemberRows(
     picked: readonly string[];
     openSpots: number;
     isFootball: boolean;
+    /** Empty shows every Level. Picks stay listed so they can be unpicked. */
+    levels?: readonly GroupMemberLevelFilter[];
   },
   locale: Locale,
 ): GroupMemberRowView[] {
   const m = messagesFor(locale).group.addPlayer.fromGroup;
   const full = input.picked.length >= input.openSpots;
+  const levels = input.isFootball ? [] : (input.levels ?? []);
   return input.members
     .filter((member) => memberMatchesQuery(member, input.query))
+    .filter((member) =>
+      groupMemberPassesLevelFilter(
+        member,
+        levels,
+        input.picked.includes(member.userId),
+      ),
+    )
     .sort((a, b) => Number(a.status != null) - Number(b.status != null))
     .map((member) => {
       const selected = input.picked.includes(member.userId);

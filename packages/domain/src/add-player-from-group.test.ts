@@ -5,9 +5,11 @@ import {
   groupAddActionLabel,
   groupAddedToast,
   groupMemberFootballDefaults,
+  groupMemberLevelFilterChoices,
   groupMemberRows,
   groupPickedNames,
   groupSpotsLine,
+  toggleGroupMemberLevelFilter,
   toggleGroupMemberPick,
   type GroupMemberToAdd,
 } from "./add-player-from-group";
@@ -152,6 +154,80 @@ describe("groupMemberRows with Member nicknames", () => {
       groupPickedNames(named, ["an", "sh"], "en"),
       "Ahmed keeper, Salman",
     );
+  });
+});
+
+describe("the Level filter", () => {
+  const roster = [
+    member("a", "Ali", { levelBand: "B1" }),
+    member("b", "Bader", { levelBand: "C3" }),
+    member("c", "Cyrus", { levelBand: "C2" }),
+    member("d", "Dana", { levelBand: "D3" }),
+    member("e", "Eisa"),
+  ];
+
+  it("offers the Levels the roster holds, lowest first, then no Level", () => {
+    const choices = groupMemberLevelFilterChoices(roster, false, "en");
+    assert.deepEqual(
+      choices.map((choice) => choice.name),
+      ["D", "C-", "C", "B+", "No level"],
+    );
+    assert.equal(choices[2]?.accessibilityLabel, "Level C");
+  });
+
+  it("offers nothing on football or when every member shares a Level", () => {
+    assert.deepEqual(groupMemberLevelFilterChoices(roster, true, "en"), []);
+    assert.deepEqual(
+      groupMemberLevelFilterChoices(
+        [
+          member("a", "Ali", { levelBand: "D3" }),
+          member("b", "Bader", { levelBand: "D2" }),
+        ],
+        false,
+        "en",
+      ),
+      [],
+    );
+  });
+
+  it("toggles Levels on and off", () => {
+    assert.deepEqual(toggleGroupMemberLevelFilter([], "C"), ["C"]);
+    assert.deepEqual(toggleGroupMemberLevelFilter(["C", "none"], "C"), [
+      "none",
+    ]);
+  });
+
+  function names(input: Partial<Parameters<typeof groupMemberRows>[0]>) {
+    return groupMemberRows(
+      {
+        members: roster,
+        query: "",
+        picked: [],
+        openSpots: 4,
+        isFootball: false,
+        ...input,
+      },
+      "en",
+    ).map((row) => row.name);
+  }
+
+  it("lists every member with no Level on", () => {
+    assert.deepEqual(names({ levels: [] }), [
+      "Ali",
+      "Bader",
+      "Cyrus",
+      "Dana",
+      "Eisa",
+    ]);
+  });
+
+  it("narrows to the Levels on, and keeps picks listed", () => {
+    assert.deepEqual(names({ levels: ["C-", "none"] }), ["Bader", "Eisa"]);
+    assert.deepEqual(names({ levels: ["C"], picked: ["a"] }), ["Ali", "Cyrus"]);
+  });
+
+  it("ignores the Levels on a football Game", () => {
+    assert.equal(names({ levels: ["A"], isFootball: true }).length, 5);
   });
 });
 

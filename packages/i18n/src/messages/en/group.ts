@@ -756,6 +756,9 @@ export const group = {
       onWaitlist: "On waitlist",
       noSpotsLeft: "no spots left",
       level: (label: string) => `Level ${label}`,
+      levelFilter: "Level",
+      allLevels: "All levels",
+      noLevel: "No level",
       noPreferenceShort: "No pref.",
       select: "Select players",
       addCount: (count: number) =>

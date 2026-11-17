@@ -46,6 +46,7 @@ import {
   groupAddActionLabel,
   groupAddedToast,
   groupMemberFootballDefaults,
+  groupMemberLevelFilterChoices,
   groupMemberRows,
   groupNoMatchLine,
   groupPickedNames,
@@ -53,6 +54,7 @@ import {
   toggleGroupMemberPick,
   type AddPlayerMode,
   type GroupMemberFootballPick,
+  type GroupMemberLevelFilter,
 } from "@repo/domain/add-player-from-group";
 import type { FootballRole } from "@repo/domain/football-lineup";
 import type { FootballSelfPlacement } from "@repo/domain/football-self-placement";
@@ -127,6 +129,7 @@ export function AddPlayerDialog({
   const [guestName, setGuestName] = React.useState("");
   const [query, setQuery] = React.useState("");
   const [memberIds, setMemberIds] = React.useState<string[]>([]);
+  const [levels, setLevels] = React.useState<GroupMemberLevelFilter[]>([]);
   const [footballPicks, setFootballPicks] = React.useState<
     Record<string, GroupMemberFootballPick>
   >({});
@@ -137,6 +140,7 @@ export function AddPlayerDialog({
       setPickedSide(initialSide);
       setMode(hasGroup ? "group" : "phone");
       setQuery("");
+      setLevels([]);
       setMemberIds([]);
       setFootballPicks({});
       setGuestName("");
@@ -218,9 +222,13 @@ export function AddPlayerDialog({
           picked: memberIds,
           openSpots,
           isFootball,
+          levels,
         },
         locale,
       )
+    : [];
+  const levelChoices = roster
+    ? groupMemberLevelFilterChoices(roster.members, isFootball, locale)
     : [];
 
   const addMembers = api.games.addGroupMembers.useMutation({
@@ -502,6 +510,9 @@ export function AddPlayerDialog({
                   : null
               }
               full={roster != null && memberIds.length >= openSpots}
+              levelChoices={levelChoices}
+              levels={levels}
+              onLevelsChange={setLevels}
               rows={memberRows}
               detailsById={
                 new Map(

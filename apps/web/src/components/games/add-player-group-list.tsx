@@ -5,6 +5,7 @@ import { Check, Search } from "lucide-react";
 import { NicknameName } from "~/components/temba/nickname-name";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { ChoiceChip } from "~/components/temba/choice-chip";
 import { NotOnTembaTag } from "~/components/temba/seat";
 import {
   InputGroup,
@@ -17,7 +18,10 @@ import { addPlayerFootballRoleChoices } from "@repo/domain/add-player-by-phone";
 import type { AddPlayerFootballPosition } from "@repo/domain/add-player-by-phone";
 import {
   groupMemberPositionChoices,
+  toggleGroupMemberLevelFilter,
   type GroupMemberFootballPick,
+  type GroupMemberLevelFilter,
+  type GroupMemberLevelFilterChoice,
   type GroupMemberRowView,
 } from "@repo/domain/add-player-from-group";
 import type { FootballRole } from "@repo/domain/football-lineup";
@@ -88,6 +92,55 @@ function CompactChoices<T extends string>({
           );
         })}
       </RovingRadioGroup>
+    </div>
+  );
+}
+
+function LevelFilter({
+  choices,
+  levels,
+  onToggle,
+  onClear,
+}: {
+  choices: readonly GroupMemberLevelFilterChoice[];
+  levels: readonly GroupMemberLevelFilter[];
+  onToggle: (level: GroupMemberLevelFilter) => void;
+  onClear: () => void;
+}) {
+  const m = useMessages();
+  const copy = m.group.addPlayer.fromGroup;
+  const chipClass = "min-h-9 shrink-0 whitespace-nowrap px-3 text-meta";
+  return (
+    <div
+      role="group"
+      aria-label={copy.levelFilter}
+      className="-mx-4 flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0 [&::-webkit-scrollbar]:hidden"
+    >
+      <ChoiceChip
+        selected={levels.length === 0}
+        aria-pressed={levels.length === 0}
+        onClick={onClear}
+        className={chipClass}
+      >
+        {copy.allLevels}
+      </ChoiceChip>
+      {choices.map((choice) => {
+        const selected = levels.includes(choice.value);
+        return (
+          <ChoiceChip
+            key={choice.value}
+            selected={selected}
+            aria-pressed={selected}
+            aria-label={choice.accessibilityLabel}
+            onClick={() => onToggle(choice.value)}
+            className={chipClass}
+          >
+            <bdi dir={choice.value === "none" ? undefined : "ltr"}>
+              {choice.name}
+            </bdi>
+          </ChoiceChip>
+        );
+      })}
     </div>
   );
 }
@@ -198,6 +251,9 @@ export function GroupMemberList({
   groupLine,
   spotsLine,
   full,
+  levelChoices,
+  levels,
+  onLevelsChange,
   rows,
   detailsById,
   footballById,
@@ -213,6 +269,10 @@ export function GroupMemberList({
   groupLine: string | null;
   spotsLine: string | null;
   full: boolean;
+  /** Empty when the roster has nothing to filter by Level. */
+  levelChoices: readonly GroupMemberLevelFilterChoice[];
+  levels: readonly GroupMemberLevelFilter[];
+  onLevelsChange: (levels: GroupMemberLevelFilter[]) => void;
   rows: GroupMemberRowView[];
   detailsById: ReadonlyMap<
     string,
@@ -261,6 +321,16 @@ export function GroupMemberList({
             </p>
           ) : null}
         </div>
+      ) : null}
+      {levelChoices.length > 0 ? (
+        <LevelFilter
+          choices={levelChoices}
+          levels={levels}
+          onToggle={(level) =>
+            onLevelsChange(toggleGroupMemberLevelFilter(levels, level))
+          }
+          onClear={() => onLevelsChange([])}
+        />
       ) : null}
       {loading ? (
         <div className="space-y-2" aria-label={copy.loading}>
