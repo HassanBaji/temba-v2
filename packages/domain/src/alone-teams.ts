@@ -134,8 +134,8 @@ function resolveSideConflicts(couples: Couple[], standIn: number) {
       let best: { a: Couple; b: Couple; spread: number } | null = null;
       for (const keepA of [0, 1] as const) {
         for (const keepB of [0, 1] as const) {
-          const nextA: Couple = [a[keepA], b[1 - keepB] as AlonePlayer];
-          const nextB: Couple = [b[keepB], a[1 - keepA] as AlonePlayer];
+          const nextA: Couple = [a[keepA], b[keepB === 0 ? 1 : 0]];
+          const nextB: Couple = [b[keepB], a[keepA === 0 ? 1 : 0]];
           const trial = couples.map((couple, index) =>
             index === first ? nextA : index === second ? nextB : couple,
           );

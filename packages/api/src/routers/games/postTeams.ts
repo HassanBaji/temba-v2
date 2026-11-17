@@ -123,11 +123,12 @@ export async function postTeams(
         });
       }
       await tx.insert(gameTeamPlayers).values(
-        (["left", "right"] as const).map((position) => ({
-          gameTeamId: team.id,
-          gamePlayerId: gamePlayerIdByUserId.get(pair[position]) as string,
-          position,
-        })),
+        (["left", "right"] as const).flatMap((position) => {
+          const gamePlayerId = gamePlayerIdByUserId.get(pair[position]);
+          return gamePlayerId
+            ? [{ gameTeamId: team.id, gamePlayerId, position }]
+            : [];
+        }),
       );
     }
     await tx
