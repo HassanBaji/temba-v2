@@ -636,19 +636,20 @@ export function TournamentRoundsTab({
     return round.cancelEffect ? () => setCancelling(round) : undefined;
   }
 
-  const addButton = data.canAddRound ? (
-    <Button
-      type="button"
-      variant="outline"
-      className="w-full"
-      disabled={adding}
-      aria-busy={adding}
-      onClick={() => void addRound()}
-    >
-      <PlusIcon aria-hidden="true" />
-      {adding ? m.manage.adding : m.manage.add}
-    </Button>
-  ) : null;
+  const addButton =
+    data.canAddRound && notMade.length === 0 ? (
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        disabled={adding}
+        aria-busy={adding}
+        onClick={() => void addRound()}
+      >
+        <PlusIcon aria-hidden="true" />
+        {adding ? m.manage.adding : m.manage.add}
+      </Button>
+    ) : null;
 
   const cancelDialog = (
     <ConfirmDialog
