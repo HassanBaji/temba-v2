@@ -46,7 +46,7 @@ import { isTournamentFinished } from "@repo/domain/tournament-finished";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 import { useRouter, useSegments, type Href } from "expo-router";
 import { ArrowLeftRight, LogIn, UserPlus } from "lucide-react-native";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking, Platform, View } from "react-native";
 
 import { directionsUrl } from "../booking/booking-model";
@@ -446,6 +446,22 @@ export function GameDetailsScreen({
     setJoinError(null);
     setAloneJoinOpen(true);
   }
+
+  // The Games hub card sends `intent=join` for an Alone-only Social: its sign-up sheet lives here.
+  const aloneJoinIntentHandled = useRef(false);
+  const opensAloneJoin =
+    intent === "join" &&
+    tournament &&
+    awaitsOrganizerTeams(data) &&
+    data.canRegister &&
+    !data.isRegistered &&
+    !data.isWaitlisted;
+  useEffect(() => {
+    if (opensAloneJoin && !aloneJoinIntentHandled.current) {
+      aloneJoinIntentHandled.current = true;
+      openAloneJoin();
+    }
+  }, [opensAloneJoin]);
 
   function askLeaveGame() {
     if (!data) {

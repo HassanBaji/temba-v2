@@ -148,6 +148,7 @@ function buildRow(args: {
       allowSoloRegister: true,
       teams,
       joinSides,
+      alonePlayers: null,
       knockout: args.knockout ?? null,
     },
     matchId: null,

@@ -24,6 +24,11 @@ export const aloneTeams = {
     seatsPosted: "full, ready to draw",
     tag: "Alone",
   },
+  card: {
+    playersIn: (registered: number, cap: number) =>
+      `${registered} of ${players(cap)} in`,
+    noPlayersYet: "No players yet",
+  },
   players: {
     title: "Players",
     count: (n: number, cap: number) => `${n} of ${cap}`,
