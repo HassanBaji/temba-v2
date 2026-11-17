@@ -48,6 +48,8 @@ export type CreateGameDraft = {
   /** A Public Game has no Group to take its sport from, so the creator picks it. */
   publicSport: Sport;
   allowSoloRegister: boolean;
+  /** Alone only: everyone signs up alone and the Organizer makes the teams (ADR-0096). */
+  organizerMakesTeams: boolean;
   sideSize: number;
   playersAllowed: number;
   /** False when the creator picked Unrated (ADR-0053). */
@@ -100,6 +102,7 @@ export function initialCreateGameDraft(
     isPublic: false,
     publicSport: DEFAULT_SPORT,
     allowSoloRegister: true,
+    organizerMakesTeams: false,
     sideSize: DEFAULT_FOOTBALL_SIDE_SIZE,
     playersAllowed: 2 * DEFAULT_FOOTBALL_SIDE_SIZE,
     rated: true,
@@ -138,6 +141,7 @@ export function serializeCreateGameDraft(draft: CreateGameDraft) {
     isPublic: draft.isPublic,
     publicSport: draft.publicSport,
     allowSoloRegister: draft.allowSoloRegister,
+    organizerMakesTeams: draft.organizerMakesTeams,
     sideSize: draft.sideSize,
     playersAllowed: draft.playersAllowed,
     rated: draft.rated,
@@ -264,6 +268,7 @@ export function parseCreateGameDraft(
     isPublic: record.isPublic as boolean,
     publicSport,
     allowSoloRegister: record.allowSoloRegister as boolean,
+    organizerMakesTeams: record.organizerMakesTeams === true,
     sideSize,
     playersAllowed,
     rated,

@@ -82,6 +82,7 @@ type TournamentFields = Omit<
   name: string;
   isPublic: boolean;
   allowSoloRegister: boolean;
+  organizerMakesTeams: boolean;
 };
 
 function customNameInput(draft: Pick<GameFields, "customName">) {
@@ -421,6 +422,8 @@ export function validateFriendlyTournamentSubmit(
       groupId: draft.groupId,
       isPublic: draft.isPublic && groupVerified,
       allowSoloRegister: draft.allowSoloRegister,
+      organizerMakesTeams:
+        draft.organizerMakesTeams && draft.tournamentShape !== "americano",
       teamCount: draft.teamCount,
       tournamentShape: draft.tournamentShape,
       ...(draft.tournamentShape === "americano"
