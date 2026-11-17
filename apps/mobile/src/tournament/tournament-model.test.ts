@@ -197,6 +197,22 @@ describe("tournamentPlayer", () => {
     ).toBe("+97333000002");
   });
 
+  it("finds a player on the list of an Alone-only Social before posting", () => {
+    const game = {
+      sides: [],
+      gameTeams: [],
+      registeredPlayers: [{ id: "solo", name: "Sara Fakhro", image: null }],
+    };
+    expect(tournamentPlayer(game, "solo")).toEqual({
+      userId: "solo",
+      name: "Sara Fakhro",
+      image: null,
+      level: null,
+      guest: false,
+      phoneNumber: null,
+    });
+  });
+
   it("returns null for someone not on the Tournament", () => {
     expect(tournamentPlayer(pool.postedMid, "nobody")).toBeNull();
   });

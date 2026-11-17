@@ -33,6 +33,17 @@ import { Hatch } from "../primitives/hatch";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import {
+  AloneHeroFigures,
+  AloneMakeTeamsCard,
+  AlonePlayersCard,
+  AlonePostedOrganizerCard,
+  AlonePostedPlayerCard,
+  AloneTag,
+  AloneUnseatedCard,
+  AloneWaitingCard,
+  type AloneSocialHandlers,
+} from "./alone-social";
 import { OpenSlot } from "./open-slot";
 
 type Position = "left" | "right";
@@ -111,17 +122,32 @@ function HeroSeat({
 function Hero({
   view,
   viewerUserId,
+  tone,
+  alone,
 }: {
   view: TournamentHomeView;
   viewerUserId: string;
+  tone: "ink" | "paper";
+  /** Alone only before posting: the teams tile and the seat caption replace the size and status lines. */
+  alone: { teamCount: number; count: number; cap: number | null } | null;
 }) {
   const messages = useMessages();
   const { hero, viewerSide } = view;
   return (
-    <Surface tone="ink" style={{ gap: 12 }}>
-      <Text size="meta" tone="muted">
-        {hero.eyebrow}
-      </Text>
+    <Surface tone={tone} style={{ gap: 12 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <Text size="meta" tone="muted" style={{ flexShrink: 1 }}>
+          {hero.eyebrow}
+        </Text>
+        {view.aloneOnly ? <AloneTag /> : null}
+      </View>
       <Text
         size="display"
         width="expanded"
@@ -132,13 +158,14 @@ function Hero({
       </Text>
       <View>
         {hero.startLine ? <Text size="lead">{hero.startLine}</Text> : null}
-        {hero.sizeLine ? (
+        {hero.sizeLine && !alone ? (
           <Text size="meta" tone="muted">
             {hero.sizeLine}
           </Text>
         ) : null}
       </View>
       <Hairline />
+      {alone ? <AloneHeroFigures {...alone} /> : null}
       {view.seated ? (
         <View style={{ gap: 8 }}>
           <Text size="meta" tone="muted">
@@ -158,9 +185,11 @@ function Hero({
           </View>
         </View>
       ) : null}
-      <Text size="meta" tone="muted">
-        {hero.statusLine}
-      </Text>
+      {alone ? null : (
+        <Text size="meta" tone="muted">
+          {hero.statusLine}
+        </Text>
+      )}
     </Surface>
   );
 }
@@ -385,6 +414,7 @@ function TeamRow({
 function TeamsCard({
   game,
   view,
+  meta,
   onTakeSeat,
   onOpenSeat,
   onOpenPlayer,
@@ -392,6 +422,7 @@ function TeamsCard({
 }: {
   game: TournamentDetails;
   view: TournamentHomeView;
+  meta?: string;
   onTakeSeat: PreDrawHandlers["onTakeSeat"];
   onOpenSeat: PreDrawHandlers["onOpenSeat"];
   onOpenPlayer: PreDrawHandlers["onOpenPlayer"];
@@ -427,7 +458,7 @@ function TeamsCard({
   return (
     <Card
       title={messages.tournament.home.teamsHeading}
-      meta={countLine || undefined}
+      meta={meta ?? (countLine || undefined)}
       flush
     >
       {rows.head.map(renderRow)}
@@ -458,11 +489,17 @@ function TeamsCard({
   );
 }
 
-function SeatsCard({ view }: { view: TournamentHomeView }) {
+function SeatsCard({
+  seatsTaken,
+  seatTotal,
+}: {
+  seatsTaken: number;
+  seatTotal: number;
+}) {
   const locale = useLocale();
   const messages = useMessages();
   const palette = useTonePalette();
-  const { field } = view;
+  const field = { seatsTaken, seatTotal };
   if (field.seatTotal < 1) {
     return null;
   }
@@ -520,9 +557,11 @@ function SeatsCard({ view }: { view: TournamentHomeView }) {
 function ScheduleCard({
   view,
   venueName,
+  caption,
 }: {
   view: TournamentHomeView;
   venueName: string | null;
+  caption?: string;
 }) {
   const locale = useLocale();
   const messages = useMessages();
@@ -532,7 +571,7 @@ function ScheduleCard({
   return (
     <Card
       title={messages.tournament.poolTable.yourRounds}
-      meta={messages.tournament.home.yourRoundsPredrawCaption}
+      meta={caption ?? messages.tournament.home.yourRoundsPredrawCaption}
       flush
     >
       {view.schedule.map((round) => (
@@ -655,36 +694,111 @@ export function PreDrawView({
   game,
   view,
   handlers,
+  alone,
 }: {
   game: TournamentDetails;
   view: TournamentHomeView;
   handlers: PreDrawHandlers;
+  alone?: AloneSocialHandlers;
 }) {
   const locale = useLocale();
+  const messages = useMessages();
   const levelCard = levelRangeRequestCard(game, locale);
+  const levelRequest = levelCard ? (
+    <LevelRequestCard
+      card={levelCard}
+      pending={handlers.levelRequestPending}
+      onRequest={handlers.onRequestLevel}
+    />
+  ) : null;
+  const schedule = (caption?: string) => (
+    <ScheduleCard
+      view={view}
+      venueName={game.venue?.name ?? null}
+      caption={caption}
+    />
+  );
+  const organizes = game.isOrganizer && game.cancelledAt == null;
+
+  if (view.aloneOnly?.awaitingTeams && alone) {
+    const count = game.registeredPlayers.length;
+    const cap = game.playersAllowed ?? null;
+    const focus = organizes && alone.canMakeTeams;
+    return (
+      <View style={{ gap: 16 }}>
+        <Hero
+          view={view}
+          viewerUserId={game.viewerUserId}
+          tone={focus ? "paper" : "ink"}
+          alone={{
+            teamCount: game.teamsAllowed ?? game.sides.length,
+            count,
+            cap,
+          }}
+        />
+        {levelRequest}
+        {organizes ? (
+          <AloneMakeTeamsCard count={count} cap={cap} handlers={alone} />
+        ) : (
+          <AloneWaitingCard cap={cap ?? count} />
+        )}
+        <AlonePlayersCard game={game} handlers={alone} />
+        <SeatsCard seatsTaken={count} seatTotal={cap ?? 0} />
+        {schedule(messages.aloneTeams.waiting.scheduleAfter)}
+      </View>
+    );
+  }
+
+  const posted = view.aloneOnly?.teamsPosted && alone ? alone : null;
+  const postedCopy = messages.aloneTeams.posted;
+  const teamTotal = game.teamsAllowed ?? game.sides.length;
   return (
     <View style={{ gap: 16 }}>
-      <Hero view={view} viewerUserId={game.viewerUserId} />
-      {levelCard ? (
-        <LevelRequestCard
-          card={levelCard}
-          pending={handlers.levelRequestPending}
-          onRequest={handlers.onRequestLevel}
-        />
+      <Hero
+        view={view}
+        viewerUserId={game.viewerUserId}
+        tone={posted && organizes ? "paper" : "ink"}
+        alone={null}
+      />
+      {levelRequest}
+      {posted && organizes ? (
+        <AlonePostedOrganizerCard view={view} handlers={posted} />
+      ) : posted && (game.isSeated || game.isRegistered) ? (
+        <AlonePostedPlayerCard game={game} view={view} />
       ) : null}
       {view.joinKind === "register_team" ? (
         <RegisterTeam game={game} handlers={handlers} />
       ) : null}
-      <TeamsCard
-        game={game}
-        view={view}
-        onTakeSeat={handlers.onTakeSeat}
-        onOpenSeat={handlers.onOpenSeat}
-        onOpenPlayer={handlers.onOpenPlayer}
-        playerOpensActions={handlers.playerOpensActions}
+      <View style={{ gap: 8 }}>
+        <TeamsCard
+          game={game}
+          view={view}
+          meta={
+            posted
+              ? game.isOrganizer
+                ? postedCopy.teamsMadeByYou(view.field.full, teamTotal)
+                : postedCopy.teamsComplete(view.field.full, teamTotal)
+              : undefined
+          }
+          onTakeSeat={handlers.onTakeSeat}
+          onOpenSeat={handlers.onOpenSeat}
+          onOpenPlayer={handlers.onOpenPlayer}
+          playerOpensActions={handlers.playerOpensActions}
+        />
+        {posted ? (
+          <Text size="meta" tone="muted">
+            {game.isOrganizer
+              ? postedCopy.lockNote
+              : postedCopy.listNote(game.registeredPlayers.length)}
+          </Text>
+        ) : null}
+      </View>
+      {posted ? <AloneUnseatedCard game={game} /> : null}
+      <SeatsCard
+        seatsTaken={view.field.seatsTaken}
+        seatTotal={view.field.seatTotal}
       />
-      <SeatsCard view={view} />
-      <ScheduleCard view={view} venueName={game.venue?.name ?? null} />
+      {schedule()}
     </View>
   );
 }

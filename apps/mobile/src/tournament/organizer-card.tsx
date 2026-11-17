@@ -79,11 +79,14 @@ export function OrganizerCard({
   home,
   organizer,
   handlers,
+  aloneCardShown = false,
 }: {
   game: TournamentDetails;
   home: TournamentHomeView;
   organizer: TournamentOrganizerView;
   handlers: OrganizerCardHandlers;
+  /** Alone only: the draw and Edit teams sit on the Alone card above, and the draw waits for posted teams. */
+  aloneCardShown?: boolean;
 }) {
   const locale = useLocale();
   const messages = useMessages();
@@ -129,7 +132,8 @@ export function OrganizerCard({
   if (
     home.kingOfTheCourt &&
     organizer.active &&
-    game.finalOrderPostedAt == null
+    game.finalOrderPostedAt == null &&
+    !aloneCardShown
   ) {
     blocks.push(
       <Block key="king">
@@ -139,7 +143,7 @@ export function OrganizerCard({
         </Text>
       </Block>,
     );
-  } else if (organizer.showDrawEntry) {
+  } else if (organizer.showDrawEntry && !aloneCardShown) {
     const hasDraft = knockoutOnly
       ? hasDraftKnockoutDraw(game.gameTeams)
       : hasDraftPoolDraw(game.gameTeams);
@@ -236,7 +240,7 @@ export function OrganizerCard({
     );
   }
 
-  if (canEditTeams(game)) {
+  if (canEditTeams(game) && !aloneCardShown) {
     blocks.push(
       <Block key="edit-teams">
         <Text size="meta" tone="muted">

@@ -12,6 +12,7 @@ import { View } from "react-native";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import type { AloneSocialHandlers } from "./alone-social";
 import { AmericanoView } from "./americano-view";
 import { KingView } from "./king-view";
 import { OrganizerCard, type OrganizerCardHandlers } from "./organizer-card";
@@ -41,11 +42,14 @@ export function TournamentContent({
   game,
   handlers,
   organizer,
+  alone,
   album,
 }: {
   game: TournamentDetails;
   handlers: TournamentHandlers;
   organizer?: TournamentOrganizerHandlers;
+  /** Alone only (ADR-0096): Make teams, Share teams and the list before posting. */
+  alone?: AloneSocialHandlers;
   /** Album and Notes, under the scores and above the details. */
   album?: ReactNode;
 }) {
@@ -98,7 +102,12 @@ export function TournamentContent({
           playerOpensActions={handlers.playerOpensActions}
         />
       ) : (
-        <PreDrawView game={game} view={view} handlers={handlers} />
+        <PreDrawView
+          game={game}
+          view={view}
+          handlers={handlers}
+          alone={alone}
+        />
       )}
       {organizer && organizerView ? (
         <OrganizerCard
@@ -106,6 +115,9 @@ export function TournamentContent({
           home={view}
           organizer={organizerView}
           handlers={organizer.card}
+          aloneCardShown={
+            alone != null && view.aloneOnly != null && !view.drawn
+          }
         />
       ) : null}
       <ScoreMatchesCard matches={matches} handlers={handlers} />

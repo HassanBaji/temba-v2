@@ -30,6 +30,7 @@ export function TournamentTeamsSection({
   onTakeSeat,
   onOpenSeat,
   linkToPlayers = false,
+  countLine: countLineOverride,
 }: {
   sides: readonly TournamentHomeSide[];
   viewerUserId: string;
@@ -41,17 +42,17 @@ export function TournamentTeamsSection({
   }) => void;
   /** The Organizer clicked an open seat; `canJoin` when they could take it too. */
   onOpenSeat?: OpenSeatHandler;
+  /** Replaces the complete and half-open count beside the heading. */
+  countLine?: string;
 }) {
   const m = useMessages();
   const locale = useLocale();
   const [expanded, setExpanded] = useState(false);
   const field = tournamentFieldSummary(sides);
   const view = tournamentTeamRows(sides, viewerUserId, locale);
-  const countLine = tournamentTeamsCountLine(
-    field.full,
-    field.halfOpen,
-    locale,
-  );
+  const countLine =
+    countLineOverride ??
+    tournamentTeamsCountLine(field.full, field.halfOpen, locale);
   const collapsible = view.collapsedCount > 0;
   const middle = expanded ? view.collapsed : [];
 

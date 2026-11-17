@@ -757,6 +757,7 @@ export function FriendlyGameJoinSheet({
   windowEnd,
   matchMinutes = null,
   allowSoloRegister = true,
+  organizerMakesTeams = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -788,6 +789,8 @@ export function FriendlyGameJoinSheet({
   windowEnd?: Date | string | null;
   matchMinutes?: number | null;
   allowSoloRegister?: boolean;
+  /** Alone only: every seat is one player, so nobody joins with a partner (ADR-0096). */
+  organizerMakesTeams?: boolean;
 }) {
   const locale = useLocale();
   const m = useMessages();
@@ -808,6 +811,7 @@ export function FriendlyGameJoinSheet({
     canRegister: canRegister ?? false,
     format: format ?? "",
     registrationMode: registrationMode ?? "",
+    organizerMakesTeams,
     sides,
   });
   const vacantSideRaceMessage = isTournamentJoin
