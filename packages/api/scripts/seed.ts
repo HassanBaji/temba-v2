@@ -2665,16 +2665,69 @@ async function seedVerifiedPadel(u: Users, v: Venues) {
       answers: rows.map((row) => ({ userId: u[row.key]!.id, band: row.band })),
     });
   }
+  await settleWindow(played.matchId);
+  await seedProveIt(u, v, group.id);
+}
+
+async function settleWindow(matchId: string) {
   const window = await db.query.matchRatingWindows.findFirst({
-    where: eq(matchRatingWindows.matchId, played.matchId),
+    where: eq(matchRatingWindows.matchId, matchId),
   });
   await db.transaction((tx) =>
-    settleRatingWindow(tx, played.matchId, window!.closesAt),
+    settleRatingWindow(tx, matchId, window!.closesAt),
   );
+}
+
+/**
+ * You declared C and your Level is not yet confirmed, so the Prove-it rule
+ * covers you (ADR-0097): two nights ago you and Sofia lost a close Game to
+ * Diego and Yusuf at Padel Central Club, and the loss cost one and a half times
+ * as much, which the played Game says.
+ */
+async function seedProveIt(u: Users, v: Venues, groupId: string) {
+  for (const key of ["sofia", "diego", "yusuf"]) {
+    await joinPublic(db, { groupId, userId: u[key]!.id });
+  }
+  const played = await friendly(u, {
+    groupId,
+    organizerKey: "me",
+    venueId: v.central.id,
+    courtId: v.central.courtIds[1],
+    name: "Club ladder",
+    start: at(3, 19),
+    seats: seats(["me", "sofia", "diego", "yusuf"]),
+  });
+  await moveIntoPast(played.id, at(-2, 19));
+  await playFriendly(
+    u,
+    played,
+    "me",
+    [
+      [5, 7],
+      [4, 6],
+    ],
+    ["sofia", "diego", "yusuf"],
+  );
+  await settleWindow(played.matchId);
+  const covered = await db.query.ratingEvents.findFirst({
+    where: (table, { and: both, eq: equals, isNotNull: present }) =>
+      both(
+        equals(table.matchId, played.matchId),
+        equals(table.userId, u.me!.id),
+        present(table.proveItPart),
+      ),
+    columns: { id: true },
+  });
+  if (!covered) {
+    throw new Error("The Club ladder Game did not apply the Prove-it rule");
+  }
 }
 
 async function main() {
   assertLocalDatabase();
+  // The seed writes a settled Level check, which the API asks only with the
+  // flag on, as the API App's .env.example has it locally.
+  process.env.PADEL_LEVEL_CHECK_ENABLED = "1";
   // The graphile_worker schema only exists once the API worker has booted, and
   // Groups, Games and Bookings all enqueue jobs.
   setJobSink({ add: () => Promise.resolve(), remove: () => Promise.resolve() });

@@ -23,11 +23,7 @@ import {
 } from "@repo/db";
 
 import { isFootballGame } from "@repo/domain/game-shape";
-import {
-  bandWithHysteresis,
-  levelFromMu,
-  type LevelBand,
-} from "@repo/domain/level";
+import { type LevelBand } from "@repo/domain/level";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 
@@ -46,6 +42,7 @@ import { notify } from "#src/notifications/notify";
 import { reverseFootballLevelMatch } from "#src/ratings/apply-football-level-match";
 import { rewriteTierBands } from "#src/ratings/apply-tier-match";
 import { suspendRatingWindow } from "#src/ratings/settle-rating-window";
+import { withoutMuMove } from "#src/ratings/without-mu-move";
 import { wrongScoreReversalEligibility } from "#src/games/wrong-score-reversal";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -421,12 +418,10 @@ export async function reportWrongScore(
         if (!row) {
           continue;
         }
-        const mu = row.mu - (event.muAfter - event.muBefore);
         await tx
           .update(ratings)
           .set({
-            mu,
-            levelBand: bandWithHysteresis(levelFromMu(mu), row.levelBand),
+            ...withoutMuMove(row, event),
             ...(event.levelBandBefore == null
               ? {}
               : { lastRatedAt: event.lastRatedAtBefore }),

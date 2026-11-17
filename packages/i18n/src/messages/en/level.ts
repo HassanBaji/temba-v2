@@ -43,10 +43,6 @@ export const level = {
     backFromInjury: "Back from injury",
     correctingAMistake: "Correcting a mistake",
   },
-  declare: {
-    proveItHint: (band: string) =>
-      `Pick ${band} or above and, until your Level is confirmed, a loss to a pair at your level counts one and a half times.`,
-  },
   overrideCaption: (who: string, when: string) => `Set by ${who}, ${when}`,
   overrideByYou: "you",
   noReasonGiven: "No reason given",

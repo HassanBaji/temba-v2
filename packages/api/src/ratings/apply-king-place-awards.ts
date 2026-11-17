@@ -9,7 +9,6 @@ import {
   user,
 } from "@repo/db";
 import { gameRates } from "@repo/domain/game-rating-eligibility";
-import { bandWithHysteresis, levelFromMu } from "@repo/domain/level";
 import type { DoublesPlayerInput } from "@repo/domain/rate-doubles-match";
 import {
   kingField,
@@ -24,6 +23,7 @@ import {
   persistRatedUser,
   snapshotState,
 } from "#src/ratings/apply-rated-match";
+import { withoutMuMove } from "#src/ratings/without-mu-move";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type RatingRow = typeof ratings.$inferSelect;
@@ -55,7 +55,6 @@ async function takeBackAward(
     await tx.delete(ratings).where(eq(ratings.id, row.id));
     return undefined;
   }
-  const mu = row.mu - (award.muAfter - award.muBefore);
   const restored: RatingRow = untouched
     ? {
         ...row,
@@ -66,12 +65,7 @@ async function takeBackAward(
         lastRatedAt: award.lastRatedAtBefore,
         updatedAt: now,
       }
-    : {
-        ...row,
-        mu,
-        levelBand: bandWithHysteresis(levelFromMu(mu), row.levelBand),
-        updatedAt: now,
-      };
+    : { ...row, ...withoutMuMove(row, award), updatedAt: now };
   await tx
     .update(ratings)
     .set({

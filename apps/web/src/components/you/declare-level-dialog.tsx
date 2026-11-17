@@ -36,12 +36,11 @@ import {
   selfDeclareChoiceFromFootballPlacement,
   type FootballSelfPlacement,
 } from "@repo/domain/football-self-placement";
-import { PROVE_IT_FROM_BAND } from "@repo/domain/level";
 import {
-  displayLabelFromStoredBand,
   selfDeclareChoiceFromDisplay,
   type SelfDeclareChoice,
 } from "@repo/domain/level-bands";
+import { padelProveItHint } from "@repo/domain/onboarding-answers";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 
 const FIELD_IDS = { choice: "declare-level-choice" };
@@ -189,9 +188,7 @@ export function DeclareLevelDialog({
                     disabled={pending}
                   />
                   <FieldDescription id={PROVE_IT_HINT_ID}>
-                    {m.level.declare.proveItHint(
-                      displayLabelFromStoredBand(PROVE_IT_FROM_BAND),
-                    )}
+                    {padelProveItHint(locale)}
                   </FieldDescription>
                 </>
               )}

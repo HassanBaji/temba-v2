@@ -678,6 +678,46 @@ function hiddenUntil(closesAt: Date | string, now: Date, locale: Locale) {
 }
 
 /**
+ * Which Rate the game sheet this is: a padel one that also asks the Level
+ * check, another padel one, a football one everyone rates, or one the
+ * Organizers rate. Its heading and footnote follow from it.
+ */
+type RateGameSheetKind = "level_check" | "padel" | "everyone" | "organizers";
+
+function rateGameSheetKind(sheet: RateGameSheet): RateGameSheetKind {
+  if (sheet.sport === "padel") {
+    return sheet.levelCheck != null ? "level_check" : "padel";
+  }
+  return sheet.mode === "everyone" ? "everyone" : "organizers";
+}
+
+function rateGameHeadingAndFootnote(
+  kind: RateGameSheetKind,
+  sheet: RateGameSheet,
+  messages: ReturnType<typeof messagesFor>,
+): { heading: string; footnote: string } {
+  const m = messages.rating.performance;
+  switch (kind) {
+    case "level_check":
+      return {
+        heading: m.heading,
+        footnote: `${m.padel.footnote} ${messages.rating.levelCheck.footnote}`,
+      };
+    case "padel":
+      return { heading: m.padel.heading, footnote: m.padel.footnote };
+    case "everyone":
+      return { heading: m.everyone.heading, footnote: m.everyone.footnote };
+    case "organizers":
+      return {
+        heading: m.heading,
+        footnote: sheet.mvp.pickable
+          ? `${m.footnote(sheet.weightPercent)} ${m.footnoteStar}`
+          : m.footnote(sheet.weightPercent),
+      };
+  }
+}
+
+/**
  * Rate the game: the Organizer rates everyone, or everyone rates their
  * teammates and, if they want, their opponents.
  */
@@ -691,7 +731,9 @@ export function rateGameView(
   const m = messages.rating.performance;
   const everyone = sheet.mode === "everyone";
   const padel = sheet.sport === "padel";
-  const levelCheck = padel && sheet.levelCheck != null;
+  const kind = rateGameSheetKind(sheet);
+  const levelCheck = kind === "level_check";
+  const headingAndFootnote = rateGameHeadingAndFootnote(kind, sheet, messages);
   const names = padel
     ? {
         slot1: formatMatchSlotLabel("friendly_game", 1, locale),
@@ -825,24 +867,10 @@ export function rateGameView(
           ),
         }
       : null,
-    heading: levelCheck
-      ? m.heading
-      : padel
-        ? m.padel.heading
-        : everyone
-          ? m.everyone.heading
-          : m.heading,
+    heading: headingAndFootnote.heading,
     headingAside: sides[0]!.ratedLine,
     sides,
-    footnote: levelCheck
-      ? `${m.padel.footnote} ${messages.rating.levelCheck.footnote}`
-      : padel
-        ? m.padel.footnote
-        : everyone
-          ? m.everyone.footnote
-          : sheet.mvp.pickable
-            ? `${m.footnote(sheet.weightPercent)} ${m.footnoteStar}`
-            : m.footnote(sheet.weightPercent),
+    footnote: headingAndFootnote.footnote,
     footer: everyone
       ? {
           title:

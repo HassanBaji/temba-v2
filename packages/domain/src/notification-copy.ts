@@ -199,7 +199,6 @@ function gameFinishedSubline(
   return null;
 }
 
-/** Null for a `type` or `audience` this client does not know, so the row is skipped. */
 function reliabilitySubline(move: NotificationReliabilityMove, locale: Locale) {
   const sub = messagesFor(locale).notification.subline;
   const rating = formatPerformanceRating(move.ratingHundredths);
@@ -220,6 +219,7 @@ function levelCheckSubline(move: NotificationLevelCheckMove, locale: Locale) {
     : sub.ratingsClosedLevelCheck(move.band, move.levelBefore, move.levelAfter);
 }
 
+/** Null for a `type` or `audience` this client does not know, so the row is skipped. */
 export function notificationCopy(
   item: NotificationCopyInput,
   locale: Locale,

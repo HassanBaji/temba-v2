@@ -331,7 +331,7 @@ async function dropMvpVotesBetween(tx: DbTx, ids: MergeIds) {
 }
 
 /** A Level check answer between the two would become one about oneself, which the table refuses. */
-async function dropLevelCheckBallotsBetween(tx: DbTx, ids: MergeIds) {
+async function dropLevelCheckAnswersBetween(tx: DbTx, ids: MergeIds) {
   await tx
     .delete(levelCheckBallots)
     .where(
@@ -750,7 +750,7 @@ export async function mergeIntoAccount(
     await dropMarksBetween(tx, ids);
     await dropMvpVotesBetween(tx, ids);
     await dropPerformanceRatingsBetween(tx, ids);
-    await dropLevelCheckBallotsBetween(tx, ids);
+    await dropLevelCheckAnswersBetween(tx, ids);
     await keepMergedNicknames(tx, ids);
 
     for (const reference of uniqueUserReferences) {
