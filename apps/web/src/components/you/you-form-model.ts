@@ -31,8 +31,9 @@ function outcomeWord(outcome: MatchOutcome, locale: Locale) {
 }
 
 /**
- * Ten slots, oldest first, padded with "not played" on the older side. The
- * strip follows the reading direction, so Arabic puts the latest on the left.
+ * Ten slots filled from the start, oldest first; the "not played" ones trail
+ * at the end. The strip follows the reading direction, so Arabic fills from
+ * the right.
  */
 export function lastTenSlots(
   newestFirst: readonly {
@@ -66,7 +67,7 @@ export function lastTenSlots(
       spoken: m.notPlayed,
     }),
   );
-  return [...empty, ...played];
+  return [...played, ...empty];
 }
 
 export function formRecord(
