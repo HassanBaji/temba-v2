@@ -10,7 +10,11 @@ import { relations, sql } from "drizzle-orm";
 import { games } from "./games";
 import { user } from "./user";
 import { gameTeamPlayers } from "./game-team-players";
-import { footballPositions, footballRoles } from "./game-enums";
+import {
+  footballPositions,
+  footballRoles,
+  gamePositions,
+} from "./game-enums";
 
 export const gamePlayers = pgTable(
   "game_players",
@@ -27,6 +31,8 @@ export const gamePlayers = pgTable(
      * after it. Null means the current role is still the kick-off role.
      */
     kickoffFootballRole: footballRoles("kickoff_football_role"),
+    /** Alone only: the side the player asked for when signing up; null is Either. */
+    preferredSide: gamePositions("preferred_side"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

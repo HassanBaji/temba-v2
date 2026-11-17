@@ -72,6 +72,8 @@ type ExpectedGames =
   | "drawPools"
   | "postPoolDraw"
   | "postKingCourts"
+  | "postTeams"
+  | "teamsSheet"
   | "postKingFinalOrder"
   | "americanoBoard"
   | "postAmericanoRounds"

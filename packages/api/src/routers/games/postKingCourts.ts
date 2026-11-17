@@ -16,6 +16,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
+import { assertTeamsPosted } from "#src/games/assert-teams-posted";
 import { drawOccupantName } from "#src/games/helpers/draw-occupant-name";
 import { lockGame } from "#src/games/lock-rows";
 import { notify } from "#src/notifications/notify";
@@ -50,6 +51,7 @@ export async function postKingCourts(
   const m = messagesFor(locale).tournamentKing.errors;
   const game = await requireGame(database, args.gameId, locale);
   await assertGameOrganizer(database, game, args.organizerUserId, locale);
+  assertTeamsPosted(game, locale);
 
   if (!isKingOfTheCourt(game.format, game.tournamentShape)) {
     throw new TRPCError({ code: "BAD_REQUEST", message: m.notKing });

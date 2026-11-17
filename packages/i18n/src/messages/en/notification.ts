@@ -83,6 +83,21 @@ export const notification = {
       strong(game),
       plain(". Confirm it or correct it"),
     ],
+    teamsPosted: (actor: string, game: string, partner: string | null) =>
+      partner
+        ? [
+            strong(actor),
+            plain(" posted the teams for "),
+            strong(game),
+            plain(". You’re with "),
+            strong(partner),
+          ]
+        : [
+            strong(actor),
+            plain(" posted the teams for "),
+            strong(game),
+            plain(". You wait on the list for a partner"),
+          ],
     kingCourtsPosted: (actor: string, game: string) => [
       strong(actor),
       plain(" posted the starting courts for "),

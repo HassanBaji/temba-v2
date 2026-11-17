@@ -31,6 +31,12 @@ export async function assertCanRegisterWithPartner(
       message: messagesFor(locale).game.errors.partnerFriendlyOnly,
     });
   }
+  if (game.organizerMakesTeams) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).aloneTeams.errors.partnerRegistration,
+    });
+  }
   assertGameHasSeats(game, locale);
   if (game.registrationMode !== "individual") {
     throw new TRPCError({

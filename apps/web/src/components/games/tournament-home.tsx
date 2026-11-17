@@ -40,6 +40,16 @@ import {
 } from "~/components/games/tournament-finished-parts";
 import { TournamentHero } from "~/components/games/tournament-hero";
 import { TournamentAmericanoHome } from "~/components/games/tournament-americano-home";
+import { TournamentAloneHome } from "~/components/games/tournament-alone-home";
+import {
+  AlonePlayerCard,
+  AlonePostedOrganizerCard,
+  AloneTags,
+} from "~/components/games/tournament-alone-parts";
+import {
+  alonePlayerCard,
+  alonePostedTitle,
+} from "~/components/games/alone-teams-view";
 import { TournamentKingHome } from "~/components/games/tournament-king-home";
 import {
   KingDrawEntry,
@@ -102,7 +112,28 @@ import { isAmericano } from "@repo/domain/tournament-americano";
 import { type TournamentRoundScheduleEntry } from "@repo/domain/tournament-rounds";
 import { cn } from "~/lib/utils";
 
-type GameDetail = TournamentDetails;
+type GameDetail = TournamentDetails & {
+  canMakeTeamsAlone?: boolean;
+  aloneTeamsMinPlayers?: number;
+  roster?: {
+    users: readonly { id: string; name: string }[];
+    count: number;
+    cap: number | null;
+  } | null;
+};
+
+/** An Alone-only Social whose teams are posted, until the draw (ADR-0096). */
+type AlonePosted = {
+  gameId: string;
+  title: string;
+  canMakeTeams: boolean;
+  onEditTeams?: () => void;
+  playerCard: { viewerName: string; title: string; body: string } | null;
+  teamsCountLine?: string;
+  listNote: string;
+  lockNote: string | null;
+  unseated: readonly { id: string; name: string }[];
+};
 
 type OpenSeatHandler = (
   seat: { sideIndex: number; position: "left" | "right" },
@@ -273,6 +304,64 @@ export function TournamentHome({
       />
     ) : null;
 
+  if (view.aloneOnly?.awaitingTeams && !drawn) {
+    return (
+      <TournamentAloneHome
+        data={data}
+        backHref={backHref}
+        actions={
+          <>
+            <AloneTags />
+            {actionsMenu(true)}
+          </>
+        }
+        sharePending={sharePending}
+        leavePending={leavePending}
+        onShare={onShare}
+        onInvite={onInvite}
+        onLeaveGame={onLeaveGame}
+        onLeaveWaitlist={onLeaveWaitlist}
+        onKick={onKick}
+      />
+    );
+  }
+
+  const viewerName =
+    data.registeredPlayers.find((player) => player.id === data.viewerUserId)
+      ?.name ?? "";
+  const alonePosted: AlonePosted | null =
+    view.aloneOnly?.teamsPosted && !drawn
+      ? {
+          gameId: data.id,
+          title: alonePostedTitle(
+            { knockoutOnly: view.knockoutOnly, king },
+            locale,
+          ),
+          canMakeTeams: data.canMakeTeamsAlone === true,
+          onEditTeams,
+          playerCard:
+            !isOrganizerActive && data.isRegistered && !data.isWaitlisted
+              ? {
+                  viewerName,
+                  ...alonePlayerCard(
+                    view.viewerSide,
+                    data.viewerUserId,
+                    locale,
+                  ),
+                }
+              : null,
+          teamsCountLine: isOrganizerActive
+            ? m.aloneTeams.posted.teamsMadeByYou(
+                view.field.full,
+                data.teamsAllowed ?? data.sides.length,
+              )
+            : undefined,
+          listNote: m.aloneTeams.posted.listNote(data.registeredUserCount),
+          lockNote: isOrganizerActive ? m.aloneTeams.posted.lockNote : null,
+          unseated: data.unseatedPlayers,
+        }
+      : null;
+
   if (americano) {
     return (
       <TournamentAmericanoHome
@@ -394,9 +483,19 @@ export function TournamentHome({
               onShare={onShare}
               sharePending={sharePending}
               onInvite={onInvite}
-              actions={actionsMenu(true)}
+              actions={
+                alonePosted ? (
+                  <>
+                    <AloneTags />
+                    {actionsMenu(true)}
+                  </>
+                ) : (
+                  actionsMenu(true)
+                )
+              }
             />
             <TournamentPredrawTree
+              alonePosted={alonePosted}
               sides={data.sides}
               viewerUserId={data.viewerUserId}
               canTakeSeat={view.canTakeSeat}
@@ -513,6 +612,7 @@ export function TournamentHome({
 }
 
 function TournamentPredrawTree({
+  alonePosted,
   sides,
   viewerUserId,
   canTakeSeat,
@@ -552,6 +652,7 @@ function TournamentPredrawTree({
   onInvite,
   linkToPlayers,
 }: {
+  alonePosted: AlonePosted | null;
   sides: GameDetail["sides"];
   viewerUserId: string;
   canTakeSeat: boolean;
@@ -616,14 +717,26 @@ function TournamentPredrawTree({
           onOpen={onOpenMerge}
         />
       ) : null}
-      {showDrawEntry && king ? (
+      {showDrawEntry && alonePosted ? (
+        <AlonePostedOrganizerCard
+          gameId={alonePosted.gameId}
+          title={alonePosted.title}
+          canMakeTeams={alonePosted.canMakeTeams}
+          onOpenDraw={onOpenDraw}
+          onEditTeams={alonePosted.onEditTeams}
+        />
+      ) : null}
+      {alonePosted?.playerCard ? (
+        <AlonePlayerCard {...alonePosted.playerCard} />
+      ) : null}
+      {showDrawEntry && king && !alonePosted ? (
         <KingDrawEntry
           completeTeams={completeTeams}
           teamCount={fieldSize}
           onOpen={onOpenDraw}
         />
       ) : null}
-      {showDrawEntry && !king ? (
+      {showDrawEntry && !king && !alonePosted ? (
         <TournamentDrawEntry
           completeTeams={completeTeams}
           teamCount={fieldSize}
@@ -676,7 +789,9 @@ function TournamentPredrawTree({
         onTakeSeat={onTakeSeat}
         onOpenSeat={onOpenSeat}
         linkToPlayers={linkToPlayers}
+        countLine={alonePosted?.teamsCountLine}
       />
+      {alonePosted ? <AlonePostedNotes posted={alonePosted} /> : null}
       <TournamentSeatsGrid sides={sides} onInvite={onInvite} />
       {king ? (
         <KingHowItRuns courtCount={kingCourtCount(fieldSize)} />
@@ -687,6 +802,36 @@ function TournamentPredrawTree({
           rounds={schedule}
         />
       )}
+    </div>
+  );
+}
+
+function AlonePostedNotes({ posted }: { posted: AlonePosted }) {
+  const m = useMessages().aloneTeams;
+  return (
+    <div className="space-y-4">
+      <p className="text-muted-foreground text-meta leading-relaxed">
+        {[posted.listNote, posted.lockNote].filter(Boolean).join(" ")}
+      </p>
+      {posted.unseated.length > 0 ? (
+        <section className="space-y-2">
+          <h2 className="text-body font-semibold">{m.players.waitingTitle}</h2>
+          <ul className="flex flex-wrap gap-1.5">
+            {posted.unseated.map((player) => (
+              <li
+                key={player.id}
+                dir="auto"
+                className="border-rule text-meta rounded-md border px-3 py-2"
+              >
+                {player.name}
+              </li>
+            ))}
+          </ul>
+          <p className="text-muted-foreground text-meta leading-relaxed">
+            {m.players.waitingNote}
+          </p>
+        </section>
+      ) : null}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import type { DbClient } from "@repo/db";
 import { type Locale } from "@repo/i18n/locale";
 import { asc, eq, inArray, or, type SQL } from "drizzle-orm";
 
+import { awaitsOrganizerTeams } from "@repo/domain/alone-teams";
 import {
   gamePlayers,
   gameWaitlist,
@@ -82,6 +83,8 @@ export const hubListColumns = {
   qualifiersPerPool: true,
   roundCount: true,
   allowSoloRegister: true,
+  organizerMakesTeams: true,
+  teamsPostedAt: true,
   drawPostedAt: true,
   finalOrderPostedAt: true,
   sideSize: true,
@@ -210,6 +213,8 @@ export type HubQueryRow = {
   qualifiersPerPool: number | null;
   roundCount: number | null;
   allowSoloRegister: boolean;
+  organizerMakesTeams: boolean;
+  teamsPostedAt: Date | null;
   drawPostedAt: Date | null;
   finalOrderPostedAt: Date | null;
   sideSize: number | null;
@@ -497,7 +502,10 @@ function tournamentFromRow(
     drawPosted,
     allowSoloRegister: row.allowSoloRegister,
     teams: tournamentTeamsFromRow(row, viewerUserId),
-    joinSides: sidesBySideIndex(row, viewerUserId, row.teamsAllowed ?? 0),
+    // An Alone-only Social has no seats to pick until its teams are posted (ADR-0096).
+    joinSides: awaitsOrganizerTeams(row)
+      ? []
+      : sidesBySideIndex(row, viewerUserId, row.teamsAllowed ?? 0),
     knockout: tournamentKnockoutFromRow(row, viewerUserId, locale),
   };
 }

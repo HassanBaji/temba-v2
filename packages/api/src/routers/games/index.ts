@@ -50,6 +50,8 @@ import { performanceRatingSummaryProcedure as performanceRatingSummary } from ".
 import { poolTablesProcedure as poolTables } from "./poolTables";
 import { postPoolDrawProcedure as postPoolDraw } from "./postPoolDraw";
 import { postKingCourtsProcedure as postKingCourts } from "./postKingCourts";
+import { postTeamsProcedure as postTeams } from "./postTeams";
+import { teamsSheetProcedure as teamsSheet } from "./teamsSheet";
 import { postKingFinalOrderProcedure as postKingFinalOrder } from "./postKingFinalOrder";
 import { americanoBoardProcedure as americanoBoard } from "./americanoBoard";
 import { postAmericanoRoundsProcedure as postAmericanoRounds } from "./postAmericanoRounds";
@@ -110,6 +112,8 @@ export const gamesRouter = createTRPCRouter({
   drawPools,
   postPoolDraw,
   postKingCourts,
+  postTeams,
+  teamsSheet,
   postKingFinalOrder,
   americanoBoard,
   postAmericanoRounds,

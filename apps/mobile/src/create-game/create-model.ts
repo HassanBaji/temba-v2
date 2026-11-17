@@ -88,8 +88,21 @@ export type CreateAction =
   | { kind: "setCustomName"; customName: string }
   | { kind: "setPublic"; isPublic: boolean }
   | { kind: "setAllowSolo"; allowSoloRegister: boolean }
+  | { kind: "setHowPeopleJoin"; mode: HowPeopleJoin }
   | { kind: "setRated"; rated: boolean }
   | { kind: "setMvpMode"; mode: MvpMode };
+
+/** How people join a Social: teams or alone, pairs only, or Alone only (ADR-0096). */
+export type HowPeopleJoin = "solo" | "pair" | "alone";
+
+export function howPeopleJoin(
+  draft: Pick<CreateGameDraft, "allowSoloRegister" | "organizerMakesTeams">,
+): HowPeopleJoin {
+  if (draft.organizerMakesTeams) {
+    return "alone";
+  }
+  return draft.allowSoloRegister ? "solo" : "pair";
+}
 
 export function initialCreateState(
   now: Date,
@@ -241,7 +254,11 @@ export function createReducer(
         ),
       );
     case "setShape":
-      return patch(state, { tournamentShape: action.shape, roundCount: null });
+      return patch(state, {
+        tournamentShape: action.shape,
+        roundCount: null,
+        ...(action.shape === "americano" ? { organizerMakesTeams: false } : {}),
+      });
     case "setPoolCount":
       return patch(state, {
         poolCount: action.poolCount,
@@ -266,6 +283,11 @@ export function createReducer(
       return patch(state, { isPublic: action.isPublic });
     case "setAllowSolo":
       return patch(state, { allowSoloRegister: action.allowSoloRegister });
+    case "setHowPeopleJoin":
+      return patch(state, {
+        allowSoloRegister: action.mode !== "pair",
+        organizerMakesTeams: action.mode === "alone",
+      });
     case "setRated":
       return patch(state, { rated: action.rated });
     case "setMvpMode":

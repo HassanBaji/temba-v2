@@ -131,9 +131,14 @@ export type TournamentPlayer = {
   phoneNumber: string | null;
 };
 
-/** A seated or drawn player on the Tournament, looked up by user id. */
+/**
+ * A seated or drawn player on the Tournament, looked up by user id; on an
+ * Alone-only Social before posting, a player on the list.
+ */
 export function tournamentPlayer(
-  game: Pick<TournamentDetails, "sides" | "gameTeams">,
+  game: Pick<TournamentDetails, "sides" | "gameTeams"> & {
+    registeredPlayers?: TournamentDetails["registeredPlayers"];
+  },
   userId: string,
 ): TournamentPlayer | null {
   for (const side of game.sides) {
@@ -164,6 +169,23 @@ export function tournamentPlayer(
         phoneNumber: member.phoneNumber ?? null,
       };
     }
+  }
+  const registered = game.registeredPlayers?.find(
+    (player) => player.id === userId,
+  );
+  if (registered) {
+    return {
+      userId,
+      name: registered.name,
+      image: registered.image,
+      level: null,
+      guest: "guest" in registered && registered.guest === true,
+      phoneNumber:
+        "phoneNumber" in registered &&
+        typeof registered.phoneNumber === "string"
+          ? registered.phoneNumber
+          : null,
+    };
   }
   return null;
 }

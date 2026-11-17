@@ -3,14 +3,18 @@ import type { AddPlayerFootballPosition } from "@repo/domain/add-player-by-phone
 import { addPlayerFootballRoleChoices } from "@repo/domain/add-player-by-phone";
 import {
   groupMemberPositionChoices,
+  toggleGroupMemberLevelFilter,
   type AddPlayerMode,
   type GroupMemberFootballPick,
+  type GroupMemberLevelFilter,
+  type GroupMemberLevelFilterChoice,
   type GroupMemberRowView,
 } from "@repo/domain/add-player-from-group";
 import type { FootballRole } from "@repo/domain/football-lineup";
 import { Check, Phone, UserRound, UsersRound } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 
+import { ChoiceChip } from "../create-game/chips";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { NicknameName } from "../primitives/nickname-name";
 import { Avatar } from "../primitives/avatar";
@@ -27,6 +31,7 @@ const SEGMENT_HEIGHT = 38;
 const MARK_SIZE = 24;
 const AVATAR_COLUMN = 52;
 const COMPACT_HEIGHT = 40;
+const LEVEL_CHIP_GAP = 8;
 
 const MODE_ICONS = {
   group: UsersRound,
@@ -303,12 +308,54 @@ function MemberRow({
   );
 }
 
+function LevelFilter({
+  choices,
+  levels,
+  onChange,
+}: {
+  choices: readonly GroupMemberLevelFilterChoice[];
+  levels: readonly GroupMemberLevelFilter[];
+  onChange: (levels: GroupMemberLevelFilter[]) => void;
+}) {
+  const m = useMessages();
+  const copy = m.group.addPlayer.fromGroup;
+  return (
+    <View
+      accessibilityLabel={copy.levelFilter}
+      style={{ flexDirection: "row", flexWrap: "wrap", gap: LEVEL_CHIP_GAP }}
+    >
+      <ChoiceChip
+        role="checkbox"
+        label={copy.allLevels}
+        selected={levels.length === 0}
+        onPress={() => onChange([])}
+      />
+      {choices.map((choice) => (
+        <ChoiceChip
+          key={choice.value}
+          role="checkbox"
+          label={choice.name}
+          accessibilityLabel={choice.accessibilityLabel}
+          ltr={choice.value !== "none"}
+          selected={levels.includes(choice.value)}
+          onPress={() =>
+            onChange(toggleGroupMemberLevelFilter(levels, choice.value))
+          }
+        />
+      ))}
+    </View>
+  );
+}
+
 export function GroupMemberList({
   query,
   onQueryChange,
   groupLine,
   spotsLine,
   full,
+  levelChoices,
+  levels,
+  onLevelsChange,
   rows,
   detailsById,
   footballById,
@@ -324,6 +371,10 @@ export function GroupMemberList({
   groupLine: string | null;
   spotsLine: string | null;
   full: boolean;
+  /** Empty when the roster has nothing to filter by Level. */
+  levelChoices: readonly GroupMemberLevelFilterChoice[];
+  levels: readonly GroupMemberLevelFilter[];
+  onLevelsChange: (levels: GroupMemberLevelFilter[]) => void;
   rows: GroupMemberRowView[];
   detailsById: ReadonlyMap<
     string,
@@ -370,6 +421,13 @@ export function GroupMemberList({
             </Text>
           ) : null}
         </View>
+      ) : null}
+      {levelChoices.length > 0 ? (
+        <LevelFilter
+          choices={levelChoices}
+          levels={levels}
+          onChange={onLevelsChange}
+        />
       ) : null}
       {loading ? (
         <Text size="meta" tone="muted">

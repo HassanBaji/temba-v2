@@ -13,16 +13,21 @@ const TRACK_PADDING = 3;
 const SEGMENT_HEIGHT = 40;
 
 /** A wash track with the chosen mode lifted on a paper pill. */
-export function ShareModeSegments({
+export function ShareModeSegments<T extends string = ShareMode>({
   value,
   onSelect,
+  options,
 }: {
-  value: ShareMode;
-  onSelect: (mode: ShareMode) => void;
+  value: T;
+  onSelect: (mode: T) => void;
+  /** Other tabs than the result's Story and Sticker, as on Share teams. */
+  options?: readonly { value: T; label: string }[];
 }) {
   const colors = useColors();
   const m = useMessages().mobilePlayer.share;
-  const modes = MODE_VALUES.map((mode) => ({ value: mode, label: m[mode] }));
+  const modes =
+    options ??
+    MODE_VALUES.map((mode) => ({ value: mode as T, label: m[mode] }));
   return (
     <View
       accessibilityRole="radiogroup"

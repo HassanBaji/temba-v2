@@ -145,6 +145,7 @@ import { isTournamentFinished } from "@repo/domain/tournament-finished";
 import { tournamentRoundsPlan } from "@repo/domain/tournament-organizer";
 import { isKingOfTheCourt } from "@repo/domain/tournament-king";
 import { isAmericano } from "@repo/domain/tournament-americano";
+import { awaitsOrganizerTeams } from "@repo/domain/alone-teams";
 import {
   isPartnerRequiredGame,
   isKnockoutOnly,
@@ -712,7 +713,8 @@ export default function GameHomePage({
     data &&
       (data.canRegister || data.canWaitlist) &&
       data.registrationMode === "individual" &&
-      data.format !== "americano",
+      data.format !== "americano" &&
+      !data.organizerMakesTeams,
   );
   const partnerSearch = api.games.searchPartnerUsers.useQuery(
     { gameId: id, query: partnerQuery },
@@ -729,7 +731,7 @@ export default function GameHomePage({
     if (!tournamentInviteLandingOpensPartnerSheet(joinParam) || !data) {
       return;
     }
-    if (data.canRegister) {
+    if (data.canRegister && !awaitsOrganizerTeams(data)) {
       setJoinPickerSeat(null);
       setJoinPickerOpen(true);
     }
@@ -1663,6 +1665,7 @@ export default function GameHomePage({
           windowEnd={data.windowEnd}
           matchMinutes={data.matchMinutes}
           allowSoloRegister={data.allowSoloRegister}
+          organizerMakesTeams={data.organizerMakesTeams}
           onPickSeat={(sideIndex, position) =>
             registerSeat.mutateAsync({ gameId: id, sideIndex, position })
           }

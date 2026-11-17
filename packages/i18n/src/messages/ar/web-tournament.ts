@@ -29,6 +29,21 @@ export const webTournament = {
     goesThrough: "يتأهل",
     cancelling: "جارٍ إلغاء المباراة…",
   },
+  aloneTeams: {
+    seats: (taken: number, total: number) =>
+      `${taken} من ${plural("ar", total, {
+        zero: "{n} مقعد",
+        one: "مقعد واحد",
+        two: "مقعدين",
+        few: "{n} مقاعد",
+        many: "{n} مقعدًا",
+        other: "{n} مقعد",
+      })}`,
+    contextLine: (game: string, venue: string) =>
+      `${isolate(game)}، ${isolate(venue)}`,
+    loadFailed: "تعذّر تحميل اللاعبين",
+    notPosted: "انشر الفرق أولًا، ثم يمكنك مشاركتها.",
+  },
   home: {
     needCompleteTeam:
       "تحتاج إلى فريق مكتمل يُسمح لكلا شريكيه باللعب في هذه المباراة.",
