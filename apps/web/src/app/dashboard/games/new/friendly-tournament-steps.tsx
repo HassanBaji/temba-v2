@@ -165,6 +165,8 @@ export function FriendlyTournamentSteps({
   onIsPublic,
   allowSoloRegister,
   onAllowSoloRegister,
+  organizerMakesTeams,
+  onOrganizerMakesTeams,
   groupName,
   groupVerified,
   rated,
@@ -235,6 +237,8 @@ export function FriendlyTournamentSteps({
   onIsPublic: (isPublic: boolean) => void;
   allowSoloRegister: boolean;
   onAllowSoloRegister: (allowSoloRegister: boolean) => void;
+  organizerMakesTeams: boolean;
+  onOrganizerMakesTeams: (organizerMakesTeams: boolean) => void;
   groupName: string;
   groupVerified: boolean;
   rated: boolean;
@@ -308,6 +312,7 @@ export function FriendlyTournamentSteps({
   const americanoRounds = americano?.rounds ?? 0;
   const americanoCourts = americanoCourtCount(americanoPlayers);
   const americanoShape = americano != null;
+  const aloneOnly = organizerMakesTeams && !americanoShape;
   const americanoFinish =
     americano && startTime && parsedMinutes.ok
       ? americanoFinishSlot(startTime, {
@@ -427,7 +432,9 @@ export function FriendlyTournamentSteps({
               error={teamCountError}
               description={
                 <p className="text-muted-foreground text-meta">
-                  {playersInPairsLine(teamCount, locale)}
+                  {aloneOnly
+                    ? m.aloneTeams.create.sizeHint(teamCount)
+                    : playersInPairsLine(teamCount, locale)}
                 </p>
               }
             />
@@ -1110,14 +1117,20 @@ export function FriendlyTournamentSteps({
               })}
             </div>
             <FieldDescription id="game-price-per-player-copy">
-              {m.createGame.price.fieldDescription}
-              {americano
-                ? price.trim()
-                  ? ` ${am.create.pricePerPlayer(price.trim())}`
-                  : ""
-                : teamPrice
-                  ? ` ${teamPrice}`
-                  : ""}
+              {aloneOnly ? (
+                m.aloneTeams.create.feeNote
+              ) : (
+                <>
+                  {m.createGame.price.fieldDescription}
+                  {americano
+                    ? price.trim()
+                      ? ` ${am.create.pricePerPlayer(price.trim())}`
+                      : ""
+                    : teamPrice
+                      ? ` ${teamPrice}`
+                      : ""}
+                </>
+              )}
             </FieldDescription>
             <FieldError id="game-price-per-player-error">
               {priceError}
@@ -1187,9 +1200,10 @@ export function FriendlyTournamentSteps({
             >
               <ChoiceChip
                 role="radio"
-                selected={allowSoloRegister}
+                selected={allowSoloRegister && !organizerMakesTeams}
                 onClick={() => {
                   onAllowSoloRegister(true);
+                  onOrganizerMakesTeams(false);
                 }}
               >
                 {sizingCopy.aloneOrWithPartner}
@@ -1199,11 +1213,27 @@ export function FriendlyTournamentSteps({
                 selected={!allowSoloRegister}
                 onClick={() => {
                   onAllowSoloRegister(false);
+                  onOrganizerMakesTeams(false);
                 }}
               >
                 {sizingCopy.withPartnerOnly}
               </ChoiceChip>
+              <ChoiceChip
+                role="radio"
+                selected={allowSoloRegister && organizerMakesTeams}
+                onClick={() => {
+                  onAllowSoloRegister(true);
+                  onOrganizerMakesTeams(true);
+                }}
+              >
+                {m.aloneTeams.create.choice}
+              </ChoiceChip>
             </RovingRadioGroup>
+            {aloneOnly ? (
+              <p className="text-muted-foreground text-meta">
+                {m.aloneTeams.create.choiceHint}
+              </p>
+            ) : null}
           </section>
 
           <div className="border-rule rounded-card overflow-hidden border">
@@ -1230,6 +1260,12 @@ export function FriendlyTournamentSteps({
                           )
               }
             />
+            {aloneOnly ? (
+              <ReviewRow
+                label={m.aloneTeams.detail.signUp}
+                value={m.aloneTeams.create.review}
+              />
+            ) : null}
             {knockoutTree ? (
               <ReviewRow
                 label={m.createGame.knockout}

@@ -7,6 +7,7 @@ import {
   advance,
   continueBlocked,
   createReducer,
+  howPeopleJoin,
   initialCreateState,
   serverFailure,
   submitRequest,
@@ -110,6 +111,58 @@ describe("createReducer", () => {
       now: NOW,
     });
     expect(next.draft.name).toBe("Friday cup");
+  });
+
+  it("sets Alone only and back through How people join", () => {
+    const state = stateAt(
+      4,
+      "friendly_tournament",
+      fixtures.drafts.tournamentGroupsOnly,
+    );
+    const alone = createReducer(state, {
+      kind: "setHowPeopleJoin",
+      mode: "alone",
+    });
+    expect(alone.draft).toMatchObject({
+      allowSoloRegister: true,
+      organizerMakesTeams: true,
+    });
+    expect(howPeopleJoin(alone.draft)).toBe("alone");
+
+    const pair = createReducer(alone, {
+      kind: "setHowPeopleJoin",
+      mode: "pair",
+    });
+    expect(pair.draft).toMatchObject({
+      allowSoloRegister: false,
+      organizerMakesTeams: false,
+    });
+    expect(howPeopleJoin(pair.draft)).toBe("pair");
+
+    const solo = createReducer(pair, {
+      kind: "setHowPeopleJoin",
+      mode: "solo",
+    });
+    expect(howPeopleJoin(solo.draft)).toBe("solo");
+  });
+
+  it("drops Alone only when the shape becomes an Americano", () => {
+    const state = stateAt(
+      3,
+      "friendly_tournament",
+      fixtures.drafts.tournamentGroupsOnly,
+    );
+    const alone = createReducer(state, {
+      kind: "setHowPeopleJoin",
+      mode: "alone",
+    });
+    const americano = createReducer(alone, {
+      kind: "setShape",
+      shape: "americano",
+    });
+    expect(americano.draft.organizerMakesTeams).toBe(false);
+    const rounds = createReducer(alone, { kind: "setShape", shape: "rounds" });
+    expect(rounds.draft.organizerMakesTeams).toBe(true);
   });
 });
 

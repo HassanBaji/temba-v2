@@ -167,6 +167,7 @@ function NewGameForm() {
   const [isPublic, setIsPublic] = React.useState(false);
   const [publicSport, setPublicSport] = React.useState<Sport>(DEFAULT_SPORT);
   const [allowSoloRegister, setAllowSoloRegister] = React.useState(true);
+  const [organizerMakesTeams, setOrganizerMakesTeams] = React.useState(false);
   const [sideSize, setSideSize] = React.useState(
     () => initialCreateGameDraft(session.now, locale).sideSize,
   );
@@ -208,6 +209,7 @@ function NewGameForm() {
     setIsPublic(next.isPublic);
     setPublicSport(next.publicSport);
     setAllowSoloRegister(next.allowSoloRegister);
+    setOrganizerMakesTeams(next.organizerMakesTeams);
     setSideSize(next.sideSize);
     setPlayersAllowed(next.playersAllowed);
     setRated(next.rated);
@@ -320,6 +322,7 @@ function NewGameForm() {
     isPublic,
     publicSport,
     allowSoloRegister,
+    organizerMakesTeams,
     sideSize,
     playersAllowed,
     rated,
@@ -662,6 +665,7 @@ function NewGameForm() {
         name,
         isPublic,
         allowSoloRegister,
+        organizerMakesTeams,
         rated,
         trackPayments,
       },
@@ -1222,6 +1226,8 @@ function NewGameForm() {
               onIsPublic={setIsPublic}
               allowSoloRegister={allowSoloRegister}
               onAllowSoloRegister={setAllowSoloRegister}
+              organizerMakesTeams={organizerMakesTeams}
+              onOrganizerMakesTeams={setOrganizerMakesTeams}
               groupName={reviewGroupName}
               groupVerified={groupVerified}
               rated={rated}

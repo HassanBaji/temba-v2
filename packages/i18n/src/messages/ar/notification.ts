@@ -100,6 +100,23 @@ export const notification = {
       strong(game),
       plain(". أكّدها أو صحّحها"),
     ],
+    teamsPosted: (actor: string, game: string, partner: string | null) =>
+      partner
+        ? [
+            plain("نشر "),
+            strong(actor),
+            plain(" فرق "),
+            strong(game),
+            plain(". أنت مع "),
+            strong(partner),
+          ]
+        : [
+            plain("نشر "),
+            strong(actor),
+            plain(" فرق "),
+            strong(game),
+            plain(". تنتظر في القائمة شريكًا"),
+          ],
     kingCourtsPosted: (actor: string, game: string) => [
       plain("نشر "),
       strong(actor),

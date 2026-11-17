@@ -246,6 +246,20 @@ describe("addPlayerSideChoices", () => {
 });
 
 describe("addPlayerPlacement", () => {
+  it("rosters an Alone-only Social until its teams are posted", () => {
+    const social = {
+      registrationMode: "individual",
+      sport: "padel",
+      format: "friendly_tournament",
+      organizerMakesTeams: true,
+    };
+    assert.equal(addPlayerPlacement(social), "roster");
+    assert.equal(
+      addPlayerPlacement({ ...social, teamsPostedAt: new Date() }),
+      "side",
+    );
+  });
+
   it("seats padel Friendly games, sides tournaments and rosters the rest", () => {
     const individual = { registrationMode: "individual", sport: "padel" };
     assert.equal(

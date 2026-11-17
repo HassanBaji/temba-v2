@@ -179,6 +179,11 @@ export const mobileTournament = {
     publish: "Publish teams",
     inThePool: (n: number) => `${n} in the pool`,
   },
+  aloneTeams: {
+    loading: "Loading the teams",
+    loadFailed: "The teams could not be loaded",
+    nothingToShare: "Post the teams first. Then they can be shared here.",
+  },
   playerSheet: {
     prefers: (position: string) => `Prefers ${position.toLowerCase()}`,
     noPositionYet: "No position yet",

@@ -1089,6 +1089,7 @@ export function resetCreateBranch(
       name: friendlyTournamentDefaultName(draft.day, locale),
       isPublic: false,
       allowSoloRegister: true,
+      organizerMakesTeams: false,
     };
   }
   return {

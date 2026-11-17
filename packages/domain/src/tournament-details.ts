@@ -1,6 +1,7 @@
 import { messagesFor } from "@repo/i18n/messages";
 import type { Locale } from "@repo/i18n/locale";
 
+import { awaitsOrganizerTeams } from "./alone-teams";
 import type { SeatHoldRequestRow } from "./seat-hold-request";
 import { formatGameCardDay } from "./format-game-start";
 import { ratingScopeNotice, ratingScopeOf } from "./game-rating-impact";
@@ -135,6 +136,9 @@ export type TournamentDetails = {
   format: string;
   registrationMode: string;
   allowSoloRegister: boolean;
+  /** Alone only (ADR-0096): the Organizer makes the teams. */
+  organizerMakesTeams?: boolean;
+  teamsPostedAt?: Date | string | null;
   isPublic: boolean;
   rated: boolean;
   ratingScope?: GameRatingScope;
@@ -365,6 +369,8 @@ export function tournamentDetailRows(args: {
   locale: Locale;
   /** King of the court: no Matches, so Scores and rating replace the Match rows. */
   king?: KingDetailState;
+  /** Alone only: a Sign up row says the Organizer makes the teams. */
+  organizerMakesTeams?: boolean;
 }): TournamentDetailRow[] {
   const m = messagesFor(args.locale);
   const head: TournamentDetailRow[] = [
@@ -376,6 +382,14 @@ export function tournamentDetailRows(args: {
       label: m.tournament.home.groupRow,
       value: args.groupName?.trim() ? args.groupName : "—",
     },
+    ...(args.organizerMakesTeams
+      ? [
+          {
+            label: m.aloneTeams.detail.signUp,
+            value: m.aloneTeams.detail.signUpValue,
+          },
+        ]
+      : []),
   ];
   if (args.king) {
     return kingDetailRows(
@@ -421,6 +435,8 @@ export type TournamentHomeView = {
   kingOfTheCourt: boolean;
   thenKnockout: boolean;
   partnerRequired: boolean;
+  /** Alone only: before the teams are posted the Social lists players, after it is a usual Social. */
+  aloneOnly: { awaitingTeams: boolean; teamsPosted: boolean } | null;
   seated: boolean;
   roundCount: number | null;
   field: ReturnType<typeof tournamentFieldSummary>;
@@ -506,6 +522,12 @@ export function tournamentHomeView(
     kingOfTheCourt: king,
     thenKnockout,
     partnerRequired,
+    aloneOnly: game.organizerMakesTeams
+      ? {
+          awaitingTeams: awaitsOrganizerTeams(game),
+          teamsPosted: game.teamsPostedAt != null,
+        }
+      : null,
     seated,
     roundCount,
     field,
@@ -558,6 +580,7 @@ export function tournamentHomeView(
             viewerPlaceAward: game.viewerPlaceAward,
           }
         : undefined,
+      organizerMakesTeams: game.organizerMakesTeams,
     }),
     // The API refuses a leave once the draw is posted.
     canLeaveGame:

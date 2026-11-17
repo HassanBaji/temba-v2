@@ -77,6 +77,12 @@ export const games = pgTable(
     /** King of the court: when the Organizer first posted the final order. */
     finalOrderPostedAt: timestamp("final_order_posted_at"),
     allowSoloRegister: boolean("allow_solo_register").notNull().default(true),
+    /** Alone only: everyone signs up alone and the Organizer makes the teams (ADR-0096). */
+    organizerMakesTeams: boolean("organizer_makes_teams")
+      .notNull()
+      .default(false),
+    /** Alone only: when the Organizer last posted the teams. */
+    teamsPostedAt: timestamp("teams_posted_at"),
     legacyPricePerPlayerCents: integer("price_per_player_cents"),
     pricePerPlayerFils: integer("price_per_player_fils"),
     /** Payments are tracked only while the Game also has a price. */

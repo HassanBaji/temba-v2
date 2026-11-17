@@ -126,6 +126,15 @@ describe("firstFullyVacantSideIndex", () => {
 });
 
 describe("offersPartnerJoin", () => {
+  it("never offers it on an Alone-only Social", () => {
+    assert.equal(
+      offersPartnerJoin(
+        input({ format: "friendly_tournament", organizerMakesTeams: true }),
+      ),
+      false,
+    );
+  });
+
   it("offers the partner path on an empty individual Friendly game", () => {
     assert.equal(offersPartnerJoin(input()), true);
   });
