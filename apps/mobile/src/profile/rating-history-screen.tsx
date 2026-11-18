@@ -27,6 +27,7 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import { api } from "../trpc/react";
+import { LevelDisputeAction } from "./level-dispute-action";
 import { ratingsPath } from "./ratings-path";
 
 const PAGE_SIZE = 20;
@@ -68,6 +69,20 @@ function LineIcon({ icon }: { icon: RatingHistoryIcon }) {
 }
 
 function Line({ line }: { line: RatingHistoryLine }) {
+  return (
+    <View style={{ paddingVertical: 13, gap: 8 }}>
+      <LineRow line={line} />
+      {line.dispute ? (
+        // The action sits outside the grouped row so a screen reader reaches it.
+        <View style={{ paddingStart: 16 + ICON_TILE + 12, paddingEnd: 16 }}>
+          <LevelDisputeAction dispute={line.dispute} />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function LineRow({ line }: { line: RatingHistoryLine }) {
   const colors = useColors();
   return (
     <View
@@ -78,7 +93,6 @@ function Line({ line }: { line: RatingHistoryLine }) {
         alignItems: "flex-start",
         gap: 12,
         paddingHorizontal: 16,
-        paddingVertical: 13,
       }}
     >
       <LineIcon icon={line.icon} />

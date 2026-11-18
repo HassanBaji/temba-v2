@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Flag, History, Inbox } from "lucide-react";
+import { Bell, Flag, Gauge, History, Inbox } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
@@ -70,6 +70,13 @@ function NotificationLeading({
     return (
       <span className="border-rule text-ink flex size-10 items-center justify-center rounded-full border">
         <History aria-hidden="true" className="size-5" />
+      </span>
+    );
+  }
+  if (type === "level_set" || type === "level_dispute_decided") {
+    return (
+      <span className="border-rule text-ink flex size-10 items-center justify-center rounded-full border">
+        <Gauge aria-hidden="true" className="size-5" />
       </span>
     );
   }

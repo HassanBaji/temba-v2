@@ -8,6 +8,7 @@ import { DashboardShell } from "~/components/dashboard-shell";
 import { TierFish } from "~/components/groups/tier-fish";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { PageTitle } from "~/components/layout/page-title";
+import { LevelDisputeAction } from "~/components/you/level-dispute-action";
 import { Button } from "~/components/ui/button";
 import { Hatch } from "~/components/ui/hatch";
 import { BackButton } from "~/components/ui/nav-icon-button";
@@ -65,6 +66,7 @@ function Line({ line }: { line: RatingHistoryLine }) {
             <span>{line.byline}</span>
           </p>
         ) : null}
+        {line.dispute ? <LevelDisputeAction dispute={line.dispute} /> : null}
       </div>
       <div className="shrink-0 text-end">
         <span className="sr-only">{line.valueSpoken}</span>
@@ -149,7 +151,8 @@ function Empty({
 /**
  * Rating history: every move of the viewer's Level and Group
  * Tiers on one sport, newest first under This week and then each month,
- * manual changes with who and why. The Rank filter is reserved and empty.
+ * a Level adjustment with a way to dispute it. The Rank filter is reserved
+ * and empty.
  */
 export function RatingHistoryPage({ sport }: { sport: Sport }) {
   const m = useMessages();

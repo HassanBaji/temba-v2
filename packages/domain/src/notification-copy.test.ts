@@ -844,139 +844,57 @@ describe("notificationCopy for a Level set", () => {
       {
         type: "level_set",
         audience: "player",
-        actor: { name: "Sara" },
-        group: { name: "Night Crew" },
-        levelSet: { level: "3.8", levelBand: "C1", reason: "back_from_injury" },
+        actor: null,
+        group: null,
+        levelSet: { level: "3.8", levelBand: "C1" },
         ...item,
       },
       "en",
     );
   }
 
-  it("names the setter, the letter and the Level, with the reason as the subline", () => {
+  it("says the Level was adjusted based on performance, and that it can be disputed", () => {
     assert.deepEqual(levelSet({}), {
       title: [
-        { text: "Sara", strong: true },
-        { text: " set your Level to ", strong: false },
+        { text: "Your Level was adjusted to ", strong: false },
         { text: "C+ 3.8", strong: true },
+        { text: " based on your performance", strong: false },
       ],
-      subline: "Back from injury",
+      subline: "Think it’s wrong? You can dispute it.",
     });
   });
 
-  it("reads an override from before reasons were required as no reason given", () => {
+  it("never names who set it, even when an actor is sent", () => {
+    const text = levelSet({ actor: { name: "Sara" }, group: { name: "Crew" } })
+      ?.title.map((part) => part.text)
+      .join("");
     assert.equal(
-      levelSet({ levelSet: { level: "4.6", levelBand: "B3", reason: null } })
-        ?.subline,
-      "No reason given",
-    );
-  });
-
-  it("quotes the setter's note after the reason", () => {
-    assert.equal(
-      levelSet({
-        levelSet: {
-          level: "71",
-          levelBand: "C1",
-          reason: "plays_above_results",
-          note: "Assessed over two sessions, plays above 68.",
-        },
-      })?.subline,
-      "Plays above results: “Assessed over two sessions, plays above 68.”",
+      text,
+      "Your Level was adjusted to C+ 3.8 based on your performance",
     );
   });
 
   it("reads a football Level as OVR, with no band", () => {
     assert.deepEqual(
       levelSet({
-        levelSet: {
-          level: "72",
-          levelBand: "C1",
-          sport: "football",
-          reason: "plays_above_results",
-        },
-      })?.title,
-      [
-        { text: "Sara", strong: true },
-        { text: " set your Level to ", strong: false },
-        { text: "OVR 72", strong: true },
-      ],
+        levelSet: { level: "72", levelBand: "C1", sport: "football" },
+      })?.title[1],
+      { text: "OVR 72", strong: true },
     );
     const arabic = notificationCopy(
       {
         type: "level_set",
         audience: "player",
-        actor: { name: "سارة" },
+        actor: null,
         group: null,
-        levelSet: {
-          level: "72",
-          levelBand: "C1",
-          sport: "football",
-          reason: "plays_above_results",
-        },
+        levelSet: { level: "72", levelBand: "C1", sport: "football" },
       },
       "ar",
     );
-    assert.equal(arabic?.title.at(-1)?.text, `OVR ${isolate("72")}`);
+    assert.equal(arabic?.title[1]?.text, `OVR ${isolate("72")}`);
   });
 
-  it("names the Verifier and their Venue on a calibration", () => {
-    assert.deepEqual(
-      levelSet({
-        actor: { name: "Yaser" },
-        group: null,
-        levelSet: {
-          level: "71",
-          levelBand: "C1",
-          sport: "football",
-          reason: "plays_above_results",
-          venue: { name: "Fantasy FC" },
-        },
-      }),
-      {
-        title: [
-          { text: "Yaser", strong: true },
-          { text: " (", strong: false },
-          { text: "Fantasy FC", strong: true },
-          { text: ") calibrated your Level to ", strong: false },
-          { text: "OVR 71", strong: true },
-        ],
-        subline: "Plays above results",
-      },
-    );
-    assert.equal(
-      notificationCopy(
-        {
-          type: "level_set",
-          audience: "player",
-          actor: { name: "ياسر" },
-          group: null,
-          levelSet: {
-            level: "71",
-            levelBand: "C1",
-            reason: "plays_above_results",
-            venue: { name: "Fantasy FC" },
-          },
-        },
-        "ar",
-      )
-        ?.title.map((part) => part.text)
-        .join("")
-        .includes("Fantasy FC"),
-      true,
-    );
-  });
-
-  it("falls back to Someone for a deleted setter", () => {
-    assert.equal(
-      levelSet({ actor: null })
-        ?.title.map((part) => part.text)
-        .join(""),
-      "Someone set your Level to C+ 3.8",
-    );
-  });
-
-  it("never says rating, admin or notified", () => {
+  it("never says rating, admin, operator or notified", () => {
     const copy = levelSet({});
     const text = [
       ...(copy?.title.map((part) => part.text) ?? []),
@@ -984,7 +902,7 @@ describe("notificationCopy for a Level set", () => {
     ]
       .join(" ")
       .toLowerCase();
-    for (const word of ["rating", "admin", "notified"]) {
+    for (const word of ["rating", "admin", "operator", "notified"]) {
       assert.equal(text.includes(word), false, word);
     }
   });
@@ -992,6 +910,67 @@ describe("notificationCopy for a Level set", () => {
   it("returns null without the set or for an audience it does not know", () => {
     assert.equal(levelSet({ levelSet: null }), null);
     assert.equal(levelSet({ audience: "admin" }), null);
+  });
+});
+
+describe("notificationCopy for a Level dispute", () => {
+  const base = {
+    group: null,
+    levelSet: { level: "3.8", levelBand: "C1" as const },
+  };
+
+  it("tells Operators who disputed which Level, with the player's note", () => {
+    assert.deepEqual(
+      notificationCopy(
+        {
+          ...base,
+          type: "level_dispute_raised",
+          audience: "admin",
+          actor: { name: "Omar" },
+          levelDispute: { status: "open", note: "I lost every match at C+" },
+        },
+        "en",
+      ),
+      {
+        title: [
+          { text: "Omar", strong: true },
+          { text: " disputed their Level adjustment to ", strong: false },
+          { text: "C+ 3.8", strong: true },
+        ],
+        subline: "I lost every match at C+",
+      },
+    );
+  });
+
+  it("tells the player what an Operator decided, without naming them", () => {
+    const decided = (status: string) =>
+      notificationCopy(
+        {
+          ...base,
+          type: "level_dispute_decided",
+          audience: "player",
+          actor: null,
+          levelDispute: { status, note: "Wrong" },
+        },
+        "en",
+      );
+    assert.deepEqual(decided("upheld"), {
+      title: [
+        {
+          text: "Temba upheld your Level dispute. Your Level is now ",
+          strong: false,
+        },
+        { text: "C+ 3.8", strong: true },
+      ],
+      subline: "The adjustment is taken back.",
+    });
+    assert.equal(
+      decided("dismissed")
+        ?.title.map((part) => part.text)
+        .join(""),
+      "Temba dismissed your Level dispute. Your Level stays at C+ 3.8",
+    );
+    assert.equal(decided("open"), null);
   });
 });
 

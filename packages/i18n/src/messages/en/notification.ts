@@ -122,16 +122,22 @@ export const notification = {
       strong(plural("en", gameCount, { one: "1 Game", other: "{n} Games" })),
       plain(" played under your number"),
     ],
-    levelSet: (actor: string, level: string) => [
+    levelAdjusted: (level: string) => [
+      plain("Your Level was adjusted to "),
+      strong(level),
+      plain(" based on your performance"),
+    ],
+    levelDisputeRaised: (actor: string, level: string) => [
       strong(actor),
-      plain(" set your Level to "),
+      plain(" disputed their Level adjustment to "),
       strong(level),
     ],
-    levelCalibrated: (actor: string, venue: string, level: string) => [
-      strong(actor),
-      plain(" ("),
-      strong(venue),
-      plain(") calibrated your Level to "),
+    levelDisputeUpheld: (level: string) => [
+      plain("Temba upheld your Level dispute. Your Level is now "),
+      strong(level),
+    ],
+    levelDisputeDismissed: (level: string) => [
+      plain("Temba dismissed your Level dispute. Your Level stays at "),
       strong(level),
     ],
     tierPointsAdjusted: (actor: string, group: string) => [
@@ -390,6 +396,8 @@ export const notification = {
     ) => `You were rated ${rating}. Reliability ${delta}, now ${reliability}.`,
     ratingsClosedReliabilitySame: (rating: string, reliability: string) =>
       `You were rated ${rating}. Reliability stays at ${reliability}.`,
+    levelAdjusted: "Think it’s wrong? You can dispute it.",
+    levelDisputeUpheld: "The adjustment is taken back.",
     disputeUpheld: "The score is open again. Enter the right one.",
     disputeDismissed: "The result stands.",
     disputeSuperseded:

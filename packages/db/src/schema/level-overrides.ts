@@ -87,4 +87,9 @@ export const levelOverrideRelations = relations(levelOverrides, ({ one }) => ({
     fields: [levelOverrides.venueId],
     references: [venues.id],
   }),
+  setBy: one(user, {
+    fields: [levelOverrides.setByUserId],
+    references: [user.id],
+    relationName: "levelOverrideSetBy",
+  }),
 }));

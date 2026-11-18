@@ -14,6 +14,7 @@ import {
   levelFromMu,
   RATED_MATCHES_TO_CONFIRM,
 } from "./level";
+import { levelDisputeView, type LevelDisputeState } from "./level-dispute";
 import type { LevelOverrideReason } from "./level-slider";
 import { zonedParts } from "./product-timezone";
 import { sportLabel, type Sport } from "./sport";
@@ -273,8 +274,6 @@ export const RATING_HISTORY_LADDERS = ["all", "level", "tier", "rank"] as const;
 
 export type RatingHistoryLadder = (typeof RATING_HISTORY_LADDERS)[number];
 
-export type LevelOverrideSetByRole = "level_setter" | "operator" | "verifier";
-
 type GroupRef = { id: string; name: string | null };
 
 type TierGameEntry = Extract<RatingHistoryEntryData, { kind: "tier_game" }>;
@@ -284,7 +283,7 @@ type TierAdjustmentEntry = Extract<
 >;
 
 /**
- * One line of a User's own Rating history (ADR-0073): a Rated
+ * One line of a User's own Rating history (ADR-0073, ADR-0097): a Rated
  * Match, a Level override or the derived "Level confirmed" milestone on the
  * Level, or a Game, a Tier adjustment or a change of fish in a tier Group.
  */
@@ -323,12 +322,9 @@ export type RatingHistoryItemData =
       sport: Sport;
       muBefore: number;
       muAfter: number;
-      setByRole: LevelOverrideSetByRole;
-      setBy: { userId: string; name: string | null } | null;
-      /** The Venue a Verifier calibrated from. */
-      venueName: string | null;
-      reason: LevelOverrideReason | null;
-      note: string | null;
+      /** Written when an Operator upheld a Level dispute. */
+      restoresLevel: boolean;
+      dispute: LevelDisputeState;
     }
   | {
       /** A King of the court Place award (ADR-0089). */
@@ -371,6 +367,11 @@ export type RatingHistoryLine = {
   detail: string;
   /** Who made a manual change and why; null when nobody did. */
   byline: string | null;
+  /** The Level dispute action or status under a Level override. */
+  dispute:
+    | { kind: "raise"; levelOverrideId: string; label: string }
+    | { kind: "status"; line: string }
+    | null;
   /**
    * The move: "+1", "−59", "tier" for a change of fish, or the confirmed
    * Level on a "Level confirmed" milestone.
@@ -500,40 +501,6 @@ function levelMatchLine(
   return { title: m.level.title, detail };
 }
 
-function setterName(
-  setBy: { userId: string; name: string | null } | null,
-  viewerUserId: string,
-  locale: Locale,
-) {
-  const m = messagesFor(locale).rating;
-  if (setBy == null) {
-    return m.ratingHistory.override.someone;
-  }
-  return setBy.userId === viewerUserId
-    ? m.history.adjustment.you
-    : (setBy.name ?? m.ratingHistory.override.someone);
-}
-
-function overrideByline(
-  item: Extract<RatingHistoryItemData, { kind: "level_override" }>,
-  viewerUserId: string,
-  locale: Locale,
-) {
-  const all = messagesFor(locale);
-  const copy = all.rating.history.adjustment;
-  const name = setterName(item.setBy, viewerUserId, locale);
-  const who =
-    item.setByRole === "verifier" && item.venueName
-      ? all.rating.ratingHistory.override.atVenue(name, item.venueName)
-      : name;
-  const reason = item.reason
-    ? all.rating.adjust.reasons[item.reason]
-    : all.level.noReasonGiven;
-  return item.note
-    ? copy.bylineNote(who, reason, item.note)
-    : copy.byline(who, reason);
-}
-
 function bandTitle(
   item: Extract<RatingHistoryItemData, { kind: "tier_band" }>,
   locale: Locale,
@@ -564,6 +531,7 @@ export function ratingHistoryLine(
   let title: string;
   let detail: string;
   let byline: string | null = null;
+  let dispute: RatingHistoryLine["dispute"] = null;
   let delta: string;
   let after: string;
   let valueSpoken: string | null = null;
@@ -604,13 +572,19 @@ export function ratingHistoryLine(
       detail = item.venueName ? m.level.detail(place, item.venueName) : place;
     } else {
       icon = { kind: "override" };
-      title = m.override.title[item.setByRole];
+      title = item.restoresLevel ? m.override.restoredTitle : m.override.title;
       detail = m.override.detail(
         sportLabel(item.sport, locale) ?? item.sport,
         formatLevelFace(item.sport, before),
         after,
       );
-      byline = overrideByline(item, viewerUserId, locale);
+      const view = levelDisputeView(item.dispute, locale);
+      dispute =
+        view.kind === "raise"
+          ? { kind: "raise", levelOverrideId: item.id, label: view.label }
+          : view.kind === "status"
+            ? view
+            : null;
     }
   } else {
     const group = groupDisplayName(item.group.name, locale);
@@ -659,6 +633,7 @@ export function ratingHistoryLine(
     title,
     detail,
     byline,
+    dispute,
     delta,
     after,
     valueSpoken,
