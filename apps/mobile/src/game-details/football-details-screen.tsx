@@ -2,6 +2,7 @@ import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { squadButtonCopy } from "@repo/domain/matchday-squad";
 import { challengeHeroSubLine } from "@repo/domain/challenge-game-details";
 import { ratingScopeOf, ratingScopeTag } from "@repo/domain/game-rating-impact";
+import { countsForRatingValue } from "@repo/domain/game-rating-scope";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import { footballReportWrongScoreAction } from "@repo/domain/friendly-game-actions";
 import {
@@ -500,7 +501,7 @@ export function FootballGameDetails({
       : []),
     {
       label: m.game.partner.countsForRating,
-      value: game.rated ? m.common.yes : m.common.no,
+      value: countsForRatingValue(ratingScopeOf(game), locale),
     },
   ];
   const infoRows = challenge

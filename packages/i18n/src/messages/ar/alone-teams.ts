@@ -46,6 +46,17 @@ export const aloneTeams: typeof source = {
     seatsPosted: "مكتمل، جاهز للقرعة",
     tag: "فردي",
   },
+  card: {
+    playersIn: (registered: number, cap: number) =>
+      plural("ar", cap, {
+        one: `${registered} من لاعب واحد مشارك`,
+        two: `${registered} من لاعبَين مشاركَين`,
+        few: `${registered} من {n} لاعبين مشاركين`,
+        many: `${registered} من {n} لاعبًا مشاركًا`,
+        other: `${registered} من {n} لاعب مشارك`,
+      }),
+    noPlayersYet: "لا لاعبين بعد",
+  },
   players: {
     title: "اللاعبون",
     count: (n: number, cap: number) => `${n} من ${cap}`,

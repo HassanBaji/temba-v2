@@ -126,6 +126,8 @@ export type HubGameRow = {
     allowSoloRegister: boolean;
     teams: HubGameTournamentTeam[];
     joinSides: HubGameSide[];
+    /** Alone only, before the teams are posted: the players signed up (ADR-0096). */
+    alonePlayers: HubGameOccupant[] | null;
     knockout: {
       roundCount: number | null;
       currentRoundName: string | null;

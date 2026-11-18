@@ -117,7 +117,7 @@ type GameDetail = TournamentDetails & {
   canMakeTeamsAlone?: boolean;
   aloneTeamsMinPlayers?: number;
   roster?: {
-    users: readonly { id: string; name: string }[];
+    users: readonly { id: string; name: string; image: string | null }[];
     count: number;
     cap: number | null;
   } | null;

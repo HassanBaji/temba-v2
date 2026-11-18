@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  countsForRatingValue,
   gameRatingScope,
   gameRatingScopeLabel,
   groupHasTier,
@@ -183,5 +184,13 @@ describe("gameRatingScopeLabel", () => {
       "Counts for Temba Level",
     );
     expect(gameRatingScopeLabel("unrated", "en", "football")).toBe("Unrated");
+  });
+});
+
+describe("countsForRatingValue", () => {
+  it("says Yes, Group rating or No by scope", () => {
+    expect(countsForRatingValue("temba", "en")).toBe("Yes");
+    expect(countsForRatingValue("group", "en")).toBe("Group rating");
+    expect(countsForRatingValue("unrated", "en")).toBe("No");
   });
 });
