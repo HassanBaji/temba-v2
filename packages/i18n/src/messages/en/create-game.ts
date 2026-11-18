@@ -174,6 +174,7 @@ export const createGame = {
     changesSaved: "Changes saved",
     nameHint:
       "Shown on the game and at the top of the invite. Empty uses the day and time.",
+    nameHintSocial: "Shown on the Social and at the top of the invite.",
     whenHint:
       "Today or later, 30-minute steps. For today only upcoming times are listed.",
     playersAndPriceHint:
@@ -185,6 +186,8 @@ export const createGame = {
       title: "Where",
       venue: "Venue",
       venueHint: "A new Venue clears the Court. Pick one there.",
+      venueHintSocial:
+        "A new Venue clears the Courts. Pick them below. The Venue locks once the draw is posted.",
       clubVenue: "This Club Group plays at its own Venue.",
     },
     court: {
@@ -214,6 +217,7 @@ export const createGame = {
       rounds: "rounds",
       teams: "teams",
       courts: "courts",
+      matchLength: "match length",
       seasonUnlinked: "season unlinked",
       seasonLinked: "season linked",
       seasonChanged: "season changed",
@@ -250,6 +254,21 @@ export const createGame = {
         }),
       partnerOnlyHint:
         "This Social takes pairs only and has no waiting list, so teams can't drop below the number joined.",
+    },
+    players: {
+      title: "Players",
+      label: "Players",
+      fewer: "Fewer players",
+      more: "More players",
+      hint: (min: number, max: number) =>
+        `${min} to ${max} players, in fours, never fewer than have joined. Players lock once the Rounds are made.`,
+    },
+    matchLength: {
+      title: "Match length",
+      label: "Minutes",
+      shorter: "Shorter matches",
+      longer: "Longer matches",
+      hint: "Rounds are timed from this when the draw is posted. It locks then.",
     },
     courts: {
       title: "Courts",

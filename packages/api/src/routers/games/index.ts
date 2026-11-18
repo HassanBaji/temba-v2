@@ -94,6 +94,7 @@ import { updateCaps } from "./updateCaps";
 import { updateCourts } from "./updateCourts";
 import { updatePlace } from "./updatePlace";
 import { updateLevelRange } from "./updateLevelRange";
+import { updateMatchMinutes } from "./updateMatchMinutes";
 import { updateMatchProcedure as updateMatch } from "./updateMatch";
 import { updateName } from "./updateName";
 import { updatePricePerPlayer } from "./updatePricePerPlayer";
@@ -158,6 +159,7 @@ export const gamesRouter = createTRPCRouter({
   updatePricePerPlayer,
   updateLevelRange,
   updateRoundCount,
+  updateMatchMinutes,
   updateSeason,
   requestLevelRange,
   listLevelRangeRequests,

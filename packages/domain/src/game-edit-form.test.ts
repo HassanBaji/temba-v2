@@ -2,6 +2,7 @@ import { isolate } from "@repo/i18n/bidi";
 import { describe, expect, it } from "vitest";
 
 import {
+  americanoPlayersEditStep,
   footballFormatNote,
   footballSideSizeStep,
   gameEditChangeNote,
@@ -95,6 +96,7 @@ describe("gameEditDraftFrom", () => {
       courtId: "pitch-1",
       teamCount: null,
       courtIds: ["pitch-1"],
+      matchMinutes: null,
     });
   });
 
@@ -123,11 +125,14 @@ describe("gameEditDraftFrom", () => {
   it("shows the sections a Game needs", () => {
     expect(football).toEqual({
       name: true,
+      nameRequired: false,
       window: true,
       place: true,
       caps: true,
       teams: false,
+      players: false,
       courts: false,
+      matchLength: false,
       price: true,
       level: false,
       rounds: false,
@@ -141,12 +146,15 @@ describe("gameEditDraftFrom", () => {
         tournamentRounds: true,
       }),
     ).toEqual({
-      name: false,
+      name: true,
+      nameRequired: true,
       window: true,
-      place: false,
+      place: true,
       caps: false,
       teams: true,
+      players: false,
       courts: true,
+      matchLength: true,
       price: true,
       level: true,
       rounds: true,
@@ -488,5 +496,148 @@ describe("tournament teams and courts", () => {
     expect(teamsCapWaitNote(8, 8, "en")).toBe(
       "Everyone who joined keeps their spot.",
     );
+  });
+});
+
+describe("Social edit", () => {
+  const social = gameEditSectionsFor({
+    format: "friendly_tournament",
+    sport: "padel",
+    groupId: null,
+    tournamentRounds: true,
+  });
+  const before: GameEditDraft = {
+    ...saved,
+    customName: "Autumn Cup",
+    playersAllowed: 16,
+    sideSize: null,
+    venueId: "v1",
+    courtId: "c1",
+    teamCount: 8,
+    courtIds: ["c1", "c2"],
+    matchMinutes: 45,
+  };
+
+  it("reads a Social's own name and match length", () => {
+    const draft = gameEditDraftFrom({
+      name: "Autumn Cup",
+      hasCustomName: false,
+      format: "friendly_tournament",
+      matchMinutes: 30,
+      windowStart: null,
+      windowEnd: null,
+      pricePerPlayerFils: null,
+      playersAllowed: 16,
+      sideSize: null,
+      levelMinTenths: null,
+      levelMaxTenths: null,
+      roundCount: null,
+      seasonId: null,
+    });
+    expect(draft.customName).toBe("Autumn Cup");
+    expect(draft.matchMinutes).toBe(30);
+  });
+
+  it("refuses to clear a Social's name", () => {
+    expect(
+      gameEditPlan(before, { ...before, customName: "  " }, social, "en"),
+    ).toEqual({ ok: false, field: "name", message: "Name the Social" });
+    expect(
+      gameEditPlan(
+        before,
+        { ...before, customName: "Spring Cup" },
+        social,
+        "en",
+      ),
+    ).toMatchObject({
+      ok: true,
+      steps: [{ kind: "name", customName: "Spring Cup" }],
+    });
+  });
+
+  it("moves the Courts with a new Venue in one place step", () => {
+    const plan = gameEditPlan(
+      before,
+      { ...before, venueId: "v2", courtId: null, courtIds: ["d2", "d1"] },
+      social,
+      "en",
+    );
+    expect(plan).toMatchObject({
+      ok: true,
+      changed: ["place", "courts"],
+      steps: [
+        { kind: "place", venueId: "v2", courtId: null, courtIds: ["d1", "d2"] },
+      ],
+    });
+    expect(
+      gameEditPlan(
+        before,
+        { ...before, venueId: "v2", courtId: null, courtIds: [] },
+        social,
+        "en",
+      ),
+    ).toEqual({
+      ok: false,
+      field: "courts",
+      message: "Pick at least one Court",
+    });
+  });
+
+  it("plans the match length and locks it, the Venue and the teams after the draw", () => {
+    expect(
+      gameEditPlan(before, { ...before, matchMinutes: 30 }, social, "en"),
+    ).toMatchObject({
+      ok: true,
+      steps: [{ kind: "matchLength", matchMinutes: 30 }],
+    });
+    expect(
+      gameEditSectionsFor({
+        format: "friendly_tournament",
+        sport: "padel",
+        groupId: null,
+        tournamentRounds: true,
+        drawPosted: true,
+      }),
+    ).toMatchObject({
+      name: true,
+      place: false,
+      teams: false,
+      matchLength: false,
+      courts: true,
+    });
+  });
+
+  it("has no match length on King of the court", () => {
+    expect(
+      gameEditSectionsFor({
+        format: "friendly_tournament",
+        sport: "padel",
+        groupId: null,
+        tournamentRounds: false,
+        king: true,
+      }).matchLength,
+    ).toBe(false);
+  });
+
+  it("counts an Americano in players, in fours, never under the players in", () => {
+    const americano = gameEditSectionsFor({
+      format: "friendly_tournament",
+      sport: "padel",
+      groupId: null,
+      tournamentRounds: false,
+      americano: true,
+    });
+    expect(americano).toMatchObject({ teams: false, players: true });
+    expect(
+      gameEditPlan(before, { ...before, playersAllowed: 12 }, americano, "en"),
+    ).toMatchObject({
+      ok: true,
+      steps: [{ kind: "players", playersAllowed: 12 }],
+    });
+    expect(americanoPlayersEditStep(12, 1, 0)).toBe(16);
+    expect(americanoPlayersEditStep(12, -1, 0)).toBe(8);
+    expect(americanoPlayersEditStep(12, -1, 9)).toBeNull();
+    expect(americanoPlayersEditStep(8, -1, 0)).toBeNull();
+    expect(americanoPlayersEditStep(24, 1, 0)).toBeNull();
   });
 });
