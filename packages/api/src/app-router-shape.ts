@@ -118,6 +118,7 @@ type ExpectedGames =
   | "updatePricePerPlayer"
   | "updateLevelRange"
   | "updateRoundCount"
+  | "updateMatchMinutes"
   | "updateSeason"
   | "requestLevelRange"
   | "listLevelRangeRequests"

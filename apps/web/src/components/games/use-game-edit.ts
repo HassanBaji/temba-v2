@@ -107,6 +107,9 @@ export function useGameEdit({
   const updateRounds = api.games.updateRoundCount.useMutation({
     meta: OWN_ERROR_UI,
   });
+  const updateMatchMinutes = api.games.updateMatchMinutes.useMutation({
+    meta: OWN_ERROR_UI,
+  });
   const updateSeason = api.games.updateSeason.useMutation({
     meta: OWN_ERROR_UI,
   });
@@ -131,6 +134,7 @@ export function useGameEdit({
           gameId,
           venueId: step.venueId,
           courtId: step.courtId,
+          ...(step.courtIds ? { courtIds: step.courtIds } : {}),
         });
         return 0;
       case "caps": {
@@ -148,8 +152,21 @@ export function useGameEdit({
         });
         return result.movedToWaitlist.length;
       }
+      case "players": {
+        const result = await updateCaps.mutateAsync({
+          gameId,
+          playersAllowed: step.playersAllowed,
+        });
+        return result.movedToWaitlist.length;
+      }
       case "courts":
         await updateCourts.mutateAsync({ gameId, courtIds: step.courtIds });
+        return 0;
+      case "matchLength":
+        await updateMatchMinutes.mutateAsync({
+          gameId,
+          matchMinutes: step.matchMinutes,
+        });
         return 0;
       case "price":
         await updatePrice.mutateAsync({
@@ -277,7 +294,7 @@ export function useGameEdit({
       loading: catalog.isLoading,
       error: catalog.error?.message ?? null,
       choices:
-        venueChoices.find((venue) => venue.id === saved.venueId)?.courts ?? [],
+        venueChoices.find((venue) => venue.id === draft.venueId)?.courts ?? [],
     },
     changed,
     note,

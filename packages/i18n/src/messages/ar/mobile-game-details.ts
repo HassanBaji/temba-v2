@@ -146,6 +146,8 @@ export const mobileGameDetails = {
       mvp: "نجم المباراة",
       teams: "الفرق",
       courts: "الملاعب",
+      players: "اللاعبون",
+      matchLength: "مدة المباراة",
     },
     movedToWaitlist: (n: number) =>
       plural("ar", n, {
@@ -164,6 +166,7 @@ export const mobileGameDetails = {
     changeSeason: "تغيير الموسم",
     pickDayFirst: "اختر يومًا أولًا.",
     name: "الاسم",
+    socialName: "اسم السوشيال",
     gameName: "اسم المباراة",
     day: "اليوم",
     startTime: "وقت البدء",

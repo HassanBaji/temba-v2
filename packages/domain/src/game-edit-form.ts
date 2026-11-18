@@ -18,6 +18,10 @@ import {
   type FootballSideSize,
 } from "./game-shape";
 import { parseGameDateTime, splitGameWindow } from "./game-window";
+import {
+  AMERICANO_PLAYER_STEP,
+  isAmericanoPlayerCount,
+} from "./tournament-americano";
 import type { GroupSeasonData } from "./group-season";
 import {
   parseLevelBandSelectTenths,
@@ -73,11 +77,15 @@ export type GameEditDraft = {
   teamCount: number | null;
   /** A tournament's recorded Courts, sorted. */
   courtIds: string[];
+  /** A Social's match length. */
+  matchMinutes: number | null;
 };
 
 export type GameEditSource = {
   name: string | null;
   hasCustomName?: boolean | null;
+  format?: string | null;
+  matchMinutes?: number | null;
   windowStart: Date | string | null;
   windowEnd: Date | string | null;
   pricePerPlayerFils: number | null;
@@ -159,10 +167,18 @@ function sameCourtIds(left: readonly string[], right: readonly string[]) {
   );
 }
 
+/** A Social keeps the name it was given at create; it has no window label. */
+function editableName(game: GameEditSource) {
+  if (game.format === "friendly_tournament") {
+    return game.name ?? "";
+  }
+  return gameCustomName(game) ?? "";
+}
+
 export function gameEditDraftFrom(game: GameEditSource): GameEditDraft {
   const window = splitGameWindow(game.windowStart, game.windowEnd);
   return {
-    customName: gameCustomName(game) ?? "",
+    customName: editableName(game),
     day: window.day,
     startTime: window.startTime,
     finishTime: window.finishTime,
@@ -177,6 +193,7 @@ export function gameEditDraftFrom(game: GameEditSource): GameEditDraft {
     courtId: gameEditCourtId(game),
     teamCount: game.teamsAllowed ?? null,
     courtIds: sortedCourtIds(game.recordedCourts?.map((court) => court.id)),
+    matchMinutes: game.matchMinutes ?? null,
   };
 }
 
@@ -186,7 +203,9 @@ export const GAME_EDIT_SECTION_KEYS = [
   "place",
   "caps",
   "teams",
+  "players",
   "courts",
+  "matchLength",
   "price",
   "level",
   "rounds",
@@ -195,8 +214,13 @@ export const GAME_EDIT_SECTION_KEYS = [
 
 export type GameEditSectionKey = (typeof GAME_EDIT_SECTION_KEYS)[number];
 
-/** Which sections the sheet shows for this Game. */
-export type GameEditSections = Record<GameEditSectionKey, boolean>;
+/**
+ * Which sections the sheet shows for this Game. A Social's name is required,
+ * a Friendly game's may be cleared back to its window label.
+ */
+export type GameEditSections = Record<GameEditSectionKey, boolean> & {
+  nameRequired?: boolean;
+};
 
 export function gameEditSectionsFor(game: {
   format: string;
@@ -211,17 +235,25 @@ export function gameEditSectionsFor(game: {
   drawPosted?: boolean;
   /** An Americano counts players, not Game teams, and has no Pool Rounds. */
   americano?: boolean;
+  /** King of the court plays no timed Matches. */
+  king?: boolean;
 }): GameEditSections {
   const friendly = game.format === "friendly_game";
   const tournament = game.format === "friendly_tournament";
   const football = game.sport === "football";
+  const beforeDraw = tournament && !game.drawPosted;
   return {
-    name: friendly,
+    name: friendly || tournament,
+    nameRequired: tournament,
     window: true,
-    place: friendly && !game.booked && !game.challenge,
+    place:
+      (friendly && !game.booked && !game.challenge) ||
+      (beforeDraw && !game.challenge),
     caps: friendly && football,
-    teams: tournament && !game.drawPosted && !game.americano,
+    teams: beforeDraw && !game.americano,
+    players: beforeDraw && game.americano === true,
     courts: tournament,
+    matchLength: beforeDraw && !game.king,
     price: true,
     level: !football,
     rounds: game.tournamentRounds && !game.americano,
@@ -238,10 +270,18 @@ export type GameEditStep =
       windowEnd: Date;
       seasonId?: string | null;
     }
-  | { kind: "place"; venueId: string; courtId: string | null }
+  | {
+      kind: "place";
+      venueId: string;
+      courtId: string | null;
+      /** A Social moves its Courts with its Venue. */
+      courtIds?: string[];
+    }
   | { kind: "caps"; playersAllowed?: number; sideSize?: number }
   | { kind: "teams"; teamCount: number }
+  | { kind: "players"; playersAllowed: number }
   | { kind: "courts"; courtIds: string[] }
+  | { kind: "matchLength"; matchMinutes: number }
   | { kind: "price"; pricePerPlayerFils: number | null }
   | {
       kind: "level";
@@ -253,7 +293,11 @@ export type GameEditStep =
 
 export type GameEditPlan =
   | { ok: true; steps: GameEditStep[]; changed: GameEditSectionKey[] }
-  | { ok: false; field: "window" | "price" | "level"; message: string };
+  | {
+      ok: false;
+      field: "name" | "window" | "courts" | "price" | "level";
+      message: string;
+    };
 
 function sameLevel(saved: GameEditDraft, draft: GameEditDraft) {
   return (
@@ -287,7 +331,8 @@ export function gameEditChangedSections(
   }
   if (
     sections.place &&
-    (saved.venueId !== draft.venueId || saved.courtId !== draft.courtId)
+    (saved.venueId !== draft.venueId ||
+      (!sections.courts && saved.courtId !== draft.courtId))
   ) {
     changed.push("place");
   }
@@ -301,8 +346,14 @@ export function gameEditChangedSections(
   if (sections.teams && saved.teamCount !== draft.teamCount) {
     changed.push("teams");
   }
+  if (sections.players && saved.playersAllowed !== draft.playersAllowed) {
+    changed.push("players");
+  }
   if (sections.courts && !sameCourtIds(saved.courtIds, draft.courtIds)) {
     changed.push("courts");
+  }
+  if (sections.matchLength && saved.matchMinutes !== draft.matchMinutes) {
+    changed.push("matchLength");
   }
   if (sections.price) {
     // Only `.ok` and the fils are read here, so the message's language is moot.
@@ -339,10 +390,15 @@ export function gameEditPlan(
   const has = (key: GameEditSectionKey) => changed.includes(key);
 
   if (has("name")) {
-    steps.push({
-      kind: "name",
-      customName: normalizeGameCustomName(draft.customName),
-    });
+    const customName = normalizeGameCustomName(draft.customName);
+    if (sections.nameRequired && customName == null) {
+      return {
+        ok: false,
+        field: "name",
+        message: messagesFor(locale).createGame.validation.nameTournament,
+      };
+    }
+    steps.push({ kind: "name", customName });
   }
   if (has("window")) {
     const input = gameWindowSaveInput(
@@ -364,11 +420,23 @@ export function gameEditPlan(
       ...(has("season") ? { seasonId: draft.seasonId } : {}),
     });
   }
+  // A Social's Courts belong to its Venue, so a new Venue carries them.
+  const placeCarriesCourts = has("place") && sections.courts;
+  if (placeCarriesCourts && draft.courtIds.length === 0) {
+    return {
+      ok: false,
+      field: "courts",
+      message: messagesFor(locale).game.errors.courtsAtLeastOne,
+    };
+  }
   if (has("place") && draft.venueId) {
     steps.push({
       kind: "place",
       venueId: draft.venueId,
-      courtId: draft.courtId,
+      courtId: placeCarriesCourts ? null : draft.courtId,
+      ...(placeCarriesCourts
+        ? { courtIds: sortedCourtIds(draft.courtIds) }
+        : {}),
     });
   }
   if (has("caps")) {
@@ -386,8 +454,14 @@ export function gameEditPlan(
   if (has("teams") && draft.teamCount != null) {
     steps.push({ kind: "teams", teamCount: draft.teamCount });
   }
-  if (has("courts")) {
+  if (has("players") && draft.playersAllowed != null) {
+    steps.push({ kind: "players", playersAllowed: draft.playersAllowed });
+  }
+  if (has("courts") && !placeCarriesCourts) {
     steps.push({ kind: "courts", courtIds: sortedCourtIds(draft.courtIds) });
+  }
+  if (has("matchLength") && draft.matchMinutes != null) {
+    steps.push({ kind: "matchLength", matchMinutes: draft.matchMinutes });
   }
   if (has("price")) {
     const parsed = parseOptionalPricePerPlayerFils(draft.price, locale);
@@ -445,8 +519,12 @@ function changePhrase(
     }
     case "teams":
       return [m.teams];
+    case "players":
+      return [m.players];
     case "courts":
       return [m.courts];
+    case "matchLength":
+      return [m.matchLength];
     case "price":
       return [m.price];
     case "level":
@@ -564,6 +642,16 @@ export function teamsCapWaitNote(
     return m.everyoneKeepsSpot;
   }
   return m.teamsCapWait(joinedTeams - teamCount, joinedTeams);
+}
+
+/** An Americano's seats move in fours and never under the players in. */
+export function americanoPlayersEditStep(
+  players: number,
+  direction: 1 | -1,
+  joined: number,
+): number | null {
+  const next = players + direction * AMERICANO_PLAYER_STEP;
+  return isAmericanoPlayerCount(next) && next >= joined ? next : null;
 }
 
 export function asideLabel(sideSize: number) {

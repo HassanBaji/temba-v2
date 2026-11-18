@@ -144,6 +144,8 @@ export const mobileGameDetails = {
       mvp: "MVP",
       teams: "Teams",
       courts: "Courts",
+      players: "Players",
+      matchLength: "Match length",
     },
     movedToWaitlist: (n: number) =>
       plural("en", n, {
@@ -160,6 +162,7 @@ export const mobileGameDetails = {
     pickDayFirst: "Pick a day first.",
     name: "Name",
     gameName: "Game name",
+    socialName: "Social name",
     day: "Day",
     startTime: "Start time",
     finishTime: "Finish time",

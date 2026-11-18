@@ -15,6 +15,7 @@ import {
 } from "./game-shape";
 import { formatLevelRangeLabel } from "./level-range";
 import { showsFriendlyRoster } from "./game-summary-cta";
+import { isAmericano } from "./tournament-americano";
 
 export type GameInviteShareOccupant = {
   name: string;
@@ -36,6 +37,7 @@ export type GameInviteShareMessageInput = {
   sides: readonly GameInviteShareSide[];
   shortUrl: string;
   football?: GameInviteShareFootball;
+  americano?: GameInviteShareAmericano;
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
   waitlist?: readonly { name: string }[];
@@ -46,6 +48,11 @@ export type GameInviteShareFootball = {
   sideSize: number | null;
   playersAllowed: number | null;
   players: readonly { name: string; role?: string | null }[];
+};
+
+export type GameInviteShareAmericano = {
+  playersAllowed: number | null;
+  players: readonly { name: string }[];
 };
 
 function occupantLabel(occupant: GameInviteShareOccupant, locale: Locale) {
@@ -215,9 +222,33 @@ export function formatFootballInviteShareMessage(
   return lines.join("\n");
 }
 
+/**
+ * Players sit alone and get a new partner every Round, so there is no Team to
+ * list: one numbered list up to the seats, and no Court line, as for any
+ * Tournament.
+ */
+export function formatAmericanoInviteShareMessage(
+  input: GameInviteShareMessageInput,
+  americano: GameInviteShareAmericano,
+) {
+  const m = messagesFor(input.locale).createGame.share;
+  const lines = whereAndWhenLines({ ...input, courtName: null }, "🎾");
+  const names = americano.players
+    .map((player) => player.name.trim())
+    .filter(Boolean);
+  lines.push("");
+  lines.push(...numberedSlots(m.players, names, americano.playersAllowed));
+  lines.push("");
+  lines.push(...waitlistLines(input));
+  lines.push(m.join);
+  lines.push(input.shortUrl);
+  return lines.join("\n");
+}
+
 export function gameInviteClipboardText(input: {
   format: string;
   sport?: string | null;
+  tournamentShape?: string | null;
   registrationMode: string;
   shortUrl: string;
   roster: GameInviteShareMessageInput | null;
@@ -232,6 +263,11 @@ export function gameInviteClipboardText(input: {
       input.roster.football,
     );
   }
+  if (isAmericano(input.format, input.tournamentShape)) {
+    return input.roster?.americano
+      ? formatAmericanoInviteShareMessage(input.roster, input.roster.americano)
+      : linkOnlyText(input);
+  }
   if (
     input.format === "friendly_tournament" &&
     input.registrationMode === "individual" &&
@@ -244,8 +280,15 @@ export function gameInviteClipboardText(input: {
     !showsFriendlyRoster(input.format, input.registrationMode) ||
     input.roster == null
   ) {
-    const gameName = input.roster?.gameName?.trim();
-    return gameName ? `${gameName}\n${input.shortUrl}` : input.shortUrl;
+    return linkOnlyText(input);
   }
   return formatGameInviteShareMessage(input.roster);
+}
+
+function linkOnlyText(input: {
+  shortUrl: string;
+  roster: GameInviteShareMessageInput | null;
+}) {
+  const gameName = input.roster?.gameName?.trim();
+  return gameName ? `${gameName}\n${input.shortUrl}` : input.shortUrl;
 }

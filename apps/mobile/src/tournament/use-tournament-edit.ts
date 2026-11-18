@@ -2,6 +2,7 @@ import {
   gameEditSectionsFor,
   type GameEditSource,
 } from "@repo/domain/game-edit-form";
+import { isAmericano } from "@repo/domain/tournament-americano";
 import { isKingOfTheCourt } from "@repo/domain/tournament-king";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
 import { useState } from "react";
@@ -47,6 +48,8 @@ export function useTournamentEdit({
       groupId: game?.groupId ?? null,
       tournamentRounds: false,
       drawPosted: game?.drawPostedAt != null,
+      americano: isAmericano(game?.format, game?.tournamentShape),
+      king: isKingOfTheCourt(game?.format, game?.tournamentShape),
     }),
     rounds: false,
   };
