@@ -213,7 +213,7 @@ export const mobileGroup = {
     decreaseOvr: "خفض OVR بمقدار 1",
     increaseOvr: "رفع OVR بمقدار 1",
     reset: "إعادة ضبط",
-    why: (name: string) => `لماذا؟ سيرى ${name} هذا.`,
+    why: (name: string) => `لماذا؟ لن يرى ${name} هذا ولا اسمك.`,
     noteLabel: "ملاحظة",
     notePlaceholder: "أضف ملاحظة (اختياري)",
     pickReason: "اختر سببًا للحفظ",

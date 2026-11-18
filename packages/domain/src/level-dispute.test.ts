@@ -68,7 +68,7 @@ describe("operatorLevelDisputeLines", () => {
     ).toEqual({
       change: "Padel, 3.20 to 4.10",
       adjustedBy:
-        "Adjusted by Coach Yaser at Fantasy FC (verifier): Playing above this",
+        "Adjusted by Coach Yaser at Fantasy FC (verifier): Plays above results",
       adjustedNote: "Their note: “Watched two sessions”",
     });
   });

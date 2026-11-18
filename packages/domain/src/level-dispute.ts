@@ -3,7 +3,10 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import { formatOvr, wholeOvrFromMu } from "./football-ovr";
 import { formatPadelLevel, levelFromMu } from "./level";
-import type { LevelOverrideReason } from "./level-slider";
+import {
+  levelOverrideReasonLabel,
+  type LevelOverrideReason,
+} from "./level-slider";
 import { sportLabel, type Sport } from "./sport";
 
 /** How long after a Level override its player may dispute it. */
@@ -101,7 +104,7 @@ export function operatorLevelDisputeLines(
       who,
       copy.roles[override.setByRole],
       override.reason
-        ? all.rating.adjust.reasons[override.reason]
+        ? levelOverrideReasonLabel(override.reason, locale)
         : all.level.noReasonGiven,
     ),
     adjustedNote: override.note ? copy.adjustedNote(override.note) : null,

@@ -31,7 +31,10 @@ export function LevelDisputesSection() {
   const locale = useLocale();
   const o = m.rating.levelDispute.operator;
   const utils = api.useUtils();
+  // The last decision stays set while the dialog closes, so its copy does not
+  // flip to the other choice mid-animation.
   const [decision, setDecision] = React.useState<Decision | null>(null);
+  const [confirming, setConfirming] = React.useState(false);
 
   const disputes = api.ratings.listLevelDisputesForOperator.useQuery();
   const decide = api.ratings.decideLevelDispute.useMutation({
@@ -114,6 +117,7 @@ export function LevelDisputesSection() {
                     onClick={() => {
                       decide.reset();
                       setDecision({ dispute, upheld: true });
+                      setConfirming(true);
                     }}
                   >
                     {m.rating.dispute.operator.uphold}
@@ -124,6 +128,7 @@ export function LevelDisputesSection() {
                     onClick={() => {
                       decide.reset();
                       setDecision({ dispute, upheld: false });
+                      setConfirming(true);
                     }}
                   >
                     {m.rating.dispute.operator.dismiss}
@@ -146,12 +151,8 @@ export function LevelDisputesSection() {
       ) : null}
 
       <ConfirmDialog
-        open={decision !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDecision(null);
-          }
-        }}
+        open={confirming}
+        onOpenChange={setConfirming}
         title={decision?.upheld ? o.upholdTitle : o.dismissTitle}
         description={
           decision?.upheld ? o.upholdDescription : o.dismissDescription
