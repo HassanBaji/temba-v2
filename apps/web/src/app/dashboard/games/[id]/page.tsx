@@ -594,6 +594,7 @@ export default function GameHomePage({
     const row = game.data;
     return gameInviteClipboardText({
       format: row?.format ?? "",
+      tournamentShape: row?.tournamentShape,
       registrationMode: row?.registrationMode ?? "",
       shortUrl: url,
       roster: row
@@ -605,6 +606,9 @@ export default function GameHomePage({
             windowEnd: row.windowEnd,
             sides: row.sides,
             shortUrl: url,
+            americano: row.roster
+              ? { playersAllowed: row.roster.cap, players: row.roster.users }
+              : undefined,
             levelMinTenths: row.levelMinTenths,
             levelMaxTenths: row.levelMaxTenths,
             waitlist: row.waitlist,
