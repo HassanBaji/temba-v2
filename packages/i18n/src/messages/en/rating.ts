@@ -154,6 +154,7 @@ export const rating = {
     temba: "Counts for Temba Level",
     tembaNote: "Moves every player’s OVR. A verified group has no group tier.",
     group: "Counts for group tier",
+    groupRatingValue: "Group rating",
     groupNote:
       "Moves tier points in this group only. Temba levels move in verified groups.",
   },
