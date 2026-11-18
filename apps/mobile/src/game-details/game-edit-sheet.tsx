@@ -1,7 +1,11 @@
 import { radii, sizes, spacing } from "@repo/design-tokens";
 import { isLevelBoundDisabled } from "@repo/domain/create-game-flow";
-import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
 import {
+  GAME_CUSTOM_NAME_MAX_LENGTH,
+  SOCIAL_NAME_MAX_LENGTH,
+} from "@repo/domain/game-custom-name";
+import {
+  americanoPlayersEditStep,
   asideLabel,
   footballFormatNote,
   footballSideSizeStep,
@@ -25,6 +29,11 @@ import {
 } from "@repo/domain/game-season-link";
 import { footballPlayersAllowedBounds } from "@repo/domain/game-shape";
 import { kingCourtCount } from "@repo/domain/tournament-king";
+import {
+  AMERICANO_PLAYER_MAX,
+  AMERICANO_PLAYER_MIN,
+} from "@repo/domain/tournament-americano";
+import { matchMinutesStep } from "@repo/domain/match-minutes";
 import {
   tournamentTeamCountStep,
   type TournamentResizeShape,
@@ -205,10 +214,13 @@ const NO_COURT = "none";
 function PlaceSection({
   edit,
   venueName,
+  social,
   error,
 }: {
   edit: GameEditController;
   venueName: string | null;
+  /** A Social picks its Courts in their own section, at the new Venue. */
+  social: boolean;
   error: string | undefined;
 }) {
   const m = useMessages();
@@ -249,11 +261,49 @@ function PlaceSection({
               label: choice.name,
             }))}
             isSelected={(value) => value === draft.venueId}
-            onSelect={(venueId) => update({ venueId, courtId: null })}
+            onSelect={(venueId) =>
+              update({
+                venueId,
+                courtId: null,
+                ...(social
+                  ? {
+                      courtIds:
+                        venueId === edit.saved.venueId
+                          ? edit.saved.courtIds
+                          : [],
+                    }
+                  : {}),
+              })
+            }
           />
-          <Hint>{placeCopy.venueHint}</Hint>
+          <Hint>
+            {social ? placeCopy.venueHintSocial : placeCopy.venueHint}
+          </Hint>
         </>
       )}
+      {social ? (
+        <FieldError message={error} />
+      ) : (
+        <PlaceCourt edit={edit} venue={venue} error={error} />
+      )}
+    </View>
+  );
+}
+
+function PlaceCourt({
+  edit,
+  venue,
+  error,
+}: {
+  edit: GameEditController;
+  venue: { courts: { id: string; name: string }[] } | undefined;
+  error: string | undefined;
+}) {
+  const locale = useLocale();
+  const copy = gameEditCourtCopy(edit.draft.sideSize, locale);
+  const { draft, update } = edit;
+  return (
+    <>
       <Text weight="medium">{copy.title}</Text>
       <ChipGrid
         label={copy.title}
@@ -269,6 +319,98 @@ function PlaceSection({
           update({ courtId: value === NO_COURT ? null : value })
         }
       />
+      <FieldError message={error} />
+      <Hint>{copy.hint}</Hint>
+    </>
+  );
+}
+
+function AmericanoPlayersSection({
+  edit,
+  joined,
+  error,
+}: {
+  edit: GameEditController;
+  joined: number;
+  error: string | undefined;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.createGame.edit.players;
+  const { draft, update } = edit;
+  const players = draft.playersAllowed ?? AMERICANO_PLAYER_MIN;
+  const down = americanoPlayersEditStep(players, -1, joined);
+  const up = americanoPlayersEditStep(players, 1, joined);
+  return (
+    <View style={{ gap: SECTION_GAP }}>
+      <SectionHead title={copy.title} meta={joinedCountLabel(joined, locale)} />
+      <View style={{ flexDirection: "row" }}>
+        <ValueStepper
+          label={copy.label}
+          display={String(players)}
+          accessibilityValue={m.mobileGameDetails.edit.playersValue(players)}
+          canDecrease={down != null}
+          canIncrease={up != null}
+          onDecrease={() => {
+            if (down != null) {
+              update({ playersAllowed: down });
+            }
+          }}
+          onIncrease={() => {
+            if (up != null) {
+              update({ playersAllowed: up });
+            }
+          }}
+          decreaseLabel={copy.fewer}
+          increaseLabel={copy.more}
+        />
+      </View>
+      <FieldError message={error} />
+      <Hint>{copy.hint(AMERICANO_PLAYER_MIN, AMERICANO_PLAYER_MAX)}</Hint>
+    </View>
+  );
+}
+
+function MatchLengthSection({
+  edit,
+  error,
+}: {
+  edit: GameEditController;
+  error: string | undefined;
+}) {
+  const m = useMessages();
+  const copy = m.createGame.edit.matchLength;
+  const { draft, update } = edit;
+  if (draft.matchMinutes == null) {
+    return null;
+  }
+  const minutes = draft.matchMinutes;
+  const shorter = matchMinutesStep(minutes, -1);
+  const longer = matchMinutesStep(minutes, 1);
+  return (
+    <View style={{ gap: SECTION_GAP }}>
+      <SectionHead title={copy.title} />
+      <View style={{ flexDirection: "row" }}>
+        <ValueStepper
+          label={copy.label}
+          display={m.dates.minutes(minutes)}
+          accessibilityValue={m.dates.minutes(minutes)}
+          canDecrease={shorter != null}
+          canIncrease={longer != null}
+          onDecrease={() => {
+            if (shorter != null) {
+              update({ matchMinutes: shorter });
+            }
+          }}
+          onIncrease={() => {
+            if (longer != null) {
+              update({ matchMinutes: longer });
+            }
+          }}
+          decreaseLabel={copy.shorter}
+          increaseLabel={copy.longer}
+        />
+      </View>
       <FieldError message={error} />
       <Hint>{copy.hint}</Hint>
     </View>
@@ -834,15 +976,26 @@ export function GameEditSheet({
           ) : null}
           {sections.name ? (
             <View style={{ gap: SECTION_GAP }}>
-              <SectionHead title={copy.name} meta={m.common.optional} />
+              <SectionHead
+                title={copy.name}
+                meta={sections.nameRequired ? null : m.common.optional}
+              />
               <TextField
-                label={copy.gameName}
+                label={sections.nameRequired ? copy.socialName : copy.gameName}
                 value={draft.customName}
-                maxLength={GAME_CUSTOM_NAME_MAX_LENGTH}
+                maxLength={
+                  sections.nameRequired
+                    ? SOCIAL_NAME_MAX_LENGTH
+                    : GAME_CUSTOM_NAME_MAX_LENGTH
+                }
                 onChangeText={(customName) => update({ customName })}
                 error={errorFor("name")}
               />
-              <Hint>{editCopy.nameHint}</Hint>
+              <Hint>
+                {sections.nameRequired
+                  ? editCopy.nameHintSocial
+                  : editCopy.nameHint}
+              </Hint>
             </View>
           ) : null}
           <View style={{ gap: SECTION_GAP }}>
@@ -887,6 +1040,7 @@ export function GameEditSheet({
             <PlaceSection
               edit={edit}
               venueName={context.venueName}
+              social={sections.courts}
               error={errorFor("place")}
             />
           ) : null}
@@ -897,8 +1051,18 @@ export function GameEditSheet({
               error={errorFor("teams")}
             />
           ) : null}
+          {sections.players ? (
+            <AmericanoPlayersSection
+              edit={edit}
+              joined={context.joined}
+              error={errorFor("players")}
+            />
+          ) : null}
           {sections.courts ? (
             <CourtsSection edit={edit} error={errorFor("courts")} />
+          ) : null}
+          {sections.matchLength ? (
+            <MatchLengthSection edit={edit} error={errorFor("matchLength")} />
           ) : null}
           <View style={{ gap: SECTION_GAP }}>
             <SectionHead

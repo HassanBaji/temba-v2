@@ -5,6 +5,15 @@ import { formatGameWindowName, splitGameWindow } from "./game-window";
 
 export const GAME_CUSTOM_NAME_MAX_LENGTH = 60;
 
+/** A Social's name, given at create, takes the length the column allows. */
+export const SOCIAL_NAME_MAX_LENGTH = 255;
+
+export function gameNameMaxLength(format: string | null | undefined) {
+  return format === "friendly_tournament"
+    ? SOCIAL_NAME_MAX_LENGTH
+    : GAME_CUSTOM_NAME_MAX_LENGTH;
+}
+
 export function normalizeGameCustomName(value: string | null | undefined) {
   const trimmed = value?.trim();
   if (!trimmed) {

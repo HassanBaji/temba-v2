@@ -563,8 +563,7 @@ export const game = {
     playersBetween: (min: number, max: number) =>
       `Players allowed must be between ${min} and ${max}`,
     sameTeamBothSlots: "A Match cannot use the same Game team in both slots",
-    partnerFriendlyOnly:
-      "Register with a partner on a Friendly game or Social",
+    partnerFriendlyOnly: "Register with a partner on a Friendly game or Social",
     teamOnlyRegisterTeam: "This Game is team-only; register a complete Team",
     teamOnly: "This Game is team-only",
     individual: "This Game is individual",
@@ -593,10 +592,8 @@ export const game = {
     registerAsYourself:
       "Register as yourself on an Americano or a football Game",
     registerWithSelf: "You cannot register with yourself",
-    pickSeatIndividual:
-      "Pick a seat on an individual Friendly game or Social",
-    moveSeatIndividual:
-      "Move a seat on an individual Friendly game or Social",
+    pickSeatIndividual: "Pick a seat on an individual Friendly game or Social",
+    moveSeatIndividual: "Move a seat on an individual Friendly game or Social",
     levelRequestNotFound: "Level range request not found",
     levelRequestClosed: {
       approve: "Cannot approve Level range requests for this Game",
@@ -678,18 +675,23 @@ export const game = {
     teamsAtLeastTwo: "Teams allowed must be at least 2",
     capBelowRegistered: "Cannot lower cap below the current registered count",
     teamsAfterDraw: "The draw is posted, so the number of teams can't change",
-    teamsTournamentOnly:
-      "Only a Social changes its number of teams",
+    teamsTournamentOnly: "Only a Social changes its number of teams",
     teamsNotForShape: (teamCount: number) =>
       `This Social's format can't take ${teamCount} teams`,
     teamsBelowJoinedPairsOnly: (joined: number) =>
       `This Social takes pairs only and has no waiting list. Keep at least ${joined} teams, or remove teams first.`,
     courtsTournamentOnly: "Only a Social changes its Courts here",
     courtsAtLeastOne: "Pick at least one Court",
+    venueAfterDraw: "The draw is posted, so the Venue can't change",
+    matchMinutesAfterDraw:
+      "The draw is posted, so the match length can't change",
+    matchMinutesTournamentOnly: "Only a Social has a match length to change",
+    matchMinutesKing: "King of the court has no match length",
     playersAtLeastFour: "Players allowed must be at least 4",
     playersMultipleOfFour: "Players allowed must be a multiple of 4",
     sidesSet: "The sides are set, so the shape of the Game can't change",
-    customNameFriendly: "Only a Friendly game takes a custom name",
+    customNameFriendly: "Only a Friendly game or a Social takes a name",
+    customNameTooLong: (max: number) => `Keep the name to ${max} characters`,
     seasonNeedsDay: "Set the Game's day before linking a season",
     playedLeave: "This Game has been played. Ask the organizer to remove you.",
     gameHasNoGroup: "This Game has no Group",

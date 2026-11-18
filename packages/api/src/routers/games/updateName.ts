@@ -11,10 +11,35 @@ import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import {
   GAME_CUSTOM_NAME_MAX_LENGTH,
+  SOCIAL_NAME_MAX_LENGTH,
   gameWindowLabel,
   normalizeGameCustomName,
 } from "@repo/domain/game-custom-name";
 import { messagesFor } from "@repo/i18n/messages";
+
+/**
+ * A Social always has a name of its own, given at create, so it cannot fall
+ * back to the window label. It keeps `hasCustomName` false like every Game
+ * that is not a Friendly game.
+ */
+async function renameSocial(
+  database: typeof db,
+  gameId: string,
+  name: string | null,
+  locale: Locale,
+) {
+  if (!name) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).createGame.validation.nameTournament,
+    });
+  }
+  await database
+    .update(games)
+    .set({ name, updatedAt: new Date() })
+    .where(eq(games.id, gameId));
+  return { ok: true as const };
+}
 
 export async function updateGameName(
   database: typeof db,
@@ -34,14 +59,25 @@ export async function updateGameName(
       message: messagesFor(locale).game.errors.editCancelled,
     });
   }
+  const customName = normalizeGameCustomName(args.customName);
+  if (game.format === "friendly_tournament") {
+    return renameSocial(database, game.id, customName, locale);
+  }
   if (game.format !== "friendly_game") {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: messagesFor(locale).game.errors.customNameFriendly,
     });
   }
+  if (customName && customName.length > GAME_CUSTOM_NAME_MAX_LENGTH) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).game.errors.customNameTooLong(
+        GAME_CUSTOM_NAME_MAX_LENGTH,
+      ),
+    });
+  }
 
-  const customName = normalizeGameCustomName(args.customName);
   await database
     .update(games)
     .set({
@@ -63,7 +99,7 @@ export const updateName = protectedProcedure
   .input(
     z.object({
       gameId: z.string().uuid(),
-      customName: z.string().trim().max(GAME_CUSTOM_NAME_MAX_LENGTH).nullable(),
+      customName: z.string().trim().max(SOCIAL_NAME_MAX_LENGTH).nullable(),
     }),
   )
   .mutation(async ({ ctx, input }) => {

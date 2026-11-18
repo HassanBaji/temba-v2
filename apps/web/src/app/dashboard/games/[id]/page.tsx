@@ -651,6 +651,7 @@ export default function GameHomePage({
     challenge: data?.challenge != null,
     drawPosted: data?.drawPostedAt != null,
     americano: isAmericano(data?.format, data?.tournamentShape),
+    king: isKingOfTheCourt(data?.format, data?.tournamentShape),
   });
   const edit = useGameEdit({
     gameId: id,

@@ -32,8 +32,12 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { cn } from "~/lib/utils";
-import { GAME_CUSTOM_NAME_MAX_LENGTH } from "@repo/domain/game-custom-name";
 import {
+  GAME_CUSTOM_NAME_MAX_LENGTH,
+  SOCIAL_NAME_MAX_LENGTH,
+} from "@repo/domain/game-custom-name";
+import {
+  americanoPlayersEditStep,
   asideLabel,
   footballFormatNote,
   footballSideSizeStep,
@@ -63,6 +67,11 @@ import {
   type TournamentResizeShape,
 } from "@repo/domain/tournament-resize";
 import { kingCourtCount } from "@repo/domain/tournament-king";
+import {
+  AMERICANO_PLAYER_MAX,
+  AMERICANO_PLAYER_MIN,
+} from "@repo/domain/tournament-americano";
+import { matchMinutesStep } from "@repo/domain/match-minutes";
 import { mvpModeCopy } from "@repo/domain/marks";
 import {
   formatSeasonRange,
@@ -494,10 +503,13 @@ const NO_COURT = "none";
 function PlaceSection({
   edit,
   venueName,
+  social,
   error,
 }: {
   edit: GameEditController;
   venueName: string | null;
+  /** A Social picks its Courts in their own section, at the new Venue. */
+  social: boolean;
   error: string | undefined;
 }) {
   const locale = useLocale();
@@ -523,7 +535,20 @@ function PlaceSection({
             <Select
               value={draft.venueId ?? undefined}
               disabled={place.loading}
-              onValueChange={(venueId) => update({ venueId, courtId: null })}
+              onValueChange={(venueId) =>
+                update({
+                  venueId,
+                  courtId: null,
+                  ...(social
+                    ? {
+                        courtIds:
+                          venueId === edit.saved.venueId
+                            ? edit.saved.courtIds
+                            : [],
+                      }
+                    : {}),
+                })
+              }
             >
               <SelectTrigger
                 id="edit-venue"
@@ -541,42 +566,118 @@ function PlaceSection({
               </SelectContent>
             </Select>
             <FieldDescription id="edit-venue-copy">
-              {placeCopy.venueHint}
+              {social ? placeCopy.venueHintSocial : placeCopy.venueHint}
             </FieldDescription>
           </>
         )}
+        {social ? (
+          <FieldError id="edit-place-error">{error ?? place.error}</FieldError>
+        ) : null}
       </Field>
-      <Field>
-        <FieldLabel htmlFor="edit-court">{copy.title}</FieldLabel>
-        <Select
-          value={draft.courtId ?? NO_COURT}
-          disabled={place.loading}
-          onValueChange={(value) =>
-            update({ courtId: value === NO_COURT ? null : value })
-          }
-        >
-          <SelectTrigger
-            id="edit-court"
-            className="w-full"
-            aria-invalid={error ? true : undefined}
-            aria-describedby="edit-court-copy"
+      {social ? null : (
+        <Field>
+          <FieldLabel htmlFor="edit-court">{copy.title}</FieldLabel>
+          <Select
+            value={draft.courtId ?? NO_COURT}
+            disabled={place.loading}
+            onValueChange={(value) =>
+              update({ courtId: value === NO_COURT ? null : value })
+            }
           >
-            <SelectValue
-              placeholder={place.loading ? copy.loading : copy.none}
-            />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NO_COURT}>{copy.none}</SelectItem>
-            {(venue?.courts ?? []).map((court) => (
-              <SelectItem key={court.id} value={court.id}>
-                {court.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <FieldDescription id="edit-court-copy">{copy.hint}</FieldDescription>
-        <FieldError id="edit-place-error">{error ?? place.error}</FieldError>
-      </Field>
+            <SelectTrigger
+              id="edit-court"
+              className="w-full"
+              aria-invalid={error ? true : undefined}
+              aria-describedby="edit-court-copy"
+            >
+              <SelectValue
+                placeholder={place.loading ? copy.loading : copy.none}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_COURT}>{copy.none}</SelectItem>
+              {(venue?.courts ?? []).map((court) => (
+                <SelectItem key={court.id} value={court.id}>
+                  {court.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldDescription id="edit-court-copy">{copy.hint}</FieldDescription>
+          <FieldError id="edit-place-error">{error ?? place.error}</FieldError>
+        </Field>
+      )}
+    </section>
+  );
+}
+
+function AmericanoPlayersSection({
+  edit,
+  joined,
+  error,
+}: {
+  edit: GameEditController;
+  joined: number;
+  error: string | undefined;
+}) {
+  const locale = useLocale();
+  const copy = useMessages().createGame.edit.players;
+  const { draft, update } = edit;
+  const players = draft.playersAllowed ?? AMERICANO_PLAYER_MIN;
+  const down = americanoPlayersEditStep(players, -1, joined);
+  const up = americanoPlayersEditStep(players, 1, joined);
+  return (
+    <section className="space-y-3">
+      <SectionHead title={copy.title} meta={joinedCountLabel(joined, locale)} />
+      <CompactStepper
+        id="edit-americano-players"
+        label={copy.label}
+        display={String(players)}
+        canDecrease={down != null}
+        canIncrease={up != null}
+        onDecrease={() => down != null && update({ playersAllowed: down })}
+        onIncrease={() => up != null && update({ playersAllowed: up })}
+        decreaseLabel={copy.fewer}
+        increaseLabel={copy.more}
+      />
+      <FieldError id="edit-americano-players-error">{error}</FieldError>
+      <Hint>{copy.hint(AMERICANO_PLAYER_MIN, AMERICANO_PLAYER_MAX)}</Hint>
+    </section>
+  );
+}
+
+function MatchLengthSection({
+  edit,
+  error,
+}: {
+  edit: GameEditController;
+  error: string | undefined;
+}) {
+  const m = useMessages();
+  const copy = m.createGame.edit.matchLength;
+  const { draft, update } = edit;
+  if (draft.matchMinutes == null) {
+    return null;
+  }
+  const minutes = draft.matchMinutes;
+  const shorter = matchMinutesStep(minutes, -1);
+  const longer = matchMinutesStep(minutes, 1);
+  return (
+    <section className="space-y-3">
+      <SectionHead title={copy.title} />
+      <CompactStepper
+        id="edit-match-minutes"
+        label={copy.label}
+        display={m.dates.minutes(minutes)}
+        canDecrease={shorter != null}
+        canIncrease={longer != null}
+        onDecrease={() => shorter != null && update({ matchMinutes: shorter })}
+        onIncrease={() => longer != null && update({ matchMinutes: longer })}
+        decreaseLabel={copy.shorter}
+        increaseLabel={copy.longer}
+      />
+      <FieldError id="edit-match-minutes-error">{error}</FieldError>
+      <Hint>{copy.hint}</Hint>
     </section>
   );
 }
@@ -861,7 +962,7 @@ export function GameEditDialog({
                 <section className="space-y-3">
                   <SectionHead
                     title={m.webGame.edit.stepLabel.name}
-                    meta={m.common.optional}
+                    meta={sections.nameRequired ? null : m.common.optional}
                   />
                   <Field>
                     <FieldLabel htmlFor="edit-custom-name" className="sr-only">
@@ -870,15 +971,22 @@ export function GameEditDialog({
                     <Input
                       id="edit-custom-name"
                       value={draft.customName}
-                      maxLength={GAME_CUSTOM_NAME_MAX_LENGTH}
+                      maxLength={
+                        sections.nameRequired
+                          ? SOCIAL_NAME_MAX_LENGTH
+                          : GAME_CUSTOM_NAME_MAX_LENGTH
+                      }
+                      required={sections.nameRequired}
                       onChange={(event) =>
                         update({ customName: event.target.value })
                       }
                       aria-invalid={errorFor("name") ? true : undefined}
-                      aria-describedby="edit-custom-name-copy"
+                      aria-describedby="edit-custom-name-copy edit-custom-name-error"
                     />
                     <FieldDescription id="edit-custom-name-copy">
-                      {m.createGame.edit.nameHint}
+                      {sections.nameRequired
+                        ? m.createGame.edit.nameHintSocial
+                        : m.createGame.edit.nameHint}
                     </FieldDescription>
                     <FieldError id="edit-custom-name-error">
                       {errorFor("name")}
@@ -909,6 +1017,7 @@ export function GameEditDialog({
                 <PlaceSection
                   edit={edit}
                   venueName={context.venueName}
+                  social={sections.courts}
                   error={errorFor("place")}
                 />
               ) : null}
@@ -919,8 +1028,21 @@ export function GameEditDialog({
                   error={errorFor("teams")}
                 />
               ) : null}
+              {sections.players ? (
+                <AmericanoPlayersSection
+                  edit={edit}
+                  joined={context.joined}
+                  error={errorFor("players")}
+                />
+              ) : null}
               {sections.courts ? (
                 <CourtsSection edit={edit} error={errorFor("courts")} />
+              ) : null}
+              {sections.matchLength ? (
+                <MatchLengthSection
+                  edit={edit}
+                  error={errorFor("matchLength")}
+                />
               ) : null}
               <section className="space-y-3">
                 <SectionHead
