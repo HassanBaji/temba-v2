@@ -31,6 +31,7 @@ import { ratingScopeTag } from "@repo/domain/game-rating-impact";
 import { hubRegisterToast } from "@repo/domain/game-card";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+import { isAmericano } from "@repo/domain/tournament-americano";
 import {
   showsTournamentOpenFlag,
   tournamentCardAction,
@@ -324,7 +325,10 @@ export function TournamentSummaryCard({
   const tournament = game.tournament;
   const teams = tournament?.teams ?? [];
   const alone = tournamentCardAloneSeats(game);
-  // An Alone-only Social has no seat to pick: players sign up through `register` (ADR-0096).
+  // A Social that takes players has no seat to pick: players sign up through
+  // `register` (ADR-0096). An Americano asks for no side either (ADR-0094).
+  const asksSide =
+    alone != null && !isAmericano(game.format, game.tournamentShape);
   const registerAlone = api.games.register.useMutation({
     onSuccess: async (result) => {
       toast.success(hubRegisterToast(result.waitlisted, locale));
@@ -446,7 +450,7 @@ export function TournamentSummaryCard({
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                if (action === "join") {
+                if (action === "join" && (asksSide || !alone)) {
                   registerAlone.reset();
                   setSheetOpen(true);
                   return;
@@ -475,7 +479,7 @@ export function TournamentSummaryCard({
         </SummaryCardFooter>
       </SummaryCardShell>
 
-      {action === "join" && alone ? (
+      {action === "join" && asksSide ? (
         <AloneJoinSheet
           open={sheetOpen}
           onOpenChange={setSheetOpen}
@@ -485,7 +489,7 @@ export function TournamentSummaryCard({
             registerAlone.mutate({ gameId: game.id, preferredSide })
           }
         />
-      ) : action === "join" && tournament ? (
+      ) : action === "join" && tournament && !alone ? (
         <FriendlyGameJoinSheet
           open={sheetOpen}
           onOpenChange={setSheetOpen}

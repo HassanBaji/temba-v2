@@ -59,7 +59,7 @@ export type TournamentCardInput = GameSummaryCtaInput & {
   tournament: {
     drawPosted: boolean;
     teams: readonly TournamentCardTeam[];
-    /** Alone only, before the teams are posted: the players signed up (ADR-0096). */
+    /** The players signed up on an Americano, or an Alone-only Social before its teams are posted (ADR-0094, ADR-0096). */
     alonePlayers?: readonly NonNullable<Occupant>[] | null;
     knockout?: TournamentCardKnockout | null;
   } | null;
@@ -151,8 +151,9 @@ export function tournamentOpenTeamCount(
 }
 
 /**
- * An Alone-only Social before its teams are posted takes players, not teams,
- * so the card counts seats (ADR-0096). Null on every other tournament.
+ * An Americano, and an Alone-only Social before its teams are posted, take
+ * players, not teams, so the card counts seats (ADR-0094, ADR-0096). Null on
+ * every other tournament.
  */
 export function tournamentCardAloneSeats<
   P extends NonNullable<Occupant>,
@@ -169,7 +170,7 @@ export function tournamentCardAloneSeats<
   return { players, taken: players.length, cap };
 }
 
-/** The open flag's count: open seats on an Alone-only Social, open Game teams otherwise. */
+/** The open flag's count: open seats on a Social that takes players, open Game teams otherwise. */
 export function tournamentCardOpenCount(game: TournamentCardInput) {
   const alone = tournamentCardAloneSeats(game);
   if (alone) {
@@ -295,7 +296,7 @@ export function tournamentCardPairs<T extends TournamentCardTeam>(
   };
 }
 
-/** An Alone-only Social's players, one square each: the viewer first, then in sign-up order. */
+/** A Social's players, one square each, when it takes players: the viewer first, then in sign-up order. */
 export function tournamentCardAlonePlayers<T extends { isViewer: boolean }>(
   players: readonly T[],
   { cap, registrationOpen }: { cap: number; registrationOpen: boolean },
