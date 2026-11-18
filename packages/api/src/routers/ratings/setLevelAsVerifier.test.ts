@@ -287,7 +287,7 @@ describe("setLevelAsVerifier", () => {
     ).toBe(true);
   });
 
-  it("calibrates a padel Level of a player who played at the Venue and tells them who and where", async () => {
+  it("calibrates a padel Level of a player who played at the Venue, and tells them without who or where", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const { verifier, player, venueA } = await setUp(db);
@@ -326,17 +326,13 @@ describe("setLevelAsVerifier", () => {
       const { items } = await listNotifications(db, { userId: player.id });
       const item = items[0];
       expect(item?.type).toBe("level_set");
-      expect(item?.levelSet?.venue).toEqual({
-        id: venueA.id,
-        name: "Fantasy FC",
-      });
+      expect(item?.actor).toBeNull();
+      expect(JSON.stringify(item)).not.toContain("Fantasy FC");
       const copy = item ? notificationCopy(item, "en") : null;
       expect(copy?.title.map((part) => part.text).join("")).toBe(
-        "Yaser (Fantasy FC) calibrated your Level to B- 4.5",
+        "Your Level was adjusted to B- 4.5 based on your performance",
       );
-      expect(copy?.subline).toBe(
-        "Plays above results: “Assessed over two sessions.”",
-      );
+      expect(copy?.subline).toBe("Think it’s wrong? You can dispute it.");
     } finally {
       await close();
     }
