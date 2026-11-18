@@ -506,12 +506,16 @@ export function GameDetailsScreen({
     ? {
         gameName: gameTitle(data, locale),
         format: data.format,
+        tournamentShape: data.tournamentShape,
         registrationMode: data.registrationMode,
         venueName: data.venue?.name ?? null,
         courtName: data.matches[0]?.courtName ?? null,
         windowStart: data.windowStart,
         windowEnd: data.windowEnd,
         sides: data.sides,
+        americano: data.roster
+          ? { playersAllowed: data.roster.cap, players: data.roster.users }
+          : undefined,
         levelMinTenths: data.levelMinTenths,
         levelMaxTenths: data.levelMaxTenths,
         waitlist: data.waitlist,
