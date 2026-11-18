@@ -101,6 +101,16 @@ export function gameRatingScopeLabel(
   return m.you.ratingScope[scope];
 }
 
+/** The value beside "Counts for rating": Yes, Group rating or No. */
+export function countsForRatingValue(scope: GameRatingScope, locale: Locale) {
+  const m = messagesFor(locale);
+  return {
+    temba: m.common.yes,
+    group: m.rating.scope.groupRatingValue,
+    unrated: m.common.no,
+  }[scope];
+}
+
 /** The line under a `group` scope, which differs by sport. */
 export function groupRatingScopeNote(
   locale: Locale,
