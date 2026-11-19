@@ -63,7 +63,7 @@ type SetDraft = { slot1: number | null; slot2: number | null };
  * One 56×48 set box. Hatch always means "unentered" or "unplayed" here —
  * never anything else (spec: "Hatch in this section only ever means
  * 'unentered set' or 'unplayed set'"). Five visual states:
- * - `locked`: Upcoming/ongoing — hatched, `aria-hidden`, no digit.
+ * - `locked`: Upcoming — hatched, `aria-hidden`, no digit.
  * - `unplayed`: Final, but this Set never happened — hatched, `aria-hidden`.
  * - `enterable`: Needs a score, viewer may write — a plain `<input>` with a
  *   hairline while empty and an ink outline once it holds a number.

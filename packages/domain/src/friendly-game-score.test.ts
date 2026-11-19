@@ -37,28 +37,24 @@ const sides = [
 ];
 
 describe("scoreSetBoxState", () => {
-  it("locks every box before results are due", () => {
-    for (const phase of ["upcoming", "ongoing"] as const) {
-      assert.equal(
-        scoreSetBoxState({
-          phase,
-          neverPlayed: false,
-          canEnter: true,
-          isWinningSide: false,
-        }),
-        "locked",
-      );
-    }
+  it("locks every box before the Game starts", () => {
+    assert.equal(
+      scoreSetBoxState({
+        phase: "upcoming",
+        neverPlayed: false,
+        canEnter: true,
+        isWinningSide: false,
+      }),
+      "locked",
+    );
   });
 
-  it("lets a writer enter and everyone else read while results are due", () => {
-    const base = {
-      phase: "needs_results",
-      neverPlayed: false,
-      isWinningSide: false,
-    } as const;
-    assert.equal(scoreSetBoxState({ ...base, canEnter: true }), "enterable");
-    assert.equal(scoreSetBoxState({ ...base, canEnter: false }), "readonly");
+  it("lets a writer enter and everyone else read once the Game starts", () => {
+    for (const phase of ["ongoing", "needs_results"] as const) {
+      const base = { phase, neverPlayed: false, isWinningSide: false };
+      assert.equal(scoreSetBoxState({ ...base, canEnter: true }), "enterable");
+      assert.equal(scoreSetBoxState({ ...base, canEnter: false }), "readonly");
+    }
   });
 
   it("fills the winning side, outlines the other and hatches an unplayed Set when final", () => {
@@ -79,7 +75,10 @@ describe("scoreSetBoxState", () => {
 });
 
 describe("score helpers", () => {
-  it("enters scores only when results are due and the Match allows it", () => {
+  it("enters scores once the Game starts and the Match allows it", () => {
+    assert.equal(scoreCanEnter("upcoming", true), false);
+    assert.equal(scoreCanEnter("ongoing", true), true);
+    assert.equal(scoreCanEnter("ongoing", false), false);
     assert.equal(scoreCanEnter("needs_results", true), true);
     assert.equal(scoreCanEnter("needs_results", false), false);
     assert.equal(scoreCanEnter("final", true), false);
@@ -127,6 +126,10 @@ describe("score helpers", () => {
     assert.match(
       scoreFooterNote("upcoming", null, "en"),
       /Scoring opens when the court is full/,
+    );
+    assert.match(
+      scoreFooterNote("ongoing", null, "en"),
+      /The other three confirm/,
     );
     assert.match(
       scoreFooterNote("needs_results", null, "en"),
