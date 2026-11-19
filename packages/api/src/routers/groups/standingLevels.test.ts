@@ -9,6 +9,7 @@ import {
   groupTierPoints,
   groups,
   kingPlaceAwards,
+  levelCheckResults,
   levelOverrides,
   matches,
   ratingEvents,
@@ -212,6 +213,32 @@ async function insertPlaceAward(
   });
 }
 
+async function insertLevelCheck(
+  database: TestDatabase,
+  args: LevelMove & { createdBy: string },
+) {
+  const gameId = await insertGame(database, args.createdBy);
+  const [match] = await database
+    .insert(matches)
+    .values({ gameId })
+    .returning({ id: matches.id });
+  await database.insert(levelCheckResults).values({
+    userId: args.userId,
+    sport: args.sport,
+    matchId: match!.id,
+    verdictLevelHundredths: 385,
+    agreed: false,
+    ballotsCounted: 3,
+    weight: 1,
+    muBefore: args.muBefore,
+    phiBefore: INITIAL_PHI,
+    muAfter: args.muAfter,
+    phiAfter: 200,
+    levelBandBefore: args.bandBefore,
+    createdAt: args.createdAt,
+  });
+}
+
 describe("standingLevels", () => {
   it("reads a Verified padel Group's Level now and at close, gained by Games only", async () => {
     await withDb(async (database) => {
@@ -335,6 +362,61 @@ describe("standingLevels", () => {
       });
       expect(allTime.members.find((row) => row.userId === noor)).toEqual(
         expect.objectContaining({ band: "C1", start: null, end: null }),
+      );
+    });
+  });
+
+  it("does not count a Level check as improvement, as it does not a Level override", async () => {
+    await withDb(async (database) => {
+      const owner = await insertUser(database, "owner");
+      const noor = await insertUser(database, "noor");
+      const groupId = await insertGroup(database, {
+        createdBy: owner,
+        members: [noor],
+        sport: "padel",
+        verified: true,
+      });
+      const winter = await insertSeason(database, {
+        groupId,
+        name: "Season 2",
+        startsOn: "2026-11-01",
+        endsOn: "2027-01-31",
+        createdBy: owner,
+      });
+      await insertRating(database, {
+        userId: noor,
+        sport: "padel",
+        mu: muFromLevel(3.6),
+        levelBand: "C1",
+      });
+      await insertRatedMatch(database, {
+        createdBy: owner,
+        userId: noor,
+        sport: "padel",
+        muBefore: muFromLevel(3.4),
+        bandBefore: "C2",
+        muAfter: muFromLevel(3.5),
+        createdAt: new Date("2026-11-10T09:00:00Z"),
+      });
+      await insertLevelCheck(database, {
+        createdBy: owner,
+        userId: noor,
+        sport: "padel",
+        muBefore: muFromLevel(3.5),
+        bandBefore: "C2",
+        muAfter: muFromLevel(3.6),
+        createdAt: new Date("2026-11-11T09:00:00Z"),
+      });
+
+      const levels = await standingLevels(apiDb(database), {
+        groupId,
+        seasonId: winter,
+        userId: owner,
+        now: NOW,
+      });
+      // The check's +0.10 moves the start with it; the gain is the Match's.
+      expect(levels.members.find((row) => row.userId === noor)).toEqual(
+        expect.objectContaining({ start: 350, end: 360 }),
       );
     });
   });

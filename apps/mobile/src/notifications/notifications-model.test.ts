@@ -77,4 +77,31 @@ describe("notificationRows", () => {
     expect(row?.leading).toEqual({ kind: "history" });
     expect(row?.path).toBe("/games?tab=history");
   });
+
+  it("reads a padel Level check verdict and its move, and opens the Game", () => {
+    const closed = item({
+      type: "performance_ratings_closed",
+      audience: "player",
+      actor: null,
+      group: null,
+      game: {
+        id: "game1",
+        name: "Thursday Padel",
+        format: "friendly_game",
+        windowStart: new Date("2026-10-08T16:00:00.000Z"),
+      },
+      levelCheckMove: {
+        agreed: false,
+        band: "C+",
+        levelBefore: "3.10",
+        levelAfter: "3.45",
+      },
+    });
+    const [row] = notificationRows([closed], "en", NOW);
+    expect(row?.path).toBe("/games/game1");
+    expect(row?.subline).toBe("Players placed you at C+: level 3.10 to 3.45.");
+    const [arabic] = notificationRows([closed], "ar", NOW);
+    expect(arabic?.subline).toContain("C+");
+    expect(arabic?.subline).toContain("3.45");
+  });
 });

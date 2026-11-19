@@ -26,6 +26,7 @@ export type NotificationEmailInput = Pick<
   | "tier"
   | "ovrMove"
   | "reliabilityMove"
+  | "levelCheckMove"
   | "placeAward"
   | "dispute"
   | "levelDispute"
@@ -81,6 +82,9 @@ export function notificationEmailDestination(
   const sport = item.game?.sport;
   if (item.type === "level_confirmed" && isSport(sport)) {
     return { kind: "ratings", path: `/dashboard/you/ratings?sport=${sport}` };
+  }
+  if (item.type === "level_recalculated") {
+    return { kind: "ratings", path: "/dashboard/you/ratings?sport=padel" };
   }
   if (item.type === "performance_ratings_open" && item.game) {
     return { kind: "game", path: `/dashboard/games/${item.game.id}/rate` };

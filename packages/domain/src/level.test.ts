@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ASSIGNABLE_DISPLAY_LEVEL_BANDS,
   selfDeclareChoiceFromDisplay,
   storedBandFromDisplayLabel,
 } from "./level-bands";
+import { PADEL_NOT_SURE_LEVEL } from "./onboarding-answers";
 
 import {
   BAND_MIDPOINTS,
@@ -16,10 +18,14 @@ import {
   formatPadelLevel,
   confirmedPhiForOverride,
   initialRatingFromChoice,
+  INITIAL_MU,
   levelFromMu,
+  muFromBand,
   matchesTowardConfirming,
   padelMatchesRemainingToConfirm,
   progressToNextBand,
+  proveItApplies,
+  expectedScoreWithinProveIt,
   ratedMatchesRemainingToConfirm,
   tembaLevelView,
   UNCONFIRMED_PADEL,
@@ -67,6 +73,7 @@ describe("self-declare write-down midpoints", () => {
   it("keeps unknown as C2 / 3.0 and display picks as stored midpoints", () => {
     const unknown = initialRatingFromChoice(
       selfDeclareChoiceFromDisplay("unknown"),
+      "padel",
     );
     expect(unknown.levelBand).toBe("C2");
     expect(levelFromMu(unknown.mu)).toBe(3.0);
@@ -80,6 +87,75 @@ describe("self-declare write-down midpoints", () => {
     expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("B")]).toBe(5.25);
     expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("B+")]).toBe(5.95);
     expect(BAND_MIDPOINTS[storedBandFromDisplayLabel("A")]).toBe(6.65);
+  });
+});
+
+describe("initialRatingFromChoice", () => {
+  const padelStartPhi = {
+    D: 150,
+    "D+": 150,
+    "C-": 200,
+    C: 250,
+    "C+": 250,
+    "B-": 250,
+    B: 250,
+    "B+": 250,
+    A: 250,
+  } as const;
+
+  it("starts a padel declaration at its band's midpoint with the band's φ", () => {
+    for (const display of ASSIGNABLE_DISPLAY_LEVEL_BANDS) {
+      const band = storedBandFromDisplayLabel(display);
+      expect(initialRatingFromChoice(band, "padel")).toEqual({
+        mu: muFromBand(band),
+        phi: padelStartPhi[display],
+        sigma: 0.06,
+        levelBand: band,
+      });
+    }
+  });
+
+  it("starts stored D2 like D", () => {
+    expect(initialRatingFromChoice("D2", "padel").phi).toBe(150);
+  });
+
+  it('starts "Not sure" as a declared D+ at φ 150', () => {
+    const notSure = initialRatingFromChoice(
+      selfDeclareChoiceFromDisplay(PADEL_NOT_SURE_LEVEL),
+      "padel",
+    );
+    expect(notSure.levelBand).toBe("D1");
+    expect(notSure.phi).toBe(150);
+  });
+
+  it('starts "I don\'t know" at μ 1500 and φ 350 in either sport', () => {
+    for (const sport of ["padel", "football"] as const) {
+      expect(initialRatingFromChoice("unknown", sport)).toMatchObject({
+        mu: INITIAL_MU,
+        phi: INITIAL_PHI,
+      });
+    }
+  });
+
+  it("starts every football self-placement at φ 350, so it reads Provisional", () => {
+    for (const band of ["D3", "C3", "C1", "B3"] as const) {
+      const start = initialRatingFromChoice(band, "football");
+      expect(start).toMatchObject({ mu: muFromBand(band), phi: INITIAL_PHI });
+      expect(
+        tembaLevelView({ ...start, sport: "football" }, UNCONFIRMED_PADEL)
+          .provisional,
+      ).toBe(true);
+    }
+  });
+
+  it("leaves a new padel declarer Provisional with none of five played, whatever its φ", () => {
+    const view = tembaLevelView(
+      { ...initialRatingFromChoice("D3", "padel"), sport: "padel" },
+      UNCONFIRMED_PADEL,
+    );
+    expect(view.provisional).toBe(true);
+    expect(view.ratedMatchesRemaining).toBe(RATED_MATCHES_TO_CONFIRM);
+    expect(matchesTowardConfirming(view.ratedMatchesRemaining)).toBe(0);
   });
 });
 
@@ -187,6 +263,44 @@ describe("padelMatchesRemainingToConfirm", () => {
     expect(
       padelMatchesRemainingToConfirm({ verifiedMatches: 1, overridden: true }),
     ).toBe(0);
+  });
+});
+
+describe("proveItApplies", () => {
+  const fourVerified = { verifiedMatches: 4, overridden: false };
+
+  it("covers a declared C or above until the Level is confirmed", () => {
+    for (const band of ["C2", "C1", "B3", "B2", "B1", "A"] as const) {
+      expect(proveItApplies(band, fourVerified)).toBe(true);
+    }
+    expect(proveItApplies("C2", UNCONFIRMED_PADEL)).toBe(true);
+  });
+
+  it("leaves D, D+, C- and no Declared band alone", () => {
+    for (const band of ["D3", "D2", "D1", "C3"] as const) {
+      expect(proveItApplies(band, fourVerified)).toBe(false);
+    }
+    expect(proveItApplies(null, fourVerified)).toBe(false);
+    expect(proveItApplies(undefined, fourVerified)).toBe(false);
+  });
+
+  it("ends at five Rated Matches in a Verified Group or any Level override", () => {
+    expect(
+      proveItApplies("C2", { verifiedMatches: 5, overridden: false }),
+    ).toBe(false);
+    expect(proveItApplies("C2", { verifiedMatches: 0, overridden: true })).toBe(
+      false,
+    );
+  });
+});
+
+describe("expectedScoreWithinProveIt", () => {
+  it("takes 0.25 to 0.75, both ends included", () => {
+    expect(expectedScoreWithinProveIt(0.25)).toBe(true);
+    expect(expectedScoreWithinProveIt(0.5)).toBe(true);
+    expect(expectedScoreWithinProveIt(0.75)).toBe(true);
+    expect(expectedScoreWithinProveIt(0.2499)).toBe(false);
+    expect(expectedScoreWithinProveIt(0.7501)).toBe(false);
   });
 });
 

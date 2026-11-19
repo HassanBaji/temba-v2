@@ -59,6 +59,21 @@ function expectedScore(
   return 1 / (1 + Math.exp(-g(opponentPhi) * (mu - opponentMu)));
 }
 
+/**
+ * A classic-scale player's expected score against an opponent, as the step
+ * reads it: 0.5 at the same μ.
+ */
+export function classicExpectedScore(
+  mu: number,
+  opponent: ClassicGlickoOpponent,
+): number {
+  return expectedScore(
+    (mu - 1500) / GLICKO2_SCALE,
+    (opponent.mu - 1500) / GLICKO2_SCALE,
+    opponent.phi / GLICKO2_SCALE,
+  );
+}
+
 function newSigma(
   phi: number,
   sigma: number,

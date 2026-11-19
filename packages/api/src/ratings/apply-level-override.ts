@@ -170,7 +170,7 @@ export async function applyLevelOverride(
       )
       .for("update");
 
-    const before = existing ?? initialRatingFromChoice("unknown");
+    const before = existing ?? initialRatingFromChoice("unknown", args.sport);
     const after = {
       mu: muFromLevel(level),
       phi: confirmedPhiForOverride(existing?.phi ?? null),

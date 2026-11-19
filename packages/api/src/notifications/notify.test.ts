@@ -228,6 +228,27 @@ describe("notify", () => {
     }
   });
 
+  it("writes a row already emailed with no Notification email Job", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const recipient = await insertUser(db, "notify-in-app@example.com");
+      const emailedAt = new Date("2026-11-16T10:00:00.000Z");
+
+      await notify(db, {
+        type: "level_recalculated",
+        recipients: [{ userId: recipient, audience: "player" }],
+        excludeUserIds: [],
+        emailedAt,
+      });
+
+      const [row] = await rowsFor(db, recipient);
+      expect(row).toMatchObject({ type: "level_recalculated", emailedAt });
+      expect(jobs.added).toEqual([]);
+    } finally {
+      await close();
+    }
+  });
+
   it("enqueues the Job on the event's own transaction", async () => {
     const { db, close } = await createPgliteDb();
     try {

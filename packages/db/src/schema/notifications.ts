@@ -69,6 +69,7 @@ export const NOTIFICATION_TYPE_VALUES = [
   "game_teams_posted",
   "level_dispute_raised",
   "level_dispute_decided",
+  "level_recalculated",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];

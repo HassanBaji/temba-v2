@@ -9,6 +9,7 @@ import {
   type FriendlyGameOverflowItem,
 } from "./friendly-game-cta";
 import { viewerSidePartnerName } from "./friendly-game-partner";
+import type { ProveItImpact } from "./game-rating-impact";
 import type { GameRatingScope } from "./game-rating-scope";
 import type { LevelBand } from "./level-bands";
 import type { MemberNicknameData } from "./member-nickname";
@@ -89,6 +90,7 @@ export type FriendlyGameDetailsRatingImpact = {
   newLevelBand: LevelBand;
   isProvisional: boolean;
   ratedMatchesRemainingToConfirm: number | null;
+  proveIt?: ProveItImpact | null;
 };
 
 export type FriendlyGameDetailsLevelRangeRequest = {

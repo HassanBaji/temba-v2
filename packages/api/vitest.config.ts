@@ -15,6 +15,7 @@ export default defineConfig({
     env: {
       TEMBA_DRIZZLE_MIGRATIONS: resolve(packageRoot, "../db/drizzle"),
       SKIP_ENV_VALIDATION: "true",
+      PADEL_LEVEL_CHECK_ENABLED: "1",
     },
   },
 });

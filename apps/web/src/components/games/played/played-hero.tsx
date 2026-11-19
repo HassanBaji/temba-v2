@@ -134,6 +134,9 @@ export function PlayedHero({
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold">{you.line}</p>
             <p className="text-dim text-meta">{you.ratingLine}</p>
+            {you.proveItLine ? (
+              <p className="text-dim text-meta">{you.proveItLine}</p>
+            ) : null}
           </div>
           <Pill label={playedTagLabel(you.tag, locale)} solid={you.won} />
         </div>

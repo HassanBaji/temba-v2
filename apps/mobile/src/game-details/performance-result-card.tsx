@@ -31,7 +31,8 @@ const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 /**
  * On a played Game, once the Rating window closes: the viewer's rating and
  * what it did to their tier points, or on a Match that counts for Temba Level
- * to their Reliability; before that, when it arrives.
+ * to their Reliability, with a padel Match's Level check; before that, when
+ * it arrives.
  */
 export function PerformanceResultCard({
   gameId,
@@ -134,6 +135,22 @@ function ReliabilityResult({ view }: { view: ReliabilityView }) {
       <Text size="meta" tone="muted">
         {view.footnote}
       </Text>
+      {view.levelCheck ? (
+        <>
+          <Hairline />
+          <View accessible style={{ gap: 2 }}>
+            <Text size="meta" tone="muted">
+              {view.levelCheck.title}
+            </Text>
+            <Text weight="semibold">{view.levelCheck.headline}</Text>
+            {view.levelCheck.line ? (
+              <Text size="meta" tone="muted">
+                {view.levelCheck.line}
+              </Text>
+            ) : null}
+          </View>
+        </>
+      ) : null}
     </Surface>
   );
 }

@@ -3,6 +3,7 @@ import {
   type LevelBand,
   type SelfDeclareChoice,
 } from "./level-bands";
+import type { Sport } from "./sport";
 
 export {
   LEVEL_BANDS,
@@ -273,6 +274,34 @@ export function padelMatchesRemainingToConfirm(
   return Math.max(0, RATED_MATCHES_TO_CONFIRM - confirmation.verifiedMatches);
 }
 
+/**
+ * The Prove-it rule (ADR-0099): while a padel Level declared at C or above is
+ * not yet confirmed, a lost Rated Match against a pair at about the same
+ * level (expected score 0.25 to 0.75) moves it one and a half times as far.
+ */
+export const PROVE_IT_LOSS_FACTOR = 1.5;
+export const PROVE_IT_EXPECTED_MIN = 0.25;
+export const PROVE_IT_EXPECTED_MAX = 0.75;
+export const PROVE_IT_FROM_BAND: LevelBand = "C2";
+
+/** Whether the Prove-it rule covers a padel Level, read as it stood before the Match. */
+export function proveItApplies(
+  declaredBand: LevelBand | null | undefined,
+  confirmation: PadelConfirmation,
+): boolean {
+  return (
+    declaredBand != null &&
+    LEVEL_BANDS.indexOf(declaredBand) >=
+      LEVEL_BANDS.indexOf(PROVE_IT_FROM_BAND) &&
+    padelMatchesRemainingToConfirm(confirmation) > 0
+  );
+}
+
+/** Whether an expected score is close enough to even for the Prove-it rule. */
+export function expectedScoreWithinProveIt(expected: number): boolean {
+  return expected >= PROVE_IT_EXPECTED_MIN && expected <= PROVE_IT_EXPECTED_MAX;
+}
+
 /** Of the Matches that confirm a Level, how many a Provisional one has played. */
 export function matchesTowardConfirming(ratedMatchesRemaining: number): number {
   return Math.max(0, RATED_MATCHES_TO_CONFIRM - ratedMatchesRemaining);
@@ -282,8 +311,28 @@ export function confirmedPhiForOverride(phi: number | null): number {
   return Math.min(phi ?? INITIAL_PHI, LEVEL_OVERRIDE_PHI);
 }
 
+/**
+ * Starting φ of a padel Declared band: the lower the band, the more it is
+ * trusted, so results that confirm it move it little (ADR-0098). Football
+ * keeps `INITIAL_PHI`, because a football φ carries its Provisional
+ * (ADR-0069).
+ */
+export const PADEL_DECLARED_START_PHI: Record<LevelBand, number> = {
+  D3: 150,
+  D2: 150,
+  D1: 150,
+  C3: 200,
+  C2: 250,
+  C1: 250,
+  B3: 250,
+  B2: 250,
+  B1: 250,
+  A: 250,
+};
+
 export function initialRatingFromChoice(
   choice: SelfDeclareChoice,
+  sport: Sport,
 ): RatingGlickoState {
   if (choice === "unknown") {
     return {
@@ -296,7 +345,7 @@ export function initialRatingFromChoice(
 
   return {
     mu: muFromBand(choice),
-    phi: INITIAL_PHI,
+    phi: sport === "padel" ? PADEL_DECLARED_START_PHI[choice] : INITIAL_PHI,
     sigma: INITIAL_SIGMA,
     levelBand: choice,
   };

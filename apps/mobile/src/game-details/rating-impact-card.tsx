@@ -30,8 +30,14 @@ export function RatingImpactCard({
   const m = useMessages();
   const locale = useLocale();
   const copy = m.mobileGameDetails.rating;
-  const { direction, magnitude, newLevelLabel, sentence, directionText } =
-    ratingImpactView(ratingImpact, locale);
+  const {
+    direction,
+    magnitude,
+    newLevelLabel,
+    sentence,
+    directionText,
+    proveItLine,
+  } = ratingImpactView(ratingImpact, locale);
   const Icon = ICONS[direction];
 
   return (
@@ -70,6 +76,11 @@ export function RatingImpactCard({
           </View>
         </View>
         <Text size="meta">{sentence}</Text>
+        {proveItLine ? (
+          <Text size="meta" tone="muted">
+            {proveItLine}
+          </Text>
+        ) : null}
       </View>
     </Card>
   );

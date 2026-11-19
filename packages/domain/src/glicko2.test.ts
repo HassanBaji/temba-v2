@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { glicko2EmptyPeriod, glicko2Period, glicko2Step } from "./glicko2";
+import {
+  classicExpectedScore,
+  glicko2EmptyPeriod,
+  glicko2Period,
+  glicko2Step,
+} from "./glicko2";
 
 describe("glicko2Period", () => {
   it("matches Glickman's worked example over three opponents", () => {
@@ -13,6 +18,28 @@ describe("glicko2Period", () => {
     expect(result.mu).toBeCloseTo(1464.06, 1);
     expect(result.phi).toBeCloseTo(151.52, 1);
     expect(result.sigma).toBeCloseTo(0.05999, 4);
+  });
+});
+
+describe("classicExpectedScore", () => {
+  it("is 0.5 at the same μ, whatever the opponent's φ", () => {
+    expect(classicExpectedScore(1500, { mu: 1500, phi: 350 })).toBe(0.5);
+    expect(classicExpectedScore(2000, { mu: 2000, phi: 100 })).toBe(0.5);
+  });
+
+  it("matches Glickman's worked example", () => {
+    expect(classicExpectedScore(1500, { mu: 1400, phi: 30 })).toBeCloseTo(
+      0.639,
+      3,
+    );
+    expect(classicExpectedScore(1500, { mu: 1550, phi: 100 })).toBeCloseTo(
+      0.432,
+      3,
+    );
+    expect(classicExpectedScore(1500, { mu: 1700, phi: 300 })).toBeCloseTo(
+      0.303,
+      3,
+    );
   });
 });
 

@@ -3,8 +3,10 @@ import { and, count, eq, lte } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  GroupSportEnum,
   groupTierEvents,
   groups,
+  levelCheckResults,
   matchRatingWindows,
   performanceRatingResults,
   performanceRatings,
@@ -12,6 +14,11 @@ import {
 } from "@repo/db";
 
 import { DEFAULT_FOOTBALL_BIBS } from "@repo/domain/football-lineup";
+import {
+  LEVEL_CHECK_MIN_ANSWERS,
+  levelCheckVerdict,
+  type LevelCheckResultData,
+} from "@repo/domain/level-check";
 import { gameMvpView } from "@repo/domain/marks";
 import {
   TRIM_FROM_BALLOTS,
@@ -38,6 +45,11 @@ import { loadMatchParticipants } from "#src/marks/match-participants";
 import { mvpQuestion } from "#src/marks/settle-mvp";
 import { loadGroupTierTable } from "#src/ratings/group-tier-table";
 import {
+  levelCheckAsked,
+  levelCheckAnswersByPlayer,
+  type SidedMatch,
+} from "#src/ratings/level-check";
+import {
   countedBallots,
   settleRatingWindowIfDue,
 } from "#src/ratings/settle-rating-window";
@@ -52,7 +64,8 @@ type DbClient = typeof db;
  * settles it returns the closing time and no rating. A viewer who did not
  * play gets no result. A window past its close is settled first. On a Match
  * that counts for Temba Level, padel included, a player gets what they were
- * rated and where it left their Reliability instead (ADR-0095).
+ * rated and where it left their Reliability instead (ADR-0095), and on padel
+ * their own Level check: the verdict and the move, or why none settled.
  */
 export async function performanceRatingResult(
   database: DbClient,
@@ -109,6 +122,10 @@ export async function performanceRatingResult(
             window,
             userId: args.userId,
           })
+        : null,
+    levelCheck:
+      state === "settled" && played && levelCheckAsked(window, game.sport)
+        ? await levelCheckResult(database, { match, userId: args.userId })
         : null,
     result: null,
   };
@@ -333,6 +350,57 @@ async function reliabilityResult(
     ),
     ...moved,
   };
+}
+
+/**
+ * The caller's own Level check on a settled padel window: what it moved, or
+ * why it settled nothing. Null for a player with no padel Rating.
+ */
+async function levelCheckResult(
+  database: DbClient,
+  args: {
+    match: SidedMatch;
+    userId: string;
+  },
+): Promise<LevelCheckResultData | null> {
+  const own = await database.query.levelCheckResults.findFirst({
+    where: and(
+      eq(levelCheckResults.matchId, args.match.id),
+      eq(levelCheckResults.userId, args.userId),
+    ),
+  });
+  if (own) {
+    return {
+      kind: "checked",
+      agreed: own.agreed,
+      verdictLevelHundredths: own.verdictLevelHundredths,
+      muBefore: own.muBefore,
+      muAfter: own.muAfter,
+      ballotsCounted: own.ballotsCounted,
+    };
+  }
+  const rating = await database.query.ratings.findFirst({
+    where: and(
+      eq(ratings.userId, args.userId),
+      eq(ratings.sport, GroupSportEnum.PADEL),
+    ),
+    columns: { id: true },
+  });
+  if (!rating) {
+    return null;
+  }
+  const picks = (await levelCheckAnswersByPlayer(database, args.match)).get(
+    args.userId,
+  );
+  const verdict = levelCheckVerdict(picks ?? []);
+  return verdict.kind === "verdict"
+    ? null
+    : {
+        kind: "unsettled",
+        reason: verdict.kind,
+        ballotsReceived: verdict.ballotsCounted,
+        ballotsNeeded: LEVEL_CHECK_MIN_ANSWERS,
+      };
 }
 
 export const performanceRatingResultProcedure = protectedProcedure

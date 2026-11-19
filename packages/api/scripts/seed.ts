@@ -60,6 +60,7 @@ import { requestLevelRange } from "#src/routers/games/requestLevelRange";
 import { saveFootballScore } from "#src/routers/games/saveFootballScore";
 import { scoreSet } from "#src/routers/games/scoreSet";
 import { sendLookupInvite as sendGameLookupInvite } from "#src/routers/games/sendLookupInvite";
+import { submitLevelChecks } from "#src/routers/games/submitLevelChecks";
 import { submitPerformanceRatings } from "#src/routers/games/submitPerformanceRatings";
 import { castMvpVote } from "#src/routers/marks/castMvpVote";
 import { acceptLookupInvite as acceptGroupLookupInvite } from "#src/routers/groups/acceptLookupInvite";
@@ -96,7 +97,11 @@ import { softArchive as softArchiveVenue } from "#src/routers/venues/softArchive
 import { updateBookingSettings } from "#src/routers/venues/updateBookingSettings";
 import { updateCancellationPolicy } from "#src/routers/venues/updateCancellationPolicy";
 
-import type { SelfDeclareChoice } from "@repo/domain/level-bands";
+import {
+  displayLabelFromStoredBand,
+  nextDistinctDisplayRung,
+  type SelfDeclareChoice,
+} from "@repo/domain/level-bands";
 import { addProductDays, zonedParts } from "@repo/domain/product-timezone";
 import { tierTable } from "@repo/domain/tier-bands";
 import type { Sport } from "@repo/domain/sport";
@@ -2587,8 +2592,142 @@ async function seedVerifiedFootball(u: Users, v: Venues) {
   await game("Saturday Galali five-a-side", at(3, 18), 28);
 }
 
+/**
+ * Padel Central Club is a Verified padel Group on Padel Central, so its
+ * Friendly games count for Temba Level at full weight and ask the Level
+ * check (ADR-0101). Last night's Game has settled: the other three placed
+ * Maya a band above the one she showed, and agreed with Tom's.
+ */
+async function seedVerifiedPadel(u: Users, v: Venues) {
+  const group = await createLoosePublic(db, {
+    name: "Padel Central Club",
+    description: "Verified padel at Padel Central. Your games move your level.",
+    sport: "padel",
+    userId: u.me!.id,
+  });
+  await db
+    .update(groups)
+    .set({ verifiedAt: new Date(), venueId: v.central.id })
+    .where(eq(groups.id, group.id));
+  const keys: [string, string, string, string] = ["me", "omar", "maya", "tom"];
+  for (const key of keys.slice(1)) {
+    await joinPublic(db, { groupId: group.id, userId: u[key]!.id });
+  }
+  const played = await friendly(u, {
+    groupId: group.id,
+    organizerKey: "me",
+    venueId: v.central.id,
+    courtId: v.central.courtIds[1],
+    name: "Club night",
+    start: at(2, 19),
+    seats: seats(keys),
+  });
+  await moveIntoPast(played.id, at(-1, 19));
+  await playFriendly(
+    u,
+    played,
+    "me",
+    [
+      [4, 6],
+      [3, 6],
+    ],
+    ["omar", "maya", "tom"],
+  );
+
+  const shown = async (key: string) => {
+    const row = await db.query.ratings.findFirst({
+      where: (table, { and: both, eq: equals }) =>
+        both(equals(table.userId, u[key]!.id), equals(table.sport, "padel")),
+      columns: { levelBand: true },
+    });
+    return row!.levelBand;
+  };
+  const maya = await shown("maya");
+  const placedMaya =
+    nextDistinctDisplayRung(maya) ?? displayLabelFromStoredBand(maya);
+  const agreedTom = displayLabelFromStoredBand(await shown("tom"));
+  const answers: Record<string, { key: string; band: typeof agreedTom }[]> = {
+    me: [
+      { key: "maya", band: placedMaya },
+      { key: "tom", band: agreedTom },
+    ],
+    omar: [
+      { key: "maya", band: placedMaya },
+      { key: "tom", band: agreedTom },
+    ],
+    maya: [{ key: "tom", band: agreedTom }],
+    tom: [{ key: "maya", band: placedMaya }],
+  };
+  for (const [rater, rows] of Object.entries(answers)) {
+    await submitLevelChecks(db, {
+      gameId: played.id,
+      userId: u[rater]!.id,
+      answers: rows.map((row) => ({ userId: u[row.key]!.id, band: row.band })),
+    });
+  }
+  await settleWindow(played.matchId);
+  await seedProveIt(u, v, group.id);
+}
+
+async function settleWindow(matchId: string) {
+  const window = await db.query.matchRatingWindows.findFirst({
+    where: eq(matchRatingWindows.matchId, matchId),
+  });
+  await db.transaction((tx) =>
+    settleRatingWindow(tx, matchId, window!.closesAt),
+  );
+}
+
+/**
+ * You declared C and your Level is not yet confirmed, so the Prove-it rule
+ * covers you (ADR-0099): two nights ago you and Sofia lost a close Game to
+ * Diego and Yusuf at Padel Central Club, and the loss cost one and a half times
+ * as much, which the played Game says.
+ */
+async function seedProveIt(u: Users, v: Venues, groupId: string) {
+  for (const key of ["sofia", "diego", "yusuf"]) {
+    await joinPublic(db, { groupId, userId: u[key]!.id });
+  }
+  const played = await friendly(u, {
+    groupId,
+    organizerKey: "me",
+    venueId: v.central.id,
+    courtId: v.central.courtIds[1],
+    name: "Club ladder",
+    start: at(3, 19),
+    seats: seats(["me", "sofia", "diego", "yusuf"]),
+  });
+  await moveIntoPast(played.id, at(-2, 19));
+  await playFriendly(
+    u,
+    played,
+    "me",
+    [
+      [5, 7],
+      [4, 6],
+    ],
+    ["sofia", "diego", "yusuf"],
+  );
+  await settleWindow(played.matchId);
+  const covered = await db.query.ratingEvents.findFirst({
+    where: (table, { and: both, eq: equals, isNotNull: present }) =>
+      both(
+        equals(table.matchId, played.matchId),
+        equals(table.userId, u.me!.id),
+        present(table.proveItPart),
+      ),
+    columns: { id: true },
+  });
+  if (!covered) {
+    throw new Error("The Club ladder Game did not apply the Prove-it rule");
+  }
+}
+
 async function main() {
   assertLocalDatabase();
+  // The seed writes a settled Level check, which the API asks only with the
+  // flag on, as the API App's .env.example has it locally.
+  process.env.PADEL_LEVEL_CHECK_ENABLED = "1";
   // The graphile_worker schema only exists once the API worker has booted, and
   // Groups, Games and Bookings all enqueue jobs.
   setJobSink({ add: () => Promise.resolve(), remove: () => Promise.resolve() });
@@ -2602,6 +2741,7 @@ async function main() {
   await step("games", () => seedGames(u, g, v));
   await step("football", () => seedFootball(u, v));
   await step("verified football", () => seedVerifiedFootball(u, v));
+  await step("verified padel", () => seedVerifiedPadel(u, v));
   await step("partner venues", async () => {
     for (const venueId of [v.central.id, v.pitches.id]) {
       await setPartner(db, {

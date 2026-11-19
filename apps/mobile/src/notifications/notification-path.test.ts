@@ -121,6 +121,12 @@ describe("notificationPath", () => {
     ).toBeNull();
   });
 
+  it("opens padel Ratings when the Level recalculation changed the Level", () => {
+    expect(
+      notificationPath({ type: "level_recalculated", group: null, game: null }),
+    ).toBe("/profile/ratings?sport=padel");
+  });
+
   it("has no target when the subject is missing or the type is unknown", () => {
     expect(notificationPath({ type: "game_finished", group: null })).toBeNull();
     expect(

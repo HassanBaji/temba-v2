@@ -62,6 +62,12 @@ export const ratings = pgTable(
      * more.
      */
     reliability: doublePrecision("reliability").notNull().default(100),
+    /**
+     * The band declared when the Rating was created (ADR-0098), written once
+     * and never moved by a Match or a Level override. Null for "I don't know"
+     * and for a Rating nobody declared.
+     */
+    declaredBand: ratingLevelBands("declared_band"),
     selfDeclaredAt: timestamp("self_declared_at"),
     lastRatedAt: timestamp("last_rated_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -121,6 +127,16 @@ export const ratingEvents = pgTable(
      * points on football, μ points on padel. Null when it added nothing.
      */
     reliabilityPart: doublePrecision("reliability_part"),
+    /**
+     * What the Prove-it rule added to a lost padel Match's move beyond
+     * Reliability (ADR-0099), in μ points. Null when it added nothing.
+     */
+    proveItPart: doublePrecision("prove_it_part"),
+    /**
+     * The Reliability loss factor this Match read for the player
+     * (ADR-0099), so the Match can be recomputed exactly. Null when it was 1.
+     */
+    reliabilityLossFactor: doublePrecision("reliability_loss_factor"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => ({

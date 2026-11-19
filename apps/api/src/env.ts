@@ -23,6 +23,7 @@ const typedServer = {
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(1),
   PAYMENT_PROVIDER: z.enum(["manual", "tap"]).default("manual"),
   EMAIL_PROVIDER: z.enum(["none", "resend"]).default("none"),
+  PADEL_LEVEL_CHECK_ENABLED: z.enum(["0", "1"]).default("0"),
 };
 
 function parseTyped(runtimeEnv: NodeJS.ProcessEnv) {

@@ -23,7 +23,8 @@ type ReliabilityView = Extract<PerformanceResultView, { kind: "reliability" }>;
 /**
  * On a played Game, once the Rating window closes: the viewer's rating and
  * what it did to their tier points, or on a Match that counts for Temba Level
- * to their Reliability; before that, when it arrives.
+ * to their Reliability, with a padel Match's Level check; before that, when
+ * it arrives.
  */
 export function PerformanceResultCard({
   gameId,
@@ -121,6 +122,19 @@ function ReliabilityResult({ view }: { view: ReliabilityView }) {
         </p>
         <p className="text-meta text-muted-foreground mt-1">{view.footnote}</p>
       </div>
+      {view.levelCheck ? (
+        <div className="border-dimrule mt-3.5 border-t pt-3">
+          <p className="text-meta text-muted-foreground">
+            {view.levelCheck.title}
+          </p>
+          <p className="mt-1 font-semibold">{view.levelCheck.headline}</p>
+          {view.levelCheck.line ? (
+            <p className="text-meta text-muted-foreground mt-1 tabular-nums">
+              {view.levelCheck.line}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

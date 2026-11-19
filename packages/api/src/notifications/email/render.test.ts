@@ -38,6 +38,7 @@ function item(
     tier: null,
     ovrMove: null,
     reliabilityMove: null,
+    levelCheckMove: null,
     placeAward: null,
     dispute: null,
     levelDispute: null,
@@ -407,6 +408,24 @@ describe("renderNotificationEmail", () => {
       `href="${ORIGIN}/dashboard/you/ratings?sport=football"`,
     );
     expect(email.html).toContain("Open your ratings");
+  });
+
+  it("sends a recalculated Level to the padel Ratings page", () => {
+    const email = render(
+      item({
+        type: "level_recalculated",
+        audience: "player",
+        actor: null,
+        group: null,
+        game: null,
+      }),
+    );
+    expect(email.subject).toBe(
+      "Your padel level was recalculated under the new level rules",
+    );
+    expect(email.html).toContain(
+      `href="${ORIGIN}/dashboard/you/ratings?sport=padel"`,
+    );
   });
 
   it("renders Arabic right-to-left from the Arabic catalog", () => {

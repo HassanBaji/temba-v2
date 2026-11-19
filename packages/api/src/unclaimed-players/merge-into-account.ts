@@ -34,6 +34,8 @@ import {
   groupMembers,
   groupSeasons,
   groups,
+  levelCheckBallots,
+  levelCheckResults,
   levelDisputes,
   levelOverrides,
   marks,
@@ -120,6 +122,14 @@ const uniqueUserReferences: UniqueUserReference[] = [
     sameKeys: [performanceRatingResults.matchId],
   },
   {
+    column: levelCheckBallots.rateeUserId,
+    sameKeys: [levelCheckBallots.matchId, levelCheckBallots.raterUserId],
+  },
+  {
+    column: levelCheckBallots.raterUserId,
+    sameKeys: [levelCheckBallots.matchId, levelCheckBallots.rateeUserId],
+  },
+  {
     column: gameInviteLinkConsents.userId,
     sameKeys: [gameInviteLinkConsents.gameInviteLinkId],
   },
@@ -154,6 +164,7 @@ const ratingUserReferences: PgColumn[] = [
   ratingEvents.userId,
   levelOverrides.userId,
   kingPlaceAwards.userId,
+  levelCheckResults.userId,
 ];
 
 const groupRatingUserReferences: PgColumn[] = [
@@ -322,6 +333,24 @@ async function dropMvpVotesBetween(tx: DbTx, ids: MergeIds) {
     );
 }
 
+/** A Level check answer between the two would become one about oneself, which the table refuses. */
+async function dropLevelCheckAnswersBetween(tx: DbTx, ids: MergeIds) {
+  await tx
+    .delete(levelCheckBallots)
+    .where(
+      or(
+        and(
+          eq(levelCheckBallots.raterUserId, ids.survivorUserId),
+          eq(levelCheckBallots.rateeUserId, ids.mergedUserId),
+        ),
+        and(
+          eq(levelCheckBallots.raterUserId, ids.mergedUserId),
+          eq(levelCheckBallots.rateeUserId, ids.survivorUserId),
+        ),
+      ),
+    );
+}
+
 /** A Performance rating between the two would become one to oneself, which the table refuses. */
 async function dropPerformanceRatingsBetween(tx: DbTx, ids: MergeIds) {
   await tx
@@ -373,6 +402,14 @@ async function deleteRatingHistory(tx: DbTx, userId: string, sport: Sport) {
     .where(
       and(eq(kingPlaceAwards.userId, userId), eq(kingPlaceAwards.sport, sport)),
     );
+  await tx
+    .delete(levelCheckResults)
+    .where(
+      and(
+        eq(levelCheckResults.userId, userId),
+        eq(levelCheckResults.sport, sport),
+      ),
+    );
 }
 
 async function moveRatingHistory(tx: DbTx, sport: Sport, ids: MergeIds) {
@@ -406,6 +443,15 @@ async function moveRatingHistory(tx: DbTx, sport: Sport, ids: MergeIds) {
       and(
         eq(kingPlaceAwards.userId, ids.mergedUserId),
         eq(kingPlaceAwards.sport, sport),
+      ),
+    );
+  await tx
+    .update(levelCheckResults)
+    .set(survivor)
+    .where(
+      and(
+        eq(levelCheckResults.userId, ids.mergedUserId),
+        eq(levelCheckResults.sport, sport),
       ),
     );
 }
@@ -442,8 +488,8 @@ async function sportsWithRatingHistory(tx: DbTx, ids: MergeIds) {
 /**
  * Per sport, the Rating with more Rated Matches stays and the account's wins a
  * tie; a side without a Rating row never beats one with it. The other Rating,
- * its rating events, Level overrides and Place awards are deleted, never
- * averaged.
+ * its rating events, Level overrides, Place awards and Level check results
+ * are deleted, never averaged.
  */
 async function resolveRatings(tx: DbTx, ids: MergeIds) {
   const { sports, ratingRows } = await sportsWithRatingHistory(tx, ids);
@@ -707,6 +753,7 @@ export async function mergeIntoAccount(
     await dropMarksBetween(tx, ids);
     await dropMvpVotesBetween(tx, ids);
     await dropPerformanceRatingsBetween(tx, ids);
+    await dropLevelCheckAnswersBetween(tx, ids);
     await keepMergedNicknames(tx, ids);
 
     for (const reference of uniqueUserReferences) {

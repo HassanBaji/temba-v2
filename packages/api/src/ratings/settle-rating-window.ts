@@ -17,6 +17,7 @@ import {
   games,
   groupTierEvents,
   groups,
+  levelCheckResults,
   levelOverrides,
   matchGoals,
   matchRatingWindows,
@@ -75,6 +76,11 @@ import {
   type TierPerformance,
 } from "#src/ratings/apply-tier-match";
 import { ratingWeightForGame } from "#src/ratings/game-rating-weight";
+import {
+  levelCheckAsked,
+  settleLevelChecks,
+  takeBackLevelChecks,
+} from "#src/ratings/level-check";
 import { padelConfirmations } from "#src/ratings/level-confirmed";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -88,10 +94,10 @@ export type MatchRatingWindow = typeof matchRatingWindows.$inferSelect;
  * the settings, so a later change applies from the next Game. A Match that
  * counts for Temba Level always opens one, in Everyone mode at OVR's fixed
  * weight, and its OVR move waits for it (ADR-0069). A padel Friendly game on
- * a Verified Group opens one too, at no weight: its Level has moved, and the
- * ratings move Reliability (ADR-0095). A window a wrong-score
- * report suspended reopens for a fresh 24 hours with its snapshot and its
- * ballots. The Organizers, or when everyone rates every seated account
+ * a Verified Group or a padel Public Game opens one too, at no weight: its
+ * Level has moved, and the ratings move Reliability (ADR-0095). A window a
+ * wrong-score report suspended reopens for a fresh 24 hours with its snapshot
+ * and its ballots. The Organizers, or when everyone rates every seated account
  * holder, are asked to rate. Returns whether the Match has a window.
  */
 export async function openRatingWindow(
@@ -501,7 +507,8 @@ async function applySettledLevelMatch(
  * A player nobody rated, or with fewer ballots than the mode needs, has no
  * performance part. On a Match that counts for Temba Level each settled
  * rating then moves the player's Reliability (ADR-0095); a padel Match's
- * Level moved at completion, so that is all its window does. The MVP closes
+ * Level moved at completion, and its window then settles the Level check,
+ * which may move it again. The MVP closes
  * with a window that holds a move, whichever ladder it moves. Idempotent on `settled_at`; a
  * suspended window waits for
  * the next completion. Without `force` it settles only once `closes_at` has
@@ -644,6 +651,9 @@ export async function settleRatingWindow(
       settled,
       now,
     });
+    if (levelCheckAsked(window, game.sport)) {
+      await settleLevelChecks(database, { match, game, now });
+    }
   } else if (outcome.result !== "none" && groupId) {
     await applyTierMatch(database, {
       groupId,
@@ -665,7 +675,7 @@ export async function settleRatingWindow(
     await settleMvp(database, game.id, now);
   }
   if (window.countsForLevel && game.sport === "padel") {
-    await notifyReliabilityRatingsClosed(database, {
+    await notifyPadelWindowSettled(database, {
       match,
       gameId: game.id,
       groupId,
@@ -802,11 +812,12 @@ async function reverseReliability(
 }
 
 /**
- * Tells each padel player whose rating settled what they were rated and
- * where it left their Reliability, one row per player. A player with no
- * settled rating has nothing to be told: their Level moved at completion.
+ * Tells each padel player whose rating or Level check settled what they were
+ * rated, where it left their Reliability and what the other players placed
+ * them at, one row per player. A player with neither has nothing to be told:
+ * their Level moved at completion.
  */
-async function notifyReliabilityRatingsClosed(
+async function notifyPadelWindowSettled(
   database: DbClient,
   args: {
     match: typeof matches.$inferSelect;
@@ -817,29 +828,39 @@ async function notifyReliabilityRatingsClosed(
   const accountHolders = new Set(
     await matchSeatedUserIds(database, args.match),
   );
-  const results = await database
-    .select({
-      id: performanceRatingResults.id,
-      userId: performanceRatingResults.userId,
-    })
-    .from(performanceRatingResults)
-    .where(
-      and(
-        eq(performanceRatingResults.matchId, args.match.id),
-        isNotNull(performanceRatingResults.reliabilityAfter),
+  const [results, checks] = await Promise.all([
+    database
+      .select({
+        id: performanceRatingResults.id,
+        userId: performanceRatingResults.userId,
+      })
+      .from(performanceRatingResults)
+      .where(
+        and(
+          eq(performanceRatingResults.matchId, args.match.id),
+          isNotNull(performanceRatingResults.reliabilityAfter),
+        ),
       ),
-    );
-  for (const result of results) {
-    if (!accountHolders.has(result.userId)) {
+    database
+      .select({ id: levelCheckResults.id, userId: levelCheckResults.userId })
+      .from(levelCheckResults)
+      .where(eq(levelCheckResults.matchId, args.match.id)),
+  ]);
+  const settledByUser = new Map<string, string>();
+  for (const row of [...checks, ...results]) {
+    settledByUser.set(row.userId, row.id);
+  }
+  for (const [userId, resultId] of settledByUser) {
+    if (!accountHolders.has(userId)) {
       continue;
     }
     await notify(database, {
       type: "performance_ratings_closed",
-      recipients: [{ userId: result.userId, audience: "player" }],
+      recipients: [{ userId, audience: "player" }],
       excludeUserIds: [],
       groupId: args.groupId,
       gameId: args.gameId,
-      dedupeKey: `performance_ratings_closed:${result.id}`,
+      dedupeKey: `performance_ratings_closed:${resultId}`,
     });
   }
 }
@@ -944,8 +965,9 @@ export async function settleRatingWindowIfDue(
 
 /**
  * A wrong-score report suspends the window: its results go and with them
- * what they did to Reliability, the Job is removed, and the ballots stay for
- * when the Match completes again.
+ * what they did to Reliability, its Level check is taken back, the Job is
+ * removed, and the ballots and Level check answers stay for when the Match
+ * completes again.
  */
 export async function suspendRatingWindow(
   database: DbClient,
@@ -961,6 +983,7 @@ export async function suspendRatingWindow(
     return;
   }
   await reverseReliability(database, matchId, now);
+  await takeBackLevelChecks(database, matchId, now);
   await database
     .delete(performanceRatingResults)
     .where(eq(performanceRatingResults.matchId, matchId));
