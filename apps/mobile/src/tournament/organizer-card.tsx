@@ -225,7 +225,8 @@ export function OrganizerCard({
     );
   }
 
-  if (organizer.showUndo) {
+  // King of the court is drawn on the web only, so it is undone there too.
+  if (organizer.showUndo && !home.kingOfTheCourt) {
     blocks.push(
       <Block key="undo">
         <Action>

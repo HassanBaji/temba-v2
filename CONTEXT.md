@@ -469,7 +469,7 @@ A compact Result card on a transparent canvas, to drop on the player's own photo
 _Avoid_: widget, badge, overlay
 
 **Americano**:
-A Tournament shape (ADR-0094): players take a seat alone, eight to twenty-four in fours, and get a new partner every Round. The Organizer picks the Round count at create, at most one fewer than the players, and makes the Rounds from a shuffled draw; nobody partners the same player twice. Each Match seats its four players directly (**Americano seat**), and one table of players ranks the day on games won. Never rated. Older rows may carry `americano` as their Game format, which is no longer created.
+A Tournament shape (ADR-0094): players take a seat alone, eight to twenty-four in fours, and get a new partner every Round. The Organizer picks the Round count at create, at most one fewer than the players, and makes the Rounds from a shuffled draw; nobody partners the same player twice. Until a score is in, the Organizer may undo the Rounds, which deletes their Matches, and make them again. Each Match seats its four players directly (**Americano seat**), and one table of players ranks the day on games won. Never rated. Older rows may carry `americano` as their Game format, which is no longer created.
 _Avoid_: Friendly game, team-only (illegal on this shape), mexicano (a different rotation)
 
 **Americano seat**:
@@ -493,7 +493,7 @@ A Tournament shape with no Matches. Two Game teams start on each court, two to s
 _Avoid_: ladder, king's court (that is Court 1), Americano
 
 **Starting courts**:
-The King of the court draw: which court each Game team starts on, for the first round only. The Organizer can redraw or swap teams and post again until the Final order is posted. Posting closes the seats.
+The King of the court draw: which court each Game team starts on, for the first round only. The Organizer can redraw or swap teams and post again until the Final order is posted, or undo the draw and draw again. Posting closes the seats; undoing leaves them closed.
 _Avoid_: Pool draw, seeding, bracket
 
 **Final order**:
