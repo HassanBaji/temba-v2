@@ -73,6 +73,7 @@ export function AmericanoPlayerChip({
   selected = false,
   onClick,
   label,
+  place,
 }: {
   name: string;
   image?: string | null;
@@ -80,6 +81,8 @@ export function AmericanoPlayerChip({
   selected?: boolean;
   onClick?: () => void;
   label?: string;
+  /** A Waitlist entry's place in line, shown at the end. */
+  place?: number;
 }) {
   const m = useMessages();
   const content = (
@@ -106,6 +109,16 @@ export function AmericanoPlayerChip({
       <span dir="auto" className="text-meta min-w-0 truncate">
         {isViewer ? m.common.you : shortPlayerName(name)}
       </span>
+      {place != null ? (
+        <span
+          className={cn(
+            "text-meta ms-auto shrink-0 tabular-nums",
+            isViewer || selected ? "text-paper/70" : "text-muted-foreground",
+          )}
+        >
+          {place}
+        </span>
+      ) : null}
     </>
   );
   const className = cn(
@@ -201,6 +214,35 @@ export function AmericanoPlayersGrid({
         <OpenSeatChip key={`open-${index}`} onClick={onOpenSeat} />
       ))}
     </div>
+  );
+}
+
+/** The Waitlist in line order, two a row, each with its place. */
+export function AmericanoWaitlist({
+  entries,
+  viewerUserId,
+}: {
+  entries: readonly {
+    id: string;
+    userId: string | null;
+    name: string;
+    image: string | null;
+  }[];
+  viewerUserId: string;
+}) {
+  return (
+    <ol className={cn(ROUND_CARD, "grid grid-cols-2 gap-1.5 p-2.5")}>
+      {entries.map((entry, index) => (
+        <li key={entry.id} className="min-w-0">
+          <AmericanoPlayerChip
+            name={entry.name}
+            image={entry.image}
+            isViewer={entry.userId === viewerUserId}
+            place={index + 1}
+          />
+        </li>
+      ))}
+    </ol>
   );
 }
 

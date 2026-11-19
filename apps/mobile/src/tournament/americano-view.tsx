@@ -99,6 +99,28 @@ export function AmericanoView({ game }: { game: TournamentDetails }) {
             </Fragment>
           ))}
         </Card>
+        {game.waitlist.length > 0 ? (
+          <Card
+            title={m.waitlist.title}
+            meta={m.waitlist.count(game.waitlist.length)}
+          >
+            {game.waitlist.map((entry, index) => (
+              <Fragment key={entry.id}>
+                {index > 0 ? <Hairline /> : null}
+                <Row>
+                  <Text size="meta" tone="muted" style={{ width: 24 }}>
+                    {index + 1}
+                  </Text>
+                  <Text size="meta" weight="semibold" numberOfLines={1}>
+                    {entry.userId === game.viewerUserId
+                      ? messages.common.you
+                      : entry.name}
+                  </Text>
+                </Row>
+              </Fragment>
+            ))}
+          </Card>
+        ) : null}
         <Text size="meta" tone="muted">
           {game.isOrganizer ? m.mobile.webOnly : m.players.footPlayer}
         </Text>

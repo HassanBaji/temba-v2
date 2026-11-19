@@ -146,7 +146,8 @@ export const tournamentAmericano = {
       matchMinutes: number,
     ) =>
       `${rounds(roundCount)}، ${matches(courtCount)} في كل جولة على ${courts(courtCount)}، ${matchMinutes} دقيقة للمباراة، متتالية. جدول واحد للاعبين في النهاية، بترتيب الأشواط المكسوبة.`,
-    noCourts: "سجّل ملعبًا واحدًا على الأقل في الخطوة 2: تُوزَّع الجولات على الملاعب.",
+    noCourts:
+      "سجّل ملعبًا واحدًا على الأقل في الخطوة 2: تُوزَّع الجولات على الملاعب.",
     waitsForCourts: (recorded: number, needed: number) =>
       `سُجّل ${courts(recorded)} لـ${matches(needed)} في الجولة، لذا تنتظر بعض المباريات ملعبًا متاحًا.`,
     finishTooLate:
@@ -188,6 +189,19 @@ export const tournamentAmericano = {
     footPlayer:
       "لا فريق ولا جهة تختارها. خذ مقعدًا ويعطيك تمبا شريكًا لكل جولة.",
     remove: (name: string) => `أزل ${name}`,
+  },
+  waitlist: {
+    title: "قائمة الانتظار",
+    count: (n: number) =>
+      plural("ar", n, {
+        zero: "لا أحد ينتظر",
+        one: "واحد ينتظر",
+        two: "اثنان ينتظران",
+        few: "{n} ينتظرون",
+        many: "{n} ينتظرون",
+        other: "{n} ينتظرون",
+      }),
+    foot: "عندما يتوفر مقعد، يأخذه اللاعب التالي في الدور.",
   },
   schedule: {
     title: "الجدول",
@@ -420,7 +434,8 @@ export const tournamentAmericano = {
     useMakeRounds: "يُعدّ الأمريكانو جولاته من اللاعبين. استخدم أعدّ الجولات.",
     recordCourts:
       "سجّل ملعبًا واحدًا على الأقل في هذا السوشيال قبل إعداد الجولات.",
-    courtsRequired: "سجّل ملعبًا واحدًا على الأقل: تُوزَّع الجولات على الملاعب.",
+    courtsRequired:
+      "سجّل ملعبًا واحدًا على الأقل: تُوزَّع الجولات على الملاعب.",
     windowTooShort: (finish: string) =>
       `تحتاج الجولات حتى ${isolate(finish)}. أخّر وقت الانتهاء أو سجّل ملاعب أكثر أو العب جولات أقل.`,
     roundsOverrun:

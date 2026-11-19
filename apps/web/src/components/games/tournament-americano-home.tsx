@@ -48,6 +48,7 @@ import {
   AmericanoPlayersGrid,
   AmericanoScheduleStrip,
   AmericanoTableCard,
+  AmericanoWaitlist,
   AmericanoYourRounds,
   type AmericanoBoard,
   type AmericanoBoardMatch,
@@ -372,6 +373,26 @@ function AmericanoPredraw({
           {organizer ? m.players.footOrganizer : m.players.footPlayer}
         </p>
       </section>
+
+      {data.waitlist.length > 0 ? (
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="font-expanded text-title tracking-[-0.03em]">
+              {m.waitlist.title}
+            </h2>
+            <p className="text-muted-foreground text-meta">
+              {m.waitlist.count(data.waitlist.length)}
+            </p>
+          </div>
+          <AmericanoWaitlist
+            entries={data.waitlist}
+            viewerUserId={data.viewerUserId}
+          />
+          <p className="text-muted-foreground text-meta leading-relaxed">
+            {m.waitlist.foot}
+          </p>
+        </section>
+      ) : null}
 
       {starts.length > 0 ? (
         <section className="space-y-3">
