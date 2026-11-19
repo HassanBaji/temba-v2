@@ -249,7 +249,7 @@ async function supersedeOpenDispute(
  * suspended with its ballots kept, and reopens at the next completion
  * (ADR-0068). A padel Match's Level check is taken back before its rating
  * events, and its answers kept; no later Level check refuses the reversal,
- * whose μ move then comes off by subtraction (ADR-0099). An Organizer's
+ * whose μ move then comes off by subtraction (ADR-0101). An Organizer's
  * report closes the Match's open dispute as superseded; an Operator upholding
  * that dispute runs this door and marks it upheld itself.
  *

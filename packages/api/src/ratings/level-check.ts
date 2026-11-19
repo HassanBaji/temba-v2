@@ -44,7 +44,7 @@ export type SidedMatch = Pick<
  * Whether the API asks the Level check at all: off unless
  * `PADEL_LEVEL_CHECK_ENABLED` is "1". The Level recalculation refuses once a
  * Level check has settled, so the check is turned on only after the
- * recalculation's production run (ADR-0099).
+ * recalculation's production run (ADR-0101).
  */
 export function levelCheckEnabled() {
   return process.env.PADEL_LEVEL_CHECK_ENABLED === "1";

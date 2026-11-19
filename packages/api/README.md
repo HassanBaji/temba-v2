@@ -27,7 +27,7 @@ It pages through every Clerk User and writes what Clerk says now, so it is safe 
 
 ## Padel Level recalculation
 
-The Level recalculation replays every padel Rated Match, Place award and Level override under the Declared band rules and rewrites the stored numbers to match (ADR-0098, `.scratch/padel-declared-band-trust/spec.md`, section 9). It runs once, after the Prove-it rule is deployed and before the Level check is. Every command needs `DATABASE_URL` in the shell or in `packages/api/.env`.
+The Level recalculation replays every padel Rated Match, Place award and Level override under the Declared band rules and rewrites the stored numbers to match (ADR-0100, `.scratch/padel-declared-band-trust/spec.md`, section 9). It runs once, after the Prove-it rule is deployed and before the Level check is. Every command needs `DATABASE_URL` in the shell or in `packages/api/.env`.
 
 ```bash
 pnpm --filter @repo/api db:replay-padel-ratings                                  # dry run

@@ -311,7 +311,7 @@ describe("A new padel declarer's first even win against settled players", () => 
   });
 });
 
-describe("rateDoublesMatch under the Prove-it rule (ADR-0097)", () => {
+describe("rateDoublesMatch under the Prove-it rule (ADR-0099)", () => {
   const at = (
     mu: number,
     extra: Partial<DoublesPlayerInput> = {},

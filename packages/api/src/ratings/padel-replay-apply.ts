@@ -152,7 +152,7 @@ async function backUpAndWrite(
   `);
 }
 
-/** One `level_recalculated` Notification per player told, written already emailed so no email Job is enqueued (ADR-0098). */
+/** One `level_recalculated` Notification per player told, written already emailed so no email Job is enqueued (ADR-0100). */
 export async function tellRecalculated(
   tx: DbTx,
   args: { userIds: readonly string[]; runId: string; emailedAt: Date },

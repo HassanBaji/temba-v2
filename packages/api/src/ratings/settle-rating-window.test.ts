@@ -518,7 +518,7 @@ describe("The MVP closes with the Match's Rating window (ADR-0068)", () => {
   });
 });
 
-describe("A padel Public Game's Rating window (ADR-0099)", () => {
+describe("A padel Public Game's Rating window (ADR-0101)", () => {
   recordJobs();
 
   function api(database: TestDatabase) {

@@ -223,9 +223,9 @@ export async function persistRatedUser(args: {
  * count in the Standing. A padel player below full Reliability who lost
  * moves further, and a padel Friendly game on a Verified Group or a padel
  * Public Game then opens a Rating window whose ratings move Reliability
- * (ADR-0095) and whose Level check moves the Level (ADR-0099). A padel player
+ * (ADR-0095) and whose Level check moves the Level (ADR-0101). A padel player
  * who declared C or above and whose Level is not yet confirmed moves further
- * on a lost Match against a pair at about their level (ADR-0097). Skips when
+ * on a lost Match against a pair at about their level (ADR-0099). Skips when
  * the Match is not a Rated Match (cancelled or Unrated Game, missing sides,
  * not four Users, or four Guest players). A Guest player plays at the mean of
  * the others and is never rated (ADR-0079). Idempotent per User+Match.
@@ -327,7 +327,7 @@ export async function applyRatedMatch(
   // both sides confirmed, asks its four players to rate each other and check
   // each other's Level. The Level has already moved; the ratings move
   // Reliability and the Level check moves the Level again when the window
-  // settles (ADR-0095, ADR-0099). A Public Game's window exists for the Level
+  // settles (ADR-0095, ADR-0101). A Public Game's window exists for the Level
   // check, so it opens none while the check is off.
   if (
     liveGame.format === "friendly_game" &&

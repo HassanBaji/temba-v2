@@ -89,7 +89,7 @@ function shows(ladder: RatingHistoryLadder, part: "level" | "tier") {
  * A User's own Rating history (ADR-0073): the union of their
  * Rated Matches (`rating_events`), Level overrides (`level_overrides`),
  * King of the court Place awards (`king_place_awards`, ADR-0089), Level
- * checks (`level_check_results`, ADR-0099) and tier Group moves
+ * checks (`level_check_results`, ADR-0101) and tier Group moves
  * (`group_tier_events`), newest first, keyset-paged across all five. Manual changes carry who set them, by which door, the Venue a
  * Verifier calibrated from, the reason and the note. A derived "Level
  * confirmed" milestone sits just before the Match that confirmed each sport's

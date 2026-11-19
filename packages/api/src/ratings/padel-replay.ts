@@ -36,7 +36,7 @@ import {
 } from "#src/ratings/padel-replay-seats";
 
 /**
- * "declared-band": the Declared band rules (ADR-0096, ADR-0097). "baseline":
+ * "declared-band": the Declared band rules (ADR-0098, ADR-0099). "baseline":
  * the rules before them, every start at φ 350 and no Prove-it rule, to tell
  * what today's formula does to old Matches from what the new rules do.
  */
@@ -195,7 +195,7 @@ export type ReplayStart = {
 };
 
 /**
- * The rule the replay applied where the ledger alone could not say (ADR-0098):
+ * The rule the replay applied where the ledger alone could not say (ADR-0100):
  * "start-mu-off-midpoint" a declared start μ that is no band midpoint,
  * "seat-without-event" a seat with no rating event played as a Guest player,
  * "carried-over" a row carried over by its stored move,
@@ -407,7 +407,7 @@ function declaredStart(
  * Reads back what each player started from: the earliest ledger row's μ
  * before, or the Rating's own μ when nothing has moved it. Idle inflation
  * never touches μ and a reversal deletes its event, so that μ is the
- * declared one. A stored Declared band never changes (ADR-0096): when there
+ * declared one. A stored Declared band never changes (ADR-0098): when there
  * is one it is kept, and the band is read back from μ only when there is not.
  */
 function recoverStarts(
@@ -476,7 +476,7 @@ function glickoOf(state: State): RatingGlickoState {
 
 /**
  * The Reliability loss factor a Match read for the player: stored since the
- * Prove-it rule (ADR-0097), derived once from `reliability_part` before it.
+ * Prove-it rule (ADR-0099), derived once from `reliability_part` before it.
  */
 export function replayLossFactor(event: ReplayEvent): number {
   if (event.reliabilityLossFactor != null) {
@@ -906,7 +906,7 @@ function withoutRatingAnomalies(walk: Walk): ReplayAnomaly[] {
 }
 
 /**
- * Replays the padel ledger under one rule set (ADR-0098): one walk over
+ * Replays the padel ledger under one rule set (ADR-0100): one walk over
  * every Rated Match, Level override and Game's Place awards, in order,
  * through the same functions the live writers call, so a history the live
  * writers wrote under these rules replays to exactly what they stored. Pure:

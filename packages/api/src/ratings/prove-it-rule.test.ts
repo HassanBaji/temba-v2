@@ -129,7 +129,7 @@ async function playMore(
   return last;
 }
 
-describe("the Prove-it rule (ADR-0097)", () => {
+describe("the Prove-it rule (ADR-0099)", () => {
   it("moves a declared C who lost to a pair at their level one and a half times as far on their fifth Verified Group Match, and stores the extra", async () => {
     await withDb(async (db) => {
       const first = await scoredPadel(db);

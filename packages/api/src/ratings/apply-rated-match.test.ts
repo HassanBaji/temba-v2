@@ -520,7 +520,7 @@ describe("Unrated Games", () => {
   });
 });
 
-describe("A padel Public Game's Rating window (ADR-0099)", () => {
+describe("A padel Public Game's Rating window (ADR-0101)", () => {
   const jobs = recordJobs();
 
   function api(database: TestDatabase) {

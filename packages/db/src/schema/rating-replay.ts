@@ -22,7 +22,7 @@ export type RatingReplaySummary = {
   carriedUnplaced: number;
 };
 
-/** One applied Level recalculation (ADR-0098). A run that would change nothing is not recorded. */
+/** One applied Level recalculation (ADR-0100). A run that would change nothing is not recorded. */
 export const ratingReplayRuns = pgTable("rating_replay_runs", {
   id: uuid("id").primaryKey().defaultRandom(),
   appliedAt: timestamp("applied_at").notNull().defaultNow(),

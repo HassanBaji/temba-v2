@@ -402,7 +402,7 @@ function individualFriendlyGamePhase(args: {
 
 /**
  * The Prove-it rule's share of the viewer's lost padel Match and the band they
- * declared, which the played Game names (ADR-0097). Null when it added nothing.
+ * declared, which the played Game names (ADR-0099). Null when it added nothing.
  */
 async function proveItImpact(
   database: DbClient,
@@ -1074,7 +1074,7 @@ export async function gameById(
     ratedMatchesRemainingToConfirm: number | null;
     /**
      * What the Prove-it rule added to a lost padel Match, in μ points, and
-     * the band the viewer declared (ADR-0097). Null when it added nothing.
+     * the band the viewer declared (ADR-0099). Null when it added nothing.
      */
     proveIt: ProveItImpact | null;
     /** A football Match's move in OVR, by part (ADR-0069). */

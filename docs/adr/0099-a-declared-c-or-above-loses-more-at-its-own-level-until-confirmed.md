@@ -2,7 +2,7 @@
 
 **Status:** accepted. Spec: `.scratch/padel-declared-band-trust/spec.md`. Amends [ADR-0070](./0070-a-padel-level-weighs-the-partner-and-reads-from-one.md) (the padel step) and [ADR-0095](./0095-performance-ratings-move-reliability-and-a-loss-costs-more-below-full.md) (the larger loss factor applies, and the factor is stored).
 
-A padel declaration now sets the starting φ (ADR-0096), so a player who declared C or above starts at φ 250 and moves less on every result. A player who overstated has less room to fall than before. The owner asked that C and above be proven: until the Level is confirmed, a loss to a pair at about the same level costs one and a half times as much, while wins count normally.
+A padel declaration now sets the starting φ (ADR-0098), so a player who declared C or above starts at φ 250 and moves less on every result. A player who overstated has less room to fall than before. The owner asked that C and above be proven: until the Level is confirmed, a loss to a pair at about the same level costs one and a half times as much, while wins count normally.
 
 ## Decision
 
@@ -22,5 +22,5 @@ A padel declaration now sets the starting φ (ADR-0096), so a player who declare
 
 - The padel pool deflates a little, only from unconfirmed players who declared C or above and lose even Matches.
 - A player who plays only Public Games or Challenge Games never confirms, so stays under the rule until a Level override.
-- An Organizer's band for an Unclaimed player is a Declared band (ADR-0096), so the rule covers them too.
+- An Organizer's band for an Unclaimed player is a Declared band (ADR-0098), so the rule covers them too.
 - Between this deploy and the Level recalculation the rule covers only new declarers. The recalculation then replays every padel Match under it.

@@ -166,7 +166,7 @@ function ovrStandingSentence(args: {
 
 /**
  * What the Prove-it rule added to the viewer's lost padel Match, in μ points,
- * and the band they declared (ADR-0097).
+ * and the band they declared (ADR-0099).
  */
 export type ProveItImpact = { part: number; declaredBand: LevelBand };
 

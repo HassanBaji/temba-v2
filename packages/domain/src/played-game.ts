@@ -86,7 +86,7 @@ export type PlayedResultLine = {
 export type PlayedYouLine = {
   line: string;
   ratingLine: string;
-  /** Why a loss cost more: the Prove-it rule's line (ADR-0097). */
+  /** Why a loss cost more: the Prove-it rule's line (ADR-0099). */
   proveItLine?: string | null;
   tag: "WON" | "LOST" | "DRAW";
   won: boolean;

@@ -2595,7 +2595,7 @@ async function seedVerifiedFootball(u: Users, v: Venues) {
 /**
  * Padel Central Club is a Verified padel Group on Padel Central, so its
  * Friendly games count for Temba Level at full weight and ask the Level
- * check (ADR-0099). Last night's Game has settled: the other three placed
+ * check (ADR-0101). Last night's Game has settled: the other three placed
  * Maya a band above the one she showed, and agreed with Tom's.
  */
 async function seedVerifiedPadel(u: Users, v: Venues) {
@@ -2680,7 +2680,7 @@ async function settleWindow(matchId: string) {
 
 /**
  * You declared C and your Level is not yet confirmed, so the Prove-it rule
- * covers you (ADR-0097): two nights ago you and Sofia lost a close Game to
+ * covers you (ADR-0099): two nights ago you and Sofia lost a close Game to
  * Diego and Yusuf at Padel Central Club, and the loss cost one and a half times
  * as much, which the played Game says.
  */

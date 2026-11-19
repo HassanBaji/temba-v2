@@ -143,7 +143,7 @@ export function padelNotSureLabel(locale: Locale) {
   return messagesFor(locale).onboarding.padelNotSure(PADEL_NOT_SURE_LEVEL);
 }
 
-/** The line under the padel band picker: what a C or above declaration means (ADR-0097). */
+/** The line under the padel band picker: what a C or above declaration means (ADR-0099). */
 export function padelProveItHint(locale: Locale) {
   return messagesFor(locale).onboarding.padelProveItHint(
     displayLabelFromStoredBand(PROVE_IT_FROM_BAND),

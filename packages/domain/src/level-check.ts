@@ -16,7 +16,7 @@ import {
 } from "./level-bands";
 
 /**
- * The Level check (ADR-0099): after a padel Match with a Rating window the
+ * The Level check (ADR-0101): after a padel Match with a Rating window the
  * other three players say what band a player played at, and the verdict is
  * blended into their Level as one measurement weighed by their φ. The
  * constants are starting values and tunable. This one is the φ the verdict
@@ -318,7 +318,7 @@ export type LevelCheckStep = {
  * weight. A verdict that agrees with the band the player shows moves no μ and
  * only narrows φ: one on that band, or one split evenly across two bands of
  * which it is one. A split's Level, the mean of the two middles, reads as one
- * of the two bands or a third, so it is never compared alone (ADR-0099).
+ * of the two bands or a third, so it is never compared alone (ADR-0101).
  */
 export function levelCheckStep(
   state: { mu: number; phi: number; levelBand: LevelBand },

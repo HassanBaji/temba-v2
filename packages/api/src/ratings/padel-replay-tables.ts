@@ -13,7 +13,7 @@ export type WriteRow = Record<string, WriteValue>;
 type ReplayTable<Columns extends string> = {
   /** The column each replayed row is matched on: a Rating by its User, unique per sport. */
   key: "user_id" | "id";
-  /** The columns a Level recalculation writes (ADR-0098), with their SQL types. */
+  /** The columns a Level recalculation writes (ADR-0100), with their SQL types. */
   columns: Record<Columns, ColumnType>;
   /** Whether the write also stamps `updated_at`, which a later writer may move. */
   stampsUpdatedAt: boolean;

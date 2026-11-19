@@ -1,6 +1,6 @@
 # A padel Level weighs the partner and reads from 1.0
 
-**Status:** accepted. Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0009](./0009-glicko-2-user-ratings.md). Amended by [ADR-0097](./0097-a-declared-c-or-above-loses-more-at-its-own-level-until-confirmed.md), which makes a declared C or above lose more at its own level until confirmed, and by [ADR-0098](./0098-padel-levels-were-recalculated-once-under-the-declared-band-rules.md), which replays every padel Match once under the declared-band rules.
+**Status:** accepted. Spec: `.scratch/rating-redesign/spec.md`. Amends [ADR-0009](./0009-glicko-2-user-ratings.md). Amended by [ADR-0099](./0099-a-declared-c-or-above-loses-more-at-its-own-level-until-confirmed.md), which makes a declared C or above lose more at its own level until confirmed, and by [ADR-0100](./0100-padel-levels-were-recalculated-once-under-the-declared-band-rules.md), which replays every padel Match once under the declared-band rules.
 
 ADR-0009 rated each padel player against the mean of the opposing pair and ignored the partner. A weak player beside a strong partner was then expected to lose, and gained a full step for a win their partner earned. The owner's design also asks for "the 1.0 to 7.0 scale padel players already know", with two decimals.
 

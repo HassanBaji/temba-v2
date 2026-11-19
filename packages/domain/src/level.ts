@@ -275,7 +275,7 @@ export function padelMatchesRemainingToConfirm(
 }
 
 /**
- * The Prove-it rule (ADR-0097): while a padel Level declared at C or above is
+ * The Prove-it rule (ADR-0099): while a padel Level declared at C or above is
  * not yet confirmed, a lost Rated Match against a pair at about the same
  * level (expected score 0.25 to 0.75) moves it one and a half times as far.
  */
@@ -313,7 +313,7 @@ export function confirmedPhiForOverride(phi: number | null): number {
 
 /**
  * Starting φ of a padel Declared band: the lower the band, the more it is
- * trusted, so results that confirm it move it little (ADR-0096). Football
+ * trusted, so results that confirm it move it little (ADR-0098). Football
  * keeps `INITIAL_PHI`, because a football φ carries its Provisional
  * (ADR-0069).
  */

@@ -25,7 +25,7 @@ export type DoublesPlayerInput = {
    */
   lossFactor?: number;
   /**
-   * Whether the Prove-it rule covers this player (ADR-0097): a lost Match
+   * Whether the Prove-it rule covers this player (ADR-0099): a lost Match
    * against a pair at about their level then moves them at least
    * `PROVE_IT_LOSS_FACTOR` times as far.
    */
@@ -160,7 +160,7 @@ function ratePlayer(args: {
  * once in Glicko-2 by their own φ, and the step is blended by `weight`. Idle
  * RD inflation runs per player before composites are built. A player who
  * lost moves `lossFactor` times as far, or `PROVE_IT_LOSS_FACTOR` times
- * when the Prove-it rule covers them and that is larger (ADR-0097).
+ * when the Prove-it rule covers them and that is larger (ADR-0099).
  */
 export function rateDoublesMatch(
   input: RateDoublesMatchInput,
