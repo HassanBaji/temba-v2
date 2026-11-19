@@ -11,6 +11,7 @@ import { ratingScopeTag } from "@repo/domain/game-rating-impact";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+import { isAmericano } from "@repo/domain/tournament-americano";
 import {
   showsTournamentOpenFlag,
   tournamentCardAction,
@@ -274,7 +275,13 @@ export function TournamentCard({
             }
             pending={pending}
             onPress={() => {
-              if (action === "join") {
+              // An Americano seat has no side to ask for (ADR-0094).
+              if (
+                action === "join" &&
+                isAmericano(game.format, game.tournamentShape)
+              ) {
+                actions.onRegister(game.id);
+              } else if (action === "join") {
                 onPickSeat(game);
               } else if (action === "join_waitlist") {
                 actions.onJoinWaitlist(game);
