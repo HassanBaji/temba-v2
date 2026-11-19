@@ -3,6 +3,7 @@ import { type Locale } from "@repo/i18n/locale";
 import { asc, eq, inArray, or, type SQL } from "drizzle-orm";
 
 import { awaitsOrganizerTeams } from "@repo/domain/alone-teams";
+import { isAmericano } from "@repo/domain/tournament-americano";
 import {
   gamePlayers,
   gameWaitlist,
@@ -497,12 +498,22 @@ function tournamentTeamsFromRow(
   });
 }
 
-/** Alone only, before the teams are posted: the players in sign-up order (ADR-0096). */
+function seatsPlayers(row: HubQueryRow) {
+  return (
+    awaitsOrganizerTeams(row) || isAmericano(row.format, row.tournamentShape)
+  );
+}
+
+/**
+ * The players in sign-up order, on a Social that seats players rather than
+ * Game teams: an Alone-only Social before its teams are posted (ADR-0096),
+ * and an Americano, whose pairs never become Game teams (ADR-0094).
+ */
 function alonePlayersFromRow(
   row: HubQueryRow,
   viewerUserId: string,
 ): HubListSideOccupant[] | null {
-  if (!awaitsOrganizerTeams(row)) {
+  if (!seatsPlayers(row)) {
     return null;
   }
   return row.players.flatMap((player) =>
@@ -535,8 +546,8 @@ function tournamentFromRow(
     drawPosted,
     allowSoloRegister: row.allowSoloRegister,
     teams: tournamentTeamsFromRow(row, viewerUserId),
-    // An Alone-only Social has no seats to pick until its teams are posted (ADR-0096).
-    joinSides: awaitsOrganizerTeams(row)
+    // Players sign up through `register`, with no seat to pick (ADR-0094, ADR-0096).
+    joinSides: seatsPlayers(row)
       ? []
       : sidesBySideIndex(row, viewerUserId, row.teamsAllowed ?? 0),
     alonePlayers: alonePlayersFromRow(row, viewerUserId),
