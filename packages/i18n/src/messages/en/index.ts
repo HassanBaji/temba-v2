@@ -54,6 +54,7 @@ import { venue } from "./venue";
 import { gameAlbum } from "./game-album";
 import { editTeams } from "./edit-teams";
 import { gamePayments } from "./game-payments";
+import { liveBoard } from "./live-board";
 import { aloneTeams } from "./alone-teams";
 
 export const en = {
@@ -113,5 +114,6 @@ export const en = {
   gameAlbum,
   editTeams,
   gamePayments,
+  liveBoard,
   aloneTeams,
 };

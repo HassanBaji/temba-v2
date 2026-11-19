@@ -18,6 +18,7 @@ type ExpectedTopLevel =
   | "gamePayments"
   | "games"
   | "groups"
+  | "liveBoards"
   | "marks"
   | "notifications"
   | "ratings"
@@ -357,6 +358,16 @@ type ExpectedVenues =
   | "updateBookingSettings"
   | "updateCancellationPolicy";
 
+type ExpectedLiveBoards =
+  | "connect"
+  | "disconnectTv"
+  | "forGame"
+  | "setMessage"
+  | "snapshot"
+  | "start"
+  | "stop"
+  | "update";
+
 type _TopLevel = AssertTrue<Equal<keyof RouterInputs, ExpectedTopLevel>>;
 type _Bookings = AssertTrue<
   Equal<keyof RouterInputs["bookings"], ExpectedBookings>
@@ -365,6 +376,9 @@ type _Challenges = AssertTrue<
   Equal<keyof RouterInputs["challenges"], ExpectedChallenges>
 >;
 type _Games = AssertTrue<Equal<keyof RouterInputs["games"], ExpectedGames>>;
+type _LiveBoards = AssertTrue<
+  Equal<keyof RouterInputs["liveBoards"], ExpectedLiveBoards>
+>;
 type _Groups = AssertTrue<Equal<keyof RouterInputs["groups"], ExpectedGroups>>;
 type _GameAlbum = AssertTrue<
   Equal<keyof RouterInputs["gameAlbum"], ExpectedGameAlbum>

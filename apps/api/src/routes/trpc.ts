@@ -25,6 +25,7 @@ const PUBLIC_LOOKUPS = new Set([
   "games.previewInviteLink",
   "groups.inviteLinkByShortCode",
   "groups.previewInviteLink",
+  "liveBoards.connect",
   "teams.previewInviteLink",
 ]);
 

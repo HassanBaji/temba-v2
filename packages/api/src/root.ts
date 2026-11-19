@@ -4,6 +4,7 @@ import { gameAlbumRouter } from "#src/routers/gameAlbum";
 import { gamePaymentsRouter } from "#src/routers/gamePayments";
 import { gamesRouter } from "#src/routers/games";
 import { groupsRouter } from "#src/routers/groups";
+import { liveBoardsRouter } from "#src/routers/liveBoards";
 import { marksRouter } from "#src/routers/marks";
 import { notificationsRouter } from "#src/routers/notifications";
 import { ratingsRouter } from "#src/routers/ratings";
@@ -24,6 +25,7 @@ export const appRouter = createTRPCRouter({
   gamePayments: gamePaymentsRouter,
   games: gamesRouter,
   groups: groupsRouter,
+  liveBoards: liveBoardsRouter,
   marks: marksRouter,
   notifications: notificationsRouter,
   ratings: ratingsRouter,
