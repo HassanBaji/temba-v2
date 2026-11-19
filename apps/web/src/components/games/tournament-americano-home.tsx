@@ -27,6 +27,7 @@ import { type TournamentDetails } from "@repo/domain/tournament-details";
 import { tournamentHomeView } from "@repo/domain/tournament-details";
 import { tournamentOrganizerName } from "@repo/domain/tournament-home";
 
+import { GameTvCardSlot } from "~/components/live-board/game-tv";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
@@ -303,6 +304,7 @@ function AmericanoPredraw({
         onInvite={organizer ? onInvite : undefined}
         actions={actions}
       />
+      <GameTvCardSlot />
 
       {organizer ? (
         <Surface
@@ -638,6 +640,7 @@ function AmericanoDrawnHome({
           </p>
         </Surface>
       )}
+      <GameTvCardSlot className="pt-[18px]" />
 
       <Tabs
         value={tab}

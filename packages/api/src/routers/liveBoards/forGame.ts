@@ -1,7 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { liveBoardKind } from "@repo/domain/live-board";
+import { gameDisplayName } from "@repo/domain/game-custom-name";
+import { liveBoardKind, type LiveBoardKind } from "@repo/domain/live-board";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -12,6 +13,7 @@ import {
   findRunningBoard,
   liveBoardControl,
   startableBoardKind,
+  type LiveBoardControl,
 } from "#src/live-boards/boards";
 import { protectedProcedure } from "#src/trpc";
 
@@ -31,7 +33,12 @@ export async function liveBoardForGame(
     locale?: Locale;
     now?: Date;
   },
-) {
+): Promise<{
+  gameName: string;
+  kind: LiveBoardKind | null;
+  canStart: boolean;
+  board: LiveBoardControl | null;
+}> {
   const locale = args.locale ?? DEFAULT_LOCALE;
   const now = args.now ?? new Date();
   const game = await requireGame(database, args.gameId, locale);
@@ -42,11 +49,13 @@ export async function liveBoardForGame(
     });
   }
   const kind = liveBoardKind(game);
+  const gameName = gameDisplayName(game, locale);
   if (!kind || !(await isGameOrganizer(database, game, args.userId))) {
-    return { kind, canStart: false, board: null };
+    return { gameName, kind, canStart: false, board: null };
   }
   const board = await findRunningBoard(database, game, now);
   return {
+    gameName,
     kind,
     canStart: startableBoardKind(game, now) != null,
     board: board

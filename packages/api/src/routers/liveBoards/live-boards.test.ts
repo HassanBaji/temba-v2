@@ -279,7 +279,12 @@ describe("Show on TV", () => {
           userId: player.id,
           origin: ORIGIN,
         }),
-      ).toEqual({ kind: "social", canStart: false, board: null });
+      ).toEqual({
+        gameName: "Sunday Social",
+        kind: "social",
+        canStart: false,
+        board: null,
+      });
       const stranger = await insertUser(database, "Stranger");
       await expect(
         liveBoardForGame(database as unknown as Db, {
@@ -338,7 +343,12 @@ describe("Show on TV", () => {
           userId: seeded.owner.id,
           origin: ORIGIN,
         }),
-      ).toEqual({ kind: null, canStart: false, board: null });
+      ).toEqual({
+        gameName: "Sunday Social",
+        kind: null,
+        canStart: false,
+        board: null,
+      });
 
       await database
         .update(games)

@@ -1,6 +1,7 @@
 "use client";
 
 import { gamePaymentsTracked } from "@repo/domain/game-payments";
+import { GameTvCardSlot } from "~/components/live-board/game-tv";
 import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import {
   ArrowLeftRight,
@@ -170,6 +171,7 @@ export function TournamentHome({
   onKickWaitlist,
   onAddPlayer,
   onEditTeams,
+  tvRow,
   onOpenSeat,
   teamId,
   onTeamIdChange,
@@ -213,6 +215,8 @@ export function TournamentHome({
   onKickWaitlist?: (waitlistId: string) => void;
   onAddPlayer?: () => void;
   onEditTeams?: () => void;
+  /** Show on TV, when the viewer runs a Social that has a Live board. */
+  tvRow?: GameActionsSheetRow | null;
   /** The Organizer clicked an open seat; `canJoin` when they could take it too. */
   onOpenSeat?: OpenSeatHandler;
   teamId: string;
@@ -341,6 +345,7 @@ export function TournamentHome({
         onKickWaitlist={org ? onKickWaitlist : undefined}
         onAddPlayer={org ? onAddPlayer : undefined}
         onEditTeams={org ? onEditTeams : undefined}
+        tvRow={org ? tvRow : null}
         onLeaveSeat={onLeaveSeat}
         undoDraw={
           org && undoCopy
@@ -517,6 +522,7 @@ export function TournamentHome({
               tags={alonePosted ? <HeroPadelTag /> : undefined}
               actions={actionsMenu(true)}
             />
+            <GameTvCardSlot />
             <TournamentPredrawTree
               alonePosted={alonePosted}
               sides={data.sides}
@@ -904,6 +910,7 @@ function TournamentStandingsTree({
             championLine={standings.championLine}
           />
         )}
+        <GameTvCardSlot className="pt-[18px]" />
         {standings.showKnockoutTree && knockout ? (
           <div className="pt-[18px]">
             <TournamentKnockoutTree
@@ -1137,6 +1144,7 @@ function TournamentActionsMenu({
   onKickWaitlist,
   onAddPlayer,
   onEditTeams,
+  tvRow,
   onLeaveSeat,
   undoDraw,
 }: {
@@ -1158,6 +1166,7 @@ function TournamentActionsMenu({
   onKickWaitlist?: (waitlistId: string) => void;
   onAddPlayer?: () => void;
   onEditTeams?: () => void;
+  tvRow?: GameActionsSheetRow | null;
   onLeaveSeat?: () => void;
   undoDraw?: {
     copy: { action: string; locked: string };
@@ -1185,6 +1194,9 @@ function TournamentActionsMenu({
       icon: ArrowLeftRight,
       onSelect: onEditTeams,
     });
+  }
+  if (tvRow) {
+    tools.push(tvRow);
   }
   if (onShare) {
     tools.push({

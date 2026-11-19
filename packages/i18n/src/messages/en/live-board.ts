@@ -122,7 +122,6 @@ export const liveBoard = {
         other: "{n} connected",
       }),
     tvSince: (time: string) => `Connected since ${time}`,
-    tvsEmpty: "No TV connected yet",
     disconnect: "Disconnect",
     disconnectTv: (name: string) => `Disconnect ${name}`,
     addTv: "Add another TV",
@@ -223,6 +222,7 @@ export const liveBoard = {
     followPhone: "your phone",
     resultsIn: "Results",
     resultsTemba: "in Temba",
+    fromOrganizer: "From the organizer",
     finalTitle: (name: string) => `${name}, final`,
     finished: (time: string) => `Finished ${time}`,
     winners: "Winners",
@@ -264,7 +264,6 @@ export const liveBoard = {
       pitch: "Pitch",
       started: "Started",
       starts: "Starts",
-      level: "Level",
       venue: "Venue",
       group: "Group",
       kickOff: "Kick-off",
@@ -272,6 +271,11 @@ export const liveBoard = {
       mvp: "MVP",
     },
     noCourt: "Not set",
+    levelValue: {
+      temba: "Counts for Temba Level",
+      group: "Counts for Group Level",
+      unrated: "Unrated",
+    },
     kickedOff: (time: string) => `Kicked off ${time}`,
     kicksOff: (time: string) => `Kicks off ${time}`,
     kickOffValue: (time: string, minutes: number) =>
@@ -279,7 +283,6 @@ export const liveBoard = {
     gameValue: (sideSize: string, squad: number) =>
       `${sideSize}, ${squad} a squad`,
     mvpAfter: "After the game",
-    mvpNone: "No MVP",
     roles: {
       gk: "GK",
       def: "DEF",

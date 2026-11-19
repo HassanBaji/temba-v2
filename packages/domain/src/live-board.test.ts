@@ -89,7 +89,10 @@ describe("isLiveBoardOpen", () => {
   };
 
   it("stays open for six hours after the window, so the final table stays up", () => {
-    assert.equal(isLiveBoardOpen(board, new Date("2026-11-09T17:29:00Z")), true);
+    assert.equal(
+      isLiveBoardOpen(board, new Date("2026-11-09T17:29:00Z")),
+      true,
+    );
     assert.equal(
       isLiveBoardOpen(board, new Date("2026-11-09T17:30:00Z")),
       false,
@@ -320,7 +323,10 @@ describe("socialBoardView", () => {
 
   it("is final once the Social has finished", () => {
     const view = socialBoardView(
-      { ...social([round(1, "played", 0), round(2, "played", 30)]), finished: true },
+      {
+        ...social([round(1, "played", 0), round(2, "played", 30)]),
+        finished: true,
+      },
       new Date(START.getTime() + 90 * 60_000),
     );
     assert.equal(view.phase, "final");

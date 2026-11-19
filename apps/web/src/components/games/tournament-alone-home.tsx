@@ -10,6 +10,7 @@ import {
   type TournamentDetails,
 } from "@repo/domain/tournament-details";
 
+import { GameTvCardSlot } from "~/components/live-board/game-tv";
 import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -141,6 +142,7 @@ export function TournamentAloneHome({
         tags={tags}
         actions={actions}
       />
+      <GameTvCardSlot />
 
       {organizer ? (
         <AloneOrganizerCard

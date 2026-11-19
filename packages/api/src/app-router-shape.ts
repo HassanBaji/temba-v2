@@ -405,6 +405,7 @@ export type AppRouterShapeChecks = [
   _Groups,
   _GameAlbum,
   _GamePayments,
+  _LiveBoards,
   _Marks,
   _Notifications,
   _Ratings,
