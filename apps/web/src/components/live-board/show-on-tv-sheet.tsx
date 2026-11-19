@@ -59,8 +59,8 @@ export function ShowOnTvPanel({
           <p className="text-dim text-meta">
             {m.sheet.codeLead(board.address)}
           </p>
-          <p className="font-expanded mt-2 text-[40px] leading-none" dir="ltr">
-            {formatBoardCode(board.code)}
+          <p className="font-expanded mt-2 text-[40px] leading-none">
+            <span dir="ltr">{formatBoardCode(board.code)}</span>
           </p>
         </div>
         <TvIcon aria-hidden="true" className="size-[26px] flex-none" />
