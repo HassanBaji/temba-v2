@@ -10,10 +10,10 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { isUniqueViolation } from "#src/db/is-unique-violation";
 import { userHasRatedMatch } from "#src/ratings/has-rated-match";
+import { readTembaLevelView } from "#src/ratings/level-confirmed";
 import {
   initialRatingFromChoice,
   SELF_DECLARE_CHOICES,
-  youRatingViewFromState,
   type SelfDeclareChoice,
   type YouRatingView,
 } from "@repo/domain/level";
@@ -49,7 +49,7 @@ export async function selfDeclareRating(
     });
   }
 
-  const initial = initialRatingFromChoice(choice);
+  const initial = initialRatingFromChoice(choice, sport);
   const now = new Date();
 
   try {
@@ -62,6 +62,7 @@ export async function selfDeclareRating(
         phi: initial.phi,
         sigma: initial.sigma,
         levelBand: initial.levelBand,
+        declaredBand: choice === "unknown" ? null : choice,
         selfDeclaredAt: now,
         updatedAt: now,
       })
@@ -74,7 +75,7 @@ export async function selfDeclareRating(
       });
     }
 
-    return youRatingViewFromState(created);
+    return readTembaLevelView(database, created);
   } catch (error) {
     if (isUniqueViolation(error)) {
       if (await userHasRatedMatch(database, userId, sport)) {

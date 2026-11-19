@@ -122,7 +122,10 @@ import { sideUserIds } from "#src/ratings/apply-tier-match";
 import { padelConfirmations } from "#src/ratings/level-confirmed";
 import { mayCalibrateAll } from "#src/ratings/verifier-calibration";
 import { ovrFromMu } from "@repo/domain/football-ovr";
-import { type OvrImpact } from "@repo/domain/game-rating-impact";
+import {
+  type OvrImpact,
+  type ProveItImpact,
+} from "@repo/domain/game-rating-impact";
 import { groupSeasonRows } from "#src/games/season-link";
 import { toSeasonRow } from "#src/standing/load-group-standing";
 import { MATCH_STATUS } from "@repo/domain/match-status";
@@ -395,6 +398,26 @@ function individualFriendlyGamePhase(args: {
   // same "nobody has entered a result" description still applies, so it
   // resolves to needs_results here too.
   return "needs_results";
+}
+
+/**
+ * The Prove-it rule's share of the viewer's lost padel Match and the band they
+ * declared, which the played Game names (ADR-0099). Null when it added nothing.
+ */
+async function proveItImpact(
+  database: DbClient,
+  args: { userId: string; part: number | null },
+): Promise<ProveItImpact | null> {
+  if (args.part === null) {
+    return null;
+  }
+  const rating = await database.query.ratings.findFirst({
+    where: and(eq(ratings.userId, args.userId), eq(ratings.sport, "padel")),
+    columns: { declaredBand: true },
+  });
+  return rating?.declaredBand
+    ? { part: args.part, declaredBand: rating.declaredBand }
+    : null;
 }
 
 /**
@@ -1049,6 +1072,11 @@ export async function gameById(
     newLevelBand: LevelBand;
     isProvisional: boolean;
     ratedMatchesRemainingToConfirm: number | null;
+    /**
+     * What the Prove-it rule added to a lost padel Match, in μ points, and
+     * the band the viewer declared (ADR-0099). Null when it added nothing.
+     */
+    proveIt: ProveItImpact | null;
     /** A football Match's move in OVR, by part (ADR-0069). */
     ovr: OvrImpact | null;
   } | null = null;
@@ -1062,7 +1090,7 @@ export async function gameById(
 
   // A football Match's Rating window (ADR-0068), settled here when its Job
   // is late, before the move it writes is read. A padel Friendly game on a
-  // Verified Group has one too (ADR-0095).
+  // Verified Group and a padel Public Game have one too (ADR-0095).
   const footballMatchRow = isFootballGame(game)
     ? matchRows.find((match) => match.status !== MatchStatusEnum.CANCELLED)
     : undefined;
@@ -1121,6 +1149,7 @@ export async function gameById(
               goalsPart: true,
               mvpPart: true,
               reliabilityPart: true,
+              proveItPart: true,
             },
           })
         : undefined;
@@ -1158,6 +1187,10 @@ export async function gameById(
           newLevelBand,
           isProvisional: remaining > 0,
           ratedMatchesRemainingToConfirm: remaining > 0 ? remaining : null,
+          proveIt: await proveItImpact(database, {
+            userId: args.userId,
+            part: viewerRatingEvent.proveItPart,
+          }),
           ovr:
             viewerRatingEvent.sport === "football"
               ? await footballOvrImpact(database, {

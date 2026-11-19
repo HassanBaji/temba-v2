@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   GroupSportEnum,
   kingPlaceAwards,
+  levelCheckResults,
   levelOverrides,
   ratingEvents,
   ratings,
@@ -64,8 +65,9 @@ function stepFromOutcomeScore(
 /**
  * Level points oldest first, on the sport's face (OVR on football), what
  * moved the Level into each point after the first, and how many of those
- * changes came from Rated Matches. Level overrides and King of the court
- * Place awards move the line too but are not Matches.
+ * changes came from Rated Matches. Level overrides, King of the court
+ * Place awards and Level checks move the line too but are not Matches; a
+ * Level check reads as a set point.
  */
 async function levelHistory(
   database: DbClient,
@@ -77,7 +79,7 @@ async function levelHistory(
   steps: LevelHistoryStep[];
   matchCount: number;
 }> {
-  const [events, overrides, awards] = await Promise.all([
+  const [events, overrides, awards, checks] = await Promise.all([
     database.query.ratingEvents.findMany({
       where: and(
         eq(ratingEvents.userId, userId),
@@ -111,13 +113,22 @@ async function levelHistory(
       limit: HISTORY_CHANGE_LIMIT,
       columns: { id: true, createdAt: true, muBefore: true, muAfter: true },
     }),
+    database.query.levelCheckResults.findMany({
+      where: and(
+        eq(levelCheckResults.userId, userId),
+        eq(levelCheckResults.sport, sport),
+      ),
+      orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
+      limit: HISTORY_CHANGE_LIMIT,
+      columns: { id: true, createdAt: true, muBefore: true, muAfter: true },
+    }),
   ]);
 
   const outcomeById = new Map(
     events.map((event) => [event.id, event.outcomeScore]),
   );
   const awardIds = new Set(awards.map((award) => award.id));
-  const changes = [...events, ...overrides, ...awards]
+  const changes = [...events, ...overrides, ...awards, ...checks]
     .sort(
       (a, b) =>
         a.createdAt.getTime() - b.createdAt.getTime() ||

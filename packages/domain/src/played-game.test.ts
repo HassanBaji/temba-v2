@@ -107,9 +107,34 @@ describe("playedPadelModel", () => {
     assert.deepEqual(model.you, {
       line: "You played with Maryam K",
       ratingLine: "Counts for rating, C+ moves up",
+      proveItLine: null,
       tag: "WON",
       won: true,
     });
+  });
+
+  it("adds the Prove-it line when the rule made the viewer's loss cost more", () => {
+    const lost = playedPadelModel(
+      {
+        ...place,
+        sides,
+        viewerUserId: VIEWER,
+        match,
+        groupName: null,
+        rated: true,
+        ratingImpact: {
+          levelChange: -0.3,
+          newLevelBand: "C2",
+          proveIt: { part: -30, declaredBand: "C1" },
+        },
+        confirmation: { confirmedByOrganizer: false },
+      },
+      "en",
+    );
+    assert.equal(
+      lost.you?.proveItLine,
+      "You declared C+ and lost to a pair at your level, so this loss counted one and a half times.",
+    );
   });
 
   it("lists your pair in ink and the opponents on paper", () => {

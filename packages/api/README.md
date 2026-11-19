@@ -25,6 +25,53 @@ pnpm --filter @repo/api db:backfill-operators
 
 It pages through every Clerk User and writes what Clerk says now, so it is safe to rerun, for example after a webhook outage.
 
+## Padel Level recalculation
+
+The Level recalculation replays every padel Rated Match, Place award and Level override under the Declared band rules and rewrites the stored numbers to match (ADR-0100, `.scratch/padel-declared-band-trust/spec.md`, section 9). It runs once, after the Prove-it rule is deployed and before the Level check is. Every command needs `DATABASE_URL` in the shell or in `packages/api/.env`.
+
+```bash
+pnpm --filter @repo/api db:replay-padel-ratings                                  # dry run
+pnpm --filter @repo/api db:replay-padel-ratings -- --report padel-levels.csv     # dry run with the per-player CSV
+pnpm --filter @repo/api db:replay-padel-ratings -- --apply                       # write it
+pnpm --filter @repo/api db:replay-padel-ratings -- --apply --carry-unplaced      # write it, carrying rows that cannot be recomputed
+pnpm --filter @repo/api db:replay-padel-ratings -- --restore <run id>            # write a run's backup back
+```
+
+- **Dry run** (the default). Reads in one read-only, repeatable-read transaction and writes nothing. The report names the database host; counts players, Matches, events, overrides and awards; says how each Declared band was read back (a stored Declared band is kept, and read back from the first row of history only when there is none); lists the largest moves, band letter changes, how many players would be told, players now outside an upcoming Game's Level range and every row placed by a stated rule, under the rule's name: `start-mu-off-midpoint` (a declared start μ that is no band midpoint), `seat-without-event` (a seat with no rating event, played as a Guest player), `carried-over` (a row carried over by its stored move), `rebuilt-from-scores`, `same-instant`, `declared-band-mismatch` (a stored Declared band kept over the one the history would recover), `undeclared-start` and `ledger-without-rating`; compares a baseline pass under the rules before the Declared band; and prints the load and compute time. It exits non-zero if the recalculation would change who is confirmed. `--report` writes one CSV row per player.
+- **`--apply`**. One transaction: takes `LOCK TABLE ratings IN EXCLUSIVE MODE` (waiting at most 5 seconds for it), loads, computes, then for every padel row whose values differ copies the whole row into `rating_replay_backups` under a new `rating_replay_runs` row and writes the replayed values, recording beside the copy the values it wrote. It writes only the columns of spec 9.5 (never Reliability, never the Level an override set) and inserts or deletes no row in `ratings`, `rating_events`, `king_place_awards` or `level_overrides`. Reads are not blocked; a Match completing meanwhile waits and is rated on the replayed values. In the same transaction each account holder whose padel Level changes on its two-decimal face, or whose band letter changes, gets one `level_recalculated` Notification that opens Ratings, written for at most 1,000 players per statement. It is written as already emailed, so no Notification email goes out, and Rating history gains no line; Unclaimed and Guest players get none. It prints the same report, then the run id. It refuses, writing nothing, while the recalculation would change who is confirmed, or while the report lists rows that cannot be recomputed (`carried-over`) unless `--carry-unplaced` is passed. A second apply finds no difference, writes nothing and records no run.
+- **`--restore <run id>`**. Writes back, from the backup, only the columns the run wrote (and `updated_at` on `ratings`), and removes the run. With nothing written since, every table holds its bytes from before the run, except `notifications`: the players told keep their `level_recalculated` Notification. A column the run did not write keeps what it holds now, so a Reliability step taken after the run neither blocks the restore nor is undone by it. It refuses once a later run exists, once a padel Rated Match, Level override or Place award has been written or removed after the run, or once a column the run wrote no longer holds the value the run wrote: after that the fix is forward, not back.
+
+### Runbook for the production run
+
+The owner, or a developer with the production database URL, ticks these in order. The Level check's code may already be deployed: it asks nothing, and a padel Public Game opens no Rating window, until `PADEL_LEVEL_CHECK_ENABLED=1` is set on the API in the last step.
+
+1. The Declared band start φ, the Prove-it rule, the recalculation and the recalculation's Notification are deployed to production and their migrations have run. `PADEL_LEVEL_CHECK_ENABLED` is unset (or `0`) on the API.
+2. Run the size query below against production and note the counts.
+3. Run the dry run against production: `pnpm --filter @repo/api db:replay-padel-ratings -- --report replay.csv`. Note the load and compute time it prints.
+4. The owner reads the report: how many players move, the largest moves up and down, who changes band, how many players would be told, the baseline pass, the anomalies. "Players crossing the confirmation line" must be 0.
+5. If the report lists rows that cannot be recomputed, the owner decides whether to pass `--carry-unplaced`.
+6. Take a database backup on the host.
+7. At a quiet hour, apply: `pnpm --filter @repo/api db:replay-padel-ratings -- --apply`. Note the run id. If the dry run's timing was more than a few seconds, pause the API's Job queue and rating doors first. If it stops on the lock timeout, nothing was written: run it again at a quieter moment.
+8. Run the dry run again. It must report no rows that would change. If it reports any, stop here and leave the Level check off.
+9. Open a few players' Ratings screens and Rating history and check them against the report.
+10. Only now set `PADEL_LEVEL_CHECK_ENABLED=1` on the API and restart it. From then on the replay refuses, since a Level check result will exist, so the recalculation is not run again.
+
+```sql
+select
+  (select count(*) from rating_events where sport = 'padel') as padel_events,
+  (select count(distinct match_id) from rating_events where sport = 'padel') as padel_rated_matches,
+  (select count(distinct user_id) from rating_events where sport = 'padel') as players_who_played,
+  (select count(*) from ratings where sport = 'padel') as padel_ratings,
+  (select count(*) from ratings where sport = 'padel' and self_declared_at is not null) as declared,
+  (select count(*) from level_overrides where sport = 'padel') as padel_overrides,
+  (select count(*) from king_place_awards where sport = 'padel') as place_awards,
+  (select count(*) from rating_events where sport = 'padel' and reliability_part is not null) as events_with_reliability,
+  (select count(*) from user_merges where summary -> 'ratingKeptBySport' ? 'padel') as merges_that_dropped_a_padel_rating,
+  (select min(created_at) from rating_events where sport = 'padel') as first_padel_event;
+```
+
+What to expect afterwards: Levels players have already seen change with no Match behind the change; opponents' histories change too; Rating history is rewritten, not appended, and the old numbers are only in the backup; Notification emails, shared Result cards and shared Standing images already sent keep the old numbers.
+
 ## Error codes
 
 | HTTP | tRPC code           | When                                                                                                              |

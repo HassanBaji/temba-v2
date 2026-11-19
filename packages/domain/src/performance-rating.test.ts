@@ -597,8 +597,25 @@ describe("rateGameView on padel (ADR-0095)", () => {
     const view = rateGameView(padel, rateGameDraft(padel), "en");
     expect(view.heading).toBe("Your partner");
     expect(view.footnote).toBe(
-      "6 is an ordinary game. Ratings do not move a level. Low ratings from several players lower reliability, and a loss then costs more.",
+      "6 is an ordinary game. Low ratings from several players lower reliability, and a loss then costs more.",
     );
+  });
+
+  it("asks the Level check about all three, with opponents not optional", () => {
+    const checked = sheet({
+      ...padel,
+      viewerSide: 1,
+      levelCheck: { players: [], answers: [] },
+    });
+    const view = rateGameView(checked, rateGameDraft(checked), "en");
+    expect(view.heading).toBe("How did they play?");
+    expect(view.footnote).toBe(
+      "6 is an ordinary game. Low ratings from several players lower reliability, and a loss then costs more. The middle answer about each player can move their level. Nobody sees who gave what.",
+    );
+    const opponents = view.sides.find((side) => side.slot === 2)!;
+    expect(opponents.aside).toBeNull();
+    expect(opponents.openByDefault).toBe(true);
+    expect(opponents.collapsedLine).not.toMatch(/optional/);
   });
 
   it("opens from a card that speaks of a partner", () => {
@@ -614,7 +631,7 @@ describe("rateGameView on padel (ADR-0095)", () => {
         "en",
       )?.description,
     ).toBe(
-      "Score your partner and, if you want, your opponents. Nobody sees who gave what. Closes Fri 8:30 PM.",
+      "Score your partner and, if you want, your opponents, and say what level each player played at. Nobody sees who gave what. Closes Fri 8:30 PM.",
     );
   });
 });
@@ -655,8 +672,31 @@ describe("performanceResultView on a Match that counts for Temba Level (ADR-0095
         spoken: "Reliability 80%, −20",
         line: "Below 100% a loss costs more. At yours, 10% more.",
       },
+      levelCheck: null,
       footnote:
         "Low ratings from several players lower it. An ordinary game or better brings it back.",
+    });
+  });
+
+  it("adds the Level check's verdict and move", () => {
+    const view = performanceResultView(
+      {
+        ...settled,
+        levelCheck: {
+          kind: "checked",
+          agreed: false,
+          verdictLevelHundredths: 385,
+          muBefore: 1575,
+          muAfter: 1750,
+          ballotsCounted: 3,
+        },
+      },
+      "en",
+    );
+    expect(view?.kind === "reliability" && view.levelCheck).toEqual({
+      title: "Level check",
+      headline: "Players placed you at C+",
+      line: "Level 3.15 to 3.50.",
     });
   });
 

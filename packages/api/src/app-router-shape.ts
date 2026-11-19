@@ -149,6 +149,7 @@ type ExpectedGames =
   | "performanceRatingSheet"
   | "performanceRatingResult"
   | "performanceRatingSummary"
+  | "submitLevelChecks"
   | "submitPerformanceRatings"
   | "reportWrongScore"
   | "searchLookupUsers"

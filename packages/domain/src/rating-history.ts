@@ -14,6 +14,7 @@ import {
   levelFromMu,
   RATED_MATCHES_TO_CONFIRM,
 } from "./level";
+import type { AssignableDisplayLevelBand } from "./level-bands";
 import { levelDisputeView, type LevelDisputeState } from "./level-dispute";
 import type { LevelOverrideReason } from "./level-slider";
 import { zonedParts } from "./product-timezone";
@@ -339,6 +340,18 @@ export type RatingHistoryItemData =
       /** The Game teams on a court: the "of" beside the place. */
       teamCount: number;
     }
+  | {
+      /** A Level check that settled with a padel Match's Rating window. */
+      kind: "level_check";
+      id: string;
+      at: Date | string;
+      sport: Sport;
+      muBefore: number;
+      muAfter: number;
+      venueName: string | null;
+      verdictBand: AssignableDisplayLevelBand;
+      agreed: boolean;
+    }
   | (TierGameEntry & { group: GroupRef; band: TierBand | null })
   | (TierAdjustmentEntry & { group: GroupRef; band: TierBand | null })
   | {
@@ -553,7 +566,8 @@ export function ratingHistoryLine(
   } else if (
     item.kind === "level_match" ||
     item.kind === "level_override" ||
-    item.kind === "king_place"
+    item.kind === "king_place" ||
+    item.kind === "level_check"
   ) {
     const before = levelFace(item.sport, item.muBefore);
     const afterFace = levelFace(item.sport, item.muAfter);
@@ -570,6 +584,14 @@ export function ratingHistoryLine(
         item.teamCount,
       );
       detail = item.venueName ? m.level.detail(place, item.venueName) : place;
+    } else if (item.kind === "level_check") {
+      const copy = all.rating.levelCheck.history;
+      icon = { kind: "level" };
+      title = copy.title;
+      const verdict = item.agreed ? copy.agreed : copy.placed(item.verdictBand);
+      detail = item.venueName
+        ? m.level.detail(verdict, item.venueName)
+        : verdict;
     } else {
       icon = { kind: "override" };
       title = item.restoresLevel ? m.override.restoredTitle : m.override.title;

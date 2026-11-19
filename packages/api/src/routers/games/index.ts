@@ -71,6 +71,7 @@ import { previewInviteLinkProcedure as previewInviteLink } from "./previewInvite
 import { previewPlayerByPhoneProcedure as previewPlayerByPhone } from "./previewPlayerByPhone";
 import { publishFootballTeamsProcedure as publishFootballTeams } from "./publishFootballTeams";
 import { registerProcedure as register } from "./register";
+import { submitLevelChecksProcedure as submitLevelChecks } from "./submitLevelChecks";
 import { submitPerformanceRatingsProcedure as submitPerformanceRatings } from "./submitPerformanceRatings";
 import { registerSeatProcedure as registerSeat } from "./registerSeat";
 import { registerTeamProcedure as registerTeam } from "./registerTeam";
@@ -191,6 +192,7 @@ export const gamesRouter = createTRPCRouter({
   performanceRatingSheet,
   performanceRatingResult,
   performanceRatingSummary,
+  submitLevelChecks,
   submitPerformanceRatings,
   searchLookupUsers,
   sendLookupInvite,

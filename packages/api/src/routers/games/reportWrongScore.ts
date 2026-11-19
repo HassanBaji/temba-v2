@@ -10,6 +10,7 @@ import {
   groupRatings,
   groupTierEvents,
   groupTierPoints,
+  levelCheckResults,
   levelOverrides,
   MatchStatusEnum,
   matches,
@@ -41,6 +42,7 @@ import { notify } from "#src/notifications/notify";
 import { reverseFootballLevelMatch } from "#src/ratings/apply-football-level-match";
 import { rewriteTierBands } from "#src/ratings/apply-tier-match";
 import { suspendRatingWindow } from "#src/ratings/settle-rating-window";
+import { withoutMuMove } from "#src/ratings/without-mu-move";
 import { wrongScoreReversalEligibility } from "#src/games/wrong-score-reversal";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -245,9 +247,11 @@ async function supersedeOpenDispute(
  * back by subtraction whatever came after (ADR-0067), and so is a football
  * Level (ADR-0069). A Rating window is
  * suspended with its ballots kept, and reopens at the next completion
- * (ADR-0068). An Organizer's report closes the Match's open dispute as
- * superseded; an Operator upholding that dispute runs this door and marks it
- * upheld itself.
+ * (ADR-0068). A padel Match's Level check is taken back before its rating
+ * events, and its answers kept; no later Level check refuses the reversal,
+ * whose μ move then comes off by subtraction (ADR-0101). An Organizer's
+ * report closes the Match's open dispute as superseded; an Operator upholding
+ * that dispute runs this door and marks it upheld itself.
  *
  * When eligible, in one transaction: restores each Rating (μ, φ, σ, Level
  * band, last rated time) to the before-values stored on this Match's rating
@@ -367,6 +371,20 @@ export async function reportWrongScore(
     }
 
     const now = new Date();
+    // The Match's own Level check comes off first, so the before-values below
+    // restore a Rating it no longer holds.
+    await suspendRatingWindow(tx, locked.id, now);
+    const laterChecks =
+      eventUserIds.length === 0
+        ? []
+        : await tx
+            .select({
+              userId: levelCheckResults.userId,
+              sport: levelCheckResults.sport,
+              createdAt: levelCheckResults.createdAt,
+            })
+            .from(levelCheckResults)
+            .where(inArray(levelCheckResults.userId, eventUserIds));
     for (const event of matchEvents) {
       // A Level override set after this Match is that User's baseline: their
       // Rating stays as it is, and only the event goes.
@@ -377,6 +395,44 @@ export async function reportWrongScore(
           override.createdAt > event.createdAt,
       );
       if (hasLaterOverride) {
+        continue;
+      }
+      // A Level check from an earlier Match that settled after this one was
+      // built on it, so only this Match's μ move comes off and the check stays.
+      const hasLaterCheck = laterChecks.some(
+        (check) =>
+          check.userId === event.userId &&
+          check.sport === event.sport &&
+          check.createdAt > event.createdAt,
+      );
+      if (hasLaterCheck) {
+        const [row] = await tx
+          .select({ mu: ratings.mu, levelBand: ratings.levelBand })
+          .from(ratings)
+          .where(
+            and(
+              eq(ratings.userId, event.userId),
+              eq(ratings.sport, event.sport),
+            ),
+          );
+        if (!row) {
+          continue;
+        }
+        await tx
+          .update(ratings)
+          .set({
+            ...withoutMuMove(row, event),
+            ...(event.levelBandBefore == null
+              ? {}
+              : { lastRatedAt: event.lastRatedAtBefore }),
+            updatedAt: now,
+          })
+          .where(
+            and(
+              eq(ratings.userId, event.userId),
+              eq(ratings.sport, event.sport),
+            ),
+          );
         continue;
       }
       await tx
@@ -404,7 +460,6 @@ export async function reportWrongScore(
     await reverseFootballLevelMatch(tx, locked.id, now);
     await reverseGroupRatingEvents(tx, locked.id, now);
     await reverseTierEvents(tx, locked.id, now);
-    await suspendRatingWindow(tx, locked.id, now);
     await tx
       .delete(matchResultConfirmations)
       .where(eq(matchResultConfirmations.matchId, locked.id));

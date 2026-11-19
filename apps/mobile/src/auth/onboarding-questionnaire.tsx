@@ -9,6 +9,7 @@ import {
   footballRoleChoices,
   padelLevelChoices,
   padelNotSureLabel,
+  padelProveItHint,
   PADEL_NOT_SURE_LEVEL,
   padelSideChoices,
   sportChoices,
@@ -234,15 +235,20 @@ export function SportsQuestionnaire({
         {levelSet ? (
           <LevelAlreadySet sport="padel" />
         ) : (
-          <RowChoices
-            label={q.padel.levelLabel}
-            choices={padelLevelChoices(locale).map((choice) => ({
-              ...choice,
-              mark: choice.value,
-            }))}
-            value={answers.padelLevel}
-            onSelect={(padelLevel) => update({ padelLevel })}
-          />
+          <View style={{ gap: 8 }}>
+            <RowChoices
+              label={q.padel.levelLabel}
+              choices={padelLevelChoices(locale).map((choice) => ({
+                ...choice,
+                mark: choice.value,
+              }))}
+              value={answers.padelLevel}
+              onSelect={(padelLevel) => update({ padelLevel })}
+            />
+            <Text size="meta" tone="muted">
+              {padelProveItHint(locale)}
+            </Text>
+          </View>
         )}
         <View style={{ gap: 10 }}>
           <SectionLabel label={q.padel.preferredSide} hint={q.preferenceHint} />

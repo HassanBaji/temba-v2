@@ -100,6 +100,7 @@ describe("games.performanceRatingResult (screen 4c)", () => {
         sport: "football",
         countsForLevel: false,
         reliability: null,
+        levelCheck: null,
         result: null,
       });
     });

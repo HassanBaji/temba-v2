@@ -87,6 +87,16 @@ describe("env", () => {
     expect(env.PORT).toBe(4000);
   });
 
+  it("leaves the padel Level check off unless it is set to 1", async () => {
+    const { env } = await loadEnv({ PADEL_LEVEL_CHECK_ENABLED: "" });
+    expect(env.PADEL_LEVEL_CHECK_ENABLED).toBe("0");
+    const { env: on } = await loadEnv({ PADEL_LEVEL_CHECK_ENABLED: "1" });
+    expect(on.PADEL_LEVEL_CHECK_ENABLED).toBe("1");
+    await expect(
+      loadEnv({ PADEL_LEVEL_CHECK_ENABLED: "true" }),
+    ).rejects.toThrow();
+  });
+
   it("treats an unset NODE_ENV as production and refuses an unknown one", async () => {
     const { env } = await loadEnv({ NODE_ENV: "" });
     expect(env.NODE_ENV).toBe("production");

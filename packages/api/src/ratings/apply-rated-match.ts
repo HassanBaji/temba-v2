@@ -17,13 +17,19 @@ import {
   gameRates,
   gameRatesGroup,
 } from "@repo/domain/game-rating-eligibility";
+import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { applyTierMatch } from "#src/ratings/apply-tier-match";
-import { notifyLevelConfirmed } from "#src/ratings/level-confirmed";
+import {
+  notifyLevelConfirmed,
+  padelConfirmations,
+} from "#src/ratings/level-confirmed";
 import { ratingWeightForGame } from "#src/ratings/game-rating-weight";
+import { levelCheckEnabled } from "#src/ratings/level-check";
 import { openRatingWindow } from "#src/ratings/settle-rating-window";
 import { withGuestStandIns } from "#src/ratings/guest-stand-ins";
 import {
   initialRatingFromChoice,
+  proveItApplies,
   type LevelBand,
   type RatingGlickoState,
 } from "@repo/domain/level";
@@ -35,6 +41,7 @@ import {
   rateDoublesMatch,
   type DoublesOutcome,
 } from "@repo/domain/rate-doubles-match";
+import type { Sport } from "@repo/domain/sport";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbClient = typeof db | Tx;
@@ -63,8 +70,8 @@ function ratingSportFromGame(sport: GameRow["sport"]): "padel" | "football" {
   return sport;
 }
 
-function defaultRatingState(): RatingGlickoState {
-  return initialRatingFromChoice("unknown");
+function defaultRatingState(sport: Sport): RatingGlickoState {
+  return initialRatingFromChoice("unknown", sport);
 }
 
 function twoUserIds(ids: string[]): [string, string] | null {
@@ -149,9 +156,10 @@ export function snapshotState(
         levelBand: LevelBand;
       }
     | undefined,
+  sport: Sport,
 ): RatingGlickoState {
   if (!row) {
-    return defaultRatingState();
+    return defaultRatingState(sport);
   }
   return {
     mu: row.mu,
@@ -213,10 +221,13 @@ export async function persistRatedUser(args: {
  * Group it moves their Tier points. A padel Group Level is retired
  * (ADR-0066), so a padel Game's group scope moves nothing; its Matches still
  * count in the Standing. A padel player below full Reliability who lost
- * moves further, and a padel Friendly game on a Verified Group then opens a
- * Rating window whose ratings move Reliability (ADR-0095). Skips when the
- * Match is not a Rated Match (cancelled or Unrated Game, missing sides, not
- * four Users, or four Guest players). A Guest player plays at the mean of
+ * moves further, and a padel Friendly game on a Verified Group or a padel
+ * Public Game then opens a Rating window whose ratings move Reliability
+ * (ADR-0095) and whose Level check moves the Level (ADR-0101). A padel player
+ * who declared C or above and whose Level is not yet confirmed moves further
+ * on a lost Match against a pair at about their level (ADR-0099). Skips when
+ * the Match is not a Rated Match (cancelled or Unrated Game, missing sides,
+ * not four Users, or four Guest players). A Guest player plays at the mean of
  * the others and is never rated (ADR-0079). Idempotent per User+Match.
  */
 export async function applyRatedMatch(
@@ -312,10 +323,16 @@ export async function applyRatedMatch(
     result,
     now,
   });
-  // A padel Friendly game on a Verified Group asks its four players to rate
-  // each other. The Level has already moved; the ratings move Reliability
-  // when the window settles (ADR-0095).
-  if (liveGame.groupId && liveGame.format === "friendly_game") {
+  // A padel Friendly game on a Verified Group, or a Public Game whose score
+  // both sides confirmed, asks its four players to rate each other and check
+  // each other's Level. The Level has already moved; the ratings move
+  // Reliability and the Level check moves the Level again when the window
+  // settles (ADR-0095, ADR-0101). A Public Game's window exists for the Level
+  // check, so it opens none while the check is off.
+  if (
+    liveGame.format === "friendly_game" &&
+    (liveGame.groupId || (isPublicGame(liveGame) && levelCheckEnabled()))
+  ) {
     await openRatingWindow(database, {
       game: { ...game, groupId: liveGame.groupId },
       matchId: match.id,
@@ -366,13 +383,27 @@ async function applyTembaRatedMatch(
     .orderBy(ratings.userId)
     .for("update");
   const rowByUser = new Map(existingRows.map((row) => [row.userId, row]));
+  // Read before this Match's events are written, so the Prove-it rule sees
+  // the Level as it stood before the Match.
+  const confirmation =
+    sport === "padel"
+      ? await padelConfirmations(database, {
+          userIds: userIds.filter((userId) => !guestIds.has(userId)),
+        })
+      : null;
+
+  const lossFactorOf = (userId: string) =>
+    reliabilityLossFactor(
+      rowByUser.get(userId)?.reliability ?? FULL_RELIABILITY,
+    );
 
   const playerInput = withGuestStandIns(userIds, guestIds, (userId) => ({
-    state: snapshotState(rowByUser.get(userId)),
+    state: snapshotState(rowByUser.get(userId), sport),
     lastRatedAt: rowByUser.get(userId)?.lastRatedAt,
-    lossFactor: reliabilityLossFactor(
-      rowByUser.get(userId)?.reliability ?? FULL_RELIABILITY,
-    ),
+    lossFactor: lossFactorOf(userId),
+    proveIt:
+      confirmation !== null &&
+      proveItApplies(rowByUser.get(userId)?.declaredBand, confirmation(userId)),
   }));
   const rated = rateDoublesMatch({
     slot1: [playerInput(slots.slot1[0]), playerInput(slots.slot1[1])],
@@ -395,7 +426,9 @@ async function applyTembaRatedMatch(
       continue;
     }
 
-    const { before, after, score, levelBand, reliabilityPart } = player;
+    const { before, after, score, levelBand, reliabilityPart, proveItPart } =
+      player;
+    const lossFactor = lossFactorOf(player.userId);
 
     try {
       const [inserted] = await database
@@ -415,6 +448,8 @@ async function applyTembaRatedMatch(
           levelBandBefore: playerInput(player.userId).state.levelBand,
           lastRatedAtBefore: rowByUser.get(player.userId)?.lastRatedAt ?? null,
           reliabilityPart: reliabilityPart === 0 ? null : reliabilityPart,
+          proveItPart: proveItPart === 0 ? null : proveItPart,
+          reliabilityLossFactor: lossFactor === 1 ? null : lossFactor,
           createdAt: now,
         })
         .onConflictDoNothing({

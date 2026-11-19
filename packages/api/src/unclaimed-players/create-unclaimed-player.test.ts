@@ -60,7 +60,12 @@ describe("createUnclaimedPlayer", () => {
 
       const rows = await ratingsFor(db, created.user.id);
       expect(rows).toHaveLength(1);
-      expect(rows[0]).toMatchObject({ sport: "padel", levelBand: "C1" });
+      expect(rows[0]).toMatchObject({
+        sport: "padel",
+        levelBand: "C1",
+        declaredBand: "C1",
+        phi: 250,
+      });
       expect(rows[0]?.selfDeclaredAt).toBeInstanceOf(Date);
     } finally {
       await close();
@@ -83,6 +88,7 @@ describe("createUnclaimedPlayer", () => {
       expect(rows.map((rating) => [rating.sport, rating.levelBand])).toEqual([
         ["padel", "D1"],
       ]);
+      expect(rows[0]).toMatchObject({ declaredBand: "D1", phi: 150 });
     } finally {
       await close();
     }

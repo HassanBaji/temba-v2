@@ -17,6 +17,8 @@ import {
   groupTierEvents,
   groupTierPoints,
   groups,
+  levelCheckBallots,
+  levelCheckResults,
   levelOverrides,
   marks,
   matchResultConfirmations,
@@ -260,6 +262,23 @@ async function addRatingEvents(
   }
 }
 
+function levelCheckResult(userId: string, matchId: string) {
+  return {
+    userId,
+    sport: "padel" as const,
+    matchId,
+    verdictLevelHundredths: 315,
+    agreed: false,
+    ballotsCounted: 2,
+    weight: 1,
+    muBefore: 0,
+    phiBefore: 1,
+    muAfter: 0.1,
+    phiAfter: 0.9,
+    levelBandBefore: "C2" as const,
+  };
+}
+
 function merge(database: TestDatabase, people: People) {
   return mergeIntoAccount(database, {
     survivorUserId: people.survivor.id,
@@ -491,6 +510,187 @@ describe("mergeIntoAccount", () => {
       ).toEqual([[matchId, people.survivor.id, 8]]);
       const results = await db.query.performanceRatingResults.findMany();
       expect(results.map((row) => row.userId)).toEqual([people.survivor.id]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("moves the Level check answers the Unclaimed player gave and received to the account, drops one between the two, and keeps the account's on a duplicate", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const people = await seedPeople(db);
+      const gameId = await insertGame(db, people);
+      const { matchId } = await playCompletedMatch(db, {
+        gameId,
+        side1: [people.partner.id, people.unclaimed.id],
+        side2: [people.oppLeft.id, people.oppRight.id],
+      });
+      const otherGameId = await insertGame(db, people);
+      const other = await playCompletedMatch(db, {
+        gameId: otherGameId,
+        side1: [people.survivor.id, people.partner.id],
+        side2: [people.unclaimed.id, people.oppRight.id],
+      });
+      await db.insert(levelCheckBallots).values([
+        {
+          matchId,
+          raterUserId: people.oppLeft.id,
+          rateeUserId: people.unclaimed.id,
+          band: "B3",
+        },
+        {
+          matchId,
+          raterUserId: people.unclaimed.id,
+          rateeUserId: people.oppLeft.id,
+          band: "C1",
+        },
+        {
+          matchId: other.matchId,
+          raterUserId: people.survivor.id,
+          rateeUserId: people.unclaimed.id,
+          band: "C2",
+        },
+        {
+          matchId: other.matchId,
+          raterUserId: people.unclaimed.id,
+          rateeUserId: people.survivor.id,
+          band: "D3",
+        },
+        {
+          matchId: other.matchId,
+          raterUserId: people.survivor.id,
+          rateeUserId: people.oppRight.id,
+          band: "C2",
+        },
+        {
+          matchId: other.matchId,
+          raterUserId: people.unclaimed.id,
+          rateeUserId: people.oppRight.id,
+          band: "B1",
+        },
+        {
+          matchId: other.matchId,
+          raterUserId: people.partner.id,
+          rateeUserId: people.survivor.id,
+          band: "C1",
+        },
+        {
+          matchId: other.matchId,
+          raterUserId: people.partner.id,
+          rateeUserId: people.unclaimed.id,
+          band: "D1",
+        },
+      ]);
+
+      await merge(db, people);
+
+      const ballots = await db.query.levelCheckBallots.findMany();
+      const row = (ballot: (typeof ballots)[number]) =>
+        [
+          ballot.matchId,
+          ballot.raterUserId,
+          ballot.rateeUserId,
+          ballot.band,
+        ].join(" ");
+      expect(ballots.map(row).sort()).toEqual(
+        [
+          [matchId, people.oppLeft.id, people.survivor.id, "B3"],
+          [matchId, people.survivor.id, people.oppLeft.id, "C1"],
+          [other.matchId, people.survivor.id, people.oppRight.id, "C2"],
+          [other.matchId, people.partner.id, people.survivor.id, "C1"],
+        ]
+          .map((columns) => columns.join(" "))
+          .sort(),
+      );
+    } finally {
+      await close();
+    }
+  });
+
+  it("moves the Level check results with the Unclaimed player's Rating when it is the one kept", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const people = await seedPeople(db);
+      const gameId = await insertGame(db, people);
+      const [m1, m2, m3] = await Promise.all(
+        Array.from({ length: 3 }, () => insertMatch(db, gameId)),
+      );
+      await replaceRatings(db, {
+        userId: people.survivor.id,
+        sport: "padel",
+        mu: 1,
+      });
+      await addRatingEvents(db, {
+        userId: people.survivor.id,
+        sport: "padel",
+        matchIds: [m3!],
+      });
+      await replaceRatings(db, {
+        userId: people.unclaimed.id,
+        sport: "padel",
+        mu: 2,
+      });
+      await addRatingEvents(db, {
+        userId: people.unclaimed.id,
+        sport: "padel",
+        matchIds: [m1!, m2!],
+      });
+      await db
+        .insert(levelCheckResults)
+        .values([
+          levelCheckResult(people.unclaimed.id, m1!),
+          levelCheckResult(people.survivor.id, m3!),
+        ]);
+
+      const record = await merge(db, people);
+
+      expect(record?.summary.ratingKeptBySport).toEqual({ padel: "merged" });
+      const results = await db.query.levelCheckResults.findMany();
+      expect(results.map((row) => [row.userId, row.matchId])).toEqual([
+        [people.survivor.id, m1],
+      ]);
+    } finally {
+      await close();
+    }
+  });
+
+  it("deletes the Unclaimed player's Level check results with their Rating when the account's is kept", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const people = await seedPeople(db);
+      const gameId = await insertGame(db, people);
+      const [m1, m2, m3] = await Promise.all(
+        Array.from({ length: 3 }, () => insertMatch(db, gameId)),
+      );
+      await replaceRatings(db, {
+        userId: people.survivor.id,
+        sport: "padel",
+        mu: 1,
+      });
+      await addRatingEvents(db, {
+        userId: people.survivor.id,
+        sport: "padel",
+        matchIds: [m1!, m2!],
+      });
+      await addRatingEvents(db, {
+        userId: people.unclaimed.id,
+        sport: "padel",
+        matchIds: [m3!],
+      });
+      await db
+        .insert(levelCheckResults)
+        .values([
+          levelCheckResult(people.unclaimed.id, m3!),
+          levelCheckResult(people.survivor.id, m1!),
+        ]);
+
+      const record = await merge(db, people);
+
+      expect(record?.summary.ratingKeptBySport).toEqual({ padel: "survivor" });
+      const results = await db.query.levelCheckResults.findMany();
+      expect(results.map((row) => [row.userId, row.matchId])).toEqual([
+        [people.survivor.id, m1],
+      ]);
     } finally {
       await close();
     }

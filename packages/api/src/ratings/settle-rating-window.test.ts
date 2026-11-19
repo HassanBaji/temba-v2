@@ -5,14 +5,23 @@ import {
   games,
   groupTierEvents,
   groupTierPoints,
+  levelCheckBallots,
+  levelCheckResults,
   matchRatingWindows,
   matches,
   notifications,
   performanceRatingResults,
   performanceRatings,
+  ratingEvents,
+  ratings,
+  user,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 
+import {
+  levelCheckStep,
+  levelCheckVerdictLevel,
+} from "@repo/domain/level-check";
 import { TIER_K, tierExpectedScore } from "@repo/domain/tier-points";
 
 import { recordJobs } from "#src/jobs/job-sink.test-support";
@@ -26,10 +35,16 @@ import {
   tierEvents,
   type FootballFixture,
 } from "#src/ratings/group-rated-match.test-support";
+import { padelConfirmations } from "#src/ratings/level-confirmed";
 import { gameById } from "#src/routers/games/byId";
+import { decideDispute } from "#src/routers/games/decideDispute";
+import { disputeMatchResult } from "#src/routers/games/disputeMatchResult";
 import { reportWrongScore } from "#src/routers/games/reportWrongScore";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { performanceRatingResult } from "#src/routers/games/performanceRatingResult";
+import { performanceRatingSheet } from "#src/routers/games/performanceRatingSheet";
+import { confirmedPublicGame } from "#src/routers/games/public-game.test-support";
+import { submitLevelChecks } from "#src/routers/games/submitLevelChecks";
 import { submitPerformanceRatings } from "#src/routers/games/submitPerformanceRatings";
 import { castMvpVote } from "#src/routers/marks/castMvpVote";
 import { forGame } from "#src/routers/marks/forGame";
@@ -501,4 +516,236 @@ describe("The MVP closes with the Match's Rating window (ADR-0068)", () => {
       ]);
     });
   });
+});
+
+describe("A padel Public Game's Rating window (ADR-0101)", () => {
+  recordJobs();
+
+  function api(database: TestDatabase) {
+    return database as unknown as Parameters<typeof settleRatingWindow>[0];
+  }
+
+  type PublicGame = Awaited<ReturnType<typeof confirmedPublicGame>>;
+
+  async function padelRatingOf(database: TestDatabase, userId: string) {
+    const row = await database.query.ratings.findFirst({
+      where: and(eq(ratings.userId, userId), eq(ratings.sport, "padel")),
+    });
+    if (!row) {
+      throw new Error("Expected a padel Rating");
+    }
+    return row;
+  }
+
+  /** The creator and `b` rate `c` low and answer that `c` played at B. */
+  async function rateC(database: TestDatabase, g: PublicGame) {
+    for (const rater of [g.creator, g.b]) {
+      await submitPerformanceRatings(api(database), {
+        gameId: g.gameId,
+        userId: rater,
+        ratings: [{ userId: g.c, value: 3 }],
+      });
+      await submitLevelChecks(api(database), {
+        gameId: g.gameId,
+        userId: rater,
+        answers: [{ userId: g.c, band: "B" }],
+      });
+    }
+  }
+
+  async function settle(database: TestDatabase, matchId: string) {
+    const window = await database.query.matchRatingWindows.findFirst({
+      where: eq(matchRatingWindows.matchId, matchId),
+    });
+    return settleRatingWindow(api(database), matchId, window!.closesAt);
+  }
+
+  it("asks both questions on a sheet with no Group, and settles both after 24 hours, the Level check at weight 1", async () => {
+    await withDb(async (db) => {
+      const g = await confirmedPublicGame(db);
+
+      const sheet = await performanceRatingSheet(api(db), {
+        gameId: g.gameId,
+        userId: g.creator,
+      });
+      expect(sheet).toMatchObject({
+        sport: "padel",
+        mode: "everyone",
+        state: "open",
+        groupName: null,
+        viewerSide: 1,
+        progress: { raters: 0, players: 4 },
+      });
+      expect(sheet.levelCheck?.players.map((row) => row.userId).sort()).toEqual(
+        [g.b, g.c, g.d].sort(),
+      );
+
+      await rateC(db, g);
+      const before = await padelRatingOf(db, g.c);
+      const confirmationOf = await padelConfirmations(db, {
+        userIds: [g.creator, g.b, g.c, g.d],
+      });
+      expect(
+        [g.creator, g.b, g.c, g.d].map((id) => confirmationOf(id)),
+      ).toEqual(
+        Array.from({ length: 4 }, () => ({
+          verifiedMatches: 0,
+          overridden: false,
+        })),
+      );
+
+      expect(await settleRatingWindow(api(db), g.matchId, new Date())).toBe(
+        false,
+      );
+      expect(await settle(db, g.matchId)).toBe(true);
+
+      const rated = await db.query.performanceRatingResults.findFirst({
+        where: and(
+          eq(performanceRatingResults.matchId, g.matchId),
+          eq(performanceRatingResults.userId, g.c),
+        ),
+      });
+      expect(rated).toMatchObject({
+        ballotsCounted: 2,
+        reliabilityBefore: 100,
+      });
+      expect(rated!.reliabilityAfter).toBeLessThan(100);
+
+      const [checked] = await db.query.levelCheckResults.findMany({
+        where: eq(levelCheckResults.matchId, g.matchId),
+      });
+      expect(checked).toMatchObject({
+        userId: g.c,
+        agreed: false,
+        ballotsCounted: 2,
+        weight: 1,
+        muBefore: before.mu,
+        phiBefore: before.phi,
+      });
+      const after = await padelRatingOf(db, g.c);
+      const step = levelCheckStep(
+        before,
+        {
+          level: levelCheckVerdictLevel(checked!.verdictLevelHundredths),
+          bands: ["B"],
+        },
+        1,
+      );
+      expect(after.mu).toBe(step.mu);
+      expect(after.mu).toBeGreaterThan(before.mu);
+      expect(after.phi).toBe(step.phi);
+
+      // Neither the Rated Match nor its Level check confirms a Level (ADR-0080).
+      expect(
+        await db.$count(ratingEvents, eq(ratingEvents.matchId, g.matchId)),
+      ).toBe(4);
+      expect((await padelConfirmations(db, { userIds: [g.c] }))(g.c)).toEqual({
+        verifiedMatches: 0,
+        overridden: false,
+      });
+
+      const result = await performanceRatingResult(api(db), {
+        gameId: g.gameId,
+        userId: g.c,
+      });
+      expect(result).toMatchObject({ state: "settled", countsForLevel: true });
+      expect(result.reliability).not.toBeNull();
+      expect(result.levelCheck).toMatchObject({
+        kind: "checked",
+        agreed: false,
+        muBefore: before.mu,
+        muAfter: after.mu,
+      });
+      const told = await db.query.notifications.findMany({
+        where: and(
+          eq(notifications.gameId, g.gameId),
+          eq(notifications.type, "performance_ratings_closed"),
+        ),
+        columns: { recipientUserId: true },
+      });
+      expect(told.map((row) => row.recipientUserId)).toEqual([g.c]);
+    });
+  });
+
+  it.each([
+    [
+      "a wrong-score report",
+      async (database: TestDatabase, g: PublicGame) => {
+        await reportWrongScore(api(database), {
+          gameId: g.gameId,
+          matchId: g.matchId,
+          userId: g.creator,
+        });
+      },
+    ],
+    [
+      "an upheld Match dispute",
+      async (database: TestDatabase, g: PublicGame) => {
+        const { disputeId } = await disputeMatchResult(api(database), {
+          matchId: g.matchId,
+          userId: g.d,
+          note: "It was 3-6",
+        });
+        const [operator] = await database
+          .insert(user)
+          .values({
+            name: "Operator",
+            email: `operator-${g.gameId}@example.com`,
+          })
+          .returning({ id: user.id });
+        await decideDispute(api(database), {
+          disputeId,
+          upheld: true,
+          operatorUserId: operator!.id,
+        });
+      },
+    ],
+  ])(
+    "suspends on %s, takes the Level check back and keeps the answers",
+    async (_reversal, reverse) => {
+      await withDb(async (db) => {
+        const g = await confirmedPublicGame(db);
+        await rateC(db, g);
+        await settle(db, g.matchId);
+        const event = await db.query.ratingEvents.findFirst({
+          where: and(
+            eq(ratingEvents.matchId, g.matchId),
+            eq(ratingEvents.userId, g.c),
+          ),
+        });
+
+        await reverse(db, g);
+
+        expect(
+          (
+            await db.query.matchRatingWindows.findFirst({
+              where: eq(matchRatingWindows.matchId, g.matchId),
+            })
+          )?.suspendedAt,
+        ).not.toBeNull();
+        expect(
+          await db.$count(
+            levelCheckResults,
+            eq(levelCheckResults.matchId, g.matchId),
+          ),
+        ).toBe(0);
+        expect(
+          await db.$count(
+            levelCheckBallots,
+            eq(levelCheckBallots.matchId, g.matchId),
+          ),
+        ).toBe(2);
+        expect(
+          await db.$count(
+            performanceRatings,
+            eq(performanceRatings.matchId, g.matchId),
+          ),
+        ).toBe(2);
+        const restored = await padelRatingOf(db, g.c);
+        expect(restored.mu).toBe(event!.muBefore);
+        expect(restored.phi).toBe(event!.phiBefore);
+        expect(restored.reliability).toBe(100);
+      });
+    },
+  );
 });

@@ -191,6 +191,11 @@ export function PlayedHero({
                 <Text size="meta" tone="muted" numberOfLines={2}>
                   {you.ratingLine}
                 </Text>
+                {you.proveItLine ? (
+                  <Text size="meta" tone="muted">
+                    {you.proveItLine}
+                  </Text>
+                ) : null}
               </View>
               <Pill label={playedTagLabel(you.tag, locale)} solid={you.won} />
             </View>

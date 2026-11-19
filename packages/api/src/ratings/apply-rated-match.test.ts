@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   GamePositionEnum,
@@ -9,19 +9,31 @@ import {
   games,
   groupMembers,
   groups,
+  matchRatingWindows,
+  matchResultConfirmations,
   matches,
+  notifications,
   ratingEvents,
   ratings,
   user,
+  venueVerifiers,
   venues,
 } from "@repo/db/schema";
 
 import { createFriendlyGame } from "#src/games/create-friendly";
+import { PUBLIC_GAME_CONFIRM_WINDOW_MS } from "#src/games/match-result-confirmations";
+import { recordJobs } from "#src/jobs/job-sink.test-support";
+import { ratingWindowSettleJobKey } from "#src/jobs/specs";
 import { completeMatch } from "#src/routers/games/completeMatch";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { gameById } from "#src/routers/games/byId";
 import { listMyMatchHistoryRows } from "#src/routers/games/listMyMatchHistory";
+import {
+  confirmedPublicGame,
+  seatedPublicGame,
+} from "#src/routers/games/public-game.test-support";
 import { scoreSet } from "#src/routers/games/scoreSet";
+import { stampMatch } from "#src/routers/games/stampMatch";
 import { loadGroupStandings } from "#src/standing/load-group-standing";
 import { loadCompletedMatchesForUser } from "#src/stats/completed-matches";
 import { summarizeCompletedMatchStats } from "@repo/domain/completed-matches";
@@ -505,5 +517,197 @@ describe("Unrated Games", () => {
     } finally {
       await close();
     }
+  });
+});
+
+describe("A padel Public Game's Rating window (ADR-0101)", () => {
+  const jobs = recordJobs();
+
+  function api(database: TestDatabase) {
+    return database as unknown as Parameters<typeof completeMatch>[0];
+  }
+
+  async function withDb(run: (database: TestDatabase) => Promise<void>) {
+    const { db, close } = await createPgliteDb();
+    try {
+      await run(db);
+    } finally {
+      await close();
+    }
+  }
+
+  async function windowOf(database: TestDatabase, matchId: string) {
+    return database.query.matchRatingWindows.findFirst({
+      where: eq(matchRatingWindows.matchId, matchId),
+    });
+  }
+
+  async function askedToRate(database: TestDatabase, gameId: string) {
+    const rows = await database.query.notifications.findMany({
+      where: and(
+        eq(notifications.gameId, gameId),
+        eq(notifications.type, "performance_ratings_open"),
+      ),
+      columns: { recipientUserId: true },
+    });
+    return rows.map((row) => row.recipientUserId).sort();
+  }
+
+  /** The creator enters 6-3, which confirms their side only. */
+  async function enteredPublicGame(database: TestDatabase) {
+    const g = await seatedPublicGame(database);
+    await scoreSet(api(database), {
+      gameId: g.gameId,
+      matchId: g.matchId,
+      setId: g.setId,
+      userId: g.creator,
+      slot1GamesWon: 6,
+      slot2GamesWon: 3,
+    });
+    return g;
+  }
+
+  it("opens once the other side confirms, in Everyone mode for 24 hours, and asks the four seated players", async () => {
+    await withDb(async (db) => {
+      const g = await confirmedPublicGame(db);
+
+      const window = await windowOf(db, g.matchId);
+      expect(window).toMatchObject({
+        mode: "everyone",
+        countsForLevel: true,
+        weightPercent: 0,
+        settledAt: null,
+        suspendedAt: null,
+      });
+      expect(window!.closesAt.getTime() - window!.createdAt.getTime()).toBe(
+        24 * 60 * 60 * 1000,
+      );
+      expect(
+        jobs.added.some(
+          (job) => job.key === ratingWindowSettleJobKey(g.matchId),
+        ),
+      ).toBe(true);
+      expect(await askedToRate(db, g.gameId)).toEqual(
+        [g.creator, g.b, g.c, g.d].sort(),
+      );
+
+      const details = await gameById(api(db), {
+        gameId: g.gameId,
+        userId: g.d,
+      });
+      expect(details.ratingWindow).toMatchObject({
+        mode: "everyone",
+        state: "open",
+        viewerMayRate: true,
+        countsForLevel: true,
+        sport: "padel",
+      });
+    });
+  });
+
+  it("opens when a Verifier stamps a Match only one side confirmed", async () => {
+    await withDb(async (db) => {
+      const g = await enteredPublicGame(db);
+      const game = await db.query.games.findFirst({
+        where: eq(games.id, g.gameId),
+        columns: { venueId: true },
+      });
+      const verifier = await insertUser(db, "verifier");
+      await db.insert(venueVerifiers).values({
+        venueId: game!.venueId!,
+        userId: verifier.id,
+        kind: "referee",
+      });
+
+      await stampMatch(api(db), { matchId: g.matchId, userId: verifier.id });
+
+      expect(await windowOf(db, g.matchId)).toMatchObject({
+        mode: "everyone",
+        countsForLevel: true,
+      });
+      expect(await askedToRate(db, g.gameId)).toEqual(
+        [g.creator, g.b, g.c, g.d].sort(),
+      );
+    });
+  });
+
+  it("opens none while the Level check is off, and the Match still moves the Level", async () => {
+    vi.stubEnv("PADEL_LEVEL_CHECK_ENABLED", "");
+    try {
+      await withDb(async (db) => {
+        const g = await confirmedPublicGame(db);
+
+        expect(await windowOf(db, g.matchId)).toBeUndefined();
+        expect(await askedToRate(db, g.gameId)).toEqual([]);
+        expect(
+          await db.query.ratingEvents.findMany({
+            where: eq(ratingEvents.matchId, g.matchId),
+          }),
+        ).toHaveLength(4);
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("opens none when the score stood without the other side's confirmation", async () => {
+    await withDb(async (db) => {
+      const g = await enteredPublicGame(db);
+      await db
+        .update(matchResultConfirmations)
+        .set({
+          confirmedAt: new Date(
+            Date.now() - PUBLIC_GAME_CONFIRM_WINDOW_MS - 60_000,
+          ),
+        })
+        .where(eq(matchResultConfirmations.matchId, g.matchId));
+      await confirmMatchResult(api(db), {
+        gameId: g.gameId,
+        matchId: g.matchId,
+        userId: g.c,
+      });
+
+      const match = await db.query.matches.findFirst({
+        where: eq(matches.id, g.matchId),
+      });
+      expect(match?.stoodUnconfirmedAt).not.toBeNull();
+      expect(await windowOf(db, g.matchId)).toBeUndefined();
+      expect(await askedToRate(db, g.gameId)).toEqual([]);
+    });
+  });
+
+  it("opens none on a groupless Game that is not public, as a padel Challenge Game is, nor on a tournament Match", async () => {
+    await withDb(async (db) => {
+      const groupless = await setUpMatch(db, { rated: true });
+      await db
+        .update(games)
+        .set({ groupId: null, isPublic: false })
+        .where(eq(games.id, groupless.gameId));
+      await completeMatch(api(db), {
+        gameId: groupless.gameId,
+        matchId: groupless.matchId,
+        userId: groupless.a.id,
+      });
+
+      const tournament = await setUpMatch(db, { rated: true });
+      await db
+        .update(games)
+        .set({ format: "friendly_tournament" })
+        .where(eq(games.id, tournament.gameId));
+      await completeMatch(api(db), {
+        gameId: tournament.gameId,
+        matchId: tournament.matchId,
+        userId: tournament.a.id,
+      });
+
+      for (const { matchId } of [groupless, tournament]) {
+        expect(
+          await db.query.ratingEvents.findMany({
+            where: eq(ratingEvents.matchId, matchId),
+          }),
+        ).toHaveLength(4);
+        expect(await windowOf(db, matchId)).toBeUndefined();
+      }
+    });
   });
 });

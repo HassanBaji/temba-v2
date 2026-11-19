@@ -10,6 +10,7 @@ import {
   footballRoleChoices,
   padelLevelChoices,
   padelNotSureLabel,
+  padelProveItHint,
   PADEL_NOT_SURE_LEVEL,
   padelSideChoices,
   sportChoices,
@@ -214,15 +215,20 @@ export function OnboardingQuestionnaire({
           {levelSet ? (
             <LevelAlreadySet sport="padel" />
           ) : (
-            <RowChoices
-              label={copy.padel.levelLabel}
-              choices={padelLevelChoices(locale).map((choice) => ({
-                ...choice,
-                mark: choice.value,
-              }))}
-              value={answers.padelLevel}
-              onSelect={(padelLevel) => update({ padelLevel })}
-            />
+            <div className="flex flex-col gap-2">
+              <RowChoices
+                label={copy.padel.levelLabel}
+                choices={padelLevelChoices(locale).map((choice) => ({
+                  ...choice,
+                  mark: choice.value,
+                }))}
+                value={answers.padelLevel}
+                onSelect={(padelLevel) => update({ padelLevel })}
+              />
+              <p className="text-muted-foreground text-meta">
+                {padelProveItHint(locale)}
+              </p>
+            </div>
           )}
           <Group>
             <SectionLabel

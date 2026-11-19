@@ -156,6 +156,9 @@ export const notification = {
       strong(sport),
       plain(" Level is confirmed"),
     ],
+    levelRecalculated: [
+      plain("Your padel level was recalculated under the new level rules"),
+    ],
     gameFinished: (game: string) => [strong(game), plain(" has finished")],
     gamePaymentReminder: (actor: string, game: string) => [
       strong(actor),
@@ -373,13 +376,14 @@ export const notification = {
     ratingsOpenEveryone:
       "Score your teammates and, if you want, opponents, within 24 hours. Nobody sees who gave what.",
     ratingsOpenPadel:
-      "Score your partner and, if you want, your opponents, within 24 hours. Nobody sees who gave what.",
+      "Score your partner and, if you want, your opponents, and say what level each player played at, within 24 hours. Nobody sees who gave what.",
     tierPlaces:
       "Tiers are places, so when one player moves, someone moves the other way.",
     gamePaymentReminder: "Pay the organizer, then tell them on the game.",
     gamePaymentClaimed: "Confirm it once you have the money.",
     levelConfirmed:
       "The track is no longer hatched. It keeps moving on verified matches.",
+    levelRecalculated: "Open Ratings to see where you stand.",
     kingPlaceAwarded: (from: string, to: string) => `Level ${from} to ${to}.`,
     ratingsClosed: (rating: string, delta: string, points: string) =>
       `You were rated ${rating}. Tier points ${delta}, now ${points}.`,
@@ -396,6 +400,12 @@ export const notification = {
     ) => `You were rated ${rating}. Reliability ${delta}, now ${reliability}.`,
     ratingsClosedReliabilitySame: (rating: string, reliability: string) =>
       `You were rated ${rating}. Reliability stays at ${reliability}.`,
+    ratingsClosedLevelCheck: (band: string, from: string, to: string) =>
+      `Players placed you at ${band}: level ${from} to ${to}.`,
+    ratingsClosedLevelCheckAgreed: (level: string) =>
+      `Players agreed with your level, ${level}.`,
+    ratingsClosedBoth: (rating: string, levelCheck: string) =>
+      `${rating} ${levelCheck}`,
     levelAdjusted: "Think it’s wrong? You can dispute it.",
     levelDisputeUpheld: "The adjustment is taken back.",
     disputeUpheld: "The score is open again. Enter the right one.",

@@ -10,6 +10,7 @@ import {
   groupRatingEvents,
   groupRatings,
   kingPlaceAwards,
+  levelCheckResults,
   groups,
   levelOverrides,
   matchGoals,
@@ -82,14 +83,14 @@ function byTime(left: Change, right: Change) {
   );
 }
 
-/** Rated Match events, hand-set Levels and Place awards for the scope, oldest first. */
+/** Rated Match events, hand-set Levels, Place awards and Level checks for the scope, oldest first. */
 async function levelChanges(
   database: DbClient,
   userId: string,
   scope: Scope,
 ): Promise<Change[]> {
   if (scope.kind === "general") {
-    const [events, overrides, awards] = await Promise.all([
+    const [events, overrides, awards, checks] = await Promise.all([
       database.query.ratingEvents.findMany({
         where: and(
           eq(ratingEvents.userId, userId),
@@ -117,10 +118,20 @@ async function levelChanges(
         ),
         columns: { id: true, createdAt: true, muBefore: true, muAfter: true },
       }),
+      database.query.levelCheckResults.findMany({
+        where: and(
+          eq(levelCheckResults.userId, userId),
+          eq(levelCheckResults.sport, scope.sport),
+        ),
+        columns: { id: true, createdAt: true, muBefore: true, muAfter: true },
+      }),
     ]);
     return [
       ...events,
-      ...[...overrides, ...awards].map((row) => ({ ...row, matchId: null })),
+      ...[...overrides, ...awards, ...checks].map((row) => ({
+        ...row,
+        matchId: null,
+      })),
     ].sort(byTime);
   }
   const [events, overrides] = await Promise.all([

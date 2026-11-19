@@ -13,7 +13,9 @@ import {
 } from "@repo/db/schema";
 import { type TestDatabase } from "@repo/db/testing";
 
+import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { createGame } from "#src/routers/games/create";
+import { scoreSet } from "#src/routers/games/scoreSet";
 
 async function insertUser(database: TestDatabase, name: string) {
   const [row] = await database
@@ -138,4 +140,25 @@ export async function seatedPublicGame(database: TestDatabase) {
     c: c!,
     d: d!,
   };
+}
+
+/**
+ * A seated Public Game whose creator entered 6-3 and whose other side
+ * confirmed it through `c`, so its Match counts for Temba Level.
+ */
+export async function confirmedPublicGame(database: TestDatabase) {
+  const g = await seatedPublicGame(database);
+  await scoreSet(database as unknown as Parameters<typeof scoreSet>[0], {
+    gameId: g.gameId,
+    matchId: g.matchId,
+    setId: g.setId,
+    userId: g.creator,
+    slot1GamesWon: 6,
+    slot2GamesWon: 3,
+  });
+  await confirmMatchResult(
+    database as unknown as Parameters<typeof confirmMatchResult>[0],
+    { gameId: g.gameId, matchId: g.matchId, userId: g.c },
+  );
+  return g;
 }

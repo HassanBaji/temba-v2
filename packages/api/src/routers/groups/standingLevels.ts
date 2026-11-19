@@ -8,6 +8,7 @@ import {
   groupTierEvents,
   groupTierPoints,
   kingPlaceAwards,
+  levelCheckResults,
   levelOverrides,
   ratingEvents,
   ratings,
@@ -74,7 +75,7 @@ function stateAt<T>(
   return next ? next.before : now;
 }
 
-/** Each member's Level moves after `since`, oldest first, from all three writers. */
+/** Each member's Level moves after `since`, oldest first, from all four writers. */
 async function levelChangesSince(
   database: DbClient,
   args: { userIds: string[]; sport: "padel" | "football"; since: Date },
@@ -83,7 +84,8 @@ async function levelChangesSince(
     T extends
       | typeof ratingEvents
       | typeof levelOverrides
-      | typeof kingPlaceAwards,
+      | typeof kingPlaceAwards
+      | typeof levelCheckResults,
   >(
     table: T,
   ) =>
@@ -99,7 +101,7 @@ async function levelChangesSince(
     muAfter: true,
     levelBandBefore: true,
   } as const;
-  const [events, overrides, awards] = await Promise.all([
+  const [events, overrides, awards, checks] = await Promise.all([
     database.query.ratingEvents.findMany({
       where: where(ratingEvents),
       columns,
@@ -112,12 +114,18 @@ async function levelChangesSince(
       where: where(kingPlaceAwards),
       columns,
     }),
+    database.query.levelCheckResults.findMany({
+      where: where(levelCheckResults),
+      columns,
+    }),
   ]);
   const byUser = new Map<string, LevelChange[]>();
   const all: LevelChange[] = [
     ...events.map((change) => ({ ...change, fromGame: true })),
     ...overrides.map((change) => ({ ...change, fromGame: false })),
     ...awards.map((change) => ({ ...change, fromGame: true })),
+    // A Level check is not improvement in Most improved, as a Level override is not.
+    ...checks.map((change) => ({ ...change, fromGame: false })),
   ];
   for (const change of all.sort(
     (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),

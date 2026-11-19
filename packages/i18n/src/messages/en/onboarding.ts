@@ -60,6 +60,8 @@ export const onboarding = {
   },
   padelNotSure: (level: string) =>
     `Not sure, start at ${level} and leave side open`,
+  padelProveItHint: (band: string) =>
+    `Pick ${band} or above and, until your Level is confirmed, a loss to a pair at your level counts one and a half times.`,
   summary: {
     levelAlreadySet: "Level already set",
     padelLine: (level: string, side: string) =>

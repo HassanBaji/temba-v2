@@ -3,11 +3,14 @@ import { and, countDistinct, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import {
+  GroupSportEnum,
   gamePlayers,
   groups,
+  levelCheckBallots,
   matchRatingWindows,
   matchSets,
   performanceRatings,
+  ratings,
   venues,
 } from "@repo/db";
 
@@ -15,6 +18,8 @@ import {
   DEFAULT_FOOTBALL_BIBS,
   type FootballPosition,
 } from "@repo/domain/football-lineup";
+import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
+import type { LevelCheckSheet } from "@repo/domain/level-check";
 import { marksWindow } from "@repo/domain/marks";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import {
@@ -34,7 +39,11 @@ import {
   footballScoreSet,
 } from "#src/games/football-lineup";
 import { matchSeatedUserIds } from "#src/games/match-result-confirmations";
-import { loadMatchParticipants } from "#src/marks/match-participants";
+import {
+  loadMatchParticipants,
+  type MatchParticipant,
+} from "#src/marks/match-participants";
+import { levelCheckAsked } from "#src/ratings/level-check";
 import { settleRatingWindowIfDue } from "#src/ratings/settle-rating-window";
 
 type DbClient = typeof db;
@@ -46,7 +55,9 @@ type DbClient = typeof db;
  * star may pick the MVP. In Organizer mode only an Organizer of the Game
  * reads it; when everyone rates, a seated player. Nobody else's ballots are
  * sent, and the count never says who rated what. A window past its close is
- * settled first. A padel Match's score is the Sets each side won.
+ * settled first. A padel Match's score is the Sets each side won. A padel
+ * Match that asks the Level check also sends each other player's shown band
+ * and the viewer's own answers, never anyone else's.
  */
 export async function performanceRatingSheet(
   database: DbClient,
@@ -193,8 +204,77 @@ export async function performanceRatingSheet(
         marksWindow(match.completedAt, now)?.state === "open",
       userId: game.mvpUserId,
     },
+    levelCheck:
+      viewer && levelCheckAsked(window, game.sport)
+        ? await levelCheckSheet(database, {
+            matchId: match.id,
+            viewerUserId: args.userId,
+            participants,
+          })
+        : null,
   } satisfies RateGameSheet & Record<string, unknown>;
   return sheet;
+}
+
+/** The other players the viewer may answer about, with the band each shows, and the viewer's own answers. */
+async function levelCheckSheet(
+  database: DbClient,
+  args: {
+    matchId: string;
+    viewerUserId: string;
+    participants: readonly MatchParticipant[];
+  },
+): Promise<LevelCheckSheet> {
+  const others = args.participants.filter(
+    (row) => row.userId !== args.viewerUserId,
+  );
+  const [shown, answers] = await Promise.all([
+    others.length === 0
+      ? []
+      : database
+          .select({ userId: ratings.userId, levelBand: ratings.levelBand })
+          .from(ratings)
+          .where(
+            and(
+              inArray(
+                ratings.userId,
+                others.map((row) => row.userId),
+              ),
+              eq(ratings.sport, GroupSportEnum.PADEL),
+            ),
+          ),
+    database
+      .select({
+        rateeUserId: levelCheckBallots.rateeUserId,
+        band: levelCheckBallots.band,
+      })
+      .from(levelCheckBallots)
+      .where(
+        and(
+          eq(levelCheckBallots.matchId, args.matchId),
+          eq(levelCheckBallots.raterUserId, args.viewerUserId),
+        ),
+      ),
+  ]);
+  const bandOf = new Map(shown.map((row) => [row.userId, row.levelBand]));
+  return {
+    players: others.flatMap((row) => {
+      const band = bandOf.get(row.userId);
+      return band
+        ? [
+            {
+              userId: row.userId,
+              name: row.name,
+              shownBand: displayLabelFromStoredBand(band),
+            },
+          ]
+        : [];
+    }),
+    answers: answers.map((row) => ({
+      userId: row.rateeUserId,
+      band: displayLabelFromStoredBand(row.band),
+    })),
+  };
 }
 
 async function padelSetWins(database: DbClient, matchId: string) {

@@ -270,6 +270,13 @@ describe("notificationHref", () => {
     );
   });
 
+  it("opens padel Ratings when the Level recalculation changed the Level", () => {
+    assert.equal(
+      notificationHref({ type: "level_recalculated", group: null, game: null }),
+      "/dashboard/you/ratings?sport=padel",
+    );
+  });
+
   it("has no target without a Group or for a type it does not know", () => {
     assert.equal(
       notificationHref({ type: "group_member_joined", group: null }),

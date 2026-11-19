@@ -15,7 +15,9 @@ import {
   selfDeclareChoiceFromFootballPlacement,
   type FootballSelfPlacement,
 } from "./football-self-placement";
+import { PROVE_IT_FROM_BAND } from "./level";
 import {
+  displayLabelFromStoredBand,
   selfDeclareChoiceFromDisplay,
   type AssignableDisplayLevelBand,
   type SelfDeclareChoice,
@@ -139,6 +141,13 @@ export const PADEL_NOT_SURE_LEVEL: PadelLevelChoice = "D+";
 
 export function padelNotSureLabel(locale: Locale) {
   return messagesFor(locale).onboarding.padelNotSure(PADEL_NOT_SURE_LEVEL);
+}
+
+/** The line under the padel band picker: what a C or above declaration means (ADR-0099). */
+export function padelProveItHint(locale: Locale) {
+  return messagesFor(locale).onboarding.padelProveItHint(
+    displayLabelFromStoredBand(PROVE_IT_FROM_BAND),
+  );
 }
 
 export function initialOnboardingAnswers(

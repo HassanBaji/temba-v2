@@ -39,8 +39,10 @@ const FOOTBALL_SELF_PLACEMENT_BANDS: Record<
 export function footballSelfPlacementOvr(placement: FootballSelfPlacement) {
   return formatOvr(
     ovrFromMu(
-      initialRatingFromChoice(selfDeclareChoiceFromFootballPlacement(placement))
-        .mu,
+      initialRatingFromChoice(
+        selfDeclareChoiceFromFootballPlacement(placement),
+        "football",
+      ).mu,
     ),
   );
 }
