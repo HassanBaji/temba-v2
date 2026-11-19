@@ -2,6 +2,8 @@ import type { DbClient } from "@repo/db";
 import { type Locale } from "@repo/i18n/locale";
 import { asc, eq, inArray, or, type SQL } from "drizzle-orm";
 
+import { awaitsOrganizerTeams } from "@repo/domain/alone-teams";
+import { isAmericano } from "@repo/domain/tournament-americano";
 import {
   gamePlayers,
   gameWaitlist,
@@ -82,6 +84,8 @@ export const hubListColumns = {
   qualifiersPerPool: true,
   roundCount: true,
   allowSoloRegister: true,
+  organizerMakesTeams: true,
+  teamsPostedAt: true,
   drawPostedAt: true,
   finalOrderPostedAt: true,
   sideSize: true,
@@ -144,6 +148,16 @@ export const hubListWith = {
       footballRole: true,
       footballPosition: true,
     },
+    with: {
+      user: {
+        columns: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
+    },
+    orderBy: asc(gamePlayers.createdAt),
   },
   waitlist: {
     columns: {
@@ -210,6 +224,8 @@ export type HubQueryRow = {
   qualifiersPerPool: number | null;
   roundCount: number | null;
   allowSoloRegister: boolean;
+  organizerMakesTeams: boolean;
+  teamsPostedAt: Date | null;
   drawPostedAt: Date | null;
   finalOrderPostedAt: Date | null;
   sideSize: number | null;
@@ -246,6 +262,7 @@ export type HubQueryRow = {
     userId: string | null;
     footballRole?: "outfield" | "keeper" | null;
     footballPosition?: "def" | "mid" | "fwd" | null;
+    user?: { id: string; name: string; image: string | null } | null;
   }[];
   waitlist: { userId: string | null; teamId: string | null }[];
   teams: {
@@ -481,6 +498,38 @@ function tournamentTeamsFromRow(
   });
 }
 
+function seatsPlayers(row: HubQueryRow) {
+  return (
+    awaitsOrganizerTeams(row) || isAmericano(row.format, row.tournamentShape)
+  );
+}
+
+/**
+ * The players in sign-up order, on a Social that seats players rather than
+ * Game teams: an Alone-only Social before its teams are posted (ADR-0096),
+ * and an Americano, whose pairs never become Game teams (ADR-0094).
+ */
+function alonePlayersFromRow(
+  row: HubQueryRow,
+  viewerUserId: string,
+): HubListSideOccupant[] | null {
+  if (!seatsPlayers(row)) {
+    return null;
+  }
+  return row.players.flatMap((player) =>
+    player.user
+      ? [
+          {
+            userId: player.user.id,
+            name: player.user.name,
+            image: player.user.image,
+            isViewer: player.user.id === viewerUserId,
+          },
+        ]
+      : [],
+  );
+}
+
 function tournamentFromRow(
   row: HubQueryRow,
   viewerUserId: string,
@@ -497,7 +546,11 @@ function tournamentFromRow(
     drawPosted,
     allowSoloRegister: row.allowSoloRegister,
     teams: tournamentTeamsFromRow(row, viewerUserId),
-    joinSides: sidesBySideIndex(row, viewerUserId, row.teamsAllowed ?? 0),
+    // Players sign up through `register`, with no seat to pick (ADR-0094, ADR-0096).
+    joinSides: seatsPlayers(row)
+      ? []
+      : sidesBySideIndex(row, viewerUserId, row.teamsAllowed ?? 0),
+    alonePlayers: alonePlayersFromRow(row, viewerUserId),
     knockout: tournamentKnockoutFromRow(row, viewerUserId, locale),
   };
 }

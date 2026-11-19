@@ -20,6 +20,8 @@ import { completeMatch } from "#src/routers/games/completeMatch";
 import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
+import { postTeams } from "#src/routers/games/postTeams";
+import { register } from "#src/routers/games/register";
 import { registerSeat } from "#src/routers/games/registerSeat";
 import { groupById } from "#src/routers/groups/byId";
 import { createFriendlyGame } from "#src/games/create-friendly";
@@ -138,6 +140,121 @@ async function seat(
 }
 
 describe("hub row tournament field", { timeout: 30_000 }, () => {
+  it("lists an Alone-only Social's players until its teams are posted", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedGroup(db, "alone");
+      const created = await createTournament(db, {
+        createdBy: seeded.owner.id,
+        name: "alone Social",
+        groupId: seeded.groupId,
+        isPublic: false,
+        organizerMakesTeams: true,
+        tournamentShape: "groups_only",
+        teamCount: 4,
+        poolCount: 1,
+        venueId: seeded.venueId,
+        courtIds: [seeded.courtId],
+        matchMinutes: 45,
+        windowStart: WINDOW_START,
+        windowEnd: WINDOW_END,
+      });
+      const players = await joinGroup(db, seeded.groupId, "alone", 8);
+      const [first, second, viewer] = players;
+      if (!first || !second || !viewer) {
+        throw new Error("Expected players");
+      }
+      for (const player of [first, second, viewer]) {
+        await register(db, { gameId: created.id, userId: player.id });
+      }
+
+      const rows = await listMyGamesHubRows(db, viewer.id, NOW);
+      const row = rows.find((item) => item.id === created.id);
+
+      expect(row?.registeredUserCount).toBe(3);
+      expect(row?.playersAllowed).toBe(8);
+      expect(row?.canRegister).toBe(false);
+      expect(row?.tournament?.teams).toEqual([]);
+      expect(row?.tournament?.joinSides).toEqual([]);
+      expect(
+        row?.tournament?.alonePlayers?.map((player) => [
+          player.userId,
+          player.name,
+          player.isViewer,
+        ]),
+      ).toEqual([
+        [first.id, first.name, false],
+        [second.id, second.name, false],
+        [viewer.id, viewer.name, true],
+      ]);
+
+      for (const player of players.slice(3)) {
+        await register(db, { gameId: created.id, userId: player.id });
+      }
+      await postTeams(db, {
+        gameId: created.id,
+        organizerUserId: seeded.owner.id,
+        pairs: [0, 2, 4, 6].map((index) => ({
+          left: players[index]?.id ?? "",
+          right: players[index + 1]?.id ?? "",
+        })),
+      });
+      const posted = (await listMyGamesHubRows(db, viewer.id, NOW)).find(
+        (item) => item.id === created.id,
+      );
+      expect(posted?.tournament?.alonePlayers).toBeNull();
+      expect(posted?.tournament?.teams).toHaveLength(4);
+    } finally {
+      await close();
+    }
+  });
+
+  it("lists an Americano's players, with no seat to pick", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const seeded = await seedGroup(db, "americano");
+      const created = await createTournament(db, {
+        createdBy: seeded.owner.id,
+        name: "americano Social",
+        groupId: seeded.groupId,
+        isPublic: false,
+        tournamentShape: "americano",
+        teamCount: 4,
+        roundCount: 1,
+        venueId: seeded.venueId,
+        courtIds: [seeded.courtId],
+        matchMinutes: 30,
+        windowStart: WINDOW_START,
+        windowEnd: WINDOW_END,
+      });
+      const [first, viewer] = await joinGroup(db, seeded.groupId, "am", 2);
+      if (!first || !viewer) {
+        throw new Error("Expected players");
+      }
+      for (const player of [first, viewer]) {
+        await register(db, { gameId: created.id, userId: player.id });
+      }
+
+      const rows = await listMyGamesHubRows(db, viewer.id, NOW);
+      const row = rows.find((item) => item.id === created.id);
+
+      expect(row?.playersAllowed).toBe(8);
+      expect(row?.tournament?.teams).toEqual([]);
+      expect(row?.tournament?.joinSides).toEqual([]);
+      expect(
+        row?.tournament?.alonePlayers?.map((player) => [
+          player.userId,
+          player.isViewer,
+        ]),
+      ).toEqual([
+        [first.id, false],
+        [viewer.id, true],
+      ]);
+    } finally {
+      await close();
+    }
+  });
+
   it("lists occupied Game teams before the draw with the viewer's team first", async () => {
     const { db, close } = await createPgliteDb();
     try {

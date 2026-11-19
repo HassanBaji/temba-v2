@@ -27,6 +27,7 @@ import { postKingCourts } from "#src/routers/games/postKingCourts";
 import { postKingFinalOrder } from "#src/routers/games/postKingFinalOrder";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { registerSeat } from "#src/routers/games/registerSeat";
+import { undoPoolDraw } from "#src/routers/games/undoPoolDraw";
 
 const START = new Date("2026-09-25T09:00:00");
 const END = new Date("2026-09-25T11:00:00");
@@ -317,6 +318,51 @@ describe("postKingCourts", () => {
           organizerUserId: organizer.id,
           gameTeamIds: teamIds,
         }),
+      /final order is posted/,
+    );
+  });
+
+  it("undoes the starting courts until the final order is posted, and draws them again", async () => {
+    const { database, organizer, gameId, teamIds } = await fullTournament();
+    const post = (order: readonly string[]) =>
+      postKingCourts(database, {
+        gameId,
+        organizerUserId: organizer.id,
+        gameTeamIds: order,
+      });
+    const canUndo = async () =>
+      (await gameById(database, { gameId, userId: organizer.id })).canUndoDraw;
+    await post(teamIds);
+    expect(await canUndo()).toBe(true);
+
+    await undoPoolDraw(database, { gameId, organizerUserId: organizer.id });
+    const game = await database.query.games.findFirst({
+      where: eq(games.id, gameId),
+    });
+    expect(game?.drawPostedAt).toBeNull();
+    expect([...(await startCourts(database, gameId)).values()]).toEqual(
+      teamIds.map(() => null),
+    );
+    await expectRefused(
+      () => undoPoolDraw(database, { gameId, organizerUserId: organizer.id }),
+      /starting courts first/,
+    );
+
+    const order = [...teamIds].reverse();
+    const again = await post(order);
+    expect(again.firstPost).toBe(true);
+    const courts = await startCourts(database, gameId);
+    expect(order.map((id) => courts.get(id))).toEqual([1, 1, 2, 2, 3, 3]);
+
+    await postKingFinalOrder(database, {
+      gameId,
+      organizerUserId: organizer.id,
+      gameTeamIds: order.slice(0, 3),
+      now: new Date("2026-09-25T11:05:00"),
+    });
+    expect(await canUndo()).toBe(false);
+    await expectRefused(
+      () => undoPoolDraw(database, { gameId, organizerUserId: organizer.id }),
       /final order is posted/,
     );
   });

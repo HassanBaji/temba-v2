@@ -58,6 +58,12 @@ export type HubListTournament = {
   teams: HubListTournamentTeam[];
   /** Every side 1..teamsAllowed, for the join sheet. */
   joinSides: HubListSide[];
+  /**
+   * An Americano, or an Alone-only Social before its teams are posted: the
+   * players signed up, in sign-up order (ADR-0094, ADR-0096). Null on every
+   * other tournament.
+   */
+  alonePlayers: HubListSideOccupant[] | null;
   /** Null on a Groups only tournament. */
   knockout: HubListTournamentKnockout | null;
 };

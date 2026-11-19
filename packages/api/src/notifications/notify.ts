@@ -35,6 +35,7 @@ export type NotifyArgs = {
   challengeId?: string | null;
   groupTierEventId?: string | null;
   matchDisputeId?: string | null;
+  levelDisputeId?: string | null;
   viaWaitlist?: boolean;
   gameCount?: number | null;
   markKind?: MarkKind | null;
@@ -103,6 +104,7 @@ export async function notify(
     challengeId: args.challengeId ?? null,
     groupTierEventId: args.groupTierEventId ?? null,
     matchDisputeId: args.matchDisputeId ?? null,
+    levelDisputeId: args.levelDisputeId ?? null,
     viaWaitlist: args.viaWaitlist ?? false,
     gameCount: args.gameCount ?? null,
     markKind: args.markKind ?? null,

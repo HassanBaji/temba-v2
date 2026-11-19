@@ -17,9 +17,11 @@ import type { Slot } from "../home/home-model";
 import { slotOf } from "../lib/slot-of";
 import {
   addPhotosPath,
+  aloneJoinPath,
   footballJoinPath,
   footballScorePath,
   gamePath,
+  joinsAlone,
   registerRequest,
   seatJoinRequest,
   waitlistJoinRequest,
@@ -119,7 +121,11 @@ export function GamesScreen() {
         }
         pendingGameId={pendingGameId ?? confirmingGameId}
         pickerGame={pickerGame}
-        onOpenPicker={setPickerGame}
+        onOpenPicker={(game) =>
+          game && joinsAlone(game)
+            ? router.push(aloneJoinPath(game.id))
+            : setPickerGame(game)
+        }
         onOpen={(gameId) => router.push(gamePath(gameId))}
         onAddPhotos={(gameId) => router.push(addPhotosPath(gameId))}
         onJoinSeat={(gameId, sideIndex, position) =>

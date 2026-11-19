@@ -295,11 +295,8 @@ const CALIBRATION = item({
   sport: "football",
   muBefore: MU_OVR_68,
   muAfter: MU_OVR_71,
-  setByRole: "verifier",
-  setBy: { userId: "yaser", name: "Coach Yaser" },
-  venueName: "Fantasy FC",
-  reason: "plays_above_results",
-  note: "Assessed over two sessions, plays above 68.",
+  restoresLevel: false,
+  dispute: "available",
 });
 
 const TIER_ADJUSTMENT = item({
@@ -354,44 +351,41 @@ describe("ratingHistoryLine", () => {
     });
   });
 
-  it("names the Verifier and their Venue on a calibration", () => {
+  it("reads a Level override as adjusted on performance, with no setter and a way to dispute it", () => {
     expect(ratingHistoryLine(CALIBRATION, VIEWER, "en")).toMatchObject({
       icon: { kind: "override" },
-      title: "Level calibrated by a verifier",
+      title: "Level adjusted based on your performance",
       detail: "Football, 68 to 71",
-      byline:
-        "Coach Yaser (Fantasy FC), Playing above this: “Assessed over two sessions, plays above 68.”",
+      byline: null,
+      dispute: {
+        kind: "raise",
+        levelOverrideId: "calibration",
+        label: "Dispute this adjustment",
+      },
       delta: "+3",
       after: "71",
     });
   });
 
-  it("reads an Operator's and a Level setter's override by their door, and an old one with no reason", () => {
-    const operator = ratingHistoryLine(
-      item({
-        ...CALIBRATION,
-        setByRole: "operator",
-        venueName: null,
-        reason: null,
-        note: null,
-      } as RatingHistoryItemData),
-      VIEWER,
-      "en",
-    );
-    expect(operator).toMatchObject({
-      title: "Level set by an operator",
-      byline: "Coach Yaser, No reason given",
-    });
-    expect(
+  it("reads what became of a dispute, and the override an upheld one wrote", () => {
+    const lineFor = (overrides: Partial<RatingHistoryItemData>) =>
       ratingHistoryLine(
-        item({
-          ...CALIBRATION,
-          setByRole: "level_setter",
-        } as RatingHistoryItemData),
+        item({ ...CALIBRATION, ...overrides } as RatingHistoryItemData),
         VIEWER,
         "en",
-      ).title,
-    ).toBe("Level changed by a level setter");
+      );
+    expect(lineFor({ dispute: "open" }).dispute).toEqual({
+      kind: "status",
+      line: "You disputed this adjustment. Temba will decide.",
+    });
+    expect(lineFor({ dispute: "dismissed" }).dispute).toEqual({
+      kind: "status",
+      line: "Temba reviewed your dispute. This adjustment stands.",
+    });
+    expect(lineFor({ dispute: null }).dispute).toBeNull();
+    expect(lineFor({ restoresLevel: true, dispute: null }).title).toBe(
+      "Level put back after your dispute",
+    );
   });
 
   it("reads an Organizer's Tier adjustment with who, why and the note", () => {
@@ -566,11 +560,11 @@ describe("ratingHistoryLine", () => {
 
   it("speaks the whole line and has Arabic copy", () => {
     expect(ratingHistoryLine(CALIBRATION, VIEWER, "en").spoken).toBe(
-      "Level calibrated by a verifier. Football, 68 to 71. Coach Yaser (Fantasy FC), Playing above this: “Assessed over two sessions, plays above 68.”. +3, now 71",
+      "Level adjusted based on your performance. Football, 68 to 71. +3, now 71",
     );
     const ar = ratingHistoryLine(CALIBRATION, VIEWER, "ar");
-    expect(ar.title).toBe("معايرة المستوى من مُوثِّق");
-    expect(ar.byline).toContain("Coach Yaser (Fantasy FC)");
+    expect(ar.title).toBe("عُدِّل المستوى بناءً على أدائك");
+    expect(ar.byline).toBeNull();
     expect(ratingHistoryLine(TIER_ADJUSTMENT, VIEWER, "ar").title).toBe(
       "تحديد نقاط الفئة من منظّم",
     );
@@ -619,7 +613,7 @@ describe("ratingHistoryScreen", () => {
       "Rank",
     ]);
     expect(screen.footnote).toBe(
-      "Anything a person changed by hand carries their name and reason, and you see it the moment it happens.",
+      "A Tier change an organizer made by hand carries their name and reason. If a Level adjustment looks wrong, you can dispute it.",
     );
   });
 

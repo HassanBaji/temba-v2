@@ -154,7 +154,7 @@ export const webGroup = {
     decreaseOvr: "خفض OVR بمقدار 1",
     increaseOvr: "رفع OVR بمقدار 1",
     reset: "إعادة ضبط",
-    why: (name: string) => `لماذا؟ سيرى ${isolate(name)} هذا.`,
+    why: (name: string) => `لماذا؟ لن يرى ${isolate(name)} هذا ولا اسمك.`,
     noteLabel: "ملاحظة",
     notePlaceholder: "أضف ملاحظة (اختياري)",
     pickReason: "اختر سببًا للحفظ",

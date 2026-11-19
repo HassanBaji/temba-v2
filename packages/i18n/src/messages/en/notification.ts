@@ -83,6 +83,21 @@ export const notification = {
       strong(game),
       plain(". Confirm it or correct it"),
     ],
+    teamsPosted: (actor: string, game: string, partner: string | null) =>
+      partner
+        ? [
+            strong(actor),
+            plain(" posted the teams for "),
+            strong(game),
+            plain(". You’re with "),
+            strong(partner),
+          ]
+        : [
+            strong(actor),
+            plain(" posted the teams for "),
+            strong(game),
+            plain(". You wait on the list for a partner"),
+          ],
     kingCourtsPosted: (actor: string, game: string) => [
       strong(actor),
       plain(" posted the starting courts for "),
@@ -107,16 +122,22 @@ export const notification = {
       strong(plural("en", gameCount, { one: "1 Game", other: "{n} Games" })),
       plain(" played under your number"),
     ],
-    levelSet: (actor: string, level: string) => [
+    levelAdjusted: (level: string) => [
+      plain("Your Level was adjusted to "),
+      strong(level),
+      plain(" based on your performance"),
+    ],
+    levelDisputeRaised: (actor: string, level: string) => [
       strong(actor),
-      plain(" set your Level to "),
+      plain(" disputed their Level adjustment to "),
       strong(level),
     ],
-    levelCalibrated: (actor: string, venue: string, level: string) => [
-      strong(actor),
-      plain(" ("),
-      strong(venue),
-      plain(") calibrated your Level to "),
+    levelDisputeUpheld: (level: string) => [
+      plain("Temba upheld your Level dispute. Your Level is now "),
+      strong(level),
+    ],
+    levelDisputeDismissed: (level: string) => [
+      plain("Temba dismissed your Level dispute. Your Level stays at "),
       strong(level),
     ],
     tierPointsAdjusted: (actor: string, group: string) => [
@@ -385,6 +406,8 @@ export const notification = {
       `Players agreed with your level, ${level}.`,
     ratingsClosedBoth: (rating: string, levelCheck: string) =>
       `${rating} ${levelCheck}`,
+    levelAdjusted: "Think it’s wrong? You can dispute it.",
+    levelDisputeUpheld: "The adjustment is taken back.",
     disputeUpheld: "The score is open again. Enter the right one.",
     disputeDismissed: "The result stands.",
     disputeSuperseded:

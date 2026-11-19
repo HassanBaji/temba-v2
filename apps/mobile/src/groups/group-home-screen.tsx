@@ -42,7 +42,9 @@ import { useCallback, useMemo, useState } from "react";
 import type { ConfirmRequest } from "../game-details/confirm-sheet";
 import { RenamePlayerSheet } from "../game-details/rename-player-sheet";
 import {
+  aloneJoinPath,
   gamePath,
+  joinsAlone,
   registerRequest,
   seatJoinRequest,
   waitlistJoinRequest,
@@ -469,7 +471,10 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
             }),
           loadingMore,
           loadMoreFailed,
-          onPickSeat: setPickerGame,
+          onPickSeat: (game) =>
+            joinsAlone(game)
+              ? router.push(aloneJoinPath(game.id))
+              : setPickerGame(game),
           onLoadMore: () => void loadMoreHistory(),
         }}
         pickerGame={pickerGame}

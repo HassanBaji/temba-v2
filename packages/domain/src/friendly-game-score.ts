@@ -35,7 +35,7 @@ export function scoreIncompleteMessage(locale: Locale) {
 
 export function scorePhaseFlags(phase: FriendlyScorePhase) {
   return {
-    isUpcoming: phase === "upcoming" || phase === "ongoing",
+    isUpcoming: phase === "upcoming",
     isFinal: phase === "final",
   };
 }
@@ -44,7 +44,12 @@ export function scoreCanEnter(
   phase: FriendlyScorePhase,
   matchCanScoreSets: boolean,
 ) {
-  return phase === "needs_results" && matchCanScoreSets;
+  return scoreIsOpen(phase) && matchCanScoreSets;
+}
+
+/** A padel score can be entered from the moment the Game's time starts. */
+function scoreIsOpen(phase: FriendlyScorePhase) {
+  return phase === "ongoing" || phase === "needs_results";
 }
 
 export function scoreNameByUserId(sides: readonly FriendlyScoreSide[]) {
@@ -151,7 +156,7 @@ export function scoreFooterNote(
       ? m.confirmedByAllOn(confirmedAtLabel)
       : m.confirmedByAll;
   }
-  if (phase === "needs_results") {
+  if (scoreIsOpen(phase)) {
     return m.noScoreYet;
   }
   return m.scoringOpens;
@@ -193,7 +198,7 @@ export function scoreShowsConfirmations(input: {
   return (
     input.confirmation != null &&
     input.hasResult &&
-    input.phase === "needs_results"
+    scoreIsOpen(input.phase)
   );
 }
 

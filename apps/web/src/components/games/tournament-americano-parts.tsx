@@ -65,35 +65,60 @@ export function playerShortName(
   return shortPlayerName(names.get(gamePlayerId)?.name ?? "");
 }
 
-/** A player tile: initials and a short name, solid for the viewer. */
+/** A player tile: photo or initials and a short name, solid for the viewer. */
 export function AmericanoPlayerChip({
   name,
+  image,
   isViewer,
   selected = false,
   onClick,
   label,
+  place,
 }: {
   name: string;
+  image?: string | null;
   isViewer: boolean;
   selected?: boolean;
   onClick?: () => void;
   label?: string;
+  /** A Waitlist entry's place in line, shown at the end. */
+  place?: number;
 }) {
   const m = useMessages();
   const content = (
     <>
-      <span
-        aria-hidden="true"
-        className={cn(
-          "text-eyebrow w-6 shrink-0 font-semibold",
-          isViewer || selected ? "text-paper" : "text-ink",
-        )}
-      >
-        {initials(name)}
-      </span>
+      {image ? (
+        // eslint-disable-next-line @next/next/no-img-element -- a small avatar from the media host, as `AvatarImage` renders it
+        <img
+          src={image}
+          alt=""
+          aria-hidden="true"
+          className="size-6 shrink-0 rounded-sm object-cover"
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className={cn(
+            "text-eyebrow w-6 shrink-0 font-semibold",
+            isViewer || selected ? "text-paper" : "text-ink",
+          )}
+        >
+          {initials(name)}
+        </span>
+      )}
       <span dir="auto" className="text-meta min-w-0 truncate">
         {isViewer ? m.common.you : shortPlayerName(name)}
       </span>
+      {place != null ? (
+        <span
+          className={cn(
+            "text-meta ms-auto shrink-0 tabular-nums",
+            isViewer || selected ? "text-paper/70" : "text-muted-foreground",
+          )}
+        >
+          {place}
+        </span>
+      ) : null}
     </>
   );
   const className = cn(
@@ -161,7 +186,7 @@ export function AmericanoPlayersGrid({
   onOpenSeat,
   onPlayer,
 }: {
-  players: readonly { userId: string; name: string }[];
+  players: readonly { userId: string; name: string; image?: string | null }[];
   seatCount: number;
   viewerUserId: string;
   onOpenSeat?: () => void;
@@ -175,6 +200,7 @@ export function AmericanoPlayersGrid({
         <AmericanoPlayerChip
           key={player.userId}
           name={player.name}
+          image={player.image}
           isViewer={player.userId === viewerUserId}
           onClick={
             onPlayer && player.userId !== viewerUserId
@@ -188,6 +214,35 @@ export function AmericanoPlayersGrid({
         <OpenSeatChip key={`open-${index}`} onClick={onOpenSeat} />
       ))}
     </div>
+  );
+}
+
+/** The Waitlist in line order, two a row, each with its place. */
+export function AmericanoWaitlist({
+  entries,
+  viewerUserId,
+}: {
+  entries: readonly {
+    id: string;
+    userId: string | null;
+    name: string;
+    image: string | null;
+  }[];
+  viewerUserId: string;
+}) {
+  return (
+    <ol className={cn(ROUND_CARD, "grid grid-cols-2 gap-1.5 p-2.5")}>
+      {entries.map((entry, index) => (
+        <li key={entry.id} className="min-w-0">
+          <AmericanoPlayerChip
+            name={entry.name}
+            image={entry.image}
+            isViewer={entry.userId === viewerUserId}
+            place={index + 1}
+          />
+        </li>
+      ))}
+    </ol>
   );
 }
 

@@ -1,5 +1,5 @@
 {
-  "id": "cb532992-8d05-4f67-9bd1-58048870179e",
+  "id": "6b8f78d2-490f-4818-9916-7f3c5edb9f4b",
   "prevId": "d06ce868-9fa1-41ae-9128-47e925dd8320",
   "version": "7",
   "dialect": "postgresql",
@@ -848,13 +848,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": 100
-        },
-        "declared_band": {
-          "name": "declared_band",
-          "type": "rating_level_band",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
         },
         "self_declared_at": {
           "name": "self_declared_at",
@@ -4614,6 +4607,19 @@
           "notNull": true,
           "default": true
         },
+        "organizer_makes_teams": {
+          "name": "organizer_makes_teams",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "teams_posted_at": {
+          "name": "teams_posted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
         "price_per_player_cents": {
           "name": "price_per_player_cents",
           "type": "integer",
@@ -5755,6 +5761,13 @@
         "kickoff_football_role": {
           "name": "kickoff_football_role",
           "type": "football_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferred_side": {
+          "name": "preferred_side",
+          "type": "game_position",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
@@ -11692,7 +11705,8 @@
         "game_payment_reminder",
         "game_payment_not_received",
         "game_payment_claimed",
-        "king_place_awarded"
+        "king_place_awarded",
+        "game_teams_posted"
       ]
     }
   },

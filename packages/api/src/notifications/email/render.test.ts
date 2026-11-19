@@ -41,6 +41,7 @@ function item(
     levelCheckMove: null,
     placeAward: null,
     dispute: null,
+    levelDispute: null,
     ...overrides,
   };
 }
@@ -232,38 +233,53 @@ describe("renderNotificationEmail", () => {
     expect(email.html).toContain(`href="${ORIGIN}/dashboard/games/${GAME.id}"`);
   });
 
-  it("emails a set Level with its reason and a button to the Group", () => {
+  it("emails an adjusted Level without the setter, with a button to Rating history", () => {
     const email = render(
       item({
         type: "level_set",
         audience: "player",
         group: GROUP,
-        levelSet: { level: "3.5", levelBand: "B2", reason: "new_to_group" },
+        levelSet: { level: "3.5", levelBand: "B2", sport: "padel" },
       }),
     );
-    expect(email.subject).toMatch(/^Omar Aziz set your Level to .*3\.5$/);
-    expect(email.html).toContain(
-      `href="${ORIGIN}/dashboard/groups/${GROUP.id}"`,
+    expect(email.subject).toMatch(
+      /^Your Level was adjusted to .*3\.5 based on your performance$/,
     );
-    expect(email.text.split("\n")[1]).not.toBe("");
+    expect(email.subject).not.toContain("Omar");
+    expect(email.html).toContain(
+      `href="${ORIGIN}/dashboard/you/ratings/history?sport=padel"`,
+    );
+    expect(email.text).toContain("You can dispute it.");
   });
 
-  it("emails a set football Level as OVR, with no band", () => {
+  it("emails an adjusted football Level as OVR, with no band", () => {
     const email = render(
       item({
         type: "level_set",
         audience: "player",
         group: GROUP,
-        levelSet: {
-          level: "72",
-          levelBand: "C1",
-          sport: "football",
-          reason: "plays_above_results",
-        },
+        levelSet: { level: "72", levelBand: "C1", sport: "football" },
       }),
     );
-    expect(email.subject).toBe("Omar Aziz set your Level to OVR 72");
+    expect(email.subject).toBe(
+      "Your Level was adjusted to OVR 72 based on your performance",
+    );
     expect(email.text).not.toContain("C+");
+  });
+
+  it("sends a raised Level dispute to Operator disputes", () => {
+    const email = render(
+      item({
+        type: "level_dispute_raised",
+        audience: "admin",
+        levelSet: { level: "3.5", levelBand: "B2", sport: "padel" },
+        levelDispute: { status: "open", note: "Too high" },
+      }),
+    );
+    expect(email.subject).toMatch(/^Omar Aziz disputed their Level adjustment/);
+    expect(email.html).toContain(
+      `href="${ORIGIN}/dashboard/operator/disputes"`,
+    );
   });
 
   it("sends the linked history to the Games hub History tab", () => {

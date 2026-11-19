@@ -14,6 +14,7 @@ import {
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
 } from "./friendly-game-cta";
+import { awaitsOrganizerTeams } from "./alone-teams";
 import { formatGameSideLabel } from "./game-side-label";
 import {
   padelLevelChoices,
@@ -71,13 +72,16 @@ export function addPlayerPlacement(game: {
   sport: string | null;
   registrationMode: string;
   tournamentShape?: string | null;
+  organizerMakesTeams?: boolean;
+  teamsPostedAt?: Date | string | null;
 }): AddPlayerPlacement | null {
   if (game.registrationMode !== "individual") {
     return null;
   }
   if (
     game.format === "americano" ||
-    isAmericano(game.format, game.tournamentShape)
+    isAmericano(game.format, game.tournamentShape) ||
+    (game.format === "friendly_tournament" && awaitsOrganizerTeams(game))
   ) {
     return "roster";
   }
@@ -325,6 +329,8 @@ export function organizerCanAddPlayer(game: {
   sport: string | null;
   registrationMode: string;
   tournamentShape?: string | null;
+  organizerMakesTeams?: boolean;
+  teamsPostedAt?: Date | string | null;
   sides: readonly { sideIndex: number; left: unknown; right: unknown }[];
   drawPostedAt?: Date | string | null;
   roster?: { count: number; cap: number | null } | null;
@@ -340,7 +346,8 @@ export function organizerCanAddPlayer(game: {
     return !game.drawPostedAt && vacantJoinSeats(game.sides).length > 0;
   }
   if (placement === "roster" || placement === "football") {
-    // An Americano's Rounds seat every player, so its seats close with them.
+    // An Americano's Rounds seat every player, and an Alone-only Social's
+    // list closes with its draw.
     if (game.format === "friendly_tournament" && game.drawPostedAt) {
       return false;
     }

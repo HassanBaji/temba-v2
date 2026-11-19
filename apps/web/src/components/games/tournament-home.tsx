@@ -5,6 +5,7 @@ import { GamePaymentsSection } from "~/components/game-payments/game-payments-se
 import {
   ArrowLeftRight,
   Ban,
+  LogOutIcon,
   RotateCcwIcon,
   LockIcon,
   LockOpenIcon,
@@ -40,6 +41,16 @@ import {
 } from "~/components/games/tournament-finished-parts";
 import { TournamentHero } from "~/components/games/tournament-hero";
 import { TournamentAmericanoHome } from "~/components/games/tournament-americano-home";
+import { TournamentAloneHome } from "~/components/games/tournament-alone-home";
+import {
+  AlonePlayerCard,
+  AlonePostedOrganizerCard,
+  HeroPadelTag,
+} from "~/components/games/tournament-alone-parts";
+import {
+  alonePlayerCard,
+  alonePostedTitle,
+} from "~/components/games/alone-teams-view";
 import { TournamentKingHome } from "~/components/games/tournament-king-home";
 import {
   KingDrawEntry,
@@ -102,7 +113,27 @@ import { isAmericano } from "@repo/domain/tournament-americano";
 import { type TournamentRoundScheduleEntry } from "@repo/domain/tournament-rounds";
 import { cn } from "~/lib/utils";
 
-type GameDetail = TournamentDetails;
+type GameDetail = TournamentDetails & {
+  canMakeTeamsAlone?: boolean;
+  aloneTeamsMinPlayers?: number;
+  roster?: {
+    users: readonly { id: string; name: string; image: string | null }[];
+    count: number;
+    cap: number | null;
+  } | null;
+};
+
+/** An Alone-only Social whose teams are posted, until the draw (ADR-0096). */
+type AlonePosted = {
+  gameId: string;
+  title: string;
+  onEditTeams?: () => void;
+  playerCard: { viewerName: string; title: string; body: string } | null;
+  teamsCountLine?: string;
+  listNote: string;
+  lockNote: string | null;
+  unseated: readonly { id: string; name: string }[];
+};
 
 type OpenSeatHandler = (
   seat: { sideIndex: number; position: "left" | "right" },
@@ -241,8 +272,54 @@ export function TournamentHome({
   const teamPlayers =
     linkToPlayers || isOrganizerActive ? data.gameTeams : undefined;
 
+  const canLeaveSeat = americano
+    ? !drawn && data.isRegistered && data.canLeave
+    : view.canLeaveGame;
+  const onLeaveSeat = canLeaveSeat ? onLeaveGame : undefined;
+  const org = isOrganizerActive;
+
+  // Pools and Knockouts undo from the standings; these undo from the menu.
+  const undoCopy = !drawn
+    ? null
+    : americano
+      ? m.tournamentAmericano.undo
+      : king
+        ? m.tournamentKing.undo
+        : roundsAsYouGo
+          ? {
+              ...m.tournamentRounds.undo,
+              confirmTitle: m.tournament.poolDraw.undoConfirmTitle,
+              confirmCopy: m.tournament.poolDraw.undoConfirmCopy,
+              confirmLabel: m.tournament.poolDraw.undoConfirmLabel,
+            }
+          : null;
+  const undoDialog = undoCopy ? (
+    <>
+      <ConfirmDialog
+        open={undoOpen}
+        onOpenChange={setUndoOpen}
+        title={undoCopy.confirmTitle}
+        description={undoCopy.confirmCopy}
+        confirmLabel={undoCopy.confirmLabel}
+        pending={undoPending}
+        onConfirm={async () => {
+          try {
+            await onUndo();
+          } catch {
+            // The page shows the failure as a toast.
+          }
+        }}
+      />
+      {undoError ? (
+        <p role="alert" className="text-destructive text-meta">
+          {undoError.message}
+        </p>
+      ) : null}
+    </>
+  ) : null;
+
   const actionsMenu = (ink: boolean) =>
-    isOrganizerActive ? (
+    org || onLeaveSeat ? (
       <TournamentActionsMenu
         title={view.hero.name}
         description={view.hero.startLine}
@@ -252,18 +329,23 @@ export function TournamentHome({
         reopenPending={reopenPending}
         kickPending={kickPending}
         sharePending={sharePending}
+        leavePending={leavePending}
         waitlist={data.waitlist}
-        onShare={drawn && !finished ? onShare : undefined}
-        onEdit={onEdit}
-        onCloseRegistration={finished ? undefined : onCloseRegistration}
-        onReopenRegistration={finished ? undefined : onReopenRegistration}
-        onCancelGame={onCancelGame}
-        onKickWaitlist={onKickWaitlist}
-        onAddPlayer={onAddPlayer}
-        onEditTeams={onEditTeams}
+        onShare={org && drawn && !finished ? onShare : undefined}
+        onEdit={org ? onEdit : undefined}
+        onCloseRegistration={org && !finished ? onCloseRegistration : undefined}
+        onReopenRegistration={
+          org && !finished ? onReopenRegistration : undefined
+        }
+        onCancelGame={org ? onCancelGame : undefined}
+        onKickWaitlist={org ? onKickWaitlist : undefined}
+        onAddPlayer={org ? onAddPlayer : undefined}
+        onEditTeams={org ? onEditTeams : undefined}
+        onLeaveSeat={onLeaveSeat}
         undoDraw={
-          roundsAsYouGo
+          org && undoCopy
             ? {
+                copy: undoCopy,
                 locked: !data.canUndoDraw,
                 pending: undoPending,
                 onSelect: () => setUndoOpen(true),
@@ -273,22 +355,76 @@ export function TournamentHome({
       />
     ) : null;
 
-  if (americano) {
+  if (view.aloneOnly?.awaitingTeams && !drawn) {
     return (
-      <TournamentAmericanoHome
+      <TournamentAloneHome
         data={data}
         backHref={backHref}
-        actions={actionsMenu(!finished)}
-        album={album}
+        tags={<HeroPadelTag />}
+        actions={actionsMenu(true)}
         sharePending={sharePending}
         leavePending={leavePending}
-        kickPending={kickPending}
         onShare={onShare}
         onInvite={onInvite}
-        onLeaveGame={onLeaveGame}
         onLeaveWaitlist={onLeaveWaitlist}
         onKick={onKick}
       />
+    );
+  }
+
+  const viewerName =
+    data.registeredPlayers.find((player) => player.id === data.viewerUserId)
+      ?.name ?? "";
+  const alonePosted: AlonePosted | null =
+    view.aloneOnly?.teamsPosted && !drawn
+      ? {
+          gameId: data.id,
+          title: alonePostedTitle(
+            { knockoutOnly: view.knockoutOnly, king },
+            locale,
+          ),
+          onEditTeams,
+          playerCard:
+            !isOrganizerActive && data.isRegistered && !data.isWaitlisted
+              ? {
+                  viewerName,
+                  ...alonePlayerCard(
+                    view.viewerSide,
+                    data.viewerUserId,
+                    locale,
+                  ),
+                }
+              : null,
+          teamsCountLine: isOrganizerActive
+            ? m.aloneTeams.posted.teamsMadeByYou(
+                view.field.full,
+                data.teamsAllowed ?? data.sides.length,
+              )
+            : undefined,
+          listNote: m.aloneTeams.posted.listNote(data.registeredUserCount),
+          lockNote: isOrganizerActive ? m.aloneTeams.posted.lockNote : null,
+          unseated: data.unseatedPlayers,
+        }
+      : null;
+
+  if (americano) {
+    return (
+      <>
+        <TournamentAmericanoHome
+          data={data}
+          backHref={backHref}
+          actions={actionsMenu(!finished)}
+          album={album}
+          sharePending={sharePending}
+          leavePending={leavePending}
+          kickPending={kickPending}
+          onShare={onShare}
+          onInvite={onInvite}
+          onLeaveWaitlist={onLeaveWaitlist}
+          onKick={onKick}
+        />
+        {undoDialog}
+      </>
     );
   }
 
@@ -310,16 +446,19 @@ export function TournamentHome({
         )}
       >
         {king && drawn ? (
-          <TournamentKingHome
-            data={data}
-            backHref={backHref}
-            actions={actionsMenu(data.finalOrderPostedAt == null)}
-            album={album}
-            onChangeCourts={() => setDrawOpen(true)}
-            orderPending={kingActions.orderPending}
-            orderError={kingActions.orderError}
-            onPostFinalOrder={kingActions.onPostFinalOrder}
-          />
+          <>
+            <TournamentKingHome
+              data={data}
+              backHref={backHref}
+              actions={actionsMenu(data.finalOrderPostedAt == null)}
+              album={album}
+              onChangeCourts={() => setDrawOpen(true)}
+              orderPending={kingActions.orderPending}
+              orderError={kingActions.orderError}
+              onPostFinalOrder={kingActions.onPostFinalOrder}
+            />
+            {undoDialog}
+          </>
         ) : roundsAsYouGo ? (
           <>
             <TournamentDrawnHome
@@ -336,26 +475,7 @@ export function TournamentHome({
               stamping={stamping}
               preview={roundsPreview}
             />
-            <ConfirmDialog
-              open={undoOpen}
-              onOpenChange={setUndoOpen}
-              title={m.tournament.poolDraw.undoConfirmTitle}
-              description={m.tournament.poolDraw.undoConfirmCopy}
-              confirmLabel={m.tournament.poolDraw.undoConfirmLabel}
-              pending={undoPending}
-              onConfirm={async () => {
-                try {
-                  await onUndo();
-                } catch {
-                  // The page shows the failure as a toast.
-                }
-              }}
-            />
-            {undoError ? (
-              <p role="alert" className="text-destructive text-meta">
-                {undoError.message}
-              </p>
-            ) : null}
+            {undoDialog}
           </>
         ) : drawn ? (
           <TournamentStandingsTree
@@ -394,9 +514,11 @@ export function TournamentHome({
               onShare={onShare}
               sharePending={sharePending}
               onInvite={onInvite}
+              tags={alonePosted ? <HeroPadelTag /> : undefined}
               actions={actionsMenu(true)}
             />
             <TournamentPredrawTree
+              alonePosted={alonePosted}
               sides={data.sides}
               viewerUserId={data.viewerUserId}
               canTakeSeat={view.canTakeSeat}
@@ -446,17 +568,6 @@ export function TournamentHome({
         )}
 
         <TournamentDetailRows rows={view.detailRows} />
-        {view.canLeaveGame && onLeaveGame ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-11 w-full"
-            disabled={leavePending}
-            onClick={onLeaveGame}
-          >
-            {m.tournament.home.leaveTheSeat}
-          </Button>
-        ) : null}
         {finished || king ? null : (
           <p className="text-muted-foreground text-meta leading-relaxed">
             {m.tournament.home.closingLine}
@@ -513,6 +624,7 @@ export function TournamentHome({
 }
 
 function TournamentPredrawTree({
+  alonePosted,
   sides,
   viewerUserId,
   canTakeSeat,
@@ -552,6 +664,7 @@ function TournamentPredrawTree({
   onInvite,
   linkToPlayers,
 }: {
+  alonePosted: AlonePosted | null;
   sides: GameDetail["sides"];
   viewerUserId: string;
   canTakeSeat: boolean;
@@ -616,14 +729,25 @@ function TournamentPredrawTree({
           onOpen={onOpenMerge}
         />
       ) : null}
-      {showDrawEntry && king ? (
+      {showDrawEntry && alonePosted ? (
+        <AlonePostedOrganizerCard
+          gameId={alonePosted.gameId}
+          title={alonePosted.title}
+          onOpenDraw={onOpenDraw}
+          onEditTeams={alonePosted.onEditTeams}
+        />
+      ) : null}
+      {alonePosted?.playerCard ? (
+        <AlonePlayerCard {...alonePosted.playerCard} />
+      ) : null}
+      {showDrawEntry && king && !alonePosted ? (
         <KingDrawEntry
           completeTeams={completeTeams}
           teamCount={fieldSize}
           onOpen={onOpenDraw}
         />
       ) : null}
-      {showDrawEntry && !king ? (
+      {showDrawEntry && !king && !alonePosted ? (
         <TournamentDrawEntry
           completeTeams={completeTeams}
           teamCount={fieldSize}
@@ -676,7 +800,9 @@ function TournamentPredrawTree({
         onTakeSeat={onTakeSeat}
         onOpenSeat={onOpenSeat}
         linkToPlayers={linkToPlayers}
+        countLine={alonePosted?.teamsCountLine}
       />
+      {alonePosted ? <AlonePostedNotes posted={alonePosted} /> : null}
       <TournamentSeatsGrid sides={sides} onInvite={onInvite} />
       {king ? (
         <KingHowItRuns courtCount={kingCourtCount(fieldSize)} />
@@ -687,6 +813,36 @@ function TournamentPredrawTree({
           rounds={schedule}
         />
       )}
+    </div>
+  );
+}
+
+function AlonePostedNotes({ posted }: { posted: AlonePosted }) {
+  const m = useMessages().aloneTeams;
+  return (
+    <div className="space-y-4">
+      <p className="text-muted-foreground text-meta leading-relaxed">
+        {[posted.listNote, posted.lockNote].filter(Boolean).join(" ")}
+      </p>
+      {posted.unseated.length > 0 ? (
+        <section className="space-y-2">
+          <h2 className="text-body font-semibold">{m.players.waitingTitle}</h2>
+          <ul className="flex flex-wrap gap-1.5">
+            {posted.unseated.map((player) => (
+              <li
+                key={player.id}
+                dir="auto"
+                className="border-rule text-meta rounded-md border px-3 py-2"
+              >
+                {player.name}
+              </li>
+            ))}
+          </ul>
+          <p className="text-muted-foreground text-meta leading-relaxed">
+            {m.players.waitingNote}
+          </p>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -959,8 +1115,8 @@ function TournamentHomeActions({
 
 /**
  * Everything behind the ⋮ at the top of a Tournament: the Organizer's tools,
- * then waitlist kicks, then cancelling the Game. Seated players are kicked
- * from their seat or Game team, not from here.
+ * then waitlist kicks, then leaving or cancelling the Game. Seated players are
+ * kicked from their seat or Game team, not from here.
  */
 function TournamentActionsMenu({
   title,
@@ -971,6 +1127,7 @@ function TournamentActionsMenu({
   reopenPending,
   kickPending,
   sharePending,
+  leavePending,
   waitlist,
   onShare,
   onEdit,
@@ -980,6 +1137,7 @@ function TournamentActionsMenu({
   onKickWaitlist,
   onAddPlayer,
   onEditTeams,
+  onLeaveSeat,
   undoDraw,
 }: {
   title: string;
@@ -990,6 +1148,7 @@ function TournamentActionsMenu({
   reopenPending: boolean;
   kickPending: boolean;
   sharePending: boolean;
+  leavePending: boolean;
   waitlist: GameDetail["waitlist"];
   onShare?: () => void;
   onEdit?: () => void;
@@ -999,7 +1158,13 @@ function TournamentActionsMenu({
   onKickWaitlist?: (waitlistId: string) => void;
   onAddPlayer?: () => void;
   onEditTeams?: () => void;
-  undoDraw?: { locked: boolean; pending: boolean; onSelect: () => void };
+  onLeaveSeat?: () => void;
+  undoDraw?: {
+    copy: { action: string; locked: string };
+    locked: boolean;
+    pending: boolean;
+    onSelect: () => void;
+  };
 }) {
   const m = useMessages();
 
@@ -1071,13 +1236,25 @@ function TournamentActionsMenu({
     ? [
         {
           key: "undo_draw",
-          label: undoDraw.locked
-            ? m.tournamentRounds.undo.locked
-            : m.tournamentRounds.undo.action,
+          label: undoDraw.locked ? undoDraw.copy.locked : undoDraw.copy.action,
           icon: RotateCcwIcon,
           tone: "danger",
           disabled: undoDraw.locked || undoDraw.pending,
           onSelect: undoDraw.onSelect,
+        },
+      ]
+    : [];
+
+  const leave: GameActionsSheetRow[] = onLeaveSeat
+    ? [
+        {
+          key: "leave",
+          label: m.tournament.home.leaveTheSeat,
+          icon: LogOutIcon,
+          iconClassName: "rtl:-scale-x-100",
+          tone: "danger",
+          disabled: leavePending,
+          onSelect: onLeaveSeat,
         },
       ]
     : [];
@@ -1101,7 +1278,7 @@ function TournamentActionsMenu({
       triggerClassName={
         ink ? ACTION_MENU_INK_BOXED_TRIGGER : ACTION_MENU_PAPER_BOXED_TRIGGER
       }
-      groups={[tools, kicks, undo, cancel]}
+      groups={[tools, kicks, undo, leave, cancel]}
     />
   );
 }

@@ -118,6 +118,44 @@ export function AmericanoPreviewStates() {
     rounds: [],
   };
 
+  const fullDetails = americanoPreviewDetails({
+    isOrganizer: false,
+    taken: 16,
+    drawn: false,
+    start: later,
+  });
+  const waitlistedDetails = {
+    ...fullDetails,
+    registeredPlayers: fullDetails.registeredPlayers.map((player) =>
+      player.id === fullDetails.viewerUserId
+        ? { id: "seated-in-place-of-viewer", name: "Yousif Ali", image: null }
+        : player,
+    ),
+    isRegistered: false,
+    isWaitlisted: true,
+    waitlistPlace: 2,
+    canRegister: false,
+    canLeave: false,
+    waitlist: [
+      {
+        id: "waitlist-0",
+        userId: "waitlist-user-0",
+        teamId: null,
+        createdAt: now,
+        name: "Fawaz Jassim",
+        image: null,
+      },
+      {
+        id: "waitlist-1",
+        userId: fullDetails.viewerUserId,
+        teamId: null,
+        createdAt: now,
+        name: fullDetails.registeredPlayers[2]?.name ?? "",
+        image: null,
+      },
+    ],
+  };
+
   return (
     <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-3">
       <Column title="2a organizer, all 16 in">
@@ -142,6 +180,14 @@ export function AmericanoPreviewStates() {
             start: later,
           })}
           preview={{ board: predrawBoard }}
+        />
+      </Column>
+      <Column title="2c player, full, on the waitlist">
+        <TournamentAmericanoHome
+          {...common}
+          data={waitlistedDetails}
+          preview={{ board: predrawBoard }}
+          onLeaveWaitlist={noop}
         />
       </Column>
       <Column title="3a player, round 3 on court">

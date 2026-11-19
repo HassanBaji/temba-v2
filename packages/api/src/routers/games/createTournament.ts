@@ -290,6 +290,20 @@ function assertAmericanoFits(
   }
 }
 
+function assertAloneOnlyFits(
+  tournamentShape: TournamentShapeEnum,
+  input: { allowSoloRegister?: boolean },
+  locale: Locale,
+) {
+  const m = messagesFor(locale).aloneTeams.errors;
+  if (tournamentShape === TournamentShapeEnum.AMERICANO) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: m.americano });
+  }
+  if (input.allowSoloRegister === false) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: m.partnerOnly });
+  }
+}
+
 export const createTournamentInputSchema = z
   .object({
     name: z.string().trim().min(1).max(255),
@@ -299,6 +313,8 @@ export const createTournamentInputSchema = z
     rated: z.boolean().optional(),
     registrationMode: z.literal("individual").optional(),
     allowSoloRegister: z.boolean().optional().default(true),
+    /** Alone only: everyone signs up alone and the Organizer posts the teams (ADR-0096). */
+    organizerMakesTeams: z.boolean().optional().default(false),
     tournamentShape: z
       .enum([
         "groups_only",
@@ -425,6 +441,10 @@ export async function createTournament(
     assertAmericanoFits(input, sized, locale);
   }
 
+  if (input.organizerMakesTeams) {
+    assertAloneOnlyFits(sized.tournamentShape, input, locale);
+  }
+
   const group = await requireGroup(database, input.groupId, locale);
   if (sportOrDefault(group.sport) === "football") {
     throw new TRPCError({
@@ -459,6 +479,7 @@ export async function createTournament(
         format: GameFormatEnum.FRIENDLY_TOURNAMENT,
         registrationMode: GameRegistrationModeEnum.INDIVIDUAL,
         allowSoloRegister: americano ? true : (input.allowSoloRegister ?? true),
+        organizerMakesTeams: input.organizerMakesTeams ?? false,
         groupId: input.groupId,
         venueId: input.venueId,
         isPublic: input.isPublic,

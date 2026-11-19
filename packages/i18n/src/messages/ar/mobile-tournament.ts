@@ -205,6 +205,11 @@ export const mobileTournament = {
     publish: "نشر الفرق",
     inThePool: (n: number) => `${n} في القائمة`,
   },
+  aloneTeams: {
+    loading: "جارٍ تحميل الفرق",
+    loadFailed: "تعذّر تحميل الفرق",
+    nothingToShare: "انشر الفرق أولاً، ثم يمكنك مشاركتها هنا.",
+  },
   playerSheet: {
     prefers: (position: string) => `يفضّل ${position}`,
     noPositionYet: "لا مركز بعد",

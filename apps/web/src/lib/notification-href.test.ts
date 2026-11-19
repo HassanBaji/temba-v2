@@ -226,12 +226,29 @@ describe("notificationHref", () => {
     );
   });
 
-  it("opens the Group a Level set was made in", () => {
-    assert.equal(
-      notificationHref({ type: "level_set", group: { id: "g2" } }),
-      "/dashboard/groups/g2",
-    );
+  it("opens Rating history on the sport whose Level was adjusted, where it can be disputed", () => {
+    for (const type of ["level_set", "level_dispute_decided"]) {
+      assert.equal(
+        notificationHref({
+          type,
+          group: { id: "g2" },
+          levelSet: { sport: "padel" },
+        }),
+        "/dashboard/you/ratings/history?sport=padel",
+      );
+    }
     assert.equal(notificationHref({ type: "level_set", group: null }), null);
+  });
+
+  it("opens Operator disputes for a raised Level dispute", () => {
+    assert.equal(
+      notificationHref({
+        type: "level_dispute_raised",
+        group: null,
+        levelSet: { sport: "football" },
+      }),
+      "/dashboard/operator/disputes",
+    );
   });
 
   it("opens Ratings on the sport whose Level was confirmed", () => {

@@ -104,7 +104,7 @@ export function useGameEdit({
       ? {
           status: "ready" as const,
           value:
-            venueChoices.find((venue) => venue.id === saved.venueId)?.courts ??
+            venueChoices.find((venue) => venue.id === draft.venueId)?.courts ??
             [],
         }
       : placeCatalog;
@@ -113,6 +113,7 @@ export function useGameEdit({
   const updatePrice = api.games.updatePricePerPlayer.useMutation();
   const updateLevel = api.games.updateLevelRange.useMutation();
   const updateRounds = api.games.updateRoundCount.useMutation();
+  const updateMatchMinutes = api.games.updateMatchMinutes.useMutation();
   const updateSeason = api.games.updateSeason.useMutation();
   const setMvpMode = api.marks.setMvpMode.useMutation();
 
@@ -135,6 +136,7 @@ export function useGameEdit({
           gameId,
           venueId: step.venueId,
           courtId: step.courtId,
+          ...(step.courtIds ? { courtIds: step.courtIds } : {}),
         });
         return 0;
       case "caps": {
@@ -152,8 +154,21 @@ export function useGameEdit({
         });
         return result.movedToWaitlist.length;
       }
+      case "players": {
+        const result = await updateCaps.mutateAsync({
+          gameId,
+          playersAllowed: step.playersAllowed,
+        });
+        return result.movedToWaitlist.length;
+      }
       case "courts":
         await updateCourts.mutateAsync({ gameId, courtIds: step.courtIds });
+        return 0;
+      case "matchLength":
+        await updateMatchMinutes.mutateAsync({
+          gameId,
+          matchMinutes: step.matchMinutes,
+        });
         return 0;
       case "price":
         await updatePrice.mutateAsync({

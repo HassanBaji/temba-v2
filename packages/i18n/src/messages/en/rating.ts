@@ -154,6 +154,7 @@ export const rating = {
     temba: "Counts for Temba Level",
     tembaNote: "Moves every player’s OVR. A verified group has no group tier.",
     group: "Counts for group tier",
+    groupRatingValue: "Group rating",
     groupNote:
       "Moves tier points in this group only. Temba levels move in verified groups.",
   },
@@ -427,15 +428,10 @@ export const rating = {
       title: "Level, King of the court",
     },
     override: {
-      title: {
-        verifier: "Level calibrated by a verifier",
-        operator: "Level set by an operator",
-        level_setter: "Level changed by a level setter",
-      },
+      title: "Level adjusted based on your performance",
+      restoredTitle: "Level put back after your dispute",
       detail: (sport: string, from: string, to: string) =>
         `${sport}, ${from} to ${to}`,
-      atVenue: (name: string, venue: string) => `${name} (${venue})`,
-      someone: "Someone",
     },
     tier: {
       title: (group: string) => `Tier points, ${group}`,
@@ -469,7 +465,7 @@ export const rating = {
       tierPadel: "Padel has no group tier. Padel groups keep their standings.",
     },
     footnote:
-      "Anything a person changed by hand carries their name and reason, and you see it the moment it happens.",
+      "A Tier change an organizer made by hand carries their name and reason. If a Level adjustment looks wrong, you can dispute it.",
     loadFailed: "Couldn’t load your rating history",
   },
   ovr: {
@@ -839,7 +835,7 @@ export const rating = {
       title: "Disputes",
       description:
         "Results players say are wrong. Upholding opens the score again and takes back its Level moves.",
-      settingsSubtitle: "Results players say are wrong",
+      settingsSubtitle: "Results and Levels players say are wrong",
       errorTitle: "Couldn’t load disputes",
       empty: {
         title: "No open disputes",
@@ -859,6 +855,72 @@ export const rating = {
       upheld: "Dispute upheld. The score is open again.",
       dismissed: "Dispute dismissed. The result stands.",
       notCompleted: "The score is already open again.",
+    },
+  },
+  levelDispute: {
+    action: "Dispute this adjustment",
+    sheetTitle: "Dispute this Level adjustment",
+    sheetDescription: (days: number) =>
+      plural("en", days, {
+        one: "Within 1 day of the adjustment. An operator reviews it, and if they agree, the adjustment is taken back.",
+        other:
+          "Within {n} days of the adjustment. An operator reviews it, and if they agree, the adjustment is taken back.",
+      }),
+    noteLabel: "Why it’s wrong",
+    notePlaceholder: "My recent results don’t match this Level",
+    submit: "Send to Temba",
+    sent: "Dispute sent. Temba will decide.",
+    open: "You disputed this adjustment. Temba will decide.",
+    upheld: "Temba agreed and took this adjustment back.",
+    dismissed: "Temba reviewed your dispute. This adjustment stands.",
+    errors: {
+      notFound: "Level adjustment not found.",
+      notYours: "Only your own Level adjustment can be disputed.",
+      ownChange: "You made this change yourself.",
+      restored: "A Level put back after a dispute can’t be disputed.",
+      superseded:
+        "Your Level was adjusted again since. Only the latest adjustment can be disputed.",
+      tooLate: (days: number) =>
+        plural("en", days, {
+          one: "A Level adjustment can be disputed for 1 day.",
+          other: "A Level adjustment can be disputed for {n} days.",
+        }),
+      alreadyDisputed: "This adjustment is already disputed.",
+      note: "Say what’s wrong, in 280 characters or fewer.",
+      disputeNotFound: "Dispute not found.",
+      decided: "This dispute is already decided.",
+      changedSince:
+        "This Level was adjusted again since. Dismiss the dispute, or set the Level by hand.",
+    },
+    operator: {
+      title: "Level disputes",
+      description:
+        "Players who say a Level adjustment is wrong. Upholding takes the adjustment back and keeps what Matches moved since.",
+      empty: {
+        title: "No open Level disputes",
+        description:
+          "When a player disputes a Level adjustment, it shows here.",
+      },
+      change: (sport: string, from: string, to: string) =>
+        `${sport}, ${from} to ${to}`,
+      adjustedBy: (name: string, role: string, reason: string) =>
+        `Adjusted by ${name} (${role}): ${reason}`,
+      adjustedNote: (note: string) => `Their note: “${note}”`,
+      roles: {
+        operator: "operator",
+        level_setter: "level setter",
+        verifier: "verifier",
+      },
+      atVenue: (name: string, venue: string) => `${name} at ${venue}`,
+      someone: "Someone",
+      openProfile: "Open profile",
+      upholdTitle: "Uphold this Level dispute?",
+      upholdDescription:
+        "The adjustment is taken back. Moves from Matches played since stay. The player is told.",
+      dismissTitle: "Dismiss this Level dispute?",
+      dismissDescription: "The adjustment stands. The player is told.",
+      upheld: "Dispute upheld. The adjustment is taken back.",
+      dismissed: "Dispute dismissed. The adjustment stands.",
     },
   },
   publicGame: {

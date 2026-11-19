@@ -12,7 +12,11 @@ import {
   type AddPlayerFootballPosition,
   type AddPlayerLevel,
 } from "@repo/domain/add-player-by-phone";
-import { groupNoMatchLine } from "@repo/domain/add-player-from-group";
+import {
+  groupMemberLevelFilterChoices,
+  groupNoMatchLine,
+  type GroupMemberLevelFilter,
+} from "@repo/domain/add-player-from-group";
 import type { FootballRole } from "@repo/domain/football-lineup";
 import type { FootballSelfPlacement } from "@repo/domain/football-self-placement";
 import { DEFAULT_CALLING_COUNTRY_ISO } from "@repo/domain/phone-number";
@@ -156,6 +160,7 @@ export function TeamAddPlayersSheet({
   const [groupQuery, setGroupQuery] = useState("");
   const [groupId, setGroupId] = useState<string | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
+  const [levels, setLevels] = useState<GroupMemberLevelFilter[]>([]);
   const [groupError, setGroupError] = useState<string | null>(null);
   const [groupPending, setGroupPending] = useState(false);
 
@@ -164,6 +169,7 @@ export function TeamAddPlayersSheet({
       setTab("phone");
       setQuery("");
       setGroupQuery("");
+      setLevels([]);
       setPicked([]);
       setGroupError(null);
     }
@@ -262,7 +268,13 @@ export function TeamAddPlayersSheet({
       listedUserIds: [],
       spotsLeft,
       sport,
+      levels,
     },
+    locale,
+  );
+  const levelChoices = groupMemberLevelFilterChoices(
+    members,
+    sport === "football",
     locale,
   );
 
@@ -480,6 +492,7 @@ export function TeamAddPlayersSheet({
                 value={activeGroupId ?? ""}
                 onSelect={(id) => {
                   setGroupId(id);
+                  setLevels([]);
                   setPicked([]);
                 }}
                 disabled={pending}
@@ -503,6 +516,9 @@ export function TeamAddPlayersSheet({
               }
               spotsLine={null}
               full={picked.length >= spotsLeft}
+              levelChoices={levelChoices}
+              levels={levels}
+              onLevelsChange={setLevels}
               rows={rows}
               detailsById={
                 new Map(

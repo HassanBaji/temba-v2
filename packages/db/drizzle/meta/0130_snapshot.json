@@ -1,6 +1,6 @@
 {
-  "id": "339a02d7-18cf-4db6-82b7-de28422e2573",
-  "prevId": "cb532992-8d05-4f67-9bd1-58048870179e",
+  "id": "739faf11-56a5-4a5a-a8d5-142b74030dc5",
+  "prevId": "6b8f78d2-490f-4818-9916-7f3c5edb9f4b",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -725,18 +725,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "prove_it_part": {
-          "name": "prove_it_part",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reliability_loss_factor": {
-          "name": "reliability_loss_factor",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -860,13 +848,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": 100
-        },
-        "declared_band": {
-          "name": "declared_band",
-          "type": "rating_level_band",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
         },
         "self_declared_at": {
           "name": "self_declared_at",
@@ -4626,6 +4607,19 @@
           "notNull": true,
           "default": true
         },
+        "organizer_makes_teams": {
+          "name": "organizer_makes_teams",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "teams_posted_at": {
+          "name": "teams_posted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
         "price_per_player_cents": {
           "name": "price_per_player_cents",
           "type": "integer",
@@ -5727,6 +5721,182 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.level_disputes": {
+      "name": "level_disputes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "level_override_id": {
+          "name": "level_override_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "raised_by_user_id": {
+          "name": "raised_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "note": {
+          "name": "note",
+          "type": "varchar(280)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "level_dispute_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "decided_by_user_id": {
+          "name": "decided_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decided_at": {
+          "name": "decided_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "restored_override_id": {
+          "name": "restored_override_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "level_disputes_level_override_unique": {
+          "name": "level_disputes_level_override_unique",
+          "columns": [
+            {
+              "expression": "level_override_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "level_disputes_restored_override_id_idx": {
+          "name": "level_disputes_restored_override_id_idx",
+          "columns": [
+            {
+              "expression": "restored_override_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "level_disputes_status_created_idx": {
+          "name": "level_disputes_status_created_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "level_disputes_level_override_id_level_overrides_id_fk": {
+          "name": "level_disputes_level_override_id_level_overrides_id_fk",
+          "tableFrom": "level_disputes",
+          "tableTo": "level_overrides",
+          "columnsFrom": [
+            "level_override_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "level_disputes_raised_by_user_id_user_id_fk": {
+          "name": "level_disputes_raised_by_user_id_user_id_fk",
+          "tableFrom": "level_disputes",
+          "tableTo": "user",
+          "columnsFrom": [
+            "raised_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "level_disputes_decided_by_user_id_user_id_fk": {
+          "name": "level_disputes_decided_by_user_id_user_id_fk",
+          "tableFrom": "level_disputes",
+          "tableTo": "user",
+          "columnsFrom": [
+            "decided_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "level_disputes_restored_override_id_level_overrides_id_fk": {
+          "name": "level_disputes_restored_override_id_level_overrides_id_fk",
+          "tableFrom": "level_disputes",
+          "tableTo": "level_overrides",
+          "columnsFrom": [
+            "restored_override_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.game_players": {
       "name": "game_players",
       "schema": "",
@@ -5767,6 +5937,13 @@
         "kickoff_football_role": {
           "name": "kickoff_football_role",
           "type": "football_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferred_side": {
+          "name": "preferred_side",
+          "type": "game_position",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
@@ -10813,6 +10990,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "level_dispute_id": {
+          "name": "level_dispute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "via_waitlist": {
           "name": "via_waitlist",
           "type": "boolean",
@@ -10998,6 +11181,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "notifications_level_dispute_id_idx": {
+          "name": "notifications_level_dispute_id_idx",
+          "columns": [
+            {
+              "expression": "level_dispute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -11124,6 +11322,19 @@
           "tableTo": "match_disputes",
           "columnsFrom": [
             "match_dispute_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notifications_level_dispute_id_level_disputes_id_fk": {
+          "name": "notifications_level_dispute_id_level_disputes_id_fk",
+          "tableFrom": "notifications",
+          "tableTo": "level_disputes",
+          "columnsFrom": [
+            "level_dispute_id"
           ],
           "columnsTo": [
             "id"
@@ -11464,6 +11675,15 @@
         "superseded"
       ]
     },
+    "public.level_dispute_status": {
+      "name": "level_dispute_status",
+      "schema": "public",
+      "values": [
+        "open",
+        "upheld",
+        "dismissed"
+      ]
+    },
     "public.game_payment_event_action": {
       "name": "game_payment_event_action",
       "schema": "public",
@@ -11704,7 +11924,10 @@
         "game_payment_reminder",
         "game_payment_not_received",
         "game_payment_claimed",
-        "king_place_awarded"
+        "king_place_awarded",
+        "game_teams_posted",
+        "level_dispute_raised",
+        "level_dispute_decided"
       ]
     }
   },

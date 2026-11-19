@@ -181,7 +181,7 @@ export const mobileGroup = {
     decreaseOvr: "Decrease OVR by 1",
     increaseOvr: "Increase OVR by 1",
     reset: "Reset",
-    why: (name: string) => `Why? ${name} will see this.`,
+    why: (name: string) => `Why? ${name} won’t see this or your name.`,
     noteLabel: "Note",
     notePlaceholder: "Add a note (optional)",
     pickReason: "Pick a reason to save",

@@ -40,7 +40,11 @@ import {
   type AddPlayerFootballPosition,
   type AddPlayerLevel,
 } from "@repo/domain/add-player-by-phone";
-import { groupNoMatchLine } from "@repo/domain/add-player-from-group";
+import {
+  groupMemberLevelFilterChoices,
+  groupNoMatchLine,
+  type GroupMemberLevelFilter,
+} from "@repo/domain/add-player-from-group";
 import type { FootballRole } from "@repo/domain/football-lineup";
 import type { FootballSelfPlacement } from "@repo/domain/football-self-placement";
 import { DEFAULT_CALLING_COUNTRY_ISO } from "@repo/domain/phone-number";
@@ -119,6 +123,7 @@ export function TeamAddPlayersDialog({
   const [groupQuery, setGroupQuery] = React.useState("");
   const [groupId, setGroupId] = React.useState<string | null>(null);
   const [picked, setPicked] = React.useState<string[]>([]);
+  const [levels, setLevels] = React.useState<GroupMemberLevelFilter[]>([]);
   const [groupError, setGroupError] = React.useState<string | null>(null);
   const [groupPending, setGroupPending] = React.useState(false);
 
@@ -127,6 +132,7 @@ export function TeamAddPlayersDialog({
       setTab("phone");
       setQuery("");
       setGroupQuery("");
+      setLevels([]);
       setPicked([]);
       setGroupError(null);
     }
@@ -220,7 +226,20 @@ export function TeamAddPlayersDialog({
 
   const members = groupMembers.data?.members ?? [];
   const rows = teamGroupMemberRows(
-    { members, query: groupQuery, picked, listedUserIds: [], spotsLeft, sport },
+    {
+      members,
+      query: groupQuery,
+      picked,
+      listedUserIds: [],
+      spotsLeft,
+      sport,
+      levels,
+    },
+    locale,
+  );
+  const levelChoices = groupMemberLevelFilterChoices(
+    members,
+    sport === "football",
     locale,
   );
 
@@ -442,6 +461,7 @@ export function TeamAddPlayersDialog({
                     value={activeGroupId ?? ""}
                     onSelect={(id) => {
                       setGroupId(id);
+                      setLevels([]);
                       setPicked([]);
                     }}
                   />
@@ -465,6 +485,9 @@ export function TeamAddPlayersDialog({
                 }
                 spotsLine={null}
                 full={picked.length >= spotsLeft}
+                levelChoices={levelChoices}
+                levels={levels}
+                onLevelsChange={setLevels}
                 rows={rows}
                 detailsById={
                   new Map(

@@ -1,1 +1,0 @@
-ALTER TABLE "rating_replay_backups" ADD COLUMN "written" jsonb NOT NULL;

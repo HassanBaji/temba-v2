@@ -126,6 +126,8 @@ export type HubGameRow = {
     allowSoloRegister: boolean;
     teams: HubGameTournamentTeam[];
     joinSides: HubGameSide[];
+    /** The players signed up on an Americano, or an Alone-only Social before its teams are posted (ADR-0094, ADR-0096). */
+    alonePlayers: HubGameOccupant[] | null;
     knockout: {
       roundCount: number | null;
       currentRoundName: string | null;

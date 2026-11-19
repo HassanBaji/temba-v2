@@ -43,6 +43,8 @@ export async function register(
     gameId: string;
     userId: string;
     football?: { role: FootballRole; position: FootballPosition };
+    /** Alone only: the side asked for; left out is Either. */
+    preferredSide?: "left" | "right";
     locale?: Locale;
   },
 ) {
@@ -68,6 +70,13 @@ export async function register(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: messagesFor(locale).football.errors.roleOnFootball,
+    });
+  }
+
+  if (args.preferredSide && !game.organizerMakesTeams) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).aloneTeams.errors.sideOnlyAloneOnly,
     });
   }
 
@@ -106,6 +115,17 @@ export async function register(
       }
       throwIfAdmitRefused(admitted, locale);
     }
+    if (args.preferredSide) {
+      await tx
+        .update(gamePlayers)
+        .set({ preferredSide: args.preferredSide, updatedAt: new Date() })
+        .where(
+          and(
+            eq(gamePlayers.gameId, game.id),
+            eq(gamePlayers.userId, args.userId),
+          ),
+        );
+    }
     if (args.football) {
       await tx
         .update(gamePlayers)
@@ -135,6 +155,7 @@ export const registerProcedure = protectedProcedure
           position: footballPositionSchema,
         })
         .optional(),
+      preferredSide: z.enum(["left", "right"]).optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -143,6 +164,7 @@ export const registerProcedure = protectedProcedure
       gameId: input.gameId,
       userId: appUser.id,
       football: input.football,
+      preferredSide: input.preferredSide,
       locale: ctx.locale,
     });
   });

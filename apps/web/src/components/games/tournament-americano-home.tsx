@@ -48,6 +48,7 @@ import {
   AmericanoPlayersGrid,
   AmericanoScheduleStrip,
   AmericanoTableCard,
+  AmericanoWaitlist,
   AmericanoYourRounds,
   type AmericanoBoard,
   type AmericanoBoardMatch,
@@ -77,7 +78,6 @@ export function TournamentAmericanoHome({
   kickPending,
   onShare,
   onInvite,
-  onLeaveGame,
   onLeaveWaitlist,
   onKick,
   preview,
@@ -93,7 +93,6 @@ export function TournamentAmericanoHome({
   kickPending: boolean;
   onShare?: () => void;
   onInvite?: () => void;
-  onLeaveGame?: () => void;
   onLeaveWaitlist?: () => void;
   onKick?: (userId: string) => void;
 }) {
@@ -206,17 +205,6 @@ export function TournamentAmericanoHome({
 
       <TournamentDetailRows rows={detailRows} />
 
-      {!drawn && data.isRegistered && data.canLeave && onLeaveGame ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11 w-full"
-          disabled={leavePending}
-          onClick={onLeaveGame}
-        >
-          {m.join.leave}
-        </Button>
-      ) : null}
       {data.isWaitlisted && onLeaveWaitlist ? (
         <Button
           type="button"
@@ -374,6 +362,7 @@ function AmericanoPredraw({
           players={data.registeredPlayers.map((player) => ({
             userId: player.id,
             name: player.name,
+            image: player.image,
           }))}
           seatCount={seatCount}
           viewerUserId={data.viewerUserId}
@@ -384,6 +373,26 @@ function AmericanoPredraw({
           {organizer ? m.players.footOrganizer : m.players.footPlayer}
         </p>
       </section>
+
+      {data.waitlist.length > 0 ? (
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="font-expanded text-title tracking-[-0.03em]">
+              {m.waitlist.title}
+            </h2>
+            <p className="text-muted-foreground text-meta">
+              {m.waitlist.count(data.waitlist.length)}
+            </p>
+          </div>
+          <AmericanoWaitlist
+            entries={data.waitlist}
+            viewerUserId={data.viewerUserId}
+          />
+          <p className="text-muted-foreground text-meta leading-relaxed">
+            {m.waitlist.foot}
+          </p>
+        </section>
+      ) : null}
 
       {starts.length > 0 ? (
         <section className="space-y-3">

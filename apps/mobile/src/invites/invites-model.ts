@@ -1,5 +1,6 @@
 import {
   gameInviteClipboardText,
+  type GameInviteShareAmericano,
   type GameInviteShareFootball,
 } from "@repo/domain/game-invite-share-message";
 import { groupInviteClipboardText } from "@repo/domain/group-invite-share-message";
@@ -83,6 +84,7 @@ export type GameShareContext = {
   gameName?: string | null;
   format: string;
   sport?: string | null;
+  tournamentShape?: string | null;
   registrationMode: string;
   venueName: string | null;
   courtName: string | null;
@@ -94,6 +96,7 @@ export type GameShareContext = {
     right: { name: string } | null;
   }[];
   football?: GameInviteShareFootball;
+  americano?: GameInviteShareAmericano;
   levelMinTenths?: number | null;
   levelMaxTenths?: number | null;
   waitlist?: readonly { name: string }[];
@@ -108,6 +111,7 @@ export function gameShareMessage(
   return gameInviteClipboardText({
     format: game.format,
     sport: game.sport,
+    tournamentShape: game.tournamentShape,
     registrationMode: game.registrationMode,
     shortUrl: url,
     roster: {
@@ -120,6 +124,7 @@ export function gameShareMessage(
       sides: game.sides,
       shortUrl: url,
       football: game.football,
+      americano: game.americano,
       levelMinTenths: game.levelMinTenths,
       levelMaxTenths: game.levelMaxTenths,
       waitlist: game.waitlist,

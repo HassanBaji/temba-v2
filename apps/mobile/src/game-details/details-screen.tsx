@@ -1,3 +1,4 @@
+import { awaitsOrganizerTeams } from "@repo/domain/alone-teams";
 import { gamePaymentsTracked } from "@repo/domain/game-payments";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { canEditTeams, editTeamsSpotLabel } from "@repo/domain/edit-teams";
@@ -43,9 +44,9 @@ import type { PlayedRow } from "@repo/domain/played-game";
 import { kickableTournamentOccupants } from "@repo/domain/tournament-organizer";
 import { isTournamentFinished } from "@repo/domain/tournament-finished";
 import { isPartnerRequiredGame } from "@repo/domain/tournament-rounds";
-import { useRouter, useSegments } from "expo-router";
+import { useRouter, useSegments, type Href } from "expo-router";
 import { ArrowLeftRight, LogIn, UserPlus } from "lucide-react-native";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking, Platform, View } from "react-native";
 
 import { directionsUrl } from "../booking/booking-model";
@@ -70,6 +71,8 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { AloneJoinSheet } from "../tournament/alone-join-sheet";
+import type { AloneSocialHandlers } from "../tournament/alone-social";
 import { TournamentBar } from "../tournament/tournament-bar";
 import { OrganizerSheets as TournamentOrganizerSheets } from "../tournament/organizer-sheets";
 import { TournamentAlbum } from "../tournament/tournament-album";
@@ -176,6 +179,7 @@ export function GameDetailsScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+  const [aloneJoinOpen, setAloneJoinOpen] = useState(false);
   const [partnerQuery, setPartnerQuery] = useState("");
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const [initialSeat, setInitialSeat] = useState<{
@@ -209,6 +213,8 @@ export function GameDetailsScreen({
   const tournament = data != null && isDrawnTournamentDetails(data);
   const offersPartner = Boolean(
     data &&
+      // Everyone signs up alone on an Alone-only Social, before and after posting.
+      !data.organizerMakesTeams &&
       offersPartnerJoin({
         canRegister: data.canRegister,
         format: data.format,
@@ -218,7 +224,7 @@ export function GameDetailsScreen({
   );
   const joinQueriesOn = joinOpen && offersPartner;
   const onboarding = api.users.onboardingState.useQuery(undefined, {
-    enabled: joinOpen,
+    enabled: joinOpen || aloneJoinOpen,
   });
   const suggestions = api.games.listPartnerSuggestions.useQuery(
     { gameId },
@@ -284,6 +290,15 @@ export function GameDetailsScreen({
         setJoinOpen(false);
       }
     },
+    onSettled: refresh,
+  });
+  const registerAlone = api.games.register.useMutation({
+    onSuccess: (result) => {
+      toast.show(gameJoinToast(result.waitlisted, locale));
+      setAloneJoinOpen(false);
+    },
+    onError: (error) =>
+      aloneJoinOpen ? setJoinError(error.message) : failure(error),
     onSettled: refresh,
   });
   const moveSeat = api.games.moveSeat.useMutation({
@@ -426,6 +441,28 @@ export function GameDetailsScreen({
     setJoinOpen(true);
   }
 
+  function openAloneJoin() {
+    registerAlone.reset();
+    setJoinError(null);
+    setAloneJoinOpen(true);
+  }
+
+  // The Games hub card sends `intent=join` for an Alone-only Social: its sign-up sheet lives here.
+  const aloneJoinIntentHandled = useRef(false);
+  const opensAloneJoin =
+    intent === "join" &&
+    tournament &&
+    awaitsOrganizerTeams(data) &&
+    data.canRegister &&
+    !data.isRegistered &&
+    !data.isWaitlisted;
+  useEffect(() => {
+    if (opensAloneJoin && !aloneJoinIntentHandled.current) {
+      aloneJoinIntentHandled.current = true;
+      openAloneJoin();
+    }
+  }, [opensAloneJoin]);
+
   function askLeaveGame() {
     if (!data) {
       return;
@@ -469,12 +506,16 @@ export function GameDetailsScreen({
     ? {
         gameName: gameTitle(data, locale),
         format: data.format,
+        tournamentShape: data.tournamentShape,
         registrationMode: data.registrationMode,
         venueName: data.venue?.name ?? null,
         courtName: data.matches[0]?.courtName ?? null,
         windowStart: data.windowStart,
         windowEnd: data.windowEnd,
         sides: data.sides,
+        americano: data.roster
+          ? { playersAllowed: data.roster.cap, players: data.roster.users }
+          : undefined,
         levelMinTenths: data.levelMinTenths,
         levelMaxTenths: data.levelMaxTenths,
         waitlist: data.waitlist,
@@ -627,9 +668,20 @@ export function GameDetailsScreen({
       tournamentOrganizer.addPlayer.onOpen();
     };
     const firstTeamId = details.eligibleTeams[0]?.id ?? "";
-    const kickableUserIds = new Set(
-      kickableTournamentOccupants(details).map((occupant) => occupant.userId),
-    );
+    const awaitingTeams = awaitsOrganizerTeams(details);
+    const organizesOpen = details.isOrganizer && details.cancelledAt == null;
+    const rosterKickable =
+      awaitingTeams && organizesOpen
+        ? details.registeredPlayers
+            .filter((player) => player.id !== details.viewerUserId)
+            .map((player) => player.id)
+        : [];
+    const kickableUserIds = new Set([
+      ...kickableTournamentOccupants(details).map(
+        (occupant) => occupant.userId,
+      ),
+      ...rosterKickable,
+    ]);
     const playerOpensActions = (userId: string) => kickableUserIds.has(userId);
     const openTournamentPlayer =
       onOpenPlayer || kickableUserIds.size > 0
@@ -644,6 +696,29 @@ export function GameDetailsScreen({
             }
           }
         : undefined;
+    const viewerCanJoin =
+      !details.isRegistered && !details.isWaitlisted && details.canRegister;
+    const alone: AloneSocialHandlers | undefined = details.organizerMakesTeams
+      ? {
+          canMakeTeams: data.canMakeTeamsAlone,
+          minPlayers: data.aloneTeamsMinPlayers,
+          onMakeTeams: () => router.push(`/games/${gameId}/make-teams` as Href),
+          onShareTeams: () =>
+            router.push(`/games/${gameId}/share-teams` as Href),
+          onOpenDraw: tournamentOrganizer.handlers.onOpenDraw,
+          onEditTeams: canEditTeams(details)
+            ? tournamentOrganizer.handlers.onEditTeams
+            : null,
+          onOpenPlayer: awaitingTeams ? openTournamentPlayer : undefined,
+          onOpenSeat: !awaitingTeams
+            ? undefined
+            : viewerCanJoin
+              ? openAloneJoin
+              : organizesOpen && organizerCanAddPlayer(details)
+                ? tournamentOrganizer.addPlayer.onOpen
+                : undefined,
+        }
+      : undefined;
     return (
       <View style={{ flex: 1 }}>
         <Screen
@@ -660,6 +735,7 @@ export function GameDetailsScreen({
           />
           <TournamentContent
             game={details}
+            alone={alone}
             album={
               <TournamentAlbum
                 game={details}
@@ -705,14 +781,36 @@ export function GameDetailsScreen({
         <TournamentBar
           game={details}
           handlers={{
-            joinPending: registerSeat.isPending && !joinOpen,
+            joinPending: awaitingTeams
+              ? registerAlone.isPending && !aloneJoinOpen
+              : registerSeat.isPending && !joinOpen,
             leaveWaitlistPending: leaveWaitlist.isPending,
-            onJoin: () => openJoin(),
-            onJoinWaitlist: () => registerSeat.mutate({ gameId }),
+            onJoin: awaitingTeams ? openAloneJoin : () => openJoin(),
+            onJoinWaitlist: () =>
+              awaitingTeams
+                ? registerAlone.mutate({ gameId })
+                : registerSeat.mutate({ gameId }),
             onLeaveWaitlist: askLeaveWaitlist,
           }}
         />
         {sheets}
+        {awaitingTeams ? (
+          <AloneJoinSheet
+            visible={aloneJoinOpen}
+            preferredPosition={onboarding.data?.preferredPosition ?? null}
+            pricePerPlayerFils={details.pricePerPlayerFils}
+            pending={registerAlone.isPending}
+            error={joinError}
+            onClose={() => setAloneJoinOpen(false)}
+            onSubmit={(side) => {
+              setJoinError(null);
+              registerAlone.mutate({
+                gameId,
+                ...(side ? { preferredSide: side } : {}),
+              });
+            }}
+          />
+        ) : null}
         <TournamentOrganizerSheets
           {...tournamentOrganizer.sheets}
           game={details}
@@ -749,7 +847,7 @@ export function GameDetailsScreen({
                 tournamentOrganizer.addPlayer.onClose();
               }}
               gameId={gameId}
-              placement="side"
+              placement={awaitingTeams ? "roster" : "side"}
               sides={details.sides}
               initialSide={addSide}
               groupName={details.groupName}

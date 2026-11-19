@@ -87,6 +87,7 @@ export function TournamentHero({
   onShare,
   sharePending,
   onInvite,
+  tags,
   actions,
 }: {
   name: string;
@@ -104,6 +105,7 @@ export function TournamentHero({
   onShare?: () => void;
   sharePending?: boolean;
   onInvite?: () => void;
+  tags?: ReactNode;
   actions?: ReactNode;
 }) {
   const m = useMessages();
@@ -115,8 +117,9 @@ export function TournamentHero({
     >
       <div className="flex items-center justify-between">
         <BackButton variant="boxed" surface="ink" href={backHref} />
-        {onShare || actions ? (
+        {tags || onShare || actions ? (
           <div className="flex items-center gap-2">
+            {tags}
             {onShare ? (
               <button
                 type="button"

@@ -94,6 +94,7 @@ import {
   type SeatOccupant,
 } from "#src/games/seats";
 import { isRosterRegistrationGame } from "@repo/domain/game-shape";
+import { ALONE_TEAMS_MIN_PLAYERS } from "@repo/domain/alone-teams";
 import { bothSlotsFilled } from "#src/games/both-slots-filled";
 import { bothSlottedTeamsComplete } from "#src/games/both-slotted-teams-complete";
 import {
@@ -143,7 +144,6 @@ import {
   type RatingWindowState,
 } from "@repo/domain/performance-rating";
 import { settleRatingWindowIfDue } from "#src/ratings/settle-rating-window";
-import { isKingOfTheCourt } from "@repo/domain/tournament-king";
 import { messagesFor } from "@repo/i18n/messages";
 import { loadTeamDisplayNames } from "#src/challenges/challenge-proposals";
 import { loadChallengeSides } from "#src/games/challenge-squad";
@@ -1380,7 +1380,7 @@ export async function gameById(
     viewerPlaceAward: viewerPlaceAward ?? null,
     canUndoDraw:
       game.drawPostedAt != null &&
-      !isKingOfTheCourt(game.format, game.tournamentShape) &&
+      game.finalOrderPostedAt == null &&
       !matchRows.some(
         (match) =>
           match.sets.length > 0 ||
@@ -1619,6 +1619,18 @@ export async function gameById(
     canInvite: organizesOpenGame,
     canAddPlayer: organizesOpenGame,
     canMakeTeams: organizesOpenGame && isFootballGame(game),
+    organizerMakesTeams: game.organizerMakesTeams,
+    teamsPostedAt: game.teamsPostedAt,
+    viewerPreferredSide:
+      playerRows.find((row) => row.userId === args.userId)?.preferredSide ??
+      null,
+    /** Alone only: the Organizer may open Make teams and post (ADR-0096). */
+    canMakeTeamsAlone:
+      organizesOpenGame &&
+      game.organizerMakesTeams &&
+      game.drawPostedAt == null &&
+      userCount >= ALONE_TEAMS_MIN_PLAYERS,
+    aloneTeamsMinPlayers: ALONE_TEAMS_MIN_PLAYERS,
   };
 }
 

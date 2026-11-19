@@ -1,1 +1,0 @@
-ALTER TABLE "ratings" ADD COLUMN "declared_band" "rating_level_band";

@@ -7,6 +7,7 @@ import {
   gameRateHref,
   groupTierHistoryHref,
   OPERATOR_DISPUTES_HREF,
+  youRatingHistoryHref,
   youRatingsHref,
 } from "~/lib/dashboard-paths";
 
@@ -15,9 +16,20 @@ export function notificationHref(item: {
   group: { id: string } | null;
   game?: { id: string; sport?: string | null } | null;
   challenge?: { id: string } | null;
+  levelSet?: { sport?: string | null } | null;
 }): string | null {
-  if (item.type === "match_dispute_raised") {
+  if (
+    item.type === "match_dispute_raised" ||
+    item.type === "level_dispute_raised"
+  ) {
     return OPERATOR_DISPUTES_HREF;
+  }
+  const levelSport = item.levelSet?.sport;
+  if (
+    (item.type === "level_set" || item.type === "level_dispute_decided") &&
+    isSport(levelSport)
+  ) {
+    return youRatingHistoryHref(levelSport);
   }
   const sport = item.game?.sport;
   if (item.type === "level_confirmed" && isSport(sport)) {
@@ -37,7 +49,6 @@ export function notificationHref(item: {
   }
   if (
     (item.type === "group_member_joined" ||
-      item.type === "level_set" ||
       item.type === "tier_band_changed" ||
       ((item.type === "group_join_requested" ||
         item.type === "group_join_approved" ||
@@ -57,6 +68,7 @@ export function notificationHref(item: {
       item.type === "game_moved_to_waitlist" ||
       item.type === "game_team_changed" ||
       item.type === "king_courts_posted" ||
+      item.type === "game_teams_posted" ||
       item.type === "king_final_order_posted" ||
       item.type === "king_place_awarded" ||
       item.type === "match_score_to_confirm" ||

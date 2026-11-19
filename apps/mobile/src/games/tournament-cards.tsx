@@ -11,13 +11,17 @@ import { ratingScopeTag } from "@repo/domain/game-rating-impact";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
+import { isAmericano } from "@repo/domain/tournament-americano";
 import {
   showsTournamentOpenFlag,
   tournamentCardAction,
   tournamentCardActionLabel,
+  tournamentCardAlonePlayers,
+  tournamentCardAloneSeats,
   tournamentCardBandMeta,
   tournamentCardDateLine,
   tournamentCardKnockoutLine,
+  tournamentCardOpenCount,
   tournamentCardPairs,
   tournamentMatchActionLabel,
   tournamentMatchLastResultLine,
@@ -28,8 +32,8 @@ import {
   tournamentMatchup,
   tournamentMatchupName,
   tournamentMatchVenueLine,
+  tournamentOccupantLabel,
   tournamentOpenFlagLabel,
-  tournamentOpenTeamCount,
   tournamentTeamPairLabel,
   tournamentTeamsLine,
 } from "@repo/domain/tournament-card";
@@ -138,6 +142,64 @@ function TeamPairs({
   );
 }
 
+function AlonePlayers({
+  players,
+  cap,
+  registrationOpen,
+}: {
+  players: readonly NonNullable<Occupant>[];
+  cap: number;
+  registrationOpen: boolean;
+}) {
+  const locale = useLocale();
+  const m = useMessages();
+  const { shown, remaining, placeholders } = tournamentCardAlonePlayers(
+    players,
+    { cap, registrationOpen },
+  );
+  if (shown.length === 0 && placeholders === 0) {
+    return (
+      <Text size="meta" tone="muted">
+        {m.aloneTeams.card.noPlayersYet}
+      </Text>
+    );
+  }
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 6,
+      }}
+    >
+      {shown.map((player) => (
+        <View
+          key={player.userId}
+          accessible
+          accessibilityLabel={tournamentOccupantLabel(player, locale)}
+        >
+          <PairSquare occupant={player} />
+        </View>
+      ))}
+      {Array.from({ length: placeholders }, (_, index) => (
+        <View
+          key={`open-${index}`}
+          accessible
+          accessibilityLabel={m.aloneTeams.players.openSeat}
+        >
+          <PairSquare occupant={null} />
+        </View>
+      ))}
+      {remaining > 0 ? (
+        <Text size="meta" tone="muted">
+          +{remaining}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
 function RatingScopeTag({ game }: { game: HubGameRow }) {
   const locale = useLocale();
   const tag = ratingScopeTag(game, locale);
@@ -164,6 +226,7 @@ export function TournamentCard({
   const m = messages.mobileTournament.card;
   const tournament = game.tournament;
   const teams = tournament?.teams ?? [];
+  const alone = tournamentCardAloneSeats(game);
   const title = game.name ?? game.venue?.name ?? m.untitledGame;
   const dateLine = tournamentCardDateLine(
     game.windowStart,
@@ -212,7 +275,13 @@ export function TournamentCard({
             }
             pending={pending}
             onPress={() => {
-              if (action === "join") {
+              // An Americano seat has no side to ask for (ADR-0094).
+              if (
+                action === "join" &&
+                isAmericano(game.format, game.tournamentShape)
+              ) {
+                actions.onRegister(game.id);
+              } else if (action === "join") {
                 onPickSeat(game);
               } else if (action === "join_waitlist") {
                 actions.onJoinWaitlist(game);
@@ -253,10 +322,7 @@ export function TournamentCard({
             </Text>
           ) : openFlag ? (
             <Text size="meta" weight="semibold">
-              {tournamentOpenFlagLabel(
-                tournamentOpenTeamCount(game.teamsAllowed, teams),
-                locale,
-              )}
+              {tournamentOpenFlagLabel(tournamentCardOpenCount(game), locale)}
             </Text>
           ) : null}
         </View>
@@ -281,11 +347,19 @@ export function TournamentCard({
       <Text size="meta" tone="muted">
         {tournamentTeamsLine(game, locale)}
       </Text>
-      <TeamPairs
-        teams={teams}
-        teamsAllowed={game.teamsAllowed}
-        registrationOpen={openFlag}
-      />
+      {alone ? (
+        <AlonePlayers
+          players={alone.players}
+          cap={alone.cap}
+          registrationOpen={openFlag}
+        />
+      ) : (
+        <TeamPairs
+          teams={teams}
+          teamsAllowed={game.teamsAllowed}
+          registrationOpen={openFlag}
+        />
+      )}
     </CardShell>
   );
 }

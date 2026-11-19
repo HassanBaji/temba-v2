@@ -29,6 +29,7 @@ export type NotificationEmailInput = Pick<
   | "levelCheckMove"
   | "placeAward"
   | "dispute"
+  | "levelDispute"
 >;
 
 export type NotificationEmail = { subject: string; html: string; text: string };
@@ -59,10 +60,24 @@ const FONT =
 export function notificationEmailDestination(
   item: Pick<NotificationEmailInput, "type" | "group" | "game"> & {
     challenge?: { id: string } | null;
+    levelSet?: { sport?: string | null } | null;
   },
 ): Destination | null {
-  if (item.type === "match_dispute_raised") {
+  if (
+    item.type === "match_dispute_raised" ||
+    item.type === "level_dispute_raised"
+  ) {
     return { kind: "disputes", path: "/dashboard/operator/disputes" };
+  }
+  const levelSport = item.levelSet?.sport;
+  if (
+    (item.type === "level_set" || item.type === "level_dispute_decided") &&
+    isSport(levelSport)
+  ) {
+    return {
+      kind: "ratings",
+      path: `/dashboard/you/ratings/history?sport=${levelSport}`,
+    };
   }
   const sport = item.game?.sport;
   if (item.type === "level_confirmed" && isSport(sport)) {
@@ -79,7 +94,6 @@ export function notificationEmailDestination(
   }
   if (
     (item.type === "group_member_joined" ||
-      item.type === "level_set" ||
       item.type === "tier_points_adjusted" ||
       item.type === "tier_band_changed" ||
       ((item.type === "group_join_requested" ||
@@ -100,6 +114,7 @@ export function notificationEmailDestination(
       item.type === "game_moved_to_waitlist" ||
       item.type === "game_team_changed" ||
       item.type === "king_courts_posted" ||
+      item.type === "game_teams_posted" ||
       item.type === "king_final_order_posted" ||
       item.type === "king_place_awarded" ||
       item.type === "match_score_to_confirm" ||

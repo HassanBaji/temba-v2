@@ -36,6 +36,7 @@ import { View } from "react-native";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { TextField } from "../primitives/text-field";
 import { ChipGrid } from "./chips";
+import { howPeopleJoin, type HowPeopleJoin } from "./create-model";
 import { FootballSizeFields } from "./football-size-fields";
 import {
   LevelRangeField,
@@ -95,7 +96,11 @@ function PriceField({
         onSelect={(price) => dispatch({ kind: "setPrice", price })}
       />
       <HelperNote>
-        {teamPriceCopy ? copy.teamFreeNote(teamPriceCopy) : copy.freeNote}
+        {draft.organizerMakesTeams
+          ? m.aloneTeams.create.feeNote
+          : teamPriceCopy
+            ? copy.teamFreeNote(teamPriceCopy)
+            : copy.freeNote}
       </HelperNote>
     </StepSection>
   );
@@ -414,8 +419,48 @@ function tournamentReviewRows(
       value: minutes.ok ? m.dates.minutes(minutes.minutes) : review.gameLength,
     },
     ratingReviewRow(props, locale),
+    ...(draft.organizerMakesTeams
+      ? [
+          {
+            label: m.aloneTeams.detail.signUp,
+            value: m.aloneTeams.create.review,
+          },
+        ]
+      : []),
     ...optionalRow(paymentReviewValue(draft, false, m, locale)),
   ];
+}
+
+function HowPeopleJoinField({ state, dispatch }: StepProps) {
+  const { draft } = state;
+  const m = useMessages();
+  const sizingCopy = m.tournament.sizing;
+  // An Americano already has everyone sign up alone.
+  const aloneShown = draft.tournamentShape !== "americano";
+  const chips: { value: HowPeopleJoin; label: string }[] = [
+    { value: "solo", label: sizingCopy.aloneOrWithPartner },
+    { value: "pair", label: sizingCopy.withPartnerOnly },
+    ...(aloneShown
+      ? [{ value: "alone" as const, label: m.aloneTeams.create.choice }]
+      : []),
+  ];
+  const mode = howPeopleJoin(draft);
+  return (
+    <StepSection title={sizingCopy.howPeopleJoin}>
+      <ChipGrid
+        label={sizingCopy.howPeopleJoin}
+        columns={aloneShown ? 1 : SEGMENT_COLUMNS}
+        chips={chips}
+        isSelected={(value) => value === mode}
+        onSelect={(value) =>
+          dispatch({ kind: "setHowPeopleJoin", mode: value })
+        }
+      />
+      {mode === "alone" ? (
+        <HelperNote>{m.aloneTeams.create.sizeHint(draft.teamCount)}</HelperNote>
+      ) : null}
+    </StepSection>
+  );
 }
 
 export function TournamentDetailsStep(props: DetailsProps) {
@@ -428,7 +473,7 @@ export function TournamentDetailsStep(props: DetailsProps) {
   return (
     <View style={{ gap: spacing.section }}>
       <WhoCanEnter {...props} />
-      <PriceField {...props} teamPrice />
+      <PriceField {...props} teamPrice={!draft.organizerMakesTeams} />
       <PaymentTrackingField {...props} playersAllowed={draft.teamCount * 2} />
       <StepSection title={m.mobileCreateGame.name.title}>
         <TextField
@@ -458,23 +503,7 @@ export function TournamentDetailsStep(props: DetailsProps) {
         />
       </StepSection>
       <DetailsRatingField {...props} />
-      <StepSection title={sizingCopy.howPeopleJoin}>
-        <ChipGrid
-          label={sizingCopy.howPeopleJoin}
-          columns={SEGMENT_COLUMNS}
-          chips={[
-            { value: "solo", label: sizingCopy.aloneOrWithPartner },
-            { value: "pair", label: sizingCopy.withPartnerOnly },
-          ]}
-          isSelected={(value) => (value === "solo") === draft.allowSoloRegister}
-          onSelect={(value) =>
-            dispatch({
-              kind: "setAllowSolo",
-              allowSoloRegister: value === "solo",
-            })
-          }
-        />
-      </StepSection>
+      <HowPeopleJoinField {...props} />
       <ReviewCard rows={tournamentReviewRows(props, locale)} />
     </View>
   );

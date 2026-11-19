@@ -46,6 +46,8 @@ export type OffersPartnerJoinInput = {
   canRegister: boolean;
   format: string;
   registrationMode: string;
+  /** Alone only: nobody enters with a partner (ADR-0096). */
+  organizerMakesTeams?: boolean;
   sides: FriendlyGamePartnerSides;
 };
 
@@ -74,8 +76,8 @@ export function firstFullyVacantSideIndex(
 /**
  * Offer the partner chooser only on an individual Friendly game or Friendly
  * tournament the viewer may register onto, with at least one fully vacant
- * side. Team-only, Americano, full Games, and viewers who cannot register
- * are all false.
+ * side. Team-only, Americano, Alone only, full Games, and viewers who cannot
+ * register are all false.
  */
 export function offersPartnerJoin(input: OffersPartnerJoinInput): boolean {
   return (
@@ -83,6 +85,7 @@ export function offersPartnerJoin(input: OffersPartnerJoinInput): boolean {
     (input.format === "friendly_game" ||
       input.format === "friendly_tournament") &&
     input.registrationMode === "individual" &&
+    !input.organizerMakesTeams &&
     hasFullyVacantSide(input.sides)
   );
 }

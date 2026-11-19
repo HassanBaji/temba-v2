@@ -3,6 +3,10 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import type { AddPlayerLevel } from "./add-player-by-phone";
 import {
+  groupMemberPassesLevelFilter,
+  type GroupMemberLevelFilter,
+} from "./add-player-from-group";
+import {
   footballPositionCode,
   footballSlotCode,
   type FootballPosition,
@@ -590,6 +594,8 @@ export function teamGroupMemberRows(
     listedUserIds: readonly string[];
     spotsLeft: number;
     sport: Sport;
+    /** Padel only; empty shows every Level. */
+    levels?: readonly GroupMemberLevelFilter[];
   },
   locale: Locale,
 ): TeamGroupMemberRow[] {
@@ -597,9 +603,15 @@ export function teamGroupMemberRows(
   const m = all.team.addPlayers;
   const full = input.picked.length >= input.spotsLeft;
   const needle = (input.query ?? "").trim().toLocaleLowerCase();
+  const levels = input.sport === "football" ? [] : (input.levels ?? []);
   const matching = input.members.filter(
     (member) =>
-      needle === "" || member.name.toLocaleLowerCase().includes(needle),
+      (needle === "" || member.name.toLocaleLowerCase().includes(needle)) &&
+      groupMemberPassesLevelFilter(
+        member,
+        levels,
+        input.picked.includes(member.userId),
+      ),
   );
   return matching.map((member) => {
     const listed = input.listedUserIds.includes(member.userId);

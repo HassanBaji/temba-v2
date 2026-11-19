@@ -1,7 +1,7 @@
 import { sizes, spacing } from "@repo/design-tokens";
 import { invitesWaitingLabel } from "@repo/domain/notification-copy";
 import { useRouter } from "expo-router";
-import { ChevronRight, Flag, History, Inbox } from "lucide-react-native";
+import { ChevronRight, Flag, Gauge, History, Inbox } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, RefreshControl, View } from "react-native";
 
@@ -64,6 +64,9 @@ function Leading({ leading }: { leading: NotificationRowView["leading"] }) {
   }
   if (leading.kind === "history") {
     return <IconTile icon={History} />;
+  }
+  if (leading.kind === "level") {
+    return <IconTile icon={Gauge} />;
   }
   return (
     <Avatar

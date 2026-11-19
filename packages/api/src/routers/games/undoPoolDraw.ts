@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import { gameTeams, games, matches, tournamentDraftMatches } from "@repo/db";
 
+import { isAmericano } from "@repo/domain/tournament-americano";
+import { isKingOfTheCourt } from "@repo/domain/tournament-king";
 import {
   isDrawnTournament,
   isKnockoutOnly,
@@ -11,8 +13,6 @@ import {
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
-import { assertNotAmericano } from "#src/games/assert-not-americano";
-import { assertNotKingOfTheCourt } from "#src/games/assert-not-king-of-the-court";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
@@ -20,10 +20,41 @@ import { lockGame } from "#src/games/lock-rows";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-function drawNoun(game: { format: string; tournamentShape: string | null }) {
-  return isKnockoutOnly(game.format, game.tournamentShape)
+/**
+ * An Americano's draw is its Rounds and King of the court's is its Starting
+ * courts, so each refuses in its own words. King of the court has no Matches:
+ * its result is the final order.
+ */
+function undoErrors(
+  game: { format: string; tournamentShape: string | null },
+  locale: Locale,
+) {
+  const messages = messagesFor(locale);
+  if (isAmericano(game.format, game.tournamentShape)) {
+    const m = messages.tournamentAmericano.errors;
+    return {
+      cancelled: m.cancelled,
+      notPosted: m.noRounds,
+      resultsIn: m.undoAfterScore,
+    };
+  }
+  if (isKingOfTheCourt(game.format, game.tournamentShape)) {
+    const m = messages.tournamentKing.errors;
+    return {
+      cancelled: m.cancelled,
+      notPosted: m.notDrawn,
+      resultsIn: m.finalOrderPosted,
+    };
+  }
+  const m = messages.tournament.errors;
+  const noun = isKnockoutOnly(game.format, game.tournamentShape)
     ? "draw"
     : "groupDraw";
+  return {
+    cancelled: m.undoCancelled[noun],
+    notPosted: m.notPosted[noun],
+    resultsIn: noun === "draw" ? m.undoKnockoutAfterSet : m.undoAfterSet,
+  };
 }
 
 export async function undoPoolDraw(
@@ -34,12 +65,9 @@ export async function undoPoolDraw(
   const game = await requireGame(database, args.gameId, locale);
   await assertGameOrganizer(database, game, args.organizerUserId, locale);
 
+  const errors = undoErrors(game, locale);
   if (game.cancelledAt) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message:
-        messagesFor(locale).tournament.errors.undoCancelled[drawNoun(game)],
-    });
+    throw new TRPCError({ code: "BAD_REQUEST", message: errors.cancelled });
   }
   if (!isDrawnTournament(game.format, game.poolCount, game.tournamentShape)) {
     throw new TRPCError({
@@ -47,13 +75,8 @@ export async function undoPoolDraw(
       message: messagesFor(locale).tournament.errors.undoFriendly,
     });
   }
-  assertNotKingOfTheCourt(game, locale);
-  assertNotAmericano(game, locale);
   if (game.drawPostedAt == null) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: messagesFor(locale).tournament.errors.notPosted[drawNoun(game)],
-    });
+    throw new TRPCError({ code: "BAD_REQUEST", message: errors.notPosted });
   }
 
   const now = new Date();
@@ -62,11 +85,10 @@ export async function undoPoolDraw(
     // Match locks wait out a score being written, so the check sees it.
     const locked = await lockGame(tx, game.id, locale);
     if (locked.drawPostedAt == null) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message:
-          messagesFor(locale).tournament.errors.notPosted[drawNoun(game)],
-      });
+      throw new TRPCError({ code: "BAD_REQUEST", message: errors.notPosted });
+    }
+    if (locked.finalOrderPostedAt != null) {
+      throw new TRPCError({ code: "FORBIDDEN", message: errors.resultsIn });
     }
     await tx
       .select({ id: matches.id })
@@ -86,12 +108,7 @@ export async function undoPoolDraw(
           match.notFinishedAt != null,
       )
     ) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: isKnockoutOnly(game.format, game.tournamentShape)
-          ? messagesFor(locale).tournament.errors.undoKnockoutAfterSet
-          : messagesFor(locale).tournament.errors.undoAfterSet,
-      });
+      throw new TRPCError({ code: "FORBIDDEN", message: errors.resultsIn });
     }
 
     await tx.delete(matches).where(eq(matches.gameId, game.id));
@@ -100,7 +117,12 @@ export async function undoPoolDraw(
       .where(eq(tournamentDraftMatches.gameId, game.id));
     await tx
       .update(gameTeams)
-      .set({ poolIndex: null, knockoutSeed: null, updatedAt: now })
+      .set({
+        poolIndex: null,
+        knockoutSeed: null,
+        startCourt: null,
+        updatedAt: now,
+      })
       .where(eq(gameTeams.gameId, game.id));
     await tx
       .update(games)

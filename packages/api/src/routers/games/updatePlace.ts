@@ -94,6 +94,45 @@ async function updateFriendlyGamePlace(
   }
 }
 
+/**
+ * A Social's Venue and the Courts its Rounds are scheduled on, which must
+ * belong to the new Venue. Until the draw is posted: after that Matches hold
+ * Courts at the old Venue.
+ */
+async function updateSocialPlace(
+  database: Tx,
+  game: GameRow,
+  place: { venueId: string; courtIds: string[] },
+  locale: Locale,
+  now: Date,
+) {
+  const m = messagesFor(locale).game.errors;
+  await assertGameNotFrozen(database, game, now, locale);
+  if (game.drawPostedAt != null) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: m.venueAfterDraw });
+  }
+  const courtIds = [...new Set(place.courtIds)];
+  if (courtIds.length === 0) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: m.courtsAtLeastOne });
+  }
+  await assertGameCreateVenueAndCourt(database, {
+    groupId: game.groupId ?? undefined,
+    venueId: place.venueId,
+    courtId: undefined,
+    courtIds,
+    sport: sportOrDefault(game.sport),
+    locale,
+  });
+  await database
+    .update(games)
+    .set({ venueId: place.venueId, updatedAt: now })
+    .where(eq(games.id, game.id));
+  await database.delete(gameCourts).where(eq(gameCourts.gameId, game.id));
+  await database
+    .insert(gameCourts)
+    .values(courtIds.map((courtId) => ({ gameId: game.id, courtId })));
+}
+
 export async function updateGamePlace(
   database: typeof db,
   args: {
@@ -101,6 +140,8 @@ export async function updateGamePlace(
     userId: string;
     venueId: string;
     courtId: string | null;
+    /** A Social's Courts at the new Venue. */
+    courtIds?: string[];
     locale?: Locale;
     now?: Date;
   },
@@ -109,13 +150,24 @@ export async function updateGamePlace(
   const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, locale);
   await assertGameOrganizer(database, game, args.userId, locale);
+  const now = args.now ?? new Date();
   await database.transaction(async (tx) => {
+    if (game.format === "friendly_tournament") {
+      await updateSocialPlace(
+        tx,
+        game,
+        { venueId: args.venueId, courtIds: args.courtIds ?? [] },
+        locale,
+        now,
+      );
+      return;
+    }
     await updateFriendlyGamePlace(
       tx,
       game,
       { venueId: args.venueId, courtId: args.courtId },
       locale,
-      args.now ?? new Date(),
+      now,
     );
   });
   return { ok: true as const };
@@ -127,6 +179,7 @@ export const updatePlace = protectedProcedure
       gameId: z.string().uuid(),
       venueId: z.string().uuid(),
       courtId: z.string().uuid().nullable(),
+      courtIds: z.array(z.string().uuid()).max(32).optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -136,6 +189,7 @@ export const updatePlace = protectedProcedure
       userId: appUser.id,
       venueId: input.venueId,
       courtId: input.courtId,
+      courtIds: input.courtIds,
       locale: ctx.locale,
     });
   });

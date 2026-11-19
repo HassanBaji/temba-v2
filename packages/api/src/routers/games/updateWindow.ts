@@ -20,6 +20,11 @@ import { scheduleSquadDue } from "#src/jobs/handlers/challenge.squad-due";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+/** Only a Friendly game without a custom name is named after its window. */
+function keepsItsName(game: GameRow) {
+  return game.hasCustomName || game.format !== "friendly_game";
+}
+
 async function updateGameWindowOnGame(
   database: Tx,
   game: GameRow,
@@ -63,7 +68,7 @@ async function updateGameWindowOnGame(
     .set({
       windowStart,
       windowEnd,
-      name: game.hasCustomName ? game.name : name,
+      name: keepsItsName(game) ? game.name : name,
       seasonId: linked?.id ?? null,
       updatedAt: now,
     })

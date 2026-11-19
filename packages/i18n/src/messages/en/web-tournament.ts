@@ -27,6 +27,13 @@ export const webTournament = {
     goesThrough: "Goes through",
     cancelling: "Cancel Match…",
   },
+  aloneTeams: {
+    seats: (taken: number, total: number) =>
+      `${taken} of ${plural("en", total, { one: "{n} seat", other: "{n} seats" })}`,
+    contextLine: (game: string, venue: string) => `${game}, ${venue}`,
+    loadFailed: "The players could not be loaded",
+    notPosted: "Post the teams first. Then you can share them.",
+  },
   home: {
     needCompleteTeam:
       "You need a complete Team whose both partners are allowed on this Game.",

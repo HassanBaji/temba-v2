@@ -121,6 +121,7 @@ import { gameIsPlayed, playedFootballModel } from "@repo/domain/played-game";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
 import { gameCustomName, gameDisplayName } from "@repo/domain/game-custom-name";
 import { ratingScopeOf, ratingScopeTag } from "@repo/domain/game-rating-impact";
+import { countsForRatingValue } from "@repo/domain/game-rating-scope";
 import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
@@ -478,7 +479,7 @@ export function FootballGameDetails({
       : []),
     {
       label: m.game.played.countsForRatingLabel,
-      value: game.rated ? m.common.yes : m.common.no,
+      value: countsForRatingValue(ratingScopeOf(game), locale),
     },
   ];
   const infoRows: FootballInfoRow[] = challenge

@@ -297,6 +297,79 @@ describe("gameInviteClipboardText", () => {
     );
   });
 
+  it("copies an Americano as one numbered player list up to its seats, with no Teams or Court", () => {
+    const windowStart = new Date("2026-11-16T05:00:00.000Z");
+    const windowEnd = new Date("2026-11-16T08:00:00.000Z");
+    const message = gameInviteClipboardText({
+      format: "friendly_tournament",
+      tournamentShape: "americano",
+      registrationMode: "individual",
+      shortUrl,
+      roster: {
+        gameName: "Saturday Americano",
+        venueName: "Padel Club",
+        courtName: "Court 2",
+        windowStart,
+        windowEnd,
+        sides: [],
+        shortUrl,
+        americano: {
+          playersAllowed: 8,
+          players: [{ name: "Ada" }, { name: " " }, { name: "Lin" }],
+        },
+        waitlist: [{ name: "Noor" }],
+        locale: "en",
+      },
+    });
+
+    expect(message).toBe(
+      [
+        "Saturday Americano",
+        "",
+        "📍 Padel Club",
+        "📅 Monday, 16 Nov",
+        `🕗 ${formatGameTimeWindow(windowStart, windowEnd, windowStart, "en")}`,
+        "",
+        "👕 Players",
+        "1- Ada",
+        "2- Lin",
+        "3-",
+        "4-",
+        "5-",
+        "6-",
+        "7-",
+        "8-",
+        "",
+        "⏳ Waiting list",
+        "1- Noor",
+        "",
+        "🔗 Join:",
+        shortUrl,
+      ].join("\n"),
+    );
+  });
+
+  it("copies just the named link for an Americano without its player list", () => {
+    expect(
+      gameInviteClipboardText({
+        format: "friendly_tournament",
+        tournamentShape: "americano",
+        registrationMode: "individual",
+        shortUrl,
+        roster: {
+          gameName: "Saturday Americano",
+          venueName: "Padel Club",
+          courtName: null,
+          windowStart: new Date(),
+          windowEnd: new Date(),
+          sides: [{ sideIndex: 1, left: null, right: null }],
+          shortUrl,
+          locale: "en",
+        },
+      }),
+    ).toBe(`Saturday Americano\n${shortUrl}`);
+  });
+
   it("copies the football details with players and keepers listed apart for a football Friendly game", () => {
     const windowStart = new Date("2026-11-16T17:00:00.000Z");
     const windowEnd = new Date("2026-11-16T18:00:00.000Z");

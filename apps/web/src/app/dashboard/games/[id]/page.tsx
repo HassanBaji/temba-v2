@@ -145,6 +145,7 @@ import { isTournamentFinished } from "@repo/domain/tournament-finished";
 import { tournamentRoundsPlan } from "@repo/domain/tournament-organizer";
 import { isKingOfTheCourt } from "@repo/domain/tournament-king";
 import { isAmericano } from "@repo/domain/tournament-americano";
+import { awaitsOrganizerTeams } from "@repo/domain/alone-teams";
 import {
   isPartnerRequiredGame,
   isKnockoutOnly,
@@ -418,11 +419,17 @@ export default function GameHomePage({
 
   const undoPoolDraw = api.games.undoPoolDraw.useMutation({
     onSuccess: async () => {
+      const shape = game.data;
       toast.success(
-        knockoutOnlyDraw()
-          ? toastCopy.knockoutDrawUndone
-          : toastCopy.poolDrawUndone,
+        shape && isAmericano(shape.format, shape.tournamentShape)
+          ? m.tournamentAmericano.undo.done
+          : shape && isKingOfTheCourt(shape.format, shape.tournamentShape)
+            ? m.tournamentKing.undo.done
+            : knockoutOnlyDraw()
+              ? toastCopy.knockoutDrawUndone
+              : toastCopy.poolDrawUndone,
       );
+      await utils.games.americanoBoard.invalidate({ gameId: id });
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();
@@ -593,6 +600,7 @@ export default function GameHomePage({
     const row = game.data;
     return gameInviteClipboardText({
       format: row?.format ?? "",
+      tournamentShape: row?.tournamentShape,
       registrationMode: row?.registrationMode ?? "",
       shortUrl: url,
       roster: row
@@ -604,6 +612,9 @@ export default function GameHomePage({
             windowEnd: row.windowEnd,
             sides: row.sides,
             shortUrl: url,
+            americano: row.roster
+              ? { playersAllowed: row.roster.cap, players: row.roster.users }
+              : undefined,
             levelMinTenths: row.levelMinTenths,
             levelMaxTenths: row.levelMaxTenths,
             waitlist: row.waitlist,
@@ -650,6 +661,7 @@ export default function GameHomePage({
     challenge: data?.challenge != null,
     drawPosted: data?.drawPostedAt != null,
     americano: isAmericano(data?.format, data?.tournamentShape),
+    king: isKingOfTheCourt(data?.format, data?.tournamentShape),
   });
   const edit = useGameEdit({
     gameId: id,
@@ -712,7 +724,8 @@ export default function GameHomePage({
     data &&
       (data.canRegister || data.canWaitlist) &&
       data.registrationMode === "individual" &&
-      data.format !== "americano",
+      data.format !== "americano" &&
+      !data.organizerMakesTeams,
   );
   const partnerSearch = api.games.searchPartnerUsers.useQuery(
     { gameId: id, query: partnerQuery },
@@ -729,7 +742,7 @@ export default function GameHomePage({
     if (!tournamentInviteLandingOpensPartnerSheet(joinParam) || !data) {
       return;
     }
-    if (data.canRegister) {
+    if (data.canRegister && !awaitsOrganizerTeams(data)) {
       setJoinPickerSeat(null);
       setJoinPickerOpen(true);
     }
@@ -1663,6 +1676,7 @@ export default function GameHomePage({
           windowEnd={data.windowEnd}
           matchMinutes={data.matchMinutes}
           allowSoloRegister={data.allowSoloRegister}
+          organizerMakesTeams={data.organizerMakesTeams}
           onPickSeat={(sideIndex, position) =>
             registerSeat.mutateAsync({ gameId: id, sideIndex, position })
           }

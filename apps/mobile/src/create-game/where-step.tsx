@@ -173,7 +173,11 @@ export function WhereStep({
             decreaseLabel={copy.teams.fewer}
             increaseLabel={copy.teams.more}
           />
-          <HelperNote>{playersInPairsLine(draft.teamCount, locale)}</HelperNote>
+          <HelperNote>
+            {draft.organizerMakesTeams
+              ? m.aloneTeams.create.sizeHint(draft.teamCount)
+              : playersInPairsLine(draft.teamCount, locale)}
+          </HelperNote>
           <FieldError message={errors.teamCount} />
         </StepSection>
       ) : null}

@@ -211,6 +211,8 @@ export const webGame = {
       mvp: "نجم المباراة",
       teams: "الفرق",
       courts: "الملاعب",
+      players: "اللاعبون",
+      matchLength: "مدة المباراة",
     },
     stepFailed: (step: string, message: string) => `${step}: ${message}`,
     movedToWaitlist: (n: number) =>

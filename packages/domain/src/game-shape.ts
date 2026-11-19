@@ -1,6 +1,7 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { type AloneTeamsShape, awaitsOrganizerTeams } from "./alone-teams";
 import { isAmericano } from "./tournament-americano";
 
 export const FOOTBALL_SIDE_SIZES = [5, 6, 7, 8, 9, 11] as const;
@@ -11,7 +12,7 @@ export const DEFAULT_FOOTBALL_SIDE_SIZE: FootballSideSize = 5;
 
 export const FOOTBALL_PLAYERS_ALLOWED_MAX = 40;
 
-export type GameShape = {
+export type GameShape = AloneTeamsShape & {
   format: string;
   sport?: string | null;
   tournamentShape?: string | null;
@@ -23,13 +24,15 @@ export function isFootballGame(game: Pick<GameShape, "sport">) {
 
 /**
  * Players join alone and hold no Position: the legacy Americano format, every
- * football Friendly game, and the Americano Tournament shape (ADR-0094).
+ * football Friendly game, the Americano Tournament shape (ADR-0094), and an
+ * Alone-only Social until its teams are posted (ADR-0096).
  */
 export function isRosterRegistrationGame(game: GameShape) {
   return (
     game.format === "americano" ||
     (game.format === "friendly_game" && isFootballGame(game)) ||
-    isAmericano(game.format, game.tournamentShape)
+    isAmericano(game.format, game.tournamentShape) ||
+    (game.format === "friendly_tournament" && awaitsOrganizerTeams(game))
   );
 }
 

@@ -28,6 +28,7 @@ export type NotificationRowView = {
   leading:
     | { kind: "finished" }
     | { kind: "history" }
+    | { kind: "level" }
     | { kind: "actor"; name: string | null; image: string | null };
 };
 
@@ -39,6 +40,9 @@ function leadingFor(
   }
   if (item.type === "history_linked") {
     return { kind: "history" };
+  }
+  if (item.type === "level_set" || item.type === "level_dispute_decided") {
+    return { kind: "level" };
   }
   return {
     kind: "actor",

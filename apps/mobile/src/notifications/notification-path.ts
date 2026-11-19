@@ -4,13 +4,11 @@ import { isSport } from "@repo/domain/sport";
 
 import { gamePath, gamePaymentsPath, gameRatePath } from "../games/games-model";
 import { groupTierHistoryPath } from "../groups/groups-model";
-import { ratingsPath } from "../profile/ratings-path";
+import { ratingHistoryPath, ratingsPath } from "../profile/ratings-path";
 
-const GROUP_TYPES = new Set([
-  "group_member_joined",
-  "level_set",
-  "tier_band_changed",
-]);
+const GROUP_TYPES = new Set(["group_member_joined", "tier_band_changed"]);
+
+const LEVEL_TYPES = new Set(["level_set", "level_dispute_decided"]);
 
 const GROUP_JOIN_TYPES = new Set([
   "group_join_requested",
@@ -28,6 +26,7 @@ const GAME_TYPES = new Set([
   "game_moved_to_waitlist",
   "game_team_changed",
   "king_courts_posted",
+  "game_teams_posted",
   "king_final_order_posted",
   "king_place_awarded",
   "match_score_to_confirm",
@@ -63,7 +62,12 @@ export function notificationPath(item: {
   group: { id: string } | null;
   game?: { id: string; sport?: string | null } | null;
   challenge?: { id: string } | null;
+  levelSet?: { sport?: string | null } | null;
 }): string | null {
+  const levelSport = item.levelSet?.sport;
+  if (LEVEL_TYPES.has(item.type) && isSport(levelSport)) {
+    return ratingHistoryPath(levelSport);
+  }
   const sport = item.game?.sport;
   if (item.type === "level_confirmed" && isSport(sport)) {
     return ratingsPath(sport);

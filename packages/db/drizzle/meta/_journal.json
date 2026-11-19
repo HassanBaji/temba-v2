@@ -908,43 +908,22 @@
     {
       "idx": 129,
       "version": "7",
-      "when": 1794834331517,
-      "tag": "0129_declared_band",
+      "when": 1794906214064,
+      "tag": "0129_alone_only_socials",
       "breakpoints": true
     },
     {
       "idx": 130,
       "version": "7",
-      "when": 1794837976856,
-      "tag": "0130_prove_it_part",
+      "when": 1794992397986,
+      "tag": "0130_level_disputes",
       "breakpoints": true
     },
     {
       "idx": 131,
       "version": "7",
-      "when": 1794845752239,
-      "tag": "0131_rating_replay",
-      "breakpoints": true
-    },
-    {
-      "idx": 132,
-      "version": "7",
-      "when": 1794849660751,
-      "tag": "0132_level_recalculated_notification",
-      "breakpoints": true
-    },
-    {
-      "idx": 133,
-      "version": "7",
-      "when": 1794853449148,
-      "tag": "0133_level_checks",
-      "breakpoints": true
-    },
-    {
-      "idx": 134,
-      "version": "7",
-      "when": 1794900272816,
-      "tag": "0134_rating_replay_written",
+      "when": 1795122659497,
+      "tag": "0131_padel_declared_band_trust",
       "breakpoints": true
     }
   ]

@@ -72,6 +72,8 @@ type ExpectedGames =
   | "drawPools"
   | "postPoolDraw"
   | "postKingCourts"
+  | "postTeams"
+  | "teamsSheet"
   | "postKingFinalOrder"
   | "americanoBoard"
   | "postAmericanoRounds"
@@ -116,6 +118,7 @@ type ExpectedGames =
   | "updatePricePerPlayer"
   | "updateLevelRange"
   | "updateRoundCount"
+  | "updateMatchMinutes"
   | "updateSeason"
   | "requestLevelRange"
   | "listLevelRangeRequests"
@@ -264,7 +267,10 @@ type ExpectedRatings =
   | "myGroupLevels"
   | "myGroupTiers"
   | "history"
-  | "setGroupLevel";
+  | "setGroupLevel"
+  | "disputeLevel"
+  | "listLevelDisputesForOperator"
+  | "decideLevelDispute";
 
 type ExpectedTeams =
   | "create"

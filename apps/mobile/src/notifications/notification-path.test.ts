@@ -11,10 +11,18 @@ describe("notificationPath", () => {
     expect(notificationPath({ type: "group_member_joined", group })).toBe(
       "/groups/g1",
     );
-    expect(notificationPath({ type: "level_set", group })).toBe("/groups/g1");
     expect(notificationPath({ type: "tier_band_changed", group })).toBe(
       "/groups/g1",
     );
+  });
+
+  it("opens Rating history on the sport whose Level was adjusted", () => {
+    for (const type of ["level_set", "level_dispute_decided"]) {
+      expect(
+        notificationPath({ type, group, levelSet: { sport: "football" } }),
+      ).toBe("/profile/rating-history?sport=football");
+    }
+    expect(notificationPath({ type: "level_set", group })).toBeNull();
   });
 
   it("opens the member's own Points and history for a Tier adjustment", () => {

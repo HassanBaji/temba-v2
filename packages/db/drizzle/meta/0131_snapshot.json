@@ -1,6 +1,6 @@
 {
-  "id": "8e7b6c29-0d01-423b-a800-b16c9df6a38c",
-  "prevId": "339a02d7-18cf-4db6-82b7-de28422e2573",
+  "id": "3774b09d-58dd-4351-af10-22cf6d6ed9dd",
+  "prevId": "739faf11-56a5-4a5a-a8d5-142b74030dc5",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1318,6 +1318,304 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.level_check_ballots": {
+      "name": "level_check_ballots",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "match_id": {
+          "name": "match_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rater_user_id": {
+          "name": "rater_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ratee_user_id": {
+          "name": "ratee_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "band": {
+          "name": "band",
+          "type": "rating_level_band",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "level_check_ballots_rater_user_id_idx": {
+          "name": "level_check_ballots_rater_user_id_idx",
+          "columns": [
+            {
+              "expression": "rater_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "level_check_ballots_ratee_user_id_idx": {
+          "name": "level_check_ballots_ratee_user_id_idx",
+          "columns": [
+            {
+              "expression": "ratee_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "level_check_ballots_match_id_matches_id_fk": {
+          "name": "level_check_ballots_match_id_matches_id_fk",
+          "tableFrom": "level_check_ballots",
+          "tableTo": "matches",
+          "columnsFrom": [
+            "match_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "level_check_ballots_rater_user_id_user_id_fk": {
+          "name": "level_check_ballots_rater_user_id_user_id_fk",
+          "tableFrom": "level_check_ballots",
+          "tableTo": "user",
+          "columnsFrom": [
+            "rater_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "level_check_ballots_ratee_user_id_user_id_fk": {
+          "name": "level_check_ballots_ratee_user_id_user_id_fk",
+          "tableFrom": "level_check_ballots",
+          "tableTo": "user",
+          "columnsFrom": [
+            "ratee_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "level_check_ballots_match_rater_ratee_unique": {
+          "name": "level_check_ballots_match_rater_ratee_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "match_id",
+            "rater_user_id",
+            "ratee_user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "level_check_ballots_not_self_check": {
+          "name": "level_check_ballots_not_self_check",
+          "value": "\"level_check_ballots\".\"rater_user_id\" <> \"level_check_ballots\".\"ratee_user_id\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.level_check_results": {
+      "name": "level_check_results",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sport": {
+          "name": "sport",
+          "type": "group_sport",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "match_id": {
+          "name": "match_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verdict_level_hundredths": {
+          "name": "verdict_level_hundredths",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agreed": {
+          "name": "agreed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ballots_counted": {
+          "name": "ballots_counted",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "weight": {
+          "name": "weight",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mu_before": {
+          "name": "mu_before",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phi_before": {
+          "name": "phi_before",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mu_after": {
+          "name": "mu_after",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phi_after": {
+          "name": "phi_after",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "level_band_before": {
+          "name": "level_band_before",
+          "type": "rating_level_band",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "level_check_results_match_id_idx": {
+          "name": "level_check_results_match_id_idx",
+          "columns": [
+            {
+              "expression": "match_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "level_check_results_user_id_user_id_fk": {
+          "name": "level_check_results_user_id_user_id_fk",
+          "tableFrom": "level_check_results",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "level_check_results_match_id_matches_id_fk": {
+          "name": "level_check_results_match_id_matches_id_fk",
+          "tableFrom": "level_check_results",
+          "tableTo": "matches",
+          "columnsFrom": [
+            "match_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "level_check_results_user_id_match_id_unique": {
+          "name": "level_check_results_user_id_match_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id",
+            "match_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.rating_replay_backups": {
       "name": "rating_replay_backups",
       "schema": "",
@@ -1342,6 +1640,12 @@
         },
         "row": {
           "name": "row",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "written": {
+          "name": "written",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
@@ -4725,6 +5029,19 @@
           "notNull": true,
           "default": true
         },
+        "organizer_makes_teams": {
+          "name": "organizer_makes_teams",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "teams_posted_at": {
+          "name": "teams_posted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
         "price_per_player_cents": {
           "name": "price_per_player_cents",
           "type": "integer",
@@ -5826,6 +6143,182 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.level_disputes": {
+      "name": "level_disputes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "level_override_id": {
+          "name": "level_override_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "raised_by_user_id": {
+          "name": "raised_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "note": {
+          "name": "note",
+          "type": "varchar(280)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "level_dispute_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "decided_by_user_id": {
+          "name": "decided_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decided_at": {
+          "name": "decided_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "restored_override_id": {
+          "name": "restored_override_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "level_disputes_level_override_unique": {
+          "name": "level_disputes_level_override_unique",
+          "columns": [
+            {
+              "expression": "level_override_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "level_disputes_restored_override_id_idx": {
+          "name": "level_disputes_restored_override_id_idx",
+          "columns": [
+            {
+              "expression": "restored_override_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "level_disputes_status_created_idx": {
+          "name": "level_disputes_status_created_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "level_disputes_level_override_id_level_overrides_id_fk": {
+          "name": "level_disputes_level_override_id_level_overrides_id_fk",
+          "tableFrom": "level_disputes",
+          "tableTo": "level_overrides",
+          "columnsFrom": [
+            "level_override_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "level_disputes_raised_by_user_id_user_id_fk": {
+          "name": "level_disputes_raised_by_user_id_user_id_fk",
+          "tableFrom": "level_disputes",
+          "tableTo": "user",
+          "columnsFrom": [
+            "raised_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "level_disputes_decided_by_user_id_user_id_fk": {
+          "name": "level_disputes_decided_by_user_id_user_id_fk",
+          "tableFrom": "level_disputes",
+          "tableTo": "user",
+          "columnsFrom": [
+            "decided_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "level_disputes_restored_override_id_level_overrides_id_fk": {
+          "name": "level_disputes_restored_override_id_level_overrides_id_fk",
+          "tableFrom": "level_disputes",
+          "tableTo": "level_overrides",
+          "columnsFrom": [
+            "restored_override_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.game_players": {
       "name": "game_players",
       "schema": "",
@@ -5866,6 +6359,13 @@
         "kickoff_football_role": {
           "name": "kickoff_football_role",
           "type": "football_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferred_side": {
+          "name": "preferred_side",
+          "type": "game_position",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
@@ -10912,6 +11412,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "level_dispute_id": {
+          "name": "level_dispute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "via_waitlist": {
           "name": "via_waitlist",
           "type": "boolean",
@@ -11097,6 +11603,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "notifications_level_dispute_id_idx": {
+          "name": "notifications_level_dispute_id_idx",
+          "columns": [
+            {
+              "expression": "level_dispute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -11223,6 +11744,19 @@
           "tableTo": "match_disputes",
           "columnsFrom": [
             "match_dispute_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notifications_level_dispute_id_level_disputes_id_fk": {
+          "name": "notifications_level_dispute_id_level_disputes_id_fk",
+          "tableFrom": "notifications",
+          "tableTo": "level_disputes",
+          "columnsFrom": [
+            "level_dispute_id"
           ],
           "columnsTo": [
             "id"
@@ -11563,6 +12097,15 @@
         "superseded"
       ]
     },
+    "public.level_dispute_status": {
+      "name": "level_dispute_status",
+      "schema": "public",
+      "values": [
+        "open",
+        "upheld",
+        "dismissed"
+      ]
+    },
     "public.game_payment_event_action": {
       "name": "game_payment_event_action",
       "schema": "public",
@@ -11803,7 +12346,11 @@
         "game_payment_reminder",
         "game_payment_not_received",
         "game_payment_claimed",
-        "king_place_awarded"
+        "king_place_awarded",
+        "game_teams_posted",
+        "level_dispute_raised",
+        "level_dispute_decided",
+        "level_recalculated"
       ]
     }
   },

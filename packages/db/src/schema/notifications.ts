@@ -20,6 +20,7 @@ import { markKinds } from "./marks";
 import { challenges } from "./challenges";
 import { groupTierEvents } from "./group-tiers";
 import { matchDisputes } from "./match-disputes";
+import { levelDisputes } from "./level-disputes";
 
 export const NOTIFICATION_TYPE_VALUES = [
   "group_member_joined",
@@ -65,6 +66,9 @@ export const NOTIFICATION_TYPE_VALUES = [
   "game_payment_not_received",
   "game_payment_claimed",
   "king_place_awarded",
+  "game_teams_posted",
+  "level_dispute_raised",
+  "level_dispute_decided",
   "level_recalculated",
 ] as const;
 
@@ -126,6 +130,11 @@ export const notifications = pgTable(
       () => matchDisputes.id,
       { onDelete: "cascade" },
     ),
+    /** The Level dispute a raised or decided Notification is about. */
+    levelDisputeId: uuid("level_dispute_id").references(
+      () => levelDisputes.id,
+      { onDelete: "cascade" },
+    ),
     viaWaitlist: boolean("via_waitlist").notNull().default(false),
     gameCount: integer("game_count"),
     markKind: markKinds("mark_kind"),
@@ -157,6 +166,9 @@ export const notifications = pgTable(
     ),
     matchDisputeIdx: index("notifications_match_dispute_id_idx").on(
       table.matchDisputeId,
+    ),
+    levelDisputeIdx: index("notifications_level_dispute_id_idx").on(
+      table.levelDisputeId,
     ),
   }),
 );
@@ -204,5 +216,9 @@ export const notificationRelations = relations(notifications, ({ one }) => ({
   matchDispute: one(matchDisputes, {
     fields: [notifications.matchDisputeId],
     references: [matchDisputes.id],
+  }),
+  levelDispute: one(levelDisputes, {
+    fields: [notifications.levelDisputeId],
+    references: [levelDisputes.id],
   }),
 }));

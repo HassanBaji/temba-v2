@@ -100,6 +100,23 @@ export const notification = {
       strong(game),
       plain(". أكّدها أو صحّحها"),
     ],
+    teamsPosted: (actor: string, game: string, partner: string | null) =>
+      partner
+        ? [
+            plain("نشر "),
+            strong(actor),
+            plain(" فرق "),
+            strong(game),
+            plain(". أنت مع "),
+            strong(partner),
+          ]
+        : [
+            plain("نشر "),
+            strong(actor),
+            plain(" فرق "),
+            strong(game),
+            plain(". تنتظر في القائمة شريكًا"),
+          ],
     kingCourtsPosted: (actor: string, game: string) => [
       plain("نشر "),
       strong(actor),
@@ -134,18 +151,23 @@ export const notification = {
       ),
       plain(" لُعبت برقمك"),
     ],
-    levelSet: (actor: string, level: string) => [
-      plain("حدّد "),
+    levelAdjusted: (level: string) => [
+      plain("عُدِّل مستواك إلى "),
+      strong(level),
+      plain(" بناءً على أدائك"),
+    ],
+    levelDisputeRaised: (actor: string, level: string) => [
+      plain("اعترض "),
       strong(actor),
-      plain(" مستواك عند "),
+      plain(" على تعديل مستواه إلى "),
       strong(level),
     ],
-    levelCalibrated: (actor: string, venue: string, level: string) => [
-      plain("عاير "),
-      strong(actor),
-      plain(" ("),
-      strong(venue),
-      plain(") مستواك عند "),
+    levelDisputeUpheld: (level: string) => [
+      plain("قبل Temba اعتراضك على المستوى. مستواك الآن "),
+      strong(level),
+    ],
+    levelDisputeDismissed: (level: string) => [
+      plain("رفض Temba اعتراضك على المستوى. يبقى مستواك عند "),
       strong(level),
     ],
     tierPointsAdjusted: (actor: string, group: string) => [
@@ -422,6 +444,8 @@ export const notification = {
       `وافق اللاعبون على مستواك، ${isolate(level)}.`,
     ratingsClosedBoth: (rating: string, levelCheck: string) =>
       `${rating} ${levelCheck}`,
+    levelAdjusted: "تراه خاطئًا؟ يمكنك الاعتراض عليه.",
+    levelDisputeUpheld: "أُلغي التعديل.",
     disputeUpheld: "النتيجة مفتوحة من جديد. أدخل النتيجة الصحيحة.",
     disputeDismissed: "تبقى النتيجة.",
     disputeSuperseded:

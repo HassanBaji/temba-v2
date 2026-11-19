@@ -914,6 +914,9 @@ export const group = {
       onWaitlist: "في قائمة الانتظار",
       noSpotsLeft: "لا أماكن متبقية",
       level: (label: string) => `المستوى ${label}`,
+      levelFilter: "المستوى",
+      allLevels: "كل المستويات",
+      noLevel: "بلا مستوى",
       noPreferenceShort: "بلا تفضيل",
       select: "اختر لاعبين",
       addCount: (count: number) =>

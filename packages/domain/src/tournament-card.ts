@@ -28,6 +28,9 @@ export const TOURNAMENT_CARD_MAX_PAIRS = 4;
 
 type Occupant = { name: string; isViewer: boolean } | null;
 
+/** Squares the card shows: as many as its four pairs would take. */
+export const TOURNAMENT_CARD_MAX_PLAYERS = TOURNAMENT_CARD_MAX_PAIRS * 2;
+
 export type TournamentCardTeam = {
   isViewerTeam: boolean;
   poolIndex: number | null;
@@ -50,11 +53,14 @@ export type TournamentCardKnockout = {
 export type TournamentCardInput = GameSummaryCtaInput & {
   registeredTeamCount: number;
   teamsAllowed: number | null;
+  playersAllowed?: number | null;
   poolCount: number | null;
   tournamentShape: string | null;
   tournament: {
     drawPosted: boolean;
     teams: readonly TournamentCardTeam[];
+    /** The players signed up on an Americano, or an Alone-only Social before its teams are posted (ADR-0094, ADR-0096). */
+    alonePlayers?: readonly NonNullable<Occupant>[] | null;
     knockout?: TournamentCardKnockout | null;
   } | null;
 };
@@ -144,6 +150,38 @@ export function tournamentOpenTeamCount(
   return Math.max(0, (teamsAllowed ?? 0) - full);
 }
 
+/**
+ * An Americano, and an Alone-only Social before its teams are posted, take
+ * players, not teams, so the card counts seats (ADR-0094, ADR-0096). Null on
+ * every other tournament.
+ */
+export function tournamentCardAloneSeats<
+  P extends NonNullable<Occupant>,
+>(game: {
+  teamsAllowed: number | null;
+  playersAllowed?: number | null;
+  tournament: { alonePlayers?: readonly P[] | null } | null;
+}) {
+  const players = game.tournament?.alonePlayers;
+  if (players == null) {
+    return null;
+  }
+  const cap = game.playersAllowed ?? (game.teamsAllowed ?? 0) * 2;
+  return { players, taken: players.length, cap };
+}
+
+/** The open flag's count: open seats on a Social that takes players, open Game teams otherwise. */
+export function tournamentCardOpenCount(game: TournamentCardInput) {
+  const alone = tournamentCardAloneSeats(game);
+  if (alone) {
+    return Math.max(0, alone.cap - alone.taken);
+  }
+  return tournamentOpenTeamCount(
+    game.teamsAllowed,
+    game.tournament?.teams ?? [],
+  );
+}
+
 export function showsTournamentOpenFlag(game: TournamentCardInput) {
   return (
     game.tournament?.drawPosted !== true &&
@@ -160,6 +198,13 @@ export function tournamentOpenFlagLabel(openTeams: number, locale: Locale) {
 export function tournamentTeamsLine(game: TournamentCardInput, locale: Locale) {
   const m = messagesFor(locale).tournament.card;
   const tournament = game.tournament;
+  const alone = tournamentCardAloneSeats(game);
+  if (alone) {
+    return messagesFor(locale).aloneTeams.card.playersIn(
+      alone.taken,
+      alone.cap,
+    );
+  }
   if (isKingOfTheCourt(game.format, game.tournamentShape)) {
     const teamCount = tournament?.drawPosted
       ? tournament.teams.length
@@ -251,6 +296,27 @@ export function tournamentCardPairs<T extends TournamentCardTeam>(
   };
 }
 
+/** A Social's players, one square each, when it takes players: the viewer first, then in sign-up order. */
+export function tournamentCardAlonePlayers<T extends { isViewer: boolean }>(
+  players: readonly T[],
+  { cap, registrationOpen }: { cap: number; registrationOpen: boolean },
+) {
+  const ordered = [
+    ...players.filter((player) => player.isViewer),
+    ...players.filter((player) => !player.isViewer),
+  ];
+  const shown = ordered.slice(0, TOURNAMENT_CARD_MAX_PLAYERS);
+  const openSeats = registrationOpen ? Math.max(0, cap - players.length) : 0;
+  return {
+    shown,
+    remaining: ordered.length - shown.length,
+    placeholders: Math.min(
+      TOURNAMENT_CARD_MAX_PLAYERS - shown.length,
+      openSeats,
+    ),
+  };
+}
+
 function viewerTeamIsHalf(teams: readonly TournamentCardTeam[]) {
   const mine = teams.find((team) => team.isViewerTeam);
   return mine != null && !isFullTeam(mine);
@@ -302,6 +368,11 @@ function occupantName(occupant: Occupant, locale: Locale) {
     return m.tournament.card.openSeat;
   }
   return occupant.isViewer ? m.common.you : firstName(occupant.name);
+}
+
+/** `You`, a first name, or `open seat`. */
+export function tournamentOccupantLabel(occupant: Occupant, locale: Locale) {
+  return occupantName(occupant, locale);
 }
 
 export function tournamentTeamPairLabel(
