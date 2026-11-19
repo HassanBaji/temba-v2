@@ -5,6 +5,7 @@ import {
   kingPlaceAwards,
   performanceRatingResults,
   ratingEvents,
+  type LevelDisputeStatus,
   type MatchDisputeStatus,
   type NotificationAudience,
   type NotificationType,
@@ -48,14 +49,15 @@ export type NotificationItem = {
   markKind: MarkKind | null;
   /** The recipient is the actor, as on the MVP's own `mvp_decided` row. */
   actorIsRecipient: boolean;
+  /**
+   * The Level a Level override set: what a `level_set` row tells the player,
+   * and the Level a Level dispute is about. Who set it is never sent.
+   */
   levelSet: {
     /** The set Level as its sport shows it: `3.2`, or OVR `72` on football. */
     level: string;
     levelBand: LevelBand;
-    reason: LevelOverrideReason | null;
-    note: string | null;
-    /** The Venue a Verifier calibrated from; null on every other door. */
-    venue: { id: string; name: string } | null;
+    sport: string;
   } | null;
   /** The Tier event a Tier or ratings-closed Notification is about. */
   tier: {
@@ -97,7 +99,18 @@ export type NotificationItem = {
   } | null;
   /** The Match dispute a raised or decided Notification is about. */
   dispute: { status: MatchDisputeStatus; note: string } | null;
+  /** The Level dispute a raised or decided Notification is about. */
+  levelDispute: { status: LevelDisputeStatus; note: string } | null;
 };
+
+/**
+ * A player is told their Level was adjusted, never by whom (ADR-0097), so the
+ * Notifications that tell them about a Level override carry no actor.
+ */
+const ANONYMOUS_ACTOR_TYPES: ReadonlySet<NotificationType> = new Set([
+  "level_set",
+  "level_dispute_decided",
+]);
 
 export type LoadedNotification = {
   item: NotificationItem;
@@ -317,14 +330,7 @@ export async function loadNotificationItems(
         with: { matches: { columns: { id: true, completedAt: true } } },
       },
       levelOverride: {
-        columns: {
-          sport: true,
-          muAfter: true,
-          levelBandAfter: true,
-          reason: true,
-          note: true,
-        },
-        with: { venue: { columns: { id: true, name: true } } },
+        columns: { sport: true, muAfter: true, levelBandAfter: true },
       },
       groupTierEvent: {
         columns: {
@@ -338,6 +344,7 @@ export async function loadNotificationItems(
         },
       },
       matchDispute: { columns: { status: true, note: true } },
+      levelDispute: { columns: { status: true, note: true } },
     },
   });
 
@@ -381,6 +388,7 @@ export async function loadNotificationItems(
       levelOverride,
       groupTierEvent,
       matchDispute,
+      levelDispute,
       game,
       recipientUserId,
       emailedAt,
@@ -390,6 +398,7 @@ export async function loadNotificationItems(
       emailedAt,
       item: {
         ...item,
+        actor: ANONYMOUS_ACTOR_TYPES.has(item.type) ? null : item.actor,
         actorIsRecipient: item.actor?.id === recipientUserId,
         game: game
           ? {
@@ -409,9 +418,6 @@ export async function loadNotificationItems(
                   : displayedLevelFromMu(levelOverride.muAfter),
               levelBand: levelOverride.levelBandAfter,
               sport: levelOverride.sport,
-              reason: levelOverride.reason,
-              note: levelOverride.note,
-              venue: levelOverride.venue ?? null,
             }
           : null,
         tier: groupTierEvent ?? null,
@@ -434,6 +440,7 @@ export async function loadNotificationItems(
             ? placeAwardOf(recipientUserId, game.id)
             : null,
         dispute: matchDispute ?? null,
+        levelDispute: levelDispute ?? null,
       },
     }),
   );

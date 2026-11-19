@@ -1334,6 +1334,15 @@ describe("groupById Level setter fields", () => {
       });
       expect(leaderboardEntry(asSetter, viewer.id)?.levelOverride).toBeNull();
 
+      const asSetterOnOwnRow = await groupById(db, {
+        groupId: group.id,
+        userId: member.id,
+        getPublicMetadata: setterMetadata,
+      });
+      expect(
+        leaderboardEntry(asSetterOnOwnRow, member.id)?.levelOverride,
+      ).toBeNull();
+
       const asPlainMember = await groupById(db, {
         groupId: group.id,
         userId: member.id,

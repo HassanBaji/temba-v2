@@ -151,18 +151,23 @@ export const notification = {
       ),
       plain(" لُعبت برقمك"),
     ],
-    levelSet: (actor: string, level: string) => [
-      plain("حدّد "),
+    levelAdjusted: (level: string) => [
+      plain("عُدِّل مستواك إلى "),
+      strong(level),
+      plain(" بناءً على أدائك"),
+    ],
+    levelDisputeRaised: (actor: string, level: string) => [
+      plain("اعترض "),
       strong(actor),
-      plain(" مستواك عند "),
+      plain(" على تعديل مستواه إلى "),
       strong(level),
     ],
-    levelCalibrated: (actor: string, venue: string, level: string) => [
-      plain("عاير "),
-      strong(actor),
-      plain(" ("),
-      strong(venue),
-      plain(") مستواك عند "),
+    levelDisputeUpheld: (level: string) => [
+      plain("قبل Temba اعتراضك على المستوى. مستواك الآن "),
+      strong(level),
+    ],
+    levelDisputeDismissed: (level: string) => [
+      plain("رفض Temba اعتراضك على المستوى. يبقى مستواك عند "),
       strong(level),
     ],
     tierPointsAdjusted: (actor: string, group: string) => [
@@ -429,6 +434,8 @@ export const notification = {
       `تقييمك ${isolate(rating)}. الموثوقية ${isolate(delta)}، والآن ${isolate(reliability)}.`,
     ratingsClosedReliabilitySame: (rating: string, reliability: string) =>
       `تقييمك ${isolate(rating)}. تبقى الموثوقية عند ${isolate(reliability)}.`,
+    levelAdjusted: "تراه خاطئًا؟ يمكنك الاعتراض عليه.",
+    levelDisputeUpheld: "أُلغي التعديل.",
     disputeUpheld: "النتيجة مفتوحة من جديد. أدخل النتيجة الصحيحة.",
     disputeDismissed: "تبقى النتيجة.",
     disputeSuperseded:

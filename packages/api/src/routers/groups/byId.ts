@@ -744,6 +744,10 @@ export async function groupById(
       )
       .orderBy(desc(levelOverrides.createdAt), desc(levelOverrides.id));
     for (const row of overrideRows) {
+      // A player never learns who set their own Level (ADR-0097).
+      if (row.userId === args.userId) {
+        continue;
+      }
       if (!levelOverrideByUserId.has(row.userId)) {
         levelOverrideByUserId.set(row.userId, {
           setByName: row.setByName,

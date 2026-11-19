@@ -15,6 +15,7 @@ import { RowList } from "~/components/common/row-list";
 import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { LevelDisputesSection } from "~/components/operator/level-disputes-section";
 import { Button } from "~/components/ui/button";
 import { gameHomeHref } from "~/lib/dashboard-paths";
 import { invalidateRatingReads } from "~/trpc/invalidate-rating-reads";
@@ -133,6 +134,10 @@ export default function OperatorDisputesPage() {
             })}
           </RowList>
         ) : null}
+      </div>
+
+      <div className="mt-10">
+        <LevelDisputesSection />
       </div>
 
       <ConfirmDialog

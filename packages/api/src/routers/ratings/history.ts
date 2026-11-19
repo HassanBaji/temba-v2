@@ -9,7 +9,6 @@ import {
   matchGoals,
   performanceRatingResults,
   ratingEvents,
-  venues,
 } from "@repo/db";
 import {
   RATING_HISTORY_LADDERS,
@@ -24,12 +23,12 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { votedMvpUserId } from "#src/marks/settle-mvp";
 import { levelConfirmations } from "#src/ratings/level-confirmed";
+import { levelDisputeStates } from "#src/ratings/level-dispute";
 import { olderThanShown, shownAt, shownAtIso } from "#src/ratings/shown-at";
 import {
   kingPlaceGames,
   ratingHistoryMatches,
   setsFromSideOf,
-  setterNames,
   tierHistoryEntries,
 } from "#src/ratings/rating-history-entries";
 
@@ -85,8 +84,9 @@ function shows(ladder: RatingHistoryLadder, part: "level" | "tier") {
  * Rated Matches (`rating_events`), Level overrides (`level_overrides`),
  * King of the court Place awards (`king_place_awards`, ADR-0089) and tier
  * Group moves (`group_tier_events`), newest first, keyset-paged across all
- * four. Manual changes carry who set them, by which door, the Venue a
- * Verifier calibrated from, the reason and the note. A derived "Level
+ * four. A Level override never says who set it or why (ADR-0097); it says
+ * whether the player may dispute it, or what became of their dispute. A Tier
+ * adjustment carries the Organizer's name, the reason and the note. A derived "Level
  * confirmed" milestone sits just before the Match that confirmed each sport's
  * Level, and a change of fish is its own line, whoever caused it. The Rank
  * filter is reserved for Official Rank and returns nothing. Only the
@@ -100,6 +100,7 @@ export async function ratingHistory(
     ladder: RatingHistoryLadder;
     cursor?: RatingHistoryCursor;
     limit?: number;
+    now?: Date;
   },
 ): Promise<{
   viewerUserId: string;
@@ -142,11 +143,9 @@ export async function ratingHistory(
         ? database
             .select({
               override: levelOverrides,
-              venueName: venues.name,
               shownAt: shownAtIso(levelOverrides.createdAt),
             })
             .from(levelOverrides)
-            .leftJoin(venues, eq(venues.id, levelOverrides.venueId))
             .where(
               and(
                 eq(levelOverrides.userId, userId),
@@ -290,7 +289,7 @@ export async function ratingHistory(
 
   const [
     matchById,
-    setterById,
+    disputes,
     kingGameById,
     tierEntries,
     ratingByMatch,
@@ -300,10 +299,11 @@ export async function ratingHistory(
       database,
       pageEvents.map((event) => event.matchId),
     ),
-    setterNames(
-      database,
-      pageOverrides.map((row) => row.override.setByUserId),
-    ),
+    levelDisputeStates(database, {
+      userId,
+      overrides: pageOverrides.map((row) => row.override),
+      now: args.now ?? new Date(),
+    }),
     kingPlaceGames(
       database,
       pageAwards.map((award) => award.gameId),
@@ -395,8 +395,7 @@ export async function ratingHistory(
       ];
     }
     if (entry.source === "override") {
-      const { override, venueName } = entry.row;
-      const setter = setterById.get(override.setByUserId);
+      const { override } = entry.row;
       return [
         {
           kind: "level_override",
@@ -405,11 +404,8 @@ export async function ratingHistory(
           sport: override.sport,
           muBefore: override.muBefore,
           muAfter: override.muAfter,
-          setByRole: override.setByRole,
-          setBy: setter ? { userId: setter.id, name: setter.name } : null,
-          venueName,
-          reason: override.reason,
-          note: override.note,
+          restoresLevel: disputes.restored.has(override.id),
+          dispute: disputes.stateOf(override.id),
         },
       ];
     }

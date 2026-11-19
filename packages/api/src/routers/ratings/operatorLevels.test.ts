@@ -197,7 +197,7 @@ describe("setLevelAsOperator", () => {
     }
   });
 
-  it("tells the player who set it and why", async () => {
+  it("tells the player their Level was adjusted, never by whom or why", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const operator = await insertUser(db, "Yaser Ali");
@@ -235,19 +235,17 @@ describe("setLevelAsOperator", () => {
       if (!item) {
         throw new Error("Missing the level_set Notification");
       }
+      expect(item.actor).toBeNull();
       expect(item.levelSet).toEqual({
         level: "71",
         levelBand: "C1",
         sport: "football",
-        reason: "plays_above_results",
-        note: "Plays above 68.",
-        venue: null,
       });
       const copy = notificationCopy(item, "en");
       expect(copy?.title.map((part) => part.text).join("")).toBe(
-        "Yaser Ali set your Level to OVR 71",
+        "Your Level was adjusted to OVR 71 based on your performance",
       );
-      expect(copy?.subline).toBe("Plays above results: “Plays above 68.”");
+      expect(copy?.subline).toBe("Think it’s wrong? You can dispute it.");
     } finally {
       await close();
     }
