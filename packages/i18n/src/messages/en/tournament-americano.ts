@@ -301,6 +301,15 @@ export const tournamentAmericano = {
     webOnly:
       "Making the rounds, swapping players and entering scores happen on the web for now.",
   },
+  undo: {
+    action: "Undo the rounds",
+    locked: "Undo the rounds (not once a score is in)",
+    confirmTitle: "Undo the rounds?",
+    confirmCopy:
+      "Every round is deleted and you can make them again. The seats stay closed until you reopen them.",
+    confirmLabel: "Undo rounds",
+    done: "Rounds undone",
+  },
   errors: {
     players: (min: number, max: number) =>
       `An Americano has ${min} to ${max} players, in fours.`,
@@ -315,6 +324,7 @@ export const tournamentAmericano = {
     wrongPlayers:
       "The players changed while you were making the rounds. Open the sheet again.",
     noRounds: "The rounds are not made yet.",
+    undoAfterScore: "Cannot undo the rounds once a score is in.",
     roundNotFound: "That round is not on this Social.",
     roundStarted:
       "That round has a score. Swap players in a round that has not started.",

@@ -198,6 +198,15 @@ export const tournamentKing = {
       `Your Level moved from ${from} to ${to}.`,
     ratingNotCounted: "Not counted",
   },
+  undo: {
+    action: "Undo the starting courts",
+    locked: "Undo the starting courts (not once the final order is posted)",
+    confirmTitle: "Undo the starting courts?",
+    confirmCopy:
+      "Every team leaves its court and you can draw the courts again. The seats stay closed until you reopen them.",
+    confirmLabel: "Undo courts",
+    done: "Starting courts undone",
+  },
   errors: {
     oddTeams:
       "Two teams start on each court, so an even number of teams must be complete.",
