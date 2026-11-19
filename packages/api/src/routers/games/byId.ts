@@ -141,7 +141,6 @@ import {
   type RatingWindowState,
 } from "@repo/domain/performance-rating";
 import { settleRatingWindowIfDue } from "#src/ratings/settle-rating-window";
-import { isKingOfTheCourt } from "@repo/domain/tournament-king";
 import { messagesFor } from "@repo/i18n/messages";
 import { loadTeamDisplayNames } from "#src/challenges/challenge-proposals";
 import { loadChallengeSides } from "#src/games/challenge-squad";
@@ -1348,7 +1347,7 @@ export async function gameById(
     viewerPlaceAward: viewerPlaceAward ?? null,
     canUndoDraw:
       game.drawPostedAt != null &&
-      !isKingOfTheCourt(game.format, game.tournamentShape) &&
+      game.finalOrderPostedAt == null &&
       !matchRows.some(
         (match) =>
           match.sets.length > 0 ||

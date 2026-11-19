@@ -50,6 +50,7 @@ import { postAmericanoRounds } from "#src/routers/games/postAmericanoRounds";
 import { register } from "#src/routers/games/register";
 import { repeatedPartners } from "#src/routers/games/swapAmericanoPlayers";
 import { registerSeat } from "#src/routers/games/registerSeat";
+import { undoPoolDraw } from "#src/routers/games/undoPoolDraw";
 
 const START = new Date("2026-09-25T09:00:00");
 const END = new Date("2026-09-25T12:30:00");
@@ -498,6 +499,68 @@ describe("postAmericanoRounds", () => {
       where: eq(americanoSeats.gamePlayerId, gamePlayerIds[0]!),
     });
     expect(seats).toHaveLength(3);
+  });
+
+  it("undoes the Rounds until a score is in, and makes them again", async () => {
+    const { database, organizer, gameId, people, gamePlayerIds } =
+      await fullAmericano(8, 3);
+    const make = (order: readonly string[]) =>
+      postAmericanoRounds(asDb(database), {
+        gameId,
+        organizerUserId: organizer.id,
+        gamePlayerIds: order,
+      });
+    const canUndo = async () =>
+      (await gameById(asDb(database), { gameId, userId: organizer.id }))
+        .canUndoDraw;
+    await make(gamePlayerIds);
+    expect(await canUndo()).toBe(true);
+    await expectRefused(
+      () =>
+        undoPoolDraw(asDb(database), {
+          gameId,
+          organizerUserId: people[0]!.id,
+        }),
+      /.+/,
+    );
+
+    await undoPoolDraw(asDb(database), {
+      gameId,
+      organizerUserId: organizer.id,
+    });
+    const game = await database.query.games.findFirst({
+      where: eq(games.id, gameId),
+    });
+    expect(game?.drawPostedAt).toBeNull();
+    expect(
+      await database.query.matches.findMany({
+        where: eq(matches.gameId, gameId),
+      }),
+    ).toEqual([]);
+    expect(await database.query.americanoSeats.findMany()).toEqual([]);
+    await expectRefused(
+      () =>
+        undoPoolDraw(asDb(database), { gameId, organizerUserId: organizer.id }),
+      /not made yet/,
+    );
+
+    await make([...gamePlayerIds].reverse());
+    const [first] = await database.query.matches.findMany({
+      where: eq(matches.gameId, gameId),
+    });
+    await enterTournamentScore(asDb(database), {
+      gameId,
+      matchId: first!.id,
+      userId: organizer.id,
+      slot1GamesWon: 6,
+      slot2GamesWon: 2,
+    });
+    expect(await canUndo()).toBe(false);
+    await expectRefused(
+      () =>
+        undoPoolDraw(asDb(database), { gameId, organizerUserId: organizer.id }),
+      /score is in/,
+    );
   });
 
   it("reads through byId with the players on the roster", async () => {

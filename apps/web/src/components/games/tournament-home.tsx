@@ -278,6 +278,46 @@ export function TournamentHome({
   const onLeaveSeat = canLeaveSeat ? onLeaveGame : undefined;
   const org = isOrganizerActive;
 
+  // Pools and Knockouts undo from the standings; these undo from the menu.
+  const undoCopy = !drawn
+    ? null
+    : americano
+      ? m.tournamentAmericano.undo
+      : king
+        ? m.tournamentKing.undo
+        : roundsAsYouGo
+          ? {
+              ...m.tournamentRounds.undo,
+              confirmTitle: m.tournament.poolDraw.undoConfirmTitle,
+              confirmCopy: m.tournament.poolDraw.undoConfirmCopy,
+              confirmLabel: m.tournament.poolDraw.undoConfirmLabel,
+            }
+          : null;
+  const undoDialog = undoCopy ? (
+    <>
+      <ConfirmDialog
+        open={undoOpen}
+        onOpenChange={setUndoOpen}
+        title={undoCopy.confirmTitle}
+        description={undoCopy.confirmCopy}
+        confirmLabel={undoCopy.confirmLabel}
+        pending={undoPending}
+        onConfirm={async () => {
+          try {
+            await onUndo();
+          } catch {
+            // The page shows the failure as a toast.
+          }
+        }}
+      />
+      {undoError ? (
+        <p role="alert" className="text-destructive text-meta">
+          {undoError.message}
+        </p>
+      ) : null}
+    </>
+  ) : null;
+
   const actionsMenu = (ink: boolean) =>
     org || onLeaveSeat ? (
       <TournamentActionsMenu
@@ -303,8 +343,9 @@ export function TournamentHome({
         onEditTeams={org ? onEditTeams : undefined}
         onLeaveSeat={onLeaveSeat}
         undoDraw={
-          org && roundsAsYouGo
+          org && undoCopy
             ? {
+                copy: undoCopy,
                 locked: !data.canUndoDraw,
                 pending: undoPending,
                 onSelect: () => setUndoOpen(true),
@@ -368,19 +409,22 @@ export function TournamentHome({
 
   if (americano) {
     return (
-      <TournamentAmericanoHome
-        data={data}
-        backHref={backHref}
-        actions={actionsMenu(!finished)}
-        album={album}
-        sharePending={sharePending}
-        leavePending={leavePending}
-        kickPending={kickPending}
-        onShare={onShare}
-        onInvite={onInvite}
-        onLeaveWaitlist={onLeaveWaitlist}
-        onKick={onKick}
-      />
+      <>
+        <TournamentAmericanoHome
+          data={data}
+          backHref={backHref}
+          actions={actionsMenu(!finished)}
+          album={album}
+          sharePending={sharePending}
+          leavePending={leavePending}
+          kickPending={kickPending}
+          onShare={onShare}
+          onInvite={onInvite}
+          onLeaveWaitlist={onLeaveWaitlist}
+          onKick={onKick}
+        />
+        {undoDialog}
+      </>
     );
   }
 
@@ -402,16 +446,19 @@ export function TournamentHome({
         )}
       >
         {king && drawn ? (
-          <TournamentKingHome
-            data={data}
-            backHref={backHref}
-            actions={actionsMenu(data.finalOrderPostedAt == null)}
-            album={album}
-            onChangeCourts={() => setDrawOpen(true)}
-            orderPending={kingActions.orderPending}
-            orderError={kingActions.orderError}
-            onPostFinalOrder={kingActions.onPostFinalOrder}
-          />
+          <>
+            <TournamentKingHome
+              data={data}
+              backHref={backHref}
+              actions={actionsMenu(data.finalOrderPostedAt == null)}
+              album={album}
+              onChangeCourts={() => setDrawOpen(true)}
+              orderPending={kingActions.orderPending}
+              orderError={kingActions.orderError}
+              onPostFinalOrder={kingActions.onPostFinalOrder}
+            />
+            {undoDialog}
+          </>
         ) : roundsAsYouGo ? (
           <>
             <TournamentDrawnHome
@@ -428,26 +475,7 @@ export function TournamentHome({
               stamping={stamping}
               preview={roundsPreview}
             />
-            <ConfirmDialog
-              open={undoOpen}
-              onOpenChange={setUndoOpen}
-              title={m.tournament.poolDraw.undoConfirmTitle}
-              description={m.tournament.poolDraw.undoConfirmCopy}
-              confirmLabel={m.tournament.poolDraw.undoConfirmLabel}
-              pending={undoPending}
-              onConfirm={async () => {
-                try {
-                  await onUndo();
-                } catch {
-                  // The page shows the failure as a toast.
-                }
-              }}
-            />
-            {undoError ? (
-              <p role="alert" className="text-destructive text-meta">
-                {undoError.message}
-              </p>
-            ) : null}
+            {undoDialog}
           </>
         ) : drawn ? (
           <TournamentStandingsTree
@@ -1131,7 +1159,12 @@ function TournamentActionsMenu({
   onAddPlayer?: () => void;
   onEditTeams?: () => void;
   onLeaveSeat?: () => void;
-  undoDraw?: { locked: boolean; pending: boolean; onSelect: () => void };
+  undoDraw?: {
+    copy: { action: string; locked: string };
+    locked: boolean;
+    pending: boolean;
+    onSelect: () => void;
+  };
 }) {
   const m = useMessages();
 
@@ -1203,9 +1236,7 @@ function TournamentActionsMenu({
     ? [
         {
           key: "undo_draw",
-          label: undoDraw.locked
-            ? m.tournamentRounds.undo.locked
-            : m.tournamentRounds.undo.action,
+          label: undoDraw.locked ? undoDraw.copy.locked : undoDraw.copy.action,
           icon: RotateCcwIcon,
           tone: "danger",
           disabled: undoDraw.locked || undoDraw.pending,

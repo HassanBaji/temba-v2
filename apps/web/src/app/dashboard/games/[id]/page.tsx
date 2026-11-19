@@ -419,11 +419,17 @@ export default function GameHomePage({
 
   const undoPoolDraw = api.games.undoPoolDraw.useMutation({
     onSuccess: async () => {
+      const shape = game.data;
       toast.success(
-        knockoutOnlyDraw()
-          ? toastCopy.knockoutDrawUndone
-          : toastCopy.poolDrawUndone,
+        shape && isAmericano(shape.format, shape.tournamentShape)
+          ? m.tournamentAmericano.undo.done
+          : shape && isKingOfTheCourt(shape.format, shape.tournamentShape)
+            ? m.tournamentKing.undo.done
+            : knockoutOnlyDraw()
+              ? toastCopy.knockoutDrawUndone
+              : toastCopy.poolDrawUndone,
       );
+      await utils.games.americanoBoard.invalidate({ gameId: id });
       await utils.games.byId.invalidate({ id });
       await utils.games.listMyGames.invalidate();
       await utils.users.home.invalidate();

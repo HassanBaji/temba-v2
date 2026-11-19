@@ -234,6 +234,15 @@ export const tournamentKing = {
       `انتقل مستواك من ${isolate(from)} إلى ${isolate(to)}.`,
     ratingNotCounted: "لم تُحتسب",
   },
+  undo: {
+    action: "تراجع عن ملاعب البداية",
+    locked: "تراجع عن ملاعب البداية (ليس بعد نشر الترتيب النهائي)",
+    confirmTitle: "التراجع عن ملاعب البداية؟",
+    confirmCopy:
+      "يترك كل فريق ملعبه ويمكنك سحب الملاعب من جديد. تبقى المقاعد مغلقة حتى تعيد فتحها.",
+    confirmLabel: "تراجع عن الملاعب",
+    done: "أُلغيت ملاعب البداية",
+  },
   errors: {
     oddTeams: "يبدأ فريقان على كل ملعب، لذا يجب أن يكتمل عدد زوجي من الفرق.",
     courts: (min: number, max: number) =>

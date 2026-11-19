@@ -27,7 +27,9 @@ tournament screens, and asks for no rounds to make and no scores to enter.
 - **Posting again moves the teams on a court.** Until the Final order is posted the Organizer can
   post the courts again. A later post takes the Game teams already on a court, so a team that lost a
   player after the draw keeps its court and its place in the Final order; a team left with no player
-  drops out. The Pool draw doors (`drawPools`, `postPoolDraw`, `undoPoolDraw`) refuse this shape.
+  drops out. The Pool draw doors `drawPools` and `postPoolDraw` refuse this shape. Since
+  2026-11, `undoPoolDraw` accepts it until the Final order is posted: it clears every Starting court
+  and `draw_posted_at`, and the seats stay closed.
 - **The Organizer posts the Final order.** `games.postKingFinalOrder` takes the teams first place
   first, at least the top three; the rest show as not placed. It opens once the tournament has
   started and stays open for 24 hours after the first post, measured from that first post so
