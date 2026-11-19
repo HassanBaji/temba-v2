@@ -30,6 +30,7 @@ export * from "./matches";
 export * from "./tournament-draft-matches";
 export * from "./match-result-confirmations";
 export * from "./match-disputes";
+export * from "./level-disputes";
 export * from "./game-players";
 export * from "./game-payments";
 export * from "./game-teams";

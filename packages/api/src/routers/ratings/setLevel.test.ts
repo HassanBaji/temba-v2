@@ -511,7 +511,7 @@ describe("setMemberLevel", () => {
       }
     });
 
-    it("lists the set Level, its band and the reason for the target", async () => {
+    it("lists the set Level and its band for the target, never who set it or why", async () => {
       const { db, close } = await createPgliteDb();
       try {
         const { setter, target, group } = await setUp(db);
@@ -521,28 +521,41 @@ describe("setMemberLevel", () => {
           targetUserId: target.id,
           levelTenths: 38,
           reason: "plays_above_results",
+          note: "  Two months out, start him lower.  ",
         });
 
         const { items } = await listNotifications(db, { userId: target.id });
         expect(items).toHaveLength(1);
-        expect(items[0]).toMatchObject({
+        const item = items[0];
+        if (!item) {
+          throw new Error("Missing the level_set Notification");
+        }
+        expect(item).toMatchObject({
           type: "level_set",
           audience: "player",
-          actor: { id: setter.id, name: "setter" },
+          actor: null,
           group: { id: group.id, name: "Friday Night" },
           game: null,
-          levelSet: {
-            level: "3.8",
-            levelBand: "C1",
-            reason: "plays_above_results",
-          },
+        });
+        expect(item.levelSet).toEqual({
+          level: "3.8",
+          levelBand: "C1",
+          sport: "padel",
+        });
+        expect(notificationCopy(item, "en")).toEqual({
+          title: [
+            { text: "Your Level was adjusted to ", strong: false },
+            { text: "C+ 3.8", strong: true },
+            { text: " based on your performance", strong: false },
+          ],
+          subline: "Think it’s wrong? You can dispute it.",
         });
       } finally {
         await close();
       }
     });
 
-    it("lists the setter's note with the reason, and reads them out", async () => {
+    it("still records who set it and why on the override", async () => {
       const { db, close } = await createPgliteDb();
       try {
         const { setter, target, group } = await setUp(db);
@@ -554,51 +567,13 @@ describe("setMemberLevel", () => {
           reason: "back_from_injury",
           note: "  Two months out, start him lower.  ",
         });
-
-        const { items } = await listNotifications(db, { userId: target.id });
-        expect(items[0]?.levelSet).toEqual({
-          level: "4.6",
-          levelBand: "B3",
-          sport: "padel",
+        const [override] = await overridesFor(db, target.id);
+        expect(override).toMatchObject({
+          setByUserId: setter.id,
+          setByRole: "level_setter",
           reason: "back_from_injury",
           note: "Two months out, start him lower.",
-          venue: null,
         });
-        const item = items[0];
-        if (!item) {
-          throw new Error("Missing the level_set Notification");
-        }
-        expect(notificationCopy(item, "en")?.subline).toBe(
-          "Back from injury: “Two months out, start him lower.”",
-        );
-      } finally {
-        await close();
-      }
-    });
-
-    it("reads an override from before reasons were required as no reason given", async () => {
-      const { db, close } = await createPgliteDb();
-      try {
-        const { setter, target, group } = await setUp(db);
-        const result = await setMemberLevel(db, {
-          groupId: group.id,
-          setterUserId: setter.id,
-          targetUserId: target.id,
-          levelTenths: 46,
-          reason: "new_to_group",
-        });
-        await db
-          .update(levelOverrides)
-          .set({ reason: null })
-          .where(eq(levelOverrides.id, result.overrideId));
-
-        const { items } = await listNotifications(db, { userId: target.id });
-        const item = items[0];
-        if (!item) {
-          throw new Error("Missing the level_set Notification");
-        }
-        expect(item.levelSet).toMatchObject({ level: "4.6", reason: null });
-        expect(notificationCopy(item, "en")?.subline).toBe("No reason given");
 
         await setMemberLevel(db, {
           groupId: group.id,

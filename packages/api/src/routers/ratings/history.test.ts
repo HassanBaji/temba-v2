@@ -248,7 +248,7 @@ describe("ratings.history (screen 1c)", () => {
     });
   });
 
-  it("reads a Verifier's calibration with the name and Venue, and an Organizer's adjustment as set by an organizer", async () => {
+  it("reads a Verifier's calibration with no name, Venue or reason, and an Organizer's adjustment as set by an organizer", async () => {
     await withDb(async (db) => {
       const { a } = await history(db);
       const result = await ratingHistory(apiDb(db), {
@@ -259,19 +259,15 @@ describe("ratings.history (screen 1c)", () => {
       const override = result.entries.find(
         (entry) => entry.kind === "level_override",
       )!;
-      expect(override).toMatchObject({
-        setByRole: "verifier",
-        setBy: { name: "Yaser" },
-        venueName: "Fantasy FC",
-        reason: "plays_above_results",
-        note: "Assessed over two sessions.",
-      });
+      expect(override).toMatchObject({ restoresLevel: false });
+      for (const hidden of ["Yaser", "Fantasy FC", "verifier", "Assessed"]) {
+        expect(JSON.stringify(override)).not.toContain(hidden);
+      }
       expect(ratingHistoryLine(override, a, "en")).toMatchObject({
         icon: { kind: "override" },
-        title: "Level calibrated by a verifier",
+        title: "Level adjusted based on your performance",
         detail: "Football, 65 to 71",
-        byline:
-          "Yaser (Fantasy FC), Playing above this: “Assessed over two sessions.”",
+        byline: null,
         after: "71",
       });
 

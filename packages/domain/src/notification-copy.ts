@@ -6,7 +6,7 @@ import { formatDayMonth, formatGameDay } from "./format-game-start";
 import { gameFormatLabel } from "./game-format-label";
 import { groupDisplayName } from "./group-join";
 import { displayLabelFromStoredBand, type LevelBand } from "./level-bands";
-import { levelOverrideWhy, type LevelOverrideReason } from "./level-slider";
+import { type LevelOverrideReason } from "./level-slider";
 import { formatMarksClose, isMarkKind, markName } from "./marks";
 import { formatTierPoints } from "./group-members-table";
 import { productDaysBetween, zonedParts } from "./product-timezone";
@@ -39,6 +39,7 @@ export type NotificationCopyInput = {
   reliabilityMove?: NotificationReliabilityMove | null;
   placeAward?: NotificationPlaceAward | null;
   dispute?: NotificationDispute | null;
+  levelDispute?: NotificationDispute | null;
   markKind?: string | null;
   /** The recipient is the actor, as on the MVP's own `mvp_decided` row. */
   actorIsRecipient?: boolean;
@@ -50,10 +51,6 @@ type NotificationLevelSet = {
   levelBand: LevelBand;
   /** Football reads `OVR 72`, with no band (ADR-0087). */
   sport?: string | null;
-  reason: LevelOverrideReason | null;
-  note?: string | null;
-  /** Set when a Verifier calibrated the Level from this Venue. */
-  venue?: { name: string } | null;
 };
 
 /**
@@ -100,7 +97,7 @@ type NotificationReliabilityMove = {
   ratingHundredths: number;
 };
 
-/** The Match dispute a raised or decided Notification is about. */
+/** The Match or Level dispute a raised or decided Notification is about. */
 type NotificationDispute = {
   status: string;
   note: string;
@@ -130,6 +127,12 @@ function actorName(actor: NotificationCopyInput["actor"], locale: Locale) {
   return actor
     ? userName(actor.name, locale)
     : messagesFor(locale).common.someone;
+}
+
+function levelSetShown(levelSet: NotificationLevelSet, locale: Locale) {
+  return levelSet.sport === "football"
+    ? messagesFor(locale).level.ovr(levelSet.level)
+    : `${displayLabelFromStoredBand(levelSet.levelBand)} ${levelSet.level}`;
 }
 
 function groupName(group: { name: string | null } | null, locale: Locale) {
@@ -395,18 +398,37 @@ export function notificationCopy(
     item.audience === "player" &&
     item.levelSet
   ) {
-    const { level, levelBand, sport, reason, note, venue } = item.levelSet;
-    const actor = actorName(item.actor, locale);
-    const shown =
-      sport === "football"
-        ? messagesFor(locale).level.ovr(level)
-        : `${displayLabelFromStoredBand(levelBand)} ${level}`;
+    // The player reads that their Level was adjusted, never by whom or why.
     return {
-      title: venue
-        ? m.levelCalibrated(actor, venue.name, shown)
-        : m.levelSet(actor, shown),
-      subline: levelOverrideWhy({ reason, note, locale }),
+      title: m.levelAdjusted(levelSetShown(item.levelSet, locale)),
+      subline: sub.levelAdjusted,
     };
+  }
+  if (
+    item.type === "level_dispute_raised" &&
+    item.audience === "admin" &&
+    item.levelSet &&
+    item.levelDispute
+  ) {
+    return {
+      title: m.levelDisputeRaised(
+        actorName(item.actor, locale),
+        levelSetShown(item.levelSet, locale),
+      ),
+      subline: userName(item.levelDispute.note, locale),
+    };
+  }
+  if (
+    item.type === "level_dispute_decided" &&
+    item.audience === "player" &&
+    item.levelSet &&
+    (item.levelDispute?.status === "upheld" ||
+      item.levelDispute?.status === "dismissed")
+  ) {
+    const shown = levelSetShown(item.levelSet, locale);
+    return item.levelDispute.status === "upheld"
+      ? { title: m.levelDisputeUpheld(shown), subline: sub.levelDisputeUpheld }
+      : { title: m.levelDisputeDismissed(shown), subline: null };
   }
   if (
     item.type === "tier_points_adjusted" &&

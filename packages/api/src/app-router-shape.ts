@@ -266,7 +266,10 @@ type ExpectedRatings =
   | "myGroupLevels"
   | "myGroupTiers"
   | "history"
-  | "setGroupLevel";
+  | "setGroupLevel"
+  | "disputeLevel"
+  | "listLevelDisputesForOperator"
+  | "decideLevelDispute";
 
 type ExpectedTeams =
   | "create"
