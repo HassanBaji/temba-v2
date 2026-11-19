@@ -59,7 +59,8 @@ export const tournamentAmericano = {
       matchMinutes: number,
     ) =>
       `${rounds(roundCount)} of ${games(courtCount)} on ${courts(courtCount)}, ${matchMinutes} minutes a game, back to back. One table of players at the end, ranked on games won.`,
-    noCourts: "Record at least one Court in step 2: the rounds are laid out on the Courts.",
+    noCourts:
+      "Record at least one Court in step 2: the rounds are laid out on the Courts.",
     waitsForCourts: (recorded: number, needed: number) =>
       `${courts(recorded)} recorded for ${games(needed)} a round, so some games wait for a free court.`,
     finishTooLate:
@@ -103,6 +104,12 @@ export const tournamentAmericano = {
     footPlayer:
       "No team and no side to pick. Take a seat and Temba gives you a partner for each round.",
     remove: (name: string) => `Remove ${name}`,
+  },
+  waitlist: {
+    title: "Waitlist",
+    count: (n: number) =>
+      plural("en", n, { one: "1 waiting", other: "{n} waiting" }),
+    foot: "When a seat opens, the next player in line takes it.",
   },
   schedule: {
     title: "Schedule",
