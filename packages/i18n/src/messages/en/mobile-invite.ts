@@ -94,6 +94,7 @@ export const mobileInvite = {
       sitHereFootball: (seats: string) =>
         `${seats}. Pick your role and position next`,
       barSheetPadel: "Team, side and the group, in one sheet",
+      barSheetSocial: "Alone or with a partner, your pick",
       barSheetFootball: "Role, position and the group, in one sheet",
     },
     joinSheet: {

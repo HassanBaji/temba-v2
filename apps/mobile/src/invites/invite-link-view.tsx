@@ -84,6 +84,8 @@ export type InviteLinkViewProps = {
   onOpenSheet: (picked: InviteSeatPick | null) => void;
   onCloseSheet: () => void;
   onSubmitJoin: (choice: InviteJoinChoice) => void;
+  /** A Social a member may open: the Game screen's join sheet, in place of the link's. */
+  socialJoinSheet?: React.ReactNode;
   /** "Join group" on its own, from the landing note. */
   groupOnlyPending: boolean;
   onJoinGroupOnly: () => void;
@@ -567,7 +569,7 @@ function useGameLayout(
         onSit={canSit ? () => props.onOpenSheet(null) : null}
       />
     ) : null;
-  const sheet =
+  const linkSheet =
     seatGame || football || asksForSide || gate !== "none" ? (
       <InviteJoinSheet
         visible={props.sheetOpen}
@@ -595,6 +597,7 @@ function useGameLayout(
         onSubmit={props.onSubmitJoin}
       />
     ) : null;
+  const sheet = props.socialJoinSheet ?? linkSheet;
   const head = {
     seats,
     countHint: court && canSit ? heroCopy.tapASeat : null,
@@ -748,11 +751,13 @@ function useGameLayout(
       ? groupCopy.oneTap
       : football
         ? heroCopy.barSheetFootball
-        : seatGame
-          ? heroCopy.barSheetPadel
-          : gate !== "none"
-            ? groupCopy.asksFirst
-            : null;
+        : props.socialJoinSheet
+          ? heroCopy.barSheetSocial
+          : seatGame
+            ? heroCopy.barSheetPadel
+            : gate !== "none"
+              ? groupCopy.asksFirst
+              : null;
   return {
     ...head,
     note,

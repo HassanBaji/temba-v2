@@ -17,6 +17,7 @@ import {
   InviteSeatCourt,
   InviteSitHereTile,
 } from "~/components/invites/game-invite-landing";
+import { GameLinkSocialJoinSheet } from "~/components/invites/game-link-social-join-sheet";
 import {
   InviteJoinSheet,
   type InviteJoinChoice,
@@ -50,6 +51,7 @@ import {
   gameInviteGroupRequestCard,
   gameInviteLinkStage,
   gameInviteSeatState,
+  gameInviteUsesGameJoinSheet,
   inviteLinkAcceptToast,
   levelRangeGateAction,
 } from "@repo/domain/invites";
@@ -175,6 +177,9 @@ export function AcceptGameInviteLink({
   const football = ready?.football ?? null;
   const sides = ready?.sides ?? [];
   const seatGame = sides.length > 0;
+  const socialJoin = ready
+    ? gameInviteUsesGameJoinSheet(ready, isSignedIn)
+    : false;
   // An Americano has nothing to pick, so a member joins in one tap.
   const asksForSide =
     !partnerRequiredJoin &&
@@ -418,40 +423,57 @@ export function AcceptGameInviteLink({
         }
       />
     ) : null;
-  const joinSheet =
-    isSignedIn &&
+  const joinSheet = socialJoin && !viewerOnGame ? (
+    <GameLinkSocialJoinSheet
+      gameId={ready.gameId}
+      open={sheet.open}
+      onOpenChange={(open) => setSheet((current) => ({ ...current, open }))}
+      initialSeat={
+        sheet.picked && sheet.picked.position !== "either"
+          ? {
+              sideIndex: sheet.picked.sideIndex,
+              position: sheet.picked.position,
+            }
+          : null
+      }
+      pending={accept.isPending}
+      onPickSeat={(sideIndex, position) =>
+        accept.mutateAsync({ token, sideIndex, position })
+      }
+    />
+  ) : isSignedIn &&
     (seatGame || football || asksForSide || groupGate !== "none") ? (
-      <InviteJoinSheet
-        open={sheet.open}
-        onOpenChange={(open) => setSheet((current) => ({ ...current, open }))}
-        input={{
-          kind: football ? "football" : "padel",
-          sides,
-          picked: sheet.picked,
-          usualSide: null,
-          teamsMadeAt: null,
-          group,
-          gate: groupGate,
-          gamePublic: ready.isPublic ?? false,
-          levelBlocked,
-          asksForSide: ready.asksForSide === true,
-          locale,
-        }}
-        football={
-          football
-            ? { players: football.players, preferred: football.preferred }
-            : null
-        }
-        pending={joinPending}
-        error={
-          accept.error?.message ??
-          joinGroup.error?.message ??
-          requestLevelRange.error?.message ??
-          null
-        }
-        onSubmit={submit}
-      />
-    ) : null;
+    <InviteJoinSheet
+      open={sheet.open}
+      onOpenChange={(open) => setSheet((current) => ({ ...current, open }))}
+      input={{
+        kind: football ? "football" : "padel",
+        sides,
+        picked: sheet.picked,
+        usualSide: null,
+        teamsMadeAt: null,
+        group,
+        gate: groupGate,
+        gamePublic: ready.isPublic ?? false,
+        levelBlocked,
+        asksForSide: ready.asksForSide === true,
+        locale,
+      }}
+      football={
+        football
+          ? { players: football.players, preferred: football.preferred }
+          : null
+      }
+      pending={joinPending}
+      error={
+        accept.error?.message ??
+        joinGroup.error?.message ??
+        requestLevelRange.error?.message ??
+        null
+      }
+      onSubmit={submit}
+    />
+  ) : null;
 
   function page(args: { content?: React.ReactNode; bar: React.ReactNode }) {
     return (
@@ -608,11 +630,13 @@ export function AcceptGameInviteLink({
     seatGame || football != null || asksForSide || groupGate !== "none";
   const sheetSubline = football
     ? heroCopy.barSheetFootball
-    : seatGame
-      ? heroCopy.barSheetPadel
-      : groupGate !== "none"
-        ? groupCopy.asksFirst
-        : null;
+    : socialJoin
+      ? heroCopy.barSheetSocial
+      : seatGame
+        ? heroCopy.barSheetPadel
+        : groupGate !== "none"
+          ? groupCopy.asksFirst
+          : null;
   if (opensSheet && !joinFrozen) {
     return page({
       content: joinedNotice,

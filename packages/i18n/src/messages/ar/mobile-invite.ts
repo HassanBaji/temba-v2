@@ -100,6 +100,7 @@ export const mobileInvite = {
       },
       sitHereFootball: (seats: string) => `${seats}. اختر دورك ومركزك بعدها`,
       barSheetPadel: "الفريق والجهة والمجموعة في ورقة واحدة",
+      barSheetSocial: "وحدك أو مع شريك، كما تشاء",
       barSheetFootball: "الدور والمركز والمجموعة في ورقة واحدة",
     },
     joinSheet: {
