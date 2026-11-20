@@ -258,6 +258,22 @@ function PlayedCard({
           ) : null}
         </View>
       ) : null}
+      {card.social ? (
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ gap: 3 }}
+        >
+          <Text size="meta" tone="muted" numberOfLines={1}>
+            {[...card.social.tags, card.social.entrants].join(
+              m.group.metaSeparator,
+            )}
+          </Text>
+          <Text numberOfLines={1}>
+            {card.social.winner?.line ?? card.social.headline}
+          </Text>
+        </View>
+      ) : null}
       {card.cancelledLine ? (
         <Text
           size="meta"
