@@ -19,6 +19,7 @@ const signed = (value: number) =>
 
 export const liveBoard = {
   joiner: " & ",
+  list: (parts: readonly string[]) => parts.join(", "),
   signed,
   menu: {
     showOnTv: "Show on TV",
@@ -76,9 +77,9 @@ export const liveBoard = {
     lead: "What you change here shows on the TV straight away.",
     onScreens: (count: number) =>
       plural("en", count, {
-        zero: "Not on a screen yet",
-        one: "On 1 screen",
-        other: "On {n} screens",
+        zero: "Not on a TV yet",
+        one: "On 1 TV",
+        other: "On {n} TVs",
       }),
     now: "On the TV now",
     thenIn: (screen: string, seconds: number) =>
@@ -142,7 +143,7 @@ export const liveBoard = {
     title: "Live board",
     lead: "Enter the six-digit code from the organizer’s phone.",
     codeLabel: "Board code",
-    nameLabel: "Name this screen (optional)",
+    nameLabel: "Name this TV (optional)",
     namePlaceholder: "Clubhouse TV",
     open: "Open the board",
     opening: "Opening the board",
@@ -152,7 +153,7 @@ export const liveBoard = {
     defaultName: (number: number) => `TV ${number}`,
     ended: {
       stopped: "The board was stopped",
-      disconnected: "This screen was disconnected",
+      disconnected: "This TV was disconnected",
       closed: "The board has closed",
     },
     endedLead: "Enter a code to open another board.",
@@ -191,6 +192,7 @@ export const liveBoard = {
     pointsRule: (win: number, draw: number, loss: number) =>
       `Win ${win}, draw ${draw}, loss ${loss}`,
     gamesRule: "Ranked on games won",
+    afterWithRule: (after: string, rule: string) => `${after}. ${rule}`,
     columns: {
       rank: "#",
       team: "Team",
@@ -297,7 +299,7 @@ export const liveBoard = {
     closed: "This game has ended, so its board cannot be shown.",
     codesExhausted: "A board code could not be made. Try again.",
     messageTooLong: (max: number) =>
-      `Keep the message under ${max} characters.`,
+      `Keep the message to ${max} characters or fewer.`,
     rotateSeconds: "Pick 5, 10 or 20 seconds.",
     noScreens: "This board has one screen.",
     tvNotFound: "That TV is no longer connected.",

@@ -9,7 +9,6 @@ import {
   formatBoardClock,
   formatBoardCode,
   formatBoardMatchTime,
-  isLiveBoardOpen,
   liveBoardKind,
   liveBoardScene,
   matchBoardPhase,
@@ -78,34 +77,6 @@ describe("liveBoardKind", () => {
       );
     }
     assert.equal(liveBoardKind({ format: "americano" }), null);
-  });
-});
-
-describe("isLiveBoardOpen", () => {
-  const board = {
-    stoppedAt: null,
-    gameCancelledAt: null,
-    windowEnd: "2026-11-09T11:30:00Z",
-  };
-
-  it("stays open for six hours after the window, so the final table stays up", () => {
-    assert.equal(
-      isLiveBoardOpen(board, new Date("2026-11-09T17:29:00Z")),
-      true,
-    );
-    assert.equal(
-      isLiveBoardOpen(board, new Date("2026-11-09T17:30:00Z")),
-      false,
-    );
-  });
-
-  it("is closed once stopped or once the Game is cancelled", () => {
-    const now = new Date("2026-11-09T10:00:00Z");
-    assert.equal(isLiveBoardOpen({ ...board, stoppedAt: now }, now), false);
-    assert.equal(
-      isLiveBoardOpen({ ...board, gameCancelledAt: now }, now),
-      false,
-    );
   });
 });
 

@@ -542,7 +542,12 @@ export function BoardControlPage({ gameId }: { gameId: string }) {
             {state.canStart ? (
               <>
                 <p className="text-muted-foreground text-meta">{c.offLead}</p>
-                <Button onClick={() => setSheetOpen(true)}>
+                <Button
+                  onClick={() => {
+                    live.ensureStarted();
+                    setSheetOpen(true);
+                  }}
+                >
                   {m.menu.showOnTv}
                 </Button>
               </>
@@ -552,7 +557,6 @@ export function BoardControlPage({ gameId }: { gameId: string }) {
       </div>
       {state?.kind && state.canStart ? (
         <ShowOnTvSheet
-          gameId={gameId}
           kind={state.kind}
           live={live}
           onOpenChange={setSheetOpen}

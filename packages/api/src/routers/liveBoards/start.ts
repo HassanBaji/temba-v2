@@ -1,8 +1,10 @@
+import { randomInt } from "node:crypto";
+
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { liveBoards } from "@repo/db";
-import { liveBoardKind } from "@repo/domain/live-board";
+import { LIVE_BOARD_CODE_LENGTH, liveBoardKind } from "@repo/domain/live-board";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -11,7 +13,6 @@ import { type db } from "#src/db";
 import { isUniqueViolation } from "#src/db/is-unique-violation";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import {
-  createBoardCode,
   findRunningBoard,
   liveBoardControl,
   startableBoardKind,
@@ -19,6 +20,13 @@ import {
 import { protectedProcedure } from "#src/trpc";
 
 const BOARD_CODE_ATTEMPTS = 8;
+
+function createBoardCode() {
+  return String(randomInt(0, 10 ** LIVE_BOARD_CODE_LENGTH)).padStart(
+    LIVE_BOARD_CODE_LENGTH,
+    "0",
+  );
+}
 
 /**
  * Show on TV: starts the Game's Live board and mints its Board code. A Game

@@ -1,7 +1,6 @@
 "use client";
 
 import { LinkIcon, MonitorIcon, TvIcon } from "lucide-react";
-import * as React from "react";
 import { toast } from "sonner";
 
 import { formatBoardCode, type LiveBoardKind } from "@repo/domain/live-board";
@@ -109,17 +108,16 @@ export function ShowOnTvPanel({
 }
 
 /**
- * Show on TV: opening it starts the Game's Live board, so the Board code is
- * there to read out, with the three settings worth choosing before a TV joins.
+ * Show on TV. Whoever opens it starts the Game's Live board first, so the
+ * Board code is there to read out. The sheet itself never starts one: a board
+ * another Organizer stops while it is open stays stopped.
  */
 export function ShowOnTvSheet({
-  gameId,
   kind,
   live,
   open,
   onOpenChange,
 }: {
-  gameId: string;
   kind: LiveBoardKind;
   live: LiveBoardHandle;
   open: boolean;
@@ -127,14 +125,6 @@ export function ShowOnTvSheet({
 }) {
   const m = useMessages().liveBoard;
   const { board, start, change } = live;
-  const startBoard = start.mutate;
-  const idle = start.isIdle;
-
-  React.useEffect(() => {
-    if (open && !board && idle) {
-      startBoard({ gameId });
-    }
-  }, [board, gameId, idle, open, startBoard]);
 
   return (
     <ResponsiveDialog
@@ -163,15 +153,23 @@ export function ShowOnTvSheet({
             <p className="text-body" role="alert">
               {start.error.message || m.sheet.startFailed}
             </p>
-            <Button onClick={() => startBoard({ gameId })} variant="outline">
+            <Button onClick={live.ensureStarted} variant="outline">
               {m.sheet.retry}
             </Button>
           </div>
-        ) : (
+        ) : start.isPending ? (
           <div aria-busy="true" className="flex flex-col gap-[18px]">
             <Skeleton className="rounded-card h-[104px]" />
             <Skeleton className="rounded-card h-[176px]" />
             <Skeleton className="h-13 rounded-lg" />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <p className="text-body font-semibold">{m.control.offTitle}</p>
+            <p className="text-muted-foreground text-meta">
+              {m.control.offLead}
+            </p>
+            <Button onClick={live.ensureStarted}>{m.menu.showOnTv}</Button>
           </div>
         )}
       </ResponsiveDialogContent>

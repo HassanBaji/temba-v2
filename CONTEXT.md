@@ -645,7 +645,7 @@ One of the three views a Social's Live board rotates through: On court (the Roun
 _Avoid_: slide, page, scene, tab
 
 **Board TV**:
-One browser showing a Live board, joined with the Board code. It has a name ("Clubhouse TV", or "TV 1" when it gave none) and a token of its own, so the Organizer sees each one and can disconnect it. Every Board TV of a board shows the same thing. Listed while it keeps asking for the board.
+One browser showing a Live board, joined with the Board code. It has a name ("Clubhouse TV", or "TV 1" when it gave none) and a token of its own, so the Organizer sees each one and can disconnect it. Every Board TV of a board shows the same thing. Listed while it keeps asking for the board: one that is quiet for 45 seconds loses its token and joins again with the code when it comes back. A board holds eight at most.
 _Avoid_: screen (that is a Board screen), device, display, client
 
 **Game Level range**:

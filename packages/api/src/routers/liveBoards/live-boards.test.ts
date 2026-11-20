@@ -7,8 +7,6 @@ import {
   games,
   groupMembers,
   groups,
-  liveBoards,
-  liveBoardTvs,
   matches,
   matchSets,
   ratings,
@@ -472,7 +470,7 @@ describe("a Social's board", () => {
     });
   });
 
-  it("shows a saved score on its Court at once and moves the table only when it is final", async () => {
+  it("shows a saved score on its Court at once and moves the table only when the Round is finished", async () => {
     await withDb(async (database) => {
       const seeded = await seedSocial(database);
       await postEveryRound(database, seeded);
@@ -527,11 +525,30 @@ describe("a Social's board", () => {
         slot1GamesWon: 5,
         slot2GamesWon: 2,
       });
+      const courtOneFinal = await liveSnapshot(database, token);
+      if (courtOneFinal.content.kind !== "social") {
+        throw new Error("Expected a Social");
+      }
+      expect(courtOneFinal.content.rounds[0]?.matches[0]?.state).toBe(
+        "confirmed",
+      );
+      expect(courtOneFinal.content.rounds[0]?.state).toBe("on_court");
+      expect(
+        courtOneFinal.content.tables[0]?.rows.every((row) => row.played === 0),
+      ).toBe(true);
+
+      await enterTournamentScore(database as unknown as Db, {
+        gameId: seeded.gameId,
+        matchId: roundOne!.matches[1]!.id,
+        userId: seeded.owner.id,
+        slot1GamesWon: 3,
+        slot2GamesWon: 3,
+      });
       const final = await liveSnapshot(database, token);
       if (final.content.kind !== "social") {
         throw new Error("Expected a Social");
       }
-      expect(final.content.rounds[0]?.matches[0]?.state).toBe("confirmed");
+      expect(final.content.rounds[0]?.state).toBe("played");
       const table = final.content.tables[0]!;
       expect(table.poolIndex).toBeNull();
       expect(table.rows[0]).toMatchObject({
@@ -624,16 +641,32 @@ describe("a Social's board", () => {
         organizerUserId: organizer.id,
         gamePlayerIds,
       });
-      const first = await database.query.matches.findFirst({
-        where: eq(matches.gameId, gameId),
-        orderBy: (table, { asc }) => [asc(table.roundNumber), asc(table.id)],
-      });
+      const roundOne = (
+        await database.query.matches.findMany({
+          where: eq(matches.gameId, gameId),
+          orderBy: (table, { asc }) => [asc(table.id)],
+        })
+      ).filter((row) => row.roundNumber === 1);
       await enterTournamentScore(asDb(database), {
         gameId,
-        matchId: first!.id,
+        matchId: roundOne[0]!.id,
         userId: organizer.id,
         slot1GamesWon: 6,
         slot2GamesWon: 1,
+      });
+      const half = await liveSnapshot(database, token);
+      if (half.content.kind !== "social") {
+        throw new Error("Expected a Social");
+      }
+      expect(
+        half.content.tables[0]?.rows.every((row) => row.played === 0),
+      ).toBe(true);
+      await enterTournamentScore(asDb(database), {
+        gameId,
+        matchId: roundOne[1]!.id,
+        userId: organizer.id,
+        slot1GamesWon: 5,
+        slot2GamesWon: 3,
       });
 
       const snapshot = await liveSnapshot(database, token);
@@ -648,12 +681,11 @@ describe("a Social's board", () => {
       const table = snapshot.content.tables[0]!;
       expect(table.rows).toHaveLength(8);
       expect(table.rows.every((row) => row.players.length === 1)).toBe(true);
-      expect(table.rows.slice(0, 2).map((row) => row.points)).toEqual([6, 6]);
-      expect(table.rows[0]?.rounds[0]).toBe("won");
-      expect(
-        table.rows.filter((row) => row.played === 1).map((row) => row.points),
-      ).toEqual([6, 6, 1, 1]);
-      expect(table.rows[2]).toMatchObject({ gamesAgainst: 6, lost: 1 });
+      expect(table.rows.map((row) => row.points)).toEqual([
+        6, 6, 5, 5, 3, 3, 1, 1,
+      ]);
+      expect(table.rows[0]?.rounds).toEqual(["won", "none", "none"]);
+      expect(table.rows.at(-1)).toMatchObject({ gamesAgainst: 6, lost: 1 });
     });
   });
 });
@@ -731,6 +763,25 @@ describe("a one-Match board", () => {
         completed: false,
         courtName: null,
         ratingScope: "temba",
+      });
+
+      const [seatedMatch] = await database.query.matches.findMany({
+        where: eq(matches.gameId, created.game.id),
+      });
+      await database
+        .update(matches)
+        .set({
+          slot1GameTeamId: seatedMatch!.slot2GameTeamId,
+          slot2GameTeamId: seatedMatch!.slot1GameTeamId,
+        })
+        .where(eq(matches.id, created.matchId));
+      const turned = await liveSnapshot(database, token);
+      expect(turned.content).toMatchObject({
+        sides: [
+          [{ name: "Hassan Haji" }, {}],
+          [{ name: "Ahmed Buhazza" }, {}],
+        ],
+        sets: [{ score1: 3, score2: 4 }],
       });
 
       await expect(
@@ -880,7 +931,7 @@ describe("the board control", () => {
         heldScreen: "next_up",
       });
 
-      const later = new Date(NOW.getTime() + 5 * MINUTE);
+      const later = new Date(NOW.getTime() + 30_000);
       await updateLiveBoard(database as unknown as Db, {
         ...args,
         rotate: true,
@@ -1065,8 +1116,12 @@ describe("the board control", () => {
   it("closes on its own six hours after the window, and when the Game is cancelled", async () => {
     await withDb(async (database) => {
       const seeded = await seedSocial(database);
-      const { token } = await startAndConnect(database, seeded);
       const closedAt = new Date(WINDOW_END.getTime() + 6 * 60 * MINUTE);
+      const { token } = await startAndConnect(
+        database,
+        seeded,
+        new Date(closedAt.getTime() - 1000),
+      );
       await liveSnapshot(database, token, new Date(closedAt.getTime() - 1));
       expect(
         await liveBoardSnapshot(database as unknown as Db, {
@@ -1084,22 +1139,72 @@ describe("the board control", () => {
         await liveBoardSnapshot(database as unknown as Db, {
           token,
           origin: ORIGIN,
+          now: new Date(closedAt.getTime() - 1),
         }),
       ).toEqual({ status: "closed" });
     });
   });
 
-  it("reads a token nobody was given as a disconnected TV", async () => {
+  it("reads a token nobody was given as expired", async () => {
     await withDb(async (database) => {
       expect(
         await liveBoardSnapshot(database as unknown as Db, {
           token: "nobody-was-given-this-token",
           origin: ORIGIN,
         }),
-      ).toEqual({ status: "disconnected" });
+      ).toEqual({ status: "expired" });
       expect(await database.query.liveBoardTvs.findMany()).toEqual([]);
-      expect(liveBoards).toBeDefined();
-      expect(liveBoardTvs).toBeDefined();
+    });
+  });
+});
+
+describe("a TV that goes quiet", () => {
+  it("loses its token after 45 seconds, so no hidden TV can keep reading", async () => {
+    await withDb(async (database) => {
+      const seeded = await seedSocial(database);
+      const { control, token } = await startAndConnect(database, seeded);
+      const quiet = new Date(NOW.getTime() + 46_000);
+      expect(
+        await liveBoardSnapshot(database as unknown as Db, {
+          token,
+          origin: ORIGIN,
+          now: quiet,
+        }),
+      ).toEqual({ status: "expired" });
+      expect(await database.query.liveBoardTvs.findMany()).toEqual([]);
+
+      const again = await connectLiveBoardTv(database as unknown as Db, {
+        code: control.code,
+        now: quiet,
+      });
+      await liveSnapshot(database, again.token, quiet);
+    });
+  });
+
+  it("holds eight TVs, and gives a quiet one's place to the next to join", async () => {
+    await withDb(async (database) => {
+      const seeded = await seedSocial(database);
+      const control = await startLiveBoard(database as unknown as Db, {
+        gameId: seeded.gameId,
+        userId: seeded.owner.id,
+        origin: ORIGIN,
+      });
+      const join = (now: Date) =>
+        connectLiveBoardTv(database as unknown as Db, {
+          code: control.code,
+          now,
+        });
+      for (let index = 0; index < 8; index += 1) {
+        await join(NOW);
+      }
+      await expect(join(NOW)).rejects.toMatchObject({
+        code: "TOO_MANY_REQUESTS",
+      });
+
+      const later = new Date(NOW.getTime() + 46_000);
+      await join(later);
+      const rows = await database.query.liveBoardTvs.findMany();
+      expect(rows.map((row) => row.name)).toEqual(["TV 1"]);
     });
   });
 });

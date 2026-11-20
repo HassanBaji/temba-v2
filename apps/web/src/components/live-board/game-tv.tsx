@@ -29,7 +29,10 @@ export function useGameTv(gameId: string, organizes: boolean) {
         label: m.menu.showOnTv,
         hint: m.menu.showOnTvHint,
         icon: TvIcon,
-        onSelect: () => setOpen(true),
+        onSelect: () => {
+          live.ensureStarted();
+          setOpen(true);
+        },
       }
     : null;
   const card =
@@ -42,13 +45,7 @@ export function useGameTv(gameId: string, organizes: boolean) {
       />
     ) : null;
   const sheet = kind ? (
-    <ShowOnTvSheet
-      gameId={gameId}
-      kind={kind}
-      live={live}
-      onOpenChange={setOpen}
-      open={open}
-    />
+    <ShowOnTvSheet kind={kind} live={live} onOpenChange={setOpen} open={open} />
   ) : null;
   return { menuRow, card, sheet };
 }

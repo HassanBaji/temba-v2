@@ -37,6 +37,7 @@ const signed = (value: number) =>
 
 export const liveBoard = {
   joiner: " و",
+  list: (parts: readonly string[]) => parts.join("، "),
   signed,
   menu: {
     showOnTv: "اعرض على التلفزيون",
@@ -101,12 +102,12 @@ export const liveBoard = {
     lead: "ما تغيّره هنا يظهر على التلفزيون فورًا.",
     onScreens: (count: number) =>
       plural("ar", count, {
-        zero: "ليست على أي شاشة بعد",
-        one: "على شاشة واحدة",
-        two: "على شاشتين",
-        few: "على {n} شاشات",
-        many: "على {n} شاشة",
-        other: "على {n} شاشة",
+        zero: "ليست على أي تلفزيون بعد",
+        one: "على تلفزيون واحد",
+        two: "على تلفزيونين",
+        few: "على {n} تلفزيونات",
+        many: "على {n} تلفزيونًا",
+        other: "على {n} تلفزيون",
       }),
     now: "على التلفزيون الآن",
     thenIn: (screen: string, count: number) => `ثم ${screen}، بعد ${count} ث`,
@@ -172,7 +173,7 @@ export const liveBoard = {
     title: "اللوحة المباشرة",
     lead: "أدخل الرمز المكوّن من ستة أرقام من هاتف المنظّم.",
     codeLabel: "رمز اللوحة",
-    nameLabel: "سمِّ هذه الشاشة (اختياري)",
+    nameLabel: "سمِّ هذا التلفزيون (اختياري)",
     namePlaceholder: "تلفزيون النادي",
     open: "افتح اللوحة",
     opening: "جارٍ فتح اللوحة",
@@ -182,7 +183,7 @@ export const liveBoard = {
     defaultName: (number: number) => `تلفزيون ${number}`,
     ended: {
       stopped: "أُوقفت اللوحة",
-      disconnected: "فُصلت هذه الشاشة",
+      disconnected: "فُصل هذا التلفزيون",
       closed: "أُغلقت اللوحة",
     },
     endedLead: "أدخل رمزًا لفتح لوحة أخرى.",
@@ -221,6 +222,7 @@ export const liveBoard = {
     pointsRule: (win: number, draw: number, loss: number) =>
       `الفوز ${win}، التعادل ${draw}، الخسارة ${loss}`,
     gamesRule: "الترتيب بالأشواط المكسوبة",
+    afterWithRule: (after: string, rule: string) => `${after}. ${rule}`,
     columns: {
       rank: "#",
       team: "الفريق",
@@ -361,7 +363,7 @@ export const liveBoard = {
     unavailable: "هذه المباراة ليس لها لوحة مباشرة.",
     closed: "انتهت هذه المباراة، فلا يمكن عرض لوحتها.",
     codesExhausted: "تعذّر إنشاء رمز للوحة. حاول مرة أخرى.",
-    messageTooLong: (max: number) => `اجعل الرسالة أقل من ${max} حرفًا.`,
+    messageTooLong: (max: number) => `اجعل الرسالة ${max} حرفًا أو أقل.`,
     rotateSeconds: "اختر 5 أو 10 أو 20 ثانية.",
     noScreens: "لهذه اللوحة شاشة واحدة.",
     tvNotFound: "هذا التلفزيون لم يعد متصلًا.",

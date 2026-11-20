@@ -1,15 +1,8 @@
-import { randomInt } from "node:crypto";
-
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq, gt, isNull } from "drizzle-orm";
 
 import { liveBoards, liveBoardTvs } from "@repo/db";
-import {
-  isLiveBoardOpen,
-  LIVE_BOARD_CODE_LENGTH,
-  liveBoardKind,
-  type LiveBoardKind,
-} from "@repo/domain/live-board";
+import { liveBoardKind, type LiveBoardKind } from "@repo/domain/live-board";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -24,17 +17,15 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export type LiveBoardRow = typeof liveBoards.$inferSelect;
 
-/** A TV that has not asked for the board this long is no longer listed. */
+/**
+ * How long a TV may go without asking for the board. Past it the TV's token
+ * stops working, so every token that can still read the board is on the
+ * Organizer's list, and a TV that comes back joins again with the code.
+ */
 export const LIVE_BOARD_TV_SEEN_WITHIN_MS = 45_000;
 
-export const LIVE_BOARD_TV_MAX = 12;
-
-export function createBoardCode() {
-  return String(randomInt(0, 10 ** LIVE_BOARD_CODE_LENGTH)).padStart(
-    LIVE_BOARD_CODE_LENGTH,
-    "0",
-  );
-}
+/** A board closes on its own this long after the Game's window ends. */
+const LIVE_BOARD_CLOSES_AFTER_MS = 6 * 60 * 60 * 1000;
 
 const LIVE_BOARD_ENTRY_PATH = "/tv";
 
@@ -47,23 +38,21 @@ export function liveBoardAddress(origin: string) {
   return `${origin.replace(/^https?:\/\//, "").replace(/\/+$/, "")}${LIVE_BOARD_ENTRY_PATH}`;
 }
 
-/** The page the board's QR opens: the Game, and its results once it ends. */
-export function liveBoardFollowUrl(origin: string, gameId: string) {
-  return `${origin}/dashboard/games/${gameId}`;
-}
-
+/**
+ * Open until it is stopped, its Game is cancelled, or six hours after the
+ * Game's window ends, which keeps the final table up after the last Match.
+ * Read at request time: nothing closes a board in the background.
+ */
 export function isBoardOpenForGame(
   board: Pick<LiveBoardRow, "stoppedAt">,
   game: Pick<GameRow, "cancelledAt" | "windowEnd">,
   now: Date,
 ) {
-  return isLiveBoardOpen(
-    {
-      stoppedAt: board.stoppedAt,
-      gameCancelledAt: game.cancelledAt,
-      windowEnd: game.windowEnd,
-    },
-    now,
+  return (
+    board.stoppedAt == null &&
+    game.cancelledAt == null &&
+    (game.windowEnd == null ||
+      now.getTime() < game.windowEnd.getTime() + LIVE_BOARD_CLOSES_AFTER_MS)
   );
 }
 

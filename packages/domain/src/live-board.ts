@@ -27,9 +27,6 @@ export const LIVE_BOARD_TV_NAME_MAX = 40;
 
 export const LIVE_BOARD_CODE_LENGTH = 6;
 
-/** A board closes on its own this long after the Game's window ends. */
-export const LIVE_BOARD_CLOSES_AFTER_HOURS = 6;
-
 export type LiveBoardKind = "social" | "padel_match" | "football";
 
 /**
@@ -62,28 +59,6 @@ export function liveBoardKind(game: {
   return null;
 }
 
-export function liveBoardClosesAt(windowEnd: Date | string): Date {
-  return new Date(
-    new Date(windowEnd).getTime() +
-      LIVE_BOARD_CLOSES_AFTER_HOURS * 60 * 60 * 1000,
-  );
-}
-
-export function isLiveBoardOpen(
-  board: {
-    stoppedAt: Date | string | null;
-    gameCancelledAt: Date | string | null;
-    windowEnd: Date | string | null;
-  },
-  now: Date,
-) {
-  return (
-    board.stoppedAt == null &&
-    board.gameCancelledAt == null &&
-    (board.windowEnd == null || now < liveBoardClosesAt(board.windowEnd))
-  );
-}
-
 /** "482913" reads "482 913", the way it is typed on a TV remote. */
 export function formatBoardCode(code: string) {
   const half = Math.ceil(code.length / 2);
@@ -96,10 +71,6 @@ export function parseBoardCode(raw: string): string | null {
   return new RegExp(`^\\d{${LIVE_BOARD_CODE_LENGTH}}$`).test(digits)
     ? digits
     : null;
-}
-
-export function isRotateSeconds(value: number) {
-  return LIVE_BOARD_ROTATE_SECONDS.some((seconds) => seconds === value);
 }
 
 export function normalizeBoardMessage(value: string | null | undefined) {
@@ -336,8 +307,9 @@ function socialBoardClock(
 }
 
 /**
- * Which Rounds a Social's board shows and what its clock counts. The table
- * counts finished Rounds only, so it says which Round it is after.
+ * Which Rounds a Social's board shows and what its clock counts. The API
+ * sends a table that counts finished Rounds only, so the board says which
+ * Round it is after.
  */
 export function socialBoardView(
   content: SocialBoardContent,

@@ -112,8 +112,9 @@ function Divider() {
   return <div className="bg-rule flex-none" style={{ width: 1, height: 40 }} />;
 }
 
-export function boardSubtitle(game: BoardGame) {
-  return [game.groupName, game.venueName].filter(Boolean).join(", ");
+export function useBoardSubtitle(game: BoardGame) {
+  const list = useMessages().liveBoard.list;
+  return list([game.groupName, game.venueName].flatMap((part) => part ?? []));
 }
 
 export function BoardHeader({
@@ -227,8 +228,8 @@ export function RoundBars({
 export function BoardClock({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex-none text-end" style={{ minWidth: 128 }}>
-      <div className="font-expanded" dir="ltr" style={px(46, 0.9)}>
-        {value}
+      <div className="font-expanded" style={px(46, 0.9)}>
+        <span dir="ltr">{value}</span>
       </div>
       <div
         className="text-muted-foreground whitespace-nowrap"
@@ -370,7 +371,7 @@ export function StripQr({
   return (
     <div
       className="flex flex-none items-center"
-      style={{ padding: "0 12px 0 18px" }}
+      style={{ paddingInline: "18px 12px" }}
     >
       <QrCell lines={lines} size={66} url={url} />
     </div>

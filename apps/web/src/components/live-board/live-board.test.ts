@@ -1,14 +1,20 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   liveBoardPreviews,
   PREVIEW_NOW,
 } from "~/app/dashboard/design/live-board/fixtures";
 
+import { LocaleProvider } from "~/components/locale-provider";
+
 import type { LiveBoardSnapshot } from "./board-kit";
 import { LiveBoard } from "./live-board";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: () => undefined }),
+}));
 
 function preview(title: string): LiveBoardSnapshot {
   const found = liveBoardPreviews.find((entry) => entry.title === title);
@@ -161,6 +167,33 @@ describe("a one-Match Live board", () => {
   it("waits for the football teams to be published", () => {
     expect(render(preview("Football, teams not published"))).toContain(
       "The teams are not posted yet",
+    );
+  });
+});
+
+describe("the Live board in Arabic", () => {
+  function renderArabic(snapshot: LiveBoardSnapshot) {
+    return renderToStaticMarkup(
+      createElement(
+        LocaleProvider,
+        { locale: "ar" },
+        createElement(LiveBoard, { snapshot, now: PREVIEW_NOW, fill: false }),
+      ),
+    );
+  }
+
+  it("reads right to left with its own copy and keeps numbers in their order", () => {
+    const html = renderArabic(preview("3a Social, Standings"));
+    expect(html).toContain("الترتيب");
+    expect(html).toContain("في الملعب الآن");
+    expect(html).toContain("Layla وNora");
+    expect(html).toContain('<span dir="ltr">16–8</span>');
+    expect(html).not.toContain("Standings");
+  });
+
+  it("joins a list with the Arabic comma", () => {
+    expect(renderArabic(preview("4b Football game"))).toContain(
+      "Karbabad Turf، Pitch 2",
     );
   });
 });

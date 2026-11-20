@@ -33,7 +33,7 @@ import {
   BoardClock,
   BoardHeader,
   BoardStrip,
-  boardSubtitle,
+  useBoardSubtitle,
   LIFTED,
   MessageStrip,
   NotYet,
@@ -372,20 +372,14 @@ function BoardTable({
                 ),
               )}
               {variant === "full" ? (
-                <span
-                  className={cn(muted, "text-end")}
-                  dir="ltr"
-                  style={px(numberSize)}
-                >
-                  {row.gamesFor}–{row.gamesAgainst}
+                <span className={cn(muted, "text-end")} style={px(numberSize)}>
+                  <span dir="ltr">
+                    {row.gamesFor}–{row.gamesAgainst}
+                  </span>
                 </span>
               ) : null}
-              <span
-                className={cn(muted, "text-end")}
-                dir="ltr"
-                style={px(numberSize)}
-              >
-                {m.signed(row.difference)}
+              <span className={cn(muted, "text-end")} style={px(numberSize)}>
+                <span dir="ltr">{m.signed(row.difference)}</span>
               </span>
             </>
           ) : null}
@@ -662,15 +656,16 @@ function LiveScreens({
           {table ? (
             <div className="flex min-w-0 flex-1 flex-col">
               <SectionHead
-                meta={`${after(false)}. ${
+                meta={m.afterWithRule(
+                  after(false),
                   content.ranks === "players"
                     ? m.gamesRule
                     : m.pointsRule(
                         POOL_POINTS.win,
                         POOL_POINTS.draw,
                         POOL_POINTS.loss,
-                      )
-                }`}
+                      ),
+                )}
                 title={tableTitle(table.table)}
               />
               <BoardTable
@@ -794,7 +789,7 @@ function FinalScreen({
       }}
     >
       <div className="flex flex-none flex-col" style={{ width: 400, gap: 14 }}>
-        {first ? (
+        {first && first.played > 0 ? (
           <div
             className={cn(LIFTED, "flex min-h-0 flex-col justify-between")}
             style={{ flex: 1.5, borderRadius: 16, padding: "24px 28px" }}
@@ -808,9 +803,9 @@ function FinalScreen({
               </span>
             </div>
             <div>
-              {first.players.map((name) => (
+              {first.players.map((name, index) => (
                 <div
-                  key={name}
+                  key={index}
                   className="font-expanded truncate"
                   style={px(38, 1.1)}
                 >
@@ -880,7 +875,7 @@ export function SocialBoard({
   const follow = useFollowLines();
   const { game, settings } = snapshot;
   const view = socialBoardView(content, now);
-  const subtitle = boardSubtitle(game);
+  const subtitle = useBoardSubtitle(game);
 
   if (view.phase === "final") {
     return (

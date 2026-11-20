@@ -63,7 +63,6 @@ import {
 import {
   isBoardOpenForGame,
   LIVE_BOARD_TV_SEEN_WITHIN_MS,
-  liveBoardFollowUrl,
 } from "#src/live-boards/boards";
 import { publicProcedure } from "#src/trpc";
 
@@ -103,6 +102,21 @@ function roundMark(
     return "drawn";
   }
   return (outcome === "slot1") === (slot === 1) ? "won" : "lost";
+}
+
+/**
+ * The table counts finished Rounds only, so it never runs ahead of the Round
+ * it says it is after: a score still in play on one Court does not move it
+ * until the whole Round is settled.
+ */
+function isCountedRound(
+  rounds: readonly LiveBoardRound[],
+  roundNumber: number | null,
+) {
+  const state = rounds.find(
+    (round) => round.roundNumber === roundNumber,
+  )?.state;
+  return state === "played" || state === "cancelled";
 }
 
 async function poolSocialContent(
@@ -211,17 +225,22 @@ async function poolSocialContent(
     });
   }
 
-  const computed = computePoolTables({
-    format: game.format,
-    poolCount: game.poolCount,
-    viewerUserId: "",
-    locale,
-    storedRoundCount: game.roundCount,
-    gameTeams: teams,
-    matches: posted,
-  });
-  const games = new Map<string, { won: number; lost: number }>();
-  for (const match of posted) {
+  const counted = posted.filter((match) =>
+    isCountedRound(rounds, match.roundNumber),
+  );
+  const tablesOf = (matches: PostedPoolMatch[]) =>
+    computePoolTables({
+      format: game.format,
+      poolCount: game.poolCount,
+      viewerUserId: "",
+      locale,
+      storedRoundCount: game.roundCount,
+      gameTeams: teams,
+      matches,
+    });
+  const computed = tablesOf(counted);
+  const gamesOf = new Map<string, { won: number; lost: number }>();
+  for (const match of counted) {
     const set = match.sets[0];
     if (
       match.status !== MatchStatusEnum.COMPLETED ||
@@ -237,8 +256,8 @@ async function poolSocialContent(
       if (!id) {
         continue;
       }
-      const sum = games.get(id) ?? { won: 0, lost: 0 };
-      games.set(id, { won: sum.won + won, lost: sum.lost + lost });
+      const sum = gamesOf.get(id) ?? { won: 0, lost: 0 };
+      gamesOf.set(id, { won: sum.won + won, lost: sum.lost + lost });
     }
   }
   const single = (computed?.pools.length ?? 0) === 1;
@@ -252,8 +271,8 @@ async function poolSocialContent(
       won: row.won ?? 0,
       drawn: row.drawn ?? 0,
       lost: row.lost ?? 0,
-      gamesFor: games.get(row.gameTeamId)?.won ?? 0,
-      gamesAgainst: games.get(row.gameTeamId)?.lost ?? 0,
+      gamesFor: gamesOf.get(row.gameTeamId)?.won ?? 0,
+      gamesAgainst: gamesOf.get(row.gameTeamId)?.lost ?? 0,
       difference: row.gamesDifference ?? 0,
       points: row.points ?? 0,
       rounds: rounds.map((round) => {
@@ -274,7 +293,7 @@ async function poolSocialContent(
     })),
   }));
 
-  const finished = computed?.finished ?? false;
+  const finished = tablesOf(posted)?.finished ?? false;
   return {
     kind: "social",
     ranks: "teams",
@@ -339,7 +358,10 @@ async function americanoSocialContent(
         match.roundNumber === roundNumber &&
         (match.slot1.includes(playerId) || match.slot2.includes(playerId)),
     );
-    if (row?.status !== MatchStatusEnum.COMPLETED) {
+    if (
+      row?.status !== MatchStatusEnum.COMPLETED ||
+      !isCountedRound(rounds, roundNumber)
+    ) {
       return "none" as const;
     }
     return roundMark(
@@ -349,7 +371,9 @@ async function americanoSocialContent(
   };
   const table = americanoTable(
     players.map((player) => player.gamePlayerId),
-    americanoResults(rows),
+    americanoResults(
+      rows.filter((row) => isCountedRound(rounds, row.roundNumber)),
+    ),
   );
   const finished = americanoDayFinished(rows);
   return {
@@ -579,6 +603,11 @@ async function liveBoardContent(
   return null;
 }
 
+/** The page the board's QR opens: the Game, and its results once it ends. */
+function liveBoardFollowUrl(origin: string, gameId: string) {
+  return `${origin}/dashboard/games/${gameId}`;
+}
+
 /** How stale a TV's last-seen time may get before a read writes it again. */
 const TV_SEEN_WRITE_EVERY_MS = LIVE_BOARD_TV_SEEN_WITHIN_MS / 3;
 
@@ -586,7 +615,8 @@ const TV_SEEN_WRITE_EVERY_MS = LIVE_BOARD_TV_SEEN_WITHIN_MS / 3;
  * What one TV draws, read every few seconds with the token it was given.
  * View only: names, Level bands and scores, never a phone number. A board
  * that was stopped, closed or taken off this TV says so and sends nothing
- * else. Reading also marks the TV as still there.
+ * else. Reading also marks the TV as still there; a token that went quiet
+ * has expired, and its TV joins again with the code.
  */
 export async function liveBoardSnapshot(
   database: DbClient,
@@ -598,7 +628,10 @@ export async function liveBoardSnapshot(
     where: eq(liveBoardTvs.token, args.token),
     with: { board: true },
   });
-  if (!tv || tv.disconnectedAt) {
+  if (!tv) {
+    return { status: "expired" as const };
+  }
+  if (tv.disconnectedAt) {
     return { status: "disconnected" as const };
   }
   if (tv.board.stoppedAt) {
@@ -617,6 +650,10 @@ export async function liveBoardSnapshot(
       : null;
   if (!game || !content) {
     return { status: "closed" as const };
+  }
+  if (now.getTime() - tv.lastSeenAt.getTime() > LIVE_BOARD_TV_SEEN_WITHIN_MS) {
+    await database.delete(liveBoardTvs).where(eq(liveBoardTvs.id, tv.id));
+    return { status: "expired" as const };
   }
 
   await database

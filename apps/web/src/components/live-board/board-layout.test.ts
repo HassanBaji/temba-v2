@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import { boardScale, courtGrid, placeCode, tableLayout } from "./board-layout";
+import {
+  boardScale,
+  courtGrid,
+  isBoardStale,
+  placeCode,
+  tableLayout,
+} from "./board-layout";
 
 describe("boardScale", () => {
   it("fills a 1080p TV and letterboxes a taller screen", () => {
@@ -35,5 +41,12 @@ describe("placeCode", () => {
   it("pads a place to two digits", () => {
     assert.equal(placeCode(3), "03");
     assert.equal(placeCode(12), "12");
+  });
+});
+
+describe("isBoardStale", () => {
+  it("says so once three asks in a row have brought nothing", () => {
+    assert.equal(isBoardStale(1_000, 16_000), false);
+    assert.equal(isBoardStale(1_000, 16_001), true);
   });
 });

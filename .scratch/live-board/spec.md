@@ -55,7 +55,8 @@ the screen, in its own Color scheme whatever the device prefers, and follows the
     Round after that along the bottom.
   - The header shows the Round of how many, one bar per Round, and the time left in the Round,
     worked out from the Round's start and the Match length.
-  - The table counts completed Matches only and says which Round it is after.
+  - The table counts finished Rounds only and says which Round it is after: a score saved on one
+    court does not move it until every Match of that Round is settled.
   - Before a Round is posted the board waits and says when the Social starts. When every Match is
     settled it stops on the winners and the final table, and the QR reads "Results in Temba".
   - An Americano uses the same screens with players in the table, ranked on games won.
@@ -76,24 +77,25 @@ the screen, in its own Color scheme whatever the device prefers, and follows the
 - Who may start, control and stop it: the Game's Organizers (`isGameOrganizer`).
 - The board is view only. Scores are entered where they are today.
 - A board closes on its own when its Game is cancelled, and six hours after the Game's window ends.
-- A TV is listed while it keeps asking for the board; it drops off the list after 45 seconds of
-  silence. At most twelve are connected at once.
+- A TV is listed while it keeps asking for the board. One that is quiet for 45 seconds loses its
+  token, so no TV the Organizer cannot see can read the board; when it comes back it joins again
+  with the code, without anyone doing anything. At most eight are connected at once.
 - If two Organizers change a setting, the last change wins.
 
 ## API (additive)
 
 New router `liveBoards`:
 
-| Door           | Who       | What                                                                 |
-| -------------- | --------- | -------------------------------------------------------------------- |
+| Door           | Who       | What                                                                                           |
+| -------------- | --------- | ---------------------------------------------------------------------------------------------- |
 | `forGame`      | signed in | The Game's board for its Organizer: kind, whether it can start, the running board with its TVs |
-| `start`        | Organizer | Starts the board and mints the code; returns the running one if on   |
-| `update`       | Organizer | Rotate, seconds, held screen, theme, QR                              |
-| `setMessage`   | Organizer | Save the message, show it, take it down                              |
-| `disconnectTv` | Organizer | Take one TV off the board                                            |
-| `stop`         | Organizer | Close the board and retire the code                                  |
-| `connect`      | public    | A TV joins with the code and gets a token                            |
-| `snapshot`     | public    | What one TV draws, by its token                                      |
+| `start`        | Organizer | Starts the board and mints the code; returns the running one if on                             |
+| `update`       | Organizer | Rotate, seconds, held screen, theme, QR                                                        |
+| `setMessage`   | Organizer | Save the message, show it, take it down                                                        |
+| `disconnectTv` | Organizer | Take one TV off the board                                                                      |
+| `stop`         | Organizer | Close the board and retire the code                                                            |
+| `connect`      | public    | A TV joins with the code and gets a token                                                      |
+| `snapshot`     | public    | What one TV draws, by its token                                                                |
 
 `liveBoards.connect` is counted with the public code lookups (30 a minute per IP). Schema:
 `live_boards` and `live_board_tvs` (migration `0132_live_boards`). Shared rules:
@@ -114,6 +116,9 @@ New router `liveBoards`:
 - **The code works until the board closes**, six hours after the Game's window ends, so the final
   table stays up after the last Match.
 - **TV names**: the TV may name itself on `/tv`; otherwise it is "TV 1", "TV 2".
+- **"On 1 screen"** reads "On 1 TV": on the control, Screens already means the three Board screens.
+- **Next up on an Americano** shows no place beside a pair: its pairs last one Match and the table
+  ranks players.
 
 ## Not built
 
@@ -127,6 +132,9 @@ New router `liveBoards`:
 
 ## Open questions for the owner
 
+0. Before launch, check how many proxy hops the API trusts (`TRUST_PROXY_HOPS`). TVs reach the API
+   through the Web App's rewrite; if every TV arrives from one address, they share one request
+   limit. This is the first signed-out page with steady traffic.
 1. Is `<web origin>/tv` the address to print, or should `temba.app/tv` be a shorter host?
 2. Should Group approvers who are not Organizers also control a board? Today it is Organizers.
 3. Should the room's QR open the Game page (members only on a private Game), as built, or a public

@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { liveBoards } from "@repo/db";
 import {
-  isRotateSeconds,
+  LIVE_BOARD_ROTATE_SECONDS,
   LIVE_BOARD_SCREENS,
   LIVE_BOARD_THEMES,
   liveBoardKind,
@@ -58,28 +58,32 @@ export async function updateLiveBoard(
   }
   if (
     args.rotateSeconds !== undefined &&
-    !isRotateSeconds(args.rotateSeconds)
+    !LIVE_BOARD_ROTATE_SECONDS.some((seconds) => seconds === args.rotateSeconds)
   ) {
     throw new TRPCError({ code: "BAD_REQUEST", message: m.rotateSeconds });
   }
 
-  const rotate = args.rotate ?? (args.heldScreen ? false : board.rotate);
+  // Only what this call changes is written, so two Organizers changing
+  // different settings at once both keep theirs.
   const heldScreen =
     args.heldScreen ??
     (args.rotate === false && board.rotate
       ? liveBoardScene(board, now).screen
-      : board.heldScreen);
-
+      : undefined);
   await database
     .update(liveBoards)
     .set({
-      rotate,
-      heldScreen,
-      rotateSeconds: args.rotateSeconds ?? board.rotateSeconds,
-      rotationStartedAt: changesRotation ? now : board.rotationStartedAt,
-      theme: args.theme ?? board.theme,
-      showQr: args.showQr ?? board.showQr,
       updatedAt: now,
+      ...(changesRotation && {
+        rotate: args.rotate ?? (args.heldScreen ? false : board.rotate),
+        rotationStartedAt: now,
+      }),
+      ...(heldScreen && { heldScreen }),
+      ...(args.rotateSeconds !== undefined && {
+        rotateSeconds: args.rotateSeconds,
+      }),
+      ...(args.theme && { theme: args.theme }),
+      ...(args.showQr !== undefined && { showQr: args.showQr }),
     })
     .where(eq(liveBoards.id, board.id));
   return { ok: true as const };

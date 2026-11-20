@@ -40,3 +40,11 @@ export const STRIP_CELLS = 5;
 export function placeCode(place: number) {
   return String(place).padStart(2, "0");
 }
+
+/** Three missed asks: past this the board says it is reconnecting. */
+export const BOARD_STALE_AFTER_MS = 15_000;
+
+/** Whether the board on show is old enough that the TV has lost the API. */
+export function isBoardStale(receivedAt: number, now: number) {
+  return now - receivedAt > BOARD_STALE_AFTER_MS;
+}

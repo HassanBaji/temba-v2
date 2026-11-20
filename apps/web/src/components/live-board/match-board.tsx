@@ -28,7 +28,7 @@ import {
   BoardClock,
   BoardHeader,
   BoardStrip,
-  boardSubtitle,
+  useBoardSubtitle,
   LIFTED,
   MessageStrip,
   NotYet,
@@ -121,12 +121,8 @@ function PadelSide({
         {players.length === 0 ? (
           <NotYet height={44} lifted radius={11} width={220} />
         ) : null}
-        {players.map((player) => (
-          <div
-            key={player.name}
-            className="flex items-center"
-            style={{ gap: 14 }}
-          >
+        {players.map((player, index) => (
+          <div key={index} className="flex items-center" style={{ gap: 14 }}>
             <span
               className="border-on-focus flex flex-none items-center justify-center border font-semibold"
               style={{ width: 44, height: 44, borderRadius: 11, ...px(16) }}
@@ -137,12 +133,8 @@ function PadelSide({
               {player.name}
             </span>
             {player.levelBand ? (
-              <span
-                className="text-dim whitespace-nowrap"
-                dir="ltr"
-                style={px(17)}
-              >
-                {player.levelBand}
+              <span className="text-dim whitespace-nowrap" style={px(17)}>
+                <span dir="ltr">{player.levelBand}</span>
               </span>
             ) : null}
           </div>
@@ -183,6 +175,7 @@ export function PadelMatchBoard({
   const locale = useLocale();
   const follow = useFollowLines();
   const startLine = useStartLine(snapshot.game);
+  const subtitle = useBoardSubtitle(snapshot.game);
   const { game, settings } = snapshot;
   const seated = content.sides[0].length + content.sides[1].length;
   const phase = matchBoardPhase({
@@ -227,7 +220,7 @@ export function PadelMatchBoard({
             </StatusLine>
           </>
         }
-        subtitle={boardSubtitle(game)}
+        subtitle={subtitle}
         title={game.name}
       />
       <div
@@ -367,9 +360,9 @@ function Scorers({ side, end }: { side: FootballBoardSide; end: boolean }) {
   const b = useMessages().liveBoard.board;
   return (
     <div className="flex flex-col" style={{ gap: 6 }}>
-      {side.scorers.map((scorer) => (
+      {side.scorers.map((scorer, index) => (
         <div
-          key={scorer.name}
+          key={index}
           className={cn("flex", end ? "justify-end" : "justify-start")}
           style={{ gap: 10, ...px(18) }}
         >
@@ -475,10 +468,11 @@ export function FootballBoard({
   content: FootballBoardContent;
   now: Date;
 }) {
-  const b = useMessages().liveBoard.board;
+  const { board: b, list } = useMessages().liveBoard;
   const locale = useLocale();
   const follow = useFollowLines();
   const startLine = useStartLine(snapshot.game);
+  const subtitle = useBoardSubtitle(snapshot.game);
   const { game, settings } = snapshot;
   const phase = matchBoardPhase({
     windowStart: game.windowStart ?? now,
@@ -525,7 +519,7 @@ export function FootballBoard({
             ) : null}
           </>
         }
-        subtitle={boardSubtitle(game)}
+        subtitle={subtitle}
         title={game.name}
       />
       {content.sides ? (
@@ -544,7 +538,9 @@ export function FootballBoard({
         <StripFact
           grow={1.25}
           label={b.facts.pitch}
-          value={[game.venueName, content.courtName].filter(Boolean).join(", ")}
+          value={list(
+            [game.venueName, content.courtName].flatMap((part) => part ?? []),
+          )}
         />
         {kickOff && windowMinutes != null ? (
           <StripFact
