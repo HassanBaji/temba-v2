@@ -12,7 +12,7 @@ import type { TournamentPlayer } from "./tournament-model";
 
 /**
  * What the Organizer can do with one player: message them on WhatsApp, open
- * their profile, or kick them.
+ * their profile, or, when `onKick` is given, kick them.
  */
 export function TournamentPlayerSheet({
   player,
@@ -27,7 +27,7 @@ export function TournamentPlayerSheet({
   kickPending: boolean;
   onClose: () => void;
   onOpenProfile: (userId: string) => void;
-  onKick: (userId: string) => void;
+  onKick?: (userId: string) => void;
 }) {
   const locale = useLocale();
   const m = useMessages();
@@ -73,15 +73,17 @@ export function TournamentPlayerSheet({
                 onPress={() => onOpenProfile(player.userId)}
               />
             ) : null}
-            <Button
-              label={kickAction(locale)}
-              accessibilityLabel={m.mobileTournament.organizer.kickSr(
-                player.name,
-              )}
-              variant="outline"
-              disabled={kickPending}
-              onPress={() => onKick(player.userId)}
-            />
+            {onKick ? (
+              <Button
+                label={kickAction(locale)}
+                accessibilityLabel={m.mobileTournament.organizer.kickSr(
+                  player.name,
+                )}
+                variant="outline"
+                disabled={kickPending}
+                onPress={() => onKick(player.userId)}
+              />
+            ) : null}
           </View>
         </View>
       ) : null}

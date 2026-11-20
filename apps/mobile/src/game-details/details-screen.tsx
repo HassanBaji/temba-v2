@@ -1,4 +1,5 @@
 import { awaitsOrganizerTeams } from "@repo/domain/alone-teams";
+import { isAmericano } from "@repo/domain/tournament-americano";
 import { gamePaymentsTracked } from "@repo/domain/game-payments";
 import { organizerCanAddPlayer } from "@repo/domain/add-player-by-phone";
 import { canEditTeams, editTeamsSpotLabel } from "@repo/domain/edit-teams";
@@ -670,11 +671,15 @@ export function GameDetailsScreen({
     const firstTeamId = details.eligibleTeams[0]?.id ?? "";
     const awaitingTeams = awaitsOrganizerTeams(details);
     const organizesOpen = details.isOrganizer && details.cancelledAt == null;
+    const americano = isAmericano(details.format, details.tournamentShape);
+    const otherRegistered = details.registeredPlayers
+      .filter((player) => player.id !== details.viewerUserId)
+      .map((player) => player.id);
+    // An Americano's players can be kicked only until the Rounds are made.
     const rosterKickable =
-      awaitingTeams && organizesOpen
-        ? details.registeredPlayers
-            .filter((player) => player.id !== details.viewerUserId)
-            .map((player) => player.id)
+      organizesOpen &&
+      (awaitingTeams || (americano && details.drawPostedAt == null))
+        ? otherRegistered
         : [];
     const kickableUserIds = new Set([
       ...kickableTournamentOccupants(details).map(
@@ -682,9 +687,13 @@ export function GameDetailsScreen({
       ),
       ...rosterKickable,
     ]);
-    const playerOpensActions = (userId: string) => kickableUserIds.has(userId);
+    const actionUserIds = new Set([
+      ...kickableUserIds,
+      ...(americano && organizesOpen ? otherRegistered : []),
+    ]);
+    const playerOpensActions = (userId: string) => actionUserIds.has(userId);
     const openTournamentPlayer =
-      onOpenPlayer || kickableUserIds.size > 0
+      onOpenPlayer || actionUserIds.size > 0
         ? (userId: string) => {
             const player = playerOpensActions(userId)
               ? tournamentPlayer(details, userId)
@@ -833,10 +842,14 @@ export function GameDetailsScreen({
             setTournamentSelected(null);
             onOpenPlayer?.(userId);
           }}
-          onKick={(userId) => {
-            setTournamentSelected(null);
-            tournamentOrganizer.handlers.onKickPlayer(userId);
-          }}
+          onKick={
+            tournamentSelected && kickableUserIds.has(tournamentSelected.userId)
+              ? (userId) => {
+                  setTournamentSelected(null);
+                  tournamentOrganizer.handlers.onKickPlayer(userId);
+                }
+              : undefined
+          }
         />
         {details.isOrganizer ? (
           <>

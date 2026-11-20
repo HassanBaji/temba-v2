@@ -8,7 +8,7 @@ import {
 } from "@repo/domain/tournament-americano-view";
 import type { TournamentDetails } from "@repo/domain/tournament-details";
 import { Fragment } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import { Card } from "../home/card";
 import { useLocale, useMessages } from "../i18n/locale-provider";
@@ -35,12 +35,57 @@ function Row({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** A player's row; tapping it opens their actions or profile when allowed. */
+function PlayerRow({
+  userId,
+  name,
+  viewerUserId,
+  onOpenPlayer,
+  playerOpensActions,
+  children,
+}: {
+  userId: string | null;
+  name: string;
+  viewerUserId: string;
+  onOpenPlayer?: (userId: string) => void;
+  playerOpensActions?: (userId: string) => boolean;
+  children: React.ReactNode;
+}) {
+  const m = useMessages().mobileTournament.predraw;
+  if (!onOpenPlayer || !userId || userId === viewerUserId) {
+    return <Row>{children}</Row>;
+  }
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={name}
+      accessibilityHint={
+        playerOpensActions?.(userId)
+          ? m.opensPlayerActionsHint
+          : m.opensProfileHint
+      }
+      onPress={() => onOpenPlayer(userId)}
+      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+    >
+      <Row>{children}</Row>
+    </Pressable>
+  );
+}
+
 /**
  * An Americano on the mobile App: the players before the Rounds are made,
  * then the one table of players and the viewer's Matches. Making the Rounds,
  * swapping players and entering scores happen on the web for now (ADR-0094).
  */
-export function AmericanoView({ game }: { game: TournamentDetails }) {
+export function AmericanoView({
+  game,
+  onOpenPlayer,
+  playerOpensActions,
+}: {
+  game: TournamentDetails;
+  onOpenPlayer?: (userId: string) => void;
+  playerOpensActions?: (userId: string) => boolean;
+}) {
   const locale = useLocale();
   const messages = useMessages();
   const m = messages.tournamentAmericano;
@@ -89,13 +134,19 @@ export function AmericanoView({ game }: { game: TournamentDetails }) {
           {game.registeredPlayers.map((player, index) => (
             <Fragment key={player.id}>
               {index > 0 ? <Hairline /> : null}
-              <Row>
+              <PlayerRow
+                userId={player.id}
+                name={player.name}
+                viewerUserId={game.viewerUserId}
+                onOpenPlayer={onOpenPlayer}
+                playerOpensActions={playerOpensActions}
+              >
                 <Text size="meta" weight="semibold" numberOfLines={1}>
                   {player.id === game.viewerUserId
                     ? messages.common.you
                     : player.name}
                 </Text>
-              </Row>
+              </PlayerRow>
             </Fragment>
           ))}
         </Card>
@@ -171,7 +222,13 @@ export function AmericanoView({ game }: { game: TournamentDetails }) {
           {(board.data?.table ?? []).map((row, index) => (
             <Fragment key={row.playerId}>
               {index > 0 ? <Hairline /> : null}
-              <Row>
+              <PlayerRow
+                userId={names.get(row.playerId)?.userId ?? null}
+                name={names.get(row.playerId)?.name ?? ""}
+                viewerUserId={game.viewerUserId}
+                onOpenPlayer={onOpenPlayer}
+                playerOpensActions={playerOpensActions}
+              >
                 <Text size="meta" tone="muted" style={{ width: 24 }}>
                   {row.place}
                 </Text>
@@ -192,7 +249,7 @@ export function AmericanoView({ game }: { game: TournamentDetails }) {
                 <Text size="lead" width="expanded" weight="bold">
                   {row.gamesWon}
                 </Text>
-              </Row>
+              </PlayerRow>
             </Fragment>
           ))}
         </Card>

@@ -189,27 +189,6 @@ export function AcceptGameInviteLink({
     ? gameDisplayName(ready.game, locale)
     : m.invite.kind.game;
 
-  // A member inside the range on a Game with nothing to pick joins on open.
-  React.useEffect(() => {
-    if (!isSignedIn || preview.data?.status !== "ready") {
-      return;
-    }
-    if (
-      preview.data.hero.players.some((player) => player.isViewer) ||
-      preview.data.viewerPassesLevelRange === false ||
-      preview.data.partnerRequiredJoin ||
-      preview.data.sides.length > 0 ||
-      preview.data.football ||
-      gameInviteGroupGate(preview.data.group) !== "none"
-    ) {
-      return;
-    }
-    if (accept.isPending || accept.isSuccess || accept.isError) {
-      return;
-    }
-    accept.mutate({ token });
-  }, [accept, isSignedIn, preview.data, token]);
-
   function submit(choice: InviteJoinChoice) {
     if (!ready || joinPending) {
       return;
@@ -661,8 +640,16 @@ export function AcceptGameInviteLink({
         title={seatsTitle}
         subline={null}
         action={
-          <Button variant="inverse" size="lg" disabled pending>
-            {m.webAuth.invites.joining(gameName)}
+          <Button
+            variant="inverse"
+            size="lg"
+            disabled={joinPending}
+            pending={accept.isPending}
+            onClick={() => accept.mutate({ token })}
+          >
+            {accept.isPending
+              ? m.webAuth.invites.joining(gameName)
+              : m.invite.link.joinLabel(gameName)}
           </Button>
         }
       />

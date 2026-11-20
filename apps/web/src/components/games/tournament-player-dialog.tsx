@@ -93,7 +93,8 @@ export function TournamentPlayerActionsProvider({
   );
 }
 
-function TournamentPlayerDialog({
+/** WhatsApp, the profile and, when `onKick` is given, Kick for one player. */
+export function TournamentPlayerDialog({
   player,
   canOpenProfile,
   kickPending,
@@ -104,7 +105,7 @@ function TournamentPlayerDialog({
   canOpenProfile: boolean;
   kickPending: boolean;
   onClose: () => void;
-  onKick: (userId: string) => void;
+  onKick?: (userId: string) => void;
 }) {
   const m = useMessages();
   const level = player?.levelBand
@@ -164,14 +165,16 @@ function TournamentPlayerDialog({
                   </Link>
                 </Button>
               ) : null}
-              <Button
-                variant="outline"
-                aria-label={m.webTournament.kickName(player.name)}
-                disabled={kickPending}
-                onClick={() => onKick(player.userId)}
-              >
-                {m.game.action.kick}
-              </Button>
+              {onKick ? (
+                <Button
+                  variant="outline"
+                  aria-label={m.webTournament.kickName(player.name)}
+                  disabled={kickPending}
+                  onClick={() => onKick(player.userId)}
+                >
+                  {m.game.action.kick}
+                </Button>
+              ) : null}
             </div>
           </>
         ) : null}
