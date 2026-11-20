@@ -126,7 +126,8 @@ New router `liveBoards`:
 | `snapshot`     | public    | What one TV draws, by its token                                                                                            |
 
 `liveBoards.connect` is counted with the public code lookups (30 a minute per IP). Schema:
-`live_boards` and `live_board_tvs` (migration `0132_live_boards`). Shared rules:
+`live_boards` and `live_board_tvs` (migration `0132_live_boards`; `0133_live_board_color_scheme`
+renames its colour setting and the Standings screen to the glossary's words). Shared rules:
 `@repo/domain/live-board`. Copy: `liveBoard` in `@repo/i18n`, English and Arabic.
 
 ## Where it differs from the design

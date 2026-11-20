@@ -1,5 +1,5 @@
-CREATE TYPE "public"."live_board_color_scheme" AS ENUM('dark', 'light');--> statement-breakpoint
-CREATE TYPE "public"."live_board_screen" AS ENUM('on_court', 'table', 'next_up');--> statement-breakpoint
+CREATE TYPE "public"."live_board_screen" AS ENUM('on_court', 'standings', 'next_up');--> statement-breakpoint
+CREATE TYPE "public"."live_board_theme" AS ENUM('dark', 'light');--> statement-breakpoint
 CREATE TABLE "live_board_tvs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"board_id" uuid NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE "live_boards" (
 	"rotate_seconds" integer DEFAULT 10 NOT NULL,
 	"held_screen" "live_board_screen" DEFAULT 'on_court' NOT NULL,
 	"rotation_started_at" timestamp DEFAULT now() NOT NULL,
-	"color_scheme" "live_board_color_scheme" DEFAULT 'dark' NOT NULL,
+	"theme" "live_board_theme" DEFAULT 'dark' NOT NULL,
 	"show_qr" boolean DEFAULT true NOT NULL,
 	"message" varchar(80),
 	"message_shown" boolean DEFAULT false NOT NULL,

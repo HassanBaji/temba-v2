@@ -1,5 +1,5 @@
 {
-  "id": "9f620375-49b3-4fd1-9a23-dceea1b150b8",
+  "id": "c958715b-b6cd-425a-8521-53a5d8d78128",
   "prevId": "3774b09d-58dd-4351-af10-22cf6d6ed9dd",
   "version": "7",
   "dialect": "postgresql",
@@ -8987,9 +8987,9 @@
           "notNull": true,
           "default": "now()"
         },
-        "color_scheme": {
-          "name": "color_scheme",
-          "type": "live_board_color_scheme",
+        "theme": {
+          "name": "theme",
+          "type": "live_board_theme",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -12465,21 +12465,21 @@
         "rejected"
       ]
     },
-    "public.live_board_color_scheme": {
-      "name": "live_board_color_scheme",
-      "schema": "public",
-      "values": [
-        "dark",
-        "light"
-      ]
-    },
     "public.live_board_screen": {
       "name": "live_board_screen",
       "schema": "public",
       "values": [
         "on_court",
-        "table",
+        "standings",
         "next_up"
+      ]
+    },
+    "public.live_board_theme": {
+      "name": "live_board_theme",
+      "schema": "public",
+      "values": [
+        "dark",
+        "light"
       ]
     },
     "public.group_member_role": {
