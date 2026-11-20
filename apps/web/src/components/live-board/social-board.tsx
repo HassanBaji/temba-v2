@@ -56,12 +56,59 @@ type Social = SocialBoardContent;
 /** The message strip's height and the gap above it. */
 const MESSAGE_ROOM = 116;
 
+/** One line for a side where two full names have no room: the strip and a team's table row. */
 function useSideLabel() {
   const joiner = useMessages().liveBoard.joiner;
   return (players: readonly string[]) =>
     players.length === 1
       ? shortPlayerName(players[0] ?? "")
       : boardSideLabel(players, joiner);
+}
+
+/** How far a wrapped name's second line sits in, so it reads as one player. */
+const NAME_HANG = 10;
+
+/**
+ * A side's players by full name, one to a line; a pair is set smaller so both
+ * lines fit the row. `wrap` is for a narrow cell with height to spare: a long
+ * name takes a second, indented line instead of being cut.
+ */
+function SideNames({
+  players,
+  size,
+  pairSize,
+  wrap = false,
+}: {
+  players: readonly string[];
+  size: number;
+  pairSize: number;
+  wrap?: boolean;
+}) {
+  const type = boardType(
+    players.length === 1 ? size : pairSize,
+    wrap ? 1.15 : 1.2,
+  );
+  return (
+    <span className="flex min-w-0 flex-col font-semibold">
+      {players.map((name, index) => (
+        <span
+          key={index}
+          className={wrap ? "line-clamp-2 break-words" : "truncate"}
+          style={
+            wrap
+              ? {
+                  ...type,
+                  paddingInlineStart: NAME_HANG,
+                  textIndent: -NAME_HANG,
+                }
+              : type
+          }
+        >
+          {name}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 /**
@@ -102,6 +149,8 @@ function useCourtLabel() {
 
 type SideRowSize = {
   name: number;
+  pairName: number;
+  wrapNames?: boolean;
   score: number;
   gap: number;
   notYet: { width: number; height: number };
@@ -117,7 +166,6 @@ function SideScoreRows({
   size: SideRowSize;
   lifted: boolean;
 }) {
-  const sideLabel = useSideLabel();
   const lead = boardScoreLead(match.score1, match.score2);
   const rows = [
     { side: match.side1, score: match.score1, ahead: lead !== "side2" },
@@ -132,9 +180,12 @@ function SideScoreRows({
       )}
       style={{ gap: size.gap }}
     >
-      <span className="truncate font-semibold" style={boardType(size.name)}>
-        {sideLabel(row.side.players)}
-      </span>
+      <SideNames
+        pairSize={size.pairName}
+        players={row.side.players}
+        size={size.name}
+        wrap={size.wrapNames}
+      />
       {row.score == null ? (
         <NotYet lifted={lifted} {...size.notYet} />
       ) : (
@@ -194,12 +245,15 @@ function CourtCard({
           dense
             ? {
                 name: 20,
+                pairName: 15,
+                wrapNames: true,
                 score: 44,
                 gap: 12,
                 notYet: { width: 36, height: 38 },
               }
             : {
                 name: 25,
+                pairName: 20,
                 score: 56,
                 gap: 12,
                 notYet: { width: 46, height: 48 },
@@ -260,6 +314,7 @@ function CourtList({ round, turn }: { round: LiveBoardRound; turn: number }) {
             match={match}
             size={{
               name: 18,
+              pairName: 14,
               score: 28,
               gap: 8,
               notYet: { width: 23, height: 24 },
@@ -395,7 +450,7 @@ function BoardTable({
             {placeCode(row.place)}
           </span>
           <span className="truncate font-semibold" style={boardType(nameSize)}>
-            {sideLabel(row.players)}
+            {row.players.length === 1 ? row.players[0] : sideLabel(row.players)}
           </span>
           {stats ? (
             <>
@@ -548,7 +603,6 @@ function NextUpGrid({
 }) {
   const m = useMessages().liveBoard.board;
   const locale = useLocale();
-  const sideLabel = useSideLabel();
   const courtLabel = useCourtLabel();
   const grid = courtGrid(round.matches.length);
   const page = boardPage(round.matches, grid.pageSize, turn);
@@ -611,12 +665,11 @@ function NextUpGrid({
                 className="flex items-baseline justify-between"
                 style={{ gap: 12 }}
               >
-                <span
-                  className="truncate font-semibold"
-                  style={boardType(nameSize)}
-                >
-                  {sideLabel(side.players)}
-                </span>
+                <SideNames
+                  pairSize={grid.dense ? 16 : 20}
+                  players={side.players}
+                  size={nameSize}
+                />
                 <span
                   className="text-dim whitespace-nowrap"
                   style={boardType(16)}
@@ -792,7 +845,6 @@ function FinalScreen({
   now: Date;
 }) {
   const m = useMessages().liveBoard.board;
-  const sideLabel = useSideLabel();
   const tableTitle = useTableTitle();
   const ranking = useRanking(content.ranks);
   const table = tablePage(
@@ -867,9 +919,7 @@ function FinalScreen({
                 {row.place}
               </span>
               <div className="min-w-0 flex-1">
-                <div className="truncate font-semibold" style={boardType(24)}>
-                  {sideLabel(row.players)}
-                </div>
+                <SideNames pairSize={18} players={row.players} size={24} />
                 <div
                   className="text-muted-foreground truncate"
                   style={{ ...boardType(15), marginTop: 3 }}
