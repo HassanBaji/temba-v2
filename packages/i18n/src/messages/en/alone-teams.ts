@@ -193,8 +193,6 @@ export const aloneTeams = {
     notAloneOnly: "The organizer does not make the teams on this Social.",
     sideOnlyAloneOnly:
       "Only a Social where the organizer makes the teams asks for a side.",
-    sideOnlySignUpAlone:
-      "Only a Social where everyone signs up alone asks for a side.",
     partnerRegistration:
       "Everyone signs up alone on this Social. The organizer makes the teams.",
     teamsFirst: "Post the teams before the draw.",

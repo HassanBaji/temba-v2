@@ -15,6 +15,7 @@ import {
   gamePlayers,
   games,
   GameFormatEnum,
+  groups,
   matches,
   venues,
 } from "@repo/db/schema";
@@ -27,6 +28,8 @@ import {
 } from "#src/games/americano.test-support";
 import { acceptInviteLink } from "#src/routers/games/acceptInviteLink";
 import { createInviteLink } from "#src/routers/games/createInviteLink";
+import { createTournament } from "#src/routers/games/createTournament";
+import { previewInviteLink } from "#src/routers/games/previewInviteLink";
 
 const ORIGIN = "https://temba.test";
 const START = new Date("2026-09-25T09:00:00");
@@ -78,8 +81,74 @@ async function preferredSideOf(
   return row?.preferredSide;
 }
 
+async function insertAloneOnlySocial(
+  database: TestDatabase,
+  createdBy: string,
+) {
+  const [venue] = await database
+    .insert(venues)
+    .values({ name: "World Padel Academy", city: "Manama", country: "BH" })
+    .returning({ id: venues.id });
+  const [group] = await database
+    .insert(groups)
+    .values({
+      verifiedAt: new Date(),
+      name: `Group ${crypto.randomUUID()}`,
+      createdBy,
+    })
+    .returning({ id: groups.id });
+  if (!venue || !group) {
+    throw new Error("Failed to insert Group or Venue");
+  }
+  const created = await createTournament(asDb(database), {
+    createdBy,
+    name: "Sunday Social",
+    groupId: group.id,
+    isPublic: true,
+    organizerMakesTeams: true,
+    tournamentShape: "groups_only",
+    teamCount: 4,
+    poolCount: 1,
+    venueId: venue.id,
+    matchMinutes: 30,
+    windowStart: START,
+    windowEnd: END,
+  });
+  return created.id;
+}
+
+async function refusal(run: () => Promise<unknown>) {
+  const error = await run().then(
+    () => null,
+    (caught: unknown) => caught,
+  );
+  expect(error).toBeInstanceOf(TRPCError);
+  return (error as TRPCError).message;
+}
+
 describe("acceptInviteLink, preferred side", () => {
-  it("keeps the side an Americano sign-up asks for", async () => {
+  it("keeps the side an Alone-only sign-up asks for, and the preview asks for it", async () => {
+    const database = await testDatabase();
+    const organizer = await insertAmericanoUser(database, "Hassan Haji");
+    const invitee = await insertAmericanoUser(database, "Ali Haji");
+    const gameId = await insertAloneOnlySocial(database, organizer.id);
+    const token = await tokenFor(database, gameId, organizer.id);
+
+    expect(
+      await previewInviteLink(asDb(database), { token, userId: invitee.id }),
+    ).toMatchObject({ status: "ready", sides: [], asksForSide: true });
+    expect(
+      await acceptInviteLink(asDb(database), {
+        token,
+        userId: invitee.id,
+        preferredSide: "right",
+        joinGroup: true,
+      }),
+    ).toMatchObject({ gameId, outcome: "registered" });
+    expect(await preferredSideOf(database, gameId, invitee.id)).toBe("right");
+  });
+
+  it("asks no side on an Americano and refuses one", async () => {
     const database = await testDatabase();
     const organizer = await insertAmericanoUser(database, "Hassan Haji");
     const invitee = await insertAmericanoUser(database, "Ali Haji");
@@ -93,17 +162,22 @@ describe("acceptInviteLink, preferred side", () => {
     const token = await tokenFor(database, gameId, organizer.id);
 
     expect(
-      await acceptInviteLink(asDb(database), {
-        token,
-        userId: invitee.id,
-        preferredSide: "right",
-        joinGroup: true,
-      }),
-    ).toMatchObject({ gameId, outcome: "registered" });
-    expect(await preferredSideOf(database, gameId, invitee.id)).toBe("right");
+      await previewInviteLink(asDb(database), { token, userId: invitee.id }),
+    ).toMatchObject({ status: "ready", sides: [], asksForSide: false });
+    expect(
+      await refusal(() =>
+        acceptInviteLink(asDb(database), {
+          token,
+          userId: invitee.id,
+          preferredSide: "left",
+          joinGroup: true,
+        }),
+      ),
+    ).toMatch(/organizer makes the teams/);
+    expect(await preferredSideOf(database, gameId, invitee.id)).toBeUndefined();
   });
 
-  it("takes the seat with no side when none is asked for", async () => {
+  it("seats an Americano player with no side", async () => {
     const database = await testDatabase();
     const organizer = await insertAmericanoUser(database, "Hassan Haji");
     const invitee = await insertAmericanoUser(database, "Ali Haji");
@@ -153,17 +227,16 @@ describe("acceptInviteLink, preferred side", () => {
     await database.insert(matches).values({ gameId: game.id });
     const token = await tokenFor(database, game.id, organizer.id);
 
-    const error = await acceptInviteLink(asDb(database), {
-      token,
-      userId: invitee.id,
-      sideIndex: 1,
-      position: "left",
-      preferredSide: "left",
-    }).then(
-      () => null,
-      (caught: unknown) => caught,
-    );
-    expect(error).toBeInstanceOf(TRPCError);
-    expect((error as TRPCError).message).toMatch(/signs up alone/);
+    expect(
+      await refusal(() =>
+        acceptInviteLink(asDb(database), {
+          token,
+          userId: invitee.id,
+          sideIndex: 1,
+          position: "left",
+          preferredSide: "left",
+        }),
+      ),
+    ).toMatch(/organizer makes the teams/);
   });
 });

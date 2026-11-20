@@ -106,12 +106,13 @@ export function InviteJoinSheet({
   const groupOn = copy.groupToggle?.locked ? true : joinGroup;
   // Only a seat taken now keeps a side; a hold or a Level request has none.
   const showSide =
-    !copy.alone ||
-    inviteJoinDoor({
-      gate: input.gate,
-      joinGroup: groupOn,
-      levelBlocked: input.levelBlocked,
-    }) === "accept";
+    copy.showsSide &&
+    (!copy.alone ||
+      inviteJoinDoor({
+        gate: input.gate,
+        joinGroup: groupOn,
+        levelBlocked: input.levelBlocked,
+      }) === "accept");
   const choice: InviteJoinChoice =
     input.kind === "football"
       ? {

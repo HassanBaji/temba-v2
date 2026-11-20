@@ -10,8 +10,8 @@ import {
   type FootballPosition,
   type FootballRole,
 } from "@repo/domain/football-lineup";
+import { awaitsOrganizerTeams } from "@repo/domain/alone-teams";
 import { isFootballGame } from "@repo/domain/game-shape";
-import { isAmericano } from "@repo/domain/tournament-americano";
 import {
   footballPositionSchema,
   footballRoleSchema,
@@ -42,7 +42,7 @@ export async function acceptInviteLink(
     sideIndex?: number;
     position?: "left" | "right" | "either";
     football?: { role: FootballRole; position: FootballPosition };
-    /** An Americano or Alone-only sign-up's side; left out is Either. */
+    /** Alone only, before the teams are made: the side asked for; left out is Either. */
     preferredSide?: "left" | "right";
     /** False sits as a guest on a public Game without joining its Group. */
     joinGroup?: boolean;
@@ -70,14 +70,10 @@ export async function acceptInviteLink(
     });
   }
 
-  if (
-    args.preferredSide &&
-    !game.organizerMakesTeams &&
-    !isAmericano(game.format, game.tournamentShape)
-  ) {
+  if (args.preferredSide && !awaitsOrganizerTeams(game)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: messagesFor(locale).aloneTeams.errors.sideOnlySignUpAlone,
+      message: messagesFor(locale).aloneTeams.errors.sideOnlyAloneOnly,
     });
   }
 
