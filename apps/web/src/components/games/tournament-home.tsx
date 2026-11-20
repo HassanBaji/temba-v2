@@ -11,7 +11,6 @@ import {
   LockIcon,
   LockOpenIcon,
   PencilIcon,
-  Share2Icon,
   UserMinusIcon,
   UserPlusIcon,
 } from "lucide-react";
@@ -31,6 +30,7 @@ import {
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { TournamentDetailRows } from "~/components/games/tournament-detail-rows";
 import { TournamentDrawnHome } from "~/components/games/tournament-drawn-home";
+import { ShareButton } from "~/components/ui/nav-icon-button";
 import {
   TournamentDrawDrawer,
   TournamentDrawEntry,
@@ -172,6 +172,7 @@ export function TournamentHome({
   onAddPlayer,
   onEditTeams,
   tvRow,
+  onShareGame,
   onOpenSeat,
   teamId,
   onTeamIdChange,
@@ -217,6 +218,8 @@ export function TournamentHome({
   onEditTeams?: () => void;
   /** Show on TV, when the viewer runs a Social that has a Live board. */
   tvRow?: GameActionsSheetRow | null;
+  /** The header's Share while the Social is on: the invite link or the Game page. */
+  onShareGame?: () => void;
   /** The Organizer clicked an open seat; `canJoin` when they could take it too. */
   onOpenSeat?: OpenSeatHandler;
   teamId: string;
@@ -332,10 +335,8 @@ export function TournamentHome({
         closePending={closePending}
         reopenPending={reopenPending}
         kickPending={kickPending}
-        sharePending={sharePending}
         leavePending={leavePending}
         waitlist={data.waitlist}
-        onShare={org && drawn && !finished ? onShare : undefined}
         onEdit={org ? onEdit : undefined}
         onCloseRegistration={org && !finished ? onCloseRegistration : undefined}
         onReopenRegistration={
@@ -359,6 +360,22 @@ export function TournamentHome({
         }
       />
     ) : null;
+
+  // A drawn Social's header carries Share beside its menu while it is on; a
+  // finished one shares its result instead.
+  const headerActions = (ink: boolean, live: boolean) => (
+    <>
+      {drawn && live && onShareGame ? (
+        <ShareButton
+          label={m.webDashboard.game.shareGame}
+          onClick={onShareGame}
+          surface={ink ? "ink" : "paper"}
+          variant="boxed"
+        />
+      ) : null}
+      {actionsMenu(ink)}
+    </>
+  );
 
   if (view.aloneOnly?.awaitingTeams && !drawn) {
     return (
@@ -418,7 +435,7 @@ export function TournamentHome({
         <TournamentAmericanoHome
           data={data}
           backHref={backHref}
-          actions={actionsMenu(!finished)}
+          actions={headerActions(!finished, !finished)}
           album={album}
           sharePending={sharePending}
           leavePending={leavePending}
@@ -455,7 +472,10 @@ export function TournamentHome({
             <TournamentKingHome
               data={data}
               backHref={backHref}
-              actions={actionsMenu(data.finalOrderPostedAt == null)}
+              actions={headerActions(
+                data.finalOrderPostedAt == null,
+                data.finalOrderPostedAt == null,
+              )}
               album={album}
               onChangeCourts={() => setDrawOpen(true)}
               orderPending={kingActions.orderPending}
@@ -471,7 +491,7 @@ export function TournamentHome({
               standings={tournamentStandingsView(data, locale)}
               finished={finished}
               backHref={backHref}
-              actions={actionsMenu(!finished)}
+              actions={headerActions(!finished, !finished)}
               album={album}
               gameTeams={teamPlayers}
               onCancelMatch={
@@ -500,7 +520,7 @@ export function TournamentHome({
               isOrganizerActive ? onCancelKnockoutMatch : undefined
             }
             stamping={stamping}
-            actions={actionsMenu(false)}
+            actions={headerActions(false, !finished)}
           />
         ) : (
           <>
@@ -1133,10 +1153,8 @@ function TournamentActionsMenu({
   closePending,
   reopenPending,
   kickPending,
-  sharePending,
   leavePending,
   waitlist,
-  onShare,
   onEdit,
   onCloseRegistration,
   onReopenRegistration,
@@ -1155,10 +1173,8 @@ function TournamentActionsMenu({
   closePending: boolean;
   reopenPending: boolean;
   kickPending: boolean;
-  sharePending: boolean;
   leavePending: boolean;
   waitlist: GameDetail["waitlist"];
-  onShare?: () => void;
   onEdit?: () => void;
   onCloseRegistration?: () => void;
   onReopenRegistration?: () => void;
@@ -1197,15 +1213,6 @@ function TournamentActionsMenu({
   }
   if (tvRow) {
     tools.push(tvRow);
-  }
-  if (onShare) {
-    tools.push({
-      key: "share",
-      label: m.common.share,
-      icon: Share2Icon,
-      disabled: sharePending,
-      onSelect: onShare,
-    });
   }
   if (registrationClosed && onReopenRegistration) {
     tools.push({

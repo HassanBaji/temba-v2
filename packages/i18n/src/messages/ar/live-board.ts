@@ -45,7 +45,7 @@ export const liveBoard = {
   },
   screens: {
     on_court: "في الملعب",
-    standings: "الترتيب",
+    table: "الترتيب",
     next_up: "التالي",
     scoreboard: "لوحة النتيجة",
   },
@@ -57,8 +57,8 @@ export const liveBoard = {
     qr: "رمز QR للمتابعة",
     qrHint: (kind: BoardKind) =>
       `يفتح به الحاضرون ${eventName(kind)} على الهاتف`,
-    theme: "المظهر",
-    themeHint: "الداكن يناسب أغلب الشاشات",
+    colorScheme: "نظام الألوان",
+    colorSchemeHint: "الداكن يناسب أغلب الشاشات",
     dark: "داكن",
     light: "فاتح",
   },
@@ -74,7 +74,7 @@ export const liveBoard = {
     linkCopied: "نُسخ رابط اللوحة",
     openHere: "افتح اللوحة على هذا الجهاز",
     footnote: (kind: BoardKind) =>
-      `يعمل الرمز حتى ينتهي ${eventName(kind)}. من يحمله يشاهد فقط.`,
+      `يعمل الرمز حتى توقف اللوحة، ولست ساعات بعد أن ينتهي ${eventName(kind)}. من يحمله يشاهد فقط.`,
     startFailed: "تعذّر تشغيل اللوحة. حاول مرة أخرى.",
     retry: "حاول مرة أخرى",
   },
@@ -86,6 +86,8 @@ export const liveBoard = {
     showing: (tv: string, screen: string, rotating: boolean) =>
       `${tv}. يعرض ${screen}، ${rotating ? "مع التبديل" : "مثبّتة"}.`,
     showingOne: (tv: string) => `${tv}. يعرض لوحة النتيجة.`,
+    showingWaiting: (tv: string) => `${tv}. بانتظار نشر الجولة الأولى.`,
+    showingFinal: (tv: string) => `${tv}. يعرض الفائزين والترتيب النهائي.`,
     tvCount: (count: number) =>
       plural("ar", count, {
         one: "تلفزيون واحد",
@@ -99,8 +101,8 @@ export const liveBoard = {
   control: {
     chip: "المنظّم",
     title: "اللوحة المباشرة",
-    lead: "ما تغيّره هنا يظهر على التلفزيون فورًا.",
-    onScreens: (count: number) =>
+    lead: "ما تغيّره هنا يظهر على التلفزيون خلال ثوانٍ.",
+    onTvs: (count: number) =>
       plural("ar", count, {
         zero: "ليست على أي تلفزيون بعد",
         one: "على تلفزيون واحد",
@@ -113,11 +115,16 @@ export const liveBoard = {
     thenIn: (screen: string, count: number) => `ثم ${screen}، بعد ${count} ث`,
     held: "مثبّتة على هذه الشاشة",
     oneScreen: "شاشة واحدة، بلا تبديل",
+    waitingNow: "بانتظار الجولات",
+    waitingLine: "يبدأ التبديل حين تُنشر جولة",
+    finalNow: "الترتيب النهائي",
+    finalLine: "توقفت على الفائزين والترتيب النهائي",
+    nextNotPosted: "تظهر حين تُنشر الجولة التالية",
     screensTitle: "الشاشات",
     screensHint: "اضغط واحدة لعرضها",
     screenHints: {
       on_court: "النتائج المباشرة، الترتيب، الجولة التالية",
-      standings: "الجدول كاملًا، والملاعب في الجانب",
+      table: "الجدول كاملًا، والملاعب في الجانب",
       next_up: "من يلعب ضد من، وفي أي ملعب",
     },
     onNow: "معروضة الآن",

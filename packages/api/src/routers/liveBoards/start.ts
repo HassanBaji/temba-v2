@@ -61,8 +61,10 @@ export async function startLiveBoard(
     if (running) {
       return liveBoardControl(database, {
         board: running,
+        game,
         origin: args.origin,
         now,
+        locale,
       });
     }
     try {
@@ -76,7 +78,13 @@ export async function startLiveBoard(
         })
         .returning();
       if (board) {
-        return liveBoardControl(database, { board, origin: args.origin, now });
+        return liveBoardControl(database, {
+          board,
+          game,
+          origin: args.origin,
+          now,
+          locale,
+        });
       }
     } catch (error) {
       // The code is taken by another running board, or another Organizer

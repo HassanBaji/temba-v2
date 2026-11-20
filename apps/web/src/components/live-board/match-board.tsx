@@ -2,22 +2,22 @@
 
 import { bibColors } from "@repo/design-tokens";
 import { footballBibName, isFootballBib } from "@repo/domain/football-lineup";
-import { formatGameClock, formatGameDay } from "@repo/domain/format-game-start";
+import { formatGameClock } from "@repo/domain/format-game-start";
 import { sideSizeLabel } from "@repo/domain/game-shape";
 import { initials } from "@repo/domain/initials";
 import {
   boardMinutesPlayed,
   boardScoreLead,
   formatBoardMatchTime,
-  matchBoardPhase,
-  padelBoardSets,
-  padelBoardSetsWon,
-  type FootballBoardContent,
-  type FootballBoardSide,
+  scoreboardPhase,
+  padelScoreboardSets,
+  padelScoreboardSetsWon,
+  type FootballScoreboard,
+  type FootballScoreboardSide,
   type LiveBoardPhase,
-  type PadelBoardPlayer,
-  type PadelBoardSet,
-  type PadelMatchBoardContent,
+  type PadelScoreboardPlayer,
+  type PadelScoreboardSet,
+  type PadelScoreboard,
 } from "@repo/domain/live-board";
 import { shortPlayerName } from "@repo/domain/player-name";
 
@@ -29,32 +29,20 @@ import {
   BoardHeader,
   BoardStrip,
   useBoardSubtitle,
+  useStartLine,
   LIFTED,
-  MessageStrip,
   NotYet,
-  px,
+  boardType,
   StatusLine,
   StatusTag,
   StripFact,
   StripQr,
   useFollowLines,
   WaitingPanel,
-  type BoardGame,
   type LiveBoardSnapshot,
 } from "./board-kit";
 
 const MAX_SET_COLUMNS = 5;
-
-function useStartLine(game: BoardGame) {
-  const b = useMessages().liveBoard.board;
-  const locale = useLocale();
-  return game.windowStart
-    ? b.startsAt(
-        formatGameDay(game.windowStart, locale, { weekday: "long" }),
-        formatGameClock(game.windowStart, locale),
-      )
-    : b.waitingStart;
-}
 
 function PhaseTag({ phase }: { phase: LiveBoardPhase }) {
   const b = useMessages().liveBoard.board;
@@ -91,7 +79,7 @@ function SetTile({
         width,
         height: 112,
         borderRadius: 14,
-        ...px(width < 100 ? 60 : 76, 1),
+        ...boardType(width < 100 ? 60 : 76, 1),
       }}
     >
       {score}
@@ -106,8 +94,8 @@ function PadelSide({
   setsWon,
   tileWidth,
 }: {
-  players: readonly PadelBoardPlayer[];
-  sets: readonly PadelBoardSet[];
+  players: readonly PadelScoreboardPlayer[];
+  sets: readonly PadelScoreboardSet[];
   side: "side1" | "side2";
   setsWon: number;
   tileWidth: number;
@@ -125,15 +113,23 @@ function PadelSide({
           <div key={index} className="flex items-center" style={{ gap: 14 }}>
             <span
               className="border-on-focus flex flex-none items-center justify-center border font-semibold"
-              style={{ width: 44, height: 44, borderRadius: 11, ...px(16) }}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 11,
+                ...boardType(16),
+              }}
             >
               {initials(player.name)}
             </span>
-            <span className="truncate font-semibold" style={px(32)}>
+            <span className="truncate font-semibold" style={boardType(32)}>
               {player.name}
             </span>
             {player.levelBand ? (
-              <span className="text-dim whitespace-nowrap" style={px(17)}>
+              <span
+                className="text-dim whitespace-nowrap"
+                style={boardType(17)}
+              >
                 <span dir="ltr">{player.levelBand}</span>
               </span>
             ) : null}
@@ -154,7 +150,7 @@ function PadelSide({
       ))}
       <div
         className="font-expanded flex-none text-end"
-        style={{ width: 96, ...px(76, 0.9) }}
+        style={{ width: 96, ...boardType(76, 0.9) }}
       >
         {setsWon}
       </div>
@@ -162,13 +158,13 @@ function PadelSide({
   );
 }
 
-export function PadelMatchBoard({
+export function PadelMatchScoreboard({
   snapshot,
   content,
   now,
 }: {
   snapshot: LiveBoardSnapshot;
-  content: PadelMatchBoardContent;
+  content: PadelScoreboard;
   now: Date;
 }) {
   const b = useMessages().liveBoard.board;
@@ -178,16 +174,16 @@ export function PadelMatchBoard({
   const subtitle = useBoardSubtitle(snapshot.game);
   const { game, settings } = snapshot;
   const seated = content.sides[0].length + content.sides[1].length;
-  const phase = matchBoardPhase({
+  const phase = scoreboardPhase({
     windowStart: game.windowStart ?? now,
     completed: content.completed,
     ready: seated > 0,
     now,
   });
-  const allSets = padelBoardSets(content.sets, content.completed);
+  const allSets = padelScoreboardSets(content.sets, content.completed);
   const firstShown = Math.max(0, allSets.length - MAX_SET_COLUMNS);
   const sets = allSets.slice(firstShown);
-  const setsWon = padelBoardSetsWon(allSets);
+  const setsWon = padelScoreboardSetsWon(allSets);
   const inPlay = allSets.findIndex((set) => set.state === "in_play");
   const tileWidth = sets.length > 3 ? 84 : 104;
   const minutes =
@@ -229,7 +225,7 @@ export function PadelMatchBoard({
       >
         <div
           className="text-dim flex flex-none items-center"
-          style={{ height: 44, gap: 20, padding: "0 32px", ...px(16) }}
+          style={{ height: 44, gap: 20, padding: "0 32px", ...boardType(16) }}
         >
           <span className="flex-1 truncate">
             {b.levelValue[content.ratingScope]}
@@ -296,7 +292,6 @@ export function PadelMatchBoard({
           <StripQr lines={follow} url={game.followUrl} />
         ) : null}
       </BoardStrip>
-      {settings.message ? <MessageStrip message={settings.message} /> : null}
     </>
   );
 }
@@ -312,7 +307,7 @@ function Squad({
   side,
   mirrored,
 }: {
-  side: FootballBoardSide;
+  side: FootballScoreboardSide;
   mirrored: boolean;
 }) {
   const roles = useMessages().liveBoard.board.roles;
@@ -333,11 +328,11 @@ function Squad({
               "text-dim flex-none font-mono uppercase",
               mirrored && "text-end",
             )}
-            style={{ width: 38, ...px(14) }}
+            style={{ width: 38, ...boardType(14) }}
           >
             {player.role ? roles[player.role] : null}
           </span>
-          <span className="truncate font-semibold" style={px(row.name)}>
+          <span className="truncate font-semibold" style={boardType(row.name)}>
             {shortPlayerName(player.name)}
           </span>
         </div>
@@ -356,7 +351,13 @@ function BibSwatch({ bib }: { bib: string | null }) {
   ) : null;
 }
 
-function Scorers({ side, end }: { side: FootballBoardSide; end: boolean }) {
+function Scorers({
+  side,
+  end,
+}: {
+  side: FootballScoreboardSide;
+  end: boolean;
+}) {
   const b = useMessages().liveBoard.board;
   return (
     <div className="flex flex-col" style={{ gap: 6 }}>
@@ -364,7 +365,7 @@ function Scorers({ side, end }: { side: FootballBoardSide; end: boolean }) {
         <div
           key={index}
           className={cn("flex", end ? "justify-end" : "justify-start")}
-          style={{ gap: 10, ...px(18) }}
+          style={{ gap: 10, ...boardType(18) }}
         >
           <span className="font-semibold">{shortPlayerName(scorer.name)}</span>
           <span className="text-dim">{b.scorerGoals(scorer.goals)}</span>
@@ -385,20 +386,20 @@ function bibNameSize(name: string) {
 function FootballScore({
   sides,
 }: {
-  sides: [FootballBoardSide, FootballBoardSide];
+  sides: [FootballScoreboardSide, FootballScoreboardSide];
 }) {
   const locale = useLocale();
   const [first, second] = sides;
   const lead = boardScoreLead(first.goals, second.goals);
-  const bibName = (side: FootballBoardSide, index: 1 | 2) =>
+  const bibName = (side: FootballScoreboardSide, index: 1 | 2) =>
     footballBibName(isFootballBib(side.bib) ? side.bib : null, index, locale);
-  const goals = (side: FootballBoardSide, behind: boolean) =>
+  const goals = (side: FootballScoreboardSide, behind: boolean) =>
     side.goals == null ? (
       <NotYet height={140} lifted radius={18} width={110} />
     ) : (
       <span
         className={cn("font-expanded", behind && "text-dim")}
-        style={px(168, 0.86)}
+        style={boardType(168, 0.86)}
       >
         {side.goals}
       </span>
@@ -419,7 +420,7 @@ function FootballScore({
           <BibSwatch bib={first.bib} />
           <span
             className="font-expanded truncate"
-            style={px(bibNameSize(bibName(first, 1)))}
+            style={boardType(bibNameSize(bibName(first, 1)))}
           >
             {bibName(first, 1)}
           </span>
@@ -435,7 +436,7 @@ function FootballScore({
         <div className="flex items-center" style={{ gap: 12 }}>
           <span
             className="font-expanded truncate"
-            style={px(bibNameSize(bibName(second, 2)))}
+            style={boardType(bibNameSize(bibName(second, 2)))}
           >
             {bibName(second, 2)}
           </span>
@@ -459,13 +460,13 @@ function FootballScore({
   );
 }
 
-export function FootballBoard({
+export function FootballMatchScoreboard({
   snapshot,
   content,
   now,
 }: {
   snapshot: LiveBoardSnapshot;
-  content: FootballBoardContent;
+  content: FootballScoreboard;
   now: Date;
 }) {
   const { board: b, list } = useMessages().liveBoard;
@@ -474,7 +475,7 @@ export function FootballBoard({
   const startLine = useStartLine(snapshot.game);
   const subtitle = useBoardSubtitle(snapshot.game);
   const { game, settings } = snapshot;
-  const phase = matchBoardPhase({
+  const phase = scoreboardPhase({
     windowStart: game.windowStart ?? now,
     completed: content.completed,
     ready: content.sides != null,
@@ -576,7 +577,6 @@ export function FootballBoard({
           <StripQr lines={follow} url={game.followUrl} />
         ) : null}
       </BoardStrip>
-      {settings.message ? <MessageStrip message={settings.message} /> : null}
     </>
   );
 }

@@ -1,5 +1,6 @@
 import { latinDigits } from "@repo/i18n/digits";
 
+import { firstName } from "./game-card";
 import { isFootballGame } from "./game-shape";
 import { isAmericano } from "./tournament-americano";
 import {
@@ -9,17 +10,16 @@ import {
 } from "./tournament-round-state";
 import { hasKnockout, hasPools } from "./tournament-rounds";
 
-export const LIVE_BOARD_SCREENS = ["on_court", "standings", "next_up"] as const;
+/** The three Board screens of a Social, in rotation order. Product copy calls `table` Standings. */
+export const LIVE_BOARD_SCREENS = ["on_court", "table", "next_up"] as const;
 
 export type LiveBoardScreen = (typeof LIVE_BOARD_SCREENS)[number];
 
-export const LIVE_BOARD_THEMES = ["dark", "light"] as const;
+export const LIVE_BOARD_COLOR_SCHEMES = ["dark", "light"] as const;
 
-export type LiveBoardTheme = (typeof LIVE_BOARD_THEMES)[number];
+export type LiveBoardColorScheme = (typeof LIVE_BOARD_COLOR_SCHEMES)[number];
 
 export const LIVE_BOARD_ROTATE_SECONDS = [5, 10, 20] as const;
-
-export const LIVE_BOARD_DEFAULT_ROTATE_SECONDS = 10;
 
 export const LIVE_BOARD_MESSAGE_MAX = 80;
 
@@ -85,7 +85,7 @@ export type LiveBoardRotation = {
   rotationStartedAt: Date | string;
 };
 
-export type LiveBoardScene = {
+export type BoardScreenOnShow = {
   screen: LiveBoardScreen;
   /** The screen the rotation shows next; null while one screen is held. */
   next: LiveBoardScreen | null;
@@ -95,13 +95,17 @@ export type LiveBoardScene = {
 };
 
 /**
- * The Board screen on show at `now`. Every TV and the control read the same
- * rotation start, so they agree without talking to each other.
+ * The Board screen on show at `now`, out of the screens that have something
+ * to show. Every TV and the control read the same rotation start, so they
+ * agree without talking to each other. A held screen with nothing to show
+ * gives way to On court.
  */
-export function liveBoardScene(
+export function boardScreenOnShow(
   rotation: LiveBoardRotation,
   now: Date,
-): LiveBoardScene {
+  screens: readonly LiveBoardScreen[] = LIVE_BOARD_SCREENS,
+): BoardScreenOnShow {
+  const shown = screens.length > 0 ? screens : LIVE_BOARD_SCREENS;
   const seconds = Math.max(1, rotation.rotateSeconds);
   const elapsed = Math.max(
     0,
@@ -112,18 +116,88 @@ export function liveBoardScene(
   const step = Math.floor(elapsed / seconds);
   if (!rotation.rotate) {
     return {
-      screen: rotation.heldScreen,
+      screen: shown.includes(rotation.heldScreen)
+        ? rotation.heldScreen
+        : shown[0]!,
       next: null,
       secondsToNext: null,
       turn: step,
     };
   }
-  const index = step % LIVE_BOARD_SCREENS.length;
+  const index = step % shown.length;
   return {
-    screen: LIVE_BOARD_SCREENS[index]!,
-    next: LIVE_BOARD_SCREENS[(index + 1) % LIVE_BOARD_SCREENS.length]!,
-    secondsToNext: seconds - (elapsed % seconds),
-    turn: Math.floor(step / LIVE_BOARD_SCREENS.length),
+    screen: shown[index]!,
+    next: shown.length > 1 ? shown[(index + 1) % shown.length]! : null,
+    secondsToNext: shown.length > 1 ? seconds - (elapsed % seconds) : null,
+    turn: Math.floor(step / shown.length),
+  };
+}
+
+export type BoardRotationChange = {
+  rotate?: boolean;
+  rotateSeconds?: number;
+  heldScreen?: LiveBoardScreen;
+};
+
+/**
+ * What a change from the board control does to the rotation, or null when it
+ * leaves the rotation alone. Showing a screen holds the board on it;
+ * switching rotation off holds the screen on show; switching it on, or
+ * changing its pace, starts again from On court on every TV at once.
+ */
+export function changeBoardRotation(
+  rotation: LiveBoardRotation,
+  change: BoardRotationChange,
+  now: Date,
+  screens: readonly LiveBoardScreen[] = LIVE_BOARD_SCREENS,
+): (LiveBoardRotation & { rotationStartedAt: Date }) | null {
+  if (
+    change.rotate === undefined &&
+    change.rotateSeconds === undefined &&
+    change.heldScreen === undefined
+  ) {
+    return null;
+  }
+  const heldScreen =
+    change.heldScreen ??
+    (change.rotate === false && rotation.rotate
+      ? boardScreenOnShow(rotation, now, screens).screen
+      : rotation.heldScreen);
+  return {
+    rotate: change.rotate ?? (change.heldScreen ? false : rotation.rotate),
+    rotateSeconds: change.rotateSeconds ?? rotation.rotateSeconds,
+    heldScreen,
+    rotationStartedAt: now,
+  };
+}
+
+export type LiveBoardOnShow =
+  | { kind: "scoreboard" }
+  | { kind: "waiting" }
+  | { kind: "final" }
+  | ({ kind: "screen" } & BoardScreenOnShow);
+
+/**
+ * What a board's TVs show at `now`, for the control and the On TV card: a
+ * one-Match board's scoreboard, a Social waiting for its first Round or
+ * stopped on its final table, or the Board screen the rotation is on. The
+ * status is the API's reading of the Social (`phase` and `screens`).
+ */
+export function liveBoardOnShow(
+  kind: LiveBoardKind,
+  status: { phase: LiveBoardPhase; screens: LiveBoardScreen[] } | null,
+  rotation: LiveBoardRotation,
+  now: Date,
+): LiveBoardOnShow {
+  if (kind !== "social") {
+    return { kind: "scoreboard" };
+  }
+  if (status?.phase === "waiting" || status?.phase === "final") {
+    return { kind: status.phase };
+  }
+  return {
+    kind: "screen",
+    ...boardScreenOnShow(rotation, now, status?.screens),
   };
 }
 
@@ -138,13 +212,9 @@ export function boardPage<T>(items: readonly T[], size: number, turn: number) {
   };
 }
 
-export function boardFirstName(name: string) {
-  return name.trim().split(/\s+/)[0] ?? name;
-}
-
 /** "Layla & Nora": first names only, so a pair stays on one line at a distance. */
 export function boardSideLabel(players: readonly string[], joiner: string) {
-  return players.map(boardFirstName).join(joiner);
+  return players.map(firstName).join(joiner);
 }
 
 export type LiveBoardSide = {
@@ -206,33 +276,33 @@ export type SocialBoardContent = {
   finishedAt: Date | null;
 };
 
-export type PadelBoardPlayer = {
+export type PadelScoreboardPlayer = {
   name: string;
   levelBand: string | null;
 };
 
-export type PadelMatchBoardContent = {
+export type PadelScoreboard = {
   kind: "padel_match";
-  sides: [PadelBoardPlayer[], PadelBoardPlayer[]];
+  sides: [PadelScoreboardPlayer[], PadelScoreboardPlayer[]];
   sets: { score1: number | null; score2: number | null }[];
   completed: boolean;
   courtName: string | null;
   ratingScope: "temba" | "group" | "unrated";
 };
 
-export type FootballBoardRole = "gk" | "def" | "mid" | "fwd";
+export type FootballScoreboardRole = "gk" | "def" | "mid" | "fwd";
 
-export type FootballBoardSide = {
+export type FootballScoreboardSide = {
   bib: string | null;
   goals: number | null;
-  players: { name: string; role: FootballBoardRole | null }[];
+  players: { name: string; role: FootballScoreboardRole | null }[];
   scorers: { name: string; goals: number }[];
 };
 
-export type FootballBoardContent = {
+export type FootballScoreboard = {
   kind: "football";
   /** Null until the Organizer publishes the two Football sides. */
-  sides: [FootballBoardSide, FootballBoardSide] | null;
+  sides: [FootballScoreboardSide, FootballScoreboardSide] | null;
   completed: boolean;
   courtName: string | null;
   sideSize: number | null;
@@ -243,8 +313,8 @@ export type FootballBoardContent = {
 
 export type LiveBoardContent =
   | SocialBoardContent
-  | PadelMatchBoardContent
-  | FootballBoardContent;
+  | PadelScoreboard
+  | FootballScoreboard;
 
 export type LiveBoardPhase = "waiting" | "live" | "final";
 
@@ -260,6 +330,8 @@ export type SocialBoardView = {
   then: LiveBoardRound | null;
   /** The last Round the table counts; 0 before any Round is played. */
   tableAfterRound: number;
+  /** The Board screens with something to show, in rotation order. */
+  screens: LiveBoardScreen[];
   clock: SocialBoardClock | null;
 };
 
@@ -306,10 +378,44 @@ function socialBoardClock(
     : { kind: "left", seconds: secondsBetween(now.getTime(), endsAt) };
 }
 
+function isSettledRound(round: LiveBoardRound) {
+  return round.state === "played" || round.state === "cancelled";
+}
+
 /**
- * Which Rounds a Social's board shows and what its clock counts. The API
- * sends a table that counts finished Rounds only, so the board says which
- * Round it is after.
+ * The last Round a Social's table counts: the end of the unbroken run of
+ * settled Rounds from Round 1. A Round still on court, and any Round after
+ * it, waits, so the table never runs ahead of the Round it says it is after.
+ */
+export function boardTableRound(rounds: readonly LiveBoardRound[]) {
+  let last = 0;
+  for (const round of [...rounds].sort(
+    (left, right) => left.roundNumber - right.roundNumber,
+  )) {
+    if (!isSettledRound(round)) {
+      break;
+    }
+    last = round.roundNumber;
+  }
+  return last;
+}
+
+/**
+ * A Social is over once every Round of its schedule is posted and settled,
+ * a Match that did not finish included, and at least one Round was played.
+ */
+export function isSocialBoardFinished(rounds: readonly LiveBoardRound[]) {
+  return (
+    rounds.length > 0 &&
+    rounds.every(isSettledRound) &&
+    rounds.some((round) => round.state === "played")
+  );
+}
+
+/**
+ * Which Rounds a Social's board shows, which Board screens have something to
+ * show and what its clock counts. Next up drops out of the rotation while
+ * there is no next Round posted.
  */
 export function socialBoardView(
   content: SocialBoardContent,
@@ -318,9 +424,7 @@ export function socialBoardView(
   const rounds = [...content.rounds].sort(
     (left, right) => left.roundNumber - right.roundNumber,
   );
-  const tableAfterRound = rounds
-    .filter((round) => round.state === "played")
-    .reduce((last, round) => Math.max(last, round.roundNumber), 0);
+  const tableAfterRound = boardTableRound(rounds);
   const currentNumber = currentRoundNumber(rounds.filter(hasMatches));
   const current =
     rounds.find((round) => round.roundNumber === currentNumber) ?? null;
@@ -331,6 +435,7 @@ export function socialBoardView(
       next: null,
       then: null,
       tableAfterRound,
+      screens: [],
       clock: null,
     };
   }
@@ -338,12 +443,16 @@ export function socialBoardView(
     (round) =>
       round.roundNumber > current.roundNumber && round.state !== "cancelled",
   );
+  const next = upcoming[0] ?? null;
   return {
     phase: content.finished ? "final" : "live",
     current,
-    next: upcoming[0] ?? null,
+    next,
     then: upcoming[1] ?? null,
     tableAfterRound,
+    screens: LIVE_BOARD_SCREENS.filter(
+      (screen) => screen !== "next_up" || (next?.matches.length ?? 0) > 0,
+    ),
     clock: content.finished
       ? null
       : socialBoardClock(current, content.matchMinutes, now),
@@ -375,12 +484,12 @@ export function boardScoreLead(
   return score1 > score2 ? "side1" : "side2";
 }
 
-export type PadelBoardSetState = "side1" | "side2" | "level" | "in_play";
+export type PadelScoreboardSetState = "side1" | "side2" | "level" | "in_play";
 
-export type PadelBoardSet = {
+export type PadelScoreboardSet = {
   score1: number | null;
   score2: number | null;
-  state: PadelBoardSetState;
+  state: PadelScoreboardSetState;
 };
 
 function isFinishedPadelSet(score1: number, score2: number) {
@@ -392,10 +501,10 @@ function isFinishedPadelSet(score1: number, score2: number) {
  * A padel Match's Sets in the win, loss and not yet language. Only the last
  * Set of an open Match can be in play: 4-3 saved mid-set is not a Set won.
  */
-export function padelBoardSets(
-  sets: PadelMatchBoardContent["sets"],
+export function padelScoreboardSets(
+  sets: PadelScoreboard["sets"],
   completed: boolean,
-): PadelBoardSet[] {
+): PadelScoreboardSet[] {
   return sets.map((set, index) => {
     const { score1, score2 } = set;
     if (score1 == null || score2 == null) {
@@ -415,7 +524,7 @@ export function padelBoardSets(
   });
 }
 
-export function padelBoardSetsWon(sets: readonly PadelBoardSet[]) {
+export function padelScoreboardSetsWon(sets: readonly PadelScoreboardSet[]) {
   return {
     side1: sets.filter((set) => set.state === "side1").length,
     side2: sets.filter((set) => set.state === "side2").length,
@@ -423,7 +532,7 @@ export function padelBoardSetsWon(sets: readonly PadelBoardSet[]) {
 }
 
 /** A one-Match board before its start, during it, and once the score is final. */
-export function matchBoardPhase(args: {
+export function scoreboardPhase(args: {
   windowStart: Date | string;
   completed: boolean;
   ready: boolean;

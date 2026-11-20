@@ -14,16 +14,16 @@ import { relations, sql } from "drizzle-orm";
 import { games } from "./games";
 import { user } from "./user";
 
-export const LIVE_BOARD_THEME_VALUES = ["dark", "light"] as const;
+export const LIVE_BOARD_COLOR_SCHEME_VALUES = ["dark", "light"] as const;
 
-export const liveBoardThemes = pgEnum(
-  "live_board_theme",
-  LIVE_BOARD_THEME_VALUES,
+export const liveBoardColorSchemes = pgEnum(
+  "live_board_color_scheme",
+  LIVE_BOARD_COLOR_SCHEME_VALUES,
 );
 
 export const LIVE_BOARD_SCREEN_VALUES = [
   "on_court",
-  "standings",
+  "table",
   "next_up",
 ] as const;
 
@@ -49,7 +49,9 @@ export const liveBoards = pgTable(
     heldScreen: liveBoardScreens("held_screen").notNull().default("on_court"),
     // Every TV works out the screen on show from this one moment.
     rotationStartedAt: timestamp("rotation_started_at").notNull().defaultNow(),
-    theme: liveBoardThemes("theme").notNull().default("dark"),
+    colorScheme: liveBoardColorSchemes("color_scheme")
+      .notNull()
+      .default("dark"),
     showQr: boolean("show_qr").notNull().default(true),
     message: varchar("message", { length: 80 }),
     messageShown: boolean("message_shown").notNull().default(false),
@@ -58,7 +60,8 @@ export const liveBoards = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => ({
-    // A stopped board's code is retired, so only running boards hold one.
+    // Stopping retires a board's code and frees its Game. A board that closed
+    // on its own keeps both, so moving its Game's window later opens it again.
     runningCode: uniqueIndex("live_boards_running_code_unique")
       .on(table.code)
       .where(sql`${table.stoppedAt} is null`),

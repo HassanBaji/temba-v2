@@ -2,7 +2,10 @@
 
 import * as React from "react";
 
-import { normalizeBoardMessage } from "@repo/domain/live-board";
+import {
+  changeBoardRotation,
+  normalizeBoardMessage,
+} from "@repo/domain/live-board";
 
 import {
   BoardControlBody,
@@ -14,7 +17,10 @@ import { ShowOnTvPanel } from "~/components/live-board/show-on-tv-sheet";
 import { useBoardNow } from "~/components/live-board/use-board-now";
 import type { LiveBoardControlState } from "~/components/live-board/use-live-board";
 
-import { liveBoardPreviews, PREVIEW_NOW } from "./fixtures";
+import {
+  liveBoardPreviews,
+  PREVIEW_NOW,
+} from "~/components/live-board/board-fixtures";
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
@@ -52,7 +58,7 @@ function initialControl(): LiveBoardControlState {
     rotateSeconds: 10,
     heldScreen: "on_court",
     rotationStartedAt: now,
-    theme: "dark",
+    colorScheme: "dark",
     showQr: true,
     message: "Round 5 starts in 2 minutes. Check your court.",
     messageShown: false,
@@ -63,6 +69,7 @@ function initialControl(): LiveBoardControlState {
         connectedAt: new Date(now.getTime() - 8 * 60_000),
       },
     ],
+    status: { phase: "live", screens: ["on_court", "table", "next_up"] },
     serverNow: now,
   };
 }
@@ -76,14 +83,7 @@ function usePreviewControl() {
       setBoard((current) => ({
         ...current,
         ...settings,
-        rotate:
-          settings.rotate ?? (settings.heldScreen ? false : current.rotate),
-        rotationStartedAt:
-          settings.rotate !== undefined ||
-          settings.rotateSeconds !== undefined ||
-          settings.heldScreen !== undefined
-            ? new Date()
-            : current.rotationStartedAt,
+        ...changeBoardRotation(current, settings, new Date()),
       })),
     setMessage: {
       isPending: false,
@@ -148,7 +148,7 @@ function LiveControlPreview() {
         PREVIEW_NOW.getTime() -
           (clock.getTime() - board.rotationStartedAt.getTime()),
       ),
-      theme: board.theme,
+      colorScheme: board.colorScheme,
       showQr: board.showQr,
       message: board.messageShown ? board.message : null,
     },
@@ -181,6 +181,40 @@ function LiveControlPreview() {
           gameId="preview"
           kind="social"
           offsetMs={0}
+        />
+        <OnTvCard
+          board={{ ...board, status: { phase: "waiting", screens: [] } }}
+          gameId="preview"
+          kind="social"
+          offsetMs={0}
+        />
+        <OnTvCard
+          board={{ ...board, status: { phase: "final", screens: [] } }}
+          gameId="preview"
+          kind="social"
+          offsetMs={0}
+        />
+        <OnTvCard board={board} gameId="preview" kind="football" offsetMs={0} />
+      </Phone>
+      <Phone title="2b Board control, round 5 not posted">
+        <BoardControlBody
+          board={{
+            ...board,
+            status: { phase: "live", screens: ["on_court", "table"] },
+          }}
+          gameId="preview"
+          kind="social"
+          live={doors}
+          onStopped={() => undefined}
+        />
+      </Phone>
+      <Phone title="2b Board control, final">
+        <BoardControlBody
+          board={{ ...board, status: { phase: "final", screens: [] } }}
+          gameId="preview"
+          kind="social"
+          live={doors}
+          onStopped={() => undefined}
         />
       </Phone>
     </div>

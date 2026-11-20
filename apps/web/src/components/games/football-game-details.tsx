@@ -26,7 +26,7 @@ import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { AddPlayerDialog } from "~/components/games/add-player-dialog";
 import { challengeInfoRows } from "~/components/games/challenge-details-block";
-import { ChallengeShareButton } from "~/components/games/challenge-share-button";
+import { GameShareButton } from "~/components/games/game-share-button";
 import { ChallengeSquads } from "~/components/games/challenge-squad-grid";
 import { ChallengeTeamVsTeam } from "~/components/games/challenge-team-vs-team";
 import { NameSquadDialog } from "~/components/games/name-squad-dialog";
@@ -51,8 +51,11 @@ import { gamePaymentsTracked } from "@repo/domain/game-payments";
 import { PerformanceResultCard } from "~/components/games/performance-result-card";
 import { RateGameCard } from "~/components/games/rate-game-card";
 import { RatingSummaryCard } from "~/components/games/rating-summary-card";
-import { GameActionsSheet } from "~/components/games/game-actions-sheet";
-import type { GameTv } from "~/components/live-board/game-tv";
+import {
+  GameActionsSheet,
+  type GameActionsSheetRow,
+} from "~/components/games/game-actions-sheet";
+import { GameTvCardSlot } from "~/components/live-board/game-tv";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import {
   gameInviteSubtitle,
@@ -134,14 +137,14 @@ export function FootballGameDetails({
   game,
   openInvites,
   openJoin,
-  tv,
+  tvRow,
 }: {
   gameId: string;
   game: FootballGame;
   openInvites: boolean;
   openJoin: boolean;
   /** Show on TV for the Organizer: the menu row and the On TV card. */
-  tv?: Pick<GameTv, "menuRow" | "card">;
+  tvRow?: GameActionsSheetRow | null;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -756,7 +759,7 @@ export function FootballGameDetails({
                 },
               ]
             : []),
-          ...(tv?.menuRow ? [tv.menuRow] : []),
+          ...(tvRow ? [tvRow] : []),
           ...(wrongScore
             ? [
                 {
@@ -888,23 +891,23 @@ export function FootballGameDetails({
                   : undefined
             }
             actions={
-              challenge && !game.cancelledAt ? (
+              game.cancelledAt ? (
+                menu
+              ) : (
                 <>
-                  <ChallengeShareButton
+                  <GameShareButton
                     onShare={shareGamePage}
                     tone={model.hero.tone}
                   />
                   {menu}
                 </>
-              ) : (
-                menu
               )
             }
           >
             {heroBody}
           </FootballGameHeroCard>
         )}
-        {tv?.card}
+        <GameTvCardSlot />
 
         {joinFamily && !playedModel ? (
           <div className="max-lg:contents">

@@ -3,27 +3,19 @@
 import * as React from "react";
 import { toast } from "sonner";
 
-import {
-  liveBoardScene,
-  type LiveBoardScreen,
-  type LiveBoardTheme,
-} from "@repo/domain/live-board";
+import { changeBoardRotation } from "@repo/domain/live-board";
 
+import { useMessages } from "~/components/locale-provider";
+import { copyTextWhenReady } from "~/lib/share-link";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
-import { api, type RouterOutputs } from "~/trpc/react";
+import { api, type RouterInputs, type RouterOutputs } from "~/trpc/react";
 
 export type LiveBoardState = RouterOutputs["liveBoards"]["forGame"];
 export type LiveBoardControlState = NonNullable<LiveBoardState["board"]>;
 
 const CONTROL_REFRESH_MS = 5_000;
 
-type BoardSettings = {
-  rotate?: boolean;
-  rotateSeconds?: number;
-  heldScreen?: LiveBoardScreen;
-  theme?: LiveBoardTheme;
-  showQr?: boolean;
-};
+type BoardSettings = Omit<RouterInputs["liveBoards"]["update"], "gameId">;
 
 /**
  * A Game's Live board for its Organizer: the running board, kept fresh while
@@ -101,24 +93,13 @@ export function useLiveBoard(gameId: string, enabled: boolean) {
     if (!board) {
       return;
     }
-    const now = new Date(Date.now() + offsetMs);
-    const restarts =
-      settings.rotate !== undefined ||
-      settings.rotateSeconds !== undefined ||
-      settings.heldScreen !== undefined;
-    void patch(
-      {
-        ...settings,
-        rotate: settings.rotate ?? (settings.heldScreen ? false : board.rotate),
-        heldScreen:
-          settings.heldScreen ??
-          (settings.rotate === false && board.rotate
-            ? liveBoardScene(board, now).screen
-            : board.heldScreen),
-        rotationStartedAt: restarts ? now : board.rotationStartedAt,
-      },
-      query.dataUpdatedAt,
+    const rotation = changeBoardRotation(
+      board,
+      settings,
+      new Date(Date.now() + offsetMs),
+      board.status?.screens,
     );
+    void patch({ ...settings, ...rotation }, query.dataUpdatedAt);
     update.mutate({ gameId, ...settings });
   }
 
@@ -147,3 +128,17 @@ export function useLiveBoard(gameId: string, enabled: boolean) {
 }
 
 export type LiveBoardHandle = ReturnType<typeof useLiveBoard>;
+
+/** Copies a board's link, saying so, the same from the sheet and the control. */
+export function useCopyBoardLink() {
+  const m = useMessages();
+  return async (url: string) => {
+    try {
+      if (await copyTextWhenReady(Promise.resolve(url))) {
+        toast.success(m.liveBoard.sheet.linkCopied);
+      }
+    } catch {
+      toast.error(m.webUi.shareLink.copyFailed);
+    }
+  };
+}

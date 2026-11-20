@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import {
   formatBoardCode,
-  liveBoardScene,
+  liveBoardOnShow,
   type LiveBoardKind,
 } from "@repo/domain/live-board";
 
@@ -36,15 +36,16 @@ export function OnTvCard({
   const [first] = board.tvs;
   const tv =
     board.tvs.length > 1 ? m.card.tvCount(board.tvs.length) : first?.name;
+  const onShow = liveBoardOnShow(kind, board.status, board, now);
   const line = !tv
     ? m.card.waiting(formatBoardCode(board.code))
-    : kind === "social"
-      ? m.card.showing(
-          tv,
-          m.screens[liveBoardScene(board, now).screen],
-          board.rotate,
-        )
-      : m.card.showingOne(tv);
+    : onShow.kind === "screen"
+      ? m.card.showing(tv, m.screens[onShow.screen], board.rotate)
+      : onShow.kind === "waiting"
+        ? m.card.showingWaiting(tv)
+        : onShow.kind === "final"
+          ? m.card.showingFinal(tv)
+          : m.card.showingOne(tv);
   return (
     <section
       aria-label={m.card.title}

@@ -10,10 +10,11 @@ import {
   formatBoardCode,
   LIVE_BOARD_MESSAGE_MAX,
   LIVE_BOARD_SCREENS,
-  liveBoardScene,
+  liveBoardOnShow,
   type LiveBoardKind,
   type LiveBoardScreen,
-  type LiveBoardTheme,
+  type LiveBoardColorScheme,
+  type LiveBoardOnShow,
 } from "@repo/domain/live-board";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
@@ -23,11 +24,11 @@ import { TournamentHeaderBar } from "~/components/games/tournament-header-bar";
 import { PageTitle } from "~/components/layout/page-title";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
+import { Hatch } from "~/components/ui/hatch";
 import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Surface } from "~/components/ui/surface";
 import { gameHomeHref } from "~/lib/dashboard-paths";
-import { copyTextWhenReady } from "~/lib/share-link";
 import { cn } from "~/lib/utils";
 
 import {
@@ -35,11 +36,12 @@ import {
   SettingRow,
   SettingsBlock,
   SwitchRow,
-  ThemeSegments,
+  ColorSchemeSegments,
 } from "./board-settings";
 import { ShowOnTvSheet } from "./show-on-tv-sheet";
 import { useBoardNow } from "./use-board-now";
 import {
+  useCopyBoardLink,
   useLiveBoard,
   type LiveBoardControlState,
   type LiveBoardHandle,
@@ -67,15 +69,19 @@ function Section({
   );
 }
 
-type Shown = LiveBoardScreen | "scoreboard";
+type ThumbnailPicture = LiveBoardScreen | "scoreboard" | "waiting" | "final";
+
+function thumbnailPicture(onShow: LiveBoardOnShow): ThumbnailPicture {
+  return onShow.kind === "screen" ? onShow.screen : onShow.kind;
+}
 
 /** A small picture of the board, so the Organizer need not look up at the TV. */
 function BoardThumbnail({
-  theme,
-  shown,
+  colorScheme,
+  picture,
 }: {
-  theme: LiveBoardTheme;
-  shown: Shown;
+  colorScheme: LiveBoardColorScheme;
+  picture: ThumbnailPicture;
 }) {
   const block = "bg-rule rounded-[2px]";
   const lines = (count: number) =>
@@ -93,7 +99,7 @@ function BoardThumbnail({
     <span
       aria-hidden="true"
       className={cn(
-        theme,
+        colorScheme,
         "bg-paper border-rule flex h-[74px] w-[132px] flex-none flex-col gap-1 rounded-[9px] border px-2 py-[7px]",
       )}
     >
@@ -101,7 +107,7 @@ function BoardThumbnail({
         <span className="bg-ink h-1 w-[34px] rounded-[2px]" />
         <span className="bg-ink h-1 w-3.5 rounded-[2px]" />
       </span>
-      {shown === "on_court" ? (
+      {picture === "on_court" ? (
         <span className="flex min-h-0 flex-1 flex-col gap-[3px]">
           <span className="flex min-h-0 flex-1 gap-1 [&>*:first-child]:flex-[1.4]">
             {grid}
@@ -112,7 +118,7 @@ function BoardThumbnail({
           <span className={cn(block, "h-2")} />
         </span>
       ) : null}
-      {shown === "standings" ? (
+      {picture === "table" || picture === "final" ? (
         <span className="flex min-h-0 flex-1 gap-1">
           <span className="flex flex-[2.4] flex-col justify-between">
             {lines(7)}
@@ -124,7 +130,7 @@ function BoardThumbnail({
           </span>
         </span>
       ) : null}
-      {shown === "next_up" ? (
+      {picture === "next_up" ? (
         <span className="flex min-h-0 flex-1 flex-col gap-[3px]">
           <span className="flex min-h-0 flex-1 gap-1 [&>*:first-child]:flex-[2]">
             {grid}
@@ -135,11 +141,14 @@ function BoardThumbnail({
           <span className={cn(block, "h-2")} />
         </span>
       ) : null}
-      {shown === "scoreboard" ? (
+      {picture === "scoreboard" ? (
         <span className="flex min-h-0 flex-1 flex-col gap-[3px]">
           <span className={cn(block, "flex-1")} />
           <span className={cn(block, "h-2")} />
         </span>
+      ) : null}
+      {picture === "waiting" ? (
+        <Hatch className="min-h-0 flex-1" radius="slot" />
       ) : null}
     </span>
   );
@@ -283,19 +292,34 @@ export function BoardControlBody({
   const now = useBoardNow(live.offsetMs);
   const [stopOpen, setStopOpen] = React.useState(false);
   const social = kind === "social";
-  const scene = liveBoardScene(board, now);
-  const shown: Shown = social ? scene.screen : "scoreboard";
+  const onShow = liveBoardOnShow(kind, board.status, board, now);
+  const onScreen = onShow.kind === "screen" ? onShow.screen : null;
+  // Only a live Social leaves screens out of its rotation; while it waits,
+  // every screen can be set up for when it starts.
+  const shows = (screen: LiveBoardScreen) =>
+    onShow.kind !== "screen" || !board.status
+      ? true
+      : board.status.screens.includes(screen);
   const code = formatBoardCode(board.code);
-
-  async function copyLink() {
-    try {
-      if (await copyTextWhenReady(Promise.resolve(board.url))) {
-        toast.success(m.sheet.linkCopied);
-      }
-    } catch {
-      toast.error(m.sheet.startFailed);
-    }
-  }
+  const copyLink = useCopyBoardLink();
+  const nowTitle =
+    onShow.kind === "screen"
+      ? m.screens[onShow.screen]
+      : onShow.kind === "waiting"
+        ? c.waitingNow
+        : onShow.kind === "final"
+          ? c.finalNow
+          : m.screens.scoreboard;
+  const nowLine =
+    onShow.kind === "scoreboard"
+      ? c.oneScreen
+      : onShow.kind === "waiting"
+        ? c.waitingLine
+        : onShow.kind === "final"
+          ? c.finalLine
+          : onShow.next && onShow.secondsToNext != null
+            ? c.thenIn(m.screens[onShow.next], onShow.secondsToNext)
+            : c.held;
 
   return (
     <>
@@ -303,37 +327,36 @@ export function BoardControlBody({
         className="flex items-center gap-3.5 rounded-xl px-4 py-3.5"
         tone="ink"
       >
-        <BoardThumbnail shown={shown} theme={board.theme} />
+        <BoardThumbnail
+          colorScheme={board.colorScheme}
+          picture={thumbnailPicture(onShow)}
+        />
         <div className="min-w-0">
           <p className="text-dim text-eyebrow">{c.now}</p>
           <p className="font-expanded mt-1 text-[24px] leading-none">
-            {m.screens[shown]}
+            {nowTitle}
           </p>
-          <p className="text-dim text-eyebrow mt-2">
-            {!social
-              ? c.oneScreen
-              : scene.next && scene.secondsToNext != null
-                ? c.thenIn(m.screens[scene.next], scene.secondsToNext)
-                : c.held}
-          </p>
+          <p className="text-dim text-eyebrow mt-2">{nowLine}</p>
         </div>
       </Surface>
 
-      {social ? (
+      {social && onShow.kind !== "final" ? (
         <>
           <Section meta={c.screensHint} title={c.screensTitle}>
             <div className="border-rule divide-rule rounded-card divide-y overflow-hidden border">
               {LIVE_BOARD_SCREENS.map((screen) => {
-                const on = scene.screen === screen;
+                const on = onScreen === screen;
+                const available = shows(screen);
                 return (
                   <button
                     key={screen}
                     aria-label={c.showScreen(m.screens[screen])}
                     aria-pressed={on}
                     className={cn(
-                      "focus-visible:ring-ring/50 flex min-h-[58px] w-full items-center gap-3.5 px-[18px] py-2.5 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-inset",
+                      "focus-visible:ring-ring/50 flex min-h-[58px] w-full items-center gap-3.5 px-[18px] py-2.5 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-50",
                       on && "bg-wash",
                     )}
+                    disabled={!available}
                     onClick={() => live.change({ heldScreen: screen })}
                     type="button"
                   >
@@ -350,7 +373,7 @@ export function BoardControlBody({
                         {m.screens[screen]}
                       </span>
                       <span className="text-muted-foreground text-eyebrow mt-0.5 block">
-                        {c.screenHints[screen]}
+                        {available ? c.screenHints[screen] : c.nextNotPosted}
                       </span>
                     </span>
                     <span
@@ -393,10 +416,13 @@ export function BoardControlBody({
 
       <Section title={c.displayTitle}>
         <SettingsBlock>
-          <SettingRow hint={m.settings.themeHint} title={m.settings.theme}>
-            <ThemeSegments
-              onSelect={(theme) => live.change({ theme })}
-              value={board.theme}
+          <SettingRow
+            hint={m.settings.colorSchemeHint}
+            title={m.settings.colorScheme}
+          >
+            <ColorSchemeSegments
+              onSelect={(colorScheme) => live.change({ colorScheme })}
+              value={board.colorScheme}
             />
           </SettingRow>
           <SwitchRow
@@ -438,7 +464,7 @@ export function BoardControlBody({
             <Button
               aria-label={m.sheet.copyLink}
               className="flex-none"
-              onClick={() => void copyLink()}
+              onClick={() => void copyLink(board.url)}
               size="icon"
               variant="outline"
             >
@@ -504,7 +530,7 @@ export function BoardControlPage({ gameId }: { gameId: string }) {
           <div className="text-muted-foreground text-meta mt-6 flex items-center justify-between gap-2.5">
             <span className="min-w-0 truncate">{state?.gameName}</span>
             {board ? (
-              <span className="flex-none">{c.onScreens(board.tvs.length)}</span>
+              <span className="flex-none">{c.onTvs(board.tvs.length)}</span>
             ) : null}
           </div>
           <PageTitle className="mt-1.5" variant="hero">

@@ -1,7 +1,6 @@
 "use client";
 
 import { LinkIcon, MonitorIcon, TvIcon } from "lucide-react";
-import { toast } from "sonner";
 
 import { formatBoardCode, type LiveBoardKind } from "@repo/domain/live-board";
 
@@ -16,15 +15,18 @@ import { useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Surface } from "~/components/ui/surface";
-import { copyTextWhenReady } from "~/lib/share-link";
 
 import {
   SettingRow,
   SettingsBlock,
   SwitchRow,
-  ThemeSegments,
+  ColorSchemeSegments,
 } from "./board-settings";
-import type { LiveBoardControlState, LiveBoardHandle } from "./use-live-board";
+import {
+  useCopyBoardLink,
+  type LiveBoardControlState,
+  type LiveBoardHandle,
+} from "./use-live-board";
 
 /** The Board code and the settings worth choosing before a TV joins. */
 export function ShowOnTvPanel({
@@ -38,15 +40,7 @@ export function ShowOnTvPanel({
 }) {
   const m = useMessages().liveBoard;
 
-  async function copyLink(url: string) {
-    try {
-      if (await copyTextWhenReady(Promise.resolve(url))) {
-        toast.success(m.sheet.linkCopied);
-      }
-    } catch {
-      toast.error(m.sheet.startFailed);
-    }
-  }
+  const copyLink = useCopyBoardLink();
 
   return (
     <div className="flex flex-col gap-[18px]">
@@ -80,10 +74,13 @@ export function ShowOnTvPanel({
           onChange={(showQr) => change({ showQr })}
           title={m.settings.qr}
         />
-        <SettingRow hint={m.settings.themeHint} title={m.settings.theme}>
-          <ThemeSegments
-            onSelect={(theme) => change({ theme })}
-            value={board.theme}
+        <SettingRow
+          hint={m.settings.colorSchemeHint}
+          title={m.settings.colorScheme}
+        >
+          <ColorSchemeSegments
+            onSelect={(colorScheme) => change({ colorScheme })}
+            value={board.colorScheme}
           />
         </SettingRow>
       </SettingsBlock>

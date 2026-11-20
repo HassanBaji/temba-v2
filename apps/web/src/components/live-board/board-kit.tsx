@@ -2,11 +2,12 @@
 
 import * as React from "react";
 
-import type { LiveBoardTheme } from "@repo/domain/live-board";
+import { formatGameClock, formatGameDay } from "@repo/domain/format-game-start";
+import type { LiveBoardColorScheme } from "@repo/domain/live-board";
 
 import { Hatch } from "~/components/ui/hatch";
-import { TembaMark } from "~/components/ui/icons/temba-mark";
-import { useMessages } from "~/components/locale-provider";
+import { TembaWordmark } from "~/components/ui/temba-wordmark";
+import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 import type { RouterOutputs } from "~/trpc/react";
 
@@ -21,7 +22,10 @@ export type LiveBoardSnapshot = Extract<
 export type BoardGame = LiveBoardSnapshot["game"];
 
 /** Type at the board's own scale: the canvas is 1280 wide whatever the TV is. */
-export function px(size: number, lineHeight?: number): React.CSSProperties {
+export function boardType(
+  size: number,
+  lineHeight?: number,
+): React.CSSProperties {
   return lineHeight == null
     ? { fontSize: size }
     : { fontSize: size, lineHeight };
@@ -35,11 +39,11 @@ export const PLAIN = "border-rule border";
  * in its own Color scheme, whatever the device prefers.
  */
 export function BoardFrame({
-  theme,
+  colorScheme,
   fill = true,
   children,
 }: {
-  theme: LiveBoardTheme;
+  colorScheme: LiveBoardColorScheme;
   /** Off for a preview, which sizes the board to its own width. */
   fill?: boolean;
   children: React.ReactNode;
@@ -68,7 +72,7 @@ export function BoardFrame({
     <div
       ref={frameRef}
       className={cn(
-        theme,
+        colorScheme,
         "bg-paper text-ink overflow-hidden",
         fill ? "fixed inset-0" : "relative w-full rounded-xl",
       )}
@@ -94,22 +98,20 @@ export function BoardFrame({
   );
 }
 
-function Wordmark() {
-  return (
-    <div className="flex flex-none items-center" style={{ gap: 10 }}>
-      <TembaMark height={30} width={30} />
-      <span
-        className="font-display"
-        style={{ fontSize: 21, fontWeight: 300, letterSpacing: "0.18em" }}
-      >
-        TEMBA
-      </span>
-    </div>
-  );
-}
-
 function Divider() {
   return <div className="bg-rule flex-none" style={{ width: 1, height: 40 }} />;
+}
+
+/** When a board that has not started yet starts, for its waiting screen. */
+export function useStartLine(game: BoardGame) {
+  const b = useMessages().liveBoard.board;
+  const locale = useLocale();
+  return game.windowStart
+    ? b.startsAt(
+        formatGameDay(game.windowStart, locale, { weekday: "long" }),
+        formatGameClock(game.windowStart, locale),
+      )
+    : b.waitingStart;
 }
 
 export function useBoardSubtitle(game: BoardGame) {
@@ -133,15 +135,15 @@ export function BoardHeader({
       className="flex flex-none items-center"
       style={{ gap: 22, height: 70 }}
     >
-      <Wordmark />
+      <TembaWordmark className="flex-none" />
       <Divider />
       <div className="min-w-0 flex-1">
-        <div className="font-expanded truncate" style={px(32, 1.1)}>
+        <div className="font-expanded truncate" style={boardType(32, 1.1)}>
           {title}
         </div>
         <div
           className="text-muted-foreground truncate"
-          style={{ ...px(16), marginTop: 5 }}
+          style={{ ...boardType(16), marginTop: 5 }}
         >
           {subtitle}
         </div>
@@ -193,7 +195,10 @@ export function StatusTag({
 
 export function StatusLine({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-muted-foreground whitespace-nowrap" style={px(16)}>
+    <span
+      className="text-muted-foreground whitespace-nowrap"
+      style={boardType(16)}
+    >
       {children}
     </span>
   );
@@ -228,12 +233,12 @@ export function RoundBars({
 export function BoardClock({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex-none text-end" style={{ minWidth: 128 }}>
-      <div className="font-expanded" style={px(46, 0.9)}>
+      <div className="font-expanded" style={boardType(46, 0.9)}>
         <span dir="ltr">{value}</span>
       </div>
       <div
         className="text-muted-foreground whitespace-nowrap"
-        style={{ ...px(14), marginTop: 6 }}
+        style={{ ...boardType(14), marginTop: 6 }}
       >
         {label}
       </div>
@@ -247,11 +252,11 @@ export function SectionHead({ title, meta }: { title: string; meta?: string }) {
       className="flex flex-none items-baseline justify-between"
       style={{ height: 38, gap: 16 }}
     >
-      <span className="font-expanded whitespace-nowrap" style={px(22)}>
+      <span className="font-expanded whitespace-nowrap" style={boardType(22)}>
         {title}
       </span>
       {meta ? (
-        <span className="text-muted-foreground truncate" style={px(15)}>
+        <span className="text-muted-foreground truncate" style={boardType(15)}>
           {meta}
         </span>
       ) : null}
@@ -291,7 +296,10 @@ export function QrCell({
 }) {
   return (
     <div className="flex flex-none items-center" style={{ gap: 12 }}>
-      <div className="text-muted-foreground text-end" style={px(14, 1.35)}>
+      <div
+        className="text-muted-foreground text-end"
+        style={boardType(14, 1.35)}
+      >
         {lines[0]}
         <br />
         {lines[1]}
@@ -321,10 +329,10 @@ export function StripLead({ label, value }: { label: string; value: string }) {
       className="flex flex-none flex-col justify-center"
       style={{ width: 178, padding: "0 20px", gap: 4 }}
     >
-      <span className="text-muted-foreground" style={px(14)}>
+      <span className="text-muted-foreground" style={boardType(14)}>
         {label}
       </span>
-      <span className="font-expanded whitespace-nowrap" style={px(22)}>
+      <span className="font-expanded whitespace-nowrap" style={boardType(22)}>
         {value}
       </span>
     </div>
@@ -350,10 +358,10 @@ export function StripFact({
     >
       {lead}
       <div className="flex min-w-0 flex-col" style={{ gap: 4 }}>
-        <span className="text-muted-foreground truncate" style={px(14)}>
+        <span className="text-muted-foreground truncate" style={boardType(14)}>
           {label}
         </span>
-        <span className="truncate font-semibold" style={px(19)}>
+        <span className="truncate font-semibold" style={boardType(19)}>
           {value}
         </span>
       </div>
@@ -400,11 +408,14 @@ export function MessageStrip({ message }: { message: string }) {
         padding: "0 30px",
       }}
     >
-      <span className="flex-none" style={{ ...px(15, 1.3), maxWidth: 84 }}>
+      <span
+        className="flex-none"
+        style={{ ...boardType(15, 1.3), maxWidth: 84 }}
+      >
         {m.fromOrganizer}
       </span>
       <span className="bg-paper flex-none" style={{ width: 1, height: 44 }} />
-      <span className="font-expanded truncate" style={px(size)}>
+      <span className="font-expanded truncate" style={boardType(size)}>
         {message}
       </span>
     </div>
@@ -446,10 +457,10 @@ export function WaitingPanel({ title, line }: { title: string; line: string }) {
       style={{ borderRadius: 16, gap: 14 }}
     >
       <NotYet height={56} lifted radius={14} width={56} />
-      <div className="font-expanded text-center" style={px(44, 1.1)}>
+      <div className="font-expanded text-center" style={boardType(44, 1.1)}>
         {title}
       </div>
-      <div className="text-dim" style={px(20)}>
+      <div className="text-dim" style={boardType(20)}>
         {line}
       </div>
     </div>
