@@ -230,6 +230,8 @@ export const aloneTeams: typeof source = {
     notAloneOnly: "المنظّم لا يكوّن الفرق في هذا السوشيال.",
     sideOnlyAloneOnly:
       "لا يُطلب اختيار الجهة إلا في سوشيال يكوّن فيه المنظّم الفرق.",
+    sideOnlySignUpAlone:
+      "لا يُطلب اختيار الجهة إلا في سوشيال يسجّل فيه الجميع وحدهم.",
     partnerRegistration:
       "يسجّل الجميع وحدهم في هذا السوشيال. المنظّم يكوّن الفرق.",
     teamsFirst: "انشر الفرق قبل القرعة.",

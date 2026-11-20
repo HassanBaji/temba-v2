@@ -107,9 +107,28 @@ export function inviteJoinDoor(args: {
   return "accept";
 }
 
+/**
+ * A padel link with no Game teams to pick: an Americano, or an Alone-only
+ * Social before its teams are made. The player signs up alone and may ask
+ * for a side.
+ */
+export function inviteJoinSheetAlone(
+  input: Pick<InviteJoinSheetInput, "kind" | "sides">,
+) {
+  return input.kind === "padel" && input.sides.length === 0;
+}
+
+/** The side an alone sign-up asks for; Either asks for none. */
+export function invitePreferredSide(
+  side: SeatSideChoice,
+): "left" | "right" | undefined {
+  return side === "either" ? undefined : side;
+}
+
 /** Everything the one join sheet shows (design 3d, 3f): team, side, the Group toggle, the button. */
 export function gameInviteJoinSheetCopy(input: InviteJoinSheetInput) {
   const { locale } = input;
+  const alone = inviteJoinSheetAlone(input);
   const m = messagesFor(locale);
   const copy = m.mobileInvite.link.joinSheet;
   const teams: InviteJoinSheetTeam[] = input.sides.map((side) => {
@@ -144,11 +163,16 @@ export function gameInviteJoinSheetCopy(input: InviteJoinSheetInput) {
       ? input.teamsMadeAt
         ? copy.leadFootball(input.teamsMadeAt)
         : copy.leadFootballNoTeams
-      : pickedTeam && input.picked
-        ? copy.leadPadelFrom(
-            copy.seatLabel(pickedTeam.label, sideLabel(input.picked.position)),
-          )
-        : copy.leadPadel;
+      : alone
+        ? copy.leadAlone
+        : pickedTeam && input.picked
+          ? copy.leadPadelFrom(
+              copy.seatLabel(
+                pickedTeam.label,
+                sideLabel(input.picked.position),
+              ),
+            )
+          : copy.leadPadel;
   const groupName = input.group
     ? groupDisplayName(input.group.name, locale)
     : null;
@@ -172,6 +196,7 @@ export function gameInviteJoinSheetCopy(input: InviteJoinSheetInput) {
   return {
     title: copy.title,
     lead,
+    alone,
     teamLabel: copy.team,
     teams,
     sideLabel: copy.side,

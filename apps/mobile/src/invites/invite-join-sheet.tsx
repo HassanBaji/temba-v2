@@ -15,6 +15,8 @@ import {
 } from "@repo/domain/football-lineup";
 import {
   gameInviteJoinSheetCopy,
+  inviteJoinDoor,
+  invitePreferredSide,
   type InviteJoinSheetInput,
   type InviteSeatPick,
   type SeatSideChoice,
@@ -34,6 +36,8 @@ export type InviteJoinChoice = {
   seat: InviteSeatPick | null;
   football: { role: FootballRole; position: FootballPosition } | null;
   joinGroup: boolean;
+  /** An alone sign-up's side; none is Either. */
+  preferredSide?: "left" | "right";
 };
 
 /**
@@ -100,6 +104,14 @@ export function InviteJoinSheet({
   const team =
     copy.teams.find((entry) => entry.sideIndex === sideIndex) ?? null;
   const groupOn = copy.groupToggle?.locked ? true : joinGroup;
+  // Only a seat taken now keeps a side; a hold or a Level request has none.
+  const showSide =
+    !copy.alone ||
+    inviteJoinDoor({
+      gate: input.gate,
+      joinGroup: groupOn,
+      levelBlocked: input.levelBlocked,
+    }) === "accept";
   const choice: InviteJoinChoice =
     input.kind === "football"
       ? {
@@ -111,8 +123,10 @@ export function InviteJoinSheet({
           seat: team ? { sideIndex: team.sideIndex, position: side } : null,
           football: null,
           joinGroup: groupOn,
+          preferredSide:
+            copy.alone && showSide ? invitePreferredSide(side) : undefined,
         };
-  const ready = input.kind === "football" || choice.seat != null;
+  const ready = input.kind === "football" || copy.alone || choice.seat != null;
   const sideNote = team ? copy.sideNote(team, side) : null;
 
   return (
@@ -141,46 +155,50 @@ export function InviteJoinSheet({
     >
       {input.kind === "padel" ? (
         <>
-          <View style={{ gap: 10 }}>
-            <Label left={copy.teamLabel} />
-            <View
-              accessibilityRole="radiogroup"
-              style={{ flexDirection: "row", gap: 8 }}
-            >
-              {copy.teams.map((entry) => (
-                <Choice
-                  key={entry.sideIndex}
-                  title={entry.label}
-                  note={entry.meta}
-                  selected={sideIndex === entry.sideIndex}
-                  locked={entry.full}
-                  onPress={() => setSideIndex(entry.sideIndex)}
-                />
-              ))}
+          {copy.alone ? null : (
+            <View style={{ gap: 10 }}>
+              <Label left={copy.teamLabel} />
+              <View
+                accessibilityRole="radiogroup"
+                style={{ flexDirection: "row", gap: 8 }}
+              >
+                {copy.teams.map((entry) => (
+                  <Choice
+                    key={entry.sideIndex}
+                    title={entry.label}
+                    note={entry.meta}
+                    selected={sideIndex === entry.sideIndex}
+                    locked={entry.full}
+                    onPress={() => setSideIndex(entry.sideIndex)}
+                  />
+                ))}
+              </View>
             </View>
-          </View>
-          <View style={{ gap: 10 }}>
-            <Label left={copy.sideLabel} right={copy.sideHint} />
-            <View
-              accessibilityRole="radiogroup"
-              style={{ flexDirection: "row", gap: 8 }}
-            >
-              {copy.sideOptions.map((option) => (
-                <Choice
-                  key={option.value}
-                  title={option.label}
-                  note=""
-                  selected={side === option.value}
-                  onPress={() => setSide(option.value)}
-                />
-              ))}
+          )}
+          {showSide ? (
+            <View style={{ gap: 10 }}>
+              <Label left={copy.sideLabel} right={copy.sideHint} />
+              <View
+                accessibilityRole="radiogroup"
+                style={{ flexDirection: "row", gap: 8 }}
+              >
+                {copy.sideOptions.map((option) => (
+                  <Choice
+                    key={option.value}
+                    title={option.label}
+                    note=""
+                    selected={side === option.value}
+                    onPress={() => setSide(option.value)}
+                  />
+                ))}
+              </View>
+              {sideNote ? (
+                <Text size="meta" tone="muted">
+                  {sideNote}
+                </Text>
+              ) : null}
             </View>
-            {sideNote ? (
-              <Text size="meta" tone="muted">
-                {sideNote}
-              </Text>
-            ) : null}
-          </View>
+          ) : null}
         </>
       ) : (
         <>

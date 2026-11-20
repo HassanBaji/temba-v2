@@ -469,7 +469,7 @@ A compact Result card on a transparent canvas, to drop on the player's own photo
 _Avoid_: widget, badge, overlay
 
 **Americano**:
-A Tournament shape (ADR-0094): players take a seat alone, eight to twenty-four in fours, and get a new partner every Round. The Organizer picks the Round count at create, at most one fewer than the players, and makes the Rounds from a shuffled draw; nobody partners the same player twice. Until a score is in, the Organizer may undo the Rounds, which deletes their Matches, and make them again. Each Match seats its four players directly (**Americano seat**), and one table of players ranks the day on games won. Never rated. Older rows may carry `americano` as their Game format, which is no longer created.
+A Tournament shape (ADR-0094): players take a seat alone, eight to twenty-four in fours, and get a new partner every Round. The Organizer picks the Round count at create, at most one fewer than the players, and makes the Rounds from a shuffled draw; nobody partners the same player twice. Until a score is in, the Organizer may undo the Rounds, which deletes their Matches, and make them again. Each Match seats its four players directly (**Americano seat**), and one table of players ranks the day on games won. A player joining through an Invite link may ask for a side, kept on their Game player; making the Rounds does not read it. Never rated. Older rows may carry `americano` as their Game format, which is no longer created.
 _Avoid_: Friendly game, team-only (illegal on this shape), mexicano (a different rotation)
 
 **Americano seat**:

@@ -40,6 +40,7 @@ import {
 import {
   gameInviteSeatCourt,
   inviteJoinDoor,
+  inviteJoinSheetAlone,
   type InviteSeatPick,
 } from "@repo/domain/game-invite-join-sheet";
 import { groupDisplayName } from "@repo/domain/group-join";
@@ -174,6 +175,9 @@ export function AcceptGameInviteLink({
   const football = ready?.football ?? null;
   const sides = ready?.sides ?? [];
   const seatGame = sides.length > 0;
+  const alone =
+    !partnerRequiredJoin &&
+    inviteJoinSheetAlone({ kind: football ? "football" : "padel", sides });
   const openSeats = football
     ? Math.max(0, (football.playersAllowed ?? 0) - football.players.length)
     : (ready?.vacantSeats.length ?? 0);
@@ -224,6 +228,7 @@ export function AcceptGameInviteLink({
       token,
       ...seat,
       football: footballPick,
+      preferredSide: choice.preferredSide,
       joinGroup: groupGate === "none" ? undefined : choice.joinGroup,
     });
   }
@@ -412,7 +417,7 @@ export function AcceptGameInviteLink({
       />
     ) : null;
   const joinSheet =
-    isSignedIn && (seatGame || football || groupGate !== "none") ? (
+    isSignedIn && (seatGame || football || alone || groupGate !== "none") ? (
       <InviteJoinSheet
         open={sheet.open}
         onOpenChange={(open) => setSheet((current) => ({ ...current, open }))}
@@ -595,7 +600,8 @@ export function AcceptGameInviteLink({
     });
   }
 
-  const opensSheet = seatGame || football != null || groupGate !== "none";
+  const opensSheet =
+    seatGame || football != null || alone || groupGate !== "none";
   const sheetSubline = football
     ? heroCopy.barSheetFootball
     : seatGame

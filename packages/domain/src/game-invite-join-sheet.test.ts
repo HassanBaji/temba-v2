@@ -4,6 +4,8 @@ import {
   gameInviteJoinSheetCopy,
   gameInviteSeatCourt,
   inviteJoinDoor,
+  inviteJoinSheetAlone,
+  invitePreferredSide,
 } from "./game-invite-join-sheet";
 
 const sides = [
@@ -153,5 +155,43 @@ describe("gameInviteJoinSheetCopy", () => {
         football: { role: "keeper", position: "mid" },
       }),
     ).toBe("اجلس في حارس");
+  });
+});
+
+describe("an alone sign-up's sheet", () => {
+  it("asks no team on a padel link without Game teams, only an optional side", () => {
+    const input = {
+      kind: "padel" as const,
+      sides: [],
+      picked: null,
+      usualSide: null,
+      teamsMadeAt: null,
+      group,
+      gate: "open" as const,
+      gamePublic: false,
+      levelBlocked: false,
+      locale: "en" as const,
+    };
+    expect(inviteJoinSheetAlone(input)).toBe(true);
+    const copy = gameInviteJoinSheetCopy(input);
+    expect(copy.alone).toBe(true);
+    expect(copy.teams).toEqual([]);
+    expect(copy.lead).toBe(
+      "Same as joining in the app. You sign up alone, so there is no team to pick. Pick a side if you like.",
+    );
+    expect(copy.sideHint).toBe("optional");
+    expect(copy.cta({ joinGroup: true, seat: null, football: null })).toBe(
+      "Take the seat",
+    );
+  });
+
+  it("is not alone on a padel link with Game teams or on football", () => {
+    expect(inviteJoinSheetAlone({ kind: "padel", sides })).toBe(false);
+    expect(inviteJoinSheetAlone({ kind: "football", sides: [] })).toBe(false);
+  });
+
+  it("sends Either as no side", () => {
+    expect(invitePreferredSide("either")).toBeUndefined();
+    expect(invitePreferredSide("left")).toBe("left");
   });
 });

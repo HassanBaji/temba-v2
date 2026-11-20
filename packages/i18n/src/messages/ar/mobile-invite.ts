@@ -105,6 +105,8 @@ export const mobileInvite = {
     joinSheet: {
       title: "اجلس هنا",
       leadPadel: "كما في التطبيق. اختر فريقًا، وجهة إن شئت.",
+      leadAlone:
+        "كما في التطبيق. تسجّل وحدك، فلا فريق تختاره. اختر جهة إن شئت.",
       leadPadelFrom: (seat: string) => `كما في التطبيق. ${seat}، من حيث ضغطت.`,
       leadFootball: (when: string) =>
         `كما في التطبيق. تُكوَّن الفرق ${when}، لذا تختار دورًا ومركزًا مفضّلًا لا فريقًا.`,
