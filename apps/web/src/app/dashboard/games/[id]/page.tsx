@@ -55,6 +55,11 @@ import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
 import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { TournamentHome } from "~/components/games/tournament-home";
+import {
+  GameTvCardProvider,
+  GameTvCardSlot,
+  useGameTv,
+} from "~/components/live-board/game-tv";
 import { TournamentKnockoutCancelDialog } from "~/components/games/tournament-knockout-cancel-dialog";
 import { TournamentPoolTablesPanel } from "~/components/games/tournament-pool-tables-panel";
 import {
@@ -91,6 +96,7 @@ import {
   friendlyGameVacantSeatLine,
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
+  type FriendlyGameShareLink,
 } from "@repo/domain/friendly-game-cta";
 import {
   lineupSidesNote,
@@ -210,6 +216,10 @@ export default function GameHomePage({
     });
   }
   const game = api.games.byId.useQuery({ id });
+  const tv = useGameTv(
+    id,
+    Boolean(game.data?.isOrganizer && !game.data.cancelledAt),
+  );
   const resultsSectionRef = React.useRef<HTMLDivElement>(null);
   const focusResultsSection = React.useCallback(() => {
     const section = resultsSectionRef.current;
@@ -824,12 +834,16 @@ export default function GameHomePage({
 
   if (isFootballRosterGame(data)) {
     return (
-      <FootballGameDetails
-        gameId={id}
-        game={data}
-        openInvites={intent === "invite"}
-        openJoin={intent === "join"}
-      />
+      <GameTvCardProvider card={tv.card}>
+        <FootballGameDetails
+          gameId={id}
+          game={data}
+          openInvites={intent === "invite"}
+          openJoin={intent === "join"}
+          tvRow={tv.menuRow}
+        />
+        {tv.sheet}
+      </GameTvCardProvider>
     );
   }
 
@@ -930,8 +944,15 @@ export default function GameHomePage({
         onEditTeams={openEditTeams}
         onFooterAction={(kind) => footerHandlers[kind]()}
         onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
+        tvRow={tv.menuRow}
       />
     ) : null;
+  const shareLinkHandler = (link: FriendlyGameShareLink | null) =>
+    link === "invite_link"
+      ? shareInviteLink
+      : link === "game_page"
+        ? shareGamePage
+        : undefined;
   const shareLink = friendlyGameShareLink({
     canMintInvite: canManageGameInvites,
     cancelled: data.cancelledAt != null,
@@ -949,9 +970,7 @@ export default function GameHomePage({
           variant="ghost"
           aria-label={g.shareGame}
           className="border-dimrule bg-raised text-on-focus hover:bg-raised/80 hover:text-on-focus rounded-md border"
-          onClick={
-            shareLink === "invite_link" ? shareInviteLink : shareGamePage
-          }
+          onClick={shareLinkHandler(shareLink)}
         >
           <Share aria-hidden="true" className="size-5" />
         </Button>
@@ -1064,6 +1083,7 @@ export default function GameHomePage({
                   icon: PencilIcon,
                   onSelect: () => setEditOpen(true),
                 },
+                ...(tv.menuRow ? [tv.menuRow] : []),
                 data.registrationClosedAt
                   ? {
                       key: "reopen_registration",
@@ -1163,854 +1183,887 @@ export default function GameHomePage({
     : null;
 
   return (
-    <DashboardShell
-      title={shellTitle}
-      hidePageHeader
-      hideMobileTopBar={usesDrawnTournamentChrome || usesFriendlyChrome}
-      isSubPage={true}
-      hideNav={true}
-    >
-      <div
-        className={cn(
-          "space-y-6",
-          ctaFamily.kind !== "none" && !playedMatch && "max-lg:pb-20",
-          ctaFamily.kind !== "none" &&
-            !playedMatch &&
-            !(usesFriendlyChrome && heroInput) &&
-            "mt-6",
-        )}
+    <GameTvCardProvider card={tv.card}>
+      <DashboardShell
+        title={shellTitle}
+        hidePageHeader
+        hideMobileTopBar={usesDrawnTournamentChrome || usesFriendlyChrome}
+        isSubPage={true}
+        hideNav={true}
       >
-        {(usesFriendlyChrome || usesDrawnTournamentChrome) &&
-        data.cancelledAt ? (
-          <section
-            role="status"
-            className="bg-destructive/10 text-destructive rounded-xl p-4"
-          >
-            <div className="flex gap-3">
-              <Ban
-                aria-hidden="true"
-                className="mt-0.5 size-5 shrink-0"
-                strokeWidth={2}
-              />
-              <p className="text-title font-semibold tracking-[-0.01em]">
-                {g.cancelledHeading}
-              </p>
-            </div>
-          </section>
-        ) : null}
+        <div
+          className={cn(
+            "space-y-6",
+            ctaFamily.kind !== "none" && !playedMatch && "max-lg:pb-20",
+            ctaFamily.kind !== "none" &&
+              !playedMatch &&
+              !(usesFriendlyChrome && heroInput) &&
+              "mt-6",
+          )}
+        >
+          {(usesFriendlyChrome || usesDrawnTournamentChrome) &&
+          data.cancelledAt ? (
+            <section
+              role="status"
+              className="bg-destructive/10 text-destructive rounded-xl p-4"
+            >
+              <div className="flex gap-3">
+                <Ban
+                  aria-hidden="true"
+                  className="mt-0.5 size-5 shrink-0"
+                  strokeWidth={2}
+                />
+                <p className="text-title font-semibold tracking-[-0.01em]">
+                  {g.cancelledHeading}
+                </p>
+              </div>
+            </section>
+          ) : null}
 
-        {usesDrawnTournamentChrome ? (
-          <>
-            <TournamentHome
-              data={data}
-              linkToPlayers={gamePlayersLink(data)}
-              sharePending={createInviteLink.isPending}
-              joinPending={registerSeat.isPending}
-              leavePending={leaveGame.isPending || leaveWaitlist.isPending}
-              kickPending={kick.isPending}
-              closePending={closeRegistration.isPending}
-              reopenPending={reopenRegistration.isPending}
-              mergePending={mergeHalfTeams.isPending}
-              mergeError={mergeHalfTeams.error}
-              onMerge={async (input) => {
-                await mergeHalfTeams.mutateAsync({
-                  gameId: id,
-                  ...input,
-                });
-              }}
-              drawPending={drawPools.isPending}
-              drawError={drawPools.error}
-              onDraw={async () => {
-                await drawPools.mutateAsync({ gameId: id });
-              }}
-              postPending={postPoolDraw.isPending}
-              postError={postPoolDraw.error}
-              onPost={async () => {
-                await postPoolDraw.mutateAsync({
-                  gameId: id,
-                  rounds: knockoutOnlyDraw() ? "all" : "later",
-                });
-              }}
-              undoPending={undoPoolDraw.isPending}
-              undoError={undoPoolDraw.error}
-              onUndo={async () => {
-                await undoPoolDraw.mutateAsync({ gameId: id });
-              }}
-              kingActions={{
-                courtsPending: postKingCourts.isPending,
-                courtsError: postKingCourts.error,
-                onPostCourts: async (gameTeamIds) => {
-                  await postKingCourts.mutateAsync({ gameId: id, gameTeamIds });
-                },
-                orderPending: postKingFinalOrder.isPending,
-                orderError: postKingFinalOrder.error,
-                onPostFinalOrder: async (gameTeamIds) => {
-                  await postKingFinalOrder.mutateAsync({
+          {usesDrawnTournamentChrome ? (
+            <>
+              <TournamentHome
+                tvRow={tv.menuRow}
+                onShareGame={shareLinkHandler(
+                  friendlyGameShareLink({
+                    canMintInvite:
+                      canManageGameInvites &&
+                      data.registrationStatus === "open",
+                    cancelled: data.cancelledAt != null,
+                    phase: null,
+                  }),
+                )}
+                data={data}
+                linkToPlayers={gamePlayersLink(data)}
+                sharePending={createInviteLink.isPending}
+                joinPending={registerSeat.isPending}
+                leavePending={leaveGame.isPending || leaveWaitlist.isPending}
+                kickPending={kick.isPending}
+                closePending={closeRegistration.isPending}
+                reopenPending={reopenRegistration.isPending}
+                mergePending={mergeHalfTeams.isPending}
+                mergeError={mergeHalfTeams.error}
+                onMerge={async (input) => {
+                  await mergeHalfTeams.mutateAsync({
                     gameId: id,
-                    gameTeamIds,
+                    ...input,
                   });
-                },
-              }}
-              onShare={canManageGameInvites ? shareInviteLink : undefined}
-              onInvite={
-                canManageGameInvites ? () => setInvitesOpen(true) : undefined
-              }
-              onJoin={
-                usesDrawnTournamentSeats
-                  ? (seat) => openJoinPicker(seat)
-                  : undefined
-              }
-              onJoinWaitlist={
-                usesDrawnTournamentSeats
-                  ? () => registerSeat.mutate({ gameId: id })
-                  : undefined
-              }
-              teamId={teamId}
-              onTeamIdChange={setTeamId}
-              onRegisterTeam={(nextTeamId) =>
-                registerTeam.mutate({ gameId: id, teamId: nextTeamId })
-              }
-              registerTeamPending={registerTeam.isPending}
-              onLeaveGame={() => setLeaveGameOpen(true)}
-              onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
-              onEdit={() => setEditOpen(true)}
-              onCloseRegistration={() =>
-                closeRegistration.mutate({ gameId: id })
-              }
-              onReopenRegistration={() =>
-                reopenRegistration.mutate({ gameId: id })
-              }
-              onCancelGame={() => setCancelGameOpen(true)}
-              onKick={(userId) => requestKick({ userId })}
-              onKickWaitlist={(waitlistId) => requestKick({ waitlistId })}
-              onAddPlayer={openAddPlayer}
-              onEditTeams={openEditTeams}
-              onOpenSeat={
-                canAddPlayer && addPlacement === "side"
-                  ? (seat, canJoin) => {
-                      if (canJoin) {
-                        setOpenSpot({ seat, own: "join" });
-                        return;
-                      }
-                      addPlayerToSide(seat.sideIndex);
-                    }
-                  : undefined
-              }
-              onCancelKnockoutMatch={setCancelKnockoutPlace}
-            />
-          </>
-        ) : usesFriendlyChrome ? (
-          <>
-            <h1 className="sr-only">{g.friendlyGameHeading}</h1>
-            {heroInput && !playedMatch ? (
-              <FriendlyGameDetailsHero
-                input={heroInput}
-                place={heroPlace}
-                figures={heroFigures}
-                actions={heroActions}
-              />
-            ) : playedMatch ? null : (
-              <HeroNavRow tone="paper" actions={gameMenu(false)} />
-            )}
-          </>
-        ) : (
-          <GameHomeHeader
-            name={gameName}
-            groupId={data.groupId}
-            groupName={data.groupName}
-            sport={data.sport}
-            isPublic={data.isPublic}
-            format={data.format}
-            registrationMode={data.registrationMode}
-            registrationStatus={data.registrationStatus}
-            viewerStatus={gameViewerStatus(data)}
-            primaryAction={headerActions}
-            actions={organizerMenu}
-          />
-        )}
-
-        {usesFriendlyChrome && ctaFamily.kind !== "none" && !playedMatch ? (
-          <div className="max-lg:contents">
-            <FriendlyGameCtaBar
-              family={ctaFamily}
-              lines={ctaLines}
-              joinPending={registerSeat.isPending}
-              waitlistPending={leaveWaitlist.isPending}
-              onJoin={() => setJoinPickerOpen(true)}
-              onJoinWaitlist={() => registerSeat.mutate({ gameId: id })}
-              onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
-              onAddResult={focusResultsSection}
-              onInvite={
-                ctaFamily.kind === "upcoming" && ctaFamily.showInvite
-                  ? () => setInvitesOpen(true)
-                  : undefined
-              }
-              onShareResult={
-                ctaFamily.kind === "final"
-                  ? () => {
-                      void shareLinkWithFeedback(
-                        {
-                          text: window.location.href,
-                          url: window.location.href,
-                        },
-                        g.toast.linkCopied,
-                        locale,
-                      );
-                    }
-                  : undefined
-              }
-            />
-          </div>
-        ) : null}
-
-        {usesDrawnTournamentChrome ? null : playedMatch ? (
-          <PlayedFriendlyGame
-            gameId={id}
-            game={data}
-            match={playedMatch}
-            linkToPlayers={gamePlayersLink(data)}
-            onKick={(userId) => requestKick({ userId })}
-            onRename={data.isOrganizer ? setRenaming : undefined}
-            onAddPlayer={openAddPlayer}
-            onReportWrongScore={() => setReportWrongScoreOpen(true)}
-          />
-        ) : usesFriendlyChrome ? (
-          // Hero + Line-up + Score + Rating impact (game-details redesign,
-          // TEM-179/TEM-180/TEM-181/TEM-182): the tab bar and Overview tab
-          // are gone for this Game format, the Players tab content is
-          // replaced by the court Line-up, the Results tab content by the
-          // Score section, and the Rating impact block (Final phase only)
-          // explains why the viewer's Home level card changed. Editing and
-          // destructive actions live only in the hero's ⋮ menu.
-          <div className="space-y-6">
-            <GameLevelRangePanel game={data} />
-            {data.challenge ? (
-              <ChallengeDetailsBlock
-                challenge={data.challenge}
-                sport={data.sport}
-                rated={data.rated}
-              />
-            ) : null}
-            {data.booking ? (
-              <GameBookedBlock
-                booking={data.booking}
-                ratingScope={data.ratingScope}
-              />
-            ) : (
-              <GameRatingScopeBlock
-                scope={data.ratingScope}
-                sport={data.sport}
-                publicGame={isPublicGame(data)}
-              />
-            )}
-            <GameLineupSection
-              sides={data.sides}
-              viewerUserId={data.viewerUserId}
-              vacantSeatCount={vacantSeatCount}
-              hint={
-                canAddAtSeat && vacantSeatCount > 0
-                  ? m.game.court.addPlayerHint
-                  : null
-              }
-              busy={moveSeat.isPending}
-              openSeatAction={openSeatAction}
-              onInvite={
-                canManageGameInvites && vacantSeatCount > 0
-                  ? () => setInvitesOpen(true)
-                  : undefined
-              }
-              onPressPlayer={
-                gamePlayersLink(data) || data.isOrganizer
-                  ? setSelectedPlayer
-                  : undefined
-              }
-              note={lineupSidesNote({
-                teams: data.sides,
-                viewerUserId: data.viewerUserId,
-                canJoin: data.canRegister && vacantSeatCount > 0,
-                locale,
-              })}
-              isOrganizer={data.isOrganizer}
-              setSidesPending={setTeamSides.isPending}
-              onSetSides={
-                data.isOrganizer &&
-                (data.phase === "upcoming" ||
-                  data.phase === "ongoing" ||
-                  data.phase === "needs_results")
-                  ? (sideIndex, leftUserId) =>
-                      setTeamSides.mutate({ gameId: id, sideIndex, leftUserId })
-                  : undefined
-              }
-              onPickSide={
-                !data.isOrganizer &&
-                data.phase === "upcoming" &&
-                viewerTeam(data.sides, data.viewerUserId)
-                  ? () => setPickSideOpen(true)
-                  : undefined
-              }
-            />
-            <GamePaymentsSection
-              gameId={id}
-              tracked={gamePaymentsTracked(data)}
-            />
-            {data.phase && data.phase !== "cancelled" && firstMatch ? (
-              <div ref={resultsSectionRef}>
-                <GameScoreSection
-                  phase={data.phase}
-                  match={firstMatch}
-                  sides={data.sides}
-                  viewerUserId={data.viewerUserId}
-                  winningGameTeamId={winningGameTeamId}
-                  matchResultConfirmation={data.matchResultConfirmation}
-                  confirmWindow={data.confirmWindow}
-                  isOrganizer={
-                    data.matchResultConfirmation?.viewerConfirmsAsOrganizer ??
-                    false
-                  }
-                  courtFull={vacantSeatCount === 0}
-                  scorePending={scoreSet.isPending}
-                  confirmPending={confirmMatchResult.isPending}
-                  stampPending={stampMatch.isPending}
-                  onScoreSet={(input) =>
-                    scoreSet.mutateAsync({
+                }}
+                drawPending={drawPools.isPending}
+                drawError={drawPools.error}
+                onDraw={async () => {
+                  await drawPools.mutateAsync({ gameId: id });
+                }}
+                postPending={postPoolDraw.isPending}
+                postError={postPoolDraw.error}
+                onPost={async () => {
+                  await postPoolDraw.mutateAsync({
+                    gameId: id,
+                    rounds: knockoutOnlyDraw() ? "all" : "later",
+                  });
+                }}
+                undoPending={undoPoolDraw.isPending}
+                undoError={undoPoolDraw.error}
+                onUndo={async () => {
+                  await undoPoolDraw.mutateAsync({ gameId: id });
+                }}
+                kingActions={{
+                  courtsPending: postKingCourts.isPending,
+                  courtsError: postKingCourts.error,
+                  onPostCourts: async (gameTeamIds) => {
+                    await postKingCourts.mutateAsync({
                       gameId: id,
-                      matchId: firstMatch.id,
+                      gameTeamIds,
+                    });
+                  },
+                  orderPending: postKingFinalOrder.isPending,
+                  orderError: postKingFinalOrder.error,
+                  onPostFinalOrder: async (gameTeamIds) => {
+                    await postKingFinalOrder.mutateAsync({
+                      gameId: id,
+                      gameTeamIds,
+                    });
+                  },
+                }}
+                onShare={canManageGameInvites ? shareInviteLink : undefined}
+                onInvite={
+                  canManageGameInvites ? () => setInvitesOpen(true) : undefined
+                }
+                onJoin={
+                  usesDrawnTournamentSeats
+                    ? (seat) => openJoinPicker(seat)
+                    : undefined
+                }
+                onJoinWaitlist={
+                  usesDrawnTournamentSeats
+                    ? () => registerSeat.mutate({ gameId: id })
+                    : undefined
+                }
+                teamId={teamId}
+                onTeamIdChange={setTeamId}
+                onRegisterTeam={(nextTeamId) =>
+                  registerTeam.mutate({ gameId: id, teamId: nextTeamId })
+                }
+                registerTeamPending={registerTeam.isPending}
+                onLeaveGame={() => setLeaveGameOpen(true)}
+                onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
+                onEdit={() => setEditOpen(true)}
+                onCloseRegistration={() =>
+                  closeRegistration.mutate({ gameId: id })
+                }
+                onReopenRegistration={() =>
+                  reopenRegistration.mutate({ gameId: id })
+                }
+                onCancelGame={() => setCancelGameOpen(true)}
+                onKick={(userId) => requestKick({ userId })}
+                onKickWaitlist={(waitlistId) => requestKick({ waitlistId })}
+                onAddPlayer={openAddPlayer}
+                onEditTeams={openEditTeams}
+                onOpenSeat={
+                  canAddPlayer && addPlacement === "side"
+                    ? (seat, canJoin) => {
+                        if (canJoin) {
+                          setOpenSpot({ seat, own: "join" });
+                          return;
+                        }
+                        addPlayerToSide(seat.sideIndex);
+                      }
+                    : undefined
+                }
+                onCancelKnockoutMatch={setCancelKnockoutPlace}
+              />
+            </>
+          ) : usesFriendlyChrome ? (
+            <>
+              <h1 className="sr-only">{g.friendlyGameHeading}</h1>
+              {heroInput && !playedMatch ? (
+                <FriendlyGameDetailsHero
+                  input={heroInput}
+                  place={heroPlace}
+                  figures={heroFigures}
+                  actions={heroActions}
+                />
+              ) : playedMatch ? null : (
+                <HeroNavRow tone="paper" actions={gameMenu(false)} />
+              )}
+              <GameTvCardSlot />
+            </>
+          ) : (
+            <GameHomeHeader
+              name={gameName}
+              groupId={data.groupId}
+              groupName={data.groupName}
+              sport={data.sport}
+              isPublic={data.isPublic}
+              format={data.format}
+              registrationMode={data.registrationMode}
+              registrationStatus={data.registrationStatus}
+              viewerStatus={gameViewerStatus(data)}
+              primaryAction={headerActions}
+              actions={organizerMenu}
+            />
+          )}
+          {usesDrawnTournamentChrome || usesFriendlyChrome ? null : (
+            <GameTvCardSlot />
+          )}
+
+          {usesFriendlyChrome && ctaFamily.kind !== "none" && !playedMatch ? (
+            <div className="max-lg:contents">
+              <FriendlyGameCtaBar
+                family={ctaFamily}
+                lines={ctaLines}
+                joinPending={registerSeat.isPending}
+                waitlistPending={leaveWaitlist.isPending}
+                onJoin={() => setJoinPickerOpen(true)}
+                onJoinWaitlist={() => registerSeat.mutate({ gameId: id })}
+                onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
+                onAddResult={focusResultsSection}
+                onInvite={
+                  ctaFamily.kind === "upcoming" && ctaFamily.showInvite
+                    ? () => setInvitesOpen(true)
+                    : undefined
+                }
+                onShareResult={
+                  ctaFamily.kind === "final"
+                    ? () => {
+                        void shareLinkWithFeedback(
+                          {
+                            text: window.location.href,
+                            url: window.location.href,
+                          },
+                          g.toast.linkCopied,
+                          locale,
+                        );
+                      }
+                    : undefined
+                }
+              />
+            </div>
+          ) : null}
+
+          {usesDrawnTournamentChrome ? null : playedMatch ? (
+            <PlayedFriendlyGame
+              gameId={id}
+              game={data}
+              match={playedMatch}
+              linkToPlayers={gamePlayersLink(data)}
+              onKick={(userId) => requestKick({ userId })}
+              onRename={data.isOrganizer ? setRenaming : undefined}
+              onAddPlayer={openAddPlayer}
+              onReportWrongScore={() => setReportWrongScoreOpen(true)}
+            />
+          ) : usesFriendlyChrome ? (
+            // Hero + Line-up + Score + Rating impact (game-details redesign,
+            // TEM-179/TEM-180/TEM-181/TEM-182): the tab bar and Overview tab
+            // are gone for this Game format, the Players tab content is
+            // replaced by the court Line-up, the Results tab content by the
+            // Score section, and the Rating impact block (Final phase only)
+            // explains why the viewer's Home level card changed. Editing and
+            // destructive actions live only in the hero's ⋮ menu.
+            <div className="space-y-6">
+              <GameLevelRangePanel game={data} />
+              {data.challenge ? (
+                <ChallengeDetailsBlock
+                  challenge={data.challenge}
+                  sport={data.sport}
+                  rated={data.rated}
+                />
+              ) : null}
+              {data.booking ? (
+                <GameBookedBlock
+                  booking={data.booking}
+                  ratingScope={data.ratingScope}
+                />
+              ) : (
+                <GameRatingScopeBlock
+                  scope={data.ratingScope}
+                  sport={data.sport}
+                  publicGame={isPublicGame(data)}
+                />
+              )}
+              <GameLineupSection
+                sides={data.sides}
+                viewerUserId={data.viewerUserId}
+                vacantSeatCount={vacantSeatCount}
+                hint={
+                  canAddAtSeat && vacantSeatCount > 0
+                    ? m.game.court.addPlayerHint
+                    : null
+                }
+                busy={moveSeat.isPending}
+                openSeatAction={openSeatAction}
+                onInvite={
+                  canManageGameInvites && vacantSeatCount > 0
+                    ? () => setInvitesOpen(true)
+                    : undefined
+                }
+                onPressPlayer={
+                  gamePlayersLink(data) || data.isOrganizer
+                    ? setSelectedPlayer
+                    : undefined
+                }
+                note={lineupSidesNote({
+                  teams: data.sides,
+                  viewerUserId: data.viewerUserId,
+                  canJoin: data.canRegister && vacantSeatCount > 0,
+                  locale,
+                })}
+                isOrganizer={data.isOrganizer}
+                setSidesPending={setTeamSides.isPending}
+                onSetSides={
+                  data.isOrganizer &&
+                  (data.phase === "upcoming" ||
+                    data.phase === "ongoing" ||
+                    data.phase === "needs_results")
+                    ? (sideIndex, leftUserId) =>
+                        setTeamSides.mutate({
+                          gameId: id,
+                          sideIndex,
+                          leftUserId,
+                        })
+                    : undefined
+                }
+                onPickSide={
+                  !data.isOrganizer &&
+                  data.phase === "upcoming" &&
+                  viewerTeam(data.sides, data.viewerUserId)
+                    ? () => setPickSideOpen(true)
+                    : undefined
+                }
+              />
+              <GamePaymentsSection
+                gameId={id}
+                tracked={gamePaymentsTracked(data)}
+              />
+              {data.phase && data.phase !== "cancelled" && firstMatch ? (
+                <div ref={resultsSectionRef}>
+                  <GameScoreSection
+                    phase={data.phase}
+                    match={firstMatch}
+                    sides={data.sides}
+                    viewerUserId={data.viewerUserId}
+                    winningGameTeamId={winningGameTeamId}
+                    matchResultConfirmation={data.matchResultConfirmation}
+                    confirmWindow={data.confirmWindow}
+                    isOrganizer={
+                      data.matchResultConfirmation?.viewerConfirmsAsOrganizer ??
+                      false
+                    }
+                    courtFull={vacantSeatCount === 0}
+                    scorePending={scoreSet.isPending}
+                    confirmPending={confirmMatchResult.isPending}
+                    stampPending={stampMatch.isPending}
+                    onScoreSet={(input) =>
+                      scoreSet.mutateAsync({
+                        gameId: id,
+                        matchId: firstMatch.id,
+                        setId: input.setId,
+                        slot1GamesWon: input.slot1GamesWon,
+                        slot2GamesWon: input.slot2GamesWon,
+                      })
+                    }
+                    onConfirm={() =>
+                      confirmMatchResult.mutate({
+                        gameId: id,
+                        matchId: firstMatch.id,
+                      })
+                    }
+                    onStamp={() =>
+                      stampMatch.mutate({ matchId: firstMatch.id })
+                    }
+                  />
+                </div>
+              ) : null}
+              {data.phase === "final" && data.ratingImpact ? (
+                <GameRatingImpactBlock ratingImpact={data.ratingImpact} />
+              ) : null}
+            </div>
+          ) : (
+            <Tabs value={tab} onValueChange={setTab} className="gap-4">
+              <TabsList
+                variant="segmented"
+                className="sticky top-[var(--mobile-top-bar-height)] z-20 lg:top-0"
+              >
+                <TabsTrigger value="overview">{g.tabs.overview}</TabsTrigger>
+                <TabsTrigger value="players">{g.tabs.players}</TabsTrigger>
+                <TabsTrigger value="results">{g.tabs.results}</TabsTrigger>
+              </TabsList>
+              <TabsContent value="overview">
+                <div className="space-y-6">
+                  {data.drawPostedAt && data.poolTables?.pools.length ? (
+                    <TournamentPoolTablesPanel
+                      poolTables={data.poolTables}
+                      gameTeams={
+                        gamePlayersLink(data) ? data.gameTeams : undefined
+                      }
+                    />
+                  ) : null}
+                  <GameOverviewPanel game={data} />
+                </div>
+              </TabsContent>
+              <TabsContent value="players">
+                <div className="space-y-6">
+                  <GamePlayersPanel
+                    game={data}
+                    onRenameUnclaimed={
+                      data.isOrganizer ? setRenaming : undefined
+                    }
+                    partnerQuery={partnerQuery}
+                    selectedPartner={selectedPartner}
+                    partnerSide={partnerSide}
+                    partnerPosition={partnerPosition}
+                    teamId={teamId}
+                    partnerSearch={partnerSearch.data}
+                    partnerSearchPending={partnerSearch.isFetching}
+                    registerWithPartnerPending={registerWithPartner.isPending}
+                    partnerError={registerWithPartner.error}
+                    registerSeatPending={registerSeat.isPending}
+                    moveSeatPending={moveSeat.isPending}
+                    kickPending={kick.isPending}
+                    registerTeamPending={registerTeam.isPending}
+                    onPartnerQueryChange={setPartnerQuery}
+                    onSelectedPartnerChange={setSelectedPartner}
+                    onPartnerSideChange={setPartnerSide}
+                    onPartnerPositionChange={setPartnerPosition}
+                    onTeamIdChange={setTeamId}
+                    onRegisterSeat={(input) =>
+                      registerSeat.mutate({
+                        gameId: id,
+                        sideIndex: input?.sideIndex,
+                        position: input?.position,
+                      })
+                    }
+                    onMoveSeat={(sideIndex, position) =>
+                      moveSeat.mutate({ gameId: id, sideIndex, position })
+                    }
+                    onKick={(userId) => requestKick({ userId })}
+                    onKickWaitlist={(waitlistId) => requestKick({ waitlistId })}
+                    onRegisterWithPartner={(input) =>
+                      registerWithPartner.mutate({ gameId: id, ...input })
+                    }
+                    onRegisterTeam={(nextTeamId) =>
+                      registerTeam.mutate({ gameId: id, teamId: nextTeamId })
+                    }
+                  />
+                </div>
+              </TabsContent>
+              <TabsContent value="results">
+                <GameResultsPanel
+                  format={data.format}
+                  matches={data.matches}
+                  gameTeams={data.gameTeams}
+                  isOrganizer={data.isOrganizer}
+                  cancelled={Boolean(data.cancelledAt)}
+                  courts={courts.data ?? []}
+                  scorePending={scoreSet.isPending}
+                  completePending={completeMatch.isPending}
+                  cancelPending={cancelMatch.isPending}
+                  updatePending={updateMatch.isPending}
+                  stampPending={stampMatch.isPending}
+                  onStamp={(matchId) => stampMatch.mutate({ matchId })}
+                  onScoreSet={(input) =>
+                    scoreSet.mutate({
+                      gameId: id,
+                      matchId: input.matchId,
                       setId: input.setId,
                       slot1GamesWon: input.slot1GamesWon,
                       slot2GamesWon: input.slot2GamesWon,
                     })
                   }
-                  onConfirm={() =>
-                    confirmMatchResult.mutate({
+                  onComplete={(matchId) => setCompleteMatchId(matchId)}
+                  onUpdateCourt={(input) =>
+                    updateMatch.mutate({
                       gameId: id,
-                      matchId: firstMatch.id,
+                      matchId: input.matchId,
+                      courtId: input.courtId,
                     })
                   }
-                  onStamp={() => stampMatch.mutate({ matchId: firstMatch.id })}
-                />
-              </div>
-            ) : null}
-            {data.phase === "final" && data.ratingImpact ? (
-              <GameRatingImpactBlock ratingImpact={data.ratingImpact} />
-            ) : null}
-          </div>
-        ) : (
-          <Tabs value={tab} onValueChange={setTab} className="gap-4">
-            <TabsList
-              variant="segmented"
-              className="sticky top-[var(--mobile-top-bar-height)] z-20 lg:top-0"
-            >
-              <TabsTrigger value="overview">{g.tabs.overview}</TabsTrigger>
-              <TabsTrigger value="players">{g.tabs.players}</TabsTrigger>
-              <TabsTrigger value="results">{g.tabs.results}</TabsTrigger>
-            </TabsList>
-            <TabsContent value="overview">
-              <div className="space-y-6">
-                {data.drawPostedAt && data.poolTables?.pools.length ? (
-                  <TournamentPoolTablesPanel
-                    poolTables={data.poolTables}
-                    gameTeams={
-                      gamePlayersLink(data) ? data.gameTeams : undefined
-                    }
-                  />
-                ) : null}
-                <GameOverviewPanel game={data} />
-              </div>
-            </TabsContent>
-            <TabsContent value="players">
-              <div className="space-y-6">
-                <GamePlayersPanel
-                  game={data}
-                  onRenameUnclaimed={data.isOrganizer ? setRenaming : undefined}
-                  partnerQuery={partnerQuery}
-                  selectedPartner={selectedPartner}
-                  partnerSide={partnerSide}
-                  partnerPosition={partnerPosition}
-                  teamId={teamId}
-                  partnerSearch={partnerSearch.data}
-                  partnerSearchPending={partnerSearch.isFetching}
-                  registerWithPartnerPending={registerWithPartner.isPending}
-                  partnerError={registerWithPartner.error}
-                  registerSeatPending={registerSeat.isPending}
-                  moveSeatPending={moveSeat.isPending}
-                  kickPending={kick.isPending}
-                  registerTeamPending={registerTeam.isPending}
-                  onPartnerQueryChange={setPartnerQuery}
-                  onSelectedPartnerChange={setSelectedPartner}
-                  onPartnerSideChange={setPartnerSide}
-                  onPartnerPositionChange={setPartnerPosition}
-                  onTeamIdChange={setTeamId}
-                  onRegisterSeat={(input) =>
-                    registerSeat.mutate({
+                  onUpdateSlots={(input) =>
+                    updateMatch.mutate({
                       gameId: id,
-                      sideIndex: input?.sideIndex,
-                      position: input?.position,
+                      matchId: input.matchId,
+                      startTime: input.startTime,
+                      endTime: input.endTime,
+                      durationInMinutes: input.durationInMinutes,
+                      courtId: input.courtId,
+                      slot1GameTeamId: input.slot1GameTeamId,
+                      slot2GameTeamId: input.slot2GameTeamId,
                     })
                   }
-                  onMoveSeat={(sideIndex, position) =>
-                    moveSeat.mutate({ gameId: id, sideIndex, position })
-                  }
-                  onKick={(userId) => requestKick({ userId })}
-                  onKickWaitlist={(waitlistId) => requestKick({ waitlistId })}
-                  onRegisterWithPartner={(input) =>
-                    registerWithPartner.mutate({ gameId: id, ...input })
-                  }
-                  onRegisterTeam={(nextTeamId) =>
-                    registerTeam.mutate({ gameId: id, teamId: nextTeamId })
-                  }
+                  onCancelMatch={(matchId) => setCancelMatchId(matchId)}
                 />
-              </div>
-            </TabsContent>
-            <TabsContent value="results">
-              <GameResultsPanel
-                format={data.format}
-                matches={data.matches}
-                gameTeams={data.gameTeams}
-                isOrganizer={data.isOrganizer}
-                cancelled={Boolean(data.cancelledAt)}
-                courts={courts.data ?? []}
-                scorePending={scoreSet.isPending}
-                completePending={completeMatch.isPending}
-                cancelPending={cancelMatch.isPending}
-                updatePending={updateMatch.isPending}
-                stampPending={stampMatch.isPending}
-                onStamp={(matchId) => stampMatch.mutate({ matchId })}
-                onScoreSet={(input) =>
-                  scoreSet.mutate({
-                    gameId: id,
-                    matchId: input.matchId,
-                    setId: input.setId,
-                    slot1GamesWon: input.slot1GamesWon,
-                    slot2GamesWon: input.slot2GamesWon,
-                  })
-                }
-                onComplete={(matchId) => setCompleteMatchId(matchId)}
-                onUpdateCourt={(input) =>
-                  updateMatch.mutate({
-                    gameId: id,
-                    matchId: input.matchId,
-                    courtId: input.courtId,
-                  })
-                }
-                onUpdateSlots={(input) =>
-                  updateMatch.mutate({
-                    gameId: id,
-                    matchId: input.matchId,
-                    startTime: input.startTime,
-                    endTime: input.endTime,
-                    durationInMinutes: input.durationInMinutes,
-                    courtId: input.courtId,
-                    slot1GameTeamId: input.slot1GameTeamId,
-                    slot2GameTeamId: input.slot2GameTeamId,
-                  })
-                }
-                onCancelMatch={(matchId) => setCancelMatchId(matchId)}
-              />
-            </TabsContent>
-          </Tabs>
-        )}
-      </div>
+              </TabsContent>
+            </Tabs>
+          )}
+        </div>
 
-      {isOrganizerActive ? (
-        <GameEditDialog
-          open={editOpen}
-          onOpenChange={setEditOpen}
-          edit={edit}
-          sections={{ ...editSections, rounds: roundsPlan != null }}
-          context={{
-            venueName: data.venue?.name ?? null,
-            courtName:
-              data.booking?.courtName ?? data.recordedCourts[0]?.name ?? null,
-            groupName: data.groupName,
-            joined: data.registeredUserCount,
-            teams:
-              data.format === "friendly_tournament"
+        {isOrganizerActive ? (
+          <GameEditDialog
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            edit={edit}
+            sections={{ ...editSections, rounds: roundsPlan != null }}
+            context={{
+              venueName: data.venue?.name ?? null,
+              courtName:
+                data.booking?.courtName ?? data.recordedCourts[0]?.name ?? null,
+              groupName: data.groupName,
+              joined: data.registeredUserCount,
+              teams:
+                data.format === "friendly_tournament"
+                  ? {
+                      joined: data.registeredTeamCount,
+                      shape: data,
+                      king: isKingOfTheCourt(data.format, data.tournamentShape),
+                      partnerOnly: isPartnerRequiredGame(data),
+                    }
+                  : null,
+              seasons: data.groupSeasons,
+              canChangeSeason: data.canChangeSeason,
+              rounds: roundsPlan
                 ? {
-                    joined: data.registeredTeamCount,
-                    shape: data,
-                    king: isKingOfTheCourt(data.format, data.tournamentShape),
-                    partnerOnly: isPartnerRequiredGame(data),
+                    poolSizes: roundsPlan.poolSizes,
+                    overruns: roundsPlan.overruns,
+                    chosen: roundsPlan.chosen,
                   }
                 : null,
-            seasons: data.groupSeasons,
-            canChangeSeason: data.canChangeSeason,
-            rounds: roundsPlan
-              ? {
-                  poolSizes: roundsPlan.poolSizes,
-                  overruns: roundsPlan.overruns,
-                  chosen: roundsPlan.chosen,
-                }
-              : null,
-          }}
-        />
-      ) : null}
+            }}
+          />
+        ) : null}
 
-      {usesFriendlyChrome || usesDrawnTournamentSeats ? (
-        <FriendlyGameJoinSheet
-          open={joinPickerOpen}
-          onOpenChange={(open) => {
-            setJoinPickerOpen(open);
-            if (!open) {
-              setJoinPickerSeat(null);
+        {usesFriendlyChrome || usesDrawnTournamentSeats ? (
+          <FriendlyGameJoinSheet
+            open={joinPickerOpen}
+            onOpenChange={(open) => {
+              setJoinPickerOpen(open);
+              if (!open) {
+                setJoinPickerSeat(null);
+              }
+            }}
+            title={gameName}
+            sides={data.sides}
+            pending={registerSeat.isPending}
+            pricePerPlayerFils={data.pricePerPlayerFils}
+            gameId={id}
+            format={data.format}
+            registrationMode={data.registrationMode}
+            canRegister={data.canRegister}
+            windowStart={data.windowStart}
+            venueName={data.venue?.name ?? null}
+            groupName={data.groupName}
+            isOrganizer={data.isOrganizer}
+            levelMinTenths={data.levelMinTenths}
+            levelMaxTenths={data.levelMaxTenths}
+            initialSeat={joinPickerSeat}
+            poolCount={data.poolCount}
+            tournamentShape={data.tournamentShape}
+            teamsAllowed={data.teamsAllowed}
+            storedRoundCount={data.roundCount}
+            windowEnd={data.windowEnd}
+            matchMinutes={data.matchMinutes}
+            allowSoloRegister={data.allowSoloRegister}
+            organizerMakesTeams={data.organizerMakesTeams}
+            onPickSeat={(sideIndex, position) =>
+              registerSeat.mutateAsync({ gameId: id, sideIndex, position })
             }
-          }}
-          title={gameName}
-          sides={data.sides}
-          pending={registerSeat.isPending}
-          pricePerPlayerFils={data.pricePerPlayerFils}
-          gameId={id}
-          format={data.format}
-          registrationMode={data.registrationMode}
-          canRegister={data.canRegister}
-          windowStart={data.windowStart}
-          venueName={data.venue?.name ?? null}
-          groupName={data.groupName}
-          isOrganizer={data.isOrganizer}
-          levelMinTenths={data.levelMinTenths}
-          levelMaxTenths={data.levelMaxTenths}
-          initialSeat={joinPickerSeat}
-          poolCount={data.poolCount}
-          tournamentShape={data.tournamentShape}
-          teamsAllowed={data.teamsAllowed}
-          storedRoundCount={data.roundCount}
-          windowEnd={data.windowEnd}
-          matchMinutes={data.matchMinutes}
-          allowSoloRegister={data.allowSoloRegister}
-          organizerMakesTeams={data.organizerMakesTeams}
-          onPickSeat={(sideIndex, position) =>
-            registerSeat.mutateAsync({ gameId: id, sideIndex, position })
-          }
-        />
-      ) : null}
+          />
+        ) : null}
 
-      {usesFriendlyChrome && viewerTeam(data.sides, data.viewerUserId) ? (
-        <PickSideDialog
-          open={pickSideOpen}
-          onOpenChange={setPickSideOpen}
-          teams={data.sides}
-          viewerUserId={data.viewerUserId}
-          pending={setSeatSide.isPending}
-          onSave={(side) => setSeatSide.mutate({ gameId: id, side })}
-        />
-      ) : null}
+        {usesFriendlyChrome && viewerTeam(data.sides, data.viewerUserId) ? (
+          <PickSideDialog
+            open={pickSideOpen}
+            onOpenChange={setPickSideOpen}
+            teams={data.sides}
+            viewerUserId={data.viewerUserId}
+            pending={setSeatSide.isPending}
+            onSave={(side) => setSeatSide.mutate({ gameId: id, side })}
+          />
+        ) : null}
 
-      {addPlacement && (canAddPlayer || addPlayerOpen) ? (
-        <AddPlayerDialog
-          open={addPlayerOpen}
-          onOpenChange={(open) => {
-            setAddPlayerOpen(open);
-            if (!open) {
-              setAddSeat(null);
-              setAddSide(null);
+        {addPlacement && (canAddPlayer || addPlayerOpen) ? (
+          <AddPlayerDialog
+            open={addPlayerOpen}
+            onOpenChange={(open) => {
+              setAddPlayerOpen(open);
+              if (!open) {
+                setAddSeat(null);
+                setAddSide(null);
+              }
+            }}
+            gameId={id}
+            placement={addPlacement}
+            sides={data.sides}
+            initialSeat={addSeat}
+            initialSide={addSide}
+            groupName={data.groupName}
+            onAdded={() => utils.games.byId.invalidate({ id })}
+          />
+        ) : null}
+
+        {editsTeams ? (
+          <EditTeamsDialog
+            open={editTeamsOpen}
+            onOpenChange={setEditTeamsOpen}
+            gameId={id}
+            format={
+              usesFriendlyChrome ? "friendly_game" : "friendly_tournament"
             }
-          }}
-          gameId={id}
-          placement={addPlacement}
-          sides={data.sides}
-          initialSeat={addSeat}
-          initialSide={addSide}
-          groupName={data.groupName}
-          onAdded={() => utils.games.byId.invalidate({ id })}
-        />
-      ) : null}
+            sides={data.sides}
+            matches={data.matches}
+            rules={{
+              fullSidesOnly: isPartnerRequiredGame(data),
+              fixedSides: data.drawPostedAt != null,
+            }}
+            viewerUserId={data.viewerUserId}
+            onSaved={() => utils.games.byId.invalidate({ id })}
+          />
+        ) : null}
 
-      {editsTeams ? (
-        <EditTeamsDialog
-          open={editTeamsOpen}
-          onOpenChange={setEditTeamsOpen}
-          gameId={id}
-          format={usesFriendlyChrome ? "friendly_game" : "friendly_tournament"}
-          sides={data.sides}
-          matches={data.matches}
-          rules={{
-            fullSidesOnly: isPartnerRequiredGame(data),
-            fixedSides: data.drawPostedAt != null,
-          }}
-          viewerUserId={data.viewerUserId}
-          onSaved={() => utils.games.byId.invalidate({ id })}
-        />
-      ) : null}
-
-      <OpenSpotDialog
-        spotLabel={
-          openSpot
-            ? editTeamsSpotLabel(
-                usesFriendlyChrome ? "friendly_game" : "friendly_tournament",
-                openSpot.seat,
-                locale,
-              )
-            : null
-        }
-        own={openSpot?.own ?? "join"}
-        onOpenChange={(open) => {
-          if (!open) {
-            setOpenSpot(null);
+        <OpenSpotDialog
+          spotLabel={
+            openSpot
+              ? editTeamsSpotLabel(
+                  usesFriendlyChrome ? "friendly_game" : "friendly_tournament",
+                  openSpot.seat,
+                  locale,
+                )
+              : null
           }
-        }}
-        onAddPlayer={() => {
-          if (!openSpot) {
-            return;
-          }
-          if (usesFriendlyChrome) {
-            addPlayerToSeat(openSpot.seat);
-          } else {
-            addPlayerToSide(openSpot.seat.sideIndex);
-          }
-        }}
-        onOwn={() => {
-          if (!openSpot) {
-            return;
-          }
-          if (openSpot.own === "move") {
-            moveSeat.mutate({ gameId: id, ...openSpot.seat });
-          } else {
-            openJoinPicker(openSpot.seat);
-          }
-        }}
-      />
-
-      {usesFriendlyChrome && !playedMatch ? (
-        <PlayedPlayerDialog
-          player={selectedPlayer}
-          canOpenProfile={gamePlayersLink(data)}
-          canKick={
-            selectedPlayer != null &&
-            friendlyGameCanKickPlayer({
-              isOrganizer: data.isOrganizer,
-              cancelled: Boolean(data.cancelledAt),
-              isViewer: selectedPlayer.userId === data.viewerUserId,
-            })
-          }
-          canRename={
-            data.isOrganizer &&
-            selectedPlayer != null &&
-            seatedPlayerCanRename(data.sides, selectedPlayer.userId)
-          }
+          own={openSpot?.own ?? "join"}
           onOpenChange={(open) => {
             if (!open) {
-              setSelectedPlayer(null);
+              setOpenSpot(null);
             }
           }}
-          onKick={(userId) => {
-            setSelectedPlayer(null);
-            requestKick({ userId });
+          onAddPlayer={() => {
+            if (!openSpot) {
+              return;
+            }
+            if (usesFriendlyChrome) {
+              addPlayerToSeat(openSpot.seat);
+            } else {
+              addPlayerToSide(openSpot.seat.sideIndex);
+            }
           }}
-          onRename={(player) => {
-            setSelectedPlayer(null);
-            setRenaming(player);
+          onOwn={() => {
+            if (!openSpot) {
+              return;
+            }
+            if (openSpot.own === "move") {
+              moveSeat.mutate({ gameId: id, ...openSpot.seat });
+            } else {
+              openJoinPicker(openSpot.seat);
+            }
           }}
         />
-      ) : null}
-      {data.isOrganizer ? (
-        <RenameUnclaimedPlayerDialog
-          player={renaming}
-          onClose={() => setRenaming(null)}
-        />
-      ) : null}
 
-      {canManageGameInvites ? (
-        <InviteDoorDialog
-          door={{
-            kind: "game",
-            gameId: id,
-            canLookup: canSendGameLookup,
-            canLink: true,
-            subtitle: gameInviteSubtitle(
-              {
-                windowStart: data.windowStart,
-                courtName: data.matches[0]?.courtName ?? null,
-                venueName: data.venue?.name ?? null,
-                sides: data.sides,
-              },
-              locale,
-            ),
-            shareMessage: inviteShareText,
-          }}
-          open={invitesOpen}
-          onOpenChange={setInvitesOpen}
-        />
-      ) : null}
-
-      <ConfirmDialog
-        open={cancelGameOpen}
-        onOpenChange={setCancelGameOpen}
-        title={g.cancelTitle(gameName)}
-        description={
-          usesFriendlyChrome
-            ? cancelGameConsequence(
-                occupiedFriendlyPositions(data.sides),
-                locale,
-              )
-            : m.game.consequence.cannotBeUndone
-        }
-        confirmLabel={m.game.action.cancelGame}
-        pending={cancelGame.isPending}
-        onConfirm={async () => {
-          await cancelGame.mutateAsync({ gameId: id });
-        }}
-      />
-
-      <ConfirmDialog
-        open={markAsNotPlayedOpen}
-        onOpenChange={setMarkAsNotPlayedOpen}
-        title={g.markAsNotPlayedTitle}
-        description={m.game.consequence.markAsNotPlayed}
-        confirmLabel={m.game.action.markAsNotPlayed}
-        pending={cancelMatch.isPending}
-        onConfirm={async () => {
-          if (!firstMatch) {
-            return;
-          }
-          await cancelMatch.mutateAsync({ gameId: id, matchId: firstMatch.id });
-        }}
-      />
-
-      <ConfirmDialog
-        open={reportWrongScoreOpen}
-        onOpenChange={setReportWrongScoreOpen}
-        title={g.reportWrongScoreTitle}
-        description={m.game.consequence.reportWrongScore}
-        confirmLabel={m.game.action.reportWrongScore}
-        pending={reportWrongScore.isPending}
-        onConfirm={async () => {
-          if (!firstMatch) {
-            return;
-          }
-          await reportWrongScore.mutateAsync({
-            gameId: id,
-            matchId: firstMatch.id,
-          });
-        }}
-      />
-
-      <ConfirmDialog
-        open={leaveGameOpen}
-        onOpenChange={setLeaveGameOpen}
-        title={g.leaveTitle(gameName)}
-        description={
-          usesFriendlyChrome && data.isOrganizer
-            ? leaveGameOrganizerConsequence(locale)
-            : tournamentLeaveOrKickConfirmCopy({
-                partnerRequired: isPartnerRequiredGame(data),
-                drawPosted: Boolean(data.drawPostedAt),
-                locale,
+        {usesFriendlyChrome && !playedMatch ? (
+          <PlayedPlayerDialog
+            player={selectedPlayer}
+            canOpenProfile={gamePlayersLink(data)}
+            canKick={
+              selectedPlayer != null &&
+              friendlyGameCanKickPlayer({
+                isOrganizer: data.isOrganizer,
+                cancelled: Boolean(data.cancelledAt),
+                isViewer: selectedPlayer.userId === data.viewerUserId,
               })
-        }
-        confirmLabel={m.game.action.leaveGame}
-        pending={leaveGame.isPending}
-        onConfirm={async () => {
-          await leaveGame.mutateAsync({ gameId: id });
-        }}
-      />
+            }
+            canRename={
+              data.isOrganizer &&
+              selectedPlayer != null &&
+              seatedPlayerCanRename(data.sides, selectedPlayer.userId)
+            }
+            onOpenChange={(open) => {
+              if (!open) {
+                setSelectedPlayer(null);
+              }
+            }}
+            onKick={(userId) => {
+              setSelectedPlayer(null);
+              requestKick({ userId });
+            }}
+            onRename={(player) => {
+              setSelectedPlayer(null);
+              setRenaming(player);
+            }}
+          />
+        ) : null}
+        {data.isOrganizer ? (
+          <RenameUnclaimedPlayerDialog
+            player={renaming}
+            onClose={() => setRenaming(null)}
+          />
+        ) : null}
 
-      <ConfirmDialog
-        open={kickConfirm != null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setKickConfirm(null);
-          }
-        }}
-        title={kickConfirmCopy?.title ?? g.kickPlayerTitle}
-        description={kickConfirmCopy?.description}
-        confirmLabel={m.game.action.kick}
-        pending={kick.isPending}
-        onConfirm={async () => {
-          if (!kickConfirm) {
-            return;
-          }
-          await kick.mutateAsync(
-            kickConfirm.kind === "player"
-              ? { gameId: id, userId: kickConfirm.userId }
-              : { gameId: id, waitlistId: kickConfirm.waitlistId },
-          );
-          toast.success(kickedToast(kickConfirm.name, locale));
-        }}
-      />
+        {canManageGameInvites ? (
+          <InviteDoorDialog
+            door={{
+              kind: "game",
+              gameId: id,
+              canLookup: canSendGameLookup,
+              canLink: true,
+              subtitle: gameInviteSubtitle(
+                {
+                  windowStart: data.windowStart,
+                  courtName: data.matches[0]?.courtName ?? null,
+                  venueName: data.venue?.name ?? null,
+                  sides: data.sides,
+                },
+                locale,
+              ),
+              shareMessage: inviteShareText,
+            }}
+            open={invitesOpen}
+            onOpenChange={setInvitesOpen}
+          />
+        ) : null}
 
-      <ConfirmDialog
-        open={completeMatchId != null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setCompleteMatchId(null);
+        <ConfirmDialog
+          open={cancelGameOpen}
+          onOpenChange={setCancelGameOpen}
+          title={g.cancelTitle(gameName)}
+          description={
+            usesFriendlyChrome
+              ? cancelGameConsequence(
+                  occupiedFriendlyPositions(data.sides),
+                  locale,
+                )
+              : m.game.consequence.cannotBeUndone
           }
-        }}
-        title={g.completeMatchTitle}
-        description={m.game.consequence.completeMatch}
-        confirmLabel={m.game.action.completeMatch}
-        variant="default"
-        pending={completeMatch.isPending}
-        onConfirm={async () => {
-          if (!completeMatchId) {
-            return;
-          }
-          await completeMatch.mutateAsync({
-            gameId: id,
-            matchId: completeMatchId,
-          });
-        }}
-      />
+          confirmLabel={m.game.action.cancelGame}
+          pending={cancelGame.isPending}
+          onConfirm={async () => {
+            await cancelGame.mutateAsync({ gameId: id });
+          }}
+        />
 
-      <ConfirmDialog
-        open={leaveWaitlistOpen}
-        onOpenChange={setLeaveWaitlistOpen}
-        title={g.leaveWaitlistTitle}
-        description={m.game.consequence.leaveWaitlist}
-        confirmLabel={m.game.action.leaveWaitlist}
-        pending={leaveWaitlist.isPending}
-        onConfirm={async () => {
-          await leaveWaitlist.mutateAsync({ gameId: id });
-        }}
-      />
+        <ConfirmDialog
+          open={markAsNotPlayedOpen}
+          onOpenChange={setMarkAsNotPlayedOpen}
+          title={g.markAsNotPlayedTitle}
+          description={m.game.consequence.markAsNotPlayed}
+          confirmLabel={m.game.action.markAsNotPlayed}
+          pending={cancelMatch.isPending}
+          onConfirm={async () => {
+            if (!firstMatch) {
+              return;
+            }
+            await cancelMatch.mutateAsync({
+              gameId: id,
+              matchId: firstMatch.id,
+            });
+          }}
+        />
 
-      <ConfirmDialog
-        open={cancelMatchId != null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setCancelMatchId(null);
-          }
-        }}
-        title={
-          data.format === "friendly_game"
-            ? g.cancelTitle(gameName)
-            : g.cancelMatchTitle
-        }
-        description={m.game.consequence.cannotBeUndone}
-        confirmLabel={
-          data.format === "friendly_game"
-            ? m.game.action.cancelGame
-            : m.game.action.cancelMatch
-        }
-        pending={cancelMatch.isPending}
-        onConfirm={async () => {
-          if (!cancelMatchId) {
-            return;
-          }
-          await cancelMatch.mutateAsync({
-            gameId: id,
-            matchId: cancelMatchId,
-          });
-        }}
-      />
+        <ConfirmDialog
+          open={reportWrongScoreOpen}
+          onOpenChange={setReportWrongScoreOpen}
+          title={g.reportWrongScoreTitle}
+          description={m.game.consequence.reportWrongScore}
+          confirmLabel={m.game.action.reportWrongScore}
+          pending={reportWrongScore.isPending}
+          onConfirm={async () => {
+            if (!firstMatch) {
+              return;
+            }
+            await reportWrongScore.mutateAsync({
+              gameId: id,
+              matchId: firstMatch.id,
+            });
+          }}
+        />
 
-      <TournamentKnockoutCancelDialog
-        place={cancelKnockoutPlace}
-        onOpenChange={(open) => {
-          if (!open) {
-            setCancelKnockoutPlace(null);
+        <ConfirmDialog
+          open={leaveGameOpen}
+          onOpenChange={setLeaveGameOpen}
+          title={g.leaveTitle(gameName)}
+          description={
+            usesFriendlyChrome && data.isOrganizer
+              ? leaveGameOrganizerConsequence(locale)
+              : tournamentLeaveOrKickConfirmCopy({
+                  partnerRequired: isPartnerRequiredGame(data),
+                  drawPosted: Boolean(data.drawPostedAt),
+                  locale,
+                })
           }
-        }}
-        pending={cancelMatch.isPending}
-        onConfirm={async (advancingGameTeamId) => {
-          if (!cancelKnockoutPlace?.matchId) {
-            return;
+          confirmLabel={m.game.action.leaveGame}
+          pending={leaveGame.isPending}
+          onConfirm={async () => {
+            await leaveGame.mutateAsync({ gameId: id });
+          }}
+        />
+
+        <ConfirmDialog
+          open={kickConfirm != null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setKickConfirm(null);
+            }
+          }}
+          title={kickConfirmCopy?.title ?? g.kickPlayerTitle}
+          description={kickConfirmCopy?.description}
+          confirmLabel={m.game.action.kick}
+          pending={kick.isPending}
+          onConfirm={async () => {
+            if (!kickConfirm) {
+              return;
+            }
+            await kick.mutateAsync(
+              kickConfirm.kind === "player"
+                ? { gameId: id, userId: kickConfirm.userId }
+                : { gameId: id, waitlistId: kickConfirm.waitlistId },
+            );
+            toast.success(kickedToast(kickConfirm.name, locale));
+          }}
+        />
+
+        <ConfirmDialog
+          open={completeMatchId != null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCompleteMatchId(null);
+            }
+          }}
+          title={g.completeMatchTitle}
+          description={m.game.consequence.completeMatch}
+          confirmLabel={m.game.action.completeMatch}
+          variant="default"
+          pending={completeMatch.isPending}
+          onConfirm={async () => {
+            if (!completeMatchId) {
+              return;
+            }
+            await completeMatch.mutateAsync({
+              gameId: id,
+              matchId: completeMatchId,
+            });
+          }}
+        />
+
+        <ConfirmDialog
+          open={leaveWaitlistOpen}
+          onOpenChange={setLeaveWaitlistOpen}
+          title={g.leaveWaitlistTitle}
+          description={m.game.consequence.leaveWaitlist}
+          confirmLabel={m.game.action.leaveWaitlist}
+          pending={leaveWaitlist.isPending}
+          onConfirm={async () => {
+            await leaveWaitlist.mutateAsync({ gameId: id });
+          }}
+        />
+
+        <ConfirmDialog
+          open={cancelMatchId != null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCancelMatchId(null);
+            }
+          }}
+          title={
+            data.format === "friendly_game"
+              ? g.cancelTitle(gameName)
+              : g.cancelMatchTitle
           }
-          await cancelMatch.mutateAsync({
-            gameId: id,
-            matchId: cancelKnockoutPlace.matchId,
-            advancingGameTeamId,
-          });
-        }}
-      />
-    </DashboardShell>
+          description={m.game.consequence.cannotBeUndone}
+          confirmLabel={
+            data.format === "friendly_game"
+              ? m.game.action.cancelGame
+              : m.game.action.cancelMatch
+          }
+          pending={cancelMatch.isPending}
+          onConfirm={async () => {
+            if (!cancelMatchId) {
+              return;
+            }
+            await cancelMatch.mutateAsync({
+              gameId: id,
+              matchId: cancelMatchId,
+            });
+          }}
+        />
+
+        <TournamentKnockoutCancelDialog
+          place={cancelKnockoutPlace}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCancelKnockoutPlace(null);
+            }
+          }}
+          pending={cancelMatch.isPending}
+          onConfirm={async (advancingGameTeamId) => {
+            if (!cancelKnockoutPlace?.matchId) {
+              return;
+            }
+            await cancelMatch.mutateAsync({
+              gameId: id,
+              matchId: cancelKnockoutPlace.matchId,
+              advancingGameTeamId,
+            });
+          }}
+        />
+        {tv.sheet}
+      </DashboardShell>
+    </GameTvCardProvider>
   );
 }

@@ -10,6 +10,7 @@ import {
   type TournamentDetails,
 } from "@repo/domain/tournament-details";
 
+import { GameTvCardSlot } from "~/components/live-board/game-tv";
 import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -29,6 +30,10 @@ import {
 } from "./tournament-americano-parts";
 import { TournamentDetailRows } from "./tournament-detail-rows";
 import { TournamentHero } from "./tournament-hero";
+import {
+  TournamentPlayerDialog,
+  type TournamentPlayer,
+} from "./tournament-player-dialog";
 import { ROUND_CARD } from "./tournament-round-parts";
 
 type AloneOnlyDetails = TournamentDetails & {
@@ -56,6 +61,8 @@ export function TournamentAloneHome({
   onInvite,
   onLeaveWaitlist,
   onKick,
+  kickPending = false,
+  linkToPlayers = false,
 }: {
   data: AloneOnlyDetails;
   backHref: string;
@@ -67,6 +74,9 @@ export function TournamentAloneHome({
   onInvite?: () => void;
   onLeaveWaitlist?: () => void;
   onKick?: (userId: string) => void;
+  kickPending?: boolean;
+  /** The viewer may open the players' profiles. */
+  linkToPlayers?: boolean;
 }) {
   const messages = useMessages();
   const m = messages.aloneTeams;
@@ -74,6 +84,7 @@ export function TournamentAloneHome({
   const utils = api.useUtils();
   const view = tournamentHomeView(data, locale);
   const [joinOpen, setJoinOpen] = React.useState(false);
+  const [selected, setSelected] = React.useState<TournamentPlayer | null>(null);
 
   const register = api.games.register.useMutation({
     onSuccess: async (result) => {
@@ -110,6 +121,23 @@ export function TournamentAloneHome({
     !data.isRegistered &&
     !data.isWaitlisted;
 
+  function openPlayer(userId: string) {
+    const registered = data.registeredPlayers.find(
+      (player) => player.id === userId,
+    );
+    const listed = players.find((player) => player.userId === userId);
+    if (!registered && !listed) {
+      return;
+    }
+    setSelected({
+      userId,
+      name: registered?.name ?? listed?.name ?? "",
+      image: registered?.image ?? listed?.image ?? null,
+      guest: registered?.guest,
+      phoneNumber: registered?.phoneNumber,
+    });
+  }
+
   function openJoin() {
     if (data.canRegister) {
       register.reset();
@@ -141,6 +169,7 @@ export function TournamentAloneHome({
         tags={tags}
         actions={actions}
       />
+      <GameTvCardSlot />
 
       {organizer ? (
         <AloneOrganizerCard
@@ -170,8 +199,11 @@ export function TournamentAloneHome({
           onOpenSeat={
             data.canRegister && !data.isRegistered ? openJoin : undefined
           }
-          onPlayer={
-            organizer && onKick ? (player) => onKick(player.userId) : undefined
+          onPlayer={organizer && onKick ? openPlayer : undefined}
+          playerLabel={
+            organizer && onKick
+              ? messages.webTournament.player.openActions
+              : undefined
           }
         />
         <p className="text-muted-foreground text-meta leading-relaxed">
@@ -231,6 +263,20 @@ export function TournamentAloneHome({
         error={register.error}
         onSubmit={(preferredSide) =>
           register.mutate({ gameId: data.id, preferredSide })
+        }
+      />
+      <TournamentPlayerDialog
+        player={selected}
+        canOpenProfile={linkToPlayers}
+        kickPending={kickPending}
+        onClose={() => setSelected(null)}
+        onKick={
+          onKick
+            ? (userId) => {
+                setSelected(null);
+                onKick(userId);
+              }
+            : undefined
         }
       />
     </div>

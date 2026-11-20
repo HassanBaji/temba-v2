@@ -103,7 +103,6 @@ export const tournamentAmericano = {
       "Everyone signed up alone. There are no teams to form: partners change every round.",
     footPlayer:
       "No team and no side to pick. Take a seat and Temba gives you a partner for each round.",
-    remove: (name: string) => `Remove ${name}`,
   },
   waitlist: {
     title: "Waitlist",

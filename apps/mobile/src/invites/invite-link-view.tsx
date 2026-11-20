@@ -12,6 +12,7 @@ import { formatGameClock } from "@repo/domain/format-game-start";
 import { groupDisplayName } from "@repo/domain/group-join";
 import {
   gameInviteSeatCourt,
+  inviteJoinSheetAlone,
   type InviteSeatPick,
 } from "@repo/domain/game-invite-join-sheet";
 import {
@@ -83,6 +84,8 @@ export type InviteLinkViewProps = {
   onOpenSheet: (picked: InviteSeatPick | null) => void;
   onCloseSheet: () => void;
   onSubmitJoin: (choice: InviteJoinChoice) => void;
+  /** A Social a member may open: the Game screen's join sheet, in place of the link's. */
+  socialJoinSheet?: React.ReactNode;
   /** "Join group" on its own, from the landing note. */
   groupOnlyPending: boolean;
   onJoinGroupOnly: () => void;
@@ -531,6 +534,14 @@ function useGameLayout(
   const requestedGate = gate === "requested";
   const football = game.football;
   const seatGame = game.sides.length > 0;
+  // An Americano has nothing to pick, so a member joins in one tap.
+  const asksForSide =
+    stage !== "partner" &&
+    game.asksForSide === true &&
+    inviteJoinSheetAlone({
+      kind: football ? "football" : "padel",
+      sides: game.sides,
+    });
   const canSit =
     stage !== "partner" &&
     !seatState.joinFrozen &&
@@ -558,8 +569,8 @@ function useGameLayout(
         onSit={canSit ? () => props.onOpenSheet(null) : null}
       />
     ) : null;
-  const sheet =
-    seatGame || football || gate !== "none" ? (
+  const linkSheet =
+    seatGame || football || asksForSide || gate !== "none" ? (
       <InviteJoinSheet
         visible={props.sheetOpen}
         onClose={props.onCloseSheet}
@@ -573,6 +584,7 @@ function useGameLayout(
           gate,
           gamePublic: game.isPublic ?? false,
           levelBlocked,
+          asksForSide: game.asksForSide === true,
           locale,
         }}
         football={
@@ -585,6 +597,7 @@ function useGameLayout(
         onSubmit={props.onSubmitJoin}
       />
     ) : null;
+  const sheet = props.socialJoinSheet ?? linkSheet;
   const head = {
     seats,
     countHint: court && canSit ? heroCopy.tapASeat : null,
@@ -738,11 +751,13 @@ function useGameLayout(
       ? groupCopy.oneTap
       : football
         ? heroCopy.barSheetFootball
-        : seatGame
-          ? heroCopy.barSheetPadel
-          : gate !== "none"
-            ? groupCopy.asksFirst
-            : null;
+        : props.socialJoinSheet
+          ? heroCopy.barSheetSocial
+          : seatGame
+            ? heroCopy.barSheetPadel
+            : gate !== "none"
+              ? groupCopy.asksFirst
+              : null;
   return {
     ...head,
     note,

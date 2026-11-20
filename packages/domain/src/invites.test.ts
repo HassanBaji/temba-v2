@@ -11,6 +11,7 @@ import {
   gameInviteLinkStage,
   gameInviteSeatCopy,
   gameInviteSeatState,
+  gameInviteUsesGameJoinSheet,
   groupLookupNote,
   inviteLinkAcceptToast,
   isSeatHoldLive,
@@ -310,6 +311,84 @@ describe("gameInviteLinkStage", () => {
     expect(
       gameInviteLinkStage({ ...ready, viewerPassesLevelRange: false }, false),
     ).toBe("accept");
+  });
+});
+
+describe("gameInviteUsesGameJoinSheet", () => {
+  const member = {
+    id: "g1",
+    name: "Padel games",
+    sport: "padel",
+    imageUrl: null,
+    memberCount: 5,
+    memberNames: [],
+    joinMode: "member" as const,
+    sharedBy: null,
+    pendingRequest: null,
+  };
+  const social = {
+    game: {
+      name: "Sunday Social",
+      format: "friendly_tournament",
+      windowStart: null,
+      windowEnd: null,
+    },
+    sides: [
+      { sideIndex: 1, left: null, right: null },
+      { sideIndex: 2, left: null, right: null },
+      { sideIndex: 3, left: null, right: null },
+    ],
+    football: null,
+    group: member,
+    partnerRequiredJoin: false,
+    viewerPassesLevelRange: true,
+  };
+
+  it("opens the Game screen's sheet for a member on a Social with seats", () => {
+    expect(gameInviteUsesGameJoinSheet(social, true)).toBe(true);
+  });
+
+  it("keeps the link's own sheet while the Group or the Level is still a question", () => {
+    expect(gameInviteUsesGameJoinSheet(social, false)).toBe(false);
+    expect(
+      gameInviteUsesGameJoinSheet(
+        { ...social, group: { ...member, joinMode: "join" } },
+        true,
+      ),
+    ).toBe(false);
+    expect(
+      gameInviteUsesGameJoinSheet(
+        { ...social, group: { ...member, joinMode: "request" } },
+        true,
+      ),
+    ).toBe(false);
+    expect(gameInviteUsesGameJoinSheet({ ...social, group: null }, true)).toBe(
+      false,
+    );
+    expect(
+      gameInviteUsesGameJoinSheet(
+        { ...social, viewerPassesLevelRange: false },
+        true,
+      ),
+    ).toBe(false);
+  });
+
+  it("leaves a Friendly game, an Americano and a partner-only Social as they are", () => {
+    expect(
+      gameInviteUsesGameJoinSheet(
+        { ...social, game: { ...social.game, format: "friendly_game" } },
+        true,
+      ),
+    ).toBe(false);
+    expect(gameInviteUsesGameJoinSheet({ ...social, sides: [] }, true)).toBe(
+      false,
+    );
+    expect(
+      gameInviteUsesGameJoinSheet(
+        { ...social, partnerRequiredJoin: true },
+        true,
+      ),
+    ).toBe(false);
   });
 });
 

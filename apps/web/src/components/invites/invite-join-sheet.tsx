@@ -29,6 +29,8 @@ import {
 } from "@repo/domain/football-lineup";
 import {
   gameInviteJoinSheetCopy,
+  inviteJoinDoor,
+  invitePreferredSide,
   type InviteJoinSheetInput,
   type InviteSeatPick,
   type SeatSideChoice,
@@ -39,6 +41,8 @@ export type InviteJoinChoice = {
   seat: InviteSeatPick | null;
   football: { role: FootballRole; position: FootballPosition } | null;
   joinGroup: boolean;
+  /** An alone sign-up's side; none is Either. */
+  preferredSide?: "left" | "right";
 };
 
 function Choice({
@@ -161,19 +165,31 @@ export function InviteJoinSheet({
   const chosenRole = keeperLocked ? "outfield" : role;
   const team =
     copy.teams.find((entry) => entry.sideIndex === sideIndex) ?? null;
+  const groupOn = copy.groupToggle?.locked ? true : joinGroup;
+  // Only a seat taken now keeps a side; a hold or a Level request has none.
+  const showSide =
+    copy.showsSide &&
+    (!copy.alone ||
+      inviteJoinDoor({
+        gate: input.gate,
+        joinGroup: groupOn,
+        levelBlocked: input.levelBlocked,
+      }) === "accept");
   const choice: InviteJoinChoice =
     input.kind === "football"
       ? {
           seat: null,
           football: { role: chosenRole, position },
-          joinGroup: copy.groupToggle?.locked ? true : joinGroup,
+          joinGroup: groupOn,
         }
       : {
           seat: team ? { sideIndex: team.sideIndex, position: side } : null,
           football: null,
-          joinGroup: copy.groupToggle?.locked ? true : joinGroup,
+          joinGroup: groupOn,
+          preferredSide:
+            copy.alone && showSide ? invitePreferredSide(side) : undefined,
         };
-  const ready = input.kind === "football" || choice.seat != null;
+  const ready = input.kind === "football" || copy.alone || choice.seat != null;
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
@@ -189,47 +205,55 @@ export function InviteJoinSheet({
         <div className="flex-1 space-y-5 overflow-y-auto px-[22px] py-5">
           {input.kind === "padel" ? (
             <>
-              <div className="space-y-2.5">
-                <Label left={copy.teamLabel} />
-                <div
-                  role="radiogroup"
-                  aria-label={copy.teamLabel}
-                  className="flex gap-2"
-                >
-                  {copy.teams.map((entry) => (
-                    <Choice
-                      key={entry.sideIndex}
-                      title={entry.label}
-                      note={entry.meta}
-                      selected={sideIndex === entry.sideIndex}
-                      locked={entry.full}
-                      onSelect={() => setSideIndex(entry.sideIndex)}
-                    />
-                  ))}
+              {copy.alone ? null : (
+                <div className="space-y-2.5">
+                  <Label left={copy.teamLabel} />
+                  <div
+                    role="radiogroup"
+                    aria-label={copy.teamLabel}
+                    className={
+                      copy.teams.length > 2
+                        ? "grid grid-cols-2 gap-2"
+                        : "flex gap-2"
+                    }
+                  >
+                    {copy.teams.map((entry) => (
+                      <Choice
+                        key={entry.sideIndex}
+                        title={entry.label}
+                        note={entry.meta}
+                        selected={sideIndex === entry.sideIndex}
+                        locked={entry.full}
+                        onSelect={() => setSideIndex(entry.sideIndex)}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-2.5">
-                <Label left={copy.sideLabel} right={copy.sideHint} />
-                <div
-                  role="radiogroup"
-                  aria-label={copy.sideLabel}
-                  className="flex gap-2"
-                >
-                  {copy.sideOptions.map((option) => (
-                    <Choice
-                      key={option.value}
-                      title={option.label}
-                      selected={side === option.value}
-                      onSelect={() => setSide(option.value)}
-                    />
-                  ))}
+              )}
+              {showSide ? (
+                <div className="space-y-2.5">
+                  <Label left={copy.sideLabel} right={copy.sideHint} />
+                  <div
+                    role="radiogroup"
+                    aria-label={copy.sideLabel}
+                    className="flex gap-2"
+                  >
+                    {copy.sideOptions.map((option) => (
+                      <Choice
+                        key={option.value}
+                        title={option.label}
+                        selected={side === option.value}
+                        onSelect={() => setSide(option.value)}
+                      />
+                    ))}
+                  </div>
+                  {team && copy.sideNote(team, side) ? (
+                    <p className="text-muted-foreground text-meta">
+                      {copy.sideNote(team, side)}
+                    </p>
+                  ) : null}
                 </div>
-                {team && copy.sideNote(team, side) ? (
-                  <p className="text-muted-foreground text-meta">
-                    {copy.sideNote(team, side)}
-                  </p>
-                ) : null}
-              </div>
+              ) : null}
             </>
           ) : (
             <>

@@ -2,6 +2,8 @@ import type {
   CHALLENGE_TIMING_VALUES,
   GAME_PAYMENT_RETURN_REASON_VALUES,
   GAME_PAYMENT_STATUS_VALUES,
+  LIVE_BOARD_COLOR_SCHEME_VALUES,
+  LIVE_BOARD_SCREEN_VALUES,
   MARK_KIND_VALUES,
   MatchStatusEnum,
   PERFORMANCE_RATER_ROLE_VALUES,
@@ -19,6 +21,10 @@ import type {
   GAME_PAYMENT_STATUSES,
 } from "@repo/domain/game-payments";
 import type { LEVEL_BANDS } from "@repo/domain/level-bands";
+import type {
+  LIVE_BOARD_COLOR_SCHEMES,
+  LIVE_BOARD_SCREENS,
+} from "@repo/domain/live-board";
 import type { MARK_KINDS } from "@repo/domain/marks";
 import type { MatchStatus } from "@repo/domain/match-status";
 import type { RATER_ROLES } from "@repo/domain/performance-rating";
@@ -50,6 +56,18 @@ export type DomainEnumParity = [
     >
   >,
   AssertTrue<Equal<`${MatchStatusEnum}`, MatchStatus>>,
+  AssertTrue<
+    Equal<
+      (typeof LIVE_BOARD_SCREENS)[number],
+      (typeof LIVE_BOARD_SCREEN_VALUES)[number]
+    >
+  >,
+  AssertTrue<
+    Equal<
+      (typeof LIVE_BOARD_COLOR_SCHEMES)[number],
+      (typeof LIVE_BOARD_COLOR_SCHEME_VALUES)[number]
+    >
+  >,
   AssertTrue<
     Equal<(typeof MARK_KINDS)[number], (typeof MARK_KIND_VALUES)[number]>
   >,

@@ -8,7 +8,7 @@ import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 
 /** The boxed share in a football Challenge Game's hero: the Game page, since a Challenge Game takes no invites. */
-export function ChallengeShareButton({
+export function GameShareButton({
   onShare,
   tone,
 }: {

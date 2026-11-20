@@ -5,6 +5,7 @@ import {
 import {
   gameInviteGroupGate,
   gameInviteLinkStage,
+  gameInviteUsesGameJoinSheet,
   inviteLinkAcceptToast,
   type InviteKind,
   type InviteLinkPath,
@@ -32,6 +33,7 @@ import {
 } from "./invites-model";
 import type { InviteJoinChoice } from "./invite-join-sheet";
 import { InviteLinkView } from "./invite-link-view";
+import { InviteSocialJoinSheet } from "./invite-social-join-sheet";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
 
@@ -335,6 +337,7 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
       token,
       ...seat,
       football,
+      preferredSide: choice.preferredSide,
       joinGroup: groupGate === "none" ? undefined : choice.joinGroup,
     });
   }
@@ -380,6 +383,27 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
       onOpenSheet={openSheet}
       onCloseSheet={closeSheet}
       onSubmitJoin={submitJoin}
+      socialJoinSheet={
+        token && readyGame && gameInviteUsesGameJoinSheet(readyGame, true) ? (
+          <InviteSocialJoinSheet
+            gameId={readyGame.gameId}
+            visible={sheet.open}
+            initialSeat={
+              sheet.picked && sheet.picked.position !== "either"
+                ? {
+                    sideIndex: sheet.picked.sideIndex,
+                    position: sheet.picked.position,
+                  }
+                : null
+            }
+            seatPending={acceptGame.isPending}
+            seatError={acceptGame.error?.message ?? null}
+            onClose={closeSheet}
+            onJoinSeat={(seat) => acceptGame.mutate({ token, ...seat })}
+            onJoined={() => land(readyGame.gameId)}
+          />
+        ) : null
+      }
       groupOnlyPending={groupOnlyPending}
       onJoinGroupOnly={() => token && joinGroup.mutate({ token })}
       justJoinedGroup={justJoinedGroup}

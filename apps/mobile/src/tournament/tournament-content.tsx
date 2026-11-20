@@ -69,7 +69,11 @@ export function TournamentContent({
             </Text>
           </Surface>
         ) : null}
-        <AmericanoView game={game} />
+        <AmericanoView
+          game={game}
+          onOpenPlayer={handlers.onOpenPlayer}
+          playerOpensActions={handlers.playerOpensActions}
+        />
         {album}
         <TournamentTail
           view={view}

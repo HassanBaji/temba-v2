@@ -17,6 +17,7 @@ import {
   InviteSeatCourt,
   InviteSitHereTile,
 } from "~/components/invites/game-invite-landing";
+import { GameLinkSocialJoinSheet } from "~/components/invites/game-link-social-join-sheet";
 import {
   InviteJoinSheet,
   type InviteJoinChoice,
@@ -40,6 +41,7 @@ import {
 import {
   gameInviteSeatCourt,
   inviteJoinDoor,
+  inviteJoinSheetAlone,
   type InviteSeatPick,
 } from "@repo/domain/game-invite-join-sheet";
 import { groupDisplayName } from "@repo/domain/group-join";
@@ -49,6 +51,7 @@ import {
   gameInviteGroupRequestCard,
   gameInviteLinkStage,
   gameInviteSeatState,
+  gameInviteUsesGameJoinSheet,
   inviteLinkAcceptToast,
   levelRangeGateAction,
 } from "@repo/domain/invites";
@@ -174,6 +177,14 @@ export function AcceptGameInviteLink({
   const football = ready?.football ?? null;
   const sides = ready?.sides ?? [];
   const seatGame = sides.length > 0;
+  const socialJoin = ready
+    ? gameInviteUsesGameJoinSheet(ready, isSignedIn)
+    : false;
+  // An Americano has nothing to pick, so a member joins in one tap.
+  const asksForSide =
+    !partnerRequiredJoin &&
+    ready?.asksForSide === true &&
+    inviteJoinSheetAlone({ kind: football ? "football" : "padel", sides });
   const openSeats = football
     ? Math.max(0, (football.playersAllowed ?? 0) - football.players.length)
     : (ready?.vacantSeats.length ?? 0);
@@ -188,27 +199,6 @@ export function AcceptGameInviteLink({
   const gameName = ready
     ? gameDisplayName(ready.game, locale)
     : m.invite.kind.game;
-
-  // A member inside the range on a Game with nothing to pick joins on open.
-  React.useEffect(() => {
-    if (!isSignedIn || preview.data?.status !== "ready") {
-      return;
-    }
-    if (
-      preview.data.hero.players.some((player) => player.isViewer) ||
-      preview.data.viewerPassesLevelRange === false ||
-      preview.data.partnerRequiredJoin ||
-      preview.data.sides.length > 0 ||
-      preview.data.football ||
-      gameInviteGroupGate(preview.data.group) !== "none"
-    ) {
-      return;
-    }
-    if (accept.isPending || accept.isSuccess || accept.isError) {
-      return;
-    }
-    accept.mutate({ token });
-  }, [accept, isSignedIn, preview.data, token]);
 
   function submit(choice: InviteJoinChoice) {
     if (!ready || joinPending) {
@@ -245,6 +235,7 @@ export function AcceptGameInviteLink({
       token,
       ...seat,
       football: footballPick,
+      preferredSide: choice.preferredSide,
       joinGroup: groupGate === "none" ? undefined : choice.joinGroup,
     });
   }
@@ -432,38 +423,57 @@ export function AcceptGameInviteLink({
         }
       />
     ) : null;
-  const joinSheet =
-    isSignedIn && (seatGame || football || groupGate !== "none") ? (
-      <InviteJoinSheet
-        open={sheet.open}
-        onOpenChange={(open) => setSheet((current) => ({ ...current, open }))}
-        input={{
-          kind: football ? "football" : "padel",
-          sides,
-          picked: sheet.picked,
-          usualSide: null,
-          teamsMadeAt: null,
-          group,
-          gate: groupGate,
-          gamePublic: ready.isPublic ?? false,
-          levelBlocked,
-          locale,
-        }}
-        football={
-          football
-            ? { players: football.players, preferred: football.preferred }
-            : null
-        }
-        pending={joinPending}
-        error={
-          accept.error?.message ??
-          joinGroup.error?.message ??
-          requestLevelRange.error?.message ??
-          null
-        }
-        onSubmit={submit}
-      />
-    ) : null;
+  const joinSheet = socialJoin && !viewerOnGame ? (
+    <GameLinkSocialJoinSheet
+      gameId={ready.gameId}
+      open={sheet.open}
+      onOpenChange={(open) => setSheet((current) => ({ ...current, open }))}
+      initialSeat={
+        sheet.picked && sheet.picked.position !== "either"
+          ? {
+              sideIndex: sheet.picked.sideIndex,
+              position: sheet.picked.position,
+            }
+          : null
+      }
+      pending={accept.isPending}
+      onPickSeat={(sideIndex, position) =>
+        accept.mutateAsync({ token, sideIndex, position })
+      }
+    />
+  ) : isSignedIn &&
+    (seatGame || football || asksForSide || groupGate !== "none") ? (
+    <InviteJoinSheet
+      open={sheet.open}
+      onOpenChange={(open) => setSheet((current) => ({ ...current, open }))}
+      input={{
+        kind: football ? "football" : "padel",
+        sides,
+        picked: sheet.picked,
+        usualSide: null,
+        teamsMadeAt: null,
+        group,
+        gate: groupGate,
+        gamePublic: ready.isPublic ?? false,
+        levelBlocked,
+        asksForSide: ready.asksForSide === true,
+        locale,
+      }}
+      football={
+        football
+          ? { players: football.players, preferred: football.preferred }
+          : null
+      }
+      pending={joinPending}
+      error={
+        accept.error?.message ??
+        joinGroup.error?.message ??
+        requestLevelRange.error?.message ??
+        null
+      }
+      onSubmit={submit}
+    />
+  ) : null;
 
   function page(args: { content?: React.ReactNode; bar: React.ReactNode }) {
     return (
@@ -616,14 +626,17 @@ export function AcceptGameInviteLink({
     });
   }
 
-  const opensSheet = seatGame || football != null || groupGate !== "none";
+  const opensSheet =
+    seatGame || football != null || asksForSide || groupGate !== "none";
   const sheetSubline = football
     ? heroCopy.barSheetFootball
-    : seatGame
-      ? heroCopy.barSheetPadel
-      : groupGate !== "none"
-        ? groupCopy.asksFirst
-        : null;
+    : socialJoin
+      ? heroCopy.barSheetSocial
+      : seatGame
+        ? heroCopy.barSheetPadel
+        : groupGate !== "none"
+          ? groupCopy.asksFirst
+          : null;
   if (opensSheet && !joinFrozen) {
     return page({
       content: joinedNotice,
@@ -661,8 +674,16 @@ export function AcceptGameInviteLink({
         title={seatsTitle}
         subline={null}
         action={
-          <Button variant="inverse" size="lg" disabled pending>
-            {m.webAuth.invites.joining(gameName)}
+          <Button
+            variant="inverse"
+            size="lg"
+            disabled={joinPending}
+            pending={accept.isPending}
+            onClick={() => accept.mutate({ token })}
+          >
+            {accept.isPending
+              ? m.webAuth.invites.joining(gameName)
+              : m.invite.link.joinLabel(gameName)}
           </Button>
         }
       />

@@ -168,7 +168,7 @@ Retired as a product door. Do not send named invitations bound to an email addre
 _Avoid_: using this as a current channel; magic link; Invite link; Lookup invite
 
 **Invite link**:
-A door URL any authenticated User may use while that token is live. Each copy mints a new token; older tokens stay valid alongside it. No rotate or revoke. A Group or Team token expires 6 hours after mint. A Game token has no clock of its own: it works until the Game's window ends, registration is closed, or the Game is cancelled. Used on every Group type, incomplete Team, and Game. Accepting a Group Game's Invite link also joins the Group when the User is not yet a member; a blocked User is refused on a private Game and registers without joining on a public one. Game Invite links may be opened at `/g/{code}` and Group Invite links at `/gr/{code}` (eight-character public alias on the same row); Team stays token-path only.
+A door URL any authenticated User may use while that token is live. Each copy mints a new token; older tokens stay valid alongside it. No rotate or revoke. A Group or Team token expires 6 hours after mint. A Game token has no clock of its own: it works until the Game's window ends, registration is closed, or the Game is cancelled. Used on every Group type, incomplete Team, and Game. Opening a Game Invite link never seats the User: they press Join, even when there is nothing to pick. Accepting a Group Game's Invite link also joins the Group when the User is not yet a member; a blocked User is refused on a private Game and registers without joining on a public one. Game Invite links may be opened at `/g/{code}` and Group Invite links at `/gr/{code}` (eight-character public alias on the same row); Team stays token-path only.
 _Avoid_: Email invite, Lookup invite, magic link, Group URL (Loose Group Public still uses the Group URL as a separate join door)
 
 **Invite doors**:
@@ -631,6 +631,22 @@ _Avoid_: Organizer (that is the write permission), game admin (lowercase, as a r
 **Finished Game**:
 A Game that is not cancelled and whose Matches are all completed or cancelled, with at least one completed. Derived, not stored. A legacy Americano Game format row, which has no Matches, is never a Finished Game; an Americano Social finishes like any other.
 _Avoid_: completed Game (completed is a Match status), ended, over, past Game
+
+**Live board**:
+A view-only board for the room, shown on a TV: a Game's scores as they are saved, and for a Social its table and who plays next (ADR-0102). An Organizer starts it with Show on TV, runs it from the board control and stops it; a Game has one running at a time. Offered on a padel Friendly game, a football Game and a Social whose shape is Groups only, Rounds or Americano. It changes nothing: scores are entered where they always were. It closes when stopped, when the Game is cancelled, and six hours after the Game's window ends.
+_Avoid_: scoreboard (that is the one-Match board's content), cast, stream, kiosk, `americanoBoard` or `footballBoard` (those are Game screen reads)
+
+**Board code**:
+The six digits that open a Live board on a TV at `/tv`, minted by Show on TV and unique among running boards. Anyone with it can only watch. Stopping the board retires it, and Show on TV then mints a new one. Not an Invite link: it admits nobody to the Game.
+_Avoid_: PIN, invite code, pairing code, short code (that is an Invite link's)
+
+**Board screen**:
+One of the three views a Social's Live board rotates through: On court (the Round on court, with the table and the next Round), Standings (the full table; code calls it `table`, as it does the Americano table) and Next up (who plays whom next, on which court). The rotation runs over the screens with something to show: Next up drops out while no next Round is posted. The Organizer holds the board on one or lets it rotate, 5, 10 or 20 seconds each. A one-Match board has a single scoreboard and no Board screens.
+_Avoid_: slide, page, scene, tab
+
+**Board TV**:
+One browser showing a Live board, joined with the Board code. It has a name ("Clubhouse TV", or "TV 1" when it gave none) and a token of its own, so the Organizer sees each one and can disconnect it. Every Board TV of a board shows the same thing. Listed while it keeps asking for the board: one that is quiet for 45 seconds loses its token and joins again with the code when it comes back. A board holds eight at most.
+_Avoid_: screen (that is a Board screen), device, display, client
 
 **Game Level range**:
 Optional inclusive minimum and/or maximum Level band bounds (D–A) on a Game, stored as tenths. Both unset means no Level gate. Distinct from a User’s continuous Level.

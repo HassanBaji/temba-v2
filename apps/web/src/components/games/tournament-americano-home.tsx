@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeftRight, ChevronDownIcon, ShuffleIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 
@@ -27,7 +28,7 @@ import { type TournamentDetails } from "@repo/domain/tournament-details";
 import { tournamentHomeView } from "@repo/domain/tournament-details";
 import { tournamentOrganizerName } from "@repo/domain/tournament-home";
 
-import { ConfirmDialog } from "~/components/common/confirm-dialog";
+import { GameTvCardSlot } from "~/components/live-board/game-tv";
 import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { PageTitle } from "~/components/layout/page-title";
@@ -37,6 +38,7 @@ import { ShareButton } from "~/components/ui/nav-icon-button";
 import { Surface } from "~/components/ui/surface";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { playerProfilePath } from "~/lib/dashboard-paths";
 import { pageBleed } from "~/lib/page-layout";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
@@ -59,6 +61,10 @@ import { TournamentDetailRows } from "./tournament-detail-rows";
 import { FinishedShareLink, PlaceChip } from "./tournament-finished-parts";
 import { TournamentHero } from "./tournament-hero";
 import { TournamentHeaderBar } from "./tournament-header-bar";
+import {
+  TournamentPlayerDialog,
+  type TournamentPlayer,
+} from "./tournament-player-dialog";
 import { InitialsMark, ROUND_CARD } from "./tournament-round-parts";
 import {
   TournamentScoreDrawer,
@@ -80,6 +86,7 @@ export function TournamentAmericanoHome({
   onInvite,
   onLeaveWaitlist,
   onKick,
+  linkToPlayers = false,
   preview,
 }: {
   data: TournamentDetails;
@@ -95,12 +102,42 @@ export function TournamentAmericanoHome({
   onInvite?: () => void;
   onLeaveWaitlist?: () => void;
   onKick?: (userId: string) => void;
+  /** The viewer may open the players' profiles. */
+  linkToPlayers?: boolean;
 }) {
   const messages = useMessages();
   const m = messages.tournamentAmericano;
   const locale = useLocale();
+  const router = useRouter();
   const utils = api.useUtils();
   const drawn = data.drawPostedAt != null;
+  const [selected, setSelected] = React.useState<TournamentPlayer | null>(null);
+  const organizer = data.isOrganizer && !data.cancelledAt;
+  // Kicking is refused once the Rounds are made: every player sits in them.
+  const kick = organizer && !drawn ? onKick : undefined;
+
+  function openPlayer(userId: string) {
+    const player = data.registeredPlayers.find(
+      (candidate) => candidate.id === userId,
+    );
+    if (!player) {
+      return;
+    }
+    if (organizer) {
+      setSelected({
+        userId: player.id,
+        name: player.name,
+        image: player.image,
+        guest: player.guest,
+        phoneNumber: player.phoneNumber,
+      });
+      return;
+    }
+    if (linkToPlayers && !player.guest) {
+      router.push(playerProfilePath(player.id));
+    }
+  }
+  const onPlayer = organizer || linkToPlayers ? openPlayer : undefined;
   const query = api.games.americanoBoard.useQuery(
     { gameId: data.id },
     { enabled: preview == null, refetchInterval: drawn ? 30_000 : false },
@@ -186,6 +223,7 @@ export function TournamentAmericanoHome({
           actions={actions}
           album={album}
           onRefresh={refresh}
+          onPlayer={onPlayer}
         />
       ) : (
         <AmericanoPredraw
@@ -193,11 +231,10 @@ export function TournamentAmericanoHome({
           backHref={backHref}
           actions={actions}
           sharePending={sharePending}
-          kickPending={kickPending}
           joinPending={register.isPending}
           onShare={onShare}
           onInvite={onInvite}
-          onKick={onKick}
+          onPlayer={onPlayer}
           onJoin={() => register.mutate({ gameId: data.id })}
           onOpenDraw={() => setDrawOpen(true)}
         />
@@ -223,6 +260,20 @@ export function TournamentAmericanoHome({
         tracked={gamePaymentsTracked(data)}
       />
       {drawSheet}
+      <TournamentPlayerDialog
+        player={selected}
+        canOpenProfile={linkToPlayers}
+        kickPending={kickPending}
+        onClose={() => setSelected(null)}
+        onKick={
+          kick
+            ? (userId) => {
+                setSelected(null);
+                kick(userId);
+              }
+            : undefined
+        }
+      />
     </div>
   );
 }
@@ -232,11 +283,10 @@ function AmericanoPredraw({
   backHref,
   actions,
   sharePending,
-  kickPending,
   joinPending,
   onShare,
   onInvite,
-  onKick,
+  onPlayer,
   onJoin,
   onOpenDraw,
 }: {
@@ -244,11 +294,10 @@ function AmericanoPredraw({
   backHref: string;
   actions?: React.ReactNode;
   sharePending: boolean;
-  kickPending: boolean;
   joinPending: boolean;
   onShare?: () => void;
   onInvite?: () => void;
-  onKick?: (userId: string) => void;
+  onPlayer?: (userId: string) => void;
   onJoin: () => void;
   onOpenDraw: () => void;
 }) {
@@ -256,10 +305,6 @@ function AmericanoPredraw({
   const m = messages.tournamentAmericano;
   const locale = useLocale();
   const view = tournamentHomeView(data, locale);
-  const [removing, setRemoving] = React.useState<{
-    userId: string;
-    name: string;
-  } | null>(null);
   const seatCount = data.playersAllowed ?? 0;
   const taken = data.registeredPlayers.length;
   const full = taken >= seatCount && seatCount > 0;
@@ -303,6 +348,7 @@ function AmericanoPredraw({
         onInvite={organizer ? onInvite : undefined}
         actions={actions}
       />
+      <GameTvCardSlot />
 
       {organizer ? (
         <Surface
@@ -367,7 +413,10 @@ function AmericanoPredraw({
           seatCount={seatCount}
           viewerUserId={data.viewerUserId}
           onOpenSeat={data.canRegister ? onJoin : undefined}
-          onPlayer={organizer && onKick ? setRemoving : undefined}
+          onPlayer={onPlayer}
+          playerLabel={
+            organizer ? messages.webTournament.player.openActions : undefined
+          }
         />
         <p className="text-muted-foreground text-meta leading-relaxed">
           {organizer ? m.players.footOrganizer : m.players.footPlayer}
@@ -438,26 +487,6 @@ function AmericanoPredraw({
           </div>
         </div>
       ) : null}
-
-      <ConfirmDialog
-        open={removing != null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setRemoving(null);
-          }
-        }}
-        title={removing ? m.players.remove(removing.name) : ""}
-        confirmLabel={
-          removing ? m.players.remove(shortPlayerName(removing.name)) : ""
-        }
-        pending={kickPending}
-        onConfirm={() => {
-          if (removing && onKick) {
-            onKick(removing.userId);
-          }
-          setRemoving(null);
-        }}
-      />
     </>
   );
 }
@@ -479,6 +508,7 @@ function AmericanoDrawnHome({
   actions,
   album,
   onRefresh,
+  onPlayer,
 }: {
   data: TournamentDetails;
   board: AmericanoBoard;
@@ -486,6 +516,7 @@ function AmericanoDrawnHome({
   actions?: React.ReactNode;
   album?: React.ReactNode;
   onRefresh: () => Promise<void>;
+  onPlayer?: (userId: string) => void;
 }) {
   const messages = useMessages();
   const m = messages.tournamentAmericano;
@@ -638,6 +669,7 @@ function AmericanoDrawnHome({
           </p>
         </Surface>
       )}
+      <GameTvCardSlot className="pt-[18px]" />
 
       <Tabs
         value={tab}
@@ -663,6 +695,12 @@ function AmericanoDrawnHome({
             )}
             seatCount={board.players.length}
             viewerUserId={data.viewerUserId}
+            onPlayer={onPlayer}
+            playerLabel={
+              data.isOrganizer && !data.cancelledAt
+                ? messages.webTournament.player.openActions
+                : undefined
+            }
           />
         </TabsContent>
 

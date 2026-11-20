@@ -188,7 +188,6 @@ export const tournamentAmericano = {
       "سجّل الجميع فرادى. لا فرق تُكوَّن: يتغيّر الشركاء في كل جولة.",
     footPlayer:
       "لا فريق ولا جهة تختارها. خذ مقعدًا ويعطيك تمبا شريكًا لكل جولة.",
-    remove: (name: string) => `أزل ${name}`,
   },
   waitlist: {
     title: "قائمة الانتظار",

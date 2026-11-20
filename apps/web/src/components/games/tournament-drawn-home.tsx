@@ -18,6 +18,7 @@ import {
 } from "@repo/domain/tournament-finished";
 import { poolLabel } from "@repo/domain/tournament-pool-draw";
 
+import { GameTvCardSlot } from "~/components/live-board/game-tv";
 import { PageTitle } from "~/components/layout/page-title";
 import { Surface } from "~/components/ui/surface";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -241,6 +242,7 @@ export function TournamentDrawnHome({
           ) : null}
         </Surface>
       )}
+      <GameTvCardSlot className="pt-[18px]" />
 
       <Tabs
         value={tab}
