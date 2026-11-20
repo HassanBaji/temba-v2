@@ -52,6 +52,7 @@ import { PerformanceResultCard } from "~/components/games/performance-result-car
 import { RateGameCard } from "~/components/games/rate-game-card";
 import { RatingSummaryCard } from "~/components/games/rating-summary-card";
 import { GameActionsSheet } from "~/components/games/game-actions-sheet";
+import type { GameTv } from "~/components/live-board/game-tv";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import {
   gameInviteSubtitle,
@@ -133,11 +134,14 @@ export function FootballGameDetails({
   game,
   openInvites,
   openJoin,
+  tv,
 }: {
   gameId: string;
   game: FootballGame;
   openInvites: boolean;
   openJoin: boolean;
+  /** Show on TV for the Organizer: the menu row and the On TV card. */
+  tv?: Pick<GameTv, "menuRow" | "card">;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -752,6 +756,7 @@ export function FootballGameDetails({
                 },
               ]
             : []),
+          ...(tv?.menuRow ? [tv.menuRow] : []),
           ...(wrongScore
             ? [
                 {
@@ -899,6 +904,7 @@ export function FootballGameDetails({
             {heroBody}
           </FootballGameHeroCard>
         )}
+        {tv?.card}
 
         {joinFamily && !playedModel ? (
           <div className="max-lg:contents">

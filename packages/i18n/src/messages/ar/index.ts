@@ -54,6 +54,7 @@ import { venue } from "./venue";
 import { gameAlbum } from "./game-album";
 import { editTeams } from "./edit-teams";
 import { gamePayments } from "./game-payments";
+import { liveBoard } from "./live-board";
 import { aloneTeams } from "./alone-teams";
 
 import type { en } from "../en/index";
@@ -117,5 +118,6 @@ export const ar: Messages = {
   gameAlbum,
   editTeams,
   gamePayments,
+  liveBoard,
   aloneTeams,
 };

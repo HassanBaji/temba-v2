@@ -65,6 +65,7 @@ export function FriendlyGameMenu({
   onEditTeams,
   onFooterAction,
   onLeaveWaitlist,
+  tvRow,
 }: {
   title: string;
   overflowItems: FriendlyGameOverflowItem[];
@@ -78,6 +79,8 @@ export function FriendlyGameMenu({
   onEditTeams?: () => void;
   onFooterAction: (kind: FriendlyGameFooterActionKind) => void;
   onLeaveWaitlist: () => void;
+  /** Show on TV, when the viewer runs a Game that has a Live board. */
+  tvRow?: GameActionsSheetRow | null;
 }) {
   const locale = useLocale();
   const m = useMessages();
@@ -118,6 +121,9 @@ export function FriendlyGameMenu({
       icon: ArrowLeftRight,
       onSelect: onEditTeams,
     });
+  }
+  if (tvRow) {
+    tools.push(tvRow);
   }
 
   const footer = footerActions.map(

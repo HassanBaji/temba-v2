@@ -74,6 +74,7 @@ const ALLOWED_UNINDEXED: Record<string, string> = {
   "game_member_invites.user_id": USER_OWN,
   "game_member_invites.invited_by": USER_ACTOR,
   "game_invite_links.created_by": USER_ACTOR,
+  "live_boards.created_by": USER_ACTOR,
   "game_invite_link_consents.team_id": RARE_PARENT,
   "game_invite_link_consents.user_id": USER_OWN,
   "game_level_range_requests.user_id": USER_OWN,

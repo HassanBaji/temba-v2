@@ -55,6 +55,7 @@ import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
 import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { TournamentHome } from "~/components/games/tournament-home";
+import { GameTvCardProvider, useGameTv } from "~/components/live-board/game-tv";
 import { TournamentKnockoutCancelDialog } from "~/components/games/tournament-knockout-cancel-dialog";
 import { TournamentPoolTablesPanel } from "~/components/games/tournament-pool-tables-panel";
 import {
@@ -210,6 +211,10 @@ export default function GameHomePage({
     });
   }
   const game = api.games.byId.useQuery({ id });
+  const tv = useGameTv(
+    id,
+    Boolean(game.data?.isOrganizer && !game.data.cancelledAt),
+  );
   const resultsSectionRef = React.useRef<HTMLDivElement>(null);
   const focusResultsSection = React.useCallback(() => {
     const section = resultsSectionRef.current;
@@ -824,12 +829,16 @@ export default function GameHomePage({
 
   if (isFootballRosterGame(data)) {
     return (
-      <FootballGameDetails
-        gameId={id}
-        game={data}
-        openInvites={intent === "invite"}
-        openJoin={intent === "join"}
-      />
+      <>
+        <FootballGameDetails
+          gameId={id}
+          game={data}
+          openInvites={intent === "invite"}
+          openJoin={intent === "join"}
+          tv={tv}
+        />
+        {tv.sheet}
+      </>
     );
   }
 
@@ -930,6 +939,7 @@ export default function GameHomePage({
         onEditTeams={openEditTeams}
         onFooterAction={(kind) => footerHandlers[kind]()}
         onLeaveWaitlist={() => setLeaveWaitlistOpen(true)}
+        tvRow={tv.menuRow}
       />
     ) : null;
   const shareLink = friendlyGameShareLink({
@@ -1064,6 +1074,7 @@ export default function GameHomePage({
                   icon: PencilIcon,
                   onSelect: () => setEditOpen(true),
                 },
+                ...(tv.menuRow ? [tv.menuRow] : []),
                 data.registrationClosedAt
                   ? {
                       key: "reopen_registration",
@@ -1200,8 +1211,9 @@ export default function GameHomePage({
         ) : null}
 
         {usesDrawnTournamentChrome ? (
-          <>
+          <GameTvCardProvider card={tv.card}>
             <TournamentHome
+              tvRow={tv.menuRow}
               data={data}
               linkToPlayers={gamePlayersLink(data)}
               sharePending={createInviteLink.isPending}
@@ -1298,7 +1310,7 @@ export default function GameHomePage({
               }
               onCancelKnockoutMatch={setCancelKnockoutPlace}
             />
-          </>
+          </GameTvCardProvider>
         ) : usesFriendlyChrome ? (
           <>
             <h1 className="sr-only">{g.friendlyGameHeading}</h1>
@@ -1312,6 +1324,7 @@ export default function GameHomePage({
             ) : playedMatch ? null : (
               <HeroNavRow tone="paper" actions={gameMenu(false)} />
             )}
+            {tv.card}
           </>
         ) : (
           <GameHomeHeader
@@ -1328,6 +1341,7 @@ export default function GameHomePage({
             actions={organizerMenu}
           />
         )}
+        {usesDrawnTournamentChrome || usesFriendlyChrome ? null : tv.card}
 
         {usesFriendlyChrome && ctaFamily.kind !== "none" && !playedMatch ? (
           <div className="max-lg:contents">
@@ -2011,6 +2025,7 @@ export default function GameHomePage({
           });
         }}
       />
+      {tv.sheet}
     </DashboardShell>
   );
 }
