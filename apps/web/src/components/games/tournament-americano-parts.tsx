@@ -298,16 +298,15 @@ function PairNames({
     <span
       className={cn(
         "flex min-w-0 flex-1 basis-0 flex-col overflow-hidden",
+        !onPick && "gap-1",
         align === "end" ? "items-end text-end" : "items-start text-start",
       )}
     >
       {ids.map((id) => {
-        const name = playerShortName(
-          names,
-          id,
-          viewerGamePlayerId,
-          m.common.you,
-        );
+        const name =
+          id === viewerGamePlayerId
+            ? m.common.you
+            : (names.get(id)?.name ?? "");
         if (onPick) {
           const picked = selected?.has(id) ?? false;
           return (
@@ -317,7 +316,8 @@ function PairNames({
               aria-pressed={picked}
               onClick={() => onPick(id)}
               className={cn(
-                "text-meta focus-visible:ring-ring/50 max-w-full truncate rounded-sm px-1.5 py-1 font-semibold outline-none focus-visible:ring-[3px]",
+                "text-meta focus-visible:ring-ring/50 max-w-full break-words rounded-sm px-1.5 py-1 font-semibold leading-tight outline-none focus-visible:ring-[3px]",
+                align === "end" ? "text-end" : "text-start",
                 picked
                   ? "bg-ink text-paper"
                   : "underline-offset-2 hover:underline",
@@ -332,7 +332,7 @@ function PairNames({
             key={id}
             dir="auto"
             className={cn(
-              "text-meta block max-w-full truncate font-semibold leading-snug",
+              "text-meta block max-w-full break-words font-semibold leading-tight",
               id === viewerGamePlayerId && "underline underline-offset-2",
             )}
           >
@@ -434,7 +434,7 @@ export function AmericanoGameRow({
       )}
     >
       <span className="text-meta w-12 shrink-0 sm:w-14">{match.courtName}</span>
-      <span className="flex min-w-[10.5rem] flex-1 items-center gap-2">
+      <span className="flex min-w-[12.5rem] flex-1 items-center gap-2">
         <PairNames
           ids={match.slot1PlayerIds}
           names={names}
