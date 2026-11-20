@@ -648,6 +648,10 @@ _Avoid_: slide, page, scene, tab
 One browser showing a Live board, joined with the Board code. It has a name ("Clubhouse TV", or "TV 1" when it gave none) and a token of its own, so the Organizer sees each one and can disconnect it. Every Board TV of a board shows the same thing. Listed while it keeps asking for the board: one that is quiet for 45 seconds loses its token and joins again with the code when it comes back. A board holds eight at most.
 _Avoid_: screen (that is a Board screen), device, display, client
 
+**Round clock**:
+The time left in the Round on court, shown on a Social's Live board. It follows the posted schedule, counting down from the Round's start over the Match length, until an Organizer takes it from the board control; from then on each Round starts when the Organizer starts it, and they can pause it, resume it and start it again (ADR-0104). It belongs to the board: it moves no Match time and no score, and the Game screens keep reading the schedule.
+_Avoid_: timer, stopwatch, match clock (a one-Match board shows match time, which nobody runs)
+
 **Game Level range**:
 Optional inclusive minimum and/or maximum Level band bounds (D–A) on a Game, stored as tenths. Both unset means no Level gate. Distinct from a User’s continuous Level.
 _Avoid_: rank range, ELO range, skill cap (when you mean this), letterNumber D3–A (stored thirds, not the product face)

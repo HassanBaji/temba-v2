@@ -3,7 +3,11 @@
 import * as React from "react";
 import { toast } from "sonner";
 
-import { changeBoardRotation } from "@repo/domain/live-board";
+import {
+  changeBoardRotation,
+  changeRoundClock,
+  type RoundClockAction,
+} from "@repo/domain/live-board";
 
 import { useMessages } from "~/components/locale-provider";
 import { copyTextWhenReady } from "~/lib/share-link";
@@ -79,6 +83,10 @@ export function useLiveBoard(gameId: string, enabled: boolean) {
     onError: failed,
     onSettled: refresh,
   });
+  const roundClock = api.liveBoards.setRoundClock.useMutation({
+    onError: failed,
+    onSettled: refresh,
+  });
   const disconnectTv = api.liveBoards.disconnectTv.useMutation({
     onError: failed,
     onSettled: refresh,
@@ -103,6 +111,25 @@ export function useLiveBoard(gameId: string, enabled: boolean) {
     update.mutate({ gameId, ...settings });
   }
 
+  function setRoundClock(action: RoundClockAction) {
+    const board = query.data?.board;
+    const round = board?.status?.round;
+    if (!board || !round) {
+      return;
+    }
+    const clock = changeRoundClock(
+      board.roundClock,
+      action,
+      round,
+      new Date(Date.now() + offsetMs),
+    );
+    if (!clock) {
+      return;
+    }
+    void patch({ roundClock: clock }, query.dataUpdatedAt);
+    roundClock.mutate({ gameId, action, roundNumber: round.roundNumber });
+  }
+
   /** Show on TV: starts the board unless one is on or already starting. */
   function ensureStarted() {
     if (!query.data?.board && !start.isPending) {
@@ -121,6 +148,7 @@ export function useLiveBoard(gameId: string, enabled: boolean) {
     start,
     ensureStarted,
     change,
+    setRoundClock,
     setMessage,
     disconnectTv,
     stop,

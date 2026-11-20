@@ -13,6 +13,7 @@ import {
 import { gameRatingScope } from "@repo/domain/game-rating-scope";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import {
+  boardClockRound,
   boardTableRound,
   isSocialBoardFinished,
   liveBoardKind,
@@ -20,6 +21,7 @@ import {
   type FootballScoreboardRole,
   type FootballScoreboardSide,
   socialBoardView,
+  type BoardClockRound,
   type LiveBoardContent,
   type LiveBoardMatch,
   type LiveBoardPhase,
@@ -596,13 +598,16 @@ export type LiveBoardStatus = {
   phase: LiveBoardPhase;
   /** The Board screens with something to show, in rotation order. */
   screens: LiveBoardScreen[];
+  /** The Round the board's clock runs for; null while it waits and once it is over. */
+  round: BoardClockRound | null;
 };
 
 /**
  * What a Social's TVs show beyond the settings, so the control and the On TV
  * card describe the board the room sees: waiting, rotating through the
- * screens that have something to show, or stopped on the final table. Null
- * for a one-Match board, which has one scoreboard.
+ * screens that have something to show, or stopped on the final table, and
+ * the Round its clock runs for. Null for a one-Match board, which has one
+ * scoreboard.
  */
 export async function liveBoardStatus(
   database: DbClient,
@@ -615,5 +620,12 @@ export async function liveBoardStatus(
     return null;
   }
   const view = socialBoardView(content, now);
-  return { phase: view.phase, screens: view.screens };
+  return {
+    phase: view.phase,
+    screens: view.screens,
+    round:
+      view.phase === "live" && view.current
+        ? boardClockRound(view.current, content.matchMinutes)
+        : null,
+  };
 }

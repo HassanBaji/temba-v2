@@ -2,7 +2,11 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, eq, gt, isNull } from "drizzle-orm";
 
 import { liveBoards, liveBoardTvs } from "@repo/db";
-import { liveBoardKind, type LiveBoardKind } from "@repo/domain/live-board";
+import {
+  liveBoardKind,
+  type LiveBoardKind,
+  type LiveBoardRoundClock,
+} from "@repo/domain/live-board";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -116,6 +120,16 @@ export async function connectedTvs(
   });
 }
 
+export function boardRoundClockOf(board: LiveBoardRow): LiveBoardRoundClock {
+  return {
+    byHand: board.roundClockByHand,
+    roundNumber: board.roundClockRound,
+    startedAt: board.roundClockStartedAt,
+    runningSince: board.roundClockRunningSince,
+    elapsedMs: board.roundClockElapsedMs,
+  };
+}
+
 /** The settings every TV and the control read off a board. */
 export function boardSettings(board: LiveBoardRow) {
   return {
@@ -125,6 +139,7 @@ export function boardSettings(board: LiveBoardRow) {
     rotationStartedAt: board.rotationStartedAt,
     colorScheme: board.colorScheme,
     showQr: board.showQr,
+    roundClock: boardRoundClockOf(board),
   };
 }
 

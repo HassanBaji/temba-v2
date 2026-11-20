@@ -4,7 +4,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { LocaleProvider } from "~/components/locale-provider";
 
-import { liveBoardPreviews, PREVIEW_NOW } from "./board-fixtures";
+import {
+  liveBoardPreviews,
+  PREVIEW_NOW,
+  PREVIEW_ROUND_START,
+} from "./board-fixtures";
 import type { LiveBoardSnapshot } from "./board-kit";
 import { LiveBoard } from "./live-board";
 
@@ -59,6 +63,96 @@ describe("a Social's Live board", () => {
     expect(html).toContain("4th, 6 pts");
     expect(html).toContain("against");
     expect(html).toContain("Then, 1:20");
+  });
+
+  it("starts the Round when the Organizer does, whatever its posted time", () => {
+    const startedAt = new Date(PREVIEW_ROUND_START.getTime() + 7 * 60_000);
+    const html = render({
+      ...social,
+      settings: {
+        ...social.settings,
+        roundClock: {
+          byHand: true,
+          roundNumber: 4,
+          startedAt,
+          runningSince: startedAt,
+          elapsedMs: 0,
+        },
+      },
+    });
+    expect(html).toContain("Round 4, started 12:07");
+    expect(html).toContain("18:38");
+    expect(html).toContain("left in the round");
+  });
+
+  it("holds the time left and says so while the Organizer has the clock paused", () => {
+    const html = render({
+      ...social,
+      settings: {
+        ...social.settings,
+        roundClock: {
+          byHand: true,
+          roundNumber: 4,
+          startedAt: PREVIEW_ROUND_START,
+          runningSince: null,
+          elapsedMs: 10 * 60_000,
+        },
+      },
+    });
+    expect(html).toContain("Paused");
+    expect(html).toContain("20:00");
+    expect(html).toContain("left, clock paused");
+    expect(html).not.toContain("left in the round");
+  });
+
+  it("waits for the Organizer to start a Round once they run the clock", () => {
+    const roundThreeStarted = {
+      byHand: true,
+      roundNumber: 3,
+      startedAt: PREVIEW_ROUND_START,
+      runningSince: PREVIEW_ROUND_START,
+      elapsedMs: 0,
+    };
+    const unscored: LiveBoardSnapshot = {
+      ...social,
+      settings: { ...social.settings, roundClock: roundThreeStarted },
+      content:
+        social.content.kind === "social"
+          ? {
+              ...social.content,
+              rounds: social.content.rounds.map((round) =>
+                round.roundNumber === 4
+                  ? {
+                      ...round,
+                      matches: round.matches.map((match) => ({
+                        ...match,
+                        state: "on_court" as const,
+                        score1: null,
+                        score2: null,
+                      })),
+                    }
+                  : round,
+              ),
+            }
+          : social.content,
+    };
+    const html = render(unscored);
+    expect(html).toContain("Soon");
+    expect(html).toContain("30:00");
+    expect(html).toContain("round 4 not started");
+    expect(html).toContain("Up next");
+    expect(html).not.toContain("Round 4, started 12:00");
+    expect(html).not.toContain("No score yet");
+
+    // A Round with a score saved is being played: on court, with no clock.
+    const scored = render({
+      ...social,
+      settings: { ...social.settings, roundClock: roundThreeStarted },
+    });
+    expect(scored).toContain("Live");
+    expect(scored).toContain("In play");
+    expect(scored).not.toContain("round 4 not started");
+    expect(scored).not.toContain("left in the round");
   });
 
   it("falls back to the courts when the next Round is not posted", () => {

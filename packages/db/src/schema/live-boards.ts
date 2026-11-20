@@ -55,6 +55,16 @@ export const liveBoards = pgTable(
     showQr: boolean("show_qr").notNull().default(true),
     message: varchar("message", { length: 80 }),
     messageShown: boolean("message_shown").notNull().default(false),
+    // Off, the Round clock follows the posted schedule. On, the Organizer
+    // starts each Round and the clock is a stopwatch (ADR-0104).
+    roundClockByHand: boolean("round_clock_by_hand").notNull().default(false),
+    // The Round the clock was started for.
+    roundClockRound: integer("round_clock_round"),
+    roundClockStartedAt: timestamp("round_clock_started_at"),
+    // Null while the clock is paused.
+    roundClockRunningSince: timestamp("round_clock_running_since"),
+    // Time on the clock banked before it was last set running.
+    roundClockElapsedMs: integer("round_clock_elapsed_ms").notNull().default(0),
     stoppedAt: timestamp("stopped_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

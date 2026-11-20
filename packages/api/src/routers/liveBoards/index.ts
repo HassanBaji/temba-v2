@@ -4,6 +4,7 @@ import { connectProcedure as connect } from "./connect";
 import { disconnectTvProcedure as disconnectTv } from "./disconnectTv";
 import { forGameProcedure as forGame } from "./forGame";
 import { setMessageProcedure as setMessage } from "./setMessage";
+import { setRoundClockProcedure as setRoundClock } from "./setRoundClock";
 import { snapshotProcedure as snapshot } from "./snapshot";
 import { startProcedure as start } from "./start";
 import { stopProcedure as stop } from "./stop";
@@ -14,6 +15,7 @@ export const liveBoardsRouter = createTRPCRouter({
   disconnectTv,
   forGame,
   setMessage,
+  setRoundClock,
   snapshot,
   start,
   stop,

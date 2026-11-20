@@ -363,6 +363,7 @@ type ExpectedLiveBoards =
   | "disconnectTv"
   | "forGame"
   | "setMessage"
+  | "setRoundClock"
   | "snapshot"
   | "start"
   | "stop"
