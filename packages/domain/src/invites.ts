@@ -539,6 +539,34 @@ export function gameInviteLinkStage(
   return "accept";
 }
 
+/**
+ * A Group member opening a Social's link joins as on its Game screen: alone
+ * or with a partner, then a seat. Anyone else answers the Group or the Level
+ * question in the link's own sheet first.
+ */
+export function gameInviteUsesGameJoinSheet(
+  preview: Pick<
+    GameInviteLinkReady,
+    | "game"
+    | "sides"
+    | "football"
+    | "group"
+    | "partnerRequiredJoin"
+    | "viewerPassesLevelRange"
+  >,
+  isSignedIn: boolean,
+) {
+  return (
+    isSignedIn &&
+    preview.game.format === "friendly_tournament" &&
+    preview.sides.length > 0 &&
+    !preview.football &&
+    !preview.partnerRequiredJoin &&
+    preview.viewerPassesLevelRange !== false &&
+    preview.group?.joinMode === "member"
+  );
+}
+
 export type InviteLinkPath =
   | { kind: InviteKind; token: string }
   | { kind: "game-short" | "group-short"; code: string };

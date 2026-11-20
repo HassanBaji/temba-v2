@@ -129,6 +129,18 @@ export function InviteJoinSheet({
         };
   const ready = input.kind === "football" || copy.alone || choice.seat != null;
   const sideNote = team ? copy.sideNote(team, side) : null;
+  // A Social has many Game teams: two a row, so each stays readable.
+  const teamRows = copy.teams.reduce<(typeof copy.teams)[]>(
+    (rows, entry, index) => {
+      if (index % 2 === 0) {
+        rows.push([entry]);
+      } else {
+        rows[rows.length - 1]?.push(entry);
+      }
+      return rows;
+    },
+    [],
+  );
 
   return (
     <Sheet
@@ -159,19 +171,24 @@ export function InviteJoinSheet({
           {copy.alone ? null : (
             <View style={{ gap: 10 }}>
               <Label left={copy.teamLabel} />
-              <View
-                accessibilityRole="radiogroup"
-                style={{ flexDirection: "row", gap: 8 }}
-              >
-                {copy.teams.map((entry) => (
-                  <Choice
-                    key={entry.sideIndex}
-                    title={entry.label}
-                    note={entry.meta}
-                    selected={sideIndex === entry.sideIndex}
-                    locked={entry.full}
-                    onPress={() => setSideIndex(entry.sideIndex)}
-                  />
+              <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
+                {teamRows.map((row) => (
+                  <View
+                    key={row[0]?.sideIndex}
+                    style={{ flexDirection: "row", gap: 8 }}
+                  >
+                    {row.map((entry) => (
+                      <Choice
+                        key={entry.sideIndex}
+                        title={entry.label}
+                        note={entry.meta}
+                        selected={sideIndex === entry.sideIndex}
+                        locked={entry.full}
+                        onPress={() => setSideIndex(entry.sideIndex)}
+                      />
+                    ))}
+                    {row.length < 2 ? <View style={{ flex: 1 }} /> : null}
+                  </View>
                 ))}
               </View>
             </View>

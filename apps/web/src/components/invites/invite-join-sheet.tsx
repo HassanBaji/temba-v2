@@ -211,7 +211,11 @@ export function InviteJoinSheet({
                   <div
                     role="radiogroup"
                     aria-label={copy.teamLabel}
-                    className="flex gap-2"
+                    className={
+                      copy.teams.length > 2
+                        ? "grid grid-cols-2 gap-2"
+                        : "flex gap-2"
+                    }
                   >
                     {copy.teams.map((entry) => (
                       <Choice
