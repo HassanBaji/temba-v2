@@ -320,7 +320,58 @@ export type LiveBoardPhase = "waiting" | "live" | "final";
 
 export type SocialBoardClock =
   | { kind: "left"; seconds: number }
-  | { kind: "starts"; seconds: number };
+  | { kind: "starts"; seconds: number }
+  /** The Organizer paused the Round clock; the seconds left are held. */
+  | { kind: "paused"; seconds: number }
+  /** The Round waits for the Organizer to start it; the seconds are its full length. */
+  | { kind: "ready"; seconds: number };
+
+/**
+ * A board's Round clock as the Organizer runs it. Off (`byHand` false), the
+ * clock follows the posted schedule. On, a Round starts when the Organizer
+ * starts it, and the clock is a stopwatch: the time banked before the last
+ * pause, plus the time since it was last set running.
+ */
+export type LiveBoardRoundClock = {
+  byHand: boolean;
+  /** The Round the clock was started for. */
+  roundNumber: number | null;
+  startedAt: Date | null;
+  /** Null while the clock is paused. */
+  runningSince: Date | null;
+  elapsedMs: number;
+};
+
+export const ROUND_CLOCK_ON_SCHEDULE: LiveBoardRoundClock = {
+  byHand: false,
+  roundNumber: null,
+  startedAt: null,
+  runningSince: null,
+  elapsedMs: 0,
+};
+
+export const ROUND_CLOCK_ACTIONS = [
+  "start",
+  "pause",
+  "resume",
+  "by_hand",
+  "schedule",
+] as const;
+
+export type RoundClockAction = (typeof ROUND_CLOCK_ACTIONS)[number];
+
+/** What the posted schedule says of a Round: when it starts, or when it ends once under way. */
+export type BoardRoundSchedule = {
+  startsAt: Date | null;
+  endsAt: Date | null;
+};
+
+/** The Round a board's clock runs for, as the control reads it. */
+export type BoardClockRound = {
+  roundNumber: number;
+  lengthSeconds: number;
+  schedule: BoardRoundSchedule;
+};
 
 export type SocialBoardView = {
   phase: LiveBoardPhase;
@@ -339,47 +390,197 @@ function hasMatches(round: LiveBoardRound) {
   return round.matches.length > 0;
 }
 
-function roundEndsAt(round: LiveBoardRound, matchMinutes: number) {
-  const starts = round.matches.flatMap((match) =>
-    match.startTime ? [new Date(match.startTime).getTime()] : [],
-  );
-  if (starts.length === 0) {
-    return null;
-  }
-  return Math.max(...starts) + matchMinutes * 60 * 1000;
+function isSettledRound(round: LiveBoardRound) {
+  return round.state === "played" || round.state === "cancelled";
 }
 
 function secondsBetween(from: number, to: number) {
   return Math.max(0, Math.ceil((to - from) / 1000));
 }
 
-function socialBoardClock(
-  round: LiveBoardRound | null,
+export function boardRoundSchedule(
+  round: LiveBoardRound,
   matchMinutes: number,
-  now: Date,
-): SocialBoardClock | null {
-  if (!round || round.state === "played" || round.state === "cancelled") {
-    return null;
+): BoardRoundSchedule {
+  if (isSettledRound(round)) {
+    return { startsAt: null, endsAt: null };
   }
   if (round.state === "scheduled") {
-    return round.startTime
+    return { startsAt: round.startTime, endsAt: null };
+  }
+  const starts = round.matches.flatMap((match) =>
+    match.startTime ? [new Date(match.startTime).getTime()] : [],
+  );
+  return {
+    startsAt: null,
+    endsAt:
+      starts.length === 0
+        ? null
+        : new Date(Math.max(...starts) + matchMinutes * 60 * 1000),
+  };
+}
+
+function scheduleClock(
+  schedule: BoardRoundSchedule,
+  now: Date,
+): SocialBoardClock | null {
+  if (schedule.endsAt) {
+    return {
+      kind: "left",
+      seconds: secondsBetween(now.getTime(), schedule.endsAt.getTime()),
+    };
+  }
+  return schedule.startsAt
+    ? {
+        kind: "starts",
+        seconds: secondsBetween(now.getTime(), schedule.startsAt.getTime()),
+      }
+    : null;
+}
+
+function isClockStartedFor(clock: LiveBoardRoundClock, roundNumber: number) {
+  return clock.roundNumber === roundNumber && clock.startedAt != null;
+}
+
+/**
+ * What a board's Round clock reads at `now`: the schedule's count while the
+ * clock follows it, the Organizer's stopwatch once they run it by hand. By
+ * hand, a Round the Organizer has not started reads its full length.
+ */
+export function boardRoundClock(
+  clock: LiveBoardRoundClock,
+  round: BoardClockRound,
+  now: Date,
+): SocialBoardClock | null {
+  if (!clock.byHand) {
+    return scheduleClock(round.schedule, now);
+  }
+  if (!isClockStartedFor(clock, round.roundNumber)) {
+    return { kind: "ready", seconds: round.lengthSeconds };
+  }
+  const running = clock.runningSince
+    ? Math.max(0, now.getTime() - clock.runningSince.getTime())
+    : 0;
+  const seconds = Math.max(
+    0,
+    Math.ceil((round.lengthSeconds * 1000 - clock.elapsedMs - running) / 1000),
+  );
+  return { kind: clock.runningSince ? "left" : "paused", seconds };
+}
+
+/** The schedule's count carried over when the Organizer takes the clock mid-Round. */
+function takenFromSchedule(
+  round: BoardClockRound,
+  now: Date,
+): LiveBoardRoundClock {
+  const startedAt = round.schedule.endsAt
+    ? new Date(round.schedule.endsAt.getTime() - round.lengthSeconds * 1000)
+    : null;
+  return startedAt && startedAt <= now
+    ? {
+        byHand: true,
+        roundNumber: round.roundNumber,
+        startedAt,
+        runningSince: startedAt,
+        elapsedMs: 0,
+      }
+    : { ...ROUND_CLOCK_ON_SCHEDULE, byHand: true };
+}
+
+/**
+ * What a tap on the board control does to the Round clock, or null when it
+ * changes nothing (pausing a clock that is not running, say), so two
+ * Organizers tapping the same button do not undo each other. Starting,
+ * pausing or resuming takes the clock off the schedule: from then on every
+ * Round waits to be started, until the clock is handed back. Taking it while
+ * the schedule's count is running keeps that count.
+ */
+export function changeRoundClock(
+  clock: LiveBoardRoundClock,
+  action: RoundClockAction,
+  round: BoardClockRound,
+  now: Date,
+): LiveBoardRoundClock | null {
+  if (action === "schedule") {
+    return clock.byHand ? ROUND_CLOCK_ON_SCHEDULE : null;
+  }
+  if (action === "start") {
+    return {
+      byHand: true,
+      roundNumber: round.roundNumber,
+      startedAt: now,
+      runningSince: now,
+      elapsedMs: 0,
+    };
+  }
+  const taken: LiveBoardRoundClock = clock.byHand
+    ? clock
+    : takenFromSchedule(round, now);
+  if (action === "by_hand") {
+    return clock.byHand ? null : taken;
+  }
+  if (!isClockStartedFor(taken, round.roundNumber)) {
+    return null;
+  }
+  if (action === "pause") {
+    return taken.runningSince
       ? {
-          kind: "starts",
-          seconds: secondsBetween(
-            now.getTime(),
-            new Date(round.startTime).getTime(),
-          ),
+          ...taken,
+          runningSince: null,
+          elapsedMs:
+            taken.elapsedMs +
+            Math.max(0, now.getTime() - taken.runningSince.getTime()),
         }
       : null;
   }
-  const endsAt = roundEndsAt(round, matchMinutes);
-  return endsAt == null
-    ? null
-    : { kind: "left", seconds: secondsBetween(now.getTime(), endsAt) };
+  return taken.runningSince ? null : { ...taken, runningSince: now };
 }
 
-function isSettledRound(round: LiveBoardRound) {
-  return round.state === "played" || round.state === "cancelled";
+const SCORED_MATCH_STATES: readonly TournamentMatchState[] = [
+  "awaiting_confirmation",
+  "confirmed",
+  "not_finished",
+];
+
+/**
+ * A Round as the board shows it while the Organizer runs the clock: on court
+ * from the moment they start it, whatever its posted time, and waiting until
+ * then. A Round with a score saved is on court either way, so a clock nobody
+ * started never leaves the room reading "Soon" over a Round being played.
+ */
+function roundByHand(
+  round: LiveBoardRound,
+  clock: LiveBoardRoundClock,
+): LiveBoardRound {
+  if (isSettledRound(round)) {
+    return round;
+  }
+  const started = isClockStartedFor(clock, round.roundNumber);
+  if (
+    !started &&
+    round.matches.some((match) => SCORED_MATCH_STATES.includes(match.state))
+  ) {
+    return round;
+  }
+  return started
+    ? {
+        ...round,
+        state: "on_court",
+        startTime: clock.startedAt,
+        matches: round.matches.map((match) =>
+          match.state === "scheduled" ? { ...match, state: "on_court" } : match,
+        ),
+      }
+    : {
+        ...round,
+        state: "scheduled",
+        startTime: null,
+        matches: round.matches.map((match) =>
+          match.state === "scheduled" || match.state === "on_court"
+            ? { ...match, state: "scheduled", startTime: null }
+            : match,
+        ),
+      };
 }
 
 /**
@@ -415,20 +616,22 @@ export function isSocialBoardFinished(rounds: readonly LiveBoardRound[]) {
 /**
  * Which Rounds a Social's board shows, which Board screens have something to
  * show and what its clock counts. Next up drops out of the rotation while
- * there is no next Round posted.
+ * there is no next Round posted. With the Round clock run by hand, the Round
+ * on court is read through it (`roundByHand`).
  */
 export function socialBoardView(
   content: SocialBoardContent,
   now: Date,
+  roundClock: LiveBoardRoundClock = ROUND_CLOCK_ON_SCHEDULE,
 ): SocialBoardView {
   const rounds = [...content.rounds].sort(
     (left, right) => left.roundNumber - right.roundNumber,
   );
   const tableAfterRound = boardTableRound(rounds);
   const currentNumber = currentRoundNumber(rounds.filter(hasMatches));
-  const current =
+  const posted =
     rounds.find((round) => round.roundNumber === currentNumber) ?? null;
-  if (!current) {
+  if (!posted) {
     return {
       phase: content.finished ? "final" : "waiting",
       current: null,
@@ -441,9 +644,16 @@ export function socialBoardView(
   }
   const upcoming = rounds.filter(
     (round) =>
-      round.roundNumber > current.roundNumber && round.state !== "cancelled",
+      round.roundNumber > posted.roundNumber && round.state !== "cancelled",
   );
   const next = upcoming[0] ?? null;
+  const current = roundClock.byHand ? roundByHand(posted, roundClock) : posted;
+  const over = content.finished || isSettledRound(posted);
+  // By hand, a Round on court that nobody started has no clock to show.
+  const unstarted =
+    roundClock.byHand &&
+    current.state !== "scheduled" &&
+    !isClockStartedFor(roundClock, current.roundNumber);
   return {
     phase: content.finished ? "final" : "live",
     current,
@@ -453,9 +663,26 @@ export function socialBoardView(
     screens: LIVE_BOARD_SCREENS.filter(
       (screen) => screen !== "next_up" || (next?.matches.length ?? 0) > 0,
     ),
-    clock: content.finished
-      ? null
-      : socialBoardClock(current, content.matchMinutes, now),
+    clock:
+      over || unstarted
+        ? null
+        : boardRoundClock(
+            roundClock,
+            boardClockRound(posted, content.matchMinutes),
+            now,
+          ),
+  };
+}
+
+/** The Round on court with what the control needs to run its clock. */
+export function boardClockRound(
+  round: LiveBoardRound,
+  matchMinutes: number,
+): BoardClockRound {
+  return {
+    roundNumber: round.roundNumber,
+    lengthSeconds: matchMinutes * 60,
+    schedule: boardRoundSchedule(round, matchMinutes),
   };
 }
 

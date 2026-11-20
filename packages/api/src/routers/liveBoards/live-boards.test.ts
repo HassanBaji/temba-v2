@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { type Db } from "@repo/db";
@@ -15,6 +15,7 @@ import {
   venues,
 } from "@repo/db/schema";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
+import { socialBoardView } from "@repo/domain/live-board";
 
 import {
   asDb,
@@ -43,6 +44,7 @@ import { connectLiveBoardTv } from "#src/routers/liveBoards/connect";
 import { disconnectLiveBoardTv } from "#src/routers/liveBoards/disconnectTv";
 import { liveBoardForGame } from "#src/routers/liveBoards/forGame";
 import { setLiveBoardMessage } from "#src/routers/liveBoards/setMessage";
+import { setLiveBoardRoundClock } from "#src/routers/liveBoards/setRoundClock";
 import { liveBoardSnapshot } from "#src/routers/liveBoards/snapshot";
 import { startLiveBoard } from "#src/routers/liveBoards/start";
 import { stopLiveBoard } from "#src/routers/liveBoards/stop";
@@ -436,6 +438,15 @@ describe("a TV joining with the Board code", () => {
     });
   });
 });
+
+/** A TV's token lasts 45 quiet seconds, so a read minutes later joins afresh. */
+async function snapshotAt(database: TestDatabase, code: string, now: Date) {
+  const { token } = await connectLiveBoardTv(database as unknown as Db, {
+    code,
+    now,
+  });
+  return liveSnapshot(database, token, now);
+}
 
 describe("a Social's board", () => {
   const jobs = recordJobs();
@@ -982,7 +993,11 @@ describe("the board control", () => {
       await startAndConnect(database, seeded);
       const status = async () =>
         (await control(database, seeded.gameId, seeded.owner.id)).board?.status;
-      expect(await status()).toEqual({ phase: "waiting", screens: [] });
+      expect(await status()).toEqual({
+        phase: "waiting",
+        screens: [],
+        round: null,
+      });
 
       const generated = await generateRounds(database as unknown as Db, {
         gameId: seeded.gameId,
@@ -995,9 +1010,10 @@ describe("the board control", () => {
         organizerUserId: seeded.owner.id,
         roundNumbers: [1],
       });
-      expect(await status()).toEqual({
+      expect(await status()).toMatchObject({
         phase: "live",
         screens: ["on_court", "table"],
+        round: { roundNumber: 1, lengthSeconds: 30 * 60 },
       });
 
       // Off at the third step: the TVs skip Next up, so the board holds On court.
@@ -1016,7 +1032,7 @@ describe("the board control", () => {
         organizerUserId: seeded.owner.id,
         roundNumbers: generated.roundNumbers.slice(1),
       });
-      expect(await status()).toEqual({
+      expect(await status()).toMatchObject({
         phase: "live",
         screens: ["on_court", "table", "next_up"],
       });
@@ -1081,6 +1097,164 @@ describe("the board control", () => {
           colorScheme: "dark",
         }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+  });
+
+  it("lets the Organizer start, pause and resume the Round clock, and hand it back to the schedule", async () => {
+    await withDb(async (database) => {
+      const seeded = await seedSocial(database);
+      await postEveryRound(database, seeded);
+      const { code } = (await startAndConnect(database, seeded)).control;
+      const at = (minutes: number) =>
+        new Date(WINDOW_START.getTime() + minutes * MINUTE);
+      const tap = (
+        action: Parameters<typeof setLiveBoardRoundClock>[1]["action"],
+        now: Date,
+      ) =>
+        setLiveBoardRoundClock(database as unknown as Db, {
+          gameId: seeded.gameId,
+          userId: seeded.owner.id,
+          action,
+          roundNumber: 1,
+          now,
+        });
+      const onTv = async (now: Date) => {
+        const snapshot = await snapshotAt(database, code, now);
+        if (snapshot.content.kind !== "social") {
+          throw new Error("Expected a Social");
+        }
+        const view = socialBoardView(
+          snapshot.content,
+          now,
+          snapshot.settings.roundClock,
+        );
+        return { state: view.current?.state, clock: view.clock };
+      };
+
+      expect(await onTv(at(5))).toEqual({
+        state: "on_court",
+        clock: { kind: "left", seconds: 25 * 60 },
+      });
+
+      await tap("start", at(12));
+      expect(await onTv(at(14))).toEqual({
+        state: "on_court",
+        clock: { kind: "left", seconds: 28 * 60 },
+      });
+
+      await tap("pause", at(20));
+      await tap("pause", at(21));
+      expect(await onTv(at(30))).toEqual({
+        state: "on_court",
+        clock: { kind: "paused", seconds: 22 * 60 },
+      });
+
+      await tap("resume", at(30));
+      expect(await onTv(at(35))).toEqual({
+        state: "on_court",
+        clock: { kind: "left", seconds: 17 * 60 },
+      });
+      expect(
+        (await control(database, seeded.gameId, seeded.owner.id)).board
+          ?.roundClock,
+      ).toMatchObject({ byHand: true, roundNumber: 1, startedAt: at(12) });
+
+      // No Match time moved: the clock is the board's alone.
+      const starts = await database.query.matches.findMany({
+        where: eq(matches.gameId, seeded.gameId),
+        columns: { startTime: true, roundNumber: true },
+      });
+      expect(
+        starts
+          .filter((row) => row.roundNumber === 1)
+          .every((row) => row.startTime?.getTime() === at(0).getTime()),
+      ).toBe(true);
+
+      await tap("schedule", at(36));
+      expect(await onTv(at(36))).toEqual({
+        state: "on_court",
+        clock: { kind: "left", seconds: 0 },
+      });
+    });
+  });
+
+  it("makes each Round wait for Start once the Organizer runs the clock", async () => {
+    await withDb(async (database) => {
+      const seeded = await seedSocial(database);
+      await postEveryRound(database, seeded);
+      const { code } = (await startAndConnect(database, seeded)).control;
+      const args = { gameId: seeded.gameId, userId: seeded.owner.id };
+      await setLiveBoardRoundClock(database as unknown as Db, {
+        ...args,
+        action: "start",
+        roundNumber: 1,
+      });
+      for (const row of await database.query.matches.findMany({
+        where: and(
+          eq(matches.gameId, seeded.gameId),
+          eq(matches.roundNumber, 1),
+        ),
+      })) {
+        await enterTournamentScore(database as unknown as Db, {
+          ...args,
+          matchId: row.id,
+          slot1GamesWon: 6,
+          slot2GamesWon: 3,
+        });
+      }
+
+      const later = new Date(WINDOW_START.getTime() + 40 * MINUTE);
+      const waiting = await snapshotAt(database, code, later);
+      if (waiting.content.kind !== "social") {
+        throw new Error("Expected a Social");
+      }
+      const view = socialBoardView(
+        waiting.content,
+        later,
+        waiting.settings.roundClock,
+      );
+      expect(view.current).toMatchObject({
+        roundNumber: 2,
+        state: "scheduled",
+      });
+      expect(view.clock).toEqual({ kind: "ready", seconds: 30 * 60 });
+
+      await expect(
+        setLiveBoardRoundClock(database as unknown as Db, {
+          ...args,
+          action: "start",
+          roundNumber: 1,
+          now: later,
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+      await setLiveBoardRoundClock(database as unknown as Db, {
+        ...args,
+        action: "start",
+        roundNumber: 2,
+        now: later,
+      });
+      expect(
+        (await snapshotAt(database, code, later)).settings.roundClock,
+      ).toMatchObject({ roundNumber: 2, startedAt: later, elapsedMs: 0 });
+    });
+  });
+
+  it("keeps the Round clock to the Organizer and to a Social with a Round posted", async () => {
+    await withDb(async (database) => {
+      const seeded = await seedSocial(database);
+      await startAndConnect(database, seeded);
+      const tap = (userId: string) =>
+        setLiveBoardRoundClock(database as unknown as Db, {
+          gameId: seeded.gameId,
+          userId,
+          action: "start",
+        });
+      await expect(tap(seeded.players[0]!.id)).rejects.toMatchObject({
+        code: "FORBIDDEN",
+      });
+      await expect(tap(seeded.owner.id)).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+      });
     });
   });
 

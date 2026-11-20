@@ -47,6 +47,13 @@ One scroll, no menus. Every change reaches every TV within about five seconds, a
 
 - **On the TV now**: a small picture of the board, what it shows and what comes next, read the
   same way as the On TV card: waiting, the screen on show, or the final table.
+- **Round clock** (Socials, while a Round is on the board): the Round and the time left in it,
+  with the buttons that fit. It follows the schedule until the Organizer takes it: _Pause_ holds
+  the time left, _Start round N_ counts down from the full Match length from that moment, and
+  switching _Follow the schedule_ off takes the clock as it stands. From then on each Round waits
+  for _Start round N_; _Pause_, _Resume_ and _Start again_ (asks first) run it, and switching
+  _Follow the schedule_ back on hands it back. It is the TV's clock only: Match times and scores
+  are not touched (ADR-0104).
 - **Screens** (Socials): tap On court, Standings or Next up to hold the board on it. Next up is
   greyed while no next Round is posted, since the TVs leave it out of the rotation then. Once the
   Social is over, Screens and Rotation are hidden: the board stays on the final table.
@@ -77,7 +84,10 @@ the screen, in its own Color scheme whatever the device prefers, and follows the
   - **Next up**: who plays whom on which court next, each side with its place and points, and the
     Round after that along the bottom.
   - The header shows the Round of how many, one bar per Round, and the time left in the Round,
-    worked out from the Round's start and the Match length.
+    worked out from the Round's start and the Match length, or from the moment the Organizer
+    started it once they run the Round clock. Run by the Organizer, a Round reads "Soon" with its
+    full length until it is started and "Paused" with the time left held while it is paused. A
+    Round nobody started that has a score saved still reads "Live", without a clock.
   - The table counts finished Rounds only and says which Round it is after: a score saved on one
     court does not move it until every Match of that Round is settled, and a Round still open
     holds back every Round after it, so "after round N" counts Rounds 1 to N.
@@ -114,20 +124,22 @@ the screen, in its own Color scheme whatever the device prefers, and follows the
 
 New router `liveBoards`:
 
-| Door           | Who       | What                                                                                                                       |
-| -------------- | --------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `forGame`      | signed in | The Game's board for its Organizer: kind, whether it can start, the running board, what its TVs show and the TVs connected |
-| `start`        | Organizer | Starts the board and mints the code; returns the running one if on                                                         |
-| `update`       | Organizer | Rotate, seconds, held screen, colour scheme, QR                                                                            |
-| `setMessage`   | Organizer | Save the message, show it, take it down                                                                                    |
-| `disconnectTv` | Organizer | Take one TV off the board                                                                                                  |
-| `stop`         | Organizer | Close the board and retire the code                                                                                        |
-| `connect`      | public    | A TV joins with the code and gets a token                                                                                  |
-| `snapshot`     | public    | What one TV draws, by its token                                                                                            |
+| Door            | Who       | What                                                                                                                       |
+| --------------- | --------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `forGame`       | signed in | The Game's board for its Organizer: kind, whether it can start, the running board, what its TVs show and the TVs connected |
+| `start`         | Organizer | Starts the board and mints the code; returns the running one if on                                                         |
+| `update`        | Organizer | Rotate, seconds, held screen, colour scheme, QR                                                                            |
+| `setMessage`    | Organizer | Save the message, show it, take it down                                                                                    |
+| `setRoundClock` | Organizer | Start the Round on court, pause or resume its clock, take the clock or hand it back to the schedule                        |
+| `disconnectTv`  | Organizer | Take one TV off the board                                                                                                  |
+| `stop`          | Organizer | Close the board and retire the code                                                                                        |
+| `connect`       | public    | A TV joins with the code and gets a token                                                                                  |
+| `snapshot`      | public    | What one TV draws, by its token                                                                                            |
 
 `liveBoards.connect` is counted with the public code lookups (30 a minute per IP). Schema:
 `live_boards` and `live_board_tvs` (migration `0132_live_boards`; `0133_live_board_color_scheme`
-renames its colour setting and the Standings screen to the glossary's words). Shared rules:
+renames its colour setting and the Standings screen to the glossary's words;
+`0134_live_board_round_clock` adds the Round clock). Shared rules:
 `@repo/domain/live-board`. Copy: `liveBoard` in `@repo/i18n`, English and Arabic.
 
 ## Where it differs from the design
@@ -180,6 +192,10 @@ Added while building, each for a case the design does not draw:
 - **Knockout stages and King of the court.** Groups then knockout, Knockout only and King of the
   court have no board; Show on TV is not offered there.
 - **Casting** from the phone (the design leaves it out too).
+- **A clock the Organizer runs on a one-Match board.** Match time and minutes played still count
+  from the Game's start.
+- **Moving the schedule with the clock.** Starting a Round late does not move the posted times of
+  the Rounds after it; Next up still shows them as posted.
 - **Push instead of polling.** TVs and the control poll every five seconds (ADR-0022 polls too).
 - **A board per court**, or a venue-wide board across Games.
 

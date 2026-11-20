@@ -2,11 +2,14 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
+  boardClockRound,
   boardMinutesPlayed,
   boardPage,
+  boardRoundClock,
   boardScoreLead,
   boardTableRound,
   changeBoardRotation,
+  changeRoundClock,
   isSocialBoardFinished,
   liveBoardOnShow,
   boardSideLabel,
@@ -20,9 +23,11 @@ import {
   padelScoreboardSets,
   padelScoreboardSetsWon,
   parseBoardCode,
+  ROUND_CLOCK_ON_SCHEDULE,
   socialBoardView,
   type LiveBoardMatch,
   type LiveBoardRound,
+  type LiveBoardRoundClock,
   type SocialBoardContent,
 } from "./live-board";
 
@@ -429,6 +434,188 @@ describe("socialBoardView", () => {
     );
     assert.equal(view.phase, "final");
     assert.equal(view.tableAfterRound, 2);
+    assert.equal(view.clock, null);
+  });
+});
+
+describe("the Round clock run by the Organizer", () => {
+  const after = (minutes: number) =>
+    new Date(START.getTime() + minutes * 60_000);
+  const onCourt = boardClockRound(round(1, "on_court", 0), 30);
+  const notYet = boardClockRound(round(1, "scheduled", 10), 30);
+
+  function tap(
+    clock: LiveBoardRoundClock,
+    action: Parameters<typeof changeRoundClock>[1],
+    at: Date,
+    clockRound = onCourt,
+  ) {
+    const next = changeRoundClock(clock, action, clockRound, at);
+    assert.ok(next, `${action} changed nothing`);
+    return next;
+  }
+
+  it("follows the schedule until the Organizer takes it", () => {
+    assert.deepEqual(
+      boardRoundClock(ROUND_CLOCK_ON_SCHEDULE, onCourt, after(12)),
+      { kind: "left", seconds: 18 * 60 },
+    );
+    assert.deepEqual(
+      boardRoundClock(ROUND_CLOCK_ON_SCHEDULE, notYet, after(4)),
+      { kind: "starts", seconds: 6 * 60 },
+    );
+  });
+
+  it("starts a Round from its full length when the Organizer says, whatever its posted time", () => {
+    const late = tap(ROUND_CLOCK_ON_SCHEDULE, "start", after(7));
+    assert.equal(late.byHand, true);
+    assert.deepEqual(boardRoundClock(late, onCourt, after(7)), {
+      kind: "left",
+      seconds: 30 * 60,
+    });
+    assert.deepEqual(boardRoundClock(late, onCourt, after(17)), {
+      kind: "left",
+      seconds: 20 * 60,
+    });
+
+    const early = tap(ROUND_CLOCK_ON_SCHEDULE, "start", after(2), notYet);
+    assert.deepEqual(boardRoundClock(early, notYet, after(3)), {
+      kind: "left",
+      seconds: 29 * 60,
+    });
+  });
+
+  it("holds the time left while paused and carries on from it when resumed", () => {
+    const started = tap(ROUND_CLOCK_ON_SCHEDULE, "start", after(0));
+    const paused = tap(started, "pause", after(10));
+    assert.deepEqual(boardRoundClock(paused, onCourt, after(25)), {
+      kind: "paused",
+      seconds: 20 * 60,
+    });
+    const resumed = tap(paused, "resume", after(25));
+    assert.deepEqual(boardRoundClock(resumed, onCourt, after(30)), {
+      kind: "left",
+      seconds: 15 * 60,
+    });
+    assert.deepEqual(resumed.startedAt, after(0));
+  });
+
+  it("keeps the schedule's count when the clock is paused or taken mid-Round", () => {
+    const paused = tap(ROUND_CLOCK_ON_SCHEDULE, "pause", after(12));
+    assert.deepEqual(boardRoundClock(paused, onCourt, after(20)), {
+      kind: "paused",
+      seconds: 18 * 60,
+    });
+    const taken = tap(ROUND_CLOCK_ON_SCHEDULE, "by_hand", after(12));
+    assert.deepEqual(boardRoundClock(taken, onCourt, after(12)), {
+      kind: "left",
+      seconds: 18 * 60,
+    });
+  });
+
+  it("waits for Start once taken before the Round's posted time", () => {
+    const taken = tap(ROUND_CLOCK_ON_SCHEDULE, "by_hand", after(4), notYet);
+    assert.deepEqual(boardRoundClock(taken, notYet, after(15)), {
+      kind: "ready",
+      seconds: 30 * 60,
+    });
+  });
+
+  it("makes the next Round wait for Start", () => {
+    const started = tap(ROUND_CLOCK_ON_SCHEDULE, "start", after(0));
+    const second = boardClockRound(round(2, "on_court", 30), 30);
+    assert.deepEqual(boardRoundClock(started, second, after(40)), {
+      kind: "ready",
+      seconds: 30 * 60,
+    });
+  });
+
+  it("starts again from the full length", () => {
+    const started = tap(ROUND_CLOCK_ON_SCHEDULE, "start", after(0));
+    const again = tap(tap(started, "pause", after(10)), "start", after(12));
+    assert.deepEqual(boardRoundClock(again, onCourt, after(12)), {
+      kind: "left",
+      seconds: 30 * 60,
+    });
+  });
+
+  it("goes back to the schedule when handed back", () => {
+    const started = tap(ROUND_CLOCK_ON_SCHEDULE, "start", after(7));
+    assert.deepEqual(
+      changeRoundClock(started, "schedule", onCourt, after(9)),
+      ROUND_CLOCK_ON_SCHEDULE,
+    );
+  });
+
+  it("changes nothing for a tap that has nothing to do", () => {
+    const started = tap(ROUND_CLOCK_ON_SCHEDULE, "start", after(0));
+    const paused = tap(started, "pause", after(5));
+    assert.equal(changeRoundClock(started, "resume", onCourt, after(1)), null);
+    assert.equal(changeRoundClock(paused, "pause", onCourt, after(6)), null);
+    assert.equal(changeRoundClock(started, "by_hand", onCourt, after(1)), null);
+    assert.equal(
+      changeRoundClock(ROUND_CLOCK_ON_SCHEDULE, "schedule", onCourt, after(1)),
+      null,
+    );
+    assert.equal(
+      changeRoundClock(ROUND_CLOCK_ON_SCHEDULE, "pause", notYet, after(1)),
+      null,
+    );
+  });
+
+  it("shows a Round as waiting until it is started, then on court from that moment", () => {
+    const content = social([
+      round(1, "on_court", 0),
+      round(2, "scheduled", 30),
+    ]);
+    const taken = tap(ROUND_CLOCK_ON_SCHEDULE, "by_hand", after(-5), notYet);
+    const waiting = socialBoardView(content, after(8), taken);
+    assert.equal(waiting.current?.state, "scheduled");
+    assert.equal(waiting.current?.startTime, null);
+    assert.deepEqual(
+      waiting.current?.matches.map((match) => [match.state, match.startTime]),
+      [["scheduled", null]],
+    );
+    assert.deepEqual(waiting.clock, { kind: "ready", seconds: 30 * 60 });
+
+    const started = tap(taken, "start", after(8));
+    const live = socialBoardView(content, after(9), started);
+    assert.equal(live.current?.state, "on_court");
+    assert.deepEqual(live.current?.startTime, after(8));
+    assert.deepEqual(live.clock, { kind: "left", seconds: 29 * 60 });
+  });
+
+  it("shows a Round started ahead of its posted time as on court", () => {
+    const content = social([round(1, "scheduled", 10)]);
+    const started = tap(ROUND_CLOCK_ON_SCHEDULE, "start", after(2), notYet);
+    const view = socialBoardView(content, after(3), started);
+    assert.equal(view.current?.state, "on_court");
+    assert.deepEqual(
+      view.current?.matches.map((match) => match.state),
+      ["on_court"],
+    );
+  });
+
+  it("shows a Round with a score saved as on court, without a clock, when nobody started it", () => {
+    const scored = round(2, "on_court", 30);
+    scored.matches[0]!.state = "awaiting_confirmation";
+    const started = tap(ROUND_CLOCK_ON_SCHEDULE, "start", after(0));
+    const view = socialBoardView(
+      social([round(1, "played", 0), scored]),
+      after(40),
+      started,
+    );
+    assert.equal(view.current?.state, "on_court");
+    assert.equal(view.clock, null);
+  });
+
+  it("has no clock once the Social is over", () => {
+    const started = tap(ROUND_CLOCK_ON_SCHEDULE, "start", after(0));
+    const view = socialBoardView(
+      { ...social([round(1, "played", 0)]), finished: true },
+      after(40),
+      started,
+    );
     assert.equal(view.clock, null);
   });
 });

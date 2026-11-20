@@ -3,7 +3,10 @@
 import * as React from "react";
 
 import { formatGameClock, formatGameDay } from "@repo/domain/format-game-start";
-import type { LiveBoardColorScheme } from "@repo/domain/live-board";
+import type {
+  LiveBoardColorScheme,
+  SocialBoardClock,
+} from "@repo/domain/live-board";
 
 import { Hatch } from "~/components/ui/hatch";
 import { TembaWordmark } from "~/components/ui/temba-wordmark";
@@ -228,6 +231,23 @@ export function RoundBars({
       )}
     </div>
   );
+}
+
+/** What a Round clock's digits count, the same on the board and its control. */
+export function useClockLabel() {
+  const b = useMessages().liveBoard.board;
+  return (clock: SocialBoardClock, roundNumber: number) => {
+    switch (clock.kind) {
+      case "left":
+        return b.clockLeft;
+      case "starts":
+        return b.clockStarts(roundNumber);
+      case "paused":
+        return b.clockPaused;
+      case "ready":
+        return b.clockReady(roundNumber);
+    }
+  };
 }
 
 export function BoardClock({ value, label }: { value: string; label: string }) {
