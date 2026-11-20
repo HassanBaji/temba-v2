@@ -12,6 +12,7 @@ import { formatGameClock } from "@repo/domain/format-game-start";
 import { groupDisplayName } from "@repo/domain/group-join";
 import {
   gameInviteSeatCourt,
+  inviteJoinSheetAlone,
   type InviteSeatPick,
 } from "@repo/domain/game-invite-join-sheet";
 import {
@@ -531,6 +532,14 @@ function useGameLayout(
   const requestedGate = gate === "requested";
   const football = game.football;
   const seatGame = game.sides.length > 0;
+  // An Americano has nothing to pick, so a member joins in one tap.
+  const asksForSide =
+    stage !== "partner" &&
+    game.asksForSide === true &&
+    inviteJoinSheetAlone({
+      kind: football ? "football" : "padel",
+      sides: game.sides,
+    });
   const canSit =
     stage !== "partner" &&
     !seatState.joinFrozen &&
@@ -559,7 +568,7 @@ function useGameLayout(
       />
     ) : null;
   const sheet =
-    seatGame || football || gate !== "none" ? (
+    seatGame || football || asksForSide || gate !== "none" ? (
       <InviteJoinSheet
         visible={props.sheetOpen}
         onClose={props.onCloseSheet}
@@ -573,6 +582,7 @@ function useGameLayout(
           gate,
           gamePublic: game.isPublic ?? false,
           levelBlocked,
+          asksForSide: game.asksForSide === true,
           locale,
         }}
         football={

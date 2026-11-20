@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { gameInviteLinks, gamePlayers, user } from "@repo/db";
 
+import { awaitsOrganizerTeams } from "@repo/domain/alone-teams";
 import { isFootballGame } from "@repo/domain/game-shape";
 
 import { publicProcedure } from "#src/trpc";
@@ -165,6 +166,7 @@ export async function previewInviteLink(
     football,
     group,
     hero,
+    asksForSide: awaitsOrganizerTeams(gameRow),
   };
 }
 

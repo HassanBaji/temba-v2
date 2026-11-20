@@ -292,6 +292,8 @@ export type GameInviteLinkReady = {
   hero?: GameInviteHero | null;
   /** A public Game seats a non-member as a guest, without the Group. */
   isPublic?: boolean;
+  /** An Alone-only Social before its teams are made asks for a side. */
+  asksForSide?: boolean;
 };
 
 export type GameInviteGroupJoinMode =

@@ -335,6 +335,7 @@ function InviteLink({ link }: { link: InviteLinkPath }) {
       token,
       ...seat,
       football,
+      preferredSide: choice.preferredSide,
       joinGroup: groupGate === "none" ? undefined : choice.joinGroup,
     });
   }

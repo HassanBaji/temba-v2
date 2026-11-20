@@ -10,6 +10,7 @@ import {
   type FootballPosition,
   type FootballRole,
 } from "@repo/domain/football-lineup";
+import { awaitsOrganizerTeams } from "@repo/domain/alone-teams";
 import { isFootballGame } from "@repo/domain/game-shape";
 import {
   footballPositionSchema,
@@ -41,6 +42,8 @@ export async function acceptInviteLink(
     sideIndex?: number;
     position?: "left" | "right" | "either";
     football?: { role: FootballRole; position: FootballPosition };
+    /** Alone only, before the teams are made: the side asked for; left out is Either. */
+    preferredSide?: "left" | "right";
     /** False sits as a guest on a public Game without joining its Group. */
     joinGroup?: boolean;
     locale?: Locale;
@@ -64,6 +67,13 @@ export async function acceptInviteLink(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: messagesFor(locale).football.errors.roleOnFootball,
+    });
+  }
+
+  if (args.preferredSide && !awaitsOrganizerTeams(game)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).aloneTeams.errors.sideOnlyAloneOnly,
     });
   }
 
@@ -127,12 +137,18 @@ export async function acceptInviteLink(
         message: messagesFor(locale).invite.errors.linkInvalid,
       });
     }
-    if (args.football && !accepted.waitingForPartner && !accepted.waitlisted) {
+    const seated = !accepted.waitingForPartner && !accepted.waitlisted;
+    if (seated && (args.football || args.preferredSide)) {
       await tx
         .update(gamePlayers)
         .set({
-          footballRole: args.football.role,
-          footballPosition: args.football.position,
+          ...(args.football
+            ? {
+                footballRole: args.football.role,
+                footballPosition: args.football.position,
+              }
+            : {}),
+          ...(args.preferredSide ? { preferredSide: args.preferredSide } : {}),
           updatedAt: new Date(),
         })
         .where(
@@ -174,6 +190,7 @@ export const acceptInviteLinkProcedure = protectedProcedure
           position: footballPositionSchema,
         })
         .optional(),
+      preferredSide: z.enum(["left", "right"]).optional(),
       joinGroup: z.boolean().optional(),
     }),
   )
@@ -185,6 +202,7 @@ export const acceptInviteLinkProcedure = protectedProcedure
       sideIndex: input.sideIndex,
       position: input.position,
       football: input.football,
+      preferredSide: input.preferredSide,
       joinGroup: input.joinGroup,
       locale: ctx.locale,
     });

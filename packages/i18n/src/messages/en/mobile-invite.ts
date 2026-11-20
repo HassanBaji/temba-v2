@@ -100,6 +100,10 @@ export const mobileInvite = {
       title: "Sit here",
       leadPadel:
         "Same as joining in the app. Pick a team, and a side if you like.",
+      leadAlone:
+        "Same as joining in the app. You sign up alone, so there is no team to pick. Pick a side if you like.",
+      leadAloneNoSide:
+        "Same as joining in the app. You sign up alone, so there is nothing to pick.",
       leadPadelFrom: (seat: string) =>
         `Same as joining in the app. ${seat}, from where you tapped.`,
       leadFootball: (when: string) =>
