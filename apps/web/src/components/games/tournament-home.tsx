@@ -390,6 +390,8 @@ export function TournamentHome({
         onInvite={onInvite}
         onLeaveWaitlist={onLeaveWaitlist}
         onKick={onKick}
+        kickPending={kickPending}
+        linkToPlayers={linkToPlayers}
       />
     );
   }
@@ -444,6 +446,7 @@ export function TournamentHome({
           onInvite={onInvite}
           onLeaveWaitlist={onLeaveWaitlist}
           onKick={onKick}
+          linkToPlayers={linkToPlayers}
         />
         {undoDialog}
       </>

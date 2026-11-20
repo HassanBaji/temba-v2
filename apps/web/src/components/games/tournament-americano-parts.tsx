@@ -185,14 +185,15 @@ export function AmericanoPlayersGrid({
   viewerUserId,
   onOpenSeat,
   onPlayer,
+  playerLabel,
 }: {
   players: readonly { userId: string; name: string; image?: string | null }[];
   seatCount: number;
   viewerUserId: string;
   onOpenSeat?: () => void;
-  onPlayer?: (player: { userId: string; name: string }) => void;
+  onPlayer?: (userId: string) => void;
+  playerLabel?: (name: string) => string;
 }) {
-  const m = useMessages().tournamentAmericano.players;
   const open = Math.max(0, seatCount - players.length);
   return (
     <div className={cn(ROUND_CARD, "grid grid-cols-2 gap-1.5 p-2.5")}>
@@ -204,10 +205,10 @@ export function AmericanoPlayersGrid({
           isViewer={player.userId === viewerUserId}
           onClick={
             onPlayer && player.userId !== viewerUserId
-              ? () => onPlayer(player)
+              ? () => onPlayer(player.userId)
               : undefined
           }
-          label={onPlayer ? m.remove(player.name) : undefined}
+          label={playerLabel?.(player.name)}
         />
       ))}
       {Array.from({ length: open }, (_, index) => (

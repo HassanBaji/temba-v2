@@ -128,7 +128,14 @@ export type TournamentDetailsGameTeam = {
   }[];
 };
 
-type Person = { id: string; name: string; image: string | null };
+type Person = {
+  id: string;
+  name: string;
+  image: string | null;
+  guest?: boolean;
+  /** E.164, sent only to a Group approver for a current member (ADR-0078). */
+  phoneNumber?: string | null;
+};
 
 export type TournamentDetails = {
   id: string;
