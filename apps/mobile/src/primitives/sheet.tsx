@@ -1,8 +1,12 @@
 import { radii, sizes, spacing } from "@repo/design-tokens";
 import { X } from "lucide-react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  KeyboardAvoidingView,
+  Animated,
+  Easing,
+  Keyboard,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -16,9 +20,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMessages } from "../i18n/locale-provider";
 import { useColors } from "../theme/theme-provider";
 import { hairline } from "./hairline-width";
+import { keyboardOverlap } from "./keyboard-overlap";
 import { SurfaceToneContext } from "./surface-context";
 import { Text } from "./text";
-import { useKeyboardVisible } from "./use-keyboard-visible";
+import { useKeyboardFrame } from "./use-keyboard-frame";
 
 const TALL_HEIGHT_RATIO = 0.8;
 const PADDING_TOP = 10;
@@ -27,6 +32,10 @@ const BLOCK_GAP = 18;
 const BODY_GAP = 12;
 const GRABBER = { width: 36, height: 4 };
 const CLOSE_BUTTON = 36;
+/** A downward drag this long on the sheet lowers the keyboard. */
+const DISMISS_DRAG = 12;
+/** Close to the curve iOS moves its keyboard on. */
+const KEYBOARD_EASING = Easing.bezier(0.38, 0.7, 0.125, 1);
 
 export type SheetProps = {
   visible: boolean;
@@ -70,7 +79,14 @@ export function Sheet({
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const window = useWindowDimensions();
-  const keyboardVisible = useKeyboardVisible();
+  const keyboard = useKeyboardFrame();
+  const keyboardVisible = keyboard.top != null;
+  const [rootHeight, setRootHeight] = useState(window.height);
+  const lift = useKeyboardLift(
+    keyboardOverlap(rootHeight, keyboard.top),
+    keyboard.duration,
+  );
+  const lowerKeyboard = useLowerKeyboardOnDrag();
   // The keyboard covers the home indicator, so its inset is wasted room then.
   const bottomPadding = keyboardVisible
     ? BODY_GAP
@@ -86,21 +102,26 @@ export function Sheet({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.root}>
+      <View
+        style={styles.root}
+        onLayout={({ nativeEvent }) => setRootHeight(nativeEvent.layout.height)}
+      >
+        {/* While typing, a tap outside the sheet lowers the keyboard rather
+            than throwing away what was typed. */}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={m.common.close}
-          onPress={onClose}
+          onPress={keyboardVisible ? Keyboard.dismiss : onClose}
           style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}
         />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        <Animated.View
           pointerEvents="box-none"
-          style={[styles.lift, { paddingTop: insets.top }]}
+          style={[styles.lift, { paddingTop: insets.top, paddingBottom: lift }]}
         >
           <SurfaceToneContext.Provider value="paper">
             <View
               accessibilityViewIsModal
+              {...lowerKeyboard.panHandlers}
               style={{
                 backgroundColor: colors.sheet,
                 borderTopLeftRadius: radii.sheet,
@@ -133,6 +154,7 @@ export function Sheet({
                     paddingBottom: footer ? spacing.surface : bottomPadding,
                   }}
                   keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+                  keyboardDismissMode="on-drag"
                 >
                   {children}
                 </ScrollView>
@@ -155,9 +177,44 @@ export function Sheet({
               ) : null}
             </View>
           </SurfaceToneContext.Provider>
-        </KeyboardAvoidingView>
+        </Animated.View>
       </View>
     </Modal>
+  );
+}
+
+/**
+ * The room the sheet keeps under itself for the keyboard. It follows the
+ * keyboard on the keyboard's own timing; a LayoutAnimation here let the
+ * tall sheet overshoot past the top of the screen while it settled.
+ */
+function useKeyboardLift(overlap: number, duration: number) {
+  const lift = useRef(new Animated.Value(overlap)).current;
+  useEffect(() => {
+    const animation = Animated.timing(lift, {
+      toValue: overlap,
+      duration: Platform.OS === "ios" ? duration : 0,
+      easing: KEYBOARD_EASING,
+      useNativeDriver: false,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [lift, overlap, duration]);
+  return lift;
+}
+
+/** Dragging the sheet down lowers the keyboard; the sheet stays open. */
+function useLowerKeyboardOnDrag() {
+  return useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gesture) =>
+          Keyboard.isVisible() &&
+          gesture.dy > DISMISS_DRAG &&
+          gesture.dy > Math.abs(gesture.dx),
+        onPanResponderGrant: () => Keyboard.dismiss(),
+      }),
+    [],
   );
 }
 
