@@ -7,6 +7,7 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { type db } from "#src/db";
+import { liveBoardStatus } from "#src/live-boards/board-content";
 import {
   assertGameOrganizer,
   requireGame,
@@ -115,10 +116,31 @@ export async function connectedTvs(
   });
 }
 
-/** What the Show on TV sheet, the On TV card and the board control read. */
+/** The settings every TV and the control read off a board. */
+export function boardSettings(board: LiveBoardRow) {
+  return {
+    rotate: board.rotate,
+    rotateSeconds: board.rotateSeconds,
+    heldScreen: board.heldScreen,
+    rotationStartedAt: board.rotationStartedAt,
+    colorScheme: board.colorScheme,
+    showQr: board.showQr,
+  };
+}
+
+/**
+ * What the Show on TV sheet, the On TV card and the board control read: the
+ * settings, what the TVs show and the TVs connected.
+ */
 export async function liveBoardControl(
   database: DbClient,
-  args: { board: LiveBoardRow; origin: string; now: Date },
+  args: {
+    board: LiveBoardRow;
+    game: GameRow;
+    origin: string;
+    now: Date;
+    locale: Locale;
+  },
 ) {
   const { board } = args;
   return {
@@ -126,15 +148,11 @@ export async function liveBoardControl(
     code: board.code,
     url: liveBoardUrl(args.origin, board.code),
     address: liveBoardAddress(args.origin),
-    rotate: board.rotate,
-    rotateSeconds: board.rotateSeconds,
-    heldScreen: board.heldScreen,
-    rotationStartedAt: board.rotationStartedAt,
-    theme: board.theme,
-    showQr: board.showQr,
+    ...boardSettings(board),
     message: board.message,
     messageShown: board.messageShown,
     tvs: await connectedTvs(database, board.id, args.now),
+    status: await liveBoardStatus(database, args.game, args.now, args.locale),
     serverNow: args.now,
   };
 }

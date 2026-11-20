@@ -26,7 +26,7 @@ const LIVE_BOARD_TV_MAX = 8;
 
 /**
  * A TV joining a board with its Board code, signed out. It gets a token of
- * its own, so the Organizer can disconnect that one screen, and a wrong or
+ * its own, so the Organizer can disconnect that one TV, and a wrong or
  * retired code reads the same as no board. TVs that went quiet give up
  * their place first, so the rows of a board never outgrow its TVs.
  */

@@ -7,6 +7,7 @@ import { isNotFoundError } from "@repo/domain/is-not-found-error";
 
 import { useMessages } from "~/components/locale-provider";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
+import { tvEntryHref } from "~/lib/tv-paths";
 import { api } from "~/trpc/react";
 
 import type { LiveBoardSnapshot } from "./board-kit";
@@ -55,7 +56,7 @@ function useStayAwake() {
 /** A TV that keeps losing its place stops trying and asks for the code again. */
 const REJOINS_BEFORE_GIVING_UP = 3;
 
-type Shown = {
+type ShownBoard = {
   snapshot: LiveBoardSnapshot;
   /** This device's clock when the snapshot arrived. */
   receivedAt: number;
@@ -74,7 +75,7 @@ export function TvScreen({ code }: { code: string }) {
   const [token, setToken] = React.useState<string | null>(null);
   const [attempt, setAttempt] = React.useState(0);
   const rejoins = React.useRef(0);
-  const [shown, setShown] = React.useState<Shown | null>(null);
+  const [shown, setShown] = React.useState<ShownBoard | null>(null);
   const connect = api.liveBoards.connect.useMutation({ meta: OWN_ERROR_UI });
   const connectAsync = connect.mutateAsync;
   useStayAwake();
@@ -102,7 +103,10 @@ export function TvScreen({ code }: { code: string }) {
       .catch((error: unknown) => {
         if (!cancelled) {
           router.replace(
-            `/tv?code=${code}&notice=${isNotFoundError(error) ? "not_found" : "failed"}`,
+            tvEntryHref({
+              code,
+              notice: isNotFoundError(error) ? "not_found" : "failed",
+            }),
           );
         }
       })
@@ -150,7 +154,9 @@ export function TvScreen({ code }: { code: string }) {
       return;
     }
     router.replace(
-      `/tv?notice=${data.status === "expired" ? "disconnected" : data.status}`,
+      tvEntryHref({
+        notice: data.status === "expired" ? "disconnected" : data.status,
+      }),
     );
   }, [code, data, receivedAt, router]);
 

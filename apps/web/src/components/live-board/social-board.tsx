@@ -3,20 +3,17 @@
 import {
   formatGameClock,
   formatGameClockWithoutMeridiem,
-  formatGameDay,
 } from "@repo/domain/format-game-start";
 import {
   boardPage,
   boardScoreLead,
   boardSideLabel,
   formatBoardClock,
-  LIVE_BOARD_SCREENS,
-  liveBoardScene,
+  boardScreenOnShow,
   socialBoardView,
   type LiveBoardMatch,
   type LiveBoardRound,
   type LiveBoardRoundMark,
-  type LiveBoardScreen,
   type LiveBoardTable,
   type LiveBoardTableRow,
   type SocialBoardContent,
@@ -34,11 +31,11 @@ import {
   BoardHeader,
   BoardStrip,
   useBoardSubtitle,
+  useStartLine,
   LIFTED,
-  MessageStrip,
   NotYet,
   PLAIN,
-  px,
+  boardType,
   QrCell,
   RoundBars,
   ScreenBars,
@@ -67,10 +64,92 @@ function useSideLabel() {
       : boardSideLabel(players, joiner);
 }
 
+/**
+ * What differs between the two kinds of table: an Americano ranks players on
+ * games won, every other Social ranks teams on points.
+ */
+function useRanking(ranks: Social["ranks"]) {
+  const m = useMessages().liveBoard.board;
+  if (ranks === "players") {
+    return {
+      nameColumn: m.columns.player,
+      pointsColumn: m.columns.gamesWon,
+      rule: m.gamesRule,
+      place: (row: LiveBoardTableRow) => m.placeGames(row.place, row.points),
+      summary: (row: LiveBoardTableRow) =>
+        m.winnerGamesSummary(row.points, row.won, row.drawn, row.lost),
+      winnerSummary: (row: LiveBoardTableRow) =>
+        m.winnerGamesSummary(row.points, row.won, row.drawn, row.lost),
+    };
+  }
+  return {
+    nameColumn: m.columns.team,
+    pointsColumn: m.columns.points,
+    rule: m.pointsRule(POOL_POINTS.win, POOL_POINTS.draw, POOL_POINTS.loss),
+    place: (row: LiveBoardTableRow) => m.placePoints(row.place, row.points),
+    summary: (row: LiveBoardTableRow) =>
+      m.placeSummary(row.points, row.won, row.drawn, row.lost),
+    winnerSummary: (row: LiveBoardTableRow) =>
+      m.winnerSummary(row.points, row.won, row.drawn, row.lost, row.difference),
+  };
+}
+
 function useCourtLabel() {
   const m = useMessages().liveBoard.board;
   return (match: LiveBoardMatch, index: number) =>
     match.courtName ?? m.court(index + 1);
+}
+
+type SideRowSize = {
+  name: number;
+  score: number;
+  gap: number;
+  notYet: { width: number; height: number };
+};
+
+/** A court's two sides with their scores; the side behind is drawn quieter. */
+function SideScoreRows({
+  match,
+  size,
+  lifted,
+}: {
+  match: LiveBoardMatch;
+  size: SideRowSize;
+  lifted: boolean;
+}) {
+  const sideLabel = useSideLabel();
+  const lead = boardScoreLead(match.score1, match.score2);
+  const rows = [
+    { side: match.side1, score: match.score1, ahead: lead !== "side2" },
+    { side: match.side2, score: match.score2, ahead: lead !== "side1" },
+  ];
+  return rows.map((row) => (
+    <div
+      key={row.side.id}
+      className={cn(
+        "flex items-center justify-between",
+        !row.ahead && (lifted ? "text-dim" : "text-muted-foreground"),
+      )}
+      style={{ gap: size.gap }}
+    >
+      <span className="truncate font-semibold" style={boardType(size.name)}>
+        {sideLabel(row.side.players)}
+      </span>
+      {row.score == null ? (
+        <NotYet lifted={lifted} {...size.notYet} />
+      ) : (
+        <span
+          className="font-expanded flex-none text-end"
+          style={{
+            ...boardType(size.score, 0.9),
+            minWidth: size.score / 1.6,
+          }}
+        >
+          {row.score}
+        </span>
+      )}
+    </div>
+  ));
 }
 
 function CourtCard({
@@ -84,9 +163,7 @@ function CourtCard({
 }) {
   const m = useMessages().liveBoard.board;
   const locale = useLocale();
-  const sideLabel = useSideLabel();
   const courtLabel = useCourtLabel();
-  const lead = boardScoreLead(match.score1, match.score2);
   const state =
     match.state === "scheduled"
       ? match.startTime
@@ -95,12 +172,6 @@ function CourtCard({
           )
         : m.state.scheduledNoTime
       : m.state[match.state];
-  const nameSize = dense ? 20 : 25;
-  const scoreSize = dense ? 44 : 56;
-  const rows = [
-    { side: match.side1, score: match.score1, ahead: lead !== "side2" },
-    { side: match.side2, score: match.score2, ahead: lead !== "side1" },
-  ];
   return (
     <div
       className="bg-focus flex min-h-0 flex-col justify-center"
@@ -111,35 +182,30 @@ function CourtCard({
     >
       <div
         className="text-dim flex items-center justify-between"
-        style={px(dense ? 14 : 16)}
+        style={boardType(dense ? 14 : 16)}
       >
         <span className="truncate">{courtLabel(match, index)}</span>
         <span className="whitespace-nowrap">{state}</span>
       </div>
-      {rows.map((row) => (
-        <div
-          key={row.side.id}
-          className={cn(
-            "flex items-center justify-between",
-            !row.ahead && "text-dim",
-          )}
-          style={{ gap: 12 }}
-        >
-          <span className="truncate font-semibold" style={px(nameSize)}>
-            {sideLabel(row.side.players)}
-          </span>
-          {row.score == null ? (
-            <NotYet height={dense ? 38 : 48} lifted width={dense ? 36 : 46} />
-          ) : (
-            <span
-              className="font-expanded flex-none text-end"
-              style={{ ...px(scoreSize, 0.9), minWidth: 35 }}
-            >
-              {row.score}
-            </span>
-          )}
-        </div>
-      ))}
+      <SideScoreRows
+        lifted
+        match={match}
+        size={
+          dense
+            ? {
+                name: 20,
+                score: 44,
+                gap: 12,
+                notYet: { width: 36, height: 38 },
+              }
+            : {
+                name: 25,
+                score: 56,
+                gap: 12,
+                notYet: { width: 46, height: 48 },
+              }
+        }
+      />
     </div>
   );
 }
@@ -170,7 +236,6 @@ function CourtGrid({ round, turn }: { round: LiveBoardRound; turn: number }) {
 }
 
 function CourtList({ round, turn }: { round: LiveBoardRound; turn: number }) {
-  const sideLabel = useSideLabel();
   const courtLabel = useCourtLabel();
   const page = boardPage(round.matches, 4, turn);
   return (
@@ -181,55 +246,27 @@ function CourtList({ round, turn }: { round: LiveBoardRound; turn: number }) {
       )}
       style={{ borderRadius: 16 }}
     >
-      {page.items.map((match, index) => {
-        const lead = boardScoreLead(match.score1, match.score2);
-        return (
-          <div
-            key={match.id}
-            className="flex min-h-0 flex-1 flex-col justify-center"
-            style={{ padding: "0 18px", gap: 5 }}
-          >
-            <span className="text-muted-foreground" style={px(14)}>
-              {courtLabel(match, page.page * 4 + index)}
-            </span>
-            {[
-              {
-                side: match.side1,
-                score: match.score1,
-                ahead: lead !== "side2",
-              },
-              {
-                side: match.side2,
-                score: match.score2,
-                ahead: lead !== "side1",
-              },
-            ].map((row) => (
-              <div
-                key={row.side.id}
-                className={cn(
-                  "flex items-center justify-between",
-                  !row.ahead && "text-muted-foreground",
-                )}
-                style={{ gap: 8 }}
-              >
-                <span className="truncate font-semibold" style={px(18)}>
-                  {sideLabel(row.side.players)}
-                </span>
-                {row.score == null ? (
-                  <NotYet height={24} width={23} />
-                ) : (
-                  <span
-                    className="font-expanded flex-none text-end"
-                    style={{ ...px(28, 0.9), minWidth: 17 }}
-                  >
-                    {row.score}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        );
-      })}
+      {page.items.map((match, index) => (
+        <div
+          key={match.id}
+          className="flex min-h-0 flex-1 flex-col justify-center"
+          style={{ padding: "0 18px", gap: 5 }}
+        >
+          <span className="text-muted-foreground" style={boardType(14)}>
+            {courtLabel(match, page.page * 4 + index)}
+          </span>
+          <SideScoreRows
+            lifted={false}
+            match={match}
+            size={{
+              name: 18,
+              score: 28,
+              gap: 8,
+              notYet: { width: 23, height: 24 },
+            }}
+          />
+        </div>
+      ))}
     </div>
   );
 }
@@ -302,6 +339,7 @@ function BoardTable({
   const m = useMessages().liveBoard;
   const c = m.board.columns;
   const sideLabel = useSideLabel();
+  const ranking = useRanking(ranks);
   const wide = variant === "full" || variant === "final";
   const dense = rows.length > 8;
   const nameSize = (wide ? 23 : 19) - (dense ? 4 : 0);
@@ -328,7 +366,7 @@ function BoardTable({
         style={{ ...grid, height: wide ? 40 : 36, fontSize: wide ? 15 : 14 }}
       >
         <span>{c.rank}</span>
-        <span>{ranks === "players" ? c.player : c.team}</span>
+        <span>{ranking.nameColumn}</span>
         {stats ? (
           <>
             <span className="text-end">{c.played}</span>
@@ -341,9 +379,7 @@ function BoardTable({
             <span className="text-end">{c.difference}</span>
           </>
         ) : null}
-        <span className="text-end">
-          {ranks === "players" ? c.gamesWon : c.points}
-        </span>
+        <span className="text-end">{ranking.pointsColumn}</span>
         {wide ? <span className="text-end">{c.rounds}</span> : null}
       </div>
       {rows.map((row) => (
@@ -352,10 +388,13 @@ function BoardTable({
           className={cn(rule, "grid min-h-0 flex-1 items-center border-t")}
           style={grid}
         >
-          <span className={cn(muted, "font-mono")} style={px(wide ? 15 : 14)}>
+          <span
+            className={cn(muted, "font-mono")}
+            style={boardType(wide ? 15 : 14)}
+          >
             {placeCode(row.place)}
           </span>
-          <span className="truncate font-semibold" style={px(nameSize)}>
+          <span className="truncate font-semibold" style={boardType(nameSize)}>
             {sideLabel(row.players)}
           </span>
           {stats ? (
@@ -365,25 +404,34 @@ function BoardTable({
                   <span
                     key={index}
                     className={cn(muted, "text-end")}
-                    style={px(numberSize)}
+                    style={boardType(numberSize)}
                   >
                     {value}
                   </span>
                 ),
               )}
               {variant === "full" ? (
-                <span className={cn(muted, "text-end")} style={px(numberSize)}>
+                <span
+                  className={cn(muted, "text-end")}
+                  style={boardType(numberSize)}
+                >
                   <span dir="ltr">
                     {row.gamesFor}–{row.gamesAgainst}
                   </span>
                 </span>
               ) : null}
-              <span className={cn(muted, "text-end")} style={px(numberSize)}>
+              <span
+                className={cn(muted, "text-end")}
+                style={boardType(numberSize)}
+              >
                 <span dir="ltr">{m.signed(row.difference)}</span>
               </span>
             </>
           ) : null}
-          <span className="font-expanded text-end" style={px(pointsSize)}>
+          <span
+            className="font-expanded text-end"
+            style={boardType(pointsSize)}
+          >
             {row.points}
           </span>
           {wide ? <RoundMarks lifted={lifted} marks={row.rounds} /> : null}
@@ -457,7 +505,7 @@ function NextStrip({
       {round && page.items.length === 0 ? (
         <div
           className="text-muted-foreground flex min-w-0 flex-1 items-center"
-          style={{ padding: "0 18px", gap: 14, ...px(17) }}
+          style={{ padding: "0 18px", gap: 14, ...boardType(17) }}
         >
           <NotYet height={44} radius={11} width={44} />
           {m.notPosted}
@@ -469,13 +517,16 @@ function NextStrip({
           className="flex min-w-0 flex-1 flex-col justify-center"
           style={{ padding: "0 18px", gap: 3 }}
         >
-          <span className="text-muted-foreground truncate" style={px(13)}>
+          <span
+            className="text-muted-foreground truncate"
+            style={boardType(13)}
+          >
             {courtLabel(match, page.page * STRIP_CELLS + index)}
           </span>
-          <span className="truncate font-semibold" style={px(17)}>
+          <span className="truncate font-semibold" style={boardType(17)}>
             {sideLabel(match.side1.players)}
           </span>
-          <span className="truncate font-semibold" style={px(17)}>
+          <span className="truncate font-semibold" style={boardType(17)}>
             {sideLabel(match.side2.players)}
           </span>
         </div>
@@ -504,14 +555,10 @@ function NextUpGrid({
   const rowOf = new Map(
     content.tables.flatMap((table) => table.rows).map((row) => [row.id, row]),
   );
+  const ranking = useRanking(content.ranks);
   const standing = (id: string) => {
     const row = rowOf.get(id);
-    if (!row) {
-      return null;
-    }
-    return content.ranks === "players"
-      ? m.placeGames(row.place, row.points)
-      : m.placePoints(row.place, row.points);
+    return row ? ranking.place(row) : null;
   };
   const nameSize = grid.dense ? 21 : 27;
   return (
@@ -539,12 +586,12 @@ function NextUpGrid({
           >
             <span
               className="font-expanded truncate"
-              style={px(grid.dense ? 18 : 22)}
+              style={boardType(grid.dense ? 18 : 22)}
             >
               {courtLabel(match, page.page * grid.pageSize + index)}
             </span>
             {match.startTime ? (
-              <span className="text-dim" style={px(16)}>
+              <span className="text-dim" style={boardType(16)}>
                 {formatGameClockWithoutMeridiem(match.startTime, locale)}
               </span>
             ) : null}
@@ -554,7 +601,7 @@ function NextUpGrid({
               {sideIndex === 1 ? (
                 <div
                   className="text-dim flex items-center"
-                  style={{ gap: 12, ...px(14) }}
+                  style={{ gap: 12, ...boardType(14) }}
                 >
                   <span>{m.against}</span>
                   <span className="bg-dimrule flex-1" style={{ height: 1 }} />
@@ -564,10 +611,16 @@ function NextUpGrid({
                 className="flex items-baseline justify-between"
                 style={{ gap: 12 }}
               >
-                <span className="truncate font-semibold" style={px(nameSize)}>
+                <span
+                  className="truncate font-semibold"
+                  style={boardType(nameSize)}
+                >
                   {sideLabel(side.players)}
                 </span>
-                <span className="text-dim whitespace-nowrap" style={px(16)}>
+                <span
+                  className="text-dim whitespace-nowrap"
+                  style={boardType(16)}
+                >
                   {standing(side.id)}
                 </span>
               </div>
@@ -593,18 +646,17 @@ function LiveScreens({
   const m = useMessages().liveBoard.board;
   const locale = useLocale();
   const tableTitle = useTableTitle();
-  const scene = liveBoardScene(snapshot.settings, now);
+  const ranking = useRanking(content.ranks);
+  const onShow = boardScreenOnShow(snapshot.settings, now, view.screens);
   const current = view.current;
   if (!current) {
     return null;
   }
   // A screen with no bottom strip makes room, so the message covers no row.
   const messageRoom = snapshot.settings.message ? MESSAGE_ROOM : 0;
-  const hasNext = (view.next?.matches.length ?? 0) > 0;
-  const screen: LiveBoardScreen =
-    scene.screen === "next_up" && !hasNext ? "on_court" : scene.screen;
+  const { screen } = onShow;
   const followUrl = snapshot.settings.showQr ? snapshot.game.followUrl : null;
-  const table = tablePage(content.tables, scene.turn);
+  const table = tablePage(content.tables, onShow.turn);
   const after = (short: boolean) =>
     short
       ? m.afterRoundShort(view.tableAfterRound)
@@ -623,7 +675,7 @@ function LiveScreens({
           <div className="flex min-h-0 flex-1" style={{ gap: 24 }}>
             <div className="flex min-w-0 flex-1 flex-col">
               <SectionHead meta={roundMeta} title={m.onCourtNow} />
-              <CourtGrid round={current} turn={scene.turn} />
+              <CourtGrid round={current} turn={onShow.turn} />
             </div>
             {table ? (
               <div className="flex flex-none flex-col" style={{ width: 500 }}>
@@ -643,12 +695,12 @@ function LiveScreens({
             followUrl={followUrl}
             label={m.next}
             round={view.next}
-            turn={scene.turn}
+            turn={onShow.turn}
           />
         </div>
       ) : null}
 
-      {screen === "standings" ? (
+      {screen === "table" ? (
         <div
           className="flex min-h-0 flex-1"
           style={{ gap: 24, paddingBottom: messageRoom }}
@@ -656,16 +708,7 @@ function LiveScreens({
           {table ? (
             <div className="flex min-w-0 flex-1 flex-col">
               <SectionHead
-                meta={m.afterWithRule(
-                  after(false),
-                  content.ranks === "players"
-                    ? m.gamesRule
-                    : m.pointsRule(
-                        POOL_POINTS.win,
-                        POOL_POINTS.draw,
-                        POOL_POINTS.loss,
-                      ),
-                )}
+                meta={m.afterWithRule(after(false), ranking.rule)}
                 title={tableTitle(table.table)}
               />
               <BoardTable
@@ -681,7 +724,7 @@ function LiveScreens({
               meta={m.round(current.roundNumber)}
               title={m.onCourtNow}
             />
-            <CourtList round={current} turn={scene.turn} />
+            <CourtList round={current} turn={onShow.turn} />
           </div>
         </div>
       ) : null}
@@ -705,7 +748,7 @@ function LiveScreens({
               <NextUpGrid
                 content={content}
                 round={view.next}
-                turn={scene.turn}
+                turn={onShow.turn}
               />
             </div>
             {table ? (
@@ -726,14 +769,14 @@ function LiveScreens({
             followUrl={followUrl}
             label={m.then}
             round={view.then}
-            turn={scene.turn}
+            turn={onShow.turn}
           />
         </div>
       ) : null}
 
       <ScreenBars
-        active={LIVE_BOARD_SCREENS.indexOf(scene.screen)}
-        count={LIVE_BOARD_SCREENS.length}
+        active={view.screens.indexOf(screen)}
+        count={view.screens.length}
       />
     </>
   );
@@ -751,30 +794,16 @@ function FinalScreen({
   const m = useMessages().liveBoard.board;
   const sideLabel = useSideLabel();
   const tableTitle = useTableTitle();
+  const ranking = useRanking(content.ranks);
   const table = tablePage(
     content.tables,
-    liveBoardScene(snapshot.settings, now).turn,
+    boardScreenOnShow(snapshot.settings, now).turn,
   );
   if (!table) {
     return null;
   }
   const all = table.table.rows;
   const [first, ...rest] = all;
-  const players = content.ranks === "players";
-  const summary = (row: LiveBoardTableRow, winner: boolean) => {
-    if (players) {
-      return m.winnerGamesSummary(row.points, row.won, row.drawn, row.lost);
-    }
-    return winner
-      ? m.winnerSummary(
-          row.points,
-          row.won,
-          row.drawn,
-          row.lost,
-          row.difference,
-        )
-      : m.placeSummary(row.points, row.won, row.drawn, row.lost);
-  };
   const matchCount = content.rounds.reduce(
     (sum, round) =>
       sum + round.matches.filter((match) => match.state === "confirmed").length,
@@ -795,10 +824,10 @@ function FinalScreen({
             style={{ flex: 1.5, borderRadius: 16, padding: "24px 28px" }}
           >
             <div className="flex items-center justify-between">
-              <span className="text-dim" style={px(18)}>
+              <span className="text-dim" style={boardType(18)}>
                 {first.players.length === 1 ? m.winner : m.winners}
               </span>
-              <span className="font-expanded" style={px(22)}>
+              <span className="font-expanded" style={boardType(22)}>
                 {m.firstOf(all.length)}
               </span>
             </div>
@@ -807,14 +836,14 @@ function FinalScreen({
                 <div
                   key={index}
                   className="font-expanded truncate"
-                  style={px(38, 1.1)}
+                  style={boardType(38, 1.1)}
                 >
                   {name}
                 </div>
               ))}
             </div>
-            <div className="text-dim" style={px(18)}>
-              {summary(first, true)}
+            <div className="text-dim" style={boardType(18)}>
+              {ranking.winnerSummary(first)}
             </div>
           </div>
         ) : null}
@@ -831,18 +860,21 @@ function FinalScreen({
               className="flex min-h-0 flex-1 items-center"
               style={{ padding: "0 24px", gap: 18 }}
             >
-              <span className="font-expanded" style={{ ...px(40), width: 34 }}>
+              <span
+                className="font-expanded"
+                style={{ ...boardType(40), width: 34 }}
+              >
                 {row.place}
               </span>
               <div className="min-w-0 flex-1">
-                <div className="truncate font-semibold" style={px(24)}>
+                <div className="truncate font-semibold" style={boardType(24)}>
                   {sideLabel(row.players)}
                 </div>
                 <div
                   className="text-muted-foreground truncate"
-                  style={{ ...px(15), marginTop: 3 }}
+                  style={{ ...boardType(15), marginTop: 3 }}
                 >
-                  {summary(row, false)}
+                  {ranking.summary(row)}
                 </div>
               </div>
             </div>
@@ -876,6 +908,7 @@ export function SocialBoard({
   const { game, settings } = snapshot;
   const view = socialBoardView(content, now);
   const subtitle = useBoardSubtitle(game);
+  const startLine = useStartLine(game);
 
   if (view.phase === "final") {
     return (
@@ -904,7 +937,6 @@ export function SocialBoard({
           title={b.finalTitle(game.name)}
         />
         <FinalScreen content={content} now={now} snapshot={snapshot} />
-        {settings.message ? <MessageStrip message={settings.message} /> : null}
       </>
     );
   }
@@ -917,17 +949,7 @@ export function SocialBoard({
           subtitle={subtitle}
           title={game.name}
         />
-        <WaitingPanel
-          line={
-            game.windowStart
-              ? b.startsAt(
-                  formatGameDay(game.windowStart, locale, { weekday: "long" }),
-                  formatGameClock(game.windowStart, locale),
-                )
-              : b.waitingStart
-          }
-          title={b.waitingRounds}
-        />
+        <WaitingPanel line={startLine} title={b.waitingRounds} />
         <BoardStrip>
           <StripFact label={b.facts.venue} value={game.venueName} />
           {game.groupName ? (
@@ -937,7 +959,6 @@ export function SocialBoard({
             <StripQr lines={follow} url={game.followUrl} />
           ) : null}
         </BoardStrip>
-        {settings.message ? <MessageStrip message={settings.message} /> : null}
       </>
     );
   }
@@ -966,7 +987,10 @@ export function SocialBoard({
               >
                 {current.state === "scheduled" ? b.soon : b.live}
               </StatusTag>
-              <span className="whitespace-nowrap font-semibold" style={px(18)}>
+              <span
+                className="whitespace-nowrap font-semibold"
+                style={boardType(18)}
+              >
                 {m.tournamentRounds.progress.roundOf(
                   current.roundNumber,
                   content.roundCount,
@@ -992,7 +1016,6 @@ export function SocialBoard({
         snapshot={snapshot}
         view={view}
       />
-      {settings.message ? <MessageStrip message={settings.message} /> : null}
     </>
   );
 }

@@ -641,7 +641,7 @@ The six digits that open a Live board on a TV at `/tv`, minted by Show on TV and
 _Avoid_: PIN, invite code, pairing code, short code (that is an Invite link's)
 
 **Board screen**:
-One of the three views a Social's Live board rotates through: On court (the Round on court, with the table and the next Round), Standings (the full table) and Next up (who plays whom next, on which court). The Organizer holds the board on one or lets it rotate, 5, 10 or 20 seconds each. A one-Match board has a single scoreboard and no Board screens.
+One of the three views a Social's Live board rotates through: On court (the Round on court, with the table and the next Round), Standings (the full table; code calls it `table`, as it does the Americano table) and Next up (who plays whom next, on which court). The rotation runs over the screens with something to show: Next up drops out while no next Round is posted. The Organizer holds the board on one or lets it rotate, 5, 10 or 20 seconds each. A one-Match board has a single scoreboard and no Board screens.
 _Avoid_: slide, page, scene, tab
 
 **Board TV**:

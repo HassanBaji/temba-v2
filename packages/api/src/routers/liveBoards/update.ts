@@ -4,36 +4,34 @@ import { z } from "zod";
 
 import { liveBoards } from "@repo/db";
 import {
+  changeBoardRotation,
+  LIVE_BOARD_COLOR_SCHEMES,
   LIVE_BOARD_ROTATE_SECONDS,
   LIVE_BOARD_SCREENS,
-  LIVE_BOARD_THEMES,
   liveBoardKind,
-  liveBoardScene,
-  type LiveBoardScreen,
-  type LiveBoardTheme,
+  type BoardRotationChange,
+  type LiveBoardColorScheme,
 } from "@repo/domain/live-board";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
+import { liveBoardStatus } from "#src/live-boards/board-content";
 import { requireManagedBoard } from "#src/live-boards/boards";
 import { protectedProcedure } from "#src/trpc";
 
 /**
- * The board control's settings. Showing a Board screen holds the board on
- * it; turning rotation back on, or changing its pace, starts it again from
- * On court on every TV at once.
+ * The board control's settings (`changeBoardRotation` says what each does to
+ * the rotation). Only what a call changes is written, so two Organizers
+ * changing different settings at once both keep theirs.
  */
 export async function updateLiveBoard(
   database: typeof db,
-  args: {
+  args: BoardRotationChange & {
     gameId: string;
     userId: string;
-    rotate?: boolean;
-    rotateSeconds?: number;
-    heldScreen?: LiveBoardScreen;
-    theme?: LiveBoardTheme;
+    colorScheme?: LiveBoardColorScheme;
     showQr?: boolean;
     locale?: Locale;
     now?: Date;
@@ -48,11 +46,14 @@ export async function updateLiveBoard(
     locale,
     now,
   });
-
-  const changesRotation =
-    args.rotate !== undefined ||
-    args.rotateSeconds !== undefined ||
-    args.heldScreen !== undefined;
+  const change: BoardRotationChange = {
+    rotate: args.rotate,
+    rotateSeconds: args.rotateSeconds,
+    heldScreen: args.heldScreen,
+  };
+  const changesRotation = Object.values(change).some(
+    (value) => value !== undefined,
+  );
   if (changesRotation && liveBoardKind(game) !== "social") {
     throw new TRPCError({ code: "BAD_REQUEST", message: m.noScreens });
   }
@@ -62,27 +63,20 @@ export async function updateLiveBoard(
   ) {
     throw new TRPCError({ code: "BAD_REQUEST", message: m.rotateSeconds });
   }
+  // Switching rotation off holds the screen the room is looking at, so it
+  // must skip the screens with nothing to show, as the TVs do.
+  const screens =
+    args.rotate === false && board.rotate
+      ? (await liveBoardStatus(database, game, now, locale))?.screens
+      : undefined;
+  const rotation = changeBoardRotation(board, change, now, screens);
 
-  // Only what this call changes is written, so two Organizers changing
-  // different settings at once both keep theirs.
-  const heldScreen =
-    args.heldScreen ??
-    (args.rotate === false && board.rotate
-      ? liveBoardScene(board, now).screen
-      : undefined);
   await database
     .update(liveBoards)
     .set({
       updatedAt: now,
-      ...(changesRotation && {
-        rotate: args.rotate ?? (args.heldScreen ? false : board.rotate),
-        rotationStartedAt: now,
-      }),
-      ...(heldScreen && { heldScreen }),
-      ...(args.rotateSeconds !== undefined && {
-        rotateSeconds: args.rotateSeconds,
-      }),
-      ...(args.theme && { theme: args.theme }),
+      ...rotation,
+      ...(args.colorScheme && { colorScheme: args.colorScheme }),
       ...(args.showQr !== undefined && { showQr: args.showQr }),
     })
     .where(eq(liveBoards.id, board.id));
@@ -96,7 +90,7 @@ export const updateProcedure = protectedProcedure
       rotate: z.boolean().optional(),
       rotateSeconds: z.number().int().optional(),
       heldScreen: z.enum(LIVE_BOARD_SCREENS).optional(),
-      theme: z.enum(LIVE_BOARD_THEMES).optional(),
+      colorScheme: z.enum(LIVE_BOARD_COLOR_SCHEMES).optional(),
       showQr: z.boolean().optional(),
     }),
   )

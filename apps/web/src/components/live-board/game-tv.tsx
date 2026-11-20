@@ -50,11 +50,9 @@ export function useGameTv(gameId: string, organizes: boolean) {
   return { menuRow, card, sheet };
 }
 
-export type GameTv = ReturnType<typeof useGameTv>;
-
 const GameTvCardContext = React.createContext<React.ReactNode>(null);
 
-/** Hands the On TV card to whichever Social screen is showing, under its header. */
+/** Hands the On TV card to whichever Game screen is showing, under its header. */
 export function GameTvCardProvider({
   card,
   children,

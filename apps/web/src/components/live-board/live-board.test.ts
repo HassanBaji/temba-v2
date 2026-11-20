@@ -2,13 +2,9 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  liveBoardPreviews,
-  PREVIEW_NOW,
-} from "~/app/dashboard/design/live-board/fixtures";
-
 import { LocaleProvider } from "~/components/locale-provider";
 
+import { liveBoardPreviews, PREVIEW_NOW } from "./board-fixtures";
 import type { LiveBoardSnapshot } from "./board-kit";
 import { LiveBoard } from "./live-board";
 

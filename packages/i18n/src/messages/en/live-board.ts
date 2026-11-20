@@ -27,7 +27,7 @@ export const liveBoard = {
   },
   screens: {
     on_court: "On court",
-    standings: "Standings",
+    table: "Standings",
     next_up: "Next up",
     scoreboard: "Scoreboard",
   },
@@ -39,8 +39,8 @@ export const liveBoard = {
     qr: "QR to follow",
     qrHint: (kind: BoardKind) =>
       `Lets the room open ${eventName(kind)} on a phone`,
-    theme: "Theme",
-    themeHint: "Dark suits most TVs",
+    colorScheme: "Colour scheme",
+    colorSchemeHint: "Dark suits most TVs",
     dark: "Dark",
     light: "Light",
   },
@@ -56,7 +56,7 @@ export const liveBoard = {
     linkCopied: "Board link copied",
     openHere: "Open the board on this device",
     footnote: (kind: BoardKind) =>
-      `The code works until ${eventName(kind)} ends. Anyone with it can only watch.`,
+      `The code works until you stop the board, and for six hours after ${eventName(kind)} ends. Anyone with it can only watch.`,
     startFailed: "The board could not be started. Try again.",
     retry: "Try again",
   },
@@ -67,6 +67,10 @@ export const liveBoard = {
     showing: (tv: string, screen: string, rotating: boolean) =>
       `${tv}. Showing ${screen}, ${rotating ? "rotating" : "held"}.`,
     showingOne: (tv: string) => `${tv}. Showing the scoreboard.`,
+    showingWaiting: (tv: string) =>
+      `${tv}. Waiting for the first round to be posted.`,
+    showingFinal: (tv: string) =>
+      `${tv}. Showing the winners and the final table.`,
     tvCount: (count: number) =>
       plural("en", count, { one: "1 TV", other: "{n} TVs" }),
     control: "Control",
@@ -74,8 +78,8 @@ export const liveBoard = {
   control: {
     chip: "Organizer",
     title: "Live board",
-    lead: "What you change here shows on the TV straight away.",
-    onScreens: (count: number) =>
+    lead: "What you change here shows on the TV within a few seconds.",
+    onTvs: (count: number) =>
       plural("en", count, {
         zero: "Not on a TV yet",
         one: "On 1 TV",
@@ -86,11 +90,16 @@ export const liveBoard = {
       `Then ${screen}, in ${seconds} s`,
     held: "Held on this screen",
     oneScreen: "One screen, no rotation",
+    waitingNow: "Waiting for the rounds",
+    waitingLine: "It starts rotating once a round is posted",
+    finalNow: "Final table",
+    finalLine: "Stopped on the winners and the final table",
+    nextNotPosted: "Shows once the next round is posted",
     screensTitle: "Screens",
     screensHint: "Tap one to show it",
     screenHints: {
       on_court: "Live scores, standings, next round",
-      standings: "The full table, courts at the side",
+      table: "The full table, courts at the side",
       next_up: "Who plays whom, on which court",
     },
     onNow: "On now",

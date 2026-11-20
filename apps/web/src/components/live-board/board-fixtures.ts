@@ -1,14 +1,14 @@
 import type {
-  FootballBoardContent,
+  FootballScoreboard,
   LiveBoardMatch,
   LiveBoardRound,
   LiveBoardRoundMark,
   LiveBoardTableRow,
-  PadelMatchBoardContent,
+  PadelScoreboard,
   SocialBoardContent,
 } from "@repo/domain/live-board";
 
-import type { LiveBoardSnapshot } from "~/components/live-board/board-kit";
+import type { LiveBoardSnapshot } from "./board-kit";
 
 const MINUTE = 60_000;
 
@@ -251,7 +251,7 @@ const AMERICANO: SocialBoardContent = {
   ],
 };
 
-const PADEL: PadelMatchBoardContent = {
+const PADEL: PadelScoreboard = {
   kind: "padel_match",
   sides: [
     [
@@ -273,7 +273,7 @@ const PADEL: PadelMatchBoardContent = {
   ratingScope: "temba",
 };
 
-const FOOTBALL: FootballBoardContent = {
+const FOOTBALL: FootballScoreboard = {
   kind: "football",
   sides: [
     {
@@ -328,7 +328,7 @@ const SETTINGS: Settings = {
   rotateSeconds: 10,
   heldScreen: "on_court",
   rotationStartedAt: PREVIEW_NOW,
-  theme: "dark",
+  colorScheme: "dark",
   showQr: true,
   message: null,
 };
@@ -368,7 +368,7 @@ export const liveBoardPreviews: {
   { title: "2a Social, On court", snapshot: snapshot(SOCIAL) },
   {
     title: "3a Social, Standings",
-    snapshot: snapshot(SOCIAL, { heldScreen: "standings" }),
+    snapshot: snapshot(SOCIAL, { heldScreen: "table" }),
   },
   {
     title: "3b Social, Next up",
@@ -394,7 +394,10 @@ export const liveBoardPreviews: {
       },
     ),
   },
-  { title: "5a Social, light", snapshot: snapshot(SOCIAL, { theme: "light" }) },
+  {
+    title: "5a Social, light",
+    snapshot: snapshot(SOCIAL, { colorScheme: "light" }),
+  },
   {
     title: "Message to the room",
     snapshot: snapshot(SOCIAL, {
@@ -404,13 +407,13 @@ export const liveBoardPreviews: {
   { title: "Before the Rounds are posted", snapshot: snapshot(WAITING) },
   {
     title: "Americano, twelve players",
-    snapshot: snapshot(AMERICANO, { heldScreen: "standings" }),
+    snapshot: snapshot(AMERICANO, { heldScreen: "table" }),
   },
   {
     title: "Football, teams not published",
     snapshot: snapshot(
       { ...FOOTBALL, sides: null },
-      { theme: "light" },
+      { colorScheme: "light" },
       {
         name: "Thursday 7-a-side",
         groupName: "Karbabad FC",

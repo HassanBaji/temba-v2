@@ -14,18 +14,13 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 
-import { readTvName, writeTvName } from "./tv-storage";
+import { tvBoardHref, type TvEntryNotice } from "~/lib/tv-paths";
 
-export type TvEntryNotice =
-  | "stopped"
-  | "disconnected"
-  | "closed"
-  | "not_found"
-  | "failed";
+import { readTvName, writeTvName } from "./tv-storage";
 
 /**
  * Where a TV starts: the six-digit Board code from the Organizer's phone,
- * and a name for the screen if the room has more than one.
+ * and a name for the TV if the room has more than one.
  */
 export function TvEntry({
   initialCode,
@@ -62,7 +57,7 @@ export function TvEntry({
     }
     writeTvName(name.trim());
     setOpening(true);
-    router.push(`/tv/${parsed}`);
+    router.push(tvBoardHref(parsed));
   }
 
   return (

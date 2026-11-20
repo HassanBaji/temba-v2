@@ -7,6 +7,7 @@ import {
   games,
   groupMembers,
   groups,
+  liveBoards,
   matches,
   matchSets,
   ratings,
@@ -29,6 +30,7 @@ import { createTournament } from "#src/routers/games/createTournament";
 import { drawPools } from "#src/routers/games/drawPools";
 import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { generateRounds } from "#src/routers/games/generateRounds";
+import { markMatchNotFinished } from "#src/routers/games/markMatchNotFinished";
 import { postAmericanoRounds } from "#src/routers/games/postAmericanoRounds";
 import { postPoolDraw } from "#src/routers/games/postPoolDraw";
 import { postRounds } from "#src/routers/games/postRounds";
@@ -239,7 +241,7 @@ describe("Show on TV", () => {
       expect(first).toMatchObject({
         rotate: true,
         rotateSeconds: 10,
-        theme: "dark",
+        colorScheme: "dark",
         showQr: true,
         tvs: [],
       });
@@ -609,6 +611,37 @@ describe("a Social's board", () => {
     });
   });
 
+  it("ends on the final table when the last Match did not finish", async () => {
+    await withDb(async (database) => {
+      const seeded = await seedSocial(database);
+      await postEveryRound(database, seeded);
+      const { token } = await startAndConnect(database, seeded);
+      const [last, ...rest] = await database.query.matches.findMany({
+        where: eq(matches.gameId, seeded.gameId),
+        orderBy: (table, { desc }) => [desc(table.roundNumber)],
+      });
+      for (const row of rest) {
+        await enterTournamentScore(database as unknown as Db, {
+          gameId: seeded.gameId,
+          matchId: row.id,
+          userId: seeded.owner.id,
+          slot1GamesWon: 6,
+          slot2GamesWon: 2,
+        });
+      }
+      await markMatchNotFinished(database as unknown as Db, {
+        gameId: seeded.gameId,
+        matchId: last!.id,
+        userId: seeded.owner.id,
+      });
+      const snapshot = await liveSnapshot(database, token);
+      expect(snapshot.content).toMatchObject({
+        kind: "social",
+        finished: true,
+      });
+    });
+  });
+
   it("ranks an Americano's players on games won", async () => {
     await withDb(async (database) => {
       const organizer = await insertAmericanoUser(database, "Organizer Haji");
@@ -788,7 +821,7 @@ describe("a one-Match board", () => {
         updateLiveBoard(database as unknown as Db, {
           gameId: created.game.id,
           userId: owner.id,
-          heldScreen: "standings",
+          heldScreen: "table",
         }),
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     });
@@ -943,6 +976,66 @@ describe("the board control", () => {
     });
   });
 
+  it("tells the control what the TVs show: waiting, the screens with something to show, then the final table", async () => {
+    await withDb(async (database) => {
+      const seeded = await seedSocial(database);
+      await startAndConnect(database, seeded);
+      const status = async () =>
+        (await control(database, seeded.gameId, seeded.owner.id)).board?.status;
+      expect(await status()).toEqual({ phase: "waiting", screens: [] });
+
+      const generated = await generateRounds(database as unknown as Db, {
+        gameId: seeded.gameId,
+        organizerUserId: seeded.owner.id,
+        scope: "all",
+        random: () => 0,
+      });
+      await postRounds(database as unknown as Db, {
+        gameId: seeded.gameId,
+        organizerUserId: seeded.owner.id,
+        roundNumbers: [1],
+      });
+      expect(await status()).toEqual({
+        phase: "live",
+        screens: ["on_court", "table"],
+      });
+
+      // Off at the third step: the TVs skip Next up, so the board holds On court.
+      await updateLiveBoard(database as unknown as Db, {
+        gameId: seeded.gameId,
+        userId: seeded.owner.id,
+        rotate: false,
+        now: new Date(NOW.getTime() + 24_000),
+      });
+      expect(
+        (await control(database, seeded.gameId, seeded.owner.id)).board,
+      ).toMatchObject({ rotate: false, heldScreen: "on_court" });
+
+      await postRounds(database as unknown as Db, {
+        gameId: seeded.gameId,
+        organizerUserId: seeded.owner.id,
+        roundNumbers: generated.roundNumbers.slice(1),
+      });
+      expect(await status()).toEqual({
+        phase: "live",
+        screens: ["on_court", "table", "next_up"],
+      });
+
+      for (const row of await database.query.matches.findMany({
+        where: eq(matches.gameId, seeded.gameId),
+      })) {
+        await enterTournamentScore(database as unknown as Db, {
+          gameId: seeded.gameId,
+          matchId: row.id,
+          userId: seeded.owner.id,
+          slot1GamesWon: 6,
+          slot2GamesWon: 2,
+        });
+      }
+      expect((await status())?.phase).toBe("final");
+    });
+  });
+
   it("holds the screen on show when rotation is switched off", async () => {
     await withDb(async (database) => {
       const seeded = await seedSocial(database);
@@ -955,11 +1048,11 @@ describe("the board control", () => {
       });
       expect(
         (await control(database, seeded.gameId, seeded.owner.id)).board,
-      ).toMatchObject({ rotate: false, heldScreen: "standings" });
+      ).toMatchObject({ rotate: false, heldScreen: "table" });
     });
   });
 
-  it("changes the pace, the theme and the QR, and refuses an odd pace", async () => {
+  it("changes the pace, the colour scheme and the QR, and refuses an odd pace", async () => {
     await withDb(async (database) => {
       const seeded = await seedSocial(database);
       const { token } = await startAndConnect(database, seeded);
@@ -967,12 +1060,12 @@ describe("the board control", () => {
       await updateLiveBoard(database as unknown as Db, {
         ...args,
         rotateSeconds: 20,
-        theme: "light",
+        colorScheme: "light",
         showQr: false,
       });
       expect((await liveSnapshot(database, token)).settings).toMatchObject({
         rotateSeconds: 20,
-        theme: "light",
+        colorScheme: "light",
         showQr: false,
       });
       await expect(
@@ -985,7 +1078,7 @@ describe("the board control", () => {
         updateLiveBoard(database as unknown as Db, {
           ...args,
           userId: seeded.players[0]!.id,
-          theme: "dark",
+          colorScheme: "dark",
         }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
@@ -1110,6 +1203,41 @@ describe("the board control", () => {
       expect(again.id).not.toBe(started.id);
       expect(again.tvs).toEqual([]);
       expect(await database.query.liveBoards.findMany()).toHaveLength(2);
+    });
+  });
+
+  it("opens again with the same code when its Game's window is moved later", async () => {
+    await withDb(async (database) => {
+      const seeded = await seedSocial(database);
+      const first = await startLiveBoard(database as unknown as Db, {
+        gameId: seeded.gameId,
+        userId: seeded.owner.id,
+        origin: ORIGIN,
+      });
+      const closedAt = new Date(WINDOW_END.getTime() + 6 * 60 * MINUTE);
+      await expect(
+        connectLiveBoardTv(database as unknown as Db, {
+          code: first.code,
+          now: closedAt,
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+      await database
+        .update(games)
+        .set({ windowEnd: new Date(closedAt.getTime() + 60 * MINUTE) })
+        .where(eq(games.id, seeded.gameId));
+      const again = await startLiveBoard(database as unknown as Db, {
+        gameId: seeded.gameId,
+        userId: seeded.owner.id,
+        origin: ORIGIN,
+        now: closedAt,
+      });
+      expect(again).toMatchObject({ id: first.id, code: first.code });
+      await connectLiveBoardTv(database as unknown as Db, {
+        code: first.code,
+        now: closedAt,
+      });
+      expect(await database.query.liveBoards.findMany()).toHaveLength(1);
     });
   });
 

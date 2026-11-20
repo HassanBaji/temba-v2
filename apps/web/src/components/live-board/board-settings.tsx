@@ -4,8 +4,8 @@ import * as React from "react";
 
 import {
   LIVE_BOARD_ROTATE_SECONDS,
-  LIVE_BOARD_THEMES,
-  type LiveBoardTheme,
+  LIVE_BOARD_COLOR_SCHEMES,
+  type LiveBoardColorScheme,
 } from "@repo/domain/live-board";
 
 import { useMessages } from "~/components/locale-provider";
@@ -62,24 +62,24 @@ export function SwitchRow({
   );
 }
 
-export function ThemeSegments({
+export function ColorSchemeSegments({
   value,
   onSelect,
 }: {
-  value: LiveBoardTheme;
-  onSelect: (theme: LiveBoardTheme) => void;
+  value: LiveBoardColorScheme;
+  onSelect: (colorScheme: LiveBoardColorScheme) => void;
 }) {
   const m = useMessages().liveBoard.settings;
   return (
     <RovingRadioGroup
-      aria-label={m.theme}
+      aria-label={m.colorScheme}
       className="bg-wash grid flex-none grid-cols-2 gap-[3px] rounded-[10px] p-[3px]"
     >
-      {LIVE_BOARD_THEMES.map((theme) => {
-        const selected = theme === value;
+      {LIVE_BOARD_COLOR_SCHEMES.map((colorScheme) => {
+        const selected = colorScheme === value;
         return (
           <button
-            key={theme}
+            key={colorScheme}
             aria-checked={selected}
             className={cn(
               "text-meta focus-visible:ring-ring/50 h-[34px] rounded-md px-3 outline-none focus-visible:ring-[3px]",
@@ -87,11 +87,11 @@ export function ThemeSegments({
                 ? "bg-control text-on-control font-semibold"
                 : "text-muted-foreground hover:text-ink",
             )}
-            onClick={() => onSelect(theme)}
+            onClick={() => onSelect(colorScheme)}
             role="radio"
             type="button"
           >
-            {m[theme]}
+            {m[colorScheme]}
           </button>
         );
       })}

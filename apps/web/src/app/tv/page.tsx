@@ -1,14 +1,7 @@
 import { parseBoardCode } from "@repo/domain/live-board";
 
-import { TvEntry, type TvEntryNotice } from "~/components/live-board/tv-entry";
-
-const NOTICES: readonly TvEntryNotice[] = [
-  "stopped",
-  "disconnected",
-  "closed",
-  "not_found",
-  "failed",
-];
+import { TvEntry } from "~/components/live-board/tv-entry";
+import { parseTvEntryNotice } from "~/lib/tv-paths";
 
 export default async function TvEntryPage({
   searchParams,
@@ -19,7 +12,7 @@ export default async function TvEntryPage({
   return (
     <TvEntry
       initialCode={(code && parseBoardCode(code)) ?? undefined}
-      notice={NOTICES.find((value) => value === notice)}
+      notice={parseTvEntryNotice(notice)}
     />
   );
 }

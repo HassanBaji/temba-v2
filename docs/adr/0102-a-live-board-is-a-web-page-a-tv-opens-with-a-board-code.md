@@ -33,7 +33,9 @@ nobody is signed in on.
 - **Rotation needs no channel.** The board stores when its rotation started and how long a screen
   stays. Every TV and the control work out the screen from that moment and the server's clock, sent
   with each snapshot, so they agree without talking to each other. A list too long for one screen
-  turns its page on the same count.
+  turns its page on the same count. The rotation runs over the Board screens that have something
+  to show (Next up drops out while no next Round is posted); the API sends the control the same
+  reading, with whether the Social is waiting or over, so it describes the board the room sees.
 - **Polling, every five seconds.** There is no push transport in Temba (ADR-0022 polls too), a
   score is saved a few times a Round, and a TV that drops its connection picks up on the next ask.
   The same ask marks the TV as still there. A TV that has heard nothing for 15 seconds says it is
@@ -41,8 +43,10 @@ nobody is signed in on.
 - **It closes on its own.** Stopping retires the code at once. Otherwise the board closes when the
   Game is cancelled and six hours after its window ends, read at request time like the Marks window,
   with no Job. The six hours keep the final table up after the last Match.
-- **Organizers run it**, the people who can already score and cancel the Game. If two of them
-  change a setting, the last change wins; nothing here is worth a lock.
+- **Organizers run it**, the people who can already score and cancel the Game, and on a Group Game
+  the same people as its Group approvers, which is what the design's "organizers and admins"
+  asks for. If two of them change different settings at once, both keep theirs: a change writes
+  only what it changes. Two changes to the same setting: the last wins.
 - **Scoped to the shapes with a Round and a table, or one Match.** Groups only, Rounds, Americano,
   a padel Friendly game and a football Game. A Knockout has no table to rotate to and King of the
   court has no Matches, so they have no board yet.

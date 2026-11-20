@@ -1,7 +1,7 @@
 "use client";
 
-import { BoardFrame, type LiveBoardSnapshot } from "./board-kit";
-import { FootballBoard, PadelMatchBoard } from "./match-board";
+import { BoardFrame, MessageStrip, type LiveBoardSnapshot } from "./board-kit";
+import { FootballMatchScoreboard, PadelMatchScoreboard } from "./match-board";
 import { SocialBoard } from "./social-board";
 
 /** One Game's Live board at `now`: a Social's screens or a single scoreboard. */
@@ -16,15 +16,22 @@ export function LiveBoard({
 }) {
   const { content } = snapshot;
   return (
-    <BoardFrame fill={fill} theme={snapshot.settings.theme}>
+    <BoardFrame colorScheme={snapshot.settings.colorScheme} fill={fill}>
       {content.kind === "social" ? (
         <SocialBoard content={content} now={now} snapshot={snapshot} />
       ) : null}
       {content.kind === "padel_match" ? (
-        <PadelMatchBoard content={content} now={now} snapshot={snapshot} />
+        <PadelMatchScoreboard content={content} now={now} snapshot={snapshot} />
       ) : null}
       {content.kind === "football" ? (
-        <FootballBoard content={content} now={now} snapshot={snapshot} />
+        <FootballMatchScoreboard
+          content={content}
+          now={now}
+          snapshot={snapshot}
+        />
+      ) : null}
+      {snapshot.settings.message ? (
+        <MessageStrip message={snapshot.settings.message} />
       ) : null}
     </BoardFrame>
   );

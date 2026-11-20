@@ -21,7 +21,8 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
  * A Game's Live board as its Organizer runs it: whether Show on TV is on
- * offer, and the running board with its settings and connected TVs. Everyone
+ * offer, and the running board with its settings, what its TVs show and the
+ * TVs connected. Everyone
  * else who can open the Game reads that there is nothing to manage.
  */
 export async function liveBoardForGame(
@@ -59,7 +60,13 @@ export async function liveBoardForGame(
     kind,
     canStart: startableBoardKind(game, now) != null,
     board: board
-      ? await liveBoardControl(database, { board, origin: args.origin, now })
+      ? await liveBoardControl(database, {
+          board,
+          game,
+          origin: args.origin,
+          now,
+          locale,
+        })
       : null,
   };
 }

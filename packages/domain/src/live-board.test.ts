@@ -5,16 +5,20 @@ import {
   boardMinutesPlayed,
   boardPage,
   boardScoreLead,
+  boardTableRound,
+  changeBoardRotation,
+  isSocialBoardFinished,
+  liveBoardOnShow,
   boardSideLabel,
   formatBoardClock,
   formatBoardCode,
   formatBoardMatchTime,
   liveBoardKind,
-  liveBoardScene,
-  matchBoardPhase,
+  boardScreenOnShow,
+  scoreboardPhase,
   normalizeBoardMessage,
-  padelBoardSets,
-  padelBoardSetsWon,
+  padelScoreboardSets,
+  padelScoreboardSetsWon,
   parseBoardCode,
   socialBoardView,
   type LiveBoardMatch,
@@ -109,46 +113,159 @@ describe("normalizeBoardMessage", () => {
   });
 });
 
-describe("liveBoardScene", () => {
+describe("boardScreenOnShow", () => {
   const started = new Date("2026-11-09T09:00:00Z");
   const rotation = {
     rotate: true,
     rotateSeconds: 10,
-    heldScreen: "standings" as const,
+    heldScreen: "table" as const,
     rotationStartedAt: started,
   };
   const at = (seconds: number) => new Date(started.getTime() + seconds * 1000);
 
   it("opens on On court and moves on every ten seconds", () => {
-    assert.deepEqual(liveBoardScene(rotation, at(4)), {
+    assert.deepEqual(boardScreenOnShow(rotation, at(4)), {
       screen: "on_court",
-      next: "standings",
+      next: "table",
       secondsToNext: 6,
       turn: 0,
     });
-    assert.equal(liveBoardScene(rotation, at(10)).screen, "standings");
-    assert.equal(liveBoardScene(rotation, at(29)).screen, "next_up");
-    assert.equal(liveBoardScene(rotation, at(29)).next, "on_court");
+    assert.equal(boardScreenOnShow(rotation, at(10)).screen, "table");
+    assert.equal(boardScreenOnShow(rotation, at(29)).screen, "next_up");
+    assert.equal(boardScreenOnShow(rotation, at(29)).next, "on_court");
   });
 
   it("turns the page of a long list once per full rotation", () => {
-    assert.equal(liveBoardScene(rotation, at(29)).turn, 0);
-    assert.equal(liveBoardScene(rotation, at(30)).turn, 1);
-    assert.equal(liveBoardScene(rotation, at(30)).screen, "on_court");
+    assert.equal(boardScreenOnShow(rotation, at(29)).turn, 0);
+    assert.equal(boardScreenOnShow(rotation, at(30)).turn, 1);
+    assert.equal(boardScreenOnShow(rotation, at(30)).screen, "on_court");
   });
 
   it("holds one screen while rotation is off, still turning pages", () => {
     const held = { ...rotation, rotate: false };
-    assert.deepEqual(liveBoardScene(held, at(25)), {
-      screen: "standings",
+    assert.deepEqual(boardScreenOnShow(held, at(25)), {
+      screen: "table",
       next: null,
       secondsToNext: null,
       turn: 2,
     });
   });
 
+  it("rotates through only the screens with something to show", () => {
+    const twoScreens = ["on_court", "table"] as const;
+    assert.equal(
+      boardScreenOnShow(rotation, at(20), twoScreens).screen,
+      "on_court",
+    );
+    assert.equal(boardScreenOnShow(rotation, at(20), twoScreens).next, "table");
+    assert.equal(boardScreenOnShow(rotation, at(20), twoScreens).turn, 1);
+  });
+
+  it("gives way to On court when the held screen has nothing to show", () => {
+    const held = { ...rotation, rotate: false, heldScreen: "next_up" as const };
+    assert.equal(
+      boardScreenOnShow(held, at(5), ["on_court", "table"]).screen,
+      "on_court",
+    );
+  });
+
   it("starts from the first screen when a TV's clock runs behind", () => {
-    assert.equal(liveBoardScene(rotation, at(-5)).screen, "on_court");
+    assert.equal(boardScreenOnShow(rotation, at(-5)).screen, "on_court");
+  });
+});
+
+describe("changeBoardRotation", () => {
+  const started = new Date("2026-11-09T09:00:00Z");
+  const rotation = {
+    rotate: true,
+    rotateSeconds: 10,
+    heldScreen: "on_court" as const,
+    rotationStartedAt: started,
+  };
+  const now = new Date(started.getTime() + 14_000);
+
+  it("leaves the rotation alone for a change of look", () => {
+    assert.equal(changeBoardRotation(rotation, {}, now), null);
+  });
+
+  it("holds the board on a screen shown from the control", () => {
+    assert.deepEqual(
+      changeBoardRotation(rotation, { heldScreen: "next_up" }, now),
+      {
+        rotate: false,
+        rotateSeconds: 10,
+        heldScreen: "next_up",
+        rotationStartedAt: now,
+      },
+    );
+  });
+
+  it("holds the screen on show when rotation is switched off", () => {
+    assert.equal(
+      changeBoardRotation(rotation, { rotate: false }, now)?.heldScreen,
+      "table",
+    );
+  });
+
+  it("starts again from On court when the pace changes", () => {
+    assert.deepEqual(
+      changeBoardRotation(rotation, { rotateSeconds: 20 }, now),
+      {
+        ...rotation,
+        rotateSeconds: 20,
+        rotationStartedAt: now,
+      },
+    );
+  });
+});
+
+describe("liveBoardOnShow", () => {
+  const rotation = {
+    rotate: true,
+    rotateSeconds: 10,
+    heldScreen: "on_court" as const,
+    rotationStartedAt: new Date("2026-11-09T09:00:00Z"),
+  };
+  const now = new Date("2026-11-09T09:00:25Z");
+
+  it("says a one-Match board shows its scoreboard", () => {
+    assert.deepEqual(liveBoardOnShow("football", null, rotation, now), {
+      kind: "scoreboard",
+    });
+  });
+
+  it("says a Social is waiting, or stopped on its final table, whatever the rotation", () => {
+    assert.deepEqual(
+      liveBoardOnShow(
+        "social",
+        { phase: "waiting", screens: [] },
+        rotation,
+        now,
+      ),
+      { kind: "waiting" },
+    );
+    assert.deepEqual(
+      liveBoardOnShow("social", { phase: "final", screens: [] }, rotation, now),
+      { kind: "final" },
+    );
+  });
+
+  it("follows the rotation through the screens the TVs show", () => {
+    assert.deepEqual(
+      liveBoardOnShow(
+        "social",
+        { phase: "live", screens: ["on_court", "table"] },
+        rotation,
+        now,
+      ),
+      {
+        kind: "screen",
+        screen: "on_court",
+        next: "table",
+        secondsToNext: 5,
+        turn: 1,
+      },
+    );
   });
 });
 
@@ -253,6 +370,7 @@ describe("socialBoardView", () => {
     assert.equal(view.then?.roundNumber, 5);
     assert.equal(view.tableAfterRound, 2);
     assert.deepEqual(view.clock, { kind: "left", seconds: 18 * 60 });
+    assert.deepEqual(view.screens, ["on_court", "table", "next_up"]);
   });
 
   it("counts down to the first Round before it starts", () => {
@@ -282,6 +400,15 @@ describe("socialBoardView", () => {
     );
     assert.equal(view.next?.roundNumber, 3);
     assert.equal(view.then, null);
+    assert.deepEqual(view.screens, ["on_court", "table", "next_up"]);
+  });
+
+  it("drops Next up from the rotation while no next Round is posted", () => {
+    const view = socialBoardView(
+      social([round(1, "on_court", 0), round(2, "not_made", 30, 0)]),
+      START,
+    );
+    assert.deepEqual(view.screens, ["on_court", "table"]);
   });
 
   it("stops the clock at zero when a Round runs over", () => {
@@ -306,6 +433,52 @@ describe("socialBoardView", () => {
   });
 });
 
+describe("boardTableRound", () => {
+  it("counts the unbroken run of settled Rounds from Round 1", () => {
+    assert.equal(
+      boardTableRound([
+        round(1, "played", 0),
+        round(2, "cancelled", 30),
+        round(3, "played", 60),
+        round(4, "on_court", 90),
+      ]),
+      3,
+    );
+  });
+
+  it("stops at a Round that is still open, whatever is settled after it", () => {
+    assert.equal(
+      boardTableRound([
+        round(1, "played", 0),
+        round(2, "on_court", 30),
+        round(3, "played", 60),
+      ]),
+      1,
+    );
+  });
+});
+
+describe("isSocialBoardFinished", () => {
+  it("is over once every Round is settled, a Match that did not finish included", () => {
+    assert.equal(
+      isSocialBoardFinished([round(1, "played", 0), round(2, "played", 30)]),
+      true,
+    );
+  });
+
+  it("is not over with a Round not made or nothing played", () => {
+    assert.equal(
+      isSocialBoardFinished([
+        round(1, "played", 0),
+        round(2, "not_made", 30, 0),
+      ]),
+      false,
+    );
+    assert.equal(isSocialBoardFinished([round(1, "cancelled", 0)]), false);
+    assert.equal(isSocialBoardFinished([]), false);
+  });
+});
+
 describe("formatBoardClock", () => {
   it("reads minutes and seconds, then hours", () => {
     assert.equal(formatBoardClock(698), "11:38");
@@ -324,9 +497,9 @@ describe("boardScoreLead", () => {
   });
 });
 
-describe("padelBoardSets", () => {
+describe("padelScoreboardSets", () => {
   it("marks a Set won, a Set lost and the Set in play", () => {
-    const sets = padelBoardSets(
+    const sets = padelScoreboardSets(
       [
         { score1: 6, score2: 4 },
         { score1: 3, score2: 6 },
@@ -338,44 +511,44 @@ describe("padelBoardSets", () => {
       sets.map((set) => set.state),
       ["side1", "side2", "in_play"],
     );
-    assert.deepEqual(padelBoardSetsWon(sets), { side1: 1, side2: 1 });
+    assert.deepEqual(padelScoreboardSetsWon(sets), { side1: 1, side2: 1 });
   });
 
   it("counts the last Set once the Match is completed", () => {
-    const sets = padelBoardSets(
+    const sets = padelScoreboardSets(
       [
         { score1: 6, score2: 4 },
         { score1: 4, score2: 3 },
       ],
       true,
     );
-    assert.deepEqual(padelBoardSetsWon(sets), { side1: 2, side2: 0 });
+    assert.deepEqual(padelScoreboardSetsWon(sets), { side1: 2, side2: 0 });
   });
 
   it("counts a last Set that is already won, and a tie-break Set", () => {
     assert.equal(
-      padelBoardSets([{ score1: 6, score2: 2 }], false)[0]?.state,
+      padelScoreboardSets([{ score1: 6, score2: 2 }], false)[0]?.state,
       "side1",
     );
     assert.equal(
-      padelBoardSets([{ score1: 6, score2: 7 }], false)[0]?.state,
+      padelScoreboardSets([{ score1: 6, score2: 7 }], false)[0]?.state,
       "side2",
     );
     assert.equal(
-      padelBoardSets([{ score1: 6, score2: 5 }], false)[0]?.state,
+      padelScoreboardSets([{ score1: 6, score2: 5 }], false)[0]?.state,
       "in_play",
     );
   });
 
   it("reads an empty Set as in play", () => {
     assert.equal(
-      padelBoardSets([{ score1: null, score2: null }], false)[0]?.state,
+      padelScoreboardSets([{ score1: null, score2: null }], false)[0]?.state,
       "in_play",
     );
   });
 });
 
-describe("matchBoardPhase", () => {
+describe("scoreboardPhase", () => {
   const args = {
     windowStart: "2026-11-09T09:00:00Z",
     completed: false,
@@ -385,15 +558,15 @@ describe("matchBoardPhase", () => {
 
   it("waits before the start and until the sides are ready", () => {
     assert.equal(
-      matchBoardPhase({ ...args, now: new Date("2026-11-09T08:59:00Z") }),
+      scoreboardPhase({ ...args, now: new Date("2026-11-09T08:59:00Z") }),
       "waiting",
     );
-    assert.equal(matchBoardPhase({ ...args, ready: false }), "waiting");
+    assert.equal(scoreboardPhase({ ...args, ready: false }), "waiting");
   });
 
   it("is live from the start and final once completed", () => {
-    assert.equal(matchBoardPhase(args), "live");
-    assert.equal(matchBoardPhase({ ...args, completed: true }), "final");
+    assert.equal(scoreboardPhase(args), "live");
+    assert.equal(scoreboardPhase({ ...args, completed: true }), "final");
   });
 });
 
