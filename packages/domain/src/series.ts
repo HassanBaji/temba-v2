@@ -1,7 +1,9 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { isDrawnTournament } from "./tournament-rounds";
+import { isAmericano } from "./tournament-americano";
+import { isKingOfTheCourt } from "./tournament-king";
+import { hasKnockout, isDrawnTournament } from "./tournament-rounds";
 
 /** The seven emblems of a Series badge, in the picker's order. */
 export const SERIES_EMBLEMS = [
@@ -87,6 +89,39 @@ export function carriesSeries(game: SeriesCarrierGame): boolean {
     return game.challengeId === null;
   }
   return isDrawnTournament(game.format, game.poolCount, game.tournamentShape);
+}
+
+export type SeriesWinRule =
+  | "side"
+  | "table"
+  | "tables"
+  | "champion"
+  | "king"
+  | "americano";
+
+/**
+ * Which rule an Edition of this Game is won by, for its copy: the winning
+ * side of a Friendly game, the top of one table or of each Pool's table, the
+ * Champion of a Knockout, the king of the court, or the top of an Americano.
+ */
+export function seriesWinRule(game: {
+  format: string;
+  tournamentShape: string | null;
+  poolCount: number | null;
+}): SeriesWinRule {
+  if (game.format === "friendly_game") {
+    return "side";
+  }
+  if (isKingOfTheCourt(game.format, game.tournamentShape)) {
+    return "king";
+  }
+  if (isAmericano(game.format, game.tournamentShape)) {
+    return "americano";
+  }
+  if (hasKnockout(game.format, game.tournamentShape)) {
+    return "champion";
+  }
+  return (game.poolCount ?? 1) > 1 ? "tables" : "table";
 }
 
 export type SeriesEditionGame = {

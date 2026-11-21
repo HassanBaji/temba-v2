@@ -11,6 +11,7 @@ import {
   carriesSeries,
   seriesEditionNumbers,
   seriesNameError,
+  seriesWinRule,
   type SeriesCarrierGame,
 } from "./series";
 
@@ -104,6 +105,38 @@ describe("carriesSeries", () => {
     ["a groupless Social", { ...social("rounds", 1), groupId: null }],
   ])("carries no Series on %s", (_kind, game) => {
     expect(carriesSeries(game)).toBe(false);
+  });
+});
+
+describe("seriesWinRule", () => {
+  const social = (
+    tournamentShape: string | null,
+    poolCount: number | null,
+  ) => ({
+    format: "friendly_tournament",
+    tournamentShape,
+    poolCount,
+  });
+
+  it.each([
+    [
+      "a Friendly game",
+      { format: "friendly_game", tournamentShape: null, poolCount: null },
+      "side",
+    ],
+    ["a Rounds Social", social("rounds", 1), "table"],
+    ["a Groups only Social with one Pool", social("groups_only", 1), "table"],
+    ["a Groups only Social with two Pools", social("groups_only", 2), "tables"],
+    [
+      "a Groups then knockout Social",
+      social("groups_then_knockout", 2),
+      "champion",
+    ],
+    ["a Knockout only Social", social("knockout_only", null), "champion"],
+    ["King of the court", social("king_of_the_court", null), "king"],
+    ["an Americano", social("americano", null), "americano"],
+  ] as const)("reads the rule of %s", (_kind, game, rule) => {
+    expect(seriesWinRule(game)).toBe(rule);
   });
 });
 

@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { series as source } from "../en/series";
 
@@ -26,6 +27,47 @@ export const series = {
   },
   gallery: {
     title: "شارات السلاسل",
+  },
+  tab: {
+    rowKind: {
+      padel: {
+        social: "سوشيال بادل",
+        game: "مباراة بادل",
+        none: "سلسلة بادل",
+      },
+      football: {
+        social: "سوشيال كرة قدم",
+        game: "مباراة كرة قدم",
+        none: "سلسلة كرة قدم",
+      },
+    },
+    played: (n: number) =>
+      plural("ar", n, {
+        zero: "لم تُلعب أي نسخة",
+        one: "لُعبت نسخة واحدة",
+        two: "لُعبت نسختان",
+        few: "لُعبت {n} نسخ",
+        many: "لُعبت {n} نسخة",
+        other: "لُعبت {n} نسخة",
+      }),
+    notPlayedYet: "لم تُلعب بعد",
+    rowLine: (kind: string, played: string) => `${kind}. ${played}`,
+    rowLineNext: (kind: string, played: string, edition: number) =>
+      `${kind}. ${played}، والتالية النسخة ${edition}`,
+    rowLineEnded: (kind: string, played: string, month: string) =>
+      `${kind}. ${played}، وانتهت في ${month}`,
+  },
+  game: {
+    winnersTwo: (first: string, second: string) =>
+      `${isolate(first)} و${isolate(second)}`,
+    winnersMore: (first: string, second: string, more: number) =>
+      plural("ar", more, {
+        one: `${isolate(first)} و${isolate(second)} وشخص آخر`,
+        two: `${isolate(first)} و${isolate(second)} وشخصان آخران`,
+        few: `${isolate(first)} و${isolate(second)} و{n} آخرين`,
+        many: `${isolate(first)} و${isolate(second)} و{n} آخرين`,
+        other: `${isolate(first)} و${isolate(second)} و{n} آخرين`,
+      }),
   },
   errors: {
     notFound: "السلسلة غير موجودة",

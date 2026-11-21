@@ -275,7 +275,12 @@ type ExpectedRatings =
   | "listLevelDisputesForOperator"
   | "decideLevelDispute";
 
-type ExpectedSeries = "attachOptions" | "create" | "end";
+type ExpectedSeries =
+  | "attachOptions"
+  | "byId"
+  | "create"
+  | "end"
+  | "listForGroup";
 
 type ExpectedTeams =
   | "create"

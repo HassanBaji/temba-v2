@@ -26,6 +26,36 @@ export const series = {
   gallery: {
     title: "Series badges",
   },
+  tab: {
+    rowKind: {
+      padel: {
+        social: "Padel social",
+        game: "Padel game",
+        none: "Padel series",
+      },
+      football: {
+        social: "Football social",
+        game: "Football game",
+        none: "Football series",
+      },
+    },
+    played: (n: number) =>
+      plural("en", n, { one: "{n} played", other: "{n} played" }),
+    notPlayedYet: "Not played yet",
+    rowLine: (kind: string, played: string) => `${kind}. ${played}`,
+    rowLineNext: (kind: string, played: string, edition: number) =>
+      `${kind}. ${played}, next is edition ${edition}`,
+    rowLineEnded: (kind: string, played: string, month: string) =>
+      `${kind}. ${played}, ended in ${month}`,
+  },
+  game: {
+    winnersTwo: (first: string, second: string) => `${first} and ${second}`,
+    winnersMore: (first: string, second: string, more: number) =>
+      plural("en", more, {
+        one: `${first}, ${second} and {n} more`,
+        other: `${first}, ${second} and {n} more`,
+      }),
+  },
   errors: {
     notFound: "Series not found",
     verifiedOnly: "Only a verified group can have a series",
