@@ -131,6 +131,12 @@ export const series = {
     },
     wonLast: (winners: string) =>
       `النسخة السابقة كانت من نصيب ${isolate(winners)}.`,
+    partOf: (name: string) => `ضمن ${isolate(name)}`,
+    seeSeries: "عرض السلسلة",
+    heroEdition: (edition: number) => `النسخة ${edition}`,
+    factsLabel: "السلسلة",
+    facts: (name: string, edition: number) =>
+      `${isolate(name)}، النسخة ${edition}`,
   },
   win: {
     ordinal: (name: string, n: number) =>

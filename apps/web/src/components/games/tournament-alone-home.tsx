@@ -14,6 +14,9 @@ import { GameTvCardSlot } from "~/components/live-board/game-tv";
 import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { withSeriesFactRow } from "~/components/series/series-fact-row";
+import { SeriesGameCard } from "~/components/series/series-game-card";
+import type { WithGameSeries } from "~/components/series/series-hero-line";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
@@ -44,7 +47,7 @@ type AloneOnlyDetails = TournamentDetails & {
     count: number;
     cap: number | null;
   } | null;
-};
+} & WithGameSeries;
 
 /**
  * An Alone-only Social before its teams are posted (ADR-0096): one list of
@@ -158,6 +161,7 @@ export function TournamentAloneHome({
           full ? m.hero.seatsReady : m.hero.seatsWaiting
         }`}
         stats={[{ value: String(teamCount), label: m.hero.teamsLater }]}
+        series={data.series}
         viewerUserId={data.viewerUserId}
         left={null}
         right={null}
@@ -169,6 +173,7 @@ export function TournamentAloneHome({
         tags={tags}
         actions={actions}
       />
+      {data.series ? <SeriesGameCard gameId={data.id} /> : null}
       <GameTvCardSlot />
 
       {organizer ? (
@@ -227,7 +232,14 @@ export function TournamentAloneHome({
         </section>
       ) : null}
 
-      <TournamentDetailRows rows={view.detailRows} />
+      <TournamentDetailRows
+        rows={withSeriesFactRow(
+          view.detailRows,
+          messages.tournament.home.groupRow,
+          data.series,
+          messages,
+        )}
+      />
 
       {data.isWaitlisted && onLeaveWaitlist ? (
         <Button

@@ -31,6 +31,8 @@ import { ChallengeSquads } from "~/components/games/challenge-squad-grid";
 import { ChallengeTeamVsTeam } from "~/components/games/challenge-team-vs-team";
 import { NameSquadDialog } from "~/components/games/name-squad-dialog";
 import { FootballGameHeroCard } from "~/components/games/football-game-hero";
+import { seriesFactRows } from "~/components/series/series-fact-row";
+import { SeriesGameCard } from "~/components/series/series-game-card";
 import {
   FootballInfoRows,
   type FootballInfoRow,
@@ -461,6 +463,7 @@ export function FootballGameDetails({
     ...(game.groupName
       ? [{ label: m.game.played.group, value: game.groupName }]
       : []),
+    ...seriesFactRows(game.series, m),
     ...(game.season ? [{ label: t.seasonRow, value: game.season.name }] : []),
     ...(price
       ? [
@@ -886,6 +889,7 @@ export function FootballGameDetails({
           <FootballGameHeroCard
             tone={model.hero.tone}
             lines={lines}
+            series={game.series}
             tag={
               ratingScopeOf(game) === "temba"
                 ? (ratingScopeTag(game, locale) ?? undefined)
@@ -910,6 +914,9 @@ export function FootballGameDetails({
             {heroBody}
           </FootballGameHeroCard>
         )}
+        {!playedModel && game.series ? (
+          <SeriesGameCard gameId={gameId} />
+        ) : null}
         <GameTvCardSlot />
 
         {joinFamily && !playedModel ? (

@@ -15,6 +15,10 @@ import { HeroTopLine } from "~/components/games/hero-top-line";
 import { DividedFigurePair } from "~/components/home/home-all-time";
 import { WinLossMark } from "~/components/home/home-recent-form-row";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import {
+  SeriesHeroLine,
+  type SeriesHeroLineSeries,
+} from "~/components/series/series-hero-line";
 import { Button } from "~/components/ui/button";
 import { Surface } from "~/components/ui/surface";
 import { cn } from "~/lib/utils";
@@ -167,11 +171,13 @@ export function FriendlyGameDetailsHero({
   place,
   figures,
   tag,
+  series,
   actions,
 }: {
   input: FriendlyGameHeroInput;
   place: FriendlyGameHeroPlace | null;
   figures: CourtFigure[];
+  series?: SeriesHeroLineSeries | null;
   /** "Challenge" on a Challenge Game. */
   tag?: string;
   /** Share and the Game's menu, top right across from back. */
@@ -242,6 +248,9 @@ export function FriendlyGameDetailsHero({
         </>
       )}
       {place && (place.name || place.line) ? <PlaceRow place={place} /> : null}
+      {series ? (
+        <SeriesHeroLine series={series} tone="ink" className="mt-3" />
+      ) : null}
       <Figures figures={figures} />
     </Surface>
   );

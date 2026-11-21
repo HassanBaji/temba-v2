@@ -72,6 +72,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { useGameEdit } from "~/components/games/use-game-edit";
 import { useGameEditSeries } from "~/components/games/use-game-edit-series";
+import { SeriesFactRows } from "~/components/series/series-fact-rows";
+import { SeriesGameCard } from "~/components/series/series-game-card";
 import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import {
@@ -1340,12 +1342,16 @@ export default function GameHomePage({
             <>
               <h1 className="sr-only">{g.friendlyGameHeading}</h1>
               {heroInput && !playedMatch ? (
-                <FriendlyGameDetailsHero
-                  input={heroInput}
-                  place={heroPlace}
-                  figures={heroFigures}
-                  actions={heroActions}
-                />
+                <>
+                  <FriendlyGameDetailsHero
+                    input={heroInput}
+                    place={heroPlace}
+                    figures={heroFigures}
+                    series={data.series}
+                    actions={heroActions}
+                  />
+                  {data.series ? <SeriesGameCard gameId={id} /> : null}
+                </>
               ) : playedMatch ? null : (
                 <HeroNavRow tone="paper" actions={gameMenu(false)} />
               )}
@@ -1444,6 +1450,7 @@ export default function GameHomePage({
                   publicGame={isPublicGame(data)}
                 />
               )}
+              <SeriesFactRows series={data.series} />
               <GameLineupSection
                 sides={data.sides}
                 viewerUserId={data.viewerUserId}

@@ -20,6 +20,11 @@ import { poolLabel } from "@repo/domain/tournament-pool-draw";
 
 import { GameTvCardSlot } from "~/components/live-board/game-tv";
 import { PageTitle } from "~/components/layout/page-title";
+import { SeriesGameCard } from "~/components/series/series-game-card";
+import {
+  SeriesHeroLine,
+  type WithGameSeries,
+} from "~/components/series/series-hero-line";
 import { Surface } from "~/components/ui/surface";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -58,7 +63,7 @@ import {
   type TournamentRoundsActions,
 } from "./use-tournament-rounds";
 
-type GameDetail = TournamentDetails;
+type GameDetail = TournamentDetails & WithGameSeries;
 type Tab = "teams" | "rounds" | "standings" | "bracket";
 
 function roundsLead(
@@ -240,8 +245,14 @@ export function TournamentDrawnHome({
               {standings.championLine}
             </p>
           ) : null}
+          {data.series ? (
+            <SeriesHeroLine series={data.series} tone="ink" className="mt-3" />
+          ) : null}
         </Surface>
       )}
+      {data.series ? (
+        <SeriesGameCard gameId={data.id} className="my-[18px]" />
+      ) : null}
       <GameTvCardSlot className="pt-[18px]" />
 
       <Tabs

@@ -32,6 +32,12 @@ import { GameTvCardSlot } from "~/components/live-board/game-tv";
 import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { PageTitle } from "~/components/layout/page-title";
+import { withSeriesFactRow } from "~/components/series/series-fact-row";
+import { SeriesGameCard } from "~/components/series/series-game-card";
+import {
+  SeriesHeroLine,
+  type WithGameSeries,
+} from "~/components/series/series-hero-line";
 import { ResultMark } from "~/components/temba/result-mark";
 import { Button } from "~/components/ui/button";
 import { ShareButton } from "~/components/ui/nav-icon-button";
@@ -89,7 +95,7 @@ export function TournamentAmericanoHome({
   linkToPlayers = false,
   preview,
 }: {
-  data: TournamentDetails;
+  data: TournamentDetails & WithGameSeries;
   /** Design preview data: the board is given instead of read from the API. */
   preview?: { board: AmericanoBoard; drawOpen?: boolean };
   backHref: string;
@@ -172,20 +178,25 @@ export function TournamentAmericanoHome({
       name: player.name,
     })),
   });
-  const detailRows = [
-    ...(organizerName
-      ? [{ label: m.details.organizer, value: organizerName }]
-      : []),
-    ...(data.groupName
-      ? [{ label: m.details.group, value: data.groupName }]
-      : []),
-    {
-      label: m.details.format,
-      value: m.details.formatValue(data.roundCount ?? 0),
-    },
-    { label: m.details.scores, value: m.details.scoresValue },
-    { label: m.details.rating, value: m.details.ratingValue },
-  ];
+  const detailRows = withSeriesFactRow(
+    [
+      ...(organizerName
+        ? [{ label: m.details.organizer, value: organizerName }]
+        : []),
+      ...(data.groupName
+        ? [{ label: m.details.group, value: data.groupName }]
+        : []),
+      {
+        label: m.details.format,
+        value: m.details.formatValue(data.roundCount ?? 0),
+      },
+      { label: m.details.scores, value: m.details.scoresValue },
+      { label: m.details.rating, value: m.details.ratingValue },
+    ],
+    m.details.group,
+    data.series,
+    messages,
+  );
 
   const players = board.data?.players ?? [];
   const firstStart = data.windowStart ? new Date(data.windowStart) : null;
@@ -290,7 +301,7 @@ function AmericanoPredraw({
   onJoin,
   onOpenDraw,
 }: {
-  data: TournamentDetails;
+  data: TournamentDetails & WithGameSeries;
   backHref: string;
   actions?: React.ReactNode;
   sharePending: boolean;
@@ -338,6 +349,7 @@ function AmericanoPredraw({
           full ? m.hero.seatsFull : m.hero.seatsOpen
         }`}
         stats={americanoHeroStats(data, locale)}
+        series={data.series}
         viewerUserId={data.viewerUserId}
         left={null}
         right={null}
@@ -348,6 +360,7 @@ function AmericanoPredraw({
         onInvite={organizer ? onInvite : undefined}
         actions={actions}
       />
+      {data.series ? <SeriesGameCard gameId={data.id} /> : null}
       <GameTvCardSlot />
 
       {organizer ? (
@@ -510,7 +523,7 @@ function AmericanoDrawnHome({
   onRefresh,
   onPlayer,
 }: {
-  data: TournamentDetails;
+  data: TournamentDetails & WithGameSeries;
   board: AmericanoBoard;
   backHref: string;
   actions?: React.ReactNode;
@@ -667,8 +680,14 @@ function AmericanoDrawnHome({
           <p className="text-dim text-meta mt-2 leading-relaxed">
             {leads[tab]}
           </p>
+          {data.series ? (
+            <SeriesHeroLine series={data.series} tone="ink" className="mt-3" />
+          ) : null}
         </Surface>
       )}
+      {data.series ? (
+        <SeriesGameCard gameId={data.id} className="my-[18px]" />
+      ) : null}
       <GameTvCardSlot className="pt-[18px]" />
 
       <Tabs
@@ -1064,7 +1083,7 @@ function AmericanoFinishedHeader({
   backHref,
   actions,
 }: {
-  data: TournamentDetails;
+  data: TournamentDetails & WithGameSeries;
   board: AmericanoBoard;
   names: AmericanoNames;
   chip: string;

@@ -33,6 +33,11 @@ import { PageTitle } from "~/components/layout/page-title";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { ShareButton } from "~/components/ui/nav-icon-button";
+import { SeriesGameCard } from "~/components/series/series-game-card";
+import {
+  SeriesHeroLine,
+  type WithGameSeries,
+} from "~/components/series/series-hero-line";
 import { Surface } from "~/components/ui/surface";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -68,7 +73,7 @@ export function TournamentKingHome({
   orderError,
   onPostFinalOrder,
 }: {
-  data: TournamentDetails;
+  data: TournamentDetails & WithGameSeries;
   backHref: string;
   actions?: React.ReactNode;
   album?: React.ReactNode;
@@ -151,8 +156,14 @@ export function TournamentKingHome({
           <p className="text-dim text-meta mt-2 leading-relaxed">
             {leads[tab]}
           </p>
+          {data.series ? (
+            <SeriesHeroLine series={data.series} tone="ink" className="mt-3" />
+          ) : null}
         </Surface>
       )}
+      {data.series ? (
+        <SeriesGameCard gameId={data.id} className="my-[18px]" />
+      ) : null}
 
       <Tabs
         value={tab}

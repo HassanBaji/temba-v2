@@ -6,6 +6,10 @@ import type { ReactNode } from "react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import { PageTitle } from "~/components/layout/page-title";
+import {
+  SeriesHeroLine,
+  type SeriesHeroLineSeries,
+} from "~/components/series/series-hero-line";
 import { Button } from "~/components/ui/button";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { useMessages } from "~/components/locale-provider";
@@ -79,6 +83,7 @@ export function TournamentHero({
   sizeLine,
   statusLine,
   stats = [],
+  series,
   viewerUserId,
   left,
   right,
@@ -97,6 +102,7 @@ export function TournamentHero({
   statusLine: string;
   /** Number tiles under the title, such as teams, courts and the price. */
   stats?: readonly { value: string; label: string }[];
+  series?: SeriesHeroLineSeries | null;
   viewerUserId: string;
   left: TournamentHeroSeat;
   right: TournamentHeroSeat;
@@ -144,6 +150,9 @@ export function TournamentHero({
       </PageTitle>
       {startLine ? <p className="text-lead mt-2.5">{startLine}</p> : null}
       {sizeLine ? <p className="text-dim text-meta mt-1">{sizeLine}</p> : null}
+      {series ? (
+        <SeriesHeroLine series={series} tone="ink" className="mt-3" />
+      ) : null}
       {stats.length > 0 ? (
         <dl className="mt-[18px] flex gap-2">
           {stats.map((stat) => (
