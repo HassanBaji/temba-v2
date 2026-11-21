@@ -145,6 +145,7 @@ type ExpectedGames =
   | "resultLink"
   | "setFootballRole"
   | "publishFootballTeams"
+  | "saveFootballDraft"
   | "saveFootballScore"
   | "nameChallengeSquad"
   | "performanceRatingSheet"

@@ -217,6 +217,21 @@ export const football = {
       many: "{n} لاعبًا",
       other: "{n} لاعب",
     })}`,
+  draft: {
+    status: "مسودة، لم تُنشر",
+    tag: "مسودة",
+    title: "مسودة التشكيلة",
+    savedAt: (day: string, time: string) => `حُفظت ${day} ${time}`,
+    readyToPublish: "وُزّع الجميع. انشر عندما تكون جاهزًا.",
+    visibleToGroupAdmins:
+      "لا يرى اللاعبون هذه الفرق بعد. لا يراها إلا أنت ومشرفو المجموعة.",
+    visibleToYou: "لا يرى اللاعبون هذه الفرق بعد. لا يراها إلا أنت.",
+    notPublished: {
+      title: "لم تُنشر الفرق بعد",
+      body: "المنظّم يكوّنها الآن. سترى فريقك ولون صدريتك هنا فور نشرها.",
+      value: "لم تُنشر",
+    },
+  },
   errors: {
     notFootball: "الفرق والنتيجة لمباريات كرة القدم فقط",
     roleOnFootball: "الدور والمركز لمباريات كرة القدم فقط",
@@ -233,5 +248,8 @@ export const football = {
     scoreOrganizerOrPlayers: "لا يدخل النتيجة إلا المنظّم أو لاعبو الفريقين",
     scorerOnce: "اذكر كل هدّاف مرة واحدة",
     scorersOnTeams: "يجب أن يكون الهدّافون من أحد الفريقين",
+    draftNeedsPlayer: "ضع لاعبًا واحدًا على الأقل لحفظ مسودة",
+    draftChanged: "تغيّرت المسودة. افتحها من جديد.",
+    draftTeamsPublished: "نُشرت الفرق، فلا توجد مسودة لحفظها",
   },
 } satisfies typeof source;

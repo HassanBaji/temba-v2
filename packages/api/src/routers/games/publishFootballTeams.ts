@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import {
   MatchStatusEnum,
+  footballLineupDrafts,
   gameCourts,
   gamePlayers,
   gameTeamPlayers,
@@ -15,7 +16,6 @@ import {
 } from "@repo/db";
 
 import {
-  FOOTBALL_BIBS,
   FOOTBALL_TEAMS_METHODS,
   type FootballBib,
   type FootballTeamsMethod,
@@ -23,6 +23,7 @@ import {
   footballSidesProblem,
 } from "@repo/domain/football-lineup";
 import { messagesFor } from "@repo/i18n/messages";
+import { footballSidesInputSchema } from "@repo/validators/football";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -39,6 +40,10 @@ import {
   footballScoreSet,
   footballSides,
 } from "#src/games/football-lineup";
+import {
+  assertFootballDraftCurrent,
+  loadFootballDraft,
+} from "#src/games/football-draft";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -100,6 +105,8 @@ async function upsertSide(
  * The Organizer publishes the two football teams: every registered player on
  * exactly one side, each side in its bib colour. Publishing again replaces the
  * split until a Score is in. The first publish creates the Game's one Match.
+ * It removes the Game's Draft line-up; one made from a draft names it by
+ * `draftUpdatedAt` and is refused when the draft has changed since.
  */
 export async function publishFootballTeams(
   database: DbClient,
@@ -110,6 +117,7 @@ export async function publishFootballTeams(
     bibs: { slot1: FootballBib; slot2: FootballBib };
     slot1: string[];
     slot2: string[];
+    draftUpdatedAt?: Date;
     locale?: Locale;
   },
 ) {
@@ -162,6 +170,16 @@ export async function publishFootballTeams(
   const sides = await footballSides(database, game.id);
 
   await database.transaction(async (tx) => {
+    const draft = await loadFootballDraft(tx, game, args.userId, {
+      lock: true,
+    });
+    assertFootballDraftCurrent(draft, args.draftUpdatedAt, locale);
+    if (draft) {
+      await tx
+        .delete(footballLineupDrafts)
+        .where(eq(footballLineupDrafts.id, draft.id));
+    }
+
     const slot1Id = await upsertSide(tx, {
       gameId: game.id,
       sideIndex: 1,
@@ -232,15 +250,10 @@ export async function publishFootballTeams(
 
 export const publishFootballTeamsProcedure = protectedProcedure
   .input(
-    z.object({
+    footballSidesInputSchema.extend({
       gameId: z.string().uuid(),
       method: z.enum(FOOTBALL_TEAMS_METHODS),
-      bibs: z.object({
-        slot1: z.enum(FOOTBALL_BIBS),
-        slot2: z.enum(FOOTBALL_BIBS),
-      }),
-      slot1: z.array(z.string().uuid()).max(40),
-      slot2: z.array(z.string().uuid()).max(40),
+      draftUpdatedAt: z.date().optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {

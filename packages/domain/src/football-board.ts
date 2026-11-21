@@ -307,7 +307,10 @@ export type TeamsDraft = {
   sides: Record<string, Side>;
 };
 
-function sidesFromSplit(split: { slot1: string[]; slot2: string[] }) {
+function sidesFromSplit(split: {
+  slot1: readonly string[];
+  slot2: readonly string[];
+}) {
   const sides: Record<string, Side> = {};
   for (const userId of split.slot1) {
     sides[userId] = 1;
@@ -336,13 +339,26 @@ export function balancedSides(
 }
 
 /**
- * Where the Make teams screen starts: the published split when there is one,
- * otherwise a balanced split.
+ * Where the Make teams screen starts: the saved Draft line-up when there is
+ * one, else the published split, otherwise a balanced split.
  */
 export function initialTeamsDraft(
   players: readonly BoardPlayer[],
   teams: { method: FootballTeamsMethod | null; bibs: Bibs } | null,
+  saved: {
+    method: FootballTeamsMethod;
+    bibs: Bibs;
+    sides: { slot1: readonly string[]; slot2: readonly string[] };
+  } | null = null,
 ): TeamsDraft {
+  if (saved) {
+    const roster = new Set(players.map((player) => player.userId));
+    const sides = sidesFromSplit({
+      slot1: saved.sides.slot1.filter((userId) => roster.has(userId)),
+      slot2: saved.sides.slot2.filter((userId) => roster.has(userId)),
+    });
+    return { method: saved.method, bibs: saved.bibs, sides };
+  }
   if (teams) {
     const sides: Record<string, Side> = {};
     for (const player of players) {
@@ -725,6 +741,8 @@ export type HeroLinesInput = {
   pitchName: string | null;
   teamsSet: boolean;
   scored: boolean;
+  /** The viewer reads a saved Draft line-up (ADR-0107). */
+  draftSaved?: boolean;
 };
 
 /** The words around the kick-off time at the top of a football Game. */
@@ -750,13 +768,15 @@ export function footballHeroLines(
         : m.playedScoreMissing
       : live
         ? messagesFor(locale).dates.countdown.liveNow
-        : input.teamsSet
-          ? weekday
-            ? m.teamsSetOn(weekday)
-            : m.teamsSet
-          : weekday
-            ? m.upcomingOn(weekday)
-            : m.upcoming;
+        : input.draftSaved
+          ? messagesFor(locale).football.draft.status
+          : input.teamsSet
+            ? weekday
+              ? m.teamsSetOn(weekday)
+              : m.teamsSet
+            : weekday
+              ? m.upcomingOn(weekday)
+              : m.upcoming;
   const kickoff = start ? formatHomeKickoff(start, locale) : null;
   const day = start ? formatGameDay(start, locale, { weekday: "short" }) : null;
   const duration = formatWindowDuration(

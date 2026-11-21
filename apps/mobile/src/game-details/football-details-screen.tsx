@@ -13,6 +13,7 @@ import {
   footballGameDetailsModel,
   type FootballGameDetailsInput,
 } from "@repo/domain/football-game-details";
+import { footballDraftVisibilityLine } from "@repo/domain/football-draft";
 import {
   footballTeamsMethodLabel,
   type FootballPosition,
@@ -60,6 +61,7 @@ import {
   viewerSideLine,
   type BoardPlayer,
 } from "@repo/domain/football-board";
+import { DraftCard } from "../football/draft-card";
 import { InfoRows, type InfoRow } from "../football/info-rows";
 import { FootballJoinSheet } from "../football/join-sheet";
 import { PlayerSheet } from "../football/player-sheet";
@@ -186,6 +188,7 @@ export function FootballGameDetails({
   );
   const players = board.data?.players ?? [];
   const teams = board.data?.teams ?? null;
+  const draft = teams ? null : (board.data?.draft ?? null);
   const names = teams ? bibNames(teams.bibs, locale) : null;
   const viewer = players.find((player) => player.isViewer) ?? null;
   const preferences = api.users.onboardingState.useQuery().data;
@@ -214,6 +217,7 @@ export function FootballGameDetails({
       pitchName: game.recordedCourts[0]?.name ?? null,
       teamsSet: teams != null && !challenge,
       scored: board.data?.match?.score != null,
+      draftSaved: draft != null,
     },
     now,
     locale,
@@ -322,6 +326,11 @@ export function FootballGameDetails({
   const levelCard = game.cancelledAt
     ? null
     : levelRangeRequestCard(game, locale);
+  const publishDraft = api.games.publishFootballTeams.useMutation({
+    onSuccess: () => toast.show(m.mobileTournament.makeTeams.published),
+    onError: failure,
+    onSettled: refresh,
+  });
   const reportWrongScore = api.games.reportWrongScore.useMutation({
     onSuccess: () => toast.show(copy.toast.scoreReopened),
     onError: failure,
@@ -489,7 +498,7 @@ export function FootballGameDetails({
       label: copy.football.teams,
       value: teams
         ? footballTeamsMethodLabel(teams.method, locale)
-        : copy.football.organizerMakesTeams,
+        : m.football.draft.notPublished.value,
     },
     ...(names
       ? [
@@ -860,7 +869,52 @@ export function FootballGameDetails({
             </Text>
           </Surface>
         ) : null}
-        {!teams ? (
+        {!teams && !game.isOrganizer && !challenge && !game.cancelledAt ? (
+          <Surface style={{ gap: 4 }}>
+            <Text weight="semibold">{m.football.draft.notPublished.title}</Text>
+            <Text size="meta" tone="muted">
+              {m.football.draft.notPublished.body}
+            </Text>
+          </Surface>
+        ) : null}
+        {draft ? (
+          <View style={{ gap: 12 }}>
+            <TeamColumns
+              players={players.map((player) => ({
+                ...player,
+                sideIndex: draft.sides.slot1.includes(player.userId)
+                  ? (1 as const)
+                  : draft.sides.slot2.includes(player.userId)
+                    ? (2 as const)
+                    : null,
+              }))}
+              bibs={draft.bibs}
+              names={bibNames(draft.bibs, locale)}
+              balanceOn={board.data?.balanceOn ?? "ovr"}
+              onOpenPlayer={onPressPlayer}
+            />
+            <Text size="meta" tone="muted">
+              {footballDraftVisibilityLine(game, locale)}
+            </Text>
+            <DraftCard
+              draft={draft}
+              rosterUserIds={players.map((player) => player.userId)}
+              publishPending={publishDraft.isPending}
+              onPublish={() =>
+                publishDraft.mutate({
+                  gameId,
+                  method: draft.method,
+                  bibs: draft.bibs,
+                  slot1: draft.sides.slot1,
+                  slot2: draft.sides.slot2,
+                  draftUpdatedAt: draft.updatedAt,
+                })
+              }
+              onEdit={() => router.push(teamsPath)}
+            />
+          </View>
+        ) : null}
+        {!teams && !draft ? (
           <View style={{ gap: 12 }}>
             {players.length === 0 && layout.openSeats === 0 ? (
               <>
@@ -928,10 +982,14 @@ export function FootballGameDetails({
                 ? {
                     status: teams
                       ? footballTeamsMethodLabel(teams.method, locale)
-                      : copy.football.teamsNotSet,
+                      : draft
+                        ? copy.football.draftSaved
+                        : copy.football.teamsNotSet,
                     actionLabel: teams
                       ? copy.football.editTeams
-                      : copy.football.makeTeams,
+                      : draft
+                        ? copy.football.editDraft
+                        : copy.football.makeTeams,
                   }
                 : null
             }

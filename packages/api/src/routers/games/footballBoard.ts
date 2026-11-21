@@ -48,6 +48,7 @@ import {
   footballScoreSet,
   footballSides,
 } from "#src/games/football-lineup";
+import { loadFootballDraft } from "#src/games/football-draft";
 import {
   matchOrganizerSides,
   matchSlotsActedFor,
@@ -185,7 +186,8 @@ async function loadBoardTiers(
  * with each player's role, position, Level and OVR, Group Tier and team, the
  * two teams and their bibs, the Score with its scorers, and what the viewer
  * may do next. Make teams balances on Tier points in a tier Group and on OVR
- * on any other Game.
+ * on any other Game. `teams` is the published teams only; the Draft line-up
+ * is `draft`, for the Game's Organizers alone.
  */
 export async function footballBoard(
   database: DbClient,
@@ -339,6 +341,16 @@ export async function footballBoard(
   const viewerSidesConfirmed = viewerSlots.every((slot) =>
     slot === 1 ? slotsConfirmed.slot1 : slotsConfirmed.slot2,
   );
+  const draft =
+    published || reach === "stamp_only"
+      ? null
+      : await loadFootballDraft(database, game, args.userId);
+  const canMakeTeams =
+    !challengeSides &&
+    organizer &&
+    live &&
+    score == null &&
+    userIds.length >= 2;
   const bib = (side: { bib: FootballBib | null } | null, index: 1 | 2) =>
     side?.bib ??
     (index === 1 ? DEFAULT_FOOTBALL_BIBS.slot1 : DEFAULT_FOOTBALL_BIBS.slot2);
@@ -388,6 +400,16 @@ export async function footballBoard(
           bibs: { slot1: bib(sides.slot1, 1), slot2: bib(sides.slot2, 2) },
         }
       : null,
+    draft: draft
+      ? {
+          updatedAt: draft.updatedAt,
+          savedAt: draft.savedAt,
+          savedByName: draft.savedByName,
+          method: draft.method,
+          bibs: draft.bibs,
+          sides: draft.sides,
+        }
+      : null,
     match: match
       ? {
           id: match.id,
@@ -400,12 +422,8 @@ export async function footballBoard(
       : null,
     viewer: {
       sideIndex: viewerSide,
-      canMakeTeams:
-        !challengeSides &&
-        organizer &&
-        live &&
-        score == null &&
-        userIds.length >= 2,
+      canMakeTeams,
+      canSaveDraft: canMakeTeams && !published,
       canEnterScore:
         published &&
         squadsReady &&

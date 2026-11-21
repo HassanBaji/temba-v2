@@ -156,6 +156,8 @@ export const mobileTournament = {
     avgAndKeepers: (avg: string, keepers: string) => `avg ${avg}, ${keepers}`,
     ofTeamSize: (n: number, size: number) => `${n} of ${size}`,
     readyToPublish: (note: string) => `${note} Ready to publish.`,
+    readyToPublishOrDraft: (note: string) =>
+      `${note} Ready to publish, or save it as a draft first.`,
     moveToOtherTeam: (name: string) => `Move ${name} to the other team`,
     noSubs:
       "No subs are set here. Each captain picks starters before kick-off and runs the swaps on the pitch.",
@@ -177,6 +179,8 @@ export const mobileTournament = {
       "Tap a swatch to place a player; placed rows take their team colour.",
     shuffle: "Shuffle",
     publish: "Publish teams",
+    saveDraft: "Save draft",
+    draftSaved: "Draft saved",
     inThePool: (n: number) => `${n} in the pool`,
   },
   aloneTeams: {

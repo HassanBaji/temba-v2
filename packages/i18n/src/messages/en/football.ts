@@ -166,6 +166,21 @@ export const football = {
   },
   sizeLine: (sideSize: string, players: number) =>
     `${sideSize} · ${players} players`,
+  draft: {
+    status: "Draft, not published",
+    tag: "DRAFT",
+    title: "Draft line-up",
+    savedAt: (day: string, time: string) => `saved ${day} ${time}`,
+    readyToPublish: "Everyone is placed. Publish when you're ready.",
+    visibleToGroupAdmins:
+      "Players don't see these teams yet. Only you and the group's admins do.",
+    visibleToYou: "Players don't see these teams yet. Only you do.",
+    notPublished: {
+      title: "Teams aren't published yet",
+      body: "The organizer is making them. You'll see your team and bib colour here as soon as they are published.",
+      value: "Not published",
+    },
+  },
   errors: {
     notFootball: "Only a football Game has teams and a Score",
     roleOnFootball: "Only a football Game takes a role and position",
@@ -184,5 +199,9 @@ export const football = {
       "Only the organizer or players on the teams can enter the score",
     scorerOnce: "Name each scorer once",
     scorersOnTeams: "Scorers must be on one of the teams",
+    draftNeedsPlayer: "Place at least one player to save a draft",
+    draftChanged: "The draft changed. Open it again.",
+    draftTeamsPublished:
+      "The teams are published, so there is no draft to save",
   },
 };

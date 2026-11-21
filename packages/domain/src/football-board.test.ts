@@ -166,6 +166,23 @@ describe("teams draft", () => {
     expect(published.bibs).toEqual({ slot1: "red", slot2: "sky" });
   });
 
+  it("starts from the saved Draft line-up before the published teams", () => {
+    const saved = initialTeamsDraft(
+      players.map((row) => ({ ...row, sideIndex: 1 as const })),
+      { method: "level", bibs: { slot1: "black", slot2: "white" } },
+      {
+        method: "manual",
+        bibs: { slot1: "green", slot2: "pink" },
+        sides: { slot1: ["k", "gone"], slot2: ["a"] },
+      },
+    );
+    expect(saved).toEqual({
+      method: "manual",
+      bibs: { slot1: "green", slot2: "pink" },
+      sides: { k: 1, a: 2 },
+    });
+  });
+
   it("moves players across and places them by swatch", () => {
     const draft = initialTeamsDraft(players, null);
     const moved = moveAcross(draft, "k");
@@ -532,6 +549,17 @@ describe("footballHeroLines", () => {
     expect(
       footballHeroLines({ ...input, scored: true }, at(120), "ar").status,
     ).toBe("لُعبت");
+  });
+
+  it("reads the draft to the Organizer who has one, until kick-off", () => {
+    const draft = { ...input, draftSaved: true };
+    expect(footballHeroLines(draft, at(-15), "en").status).toBe(
+      "Draft, not published",
+    );
+    expect(footballHeroLines(draft, at(-15), "ar").status).toBe(
+      "مسودة، لم تُنشر",
+    );
+    expect(footballHeroLines(draft, at(42), "en").status).toBe("Live now");
   });
 });
 

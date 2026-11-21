@@ -1,12 +1,13 @@
 import { bibColors, radii } from "@repo/design-tokens";
 import { formatGameStart } from "@repo/domain/format-game-start";
+import { footballDraftSaveProblem } from "@repo/domain/football-draft";
 import {
   FOOTBALL_TEAMS_METHODS,
   type FootballBib,
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
 import { useRouter, type Href } from "expo-router";
-import { ArrowLeft, ArrowRight, Shuffle } from "lucide-react-native";
+import { ArrowLeft, ArrowRight, Eraser, Shuffle } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
@@ -134,9 +135,11 @@ function Bar({ share, bib }: { share: number; bib: FootballBib }) {
 function BalanceCard({
   draft,
   summary,
+  canSaveDraft,
 }: {
   draft: TeamsDraft;
   summary: ReturnType<typeof draftSummary>;
+  canSaveDraft: boolean;
 }) {
   const locale = useLocale();
   const m = useMessages().mobileTournament.makeTeams;
@@ -170,7 +173,10 @@ function BalanceCard({
       {row(1)}
       {row(2)}
       <Text size="meta" tone="muted" accessibilityLiveRegion="polite">
-        {summary.problem ?? m.readyToPublish(summary.note)}
+        {summary.problem ??
+          (canSaveDraft
+            ? m.readyToPublishOrDraft(summary.note)
+            : m.readyToPublish(summary.note))}
       </Text>
     </Surface>
   );
@@ -444,7 +450,9 @@ function ManualLists({
 
 /**
  * The Organizer splits the pool into two teams, by Level or by hand, picks
- * each team's bib colour and publishes.
+ * each team's bib colour and publishes, or saves the split as the Game's
+ * Draft line-up while the teams are not published. Opened from a draft, it
+ * starts from it and names it on publish.
  */
 export function MakeTeamsScreen({ gameId }: { gameId: string }) {
   const colors = useColors();
@@ -457,23 +465,36 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
   const game = api.games.byId.useQuery({ id: gameId });
   const board = api.games.footballBoard.useQuery({ gameId });
   const [draft, setDraft] = useState<TeamsDraft | null>(null);
+  const [openedFromDraftAt, setOpenedFromDraftAt] = useState<Date | null>(null);
 
   useEffect(() => {
     if (board.data && draft == null) {
-      setDraft(initialTeamsDraft(board.data.players, board.data.teams));
+      setDraft(
+        initialTeamsDraft(
+          board.data.players,
+          board.data.teams,
+          board.data.draft,
+        ),
+      );
+      setOpenedFromDraftAt(board.data.draft?.updatedAt ?? null);
     }
   }, [board.data, draft]);
 
+  const closeWith = async (message: string) => {
+    toast.show(message);
+    await Promise.all([
+      utils.games.footballBoard.invalidate({ gameId }),
+      utils.games.byId.invalidate({ id: gameId }),
+      utils.games.listMyGames.invalidate(),
+    ]);
+    router.back();
+  };
+
   const publish = api.games.publishFootballTeams.useMutation({
-    onSuccess: async () => {
-      toast.show(m.published);
-      await Promise.all([
-        utils.games.footballBoard.invalidate({ gameId }),
-        utils.games.byId.invalidate({ id: gameId }),
-        utils.games.listMyGames.invalidate(),
-      ]);
-      router.back();
-    },
+    onSuccess: () => closeWith(m.published),
+  });
+  const saveDraft = api.games.saveFootballDraft.useMutation({
+    onSuccess: () => closeWith(m.draftSaved),
   });
 
   const fallback = `/games/${gameId}` as Href;
@@ -518,6 +539,18 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
     .filter(Boolean)
     .join(". ");
   const how = draft.method === "level" ? m.howLevel : m.howManual;
+  const canSaveDraft = board.data?.viewer.canSaveDraft ?? false;
+  const sides = {
+    method: draft.method,
+    bibs: draft.bibs,
+    slot1: summary.slot1.map((player) => player.userId),
+    slot2: summary.slot2.map((player) => player.userId),
+  };
+  const saveProblem = footballDraftSaveProblem(
+    sides,
+    players.map((player) => player.userId),
+    locale,
+  );
 
   return (
     <Screen
@@ -527,7 +560,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
             <Button
               label={m.shuffle}
               variant="outline"
-              size="lg"
+              size={canSaveDraft ? "icon-lg" : "lg"}
               icon={<Shuffle size={16} color={colors.ink} />}
               onPress={() =>
                 setDraft({
@@ -540,23 +573,40 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
             <Button
               label={messages.common.clear}
               variant="outline"
-              size="lg"
+              size={canSaveDraft ? "icon-lg" : "lg"}
+              icon={
+                canSaveDraft ? <Eraser size={16} color={colors.ink} /> : null
+              }
               onPress={() => setDraft({ ...draft, sides: {} })}
             />
           )}
+          {canSaveDraft ? (
+            <Button
+              label={m.saveDraft}
+              variant="outline"
+              size="lg"
+              disabled={saveProblem != null || publish.isPending}
+              pending={saveDraft.isPending}
+              onPress={() =>
+                saveDraft.mutate({
+                  gameId,
+                  ...sides,
+                  draftUpdatedAt: openedFromDraftAt ?? undefined,
+                })
+              }
+            />
+          ) : null}
           <View style={{ flex: 1 }}>
             <Button
               label={m.publish}
               size="lg"
-              disabled={summary.problem != null}
+              disabled={summary.problem != null || saveDraft.isPending}
               pending={publish.isPending}
               onPress={() =>
                 publish.mutate({
                   gameId,
-                  method: draft.method,
-                  bibs: draft.bibs,
-                  slot1: summary.slot1.map((player) => player.userId),
-                  slot2: summary.slot2.map((player) => player.userId),
+                  ...sides,
+                  draftUpdatedAt: openedFromDraftAt ?? undefined,
                 })
               }
             />
@@ -586,7 +636,11 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
         bibs={draft.bibs}
         onChange={(bibs) => setDraft({ ...draft, bibs })}
       />
-      <BalanceCard draft={draft} summary={summary} />
+      <BalanceCard
+        draft={draft}
+        summary={summary}
+        canSaveDraft={canSaveDraft}
+      />
       {draft.method === "level" ? (
         <LevelColumns
           draft={draft}
@@ -600,9 +654,9 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
           onPlace={(userId, side) => setDraft(placeOn(draft, userId, side))}
         />
       )}
-      {publish.error ? (
+      {publish.error || saveDraft.error ? (
         <Text size="meta" accessibilityRole="alert">
-          {publish.error.message}
+          {(publish.error ?? saveDraft.error)?.message}
         </Text>
       ) : null}
     </Screen>

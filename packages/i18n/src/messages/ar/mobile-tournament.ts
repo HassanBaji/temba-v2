@@ -178,6 +178,8 @@ export const mobileTournament = {
     avgAndKeepers: (avg: string, keepers: string) => `متوسط ${avg}، ${keepers}`,
     ofTeamSize: (n: number, size: number) => `${n} من ${size}`,
     readyToPublish: (note: string) => `${note} جاهز للنشر.`,
+    readyToPublishOrDraft: (note: string) =>
+      `${note} جاهز للنشر، أو احفظه مسودة أولًا.`,
     moveToOtherTeam: (name: string) => `انقل ${name} إلى الفريق الآخر`,
     noSubs:
       "لا يُحدَّد الاحتياط هنا. كل قائد يختار الأساسيين قبل البداية ويُجري التبديلات في الملعب.",
@@ -203,6 +205,8 @@ export const mobileTournament = {
     howManual: "انقر لونًا لوضع لاعب؛ الصفوف الموضوعة تأخذ لون فريقها.",
     shuffle: "خلط",
     publish: "نشر الفرق",
+    saveDraft: "حفظ مسودة",
+    draftSaved: "حُفظت المسودة",
     inThePool: (n: number) => `${n} في القائمة`,
   },
   aloneTeams: {

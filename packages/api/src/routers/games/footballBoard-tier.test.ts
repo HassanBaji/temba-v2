@@ -186,6 +186,7 @@ describe("games.footballBoard for a Verifier (ADR-0072)", () => {
       expect(board.viewer).toEqual({
         sideIndex: null,
         canMakeTeams: false,
+        canSaveDraft: false,
         canEnterScore: false,
         canConfirm: false,
         canConfirmAsOrganizer: false,
