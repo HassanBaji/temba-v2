@@ -1885,6 +1885,16 @@ describe("notificationCopy for a Draft line-up (ADR-0108)", () => {
     });
   });
 
+  it("names nobody when the pick finished because its last player left", () => {
+    expect(text("football_pick_done", "admin", "en", { actor: null })).toEqual({
+      title: "The teams for Friday Football are picked and ready as a draft",
+      subline: null,
+    });
+    expect(
+      text("football_pick_done", "admin", "ar", { actor: null })?.title,
+    ).toContain("اكتمل اختيار فريقَي");
+  });
+
   it("reads the three pick types in Arabic, and needs the right audience", () => {
     expect(text("football_pick_room_opened", "player", "ar")?.title).toContain(
       `فتح ${isolate("Hassan")} غرفة الاختيار`,

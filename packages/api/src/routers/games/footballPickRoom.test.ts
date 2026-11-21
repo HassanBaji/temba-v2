@@ -1035,6 +1035,34 @@ describe("games.pickFootballPlayer", () => {
   });
 });
 
+describe("a pick whose pool empties without a pick", () => {
+  it("finishes on the next read when the last player in the pool leaves, telling every Game admin once", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d, e] = await addPlayers(f, 5);
+      await startLive(f, { slot1: a!, slot2: c! });
+      await pick(f, a!, b!, 1);
+      await pick(f, c!, d!, 2);
+
+      await leaveGame(f.db, { gameId: f.gameId, userId: e!.id });
+      const [first, second] = await Promise.all([
+        room(f, a!),
+        room(f, f.organizer),
+      ]);
+      expect(first.status).toBe("done");
+      expect(second.status).toBe("done");
+
+      expect((await draftRow(f)).pickStatus).toBe("done");
+      const board = await boardFor(f, c!.id);
+      expect(board.draft?.answers.slot1.state).toBe("approved");
+      expect(board.draft?.answers.slot2.state).toBe("approved");
+      const done = await notificationsOf(f, "football_pick_done");
+      expect(done.map((row) => row.recipientUserId)).toEqual([f.organizer.id]);
+      expect(done[0]?.actorUserId).toBeNull();
+      await expect(pick(f, a!, e!, 3)).rejects.toThrow(errors.pickNotLive);
+    });
+  });
+});
+
 describe("games.undoFootballPick", () => {
   it("returns the last pick to the pool and gives the turn back", async () => {
     await withFootballGame(async (f) => {

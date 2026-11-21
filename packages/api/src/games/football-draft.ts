@@ -26,6 +26,7 @@ import {
   footballMatch,
   footballSides,
 } from "#src/games/football-lineup";
+import { notifyFootballPickDone } from "#src/notifications/notify-football-draft";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -252,6 +253,62 @@ export async function clearFootballPick(
         inArray(footballLineupDrafts.pickStatus, ["waiting", "live"]),
       ),
     );
+}
+
+/**
+ * Finishes a live Captain pick whose pool is empty: the draft is saved with
+ * both Captain's answers approved for the sides as they stand, and the Game
+ * admins hear once (ADR-0109). `pickedBy` is null when the pool emptied
+ * because its last player left, not by a pick.
+ */
+export async function finishFootballPick(
+  database: DbClient,
+  args: {
+    game: GameRow;
+    draftId: string;
+    openedAt: Date;
+    captains: { slot1: string | null; slot2: string | null };
+    sideGamePlayerIds: { slot1: string[]; slot2: string[] };
+    pickedBy: string | null;
+    now: Date;
+  },
+) {
+  await database
+    .update(footballLineupDrafts)
+    .set({ pickStatus: "done", savedAt: args.now, updatedAt: args.now })
+    .where(eq(footballLineupDrafts.id, args.draftId));
+  const answers = ([1, 2] as const).flatMap((side) => {
+    const captainUserId =
+      side === 1 ? args.captains.slot1 : args.captains.slot2;
+    return captainUserId
+      ? [
+          {
+            draftId: args.draftId,
+            sideIndex: side,
+            captainUserId,
+            answer: "approved" as const,
+            note: null,
+            answeredPlayerIds:
+              side === 1
+                ? args.sideGamePlayerIds.slot1
+                : args.sideGamePlayerIds.slot2,
+            answeredAt: args.now,
+          },
+        ]
+      : [];
+  });
+  await database
+    .delete(footballLineupDraftAnswers)
+    .where(eq(footballLineupDraftAnswers.draftId, args.draftId));
+  if (answers.length > 0) {
+    await database.insert(footballLineupDraftAnswers).values(answers);
+  }
+  await notifyFootballPickDone(database, {
+    game: args.game,
+    draftId: args.draftId,
+    openedAt: args.openedAt,
+    pickedBy: args.pickedBy,
+  });
 }
 
 /**

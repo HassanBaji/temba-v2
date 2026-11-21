@@ -16,10 +16,12 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { isGameOrganizer, requireGame } from "#src/games/access";
+import { isGameOrganizer, requireGame, type GameRow } from "#src/games/access";
 import {
   clearFootballPick,
+  finishFootballPick,
   footballPickRunning,
+  loadFootballDraft,
 } from "#src/games/football-draft";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -119,11 +121,57 @@ async function startWhenBothIn(
 }
 
 /**
+ * Finishes a live pick whose pool emptied without a pick, because its last
+ * player left, under the draft row's lock so concurrent reads finish it once.
+ */
+async function finishWhenPoolEmpty(
+  database: DbClient,
+  game: GameRow,
+  viewerUserId: string,
+  now: Date,
+) {
+  return database.transaction(async (tx) => {
+    const draft = await loadFootballDraft(tx, game, viewerUserId, {
+      lock: true,
+    });
+    if (!draft) {
+      return undefined;
+    }
+    const roster = await tx
+      .select({ id: gamePlayers.id, userId: gamePlayers.userId })
+      .from(gamePlayers)
+      .where(eq(gamePlayers.gameId, game.id));
+    const placed = new Set([
+      ...draft.sideGamePlayerIds.slot1,
+      ...draft.sideGamePlayerIds.slot2,
+    ]);
+    const poolEmpty = roster.every((row) => !row.userId || placed.has(row.id));
+    if (draft.pick?.status === "live" && poolEmpty) {
+      await finishFootballPick(tx, {
+        game,
+        draftId: draft.id,
+        openedAt: draft.savedAt,
+        captains: draft.captains,
+        sideGamePlayerIds: draft.sideGamePlayerIds,
+        pickedBy: null,
+        now,
+      });
+    }
+    const [current] = await tx
+      .select()
+      .from(footballLineupDrafts)
+      .where(eq(footballLineupDrafts.id, draft.id));
+    return current;
+  });
+}
+
+/**
  * The Pick room, read every two seconds by the Organizers of the Game and
  * the two Side captains of the pick (ADR-0109); anyone else is told it is
  * not found. A pick that ended, was stopped or lost a Side captain reads
  * stopped, and a pick that lost a captain is cleared here as Stop the pick
- * clears it. Reading records the calling captain's presence and starts the
+ * clears it. A live pick whose pool emptied because its last player left is
+ * finished here as the last pick would finish it. Reading records the calling captain's presence and starts the
  * pick, toss included, on the read that finds both captains in the room.
  * The side on turn is read from the sides by `pickTurn`, never stored.
  *
@@ -222,11 +270,17 @@ export async function footballPickRoom(
     draft = (await startWhenBothIn(database, draft.id, now, random)) ?? draft;
   }
 
+  const placed = new Set(placements.map((placement) => placement.gamePlayerId));
+  const poolEmpty = roster.every((row) => !row.userId || placed.has(row.id));
+  if (draft.pickStatus === "live" && poolEmpty) {
+    draft =
+      (await finishWhenPoolEmpty(database, game, args.userId, now)) ?? draft;
+  }
+
   const status = draft.pickStatus;
   if (status == null) {
     return stopped;
   }
-  const placed = new Set(placements.map((placement) => placement.gamePlayerId));
   const rosterOrder = new Map(roster.map((row, index) => [row.id, index]));
   const side = (index: Side) =>
     placements

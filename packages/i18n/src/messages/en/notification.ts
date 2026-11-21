@@ -214,6 +214,11 @@ export const notification = {
       strong(game),
       plain(". The teams are ready as a draft"),
     ],
+    footballPickDoneWithoutPick: (game: string) => [
+      plain("The teams for "),
+      strong(game),
+      plain(" are picked and ready as a draft"),
+    ],
     markReceived: (actor: string, kind: string, game: string) => [
       strong(actor),
       plain(" gave you "),

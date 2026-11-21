@@ -253,6 +253,11 @@ export const notification = {
       strong(game),
       plain(". الفريقان جاهزان مسودةً"),
     ],
+    footballPickDoneWithoutPick: (game: string) => [
+      plain("اكتمل اختيار فريقَي "),
+      strong(game),
+      plain(". الفريقان جاهزان مسودةً"),
+    ],
     markReceived: (actor: string, kind: string, game: string) => [
       plain("منحك "),
       strong(actor),

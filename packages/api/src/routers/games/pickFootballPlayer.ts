@@ -4,7 +4,6 @@ import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
-  footballLineupDraftAnswers,
   footballLineupDraftPlayers,
   footballLineupDrafts,
   gamePlayers,
@@ -18,9 +17,9 @@ import { type db } from "#src/db";
 import { requireGame } from "#src/games/access";
 import {
   assertFootballDraftOpen,
+  finishFootballPick,
   loadFootballDraft,
 } from "#src/games/football-draft";
-import { notifyFootballPickDone } from "#src/notifications/notify-football-draft";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -131,52 +130,27 @@ export async function pickFootballPlayer(
       pickNumber: next,
     });
     const done = captainPickDone(pool.length - 1);
-    await tx
-      .update(footballLineupDrafts)
-      .set(
-        done
-          ? { pickStatus: "done", savedAt: now, updatedAt: now }
-          : { updatedAt: now },
-      )
-      .where(eq(footballLineupDrafts.id, draft.id));
     if (!done) {
+      await tx
+        .update(footballLineupDrafts)
+        .set({ updatedAt: now })
+        .where(eq(footballLineupDrafts.id, draft.id));
       return { ok: true as const, pickNumber: next, side: turn, done };
     }
 
-    const sideGamePlayerIds = (side: Side) => [
-      ...(side === 1
-        ? draft.sideGamePlayerIds.slot1
-        : draft.sideGamePlayerIds.slot2),
-      ...(side === turn ? [picked.id] : []),
-    ];
-    const answers = ([1, 2] as const).flatMap((side) => {
-      const captainUserId =
-        side === 1 ? draft.captains.slot1 : draft.captains.slot2;
-      return captainUserId
-        ? [
-            {
-              draftId: draft.id,
-              sideIndex: side,
-              captainUserId,
-              answer: "approved" as const,
-              note: null,
-              answeredPlayerIds: sideGamePlayerIds(side),
-              answeredAt: now,
-            },
-          ]
-        : [];
-    });
-    await tx
-      .delete(footballLineupDraftAnswers)
-      .where(eq(footballLineupDraftAnswers.draftId, draft.id));
-    if (answers.length > 0) {
-      await tx.insert(footballLineupDraftAnswers).values(answers);
-    }
-    await notifyFootballPickDone(tx, {
+    const withPick = (side: Side, ids: string[]) =>
+      side === turn ? [...ids, picked.id] : ids;
+    await finishFootballPick(tx, {
       game,
       draftId: draft.id,
       openedAt: draft.savedAt,
+      captains: draft.captains,
+      sideGamePlayerIds: {
+        slot1: withPick(1, draft.sideGamePlayerIds.slot1),
+        slot2: withPick(2, draft.sideGamePlayerIds.slot2),
+      },
       pickedBy: args.userId,
+      now,
     });
     return { ok: true as const, pickNumber: next, side: turn, done };
   });

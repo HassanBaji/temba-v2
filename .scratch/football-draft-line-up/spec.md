@@ -1,6 +1,7 @@
-Status: planned, not built. The product owner settled the seven open questions on 2026-11-21
-(section 16). The glossary entries are in `CONTEXT.md`, the decisions are ADR-0107, ADR-0108 and
-ADR-0109, and the tickets are in Linear (section 18). No schema or code has been changed.
+Status: built in code, DL-1 to DL-9 (TEM-497 … TEM-505), not yet tried on a device or with two
+signed-in sessions. The product owner settled the seven open questions on 2026-11-21 (section 16).
+The glossary entries are in `CONTEXT.md`, the decisions are ADR-0107, ADR-0108 and ADR-0109, and
+the tickets are in Linear (section 18). Migrations 0135 to 0137 hold the schema.
 
 How a rule below was decided is marked on it: *Settled, 1a* means the design settles it on that
 screen; *Settled by the product owner (decision N)* points at section 16; *Planning decision*

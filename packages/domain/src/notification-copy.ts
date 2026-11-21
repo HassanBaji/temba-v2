@@ -448,10 +448,14 @@ export function notificationCopy(
     item.game
   ) {
     return {
-      title: m.footballPickDone(
-        actorName(item.actor, locale),
-        notificationGameName(item.game, locale),
-      ),
+      title: item.actor
+        ? m.footballPickDone(
+            actorName(item.actor, locale),
+            notificationGameName(item.game, locale),
+          )
+        : m.footballPickDoneWithoutPick(
+            notificationGameName(item.game, locale),
+          ),
       subline: null,
     };
   }

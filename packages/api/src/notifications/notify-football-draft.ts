@@ -163,14 +163,14 @@ export async function notifyFootballPickDone(
     game: GameRow;
     draftId: string;
     openedAt: Date;
-    pickedBy: string;
+    pickedBy: string | null;
   },
 ) {
   const admins = await gameAdminUserIds(database, args.game);
   return notify(database, {
     type: "football_pick_done",
     recipients: admins.map((userId) => ({ userId, audience: "admin" })),
-    excludeUserIds: [args.pickedBy],
+    excludeUserIds: args.pickedBy ? [args.pickedBy] : [],
     actorUserId: args.pickedBy,
     gameId: args.game.id,
     dedupeKey: `football_pick_done:${args.draftId}:${args.openedAt.getTime()}`,
