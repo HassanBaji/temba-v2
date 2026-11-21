@@ -7,6 +7,7 @@ import {
   draftSummary,
   initialTeamsDraft,
   keeperWord,
+  mayBeSideCaptain,
   moveAcross,
   ovrLabel,
   placeOn,
@@ -20,8 +21,11 @@ import {
   type Side,
   type TeamsDraft,
 } from "@repo/domain/football-board";
+import { captainPickSetupProblem } from "@repo/domain/football-captain-pick";
 import {
+  FOOTBALL_TEAMS_METHODS,
   type FootballBib,
+  type FootballFirstPick,
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
@@ -40,17 +44,21 @@ import * as React from "react";
 import { toast } from "sonner";
 
 import { NicknameName } from "~/components/temba/nickname-name";
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
+import { gamePickRoomHref } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 import { BibChip, BibPicker, bibStyle } from "./football-bibs";
+import { FootballCaptainPickSetup } from "./football-captain-pick-setup";
 import { FootballCaptainsDialog } from "./football-captains-dialog";
+import { draftCaptainName } from "./football-draft-view";
 import { BibRow, CaptainAvatar, TierMark } from "./football-team-columns";
 
 /** The Member nickname when the viewer may see one, else the full Temba name. */
@@ -58,14 +66,13 @@ function teamsName(player: Pick<BoardPlayer, "name" | "nickname">) {
   return player.nickname?.name ?? player.name;
 }
 
-// Captain pick is set up on the mobile App until the web Pick room exists.
-const WEB_TEAMS_METHODS = ["level", "manual"] as const;
-
 function MethodToggle({
   method,
+  methods,
   onChange,
 }: {
   method: FootballTeamsMethod;
+  methods: readonly FootballTeamsMethod[];
   onChange: (method: FootballTeamsMethod) => void;
 }) {
   const m = useMessages();
@@ -75,7 +82,7 @@ function MethodToggle({
       aria-label={m.webTournament.footballTeams.howToMakeTeams}
       className="border-rule flex overflow-hidden rounded-lg border"
     >
-      {WEB_TEAMS_METHODS.map((value) => {
+      {methods.map((value) => {
         const selected = value === method;
         return (
           <button
@@ -504,6 +511,8 @@ function ManualLists({
  * Draft line-up while the teams are not published, with a Side captain per
  * team or none. Opened from a draft, it starts from it and names it on save
  * and publish. The captains are always sent, so clearing one clears it.
+ * While the teams are not published it also opens a Captain pick
+ * (ADR-0109); opened while one runs, it goes to the Pick room.
  */
 export function FootballMakeTeams({ gameId }: { gameId: string }) {
   const m = useMessages();
@@ -522,13 +531,24 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
     null,
   );
   const [captainsSide, setCaptainsSide] = React.useState<Side | null>(null);
+  const [firstPick, setFirstPick] = React.useState<FootballFirstPick>("toss");
+  const [confirmReplace, setConfirmReplace] = React.useState(false);
   const gameHref = `/dashboard/games/${gameId}`;
+  const pickRoomHref = gamePickRoomHref(gameId);
+  const pickStatus = board.data?.draft?.pick?.status;
+  const pickRunning = pickStatus === "waiting" || pickStatus === "live";
 
   React.useEffect(() => {
     if (isFootball === false) {
       router.replace(gameHref);
     }
   }, [isFootball, router, gameHref]);
+
+  React.useEffect(() => {
+    if (pickRunning) {
+      router.replace(pickRoomHref);
+    }
+  }, [pickRunning, router, pickRoomHref]);
 
   React.useEffect(() => {
     if (board.data && draft == null) {
@@ -564,6 +584,21 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
     onSuccess: () => closeWith(t.draftSavedToast),
     onError: refetchBoard,
   });
+  const openRoom = api.games.openFootballPickRoom.useMutation({
+    meta: OWN_ERROR_UI,
+    onSuccess: async () => {
+      setConfirmReplace(false);
+      await Promise.all([
+        utils.games.footballBoard.invalidate({ gameId }),
+        utils.games.footballPickRoom.invalidate({ gameId }),
+      ]);
+      router.replace(pickRoomHref);
+    },
+    onError: () => {
+      setConfirmReplace(false);
+      void refetchBoard();
+    },
+  });
 
   const players = board.data?.players ?? [];
   const summary = draft
@@ -591,7 +626,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
         <p className="text-muted-foreground text-meta">{t.fixedBody}</p>
       </section>
     );
-  } else if (!draft || !summary) {
+  } else if (!draft || !summary || pickRunning) {
     body = <Skeleton className="h-80 w-full rounded-xl" />;
   } else {
     const start = game.data?.windowStart ?? null;
@@ -617,109 +652,186 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
       players.map((player) => player.userId),
       locale,
     );
-    const refusal = publish.error ?? saveDraft.error;
+    const refusal = publish.error ?? saveDraft.error ?? openRoom.error;
     const toolLabel = canSaveDraft ? "max-sm:sr-only" : undefined;
+    const pickSetup = m.football.pick.setup;
+    const methods = board.data?.viewer.canOpenPickRoom
+      ? FOOTBALL_TEAMS_METHODS
+      : FOOTBALL_TEAMS_METHODS.filter((method) => method !== "captain_pick");
+    const pickProblem = captainPickSetupProblem(
+      draft.captains,
+      players.map((player) => player.userId),
+      players.filter(mayBeSideCaptain).map((player) => player.userId),
+      locale,
+    );
+    const captainName = (userId: string | null) =>
+      draftCaptainName(
+        players.find((player) => player.userId === userId),
+        m.common.you,
+      ) ?? "";
+    const openPickRoom = () => {
+      const { slot1, slot2 } = draft.captains;
+      if (slot1 == null || slot2 == null) {
+        return;
+      }
+      openRoom.mutate({
+        gameId,
+        bibs: draft.bibs,
+        captains: { slot1, slot2 },
+        firstPick,
+      });
+    };
+    const how =
+      draft.method === "captain_pick"
+        ? pickSetup.intro
+        : draft.method === "level"
+          ? t.levelHint
+          : t.manualHint;
     body = (
       <div className="space-y-5">
         <p className="text-muted-foreground text-meta">
-          {intro}. {draft.method === "level" ? t.levelHint : t.manualHint}
+          {intro}. {how}
         </p>
         <MethodToggle
           method={draft.method}
+          methods={methods}
           onChange={(method) => setDraft(switchMethod(draft, method, players))}
         />
-        <BibPicker
-          bibs={draft.bibs}
-          onChange={(bibs) => setDraft({ ...draft, bibs })}
-        />
-        <BalanceCard
-          draft={draft}
-          summary={summary}
-          canSaveDraft={canSaveDraft}
-        />
-        <CaptainsRow
-          draft={draft}
-          players={players}
-          names={summary.names}
-          onOpen={setCaptainsSide}
-        />
-        {draft.method === "level" ? (
-          <LevelColumns
+        {draft.method === "captain_pick" ? (
+          <FootballCaptainPickSetup
             draft={draft}
-            summary={summary}
-            onMove={(userId) => setDraft(moveAcross(draft, userId))}
+            players={players}
+            names={summary.names}
+            balanceOn={board.data?.balanceOn ?? "ovr"}
+            firstPick={firstPick}
+            onChange={setDraft}
+            onFirstPickChange={setFirstPick}
           />
         ) : (
-          <ManualLists
-            draft={draft}
-            summary={summary}
-            onPlace={(userId, side) => setDraft(placeOn(draft, userId, side))}
-          />
+          <>
+            <BibPicker
+              bibs={draft.bibs}
+              onChange={(bibs) => setDraft({ ...draft, bibs })}
+            />
+            <BalanceCard
+              draft={draft}
+              summary={summary}
+              canSaveDraft={canSaveDraft}
+            />
+            <CaptainsRow
+              draft={draft}
+              players={players}
+              names={summary.names}
+              onOpen={setCaptainsSide}
+            />
+            {draft.method === "level" ? (
+              <LevelColumns
+                draft={draft}
+                summary={summary}
+                onMove={(userId) => setDraft(moveAcross(draft, userId))}
+              />
+            ) : (
+              <ManualLists
+                draft={draft}
+                summary={summary}
+                onPlace={(userId, side) =>
+                  setDraft(placeOn(draft, userId, side))
+                }
+              />
+            )}
+          </>
         )}
         {refusal ? (
           <p role="alert" className="text-destructive text-meta">
             {refusal.message}
           </p>
         ) : null}
-        <div className="border-rule bg-background sticky bottom-0 flex gap-2 border-t py-4">
-          {draft.method === "level" ? (
+        {draft.method === "captain_pick" ? (
+          <div className="border-rule bg-background sticky bottom-0 space-y-2 border-t py-4">
             <Button
               type="button"
-              variant="outline"
               size="lg"
+              className="w-full"
+              disabled={pickProblem != null}
+              pending={openRoom.isPending}
               onClick={() =>
-                setDraft(shuffleSides(draft, players, Math.random))
+                board.data?.draft ? setConfirmReplace(true) : openPickRoom()
               }
             >
-              <Shuffle aria-hidden="true" />
-              <span className={toolLabel}>{t.shuffle}</span>
+              {pickSetup.open}
             </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              onClick={() => setDraft(clearSides(draft))}
+            <p
+              aria-live="polite"
+              className="text-muted-foreground text-eyebrow text-center"
             >
-              {canSaveDraft ? <Eraser aria-hidden="true" /> : null}
-              <span className={toolLabel}>{m.common.clear}</span>
-            </Button>
-          )}
-          {canSaveDraft ? (
+              {pickProblem ??
+                pickSetup.told(
+                  captainName(draft.captains.slot1),
+                  captainName(draft.captains.slot2),
+                )}
+            </p>
+          </div>
+        ) : (
+          <div className="border-rule bg-background sticky bottom-0 flex gap-2 border-t py-4">
+            {draft.method === "level" ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={() =>
+                  setDraft(shuffleSides(draft, players, Math.random))
+                }
+              >
+                <Shuffle aria-hidden="true" />
+                <span className={toolLabel}>{t.shuffle}</span>
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={() => setDraft(clearSides(draft))}
+              >
+                {canSaveDraft ? <Eraser aria-hidden="true" /> : null}
+                <span className={toolLabel}>{m.common.clear}</span>
+              </Button>
+            )}
+            {canSaveDraft ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                disabled={saveProblem != null || publish.isPending}
+                pending={saveDraft.isPending}
+                onClick={() =>
+                  saveDraft.mutate({
+                    gameId,
+                    ...sides,
+                    draftUpdatedAt: openedFromDraftAt ?? undefined,
+                  })
+                }
+              >
+                {t.saveDraft}
+              </Button>
+            ) : null}
             <Button
               type="button"
-              variant="outline"
               size="lg"
-              disabled={saveProblem != null || publish.isPending}
-              pending={saveDraft.isPending}
+              className="flex-1"
+              disabled={summary.problem != null || saveDraft.isPending}
+              pending={publish.isPending}
               onClick={() =>
-                saveDraft.mutate({
+                publish.mutate({
                   gameId,
                   ...sides,
                   draftUpdatedAt: openedFromDraftAt ?? undefined,
                 })
               }
             >
-              {t.saveDraft}
+              {t.publish}
             </Button>
-          ) : null}
-          <Button
-            type="button"
-            size="lg"
-            className="flex-1"
-            disabled={summary.problem != null || saveDraft.isPending}
-            pending={publish.isPending}
-            onClick={() =>
-              publish.mutate({
-                gameId,
-                ...sides,
-                draftUpdatedAt: openedFromDraftAt ?? undefined,
-              })
-            }
-          >
-            {t.publish}
-          </Button>
-        </div>
+          </div>
+        )}
         <FootballCaptainsDialog
           side={captainsSide}
           bibs={draft.bibs}
@@ -731,6 +843,17 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
             setDraft(setSideCaptain(draft, side, userId))
           }
           onClose={() => setCaptainsSide(null)}
+        />
+        <ConfirmDialog
+          open={confirmReplace}
+          onOpenChange={setConfirmReplace}
+          title={pickSetup.replaceTitle}
+          description={pickSetup.replaceBody}
+          confirmLabel={pickSetup.replaceConfirm}
+          cancelLabel={pickSetup.cancel}
+          variant="default"
+          pending={openRoom.isPending}
+          onConfirm={openPickRoom}
         />
       </div>
     );

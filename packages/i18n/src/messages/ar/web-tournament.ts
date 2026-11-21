@@ -142,6 +142,7 @@ export const webTournament = {
     method: {
       level: "حسب المستوى",
       manual: "يدوي",
+      captain_pick: "اختيار القائدين",
     },
     howToMakeTeams: "طريقة تشكيل الفرق",
     avgAndKeepers: (average: string, keepers: string) =>

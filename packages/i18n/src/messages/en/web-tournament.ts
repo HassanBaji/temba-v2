@@ -117,6 +117,7 @@ export const webTournament = {
     method: {
       level: "By level",
       manual: "Manual",
+      captain_pick: "Captain pick",
     },
     howToMakeTeams: "How to make teams",
     avgAndKeepers: (average: string, keepers: string) =>

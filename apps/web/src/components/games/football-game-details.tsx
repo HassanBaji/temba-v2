@@ -38,6 +38,7 @@ import {
 import { FootballCaptainDraftPanel } from "~/components/games/football-captain-draft-panel";
 import { FootballDraftCard } from "~/components/games/football-draft-card";
 import { withDraftSides } from "~/components/games/football-draft-view";
+import { FootballPickInProgressCard } from "~/components/games/football-pick-in-progress-card";
 import { FootballJoinDialog } from "~/components/games/football-join-dialog";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
@@ -70,7 +71,7 @@ import { MarksSection } from "~/components/marks/marks-section";
 import { MvpRow } from "~/components/marks/mvp-row";
 import { useGameMarks } from "~/components/marks/use-game-marks";
 import { Button } from "~/components/ui/button";
-import { playerProfilePath } from "~/lib/dashboard-paths";
+import { gamePickRoomHref, playerProfilePath } from "~/lib/dashboard-paths";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { useGameEdit } from "~/components/games/use-game-edit";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
@@ -187,9 +188,12 @@ export function FootballGameDetails({
   const draft = teams ? null : (board.data?.draft ?? null);
   const names = teams ? bibNames(teams.bibs, locale) : null;
   const draftSideCaptainOf =
-    draft && board.data?.viewer.canAnswerDraft
-      ? board.data.viewer.captainOf
+    draft && !board.data?.isOrganizer
+      ? (board.data?.viewer.captainOf ?? null)
       : null;
+  const pickStatus = draft?.pick?.status;
+  const runningPick =
+    pickStatus === "waiting" || pickStatus === "live" ? pickStatus : null;
   const viewer = players.find((player) => player.isViewer) ?? null;
   const marks = useGameMarks(gameId, board.data?.match?.status === "completed");
 
@@ -471,6 +475,7 @@ export function FootballGameDetails({
   }
   const pressPlayer = organizer || canOpenProfiles ? onPressPlayer : undefined;
   const teamsHref = `/dashboard/games/${gameId}/teams`;
+  const pickRoomHref = gamePickRoomHref(gameId);
   const shareDraftHref = `/dashboard/games/${gameId}/share-draft`;
   const scoreHref = `/dashboard/games/${gameId}/score`;
   const canMakeTeams =
@@ -746,11 +751,13 @@ export function FootballGameDetails({
                   key: "teams",
                   label: teams
                     ? m.webTournament.footballTeams.editTeams
-                    : draft
-                      ? m.webTournament.footballTeams.editDraft
-                      : m.webTournament.footballTeams.makeTeams,
+                    : runningPick
+                      ? m.football.pick.inProgress.open
+                      : draft
+                        ? m.webTournament.footballTeams.editDraft
+                        : m.webTournament.footballTeams.makeTeams,
                   icon: ShirtIcon,
-                  href: teamsHref,
+                  href: runningPick ? pickRoomHref : teamsHref,
                 },
               ]
             : []),
@@ -1020,7 +1027,12 @@ export function FootballGameDetails({
                       draft.captains.slot2 != null,
                   )}
             </p>
-            {draftSideCaptainOf ? (
+            {runningPick ? (
+              <FootballPickInProgressCard
+                status={runningPick}
+                href={pickRoomHref}
+              />
+            ) : draftSideCaptainOf ? (
               <FootballCaptainDraftPanel
                 draft={draft}
                 side={draftSideCaptainOf}
@@ -1125,18 +1137,22 @@ export function FootballGameDetails({
               <p className="text-muted-foreground text-meta">
                 {teams
                   ? footballTeamsMethodLabel(teams.method, locale)
-                  : draft
-                    ? t.draftSaved
-                    : t.teamsNotSetYet}
+                  : runningPick
+                    ? m.football.pick.inProgress.title
+                    : draft
+                      ? t.draftSaved
+                      : t.teamsNotSetYet}
               </p>
             </div>
             <Button asChild>
-              <Link href={teamsHref}>
+              <Link href={runningPick ? pickRoomHref : teamsHref}>
                 {teams
                   ? m.webTournament.footballTeams.editTeams
-                  : draft
-                    ? m.webTournament.footballTeams.editDraft
-                    : m.webTournament.footballTeams.makeTeams}
+                  : runningPick
+                    ? m.football.pick.inProgress.open
+                    : draft
+                      ? m.webTournament.footballTeams.editDraft
+                      : m.webTournament.footballTeams.makeTeams}
               </Link>
             </Button>
           </section>

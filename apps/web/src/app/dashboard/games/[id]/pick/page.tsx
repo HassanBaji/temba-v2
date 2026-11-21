@@ -1,11 +1,14 @@
-import { redirect } from "next/navigation";
+"use client";
 
-// The Pick room is not on the web App yet, so its Notifications land on the Game.
-export default async function PickRoomPage({
+import { use } from "react";
+
+import { FootballPickRoom } from "~/components/games/football-pick-room";
+
+export default function PickRoomPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  redirect(`/dashboard/games/${id}`);
+  const { id } = use(params);
+  return <FootballPickRoom gameId={id} />;
 }

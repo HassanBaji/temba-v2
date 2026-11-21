@@ -4,6 +4,7 @@ import { isSport } from "@repo/domain/sport";
 
 import {
   gamePaymentsHref,
+  gamePickRoomHref,
   gameRateHref,
   groupTierHistoryHref,
   OPERATOR_DISPUTES_HREF,
@@ -49,7 +50,7 @@ export function notificationHref(item: {
       item.type === "football_pick_reminder") &&
     item.game
   ) {
-    return `/dashboard/games/${item.game.id}/pick`;
+    return gamePickRoomHref(item.game.id);
   }
   if (item.type === "tier_points_adjusted" && item.group) {
     return groupTierHistoryHref(item.group.id);

@@ -71,6 +71,8 @@ function ChoiceRow({
  * The Organizer names each team's Side captain from that team's players, or
  * none (design 1b, ADR-0108). Guest players and Unclaimed players are not
  * offered: they cannot open the draft. A pick applies at once; Done closes.
+ * A Captain pick offers the whole roster to each side and needs both, so it
+ * has no "No captain" row.
  */
 export function FootballCaptainsDialog({
   side,
@@ -78,6 +80,9 @@ export function FootballCaptainsDialog({
   names,
   sides,
   captains,
+  subtitle,
+  emptyNote,
+  required = false,
   onSideChange,
   onPick,
   onClose,
@@ -87,6 +92,9 @@ export function FootballCaptainsDialog({
   names: { slot1: string; slot2: string };
   sides: { slot1: readonly BoardPlayer[]; slot2: readonly BoardPlayer[] };
   captains: SideCaptains;
+  subtitle?: string;
+  emptyNote?: string;
+  required?: boolean;
   onSideChange: (side: Side) => void;
   onPick: (side: Side, userId: string | null) => void;
   onClose: () => void;
@@ -115,7 +123,7 @@ export function FootballCaptainsDialog({
         <ResponsiveDialogHeader className="text-start">
           <ResponsiveDialogTitle>{copy.title}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            {copy.sheetBody}
+            {subtitle ?? copy.sheetBody}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <div className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto px-4 sm:px-0">
@@ -147,7 +155,10 @@ export function FootballCaptainsDialog({
           </RovingRadioGroup>
           <RovingRadioGroup
             aria-label={t.captainChoices(team)}
-            className="border-rule shrink-0 overflow-hidden rounded-lg border"
+            className={cn(
+              "border-rule shrink-0 overflow-hidden rounded-lg border",
+              players.length === 0 && required && "hidden",
+            )}
           >
             {players.map((player) => {
               const name = player.isViewer
@@ -177,21 +188,25 @@ export function FootballCaptainsDialog({
                 </ChoiceRow>
               );
             })}
-            <ChoiceRow
-              selected={captain == null}
-              onSelect={() => onPick(current, null)}
-            >
-              <span
-                aria-hidden="true"
-                className="border-input size-8 shrink-0 rounded-full border border-dashed"
-              />
-              <span className="text-muted-foreground min-w-0 flex-1">
-                {copy.noCaptainFor(team)}
-              </span>
-            </ChoiceRow>
+            {required ? null : (
+              <ChoiceRow
+                selected={captain == null}
+                onSelect={() => onPick(current, null)}
+              >
+                <span
+                  aria-hidden="true"
+                  className="border-input size-8 shrink-0 rounded-full border border-dashed"
+                />
+                <span className="text-muted-foreground min-w-0 flex-1">
+                  {copy.noCaptainFor(team)}
+                </span>
+              </ChoiceRow>
+            )}
           </RovingRadioGroup>
           {players.length === 0 ? (
-            <p className="text-muted-foreground text-meta">{copy.noneOnTeam}</p>
+            <p className="text-muted-foreground text-meta">
+              {emptyNote ?? copy.noneOnTeam}
+            </p>
           ) : null}
         </div>
         <ResponsiveDialogFooter>
