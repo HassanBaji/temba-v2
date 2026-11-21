@@ -174,6 +174,7 @@ export const webUi = {
     checkAgain: "تحقق مرة أخرى",
     notReady: "البطاقة ليست جاهزة بعد",
     shareFailed: "تعذّرت مشاركة النتيجة",
+    draftShareFailed: "تعذّرت مشاركة المسودة",
     linkLoading: "الرابط لا يزال قيد التحميل",
     linkCopied: "تم نسخ الرابط",
     messageCopied: "تم نسخ الرسالة",

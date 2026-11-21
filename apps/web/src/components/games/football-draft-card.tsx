@@ -5,7 +5,7 @@ import {
   footballDraftSavedLine,
   footballDraftSummary,
 } from "@repo/domain/football-draft";
-import { PencilIcon } from "lucide-react";
+import { PencilIcon, Share } from "lucide-react";
 import Link from "next/link";
 
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -59,8 +59,8 @@ function SideAnswerRow({
 /**
  * The Organizer's Draft line-up on the Game page (ADR-0107, design 1c): when
  * it was saved, whether it can be published as it stands, each side's Side
- * captain and their answer (ADR-0108), then Publish teams and Edit draft.
- * Publishing never waits on an answer.
+ * captain and their answer (ADR-0108), then Publish teams, Share draft and
+ * Edit draft. Publishing never waits on an answer.
  */
 export function FootballDraftCard({
   draft,
@@ -68,6 +68,7 @@ export function FootballDraftCard({
   game,
   publishPending,
   onPublish,
+  shareHref,
   editHref,
 }: {
   draft: SavedDraft;
@@ -75,6 +76,7 @@ export function FootballDraftCard({
   game: { groupId: string | null };
   publishPending: boolean;
   onPublish: () => void;
+  shareHref: string;
   editHref: string;
 }) {
   const m = useMessages();
@@ -131,6 +133,12 @@ export function FootballDraftCard({
         {t.publish}
       </Button>
       <div className="flex gap-2">
+        <Button variant="outline" size="lg" className="flex-1" asChild>
+          <Link href={shareHref}>
+            <Share aria-hidden="true" />
+            {m.football.draftShare.title}
+          </Link>
+        </Button>
         <Button variant="outline" size="lg" className="flex-1" asChild>
           <Link href={editHref}>
             <PencilIcon aria-hidden="true" />

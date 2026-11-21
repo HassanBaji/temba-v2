@@ -471,6 +471,7 @@ export function FootballGameDetails({
   }
   const pressPlayer = organizer || canOpenProfiles ? onPressPlayer : undefined;
   const teamsHref = `/dashboard/games/${gameId}/teams`;
+  const shareDraftHref = `/dashboard/games/${gameId}/share-draft`;
   const scoreHref = `/dashboard/games/${gameId}/score`;
   const canMakeTeams =
     game.canMakeTeams && (board.data?.viewer.canMakeTeams ?? false);
@@ -1033,6 +1034,7 @@ export function FootballGameDetails({
                 onAnswer={(answer, note) =>
                   answerDraft.mutate({ gameId, answer, note })
                 }
+                shareHref={shareDraftHref}
               />
             ) : (
               <FootballDraftCard
@@ -1051,6 +1053,7 @@ export function FootballGameDetails({
                     draftUpdatedAt: draft.updatedAt,
                   })
                 }
+                shareHref={shareDraftHref}
                 editHref={teamsHref}
               />
             )}

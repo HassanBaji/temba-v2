@@ -12,6 +12,8 @@ import {
   type FootballBalanceOn,
   type FootballDraftAnswer,
 } from "@repo/domain/football-lineup";
+import { Share } from "lucide-react";
+import Link from "next/link";
 import * as React from "react";
 
 import {
@@ -140,6 +142,7 @@ export function FootballCaptainDraftPanel({
   balanceOn,
   pending,
   onAnswer,
+  shareHref,
 }: {
   draft: SavedDraft;
   side: 1 | 2;
@@ -147,6 +150,7 @@ export function FootballCaptainDraftPanel({
   balanceOn: FootballBalanceOn;
   pending: FootballDraftAnswer | "undo" | null;
   onAnswer: (answer: FootballDraftAnswer | null, note?: string) => void;
+  shareHref: string;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -267,6 +271,12 @@ export function FootballCaptainDraftPanel({
           <DraftAnswer state={draft.answers[other].state} />
         </div>
       </section>
+      <Button variant="outline" size="lg" className="w-full" asChild>
+        <Link href={shareHref}>
+          <Share aria-hidden="true" />
+          {m.football.draftShare.title}
+        </Link>
+      </Button>
       <p className="text-muted-foreground text-eyebrow">
         {panel.ownTeamOnly(names[other])}
       </p>
