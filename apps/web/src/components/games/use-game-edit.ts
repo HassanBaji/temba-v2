@@ -113,6 +113,9 @@ export function useGameEdit({
   const updateSeason = api.games.updateSeason.useMutation({
     meta: OWN_ERROR_UI,
   });
+  const updateSeries = api.games.updateSeries.useMutation({
+    meta: OWN_ERROR_UI,
+  });
   const setMvpMode = api.marks.setMvpMode.useMutation({ meta: OWN_ERROR_UI });
 
   async function runStep(step: GameEditStep): Promise<number> {
@@ -186,6 +189,9 @@ export function useGameEdit({
         return 0;
       case "season":
         await updateSeason.mutateAsync({ gameId, seasonId: step.seasonId });
+        return 0;
+      case "series":
+        await updateSeries.mutateAsync({ gameId, seriesId: step.seriesId });
         return 0;
     }
   }

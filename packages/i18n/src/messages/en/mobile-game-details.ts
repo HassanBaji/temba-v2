@@ -141,6 +141,7 @@ export const mobileGameDetails = {
       level: "Level range",
       rounds: "Rounds",
       season: "Season",
+      series: "Series",
       mvp: "MVP",
       teams: "Teams",
       courts: "Courts",

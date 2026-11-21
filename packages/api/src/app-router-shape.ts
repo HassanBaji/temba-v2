@@ -122,6 +122,7 @@ type ExpectedGames =
   | "updateRoundCount"
   | "updateMatchMinutes"
   | "updateSeason"
+  | "updateSeries"
   | "requestLevelRange"
   | "listLevelRangeRequests"
   | "approveLevelRangeRequest"

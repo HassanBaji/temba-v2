@@ -672,6 +672,7 @@ export default function GameHomePage({
     drawPosted: data?.drawPostedAt != null,
     americano: isAmericano(data?.format, data?.tournamentShape),
     king: isKingOfTheCourt(data?.format, data?.tournamentShape),
+    series: false,
   });
   const edit = useGameEdit({
     gameId: id,

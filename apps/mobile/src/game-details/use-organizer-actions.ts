@@ -90,6 +90,7 @@ export function useOrganizerActions({
     tournamentRounds: false,
     booked: game?.booking != null,
     challenge: game?.challenge != null,
+    series: false,
   });
   const edit = useGameEdit({
     gameId,

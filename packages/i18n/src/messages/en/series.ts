@@ -47,5 +47,6 @@ export const series = {
     notInGroup: "Only a game of the series' group can be part of it",
     cannotCarry: "This kind of game cannot be part of a series",
     needsDay: "Pick the game's day before adding a series",
+    scoreIn: "The score is in, so the series stays",
   },
 };

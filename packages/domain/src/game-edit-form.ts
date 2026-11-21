@@ -71,6 +71,7 @@ export type GameEditDraft = {
   levelMax: LevelBandSelectValue;
   roundCount: number | null;
   seasonId: string | null;
+  seriesId: string | null;
   venueId: string | null;
   courtId: string | null;
   /** A Friendly tournament's Game team count. */
@@ -96,6 +97,7 @@ export type GameEditSource = {
   levelMaxTenths: number | null;
   roundCount: number | null;
   seasonId: string | null;
+  series?: { id: string } | null;
   groupId?: string | null;
   sport?: string | null;
   venueId?: string | null;
@@ -189,6 +191,7 @@ export function gameEditDraftFrom(game: GameEditSource): GameEditDraft {
     levelMax: tenthsToLevelBandSelectValue(game.levelMaxTenths),
     roundCount: game.roundCount,
     seasonId: game.seasonId,
+    seriesId: game.series?.id ?? null,
     venueId: game.venueId ?? null,
     courtId: gameEditCourtId(game),
     teamCount: game.teamsAllowed ?? null,
@@ -210,6 +213,7 @@ export const GAME_EDIT_SECTION_KEYS = [
   "level",
   "rounds",
   "season",
+  "series",
 ] as const;
 
 export type GameEditSectionKey = (typeof GAME_EDIT_SECTION_KEYS)[number];
@@ -237,6 +241,8 @@ export function gameEditSectionsFor(game: {
   americano?: boolean;
   /** King of the court plays no timed Matches. */
   king?: boolean;
+  /** The caller decides whether the Game's Series can be shown or changed. */
+  series?: boolean;
 }): GameEditSections {
   const friendly = game.format === "friendly_game";
   const tournament = game.format === "friendly_tournament";
@@ -258,6 +264,7 @@ export function gameEditSectionsFor(game: {
     level: !football,
     rounds: game.tournamentRounds && !game.americano,
     season: game.groupId != null,
+    series: game.series === true,
   };
 }
 
@@ -289,7 +296,8 @@ export type GameEditStep =
       levelMaxTenths: number | null;
     }
   | { kind: "rounds"; roundCount: number | null }
-  | { kind: "season"; seasonId: string | null };
+  | { kind: "season"; seasonId: string | null }
+  | { kind: "series"; seriesId: string | null };
 
 export type GameEditPlan =
   | { ok: true; steps: GameEditStep[]; changed: GameEditSectionKey[] }
@@ -371,6 +379,9 @@ export function gameEditChangedSections(
   }
   if (sections.season && saved.seasonId !== draft.seasonId) {
     changed.push("season");
+  }
+  if (sections.series && saved.seriesId !== draft.seriesId) {
+    changed.push("series");
   }
   return changed;
 }
@@ -487,6 +498,9 @@ export function gameEditPlan(
   if (has("season") && !has("window")) {
     steps.push({ kind: "season", seasonId: draft.seasonId });
   }
+  if (has("series")) {
+    steps.push({ kind: "series", seriesId: draft.seriesId });
+  }
   return { ok: true, steps, changed };
 }
 
@@ -538,6 +552,14 @@ function changePhrase(
           : saved.seasonId === null
             ? m.seasonLinked
             : m.seasonChanged,
+      ];
+    case "series":
+      return [
+        draft.seriesId === null
+          ? m.seriesRemoved
+          : saved.seriesId === null
+            ? m.seriesAdded
+            : m.seriesChanged,
       ];
   }
 }

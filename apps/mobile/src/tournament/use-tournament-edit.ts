@@ -50,6 +50,7 @@ export function useTournamentEdit({
       drawPosted: game?.drawPostedAt != null,
       americano: isAmericano(game?.format, game?.tournamentShape),
       king: isKingOfTheCourt(game?.format, game?.tournamentShape),
+      series: false,
     }),
     rounds: false,
   };
