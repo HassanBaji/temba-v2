@@ -10,7 +10,7 @@ import {
   type ConfirmRequest,
 } from "../game-details/confirm-sheet";
 import { gamePath } from "../games/games-model";
-import { groupPath } from "../groups/groups-model";
+import { groupPath, groupSeriesTabPath } from "../groups/groups-model";
 import { Notice } from "../groups/notice";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
@@ -403,14 +403,16 @@ export function SeriesScreen({ seriesId }: { seriesId: string }) {
   );
   const series = query.data;
   const fallback = series ? groupPath(series.group.id) : "/groups";
-  const leave = useLeaveScreen(fallback);
+  const leaveToSeriesTab = useLeaveScreen(
+    series ? groupSeriesTabPath(series.group.id) : "/groups",
+  );
 
   const endSeries = api.series.end.useMutation({
     onSuccess: async (result) => {
       const groupLists = series ? { groupId: series.group.id } : undefined;
       if ("deleted" in result) {
         void utils.series.listForGroup.invalidate(groupLists);
-        leave();
+        leaveToSeriesTab();
         return;
       }
       await Promise.all([

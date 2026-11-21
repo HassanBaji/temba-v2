@@ -3,10 +3,12 @@ import { createGroupFixtures } from "@repo/domain/group-fixtures";
 
 import {
   groupNewSeasonPath,
+  groupNewSeriesPath,
   groupRatingSettingsPath,
   groupPath,
   groupRowView,
   groupSeasonsPath,
+  groupSeriesTabPath,
   publicGroupRowView,
 } from "./groups-model";
 
@@ -119,6 +121,16 @@ describe("groupSeasonsPath", () => {
     });
     expect(groupNewSeasonPath("g1")).toEqual({
       pathname: "/groups/new-season",
+      params: { groupId: "g1" },
+    });
+  });
+});
+
+describe("groupSeriesTabPath", () => {
+  it("opens the Group's Series tab and the New series form", () => {
+    expect(groupSeriesTabPath("g1")).toBe("/groups/g1?tab=series");
+    expect(groupNewSeriesPath("g1")).toEqual({
+      pathname: "/groups/new-series",
       params: { groupId: "g1" },
     });
   });
