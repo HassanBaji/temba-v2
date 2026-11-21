@@ -27,6 +27,7 @@ import { zonedParts } from "./product-timezone";
 import { resultMarkLabel, type MatchOutcome } from "./result-mark";
 import { standingShowsDraws } from "./season-standing";
 import { isAmericano } from "./tournament-americano";
+import { isKingOfTheCourt } from "./tournament-king";
 
 export type GroupPlayedCell = { value: string; strong: boolean };
 
@@ -42,7 +43,7 @@ export type GroupPlayedSide = {
 
 /** A drawn Social reads as its whole day, not as one of its Matches. */
 export type GroupPlayedSocial = {
-  /** "Social", then the shape where it has a name of its own. */
+  /** "Social", then its Tournament shape. */
   tags: string[];
   headline: string;
   day: string;
@@ -151,6 +152,27 @@ function playedTitle(
   return game.name ?? game.venueName ?? m.group.played.untitled;
 }
 
+function shapeTag(tournamentShape: string | null, locale: Locale) {
+  const m = messagesFor(locale);
+  const shapes = m.createGame.shapes;
+  switch (tournamentShape) {
+    case "americano":
+      return m.tournamentAmericano.chip;
+    case "king_of_the_court":
+      return m.tournamentKing.shape.title;
+    case "rounds":
+      return shapes.rounds.title;
+    case "groups_only":
+      return shapes.groupsOnly.title;
+    case "knockout_only":
+      return shapes.knockoutOnly.title;
+    case "groups_then_knockout":
+      return shapes.groupsThenKnockout.title;
+    default:
+      return null;
+  }
+}
+
 function playedSocial(
   game: GroupPlayedGameData,
   social: GroupPlayedSocialData,
@@ -159,16 +181,19 @@ function playedSocial(
   const m = messagesFor(locale);
   const copy = m.group.played;
   const americano = isAmericano("friendly_tournament", social.tournamentShape);
+  const king = isKingOfTheCourt("friendly_tournament", social.tournamentShape);
+  const tag = shapeTag(social.tournamentShape, locale);
   const winnerNames = social.winner?.names ?? [];
   const entrants = americano
     ? copy.social.players(social.entrantCount)
     : copy.social.teams(social.entrantCount);
   return {
-    tags: [
-      m.tournament.home.eyebrowPrefix,
-      ...(americano ? [m.tournamentAmericano.chip] : []),
-    ],
-    headline: social.finished ? copy.social.finished : copy.social.toCome,
+    tags: [m.tournament.home.eyebrowPrefix, ...(tag ? [tag] : [])],
+    headline: social.finished
+      ? copy.social.finished
+      : king
+        ? m.tournamentKing.card.toCome
+        : copy.social.toCome,
     day: formatGameDay(game.displayTime, locale, { weekday: "short" }),
     entrants,
     summary: [game.venueName, entrants]

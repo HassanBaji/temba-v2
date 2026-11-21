@@ -25,6 +25,7 @@ import { BibChip } from "~/components/games/football-bibs";
 import { SummaryCardShell } from "~/components/games/summary-card-shell";
 import { AmericanoPlayedCard } from "~/components/games/tournament-americano-played-card";
 import { TournamentPlayedCard } from "~/components/games/tournament-games-card";
+import { KingPlayedCard } from "~/components/games/tournament-king-played-card";
 import { InitialsMark } from "~/components/games/tournament-round-parts";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { ResultMark } from "~/components/temba/result-mark";
@@ -246,6 +247,20 @@ function SocialPlayedCard({
           groupName: null,
           venue: { name: game.venueName ?? "" },
           americano: game.social.americano,
+        }}
+      />
+    );
+  }
+  if (game.social?.king) {
+    return (
+      <KingPlayedCard
+        game={{
+          ...day,
+          groupName: null,
+          venue: { name: game.venueName ?? "" },
+          rated: game.social.ratingScope === "temba",
+          ratingScope: game.social.ratingScope,
+          kingOfTheCourt: game.social.king,
         }}
       />
     );

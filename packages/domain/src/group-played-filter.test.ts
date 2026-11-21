@@ -18,6 +18,23 @@ describe("groupPlayedStatus", () => {
     );
   });
 
+  it("reads a day with no Matches by its posted final order", () => {
+    expect(
+      groupPlayedStatus({
+        cancelled: false,
+        scoredSets: [],
+        resultPosted: true,
+      }),
+    ).toBe("finished");
+    expect(
+      groupPlayedStatus({
+        cancelled: false,
+        scoredSets: [],
+        resultPosted: false,
+      }),
+    ).toBe("needs_score");
+  });
+
   it("reads a cancelled Game as Cancelled even with a score", () => {
     expect(groupPlayedStatus({ cancelled: true, scoredSets: scored })).toBe(
       "cancelled",

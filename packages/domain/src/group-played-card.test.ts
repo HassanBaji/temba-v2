@@ -107,6 +107,8 @@ describe("a drawn Social on the Played list", () => {
       winner: { names: ["Jassim Ghuloom"], isViewer: false },
       americano: null,
       myTournament: null,
+      king: null,
+      ratingScope: "unrated" as const,
     },
   };
 
@@ -141,10 +143,46 @@ describe("a drawn Social on the Played list", () => {
       "en",
     );
     expect(card.social).toMatchObject({
-      tags: ["Social"],
+      tags: ["Social", "Groups only"],
       headline: "Results to come",
       summary: "World Padel Academy, 4 teams",
       winner: { isViewer: true, line: "Won by Ada L & Kim H" },
+    });
+  });
+
+  it("tags a Rounds Social and a King of the court with their shape", () => {
+    const rounds = groupPlayedCard(
+      {
+        ...americano,
+        social: { ...americano.social, tournamentShape: "rounds" },
+      },
+      "en",
+    );
+    expect(rounds.social?.tags).toEqual(["Social", "Rounds"]);
+    const king = groupPlayedCard(
+      {
+        ...americano,
+        scoredSets: [],
+        resultPosted: false,
+        social: {
+          ...americano.social,
+          tournamentShape: "king_of_the_court",
+          entrantCount: 8,
+          finished: false,
+          winner: null,
+        },
+      },
+      "en",
+    );
+    expect(king).toMatchObject({
+      status: "needs_score",
+      sides: null,
+      social: {
+        tags: ["Social", "King of the court"],
+        headline: "Final order to come",
+        summary: "World Padel Academy, 8 teams",
+        winner: null,
+      },
     });
   });
 
