@@ -211,10 +211,12 @@ No table for wins, Editions or counts. Nothing is backfilled.
 | --- | --- | --- |
 | `series.ts` | `SERIES_EMBLEMS`, `SERIES_COLOURS`, `DEFAULT_SERIES_EMBLEM` (`cup`), `DEFAULT_SERIES_COLOUR` (`gold`), `SERIES_NAME_MAX_LENGTH` (40), `SERIES_RUNNING_MAX` (10), `seriesNameError(name, runningNames, locale)`, `carriesSeries(game)`, `seriesWinRule(game)`, `seriesEditionNumbers(games)` | both clients, `@repo/api` |
 | `series-result.ts` | `seriesEditionResult(game)`: the winner rule of 5.4 | `@repo/api` (five procedures) |
-| `series-copy.ts` | The view-model lines both Apps draw: `seriesRowLine`, `seriesRuleLine`, `seriesWinnersLine`, `seriesWinOrdinal`, `seriesWinStanding`, `seriesProfileMeta`, `seriesWinWithLine` (each takes `locale` last) | both clients |
+| `series-copy.ts` | The view-model lines both Apps draw: `seriesRowLine`, `seriesWinnersLine`, `seriesRuleLine`, `seriesWonLastLine`, `seriesWinOrdinal`, `seriesWinStanding`, `seriesProfileMeta`, `seriesWinWho`, `seriesWinWithLine` (each takes `locale` last) | both clients |
 | `home-latest.ts` (extend) | `latestSeriesWin(...)` and `latestUpdate(mark, seriesWin)`; `LatestMark` becomes one arm of a `Latest` union | both clients |
 | `group-home-tab.ts` (extend) | `"series"` joins `GroupHomeTab` | both clients |
 | `game-edit-form.ts` (extend) | `seriesId` on the draft and the saved Game, a `series` section, a `{ kind: "series"; seriesId }` save step, its changed phrase | both clients |
+
+`series-result.ts` sits in `@repo/domain` beside `pool-table`, `tournament-knockout-view` and `tournament-americano`, the pure rules it composes; five procedures reach it through the one loader of 7.2.
 
 `seriesWinRule` answers which rule a Game's Edition is won by, for copy: `side` (padel Friendly game, football Game), `table` (Rounds, or Groups only planned with one Pool), `tables` (Groups only with more than one Pool), `champion`, `king`, `americano`.
 
@@ -283,7 +285,7 @@ Each is used by two or more procedures, so it is a shared module, not a twin of 
 
 | Module | Holds | Used by |
 | --- | --- | --- |
-| `series-link.ts` | `requireSeries(db, id, locale)`; `seriesLinkLocked(db, game)` (the score is in); `resolveGameSeriesLink(db, { game, group, seriesId, locale })`, which applies 5.5 and throws the localized refusal; `gameSeriesSummary(db, game)`, the Game's Series with its Edition number, or null | `games.create`, `games.createTournament`, `games.updateSeries`, `games.byId`, `series.attachOptions` |
+| `series-link.ts` | `requireSeries(db, id, locale)`; `seriesLinkLocked(db, game)` (the score is in); `resolveGameSeriesLink(db, { game, group, seriesId, locale })`, which applies 5.5 and throws the localized refusal; `gameSeriesSummary(db, game)`, the Game's Series with its Edition number, or null; `seriesEditionAt(db, { seriesId, windowStart, excludeGameId? })`, the number a Game starting then would hold | `games.create`, `games.createTournament`, `games.updateSeries`, `games.byId`, `series.attachOptions` |
 | `load-series-editions.ts` | `loadSeriesEditions(db, { seriesIds } \| { gameIds })`: in a fixed number of queries, the Games (not cancelled), their Game teams with players, Matches with Sets, and Americano seats; then per Game its Edition number, `seriesEditionResult`, the winners' names and images, the winning side's Bib, the single Match's score, and the moment it was decided | `series.listForGroup`, `series.byId`, `series.edition`, `series.forPlayer`, `series.playerWins` |
 
 `loadSeriesEditions` never loops a query per Game. `packages/api/src/live-boards/board-content.ts` and `routers/games/poolTables.ts` show how the rows feed `computePoolTables` and `americanoTable`. When it is given `gameIds`, it still numbers Editions against every Game of their Series, from one light query of `(id, series_id, window_start, created_at)`.
@@ -367,6 +369,7 @@ type Row = {
   lastWinners: { edition: number; winners: { name }[]; winnerBib } | null;  // the latest earlier Edition that was won
   winners: {
     userId; name; image; isViewer; isGuest;
+    gameTeamId: string | null;              // the winning Game team they sit on; null on an Americano
     winCount: number;                       // this win included
     standing: "new" | "most" | "level" | null;
     levelWith: { name: string } | { count: number } | null;
@@ -421,6 +424,7 @@ All from `messagesFor(locale).series.errors`, thrown as `TRPCError`:
 | --- | --- | --- |
 | `notFound` | NOT_FOUND | No such Series, or its Group is deleted or not viewable |
 | `verifiedOnly` | FORBIDDEN | Create or attach on a Group that is not Verified |
+| `nameRequired`, `nameTooLong` | BAD_REQUEST | The name is empty, or longer than 40 characters |
 | `nameTaken` | BAD_REQUEST | A running Series of the Group has that name |
 | `tooMany` | BAD_REQUEST | The Group already runs 10 |
 | `alreadyEnded` | BAD_REQUEST | Ending an ended Series |
@@ -526,7 +530,7 @@ The rule line (`seriesRuleLine`):
 | `king` | "The king of the court wins edition N and the badge." |
 | `americano` | "Top of the standings wins edition N and the badge." |
 
-When `lastWinners` is set, the line gains a second sentence: "{winners} won the last one." (`seriesWinnersLine`).
+When `lastWinners` is set, the line gains a second sentence: "{winners} won the last one." (`seriesWonLastLine`, through `seriesWinnersLine`).
 
 "See series" opens the Series page; it is hidden when `canOpenSeries` is false. The card is never shown on a cancelled Game.
 
@@ -580,7 +584,7 @@ When `series.edition` answers `won`, the Game screen leads with the winners.
 - **The badge sheet** (4b), opened by tapping a badge; a bottom sheet on mobile (`primitives/sheet.tsx`) and on web (`components/ui/sheet.tsx`). `series.playerWins`.
   - The badge (`sheet`) with its count pill, the Series name, the Group's name, a close button.
   - "Won 2 of 12" with "played 9" on the trailing side.
-  - One row per win, newest first: the Edition number in mono (two digits, "07"), "With Khalid Janahi" (`seriesWinWithLine`: the partner; the Bib colour and the score on a football Game; nothing after the number for an Americano), the date with the year, a chevron. A row opens the Game when `canOpenSeries`.
+  - One row per win, newest first: the Edition number in mono (two digits, "07"), "With Khalid Janahi" (`seriesWinWithLine`: the partner; "With Black, 5–3", the Bib colour and the score, on a football Game; nothing after the number for an Americano), the date with the year, a chevron. A row opens the Game when `canOpenSeries`.
   - "See the series", when `canOpenSeries`.
 - **"All series wins"** opens the same sheet in its all mode: the heading "Series wins" with "5 wins in 3", and every win newest first, each with its small badge, "{Series}, edition N", the with-line and the date.
 - **Dark** (4c): every colour is a Color role; the badge keeps its own tones; the count pill is `ink` on a ring of the surface. Nothing is `#ffffff`.
@@ -589,7 +593,7 @@ When `series.edition` answers `won`, the Game screen leads with the winners.
 
 - Web `app/dashboard/page.tsx`, `components/home/latest-row.tsx`. Mobile `src/home/home-screen.tsx`, `home-model.ts`, `latest-row.tsx`.
 - Home also reads `series.forPlayer` for the signed-in User. `latestUpdate` picks the newer of the Mark and the Series win.
-- A Series win row: the badge (`latest`), "Series win: {Series}", and the line "Edition 30 with Black, 5–3. Your 2nd" (`seriesWinWithLine` then `seriesWinOrdinal`). It opens the Game and is marked seen under the key `series:{gameId}`.
+- A Series win row: the badge (`latest`), "Series win: {Series}", and the line "Edition 30 with Black, 5–3. Your 2nd": the Edition, `seriesWinWho` in its short form (left out with its "with" when there is nobody to name), then `seriesWinOrdinal`. One catalog message holds the three parts. It opens the Game and is marked seen under the key `series:{gameId}`.
 
 ---
 
@@ -715,24 +719,34 @@ Made on the owner's behalf, because the design or the request left them open.
 
 ## 16. Tickets
 
-In Linear, team Temba, in this order. Each blocks the ones listed after it.
+In Linear, team Temba, labelled `ready-for-agent` and `Feature`. Build them in this order; each is blocked by the ones named. A mobile ticket is also blocked by its web twin, which adds the shared catalog strings.
 
-| # | Title | Blocked by |
-| --- | --- | --- |
-| S1 | Series badge: tokens and the `SeriesBadge` primitive on both Apps | |
-| S2 | A Group approver creates and ends a Series (API) | |
-| S3 | An Organizer attaches a Series to a Game (API) | S2 |
-| S4 | Who won an Edition: the result rule, the Series page and the tab's counts (API) | S3 |
-| S5 | A Game's Series card and a player's Series wins (API) | S4 |
-| S6 | Web: the Group's Series tab and New series | S1, S4 |
-| S7 | Mobile: the Group's Series tab and New series | S1, S4 |
-| S8 | Web: the Series page and End series | S1, S4 |
-| S9 | Mobile: the Series page and End series | S1, S4 |
-| S10 | Web: attach a Series on Create and in Edit game | S1, S3 |
-| S11 | Mobile: attach a Series on Create and in Edit game | S1, S3 |
-| S12 | Web: the Series on a Game, before and after it is won | S5, S8 |
-| S13 | Mobile: the Series on a Game, before and after it is won | S5, S9 |
-| S14 | Web: Series wins on the profile and on Home's Latest | S5, S8 |
-| S15 | Mobile: Series wins on the profile and on Home's Latest | S5, S9 |
+| # | Linear | Title | Blocked by |
+| --- | --- | --- | --- |
+| S-1 | [TEM-479](https://linear.app/temba-app/issue/TEM-479) | The Series badge as tokens, and a `SeriesBadge` primitive on both Apps | |
+| S-2 | [TEM-480](https://linear.app/temba-app/issue/TEM-480) | A Group approver creates and ends a Series (API) | S-1 |
+| S-3 | [TEM-481](https://linear.app/temba-app/issue/TEM-481) | An Organizer attaches a Series when creating a Game or a Social (API) | S-2 |
+| S-4 | [TEM-482](https://linear.app/temba-app/issue/TEM-482) | An Organizer adds, changes or removes a Game's Series until the score is in (API and the Edit game model) | S-3 |
+| S-5 | [TEM-483](https://linear.app/temba-app/issue/TEM-483) | Who won an Edition: the result rule, the Series page read and the Group's Series list (API) | S-4 |
+| S-6 | [TEM-484](https://linear.app/temba-app/issue/TEM-484) | A Game's Series card and a player's Series wins (API) | S-5 |
+| S-7 | [TEM-485](https://linear.app/temba-app/issue/TEM-485) | Web: the Series page, and ending a Series from its menu | S-1, S-5 |
+| S-8 | [TEM-486](https://linear.app/temba-app/issue/TEM-486) | Mobile: the Series page, and ending a Series from its menu | S-7 |
+| S-9 | [TEM-487](https://linear.app/temba-app/issue/TEM-487) | Web: the Group's Series tab and New series | S-7 |
+| S-10 | [TEM-488](https://linear.app/temba-app/issue/TEM-488) | Mobile: the Group's Series tab and New series | S-8, S-9 |
+| S-11 | [TEM-489](https://linear.app/temba-app/issue/TEM-489) | Web: attach a Series on the last step of Create and in Edit game | S-1, S-4 |
+| S-12 | [TEM-490](https://linear.app/temba-app/issue/TEM-490) | Mobile: attach a Series on the last step of Create and in Edit game | S-11 |
+| S-13 | [TEM-491](https://linear.app/temba-app/issue/TEM-491) | Web: a Game shows its Series and Edition before it is played | S-6, S-7 |
+| S-14 | [TEM-492](https://linear.app/temba-app/issue/TEM-492) | Mobile: a Game shows its Series and Edition before it is played | S-8, S-13 |
+| S-15 | [TEM-493](https://linear.app/temba-app/issue/TEM-493) | Web: the finished Game opens on the Series winners | S-13 |
+| S-16 | [TEM-494](https://linear.app/temba-app/issue/TEM-494) | Mobile: the finished Game opens on the Series winners | S-14, S-15 |
+| S-17 | [TEM-495](https://linear.app/temba-app/issue/TEM-495) | Web: Series wins on the profile, and on Home's Latest | S-6, S-7 |
+| S-18 | [TEM-496](https://linear.app/temba-app/issue/TEM-496) | Mobile: Series wins on the profile, and on Home's Latest | S-8, S-17 |
+
+What each ticket owns, so two never write the same thing:
+
+- `@repo/domain/series` grows across S-1 (the lists), S-2 (the name rule), S-3 (`carriesSeries`, `seriesEditionNumbers`), S-5 (`seriesWinRule`).
+- `@repo/domain/series-copy` starts in S-5 (`seriesRowLine`, `seriesWinnersLine`) and is finished in S-6.
+- `packages/api/src/series/series-link.ts` starts in S-2 (`requireSeries`) and is finished in S-3; `load-series-editions.ts` is S-5.
+- The `series` catalog files start in S-1. API tickets add `series.errors` and the lines' strings; each web ticket adds its screen's strings (`series.page` S-7, `series.tab` and `series.create` S-9, `series.attach` S-11, `series.game` S-13, `series.win` S-15, `series.profile` and `series.latest` S-17); its mobile twin reuses them.
 
 ## Comments
