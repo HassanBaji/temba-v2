@@ -953,6 +953,13 @@
       "when": 1795239683534,
       "tag": "0135_football_lineup_drafts",
       "breakpoints": true
+    },
+    {
+      "idx": 136,
+      "version": "7",
+      "when": 1795243687943,
+      "tag": "0136_football_side_captains",
+      "breakpoints": true
     }
   ]
 }

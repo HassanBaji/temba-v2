@@ -47,6 +47,10 @@ describe("notificationPath", () => {
       "mvp_decided",
       "challenge_squad_due",
       "king_place_awarded",
+      "football_draft_shared",
+      "football_draft_changed",
+      "football_draft_approved",
+      "football_draft_change_asked",
     ]) {
       expect(notificationPath({ type, group: null, game })).toBe("/games/x1");
     }

@@ -230,6 +230,7 @@ describe("games.publishFootballTeams", () => {
       expect(board.teams).toEqual({
         method: "level",
         bibs: { slot1: "red", slot2: "navy" },
+        captains: { slot1: null, slot2: null },
       });
       expect(board.players.map((player) => player.sideIndex)).toEqual([
         1, 1, 2, 2,

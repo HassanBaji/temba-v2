@@ -15,6 +15,8 @@ import {
   matches,
 } from "@repo/db";
 
+import type { SideCaptains } from "@repo/domain/football-board";
+import { footballSideCaptainProblem } from "@repo/domain/football-draft";
 import {
   FOOTBALL_TEAMS_METHODS,
   type FootballBib,
@@ -23,7 +25,10 @@ import {
   footballSidesProblem,
 } from "@repo/domain/football-lineup";
 import { messagesFor } from "@repo/i18n/messages";
-import { footballSidesInputSchema } from "@repo/validators/football";
+import {
+  footballSideCaptainsInputSchema,
+  footballSidesInputSchema,
+} from "@repo/validators/football";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -44,6 +49,7 @@ import {
   assertFootballDraftCurrent,
   loadFootballDraft,
 } from "#src/games/football-draft";
+import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -75,13 +81,18 @@ async function upsertSide(
     sideIndex: 1 | 2;
     existingId: string | null;
     bib: FootballBib;
+    captainGamePlayerId: string | null;
   },
 ) {
   const now = new Date();
   if (args.existingId) {
     await tx
       .update(gameTeams)
-      .set({ bib: args.bib, updatedAt: now })
+      .set({
+        bib: args.bib,
+        captainGamePlayerId: args.captainGamePlayerId,
+        updatedAt: now,
+      })
       .where(eq(gameTeams.id, args.existingId));
     await tx
       .delete(gameTeamPlayers)
@@ -90,7 +101,12 @@ async function upsertSide(
   }
   const [inserted] = await tx
     .insert(gameTeams)
-    .values({ gameId: args.gameId, sideIndex: args.sideIndex, bib: args.bib })
+    .values({
+      gameId: args.gameId,
+      sideIndex: args.sideIndex,
+      bib: args.bib,
+      captainGamePlayerId: args.captainGamePlayerId,
+    })
     .returning({ id: gameTeams.id });
   if (!inserted) {
     throw new TRPCError({
@@ -106,7 +122,10 @@ async function upsertSide(
  * exactly one side, each side in its bib colour. Publishing again replaces the
  * split until a Score is in. The first publish creates the Game's one Match.
  * It removes the Game's Draft line-up; one made from a draft names it by
- * `draftUpdatedAt` and is refused when the draft has changed since.
+ * `draftUpdatedAt` and is refused when the draft has changed since. Each
+ * side carries its Side captain (ADR-0108), never waiting on an answer.
+ * Without `captains` it keeps the draft's, or the published teams', while
+ * they are still on their side.
  */
 export async function publishFootballTeams(
   database: DbClient,
@@ -117,6 +136,7 @@ export async function publishFootballTeams(
     bibs: { slot1: FootballBib; slot2: FootballBib };
     slot1: string[];
     slot2: string[];
+    captains?: SideCaptains;
     draftUpdatedAt?: Date;
     locale?: Locale;
   },
@@ -134,6 +154,9 @@ export async function publishFootballTeams(
   const roster = await database.query.gamePlayers.findMany({
     where: eq(gamePlayers.gameId, game.id),
     columns: { id: true, userId: true },
+    with: {
+      user: { columns: { clerkId: true, addedAt: true, guestAt: true } },
+    },
   });
   const registered = roster.flatMap((row) => (row.userId ? [row.userId] : []));
   assertCoversRoster(registered, args.slot1, args.slot2, locale);
@@ -167,13 +190,48 @@ export async function publishFootballTeams(
   const gamePlayerIdByUser = new Map(
     roster.flatMap((row) => (row.userId ? [[row.userId, row.id]] : [])),
   );
+  const userByGamePlayerId = new Map(
+    roster.flatMap((row) => (row.userId ? [[row.id, row.userId]] : [])),
+  );
+  const accountUserIds = roster.flatMap((row) =>
+    row.userId && row.user?.guestAt === null && !isUnclaimed(row.user)
+      ? [row.userId]
+      : [],
+  );
   const sides = await footballSides(database, game.id);
+  const publishedCaptain = (
+    side: { captainGamePlayerId: string | null } | null,
+  ) =>
+    side?.captainGamePlayerId
+      ? (userByGamePlayerId.get(side.captainGamePlayerId) ?? null)
+      : null;
 
   await database.transaction(async (tx) => {
     const draft = await loadFootballDraft(tx, game, args.userId, {
       lock: true,
     });
     assertFootballDraftCurrent(draft, args.draftUpdatedAt, locale);
+    const carried = draft?.captains ?? {
+      slot1: publishedCaptain(sides.slot1),
+      slot2: publishedCaptain(sides.slot2),
+    };
+    const kept = (captain: string | null, side: string[]) =>
+      captain != null && side.includes(captain) ? captain : null;
+    const captains = args.captains ?? {
+      slot1: kept(carried.slot1, args.slot1),
+      slot2: kept(carried.slot2, args.slot2),
+    };
+    const captainProblem = footballSideCaptainProblem(
+      captains,
+      args,
+      accountUserIds,
+      locale,
+    );
+    if (captainProblem) {
+      refuse(captainProblem);
+    }
+    const captainGamePlayerId = (captain: string | null) =>
+      captain == null ? null : gamePlayerIdByUser.get(captain)!;
     if (draft) {
       await tx
         .delete(footballLineupDrafts)
@@ -185,12 +243,14 @@ export async function publishFootballTeams(
       sideIndex: 1,
       existingId: sides.slot1?.id ?? null,
       bib: args.bibs.slot1,
+      captainGamePlayerId: captainGamePlayerId(captains.slot1),
     });
     const slot2Id = await upsertSide(tx, {
       gameId: game.id,
       sideIndex: 2,
       existingId: sides.slot2?.id ?? null,
       bib: args.bibs.slot2,
+      captainGamePlayerId: captainGamePlayerId(captains.slot2),
     });
     const links = [
       ...args.slot1.map((userId) => ({ userId, gameTeamId: slot1Id })),
@@ -253,6 +313,7 @@ export const publishFootballTeamsProcedure = protectedProcedure
     footballSidesInputSchema.extend({
       gameId: z.string().uuid(),
       method: z.enum(FOOTBALL_TEAMS_METHODS),
+      captains: footballSideCaptainsInputSchema.optional(),
       draftUpdatedAt: z.date().optional(),
     }),
   )

@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  captainAnswerState,
+  footballDraftCaptainViewLine,
   footballDraftSavedLine,
   footballDraftSaveProblem,
   footballDraftSummary,
   footballDraftVisibilityLine,
+  footballSideCaptainProblem,
+  type FootballDraftAnswerState,
 } from "./football-draft";
 
 const bibs = { slot1: "black", slot2: "white" } as const;
@@ -90,7 +94,245 @@ describe("footballDraftSummary", () => {
   });
 });
 
+describe("footballDraftSummary with Side captains", () => {
+  const roster = ["a", "b", "c", "d"];
+  const sides = { bibs, slot1: ["a", "b"], slot2: ["c", "d"] };
+
+  function line(
+    captains: { slot1: string | null; slot2: string | null },
+    slot1: FootballDraftAnswerState,
+    slot2: FootballDraftAnswerState,
+    groupId: string | null = "g",
+    locale: "en" | "ar" = "en",
+  ) {
+    return footballDraftSummary(
+      {
+        ...sides,
+        captains,
+        answers: { slot1: { state: slot1 }, slot2: { state: slot2 } },
+      },
+      roster,
+      locale,
+      { groupId },
+    ).line;
+  }
+
+  it("says who can see a draft with no captains picked", () => {
+    const none = { slot1: null, slot2: null };
+    expect(line(none, "none", "none")).toBe(
+      "No captains picked, so only you and the group's admins can see this draft.",
+    );
+    expect(line(none, "none", "none", null)).toBe(
+      "No captains picked, so only you can see this draft.",
+    );
+  });
+
+  it("counts the captains who have approved, and never holds publishing", () => {
+    const both = { slot1: "a", slot2: "c" };
+    expect(line(both, "approved", "waiting")).toBe(
+      "1 of 2 captains have approved. You can publish without waiting.",
+    );
+    expect(line(both, "change_asked", "waiting")).toBe(
+      "0 of 2 captains have approved. You can publish without waiting.",
+    );
+    expect(line({ slot1: "a", slot2: null }, "waiting", "none")).toBe(
+      "0 of 1 captain has approved. You can publish without waiting.",
+    );
+    expect(line(both, "approved", "waiting", "g", "ar")).toBe(
+      "وافق 1 من قائدَين. يمكنك النشر دون انتظار.",
+    );
+    expect(
+      footballDraftSummary(
+        {
+          ...sides,
+          captains: both,
+          answers: {
+            slot1: { state: "waiting" },
+            slot2: { state: "waiting" },
+          },
+        },
+        roster,
+        "en",
+      ).canPublish,
+    ).toBe(true);
+  });
+
+  it("reads one captain and both captains approved", () => {
+    expect(line({ slot1: "a", slot2: null }, "approved", "none")).toBe(
+      "The captain approved their team. Publish when you're ready.",
+    );
+    expect(line({ slot1: "a", slot2: "c" }, "approved", "approved")).toBe(
+      "Both captains approved their team. Publish when you're ready.",
+    );
+  });
+
+  it("reads ready when the only captains are Organizers, with nobody to ask", () => {
+    expect(line({ slot1: "a", slot2: null }, "none", "none")).toBe(
+      "Everyone is placed. Publish when you're ready.",
+    );
+  });
+
+  it("still reads the players to place first", () => {
+    expect(
+      footballDraftSummary(
+        {
+          bibs,
+          slot1: ["a"],
+          slot2: ["c"],
+          captains: { slot1: "a", slot2: "c" },
+          answers: {
+            slot1: { state: "approved" },
+            slot2: { state: "approved" },
+          },
+        },
+        roster,
+        "en",
+      ),
+    ).toEqual({ line: "2 still to place.", canPublish: false });
+  });
+});
+
+describe("captainAnswerState", () => {
+  const side = ["p1", "p2", "p3"];
+  const captain = { isOrganizer: false };
+
+  it("has nobody to ask without a captain or with an Organizer as captain", () => {
+    const approved = { answer: "approved" as const, answeredPlayerIds: side };
+    expect(captainAnswerState(approved, side, null)).toBe("none");
+    expect(captainAnswerState(approved, side, { isOrganizer: true })).toBe(
+      "none",
+    );
+  });
+
+  it("waits for a captain with no answer", () => {
+    expect(captainAnswerState(null, side, captain)).toBe("waiting");
+  });
+
+  it("reads the answer for the side as it stands, in any order", () => {
+    expect(
+      captainAnswerState(
+        { answer: "approved", answeredPlayerIds: ["p3", "p1", "p2"] },
+        side,
+        captain,
+      ),
+    ).toBe("approved");
+    expect(
+      captainAnswerState(
+        { answer: "change_asked", answeredPlayerIds: side },
+        side,
+        captain,
+      ),
+    ).toBe("change_asked");
+  });
+
+  it("waits again once the side's players differ from the answer's", () => {
+    expect(
+      captainAnswerState(
+        { answer: "approved", answeredPlayerIds: ["p1", "p2"] },
+        side,
+        captain,
+      ),
+    ).toBe("waiting");
+    expect(
+      captainAnswerState(
+        { answer: "approved", answeredPlayerIds: [...side, "p4"] },
+        side,
+        captain,
+      ),
+    ).toBe("waiting");
+    expect(
+      captainAnswerState(
+        { answer: "change_asked", answeredPlayerIds: ["p1", "p2", "p9"] },
+        side,
+        captain,
+      ),
+    ).toBe("waiting");
+  });
+});
+
+describe("footballSideCaptainProblem", () => {
+  const sides = { slot1: ["a", "b"], slot2: ["c", "g"] };
+  const accounts = ["a", "b", "c"];
+
+  it("takes one captain per side from that side, or none", () => {
+    expect(
+      footballSideCaptainProblem(
+        { slot1: "a", slot2: "c" },
+        sides,
+        accounts,
+        "en",
+      ),
+    ).toBeNull();
+    expect(
+      footballSideCaptainProblem(
+        { slot1: null, slot2: null },
+        sides,
+        accounts,
+        "en",
+      ),
+    ).toBeNull();
+  });
+
+  it("refuses a captain from the other side or on no side", () => {
+    expect(
+      footballSideCaptainProblem(
+        { slot1: "c", slot2: null },
+        sides,
+        accounts,
+        "en",
+      ),
+    ).toBe("A captain must be a player on their team");
+    expect(
+      footballSideCaptainProblem(
+        { slot1: null, slot2: "z" },
+        sides,
+        accounts,
+        "en",
+      ),
+    ).toBe("A captain must be a player on their team");
+  });
+
+  it("refuses a Guest player or an Unclaimed player", () => {
+    expect(
+      footballSideCaptainProblem(
+        { slot1: null, slot2: "g" },
+        sides,
+        accounts,
+        "en",
+      ),
+    ).toBe("A guest player or a player without an account can't be a captain");
+  });
+});
+
+describe("footballDraftCaptainViewLine", () => {
+  it("names who saved the draft and who else sees it", () => {
+    const draft = {
+      savedByName: "Hassan Haji",
+      captains: { slot1: "a", slot2: "c" },
+    };
+    expect(footballDraftCaptainViewLine(draft, { groupId: "g" }, "en")).toBe(
+      "A draft from Hassan H. Only the two captains and the organizers can see it.",
+    );
+    expect(
+      footballDraftCaptainViewLine(
+        { ...draft, captains: { slot1: "a", slot2: null } },
+        { groupId: null },
+        "en",
+      ),
+    ).toBe("A draft from Hassan H. Only you and the organizer can see it.");
+  });
+});
+
 describe("footballDraftVisibilityLine", () => {
+  it("adds the captains when any is named", () => {
+    expect(footballDraftVisibilityLine({ groupId: "g" }, "en", true)).toBe(
+      "Players don't see these teams yet. Only you, the group's admins and the captains do.",
+    );
+    expect(footballDraftVisibilityLine({ groupId: null }, "en", true)).toBe(
+      "Players don't see these teams yet. Only you and the captains do.",
+    );
+  });
+
   it("names the group's admins on a Group Game and nobody else on a groupless Game", () => {
     expect(footballDraftVisibilityLine({ groupId: "g" }, "en")).toBe(
       "Players don't see these teams yet. Only you and the group's admins do.",

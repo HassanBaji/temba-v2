@@ -7,14 +7,19 @@ import {
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
 import { useRouter, type Href } from "expo-router";
-import { ArrowLeft, ArrowRight, Eraser, Shuffle } from "lucide-react-native";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ChevronDown,
+  Eraser,
+  Shuffle,
+} from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { NicknameName } from "../primitives/nickname-name";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
-import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Screen } from "../primitives/screen";
@@ -28,14 +33,17 @@ import { api } from "../trpc/react";
 import { bibEdge } from "./bib-edge";
 import { BibChip, BibPicker } from "./bib-picker";
 import {
-  balancedSides,
   boardTierCell,
+  clearSides,
   draftSummary,
   initialTeamsDraft,
   keeperWord,
   moveAcross,
   ovrLabel,
   placeOn,
+  setSideCaptain,
+  shortName,
+  shuffleSides,
   slotCode,
   switchMethod,
   teamsSideAverage,
@@ -43,7 +51,8 @@ import {
   type Side,
   type TeamsDraft,
 } from "@repo/domain/football-board";
-import { BibRow, TierMark } from "./team-columns";
+import { CaptainsSheet } from "./captains-sheet";
+import { BibRow, CaptainAvatar, TierMark } from "./team-columns";
 
 const BAR_HEIGHT = 6;
 const SWATCH_BUTTON = 34;
@@ -237,6 +246,10 @@ function LevelColumns({
             player={player}
             bib={bib}
             showTier
+            sideCaptain={
+              (side === 1 ? draft.captains.slot1 : draft.captains.slot2) ===
+              player.userId
+            }
             trailing={
               <ArrowButton
                 side={side}
@@ -344,7 +357,15 @@ function ManualRow({
         borderColor: bib ? bibEdge(fill, colors, scheme) : colors.inputBorder,
       }}
     >
-      <Avatar name={player.name} uri={player.image} guest={player.guest} />
+      <CaptainAvatar
+        player={player}
+        bib={bib}
+        sideCaptain={
+          side != null &&
+          (side === 1 ? draft.captains.slot1 : draft.captains.slot2) ===
+            player.userId
+        }
+      />
       <View style={{ flex: 1, minWidth: 0 }}>
         <NicknameName
           name={player.isViewer ? messages.common.you : teamsName(player)}
@@ -448,11 +469,132 @@ function ManualLists({
   );
 }
 
+function CaptainChip({
+  side,
+  team,
+  captain,
+  onPress,
+}: {
+  side: Side;
+  team: string;
+  captain: BoardPlayer | null;
+  onPress: (side: Side) => void;
+}) {
+  const colors = useColors();
+  const messages = useMessages();
+  const m = messages.football.captains;
+  const name = captain
+    ? captain.isViewer
+      ? messages.common.you
+      : (captain.nickname?.name ?? shortName(captain.name))
+    : null;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={m.chipSpoken(team, name)}
+      onPress={() => onPress(side)}
+      style={{
+        flex: 1,
+        minWidth: 0,
+        height: 42,
+        paddingHorizontal: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        borderRadius: radii.md,
+        borderWidth: hairline,
+        borderStyle: captain ? "solid" : "dashed",
+        borderColor: captain ? colors.rule : colors.inputBorder,
+      }}
+    >
+      <View
+        style={{
+          width: 18,
+          height: 18,
+          borderRadius: radii.sm,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: captain ? colors.control : colors.paper,
+          borderWidth: hairline,
+          borderColor: captain ? colors.controlEdge : colors.inputBorder,
+        }}
+      >
+        <Text
+          size="eyebrow"
+          weight="semibold"
+          style={{ color: captain ? colors.onControl : colors.muted }}
+        >
+          {m.badge}
+        </Text>
+      </View>
+      <Text
+        size="meta"
+        numberOfLines={1}
+        tone={captain ? undefined : "muted"}
+        style={{ flex: 1 }}
+      >
+        {name ?? m.add}
+      </Text>
+      <ChevronDown size={14} color={colors.muted} />
+    </Pressable>
+  );
+}
+
+/** "Captains, optional, one per team": a chip per side opens the sheet. */
+function CaptainsRow({
+  draft,
+  players,
+  names,
+  onOpen,
+}: {
+  draft: TeamsDraft;
+  players: readonly BoardPlayer[];
+  names: { slot1: string; slot2: string };
+  onOpen: (side: Side) => void;
+}) {
+  const m = useMessages().football.captains;
+  const captain = (userId: string | null) =>
+    players.find((player) => player.userId === userId) ?? null;
+  return (
+    <View style={{ gap: 10 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+        }}
+      >
+        <Text size="meta" tone="muted">
+          {m.title}
+        </Text>
+        <Text size="eyebrow" tone="muted">
+          {m.optional}
+        </Text>
+      </View>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <CaptainChip
+          side={1}
+          team={names.slot1}
+          captain={captain(draft.captains.slot1)}
+          onPress={onOpen}
+        />
+        <CaptainChip
+          side={2}
+          team={names.slot2}
+          captain={captain(draft.captains.slot2)}
+          onPress={onOpen}
+        />
+      </View>
+    </View>
+  );
+}
+
 /**
  * The Organizer splits the pool into two teams, by Level or by hand, picks
  * each team's bib colour and publishes, or saves the split as the Game's
- * Draft line-up while the teams are not published. Opened from a draft, it
- * starts from it and names it on publish.
+ * Draft line-up while the teams are not published, with a Side captain per
+ * team or none. Opened from a draft, it starts from it and names it on
+ * publish.
  */
 export function MakeTeamsScreen({ gameId }: { gameId: string }) {
   const colors = useColors();
@@ -466,6 +608,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
   const board = api.games.footballBoard.useQuery({ gameId });
   const [draft, setDraft] = useState<TeamsDraft | null>(null);
   const [openedFromDraftAt, setOpenedFromDraftAt] = useState<Date | null>(null);
+  const [captainsSide, setCaptainsSide] = useState<Side | null>(null);
 
   useEffect(() => {
     if (board.data && draft == null) {
@@ -545,6 +688,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
     bibs: draft.bibs,
     slot1: summary.slot1.map((player) => player.userId),
     slot2: summary.slot2.map((player) => player.userId),
+    captains: draft.captains,
   };
   const saveProblem = footballDraftSaveProblem(
     sides,
@@ -563,10 +707,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
               size={canSaveDraft ? "icon-lg" : "lg"}
               icon={<Shuffle size={16} color={colors.ink} />}
               onPress={() =>
-                setDraft({
-                  ...draft,
-                  sides: balancedSides(players, Math.random),
-                })
+                setDraft(shuffleSides(draft, players, Math.random))
               }
             />
           ) : (
@@ -577,7 +718,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
               icon={
                 canSaveDraft ? <Eraser size={16} color={colors.ink} /> : null
               }
-              onPress={() => setDraft({ ...draft, sides: {} })}
+              onPress={() => setDraft(clearSides(draft))}
             />
           )}
           {canSaveDraft ? (
@@ -641,6 +782,12 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
         summary={summary}
         canSaveDraft={canSaveDraft}
       />
+      <CaptainsRow
+        draft={draft}
+        players={players}
+        names={summary.names}
+        onOpen={setCaptainsSide}
+      />
       {draft.method === "level" ? (
         <LevelColumns
           draft={draft}
@@ -659,6 +806,16 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
           {(publish.error ?? saveDraft.error)?.message}
         </Text>
       ) : null}
+      <CaptainsSheet
+        side={captainsSide}
+        bibs={draft.bibs}
+        names={summary.names}
+        sides={{ slot1: summary.slot1, slot2: summary.slot2 }}
+        captains={draft.captains}
+        onSideChange={setCaptainsSide}
+        onPick={(side, userId) => setDraft(setSideCaptain(draft, side, userId))}
+        onClose={() => setCaptainsSide(null)}
+      />
     </Screen>
   );
 }

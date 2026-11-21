@@ -175,6 +175,14 @@ export const FOOTBALL_TEAMS_METHODS = ["level", "manual"] as const;
 
 export type FootballTeamsMethod = (typeof FOOTBALL_TEAMS_METHODS)[number];
 
+/** A Side captain's word on their own side of a Draft line-up (ADR-0108). */
+export const FOOTBALL_DRAFT_ANSWERS = ["approved", "change_asked"] as const;
+
+export type FootballDraftAnswer = (typeof FOOTBALL_DRAFT_ANSWERS)[number];
+
+/** The longest note a Side captain sends with a change asked. */
+export const FOOTBALL_DRAFT_NOTE_MAX_LENGTH = 140;
+
 export function footballTeamsMethodLabel(
   method: FootballTeamsMethod | null,
   locale: Locale,

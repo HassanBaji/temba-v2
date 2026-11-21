@@ -70,6 +70,10 @@ export const NOTIFICATION_TYPE_VALUES = [
   "level_dispute_raised",
   "level_dispute_decided",
   "level_recalculated",
+  "football_draft_shared",
+  "football_draft_changed",
+  "football_draft_approved",
+  "football_draft_change_asked",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];

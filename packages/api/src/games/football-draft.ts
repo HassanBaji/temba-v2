@@ -2,11 +2,13 @@ import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 
 import {
+  footballLineupDraftAnswers,
   footballLineupDraftPlayers,
   footballLineupDrafts,
   gamePlayers,
   user,
 } from "@repo/db";
+import { captainAnswerState } from "@repo/domain/football-draft";
 import { isFootballGame } from "@repo/domain/game-shape";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
@@ -58,28 +60,13 @@ export async function assertFootballDraftOpen(
   }
 }
 
-/** Who may see a Game's Draft line-up: its Organizers (ADR-0107). */
-export async function mayViewFootballDraft(
-  database: DbClient,
-  game: GameRow,
-  userId: string,
-) {
-  if (
-    game.challengeId ||
-    game.cancelledAt ||
-    !isFootballGame(game) ||
-    game.format !== "friendly_game"
-  ) {
-    return false;
-  }
-  return isGameOrganizer(database, game, userId);
-}
-
 /**
- * A Game's Draft line-up with each side's players by User, in roster order.
- * Null when there is none, and for a viewer who may not see it: every read
- * of a draft goes through here. `lock` holds the draft row until the
- * transaction ends.
+ * A Game's Draft line-up with each side's players by User, in roster order,
+ * its Side captains and their answers. Null when there is none, and for a
+ * viewer who may not see it: only the Game's Organizers and the draft's Side
+ * captains do (ADR-0107, ADR-0108). Every read of a draft goes through here.
+ * A note goes to the Organizers and to the captain who wrote it. `lock`
+ * holds the draft row until the transaction ends.
  */
 export async function loadFootballDraft(
   database: DbClient,
@@ -87,7 +74,12 @@ export async function loadFootballDraft(
   viewerUserId: string,
   options: { lock?: boolean } = {},
 ) {
-  if (!(await mayViewFootballDraft(database, game, viewerUserId))) {
+  if (
+    game.challengeId ||
+    game.cancelledAt ||
+    !isFootballGame(game) ||
+    game.format !== "friendly_game"
+  ) {
     return null;
   }
   const query = database
@@ -101,6 +93,7 @@ export async function loadFootballDraft(
   const placements = await database
     .select({
       sideIndex: footballLineupDraftPlayers.sideIndex,
+      gamePlayerId: footballLineupDraftPlayers.gamePlayerId,
       userId: gamePlayers.userId,
     })
     .from(footballLineupDraftPlayers)
@@ -110,9 +103,33 @@ export async function loadFootballDraft(
     )
     .where(eq(footballLineupDraftPlayers.draftId, row.id))
     .orderBy(asc(gamePlayers.createdAt), asc(gamePlayers.id));
+  const captainOn = (index: 1 | 2, gamePlayerId: string | null) =>
+    placements.find(
+      (placement) =>
+        placement.sideIndex === index &&
+        placement.gamePlayerId === gamePlayerId,
+    )?.userId ?? null;
+  const captains = {
+    slot1: captainOn(1, row.slot1CaptainGamePlayerId),
+    slot2: captainOn(2, row.slot2CaptainGamePlayerId),
+  };
+  const organizer = await isGameOrganizer(database, game, viewerUserId);
+  const sideCaptainOf =
+    captains.slot1 === viewerUserId
+      ? (1 as const)
+      : captains.slot2 === viewerUserId
+        ? (2 as const)
+        : null;
+  if (!organizer && sideCaptainOf == null) {
+    return null;
+  }
+
   const savedBy = await database.query.user.findFirst({
     where: eq(user.id, row.savedBy),
     columns: { name: true },
+  });
+  const answerRows = await database.query.footballLineupDraftAnswers.findMany({
+    where: eq(footballLineupDraftAnswers.draftId, row.id),
   });
   const side = (index: 1 | 2) =>
     placements.flatMap((placement) =>
@@ -120,6 +137,35 @@ export async function loadFootballDraft(
         ? [placement.userId]
         : [],
     );
+  const sideGamePlayerIds = (index: 1 | 2) =>
+    placements.flatMap((placement) =>
+      placement.sideIndex === index ? [placement.gamePlayerId] : [],
+    );
+  const answerOf = async (index: 1 | 2) => {
+    const captain = index === 1 ? captains.slot1 : captains.slot2;
+    const answer =
+      answerRows.find(
+        (answerRow) =>
+          answerRow.sideIndex === index && answerRow.captainUserId === captain,
+      ) ?? null;
+    const state = captainAnswerState(
+      answer,
+      sideGamePlayerIds(index),
+      captain
+        ? { isOrganizer: await isGameOrganizer(database, game, captain) }
+        : null,
+    );
+    const counts =
+      answer != null && (state === "approved" || state === "change_asked");
+    return {
+      state,
+      answeredAt: counts ? answer.answeredAt : null,
+      note:
+        counts && (organizer || answer.captainUserId === viewerUserId)
+          ? answer.note
+          : null,
+    };
+  };
   return {
     id: row.id,
     updatedAt: row.updatedAt,
@@ -128,6 +174,13 @@ export async function loadFootballDraft(
     method: row.method,
     bibs: { slot1: row.slot1Bib, slot2: row.slot2Bib },
     sides: { slot1: side(1), slot2: side(2) },
+    sideGamePlayerIds: {
+      slot1: sideGamePlayerIds(1),
+      slot2: sideGamePlayerIds(2),
+    },
+    captains,
+    answers: { slot1: await answerOf(1), slot2: await answerOf(2) },
+    viewer: { organizer, sideCaptainOf },
   };
 }
 

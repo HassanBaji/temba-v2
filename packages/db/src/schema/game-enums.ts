@@ -58,6 +58,11 @@ export const footballTeamsMethods = pgEnum("football_teams_method", [
   "manual",
 ]);
 
+export const footballDraftAnswers = pgEnum("football_draft_answer", [
+  "approved",
+  "change_asked",
+]);
+
 export const MVP_MODE_VALUES = ["vote", "organizer", "none"] as const;
 
 export const mvpModes = pgEnum("mvp_mode", MVP_MODE_VALUES);

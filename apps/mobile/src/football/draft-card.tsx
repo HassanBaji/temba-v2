@@ -1,5 +1,10 @@
 import { radii } from "@repo/design-tokens";
 import {
+  bibNames,
+  shortName,
+  type BoardPlayer,
+} from "@repo/domain/football-board";
+import {
   footballDraftSavedLine,
   footballDraftSummary,
 } from "@repo/domain/football-draft";
@@ -13,10 +18,89 @@ import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import type { RouterOutputs } from "../trpc/react";
+import { BibChip } from "./bib-picker";
+import { DraftAnswer } from "./draft-answer-mark";
 
 type SavedDraft = NonNullable<RouterOutputs["games"]["footballBoard"]["draft"]>;
 
-function DraftTag({ label }: { label: string }) {
+/** A captain's name as the draft card reads it: "You", a nickname, or "Rashid N". */
+export function draftCaptainName(
+  player: Pick<BoardPlayer, "name" | "nickname" | "isViewer"> | undefined,
+  you: string,
+) {
+  if (!player) {
+    return null;
+  }
+  return player.isViewer
+    ? you
+    : (player.nickname?.name ?? shortName(player.name));
+}
+
+/** The note a Side captain sent with a change asked, set apart under the row. */
+export function DraftNote({ note }: { note: string }) {
+  const colors = useColors();
+  const m = useMessages().football.draft;
+  return (
+    <View
+      style={{
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: radii.md,
+        backgroundColor: colors.wash,
+      }}
+    >
+      <Text size="meta">{m.note(note)}</Text>
+    </View>
+  );
+}
+
+function SideAnswerRow({
+  draft,
+  side,
+  players,
+}: {
+  draft: SavedDraft;
+  side: 1 | 2;
+  players: readonly BoardPlayer[];
+}) {
+  const colors = useColors();
+  const locale = useLocale();
+  const messages = useMessages();
+  const m = messages.football.captains;
+  const key = side === 1 ? "slot1" : "slot2";
+  const captainId = draft.captains[key];
+  const captain = draftCaptainName(
+    players.find((player) => player.userId === captainId),
+    messages.common.you,
+  );
+  const answer = draft.answers[key];
+  return (
+    <View
+      style={{
+        gap: 10,
+        paddingTop: 12,
+        borderTopWidth: hairline,
+        borderTopColor: colors.rule,
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <BibChip bib={draft.bibs[key]} size={14} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text weight="semibold">{bibNames(draft.bibs, locale)[key]}</Text>
+          <Text size="eyebrow" tone="muted" numberOfLines={1}>
+            {captain ? m.named(captain) : m.none}
+          </Text>
+        </View>
+        <DraftAnswer state={answer.state} />
+      </View>
+      {answer.state === "change_asked" && answer.note ? (
+        <DraftNote note={answer.note} />
+      ) : null}
+    </View>
+  );
+}
+
+export function DraftTag({ label }: { label: string }) {
   const colors = useColors();
   return (
     <View
@@ -36,19 +120,22 @@ function DraftTag({ label }: { label: string }) {
 }
 
 /**
- * The Organizer's Draft line-up on the Game screen (ADR-0107): when it was
- * saved, whether it can be published as it stands, then Publish teams and
- * Edit draft.
+ * The Organizer's Draft line-up on the Game screen (ADR-0107, design 1c):
+ * when it was saved, whether it can be published as it stands, each side's
+ * Side captain and their answer (ADR-0108), then Publish teams and Edit
+ * draft. Publishing never waits on an answer.
  */
 export function DraftCard({
   draft,
-  rosterUserIds,
+  players,
+  game,
   publishPending,
   onPublish,
   onEdit,
 }: {
   draft: SavedDraft;
-  rosterUserIds: readonly string[];
+  players: readonly BoardPlayer[];
+  game: { groupId: string | null };
   publishPending: boolean;
   onPublish: () => void;
   onEdit: () => void;
@@ -59,9 +146,15 @@ export function DraftCard({
   const m = messages.football.draft;
   const copy = messages.mobileGameDetails.football;
   const summary = footballDraftSummary(
-    { ...draft.sides, bibs: draft.bibs },
-    rosterUserIds,
+    {
+      ...draft.sides,
+      bibs: draft.bibs,
+      captains: draft.captains,
+      answers: draft.answers,
+    },
+    players.map((player) => player.userId),
     locale,
+    game,
   );
   return (
     <View style={{ gap: 12 }}>
@@ -82,6 +175,8 @@ export function DraftCard({
         <Text size="meta" tone="muted" accessibilityLiveRegion="polite">
           {summary.line}
         </Text>
+        <SideAnswerRow draft={draft} side={1} players={players} />
+        <SideAnswerRow draft={draft} side={2} players={players} />
       </Surface>
       <Button
         label={copy.publishTeams}
@@ -100,6 +195,9 @@ export function DraftCard({
           />
         </View>
       </View>
+      <Text size="eyebrow" tone="muted">
+        {m.publishAnyTime}
+      </Text>
     </View>
   );
 }

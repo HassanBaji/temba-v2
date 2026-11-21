@@ -219,6 +219,7 @@ export const football = {
     })}`,
   draft: {
     status: "مسودة، لم تُنشر",
+    statusCaptain: (team: string) => `مسودة، أنت قائد ${team}`,
     tag: "مسودة",
     title: "مسودة التشكيلة",
     savedAt: (day: string, time: string) => `حُفظت ${day} ${time}`,
@@ -226,11 +227,94 @@ export const football = {
     visibleToGroupAdmins:
       "لا يرى اللاعبون هذه الفرق بعد. لا يراها إلا أنت ومشرفو المجموعة.",
     visibleToYou: "لا يرى اللاعبون هذه الفرق بعد. لا يراها إلا أنت.",
+    visibleToGroupAdminsAndCaptains:
+      "لا يرى اللاعبون هذه الفرق بعد. لا يراها إلا أنت ومشرفو المجموعة والقائدان.",
+    visibleToYouAndCaptains:
+      "لا يرى اللاعبون هذه الفرق بعد. لا يراها إلا أنت والقائدان.",
+    noCaptainsGroup:
+      "لم تختر قائدين، فلا يرى هذه المسودة إلا أنت ومشرفو المجموعة.",
+    noCaptainsYou: "لم تختر قائدين، فلا يرى هذه المسودة إلا أنت.",
+    captainApproved: "وافق القائد على فريقه. انشر عندما تكون جاهزًا.",
+    bothCaptainsApproved: "وافق القائدان على فريقيهما. انشر عندما تكون جاهزًا.",
+    captainsApprovedOf: (approved: number, total: number) =>
+      plural("ar", total, {
+        one: `وافق ${approved} من قائد واحد. يمكنك النشر دون انتظار.`,
+        two: `وافق ${approved} من قائدَين. يمكنك النشر دون انتظار.`,
+        few: `وافق ${approved} من {n} قادة. يمكنك النشر دون انتظار.`,
+        many: `وافق ${approved} من {n} قائدًا. يمكنك النشر دون انتظار.`,
+        other: `وافق ${approved} من {n} قائد. يمكنك النشر دون انتظار.`,
+      }),
+    publishAnyTime:
+      "يمكنك النشر دون انتظار. نقل لاعب إلى فريق أو منه بعد موافقة قائده يعيد السؤال إلى ذلك القائد.",
+    answer: {
+      approved: "وافق",
+      change_asked: "طلب تغييرًا",
+      waiting: "بانتظار الرد",
+      none: "لا أحد لسؤاله",
+    },
+    note: (note: string) => `«${note}»`,
+    captainView: {
+      from: (name: string) => `مسودة من ${name}.`,
+      bothCaptainsAndOrganizers: "لا يراها إلا القائدان والمنظّمون.",
+      bothCaptainsAndOrganizer: "لا يراها إلا القائدان والمنظّم.",
+      youAndOrganizers: "لا يراها إلا أنت والمنظّمون.",
+      youAndOrganizer: "لا يراها إلا أنت والمنظّم.",
+    },
+    captainPanel: {
+      yourTeam: (team: string) => `فريقك، ${team}`,
+      playersAvg: (n: number, avg: string) =>
+        plural("ar", n, {
+          one: `لاعب واحد، المعدل ${avg}`,
+          two: `لاعبان، المعدل ${avg}`,
+          few: `{n} لاعبين، المعدل ${avg}`,
+          many: `{n} لاعبًا، المعدل ${avg}`,
+          other: `{n} لاعب، المعدل ${avg}`,
+        }),
+      ask: (organizer: string) =>
+        `راضٍ عن هذا الفريق؟ وافق ليعرف ${organizer} أن فريقك جاهز. لا شيء نهائي قبل النشر.`,
+      approve: "أوافق على فريقي",
+      askChange: "اطلب تغييرًا",
+      approvedTitle: (team: string) => `وافقت على ${team}`,
+      approvedBody: (organizer: string) => `ينشر ${organizer} حين يكون جاهزًا`,
+      changeTitle: "طلبت تغييرًا",
+      changeBody: (organizer: string) => `يرى ${organizer} ملاحظتك على المسودة`,
+      undo: "تراجع",
+      otherTeam: (team: string, captain: string | null) =>
+        captain ? `${team}، القائد ${captain}` : `${team}، بلا قائد`,
+      ownTeamOnly: (other: string) =>
+        `توافق على فريقك وحده. ترى ${other}، لكن قائده هو من يرد عنه.`,
+      noteSheet: {
+        title: "اطلب تغييرًا",
+        body: (organizer: string) =>
+          `يرى ${organizer} ملاحظتك على المسودة. يبقى فريقك كما هو حتى يغيّره.`,
+        label: "ملاحظتك",
+        placeholder: "من يتبادل مع من، ولماذا؟",
+        send: "أرسل",
+        cancel: "إلغاء",
+      },
+    },
     notPublished: {
       title: "لم تُنشر الفرق بعد",
       body: "المنظّم يكوّنها الآن. سترى فريقك ولون صدريتك هنا فور نشرها.",
       value: "لم تُنشر",
     },
+  },
+  captains: {
+    title: "القادة",
+    optional: "اختياري، قائد لكل فريق",
+    add: "أضف قائدًا",
+    sheetBody:
+      "يرى القائد المسودة ويستطيع الموافقة على فريقه قبل أن تنشر. ويبقى هو من يختار الأساسيين يوم المباراة.",
+    noCaptainFor: (team: string) => `بلا قائد لـ${team}`,
+    noneOnTeam:
+      "لا أحد في هذا الفريق يمكن أن يكون قائدًا بعد. لا يصلح لذلك الضيوف ولا من ليس لديه حساب.",
+    done: "تم",
+    badge: "ق",
+    spoken: "القائد",
+    chipSpoken: (team: string, captain: string | null) =>
+      captain ? `قائد ${team}: ${captain}` : `أضف قائدًا لـ${team}`,
+    named: (name: string) => `القائد ${name}`,
+    none: "لم يُختر قائد",
   },
   errors: {
     notFootball: "الفرق والنتيجة لمباريات كرة القدم فقط",
@@ -251,5 +335,9 @@ export const football = {
     draftNeedsPlayer: "ضع لاعبًا واحدًا على الأقل لحفظ مسودة",
     draftChanged: "تغيّرت المسودة. افتحها من جديد.",
     draftTeamsPublished: "نُشرت الفرق، فلا توجد مسودة لحفظها",
+    captainOnSide: "يجب أن يكون القائد لاعبًا في فريقه",
+    captainNeedsAccount: "لا يمكن أن يكون الضيف أو من ليس لديه حساب قائدًا",
+    draftNotCaptain: "لا يرد عن الفريق إلا قائده",
+    draftNoteLength: (max: number) => `اكتب ملاحظة من 1 إلى ${max} حرفًا`,
   },
 } satisfies typeof source;

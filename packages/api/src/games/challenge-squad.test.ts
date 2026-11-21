@@ -149,6 +149,7 @@ describe("football readers on a Challenge Game with nobody named", () => {
       expect(board.teams).toEqual({
         method: null,
         bibs: { slot1: "black", slot2: "white" },
+        captains: { slot1: null, slot2: null },
       });
       expect(board.match?.score).toBeNull();
       expect(board.viewer).toMatchObject({

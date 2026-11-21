@@ -71,6 +71,7 @@ import { previewInviteLinkProcedure as previewInviteLink } from "./previewInvite
 import { previewPlayerByPhoneProcedure as previewPlayerByPhone } from "./previewPlayerByPhone";
 import { publishFootballTeamsProcedure as publishFootballTeams } from "./publishFootballTeams";
 import { saveFootballDraftProcedure as saveFootballDraft } from "./saveFootballDraft";
+import { answerFootballDraftProcedure as answerFootballDraft } from "./answerFootballDraft";
 import { registerProcedure as register } from "./register";
 import { submitLevelChecksProcedure as submitLevelChecks } from "./submitLevelChecks";
 import { submitPerformanceRatingsProcedure as submitPerformanceRatings } from "./submitPerformanceRatings";
@@ -189,6 +190,7 @@ export const gamesRouter = createTRPCRouter({
   setFootballRole,
   publishFootballTeams,
   saveFootballDraft,
+  answerFootballDraft,
   saveFootballScore,
   nameChallengeSquad,
   performanceRatingSheet,

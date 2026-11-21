@@ -3,12 +3,14 @@ import { describe, it } from "vitest";
 
 import {
   footballBibs,
+  footballDraftAnswers,
   footballPositions,
   footballRoles,
   footballTeamsMethods,
 } from "@repo/db/schema";
 import {
   FOOTBALL_BIBS,
+  FOOTBALL_DRAFT_ANSWERS,
   FOOTBALL_POSITIONS,
   FOOTBALL_ROLES,
   FOOTBALL_TEAMS_METHODS,
@@ -22,6 +24,10 @@ describe("football lineup enums", () => {
     assert.deepEqual(
       [...FOOTBALL_TEAMS_METHODS],
       footballTeamsMethods.enumValues,
+    );
+    assert.deepEqual(
+      [...FOOTBALL_DRAFT_ANSWERS],
+      footballDraftAnswers.enumValues,
     );
   });
 });

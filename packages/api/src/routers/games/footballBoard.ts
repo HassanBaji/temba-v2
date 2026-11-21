@@ -186,8 +186,9 @@ async function loadBoardTiers(
  * with each player's role, position, Level and OVR, Group Tier and team, the
  * two teams and their bibs, the Score with its scorers, and what the viewer
  * may do next. Make teams balances on Tier points in a tier Group and on OVR
- * on any other Game. `teams` is the published teams only; the Draft line-up
- * is `draft`, for the Game's Organizers alone.
+ * on any other Game. `teams` is the published teams only, with each side's
+ * Side captain; the Draft line-up is `draft`, for the Game's Organizers and
+ * the draft's Side captains alone (ADR-0108).
  */
 export async function footballBoard(
   database: DbClient,
@@ -209,6 +210,7 @@ export async function footballBoard(
   const roster = await database.query.gamePlayers.findMany({
     where: eq(gamePlayers.gameId, game.id),
     columns: {
+      id: true,
       userId: true,
       footballRole: true,
       footballPosition: true,
@@ -351,6 +353,26 @@ export async function footballBoard(
     live &&
     score == null &&
     userIds.length >= 2;
+  const userByGamePlayerId = new Map(
+    roster.flatMap((row) => (row.userId ? [[row.id, row.userId]] : [])),
+  );
+  const publishedCaptains = {
+    slot1: sides.slot1?.captainGamePlayerId
+      ? (userByGamePlayerId.get(sides.slot1.captainGamePlayerId) ?? null)
+      : null,
+    slot2: sides.slot2?.captainGamePlayerId
+      ? (userByGamePlayerId.get(sides.slot2.captainGamePlayerId) ?? null)
+      : null,
+  };
+  const captainOf = (captains: {
+    slot1: string | null;
+    slot2: string | null;
+  }) =>
+    captains.slot1 === args.userId
+      ? (1 as const)
+      : captains.slot2 === args.userId
+        ? (2 as const)
+        : null;
   const bib = (side: { bib: FootballBib | null } | null, index: 1 | 2) =>
     side?.bib ??
     (index === 1 ? DEFAULT_FOOTBALL_BIBS.slot1 : DEFAULT_FOOTBALL_BIBS.slot2);
@@ -398,6 +420,7 @@ export async function footballBoard(
       ? {
           method: game.footballTeamsMethod,
           bibs: { slot1: bib(sides.slot1, 1), slot2: bib(sides.slot2, 2) },
+          captains: publishedCaptains,
         }
       : null,
     draft: draft
@@ -408,6 +431,8 @@ export async function footballBoard(
           method: draft.method,
           bibs: draft.bibs,
           sides: draft.sides,
+          captains: draft.captains,
+          answers: draft.answers,
         }
       : null,
     match: match
@@ -422,8 +447,15 @@ export async function footballBoard(
       : null,
     viewer: {
       sideIndex: viewerSide,
+      captainOf: draft
+        ? captainOf(draft.captains)
+        : published
+          ? captainOf(publishedCaptains)
+          : null,
       canMakeTeams,
       canSaveDraft: canMakeTeams && !published,
+      canAnswerDraft:
+        draft?.viewer.sideCaptainOf != null && !draft.viewer.organizer,
       canEnterScore:
         published &&
         squadsReady &&

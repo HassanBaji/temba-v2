@@ -168,6 +168,7 @@ export const football = {
     `${sideSize} · ${players} players`,
   draft: {
     status: "Draft, not published",
+    statusCaptain: (team: string) => `Draft, you captain ${team}`,
     tag: "DRAFT",
     title: "Draft line-up",
     savedAt: (day: string, time: string) => `saved ${day} ${time}`,
@@ -175,11 +176,93 @@ export const football = {
     visibleToGroupAdmins:
       "Players don't see these teams yet. Only you and the group's admins do.",
     visibleToYou: "Players don't see these teams yet. Only you do.",
+    visibleToGroupAdminsAndCaptains:
+      "Players don't see these teams yet. Only you, the group's admins and the captains do.",
+    visibleToYouAndCaptains:
+      "Players don't see these teams yet. Only you and the captains do.",
+    noCaptainsGroup:
+      "No captains picked, so only you and the group's admins can see this draft.",
+    noCaptainsYou: "No captains picked, so only you can see this draft.",
+    captainApproved:
+      "The captain approved their team. Publish when you're ready.",
+    bothCaptainsApproved:
+      "Both captains approved their team. Publish when you're ready.",
+    captainsApprovedOf: (approved: number, total: number) =>
+      plural("en", total, {
+        one: `${approved} of 1 captain has approved. You can publish without waiting.`,
+        other: `${approved} of {n} captains have approved. You can publish without waiting.`,
+      }),
+    publishAnyTime:
+      "You can publish without waiting. Moving a player in or out of a team after its captain approved asks that captain again.",
+    answer: {
+      approved: "Approved",
+      change_asked: "Change asked",
+      waiting: "Waiting",
+      none: "nobody to ask",
+    },
+    note: (note: string) => `“${note}”`,
+    captainView: {
+      from: (name: string) => `A draft from ${name}.`,
+      bothCaptainsAndOrganizers:
+        "Only the two captains and the organizers can see it.",
+      bothCaptainsAndOrganizer:
+        "Only the two captains and the organizer can see it.",
+      youAndOrganizers: "Only you and the organizers can see it.",
+      youAndOrganizer: "Only you and the organizer can see it.",
+    },
+    captainPanel: {
+      yourTeam: (team: string) => `Your team, ${team}`,
+      playersAvg: (n: number, avg: string) =>
+        plural("en", n, {
+          one: `1 player, avg ${avg}`,
+          other: `{n} players, avg ${avg}`,
+        }),
+      ask: (organizer: string) =>
+        `Happy with this team? Approve and ${organizer} knows your team is good to go. Nothing is final until it is published.`,
+      approve: "Approve my team",
+      askChange: "Ask for a change",
+      approvedTitle: (team: string) => `You approved ${team}`,
+      approvedBody: (organizer: string) => `${organizer} publishes when ready`,
+      changeTitle: "You asked for a change",
+      changeBody: (organizer: string) =>
+        `${organizer} sees your note on the draft`,
+      undo: "Undo",
+      otherTeam: (team: string, captain: string | null) =>
+        captain ? `${team}, captain ${captain}` : `${team}, no captain`,
+      ownTeamOnly: (other: string) =>
+        `You approve your own team only. You can see ${other}, but its captain answers for it.`,
+      noteSheet: {
+        title: "Ask for a change",
+        body: (organizer: string) =>
+          `${organizer} sees your note on the draft. Your team stays as it is until they change it.`,
+        label: "Your note",
+        placeholder: "Who should swap, and why?",
+        send: "Send",
+        cancel: "Cancel",
+      },
+    },
     notPublished: {
       title: "Teams aren't published yet",
       body: "The organizer is making them. You'll see your team and bib colour here as soon as they are published.",
       value: "Not published",
     },
+  },
+  captains: {
+    title: "Captains",
+    optional: "optional, one per team",
+    add: "Add a captain",
+    sheetBody:
+      "A captain sees the draft and can approve their team before you publish. They still pick the starters on the day.",
+    noCaptainFor: (team: string) => `No captain for ${team}`,
+    noneOnTeam:
+      "Nobody on this team can be a captain yet. Guest players and players without an account can't.",
+    done: "Done",
+    badge: "C",
+    spoken: "Captain",
+    chipSpoken: (team: string, captain: string | null) =>
+      captain ? `Captain for ${team}: ${captain}` : `Add a captain for ${team}`,
+    named: (name: string) => `Captain ${name}`,
+    none: "No captain picked",
   },
   errors: {
     notFootball: "Only a football Game has teams and a Score",
@@ -203,5 +286,10 @@ export const football = {
     draftChanged: "The draft changed. Open it again.",
     draftTeamsPublished:
       "The teams are published, so there is no draft to save",
+    captainOnSide: "A captain must be a player on their team",
+    captainNeedsAccount:
+      "A guest player or a player without an account can't be a captain",
+    draftNotCaptain: "Only a team's captain can answer for it",
+    draftNoteLength: (max: number) => `Write a note of 1 to ${max} characters`,
   },
 };

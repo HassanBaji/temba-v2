@@ -132,7 +132,11 @@ export function notificationEmailDestination(
       item.type === "game_level_range_declined" ||
       item.type === "challenge_proposal_confirmed" ||
       item.type === "challenge_squad_due" ||
-      item.type === "challenge_squad_named") &&
+      item.type === "challenge_squad_named" ||
+      item.type === "football_draft_shared" ||
+      item.type === "football_draft_changed" ||
+      item.type === "football_draft_approved" ||
+      item.type === "football_draft_change_asked") &&
     item.game
   ) {
     return { kind: "game", path: `/dashboard/games/${item.game.id}` };

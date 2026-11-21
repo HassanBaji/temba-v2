@@ -4,6 +4,7 @@ import {
   addGoal,
   balancedSides,
   boardTierCell,
+  clearSides,
   confirmationLine,
   draftSummary,
   footballHeroLines,
@@ -12,6 +13,7 @@ import {
   joinActionLabel,
   keeperNote,
   keeperSub,
+  mayBeSideCaptain,
   moveAcross,
   ovrLabel,
   ovrSpoken,
@@ -24,7 +26,9 @@ import {
   lineupName,
   scorersNote,
   scorersPayload,
+  setSideCaptain,
   shortName,
+  shuffleSides,
   switchMethod,
   tileShortName,
   sideOvrAverage,
@@ -180,6 +184,7 @@ describe("teams draft", () => {
       method: "manual",
       bibs: { slot1: "green", slot2: "pink" },
       sides: { k: 1, a: 2 },
+      captains: { slot1: null, slot2: null },
     });
   });
 
@@ -213,6 +218,103 @@ describe("teams draft", () => {
     expect(draftSummary(done, players, "en").note).toBe(
       "Everyone placed. Black avg OVR 81, White avg OVR 73.",
     );
+  });
+});
+
+describe("Side captains on the teams draft (ADR-0108)", () => {
+  const players = [
+    player("k", { role: "keeper", levelBand: "C1", ovr: 70 }),
+    player("a", { levelBand: "A", ovr: 92 }),
+    player("b", { levelBand: "B2", ovr: 80 }),
+    player("c", { levelBand: "C2", ovr: 66 }),
+  ];
+  const split = {
+    method: "manual" as const,
+    bibs: { slot1: "black", slot2: "white" } as const,
+    sides: { slot1: ["k", "a"], slot2: ["b", "c"] },
+  };
+
+  function named() {
+    return setSideCaptain(
+      setSideCaptain(initialTeamsDraft(players, null, split), 1, "a"),
+      2,
+      "b",
+    );
+  }
+
+  it("names one captain per side, from that side's players only, or none", () => {
+    const draft = named();
+    expect(draft.captains).toEqual({ slot1: "a", slot2: "b" });
+    expect(setSideCaptain(draft, 1, "c")).toBe(draft);
+    expect(setSideCaptain(draft, 1, "k").captains).toEqual({
+      slot1: "k",
+      slot2: "b",
+    });
+    expect(setSideCaptain(draft, 2, null).captains).toEqual({
+      slot1: "a",
+      slot2: null,
+    });
+  });
+
+  it("clears a captain moved to the other team, and keeps the other side's", () => {
+    expect(moveAcross(named(), "a").captains).toEqual({
+      slot1: null,
+      slot2: "b",
+    });
+    expect(moveAcross(named(), "k").captains).toEqual({
+      slot1: "a",
+      slot2: "b",
+    });
+  });
+
+  it("clears a captain unplaced or placed on the other side", () => {
+    expect(placeOn(named(), "a", 1).captains).toEqual({
+      slot1: null,
+      slot2: "b",
+    });
+    expect(placeOn(named(), "b", 1).captains).toEqual({
+      slot1: "a",
+      slot2: null,
+    });
+  });
+
+  it("clears both on Shuffle, Clear and a method switch", () => {
+    const none = { slot1: null, slot2: null };
+    expect(shuffleSides(named(), players, () => 0.5).captains).toEqual(none);
+    expect(clearSides(named())).toMatchObject({ sides: {}, captains: none });
+    expect(switchMethod(named(), "level", players).captains).toEqual(none);
+  });
+
+  it("starts from the saved draft's captains, or the published teams', while they are on their side", () => {
+    expect(
+      initialTeamsDraft(players, null, {
+        ...split,
+        captains: { slot1: "a", slot2: "k" },
+      }).captains,
+    ).toEqual({ slot1: "a", slot2: null });
+    expect(
+      initialTeamsDraft(
+        players.map((row) => ({
+          ...row,
+          sideIndex: row.userId === "k" || row.userId === "a" ? 1 : 2,
+        })),
+        {
+          method: "level",
+          bibs: split.bibs,
+          captains: { slot1: "k", slot2: "c" },
+        },
+      ).captains,
+    ).toEqual({ slot1: "k", slot2: "c" });
+    expect(initialTeamsDraft(players, null).captains).toEqual({
+      slot1: null,
+      slot2: null,
+    });
+  });
+
+  it("offers only players with an account", () => {
+    expect(mayBeSideCaptain(player("a"))).toBe(true);
+    expect(mayBeSideCaptain(player("g", { guest: true }))).toBe(false);
+    expect(mayBeSideCaptain(player("u", { unclaimed: true }))).toBe(false);
   });
 });
 
@@ -560,6 +662,16 @@ describe("footballHeroLines", () => {
       "مسودة، لم تُنشر",
     );
     expect(footballHeroLines(draft, at(42), "en").status).toBe("Live now");
+  });
+
+  it("names the team a Side captain captains on the draft", () => {
+    const draft = { ...input, draftSaved: true, draftSideCaptainOf: "Black" };
+    expect(footballHeroLines(draft, at(-15), "en").status).toBe(
+      "Draft, you captain Black",
+    );
+    expect(footballHeroLines(draft, at(-15), "ar").status).toBe(
+      "مسودة، أنت قائد Black",
+    );
   });
 });
 

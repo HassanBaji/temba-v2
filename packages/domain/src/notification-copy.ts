@@ -365,6 +365,58 @@ export function notificationCopy(
     };
   }
   if (
+    item.type === "football_draft_shared" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: m.footballDraftShared(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (
+    item.type === "football_draft_changed" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: m.footballDraftChanged(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (
+    item.type === "football_draft_approved" &&
+    item.audience === "admin" &&
+    item.game
+  ) {
+    return {
+      title: m.footballDraftApproved(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (
+    item.type === "football_draft_change_asked" &&
+    item.audience === "admin" &&
+    item.game
+  ) {
+    return {
+      title: m.footballDraftChangeAsked(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (
     item.type === "game_payment_reminder" &&
     item.audience === "player" &&
     item.game

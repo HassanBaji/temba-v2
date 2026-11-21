@@ -13,7 +13,10 @@ import {
   footballGameDetailsModel,
   type FootballGameDetailsInput,
 } from "@repo/domain/football-game-details";
-import { footballDraftVisibilityLine } from "@repo/domain/football-draft";
+import {
+  footballDraftCaptainViewLine,
+  footballDraftVisibilityLine,
+} from "@repo/domain/football-draft";
 import {
   footballTeamsMethodLabel,
   type FootballPosition,
@@ -61,6 +64,7 @@ import {
   viewerSideLine,
   type BoardPlayer,
 } from "@repo/domain/football-board";
+import { CaptainDraftPanel } from "../football/captain-draft-panel";
 import { DraftCard } from "../football/draft-card";
 import { InfoRows, type InfoRow } from "../football/info-rows";
 import { FootballJoinSheet } from "../football/join-sheet";
@@ -190,6 +194,10 @@ export function FootballGameDetails({
   const teams = board.data?.teams ?? null;
   const draft = teams ? null : (board.data?.draft ?? null);
   const names = teams ? bibNames(teams.bibs, locale) : null;
+  const draftSideCaptainOf =
+    draft && board.data?.viewer.canAnswerDraft
+      ? board.data.viewer.captainOf
+      : null;
   const viewer = players.find((player) => player.isViewer) ?? null;
   const preferences = api.users.onboardingState.useQuery().data;
   const marks = useGameMarks(gameId, board.data?.match?.status === "completed");
@@ -218,6 +226,12 @@ export function FootballGameDetails({
       teamsSet: teams != null && !challenge,
       scored: board.data?.match?.score != null,
       draftSaved: draft != null,
+      draftSideCaptainOf:
+        draft && draftSideCaptainOf
+          ? bibNames(draft.bibs, locale)[
+              draftSideCaptainOf === 1 ? "slot1" : "slot2"
+            ]
+          : null,
     },
     now,
     locale,
@@ -330,6 +344,10 @@ export function FootballGameDetails({
     onSuccess: () => toast.show(m.mobileTournament.makeTeams.published),
     onError: failure,
     onSettled: refresh,
+  });
+  const answerDraft = api.games.answerFootballDraft.useMutation({
+    onError: failure,
+    onSettled: () => utils.games.footballBoard.invalidate({ gameId }),
   });
   const reportWrongScore = api.games.reportWrongScore.useMutation({
     onSuccess: () => toast.show(copy.toast.scoreReopened),
@@ -596,6 +614,7 @@ export function FootballGameDetails({
           bibs={teams.bibs}
           names={names}
           balanceOn={board.data?.balanceOn ?? "ovr"}
+          sideCaptains={teams.captains}
           onOpenPlayer={onPressPlayer}
         />
         <Text size="meta" tone="muted">
@@ -869,7 +888,11 @@ export function FootballGameDetails({
             </Text>
           </Surface>
         ) : null}
-        {!teams && !game.isOrganizer && !challenge && !game.cancelledAt ? (
+        {!teams &&
+        !draft &&
+        !game.isOrganizer &&
+        !challenge &&
+        !game.cancelledAt ? (
           <Surface style={{ gap: 4 }}>
             <Text weight="semibold">{m.football.draft.notPublished.title}</Text>
             <Text size="meta" tone="muted">
@@ -891,27 +914,50 @@ export function FootballGameDetails({
               bibs={draft.bibs}
               names={bibNames(draft.bibs, locale)}
               balanceOn={board.data?.balanceOn ?? "ovr"}
+              sideCaptains={draft.captains}
               onOpenPlayer={onPressPlayer}
             />
             <Text size="meta" tone="muted">
-              {footballDraftVisibilityLine(game, locale)}
+              {draftSideCaptainOf
+                ? footballDraftCaptainViewLine(draft, game, locale)
+                : footballDraftVisibilityLine(
+                    game,
+                    locale,
+                    draft.captains.slot1 != null ||
+                      draft.captains.slot2 != null,
+                  )}
             </Text>
-            <DraftCard
-              draft={draft}
-              rosterUserIds={players.map((player) => player.userId)}
-              publishPending={publishDraft.isPending}
-              onPublish={() =>
-                publishDraft.mutate({
-                  gameId,
-                  method: draft.method,
-                  bibs: draft.bibs,
-                  slot1: draft.sides.slot1,
-                  slot2: draft.sides.slot2,
-                  draftUpdatedAt: draft.updatedAt,
-                })
-              }
-              onEdit={() => router.push(teamsPath)}
-            />
+            {draftSideCaptainOf ? (
+              <CaptainDraftPanel
+                draft={draft}
+                side={draftSideCaptainOf}
+                players={players}
+                balanceOn={board.data?.balanceOn ?? "ovr"}
+                pending={answerDraft.isPending}
+                onAnswer={(answer, note) =>
+                  answerDraft.mutate({ gameId, answer, note })
+                }
+              />
+            ) : (
+              <DraftCard
+                draft={draft}
+                players={players}
+                game={game}
+                publishPending={publishDraft.isPending}
+                onPublish={() =>
+                  publishDraft.mutate({
+                    gameId,
+                    method: draft.method,
+                    bibs: draft.bibs,
+                    slot1: draft.sides.slot1,
+                    slot2: draft.sides.slot2,
+                    captains: draft.captains,
+                    draftUpdatedAt: draft.updatedAt,
+                  })
+                }
+                onEdit={() => router.push(teamsPath)}
+              />
+            )}
           </View>
         ) : null}
         {!teams && !draft ? (

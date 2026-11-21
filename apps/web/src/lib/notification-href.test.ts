@@ -143,6 +143,10 @@ describe("notificationHref", () => {
       "challenge_proposal_confirmed",
       "challenge_squad_due",
       "challenge_squad_named",
+      "football_draft_shared",
+      "football_draft_changed",
+      "football_draft_approved",
+      "football_draft_change_asked",
     ]) {
       assert.equal(
         notificationHref({

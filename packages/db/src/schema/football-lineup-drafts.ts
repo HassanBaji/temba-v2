@@ -6,10 +6,15 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
-import { footballBibs, footballTeamsMethods } from "./game-enums";
+import {
+  footballBibs,
+  footballDraftAnswers,
+  footballTeamsMethods,
+} from "./game-enums";
 import { gamePlayers } from "./game-players";
 import { games } from "./games";
 import { user } from "./user";
@@ -26,6 +31,15 @@ export const footballLineupDrafts = pgTable(
     method: footballTeamsMethods("method").notNull(),
     slot1Bib: footballBibs("slot1_bib").notNull(),
     slot2Bib: footballBibs("slot2_bib").notNull(),
+    // Side captains (ADR-0108), cleared when they leave the Game.
+    slot1CaptainGamePlayerId: uuid("slot1_captain_game_player_id").references(
+      () => gamePlayers.id,
+      { onDelete: "set null" },
+    ),
+    slot2CaptainGamePlayerId: uuid("slot2_captain_game_player_id").references(
+      () => gamePlayers.id,
+      { onDelete: "set null" },
+    ),
     savedBy: uuid("saved_by")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
@@ -42,6 +56,12 @@ export const footballLineupDrafts = pgTable(
       "football_lineup_drafts_bibs_differ_check",
       sql`${table.slot1Bib} <> ${table.slot2Bib}`,
     ),
+    slot1CaptainIdx: index(
+      "football_lineup_drafts_slot1_captain_game_player_id_idx",
+    ).on(table.slot1CaptainGamePlayerId),
+    slot2CaptainIdx: index(
+      "football_lineup_drafts_slot2_captain_game_player_id_idx",
+    ).on(table.slot2CaptainGamePlayerId),
   }),
 );
 
@@ -73,6 +93,42 @@ export const footballLineupDraftPlayers = pgTable(
   }),
 );
 
+// A Captain's answer (ADR-0108) keeps the side's players it was given for, so
+// a side that has changed since reads as waiting without any door resetting it.
+export const footballLineupDraftAnswers = pgTable(
+  "football_lineup_draft_answers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    draftId: uuid("draft_id")
+      .notNull()
+      .references(() => footballLineupDrafts.id, { onDelete: "cascade" }),
+    sideIndex: integer("side_index").notNull(),
+    captainUserId: uuid("captain_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    answer: footballDraftAnswers("answer").notNull(),
+    note: varchar("note", { length: 140 }),
+    answeredPlayerIds: uuid("answered_player_ids").array().notNull(),
+    answeredAt: timestamp("answered_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    uniqueSide: uniqueIndex(
+      "football_lineup_draft_answers_draft_side_unique",
+    ).on(table.draftId, table.sideIndex),
+    captainIdx: index("football_lineup_draft_answers_captain_user_id_idx").on(
+      table.captainUserId,
+    ),
+    sideCheck: check(
+      "football_lineup_draft_answers_side_index_check",
+      sql`${table.sideIndex} in (1, 2)`,
+    ),
+    noteWithChange: check(
+      "football_lineup_draft_answers_note_check",
+      sql`${table.answer} <> 'change_asked' or ${table.note} is not null`,
+    ),
+  }),
+);
+
 export const footballLineupDraftRelations = relations(
   footballLineupDrafts,
   ({ one, many }) => ({
@@ -85,6 +141,7 @@ export const footballLineupDraftRelations = relations(
       references: [user.id],
     }),
     players: many(footballLineupDraftPlayers),
+    answers: many(footballLineupDraftAnswers),
   }),
 );
 
@@ -98,6 +155,20 @@ export const footballLineupDraftPlayerRelations = relations(
     gamePlayer: one(gamePlayers, {
       fields: [footballLineupDraftPlayers.gamePlayerId],
       references: [gamePlayers.id],
+    }),
+  }),
+);
+
+export const footballLineupDraftAnswerRelations = relations(
+  footballLineupDraftAnswers,
+  ({ one }) => ({
+    draft: one(footballLineupDrafts, {
+      fields: [footballLineupDraftAnswers.draftId],
+      references: [footballLineupDrafts.id],
+    }),
+    captain: one(user, {
+      fields: [footballLineupDraftAnswers.captainUserId],
+      references: [user.id],
     }),
   }),
 );

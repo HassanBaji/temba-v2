@@ -208,6 +208,32 @@ export const notification = {
       plain(" دفعتك لـ "),
       strong(game),
     ],
+    footballDraftShared: (actor: string, game: string) => [
+      plain("حفظ "),
+      strong(actor),
+      plain(" مسودة الفرق لـ "),
+      strong(game),
+      plain(". أنت قائد: اطّلع عليها قبل نشرها"),
+    ],
+    footballDraftChanged: (actor: string, game: string) => [
+      plain("غيّر "),
+      strong(actor),
+      plain(" فريقك في مسودة "),
+      strong(game),
+      plain(". ألقِ نظرة أخرى"),
+    ],
+    footballDraftApproved: (actor: string, game: string) => [
+      plain("وافق "),
+      strong(actor),
+      plain(" على فريقه في مسودة "),
+      strong(game),
+    ],
+    footballDraftChangeAsked: (actor: string, game: string) => [
+      plain("طلب "),
+      strong(actor),
+      plain(" تغييرًا في فريقه في مسودة "),
+      strong(game),
+    ],
     markReceived: (actor: string, kind: string, game: string) => [
       plain("منحك "),
       strong(actor),
