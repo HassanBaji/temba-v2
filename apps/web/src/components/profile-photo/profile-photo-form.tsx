@@ -5,16 +5,24 @@ import * as React from "react";
 import { SlotText } from "~/components/auth/auth-terms-note";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { NotNowLink, TaskActions } from "~/components/onboarding/task-actions";
+import { PhotoCropper } from "~/components/profile-photo/photo-cropper";
 import { Button, buttonVariants } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { Hatch } from "~/components/ui/hatch";
-import { profilePhotoUploadFile } from "~/lib/profile-photo-file";
+import { INITIAL_CROP, type PhotoCrop } from "~/lib/photo-crop";
+import {
+  croppedPhotoFile,
+  decodePhoto,
+  type DecodedPhoto,
+} from "~/lib/profile-photo-file";
 import { cn } from "~/lib/utils";
 import { splitClerkAuthError } from "@repo/domain/clerk-auth-error";
 import { initials } from "@repo/domain/initials";
 import { userDisplayName } from "@repo/domain/user-display-name";
 
 const FILE_INPUT_ID = "profile-photo-file";
+
+type PickedPhoto = { url: string; photo: DecodedPhoto; name: string };
 
 export type ProfilePhotoUser = {
   firstName: string | null;
@@ -26,7 +34,8 @@ export type ProfilePhotoUser = {
 };
 
 /**
- * Picks a profile photo and saves it straight to Clerk. Onboarding passes
+ * Picks a profile photo, lets the User frame it, and saves the framed square
+ * straight to Clerk. Onboarding passes
  * `notNowHref` for its way out; Settings has only the back button.
  */
 export function ProfilePhotoForm({
@@ -41,35 +50,63 @@ export function ProfilePhotoForm({
   const m = useMessages();
   const locale = useLocale();
   const copy = m.webAuth.onboarding.photo;
-  const [file, setFile] = React.useState<File | null>(null);
-  const [preview, setPreview] = React.useState<string | null>(null);
+  const [picked, setPicked] = React.useState<PickedPhoto | null>(null);
+  const [crop, setCrop] = React.useState<PhotoCrop>(INITIAL_CROP);
+  const [decoding, setDecoding] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const latestPick = React.useRef(0);
 
   React.useEffect(() => {
-    if (!file) {
-      setPreview(null);
+    const picks = latestPick;
+    // A decode still running at unmount then takes the stale path and revokes its URL.
+    return () => {
+      picks.current += 1;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (!picked) {
       return;
     }
-    const url = URL.createObjectURL(file);
-    setPreview(url);
+    const { url } = picked;
     return () => URL.revokeObjectURL(url);
-  }, [file]);
+  }, [picked]);
+
+  async function onPick(file: File) {
+    const pick = ++latestPick.current;
+    setError(null);
+    setDecoding(true);
+    const url = URL.createObjectURL(file);
+    const photo = await decodePhoto(url, file);
+    if (pick !== latestPick.current) {
+      URL.revokeObjectURL(url);
+      return;
+    }
+    setDecoding(false);
+    if (!photo) {
+      URL.revokeObjectURL(url);
+      setError(copy.unsupportedType);
+      return;
+    }
+    setCrop(INITIAL_CROP);
+    setPicked({ url, photo, name: file.name });
+  }
 
   const name = userDisplayName(user);
-  const shown = preview ?? (user.hasImage ? user.imageUrl : null);
+  const current = user.hasImage ? user.imageUrl : null;
 
   async function onSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pending || !file) {
+    if (pending || decoding || !picked) {
       return;
     }
     setPending(true);
     setError(null);
     try {
-      const upload = await profilePhotoUploadFile(file);
+      const upload = await croppedPhotoFile(picked.photo, crop, picked.name);
       if (!upload) {
-        setError(copy.unsupportedType);
+        setError(copy.cropFailed);
         setPending(false);
         return;
       }
@@ -86,11 +123,19 @@ export function ProfilePhotoForm({
     <form className="flex flex-col gap-5" onSubmit={onSave} noValidate>
       <FormErrorSummary message={error} />
       <div className="flex flex-col items-center gap-4 py-2">
-        {shown ? (
-          // eslint-disable-next-line @next/next/no-img-element -- blob: previews and Clerk image URLs are not static assets
+        {picked ? (
+          <PhotoCropper
+            src={picked.url}
+            natural={picked.photo.natural}
+            crop={crop}
+            onCropChange={setCrop}
+            disabled={pending || decoding}
+          />
+        ) : current ? (
+          // eslint-disable-next-line @next/next/no-img-element -- Clerk image URLs are not static assets
           <img
-            src={shown}
-            alt={preview ? copy.chosenAlt : copy.currentAlt}
+            src={current}
+            alt={copy.currentAlt}
             className="border-rule size-40 rounded-full border object-cover"
           />
         ) : (
@@ -101,7 +146,7 @@ export function ProfilePhotoForm({
             </span>
           </span>
         )}
-        {!shown && name ? (
+        {!picked && !current && name ? (
           <p className="text-meta text-muted-foreground">
             <SlotText
               text={copy.untilThenShownAs}
@@ -122,8 +167,12 @@ export function ProfilePhotoForm({
           className="sr-only"
           disabled={pending}
           onChange={(event) => {
-            setError(null);
-            setFile(event.target.files?.[0] ?? null);
+            const chosen = event.target.files?.[0];
+            // Cleared so picking the same file again still fires a change.
+            event.target.value = "";
+            if (chosen) {
+              void onPick(chosen);
+            }
           }}
         />
         <label
@@ -134,16 +183,11 @@ export function ProfilePhotoForm({
             pending && "pointer-events-none opacity-50",
           )}
         >
-          {file ? copy.chooseDifferent : copy.choose}
+          {picked ? copy.chooseDifferent : copy.choose}
         </label>
-        {file ? (
-          <p
-            className="text-meta text-muted-foreground truncate"
-            aria-live="polite"
-          >
-            {file.name}
-          </p>
-        ) : null}
+        <p className="sr-only" aria-live="polite">
+          {picked && !decoding ? copy.ready : ""}
+        </p>
       </div>
       <TaskActions>
         <Button
@@ -151,7 +195,7 @@ export function ProfilePhotoForm({
           size="lg"
           pending={pending}
           pendingLabel={copy.saving}
-          disabled={!file}
+          disabled={!picked || decoding}
           className="w-full font-semibold"
         >
           {copy.save}

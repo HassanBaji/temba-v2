@@ -7,6 +7,8 @@ import { toast } from "sonner";
 
 import { formatGameClockWithoutMeridiem } from "@repo/domain/format-game-start";
 import {
+  boardRoundClock,
+  formatBoardClock,
   formatBoardCode,
   LIVE_BOARD_MESSAGE_MAX,
   LIVE_BOARD_SCREENS,
@@ -15,6 +17,7 @@ import {
   type LiveBoardScreen,
   type LiveBoardColorScheme,
   type LiveBoardOnShow,
+  type RoundClockAction,
 } from "@repo/domain/live-board";
 
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
@@ -31,6 +34,7 @@ import { Surface } from "~/components/ui/surface";
 import { gameHomeHref } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 
+import { useClockLabel } from "./board-kit";
 import {
   SecondsSegments,
   SettingRow,
@@ -158,10 +162,129 @@ function BoardThumbnail({
 export type BoardControlDoors = {
   offsetMs: number;
   change: LiveBoardHandle["change"];
+  setRoundClock: (action: RoundClockAction) => void;
   setMessage: Pick<LiveBoardHandle["setMessage"], "mutate" | "isPending">;
   disconnectTv: Pick<LiveBoardHandle["disconnectTv"], "mutate" | "isPending">;
   stop: Pick<LiveBoardHandle["stop"], "mutateAsync" | "isPending">;
 };
+
+/**
+ * The Round clock as the Organizer runs it: start the Round on court, pause
+ * and resume it, or leave it to the posted schedule.
+ */
+function RoundClockSection({
+  board,
+  live,
+  now,
+}: {
+  board: LiveBoardControlState;
+  live: BoardControlDoors;
+  now: Date;
+}) {
+  const m = useMessages().liveBoard;
+  const c = m.control;
+  const clockLabel = useClockLabel();
+  const [restartOpen, setRestartOpen] = React.useState(false);
+  const round = board.status?.round;
+  if (!round) {
+    return null;
+  }
+  const { byHand } = board.roundClock;
+  const reading = boardRoundClock(board.roundClock, round, now);
+  const state =
+    !byHand || !reading || reading.kind === "starts"
+      ? "schedule"
+      : reading.kind;
+  const running = reading?.kind === "left";
+  const underWay = byHand && (running || reading?.kind === "paused");
+  const start = c.startRound(round.roundNumber);
+
+  return (
+    <Section meta={c.clockState[state]} title={c.clockTitle}>
+      <SettingsBlock>
+        <div className="flex min-h-[58px] items-center gap-3.5 px-[18px] py-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-body font-semibold">
+              {m.board.round(round.roundNumber)}
+            </p>
+            <p className="text-muted-foreground text-eyebrow mt-0.5">
+              {reading ? clockLabel(reading, round.roundNumber) : c.clockNone}
+            </p>
+          </div>
+          {reading ? (
+            <span
+              aria-live="off"
+              className="font-expanded flex-none text-[28px] leading-none"
+              dir="ltr"
+            >
+              {formatBoardClock(reading.seconds)}
+            </span>
+          ) : null}
+        </div>
+        <div className="flex gap-2 p-3">
+          {running ? (
+            <Button
+              className="flex-1"
+              onClick={() => live.setRoundClock("pause")}
+            >
+              {c.pauseClock}
+            </Button>
+          ) : underWay ? (
+            <Button
+              className="flex-1"
+              onClick={() => live.setRoundClock("resume")}
+            >
+              {c.resumeClock}
+            </Button>
+          ) : (
+            <Button
+              className="flex-1"
+              onClick={() => live.setRoundClock("start")}
+            >
+              {start}
+            </Button>
+          )}
+          {underWay ? (
+            <Button
+              className="flex-1"
+              onClick={() => setRestartOpen(true)}
+              variant="outline"
+            >
+              {c.restartClock}
+            </Button>
+          ) : running ? (
+            <Button
+              className="flex-1"
+              onClick={() => live.setRoundClock("start")}
+              variant="outline"
+            >
+              {start}
+            </Button>
+          ) : null}
+        </div>
+        <SwitchRow
+          checked={!byHand}
+          hint={c.followScheduleHint}
+          onChange={(follow) =>
+            live.setRoundClock(follow ? "schedule" : "by_hand")
+          }
+          title={c.followSchedule}
+        />
+      </SettingsBlock>
+      <p className="text-muted-foreground text-eyebrow mt-2.5">{c.clockNote}</p>
+      <ConfirmDialog
+        cancelLabel={c.restartKeep}
+        confirmLabel={c.restartClock}
+        description={c.restartBody}
+        onConfirm={() => live.setRoundClock("start")}
+        onOpenChange={setRestartOpen}
+        open={restartOpen}
+        title={c.restartTitle(round.roundNumber)}
+        variant="default"
+      />
+    </Section>
+  );
+}
 
 function MessageSection({
   gameId,
@@ -339,6 +462,10 @@ export function BoardControlBody({
           <p className="text-dim text-eyebrow mt-2">{nowLine}</p>
         </div>
       </Surface>
+
+      {social && onShow.kind === "screen" ? (
+        <RoundClockSection board={board} live={live} now={now} />
+      ) : null}
 
       {social && onShow.kind !== "final" ? (
         <>

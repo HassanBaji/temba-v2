@@ -88,6 +88,73 @@ describe("groupPlayedCard", () => {
   });
 });
 
+describe("a drawn Social on the Played list", () => {
+  const americano = {
+    ...home.member.gameHistory[0]!,
+    name: "Friday Americano",
+    hasCustomName: true,
+    venueName: "World Padel Academy",
+    courtName: "5",
+    slot1Members: [],
+    slot2Members: [],
+    scoredSets: [{ slot1GamesWon: 0, slot2GamesWon: 6 }],
+    viewerSlot: null,
+    outcome: null,
+    social: {
+      tournamentShape: "americano",
+      entrantCount: 8,
+      finished: true,
+      winner: { names: ["Jassim Ghuloom"], isViewer: false },
+      americano: null,
+      myTournament: null,
+    },
+  };
+
+  it("reads as the whole day, never as one Match between open seats", () => {
+    const card = groupPlayedCard(americano, "en");
+    expect(card.sides).toBeNull();
+    expect(card.result).toBeNull();
+    expect(card.whenLine.endsWith("World Padel Academy")).toBe(true);
+    expect(card.social).toMatchObject({
+      tags: ["Social", "Americano"],
+      headline: "Finished",
+      summary: "World Padel Academy, 8 players",
+      winner: { markName: "Jassim Ghuloom", line: "Won by Jassim Ghuloom" },
+    });
+    expect(card.accessibilityLabel).toContain(
+      "8 players. Won by Jassim Ghuloom",
+    );
+  });
+
+  it("counts teams and names the winning pair on every other shape", () => {
+    const card = groupPlayedCard(
+      {
+        ...americano,
+        social: {
+          ...americano.social,
+          tournamentShape: "groups_only",
+          entrantCount: 4,
+          finished: false,
+          winner: { names: ["Ada Lovelace", "Kim Hart"], isViewer: true },
+        },
+      },
+      "en",
+    );
+    expect(card.social).toMatchObject({
+      tags: ["Social"],
+      headline: "Results to come",
+      summary: "World Padel Academy, 4 teams",
+      winner: { isViewer: true, line: "Won by Ada L & Kim H" },
+    });
+  });
+
+  it("keeps the cancelled card for a cancelled Social", () => {
+    const card = groupPlayedCard({ ...americano, cancelled: true }, "en");
+    expect(card.status).toBe("cancelled");
+    expect(card.social).toBeNull();
+  });
+});
+
 describe("groupPlayedListItems", () => {
   it("heads each month with its Game count", () => {
     const items = groupPlayedListItems(

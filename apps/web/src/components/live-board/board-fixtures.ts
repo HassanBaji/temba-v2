@@ -1,11 +1,12 @@
-import type {
-  FootballScoreboard,
-  LiveBoardMatch,
-  LiveBoardRound,
-  LiveBoardRoundMark,
-  LiveBoardTableRow,
-  PadelScoreboard,
-  SocialBoardContent,
+import {
+  ROUND_CLOCK_ON_SCHEDULE,
+  type FootballScoreboard,
+  type LiveBoardMatch,
+  type LiveBoardRound,
+  type LiveBoardRoundMark,
+  type LiveBoardTableRow,
+  type PadelScoreboard,
+  type SocialBoardContent,
 } from "@repo/domain/live-board";
 
 import type { LiveBoardSnapshot } from "./board-kit";
@@ -330,6 +331,7 @@ const SETTINGS: Settings = {
   rotationStartedAt: PREVIEW_NOW,
   colorScheme: "dark",
   showQr: true,
+  roundClock: ROUND_CLOCK_ON_SCHEDULE,
   message: null,
 };
 

@@ -31,6 +31,7 @@ import {
   BoardHeader,
   BoardStrip,
   useBoardSubtitle,
+  useClockLabel,
   useStartLine,
   LIFTED,
   NotYet,
@@ -956,7 +957,8 @@ export function SocialBoard({
   const locale = useLocale();
   const follow = useFollowLines();
   const { game, settings } = snapshot;
-  const view = socialBoardView(content, now);
+  const view = socialBoardView(content, now, settings.roundClock);
+  const clockLabel = useClockLabel();
   const subtitle = useBoardSubtitle(game);
   const startLine = useStartLine(game);
 
@@ -1014,17 +1016,14 @@ export function SocialBoard({
   }
 
   const current = view.current;
+  const paused = view.clock?.kind === "paused";
   return (
     <>
       <BoardHeader
         aside={
           view.clock ? (
             <BoardClock
-              label={
-                view.clock.kind === "left"
-                  ? b.clockLeft
-                  : b.clockStarts(current.roundNumber)
-              }
+              label={clockLabel(view.clock, current.roundNumber)}
               value={formatBoardClock(view.clock.seconds)}
             />
           ) : undefined
@@ -1033,9 +1032,15 @@ export function SocialBoard({
           <>
             <div className="flex items-center" style={{ gap: 12 }}>
               <StatusTag
-                tone={current.state === "scheduled" ? "outline" : "live"}
+                tone={
+                  current.state === "scheduled" || paused ? "outline" : "live"
+                }
               >
-                {current.state === "scheduled" ? b.soon : b.live}
+                {current.state === "scheduled"
+                  ? b.soon
+                  : paused
+                    ? b.paused
+                    : b.live}
               </StatusTag>
               <span
                 className="whitespace-nowrap font-semibold"

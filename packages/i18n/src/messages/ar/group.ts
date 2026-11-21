@@ -117,6 +117,29 @@ export const group = {
     joinedOpen: (joined: number) => `انضم ${joined}`,
     sideSpoken: (name: string, score: string) => `${name} ${score}`,
     card: (parts: string[]) => parts.join(". "),
+    social: {
+      finished: "منتهية",
+      toCome: "النتائج قريبًا",
+      players: (n: number) =>
+        plural("ar", n, {
+          zero: "لا لاعبين",
+          one: "لاعب واحد",
+          two: "لاعبان",
+          few: "{n} لاعبين",
+          many: "{n} لاعبًا",
+          other: "{n} لاعب",
+        }),
+      teams: (n: number) =>
+        plural("ar", n, {
+          zero: "لا فرق",
+          one: "فريق واحد",
+          two: "فريقان",
+          few: "{n} فرق",
+          many: "{n} فريقًا",
+          other: "{n} فريق",
+        }),
+      wonBy: (name: string) => `فاز ${name}`,
+    },
   },
   empty: {
     standingAfterFirstResult: "يظهر الترتيب بعد أول نتيجة.",

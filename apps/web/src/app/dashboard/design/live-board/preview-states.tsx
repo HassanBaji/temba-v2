@@ -4,7 +4,9 @@ import * as React from "react";
 
 import {
   changeBoardRotation,
+  changeRoundClock,
   normalizeBoardMessage,
+  ROUND_CLOCK_ON_SCHEDULE,
 } from "@repo/domain/live-board";
 
 import {
@@ -47,6 +49,11 @@ function Phone({
   );
 }
 
+const PREVIEW_ROUND_SECONDS = 30 * 60;
+
+/** The fixture's Round has 11:38 left when the preview opens. */
+const PREVIEW_SECONDS_LEFT = 11 * 60 + 38;
+
 function initialControl(): LiveBoardControlState {
   const now = new Date();
   return {
@@ -69,7 +76,19 @@ function initialControl(): LiveBoardControlState {
         connectedAt: new Date(now.getTime() - 8 * 60_000),
       },
     ],
-    status: { phase: "live", screens: ["on_court", "table", "next_up"] },
+    roundClock: ROUND_CLOCK_ON_SCHEDULE,
+    status: {
+      phase: "live",
+      screens: ["on_court", "table", "next_up"],
+      round: {
+        roundNumber: 4,
+        lengthSeconds: PREVIEW_ROUND_SECONDS,
+        schedule: {
+          startsAt: null,
+          endsAt: new Date(now.getTime() + PREVIEW_SECONDS_LEFT * 1000),
+        },
+      },
+    },
     serverNow: now,
   };
 }
@@ -85,6 +104,14 @@ function usePreviewControl() {
         ...settings,
         ...changeBoardRotation(current, settings, new Date()),
       })),
+    setRoundClock: (action) =>
+      setBoard((current) => {
+        const round = current.status?.round;
+        const roundClock = round
+          ? changeRoundClock(current.roundClock, action, round, new Date())
+          : null;
+        return roundClock ? { ...current, roundClock } : current;
+      }),
     setMessage: {
       isPending: false,
       mutate: (input, options) => {
@@ -136,7 +163,12 @@ function LiveControlPreview() {
     return null;
   }
   // The fixture's Round stays at 11:38 left while the rotation runs on the
-  // real clock, so the screens turn without the Round running out.
+  // real clock, so the screens turn without the Round running out. A clock
+  // run by hand from the control is moved onto the fixture's time.
+  const onFixture = (time: Date | null) =>
+    time
+      ? new Date(PREVIEW_NOW.getTime() - (clock.getTime() - time.getTime()))
+      : null;
   const snapshot = {
     ...social,
     settings: {
@@ -150,6 +182,11 @@ function LiveControlPreview() {
       ),
       colorScheme: board.colorScheme,
       showQr: board.showQr,
+      roundClock: {
+        ...board.roundClock,
+        startedAt: onFixture(board.roundClock.startedAt),
+        runningSince: onFixture(board.roundClock.runningSince),
+      },
       message: board.messageShown ? board.message : null,
     },
   };
@@ -183,13 +220,19 @@ function LiveControlPreview() {
           offsetMs={0}
         />
         <OnTvCard
-          board={{ ...board, status: { phase: "waiting", screens: [] } }}
+          board={{
+            ...board,
+            status: { phase: "waiting", screens: [], round: null },
+          }}
           gameId="preview"
           kind="social"
           offsetMs={0}
         />
         <OnTvCard
-          board={{ ...board, status: { phase: "final", screens: [] } }}
+          board={{
+            ...board,
+            status: { phase: "final", screens: [], round: null },
+          }}
           gameId="preview"
           kind="social"
           offsetMs={0}
@@ -200,7 +243,10 @@ function LiveControlPreview() {
         <BoardControlBody
           board={{
             ...board,
-            status: { phase: "live", screens: ["on_court", "table"] },
+            status: board.status && {
+              ...board.status,
+              screens: ["on_court", "table"],
+            },
           }}
           gameId="preview"
           kind="social"
@@ -210,7 +256,10 @@ function LiveControlPreview() {
       </Phone>
       <Phone title="2b Board control, final">
         <BoardControlBody
-          board={{ ...board, status: { phase: "final", screens: [] } }}
+          board={{
+            ...board,
+            status: { phase: "final", screens: [], round: null },
+          }}
           gameId="preview"
           kind="social"
           live={doors}
