@@ -8,6 +8,8 @@ const PLAYER_MATCHES = /^\/dashboard\/players\/([^/]+)\/matches\/?$/;
 const PLAYER_MARKS = /^\/dashboard\/players\/([^/]+)\/marks\/?$/;
 const PLAYER_MARK = /^\/dashboard\/players\/([^/]+)\/marks\/([^/]+)\/?$/;
 
+const SERIES_PAGE = /^\/dashboard\/series\/[^/]+\/?$/;
+
 const YOU_RATINGS_HREF = "/dashboard/you/ratings";
 
 /** All requests: every request waiting on the viewer as an Organizer or Group approver. */
@@ -45,6 +47,11 @@ export function playerMarkPath(userId: string, kind: CoinKind, sport: Sport) {
   return `/dashboard/players/${userId}/marks/${kind}?sport=${sport}`;
 }
 
+/** A Series page (3b). */
+export function seriesPagePath(seriesId: string) {
+  return `/dashboard/series/${seriesId}`;
+}
+
 export function titleFromPath(pathname: string, m: Messages) {
   const titles = m.webUi.pageTitle;
   if (pathname === "/dashboard") {
@@ -62,6 +69,9 @@ export function titleFromPath(pathname: string, m: Messages) {
   }
   if (pathname.startsWith("/dashboard/players/")) {
     return titles.player;
+  }
+  if (SERIES_PAGE.test(pathname)) {
+    return m.series.page.title;
   }
   if (pathname.startsWith("/dashboard/you/settings")) {
     return m.common.settings;
@@ -149,6 +159,7 @@ export function pageHidesMobileTopBar(pathname: string) {
     pathname.startsWith("/dashboard/you/") ||
     pathname.startsWith("/dashboard/games/new") ||
     PLAYER_PROFILE.test(pathname) ||
+    SERIES_PAGE.test(pathname) ||
     /^\/dashboard\/groups\/(?!new$)[^/]+/.test(pathname)
   );
 }

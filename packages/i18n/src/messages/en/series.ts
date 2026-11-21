@@ -100,6 +100,41 @@ export const series = {
         ? `Edition ${edition} with ${who}. ${place}`
         : `Edition ${edition}. ${place}`,
   },
+  page: {
+    title: "Series",
+    loadError: "This series could not be loaded",
+    played: (n: number) => plural("en", n, { one: "played", other: "played" }),
+    differentWinners: (n: number) =>
+      plural("en", n, {
+        one: "different winner",
+        other: "different winners",
+      }),
+    runningSince: "running since",
+    ended: "ended",
+    mostWins: "Most wins",
+    of: (played: number) => `of ${played}`,
+    lastWon: (edition: number) => `Last won edition ${edition}`,
+    youLastWon: (edition: number) => `You. Last won edition ${edition}`,
+    wins: (n: number) => plural("en", n, { one: "{n} win", other: "{n} wins" }),
+    allWinners: (n: number) =>
+      plural("en", n, { one: "All {n} winner", other: "All {n} winners" }),
+    editions: "Editions",
+    newestFirst: "newest first",
+    edition: (edition: number) => `Edition ${edition}`,
+    notPlayedYet: "Not played yet",
+    noResultYet: "No result yet",
+    nobodyWon: "Nobody won",
+    allEditions: (n: number) =>
+      plural("en", n, { one: "All {n} edition", other: "All {n} editions" }),
+    empty:
+      "No editions yet. Attach this series when you create a game or a social.",
+    actions: "Series actions",
+    end: "End series",
+    endTitle: (name: string) => `End ${name}?`,
+    endConfirm:
+      "Nothing can be attached to it any more. Badges already won stay on profiles.",
+    endRemoves: "This series has no editions, so it will be removed.",
+  },
   errors: {
     notFound: "Series not found",
     verifiedOnly: "Only a verified group can have a series",

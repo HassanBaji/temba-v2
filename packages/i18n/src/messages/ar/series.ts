@@ -130,6 +130,72 @@ export const series = {
         ? `النسخة ${edition} مع ${isolate(who)}. ${place}`
         : `النسخة ${edition}. ${place}`,
   },
+  page: {
+    title: "السلسلة",
+    loadError: "تعذّر تحميل هذه السلسلة",
+    played: (n: number) =>
+      plural("ar", n, {
+        zero: "نسخ لُعبت",
+        one: "نسخة لُعبت",
+        two: "نسختان لُعبتا",
+        few: "نسخ لُعبت",
+        many: "نسخة لُعبت",
+        other: "نسخة لُعبت",
+      }),
+    differentWinners: (n: number) =>
+      plural("ar", n, {
+        zero: "فائزين مختلفين",
+        one: "فائز",
+        two: "فائزان مختلفان",
+        few: "فائزين مختلفين",
+        many: "فائزًا مختلفًا",
+        other: "فائز مختلف",
+      }),
+    runningSince: "جارية منذ",
+    ended: "انتهت",
+    mostWins: "الأكثر فوزًا",
+    of: (played: number) => `من ${played}`,
+    lastWon: (edition: number) => `آخر فوز في النسخة ${edition}`,
+    youLastWon: (edition: number) => `أنت. آخر فوز في النسخة ${edition}`,
+    wins: (n: number) =>
+      plural("ar", n, {
+        zero: "لا انتصارات",
+        one: "فوز واحد",
+        two: "فوزان",
+        few: "{n} انتصارات",
+        many: "{n} فوزًا",
+        other: "{n} فوز",
+      }),
+    allWinners: (n: number) =>
+      plural("ar", n, {
+        one: "الفائز الوحيد",
+        two: "الفائزان",
+        few: "كل الفائزين الـ{n}",
+        many: "كل الفائزين الـ{n}",
+        other: "كل الفائزين الـ{n}",
+      }),
+    editions: "النسخ",
+    newestFirst: "الأحدث أولًا",
+    edition: (edition: number) => `النسخة ${edition}`,
+    notPlayedYet: "لم تُلعب بعد",
+    noResultYet: "لا نتيجة بعد",
+    nobodyWon: "لم يفز أحد",
+    allEditions: (n: number) =>
+      plural("ar", n, {
+        one: "النسخة الوحيدة",
+        two: "النسختان",
+        few: "كل النسخ الـ{n}",
+        many: "كل النسخ الـ{n}",
+        other: "كل النسخ الـ{n}",
+      }),
+    empty: "لا نسخ بعد. أضف هذه السلسلة عند إنشاء مباراة أو سوشيال.",
+    actions: "إجراءات السلسلة",
+    end: "إنهاء السلسلة",
+    endTitle: (name: string) => `إنهاء ${isolate(name)}؟`,
+    endConfirm:
+      "لن يمكن إضافة أي شيء إليها بعد الآن. تبقى الشارات المكتسبة على الملفات الشخصية.",
+    endRemoves: "لا نسخ لهذه السلسلة، لذا ستُحذف.",
+  },
   errors: {
     notFound: "السلسلة غير موجودة",
     verifiedOnly: "السلاسل للمجموعات الموثّقة فقط",

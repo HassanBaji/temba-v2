@@ -33,7 +33,10 @@ type MostWinsRow = {
   isViewer: boolean;
 };
 
-function editionState(edition: SeriesEdition, now: Date) {
+function editionState(
+  edition: SeriesEdition,
+  now: Date,
+): "upcoming" | "awaiting" | "no_winner" | "won" {
   if (edition.result.state !== "upcoming") {
     return edition.result.state;
   }

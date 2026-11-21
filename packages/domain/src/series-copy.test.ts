@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  seriesPageSince,
   seriesProfileMeta,
   seriesRowLine,
   seriesRuleLine,
@@ -97,6 +98,35 @@ describe("seriesRowLine", () => {
     expect(seriesRowLine(ended, "ar", NOW)).toBe(
       "سوشيال بادل. لم تُلعب أي نسخة، وانتهت في مارس",
     );
+  });
+});
+
+describe("seriesPageSince", () => {
+  it("names the month a running Series was created", () => {
+    const series = { createdAt: MARCH, endedAt: null };
+    expect(seriesPageSince(series, "en", NOW)).toEqual({
+      value: "Mar",
+      label: "running since",
+    });
+    expect(seriesPageSince(series, "ar", NOW).label).toBe("جارية منذ");
+  });
+
+  it("adds the year when it is not this year", () => {
+    expect(
+      seriesPageSince({ createdAt: LAST_MARCH, endedAt: null }, "en", NOW),
+    ).toEqual({ value: "Mar 2025", label: "running since" });
+  });
+
+  it("names the month an ended Series ended", () => {
+    const series = { createdAt: LAST_MARCH, endedAt: MARCH };
+    expect(seriesPageSince(series, "en", NOW)).toEqual({
+      value: "Mar",
+      label: "ended",
+    });
+    expect(seriesPageSince(series, "ar", NOW)).toEqual({
+      value: "مارس",
+      label: "انتهت",
+    });
   });
 });
 

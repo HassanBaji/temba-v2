@@ -11,6 +11,7 @@ import {
   playerMarksPath,
   playerMatchesPath,
   playerProfilePath,
+  seriesPagePath,
   titleFromPath,
 } from "./dashboard-paths";
 
@@ -267,5 +268,16 @@ describe("Player marks paths", () => {
       pageHidesMobileTopBar(`/dashboard/players/${userId}/marks/clutch`),
       false,
     );
+  });
+});
+
+describe("Series page path", () => {
+  const seriesId = "8a3f1c2e-0000-4000-8000-000000000001";
+
+  it("builds the path, titles it and hides the mobile top bar", () => {
+    const path = seriesPagePath(seriesId);
+    assert.equal(path, `/dashboard/series/${seriesId}`);
+    assert.equal(titleFromPath(path, en), "Series");
+    assert.equal(pageHidesMobileTopBar(path), true);
   });
 });

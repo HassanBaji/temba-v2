@@ -17,8 +17,13 @@ export type SeriesRowLineInput = {
   endedAt: Date | null;
 };
 
-function monthOf(date: Date, now: Date, locale: Locale) {
-  const month = formatMonth(date, "long", locale);
+function monthOf(
+  date: Date,
+  now: Date,
+  locale: Locale,
+  style: "long" | "short" = "long",
+) {
+  const month = formatMonth(date, style, locale);
   const { year } = zonedParts(date);
   return year === zonedParts(now).year ? month : `${month} ${year}`;
 }
@@ -47,6 +52,25 @@ export function seriesRowLine(
   return row.next
     ? m.rowLineNext(kind, played, row.next.edition)
     : m.rowLine(kind, played);
+}
+
+/**
+ * The Series page's third figure (design 3b): the month the Series was
+ * created, "running since", or the month it ended; the year too when it is
+ * not this year.
+ */
+export function seriesPageSince(
+  series: { createdAt: Date; endedAt: Date | null },
+  locale: Locale,
+  now: Date = new Date(),
+) {
+  const m = messagesFor(locale).series.page;
+  return series.endedAt
+    ? { value: monthOf(series.endedAt, now, locale, "short"), label: m.ended }
+    : {
+        value: monthOf(series.createdAt, now, locale, "short"),
+        label: m.runningSince,
+      };
 }
 
 /**
