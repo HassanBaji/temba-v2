@@ -59,7 +59,7 @@ async function managesVenue(database: DbOrTx, venueId: string, userId: string) {
   return row !== undefined;
 }
 
-async function canViewGroup(
+export async function canViewGroup(
   database: DbOrTx,
   group: GroupForViewer,
   userId: string,

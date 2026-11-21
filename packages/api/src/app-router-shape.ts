@@ -279,8 +279,11 @@ type ExpectedSeries =
   | "attachOptions"
   | "byId"
   | "create"
+  | "edition"
   | "end"
-  | "listForGroup";
+  | "forPlayer"
+  | "listForGroup"
+  | "playerWins";
 
 type ExpectedTeams =
   | "create"

@@ -1,4 +1,7 @@
 import { plural } from "../../plural";
+import { tournamentRounds } from "./tournament-rounds";
+
+const { ordinal } = tournamentRounds.shareCard;
 
 export const series = {
   noun: {
@@ -55,6 +58,47 @@ export const series = {
         one: `${first}, ${second} and {n} more`,
         other: `${first}, ${second} and {n} more`,
       }),
+    ruleSide:
+      "Every player on the winning side gets the badge. A draw gives it to nobody.",
+    rule: {
+      table: (edition: number) =>
+        `Top of the table wins edition ${edition} and the badge.`,
+      tables: (edition: number) =>
+        `Top of each group wins edition ${edition} and the badge.`,
+      champion: (edition: number) =>
+        `The champion wins edition ${edition} and the badge.`,
+      king: (edition: number) =>
+        `The king of the court wins edition ${edition} and the badge.`,
+      americano: (edition: number) =>
+        `Top of the standings wins edition ${edition} and the badge.`,
+    },
+    wonLast: (winners: string) => `${winners} won the last one.`,
+  },
+  win: {
+    ordinal: (name: string, n: number) => `${name}’s ${ordinal(n)}`,
+    yourOrdinal: (n: number) => `Your ${ordinal(n)}`,
+    standingNew: "new on the profile",
+    standingMost: "most of anyone",
+    standingLevelWith: (name: string) => `most of anyone, level with ${name}`,
+    standingLevelWithCount: (n: number) =>
+      plural("en", n, {
+        one: "most of anyone, level with {n} other",
+        other: "most of anyone, level with {n} others",
+      }),
+  },
+  profile: {
+    meta: (wins: number, series: number) =>
+      `${plural("en", wins, { one: "{n} win", other: "{n} wins" })} in ${series}`,
+    with: (who: string) => `With ${who}`,
+    bibScore: (bib: string, mine: number, theirs: number) =>
+      `${bib}, ${mine}–${theirs}`,
+  },
+  latest: {
+    title: (name: string) => `Series win: ${name}`,
+    line: (edition: number, who: string | null, place: string) =>
+      who
+        ? `Edition ${edition} with ${who}. ${place}`
+        : `Edition ${edition}. ${place}`,
   },
   errors: {
     notFound: "Series not found",

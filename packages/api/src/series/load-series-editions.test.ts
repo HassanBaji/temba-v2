@@ -147,9 +147,23 @@ describe("loadSeriesEditions", () => {
       winnerBib: "white",
       decidedAt: completedAt,
     });
+    const gameTeamId = edition?.score?.slot2GameTeamId;
+    expect(gameTeamId).toBeTruthy();
     expect(edition?.winners).toEqual([
-      { userId: f.layla.id, name: "Layla Haddad", image: null, isGuest: false },
-      { userId: f.guest.id, name: "Guest Gamer", image: null, isGuest: true },
+      {
+        userId: f.layla.id,
+        name: "Layla Haddad",
+        image: null,
+        isGuest: false,
+        gameTeamId,
+      },
+      {
+        userId: f.guest.id,
+        name: "Guest Gamer",
+        image: null,
+        isGuest: true,
+        gameTeamId,
+      },
     ]);
     expect(edition?.score?.sets).toEqual([
       { slot1GamesWon: 2, slot2GamesWon: 4 },

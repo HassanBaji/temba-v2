@@ -1,6 +1,9 @@
 import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { series as source } from "../en/series";
+import { tournamentRounds } from "./tournament-rounds";
+
+const placeWord = tournamentRounds.shareCard.ordinal;
 
 export const series = {
   noun: {
@@ -68,6 +71,64 @@ export const series = {
         many: `${isolate(first)} و${isolate(second)} و{n} آخرين`,
         other: `${isolate(first)} و${isolate(second)} و{n} آخرين`,
       }),
+    ruleSide: "ينال الشارة كل لاعب في الجانب الفائز. التعادل لا يمنحها لأحد.",
+    rule: {
+      table: (edition: number) =>
+        `متصدّر الجدول يفوز بالنسخة ${edition} وبالشارة.`,
+      tables: (edition: number) =>
+        `متصدّر كل مجموعة يفوز بالنسخة ${edition} وبالشارة.`,
+      champion: (edition: number) => `البطل يفوز بالنسخة ${edition} وبالشارة.`,
+      king: (edition: number) => `ملك الملعب يفوز بالنسخة ${edition} وبالشارة.`,
+      americano: (edition: number) =>
+        `متصدّر الترتيب يفوز بالنسخة ${edition} وبالشارة.`,
+    },
+    wonLast: (winners: string) =>
+      `النسخة السابقة كانت من نصيب ${isolate(winners)}.`,
+  },
+  win: {
+    ordinal: (name: string, n: number) =>
+      `الفوز ${placeWord(n)} لـ${isolate(name)}`,
+    yourOrdinal: (n: number) => `فوزك ${placeWord(n)}`,
+    standingNew: "شارة جديدة على الملف الشخصي",
+    standingMost: "الأكثر فوزًا",
+    standingLevelWith: (name: string) =>
+      `الأكثر فوزًا، بالتساوي مع ${isolate(name)}`,
+    standingLevelWithCount: (n: number) =>
+      plural("ar", n, {
+        one: "الأكثر فوزًا، بالتساوي مع شخص آخر",
+        two: "الأكثر فوزًا، بالتساوي مع شخصين آخرين",
+        few: "الأكثر فوزًا، بالتساوي مع {n} آخرين",
+        many: "الأكثر فوزًا، بالتساوي مع {n} آخرين",
+        other: "الأكثر فوزًا، بالتساوي مع {n} آخرين",
+      }),
+  },
+  profile: {
+    meta: (wins: number, series: number) =>
+      `${plural("ar", wins, {
+        zero: "لا انتصارات",
+        one: "فوز واحد",
+        two: "فوزان",
+        few: "{n} انتصارات",
+        many: "{n} فوزًا",
+        other: "{n} فوز",
+      })} في ${plural("ar", series, {
+        zero: "لا سلاسل",
+        one: "سلسلة واحدة",
+        two: "سلسلتين",
+        few: "{n} سلاسل",
+        many: "{n} سلسلة",
+        other: "{n} سلسلة",
+      })}`,
+    with: (who: string) => `مع ${isolate(who)}`,
+    bibScore: (bib: string, mine: number, theirs: number) =>
+      `${bib}، ${isolate(`${mine}–${theirs}`)}`,
+  },
+  latest: {
+    title: (name: string) => `فوز في سلسلة: ${isolate(name)}`,
+    line: (edition: number, who: string | null, place: string) =>
+      who
+        ? `النسخة ${edition} مع ${isolate(who)}. ${place}`
+        : `النسخة ${edition}. ${place}`,
   },
   errors: {
     notFound: "السلسلة غير موجودة",

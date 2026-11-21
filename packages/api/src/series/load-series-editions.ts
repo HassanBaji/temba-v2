@@ -42,6 +42,8 @@ export type SeriesEditionWinner = {
   name: string;
   image: string | null;
   isGuest: boolean;
+  /** The winning Game team they sit on; null on an Americano, which has none. */
+  gameTeamId: string | null;
 };
 
 export type SeriesEdition = {
@@ -254,6 +256,10 @@ export async function loadSeriesEditions(
       americano,
     });
     const decided = result.state !== "upcoming";
+    const winningTeams =
+      result.state === "won"
+        ? teams.filter((team) => result.gameTeamIds.includes(team.id))
+        : [];
     const winners =
       result.state === "won"
         ? result.userIds.flatMap((userId) => {
@@ -265,15 +271,15 @@ export async function loadSeriesEditions(
                     name: found.name,
                     image: found.image,
                     isGuest: found.guestAt !== null,
+                    gameTeamId:
+                      winningTeams.find((team) => team.userIds.includes(userId))
+                        ?.id ?? null,
                   },
                 ]
               : [];
           })
         : [];
-    const winningTeam =
-      result.state === "won" && result.gameTeamIds.length === 1
-        ? teams.find((team) => team.id === result.gameTeamIds[0])
-        : undefined;
+    const winningTeam = winningTeams.length === 1 ? winningTeams[0] : undefined;
     const winnerBib =
       game.sport === "football" && winningTeam
         ? (winningTeam.bib ??
