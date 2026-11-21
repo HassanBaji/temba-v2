@@ -94,6 +94,18 @@ export const series = {
     submit: "إنشاء السلسلة",
     submitNote: "أضفها إلى مباراة أو سوشيال عند إنشائه.",
   },
+  attach: {
+    title: "السلسلة",
+    none: "ليست ضمن سلسلة",
+    noneHint: "لمرة واحدة",
+    willBe: (edition: number) => `ستكون النسخة ${edition}`,
+    wouldBe: (edition: number) => `ستكون النسخة ${edition} إن اخترتها`,
+    note: (group: string) =>
+      `من سلاسل ${isolate(group)}. ينال الفائزون الشارة على ملفاتهم الشخصية.`,
+    review: (name: string, edition: number) =>
+      `${isolate(name)}، النسخة ${edition}`,
+    locked: "النتيجة مسجّلة، لذا تبقى السلسلة كما هي.",
+  },
   game: {
     winnersTwo: (first: string, second: string) =>
       `${isolate(first)} و${isolate(second)}`,

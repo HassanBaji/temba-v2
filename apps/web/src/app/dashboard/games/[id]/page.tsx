@@ -71,6 +71,7 @@ import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { useGameEdit } from "~/components/games/use-game-edit";
+import { useGameEditSeries } from "~/components/games/use-game-edit-series";
 import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import {
@@ -662,6 +663,7 @@ export default function GameHomePage({
   }
 
   const data = game.data;
+  const editSeries = useGameEditSeries(data);
   const editSections = gameEditSectionsFor({
     format: data?.format ?? "friendly_game",
     sport: data?.sport,
@@ -672,7 +674,7 @@ export default function GameHomePage({
     drawPosted: data?.drawPostedAt != null,
     americano: isAmericano(data?.format, data?.tournamentShape),
     king: isKingOfTheCourt(data?.format, data?.tournamentShape),
-    series: false,
+    series: editSeries.shown,
   });
   const edit = useGameEdit({
     gameId: id,
@@ -1681,6 +1683,7 @@ export default function GameHomePage({
                   : null,
               seasons: data.groupSeasons,
               canChangeSeason: data.canChangeSeason,
+              series: editSeries.context,
               rounds: roundsPlan
                 ? {
                     poolSizes: roundsPlan.poolSizes,

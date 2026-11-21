@@ -18,6 +18,10 @@ import { RatingField } from "~/app/dashboard/games/new/_parts/rating-field";
 import { ReviewRow } from "~/app/dashboard/games/new/_parts/review-row";
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
 import {
+  SeriesSection,
+  type CreateSeriesChoice,
+} from "~/app/dashboard/games/new/_parts/series-section";
+import {
   VenueField,
   type CreateVenue,
 } from "~/app/dashboard/games/new/_parts/venue-field";
@@ -130,6 +134,8 @@ export function FriendlyGameSteps({
   onRated,
   mvpMode,
   onMvpMode,
+  series,
+  seriesReview,
 }: {
   sport?: Sport;
   sideSize: number;
@@ -191,6 +197,9 @@ export function FriendlyGameSteps({
   onRated: (rated: boolean) => void;
   mvpMode: MvpMode;
   onMvpMode: (mode: MvpMode) => void;
+  /** Shown only when the Group runs a Series the Game may join. */
+  series: CreateSeriesChoice | null;
+  seriesReview: string | null;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -251,6 +260,9 @@ export function FriendlyGameSteps({
     rated,
     isPublic: publicGame,
   });
+  const seriesSection = series ? (
+    <SeriesSection idPrefix="game" choice={series} />
+  ) : null;
   const levelRangeSection = (
     <section className="flex flex-col gap-3">
       <SectionHeading
@@ -694,10 +706,14 @@ export function FriendlyGameSteps({
                   </p>
                 }
               />
+              {seriesSection}
               {levelRangeShown ? levelRangeSection : null}
             </>
           ) : (
-            levelRangeSection
+            <>
+              {seriesSection}
+              {levelRangeSection}
+            </>
           )}
 
           <section className="flex flex-col gap-3">
@@ -785,6 +801,9 @@ export function FriendlyGameSteps({
                 locale,
               )}
             />
+            {seriesReview ? (
+              <ReviewRow label={m.series.attach.title} value={seriesReview} />
+            ) : null}
             <ReviewRow
               label={ratingChoice.title}
               value={

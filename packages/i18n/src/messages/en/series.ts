@@ -78,6 +78,17 @@ export const series = {
     submit: "Create series",
     submitNote: "Attach it to a game or a social when you create one.",
   },
+  attach: {
+    title: "Series",
+    none: "Not part of a series",
+    noneHint: "A one-off",
+    willBe: (edition: number) => `This will be edition ${edition}`,
+    wouldBe: (edition: number) => `This would be edition ${edition}`,
+    note: (group: string) =>
+      `Series of ${group}. The winners get the badge on their profile.`,
+    review: (name: string, edition: number) => `${name}, edition ${edition}`,
+    locked: "The score is in, so the series stays.",
+  },
   game: {
     winnersTwo: (first: string, second: string) => `${first} and ${second}`,
     winnersMore: (first: string, second: string, more: number) =>

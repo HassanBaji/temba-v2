@@ -70,6 +70,7 @@ import { Button } from "~/components/ui/button";
 import { playerProfilePath } from "~/lib/dashboard-paths";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { useGameEdit } from "~/components/games/use-game-edit";
+import { useGameEditSeries } from "~/components/games/use-game-edit-series";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import { gamePlayersLink } from "~/lib/game-player-links";
 import { shareLinkWithFeedback } from "~/lib/share-link";
@@ -317,6 +318,7 @@ export function FootballGameDetails({
     },
     onError,
   });
+  const editSeries = useGameEditSeries(game);
   const editSections = gameEditSectionsFor({
     format: game.format,
     sport: game.sport,
@@ -324,7 +326,7 @@ export function FootballGameDetails({
     tournamentRounds: false,
     booked: game.booking != null,
     challenge: game.challenge != null,
-    series: false,
+    series: editSeries.shown,
   });
   const edit = useGameEdit({
     gameId,
@@ -1149,6 +1151,7 @@ export function FootballGameDetails({
             teams: null,
             seasons: game.groupSeasons,
             canChangeSeason: game.canChangeSeason,
+            series: editSeries.context,
             rounds: null,
           }}
         />
