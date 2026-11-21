@@ -99,6 +99,11 @@
       "types": "./dist/routers/ratings/index.d.ts",
       "default": "./src/routers/ratings/index.ts"
     },
+    "#src/routers/series": {
+      "temba-source": "./src/routers/series/index.ts",
+      "types": "./dist/routers/series/index.d.ts",
+      "default": "./src/routers/series/index.ts"
+    },
     "#src/routers/teams": {
       "temba-source": "./src/routers/teams/index.ts",
       "types": "./dist/routers/teams/index.d.ts",

@@ -85,6 +85,8 @@ const ALLOWED_UNINDEXED: Record<string, string> = {
   "groups.deleted_by": USER_ACTOR,
   "group_seasons.closed_by": USER_ACTOR,
   "group_seasons.created_by": USER_ACTOR,
+  "group_series.created_by": USER_ACTOR,
+  "group_series.ended_by": USER_ACTOR,
   "teams.created_by": USER_ACTOR,
   "team_member_invites.team_id": PARTIAL_READS,
   "team_member_invites.user_id": USER_OWN,

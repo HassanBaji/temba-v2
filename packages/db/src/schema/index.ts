@@ -52,6 +52,7 @@ export * from "./group-enums";
 export * from "./groups";
 export * from "./group-members";
 export * from "./group-seasons";
+export * from "./group-series";
 export * from "./teams";
 export * from "./team-members";
 export * from "./team-member-invites";

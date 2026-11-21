@@ -1,3 +1,5 @@
+import { plural } from "../../plural";
+
 export const series = {
   noun: {
     series: "series",
@@ -23,5 +25,23 @@ export const series = {
   },
   gallery: {
     title: "Series badges",
+  },
+  errors: {
+    notFound: "Series not found",
+    verifiedOnly: "Only a verified group can have a series",
+    nameRequired: "Give the series a name",
+    nameTooLong: (max: number) =>
+      plural("en", max, {
+        one: "Keep the name to 1 character",
+        other: "Keep the name to {n} characters",
+      }),
+    nameTaken: "A running series of this group already has that name",
+    tooMany: (max: number) =>
+      plural("en", max, {
+        one: "A group can run 1 series at once. End one to start another",
+        other:
+          "A group can run up to {n} series at once. End one to start another",
+      }),
+    alreadyEnded: "This series has already ended",
   },
 };

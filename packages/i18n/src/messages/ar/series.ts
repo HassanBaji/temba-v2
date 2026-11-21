@@ -1,3 +1,4 @@
+import { plural } from "../../plural";
 import type { series as source } from "../en/series";
 
 export const series = {
@@ -25,5 +26,28 @@ export const series = {
   },
   gallery: {
     title: "شارات السلاسل",
+  },
+  errors: {
+    notFound: "السلسلة غير موجودة",
+    verifiedOnly: "السلاسل للمجموعات الموثّقة فقط",
+    nameRequired: "أعطِ السلسلة اسمًا",
+    nameTooLong: (max: number) =>
+      plural("ar", max, {
+        one: "اجعل الاسم حرفًا واحدًا كحد أقصى",
+        two: "اجعل الاسم حرفين كحد أقصى",
+        few: "اجعل الاسم {n} أحرف كحد أقصى",
+        many: "اجعل الاسم {n} حرفًا كحد أقصى",
+        other: "اجعل الاسم {n} حرف كحد أقصى",
+      }),
+    nameTaken: "لدى المجموعة سلسلة جارية بهذا الاسم",
+    tooMany: (max: number) =>
+      plural("ar", max, {
+        one: "تدير المجموعة سلسلة واحدة في وقت واحد. أنهِ سلسلة لتبدأ أخرى",
+        two: "تدير المجموعة سلسلتين في وقت واحد. أنهِ سلسلة لتبدأ أخرى",
+        few: "تدير المجموعة {n} سلاسل في وقت واحد. أنهِ سلسلة لتبدأ أخرى",
+        many: "تدير المجموعة {n} سلسلة في وقت واحد. أنهِ سلسلة لتبدأ أخرى",
+        other: "تدير المجموعة {n} سلسلة في وقت واحد. أنهِ سلسلة لتبدأ أخرى",
+      }),
+    alreadyEnded: "انتهت هذه السلسلة بالفعل",
   },
 } satisfies typeof source;

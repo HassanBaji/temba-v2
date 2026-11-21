@@ -8,6 +8,8 @@ import type {
   MatchStatusEnum,
   PERFORMANCE_RATER_ROLE_VALUES,
   RATING_LEVEL_BAND_VALUES,
+  SERIES_COLOUR_VALUES,
+  SERIES_EMBLEM_VALUES,
   WEEKDAY_VALUES,
 } from "@repo/db/schema";
 
@@ -28,6 +30,7 @@ import type {
 import type { MARK_KINDS } from "@repo/domain/marks";
 import type { MatchStatus } from "@repo/domain/match-status";
 import type { RATER_ROLES } from "@repo/domain/performance-rating";
+import type { SERIES_COLOURS, SERIES_EMBLEMS } from "@repo/domain/series";
 
 type Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
@@ -84,6 +87,18 @@ export type DomainEnumParity = [
     Equal<
       (typeof RATER_ROLES)[number],
       (typeof PERFORMANCE_RATER_ROLE_VALUES)[number]
+    >
+  >,
+  AssertTrue<
+    Equal<
+      (typeof SERIES_EMBLEMS)[number],
+      (typeof SERIES_EMBLEM_VALUES)[number]
+    >
+  >,
+  AssertTrue<
+    Equal<
+      (typeof SERIES_COLOURS)[number],
+      (typeof SERIES_COLOUR_VALUES)[number]
     >
   >,
 ];
