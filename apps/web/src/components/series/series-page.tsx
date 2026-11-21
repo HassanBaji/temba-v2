@@ -20,7 +20,7 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { Surface } from "~/components/ui/surface";
 import { YouCard, YouSection } from "~/components/you/you-section";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
-import { groupHomeHref } from "~/lib/dashboard-paths";
+import { groupHomeHref, groupSeriesTabHref } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
@@ -291,7 +291,7 @@ export function SeriesPage({ id }: { id: string }) {
     const result = await endSeries.mutateAsync({ id });
     if ("deleted" in result) {
       void utils.series.listForGroup.invalidate({ groupId: series.group.id });
-      router.replace(groupHref);
+      router.replace(groupSeriesTabHref(series.group.id));
       return;
     }
     await Promise.all([

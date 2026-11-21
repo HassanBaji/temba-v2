@@ -30,6 +30,16 @@ export const series = {
     title: "Series badges",
   },
   tab: {
+    title: "Series",
+    running: (n: number) =>
+      plural("en", n, { one: "{n} running", other: "{n} running" }),
+    ended: "Ended",
+    note: "A series is a social or a game this group plays again and again. Whoever wins one gets its badge on their profile.",
+    empty: "No series yet.",
+    newSeries: "New series",
+    next: "Next",
+    badgesStay: "Badges stay",
+    loadError: "The series could not be loaded",
     rowKind: {
       padel: {
         social: "Padel social",
@@ -50,6 +60,23 @@ export const series = {
       `${kind}. ${played}, next is edition ${edition}`,
     rowLineEnded: (kind: string, played: string, month: string) =>
       `${kind}. ${played}, ended in ${month}`,
+  },
+  create: {
+    title: "New series",
+    preview: "Preview",
+    namePlaceholder: "Series name",
+    previewNote: "How it sits on a winner’s profile",
+    nameLabel: "Name",
+    nameHint: "What players will see on the game and on their profile.",
+    emblem: "Emblem",
+    colour: "Colour",
+    rules: {
+      social: { label: "In a social", value: "The top team wins it" },
+      game: { label: "In a game", value: "The winning side wins it" },
+      draw: { label: "A draw", value: "Nobody wins that one" },
+    },
+    submit: "Create series",
+    submitNote: "Attach it to a game or a social when you create one.",
   },
   game: {
     winnersTwo: (first: string, second: string) => `${first} and ${second}`,

@@ -87,6 +87,7 @@ export const webGroup = {
       standing: "Standing",
       games: "Games",
       members: "Members",
+      series: "Series",
     },
   },
   requests: {

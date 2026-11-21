@@ -1,4 +1,5 @@
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
+import { groupHomeTabQuery } from "@repo/domain/group-home-tab";
 import { isCoinKind, type CoinKind } from "@repo/domain/marks";
 import type { Sport } from "@repo/domain/sport";
 import type { Messages } from "@repo/i18n/messages";
@@ -114,6 +115,9 @@ export function titleFromPath(pathname: string, m: Messages) {
   }
   if (/^\/dashboard\/groups\/[^/]+\/seasons\/new/.test(pathname)) {
     return titles.newSeason;
+  }
+  if (/^\/dashboard\/groups\/[^/]+\/series\/new/.test(pathname)) {
+    return m.series.create.title;
   }
   if (/^\/dashboard\/groups\/[^/]+\/edit/.test(pathname)) {
     return titles.editGroup;
@@ -252,6 +256,16 @@ export function groupRatingSettingsHref(groupId: string) {
 
 export function groupNewSeasonHref(groupId: string) {
   return `/dashboard/groups/${groupId}/seasons/new`;
+}
+
+/** The Group home opened on its Series tab (1a). */
+export function groupSeriesTabHref(groupId: string) {
+  return `${groupHomeHref(groupId)}${groupHomeTabQuery("series")}`;
+}
+
+/** New series (1b). */
+export function groupNewSeriesHref(groupId: string) {
+  return `/dashboard/groups/${groupId}/series/new`;
 }
 
 /** Points and history; without `userId`, the viewer's own. */

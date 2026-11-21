@@ -32,6 +32,23 @@ export const series = {
     title: "شارات السلاسل",
   },
   tab: {
+    title: "السلاسل",
+    running: (n: number) =>
+      plural("ar", n, {
+        zero: "لا سلاسل جارية",
+        one: "سلسلة جارية",
+        two: "سلسلتان جاريتان",
+        few: "{n} سلاسل جارية",
+        many: "{n} سلسلة جارية",
+        other: "{n} سلسلة جارية",
+      }),
+    ended: "المنتهية",
+    note: "السلسلة سوشيال أو مباراة تلعبها هذه المجموعة مرة بعد مرة. من يفوز بها ينال شارتها على ملفه الشخصي.",
+    empty: "لا سلاسل بعد.",
+    newSeries: "سلسلة جديدة",
+    next: "التالية",
+    badgesStay: "الشارات تبقى",
+    loadError: "تعذّر تحميل السلاسل",
     rowKind: {
       padel: {
         social: "سوشيال بادل",
@@ -59,6 +76,23 @@ export const series = {
       `${kind}. ${played}، والتالية النسخة ${edition}`,
     rowLineEnded: (kind: string, played: string, month: string) =>
       `${kind}. ${played}، وانتهت في ${month}`,
+  },
+  create: {
+    title: "سلسلة جديدة",
+    preview: "معاينة",
+    namePlaceholder: "اسم السلسلة",
+    previewNote: "هكذا تظهر على ملف الفائز",
+    nameLabel: "الاسم",
+    nameHint: "ما سيراه اللاعبون على المباراة وعلى ملفاتهم الشخصية.",
+    emblem: "الرمز",
+    colour: "اللون",
+    rules: {
+      social: { label: "في السوشيال", value: "يفوز بها الفريق المتصدّر" },
+      game: { label: "في المباراة", value: "يفوز بها الجانب الفائز" },
+      draw: { label: "التعادل", value: "لا يفوز بها أحد" },
+    },
+    submit: "إنشاء السلسلة",
+    submitNote: "أضفها إلى مباراة أو سوشيال عند إنشائه.",
   },
   game: {
     winnersTwo: (first: string, second: string) =>

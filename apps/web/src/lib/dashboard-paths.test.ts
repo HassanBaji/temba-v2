@@ -6,6 +6,8 @@ import { messagesFor } from "@repo/i18n/messages";
 import {
   detailBackHref,
   groupMembersTabHref,
+  groupNewSeriesHref,
+  groupSeriesTabHref,
   pageHidesMobileTopBar,
   playerMarkPath,
   playerMarksPath,
@@ -278,6 +280,24 @@ describe("Series page path", () => {
     const path = seriesPagePath(seriesId);
     assert.equal(path, `/dashboard/series/${seriesId}`);
     assert.equal(titleFromPath(path, en), "Series");
+    assert.equal(pageHidesMobileTopBar(path), true);
+  });
+});
+
+describe("Group Series paths", () => {
+  const groupId = "8a3f1c2e-0000-4000-8000-000000000002";
+
+  it("opens the Group home on its Series tab", () => {
+    assert.equal(
+      groupSeriesTabHref(groupId),
+      `/dashboard/groups/${groupId}?tab=series`,
+    );
+  });
+
+  it("builds New series, titles it and hides the mobile top bar", () => {
+    const path = groupNewSeriesHref(groupId);
+    assert.equal(path, `/dashboard/groups/${groupId}/series/new`);
+    assert.equal(titleFromPath(path, en), "New series");
     assert.equal(pageHidesMobileTopBar(path), true);
   });
 });
