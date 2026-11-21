@@ -183,6 +183,7 @@ export const webAuth = {
       zoom: "التكبير",
       zoomValue: (percent: number) => `${percent}%`,
       previewLabel: "كيف ستظهر",
+      ready: "الصورة جاهزة. اسحبها أو كبّرها لضبط الإطار.",
     },
     email: {
       benefits: {

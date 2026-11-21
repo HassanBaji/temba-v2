@@ -215,7 +215,7 @@ export function PhotoCropper({
   }
 
   return (
-    <div className="flex w-full flex-col items-center gap-4">
+    <div className="flex w-full flex-col items-center gap-3">
       <div
         ref={frameRef}
         role="group"
@@ -224,13 +224,14 @@ export function PhotoCropper({
         aria-describedby={hintId}
         aria-disabled={disabled || undefined}
         className={cn(
-          "border-rule bg-wash focus-visible:ring-ring/50 relative aspect-square w-full max-w-72 touch-none select-none overflow-hidden rounded-md border outline-none focus-visible:ring-[3px]",
+          "border-rule bg-wash focus-visible:ring-ring/50 relative aspect-square w-full max-w-64 touch-none select-none overflow-hidden rounded-md border outline-none focus-visible:ring-[3px]",
           disabled ? "opacity-50" : "cursor-grab active:cursor-grabbing",
         )}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerEnd}
+        onLostPointerCapture={onPointerEnd}
         onKeyDown={onKeyDown}
       >
         <CroppedImage src={src} natural={natural} crop={crop} />
@@ -244,7 +245,7 @@ export function PhotoCropper({
         {copy.hint}
       </p>
 
-      <div className="flex w-full max-w-72 items-center gap-3">
+      <div className="flex w-full max-w-64 items-center gap-3">
         <ZoomOut
           aria-hidden="true"
           className="text-muted-foreground size-4 shrink-0"
@@ -273,7 +274,7 @@ export function PhotoCropper({
         <p className="text-eyebrow text-muted-foreground font-mono uppercase">
           {copy.previewLabel}
         </p>
-        <div aria-hidden="true" className="flex items-end gap-4">
+        <div aria-hidden="true" className="flex items-end gap-3">
           <span className="border-rule rounded-card relative size-14 overflow-hidden border">
             <CroppedImage src={src} natural={natural} crop={crop} />
           </span>

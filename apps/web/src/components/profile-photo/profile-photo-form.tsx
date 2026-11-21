@@ -52,9 +52,18 @@ export function ProfilePhotoForm({
   const copy = m.webAuth.onboarding.photo;
   const [picked, setPicked] = React.useState<PickedPhoto | null>(null);
   const [crop, setCrop] = React.useState<PhotoCrop>(INITIAL_CROP);
+  const [decoding, setDecoding] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const latestPick = React.useRef(0);
+
+  React.useEffect(() => {
+    const picks = latestPick;
+    // A decode still running at unmount then takes the stale path and revokes its URL.
+    return () => {
+      picks.current += 1;
+    };
+  }, []);
 
   React.useEffect(() => {
     if (!picked) {
@@ -67,12 +76,14 @@ export function ProfilePhotoForm({
   async function onPick(file: File) {
     const pick = ++latestPick.current;
     setError(null);
+    setDecoding(true);
     const url = URL.createObjectURL(file);
     const photo = await decodePhoto(url, file);
     if (pick !== latestPick.current) {
       URL.revokeObjectURL(url);
       return;
     }
+    setDecoding(false);
     if (!photo) {
       URL.revokeObjectURL(url);
       setError(copy.unsupportedType);
@@ -87,7 +98,7 @@ export function ProfilePhotoForm({
 
   async function onSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pending || !picked) {
+    if (pending || decoding || !picked) {
       return;
     }
     setPending(true);
@@ -118,7 +129,7 @@ export function ProfilePhotoForm({
             natural={picked.photo.natural}
             crop={crop}
             onCropChange={setCrop}
-            disabled={pending}
+            disabled={pending || decoding}
           />
         ) : current ? (
           // eslint-disable-next-line @next/next/no-img-element -- Clerk image URLs are not static assets
@@ -174,6 +185,9 @@ export function ProfilePhotoForm({
         >
           {picked ? copy.chooseDifferent : copy.choose}
         </label>
+        <p className="sr-only" aria-live="polite">
+          {picked && !decoding ? copy.ready : ""}
+        </p>
       </div>
       <TaskActions>
         <Button
@@ -181,7 +195,7 @@ export function ProfilePhotoForm({
           size="lg"
           pending={pending}
           pendingLabel={copy.saving}
-          disabled={!picked}
+          disabled={!picked || decoding}
           className="w-full font-semibold"
         >
           {copy.save}

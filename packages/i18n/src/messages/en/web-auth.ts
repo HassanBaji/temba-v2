@@ -176,6 +176,7 @@ export const webAuth = {
       zoom: "Zoom",
       zoomValue: (percent: number) => `${percent}%`,
       previewLabel: "How it will look",
+      ready: "Photo ready. Drag or zoom to frame it.",
     },
     email: {
       benefits: {
