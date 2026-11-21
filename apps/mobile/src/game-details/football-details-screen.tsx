@@ -84,6 +84,7 @@ import { GamePaymentsSection } from "../game-payments/game-payments-section";
 import { useGameAlbum } from "../game-album/use-game-album";
 import { PlayedFootballBoard } from "../played-game/played-football-board";
 import { sharePath } from "../played-game/played-friendly-game";
+import { shareDraftPath } from "../share-draft/share-draft-screen";
 import { MatchDisputeSection } from "../played-game/match-dispute-section";
 import { PlayedGameView } from "../played-game/played-game-view";
 import {
@@ -937,6 +938,7 @@ export function FootballGameDetails({
                 onAnswer={(answer, note) =>
                   answerDraft.mutate({ gameId, answer, note })
                 }
+                onShare={() => router.push(shareDraftPath(gameId))}
               />
             ) : (
               <DraftCard
@@ -955,6 +957,7 @@ export function FootballGameDetails({
                     draftUpdatedAt: draft.updatedAt,
                   })
                 }
+                onShare={() => router.push(shareDraftPath(gameId))}
                 onEdit={() => router.push(teamsPath)}
               />
             )}

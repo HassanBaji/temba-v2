@@ -264,6 +264,43 @@ export const football = {
     named: (name: string) => `Captain ${name}`,
     none: "No captain picked",
   },
+  draftShare: {
+    title: "Share draft",
+    bothTeams: "Both teams",
+    typeLine: (sideSize: string | null) =>
+      sideSize ? `DRAFT / FOOTBALL / ${sideSize}` : "DRAFT / FOOTBALL",
+    captain: (name: string) => `CAPTAIN ${name}`,
+    noCaptain: "NO CAPTAIN",
+    players: (n: number) =>
+      plural("en", n, { one: "1 PLAYER", other: "{n} PLAYERS" }),
+    sideLine: (captain: string, players: string) => `${captain} / ${players}`,
+    teamLabel: (team: string) => `TEAM ${team}`,
+    against: (other: string, sideSize: number | null) =>
+      sideSize
+        ? `against ${other}, ${plural("en", sideSize, { one: "1 starts", other: "{n} start" })}, the captain picks them`
+        : `against ${other}`,
+    andMore: (n: number) =>
+      plural("en", n, { one: "and 1 more", other: "and {n} more" }),
+    stamp: "DRAFT, NOT FINAL",
+    noteBothGroup:
+      "Both teams on one image, stamped as a draft. In Temba only organizers, admins and captains see it; an image goes wherever you send it.",
+    noteBoth:
+      "Both teams on one image, stamped as a draft. In Temba only organizers and captains see it; an image goes wherever you send it.",
+    noteOne: (team: string) =>
+      `Only ${team}, for that team's chat. Stamped as a draft; an image goes wherever you send it.`,
+    message: (game: string | null, when: string | null) => {
+      const subject = [game, when].filter(Boolean).join(", ");
+      return subject
+        ? `Draft teams for ${subject}. Not final.`
+        : "Draft teams. Not final.";
+    },
+    loading: "Loading the draft",
+    loadError: "The draft could not be loaded",
+    empty: {
+      title: "No draft to share",
+      body: "Only the organizers and the captains can share a draft, and only until the teams are published.",
+    },
+  },
   errors: {
     notFootball: "Only a football Game has teams and a Score",
     roleOnFootball: "Only a football Game takes a role and position",

@@ -10,6 +10,7 @@ import {
   type FootballBalanceOn,
   type FootballDraftAnswer,
 } from "@repo/domain/football-lineup";
+import { Share as ShareIcon } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 
@@ -103,6 +104,7 @@ export function CaptainDraftPanel({
   balanceOn,
   pending,
   onAnswer,
+  onShare,
 }: {
   draft: SavedDraft;
   side: 1 | 2;
@@ -110,6 +112,7 @@ export function CaptainDraftPanel({
   balanceOn: FootballBalanceOn;
   pending: boolean;
   onAnswer: (answer: FootballDraftAnswer | null, note?: string) => void;
+  onShare: () => void;
 }) {
   const colors = useColors();
   const locale = useLocale();
@@ -233,6 +236,12 @@ export function CaptainDraftPanel({
           <DraftAnswer state={draft.answers[other].state} />
         </View>
       </Surface>
+      <Button
+        label={messages.football.draftShare.title}
+        variant="outline"
+        icon={<ShareIcon size={16} color={colors.ink} />}
+        onPress={onShare}
+      />
       <Text size="eyebrow" tone="muted">
         {panel.ownTeamOnly(names[other])}
       </Text>

@@ -316,6 +316,61 @@ export const football = {
     named: (name: string) => `القائد ${name}`,
     none: "لم يُختر قائد",
   },
+  draftShare: {
+    title: "شارك المسودة",
+    bothTeams: "الفريقان",
+    typeLine: (sideSize: string | null) =>
+      sideSize ? `مسودة / كرة القدم / ${sideSize}` : "مسودة / كرة القدم",
+    captain: (name: string) => `القائد ${name}`,
+    noCaptain: "بلا قائد",
+    players: (n: number) =>
+      plural("ar", n, {
+        one: "لاعب واحد",
+        two: "لاعبان",
+        few: "{n} لاعبين",
+        many: "{n} لاعبًا",
+        other: "{n} لاعب",
+      }),
+    sideLine: (captain: string, players: string) => `${captain} / ${players}`,
+    teamLabel: (team: string) => `فريق ${team}`,
+    against: (other: string, sideSize: number | null) =>
+      sideSize
+        ? `ضد ${other}، ${plural("ar", sideSize, {
+            one: "يبدأ لاعب واحد",
+            two: "يبدأ لاعبان",
+            few: "يبدأ {n} لاعبين",
+            many: "يبدأ {n} لاعبًا",
+            other: "يبدأ {n} لاعب",
+          })} ويختارهم القائد`
+        : `ضد ${other}`,
+    andMore: (n: number) =>
+      plural("ar", n, {
+        one: "ولاعب آخر",
+        two: "ولاعبان آخران",
+        few: "و{n} لاعبين آخرين",
+        many: "و{n} لاعبًا آخر",
+        other: "و{n} لاعب آخر",
+      }),
+    stamp: "مسودة، ليست نهائية",
+    noteBothGroup:
+      "الفريقان في صورة واحدة، مختومة بأنها مسودة. في Temba لا يراها إلا المنظّمون والمشرفون والقادة؛ أما الصورة فتصل إلى حيث ترسلها.",
+    noteBoth:
+      "الفريقان في صورة واحدة، مختومة بأنها مسودة. في Temba لا يراها إلا المنظّمون والقادة؛ أما الصورة فتصل إلى حيث ترسلها.",
+    noteOne: (team: string) =>
+      `${team} وحده، لمحادثة ذلك الفريق. مختومة بأنها مسودة؛ أما الصورة فتصل إلى حيث ترسلها.`,
+    message: (game: string | null, when: string | null) => {
+      const subject = [game, when].filter(Boolean).join("، ");
+      return subject
+        ? `مسودة الفرق لـ${subject}. ليست نهائية.`
+        : "مسودة الفرق. ليست نهائية.";
+    },
+    loading: "جارٍ تحميل المسودة",
+    loadError: "تعذّر تحميل المسودة",
+    empty: {
+      title: "لا توجد مسودة للمشاركة",
+      body: "لا يشارك المسودة إلا المنظّمون والقادة، وحتى تُنشر الفرق فقط.",
+    },
+  },
   errors: {
     notFootball: "الفرق والنتيجة لمباريات كرة القدم فقط",
     roleOnFootball: "الدور والمركز لمباريات كرة القدم فقط",

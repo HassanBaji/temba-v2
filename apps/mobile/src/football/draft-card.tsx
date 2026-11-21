@@ -8,7 +8,7 @@ import {
   footballDraftSavedLine,
   footballDraftSummary,
 } from "@repo/domain/football-draft";
-import { Pencil } from "lucide-react-native";
+import { Pencil, Share as ShareIcon } from "lucide-react-native";
 import { View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
@@ -122,8 +122,8 @@ export function DraftTag({ label }: { label: string }) {
 /**
  * The Organizer's Draft line-up on the Game screen (ADR-0107, design 1c):
  * when it was saved, whether it can be published as it stands, each side's
- * Side captain and their answer (ADR-0108), then Publish teams and Edit
- * draft. Publishing never waits on an answer.
+ * Side captain and their answer (ADR-0108), then Publish teams, Share
+ * draft and Edit draft. Publishing never waits on an answer.
  */
 export function DraftCard({
   draft,
@@ -131,6 +131,7 @@ export function DraftCard({
   game,
   publishPending,
   onPublish,
+  onShare,
   onEdit,
 }: {
   draft: SavedDraft;
@@ -138,6 +139,7 @@ export function DraftCard({
   game: { groupId: string | null };
   publishPending: boolean;
   onPublish: () => void;
+  onShare: () => void;
   onEdit: () => void;
 }) {
   const colors = useColors();
@@ -185,7 +187,15 @@ export function DraftCard({
         pending={publishPending}
         onPress={onPublish}
       />
-      <View style={{ flexDirection: "row" }}>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <Button
+            label={messages.football.draftShare.title}
+            variant="outline"
+            icon={<ShareIcon size={16} color={colors.ink} />}
+            onPress={onShare}
+          />
+        </View>
         <View style={{ flex: 1 }}>
           <Button
             label={copy.editDraft}
