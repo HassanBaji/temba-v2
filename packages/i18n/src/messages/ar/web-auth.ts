@@ -168,7 +168,6 @@ export const webAuth = {
       title: "أضف صورة",
       description:
         "صورة واضحة لوجهك تساعد المنظّمين على التعرّف عليك في الملعب. تظهر لأعضاء المجموعة وللاعبين في مبارياتك.",
-      chosenAlt: "الصورة التي اخترتها",
       currentAlt: "صورة ملفك الشخصي الحالية",
       placeholder: "صورة الملف الشخصي",
       untilThenShownAs: "حتى ذلك الحين تظهر باسم {initials}.",
@@ -176,7 +175,15 @@ export const webAuth = {
       choose: "اختر صورة",
       saving: "جارٍ حفظ الصورة…",
       save: "حفظ الصورة",
-      unsupportedType: "يجب أن تكون الصورة بصيغة JPEG أو PNG أو GIF أو WebP.",
+      unsupportedType:
+        "تعذّر فتح هذه الصورة. اختر صورة بصيغة JPEG أو PNG أو WebP.",
+      cropFailed: "تعذّر تجهيز هذه الصورة. جرّب صورة أخرى.",
+      frameLabel: "إطار الصورة. اسحب أو استخدم مفاتيح الأسهم لتحريك الصورة.",
+      hint: "اسحب للتحريك. قرّب بإصبعين أو بعجلة الفأرة أو بالشريط.",
+      zoom: "التكبير",
+      zoomValue: (percent: number) => `${percent}%`,
+      previewLabel: "كيف ستظهر",
+      ready: "الصورة جاهزة. اسحبها أو كبّرها لضبط الإطار.",
     },
     email: {
       benefits: {

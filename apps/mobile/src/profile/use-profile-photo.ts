@@ -1,7 +1,9 @@
 import { useUser } from "@clerk/expo";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useCallback, useState } from "react";
 
+import { fitWithin } from "../game-album/photo-size";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { imageDataUri, photoErrorMessage } from "./photo";
 
@@ -17,9 +19,31 @@ const PICKER_OPTIONS: ImagePicker.ImagePickerOptions = {
   mediaTypes: ["images"],
   allowsEditing: true,
   aspect: [1, 1],
-  quality: 0.7,
-  base64: true,
+  quality: 1,
 };
+
+/** Matches the web: the largest place a profile photo shows is 160 pt, at 3x. */
+const PROFILE_PHOTO_EDGE = 512;
+const JPEG_COMPRESS = 0.86;
+
+/** Redraws the square the User framed as a JPEG at most 512 px a side. */
+async function shrinkProfilePhoto(asset: {
+  uri: string;
+  width: number;
+  height: number;
+}): Promise<PickedPhoto | null> {
+  const image = await ImageManipulator.manipulate(asset.uri)
+    .resize(fitWithin(asset.width, asset.height, PROFILE_PHOTO_EDGE))
+    .renderAsync();
+  const saved = await image.saveAsync({
+    format: SaveFormat.JPEG,
+    compress: JPEG_COMPRESS,
+    base64: true,
+  });
+  return saved.base64
+    ? { uri: saved.uri, dataUri: imageDataUri(saved.base64, "image/jpeg") }
+    : null;
+}
 
 /**
  * Picking and saving a profile photo, shared by the Profile tab and the
@@ -50,16 +74,11 @@ export function useProfilePhoto() {
         if (!asset) {
           return { ok: true, value: null };
         }
-        if (!asset.base64) {
+        const photo = await shrinkProfilePhoto(asset);
+        if (!photo) {
           return { ok: false, message: m.mobileHome.photo.unreadable };
         }
-        return {
-          ok: true,
-          value: {
-            uri: asset.uri,
-            dataUri: imageDataUri(asset.base64, asset.mimeType),
-          },
-        };
+        return { ok: true, value: photo };
       } catch (error) {
         return { ok: false, message: photoErrorMessage(error, locale) };
       } finally {
