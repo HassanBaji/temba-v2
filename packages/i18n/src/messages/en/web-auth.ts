@@ -161,7 +161,6 @@ export const webAuth = {
       title: "Add a photo",
       description:
         "A clear face shot helps organizers spot you at the court. Shown to Group members and people in your Games.",
-      chosenAlt: "Your chosen photo",
       currentAlt: "Your current profile photo",
       placeholder: "Profile photo",
       untilThenShownAs: "Until then you show as {initials}.",
@@ -169,7 +168,14 @@ export const webAuth = {
       choose: "Choose a photo",
       saving: "Saving photo…",
       save: "Save photo",
-      unsupportedType: "Photo must be a JPEG, PNG, GIF or WebP image.",
+      unsupportedType:
+        "That photo could not be opened. Choose a JPEG, PNG or WebP image.",
+      cropFailed: "That photo could not be prepared. Try another one.",
+      frameLabel: "Photo frame. Drag, or use the arrow keys, to move the photo.",
+      hint: "Drag to move. Pinch, scroll or use the slider to zoom.",
+      zoom: "Zoom",
+      zoomValue: (percent: number) => `${percent}%`,
+      previewLabel: "How it will look",
     },
     email: {
       benefits: {

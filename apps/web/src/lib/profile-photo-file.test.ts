@@ -1,40 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  isProfilePhotoType,
-  pngFileName,
-  rasterSize,
-} from "~/lib/profile-photo-file";
+import { jpegFileName, rasterSize } from "~/lib/profile-photo-file";
 
-describe("isProfilePhotoType", () => {
-  it("accepts the types Clerk takes", () => {
-    for (const type of [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-    ]) {
-      expect(isProfilePhotoType(type)).toBe(true);
-    }
+describe("jpegFileName", () => {
+  it("swaps the extension for .jpg", () => {
+    expect(jpegFileName("SOOR-The Cap.svg")).toBe("SOOR-The Cap.jpg");
+    expect(jpegFileName("me.photo.png")).toBe("me.photo.jpg");
   });
 
-  it("rejects SVG and other types", () => {
-    for (const type of ["image/svg+xml", "text/xml", "image/bmp", ""]) {
-      expect(isProfilePhotoType(type)).toBe(false);
-    }
-  });
-});
-
-describe("pngFileName", () => {
-  it("swaps the extension for .png", () => {
-    expect(pngFileName("SOOR-The Cap.svg")).toBe("SOOR-The Cap.png");
-    expect(pngFileName("me.photo.bmp")).toBe("me.photo.png");
-  });
-
-  it("adds .png when there is no extension", () => {
-    expect(pngFileName("avatar")).toBe("avatar.png");
-    expect(pngFileName(".svg")).toBe("photo.png");
+  it("adds .jpg when there is no extension", () => {
+    expect(jpegFileName("avatar")).toBe("avatar.jpg");
+    expect(jpegFileName(".svg")).toBe("photo.jpg");
   });
 });
 
