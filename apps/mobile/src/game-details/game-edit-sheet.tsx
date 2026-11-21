@@ -42,6 +42,7 @@ import {
   formatDayLabel,
   formatTimeSlotLabel,
   gameEditWindowChoices,
+  parseGameDateTime,
 } from "@repo/domain/game-window";
 import {
   formatSeasonRange,
@@ -73,6 +74,14 @@ import { Sheet } from "../primitives/sheet";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
+import {
+  seriesAttachPick,
+  seriesEditOptions,
+  type SeriesAttachOption,
+} from "../series/series-attach";
+import { SeriesBadge } from "../series/series-badge";
+import { SeriesField, SeriesNoneTile } from "../series/series-field";
+import { useSeriesAttachOptions } from "../series/use-series-attach-options";
 import { useColors } from "../theme/theme-provider";
 import type { GameEditController } from "./use-game-edit";
 
@@ -90,9 +99,34 @@ export type GameEditContext = {
   } | null;
   seasons: readonly GroupSeasonData[];
   canChangeSeason: boolean;
+  series?: GameEditSeriesContext;
+};
+
+export type GameEditSeriesContext = {
+  gameId: string;
+  groupId: string | null;
+  windowStart: Date | null;
+  current: SeriesAttachOption | null;
+  canChange: boolean;
 };
 
 const SECTION_GAP = 12;
+
+/** The Series the Game may be on, numbered for the drafted day. */
+function useEditSeriesOptions(
+  series: GameEditSeriesContext,
+  day: string,
+  startTime: string,
+) {
+  const attach = useSeriesAttachOptions({
+    groupId: series.groupId,
+    windowStart: parseGameDateTime(day, startTime) ?? series.windowStart,
+    gameId: series.gameId,
+    enabled: series.canChange,
+    keepPrevious: true,
+  });
+  return seriesEditOptions(attach.options, series.current);
+}
 
 function SectionHead({
   title,
@@ -855,6 +889,125 @@ function SeasonSection({
   );
 }
 
+function SeriesPicker({
+  edit,
+  series,
+  groupName,
+  onBack,
+}: {
+  edit: GameEditController;
+  series: GameEditSeriesContext;
+  groupName: string;
+  onBack: () => void;
+}) {
+  const m = useMessages();
+  const copy = m.series.attach;
+  const options = useEditSeriesOptions(
+    series,
+    edit.draft.day,
+    edit.draft.startTime,
+  );
+  const [picked, setPicked] = useState<string | null>(edit.draft.seriesId);
+  return (
+    <View style={{ gap: spacing.compact }}>
+      <Text size="meta" tone="muted">
+        {copy.note(groupName)}
+      </Text>
+      <SeriesField
+        label={copy.title}
+        options={options}
+        value={seriesAttachPick(options, picked)?.id ?? null}
+        onChange={setPicked}
+        groupName={groupName}
+        showNote={false}
+      />
+      <Button
+        label={m.common.done}
+        size="lg"
+        onPress={() => {
+          edit.update({ seriesId: picked });
+          onBack();
+        }}
+      />
+    </View>
+  );
+}
+
+function SeriesSection({
+  edit,
+  series,
+  groupName,
+  onOpenPicker,
+}: {
+  edit: GameEditController;
+  series: GameEditSeriesContext;
+  groupName: string;
+  onOpenPicker: () => void;
+}) {
+  const colors = useColors();
+  const m = useMessages();
+  const copy = m.series.attach;
+  const editCopy = m.mobileGameDetails.edit;
+  const { draft } = edit;
+  const options = useEditSeriesOptions(series, draft.day, draft.startTime);
+  const picked = seriesAttachPick(options, draft.seriesId);
+  const locked = !series.canChange;
+  const choice = picked ? copy.review(picked.name, picked.edition) : copy.none;
+  return (
+    <View style={{ gap: SECTION_GAP }}>
+      <SectionHead title={editCopy.step.series} meta={m.common.optional} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={editCopy.seriesRowA11y(choice)}
+        accessibilityHint={locked ? copy.locked : editCopy.changeSeries}
+        accessibilityState={{ disabled: locked }}
+        disabled={locked}
+        onPress={onOpenPicker}
+        style={({ pressed }) => ({
+          minHeight: sizes.touchTarget,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          paddingVertical: 12,
+          paddingHorizontal: 14,
+          borderRadius: radii.lg,
+          borderWidth: hairline,
+          borderColor: colors.rule,
+          backgroundColor: pressed ? colors.wash : colors.paper,
+        })}
+      >
+        {picked ? (
+          <SeriesBadge
+            emblem={picked.emblem}
+            colour={picked.colour}
+            size="list"
+          />
+        ) : (
+          <SeriesNoneTile />
+        )}
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <Text weight="semibold">{choice}</Text>
+          {picked ? null : (
+            <Text size="eyebrow" tone="muted">
+              {copy.noneHint}
+            </Text>
+          )}
+        </View>
+        {locked ? (
+          <Lock size={sizes.iconRow} color={colors.muted} />
+        ) : (
+          <ChevronRight
+            size={sizes.iconRow}
+            color={colors.muted}
+            style={mirrorInRtl}
+          />
+        )}
+      </Pressable>
+      <Hint>{locked ? copy.locked : copy.note(groupName)}</Hint>
+    </View>
+  );
+}
+
 export function GameEditSheet({
   visible,
   onClose,
@@ -872,7 +1025,7 @@ export function GameEditSheet({
   const copy = m.mobileGameDetails.edit;
   const editCopy = m.createGame.edit;
   const locale = useLocale();
-  const [view, setView] = useState<"form" | "season">("form");
+  const [view, setView] = useState<"form" | "season" | "series">("form");
   const { draft, update, error, pending } = edit;
 
   useEffect(() => {
@@ -894,6 +1047,7 @@ export function GameEditSheet({
   const capBounds = footballPlayersAllowedBounds(sideSize ?? 5);
   const players = draft.playersAllowed ?? capBounds.min;
   const showSeason = sections.season && context.seasons.length > 0;
+  const groupName = context.groupName ?? copy.thisGroup;
 
   const bands = (bound: "min" | "max") => [
     { value: LEVEL_BAND_SELECT_NONE, label: copy.any, disabled: false },
@@ -909,16 +1063,24 @@ export function GameEditSheet({
   ];
 
   const pickingSeason = view === "season";
+  const pickingSeries = view === "series" && context.series != null;
+  const picking = pickingSeason || pickingSeries;
   const back = () => setView("form");
 
   return (
     <Sheet
       visible={visible}
-      onClose={pickingSeason ? back : onClose}
+      onClose={picking ? back : onClose}
       tall
-      title={pickingSeason ? m.createGame.season.linkRowTitle : editCopy.title}
-      subtitle={
+      title={
         pickingSeason
+          ? m.createGame.season.linkRowTitle
+          : pickingSeries
+            ? m.series.attach.title
+            : editCopy.title
+      }
+      subtitle={
+        picking
           ? null
           : sections.place &&
               !(edit.place.status === "ready" && edit.place.value.locked)
@@ -931,15 +1093,15 @@ export function GameEditSheet({
       }
       action={
         <Button
-          label={pickingSeason ? m.common.back : m.common.cancel}
+          label={picking ? m.common.back : m.common.cancel}
           variant="outline"
           size="sm"
-          onPress={pickingSeason ? back : onClose}
+          onPress={picking ? back : onClose}
         />
       }
       keyboardShouldPersistTaps="handled"
       footer={
-        pickingSeason ? undefined : (
+        picking ? undefined : (
           <View
             style={{
               flexDirection: "row",
@@ -967,7 +1129,14 @@ export function GameEditSheet({
         )
       }
     >
-      {pickingSeason ? (
+      {pickingSeries && context.series ? (
+        <SeriesPicker
+          edit={edit}
+          series={context.series}
+          groupName={groupName}
+          onBack={back}
+        />
+      ) : pickingSeason ? (
         <SeasonPicker edit={edit} context={context} onBack={back} />
       ) : (
         <View style={{ gap: spacing.section }}>
@@ -1174,6 +1343,15 @@ export function GameEditSheet({
             />
           ) : null}
           <FieldError message={errorFor("season")} />
+          {sections.series && context.series ? (
+            <SeriesSection
+              edit={edit}
+              series={context.series}
+              groupName={groupName}
+              onOpenPicker={() => setView("series")}
+            />
+          ) : null}
+          <FieldError message={errorFor("series")} />
         </View>
       )}
     </Sheet>

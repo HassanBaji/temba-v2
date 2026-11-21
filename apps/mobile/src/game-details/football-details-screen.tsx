@@ -108,6 +108,7 @@ import { PerformanceResultCard } from "./performance-result-card";
 import { RateGameCard } from "./rate-game-card";
 import { RatingSummaryCard } from "./rating-summary-card";
 import { GameEditSheet } from "./game-edit-sheet";
+import { useGameEditSeries } from "./use-game-edit-series";
 import { LevelRequestCard } from "./level-request-card";
 import { challengeInfoRows } from "./challenge-details-card";
 import { NameSquadSheet } from "./name-squad-sheet";
@@ -330,6 +331,7 @@ export function FootballGameDetails({
       await refreshRatings();
     },
   });
+  const editSeries = useGameEditSeries(game);
   const editSections = gameEditSectionsFor({
     format: game.format,
     sport: game.sport,
@@ -337,7 +339,7 @@ export function FootballGameDetails({
     tournamentRounds: false,
     booked: game.booking != null,
     challenge: game.challenge != null,
-    series: false,
+    series: editSeries.shown,
   });
   const edit = useGameEdit({
     gameId,
@@ -1113,6 +1115,7 @@ export function FootballGameDetails({
             joined: game.registeredUserCount,
             seasons: game.groupSeasons,
             canChangeSeason: game.canChangeSeason,
+            series: editSeries.context,
           }}
         />
       ) : null}

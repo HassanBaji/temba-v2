@@ -38,6 +38,7 @@ import { gameTitle } from "./details-model";
 import type { OrganizerHandlers } from "./organizer-card";
 import type { EditSection, OrganizerSheetsProps } from "./organizer-sheets";
 import { useGameEdit } from "./use-game-edit";
+import { useGameEditSeries } from "./use-game-edit-series";
 import { useRequestDecisions } from "./use-request-decisions";
 
 type EditGame = RouterOutputs["games"]["byId"];
@@ -83,6 +84,7 @@ export function useOrganizerActions({
   );
   const toasts = gameToast(locale);
   const copy = m.mobileGameDetails;
+  const editSeries = useGameEditSeries(game);
   const editSections = gameEditSectionsFor({
     format: game?.format ?? "friendly_game",
     sport: game?.sport,
@@ -90,7 +92,7 @@ export function useOrganizerActions({
     tournamentRounds: false,
     booked: game?.booking != null,
     challenge: game?.challenge != null,
-    series: false,
+    series: editSeries.shown,
   });
   const edit = useGameEdit({
     gameId,
@@ -291,6 +293,7 @@ export function useOrganizerActions({
       joined: game?.registeredUserCount ?? 0,
       seasons: game?.groupSeasons ?? [],
       canChangeSeason: game?.canChangeSeason ?? false,
+      series: editSeries.context,
     },
     courtId:
       game?.matches.find((match) => match.id === plan?.court?.matchId)

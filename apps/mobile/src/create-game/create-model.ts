@@ -51,6 +51,8 @@ export type CreateState = {
   draft: CreateGameDraft;
   /** Sent only with a Friendly game; tournaments have no MVP. */
   mvpMode: MvpMode;
+  /** Kept out of the stored draft: a Series may have ended by the next visit. */
+  seriesId: string | null;
   locale: Locale;
 };
 
@@ -90,7 +92,8 @@ export type CreateAction =
   | { kind: "setAllowSolo"; allowSoloRegister: boolean }
   | { kind: "setHowPeopleJoin"; mode: HowPeopleJoin }
   | { kind: "setRated"; rated: boolean }
-  | { kind: "setMvpMode"; mode: MvpMode };
+  | { kind: "setMvpMode"; mode: MvpMode }
+  | { kind: "setSeries"; seriesId: string | null };
 
 /** How people join a Social: teams or alone, pairs only, or Alone only (ADR-0096). */
 export type HowPeopleJoin = "solo" | "pair" | "alone";
@@ -116,6 +119,7 @@ export function initialCreateState(
     step: type ? 2 : 1,
     draft: { ...initialCreateGameDraft(now, locale), groupId: groupId ?? "" },
     mvpMode: "vote",
+    seriesId: null,
     locale,
   };
 }
@@ -147,11 +151,12 @@ export function createReducer(
       const sport = sportOrDefault(action.sport);
       const grouped = changeCreateGroup(draft, action.groupId);
       if (sport !== "football") {
-        return { ...state, sport, draft: grouped };
+        return { ...state, sport, draft: grouped, seriesId: null };
       }
       return {
         ...state,
         sport,
+        seriesId: null,
         type: "friendly_game",
         step: Math.max(
           state.step,
@@ -165,7 +170,12 @@ export function createReducer(
     }
     case "choosePublic": {
       const chosen = choosePublicGame(draft);
-      return { ...state, sport: chosen.publicSport, draft: chosen };
+      return {
+        ...state,
+        sport: chosen.publicSport,
+        draft: chosen,
+        seriesId: null,
+      };
     }
     case "setPublicSport":
       return {
@@ -292,6 +302,8 @@ export function createReducer(
       return patch(state, { rated: action.rated });
     case "setMvpMode":
       return { ...state, mvpMode: action.mode };
+    case "setSeries":
+      return { ...state, seriesId: action.seriesId };
   }
 }
 
@@ -381,27 +393,46 @@ export function continueBlocked(state: CreateState): boolean {
   return false;
 }
 
+/**
+ * The instant the submit builds from the day and start time, so the Series
+ * picker numbers the Edition the Game will be; null until both are valid.
+ */
+export function createWindowStart(state: CreateState, now: Date): Date | null {
+  const { draft, locale } = state;
+  const when = validateFriendlyGameWhen(
+    draft.day,
+    draft.startTime,
+    draft.finishTime,
+    locale,
+    now,
+  );
+  return when.ok ? when.windowStart : null;
+}
+
+type SeriesInput = { seriesId?: string };
+
 export type SubmitRequest =
   | {
       kind: "football_game";
       input: Extract<
         ReturnType<typeof validateFootballGameSubmit>,
         { ok: true }
-      >["input"] & { mvpMode: MvpMode };
+      >["input"] & { mvpMode: MvpMode } & SeriesInput;
     }
   | {
       kind: "friendly_game";
       input: Extract<
         ReturnType<typeof validateFriendlyGameSubmit>,
         { ok: true }
-      >["input"] & { mvpMode: MvpMode };
+      >["input"] & { mvpMode: MvpMode } & SeriesInput;
     }
   | {
       kind: "friendly_tournament";
       input: Extract<
         ReturnType<typeof validateFriendlyTournamentSubmit>,
         { ok: true }
-      >["input"];
+      >["input"] &
+        SeriesInput;
     };
 
 export type SubmitResult =
@@ -419,6 +450,9 @@ export function submitRequest(
     errors: { [issue.field]: issue.message },
   });
   const { locale, mvpMode } = state;
+  const series: SeriesInput = state.seriesId
+    ? { seriesId: state.seriesId }
+    : {};
   if (state.type === "friendly_tournament") {
     const result = validateFriendlyTournamentSubmit(
       state.draft,
@@ -429,7 +463,10 @@ export function submitRequest(
     return result.ok
       ? {
           ok: true,
-          request: { kind: "friendly_tournament", input: result.input },
+          request: {
+            kind: "friendly_tournament",
+            input: { ...result.input, ...series },
+          },
         }
       : issueResult(result);
   }
@@ -448,7 +485,7 @@ export function submitRequest(
           ok: true,
           request: {
             kind: "football_game",
-            input: { ...football.input, mvpMode },
+            input: { ...football.input, mvpMode, ...series },
           },
         }
       : issueResult(football);
@@ -457,7 +494,10 @@ export function submitRequest(
   return result.ok
     ? {
         ok: true,
-        request: { kind: "friendly_game", input: { ...result.input, mvpMode } },
+        request: {
+          kind: "friendly_game",
+          input: { ...result.input, mvpMode, ...series },
+        },
       }
     : issueResult(result);
 }

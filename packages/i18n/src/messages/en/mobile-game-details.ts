@@ -160,6 +160,8 @@ export const mobileGameDetails = {
     noteWithDates: (note: string, dates: string) => `${note} ${dates}`,
     season: "Season",
     changeSeason: "Change season",
+    changeSeries: "Change series",
+    seriesRowA11y: (choice: string) => `Series: ${choice}`,
     pickDayFirst: "Pick a day first.",
     name: "Name",
     gameName: "Game name",

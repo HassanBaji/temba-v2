@@ -105,6 +105,7 @@ export const series = {
     review: (name: string, edition: number) =>
       `${isolate(name)}، النسخة ${edition}`,
     locked: "النتيجة مسجّلة، لذا تبقى السلسلة كما هي.",
+    rowA11y: (title: string, hint: string) => `${title}، ${hint}`,
   },
   game: {
     winnersTwo: (first: string, second: string) =>

@@ -88,6 +88,7 @@ export const series = {
       `Series of ${group}. The winners get the badge on their profile.`,
     review: (name: string, edition: number) => `${name}, edition ${edition}`,
     locked: "The score is in, so the series stays.",
+    rowA11y: (title: string, hint: string) => `${title}, ${hint}`,
   },
   game: {
     winnersTwo: (first: string, second: string) => `${first} and ${second}`,

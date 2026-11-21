@@ -255,9 +255,11 @@ export function useGameEdit({
         };
       }
     }
+    const seriesStepRan = plan.steps.some((step) => step.kind === "series");
     await Promise.all([
       onSaved(),
       mvpChanged ? utils.marks.forGame.invalidate({ gameId }) : null,
+      seriesStepRan ? utils.series.invalidate() : null,
     ]);
     setPending(false);
     const copy = m.mobileGameDetails.edit;

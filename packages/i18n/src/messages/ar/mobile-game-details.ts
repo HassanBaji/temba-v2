@@ -165,6 +165,8 @@ export const mobileGameDetails = {
     noteWithDates: (note: string, dates: string) => `${note} ${dates}`,
     season: "الموسم",
     changeSeason: "تغيير الموسم",
+    changeSeries: "تغيير السلسلة",
+    seriesRowA11y: (choice: string) => `السلسلة: ${choice}`,
     pickDayFirst: "اختر يومًا أولًا.",
     name: "الاسم",
     socialName: "اسم السوشيال",
