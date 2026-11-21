@@ -48,6 +48,7 @@ import { assertMayCreateGameOnGroup } from "#src/games/access";
 import { assertGameCreateVenueAndCourt } from "#src/games/assert-game-create-venue-and-court";
 import { requireGroup } from "#src/games/helpers/require-group";
 import { groupIsVerified } from "#src/groups/group-is-verified";
+import { resolveGameSeriesLink } from "#src/series/series-link";
 import { ratingFlagsAtCreate } from "@repo/domain/game-rating-scope";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -357,6 +358,8 @@ export const createTournamentInputSchema = z
       .max(LEVEL_TENTHS_MAX)
       .nullable()
       .optional(),
+    /** One of the Group's running Series; the Social becomes its next Edition. */
+    seriesId: z.string().uuid().optional(),
   })
   .refine((value) => value.windowEnd.getTime() >= value.windowStart.getTime(), {
     message: "Finish time must be at or after start time",
@@ -460,6 +463,21 @@ export async function createTournament(
       message: messagesFor(locale).game.errors.verifiedGroupOpen,
     });
   }
+  const series = input.seriesId
+    ? await resolveGameSeriesLink(database, {
+        game: {
+          format: GameFormatEnum.FRIENDLY_TOURNAMENT,
+          groupId: group.id,
+          challengeId: null,
+          poolCount: sized.poolCount,
+          tournamentShape: sized.tournamentShape,
+          windowStart: input.windowStart,
+        },
+        group,
+        seriesId: input.seriesId,
+        locale,
+      })
+    : null;
   await assertGameCreateVenueAndCourt(database, {
     groupId: input.groupId,
     venueId: input.venueId,
@@ -497,6 +515,7 @@ export async function createTournament(
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
+        seriesId: series?.id ?? null,
         ...ratingFlagsAtCreate({
           hasGroup: true,
           groupVerified,

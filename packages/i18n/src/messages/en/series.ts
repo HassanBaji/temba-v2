@@ -43,5 +43,9 @@ export const series = {
           "A group can run up to {n} series at once. End one to start another",
       }),
     alreadyEnded: "This series has already ended",
+    ended: "This series has ended. Pick a running one",
+    notInGroup: "Only a game of the series' group can be part of it",
+    cannotCarry: "This kind of game cannot be part of a series",
+    needsDay: "Pick the game's day before adding a series",
   },
 };

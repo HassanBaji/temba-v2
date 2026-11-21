@@ -8,7 +8,10 @@ import {
   SERIES_COLOURS,
   SERIES_EMBLEMS,
   SERIES_NAME_MAX_LENGTH,
+  carriesSeries,
+  seriesEditionNumbers,
   seriesNameError,
+  type SeriesCarrierGame,
 } from "./series";
 
 describe("Series badge lists", () => {
@@ -57,5 +60,92 @@ describe("seriesNameError", () => {
     expect(seriesNameError("", [], "ar")).toBe(
       messagesFor("ar").series.errors.nameRequired,
     );
+  });
+});
+
+describe("carriesSeries", () => {
+  const groupGame: SeriesCarrierGame = {
+    format: "friendly_game",
+    groupId: "group-1",
+    challengeId: null,
+    poolCount: null,
+    tournamentShape: null,
+  };
+  const social = (
+    tournamentShape: string | null,
+    poolCount: number | null,
+  ): SeriesCarrierGame => ({
+    ...groupGame,
+    format: "friendly_tournament",
+    tournamentShape,
+    poolCount,
+  });
+
+  it.each([
+    ["a padel Friendly game", groupGame],
+    ["a football Game", groupGame],
+    ["a Rounds Social", social("rounds", 1)],
+    ["a Groups only Social", social("groups_only", 2)],
+    ["a Groups then knockout Social", social("groups_then_knockout", 2)],
+    ["a Knockout only Social", social("knockout_only", null)],
+    ["a King of the court Social", social("king_of_the_court", null)],
+    ["an Americano Social", social("americano", null)],
+    ["a drawn tournament from before Tournament shapes", social(null, 2)],
+  ])("carries a Series on %s", (_kind, game) => {
+    expect(carriesSeries(game)).toBe(true);
+  });
+
+  it.each([
+    ["the legacy Americano Game format", { ...groupGame, format: "americano" }],
+    ["a hand-built legacy tournament", social(null, null)],
+    ["a Challenge Game", { ...groupGame, challengeId: "challenge-1" }],
+    ["a Booking Game", { ...groupGame, groupId: null }],
+    ["a Public Game", { ...groupGame, groupId: null }],
+    ["a groupless Social", { ...social("rounds", 1), groupId: null }],
+  ])("carries no Series on %s", (_kind, game) => {
+    expect(carriesSeries(game)).toBe(false);
+  });
+});
+
+describe("seriesEditionNumbers", () => {
+  const at = (iso: string) => new Date(iso);
+
+  it("numbers from 1 by window start", () => {
+    const numbers = seriesEditionNumbers([
+      {
+        id: "c",
+        windowStart: at("2026-12-20T18:00:00Z"),
+        createdAt: at("2026-11-01T00:00:00Z"),
+      },
+      {
+        id: "a",
+        windowStart: at("2026-12-06T18:00:00Z"),
+        createdAt: at("2026-11-03T00:00:00Z"),
+      },
+      {
+        id: "b",
+        windowStart: at("2026-12-13T18:00:00Z"),
+        createdAt: at("2026-11-02T00:00:00Z"),
+      },
+    ]);
+    expect(Object.fromEntries(numbers)).toEqual({ a: 1, b: 2, c: 3 });
+  });
+
+  it("breaks a tie on the start by creation time, then by id", () => {
+    const start = at("2026-12-06T18:00:00Z");
+    const numbers = seriesEditionNumbers([
+      {
+        id: "later",
+        windowStart: start,
+        createdAt: at("2026-11-02T00:00:00Z"),
+      },
+      { id: "y", windowStart: start, createdAt: at("2026-11-01T00:00:00Z") },
+      { id: "x", windowStart: start, createdAt: at("2026-11-01T00:00:00Z") },
+    ]);
+    expect(Object.fromEntries(numbers)).toEqual({ x: 1, y: 2, later: 3 });
+  });
+
+  it("returns an empty map for a Series with no Games", () => {
+    expect(seriesEditionNumbers([]).size).toBe(0);
   });
 });

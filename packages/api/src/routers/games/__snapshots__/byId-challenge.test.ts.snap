@@ -227,6 +227,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "roundCount": null,
   "season": null,
   "seasonId": null,
+  "series": null,
   "sideSize": null,
   "sides": [
     {
@@ -537,6 +538,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "roundCount": null,
   "season": null,
   "seasonId": null,
+  "series": null,
   "sideSize": null,
   "sides": [
     {
@@ -743,6 +745,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "roundCount": null,
   "season": null,
   "seasonId": null,
+  "series": null,
   "sideSize": 5,
   "sides": [],
   "sport": "football",
@@ -920,6 +923,7 @@ exports[`games.byId on an ordinary Game > is unchanged: no Challenge, and the sa
   "roundCount": null,
   "season": null,
   "seasonId": null,
+  "series": null,
   "sideSize": 5,
   "sides": [],
   "sport": "football",

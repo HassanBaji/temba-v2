@@ -127,6 +127,7 @@ import {
   type ProveItImpact,
 } from "@repo/domain/game-rating-impact";
 import { groupSeasonRows } from "#src/games/season-link";
+import { gameSeriesSummary } from "#src/series/series-link";
 import { toSeasonRow } from "#src/standing/load-group-standing";
 import { MATCH_STATUS } from "@repo/domain/match-status";
 import { guestStandInBand } from "@repo/domain/guest-player";
@@ -800,6 +801,7 @@ export async function gameById(
     : [];
   const groupSeasons = seasonRows.map((row) => toSeasonRow(row, now));
   const season = groupSeasons.find((row) => row.id === game.seasonId) ?? null;
+  const series = await gameSeriesSummary(database, game);
   const scoreConfirmed = matchRows.some(
     (match) => match.status === MATCH_STATUS.COMPLETED,
   );
@@ -1339,6 +1341,7 @@ export async function gameById(
     season,
     groupSeasons: viewsToStampOnly ? [] : groupSeasons,
     canChangeSeason: organizer && !game.cancelledAt && !scoreConfirmed,
+    series,
     venueId: game.venueId,
     venue: venue
       ? {
