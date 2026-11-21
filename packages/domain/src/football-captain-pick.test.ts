@@ -2,12 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import type { BoardPlayer } from "./football-board";
 import {
+  captainPickCountLines,
+  captainPickDone,
+  captainPickFinalSizes,
   captainPickFirstPickLine,
   captainPickPoolLine,
   captainPickPoolOrder,
   captainPickProgressLine,
+  captainPickRoomLines,
   captainPickSetupProblem,
   firstPickSide,
+  pickTurn,
 } from "./football-captain-pick";
 
 const names = { slot1: "Black", slot2: "White" };
@@ -187,5 +192,188 @@ describe("captainPickPoolOrder", () => {
         balanceOn: "tierPoints",
       }).map((row) => row.userId),
     ).toEqual(["e", "c", "d", "a", "b"]);
+  });
+});
+
+/** Picks the whole pool by the turn rule and says which side took each pick. */
+function pickAll(
+  start: { slot1: number; slot2: number },
+  pool: number,
+  first: 1 | 2,
+) {
+  const sizes = { ...start };
+  const order: (1 | 2)[] = [];
+  for (let pick = 0; pick < pool; pick += 1) {
+    const side = pickTurn({ ...sizes, firstPickSide: first });
+    order.push(side);
+    if (side === 1) {
+      sizes.slot1 += 1;
+    } else {
+      sizes.slot2 += 1;
+    }
+  }
+  return { order, sizes };
+}
+
+describe("pickTurn", () => {
+  it("alternates from the first pick in an untouched pick", () => {
+    expect(pickAll({ slot1: 1, slot2: 1 }, 6, 1).order).toEqual([
+      1, 2, 1, 2, 1, 2,
+    ]);
+    expect(pickAll({ slot1: 1, slot2: 1 }, 4, 2).order).toEqual([2, 1, 2, 1]);
+  });
+
+  it("gives the first picker the last player of an odd pool", () => {
+    const white = pickAll({ slot1: 1, slot2: 1 }, 5, 2);
+    expect(white.order).toEqual([2, 1, 2, 1, 2]);
+    expect(white.sizes).toEqual({ slot1: 3, slot2: 4 });
+    expect(pickAll({ slot1: 1, slot2: 1 }, 13, 1).sizes).toEqual({
+      slot1: 8,
+      slot2: 7,
+    });
+  });
+
+  it("gives the turn back after an undo", () => {
+    expect(pickTurn({ slot1: 2, slot2: 1, firstPickSide: 1 })).toBe(2);
+    expect(pickTurn({ slot1: 2, slot2: 2, firstPickSide: 1 })).toBe(1);
+    expect(pickTurn({ slot1: 2, slot2: 1, firstPickSide: 1 })).toBe(2);
+  });
+
+  it("goes to the side that lost a picked player, which then catches up", () => {
+    expect(pickTurn({ slot1: 2, slot2: 3, firstPickSide: 1 })).toBe(1);
+    expect(pickTurn({ slot1: 3, slot2: 2, firstPickSide: 2 })).toBe(2);
+    expect(pickAll({ slot1: 2, slot2: 4 }, 4, 1).order).toEqual([1, 1, 1, 2]);
+  });
+
+  it("takes a late joiner into the pool without moving the turn", () => {
+    expect(pickTurn({ slot1: 3, slot2: 2, firstPickSide: 1 })).toBe(2);
+    expect(pickAll({ slot1: 3, slot2: 2 }, 4, 1).order).toEqual([2, 1, 2, 1]);
+    expect(pickAll({ slot1: 3, slot2: 3 }, 1, 2).order).toEqual([2]);
+  });
+});
+
+describe("captainPickDone and the counts", () => {
+  it("is done once the pool is empty", () => {
+    expect(captainPickDone(0)).toBe(true);
+    expect(captainPickDone(1)).toBe(false);
+  });
+
+  it("counts each side against what it ends with, and who is left", () => {
+    expect(
+      captainPickFinalSizes({ slot1: 4, slot2: 3, pool: 9, firstPickSide: 1 }),
+    ).toEqual({ slot1: 8, slot2: 8 });
+    expect(
+      captainPickCountLines(
+        { slot1: 4, slot2: 3, pool: 9, firstPickSide: 1 },
+        "en",
+      ),
+    ).toEqual({ slot1: "4 of 8", slot2: "3 of 8", pool: "9 left" });
+    expect(
+      captainPickCountLines(
+        { slot1: 1, slot2: 1, pool: 13, firstPickSide: 2 },
+        "en",
+      ),
+    ).toEqual({ slot1: "1 of 7", slot2: "1 of 8", pool: "13 left" });
+    expect(
+      captainPickCountLines(
+        { slot1: 8, slot2: 8, pool: 1, firstPickSide: 1 },
+        "en",
+      ).pool,
+    ).toBe("1 left");
+    expect(
+      captainPickCountLines(
+        { slot1: 2, slot2: 1, pool: 2, firstPickSide: 1 },
+        "ar",
+      ).pool,
+    ).toBe("بقي لاعبان");
+  });
+});
+
+describe("captainPickRoomLines", () => {
+  const roomNames = {
+    captains: { slot1: "Rashid", slot2: "Faisal" },
+    teams: { slot1: "Black", slot2: "White" },
+  };
+  const live = {
+    status: "live" as const,
+    picks: { made: 5, total: 14 },
+    turn: 2 as const,
+    firstPick: "toss" as const,
+    firstPickSide: 1 as const,
+    sizes: { slot1: 4, slot2: 3 },
+  };
+
+  it("tells the captain on turn to pick, and that the other sees it in a moment", () => {
+    expect(captainPickRoomLines(live, 2, roomNames, "en")).toEqual({
+      progress: "Pick 6 of 14",
+      title: "Your pick",
+      sub: "Tap a player, then confirm. Rashid sees it in a moment.",
+      toss: null,
+    });
+  });
+
+  it("tells the other captain who is picking", () => {
+    expect(captainPickRoomLines(live, 1, roomNames, "en")).toEqual({
+      progress: "Pick 6 of 14",
+      title: "Faisal is picking",
+      sub: "You pick again as soon as Faisal has chosen.",
+      toss: null,
+    });
+  });
+
+  it("shows the Organizer the pick as watching", () => {
+    expect(captainPickRoomLines(live, null, roomNames, "en")).toEqual({
+      progress: "Pick 6 of 14, watching",
+      title: "Faisal is picking",
+      sub: "Players can't see the pick. You can watch it happen, or step in below.",
+      toss: null,
+    });
+  });
+
+  it("names who won the toss on the first pick only", () => {
+    const first = {
+      ...live,
+      picks: { made: 0, total: 14 },
+      turn: 1 as const,
+      sizes: { slot1: 1, slot2: 1 },
+    };
+    expect(captainPickRoomLines(first, 1, roomNames, "en").toss).toBe(
+      "Black won the toss",
+    );
+    expect(
+      captainPickRoomLines({ ...first, firstPick: "slot1" }, 1, roomNames, "en")
+        .toss,
+    ).toBeNull();
+  });
+
+  it("reads the finished pick, even or odd", () => {
+    const done = {
+      ...live,
+      status: "done" as const,
+      picks: { made: 14, total: 14 },
+      sizes: { slot1: 8, slot2: 8 },
+    };
+    expect(captainPickRoomLines(done, 1, roomNames, "en")).toEqual({
+      progress: "All 14 picked",
+      title: "Teams are picked",
+      sub: "8 a side. They go to the organizer as a draft, with both captains already agreed.",
+      toss: null,
+    });
+    expect(
+      captainPickRoomLines(
+        { ...done, sizes: { slot1: 7, slot2: 8 } },
+        null,
+        roomNames,
+        "en",
+      ).sub,
+    ).toBe(
+      "Teams of 8 and 7. They go to the organizer as a draft, with both captains already agreed.",
+    );
+  });
+
+  it("reads in Arabic", () => {
+    expect(captainPickRoomLines(live, 2, roomNames, "ar").title).toBe(
+      "دورك في الاختيار",
+    );
   });
 });

@@ -8,7 +8,7 @@ import {
   gamePlayers,
 } from "@repo/db";
 import type { Side } from "@repo/domain/football-board";
-import { firstPickSide } from "@repo/domain/football-captain-pick";
+import { firstPickSide, pickTurn } from "@repo/domain/football-captain-pick";
 import { PICK_ROOM_PRESENCE_MS } from "@repo/domain/football-lineup";
 import { isFootballGame } from "@repo/domain/game-shape";
 import { messagesFor } from "@repo/i18n/messages";
@@ -125,6 +125,7 @@ async function startWhenBothIn(
  * stopped, and a pick that lost a captain is cleared here as Stop the pick
  * clears it. Reading records the calling captain's presence and starts the
  * pick, toss included, on the read that finds both captains in the room.
+ * The side on turn is read from the sides by `pickTurn`, never stored.
  *
  * User ids only, and no ratings: names, positions, OVR and Group Tier come
  * from `games.footballBoard` under its rules.
@@ -263,6 +264,17 @@ export async function footballPickRoom(
       : null;
   };
 
+  const sides = { slot1: side(1), slot2: side(2) };
+  const startedSide = asSide(draft.firstPickSide);
+  const turn =
+    status === "live" && startedSide != null
+      ? pickTurn({
+          slot1: sides.slot1.length,
+          slot2: sides.slot2.length,
+          firstPickSide: startedSide,
+        })
+      : null;
+
   return {
     status,
     serverNow: now,
@@ -274,8 +286,9 @@ export async function footballPickRoom(
     bibs: { slot1: draft.slot1Bib, slot2: draft.slot2Bib },
     captains: { slot1: captain(1), slot2: captain(2) },
     firstPick: draft.firstPick,
-    firstPickSide: asSide(draft.firstPickSide),
-    sides: { slot1: side(1), slot2: side(2) },
+    firstPickSide: startedSide,
+    sides,
+    turn,
     pool,
     picks: {
       made: pickNumbers.length,

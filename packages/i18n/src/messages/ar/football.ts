@@ -380,6 +380,51 @@ export const football = {
         other: "{n} لاعب",
       })}، ${more} و${fewer}`,
     progress: (next: number, total: number) => `الاختيار ${next} من ${total}`,
+    progressWatching: (next: number, total: number) =>
+      `الاختيار ${next} من ${total}، تشاهد`,
+    allPicked: (n: number) => `اكتمل الاختيار: ${n} من ${n}`,
+    yourPick: "دورك في الاختيار",
+    isPicking: (name: string) => `${name} يختار`,
+    yourPickHint: (other: string) =>
+      `اضغط على لاعب ثم أكّد. يراه ${other} بعد لحظة.`,
+    pickAgainHint: (name: string) =>
+      `تختار مجددًا حين ينتهي ${name} من اختياره.`,
+    watchingHint:
+      "لا يرى اللاعبون الاختيار. يمكنك مشاهدته وهو يجري، أو التدخل من الأسفل.",
+    doneSizesEven: (each: number) => `${each} لكل فريق.`,
+    doneSizesSplit: (more: number, fewer: number) =>
+      `فريق من ${more} وآخر من ${fewer}.`,
+    sideCount: (count: number, of: number) => `${count} من ${of}`,
+    sideAverage: (team: string, average: string) => `متوسط ${team} ${average}`,
+    poolLeft: (n: number) =>
+      plural("ar", n, {
+        one: "بقي لاعب واحد",
+        two: "بقي لاعبان",
+        few: "بقي {n} لاعبين",
+        many: "بقي {n} لاعبًا",
+        other: "بقي {n} لاعب",
+      }),
+    nextPick: (n: number) => `الاختيار ${n}`,
+    nextPickSpoken: (team: string, n: number) => `الاختيار ${n} لـ${team}`,
+    pickedSpoken: (n: number, player: string) => `الاختيار ${n}، ${player}`,
+    pickPlayer: (name: string) => `اختر ${name}`,
+    pickPlayerFor: (name: string, captain: string) =>
+      `اختر ${name} عن ${captain}`,
+    tapToPick: "اضغط على لاعب لاختياره",
+    isChoosing: (name: string) => `${name} يختار الآن`,
+    pickFor: (name: string) => `اختر عن ${name}`,
+    pickForHint: (name: string) => `إن خرج ${name} من الغرفة`,
+    undoLast: "تراجع عن آخر اختيار",
+    undoHint: (name: string) => `يعود ${name} إلى قائمة الاختيار`,
+    undoTitle: (n: number) => `التراجع عن الاختيار ${n}؟`,
+    undoBody: (name: string, captain: string) =>
+      `يعود ${name} إلى قائمة الاختيار ويختار ${captain} من جديد.`,
+    undoNothing: "لا يوجد اختيار للتراجع عنه بعد",
+    undoConfirm: "تراجع عن الاختيار",
+    stopTitle: "إيقاف الاختيار؟",
+    stopBody: "يبقى ما اختير مسودةً. تضع بقية اللاعبين بنفسك في تكوين الفرق.",
+    cancel: "إلغاء",
+    undone: (name: string) => `عاد ${name} إلى قائمة الاختيار`,
     poolTitle: "اللاعبون",
     poolHead: (n: number) => `${n}، الأعلى مستوى أولًا`,
     andMore: (n: number) =>
@@ -399,7 +444,6 @@ export const football = {
     startNowHint: "ابدأ دون انتظار. يمكنك الاختيار عن قائد غائب.",
     stop: "أوقف الاختيار",
     stopHint: "احتفظ بما اختير وأكمل الفريقين بنفسك",
-    liveTitle: "بدأ الاختيار",
     doneTitle: "اكتمل اختيار الفريقين",
     doneBody: "يصلان إلى المنظّم مسودةً، وقد وافق عليهما القائدان.",
     seeTheDraft: "اعرض المسودة",
@@ -502,5 +546,11 @@ export const football = {
     pickNotWaiting: "بدأ الاختيار بالفعل",
     pickNotRunning: "لا يجري اختيار قائدين الآن",
     pickRemindOtherSide: "تستطيع تذكير القائد الآخر فقط",
+    pickNotLive: "الاختيار ليس جاريًا",
+    pickOnTurnOnly: "لا يختار إلا القائد صاحب الدور",
+    pickNotYourTurn: "الدور للفريق الآخر",
+    pickNotInPool: "هذا اللاعب ليس في قائمة الاختيار",
+    pickMovedOn: "تقدّم الاختيار",
+    pickNothingToUndo: "لا يوجد اختيار للتراجع عنه",
   },
 } satisfies typeof source;

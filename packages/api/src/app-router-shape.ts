@@ -151,6 +151,8 @@ type ExpectedGames =
   | "footballPickRoom"
   | "startFootballPick"
   | "stopFootballPick"
+  | "pickFootballPlayer"
+  | "undoFootballPick"
   | "remindFootballCaptain"
   | "saveFootballScore"
   | "nameChallengeSquad"

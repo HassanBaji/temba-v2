@@ -76,6 +76,8 @@ import { openFootballPickRoomProcedure as openFootballPickRoom } from "./openFoo
 import { footballPickRoomProcedure as footballPickRoom } from "./footballPickRoom";
 import { startFootballPickProcedure as startFootballPick } from "./startFootballPick";
 import { stopFootballPickProcedure as stopFootballPick } from "./stopFootballPick";
+import { pickFootballPlayerProcedure as pickFootballPlayer } from "./pickFootballPlayer";
+import { undoFootballPickProcedure as undoFootballPick } from "./undoFootballPick";
 import { remindFootballCaptainProcedure as remindFootballCaptain } from "./remindFootballCaptain";
 import { registerProcedure as register } from "./register";
 import { submitLevelChecksProcedure as submitLevelChecks } from "./submitLevelChecks";
@@ -200,6 +202,8 @@ export const gamesRouter = createTRPCRouter({
   footballPickRoom,
   startFootballPick,
   stopFootballPick,
+  pickFootballPlayer,
+  undoFootballPick,
   remindFootballCaptain,
   saveFootballScore,
   nameChallengeSquad,

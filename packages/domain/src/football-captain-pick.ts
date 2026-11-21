@@ -61,6 +61,139 @@ export function firstPickSide(
   return random() < 0.5 ? 1 : 2;
 }
 
+/**
+ * The side on turn in a live Captain pick (ADR-0109): the side with fewer
+ * players; when they are level, the side with the first pick. It is read
+ * from the sides as they stand, so an undo, a leaver or a late joiner needs
+ * no repair, and an odd pool gives the first picker the last player.
+ */
+export function pickTurn(sides: {
+  slot1: number;
+  slot2: number;
+  firstPickSide: Side;
+}): Side {
+  if (sides.slot1 === sides.slot2) {
+    return sides.firstPickSide;
+  }
+  return sides.slot1 < sides.slot2 ? 1 : 2;
+}
+
+/** A Captain pick is done once nobody is left in the pool. */
+export function captainPickDone(poolSize: number) {
+  return poolSize === 0;
+}
+
+/** How many players each side has once the pool is picked by the turn rule. */
+export function captainPickFinalSizes(room: {
+  slot1: number;
+  slot2: number;
+  pool: number;
+  firstPickSide: Side;
+}) {
+  const sizes = { slot1: room.slot1, slot2: room.slot2 };
+  for (let pick = 0; pick < room.pool; pick += 1) {
+    const turn = pickTurn({ ...sizes, firstPickSide: room.firstPickSide });
+    if (turn === 1) {
+      sizes.slot1 += 1;
+    } else {
+      sizes.slot2 += 1;
+    }
+  }
+  return sizes;
+}
+
+/**
+ * Each side's count against what it ends with ("4 of 8"), and who is left
+ * ("9 left").
+ */
+export function captainPickCountLines(
+  room: {
+    slot1: number;
+    slot2: number;
+    pool: number;
+    firstPickSide: Side;
+  },
+  locale: Locale,
+) {
+  const m = messagesFor(locale).football.pick;
+  const final = captainPickFinalSizes(room);
+  return {
+    slot1: m.sideCount(room.slot1, final.slot1),
+    slot2: m.sideCount(room.slot2, final.slot2),
+    pool: m.poolLeft(room.pool),
+  };
+}
+
+/**
+ * The lines at the top of a live or finished Pick room: the progress ("Pick
+ * 6 of 14", "All 14 picked", or "…, watching" for an Organizer who is not a
+ * Side captain), whose turn it is ("Your pick", "Faisal is picking", "Teams
+ * are picked") and what that means, and on the first pick after a toss who
+ * won it. `names` are the Side captains' names and the teams' bib names.
+ */
+export function captainPickRoomLines(
+  room: {
+    status: "live" | "done";
+    picks: { made: number; total: number };
+    turn: Side | null;
+    firstPick: FootballFirstPick | null;
+    firstPickSide: Side | null;
+    sizes: { slot1: number; slot2: number };
+  },
+  viewerSide: Side | null,
+  names: {
+    captains: { slot1: string; slot2: string };
+    teams: { slot1: string; slot2: string };
+  },
+  locale: Locale,
+) {
+  const m = messagesFor(locale).football.pick;
+  if (room.status === "done") {
+    const { slot1, slot2 } = room.sizes;
+    const sizes =
+      slot1 === slot2
+        ? m.doneSizesEven(slot1)
+        : m.doneSizesSplit(Math.max(slot1, slot2), Math.min(slot1, slot2));
+    return {
+      progress: m.allPicked(room.picks.made),
+      title: m.doneTitle,
+      sub: `${sizes} ${m.doneBody}`,
+      toss: null,
+    };
+  }
+  const turn = room.turn ?? room.firstPickSide ?? 1;
+  const captain = (side: Side) =>
+    side === 1 ? names.captains.slot1 : names.captains.slot2;
+  const toss =
+    room.picks.made === 0 &&
+    room.firstPick === "toss" &&
+    room.firstPickSide != null
+      ? m.wonTheToss(
+          room.firstPickSide === 1 ? names.teams.slot1 : names.teams.slot2,
+        )
+      : null;
+  if (viewerSide == null) {
+    return {
+      progress: m.progressWatching(
+        Math.min(room.picks.made + 1, room.picks.total),
+        room.picks.total,
+      ),
+      title: m.isPicking(captain(turn)),
+      sub: m.watchingHint,
+      toss,
+    };
+  }
+  const onTurn = viewerSide === turn;
+  return {
+    progress: captainPickProgressLine(room.picks, locale),
+    title: onTurn ? m.yourPick : m.isPicking(captain(turn)),
+    sub: onTurn
+      ? m.yourPickHint(captain(viewerSide === 1 ? 2 : 1))
+      : m.pickAgainHint(captain(turn)),
+    toss,
+  };
+}
+
 /** "Pick 6 of 14": the pick to come, of every pick the pool needs. */
 export function captainPickProgressLine(
   picks: { made: number; total: number },

@@ -8,20 +8,28 @@ import {
   type Side,
 } from "@repo/domain/football-board";
 import {
+  captainPickCountLines,
+  captainPickDone,
   captainPickFirstPickLine,
   captainPickPoolLine,
   captainPickPoolOrder,
-  captainPickProgressLine,
+  captainPickRoomLines,
+  pickTurn,
 } from "@repo/domain/football-captain-pick";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import { PICK_ROOM_POLL_MS } from "@repo/domain/football-lineup";
 import type { Locale } from "@repo/i18n/locale";
 import { useFocusEffect, useRouter, type Href } from "expo-router";
-import { Bell, Check } from "lucide-react-native";
+import { Bell, Check, ChevronRight } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 
+import {
+  ConfirmSheet,
+  type ConfirmRequest,
+} from "../game-details/confirm-sheet";
 import { useLocale, useMessages } from "../i18n/locale-provider";
+import { mirrorInRtl } from "../i18n/rtl";
 import { gamePath } from "../games/games-model";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -38,6 +46,7 @@ import { api, type RouterOutputs } from "../trpc/react";
 import { BibChip } from "./bib-picker";
 import { pickCaptainName } from "./captain-pick-setup";
 import { InfoRows } from "./info-rows";
+import { PickPool, PickSides } from "./pick-sides";
 import { TierMark } from "./team-columns";
 
 type PickRoom = Exclude<
@@ -48,6 +57,93 @@ type PickRoom = Exclude<
 const POOL_PREVIEW = 4;
 
 type Reminded = "sent" | "recently";
+
+type RoomRead = RouterOutputs["games"]["footballPickRoom"];
+
+/**
+ * The room with a pick placed, as the server places it: the caller's own
+ * pick shows at once and the next read corrects it.
+ */
+function withPick(
+  current: RoomRead,
+  pick: { userId: string; pickNumber: number },
+): RoomRead {
+  if (current.status !== "live" || current.turn == null) {
+    return current;
+  }
+  const side = current.turn;
+  const row = { userId: pick.userId, pickNumber: pick.pickNumber };
+  const sides =
+    side === 1
+      ? { ...current.sides, slot1: [...current.sides.slot1, row] }
+      : { ...current.sides, slot2: [...current.sides.slot2, row] };
+  const pool = current.pool.filter((userId) => userId !== pick.userId);
+  const done = captainPickDone(pool.length);
+  return {
+    ...current,
+    status: done ? "done" : "live",
+    sides,
+    pool,
+    turn:
+      done || current.firstPickSide == null
+        ? null
+        : pickTurn({
+            slot1: sides.slot1.length,
+            slot2: sides.slot2.length,
+            firstPickSide: current.firstPickSide,
+          }),
+    picks: {
+      made: current.picks.made + 1,
+      total: current.picks.total,
+      next: pick.pickNumber + 1,
+    },
+  };
+}
+
+function OrganizerAction({
+  label,
+  hint,
+  disabled,
+  first,
+  onPress,
+}: {
+  label: string;
+  hint: string;
+  disabled?: boolean;
+  first?: boolean;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  const messages = useMessages();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={[label, hint].join(messages.common.listSeparator)}
+      accessibilityState={{ disabled: disabled ?? false }}
+      disabled={disabled}
+      onPress={onPress}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        borderTopWidth: first ? 0 : hairline,
+        borderTopColor: colors.rule,
+      }}
+    >
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <Text weight="semibold" tone={disabled ? "muted" : "default"}>
+          {label}
+        </Text>
+        <Text size="meta" tone="muted">
+          {hint}
+        </Text>
+      </View>
+      <ChevronRight size={18} color={colors.muted} style={mirrorInRtl} />
+    </Pressable>
+  );
+}
 
 /** Polls only while the screen is in front; React Query pauses it in the background. */
 function useScreenFocused() {
@@ -282,13 +378,15 @@ function ClosedRoom({ gameId }: { gameId: string }) {
 }
 
 /**
- * The Pick room (designs 4b, ADR-0109), for the two Side captains and the
- * Game's Organizers. It reads `games.footballPickRoom` every two seconds
+ * The Pick room (designs 4b to 4d, ADR-0109), for the two Side captains and
+ * the Game's Organizers. It reads `games.footballPickRoom` every two seconds
  * while the screen is in front and the App is not in the background, which
  * is what keeps a captain "In the room". While it waits each captain sees
  * the other and can remind them; the Organizer can remind either, start
- * without them or stop the pick. Once the pick is live it holds on "The
- * pick has started"; a stopped pick closes the room for everyone.
+ * without them or stop the pick. Once live, the captain on turn taps a
+ * player and confirms; their own pick shows at once and the next read
+ * corrects it. The Organizer watches and can pick for the side on turn,
+ * undo the last pick or stop. A stopped pick closes the room for everyone.
  */
 export function PickRoomScreen({ gameId }: { gameId: string }) {
   const colors = useColors();
@@ -312,8 +410,17 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
     },
   );
   const [reminded, setReminded] = useState<Partial<Record<Side, Reminded>>>({});
+  const [selected, setSelected] = useState<string | null>(null);
+  const [pickingFor, setPickingFor] = useState(false);
+  const [confirm, setConfirm] = useState<"undo" | "stop" | null>(null);
   const wasOpen = useRef(false);
   const data = room.data;
+  const nextPick = data && data.status !== "stopped" ? data.picks.next : null;
+
+  useEffect(() => {
+    setSelected(null);
+    setPickingFor(false);
+  }, [nextPick]);
 
   const leave = useCallback(
     async (message: string) => {
@@ -376,9 +483,44 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
   const stop = api.games.stopFootballPick.useMutation({
     onSuccess: () => {
       wasOpen.current = false;
+      setConfirm(null);
       void leave(m.stopped);
     },
     onError: failure,
+  });
+  const pickPlayer = api.games.pickFootballPlayer.useMutation({
+    onMutate: async (input) => {
+      await utils.games.footballPickRoom.cancel({ gameId });
+      const previous = utils.games.footballPickRoom.getData({ gameId });
+      utils.games.footballPickRoom.setData({ gameId }, (current) =>
+        current
+          ? withPick(current, {
+              userId: input.userId,
+              pickNumber: input.pickNumber,
+            })
+          : current,
+      );
+      return { previous };
+    },
+    onError: (error, _input, context) => {
+      if (context?.previous) {
+        utils.games.footballPickRoom.setData({ gameId }, context.previous);
+      }
+      failure(error);
+    },
+    onSuccess: (result) => {
+      if (result.done) {
+        void utils.games.footballBoard.invalidate({ gameId });
+      }
+    },
+    onSettled: refresh,
+  });
+  const undoPick = api.games.undoFootballPick.useMutation({
+    onError: failure,
+    onSettled: () => {
+      setConfirm(null);
+      void refresh();
+    },
   });
 
   if (room.error?.data?.code === "NOT_FOUND" || data?.status === "stopped") {
@@ -403,6 +545,7 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
   }
 
   const names = bibNames(data.bibs, locale);
+  const balanceOn = board.data?.balanceOn ?? "ovr";
   const playerOf = (userId: string | undefined) =>
     boardPlayers.find((player) => player.userId === userId);
   const captainPlayer = (side: Side) =>
@@ -462,13 +605,11 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
       />
     );
 
-  const waiting = data.status === "waiting";
-  const asCaptain = data.viewer.role === "captain" && otherSide != null;
-  const organizerActions = data.viewer.isOrganizer && data.status !== "done";
-  const footer =
-    waiting || organizerActions ? (
+  if (data.status === "waiting") {
+    const asCaptain = data.viewer.role === "captain" && otherSide != null;
+    const footer = (
       <View style={{ flex: 1, gap: 8 }}>
-        {waiting && asCaptain ? (
+        {asCaptain ? (
           <>
             <Button
               label={m.waitingFor(captainName(otherSide))}
@@ -478,14 +619,13 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
             />
             {remindButton(otherSide)}
           </>
-        ) : null}
-        {waiting && !asCaptain ? (
+        ) : (
           <>
             {remindButton(1)}
             {remindButton(2)}
           </>
-        ) : null}
-        {organizerActions && waiting ? (
+        )}
+        {data.viewer.isOrganizer ? (
           <>
             <Button
               label={m.startNow}
@@ -497,10 +637,6 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
             <Text size="eyebrow" tone="muted" style={{ textAlign: "center" }}>
               {m.startNowHint}
             </Text>
-          </>
-        ) : null}
-        {organizerActions ? (
-          <>
             <Button
               label={m.stop}
               variant="outline"
@@ -514,7 +650,198 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
           </>
         ) : null}
       </View>
-    ) : null;
+    );
+    return (
+      <Screen footer={footer}>
+        <ScreenHeader
+          nav="back"
+          fallback={fallback}
+          title={m.title}
+          actions={
+            kickoff ? (
+              <Text size="meta" tone="muted">
+                {formatGameStart(kickoff, locale)}
+              </Text>
+            ) : null
+          }
+        >
+          <Text size="meta" tone="muted">
+            {intro}
+          </Text>
+        </ScreenHeader>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <CaptainCard
+            side={1}
+            room={data}
+            team={names.slot1}
+            player={captainPlayer(1)}
+          />
+          <CaptainCard
+            side={2}
+            room={data}
+            team={names.slot2}
+            player={captainPlayer(2)}
+          />
+        </View>
+        <InfoRows
+          rows={[
+            { label: m.firstPickLabel, value: firstPickLine },
+            { label: m.orderLabel, value: m.orderValue },
+            {
+              label: m.toPickLabel,
+              value: captainPickPoolLine(data.pool.length, locale),
+            },
+          ]}
+        />
+        <PoolPreview room={data} players={boardPlayers} balanceOn={balanceOn} />
+      </Screen>
+    );
+  }
+
+  const done = data.status === "done";
+  const turn = data.turn;
+  const lines = captainPickRoomLines(
+    {
+      status: data.status,
+      picks: data.picks,
+      turn,
+      firstPick: data.firstPick,
+      firstPickSide: data.firstPickSide,
+      sizes: {
+        slot1: data.sides.slot1.length,
+        slot2: data.sides.slot2.length,
+      },
+    },
+    data.viewer.side,
+    {
+      captains: { slot1: captainName(1), slot2: captainName(2) },
+      teams: names,
+    },
+    locale,
+  );
+  const counts = captainPickCountLines(
+    {
+      slot1: data.sides.slot1.length,
+      slot2: data.sides.slot2.length,
+      pool: data.pool.length,
+      firstPickSide: data.firstPickSide ?? 1,
+    },
+    locale,
+  );
+  const pool = captainPickPoolOrder(
+    data.pool.flatMap((userId) => {
+      const player = playerOf(userId);
+      return player ? [player] : [];
+    }),
+    { organizer: data.viewer.isOrganizer, balanceOn },
+  );
+  const viewerOnTurn = !done && turn != null && data.viewer.side === turn;
+  const mayPickFor =
+    !done && turn != null && data.viewer.isOrganizer && !viewerOnTurn;
+  const selectable = viewerOnTurn || (mayPickFor && pickingFor);
+  const choice = selectable && selected ? playerOf(selected) : undefined;
+  const choiceName = choice
+    ? (pickCaptainName(choice, messages.common.you) ?? "")
+    : "";
+  const lastPick =
+    [
+      ...data.sides.slot1.map((row) => ({ ...row, side: 1 as const })),
+      ...data.sides.slot2.map((row) => ({ ...row, side: 2 as const })),
+    ]
+      .flatMap((row) =>
+        row.pickNumber == null ? [] : [{ ...row, pickNumber: row.pickNumber }],
+      )
+      .sort((a, b) => b.pickNumber - a.pickNumber)[0] ?? null;
+  const lastPickName = lastPick
+    ? (pickCaptainName(
+        playerOf(lastPick.userId) ?? null,
+        messages.common.you,
+      ) ?? "")
+    : "";
+
+  const sendPick = () => {
+    if (!choice || turn == null) {
+      return;
+    }
+    pickPlayer.mutate({
+      gameId,
+      userId: choice.userId,
+      pickNumber: data.picks.next,
+      forSide: viewerOnTurn ? undefined : turn,
+    });
+  };
+  const seeTheDraft = async () => {
+    await Promise.all([
+      utils.games.footballBoard.invalidate({ gameId }),
+      utils.games.byId.invalidate({ id: gameId }),
+    ]);
+    router.replace(fallback);
+  };
+
+  const confirmRequest: ConfirmRequest | null =
+    confirm === "undo" && lastPick
+      ? {
+          title: m.undoTitle(lastPick.pickNumber),
+          description: m.undoBody(lastPickName, captainName(lastPick.side)),
+          confirmLabel: m.undoConfirm,
+          cancelLabel: m.cancel,
+          onConfirm: () =>
+            undoPick.mutate(
+              { gameId, pickNumber: lastPick.pickNumber },
+              { onSuccess: () => toast.show(m.undone(lastPickName)) },
+            ),
+        }
+      : confirm === "stop"
+        ? {
+            title: m.stopTitle,
+            description: m.stopBody,
+            confirmLabel: m.stop,
+            cancelLabel: m.cancel,
+            onConfirm: () => stop.mutate({ gameId }),
+          }
+        : null;
+
+  const footer = done ? (
+    <Button
+      label={m.seeTheDraft}
+      size="lg"
+      onPress={() => void seeTheDraft()}
+    />
+  ) : selectable ? (
+    <View style={{ flex: 1, gap: 8 }}>
+      {choice ? (
+        <Button
+          label={
+            viewerOnTurn || turn == null
+              ? m.pickPlayer(choiceName)
+              : m.pickPlayerFor(choiceName, captainName(turn))
+          }
+          size="lg"
+          pending={pickPlayer.isPending}
+          onPress={sendPick}
+        />
+      ) : (
+        <Button label={m.tapToPick} variant="outline" size="lg" disabled />
+      )}
+      {pickingFor && !viewerOnTurn ? (
+        <Button
+          label={m.cancel}
+          variant="outline"
+          onPress={() => {
+            setPickingFor(false);
+            setSelected(null);
+          }}
+        />
+      ) : null}
+    </View>
+  ) : data.viewer.side != null && turn != null ? (
+    <Button
+      label={m.isChoosing(captainName(turn))}
+      variant="outline"
+      size="lg"
+      disabled
+    />
+  ) : null;
 
   return (
     <Screen footer={footer}>
@@ -523,78 +850,87 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
         fallback={fallback}
         title={m.title}
         actions={
-          kickoff ? (
-            <Text size="meta" tone="muted">
-              {formatGameStart(kickoff, locale)}
-            </Text>
-          ) : null
+          <Text size="meta" tone="muted">
+            {lines.progress}
+          </Text>
         }
+      />
+      <Surface
+        tone={viewerOnTurn ? "ink" : "paper"}
+        accessibilityLiveRegion="polite"
+        style={{ gap: 6 }}
       >
-        <Text size="meta" tone="muted">
-          {intro}
-        </Text>
-      </ScreenHeader>
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <CaptainCard
-          side={1}
-          room={data}
-          team={names.slot1}
-          player={captainPlayer(1)}
-        />
-        <CaptainCard
-          side={2}
-          room={data}
-          team={names.slot2}
-          player={captainPlayer(2)}
-        />
-      </View>
-      {data.status === "waiting" ? (
-        <>
-          <InfoRows
-            rows={[
-              { label: m.firstPickLabel, value: firstPickLine },
-              { label: m.orderLabel, value: m.orderValue },
-              {
-                label: m.toPickLabel,
-                value: captainPickPoolLine(data.pool.length, locale),
-              },
-            ]}
-          />
-          <PoolPreview
-            room={data}
-            players={boardPlayers}
-            balanceOn={board.data?.balanceOn ?? "ovr"}
-          />
-        </>
-      ) : data.status === "live" ? (
-        <Surface
-          accessibilityLiveRegion="polite"
-          style={{ gap: 6, borderColor: colors.ink }}
+        {lines.toss ? (
+          <Text size="eyebrow" tone="muted">
+            {lines.toss}
+          </Text>
+        ) : null}
+        <Text
+          size="h1"
+          weight="bold"
+          width="expanded"
+          accessibilityRole="header"
         >
-          <Text weight="semibold" accessibilityRole="header">
-            {m.liveTitle}
-          </Text>
-          <Text size="meta" tone="muted">
-            {[firstPickLine, captainPickProgressLine(data.picks, locale)].join(
-              messages.common.listSeparator,
-            )}
-          </Text>
-        </Surface>
-      ) : (
-        <Surface accessibilityLiveRegion="polite" style={{ gap: 6 }}>
-          <Text weight="semibold" accessibilityRole="header">
-            {m.doneTitle}
-          </Text>
-          <Text size="meta" tone="muted">
-            {m.doneBody}
-          </Text>
-          <Button
-            label={m.seeTheDraft}
-            variant="outline"
-            onPress={() => router.replace(fallback)}
+          {lines.title}
+        </Text>
+        <Text size="meta" tone="muted">
+          {lines.sub}
+        </Text>
+      </Surface>
+      <PickSides
+        sides={data.sides}
+        captains={{
+          slot1: data.captains.slot1?.userId ?? null,
+          slot2: data.captains.slot2?.userId ?? null,
+        }}
+        bibs={data.bibs}
+        teams={names}
+        counts={counts}
+        turn={done ? null : turn}
+        nextPick={data.picks.next}
+        players={boardPlayers}
+        balanceOn={balanceOn}
+      />
+      {data.viewer.isOrganizer && !done ? (
+        <Surface padded={false} style={{ overflow: "hidden" }}>
+          {mayPickFor && turn != null ? (
+            <OrganizerAction
+              first
+              label={m.pickFor(captainName(turn))}
+              hint={m.pickForHint(captainName(turn))}
+              disabled={pickingFor}
+              onPress={() => setPickingFor(true)}
+            />
+          ) : null}
+          <OrganizerAction
+            first={!mayPickFor}
+            label={m.undoLast}
+            hint={lastPick ? m.undoHint(lastPickName) : m.undoNothing}
+            disabled={!lastPick || undoPick.isPending}
+            onPress={() => setConfirm("undo")}
+          />
+          <OrganizerAction
+            label={m.stop}
+            hint={m.stopHint}
+            disabled={stop.isPending}
+            onPress={() => setConfirm("stop")}
           />
         </Surface>
+      ) : null}
+      {done ? null : (
+        <PickPool
+          pool={pool}
+          head={counts.pool}
+          selectable={selectable}
+          selected={selectable ? selected : null}
+          onSelect={setSelected}
+        />
       )}
+      <ConfirmSheet
+        request={confirmRequest}
+        pending={undoPick.isPending || stop.isPending}
+        onClose={() => setConfirm(null)}
+      />
     </Screen>
   );
 }

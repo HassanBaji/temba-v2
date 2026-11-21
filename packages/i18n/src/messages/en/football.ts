@@ -320,6 +320,46 @@ export const football = {
     poolSplit: (n: number, more: number, fewer: number) =>
       `${plural("en", n, { one: "1 player", other: "{n} players" })}, ${more} and ${fewer}`,
     progress: (next: number, total: number) => `Pick ${next} of ${total}`,
+    progressWatching: (next: number, total: number) =>
+      `Pick ${next} of ${total}, watching`,
+    allPicked: (n: number) => `All ${n} picked`,
+    yourPick: "Your pick",
+    isPicking: (name: string) => `${name} is picking`,
+    yourPickHint: (other: string) =>
+      `Tap a player, then confirm. ${other} sees it in a moment.`,
+    pickAgainHint: (name: string) =>
+      `You pick again as soon as ${name} has chosen.`,
+    watchingHint:
+      "Players can't see the pick. You can watch it happen, or step in below.",
+    doneSizesEven: (each: number) => `${each} a side.`,
+    doneSizesSplit: (more: number, fewer: number) =>
+      `Teams of ${more} and ${fewer}.`,
+    sideCount: (count: number, of: number) => `${count} of ${of}`,
+    sideAverage: (team: string, average: string) => `${team} avg ${average}`,
+    poolLeft: (n: number) =>
+      plural("en", n, { one: "1 left", other: "{n} left" }),
+    nextPick: (n: number) => `pick ${n}`,
+    nextPickSpoken: (team: string, n: number) => `${team} has pick ${n}`,
+    pickedSpoken: (n: number, player: string) => `Pick ${n}, ${player}`,
+    pickPlayer: (name: string) => `Pick ${name}`,
+    pickPlayerFor: (name: string, captain: string) =>
+      `Pick ${name} for ${captain}`,
+    tapToPick: "Tap a player to pick",
+    isChoosing: (name: string) => `${name} is choosing`,
+    pickFor: (name: string) => `Pick for ${name}`,
+    pickForHint: (name: string) => `If ${name} has dropped out of the room`,
+    undoLast: "Undo the last pick",
+    undoHint: (name: string) => `${name} goes back to the pool`,
+    undoTitle: (n: number) => `Undo pick ${n}?`,
+    undoBody: (name: string, captain: string) =>
+      `${name} goes back to the pool and ${captain} picks again.`,
+    undoNothing: "No pick to undo yet",
+    undoConfirm: "Undo the pick",
+    stopTitle: "Stop the pick?",
+    stopBody:
+      "What is picked stays as a draft. You place the rest yourself on Make teams.",
+    cancel: "Cancel",
+    undone: (name: string) => `${name} is back in the pool`,
     poolTitle: "Pool",
     poolHead: (n: number) => `${n}, best level first`,
     andMore: (n: number) =>
@@ -335,7 +375,6 @@ export const football = {
       "Start without waiting. You can pick for a captain who isn't here.",
     stop: "Stop the pick",
     stopHint: "Keep what is picked and finish the teams yourself",
-    liveTitle: "The pick has started",
     doneTitle: "Teams are picked",
     doneBody:
       "They go to the organizer as a draft, with both captains already agreed.",
@@ -426,5 +465,11 @@ export const football = {
     pickNotWaiting: "The pick has already started",
     pickNotRunning: "No captain pick is running",
     pickRemindOtherSide: "You can remind the other captain only",
+    pickNotLive: "The pick isn't live",
+    pickOnTurnOnly: "Only the captain on turn can pick",
+    pickNotYourTurn: "It's the other side's pick",
+    pickNotInPool: "That player isn't in the pool",
+    pickMovedOn: "The pick moved on",
+    pickNothingToUndo: "There is no pick to undo",
   },
 };

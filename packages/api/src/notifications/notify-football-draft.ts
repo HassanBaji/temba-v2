@@ -152,3 +152,27 @@ export async function notifyFootballPickReminder(
     dedupeKey: footballPickReminderDedupeKey(args.gameId, args.now),
   });
 }
+
+/**
+ * The last pick of a Captain pick was made: the Game admins hear, except
+ * whoever made it, once per opening of the Pick room.
+ */
+export async function notifyFootballPickDone(
+  database: DbOrTx,
+  args: {
+    game: GameRow;
+    draftId: string;
+    openedAt: Date;
+    pickedBy: string;
+  },
+) {
+  const admins = await gameAdminUserIds(database, args.game);
+  return notify(database, {
+    type: "football_pick_done",
+    recipients: admins.map((userId) => ({ userId, audience: "admin" })),
+    excludeUserIds: [args.pickedBy],
+    actorUserId: args.pickedBy,
+    gameId: args.game.id,
+    dedupeKey: `football_pick_done:${args.draftId}:${args.openedAt.getTime()}`,
+  });
+}
