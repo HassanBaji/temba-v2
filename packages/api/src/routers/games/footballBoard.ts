@@ -188,7 +188,8 @@ async function loadBoardTiers(
  * may do next. Make teams balances on Tier points in a tier Group and on OVR
  * on any other Game. `teams` is the published teams only, with each side's
  * Side captain; the Draft line-up is `draft`, for the Game's Organizers and
- * the draft's Side captains alone (ADR-0108).
+ * the draft's Side captains alone (ADR-0108), with whether a Captain pick
+ * runs on it (ADR-0109).
  */
 export async function footballBoard(
   database: DbClient,
@@ -353,6 +354,7 @@ export async function footballBoard(
     live &&
     score == null &&
     userIds.length >= 2;
+  const pickRunning = draft?.pick != null && draft.pick.status !== "done";
   const userByGamePlayerId = new Map(
     roster.flatMap((row) => (row.userId ? [[row.id, row.userId]] : [])),
   );
@@ -433,6 +435,7 @@ export async function footballBoard(
           sides: draft.sides,
           captains: draft.captains,
           answers: draft.answers,
+          pick: draft.pick ? { status: draft.pick.status } : null,
         }
       : null,
     match: match
@@ -453,9 +456,12 @@ export async function footballBoard(
           ? captainOf(publishedCaptains)
           : null,
       canMakeTeams,
-      canSaveDraft: canMakeTeams && !published,
+      canSaveDraft: canMakeTeams && !published && !pickRunning,
+      canOpenPickRoom: canMakeTeams && !published && !pickRunning,
       canAnswerDraft:
-        draft?.viewer.sideCaptainOf != null && !draft.viewer.organizer,
+        draft?.viewer.sideCaptainOf != null &&
+        !draft.viewer.organizer &&
+        !pickRunning,
       canEnterScore:
         published &&
         squadsReady &&

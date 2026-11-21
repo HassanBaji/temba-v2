@@ -56,6 +56,19 @@ export const footballBibs = pgEnum("football_bib", [
 export const footballTeamsMethods = pgEnum("football_teams_method", [
   "level",
   "manual",
+  "captain_pick",
+]);
+
+export const footballPickStatuses = pgEnum("football_pick_status", [
+  "waiting",
+  "live",
+  "done",
+]);
+
+export const footballFirstPicks = pgEnum("football_first_pick", [
+  "toss",
+  "slot1",
+  "slot2",
 ]);
 
 export const footballDraftAnswers = pgEnum("football_draft_answer", [

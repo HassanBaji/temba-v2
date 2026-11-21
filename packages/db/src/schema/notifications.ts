@@ -74,6 +74,9 @@ export const NOTIFICATION_TYPE_VALUES = [
   "football_draft_changed",
   "football_draft_approved",
   "football_draft_change_asked",
+  "football_pick_room_opened",
+  "football_pick_reminder",
+  "football_pick_done",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPE_VALUES)[number];

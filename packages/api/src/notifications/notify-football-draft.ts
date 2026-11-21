@@ -98,3 +98,57 @@ export async function notifyFootballDraftAnswered(
     dedupeKey: `${type}:${args.draftId}:${args.sideIndex}:${sideKey(args.sideGamePlayerIds)}`,
   });
 }
+
+/**
+ * The Organizer opened the Pick room: both Side captains hear, except the
+ * Organizer when they captain a side. Each opening is its own event.
+ */
+export async function notifyFootballPickRoomOpened(
+  database: DbOrTx,
+  args: {
+    gameId: string;
+    draftId: string;
+    sideCaptainUserIds: string[];
+    openedBy: string;
+    openedAt: Date;
+  },
+) {
+  return notify(database, {
+    type: "football_pick_room_opened",
+    recipients: args.sideCaptainUserIds.map((userId) => ({
+      userId,
+      audience: "player",
+    })),
+    excludeUserIds: [args.openedBy],
+    actorUserId: args.openedBy,
+    gameId: args.gameId,
+    dedupeKey: `football_pick_room_opened:${args.draftId}:${args.openedAt.getTime()}`,
+  });
+}
+
+const PICK_REMINDER_EVERY_MS = 5 * 60 * 1000;
+
+/** One reminder per five minutes per Game reaches a Side captain, however often it is sent. */
+export function footballPickReminderDedupeKey(gameId: string, now: Date) {
+  return `football_pick_reminder:${gameId}:${Math.floor(now.getTime() / PICK_REMINDER_EVERY_MS)}`;
+}
+
+/** A Side captain is reminded that the Pick room waits for them. */
+export async function notifyFootballPickReminder(
+  database: DbOrTx,
+  args: {
+    gameId: string;
+    sideCaptainUserId: string;
+    remindedBy: string;
+    now: Date;
+  },
+) {
+  return notify(database, {
+    type: "football_pick_reminder",
+    recipients: [{ userId: args.sideCaptainUserId, audience: "player" }],
+    excludeUserIds: [args.remindedBy],
+    actorUserId: args.remindedBy,
+    gameId: args.gameId,
+    dedupeKey: footballPickReminderDedupeKey(args.gameId, args.now),
+  });
+}

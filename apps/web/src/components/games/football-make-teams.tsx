@@ -21,7 +21,6 @@ import {
   type TeamsDraft,
 } from "@repo/domain/football-board";
 import {
-  FOOTBALL_TEAMS_METHODS,
   type FootballBib,
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
@@ -59,6 +58,9 @@ function teamsName(player: Pick<BoardPlayer, "name" | "nickname">) {
   return player.nickname?.name ?? player.name;
 }
 
+// Captain pick is set up on the mobile App until the web Pick room exists.
+const WEB_TEAMS_METHODS = ["level", "manual"] as const;
+
 function MethodToggle({
   method,
   onChange,
@@ -73,7 +75,7 @@ function MethodToggle({
       aria-label={m.webTournament.footballTeams.howToMakeTeams}
       className="border-rule flex overflow-hidden rounded-lg border"
     >
-      {FOOTBALL_TEAMS_METHODS.map((value) => {
+      {WEB_TEAMS_METHODS.map((value) => {
         const selected = value === method;
         return (
           <button

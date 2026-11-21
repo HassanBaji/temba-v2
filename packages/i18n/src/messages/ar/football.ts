@@ -55,6 +55,7 @@ export const football = {
     teamsMethod: {
       manual: "من اختيار المنظّم",
       level: "متوازنة حسب المستوى",
+      captain_pick: "اختيار القائدين",
     },
     nobodyInYet: "لا أحد مشارك بعد.",
     stillToPlace: (n: number) => `${n} لم يُوزَّعوا بعد.`,
@@ -316,6 +317,105 @@ export const football = {
     named: (name: string) => `القائد ${name}`,
     none: "لم يُختر قائد",
   },
+  pick: {
+    setup: {
+      intro: "يكوّن قائدان الفريقين بنفسيهما، لاعبًا بعد لاعب، في غرفة مشتركة.",
+      captainsTitle: "القائدان",
+      captainsHint: "قائد لكل فريق",
+      captainChip: (name: string, team: string) => `${name}، ${team}`,
+      addCaptain: (team: string) => `قائد ${team}`,
+      chipSpoken: (team: string, captain: string | null) =>
+        captain ? `قائد ${team}: ${captain}` : `اختر قائدًا لـ${team}`,
+      sheetBody:
+        "يختار القائدان لاعبي الفريقين بالتناوب. يصلح لذلك أي لاعب في القائمة لديه حساب.",
+      noneOnRoster:
+        "لا أحد هنا يمكن أن يكون قائدًا بعد. لا يصلح لذلك الضيوف ولا من ليس لديه حساب.",
+      firstPickTitle: "الاختيار الأول",
+      toss: "القرعة",
+      tossNote:
+        "تُجرى القرعة في الغرفة حين يدخل القائدان. بعدها يختار كل منهما لاعبًا بالتناوب.",
+      sideNote: (team: string) =>
+        `يختار ${team} أولًا. بعدها يختار كل منهما لاعبًا بالتناوب.`,
+      toBePicked: "بانتظار الاختيار",
+      open: "افتح غرفة الاختيار",
+      told: (first: string, second: string) =>
+        `سيُبلَّغ ${first} و${second}. يبدأ الاختيار حين يدخل الاثنان.`,
+      needsCaptains: "اختر قائدًا لكل فريق. يُبلَّغان حين تُفتح الغرفة.",
+      replaceTitle: "استبدال المسودة المحفوظة؟",
+      replaceBody:
+        "فتح غرفة الاختيار يستبدل المسودة المحفوظة لهذه المباراة. يختار القائدان الفريقين من البداية.",
+      replaceConfirm: "افتح غرفة الاختيار",
+      cancel: "إلغاء",
+    },
+    title: "اختيار القائدين",
+    introCaptain: (other: string) =>
+      `تختار أنت و${other} الفريقين بينكما. يبدأ الاختيار حين تكونان معًا في الغرفة.`,
+    introOrganizer: (first: string, second: string) =>
+      `يختار ${first} و${second} الفريقين بينهما. يبدأ الاختيار حين يدخلان الغرفة، أو حين تبدؤه أنت.`,
+    inRoom: "في الغرفة",
+    notHereYet: "لم يصل بعد",
+    presenceSpoken: (team: string, name: string, presence: string) =>
+      `${team}، ${name}: ${presence}`,
+    firstPickLabel: "الاختيار الأول",
+    tossedWhenBothIn: "بالقرعة حين يدخل الاثنان",
+    wonTheToss: (team: string) => `فاز ${team} بالقرعة`,
+    picksFirst: (team: string) => `يختار ${team} أولًا`,
+    orderLabel: "الترتيب",
+    orderValue: "لاعب لكل منهما بالتناوب",
+    toPickLabel: "للاختيار",
+    poolEach: (n: number, each: number) =>
+      `${plural("ar", n, {
+        one: "لاعب واحد",
+        two: "لاعبان",
+        few: "{n} لاعبين",
+        many: "{n} لاعبًا",
+        other: "{n} لاعب",
+      })}، ${each} لكل فريق`,
+    poolSplit: (n: number, more: number, fewer: number) =>
+      `${plural("ar", n, {
+        one: "لاعب واحد",
+        two: "لاعبان",
+        few: "{n} لاعبين",
+        many: "{n} لاعبًا",
+        other: "{n} لاعب",
+      })}، ${more} و${fewer}`,
+    progress: (next: number, total: number) => `الاختيار ${next} من ${total}`,
+    poolTitle: "اللاعبون",
+    poolHead: (n: number) => `${n}، الأعلى مستوى أولًا`,
+    andMore: (n: number) =>
+      plural("ar", n, {
+        one: "ولاعب آخر",
+        two: "ولاعبان آخران",
+        few: "و{n} لاعبين آخرين",
+        many: "و{n} لاعبًا آخر",
+        other: "و{n} لاعب آخر",
+      }),
+    waitingFor: (name: string) => `بانتظار ${name}`,
+    waitingForBoth: "بانتظار القائدين",
+    remind: (name: string) => `ذكّر ${name}`,
+    reminded: (name: string) => `ذُكّر ${name}`,
+    remindedRecently: (name: string) => `ذُكّر ${name} خلال آخر 5 دقائق`,
+    startNow: "ابدأ الاختيار الآن",
+    startNowHint: "ابدأ دون انتظار. يمكنك الاختيار عن قائد غائب.",
+    stop: "أوقف الاختيار",
+    stopHint: "احتفظ بما اختير وأكمل الفريقين بنفسك",
+    liveTitle: "بدأ الاختيار",
+    doneTitle: "اكتمل اختيار الفريقين",
+    doneBody: "يصلان إلى المنظّم مسودةً، وقد وافق عليهما القائدان.",
+    seeTheDraft: "اعرض المسودة",
+    stopped: "أوقف المنظّم الاختيار",
+    closedTitle: "غرفة الاختيار مغلقة",
+    closedBody: "لا يفتحها إلا القائدان والمنظّمون، وما دام الاختيار جاريًا.",
+    backToGame: "العودة إلى المباراة",
+    loading: "جارٍ تحميل غرفة الاختيار",
+    loadError: "تعذّر تحميل غرفة الاختيار",
+    inProgress: {
+      title: "اختيار القائدين جارٍ",
+      waiting: "الغرفة مفتوحة. يبدأ الاختيار حين يدخل القائدان.",
+      live: "القائدان يختاران الفريقين الآن.",
+      open: "افتح غرفة الاختيار",
+    },
+  },
   draftShare: {
     title: "شارك المسودة",
     bothTeams: "الفريقان",
@@ -394,5 +494,13 @@ export const football = {
     captainNeedsAccount: "لا يمكن أن يكون الضيف أو من ليس لديه حساب قائدًا",
     draftNotCaptain: "لا يرد عن الفريق إلا قائده",
     draftNoteLength: (max: number) => `اكتب ملاحظة من 1 إلى ${max} حرفًا`,
+    pickNeedsPlayers: (min: number) =>
+      `يحتاج اختيار القائدين ${min} لاعبين على الأقل`,
+    pickNeedsCaptains: "اختر قائدًا لكل فريق",
+    pickCaptainsDiffer: "اختر قائدين مختلفين",
+    pickRunning: "اختيار القائدين جارٍ. أوقفه أولًا.",
+    pickNotWaiting: "بدأ الاختيار بالفعل",
+    pickNotRunning: "لا يجري اختيار قائدين الآن",
+    pickRemindOtherSide: "تستطيع تذكير القائد الآخر فقط",
   },
 } satisfies typeof source;

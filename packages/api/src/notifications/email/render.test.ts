@@ -365,6 +365,7 @@ describe("renderNotificationEmail", () => {
       "football_draft_changed",
       "football_draft_approved",
       "football_draft_change_asked",
+      "football_pick_done",
     ] as const) {
       expect(
         notificationEmailDestination({
@@ -374,6 +375,17 @@ describe("renderNotificationEmail", () => {
           challenge: { id: "c-1" },
         }),
       ).toEqual({ kind: "game", path: `/dashboard/games/${GAME.id}` });
+    }
+  });
+
+  it("sends the Pick room's Notifications to the Pick room", () => {
+    for (const type of [
+      "football_pick_room_opened",
+      "football_pick_reminder",
+    ] as const) {
+      expect(
+        notificationEmailDestination({ type, group: null, game: GAME }),
+      ).toEqual({ kind: "game", path: `/dashboard/games/${GAME.id}/pick` });
     }
   });
 

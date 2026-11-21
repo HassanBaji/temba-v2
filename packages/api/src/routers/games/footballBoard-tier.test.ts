@@ -188,6 +188,7 @@ describe("games.footballBoard for a Verifier (ADR-0072)", () => {
         captainOf: null,
         canMakeTeams: false,
         canSaveDraft: false,
+        canOpenPickRoom: false,
         canAnswerDraft: false,
         canEnterScore: false,
         canConfirm: false,

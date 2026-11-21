@@ -34,6 +34,7 @@ import {
 import {
   assertFootballDraftCurrent,
   assertFootballDraftOpen,
+  assertFootballPickNotRunning,
   loadFootballDraft,
 } from "#src/games/football-draft";
 import {
@@ -58,6 +59,8 @@ function samePlayers(a: readonly string[], b: readonly string[]) {
  *
  * A captain newly named is told; one whose side this save changed after
  * they answered is told again. Changing a side's captain drops its answer.
+ * It waits while a Captain pick runs, and a pick that finished becomes an
+ * ordinary draft.
  */
 export async function saveFootballDraft(
   database: DbClient,
@@ -108,6 +111,7 @@ export async function saveFootballDraft(
       lock: true,
     });
     assertFootballDraftCurrent(current, args.draftUpdatedAt, locale);
+    assertFootballPickNotRunning(current, locale);
 
     const kept = (captain: string | null | undefined, side: string[]) =>
       captain != null && side.includes(captain) ? captain : null;
@@ -139,6 +143,11 @@ export async function saveFootballDraft(
       slot2Bib: args.bibs.slot2,
       slot1CaptainGamePlayerId: captainGamePlayerId(captains.slot1),
       slot2CaptainGamePlayerId: captainGamePlayerId(captains.slot2),
+      pickStatus: null,
+      firstPick: null,
+      firstPickSide: null,
+      slot1CaptainSeenAt: null,
+      slot2CaptainSeenAt: null,
       savedBy: args.userId,
       savedAt: now,
       updatedAt: now,

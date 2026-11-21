@@ -234,6 +234,25 @@ export const notification = {
       plain(" تغييرًا في فريقه في مسودة "),
       strong(game),
     ],
+    footballPickRoomOpened: (actor: string, game: string) => [
+      plain("فتح "),
+      strong(actor),
+      plain(" غرفة الاختيار لـ "),
+      strong(game),
+      plain(". أنت قائد: ادخل لتختار فريقك"),
+    ],
+    footballPickReminder: (actor: string, game: string) => [
+      strong(actor),
+      plain(" بانتظارك في غرفة الاختيار لـ "),
+      strong(game),
+    ],
+    footballPickDone: (actor: string, game: string) => [
+      plain("أجرى "),
+      strong(actor),
+      plain(" آخر اختيار لـ "),
+      strong(game),
+      plain(". الفريقان جاهزان مسودةً"),
+    ],
     markReceived: (actor: string, kind: string, game: string) => [
       plain("منحك "),
       strong(actor),

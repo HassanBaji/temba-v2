@@ -197,6 +197,23 @@ export const notification = {
       plain(" asked for a change to their team on the draft for "),
       strong(game),
     ],
+    footballPickRoomOpened: (actor: string, game: string) => [
+      strong(actor),
+      plain(" opened the pick room for "),
+      strong(game),
+      plain(". You’re a captain: come in to pick your team"),
+    ],
+    footballPickReminder: (actor: string, game: string) => [
+      strong(actor),
+      plain(" is waiting for you in the pick room for "),
+      strong(game),
+    ],
+    footballPickDone: (actor: string, game: string) => [
+      strong(actor),
+      plain(" made the last pick for "),
+      strong(game),
+      plain(". The teams are ready as a draft"),
+    ],
     markReceived: (actor: string, kind: string, game: string) => [
       strong(actor),
       plain(" gave you "),

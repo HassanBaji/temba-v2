@@ -175,6 +175,7 @@ export const mobileTournament = {
   makeTeams: {
     methodByLevel: "حسب المستوى",
     methodManual: "يدوي",
+    methodCaptainPick: "اختيار القائدين",
     avgAndKeepers: (avg: string, keepers: string) => `متوسط ${avg}، ${keepers}`,
     ofTeamSize: (n: number, size: number) => `${n} من ${size}`,
     readyToPublish: (note: string) => `${note} جاهز للنشر.`,

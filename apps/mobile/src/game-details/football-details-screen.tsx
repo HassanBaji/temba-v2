@@ -66,6 +66,8 @@ import {
 } from "@repo/domain/football-board";
 import { CaptainDraftPanel } from "../football/captain-draft-panel";
 import { DraftCard } from "../football/draft-card";
+import { PickInProgressCard } from "../football/pick-in-progress-card";
+import { footballPickRoomPath } from "../games/games-model";
 import { InfoRows, type InfoRow } from "../football/info-rows";
 import { FootballJoinSheet } from "../football/join-sheet";
 import { PlayerSheet } from "../football/player-sheet";
@@ -196,9 +198,12 @@ export function FootballGameDetails({
   const draft = teams ? null : (board.data?.draft ?? null);
   const names = teams ? bibNames(teams.bibs, locale) : null;
   const draftSideCaptainOf =
-    draft && board.data?.viewer.canAnswerDraft
-      ? board.data.viewer.captainOf
+    draft && !board.data?.isOrganizer
+      ? (board.data?.viewer.captainOf ?? null)
       : null;
+  const pickStatus = draft?.pick?.status;
+  const runningPick =
+    pickStatus === "waiting" || pickStatus === "live" ? pickStatus : null;
   const viewer = players.find((player) => player.isViewer) ?? null;
   const preferences = api.users.onboardingState.useQuery().data;
   const marks = useGameMarks(gameId, board.data?.match?.status === "completed");
@@ -485,6 +490,7 @@ export function FootballGameDetails({
     }
   };
   const teamsPath = `/games/${gameId}/teams` as Href;
+  const pickRoomPath = footballPickRoomPath(gameId) as Href;
   const scorePath = `/games/${gameId}/score` as Href;
   const viewerCode = viewer ? slotCode(viewer, locale) : null;
   const subtitle = [
@@ -928,7 +934,12 @@ export function FootballGameDetails({
                       draft.captains.slot2 != null,
                   )}
             </Text>
-            {draftSideCaptainOf ? (
+            {runningPick ? (
+              <PickInProgressCard
+                status={runningPick}
+                onOpen={() => router.push(pickRoomPath)}
+              />
+            ) : draftSideCaptainOf ? (
               <CaptainDraftPanel
                 draft={draft}
                 side={draftSideCaptainOf}
@@ -1031,14 +1042,18 @@ export function FootballGameDetails({
                 ? {
                     status: teams
                       ? footballTeamsMethodLabel(teams.method, locale)
-                      : draft
-                        ? copy.football.draftSaved
-                        : copy.football.teamsNotSet,
+                      : runningPick
+                        ? m.football.pick.inProgress.title
+                        : draft
+                          ? copy.football.draftSaved
+                          : copy.football.teamsNotSet,
                     actionLabel: teams
                       ? copy.football.editTeams
-                      : draft
-                        ? copy.football.editDraft
-                        : copy.football.makeTeams,
+                      : runningPick
+                        ? m.football.pick.inProgress.open
+                        : draft
+                          ? copy.football.editDraft
+                          : copy.football.makeTeams,
                   }
                 : null
             }
@@ -1057,7 +1072,8 @@ export function FootballGameDetails({
               onAddPlayer: canAddPlayer
                 ? () => setAddPlayerOpen(true)
                 : undefined,
-              onMakeTeams: () => router.push(teamsPath),
+              onMakeTeams: () =>
+                router.push(runningPick ? pickRoomPath : teamsPath),
             }}
           />
         ) : null}

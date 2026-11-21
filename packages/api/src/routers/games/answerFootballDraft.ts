@@ -16,6 +16,7 @@ import { type db } from "#src/db";
 import { requireGame } from "#src/games/access";
 import {
   assertFootballDraftOpen,
+  assertFootballPickNotRunning,
   loadFootballDraft,
 } from "#src/games/football-draft";
 import { notifyFootballDraftAnswered } from "#src/notifications/notify-football-draft";
@@ -27,7 +28,7 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
  * line-up (ADR-0108): approved, or a change asked with a note of 1 to 140
  * characters; `null` undoes it. The answer keeps the side's players it was
  * given for. The Game admins hear once per answer for the side as it stands;
- * Undo sends nothing.
+ * Undo sends nothing. It waits while a Captain pick runs.
  */
 export async function answerFootballDraft(
   database: DbClient,
@@ -66,6 +67,7 @@ export async function answerFootballDraft(
         message: errors.draftNotCaptain,
       });
     }
+    assertFootballPickNotRunning(draft, locale);
     const side = and(
       eq(footballLineupDraftAnswers.draftId, draft.id),
       eq(footballLineupDraftAnswers.sideIndex, sideIndex),

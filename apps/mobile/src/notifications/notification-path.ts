@@ -2,7 +2,12 @@ import { challengesTabQuery } from "@repo/domain/challenges-tab";
 import { gamesHubTabQuery } from "@repo/domain/games-hub-tab";
 import { isSport } from "@repo/domain/sport";
 
-import { gamePath, gamePaymentsPath, gameRatePath } from "../games/games-model";
+import {
+  footballPickRoomPath,
+  gamePath,
+  gamePaymentsPath,
+  gameRatePath,
+} from "../games/games-model";
 import { groupTierHistoryPath } from "../groups/groups-model";
 import { ratingHistoryPath, ratingsPath } from "../profile/ratings-path";
 
@@ -50,6 +55,12 @@ const GAME_TYPES = new Set([
   "football_draft_changed",
   "football_draft_approved",
   "football_draft_change_asked",
+  "football_pick_done",
+]);
+
+const PICK_ROOM_TYPES = new Set([
+  "football_pick_room_opened",
+  "football_pick_reminder",
 ]);
 
 const CHALLENGE_TYPES = new Set([
@@ -84,6 +95,9 @@ export function notificationPath(item: {
   }
   if (item.game && item.type === "game_payment_claimed") {
     return gamePaymentsPath(item.game.id);
+  }
+  if (item.game && PICK_ROOM_TYPES.has(item.type)) {
+    return footballPickRoomPath(item.game.id);
   }
   if (item.group && item.type === "tier_points_adjusted") {
     return groupTierHistoryPath(item.group.id);

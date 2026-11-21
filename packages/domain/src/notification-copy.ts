@@ -417,6 +417,45 @@ export function notificationCopy(
     };
   }
   if (
+    item.type === "football_pick_room_opened" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: m.footballPickRoomOpened(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (
+    item.type === "football_pick_reminder" &&
+    item.audience === "player" &&
+    item.game
+  ) {
+    return {
+      title: m.footballPickReminder(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (
+    item.type === "football_pick_done" &&
+    item.audience === "admin" &&
+    item.game
+  ) {
+    return {
+      title: m.footballPickDone(
+        actorName(item.actor, locale),
+        notificationGameName(item.game, locale),
+      ),
+      subline: null,
+    };
+  }
+  if (
     item.type === "game_payment_reminder" &&
     item.audience === "player" &&
     item.game

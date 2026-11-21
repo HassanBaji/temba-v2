@@ -379,10 +379,15 @@ export function balancedSides(
   );
 }
 
+function byHand(method: FootballTeamsMethod): FootballTeamsMethod {
+  return method === "captain_pick" ? "manual" : method;
+}
+
 /**
  * Where the Make teams screen starts: the saved Draft line-up when there is
  * one, else the published split, otherwise a balanced split. The Side
- * captains come with the draft or the published teams.
+ * captains come with the draft or the published teams. Teams a Captain pick
+ * made are edited by hand: Captain pick only ever starts from the toggle.
  */
 export function initialTeamsDraft(
   players: readonly BoardPlayer[],
@@ -405,7 +410,7 @@ export function initialTeamsDraft(
       slot2: saved.sides.slot2.filter((userId) => roster.has(userId)),
     });
     return {
-      method: saved.method,
+      method: byHand(saved.method),
       bibs: saved.bibs,
       sides,
       captains: captainsOnTheirSides(saved.captains ?? NO_SIDE_CAPTAINS, sides),
@@ -419,7 +424,7 @@ export function initialTeamsDraft(
       }
     }
     return {
-      method: teams.method ?? "manual",
+      method: byHand(teams.method ?? "manual"),
       bibs: teams.bibs,
       sides,
       captains: captainsOnTheirSides(teams.captains ?? NO_SIDE_CAPTAINS, sides),
@@ -517,6 +522,37 @@ export function setSideCaptain(
     ...draft,
     captains: { ...draft.captains, [side === 1 ? "slot1" : "slot2"]: userId },
   };
+}
+
+/**
+ * Names a side's Side captain for a Captain pick, from anyone on the roster
+ * (ADR-0109): the two captains are seated on their sides and everyone else
+ * waits to be picked. Naming the other side's captain moves them across;
+ * null leaves the side without one.
+ */
+export function setPickCaptain(
+  draft: TeamsDraft,
+  side: Side,
+  userId: string | null,
+): TeamsDraft {
+  const captains: SideCaptains =
+    side === 1
+      ? {
+          slot1: userId,
+          slot2: draft.captains.slot2 === userId ? null : draft.captains.slot2,
+        }
+      : {
+          slot1: draft.captains.slot1 === userId ? null : draft.captains.slot1,
+          slot2: userId,
+        };
+  const sides: Record<string, Side> = {};
+  if (captains.slot1 != null) {
+    sides[captains.slot1] = 1;
+  }
+  if (captains.slot2 != null) {
+    sides[captains.slot2] = 2;
+  }
+  return { ...draft, sides, captains };
 }
 
 /** Keepers first, then strongest down: the order teams read in. */

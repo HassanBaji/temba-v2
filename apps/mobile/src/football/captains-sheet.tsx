@@ -110,7 +110,8 @@ function TeamSwitch({
 /**
  * The Organizer names each team's Side captain from that team's players, or
  * none (design 1b, ADR-0108). Guest players and Unclaimed players are not
- * offered: they cannot open the draft.
+ * offered: they cannot open the draft. A Captain pick offers the whole
+ * roster to each side and needs both, so it has no "No captain" row.
  */
 export function CaptainsSheet({
   side,
@@ -118,6 +119,9 @@ export function CaptainsSheet({
   names,
   sides,
   captains,
+  subtitle,
+  emptyNote,
+  required = false,
   onSideChange,
   onPick,
   onClose,
@@ -127,6 +131,9 @@ export function CaptainsSheet({
   names: { slot1: string; slot2: string };
   sides: { slot1: readonly BoardPlayer[]; slot2: readonly BoardPlayer[] };
   captains: SideCaptains;
+  subtitle?: string;
+  emptyNote?: string;
+  required?: boolean;
   onSideChange: (side: Side) => void;
   onPick: (side: Side, userId: string | null) => void;
   onClose: () => void;
@@ -176,7 +183,7 @@ export function CaptainsSheet({
       visible={side != null}
       onClose={onClose}
       title={m.title}
-      subtitle={m.sheetBody}
+      subtitle={subtitle ?? m.sheetBody}
       closeButton
       tall
       footer={<Button label={m.done} size="lg" onPress={onClose} />}
@@ -224,32 +231,34 @@ export function CaptainsSheet({
             index === 0,
           );
         })}
-        {row(
-          "none",
-          captain == null,
-          () => onPick(current, null),
-          m.noCaptainFor(team),
-          <>
-            <View
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                borderWidth: hairline,
-                borderStyle: "dashed",
-                borderColor: colors.inputBorder,
-              }}
-            />
-            <Text tone="muted" style={{ flex: 1 }}>
-              {m.noCaptainFor(team)}
-            </Text>
-          </>,
-          players.length === 0,
-        )}
+        {required
+          ? null
+          : row(
+              "none",
+              captain == null,
+              () => onPick(current, null),
+              m.noCaptainFor(team),
+              <>
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    borderWidth: hairline,
+                    borderStyle: "dashed",
+                    borderColor: colors.inputBorder,
+                  }}
+                />
+                <Text tone="muted" style={{ flex: 1 }}>
+                  {m.noCaptainFor(team)}
+                </Text>
+              </>,
+              players.length === 0,
+            )}
       </View>
       {players.length === 0 ? (
         <Text size="meta" tone="muted">
-          {m.noneOnTeam}
+          {emptyNote ?? m.noneOnTeam}
         </Text>
       ) : null}
     </Sheet>

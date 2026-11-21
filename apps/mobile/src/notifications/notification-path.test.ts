@@ -51,8 +51,20 @@ describe("notificationPath", () => {
       "football_draft_changed",
       "football_draft_approved",
       "football_draft_change_asked",
+      "football_pick_done",
     ]) {
       expect(notificationPath({ type, group: null, game })).toBe("/games/x1");
+    }
+  });
+
+  it("opens the Pick room when it opens and on a reminder", () => {
+    for (const type of [
+      "football_pick_room_opened",
+      "football_pick_reminder",
+    ]) {
+      expect(notificationPath({ type, group: null, game })).toBe(
+        "/games/x1/pick",
+      );
     }
   });
 

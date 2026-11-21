@@ -26,6 +26,7 @@ import {
   lineupName,
   scorersNote,
   scorersPayload,
+  setPickCaptain,
   setSideCaptain,
   shortName,
   shuffleSides,
@@ -710,5 +711,48 @@ describe("lineupName", () => {
         "en",
       ).name,
     ).toBe("You");
+  });
+});
+
+describe("setPickCaptain", () => {
+  const roster = ["a", "b", "c", "d"].map((id) => player(id));
+  const setup = switchMethod(
+    initialTeamsDraft(roster, null),
+    "captain_pick",
+    roster,
+  );
+
+  it("opens teams a Captain pick made by hand", () => {
+    const picked = initialTeamsDraft(roster, null, {
+      method: "captain_pick",
+      bibs: { slot1: "black", slot2: "white" },
+      sides: { slot1: ["a", "b"], slot2: ["c", "d"] },
+      captains: { slot1: "a", slot2: "c" },
+    });
+    expect(picked.method).toBe("manual");
+    expect(picked.sides).toEqual({ a: 1, b: 1, c: 2, d: 2 });
+    expect(picked.captains).toEqual({ slot1: "a", slot2: "c" });
+  });
+
+  it("starts a Captain pick with nobody placed and no captains", () => {
+    expect(setup.method).toBe("captain_pick");
+    expect(setup.sides).toEqual({});
+    expect(setup.captains).toEqual({ slot1: null, slot2: null });
+  });
+
+  it("seats each captain on their side and leaves everyone else to be picked", () => {
+    const named = setPickCaptain(setPickCaptain(setup, 1, "a"), 2, "c");
+    expect(named.captains).toEqual({ slot1: "a", slot2: "c" });
+    expect(named.sides).toEqual({ a: 1, c: 2 });
+  });
+
+  it("moves the other side's captain across, and replaces or clears one", () => {
+    const named = setPickCaptain(setPickCaptain(setup, 1, "a"), 2, "c");
+    expect(setPickCaptain(named, 1, "c").captains).toEqual({
+      slot1: "c",
+      slot2: null,
+    });
+    expect(setPickCaptain(named, 2, "d").sides).toEqual({ a: 1, d: 2 });
+    expect(setPickCaptain(named, 1, null).sides).toEqual({ c: 2 });
   });
 });

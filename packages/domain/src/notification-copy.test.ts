@@ -1864,4 +1864,38 @@ describe("notificationCopy for a Draft line-up (ADR-0108)", () => {
       text("football_draft_change_asked", "admin", "en", { game: null }),
     ).toBeNull();
   });
+
+  it("tells a Side captain the Pick room opened, and reminds them", () => {
+    expect(text("football_pick_room_opened", "player")).toEqual({
+      title:
+        "Hassan opened the pick room for Friday Football. You’re a captain: come in to pick your team",
+      subline: null,
+    });
+    expect(text("football_pick_reminder", "player")).toEqual({
+      title: "Hassan is waiting for you in the pick room for Friday Football",
+      subline: null,
+    });
+  });
+
+  it("tells the Game admins the last pick was made", () => {
+    expect(text("football_pick_done", "admin")).toEqual({
+      title:
+        "Hassan made the last pick for Friday Football. The teams are ready as a draft",
+      subline: null,
+    });
+  });
+
+  it("reads the three pick types in Arabic, and needs the right audience", () => {
+    expect(text("football_pick_room_opened", "player", "ar")?.title).toContain(
+      `فتح ${isolate("Hassan")} غرفة الاختيار`,
+    );
+    expect(text("football_pick_reminder", "player", "ar")?.title).toContain(
+      "بانتظارك في غرفة الاختيار",
+    );
+    expect(text("football_pick_done", "admin", "ar")?.title).toContain(
+      `أجرى ${isolate("Hassan")} آخر اختيار`,
+    );
+    expect(text("football_pick_room_opened", "admin")).toBeNull();
+    expect(text("football_pick_done", "player")).toBeNull();
+  });
 });

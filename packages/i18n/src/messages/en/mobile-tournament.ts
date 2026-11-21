@@ -153,6 +153,7 @@ export const mobileTournament = {
   makeTeams: {
     methodByLevel: "By level",
     methodManual: "Manual",
+    methodCaptainPick: "Captain pick",
     avgAndKeepers: (avg: string, keepers: string) => `avg ${avg}, ${keepers}`,
     ofTeamSize: (n: number, size: number) => `${n} of ${size}`,
     readyToPublish: (note: string) => `${note} Ready to publish.`,

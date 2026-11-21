@@ -13,6 +13,8 @@ import { relations, sql } from "drizzle-orm";
 import {
   footballBibs,
   footballDraftAnswers,
+  footballFirstPicks,
+  footballPickStatuses,
   footballTeamsMethods,
 } from "./game-enums";
 import { gamePlayers } from "./game-players";
@@ -40,6 +42,15 @@ export const footballLineupDrafts = pgTable(
       () => gamePlayers.id,
       { onDelete: "set null" },
     ),
+    // A Captain pick (ADR-0109): null outside one. The side on turn is read
+    // from the sides, never stored.
+    pickStatus: footballPickStatuses("pick_status"),
+    firstPick: footballFirstPicks("first_pick"),
+    firstPickSide: integer("first_pick_side"),
+    // Pick room presence: a Side captain is in the room while their screen
+    // polls.
+    slot1CaptainSeenAt: timestamp("slot1_captain_seen_at"),
+    slot2CaptainSeenAt: timestamp("slot2_captain_seen_at"),
     savedBy: uuid("saved_by")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
@@ -62,6 +73,10 @@ export const footballLineupDrafts = pgTable(
     slot2CaptainIdx: index(
       "football_lineup_drafts_slot2_captain_game_player_id_idx",
     ).on(table.slot2CaptainGamePlayerId),
+    firstPickSideCheck: check(
+      "football_lineup_drafts_first_pick_side_check",
+      sql`${table.firstPickSide} is null or ${table.firstPickSide} in (1, 2)`,
+    ),
   }),
 );
 
@@ -78,11 +93,18 @@ export const footballLineupDraftPlayers = pgTable(
       .notNull()
       .references(() => gamePlayers.id, { onDelete: "cascade" }),
     sideIndex: integer("side_index").notNull(),
+    // Set by a Captain pick; a Side captain seated on opening has none.
+    pickNumber: integer("pick_number"),
   },
   (table) => ({
     draftIdx: index("football_lineup_draft_players_draft_id_idx").on(
       table.draftId,
     ),
+    uniquePickNumber: uniqueIndex(
+      "football_lineup_draft_players_pick_number_unique",
+    )
+      .on(table.draftId, table.pickNumber)
+      .where(sql`${table.pickNumber} is not null`),
     uniqueGamePlayer: uniqueIndex(
       "football_lineup_draft_players_game_player_id_unique",
     ).on(table.gamePlayerId),

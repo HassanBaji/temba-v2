@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 
 import {
   footballLineupDraftAnswers,
@@ -8,7 +8,9 @@ import {
   gamePlayers,
   user,
 } from "@repo/db";
+import type { SideCaptains } from "@repo/domain/football-board";
 import { captainAnswerState } from "@repo/domain/football-draft";
+import type { FootballPickStatus } from "@repo/domain/football-lineup";
 import { isFootballGame } from "@repo/domain/game-shape";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
@@ -58,6 +60,22 @@ export async function assertFootballDraftOpen(
       message: messagesFor(locale).football.errors.draftTeamsPublished,
     });
   }
+}
+
+/**
+ * A Captain pick runs while it waits or is live with both Side captains on
+ * their sides. One that lost a captain, who left or was kicked, has
+ * stopped (ADR-0109), though only a read of the Pick room clears it.
+ */
+export function footballPickRunning(
+  pickStatus: FootballPickStatus | null,
+  captains: SideCaptains,
+) {
+  return (
+    (pickStatus === "waiting" || pickStatus === "live") &&
+    captains.slot1 != null &&
+    captains.slot2 != null
+  );
 }
 
 /**
@@ -166,12 +184,15 @@ export async function loadFootballDraft(
           : null,
     };
   };
+  const running = footballPickRunning(row.pickStatus, captains);
+  const stopped =
+    row.pickStatus != null && row.pickStatus !== "done" && !running;
   return {
     id: row.id,
     updatedAt: row.updatedAt,
     savedAt: row.savedAt,
     savedByName: savedBy?.name ?? "",
-    method: row.method,
+    method: stopped ? ("manual" as const) : row.method,
     bibs: { slot1: row.slot1Bib, slot2: row.slot2Bib },
     sides: { slot1: side(1), slot2: side(2) },
     sideGamePlayerIds: {
@@ -180,8 +201,57 @@ export async function loadFootballDraft(
     },
     captains,
     answers: { slot1: await answerOf(1), slot2: await answerOf(2) },
+    pick:
+      running || row.pickStatus === "done"
+        ? {
+            status: row.pickStatus!,
+            firstPick: row.firstPick,
+            firstPickSide: row.firstPickSide,
+          }
+        : null,
     viewer: { organizer, sideCaptainOf },
   };
+}
+
+/** Save draft and a Captain's answer wait while a Captain pick runs. */
+export function assertFootballPickNotRunning(
+  draft: { pick: { status: FootballPickStatus } | null } | null,
+  locale: Locale = DEFAULT_LOCALE,
+) {
+  if (draft?.pick && draft.pick.status !== "done") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: messagesFor(locale).football.errors.pickRunning,
+    });
+  }
+}
+
+/**
+ * Ends a Captain pick that waits or is live, as Stop the pick does: the
+ * draft keeps its sides and Side captains and becomes a Manual one.
+ */
+export async function clearFootballPick(
+  database: DbClient,
+  draftId: string,
+  now: Date,
+) {
+  await database
+    .update(footballLineupDrafts)
+    .set({
+      method: "manual",
+      pickStatus: null,
+      firstPick: null,
+      firstPickSide: null,
+      slot1CaptainSeenAt: null,
+      slot2CaptainSeenAt: null,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(footballLineupDrafts.id, draftId),
+        inArray(footballLineupDrafts.pickStatus, ["waiting", "live"]),
+      ),
+    );
 }
 
 /**

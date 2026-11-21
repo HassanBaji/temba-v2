@@ -46,6 +46,7 @@ export const football = {
     teamsMethod: {
       manual: "Set by organizer",
       level: "Balanced by level",
+      captain_pick: "Captain pick",
     },
     nobodyInYet: "Nobody is in yet.",
     stillToPlace: (n: number) => `${n} still to place.`,
@@ -264,6 +265,95 @@ export const football = {
     named: (name: string) => `Captain ${name}`,
     none: "No captain picked",
   },
+  pick: {
+    setup: {
+      intro:
+        "Two captains build the teams themselves, one pick at a time, in a room they share.",
+      captainsTitle: "Captains",
+      captainsHint: "one for each side",
+      captainChip: (name: string, team: string) => `${name}, ${team}`,
+      addCaptain: (team: string) => `Captain for ${team}`,
+      chipSpoken: (team: string, captain: string | null) =>
+        captain
+          ? `Captain for ${team}: ${captain}`
+          : `Pick a captain for ${team}`,
+      sheetBody:
+        "The two captains pick the teams in turn. Anyone on the roster with an account can be one.",
+      noneOnRoster:
+        "Nobody here can be a captain yet. Guest players and players without an account can't.",
+      firstPickTitle: "First pick",
+      toss: "Toss",
+      tossNote:
+        "The toss happens in the room once both captains are in. After that they take one pick each, in turn.",
+      sideNote: (team: string) =>
+        `${team} picks first. After that they take one pick each, in turn.`,
+      toBePicked: "To be picked",
+      open: "Open the pick room",
+      told: (first: string, second: string) =>
+        `${first} and ${second} are told. The pick starts when both are in.`,
+      needsCaptains:
+        "Pick a captain for each side. They are told when the room opens.",
+      replaceTitle: "Replace the saved draft?",
+      replaceBody:
+        "Opening the pick room replaces the draft saved for this game. The captains pick the teams from the start.",
+      replaceConfirm: "Open the pick room",
+      cancel: "Cancel",
+    },
+    title: "Captain pick",
+    introCaptain: (other: string) =>
+      `You and ${other} pick the teams between you. It starts when you are both in the room.`,
+    introOrganizer: (first: string, second: string) =>
+      `${first} and ${second} pick the teams between them. It starts when both are in the room, or when you start it.`,
+    inRoom: "In the room",
+    notHereYet: "Not here yet",
+    presenceSpoken: (team: string, name: string, presence: string) =>
+      `${team}, ${name}: ${presence}`,
+    firstPickLabel: "First pick",
+    tossedWhenBothIn: "Tossed when both are in",
+    wonTheToss: (team: string) => `${team} won the toss`,
+    picksFirst: (team: string) => `${team} picks first`,
+    orderLabel: "Order",
+    orderValue: "One each, in turn",
+    toPickLabel: "To pick",
+    poolEach: (n: number, each: number) =>
+      `${plural("en", n, { one: "1 player", other: "{n} players" })}, ${each} each`,
+    poolSplit: (n: number, more: number, fewer: number) =>
+      `${plural("en", n, { one: "1 player", other: "{n} players" })}, ${more} and ${fewer}`,
+    progress: (next: number, total: number) => `Pick ${next} of ${total}`,
+    poolTitle: "Pool",
+    poolHead: (n: number) => `${n}, best level first`,
+    andMore: (n: number) =>
+      plural("en", n, { one: "and 1 more", other: "and {n} more" }),
+    waitingFor: (name: string) => `Waiting for ${name}`,
+    waitingForBoth: "Waiting for both captains",
+    remind: (name: string) => `Remind ${name}`,
+    reminded: (name: string) => `${name} is reminded`,
+    remindedRecently: (name: string) =>
+      `${name} was reminded in the last 5 minutes`,
+    startNow: "Start the pick now",
+    startNowHint:
+      "Start without waiting. You can pick for a captain who isn't here.",
+    stop: "Stop the pick",
+    stopHint: "Keep what is picked and finish the teams yourself",
+    liveTitle: "The pick has started",
+    doneTitle: "Teams are picked",
+    doneBody:
+      "They go to the organizer as a draft, with both captains already agreed.",
+    seeTheDraft: "See the draft",
+    stopped: "The organizer stopped the pick",
+    closedTitle: "This pick room is closed",
+    closedBody:
+      "Only the two captains and the organizers can open it, and only while the pick runs.",
+    backToGame: "Back to the game",
+    loading: "Loading the pick room",
+    loadError: "The pick room could not be loaded",
+    inProgress: {
+      title: "Captain pick in progress",
+      waiting: "The room is open. The pick starts when both captains are in.",
+      live: "The captains are picking the teams now.",
+      open: "Open the pick room",
+    },
+  },
   draftShare: {
     title: "Share draft",
     bothTeams: "Both teams",
@@ -328,5 +418,13 @@ export const football = {
       "A guest player or a player without an account can't be a captain",
     draftNotCaptain: "Only a team's captain can answer for it",
     draftNoteLength: (max: number) => `Write a note of 1 to ${max} characters`,
+    pickNeedsPlayers: (min: number) =>
+      `Captain pick needs at least ${min} players`,
+    pickNeedsCaptains: "Pick a captain for each side",
+    pickCaptainsDiffer: "Pick two different captains",
+    pickRunning: "A captain pick is in progress. Stop it first.",
+    pickNotWaiting: "The pick has already started",
+    pickNotRunning: "No captain pick is running",
+    pickRemindOtherSide: "You can remind the other captain only",
   },
 };

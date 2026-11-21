@@ -44,6 +44,13 @@ export function notificationHref(item: {
   if (item.type === "game_payment_claimed" && item.game) {
     return gamePaymentsHref(item.game.id);
   }
+  if (
+    (item.type === "football_pick_room_opened" ||
+      item.type === "football_pick_reminder") &&
+    item.game
+  ) {
+    return `/dashboard/games/${item.game.id}/pick`;
+  }
   if (item.type === "tier_points_adjusted" && item.group) {
     return groupTierHistoryHref(item.group.id);
   }
@@ -90,7 +97,8 @@ export function notificationHref(item: {
       item.type === "football_draft_shared" ||
       item.type === "football_draft_changed" ||
       item.type === "football_draft_approved" ||
-      item.type === "football_draft_change_asked") &&
+      item.type === "football_draft_change_asked" ||
+      item.type === "football_pick_done") &&
     item.game
   ) {
     return `/dashboard/games/${item.game.id}`;

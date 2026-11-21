@@ -10,12 +10,15 @@ export const footballRoleSchema = z.enum(FOOTBALL_ROLES);
 
 export const footballPositionSchema = z.enum(FOOTBALL_POSITIONS);
 
+/** Each Football side's bib colour. */
+export const footballBibsInputSchema = z.object({
+  slot1: z.enum(FOOTBALL_BIBS),
+  slot2: z.enum(FOOTBALL_BIBS),
+});
+
 /** The two Football sides and their bibs, as Make teams sends them to publish or save as a draft. */
 export const footballSidesInputSchema = z.object({
-  bibs: z.object({
-    slot1: z.enum(FOOTBALL_BIBS),
-    slot2: z.enum(FOOTBALL_BIBS),
-  }),
+  bibs: footballBibsInputSchema,
   slot1: z.array(z.string().uuid()).max(40),
   slot2: z.array(z.string().uuid()).max(40),
 });
