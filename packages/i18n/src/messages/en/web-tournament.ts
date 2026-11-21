@@ -84,7 +84,6 @@ export const webTournament = {
     venueFallback: "Venue",
     seasonRow: "Season",
     pitchCost: "Pitch cost",
-    organizerMakesTeams: "The organizer makes them",
     youreInAs: (code: string) => `You're in as ${code}`,
     change: "Change",
     invitePlayers: "Invite players",
@@ -97,6 +96,7 @@ export const webTournament = {
     positionsNote:
       "Positions are preferences, not promises. The organizer makes the teams, with a keeper on each side.",
     teamsNotSetYet: "Not set yet. Split the pool when it fills.",
+    draftSaved: "A draft is saved, not published.",
     waitlistHeading: "Waitlist",
     teamsSet: "Set",
     teamsMadeByOrganizer: "Made by the organizer",
@@ -124,6 +124,8 @@ export const webTournament = {
     countOfTeamSize: (count: number, teamSize: number) =>
       `${count} of ${teamSize}`,
     readyToPublish: (note: string) => `${note} Ready to publish.`,
+    readyToPublishOrDraft: (note: string) =>
+      `${note} Ready to publish, or save it as a draft first.`,
     moveToOtherTeam: (name: string) => `Move ${name} to the other team`,
     noSubsNote:
       "No subs are set here. Each captain picks starters before kick-off and runs the swaps on the pitch.",
@@ -132,6 +134,7 @@ export const webTournament = {
     leftCount: (n: number) =>
       plural("en", n, { one: "1 left", other: "{n} left" }),
     publishedToast: "Teams published",
+    draftSavedToast: "Draft saved",
     poolLoadFailed: "The pool could not be loaded",
     fixedTitle: "Teams are fixed",
     fixedBody:
@@ -144,9 +147,11 @@ export const webTournament = {
       "Pick a swatch to place a player; placed rows take their team colour.",
     shuffle: "Shuffle",
     publish: "Publish teams",
+    saveDraft: "Save draft",
     manualTitle: "Manual teams",
     makeTeams: "Make teams",
     editTeams: "Edit teams",
+    editDraft: "Edit draft",
     inThePool: (n: number) =>
       plural("en", n, { one: "1 in the pool", other: "{n} in the pool" }),
   },

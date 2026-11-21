@@ -23,8 +23,9 @@ import {
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
+import { footballDraftSaveProblem } from "@repo/domain/football-draft";
 import { formatGameStart } from "@repo/domain/format-game-start";
-import { ArrowLeft, ArrowRight, Shuffle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eraser, Shuffle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -95,9 +96,11 @@ function barColor(bib: FootballBib) {
 function BalanceCard({
   draft,
   summary,
+  canSaveDraft,
 }: {
   draft: TeamsDraft;
   summary: ReturnType<typeof draftSummary>;
+  canSaveDraft: boolean;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -141,7 +144,10 @@ function BalanceCard({
       {row(1)}
       {row(2)}
       <p aria-live="polite" className="text-muted-foreground text-meta">
-        {summary.problem ?? t.readyToPublish(summary.note)}
+        {summary.problem ??
+          (canSaveDraft
+            ? t.readyToPublishOrDraft(summary.note)
+            : t.readyToPublish(summary.note))}
       </p>
     </section>
   );
@@ -372,7 +378,9 @@ function ManualLists({
 
 /**
  * The Organizer splits the pool into two teams, by Level or by hand, picks
- * each team's bib colour and publishes.
+ * each team's bib colour and publishes, or saves the split as the Game's
+ * Draft line-up while the teams are not published. Opened from a draft, it
+ * starts from it and names it on save and publish.
  */
 export function FootballMakeTeams({ gameId }: { gameId: string }) {
   const m = useMessages();
@@ -387,6 +395,9 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
     { enabled: isFootball === true },
   );
   const [draft, setDraft] = React.useState<TeamsDraft | null>(null);
+  const [openedFromDraftAt, setOpenedFromDraftAt] = React.useState<Date | null>(
+    null,
+  );
   const gameHref = `/dashboard/games/${gameId}`;
 
   React.useEffect(() => {
@@ -397,21 +408,37 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
 
   React.useEffect(() => {
     if (board.data && draft == null) {
-      setDraft(initialTeamsDraft(board.data.players, board.data.teams));
+      setDraft(
+        initialTeamsDraft(
+          board.data.players,
+          board.data.teams,
+          board.data.draft,
+        ),
+      );
+      setOpenedFromDraftAt(board.data.draft?.updatedAt ?? null);
     }
   }, [board.data, draft]);
 
+  const closeWith = async (message: string) => {
+    toast.success(message);
+    await Promise.all([
+      utils.games.footballBoard.invalidate({ gameId }),
+      utils.games.byId.invalidate({ id: gameId }),
+      utils.games.listMyGames.invalidate(),
+    ]);
+    router.push(gameHref);
+  };
+  const refetchBoard = () => utils.games.footballBoard.invalidate({ gameId });
+
   const publish = api.games.publishFootballTeams.useMutation({
     meta: OWN_ERROR_UI,
-    onSuccess: async () => {
-      toast.success(t.publishedToast);
-      await Promise.all([
-        utils.games.footballBoard.invalidate({ gameId }),
-        utils.games.byId.invalidate({ id: gameId }),
-        utils.games.listMyGames.invalidate(),
-      ]);
-      router.push(gameHref);
-    },
+    onSuccess: () => closeWith(t.publishedToast),
+    onError: refetchBoard,
+  });
+  const saveDraft = api.games.saveFootballDraft.useMutation({
+    meta: OWN_ERROR_UI,
+    onSuccess: () => closeWith(t.draftSavedToast),
+    onError: refetchBoard,
   });
 
   const players = board.data?.players ?? [];
@@ -453,6 +480,20 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
     ]
       .filter(Boolean)
       .join(". ");
+    const canSaveDraft = board.data?.viewer.canSaveDraft ?? false;
+    const sides = {
+      method: draft.method,
+      bibs: draft.bibs,
+      slot1: summary.slot1.map((player) => player.userId),
+      slot2: summary.slot2.map((player) => player.userId),
+    };
+    const saveProblem = footballDraftSaveProblem(
+      sides,
+      players.map((player) => player.userId),
+      locale,
+    );
+    const refusal = publish.error ?? saveDraft.error;
+    const toolLabel = canSaveDraft ? "max-sm:sr-only" : undefined;
     body = (
       <div className="space-y-5">
         <p className="text-muted-foreground text-meta">
@@ -466,7 +507,11 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
           bibs={draft.bibs}
           onChange={(bibs) => setDraft({ ...draft, bibs })}
         />
-        <BalanceCard draft={draft} summary={summary} />
+        <BalanceCard
+          draft={draft}
+          summary={summary}
+          canSaveDraft={canSaveDraft}
+        />
         {draft.method === "level" ? (
           <LevelColumns
             draft={draft}
@@ -480,9 +525,9 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
             onPlace={(userId, side) => setDraft(placeOn(draft, userId, side))}
           />
         )}
-        {publish.error ? (
+        {refusal ? (
           <p role="alert" className="text-destructive text-meta">
-            {publish.error.message}
+            {refusal.message}
           </p>
         ) : null}
         <div className="border-rule bg-background sticky bottom-0 flex gap-2 border-t py-4">
@@ -499,7 +544,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
               }
             >
               <Shuffle aria-hidden="true" />
-              {t.shuffle}
+              <span className={toolLabel}>{t.shuffle}</span>
             </Button>
           ) : (
             <Button
@@ -508,22 +553,39 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
               size="lg"
               onClick={() => setDraft({ ...draft, sides: {} })}
             >
-              {m.common.clear}
+              {canSaveDraft ? <Eraser aria-hidden="true" /> : null}
+              <span className={toolLabel}>{m.common.clear}</span>
             </Button>
           )}
+          {canSaveDraft ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              disabled={saveProblem != null || publish.isPending}
+              pending={saveDraft.isPending}
+              onClick={() =>
+                saveDraft.mutate({
+                  gameId,
+                  ...sides,
+                  draftUpdatedAt: openedFromDraftAt ?? undefined,
+                })
+              }
+            >
+              {t.saveDraft}
+            </Button>
+          ) : null}
           <Button
             type="button"
             size="lg"
             className="flex-1"
-            disabled={summary.problem != null}
+            disabled={summary.problem != null || saveDraft.isPending}
             pending={publish.isPending}
             onClick={() =>
               publish.mutate({
                 gameId,
-                method: draft.method,
-                bibs: draft.bibs,
-                slot1: summary.slot1.map((player) => player.userId),
-                slot2: summary.slot2.map((player) => player.userId),
+                ...sides,
+                draftUpdatedAt: openedFromDraftAt ?? undefined,
               })
             }
           >

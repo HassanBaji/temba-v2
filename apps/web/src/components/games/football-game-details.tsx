@@ -35,6 +35,7 @@ import {
   FootballInfoRows,
   type FootballInfoRow,
 } from "~/components/games/football-info-rows";
+import { FootballDraftCard } from "~/components/games/football-draft-card";
 import { FootballJoinDialog } from "~/components/games/football-join-dialog";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
@@ -86,6 +87,7 @@ import {
   footballGameDetailsModel,
   type FootballGameDetailsInput,
 } from "@repo/domain/football-game-details";
+import { footballDraftVisibilityLine } from "@repo/domain/football-draft";
 import {
   footballTeamsMethodLabel,
   type FootballPosition,
@@ -177,6 +179,7 @@ export function FootballGameDetails({
   const board = api.games.footballBoard.useQuery({ gameId });
   const players = board.data?.players ?? [];
   const teams = board.data?.teams ?? null;
+  const draft = teams ? null : (board.data?.draft ?? null);
   const names = teams ? bibNames(teams.bibs, locale) : null;
   const viewer = players.find((player) => player.isViewer) ?? null;
   const marks = useGameMarks(gameId, board.data?.match?.status === "completed");
@@ -202,6 +205,7 @@ export function FootballGameDetails({
       pitchName: game.recordedCourts[0]?.name ?? null,
       teamsSet: teams != null && !challenge,
       scored: board.data?.match?.score != null,
+      draftSaved: draft != null,
     },
     now,
     locale,
@@ -308,6 +312,13 @@ export function FootballGameDetails({
       await refreshGame();
     },
     onError,
+  });
+  const publishDraft = api.games.publishFootballTeams.useMutation({
+    onSuccess: () => {
+      toast.success(m.webTournament.footballTeams.publishedToast);
+    },
+    onError,
+    onSettled: refreshGame,
   });
   const reportWrongScore = api.games.reportWrongScore.useMutation({
     onSuccess: async () => {
@@ -474,7 +485,7 @@ export function FootballGameDetails({
       label: m.common.teams,
       value: teams
         ? footballTeamsMethodLabel(teams.method, locale)
-        : t.organizerMakesTeams,
+        : m.football.draft.notPublished.value,
     },
     ...(names
       ? [
@@ -714,7 +725,9 @@ export function FootballGameDetails({
                   key: "teams",
                   label: teams
                     ? m.webTournament.footballTeams.editTeams
-                    : m.webTournament.footballTeams.makeTeams,
+                    : draft
+                      ? m.webTournament.footballTeams.editDraft
+                      : m.webTournament.footballTeams.makeTeams,
                   icon: ShirtIcon,
                   href: teamsHref,
                 },
@@ -950,7 +963,60 @@ export function FootballGameDetails({
           </p>
         ) : null}
 
-        {!teams ? (
+        {board.data &&
+        !teams &&
+        !game.isOrganizer &&
+        !challenge &&
+        !game.cancelledAt ? (
+          <section className="border-rule bg-paper space-y-1 rounded-xl border p-5">
+            <h2 className="font-semibold">
+              {m.football.draft.notPublished.title}
+            </h2>
+            <p className="text-muted-foreground text-meta">
+              {m.football.draft.notPublished.body}
+            </p>
+          </section>
+        ) : null}
+
+        {draft ? (
+          <section className="space-y-3">
+            <TeamColumns
+              players={players.map((player) => ({
+                ...player,
+                sideIndex: draft.sides.slot1.includes(player.userId)
+                  ? (1 as const)
+                  : draft.sides.slot2.includes(player.userId)
+                    ? (2 as const)
+                    : null,
+              }))}
+              bibs={draft.bibs}
+              names={bibNames(draft.bibs, locale)}
+              balanceOn={board.data?.balanceOn ?? "ovr"}
+              onOpenPlayer={pressPlayer}
+            />
+            <p className="text-muted-foreground text-meta">
+              {footballDraftVisibilityLine(game, locale)}
+            </p>
+            <FootballDraftCard
+              draft={draft}
+              rosterUserIds={players.map((player) => player.userId)}
+              publishPending={publishDraft.isPending}
+              onPublish={() =>
+                publishDraft.mutate({
+                  gameId,
+                  method: draft.method,
+                  bibs: draft.bibs,
+                  slot1: draft.sides.slot1,
+                  slot2: draft.sides.slot2,
+                  draftUpdatedAt: draft.updatedAt,
+                })
+              }
+              editHref={teamsHref}
+            />
+          </section>
+        ) : null}
+
+        {!teams && !draft ? (
           <section
             aria-labelledby="football-players-heading"
             className="space-y-3"
@@ -1015,14 +1081,18 @@ export function FootballGameDetails({
               <p className="text-muted-foreground text-meta">
                 {teams
                   ? footballTeamsMethodLabel(teams.method, locale)
-                  : t.teamsNotSetYet}
+                  : draft
+                    ? t.draftSaved
+                    : t.teamsNotSetYet}
               </p>
             </div>
             <Button asChild>
               <Link href={teamsHref}>
                 {teams
                   ? m.webTournament.footballTeams.editTeams
-                  : m.webTournament.footballTeams.makeTeams}
+                  : draft
+                    ? m.webTournament.footballTeams.editDraft
+                    : m.webTournament.footballTeams.makeTeams}
               </Link>
             </Button>
           </section>
