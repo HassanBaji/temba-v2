@@ -1,0 +1,539 @@
+TEMBA
+Series
+A series is a social or a game that a verified group plays regularly. Admins and organizers give it a name and a badge and attach it to a game or a social. Whoever wins gets the badge on their profile, with how many times they have won it.
+01
+In the group. Series get their own tab; admins and organizers make them. 1b is live.
+1a / THE GROUP’S SERIES TAB, FOR AN ADMIN OR ORGANIZER
+
+
+##### SCREEN: 1a Group series tab
+[data-lucide=chevron-left]
+Tuesday Night Padel
+[data-lucide=ellipsis-vertical]
+Games
+Members
+Standing
+Series
+Series
+2 running
+Sunday Social
+Padel social. 11 played, next is edition 12
+Next
+Mon 9 Nov
+Thursday Ladder
+Padel game. 31 played
+Next
+Thu 12 Nov
+A series is a social or a game this group plays again and again. Whoever wins one gets its badge on their profile.
+Ended
+1
+Ramadan Nights
+Padel social. 8 played, ended in March
+Badges
+stay
+[data-lucide=plus]
+New series
+1b / NEW SERIES (LIVE): A NAME AND A BADGE. PICK AN EMBLEM AND A COLOUR
+
+
+##### SCREEN: 1b New series live
+[data-lucide=chevron-left]
+New series
+Sunday Social
+Tuesday Night Padel
+1
+How it sits on a winner’s profile
+Name
+Sunday Social
+What players will see on the game and on their profile.
+Emblem
+{{ embName }}
+[aria-label=E0]
+[aria-label=E1]
+[aria-label=E2]
+[aria-label=E3]
+[aria-label=E4]
+[aria-label=E5]
+[aria-label=E6]
+Colour
+{{ colName }}
+[aria-label=C0]
+[aria-label=C1]
+[aria-label=C2]
+[aria-label=C3]
+[aria-label=C4]
+[aria-label=C5]
+In a social
+The top team wins it
+In a game
+The winning side wins it
+A draw
+Nobody wins that one
+Create series
+Attach it to a game or a social when you create one.
+A SERIES
+What it is
+A social or a game the group plays again and again, with a name and a badge. Each time it is played is an edition, numbered on its own.
+Where it lives
+A fourth tab on the group, next to Standing. Running series first, ended ones under them. Everyone in the group sees the tab; only admins and organizers see New series.
+The badge
+A six-sided coin, so it never reads as a mark, which is round. The admin picks one of seven emblems and one of six colours. No uploads, so every badge stays in the Temba style.
+Verified groups only
+The Series tab shows only in verified groups. Other groups have no tab, no picker and no mention of series anywhere.
+Ending one
+From the series menu. Nothing can be attached to it any more, and the badges already won stay on profiles.
+02
+Attaching it. One choice on the last step of creating a social or a game; then it shows on the game for everyone.
+2a / CREATE, LAST STEP: PICK THE SERIES
+
+
+##### SCREEN: 2a Create, attach a series
+[data-lucide=chevron-left]
+STEP 4 OF 4
+8
+teams
+28 games
+Mon, Nov 9 / 11:00 AM to 2:30 PM / 4 courts
+Series
+Optional
+Not part of a series
+A one-off
+Sunday Social
+This will be edition 12
+[data-lucide=check]
+Thursday Ladder
+This would be edition 32
+Series of Tuesday Night Padel. The winners get the badge on their profile.
+Who can enter
+Optional
+Anyone
+Set a level range
+A friendly tournament does not change anyone's Level, so mixed levels are fine.
+Entry fee per player
+Optional
+BD
+Free
+4.000
+6.000
+8.000
+[data-lucide=info]
+12.000 BD a team of two. Zero means free. Temba does not collect payment.
+Group
+Tuesday Night Padel
+Venue
+World Padel Academy Bahrain
+Format
+Rounds, 7 games each
+Sign up closes
+Sun, Nov 8
+Series
+Sunday Social, edition 12
+Rating
+Friendly, no change
+Create tournament
+Cancel
+[data-lucide=home]
+Home
+Games
+[data-lucide=users]
+Groups
+[data-lucide=building-2]
+Communities
+[data-lucide=circle-user]
+Profile
+2b / ON THE SOCIAL: THE SERIES AND ITS EDITION
+
+
+##### SCREEN: 2b Social with a series
+[data-lucide=chevron-left]
+SOCIAL
+[data-lucide=share]
+Monday 9 November, starts today
+Sunday Social
+11:00
+AM to 2:30 PM
+World Padel Academy Bahrain
+Courts 1 to 4. Tuesday Night Padel, organized by Hassan Haji
+Sunday Social
+edition 12
+8
+teams, one group
+7
+rounds, 30 min
+3.500
+BD per match
+11 of 16 seats
+draw opens when full
+Part of Sunday Social
+Top of the table wins edition 12 and the badge. Layla H and Nora N won the last one.
+See series
+Schedule
+opponents after the draw
+R1
+10:00
+R2
+10:40
+R3
+11:20
+R4
+12:00
+R5
+12:40
+R6
+1:20
+R7
+2:00
+Seven 30-minute matches, four courts at once, everyone plays everyone. Top of the table wins the day.
+Organizer
+Hassan Haji
+Group
+Tuesday Night Padel
+Scores
+Either team enters, the other confirms
+Series
+Sunday Social, edition 12
+5 seats left
+Sign up alone or as a pair
+Take a seat
+2c / THE SAME ON A FOOTBALL GAME: THE WINNING SIDE TAKES IT
+
+
+##### SCREEN: 2c Game with a series
+[data-lucide=chevron-left]
+[data-lucide=ellipsis-vertical]
+Football
+Karbabad Friday Football
+in 2 days
+Friday 13 November
+7:00
+PM
+to 8:30
+Pitch 2, 7-a-side, level 55 to 75
+Friday Classic
+edition 31
+13 of 14 in
+teams made Thu 8:00 PM
+HH
+YK
+AM
+SH
+HA
+NS
+BF
+AS
+YH
+MJ
+OM
+JA
+OT
+Part of Friday Classic
+Every player on the winning side gets the badge. A draw gives it to nobody.
+See series
+Organizer
+Hassan Haji
+Group
+Karbabad Friday Football
+Series
+Friday Classic, edition 31
+Teams
+Made by the organizer
+ATTACH
+One optional step
+Series sits on the review step of Create, above who can enter. It lists the group’s running series and says which edition this would be.
+Only where it applies
+The picker shows only when the game is in a verified group that has a series. Otherwise the step looks as it does today.
+On the game
+The lifted card carries the badge, the name and the edition. A plain card under it says what winning it means and links to the series.
+Changing it
+The organizer can add, change or remove the series from Edit game until the score is in.
+03
+Winning it, and the series page.
+3a / THE SOCIAL ENDS: THE WINNERS GET THE SERIES, EVERYONE SEES IT
+
+
+##### SCREEN: 3a Series won
+[data-lucide=chevron-left]
+Sunday Social
+[data-lucide=ellipsis-vertical]
+Sunday Social, edition 12
+Mon 9 Nov
+Winners
+Qasim Albaqali
+Ahmed Buhazza
+Qasim’s 3rd
+most of anyone, level with Layla
+Ahmed’s 1st
+new on his profile
+[data-lucide=share]
+Share
+See the series
+Final table
+7 rounds
+01
+QA
+AB
+Qasim & Ahmed
+19
+02
+RF
+NA
+Reem & Noor
+18
+03
+OS
+JK
+Omar & Jassim
+13
+04
+KJ
+HH
+Khalid & Hassan
+12
+All 8 teams
+[data-lucide=arrow-right]
+The series goes to the top of the table once the last round is saved. If the organizer corrects a score, it follows the table.
+3b / THE SERIES PAGE: WHO HAS WON IT MOST, AND EVERY EDITION
+
+
+##### SCREEN: 3b Series page
+[data-lucide=chevron-left]
+Series
+[data-lucide=ellipsis-vertical]
+Sunday Social
+Tuesday Night Padel
+12
+played
+15
+different winners
+Jan
+running since
+Most wins
+of 12
+QA
+Qasim Albaqali
+Last won edition 12
+3
+LH
+Layla Haddad
+Last won edition 11
+3
+HH
+Hassan Haji
+You. Last won edition 10
+2
+KJ
+Khalid Janahi
+Last won edition 10
+2
+All 15 winners
+[data-lucide=arrow-right]
+Editions
+newest first
+13
+Not played yet
+Sun 6 Dec
+12
+Qasim A and Ahmed B
+Mon 9 Nov
+11
+Layla H and Nora N
+Sun 11 Oct
+10
+Hassan H and Khalid J
+Sun 13 Sep
+All 12 editions
+[data-lucide=arrow-right]
+WINNING
+Who wins
+In a social, the team on top of the final table, so both players. In a game, every player on the winning side. A draw gives the edition to nobody.
+When
+The moment the last score is saved. If a score is corrected later, the series follows the corrected result.
+The moment
+The finished game opens on the winners with the badge, and says which number it is for each of them. Share uses the existing result cards.
+The series page
+The badge and the group, how many editions, who has won it most, and every edition with its winners. The next one is hatched until it is played.
+04
+On the profile. One badge per series, with the number of wins on it.
+4a / THE PROFILE: A SERIES CARD, ONE BADGE PER SERIES WITH THE WINS ON IT
+
+
+##### SCREEN: 4a Profile series
+Profile
+[data-lucide=share]
+[data-lucide=settings]
+HH
+Hassan Haji
+Manama. Padel and football, since March 2026
+Latest
+All 8
+Series win: Friday Classic
+Edition 30 with Black, 5–3. Your 2nd
+1w
+New mark: Clutch
+From Khalid J, for Thursday’s 7-5
+2w
+Series
+5 wins in 3
+2
+Sunday Social
+Tuesday Night Padel
+2
+Friday Classic
+Karbabad Friday
+1
+Ramadan Nights
+Tuesday Night Padel
+All series wins
+[data-lucide=arrow-right]
+Marks
+13 from 9 players
+4
+Clutch
+3
+Smash machine
+2
+Mr Ice
+4
+Good game
+All marks
+[data-lucide=arrow-right]
+[data-lucide=house]
+Home
+Games
+[data-lucide=users]
+Groups
+[data-lucide=swords]
+Challenges
+[data-lucide=circle-user-round]
+Profile
+4b / TAP A BADGE: THE WINS BEHIND IT, AND THE WAY TO THE SERIES
+
+
+##### SCREEN: 4b Profile series sheet
+Profile
+[data-lucide=share]
+[data-lucide=settings]
+HH
+Hassan Haji
+Manama. Padel and football, since March 2026
+Latest
+All 8
+Series win: Friday Classic
+Edition 30 with Black, 5–3. Your 2nd
+1w
+New mark: Clutch
+From Khalid J, for Thursday’s 7-5
+2w
+Series
+5 wins in 3
+2
+Sunday Social
+Tuesday Night Padel
+2
+Friday Classic
+Karbabad Friday
+1
+Ramadan Nights
+Tuesday Night Padel
+All series wins
+[data-lucide=arrow-right]
+Marks
+13 from 9 players
+4
+Clutch
+3
+Smash machine
+2
+Mr Ice
+4
+Good game
+All marks
+[data-lucide=arrow-right]
+[data-lucide=house]
+Home
+Games
+[data-lucide=users]
+Groups
+[data-lucide=swords]
+Challenges
+[data-lucide=circle-user-round]
+Profile
+2
+Sunday Social
+Tuesday Night Padel
+[aria-label=Close]
+[data-lucide=x]
+Won 2 of 12
+played 9
+10
+With Khalid Janahi
+Sun 13 Sep 2026
+[data-lucide=chevron-right]
+07
+With Dana Al-Khalifa
+Sun 14 Jun 2026
+[data-lucide=chevron-right]
+See the series
+4c / 4a IN DARK MODE
+
+
+##### SCREEN: 4c Profile series dark
+Profile
+[data-lucide=share]
+[data-lucide=settings]
+HH
+Hassan Haji
+Manama. Padel and football, since March 2026
+Latest
+All 8
+Series win: Friday Classic
+Edition 30 with Black, 5–3. Your 2nd
+1w
+New mark: Clutch
+From Khalid J, for Thursday’s 7-5
+2w
+Series
+5 wins in 3
+2
+Sunday Social
+Tuesday Night Padel
+2
+Friday Classic
+Karbabad Friday
+1
+Ramadan Nights
+Tuesday Night Padel
+All series wins
+[data-lucide=arrow-right]
+Marks
+13 from 9 players
+4
+Clutch
+3
+Smash machine
+2
+Mr Ice
+4
+Good game
+All marks
+[data-lucide=arrow-right]
+[data-lucide=house]
+Home
+Games
+[data-lucide=users]
+Groups
+[data-lucide=swords]
+Challenges
+[data-lucide=circle-user-round]
+Profile
+PROFILE
+A Series card
+Above Marks. One badge per series the player has won, the count in the corner the way marks show theirs, the group under the name.
+Both sports together
+Series are not split by sport: a player’s padel and football series sit in the same card, most recent win first.
+Latest
+A new series win is an update on the profile and on Home, like a new mark.
+Behind a badge
+Tapping one lists the editions won, with the date and who it was won with, and leads to the series.
+What I assumed
+Wins are public on the profile like marks are. A player cannot hide a series.
