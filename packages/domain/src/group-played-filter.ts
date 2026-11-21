@@ -23,11 +23,19 @@ export const DEFAULT_GROUP_PLAYED_FILTER: GroupPlayedFilter = "finished";
 type PlayedGameState = {
   cancelled: boolean;
   scoredSets: readonly unknown[];
+  /**
+   * Set on a day with no Matches (King of the court): it has its result once
+   * the organizer posts the final order.
+   */
+  resultPosted?: boolean;
 };
 
 export function groupPlayedStatus(game: PlayedGameState): GroupPlayedStatus {
   if (game.cancelled) {
     return "cancelled";
+  }
+  if (game.resultPosted !== undefined) {
+    return game.resultPosted ? "finished" : "needs_score";
   }
   return game.scoredSets.length > 0 ? "finished" : "needs_score";
 }
