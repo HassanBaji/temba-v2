@@ -12,6 +12,7 @@ import { View } from "react-native";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import type { WithGameSeries } from "../series/series-hero-line";
 import type { AloneSocialHandlers } from "./alone-social";
 import { AmericanoView } from "./americano-view";
 import { KingView } from "./king-view";
@@ -45,7 +46,7 @@ export function TournamentContent({
   alone,
   album,
 }: {
-  game: TournamentDetails;
+  game: TournamentDetails & WithGameSeries;
   handlers: TournamentHandlers;
   organizer?: TournamentOrganizerHandlers;
   /** Alone only (ADR-0096): Make teams, Share teams and the list before posting. */
@@ -77,6 +78,7 @@ export function TournamentContent({
         {album}
         <TournamentTail
           view={view}
+          series={game.series}
           leavePending={handlers.leavePending}
           onLeave={handlers.onLeave}
         />
@@ -128,6 +130,7 @@ export function TournamentContent({
       {album}
       <TournamentTail
         view={view}
+        series={game.series}
         leavePending={handlers.leavePending}
         onLeave={handlers.onLeave}
       />

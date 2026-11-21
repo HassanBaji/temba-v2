@@ -117,6 +117,8 @@ export const series = {
     heroEdition: (edition: number) => `edition ${edition}`,
     factsLabel: "Series",
     facts: (name: string, edition: number) => `${name}, edition ${edition}`,
+    cardLabel: (title: string, rule: string) => `${title}. ${rule}`,
+    openHint: "Opens the series",
   },
   win: {
     ordinal: (name: string, n: number) => `${name}’s ${ordinal(n)}`,

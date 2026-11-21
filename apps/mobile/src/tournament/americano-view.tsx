@@ -17,6 +17,11 @@ import { Hairline } from "../primitives/hairline";
 import { ResultMark } from "../primitives/result-mark";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { SeriesGameCard } from "../series/series-game-card";
+import {
+  SeriesHeroLine,
+  type WithGameSeries,
+} from "../series/series-hero-line";
 import { api } from "../trpc/react";
 
 function Row({ children }: { children: React.ReactNode }) {
@@ -82,7 +87,7 @@ export function AmericanoView({
   onOpenPlayer,
   playerOpensActions,
 }: {
-  game: TournamentDetails;
+  game: TournamentDetails & WithGameSeries;
   onOpenPlayer?: (userId: string) => void;
   playerOpensActions?: (userId: string) => boolean;
 }) {
@@ -109,6 +114,7 @@ export function AmericanoView({
   const seatCount = game.playersAllowed ?? 0;
   const canJoin =
     !drawn && !game.isRegistered && (game.canRegister || game.canWaitlist);
+  const seriesCard = game.series ? <SeriesGameCard gameId={game.id} /> : null;
 
   if (!drawn) {
     return (
@@ -126,7 +132,11 @@ export function AmericanoView({
             {m.hero.seats(game.registeredPlayers.length, seatCount)}.{" "}
             {m.drawEntry.waitingCopy(seatCount)}
           </Text>
+          {game.series ? (
+            <SeriesHeroLine series={game.series} style={{ marginTop: 6 }} />
+          ) : null}
         </View>
+        {seriesCard}
         <Card
           title={m.players.title}
           meta={m.players.count(game.registeredPlayers.length, seatCount)}
@@ -215,7 +225,11 @@ export function AmericanoView({
         <Text size="meta" tone="muted">
           {m.lead.standings}
         </Text>
+        {game.series && !finished ? (
+          <SeriesHeroLine series={game.series} style={{ marginTop: 6 }} />
+        ) : null}
       </View>
+      {seriesCard}
 
       <View style={{ gap: 8 }}>
         <Card title={m.tabs.standings}>

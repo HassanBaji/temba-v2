@@ -94,6 +94,8 @@ import { HeaderIconButton } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { seriesFactRows } from "../series/series-fact-row";
+import { SeriesGameCard } from "../series/series-game-card";
 import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "../trpc/react";
 import { AddPlayerSheet } from "./add-player-sheet";
@@ -474,6 +476,7 @@ export function FootballGameDetails({
     ...(game.groupName
       ? [{ label: copy.football.group, value: game.groupName }]
       : []),
+    ...seriesFactRows(game.series, m),
     ...(game.season
       ? [{ label: copy.football.season, value: game.season.name }]
       : []),
@@ -793,6 +796,7 @@ export function FootballGameDetails({
         <FootballHero
           tone={model.hero.tone}
           lines={lines}
+          series={game.series}
           tag={
             ratingScopeOf(game) === "temba"
               ? (ratingScopeTag(game, locale) ?? undefined)
@@ -833,6 +837,7 @@ export function FootballGameDetails({
       }
     >
       <View style={{ gap: SECTION_GAP }}>
+        {game.series ? <SeriesGameCard gameId={gameId} /> : null}
         {game.cancelledAt ? (
           <Surface accessibilityRole="alert">
             <Text size="title" weight="semibold">

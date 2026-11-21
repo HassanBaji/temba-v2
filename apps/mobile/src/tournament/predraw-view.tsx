@@ -33,6 +33,13 @@ import { Hatch } from "../primitives/hatch";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import { withSeriesFactRow } from "../series/series-fact-row";
+import { SeriesGameCard } from "../series/series-game-card";
+import {
+  SeriesHeroLine,
+  type SeriesHeroLineSeries,
+  type WithGameSeries,
+} from "../series/series-hero-line";
 import {
   AloneHeroFigures,
   AloneMakeTeamsCard,
@@ -123,11 +130,13 @@ function Hero({
   view,
   viewerUserId,
   tone,
+  series,
   alone,
 }: {
   view: TournamentHomeView;
   viewerUserId: string;
   tone: "ink" | "paper";
+  series: SeriesHeroLineSeries | null | undefined;
   /** Alone only before posting: the teams tile and the seat caption replace the size and status lines. */
   alone: { teamCount: number; count: number; cap: number | null } | null;
 }) {
@@ -164,6 +173,7 @@ function Hero({
           </Text>
         ) : null}
       </View>
+      {series ? <SeriesHeroLine series={series} /> : null}
       <Hairline />
       {alone ? <AloneHeroFigures {...alone} /> : null}
       {view.seated ? (
@@ -696,7 +706,7 @@ export function PreDrawView({
   handlers,
   alone,
 }: {
-  game: TournamentDetails;
+  game: TournamentDetails & WithGameSeries;
   view: TournamentHomeView;
   handlers: PreDrawHandlers;
   alone?: AloneSocialHandlers;
@@ -719,6 +729,7 @@ export function PreDrawView({
     />
   );
   const organizes = game.isOrganizer && game.cancelledAt == null;
+  const seriesCard = game.series ? <SeriesGameCard gameId={game.id} /> : null;
 
   if (view.aloneOnly?.awaitingTeams && alone) {
     const count = game.registeredPlayers.length;
@@ -730,12 +741,14 @@ export function PreDrawView({
           view={view}
           viewerUserId={game.viewerUserId}
           tone={focus ? "paper" : "ink"}
+          series={game.series}
           alone={{
             teamCount: game.teamsAllowed ?? game.sides.length,
             count,
             cap,
           }}
         />
+        {seriesCard}
         {levelRequest}
         {organizes ? (
           <AloneMakeTeamsCard count={count} cap={cap} handlers={alone} />
@@ -758,8 +771,10 @@ export function PreDrawView({
         view={view}
         viewerUserId={game.viewerUserId}
         tone={posted && organizes ? "paper" : "ink"}
+        series={game.series}
         alone={null}
       />
+      {seriesCard}
       {levelRequest}
       {posted && organizes ? (
         <AlonePostedOrganizerCard view={view} handlers={posted} />
@@ -805,17 +820,27 @@ export function PreDrawView({
 
 export function TournamentTail({
   view,
+  series,
   leavePending,
   onLeave,
 }: {
   view: TournamentHomeView;
+  series: SeriesHeroLineSeries | null | undefined;
   leavePending: boolean;
   onLeave: () => void;
 }) {
-  const home = useMessages().tournament.home;
+  const messages = useMessages();
+  const home = messages.tournament.home;
   return (
     <View style={{ gap: 16 }}>
-      <DetailRows rows={view.detailRows} />
+      <DetailRows
+        rows={withSeriesFactRow(
+          view.detailRows,
+          home.groupRow,
+          series,
+          messages,
+        )}
+      />
       {view.canLeaveGame ? (
         <Button
           label={home.leaveTheSeat}

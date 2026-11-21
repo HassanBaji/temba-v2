@@ -137,6 +137,8 @@ export const series = {
     factsLabel: "السلسلة",
     facts: (name: string, edition: number) =>
       `${isolate(name)}، النسخة ${edition}`,
+    cardLabel: (title: string, rule: string) => `${title}. ${rule}`,
+    openHint: "يفتح السلسلة",
   },
   win: {
     ordinal: (name: string, n: number) =>

@@ -72,6 +72,8 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { SeriesGameCard } from "../series/series-game-card";
+import type { WithGameSeries } from "../series/series-hero-line";
 import { AloneJoinSheet } from "../tournament/alone-join-sheet";
 import type { AloneSocialHandlers } from "../tournament/alone-social";
 import { TournamentBar } from "../tournament/tournament-bar";
@@ -427,11 +429,14 @@ export function GameDetailsScreen({
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await game.refetch();
+      await Promise.all([
+        game.refetch(),
+        utils.series.edition.invalidate({ gameId }),
+      ]);
     } finally {
       setRefreshing(false);
     }
-  }, [game]);
+  }, [game, gameId, utils]);
 
   function openJoin(seat?: { sideIndex: number; position: "left" | "right" }) {
     setInitialSeat(seat ?? null);
@@ -663,7 +668,7 @@ export function GameDetailsScreen({
   }
 
   if (tournament) {
-    const details: TournamentDetails = data;
+    const details: TournamentDetails & WithGameSeries = data;
     const addPlayerToSide = (sideIndex: number) => {
       setAddSide(sideIndex);
       tournamentOrganizer.addPlayer.onOpen();
@@ -1077,6 +1082,7 @@ export function GameDetailsScreen({
                   model={hero}
                   place={heroPlace}
                   figures={heroFigures}
+                  series={data.series}
                   tag={data.challenge ? m.challenge.gameDetails.tag : undefined}
                   onShare={
                     shareLink && shareContext
@@ -1090,6 +1096,7 @@ export function GameDetailsScreen({
               ) : undefined
             }
           >
+            {data.series ? <SeriesGameCard gameId={gameId} /> : null}
             {data.challenge ? (
               <ChallengeDetailsCard
                 challenge={data.challenge}
@@ -1099,6 +1106,7 @@ export function GameDetailsScreen({
             ) : null}
             <GameDetailsContent
               game={details}
+              series={data.series}
               handlers={handlers}
               organizer={
                 organizer.plan

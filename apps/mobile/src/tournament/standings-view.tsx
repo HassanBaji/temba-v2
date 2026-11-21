@@ -26,6 +26,12 @@ import { ResultMark } from "../primitives/result-mark";
 import { useTonePalette } from "../primitives/surface-context";
 import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
+import { SeriesGameCard } from "../series/series-game-card";
+import {
+  SeriesHeroLine,
+  type SeriesHeroLineSeries,
+  type WithGameSeries,
+} from "../series/series-hero-line";
 import {
   GameTeamSheet,
   type GameTeamLinks,
@@ -406,8 +412,10 @@ function PoolTablesSection({
 
 export function StandingsHeader({
   standings,
+  series,
 }: {
   standings: TournamentStandingsView;
+  series?: SeriesHeroLineSeries | null;
 }) {
   const messages = useMessages();
   return (
@@ -449,6 +457,9 @@ export function StandingsHeader({
           </Text>
         </View>
       ) : null}
+      {series && !standings.finished ? (
+        <SeriesHeroLine series={series} style={{ marginTop: 6 }} />
+      ) : null}
     </View>
   );
 }
@@ -460,7 +471,7 @@ export function StandingsView({
   onOpenPlayer,
   playerOpensActions,
 }: {
-  game: TournamentDetails;
+  game: TournamentDetails & WithGameSeries;
   standings: TournamentStandingsView;
   onCancelMatch?: ComponentProps<typeof KnockoutTree>["onCancelMatch"];
   onOpenPlayer?: (userId: string) => void;
@@ -474,7 +485,8 @@ export function StandingsView({
     : undefined;
   return (
     <View style={{ gap: 24 }}>
-      <StandingsHeader standings={standings} />
+      <StandingsHeader standings={standings} series={game.series} />
+      {game.series ? <SeriesGameCard gameId={game.id} /> : null}
       {standings.showKnockoutTree && knockout ? (
         <KnockoutTree
           rounds={knockout}
