@@ -139,6 +139,7 @@ export const group = {
           other: "{n} فريق",
         }),
       wonBy: (name: string) => `فاز ${name}`,
+      youWonIt: "فزت بها",
     },
   },
   empty: {

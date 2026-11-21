@@ -204,14 +204,16 @@ function playedSocial(
         ? {
             markName: social.winner.names[0]!,
             isViewer: social.winner.isViewer,
-            line: copy.social.wonBy(
-              winnerNames.length === 2
-                ? copy.pair(
-                    shortPlayerName(winnerNames[0]!),
-                    shortPlayerName(winnerNames[1]!),
-                  )
-                : winnerNames.join(m.group.metaSeparator),
-            ),
+            line: social.winner.isViewer
+              ? copy.social.youWonIt
+              : copy.social.wonBy(
+                  winnerNames.length === 2
+                    ? copy.pair(
+                        shortPlayerName(winnerNames[0]!),
+                        shortPlayerName(winnerNames[1]!),
+                      )
+                    : winnerNames.join(m.group.metaSeparator),
+                ),
           }
         : null,
   };

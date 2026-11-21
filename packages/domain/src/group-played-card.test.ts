@@ -128,7 +128,7 @@ describe("a drawn Social on the Played list", () => {
     );
   });
 
-  it("counts teams and names the winning pair on every other shape", () => {
+  it("counts teams and says when the viewer's pair won it", () => {
     const card = groupPlayedCard(
       {
         ...americano,
@@ -146,8 +146,20 @@ describe("a drawn Social on the Played list", () => {
       tags: ["Social", "Groups only"],
       headline: "Results to come",
       summary: "World Padel Academy, 4 teams",
-      winner: { isViewer: true, line: "Won by Ada L & Kim H" },
+      winner: { isViewer: true, line: "You won it" },
     });
+    const other = groupPlayedCard(
+      {
+        ...americano,
+        social: {
+          ...americano.social,
+          tournamentShape: "groups_only",
+          winner: { names: ["Ada Lovelace", "Kim Hart"], isViewer: false },
+        },
+      },
+      "en",
+    );
+    expect(other.social?.winner?.line).toBe("Won by Ada L & Kim H");
   });
 
   it("tags a Rounds Social and a King of the court with their shape", () => {
