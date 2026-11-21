@@ -119,6 +119,13 @@ export const series = {
     facts: (name: string, edition: number) => `${name}, edition ${edition}`,
     cardLabel: (title: string, rule: string) => `${title}. ${rule}`,
     openHint: "Opens the series",
+    seeTheSeries: "See the series",
+    winners: "Winners",
+    team: (first: string, second: string) => `${first} & ${second}`,
+    wonBy: (winners: string) => `Won by ${winners}`,
+    draw: (edition: number) => `A draw. Nobody wins edition ${edition}.`,
+    tableNote:
+      "The series goes to the top of the table once the last round is saved. If the organizer corrects a score, it follows the table.",
   },
   win: {
     ordinal: (name: string, n: number) => `${name}’s ${ordinal(n)}`,

@@ -119,12 +119,15 @@ export function TournamentFinishedHeader({
   backHref,
   chip,
   actions,
+  lead,
 }: {
   view: TournamentFinishedView;
   gameId: string;
   backHref: string;
   chip: string | null;
   actions?: ReactNode;
+  /** The Series winners card, first under the bar. */
+  lead?: ReactNode;
 }) {
   return (
     <Surface
@@ -141,6 +144,7 @@ export function TournamentFinishedHeader({
         />
         {actions}
       </TournamentHeaderBar>
+      {lead ? <div className="mt-[22px] empty:hidden">{lead}</div> : null}
       {view.dateLine ? (
         <p className="text-muted-foreground text-meta mt-7">{view.dateLine}</p>
       ) : null}

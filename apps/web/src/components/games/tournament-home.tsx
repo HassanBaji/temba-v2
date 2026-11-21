@@ -79,6 +79,7 @@ import { TournamentTeamsSection } from "~/components/games/tournament-teams-sect
 import { TournamentYourRounds } from "~/components/games/tournament-your-rounds";
 import { withSeriesFactRow } from "~/components/series/series-fact-row";
 import { SeriesGameCard } from "~/components/series/series-game-card";
+import { SeriesWinnersCard } from "~/components/series/series-winners-card";
 import type { WithGameSeries } from "~/components/series/series-hero-line";
 import { Button } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
@@ -512,6 +513,7 @@ export function TournamentHome({
           <TournamentStandingsTree
             gameId={data.id}
             hasSeries={data.series != null}
+            windowStart={data.windowStart}
             finished={finished}
             album={album}
             standings={tournamentStandingsView(data, locale)}
@@ -550,7 +552,9 @@ export function TournamentHome({
               tags={alonePosted ? <HeroPadelTag /> : undefined}
               actions={actionsMenu(true)}
             />
-            {data.series ? <SeriesGameCard gameId={data.id} /> : null}
+            {data.series ? (
+              <SeriesGameCard gameId={data.id} game="social" />
+            ) : null}
             <GameTvCardSlot />
             <TournamentPredrawTree
               alonePosted={alonePosted}
@@ -892,6 +896,7 @@ function AlonePostedNotes({ posted }: { posted: AlonePosted }) {
 function TournamentStandingsTree({
   gameId,
   hasSeries,
+  windowStart,
   finished,
   album,
   standings,
@@ -909,6 +914,7 @@ function TournamentStandingsTree({
 }: {
   gameId: string;
   hasSeries: boolean;
+  windowStart: GameDetail["windowStart"];
   finished: TournamentFinishedView | null;
   album: ReactNode;
   standings: TournamentStandingsView;
@@ -935,6 +941,11 @@ function TournamentStandingsTree({
             backHref={backHref}
             chip={null}
             actions={actions}
+            lead={
+              hasSeries ? (
+                <SeriesWinnersCard gameId={gameId} windowStart={windowStart} />
+              ) : null
+            }
           />
         ) : (
           <TournamentStandingsHeader
@@ -949,7 +960,7 @@ function TournamentStandingsTree({
           />
         )}
         {hasSeries ? (
-          <SeriesGameCard gameId={gameId} className="mt-[18px]" />
+          <SeriesGameCard gameId={gameId} game="social" className="mt-[18px]" />
         ) : null}
         <GameTvCardSlot className="pt-[18px]" />
         {standings.showKnockoutTree && knockout ? (

@@ -11,6 +11,8 @@ import {
   ResultMark,
   type ResultMarkVariant,
 } from "~/components/temba/result-mark";
+import { SeriesBadge } from "~/components/series/series-badge";
+import type { SeriesTableMarks } from "~/components/series/series-edition-card-model";
 import { ScoreText } from "~/components/temba/score-text";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -44,6 +46,7 @@ function PoolTable({
   qualifiers,
   teams,
   viewerUserId,
+  seriesMarks,
 }: {
   rows: PoolRow[];
   poolFinished: boolean;
@@ -52,6 +55,7 @@ function PoolTable({
   qualifiers: number | null;
   teams: ReadonlyMap<string, RoundsTeam>;
   viewerUserId: string;
+  seriesMarks: SeriesTableMarks | null;
 }) {
   const messages = useMessages().tournamentRounds;
   const m = messages.standings;
@@ -130,7 +134,18 @@ function PoolTable({
                     <td className="px-2 py-3">
                       <span className="flex min-w-0 items-center gap-2.5">
                         <TeamMark team={team} isViewer={row.isViewer} />
-                        <TeamNames team={team} viewerUserId={viewerUserId} />
+                        <TeamNames
+                          team={team}
+                          viewerUserId={viewerUserId}
+                          className="min-w-0 flex-1"
+                        />
+                        {seriesMarks?.gameTeamIds.has(row.gameTeamId) ? (
+                          <SeriesBadge
+                            emblem={seriesMarks.emblem}
+                            colour={seriesMarks.colour}
+                            size="line"
+                          />
+                        ) : null}
                       </span>
                       {poolFinished && row.isWinner && !dayOver ? (
                         <span className="text-meta text-muted-foreground ms-[46px] block">
@@ -184,6 +199,11 @@ function PoolTable({
             ? m.ties
             : m.drawOrder}
       </p>
+      {seriesMarks ? (
+        <p className="text-muted-foreground text-meta mt-1.5 leading-relaxed">
+          {seriesMarks.note}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -382,6 +402,7 @@ export function TournamentStandingsTab({
   viewerUserId,
   onEnterScore,
   finished = null,
+  seriesMarks = null,
 }: {
   poolTables: PoolTables;
   groupsThenKnockout: boolean;
@@ -391,6 +412,8 @@ export function TournamentStandingsTab({
   viewerUserId: string;
   onEnterScore: (target: ScoreSheetTarget) => void;
   finished?: TournamentFinishedView | null;
+  /** The Series winners' rows and the note, when the table decides an Edition. */
+  seriesMarks?: SeriesTableMarks | null;
 }) {
   const m = useMessages();
   const defaultPool = defaultStandingsPoolIndex(
@@ -414,6 +437,7 @@ export function TournamentStandingsTab({
       qualifiers={qualifiers}
       teams={teams}
       viewerUserId={viewerUserId}
+      seriesMarks={seriesMarks}
     />
   ));
 

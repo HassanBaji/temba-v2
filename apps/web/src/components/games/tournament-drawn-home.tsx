@@ -21,6 +21,8 @@ import { poolLabel } from "@repo/domain/tournament-pool-draw";
 import { GameTvCardSlot } from "~/components/live-board/game-tv";
 import { PageTitle } from "~/components/layout/page-title";
 import { SeriesGameCard } from "~/components/series/series-game-card";
+import { SeriesWinnersCard } from "~/components/series/series-winners-card";
+import { useSeriesTableMarks } from "~/components/series/use-series-table-marks";
 import {
   SeriesHeroLine,
   type WithGameSeries,
@@ -147,6 +149,7 @@ export function TournamentDrawnHome({
   );
   const [swapTarget, setSwapTarget] = React.useState<SwapTarget | null>(null);
   const [pairRound, setPairRound] = React.useState<number | null>(null);
+  const seriesMarks = useSeriesTableMarks(data.id, data.series != null);
 
   const teams = React.useMemo(
     () =>
@@ -216,6 +219,14 @@ export function TournamentDrawnHome({
           backHref={backHref}
           chip={chip}
           actions={actions}
+          lead={
+            data.series ? (
+              <SeriesWinnersCard
+                gameId={data.id}
+                windowStart={data.windowStart}
+              />
+            ) : null
+          }
         />
       ) : (
         <Surface
@@ -251,7 +262,7 @@ export function TournamentDrawnHome({
         </Surface>
       )}
       {data.series ? (
-        <SeriesGameCard gameId={data.id} className="my-[18px]" />
+        <SeriesGameCard gameId={data.id} game="social" className="my-[18px]" />
       ) : null}
       <GameTvCardSlot className="pt-[18px]" />
 
@@ -335,6 +346,7 @@ export function TournamentDrawnHome({
               viewerUserId={data.viewerUserId}
               onEnterScore={setScoreTarget}
               finished={finished}
+              seriesMarks={seriesMarks}
             />
           ) : null}
         </TabsContent>

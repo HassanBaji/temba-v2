@@ -228,6 +228,7 @@ export function FootballGameDetails({
 
   async function refreshGame() {
     await utils.games.byId.invalidate({ id: gameId });
+    await utils.series.edition.invalidate({ gameId });
     await utils.games.footballBoard.invalidate({ gameId });
     await utils.users.home.invalidate();
     await utils.games.listPublicPickup.invalidate();
@@ -839,6 +840,7 @@ export function FootballGameDetails({
               avatar: viewer
                 ? { name: viewer.name, image: viewer.image }
                 : null,
+              series: game.series,
             }}
             board={
               <PlayedFootballBoard
@@ -849,6 +851,11 @@ export function FootballGameDetails({
             }
             heroFooter={
               <MvpRow marks={marks} canOpenProfile={canOpenProfiles} />
+            }
+            seriesCard={
+              game.series ? (
+                <SeriesGameCard gameId={gameId} game="played" />
+              ) : null
             }
             task={
               <>
@@ -915,7 +922,7 @@ export function FootballGameDetails({
           </FootballGameHeroCard>
         )}
         {!playedModel && game.series ? (
-          <SeriesGameCard gameId={gameId} />
+          <SeriesGameCard gameId={gameId} game="played" />
         ) : null}
         <GameTvCardSlot />
 

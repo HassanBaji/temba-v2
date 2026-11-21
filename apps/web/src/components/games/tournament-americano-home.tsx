@@ -34,6 +34,8 @@ import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { PageTitle } from "~/components/layout/page-title";
 import { withSeriesFactRow } from "~/components/series/series-fact-row";
 import { SeriesGameCard } from "~/components/series/series-game-card";
+import { SeriesWinnersCard } from "~/components/series/series-winners-card";
+import { useSeriesTableMarks } from "~/components/series/use-series-table-marks";
 import {
   SeriesHeroLine,
   type WithGameSeries,
@@ -155,6 +157,7 @@ export function TournamentAmericanoHome({
     await Promise.all([
       utils.games.americanoBoard.invalidate({ gameId: data.id }),
       utils.games.byId.invalidate({ id: data.id }),
+      utils.series.edition.invalidate({ gameId: data.id }),
     ]);
   }
   const register = api.games.register.useMutation({
@@ -360,7 +363,7 @@ function AmericanoPredraw({
         onInvite={organizer ? onInvite : undefined}
         actions={actions}
       />
-      {data.series ? <SeriesGameCard gameId={data.id} /> : null}
+      {data.series ? <SeriesGameCard gameId={data.id} game="social" /> : null}
       <GameTvCardSlot />
 
       {organizer ? (
@@ -539,6 +542,7 @@ function AmericanoDrawnHome({
   const [scoreTarget, setScoreTarget] = React.useState<ScoreSheetTarget | null>(
     null,
   );
+  const seriesMarks = useSeriesTableMarks(data.id, data.series != null);
   const names: AmericanoNames = React.useMemo(
     () => new Map(board.players.map((player) => [player.gamePlayerId, player])),
     [board.players],
@@ -656,6 +660,14 @@ function AmericanoDrawnHome({
           chip={chip}
           backHref={backHref}
           actions={actions}
+          lead={
+            data.series ? (
+              <SeriesWinnersCard
+                gameId={data.id}
+                windowStart={data.windowStart}
+              />
+            ) : null
+          }
         />
       ) : (
         <Surface
@@ -686,7 +698,7 @@ function AmericanoDrawnHome({
         </Surface>
       )}
       {data.series ? (
-        <SeriesGameCard gameId={data.id} className="my-[18px]" />
+        <SeriesGameCard gameId={data.id} game="social" className="my-[18px]" />
       ) : null}
       <GameTvCardSlot className="pt-[18px]" />
 
@@ -776,6 +788,7 @@ function AmericanoDrawnHome({
             names={names}
             viewerGamePlayerId={board.viewerGamePlayerId}
             final={finished}
+            seriesMarks={seriesMarks}
           />
           <AmericanoYourRounds
             matches={allMatches}
@@ -1082,6 +1095,7 @@ function AmericanoFinishedHeader({
   chip,
   backHref,
   actions,
+  lead,
 }: {
   data: TournamentDetails & WithGameSeries;
   board: AmericanoBoard;
@@ -1089,6 +1103,8 @@ function AmericanoFinishedHeader({
   chip: string;
   backHref: string;
   actions?: React.ReactNode;
+  /** The Series winners card, first under the bar. */
+  lead?: React.ReactNode;
 }) {
   const messages = useMessages();
   const m = messages.tournamentAmericano;
@@ -1123,6 +1139,7 @@ function AmericanoFinishedHeader({
         />
         {actions}
       </TournamentHeaderBar>
+      {lead ? <div className="mt-[22px] empty:hidden">{lead}</div> : null}
       {data.windowStart ? (
         <p className="text-muted-foreground text-meta mt-7">
           {m.finished.eyebrow(formatAbsoluteDay(data.windowStart, locale))}

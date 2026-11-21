@@ -139,6 +139,14 @@ export const series = {
       `${isolate(name)}، النسخة ${edition}`,
     cardLabel: (title: string, rule: string) => `${title}. ${rule}`,
     openHint: "يفتح السلسلة",
+    seeTheSeries: "عرض السلسلة",
+    winners: "الفائزون",
+    team: (first: string, second: string) =>
+      `${isolate(first)} و${isolate(second)}`,
+    wonBy: (winners: string) => `فاز بها ${isolate(winners)}`,
+    draw: (edition: number) => `تعادل. لا أحد يفوز بالنسخة ${edition}.`,
+    tableNote:
+      "تذهب السلسلة إلى متصدّر الجدول بعد حفظ الجولة الأخيرة. وإذا صحّح المنظّم نتيجة، تتبع السلسلة الجدول.",
   },
   win: {
     ordinal: (name: string, n: number) =>

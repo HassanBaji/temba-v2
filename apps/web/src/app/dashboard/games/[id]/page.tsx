@@ -405,6 +405,7 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(m.tournamentKing.finalOrder.posted);
       await utils.games.byId.invalidate({ id });
+      await utils.series.edition.invalidate({ gameId: id });
       await utils.games.listMyGames.invalidate();
       await utils.games.listMyMatchHistory.invalidate();
       await utils.users.home.invalidate();
@@ -482,6 +483,7 @@ export default function GameHomePage({
 
   async function refreshGame() {
     await utils.games.byId.invalidate({ id });
+    await utils.series.edition.invalidate({ gameId: id });
     await utils.users.home.invalidate();
     await utils.games.listPublicPickup.invalidate();
     await utils.games.listMyGames.invalidate();
@@ -1350,7 +1352,9 @@ export default function GameHomePage({
                     series={data.series}
                     actions={heroActions}
                   />
-                  {data.series ? <SeriesGameCard gameId={id} /> : null}
+                  {data.series ? (
+                    <SeriesGameCard gameId={id} game="played" />
+                  ) : null}
                 </>
               ) : playedMatch ? null : (
                 <HeroNavRow tone="paper" actions={gameMenu(false)} />
@@ -1415,6 +1419,7 @@ export default function GameHomePage({
               gameId={id}
               game={data}
               match={playedMatch}
+              series={data.series}
               linkToPlayers={gamePlayersLink(data)}
               onKick={(userId) => requestKick({ userId })}
               onRename={data.isOrganizer ? setRenaming : undefined}

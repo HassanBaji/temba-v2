@@ -173,7 +173,7 @@ export function TournamentAloneHome({
         tags={tags}
         actions={actions}
       />
-      {data.series ? <SeriesGameCard gameId={data.id} /> : null}
+      {data.series ? <SeriesGameCard gameId={data.id} game="social" /> : null}
       <GameTvCardSlot />
 
       {organizer ? (
