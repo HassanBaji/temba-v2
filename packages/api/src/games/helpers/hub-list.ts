@@ -817,7 +817,7 @@ function isOpenMatch(match: HubQueryRow["matches"][number]) {
   return match.status !== "completed" && match.status !== "cancelled";
 }
 
-function poolTablesFromRow(
+export function poolTablesFromRow(
   row: HubQueryRow,
   viewerUserId: string,
   locale: Locale,
