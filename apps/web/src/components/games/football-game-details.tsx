@@ -35,7 +35,9 @@ import {
   FootballInfoRows,
   type FootballInfoRow,
 } from "~/components/games/football-info-rows";
+import { FootballCaptainDraftPanel } from "~/components/games/football-captain-draft-panel";
 import { FootballDraftCard } from "~/components/games/football-draft-card";
+import { withDraftSides } from "~/components/games/football-draft-view";
 import { FootballJoinDialog } from "~/components/games/football-join-dialog";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
@@ -87,7 +89,10 @@ import {
   footballGameDetailsModel,
   type FootballGameDetailsInput,
 } from "@repo/domain/football-game-details";
-import { footballDraftVisibilityLine } from "@repo/domain/football-draft";
+import {
+  footballDraftCaptainViewLine,
+  footballDraftVisibilityLine,
+} from "@repo/domain/football-draft";
 import {
   footballTeamsMethodLabel,
   type FootballPosition,
@@ -181,6 +186,10 @@ export function FootballGameDetails({
   const teams = board.data?.teams ?? null;
   const draft = teams ? null : (board.data?.draft ?? null);
   const names = teams ? bibNames(teams.bibs, locale) : null;
+  const draftSideCaptainOf =
+    draft && board.data?.viewer.canAnswerDraft
+      ? board.data.viewer.captainOf
+      : null;
   const viewer = players.find((player) => player.isViewer) ?? null;
   const marks = useGameMarks(gameId, board.data?.match?.status === "completed");
 
@@ -206,6 +215,12 @@ export function FootballGameDetails({
       teamsSet: teams != null && !challenge,
       scored: board.data?.match?.score != null,
       draftSaved: draft != null,
+      draftSideCaptainOf:
+        draft && draftSideCaptainOf
+          ? bibNames(draft.bibs, locale)[
+              draftSideCaptainOf === 1 ? "slot1" : "slot2"
+            ]
+          : null,
     },
     now,
     locale,
@@ -319,6 +334,10 @@ export function FootballGameDetails({
     },
     onError,
     onSettled: refreshGame,
+  });
+  const answerDraft = api.games.answerFootballDraft.useMutation({
+    onError,
+    onSettled: () => utils.games.footballBoard.invalidate({ gameId }),
   });
   const reportWrongScore = api.games.reportWrongScore.useMutation({
     onSuccess: async () => {
@@ -591,6 +610,7 @@ export function FootballGameDetails({
           names={names}
           balanceOn={board.data?.balanceOn ?? "ovr"}
           muted={heroMuted}
+          sideCaptains={teams.captains}
           onOpenPlayer={pressPlayer}
         />
         <p className={`${heroMuted} text-meta mt-3`}>
@@ -965,6 +985,7 @@ export function FootballGameDetails({
 
         {board.data &&
         !teams &&
+        !draft &&
         !game.isOrganizer &&
         !challenge &&
         !game.cancelledAt ? (
@@ -981,38 +1002,58 @@ export function FootballGameDetails({
         {draft ? (
           <section className="space-y-3">
             <TeamColumns
-              players={players.map((player) => ({
-                ...player,
-                sideIndex: draft.sides.slot1.includes(player.userId)
-                  ? (1 as const)
-                  : draft.sides.slot2.includes(player.userId)
-                    ? (2 as const)
-                    : null,
-              }))}
+              players={withDraftSides(players, draft.sides)}
               bibs={draft.bibs}
               names={bibNames(draft.bibs, locale)}
               balanceOn={board.data?.balanceOn ?? "ovr"}
+              sideCaptains={draft.captains}
               onOpenPlayer={pressPlayer}
             />
             <p className="text-muted-foreground text-meta">
-              {footballDraftVisibilityLine(game, locale)}
+              {draftSideCaptainOf
+                ? footballDraftCaptainViewLine(draft, game, locale)
+                : footballDraftVisibilityLine(
+                    game,
+                    locale,
+                    draft.captains.slot1 != null ||
+                      draft.captains.slot2 != null,
+                  )}
             </p>
-            <FootballDraftCard
-              draft={draft}
-              rosterUserIds={players.map((player) => player.userId)}
-              publishPending={publishDraft.isPending}
-              onPublish={() =>
-                publishDraft.mutate({
-                  gameId,
-                  method: draft.method,
-                  bibs: draft.bibs,
-                  slot1: draft.sides.slot1,
-                  slot2: draft.sides.slot2,
-                  draftUpdatedAt: draft.updatedAt,
-                })
-              }
-              editHref={teamsHref}
-            />
+            {draftSideCaptainOf ? (
+              <FootballCaptainDraftPanel
+                draft={draft}
+                side={draftSideCaptainOf}
+                players={players}
+                balanceOn={board.data?.balanceOn ?? "ovr"}
+                pending={
+                  answerDraft.isPending
+                    ? (answerDraft.variables?.answer ?? "undo")
+                    : null
+                }
+                onAnswer={(answer, note) =>
+                  answerDraft.mutate({ gameId, answer, note })
+                }
+              />
+            ) : (
+              <FootballDraftCard
+                draft={draft}
+                players={players}
+                game={game}
+                publishPending={publishDraft.isPending}
+                onPublish={() =>
+                  publishDraft.mutate({
+                    gameId,
+                    method: draft.method,
+                    bibs: draft.bibs,
+                    slot1: draft.sides.slot1,
+                    slot2: draft.sides.slot2,
+                    captains: draft.captains,
+                    draftUpdatedAt: draft.updatedAt,
+                  })
+                }
+                editHref={teamsHref}
+              />
+            )}
           </section>
         ) : null}
 

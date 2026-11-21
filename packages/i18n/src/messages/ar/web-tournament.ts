@@ -188,6 +188,8 @@ export const webTournament = {
     makeTeams: "تشكيل الفرق",
     editTeams: "تعديل الفرق",
     editDraft: "تعديل المسودة",
+    captainTeam: "الفريق",
+    captainChoices: (team: string) => `قائد ${team}`,
     inThePool: (n: number) =>
       plural("ar", n, {
         zero: "لا أحد في المجموعة",

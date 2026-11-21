@@ -2,14 +2,17 @@
 
 import { bibColors, colors } from "@repo/design-tokens";
 import {
-  balancedSides,
   boardTierCell,
+  clearSides,
   draftSummary,
   initialTeamsDraft,
   keeperWord,
   moveAcross,
   ovrLabel,
   placeOn,
+  setSideCaptain,
+  shortName,
+  shuffleSides,
   slotCode,
   switchMethod,
   teamsSideAverage,
@@ -25,7 +28,13 @@ import {
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
 import { footballDraftSaveProblem } from "@repo/domain/football-draft";
 import { formatGameStart } from "@repo/domain/format-game-start";
-import { ArrowLeft, ArrowRight, Eraser, Shuffle } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ChevronDown,
+  Eraser,
+  Shuffle,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -33,7 +42,6 @@ import { toast } from "sonner";
 
 import { NicknameName } from "~/components/temba/nickname-name";
 import { ErrorState } from "~/components/common/error-state";
-import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
@@ -43,7 +51,8 @@ import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 import { BibChip, BibPicker, bibStyle } from "./football-bibs";
-import { BibRow, TierMark } from "./football-team-columns";
+import { FootballCaptainsDialog } from "./football-captains-dialog";
+import { BibRow, CaptainAvatar, TierMark } from "./football-team-columns";
 
 /** The Member nickname when the viewer may see one, else the full Temba name. */
 function teamsName(player: Pick<BoardPlayer, "name" | "nickname">) {
@@ -153,6 +162,112 @@ function BalanceCard({
   );
 }
 
+function isSideCaptain(
+  draft: TeamsDraft,
+  side: Side | undefined,
+  userId: string,
+) {
+  return (
+    side != null &&
+    (side === 1 ? draft.captains.slot1 : draft.captains.slot2) === userId
+  );
+}
+
+function CaptainChip({
+  side,
+  team,
+  captain,
+  onOpen,
+}: {
+  side: Side;
+  team: string;
+  captain: BoardPlayer | null;
+  onOpen: (side: Side) => void;
+}) {
+  const m = useMessages();
+  const copy = m.football.captains;
+  const name = captain
+    ? captain.isViewer
+      ? m.common.you
+      : (captain.nickname?.name ?? shortName(captain.name))
+    : null;
+  return (
+    <button
+      type="button"
+      aria-haspopup="dialog"
+      aria-label={copy.chipSpoken(team, name)}
+      onClick={() => onOpen(side)}
+      className={cn(
+        "focus-visible:ring-ring/50 flex h-[42px] min-w-0 flex-1 items-center gap-2 rounded-md border px-2.5 text-start outline-none focus-visible:ring-[3px]",
+        captain ? "border-rule" : "border-input border-dashed",
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border text-[9px] font-semibold leading-none",
+          captain
+            ? "bg-control text-on-control border-control-edge"
+            : "bg-paper text-muted-foreground border-input",
+        )}
+      >
+        {copy.badge}
+      </span>
+      <span
+        className={cn(
+          "text-meta min-w-0 flex-1 truncate",
+          captain ? null : "text-muted-foreground",
+        )}
+      >
+        {name ?? copy.add}
+      </span>
+      <ChevronDown
+        aria-hidden="true"
+        className="text-muted-foreground size-3.5 shrink-0"
+      />
+    </button>
+  );
+}
+
+/** "Captains, optional, one per team": a chip per side opens the dialog. */
+function CaptainsRow({
+  draft,
+  players,
+  names,
+  onOpen,
+}: {
+  draft: TeamsDraft;
+  players: readonly BoardPlayer[];
+  names: { slot1: string; slot2: string };
+  onOpen: (side: Side) => void;
+}) {
+  const m = useMessages().football.captains;
+  const captain = (userId: string | null) =>
+    players.find((player) => player.userId === userId) ?? null;
+  return (
+    <section className="space-y-2.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-muted-foreground text-meta">{m.title}</h2>
+        <span className="text-muted-foreground text-eyebrow">{m.optional}</span>
+      </div>
+      <div className="flex gap-2.5">
+        <CaptainChip
+          side={1}
+          team={names.slot1}
+          captain={captain(draft.captains.slot1)}
+          onOpen={onOpen}
+        />
+        <CaptainChip
+          side={2}
+          team={names.slot2}
+          captain={captain(draft.captains.slot2)}
+          onOpen={onOpen}
+        />
+      </div>
+    </section>
+  );
+}
+
 function LevelColumns({
   draft,
   summary,
@@ -176,6 +291,7 @@ function LevelColumns({
               player={player}
               bib={bib}
               showTier
+              sideCaptain={isSideCaptain(draft, side, player.userId)}
               trailing={
                 <button
                   type="button"
@@ -270,7 +386,11 @@ function ManualRow({
       )}
       style={bib ? bibStyle(bib) : undefined}
     >
-      <UserAvatar name={player.name} image={player.image} />
+      <CaptainAvatar
+        player={player}
+        bib={bib}
+        sideCaptain={isSideCaptain(draft, side, player.userId)}
+      />
       <div className="min-w-0 flex-1">
         <NicknameName
           name={player.isViewer ? m.common.you : teamsName(player)}
@@ -379,8 +499,9 @@ function ManualLists({
 /**
  * The Organizer splits the pool into two teams, by Level or by hand, picks
  * each team's bib colour and publishes, or saves the split as the Game's
- * Draft line-up while the teams are not published. Opened from a draft, it
- * starts from it and names it on save and publish.
+ * Draft line-up while the teams are not published, with a Side captain per
+ * team or none. Opened from a draft, it starts from it and names it on save
+ * and publish. The captains are always sent, so clearing one clears it.
  */
 export function FootballMakeTeams({ gameId }: { gameId: string }) {
   const m = useMessages();
@@ -398,6 +519,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
   const [openedFromDraftAt, setOpenedFromDraftAt] = React.useState<Date | null>(
     null,
   );
+  const [captainsSide, setCaptainsSide] = React.useState<Side | null>(null);
   const gameHref = `/dashboard/games/${gameId}`;
 
   React.useEffect(() => {
@@ -486,6 +608,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
       bibs: draft.bibs,
       slot1: summary.slot1.map((player) => player.userId),
       slot2: summary.slot2.map((player) => player.userId),
+      captains: draft.captains,
     };
     const saveProblem = footballDraftSaveProblem(
       sides,
@@ -512,6 +635,12 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
           summary={summary}
           canSaveDraft={canSaveDraft}
         />
+        <CaptainsRow
+          draft={draft}
+          players={players}
+          names={summary.names}
+          onOpen={setCaptainsSide}
+        />
         {draft.method === "level" ? (
           <LevelColumns
             draft={draft}
@@ -537,10 +666,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
               variant="outline"
               size="lg"
               onClick={() =>
-                setDraft({
-                  ...draft,
-                  sides: balancedSides(players, Math.random),
-                })
+                setDraft(shuffleSides(draft, players, Math.random))
               }
             >
               <Shuffle aria-hidden="true" />
@@ -551,7 +677,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
               type="button"
               variant="outline"
               size="lg"
-              onClick={() => setDraft({ ...draft, sides: {} })}
+              onClick={() => setDraft(clearSides(draft))}
             >
               {canSaveDraft ? <Eraser aria-hidden="true" /> : null}
               <span className={toolLabel}>{m.common.clear}</span>
@@ -592,6 +718,18 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
             {t.publish}
           </Button>
         </div>
+        <FootballCaptainsDialog
+          side={captainsSide}
+          bibs={draft.bibs}
+          names={summary.names}
+          sides={{ slot1: summary.slot1, slot2: summary.slot2 }}
+          captains={draft.captains}
+          onSideChange={setCaptainsSide}
+          onPick={(side, userId) =>
+            setDraft(setSideCaptain(draft, side, userId))
+          }
+          onClose={() => setCaptainsSide(null)}
+        />
       </div>
     );
   }

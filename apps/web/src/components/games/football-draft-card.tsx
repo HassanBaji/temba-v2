@@ -1,5 +1,6 @@
 "use client";
 
+import { bibNames, type BoardPlayer } from "@repo/domain/football-board";
 import {
   footballDraftSavedLine,
   footballDraftSummary,
@@ -11,22 +12,67 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import type { RouterOutputs } from "~/trpc/react";
 
+import { BibChip } from "./football-bibs";
+import { DraftAnswer, DraftNote, DraftTag } from "./football-draft-answer";
+import { draftCaptainName } from "./football-draft-view";
+
 type SavedDraft = NonNullable<RouterOutputs["games"]["footballBoard"]["draft"]>;
 
+function SideAnswerRow({
+  draft,
+  side,
+  players,
+}: {
+  draft: SavedDraft;
+  side: 1 | 2;
+  players: readonly BoardPlayer[];
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const key = side === 1 ? "slot1" : "slot2";
+  const captain = draftCaptainName(
+    players.find((player) => player.userId === draft.captains[key]),
+    m.common.you,
+  );
+  const answer = draft.answers[key];
+  return (
+    <li className="border-rule space-y-2.5 border-t pt-3">
+      <div className="flex items-center gap-2.5">
+        <BibChip bib={draft.bibs[key]} className="size-3.5" />
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">{bibNames(draft.bibs, locale)[key]}</p>
+          <p className="text-muted-foreground text-eyebrow truncate">
+            {captain
+              ? m.football.captains.named(captain)
+              : m.football.captains.none}
+          </p>
+        </div>
+        <DraftAnswer state={answer.state} />
+      </div>
+      {answer.state === "change_asked" && answer.note ? (
+        <DraftNote note={answer.note} />
+      ) : null}
+    </li>
+  );
+}
+
 /**
- * The Organizer's Draft line-up on the Game page (ADR-0107): when it was
- * saved, whether it can be published as it stands, then Publish teams and
- * Edit draft.
+ * The Organizer's Draft line-up on the Game page (ADR-0107, design 1c): when
+ * it was saved, whether it can be published as it stands, each side's Side
+ * captain and their answer (ADR-0108), then Publish teams and Edit draft.
+ * Publishing never waits on an answer.
  */
 export function FootballDraftCard({
   draft,
-  rosterUserIds,
+  players,
+  game,
   publishPending,
   onPublish,
   editHref,
 }: {
   draft: SavedDraft;
-  rosterUserIds: readonly string[];
+  players: readonly BoardPlayer[];
+  game: { groupId: string | null };
   publishPending: boolean;
   onPublish: () => void;
   editHref: string;
@@ -36,33 +82,43 @@ export function FootballDraftCard({
   const copy = m.football.draft;
   const t = m.webTournament.footballTeams;
   const summary = footballDraftSummary(
-    { ...draft.sides, bibs: draft.bibs },
-    rosterUserIds,
+    {
+      ...draft.sides,
+      bibs: draft.bibs,
+      captains: draft.captains,
+      answers: draft.answers,
+    },
+    players.map((player) => player.userId),
     locale,
+    game,
   );
   return (
     <div className="space-y-3">
       <section
         aria-labelledby="football-draft-heading"
-        className="border-ink bg-paper space-y-2 rounded-xl border p-5"
+        className="border-ink bg-paper space-y-3 rounded-xl border p-5"
       >
-        <div className="flex items-center gap-2.5">
-          <span className="border-ink shrink-0 rounded-[6px] border px-1.5 py-1 font-mono text-[10px] uppercase leading-none tracking-[0.08em]">
-            {copy.tag}
-          </span>
-          <h2
-            id="football-draft-heading"
-            className="min-w-0 flex-1 font-semibold"
-          >
-            {copy.title}
-          </h2>
-          <span className="text-muted-foreground text-meta shrink-0">
-            {footballDraftSavedLine(draft.savedAt, locale)}
-          </span>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2.5">
+            <DraftTag />
+            <h2
+              id="football-draft-heading"
+              className="min-w-0 flex-1 font-semibold"
+            >
+              {copy.title}
+            </h2>
+            <span className="text-muted-foreground text-meta shrink-0">
+              {footballDraftSavedLine(draft.savedAt, locale)}
+            </span>
+          </div>
+          <p aria-live="polite" className="text-muted-foreground text-meta">
+            {summary.line}
+          </p>
         </div>
-        <p aria-live="polite" className="text-muted-foreground text-meta">
-          {summary.line}
-        </p>
+        <ul className="space-y-3">
+          <SideAnswerRow draft={draft} side={1} players={players} />
+          <SideAnswerRow draft={draft} side={2} players={players} />
+        </ul>
       </section>
       <Button
         type="button"
@@ -82,6 +138,9 @@ export function FootballDraftCard({
           </Link>
         </Button>
       </div>
+      <p className="text-muted-foreground text-eyebrow">
+        {copy.publishAnyTime}
+      </p>
     </div>
   );
 }

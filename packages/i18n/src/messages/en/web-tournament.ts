@@ -152,6 +152,8 @@ export const webTournament = {
     makeTeams: "Make teams",
     editTeams: "Edit teams",
     editDraft: "Edit draft",
+    captainTeam: "Team",
+    captainChoices: (team: string) => `Captain for ${team}`,
     inThePool: (n: number) =>
       plural("en", n, { one: "1 in the pool", other: "{n} in the pool" }),
   },
