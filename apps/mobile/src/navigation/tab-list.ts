@@ -40,10 +40,13 @@ export function tabBarHidden(segments: readonly string[]): boolean {
   return segments[book + 2] !== undefined;
 }
 
-// Teams and Player profiles keep the bar so tapping Challenges pops back to
-// the segments; a Challenge's own screens are a focused flow, like a Game's.
+// Teams, Player profiles and Series pages keep the bar so tapping Challenges
+// pops back to the segments; a Challenge's own screens are a focused flow,
+// like a Game's.
+const CHALLENGES_KEEP_TAB_BAR = new Set(["teams", "players", "series"]);
+
 function challengeScreenHidesTabBar(next: string | undefined) {
-  return next !== undefined && next !== "teams" && next !== "players";
+  return next !== undefined && !CHALLENGES_KEEP_TAB_BAR.has(next);
 }
 
 type TabStackState = { key?: string; routes: readonly { name: string }[] };

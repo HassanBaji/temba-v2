@@ -195,6 +195,7 @@ export const series = {
     endConfirm:
       "لن يمكن إضافة أي شيء إليها بعد الآن. تبقى الشارات المكتسبة على الملفات الشخصية.",
     endRemoves: "لا نسخ لهذه السلسلة، لذا ستُحذف.",
+    rowLabel: (parts: readonly string[]) => parts.join(". "),
   },
   errors: {
     notFound: "السلسلة غير موجودة",

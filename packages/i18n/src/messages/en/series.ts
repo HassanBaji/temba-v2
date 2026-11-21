@@ -134,6 +134,7 @@ export const series = {
     endConfirm:
       "Nothing can be attached to it any more. Badges already won stay on profiles.",
     endRemoves: "This series has no editions, so it will be removed.",
+    rowLabel: (parts: readonly string[]) => parts.join(". "),
   },
   errors: {
     notFound: "Series not found",
