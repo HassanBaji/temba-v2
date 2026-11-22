@@ -126,6 +126,8 @@ export const series = {
     draw: (edition: number) => `A draw. Nobody wins edition ${edition}.`,
     tableNote:
       "The series goes to the top of the table once the last round is saved. If the organizer corrects a score, it follows the table.",
+    winnersCardLabel: (title: string, names: readonly string[]) =>
+      `${title}. Winners: ${names.join(", ")}`,
   },
   win: {
     ordinal: (name: string, n: number) => `${name}’s ${ordinal(n)}`,

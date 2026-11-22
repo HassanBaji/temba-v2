@@ -242,6 +242,7 @@ export function GameDetailsScreen({
     () =>
       Promise.all([
         utils.games.byId.invalidate({ id: gameId }),
+        utils.series.edition.invalidate({ gameId }),
         utils.games.listMyGames.invalidate(),
         utils.games.listMyMatchHistory.invalidate(),
         utils.users.home.invalidate(),
@@ -1063,6 +1064,7 @@ export function GameDetailsScreen({
           gameId={gameId}
           game={details}
           match={playedMatch}
+          series={data.series}
           refreshing={refreshing}
           onRefresh={onRefresh}
           organizer={organizer}
@@ -1096,7 +1098,9 @@ export function GameDetailsScreen({
               ) : undefined
             }
           >
-            {data.series ? <SeriesGameCard gameId={gameId} /> : null}
+            {data.series ? (
+              <SeriesGameCard gameId={gameId} game="played" />
+            ) : null}
             {data.challenge ? (
               <ChallengeDetailsCard
                 challenge={data.challenge}

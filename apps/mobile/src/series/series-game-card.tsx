@@ -1,4 +1,5 @@
 import { sizes } from "@repo/design-tokens";
+import type { SeriesColour, SeriesEmblem } from "@repo/domain/series";
 import { useRouter, useSegments } from "expo-router";
 import { Pressable, View } from "react-native";
 
@@ -9,27 +10,36 @@ import { Text } from "../primitives/text";
 import { api } from "../trpc/react";
 import { SeriesBadge } from "./series-badge";
 import {
-  seriesGameCardModel,
-  type SeriesGameCardModel,
-} from "./series-game-card-model";
+  seriesEditionCard,
+  type SeriesEditionGame,
+} from "./series-edition-card-model";
 import { seriesPath } from "./series-path";
 
 const CARD_GAP = 13;
 
-function CardBody({ model }: { model: SeriesGameCardModel }) {
-  const m = useMessages().series.game;
+type PaperCard = {
+  emblem: SeriesEmblem;
+  colour: SeriesColour;
+  spoken: string;
+  seriesId: string | null;
+};
+
+function CardBody({
+  card,
+  action,
+  children,
+}: {
+  card: PaperCard;
+  action: string;
+  children: React.ReactNode;
+}) {
   return (
     <>
-      <SeriesBadge emblem={model.emblem} colour={model.colour} size="list" />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text weight="semibold">{model.title}</Text>
-        <Text size="eyebrow" tone="muted">
-          {model.rule}
-        </Text>
-      </View>
-      {model.seriesId ? (
+      <SeriesBadge emblem={card.emblem} colour={card.colour} size="list" />
+      <View style={{ flex: 1, minWidth: 0 }}>{children}</View>
+      {card.seriesId ? (
         <Text size="meta" weight="semibold" style={{ flexShrink: 0 }}>
-          {m.seeSeries}
+          {action}
         </Text>
       ) : null}
     </>
@@ -37,11 +47,15 @@ function CardBody({ model }: { model: SeriesGameCardModel }) {
 }
 
 function CardRow({
-  model,
+  card,
+  action,
   onOpen,
+  children,
 }: {
-  model: SeriesGameCardModel;
+  card: PaperCard;
+  action: string;
   onOpen: (seriesId: string) => void;
+  children: React.ReactNode;
 }) {
   const m = useMessages().series.game;
   const palette = useTonePalette();
@@ -53,18 +67,23 @@ function CardRow({
     paddingHorizontal: 16,
     paddingVertical: CARD_GAP,
   } as const;
-  const { seriesId } = model;
+  const body = (
+    <CardBody card={card} action={action}>
+      {children}
+    </CardBody>
+  );
+  const { seriesId } = card;
   if (!seriesId) {
     return (
-      <View accessible accessibilityLabel={model.spoken} style={row}>
-        <CardBody model={model} />
+      <View accessible accessibilityLabel={card.spoken} style={row}>
+        {body}
       </View>
     );
   }
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={model.spoken}
+      accessibilityLabel={card.spoken}
       accessibilityHint={m.openHint}
       onPress={() => onOpen(seriesId)}
       style={({ pressed }) => ({
@@ -72,30 +91,56 @@ function CardRow({
         backgroundColor: pressed ? palette.wash : palette.background,
       })}
     >
-      <CardBody model={model} />
+      {body}
     </Pressable>
   );
 }
 
 /**
- * What winning this Game's Edition means, with a way to its Series page.
- * Shown until the Edition is decided.
+ * The paper Series card under a Game's hero: what winning its Edition takes
+ * until it is decided, then who won it on a Played game. A won Social leads
+ * with `SeriesWinnersCard` instead, so this renders nothing there.
  */
-export function SeriesGameCard({ gameId }: { gameId: string }) {
+export function SeriesGameCard({
+  gameId,
+  game,
+}: {
+  gameId: string;
+  game: SeriesEditionGame;
+}) {
   const locale = useLocale();
+  const m = useMessages().series.game;
   const router = useRouter();
   const segments = useSegments();
   const edition = api.series.edition.useQuery({ gameId });
-  const model = seriesGameCardModel(edition.data, locale);
-  if (!model) {
+  const card = seriesEditionCard(edition.data, game, locale);
+  if (!card || card.kind === "winners") {
     return null;
   }
+  const onOpen = (seriesId: string) =>
+    router.push(seriesPath(segments, seriesId));
   return (
     <Surface padded={false} radius="card" style={{ overflow: "hidden" }}>
-      <CardRow
-        model={model}
-        onOpen={(seriesId) => router.push(seriesPath(segments, seriesId))}
-      />
+      {card.kind === "partOf" ? (
+        <CardRow card={card.model} action={m.seeSeries} onOpen={onOpen}>
+          <Text weight="semibold">{card.model.title}</Text>
+          <Text size="eyebrow" tone="muted">
+            {card.model.rule}
+          </Text>
+        </CardRow>
+      ) : (
+        <CardRow card={card.model} action={m.seeTheSeries} onOpen={onOpen}>
+          <Text weight="semibold">{card.model.title}</Text>
+          <Text size="eyebrow" tone="muted">
+            {card.model.line}
+          </Text>
+          {card.model.ordinal ? (
+            <Text size="eyebrow" weight="semibold">
+              {card.model.ordinal}
+            </Text>
+          ) : null}
+        </CardRow>
+      )}
     </Surface>
   );
 }

@@ -729,7 +729,9 @@ export function PreDrawView({
     />
   );
   const organizes = game.isOrganizer && game.cancelledAt == null;
-  const seriesCard = game.series ? <SeriesGameCard gameId={game.id} /> : null;
+  const seriesCard = game.series ? (
+    <SeriesGameCard gameId={game.id} game="social" />
+  ) : null;
 
   if (view.aloneOnly?.awaitingTeams && alone) {
     const count = game.registeredPlayers.length;

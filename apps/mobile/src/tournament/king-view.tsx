@@ -115,7 +115,7 @@ export function KingView({
           <SeriesHeroLine series={game.series} style={{ marginTop: 6 }} />
         ) : null}
       </View>
-      {game.series ? <SeriesGameCard gameId={game.id} /> : null}
+      {game.series ? <SeriesGameCard gameId={game.id} game="social" /> : null}
 
       {finished ? (
         <View style={{ gap: 8 }}>

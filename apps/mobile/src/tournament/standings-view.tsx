@@ -26,12 +26,15 @@ import { ResultMark } from "../primitives/result-mark";
 import { useTonePalette } from "../primitives/surface-context";
 import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
+import { SeriesBadge } from "../series/series-badge";
+import type { SeriesTableMarks } from "../series/series-edition-card-model";
 import { SeriesGameCard } from "../series/series-game-card";
 import {
   SeriesHeroLine,
   type SeriesHeroLineSeries,
   type WithGameSeries,
 } from "../series/series-hero-line";
+import { useSeriesTableMarks } from "../series/use-series-table-marks";
 import {
   GameTeamSheet,
   type GameTeamLinks,
@@ -70,10 +73,12 @@ function RecordTable({
   rows,
   finished,
   links,
+  seriesMarks,
 }: {
   rows: Pool["rows"];
   finished: boolean;
   links?: GameTeamLinks;
+  seriesMarks: SeriesTableMarks | null;
 }) {
   const messages = useMessages();
   const m = messages.mobileTournament.standings;
@@ -166,6 +171,13 @@ function RecordTable({
                 </View>
               ) : null}
             </View>
+            {seriesMarks?.gameTeamIds.has(row.gameTeamId) ? (
+              <SeriesBadge
+                emblem={seriesMarks.emblem}
+                colour={seriesMarks.colour}
+                size="line"
+              />
+            ) : null}
             {stats.map((value, index) => (
               <Text
                 key={heads[index]}
@@ -358,9 +370,11 @@ function RoundResults({
 function PoolTablesSection({
   poolTables,
   links,
+  seriesMarks,
 }: {
   poolTables: PoolTables;
   links?: GameTeamLinks;
+  seriesMarks: SeriesTableMarks | null;
 }) {
   const locale = useLocale();
   const messages = useMessages();
@@ -395,7 +409,19 @@ function PoolTablesSection({
           />
         ))}
       </View>
-      <RecordTable rows={pool.rows} finished={pool.finished} links={links} />
+      <View style={{ gap: 8 }}>
+        <RecordTable
+          rows={pool.rows}
+          finished={pool.finished}
+          links={links}
+          seriesMarks={seriesMarks}
+        />
+        {seriesMarks ? (
+          <Text size="meta" tone="muted">
+            {seriesMarks.note}
+          </Text>
+        ) : null}
+      </View>
       <ViewerRounds rounds={viewerRounds} />
       <RoundResults
         matches={pool.matches}
@@ -480,13 +506,14 @@ export function StandingsView({
   const messages = useMessages();
   const { poolTables, knockout } = game;
   const [openTeam, setOpenTeam] = useState<GameTeamSheetTeam | null>(null);
+  const seriesMarks = useSeriesTableMarks(game.id, game.series != null);
   const links = onOpenPlayer
     ? { gameTeams: game.gameTeams, onOpenTeam: setOpenTeam }
     : undefined;
   return (
     <View style={{ gap: 24 }}>
       <StandingsHeader standings={standings} series={game.series} />
-      {game.series ? <SeriesGameCard gameId={game.id} /> : null}
+      {game.series ? <SeriesGameCard gameId={game.id} game="social" /> : null}
       {standings.showKnockoutTree && knockout ? (
         <KnockoutTree
           rounds={knockout}
@@ -495,7 +522,11 @@ export function StandingsView({
         />
       ) : null}
       {standings.showPoolTables && poolTables ? (
-        <PoolTablesSection poolTables={poolTables} links={links} />
+        <PoolTablesSection
+          poolTables={poolTables}
+          links={links}
+          seriesMarks={seriesMarks}
+        />
       ) : null}
       {standings.knockoutSectionTitle && knockout ? (
         <View style={{ gap: 12 }}>

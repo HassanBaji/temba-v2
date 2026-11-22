@@ -147,6 +147,8 @@ export const series = {
     draw: (edition: number) => `تعادل. لا أحد يفوز بالنسخة ${edition}.`,
     tableNote:
       "تذهب السلسلة إلى متصدّر الجدول بعد حفظ الجولة الأخيرة. وإذا صحّح المنظّم نتيجة، تتبع السلسلة الجدول.",
+    winnersCardLabel: (title: string, names: readonly string[]) =>
+      `${title}. الفائزون: ${names.map(isolate).join("، ")}`,
   },
   win: {
     ordinal: (name: string, n: number) =>

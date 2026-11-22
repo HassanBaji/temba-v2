@@ -17,11 +17,13 @@ import { Hairline } from "../primitives/hairline";
 import { ResultMark } from "../primitives/result-mark";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { SeriesBadge } from "../series/series-badge";
 import { SeriesGameCard } from "../series/series-game-card";
 import {
   SeriesHeroLine,
   type WithGameSeries,
 } from "../series/series-hero-line";
+import { useSeriesTableMarks } from "../series/use-series-table-marks";
 import { api } from "../trpc/react";
 
 function Row({ children }: { children: React.ReactNode }) {
@@ -97,6 +99,7 @@ export function AmericanoView({
   const toast = useToast();
   const utils = api.useUtils();
   const board = api.games.americanoBoard.useQuery({ gameId: game.id });
+  const seriesMarks = useSeriesTableMarks(game.id, game.series != null);
   const register = api.games.register.useMutation({
     onSuccess: (result) =>
       toast.show(hubRegisterToast(result.waitlisted, locale)),
@@ -114,7 +117,9 @@ export function AmericanoView({
   const seatCount = game.playersAllowed ?? 0;
   const canJoin =
     !drawn && !game.isRegistered && (game.canRegister || game.canWaitlist);
-  const seriesCard = game.series ? <SeriesGameCard gameId={game.id} /> : null;
+  const seriesCard = game.series ? (
+    <SeriesGameCard gameId={game.id} game="social" />
+  ) : null;
 
   if (!drawn) {
     return (
@@ -209,6 +214,10 @@ export function AmericanoView({
       ? messages.common.you
       : shortPlayerName(names.get(id)?.name ?? "");
   const finished = board.data?.finished ?? false;
+  const wonSeries = (playerId: string) => {
+    const userId = names.get(playerId)?.userId;
+    return userId != null && seriesMarks?.userIds.has(userId) === true;
+  };
 
   return (
     <View style={{ gap: 24 }}>
@@ -257,6 +266,13 @@ export function AmericanoView({
                     ) : null}
                   </Text>
                 </View>
+                {seriesMarks && wonSeries(row.playerId) ? (
+                  <SeriesBadge
+                    emblem={seriesMarks.emblem}
+                    colour={seriesMarks.colour}
+                    size="line"
+                  />
+                ) : null}
                 <Text size="meta" tone="muted">
                   {signedDifference(row.difference)}
                 </Text>
@@ -270,6 +286,11 @@ export function AmericanoView({
         <Text size="meta" tone="muted">
           {finished ? m.table.final : m.table.live}
         </Text>
+        {seriesMarks ? (
+          <Text size="meta" tone="muted">
+            {seriesMarks.note}
+          </Text>
+        ) : null}
       </View>
 
       {played.length > 0 ? (

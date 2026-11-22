@@ -240,6 +240,7 @@ export function FootballGameDetails({
   const refresh = () =>
     Promise.all([
       utils.games.byId.invalidate({ id: gameId }),
+      utils.series.edition.invalidate({ gameId }),
       utils.games.footballBoard.invalidate({ gameId }),
       utils.games.listMyGames.invalidate(),
       utils.games.listPublicPickup.invalidate(),
@@ -737,6 +738,7 @@ export function FootballGameDetails({
         whenLine: playedModel.whenLine,
         you: playedModel.you,
         avatar: viewer ? { name: viewer.name, image: viewer.image } : null,
+        series: game.series,
       }}
       board={
         <PlayedFootballBoard
@@ -750,6 +752,9 @@ export function FootballGameDetails({
           marks={marks}
           onOpenPlayer={canOpenProfile ? openProfile : undefined}
         />
+      }
+      seriesCard={
+        game.series ? <SeriesGameCard gameId={gameId} game="played" /> : null
       }
       task={
         <>
@@ -837,7 +842,7 @@ export function FootballGameDetails({
       }
     >
       <View style={{ gap: SECTION_GAP }}>
-        {game.series ? <SeriesGameCard gameId={gameId} /> : null}
+        {game.series ? <SeriesGameCard gameId={gameId} game="played" /> : null}
         {game.cancelledAt ? (
           <Surface accessibilityRole="alert">
             <Text size="title" weight="semibold">

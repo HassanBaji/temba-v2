@@ -13,6 +13,7 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import type { WithGameSeries } from "../series/series-hero-line";
+import { SeriesWinnersCard } from "../series/series-winners-card";
 import type { AloneSocialHandlers } from "./alone-social";
 import { AmericanoView } from "./americano-view";
 import { KingView } from "./king-view";
@@ -59,6 +60,9 @@ export function TournamentContent({
   const view = tournamentHomeView(game, locale);
   const matches = scorableMatches(game, locale);
   const organizerView = organizer ? tournamentOrganizerView(game, view) : null;
+  const winnersCard = game.series ? (
+    <SeriesWinnersCard gameId={game.id} windowStart={game.windowStart} />
+  ) : null;
 
   if (isAmericano(game.format, game.tournamentShape)) {
     return (
@@ -70,6 +74,7 @@ export function TournamentContent({
             </Text>
           </Surface>
         ) : null}
+        {winnersCard}
         <AmericanoView
           game={game}
           onOpenPlayer={handlers.onOpenPlayer}
@@ -95,6 +100,7 @@ export function TournamentContent({
           </Text>
         </Surface>
       ) : null}
+      {winnersCard}
       {view.drawn && view.kingOfTheCourt ? (
         <KingView game={game} />
       ) : view.drawn ? (
