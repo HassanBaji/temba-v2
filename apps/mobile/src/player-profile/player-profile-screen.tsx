@@ -23,6 +23,7 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
 import { api } from "../trpc/react";
 import { cabinetRowModel } from "../marks/cabinet-model";
+import { ProfileSeriesCard } from "../series/profile-series-card";
 import {
   playerCalibratePath,
   playerMarksPath,
@@ -71,6 +72,10 @@ export function PlayerProfileScreen({
     { userId },
     REFETCH_ON_FOREGROUND,
   );
+  const seriesQuery = api.series.forPlayer.useQuery(
+    { userId },
+    REFETCH_ON_FOREGROUND,
+  );
   const query = sport === "football" ? footballQuery : padelQuery;
   const state =
     sport === "football"
@@ -84,11 +89,12 @@ export function PlayerProfileScreen({
         padelQuery.refetch(),
         footballEnabled ? footballQuery.refetch() : null,
         cabinetQuery.refetch(),
+        seriesQuery.refetch(),
       ]);
     } finally {
       setRefreshing(false);
     }
-  }, [padelQuery, footballQuery, footballEnabled, cabinetQuery]);
+  }, [padelQuery, footballQuery, footballEnabled, cabinetQuery, seriesQuery]);
 
   const header = <ScreenHeader nav="back" fallback={FALLBACK} />;
 
@@ -171,6 +177,7 @@ export function PlayerProfileScreen({
       ) : null}
       <PlayerProfileBody
         model={model}
+        series={<ProfileSeriesCard userId={userId} data={seriesQuery.data} />}
         cabinet={cabinetRowModel(cabinetQuery.data, sport, locale)}
         tier={sharedTierView(sport, padelQuery.data, locale)}
         onOpenCabinet={() =>

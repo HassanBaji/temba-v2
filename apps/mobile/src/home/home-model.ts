@@ -13,10 +13,18 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import type { RouterOutputs } from "../trpc/react";
-import type { LatestMark } from "@repo/domain/home-latest";
+import {
+  latestMark,
+  latestSeriesWin,
+  latestUpdate,
+  type Latest,
+  type LatestCabinet,
+  type LatestSeriesWins,
+} from "@repo/domain/home-latest";
 import type { HomeStats } from "@repo/domain/home-stats";
 import type { OpenWeekRow } from "@repo/domain/home-open-week";
 
+import type { HomeNavTarget } from "./home-target";
 import type { UpNextItem } from "./up-next-model";
 
 export type Slot<T> =
@@ -40,7 +48,7 @@ export type HomeModel = {
   upNext: Slot<UpNextItem[]>;
   noGamesAction: HomeNoGamesCreateAction;
   openGames: OpenWeekRow[];
-  latest: LatestMark | null;
+  latest: Latest | null;
   dateLine: string;
   sports: Sport[];
   sport: Sport;
@@ -101,4 +109,32 @@ export function homeChecklist(
   skipped: boolean,
 ): HomeChecklist | null {
   return list && !list.complete ? { list, skipped } : null;
+}
+
+/**
+ * Home's Latest row: the newer of the newest Mark and Series win, each while
+ * it is at most 14 days old, unless this device has opened it already.
+ */
+export function homeLatest(
+  input: {
+    cabinet: LatestCabinet | undefined;
+    seriesWins: LatestSeriesWins | undefined;
+    sports: readonly Sport[];
+    seen: string | null;
+    now: Date;
+  },
+  locale: Locale,
+): Latest | null {
+  const newest = latestUpdate(
+    latestMark(input.cabinet, input.sports, input.now, locale),
+    latestSeriesWin(input.seriesWins, input.now, locale),
+  );
+  return newest && newest.key !== input.seen ? newest : null;
+}
+
+/** A Mark opens Latest on the User's marks; a Series win opens its Game. */
+export function latestTarget(latest: Latest, userId: string): HomeNavTarget {
+  return latest.type === "series"
+    ? { kind: "game", gameId: latest.gameId }
+    : { kind: "marks", userId, sport: latest.sport };
 }
