@@ -168,6 +168,7 @@ export const series = {
       }),
   },
   profile: {
+    title: "السلاسل",
     meta: (wins: number, series: number) =>
       `${plural("ar", wins, {
         zero: "لا انتصارات",
@@ -184,6 +185,32 @@ export const series = {
         many: "{n} سلسلة",
         other: "{n} سلسلة",
       })}`,
+    allWins: "كل الانتصارات في السلاسل",
+    badgeLabel: (name: string, wins: number) =>
+      `${isolate(name)}، ${plural("ar", wins, {
+        zero: "لا انتصارات",
+        one: "فوز واحد",
+        two: "فوزان",
+        few: "{n} انتصارات",
+        many: "{n} فوزًا",
+        other: "{n} فوز",
+      })}`,
+    sheetWon: (wins: number, of: number) => `الفوز بـ${wins} من ${of}`,
+    played: (n: number) =>
+      plural("ar", n, {
+        zero: "لا مشاركات",
+        one: "مشاركة واحدة",
+        two: "مشاركتان",
+        few: "{n} مشاركات",
+        many: "{n} مشاركة",
+        other: "{n} مشاركة",
+      }),
+    seeSeries: "عرض السلسلة",
+    winsTitle: "الانتصارات في السلاسل",
+    winTitle: (name: string, edition: number) =>
+      `${isolate(name)}، النسخة ${edition}`,
+    winLine: (who: string, date: string) => `${who}. ${date}`,
+    loadError: "تعذّر تحميل هذه الانتصارات",
     with: (who: string) => `مع ${isolate(who)}`,
     bibScore: (bib: string, mine: number, theirs: number) =>
       `${bib}، ${isolate(`${mine}–${theirs}`)}`,

@@ -9,6 +9,7 @@ import {
   type CabinetRowModel,
 } from "~/components/marks/cabinet-model";
 import { CabinetRow } from "~/components/marks/cabinet-row";
+import { ProfileSeriesCard } from "~/components/series/profile-series-card";
 import { Skeleton } from "~/components/ui/skeleton";
 import { TierSection } from "~/components/you/ratings-page";
 import { YouSection } from "~/components/you/you-section";
@@ -141,6 +142,7 @@ export function PlayerProfile({
           />
         ) : null
       }
+      series={<ProfileSeriesCard userId={userId} />}
       cabinet={cabinetRowModel(cabinet.data, model.sport, locale)}
       tier={sharedTierView(model.sport, padel.data, locale)}
       cabinetHref={playerMarksPath(userId, model.sport)}
@@ -155,13 +157,14 @@ export function PlayerProfile({
 }
 
 /**
- * The hero, the marks cabinet, the Group tier in shared tier Groups, early
- * days or streaks and position on the start column; Overall, you and them, partners and the games on the end
+ * The hero, the Series card, the marks cabinet, the Group tier in shared
+ * tier Groups, early days or streaks and position on the start column; Overall, you and them, partners and the games on the end
  * column. One column below lg.
  */
 function PlayerProfileView({
   model,
   calibrate,
+  series,
   cabinet,
   tier,
   cabinetHref,
@@ -170,6 +173,7 @@ function PlayerProfileView({
 }: {
   model: PlayerProfileModel;
   calibrate: ReactNode;
+  series: ReactNode;
   cabinet: CabinetRowModel | null;
   tier: ProfileTierView | null;
   cabinetHref: string;
@@ -190,6 +194,7 @@ function PlayerProfileView({
           level={model.level}
         />
         {calibrate}
+        {series}
         {cabinet ? <CabinetRow row={cabinet} href={cabinetHref} /> : null}
         {tier ? <TierSection tier={tier} /> : null}
         {model.early ? (

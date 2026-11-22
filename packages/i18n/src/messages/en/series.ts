@@ -142,8 +142,20 @@ export const series = {
       }),
   },
   profile: {
+    title: "Series",
     meta: (wins: number, series: number) =>
       `${plural("en", wins, { one: "{n} win", other: "{n} wins" })} in ${series}`,
+    allWins: "All series wins",
+    badgeLabel: (name: string, wins: number) =>
+      `${name}, ${plural("en", wins, { one: "{n} win", other: "{n} wins" })}`,
+    sheetWon: (wins: number, of: number) => `Won ${wins} of ${of}`,
+    played: (n: number) =>
+      plural("en", n, { one: "played {n}", other: "played {n}" }),
+    seeSeries: "See the series",
+    winsTitle: "Series wins",
+    winTitle: (name: string, edition: number) => `${name}, edition ${edition}`,
+    winLine: (who: string, date: string) => `${who}. ${date}`,
+    loadError: "These wins could not be loaded",
     with: (who: string) => `With ${who}`,
     bibScore: (bib: string, mine: number, theirs: number) =>
       `${bib}, ${mine}–${theirs}`,
