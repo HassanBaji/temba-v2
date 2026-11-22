@@ -446,6 +446,8 @@ export const tournamentRounds = {
     tableMessage: (name: string, title: string, lines: string) =>
       `${name}، ${title}\n${lines}`,
     format: "PNG بمقاس 1080 × 1080",
+    highlightMe: "أبرزني",
+    highlightMeHint: "يُظهر ترتيبك على البطاقة. عند الإيقاف، أعلى الجدول",
   },
   loadFailed: "تعذّر تحميل الجولات",
 } satisfies typeof source;
