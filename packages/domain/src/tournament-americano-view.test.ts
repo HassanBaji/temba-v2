@@ -300,6 +300,20 @@ describe("americanoShareCard", () => {
     }
   });
 
+  it("shares the table, with the viewer's line marked, when they choose it", () => {
+    const card = americanoShareCard(
+      { ...base, viewerGamePlayerId: "c" },
+      "en",
+      "table",
+    );
+    expect(card?.kind).toBe("table");
+    if (card?.kind === "table") {
+      expect(card.rows.filter((row) => row.isViewer)).toEqual([
+        expect.objectContaining({ team: "Hassan Haji" }),
+      ]);
+    }
+  });
+
   it("has nothing to share before the day is finished", () => {
     expect(
       americanoShareCard(
