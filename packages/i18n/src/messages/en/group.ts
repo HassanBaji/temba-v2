@@ -86,6 +86,7 @@ export const group = {
       teams: (n: number) =>
         plural("en", n, { one: "1 team", other: "{n} teams" }),
       wonBy: (name: string) => `Won by ${name}`,
+      youWonIt: "You won it",
     },
   },
   empty: {

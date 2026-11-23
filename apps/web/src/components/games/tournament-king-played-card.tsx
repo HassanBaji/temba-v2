@@ -55,14 +55,19 @@ export function KingPlayedCard({ game }: { game: KingPlayedGame }) {
           </span>
         </div>
         <div className="pointer-events-none relative z-10 flex flex-col gap-3 px-4 py-3.5">
-          <p className="text-muted-foreground text-eyebrow flex items-center gap-2 uppercase tracking-[0.06em]">
-            {scopeTag ? <span>{scopeTag}</span> : null}
-            {game.groupName ? (
-              <span dir="auto" className="truncate normal-case tracking-normal">
-                {game.groupName}
-              </span>
-            ) : null}
-          </p>
+          {scopeTag || game.groupName ? (
+            <p className="text-muted-foreground text-eyebrow flex items-center gap-2 uppercase tracking-[0.06em]">
+              {scopeTag ? <span>{scopeTag}</span> : null}
+              {game.groupName ? (
+                <span
+                  dir="auto"
+                  className="truncate normal-case tracking-normal"
+                >
+                  {game.groupName}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
           <div>
             <p className="font-expanded text-title leading-tight tracking-[-0.03em]">
               {view.title}

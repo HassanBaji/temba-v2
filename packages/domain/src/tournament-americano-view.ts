@@ -10,7 +10,10 @@ import {
   type AmericanoOutcome,
   type AmericanoTableRow,
 } from "./tournament-americano";
-import type { TournamentShareCard } from "./tournament-finished";
+import type {
+  TournamentShareCard,
+  TournamentShareFocus,
+} from "./tournament-finished";
 import type { TournamentMatchState } from "./tournament-round-state";
 
 export type AmericanoViewMatch = {
@@ -286,7 +289,8 @@ const SHARE_TABLE_ROWS = 6;
 
 /**
  * The square card a finished Americano shares: the viewer's place, games won
- * and results, or the top of the table for someone who did not play.
+ * and results, or the top of the table for someone who did not play or who
+ * chose `focus` "table".
  */
 export function americanoShareCard(
   input: {
@@ -300,6 +304,7 @@ export function americanoShareCard(
     finished: boolean;
   },
   locale: Locale,
+  focus: TournamentShareFocus = "me",
 ): TournamentShareCard | null {
   if (!input.finished || input.table.length === 0) {
     return null;
@@ -322,7 +327,7 @@ export function americanoShareCard(
   const viewer = input.table.find(
     (row) => row.playerId === input.viewerGamePlayerId,
   );
-  if (viewer) {
+  if (focus === "me" && viewer) {
     const placing = m.ordinal(viewer.place);
     const placingNote =
       viewer.place === 1 ? m.wonTheDay : a.share.ofPlayers(input.table.length);
@@ -354,7 +359,7 @@ export function americanoShareCard(
     markName: nameOf(row.playerId),
     team: nameOf(row.playerId),
     points: a.share.gamesWon(row.gamesWon),
-    isViewer: false,
+    isViewer: row.playerId === input.viewerGamePlayerId,
   }));
   return {
     ...base,

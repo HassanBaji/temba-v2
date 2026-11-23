@@ -1,0 +1,881 @@
+[name=viewport]
+Draft line-up
+[name=design_doc_mode]
+TEMBA
+Draft line-up
+Football team creation, with a step before publishing. The organizer saves the teams as a draft, picks a captain for each, and the captains approve their squad. Only organizers, admins and the picked captains see a draft, and it can be shared as an image in the style of the result cards. Captain pick is a third way to make the teams: two captains pick in turn, in a room they share.
+01
+The organizer. Make teams gains two things: captains, and Save draft next to Publish. 1a and 1b are live.
+[id=dl-make]
+1a / MAKE TEAMS: PICK CAPTAINS, SAVE AS A DRAFT (LIVE)
+[data-screen-label=1a Make teams with draft and captains]
+Pool full, 16 of 16
+Make teams
+Sat 18 Oct, 8:00 PM. 8 per team, 7 start. Tap the arrow on a row to move that player to the other team. Save it as a draft to show the captains before anyone else.
+By level
+Manual
+Captain pick
+Black
+avg 63, 1 keeper
+8
+White
+avg 63, 1 keeper
+8
+Even on level and a keeper each side. Ready to publish, or save it as a draft first.
+Captains
+optional, one per team
+C
+{{ chipALabel }}
+C
+{{ chipBLabel }}
+HA
+[title=Captain]C
+Hassan A
+GK 70
+[title=Move to White]
+RN
+[title=Captain]C
+Rashid N
+DEF 72
+[title=Move to White]
+HH
+[title=Captain]C
+You
+MID 61
+[title=Move to White]
+MJ
+[title=Captain]C
+Mahmood J
+DEF 66
+[title=Move to White]
+ES
+[title=Captain]C
+Ebrahim S
+MID 60
+[title=Move to White]
+AK
+[title=Captain]C
+Ali K
+FWD 64
+[title=Move to White]
+YS
+[title=Captain]C
+Yousif S
+FWD 58
+[title=Move to White]
+JA
+[title=Captain]C
+Jaber A
+MID 55
+[title=Move to White]
+FA
+[title=Captain]C
+Faisal A
+GK 68
+[title=Move to Black]
+OM
+[title=Captain]C
+Omar M
+DEF 71
+[title=Move to Black]
+TN
+[title=Captain]C
+Tariq N
+MID 67
+[title=Move to Black]
+BH
+[title=Captain]C
+Bader H
+DEF 62
+[title=Move to Black]
+SR
+[title=Captain]C
+Sayed R
+MID 63
+[title=Move to Black]
+KF
+[title=Captain]C
+Khalid F
+FWD 65
+[title=Move to Black]
+NA
+[title=Captain]C
+Noor A
+FWD 57
+[title=Move to Black]
+SH
+[title=Captain]C
+Salman H
+MID 52
+[title=Move to Black]
+No subs are set here. Each captain picks 7 starters before kick-off and runs the swaps on the pitch.
+[title=Shuffle]
+Save draft
+Publish teams
+[id=dl-captain]
+1b / CAPTAINS SHEET (LIVE): ONE PER TEAM, OR NONE
+[data-screen-label=1b Captains sheet]
+Make teams
+Captains
+A captain sees the draft and can approve their squad before you publish. They still pick the starters on the day.
+[aria-label=Close]
+Black
+White
+{{ s.init }}
+{{ s.name }}
+{{ s.meta }}
+No captain for {{ sheetTeam }}
+Done
+[id=dl-hub]
+1c / ORGANIZER, DRAFT SAVED: WHO HAS SEEN IT, WHAT NEXT
+[data-screen-label=1c Draft saved organizer]
+Draft, not published
+7-A-SIDE
+8:00
+PM
+Sat 18 Oct, Karbabad Turf
+Pitch 2, 60 min, level 55 to 75
+Black
+avg 63
+HA
+[title=Captain]C
+Hassan A
+GK
+RN
+[title=Captain]C
+Rashid N
+DEF
+HH
+[title=Captain]C
+You
+MID
+MJ
+[title=Captain]C
+Mahmood J
+DEF
+ES
+[title=Captain]C
+Ebrahim S
+MID
+AK
+[title=Captain]C
+Ali K
+FWD
+YS
+[title=Captain]C
+Yousif S
+FWD
+JA
+[title=Captain]C
+Jaber A
+MID
+vs
+White
+avg 63
+FA
+[title=Captain]C
+Faisal A
+GK
+OM
+[title=Captain]C
+Omar M
+DEF
+TN
+[title=Captain]C
+Tariq N
+MID
+BH
+[title=Captain]C
+Bader H
+DEF
+SR
+[title=Captain]C
+Sayed R
+MID
+KF
+[title=Captain]C
+Khalid F
+FWD
+NA
+[title=Captain]C
+Noor A
+FWD
+SH
+[title=Captain]C
+Salman H
+MID
+Players don’t see these teams yet. Only you, the group’s admins and the captains do.
+DRAFT
+Draft line-up
+saved Fri 5:40 PM
+{{ hubLine }}
+Black
+{{ stACap }}
+Approved
+Waiting
+Change asked
+nobody to ask
+“Can Ali K and Noor A swap? We are short at the back.”
+White
+{{ stBCap }}
+Approved
+Waiting
+Change asked
+nobody to ask
+“Can Ali K and Noor A swap? We are short at the back.”
+Publish teams
+Share draft
+Edit draft
+You can publish without waiting. Moving a player in or out of a squad after its captain approved asks that captain again.
+DRAFT AND CAPTAINS
+Save draft
+Sits beside Publish teams on the existing Make teams screen. A draft keeps the two squads, the bib colours and the captains, and nothing reaches the players.
+Captains
+One per team, picked from that team’s players, or none. A C on their picture marks them everywhere the teams are shown. If a captain is moved to the other team, the pick is cleared.
+The draft on the game
+Once saved, the organizer’s game screen shows the draft teams with who has answered: approved, waiting, or asked for a change. Publish, Share and Edit sit under it.
+Approval does not block
+The organizer can publish at any time. Changing a squad after its captain approved asks that captain again.
+02
+Everyone else. Captains see the draft and answer for their own squad. Other players see nothing new. 2a is live.
+[id=dl-captain-view]
+2a / A CAPTAIN (RASHID, BLACK) OPENS THE GAME (LIVE)
+[data-screen-label=2a Captain reviews draft]
+Draft, you captain Black
+7-A-SIDE
+8:00
+PM
+Sat 18 Oct, Karbabad Turf
+Pitch 2, 60 min, level 55 to 75
+Black
+avg 63
+HA
+[title=Captain]C
+Hassan A
+GK
+RN
+[title=Captain]C
+You
+DEF
+HH
+[title=Captain]C
+Hassan H
+MID
+MJ
+[title=Captain]C
+Mahmood J
+DEF
+ES
+[title=Captain]C
+Ebrahim S
+MID
+AK
+[title=Captain]C
+Ali K
+FWD
+YS
+[title=Captain]C
+Yousif S
+FWD
+JA
+[title=Captain]C
+Jaber A
+MID
+vs
+White
+avg 63
+FA
+[title=Captain]C
+Faisal A
+GK
+OM
+[title=Captain]C
+Omar M
+DEF
+TN
+[title=Captain]C
+Tariq N
+MID
+BH
+[title=Captain]C
+Bader H
+DEF
+SR
+[title=Captain]C
+Sayed R
+MID
+KF
+[title=Captain]C
+Khalid F
+FWD
+NA
+[title=Captain]C
+Noor A
+FWD
+SH
+[title=Captain]C
+Salman H
+MID
+A draft from Hassan H. Only the two captains and the organizers can see it.
+DRAFT
+Your squad, Black
+8 players, avg 63
+Happy with these eight? Approve and Hassan knows your side is good to go. Nothing is final until he publishes.
+Approve my squad
+Ask for a change
+You approved Black
+Hassan publishes when he is ready
+Undo
+You asked for a change
+Hassan sees your note on the draft
+Undo
+“Can Ali K and Noor A swap? We are short at the back.”
+White, captain Faisal A
+Approved
+Share draft
+You approve your own squad only. You can see White, but its captain answers for it.
+[id=dl-player]
+2b / ANY OTHER PLAYER: NO DRAFT, THE POOL AS BEFORE
+[data-screen-label=2b Player sees no draft]
+Upcoming, Saturday
+7-A-SIDE
+8:00
+PM
+Sat 18 Oct, Karbabad Turf
+Pitch 2, 60 min, level 55 to 75
+Players in
+16
+of 16
+You’re in
+as FWD
+Teams aren’t published yet
+The organizer is making them. You’ll see your team and bib colour here as soon as they are published.
+Organizer
+Hassan H
+Group
+Karbabad Friday Football
+Teams
+Not published
+Pitch cost
+1.500 BD each
+WHO SEES IT
+Who can see a draft
+Organizers and admins of the group, and the captains picked on it. With no captains picked, only organizers and admins. Nobody else, until it is published.
+What a captain does
+Opens the game and finds the draft teams with their own squad up for approval. Approve is one tap; Ask for a change sends the organizer a short note. Either can be undone.
+One squad each
+A captain can see both squads, to judge the balance, but approves only their own.
+Other players
+The game looks as it does today before teams are set, with a line saying teams are not published yet.
+03
+Sharing the draft, in the style of the result cards. 3a is live.
+[id=dl-share]
+3a / SHARE DRAFT (LIVE): THE SHARE RESULT SCREEN
+[data-screen-label=3a Share draft]
+Share draft
+Done
+Both teams
+Black
+White
+TEMBA
+DRAFT / FOOTBALL / 7-A-SIDE
+Black
+{{ capACard }}
+8 PLAYERS
+White
+{{ capBCard }}
+8 PLAYERS
+TEAM BLACK
+HA
+Hassan A
+C
+GK
+RN
+Rashid N
+C
+DEF
+HH
+Hassan H
+C
+MID
+MJ
+Mahmood J
+C
+DEF
+ES
+Ebrahim S
+C
+MID
+AK
+Ali K
+C
+FWD
+YS
+Yousif S
+C
+FWD
+JA
+Jaber A
+C
+MID
+TEAM WHITE
+FA
+Faisal A
+C
+GK
+OM
+Omar M
+C
+DEF
+TN
+Tariq N
+C
+MID
+BH
+Bader H
+C
+DEF
+SR
+Sayed R
+C
+MID
+KF
+Khalid F
+C
+FWD
+NA
+Noor A
+C
+FWD
+SH
+Salman H
+C
+MID
+Karbabad Turf, Pitch 2
+Sat 18 Oct 2026, 8:00 PM
+DRAFT, NOT FINAL
+TEMBA
+DRAFT / FOOTBALL / 7-A-SIDE
+Black
+{{ capACard }} / 8 PLAYERS
+HA
+Hassan A
+C
+GK
+RN
+Rashid N
+C
+DEF
+HH
+Hassan H
+C
+MID
+MJ
+Mahmood J
+C
+DEF
+ES
+Ebrahim S
+C
+MID
+AK
+Ali K
+C
+FWD
+YS
+Yousif S
+C
+FWD
+JA
+Jaber A
+C
+MID
+against White, 7 start, the captain picks them
+Karbabad Turf, Pitch 2
+Sat 18 Oct 2026, 8:00 PM
+DRAFT, NOT FINAL
+TEMBA
+DRAFT / FOOTBALL / 7-A-SIDE
+White
+{{ capBCard }} / 8 PLAYERS
+FA
+Faisal A
+C
+GK
+OM
+Omar M
+C
+DEF
+TN
+Tariq N
+C
+MID
+BH
+Bader H
+C
+DEF
+SR
+Sayed R
+C
+MID
+KF
+Khalid F
+C
+FWD
+NA
+Noor A
+C
+FWD
+SH
+Salman H
+C
+MID
+against Black, 7 start, the captain picks them
+Karbabad Turf, Pitch 2
+Sat 18 Oct 2026, 8:00 PM
+DRAFT, NOT FINAL
+1080 × 1920 / STORY
+Full size
+{{ shareNote }}
+Share image
+Save
+Copy link
+Message
+[id=dl-card-both]
+3b / STORY, BOTH TEAMS (1080 × 1920, SHOWN SMALL)
+[data-screen-label=3b Draft story both teams]
+TEMBA
+DRAFT / FOOTBALL / 7-A-SIDE
+Black
+{{ capACard }}
+8 PLAYERS
+White
+{{ capBCard }}
+8 PLAYERS
+TEAM BLACK
+HA
+Hassan A
+C
+GK
+RN
+Rashid N
+C
+DEF
+HH
+Hassan H
+C
+MID
+MJ
+Mahmood J
+C
+DEF
+ES
+Ebrahim S
+C
+MID
+AK
+Ali K
+C
+FWD
+YS
+Yousif S
+C
+FWD
+JA
+Jaber A
+C
+MID
+TEAM WHITE
+FA
+Faisal A
+C
+GK
+OM
+Omar M
+C
+DEF
+TN
+Tariq N
+C
+MID
+BH
+Bader H
+C
+DEF
+SR
+Sayed R
+C
+MID
+KF
+Khalid F
+C
+FWD
+NA
+Noor A
+C
+FWD
+SH
+Salman H
+C
+MID
+Karbabad Turf, Pitch 2
+Sat 18 Oct 2026, 8:00 PM
+DRAFT, NOT FINAL
+[id=dl-card-one]
+3c / STORY, ONE SQUAD: FOR THAT TEAM’S CHAT
+[data-screen-label=3c Draft story one squad]
+TEMBA
+DRAFT / FOOTBALL / 7-A-SIDE
+Black
+{{ capACard }} / 8 PLAYERS
+HA
+Hassan A
+C
+GK
+RN
+Rashid N
+C
+DEF
+HH
+Hassan H
+C
+MID
+MJ
+Mahmood J
+C
+DEF
+ES
+Ebrahim S
+C
+MID
+AK
+Ali K
+C
+FWD
+YS
+Yousif S
+C
+FWD
+JA
+Jaber A
+C
+MID
+against White, 7 start, the captain picks them
+Karbabad Turf, Pitch 2
+Sat 18 Oct 2026, 8:00 PM
+DRAFT, NOT FINAL
+SHARE
+Same screen as Share result
+The header, the preview, Share image and the three small actions are the result share screen. The tabs choose what goes on the image: both teams, or one squad.
+The card
+Black, like the result cards. Names, positions and captains only: no levels or averages leave the app. Captains carry a C. Every card is stamped Draft, not final.
+Nobody highlighted
+The sharer’s own row is not marked, so the image reads the same for whoever receives it.
+Mind where it goes
+Inside Temba the draft stays with organizers, admins and captains. An image goes wherever it is sent, so the screen says so before sharing.
+04
+Captain pick. A third way to make teams: two captains pick in turn, in a room they share. 4c is live, and you are Rashid, captain of Black.
+[id=dl-pick-setup]
+4a / MAKE TEAMS, A THIRD WAY: CAPTAIN PICK
+[data-screen-label=4a Captain pick setup]
+Pool full, 16 of 16
+Make teams
+Sat 18 Oct, 8:00 PM. Two captains build the teams themselves, one pick at a time, in a room they share.
+By level
+Manual
+Captain pick
+Captains
+one for each side
+C
+Rashid N, Black
+C
+Faisal A, White
+First pick
+Toss
+Black
+White
+The toss happens in the room once both captains are in. After that they take one pick each, in turn.
+To be picked
+14 players, 7 each
+Omar M
+DEF 71
+Hassan A
+GK 70
+Tariq N
+MID 67
+Mahmood J
+DEF 66
+Khalid F
+FWD 65
+Ali K
+FWD 64
+Sayed R
+MID 63
+Bader H
+DEF 62
+You
+MID 61
+Ebrahim S
+MID 60
+Yousif S
+FWD 58
+Noor A
+FWD 57
+Jaber A
+MID 55
+Salman H
+MID 52
+Open the pick room
+Rashid N and Faisal A are told. The pick starts when both are in.
+[id=dl-pick-wait]
+4b / THE PICK ROOM, A CAPTAIN WAITING FOR THE OTHER
+[data-screen-label=4b Pick room waiting]
+Sat 18 Oct, 8:00 PM
+Captain pick
+You and Faisal pick the teams between you. It starts when you are both in the room.
+Black
+RN
+You
+DEF 72
+In the room
+White
+FA
+Faisal A
+GK 68
+Not here yet
+First pick
+Tossed when both are in
+Order
+One each, in turn
+To pick
+14 players, 7 each
+Pool
+14, best level first
+OM
+Omar M
+DEF
+71
+HA
+Hassan A
+GK
+70
+TN
+Tariq N
+MID
+67
+MJ
+Mahmood J
+DEF
+66
+and 10 more
+Waiting for Faisal
+Remind Faisal
+[id=dl-pick-live]
+4c / THE PICK (LIVE): YOU ARE RASHID, BLACK
+[data-screen-label=4c Captain pick live]
+{{ pickCount }}
+{{ turnTitle }}
+{{ turnSub }}
+Black
+{{ cntA }}
+C
+You
+DEF 72
+{{ p.n }}
+{{ p.name }}
+{{ p.meta }}
+{{ nextNo }}
+White
+{{ cntB }}
+C
+Faisal A
+GK 68
+{{ p.n }}
+{{ p.name }}
+{{ p.meta }}
+{{ nextNo }}
+{{ avgA }}
+{{ avgB }}
+Pool
+{{ poolHead }}
+{{ p.init }}
+{{ p.name }}
+{{ p.pos }}
+{{ p.lvl }}
+{{ pickLabel }}
+Tap a player to pick
+Faisal is choosing
+See the draft
+Replay the pick (preview only)
+[id=dl-pick-org]
+4d / THE ORGANIZER WATCHES, AND CAN STEP IN
+[data-screen-label=4d Captain pick organizer]
+Pick 6 of 14, watching
+Faisal is picking
+Players can’t see the pick. You can watch it happen, or step in below.
+Black
+4 of 8
+C
+Rashid N
+DEF 72
+1
+Omar M
+DEF 71
+3
+Tariq N
+MID 67
+5
+Khalid F
+FWD 65
+White
+3 of 8
+C
+Faisal A
+GK 68
+2
+Hassan A
+GK 70
+4
+Mahmood J
+DEF 66
+pick 6
+Pick for Faisal
+If he has dropped out of the room
+Undo the last pick
+Khalid F goes back to the pool
+Stop the pick
+Keep what is picked and finish the teams yourself
+Pool
+9 left
+AK
+Ali K
+FWD
+64
+SR
+Sayed R
+MID
+63
+BH
+Bader H
+DEF
+62
+HH
+You
+MID
+61
+and 5 more
+CAPTAIN PICK
+A third way
+Captain pick sits next to By level and Manual on Make teams. The organizer names a captain for each side and how the first pick is decided: a toss, or one side.
+The pick room
+Both captains are told, and the room opens from that notification or from the game. Nothing starts until both are in; the one who arrives first sees the other as not here yet and can remind them.
+One pick each, in turn
+The captain on turn taps a player and confirms. The player moves to their side with the pick number and the other captain sees it at once. Then it is the other’s turn.
+What the captains see
+Their two sides filling up, the average level of each, and the pool with position and level, best level first.
+The organizer
+Watches the same room without picking. Can pick for a captain who has dropped out, undo the last pick, or stop and finish the teams by hand.
+When it ends
+The teams land where a saved draft does, with both captains already agreed. The organizer publishes, shares or edits from there. Players see nothing until then.
+What I assumed
+No timer on a pick. With an odd number the last player goes to the side that is short. Keepers are picked like anyone else, marked GK.

@@ -39,7 +39,7 @@ import type {
   GroupPlayedSocialData,
   GroupTierSummaryData,
 } from "@repo/domain/group-data";
-import { groupHasTier } from "@repo/domain/game-rating-scope";
+import { gameRatingScope, groupHasTier } from "@repo/domain/game-rating-scope";
 import {
   ratingSettingsLine,
   type GroupRatingSettings,
@@ -71,7 +71,14 @@ import {
 } from "#src/games/helpers/hub-list";
 import { americanoTable, isAmericano } from "@repo/domain/tournament-americano";
 import { americanoPlayedSummary } from "@repo/domain/tournament-americano-view";
-import { isKingOfTheCourt } from "@repo/domain/tournament-king";
+import {
+  isKingOfTheCourt,
+  kingFinalOrderOf,
+} from "@repo/domain/tournament-king";
+import {
+  kingFieldTeams,
+  kingPlayedSummary,
+} from "@repo/domain/tournament-king-view";
 import {
   knockoutChampion,
   postedKnockoutRounds,
@@ -197,6 +204,8 @@ export type GroupPlayedGame = {
   scoredSets: { slot1GamesWon: number; slot2GamesWon: number }[];
   viewerSlot: 1 | 2 | null;
   outcome: "won" | "lost" | "draw" | null;
+  /** Set on a day with no Matches: its final order is posted. */
+  resultPosted?: boolean;
   /** Set on the rows of the page sent, never on the ones only counted. */
   social: GroupPlayedSocialData | null;
 };
@@ -287,6 +296,8 @@ function toGroupPlayedGame(
     windowEnd: Date | null;
     createdAt: Date;
     format: string;
+    tournamentShape: string | null;
+    finalOrderPostedAt: Date | null;
     sport: string | null;
     playersAllowed: number | null;
     players: readonly unknown[];
@@ -329,11 +340,31 @@ function toGroupPlayedGame(
     scoredSets,
     viewerSlot,
     outcome,
+    ...(isKingOfTheCourt(game.format, game.tournamentShape)
+      ? { resultPosted: game.finalOrderPostedAt != null }
+      : {}),
     social: null,
   };
 }
 
-type PlayedSocialRow = HubQueryRow & { matchMinutes: number | null };
+type PlayedSocialRow = Omit<HubQueryRow, "teams"> & {
+  matchMinutes: number | null;
+  teams: (HubQueryRow["teams"][number] & {
+    startCourt: number | null;
+    finalPlace: number | null;
+    players: {
+      position: "left" | "right" | null;
+      gamePlayer: {
+        user: {
+          id: string;
+          name: string;
+          image: string | null;
+          guestAt?: Date | null;
+        } | null;
+      } | null;
+    }[];
+  })[];
+};
 
 function teamMemberNames(team: HubQueryRow["teams"][number]) {
   return team.players.flatMap((link) =>
@@ -404,13 +435,56 @@ async function americanoPlayedSocial(
         })
       : null,
     myTournament: null,
+    king: null,
+    ratingScope: gameRatingScope(game),
+  };
+}
+
+/** Where each team finished; the king is first once the order is posted. */
+function kingPlayedSocial(
+  game: PlayedSocialRow,
+  userId: string,
+  locale: Locale,
+): GroupPlayedSocialData {
+  const gameTeams = game.teams.map((team) => ({
+    id: team.id,
+    sideIndex: team.sideIndex,
+    startCourt: team.startCourt,
+    finalPlace: team.finalPlace,
+    members: slotMembers(team, userId),
+  }));
+  const field = kingFieldTeams(gameTeams);
+  const posted = game.finalOrderPostedAt != null;
+  const king = posted ? kingFinalOrderOf(field).king : null;
+  return {
+    tournamentShape: game.tournamentShape,
+    entrantCount: field.length,
+    finished: posted,
+    winner:
+      king && king.members.length > 0
+        ? {
+            names: king.members.map((member) => member.name),
+            isViewer: king.members.some((member) => member.isViewer),
+          }
+        : null,
+    americano: null,
+    myTournament: null,
+    king: kingPlayedSummary(
+      {
+        teamsAllowed: game.teamsAllowed,
+        viewerUserId: userId,
+        finalOrderPostedAt: game.finalOrderPostedAt,
+        gameTeams,
+      },
+      locale,
+    ),
+    ratingScope: gameRatingScope(game),
   };
 }
 
 /**
  * A drawn Social's whole day for the Played list: who won it, and the
- * viewer's own day where the Games hub has a Played card for it. King of the
- * court has no Matches to read a day from and keeps the plain row.
+ * viewer's own day where the Games hub has a Played card for it.
  */
 async function playedSocial(
   database: DbClient,
@@ -422,10 +496,12 @@ async function playedSocial(
   if (
     game.cancelledAt != null ||
     game.drawPostedAt == null ||
-    !isDrawnTournament(game.format, game.poolCount, game.tournamentShape) ||
-    isKingOfTheCourt(game.format, game.tournamentShape)
+    !isDrawnTournament(game.format, game.poolCount, game.tournamentShape)
   ) {
     return null;
+  }
+  if (isKingOfTheCourt(game.format, game.tournamentShape)) {
+    return kingPlayedSocial(game, userId, locale);
   }
   if (isAmericano(game.format, game.tournamentShape)) {
     return americanoPlayedSocial(database, game, userId, now);
@@ -457,6 +533,8 @@ async function playedSocial(
       winner: teamWinner(game, champion?.gameTeamId, userId),
       americano: null,
       myTournament: null,
+      king: null,
+      ratingScope: gameRatingScope(game),
     };
   }
   const tables = poolTablesFromRow(game, userId, locale);
@@ -470,6 +548,8 @@ async function playedSocial(
       : null,
     americano: null,
     myTournament: myTournamentFromRow(game, userId, locale),
+    king: null,
+    ratingScope: gameRatingScope(game),
   };
 }
 
@@ -933,6 +1013,33 @@ export async function groupById(
     columns: { ...hubListColumns, matchMinutes: true },
     with: {
       ...hubListWith,
+      teams: {
+        ...hubListWith.teams,
+        columns: {
+          ...hubListWith.teams.columns,
+          startCourt: true,
+          finalPlace: true,
+        },
+        with: {
+          players: {
+            ...hubListWith.teams.with.players,
+            with: {
+              gamePlayer: {
+                with: {
+                  user: {
+                    columns: {
+                      id: true,
+                      name: true,
+                      image: true,
+                      guestAt: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       matches: {
         columns: {
           id: true,
