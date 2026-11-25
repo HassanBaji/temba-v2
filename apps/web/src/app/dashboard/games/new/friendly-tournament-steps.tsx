@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { DayField } from "~/app/dashboard/games/new/_parts/day-field";
+import { GenderTagField } from "~/app/dashboard/games/new/_parts/gender-tag-field";
 import {
   GroupField,
   type CreateGroup,
@@ -51,6 +52,10 @@ import {
   upcomingGameWindowFinishSlots,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
+import {
+  gameGenderTagLabel,
+  type GameGenderTag,
+} from "@repo/domain/game-gender-tag";
 import { type LevelBandSelectValue } from "@repo/domain/level-range";
 import {
   groupsThenKnockoutReviewValue,
@@ -161,6 +166,8 @@ export function FriendlyTournamentSteps({
   onPrice,
   trackPayments,
   onTrackPayments,
+  genderTag,
+  onGenderTag,
   isPublic,
   onIsPublic,
   allowSoloRegister,
@@ -233,6 +240,8 @@ export function FriendlyTournamentSteps({
   onPrice: (price: string) => void;
   trackPayments: boolean;
   onTrackPayments: (value: boolean) => void;
+  genderTag: GameGenderTag | null;
+  onGenderTag: (genderTag: GameGenderTag | null) => void;
   isPublic: boolean;
   onIsPublic: (isPublic: boolean) => void;
   allowSoloRegister: boolean;
@@ -1148,6 +1157,12 @@ export function FriendlyTournamentSteps({
             onKeepersPlayFree={() => undefined}
           />
 
+          <GenderTagField
+            idPrefix="tournament"
+            genderTag={genderTag}
+            onGenderTag={onGenderTag}
+          />
+
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="tournament-public-label"
@@ -1327,6 +1342,12 @@ export function FriendlyTournamentSteps({
               <ReviewRow
                 label={m.gamePayments.create.reviewLabel}
                 value={paymentReview}
+              />
+            ) : null}
+            {genderTag ? (
+              <ReviewRow
+                label={m.createGame.genderTag.title}
+                value={gameGenderTagLabel(genderTag, locale) ?? ""}
               />
             ) : null}
           </div>

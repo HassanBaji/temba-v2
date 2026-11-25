@@ -530,6 +530,7 @@ export function TournamentHome({
             <TournamentHero
               name={view.hero.name}
               eyebrow={view.hero.eyebrow}
+              genderTag={view.hero.genderTag}
               startLine={view.hero.startLine}
               sizeLine={view.hero.sizeLine}
               statusLine={view.hero.statusLine}

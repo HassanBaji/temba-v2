@@ -18,6 +18,7 @@ import {
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import { formatGameClock } from "@repo/domain/format-game-start";
+import { GAME_GENDER_TAGS } from "@repo/domain/game-gender-tag";
 import { sportOrDefault } from "@repo/domain/sport";
 import {
   AMERICANO_PLAYER_MAX,
@@ -343,6 +344,8 @@ export const createTournamentInputSchema = z
       .optional(),
     /** Only with a price above zero. */
     trackPayments: z.boolean().optional(),
+    /** A label only: it gates no join. Omitted = no Gender tag. */
+    genderTag: z.enum(GAME_GENDER_TAGS).nullable().optional(),
     levelMinTenths: z
       .number()
       .int()
@@ -496,6 +499,7 @@ export async function createTournament(
         trackPayments: input.trackPayments ?? false,
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
+        genderTag: input.genderTag ?? null,
         sport: GameSportEnum.PADEL,
         ...ratingFlagsAtCreate({
           hasGroup: true,

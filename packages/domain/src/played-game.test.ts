@@ -187,6 +187,27 @@ describe("playedPadelModel", () => {
     ]);
   });
 
+  it("says who the Game was for when it carries a Gender tag", () => {
+    const tagged = playedPadelModel(
+      {
+        ...place,
+        sides,
+        viewerUserId: VIEWER,
+        match,
+        groupName: "Tuesday padel",
+        genderTag: "women",
+        rated: true,
+        ratingImpact: null,
+        confirmation: null,
+      },
+      "en",
+    );
+    assert.deepEqual(tagged.facts.slice(0, 2), [
+      { label: "Group", value: "Tuesday padel" },
+      { label: "Who it’s for", value: "Women only" },
+    ]);
+  });
+
   it("names the Verifier who stamped the score", () => {
     const stamped = playedPadelModel(
       {

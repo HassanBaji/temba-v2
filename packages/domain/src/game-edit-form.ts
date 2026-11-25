@@ -10,6 +10,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import { gameLevelRangeSaveInput, gameWindowSaveInput } from "./game-edit-save";
 import { gameCustomName, normalizeGameCustomName } from "./game-custom-name";
+import { isGameGenderTag, type GameGenderTag } from "./game-gender-tag";
 import { gameSeasonFix } from "./game-season-link";
 import {
   FOOTBALL_SIDE_SIZES,
@@ -79,6 +80,7 @@ export type GameEditDraft = {
   courtIds: string[];
   /** A Social's match length. */
   matchMinutes: number | null;
+  genderTag: GameGenderTag | null;
 };
 
 export type GameEditSource = {
@@ -94,6 +96,7 @@ export type GameEditSource = {
   sideSize: number | null;
   levelMinTenths: number | null;
   levelMaxTenths: number | null;
+  genderTag?: string | null;
   roundCount: number | null;
   seasonId: string | null;
   groupId?: string | null;
@@ -194,6 +197,7 @@ export function gameEditDraftFrom(game: GameEditSource): GameEditDraft {
     teamCount: game.teamsAllowed ?? null,
     courtIds: sortedCourtIds(game.recordedCourts?.map((court) => court.id)),
     matchMinutes: game.matchMinutes ?? null,
+    genderTag: isGameGenderTag(game.genderTag) ? game.genderTag : null,
   };
 }
 
@@ -208,6 +212,7 @@ export const GAME_EDIT_SECTION_KEYS = [
   "matchLength",
   "price",
   "level",
+  "genderTag",
   "rounds",
   "season",
 ] as const;
@@ -256,6 +261,8 @@ export function gameEditSectionsFor(game: {
     matchLength: beforeDraw && !game.king,
     price: true,
     level: !football,
+    // Nobody joins a Challenge Game, so it has nobody to tell who it is for.
+    genderTag: !game.challenge,
     rounds: game.tournamentRounds && !game.americano,
     season: game.groupId != null,
   };
@@ -288,6 +295,7 @@ export type GameEditStep =
       levelMinTenths: number | null;
       levelMaxTenths: number | null;
     }
+  | { kind: "genderTag"; genderTag: GameGenderTag | null }
   | { kind: "rounds"; roundCount: number | null }
   | { kind: "season"; seasonId: string | null };
 
@@ -365,6 +373,9 @@ export function gameEditChangedSections(
   }
   if (sections.level && !sameLevel(saved, draft)) {
     changed.push("level");
+  }
+  if (sections.genderTag && saved.genderTag !== draft.genderTag) {
+    changed.push("genderTag");
   }
   if (sections.rounds && saved.roundCount !== draft.roundCount) {
     changed.push("rounds");
@@ -481,6 +492,9 @@ export function gameEditPlan(
     }
     steps.push({ kind: "level", ...result.input });
   }
+  if (has("genderTag")) {
+    steps.push({ kind: "genderTag", genderTag: draft.genderTag });
+  }
   if (has("rounds")) {
     steps.push({ kind: "rounds", roundCount: draft.roundCount });
   }
@@ -529,6 +543,8 @@ function changePhrase(
       return [m.price];
     case "level":
       return [m.levelRange];
+    case "genderTag":
+      return [m.genderTag];
     case "rounds":
       return [m.rounds];
     case "season":

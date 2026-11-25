@@ -168,7 +168,7 @@ Retired as a product door. Do not send named invitations bound to an email addre
 _Avoid_: using this as a current channel; magic link; Invite link; Lookup invite
 
 **Invite link**:
-A door URL any authenticated User may use while that token is live. Each copy mints a new token; older tokens stay valid alongside it. No rotate or revoke. A Group or Team token expires 6 hours after mint. A Game token has no clock of its own: it works until the Game's window ends, registration is closed, or the Game is cancelled. Used on every Group type, incomplete Team, and Game. Opening a Game Invite link never seats the User: they press Join, even when there is nothing to pick. Accepting a Group Game's Invite link also joins the Group when the User is not yet a member; a blocked User is refused on a private Game and registers without joining on a public one. Game Invite links may be opened at `/g/{code}` and Group Invite links at `/gr/{code}` (eight-character public alias on the same row); Team stays token-path only.
+A door URL any authenticated User may use while that token is live. Each copy mints a new token; older tokens stay valid alongside it. No rotate or revoke. A Group or Team token expires 6 hours after mint. A Game token has no clock of its own: it works until the Game's window ends, registration is closed, or the Game is cancelled. Used on every Group type, incomplete Team, and Game. A Game Invite link is minted by the Game's Organizer or by any player registered on it (ADR-0110); a Group or Team one by whoever may invite to it. Opening a Game Invite link never seats the User: they press Join, even when there is nothing to pick. Accepting a Group Game's Invite link also joins the Group when the User is not yet a member; a blocked User is refused on a private Game and registers without joining on a public one. Game Invite links may be opened at `/g/{code}` and Group Invite links at `/gr/{code}` (eight-character public alias on the same row); Team stays token-path only.
 _Avoid_: Email invite, Lookup invite, magic link, Group URL (Loose Group Public still uses the Group URL as a separate join door)
 
 **Invite doors**:
@@ -471,6 +471,10 @@ _Avoid_: man of the match, player of the game, best player, star (bare)
 **MVP mode**:
 How a Friendly game decides its MVP, chosen by the Organizer at create: players vote (the default), the Organizer picks, or no MVP. The Organizer may change it until the Match completes; after that it is fixed. Every other format has no MVP. In organizer mode the Organizer never picks themselves, but may break a tied vote in their own favour.
 _Avoid_: MVP setting, MVP type
+
+**Gender tag**:
+An optional label on a Game that says who it is meant for: Men only, Women only or Mixed (`games.gender_tag`). The Organizer picks it at create, on a Friendly game, a football Game, a Public Game or a Social; a Game without one is untagged. It is a label and never a gate: it is shown on the Game's card and on Game details, and it refuses nobody a seat, whatever gender their profile says. The Organizer may set, change or clear it later from Edit Game, which moves no seat. A Challenge Game has none, since nobody joins it; a Booking Game starts without one.
+_Avoid_: gender restriction, gender filter, ladies only, category
 
 **Giver group**:
 Who may give a Mark: your teammate or partner (same Game team), anyone in the game, or the other side (the opposing Game team). The giving sheet is grouped by it.

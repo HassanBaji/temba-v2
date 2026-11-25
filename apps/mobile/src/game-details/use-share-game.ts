@@ -12,8 +12,8 @@ import { api } from "../trpc/react";
 import { useErrorMessage } from "../lib/use-error-message";
 
 /**
- * The hero's share: the Organizer mints the Game's invite link, everyone
- * else shares the Game page, then the share sheet opens.
+ * The hero's share: the Organizer and the Game's players mint its Invite
+ * link, everyone else shares the Game page, then the share sheet opens.
  */
 export function useShareGame(gameId: string) {
   const toast = useToast();

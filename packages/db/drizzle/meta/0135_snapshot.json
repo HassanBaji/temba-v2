@@ -1,5 +1,5 @@
 {
-  "id": "2467bff3-39ec-4705-a96c-a99517c23e75",
+  "id": "89fb3712-3f84-46e6-8cf5-9d3c9f858a31",
   "prevId": "44c8c7b9-cc13-4a2f-b24f-d9061167bd15",
   "version": "7",
   "dialect": "postgresql",
@@ -5080,6 +5080,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "gender_tag": {
+          "name": "gender_tag",
+          "type": "game_gender_tag",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
         "sport": {
           "name": "sport",
           "type": "game_sport",
@@ -9151,229 +9158,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.football_lineup_draft_players": {
-      "name": "football_lineup_draft_players",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "draft_id": {
-          "name": "draft_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "game_player_id": {
-          "name": "game_player_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "side_index": {
-          "name": "side_index",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "football_lineup_draft_players_draft_id_idx": {
-          "name": "football_lineup_draft_players_draft_id_idx",
-          "columns": [
-            {
-              "expression": "draft_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "football_lineup_draft_players_game_player_id_unique": {
-          "name": "football_lineup_draft_players_game_player_id_unique",
-          "columns": [
-            {
-              "expression": "game_player_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "football_lineup_draft_players_draft_id_football_lineup_drafts_id_fk": {
-          "name": "football_lineup_draft_players_draft_id_football_lineup_drafts_id_fk",
-          "tableFrom": "football_lineup_draft_players",
-          "tableTo": "football_lineup_drafts",
-          "columnsFrom": [
-            "draft_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "football_lineup_draft_players_game_player_id_game_players_id_fk": {
-          "name": "football_lineup_draft_players_game_player_id_game_players_id_fk",
-          "tableFrom": "football_lineup_draft_players",
-          "tableTo": "game_players",
-          "columnsFrom": [
-            "game_player_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "football_lineup_draft_players_side_index_check": {
-          "name": "football_lineup_draft_players_side_index_check",
-          "value": "\"football_lineup_draft_players\".\"side_index\" in (1, 2)"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.football_lineup_drafts": {
-      "name": "football_lineup_drafts",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "game_id": {
-          "name": "game_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "method": {
-          "name": "method",
-          "type": "football_teams_method",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "slot1_bib": {
-          "name": "slot1_bib",
-          "type": "football_bib",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "slot2_bib": {
-          "name": "slot2_bib",
-          "type": "football_bib",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "saved_by": {
-          "name": "saved_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "saved_at": {
-          "name": "saved_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "football_lineup_drafts_game_id_unique": {
-          "name": "football_lineup_drafts_game_id_unique",
-          "columns": [
-            {
-              "expression": "game_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "football_lineup_drafts_game_id_games_id_fk": {
-          "name": "football_lineup_drafts_game_id_games_id_fk",
-          "tableFrom": "football_lineup_drafts",
-          "tableTo": "games",
-          "columnsFrom": [
-            "game_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "football_lineup_drafts_saved_by_user_id_fk": {
-          "name": "football_lineup_drafts_saved_by_user_id_fk",
-          "tableFrom": "football_lineup_drafts",
-          "tableTo": "user",
-          "columnsFrom": [
-            "saved_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "football_lineup_drafts_bibs_differ_check": {
-          "name": "football_lineup_drafts_bibs_differ_check",
-          "value": "\"football_lineup_drafts\".\"slot1_bib\" <> \"football_lineup_drafts\".\"slot2_bib\""
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.groups": {
       "name": "groups",
       "schema": "",
@@ -12562,6 +12346,15 @@
         "friendly_game",
         "americano",
         "friendly_tournament"
+      ]
+    },
+    "public.game_gender_tag": {
+      "name": "game_gender_tag",
+      "schema": "public",
+      "values": [
+        "men",
+        "women",
+        "mixed"
       ]
     },
     "public.game_position": {

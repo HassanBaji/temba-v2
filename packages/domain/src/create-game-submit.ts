@@ -16,6 +16,7 @@ import {
   type CreateTournamentShape,
 } from "./create-game-flow";
 import { normalizeGameCustomName } from "./game-custom-name";
+import type { GameGenderTag } from "./game-gender-tag";
 import { footballPlayersAllowedBounds, isFootballSideSize } from "./game-shape";
 import { formatGameWindowName, parseRequiredGameWindow } from "./game-window";
 import {
@@ -66,6 +67,7 @@ type GameFields = {
   /** With no Group, a Public Game (ADR-0071). */
   isPublic?: boolean;
   trackPayments?: boolean;
+  genderTag?: GameGenderTag | null;
 };
 
 type TournamentFields = Omit<
@@ -102,6 +104,11 @@ function trackPaymentsInput(
   return keepersPlayFree === undefined
     ? { trackPayments: true }
     : { trackPayments: true, keepersPlayFree };
+}
+
+/** Untagged is the server default, so only a picked Gender tag is sent. */
+function genderTagInput(draft: Pick<GameFields, "genderTag">) {
+  return draft.genderTag ? { genderTag: draft.genderTag } : {};
 }
 
 /** Rated is the server default, so only the Unrated choice is sent. */
@@ -225,6 +232,7 @@ export function validateFriendlyGameSubmit(
       ...(publicGame ? {} : ratedInput(draft)),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
       ...trackPaymentsInput(draft, priced.fils),
+      ...genderTagInput(draft),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }
         : {}),
@@ -319,6 +327,7 @@ export function validateFootballGameSubmit(
       ...customNameInput(draft),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
       ...trackPaymentsInput(draft, priced.fils, draft.keepersPlayFree ?? false),
+      ...genderTagInput(draft),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }
         : {}),
@@ -452,6 +461,7 @@ export function validateFriendlyTournamentSubmit(
       ...(draft.tournamentShape === "americano" ? {} : ratedInput(draft)),
       ...(priced.fils !== null ? { pricePerPlayerFils: priced.fils } : {}),
       ...trackPaymentsInput(draft, priced.fils),
+      ...genderTagInput(draft),
       ...(priced.levelMinTenths !== null
         ? { levelMinTenths: priced.levelMinTenths }
         : {}),

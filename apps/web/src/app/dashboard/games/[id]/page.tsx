@@ -93,6 +93,7 @@ import {
 import {
   friendlyGameCanMintInvite,
   friendlyGameShareLink,
+  gameCanShareInviteLink,
   friendlyGameVacantSeatLine,
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
@@ -729,6 +730,7 @@ export default function GameHomePage({
     : { canManage: false, canSendLookup: false };
   const canMintInvite = data ? friendlyGameCanMintInvite(data) : false;
   const canManageGameInvites = inviteAccess.canManage;
+  const canShareInviteLink = data ? gameCanShareInviteLink(data) : false;
   const canSendGameLookup = inviteAccess.canSendLookup;
   const canPartnerPick = Boolean(
     data &&
@@ -954,7 +956,7 @@ export default function GameHomePage({
         ? shareGamePage
         : undefined;
   const shareLink = friendlyGameShareLink({
-    canMintInvite: canManageGameInvites,
+    canMintInvite: canShareInviteLink,
     cancelled: data.cancelledAt != null,
     phase: data.phase ?? null,
   });
@@ -1227,8 +1229,7 @@ export default function GameHomePage({
                 onShareGame={shareLinkHandler(
                   friendlyGameShareLink({
                     canMintInvite:
-                      canManageGameInvites &&
-                      data.registrationStatus === "open",
+                      canShareInviteLink && data.registrationStatus === "open",
                     cancelled: data.cancelledAt != null,
                     phase: null,
                   }),
@@ -1285,7 +1286,7 @@ export default function GameHomePage({
                     });
                   },
                 }}
-                onShare={canManageGameInvites ? shareInviteLink : undefined}
+                onShare={canShareInviteLink ? shareInviteLink : undefined}
                 onInvite={
                   canManageGameInvites ? () => setInvitesOpen(true) : undefined
                 }
@@ -1341,6 +1342,7 @@ export default function GameHomePage({
                   input={heroInput}
                   place={heroPlace}
                   figures={heroFigures}
+                  genderTag={data.genderTag}
                   actions={heroActions}
                 />
               ) : playedMatch ? null : (

@@ -128,6 +128,7 @@ import {
   type GameKickRequest,
   type GameKickTarget,
 } from "@repo/domain/game-kick-confirm";
+import { gameCanShareInviteLink } from "@repo/domain/friendly-game-cta";
 import { gameInviteClipboardText } from "@repo/domain/game-invite-share-message";
 import { gameInviteAccess } from "@repo/domain/invites";
 import { gameIsPlayed, playedFootballModel } from "@repo/domain/played-game";
@@ -382,14 +383,23 @@ export function FootballGameDetails({
         partnerRequired: false,
       })
     : { canManage: false, canSendLookup: false };
-  function shareGamePage() {
-    const text = utils.games.resultLink
-      .fetch({ gameId })
-      .then((result) => ({ text: inviteShareText(result.url) }))
-      .catch(() => null);
+  const createInviteLink = api.games.createInviteLink.useMutation({
+    onSuccess: () => utils.games.getInviteLink.invalidate({ gameId }),
+    onError,
+  });
+  // An Invite link opens for anyone, the Game page only for whoever may
+  // already see the Game, so whoever may mint one shares it (ADR-0110).
+  function shareGame() {
+    const mints = gameCanShareInviteLink(game);
+    const url = mints
+      ? createInviteLink
+          .mutateAsync({ gameId })
+          .then((link) => link.shortUrl ?? link.inviteUrl)
+      : utils.games.resultLink.fetch({ gameId }).then((page) => page.url);
+    const toasts = m.webDashboard.game.toast;
     void shareLinkWithFeedback(
-      text,
-      m.webDashboard.game.toast.linkCopied,
+      url.then((link) => ({ text: inviteShareText(link) })).catch(() => null),
+      mints ? toasts.inviteLinkCopied : toasts.linkCopied,
       locale,
     );
   }
@@ -714,6 +724,7 @@ export function FootballGameDetails({
             venue: game.venue,
             courtName: game.recordedCourts[0]?.name ?? null,
             groupName: game.groupName,
+            genderTag: game.genderTag,
             rated: game.rated,
             ratingImpact: game.ratingImpact,
             stoodUnconfirmed: boardMatch?.stoodUnconfirmed ?? false,
@@ -923,6 +934,7 @@ export function FootballGameDetails({
           <FootballGameHeroCard
             tone={model.hero.tone}
             lines={lines}
+            genderTag={game.genderTag}
             tag={
               ratingScopeOf(game) === "temba"
                 ? (ratingScopeTag(game, locale) ?? undefined)
@@ -935,10 +947,7 @@ export function FootballGameDetails({
                 menu
               ) : (
                 <>
-                  <GameShareButton
-                    onShare={shareGamePage}
-                    tone={model.hero.tone}
-                  />
+                  <GameShareButton onShare={shareGame} tone={model.hero.tone} />
                   {menu}
                 </>
               )

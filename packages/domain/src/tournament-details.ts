@@ -4,6 +4,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { awaitsOrganizerTeams } from "./alone-teams";
 import type { SeatHoldRequestRow } from "./seat-hold-request";
 import { formatGameCardDay } from "./format-game-start";
+import { gameGenderTagLabel } from "./game-gender-tag";
 import { ratingScopeNotice, ratingScopeOf } from "./game-rating-impact";
 import type { GameRatingScope } from "./game-rating-scope";
 import { formatPadelLevel, levelFromMu } from "./level";
@@ -168,6 +169,7 @@ export type TournamentDetails = {
   trackPayments: boolean;
   levelMinTenths: number | null;
   levelMaxTenths: number | null;
+  genderTag?: string | null;
   playersAllowed: number | null;
   teamsAllowed: number | null;
   poolCount: number | null;
@@ -458,6 +460,8 @@ export type TournamentHomeView = {
     statusLine: string;
     /** King of the court: teams, courts and the price, as tiles under the title. */
     stats: { value: string; label: string }[];
+    /** "Women only" and the like; null on a Social with no Gender tag. */
+    genderTag: string | null;
   };
   detailRows: TournamentDetailRow[];
   canLeaveGame: boolean;
@@ -571,6 +575,7 @@ export function tournamentHomeView(
             : null,
       statusLine,
       stats: king ? kingHeroStats(game, locale) : [],
+      genderTag: gameGenderTagLabel(game.genderTag, locale),
     },
     detailRows: tournamentDetailRows({
       organizerName,

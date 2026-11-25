@@ -125,6 +125,7 @@ export type FriendlyGameDetails = {
   trackPayments: boolean;
   levelMinTenths: number | null;
   levelMaxTenths: number | null;
+  genderTag?: string | null;
   playersAllowed: number | null;
   cancelledAt: Date | null;
   registrationClosedAt: Date | null;

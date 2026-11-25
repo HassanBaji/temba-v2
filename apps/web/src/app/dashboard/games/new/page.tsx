@@ -99,6 +99,7 @@ import {
   defaultPoolCount,
   TOURNAMENT_DEFAULT_TEAM_COUNT,
 } from "@repo/domain/tournament-sizing";
+import type { GameGenderTag } from "@repo/domain/game-gender-tag";
 import type { MvpMode } from "@repo/domain/marks";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 import { api } from "~/trpc/react";
@@ -178,6 +179,7 @@ function NewGameForm() {
   const [trackPayments, setTrackPayments] = React.useState(false);
   const [keepersPlayFree, setKeepersPlayFree] = React.useState(true);
   const [mvpMode, setMvpMode] = React.useState<MvpMode>("vote");
+  const [genderTag, setGenderTag] = React.useState<GameGenderTag | null>(null);
   const [errors, setErrors] = React.useState<
     Record<string, string | undefined>
   >({});
@@ -215,6 +217,7 @@ function NewGameForm() {
     setRated(next.rated);
     setTrackPayments(next.trackPayments);
     setKeepersPlayFree(next.keepersPlayFree);
+    setGenderTag(next.genderTag);
   }
 
   React.useEffect(() => {
@@ -328,6 +331,7 @@ function NewGameForm() {
     rated,
     trackPayments,
     keepersPlayFree,
+    genderTag,
   };
   const initialGroupId =
     requestedGroupId &&
@@ -668,6 +672,7 @@ function NewGameForm() {
         organizerMakesTeams,
         rated,
         trackPayments,
+        genderTag,
       },
       session.now,
       groupVerified,
@@ -704,6 +709,7 @@ function NewGameForm() {
           rated,
           trackPayments,
           keepersPlayFree,
+          genderTag,
           levelMin,
           levelMax,
           isPublic: publicGame,
@@ -741,6 +747,7 @@ function NewGameForm() {
         customName,
         rated,
         trackPayments,
+        genderTag,
         isPublic: publicGame,
       },
       session.now,
@@ -969,7 +976,7 @@ function NewGameForm() {
               {c.hero.titleTrail}
             </>
           ) : (
-            m.createGame.format.friendlyGame
+            m.createGame.typeCards.friendlyGame.title
           )}
         </PageTitle>
         <div className="text-dim text-meta mt-2.5 leading-normal">
@@ -1222,6 +1229,8 @@ function NewGameForm() {
               }}
               trackPayments={trackPayments}
               onTrackPayments={setTrackPayments}
+              genderTag={genderTag}
+              onGenderTag={setGenderTag}
               isPublic={isPublic}
               onIsPublic={setIsPublic}
               allowSoloRegister={allowSoloRegister}
@@ -1390,6 +1399,8 @@ function NewGameForm() {
               onRated={setRated}
               mvpMode={mvpMode}
               onMvpMode={setMvpMode}
+              genderTag={genderTag}
+              onGenderTag={setGenderTag}
               reviewVenue={
                 selectedVenue
                   ? courtId === "none"

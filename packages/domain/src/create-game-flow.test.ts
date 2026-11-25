@@ -273,10 +273,10 @@ describe("create flow query", () => {
 });
 
 describe("create game type cards", () => {
-  it("offers Friendly game and Friendly tournament, both rated", () => {
+  it("offers a Game and a Social, both rated", () => {
     assert.deepEqual(
       createGameTypeCards("en").map((card) => card.title),
-      ["Friendly game", "Social"],
+      ["Game", "Social"],
     );
     assert.deepEqual(
       createGameTypeCards("en").map((card) => card.rating),
@@ -1264,7 +1264,7 @@ describe("Arabic copy", () => {
       friendlyTournamentFormatLabel(3, "ar", true),
       "3 مجموعات، ثم خروج المغلوب",
     );
-    assert.equal(createGameTypeCards("ar")[0]?.title, "مباراة ودية");
+    assert.equal(createGameTypeCards("ar")[0]?.title, "مباراة");
     assert.equal(
       createFlowSeatsLabel("padel", { sideSize: 5, playersAllowed: 10 }, "ar"),
       "4 أماكن شاغرة",

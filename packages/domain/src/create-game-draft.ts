@@ -10,6 +10,7 @@ import {
   type CreateTournamentShape,
 } from "./create-game-flow";
 import { parseDateInputValue } from "./game-window";
+import { isGameGenderTag, type GameGenderTag } from "./game-gender-tag";
 import { DEFAULT_FOOTBALL_SIDE_SIZE, isFootballSideSize } from "./game-shape";
 import { isAssignableDisplayLevelBand, LEVEL_BANDS } from "./level-bands";
 import {
@@ -58,6 +59,8 @@ export type CreateGameDraft = {
   trackPayments: boolean;
   /** Football only, read while payments are tracked. */
   keepersPlayFree: boolean;
+  /** A label for who the Game is meant for; null leaves it untagged. */
+  genderTag: GameGenderTag | null;
 };
 
 type DraftStorage = {
@@ -108,6 +111,7 @@ export function initialCreateGameDraft(
     rated: true,
     trackPayments: false,
     keepersPlayFree: true,
+    genderTag: null,
   };
 }
 
@@ -147,6 +151,7 @@ export function serializeCreateGameDraft(draft: CreateGameDraft) {
     rated: draft.rated,
     trackPayments: draft.trackPayments,
     keepersPlayFree: draft.keepersPlayFree,
+    genderTag: draft.genderTag,
   });
 }
 
@@ -203,6 +208,7 @@ export function parseCreateGameDraft(
     record.keepersPlayFree === undefined ? true : record.keepersPlayFree;
   const publicSport =
     record.publicSport === undefined ? DEFAULT_SPORT : record.publicSport;
+  const genderTag = record.genderTag === undefined ? null : record.genderTag;
   const strings = [
     "groupId",
     "venueId",
@@ -240,6 +246,7 @@ export function parseCreateGameDraft(
     typeof trackPayments !== "boolean" ||
     typeof keepersPlayFree !== "boolean" ||
     !isSport(publicSport) ||
+    !(genderTag === null || isGameGenderTag(genderTag)) ||
     parseDateInputValue(record.day as string) === undefined
   ) {
     return null;
@@ -274,6 +281,7 @@ export function parseCreateGameDraft(
     rated,
     trackPayments,
     keepersPlayFree,
+    genderTag,
   };
 }
 

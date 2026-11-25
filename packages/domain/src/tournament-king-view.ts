@@ -3,7 +3,10 @@ import type { Locale } from "@repo/i18n/locale";
 
 import { formatAbsoluteDay, formatGameDay } from "./format-game-start";
 import { filsToMajorInput } from "./price-per-player";
-import type { TournamentShareCard } from "./tournament-finished";
+import type {
+  TournamentShareCard,
+  TournamentShareFocus,
+} from "./tournament-finished";
 import {
   kingCourtCount,
   kingCourtMoves,
@@ -279,11 +282,12 @@ const SHARE_ORDER_ROWS = 6;
 
 /**
  * The square card a finished King of the court shares: the viewer's place
- * when they have one, else the top of the final order.
+ * when they have one and `focus` is "me", else the top of the final order.
  */
 export function kingShareCard(
   game: KingGame,
   locale: Locale,
+  focus: TournamentShareFocus = "me",
 ): TournamentShareCard | null {
   const messages = messagesFor(locale);
   const k = messages.tournamentKing;
@@ -303,7 +307,7 @@ export function kingShareCard(
     ),
   };
   const viewerTeam = viewerKingTeam(field, game.viewerUserId);
-  if (viewerTeam?.finalPlace != null) {
+  if (focus === "me" && viewerTeam?.finalPlace != null) {
     const placing = m.ordinal(viewerTeam.finalPlace);
     const placingNote =
       viewerTeam.finalPlace === 1
@@ -330,7 +334,7 @@ export function kingShareCard(
     markName: team.members[0]?.name ?? "",
     team: kingFullNames(team.members),
     points: null,
-    isViewer: false,
+    isViewer: team.id === viewerTeam?.id,
   }));
   return {
     ...base,

@@ -76,6 +76,10 @@ export const footballDraftAnswers = pgEnum("football_draft_answer", [
   "change_asked",
 ]);
 
+export const GAME_GENDER_TAG_VALUES = ["men", "women", "mixed"] as const;
+
+export const gameGenderTags = pgEnum("game_gender_tag", GAME_GENDER_TAG_VALUES);
+
 export const MVP_MODE_VALUES = ["vote", "organizer", "none"] as const;
 
 export const mvpModes = pgEnum("mvp_mode", MVP_MODE_VALUES);

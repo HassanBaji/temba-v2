@@ -252,6 +252,23 @@ describe("kingShareCard", () => {
     );
   });
 
+  it("shares the order, with the viewer's line marked, when they choose the table", () => {
+    const card = kingShareCard(GAME, "en", "table");
+    assert.equal(card?.kind, "table");
+    if (card?.kind !== "table") {
+      return;
+    }
+    assert.deepEqual(
+      card.rows.map((row) => [row.place, row.isViewer]),
+      [
+        ["1", false],
+        ["2", false],
+        ["3", true],
+        ["4", false],
+      ],
+    );
+  });
+
   it("has nothing to share before the order is posted", () => {
     assert.equal(
       kingShareCard(

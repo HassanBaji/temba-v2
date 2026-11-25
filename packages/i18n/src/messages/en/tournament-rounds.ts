@@ -385,6 +385,8 @@ export const tournamentRounds = {
     tableMessage: (name: string, title: string, lines: string) =>
       `${name}, ${title}\n${lines}`,
     format: "1080 × 1080 PNG",
+    highlightMe: "Highlight me",
+    highlightMeHint: "Your place on the card. Off, the top of the table",
   },
   loadFailed: "The Rounds could not be loaded",
 };

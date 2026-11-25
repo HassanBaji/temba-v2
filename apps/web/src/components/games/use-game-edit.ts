@@ -104,6 +104,9 @@ export function useGameEdit({
   const updateLevel = api.games.updateLevelRange.useMutation({
     meta: OWN_ERROR_UI,
   });
+  const updateGenderTag = api.games.updateGenderTag.useMutation({
+    meta: OWN_ERROR_UI,
+  });
   const updateRounds = api.games.updateRoundCount.useMutation({
     meta: OWN_ERROR_UI,
   });
@@ -179,6 +182,12 @@ export function useGameEdit({
           gameId,
           levelMinTenths: step.levelMinTenths,
           levelMaxTenths: step.levelMaxTenths,
+        });
+        return 0;
+      case "genderTag":
+        await updateGenderTag.mutateAsync({
+          gameId,
+          genderTag: step.genderTag,
         });
         return 0;
       case "rounds":

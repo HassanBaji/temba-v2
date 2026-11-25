@@ -1,6 +1,6 @@
 {
-  "id": "366caf1c-2e5b-42e8-9815-00eb8c9a3f82",
-  "prevId": "2467bff3-39ec-4705-a96c-a99517c23e75",
+  "id": "93f1a8ed-426a-4e5a-a771-668c84c8b3d6",
+  "prevId": "89fb3712-3f84-46e6-8cf5-9d3c9f858a31",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -5080,6 +5080,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "gender_tag": {
+          "name": "gender_tag",
+          "type": "game_gender_tag",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
         "sport": {
           "name": "sport",
           "type": "game_sport",
@@ -9350,6 +9357,12 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "pick_number": {
+          "name": "pick_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -9364,6 +9377,28 @@
             }
           ],
           "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "football_lineup_draft_players_pick_number_unique": {
+          "name": "football_lineup_draft_players_pick_number_unique",
+          "columns": [
+            {
+              "expression": "draft_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "pick_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"football_lineup_draft_players\".\"pick_number\" is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -9470,6 +9505,51 @@
         "slot2_captain_game_player_id": {
           "name": "slot2_captain_game_player_id",
           "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pick_status": {
+          "name": "pick_status",
+          "type": "football_pick_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "first_pick": {
+          "name": "first_pick",
+          "type": "football_first_pick",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "first_pick_side": {
+          "name": "first_pick_side",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pick_id": {
+          "name": "pick_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "pick_stopped_at": {
+          "name": "pick_stopped_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "slot1_captain_seen_at": {
+          "name": "slot1_captain_seen_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "slot2_captain_seen_at": {
+          "name": "slot2_captain_seen_at",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         },
@@ -9609,6 +9689,10 @@
         "football_lineup_drafts_bibs_differ_check": {
           "name": "football_lineup_drafts_bibs_differ_check",
           "value": "\"football_lineup_drafts\".\"slot1_bib\" <> \"football_lineup_drafts\".\"slot2_bib\""
+        },
+        "football_lineup_drafts_first_pick_side_check": {
+          "name": "football_lineup_drafts_first_pick_side_check",
+          "value": "\"football_lineup_drafts\".\"first_pick_side\" is null or \"football_lineup_drafts\".\"first_pick_side\" in (1, 2)"
         }
       },
       "isRLSEnabled": false
@@ -12777,6 +12861,24 @@
         "change_asked"
       ]
     },
+    "public.football_first_pick": {
+      "name": "football_first_pick",
+      "schema": "public",
+      "values": [
+        "toss",
+        "slot1",
+        "slot2"
+      ]
+    },
+    "public.football_pick_status": {
+      "name": "football_pick_status",
+      "schema": "public",
+      "values": [
+        "waiting",
+        "live",
+        "done"
+      ]
+    },
     "public.football_position": {
       "name": "football_position",
       "schema": "public",
@@ -12799,7 +12901,8 @@
       "schema": "public",
       "values": [
         "level",
-        "manual"
+        "manual",
+        "captain_pick"
       ]
     },
     "public.game_format": {
@@ -12809,6 +12912,15 @@
         "friendly_game",
         "americano",
         "friendly_tournament"
+      ]
+    },
+    "public.game_gender_tag": {
+      "name": "game_gender_tag",
+      "schema": "public",
+      "values": [
+        "men",
+        "women",
+        "mixed"
       ]
     },
     "public.game_position": {
@@ -13159,7 +13271,10 @@
         "football_draft_shared",
         "football_draft_changed",
         "football_draft_approved",
-        "football_draft_change_asked"
+        "football_draft_change_asked",
+        "football_pick_room_opened",
+        "football_pick_reminder",
+        "football_pick_done"
       ]
     }
   },

@@ -68,14 +68,31 @@ export function friendlyGameCanMintInvite(game: {
   );
 }
 
+/**
+ * Who may mint the Game's Invite link to share it: the Organizer and every
+ * player registered on the Game, while it still takes players (ADR-0110).
+ * A Challenge Game has no Invite door.
+ */
+export function gameCanShareInviteLink(game: {
+  isOrganizer: boolean;
+  isRegistered: boolean;
+  isChallengeGame: boolean;
+  registrationStatus: string;
+}) {
+  return (
+    !game.isChallengeGame &&
+    (game.isOrganizer || game.isRegistered) &&
+    (game.registrationStatus === "open" || game.registrationStatus === "full")
+  );
+}
+
 export type FriendlyGameShareLink = "invite_link" | "game_page";
 
 /**
- * What the hero's share sends. An Invite link is the Organizer's invitation
- * (it can also admit to the Group), so only they mint one; every other viewer
- * shares the Game page, which opens for whoever may already see the Game.
- * A cancelled or played Game has nothing to share here: a played result has
- * its own share.
+ * What the hero's share sends. Whoever may mint an Invite link shares one,
+ * since it opens for anyone; every other viewer shares the Game page, which
+ * opens only for whoever may already see the Game. A cancelled or played Game
+ * has nothing to share here: a played result has its own share.
  */
 export function friendlyGameShareLink(game: {
   canMintInvite: boolean;

@@ -2,15 +2,17 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { type Locale, DEFAULT_LOCALE } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import {
-  assertGameOrganizer,
+  isGameOrganizer,
   requireGame,
   requireNotChallengeGame,
 } from "#src/games/access";
+import { userAlreadyOnGame } from "#src/games/helpers/user-already-on-game";
 import { assertGameInviteDoorsOpen } from "#src/games/invites";
 import { mintLink } from "#src/invites/doors";
 import { gameInviteLinkUrl, gameInviteShortUrl } from "#src/invites/tokens";
@@ -24,7 +26,16 @@ export async function createInviteLink(
   const locale = args.locale ?? DEFAULT_LOCALE;
   const game = await requireGame(database, args.gameId, locale);
   requireNotChallengeGame(game, args.locale);
-  await assertGameOrganizer(database, game, args.userId, locale);
+  // The Organizer and every player on the Game may invite to it (ADR-0110).
+  const mayMint =
+    (await isGameOrganizer(database, game, args.userId)) ||
+    (await userAlreadyOnGame(database, game.id, args.userId));
+  if (!mayMint) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: messagesFor(locale).game.errors.invitePlayersOnly,
+    });
+  }
   await assertGameInviteDoorsOpen(database, game, undefined, locale);
   const minted = await mintLink(
     database,

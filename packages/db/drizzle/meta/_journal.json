@@ -950,29 +950,15 @@
     {
       "idx": 135,
       "version": "7",
-      "when": 1795239683534,
-      "tag": "0135_football_lineup_drafts",
+      "when": 1795597884649,
+      "tag": "0135_game_gender_tag",
       "breakpoints": true
     },
     {
       "idx": 136,
       "version": "7",
-      "when": 1795243687943,
-      "tag": "0136_football_side_captains",
-      "breakpoints": true
-    },
-    {
-      "idx": 137,
-      "version": "7",
-      "when": 1795252797025,
-      "tag": "0137_football_captain_pick",
-      "breakpoints": true
-    },
-    {
-      "idx": 138,
-      "version": "7",
-      "when": 1795598665906,
-      "tag": "0138_football_pick_room_identity",
+      "when": 1795612081018,
+      "tag": "0136_football_draft_line_up",
       "breakpoints": true
     }
   ]
