@@ -1,4 +1,4 @@
-import { and, asc, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, asc, inArray, isNotNull } from "drizzle-orm";
 
 import {
   gamePlayers,
@@ -13,6 +13,8 @@ import {
   DEFAULT_FOOTBALL_BIBS,
   type FootballBib,
 } from "@repo/domain/football-lineup";
+import { isFootballGame } from "@repo/domain/game-shape";
+import { MATCH_STATUS } from "@repo/domain/match-status";
 import {
   seriesEditionResult,
   type SeriesEditionResult,
@@ -27,6 +29,7 @@ import {
   americanoPlayersOf,
   americanoResults,
 } from "#src/games/americano-matches";
+import { editionNumber, isEdition } from "#src/series/edition-order";
 
 type DbClient =
   | typeof db
@@ -46,12 +49,14 @@ export type SeriesEditionWinner = {
   gameTeamId: string | null;
 };
 
+type GameRow = typeof games.$inferSelect;
+
 export type SeriesEdition = {
   game: {
     id: string;
     seriesId: string;
-    format: string;
-    sport: string;
+    format: GameRow["format"];
+    sport: GameRow["sport"];
     tournamentShape: string | null;
     poolCount: number | null;
     name: string | null;
@@ -109,31 +114,21 @@ async function loadGames(database: DbClient, scope: SeriesEditionsScope) {
       finalOrderPostedAt: games.finalOrderPostedAt,
     })
     .from(games)
-    .where(and(inScope, isNotNull(games.seriesId), isNull(games.cancelledAt)));
+    .where(and(inScope, isNotNull(games.seriesId), isEdition));
 }
 
 /**
  * Each Game's Edition number among every Game of its Series that is not
- * cancelled, in `seriesEditionNumbers` order. Numbered in SQL: stored times
- * keep microseconds a JavaScript Date would round away, and two Games created
- * in one millisecond would then tie (as `gameSeriesSummary` does).
+ * cancelled, in `edition-order`.
  */
 async function loadEditionNumbers(
   database: DbClient,
   seriesIds: readonly string[],
 ) {
   const rows = await database
-    .select({
-      id: games.id,
-      edition:
-        sql<number>`row_number() over (partition by ${games.seriesId} order by ${games.windowStart}, ${games.createdAt}, ${games.id})`.mapWith(
-          Number,
-        ),
-    })
+    .select({ id: games.id, edition: editionNumber })
     .from(games)
-    .where(
-      and(inArray(games.seriesId, [...seriesIds]), isNull(games.cancelledAt)),
-    );
+    .where(and(inArray(games.seriesId, [...seriesIds]), isEdition));
   return new Map(rows.map((row) => [row.id, row.edition]));
 }
 
@@ -281,7 +276,7 @@ export async function loadSeriesEditions(
         : [];
     const winningTeam = winningTeams.length === 1 ? winningTeams[0] : undefined;
     const winnerBib =
-      game.sport === "football" && winningTeam
+      isFootballGame(game) && winningTeam
         ? (winningTeam.bib ??
           (winningTeam.sideIndex === 2
             ? DEFAULT_FOOTBALL_BIBS.slot2
@@ -289,8 +284,9 @@ export async function loadSeriesEditions(
         : null;
     const single =
       game.format === "friendly_game"
-        ? (gameMatches.find((match) => match.status === "completed") ??
-          gameMatches[0])
+        ? (gameMatches.find(
+            (match) => match.status === MATCH_STATUS.COMPLETED,
+          ) ?? gameMatches[0])
         : undefined;
 
     return [

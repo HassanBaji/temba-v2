@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, isNull } from "drizzle-orm";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 
 import { groups, groupSeries } from "@repo/db";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
@@ -72,7 +72,15 @@ export async function createSeries(
       locale,
     );
     if (nameError) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: nameError });
+      // A ZodError cause reaches the client as `zodError.fieldErrors`, which is
+      // how a form learns the refusal belongs under its name field.
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: nameError,
+        cause: new ZodError([
+          { code: "custom", path: ["name"], message: nameError },
+        ]),
+      });
     }
     if (running.length >= SERIES_RUNNING_MAX) {
       throw new TRPCError({
@@ -96,7 +104,7 @@ export async function createSeries(
     if (!created) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to create the series",
+        message: errors.createFailed,
       });
     }
     return { id: created.id };

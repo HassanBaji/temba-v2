@@ -27,12 +27,14 @@ import {
   type SeriesColour,
   type SeriesEmblem,
 } from "@repo/domain/series";
-import { toastGlobalFormError } from "~/lib/form-mutation-error";
+import {
+  fieldErrorMessage,
+  toastGlobalFormError,
+} from "~/lib/form-mutation-error";
 import { groupHomeHref, groupSeriesTabHref } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
-import { seriesNameFieldError } from "./new-series-model";
 import { SeriesBadge } from "./series-badge";
 import { SeriesColourPicker, SeriesEmblemPicker } from "./series-pickers";
 
@@ -159,7 +161,7 @@ function NewSeriesForm({
       router.push(groupSeriesTabHref(groupId));
     },
     onError: (error) => {
-      const fieldError = seriesNameFieldError(error.message, locale);
+      const fieldError = fieldErrorMessage(error, "name");
       if (fieldError) {
         setNameError(fieldError);
         nameRef.current?.focus();

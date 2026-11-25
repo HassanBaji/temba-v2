@@ -1,6 +1,5 @@
 import {
   invertedFocusPalettes,
-  palettes,
   type ColorScheme,
   type Palette,
 } from "@repo/design-tokens";
@@ -87,22 +86,6 @@ export function LightScheme({ children }: { children: React.ReactNode }) {
   const outer = useContext(ThemeContext);
   const value = useMemo<ThemeContextValue>(
     () => ({ ...outer, scheme: "light", colors: invertedFocusPalettes.light }),
-    [outer],
-  );
-  return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
-  );
-}
-
-/**
- * Draws its subtree with Palette v2 (ADR-0084), where `focus` is the lifted
- * card instead of inverted ink, for a focus drawn lifted while the rest of the
- * App still reads the inverted light focus.
- */
-export function LiftedPalette({ children }: { children: React.ReactNode }) {
-  const outer = useContext(ThemeContext);
-  const value = useMemo<ThemeContextValue>(
-    () => ({ ...outer, colors: palettes[outer.scheme] }),
     [outer],
   );
   return (

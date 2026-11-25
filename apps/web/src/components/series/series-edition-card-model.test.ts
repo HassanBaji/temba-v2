@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   seriesEditionCard,
-  seriesTableMarks,
+  seriesTableBadges,
   type SeriesEditionCardInput,
 } from "./series-edition-card-model";
 
@@ -14,7 +14,7 @@ function winner(overrides: Partial<Winner> & Pick<Winner, "name">): Winner {
     isViewer: false,
     gameTeamId: "team-1",
     winCount: 1,
-    standing: "new",
+    tally: "new",
     levelWith: null,
     ...overrides,
   };
@@ -23,7 +23,7 @@ function winner(overrides: Partial<Winner> & Pick<Winner, "name">): Winner {
 const qasim = winner({
   name: "Qasim Albaqali",
   winCount: 3,
-  standing: "level",
+  tally: "level",
   levelWith: { name: "Layla Haddad" },
 });
 const ahmed = winner({ name: "Ahmed Buhazza" });
@@ -78,12 +78,12 @@ describe("seriesEditionCard", () => {
           {
             key: "Qasim Albaqali",
             ordinal: "Qasim’s 3rd",
-            standing: "most of anyone, level with Layla",
+            tally: "most of anyone, level with Layla",
           },
           {
             key: "Ahmed Buhazza",
             ordinal: "Ahmed’s 1st",
-            standing: "new on the profile",
+            tally: "new on the profile",
           },
         ],
         href: "/dashboard/series/series-1",
@@ -102,7 +102,7 @@ describe("seriesEditionCard", () => {
     );
     expect(card?.kind === "winners" && card.model).toMatchObject({
       names: ["Reem Fakhro"],
-      blocks: [{ ordinal: "Reem’s 1st", standing: "new on the profile" }],
+      blocks: [{ ordinal: "Reem’s 1st", tally: "new on the profile" }],
     });
   });
 
@@ -118,7 +118,7 @@ describe("seriesEditionCard", () => {
             gameTeamId: "b",
             isViewer: true,
             winCount: 2,
-            standing: null,
+            tally: null,
           }),
           winner({ name: "Khalid Janahi", gameTeamId: "b" }),
         ],
@@ -128,7 +128,7 @@ describe("seriesEditionCard", () => {
     );
     expect(card?.kind === "winners" && card.model).toMatchObject({
       names: ["Qasim A & Ahmed B", "Hassan H & Khalid J"],
-      blocks: [{ key: "Hassan Haji", ordinal: "Your 2nd", standing: null }],
+      blocks: [{ key: "Hassan Haji", ordinal: "Your 2nd", tally: null }],
     });
   });
 
@@ -225,31 +225,31 @@ describe("seriesEditionCard", () => {
   });
 });
 
-describe("seriesTableMarks", () => {
-  it("marks the winners' Game teams and players with the note", () => {
-    const marks = seriesTableMarks(edition(), "en");
-    expect(marks?.gameTeamIds).toEqual(new Set(["team-1"]));
-    expect(marks?.userIds).toEqual(
+describe("seriesTableBadges", () => {
+  it("badges the winners' Game teams and players with the note", () => {
+    const badges = seriesTableBadges(edition(), "en");
+    expect(badges?.gameTeamIds).toEqual(new Set(["team-1"]));
+    expect(badges?.userIds).toEqual(
       new Set(["Qasim Albaqali", "Ahmed Buhazza"]),
     );
-    expect(marks?.note).toBe(
+    expect(badges?.note).toBe(
       "The series goes to the top of the table once the last round is saved. If the organizer corrects a score, it follows the table.",
     );
   });
 
-  it("keeps the note and marks no row before the Edition is decided", () => {
-    const marks = seriesTableMarks(
+  it("keeps the note and badges no row before the Edition is decided", () => {
+    const badges = seriesTableBadges(
       edition({ state: "upcoming", winners: [] }),
       "en",
     );
-    expect(marks?.gameTeamIds.size).toBe(0);
-    expect(marks?.note).toBeTruthy();
+    expect(badges?.gameTeamIds.size).toBe(0);
+    expect(badges?.note).toBeTruthy();
   });
 
   it("is nothing where the table does not decide the Edition", () => {
-    expect(seriesTableMarks(edition({ rule: "champion" }), "en")).toBeNull();
-    expect(seriesTableMarks(edition({ rule: "king" }), "en")).toBeNull();
-    expect(seriesTableMarks(edition({ rule: "side" }), "en")).toBeNull();
-    expect(seriesTableMarks(null, "en")).toBeNull();
+    expect(seriesTableBadges(edition({ rule: "champion" }), "en")).toBeNull();
+    expect(seriesTableBadges(edition({ rule: "king" }), "en")).toBeNull();
+    expect(seriesTableBadges(edition({ rule: "side" }), "en")).toBeNull();
+    expect(seriesTableBadges(null, "en")).toBeNull();
   });
 });

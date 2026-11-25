@@ -60,6 +60,7 @@ import {
   viewerSideLine,
   type BoardPlayer,
 } from "@repo/domain/football-board";
+import { seriesFactRows } from "@repo/domain/series-fact-row";
 import { InfoRows, type InfoRow } from "../football/info-rows";
 import { FootballJoinSheet } from "../football/join-sheet";
 import { PlayerSheet } from "../football/player-sheet";
@@ -94,7 +95,6 @@ import { HeaderIconButton } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
-import { seriesFactRows } from "../series/series-fact-row";
 import { SeriesGameCard } from "../series/series-game-card";
 import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "../trpc/react";

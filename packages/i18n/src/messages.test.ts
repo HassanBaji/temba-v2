@@ -193,3 +193,24 @@ describe("rating catalog counts", () => {
     ]);
   });
 });
+
+describe("series catalog counts", () => {
+  it.each([
+    [1, 1, "1 win in 1"],
+    [2, 2, "2 wins in 2"],
+    [3, 3, "3 wins in 3"],
+    [11, 11, "11 wins in 11"],
+    [5, 3, "5 wins in 3"],
+  ])("counts %i wins in %i series in English", (wins, count, line) => {
+    expect(en.series.profile.meta(wins, count)).toBe(line);
+  });
+
+  it.each([
+    [1, 1, "فوز واحد في سلسلة واحدة"],
+    [2, 2, "فوزان في سلسلتين"],
+    [3, 3, "3 انتصارات في 3 سلاسل"],
+    [11, 11, "11 فوزًا في 11 سلسلة"],
+  ])("counts %i wins in %i series in Arabic", (wins, count, line) => {
+    expect(ar.series.profile.meta(wins, count)).toBe(line);
+  });
+});

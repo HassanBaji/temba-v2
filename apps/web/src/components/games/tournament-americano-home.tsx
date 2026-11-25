@@ -32,10 +32,10 @@ import { GameTvCardSlot } from "~/components/live-board/game-tv";
 import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { PageTitle } from "~/components/layout/page-title";
-import { withSeriesFactRow } from "~/components/series/series-fact-row";
+import { withSeriesFactRow } from "@repo/domain/series-fact-row";
 import { SeriesGameCard } from "~/components/series/series-game-card";
 import { SeriesWinnersCard } from "~/components/series/series-winners-card";
-import { useSeriesTableMarks } from "~/components/series/use-series-table-marks";
+import { useSeriesTableBadges } from "~/components/series/use-series-table-badges";
 import {
   SeriesHeroLine,
   type WithGameSeries,
@@ -542,7 +542,7 @@ function AmericanoDrawnHome({
   const [scoreTarget, setScoreTarget] = React.useState<ScoreSheetTarget | null>(
     null,
   );
-  const seriesMarks = useSeriesTableMarks(data.id, data.series != null);
+  const seriesBadges = useSeriesTableBadges(data.id, data.series != null);
   const names: AmericanoNames = React.useMemo(
     () => new Map(board.players.map((player) => [player.gamePlayerId, player])),
     [board.players],
@@ -788,7 +788,7 @@ function AmericanoDrawnHome({
             names={names}
             viewerGamePlayerId={board.viewerGamePlayerId}
             final={finished}
-            seriesMarks={seriesMarks}
+            seriesBadges={seriesBadges}
           />
           <AmericanoYourRounds
             matches={allMatches}

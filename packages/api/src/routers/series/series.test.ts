@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
+import { ZodError } from "zod";
 
 import {
   GameFormatEnum,
@@ -85,6 +86,13 @@ async function rejection(promise: Promise<unknown>) {
   );
   expect(error).toBeInstanceOf(TRPCError);
   return error as TRPCError;
+}
+
+/** What the error formatter sends as `zodError.fieldErrors.name`. */
+function nameFieldErrors(error: TRPCError) {
+  return error.cause instanceof ZodError
+    ? error.cause.flatten().fieldErrors.name
+    : undefined;
 }
 
 function seriesArgs(groupId: string, userId: string, name = "Sunday Social") {
@@ -198,6 +206,7 @@ describe("series.create", () => {
       );
       expect(taken.code).toBe("BAD_REQUEST");
       expect(taken.message).toBe(errors.nameTaken);
+      expect(nameFieldErrors(taken)).toEqual([errors.nameTaken]);
 
       await db
         .update(groupSeries)
@@ -222,10 +231,12 @@ describe("series.create", () => {
         createSeries(db, seriesArgs(group.id, owner.id, "   ")),
       );
       expect(empty.message).toBe(errors.nameRequired);
+      expect(nameFieldErrors(empty)).toEqual([errors.nameRequired]);
       const long = await rejection(
         createSeries(db, seriesArgs(group.id, owner.id, "a".repeat(41))),
       );
       expect(long.message).toBe(errors.nameTooLong(40));
+      expect(nameFieldErrors(long)).toEqual([errors.nameTooLong(40)]);
     } finally {
       await close();
     }
@@ -247,6 +258,7 @@ describe("series.create", () => {
       );
       expect(tooMany.code).toBe("BAD_REQUEST");
       expect(tooMany.message).toBe(errors.tooMany(SERIES_RUNNING_MAX));
+      expect(nameFieldErrors(tooMany)).toBeUndefined();
 
       const inArabic = await rejection(
         createSeries(db, {

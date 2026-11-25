@@ -56,3 +56,22 @@ export function SeriesHeroLine({
     </View>
   );
 }
+
+const HEADING_GAP = 6;
+
+/**
+ * The Series line under a screen's heading lines, set off from them, while the
+ * Edition is still to be decided; a finished Game shows its winners instead.
+ */
+export function SeriesHeadingLine({
+  series,
+  finished = false,
+}: {
+  series: SeriesHeroLineSeries | null | undefined;
+  finished?: boolean;
+}) {
+  if (!series || finished) {
+    return null;
+  }
+  return <SeriesHeroLine series={series} style={{ marginTop: HEADING_GAP }} />;
+}

@@ -31,7 +31,7 @@ import { ChallengeSquads } from "~/components/games/challenge-squad-grid";
 import { ChallengeTeamVsTeam } from "~/components/games/challenge-team-vs-team";
 import { NameSquadDialog } from "~/components/games/name-squad-dialog";
 import { FootballGameHeroCard } from "~/components/games/football-game-hero";
-import { seriesFactRows } from "~/components/series/series-fact-row";
+import { seriesFactRows } from "@repo/domain/series-fact-row";
 import { SeriesGameCard } from "~/components/series/series-game-card";
 import {
   FootballInfoRows,

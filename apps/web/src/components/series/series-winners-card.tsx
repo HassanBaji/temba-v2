@@ -81,9 +81,9 @@ export function SeriesWinnersCard({
           {model.blocks.map((block) => (
             <li key={block.key} className="min-w-0">
               <p className="text-meta font-semibold">{block.ordinal}</p>
-              {block.standing ? (
+              {block.tally ? (
                 <p className="text-dim text-eyebrow leading-snug">
-                  {block.standing}
+                  {block.tally}
                 </p>
               ) : null}
             </li>

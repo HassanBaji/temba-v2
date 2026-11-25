@@ -209,16 +209,17 @@ No table for wins, Editions or counts. Nothing is backfilled.
 
 | Module | Holds | Callers |
 | --- | --- | --- |
-| `series.ts` | `SERIES_EMBLEMS`, `SERIES_COLOURS`, `DEFAULT_SERIES_EMBLEM` (`cup`), `DEFAULT_SERIES_COLOUR` (`gold`), `SERIES_NAME_MAX_LENGTH` (40), `SERIES_RUNNING_MAX` (10), `seriesNameError(name, runningNames, locale)`, `carriesSeries(game)`, `seriesWinRule(game)`, `seriesEditionNumbers(games)` | both clients, `@repo/api` |
+| `series.ts` | `SERIES_EMBLEMS`, `SERIES_COLOURS`, `DEFAULT_SERIES_EMBLEM` (`cup`), `DEFAULT_SERIES_COLOUR` (`gold`), `SERIES_NAME_MAX_LENGTH` (40), `SERIES_RUNNING_MAX` (10), `seriesNameError(name, runningNames, locale)`, `carriesSeries(game)`, `seriesWinRule(game)` | both clients, `@repo/api` |
 | `series-result.ts` | `seriesEditionResult(game)`: the winner rule of 5.4 | `@repo/api` (five procedures) |
-| `series-copy.ts` | The view-model lines both Apps draw: `seriesRowLine`, `seriesWinnersLine`, `seriesRuleLine`, `seriesWonLastLine`, `seriesWinOrdinal`, `seriesWinStanding`, `seriesProfileMeta`, `seriesWinWho`, `seriesWinWithLine` (each takes `locale` last) | both clients |
+| `series-copy.ts` | The view-model lines both Apps draw: `seriesRowLine`, `seriesWinnersLine`, `seriesRuleLine`, `seriesWonLastLine`, `seriesWinOrdinal`, `seriesWinTally`, `seriesWinWho`, `seriesWinWithLine` (each takes `locale` last) | both clients |
+| `series-fact-row.ts` | `seriesFactRows(series, messages)` and `withSeriesFactRow(rows, groupLabel, series, messages)`: the "Series" row of a Game's facts | both clients |
 | `home-latest.ts` (extend) | `latestSeriesWin(...)` and `latestUpdate(mark, seriesWin)`; `LatestMark` becomes one arm of a `Latest` union | both clients |
 | `group-home-tab.ts` (extend) | `"series"` joins `GroupHomeTab` | both clients |
 | `game-edit-form.ts` (extend) | `seriesId` on the draft and the saved Game, a `series` section, a `{ kind: "series"; seriesId }` save step, its changed phrase | both clients |
 
 `series-result.ts` sits in `@repo/domain` beside `pool-table`, `tournament-knockout-view` and `tournament-americano`, the pure rules it composes; five procedures reach it through the one loader of 7.2.
 
-`seriesWinRule` answers which rule a Game's Edition is won by, for copy: `side` (padel Friendly game, football Game), `table` (Rounds, or Groups only planned with one Pool), `tables` (Groups only with more than one Pool), `champion`, `king`, `americano`.
+`seriesWinRule` answers which rule a Game's Edition is won by, for `seriesEditionResult` and for copy: `side` (padel Friendly game, football Game), `table` (Rounds, or Groups only planned with one Pool), `tables` (Groups only with more than one Pool), `champion`, `king`, `americano`.
 
 `seriesEditionResult` contract:
 
@@ -286,6 +287,7 @@ Each is used by two or more procedures, so it is a shared module, not a twin of 
 | Module | Holds | Used by |
 | --- | --- | --- |
 | `series-link.ts` | `requireSeries(db, id, locale)`; `seriesLinkLocked(db, game)` (the score is in); `resolveGameSeriesLink(db, { game, group, seriesId, locale })`, which applies 5.5 and throws the localized refusal; `gameSeriesSummary(db, game)`, the Game's Series with its Edition number, or null; `seriesEditionAt(db, { seriesId, windowStart, excludeGameId? })`, the number a Game starting then would hold | `games.create`, `games.createTournament`, `games.updateSeries`, `games.byId`, `series.attachOptions` |
+| `edition-order.ts` | The order Editions are numbered in (5.6), as SQL: `editionNumber` (the row number inside a Series), `editionsBefore(gameId, windowStart?)`, `editionsBeforeNewGame(windowStart)` and `isEdition` (not cancelled). The one place the order is written | `series-link.ts`, `load-series-editions.ts` |
 | `load-series-editions.ts` | `loadSeriesEditions(db, { seriesIds } \| { gameIds })`: in a fixed number of queries, the Games (not cancelled), their Game teams with players, Matches with Sets, and Americano seats; then per Game its Edition number, `seriesEditionResult`, the winners' names and images, the winning side's Bib, the single Match's score, and the moment it was decided | `series.listForGroup`, `series.byId`, `series.edition`, `series.forPlayer`, `series.playerWins` |
 
 `loadSeriesEditions` never loops a query per Game. `packages/api/src/live-boards/board-content.ts` and `routers/games/poolTables.ts` show how the rows feed `computePoolTables` and `americanoTable`. When it is given `gameIds`, it still numbers Editions against every Game of their Series, from one light query of `(id, series_id, window_start, created_at)`.
@@ -372,7 +374,7 @@ type Row = {
     userId; name; image; isViewer; isGuest;
     gameTeamId: string | null;              // the winning Game team they sit on; null on an Americano
     winCount: number;                       // this win included
-    standing: "new" | "most" | "level" | null;
+    tally: "new" | "most" | "level" | null;
     levelWith: { name: string } | { count: number } | null;
   }[];
   winnerBib: FootballBib | null;
@@ -380,7 +382,7 @@ type Row = {
 } | null
 ```
 
-`standing`: `new` when `winCount` is 1; `most` when nobody has as many; `level` when it is the most and shared, with the one other name or the number of others; else null.
+`tally`: `new` when `winCount` is 1; `most` when nobody has as many; `level` when it is the most and shared, with the one other name or the number of others; else null.
 
 **`series.forPlayer`** (the profile card, and Home's Latest)
 
@@ -430,6 +432,7 @@ All from `messagesFor(locale).series.errors`, thrown as `TRPCError`:
 | `nameRequired`, `nameTooLong` | BAD_REQUEST | The name is empty, or longer than 40 characters |
 | `nameTaken` | BAD_REQUEST | A running Series of the Group has that name |
 | `tooMany` | BAD_REQUEST | The Group already runs 10 |
+| `createFailed` | INTERNAL_SERVER_ERROR | The insert returned no row |
 | `alreadyEnded` | BAD_REQUEST | Ending an ended Series |
 | `ended` | BAD_REQUEST | Attaching an ended Series |
 | `notInGroup` | BAD_REQUEST | The Series is another Group's, or the Game has no Group |
@@ -458,7 +461,7 @@ Rules for every screen:
 
 - Props: `emblem`, `colour`, `size` (a key of `seriesBadgeSizes`), optional `count`.
 - Mobile: `react-native-svg`, modelled on `src/marks/mark-coin.tsx`. Web: inline SVG, modelled on `components/marks/mark-coin.tsx`.
-- `count` draws the pill of `badge-geometry.md`: fill `ink`, digits `paper`, a ring in the surface's colour; on the trailing bottom corner, so it mirrors in Arabic. Digits are Latin and tabular.
+- `count` draws the pill of `badge-geometry.md`: fill `ink`, digits `paper`, a ring in the surface's colour; on the trailing bottom corner, so it mirrors in Arabic. On the mobile App's focused surface, which is still inverted in light (ADR-0084), the pill takes the ink tone's roles instead: fill `onFocus`, digits and ring `focus`, so it never sinks into the card. Digits are Latin and tabular.
 - A gallery of all 42 badges at every size joins the existing design pages: web `/dashboard/design/series`, mobile `(app)/profile/design/series`, beside the Marks set.
 
 ### 8.2 1a, the Group's Series tab
@@ -486,7 +489,7 @@ Rules for every screen:
 - **Colour**: six chips, each a dot of the colour's `disc` value; same selection and trailing name.
 - A three-row card: "In a social / The top team wins it", "In a game / The winning side wins it", "A draw / Nobody wins that one".
 - **Create series**: Solid, pinned at the bottom, disabled while the name is empty; "Attach it to a game or a social when you create one." under it.
-- On success: back to the Group's Series tab, with the list refreshed. `nameTaken` shows under the name field; other refusals as a toast.
+- On success: back to the Group's Series tab, with the list refreshed. A refusal of the name (`nameRequired`, `nameTooLong`, `nameTaken`) shows under the name field: `series.create` throws it with a `ZodError` cause on the `name` path, so it reaches the form as `zodError.fieldErrors.name`, which each App reads with its `splitTrpcFormError`. Other refusals show as a toast.
 - The emblem and colour pickers are radio groups for assistive technology, each chip labelled with its name ("Cup", "Gold").
 
 ### 8.4 2a, Create, last step
@@ -548,7 +551,7 @@ When `series.edition` answers `won`, the Game screen leads with the winners.
 - **On a Social** the winners card is the screen's one lifted card, first on the screen:
   - "{Series}, edition N" and the date on one line.
   - The badge (`sheet`), "Winners", and the winners' names large, one per line.
-  - Under a hairline, one block per winner: "{First name}'s 3rd" (`seriesWinOrdinal`) and a muted line (`seriesWinStanding`): "new on the profile", "most of anyone", "most of anyone, level with Layla", "most of anyone, level with 3 others", or nothing.
+  - Under a hairline, one block per winner: "{First name}'s 3rd" (`seriesWinOrdinal`) and a muted line (`seriesWinTally`): "new on the profile", "most of anyone", "most of anyone, level with Layla", "most of anyone, level with 3 others", or nothing.
   - **Share** (Solid) and **See the series** (outline). Share opens the existing share screen of the Game (`/games/[id]/share`).
   - With more than two winners (a Groups only Social with several Pools): the names are the teams, one per line, in short names ("Qasim A & Ahmed B"), and the only ordinal block is the viewer's own, when they won.
 - **On a Played game** (padel Friendly game, football Game) the result hero stays the screen's focus. Directly under it, a paper card: the badge (`list`), "{Series}, edition N", "Won by {winners}" (`seriesWinnersLine`: the two short names, or the winning side's Bib colour on a football Game), the viewer's own ordinal when they won ("Your 2nd"), and "See the series". The result hero also carries the series line.
@@ -580,7 +583,7 @@ When `series.edition` answers `won`, the Game screen leads with the winners.
 - **The Series card** (`series.forPlayer`), on the own profile and on the Player profile. It is not split by sport.
   - Own profile: above the sport chips. Web `app/dashboard/you/page.tsx` (after `MyNotesLink`). Mobile `src/profile/profile-screen.tsx` (after `MyNotesRow`).
   - Player profile: directly above the Marks row. Web `components/players/player-profile.tsx`. Mobile `src/player-profile/player-profile-view.tsx` and `player-profile-screen.tsx`.
-  - Heading "Series" with "5 wins in 3" (`seriesProfileMeta`).
+  - Heading "Series" with "5 wins in 3" (`series.profile.meta`).
   - Three badges to a row (`card`), each with its count pill, the Series name and the Group's name under it, most recent win first. Every badge is shown; the grid wraps.
   - A last row, "All series wins".
   - No card when the player has no win, or when `hidden`.
@@ -626,7 +629,7 @@ series.tab             title, running(n), ended, note, empty, newSeries, badgesS
 series.create          title, namePlaceholder, nameLabel, nameHint, emblem, colour, previewNote, rules, submit, submitNote
 series.attach          title, none, noneHint, willBe(n), wouldBe(n), note(group), review(name, n), locked, edit phrases
 series.game            partOf(name), rule lines, wonLast(winners), seeSeries, facts label, winners, wonBy, draw, tableNote
-series.win             ordinal(name, n), yourOrdinal(n), standing lines
+series.win             ordinal(name, n), yourOrdinal(n), tally lines
 series.page            title, played, differentWinners, runningSince, ended, mostWins, of(n), lastWon(n), you, allWinners(n), editions, newestFirst, notPlayedYet, noResultYet, nobodyWon, allEditions(n), empty, end, endConfirm, endRemoves
 series.profile         title, meta(wins, series), allWins, sheetWon(wins, of), played(n), with(name), withBib(bib, score), seeSeries, winsTitle
 series.latest          title(name), line
@@ -674,7 +677,7 @@ series.errors          7.4
 
 - **Domain** (Vitest beside each module):
   - `series-result`: one case per row of 5.4, each for not decided, decided, and where it applies drawn; a parity case against `knockoutChampion`; a walkover Final; a Groups only Social with two Pools; a cancelled Game.
-  - `series`: `carriesSeries` for every kind including the legacy ones; `seriesEditionNumbers` with equal starts, a cancelled Game left out, a moved day; `seriesNameError`.
+  - `series`: `carriesSeries` for every kind including the legacy ones; `seriesNameError`. Edition numbers with equal starts, a cancelled Game left out and a moved day are tested through the procedures, against `packages/api/src/series/edition-order.ts`.
   - `series-copy`: every line in English and Arabic for the counts 0, 1, 2, 3, 11.
   - `home-latest`: the newer of a Mark and a Series win; the 14-day cut; the key.
   - `game-edit-form`: the `series` section and step.
@@ -747,7 +750,7 @@ In Linear, team Temba, labelled `ready-for-agent` and `Feature`. Build them in t
 
 What each ticket owns, so two never write the same thing:
 
-- `@repo/domain/series` grows across S-1 (the lists), S-2 (the name rule), S-3 (`carriesSeries`, `seriesEditionNumbers`), S-5 (`seriesWinRule`).
+- `@repo/domain/series` grows across S-1 (the lists), S-2 (the name rule), S-3 (`carriesSeries`), S-5 (`seriesWinRule`).
 - `@repo/domain/series-copy` starts in S-5 (`seriesRowLine`, `seriesWinnersLine`) and is finished in S-6.
 - `packages/api/src/series/series-link.ts` starts in S-2 (`requireSeries`) and is finished in S-3; `load-series-editions.ts` is S-5.
 - The `series` catalog files start in S-1. API tickets add `series.errors` and the lines' strings; each web ticket adds its screen's strings (`series.page` S-7, `series.tab` and `series.create` S-9, `series.attach` S-11, `series.game` S-13, `series.win` S-15, `series.profile` and `series.latest` S-17); its mobile twin reuses them.

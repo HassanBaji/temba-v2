@@ -107,9 +107,9 @@ export function SeriesWinnersCard({
                 <Text size="meta" weight="semibold">
                   {block.ordinal}
                 </Text>
-                {block.standing ? (
+                {block.tally ? (
                   <Text size="eyebrow" tone="muted">
-                    {block.standing}
+                    {block.tally}
                   </Text>
                 ) : null}
               </View>

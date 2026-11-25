@@ -22,7 +22,7 @@ import { GameTvCardSlot } from "~/components/live-board/game-tv";
 import { PageTitle } from "~/components/layout/page-title";
 import { SeriesGameCard } from "~/components/series/series-game-card";
 import { SeriesWinnersCard } from "~/components/series/series-winners-card";
-import { useSeriesTableMarks } from "~/components/series/use-series-table-marks";
+import { useSeriesTableBadges } from "~/components/series/use-series-table-badges";
 import {
   SeriesHeroLine,
   type WithGameSeries,
@@ -149,7 +149,7 @@ export function TournamentDrawnHome({
   );
   const [swapTarget, setSwapTarget] = React.useState<SwapTarget | null>(null);
   const [pairRound, setPairRound] = React.useState<number | null>(null);
-  const seriesMarks = useSeriesTableMarks(data.id, data.series != null);
+  const seriesBadges = useSeriesTableBadges(data.id, data.series != null);
 
   const teams = React.useMemo(
     () =>
@@ -346,7 +346,7 @@ export function TournamentDrawnHome({
               viewerUserId={data.viewerUserId}
               onEnterScore={setScoreTarget}
               finished={finished}
-              seriesMarks={seriesMarks}
+              seriesBadges={seriesBadges}
             />
           ) : null}
         </TabsContent>

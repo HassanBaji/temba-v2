@@ -154,11 +154,11 @@ export const series = {
     ordinal: (name: string, n: number) =>
       `الفوز ${placeWord(n)} لـ${isolate(name)}`,
     yourOrdinal: (n: number) => `فوزك ${placeWord(n)}`,
-    standingNew: "شارة جديدة على الملف الشخصي",
-    standingMost: "الأكثر فوزًا",
-    standingLevelWith: (name: string) =>
+    tallyNew: "شارة جديدة على الملف الشخصي",
+    tallyMost: "الأكثر فوزًا",
+    tallyLevelWith: (name: string) =>
       `الأكثر فوزًا، بالتساوي مع ${isolate(name)}`,
-    standingLevelWithCount: (n: number) =>
+    tallyLevelWithCount: (n: number) =>
       plural("ar", n, {
         one: "الأكثر فوزًا، بالتساوي مع شخص آخر",
         two: "الأكثر فوزًا، بالتساوي مع شخصين آخرين",
@@ -310,6 +310,7 @@ export const series = {
         many: "تدير المجموعة {n} سلسلة في وقت واحد. أنهِ سلسلة لتبدأ أخرى",
         other: "تدير المجموعة {n} سلسلة في وقت واحد. أنهِ سلسلة لتبدأ أخرى",
       }),
+    createFailed: "تعذّر إنشاء السلسلة",
     alreadyEnded: "انتهت هذه السلسلة بالفعل",
     ended: "انتهت هذه السلسلة. اختر سلسلة جارية",
     notInGroup: "لا تكون جزءًا من هذه السلسلة إلا مباريات مجموعتها",

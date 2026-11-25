@@ -1,12 +1,7 @@
-import type { SeriesColour, SeriesEmblem } from "@repo/domain/series";
+import type { RouterOutputs } from "../trpc/react";
 
-export type SeriesAttachOption = {
-  id: string;
-  name: string;
-  emblem: SeriesEmblem;
-  colour: SeriesColour;
-  edition: number;
-};
+export type SeriesAttachOption =
+  RouterOutputs["series"]["attachOptions"]["options"][number];
 
 /** The picked Series while it is still offered; otherwise none. */
 export function seriesAttachPick<T extends { id: string }>(

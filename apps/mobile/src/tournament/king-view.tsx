@@ -19,7 +19,7 @@ import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
 import { SeriesGameCard } from "../series/series-game-card";
 import {
-  SeriesHeroLine,
+  SeriesHeadingLine,
   type WithGameSeries,
 } from "../series/series-hero-line";
 import { useColors } from "../theme/theme-provider";
@@ -111,9 +111,7 @@ export function KingView({
         <Text size="meta" tone="muted">
           {finished ? finished.summary : m.lead.courts}
         </Text>
-        {game.series && !finished ? (
-          <SeriesHeroLine series={game.series} style={{ marginTop: 6 }} />
-        ) : null}
+        <SeriesHeadingLine series={game.series} finished={Boolean(finished)} />
       </View>
       {game.series ? <SeriesGameCard gameId={game.id} game="social" /> : null}
 

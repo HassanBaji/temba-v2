@@ -25,7 +25,7 @@ import {
 import { shuffledOrder } from "@repo/domain/tournament-king";
 
 import { SeriesBadge } from "~/components/series/series-badge";
-import type { SeriesTableMarks } from "~/components/series/series-edition-card-model";
+import type { SeriesTableBadges } from "~/components/series/series-edition-card-model";
 import { ResultMark } from "~/components/temba/result-mark";
 import { Button } from "~/components/ui/button";
 import {
@@ -467,14 +467,14 @@ export function AmericanoTableCard({
   names,
   viewerGamePlayerId,
   final,
-  seriesMarks = null,
+  seriesBadges = null,
 }: {
   table: readonly AmericanoTableRow[];
   names: AmericanoNames;
   viewerGamePlayerId: string | null;
   final: boolean;
   /** The Series winner's row and the note, when the Social is an Edition. */
-  seriesMarks?: SeriesTableMarks | null;
+  seriesBadges?: SeriesTableBadges | null;
 }) {
   const m = useMessages().tournamentAmericano.table;
   const anyPlayed = table.some((row) => row.played > 0);
@@ -538,12 +538,12 @@ export function AmericanoTableCard({
                           </span>
                         ) : null}
                       </span>
-                      {seriesMarks &&
+                      {seriesBadges &&
                       player?.userId &&
-                      seriesMarks.userIds.has(player.userId) ? (
+                      seriesBadges.userIds.has(player.userId) ? (
                         <SeriesBadge
-                          emblem={seriesMarks.emblem}
-                          colour={seriesMarks.colour}
+                          emblem={seriesBadges.emblem}
+                          colour={seriesBadges.colour}
                           size="line"
                         />
                       ) : null}
@@ -567,9 +567,9 @@ export function AmericanoTableCard({
       <p className="text-muted-foreground text-meta leading-relaxed">
         {anyPlayed ? (final ? m.final : m.live) : m.empty}
       </p>
-      {seriesMarks ? (
+      {seriesBadges ? (
         <p className="text-muted-foreground text-meta leading-relaxed">
-          {seriesMarks.note}
+          {seriesBadges.note}
         </p>
       ) : null}
     </div>

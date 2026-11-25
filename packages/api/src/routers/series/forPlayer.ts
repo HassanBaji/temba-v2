@@ -6,6 +6,8 @@ import { gamePlayers, games, groupSeries, user } from "@repo/db";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
+import { type SeriesWinWith } from "@repo/domain/series-copy";
+
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -19,7 +21,6 @@ import {
   playerWinOf,
   playerWinTimes,
   playerWinWith,
-  type PlayerSeriesWinWith,
 } from "#src/series/player-series-wins";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -35,7 +36,7 @@ export type PlayerSeriesWin = {
   playedAt: Date;
   wonAt: Date;
   ordinal: number;
-  with: PlayerSeriesWinWith;
+  with: SeriesWinWith;
 };
 
 const notFound = (locale: Locale) =>

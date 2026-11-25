@@ -77,7 +77,7 @@ import {
 } from "~/components/games/tournament-standings-section";
 import { TournamentTeamsSection } from "~/components/games/tournament-teams-section";
 import { TournamentYourRounds } from "~/components/games/tournament-your-rounds";
-import { withSeriesFactRow } from "~/components/series/series-fact-row";
+import { withSeriesFactRow } from "@repo/domain/series-fact-row";
 import { SeriesGameCard } from "~/components/series/series-game-card";
 import { SeriesWinnersCard } from "~/components/series/series-winners-card";
 import type { WithGameSeries } from "~/components/series/series-hero-line";

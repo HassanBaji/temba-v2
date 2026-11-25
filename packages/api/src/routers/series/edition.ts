@@ -7,6 +7,7 @@ import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { seriesWinRule } from "@repo/domain/series";
+import { type SeriesWinTally } from "@repo/domain/series-copy";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -25,54 +26,53 @@ export const seriesEditionInput = z.object({
   gameId: z.string().uuid(),
 });
 
-type Standing = {
-  standing: "new" | "most" | "level" | null;
-  levelWith: { name: string } | { count: number } | null;
-};
+type WinnerWins = { name: string; wins: number; isGuest: boolean };
 
-/** Wins per User up to and including this Edition, in Edition order; Guest players left out. */
+/** Wins per winner up to and including this Edition, in Edition order. */
 function winsUpTo(editions: readonly SeriesEdition[], edition: number) {
-  const tally = new Map<string, { name: string; wins: number }>();
+  const wins = new Map<string, WinnerWins>();
   for (const entry of editions) {
     if (entry.edition > edition) {
       continue;
     }
     for (const winner of entry.winners) {
-      if (winner.isGuest) {
-        continue;
-      }
-      const row = tally.get(winner.userId) ?? { name: winner.name, wins: 0 };
+      const row = wins.get(winner.userId) ?? {
+        name: winner.name,
+        wins: 0,
+        isGuest: winner.isGuest,
+      };
       row.wins += 1;
-      tally.set(winner.userId, row);
+      wins.set(winner.userId, row);
     }
   }
-  return tally;
+  return wins;
 }
 
-function standingOf(
+/** Where a win leaves its winner among the Series' winners; Guest players are left out. */
+function tallyOf(
   winner: SeriesEditionWinner,
   winCount: number,
-  tally: ReadonlyMap<string, { name: string; wins: number }>,
-): Standing {
+  wins: ReadonlyMap<string, WinnerWins>,
+): SeriesWinTally {
   if (winner.isGuest) {
-    return { standing: null, levelWith: null };
+    return { tally: null, levelWith: null };
   }
   if (winCount === 1) {
-    return { standing: "new", levelWith: null };
+    return { tally: "new", levelWith: null };
   }
-  const others = [...tally.entries()]
-    .filter(([userId]) => userId !== winner.userId)
+  const others = [...wins.entries()]
+    .filter(([userId, row]) => userId !== winner.userId && !row.isGuest)
     .map(([, row]) => row);
   const best = Math.max(0, ...others.map((row) => row.wins));
   if (winCount > best) {
-    return { standing: "most", levelWith: null };
+    return { tally: "most", levelWith: null };
   }
   if (winCount < best) {
-    return { standing: null, levelWith: null };
+    return { tally: null, levelWith: null };
   }
   const level = others.filter((row) => row.wins === winCount);
   return {
-    standing: "level",
+    tally: "level",
     levelWith:
       level.length === 1 && level[0]
         ? { name: level[0].name }
@@ -84,7 +84,7 @@ function standingOf(
  * The Game screen's Series card: the Series and the Edition this Game is,
  * the rule that wins it, who won the last one, and once it is won, each
  * winner's count of this Series and where it leaves them. Counts and
- * standings are read as of this Edition, in Edition order. Null when the Game
+ * tallies are read as of this Edition, in Edition order. Null when the Game
  * has no Series or is cancelled.
  */
 export async function seriesEdition(
@@ -128,7 +128,7 @@ export async function seriesEdition(
         entry.edition < current.edition && entry.result.state === "won",
     )
     .at(-1);
-  const tally = winsUpTo(editions, current.edition);
+  const wins = winsUpTo(editions, current.edition);
 
   return {
     series: {
@@ -150,11 +150,7 @@ export async function seriesEdition(
         }
       : null,
     winners: current.winners.map((winner) => {
-      const winCount = editions.filter(
-        (entry) =>
-          entry.edition <= current.edition &&
-          entry.winners.some((each) => each.userId === winner.userId),
-      ).length;
+      const winCount = wins.get(winner.userId)?.wins ?? 0;
       return {
         userId: winner.userId,
         name: winner.name,
@@ -163,7 +159,7 @@ export async function seriesEdition(
         isGuest: winner.isGuest,
         gameTeamId: winner.gameTeamId,
         winCount,
-        ...standingOf(winner, winCount, tally),
+        ...tallyOf(winner, winCount, wins),
       };
     }),
     winnerBib: current.winnerBib,

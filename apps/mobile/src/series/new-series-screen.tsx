@@ -14,6 +14,7 @@ import { View, type ScrollView, type TextInput } from "react-native";
 import { groupSeriesTabPath } from "../groups/groups-model";
 import { Notice } from "../groups/notice";
 import { useLocale, useMessages } from "../i18n/locale-provider";
+import { splitTrpcFormError } from "../lib/form-error";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Screen } from "../primitives/screen";
@@ -25,9 +26,7 @@ import { Text } from "../primitives/text";
 import { TextField } from "../primitives/text-field";
 import { useToast } from "../primitives/toast";
 import { useKeyboardVisible } from "../primitives/use-keyboard-visible";
-import { LiftedPalette } from "../theme/theme-provider";
 import { api } from "../trpc/react";
-import { seriesNameFieldError } from "./new-series-model";
 import { SeriesBadge } from "./series-badge";
 import { SeriesColourPicker, SeriesEmblemPicker } from "./series-pickers";
 
@@ -94,26 +93,20 @@ function PreviewCard({
   );
 }
 
-/**
- * The lifted card of Palette v2 (ADR-0084), so the count pill's ring matches
- * the card; the rest of the mobile App still reads the inverted light focus.
- */
 function Preview(props: React.ComponentProps<typeof PreviewCard>) {
   const m = useMessages();
   return (
-    <LiftedPalette>
-      <Surface
-        tone="ink"
-        accessible
-        accessibilityLabel={m.series.page.rowLabel([
-          m.series.create.preview,
-          props.name || m.series.create.namePlaceholder,
-          props.groupName,
-        ])}
-      >
-        <PreviewCard {...props} />
-      </Surface>
-    </LiftedPalette>
+    <Surface
+      tone="ink"
+      accessible
+      accessibilityLabel={m.series.page.rowLabel([
+        m.series.create.preview,
+        props.name || m.series.create.namePlaceholder,
+        props.groupName,
+      ])}
+    >
+      <PreviewCard {...props} />
+    </Surface>
   );
 }
 
@@ -203,7 +196,7 @@ function NewSeriesForm({
       leave();
     },
     onError: (error) => {
-      const fieldError = seriesNameFieldError(error.message, locale);
+      const fieldError = splitTrpcFormError(error).fieldErrors.name;
       if (fieldError) {
         showNameError(fieldError);
         return;

@@ -15,6 +15,7 @@ import Svg, { Polygon } from "react-native-svg";
 import { CoinShape } from "../marks/mark-coin";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
+import { seriesBadgeCountColors } from "./series-badge-count";
 
 export type SeriesBadgeProps = {
   emblem: SeriesEmblem;
@@ -22,7 +23,7 @@ export type SeriesBadgeProps = {
   size: SeriesBadgeSize;
   /** The player's wins of this series, in a pill on the bottom trailing corner. */
   count?: number;
-  /** The Color role of the surface under the badge; the count's ring takes it. */
+  /** The Color role of the surface under the badge; the count is drawn for it. */
   surface?: SeriesBadgeSurface;
 };
 
@@ -34,7 +35,7 @@ export function SeriesBadge({
   count,
   surface = "paper",
 }: SeriesBadgeProps) {
-  const colors = useColors();
+  const pill = seriesBadgeCountColors(surface, useColors());
   const px = seriesBadgeSizes[size];
   const tones = seriesBadgeToneColors(colour);
 
@@ -70,8 +71,8 @@ export function SeriesBadge({
             paddingHorizontal: seriesBadgeCount.paddingInline,
             borderRadius: seriesBadgeCount.radius,
             borderWidth: seriesBadgeCount.ring,
-            borderColor: colors[surface],
-            backgroundColor: colors.ink,
+            borderColor: pill.ring,
+            backgroundColor: pill.fill,
             alignItems: "center",
             justifyContent: "center",
           }}
@@ -81,7 +82,7 @@ export function SeriesBadge({
             weight="semibold"
             ltr
             style={{
-              color: colors.paper,
+              color: pill.digits,
               fontSize: seriesBadgeCount.fontSize,
               lineHeight: seriesBadgeCount.height - seriesBadgeCount.ring * 2,
             }}

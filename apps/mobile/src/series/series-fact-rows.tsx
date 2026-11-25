@@ -1,6 +1,6 @@
 import { InfoRows } from "../football/info-rows";
 import { useMessages } from "../i18n/locale-provider";
-import { seriesFactRows } from "./series-fact-row";
+import { seriesFactRows } from "@repo/domain/series-fact-row";
 
 /** A facts card holding only the "Series" row, for a Game screen with no facts list of its own. */
 export function SeriesFactRows({

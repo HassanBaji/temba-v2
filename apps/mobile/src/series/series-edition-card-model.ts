@@ -4,7 +4,7 @@ import type { SeriesColour, SeriesEmblem } from "@repo/domain/series";
 import {
   seriesWinnersLine,
   seriesWinOrdinal,
-  seriesWinStanding,
+  seriesWinTally,
 } from "@repo/domain/series-copy";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
@@ -27,7 +27,7 @@ export type SeriesEditionCardInput = SeriesGameCardInput & {
     | "isViewer"
     | "gameTeamId"
     | "winCount"
-    | "standing"
+    | "tally"
     | "levelWith"
   >[];
   winnerBib: SeriesEditionData["winnerBib"];
@@ -43,7 +43,7 @@ type Badge = { emblem: SeriesEmblem; colour: SeriesColour };
 export type SeriesWinnerBlock = {
   key: string;
   ordinal: string;
-  standing: string | null;
+  tally: string | null;
 };
 
 /** 3a: the winners card that leads a finished Social. */
@@ -97,7 +97,7 @@ function winnerBlock(
   return {
     key: winner.userId,
     ordinal: seriesWinOrdinal(name, winner.winCount, locale),
-    standing: seriesWinStanding(winner, locale),
+    tally: seriesWinTally(winner, locale),
   };
 }
 
@@ -189,20 +189,20 @@ const TABLE_RULES: ReadonlySet<SeriesEditionCardInput["rule"]> = new Set([
 ]);
 
 /** The final table's part: the winners' rows to badge, and the note under it. */
-export type SeriesTableMarks = Badge & {
+export type SeriesTableBadges = Badge & {
   gameTeamIds: ReadonlySet<string>;
   userIds: ReadonlySet<string>;
   note: string;
 };
 
 /**
- * Marks for a Social whose table decides the Edition. The rows come from the
+ * Badges for a Social whose table decides the Edition. The rows come from the
  * server's winners, never from the table, so the card and the table agree.
  */
-export function seriesTableMarks(
+export function seriesTableBadges(
   edition: SeriesEditionCardInput | null | undefined,
   locale: Locale,
-): SeriesTableMarks | null {
+): SeriesTableBadges | null {
   if (!edition || !TABLE_RULES.has(edition.rule)) {
     return null;
   }

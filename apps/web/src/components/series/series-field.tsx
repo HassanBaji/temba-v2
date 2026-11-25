@@ -3,22 +3,16 @@
 import { Check } from "lucide-react";
 import type { ReactNode } from "react";
 
-import type { SeriesColour, SeriesEmblem } from "@repo/domain/series";
-
 import { useMessages } from "~/components/locale-provider";
 import { Hatch } from "~/components/ui/hatch";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { cn } from "~/lib/utils";
+import type { RouterOutputs } from "~/trpc/react";
 
 import { SeriesBadge } from "./series-badge";
 
-export type SeriesAttachOption = {
-  id: string;
-  name: string;
-  emblem: SeriesEmblem;
-  colour: SeriesColour;
-  edition: number;
-};
+export type SeriesAttachOption =
+  RouterOutputs["series"]["attachOptions"]["options"][number];
 
 /** The picked Series while it is still offered; otherwise none. */
 export function seriesAttachPick<T extends { id: string }>(

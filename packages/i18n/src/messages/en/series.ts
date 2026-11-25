@@ -132,10 +132,10 @@ export const series = {
   win: {
     ordinal: (name: string, n: number) => `${name}’s ${ordinal(n)}`,
     yourOrdinal: (n: number) => `Your ${ordinal(n)}`,
-    standingNew: "new on the profile",
-    standingMost: "most of anyone",
-    standingLevelWith: (name: string) => `most of anyone, level with ${name}`,
-    standingLevelWithCount: (n: number) =>
+    tallyNew: "new on the profile",
+    tallyMost: "most of anyone",
+    tallyLevelWith: (name: string) => `most of anyone, level with ${name}`,
+    tallyLevelWithCount: (n: number) =>
       plural("en", n, {
         one: "most of anyone, level with {n} other",
         other: "most of anyone, level with {n} others",
@@ -219,6 +219,7 @@ export const series = {
         other:
           "A group can run up to {n} series at once. End one to start another",
       }),
+    createFailed: "The series could not be created",
     alreadyEnded: "This series has already ended",
     ended: "This series has ended. Pick a running one",
     notInGroup: "Only a game of the series' group can be part of it",

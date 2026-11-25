@@ -14,7 +14,7 @@ import { GameTvCardSlot } from "~/components/live-board/game-tv";
 import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { useLocale, useMessages } from "~/components/locale-provider";
-import { withSeriesFactRow } from "~/components/series/series-fact-row";
+import { withSeriesFactRow } from "@repo/domain/series-fact-row";
 import { SeriesGameCard } from "~/components/series/series-game-card";
 import type { WithGameSeries } from "~/components/series/series-hero-line";
 import { Button } from "~/components/ui/button";

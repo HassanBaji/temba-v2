@@ -1,6 +1,6 @@
 import { formatGameDay } from "@repo/domain/format-game-start";
 import type { SeriesColour, SeriesEmblem } from "@repo/domain/series";
-import { seriesProfileMeta, seriesWinWithLine } from "@repo/domain/series-copy";
+import { seriesWinWithLine } from "@repo/domain/series-copy";
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -71,7 +71,7 @@ export function profileSeriesCardModel(
   const m = messagesFor(locale).series.profile;
   return {
     title: m.title,
-    meta: seriesProfileMeta(data.totalWins, data.badges.length, locale),
+    meta: m.meta(data.totalWins, data.badges.length),
     rows: inRows(
       data.badges.map((badge) => badgeOf(badge, locale)),
       PROFILE_SERIES_COLUMNS,
@@ -179,7 +179,7 @@ export function profileSeriesAllModel(
   return {
     mode: "all",
     heading: m.profile.winsTitle,
-    meta: seriesProfileMeta(data.totalWins, data.badges.length, locale),
+    meta: m.profile.meta(data.totalWins, data.badges.length),
     rows: data.wins.flatMap((win) => {
       const badge = badges.get(win.seriesId);
       if (!badge) {

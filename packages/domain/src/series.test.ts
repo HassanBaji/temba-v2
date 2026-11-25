@@ -9,7 +9,6 @@ import {
   SERIES_EMBLEMS,
   SERIES_NAME_MAX_LENGTH,
   carriesSeries,
-  seriesEditionNumbers,
   seriesNameError,
   seriesWinRule,
   type SeriesCarrierGame,
@@ -137,48 +136,5 @@ describe("seriesWinRule", () => {
     ["an Americano", social("americano", null), "americano"],
   ] as const)("reads the rule of %s", (_kind, game, rule) => {
     expect(seriesWinRule(game)).toBe(rule);
-  });
-});
-
-describe("seriesEditionNumbers", () => {
-  const at = (iso: string) => new Date(iso);
-
-  it("numbers from 1 by window start", () => {
-    const numbers = seriesEditionNumbers([
-      {
-        id: "c",
-        windowStart: at("2026-12-20T18:00:00Z"),
-        createdAt: at("2026-11-01T00:00:00Z"),
-      },
-      {
-        id: "a",
-        windowStart: at("2026-12-06T18:00:00Z"),
-        createdAt: at("2026-11-03T00:00:00Z"),
-      },
-      {
-        id: "b",
-        windowStart: at("2026-12-13T18:00:00Z"),
-        createdAt: at("2026-11-02T00:00:00Z"),
-      },
-    ]);
-    expect(Object.fromEntries(numbers)).toEqual({ a: 1, b: 2, c: 3 });
-  });
-
-  it("breaks a tie on the start by creation time, then by id", () => {
-    const start = at("2026-12-06T18:00:00Z");
-    const numbers = seriesEditionNumbers([
-      {
-        id: "later",
-        windowStart: start,
-        createdAt: at("2026-11-02T00:00:00Z"),
-      },
-      { id: "y", windowStart: start, createdAt: at("2026-11-01T00:00:00Z") },
-      { id: "x", windowStart: start, createdAt: at("2026-11-01T00:00:00Z") },
-    ]);
-    expect(Object.fromEntries(numbers)).toEqual({ x: 1, y: 2, later: 3 });
-  });
-
-  it("returns an empty map for a Series with no Games", () => {
-    expect(seriesEditionNumbers([]).size).toBe(0);
   });
 });

@@ -1,12 +1,6 @@
-import { type FootballBib } from "@repo/domain/football-lineup";
+import { type SeriesWinWith } from "@repo/domain/series-copy";
 
 import { type SeriesEdition } from "#src/series/load-series-editions";
-
-export type PlayerSeriesWinWith = {
-  names: string[];
-  bib: FootballBib | null;
-  score: { mine: number; theirs: number } | null;
-};
 
 /** The player's own win of this Edition, or undefined when they did not win it. */
 export function playerWinOf(edition: SeriesEdition, playerId: string) {
@@ -45,7 +39,7 @@ function scoreFor(edition: SeriesEdition, gameTeamId: string | null) {
 export function playerWinWith(
   edition: SeriesEdition,
   playerId: string,
-): PlayerSeriesWinWith {
+): SeriesWinWith {
   const mine = playerWinOf(edition, playerId);
   const gameTeamId = mine?.gameTeamId ?? null;
   if (edition.game.sport === "football") {

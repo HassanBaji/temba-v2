@@ -144,4 +144,4 @@ The design also draws 34 and 40; they round to `latest` and `list`.
 
 ## Count pill
 
-The win count on a profile badge (4a, 4b, 4c) sits on the badge's bottom trailing corner: `min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; font-size: 11px; weight 600`, offset 6px outside the trailing edge and 2px below the bottom edge, with a 2px ring in the colour of the surface it sits on. Light: black pill, white digits. Dark: light pill, dark digits. In roles: fill `ink`, digits `paper`, ring the surface's own role.
+The win count on a profile badge (4a, 4b, 4c) sits on the badge's bottom trailing corner: `min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; font-size: 11px; weight 600`, offset 6px outside the trailing edge and 2px below the bottom edge, with a 2px ring in the colour of the surface it sits on. Light: black pill, white digits. Dark: light pill, dark digits. In roles: fill `ink`, digits `paper`, ring the surface's own role. On the mobile App's focused surface, still inverted in light (ADR-0084), the pill takes the ink tone's roles: fill `onFocus`, digits and ring `focus`.

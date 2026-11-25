@@ -27,14 +27,14 @@ import { useTonePalette } from "../primitives/surface-context";
 import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
 import { SeriesBadge } from "../series/series-badge";
-import type { SeriesTableMarks } from "../series/series-edition-card-model";
+import type { SeriesTableBadges } from "../series/series-edition-card-model";
 import { SeriesGameCard } from "../series/series-game-card";
 import {
-  SeriesHeroLine,
+  SeriesHeadingLine,
   type SeriesHeroLineSeries,
   type WithGameSeries,
 } from "../series/series-hero-line";
-import { useSeriesTableMarks } from "../series/use-series-table-marks";
+import { useSeriesTableBadges } from "../series/use-series-table-badges";
 import {
   GameTeamSheet,
   type GameTeamLinks,
@@ -73,12 +73,12 @@ function RecordTable({
   rows,
   finished,
   links,
-  seriesMarks,
+  seriesBadges,
 }: {
   rows: Pool["rows"];
   finished: boolean;
   links?: GameTeamLinks;
-  seriesMarks: SeriesTableMarks | null;
+  seriesBadges: SeriesTableBadges | null;
 }) {
   const messages = useMessages();
   const m = messages.mobileTournament.standings;
@@ -171,10 +171,10 @@ function RecordTable({
                 </View>
               ) : null}
             </View>
-            {seriesMarks?.gameTeamIds.has(row.gameTeamId) ? (
+            {seriesBadges?.gameTeamIds.has(row.gameTeamId) ? (
               <SeriesBadge
-                emblem={seriesMarks.emblem}
-                colour={seriesMarks.colour}
+                emblem={seriesBadges.emblem}
+                colour={seriesBadges.colour}
                 size="line"
               />
             ) : null}
@@ -370,11 +370,11 @@ function RoundResults({
 function PoolTablesSection({
   poolTables,
   links,
-  seriesMarks,
+  seriesBadges,
 }: {
   poolTables: PoolTables;
   links?: GameTeamLinks;
-  seriesMarks: SeriesTableMarks | null;
+  seriesBadges: SeriesTableBadges | null;
 }) {
   const locale = useLocale();
   const messages = useMessages();
@@ -414,11 +414,11 @@ function PoolTablesSection({
           rows={pool.rows}
           finished={pool.finished}
           links={links}
-          seriesMarks={seriesMarks}
+          seriesBadges={seriesBadges}
         />
-        {seriesMarks ? (
+        {seriesBadges ? (
           <Text size="meta" tone="muted">
-            {seriesMarks.note}
+            {seriesBadges.note}
           </Text>
         ) : null}
       </View>
@@ -483,9 +483,7 @@ export function StandingsHeader({
           </Text>
         </View>
       ) : null}
-      {series && !standings.finished ? (
-        <SeriesHeroLine series={series} style={{ marginTop: 6 }} />
-      ) : null}
+      <SeriesHeadingLine series={series} finished={standings.finished} />
     </View>
   );
 }
@@ -506,7 +504,7 @@ export function StandingsView({
   const messages = useMessages();
   const { poolTables, knockout } = game;
   const [openTeam, setOpenTeam] = useState<GameTeamSheetTeam | null>(null);
-  const seriesMarks = useSeriesTableMarks(game.id, game.series != null);
+  const seriesBadges = useSeriesTableBadges(game.id, game.series != null);
   const links = onOpenPlayer
     ? { gameTeams: game.gameTeams, onOpenTeam: setOpenTeam }
     : undefined;
@@ -525,7 +523,7 @@ export function StandingsView({
         <PoolTablesSection
           poolTables={poolTables}
           links={links}
-          seriesMarks={seriesMarks}
+          seriesBadges={seriesBadges}
         />
       ) : null}
       {standings.knockoutSectionTitle && knockout ? (

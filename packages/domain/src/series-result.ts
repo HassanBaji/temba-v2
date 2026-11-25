@@ -2,18 +2,12 @@ import { DEFAULT_LOCALE } from "@repo/i18n/locale";
 
 import { matchOutcome } from "./match-outcome";
 import { computePoolTables } from "./pool-table";
-import { carriesSeries } from "./series";
-import {
-  americanoTable,
-  isAmericano,
-  type AmericanoResult,
-} from "./tournament-americano";
-import { isKingOfTheCourt } from "./tournament-king";
+import { carriesSeries, seriesWinRule } from "./series";
+import { americanoTable, type AmericanoResult } from "./tournament-americano";
 import {
   knockoutChampion,
   postedKnockoutRounds,
 } from "./tournament-knockout-view";
-import { hasKnockout } from "./tournament-rounds";
 
 type SeriesResultSet = {
   slot1GamesWon: number | null;
@@ -195,20 +189,18 @@ export function seriesEditionResult(
   if (game.cancelledAt != null || !carriesSeries(game)) {
     return UPCOMING;
   }
-  if (game.format === "friendly_game") {
+  const rule = seriesWinRule(game);
+  if (rule === "side") {
     return friendlyGameResult(game);
   }
-  if (isKingOfTheCourt(game.format, game.tournamentShape)) {
+  if (rule === "king") {
     return kingResult(game);
   }
-  if (isAmericano(game.format, game.tournamentShape)) {
+  if (rule === "americano") {
     return americanoResult(game);
   }
   if (game.drawPostedAt == null) {
     return UPCOMING;
   }
-  if (hasKnockout(game.format, game.tournamentShape)) {
-    return knockoutResult(game);
-  }
-  return poolResult(game);
+  return rule === "champion" ? knockoutResult(game) : poolResult(game);
 }

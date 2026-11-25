@@ -4,6 +4,7 @@ import { registerTeamAction } from "@repo/domain/game-copy";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
 import { displayLabelFromStoredBand } from "@repo/domain/level-bands";
 import { levelRangeRequestCard } from "@repo/domain/level-range-request";
+import { withSeriesFactRow } from "@repo/domain/series-fact-row";
 import {
   tournamentSeatLabel,
   type TournamentDetailRow,
@@ -33,7 +34,6 @@ import { Hatch } from "../primitives/hatch";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
-import { withSeriesFactRow } from "../series/series-fact-row";
 import { SeriesGameCard } from "../series/series-game-card";
 import {
   SeriesHeroLine,

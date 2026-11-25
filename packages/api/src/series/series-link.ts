@@ -1,16 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import {
-  and,
-  count,
-  eq,
-  isNull,
-  lt,
-  lte,
-  ne,
-  or,
-  sql,
-  type SQL,
-} from "drizzle-orm";
+import { and, count, eq, ne, type SQL } from "drizzle-orm";
 
 import { games, groupSeries, type groups } from "@repo/db";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
@@ -21,6 +10,11 @@ import { carriesSeries, type SeriesCarrierGame } from "@repo/domain/series";
 import { type db } from "#src/db";
 import { gameScoreConfirmed } from "#src/games/season-link";
 import { groupIsVerified } from "#src/groups/group-is-verified";
+import {
+  editionsBefore,
+  editionsBeforeNewGame,
+  isEdition,
+} from "#src/series/edition-order";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -118,16 +112,14 @@ async function seriesGamesCounted(
   const [row] = await database
     .select({ value: count() })
     .from(games)
-    .where(
-      and(eq(games.seriesId, seriesId), isNull(games.cancelledAt), before),
-    );
+    .where(and(eq(games.seriesId, seriesId), isEdition, before));
   return row?.value ?? 0;
 }
 
 /**
  * The Series of a Game with its Edition number: its place among the Series'
- * Games that are not cancelled, by window start, then creation time, then id,
- * as `seriesEditionNumbers` orders them. A cancelled Game is no Edition.
+ * Games that are not cancelled, in `edition-order`. A cancelled Game is no
+ * Edition.
  */
 export async function gameSeriesSummary(
   database: DbClient,
@@ -143,12 +135,10 @@ export async function gameSeriesSummary(
   if (!series) {
     return null;
   }
-  // Compared in SQL against the Game's own row: stored times keep microseconds
-  // a JavaScript Date would round away, and two Games could then tie.
   const earlier = await seriesGamesCounted(
     database,
     series.id,
-    sql`(${games.windowStart}, ${games.createdAt}, ${games.id}) < (select self.window_start, self.created_at, self.id from games self where self.id = ${game.id})`,
+    editionsBefore(game.id),
   );
   return { ...series, edition: earlier + 1 };
 }
@@ -165,14 +155,8 @@ export async function seriesEditionAt(
   const before = args.excludeGameId
     ? and(
         ne(games.id, args.excludeGameId),
-        or(
-          lt(games.windowStart, args.windowStart),
-          and(
-            eq(games.windowStart, args.windowStart),
-            sql`(${games.createdAt}, ${games.id}) < (select self.created_at, self.id from games self where self.id = ${args.excludeGameId})`,
-          ),
-        ),
+        editionsBefore(args.excludeGameId, args.windowStart),
       )
-    : lte(games.windowStart, args.windowStart);
+    : editionsBeforeNewGame(args.windowStart);
   return (await seriesGamesCounted(database, args.seriesId, before)) + 1;
 }

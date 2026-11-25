@@ -137,38 +137,29 @@ export function seriesWinOrdinal(
   return name ? m.ordinal(name, n) : m.yourOrdinal(n);
 }
 
-export type SeriesWinStanding = {
-  standing: "new" | "most" | "level" | null;
+export type SeriesWinTally = {
+  tally: "new" | "most" | "level" | null;
   levelWith: { name: string } | { count: number } | null;
 };
 
 /** Where a win leaves its winner among the Series' winners, or null. */
-export function seriesWinStanding(winner: SeriesWinStanding, locale: Locale) {
+export function seriesWinTally(winner: SeriesWinTally, locale: Locale) {
   const m = messagesFor(locale).series.win;
-  switch (winner.standing) {
+  switch (winner.tally) {
     case "new":
-      return m.standingNew;
+      return m.tallyNew;
     case "most":
-      return m.standingMost;
+      return m.tallyMost;
     case "level":
       if (winner.levelWith && "name" in winner.levelWith) {
-        return m.standingLevelWith(firstName(winner.levelWith.name));
+        return m.tallyLevelWith(firstName(winner.levelWith.name));
       }
       return winner.levelWith
-        ? m.standingLevelWithCount(winner.levelWith.count)
-        : m.standingMost;
+        ? m.tallyLevelWithCount(winner.levelWith.count)
+        : m.tallyMost;
     default:
       return null;
   }
-}
-
-/** The profile card's count: "5 wins in 3". */
-export function seriesProfileMeta(
-  totalWins: number,
-  seriesCount: number,
-  locale: Locale,
-) {
-  return messagesFor(locale).series.profile.meta(totalWins, seriesCount);
 }
 
 export type SeriesWinWith = {

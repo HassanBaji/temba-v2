@@ -20,10 +20,10 @@ import { useToast } from "../primitives/toast";
 import { SeriesBadge } from "../series/series-badge";
 import { SeriesGameCard } from "../series/series-game-card";
 import {
-  SeriesHeroLine,
+  SeriesHeadingLine,
   type WithGameSeries,
 } from "../series/series-hero-line";
-import { useSeriesTableMarks } from "../series/use-series-table-marks";
+import { useSeriesTableBadges } from "../series/use-series-table-badges";
 import { api } from "../trpc/react";
 
 function Row({ children }: { children: React.ReactNode }) {
@@ -99,7 +99,7 @@ export function AmericanoView({
   const toast = useToast();
   const utils = api.useUtils();
   const board = api.games.americanoBoard.useQuery({ gameId: game.id });
-  const seriesMarks = useSeriesTableMarks(game.id, game.series != null);
+  const seriesBadges = useSeriesTableBadges(game.id, game.series != null);
   const register = api.games.register.useMutation({
     onSuccess: (result) =>
       toast.show(hubRegisterToast(result.waitlisted, locale)),
@@ -137,9 +137,7 @@ export function AmericanoView({
             {m.hero.seats(game.registeredPlayers.length, seatCount)}.{" "}
             {m.drawEntry.waitingCopy(seatCount)}
           </Text>
-          {game.series ? (
-            <SeriesHeroLine series={game.series} style={{ marginTop: 6 }} />
-          ) : null}
+          <SeriesHeadingLine series={game.series} />
         </View>
         {seriesCard}
         <Card
@@ -216,7 +214,7 @@ export function AmericanoView({
   const finished = board.data?.finished ?? false;
   const wonSeries = (playerId: string) => {
     const userId = names.get(playerId)?.userId;
-    return userId != null && seriesMarks?.userIds.has(userId) === true;
+    return userId != null && seriesBadges?.userIds.has(userId) === true;
   };
 
   return (
@@ -234,9 +232,7 @@ export function AmericanoView({
         <Text size="meta" tone="muted">
           {m.lead.standings}
         </Text>
-        {game.series && !finished ? (
-          <SeriesHeroLine series={game.series} style={{ marginTop: 6 }} />
-        ) : null}
+        <SeriesHeadingLine series={game.series} finished={finished} />
       </View>
       {seriesCard}
 
@@ -266,10 +262,10 @@ export function AmericanoView({
                     ) : null}
                   </Text>
                 </View>
-                {seriesMarks && wonSeries(row.playerId) ? (
+                {seriesBadges && wonSeries(row.playerId) ? (
                   <SeriesBadge
-                    emblem={seriesMarks.emblem}
-                    colour={seriesMarks.colour}
+                    emblem={seriesBadges.emblem}
+                    colour={seriesBadges.colour}
                     size="line"
                   />
                 ) : null}
@@ -286,9 +282,9 @@ export function AmericanoView({
         <Text size="meta" tone="muted">
           {finished ? m.table.final : m.table.live}
         </Text>
-        {seriesMarks ? (
+        {seriesBadges ? (
           <Text size="meta" tone="muted">
-            {seriesMarks.note}
+            {seriesBadges.note}
           </Text>
         ) : null}
       </View>

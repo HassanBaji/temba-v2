@@ -2,11 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   seriesPageSince,
-  seriesProfileMeta,
   seriesRowLine,
   seriesRuleLine,
   seriesWinOrdinal,
-  seriesWinStanding,
+  seriesWinTally,
   seriesWinWho,
   seriesWinWithLine,
   seriesWinnersLine,
@@ -282,28 +281,28 @@ describe("seriesWinOrdinal", () => {
   });
 });
 
-describe("seriesWinStanding", () => {
+describe("seriesWinTally", () => {
   it("says a first win is new on the profile", () => {
-    const winner = { standing: "new", levelWith: null } as const;
-    expect(seriesWinStanding(winner, "en")).toBe("new on the profile");
-    expect(seriesWinStanding(winner, "ar")).toBe("شارة جديدة على الملف الشخصي");
+    const winner = { tally: "new", levelWith: null } as const;
+    expect(seriesWinTally(winner, "en")).toBe("new on the profile");
+    expect(seriesWinTally(winner, "ar")).toBe("شارة جديدة على الملف الشخصي");
   });
 
   it("says a sole leader has the most", () => {
-    const winner = { standing: "most", levelWith: null } as const;
-    expect(seriesWinStanding(winner, "en")).toBe("most of anyone");
-    expect(seriesWinStanding(winner, "ar")).toBe("الأكثر فوزًا");
+    const winner = { tally: "most", levelWith: null } as const;
+    expect(seriesWinTally(winner, "en")).toBe("most of anyone");
+    expect(seriesWinTally(winner, "ar")).toBe("الأكثر فوزًا");
   });
 
   it("names the one player level with the leader by first name", () => {
     const winner = {
-      standing: "level",
+      tally: "level",
       levelWith: { name: "Layla Haddad" },
     } as const;
-    expect(seriesWinStanding(winner, "en")).toBe(
+    expect(seriesWinTally(winner, "en")).toBe(
       "most of anyone, level with Layla",
     );
-    expect(seriesWinStanding(winner, "ar")).toBe(
+    expect(seriesWinTally(winner, "ar")).toBe(
       `الأكثر فوزًا، بالتساوي مع ${isolated("Layla")}`,
     );
   });
@@ -314,36 +313,15 @@ describe("seriesWinStanding", () => {
     [3, "most of anyone, level with 3 others", "بالتساوي مع 3 آخرين"],
     [11, "most of anyone, level with 11 others", "بالتساوي مع 11 آخرين"],
   ])("counts %i others level with the leader", (count, en, ar) => {
-    const winner = { standing: "level", levelWith: { count } } as const;
-    expect(seriesWinStanding(winner, "en")).toBe(en);
-    expect(seriesWinStanding(winner, "ar")).toBe(`الأكثر فوزًا، ${ar}`);
+    const winner = { tally: "level", levelWith: { count } } as const;
+    expect(seriesWinTally(winner, "en")).toBe(en);
+    expect(seriesWinTally(winner, "ar")).toBe(`الأكثر فوزًا، ${ar}`);
   });
 
   it("says nothing for a player behind the leader", () => {
-    const winner = { standing: null, levelWith: null };
-    expect(seriesWinStanding(winner, "en")).toBeNull();
-    expect(seriesWinStanding(winner, "ar")).toBeNull();
-  });
-});
-
-describe("seriesProfileMeta", () => {
-  it.each([
-    [1, 1, "1 win in 1"],
-    [2, 2, "2 wins in 2"],
-    [3, 3, "3 wins in 3"],
-    [11, 11, "11 wins in 11"],
-    [5, 3, "5 wins in 3"],
-  ])("counts %i wins in %i series in English", (wins, count, line) => {
-    expect(seriesProfileMeta(wins, count, "en")).toBe(line);
-  });
-
-  it.each([
-    [1, 1, "فوز واحد في سلسلة واحدة"],
-    [2, 2, "فوزان في سلسلتين"],
-    [3, 3, "3 انتصارات في 3 سلاسل"],
-    [11, 11, "11 فوزًا في 11 سلسلة"],
-  ])("counts %i wins in %i series in Arabic", (wins, count, line) => {
-    expect(seriesProfileMeta(wins, count, "ar")).toBe(line);
+    const winner = { tally: null, levelWith: null };
+    expect(seriesWinTally(winner, "en")).toBeNull();
+    expect(seriesWinTally(winner, "ar")).toBeNull();
   });
 });
 

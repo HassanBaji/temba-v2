@@ -28,6 +28,9 @@ Group's Series from another's on a profile.
   is a picture of something, not chrome.
 - **The count on a badge is chrome**: a pill in `ink` with `paper` digits and a ring in the colour
   of the surface under it, so it follows the Color scheme while the badge does not.
+  On the mobile App's focused surface, which stays inverted in light until that App moves to
+  Palette v2 (ADR-0084), the pill is `onFocus` with `focus` digits and ring, so it does not sink
+  into the card.
 - **"Not yet" stays `Hatch`.** A badge has no unearned state: a profile shows only the Series a
   player has won. What is not yet is a hatched tile ("Not part of a series") or a hatched row (the
   Edition not played yet), carrying no badge colour.

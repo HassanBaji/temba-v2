@@ -100,9 +100,10 @@ export type SeriesWinRule =
   | "americano";
 
 /**
- * Which rule an Edition of this Game is won by, for its copy: the winning
- * side of a Friendly game, the top of one table or of each Pool's table, the
- * Champion of a Knockout, the king of the court, or the top of an Americano.
+ * Which rule an Edition of this Game is won by, for its result and its copy:
+ * the winning side of a Friendly game, the top of one table or of each Pool's
+ * table, the Champion of a Knockout, the king of the court, or the top of an
+ * Americano.
  */
 export function seriesWinRule(game: {
   format: string;
@@ -122,36 +123,4 @@ export function seriesWinRule(game: {
     return "champion";
   }
   return (game.poolCount ?? 1) > 1 ? "tables" : "table";
-}
-
-export type SeriesEditionGame = {
-  id: string;
-  windowStart: Date;
-  createdAt: Date;
-};
-
-function editionOrder(a: SeriesEditionGame, b: SeriesEditionGame) {
-  const byStart = a.windowStart.getTime() - b.windowStart.getTime();
-  if (byStart !== 0) {
-    return byStart;
-  }
-  const byCreated = a.createdAt.getTime() - b.createdAt.getTime();
-  if (byCreated !== 0) {
-    return byCreated;
-  }
-  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-}
-
-/**
- * The Edition number of each of a Series' Games that are not cancelled: 1 for
- * the earliest by window start, then creation time, then id (ADR-0105).
- */
-export function seriesEditionNumbers(
-  games: readonly SeriesEditionGame[],
-): Map<string, number> {
-  return new Map(
-    [...games]
-      .sort(editionOrder)
-      .map((game, index) => [game.id, index + 1] as const),
-  );
 }

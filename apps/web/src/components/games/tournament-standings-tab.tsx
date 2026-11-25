@@ -12,7 +12,7 @@ import {
   type ResultMarkVariant,
 } from "~/components/temba/result-mark";
 import { SeriesBadge } from "~/components/series/series-badge";
-import type { SeriesTableMarks } from "~/components/series/series-edition-card-model";
+import type { SeriesTableBadges } from "~/components/series/series-edition-card-model";
 import { ScoreText } from "~/components/temba/score-text";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -46,7 +46,7 @@ function PoolTable({
   qualifiers,
   teams,
   viewerUserId,
-  seriesMarks,
+  seriesBadges,
 }: {
   rows: PoolRow[];
   poolFinished: boolean;
@@ -55,7 +55,7 @@ function PoolTable({
   qualifiers: number | null;
   teams: ReadonlyMap<string, RoundsTeam>;
   viewerUserId: string;
-  seriesMarks: SeriesTableMarks | null;
+  seriesBadges: SeriesTableBadges | null;
 }) {
   const messages = useMessages().tournamentRounds;
   const m = messages.standings;
@@ -139,10 +139,10 @@ function PoolTable({
                           viewerUserId={viewerUserId}
                           className="min-w-0 flex-1"
                         />
-                        {seriesMarks?.gameTeamIds.has(row.gameTeamId) ? (
+                        {seriesBadges?.gameTeamIds.has(row.gameTeamId) ? (
                           <SeriesBadge
-                            emblem={seriesMarks.emblem}
-                            colour={seriesMarks.colour}
+                            emblem={seriesBadges.emblem}
+                            colour={seriesBadges.colour}
                             size="line"
                           />
                         ) : null}
@@ -199,9 +199,9 @@ function PoolTable({
             ? m.ties
             : m.drawOrder}
       </p>
-      {seriesMarks ? (
+      {seriesBadges ? (
         <p className="text-muted-foreground text-meta mt-1.5 leading-relaxed">
-          {seriesMarks.note}
+          {seriesBadges.note}
         </p>
       ) : null}
     </div>
@@ -402,7 +402,7 @@ export function TournamentStandingsTab({
   viewerUserId,
   onEnterScore,
   finished = null,
-  seriesMarks = null,
+  seriesBadges = null,
 }: {
   poolTables: PoolTables;
   groupsThenKnockout: boolean;
@@ -413,7 +413,7 @@ export function TournamentStandingsTab({
   onEnterScore: (target: ScoreSheetTarget) => void;
   finished?: TournamentFinishedView | null;
   /** The Series winners' rows and the note, when the table decides an Edition. */
-  seriesMarks?: SeriesTableMarks | null;
+  seriesBadges?: SeriesTableBadges | null;
 }) {
   const m = useMessages();
   const defaultPool = defaultStandingsPoolIndex(
@@ -437,7 +437,7 @@ export function TournamentStandingsTab({
       qualifiers={qualifiers}
       teams={teams}
       viewerUserId={viewerUserId}
-      seriesMarks={seriesMarks}
+      seriesBadges={seriesBadges}
     />
   ));
 

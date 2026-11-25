@@ -273,55 +273,55 @@ describe("series.edition", () => {
       [qasim.id, khalid.id],
     );
 
-    const standings = async (gameId: string) => {
+    const tallies = async (gameId: string) => {
       const result = await edition(f, gameId, qasim.id);
       return Object.fromEntries(
         (result?.winners ?? []).map((winner) => [
           winner.name,
           {
             winCount: winner.winCount,
-            standing: winner.standing,
+            tally: winner.tally,
             levelWith: winner.levelWith,
           },
         ]),
       );
     };
 
-    expect(await standings(second.gameId)).toEqual({
-      "Layla Haddad": { winCount: 1, standing: "new", levelWith: null },
-      "Nora Nasser": { winCount: 1, standing: "new", levelWith: null },
+    expect(await tallies(second.gameId)).toEqual({
+      "Layla Haddad": { winCount: 1, tally: "new", levelWith: null },
+      "Nora Nasser": { winCount: 1, tally: "new", levelWith: null },
     });
-    expect(await standings(third.gameId)).toEqual({
+    expect(await tallies(third.gameId)).toEqual({
       "Qasim Albaqali": {
         winCount: 2,
-        standing: "level",
+        tally: "level",
         levelWith: { name: "Layla Haddad" },
       },
       "Layla Haddad": {
         winCount: 2,
-        standing: "level",
+        tally: "level",
         levelWith: { name: "Qasim Albaqali" },
       },
     });
-    expect(await standings(fourth.gameId)).toEqual({
+    expect(await tallies(fourth.gameId)).toEqual({
       "Ahmed Buhazza": {
         winCount: 2,
-        standing: "level",
+        tally: "level",
         levelWith: { count: 3 },
       },
       "Nora Nasser": {
         winCount: 2,
-        standing: "level",
+        tally: "level",
         levelWith: { count: 3 },
       },
     });
-    expect(await standings(fifth.gameId)).toEqual({
-      "Qasim Albaqali": { winCount: 3, standing: "most", levelWith: null },
-      "Reem Faraj": { winCount: 1, standing: "new", levelWith: null },
+    expect(await tallies(fifth.gameId)).toEqual({
+      "Qasim Albaqali": { winCount: 3, tally: "most", levelWith: null },
+      "Reem Faraj": { winCount: 1, tally: "new", levelWith: null },
     });
-    expect(await standings(sixth.gameId)).toEqual({
-      "Reem Faraj": { winCount: 2, standing: null, levelWith: null },
-      "Guest Gamer": { winCount: 1, standing: null, levelWith: null },
+    expect(await tallies(sixth.gameId)).toEqual({
+      "Reem Faraj": { winCount: 2, tally: null, levelWith: null },
+      "Guest Gamer": { winCount: 1, tally: null, levelWith: null },
     });
 
     const viewed = await edition(f, sixth.gameId, qasim.id);

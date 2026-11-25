@@ -12,7 +12,7 @@ import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
 import {
-  SeriesHeroLine,
+  SeriesHeadingLine,
   type SeriesHeroLineSeries,
 } from "../series/series-hero-line";
 import { ChallengeTag } from "./challenge-tag";
@@ -21,7 +21,6 @@ import { HeroTopLine } from "./hero-top-line";
 const HERO_PADDING_BOTTOM = 22;
 const SEAT_HEIGHT = 24;
 const NAV_TO_STATUS_GAP = 24;
-const SERIES_LINE_GAP = 6;
 const GAMES_FALLBACK = "/games";
 
 function LightStatusBar() {
@@ -157,12 +156,7 @@ export function FootballHero({
                 </Text>
               ) : null}
             </View>
-            {series ? (
-              <SeriesHeroLine
-                series={series}
-                style={{ marginTop: SERIES_LINE_GAP }}
-              />
-            ) : null}
+            <SeriesHeadingLine series={series} />
           </View>
         </View>
         {children}
