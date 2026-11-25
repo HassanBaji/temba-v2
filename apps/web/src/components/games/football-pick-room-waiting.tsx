@@ -12,6 +12,10 @@ import {
   captainPickFirstPickLine,
   captainPickPoolLine,
 } from "@repo/domain/football-captain-pick";
+import {
+  otherCaptainSide,
+  pickRoomPool,
+} from "@repo/domain/football-pick-room";
 import type { FootballBalanceOn } from "@repo/domain/football-lineup";
 import { BellIcon, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -25,7 +29,6 @@ import { cn } from "~/lib/utils";
 import { BibChip } from "./football-bibs";
 import { FootballInfoRows } from "./football-info-rows";
 import {
-  pickRoomPool,
   type OpenPickRoom,
   type PickRoomNames,
 } from "./football-pick-room-view";
@@ -139,8 +142,7 @@ export function FootballPickRoomWaiting({
   const captainPlayer = (side: Side) =>
     names.playerOf(ofSide(room.captains, side)?.userId);
   const captainName = (side: Side) => ofSide(names.captains, side);
-  const otherSide: Side | null =
-    room.viewer.side === 1 ? 2 : room.viewer.side === 2 ? 1 : null;
+  const otherSide = otherCaptainSide(room.viewer.side);
   const inRoom = (side: Side) => ofSide(room.captains, side)?.inRoom ?? false;
 
   const sendReminder = (side: Side) =>

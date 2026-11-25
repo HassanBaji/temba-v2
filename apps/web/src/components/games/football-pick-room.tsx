@@ -2,6 +2,7 @@
 
 import type { Side } from "@repo/domain/football-board";
 import { captainPickRoomLines } from "@repo/domain/football-captain-pick";
+import { livePickSeat } from "@repo/domain/football-pick-room";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -22,7 +23,7 @@ import {
   type PickConfirm,
 } from "./football-pick-room-live";
 import { FootballPickRoomBanner } from "./football-pick-room-parts";
-import { pickRoomNames, pickRoomViewerTurn } from "./football-pick-room-view";
+import { pickRoomNames } from "./football-pick-room-view";
 import {
   FootballPickRoomWaiting,
   type PickReminded,
@@ -173,7 +174,7 @@ export function FootballPickRoom({ gameId }: { gameId: string }) {
       <div className="space-y-5">
         <FootballPickRoomBanner
           lines={lines}
-          onTurn={pickRoomViewerTurn(room).onTurn}
+          onTurn={livePickSeat(room, false).viewerOnTurn}
         />
         {done ? (
           <FootballPickRoomFinished

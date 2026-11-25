@@ -7,10 +7,11 @@ import {
   pickRoomCountLines,
   pickRoomPlayer,
   pickRoomPlayerName,
+  pickRoomPool,
   pickRoomPoolPlayers,
   pickRoomRead,
   pickRoomUnknownUserIds,
-} from "./pick-room-model";
+} from "./football-pick-room";
 
 const player = (userId: string, name: string) => ({
   userId,
@@ -247,5 +248,53 @@ describe("livePickSeat", () => {
         false,
       ),
     ).toEqual(none);
+  });
+});
+
+describe("pickRoomPool", () => {
+  const rated = (userId: string, ovr: number, balanceStrength: number) => ({
+    userId,
+    ovr,
+    balanceStrength,
+    levelBand: null,
+  });
+  const players = [rated("a", 60, 90), rated("b", 80, 70), rated("c", 70, 80)];
+  const ids = (pool: readonly { userId: string }[]) =>
+    pool.map((entry) => entry.userId);
+
+  it("orders the pool for a Side captain by OVR", () => {
+    expect(
+      ids(
+        pickRoomPool(
+          { pool: ["a", "b", "c"], viewer: { isOrganizer: false } },
+          players,
+          "ovr",
+        ),
+      ),
+    ).toEqual(["b", "c", "a"]);
+  });
+
+  it("orders the pool for an Organizer by balance strength", () => {
+    expect(
+      ids(
+        pickRoomPool(
+          { pool: ["a", "b", "c"], viewer: { isOrganizer: true } },
+          players,
+          "ovr",
+        ),
+      ),
+    ).toEqual(["a", "c", "b"]);
+  });
+
+  it("leaves out anyone the board does not hold", () => {
+    expect(
+      ids(
+        pickRoomPool(
+          { pool: ["a", "z", "b"], viewer: { isOrganizer: false } },
+          players,
+          "ovr",
+        ),
+      ),
+    ).toEqual(["b", "a"]);
   });
 });

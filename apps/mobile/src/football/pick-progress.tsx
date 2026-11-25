@@ -7,7 +7,10 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
-import { pickRoomCaptainNames, pickRoomCountLines } from "./pick-room-model";
+import {
+  pickRoomCaptainNames,
+  pickRoomCountLines,
+} from "@repo/domain/football-pick-room";
 import { PickSides } from "./pick-sides";
 import type { PickRoom } from "./use-pick-room";
 

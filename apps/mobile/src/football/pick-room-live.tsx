@@ -3,10 +3,7 @@ import {
   ofSide,
   type BoardPlayer,
 } from "@repo/domain/football-board";
-import {
-  captainPickPoolOrder,
-  lastPick as lastPickOf,
-} from "@repo/domain/football-captain-pick";
+import { lastPick as lastPickOf } from "@repo/domain/football-captain-pick";
 import type { FootballBalanceOn } from "@repo/domain/football-lineup";
 import type { Href } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
@@ -29,9 +26,9 @@ import {
   pickRoomCountLines,
   pickRoomPlayer,
   pickRoomPlayerName,
-  pickRoomPoolPlayers,
+  pickRoomPool,
   type LivePickSeat,
-} from "./pick-room-model";
+} from "@repo/domain/football-pick-room";
 import { PickPool } from "./pick-sides";
 import type { PickChoice } from "./use-pick-choice";
 import type { PickRoom, PickRoomController } from "./use-pick-room";
@@ -108,10 +105,7 @@ export function LivePick({
   const captains = pickRoomCaptainNames(room.captains, players, locale);
   const lastPick = lastPickOf(room.sides);
   const lastPickName = pickRoomPlayerName(players, lastPick?.userId, locale);
-  const pool = captainPickPoolOrder(pickRoomPoolPlayers(room.pool, players), {
-    organizer: room.viewer.isOrganizer,
-    balanceOn,
-  });
+  const pool = pickRoomPool(room, players, balanceOn);
   return (
     <>
       <PickProgress

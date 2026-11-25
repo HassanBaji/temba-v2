@@ -2,6 +2,11 @@
 
 import { ofSide, type BoardPlayer } from "@repo/domain/football-board";
 import { lastPick as lastPickOf } from "@repo/domain/football-captain-pick";
+import {
+  livePickSeat,
+  pickRoomCountLines,
+  pickRoomPool,
+} from "@repo/domain/football-pick-room";
 import type { FootballBalanceOn } from "@repo/domain/football-lineup";
 import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -13,9 +18,6 @@ import { cn } from "~/lib/utils";
 
 import { FootballPickRoomSides } from "./football-pick-room-parts";
 import {
-  pickRoomCounts,
-  pickRoomPool,
-  pickRoomViewerTurn,
   type OpenPickRoom,
   type PickRoomNames,
 } from "./football-pick-room-view";
@@ -97,9 +99,11 @@ export function FootballPickRoomLive({
   const m = useMessages().football.pick;
   const { pick, undo, stop } = actions;
   const turn = room.turn;
-  const counts = pickRoomCounts(room, locale);
-  const { onTurn: viewerOnTurn, mayPickFor } = pickRoomViewerTurn(room);
-  const selectable = viewerOnTurn || (mayPickFor && pickingFor);
+  const counts = pickRoomCountLines(room, locale);
+  const { viewerOnTurn, mayPickFor, selectable } = livePickSeat(
+    room,
+    pickingFor,
+  );
   const choice = selectable && selected ? names.playerOf(selected) : undefined;
   const choiceName = choice ? names.nameOf(choice.userId) : "";
   const lastPick = lastPickOf(room.sides);

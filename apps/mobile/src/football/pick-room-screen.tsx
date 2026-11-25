@@ -10,7 +10,7 @@ import { Text } from "../primitives/text";
 import { ClosedRoom } from "./pick-room-closed";
 import { FinishedPick, FinishedPickFooter } from "./pick-room-finished";
 import { LivePick, LivePickFooter, PickConfirmSheet } from "./pick-room-live";
-import { livePickSeat } from "./pick-room-model";
+import { livePickSeat } from "@repo/domain/football-pick-room";
 import { WaitingRoom, WaitingRoomFooter } from "./pick-room-waiting";
 import { usePickChoice } from "./use-pick-choice";
 import { usePickRoom } from "./use-pick-room";

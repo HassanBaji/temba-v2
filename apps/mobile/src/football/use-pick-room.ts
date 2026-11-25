@@ -12,7 +12,10 @@ import { gamePath } from "../games/games-model";
 import { useMessages } from "../i18n/locale-provider";
 import { useToast } from "../primitives/toast";
 import { api, type RouterOutputs } from "../trpc/react";
-import { pickRoomRead, pickRoomUnknownUserIds } from "./pick-room-model";
+import {
+  pickRoomRead,
+  pickRoomUnknownUserIds,
+} from "@repo/domain/football-pick-room";
 
 export type PickRoom = Exclude<
   RouterOutputs["games"]["footballPickRoom"],

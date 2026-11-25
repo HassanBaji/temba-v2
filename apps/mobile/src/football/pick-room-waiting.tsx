@@ -12,7 +12,6 @@ import {
 import {
   captainPickFirstPickLine,
   captainPickPoolLine,
-  captainPickPoolOrder,
 } from "@repo/domain/football-captain-pick";
 import type { FootballBalanceOn } from "@repo/domain/football-lineup";
 import { formatGameStart } from "@repo/domain/format-game-start";
@@ -36,8 +35,8 @@ import {
   otherCaptainSide,
   pickRoomCaptainNames,
   pickRoomPlayer,
-  pickRoomPoolPlayers,
-} from "./pick-room-model";
+  pickRoomPool,
+} from "@repo/domain/football-pick-room";
 import { TierMark } from "./team-columns";
 import type { PickRoom, PickRoomController } from "./use-pick-room";
 
@@ -156,10 +155,7 @@ function PoolPreview({
   const locale = useLocale();
   const messages = useMessages();
   const m = messages.football.pick;
-  const pool = captainPickPoolOrder(pickRoomPoolPlayers(room.pool, players), {
-    organizer: room.viewer.isOrganizer,
-    balanceOn,
-  });
+  const pool = pickRoomPool(room, players, balanceOn);
   const shown = pool.slice(0, POOL_PREVIEW);
   const more = room.pool.length - shown.length;
   return (

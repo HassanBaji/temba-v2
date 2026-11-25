@@ -6,6 +6,10 @@ import {
   pickRoomWithPick,
   type PickRoomView,
 } from "@repo/domain/football-captain-pick";
+import {
+  pickRoomRead,
+  pickRoomUnknownUserIds,
+} from "@repo/domain/football-pick-room";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -16,11 +20,7 @@ import { gameHomeHref } from "~/lib/dashboard-paths";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
-import {
-  pickRoomRead,
-  pickRoomUnknownIds,
-  type OpenPickRoom,
-} from "./football-pick-room-view";
+import type { OpenPickRoom } from "./football-pick-room-view";
 
 export type FootballPickRoomActions = ReturnType<
   typeof useFootballPickRoom
@@ -57,7 +57,11 @@ export function useFootballPickRoom(gameId: string) {
   );
   const refused =
     isNotFoundError(room.error) || room.error?.data?.code === "FORBIDDEN";
-  const read = pickRoomRead(room, refused);
+  const read = pickRoomRead({
+    fetchedAfterMount: room.isFetchedAfterMount,
+    read: room.isSuccess ? room.data : undefined,
+    refused,
+  });
   const open = view === "closed" ? null : view;
 
   const leave = React.useCallback(
@@ -84,7 +88,8 @@ export function useFootballPickRoom(gameId: string) {
   }, [read, view, leave, m.stopped]);
 
   const players = board.data?.players;
-  const unknownIds = players && open ? pickRoomUnknownIds(open, players) : "";
+  const unknownIds =
+    players && open ? pickRoomUnknownUserIds(open, players).join(",") : "";
   const refetchBoard = board.refetch;
   React.useEffect(() => {
     if (unknownIds) {

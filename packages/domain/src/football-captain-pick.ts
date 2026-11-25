@@ -386,7 +386,7 @@ export function captainPickFirstPickLine(
   return m.picksFirst(names[pick.firstPick]);
 }
 
-type PoolPlayer = Pick<
+export type PoolPlayer = Pick<
   BoardPlayer,
   "userId" | "levelBand" | "ovr" | "balanceStrength" | "tier"
 >;

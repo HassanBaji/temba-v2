@@ -2,13 +2,13 @@
 
 import type { BoardPlayer } from "@repo/domain/football-board";
 import type { FootballBalanceOn } from "@repo/domain/football-lineup";
+import { pickRoomCountLines } from "@repo/domain/football-pick-room";
 
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 
 import { FootballPickRoomSides } from "./football-pick-room-parts";
 import {
-  pickRoomCounts,
   type OpenPickRoom,
   type PickRoomNames,
 } from "./football-pick-room-view";
@@ -36,7 +36,7 @@ export function FootballPickRoomFinished({
           <FootballPickRoomSides
             room={room}
             teams={names.teams}
-            counts={pickRoomCounts(room, locale)}
+            counts={pickRoomCountLines(room, locale)}
             turn={null}
             players={players}
             balanceOn={balanceOn}

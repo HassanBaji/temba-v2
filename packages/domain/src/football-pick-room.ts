@@ -1,14 +1,18 @@
+import type { Locale } from "@repo/i18n/locale";
+
 import {
   lineupPlayerName,
   type BoardPlayer,
   type Side,
-} from "@repo/domain/football-board";
+} from "./football-board";
 import {
   captainPickCountLines,
+  captainPickPoolOrder,
   pickRoomUserIds,
   type OpenPickRoom,
-} from "@repo/domain/football-captain-pick";
-import type { Locale } from "@repo/i18n/locale";
+  type PoolPlayer,
+} from "./football-captain-pick";
+import type { FootballBalanceOn } from "./football-lineup";
 
 const CLOSED_READ = { status: "closed" } as const;
 
@@ -51,6 +55,18 @@ export function pickRoomPoolPlayers<Player extends Pick<BoardPlayer, "userId">>(
   return pool.flatMap((userId) => {
     const player = byId.get(userId);
     return player ? [player] : [];
+  });
+}
+
+/** The pool as the viewer is shown it: the players the board holds, best first. */
+export function pickRoomPool<Player extends PoolPlayer>(
+  room: { pool: readonly string[]; viewer: { isOrganizer: boolean } },
+  players: readonly Player[],
+  balanceOn: FootballBalanceOn,
+) {
+  return captainPickPoolOrder(pickRoomPoolPlayers(room.pool, players), {
+    organizer: room.viewer.isOrganizer,
+    balanceOn,
   });
 }
 
