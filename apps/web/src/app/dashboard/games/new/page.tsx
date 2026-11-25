@@ -969,7 +969,7 @@ function NewGameForm() {
               {c.hero.titleTrail}
             </>
           ) : (
-            m.createGame.format.friendlyGame
+            m.createGame.typeCards.friendlyGame.title
           )}
         </PageTitle>
         <div className="text-dim text-meta mt-2.5 leading-normal">

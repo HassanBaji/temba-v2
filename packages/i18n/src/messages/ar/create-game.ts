@@ -30,9 +30,9 @@ export const createGame = {
       }),
   },
   typeCards: {
-    countsNote: "ودية، لكنها تُحتسب في مستواك.",
+    countsNote: "كلاهما يُحتسب في مستواك.",
     friendlyGame: {
-      title: "مباراة ودية",
+      title: "مباراة",
       description: "مباراة واحدة، ويساعدك Temba في ملء الأماكن الشاغرة.",
       rating: "تُحتسب في مستواك",
     },
@@ -159,6 +159,7 @@ export const createGame = {
   },
   format: {
     friendlyGame: "مباراة ودية",
+    rankedGame: "مباراة مصنّفة",
     americano: "أمريكانو",
     friendlyTournament: "سوشيال",
   },

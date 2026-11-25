@@ -10,9 +10,9 @@ export const createGame = {
       plural("en", n, { one: "1 Court", other: "{n} Courts" }),
   },
   typeCards: {
-    countsNote: "Friendly, but it counts toward your Level.",
+    countsNote: "Both count toward your Level.",
     friendlyGame: {
-      title: "Friendly game",
+      title: "Game",
       description: "One Match. Temba fills the open seats.",
       rating: "Counts for your rating",
     },
@@ -126,6 +126,7 @@ export const createGame = {
   },
   format: {
     friendlyGame: "Friendly game",
+    rankedGame: "Ranked game",
     americano: "Americano",
     friendlyTournament: "Social",
   },
