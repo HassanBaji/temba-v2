@@ -312,19 +312,24 @@ export async function finishFootballPick(
 }
 
 /**
- * A save or a publish names the draft it was made from. One that names a
- * draft since changed, or gone, is refused so two Organizers do not
- * overwrite each other.
+ * A save or a publish names the draft it was made from, or says with
+ * `null` that there was none. One that names a draft since changed, or
+ * gone, or that saw none where there is one now, is refused so two
+ * Organizers do not overwrite each other. Leaving it out skips the check.
  */
 export function assertFootballDraftCurrent(
   draft: { updatedAt: Date } | null,
-  draftUpdatedAt: Date | undefined,
+  draftUpdatedAt: Date | null | undefined,
   locale: Locale = DEFAULT_LOCALE,
 ) {
-  if (!draftUpdatedAt) {
+  if (draftUpdatedAt === undefined) {
     return;
   }
-  if (!draft || draft.updatedAt.getTime() > draftUpdatedAt.getTime()) {
+  const current =
+    draftUpdatedAt === null
+      ? draft === null
+      : draft != null && draft.updatedAt.getTime() <= draftUpdatedAt.getTime();
+  if (!current) {
     throw new TRPCError({
       code: "CONFLICT",
       message: messagesFor(locale).football.errors.draftChanged,

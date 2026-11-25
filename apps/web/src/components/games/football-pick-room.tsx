@@ -192,8 +192,11 @@ function OrganizerAction({
  * Organizer can remind either, start without them or stop the pick. Once
  * live, the captain on turn selects a player and confirms; their own pick
  * shows at once and the next read corrects it. The Organizer watches and can
- * pick for the side on turn, undo the last pick or stop. A stopped pick
- * closes the room for everyone; anyone else gets the not-found page.
+ * pick for the side on turn, undo the last pick or stop. A pick stopped
+ * while it waits or is live closes the room for everyone; anyone else gets
+ * the not-found page. A finished pick stays on the page: the room is not
+ * read again, since it reads stopped or not found once the Organizer
+ * publishes or edits the draft.
  */
 export function FootballPickRoom({ gameId }: { gameId: string }) {
   const locale = useLocale();
@@ -204,12 +207,16 @@ export function FootballPickRoom({ gameId }: { gameId: string }) {
   const gameHref = gameHomeHref(gameId);
   const game = api.games.byId.useQuery({ id: gameId });
   const board = api.games.footballBoard.useQuery({ gameId });
+  const [finished, setFinished] = React.useState(false);
   const room = api.games.footballPickRoom.useQuery(
     { gameId },
     {
+      enabled: !finished,
       refetchInterval: (query) => {
         const status = query.state.data?.status;
-        return status === "done" || status === "stopped"
+        return status === "done" ||
+          status === "stopped" ||
+          query.state.error?.data?.code === "FORBIDDEN"
           ? false
           : PICK_ROOM_POLL_MS;
       },
@@ -225,9 +232,17 @@ export function FootballPickRoom({ gameId }: { gameId: string }) {
   const [selected, setSelected] = React.useState<string | null>(null);
   const [pickingFor, setPickingFor] = React.useState(false);
   const [confirm, setConfirm] = React.useState<"undo" | "stop" | null>(null);
-  const wasOpen = React.useRef(false);
+  const wasRunning = React.useRef(false);
   const data = room.data;
   const nextPick = data && data.status !== "stopped" ? data.picks.next : null;
+  // A done read kept from an earlier visit does not count: the Organizer may
+  // have opened the room anew since, so this visit reads it once itself.
+  const readDone =
+    room.isSuccess && room.isFetchedAfterMount && data?.status === "done";
+
+  React.useEffect(() => {
+    setFinished(readDone);
+  }, [readDone]);
 
   React.useEffect(() => {
     setSelected(null);
@@ -251,11 +266,11 @@ export function FootballPickRoom({ gameId }: { gameId: string }) {
       return;
     }
     if (data.status !== "stopped") {
-      wasOpen.current = true;
+      wasRunning.current = data.status !== "done";
       return;
     }
-    if (wasOpen.current) {
-      wasOpen.current = false;
+    if (wasRunning.current) {
+      wasRunning.current = false;
       void leave(m.stopped);
     }
   }, [data, leave, m.stopped]);
@@ -291,7 +306,7 @@ export function FootballPickRoom({ gameId }: { gameId: string }) {
   const stop = api.games.stopFootballPick.useMutation({
     meta: OWN_ERROR_UI,
     onSuccess: () => {
-      wasOpen.current = false;
+      wasRunning.current = false;
       setConfirm(null);
       void leave(m.stopped);
     },
@@ -343,7 +358,7 @@ export function FootballPickRoom({ gameId }: { gameId: string }) {
   if (isNotFoundError(room.error)) {
     notFound();
   }
-  if (data?.status === "stopped") {
+  if (data?.status === "stopped" || room.error?.data?.code === "FORBIDDEN") {
     return (
       <DashboardShell title={m.title} action={back} isSubPage hideNav>
         <section className="border-rule bg-paper space-y-1 rounded-xl border p-5">

@@ -122,7 +122,8 @@ async function upsertSide(
  * exactly one side, each side in its bib colour. Publishing again replaces the
  * split until a Score is in. The first publish creates the Game's one Match.
  * It removes the Game's Draft line-up; one made from a draft names it by
- * `draftUpdatedAt` and is refused when the draft has changed since. Each
+ * `draftUpdatedAt`, or says with `null` that there was none, and is refused
+ * when the draft has changed since or one has been saved meanwhile. Each
  * side carries its Side captain (ADR-0108), never waiting on an answer.
  * Without `captains` it keeps the draft's, or the published teams', while
  * they are still on their side.
@@ -137,7 +138,7 @@ export async function publishFootballTeams(
     slot1: string[];
     slot2: string[];
     captains?: SideCaptains;
-    draftUpdatedAt?: Date;
+    draftUpdatedAt?: Date | null;
     locale?: Locale;
   },
 ) {
@@ -314,7 +315,7 @@ export const publishFootballTeamsProcedure = protectedProcedure
       gameId: z.string().uuid(),
       method: z.enum(FOOTBALL_TEAMS_METHODS),
       captains: footballSideCaptainsInputSchema.optional(),
-      draftUpdatedAt: z.date().optional(),
+      draftUpdatedAt: z.date().nullable().optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {

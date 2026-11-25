@@ -8,6 +8,7 @@ import {
   footballLineupDraftPlayers,
   footballLineupDrafts,
   gamePlayers,
+  games,
   groupMembers,
   groups,
   user,
@@ -537,6 +538,39 @@ describe("games.footballPickRoom", () => {
       await expect(room(f, a!)).rejects.toThrow(notFound);
     });
   });
+
+  it("refuses a cancelled Game to the Organizer and the captains, running or finished", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await startLive(f, { slot1: a!, slot2: c! });
+      const cancel = () =>
+        f.db
+          .update(games)
+          .set({ cancelledAt: new Date() })
+          .where(eq(games.id, f.gameId));
+      const refused = {
+        code: "FORBIDDEN",
+        message: messagesFor("en").game.errors.cancelled,
+      };
+
+      await cancel();
+      for (const viewer of [f.organizer, a!, c!]) {
+        await expect(room(f, viewer)).rejects.toMatchObject(refused);
+      }
+      await expect(room(f, b!)).rejects.toThrow(notFound);
+      expect((await draftRow(f)).pickStatus).toBe("live");
+
+      await f.db
+        .update(games)
+        .set({ cancelledAt: null })
+        .where(eq(games.id, f.gameId));
+      await pick(f, a!, b!, 1);
+      await pick(f, c!, d!, 2);
+      expect((await room(f, a!)).status).toBe("done");
+      await cancel();
+      await expect(room(f, a!)).rejects.toMatchObject(refused);
+    });
+  });
 });
 
 describe("games.startFootballPick", () => {
@@ -704,22 +738,22 @@ describe("while a Captain pick runs", () => {
 });
 
 describe("games.remindFootballCaptain", () => {
-  it("sends one reminder per five minutes; a second press inside the window sends nothing", async () => {
+  it("sends no reminder within five minutes of the last one, across a clock boundary too", async () => {
     await withFootballGame(async (f) => {
       const [a, , c] = await addPlayers(f, 4);
       await open(f, { slot1: a!, slot2: c! });
-      const t0 = new Date("2026-11-21T10:00:00Z");
-      const remind = (at: Date) =>
+      const fiveMinutes = 5 * 60_000;
+      const boundary = Math.ceil(Date.now() / fiveMinutes) * fiveMinutes;
+      const remind = (msFromBoundary: number) =>
         remindFootballCaptain(
           f.db,
           { gameId: f.gameId, userId: a!.id, side: 2 },
-          at,
+          new Date(boundary + msFromBoundary),
         );
 
-      expect(await remind(t0)).toEqual({ sent: true });
-      expect(await remind(new Date(t0.getTime() + 60_000))).toEqual({
-        sent: false,
-      });
+      expect(await remind(-1_000)).toEqual({ sent: true });
+      expect(await remind(1_000)).toEqual({ sent: false });
+      expect(await remind(fiveMinutes - 1_001)).toEqual({ sent: false });
       const reminders = await notificationsOf(f, "football_pick_reminder");
       expect(reminders).toEqual([
         {
@@ -728,11 +762,35 @@ describe("games.remindFootballCaptain", () => {
           actorUserId: a!.id,
         },
       ]);
-      expect(await remind(new Date(t0.getTime() + 5 * 60_000))).toEqual({
-        sent: true,
-      });
+      expect(await remind(fiveMinutes - 1_000)).toEqual({ sent: true });
+      expect(await remind(fiveMinutes)).toEqual({ sent: false });
       expect(await notificationsOf(f, "football_pick_reminder")).toHaveLength(
         2,
+      );
+    });
+  });
+
+  it("sends one reminder for two presses at once", async () => {
+    await withFootballGame(async (f) => {
+      const [a, , c] = await addPlayers(f, 4);
+      await open(f, { slot1: a!, slot2: c! });
+      const now = new Date();
+      const results = await Promise.all(
+        [a!.id, f.organizer.id].map((userId) =>
+          remindFootballCaptain(
+            f.db,
+            { gameId: f.gameId, userId, side: 2 },
+            now,
+          ),
+        ),
+      );
+
+      expect(results.map((result) => result.sent).sort()).toEqual([
+        false,
+        true,
+      ]);
+      expect(await notificationsOf(f, "football_pick_reminder")).toHaveLength(
+        1,
       );
     });
   });
@@ -1004,6 +1062,35 @@ describe("games.pickFootballPlayer", () => {
       });
       expect((await draftRow(f)).pickStatus).toBe("done");
       expect(await notificationsOf(f, "football_pick_done")).toEqual([]);
+    });
+  });
+
+  it("publishes a finished pick from its draft, as a Captain pick with both captains", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await startLive(f, { slot1: a!, slot2: c! });
+      await pick(f, a!, b!, 1);
+      await pick(f, c!, d!, 2);
+      const draft = (await boardFor(f, f.organizer.id)).draft!;
+      expect(draft.method).toBe("captain_pick");
+
+      await publishFootballTeams(f.db, {
+        gameId: f.gameId,
+        userId: f.organizer.id,
+        method: draft.method,
+        bibs: draft.bibs,
+        slot1: draft.sides.slot1,
+        slot2: draft.sides.slot2,
+        captains: draft.captains,
+        draftUpdatedAt: draft.updatedAt,
+      });
+
+      const board = await boardFor(f, b!.id);
+      expect(board.draft).toBeNull();
+      expect(board.teams).toMatchObject({
+        method: "captain_pick",
+        captains: { slot1: a!.id, slot2: c!.id },
+      });
     });
   });
 

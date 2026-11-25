@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
-import { and, eq } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 
 import { notifications } from "@repo/db";
@@ -14,18 +14,19 @@ import {
   assertFootballDraftOpen,
   loadFootballDraft,
 } from "#src/games/football-draft";
-import {
-  footballPickReminderDedupeKey,
-  notifyFootballPickReminder,
-} from "#src/notifications/notify-football-draft";
+import { notifyFootballPickReminder } from "#src/notifications/notify-football-draft";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+const PICK_REMINDER_EVERY_MS = 5 * 60 * 1000;
 
 /**
  * A Side captain reminds the other side's captain that the Pick room waits
  * for them, or an Organizer reminds the captain of either side (ADR-0109).
- * One reminder per five minutes reaches them; a second press inside the
- * window succeeds and sends nothing, and `sent` says which it was.
+ * No reminder reaches a captain within five minutes of the last one sent to
+ * them for this Game; a press inside that time succeeds and sends nothing,
+ * and `sent` says which it was. The draft row's lock makes two presses at
+ * once read one after the other, so only the first sends.
  */
 export async function remindFootballCaptain(
   database: DbClient,
@@ -66,19 +67,22 @@ export async function remindFootballCaptain(
       });
     }
 
-    const [already] = await tx
+    const [recent] = await tx
       .select({ id: notifications.id })
       .from(notifications)
       .where(
         and(
           eq(notifications.recipientUserId, recipient),
-          eq(
-            notifications.dedupeKey,
-            footballPickReminderDedupeKey(game.id, now),
+          eq(notifications.gameId, game.id),
+          eq(notifications.type, "football_pick_reminder"),
+          gt(
+            notifications.createdAt,
+            new Date(now.getTime() - PICK_REMINDER_EVERY_MS),
           ),
         ),
-      );
-    if (already) {
+      )
+      .limit(1);
+    if (recent) {
       return { sent: false as const };
     }
     await notifyFootballPickReminder(tx, {

@@ -32,6 +32,8 @@ import { loadPayers } from "#src/game-payments/ledger";
 import { listMyGamesHubRows } from "#src/games/list-my-games";
 import { liveBoardContent } from "#src/live-boards/board-content";
 import { createBookingGame } from "#src/routers/bookings/createGame";
+import { addGroupMembers } from "#src/routers/games/addGroupMembers";
+import { answerFootballDraft } from "#src/routers/games/answerFootballDraft";
 import { gameById } from "#src/routers/games/byId";
 import { createGame } from "#src/routers/games/create";
 import { createInviteLink } from "#src/routers/games/createInviteLink";
@@ -41,7 +43,10 @@ import { leaveGame } from "#src/routers/games/leave";
 import { previewInviteLink } from "#src/routers/games/previewInviteLink";
 import { publishFootballTeams } from "#src/routers/games/publishFootballTeams";
 import { register } from "#src/routers/games/register";
-import { saveFootballDraft } from "#src/routers/games/saveFootballDraft";
+import {
+  saveFootballDraft,
+  saveFootballDraftInputSchema,
+} from "#src/routers/games/saveFootballDraft";
 import { updateGameCaps } from "#src/routers/games/updateCaps";
 
 const HOUR = 60 * 60 * 1000;
@@ -344,6 +349,69 @@ describe("games.saveFootballDraft", () => {
         slot2: [b!.id],
       });
     });
+  });
+
+  it("refuses a first save made when there was no draft once a co-Organizer has saved one", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      const coOrganizer = await addMember(
+        f,
+        "co-organizer",
+        GroupMemberRoleEnum.ORGANIZER,
+      );
+      await save(f, [a!, b!], [c!, d!], {
+        userId: coOrganizer.id,
+        draftUpdatedAt: null,
+      });
+
+      await expect(
+        save(f, [a!, c!], [b!, d!], { draftUpdatedAt: null }),
+      ).rejects.toMatchObject({
+        code: "CONFLICT",
+        message: errors.draftChanged,
+      });
+      const board = await boardFor(f, f.organizer.id);
+      expect(board.draft).toMatchObject({
+        savedByName: "co-organizer",
+        sides: { slot1: ids([a!, b!]), slot2: ids([c!, d!]) },
+      });
+
+      await save(f, [a!, c!], [b!, d!], {
+        draftUpdatedAt: board.draft!.updatedAt,
+      });
+      await save(f, [a!], [b!]);
+      expect((await boardFor(f, f.organizer.id)).draft?.sides).toEqual({
+        slot1: [a!.id],
+        slot2: [b!.id],
+      });
+    });
+  });
+
+  it("takes By level and Manual only: a Captain pick is never saved from Make teams", async () => {
+    const input = {
+      gameId: crypto.randomUUID(),
+      bibs: { slot1: "black", slot2: "white" },
+      slot1: [crypto.randomUUID()],
+      slot2: [crypto.randomUUID()],
+    };
+    for (const method of ["level", "manual"]) {
+      expect(
+        saveFootballDraftInputSchema.safeParse({ ...input, method }).success,
+      ).toBe(true);
+    }
+    expect(
+      saveFootballDraftInputSchema.safeParse({
+        ...input,
+        method: "captain_pick",
+      }).success,
+    ).toBe(false);
+    expect(
+      saveFootballDraftInputSchema.safeParse({
+        ...input,
+        method: "manual",
+        draftUpdatedAt: null,
+      }).success,
+    ).toBe(true);
   });
 });
 
@@ -649,6 +717,70 @@ describe("publishing from a Draft line-up", () => {
       expect((await teamsAndMatches(f)).matches).toHaveLength(1);
     });
   });
+
+  it("refuses a publish made when there was no draft once a co-Organizer has saved one", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      const coOrganizer = await addMember(
+        f,
+        "co-organizer",
+        GroupMemberRoleEnum.ORGANIZER,
+      );
+      const publish = (
+        slot1: { id: string }[],
+        slot2: { id: string }[],
+        draftUpdatedAt?: Date | null,
+      ) =>
+        publishFootballTeams(f.db, {
+          gameId: f.gameId,
+          userId: f.organizer.id,
+          method: "manual",
+          bibs: { slot1: "black", slot2: "white" },
+          slot1: ids(slot1),
+          slot2: ids(slot2),
+          draftUpdatedAt,
+        });
+      await save(f, [a!, b!], [c!, d!], { userId: coOrganizer.id });
+
+      await expect(publish([a!, c!], [b!, d!], null)).rejects.toMatchObject({
+        code: "CONFLICT",
+        message: errors.draftChanged,
+      });
+      expect(await teamsAndMatches(f)).toEqual({ teams: [], matches: [] });
+      expect(await draftRows(f)).toHaveLength(1);
+
+      await publish([a!, c!], [b!, d!]);
+      expect(await draftRows(f)).toHaveLength(0);
+      expect((await teamsAndMatches(f)).matches).toHaveLength(1);
+    });
+  });
+
+  it("publishes, and publishes again over the published teams, saying there was no draft", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      const publish = (slot1: { id: string }[], slot2: { id: string }[]) =>
+        publishFootballTeams(f.db, {
+          gameId: f.gameId,
+          userId: f.organizer.id,
+          method: "manual",
+          bibs: { slot1: "black", slot2: "white" },
+          slot1: ids(slot1),
+          slot2: ids(slot2),
+          draftUpdatedAt: null,
+        });
+
+      await publish([a!, b!], [c!, d!]);
+      await publish([a!, c!], [b!, d!]);
+      const board = await boardFor(f, f.organizer.id);
+      expect(
+        board.players
+          .filter((player) => player.sideIndex === 1)
+          .map((player) => player.userId)
+          .sort(),
+      ).toEqual(ids([a!, c!]).sort());
+      expect((await teamsAndMatches(f)).matches).toHaveLength(1);
+    });
+  });
 });
 
 describe("a Draft line-up follows the roster", () => {
@@ -713,6 +845,82 @@ describe("a Draft line-up follows the roster", () => {
         ).toBe("2 still to place.");
       },
       { playersAllowed: 10 },
+    );
+  });
+
+  it("puts a player the Organizer adds on neither side", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await save(f, [a!, b!], [c!, d!]);
+      const added = await addMember(f, "added");
+      await addGroupMembers(f.db, {
+        gameId: f.gameId,
+        organizerUserId: f.organizer.id,
+        players: [{ userId: added.id }],
+      });
+
+      const board = await boardFor(f, f.organizer.id);
+      expect(board.players.map((player) => player.userId)).toContain(added.id);
+      expect(board.draft?.sides).toEqual({
+        slot1: ids([a!, b!]),
+        slot2: ids([c!, d!]),
+      });
+      expect(
+        footballDraftSummary(
+          { ...board.draft!.sides, bibs: board.draft!.bibs },
+          board.players.map((player) => player.userId),
+          "en",
+        ),
+      ).toEqual({ line: "1 still to place.", canPublish: false });
+    });
+  });
+
+  it("drops the latest joiners when players allowed is cut, and asks the captain of a changed side again", async () => {
+    await withFootballGame(
+      async (f) => {
+        const roster = await addPlayers(f, 12);
+        for (const [index, player] of roster.entries()) {
+          await f.db
+            .update(gamePlayers)
+            .set({ createdAt: new Date(Date.UTC(2026, 10, 1, 10, index)) })
+            .where(eq(gamePlayers.userId, player.id));
+        }
+        const black = roster.slice(0, 6);
+        const white = roster.slice(6);
+        await save(f, black, white, {
+          captains: { slot1: black[0]!.id, slot2: white[0]!.id },
+        });
+        for (const captain of [black[0]!, white[0]!]) {
+          await answerFootballDraft(f.db, {
+            gameId: f.gameId,
+            userId: captain.id,
+            answer: "approved",
+          });
+        }
+
+        const cut = await updateGameCaps(f.db, {
+          gameId: f.gameId,
+          userId: f.organizer.id,
+          playersAllowed: 10,
+        });
+        expect(cut.movedToWaitlist).toEqual(ids([roster[11]!, roster[10]!]));
+
+        const board = await boardFor(f, f.organizer.id);
+        expect(board.draft?.sides).toEqual({
+          slot1: ids(black),
+          slot2: ids(white.slice(0, 4)),
+        });
+        expect(board.draft?.captains).toEqual({
+          slot1: black[0]!.id,
+          slot2: white[0]!.id,
+        });
+        expect(board.draft?.answers.slot1.state).toBe("approved");
+        expect(board.draft?.answers.slot2.state).toBe("waiting");
+        expect(
+          await f.db.query.footballLineupDraftPlayers.findMany(),
+        ).toHaveLength(10);
+      },
+      { playersAllowed: 12 },
     );
   });
 });

@@ -29,6 +29,10 @@ captains share while the Organizer watches.
   captain being out of the room.
 - **No timer, and keepers are picked like anyone else.**
 - **Finishing writes both Captain's answers as approved.**
+- **A pick whose pool empties without a pick finishes too.** When the last player still to be
+  picked leaves the Game or is kicked, there is no pick left to finish on. The next read of the
+  Pick room finishes it as the last pick would, once, under the draft row's lock, and the Game
+  admins hear with copy that names no picker.
 - **The room carries user ids only.** What a Side captain sees of each player is what a pool tile
   already shows any player, and the pool sorts by that.
 - **"Told" and "Remind" are Notifications**, with their Notification email, until push exists. A
@@ -44,11 +48,13 @@ captains share while the Organizer watches.
   Organizers already reach players on WhatsApp (ADR-0087).
 - Waiting for a missing Side captain with no way out. Rejected: the Organizer may start without
   them, since they can pick for that side.
+- Leaving a pick whose pool emptied without a pick live until an Organizer stops it. Rejected:
+  the room would show a turn with nobody left to pick, and the teams are as picked as they can be.
 
 ## Consequences
 
-- `games.footballPickRoom` is a query that writes presence and makes the toss, as
-  `liveBoards.snapshot` writes on read.
+- `games.footballPickRoom` is a query that writes presence, makes the toss and finishes a pick
+  whose pool emptied without a pick, as `liveBoards.snapshot` writes on read.
 - A pick reaches the other Side captain up to two seconds late; copy says "in a moment", not "at
   once".
 - In a tier Group a Side captain picks on Tier band and place, coarser than the Tier points the

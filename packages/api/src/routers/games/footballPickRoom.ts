@@ -23,6 +23,7 @@ import {
   footballPickRunning,
   loadFootballDraft,
 } from "#src/games/football-draft";
+import { assertGameNotCancelled } from "#src/games/football-lineup";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -168,12 +169,14 @@ async function finishWhenPoolEmpty(
 /**
  * The Pick room, read every two seconds by the Organizers of the Game and
  * the two Side captains of the pick (ADR-0109); anyone else is told it is
- * not found. A pick that ended, was stopped or lost a Side captain reads
- * stopped, and a pick that lost a captain is cleared here as Stop the pick
- * clears it. A live pick whose pool emptied because its last player left is
- * finished here as the last pick would finish it. Reading records the calling captain's presence and starts the
- * pick, toss included, on the read that finds both captains in the room.
- * The side on turn is read from the sides by `pickTurn`, never stored.
+ * not found, and a cancelled Game refuses them as every draft door does. A
+ * pick that ended, was stopped or lost a Side captain reads stopped, and a
+ * pick that lost a captain is cleared here as Stop the pick clears it. A
+ * live pick whose pool emptied because its last player left is finished
+ * here as the last pick would finish it. Reading records the calling
+ * captain's presence and starts the pick, toss included, on the read that
+ * finds both captains in the room. The side on turn is read from the sides
+ * by `pickTurn`, never stored.
  *
  * User ids only, and no ratings: names, positions, OVR and Group Tier come
  * from `games.footballBoard` under its rules.
@@ -245,9 +248,10 @@ export async function footballPickRoom(
   if (!organizer && viewerSide == null) {
     throw notFound();
   }
+  assertGameNotCancelled(game, locale);
 
   const stopped = { status: "stopped" as const, serverNow: now };
-  if (!found || game.cancelledAt || found.pickStatus == null) {
+  if (found?.pickStatus == null) {
     return stopped;
   }
   if (

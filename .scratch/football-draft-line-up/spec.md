@@ -363,11 +363,11 @@ answers with copy from `football.errors`.
 | Procedure | Kind | Who | What |
 | --- | --- | --- | --- |
 | `footballBoard` (existing) | query | as today | Gains `draft`, `teams.captains`, `viewer.captainOf`, `viewer.canSaveDraft`, `viewer.canAnswerDraft`, `viewer.canOpenPickRoom`. `draft` is null for everyone but an Organizer and the draft's captains, and null on a `stamp_only` read |
-| `saveFootballDraft` | mutation | Organizer | Creates or replaces the draft: method (`level` or `manual`), bibs, the two sides, the two captains. Refused while a pick is waiting or live. Optional `draftUpdatedAt`: refused with CONFLICT when the stored draft is newer |
-| `publishFootballTeams` (existing) | mutation | Organizer | Gains optional `captains` and optional `draftUpdatedAt`; accepts method `captain_pick`. Writes each side's captain, deletes the draft in the same transaction |
+| `saveFootballDraft` | mutation | Organizer | Creates or replaces the draft: method (`level` or `manual`), bibs, the two sides, the two captains. Refused while a pick is waiting or live. Optional `draftUpdatedAt`: refused with CONFLICT when the stored draft is newer; `null` says there was no draft, and is refused when there is one now |
+| `publishFootballTeams` (existing) | mutation | Organizer | Gains optional `captains` and optional `draftUpdatedAt`, `null` included as on save; accepts method `captain_pick`. Writes each side's captain, deletes the draft in the same transaction |
 | `answerFootballDraft` | mutation | The side's captain | `answer`: `approved`, `change_asked` with a note, or `null` to undo. Refused while a pick is waiting or live |
 | `openFootballPickRoom` | mutation | Organizer | Bibs, both captains, first pick. Replaces any draft with the two captains seated and `pick_status` `waiting`; tells both captains |
-| `footballPickRoom` | query, polled | Organizer or a captain of the pick | The room: status, bibs, captains with presence, first pick, each side's players with pick numbers, the pool, the side on turn, the next pick number and total, `serverNow`. Records the caller's presence at most every 3 s, and starts the pick (toss included) on the read that finds both captains present, as `liveBoards.snapshot` already writes on read |
+| `footballPickRoom` | query, polled | Organizer or a captain of the pick | The room: status, bibs, captains with presence, first pick, each side's players with pick numbers, the pool, the side on turn, the next pick number and total, `serverNow`. Records the caller's presence at most every 3 s, and starts the pick (toss included) on the read that finds both captains present, as `liveBoards.snapshot` already writes on read. Finishes a live pick whose pool emptied without a pick (section 10). Refuses a cancelled Game |
 | `startFootballPick` | mutation | Organizer | Waiting to live without both captains (decision 7) |
 | `pickFootballPlayer` | mutation | The captain on turn, or an Organizer with `forSide` | `userId` and the expected `pickNumber`. Locks the draft row; refuses a pick out of turn, a player not in the pool, and a stale pick number ("The pick moved on"). The pick that empties the pool sets `done`, writes both answers as approved and tells the Organizers |
 | `undoFootballPick` | mutation | Organizer | Returns the highest pick number to the pool, named by the caller so a stale tap is refused. Live only |
@@ -433,9 +433,10 @@ falls back to the mean OVR for a viewer without balance strengths.
 | Players allowed is cut below the number joined | The latest joiners move to the Waitlist and fall out of the draft, as leaving does |
 | Side size changes | Allowed, as today before publishing; a draft is two halves of the roster, not a count |
 | A captain leaves or is kicked during a pick | The pick cannot go on: the room reads stopped and the draft becomes an ordinary one, as Stop the pick |
+| The last player still to be picked leaves or is kicked during a live pick | The pool is empty with no pick left to finish on. The next read of the Pick room finishes the pick as the last pick would: both answers Approved and the Game admins told, with copy that names no picker |
 | The Game is cancelled | The draft is unreadable and every door refuses. The row stays until the Game is deleted |
 | Kick-off passes with a draft unpublished | Nothing automatic. The Score still needs published teams, as today |
-| Two Organizers edit at once | The second save or publish carries a stale `draftUpdatedAt` and is refused: "The draft changed. Open it again." |
+| Two Organizers edit at once | The second save or publish carries a stale `draftUpdatedAt`, or `null` for a draft it never saw, and is refused: "The draft changed. Open it again." |
 | The captain and the Organizer pick at the same moment | The second carries a stale pick number and is refused; the room refreshes |
 | A captain's App goes to the background | Polling stops, so after 10 seconds they read "Not here yet". The pick waits; nothing is lost |
 
@@ -461,7 +462,7 @@ until Phase 7. *Settled by the product owner, 2026-11-21 (decision 2).* Each typ
 | `football_draft_change_asked` | Game admins | A captain asked for a change; once per side as it stands | The Game |
 | `football_pick_room_opened` | Both captains | The Organizer opened the Pick room | The Pick room |
 | `football_pick_reminder` | The other captain | Remind; at most one per five minutes | The Pick room |
-| `football_pick_done` | Game admins | The last pick was made | The Game |
+| `football_pick_done` | Game admins | The last pick was made, or the pool emptied without one | The Game |
 
 Copy names the Game and the actor and no team colour, so the row needs no new column ("Hassan Haji
 saved draft teams for Friday Football. You're a captain: have a look before they are published.").

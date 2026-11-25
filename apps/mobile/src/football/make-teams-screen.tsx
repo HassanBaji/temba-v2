@@ -602,9 +602,11 @@ function CaptainsRow({
  * The Organizer splits the pool into two teams, by Level or by hand, picks
  * each team's bib colour and publishes, or saves the split as the Game's
  * Draft line-up while the teams are not published, with a Side captain per
- * team or none. Opened from a draft, it starts from it and names it on
- * publish. While the teams are not published it also opens a Captain pick
- * (ADR-0109); opened while one runs, it goes to the Pick room.
+ * team or none. Opened from a draft, it starts from it. A save and a publish
+ * name the draft it opened from, or say that there was none, so a draft a
+ * co-Organizer saved meanwhile is not replaced unseen. While the teams are
+ * not published it also opens a Captain pick (ADR-0109); opened while one
+ * runs, it goes to the Pick room.
  */
 export function MakeTeamsScreen({ gameId }: { gameId: string }) {
   const colors = useColors();
@@ -749,8 +751,9 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
       firstPick,
     });
   };
+  const method = draft.method;
   const sides = {
-    method: draft.method,
+    method,
     bibs: draft.bibs,
     slot1: summary.slot1.map((player) => player.userId),
     slot2: summary.slot2.map((player) => player.userId),
@@ -765,7 +768,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
   return (
     <Screen
       footer={
-        draft.method === "captain_pick" ? (
+        method === "captain_pick" ? (
           <View style={{ flex: 1, gap: 8 }}>
             <Button
               label={messages.football.pick.setup.open}
@@ -823,7 +826,8 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
                   saveDraft.mutate({
                     gameId,
                     ...sides,
-                    draftUpdatedAt: openedFromDraftAt ?? undefined,
+                    method,
+                    draftUpdatedAt: openedFromDraftAt,
                   })
                 }
               />
@@ -838,7 +842,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
                   publish.mutate({
                     gameId,
                     ...sides,
-                    draftUpdatedAt: openedFromDraftAt ?? undefined,
+                    draftUpdatedAt: openedFromDraftAt,
                   })
                 }
               />

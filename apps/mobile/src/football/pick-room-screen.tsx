@@ -386,7 +386,10 @@ function ClosedRoom({ gameId }: { gameId: string }) {
  * without them or stop the pick. Once live, the captain on turn taps a
  * player and confirms; their own pick shows at once and the next read
  * corrects it. The Organizer watches and can pick for the side on turn,
- * undo the last pick or stop. A stopped pick closes the room for everyone.
+ * undo the last pick or stop. A pick stopped while it waits or is live
+ * closes the room for everyone. A finished pick stays on the screen: the
+ * room is not read again, since it reads stopped or not found once the
+ * Organizer publishes or edits the draft.
  */
 export function PickRoomScreen({ gameId }: { gameId: string }) {
   const colors = useColors();
@@ -400,10 +403,11 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
   const fallback = gamePath(gameId) as Href;
   const game = api.games.byId.useQuery({ id: gameId });
   const board = api.games.footballBoard.useQuery({ gameId });
+  const [finished, setFinished] = useState(false);
   const room = api.games.footballPickRoom.useQuery(
     { gameId },
     {
-      enabled: focused,
+      enabled: focused && !finished,
       refetchInterval: focused ? PICK_ROOM_POLL_MS : false,
       refetchOnWindowFocus: "always",
       retry: false,
@@ -413,9 +417,17 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [pickingFor, setPickingFor] = useState(false);
   const [confirm, setConfirm] = useState<"undo" | "stop" | null>(null);
-  const wasOpen = useRef(false);
+  const wasRunning = useRef(false);
   const data = room.data;
   const nextPick = data && data.status !== "stopped" ? data.picks.next : null;
+  // A done read kept from an earlier visit does not count: the Organizer may
+  // have opened the room anew since, so this visit reads it once itself.
+  const readDone =
+    room.isSuccess && room.isFetchedAfterMount && data?.status === "done";
+
+  useEffect(() => {
+    setFinished(readDone);
+  }, [readDone]);
 
   useEffect(() => {
     setSelected(null);
@@ -439,11 +451,11 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
       return;
     }
     if (data.status !== "stopped") {
-      wasOpen.current = true;
+      wasRunning.current = data.status !== "done";
       return;
     }
-    if (wasOpen.current) {
-      wasOpen.current = false;
+    if (wasRunning.current) {
+      wasRunning.current = false;
       void leave(m.stopped);
     }
   }, [data, leave, m.stopped]);
@@ -482,7 +494,7 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
   });
   const stop = api.games.stopFootballPick.useMutation({
     onSuccess: () => {
-      wasOpen.current = false;
+      wasRunning.current = false;
       setConfirm(null);
       void leave(m.stopped);
     },
@@ -523,7 +535,12 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
     },
   });
 
-  if (room.error?.data?.code === "NOT_FOUND" || data?.status === "stopped") {
+  const refusal = room.error?.data?.code;
+  if (
+    refusal === "NOT_FOUND" ||
+    refusal === "FORBIDDEN" ||
+    data?.status === "stopped"
+  ) {
     return <ClosedRoom gameId={gameId} />;
   }
   if (!data || !boardPlayers) {

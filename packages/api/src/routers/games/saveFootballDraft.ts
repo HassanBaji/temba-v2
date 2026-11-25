@@ -14,11 +14,7 @@ import {
   footballDraftSaveProblem,
   footballSideCaptainProblem,
 } from "@repo/domain/football-draft";
-import {
-  FOOTBALL_TEAMS_METHODS,
-  type FootballBib,
-  type FootballTeamsMethod,
-} from "@repo/domain/football-lineup";
+import type { FootballBib } from "@repo/domain/football-lineup";
 import {
   footballSideCaptainsInputSchema,
   footballSidesInputSchema,
@@ -45,6 +41,11 @@ import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+/** A Captain pick makes its own draft in the Pick room and is never saved from Make teams. */
+const SAVED_DRAFT_METHODS = ["level", "manual"] as const;
+
+type SavedDraftMethod = (typeof SAVED_DRAFT_METHODS)[number];
+
 function samePlayers(a: readonly string[], b: readonly string[]) {
   const set = new Set(a);
   return set.size === new Set(b).size && b.every((id) => set.has(id));
@@ -55,7 +56,9 @@ function samePlayers(a: readonly string[], b: readonly string[]) {
  * or replacing it (ADR-0107), with a Side captain for each side or none
  * (ADR-0108). Nothing reaches the players: no Game team, no Match. A draft
  * may leave players on neither side. Without `captains` each saved captain
- * stays while they are still on their side.
+ * stays while they are still on their side. `draftUpdatedAt` names the draft
+ * the save was made from, or with `null` that there was none, and a save
+ * made from anything else is refused.
  *
  * A captain newly named is told; one whose side this save changed after
  * they answered is told again. Changing a side's captain drops its answer.
@@ -67,12 +70,12 @@ export async function saveFootballDraft(
   args: {
     gameId: string;
     userId: string;
-    method: FootballTeamsMethod;
+    method: SavedDraftMethod;
     bibs: { slot1: FootballBib; slot2: FootballBib };
     slot1: string[];
     slot2: string[];
     captains?: SideCaptains;
-    draftUpdatedAt?: Date;
+    draftUpdatedAt?: Date | null;
     locale?: Locale;
   },
   now: Date = new Date(),
@@ -236,15 +239,15 @@ export async function saveFootballDraft(
   });
 }
 
+export const saveFootballDraftInputSchema = footballSidesInputSchema.extend({
+  gameId: z.string().uuid(),
+  method: z.enum(SAVED_DRAFT_METHODS),
+  captains: footballSideCaptainsInputSchema.optional(),
+  draftUpdatedAt: z.date().nullable().optional(),
+});
+
 export const saveFootballDraftProcedure = protectedProcedure
-  .input(
-    footballSidesInputSchema.extend({
-      gameId: z.string().uuid(),
-      method: z.enum(FOOTBALL_TEAMS_METHODS),
-      captains: footballSideCaptainsInputSchema.optional(),
-      draftUpdatedAt: z.date().optional(),
-    }),
-  )
+  .input(saveFootballDraftInputSchema)
   .mutation(async ({ ctx, input }) => {
     const appUser = await resolveAppUser(ctx.userId);
     return saveFootballDraft(ctx.db, {

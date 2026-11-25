@@ -126,14 +126,10 @@ export async function notifyFootballPickRoomOpened(
   });
 }
 
-const PICK_REMINDER_EVERY_MS = 5 * 60 * 1000;
-
-/** One reminder per five minutes per Game reaches a Side captain, however often it is sent. */
-export function footballPickReminderDedupeKey(gameId: string, now: Date) {
-  return `football_pick_reminder:${gameId}:${Math.floor(now.getTime() / PICK_REMINDER_EVERY_MS)}`;
-}
-
-/** A Side captain is reminded that the Pick room waits for them. */
+/**
+ * A Side captain is reminded that the Pick room waits for them. The row
+ * keeps the moment it was sent, which the door's five-minute limit reads.
+ */
 export async function notifyFootballPickReminder(
   database: DbOrTx,
   args: {
@@ -149,7 +145,7 @@ export async function notifyFootballPickReminder(
     excludeUserIds: [args.remindedBy],
     actorUserId: args.remindedBy,
     gameId: args.gameId,
-    dedupeKey: footballPickReminderDedupeKey(args.gameId, args.now),
+    createdAt: args.now,
   });
 }
 
