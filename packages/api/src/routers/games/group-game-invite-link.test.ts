@@ -369,3 +369,118 @@ describe("Group Game Invite link joins the Group", () => {
     }
   });
 });
+
+describe("A player's Game Invite link", () => {
+  it("admits an outsider like the Organizer's does", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "share-creator@example.com");
+      const player = await insertUser(db, "share-player@example.com");
+      const outsider = await insertUser(db, "share-outsider@example.com");
+      const groupId = await insertLooseGroup(db, creator);
+      const game = await insertFriendlyGroupGame(db, {
+        createdBy: creator,
+        groupId,
+      });
+      await acceptInviteLink(db, {
+        token: await mintToken(db, game.id, creator),
+        userId: player,
+        sideIndex: 1,
+        position: "left",
+      });
+
+      const token = await mintToken(db, game.id, player);
+      const result = await acceptInviteLink(db, {
+        token,
+        userId: outsider,
+        sideIndex: 2,
+        position: "left",
+      });
+
+      expect(result).toMatchObject({
+        gameId: game.id,
+        outcome: "registered",
+        joinedGroup: true,
+      });
+      expect(await isOnGame(db, game.id, outsider)).toBe(true);
+      expect(await groupMembershipRows(db, groupId, outsider)).toHaveLength(1);
+      const link = await db.query.gameInviteLinks.findFirst({
+        where: eq(gameInviteLinks.token, token),
+      });
+      expect(link?.createdBy).toBe(player);
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses a Group member who is not on the Game", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "bench-creator@example.com");
+      const member = await insertUser(db, "bench-member@example.com");
+      const groupId = await insertLooseGroup(db, creator);
+      await db.insert(groupMembers).values({ groupId, userId: member });
+      const game = await insertFriendlyGroupGame(db, {
+        createdBy: creator,
+        groupId,
+      });
+
+      await expect(
+        createInviteLink(db, {
+          gameId: game.id,
+          userId: member,
+          origin: ORIGIN,
+        }),
+      ).rejects.toSatisfy((error) => {
+        expectTrpc(
+          error,
+          "FORBIDDEN",
+          "Only the organizer and players on this Game can share its Invite link",
+        );
+        return true;
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses a player once registration is closed", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const creator = await insertUser(db, "closed-creator@example.com");
+      const player = await insertUser(db, "closed-player@example.com");
+      const groupId = await insertLooseGroup(db, creator);
+      const game = await insertFriendlyGroupGame(db, {
+        createdBy: creator,
+        groupId,
+      });
+      await acceptInviteLink(db, {
+        token: await mintToken(db, game.id, creator),
+        userId: player,
+        sideIndex: 1,
+        position: "left",
+      });
+      await db
+        .update(games)
+        .set({ registrationClosedAt: new Date() })
+        .where(eq(games.id, game.id));
+
+      await expect(
+        createInviteLink(db, {
+          gameId: game.id,
+          userId: player,
+          origin: ORIGIN,
+        }),
+      ).rejects.toSatisfy((error) => {
+        expectTrpc(
+          error,
+          "FORBIDDEN",
+          "This Game is not open for registration",
+        );
+        return true;
+      });
+    } finally {
+      await close();
+    }
+  });
+});

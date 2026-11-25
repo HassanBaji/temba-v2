@@ -73,8 +73,9 @@ export async function assertInviteeAllowedOnGame(
 }
 
 /**
- * A Game Invite link is an Organizer's invitation, so on a Group Game it also
- * opens the Group door: a non-member joins the Group as they register. Where
+ * A Game Invite link is an invitation from the Game's Organizer or one of its
+ * players (ADR-0110), and on a Group Game it also opens the Group door: a
+ * non-member joins the Group as they register. Where
  * the Group's Organizers approve, the link only opens their request queue
  * (ADR-0057), through `games.joinGroupFromInviteLink`. A blocked User, or a
  * non-member of an approval Group, is refused on a private Game and registers
