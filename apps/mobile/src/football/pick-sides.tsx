@@ -23,6 +23,7 @@ import { useTonePalette } from "../primitives/surface-context";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useColors, useColorSchemeName } from "../theme/theme-provider";
+import { bibBlendsIn } from "./bib-edge";
 import { BibChip } from "./bib-picker";
 import { TierMark } from "./team-columns";
 
@@ -54,8 +55,7 @@ function PickedPlayerRow({
   const palette = useTonePalette();
   const scheme = useColorSchemeName();
   const { fill, on } = bibColors[bib];
-  const blendsIn =
-    scheme === "dark" ? bib === "black" : fill === palette.background;
+  const blendsIn = bibBlendsIn(fill, palette.background, scheme);
   const { name, spoken } = lineupName(player, locale);
   const meta = [slotCode(player, locale), levelText(player, locale)]
     .filter(Boolean)

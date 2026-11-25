@@ -15,6 +15,7 @@ import { useTonePalette } from "../primitives/surface-context";
 import { useColors, useColorSchemeName } from "../theme/theme-provider";
 import { Text } from "../primitives/text";
 import { TierCell } from "../groups/tier-fish";
+import { bibBlendsIn } from "./bib-edge";
 import { BibChip } from "./bib-picker";
 import {
   boardTierCell,
@@ -140,9 +141,7 @@ export function BibRow({
   const palette = useTonePalette();
   const { fill, on } = bibColors[bib];
   const scheme = useColorSchemeName();
-  // In dark the black bib sinks into both the page and the lifted hero.
-  const blendsIn =
-    scheme === "dark" ? bib === "black" : fill === palette.background;
+  const blendsIn = bibBlendsIn(fill, palette.background, scheme);
   const edge = blendsIn ? palette.muted : fill;
   const { name, spoken, isNickname } = lineupName(player, locale);
   const code = slotCode(player, locale);

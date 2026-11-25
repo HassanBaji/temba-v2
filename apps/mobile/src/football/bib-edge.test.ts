@@ -1,7 +1,34 @@
-import { bibColors, palettes } from "@repo/design-tokens";
+import {
+  bibColors,
+  invertedFocusPalettes,
+  palettes,
+} from "@repo/design-tokens";
 import { describe, expect, it } from "vitest";
 
-import { bibEdge } from "./bib-edge";
+import { bibBlendsIn, bibEdge } from "./bib-edge";
+
+describe("bibBlendsIn", () => {
+  const light = invertedFocusPalettes.light;
+  const dark = invertedFocusPalettes.dark;
+
+  it("sinks the white bib into the light page and no other bib", () => {
+    expect(bibBlendsIn(bibColors.white.fill, light.paper, "light")).toBe(true);
+    expect(bibBlendsIn(bibColors.black.fill, light.paper, "light")).toBe(false);
+    expect(bibBlendsIn(bibColors.red.fill, light.paper, "light")).toBe(false);
+  });
+
+  it("sinks no bib into the light focused surface", () => {
+    expect(bibBlendsIn(bibColors.white.fill, light.focus, "light")).toBe(false);
+    expect(bibBlendsIn(bibColors.black.fill, light.focus, "light")).toBe(false);
+  });
+
+  it("sinks the black bib into the dark page and the dark focused surface", () => {
+    expect(bibBlendsIn(bibColors.black.fill, dark.paper, "dark")).toBe(true);
+    expect(bibBlendsIn(bibColors.black.fill, dark.focus, "dark")).toBe(true);
+    expect(bibBlendsIn(bibColors.white.fill, dark.paper, "dark")).toBe(false);
+    expect(bibBlendsIn(bibColors.red.fill, dark.focus, "dark")).toBe(false);
+  });
+});
 
 describe("bibEdge", () => {
   it("edges the white bib in light", () => {
