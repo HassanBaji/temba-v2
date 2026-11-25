@@ -473,7 +473,7 @@ How a Friendly game decides its MVP, chosen by the Organizer at create: players 
 _Avoid_: MVP setting, MVP type
 
 **Gender tag**:
-An optional label on a Game that says who it is meant for: Men only, Women only or Mixed (`games.gender_tag`). The Organizer picks it at create, on a Friendly game, a football Game, a Public Game or a Social; a Game without one is untagged. It is a label and never a gate: it is shown on the Game's card and on Game details, and it refuses nobody a seat, whatever gender their profile says. A Booking Game and a Challenge Game have none, and it is not changed after create.
+An optional label on a Game that says who it is meant for: Men only, Women only or Mixed (`games.gender_tag`). The Organizer picks it at create, on a Friendly game, a football Game, a Public Game or a Social; a Game without one is untagged. It is a label and never a gate: it is shown on the Game's card and on Game details, and it refuses nobody a seat, whatever gender their profile says. The Organizer may set, change or clear it later from Edit Game, which moves no seat. A Challenge Game has none, since nobody joins it; a Booking Game starts without one.
 _Avoid_: gender restriction, gender filter, ladies only, category
 
 **Giver group**:

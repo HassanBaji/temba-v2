@@ -221,6 +221,7 @@ export const createGame = {
       aside: "a-side",
       price: "price",
       levelRange: "level range",
+      genderTag: "who it’s for",
       rounds: "rounds",
       teams: "teams",
       courts: "courts",

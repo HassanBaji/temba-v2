@@ -139,6 +139,7 @@ export const mobileGameDetails = {
       caps: "Players",
       price: "Price",
       level: "Level range",
+      genderTag: "Who it’s for",
       rounds: "Rounds",
       season: "Season",
       mvp: "MVP",

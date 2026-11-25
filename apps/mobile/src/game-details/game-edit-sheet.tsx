@@ -62,6 +62,7 @@ import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { ChipGrid, FieldError, StepperButton } from "../create-game/chips";
+import { GenderTagChoices } from "../create-game/gender-tag-field";
 import { MvpModeChoices } from "../create-game/mvp-mode-field";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
@@ -1157,6 +1158,20 @@ export function GameEditSheet({
                 onSelect={(levelMax) => update({ levelMax })}
               />
               <FieldError message={errorFor("level")} />
+            </View>
+          ) : null}
+          {sections.genderTag ? (
+            <View style={{ gap: SECTION_GAP }}>
+              <SectionHead
+                title={m.createGame.genderTag.title}
+                meta={m.common.optional}
+              />
+              <GenderTagChoices
+                genderTag={draft.genderTag}
+                onSelect={(genderTag) => update({ genderTag })}
+              />
+              <Hint>{m.createGame.genderTag.help}</Hint>
+              <FieldError message={errorFor("genderTag")} />
             </View>
           ) : null}
           {edit.mvp ? (

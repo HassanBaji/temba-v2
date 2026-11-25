@@ -255,6 +255,7 @@ export const createGame = {
       aside: "حجم الفريق",
       price: "السعر",
       levelRange: "نطاق المستوى",
+      genderTag: "الفئة",
       rounds: "الجولات",
       teams: "الفرق",
       courts: "الملاعب",

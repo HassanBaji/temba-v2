@@ -5,6 +5,7 @@ import * as React from "react";
 
 import { GameLevelBandSelect } from "~/components/games/game-level-band-select";
 import { GameWindowFields } from "~/components/games/game-window-fields";
+import { GenderTagChoices } from "~/components/games/gender-tag";
 import { RoundCountField } from "~/components/games/round-count-field";
 import { MvpModeChoices } from "~/components/marks/mvp-mode-choices";
 import type { GameEditController } from "~/components/games/use-game-edit";
@@ -1191,6 +1192,27 @@ export function GameEditDialog({
                   </FieldDescription>
                   <FieldError id="edit-level-error">
                     {errorFor("level")}
+                  </FieldError>
+                </section>
+              ) : null}
+              {sections.genderTag ? (
+                <section className="space-y-3">
+                  <SectionHead
+                    title={m.createGame.genderTag.title}
+                    titleId="edit-gender-tag-label"
+                    meta={m.common.optional}
+                  />
+                  <GenderTagChoices
+                    labelledBy="edit-gender-tag-label"
+                    describedBy="edit-gender-tag-help"
+                    genderTag={draft.genderTag}
+                    onGenderTag={(genderTag) => update({ genderTag })}
+                  />
+                  <FieldDescription id="edit-gender-tag-help">
+                    {m.createGame.genderTag.help}
+                  </FieldDescription>
+                  <FieldError id="edit-gender-tag-error">
+                    {errorFor("genderTag")}
                   </FieldError>
                 </section>
               ) : null}

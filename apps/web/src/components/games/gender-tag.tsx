@@ -1,11 +1,55 @@
 "use client";
 
-import { gameGenderTagLabel } from "@repo/domain/game-gender-tag";
+import {
+  GAME_GENDER_TAGS,
+  gameGenderTagLabel,
+  type GameGenderTag,
+} from "@repo/domain/game-gender-tag";
 import type { SurfaceTone } from "@repo/domain/surface-tone";
 
 import { ChallengeTag } from "~/components/games/challenge-tag";
 import { useLocale } from "~/components/locale-provider";
+import { ChoiceChip } from "~/components/temba/choice-chip";
 import { Badge } from "~/components/ui/badge";
+
+/** The three Gender tags as chips. Picking the chosen chip again clears it. */
+export function GenderTagChoices({
+  labelledBy,
+  describedBy,
+  genderTag,
+  onGenderTag,
+}: {
+  labelledBy: string;
+  describedBy?: string;
+  genderTag: GameGenderTag | null;
+  onGenderTag: (genderTag: GameGenderTag | null) => void;
+}) {
+  const locale = useLocale();
+  return (
+    <div
+      role="group"
+      aria-labelledby={labelledBy}
+      aria-describedby={describedBy}
+      className="grid grid-cols-3 gap-1.5"
+    >
+      {GAME_GENDER_TAGS.map((option) => {
+        const selected = genderTag === option;
+        return (
+          <ChoiceChip
+            key={option}
+            selected={selected}
+            aria-pressed={selected}
+            onClick={() => {
+              onGenderTag(selected ? null : option);
+            }}
+          >
+            {gameGenderTagLabel(option, locale)}
+          </ChoiceChip>
+        );
+      })}
+    </div>
+  );
+}
 
 /** The Gender tag on a Game card. Renders nothing on an untagged Game. */
 export function GenderTagBadge({
