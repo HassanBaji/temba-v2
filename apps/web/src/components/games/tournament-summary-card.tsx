@@ -14,6 +14,7 @@ import {
   SummaryCardFooter,
   SummaryCardShell,
 } from "~/components/games/summary-card-shell";
+import { GenderTagBadge } from "~/components/games/gender-tag";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { HatchFlag } from "~/components/temba/seat";
 import { Badge } from "~/components/ui/badge";
@@ -407,7 +408,12 @@ export function TournamentSummaryCard({
           <h3 className="font-expanded text-h1-lg mt-4 line-clamp-2 leading-none tracking-[-0.035em]">
             {title}
           </h3>
-          {dateLine ? <p className="text-body mt-2.5">{dateLine}</p> : null}
+          {dateLine || game.genderTag ? (
+            <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+              {dateLine ? <p className="text-body">{dateLine}</p> : null}
+              <GenderTagBadge genderTag={game.genderTag} />
+            </div>
+          ) : null}
           {subLine ? (
             <p className="text-muted-foreground text-meta mt-0.5 truncate">
               {subLine}

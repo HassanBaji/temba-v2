@@ -36,6 +36,7 @@ import {
   validateTournamentStepThree,
   type CreateSubmitIssue,
 } from "@repo/domain/create-game-submit";
+import type { GameGenderTag } from "@repo/domain/game-gender-tag";
 import type { LevelBandSelectValue } from "@repo/domain/level-range";
 import type { MvpMode } from "@repo/domain/marks";
 import { DEFAULT_SPORT, sportOrDefault, type Sport } from "@repo/domain/sport";
@@ -78,6 +79,7 @@ export type CreateAction =
   | { kind: "setPrice"; price: string }
   | { kind: "setTrackPayments"; trackPayments: boolean }
   | { kind: "setKeepersPlayFree"; keepersPlayFree: boolean }
+  | { kind: "setGenderTag"; genderTag: GameGenderTag | null }
   | { kind: "setTeamCount"; teamCount: number }
   | { kind: "setShape"; shape: CreateTournamentShape }
   | { kind: "setPoolCount"; poolCount: number }
@@ -242,6 +244,8 @@ export function createReducer(
       return patch(state, { trackPayments: action.trackPayments });
     case "setKeepersPlayFree":
       return patch(state, { keepersPlayFree: action.keepersPlayFree });
+    case "setGenderTag":
+      return patch(state, { genderTag: action.genderTag });
     case "setTeamCount":
       return patch(
         state,

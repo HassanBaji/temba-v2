@@ -31,6 +31,7 @@ import {
   gameRegistrationModes,
   gameSports,
   footballTeamsMethods,
+  gameGenderTags,
   mvpDecidedBys,
   mvpModes,
   tournamentShapes,
@@ -91,6 +92,8 @@ export const games = pgTable(
     keepersPlayFree: boolean("keepers_play_free").notNull().default(false),
     levelMinTenths: integer("level_min_tenths"),
     levelMaxTenths: integer("level_max_tenths"),
+    /** A label for who the Game is meant for. It gates no join. */
+    genderTag: gameGenderTags("gender_tag"),
     sport: gameSports("sport").notNull().default(GameSportEnum.PADEL),
     sideSize: integer("side_size"),
     footballTeamsMethod: footballTeamsMethods("football_teams_method"),

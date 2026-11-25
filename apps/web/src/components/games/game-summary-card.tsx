@@ -11,6 +11,7 @@ import {
 } from "~/components/games/summary-card-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { SportGlyph } from "~/components/temba/sport-glyph";
+import { GenderTagBadge } from "~/components/games/gender-tag";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { HatchFlag, OpenSeat } from "~/components/temba/seat";
 import { Badge } from "~/components/ui/badge";
@@ -326,6 +327,7 @@ export function GameSummaryCard({
   ratingScope,
   publicGame = false,
   challenge = false,
+  genderTag,
 }: {
   name: string | null;
   /** Omitted by callers that predate it, which keep showing `name` as given. */
@@ -368,6 +370,7 @@ export function GameSummaryCard({
   publicGame?: boolean;
   /** A Challenge Game carries the CHALLENGE marker. */
   challenge?: boolean;
+  genderTag?: string | null;
 }) {
   const locale = useLocale();
   const m = useMessages();
@@ -584,7 +587,10 @@ export function GameSummaryCard({
             ) : null}
           </div>
 
-          <h3 className="text-lead mt-2.5">{title}</h3>
+          <div className="mt-2.5 flex items-start justify-between gap-3">
+            <h3 className="text-lead min-w-0">{title}</h3>
+            <GenderTagBadge genderTag={genderTag} />
+          </div>
           {subtitle ? (
             <p className="text-muted-foreground text-meta mt-[3px]">
               {subtitle}

@@ -35,6 +35,7 @@ import { SportTag } from "../lib/sport-tag";
 import { Button } from "../primitives/button";
 import { Text } from "../primitives/text";
 import { CardFooter, CardShell, ChallengeMarker, MetaCell } from "./card-parts";
+import { GenderTag } from "./gender-tag";
 import type { HubItem } from "./games-model";
 import { FriendlyRoster } from "./seat-chips";
 import { useNow } from "./use-now";
@@ -225,9 +226,19 @@ export function GameCard({
       </View>
 
       <View>
-        <Text size="lead" weight="semibold" numberOfLines={2}>
-          {title}
-        </Text>
+        <View
+          style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}
+        >
+          <Text
+            size="lead"
+            weight="semibold"
+            numberOfLines={2}
+            style={{ flex: 1, minWidth: 0 }}
+          >
+            {title}
+          </Text>
+          <GenderTag genderTag={game.genderTag} />
+        </View>
         {subtitle ? (
           <Text size="meta" tone="muted" numberOfLines={1}>
             {subtitle}

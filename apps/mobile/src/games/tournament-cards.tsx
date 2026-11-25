@@ -47,6 +47,7 @@ import { Hatch } from "../primitives/hatch";
 import { Text } from "../primitives/text";
 import { CardBand, CardFooter, CardShell } from "./card-parts";
 import type { GameCardActions } from "./game-card";
+import { GenderTag } from "./gender-tag";
 import { useNow } from "./use-now";
 
 type Occupant = HubGameRow["sides"][number]["left"];
@@ -331,7 +332,21 @@ export function TournamentCard({
         <Text size="h2" width="expanded" weight="bold" numberOfLines={2}>
           {title}
         </Text>
-        {dateLine ? <Text>{dateLine}</Text> : null}
+        {dateLine || game.genderTag ? (
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+              columnGap: 12,
+              rowGap: 6,
+            }}
+          >
+            {dateLine ? <Text>{dateLine}</Text> : null}
+            <GenderTag genderTag={game.genderTag} />
+          </View>
+        ) : null}
         {subLine ? (
           <Text size="meta" tone="muted" numberOfLines={1}>
             {subLine}

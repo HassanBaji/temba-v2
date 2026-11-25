@@ -82,6 +82,7 @@ export function PlayedFriendlyGame({
           venue: game.venue,
           courtName: match.courtName,
           groupName: game.groupName,
+          genderTag: game.genderTag,
           rated: game.rated,
           ratingScope: game.ratingScope,
           publicGame: isPublicGame(game),

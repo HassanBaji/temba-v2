@@ -1341,6 +1341,7 @@ export default function GameHomePage({
                   input={heroInput}
                   place={heroPlace}
                   figures={heroFigures}
+                  genderTag={data.genderTag}
                   actions={heroActions}
                 />
               ) : playedMatch ? null : (

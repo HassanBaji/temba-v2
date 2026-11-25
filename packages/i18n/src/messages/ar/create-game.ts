@@ -124,6 +124,13 @@ export const createGame = {
     marks: "الأوسمة",
     lockedNote: "النتيجة مؤكَّدة، لذا لا يمكن تغيير طريقة اختيار نجم المباراة.",
   },
+  genderTag: {
+    title: "الفئة",
+    men: "رجال فقط",
+    women: "سيدات فقط",
+    mixed: "مختلط",
+    help: "تظهر كوسم فقط، ولا تمنع أحدًا من الانضمام.",
+  },
   tournament: {
     defaultName: (day: string) => `سوشيال · ${day}`,
     defaultNameNoDay: "سوشيال",

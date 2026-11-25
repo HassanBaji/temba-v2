@@ -472,6 +472,10 @@ _Avoid_: man of the match, player of the game, best player, star (bare)
 How a Friendly game decides its MVP, chosen by the Organizer at create: players vote (the default), the Organizer picks, or no MVP. The Organizer may change it until the Match completes; after that it is fixed. Every other format has no MVP. In organizer mode the Organizer never picks themselves, but may break a tied vote in their own favour.
 _Avoid_: MVP setting, MVP type
 
+**Gender tag**:
+An optional label on a Game that says who it is meant for: Men only, Women only or Mixed (`games.gender_tag`). The Organizer picks it at create, on a Friendly game, a football Game, a Public Game or a Social; a Game without one is untagged. It is a label and never a gate: it is shown on the Game's card and on Game details, and it refuses nobody a seat, whatever gender their profile says. A Booking Game and a Challenge Game have none, and it is not changed after create.
+_Avoid_: gender restriction, gender filter, ladies only, category
+
 **Giver group**:
 Who may give a Mark: your teammate or partner (same Game team), anyone in the game, or the other side (the opposing Game team). The giving sheet is grouped by it.
 _Avoid_: category, tier (that is a Group Tier)

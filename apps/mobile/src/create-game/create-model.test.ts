@@ -317,6 +317,30 @@ describe("submitRequest", () => {
     },
   );
 
+  it.each(["friendly_game", "friendly_tournament"] as const)(
+    "sends a picked Gender tag with a %s and nothing once it is cleared",
+    (type) => {
+      const draft =
+        type === "friendly_game"
+          ? fixtures.drafts.gameReview
+          : fixtures.drafts.tournamentGroupsOnly;
+      const tagged = createReducer(stateAt(4, type, draft), {
+        kind: "setGenderTag",
+        genderTag: "women",
+      });
+      expect(tagged.draft.genderTag).toBe("women");
+      const sent = submitRequest(tagged, NOW, false);
+      expect(sent.ok && sent.request.input.genderTag).toBe("women");
+
+      const cleared = createReducer(tagged, {
+        kind: "setGenderTag",
+        genderTag: null,
+      });
+      const unsent = submitRequest(cleared, NOW, false);
+      expect(unsent.ok && "genderTag" in unsent.request.input).toBe(false);
+    },
+  );
+
   it("sends Track payments only once the Game has a price", () => {
     const priced = createReducer(
       createReducer(stateAt(4, "friendly_game", fixtures.drafts.gameReview), {

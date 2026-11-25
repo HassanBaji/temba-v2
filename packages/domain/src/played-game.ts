@@ -22,6 +22,7 @@ import { wholeOvrFromMu } from "./football-ovr";
 import { formatGameClock, formatGameDay } from "./format-game-start";
 import type { FriendlyGameDetailsSide } from "./friendly-game-details";
 import type { FriendlyGameHeroMatch } from "./friendly-game-hero";
+import { gameGenderTagLabel } from "./game-gender-tag";
 import { sideSizeLabel } from "./game-shape";
 import {
   proveItLine,
@@ -77,6 +78,16 @@ export type PlayedColumn = {
 };
 
 export type PlayedFact = { label: string; value: string };
+
+function genderTagFacts(
+  genderTag: string | null | undefined,
+  locale: Locale,
+): PlayedFact[] {
+  const value = gameGenderTagLabel(genderTag, locale);
+  return value
+    ? [{ label: messagesFor(locale).createGame.genderTag.title, value }]
+    : [];
+}
 
 export type PlayedResultLine = {
   line: string;
@@ -328,6 +339,7 @@ export type PlayedPadelInput = PlayedPlace & {
   viewerUserId: string;
   match: FriendlyGameHeroMatch;
   groupName: string | null;
+  genderTag?: string | null;
   rated: boolean;
   ratingScope?: GameRatingScope;
   publicGame?: boolean;
@@ -474,6 +486,7 @@ export function playedPadelModel(
 
   const facts: PlayedFact[] = [
     ...(input.groupName ? [{ label: m.group, value: input.groupName }] : []),
+    ...genderTagFacts(input.genderTag, locale),
     {
       label: m.confirmed,
       value: input.match.stoodUnconfirmed
@@ -537,6 +550,7 @@ export type PlayedFootballInput = PlayedPlace & {
   teamsMethod: FootballTeamsMethod | null;
   sideSize: number | null;
   groupName: string | null;
+  genderTag?: string | null;
   rated: boolean;
   ratingImpact: PlayedFootballRatingImpact | null;
   /** A Public Game's score the other side did not confirm in time (ADR-0071). */
@@ -675,6 +689,7 @@ export function playedFootballModel(
 
   const facts: PlayedFact[] = [
     ...(input.groupName ? [{ label: m.group, value: input.groupName }] : []),
+    ...genderTagFacts(input.genderTag, locale),
     ...(input.enteredByName
       ? [{ label: m.score, value: m.enteredBy(input.enteredByName) }]
       : []),

@@ -46,6 +46,14 @@ describe("tournamentHomeView", () => {
     assert.equal(view.canTakeSeat, true);
     assert.equal(view.canLeaveGame, false);
     assert.match(view.hero.eyebrow, /^Social/);
+    assert.equal(view.hero.genderTag, null);
+    assert.equal(
+      tournamentHomeView(
+        { ...pool.preDrawWithoutSeat, genderTag: "mixed" },
+        "en",
+      ).hero.genderTag,
+      "Mixed",
+    );
   });
 
   it("shows the viewer's team and a leave action once seated", () => {

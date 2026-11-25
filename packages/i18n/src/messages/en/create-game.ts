@@ -106,6 +106,13 @@ export const createGame = {
     lockedNote:
       "The score is confirmed, so how the MVP is decided can’t change.",
   },
+  genderTag: {
+    title: "Who it’s for",
+    men: "Men only",
+    women: "Women only",
+    mixed: "Mixed",
+    help: "Shown as a tag only. It does not stop anyone from joining.",
+  },
   tournament: {
     defaultName: (day: string) => `Social · ${day}`,
     defaultNameNoDay: "Social",
