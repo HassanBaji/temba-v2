@@ -5,6 +5,7 @@ import {
   boardTierCell,
   byKeeperThenLevel,
   lineupName,
+  ofSide,
   ovrLabel,
   ovrSpoken,
   sideOvrAverage,
@@ -273,8 +274,8 @@ export function TeamColumns({
                 bib={bib}
                 showTier={balanceOn === "tierPoints"}
                 sideCaptain={
-                  (side === 1 ? sideCaptains?.slot1 : sideCaptains?.slot2) ===
-                  player.userId
+                  sideCaptains != null &&
+                  ofSide(sideCaptains, side) === player.userId
                 }
                 onPress={
                   onOpenPlayer ? () => onOpenPlayer(player.userId) : undefined

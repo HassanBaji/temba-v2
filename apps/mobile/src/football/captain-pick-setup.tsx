@@ -1,9 +1,9 @@
 import { radii } from "@repo/design-tokens";
 import {
+  lineupPlayerName,
   mayBeSideCaptain,
   ovrLabel,
   setPickCaptain,
-  shortName,
   slotCode,
   type BoardPlayer,
   type Side,
@@ -28,19 +28,6 @@ import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import { BibPicker } from "./bib-picker";
 import { CaptainsSheet } from "./captains-sheet";
-
-/** A captain as the setup names them: "You", a nickname, or "Rashid N". */
-export function pickCaptainName(
-  player: Pick<BoardPlayer, "name" | "nickname" | "isViewer"> | null,
-  you: string,
-) {
-  if (!player) {
-    return null;
-  }
-  return player.isViewer
-    ? you
-    : (player.nickname?.name ?? shortName(player.name));
-}
 
 function SectionHead({ title, meta }: { title: string; meta?: string }) {
   return (
@@ -76,9 +63,10 @@ function PickCaptainChip({
   onPress: (side: Side) => void;
 }) {
   const colors = useColors();
+  const locale = useLocale();
   const messages = useMessages();
   const m = messages.football.pick.setup;
-  const name = pickCaptainName(captain, messages.common.you);
+  const name = lineupPlayerName(captain, locale);
   return (
     <Pressable
       accessibilityRole="button"
@@ -192,7 +180,6 @@ function FirstPickToggle({
 function PoolTile({ player }: { player: BoardPlayer }) {
   const colors = useColors();
   const locale = useLocale();
-  const messages = useMessages();
   const meta = [slotCode(player, locale), ovrLabel(player)]
     .filter(Boolean)
     .join(" ");
@@ -211,7 +198,7 @@ function PoolTile({ player }: { player: BoardPlayer }) {
       }}
     >
       <Text size="meta" numberOfLines={1} style={{ flex: 1 }}>
-        {pickCaptainName(player, messages.common.you)}
+        {lineupPlayerName(player, locale)}
       </Text>
       <Text size="eyebrow" mono tone="muted">
         {meta}
@@ -279,9 +266,7 @@ export function CaptainPickSetup({
           onChange={onFirstPickChange}
         />
         <Text size="eyebrow" tone="muted">
-          {firstPick === "toss"
-            ? m.tossNote
-            : m.sideNote(firstPick === "slot1" ? names.slot1 : names.slot2)}
+          {firstPick === "toss" ? m.tossNote : m.sideNote(names[firstPick])}
         </Text>
       </View>
       <BibPicker

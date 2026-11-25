@@ -1,13 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
-import { asc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import {
-  footballLineupDraftPlayers,
-  footballLineupDrafts,
-  gamePlayers,
-} from "@repo/db";
+import { footballLineupDraftPlayers, footballLineupDrafts } from "@repo/db";
 import type { Side } from "@repo/domain/football-board";
 import { captainPickDone, pickTurn } from "@repo/domain/football-captain-pick";
 import { messagesFor } from "@repo/i18n/messages";
@@ -18,6 +14,7 @@ import { requireGame } from "#src/games/access";
 import {
   assertFootballDraftOpen,
   finishFootballPick,
+  footballPickProgress,
   loadFootballDraft,
 } from "#src/games/football-draft";
 
@@ -39,7 +36,7 @@ export async function pickFootballPlayer(
   args: {
     gameId: string;
     userId: string;
-    pickUserId: string;
+    pickedUserId: string;
     pickNumber: number;
     forSide?: Side;
     locale?: Locale;
@@ -78,21 +75,17 @@ export async function pickFootballPlayer(
       });
     }
 
-    const placements = await tx
-      .select({ pickNumber: footballLineupDraftPlayers.pickNumber })
-      .from(footballLineupDraftPlayers)
-      .where(eq(footballLineupDraftPlayers.draftId, draft.id));
-    const next =
-      Math.max(
-        0,
-        ...placements.flatMap((placement) =>
-          placement.pickNumber == null ? [] : [placement.pickNumber],
-        ),
-      ) + 1;
+    const { pool, next } = await footballPickProgress(tx, game.id, draft);
     if (args.pickNumber !== next) {
       throw new TRPCError({ code: "CONFLICT", message: errors.pickMovedOn });
     }
-    const firstPickSide = draft.pick.firstPickSide === 2 ? 2 : 1;
+    const { firstPickSide } = draft.pick;
+    if (firstPickSide == null) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "The live pick has no first pick side",
+      });
+    }
     const turn = pickTurn({
       slot1: draft.sides.slot1.length,
       slot2: draft.sides.slot2.length,
@@ -105,17 +98,7 @@ export async function pickFootballPlayer(
       });
     }
 
-    const roster = await tx
-      .select({ id: gamePlayers.id, userId: gamePlayers.userId })
-      .from(gamePlayers)
-      .where(eq(gamePlayers.gameId, game.id))
-      .orderBy(asc(gamePlayers.createdAt), asc(gamePlayers.id));
-    const placed = new Set([
-      ...draft.sideGamePlayerIds.slot1,
-      ...draft.sideGamePlayerIds.slot2,
-    ]);
-    const pool = roster.filter((row) => row.userId && !placed.has(row.id));
-    const picked = pool.find((row) => row.userId === args.pickUserId);
+    const picked = pool.find((row) => row.userId === args.pickedUserId);
     if (!picked) {
       throw new TRPCError({
         code: "BAD_REQUEST",
@@ -125,7 +108,7 @@ export async function pickFootballPlayer(
 
     await tx.insert(footballLineupDraftPlayers).values({
       draftId: draft.id,
-      gamePlayerId: picked.id,
+      gamePlayerId: picked.gamePlayerId,
       sideIndex: turn,
       pickNumber: next,
     });
@@ -139,7 +122,7 @@ export async function pickFootballPlayer(
     }
 
     const withPick = (side: Side, ids: string[]) =>
-      side === turn ? [...ids, picked.id] : ids;
+      side === turn ? [...ids, picked.gamePlayerId] : ids;
     await finishFootballPick(tx, {
       game,
       draftId: draft.id,
@@ -160,7 +143,7 @@ export const pickFootballPlayerProcedure = protectedProcedure
   .input(
     z.object({
       gameId: z.string().uuid(),
-      userId: z.string().uuid(),
+      pickedUserId: z.string().uuid(),
       pickNumber: z.number().int().positive(),
       forSide: z.union([z.literal(1), z.literal(2)]).optional(),
     }),
@@ -170,7 +153,7 @@ export const pickFootballPlayerProcedure = protectedProcedure
     return pickFootballPlayer(ctx.db, {
       gameId: input.gameId,
       userId: appUser.id,
-      pickUserId: input.userId,
+      pickedUserId: input.pickedUserId,
       pickNumber: input.pickNumber,
       forSide: input.forSide,
       locale: ctx.locale,

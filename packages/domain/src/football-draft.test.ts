@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { NO_SIDE_CAPTAINS } from "./football-board";
 import {
-  captainAnswerState,
   footballDraftCaptainViewLine,
   footballDraftSavedLine,
   footballDraftSaveProblem,
@@ -57,11 +57,24 @@ describe("footballDraftSaveProblem", () => {
 });
 
 describe("footballDraftSummary", () => {
+  const nobodyToAsk = {
+    slot1: { state: "none" },
+    slot2: { state: "none" },
+  } as const;
+  const noCaptains = { captains: NO_SIDE_CAPTAINS, answers: nobodyToAsk };
+
   it("is ready to publish once everyone is placed and the sides are even", () => {
     expect(
       footballDraftSummary(
-        { bibs, slot1: ["a", "b"], slot2: ["c", "d"] },
+        {
+          bibs,
+          slot1: ["a", "b"],
+          slot2: ["c", "d"],
+          captains: { slot1: "a", slot2: "c" },
+          answers: nobodyToAsk,
+        },
         ["a", "b", "c", "d"],
+        { groupId: null },
         "en",
       ),
     ).toEqual({
@@ -73,8 +86,9 @@ describe("footballDraftSummary", () => {
   it("reads the players still to place and holds publishing", () => {
     expect(
       footballDraftSummary(
-        { bibs, slot1: ["a"], slot2: ["c"] },
+        { bibs, slot1: ["a"], slot2: ["c"], ...noCaptains },
         ["a", "b", "c", "d"],
+        { groupId: null },
         "en",
       ),
     ).toEqual({ line: "2 still to place.", canPublish: false });
@@ -83,8 +97,9 @@ describe("footballDraftSummary", () => {
   it("reads a side that is too big by its bib", () => {
     expect(
       footballDraftSummary(
-        { bibs, slot1: ["a", "b", "c"], slot2: ["d"] },
+        { bibs, slot1: ["a", "b", "c"], slot2: ["d"], ...noCaptains },
         ["a", "b", "c", "d"],
+        { groupId: null },
         "en",
       ),
     ).toEqual({
@@ -112,8 +127,8 @@ describe("footballDraftSummary with Side captains", () => {
         answers: { slot1: { state: slot1 }, slot2: { state: slot2 } },
       },
       roster,
-      locale,
       { groupId },
+      locale,
     ).line;
   }
 
@@ -152,6 +167,7 @@ describe("footballDraftSummary with Side captains", () => {
           },
         },
         roster,
+        { groupId: null },
         "en",
       ).canPublish,
     ).toBe(true);
@@ -186,67 +202,10 @@ describe("footballDraftSummary with Side captains", () => {
           },
         },
         roster,
+        { groupId: null },
         "en",
       ),
     ).toEqual({ line: "2 still to place.", canPublish: false });
-  });
-});
-
-describe("captainAnswerState", () => {
-  const side = ["p1", "p2", "p3"];
-  const captain = { isOrganizer: false };
-
-  it("has nobody to ask without a captain or with an Organizer as captain", () => {
-    const approved = { answer: "approved" as const, answeredPlayerIds: side };
-    expect(captainAnswerState(approved, side, null)).toBe("none");
-    expect(captainAnswerState(approved, side, { isOrganizer: true })).toBe(
-      "none",
-    );
-  });
-
-  it("waits for a captain with no answer", () => {
-    expect(captainAnswerState(null, side, captain)).toBe("waiting");
-  });
-
-  it("reads the answer for the side as it stands, in any order", () => {
-    expect(
-      captainAnswerState(
-        { answer: "approved", answeredPlayerIds: ["p3", "p1", "p2"] },
-        side,
-        captain,
-      ),
-    ).toBe("approved");
-    expect(
-      captainAnswerState(
-        { answer: "change_asked", answeredPlayerIds: side },
-        side,
-        captain,
-      ),
-    ).toBe("change_asked");
-  });
-
-  it("waits again once the side's players differ from the answer's", () => {
-    expect(
-      captainAnswerState(
-        { answer: "approved", answeredPlayerIds: ["p1", "p2"] },
-        side,
-        captain,
-      ),
-    ).toBe("waiting");
-    expect(
-      captainAnswerState(
-        { answer: "approved", answeredPlayerIds: [...side, "p4"] },
-        side,
-        captain,
-      ),
-    ).toBe("waiting");
-    expect(
-      captainAnswerState(
-        { answer: "change_asked", answeredPlayerIds: ["p1", "p2", "p9"] },
-        side,
-        captain,
-      ),
-    ).toBe("waiting");
   });
 });
 
@@ -325,22 +284,22 @@ describe("footballDraftCaptainViewLine", () => {
 
 describe("footballDraftVisibilityLine", () => {
   it("adds the captains when any is named", () => {
-    expect(footballDraftVisibilityLine({ groupId: "g" }, "en", true)).toBe(
+    expect(footballDraftVisibilityLine({ groupId: "g" }, true, "en")).toBe(
       "Players don't see these teams yet. Only you, the group's admins and the captains do.",
     );
-    expect(footballDraftVisibilityLine({ groupId: null }, "en", true)).toBe(
+    expect(footballDraftVisibilityLine({ groupId: null }, true, "en")).toBe(
       "Players don't see these teams yet. Only you and the captains do.",
     );
   });
 
   it("names the group's admins on a Group Game and nobody else on a groupless Game", () => {
-    expect(footballDraftVisibilityLine({ groupId: "g" }, "en")).toBe(
+    expect(footballDraftVisibilityLine({ groupId: "g" }, false, "en")).toBe(
       "Players don't see these teams yet. Only you and the group's admins do.",
     );
-    expect(footballDraftVisibilityLine({ groupId: null }, "en")).toBe(
+    expect(footballDraftVisibilityLine({ groupId: null }, false, "en")).toBe(
       "Players don't see these teams yet. Only you do.",
     );
-    expect(footballDraftVisibilityLine({ groupId: null }, "ar")).toBe(
+    expect(footballDraftVisibilityLine({ groupId: null }, false, "ar")).toBe(
       "لا يرى اللاعبون هذه الفرق بعد. لا يراها إلا أنت.",
     );
   });

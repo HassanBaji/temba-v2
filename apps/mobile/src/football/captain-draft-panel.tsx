@@ -1,9 +1,12 @@
 import {
   bibNames,
   byKeeperThenLevel,
+  lineupPlayerName,
+  ofSide,
   shortName,
   teamsSideAverage,
   type BoardPlayer,
+  type Side,
 } from "@repo/domain/football-board";
 import {
   FOOTBALL_DRAFT_NOTE_MAX_LENGTH,
@@ -25,7 +28,7 @@ import { useColors } from "../theme/theme-provider";
 import type { RouterOutputs } from "../trpc/react";
 import { BibChip } from "./bib-picker";
 import { DraftAnswer, DraftAnswerMark } from "./draft-answer-mark";
-import { DraftNote, DraftTag, draftCaptainName } from "./draft-card";
+import { DraftNote, DraftTag } from "./draft-card";
 
 type SavedDraft = NonNullable<RouterOutputs["games"]["footballBoard"]["draft"]>;
 
@@ -120,17 +123,19 @@ export function CaptainDraftPanel({
   const m = messages.football.draft;
   const panel = m.captainPanel;
   const [asking, setAsking] = useState(false);
-  const own = side === 1 ? "slot1" : "slot2";
-  const other = side === 1 ? "slot2" : "slot1";
+  const otherSide: Side = side === 1 ? 2 : 1;
   const names = bibNames(draft.bibs, locale);
+  const ownName = ofSide(names, side);
+  const otherName = ofSide(names, otherSide);
   const members = players
-    .filter((player) => draft.sides[own].includes(player.userId))
+    .filter((player) => ofSide(draft.sides, side).includes(player.userId))
     .sort(byKeeperThenLevel);
   const organizer = shortName(draft.savedByName);
-  const answer = draft.answers[own];
-  const otherCaptain = draftCaptainName(
-    players.find((player) => player.userId === draft.captains[other]),
-    messages.common.you,
+  const answer = ofSide(draft.answers, side);
+  const otherCaptainId = ofSide(draft.captains, otherSide);
+  const otherCaptain = lineupPlayerName(
+    players.find((player) => player.userId === otherCaptainId),
+    locale,
   );
 
   useEffect(() => {
@@ -172,7 +177,7 @@ export function CaptainDraftPanel({
             numberOfLines={1}
             style={{ flex: 1 }}
           >
-            {panel.yourTeam(names[own])}
+            {panel.yourTeam(ownName)}
           </Text>
           <Text size="eyebrow" tone="muted">
             {panel.playersAvg(
@@ -184,7 +189,7 @@ export function CaptainDraftPanel({
         <View accessibilityLiveRegion="polite">
           {answer.state === "approved" ? (
             answered(
-              panel.approvedTitle(names[own]),
+              panel.approvedTitle(ownName),
               panel.approvedBody(organizer),
               null,
             )
@@ -229,11 +234,11 @@ export function CaptainDraftPanel({
             borderTopColor: colors.rule,
           }}
         >
-          <BibChip bib={draft.bibs[other]} size={14} />
+          <BibChip bib={ofSide(draft.bibs, otherSide)} size={14} />
           <Text size="meta" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
-            {panel.otherTeam(names[other], otherCaptain)}
+            {panel.otherTeam(otherName, otherCaptain)}
           </Text>
-          <DraftAnswer state={draft.answers[other].state} />
+          <DraftAnswer state={ofSide(draft.answers, otherSide).state} />
         </View>
       </Surface>
       <Button
@@ -243,7 +248,7 @@ export function CaptainDraftPanel({
         onPress={onShare}
       />
       <Text size="eyebrow" tone="muted">
-        {panel.ownTeamOnly(names[other])}
+        {panel.ownTeamOnly(otherName)}
       </Text>
       <AskChangeSheet
         visible={asking}

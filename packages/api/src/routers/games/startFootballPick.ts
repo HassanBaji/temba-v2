@@ -19,8 +19,9 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
  * The Organizer starts a waiting Captain pick without waiting for both Side
- * captains (ADR-0109, decision 7): they can pick for a captain who is not
- * in the room. The toss, when the first pick is one, is made here.
+ * captains (ADR-0109; decision 7 in section 16 of
+ * `.scratch/football-draft-line-up/spec.md`): they can pick for a captain
+ * who is not in the room. The toss, when the first pick is one, is made here.
  */
 export async function startFootballPick(
   database: DbClient,

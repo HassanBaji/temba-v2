@@ -7,7 +7,6 @@ import {
   footballLineupDraftAnswers,
   footballLineupDraftPlayers,
   footballLineupDrafts,
-  gamePlayers,
 } from "@repo/db";
 import { captainPickSetupProblem } from "@repo/domain/football-captain-pick";
 import {
@@ -24,10 +23,10 @@ import { assertGameOrganizer, requireGame } from "#src/games/access";
 import {
   assertFootballDraftOpen,
   assertFootballPickNotRunning,
+  footballDraftRoster,
   loadFootballDraft,
 } from "#src/games/football-draft";
 import { notifyFootballPickRoomOpened } from "#src/notifications/notify-football-draft";
-import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -61,24 +60,11 @@ export async function openFootballPickRoom(
     });
   }
 
-  const roster = await database.query.gamePlayers.findMany({
-    where: eq(gamePlayers.gameId, game.id),
-    columns: { id: true, userId: true },
-    with: {
-      user: { columns: { clerkId: true, addedAt: true, guestAt: true } },
-    },
-  });
-  const gamePlayerIdByUser = new Map(
-    roster.flatMap((row) => (row.userId ? [[row.userId, row.id]] : [])),
-  );
-  const accountUserIds = roster.flatMap((row) =>
-    row.userId && row.user?.guestAt === null && !isUnclaimed(row.user)
-      ? [row.userId]
-      : [],
-  );
+  const { registeredUserIds, gamePlayerIdByUser, accountUserIds } =
+    await footballDraftRoster(database, game.id);
   const problem = captainPickSetupProblem(
     args.captains,
-    [...gamePlayerIdByUser.keys()],
+    registeredUserIds,
     accountUserIds,
     locale,
   );

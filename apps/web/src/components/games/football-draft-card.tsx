@@ -1,6 +1,11 @@
 "use client";
 
-import { bibNames, type BoardPlayer } from "@repo/domain/football-board";
+import {
+  bibNames,
+  lineupPlayerName,
+  ofSide,
+  type BoardPlayer,
+} from "@repo/domain/football-board";
 import {
   footballDraftSavedLine,
   footballDraftSummary,
@@ -14,7 +19,6 @@ import type { RouterOutputs } from "~/trpc/react";
 
 import { BibChip } from "./football-bibs";
 import { DraftAnswer, DraftNote, DraftTag } from "./football-draft-answer";
-import { draftCaptainName } from "./football-draft-view";
 
 type SavedDraft = NonNullable<RouterOutputs["games"]["footballBoard"]["draft"]>;
 
@@ -29,18 +33,20 @@ function SideAnswerRow({
 }) {
   const m = useMessages();
   const locale = useLocale();
-  const key = side === 1 ? "slot1" : "slot2";
-  const captain = draftCaptainName(
-    players.find((player) => player.userId === draft.captains[key]),
-    m.common.you,
+  const captainId = ofSide(draft.captains, side);
+  const captain = lineupPlayerName(
+    players.find((player) => player.userId === captainId),
+    locale,
   );
-  const answer = draft.answers[key];
+  const answer = ofSide(draft.answers, side);
   return (
     <li className="border-rule space-y-2.5 border-t pt-3">
       <div className="flex items-center gap-2.5">
-        <BibChip bib={draft.bibs[key]} className="size-3.5" />
+        <BibChip bib={ofSide(draft.bibs, side)} className="size-3.5" />
         <div className="min-w-0 flex-1">
-          <p className="font-semibold">{bibNames(draft.bibs, locale)[key]}</p>
+          <p className="font-semibold">
+            {ofSide(bibNames(draft.bibs, locale), side)}
+          </p>
           <p className="text-muted-foreground text-eyebrow truncate">
             {captain
               ? m.football.captains.named(captain)
@@ -91,8 +97,8 @@ export function FootballDraftCard({
       answers: draft.answers,
     },
     players.map((player) => player.userId),
-    locale,
     game,
+    locale,
   );
   return (
     <div className="space-y-3">

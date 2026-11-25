@@ -233,8 +233,9 @@ describe("games.saveFootballDraft", () => {
       expect(board.draft?.bibs).toEqual({ slot1: "green", slot2: "pink" });
       expect(
         footballDraftSummary(
-          { ...board.draft!.sides, bibs: board.draft!.bibs },
+          { ...board.draft!.sides, ...board.draft! },
           board.players.map((player) => player.userId),
+          { groupId: f.groupId },
           "en",
         ),
       ).toEqual({ line: "3 still to place.", canPublish: false });
@@ -823,8 +824,9 @@ describe("a Draft line-up follows the roster", () => {
         expect(placed).not.toContain(waiting!.id);
         expect(
           footballDraftSummary(
-            { ...board.draft!.sides, bibs: board.draft!.bibs },
+            { ...board.draft!.sides, ...board.draft! },
             board.players.map((player) => player.userId),
+            { groupId: f.groupId },
             "en",
           ),
         ).toEqual({ line: "1 still to place.", canPublish: false });
@@ -838,8 +840,9 @@ describe("a Draft line-up follows the roster", () => {
         const later = await boardFor(f, f.organizer.id);
         expect(
           footballDraftSummary(
-            { ...later.draft!.sides, bibs: later.draft!.bibs },
+            { ...later.draft!.sides, ...later.draft! },
             later.players.map((player) => player.userId),
+            { groupId: f.groupId },
             "en",
           ).line,
         ).toBe("2 still to place.");
@@ -867,8 +870,9 @@ describe("a Draft line-up follows the roster", () => {
       });
       expect(
         footballDraftSummary(
-          { ...board.draft!.sides, bibs: board.draft!.bibs },
+          { ...board.draft!.sides, ...board.draft! },
           board.players.map((player) => player.userId),
+          { groupId: f.groupId },
           "en",
         ),
       ).toEqual({ line: "1 still to place.", canPublish: false });

@@ -1,8 +1,12 @@
 import { invertedFocusPalettes } from "@repo/design-tokens";
-import type {
-  DraftCardPlayer,
-  DraftCardSide,
-  DraftShareCard,
+import {
+  draftListLayout,
+  fitDraftPlayers,
+  type DraftCardPlayer,
+  type DraftCardSide,
+  type DraftListLayout,
+  type DraftRowSize,
+  type DraftShareCard,
 } from "@repo/domain/football-draft-share";
 import { View } from "react-native";
 
@@ -26,59 +30,6 @@ const FRAME_GAP = 64;
 const RULE = 1;
 const COLUMN_GAP = 24;
 const HALF_WIDTH = (STORY_WIDTH - 2 * PAD_X - COLUMN_GAP) / 2;
-
-type RowSize = {
-  tile: number;
-  init: number;
-  name: number;
-  badge: number;
-  badgeText: number;
-  code: number;
-  codeWidth: number;
-  padY: number;
-  rowGap: number;
-};
-
-const ROOMY: RowSize = {
-  tile: 68,
-  init: 26,
-  name: 40,
-  badge: 50,
-  badgeText: 30,
-  code: 26,
-  codeWidth: 72,
-  padY: 12,
-  rowGap: 0,
-};
-
-const REGULAR: RowSize = {
-  tile: 60,
-  init: 22,
-  name: 32,
-  badge: 40,
-  badgeText: 24,
-  code: 22,
-  codeWidth: 60,
-  padY: 9,
-  rowGap: 14,
-};
-
-const COMPACT: RowSize = {
-  tile: 44,
-  init: 18,
-  name: 28,
-  badge: 34,
-  badgeText: 20,
-  code: 20,
-  codeWidth: 56,
-  padY: 4,
-  rowGap: 10,
-};
-
-/** Rows a team's list may take before the rest reads "and N more". */
-const BOTH_ROWS = 6;
-const BOTH_REGULAR_ROWS = 4;
-const ONE_COLUMN_ROWS = 9;
 
 function DraftFrame({ children }: { children: React.ReactNode }) {
   return (
@@ -154,7 +105,7 @@ function DraftFoot({ card }: { card: DraftShareCard }) {
   );
 }
 
-function CaptainMark({ size }: { size: RowSize }) {
+function CaptainMark({ size }: { size: DraftRowSize }) {
   const m = useMessages().football.captains;
   return (
     <View
@@ -181,7 +132,7 @@ function PlayerRow({
   width,
 }: {
   player: DraftCardPlayer;
-  size: RowSize;
+  size: DraftRowSize;
   width: number | "100%";
 }) {
   return (
@@ -241,7 +192,7 @@ function MoreRow({
   width,
 }: {
   count: number;
-  size: RowSize;
+  size: DraftRowSize;
   width: number | "100%";
 }) {
   const m = useMessages().football.draftShare;
@@ -261,31 +212,15 @@ function MoreRow({
   );
 }
 
-/** The players a list has room for, the last cell giving way to "and N more". */
-function fitted(players: readonly DraftCardPlayer[], room: number) {
-  if (players.length <= room) {
-    return { shown: players, more: 0 };
-  }
-  return {
-    shown: players.slice(0, room - 1),
-    more: players.length - (room - 1),
-  };
-}
-
 function PlayerGrid({
   players,
-  size,
-  columns,
-  rows,
-  spread,
+  listLayout,
 }: {
   players: readonly DraftCardPlayer[];
-  size: RowSize;
-  columns: 1 | 2;
-  rows: number;
-  spread: boolean;
+  listLayout: DraftListLayout;
 }) {
-  const { shown, more } = fitted(players, columns * rows);
+  const { size, columns, rows, spread } = listLayout;
+  const { shown, more } = fitDraftPlayers(players, columns * rows);
   const width = columns === 2 ? HALF_WIDTH : "100%";
   return (
     <View
@@ -369,10 +304,7 @@ function SideHeadRow({ side }: { side: DraftCardSide }) {
 }
 
 function BothTeamsCard({ card }: { card: DraftShareCard }) {
-  const rowsNeeded = Math.max(
-    ...card.sides.map((side) => Math.ceil(side.players.length / 2)),
-  );
-  const size = rowsNeeded > BOTH_REGULAR_ROWS ? COMPACT : REGULAR;
+  const listLayout = draftListLayout(card);
   return (
     <DraftFrame>
       <DraftHead typeLine={card.typeLine} />
@@ -398,13 +330,7 @@ function BothTeamsCard({ card }: { card: DraftShareCard }) {
             >
               {side.listLabel}
             </Label>
-            <PlayerGrid
-              players={side.players}
-              size={size}
-              columns={2}
-              rows={BOTH_ROWS}
-              spread={false}
-            />
+            <PlayerGrid players={side.players} listLayout={listLayout} />
           </View>
         ))}
       </View>
@@ -421,7 +347,6 @@ function OneTeamCard({
   side: DraftCardSide;
 }) {
   const m = useMessages().football.draftShare;
-  const oneColumn = side.players.length <= ONE_COLUMN_ROWS;
   return (
     <DraftFrame>
       <DraftHead typeLine={card.typeLine} />
@@ -456,13 +381,7 @@ function OneTeamCard({
         </Label>
       </View>
       <View style={{ flex: 1, minHeight: 0, justifyContent: "space-evenly" }}>
-        <PlayerGrid
-          players={side.players}
-          size={oneColumn ? ROOMY : REGULAR}
-          columns={oneColumn ? 1 : 2}
-          rows={ONE_COLUMN_ROWS}
-          spread={oneColumn}
-        />
+        <PlayerGrid players={side.players} listLayout={draftListLayout(card)} />
       </View>
       {card.against ? (
         <Big px={32} style={{ color: colors.onControlMuted }}>

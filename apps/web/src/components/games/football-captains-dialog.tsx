@@ -2,6 +2,7 @@
 
 import {
   mayBeSideCaptain,
+  ofSide,
   ovrLabel,
   slotCode,
   type Bibs,
@@ -104,11 +105,9 @@ export function FootballCaptainsDialog({
   const copy = m.football.captains;
   const t = m.webTournament.footballTeams;
   const current = side ?? 1;
-  const team = current === 1 ? names.slot1 : names.slot2;
-  const captain = current === 1 ? captains.slot1 : captains.slot2;
-  const players = (current === 1 ? sides.slot1 : sides.slot2).filter(
-    mayBeSideCaptain,
-  );
+  const team = ofSide(names, current);
+  const captain = ofSide(captains, current);
+  const players = ofSide(sides, current).filter(mayBeSideCaptain);
 
   return (
     <ResponsiveDialog
@@ -147,8 +146,8 @@ export function FootballCaptainsDialog({
                       : "bg-paper text-muted-foreground hover:bg-wash",
                   )}
                 >
-                  <BibChip bib={value === 1 ? bibs.slot1 : bibs.slot2} />
-                  {value === 1 ? names.slot1 : names.slot2}
+                  <BibChip bib={ofSide(bibs, value)} />
+                  {ofSide(names, value)}
                 </button>
               );
             })}

@@ -4,6 +4,7 @@ import {
   addGoal,
   balancedSides,
   boardTierCell,
+  captainsOnTheirSides,
   clearSides,
   confirmationLine,
   draftSummary,
@@ -15,6 +16,7 @@ import {
   keeperSub,
   mayBeSideCaptain,
   moveAcross,
+  NO_SIDE_CAPTAINS,
   ovrLabel,
   ovrSpoken,
   placeOn,
@@ -24,12 +26,15 @@ import {
   poolSections,
   removeGoal,
   lineupName,
+  lineupPlayerName,
+  ofSide,
   scorersNote,
   scorersPayload,
   setPickCaptain,
   setSideCaptain,
   shortName,
   shuffleSides,
+  sidesFromSplit,
   switchMethod,
   tileShortName,
   sideOvrAverage,
@@ -155,7 +160,7 @@ describe("teams draft", () => {
   ];
 
   it("starts from a split by Level, or from the published teams", () => {
-    const fresh = initialTeamsDraft(players, null);
+    const fresh = initialTeamsDraft(players, null, null);
     expect(fresh.method).toBe("level");
     expect(fresh.bibs).toEqual({ slot1: "black", slot2: "white" });
     expect(Object.keys(fresh.sides)).toHaveLength(4);
@@ -165,7 +170,12 @@ describe("teams draft", () => {
         ...row,
         sideIndex: index % 2 === 0 ? 1 : 2,
       })),
-      { method: "manual", bibs: { slot1: "red", slot2: "sky" } },
+      {
+        method: "manual",
+        bibs: { slot1: "red", slot2: "sky" },
+        captains: NO_SIDE_CAPTAINS,
+      },
+      null,
     );
     expect(published.sides).toEqual({ k: 1, a: 2, b: 1, c: 2 });
     expect(published.bibs).toEqual({ slot1: "red", slot2: "sky" });
@@ -174,11 +184,16 @@ describe("teams draft", () => {
   it("starts from the saved Draft line-up before the published teams", () => {
     const saved = initialTeamsDraft(
       players.map((row) => ({ ...row, sideIndex: 1 as const })),
-      { method: "level", bibs: { slot1: "black", slot2: "white" } },
+      {
+        method: "level",
+        bibs: { slot1: "black", slot2: "white" },
+        captains: NO_SIDE_CAPTAINS,
+      },
       {
         method: "manual",
         bibs: { slot1: "green", slot2: "pink" },
         sides: { slot1: ["k", "gone"], slot2: ["a"] },
+        captains: NO_SIDE_CAPTAINS,
       },
     );
     expect(saved).toEqual({
@@ -190,7 +205,7 @@ describe("teams draft", () => {
   });
 
   it("moves players across and places them by swatch", () => {
-    const draft = initialTeamsDraft(players, null);
+    const draft = initialTeamsDraft(players, null, null);
     const moved = moveAcross(draft, "k");
     expect(moved.sides.k).not.toBe(draft.sides.k);
     const manual = switchMethod(draft, "manual", players);
@@ -203,7 +218,7 @@ describe("teams draft", () => {
   it("summarises the split with keepers first and blocks unplaced players", () => {
     const manual = placeOn(
       placeOn(
-        switchMethod(initialTeamsDraft(players, null), "manual", players),
+        switchMethod(initialTeamsDraft(players, null, null), "manual", players),
         "a",
         1,
       ),
@@ -233,6 +248,7 @@ describe("Side captains on the teams draft (ADR-0108)", () => {
     method: "manual" as const,
     bibs: { slot1: "black", slot2: "white" } as const,
     sides: { slot1: ["k", "a"], slot2: ["b", "c"] },
+    captains: NO_SIDE_CAPTAINS,
   };
 
   function named() {
@@ -304,9 +320,10 @@ describe("Side captains on the teams draft (ADR-0108)", () => {
           bibs: split.bibs,
           captains: { slot1: "k", slot2: "c" },
         },
+        null,
       ).captains,
     ).toEqual({ slot1: "k", slot2: "c" });
-    expect(initialTeamsDraft(players, null).captains).toEqual({
+    expect(initialTeamsDraft(players, null, null).captains).toEqual({
       slot1: null,
       slot2: null,
     });
@@ -341,7 +358,7 @@ describe("teams draft in a tier Group", () => {
   });
 
   it("lists each side strongest down and reads its mean in points", () => {
-    const draft = initialTeamsDraft(tierPlayers, null);
+    const draft = initialTeamsDraft(tierPlayers, null, null);
     const summary = draftSummary(draft, tierPlayers, "en");
     expect(summary.slot1.map((row) => row.userId)).toEqual(["k1", "b", "c"]);
     expect(summary.slot2.map((row) => row.userId)).toEqual(["k2", "a", "d"]);
@@ -508,7 +525,7 @@ describe("teams draft outside a tier Group", () => {
   ];
 
   it("splits on OVR and reads each side's mean OVR", () => {
-    const draft = initialTeamsDraft(ovrPlayers, null);
+    const draft = initialTeamsDraft(ovrPlayers, null, null);
     expect(draft.sides).toEqual({ k1: 1, k2: 2, a: 2, b: 1, c: 1, d: 2 });
     const summary = draftSummary(draft, ovrPlayers, "en", "ovr");
     expect(summary.slot2.map((row) => row.userId)).toEqual(["k2", "a", "d"]);
@@ -714,10 +731,62 @@ describe("lineupName", () => {
   });
 });
 
+describe("lineupPlayerName", () => {
+  it("reads You for the viewer, a nickname, or the short name", () => {
+    expect(
+      lineupPlayerName({ name: "Rashid Nasser", isViewer: true }, "en"),
+    ).toBe("You");
+    expect(
+      lineupPlayerName(
+        {
+          name: "Rashid Nasser",
+          isViewer: false,
+          nickname: { name: "Rash", visibility: "group" },
+        },
+        "en",
+      ),
+    ).toBe("Rash");
+    expect(
+      lineupPlayerName({ name: "Rashid Nasser", isViewer: false }, "en"),
+    ).toBe("Rashid N");
+  });
+
+  it("is null without a player", () => {
+    expect(lineupPlayerName(undefined, "en")).toBeNull();
+    expect(lineupPlayerName(null, "en")).toBeNull();
+  });
+});
+
+describe("ofSide", () => {
+  it("reads a pair by side", () => {
+    const names = { slot1: "Black", slot2: "White" };
+    expect(ofSide(names, 1)).toBe("Black");
+    expect(ofSide(names, 2)).toBe("White");
+  });
+});
+
+describe("captainsOnTheirSides", () => {
+  it("keeps a Side captain only while they are on that side", () => {
+    const sides = sidesFromSplit({ slot1: ["a", "b"], slot2: ["c"] });
+    expect(sides).toEqual({ a: 1, b: 1, c: 2 });
+    expect(captainsOnTheirSides({ slot1: "a", slot2: "c" }, sides)).toEqual({
+      slot1: "a",
+      slot2: "c",
+    });
+    expect(captainsOnTheirSides({ slot1: "c", slot2: "gone" }, sides)).toEqual({
+      slot1: null,
+      slot2: null,
+    });
+    expect(captainsOnTheirSides(NO_SIDE_CAPTAINS, sides)).toEqual(
+      NO_SIDE_CAPTAINS,
+    );
+  });
+});
+
 describe("setPickCaptain", () => {
   const roster = ["a", "b", "c", "d"].map((id) => player(id));
   const setup = switchMethod(
-    initialTeamsDraft(roster, null),
+    initialTeamsDraft(roster, null, null),
     "captain_pick",
     roster,
   );

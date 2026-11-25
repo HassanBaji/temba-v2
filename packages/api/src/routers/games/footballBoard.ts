@@ -48,7 +48,7 @@ import {
   footballScoreSet,
   footballSides,
 } from "#src/games/football-lineup";
-import { loadFootballDraft } from "#src/games/football-draft";
+import { loadFootballDraft, sideCaptainOf } from "#src/games/football-draft";
 import {
   matchOrganizerSides,
   matchSlotsActedFor,
@@ -366,15 +366,6 @@ export async function footballBoard(
       ? (userByGamePlayerId.get(sides.slot2.captainGamePlayerId) ?? null)
       : null,
   };
-  const captainOf = (captains: {
-    slot1: string | null;
-    slot2: string | null;
-  }) =>
-    captains.slot1 === args.userId
-      ? (1 as const)
-      : captains.slot2 === args.userId
-        ? (2 as const)
-        : null;
   const bib = (side: { bib: FootballBib | null } | null, index: 1 | 2) =>
     side?.bib ??
     (index === 1 ? DEFAULT_FOOTBALL_BIBS.slot1 : DEFAULT_FOOTBALL_BIBS.slot2);
@@ -451,9 +442,9 @@ export async function footballBoard(
     viewer: {
       sideIndex: viewerSide,
       captainOf: draft
-        ? captainOf(draft.captains)
+        ? draft.viewer.sideCaptainOf
         : published
-          ? captainOf(publishedCaptains)
+          ? sideCaptainOf(publishedCaptains, args.userId)
           : null,
       canMakeTeams,
       canSaveDraft: canMakeTeams && !published && !pickRunning,

@@ -7,7 +7,6 @@ import {
   MatchStatusEnum,
   footballLineupDrafts,
   gameCourts,
-  gamePlayers,
   gameTeamPlayers,
   gameTeams,
   games,
@@ -15,7 +14,11 @@ import {
   matches,
 } from "@repo/db";
 
-import type { SideCaptains } from "@repo/domain/football-board";
+import {
+  captainsOnTheirSides,
+  sidesFromSplit,
+  type SideCaptains,
+} from "@repo/domain/football-board";
 import { footballSideCaptainProblem } from "@repo/domain/football-draft";
 import {
   FOOTBALL_TEAMS_METHODS,
@@ -47,9 +50,9 @@ import {
 } from "#src/games/football-lineup";
 import {
   assertFootballDraftCurrent,
+  footballDraftRoster,
   loadFootballDraft,
 } from "#src/games/football-draft";
-import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -152,14 +155,12 @@ export async function publishFootballTeams(
     refuse(messagesFor(locale).football.errors.differentBibs);
   }
 
-  const roster = await database.query.gamePlayers.findMany({
-    where: eq(gamePlayers.gameId, game.id),
-    columns: { id: true, userId: true },
-    with: {
-      user: { columns: { clerkId: true, addedAt: true, guestAt: true } },
-    },
-  });
-  const registered = roster.flatMap((row) => (row.userId ? [row.userId] : []));
+  const {
+    registeredUserIds: registered,
+    gamePlayerIdByUser,
+    userByGamePlayerId,
+    accountUserIds,
+  } = await footballDraftRoster(database, game.id);
   assertCoversRoster(registered, args.slot1, args.slot2, locale);
   const problem = footballSidesProblem(
     {
@@ -188,17 +189,6 @@ export async function publishFootballTeams(
     }
   }
 
-  const gamePlayerIdByUser = new Map(
-    roster.flatMap((row) => (row.userId ? [[row.userId, row.id]] : [])),
-  );
-  const userByGamePlayerId = new Map(
-    roster.flatMap((row) => (row.userId ? [[row.id, row.userId]] : [])),
-  );
-  const accountUserIds = roster.flatMap((row) =>
-    row.userId && row.user?.guestAt === null && !isUnclaimed(row.user)
-      ? [row.userId]
-      : [],
-  );
   const sides = await footballSides(database, game.id);
   const publishedCaptain = (
     side: { captainGamePlayerId: string | null } | null,
@@ -216,12 +206,8 @@ export async function publishFootballTeams(
       slot1: publishedCaptain(sides.slot1),
       slot2: publishedCaptain(sides.slot2),
     };
-    const kept = (captain: string | null, side: string[]) =>
-      captain != null && side.includes(captain) ? captain : null;
-    const captains = args.captains ?? {
-      slot1: kept(carried.slot1, args.slot1),
-      slot2: kept(carried.slot2, args.slot2),
-    };
+    const captains =
+      args.captains ?? captainsOnTheirSides(carried, sidesFromSplit(args));
     const captainProblem = footballSideCaptainProblem(
       captains,
       args,

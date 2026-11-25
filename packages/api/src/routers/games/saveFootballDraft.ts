@@ -7,9 +7,14 @@ import {
   footballLineupDraftAnswers,
   footballLineupDraftPlayers,
   footballLineupDrafts,
-  gamePlayers,
 } from "@repo/db";
-import type { SideCaptains } from "@repo/domain/football-board";
+import {
+  captainsOnTheirSides,
+  NO_SIDE_CAPTAINS,
+  ofSide,
+  sidesFromSplit,
+  type SideCaptains,
+} from "@repo/domain/football-board";
 import {
   footballDraftSaveProblem,
   footballSideCaptainProblem,
@@ -31,13 +36,14 @@ import {
   assertFootballDraftCurrent,
   assertFootballDraftOpen,
   assertFootballPickNotRunning,
+  footballDraftRoster,
   loadFootballDraft,
+  samePlayers,
 } from "#src/games/football-draft";
 import {
   notifyFootballDraftChanged,
   notifyFootballDraftShared,
 } from "#src/notifications/notify-football-draft";
-import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -45,11 +51,6 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 const SAVED_DRAFT_METHODS = ["level", "manual"] as const;
 
 type SavedDraftMethod = (typeof SAVED_DRAFT_METHODS)[number];
-
-function samePlayers(a: readonly string[], b: readonly string[]) {
-  const set = new Set(a);
-  return set.size === new Set(b).size && b.every((id) => set.has(id));
-}
 
 /**
  * The Organizer saves the two sides as the Game's Draft line-up, creating it
@@ -85,26 +86,9 @@ export async function saveFootballDraft(
   await assertFootballDraftOpen(database, game, locale);
   await assertGameOrganizer(database, game, args.userId, locale);
 
-  const roster = await database.query.gamePlayers.findMany({
-    where: eq(gamePlayers.gameId, game.id),
-    columns: { id: true, userId: true },
-    with: {
-      user: { columns: { clerkId: true, addedAt: true, guestAt: true } },
-    },
-  });
-  const gamePlayerIdByUser = new Map(
-    roster.flatMap((row) => (row.userId ? [[row.userId, row.id]] : [])),
-  );
-  const accountUserIds = roster.flatMap((row) =>
-    row.userId && row.user?.guestAt === null && !isUnclaimed(row.user)
-      ? [row.userId]
-      : [],
-  );
-  const problem = footballDraftSaveProblem(
-    args,
-    [...gamePlayerIdByUser.keys()],
-    locale,
-  );
+  const { registeredUserIds, gamePlayerIdByUser, accountUserIds } =
+    await footballDraftRoster(database, game.id);
+  const problem = footballDraftSaveProblem(args, registeredUserIds, locale);
   if (problem) {
     throw new TRPCError({ code: "BAD_REQUEST", message: problem });
   }
@@ -116,12 +100,12 @@ export async function saveFootballDraft(
     assertFootballDraftCurrent(current, args.draftUpdatedAt, locale);
     assertFootballPickNotRunning(current, locale);
 
-    const kept = (captain: string | null | undefined, side: string[]) =>
-      captain != null && side.includes(captain) ? captain : null;
-    const captains = args.captains ?? {
-      slot1: kept(current?.captains.slot1, args.slot1),
-      slot2: kept(current?.captains.slot2, args.slot2),
-    };
+    const captains =
+      args.captains ??
+      captainsOnTheirSides(
+        current?.captains ?? NO_SIDE_CAPTAINS,
+        sidesFromSplit(args),
+      );
     const captainProblem = footballSideCaptainProblem(
       captains,
       args,
@@ -186,10 +170,8 @@ export async function saveFootballDraft(
     const named: string[] = [];
     const changed: string[] = [];
     for (const index of [1, 2] as const) {
-      const before =
-        (index === 1 ? current?.captains.slot1 : current?.captains.slot2) ??
-        null;
-      const after = index === 1 ? captains.slot1 : captains.slot2;
+      const before = current ? ofSide(current.captains, index) : null;
+      const after = ofSide(captains, index);
       if (before !== after) {
         await tx
           .delete(footballLineupDraftAnswers)
@@ -211,11 +193,10 @@ export async function saveFootballDraft(
         (answer) =>
           answer.sideIndex === index && answer.captainUserId === after,
       );
-      const sideBefore =
-        (index === 1
-          ? current?.sideGamePlayerIds.slot1
-          : current?.sideGamePlayerIds.slot2) ?? [];
-      const sideAfter = (index === 1 ? args.slot1 : args.slot2).map(
+      const sideBefore = current
+        ? ofSide(current.sideGamePlayerIds, index)
+        : [];
+      const sideAfter = ofSide(args, index).map(
         (userId) => gamePlayerIdByUser.get(userId)!,
       );
       if (answered && !samePlayers(sideBefore, sideAfter)) {

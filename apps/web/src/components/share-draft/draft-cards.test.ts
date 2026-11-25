@@ -8,13 +8,6 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import {
-  COMPACT,
-  draftListLayout,
-  fitPlayers,
-  REGULAR,
-  ROOMY,
-} from "./draft-card-layout";
 import { DraftStoryCard } from "./draft-cards";
 
 type Player = DraftShareBoard["players"][number];
@@ -117,43 +110,5 @@ describe("DraftStoryCard", () => {
     const html = render("both", 12, 2);
 
     expect(html).toContain("and 3 more");
-  });
-});
-
-describe("draftListLayout", () => {
-  it("keeps both teams at the regular row up to four rows a team", () => {
-    expect(draftListLayout(card("both", 6, 8))).toEqual({
-      size: REGULAR,
-      columns: 2,
-      rows: 6,
-      spread: false,
-    });
-  });
-
-  it("shrinks both teams to the compact row past four rows", () => {
-    expect(draftListLayout(card("both", 7, 2)).size).toBe(COMPACT);
-  });
-
-  it("lays one team in a roomy column up to nine, then in two", () => {
-    expect(draftListLayout(card("slot1", 7))).toEqual({
-      size: ROOMY,
-      columns: 1,
-      rows: 9,
-      spread: true,
-    });
-    expect(draftListLayout(card("slot1", 8))).toMatchObject({
-      size: REGULAR,
-      columns: 2,
-    });
-  });
-});
-
-describe("fitPlayers", () => {
-  it("shows everyone who fits", () => {
-    expect(fitPlayers([1, 2, 3], 3)).toEqual({ shown: [1, 2, 3], more: 0 });
-  });
-
-  it("gives the last cell to and N more", () => {
-    expect(fitPlayers([1, 2, 3, 4, 5], 3)).toEqual({ shown: [1, 2], more: 3 });
   });
 });

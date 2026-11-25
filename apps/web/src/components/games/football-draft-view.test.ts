@@ -1,35 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  draftAnswerMark,
-  draftCaptainName,
-  withDraftSides,
-} from "./football-draft-view";
-
-describe("draftCaptainName", () => {
-  it("reads You for the viewer, a nickname, or the short name", () => {
-    expect(
-      draftCaptainName({ name: "Rashid Nasser", isViewer: true }, "You"),
-    ).toBe("You");
-    expect(
-      draftCaptainName(
-        {
-          name: "Rashid Nasser",
-          isViewer: false,
-          nickname: { name: "Rash", visibility: "group" },
-        },
-        "You",
-      ),
-    ).toBe("Rash");
-    expect(
-      draftCaptainName({ name: "Rashid Nasser", isViewer: false }, "You"),
-    ).toBe("Rashid N");
-  });
-
-  it("is null without a captain", () => {
-    expect(draftCaptainName(undefined, "You")).toBeNull();
-  });
-});
+import { draftAnswerMark, withDraftSides } from "./football-draft-view";
 
 describe("withDraftSides", () => {
   it("places each player on their draft side, or on none", () => {

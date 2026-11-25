@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { footballLineupDraftAnswers } from "@repo/db";
+import { ofSide } from "@repo/domain/football-board";
 import {
   FOOTBALL_DRAFT_ANSWERS,
   FOOTBALL_DRAFT_NOTE_MAX_LENGTH,
@@ -77,10 +78,7 @@ export async function answerFootballDraft(
       return { ok: true as const };
     }
 
-    const sideGamePlayerIds =
-      sideIndex === 1
-        ? draft.sideGamePlayerIds.slot1
-        : draft.sideGamePlayerIds.slot2;
+    const sideGamePlayerIds = ofSide(draft.sideGamePlayerIds, sideIndex);
     const values = {
       captainUserId: args.userId,
       answer: args.answer,

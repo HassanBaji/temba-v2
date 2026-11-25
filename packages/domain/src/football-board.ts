@@ -44,6 +44,14 @@ import type { TierBand } from "./tier-bands";
 
 export type Side = 1 | 2;
 
+/** What a pair keyed by slot holds for a side. */
+export function ofSide<Value>(
+  pair: { slot1: Value; slot2: Value },
+  side: Side,
+): Value {
+  return side === 1 ? pair.slot1 : pair.slot2;
+}
+
 export type BoardPlayer = {
   userId: string;
   name: string;
@@ -146,6 +154,20 @@ export function poolTileName(
   locale: Locale,
 ) {
   return nameOnLineup(player, locale, (name) => tileShortName(name, locale));
+}
+
+/**
+ * `lineupName` as plain text, for a player the roster may no longer hold:
+ * null without one.
+ */
+export function lineupPlayerName(
+  player:
+    | Pick<BoardPlayer, "name" | "nickname" | "isViewer">
+    | null
+    | undefined,
+  locale: Locale,
+) {
+  return player ? lineupName(player, locale).name : null;
 }
 
 function nameOnLineup(
@@ -313,7 +335,8 @@ export type TeamsDraft = {
   captains: SideCaptains;
 };
 
-function sidesFromSplit(split: {
+/** Each placed player's side, from the two sides' players. */
+export function sidesFromSplit(split: {
   slot1: readonly string[];
   slot2: readonly string[];
 }) {
@@ -328,7 +351,7 @@ function sidesFromSplit(split: {
 }
 
 /** A Side captain stays named only while they are on that side. */
-function captainsOnTheirSides(
+export function captainsOnTheirSides(
   captains: SideCaptains,
   sides: Record<string, Side>,
 ): SideCaptains {
@@ -394,14 +417,14 @@ export function initialTeamsDraft(
   teams: {
     method: FootballTeamsMethod | null;
     bibs: Bibs;
-    captains?: SideCaptains;
+    captains: SideCaptains;
   } | null,
   saved: {
     method: FootballTeamsMethod;
     bibs: Bibs;
     sides: { slot1: readonly string[]; slot2: readonly string[] };
-    captains?: SideCaptains;
-  } | null = null,
+    captains: SideCaptains;
+  } | null,
 ): TeamsDraft {
   if (saved) {
     const roster = new Set(players.map((player) => player.userId));
@@ -413,7 +436,7 @@ export function initialTeamsDraft(
       method: byHand(saved.method),
       bibs: saved.bibs,
       sides,
-      captains: captainsOnTheirSides(saved.captains ?? NO_SIDE_CAPTAINS, sides),
+      captains: captainsOnTheirSides(saved.captains, sides),
     };
   }
   if (teams) {
@@ -427,7 +450,7 @@ export function initialTeamsDraft(
       method: byHand(teams.method ?? "manual"),
       bibs: teams.bibs,
       sides,
-      captains: captainsOnTheirSides(teams.captains ?? NO_SIDE_CAPTAINS, sides),
+      captains: captainsOnTheirSides(teams.captains, sides),
     };
   }
   return {

@@ -1,10 +1,14 @@
 "use client";
 
 import { colors } from "@repo/design-tokens";
-import type {
-  DraftCardPlayer,
-  DraftCardSide,
-  DraftShareCard,
+import {
+  draftListLayout,
+  fitDraftPlayers,
+  type DraftCardPlayer,
+  type DraftCardSide,
+  type DraftListLayout,
+  type DraftRowSize,
+  type DraftShareCard,
 } from "@repo/domain/football-draft-share";
 
 import { useMessages } from "~/components/locale-provider";
@@ -19,13 +23,6 @@ import {
   Label,
   Wordmark,
 } from "~/components/share-result/story-parts";
-
-import {
-  draftListLayout,
-  fitPlayers,
-  type DraftListLayout,
-  type DraftRowSize,
-} from "./draft-card-layout";
 
 const PAD_X = 72;
 const PAD_TOP = 180;
@@ -191,7 +188,7 @@ function PlayerGrid({
   layout: DraftListLayout;
 }) {
   const { size, columns, rows, spread } = layout;
-  const { shown, more } = fitPlayers(players, columns * rows);
+  const { shown, more } = fitDraftPlayers(players, columns * rows);
   const width = columns === 2 ? HALF_WIDTH : "100%";
   return (
     <div

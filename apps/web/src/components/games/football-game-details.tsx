@@ -81,6 +81,7 @@ import { cn } from "~/lib/utils";
 import {
   bibNames,
   footballHeroLines,
+  ofSide,
   poolLayout,
   slotCode,
   viewerSideLine,
@@ -221,9 +222,7 @@ export function FootballGameDetails({
       draftSaved: draft != null,
       draftSideCaptainOf:
         draft && draftSideCaptainOf
-          ? bibNames(draft.bibs, locale)[
-              draftSideCaptainOf === 1 ? "slot1" : "slot2"
-            ]
+          ? ofSide(bibNames(draft.bibs, locale), draftSideCaptainOf)
           : null,
     },
     now,
@@ -1022,9 +1021,9 @@ export function FootballGameDetails({
                 ? footballDraftCaptainViewLine(draft, game, locale)
                 : footballDraftVisibilityLine(
                     game,
-                    locale,
                     draft.captains.slot1 != null ||
                       draft.captains.slot2 != null,
+                    locale,
                   )}
             </p>
             {runningPick ? (

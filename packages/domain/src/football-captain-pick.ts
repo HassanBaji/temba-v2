@@ -1,7 +1,12 @@
 import { messagesFor } from "@repo/i18n/messages";
 import type { Locale } from "@repo/i18n/locale";
 
-import type { BoardPlayer, Side, SideCaptains } from "./football-board";
+import {
+  ofSide,
+  type BoardPlayer,
+  type Side,
+  type SideCaptains,
+} from "./football-board";
 import {
   CAPTAIN_PICK_MIN_PLAYERS,
   type FootballBalanceOn,
@@ -83,6 +88,85 @@ export function captainPickDone(poolSize: number) {
   return poolSize === 0;
 }
 
+type PickedPlayer = { userId: string; pickNumber: number | null };
+
+/** An open Pick room as `games.footballPickRoom` reads it to a client. */
+export type OpenPickRoom = {
+  status: "waiting" | "live" | "done";
+  sides: { slot1: PickedPlayer[]; slot2: PickedPlayer[] };
+  pool: string[];
+  turn: Side | null;
+  firstPickSide: Side | null;
+  picks: { made: number; total: number; next: number };
+};
+
+/**
+ * The room with a pick placed on the side on turn, as the server places it:
+ * the caller's own pick shows at once and the next read corrects it. A room
+ * that is not live stays as it is.
+ */
+export function pickRoomWithPick<
+  Room extends OpenPickRoom | { status: "stopped" },
+>(current: Room, pick: { userId: string; pickNumber: number }): Room {
+  if (current.status !== "live" || current.turn == null) {
+    return current;
+  }
+  const row = { userId: pick.userId, pickNumber: pick.pickNumber };
+  const sides =
+    current.turn === 1
+      ? { ...current.sides, slot1: [...current.sides.slot1, row] }
+      : { ...current.sides, slot2: [...current.sides.slot2, row] };
+  const pool = current.pool.filter((userId) => userId !== pick.userId);
+  const done = captainPickDone(pool.length);
+  return {
+    ...current,
+    status: done ? "done" : "live",
+    sides,
+    pool,
+    turn:
+      done || current.firstPickSide == null
+        ? null
+        : pickTurn({
+            slot1: sides.slot1.length,
+            slot2: sides.slot2.length,
+            firstPickSide: current.firstPickSide,
+          }),
+    picks: {
+      made: current.picks.made + 1,
+      total: current.picks.total,
+      next: pick.pickNumber + 1,
+    },
+  };
+}
+
+/** The pick Undo takes back: the highest pick number on either side. */
+export function lastPick(sides: {
+  slot1: readonly PickedPlayer[];
+  slot2: readonly PickedPlayer[];
+}): { userId: string; pickNumber: number; side: Side } | null {
+  let last: { userId: string; pickNumber: number; side: Side } | null = null;
+  for (const side of [1, 2] as const) {
+    for (const row of ofSide(sides, side)) {
+      if (
+        row.pickNumber != null &&
+        (last == null || row.pickNumber > last.pickNumber)
+      ) {
+        last = { userId: row.userId, pickNumber: row.pickNumber, side };
+      }
+    }
+  }
+  return last;
+}
+
+/** Everyone the room names: the pool and both sides. */
+export function pickRoomUserIds(room: Pick<OpenPickRoom, "pool" | "sides">) {
+  return [
+    ...room.pool,
+    ...room.sides.slot1.map((row) => row.userId),
+    ...room.sides.slot2.map((row) => row.userId),
+  ];
+}
+
 /** How many players each side has once the pool is picked by the turn rule. */
 export function captainPickFinalSizes(room: {
   slot1: number;
@@ -162,15 +246,12 @@ export function captainPickRoomLines(
     };
   }
   const turn = room.turn ?? room.firstPickSide ?? 1;
-  const captain = (side: Side) =>
-    side === 1 ? names.captains.slot1 : names.captains.slot2;
+  const captain = (side: Side) => ofSide(names.captains, side);
   const toss =
     room.picks.made === 0 &&
     room.firstPick === "toss" &&
     room.firstPickSide != null
-      ? m.wonTheToss(
-          room.firstPickSide === 1 ? names.teams.slot1 : names.teams.slot2,
-        )
+      ? m.wonTheToss(ofSide(names.teams, room.firstPickSide))
       : null;
   if (viewerSide == null) {
     return {
@@ -228,13 +309,12 @@ export function captainPickFirstPickLine(
   locale: Locale,
 ) {
   const m = messagesFor(locale).football.pick;
-  const name = (side: Side) => (side === 1 ? names.slot1 : names.slot2);
   if (pick.firstPick === "toss" || pick.firstPick == null) {
     return pick.firstPickSide == null
       ? m.tossedWhenBothIn
-      : m.wonTheToss(name(pick.firstPickSide));
+      : m.wonTheToss(ofSide(names, pick.firstPickSide));
   }
-  return m.picksFirst(name(pick.firstPick === "slot1" ? 1 : 2));
+  return m.picksFirst(names[pick.firstPick]);
 }
 
 type PoolPlayer = Pick<

@@ -369,7 +369,7 @@ answers with copy from `football.errors`.
 | `openFootballPickRoom` | mutation | Organizer | Bibs, both captains, first pick. Replaces any draft with the two captains seated and `pick_status` `waiting`; tells both captains |
 | `footballPickRoom` | query, polled | Organizer or a captain of the pick | The room: status, bibs, captains with presence, first pick, each side's players with pick numbers, the pool, the side on turn, the next pick number and total, `serverNow`. Records the caller's presence at most every 3 s, and starts the pick (toss included) on the read that finds both captains present, as `liveBoards.snapshot` already writes on read. Finishes a live pick whose pool emptied without a pick (section 10). Refuses a cancelled Game |
 | `startFootballPick` | mutation | Organizer | Waiting to live without both captains (decision 7) |
-| `pickFootballPlayer` | mutation | The captain on turn, or an Organizer with `forSide` | `userId` and the expected `pickNumber`. Locks the draft row; refuses a pick out of turn, a player not in the pool, and a stale pick number ("The pick moved on"). The pick that empties the pool sets `done`, writes both answers as approved and tells the Organizers |
+| `pickFootballPlayer` | mutation | The captain on turn, or an Organizer with `forSide` | `pickedUserId` and the expected `pickNumber`. Locks the draft row; refuses a pick out of turn, a player not in the pool, and a stale pick number ("The pick moved on"). The pick that empties the pool sets `done`, writes both answers as approved and tells the Organizers |
 | `undoFootballPick` | mutation | Organizer | Returns the highest pick number to the pool, named by the caller so a stale tap is refused. Live only |
 | `stopFootballPick` | mutation | Organizer | Waiting or live: clears the pick fields, sets method `manual`, keeps the sides |
 | `remindFootballCaptain` | mutation | A captain of the pick, or an Organizer | Tells the other captain (or the named side's) once per five minutes; a second tap inside the window succeeds without sending |
@@ -396,7 +396,9 @@ rules; the draft and the room carry user ids only, so neither opens a new view o
 
 - `packages/api/src/games/football-draft.ts`: load a Game's draft with its players and answers;
   who may see it; the guards the doors share (football, not Challenge, not cancelled, not
-  published).
+  published); `captainAnswerState(answer, sidePlayerIds, sideCaptain)`, which only the loader
+  calls; the roster the doors that write sides read; the pool and the next pick number of a
+  Captain pick.
 - `packages/api/src/notifications/notify-football-draft.ts`: the wrappers of section 11, as
   `notify-challenge.ts` does for Challenges.
 - `packages/validators/src/football.ts` gains the bibs, sides and captains input shared by
@@ -411,10 +413,10 @@ Each of these is used by both Apps, or by an App and the server.
 | Module | Rule |
 | --- | --- |
 | `football-lineup.ts` | `FOOTBALL_TEAMS_METHODS` gains `captain_pick`; `footballTeamsMethodLabel`; the draft and pick constants (note length, minimum players, poll and presence windows) |
-| `football-board.ts` | `TeamsDraft` gains `captains`; `moveAcross`, `placeOn`, `switchMethod` and Shuffle clear a captain who is no longer on their side; `initialTeamsDraft` starts from the saved draft, then the published split, then a balanced one |
-| `football-draft.ts` (new) | `captainAnswerState(answer, sidePlayerIds, captainIsOrganizer)`; the hub summary line; why a draft cannot be saved; the visibility line by Game kind |
-| `football-captain-pick.ts` (new) | `pickTurn({ slot1, slot2, firstPickSide })`; pick progress ("Pick 6 of 14"); the pool order; whether the pick is done |
-| `football-draft-share.ts` (new) | `draftShareCard(game, board, mode, locale)`: the Draft card for both teams or one side, null when the viewer has no draft |
+| `football-board.ts` | `TeamsDraft` gains `captains`; `moveAcross`, `placeOn`, `switchMethod` and Shuffle clear a captain who is no longer on their side (`captainsOnTheirSides`, which save and publish call too); `initialTeamsDraft` starts from the saved draft, then the published split, then a balanced one; `ofSide(pair, side)`; `lineupPlayerName` for a captain or a pool player |
+| `football-draft.ts` (new) | The hub summary line; why a draft cannot be saved; the visibility line by Game kind |
+| `football-captain-pick.ts` (new) | `pickTurn({ slot1, slot2, firstPickSide })`; pick progress ("Pick 6 of 14"); the pool order; whether the pick is done; the room with the caller's own pick placed, and the last pick, which Undo takes back |
+| `football-draft-share.ts` (new) | `draftShareCard(game, board, mode, locale)`: the Draft card for both teams or one side, null when the viewer has no draft; how its lists are laid out and cut to "and N more" |
 | `notification-copy.ts` | Copy for the new types |
 
 **Pool order and what a captain sees.** The pool sorts by what the viewer is shown for each player:

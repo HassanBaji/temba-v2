@@ -3,11 +3,15 @@ import { describe, expect, it } from "vitest";
 
 import type { BoardPlayer } from "./football-board";
 import {
+  DRAFT_ROW_SIZES,
+  draftListLayout,
   draftShareCard,
   draftShareMessage,
   draftShareNote,
+  fitDraftPlayers,
   type DraftShareBoard,
   type DraftShareGame,
+  type DraftShareMode,
 } from "./football-draft-share";
 
 function player(
@@ -295,5 +299,80 @@ describe("draftShareMessage", () => {
     expect(line).toBe(
       `مسودة الفرق لـ${isolate("Friday Football")}. ليست نهائية.`,
     );
+  });
+});
+
+function sizedCard(mode: DraftShareMode, slot1: number, slot2 = 4) {
+  const black = Array.from({ length: slot1 }, (_, index) =>
+    player(`b${index}`, `Black Player${index}`),
+  );
+  const white = Array.from({ length: slot2 }, (_, index) =>
+    player(`w${index}`, `White Player${index}`),
+  );
+  const card = draftShareCard(
+    game,
+    {
+      players: [...black, ...white],
+      draft: {
+        bibs: { slot1: "black", slot2: "white" },
+        sides: {
+          slot1: black.map((row) => row.userId),
+          slot2: white.map((row) => row.userId),
+        },
+        captains: { slot1: null, slot2: null },
+      },
+    },
+    mode,
+    "en",
+  );
+  if (!card) {
+    throw new Error("expected a draft card");
+  }
+  return card;
+}
+
+describe("draftListLayout", () => {
+  it("keeps both teams at the regular row up to four rows a team", () => {
+    expect(draftListLayout(sizedCard("both", 8, 8))).toEqual({
+      size: DRAFT_ROW_SIZES.regular,
+      columns: 2,
+      rows: 6,
+      spread: false,
+    });
+  });
+
+  it("shrinks both teams to the compact row past four rows", () => {
+    expect(draftListLayout(sizedCard("both", 9, 2)).size).toBe(
+      DRAFT_ROW_SIZES.compact,
+    );
+  });
+
+  it("lays one team in a roomy column up to nine, then in two", () => {
+    expect(draftListLayout(sizedCard("slot1", 9))).toEqual({
+      size: DRAFT_ROW_SIZES.roomy,
+      columns: 1,
+      rows: 9,
+      spread: true,
+    });
+    expect(draftListLayout(sizedCard("slot1", 10))).toMatchObject({
+      size: DRAFT_ROW_SIZES.regular,
+      columns: 2,
+    });
+  });
+});
+
+describe("fitDraftPlayers", () => {
+  it("shows everyone who fits", () => {
+    expect(fitDraftPlayers([1, 2, 3], 3)).toEqual({
+      shown: [1, 2, 3],
+      more: 0,
+    });
+  });
+
+  it("gives the last cell to and N more", () => {
+    expect(fitDraftPlayers([1, 2, 3, 4, 5], 3)).toEqual({
+      shown: [1, 2],
+      more: 3,
+    });
   });
 });

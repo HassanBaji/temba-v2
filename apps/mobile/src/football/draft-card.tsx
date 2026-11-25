@@ -1,7 +1,8 @@
 import { radii } from "@repo/design-tokens";
 import {
   bibNames,
-  shortName,
+  lineupPlayerName,
+  ofSide,
   type BoardPlayer,
 } from "@repo/domain/football-board";
 import {
@@ -22,19 +23,6 @@ import { BibChip } from "./bib-picker";
 import { DraftAnswer } from "./draft-answer-mark";
 
 type SavedDraft = NonNullable<RouterOutputs["games"]["footballBoard"]["draft"]>;
-
-/** A captain's name as the draft card reads it: "You", a nickname, or "Rashid N". */
-export function draftCaptainName(
-  player: Pick<BoardPlayer, "name" | "nickname" | "isViewer"> | undefined,
-  you: string,
-) {
-  if (!player) {
-    return null;
-  }
-  return player.isViewer
-    ? you
-    : (player.nickname?.name ?? shortName(player.name));
-}
 
 /** The note a Side captain sent with a change asked, set apart under the row. */
 export function DraftNote({ note }: { note: string }) {
@@ -67,13 +55,12 @@ function SideAnswerRow({
   const locale = useLocale();
   const messages = useMessages();
   const m = messages.football.captains;
-  const key = side === 1 ? "slot1" : "slot2";
-  const captainId = draft.captains[key];
-  const captain = draftCaptainName(
+  const captainId = ofSide(draft.captains, side);
+  const captain = lineupPlayerName(
     players.find((player) => player.userId === captainId),
-    messages.common.you,
+    locale,
   );
-  const answer = draft.answers[key];
+  const answer = ofSide(draft.answers, side);
   return (
     <View
       style={{
@@ -84,9 +71,11 @@ function SideAnswerRow({
       }}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <BibChip bib={draft.bibs[key]} size={14} />
+        <BibChip bib={ofSide(draft.bibs, side)} size={14} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text weight="semibold">{bibNames(draft.bibs, locale)[key]}</Text>
+          <Text weight="semibold">
+            {ofSide(bibNames(draft.bibs, locale), side)}
+          </Text>
           <Text size="eyebrow" tone="muted" numberOfLines={1}>
             {captain ? m.named(captain) : m.none}
           </Text>
@@ -155,8 +144,8 @@ export function DraftCard({
       answers: draft.answers,
     },
     players.map((player) => player.userId),
-    locale,
     game,
+    locale,
   );
   return (
     <View style={{ gap: 12 }}>

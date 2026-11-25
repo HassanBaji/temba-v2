@@ -8,9 +8,16 @@ import {
   gamePlayers,
   user,
 } from "@repo/db";
-import type { SideCaptains } from "@repo/domain/football-board";
-import { captainAnswerState } from "@repo/domain/football-draft";
-import type { FootballPickStatus } from "@repo/domain/football-lineup";
+import {
+  ofSide,
+  type Side,
+  type SideCaptains,
+} from "@repo/domain/football-board";
+import type { FootballDraftAnswerState } from "@repo/domain/football-draft";
+import type {
+  FootballDraftAnswer,
+  FootballPickStatus,
+} from "@repo/domain/football-lineup";
 import { isFootballGame } from "@repo/domain/game-shape";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
@@ -27,6 +34,7 @@ import {
   footballSides,
 } from "#src/games/football-lineup";
 import { notifyFootballPickDone } from "#src/notifications/notify-football-draft";
+import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -80,25 +88,104 @@ export function footballPickRunning(
 }
 
 /**
- * A Game's Draft line-up with each side's players by User, in roster order,
- * its Side captains and their answers. Null when there is none, and for a
- * viewer who may not see it: only the Game's Organizers and the draft's Side
- * captains do (ADR-0107, ADR-0108). Every read of a draft goes through here.
- * A note goes to the Organizers and to the captain who wrote it. `lock`
- * holds the draft row until the transaction ends.
+ * Only a football Friendly game that is not a Challenge Game has a Draft
+ * line-up.
  */
-export async function loadFootballDraft(
+export function mayHaveFootballDraft(game: GameRow) {
+  return (
+    !game.challengeId && isFootballGame(game) && game.format === "friendly_game"
+  );
+}
+
+/** The side a User captains, or null when they captain neither. */
+export function sideCaptainOf(
+  captains: SideCaptains,
+  userId: string,
+): Side | null {
+  return captains.slot1 === userId ? 1 : captains.slot2 === userId ? 2 : null;
+}
+
+export function samePlayers(a: readonly string[], b: readonly string[]) {
+  const set = new Set(a);
+  return set.size === new Set(b).size && b.every((id) => set.has(id));
+}
+
+/**
+ * A side's Captain's answer as it reads now. Nobody to ask without a Side
+ * captain, or when the captain is an Organizer of the Game. An answer counts
+ * only for the exact players it was given for; otherwise the side waits.
+ */
+export function captainAnswerState(
+  answer: {
+    answer: FootballDraftAnswer;
+    answeredPlayerIds: readonly string[];
+  } | null,
+  sidePlayerIds: readonly string[],
+  sideCaptain: { isOrganizer: boolean } | null,
+): FootballDraftAnswerState {
+  if (!sideCaptain || sideCaptain.isOrganizer) {
+    return "none";
+  }
+  if (!answer || !samePlayers(answer.answeredPlayerIds, sidePlayerIds)) {
+    return "waiting";
+  }
+  return answer.answer;
+}
+
+/**
+ * The Game's roster as the doors that write sides read it: each registered
+ * User's Game player, and the Users with an account, who alone may be a Side
+ * captain (ADR-0108).
+ */
+export async function footballDraftRoster(database: DbClient, gameId: string) {
+  const roster = await database.query.gamePlayers.findMany({
+    where: eq(gamePlayers.gameId, gameId),
+    columns: { id: true, userId: true },
+    with: {
+      user: { columns: { clerkId: true, addedAt: true, guestAt: true } },
+    },
+  });
+  const registered = roster.flatMap((row) =>
+    row.userId ? [{ userId: row.userId, gamePlayerId: row.id }] : [],
+  );
+  return {
+    registeredUserIds: registered.map((row) => row.userId),
+    gamePlayerIdByUser: new Map(
+      registered.map((row) => [row.userId, row.gamePlayerId]),
+    ),
+    userByGamePlayerId: new Map(
+      registered.map((row) => [row.gamePlayerId, row.userId]),
+    ),
+    accountUserIds: roster.flatMap((row) =>
+      row.userId && row.user?.guestAt === null && !isUnclaimed(row.user)
+        ? [row.userId]
+        : [],
+    ),
+  };
+}
+
+function firstPickSideOf(value: number | null): Side | null {
+  return value === 1 || value === 2 ? value : null;
+}
+
+/**
+ * A Game's Draft line-up without its Captain's answers: each side's
+ * placements in roster order, its Side captains, and the Captain pick with
+ * each captain's last-seen time. Null when there is none, and for a viewer
+ * who may not see it: only the Game's Organizers and the draft's Side
+ * captains do (ADR-0107, ADR-0108). Every read of a draft goes through here.
+ * It reads a cancelled Game's draft too, so the Pick room can tell its Side
+ * captains the Game is cancelled. `pickLostCaptain` marks a pick that
+ * stopped by losing a Side captain and is not cleared yet. `lock` holds the
+ * draft row until the transaction ends.
+ */
+export async function loadFootballDraftSides(
   database: DbClient,
   game: GameRow,
   viewerUserId: string,
   options: { lock?: boolean } = {},
 ) {
-  if (
-    game.challengeId ||
-    game.cancelledAt ||
-    !isFootballGame(game) ||
-    game.format !== "friendly_game"
-  ) {
+  if (!mayHaveFootballDraft(game)) {
     return null;
   }
   const query = database
@@ -113,6 +200,7 @@ export async function loadFootballDraft(
     .select({
       sideIndex: footballLineupDraftPlayers.sideIndex,
       gamePlayerId: footballLineupDraftPlayers.gamePlayerId,
+      pickNumber: footballLineupDraftPlayers.pickNumber,
       userId: gamePlayers.userId,
     })
     .from(footballLineupDraftPlayers)
@@ -133,35 +221,87 @@ export async function loadFootballDraft(
     slot2: captainOn(2, row.slot2CaptainGamePlayerId),
   };
   const organizer = await isGameOrganizer(database, game, viewerUserId);
-  const sideCaptainOf =
-    captains.slot1 === viewerUserId
-      ? (1 as const)
-      : captains.slot2 === viewerUserId
-        ? (2 as const)
-        : null;
-  if (!organizer && sideCaptainOf == null) {
+  const viewerSide = sideCaptainOf(captains, viewerUserId);
+  if (!organizer && viewerSide == null) {
     return null;
   }
 
-  const savedBy = await database.query.user.findFirst({
-    where: eq(user.id, row.savedBy),
-    columns: { name: true },
-  });
-  const answerRows = await database.query.footballLineupDraftAnswers.findMany({
-    where: eq(footballLineupDraftAnswers.draftId, row.id),
-  });
-  const side = (index: 1 | 2) =>
+  const side = (index: Side) =>
     placements.flatMap((placement) =>
       placement.sideIndex === index && placement.userId
         ? [placement.userId]
         : [],
     );
-  const sideGamePlayerIds = (index: 1 | 2) =>
+  const sideGamePlayerIds = (index: Side) =>
     placements.flatMap((placement) =>
       placement.sideIndex === index ? [placement.gamePlayerId] : [],
     );
-  const answerOf = async (index: 1 | 2) => {
-    const captain = index === 1 ? captains.slot1 : captains.slot2;
+  const running = footballPickRunning(row.pickStatus, captains);
+  const pickLostCaptain =
+    row.pickStatus != null && row.pickStatus !== "done" && !running;
+  return {
+    id: row.id,
+    updatedAt: row.updatedAt,
+    savedAt: row.savedAt,
+    savedBy: row.savedBy,
+    method: pickLostCaptain ? ("manual" as const) : row.method,
+    bibs: { slot1: row.slot1Bib, slot2: row.slot2Bib },
+    placements,
+    sides: { slot1: side(1), slot2: side(2) },
+    sideGamePlayerIds: {
+      slot1: sideGamePlayerIds(1),
+      slot2: sideGamePlayerIds(2),
+    },
+    captains,
+    captainSeenAt: {
+      slot1: row.slot1CaptainSeenAt,
+      slot2: row.slot2CaptainSeenAt,
+    },
+    pick:
+      running || row.pickStatus === "done"
+        ? {
+            status: row.pickStatus!,
+            firstPick: row.firstPick,
+            firstPickSide: firstPickSideOf(row.firstPickSide),
+          }
+        : null,
+    pickLostCaptain,
+    viewer: { organizer, sideCaptainOf: viewerSide },
+  };
+}
+
+/**
+ * A Game's Draft line-up as `loadFootballDraftSides` reads it, with who
+ * saved it and each side's Captain's answer. Null for a cancelled Game too.
+ * A note goes to the Organizers and to the captain who wrote it.
+ */
+export async function loadFootballDraft(
+  database: DbClient,
+  game: GameRow,
+  viewerUserId: string,
+  options: { lock?: boolean } = {},
+) {
+  if (game.cancelledAt) {
+    return null;
+  }
+  const draft = await loadFootballDraftSides(
+    database,
+    game,
+    viewerUserId,
+    options,
+  );
+  if (!draft) {
+    return null;
+  }
+  const savedBy = await database.query.user.findFirst({
+    where: eq(user.id, draft.savedBy),
+    columns: { name: true },
+  });
+  const answerRows = await database.query.footballLineupDraftAnswers.findMany({
+    where: eq(footballLineupDraftAnswers.draftId, draft.id),
+  });
+  const answerOf = async (index: Side) => {
+    const captain = ofSide(draft.captains, index);
     const answer =
       answerRows.find(
         (answerRow) =>
@@ -169,7 +309,7 @@ export async function loadFootballDraft(
       ) ?? null;
     const state = captainAnswerState(
       answer,
-      sideGamePlayerIds(index),
+      ofSide(draft.sideGamePlayerIds, index),
       captain
         ? { isOrganizer: await isGameOrganizer(database, game, captain) }
         : null,
@@ -180,37 +320,49 @@ export async function loadFootballDraft(
       state,
       answeredAt: counts ? answer.answeredAt : null,
       note:
-        counts && (organizer || answer.captainUserId === viewerUserId)
+        counts &&
+        (draft.viewer.organizer || answer.captainUserId === viewerUserId)
           ? answer.note
           : null,
     };
   };
-  const running = footballPickRunning(row.pickStatus, captains);
-  const stopped =
-    row.pickStatus != null && row.pickStatus !== "done" && !running;
   return {
-    id: row.id,
-    updatedAt: row.updatedAt,
-    savedAt: row.savedAt,
+    ...draft,
     savedByName: savedBy?.name ?? "",
-    method: stopped ? ("manual" as const) : row.method,
-    bibs: { slot1: row.slot1Bib, slot2: row.slot2Bib },
-    sides: { slot1: side(1), slot2: side(2) },
-    sideGamePlayerIds: {
-      slot1: sideGamePlayerIds(1),
-      slot2: sideGamePlayerIds(2),
-    },
-    captains,
     answers: { slot1: await answerOf(1), slot2: await answerOf(2) },
-    pick:
-      running || row.pickStatus === "done"
-        ? {
-            status: row.pickStatus!,
-            firstPick: row.firstPick,
-            firstPickSide: row.firstPickSide,
-          }
-        : null,
-    viewer: { organizer, sideCaptainOf },
+  };
+}
+
+/**
+ * Where a Captain pick stands: who is still to be picked, in roster order,
+ * how many picks were made and the number the next one takes.
+ */
+export async function footballPickProgress(
+  database: DbClient,
+  gameId: string,
+  draft: {
+    placements: readonly { gamePlayerId: string; pickNumber: number | null }[];
+  },
+) {
+  const roster = await database
+    .select({ id: gamePlayers.id, userId: gamePlayers.userId })
+    .from(gamePlayers)
+    .where(eq(gamePlayers.gameId, gameId))
+    .orderBy(asc(gamePlayers.createdAt), asc(gamePlayers.id));
+  const placed = new Set(
+    draft.placements.map((placement) => placement.gamePlayerId),
+  );
+  const pickNumbers = draft.placements.flatMap((placement) =>
+    placement.pickNumber == null ? [] : [placement.pickNumber],
+  );
+  return {
+    pool: roster.flatMap((row) =>
+      row.userId && !placed.has(row.id)
+        ? [{ gamePlayerId: row.id, userId: row.userId }]
+        : [],
+    ),
+    made: pickNumbers.length,
+    next: Math.max(0, ...pickNumbers) + 1,
   };
 }
 
@@ -278,8 +430,7 @@ export async function finishFootballPick(
     .set({ pickStatus: "done", savedAt: args.now, updatedAt: args.now })
     .where(eq(footballLineupDrafts.id, args.draftId));
   const answers = ([1, 2] as const).flatMap((side) => {
-    const captainUserId =
-      side === 1 ? args.captains.slot1 : args.captains.slot2;
+    const captainUserId = ofSide(args.captains, side);
     return captainUserId
       ? [
           {
@@ -288,10 +439,7 @@ export async function finishFootballPick(
             captainUserId,
             answer: "approved" as const,
             note: null,
-            answeredPlayerIds:
-              side === 1
-                ? args.sideGamePlayerIds.slot1
-                : args.sideGamePlayerIds.slot2,
+            answeredPlayerIds: ofSide(args.sideGamePlayerIds, side),
             answeredAt: args.now,
           },
         ]

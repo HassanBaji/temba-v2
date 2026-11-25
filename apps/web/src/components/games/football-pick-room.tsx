@@ -2,6 +2,8 @@
 
 import {
   bibNames,
+  lineupPlayerName,
+  ofSide,
   ovrLabel,
   slotCode,
   type BoardPlayer,
@@ -13,6 +15,9 @@ import {
   captainPickPoolLine,
   captainPickPoolOrder,
   captainPickRoomLines,
+  lastPick as lastPickOf,
+  pickRoomUserIds,
+  pickRoomWithPick,
 } from "@repo/domain/football-captain-pick";
 import {
   PICK_ROOM_POLL_MS,
@@ -37,19 +42,17 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { Surface } from "~/components/ui/surface";
 import { gameHomeHref } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 import { BibChip } from "./football-bibs";
-import { draftCaptainName } from "./football-draft-view";
 import { FootballInfoRows } from "./football-info-rows";
-import {
-  lastPick as lastPickOf,
-  pickRoomUserIds,
-  withPick,
-  type OpenPickRoom,
-} from "./football-pick-room-view";
 import { FootballPickPool, FootballPickSides } from "./football-pick-sides";
+
+type OpenPickRoom = Exclude<
+  RouterOutputs["games"]["footballPickRoom"],
+  { status: "stopped" }
+>;
 
 const POOL_PREVIEW = 4;
 
@@ -84,9 +87,8 @@ function CaptainCard({
   const messages = useMessages();
   const locale = useLocale();
   const m = messages.football.pick;
-  const captain = side === 1 ? room.captains.slot1 : room.captains.slot2;
-  const inRoom = captain?.inRoom ?? false;
-  const name = draftCaptainName(player, messages.common.you) ?? "";
+  const inRoom = ofSide(room.captains, side)?.inRoom ?? false;
+  const name = lineupPlayerName(player, locale) ?? "";
   const presence = inRoom ? m.inRoom : m.notHereYet;
   const meta = player
     ? [slotCode(player, locale), ovrLabel(player)].filter(Boolean).join(" ")
@@ -104,10 +106,7 @@ function CaptainCard({
       {inRoom ? null : <Hatch className="absolute inset-0" />}
       <div aria-hidden="true" className="relative space-y-3.5">
         <div className="flex items-center gap-2">
-          <BibChip
-            bib={side === 1 ? room.bibs.slot1 : room.bibs.slot2}
-            className="size-4"
-          />
+          <BibChip bib={ofSide(room.bibs, side)} className="size-4" />
           <span className="text-muted-foreground text-meta">{team}</span>
         </div>
         <div className="flex items-center gap-2.5">
@@ -319,8 +318,8 @@ export function FootballPickRoom({ gameId }: { gameId: string }) {
       const previous = utils.games.footballPickRoom.getData({ gameId });
       utils.games.footballPickRoom.setData({ gameId }, (current) =>
         current
-          ? withPick(current, {
-              userId: input.userId,
+          ? pickRoomWithPick(current, {
+              userId: input.pickedUserId,
               pickNumber: input.pickNumber,
             })
           : current,
@@ -401,15 +400,14 @@ export function FootballPickRoom({ gameId }: { gameId: string }) {
   const playerOf = (userId: string | undefined) =>
     boardPlayers.find((player) => player.userId === userId);
   const captainPlayer = (side: Side) =>
-    playerOf((side === 1 ? data.captains.slot1 : data.captains.slot2)?.userId);
+    playerOf(ofSide(data.captains, side)?.userId);
   const captainName = (side: Side) =>
-    draftCaptainName(captainPlayer(side), messages.common.you) ?? "";
+    lineupPlayerName(captainPlayer(side), locale) ?? "";
   const nameOf = (userId: string) =>
-    draftCaptainName(playerOf(userId), messages.common.you) ?? "";
+    lineupPlayerName(playerOf(userId), locale) ?? "";
   const otherSide: Side | null =
     data.viewer.side === 1 ? 2 : data.viewer.side === 2 ? 1 : null;
-  const inRoom = (side: Side) =>
-    (side === 1 ? data.captains.slot1 : data.captains.slot2)?.inRoom ?? false;
+  const inRoom = (side: Side) => ofSide(data.captains, side)?.inRoom ?? false;
 
   const sendReminder = (side: Side) =>
     remind.mutate(
@@ -605,7 +603,7 @@ export function FootballPickRoom({ gameId }: { gameId: string }) {
     }
     pickPlayer.mutate({
       gameId,
-      userId: choice.userId,
+      pickedUserId: choice.userId,
       pickNumber: data.picks.next,
       forSide: viewerOnTurn ? undefined : turn,
     });

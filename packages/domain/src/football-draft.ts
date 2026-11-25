@@ -6,7 +6,6 @@ import {
   footballBibName,
   footballSidesProblem,
   type FootballBib,
-  type FootballDraftAnswer,
 } from "./football-lineup";
 import { formatGameClock, formatWeekday } from "./format-game-start";
 
@@ -75,38 +74,15 @@ export function footballSideCaptainProblem(
   return null;
 }
 
+/**
+ * A side's Captain's answer as it reads now: `none` with nobody to ask,
+ * `waiting` until the Side captain answers for the side as it stands.
+ */
 export type FootballDraftAnswerState =
   | "none"
   | "waiting"
   | "approved"
   | "change_asked";
-
-function samePlayers(a: readonly string[], b: readonly string[]) {
-  const set = new Set(a);
-  return set.size === new Set(b).size && b.every((id) => set.has(id));
-}
-
-/**
- * A side's Captain's answer as it reads now. Nobody to ask without a Side
- * captain, or when the captain is an Organizer of the Game. An answer counts
- * only for the exact players it was given for; otherwise the side waits.
- */
-export function captainAnswerState(
-  answer: {
-    answer: FootballDraftAnswer;
-    answeredPlayerIds: readonly string[];
-  } | null,
-  sidePlayerIds: readonly string[],
-  sideCaptain: { isOrganizer: boolean } | null,
-): FootballDraftAnswerState {
-  if (!sideCaptain || sideCaptain.isOrganizer) {
-    return "none";
-  }
-  if (!answer || !samePlayers(answer.answeredPlayerIds, sidePlayerIds)) {
-    return "waiting";
-  }
-  return answer.answer;
-}
 
 /** What the draft card says about the Side captains when nothing is to place. */
 function captainsLine(
@@ -136,22 +112,21 @@ function captainsLine(
 /**
  * The Organizer's line on a saved draft and whether it can be published as
  * it stands. While players are still to place, or a side is too big, it reads
- * the Make teams problem and publishing waits. Otherwise, given the Side
- * captains and their answers, it says how many have approved; publishing
- * never waits on them.
+ * the Make teams problem and publishing waits. Otherwise it says how many of
+ * the Side captains have approved; publishing never waits on them.
  */
 export function footballDraftSummary(
   draft: FootballDraftSides & {
     bibs: FootballDraftBibs;
-    captains?: SideCaptains;
-    answers?: {
+    captains: SideCaptains;
+    answers: {
       slot1: { state: FootballDraftAnswerState };
       slot2: { state: FootballDraftAnswerState };
     };
   },
   registeredUserIds: readonly string[],
+  game: { groupId: string | null },
   locale: Locale,
-  game: { groupId: string | null } = { groupId: null },
 ) {
   const placed = new Set([...draft.slot1, ...draft.slot2]);
   const problem = footballSidesProblem(
@@ -167,20 +142,18 @@ export function footballDraftSummary(
     },
     locale,
   );
-  const ready =
-    draft.captains && draft.answers
-      ? captainsLine(
-          draft.captains,
-          {
-            slot1: draft.answers.slot1.state,
-            slot2: draft.answers.slot2.state,
-          },
-          game.groupId != null,
-          locale,
-        )
-      : messagesFor(locale).football.draft.readyToPublish;
   return {
-    line: problem ?? ready,
+    line:
+      problem ??
+      captainsLine(
+        draft.captains,
+        {
+          slot1: draft.answers.slot1.state,
+          slot2: draft.answers.slot2.state,
+        },
+        game.groupId != null,
+        locale,
+      ),
     canPublish: problem == null,
   };
 }
@@ -192,8 +165,8 @@ export function footballDraftSummary(
  */
 export function footballDraftVisibilityLine(
   game: { groupId: string | null },
+  hasSideCaptains: boolean,
   locale: Locale,
-  hasSideCaptains = false,
 ) {
   const m = messagesFor(locale).football.draft;
   if (hasSideCaptains) {

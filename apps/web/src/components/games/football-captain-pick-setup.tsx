@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  lineupPlayerName,
   mayBeSideCaptain,
   ovrLabel,
   setPickCaptain,
@@ -27,7 +28,6 @@ import { cn } from "~/lib/utils";
 
 import { BibPicker } from "./football-bibs";
 import { FootballCaptainsDialog } from "./football-captains-dialog";
-import { draftCaptainName } from "./football-draft-view";
 
 function SectionHead({ title, meta }: { title: string; meta?: string }) {
   return (
@@ -52,8 +52,9 @@ function PickCaptainChip({
   onOpen: (side: Side) => void;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   const copy = m.football.pick.setup;
-  const name = draftCaptainName(captain ?? undefined, m.common.you);
+  const name = lineupPlayerName(captain, locale);
   return (
     <button
       type="button"
@@ -137,7 +138,6 @@ function FirstPickToggle({
 }
 
 function PoolTile({ player }: { player: BoardPlayer }) {
-  const m = useMessages();
   const locale = useLocale();
   const meta = [slotCode(player, locale), ovrLabel(player)]
     .filter(Boolean)
@@ -145,7 +145,7 @@ function PoolTile({ player }: { player: BoardPlayer }) {
   return (
     <li className="border-rule flex h-10 min-w-0 items-center gap-2 rounded-md border px-2.5">
       <span className="text-meta min-w-0 flex-1 truncate">
-        {draftCaptainName(player, m.common.you)}
+        {lineupPlayerName(player, locale)}
       </span>
       <span
         dir="ltr"
@@ -216,9 +216,7 @@ export function FootballCaptainPickSetup({
           onChange={onFirstPickChange}
         />
         <p className="text-muted-foreground text-eyebrow">
-          {firstPick === "toss"
-            ? m.tossNote
-            : m.sideNote(firstPick === "slot1" ? names.slot1 : names.slot2)}
+          {firstPick === "toss" ? m.tossNote : m.sideNote(names[firstPick])}
         </p>
       </section>
       <BibPicker

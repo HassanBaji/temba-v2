@@ -1,22 +1,5 @@
-import {
-  shortName,
-  type BoardPlayer,
-  type Side,
-} from "@repo/domain/football-board";
+import type { BoardPlayer, Side } from "@repo/domain/football-board";
 import type { FootballDraftAnswerState } from "@repo/domain/football-draft";
-
-/** A captain's name as the draft reads it: "You", a nickname, or "Rashid N". */
-export function draftCaptainName(
-  player: Pick<BoardPlayer, "name" | "nickname" | "isViewer"> | undefined,
-  you: string,
-) {
-  if (!player) {
-    return null;
-  }
-  return player.isViewer
-    ? you
-    : (player.nickname?.name ?? shortName(player.name));
-}
 
 /**
  * The players placed on a Draft line-up's sides, so the team columns read

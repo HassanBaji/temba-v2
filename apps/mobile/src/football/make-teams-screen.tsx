@@ -42,12 +42,13 @@ import {
   draftSummary,
   initialTeamsDraft,
   keeperWord,
+  lineupPlayerName,
   mayBeSideCaptain,
   moveAcross,
+  ofSide,
   ovrLabel,
   placeOn,
   setSideCaptain,
-  shortName,
   shuffleSides,
   slotCode,
   switchMethod,
@@ -56,7 +57,7 @@ import {
   type Side,
   type TeamsDraft,
 } from "@repo/domain/football-board";
-import { CaptainPickSetup, pickCaptainName } from "./captain-pick-setup";
+import { CaptainPickSetup } from "./captain-pick-setup";
 import { CaptainsSheet } from "./captains-sheet";
 import { BibRow, CaptainAvatar, TierMark } from "./team-columns";
 
@@ -255,10 +256,7 @@ function LevelColumns({
             player={player}
             bib={bib}
             showTier
-            sideCaptain={
-              (side === 1 ? draft.captains.slot1 : draft.captains.slot2) ===
-              player.userId
-            }
+            sideCaptain={ofSide(draft.captains, side) === player.userId}
             trailing={
               <ArrowButton
                 side={side}
@@ -370,9 +368,7 @@ function ManualRow({
         player={player}
         bib={bib}
         sideCaptain={
-          side != null &&
-          (side === 1 ? draft.captains.slot1 : draft.captains.slot2) ===
-            player.userId
+          side != null && ofSide(draft.captains, side) === player.userId
         }
       />
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -490,13 +486,10 @@ function CaptainChip({
   onPress: (side: Side) => void;
 }) {
   const colors = useColors();
+  const locale = useLocale();
   const messages = useMessages();
   const m = messages.football.captains;
-  const name = captain
-    ? captain.isViewer
-      ? messages.common.you
-      : (captain.nickname?.name ?? shortName(captain.name))
-    : null;
+  const name = lineupPlayerName(captain, locale);
   return (
     <Pressable
       accessibilityRole="button"
@@ -736,9 +729,9 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
     locale,
   );
   const captainName = (userId: string | null) =>
-    pickCaptainName(
-      players.find((player) => player.userId === userId) ?? null,
-      messages.common.you,
+    lineupPlayerName(
+      players.find((player) => player.userId === userId),
+      locale,
     ) ?? "";
   const openPickRoom = () => {
     if (pickCaptains.slot1 == null || pickCaptains.slot2 == null) {

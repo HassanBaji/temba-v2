@@ -2,6 +2,7 @@ import { bibColors, radii } from "@repo/design-tokens";
 import {
   boardTierCell,
   lineupName,
+  ofSide,
   ovrLabel,
   ovrSpoken,
   slotCode,
@@ -201,14 +202,14 @@ export function PickSides({
   const m = useMessages().football.pick;
   const byId = new Map(players.map((player) => [player.userId, player]));
   const rowsOf = (side: Side) =>
-    (side === 1 ? sides.slot1 : sides.slot2).flatMap((row) => {
+    ofSide(sides, side).flatMap((row) => {
       const player = byId.get(row.userId);
       return player ? [{ row, player }] : [];
     });
   const column = (side: Side) => {
-    const bib = side === 1 ? bibs.slot1 : bibs.slot2;
-    const team = side === 1 ? teams.slot1 : teams.slot2;
-    const captain = side === 1 ? captains.slot1 : captains.slot2;
+    const bib = ofSide(bibs, side);
+    const team = ofSide(teams, side);
+    const captain = ofSide(captains, side);
     return (
       <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
         <View
@@ -237,7 +238,7 @@ export function PickSides({
             numberOfLines={1}
             style={{ marginStart: "auto" }}
           >
-            {side === 1 ? counts.slot1 : counts.slot2}
+            {ofSide(counts, side)}
           </Text>
         </View>
         {rowsOf(side).map(({ row, player }) => (
@@ -257,7 +258,7 @@ export function PickSides({
   };
   const average = (side: Side) =>
     m.sideAverage(
-      side === 1 ? teams.slot1 : teams.slot2,
+      ofSide(teams, side),
       teamsSideAverage(
         rowsOf(side).map(({ player }) => player),
         locale,

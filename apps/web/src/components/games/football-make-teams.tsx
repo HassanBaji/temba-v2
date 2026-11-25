@@ -7,12 +7,13 @@ import {
   draftSummary,
   initialTeamsDraft,
   keeperWord,
+  lineupPlayerName,
   mayBeSideCaptain,
   moveAcross,
+  ofSide,
   ovrLabel,
   placeOn,
   setSideCaptain,
-  shortName,
   shuffleSides,
   slotCode,
   switchMethod,
@@ -58,7 +59,6 @@ import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { BibChip, BibPicker, bibStyle } from "./football-bibs";
 import { FootballCaptainPickSetup } from "./football-captain-pick-setup";
 import { FootballCaptainsDialog } from "./football-captains-dialog";
-import { draftCaptainName } from "./football-draft-view";
 import { BibRow, CaptainAvatar, TierMark } from "./football-team-columns";
 
 /** The Member nickname when the viewer may see one, else the full Temba name. */
@@ -176,10 +176,7 @@ function isSideCaptain(
   side: Side | undefined,
   userId: string,
 ) {
-  return (
-    side != null &&
-    (side === 1 ? draft.captains.slot1 : draft.captains.slot2) === userId
-  );
+  return side != null && ofSide(draft.captains, side) === userId;
 }
 
 function CaptainChip({
@@ -194,12 +191,9 @@ function CaptainChip({
   onOpen: (side: Side) => void;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   const copy = m.football.captains;
-  const name = captain
-    ? captain.isViewer
-      ? m.common.you
-      : (captain.nickname?.name ?? shortName(captain.name))
-    : null;
+  const name = lineupPlayerName(captain, locale);
   return (
     <button
       type="button"
@@ -668,9 +662,9 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
       locale,
     );
     const captainName = (userId: string | null) =>
-      draftCaptainName(
+      lineupPlayerName(
         players.find((player) => player.userId === userId),
-        m.common.you,
+        locale,
       ) ?? "";
     const openPickRoom = () => {
       const { slot1, slot2 } = draft.captains;

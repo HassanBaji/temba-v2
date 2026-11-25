@@ -2,6 +2,8 @@ import { radii } from "@repo/design-tokens";
 import {
   bibNames,
   boardTierCell,
+  lineupPlayerName,
+  ofSide,
   ovrLabel,
   slotCode,
   type BoardPlayer,
@@ -9,12 +11,13 @@ import {
 } from "@repo/domain/football-board";
 import {
   captainPickCountLines,
-  captainPickDone,
   captainPickFirstPickLine,
   captainPickPoolLine,
   captainPickPoolOrder,
   captainPickRoomLines,
-  pickTurn,
+  lastPick as lastPickOf,
+  pickRoomUserIds,
+  pickRoomWithPick,
 } from "@repo/domain/football-captain-pick";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import { PICK_ROOM_POLL_MS } from "@repo/domain/football-lineup";
@@ -44,7 +47,6 @@ import { useToast } from "../primitives/toast";
 import { useColors } from "../theme/theme-provider";
 import { api, type RouterOutputs } from "../trpc/react";
 import { BibChip } from "./bib-picker";
-import { pickCaptainName } from "./captain-pick-setup";
 import { InfoRows } from "./info-rows";
 import { PickPool, PickSides } from "./pick-sides";
 import { TierMark } from "./team-columns";
@@ -57,48 +59,6 @@ type PickRoom = Exclude<
 const POOL_PREVIEW = 4;
 
 type Reminded = "sent" | "recently";
-
-type RoomRead = RouterOutputs["games"]["footballPickRoom"];
-
-/**
- * The room with a pick placed, as the server places it: the caller's own
- * pick shows at once and the next read corrects it.
- */
-function withPick(
-  current: RoomRead,
-  pick: { userId: string; pickNumber: number },
-): RoomRead {
-  if (current.status !== "live" || current.turn == null) {
-    return current;
-  }
-  const side = current.turn;
-  const row = { userId: pick.userId, pickNumber: pick.pickNumber };
-  const sides =
-    side === 1
-      ? { ...current.sides, slot1: [...current.sides.slot1, row] }
-      : { ...current.sides, slot2: [...current.sides.slot2, row] };
-  const pool = current.pool.filter((userId) => userId !== pick.userId);
-  const done = captainPickDone(pool.length);
-  return {
-    ...current,
-    status: done ? "done" : "live",
-    sides,
-    pool,
-    turn:
-      done || current.firstPickSide == null
-        ? null
-        : pickTurn({
-            slot1: sides.slot1.length,
-            slot2: sides.slot2.length,
-            firstPickSide: current.firstPickSide,
-          }),
-    picks: {
-      made: current.picks.made + 1,
-      total: current.picks.total,
-      next: pick.pickNumber + 1,
-    },
-  };
-}
 
 function OrganizerAction({
   label,
@@ -179,9 +139,8 @@ function CaptainCard({
   const locale = useLocale();
   const messages = useMessages();
   const m = messages.football.pick;
-  const captain = side === 1 ? room.captains.slot1 : room.captains.slot2;
-  const inRoom = captain?.inRoom ?? false;
-  const name = pickCaptainName(player ?? null, messages.common.you) ?? "";
+  const inRoom = ofSide(room.captains, side)?.inRoom ?? false;
+  const name = lineupPlayerName(player, locale) ?? "";
   const presence = inRoom ? m.inRoom : m.notHereYet;
   return (
     <View
@@ -201,10 +160,7 @@ function CaptainCard({
     >
       {inRoom ? null : <Hatch radius={radii.lg} bordered={false} />}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <BibChip
-          bib={side === 1 ? room.bibs.slot1 : room.bibs.slot2}
-          size={18}
-        />
+        <BibChip bib={ofSide(room.bibs, side)} size={18} />
         <Text size="meta" tone="muted">
           {team}
         </Text>
@@ -319,7 +275,7 @@ function PoolPreview({
               <Avatar name={player.name} uri={player.image} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text weight="semibold" numberOfLines={1}>
-                  {pickCaptainName(player, messages.common.you)}
+                  {lineupPlayerName(player, locale)}
                 </Text>
                 <Text size="eyebrow" mono tone="muted">
                   {slotCode(player, locale)}
@@ -461,21 +417,15 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
   }, [data, leave, m.stopped]);
 
   const boardPlayers = board.data?.players;
-  const knownIds =
-    data && data.status !== "stopped"
-      ? [
-          ...data.pool,
-          ...data.sides.slot1.map((row) => row.userId),
-          ...data.sides.slot2.map((row) => row.userId),
-        ]
-      : [];
-  const unknownIds = boardPlayers
-    ? knownIds
-        .filter(
-          (userId) => !boardPlayers.some((player) => player.userId === userId),
-        )
-        .join(",")
-    : "";
+  const unknownIds =
+    boardPlayers && data && data.status !== "stopped"
+      ? pickRoomUserIds(data)
+          .filter(
+            (userId) =>
+              !boardPlayers.some((player) => player.userId === userId),
+          )
+          .join(",")
+      : "";
   const refetchBoard = board.refetch;
   useEffect(() => {
     if (unknownIds) {
@@ -506,8 +456,8 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
       const previous = utils.games.footballPickRoom.getData({ gameId });
       utils.games.footballPickRoom.setData({ gameId }, (current) =>
         current
-          ? withPick(current, {
-              userId: input.userId,
+          ? pickRoomWithPick(current, {
+              userId: input.pickedUserId,
               pickNumber: input.pickNumber,
             })
           : current,
@@ -566,13 +516,12 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
   const playerOf = (userId: string | undefined) =>
     boardPlayers.find((player) => player.userId === userId);
   const captainPlayer = (side: Side) =>
-    playerOf((side === 1 ? data.captains.slot1 : data.captains.slot2)?.userId);
+    playerOf(ofSide(data.captains, side)?.userId);
   const captainName = (side: Side) =>
-    pickCaptainName(captainPlayer(side) ?? null, messages.common.you) ?? "";
+    lineupPlayerName(captainPlayer(side), locale) ?? "";
   const otherSide: Side | null =
     data.viewer.side === 1 ? 2 : data.viewer.side === 2 ? 1 : null;
-  const inRoom = (side: Side) =>
-    (side === 1 ? data.captains.slot1 : data.captains.slot2)?.inRoom ?? false;
+  const inRoom = (side: Side) => ofSide(data.captains, side)?.inRoom ?? false;
   const kickoff = game.data?.windowStart ?? null;
   const intro =
     otherSide != null
@@ -757,23 +706,10 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
     !done && turn != null && data.viewer.isOrganizer && !viewerOnTurn;
   const selectable = viewerOnTurn || (mayPickFor && pickingFor);
   const choice = selectable && selected ? playerOf(selected) : undefined;
-  const choiceName = choice
-    ? (pickCaptainName(choice, messages.common.you) ?? "")
-    : "";
-  const lastPick =
-    [
-      ...data.sides.slot1.map((row) => ({ ...row, side: 1 as const })),
-      ...data.sides.slot2.map((row) => ({ ...row, side: 2 as const })),
-    ]
-      .flatMap((row) =>
-        row.pickNumber == null ? [] : [{ ...row, pickNumber: row.pickNumber }],
-      )
-      .sort((a, b) => b.pickNumber - a.pickNumber)[0] ?? null;
+  const choiceName = choice ? (lineupPlayerName(choice, locale) ?? "") : "";
+  const lastPick = lastPickOf(data.sides);
   const lastPickName = lastPick
-    ? (pickCaptainName(
-        playerOf(lastPick.userId) ?? null,
-        messages.common.you,
-      ) ?? "")
+    ? (lineupPlayerName(playerOf(lastPick.userId), locale) ?? "")
     : "";
 
   const sendPick = () => {
@@ -782,7 +718,7 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
     }
     pickPlayer.mutate({
       gameId,
-      userId: choice.userId,
+      pickedUserId: choice.userId,
       pickNumber: data.picks.next,
       forSide: viewerOnTurn ? undefined : turn,
     });

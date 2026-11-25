@@ -1,16 +1,11 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq, isNull, lte, or } from "drizzle-orm";
+import { and, eq, isNull, lte, or } from "drizzle-orm";
 import { z } from "zod";
 
-import {
-  footballLineupDraftPlayers,
-  footballLineupDrafts,
-  gamePlayers,
-} from "@repo/db";
-import type { Side } from "@repo/domain/football-board";
+import { footballLineupDrafts } from "@repo/db";
+import { ofSide, type Side } from "@repo/domain/football-board";
 import { firstPickSide, pickTurn } from "@repo/domain/football-captain-pick";
 import { PICK_ROOM_PRESENCE_MS } from "@repo/domain/football-lineup";
-import { isFootballGame } from "@repo/domain/game-shape";
 import { messagesFor } from "@repo/i18n/messages";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { protectedProcedure } from "#src/trpc";
@@ -20,21 +15,20 @@ import { isGameOrganizer, requireGame, type GameRow } from "#src/games/access";
 import {
   clearFootballPick,
   finishFootballPick,
-  footballPickRunning,
-  loadFootballDraft,
+  footballPickProgress,
+  loadFootballDraftSides,
+  mayHaveFootballDraft,
 } from "#src/games/football-draft";
 import { assertGameNotCancelled } from "#src/games/football-lineup";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-type DraftRow = typeof footballLineupDrafts.$inferSelect;
+type RoomDraft = NonNullable<
+  Awaited<ReturnType<typeof loadFootballDraftSides>>
+>;
 
 /** How stale a Side captain's last-seen time may get before a read writes it again. */
 const PRESENCE_WRITE_EVERY_MS = 3_000;
-
-function seenAtOf(draft: DraftRow, side: Side) {
-  return side === 1 ? draft.slot1CaptainSeenAt : draft.slot2CaptainSeenAt;
-}
 
 function inRoom(seenAt: Date | null, now: Date) {
   return (
@@ -42,8 +36,11 @@ function inRoom(seenAt: Date | null, now: Date) {
   );
 }
 
-function asSide(value: number | null): Side | null {
-  return value === 1 || value === 2 ? value : null;
+function bothInRoom(draft: RoomDraft, now: Date) {
+  return (
+    inRoom(draft.captainSeenAt.slot1, now) &&
+    inRoom(draft.captainSeenAt.slot2, now)
+  );
 }
 
 /**
@@ -52,24 +49,22 @@ function asSide(value: number | null): Side | null {
  */
 async function recordPresence(
   database: DbClient,
-  draft: DraftRow,
+  draft: RoomDraft,
   side: Side,
   now: Date,
-) {
-  const column =
-    side === 1
-      ? footballLineupDrafts.slot1CaptainSeenAt
-      : footballLineupDrafts.slot2CaptainSeenAt;
-  const seenAt = seenAtOf(draft, side);
+): Promise<RoomDraft> {
+  const seenAt = ofSide(draft.captainSeenAt, side);
   if (
     seenAt != null &&
     now.getTime() - seenAt.getTime() < PRESENCE_WRITE_EVERY_MS
   ) {
     return draft;
   }
+  const slot = side === 1 ? "slot1" : "slot2";
+  const column = footballLineupDrafts[`${slot}CaptainSeenAt`];
   await database
     .update(footballLineupDrafts)
-    .set(side === 1 ? { slot1CaptainSeenAt: now } : { slot2CaptainSeenAt: now })
+    .set({ [`${slot}CaptainSeenAt`]: now })
     .where(
       and(
         eq(footballLineupDrafts.id, draft.id),
@@ -79,9 +74,7 @@ async function recordPresence(
         ),
       ),
     );
-  return side === 1
-    ? { ...draft, slot1CaptainSeenAt: now }
-    : { ...draft, slot2CaptainSeenAt: now };
+  return { ...draft, captainSeenAt: { ...draft.captainSeenAt, [slot]: now } };
 }
 
 /**
@@ -91,33 +84,28 @@ async function recordPresence(
  */
 async function startWhenBothIn(
   database: DbClient,
-  draftId: string,
+  game: GameRow,
+  viewerUserId: string,
   now: Date,
   random: () => number,
-) {
+): Promise<RoomDraft | null> {
   return database.transaction(async (tx) => {
-    const [locked] = await tx
-      .select()
-      .from(footballLineupDrafts)
-      .where(eq(footballLineupDrafts.id, draftId))
-      .for("update");
-    if (
-      locked?.pickStatus !== "waiting" ||
-      !inRoom(locked.slot1CaptainSeenAt, now) ||
-      !inRoom(locked.slot2CaptainSeenAt, now)
-    ) {
+    const locked = await loadFootballDraftSides(tx, game, viewerUserId, {
+      lock: true,
+    });
+    if (locked?.pick?.status !== "waiting" || !bothInRoom(locked, now)) {
       return locked;
     }
-    const [live] = await tx
+    const side = firstPickSide(locked.pick.firstPick ?? "toss", random);
+    await tx
       .update(footballLineupDrafts)
-      .set({
-        pickStatus: "live",
-        firstPickSide: firstPickSide(locked.firstPick ?? "toss", random),
-        updatedAt: now,
-      })
-      .where(eq(footballLineupDrafts.id, draftId))
-      .returning();
-    return live;
+      .set({ pickStatus: "live", firstPickSide: side, updatedAt: now })
+      .where(eq(footballLineupDrafts.id, locked.id));
+    return {
+      ...locked,
+      updatedAt: now,
+      pick: { ...locked.pick, status: "live", firstPickSide: side },
+    };
   });
 }
 
@@ -130,39 +118,33 @@ async function finishWhenPoolEmpty(
   game: GameRow,
   viewerUserId: string,
   now: Date,
-) {
+): Promise<RoomDraft | null> {
   return database.transaction(async (tx) => {
-    const draft = await loadFootballDraft(tx, game, viewerUserId, {
+    const locked = await loadFootballDraftSides(tx, game, viewerUserId, {
       lock: true,
     });
-    if (!draft) {
-      return undefined;
+    if (locked?.pick?.status !== "live") {
+      return locked;
     }
-    const roster = await tx
-      .select({ id: gamePlayers.id, userId: gamePlayers.userId })
-      .from(gamePlayers)
-      .where(eq(gamePlayers.gameId, game.id));
-    const placed = new Set([
-      ...draft.sideGamePlayerIds.slot1,
-      ...draft.sideGamePlayerIds.slot2,
-    ]);
-    const poolEmpty = roster.every((row) => !row.userId || placed.has(row.id));
-    if (draft.pick?.status === "live" && poolEmpty) {
-      await finishFootballPick(tx, {
-        game,
-        draftId: draft.id,
-        openedAt: draft.savedAt,
-        captains: draft.captains,
-        sideGamePlayerIds: draft.sideGamePlayerIds,
-        pickedBy: null,
-        now,
-      });
+    const { pool } = await footballPickProgress(tx, game.id, locked);
+    if (pool.length > 0) {
+      return locked;
     }
-    const [current] = await tx
-      .select()
-      .from(footballLineupDrafts)
-      .where(eq(footballLineupDrafts.id, draft.id));
-    return current;
+    await finishFootballPick(tx, {
+      game,
+      draftId: locked.id,
+      openedAt: locked.savedAt,
+      captains: locked.captains,
+      sideGamePlayerIds: locked.sideGamePlayerIds,
+      pickedBy: null,
+      now,
+    });
+    return {
+      ...locked,
+      savedAt: now,
+      updatedAt: now,
+      pick: { ...locked.pick, status: "done" },
+    };
   });
 }
 
@@ -194,136 +176,67 @@ export async function footballPickRoom(
       message: messagesFor(locale).game.errors.notFound,
     });
   const game = await requireGame(database, args.gameId, locale);
-  if (
-    game.challengeId ||
-    !isFootballGame(game) ||
-    game.format !== "friendly_game"
-  ) {
+  if (!mayHaveFootballDraft(game)) {
     throw notFound();
   }
-  const organizer = await isGameOrganizer(database, game, args.userId);
-  const [found] = await database
-    .select()
-    .from(footballLineupDrafts)
-    .where(eq(footballLineupDrafts.gameId, game.id));
-  const roster = await database
-    .select({ id: gamePlayers.id, userId: gamePlayers.userId })
-    .from(gamePlayers)
-    .where(eq(gamePlayers.gameId, game.id))
-    .orderBy(asc(gamePlayers.createdAt), asc(gamePlayers.id));
-  const placements = found
-    ? await database
-        .select({
-          gamePlayerId: footballLineupDraftPlayers.gamePlayerId,
-          sideIndex: footballLineupDraftPlayers.sideIndex,
-          pickNumber: footballLineupDraftPlayers.pickNumber,
-        })
-        .from(footballLineupDraftPlayers)
-        .where(eq(footballLineupDraftPlayers.draftId, found.id))
-    : [];
-
-  const userByGamePlayer = new Map(
-    roster.flatMap((row) => (row.userId ? [[row.id, row.userId]] : [])),
-  );
-  const captainOn = (side: Side) => {
-    const gamePlayerId =
-      side === 1
-        ? found?.slot1CaptainGamePlayerId
-        : found?.slot2CaptainGamePlayerId;
-    const seated = placements.some(
-      (placement) =>
-        placement.sideIndex === side && placement.gamePlayerId === gamePlayerId,
-    );
-    return seated && gamePlayerId
-      ? (userByGamePlayer.get(gamePlayerId) ?? null)
-      : null;
-  };
-  const captains = { slot1: captainOn(1), slot2: captainOn(2) };
-  const viewerSide: Side | null =
-    captains.slot1 === args.userId
-      ? 1
-      : captains.slot2 === args.userId
-        ? 2
-        : null;
-  if (!organizer && viewerSide == null) {
+  const loaded = await loadFootballDraftSides(database, game, args.userId);
+  if (!loaded && !(await isGameOrganizer(database, game, args.userId))) {
     throw notFound();
   }
   assertGameNotCancelled(game, locale);
 
   const stopped = { status: "stopped" as const, serverNow: now };
-  if (found?.pickStatus == null) {
+  if (!loaded) {
     return stopped;
   }
-  if (
-    found.pickStatus !== "done" &&
-    !footballPickRunning(found.pickStatus, captains)
-  ) {
-    await clearFootballPick(database, found.id, now);
+  if (loaded.pickLostCaptain) {
+    await clearFootballPick(database, loaded.id, now);
+    return stopped;
+  }
+  if (!loaded.pick) {
     return stopped;
   }
 
-  let draft: DraftRow = found;
-  if (viewerSide != null && draft.pickStatus !== "done") {
+  const viewerSide = loaded.viewer.sideCaptainOf;
+  let draft = loaded;
+  if (viewerSide != null && draft.pick && draft.pick.status !== "done") {
     draft = await recordPresence(database, draft, viewerSide, now);
   }
-  if (
-    draft.pickStatus === "waiting" &&
-    inRoom(draft.slot1CaptainSeenAt, now) &&
-    inRoom(draft.slot2CaptainSeenAt, now)
-  ) {
-    draft = (await startWhenBothIn(database, draft.id, now, random)) ?? draft;
+  if (draft.pick?.status === "waiting" && bothInRoom(draft, now)) {
+    draft =
+      (await startWhenBothIn(database, game, args.userId, now, random)) ??
+      draft;
   }
-
-  const placed = new Set(placements.map((placement) => placement.gamePlayerId));
-  const poolEmpty = roster.every((row) => !row.userId || placed.has(row.id));
-  if (draft.pickStatus === "live" && poolEmpty) {
+  const progress = await footballPickProgress(database, game.id, draft);
+  if (draft.pick?.status === "live" && progress.pool.length === 0) {
     draft =
       (await finishWhenPoolEmpty(database, game, args.userId, now)) ?? draft;
   }
-
-  const status = draft.pickStatus;
-  if (status == null) {
+  if (!draft.pick) {
     return stopped;
   }
-  const rosterOrder = new Map(roster.map((row, index) => [row.id, index]));
+
+  const { status, firstPick, firstPickSide: startedSide } = draft.pick;
   const side = (index: Side) =>
-    placements
-      .filter((placement) => placement.sideIndex === index)
-      .flatMap((placement) => {
-        const userId = userByGamePlayer.get(placement.gamePlayerId);
-        return userId
-          ? [
-              {
-                userId,
-                pickNumber: placement.pickNumber,
-                order: rosterOrder.get(placement.gamePlayerId) ?? 0,
-              },
-            ]
-          : [];
-      })
-      .sort(
-        (a, b) =>
-          (a.pickNumber ?? 0) - (b.pickNumber ?? 0) || a.order - b.order,
+    draft.placements
+      .flatMap((placement) =>
+        placement.sideIndex === index && placement.userId
+          ? [{ userId: placement.userId, pickNumber: placement.pickNumber }]
+          : [],
       )
-      .map(({ userId, pickNumber }) => ({ userId, pickNumber }));
-  const pool = roster.flatMap((row) =>
-    row.userId && !placed.has(row.id) ? [row.userId] : [],
-  );
-  const pickNumbers = placements.flatMap((placement) =>
-    placement.pickNumber == null ? [] : [placement.pickNumber],
-  );
+      .sort((a, b) => (a.pickNumber ?? 0) - (b.pickNumber ?? 0));
   const captain = (index: Side) => {
-    const userId = index === 1 ? captains.slot1 : captains.slot2;
+    const userId = ofSide(draft.captains, index);
     return userId
       ? {
           userId,
-          inRoom: status !== "done" && inRoom(seenAtOf(draft, index), now),
+          inRoom:
+            status !== "done" &&
+            inRoom(ofSide(draft.captainSeenAt, index), now),
         }
       : null;
   };
-
   const sides = { slot1: side(1), slot2: side(2) };
-  const startedSide = asSide(draft.firstPickSide);
   const turn =
     status === "live" && startedSide != null
       ? pickTurn({
@@ -339,19 +252,19 @@ export async function footballPickRoom(
     viewer: {
       role: viewerSide != null ? ("captain" as const) : ("organizer" as const),
       side: viewerSide,
-      isOrganizer: organizer,
+      isOrganizer: loaded.viewer.organizer,
     },
-    bibs: { slot1: draft.slot1Bib, slot2: draft.slot2Bib },
+    bibs: draft.bibs,
     captains: { slot1: captain(1), slot2: captain(2) },
-    firstPick: draft.firstPick,
+    firstPick,
     firstPickSide: startedSide,
     sides,
     turn,
-    pool,
+    pool: progress.pool.map((row) => row.userId),
     picks: {
-      made: pickNumbers.length,
-      total: pickNumbers.length + pool.length,
-      next: Math.max(0, ...pickNumbers) + 1,
+      made: progress.made,
+      total: progress.made + progress.pool.length,
+      next: progress.next,
     },
   };
 }

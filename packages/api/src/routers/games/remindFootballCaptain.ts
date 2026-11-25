@@ -4,7 +4,7 @@ import { and, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 
 import { notifications } from "@repo/db";
-import type { Side } from "@repo/domain/football-board";
+import { ofSide, type Side } from "@repo/domain/football-board";
 import { messagesFor } from "@repo/i18n/messages";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -54,8 +54,7 @@ export async function remindFootballCaptain(
         message: m.football.errors.pickNotRunning,
       });
     }
-    const recipient =
-      args.side === 1 ? draft.captains.slot1 : draft.captains.slot2;
+    const recipient = ofSide(draft.captains, args.side);
     const mayRemind =
       draft.viewer.sideCaptainOf != null
         ? draft.viewer.sideCaptainOf !== args.side
