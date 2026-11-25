@@ -95,6 +95,8 @@ export type HubGameRow = {
   format: string;
   registrationMode: string;
   sport: string | null;
+  /** Who the Game is meant for; a label, never a gate. Null or omitted when untagged. */
+  genderTag?: string | null;
   isPublic: boolean;
   rated: boolean;
   ratingScope: GameRatingScope;

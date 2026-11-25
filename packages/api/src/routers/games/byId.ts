@@ -1367,6 +1367,7 @@ export async function gameById(
     keepersPlayFree: game.keepersPlayFree,
     levelMinTenths: game.levelMinTenths,
     levelMaxTenths: game.levelMaxTenths,
+    genderTag: game.genderTag,
     playersAllowed: game.playersAllowed,
     teamsAllowed: game.teamsAllowed,
     poolCount: game.poolCount,

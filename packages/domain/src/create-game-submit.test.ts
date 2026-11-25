@@ -760,6 +760,48 @@ describe("track payments on submit", () => {
   });
 });
 
+describe("the Gender tag on submit", () => {
+  it("sends a picked tag with a Friendly game, a football Game and a Social", () => {
+    const friendly = validateFriendlyGameSubmit(
+      { ...game, genderTag: "women" },
+      NOW,
+      "en",
+    );
+    const footballGame = validateFootballGameSubmit(
+      { ...football, genderTag: "men" },
+      NOW,
+      "en",
+    );
+    const social = validateFriendlyTournamentSubmit(
+      { ...tournament, genderTag: "mixed" },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(friendly.ok && footballGame.ok && social.ok);
+    if (friendly.ok && footballGame.ok && social.ok) {
+      assert.equal(friendly.input.genderTag, "women");
+      assert.equal(footballGame.input.genderTag, "men");
+      assert.equal(social.input.genderTag, "mixed");
+    }
+  });
+
+  it("sends nothing for an untagged Game", () => {
+    const unset = validateFriendlyGameSubmit(game, NOW, "en");
+    const cleared = validateFriendlyTournamentSubmit(
+      { ...tournament, genderTag: null },
+      NOW,
+      true,
+      "en",
+    );
+    assert.ok(unset.ok && cleared.ok);
+    if (unset.ok && cleared.ok) {
+      assert.equal("genderTag" in unset.input, false);
+      assert.equal("genderTag" in cleared.input, false);
+    }
+  });
+});
+
 describe("track payments on a tournament", () => {
   it("sends tracking with a price above zero", () => {
     const result = validateFriendlyTournamentSubmit(

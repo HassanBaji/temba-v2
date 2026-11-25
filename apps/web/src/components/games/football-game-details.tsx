@@ -678,6 +678,7 @@ export function FootballGameDetails({
             venue: game.venue,
             courtName: game.recordedCourts[0]?.name ?? null,
             groupName: game.groupName,
+            genderTag: game.genderTag,
             rated: game.rated,
             ratingImpact: game.ratingImpact,
             stoodUnconfirmed: boardMatch?.stoodUnconfirmed ?? false,
@@ -883,6 +884,7 @@ export function FootballGameDetails({
           <FootballGameHeroCard
             tone={model.hero.tone}
             lines={lines}
+            genderTag={game.genderTag}
             tag={
               ratingScopeOf(game) === "temba"
                 ? (ratingScopeTag(game, locale) ?? undefined)

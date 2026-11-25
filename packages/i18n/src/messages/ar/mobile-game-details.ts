@@ -141,6 +141,7 @@ export const mobileGameDetails = {
       caps: "اللاعبون",
       price: "السعر",
       level: "نطاق المستوى",
+      genderTag: "الفئة",
       rounds: "الجولات",
       season: "الموسم",
       mvp: "نجم المباراة",

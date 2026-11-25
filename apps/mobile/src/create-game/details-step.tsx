@@ -38,6 +38,7 @@ import { TextField } from "../primitives/text-field";
 import { ChipGrid } from "./chips";
 import { howPeopleJoin, type HowPeopleJoin } from "./create-model";
 import { FootballSizeFields } from "./football-size-fields";
+import { GenderTagField, genderTagReviewRows } from "./gender-tag-field";
 import {
   LevelRangeField,
   LevelRangeHelper,
@@ -199,6 +200,7 @@ export function FootballDetailsStep(props: DetailsProps) {
         football
         playersAllowed={draft.playersAllowed}
       />
+      <GenderTagField {...props} />
       <FriendlyMvpField {...props} />
       <ReviewCard
         rows={[
@@ -221,6 +223,7 @@ export function FootballDetailsStep(props: DetailsProps) {
               ? ratingReviewRow(props, locale, "football")
               : { label: review.rating, value: unratedLabel(locale) },
           ...optionalRow(paymentReviewValue(draft, true, m, locale)),
+          ...genderTagReviewRows(draft.genderTag, locale),
           ...mvpReviewRows(state.mvpMode, locale),
         ]}
       />
@@ -291,6 +294,7 @@ export function GameDetailsStep(props: DetailsProps) {
         {...props}
         playersAllowed={PADEL_FRIENDLY_GAME_PLAYERS}
       />
+      <GenderTagField {...props} />
       <FriendlyMvpField {...props} />
       <DetailsRatingField {...props} />
       <ReviewCard
@@ -311,6 +315,7 @@ export function GameDetailsStep(props: DetailsProps) {
             ? publicGameRatingReviewRow(locale, "padel")
             : ratingReviewRow(props, locale),
           ...optionalRow(paymentReviewValue(draft, false, m, locale)),
+          ...genderTagReviewRows(draft.genderTag, locale),
           ...mvpReviewRows(state.mvpMode, locale),
         ]}
       />
@@ -428,6 +433,7 @@ function tournamentReviewRows(
         ]
       : []),
     ...optionalRow(paymentReviewValue(draft, false, m, locale)),
+    ...genderTagReviewRows(draft.genderTag, locale),
   ];
 }
 
@@ -475,6 +481,7 @@ export function TournamentDetailsStep(props: DetailsProps) {
       <WhoCanEnter {...props} />
       <PriceField {...props} teamPrice={!draft.organizerMakesTeams} />
       <PaymentTrackingField {...props} playersAllowed={draft.teamCount * 2} />
+      <GenderTagField {...props} />
       <StepSection title={m.mobileCreateGame.name.title}>
         <TextField
           label={m.mobileCreateGame.name.tournamentLabel}

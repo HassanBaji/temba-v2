@@ -4,6 +4,7 @@ import type { footballHeroLines } from "@repo/domain/football-board";
 import type { SurfaceTone } from "@repo/domain/surface-tone";
 
 import { ChallengeTag } from "~/components/games/challenge-tag";
+import { GenderHeroTag } from "~/components/games/gender-tag";
 import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { HeroTopLine } from "~/components/games/hero-top-line";
 import { Surface } from "~/components/ui/surface";
@@ -23,6 +24,7 @@ export function FootballGameHeroCard({
   tone,
   lines,
   tag,
+  genderTag,
   actions,
   children,
 }: {
@@ -30,6 +32,7 @@ export function FootballGameHeroCard({
   lines: ReturnType<typeof footballHeroLines>;
   /** "Challenge" on a Challenge Game: beside share, its format moved to the sub line. */
   tag?: string;
+  genderTag?: string | null;
   actions?: React.ReactNode;
   children?: React.ReactNode;
 }) {
@@ -62,9 +65,14 @@ export function FootballGameHeroCard({
           tone={tone}
           left={lines.status}
           right={
-            !tag && lines.sizeTag ? (
-              <p className="shrink-0 font-mono text-[11px]">{lines.sizeTag}</p>
-            ) : null
+            <>
+              <GenderHeroTag genderTag={genderTag} tone={tone} />
+              {!tag && lines.sizeTag ? (
+                <p className="shrink-0 font-mono text-[11px]">
+                  {lines.sizeTag}
+                </p>
+              ) : null}
+            </>
           }
         />
       </div>

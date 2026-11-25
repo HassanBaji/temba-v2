@@ -295,6 +295,7 @@ function GamesHubTabPanel({
             ratingScope={game.ratingScope}
             publicGame={isPublicGame(game)}
             challenge={challenge}
+            genderTag={game.genderTag}
             onJoinSeat={(sideIndex, position) => {
               onJoinSeat(game.id, sideIndex, position);
             }}

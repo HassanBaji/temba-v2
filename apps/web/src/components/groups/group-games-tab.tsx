@@ -349,6 +349,7 @@ export function GroupGamesTab({
                   showPartnerJoin={showPartnerJoin}
                   rated={game.rated}
                   ratingScope={game.ratingScope}
+                  genderTag={game.genderTag}
                   onJoinSeat={(sideIndex, position) => {
                     onJoinSeat(game.id, sideIndex, position);
                   }}

@@ -1078,6 +1078,7 @@ export function GameDetailsScreen({
                   place={heroPlace}
                   figures={heroFigures}
                   tag={data.challenge ? m.challenge.gameDetails.tag : undefined}
+                  genderTag={data.genderTag}
                   onShare={
                     shareLink && shareContext
                       ? () => void shareGame(shareContext, shareLink)
