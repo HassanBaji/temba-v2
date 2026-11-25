@@ -44,6 +44,19 @@ export async function requireSeries(
 }
 
 /**
+ * Whether any Game points at the Series, cancelled ones included. Ending a
+ * Series with one keeps it; ending one with none deletes it.
+ */
+export async function seriesHasGame(database: DbClient, seriesId: string) {
+  const [attached] = await database
+    .select({ id: games.id })
+    .from(games)
+    .where(eq(games.seriesId, seriesId))
+    .limit(1);
+  return attached !== undefined;
+}
+
+/**
  * Once the score is in, a Game's Series link is locked both ways: a completed
  * Match, or a posted King of the court Final order.
  */

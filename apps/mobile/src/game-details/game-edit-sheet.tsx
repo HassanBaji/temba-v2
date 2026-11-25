@@ -107,7 +107,10 @@ export type GameEditSeriesContext = {
   groupId: string | null;
   windowStart: Date | null;
   current: SeriesAttachOption | null;
+  /** The Game may join a Series of its Group. */
   canChange: boolean;
+  /** The score is in, so the Series it has stays. */
+  scoreLocked: boolean;
 };
 
 const SECTION_GAP = 12;
@@ -951,7 +954,7 @@ function SeriesSection({
   const { draft } = edit;
   const options = useEditSeriesOptions(series, draft.day, draft.startTime);
   const picked = seriesAttachPick(options, draft.seriesId);
-  const locked = !series.canChange;
+  const locked = series.scoreLocked;
   const choice = picked ? copy.review(picked.name, picked.edition) : copy.none;
   return (
     <View style={{ gap: SECTION_GAP }}>

@@ -152,7 +152,7 @@ export function seriesPageModel(
     end: series.canEnd
       ? {
           title: m.endTitle(series.name),
-          description: editions.length === 0 ? m.endRemoves : m.endConfirm,
+          description: series.endRemoves ? m.endRemoves : m.endConfirm,
           confirm: m.end,
         }
       : null,

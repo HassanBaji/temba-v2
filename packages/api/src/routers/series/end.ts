@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { games, groupSeries } from "@repo/db";
+import { groupSeries } from "@repo/db";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
@@ -10,7 +10,7 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGroupApprover } from "#src/groups/helpers/is-group-approver";
-import { requireSeries } from "#src/series/series-link";
+import { requireSeries, seriesHasGame } from "#src/series/series-link";
 
 type DbClient = typeof db;
 
@@ -56,12 +56,7 @@ export async function endSeries(
       });
     }
 
-    const [attached] = await tx
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.seriesId, series.id))
-      .limit(1);
-    if (!attached) {
+    if (!(await seriesHasGame(tx, series.id))) {
       await tx.delete(groupSeries).where(eq(groupSeries.id, series.id));
       return { deleted: true } as const;
     }

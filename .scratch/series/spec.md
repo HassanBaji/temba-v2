@@ -309,7 +309,7 @@ A new router `series` at `packages/api/src/routers/series/`, one procedure per f
 Changed, additively:
 
 - `games.create` and `games.createTournament`: optional `seriesId`. It is resolved with `resolveGameSeriesLink` before the Game is created, so a refusal creates nothing, and written after, as the Season link is.
-- `games.byId`: adds `series: { id, name, emblem, colour, edition } | null` and `canChangeSeries: boolean` (Organizer, not cancelled, carries a Series, Group Verified, score not in).
+- `games.byId`: adds `series: { id, name, emblem, colour, edition } | null` and `canChangeSeries: boolean` (Organizer, not cancelled, carries a Series, Group Verified, score not in). `canChangeSeries` says whether the Game may join a Series; removing needs less (5.5), so `seriesScoreLocked: boolean` (the viewer is an Organizer, the Game has a Series and the score is in) is what locks the Edit game row, and an Organizer of a Game whose Group is no longer Verified can still remove its Series.
 
 No procedure path is renamed.
 
@@ -343,6 +343,7 @@ type Row = {
   endedAt: Date | null;
   createdAt: Date;                     // "running since"
   canEnd: boolean;                     // Group approver and still running
+  endRemoves: boolean;                 // no Game points at it, cancelled ones included: ending deletes it (5.3)
   playedCount: number;
   differentWinners: number;            // distinct Users with a win, Guest players left out
   mostWins: { userId; name; image; wins; lastWonEdition; isViewer }[];
@@ -415,6 +416,8 @@ type Row = {
   canOpenSeries: boolean;
 }
 ```
+
+A Series the viewer may not open (`canOpenSeries` false) answers only for a player with a win in it, so the badge a Private or deleted Group left on a profile still opens. With no win there it is the Series' `notFound` (5.8).
 
 ### 7.4 Refusals
 
@@ -506,7 +509,7 @@ No frame; the designer's ATTACH note: "The organizer can add, change or remove t
 - Web: `components/games/game-edit-dialog.tsx`, `use-game-edit.ts`. Mobile: `src/game-details/game-edit-sheet.tsx`, `use-game-edit.ts`. Model: `@repo/domain/game-edit-form`. The Season section is the pattern to copy.
 - A **Series** section, shown when the Game has a Series, or when `canChangeSeries` and `series.attachOptions({ groupId, windowStart, gameId })` returns at least one.
 - It shows the current choice as a row; tapping opens the same picker as Create (with "Not part of a series").
-- When `canChangeSeries` is false and the Game has a Series, the row is locked with "The score is in, so the series stays."
+- When `seriesScoreLocked` is true, the row is locked with "The score is in, so the series stays." When the Game has a Series, the score is not in and `canChangeSeries` is false (the Group is no longer Verified), the row stays open and the picker offers "Not part of a series" and the current Series only.
 - Saving sends `games.updateSeries` as its own step. The save line says "Series added", "Series changed" or "Series removed".
 
 ### 8.6 2b and 2c, the Game before it is played
@@ -568,7 +571,7 @@ When `series.edition` answers `won`, the Game screen leads with the winners.
   - `no_winner`: "Nobody won".
   - `won`: `seriesWinnersLine`.
 - Empty: "No editions yet. Attach this series when you create a game or a social."
-- **Menu**: "End series", only when `canEnd`. It confirms: "End {name}? Nothing can be attached to it any more. Badges already won stay on profiles." When the Series has no Edition the confirmation reads "This series has no editions, so it will be removed." After `deleted`, go back to the Group's Series tab. After `ended`, stay; the page shows the ended figure and the menu is gone.
+- **Menu**: "End series", only when `canEnd`. It confirms: "End {name}? Nothing can be attached to it any more. Badges already won stay on profiles." When ending would delete the Series (`endRemoves`: no Game was ever attached, 5.3) the confirmation reads "This series has no editions, so it will be removed." After `deleted`, go back to the Group's Series tab. After `ended`, stay; the page shows the ended figure and the menu is gone.
 
 ### 8.9 4a, 4b and 4c, the profile
 

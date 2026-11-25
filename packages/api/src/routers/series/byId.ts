@@ -16,7 +16,7 @@ import {
   seriesEditionWindowEnded,
   type SeriesEdition,
 } from "#src/series/load-series-editions";
-import { requireSeries } from "#src/series/series-link";
+import { requireSeries, seriesHasGame } from "#src/series/series-link";
 
 type DbClient = typeof db;
 
@@ -106,9 +106,10 @@ export async function seriesById(
   });
   const now = args.now ?? new Date();
 
-  const [approver, editions] = await Promise.all([
+  const [approver, editions, hasGame] = await Promise.all([
     isGroupApprover(database, series.group, args.userId),
     loadSeriesEditions(database, { seriesIds: [series.id] }),
+    seriesHasGame(database, series.id),
   ]);
   const winners = mostWins(editions, args.userId);
 
@@ -122,6 +123,7 @@ export async function seriesById(
     endedAt: series.endedAt,
     createdAt: series.createdAt,
     canEnd: approver && series.endedAt === null,
+    endRemoves: !hasGame,
     playedCount: editions.filter(
       (edition) => edition.result.state !== "upcoming",
     ).length,

@@ -447,6 +447,27 @@ describe("series.byId", () => {
     expect(ended.playedCount).toBe(4);
   });
 
+  it("says ending removes the Series only while no Game points at it, cancelled ones included", async () => {
+    const f = await seriesFixture();
+    const seriesId = await newSeries(f, f.padel.id, "Sunday Social");
+    expect((await page(f, seriesId, BEFORE_DECEMBER)).endRemoves).toBe(true);
+
+    const gameId = await padelGame(f, "2026-12-01", seriesId);
+    expect((await page(f, seriesId, BEFORE_DECEMBER)).endRemoves).toBe(false);
+
+    await cancelGame(f.db, { gameId, userId: f.owner.id });
+    const cancelled = await page(f, seriesId, BEFORE_DECEMBER);
+    expect(cancelled.editions).toEqual([]);
+    expect(cancelled.endRemoves).toBe(false);
+    expect(
+      await endSeries(f.db, {
+        id: seriesId,
+        userId: f.owner.id,
+        now: DECEMBER_10,
+      }),
+    ).toEqual({ ended: true });
+  });
+
   it("is not found for someone who may not view the Private Group, or once the Group is deleted", async () => {
     const f = await seriesFixture();
     const seriesId = await newSeries(f, f.padel.id, "Sunday Social");

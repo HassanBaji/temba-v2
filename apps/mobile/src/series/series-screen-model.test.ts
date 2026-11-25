@@ -59,6 +59,7 @@ function series(overrides: Partial<SeriesScreenData> = {}): SeriesScreenData {
     endedAt: null,
     createdAt: new Date("2026-01-10T12:00:00Z"),
     canEnd: false,
+    endRemoves: false,
     playedCount: 3,
     differentWinners: 2,
     mostWins: [
@@ -254,15 +255,27 @@ describe("seriesScreenModel", () => {
     });
   });
 
-  it("says a Series with no Edition is removed when ended", () => {
+  it("says a Series no Game points at is removed when ended", () => {
     const model = seriesScreenModel(
-      series({ canEnd: true, editions: [], mostWins: [] }),
+      series({ canEnd: true, endRemoves: true, editions: [], mostWins: [] }),
       FOLDED,
       "en",
       NOW,
     );
     expect(model.end?.description).toBe(
       "This series has no editions, so it will be removed.",
+    );
+  });
+
+  it("does not promise removal when the Series' only Games were cancelled", () => {
+    const model = seriesScreenModel(
+      series({ canEnd: true, endRemoves: false, editions: [], mostWins: [] }),
+      FOLDED,
+      "en",
+      NOW,
+    );
+    expect(model.end?.description).toBe(
+      "Nothing can be attached to it any more. Badges already won stay on profiles.",
     );
   });
 

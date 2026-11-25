@@ -804,13 +804,16 @@ export async function gameById(
   const groupSeasons = seasonRows.map((row) => toSeasonRow(row, now));
   const season = groupSeasons.find((row) => row.id === game.seasonId) ?? null;
   const series = await gameSeriesSummary(database, game);
-  const canChangeSeries =
+  const mayAttachSeries =
     organizer &&
     !game.cancelledAt &&
     carriesSeries(game) &&
     group != null &&
-    groupIsVerified(group) &&
-    !(await seriesLinkLocked(database, game));
+    groupIsVerified(group);
+  const seriesScoreIn =
+    (mayAttachSeries || (organizer && series !== null)) &&
+    (await seriesLinkLocked(database, game));
+  const canChangeSeries = mayAttachSeries && !seriesScoreIn;
   const scoreConfirmed = matchRows.some(
     (match) => match.status === MATCH_STATUS.COMPLETED,
   );
@@ -1352,6 +1355,7 @@ export async function gameById(
     canChangeSeason: organizer && !game.cancelledAt && !scoreConfirmed,
     series,
     canChangeSeries,
+    seriesScoreLocked: series !== null && seriesScoreIn,
     venueId: game.venueId,
     venue: venue
       ? {

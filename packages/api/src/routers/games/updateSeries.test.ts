@@ -457,6 +457,70 @@ describe("canChangeSeries on games.byId", () => {
   });
 });
 
+describe("seriesScoreLocked on games.byId", () => {
+  it("is true only for an Organizer of a Game on a Series once the score is in", async () => {
+    const bare = await fixture();
+    await completeMatch(bare);
+    expect((await viewed(bare, bare.owner.id)).seriesScoreLocked).toBe(false);
+
+    const f = await fixture();
+    await updateGameSeries(f.db, {
+      gameId: f.gameId,
+      userId: f.owner.id,
+      seriesId: f.sunday,
+    });
+    expect((await viewed(f, f.owner.id)).seriesScoreLocked).toBe(false);
+
+    await completeMatch(f);
+    expect((await viewed(f, f.owner.id)).seriesScoreLocked).toBe(true);
+    expect((await viewed(f, f.organizer.id)).seriesScoreLocked).toBe(true);
+    expect((await viewed(f, f.member.id)).seriesScoreLocked).toBe(false);
+  });
+
+  it("stays false on a Group that is no longer Verified, where the Series can still be removed", async () => {
+    const f = await fixture();
+    await updateGameSeries(f.db, {
+      gameId: f.gameId,
+      userId: f.owner.id,
+      seriesId: f.sunday,
+    });
+    await f.db
+      .update(groups)
+      .set({ verifiedAt: null })
+      .where(eq(groups.id, f.group.id));
+
+    const game = await viewed(f, f.owner.id);
+    expect(game.series).toMatchObject({ id: f.sunday });
+    expect(game.canChangeSeries).toBe(false);
+    expect(game.seriesScoreLocked).toBe(false);
+    expect(
+      await updateGameSeries(f.db, {
+        gameId: f.gameId,
+        userId: f.owner.id,
+        seriesId: null,
+      }),
+    ).toEqual({ ok: true, seriesId: null });
+  });
+
+  it("is true once the score is in on a Group that is no longer Verified", async () => {
+    const f = await fixture();
+    await updateGameSeries(f.db, {
+      gameId: f.gameId,
+      userId: f.owner.id,
+      seriesId: f.sunday,
+    });
+    await f.db
+      .update(groups)
+      .set({ verifiedAt: null })
+      .where(eq(groups.id, f.group.id));
+    await completeMatch(f);
+
+    const game = await viewed(f, f.owner.id);
+    expect(game.canChangeSeries).toBe(false);
+    expect(game.seriesScoreLocked).toBe(true);
+  });
+});
+
 describe("a King of the court Social", () => {
   it("locks the link once the Final order is posted", async () => {
     const { db, close } = await createPgliteDb();

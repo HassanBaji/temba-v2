@@ -23,6 +23,7 @@ import {
 
 const playerNotFound = messagesFor("en").profile.errors.playerNotFound;
 const gameNotFound = messagesFor("en").game.errors.notFound;
+const seriesNotFound = messagesFor("en").series.errors.notFound;
 
 type Pair = readonly [string, string];
 type Sets = readonly (readonly [number, number])[];
@@ -639,6 +640,62 @@ describe("series.playerWins", () => {
       wins: 1,
       canOpenSeries: false,
     });
+  });
+
+  it("is the Series' not-found for a player with no win in a Series the viewer may not open", async () => {
+    const f = await seriesFixture();
+    const seriesId = await newSeries(f, f.padel.id, "Sunday Social");
+    await playPadel(
+      f,
+      seriesId,
+      "2026-12-01",
+      [f.qasim.id, f.ahmed.id],
+      [f.layla.id, f.nora.id],
+    );
+    expect(await playerWins(f, f.layla.id, seriesId)).toMatchObject({
+      wins: 0,
+      playedBySeries: 1,
+      playedByPlayer: 1,
+      canOpenSeries: true,
+    });
+
+    const outsider = await rejection(playerWins(f, f.outsider.id, seriesId));
+    expect(outsider.code).toBe("NOT_FOUND");
+    expect(outsider.message).toBe(seriesNotFound);
+
+    await f.db
+      .update(groups)
+      .set({ deletedAt: SERIES_TEST_NOW })
+      .where(eq(groups.id, f.padel.id));
+    const deleted = await rejection(playerWins(f, f.layla.id, seriesId));
+    expect(deleted.code).toBe("NOT_FOUND");
+    expect(deleted.message).toBe(seriesNotFound);
+  });
+
+  it("still opens a Private Group's badge for a viewer outside the Group, without the way to the Series", async () => {
+    const f = await seriesFixture();
+    const seriesId = await newSeries(f, f.padel.id, "Sunday Social");
+    await playPadel(
+      f,
+      seriesId,
+      "2026-12-01",
+      [f.qasim.id, f.ahmed.id],
+      [f.layla.id, f.nora.id],
+    );
+    await shareAnotherGroup(f, [f.qasim.id, f.layla.id]);
+
+    expect(
+      await playerWins(f, f.qasim.id, seriesId, f.outsider.id),
+    ).toMatchObject({
+      series: { id: seriesId, groupName: "Tuesday Night Padel" },
+      wins: 1,
+      canOpenSeries: false,
+    });
+    const loser = await rejection(
+      playerWins(f, f.layla.id, seriesId, f.outsider.id),
+    );
+    expect(loser.code).toBe("NOT_FOUND");
+    expect(loser.message).toBe(seriesNotFound);
   });
 });
 

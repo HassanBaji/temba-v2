@@ -34,11 +34,19 @@ const notFound = (locale: Locale) =>
     message: messagesFor(locale).profile.errors.playerNotFound,
   });
 
+const seriesNotFound = (locale: Locale) =>
+  new TRPCError({
+    code: "NOT_FOUND",
+    message: messagesFor(locale).series.errors.notFound,
+  });
+
 /**
  * The wins behind one badge on a profile (design 4b): how many of the Series'
  * decided Editions the player won and how many they played, and each win
- * newest first. A deleted Group's Series still answers, so the badge it left
- * on a profile opens; a hidden profile is the profile's not-found.
+ * newest first. A hidden profile is the profile's not-found. A Series the
+ * viewer may not open, in a Private or deleted Group, answers only for a
+ * player who won it: the badge it left on a profile opens, and no other
+ * Series id is read through a profile.
  */
 export async function seriesPlayerWins(
   database: DbClient,
@@ -72,10 +80,7 @@ export async function seriesPlayerWins(
     with: { group: true },
   });
   if (!series) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: messagesFor(locale).series.errors.notFound,
-    });
+    throw seriesNotFound(locale);
   }
 
   const [editions, openable] = await Promise.all([
@@ -103,6 +108,9 @@ export async function seriesPlayerWins(
         ]
       : [];
   });
+  if (won.length === 0 && !openable) {
+    throw seriesNotFound(locale);
+  }
 
   return {
     series: {
