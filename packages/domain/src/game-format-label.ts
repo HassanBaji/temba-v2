@@ -14,3 +14,18 @@ export function gameFormatLabel(format: string, locale: Locale): string {
       return format.replaceAll("_", " ");
   }
 }
+
+/**
+ * The format on a Game card. A Friendly game that counts for Temba Level
+ * reads "Ranked game"; one that moves only Tier points, or nothing, stays
+ * "Friendly game".
+ */
+export function gameCardFormatLabel(
+  game: { format: string; rated: boolean },
+  locale: Locale,
+): string {
+  if (game.format === "friendly_game" && game.rated) {
+    return messagesFor(locale).createGame.format.rankedGame;
+  }
+  return gameFormatLabel(game.format, locale);
+}

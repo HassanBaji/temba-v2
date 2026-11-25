@@ -11,7 +11,7 @@ import {
   type CardSeatPosition,
 } from "@repo/domain/game-card";
 import { gameCustomName } from "@repo/domain/game-custom-name";
-import { gameFormatLabel } from "@repo/domain/game-format-label";
+import { gameCardFormatLabel } from "@repo/domain/game-format-label";
 import { ratingScopeTag } from "@repo/domain/game-rating-impact";
 import { spotsOpenLabel } from "@repo/domain/game-occupancy";
 import {
@@ -78,7 +78,7 @@ export function GameCard({
     locale,
   );
   const roundLabel = poolRoundLabel(game.roundNumber, game.roundCount, locale);
-  const formatMeta = roundLabel ?? gameFormatLabel(game.format, locale);
+  const formatMeta = roundLabel ?? gameCardFormatLabel(game, locale);
   const ratingTag = ratingScopeTag(
     { ...game, publicGame: isPublicGame(game) },
     locale,

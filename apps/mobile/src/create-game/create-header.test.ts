@@ -31,11 +31,11 @@ describe("stepHeader", () => {
     }
   });
 
-  it("starts a Friendly game with the Group before one is picked", () => {
+  it("starts a Game with the Group before one is picked", () => {
     expect(
       stepHeader({ type: "friendly_game", step: 2 }, NO_GROUP, "en"),
     ).toEqual({
-      title: ["Friendly", "game"],
+      title: ["Game"],
       subtitle: "Start with the Group. Venue rules depend on it.",
       context: null,
     });
@@ -45,7 +45,7 @@ describe("stepHeader", () => {
     expect(
       stepHeader({ type: "friendly_game", step: 2 }, WITH_GROUP, "en"),
     ).toEqual({
-      title: ["Friendly", "game"],
+      title: ["Game"],
       subtitle: null,
       context: { icon: "users", parts: ["Tuesday Crew", "3 Venues"] },
     });
@@ -157,7 +157,7 @@ describe("nextStepTitle", () => {
     expect(nextStepTitle("friendly_game", 1, "ar")).toBe("المكان");
     expect(
       stepHeader({ type: "friendly_game", step: 2 }, NO_GROUP, "ar")?.title,
-    ).toEqual(["مباراة", "ودية"]);
+    ).toEqual(["مباراة"]);
     expect(stepHeader({ type: null, step: 1 }, NO_GROUP, "ar")).toEqual({
       title: ["ماذا", "تنظّم؟"],
       subtitle: "نبدأ بالملعب والوقت، ثم نكمل حسب اختيارك.",

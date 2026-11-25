@@ -26,7 +26,7 @@ export const mobileCreateGame = {
         many: `من ${min} إلى {n} فريقًا`,
         other: `من ${min} إلى {n} فريق`,
       }),
-    gameTitle: "مباراة\nودية",
+    gameTitle: "مباراة",
     startWithGroup: "ابدأ بالمجموعة. قواعد النادي تعتمد عليها.",
     linkedVenue: "النادي المرتبط",
     venueCount: (n: number) =>

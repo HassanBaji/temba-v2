@@ -31,7 +31,7 @@ import {
   sideJoinAccessibleName,
 } from "@repo/domain/game-card";
 import { gameCustomName } from "@repo/domain/game-custom-name";
-import { gameFormatLabel } from "@repo/domain/game-format-label";
+import { gameCardFormatLabel } from "@repo/domain/game-format-label";
 import { ratingScopeTag } from "@repo/domain/game-rating-impact";
 import type { GameRatingScope } from "@repo/domain/game-rating-scope";
 import {
@@ -403,7 +403,8 @@ export function GameSummaryCard({
     locale,
   );
   const formatMeta =
-    roundLabel ?? (format ? gameFormatLabel(format, locale) : null);
+    roundLabel ??
+    (format ? gameCardFormatLabel({ format, rated }, locale) : null);
   const durationMeta = formatWindowDuration(windowStart, windowEnd, locale);
   const levelMeta = formatLevelRangeLabel(
     levelMinTenths,
