@@ -18,6 +18,7 @@ import {
   live,
   notificationsOf,
   open,
+  pick,
   room,
   withFootballGame,
 } from "#src/routers/games/football-pick-room.test-support";
@@ -25,6 +26,7 @@ import { publishFootballTeams } from "#src/routers/games/publishFootballTeams";
 import { register } from "#src/routers/games/register";
 import { saveFootballDraft } from "#src/routers/games/saveFootballDraft";
 import { startFootballPick } from "#src/routers/games/startFootballPick";
+import { stopFootballPick } from "#src/routers/games/stopFootballPick";
 
 const errors = messagesFor("en").football.errors;
 
@@ -111,6 +113,43 @@ describe("games.openFootballPickRoom", () => {
         captains: { slot1: b!.id, slot2: d!.id },
         pick: { status: "waiting" },
       });
+    });
+  });
+
+  it("names each opening anew, and a room opened after a stop is no longer stopped", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await open(f, { slot1: a!, slot2: c! });
+      const first = live(await room(f, f.organizer));
+      expect((await draftRow(f)).pickId).toBe(first.pickId);
+      await stopFootballPick(f.db, {
+        gameId: f.gameId,
+        userId: f.organizer.id,
+      });
+      expect(await room(f, f.organizer)).toMatchObject({
+        status: "stopped",
+        pickId: first.pickId,
+      });
+
+      await open(f, { slot1: a!, slot2: c! }, { firstPick: "slot1" });
+      expect((await draftRow(f)).pickStoppedAt).toBeNull();
+      const second = live(await room(f, a!));
+      expect(second.status).toBe("waiting");
+      expect(second.pickId).not.toBe(first.pickId);
+
+      await startFootballPick(f.db, {
+        gameId: f.gameId,
+        userId: f.organizer.id,
+      });
+      await pick(f, a!, b!, 1);
+      await pick(f, c!, d!, 2);
+      expect(live(await room(f, a!))).toMatchObject({
+        status: "done",
+        pickId: second.pickId,
+      });
+      await open(f, { slot1: b!, slot2: d! });
+      const third = live(await room(f, f.organizer));
+      expect([first.pickId, second.pickId]).not.toContain(third.pickId);
     });
   });
 

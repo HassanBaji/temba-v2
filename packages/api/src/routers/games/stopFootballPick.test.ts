@@ -6,6 +6,7 @@ import {
   addPlayers,
   boardFor,
   draftRow,
+  live,
   open,
   room,
   withFootballGame,
@@ -15,6 +16,7 @@ import { startFootballPick } from "#src/routers/games/startFootballPick";
 import { stopFootballPick } from "#src/routers/games/stopFootballPick";
 
 const errors = messagesFor("en").football.errors;
+const notFound = messagesFor("en").game.errors.notFound;
 
 describe("games.stopFootballPick", () => {
   it("leaves a Manual Draft line-up with the captains on their sides, readable as any draft", async () => {
@@ -62,6 +64,46 @@ describe("games.stopFootballPick", () => {
         slot1: [a!.id, b!.id],
         slot2: [c!.id, d!.id],
       });
+    });
+  });
+
+  it("reads stopped to the Organizers and both captains, and still after the draft is saved", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await open(f, { slot1: a!, slot2: c! });
+      const { pickId } = live(await room(f, a!));
+      const stoppedAt = new Date();
+      await stopFootballPick(
+        f.db,
+        { gameId: f.gameId, userId: f.organizer.id },
+        stoppedAt,
+      );
+      expect((await draftRow(f)).pickStoppedAt).toEqual(stoppedAt);
+
+      const readsStopped = async () => {
+        for (const viewer of [f.organizer, a!, c!]) {
+          expect(await room(f, viewer)).toMatchObject({
+            status: "stopped",
+            pickId,
+          });
+        }
+        await expect(room(f, b!)).rejects.toThrow(notFound);
+      };
+      await readsStopped();
+
+      await saveFootballDraft(f.db, {
+        gameId: f.gameId,
+        userId: f.organizer.id,
+        method: "manual",
+        bibs: { slot1: "black", slot2: "white" },
+        slot1: [a!.id, b!.id],
+        slot2: [c!.id, d!.id],
+      });
+      expect(await draftRow(f)).toMatchObject({
+        pickStatus: null,
+        pickStoppedAt: stoppedAt,
+      });
+      await readsStopped();
     });
   });
 

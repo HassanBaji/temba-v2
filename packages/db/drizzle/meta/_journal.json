@@ -967,6 +967,13 @@
       "when": 1795252797025,
       "tag": "0137_football_captain_pick",
       "breakpoints": true
+    },
+    {
+      "idx": 138,
+      "version": "7",
+      "when": 1795598665906,
+      "tag": "0138_football_pick_room_identity",
+      "breakpoints": true
     }
   ]
 }

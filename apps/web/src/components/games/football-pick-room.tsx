@@ -16,13 +16,13 @@ import {
   captainPickPoolOrder,
   captainPickRoomLines,
   lastPick as lastPickOf,
+  pickRoomAfterRead,
+  pickRoomPollMs,
   pickRoomUserIds,
   pickRoomWithPick,
+  type PickRoomView,
 } from "@repo/domain/football-captain-pick";
-import {
-  PICK_ROOM_POLL_MS,
-  type FootballBalanceOn,
-} from "@repo/domain/football-lineup";
+import type { FootballBalanceOn } from "@repo/domain/football-lineup";
 import { formatGameStart } from "@repo/domain/format-game-start";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import { BellIcon, Check, ChevronRight } from "lucide-react";
@@ -51,8 +51,10 @@ import { FootballPickPool, FootballPickSides } from "./football-pick-sides";
 
 type OpenPickRoom = Exclude<
   RouterOutputs["games"]["footballPickRoom"],
-  { status: "stopped" }
+  { status: "stopped" | "closed" }
 >;
+
+const CLOSED_READ = { status: "closed" } as const;
 
 const POOL_PREVIEW = 4;
 
@@ -191,11 +193,14 @@ function OrganizerAction({
  * Organizer can remind either, start without them or stop the pick. Once
  * live, the captain on turn selects a player and confirms; their own pick
  * shows at once and the next read corrects it. The Organizer watches and can
- * pick for the side on turn, undo the last pick or stop. A pick stopped
- * while it waits or is live closes the room for everyone; anyone else gets
- * the not-found page. A finished pick stays on the page: the room is not
- * read again, since it reads stopped or not found once the Organizer
- * publishes or edits the draft.
+ * pick for the side on turn, undo the last pick or stop. What a read puts
+ * on the page is `pickRoomAfterRead`'s to say: a pick stopped while it
+ * waits or is live closes the room and says so, and a finished pick stays
+ * on the page through the closed or not-found reads that follow once the
+ * Organizer publishes or edits the draft. It is then read slowly, and a new
+ * room the Organizer opens takes its place. A closed room is read again
+ * only when the tab comes back in front. Someone the room was never read
+ * to gets the not-found page.
  */
 export function FootballPickRoom({ gameId }: { gameId: string }) {
   const locale = useLocale();
@@ -206,19 +211,11 @@ export function FootballPickRoom({ gameId }: { gameId: string }) {
   const gameHref = gameHomeHref(gameId);
   const game = api.games.byId.useQuery({ id: gameId });
   const board = api.games.footballBoard.useQuery({ gameId });
-  const [finished, setFinished] = React.useState(false);
+  const [view, setView] = React.useState<PickRoomView<OpenPickRoom>>(null);
   const room = api.games.footballPickRoom.useQuery(
     { gameId },
     {
-      enabled: !finished,
-      refetchInterval: (query) => {
-        const status = query.state.data?.status;
-        return status === "done" ||
-          status === "stopped" ||
-          query.state.error?.data?.code === "FORBIDDEN"
-          ? false
-          : PICK_ROOM_POLL_MS;
-      },
+      refetchInterval: pickRoomPollMs(view),
       refetchIntervalInBackground: false,
       refetchOnWindowFocus: "always",
       staleTime: 0,
@@ -231,22 +228,29 @@ export function FootballPickRoom({ gameId }: { gameId: string }) {
   const [selected, setSelected] = React.useState<string | null>(null);
   const [pickingFor, setPickingFor] = React.useState(false);
   const [confirm, setConfirm] = React.useState<"undo" | "stop" | null>(null);
-  const wasRunning = React.useRef(false);
-  const data = room.data;
-  const nextPick = data && data.status !== "stopped" ? data.picks.next : null;
-  // A done read kept from an earlier visit does not count: the Organizer may
-  // have opened the room anew since, so this visit reads it once itself.
-  const readDone =
-    room.isSuccess && room.isFetchedAfterMount && data?.status === "done";
-
-  React.useEffect(() => {
-    setFinished(readDone);
-  }, [readDone]);
+  const refused =
+    isNotFoundError(room.error) || room.error?.data?.code === "FORBIDDEN";
+  // A read kept from an earlier visit does not count: the pick may have
+  // ended or a new room opened since, so the view starts from this visit's.
+  const read = !room.isFetchedAfterMount
+    ? null
+    : room.isSuccess
+      ? room.data
+      : refused
+        ? CLOSED_READ
+        : null;
+  const data = view === "closed" ? null : view;
+  const nextPick = data?.picks.next ?? null;
+  const pickId = data?.pickId ?? null;
 
   React.useEffect(() => {
     setSelected(null);
     setPickingFor(false);
   }, [nextPick]);
+
+  React.useEffect(() => {
+    setReminded({});
+  }, [pickId]);
 
   const leave = React.useCallback(
     async (message: string) => {
@@ -261,22 +265,19 @@ export function FootballPickRoom({ gameId }: { gameId: string }) {
   );
 
   React.useEffect(() => {
-    if (!data) {
+    if (!read) {
       return;
     }
-    if (data.status !== "stopped") {
-      wasRunning.current = data.status !== "done";
-      return;
-    }
-    if (wasRunning.current) {
-      wasRunning.current = false;
+    const next = pickRoomAfterRead<OpenPickRoom>(view, read);
+    setView(next.view);
+    if (next.stopped) {
       void leave(m.stopped);
     }
-  }, [data, leave, m.stopped]);
+  }, [read, view, leave, m.stopped]);
 
   const boardPlayers = board.data?.players;
   const unknownIds =
-    boardPlayers && data && data.status !== "stopped"
+    boardPlayers && data
       ? pickRoomUserIds(data)
           .filter(
             (userId) =>
@@ -304,10 +305,9 @@ export function FootballPickRoom({ gameId }: { gameId: string }) {
   });
   const stop = api.games.stopFootballPick.useMutation({
     meta: OWN_ERROR_UI,
-    onSuccess: () => {
-      wasRunning.current = false;
+    onSuccess: async () => {
+      await refresh();
       setConfirm(null);
-      void leave(m.stopped);
     },
     onError: failure,
   });
@@ -354,10 +354,10 @@ export function FootballPickRoom({ gameId }: { gameId: string }) {
     </Button>
   );
 
-  if (isNotFoundError(room.error)) {
+  if (view == null && isNotFoundError(room.error)) {
     notFound();
   }
-  if (data?.status === "stopped" || room.error?.data?.code === "FORBIDDEN") {
+  if (view === "closed") {
     return (
       <DashboardShell title={m.title} action={back} isSubPage hideNav>
         <section className="border-rule bg-paper space-y-1 rounded-xl border p-5">
@@ -367,7 +367,7 @@ export function FootballPickRoom({ gameId }: { gameId: string }) {
       </DashboardShell>
     );
   }
-  const loadError = room.error ?? board.error;
+  const loadError = (data || refused ? null : room.error) ?? board.error;
   if (loadError) {
     return (
       <DashboardShell title={m.title} action={back} isSubPage hideNav>

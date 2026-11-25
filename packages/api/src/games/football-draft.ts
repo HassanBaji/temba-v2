@@ -176,8 +176,10 @@ function firstPickSideOf(value: number | null): Side | null {
  * captains do (ADR-0107, ADR-0108). Every read of a draft goes through here.
  * It reads a cancelled Game's draft too, so the Pick room can tell its Side
  * captains the Game is cancelled. `pickLostCaptain` marks a pick that
- * stopped by losing a Side captain and is not cleared yet. `lock` holds the
- * draft row until the transaction ends.
+ * stopped by losing a Side captain and is not cleared yet. `pickId` names
+ * the opening of the Pick room the draft last had, and `pickStoppedAt` is
+ * set while that pick reads stopped to its room. `lock` holds the draft row
+ * until the transaction ends.
  */
 export async function loadFootballDraftSides(
   database: DbClient,
@@ -266,6 +268,8 @@ export async function loadFootballDraftSides(
           }
         : null,
     pickLostCaptain,
+    pickId: row.pickId,
+    pickStoppedAt: row.pickStoppedAt,
     viewer: { organizer, sideCaptainOf: viewerSide },
   };
 }
@@ -381,7 +385,8 @@ export function assertFootballPickNotRunning(
 
 /**
  * Ends a Captain pick that waits or is live, as Stop the pick does: the
- * draft keeps its sides and Side captains and becomes a Manual one.
+ * draft keeps its sides and Side captains and becomes a Manual one, and its
+ * Pick room reads stopped until a new one opens.
  */
 export async function clearFootballPick(
   database: DbClient,
@@ -397,6 +402,7 @@ export async function clearFootballPick(
       firstPickSide: null,
       slot1CaptainSeenAt: null,
       slot2CaptainSeenAt: null,
+      pickStoppedAt: now,
       updatedAt: now,
     })
     .where(

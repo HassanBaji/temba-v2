@@ -152,13 +152,17 @@ async function finishWhenPoolEmpty(
  * The Pick room, read every two seconds by the Organizers of the Game and
  * the two Side captains of the pick (ADR-0109); anyone else is told it is
  * not found, and a cancelled Game refuses them as every draft door does. A
- * pick that ended, was stopped or lost a Side captain reads stopped, and a
- * pick that lost a captain is cleared here as Stop the pick clears it. A
- * live pick whose pool emptied because its last player left is finished
- * here as the last pick would finish it. Reading records the calling
- * captain's presence and starts the pick, toss included, on the read that
- * finds both captains in the room. The side on turn is read from the sides
- * by `pickTurn`, never stored.
+ * pick an Organizer stopped, or that lost a Side captain, reads stopped
+ * until a new room opens, and a pick that lost a captain is cleared here
+ * as Stop the pick clears it. Any other Game without a pick reads closed:
+ * a pick that finished and was then edited or published, or a draft that
+ * was never one. With the draft gone only the Organizers still read the
+ * room. `pickId` names the opening of the room that is read, so a client
+ * tells a new pick from the one it watched. A live pick whose pool emptied
+ * because its last player left is finished here as the last pick would
+ * finish it. Reading records the calling captain's presence and starts the
+ * pick, toss included, on the read that finds both captains in the room.
+ * The side on turn is read from the sides by `pickTurn`, never stored.
  *
  * User ids only, and no ratings: names, positions, OVR and Group Tier come
  * from `games.footballBoard` under its rules.
@@ -185,16 +189,20 @@ export async function footballPickRoom(
   }
   assertGameNotCancelled(game, locale);
 
-  const stopped = { status: "stopped" as const, serverNow: now };
+  const closed = { status: "closed" as const, serverNow: now };
+  const ended = async (draft: RoomDraft) => {
+    if (draft.pickLostCaptain) {
+      await clearFootballPick(database, draft.id, now);
+    }
+    return draft.pickLostCaptain || draft.pickStoppedAt != null
+      ? { status: "stopped" as const, pickId: draft.pickId, serverNow: now }
+      : closed;
+  };
   if (!loaded) {
-    return stopped;
-  }
-  if (loaded.pickLostCaptain) {
-    await clearFootballPick(database, loaded.id, now);
-    return stopped;
+    return closed;
   }
   if (!loaded.pick) {
-    return stopped;
+    return ended(loaded);
   }
 
   const viewerSide = loaded.viewer.sideCaptainOf;
@@ -213,7 +221,7 @@ export async function footballPickRoom(
       (await finishWhenPoolEmpty(database, game, args.userId, now)) ?? draft;
   }
   if (!draft.pick) {
-    return stopped;
+    return ended(draft);
   }
 
   const { status, firstPick, firstPickSide: startedSide } = draft.pick;
@@ -248,6 +256,7 @@ export async function footballPickRoom(
 
   return {
     status,
+    pickId: draft.pickId,
     serverNow: now,
     viewer: {
       role: viewerSide != null ? ("captain" as const) : ("organizer" as const),

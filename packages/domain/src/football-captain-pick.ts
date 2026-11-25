@@ -9,6 +9,8 @@ import {
 } from "./football-board";
 import {
   CAPTAIN_PICK_MIN_PLAYERS,
+  PICK_ROOM_FINISHED_POLL_MS,
+  PICK_ROOM_POLL_MS,
   type FootballBalanceOn,
   type FootballFirstPick,
 } from "./football-lineup";
@@ -90,9 +92,13 @@ export function captainPickDone(poolSize: number) {
 
 type PickedPlayer = { userId: string; pickNumber: number | null };
 
-/** An open Pick room as `games.footballPickRoom` reads it to a client. */
+/**
+ * An open Pick room as `games.footballPickRoom` reads it to a client.
+ * `pickId` names the opening of the room: a new room has a new one.
+ */
 export type OpenPickRoom = {
   status: "waiting" | "live" | "done";
+  pickId: string;
   sides: { slot1: PickedPlayer[]; slot2: PickedPlayer[] };
   pool: string[];
   turn: Side | null;
@@ -105,9 +111,10 @@ export type OpenPickRoom = {
  * the caller's own pick shows at once and the next read corrects it. A room
  * that is not live stays as it is.
  */
-export function pickRoomWithPick<
-  Room extends OpenPickRoom | { status: "stopped" },
->(current: Room, pick: { userId: string; pickNumber: number }): Room {
+export function pickRoomWithPick<Room extends OpenPickRoom | EndedPickRoom>(
+  current: Room,
+  pick: { userId: string; pickNumber: number },
+): Room {
   if (current.status !== "live" || current.turn == null) {
     return current;
   }
@@ -137,6 +144,68 @@ export function pickRoomWithPick<
       next: pick.pickNumber + 1,
     },
   };
+}
+
+/**
+ * A Pick room with no pick in it, as `games.footballPickRoom` reads it:
+ * stopped when an Organizer stopped the pick named or it lost a Side
+ * captain, closed otherwise, as after a finished pick is edited or
+ * published.
+ */
+export type EndedPickRoom =
+  | { status: "stopped"; pickId: string }
+  | { status: "closed" };
+
+/**
+ * What a Pick room screen has on it: an open room, the closed room, or
+ * nothing before its first read.
+ */
+export type PickRoomView<Room> = Room | "closed" | null;
+
+/**
+ * What a Pick room screen shows after a read, given what it showed before
+ * (ADR-0109). An open room is shown whichever pick it is of, so a new room
+ * replaces a finished pick. A read with no pick in it leaves a finished
+ * pick on the screen, since its room closes as soon as the Organizer edits
+ * or publishes the draft, and closes any other room. `stopped` says to
+ * tell the viewer the Organizer stopped the pick: only when the pick they
+ * watched wait or run is the one that reads stopped.
+ */
+export function pickRoomAfterRead<
+  Room extends Pick<OpenPickRoom, "status" | "pickId">,
+>(
+  shown: PickRoomView<Room>,
+  read: Room | EndedPickRoom,
+): { view: Room | "closed"; stopped: boolean } {
+  if (read.status !== "stopped" && read.status !== "closed") {
+    return { view: read, stopped: false };
+  }
+  if (shown == null || shown === "closed") {
+    return { view: "closed", stopped: false };
+  }
+  if (shown.status === "done") {
+    return { view: shown, stopped: false };
+  }
+  return {
+    view: "closed",
+    stopped: read.status === "stopped" && read.pickId === shown.pickId,
+  };
+}
+
+/**
+ * How often a Pick room screen reads the room while it is in front: every
+ * two seconds while a pick waits or runs and before the first read, slowly
+ * while a finished pick stays on it, and not at all once the room closed.
+ */
+export function pickRoomPollMs(
+  shown: PickRoomView<Pick<OpenPickRoom, "status">>,
+): number | false {
+  if (shown === "closed") {
+    return false;
+  }
+  return shown?.status === "done"
+    ? PICK_ROOM_FINISHED_POLL_MS
+    : PICK_ROOM_POLL_MS;
 }
 
 /** The pick Undo takes back: the highest pick number on either side. */

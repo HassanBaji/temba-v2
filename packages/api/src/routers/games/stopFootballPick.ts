@@ -17,8 +17,9 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
  * The Organizer stops a Captain pick that waits or is live (ADR-0109): the
- * room closes for everyone and what was picked stays as a Manual Draft
- * line-up, with the Side captains on their sides and the rest to place.
+ * room reads stopped for everyone and what was picked stays as a Manual
+ * Draft line-up, with the Side captains on their sides and the rest to
+ * place.
  */
 export async function stopFootballPick(
   database: DbClient,

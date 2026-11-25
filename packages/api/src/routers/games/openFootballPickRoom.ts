@@ -34,8 +34,10 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
  * The Organizer opens the Pick room for a Captain pick (ADR-0109): the two
  * Side captains, who picks first and the bibs. It replaces any Draft
  * line-up with one that seats each captain on their side, leaves everyone
- * else to be picked and has no answers, and tells both captains. It is
- * refused while a pick already runs.
+ * else to be picked and has no answers, and tells both captains. Each
+ * opening has its own `pickId`, which the room reads back, and is no longer
+ * stopped whatever the pick before it was. It is refused while a pick
+ * already runs.
  */
 export async function openFootballPickRoom(
   database: DbClient,
@@ -87,6 +89,8 @@ export async function openFootballPickRoom(
       slot1CaptainGamePlayerId: slot1Captain,
       slot2CaptainGamePlayerId: slot2Captain,
       pickStatus: "waiting" as const,
+      pickId: crypto.randomUUID(),
+      pickStoppedAt: null,
       firstPick: args.firstPick,
       firstPickSide: null,
       slot1CaptainSeenAt: null,

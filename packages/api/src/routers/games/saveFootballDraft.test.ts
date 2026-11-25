@@ -38,11 +38,15 @@ import { gameById } from "#src/routers/games/byId";
 import { createGame } from "#src/routers/games/create";
 import { createInviteLink } from "#src/routers/games/createInviteLink";
 import { footballBoard } from "#src/routers/games/footballBoard";
+import { footballPickRoom } from "#src/routers/games/footballPickRoom";
 import { kick } from "#src/routers/games/kick";
 import { leaveGame } from "#src/routers/games/leave";
+import { openFootballPickRoom } from "#src/routers/games/openFootballPickRoom";
+import { pickFootballPlayer } from "#src/routers/games/pickFootballPlayer";
 import { previewInviteLink } from "#src/routers/games/previewInviteLink";
 import { publishFootballTeams } from "#src/routers/games/publishFootballTeams";
 import { register } from "#src/routers/games/register";
+import { startFootballPick } from "#src/routers/games/startFootballPick";
 import {
   saveFootballDraft,
   saveFootballDraftInputSchema,
@@ -413,6 +417,73 @@ describe("games.saveFootballDraft", () => {
         draftUpdatedAt: null,
       }).success,
     ).toBe(true);
+  });
+});
+
+describe("saving after a Captain pick", () => {
+  async function startPick(
+    f: Fixture,
+    captains: { slot1: { id: string }; slot2: { id: string } },
+  ) {
+    await openFootballPickRoom(f.db, {
+      gameId: f.gameId,
+      userId: f.organizer.id,
+      bibs: { slot1: "black", slot2: "white" },
+      captains: { slot1: captains.slot1.id, slot2: captains.slot2.id },
+      firstPick: "slot1",
+    });
+    await startFootballPick(f.db, { gameId: f.gameId, userId: f.organizer.id });
+  }
+  const room = (f: Fixture, viewer: { id: string }) =>
+    footballPickRoom(f.db, { gameId: f.gameId, userId: viewer.id });
+  const pick = (
+    f: Fixture,
+    by: { id: string },
+    player: { id: string },
+    pickNumber: number,
+  ) =>
+    pickFootballPlayer(f.db, {
+      gameId: f.gameId,
+      userId: by.id,
+      pickedUserId: player.id,
+      pickNumber,
+    });
+
+  it("closes the room of a finished pick without stopping it", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await startPick(f, { slot1: a!, slot2: c! });
+      await pick(f, a!, b!, 1);
+      await pick(f, c!, d!, 2);
+      expect((await room(f, c!)).status).toBe("done");
+
+      await save(f, [a!, d!], [c!, b!]);
+
+      const [row] = await draftRows(f);
+      expect(row).toMatchObject({ pickStatus: null, pickStoppedAt: null });
+      for (const viewer of [f.organizer, a!, c!]) {
+        expect((await room(f, viewer)).status).toBe("closed");
+      }
+    });
+  });
+
+  it("stops a pick that lost a captain when no read of the room has cleared it", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 5);
+      await startPick(f, { slot1: a!, slot2: c! });
+      await pick(f, a!, b!, 1);
+      await leaveGame(f.db, { gameId: f.gameId, userId: c!.id });
+
+      await save(f, [a!, b!], [d!]);
+
+      const [row] = await draftRows(f);
+      expect(row?.pickStatus).toBeNull();
+      expect(row?.pickStoppedAt).not.toBeNull();
+      expect(await room(f, a!)).toMatchObject({
+        status: "stopped",
+        pickId: row?.pickId,
+      });
+    });
   });
 });
 

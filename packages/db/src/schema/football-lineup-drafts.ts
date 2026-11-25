@@ -47,6 +47,13 @@ export const footballLineupDrafts = pgTable(
     pickStatus: footballPickStatuses("pick_status"),
     firstPick: footballFirstPicks("first_pick"),
     firstPickSide: integer("first_pick_side"),
+    // Names one opening of the Pick room: written anew each time a room
+    // opens, so a reader tells a new pick from the one it watched. It says
+    // nothing on a draft that was never a Captain pick.
+    pickId: uuid("pick_id").notNull().defaultRandom(),
+    // Set when a waiting or live pick is stopped or loses a Side captain,
+    // and kept until a new room opens: a pick that finished never has it.
+    pickStoppedAt: timestamp("pick_stopped_at"),
     // Pick room presence: a Side captain is in the room while their screen
     // polls.
     slot1CaptainSeenAt: timestamp("slot1_captain_seen_at"),

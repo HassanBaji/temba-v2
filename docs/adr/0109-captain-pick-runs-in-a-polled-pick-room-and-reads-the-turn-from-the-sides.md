@@ -33,6 +33,15 @@ captains share while the Organizer watches.
   picked leaves the Game or is kicked, there is no pick left to finish on. The next read of the
   Pick room finishes it as the last pick would, once, under the draft row's lock, and the Game
   admins hear with copy that names no picker.
+- **A room that ended reads stopped or closed, and only a stopped pick says so.** The draft
+  records when its pick was stopped, by an Organizer or by losing a Side captain, and keeps that
+  through later saves until a new room opens. A pick that finished and was then edited or
+  published reads closed, and with the draft gone the room is not found for anyone but an
+  Organizer. A screen says "The organizer stopped the pick" only for the pick it was showing.
+- **Each opening of the room has its own id.** The room reads it back, so a screen tells a new
+  pick from the one it watched. A screen that read the pick finish keeps "Teams are picked"
+  through closed and not-found reads, reads the room every fifteen seconds instead of every two,
+  and shows a new room when the Organizer opens one.
 - **The room carries user ids only.** What a Side captain sees of each player is what a pool tile
   already shows any player, and the pool sorts by that.
 - **"Told" and "Remind" are Notifications**, with their Notification email, until push exists. A
@@ -50,6 +59,12 @@ captains share while the Organizer watches.
   them, since they can pick for that side.
 - Leaving a pick whose pool emptied without a pick live until an Organizer stops it. Rejected:
   the room would show a turn with nobody left to pick, and the teams are as picked as they can be.
+- Reading every room without a pick as stopped. Rejected: a pick that finished and was published
+  or edited inside one poll told its Side captains the Organizer had stopped it.
+- Not reading a finished pick again. Rejected: a Side captain left on "Teams are picked" never
+  learned that a new room was open.
+- Naming the opening by a time the draft already has. Rejected: `saved_at` changes when the pick
+  finishes, and `created_at` does not change when a room opens over a draft.
 
 ## Consequences
 
@@ -62,3 +77,6 @@ captains share while the Organizer watches.
 - Three Notification types, which become pushes with Phase 7.
 - A Side captain who leaves the Game during a pick stops it; what was picked stays as an ordinary
   Draft line-up.
+- The draft carries `pick_id` and `pick_stopped_at`. A Side captain whose draft is gone, or who
+  is no longer its captain, cannot be told apart from an outsider: the room is not found, and a
+  screen that was showing the pick closes without saying it was stopped.

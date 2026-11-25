@@ -13,11 +13,17 @@ import {
   captainPickSetupProblem,
   firstPickSide,
   lastPick,
+  pickRoomAfterRead,
+  pickRoomPollMs,
   pickRoomUserIds,
   pickRoomWithPick,
   pickTurn,
   type OpenPickRoom,
 } from "./football-captain-pick";
+import {
+  PICK_ROOM_FINISHED_POLL_MS,
+  PICK_ROOM_POLL_MS,
+} from "./football-lineup";
 
 const names = { slot1: "Black", slot2: "White" };
 
@@ -385,6 +391,7 @@ describe("captainPickRoomLines", () => {
 function room(overrides: Partial<OpenPickRoom> = {}): OpenPickRoom {
   return {
     status: "live",
+    pickId: "pick-1",
     firstPickSide: 1,
     sides: {
       slot1: [{ userId: "c1", pickNumber: null }],
@@ -436,10 +443,117 @@ describe("pickRoomWithPick", () => {
     expect(pickRoomWithPick(waiting, { userId: "p1", pickNumber: 1 })).toBe(
       waiting,
     );
-    const stopped = { status: "stopped" as const, serverNow: new Date() };
+    const stopped = { status: "stopped" as const, pickId: "pick-1" };
     expect(pickRoomWithPick(stopped, { userId: "p1", pickNumber: 1 })).toBe(
       stopped,
     );
+    const closed = { status: "closed" as const };
+    expect(pickRoomWithPick(closed, { userId: "p1", pickNumber: 1 })).toBe(
+      closed,
+    );
+  });
+});
+
+describe("pickRoomAfterRead", () => {
+  const waiting = room({ status: "waiting", turn: null });
+  const running = room();
+  const finished = room({ status: "done", turn: null, pool: [] });
+  const stopped = { status: "stopped" as const, pickId: "pick-1" };
+  const closed = { status: "closed" as const };
+
+  it("shows an open room, whatever was on the screen", () => {
+    for (const shown of [null, "closed" as const, waiting, running, finished]) {
+      for (const read of [waiting, running, finished]) {
+        expect(pickRoomAfterRead(shown, read)).toEqual({
+          view: read,
+          stopped: false,
+        });
+      }
+    }
+  });
+
+  it("shows a new room in place of the pick it watched finish", () => {
+    const next = room({ status: "waiting", turn: null, pickId: "pick-2" });
+    expect(pickRoomAfterRead(finished, next).view).toBe(next);
+    const nextFinished = room({ status: "done", pickId: "pick-2" });
+    expect(pickRoomAfterRead(finished, nextFinished).view).toBe(nextFinished);
+  });
+
+  it("tells a viewer who watched the pick wait or run that it was stopped", () => {
+    for (const shown of [waiting, running]) {
+      expect(pickRoomAfterRead(shown, stopped)).toEqual({
+        view: "closed",
+        stopped: true,
+      });
+    }
+  });
+
+  it("closes without a word when the pick finished and was then edited or published", () => {
+    for (const shown of [waiting, running]) {
+      expect(pickRoomAfterRead(shown, closed)).toEqual({
+        view: "closed",
+        stopped: false,
+      });
+    }
+  });
+
+  it("closes without a word when the pick that reads stopped is not the one it watched", () => {
+    expect(
+      pickRoomAfterRead(running, { status: "stopped", pickId: "pick-2" }),
+    ).toEqual({ view: "closed", stopped: false });
+  });
+
+  it("keeps a finished pick on the screen through a closed or a stopped read", () => {
+    for (const read of [
+      closed,
+      stopped,
+      { status: "stopped" as const, pickId: "pick-2" },
+    ]) {
+      expect(pickRoomAfterRead(finished, read)).toEqual({
+        view: finished,
+        stopped: false,
+      });
+    }
+  });
+
+  it("stays closed, and says nothing to a viewer who saw no pick", () => {
+    for (const shown of [null, "closed" as const]) {
+      for (const read of [closed, stopped]) {
+        expect(pickRoomAfterRead(shown, read)).toEqual({
+          view: "closed",
+          stopped: false,
+        });
+      }
+    }
+  });
+
+  it("gives the same view when a read is applied twice", () => {
+    for (const shown of [null, "closed" as const, waiting, running, finished]) {
+      for (const read of [waiting, running, finished, stopped, closed]) {
+        const once = pickRoomAfterRead(shown, read);
+        expect(pickRoomAfterRead(once.view, read)).toEqual({
+          view: once.view,
+          stopped: false,
+        });
+      }
+    }
+  });
+});
+
+describe("pickRoomPollMs", () => {
+  it("reads every two seconds before the first read and while a pick waits or runs", () => {
+    expect(pickRoomPollMs(null)).toBe(PICK_ROOM_POLL_MS);
+    expect(pickRoomPollMs({ status: "waiting" })).toBe(PICK_ROOM_POLL_MS);
+    expect(pickRoomPollMs({ status: "live" })).toBe(PICK_ROOM_POLL_MS);
+  });
+
+  it("reads slowly while a finished pick stays on the screen", () => {
+    expect(pickRoomPollMs({ status: "done" })).toBe(PICK_ROOM_FINISHED_POLL_MS);
+    expect(PICK_ROOM_FINISHED_POLL_MS).toBeGreaterThan(PICK_ROOM_POLL_MS);
+  });
+
+  it("stops once the room closed", () => {
+    expect(pickRoomPollMs("closed")).toBe(false);
   });
 });
 

@@ -195,6 +195,12 @@ export const CAPTAIN_PICK_MIN_PLAYERS = 4;
 /** How often a Pick room screen reads the room while it is in front. */
 export const PICK_ROOM_POLL_MS = 2_000;
 
+/**
+ * How often a Pick room screen reads the room while a finished pick stays on
+ * it, to learn that the Organizer opened a new room.
+ */
+export const PICK_ROOM_FINISHED_POLL_MS = 15_000;
+
 /** A Side captain is in the Pick room while their screen read it this recently. */
 export const PICK_ROOM_PRESENCE_MS = 10_000;
 

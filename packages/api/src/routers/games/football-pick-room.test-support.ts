@@ -182,10 +182,10 @@ export async function notificationsOf(f: Fixture, type: string) {
 }
 
 export function live<T extends { status: string }>(view: T) {
-  if (view.status === "stopped") {
-    throw new Error("The room is stopped");
+  if (view.status === "stopped" || view.status === "closed") {
+    throw new Error(`The room is ${view.status}`);
   }
-  return view as Exclude<T, { status: "stopped" }>;
+  return view as Exclude<T, { status: "stopped" | "closed" }>;
 }
 
 export async function startLive(

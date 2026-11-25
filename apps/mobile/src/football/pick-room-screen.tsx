@@ -16,15 +16,17 @@ import {
   captainPickPoolOrder,
   captainPickRoomLines,
   lastPick as lastPickOf,
+  pickRoomAfterRead,
+  pickRoomPollMs,
   pickRoomUserIds,
   pickRoomWithPick,
+  type PickRoomView,
 } from "@repo/domain/football-captain-pick";
 import { formatGameStart } from "@repo/domain/format-game-start";
-import { PICK_ROOM_POLL_MS } from "@repo/domain/football-lineup";
 import type { Locale } from "@repo/i18n/locale";
 import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { Bell, Check, ChevronRight } from "lucide-react-native";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import {
@@ -53,10 +55,12 @@ import { TierMark } from "./team-columns";
 
 type PickRoom = Exclude<
   RouterOutputs["games"]["footballPickRoom"],
-  { status: "stopped" }
+  { status: "stopped" | "closed" }
 >;
 
 const POOL_PREVIEW = 4;
+
+const CLOSED_READ = { status: "closed" } as const;
 
 type Reminded = "sent" | "recently";
 
@@ -342,10 +346,13 @@ function ClosedRoom({ gameId }: { gameId: string }) {
  * without them or stop the pick. Once live, the captain on turn taps a
  * player and confirms; their own pick shows at once and the next read
  * corrects it. The Organizer watches and can pick for the side on turn,
- * undo the last pick or stop. A pick stopped while it waits or is live
- * closes the room for everyone. A finished pick stays on the screen: the
- * room is not read again, since it reads stopped or not found once the
- * Organizer publishes or edits the draft.
+ * undo the last pick or stop. What a read puts on the screen is
+ * `pickRoomAfterRead`'s to say: a pick stopped while it waits or is live
+ * closes the room and says so, and a finished pick stays on the screen
+ * through the closed or not-found reads that follow once the Organizer
+ * publishes or edits the draft. It is then read slowly, and a new room the
+ * Organizer opens takes its place. A closed room is read again only when
+ * the screen comes back in front.
  */
 export function PickRoomScreen({ gameId }: { gameId: string }) {
   const colors = useColors();
@@ -359,13 +366,14 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
   const fallback = gamePath(gameId) as Href;
   const game = api.games.byId.useQuery({ id: gameId });
   const board = api.games.footballBoard.useQuery({ gameId });
-  const [finished, setFinished] = useState(false);
+  const [view, setView] = useState<PickRoomView<PickRoom>>(null);
   const room = api.games.footballPickRoom.useQuery(
     { gameId },
     {
-      enabled: focused && !finished,
-      refetchInterval: focused ? PICK_ROOM_POLL_MS : false,
+      enabled: focused,
+      refetchInterval: focused ? pickRoomPollMs(view) : false,
       refetchOnWindowFocus: "always",
+      staleTime: 0,
       retry: false,
     },
   );
@@ -373,22 +381,29 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [pickingFor, setPickingFor] = useState(false);
   const [confirm, setConfirm] = useState<"undo" | "stop" | null>(null);
-  const wasRunning = useRef(false);
-  const data = room.data;
-  const nextPick = data && data.status !== "stopped" ? data.picks.next : null;
-  // A done read kept from an earlier visit does not count: the Organizer may
-  // have opened the room anew since, so this visit reads it once itself.
-  const readDone =
-    room.isSuccess && room.isFetchedAfterMount && data?.status === "done";
-
-  useEffect(() => {
-    setFinished(readDone);
-  }, [readDone]);
+  const refusal = room.error?.data?.code;
+  const refused = refusal === "NOT_FOUND" || refusal === "FORBIDDEN";
+  // A read kept from an earlier visit does not count: the pick may have
+  // ended or a new room opened since, so the view starts from this visit's.
+  const read = !room.isFetchedAfterMount
+    ? null
+    : room.isSuccess
+      ? room.data
+      : refused
+        ? CLOSED_READ
+        : null;
+  const data = view === "closed" ? null : view;
+  const nextPick = data?.picks.next ?? null;
+  const pickId = data?.pickId ?? null;
 
   useEffect(() => {
     setSelected(null);
     setPickingFor(false);
   }, [nextPick]);
+
+  useEffect(() => {
+    setReminded({});
+  }, [pickId]);
 
   const leave = useCallback(
     async (message: string) => {
@@ -403,22 +418,19 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
   );
 
   useEffect(() => {
-    if (!data) {
+    if (!read) {
       return;
     }
-    if (data.status !== "stopped") {
-      wasRunning.current = data.status !== "done";
-      return;
-    }
-    if (wasRunning.current) {
-      wasRunning.current = false;
+    const next = pickRoomAfterRead<PickRoom>(view, read);
+    setView(next.view);
+    if (next.stopped) {
       void leave(m.stopped);
     }
-  }, [data, leave, m.stopped]);
+  }, [read, view, leave, m.stopped]);
 
   const boardPlayers = board.data?.players;
   const unknownIds =
-    boardPlayers && data && data.status !== "stopped"
+    boardPlayers && data
       ? pickRoomUserIds(data)
           .filter(
             (userId) =>
@@ -443,10 +455,9 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
     onSettled: refresh,
   });
   const stop = api.games.stopFootballPick.useMutation({
-    onSuccess: () => {
-      wasRunning.current = false;
+    onSuccess: async () => {
+      await refresh();
       setConfirm(null);
-      void leave(m.stopped);
     },
     onError: failure,
   });
@@ -485,19 +496,14 @@ export function PickRoomScreen({ gameId }: { gameId: string }) {
     },
   });
 
-  const refusal = room.error?.data?.code;
-  if (
-    refusal === "NOT_FOUND" ||
-    refusal === "FORBIDDEN" ||
-    data?.status === "stopped"
-  ) {
+  if (view === "closed") {
     return <ClosedRoom gameId={gameId} />;
   }
   if (!data || !boardPlayers) {
     return (
       <Screen>
         <ScreenHeader nav="back" fallback={fallback} title={m.title} />
-        {room.error ? (
+        {room.error && !refused ? (
           <Surface accessibilityRole="alert" style={{ gap: 4 }}>
             <Text weight="semibold">{m.loadError}</Text>
             <Text size="meta" tone="muted">

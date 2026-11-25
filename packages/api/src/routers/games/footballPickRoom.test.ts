@@ -21,11 +21,13 @@ import {
   pick,
   room,
   startLive,
+  undo,
   withFootballGame,
 } from "#src/routers/games/football-pick-room.test-support";
 import { kick } from "#src/routers/games/kick";
 import { leaveGame } from "#src/routers/games/leave";
 import { publishFootballTeams } from "#src/routers/games/publishFootballTeams";
+import { saveFootballDraft } from "#src/routers/games/saveFootballDraft";
 import { stopFootballPick } from "#src/routers/games/stopFootballPick";
 
 const errors = messagesFor("en").football.errors;
@@ -184,6 +186,7 @@ describe("games.footballPickRoom", () => {
         pickStatus: null,
         firstPick: null,
       });
+      expect(row.pickStoppedAt).not.toBeNull();
       const board = await boardFor(f, f.organizer.id);
       expect(board.draft).toMatchObject({
         method: "manual",
@@ -204,7 +207,112 @@ describe("games.footballPickRoom", () => {
     });
   });
 
-  it("reads stopped once the teams are published or the room is replaced by a save", async () => {
+  it("reads a live pick that lost a captain as stopped, naming the pick, to everyone still in it", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 5);
+      await startLive(f, { slot1: a!, slot2: c! });
+      await pick(f, a!, b!, 1);
+      const { pickId } = live(await room(f, a!));
+      await leaveGame(f.db, { gameId: f.gameId, userId: c!.id });
+
+      const now = new Date();
+      expect(await room(f, a!, now)).toEqual({
+        status: "stopped",
+        pickId,
+        serverNow: now,
+      });
+      expect(await room(f, f.organizer)).toMatchObject({
+        status: "stopped",
+        pickId,
+      });
+      expect(await draftRow(f)).toMatchObject({
+        pickStatus: null,
+        pickStoppedAt: now,
+      });
+      for (const viewer of [b!, c!, d!]) {
+        await expect(room(f, viewer)).rejects.toThrow(notFound);
+      }
+    });
+  });
+
+  it("names the same pick on every read, through picks, an undo and the finish", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await open(f, { slot1: a!, slot2: c! }, { firstPick: "slot1" });
+      const pickIds = new Set<string>();
+      const read = async (viewer: { id: string }) => {
+        const view = live(await room(f, viewer));
+        pickIds.add(view.pickId);
+        return view.status;
+      };
+
+      expect(await read(f.organizer)).toBe("waiting");
+      await read(a!);
+      expect(await read(c!)).toBe("live");
+      await pick(f, a!, b!, 1);
+      await read(c!);
+      await undo(f, f.organizer, 1);
+      await read(a!);
+      await pick(f, a!, d!, 1);
+      await pick(f, c!, b!, 2);
+      for (const viewer of [f.organizer, a!, c!]) {
+        expect(await read(viewer)).toBe("done");
+      }
+
+      expect([...pickIds]).toEqual([(await draftRow(f)).pickId]);
+    });
+  });
+
+  it("reads closed, never stopped, once a finished pick is published", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await startLive(f, { slot1: a!, slot2: c! });
+      await pick(f, a!, b!, 1);
+      await pick(f, c!, d!, 2);
+      expect((await room(f, a!)).status).toBe("done");
+      const draft = (await boardFor(f, f.organizer.id)).draft!;
+      await publishFootballTeams(f.db, {
+        gameId: f.gameId,
+        userId: f.organizer.id,
+        method: draft.method,
+        bibs: draft.bibs,
+        slot1: draft.sides.slot1,
+        slot2: draft.sides.slot2,
+        captains: draft.captains,
+        draftUpdatedAt: draft.updatedAt,
+      });
+
+      const now = new Date();
+      expect(await room(f, f.organizer, now)).toEqual({
+        status: "closed",
+        serverNow: now,
+      });
+      for (const viewer of [a!, c!, b!]) {
+        await expect(room(f, viewer)).rejects.toThrow(notFound);
+      }
+    });
+  });
+
+  it("reads closed for a draft that was never a Captain pick", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await saveFootballDraft(f.db, {
+        gameId: f.gameId,
+        userId: f.organizer.id,
+        method: "manual",
+        bibs: { slot1: "black", slot2: "white" },
+        slot1: [a!.id, b!.id],
+        slot2: [c!.id, d!.id],
+        captains: { slot1: a!.id, slot2: null },
+      });
+
+      expect((await room(f, f.organizer)).status).toBe("closed");
+      expect((await room(f, a!)).status).toBe("closed");
+      await expect(room(f, b!)).rejects.toThrow(notFound);
+    });
+  });
+
+  it("reads closed to the Organizers alone once a stopped pick is published", async () => {
     await withFootballGame(async (f) => {
       const [a, b, c, d] = await addPlayers(f, 4);
       await open(f, { slot1: a!, slot2: c! });
@@ -221,7 +329,7 @@ describe("games.footballPickRoom", () => {
         slot1: [a!.id, b!.id],
         slot2: [c!.id, d!.id],
       });
-      expect((await room(f, f.organizer)).status).toBe("stopped");
+      expect((await room(f, f.organizer)).status).toBe("closed");
       await expect(room(f, a!)).rejects.toThrow(notFound);
     });
   });

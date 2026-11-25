@@ -64,7 +64,9 @@ type SavedDraftMethod = (typeof SAVED_DRAFT_METHODS)[number];
  * A captain newly named is told; one whose side this save changed after
  * they answered is told again. Changing a side's captain drops its answer.
  * It waits while a Captain pick runs, and a pick that finished becomes an
- * ordinary draft.
+ * ordinary draft. A pick that was stopped still reads stopped to its Pick
+ * room after a save, and one that lost a Side captain stops here when no
+ * read of the room has cleared it yet.
  */
 export async function saveFootballDraft(
   database: DbClient,
@@ -135,6 +137,7 @@ export async function saveFootballDraft(
       firstPickSide: null,
       slot1CaptainSeenAt: null,
       slot2CaptainSeenAt: null,
+      ...(current?.pickLostCaptain ? { pickStoppedAt: now } : {}),
       savedBy: args.userId,
       savedAt: now,
       updatedAt: now,
