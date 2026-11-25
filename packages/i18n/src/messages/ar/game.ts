@@ -617,6 +617,7 @@ export const game = {
     editCancelled: "لا يمكن تعديل مباراة ملغاة",
     notOpen: "هذه المباراة غير مفتوحة للتسجيل",
     organizerOnly: "هذا للمنظّم فقط",
+    invitePlayersOnly: "رابط الدعوة يشاركه المنظّم ولاعبو هذه المباراة فقط",
     groupCreatorOrOrganizerCreates:
       "لا يُنشئ مباراة في هذه المجموعة إلا منشئ المجموعة أو أحد منظّميها",
     groupMembersRegister: "التسجيل في هذه المباراة لأعضاء المجموعة فقط",

@@ -11,6 +11,7 @@ import {
   friendlyGameShareLink,
   friendlyGameVacantSeatLine,
   friendlyGameWaitlistLine,
+  gameCanShareInviteLink,
   isTakeableJoinSeat,
   offersEitherSide,
   vacantJoinSeats,
@@ -217,6 +218,56 @@ describe("friendlyGameLevelUpdatedLine", () => {
     assert.equal(
       friendlyGameLevelUpdatedLine("C1", 3.1, "en"),
       "C+ · 3.1 after this game",
+    );
+  });
+});
+
+describe("gameCanShareInviteLink", () => {
+  const base = {
+    isOrganizer: false,
+    isRegistered: false,
+    isChallengeGame: false,
+    registrationStatus: "open",
+  } as const;
+
+  it("lets the Organizer and a registered player mint while the Game takes players", () => {
+    assert.equal(gameCanShareInviteLink({ ...base, isOrganizer: true }), true);
+    assert.equal(gameCanShareInviteLink({ ...base, isRegistered: true }), true);
+    assert.equal(
+      gameCanShareInviteLink({
+        ...base,
+        isRegistered: true,
+        registrationStatus: "full",
+      }),
+      true,
+    );
+  });
+
+  it("refuses a viewer who is neither", () => {
+    assert.equal(gameCanShareInviteLink(base), false);
+  });
+
+  it("refuses once registration is closed or the Game is cancelled", () => {
+    for (const registrationStatus of ["closed", "cancelled"]) {
+      assert.equal(
+        gameCanShareInviteLink({
+          ...base,
+          isRegistered: true,
+          registrationStatus,
+        }),
+        false,
+      );
+    }
+  });
+
+  it("refuses on a Challenge Game", () => {
+    assert.equal(
+      gameCanShareInviteLink({
+        ...base,
+        isOrganizer: true,
+        isChallengeGame: true,
+      }),
+      false,
     );
   });
 });

@@ -8,6 +8,7 @@ import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
 import { courtFigures } from "@repo/domain/friendly-game-court";
 import {
   friendlyGameShareLink,
+  gameCanShareInviteLink,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
 import {
@@ -524,7 +525,7 @@ export function GameDetailsScreen({
     : null;
   const shareLink = data
     ? friendlyGameShareLink({
-        canMintInvite: inviteAccess?.canManage ?? false,
+        canMintInvite: gameCanShareInviteLink(data),
         cancelled: data.cancelledAt != null,
         phase: data.phase ?? null,
       })
