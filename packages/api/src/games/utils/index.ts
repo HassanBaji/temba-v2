@@ -264,6 +264,8 @@ export type CreateGameInput = {
   trackPayments?: boolean;
   /** Football only, with tracking. */
   keepersPlayFree?: boolean;
+  /** One of the Group's running Series. */
+  seriesId?: string;
 };
 
 export type SeatPosition = "left" | "right";

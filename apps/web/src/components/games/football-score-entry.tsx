@@ -203,6 +203,7 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
       await Promise.all([
         utils.games.footballBoard.invalidate({ gameId }),
         utils.games.byId.invalidate({ id: gameId }),
+        utils.series.edition.invalidate({ gameId }),
         utils.games.listMyGames.invalidate(),
         invalidateRatingReads(utils),
       ]);

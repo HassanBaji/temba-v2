@@ -9,6 +9,7 @@ import { MyNotesLink } from "~/components/game-album/my-notes-link";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { cabinetRowModel } from "~/components/marks/cabinet-model";
 import { CabinetRow } from "~/components/marks/cabinet-row";
+import { ProfileSeriesCard } from "~/components/series/profile-series-card";
 import { FootballTab } from "~/components/you/football-tab";
 import { PadelTab } from "~/components/you/padel-tab";
 import { SetUpSportCard } from "~/components/you/set-up-sport-card";
@@ -76,6 +77,7 @@ export default function YouPage() {
             />
             <MatchesToStamp />
             <MyNotesLink />
+            <ProfileSeriesCard userId={details.data.id} />
             {sport === null ? (
               <SetUpSportCard />
             ) : (

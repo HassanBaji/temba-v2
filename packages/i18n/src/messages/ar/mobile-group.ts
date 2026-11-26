@@ -36,7 +36,12 @@ export const mobileGroup = {
     },
   },
   home: {
-    tabs: { standing: "الترتيب", games: "المباريات", members: "الأعضاء" },
+    tabs: {
+      standing: "الترتيب",
+      games: "المباريات",
+      members: "الأعضاء",
+      series: "السلاسل",
+    },
     notFound: {
       title: "المجموعة غير موجودة",
       description: "ربما أُزيلت، أو ليس لديك صلاحية الوصول.",

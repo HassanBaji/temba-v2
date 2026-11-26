@@ -33,6 +33,12 @@ import { PageTitle } from "~/components/layout/page-title";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import { ShareButton } from "~/components/ui/nav-icon-button";
+import { SeriesGameCard } from "~/components/series/series-game-card";
+import { SeriesWinnersCard } from "~/components/series/series-winners-card";
+import {
+  SeriesHeroLine,
+  type WithGameSeries,
+} from "~/components/series/series-hero-line";
 import { Surface } from "~/components/ui/surface";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -68,7 +74,7 @@ export function TournamentKingHome({
   orderError,
   onPostFinalOrder,
 }: {
-  data: TournamentDetails;
+  data: TournamentDetails & WithGameSeries;
   backHref: string;
   actions?: React.ReactNode;
   album?: React.ReactNode;
@@ -127,6 +133,14 @@ export function TournamentKingHome({
           backHref={backHref}
           chip={chip}
           actions={actions}
+          lead={
+            data.series ? (
+              <SeriesWinnersCard
+                gameId={data.id}
+                windowStart={data.windowStart}
+              />
+            ) : null
+          }
         />
       ) : (
         <Surface
@@ -151,8 +165,14 @@ export function TournamentKingHome({
           <p className="text-dim text-meta mt-2 leading-relaxed">
             {leads[tab]}
           </p>
+          {data.series ? (
+            <SeriesHeroLine series={data.series} tone="ink" className="mt-3" />
+          ) : null}
         </Surface>
       )}
+      {data.series ? (
+        <SeriesGameCard gameId={data.id} game="social" className="my-[18px]" />
+      ) : null}
 
       <Tabs
         value={tab}
@@ -597,12 +617,15 @@ function KingFinishedHeader({
   backHref,
   chip,
   actions,
+  lead,
 }: {
   view: KingFinishedView;
   gameId: string;
   backHref: string;
   chip: string | null;
   actions?: React.ReactNode;
+  /** The Series winners card, first under the bar. */
+  lead?: React.ReactNode;
 }) {
   const shareLabel = useMessages().tournamentRounds.finished.shareYourDay;
   return (
@@ -620,6 +643,7 @@ function KingFinishedHeader({
         />
         {actions}
       </TournamentHeaderBar>
+      {lead ? <div className="mt-[22px] empty:hidden">{lead}</div> : null}
       {view.dateLine ? (
         <p className="text-muted-foreground text-meta mt-7">{view.dateLine}</p>
       ) : null}

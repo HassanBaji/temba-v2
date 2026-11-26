@@ -65,6 +65,7 @@ import {
   viewerSideLine,
   type BoardPlayer,
 } from "@repo/domain/football-board";
+import { seriesFactRows } from "@repo/domain/series-fact-row";
 import { CaptainDraftPanel } from "../football/captain-draft-panel";
 import { DraftCard } from "../football/draft-card";
 import { PickInProgressCard } from "../football/pick-in-progress-card";
@@ -104,6 +105,7 @@ import { HeaderIconButton } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { SeriesGameCard } from "../series/series-game-card";
 import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "../trpc/react";
 import { AddPlayerSheet } from "./add-player-sheet";
@@ -118,6 +120,7 @@ import { PerformanceResultCard } from "./performance-result-card";
 import { RateGameCard } from "./rate-game-card";
 import { RatingSummaryCard } from "./rating-summary-card";
 import { GameEditSheet } from "./game-edit-sheet";
+import { useGameEditSeries } from "./use-game-edit-series";
 import { LevelRequestCard } from "./level-request-card";
 import { challengeInfoRows } from "./challenge-details-card";
 import { NameSquadSheet } from "./name-squad-sheet";
@@ -260,6 +263,7 @@ export function FootballGameDetails({
   const refresh = () =>
     Promise.all([
       utils.games.byId.invalidate({ id: gameId }),
+      utils.series.edition.invalidate({ gameId }),
       utils.games.footballBoard.invalidate({ gameId }),
       utils.games.listMyGames.invalidate(),
       utils.games.listPublicPickup.invalidate(),
@@ -362,6 +366,7 @@ export function FootballGameDetails({
       await refreshRatings();
     },
   });
+  const editSeries = useGameEditSeries(game);
   const editSections = gameEditSectionsFor({
     format: game.format,
     sport: game.sport,
@@ -369,6 +374,7 @@ export function FootballGameDetails({
     tournamentRounds: false,
     booked: game.booking != null,
     challenge: game.challenge != null,
+    series: editSeries.shown,
   });
   const edit = useGameEdit({
     gameId,
@@ -504,6 +510,7 @@ export function FootballGameDetails({
     ...(game.groupName
       ? [{ label: copy.football.group, value: game.groupName }]
       : []),
+    ...seriesFactRows(game.series, m),
     ...(game.season
       ? [{ label: copy.football.season, value: game.season.name }]
       : []),
@@ -766,6 +773,7 @@ export function FootballGameDetails({
         whenLine: playedModel.whenLine,
         you: playedModel.you,
         avatar: viewer ? { name: viewer.name, image: viewer.image } : null,
+        series: game.series,
       }}
       board={
         <PlayedFootballBoard
@@ -779,6 +787,9 @@ export function FootballGameDetails({
           marks={marks}
           onOpenPlayer={canOpenProfile ? openProfile : undefined}
         />
+      }
+      seriesCard={
+        game.series ? <SeriesGameCard gameId={gameId} game="played" /> : null
       }
       task={
         <>
@@ -825,6 +836,7 @@ export function FootballGameDetails({
         <FootballHero
           tone={model.hero.tone}
           lines={lines}
+          series={game.series}
           genderTag={game.genderTag}
           tag={
             ratingScopeOf(game) === "temba"
@@ -866,6 +878,7 @@ export function FootballGameDetails({
       }
     >
       <View style={{ gap: SECTION_GAP }}>
+        {game.series ? <SeriesGameCard gameId={gameId} game="played" /> : null}
         {game.cancelledAt ? (
           <Surface accessibilityRole="alert">
             <Text size="title" weight="semibold">
@@ -1236,6 +1249,7 @@ export function FootballGameDetails({
             joined: game.registeredUserCount,
             seasons: game.groupSeasons,
             canChangeSeason: game.canChangeSeason,
+            series: editSeries.context,
           }}
         />
       ) : null}

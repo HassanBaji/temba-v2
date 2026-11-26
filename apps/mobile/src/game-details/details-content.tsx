@@ -35,6 +35,8 @@ import { View } from "react-native";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { SeriesFactRows } from "../series/series-fact-rows";
+import type { SeriesHeroLineSeries } from "../series/series-hero-line";
 import { BookedCard } from "./booked-card";
 import {
   BottomBar,
@@ -138,10 +140,12 @@ function openSeatActionFor(
 
 export function GameDetailsContent({
   game,
+  series = null,
   handlers,
   organizer = null,
 }: {
   game: FriendlyGameDetails;
+  series?: SeriesHeroLineSeries | null;
   handlers: DetailsHandlers;
   organizer?: DetailsOrganizer | null;
 }) {
@@ -182,6 +186,7 @@ export function GameDetailsContent({
           publicGame={isPublicGame(game)}
         />
       )}
+      <SeriesFactRows series={series} />
       {levelCard ? (
         <LevelRequestCard
           card={levelCard}

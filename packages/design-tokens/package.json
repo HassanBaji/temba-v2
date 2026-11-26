@@ -7,6 +7,7 @@
     ".": "./src/tokens.ts",
     "./marks": "./src/marks.ts",
     "./fish": "./src/fish.ts",
+    "./series": "./src/series.ts",
     "./theme.css": "./theme.css"
   },
   "scripts": {

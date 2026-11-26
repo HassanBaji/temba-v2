@@ -8,6 +8,7 @@ import { liveBoardsRouter } from "#src/routers/liveBoards";
 import { marksRouter } from "#src/routers/marks";
 import { notificationsRouter } from "#src/routers/notifications";
 import { ratingsRouter } from "#src/routers/ratings";
+import { seriesRouter } from "#src/routers/series";
 import { teamsRouter } from "#src/routers/teams";
 import { usersRouter } from "#src/routers/users";
 import { venuesRouter } from "#src/routers/venues";
@@ -29,6 +30,7 @@ export const appRouter = createTRPCRouter({
   marks: marksRouter,
   notifications: notificationsRouter,
   ratings: ratingsRouter,
+  series: seriesRouter,
   teams: teamsRouter,
   users: usersRouter,
   venues: venuesRouter,

@@ -8,6 +8,14 @@ import { GameWindowFields } from "~/components/games/game-window-fields";
 import { GenderTagChoices } from "~/components/games/gender-tag";
 import { RoundCountField } from "~/components/games/round-count-field";
 import { MvpModeChoices } from "~/components/marks/mvp-mode-choices";
+import { SeriesBadge } from "~/components/series/series-badge";
+import {
+  SeriesField,
+  seriesAttachPick,
+  type SeriesAttachOption,
+} from "~/components/series/series-field";
+import { useSeriesAttachOptions } from "~/components/series/use-series-attach-options";
+import { Hatch } from "~/components/ui/hatch";
 import type { GameEditController } from "~/components/games/use-game-edit";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import {
@@ -63,6 +71,7 @@ import {
   type GameSeasonChoice,
 } from "@repo/domain/game-season-link";
 import { footballPlayersAllowedBounds } from "@repo/domain/game-shape";
+import { parseGameDateTime } from "@repo/domain/game-window";
 import {
   tournamentTeamCountStep,
   type TournamentResizeShape,
@@ -94,12 +103,47 @@ export type GameEditContext = {
   } | null;
   seasons: readonly GroupSeasonData[];
   canChangeSeason: boolean;
+  series?: GameEditSeriesContext;
   rounds: {
     poolSizes: readonly number[];
     overruns: boolean;
     chosen: boolean;
   } | null;
 };
+
+export type GameEditSeriesContext = {
+  gameId: string;
+  groupId: string | null;
+  windowStart: Date | null;
+  current: SeriesAttachOption | null;
+  /** The Game may join a Series of its Group. */
+  canChange: boolean;
+  /** The score is in, so the Series it has stays. */
+  scoreLocked: boolean;
+};
+
+/**
+ * The Series the Game may be on, numbered for the drafted day. The Series it
+ * already has stays a choice even once it has ended, so it can be kept.
+ */
+function useEditSeriesOptions(
+  series: GameEditSeriesContext,
+  day: string,
+  startTime: string,
+) {
+  const attach = useSeriesAttachOptions({
+    groupId: series.groupId,
+    windowStart: parseGameDateTime(day, startTime) ?? series.windowStart,
+    gameId: series.gameId,
+    enabled: series.canChange,
+    keepPrevious: true,
+  });
+  const { current } = series;
+  if (!current || attach.options.some((option) => option.id === current.id)) {
+    return attach.options;
+  }
+  return [current, ...attach.options];
+}
 
 function SectionHead({
   title,
@@ -845,6 +889,130 @@ function MvpSection({
   );
 }
 
+function SeriesPicker({
+  series,
+  day,
+  startTime,
+  groupName,
+  picked,
+  onPick,
+  onCancel,
+  onConfirm,
+}: {
+  series: GameEditSeriesContext;
+  day: string;
+  startTime: string;
+  groupName: string;
+  picked: string | null;
+  onPick: (id: string | null) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const m = useMessages();
+  const options = useEditSeriesOptions(series, day, startTime);
+  return (
+    <>
+      <ResponsiveDialogHeader className="text-start">
+        <div className="flex items-start justify-between gap-3">
+          <ResponsiveDialogTitle className="font-expanded text-h2">
+            {m.series.attach.title}
+          </ResponsiveDialogTitle>
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+            {m.common.back}
+          </Button>
+        </div>
+        <ResponsiveDialogDescription>
+          {m.series.attach.note(groupName)}
+        </ResponsiveDialogDescription>
+      </ResponsiveDialogHeader>
+      <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-4 md:px-0 md:pb-0">
+        <SeriesField
+          id="edit-series-picker"
+          label={m.series.attach.title}
+          options={options}
+          value={seriesAttachPick(options, picked)?.id ?? null}
+          onChange={onPick}
+          groupName={groupName}
+          showNote={false}
+        />
+      </div>
+      <div className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-0 md:pb-0">
+        <Button type="button" size="lg" className="w-full" onClick={onConfirm}>
+          {m.common.done}
+        </Button>
+      </div>
+    </>
+  );
+}
+
+function SeriesSection({
+  edit,
+  series,
+  groupName,
+  onOpenPicker,
+}: {
+  edit: GameEditController;
+  series: GameEditSeriesContext;
+  groupName: string;
+  onOpenPicker: () => void;
+}) {
+  const m = useMessages();
+  const copy = m.series.attach;
+  const { draft } = edit;
+  const options = useEditSeriesOptions(series, draft.day, draft.startTime);
+  const picked = seriesAttachPick(options, draft.seriesId);
+  const locked = series.scoreLocked;
+  return (
+    <section className="space-y-3">
+      <SectionHead
+        title={m.webGame.edit.stepLabel.series}
+        meta={m.common.optional}
+      />
+      <button
+        type="button"
+        onClick={onOpenPicker}
+        disabled={locked}
+        aria-describedby="edit-series-copy"
+        className="border-rule hover:bg-wash focus-visible:ring-ring/50 flex w-full items-center gap-3 rounded-lg border px-3.5 py-3 text-start outline-none focus-visible:ring-[3px] disabled:hover:bg-transparent"
+      >
+        {picked ? (
+          <SeriesBadge
+            emblem={picked.emblem}
+            colour={picked.colour}
+            size="list"
+          />
+        ) : (
+          <Hatch radius="md" className="block size-11 shrink-0" />
+        )}
+        <span className="min-w-0 flex-1">
+          <span className="text-body block break-words font-semibold">
+            {picked ? copy.review(picked.name, picked.edition) : copy.none}
+          </span>
+          {picked ? null : (
+            <span className="text-muted-foreground text-meta block">
+              {copy.noneHint}
+            </span>
+          )}
+        </span>
+        {locked ? (
+          <Lock
+            aria-hidden="true"
+            className="text-muted-foreground size-4 shrink-0"
+          />
+        ) : (
+          <ChevronRight
+            aria-hidden="true"
+            className="text-muted-foreground size-4 shrink-0 rtl:-scale-x-100"
+          />
+        )}
+      </button>
+      <div id="edit-series-copy">
+        <Hint>{locked ? copy.locked : copy.note(groupName)}</Hint>
+      </div>
+    </section>
+  );
+}
+
 export function GameEditDialog({
   open,
   onOpenChange,
@@ -862,7 +1030,7 @@ export function GameEditDialog({
 }) {
   const locale = useLocale();
   const m = useMessages();
-  const [view, setView] = React.useState<"form" | "season">("form");
+  const [view, setView] = React.useState<"form" | "season" | "series">("form");
   const [picked, setPicked] = React.useState<string | null>(null);
   const { draft, update, error, pending } = edit;
 
@@ -884,10 +1052,16 @@ export function GameEditDialog({
   const capBounds = footballPlayersAllowedBounds(sideSize ?? 5);
   const players = draft.playersAllowed ?? capBounds.min;
   const showSeason = sections.season && context.seasons.length > 0;
+  const groupName = context.groupName ?? m.webGame.edit.thisGroup;
 
   function openPicker() {
     setPicked(draft.seasonId);
     setView("season");
+  }
+
+  function openSeriesPicker() {
+    setPicked(draft.seriesId);
+    setView("series");
   }
 
   return (
@@ -897,7 +1071,21 @@ export function GameEditDialog({
         showCloseButton={false}
         className="md:max-h-[calc(100dvh-4rem)] md:grid-rows-[auto_minmax(0,1fr)_auto]"
       >
-        {view === "season" && context.groupName != null ? (
+        {view === "series" && context.series ? (
+          <SeriesPicker
+            series={context.series}
+            day={draft.day}
+            startTime={draft.startTime}
+            groupName={groupName}
+            picked={picked}
+            onPick={setPicked}
+            onCancel={() => setView("form")}
+            onConfirm={() => {
+              update({ seriesId: picked });
+              setView("form");
+            }}
+          />
+        ) : view === "season" && context.groupName != null ? (
           <SeasonPicker
             choices={gameSeasonChoices(
               context.seasons,
@@ -1249,6 +1437,19 @@ export function GameEditDialog({
               {errorFor("season") ? (
                 <FieldError id="edit-season-error">
                   {errorFor("season")}
+                </FieldError>
+              ) : null}
+              {sections.series && context.series ? (
+                <SeriesSection
+                  edit={edit}
+                  series={context.series}
+                  groupName={groupName}
+                  onOpenPicker={openSeriesPicker}
+                />
+              ) : null}
+              {errorFor("series") ? (
+                <FieldError id="edit-series-error">
+                  {errorFor("series")}
                 </FieldError>
               ) : null}
             </form>

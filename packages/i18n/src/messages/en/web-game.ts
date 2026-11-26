@@ -188,6 +188,7 @@ export const webGame = {
       genderTag: "Who it’s for",
       rounds: "Rounds",
       season: "Season",
+      series: "Series",
       mvp: "MVP",
       teams: "Teams",
       courts: "Courts",

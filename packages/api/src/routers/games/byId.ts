@@ -127,6 +127,9 @@ import {
   type ProveItImpact,
 } from "@repo/domain/game-rating-impact";
 import { groupSeasonRows } from "#src/games/season-link";
+import { gameSeriesSummary, seriesLinkLocked } from "#src/series/series-link";
+import { groupIsVerified } from "#src/groups/group-is-verified";
+import { carriesSeries } from "@repo/domain/series";
 import { toSeasonRow } from "#src/standing/load-group-standing";
 import { MATCH_STATUS } from "@repo/domain/match-status";
 import { guestStandInBand } from "@repo/domain/guest-player";
@@ -792,7 +795,7 @@ export async function gameById(
   const group = game.groupId
     ? await database.query.groups.findFirst({
         where: eq(groups.id, game.groupId),
-        columns: { id: true, name: true },
+        columns: { id: true, name: true, verifiedAt: true, venueId: true },
       })
     : null;
   const seasonRows = game.groupId
@@ -800,6 +803,17 @@ export async function gameById(
     : [];
   const groupSeasons = seasonRows.map((row) => toSeasonRow(row, now));
   const season = groupSeasons.find((row) => row.id === game.seasonId) ?? null;
+  const series = await gameSeriesSummary(database, game);
+  const mayAttachSeries =
+    organizer &&
+    !game.cancelledAt &&
+    carriesSeries(game) &&
+    group != null &&
+    groupIsVerified(group);
+  const seriesScoreIn =
+    (mayAttachSeries || (organizer && series !== null)) &&
+    (await seriesLinkLocked(database, game));
+  const canChangeSeries = mayAttachSeries && !seriesScoreIn;
   const scoreConfirmed = matchRows.some(
     (match) => match.status === MATCH_STATUS.COMPLETED,
   );
@@ -1339,6 +1353,9 @@ export async function gameById(
     season,
     groupSeasons: viewsToStampOnly ? [] : groupSeasons,
     canChangeSeason: organizer && !game.cancelledAt && !scoreConfirmed,
+    series,
+    canChangeSeries,
+    seriesScoreLocked: series !== null && seriesScoreIn,
     venueId: game.venueId,
     venue: venue
       ? {

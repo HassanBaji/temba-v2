@@ -22,7 +22,7 @@ export const ACTION_BOX =
   "border-rule text-ink focus-visible:ring-ring/50 inline-flex size-11 shrink-0 items-center justify-center rounded-md border outline-none focus-visible:ring-[3px]";
 
 /**
- * The one Group home header, shared by Standing, Games, and Members: back, a
+ * The one Group home header, shared by every tab: back, a
  * single tab-dependent action box, the Group name, the meta line, and the
  * segmented tab control, all above a hairline.
  *
@@ -41,6 +41,7 @@ export function GroupHomeChrome({
   memberCount,
   createdAt,
   tab,
+  showSeries,
   canInvite,
   canCreateGame,
   onInvite,
@@ -54,6 +55,8 @@ export function GroupHomeChrome({
   memberCount: number | null;
   createdAt: Date | string | null;
   tab: GroupHomeTab;
+  /** Only a Verified Group has the Series tab. */
+  showSeries: boolean;
   canInvite: boolean;
   canCreateGame: boolean;
   onInvite: () => void;
@@ -127,6 +130,9 @@ export function GroupHomeChrome({
         </TabsTrigger>
         <TabsTrigger value="games">{m.webGroup.home.tab.games}</TabsTrigger>
         <TabsTrigger value="members">{m.webGroup.home.tab.members}</TabsTrigger>
+        {showSeries ? (
+          <TabsTrigger value="series">{m.webGroup.home.tab.series}</TabsTrigger>
+        ) : null}
       </TabsList>
     </div>
   );

@@ -17,6 +17,13 @@ import { Hairline } from "../primitives/hairline";
 import { ResultMark } from "../primitives/result-mark";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { SeriesBadge } from "../series/series-badge";
+import { SeriesGameCard } from "../series/series-game-card";
+import {
+  SeriesHeadingLine,
+  type WithGameSeries,
+} from "../series/series-hero-line";
+import { useSeriesTableBadges } from "../series/use-series-table-badges";
 import { api } from "../trpc/react";
 
 function Row({ children }: { children: React.ReactNode }) {
@@ -82,7 +89,7 @@ export function AmericanoView({
   onOpenPlayer,
   playerOpensActions,
 }: {
-  game: TournamentDetails;
+  game: TournamentDetails & WithGameSeries;
   onOpenPlayer?: (userId: string) => void;
   playerOpensActions?: (userId: string) => boolean;
 }) {
@@ -92,6 +99,7 @@ export function AmericanoView({
   const toast = useToast();
   const utils = api.useUtils();
   const board = api.games.americanoBoard.useQuery({ gameId: game.id });
+  const seriesBadges = useSeriesTableBadges(game.id, game.series != null);
   const register = api.games.register.useMutation({
     onSuccess: (result) =>
       toast.show(hubRegisterToast(result.waitlisted, locale)),
@@ -109,6 +117,9 @@ export function AmericanoView({
   const seatCount = game.playersAllowed ?? 0;
   const canJoin =
     !drawn && !game.isRegistered && (game.canRegister || game.canWaitlist);
+  const seriesCard = game.series ? (
+    <SeriesGameCard gameId={game.id} game="social" />
+  ) : null;
 
   if (!drawn) {
     return (
@@ -126,7 +137,9 @@ export function AmericanoView({
             {m.hero.seats(game.registeredPlayers.length, seatCount)}.{" "}
             {m.drawEntry.waitingCopy(seatCount)}
           </Text>
+          <SeriesHeadingLine series={game.series} />
         </View>
+        {seriesCard}
         <Card
           title={m.players.title}
           meta={m.players.count(game.registeredPlayers.length, seatCount)}
@@ -199,6 +212,10 @@ export function AmericanoView({
       ? messages.common.you
       : shortPlayerName(names.get(id)?.name ?? "");
   const finished = board.data?.finished ?? false;
+  const wonSeries = (playerId: string) => {
+    const userId = names.get(playerId)?.userId;
+    return userId != null && seriesBadges?.userIds.has(userId) === true;
+  };
 
   return (
     <View style={{ gap: 24 }}>
@@ -215,7 +232,9 @@ export function AmericanoView({
         <Text size="meta" tone="muted">
           {m.lead.standings}
         </Text>
+        <SeriesHeadingLine series={game.series} finished={finished} />
       </View>
+      {seriesCard}
 
       <View style={{ gap: 8 }}>
         <Card title={m.tabs.standings}>
@@ -243,6 +262,13 @@ export function AmericanoView({
                     ) : null}
                   </Text>
                 </View>
+                {seriesBadges && wonSeries(row.playerId) ? (
+                  <SeriesBadge
+                    emblem={seriesBadges.emblem}
+                    colour={seriesBadges.colour}
+                    size="line"
+                  />
+                ) : null}
                 <Text size="meta" tone="muted">
                   {signedDifference(row.difference)}
                 </Text>
@@ -256,6 +282,11 @@ export function AmericanoView({
         <Text size="meta" tone="muted">
           {finished ? m.table.final : m.table.live}
         </Text>
+        {seriesBadges ? (
+          <Text size="meta" tone="muted">
+            {seriesBadges.note}
+          </Text>
+        ) : null}
       </View>
 
       {played.length > 0 ? (

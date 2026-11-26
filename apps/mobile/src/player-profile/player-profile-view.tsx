@@ -29,12 +29,13 @@ import {
 const TIGHT = 14;
 
 /**
- * Everything under the hero, in the design's order: the marks cabinet, the
- * Group tier in shared tier Groups, early days or streaks, position, Overall,
- * you and them, partners, then the games.
+ * Everything under the hero, in the design's order: the Series card, the
+ * marks cabinet, the Group tier in shared tier Groups, early days or streaks,
+ * position, Overall, you and them, partners, then the games.
  */
 export function PlayerProfileBody({
   model,
+  series,
   cabinet,
   tier,
   onOpenCabinet,
@@ -44,6 +45,7 @@ export function PlayerProfileBody({
   onSeeAll,
 }: {
   model: PlayerProfileModel;
+  series: React.ReactNode;
   cabinet: CabinetRowModel | null;
   tier: ProfileTierView | null;
   onOpenCabinet: () => void;
@@ -57,6 +59,7 @@ export function PlayerProfileBody({
   const page = m.profile.playerPage;
   return (
     <>
+      {series}
       {cabinet ? <CabinetRow row={cabinet} onOpen={onOpenCabinet} /> : null}
       {tier ? <TierSection tier={tier} onOpenGroup={onOpenGroup} /> : null}
       <View style={{ gap: TIGHT }}>

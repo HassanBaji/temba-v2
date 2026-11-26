@@ -24,6 +24,8 @@ import {
 } from "@repo/domain/tournament-americano-view";
 import { shuffledOrder } from "@repo/domain/tournament-king";
 
+import { SeriesBadge } from "~/components/series/series-badge";
+import type { SeriesTableBadges } from "~/components/series/series-edition-card-model";
 import { ResultMark } from "~/components/temba/result-mark";
 import { Button } from "~/components/ui/button";
 import {
@@ -465,11 +467,14 @@ export function AmericanoTableCard({
   names,
   viewerGamePlayerId,
   final,
+  seriesBadges = null,
 }: {
   table: readonly AmericanoTableRow[];
   names: AmericanoNames;
   viewerGamePlayerId: string | null;
   final: boolean;
+  /** The Series winner's row and the note, when the Social is an Edition. */
+  seriesBadges?: SeriesTableBadges | null;
 }) {
   const m = useMessages().tournamentAmericano.table;
   const anyPlayed = table.some((row) => row.played > 0);
@@ -523,7 +528,7 @@ export function AmericanoTableCard({
                       />
                       <span
                         dir="auto"
-                        className="text-meta min-w-0 truncate font-semibold"
+                        className="text-meta min-w-0 flex-1 truncate font-semibold"
                       >
                         {player?.name}
                         {isViewer ? (
@@ -533,6 +538,15 @@ export function AmericanoTableCard({
                           </span>
                         ) : null}
                       </span>
+                      {seriesBadges &&
+                      player?.userId &&
+                      seriesBadges.userIds.has(player.userId) ? (
+                        <SeriesBadge
+                          emblem={seriesBadges.emblem}
+                          colour={seriesBadges.colour}
+                          size="line"
+                        />
+                      ) : null}
                     </span>
                   </td>
                   <td className="text-meta py-2 text-center tabular-nums">
@@ -553,6 +567,11 @@ export function AmericanoTableCard({
       <p className="text-muted-foreground text-meta leading-relaxed">
         {anyPlayed ? (final ? m.final : m.live) : m.empty}
       </p>
+      {seriesBadges ? (
+        <p className="text-muted-foreground text-meta leading-relaxed">
+          {seriesBadges.note}
+        </p>
+      ) : null}
     </div>
   );
 }
