@@ -545,6 +545,7 @@ describe("series.listForGroup", () => {
       now: DECEMBER_10,
     });
 
+    expect(result.groupName).toBe("Tuesday Night Padel");
     expect(result.enabled).toBe(true);
     expect(result.canManage).toBe(false);
     expect(result.running).toEqual([
@@ -648,6 +649,12 @@ describe("series.listForGroup", () => {
         userId: f.owner.id,
         now: DECEMBER_10,
       }),
-    ).toEqual({ enabled: false, canManage: false, running: [], ended: [] });
+    ).toEqual({
+      groupName: "Tuesday Night Padel",
+      enabled: false,
+      canManage: false,
+      running: [],
+      ended: [],
+    });
   });
 });

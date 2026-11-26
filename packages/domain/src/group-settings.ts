@@ -52,6 +52,7 @@ export function groupJoiningToggleHelp(input: {
 
 export type GroupMenuItem =
   | "edit"
+  | "series"
   | "invite"
   | "copy_link"
   | "rating_settings"
@@ -65,6 +66,8 @@ export function groupMenuLabel(item: GroupMenuItem, locale: Locale) {
       return m.copyLink;
     case "rating_settings":
       return messages.rating.settings.menuRow;
+    case "series":
+      return messages.series.tab.title;
     default:
       return m[item];
   }
@@ -75,12 +78,17 @@ export function groupMenuItems(input: {
   canEdit: boolean;
   canInvite: boolean;
   canCopyLink: boolean;
+  /** A Verified Group, whose Series anyone who may view it may open. */
+  verified?: boolean;
   /** An Organizer of a tier Group (ADR-0068). */
   canChangeRatingSettings?: boolean;
 }): GroupMenuItem[] {
   const items: GroupMenuItem[] = [];
   if (input.canEdit) {
     items.push("edit");
+  }
+  if (input.verified) {
+    items.push("series");
   }
   if (input.canInvite) {
     items.push("invite");
@@ -95,6 +103,13 @@ export function groupMenuItems(input: {
     items.push("leave");
   }
   return items;
+}
+
+/** "{n} running" under the Series row, or nothing while none runs. */
+export function groupMenuSeriesHint(runningCount: number, locale: Locale) {
+  return runningCount > 0
+    ? messagesFor(locale).series.tab.running(runningCount)
+    : null;
 }
 
 export function groupMenuRoleLine(input: {

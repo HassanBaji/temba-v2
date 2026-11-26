@@ -7,6 +7,7 @@ import {
   LogOut,
   Pencil,
   SlidersHorizontal,
+  Trophy,
   UserRoundPlus,
 } from "lucide-react-native";
 
@@ -17,6 +18,7 @@ import { SheetMenu, SheetMenuRow } from "../primitives/sheet-menu";
 
 const ICONS = {
   edit: Pencil,
+  series: Trophy,
   invite: UserRoundPlus,
   copy_link: Link,
   rating_settings: SlidersHorizontal,
@@ -31,6 +33,7 @@ export function GroupMenuSheet({
   items,
   leaveBlockedHint,
   ratingSettingsHint,
+  seriesHint,
   copyPending,
   onPick,
   onClose,
@@ -41,6 +44,7 @@ export function GroupMenuSheet({
   items: GroupMenuItem[];
   leaveBlockedHint: string | null;
   ratingSettingsHint: string | null;
+  seriesHint: string | null;
   copyPending: boolean;
   onPick: (item: GroupMenuItem) => void;
   onClose: () => void;
@@ -63,7 +67,13 @@ export function GroupMenuSheet({
             <SheetMenuRow
               key={item}
               label={groupMenuLabel(item, locale)}
-              hint={item === "rating_settings" ? ratingSettingsHint : null}
+              hint={
+                item === "rating_settings"
+                  ? ratingSettingsHint
+                  : item === "series"
+                    ? seriesHint
+                    : null
+              }
               icon={ICONS[item]}
               trailing="chevron"
               pending={item === "copy_link" && copyPending}

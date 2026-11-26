@@ -33,6 +33,7 @@ export const series = {
     title: "Series",
     running: (n: number) =>
       plural("en", n, { one: "{n} running", other: "{n} running" }),
+    runningTitle: "Running",
     ended: "Ended",
     note: "A series is a social or a game this group plays again and again. Whoever wins one gets its badge on their profile.",
     empty: "No series yet.",
@@ -40,6 +41,7 @@ export const series = {
     next: "Next",
     badgesStay: "Badges stay",
     loadError: "The series could not be loaded",
+    endHint: "Open a series to end it.",
     rowKind: {
       padel: {
         social: "Padel social",

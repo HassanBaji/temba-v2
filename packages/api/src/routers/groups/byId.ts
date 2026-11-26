@@ -21,6 +21,7 @@ import {
   GroupLinkRequestStatusEnum,
   groupMembers,
   groupRatings,
+  groupSeries,
   groupTierEvents,
   groupTierPoints,
   levelOverrides,
@@ -802,6 +803,17 @@ export async function groupById(
       )[0]?.value ?? 0)
     : 0;
 
+  const runningSeriesCount = groupIsVerified(group)
+    ? ((
+        await database
+          .select({ value: count() })
+          .from(groupSeries)
+          .where(
+            and(eq(groupSeries.groupId, group.id), isNull(groupSeries.endedAt)),
+          )
+      )[0]?.value ?? 0)
+    : 0;
+
   const memberRows = await database.query.groupMembers.findMany({
     where: eq(groupMembers.groupId, group.id),
     with: {
@@ -1331,6 +1343,7 @@ export async function groupById(
     joinMode,
     requiresApproval: group.requiresApproval,
     verified: groupIsVerified(group),
+    runningSeriesCount,
     hasTier,
     tierSummary: groupTiers?.summary ?? null,
     /** How ratings work in a tier Group, read-only under Standing. */

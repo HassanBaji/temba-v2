@@ -17,6 +17,7 @@ export type GroupHomeCtaInput = {
 
 export type GroupHomeOverflowItem =
   | "edit"
+  | "series"
   | "create_game"
   | "copy_group_url"
   | "manage_invites"
@@ -40,6 +41,8 @@ export type GroupHomeOverflowInput = {
   canUnlinkVenue?: boolean;
   canManageSeasons?: boolean;
   canEdit?: boolean;
+  /** A Verified Group, whose Series anyone who may view it may open. */
+  verified?: boolean;
   /** An Organizer of a tier Group (ADR-0068). */
   canChangeRatingSettings?: boolean;
 };
@@ -156,6 +159,9 @@ export function groupHomeOverflowItems(
 
   if (input.canEdit) {
     items.push("edit");
+  }
+  if (input.verified) {
+    items.push("series");
   }
   if (input.canShowCreateGame && !createOnBar) {
     items.push("create_game");

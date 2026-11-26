@@ -20,7 +20,7 @@ import { groupDisplayName, type GroupJoinDoor } from "@repo/domain/group-join";
 import type { GroupMenuItem } from "@repo/domain/group-settings";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { EllipsisVertical, UserRoundPlus } from "lucide-react-native";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 
 import {
   ConfirmSheet,
@@ -28,7 +28,6 @@ import {
 } from "../game-details/confirm-sheet";
 import type { GameCardActions } from "../games/game-card";
 import { SeatPickerSheet } from "../games/seat-picker-sheet";
-import { SeriesTab } from "../series/series-tab";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
@@ -44,11 +43,7 @@ import {
 import { GroupMenuSheet } from "./group-menu-sheet";
 import { RejectRequestSheet, WhoCanJoinSheet } from "./join-request-sheets";
 import type { GroupApproverHandlers } from "./use-group-admin";
-import {
-  groupHomeHeader,
-  groupHomeTabs,
-  groupJoinCta,
-} from "./group-home-model";
+import { groupHomeHeader, groupJoinCta } from "./group-home-model";
 import { MembersTab } from "./members-tab";
 import { SavedLevelBanner } from "./saved-level-banner";
 import type { SavedLevel } from "./set-level-model";
@@ -67,6 +62,8 @@ export type GroupMenuProps = {
   leaveBlockedHint: string | null;
   /** The current Rating settings, under their row. */
   ratingSettingsHint: string | null;
+  /** "{n} running" under the Series row, or `null` while none runs. */
+  seriesHint: string | null;
   copyPending: boolean;
   onOpen: () => void;
   onPick: (item: GroupMenuItem) => void;
@@ -128,6 +125,8 @@ export type GroupHomeViewProps = {
   onDeclineVenueRequest: (request: GroupLinkRequestRow) => void;
 };
 
+const TABS: GroupHomeTab[] = ["standing", "games", "members"];
+
 export function GroupHomeView(props: GroupHomeViewProps) {
   const { data } = props;
   const locale = useLocale();
@@ -141,7 +140,6 @@ export function GroupHomeView(props: GroupHomeViewProps) {
     : undefined;
   const { approver } = props.admin;
   const groupRequests = useGroupRequests(data.id, approver.requests);
-  const { tabs, shown: tab } = groupHomeTabs(props.tab, data.verified);
 
   return (
     <View style={{ gap: spacing.compact }}>
@@ -234,26 +232,20 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         />
       ) : null}
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        style={{ flexGrow: 0, marginHorizontal: -spacing.surface }}
-        contentContainerStyle={{ gap: 8, paddingHorizontal: spacing.surface }}
-      >
-        {tabs.map((key) => (
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        {TABS.map((key) => (
           <Button
             key={key}
             label={m.mobileGroup.home.tabs[key]}
             size="sm"
-            variant={key === tab ? "default" : "outline"}
-            selected={key === tab}
+            variant={key === props.tab ? "default" : "outline"}
+            selected={key === props.tab}
             onPress={() => props.onTabChange(key)}
           />
         ))}
-      </ScrollView>
+      </View>
 
-      {tab === "standing" ? (
+      {props.tab === "standing" ? (
         <StandingTab
           data={data}
           apiOrigin={props.apiOrigin}
@@ -267,7 +259,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           onOpenMembers={() => props.onTabChange("members")}
         />
       ) : null}
-      {tab === "games" ? (
+      {props.tab === "games" ? (
         <GamesTab
           {...props.games}
           upcomingGames={data.upcomingGames}
@@ -280,14 +272,13 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           createGameHref={createGameHref}
         />
       ) : null}
-      {tab === "series" ? <SeriesTab groupId={data.id} /> : null}
-      {tab === "members" && props.saved && data.viewerCanSetLevel ? (
+      {props.tab === "members" && props.saved && data.viewerCanSetLevel ? (
         <SavedLevelBanner
           saved={props.saved}
           onDismiss={props.onDismissSaved}
         />
       ) : null}
-      {tab === "members" ? (
+      {props.tab === "members" ? (
         <MembersTab
           groupId={data.id}
           leaderboard={data.standing.leaderboard}
@@ -386,6 +377,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         items={props.menu.items}
         leaveBlockedHint={props.menu.leaveBlockedHint}
         ratingSettingsHint={props.menu.ratingSettingsHint}
+        seriesHint={props.menu.seriesHint}
         copyPending={props.menu.copyPending}
         onPick={props.menu.onPick}
         onClose={props.menu.onClose}

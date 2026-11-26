@@ -25,6 +25,7 @@ import {
   groupLeaveBlockedHint,
   groupMenuItems,
   groupMenuRoleLine,
+  groupMenuSeriesHint,
   groupOwnerLeaveCopy,
   type GroupMenuItem,
 } from "@repo/domain/group-settings";
@@ -64,7 +65,11 @@ import { groupEditPath } from "./group-edit-model";
 import { RequestJoinSheet } from "./request-join-sheet";
 import { groupHomeHeader } from "./group-home-model";
 import { GroupHomeView } from "./group-home-view";
-import { groupRatingSettingsPath, groupTierHistoryPath } from "./groups-model";
+import {
+  groupRatingSettingsPath,
+  groupSeriesPath,
+  groupTierHistoryPath,
+} from "./groups-model";
 import { Notice } from "./notice";
 import { TransferOwnershipSheet } from "./transfer-ownership-sheet";
 import {
@@ -238,15 +243,11 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([
-        group.refetch(),
-        admin.refetchRequests(),
-        utils.series.listForGroup.invalidate({ groupId }),
-      ]);
+      await Promise.all([group.refetch(), admin.refetchRequests()]);
     } finally {
       setRefreshing(false);
     }
-  }, [group, admin, utils, groupId]);
+  }, [group, admin]);
 
   const openSetLevelScreen = useCallback(
     (userId: string) => router.push(setLevelPath(groupId, userId)),
@@ -317,6 +318,9 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
     switch (item) {
       case "edit":
         router.push(groupEditPath(groupId));
+        return;
+      case "series":
+        router.push(groupSeriesPath(groupId));
         return;
       case "invite":
         setInviteOpen(true);
@@ -389,6 +393,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
             canEdit: data.canEdit,
             canInvite: groupHomeCanManageInvites(data),
             canCopyLink: data.canManageInviteLinks,
+            verified: data.verified,
             canChangeRatingSettings: data.ratingSettings != null,
           }),
           roleLine: groupMenuRoleLine({
@@ -405,6 +410,7 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
           ratingSettingsHint: data.ratingSettings
             ? ratingSettingsSummary(data.ratingSettings, locale)
             : null,
+          seriesHint: groupMenuSeriesHint(data.runningSeriesCount, locale),
           copyPending: inviteLink.copyPending,
           onOpen: () => setMenuOpen(true),
           onPick: pickMenuItem,

@@ -11,10 +11,6 @@ import {
   groupMemberIsRemovable,
 } from "@repo/domain/group-home-chrome";
 import {
-  groupHomeShownTab,
-  type GroupHomeTab,
-} from "@repo/domain/group-home-tab";
-import {
   groupDisplayName,
   groupHomeCanJoin,
   groupHomeJoinDoor,
@@ -73,22 +69,6 @@ export type GroupJoinCta = {
   disabled: boolean;
   door: GroupJoinDoor | null;
 };
-
-const BASE_TABS: readonly GroupHomeTab[] = ["standing", "games", "members"];
-
-/**
- * The tab row and the tab on show: Series comes last and only on a Verified
- * Group; asked for elsewhere, Standing shows.
- */
-export function groupHomeTabs(
-  tab: GroupHomeTab,
-  verified: boolean,
-): { tabs: readonly GroupHomeTab[]; shown: GroupHomeTab } {
-  return {
-    tabs: verified ? [...BASE_TABS, "series"] : BASE_TABS,
-    shown: groupHomeShownTab(tab, verified),
-  };
-}
 
 export function groupJoinCta(
   data: GroupHomeData,
