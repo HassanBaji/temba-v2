@@ -20,6 +20,7 @@ export default function NewSeriesRoutePage({
       width="content"
       hidePageHeader
       hideMobileTopBar
+      hideNav
     >
       <NewSeriesPage groupId={id} />
     </DashboardShell>

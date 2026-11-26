@@ -484,6 +484,7 @@ export default function GroupHomePage({
         title={m.invite.kind.group}
         hidePageHeader
         hideMobileTopBar
+        hideNav
       >
         <GroupHomeSkeleton />
       </DashboardShell>
@@ -648,6 +649,7 @@ export default function GroupHomePage({
       hidePageHeader
       hideMobileTopBar
       hidePageTitle
+      hideNav
     >
       {/* <div className="md:-mt-6 lg:mt-0">
         <GroupHomeTopBar name={groupName} overflow={overflowMenu("mobile")} />

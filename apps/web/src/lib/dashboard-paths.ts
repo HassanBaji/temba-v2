@@ -168,6 +168,13 @@ export function pageHidesMobileTopBar(pathname: string) {
   );
 }
 
+export function pageHidesBottomNav(pathname: string) {
+  return (
+    pathname.startsWith("/dashboard/games/new") ||
+    /^\/dashboard\/groups\/(?!new$)[^/]+/.test(pathname)
+  );
+}
+
 export function detailBackHref(pathname: string | null): string | undefined {
   if (!pathname) {
     return undefined;
