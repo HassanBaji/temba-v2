@@ -13,6 +13,7 @@ import { games } from "./games";
 import { gameTeams } from "./game-teams";
 import { matchSets } from "./match-sets";
 import { matchGoals } from "./match-goals";
+import { matchEvents } from "./match-events";
 import { marks } from "./marks";
 import { matchResultConfirmations } from "./match-result-confirmations";
 import { americanoSeats } from "./americano-seats";
@@ -107,6 +108,7 @@ export const matchRelations = relations(matches, ({ one, many }) => ({
   }),
   sets: many(matchSets),
   goals: many(matchGoals),
+  events: many(matchEvents),
   confirmations: many(matchResultConfirmations),
   marks: many(marks),
   americanoSeats: many(americanoSeats),
