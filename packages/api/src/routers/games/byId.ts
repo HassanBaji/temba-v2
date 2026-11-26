@@ -1061,11 +1061,14 @@ export async function gameById(
 
   let matchResultConfirmation: {
     confirmedUserIds: string[];
+    // Every account holder seated on the Match: who may confirm. The name
+    // is from when all of them had to (ADR-0011); one per side is enough
+    // now (ADR-0113).
     requiredUserIds: string[];
     viewerHasConfirmed: boolean;
-    // Account holders whose side has agreed, by their own tap or a
-    // partner's: one player from each side agrees a Match (ADR-0113).
-    sideAgreedUserIds: string[];
+    // Account holders whose side is confirmed, by their own tap or a
+    // partner's: one player from each side confirms a Match (ADR-0113).
+    sideConfirmedUserIds: string[];
     // Final-phase-only Score section footer copy (TEM-181): "Confirmed by
     // both sides on [date]." The latest confirmation row's timestamp,
     // not a proxy off `match.updatedAt` (which any unrelated Match edit,
@@ -1073,8 +1076,8 @@ export async function gameById(
     // column, no schema change.
     confirmedAt: Date | null;
     organizerSides?: { slot: MatchSlot; confirmed: boolean }[];
-    // A final Match that a side's players did not agree was confirmed by an
-    // Organizer (ADR-0044).
+    // A final Match that a side's players did not confirm was confirmed by
+    // an Organizer (ADR-0044).
     confirmedByOrganizer: boolean;
     // Whether the viewer's confirmation is final. A padel Challenge Game's
     // players organize it but confirm as players.
@@ -1121,18 +1124,21 @@ export async function gameById(
   }
 
   if (isIndividualFriendlyGame && friendlyMatch) {
-    const [sides, agreedSlots, confirmedUserIds, organizerSides] =
-      await Promise.all([
-        matchSideSeats(database, friendlyMatch),
-        matchSlotsConfirmed(database, friendlyMatch),
-        matchResultConfirmedUserIds(database, friendlyMatch.id),
-        matchOrganizerSides(database, friendlyMatch),
-      ]);
-    const requiredUserIds = [
-      ...new Set(sides.flatMap((side) => side.accountHolderIds)),
-    ];
-    const sideAgreedUserIds = sides.flatMap((side) =>
-      (side.slot === 1 ? agreedSlots.slot1 : agreedSlots.slot2)
+    const [
+      requiredUserIds,
+      sides,
+      confirmedSlots,
+      confirmedUserIds,
+      organizerSides,
+    ] = await Promise.all([
+      matchSeatedUserIds(database, friendlyMatch),
+      matchSideSeats(database, friendlyMatch),
+      matchSlotsConfirmed(database, friendlyMatch),
+      matchResultConfirmedUserIds(database, friendlyMatch.id),
+      matchOrganizerSides(database, friendlyMatch),
+    ]);
+    const sideConfirmedUserIds = sides.flatMap((side) =>
+      (side.slot === 1 ? confirmedSlots.slot1 : confirmedSlots.slot2)
         ? side.accountHolderIds
         : [],
     );
@@ -1141,7 +1147,7 @@ export async function gameById(
       !isPublicGame(game) &&
       !stampByMatchId.has(friendlyMatch.id) &&
       (requiredUserIds.length === 0 ||
-        !(agreedSlots.slot1 && agreedSlots.slot2));
+        !(confirmedSlots.slot1 && confirmedSlots.slot2));
     const confirmedAt =
       phase === "final" && !confirmedByOrganizer
         ? await matchResultConfirmationCompletedAt(database, friendlyMatch.id)
@@ -1150,7 +1156,7 @@ export async function gameById(
       confirmedUserIds,
       requiredUserIds,
       viewerHasConfirmed: confirmedUserIds.includes(args.userId),
-      sideAgreedUserIds,
+      sideConfirmedUserIds,
       confirmedAt,
       organizerSides,
       confirmedByOrganizer,

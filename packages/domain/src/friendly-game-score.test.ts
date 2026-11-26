@@ -187,10 +187,10 @@ describe("confirmations", () => {
     );
   });
 
-  it("marks a partner whose side already agreed", () => {
+  it("marks a partner whose side is already confirmed", () => {
     assert.deepEqual(
       scoreConfirmationRows(
-        { ...confirmation, sideAgreedUserIds: ["u1", "u2"] },
+        { ...confirmation, sideConfirmedUserIds: ["u1", "u2"] },
         "u2",
         scoreNameByUserId(sides),
         "en",
@@ -203,12 +203,12 @@ describe("confirmations", () => {
     );
   });
 
-  it("does not offer Confirm to a partner whose side already agreed", () => {
+  it("does not offer Confirm to a partner whose side is already confirmed", () => {
     const input = {
       confirmation: {
         ...confirmation,
         viewerHasConfirmed: false,
-        sideAgreedUserIds: ["u1", "u2"],
+        sideConfirmedUserIds: ["u1", "u2"],
       },
       hasResult: true,
       phase: "needs_results" as const,

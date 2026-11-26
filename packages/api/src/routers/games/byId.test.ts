@@ -534,7 +534,7 @@ describe("gameById ratingImpact (TEM-177)", () => {
         afterFinal.matchResultConfirmation?.confirmedUserIds.sort(),
       ).toEqual([a.id, c.id].sort());
       expect(
-        afterFinal.matchResultConfirmation?.sideAgreedUserIds.sort(),
+        afterFinal.matchResultConfirmation?.sideConfirmedUserIds.sort(),
       ).toEqual([a.id, b.id, c.id, d.id].sort());
       expect(afterFinal.matchResultConfirmation?.confirmedByOrganizer).toBe(
         false,

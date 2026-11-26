@@ -67,7 +67,7 @@ export const game = {
     youreIn: "You're in",
     inviteAPlayer: "Invite a player",
     addTheScore: "Add the score",
-    countsOnceOthersConfirm: "Counts once the others confirm",
+    countsOnceOtherSideConfirms: "Counts once the other side confirms",
     addResult: "Add result",
     levelUpdated: "Level updated",
     shareResult: "Share result",
@@ -260,9 +260,9 @@ export const game = {
     entered: (label: string, games: number) => `${label}: ${games}`,
     notEntered: (label: string) => `${label}: not entered yet`,
     confirmedByOrganizer: "Confirmed by the Organizer. Nothing else needed.",
-    confirmedByAllOn: (date: string) =>
+    confirmedByBothSidesOn: (date: string) =>
       `Confirmed by both sides on ${date}. Nothing else needed.`,
-    confirmedByAll: "Confirmed by both sides. Nothing else needed.",
+    confirmedByBothSides: "Confirmed by both sides. Nothing else needed.",
     noScoreYet:
       "No score yet. Anyone who played can add it. One player from the other side confirms before it counts towards your level.",
     scoringOpens:

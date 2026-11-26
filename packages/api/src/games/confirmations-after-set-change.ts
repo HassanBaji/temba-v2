@@ -85,10 +85,13 @@ export async function keepPublicGameConfirmation(
  * automatically, and every other confirmation goes once the score changed, so
  * a changed score needs agreeing again rather than standing on stale ones. A
  * level Knockout Match, or one with no result left, has nothing to confirm.
- * On a Public Game a changed score restarts the other side's 24 hours, and
- * saving the same score again does not move them: it is an agreement with
- * the score, so after the 24 hours it lets the score stand without counting
- * (ADR-0071).
+ * A Set saved with the games it already had confirms nothing: the Apps save
+ * a score one Set at a time, so an unchanged first Set from the other side
+ * would complete the Match before their corrected Set arrived (ADR-0113).
+ * A Public Game is the exception: a changed score restarts the other side's
+ * 24 hours, and saving the same score again does not move them: it is an
+ * agreement with the score, so after the 24 hours it lets the score stand
+ * without counting (ADR-0071).
  */
 export async function settleConfirmationsAfterSetChange(
   tx: Tx,
@@ -112,6 +115,9 @@ export async function settleConfirmationsAfterSetChange(
     if (isPublicGame(args.game)) {
       await removeJob(tx, confirmWindowJobKey(args.match.id));
     }
+    return;
+  }
+  if (!args.scoreChanged && !isPublicGame(args.game)) {
     return;
   }
   if (args.scoreChanged) {

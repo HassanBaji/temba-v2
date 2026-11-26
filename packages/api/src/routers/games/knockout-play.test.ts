@@ -321,13 +321,14 @@ describe("Knockout advance on completion", () => {
         });
       }
 
+      // A partner's tap after their side confirmed adds nothing (ADR-0113).
       await expect(
         confirmMatchResult(db, {
           gameId: seeded.gameId,
           matchId: q2.id,
           userId: side5Right!,
         }),
-      ).rejects.toBeInstanceOf(TRPCError);
+      ).resolves.toEqual({ ok: true });
       await runMatchCompletionEffect(
         db,
         await requireGame(db, seeded.gameId),

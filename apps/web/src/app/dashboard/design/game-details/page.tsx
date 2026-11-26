@@ -146,8 +146,12 @@ function GameDetailsStateColumn({
         {confirmation ? (
           <>
             <Field
-              label="Confirmed"
-              value={`${confirmation.confirmedUserIds.length} / ${confirmation.requiredUserIds.length}`}
+              label="Players confirmed"
+              value={String(confirmation.confirmedUserIds.length)}
+            />
+            <Field
+              label="Players whose side is confirmed"
+              value={`${confirmation.sideConfirmedUserIds?.length ?? 0} / ${confirmation.requiredUserIds.length}`}
             />
             <Field
               label="Viewer confirmed"

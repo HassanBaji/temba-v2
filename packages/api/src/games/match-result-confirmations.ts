@@ -126,8 +126,9 @@ export function sideHasNoAccountHolder(side: MatchSideSeats): boolean {
 }
 
 /**
- * The seated User ids with an account on a Match's two Game teams (ADR-0011's
- * "required" confirmers). Unclaimed players are never required.
+ * The seated User ids with an account on a Match's two Game teams: the
+ * players who may confirm, one of whom per side is enough (ADR-0113).
+ * Unclaimed players never confirm.
  */
 export async function matchSeatedUserIds(
   database: DbClient,

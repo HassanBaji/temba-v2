@@ -148,8 +148,8 @@ function baseFixture(args: {
  * - `upcoming` — an open seat (side 2's right position vacant).
  * - `needsScore` — fully seated, window ended, no Set entered yet.
  * - `needsScorePartiallyConfirmed` — fully seated, one Set entered (the
- *   entering User auto-confirmed per ADR-0011), three confirmations
- *   outstanding.
+ *   entering User auto-confirmed per ADR-0011), one confirmation from the
+ *   other side outstanding (ADR-0113).
  * - `final` — fully seated, Match completed and rated, viewer-scoped
  *   rating-impact fields populated.
  */
@@ -226,7 +226,7 @@ export function createGameDetailsFixtures(now = new Date()): {
       confirmedUserIds: [VIEWER_ID],
       requiredUserIds: [VIEWER_ID, PARTNER_ID, OPPONENT_1_ID, OPPONENT_2_ID],
       viewerHasConfirmed: true,
-      sideAgreedUserIds: [VIEWER_ID, PARTNER_ID],
+      sideConfirmedUserIds: [VIEWER_ID, PARTNER_ID],
       confirmedAt: null,
     },
     ratingImpact: null,
@@ -254,7 +254,12 @@ export function createGameDetailsFixtures(now = new Date()): {
       confirmedUserIds: [VIEWER_ID, OPPONENT_1_ID],
       requiredUserIds: [VIEWER_ID, PARTNER_ID, OPPONENT_1_ID, OPPONENT_2_ID],
       viewerHasConfirmed: true,
-      sideAgreedUserIds: [VIEWER_ID, PARTNER_ID, OPPONENT_1_ID, OPPONENT_2_ID],
+      sideConfirmedUserIds: [
+        VIEWER_ID,
+        PARTNER_ID,
+        OPPONENT_1_ID,
+        OPPONENT_2_ID,
+      ],
       confirmedAt: isoMinutesFrom(now, -2 * 24 * 60 + 90),
     },
     ratingImpact: {

@@ -20,8 +20,8 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 /**
  * Completes a Match and applies its rating effect. This is the automatic
  * counterpart to the organizer's unilateral `completeMatch` door (ADR-0011):
- * it fires once every seated User's Match result confirmation is recorded,
- * from either `scoreSet.ts` (a Set write that reaches full confirmation) or
+ * it fires once one player from each side has confirmed (ADR-0113), from
+ * either `scoreSet.ts` (a changed Set that leaves both sides confirmed) or
  * `confirmMatchResult.ts`. `completeMatch.ts` keeps its own, unchanged
  * organizer force-complete transaction — this is a separate trigger path,
  * not a call into that door.

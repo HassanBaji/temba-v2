@@ -64,7 +64,7 @@ export const game = {
     youreIn: "أنت في التشكيلة",
     inviteAPlayer: "ادعُ لاعبًا",
     addTheScore: "أضف النتيجة",
-    countsOnceOthersConfirm: "تُحتسب بعد تأكيد الآخرين",
+    countsOnceOtherSideConfirms: "تُحتسب بعد تأكيد الفريق الآخر",
     addResult: "إضافة النتيجة",
     levelUpdated: "تم تحديث المستوى",
     shareResult: "مشاركة النتيجة",
@@ -310,9 +310,9 @@ export const game = {
     entered: (label: string, games: number) => `${label}: ${games}`,
     notEntered: (label: string) => `${label}: لم تُدخل بعد`,
     confirmedByOrganizer: "أكّدها المنظّم. لا حاجة إلى شيء آخر.",
-    confirmedByAllOn: (date: string) =>
+    confirmedByBothSidesOn: (date: string) =>
       `أكّدها الفريقان في ${date}. لا حاجة إلى شيء آخر.`,
-    confirmedByAll: "أكّدها الفريقان. لا حاجة إلى شيء آخر.",
+    confirmedByBothSides: "أكّدها الفريقان. لا حاجة إلى شيء آخر.",
     noScoreYet:
       "لا نتيجة بعد. يمكن لأي لاعب شارك إضافتها. يؤكدها لاعب واحد من الفريق الآخر قبل أن تُحتسب في مستواك.",
     scoringOpens:

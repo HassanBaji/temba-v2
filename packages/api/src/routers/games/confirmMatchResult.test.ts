@@ -553,36 +553,78 @@ describe("Match result confirmation (ADR-0011)", () => {
     }
   });
 
-  it("does not clear confirmations when a Set write resubmits the same games-won values", async () => {
+  it("confirms nothing when a Set is saved with the games it already had, from either side", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const { game, matchId, sets, a, b, c, d } =
+      const { game, matchId, sets, a, b, c } =
         await setUpSeatedFriendlyMatch(db);
-      const firstSet = sets[0];
-      if (!firstSet) {
-        throw new Error("Expected a Set shell");
+      const base = { gameId: game.id, matchId, setId: sets[0]!.id };
+      const sameScore = { slot1GamesWon: 6, slot2GamesWon: 2 };
+
+      await scoreSet(db, { ...base, userId: a.id, ...sameScore });
+      await scoreSet(db, { ...base, userId: b.id, ...sameScore });
+      await scoreSet(db, { ...base, userId: c.id, ...sameScore });
+
+      expect(await confirmedUserIds(db, matchId)).toEqual([a.id]);
+      const match = await db.query.matches.findFirst({
+        where: eq(matches.id, matchId),
+      });
+      expect(match?.status).toBe(MatchStatusEnum.PENDING);
+    } finally {
+      await close();
+    }
+  });
+
+  it("lets the other side correct a later Set: the Apps resend every Set in order, and the unchanged first one must not complete the Match", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { game, matchId, sets, b, c, d } =
+        await setUpSeatedFriendlyMatch(db);
+      const base = { gameId: game.id, matchId };
+      const entered = [
+        { setId: sets[0]!.id, slot1GamesWon: 6, slot2GamesWon: 2 },
+        { setId: sets[1]!.id, slot1GamesWon: 6, slot2GamesWon: 3 },
+      ];
+      for (const set of entered) {
+        await scoreSet(db, { ...base, userId: b.id, ...set });
       }
 
-      await scoreSet(db, {
-        gameId: game.id,
-        matchId,
-        setId: firstSet.id,
-        userId: a.id,
-        slot1GamesWon: 6,
-        slot2GamesWon: 2,
-      });
-      // b resubmits the same values — no change, so a's confirmation stays.
-      await scoreSet(db, {
-        gameId: game.id,
-        matchId,
-        setId: firstSet.id,
-        userId: b.id,
-        slot1GamesWon: 6,
-        slot2GamesWon: 2,
-      });
+      const corrected = [
+        entered[0]!,
+        { setId: sets[1]!.id, slot1GamesWon: 3, slot2GamesWon: 6 },
+      ];
+      for (const set of corrected) {
+        await scoreSet(db, { ...base, userId: c.id, ...set });
+      }
 
-      expect(await confirmedUserIds(db, matchId)).toEqual([a.id, b.id].sort());
-      void c;
+      expect(await confirmedUserIds(db, matchId)).toEqual([c.id]);
+      let match = await db.query.matches.findFirst({
+        where: eq(matches.id, matchId),
+        with: { sets: { orderBy: (table, { asc }) => [asc(table.setNumber)] } },
+      });
+      expect(match?.status).toBe(MatchStatusEnum.PENDING);
+      expect(
+        match?.sets
+          .slice(0, 2)
+          .map((set) => [set.slot1GamesWon, set.slot2GamesWon]),
+      ).toEqual([
+        [6, 2],
+        [3, 6],
+      ]);
+      expect(
+        await db.query.ratingEvents.findMany({
+          where: eq(ratingEvents.matchId, matchId),
+        }),
+      ).toHaveLength(0);
+
+      // The corrected score still takes one tap from the side that entered
+      // the first one.
+      await confirmMatchResult(db, { ...base, userId: b.id });
+      match = await db.query.matches.findFirst({
+        where: eq(matches.id, matchId),
+        with: { sets: true },
+      });
+      expect(match?.status).toBe(MatchStatusEnum.COMPLETED);
       void d;
     } finally {
       await close();

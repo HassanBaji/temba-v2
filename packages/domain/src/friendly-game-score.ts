@@ -153,8 +153,8 @@ export function scoreFooterNote(
   }
   if (phase === "final") {
     return confirmedAtLabel
-      ? m.confirmedByAllOn(confirmedAtLabel)
-      : m.confirmedByAll;
+      ? m.confirmedByBothSidesOn(confirmedAtLabel)
+      : m.confirmedByBothSides;
   }
   if (scoreIsOpen(phase)) {
     return m.noScoreYet;
@@ -165,15 +165,15 @@ export function scoreFooterNote(
 export type ScoreOrganizerSide = { slot: 1 | 2; confirmed: boolean };
 
 /**
- * One player from each side agrees a Match (ADR-0113). `sideAgreedUserIds`
- * are the account holders whose side has agreed, by their own tap or a
- * partner's.
+ * One player from each side confirms a Match (ADR-0113).
+ * `sideConfirmedUserIds` are the account holders whose side is confirmed, by
+ * their own tap or a partner's; `requiredUserIds` are all who may confirm.
  */
 export type ScoreConfirmation = {
   confirmedUserIds: string[];
   requiredUserIds: string[];
   viewerHasConfirmed: boolean;
-  sideAgreedUserIds?: string[];
+  sideConfirmedUserIds?: string[];
   organizerSides?: ScoreOrganizerSide[];
 };
 
@@ -185,7 +185,7 @@ export function scoreConfirmationRows(
 ) {
   const m = messagesFor(locale).game.score;
   const confirmed = new Set(confirmation.confirmedUserIds);
-  const sideAgreed = new Set(confirmation.sideAgreedUserIds ?? []);
+  const sideConfirmed = new Set(confirmation.sideConfirmedUserIds ?? []);
   return confirmation.requiredUserIds.map((userId) => {
     const name = names.get(userId) ?? m.player;
     return {
@@ -194,7 +194,7 @@ export function scoreConfirmationRows(
       confirmed: confirmed.has(userId),
       status: confirmed.has(userId)
         ? m.confirmed
-        : sideAgreed.has(userId)
+        : sideConfirmed.has(userId)
           ? m.partnerConfirmed
           : m.waiting,
     };
@@ -231,7 +231,7 @@ export function scoreCanConfirm(input: {
     input.phase !== "final" &&
     input.confirmation.requiredUserIds.includes(input.viewerUserId) &&
     !input.confirmation.viewerHasConfirmed &&
-    !input.confirmation.sideAgreedUserIds?.includes(input.viewerUserId) &&
+    !input.confirmation.sideConfirmedUserIds?.includes(input.viewerUserId) &&
     (input.confirmWindow?.viewerMayConfirm ?? true)
   );
 }
