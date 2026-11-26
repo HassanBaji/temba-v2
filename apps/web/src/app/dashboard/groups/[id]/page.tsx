@@ -4,7 +4,6 @@ import {
   groupLeaveVenueConfirm,
   groupLeftVenueToast,
   groupLinkRequestBannerText,
-  groupPartOfVenueLine,
 } from "@repo/domain/group-link-request";
 import { notFound, useRouter, useSearchParams } from "next/navigation";
 import { use, useRef, useState, type ChangeEvent } from "react";
@@ -671,11 +670,6 @@ export default function GroupHomePage({
 
         <div className="space-y-6 pt-6">
           {venueRequestBanners}
-          {data.venue ? (
-            <p className="text-body text-muted-foreground">
-              {groupPartOfVenueLine(data.venue.name, locale)}
-            </p>
-          ) : null}
 
           {ctaFamily.kind === "join_group" ? (
             <Button

@@ -310,7 +310,6 @@ export const group = {
       confirmLabel: "رفض الطلب",
       cancelLabel: "إبقاء الطلب",
     },
-    partOf: (venue: string) => `مرتبطة بـ ${venue}`,
     unlinkLabel: "فك الارتباط",
     leaveVenueLabel: (venue: string) => `فك الارتباط بـ ${venue}`,
     leaveVenueConfirm: {
