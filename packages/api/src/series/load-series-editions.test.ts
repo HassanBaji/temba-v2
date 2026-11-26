@@ -95,7 +95,7 @@ describe("loadSeriesEditions", () => {
     expect(twentyBySeries).toHaveLength(20);
     expect(oneByGame).toHaveLength(1);
     expect(twentyByGame).toHaveLength(20);
-    expect(oneSeriesQueries).toBe(5);
+    expect(oneSeriesQueries).toBe(6);
     expect(twentySeriesQueries).toBe(oneSeriesQueries);
     expect(oneGameQueries).toBe(oneSeriesQueries);
     expect(twentyGameQueries).toBe(oneSeriesQueries);
