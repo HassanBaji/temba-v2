@@ -9,7 +9,11 @@ import {
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useMessages } from "~/components/locale-provider";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
-import { pageHidesMobileTopBar, titleFromPath } from "~/lib/dashboard-paths";
+import {
+  pageHidesBottomNav,
+  pageHidesMobileTopBar,
+  titleFromPath,
+} from "~/lib/dashboard-paths";
 
 function isGameDetailPath(pathname: string) {
   return /\/dashboard\/games\/(?!new$)[^/]+$/.test(pathname);
@@ -34,6 +38,7 @@ export function DashboardRouteLoading() {
       isSubPage={isSettings}
       hideMobileTopBar={hidesTopBar}
       hidePageHeader={hidesTopBar}
+      hideNav={pageHidesBottomNav(pathname)}
     >
       {isGameDetailPath(pathname) ? (
         <GameDetailsSkeleton />

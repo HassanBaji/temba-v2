@@ -43,6 +43,7 @@ function Frame({
       title={m.rating.history.title}
       hidePageHeader
       hideMobileTopBar
+      hideNav
     >
       <div className="mx-auto flex w-full max-w-[560px] flex-col gap-[26px] pb-6">
         <header className="mt-6 flex items-center gap-3 lg:mt-2">

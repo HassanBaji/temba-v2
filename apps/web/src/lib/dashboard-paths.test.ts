@@ -6,6 +6,7 @@ import { messagesFor } from "@repo/i18n/messages";
 import {
   detailBackHref,
   groupMembersTabHref,
+  pageHidesBottomNav,
   pageHidesMobileTopBar,
   playerMarkPath,
   playerMarksPath,
@@ -140,6 +141,28 @@ describe("pageHidesMobileTopBar", () => {
     "/dashboard/youth",
   ])("keeps the top bar on %s", (pathname) => {
     assert.equal(pageHidesMobileTopBar(pathname), false);
+  });
+});
+
+describe("pageHidesBottomNav", () => {
+  it.each([
+    "/dashboard/games/new",
+    "/dashboard/groups/abc",
+    "/dashboard/groups/abc/edit",
+    "/dashboard/groups/abc/seasons/new",
+    "/dashboard/groups/abc/members/user_1",
+  ])("hides the bottom nav on %s", (pathname) => {
+    assert.equal(pageHidesBottomNav(pathname), true);
+  });
+
+  it.each([
+    "/dashboard",
+    "/dashboard/games",
+    "/dashboard/groups",
+    "/dashboard/groups/new",
+    "/dashboard/challenges",
+  ])("keeps the bottom nav on %s", (pathname) => {
+    assert.equal(pageHidesBottomNav(pathname), false);
   });
 });
 
