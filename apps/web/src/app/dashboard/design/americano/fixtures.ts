@@ -58,6 +58,8 @@ type BoardOptions = {
   /** The Round on court has its first game confirmed and its third to confirm. */
   liveRound: boolean;
   start: Date;
+  /** Player indexes kept together in every Round. */
+  fixedPairs?: readonly (readonly [number, number])[];
 };
 
 export function americanoPreviewBoard(options: BoardOptions): AmericanoBoard {
@@ -68,7 +70,11 @@ export function americanoPreviewBoard(options: BoardOptions): AmericanoBoard {
     name,
     image: null,
   }));
-  const pairings = americanoRounds(ids, ROUNDS);
+  const fixedPairs = (options.fixedPairs ?? []).map(
+    ([first, second]) =>
+      [playerId(first), playerId(second)] as [string, string],
+  );
+  const pairings = americanoRounds(ids, ROUNDS, fixedPairs);
   const results: AmericanoResult[] = [];
   const rounds: AmericanoBoard["rounds"] = [];
   const memberOf = (id: string) => {
@@ -158,9 +164,10 @@ export function americanoPreviewBoard(options: BoardOptions): AmericanoBoard {
     matchMinutes: MATCH_MINUTES,
     viewerGamePlayerId: playerId(VIEWER),
     players,
+    fixedPairs,
     rounds,
     currentRoundNumber: finished ? ROUNDS : options.played + 1,
-    table: americanoTable(ids, results),
+    table: americanoTable(ids, results, fixedPairs),
     finished,
   };
 }

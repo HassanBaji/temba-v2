@@ -120,6 +120,14 @@ export function setsToSave(sets: readonly DraftSet[], drafts: ScoreDrafts) {
   );
 }
 
+/** The score as the boxes read: a box left empty keeps the stored games. */
+export function draftSetGames(sets: readonly DraftSet[], drafts: ScoreDrafts) {
+  return sets.map((set) => ({
+    slot1GamesWon: gamesFromText(drafts[set.id]?.slot1) ?? set.slot1GamesWon,
+    slot2GamesWon: gamesFromText(drafts[set.id]?.slot2) ?? set.slot2GamesWon,
+  }));
+}
+
 export function withDraftChange(
   drafts: ScoreDrafts,
   set: DraftSet,

@@ -35,6 +35,13 @@ import {
 } from "@repo/domain/friendly-game-score";
 import { setLabel } from "@repo/domain/game-copy";
 import { formatGameSideLabel } from "@repo/domain/game-side-label";
+import {
+  scoreChangeNote,
+  scoreChangeReasonOptions,
+  scoreEntryLine,
+  scoreResultLine,
+  scoreReviewBoxState,
+} from "@repo/domain/score-review";
 import { Lock } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
@@ -56,11 +63,13 @@ import {
   withDraftChange,
   type ScoreDrafts,
 } from "./details-model";
+import type { ScoreReview } from "./use-score-review";
 
 const BOX_WIDTH = 56;
 const BOX_HEIGHT = sizes.touchTarget + 4;
 const BOX_GAP = 8;
 const OUTLINE_WIDTH = 1.5;
+const CHANGED_RING = 3;
 const LOCK_TILE = 40;
 const LOCKED_BARS = 3;
 
@@ -70,6 +79,7 @@ function SetBox({
   label,
   draft,
   saving,
+  changed = false,
   onChangeText,
 }: {
   state: SetBoxState;
@@ -77,10 +87,13 @@ function SetBox({
   label: string;
   draft: string;
   saving: boolean;
+  /** The viewer changed this box from the entered score. */
+  changed?: boolean;
   onChangeText: (text: string) => void;
 }) {
   const palette = useTonePalette();
   const locale = useLocale();
+  const m = useMessages();
   const frame = { width: BOX_WIDTH, height: BOX_HEIGHT, borderRadius: 5 };
 
   if (state === "locked" || state === "unplayed") {
@@ -95,7 +108,9 @@ function SetBox({
     return (
       <View style={{ width: BOX_WIDTH }}>
         <TextField
-          accessibilityLabel={label}
+          accessibilityLabel={
+            changed ? m.game.scoreReview.changedBox(label) : label
+          }
           keyboardType="number-pad"
           maxLength={2}
           value={draft}
@@ -103,6 +118,21 @@ function SetBox({
           onChangeText={onChangeText}
           textAlign="center"
         />
+        {changed ? (
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: -CHANGED_RING,
+              right: -CHANGED_RING,
+              bottom: -CHANGED_RING,
+              left: -CHANGED_RING,
+              borderWidth: 2,
+              borderColor: palette.foreground,
+              borderRadius: radii.md + CHANGED_RING,
+            }}
+          />
+        ) : null}
       </View>
     );
   }
@@ -301,6 +331,91 @@ function Confirmations({
   );
 }
 
+/** Under the boxes once a score is in: who won, and who entered or changed it. */
+function ReviewSummary({
+  match,
+  sides,
+  viewerUserId,
+  confirmation,
+  editing,
+}: {
+  match: FriendlyGameDetailsMatch;
+  sides: FriendlyGameDetailsSide[];
+  viewerUserId: string;
+  confirmation: FriendlyGameDetailsConfirmation | null;
+  editing: boolean;
+}) {
+  const locale = useLocale();
+  const palette = useTonePalette();
+  const entry = confirmation?.scoreEntry ?? null;
+  const resultLine = scoreResultLine(match.sets, sides, locale);
+  const entryLine = scoreEntryLine({ entry, viewerUserId, editing }, locale);
+  const note = editing
+    ? null
+    : scoreChangeNote({ entry, viewerUserId, sets: match.sets }, locale);
+  return (
+    <View style={{ gap: 10, paddingTop: 6 }}>
+      <View style={{ gap: 2 }}>
+        {resultLine ? <Text weight="semibold">{resultLine}</Text> : null}
+        {entryLine ? (
+          <Text size="meta" tone="muted">
+            {entryLine}
+          </Text>
+        ) : null}
+      </View>
+      {note ? (
+        <View
+          style={{
+            gap: 2,
+            padding: 12,
+            borderRadius: radii.md,
+            borderWidth: hairline,
+            borderColor: palette.rule,
+            backgroundColor: palette.wash,
+          }}
+        >
+          <Text size="meta" weight="semibold">
+            {note.title}
+          </Text>
+          <Text size="meta" tone="muted">
+            {note.subline}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/** While a score is being changed: the optional reason, as chips. */
+function ChangeReason({ review }: { review: ScoreReview }) {
+  const m = useMessages();
+  const locale = useLocale();
+  return (
+    <View style={{ gap: 10 }}>
+      <Hairline />
+      <Text size="meta" tone="muted">
+        {m.game.scoreReview.whatIsWrong}
+      </Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        {scoreChangeReasonOptions(locale).map((option) => (
+          <Button
+            key={option.value}
+            label={option.label}
+            size="sm"
+            variant={review.reason === option.value ? "default" : "outline"}
+            selected={review.reason === option.value}
+            disabled={review.pending}
+            onPress={() => review.onToggleReason(option.value)}
+          />
+        ))}
+      </View>
+      <Text size="meta" tone="muted">
+        {m.game.scoreReview.editHint}
+      </Text>
+    </View>
+  );
+}
+
 /** Before the Game: one row that says when the score opens. */
 function LockedScore({ courtFull }: { courtFull: boolean }) {
   const m = useMessages();
@@ -355,6 +470,7 @@ export function ScoreCard({
   scorePending,
   confirmPending,
   stampPending = false,
+  review = null,
   onSaveSets,
   onConfirm,
   onStamp,
@@ -372,6 +488,8 @@ export function ScoreCard({
   scorePending: boolean;
   confirmPending: boolean;
   stampPending?: boolean;
+  /** Once a score is in: confirm or dispute it, from the bottom bar (ADR-0115). */
+  review?: ScoreReview | null;
   onSaveSets: (payloads: ReturnType<typeof setsToSave>) => void;
   onConfirm: () => void;
   onStamp?: () => void;
@@ -390,24 +508,32 @@ export function ScoreCard({
     return <LockedScore courtFull={courtFull} />;
   }
 
-  const canEnter = scoreCanEnter(phase, match.canScoreSets);
+  const inReview = review?.active ?? false;
+  const editing = review?.editing ?? false;
+  const boxDrafts = editing && review ? review.drafts : drafts;
+  const canEnter = !inReview && scoreCanEnter(phase, match.canScoreSets);
   const shownSets = scoreShownSets(phase, match.sets);
-  const outOfRange = canEnter && draftsOutOfRange(drafts);
+  const outOfRange = (canEnter || editing) && draftsOutOfRange(boxDrafts);
   const hasResult = match.outcome.result !== "none";
   const names = scoreNameByUserId(sides);
-  const canConfirm = scoreCanConfirm({
-    confirmation,
-    hasResult,
-    phase,
-    viewerUserId,
-    confirmWindow,
-  });
-  const organizerCanConfirm = scoreOrganizerCanConfirm({
-    confirmation,
-    hasResult,
-    phase,
-    isOrganizer,
-  });
+  // In review the bottom bar holds Confirm; the card only lists who is in.
+  const canConfirm =
+    !inReview &&
+    scoreCanConfirm({
+      confirmation,
+      hasResult,
+      phase,
+      viewerUserId,
+      confirmWindow,
+    });
+  const organizerCanConfirm =
+    !inReview &&
+    scoreOrganizerCanConfirm({
+      confirmation,
+      hasResult,
+      phase,
+      isOrganizer,
+    });
   const deciderNote = canEnter
     ? scoreDeciderNote(match.sets.length, locale)
     : null;
@@ -483,27 +609,43 @@ export function ScoreCard({
               </View>
               {shownSets.map((set, index) => {
                 const setName = setLabel(index, locale);
-                const draft = drafts[set.id] ?? { slot1: "", slot2: "" };
-                const state = scoreSetBoxState({
-                  phase,
-                  neverPlayed: scoreSetNeverPlayed(set),
-                  canEnter,
-                  isWinningSide:
-                    side.gameTeamId != null &&
-                    side.gameTeamId === winningGameTeamId,
-                });
+                const draft = boxDrafts[set.id] ?? { slot1: "", slot2: "" };
+                const draftText =
+                  side.sideIndex === 1 ? draft.slot1 : draft.slot2;
+                const value = scoreGamesWonForSide(set, side.sideIndex);
+                const state = inReview
+                  ? scoreReviewBoxState({
+                      set,
+                      sideIndex: side.sideIndex,
+                      editing,
+                    })
+                  : scoreSetBoxState({
+                      phase,
+                      neverPlayed: scoreSetNeverPlayed(set),
+                      canEnter,
+                      isWinningSide:
+                        side.gameTeamId != null &&
+                        side.gameTeamId === winningGameTeamId,
+                    });
                 return (
                   <SetBox
                     key={set.id}
                     state={state}
-                    value={scoreGamesWonForSide(set, side.sideIndex)}
+                    value={value}
                     label={m.mobileGameDetails.score.setBox(sideLabel, setName)}
-                    draft={side.sideIndex === 1 ? draft.slot1 : draft.slot2}
-                    saving={scorePending}
+                    draft={draftText}
+                    saving={editing ? (review?.pending ?? false) : scorePending}
+                    changed={
+                      editing &&
+                      draftText !== "" &&
+                      draftText !== (value == null ? "" : String(value))
+                    }
                     onChangeText={(text) =>
-                      setDrafts((current) =>
-                        withDraftChange(current, set, side.sideIndex, text),
-                      )
+                      editing && review
+                        ? review.onChangeDraft(set, side.sideIndex, text)
+                        : setDrafts((current) =>
+                            withDraftChange(current, set, side.sideIndex, text),
+                          )
                     }
                   />
                 );
@@ -541,6 +683,18 @@ export function ScoreCard({
           </View>
         ) : null}
 
+        {inReview ? (
+          <ReviewSummary
+            match={match}
+            sides={sides}
+            viewerUserId={viewerUserId}
+            confirmation={confirmation}
+            editing={editing}
+          />
+        ) : null}
+
+        {editing && review ? <ChangeReason review={review} /> : null}
+
         {confirmation &&
         scoreShowsConfirmations({ confirmation, hasResult, phase }) ? (
           <Confirmations
@@ -559,7 +713,7 @@ export function ScoreCard({
           <VerifierStamp pending={stampPending} onStamp={onStamp} />
         ) : null}
 
-        {canEnter ? null : (
+        {canEnter || inReview ? null : (
           <FooterNote
             phase={phase}
             confirmedAtLabel={

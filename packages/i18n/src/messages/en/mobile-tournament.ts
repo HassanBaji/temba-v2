@@ -183,6 +183,42 @@ export const mobileTournament = {
     saveDraft: "Save draft",
     draftSaved: "Draft saved",
     inThePool: (n: number) => `${n} in the pool`,
+    players: "Players",
+    tapToOpen: "tap a player to open them",
+    card: {
+      sideUsually: (team: string, code: string) => `${team}, usually ${code}`,
+      notRatedYet: (left: number) =>
+        plural("en", left, {
+          one: "Not rated yet, 1 more game to go",
+          other: "Not rated yet, {n} more games to go",
+        }),
+      sentences: (first: string, second: string) => `${first}. ${second}`,
+      newValue: "New",
+      points: "points",
+      pointsThisMonth: (delta: string) => `points, ${delta} this month`,
+      pointsAfter: (games: number) =>
+        plural("en", games, {
+          one: "points, after 1 game",
+          other: "points, after {n} games",
+        }),
+      ovr: "OVR",
+      games: (n: number) => plural("en", n, { one: "game", other: "games" }),
+      goals: (n: number) => plural("en", n, { one: "goal", other: "goals" }),
+      mvps: "MVP",
+      statSpoken: (value: string, label: string) => `${value} ${label}`,
+      lastFive: "Last five, oldest first",
+      playedSoFar: (n: number) =>
+        plural("en", n, {
+          one: "1 played so far",
+          other: "{n} played so far",
+        }),
+      nonePlayed: "Nothing played yet",
+      moveTo: (team: string) => `Move to ${team}`,
+      makeCaptain: "Make captain",
+      removeCaptain: "Remove captain",
+      fullProfile: "Full profile",
+      statsFailed: "The numbers could not be loaded",
+    },
   },
   aloneTeams: {
     loading: "Loading the teams",

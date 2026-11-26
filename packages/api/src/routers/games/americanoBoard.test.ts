@@ -9,6 +9,7 @@ import {
 } from "vitest";
 
 import { createPgliteDb } from "@repo/db/testing";
+import { americanoWinners } from "@repo/domain/tournament-americano";
 
 import {
   asDb,
@@ -21,6 +22,7 @@ import { americanoBoard } from "#src/routers/games/americanoBoard";
 import { confirmMatchResult } from "#src/routers/games/confirmMatchResult";
 import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { postAmericanoRounds } from "#src/routers/games/postAmericanoRounds";
+import { setAmericanoFixedPairs } from "#src/routers/games/setAmericanoFixedPairs";
 
 const START = new Date("2026-09-25T09:00:00");
 const END = new Date("2026-09-25T11:00:00");
@@ -178,6 +180,68 @@ describe("americanoBoard", () => {
       });
       expect(done.finished).toBe(true);
       expect(done.table.reduce((sum, row) => sum + row.played, 0)).toBe(24);
+    } finally {
+      vi.setSystemTime(new Date("2026-09-01T12:00:00"));
+    }
+  });
+
+  it("gives fixed partners one place, so a pair at the top both win the day", async () => {
+    const { db: database, close } = await createPgliteDb();
+    onTestFinished(close);
+    const organizer = await insertAmericanoUser(database, "Hassan Haji");
+    const gameId = await insertAmericano(database, {
+      createdBy: organizer.id,
+      players: 8,
+      rounds: 3,
+      windowStart: START,
+      windowEnd: END,
+    });
+    const gamePlayerIds = await registerAmericanoPlayers(
+      database,
+      gameId,
+      await insertAmericanoPlayers(database, 8),
+    );
+    const fixed = [gamePlayerIds[3]!, gamePlayerIds[6]!] as const;
+    await setAmericanoFixedPairs(asDb(database), {
+      gameId,
+      organizerUserId: organizer.id,
+      pairs: [{ firstGamePlayerId: fixed[0], secondGamePlayerId: fixed[1] }],
+    });
+    await postAmericanoRounds(asDb(database), {
+      gameId,
+      organizerUserId: organizer.id,
+      gamePlayerIds,
+    });
+    const read = () =>
+      americanoBoard(asDb(database), { gameId, userId: organizer.id });
+
+    const before = await read();
+    expect(before.fixedPairs).toEqual([[...fixed]]);
+    const tiedRows = before.table.filter((row) => fixed.includes(row.playerId));
+    expect(tiedRows[0]?.place).toBe(tiedRows[1]?.place);
+    expect(before.table.indexOf(tiedRows[1]!)).toBe(
+      before.table.indexOf(tiedRows[0]!) + 1,
+    );
+
+    vi.setSystemTime(new Date("2026-09-25T11:30:00"));
+    try {
+      for (const match of before.rounds.flatMap((round) => round.matches)) {
+        const fixedOnSlot1 = match.slot1PlayerIds.includes(fixed[0]);
+        const fixedOnSlot2 = match.slot2PlayerIds.includes(fixed[0]);
+        await enterTournamentScore(asDb(database), {
+          gameId,
+          matchId: match.matchId,
+          userId: organizer.id,
+          slot1GamesWon: fixedOnSlot1 ? 6 : fixedOnSlot2 ? 0 : 3,
+          slot2GamesWon: fixedOnSlot2 ? 6 : fixedOnSlot1 ? 0 : 3,
+        });
+      }
+      const done = await read();
+      expect(done.finished).toBe(true);
+      expect(americanoWinners(done.table).map((row) => row.playerId)).toEqual([
+        ...fixed,
+      ]);
+      expect(done.table[2]?.place).toBe(3);
     } finally {
       vi.setSystemTime(new Date("2026-09-01T12:00:00"));
     }

@@ -33,6 +33,7 @@ import {
 
 import { challengeCostLine } from "@repo/domain/challenge-game-details";
 import { isFootballGame } from "@repo/domain/game-shape";
+import type { ScoreEntry } from "@repo/domain/score-review";
 import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import { initials } from "@repo/domain/initials";
 import { SQUAD_RESERVE_SEATS } from "@repo/domain/matchday-squad";
@@ -70,6 +71,7 @@ import {
   matchOrganizerSides,
   matchResultConfirmedUserIds,
   matchSeatedUserIds,
+  scoreEntryOf,
   matchSideSeats,
   matchSlotsConfirmed,
   publicGameConfirmWindowClosesAt,
@@ -1061,17 +1063,26 @@ export async function gameById(
 
   let matchResultConfirmation: {
     confirmedUserIds: string[];
+    // Every account holder seated on the Match: who may confirm. The name
+    // is from when all of them had to (ADR-0011); one per side is enough
+    // now (ADR-0114).
     requiredUserIds: string[];
     viewerHasConfirmed: boolean;
+    // Account holders whose side is confirmed, by their own tap or a
+    // partner's: one player from each side confirms a Match (ADR-0114).
+    sideConfirmedUserIds: string[];
+    // Who put in the score the Match waits on, and what it replaced when it
+    // was a change to an entered score (ADR-0115).
+    scoreEntry: ScoreEntry | null;
     // Final-phase-only Score section footer copy (TEM-181): "Confirmed by
-    // all four players on [date]." The latest confirmation row's timestamp,
+    // both sides on [date]." The latest confirmation row's timestamp,
     // not a proxy off `match.updatedAt` (which any unrelated Match edit,
     // e.g. a court change, could also touch) — additive read of an existing
     // column, no schema change.
     confirmedAt: Date | null;
     organizerSides?: { slot: MatchSlot; confirmed: boolean }[];
-    // A final Match that not every required player confirmed was confirmed
-    // by an Organizer (ADR-0044).
+    // A final Match that a side's players did not confirm was confirmed by
+    // an Organizer (ADR-0044).
     confirmedByOrganizer: boolean;
     // Whether the viewer's confirmation is final. A padel Challenge Game's
     // players organize it but confirm as players.
@@ -1118,18 +1129,30 @@ export async function gameById(
   }
 
   if (isIndividualFriendlyGame && friendlyMatch) {
-    const [requiredUserIds, confirmedUserIds, organizerSides] =
-      await Promise.all([
-        matchSeatedUserIds(database, friendlyMatch),
-        matchResultConfirmedUserIds(database, friendlyMatch.id),
-        matchOrganizerSides(database, friendlyMatch),
-      ]);
+    const [
+      requiredUserIds,
+      sides,
+      confirmedSlots,
+      confirmedUserIds,
+      organizerSides,
+    ] = await Promise.all([
+      matchSeatedUserIds(database, friendlyMatch),
+      matchSideSeats(database, friendlyMatch),
+      matchSlotsConfirmed(database, friendlyMatch),
+      matchResultConfirmedUserIds(database, friendlyMatch.id),
+      matchOrganizerSides(database, friendlyMatch),
+    ]);
+    const sideConfirmedUserIds = sides.flatMap((side) =>
+      (side.slot === 1 ? confirmedSlots.slot1 : confirmedSlots.slot2)
+        ? side.accountHolderIds
+        : [],
+    );
     const confirmedByOrganizer =
       phase === "final" &&
       !isPublicGame(game) &&
       !stampByMatchId.has(friendlyMatch.id) &&
       (requiredUserIds.length === 0 ||
-        requiredUserIds.some((userId) => !confirmedUserIds.includes(userId)));
+        !(confirmedSlots.slot1 && confirmedSlots.slot2));
     const confirmedAt =
       phase === "final" && !confirmedByOrganizer
         ? await matchResultConfirmationCompletedAt(database, friendlyMatch.id)
@@ -1138,6 +1161,9 @@ export async function gameById(
       confirmedUserIds,
       requiredUserIds,
       viewerHasConfirmed: confirmedUserIds.includes(args.userId),
+      sideConfirmedUserIds,
+      scoreEntry:
+        phase === "final" ? null : await scoreEntryOf(database, friendlyMatch),
       confirmedAt,
       organizerSides,
       confirmedByOrganizer,

@@ -470,7 +470,10 @@ describe("seriesEditionResult: King of the court", () => {
 });
 
 describe("seriesEditionResult: an Americano", () => {
-  const americano = (finished: boolean) =>
+  const americano = (
+    finished: boolean,
+    fixedPairs: readonly (readonly [string, string])[] = [],
+  ) =>
     social({
       tournamentShape: "americano",
       americano: {
@@ -491,6 +494,7 @@ describe("seriesEditionResult: an Americano", () => {
             slot2GamesWon: 11,
           },
         ],
+        fixedPairs,
       },
     });
 
@@ -505,6 +509,31 @@ describe("seriesEditionResult: an Americano", () => {
       state: "won",
       gameTeamIds: [],
       userIds: ["u3"],
+    });
+  });
+
+  it("goes to both players of a fixed pair in first place", () => {
+    const game = social({
+      tournamentShape: "americano",
+      americano: {
+        finished: true,
+        playerIds: ["p1", "p2", "p3", "p4"],
+        userIdByPlayerId: { p1: "u1", p2: "u2", p3: "u3", p4: "u4" },
+        results: [
+          {
+            slot1: ["p1", "p2"],
+            slot2: ["p3", "p4"],
+            slot1GamesWon: 10,
+            slot2GamesWon: 14,
+          },
+        ],
+        fixedPairs: [["p3", "p4"]],
+      },
+    });
+    expect(seriesEditionResult(game)).toEqual({
+      state: "won",
+      gameTeamIds: [],
+      userIds: ["u3", "u4"],
     });
   });
 });

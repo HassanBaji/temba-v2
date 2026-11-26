@@ -16,6 +16,10 @@ import {
   mayBeSideCaptain,
   moveAcross,
   NO_SIDE_CAPTAINS,
+  otherSide,
+  teamsRating,
+  teamsTileName,
+  tierProvisionalCount,
   ovrLabel,
   ovrSpoken,
   placeOn,
@@ -333,13 +337,30 @@ describe("Side captains on the teams draft (ADR-0108)", () => {
 });
 
 describe("teams draft in a tier Group", () => {
+  const ranked = {
+    band: "hamour" as const,
+    place: 1,
+    points: 1200,
+    provisional: false,
+    gamesOfFive: 5,
+  };
   const tierPlayers = [
-    player("k1", { role: "keeper", levelBand: "A", balanceStrength: 1180 }),
-    player("k2", { role: "keeper", levelBand: "D3", balanceStrength: 1214 }),
-    player("a", { levelBand: "D3", balanceStrength: 1412 }),
-    player("b", { levelBand: "D3", balanceStrength: 1356 }),
-    player("c", { levelBand: "A", balanceStrength: 1301 }),
-    player("d", { levelBand: "A", balanceStrength: 1248 }),
+    player("k1", {
+      role: "keeper",
+      levelBand: "A",
+      balanceStrength: 1180,
+      tier: ranked,
+    }),
+    player("k2", {
+      role: "keeper",
+      levelBand: "D3",
+      balanceStrength: 1214,
+      tier: ranked,
+    }),
+    player("a", { levelBand: "D3", balanceStrength: 1412, tier: ranked }),
+    player("b", { levelBand: "D3", balanceStrength: 1356, tier: ranked }),
+    player("c", { levelBand: "A", balanceStrength: 1301, tier: ranked }),
+    player("d", { levelBand: "A", balanceStrength: 1248, tier: ranked }),
   ];
 
   it("splits on balance strength, not on the Level band", () => {
@@ -802,5 +823,121 @@ describe("setPickCaptain", () => {
     });
     expect(setPickCaptain(named, 2, "d").sides).toEqual({ a: 1, d: 2 });
     expect(setPickCaptain(named, 1, null).sides).toEqual({ c: 2 });
+  });
+});
+
+const rankedTier = {
+  band: "hamour" as const,
+  place: 3,
+  points: 1310,
+  provisional: false,
+  gamesOfFive: 5,
+};
+
+describe("teamsRating", () => {
+  it("shows the Tier points the averages are taken over", () => {
+    expect(
+      teamsRating(
+        player("a", { tier: rankedTier, balanceStrength: 1310 }),
+        "tierPoints",
+        "en",
+      ),
+    ).toEqual({ kind: "rated", value: "1,310", spoken: "1,310 points" });
+  });
+
+  it("shows the OVR off a tier Group, a dash without one", () => {
+    expect(
+      teamsRating(player("a", { ovr: 72, balanceStrength: 72.4 }), "ovr", "en"),
+    ).toMatchObject({ kind: "rated", value: "72", spoken: "OVR 72" });
+    expect(teamsRating(player("b"), "ovr", "en")).toMatchObject({
+      kind: "rated",
+      value: "–",
+    });
+  });
+
+  it("reads new while the Group Tier is Provisional, or not started", () => {
+    const provisional = player("a", {
+      tier: { ...rankedTier, provisional: true, place: null, gamesOfFive: 2 },
+      balanceStrength: 1349,
+    });
+    expect(teamsRating(provisional, "tierPoints", "en")).toMatchObject({
+      kind: "new",
+      value: "new",
+    });
+    expect(
+      teamsRating(player("b", { tier: null }), "tierPoints", "en").kind,
+    ).toBe("new");
+  });
+
+  it("reads Guest in a tier Group, and the stand-in OVR elsewhere", () => {
+    const guest = player("g", { guest: true, ovr: 70, balanceStrength: 1231 });
+    expect(teamsRating(guest, "tierPoints", "en")).toEqual({
+      kind: "guest",
+      value: "Guest",
+      spoken: "Guest",
+    });
+    expect(
+      teamsRating({ ...guest, balanceStrength: 70 }, "ovr", "en"),
+    ).toMatchObject({ kind: "rated", value: "70" });
+  });
+
+  it("counts a side's Provisional members, never a Guest player", () => {
+    const side = [
+      player("a", { tier: rankedTier }),
+      player("b", { tier: { ...rankedTier, provisional: true } }),
+      player("c", { tier: null }),
+      player("g", { guest: true }),
+    ];
+    expect(tierProvisionalCount(side, "tierPoints")).toBe(2);
+    expect(tierProvisionalCount(side, "ovr")).toBe(0);
+  });
+});
+
+describe("teamsSideAverage in a tier Group", () => {
+  const side = [
+    player("a", { tier: rankedTier, balanceStrength: 1296 }),
+    player("b", { tier: rankedTier, balanceStrength: 1270 }),
+    player("c", { tier: rankedTier, balanceStrength: 1240 }),
+    player("d", { tier: rankedTier, balanceStrength: 1205 }),
+  ];
+
+  it("leaves a Provisional member's start hint out of the mean", () => {
+    const provisional = player("e", {
+      tier: { ...rankedTier, provisional: true },
+      balanceStrength: 1164,
+    });
+    expect(teamsSideAverage([...side, provisional], "en")).toBe("1,253 points");
+  });
+
+  it("leaves a Guest player's stand-in out of the mean", () => {
+    const guest = player("g", { guest: true, balanceStrength: 900 });
+    expect(teamsSideAverage([...side, guest], "en")).toBe("1,253 points");
+  });
+
+  it("reads a dash while nobody on the side is ranked", () => {
+    expect(
+      teamsSideAverage(
+        [player("e", { tier: null, balanceStrength: 1200 })],
+        "en",
+      ),
+    ).toBe("–");
+  });
+});
+
+describe("teamsTileName", () => {
+  it("keeps the Temba name whole, and says You for the viewer", () => {
+    expect(
+      teamsTileName(player("a", { name: "Abdulrahman Al-Mansoor" }), "en").name,
+    ).toBe("Abdulrahman Al-Mansoor");
+    expect(teamsTileName(player("a", { isViewer: true }), "en").name).toBe(
+      "You",
+    );
+  });
+});
+
+describe("otherSide", () => {
+  it("names the side across", () => {
+    expect(otherSide(1)).toBe(2);
+    expect(otherSide(2)).toBe(1);
   });
 });

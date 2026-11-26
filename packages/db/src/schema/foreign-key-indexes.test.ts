@@ -40,6 +40,7 @@ const ALLOWED_UNINDEXED: Record<string, string> = {
   "match_verifier_stamps.verifier_user_id": USER_ACTOR,
   "match_verifier_stamps.venue_id": RARE_PARENT,
   "match_disputes.raised_by_user_id": USER_ACTOR,
+  "match_score_changes.changed_by_user_id": USER_ACTOR,
   "match_disputes.decided_by_user_id": USER_ACTOR,
   "level_disputes.raised_by_user_id": USER_ACTOR,
   "level_disputes.decided_by_user_id": USER_ACTOR,

@@ -2,6 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatMatchSlotLabel } from "./game-side-label";
+import type { ScoreEntry } from "./score-review";
 
 export type FriendlyScorePhase =
   | "upcoming"
@@ -153,8 +154,8 @@ export function scoreFooterNote(
   }
   if (phase === "final") {
     return confirmedAtLabel
-      ? m.confirmedByAllOn(confirmedAtLabel)
-      : m.confirmedByAll;
+      ? m.confirmedByBothSidesOn(confirmedAtLabel)
+      : m.confirmedByBothSides;
   }
   if (scoreIsOpen(phase)) {
     return m.noScoreYet;
@@ -164,13 +165,26 @@ export function scoreFooterNote(
 
 export type ScoreOrganizerSide = { slot: 1 | 2; confirmed: boolean };
 
+/**
+ * One player from each side confirms a Match (ADR-0114).
+ * `sideConfirmedUserIds` are the account holders whose side is confirmed, by
+ * their own tap or a partner's; `requiredUserIds` are all who may confirm.
+ */
 export type ScoreConfirmation = {
   confirmedUserIds: string[];
   requiredUserIds: string[];
   viewerHasConfirmed: boolean;
+  sideConfirmedUserIds?: string[];
   organizerSides?: ScoreOrganizerSide[];
+  scoreEntry?: ScoreEntry | null;
 };
 
+/**
+ * One row per player who may confirm. Whoever put the score in reads
+ * "Entered it", or "Changed it" when it replaced an earlier one; their
+ * partner is covered by them. On the other side the viewer reads "Your
+ * turn", and the rest wait, "Asked again" once the score was changed.
+ */
 export function scoreConfirmationRows(
   confirmation: ScoreConfirmation,
   viewerUserId: string,
@@ -178,14 +192,37 @@ export function scoreConfirmationRows(
   locale: Locale,
 ) {
   const m = messagesFor(locale).game.score;
+  const review = messagesFor(locale).game.scoreReview;
   const confirmed = new Set(confirmation.confirmedUserIds);
+  const sideConfirmed = new Set(confirmation.sideConfirmedUserIds ?? []);
+  const entry = confirmation.scoreEntry ?? null;
+  const status = (userId: string) => {
+    if (userId === entry?.enteredByUserId) {
+      return {
+        confirmed: true,
+        status: entry.change ? review.changedIt : review.enteredIt,
+      };
+    }
+    if (confirmed.has(userId)) {
+      return { confirmed: true, status: m.confirmed };
+    }
+    if (sideConfirmed.has(userId)) {
+      return { confirmed: false, status: m.partnerConfirmed };
+    }
+    if (entry && userId === viewerUserId) {
+      return { confirmed: true, status: review.yourTurn };
+    }
+    return {
+      confirmed: false,
+      status: entry?.change ? review.askedAgain : m.waiting,
+    };
+  };
   return confirmation.requiredUserIds.map((userId) => {
     const name = names.get(userId) ?? m.player;
     return {
       userId,
       label: userId === viewerUserId ? m.youSuffix(name) : name,
-      confirmed: confirmed.has(userId),
-      status: confirmed.has(userId) ? m.confirmed : m.waiting,
+      ...status(userId),
     };
   });
 }
@@ -196,9 +233,7 @@ export function scoreShowsConfirmations(input: {
   phase: FriendlyScorePhase;
 }) {
   return (
-    input.confirmation != null &&
-    input.hasResult &&
-    scoreIsOpen(input.phase)
+    input.confirmation != null && input.hasResult && scoreIsOpen(input.phase)
   );
 }
 
@@ -222,6 +257,7 @@ export function scoreCanConfirm(input: {
     input.phase !== "final" &&
     input.confirmation.requiredUserIds.includes(input.viewerUserId) &&
     !input.confirmation.viewerHasConfirmed &&
+    !input.confirmation.sideConfirmedUserIds?.includes(input.viewerUserId) &&
     (input.confirmWindow?.viewerMayConfirm ?? true)
   );
 }

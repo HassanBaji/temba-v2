@@ -2,6 +2,7 @@ import { asc, eq } from "drizzle-orm";
 
 import {
   MatchStatusEnum,
+  americanoFixedPairs,
   gamePlayers,
   matchSets,
   matches,
@@ -78,6 +79,22 @@ export async function loadAmericanoPlayers(
     with: { user: { columns: { id: true, name: true, image: true } } },
   });
   return americanoPlayersOf(rows);
+}
+
+/**
+ * An Americano's fixed pairs in pair-number order, each as its two Game
+ * player ids (ADR-0113).
+ */
+export async function loadAmericanoFixedPairs(
+  database: DbClient,
+  gameId: string,
+): Promise<[string, string][]> {
+  const rows = await database.query.americanoFixedPairs.findMany({
+    where: eq(americanoFixedPairs.gameId, gameId),
+    orderBy: [asc(americanoFixedPairs.position)],
+    columns: { firstGamePlayerId: true, secondGamePlayerId: true },
+  });
+  return rows.map((row) => [row.firstGamePlayerId, row.secondGamePlayerId]);
 }
 
 /**

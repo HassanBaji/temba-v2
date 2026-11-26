@@ -8,7 +8,9 @@ import {
   footballResultCard,
   formatFootballResultShareMessage,
   formatPadelResultShareMessage,
+  formatResultShareMessage,
   padelResultCard,
+  playedGameShareMessage,
   padelStickerLine,
   resultCardMvp,
   resultShareCard,
@@ -350,9 +352,52 @@ describe("resultShareCard", () => {
     assert.equal(card?.venue, "Padel Hub, Court 3");
   });
 
-  it("has nothing to share before the result is final", () => {
+  it("marks a final card as confirmed", () => {
+    const card = resultShareCard(padel, null, "en");
+    assert.equal(card?.unconfirmed, false);
+    assert.equal(card?.typeNote, "RATED MATCH");
+  });
+
+  it("builds a played Match's entered score, marked not confirmed", () => {
+    const card = resultShareCard(
+      { ...padel, phase: "needs_results" },
+      null,
+      "en",
+    );
+    assert.equal(card?.kind, "padel");
+    assert.equal(card?.unconfirmed, true);
+    assert.equal(card?.typeNote, "NOT CONFIRMED YET");
+    assert.match(
+      formatResultShareMessage(card!, "https://temba.app/g", "en"),
+      /⏳ Score not confirmed yet\n📍 Padel Hub/,
+    );
+    const ar = resultShareCard(
+      { ...padel, phase: "needs_results" },
+      null,
+      "ar",
+    );
+    assert.equal(ar?.typeNote, "لم تُؤكَّد بعد");
+  });
+
+  it("has nothing to share before a score is entered or the Game is played", () => {
+    const empty = {
+      ...shareMatch,
+      sets: shareMatch.sets.map((set) => ({
+        ...set,
+        slot1GamesWon: null,
+        slot2GamesWon: null,
+      })),
+    };
     assert.equal(
-      resultShareCard({ ...padel, phase: "needs_results" }, null, "en"),
+      resultShareCard(
+        { ...padel, phase: "needs_results", matches: [empty] },
+        null,
+        "en",
+      ),
+      null,
+    );
+    assert.equal(
+      resultShareCard({ ...padel, phase: "ongoing" }, null, "en"),
       null,
     );
   });
@@ -379,17 +424,84 @@ describe("resultShareCard", () => {
     );
     assert.equal(card?.kind, "football");
     assert.equal(card?.venue, "Padel Hub, Pitch 2");
+    assert.equal(card?.unconfirmed, false);
+    const pending = resultShareCard(
+      football,
+      {
+        players: [],
+        teams: { bibs: { slot1: "black", slot2: "white" } },
+        match: { status: "pending", score: { slot1: 2, slot2: 1 } },
+      },
+      "en",
+    );
+    assert.equal(pending?.unconfirmed, true);
+    assert.match(
+      formatResultShareMessage(pending!, "https://temba.app/g", "en"),
+      /⏳ Score not confirmed yet/,
+    );
     assert.equal(
       resultShareCard(
         football,
         {
           players: [],
           teams: { bibs: { slot1: "black", slot2: "white" } },
-          match: { status: "scheduled", score: { slot1: 2, slot2: 1 } },
+          match: { status: "pending", score: null },
         },
         "en",
       ),
       null,
+    );
+    assert.equal(
+      resultShareCard(
+        football,
+        {
+          players: [],
+          teams: { bibs: { slot1: "black", slot2: "white" } },
+          match: { status: "cancelled", score: { slot1: 2, slot2: 1 } },
+        },
+        "en",
+      ),
+      null,
+    );
+  });
+});
+
+describe("playedGameShareMessage", () => {
+  it("names both pairs and says the score is still to come", () => {
+    assert.equal(
+      playedGameShareMessage(
+        { ...padel, phase: "needs_results" },
+        "https://temba.app/g",
+        "en",
+      ),
+      [
+        "🎾 Padel game played",
+        "👥 You & Maryam vs Hassan & Khalid",
+        "⏳ Score not entered yet",
+        "📍 Padel Hub, Court 3",
+        "📅 Sat 10 Oct 2026, 8:00 PM",
+        "🔗 https://temba.app/g",
+      ].join("\n"),
+    );
+  });
+
+  it("skips the pairs of a football Game and of an unfilled court", () => {
+    const football: ResultShareGame = {
+      ...padel,
+      sport: "football",
+      roster: { users: [], count: 0, cap: 12 },
+      recordedCourts: [{ name: "Pitch 2" }],
+      sides: [],
+      matches: [],
+    };
+    const message = playedGameShareMessage(football, "https://t/g", "en");
+    assert.match(
+      message,
+      /^⚽ Football game played\n⏳ Score not entered yet\n📍 Padel Hub, Pitch 2\n/,
+    );
+    assert.doesNotMatch(
+      playedGameShareMessage({ ...padel, sides: [] }, "https://t/g", "en"),
+      /👥/,
     );
   });
 });

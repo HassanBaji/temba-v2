@@ -84,6 +84,10 @@ export const football = {
     ) => `Everyone placed. ${team1} avg ${average1}, ${team2} avg ${average2}.`,
     keeperCount: (n: number) =>
       plural("en", n, { one: "1 keeper", other: "{n} keepers" }),
+    notRatedCount: (n: number) =>
+      plural("en", n, { one: "1 not rated", other: "{n} not rated" }),
+    tileNew: "new",
+    tileNewSpoken: "New, not rated yet",
     bothSidesConfirmed: "Both sides confirmed.",
     confirmedByOrganizer: "Confirmed by the Organizer.",
     waitingOrganizerFor: (team: string) =>

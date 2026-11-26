@@ -1,6 +1,6 @@
 "use client";
 
-import { PlusIcon, ShuffleIcon } from "lucide-react";
+import { Link2Icon, PlusIcon, ShuffleIcon } from "lucide-react";
 import * as React from "react";
 
 import { formatGameClock } from "@repo/domain/format-game-start";
@@ -9,11 +9,17 @@ import { shortPlayerName } from "@repo/domain/player-name";
 import {
   AMERICANO_PLAYER_MIN,
   AMERICANO_PLAYERS_PER_COURT,
+  americanoFixedPairNumber,
+  americanoFixedPairsFit,
+  americanoFixedPartner,
   americanoMatchCount,
+  americanoRotatingPlayers,
   americanoRoundOf,
   americanoRounds,
   clampAmericanoRounds,
+  isAmericanoFixedPair,
   swapInOrder,
+  type AmericanoPair,
   type AmericanoTableRow,
 } from "@repo/domain/tournament-americano";
 import {
@@ -76,6 +82,7 @@ export function AmericanoPlayerChip({
   onClick,
   label,
   place,
+  pair,
 }: {
   name: string;
   image?: string | null;
@@ -85,6 +92,8 @@ export function AmericanoPlayerChip({
   label?: string;
   /** A Waitlist entry's place in line, shown at the end. */
   place?: number;
+  /** The number of the fixed pair the player is in, shown at the end. */
+  pair?: number;
 }) {
   const m = useMessages();
   const content = (
@@ -119,6 +128,17 @@ export function AmericanoPlayerChip({
           )}
         >
           {place}
+        </span>
+      ) : null}
+      {pair != null ? (
+        <span
+          className={cn(
+            "text-eyebrow ms-auto flex shrink-0 items-center gap-1",
+            isViewer || selected ? "text-paper/70" : "text-muted-foreground",
+          )}
+        >
+          <Link2Icon aria-hidden="true" className="size-3" />
+          {m.tournamentAmericano.fixedPairs.pairTag(pair)}
         </span>
       ) : null}
     </>
@@ -188,6 +208,7 @@ export function AmericanoPlayersGrid({
   onOpenSeat,
   onPlayer,
   playerLabel,
+  pairOf,
 }: {
   players: readonly { userId: string; name: string; image?: string | null }[];
   seatCount: number;
@@ -195,6 +216,8 @@ export function AmericanoPlayersGrid({
   onOpenSeat?: () => void;
   onPlayer?: (userId: string) => void;
   playerLabel?: (name: string) => string;
+  /** The fixed pair number of a player, by User id. */
+  pairOf?: (userId: string) => number | null;
 }) {
   const open = Math.max(0, seatCount - players.length);
   return (
@@ -211,6 +234,7 @@ export function AmericanoPlayersGrid({
               : undefined
           }
           label={playerLabel?.(player.name)}
+          pair={pairOf?.(player.userId) ?? undefined}
         />
       ))}
       {Array.from({ length: open }, (_, index) => (
@@ -287,6 +311,7 @@ function PairNames({
   align = "start",
   selected,
   onPick,
+  fixed = false,
 }: {
   ids: readonly string[];
   names: AmericanoNames;
@@ -294,6 +319,8 @@ function PairNames({
   align?: "start" | "end";
   selected?: ReadonlySet<string>;
   onPick?: (gamePlayerId: string) => void;
+  /** The pair is a fixed pair: marked, and no swap may split it. */
+  fixed?: boolean;
 }) {
   const m = useMessages();
   return (
@@ -309,7 +336,7 @@ function PairNames({
           id === viewerGamePlayerId
             ? m.common.you
             : (names.get(id)?.name ?? "");
-        if (onPick) {
+        if (onPick && !fixed) {
           const picked = selected?.has(id) ?? false;
           return (
             <button
@@ -342,6 +369,12 @@ function PairNames({
           </span>
         );
       })}
+      {fixed ? (
+        <span className="text-muted-foreground flex items-center gap-1 text-[11px] leading-none">
+          <Link2Icon aria-hidden="true" className="size-3" />
+          {m.tournamentAmericano.fixedPairs.fixed}
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -363,6 +396,7 @@ export function AmericanoGameRow({
   onEnter,
   onConfirm,
   swap,
+  fixedPairs = [],
 }: {
   match: AmericanoBoardMatch;
   names: AmericanoNames;
@@ -370,6 +404,7 @@ export function AmericanoGameRow({
   onEnter?: () => void;
   onConfirm?: () => void;
   swap?: { selected: ReadonlySet<string>; onPick: (id: string) => void };
+  fixedPairs?: readonly AmericanoPair[];
 }) {
   const m = useMessages().tournamentAmericano;
   const score = scoreLine(match);
@@ -443,6 +478,7 @@ export function AmericanoGameRow({
           viewerGamePlayerId={viewerGamePlayerId}
           selected={swap?.selected}
           onPick={swap?.onPick}
+          fixed={isAmericanoFixedPair(fixedPairs, match.slot1PlayerIds)}
         />
         <span className="text-muted-foreground text-[11px]">{m.draw.vs}</span>
         <PairNames
@@ -452,6 +488,7 @@ export function AmericanoGameRow({
           align="end"
           selected={swap?.selected}
           onPick={swap?.onPick}
+          fixed={isAmericanoFixedPair(fixedPairs, match.slot2PlayerIds)}
         />
       </span>
       {trailing ? (
@@ -468,15 +505,19 @@ export function AmericanoTableCard({
   viewerGamePlayerId,
   final,
   seriesBadges = null,
+  fixedPairs = [],
 }: {
   table: readonly AmericanoTableRow[];
   names: AmericanoNames;
   viewerGamePlayerId: string | null;
   final: boolean;
+  fixedPairs?: readonly AmericanoPair[];
   /** The Series winner's row and the note, when the Social is an Edition. */
   seriesBadges?: SeriesTableBadges | null;
 }) {
-  const m = useMessages().tournamentAmericano.table;
+  const messages = useMessages();
+  const m = messages.tournamentAmericano.table;
+  const pairCopy = messages.tournamentAmericano.fixedPairs;
   const anyPlayed = table.some((row) => row.played > 0);
   return (
     <div className="space-y-3">
@@ -508,6 +549,7 @@ export function AmericanoTableCard({
             {table.map((row) => {
               const player = names.get(row.playerId);
               const isViewer = row.playerId === viewerGamePlayerId;
+              const partner = americanoFixedPartner(fixedPairs, row.playerId);
               return (
                 <tr key={row.playerId} className={cn(isViewer && "bg-wash")}>
                   <td className="text-muted-foreground text-meta py-2 ps-4 tabular-nums">
@@ -526,15 +568,31 @@ export function AmericanoTableCard({
                         isViewer={isViewer}
                         className="size-8"
                       />
-                      <span
-                        dir="auto"
-                        className="text-meta min-w-0 flex-1 truncate font-semibold"
-                      >
-                        {player?.name}
-                        {isViewer ? (
-                          <span className="text-muted-foreground font-normal">
-                            {" "}
-                            {m.you}
+                      <span className="min-w-0 flex-1">
+                        <span
+                          dir="auto"
+                          className="text-meta block truncate font-semibold"
+                        >
+                          {player?.name}
+                          {isViewer ? (
+                            <span className="text-muted-foreground font-normal">
+                              {" "}
+                              {m.you}
+                            </span>
+                          ) : null}
+                        </span>
+                        {partner ? (
+                          <span className="text-muted-foreground flex items-center gap-1 text-[11px] leading-tight">
+                            <Link2Icon aria-hidden="true" className="size-3" />
+                            <span dir="auto" className="truncate">
+                              {partner === viewerGamePlayerId
+                                ? pairCopy.withYou
+                                : pairCopy.withPartner(
+                                    shortPlayerName(
+                                      names.get(partner)?.name ?? "",
+                                    ),
+                                  )}
+                            </span>
                           </span>
                         ) : null}
                       </span>
@@ -583,10 +641,12 @@ export function AmericanoYourRounds({
   viewerGamePlayerId,
   finished,
   onEnter,
+  fixedPairs = [],
 }: {
   matches: readonly (AmericanoViewMatch & AmericanoBoardMatch)[];
   names: AmericanoNames;
   viewerGamePlayerId: string | null;
+  fixedPairs?: readonly AmericanoPair[];
   finished: boolean;
   onEnter?: (match: AmericanoBoardMatch, roundNumber: number) => void;
 }) {
@@ -605,6 +665,9 @@ export function AmericanoYourRounds({
     (sum, entry) => sum + (entry.outcome ? (entry.theirs ?? 0) : 0),
     0,
   );
+  const fixedPartner = viewerGamePlayerId
+    ? americanoFixedPartner(fixedPairs, viewerGamePlayerId)
+    : null;
   const shortNames = (ids: readonly string[]) =>
     ids
       .map((id) => playerShortName(names, id, viewerGamePlayerId, m.common.you))
@@ -618,7 +681,12 @@ export function AmericanoYourRounds({
         <p className="text-muted-foreground text-meta">
           {finished
             ? a.finishedMeta(gamesFor, gamesAgainst)
-            : a.meta(played.length)}
+            : fixedPartner
+              ? a.metaFixed(
+                  played.length,
+                  shortPlayerName(names.get(fixedPartner)?.name ?? ""),
+                )
+              : a.meta(played.length)}
         </p>
       </div>
       <ol className={cn(ROUND_CARD, "divide-rule divide-y")}>
@@ -710,10 +778,13 @@ export function AmericanoDrawSheet({
   pending,
   error,
   onMake,
+  fixedPairs = [],
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   players: readonly AmericanoPlayer[];
+  /** Kept together in every Round; their chips cannot be swapped. */
+  fixedPairs?: readonly AmericanoPair[];
   roundCount: number;
   viewerGamePlayerId: string | null;
   courtNames: readonly string[];
@@ -743,10 +814,16 @@ export function AmericanoDrawSheet({
     [players],
   );
   const enough = ids.length >= AMERICANO_PLAYER_MIN;
-  const ready = enough && ids.length % AMERICANO_PLAYERS_PER_COURT === 0;
+  const inFours = enough && ids.length % AMERICANO_PLAYERS_PER_COURT === 0;
   const rounds = clampAmericanoRounds(roundCount, ids.length);
+  const pairsFit = americanoFixedPairsFit({
+    players: ids.length,
+    rounds,
+    fixedPairs: fixedPairs.length,
+  });
+  const ready = inFours && pairsFit;
   const roundOne = ready
-    ? americanoRoundOf(americanoRounds(order, rounds), 1)
+    ? americanoRoundOf(americanoRounds(order, rounds, fixedPairs), 1)
     : [];
   const courtLine =
     courtNames.length > 0
@@ -777,6 +854,7 @@ export function AmericanoDrawSheet({
                   ids.length,
                   rounds,
                   americanoMatchCount(ids.length, rounds),
+                  pairsFit ? fixedPairs.length : 0,
                 )}
               </DrawerDescription>
             </div>
@@ -829,18 +907,27 @@ export function AmericanoDrawSheet({
                         <div className="grid grid-cols-2 gap-1.5">
                           {pair.map((id) => {
                             const player = names.get(id);
+                            const pairNumber = americanoFixedPairNumber(
+                              fixedPairs,
+                              id,
+                            );
                             return (
                               <AmericanoPlayerChip
                                 key={id}
                                 name={player?.name ?? ""}
                                 isViewer={id === viewerGamePlayerId}
                                 selected={picked === id}
+                                pair={pairNumber ?? undefined}
                                 label={
                                   picked === id
                                     ? m.draw.selected(player?.name ?? "")
                                     : player?.name
                                 }
-                                onClick={pending ? undefined : () => pick(id)}
+                                onClick={
+                                  pending || pairNumber != null
+                                    ? undefined
+                                    : () => pick(id)
+                                }
                               />
                             );
                           })}
@@ -853,9 +940,14 @@ export function AmericanoDrawSheet({
             </ol>
           ) : (
             <p role="alert" className="text-destructive text-meta">
-              {enough
-                ? m.draw.notInFours(ids.length)
-                : m.draw.belowMinimum(AMERICANO_PLAYER_MIN)}
+              {!enough
+                ? m.draw.belowMinimum(AMERICANO_PLAYER_MIN)
+                : !inFours
+                  ? m.draw.notInFours(ids.length)
+                  : m.errors.fixedPairsTooMany(
+                      americanoRotatingPlayers(ids.length, fixedPairs.length),
+                      rounds,
+                    )}
             </p>
           )}
 

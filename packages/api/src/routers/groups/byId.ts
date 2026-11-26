@@ -57,6 +57,7 @@ import {
   americanoDayFinished,
   americanoMatchState,
   americanoResults,
+  loadAmericanoFixedPairs,
   loadAmericanoMatches,
   loadAmericanoPlayers,
 } from "#src/games/americano-matches";
@@ -70,7 +71,11 @@ import {
   viewerHubContext,
   type HubQueryRow,
 } from "#src/games/helpers/hub-list";
-import { americanoTable, isAmericano } from "@repo/domain/tournament-americano";
+import {
+  americanoTable,
+  americanoWinners,
+  isAmericano,
+} from "@repo/domain/tournament-americano";
 import { americanoPlayedSummary } from "@repo/domain/tournament-americano-view";
 import {
   isKingOfTheCourt,
@@ -395,9 +400,10 @@ async function americanoPlayedSocial(
   userId: string,
   now: Date,
 ): Promise<GroupPlayedSocialData | null> {
-  const [players, matchRows] = await Promise.all([
+  const [players, matchRows, fixedPairs] = await Promise.all([
     loadAmericanoPlayers(database, game.id),
     loadAmericanoMatches(database, game.id),
+    loadAmericanoFixedPairs(database, game.id),
   ]);
   if (matchRows.length === 0) {
     return null;
@@ -406,16 +412,25 @@ async function americanoPlayedSocial(
   const table = americanoTable(
     players.map((player) => player.gamePlayerId),
     americanoResults(matchRows),
+    fixedPairs,
   );
   const viewer = players.find((player) => player.userId === userId);
-  const top = finished
-    ? players.find((player) => player.gamePlayerId === table[0]?.playerId)
-    : undefined;
+  const winners = finished
+    ? americanoWinners(table).flatMap((row) =>
+        players.filter((player) => player.gamePlayerId === row.playerId),
+      )
+    : [];
   return {
     tournamentShape: game.tournamentShape,
     entrantCount: players.length,
     finished,
-    winner: top ? { names: [top.name], isViewer: top.userId === userId } : null,
+    winner:
+      winners.length > 0
+        ? {
+            names: winners.map((player) => player.name),
+            isViewer: winners.some((player) => player.userId === userId),
+          }
+        : null,
     americano: viewer
       ? americanoPlayedSummary({
           players,

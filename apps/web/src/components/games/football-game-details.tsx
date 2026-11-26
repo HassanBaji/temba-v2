@@ -51,10 +51,17 @@ import { FootballScoreCard } from "~/components/games/football-score-card";
 import { TeamColumns } from "~/components/games/football-team-columns";
 import { PlayedFootballBoard } from "~/components/games/played/played-football-board";
 import { MatchDisputeRow } from "~/components/games/played/match-dispute-row";
-import { PlayedGameView } from "~/components/games/played/played-game-view";
+import {
+  PlayedGameView,
+  shareResultHref,
+} from "~/components/games/played/played-game-view";
 import { OvrImpactCard } from "~/components/games/ovr-impact-card";
 import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { gamePaymentsTracked } from "@repo/domain/game-payments";
+import {
+  footballScoreAwaitsConfirmation,
+  playedGameShareMessage,
+} from "@repo/domain/game-result-share";
 import { PerformanceResultCard } from "~/components/games/performance-result-card";
 import { RateGameCard } from "~/components/games/rate-game-card";
 import { RatingSummaryCard } from "~/components/games/rating-summary-card";
@@ -395,8 +402,27 @@ export function FootballGameDetails({
     onError,
   });
   // An Invite link opens for anyone, the Game page only for whoever may
-  // already see the Game, so whoever may mint one shares it (ADR-0110).
+  // already see the Game, so whoever may mint one shares it (ADR-0110). A
+  // played Game shares its result instead, or that it was played while no
+  // Score is entered.
   function shareGame() {
+    if (footballScoreAwaitsConfirmation(board.data?.match)) {
+      router.push(shareResultHref(gameId));
+      return;
+    }
+    if (game.phase === "needs_results") {
+      void shareLinkWithFeedback(
+        utils.games.resultLink
+          .fetch({ gameId })
+          .then((page) => ({
+            text: playedGameShareMessage(game, page.url, locale),
+          }))
+          .catch(() => null),
+        m.webUi.shareResult.messageCopied,
+        locale,
+      );
+      return;
+    }
     const mints = gameCanShareInviteLink(game);
     const url = mints
       ? createInviteLink
