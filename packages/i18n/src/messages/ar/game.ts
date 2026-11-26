@@ -383,6 +383,10 @@ export const game = {
       `🏆 ${winners} تغلّبوا على ${losers} ${won}–${lost}`,
     footballResult: "⚽ نتيجة كرة القدم",
     unconfirmedLine: "⏳ النتيجة لم تُؤكَّد بعد",
+    padelPlayed: "🎾 لُعبت مباراة بادل",
+    footballPlayed: "⚽ لُعبت مباراة كرة قدم",
+    versus: (first: string, second: string) => `👥 ${first} ضد ${second}`,
+    noScoreLine: "⏳ لم تُدخَل النتيجة بعد",
   },
   hubEmpty: {
     noGamesYet: "لا مباريات بعد",

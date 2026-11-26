@@ -329,6 +329,10 @@ export const game = {
       `🏆 ${winners} beat ${losers} ${won}–${lost}`,
     footballResult: "⚽ Football result",
     unconfirmedLine: "⏳ Score not confirmed yet",
+    padelPlayed: "🎾 Padel game played",
+    footballPlayed: "⚽ Football game played",
+    versus: (first: string, second: string) => `👥 ${first} vs ${second}`,
+    noScoreLine: "⏳ Score not entered yet",
   },
   hubEmpty: {
     noGamesYet: "No Games yet",

@@ -127,6 +127,7 @@ import { challengeInfoRows } from "./challenge-details-card";
 import { NameSquadSheet } from "./name-squad-sheet";
 import { ChallengeSquads } from "./squad-grid";
 import { useShareGame } from "./use-share-game";
+import { useSharePlayedGame } from "./use-share-played-game";
 import { TeamVsTeamRow } from "./team-vs-team-row";
 import { useGameEdit } from "./use-game-edit";
 import { useRequestDecisions } from "./use-request-decisions";
@@ -260,6 +261,7 @@ export function FootballGameDetails({
       }
     : baseLines;
   const shareGame = useShareGame(gameId);
+  const sharePlayedGame = useSharePlayedGame(gameId);
 
   const refresh = () =>
     Promise.all([
@@ -859,6 +861,13 @@ export function FootballGameDetails({
                 icon={Share}
                 accessibilityLabel={m.game.cta.shareResult}
                 onPress={() => router.push(sharePath(gameId))}
+              />
+            ) : !game.cancelledAt && game.phase === "needs_results" ? (
+              <HeaderIconButton
+                framed
+                icon={Share}
+                accessibilityLabel={m.mobileGameDetails.hero.shareGame}
+                onPress={() => void sharePlayedGame(game)}
               />
             ) : challenge && !game.cancelledAt ? (
               <HeaderIconButton

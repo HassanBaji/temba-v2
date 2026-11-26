@@ -111,6 +111,7 @@ import { gameMenuItems } from "./game-menu";
 import { OrganizerSheets } from "./organizer-sheets";
 import { useOrganizerActions } from "./use-organizer-actions";
 import { useShareGame } from "./use-share-game";
+import { useSharePlayedGame } from "./use-share-played-game";
 import {
   gameTitle,
   isFriendlyGameDetails,
@@ -213,6 +214,7 @@ export function GameDetailsScreen({
   const [editTeamsOpen, setEditTeamsOpen] = useState(false);
   const [addSide, setAddSide] = useState<number | null>(null);
   const shareGame = useShareGame(gameId);
+  const sharePlayedGame = useSharePlayedGame(gameId);
 
   const game = api.games.byId.useQuery({ id: gameId }, REFETCH_ON_FOREGROUND);
   const data = game.data;
@@ -1099,9 +1101,11 @@ export function GameDetailsScreen({
                   onShare={
                     shareLink === "result"
                       ? () => router.push(sharePath(gameId))
-                      : shareLink && shareContext
-                        ? () => void shareGame(shareContext, shareLink)
-                        : undefined
+                      : shareLink === "played"
+                        ? () => void sharePlayedGame(data)
+                        : shareLink && shareContext
+                          ? () => void shareGame(shareContext, shareLink)
+                          : undefined
                   }
                   onMore={
                     menuItems.length > 0 ? () => setMenuOpen(true) : undefined

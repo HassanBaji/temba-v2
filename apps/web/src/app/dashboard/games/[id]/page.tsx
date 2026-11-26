@@ -103,7 +103,10 @@ import {
   type FriendlyGameJoinSeat,
   type FriendlyGameShareLink,
 } from "@repo/domain/friendly-game-cta";
-import { padelScoreAwaitsConfirmation } from "@repo/domain/game-result-share";
+import {
+  padelScoreAwaitsConfirmation,
+  playedGameShareMessage,
+} from "@repo/domain/game-result-share";
 import {
   lineupSidesNote,
   viewerSideOpenLine,
@@ -958,6 +961,15 @@ export default function GameHomePage({
         tvRow={tv.menuRow}
       />
     ) : null;
+  const sharePlayedGame = () => {
+    const text = utils.games.resultLink
+      .fetch({ gameId: id })
+      .then((result) => ({
+        text: playedGameShareMessage(data, result.url, locale),
+      }))
+      .catch(() => null);
+    void shareLinkWithFeedback(text, m.webUi.shareResult.messageCopied, locale);
+  };
   const shareLinkHandler = (link: FriendlyGameShareLink | null) =>
     link === "invite_link"
       ? shareInviteLink
@@ -965,7 +977,9 @@ export default function GameHomePage({
         ? shareGamePage
         : link === "result"
           ? () => router.push(shareResultHref(id))
-          : undefined;
+          : link === "played"
+            ? sharePlayedGame
+            : undefined;
   const shareLink = friendlyGameShareLink({
     canMintInvite: canShareInviteLink,
     cancelled: data.cancelledAt != null,

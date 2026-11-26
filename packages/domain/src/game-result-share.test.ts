@@ -10,6 +10,7 @@ import {
   formatPadelResultShareMessage,
   formatResultShareMessage,
   padelResultCard,
+  playedGameShareMessage,
   padelStickerLine,
   resultCardMvp,
   resultShareCard,
@@ -461,6 +462,46 @@ describe("resultShareCard", () => {
         "en",
       ),
       null,
+    );
+  });
+});
+
+describe("playedGameShareMessage", () => {
+  it("names both pairs and says the score is still to come", () => {
+    assert.equal(
+      playedGameShareMessage(
+        { ...padel, phase: "needs_results" },
+        "https://temba.app/g",
+        "en",
+      ),
+      [
+        "🎾 Padel game played",
+        "👥 You & Maryam vs Hassan & Khalid",
+        "⏳ Score not entered yet",
+        "📍 Padel Hub, Court 3",
+        "📅 Sat 10 Oct 2026, 8:00 PM",
+        "🔗 https://temba.app/g",
+      ].join("\n"),
+    );
+  });
+
+  it("skips the pairs of a football Game and of an unfilled court", () => {
+    const football: ResultShareGame = {
+      ...padel,
+      sport: "football",
+      roster: { users: [], count: 0, cap: 12 },
+      recordedCourts: [{ name: "Pitch 2" }],
+      sides: [],
+      matches: [],
+    };
+    const message = playedGameShareMessage(football, "https://t/g", "en");
+    assert.match(
+      message,
+      /^⚽ Football game played\n⏳ Score not entered yet\n📍 Padel Hub, Pitch 2\n/,
+    );
+    assert.doesNotMatch(
+      playedGameShareMessage({ ...padel, sides: [] }, "https://t/g", "en"),
+      /👥/,
     );
   });
 });
