@@ -7,8 +7,9 @@ import { shortPlayerName } from "@repo/domain/player-name";
 import {
   AMERICANO_FIXED_PAIR_MAX,
   americanoFixedPairNumber,
-  americanoFixedPairsFit,
+  americanoFixedPairsLeft,
   americanoRotatingPlayers,
+  type AmericanoPair,
 } from "@repo/domain/tournament-americano";
 
 import { Button } from "~/components/ui/button";
@@ -32,50 +33,34 @@ import {
 } from "./tournament-americano-parts";
 import { ROUND_CARD } from "./tournament-round-parts";
 
-export type FixedPair = readonly [string, string];
-
-/** How many more pairs fit after `pairCount`, leaving everyone else a new partner each Round. */
-export function fixedPairsLeft(input: {
-  players: number;
-  rounds: number;
-  pairCount: number;
-}) {
-  let left = 0;
-  while (
-    input.pairCount + left < AMERICANO_FIXED_PAIR_MAX &&
-    americanoFixedPairsFit({
-      players: input.players,
-      rounds: input.rounds,
-      fixedPairs: input.pairCount + left + 1,
-    })
-  ) {
-    left += 1;
-  }
-  return left;
+/** "You and Khalid Janahi": the viewer first, the names as `nameOf` gives them. */
+function pairLabel(
+  pair: AmericanoPair,
+  viewerGamePlayerId: string | null,
+  nameOf: (gamePlayerId: string) => string,
+  join: (first: string, second: string) => string,
+) {
+  const [first, second] =
+    pair[1] === viewerGamePlayerId ? [pair[1], pair[0]] : pair;
+  return join(nameOf(first), nameOf(second));
 }
 
-function pairName(
-  names: AmericanoNames,
-  pair: FixedPair,
-  viewerGamePlayerId: string | null,
-  you: string,
-  join: (first: string, second: string) => string,
-  short: boolean,
+/** A player's fixed pair number, looked up by User id as the players grid keys its seats. */
+export function fixedPairNumberByUser(
+  players: readonly AmericanoPlayer[],
+  fixedPairs: readonly AmericanoPair[],
 ) {
-  const [first, second] = [...pair].sort((left, right) =>
-    left === viewerGamePlayerId ? -1 : right === viewerGamePlayerId ? 1 : 0,
+  const gamePlayerOfUser = new Map(
+    players.flatMap((player) =>
+      player.userId ? [[player.userId, player.gamePlayerId] as const] : [],
+    ),
   );
-  const name = (id: string | undefined) => {
-    if (id == null) {
-      return "";
-    }
-    if (id === viewerGamePlayerId) {
-      return you;
-    }
-    const full = names.get(id)?.name ?? "";
-    return short ? shortPlayerName(full) : full;
+  return (userId: string) => {
+    const gamePlayerId = gamePlayerOfUser.get(userId);
+    return gamePlayerId
+      ? americanoFixedPairNumber(fixedPairs, gamePlayerId)
+      : null;
   };
-  return join(name(first), name(second));
 }
 
 function PairMark() {
@@ -95,7 +80,7 @@ export function AmericanoFixedPairsCard({
   rounds,
   onOpen,
 }: {
-  fixedPairs: readonly FixedPair[];
+  fixedPairs: readonly AmericanoPair[];
   names: AmericanoNames;
   viewerGamePlayerId: string | null;
   players: number;
@@ -106,7 +91,11 @@ export function AmericanoFixedPairsCard({
   const m = messages.tournamentAmericano.fixedPairs;
   const noRoom =
     fixedPairs.length === 0 &&
-    fixedPairsLeft({ players, rounds, pairCount: 0 }) === 0;
+    americanoFixedPairsLeft({ players, rounds, fixedPairs: 0 }) === 0;
+  const shortName = (id: string) =>
+    id === viewerGamePlayerId
+      ? messages.common.you
+      : shortPlayerName(names.get(id)?.name ?? "");
   return (
     <div className="border-rule rounded-card bg-paper flex items-center gap-3 border p-4">
       <PairMark />
@@ -123,14 +112,7 @@ export function AmericanoFixedPairsCard({
                 <span className="text-muted-foreground">
                   {m.pairTag(index + 1)}
                 </span>{" "}
-                {pairName(
-                  names,
-                  pair,
-                  viewerGamePlayerId,
-                  messages.common.you,
-                  m.pairNames,
-                  true,
-                )}
+                {pairLabel(pair, viewerGamePlayerId, shortName, m.pairNames)}
               </li>
             ))}
           </ul>
@@ -169,18 +151,18 @@ export function AmericanoFixedPairsSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   players: readonly AmericanoPlayer[];
-  saved: readonly FixedPair[];
+  saved: readonly AmericanoPair[];
   /** The seats on the Social: the pairs must fit the Rounds once it is full. */
   seats: number;
   rounds: number;
   viewerGamePlayerId: string | null;
   pending: boolean;
   error: MutationError;
-  onSave: (pairs: FixedPair[]) => Promise<void>;
+  onSave: (pairs: AmericanoPair[]) => Promise<void>;
 }) {
   const messages = useMessages();
   const m = messages.tournamentAmericano.fixedPairs;
-  const [pairs, setPairs] = React.useState<FixedPair[]>(() => [...saved]);
+  const [pairs, setPairs] = React.useState<AmericanoPair[]>(() => [...saved]);
   const [picked, setPicked] = React.useState<string | null>(null);
   React.useEffect(() => {
     if (open) {
@@ -193,11 +175,15 @@ export function AmericanoFixedPairsSheet({
     () => new Map(players.map((player) => [player.gamePlayerId, player])),
     [players],
   );
-  const left = fixedPairsLeft({
+  const left = americanoFixedPairsLeft({
     players: seats,
     rounds,
-    pairCount: pairs.length,
+    fixedPairs: pairs.length,
   });
+  const fullName = (id: string) =>
+    id === viewerGamePlayerId
+      ? messages.common.you
+      : (names.get(id)?.name ?? "");
   const rotating = americanoRotatingPlayers(seats, pairs.length);
   const errorMessage = globalFormErrorMessage(error);
   const changed =
@@ -263,13 +249,11 @@ export function AmericanoFixedPairsSheet({
             </div>
             <ul className="flex flex-col gap-2">
               {pairs.map((pair, index) => {
-                const label = pairName(
-                  names,
+                const label = pairLabel(
                   pair,
                   viewerGamePlayerId,
-                  messages.common.you,
+                  fullName,
                   m.pairNames,
-                  false,
                 );
                 return (
                   <li

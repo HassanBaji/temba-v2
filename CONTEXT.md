@@ -509,11 +509,11 @@ One player's place on an Americano Match: the Match, the Game player and slot 1 
 _Avoid_: Game team (an Americano has none), pair (as a stored entity)
 
 **Fixed pair**:
-Two players an Americano's Organizer keeps together as partners in every Match of the day, while everyone else still gets a new partner each Round (ADR-0113). At most two, set before the Rounds are made and locked by them; undoing the Rounds opens them again. Taking either player off the Social removes the pair. A fixed pair is placed first in every Round, no swap may split it, and its players stay two rows in the Americano table. Stored in `americano_fixed_pairs`. Not a Game team and not a Team.
+Two players an Americano's Organizer keeps together as partners in every Match of the day, while everyone else still gets a new partner each Round (ADR-0113). At most two, set before the Rounds are made and locked by them; undoing the Rounds opens them again. Taking either player off the Social removes the pair. A fixed pair is placed first in every Round, no swap may split it, and its players stay two rows in the Americano table, next to each other and sharing one place: a fixed pair at the top both win the day. Stored in `americano_fixed_pairs`. Not a Game team and not a Team.
 _Avoid_: team (an Americano has none), locked pair, partner request (players do not ask for one)
 
 **Americano table**:
-An Americano's ranking: every player, ranked on games won in completed Matches, then game difference, then games won outright. A pair's games count for both its players. Computed, never stored. Not a Pool table and not a Group's Standing. Product copy says Standings, as the tab and the Played card link; code says table.
+An Americano's ranking: every player, ranked on games won in completed Matches, then game difference, then games won outright. A pair's games count for both its players. The two players of a **Fixed pair** share a place. Computed, never stored. Not a Pool table and not a Group's Standing. Product copy says Standings, as the tab and the Played card link; code says table.
 _Avoid_: standings (bare, in code), leaderboard, Pool table
 
 **Friendly tournament**:

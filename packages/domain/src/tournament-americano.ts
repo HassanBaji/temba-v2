@@ -85,22 +85,38 @@ export function americanoRotatingPlayers(players: number, fixedPairs: number) {
 
 /**
  * Whether the fixed pairs leave enough players rotating for everyone else to
- * get a new partner in every Round: at most two pairs, and at least one more
- * rotating player than there are Rounds.
+ * get a new partner in every Round: at least one more rotating player than
+ * there are Rounds.
  */
 export function americanoFixedPairsFit(input: {
   players: number;
   rounds: number;
   fixedPairs: number;
 }) {
-  if (input.fixedPairs === 0) {
-    return true;
-  }
   return (
-    input.fixedPairs <= AMERICANO_FIXED_PAIR_MAX &&
+    input.fixedPairs === 0 ||
     americanoRotatingPlayers(input.players, input.fixedPairs) - 1 >=
       input.rounds
   );
+}
+
+/** How many more fixed pairs may be added: up to the most allowed, while they still fit. */
+export function americanoFixedPairsLeft(input: {
+  players: number;
+  rounds: number;
+  fixedPairs: number;
+}) {
+  let left = 0;
+  while (
+    input.fixedPairs + left < AMERICANO_FIXED_PAIR_MAX &&
+    americanoFixedPairsFit({
+      ...input,
+      fixedPairs: input.fixedPairs + left + 1,
+    })
+  ) {
+    left += 1;
+  }
+  return left;
 }
 
 export function americanoMatchCount(players: number, rounds: number) {
@@ -292,7 +308,7 @@ export function americanoRounds(
 
 /** The fixed partner of a player, or null when they rotate. */
 export function americanoFixedPartner(
-  fixedPairs: readonly (readonly string[])[],
+  fixedPairs: readonly AmericanoPair[],
   playerId: string,
 ) {
   const pair = fixedPairs.find((candidate) => candidate.includes(playerId));
@@ -301,7 +317,7 @@ export function americanoFixedPartner(
 
 /** One-based number of the fixed pair a player is in, or null. */
 export function americanoFixedPairNumber(
-  fixedPairs: readonly (readonly string[])[],
+  fixedPairs: readonly AmericanoPair[],
   playerId: string,
 ) {
   const index = fixedPairs.findIndex((pair) => pair.includes(playerId));
@@ -310,7 +326,7 @@ export function americanoFixedPairNumber(
 
 /** Whether two players are one of the fixed pairs. */
 export function isAmericanoFixedPair(
-  fixedPairs: readonly (readonly string[])[],
+  fixedPairs: readonly AmericanoPair[],
   pair: readonly string[],
 ) {
   const [left, right] = pair;
@@ -366,13 +382,13 @@ export type AmericanoTableRow = {
  * One table of players, ranked on games won. Every game a pair wins counts
  * for both its players. Ties go to game difference, then games won outright,
  * then the order the players were given in. Fixed partners share every
- * result, so a tie keeps them next to each other, at the earlier one's place
- * in the given order.
+ * result, so they sit next to each other and share one place: a fixed pair
+ * at the top both win the day, and the next player is third.
  */
 export function americanoTable(
   playerIds: readonly string[],
   results: readonly AmericanoResult[],
-  fixedPairs: readonly (readonly string[])[] = [],
+  fixedPairs: readonly AmericanoPair[] = [],
 ): AmericanoTableRow[] {
   const rows = new Map(
     playerIds.map((playerId) => [
@@ -423,7 +439,7 @@ export function americanoTable(
     }
   }
   const given = new Map(playerIds.map((playerId, index) => [playerId, index]));
-  const groupOf = (playerId: string) => {
+  const tieOrder = (playerId: string) => {
     const own = given.get(playerId) ?? 0;
     const partner = americanoFixedPartner(fixedPairs, playerId);
     const theirs = partner != null ? given.get(partner) : undefined;
@@ -436,10 +452,26 @@ export function americanoTable(
         right.gamesWon - left.gamesWon ||
         right.difference - left.difference ||
         right.won - left.won ||
-        groupOf(left.playerId) - groupOf(right.playerId) ||
+        tieOrder(left.playerId) - tieOrder(right.playerId) ||
         (given.get(left.playerId) ?? 0) - (given.get(right.playerId) ?? 0),
     )
-    .map((row, index) => ({ ...row, place: index + 1 }));
+    .reduce<AmericanoTableRow[]>((ranked, row, index) => {
+      const above = ranked[index - 1];
+      const partnerAbove =
+        above?.playerId === americanoFixedPartner(fixedPairs, row.playerId) &&
+        above.gamesWon === row.gamesWon &&
+        above.difference === row.difference &&
+        above.won === row.won
+          ? above
+          : null;
+      ranked.push({ ...row, place: partnerAbove?.place ?? index + 1 });
+      return ranked;
+    }, []);
+}
+
+/** Who won the day: the top of the table, both players when a fixed pair is there. */
+export function americanoWinners(table: readonly AmericanoTableRow[]) {
+  return table.filter((row) => row.place === 1);
 }
 
 export type AmericanoOutcome = "won" | "drawn" | "lost";

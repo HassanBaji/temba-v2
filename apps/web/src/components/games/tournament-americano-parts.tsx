@@ -10,6 +10,7 @@ import {
   AMERICANO_PLAYER_MIN,
   AMERICANO_PLAYERS_PER_COURT,
   americanoFixedPairNumber,
+  americanoFixedPairsFit,
   americanoFixedPartner,
   americanoMatchCount,
   americanoRotatingPlayers,
@@ -403,7 +404,7 @@ export function AmericanoGameRow({
   onEnter?: () => void;
   onConfirm?: () => void;
   swap?: { selected: ReadonlySet<string>; onPick: (id: string) => void };
-  fixedPairs?: readonly (readonly string[])[];
+  fixedPairs?: readonly AmericanoPair[];
 }) {
   const m = useMessages().tournamentAmericano;
   const score = scoreLine(match);
@@ -510,13 +511,13 @@ export function AmericanoTableCard({
   names: AmericanoNames;
   viewerGamePlayerId: string | null;
   final: boolean;
-  fixedPairs?: readonly (readonly string[])[];
+  fixedPairs?: readonly AmericanoPair[];
   /** The Series winner's row and the note, when the Social is an Edition. */
   seriesBadges?: SeriesTableBadges | null;
 }) {
   const messages = useMessages();
   const m = messages.tournamentAmericano.table;
-  const f = messages.tournamentAmericano.fixedPairs;
+  const pairCopy = messages.tournamentAmericano.fixedPairs;
   const anyPlayed = table.some((row) => row.played > 0);
   return (
     <div className="space-y-3">
@@ -585,8 +586,8 @@ export function AmericanoTableCard({
                             <Link2Icon aria-hidden="true" className="size-3" />
                             <span dir="auto" className="truncate">
                               {partner === viewerGamePlayerId
-                                ? f.withYou
-                                : f.withPartner(
+                                ? pairCopy.withYou
+                                : pairCopy.withPartner(
                                     shortPlayerName(
                                       names.get(partner)?.name ?? "",
                                     ),
@@ -640,10 +641,12 @@ export function AmericanoYourRounds({
   viewerGamePlayerId,
   finished,
   onEnter,
+  fixedPairs = [],
 }: {
   matches: readonly (AmericanoViewMatch & AmericanoBoardMatch)[];
   names: AmericanoNames;
   viewerGamePlayerId: string | null;
+  fixedPairs?: readonly AmericanoPair[];
   finished: boolean;
   onEnter?: (match: AmericanoBoardMatch, roundNumber: number) => void;
 }) {
@@ -662,6 +665,9 @@ export function AmericanoYourRounds({
     (sum, entry) => sum + (entry.outcome ? (entry.theirs ?? 0) : 0),
     0,
   );
+  const fixedPartner = viewerGamePlayerId
+    ? americanoFixedPartner(fixedPairs, viewerGamePlayerId)
+    : null;
   const shortNames = (ids: readonly string[]) =>
     ids
       .map((id) => playerShortName(names, id, viewerGamePlayerId, m.common.you))
@@ -675,7 +681,12 @@ export function AmericanoYourRounds({
         <p className="text-muted-foreground text-meta">
           {finished
             ? a.finishedMeta(gamesFor, gamesAgainst)
-            : a.meta(played.length)}
+            : fixedPartner
+              ? a.metaFixed(
+                  played.length,
+                  shortPlayerName(names.get(fixedPartner)?.name ?? ""),
+                )
+              : a.meta(played.length)}
         </p>
       </div>
       <ol className={cn(ROUND_CARD, "divide-rule divide-y")}>
@@ -803,8 +814,14 @@ export function AmericanoDrawSheet({
     [players],
   );
   const enough = ids.length >= AMERICANO_PLAYER_MIN;
-  const ready = enough && ids.length % AMERICANO_PLAYERS_PER_COURT === 0;
+  const inFours = enough && ids.length % AMERICANO_PLAYERS_PER_COURT === 0;
   const rounds = clampAmericanoRounds(roundCount, ids.length);
+  const pairsFit = americanoFixedPairsFit({
+    players: ids.length,
+    rounds,
+    fixedPairs: fixedPairs.length,
+  });
+  const ready = inFours && pairsFit;
   const roundOne = ready
     ? americanoRoundOf(americanoRounds(order, rounds, fixedPairs), 1)
     : [];
@@ -833,19 +850,12 @@ export function AmericanoDrawSheet({
             <div className="min-w-0">
               <DrawerTitle className="text-h1">{m.draw.title}</DrawerTitle>
               <DrawerDescription className="text-meta mt-2 leading-relaxed">
-                {fixedPairs.length > 0
-                  ? m.draw.leadFixed(
-                      ids.length,
-                      rounds,
-                      americanoMatchCount(ids.length, rounds),
-                      fixedPairs.length,
-                      americanoRotatingPlayers(ids.length, fixedPairs.length),
-                    )
-                  : m.draw.lead(
-                      ids.length,
-                      rounds,
-                      americanoMatchCount(ids.length, rounds),
-                    )}
+                {m.draw.lead(
+                  ids.length,
+                  rounds,
+                  americanoMatchCount(ids.length, rounds),
+                  pairsFit ? fixedPairs.length : 0,
+                )}
               </DrawerDescription>
             </div>
             <CloseButton
@@ -909,14 +919,9 @@ export function AmericanoDrawSheet({
                                 selected={picked === id}
                                 pair={pairNumber ?? undefined}
                                 label={
-                                  pairNumber != null
-                                    ? m.draw.fixedLocked(
-                                        player?.name ?? "",
-                                        pairNumber,
-                                      )
-                                    : picked === id
-                                      ? m.draw.selected(player?.name ?? "")
-                                      : player?.name
+                                  picked === id
+                                    ? m.draw.selected(player?.name ?? "")
+                                    : player?.name
                                 }
                                 onClick={
                                   pending || pairNumber != null
@@ -935,9 +940,14 @@ export function AmericanoDrawSheet({
             </ol>
           ) : (
             <p role="alert" className="text-destructive text-meta">
-              {enough
-                ? m.draw.notInFours(ids.length)
-                : m.draw.belowMinimum(AMERICANO_PLAYER_MIN)}
+              {!enough
+                ? m.draw.belowMinimum(AMERICANO_PLAYER_MIN)
+                : !inFours
+                  ? m.draw.notInFours(ids.length)
+                  : m.errors.fixedPairsTooMany(
+                      americanoRotatingPlayers(ids.length, fixedPairs.length),
+                      rounds,
+                    )}
             </p>
           )}
 

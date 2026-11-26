@@ -1,7 +1,10 @@
 import { spacing } from "@repo/design-tokens";
 import { hubRegisterToast } from "@repo/domain/game-card";
 import { shortPlayerName } from "@repo/domain/player-name";
-import { americanoFixedPartner } from "@repo/domain/tournament-americano";
+import {
+  americanoFixedPartner,
+  type AmericanoPair,
+} from "@repo/domain/tournament-americano";
 import {
   americanoResultMark,
   signedDifference,
@@ -87,7 +90,7 @@ function FixedPartnerLine({
   viewerId,
   nameOf,
 }: {
-  fixedPairs: readonly (readonly string[])[];
+  fixedPairs: readonly AmericanoPair[];
   playerId: string;
   viewerId: string | null | undefined;
   nameOf: (gamePlayerId: string) => string;
@@ -141,6 +144,10 @@ export function AmericanoView({
   const players = board.data?.players ?? [];
   const names = new Map(players.map((player) => [player.gamePlayerId, player]));
   const viewerId = board.data?.viewerGamePlayerId ?? null;
+  const fixedPairs: readonly AmericanoPair[] = board.data?.fixedPairs ?? [];
+  const viewerFixedPartner = viewerId
+    ? americanoFixedPartner(fixedPairs, viewerId)
+    : null;
   const seatCount = game.playersAllowed ?? 0;
   const canJoin =
     !drawn && !game.isRegistered && (game.canRegister || game.canWaitlist);
@@ -257,9 +264,7 @@ export function AmericanoView({
         </Text>
         <Text size="body">{game.name ?? m.shape.title}</Text>
         <Text size="meta" tone="muted">
-          {(board.data?.fixedPairs.length ?? 0) > 0
-            ? m.lead.standingsFixed
-            : m.lead.standings}
+          {m.lead.standings(fixedPairs.length)}
         </Text>
         <SeriesHeadingLine series={game.series} finished={finished} />
       </View>
@@ -291,7 +296,7 @@ export function AmericanoView({
                     ) : null}
                   </Text>
                   <FixedPartnerLine
-                    fixedPairs={board.data?.fixedPairs ?? []}
+                    fixedPairs={fixedPairs}
                     playerId={row.playerId}
                     viewerId={viewerId}
                     nameOf={(id) => names.get(id)?.name ?? ""}
@@ -327,7 +332,14 @@ export function AmericanoView({
       {played.length > 0 ? (
         <Card
           title={finished ? m.yourRounds.finishedTitle : m.yourRounds.title}
-          meta={m.yourRounds.meta(played.length)}
+          meta={
+            viewerFixedPartner
+              ? m.yourRounds.metaFixed(
+                  played.length,
+                  shortPlayerName(names.get(viewerFixedPartner)?.name ?? ""),
+                )
+              : m.yourRounds.meta(played.length)
+          }
         >
           {played.map((entry, index) => (
             <Fragment key={entry.match.matchId}>

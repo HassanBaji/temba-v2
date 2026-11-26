@@ -1,6 +1,7 @@
 import { and, asc, inArray, isNotNull } from "drizzle-orm";
 
 import {
+  americanoFixedPairs,
   gamePlayers,
   gameTeams,
   games,
@@ -130,9 +131,9 @@ function latest(dates: readonly (Date | null)[]) {
 /**
  * Every Edition of the given Series, or of the given Games, that is not
  * cancelled, with its number, its result (`seriesEditionResult`) and what the
- * Series reads need around it. Five queries however many Games: the Games,
- * their Series' numbering, Game teams, Game players with Users, and Matches
- * with Sets and Americano seats.
+ * Series reads need around it. Six queries however many Games: the Games,
+ * their Series' numbering, Game teams, Game players with Users, Matches with
+ * Sets and Americano seats, and Americano fixed pairs.
  */
 export async function loadSeriesEditions(
   database: DbClient,
@@ -153,42 +154,54 @@ export async function loadSeriesEditions(
     ),
   ];
 
-  const [editions, teamRows, playerRows, matchRows] = await Promise.all([
-    loadEditionNumbers(database, seriesIds),
-    database.query.gameTeams.findMany({
-      where: inArray(gameTeams.gameId, gameIds),
-      columns: {
-        id: true,
-        gameId: true,
-        poolIndex: true,
-        sideIndex: true,
-        finalPlace: true,
-        bib: true,
-      },
-      with: { players: { columns: { gamePlayerId: true } } },
-    }),
-    database.query.gamePlayers.findMany({
-      where: inArray(gamePlayers.gameId, gameIds),
-      orderBy: [asc(gamePlayers.createdAt), asc(gamePlayers.id)],
-      columns: { id: true, gameId: true, userId: true },
-      with: {
-        user: { columns: { id: true, name: true, image: true, guestAt: true } },
-      },
-    }),
-    database.query.matches.findMany({
-      where: inArray(matches.gameId, gameIds),
-      with: {
-        sets: {
-          columns: { slot1GamesWon: true, slot2GamesWon: true },
-          orderBy: asc(matchSets.setNumber),
+  const [fixedPairRows, editions, teamRows, playerRows, matchRows] =
+    await Promise.all([
+      database.query.americanoFixedPairs.findMany({
+        where: inArray(americanoFixedPairs.gameId, gameIds),
+        orderBy: [asc(americanoFixedPairs.position)],
+        columns: {
+          gameId: true,
+          firstGamePlayerId: true,
+          secondGamePlayerId: true,
         },
-        americanoSeats: {
-          columns: { id: true, gamePlayerId: true, slot: true },
+      }),
+      loadEditionNumbers(database, seriesIds),
+      database.query.gameTeams.findMany({
+        where: inArray(gameTeams.gameId, gameIds),
+        columns: {
+          id: true,
+          gameId: true,
+          poolIndex: true,
+          sideIndex: true,
+          finalPlace: true,
+          bib: true,
         },
-        court: { columns: { id: true, name: true } },
-      },
-    }),
-  ]);
+        with: { players: { columns: { gamePlayerId: true } } },
+      }),
+      database.query.gamePlayers.findMany({
+        where: inArray(gamePlayers.gameId, gameIds),
+        orderBy: [asc(gamePlayers.createdAt), asc(gamePlayers.id)],
+        columns: { id: true, gameId: true, userId: true },
+        with: {
+          user: {
+            columns: { id: true, name: true, image: true, guestAt: true },
+          },
+        },
+      }),
+      database.query.matches.findMany({
+        where: inArray(matches.gameId, gameIds),
+        with: {
+          sets: {
+            columns: { slot1GamesWon: true, slot2GamesWon: true },
+            orderBy: asc(matchSets.setNumber),
+          },
+          americanoSeats: {
+            columns: { id: true, gamePlayerId: true, slot: true },
+          },
+          court: { columns: { id: true, name: true } },
+        },
+      }),
+    ]);
 
   const userIdByGamePlayer = new Map(
     playerRows.map((row) => [row.id, row.userId]),
@@ -199,6 +212,7 @@ export async function loadSeriesEditions(
   const teamsByGame = groupBy(teamRows, (row) => row.gameId);
   const playersByGame = groupBy(playerRows, (row) => row.gameId);
   const matchesByGame = groupBy(matchRows, (row) => row.gameId);
+  const fixedPairsByGame = groupBy(fixedPairRows, (row) => row.gameId);
 
   const entries = gameRows.flatMap((game): SeriesEdition[] => {
     const edition = editions.get(game.id);
@@ -226,6 +240,9 @@ export async function loadSeriesEditions(
           seated.map((player) => [player.gamePlayerId, player.userId]),
         ),
         results: americanoResults(rows),
+        fixedPairs: (fixedPairsByGame.get(game.id) ?? []).map(
+          (pair) => [pair.firstGamePlayerId, pair.secondGamePlayerId] as const,
+        ),
       };
     }
 

@@ -23,11 +23,6 @@ import { lockGame } from "#src/games/lock-rows";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-type FixedPairInput = {
-  firstGamePlayerId: string;
-  secondGamePlayerId: string;
-};
-
 /**
  * Replaces an Americano's fixed pairs (ADR-0113): two players each the
  * Organizer keeps together in every Match, at most two pairs. Open until the
@@ -39,7 +34,7 @@ export async function setAmericanoFixedPairs(
   args: {
     gameId: string;
     organizerUserId: string;
-    pairs: readonly FixedPairInput[];
+    pairs: z.infer<typeof setAmericanoFixedPairsInputSchema>["pairs"];
     locale?: Locale;
   },
 ) {
@@ -114,14 +109,12 @@ export async function setAmericanoFixedPairs(
 
 export const setAmericanoFixedPairsInputSchema = z.object({
   gameId: z.string().uuid(),
-  pairs: z
-    .array(
-      z.object({
-        firstGamePlayerId: z.string().uuid(),
-        secondGamePlayerId: z.string().uuid(),
-      }),
-    )
-    .max(AMERICANO_FIXED_PAIR_MAX),
+  pairs: z.array(
+    z.object({
+      firstGamePlayerId: z.string().uuid(),
+      secondGamePlayerId: z.string().uuid(),
+    }),
+  ),
 });
 
 export const setAmericanoFixedPairsProcedure = protectedProcedure

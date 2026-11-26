@@ -4,10 +4,12 @@ import {
   americanoFinishSlot,
   americanoFixedPairNumber,
   americanoFixedPairsFit,
+  americanoFixedPairsLeft,
   americanoFixedPartner,
   americanoRoundOf,
   americanoRounds,
   americanoTable,
+  americanoWinners,
   clampAmericanoPlayers,
   clampAmericanoRounds,
   isAmericano,
@@ -167,12 +169,12 @@ describe("americanoRounds with fixed pairs", () => {
 });
 
 describe("americanoFixedPairsFit", () => {
-  it("allows two pairs at most, leaving a new partner every Round", () => {
+  it("needs one more rotating player than there are Rounds", () => {
     expect(
       americanoFixedPairsFit({ players: 16, rounds: 7, fixedPairs: 2 }),
     ).toBe(true);
     expect(
-      americanoFixedPairsFit({ players: 16, rounds: 7, fixedPairs: 3 }),
+      americanoFixedPairsFit({ players: 16, rounds: 12, fixedPairs: 2 }),
     ).toBe(false);
     expect(
       americanoFixedPairsFit({ players: 8, rounds: 7, fixedPairs: 1 }),
@@ -186,11 +188,31 @@ describe("americanoFixedPairsFit", () => {
   });
 });
 
+describe("americanoFixedPairsLeft", () => {
+  it("counts the pairs that still fit, two at most", () => {
+    expect(
+      americanoFixedPairsLeft({ players: 16, rounds: 7, fixedPairs: 0 }),
+    ).toBe(2);
+    expect(
+      americanoFixedPairsLeft({ players: 16, rounds: 7, fixedPairs: 1 }),
+    ).toBe(1);
+    expect(
+      americanoFixedPairsLeft({ players: 16, rounds: 7, fixedPairs: 2 }),
+    ).toBe(0);
+    expect(
+      americanoFixedPairsLeft({ players: 8, rounds: 5, fixedPairs: 0 }),
+    ).toBe(1);
+    expect(
+      americanoFixedPairsLeft({ players: 8, rounds: 7, fixedPairs: 0 }),
+    ).toBe(0);
+  });
+});
+
 describe("americanoFixedPartner and americanoFixedPairNumber", () => {
   const fixed = [
     ["a", "b"],
     ["c", "d"],
-  ];
+  ] as const;
   it("reads a player's partner and pair number", () => {
     expect(americanoFixedPartner(fixed, "d")).toBe("c");
     expect(americanoFixedPartner(fixed, "e")).toBeNull();
@@ -215,6 +237,47 @@ describe("americanoTable", () => {
       [["a", "c"]],
     );
     expect(table.map((row) => row.playerId)).toEqual(["a", "c", "b", "d"]);
+  });
+
+  it("gives fixed partners one place, so a pair at the top both win", () => {
+    const table = americanoTable(
+      ["a", "b", "c", "d"],
+      [
+        {
+          slot1: ["a", "b"],
+          slot2: ["c", "d"],
+          slot1GamesWon: 4,
+          slot2GamesWon: 6,
+        },
+      ],
+      [["c", "d"]],
+    );
+    expect(table.map((row) => [row.playerId, row.place])).toEqual([
+      ["c", 1],
+      ["d", 1],
+      ["a", 3],
+      ["b", 4],
+    ]);
+    expect(americanoWinners(table).map((row) => row.playerId)).toEqual([
+      "c",
+      "d",
+    ]);
+  });
+
+  it("names one winner when nobody at the top is in a fixed pair", () => {
+    const table = americanoTable(
+      ["a", "b", "c", "d"],
+      [
+        {
+          slot1: ["a", "b"],
+          slot2: ["c", "d"],
+          slot1GamesWon: 6,
+          slot2GamesWon: 4,
+        },
+      ],
+      [["c", "d"]],
+    );
+    expect(americanoWinners(table).map((row) => row.playerId)).toEqual(["a"]);
   });
 
   it("ranks players on games won, then difference, then wins", () => {

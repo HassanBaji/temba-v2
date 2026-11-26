@@ -68,6 +68,15 @@ const fixedPairs = (n: number) =>
     many: "يبقى {n} زوجًا ثابتًا معًا",
     other: "يبقى {n} زوج ثابت معًا",
   });
+const upToPairs = (n: number) =>
+  plural("ar", n, {
+    zero: "بلا أزواج",
+    one: "زوج واحد",
+    two: "زوجين",
+    few: "{n} أزواج",
+    many: "{n} زوجًا",
+    other: "{n} زوج",
+  });
 const wins = (n: number) =>
   plural("ar", n, {
     zero: "لا فوز",
@@ -249,8 +258,15 @@ export const tournamentAmericano = {
   },
   draw: {
     title: "الجولات",
-    lead: (playerCount: number, roundCount: number, gameCount: number) =>
-      `${players(playerCount)}، ${rounds(roundCount)}، ${matches(gameCount)}. يحصل كل لاعب على ${partners(roundCount)}، كلهم مختلفون. هذه الجولة 1: اضغط على لاعبين لتبديلهما.`,
+    lead: (
+      playerCount: number,
+      roundCount: number,
+      gameCount: number,
+      fixedPairCount: number,
+    ) =>
+      fixedPairCount > 0
+        ? `${players(playerCount)}، ${rounds(roundCount)}، ${matches(gameCount)}. ${fixedPairs(fixedPairCount)}؛ ويحصل كل واحد من الـ${playerCount - fixedPairCount * 2} الآخرين على ${partners(roundCount)}، كلهم مختلفون. هذه الجولة 1: اضغط على لاعبين متناوبين لتبديلهما.`
+        : `${players(playerCount)}، ${rounds(roundCount)}، ${matches(gameCount)}. يحصل كل لاعب على ${partners(roundCount)}، كلهم مختلفون. هذه الجولة 1: اضغط على لاعبين لتبديلهما.`,
     round: (n: number) => `الجولة ${n}`,
     of: (total: number) => `من ${total}`,
     when: (time: string, courtsLine: string) =>
@@ -270,21 +286,11 @@ export const tournamentAmericano = {
       `بهذا العدد من اللاعبين، ${rounds(roundCount)} تعني أن يلعب الجميع مع الجميع، فتحصل على ${roundCount} من ${planned} مخطط لها.`,
     posted: "أُعدّت الجولات. يرى كل لاعب شركاءه.",
     selected: (name: string) => `${name}، مختار للتبديل`,
-    leadFixed: (
-      playerCount: number,
-      roundCount: number,
-      gameCount: number,
-      pairCount: number,
-      rotating: number,
-    ) =>
-      `${players(playerCount)}، ${rounds(roundCount)}، ${matches(gameCount)}. ${fixedPairs(pairCount)}؛ ويحصل كل واحد من الـ${rotating} الآخرين على ${partners(roundCount)}، كلهم مختلفون. هذه الجولة 1: اضغط على لاعبين لتبديلهما.`,
-    fixedLocked: (name: string, pair: number) =>
-      `${name}، الزوج الثابت ${pair}. أزل الزوج لتحريكهما.`,
   },
   fixedPairs: {
     title: "الأزواج الثابتة",
     none: (max: number) =>
-      `لا أزواج بعد. أبقِ لاعبين معًا في كل مباراة، حتى ${max} أزواج.`,
+      `لا أزواج بعد. أبقِ لاعبين معًا في كل مباراة، حتى ${upToPairs(max)}.`,
     noRoom: (roundCount: number) =>
       `مع ${rounds(roundCount)}، يحتاج كل لاعب شريكًا جديدًا في كل جولة، فلا مكان لزوج ثابت.`,
     pick: "اختر",
@@ -306,11 +312,24 @@ export const tournamentAmericano = {
       `يتناوب ${players(rotating)} ويحصل كل واحد منهم على ${partners(roundCount)}، كلهم مختلفون.${
         left === 0
           ? ""
-          : left === 1
-            ? " يمكنك تثبيت زوج آخر."
-            : ` يمكنك تثبيت حتى ${left} أزواج.`
+          : plural("ar", left, {
+              zero: "",
+              one: " يمكنك تثبيت زوج آخر.",
+              two: " يمكنك تثبيت زوجين آخرين.",
+              few: " يمكنك تثبيت {n} أزواج أخرى.",
+              many: " يمكنك تثبيت {n} زوجًا آخر.",
+              other: " يمكنك تثبيت {n} زوج آخر.",
+            })
       }`,
-    full: (max: number) => `هذه ${max} أزواج، أقصى ما يمكن.`,
+    full: (max: number) =>
+      plural("ar", max, {
+        zero: "لا أزواج ثابتة ممكنة.",
+        one: "هذا زوج واحد، أقصى ما يمكن.",
+        two: "هذان زوجان، أقصى ما يمكن.",
+        few: "هذه {n} أزواج، أقصى ما يمكن.",
+        many: "هذه {n} زوجًا، أقصى ما يمكن.",
+        other: "هذه {n} زوج، أقصى ما يمكن.",
+      }),
     tooFewToRotate: (roundCount: number) =>
       `زوج آخر يترك لاعبين أقل من أن يحصلوا على شركاء جدد في ${rounds(roundCount)}.`,
     selected: (name: string) => `${name}، مختار`,
@@ -329,21 +348,24 @@ export const tournamentAmericano = {
     standings: "الترتيب",
   },
   lead: {
-    players: "سجّل الجميع فرادى. يتغيّر الشركاء في كل جولة.",
+    players: (fixedPairCount: number) =>
+      fixedPairCount > 0
+        ? "سجّل الجميع فرادى. يتغيّر الشركاء في كل جولة، إلا في الزوج الثابت."
+        : "سجّل الجميع فرادى. يتغيّر الشركاء في كل جولة.",
     rounds:
       "يُدخل أحد الزوجين النتيجة ويؤكدها الآخر. يمكن للمنظّمين إدخال أي مباراة أو تصحيحها.",
-    roundsOrganizer: (roundCount: number) =>
-      `أُعدّت ${rounds(roundCount)}. يحصل كل لاعب على ${partners(roundCount)}، كلهم مختلفون. يمكنك إدخال أي نتيجة أو تصحيحها، وتبديل اللاعبين في جولة لم تبدأ.`,
-    standings:
-      "جدول واحد للاعبين بترتيب الأشواط المكسوبة. كل شوط يكسبه زوجك يُحتسب لكليكما.",
-    roundsOrganizerFixed: (
+    roundsOrganizer: (
       roundCount: number,
-      pairCount: number,
-      rotating: number,
+      playerCount: number,
+      fixedPairCount: number,
     ) =>
-      `أُعدّت ${rounds(roundCount)}. ${fixedPairs(pairCount)}؛ ويحصل الـ${rotating} الآخرون على ${partners(roundCount)}، كلهم مختلفون. يمكنك إدخال أي نتيجة أو تصحيحها، وتبديل اللاعبين في جولة لم تبدأ.`,
-    standingsFixed:
-      "جدول واحد للاعبين بترتيب الأشواط المكسوبة. يتقاسم الشريكان الثابتان كل نتيجة، فيجلسان متجاورين.",
+      fixedPairCount > 0
+        ? `أُعدّت ${rounds(roundCount)}. ${fixedPairs(fixedPairCount)}؛ ويحصل الـ${playerCount - fixedPairCount * 2} الآخرون على ${partners(roundCount)}، كلهم مختلفون. يمكنك إدخال أي نتيجة أو تصحيحها، وتبديل اللاعبين في جولة لم تبدأ.`
+        : `أُعدّت ${rounds(roundCount)}. يحصل كل لاعب على ${partners(roundCount)}، كلهم مختلفون. يمكنك إدخال أي نتيجة أو تصحيحها، وتبديل اللاعبين في جولة لم تبدأ.`,
+    standings: (fixedPairCount: number) =>
+      fixedPairCount > 0
+        ? "جدول واحد للاعبين بترتيب الأشواط المكسوبة. يتقاسم الشريكان الثابتان كل نتيجة، فيجلسان متجاورين ويتقاسمان المركز."
+        : "جدول واحد للاعبين بترتيب الأشواط المكسوبة. كل شوط يكسبه زوجك يُحتسب لكليكما.",
   },
   progress: {
     roundOnCourt: (n: number, total: number) => `الجولة ${n} من ${total}`,
@@ -386,10 +408,10 @@ export const tournamentAmericano = {
     swapHint: (n: number) =>
       `الجولة ${n}: اضغط على لاعبين لتبديلهما. لا يحصل أحد على الشريك نفسه مرتين.`,
     swapped: "بُدّل اللاعبان.",
-    swapFoot:
-      "للتبديل، افتح جولة واضغط على لاعبين. يحفظ تمبا القاعدة: لا يحصل أحد على الشريك نفسه مرتين.",
-    swapFootFixed:
-      "لا يفرّق التبديل زوجًا ثابتًا. لتغيير الأزواج، تراجع عن الجولات قبل وصول أي نتيجة.",
+    swapFoot: (fixedPairCount: number) =>
+      fixedPairCount > 0
+        ? "للتبديل، افتح جولة واضغط على لاعبين متناوبين. لا يفرّق التبديل زوجًا ثابتًا: لتغيير الأزواج، تراجع عن الجولات قبل وصول أي نتيجة."
+        : "للتبديل، افتح جولة واضغط على لاعبين. يحفظ تمبا القاعدة: لا يحصل أحد على الشريك نفسه مرتين.",
   },
   score: {
     gamesEach: (pair: string, gamesWon: number) =>
@@ -412,6 +434,8 @@ export const tournamentAmericano = {
     title: "جولاتك",
     meta: (gameCount: number) =>
       `${matches(gameCount)}، ${partners(gameCount)}`,
+    metaFixed: (gameCount: number, partner: string) =>
+      `${matches(gameCount)} مع ${partner}`,
     finishedTitle: "مبارياتك",
     finishedMeta: (gamesFor: number, gamesAgainst: number) =>
       `${games(gamesFor)} لك، ${gamesAgainst} عليك`,
@@ -519,12 +543,12 @@ export const tournamentAmericano = {
       `تحتاج الجولات حتى ${isolate(finish)}. أخّر وقت الانتهاء أو سجّل ملاعب أكثر أو العب جولات أقل.`,
     roundsOverrun:
       "تتجاوز الجولات نهاية هذا السوشيال. سجّل ملاعب أكثر أو أخّر وقت الانتهاء.",
-    fixedPairsMax: (max: number) => `ثبّت حتى ${max} أزواج.`,
+    fixedPairsMax: (max: number) => `ثبّت حتى ${upToPairs(max)}.`,
     fixedPairsTwice: "يكون اللاعب في زوج ثابت واحد فقط.",
     fixedPairsLocked:
       "أُعدّت الجولات، فالأزواج الثابتة محددة. تراجع عن الجولات لتغييرها.",
     fixedPairsTooMany: (rotating: number, roundCount: number) =>
-      `هذا يترك ${players(rotating)} للتناوب، وهو عدد أقل من أن يحصل الباقون على شريك جديد في ${rounds(roundCount)}. أزل زوجًا أو العب جولات أقل.`,
+      `هذا يترك ${players(rotating)} للتناوب، وهو عدد أقل من أن يحصل الباقون على شريك جديد في ${rounds(roundCount)}. أزل زوجًا أو انتظر لاعبين أكثر.`,
     fixedPairSwap: "لا يفرّق التبديل زوجًا ثابتًا. اختر لاعبين يتناوبان.",
   },
 } satisfies typeof source;

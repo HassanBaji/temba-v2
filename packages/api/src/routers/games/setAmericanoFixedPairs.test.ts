@@ -10,9 +10,8 @@ import {
   vi,
 } from "vitest";
 
-import { americanoFixedPairs, games } from "@repo/db/schema";
+import { americanoFixedPairs } from "@repo/db/schema";
 import { createPgliteDb } from "@repo/db/testing";
-import { isAmericanoFixedPair } from "@repo/domain/tournament-americano";
 
 import {
   asDb,
@@ -25,10 +24,7 @@ import { americanoBoard } from "#src/routers/games/americanoBoard";
 import { kick } from "#src/routers/games/kick";
 import { postAmericanoRounds } from "#src/routers/games/postAmericanoRounds";
 import { setAmericanoFixedPairs } from "#src/routers/games/setAmericanoFixedPairs";
-import {
-  repeatedPartners,
-  swapAmericanoPlayers,
-} from "#src/routers/games/swapAmericanoPlayers";
+import { undoPoolDraw } from "#src/routers/games/undoPoolDraw";
 
 const START = new Date("2026-09-25T09:00:00");
 const END = new Date("2026-09-25T12:30:00");
@@ -78,52 +74,6 @@ function pair(ids: readonly string[], first: number, second: number) {
 }
 
 describe("setAmericanoFixedPairs", () => {
-  it("keeps each fixed pair together in every Round, and everyone else rotates", async () => {
-    const { database, organizer, gameId, gamePlayerIds, board } =
-      await fullAmericano();
-    await setAmericanoFixedPairs(asDb(database), {
-      gameId,
-      organizerUserId: organizer.id,
-      pairs: [pair(gamePlayerIds, 0, 5), pair(gamePlayerIds, 2, 9)],
-    });
-    const before = await board();
-    expect(before.fixedPairs).toEqual([
-      [gamePlayerIds[0], gamePlayerIds[5]],
-      [gamePlayerIds[2], gamePlayerIds[9]],
-    ]);
-
-    await postAmericanoRounds(asDb(database), {
-      gameId,
-      organizerUserId: organizer.id,
-      gamePlayerIds: [...gamePlayerIds].reverse(),
-    });
-    const after = await board();
-    expect(after.rounds).toHaveLength(7);
-    for (const round of after.rounds) {
-      const sides = round.matches.flatMap((match) => [
-        match.slot1PlayerIds,
-        match.slot2PlayerIds,
-      ]);
-      for (const fixed of after.fixedPairs) {
-        expect(sides.some((side) => isAmericanoFixedPair([fixed], side))).toBe(
-          true,
-        );
-      }
-    }
-    const pairings = after.rounds.flatMap((round) =>
-      round.matches.map((match) => ({
-        roundNumber: round.roundNumber,
-        slot1: match.slot1PlayerIds,
-        slot2: match.slot2PlayerIds,
-      })),
-    );
-    const repeats = repeatedPartners(pairings);
-    expect(repeats).toHaveLength(2);
-    expect(
-      repeats.every((side) => isAmericanoFixedPair(after.fixedPairs, side)),
-    ).toBe(true);
-  });
-
   it("replaces the pairs, and an empty list clears them", async () => {
     const { database, organizer, gameId, gamePlayerIds, board } =
       await fullAmericano();
@@ -248,60 +198,31 @@ describe("setAmericanoFixedPairs", () => {
     expect(rows).toEqual([]);
   });
 
-  it("refuses to make the Rounds when the Round count no longer leaves room", async () => {
-    const { database, organizer, gameId, gamePlayerIds } = await fullAmericano(
-      8,
-      5,
-    );
-    await setAmericanoFixedPairs(asDb(database), {
-      gameId,
-      organizerUserId: organizer.id,
-      pairs: [pair(gamePlayerIds, 0, 1)],
-    });
-    await database
-      .update(games)
-      .set({ roundCount: 7 })
-      .where(eq(games.id, gameId));
-    await expectRefused(
-      () =>
-        postAmericanoRounds(asDb(database), {
-          gameId,
-          organizerUserId: organizer.id,
-          gamePlayerIds,
-        }),
-      /leaves 6 players to rotate/,
-    );
-  });
-});
-
-describe("swapAmericanoPlayers with fixed pairs", () => {
-  it("refuses a swap that would split a fixed pair", async () => {
+  it("opens again when the Rounds are undone, with the pairs kept", async () => {
     const { database, organizer, gameId, gamePlayerIds, board } =
       await fullAmericano();
-    await setAmericanoFixedPairs(asDb(database), {
-      gameId,
-      organizerUserId: organizer.id,
-      pairs: [pair(gamePlayerIds, 0, 1)],
-    });
+    const set = (first: number, second: number) =>
+      setAmericanoFixedPairs(asDb(database), {
+        gameId,
+        organizerUserId: organizer.id,
+        pairs: [pair(gamePlayerIds, first, second)],
+      });
+    await set(0, 1);
     await postAmericanoRounds(asDb(database), {
       gameId,
       organizerUserId: organizer.id,
       gamePlayerIds,
     });
-    const round = (await board()).rounds[1]!;
-    const other = round.matches
-      .flatMap((match) => [...match.slot1PlayerIds, ...match.slot2PlayerIds])
-      .find((id) => id !== gamePlayerIds[0] && id !== gamePlayerIds[1])!;
-    await expectRefused(
-      () =>
-        swapAmericanoPlayers(asDb(database), {
-          gameId,
-          organizerUserId: organizer.id,
-          roundNumber: 2,
-          firstGamePlayerId: gamePlayerIds[0]!,
-          secondGamePlayerId: other,
-        }),
-      /cannot be split/,
-    );
+    await undoPoolDraw(asDb(database), {
+      gameId,
+      organizerUserId: organizer.id,
+    });
+    expect((await board()).fixedPairs).toEqual([
+      [gamePlayerIds[0], gamePlayerIds[1]],
+    ]);
+    await set(2, 3);
+    expect((await board()).fixedPairs).toEqual([
+      [gamePlayerIds[2], gamePlayerIds[3]],
+    ]);
   });
 });

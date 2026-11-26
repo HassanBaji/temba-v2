@@ -26,7 +26,9 @@ together for the whole day while everyone else still rotates.
 - The Players grid marks fixed players with their pair number for the Organizer, and its foot
   reads "Partners change every round, unless you fix a pair."
 - **The rounds** sheet places the pairs in Round 1, marks their chips, does not let them be
-  swapped, and leads with "2 fixed pairs stay together; the other 12 get 7 partners each".
+  swapped, and leads with "2 fixed pairs stay together; the other 12 get 7 partners each". When
+  the players in are too few for the pairs (16 seats, 8 signed up, one pair), it says so and
+  Make is disabled.
 
 ### Playing (1c, 1d)
 
@@ -34,15 +36,20 @@ together for the whole day while everyone else still rotates.
   made. 2 fixed pairs stay together; the other 12 players get 7 partners, all different." A swap
   cannot pick a fixed player; the foot reads "A fixed pair cannot be split by a swap. To change the
   pairs, undo the rounds before a score is in."
-- Standings: one table of players. A fixed player carries "with Khalid J" (or "with you"), and
-  fixed partners sit next to each other on a tie. Lead: "Fixed partners share every result, so they
-  sit together."
+- Standings: one table of players. A fixed player carries "with Khalid J" (or "with you"). Fixed
+  partners sit next to each other and share a place (2, 2, then 4). Lead: "Fixed partners share
+  every result, so they sit together and share a place."
+- Your rounds reads "7 games with Khalid J" for a fixed player, not "7 partners".
+- **A fixed pair at the top both win the day**: the finished screen lists both under "Won the
+  day", the Played card reads "Won by Hassan Haji and Khalid Janahi", both share cards read "Won
+  the day", the Group page names both, and a Series Edition is won by both.
 - Players tab: chips carry the pair number.
 
 ### Rules
 
 - At most two pairs. Every rotating player must still get a new partner every Round, so the
-  rotating players must be at least one more than the Round count.
+  rotating players must be at least one more than the Round count. Setting pairs is judged on the
+  Social's seats; making the Rounds on the players actually in.
 - Pairs lock when the Rounds are made and open again when the Rounds are undone.
 - A player leaving or taken off removes their pair.
 - Only the Organizer sets them; players do not ask for a partner.
@@ -53,6 +60,9 @@ together for the whole day while everyone else still rotates.
   replaces the pairs. Refuses more than two, a player twice, a player not on the Social, pairs
   that leave too few rotating players, anyone but an Organizer, and a Social with Rounds made.
 - `games.americanoBoard` adds `fixedPairs: [string, string][]` (Game player ids, pair 1 first).
+  Its table, and every other Americano table (live board, Played, Group page, Series result),
+  gives fixed partners one place.
+- The Played summary's `winner` adds `partnerName`.
 - `games.postAmericanoRounds` keeps each fixed pair together in every Round, and refuses when the
   pairs no longer fit the Round count.
 - `games.swapAmericanoPlayers` refuses a fixed player.
@@ -60,8 +70,9 @@ together for the whole day while everyone else still rotates.
 
 ### Mobile App
 
-- Standings show "with …" under fixed players and the fixed-pairs lead. Setting pairs stays on
-  the web with the rest of Americano administration.
+- Standings show "with …" under fixed players, the shared place and the fixed-pairs lead; Your
+  rounds reads "with …" for a fixed player. Setting pairs stays on the web with the rest of
+  Americano administration.
 
 ## Not built
 
