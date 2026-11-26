@@ -138,6 +138,8 @@ export const football = {
       }),
     tileNew: "جديد",
     tileNewSpoken: "جديد، لم يُقيَّم بعد",
+    playersTitle: "اللاعبون",
+    tapToOpen: "اضغط على لاعب لفتحه",
     bothSidesConfirmed: "أكّد الفريقان.",
     confirmedByOrganizer: "أكّده المنظّم.",
     waitingOrganizerFor: (team: string) => `تأكيد المنظّم عن ${team}`,
@@ -698,8 +700,6 @@ export const football = {
     pickNothingToUndo: "لا يوجد اختيار للتراجع عنه",
   },
   teamsCard: {
-    players: "اللاعبون",
-    tapToOpen: "اضغط على لاعب لفتحه",
     notPlaced: "غير موزَّع",
     sideUsually: (team: string, code: string) =>
       `${team}، عادةً ${isolate(code)}`,

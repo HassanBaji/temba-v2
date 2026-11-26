@@ -1,9 +1,8 @@
 import { radii } from "@repo/design-tokens";
 import {
   ofSide,
-  otherSide,
-  type BoardPlayer,
   type Side,
+  type TeamsOpenPlayer,
 } from "@repo/domain/football-board";
 import type { FootballBalanceOn } from "@repo/domain/football-lineup";
 import {
@@ -114,25 +113,18 @@ function Action({ children }: { children: React.ReactNode }) {
  */
 export function TeamsPlayerSheet({
   gameId,
-  player,
-  side,
+  open,
   names,
   balanceOn,
-  isCaptain,
-  canBeCaptain,
   onClose,
   onPlace,
   onToggleCaptain,
   onOpenProfile,
 }: {
   gameId: string;
-  player: BoardPlayer | null;
-  /** The side the player is on; null while not placed. */
-  side: Side | null;
+  open: TeamsOpenPlayer | null;
   names: { slot1: string; slot2: string };
   balanceOn: FootballBalanceOn;
-  isCaptain: boolean;
-  canBeCaptain: boolean;
   onClose: () => void;
   onPlace: (side: Side) => void;
   onToggleCaptain: () => void;
@@ -140,11 +132,12 @@ export function TeamsPlayerSheet({
 }) {
   const locale = useLocale();
   const m = useMessages().football.teamsCard;
+  const player = open?.player ?? null;
   const card = api.games.footballPlayerCard.useQuery(
     { gameId, userId: player?.userId ?? "" },
     { enabled: player != null },
   );
-  if (!player) {
+  if (!open || !player) {
     return (
       <Sheet visible={false} onClose={onClose}>
         {null}
@@ -158,7 +151,7 @@ export function TeamsPlayerSheet({
     player,
     {
       balanceOn,
-      sideName: side ? ofSide(names, side) : null,
+      sideName: open.side ? ofSide(names, open.side) : null,
       pointsThisMonth: stats?.pointsThisMonth,
     },
     locale,
@@ -168,7 +161,6 @@ export function TeamsPlayerSheet({
     stats?.games ?? 0,
     locale,
   );
-  const moveTo: Side[] = side ? [otherSide(side)] : [1, 2];
 
   return (
     <Sheet visible onClose={onClose}>
@@ -253,7 +245,7 @@ export function TeamsPlayerSheet({
         )}
         <View style={{ gap: 8 }}>
           <View style={{ flexDirection: "row", gap: 8 }}>
-            {moveTo.map((target) => (
+            {open.placeTargets.map((target) => (
               <Action key={target}>
                 <Button
                   label={m.moveTo(ofSide(names, target))}
@@ -263,10 +255,10 @@ export function TeamsPlayerSheet({
                 />
               </Action>
             ))}
-            {canBeCaptain ? (
+            {open.canBeCaptain ? (
               <Action>
                 <Button
-                  label={isCaptain ? m.removeCaptain : m.makeCaptain}
+                  label={open.isCaptain ? m.removeCaptain : m.makeCaptain}
                   variant="outline"
                   size="lg"
                   onPress={onToggleCaptain}

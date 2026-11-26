@@ -17,6 +17,8 @@ import {
   moveAcross,
   NO_SIDE_CAPTAINS,
   otherSide,
+  teamsOpenPlayer,
+  toggleSideCaptain,
   teamsRating,
   teamsTileName,
   tierProvisionalCount,
@@ -939,5 +941,76 @@ describe("otherSide", () => {
   it("names the side across", () => {
     expect(otherSide(1)).toBe(2);
     expect(otherSide(2)).toBe(1);
+  });
+});
+
+describe("teamsOpenPlayer", () => {
+  const players = [
+    player("a"),
+    player("b"),
+    player("g", { guest: true }),
+    player("u"),
+  ];
+  const draft = {
+    ...initialTeamsDraft(players, null, null),
+    method: "manual" as const,
+    sides: { a: 1 as const, b: 2 as const, g: 1 as const },
+    captains: { slot1: "a", slot2: null },
+  };
+
+  it("names the side, the captaincy and the move across", () => {
+    expect(teamsOpenPlayer(draft, players, "a")).toMatchObject({
+      side: 1,
+      isCaptain: true,
+      canBeCaptain: true,
+      placeTargets: [2],
+    });
+    expect(teamsOpenPlayer(draft, players, "b")).toMatchObject({
+      side: 2,
+      isCaptain: false,
+      placeTargets: [1],
+    });
+  });
+
+  it("offers either side and no captaincy while not placed", () => {
+    expect(teamsOpenPlayer(draft, players, "u")).toMatchObject({
+      side: null,
+      canBeCaptain: false,
+      placeTargets: [1, 2],
+    });
+  });
+
+  it("never makes a Guest player captain", () => {
+    expect(teamsOpenPlayer(draft, players, "g")?.canBeCaptain).toBe(false);
+  });
+
+  it("opens nobody in a Captain pick, or for someone not in the pool", () => {
+    expect(
+      teamsOpenPlayer({ ...draft, method: "captain_pick" }, players, "a"),
+    ).toBeNull();
+    expect(teamsOpenPlayer(draft, players, "nobody")).toBeNull();
+    expect(teamsOpenPlayer(draft, players, null)).toBeNull();
+  });
+});
+
+describe("toggleSideCaptain", () => {
+  const players = [player("a"), player("b"), player("u")];
+  const draft = {
+    ...initialTeamsDraft(players, null, null),
+    sides: { a: 1 as const, b: 2 as const },
+    captains: { slot1: null, slot2: null },
+  };
+
+  it("names a placed player their side's captain, then clears it", () => {
+    const named = toggleSideCaptain(draft, "b");
+    expect(named.captains).toEqual({ slot1: null, slot2: "b" });
+    expect(toggleSideCaptain(named, "b").captains).toEqual({
+      slot1: null,
+      slot2: null,
+    });
+  });
+
+  it("leaves an unplaced player alone", () => {
+    expect(toggleSideCaptain(draft, "u")).toBe(draft);
   });
 });

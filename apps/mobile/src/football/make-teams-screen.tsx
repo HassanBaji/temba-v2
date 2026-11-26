@@ -56,9 +56,11 @@ import {
   slotCode,
   switchMethod,
   teamsRating,
+  teamsOpenPlayer,
   teamsSideAverage,
   teamsTileName,
   tierProvisionalCount,
+  toggleSideCaptain,
   type BoardPlayer,
   type Side,
   type TeamsDraft,
@@ -280,7 +282,8 @@ function NewMark({ label, color }: { label: string; color: string }) {
 /**
  * A pool player on Make teams by Level: the full name on top, wrapping
  * rather than cut, then the position, the number the teams balance on and
- * the arrow that moves them across. Tapping the tile opens their profile,
+ * the arrow that moves them across. Tapping the tile opens their short
+ * profile in a sheet,
  * and the tile is ringed while it is open.
  */
 function TeamsTile({
@@ -379,7 +382,12 @@ function TeamsTile({
             </Text>
           )}
         </View>
-        <ArrowButton side={side} bib={bib} name={name} onPress={onMove} />
+        <ArrowButton
+          side={side}
+          bib={bib}
+          name={teamsName(player)}
+          onPress={onMove}
+        />
       </View>
     </Pressable>
   );
@@ -400,7 +408,7 @@ function LevelColumns({
 }) {
   const messages = useMessages();
   const m = messages.mobileTournament.makeTeams;
-  const teamsCard = messages.football.teamsCard;
+  const board = messages.football.board;
   const column = (side: Side) => {
     const bib = side === 1 ? draft.bibs.slot1 : draft.bibs.slot2;
     const members = side === 1 ? summary.slot1 : summary.slot2;
@@ -432,10 +440,10 @@ function LevelColumns({
         }}
       >
         <Text size="meta" tone="muted">
-          {teamsCard.players}
+          {board.playersTitle}
         </Text>
         <Text size="eyebrow" tone="muted">
-          {teamsCard.tapToOpen}
+          {board.tapToOpen}
         </Text>
       </View>
       <View style={{ flexDirection: "row", gap: 8 }}>
@@ -934,13 +942,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
       firstPick,
     });
   };
-  const openPlayer =
-    draft.method === "captain_pick"
-      ? null
-      : (players.find((player) => player.userId === openUserId) ?? null);
-  const openSide = openPlayer ? (draft.sides[openPlayer.userId] ?? null) : null;
-  const openIsCaptain =
-    openSide != null && ofSide(draft.captains, openSide) === openPlayer?.userId;
+  const open = teamsOpenPlayer(draft, players, openUserId);
   const method = draft.method;
   const sides = {
     method,
@@ -1091,7 +1093,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
             <LevelColumns
               draft={draft}
               summary={summary}
-              openUserId={openPlayer?.userId ?? null}
+              openUserId={open?.player.userId ?? null}
               onOpen={setOpenUserId}
               onMove={(userId) => setDraft(moveAcross(draft, userId))}
             />
@@ -1112,35 +1114,24 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
       ) : null}
       <TeamsPlayerSheet
         gameId={gameId}
-        player={openPlayer}
-        side={openSide}
+        open={open}
         names={summary.names}
         balanceOn={summary.balanceOn}
-        isCaptain={openIsCaptain}
-        canBeCaptain={
-          openSide != null && openPlayer != null && mayBeSideCaptain(openPlayer)
-        }
         onClose={() => setOpenUserId(null)}
         onPlace={(side) => {
-          if (openPlayer) {
-            setDraft(placeOn(draft, openPlayer.userId, side));
+          if (open) {
+            setDraft(placeOn(draft, open.player.userId, side));
           }
         }}
         onToggleCaptain={() => {
-          if (openPlayer && openSide) {
-            setDraft(
-              setSideCaptain(
-                draft,
-                openSide,
-                openIsCaptain ? null : openPlayer.userId,
-              ),
-            );
+          if (open) {
+            setDraft(toggleSideCaptain(draft, open.player.userId));
           }
         }}
         onOpenProfile={() => {
-          if (openPlayer) {
+          if (open) {
             setOpenUserId(null);
-            router.push(playerPath(segments, openPlayer.userId, "football"));
+            router.push(playerPath(segments, open.player.userId, "football"));
           }
         }}
       />

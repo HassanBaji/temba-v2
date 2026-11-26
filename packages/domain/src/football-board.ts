@@ -560,6 +560,59 @@ export function setSideCaptain(
 }
 
 /**
+ * A Side captain's sheet button: names the player their side's captain, or
+ * clears it when they already are. An unplaced player has no side to lead.
+ */
+export function toggleSideCaptain(draft: TeamsDraft, userId: string) {
+  const side = draft.sides[userId];
+  if (!side) {
+    return draft;
+  }
+  return setSideCaptain(
+    draft,
+    side,
+    ofSide(draft.captains, side) === userId ? null : userId,
+  );
+}
+
+/** The player whose sheet is open on Make teams, and what it may do with them. */
+export type TeamsOpenPlayer = {
+  player: BoardPlayer;
+  /** Null while a Manual split has not placed them. */
+  side: Side | null;
+  isCaptain: boolean;
+  canBeCaptain: boolean;
+  /** Across, or either side while not placed. */
+  placeTargets: Side[];
+};
+
+/**
+ * Make teams by Level or by hand opens a player's sheet; a Captain pick
+ * seats players its own way, so it opens none.
+ */
+export function teamsOpenPlayer(
+  draft: TeamsDraft,
+  players: readonly BoardPlayer[],
+  userId: string | null,
+): TeamsOpenPlayer | null {
+  if (draft.method === "captain_pick") {
+    return null;
+  }
+  const player = players.find((row) => row.userId === userId);
+  if (!player) {
+    return null;
+  }
+  const side = draft.sides[player.userId] ?? null;
+  return {
+    player,
+    side,
+    isCaptain: side != null && ofSide(draft.captains, side) === player.userId,
+    canBeCaptain: side != null && mayBeSideCaptain(player),
+    placeTargets: side ? [otherSide(side)] : [1, 2],
+  };
+}
+
+/**
  * Names a side's Side captain for a Captain pick, from anyone on the roster
  * (ADR-0109): the two captains are seated on their sides and everyone else
  * waits to be picked. Naming the other side's captain moves them across;

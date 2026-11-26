@@ -88,6 +88,8 @@ export const football = {
       plural("en", n, { one: "1 not rated", other: "{n} not rated" }),
     tileNew: "new",
     tileNewSpoken: "New, not rated yet",
+    playersTitle: "Players",
+    tapToOpen: "tap a player to open them",
     bothSidesConfirmed: "Both sides confirmed.",
     confirmedByOrganizer: "Confirmed by the Organizer.",
     waitingOrganizerFor: (team: string) =>
@@ -584,8 +586,8 @@ export const football = {
     pickNothingToUndo: "There is no pick to undo",
   },
   teamsCard: {
-    players: "Players",
-    tapToOpen: "tap a player to open them",
+    // One player's line on their sheet. The Manual list's "Not placed"
+    // heading counts several, which Arabic says differently.
     notPlaced: "Not placed",
     sideUsually: (team: string, code: string) => `${team}, usually ${code}`,
     notRatedYet: (left: number) =>

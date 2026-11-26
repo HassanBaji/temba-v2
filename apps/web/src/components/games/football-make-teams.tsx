@@ -19,8 +19,10 @@ import {
   switchMethod,
   teamsRating,
   teamsSideAverage,
+  teamsOpenPlayer,
   teamsTileName,
   tierProvisionalCount,
+  toggleSideCaptain,
   type BoardPlayer,
   type Side,
   type TeamsDraft,
@@ -56,7 +58,7 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Hatch } from "~/components/ui/hatch";
 import { Skeleton } from "~/components/ui/skeleton";
-import { gamePickRoomHref } from "~/lib/dashboard-paths";
+import { gamePickRoomHref, playerProfilePath } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
@@ -66,6 +68,11 @@ import { FootballCaptainPickSetup } from "./football-captain-pick-setup";
 import { FootballCaptainsDialog } from "./football-captains-dialog";
 import { CaptainAvatar, TierMark } from "./football-team-columns";
 import { FootballTeamsPlayerSheet } from "./football-teams-player-sheet";
+
+/** The parts that are there, joined with the locale's list separator. */
+function listOf(parts: readonly (string | null)[], separator: string) {
+  return parts.filter(Boolean).join(separator);
+}
 
 /** The Member nickname when the viewer may see one, else the full Temba name. */
 function teamsName(player: Pick<BoardPlayer, "name" | "nickname">) {
@@ -143,14 +150,15 @@ function BalanceCard({
           <span className="text-muted-foreground text-meta flex-1">
             {t.avgAndKeepers(
               teamsSideAverage(members, locale, summary.balanceOn),
-              [
-                keeperWord(members, locale),
-                provisional > 0
-                  ? m.football.board.notRatedCount(provisional)
-                  : null,
-              ]
-                .filter(Boolean)
-                .join(m.common.listSeparator),
+              listOf(
+                [
+                  keeperWord(members, locale),
+                  provisional > 0
+                    ? m.football.board.notRatedCount(provisional)
+                    : null,
+                ],
+                m.common.listSeparator,
+              ),
             )}
           </span>
           <span className="font-expanded tabular-nums">
@@ -289,7 +297,7 @@ function CaptainsRow({
 function NewMark({ label }: { label: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className="bg-paper rounded-xs relative block h-4 w-[34px] overflow-hidden border">
+      <span className="bg-paper rounded-xs relative block h-4 w-9 overflow-hidden border">
         <Hatch className="absolute inset-0" />
       </span>
       <span className="text-eyebrow opacity-60">{label}</span>
@@ -300,8 +308,8 @@ function NewMark({ label }: { label: string }) {
 /**
  * A pool player on Make teams by Level: the full name on top, wrapping
  * rather than cut, then the position, the number the teams balance on and
- * the arrow that moves them across. Clicking the tile opens their profile,
- * and the tile is ringed while it is open.
+ * the arrow that moves them across. Clicking the tile opens their short
+ * profile in a sheet, and the tile is ringed while it is open.
  */
 function TeamsTile({
   player,
@@ -341,14 +349,15 @@ function TeamsTile({
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={[
-          spoken,
-          sideCaptain ? m.football.captains.spoken : null,
-          code,
-          rating.spoken,
-        ]
-          .filter(Boolean)
-          .join(m.common.listSeparator)}
+        aria-label={listOf(
+          [
+            spoken,
+            sideCaptain ? m.football.captains.spoken : null,
+            code,
+            rating.spoken,
+          ],
+          m.common.listSeparator,
+        )}
         onClick={onOpen}
         className="focus-visible:ring-ring/50 rounded-card flex w-full flex-col gap-2.5 p-2.5 text-start outline-none focus-visible:ring-[3px]"
       >
@@ -383,7 +392,9 @@ function TeamsTile({
       </button>
       <button
         type="button"
-        aria-label={m.webTournament.footballTeams.moveToOtherTeam(name)}
+        aria-label={m.webTournament.footballTeams.moveToOtherTeam(
+          teamsName(player),
+        )}
         onClick={onMove}
         className="focus-visible:ring-ring/50 absolute bottom-2.5 end-2.5 flex size-7 items-center justify-center rounded-sm outline-none focus-visible:ring-[3px]"
         style={{ backgroundColor: on, color: fill }}
@@ -408,7 +419,7 @@ function LevelColumns({
   onMove: (userId: string) => void;
 }) {
   const m = useMessages();
-  const teamsCard = m.football.teamsCard;
+  const board = m.football.board;
   const column = (side: Side) => {
     const bib = side === 1 ? draft.bibs.slot1 : draft.bibs.slot2;
     const members = side === 1 ? summary.slot1 : summary.slot2;
@@ -434,9 +445,11 @@ function LevelColumns({
   return (
     <section className="space-y-2.5">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-muted-foreground text-meta">{teamsCard.players}</h2>
+        <h2 className="text-muted-foreground text-meta">
+          {board.playersTitle}
+        </h2>
         <span className="text-muted-foreground text-eyebrow">
-          {teamsCard.tapToOpen}
+          {board.tapToOpen}
         </span>
       </div>
       <div className="flex gap-2.5">
@@ -487,12 +500,14 @@ function ManualRow({
   player,
   draft,
   names,
+  open,
   onOpen,
   onPlace,
 }: {
   player: BoardPlayer;
   draft: TeamsDraft;
   names: { slot1: string; slot2: string };
+  open: boolean;
   onOpen: () => void;
   onPlace: (side: Side) => void;
 }) {
@@ -515,7 +530,8 @@ function ManualRow({
       <button
         type="button"
         aria-haspopup="dialog"
-        aria-label={[spoken, code].filter(Boolean).join(m.common.listSeparator)}
+        aria-expanded={open}
+        aria-label={listOf([spoken, code], m.common.listSeparator)}
         onClick={onOpen}
         className="focus-visible:ring-ring/50 flex min-w-0 flex-1 items-center gap-2.5 rounded-sm text-start outline-none focus-visible:ring-[3px]"
       >
@@ -565,11 +581,13 @@ function ManualRow({
 function ManualLists({
   draft,
   summary,
+  openUserId,
   onOpen,
   onPlace,
 }: {
   draft: TeamsDraft;
   summary: ReturnType<typeof draftSummary>;
+  openUserId: string | null;
   onOpen: (userId: string) => void;
   onPlace: (userId: string, side: Side) => void;
 }) {
@@ -594,6 +612,7 @@ function ManualLists({
               player={player}
               draft={draft}
               names={summary.names}
+              open={openUserId === player.userId}
               onOpen={() => onOpen(player.userId)}
               onPlace={(side) => onPlace(player.userId, side)}
             />
@@ -811,16 +830,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
         firstPick,
       });
     };
-    const openPlayer =
-      draft.method === "captain_pick"
-        ? null
-        : (players.find((player) => player.userId === openUserId) ?? null);
-    const openSide = openPlayer
-      ? (draft.sides[openPlayer.userId] ?? null)
-      : null;
-    const openIsCaptain =
-      openPlayer != null &&
-      isSideCaptain(draft, openSide ?? undefined, openPlayer.userId);
+    const open = teamsOpenPlayer(draft, players, openUserId);
     const how =
       draft.method === "captain_pick"
         ? pickSetup.intro
@@ -868,7 +878,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
               <LevelColumns
                 draft={draft}
                 summary={summary}
-                openUserId={openPlayer?.userId ?? null}
+                openUserId={open?.player.userId ?? null}
                 onOpen={setOpenUserId}
                 onMove={(userId) => setDraft(moveAcross(draft, userId))}
               />
@@ -876,6 +886,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
               <ManualLists
                 draft={draft}
                 summary={summary}
+                openUserId={open?.player.userId ?? null}
                 onOpen={setOpenUserId}
                 onPlace={(userId, side) =>
                   setDraft(placeOn(draft, userId, side))
@@ -978,31 +989,24 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
         )}
         <FootballTeamsPlayerSheet
           gameId={gameId}
-          player={openPlayer}
-          side={openSide}
+          open={open}
           names={summary.names}
           balanceOn={summary.balanceOn}
-          isCaptain={openIsCaptain}
-          canBeCaptain={
-            openSide != null &&
-            openPlayer != null &&
-            mayBeSideCaptain(openPlayer)
-          }
           onClose={() => setOpenUserId(null)}
           onPlace={(side) => {
-            if (openPlayer) {
-              setDraft(placeOn(draft, openPlayer.userId, side));
+            if (open) {
+              setDraft(placeOn(draft, open.player.userId, side));
             }
           }}
           onToggleCaptain={() => {
-            if (openPlayer && openSide) {
-              setDraft(
-                setSideCaptain(
-                  draft,
-                  openSide,
-                  openIsCaptain ? null : openPlayer.userId,
-                ),
-              );
+            if (open) {
+              setDraft(toggleSideCaptain(draft, open.player.userId));
+            }
+          }}
+          onOpenProfile={() => {
+            if (open) {
+              setOpenUserId(null);
+              router.push(playerProfilePath(open.player.userId, "football"));
             }
           }}
         />
