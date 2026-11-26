@@ -1,6 +1,7 @@
 import { spacing } from "@repo/design-tokens";
 import { hubRegisterToast } from "@repo/domain/game-card";
 import { shortPlayerName } from "@repo/domain/player-name";
+import { americanoFixedPartner } from "@repo/domain/tournament-americano";
 import {
   americanoResultMark,
   signedDifference,
@@ -76,6 +77,32 @@ function PlayerRow({
     >
       <Row>{children}</Row>
     </Pressable>
+  );
+}
+
+/** "with Khalid J" under a player who keeps one partner all day (ADR-0113). */
+function FixedPartnerLine({
+  fixedPairs,
+  playerId,
+  viewerId,
+  nameOf,
+}: {
+  fixedPairs: readonly (readonly string[])[];
+  playerId: string;
+  viewerId: string | null | undefined;
+  nameOf: (gamePlayerId: string) => string;
+}) {
+  const m = useMessages().tournamentAmericano.fixedPairs;
+  const partner = americanoFixedPartner(fixedPairs, playerId);
+  if (!partner) {
+    return null;
+  }
+  return (
+    <Text size="eyebrow" tone="muted" numberOfLines={1}>
+      {partner === viewerId
+        ? m.withYou
+        : m.withPartner(shortPlayerName(nameOf(partner)))}
+    </Text>
   );
 }
 
@@ -230,7 +257,9 @@ export function AmericanoView({
         </Text>
         <Text size="body">{game.name ?? m.shape.title}</Text>
         <Text size="meta" tone="muted">
-          {m.lead.standings}
+          {(board.data?.fixedPairs.length ?? 0) > 0
+            ? m.lead.standingsFixed
+            : m.lead.standings}
         </Text>
         <SeriesHeadingLine series={game.series} finished={finished} />
       </View>
@@ -261,6 +290,12 @@ export function AmericanoView({
                       </Text>
                     ) : null}
                   </Text>
+                  <FixedPartnerLine
+                    fixedPairs={board.data?.fixedPairs ?? []}
+                    playerId={row.playerId}
+                    viewerId={viewerId}
+                    nameOf={(id) => names.get(id)?.name ?? ""}
+                  />
                 </View>
                 {seriesBadges && wonSeries(row.playerId) ? (
                   <SeriesBadge

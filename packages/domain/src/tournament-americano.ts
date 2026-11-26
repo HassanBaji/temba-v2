@@ -15,6 +15,7 @@ export const AMERICANO_PLAYER_STEP = AMERICANO_PLAYERS_PER_COURT;
 const AMERICANO_DEFAULT_PLAYERS = 16;
 export const AMERICANO_DEFAULT_ROUNDS = 7;
 export const AMERICANO_ROUND_MIN = 1;
+export const AMERICANO_FIXED_PAIR_MAX = 2;
 
 export function isAmericano(
   format: string | null | undefined,
@@ -75,6 +76,31 @@ export function clampAmericanoRounds(
     return Math.min(AMERICANO_DEFAULT_ROUNDS, max);
   }
   return Math.min(max, Math.max(AMERICANO_ROUND_MIN, Math.round(rounds)));
+}
+
+/** Players who change partner every Round once the fixed pairs are set aside. */
+export function americanoRotatingPlayers(players: number, fixedPairs: number) {
+  return Math.max(0, players - fixedPairs * 2);
+}
+
+/**
+ * Whether the fixed pairs leave enough players rotating for everyone else to
+ * get a new partner in every Round: at most two pairs, and at least one more
+ * rotating player than there are Rounds.
+ */
+export function americanoFixedPairsFit(input: {
+  players: number;
+  rounds: number;
+  fixedPairs: number;
+}) {
+  if (input.fixedPairs === 0) {
+    return true;
+  }
+  return (
+    input.fixedPairs <= AMERICANO_FIXED_PAIR_MAX &&
+    americanoRotatingPlayers(input.players, input.fixedPairs) - 1 >=
+      input.rounds
+  );
 }
 
 export function americanoMatchCount(players: number, rounds: number) {
@@ -205,15 +231,17 @@ function leastRepeatSplit(
 }
 
 /**
- * Every Round of an Americano from the drawn order of players. Partners come
- * from the circle method, so nobody partners the same player twice for up to
- * one fewer Round than there are players; each Round's pairs then meet with
- * the fewest repeat opponents. Swapping two players in the order swaps them
- * in every Round, which keeps both rules.
+ * Every Round of an Americano from the drawn order of players. A fixed pair
+ * partners in every Round and is placed first; the other players' partners
+ * come from the circle method, so none of them partners the same player twice
+ * for up to one fewer Round than there are rotating players. Each Round's
+ * pairs then meet with the fewest repeat opponents. Swapping two rotating
+ * players in the order swaps them in every Round, which keeps both rules.
  */
 export function americanoRounds(
   order: readonly string[],
   roundCount: number,
+  fixedPairs: readonly AmericanoPair[] = [],
 ): AmericanoPairing[] {
   if (
     order.length < AMERICANO_PLAYERS_PER_COURT ||
@@ -221,15 +249,27 @@ export function americanoRounds(
   ) {
     return [];
   }
-  const rounds = Math.min(roundCount, americanoRoundMax(order.length));
+  const inOrder = new Set(order);
+  const fixed = fixedPairs.filter(
+    ([left, right]) =>
+      left !== right && inOrder.has(left) && inOrder.has(right),
+  );
+  const fixedPlayers = new Set(fixed.flat());
+  const rotating = order.filter((player) => !fixedPlayers.has(player));
+  const rounds = Math.min(
+    roundCount,
+    fixed.length > 0
+      ? Math.max(0, rotating.length - 1)
+      : americanoRoundMax(order.length),
+  );
   const partnersByRound = new Map<number, AmericanoPair[]>();
-  for (const pairing of circleMethodPairings(order)) {
-    if (pairing.roundNumber > rounds) {
-      continue;
-    }
-    const list = partnersByRound.get(pairing.roundNumber) ?? [];
-    list.push([pairing.slot1, pairing.slot2]);
-    partnersByRound.set(pairing.roundNumber, list);
+  for (let roundNumber = 1; roundNumber <= rounds; roundNumber += 1) {
+    partnersByRound.set(roundNumber, [...fixed]);
+  }
+  for (const pairing of circleMethodPairings(rotating)) {
+    partnersByRound
+      .get(pairing.roundNumber)
+      ?.push([pairing.slot1, pairing.slot2]);
   }
   const opponents = new Map<string, number>();
   const pairings: AmericanoPairing[] = [];
@@ -248,6 +288,39 @@ export function americanoRounds(
     });
   }
   return pairings;
+}
+
+/** The fixed partner of a player, or null when they rotate. */
+export function americanoFixedPartner(
+  fixedPairs: readonly (readonly string[])[],
+  playerId: string,
+) {
+  const pair = fixedPairs.find((candidate) => candidate.includes(playerId));
+  return pair?.find((other) => other !== playerId) ?? null;
+}
+
+/** One-based number of the fixed pair a player is in, or null. */
+export function americanoFixedPairNumber(
+  fixedPairs: readonly (readonly string[])[],
+  playerId: string,
+) {
+  const index = fixedPairs.findIndex((pair) => pair.includes(playerId));
+  return index < 0 ? null : index + 1;
+}
+
+/** Whether two players are one of the fixed pairs. */
+export function isAmericanoFixedPair(
+  fixedPairs: readonly (readonly string[])[],
+  pair: readonly string[],
+) {
+  const [left, right] = pair;
+  return (
+    left != null &&
+    right != null &&
+    fixedPairs.some(
+      (candidate) => candidate.includes(left) && candidate.includes(right),
+    )
+  );
 }
 
 export function americanoRoundOf(
@@ -292,11 +365,14 @@ export type AmericanoTableRow = {
 /**
  * One table of players, ranked on games won. Every game a pair wins counts
  * for both its players. Ties go to game difference, then games won outright,
- * then the order the players were given in.
+ * then the order the players were given in. Fixed partners share every
+ * result, so a tie keeps them next to each other, at the earlier one's place
+ * in the given order.
  */
 export function americanoTable(
   playerIds: readonly string[],
   results: readonly AmericanoResult[],
+  fixedPairs: readonly (readonly string[])[] = [],
 ): AmericanoTableRow[] {
   const rows = new Map(
     playerIds.map((playerId) => [
@@ -347,6 +423,12 @@ export function americanoTable(
     }
   }
   const given = new Map(playerIds.map((playerId, index) => [playerId, index]));
+  const groupOf = (playerId: string) => {
+    const own = given.get(playerId) ?? 0;
+    const partner = americanoFixedPartner(fixedPairs, playerId);
+    const theirs = partner != null ? given.get(partner) : undefined;
+    return theirs == null ? own : Math.min(own, theirs);
+  };
   return [...rows.values()]
     .map((row) => ({ ...row, difference: row.gamesWon - row.gamesLost }))
     .sort(
@@ -354,6 +436,7 @@ export function americanoTable(
         right.gamesWon - left.gamesWon ||
         right.difference - left.difference ||
         right.won - left.won ||
+        groupOf(left.playerId) - groupOf(right.playerId) ||
         (given.get(left.playerId) ?? 0) - (given.get(right.playerId) ?? 0),
     )
     .map((row, index) => ({ ...row, place: index + 1 }));

@@ -56,6 +56,7 @@ import { postKingFinalOrderProcedure as postKingFinalOrder } from "./postKingFin
 import { americanoBoardProcedure as americanoBoard } from "./americanoBoard";
 import { postAmericanoRoundsProcedure as postAmericanoRounds } from "./postAmericanoRounds";
 import { swapAmericanoPlayersProcedure as swapAmericanoPlayers } from "./swapAmericanoPlayers";
+import { setAmericanoFixedPairsProcedure as setAmericanoFixedPairs } from "./setAmericanoFixedPairs";
 import { enterTournamentScoreProcedure as enterTournamentScore } from "./enterTournamentScore";
 import { addRoundProcedure as addRound } from "./addRound";
 import { cancelRoundProcedure as cancelRound } from "./cancelRound";
@@ -131,6 +132,7 @@ export const gamesRouter = createTRPCRouter({
   americanoBoard,
   postAmericanoRounds,
   swapAmericanoPlayers,
+  setAmericanoFixedPairs,
   undoPoolDraw,
   tournamentRounds,
   generateRounds,

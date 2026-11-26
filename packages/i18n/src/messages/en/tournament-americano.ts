@@ -14,6 +14,11 @@ const courts = (n: number) =>
   plural("en", n, { one: "1 court", other: "{n} courts" });
 const partners = (n: number) =>
   plural("en", n, { one: "1 partner", other: "{n} partners" });
+const fixedPairs = (n: number) =>
+  plural("en", n, {
+    one: "1 fixed pair stays together",
+    other: "{n} fixed pairs stay together",
+  });
 const wins = (n: number) =>
   plural("en", n, { one: "1 win", other: "{n} wins" });
 const draws = (n: number) =>
@@ -100,7 +105,7 @@ export const tournamentAmericano = {
     count: (taken: number, total: number) => `${taken} of ${total}`,
     openSeat: "Open seat",
     footOrganizer:
-      "Everyone signed up alone. There are no teams to form: partners change every round.",
+      "Everyone signed up alone. Partners change every round, unless you fix a pair.",
     footPlayer:
       "No team and no side to pick. Take a seat and Temba gives you a partner for each round.",
   },
@@ -161,6 +166,59 @@ export const tournamentAmericano = {
       `With this many players, ${rounds(roundCount)} is everyone with everyone, so you get ${roundCount} of the ${planned} planned.`,
     posted: "Rounds made. Every player sees their partners.",
     selected: (name: string) => `${name}, picked to swap`,
+    leadFixed: (
+      playerCount: number,
+      roundCount: number,
+      gameCount: number,
+      pairCount: number,
+      rotating: number,
+    ) =>
+      `${players(playerCount)}, ${rounds(roundCount)}, ${games(gameCount)}. ${fixedPairs(pairCount)}; the other ${rotating} get ${partners(roundCount)} each, all different. This is round 1: tap two players to swap them.`,
+    fixedLocked: (name: string, pair: number) =>
+      `${name}, fixed pair ${pair}. Remove the pair to move them.`,
+  },
+  fixedPairs: {
+    title: "Fixed pairs",
+    none: (max: number) =>
+      `None yet. Keep two players together in every match, up to ${max} pairs.`,
+    noRoom: (roundCount: number) =>
+      `With ${rounds(roundCount)}, every player needs a new partner each round, so there is no room for a fixed pair.`,
+    pick: "Pick",
+    change: "Change",
+    lead: "Tap two players to keep them together in every match. Everyone else still gets a new partner each round.",
+    pairs: "Pairs",
+    pairsCount: (n: number, max: number) => `${n} of ${max}`,
+    pairNames: (first: string, second: string) => `${first} and ${second}`,
+    together: (roundCount: number) =>
+      roundCount === 1
+        ? "Together in the round"
+        : `Together in all ${roundCount} rounds`,
+    remove: "Remove",
+    removeLabel: (names: string) => `Remove ${names}`,
+    next: (n: number) => `Pair ${n}: tap two players below`,
+    partnerOf: (n: number, name: string) =>
+      `Pair ${n}: now tap ${name}’s partner`,
+    players: "Players",
+    pairTag: (n: number) => `Pair ${n}`,
+    foot: (rotating: number, roundCount: number, left: number) =>
+      `${players(rotating)} rotate and each still gets ${partners(roundCount)}, all different.${
+        left === 0
+          ? ""
+          : left === 1
+            ? " You can fix one more pair."
+            : ` You can fix up to ${left} pairs.`
+      }`,
+    full: (max: number) => `That is ${max} pairs, the most there can be.`,
+    tooFewToRotate: (roundCount: number) =>
+      `Another pair would leave too few players for ${rounds(roundCount)} of new partners.`,
+    selected: (name: string) => `${name}, picked`,
+    done: "Done",
+    saving: "Saving…",
+    doneFoot: "You can change this until the rounds are made.",
+    saved: "Fixed pairs saved.",
+    fixed: "fixed",
+    withPartner: (name: string) => `with ${name}`,
+    withYou: "with you",
   },
   tabs: {
     label: "Americano sections",
@@ -176,6 +234,14 @@ export const tournamentAmericano = {
       `${rounds(roundCount)} made. Everyone gets ${partners(roundCount)}, all different. You can enter or fix any score, and swap players in a round that hasn’t started.`,
     standings:
       "One table of players, ranked on games won. Every game your pair wins counts for both of you.",
+    roundsOrganizerFixed: (
+      roundCount: number,
+      pairCount: number,
+      rotating: number,
+    ) =>
+      `${rounds(roundCount)} made. ${fixedPairs(pairCount)}; the other ${rotating} players get ${partners(roundCount)}, all different. You can enter or fix any score, and swap players in a round that hasn’t started.`,
+    standingsFixed:
+      "One table of players, ranked on games won. Fixed partners share every result, so they sit together.",
   },
   progress: {
     roundOnCourt: (n: number, total: number) => `Round ${n} of ${total}`,
@@ -211,6 +277,8 @@ export const tournamentAmericano = {
     swapped: "Players swapped.",
     swapFoot:
       "To swap, open a round and tap two players. Temba keeps the rule: nobody gets the same partner twice.",
+    swapFootFixed:
+      "A fixed pair cannot be split by a swap. To change the pairs, undo the rounds before a score is in.",
   },
   score: {
     gamesEach: (pair: string, gamesWon: number) =>
@@ -343,5 +411,13 @@ export const tournamentAmericano = {
       `The rounds need until ${finish}. Move the finish later, record more Courts or play fewer rounds.`,
     roundsOverrun:
       "The rounds run past the end of this Social. Record more Courts or move the finish later.",
+    fixedPairsMax: (max: number) => `Fix up to ${max} pairs.`,
+    fixedPairsTwice: "A player can be in one fixed pair only.",
+    fixedPairsLocked:
+      "The rounds are made, so the fixed pairs are set. Undo the rounds to change them.",
+    fixedPairsTooMany: (rotating: number, roundCount: number) =>
+      `That leaves ${players(rotating)} to rotate, too few for everyone else to get a new partner in all ${rounds(roundCount)}. Remove a pair or play fewer rounds.`,
+    fixedPairSwap:
+      "A fixed pair cannot be split by a swap. Pick two players who rotate.",
   },
 };

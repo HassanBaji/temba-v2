@@ -16,6 +16,9 @@ import { hubRegisterToast } from "@repo/domain/game-card";
 import {
   AMERICANO_PLAYER_MIN,
   americanoCourtCount,
+  americanoFixedPairNumber,
+  americanoRotatingPlayers,
+  clampAmericanoRounds,
 } from "@repo/domain/tournament-americano";
 import {
   americanoHeroStats,
@@ -65,6 +68,11 @@ import {
   type AmericanoBoardRound,
   type AmericanoNames,
 } from "./tournament-americano-parts";
+import {
+  AmericanoFixedPairsCard,
+  AmericanoFixedPairsSheet,
+  type FixedPair,
+} from "./tournament-americano-fixed-pairs";
 import { TournamentDetailRows } from "./tournament-detail-rows";
 import { FinishedShareLink, PlaceChip } from "./tournament-finished-parts";
 import { TournamentHero } from "./tournament-hero";
@@ -99,7 +107,11 @@ export function TournamentAmericanoHome({
 }: {
   data: TournamentDetails & WithGameSeries;
   /** Design preview data: the board is given instead of read from the API. */
-  preview?: { board: AmericanoBoard; drawOpen?: boolean };
+  preview?: {
+    board: AmericanoBoard;
+    drawOpen?: boolean;
+    fixedPairsOpen?: boolean;
+  };
   backHref: string;
   actions?: React.ReactNode;
   album?: React.ReactNode;
@@ -152,6 +164,9 @@ export function TournamentAmericanoHome({
   );
   const board = preview ? { data: preview.board } : query;
   const [drawOpen, setDrawOpen] = React.useState(preview?.drawOpen ?? false);
+  const [fixedOpen, setFixedOpen] = React.useState(
+    preview?.fixedPairsOpen ?? false,
+  );
 
   async function refresh() {
     await Promise.all([
@@ -170,6 +185,12 @@ export function TournamentAmericanoHome({
   const post = api.games.postAmericanoRounds.useMutation({
     onSuccess: async () => {
       toast.success(m.draw.posted);
+      await refresh();
+    },
+  });
+  const saveFixedPairs = api.games.setAmericanoFixedPairs.useMutation({
+    onSuccess: async () => {
+      toast.success(m.fixedPairs.saved);
       await refresh();
     },
   });
@@ -202,13 +223,42 @@ export function TournamentAmericanoHome({
   );
 
   const players = board.data?.players ?? [];
+  const fixedPairs: readonly FixedPair[] = board.data?.fixedPairs ?? [];
   const firstStart = data.windowStart ? new Date(data.windowStart) : null;
+  const seats = Math.max(data.playersAllowed ?? 0, players.length);
+  const fixedPairsSheet =
+    data.isOrganizer && !data.cancelledAt && !drawn ? (
+      <AmericanoFixedPairsSheet
+        open={fixedOpen}
+        onOpenChange={setFixedOpen}
+        players={players}
+        saved={fixedPairs}
+        seats={seats}
+        rounds={clampAmericanoRounds(data.roundCount, seats)}
+        viewerGamePlayerId={board.data?.viewerGamePlayerId ?? null}
+        pending={saveFixedPairs.isPending}
+        error={saveFixedPairs.error}
+        onSave={async (pairs) => {
+          if (preview) {
+            return;
+          }
+          await saveFixedPairs.mutateAsync({
+            gameId: data.id,
+            pairs: pairs.map(([firstGamePlayerId, secondGamePlayerId]) => ({
+              firstGamePlayerId,
+              secondGamePlayerId,
+            })),
+          });
+        }}
+      />
+    ) : null;
   const drawSheet =
     data.isOrganizer && !data.cancelledAt && !drawn ? (
       <AmericanoDrawSheet
         open={drawOpen}
         onOpenChange={setDrawOpen}
         players={players}
+        fixedPairs={fixedPairs}
         roundCount={data.roundCount ?? 1}
         viewerGamePlayerId={board.data?.viewerGamePlayerId ?? null}
         courtNames={data.recordedCourts.map((court) => court.name)}
@@ -251,6 +301,10 @@ export function TournamentAmericanoHome({
           onPlayer={onPlayer}
           onJoin={() => register.mutate({ gameId: data.id })}
           onOpenDraw={() => setDrawOpen(true)}
+          fixedPairs={fixedPairs}
+          boardPlayers={players}
+          viewerGamePlayerId={board.data?.viewerGamePlayerId ?? null}
+          onOpenFixedPairs={() => setFixedOpen(true)}
         />
       )}
 
@@ -274,6 +328,7 @@ export function TournamentAmericanoHome({
         tracked={gamePaymentsTracked(data)}
       />
       {drawSheet}
+      {fixedPairsSheet}
       <TournamentPlayerDialog
         player={selected}
         canOpenProfile={linkToPlayers}
@@ -303,6 +358,10 @@ function AmericanoPredraw({
   onPlayer,
   onJoin,
   onOpenDraw,
+  fixedPairs,
+  boardPlayers,
+  viewerGamePlayerId,
+  onOpenFixedPairs,
 }: {
   data: TournamentDetails & WithGameSeries;
   backHref: string;
@@ -314,6 +373,10 @@ function AmericanoPredraw({
   onPlayer?: (userId: string) => void;
   onJoin: () => void;
   onOpenDraw: () => void;
+  fixedPairs: readonly FixedPair[];
+  boardPlayers: readonly AmericanoBoard["players"][number][];
+  viewerGamePlayerId: string | null;
+  onOpenFixedPairs: () => void;
 }) {
   const messages = useMessages();
   const m = messages.tournamentAmericano;
@@ -340,6 +403,20 @@ function AmericanoPredraw({
     data.pricePerPlayerFils != null && data.pricePerPlayerFils > 0
       ? filsToMajorInput(data.pricePerPlayerFils)
       : null;
+  const boardNames: AmericanoNames = new Map(
+    boardPlayers.map((player) => [player.gamePlayerId, player]),
+  );
+  const gamePlayerOfUser = new Map(
+    boardPlayers.flatMap((player) =>
+      player.userId ? [[player.userId, player.gamePlayerId] as const] : [],
+    ),
+  );
+  const pairOf = (userId: string) => {
+    const gamePlayerId = gamePlayerOfUser.get(userId);
+    return gamePlayerId
+      ? americanoFixedPairNumber(fixedPairs, gamePlayerId)
+      : null;
+  };
 
   return (
     <>
@@ -412,6 +489,20 @@ function AmericanoPredraw({
         </div>
       )}
 
+      {organizer && boardPlayers.length > 0 ? (
+        <AmericanoFixedPairsCard
+          fixedPairs={fixedPairs}
+          names={boardNames}
+          viewerGamePlayerId={viewerGamePlayerId}
+          players={Math.max(seatCount, taken)}
+          rounds={clampAmericanoRounds(
+            data.roundCount,
+            Math.max(seatCount, taken),
+          )}
+          onOpen={onOpenFixedPairs}
+        />
+      ) : null}
+
       <section className="space-y-3">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="font-expanded text-title tracking-[-0.03em]">
@@ -434,6 +525,7 @@ function AmericanoPredraw({
           playerLabel={
             organizer ? messages.webTournament.player.openActions : undefined
           }
+          pairOf={organizer ? pairOf : undefined}
         />
         <p className="text-muted-foreground text-meta leading-relaxed">
           {organizer ? m.players.footOrganizer : m.players.footPlayer}
@@ -601,13 +693,25 @@ function AmericanoDrawnHome({
     rounds: m.tabs.rounds,
     table: m.tabs.standings,
   };
+  const fixedPairs = board.fixedPairs;
   const leads: Record<Tab, string> = {
     players: m.lead.players,
-    rounds: board.isOrganizer
-      ? m.lead.roundsOrganizer(board.rounds.length)
-      : m.lead.rounds,
-    table: m.lead.standings,
+    rounds: !board.isOrganizer
+      ? m.lead.rounds
+      : fixedPairs.length > 0
+        ? m.lead.roundsOrganizerFixed(
+            board.rounds.length,
+            fixedPairs.length,
+            americanoRotatingPlayers(board.players.length, fixedPairs.length),
+          )
+        : m.lead.roundsOrganizer(board.rounds.length),
+    table: fixedPairs.length > 0 ? m.lead.standingsFixed : m.lead.standings,
   };
+  const gamePlayerOfUser = new Map(
+    board.players.flatMap((player) =>
+      player.userId ? [[player.userId, player.gamePlayerId] as const] : [],
+    ),
+  );
 
   function openScore(match: AmericanoBoardMatch, roundNumber: number) {
     setScoreTarget({
@@ -727,6 +831,12 @@ function AmericanoDrawnHome({
             )}
             seatCount={board.players.length}
             viewerUserId={data.viewerUserId}
+            pairOf={(userId) => {
+              const gamePlayerId = gamePlayerOfUser.get(userId);
+              return gamePlayerId
+                ? americanoFixedPairNumber(fixedPairs, gamePlayerId)
+                : null;
+            }}
             onPlayer={onPlayer}
             playerLabel={
               data.isOrganizer && !data.cancelledAt
@@ -760,6 +870,7 @@ function AmericanoDrawnHome({
                 gameId={data.id}
                 round={round}
                 names={names}
+                fixedPairs={fixedPairs}
                 viewerGamePlayerId={board.viewerGamePlayerId}
                 defaultOpen={roundOpenByDefault(
                   round,
@@ -777,7 +888,7 @@ function AmericanoDrawnHome({
           </div>
           {board.isOrganizer && !finished ? (
             <p className="text-muted-foreground text-meta leading-relaxed">
-              {m.round.swapFoot}
+              {fixedPairs.length > 0 ? m.round.swapFootFixed : m.round.swapFoot}
             </p>
           ) : null}
         </TabsContent>
@@ -790,6 +901,7 @@ function AmericanoDrawnHome({
             viewerGamePlayerId={board.viewerGamePlayerId}
             final={finished}
             seriesBadges={seriesBadges}
+            fixedPairs={fixedPairs}
           />
           <AmericanoYourRounds
             matches={allMatches}
@@ -947,6 +1059,7 @@ function AmericanoRoundCard({
   gameId,
   round,
   names,
+  fixedPairs,
   viewerGamePlayerId,
   defaultOpen,
   current,
@@ -957,6 +1070,7 @@ function AmericanoRoundCard({
   gameId: string;
   round: AmericanoBoardRound;
   names: AmericanoNames;
+  fixedPairs: readonly (readonly string[])[];
   viewerGamePlayerId: string | null;
   defaultOpen: boolean;
   current: boolean;
@@ -1051,6 +1165,7 @@ function AmericanoRoundCard({
                 key={match.matchId}
                 match={match}
                 names={names}
+                fixedPairs={fixedPairs}
                 viewerGamePlayerId={viewerGamePlayerId}
                 onEnter={() => onScore(match)}
                 onConfirm={() => onScore(match)}

@@ -13,6 +13,8 @@ import {
 import {
   AMERICANO_PLAYER_MIN,
   AMERICANO_PLAYERS_PER_COURT,
+  americanoFixedPairsFit,
+  americanoRotatingPlayers,
   americanoRoundOf,
   americanoRounds,
   clampAmericanoRounds,
@@ -26,7 +28,10 @@ import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
-import { loadAmericanoPlayers } from "#src/games/americano-matches";
+import {
+  loadAmericanoFixedPairs,
+  loadAmericanoPlayers,
+} from "#src/games/americano-matches";
 import { lockGame } from "#src/games/lock-rows";
 
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -49,8 +54,9 @@ function samePlayersOnce(
  * Rounds come from it, so a swap on the sheet moves the two players in every
  * Round. Every player on the Game plays, in fours, at least eight. Each
  * Match seats its four players directly, on the recorded Courts and times
- * laid out as a posted Pool draw lays them out. Making the Rounds closes the
- * seats and empties the Waitlist.
+ * laid out as a posted Pool draw lays them out. Its fixed pairs (ADR-0113)
+ * partner in every Round. Making the Rounds closes the seats and empties the
+ * Waitlist.
  */
 export async function postAmericanoRounds(
   database: DbClient,
@@ -126,7 +132,27 @@ export async function postAmericanoRounds(
     }
 
     const roundCount = clampAmericanoRounds(locked.roundCount, players.length);
-    const pairings = americanoRounds(args.gamePlayerIds, roundCount);
+    const fixedPairs = await loadAmericanoFixedPairs(tx, game.id);
+    if (
+      !americanoFixedPairsFit({
+        players: players.length,
+        rounds: roundCount,
+        fixedPairs: fixedPairs.length,
+      })
+    ) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: m.fixedPairsTooMany(
+          americanoRotatingPlayers(players.length, fixedPairs.length),
+          roundCount,
+        ),
+      });
+    }
+    const pairings = americanoRounds(
+      args.gamePlayerIds,
+      roundCount,
+      fixedPairs,
+    );
     const scheduled = scheduleRoundSlots({
       rounds: Array.from({ length: roundCount }, (_, index) => ({
         roundNumber: index + 1,
