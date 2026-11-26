@@ -223,7 +223,7 @@ docker_pg() {
     -v "$work_dir:/work" "$PG_IMAGE" "$@"
 }
 
-echo "Dumping Railway $from_env…"
+echo "Dumping Railway ${from_env}…"
 docker_pg pg_dump "$SOURCE_URL" --format=custom --no-owner --no-acl --file=/work/db.dump
 
 echo "Restoring…"
