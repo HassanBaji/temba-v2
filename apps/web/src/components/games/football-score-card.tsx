@@ -7,6 +7,7 @@ import {
   type BoardPlayer,
 } from "@repo/domain/football-board";
 import { footballResultLine } from "@repo/domain/football-lineup";
+import { type MatchLogLine } from "@repo/domain/football-match-log";
 import Link from "next/link";
 
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -14,6 +15,11 @@ import { Button } from "~/components/ui/button";
 import { Hatch } from "~/components/ui/hatch";
 
 import { BibChip } from "./football-bibs";
+import {
+  LogSummaryRows,
+  MatchTimeline,
+  useLogRows,
+} from "./football-match-timeline";
 
 function SideScore({
   bib,
@@ -62,6 +68,7 @@ export function FootballScoreCard({
     confirmed: { slot1: boolean; slot2: boolean };
     organizerSides?: { slot: 1 | 2; confirmed: boolean }[];
     enteredByName: string | null;
+    log?: MatchLogLine[];
   } | null;
   canEnterScore: boolean;
   canConfirm: boolean;
@@ -83,6 +90,10 @@ export function FootballScoreCard({
   const scorers = players
     .filter((player) => player.goals > 0)
     .sort((a, b) => b.goals - a.goals);
+  const log = match?.log ?? [];
+  const t = m.football.matchLog;
+  const logRows = useLogRows(log, players);
+  const logged = log.length > 0;
 
   return (
     <section
@@ -114,6 +125,28 @@ export function FootballScoreCard({
               goals={score.slot2}
             />
           </div>
+          {logged ? (
+            <div className="border-rule space-y-4 border-t pb-5">
+              <div>
+                <h3 className="text-muted-foreground text-meta px-5 pb-2 pt-5">
+                  {t.title}
+                </h3>
+                <MatchTimeline lines={log} players={players} />
+              </div>
+              <div className="px-5">
+                <LogSummaryRows
+                  rows={[
+                    logRows.named(
+                      t.confirm.enteredBy,
+                      match?.enteredByName ?? null,
+                    ),
+                    logRows.cards,
+                    logRows.sentOff,
+                  ]}
+                />
+              </div>
+            </div>
+          ) : null}
           <div className="border-rule space-y-3 border-t p-5">
             <div>
               <p className="font-semibold">
@@ -127,7 +160,7 @@ export function FootballScoreCard({
                   locale,
                   match?.organizerSides,
                 )}
-                {match?.enteredByName
+                {match?.enteredByName && !logged
                   ? ` ${m.webTournament.footballScore.enteredBySentence(match.enteredByName)}`
                   : ""}
               </p>
@@ -173,7 +206,7 @@ export function FootballScoreCard({
               </div>
             ) : null}
           </div>
-          {scorers.length > 0 ? (
+          {!logged && scorers.length > 0 ? (
             <div className="border-rule space-y-2 border-t p-5">
               <h3 className="text-muted-foreground text-meta">
                 {m.webTournament.footballScore.scorers}

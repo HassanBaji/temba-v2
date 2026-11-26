@@ -40,6 +40,7 @@ export * from "./game-team-players";
 export * from "./game-waitlist";
 export * from "./match-sets";
 export * from "./match-goals";
+export * from "./match-events";
 export * from "./marks";
 export * from "./performance-ratings";
 export * from "./game-album";

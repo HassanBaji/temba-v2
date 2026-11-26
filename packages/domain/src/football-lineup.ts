@@ -333,13 +333,6 @@ export function footballSidesProblem(
 export const FOOTBALL_GOALS_MIN = 0;
 export const FOOTBALL_GOALS_MAX = 99;
 
-export function stepFootballGoals(current: number, delta: -1 | 1) {
-  return Math.min(
-    FOOTBALL_GOALS_MAX,
-    Math.max(FOOTBALL_GOALS_MIN, current + delta),
-  );
-}
-
 export function footballResultLine(
   score: { slot1: number; slot2: number },
   names: { slot1: string; slot2: string },

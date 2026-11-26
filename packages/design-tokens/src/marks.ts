@@ -1231,3 +1231,13 @@ export function coinToneColors(
     paper: colors.paper,
   };
 }
+
+/**
+ * The colours of a warning and a red card in a football Match log. Like a
+ * coin's, they are data and the only colour on the screen: a picture of the
+ * card, taken from the MVP and Clutch coins.
+ */
+export const footballCardColors = {
+  warning: markCoins.mvp.disc,
+  redCard: markCoins.clutch.disc,
+} as const;

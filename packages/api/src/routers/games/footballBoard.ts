@@ -34,6 +34,7 @@ import { isGameOrganizer, requireGame } from "#src/games/access";
 import { gameReach } from "#src/games/verifier-stamp";
 import { confirmsAsOrganizer } from "#src/games/confirms-as-organizer";
 import { loadChallengeSides } from "#src/games/challenge-squad";
+import { loadMatchLog } from "#src/games/football-match-log";
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import {
   loadGroupTierTable,
@@ -184,7 +185,9 @@ async function loadBoardTiers(
 /**
  * Everything the football Game screens read beyond `games.byId`: the roster
  * with each player's role, position, Level and OVR, Group Tier and team, the
- * two teams and their bibs, the Score with its scorers, and what the viewer
+ * two teams and their bibs, the Score with its scorers and Match log (oldest
+ * first; before the Score is confirmed, only for a player on a side and an
+ * Organizer), and what the viewer
  * may do next. Make teams balances on Tier points in a tier Group and on OVR
  * on any other Game. `teams` is the published teams only, with each side's
  * Side captain; the Draft line-up is `draft`, for the Game's Organizers and
@@ -337,6 +340,9 @@ export async function footballBoard(
     !challengeSides ||
     squadsReadyForScore(challengeSides.map((side) => side.squadState));
   const completed = match?.status === MatchStatusEnum.COMPLETED;
+  // Until the Score is confirmed its log is for those who enter or confirm it.
+  const logShown = completed || organizer || viewerSlots.length > 0;
+  const log = match && logShown ? await loadMatchLog(database, match.id) : [];
   const live = !game.cancelledAt && !completed;
   const viewerConfirmed = confirmations.some(
     (row) => row.userId === args.userId,
@@ -437,6 +443,8 @@ export async function footballBoard(
           confirmed: slotsConfirmed,
           organizerSides,
           enteredByName: confirmations[0]?.user.name ?? null,
+          confirmedByName: confirmations[1]?.user.name ?? null,
+          log,
         }
       : null,
     viewer: {

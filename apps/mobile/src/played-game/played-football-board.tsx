@@ -1,12 +1,21 @@
 import { bibColors, radii } from "@repo/design-tokens";
+import type { BoardPlayer } from "@repo/domain/football-board";
 import type { FootballBib } from "@repo/domain/football-lineup";
+import type { MatchLogLine } from "@repo/domain/football-match-log";
 import type {
   PlayedFootballSide,
   PlayedScorer,
 } from "@repo/domain/played-game";
 import { View } from "react-native";
 
+import {
+  LogFacts,
+  MatchTimeline,
+  presentFacts,
+  useLogFacts,
+} from "../football/match-timeline";
 import { useMessages } from "../i18n/locale-provider";
+import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
@@ -113,15 +122,61 @@ function ScorerList({
   );
 }
 
-/** Both teams' goals, the winner in full ink, then who scored them. */
+export type PlayedMatchLog = {
+  lines: readonly MatchLogLine[];
+  players: readonly BoardPlayer[];
+  confirmedByName: string | null;
+};
+
+function PlayedLog({
+  log,
+  sides,
+}: {
+  log: PlayedMatchLog;
+  sides: [PlayedFootballSide, PlayedFootballSide];
+}) {
+  const m = useMessages().football.matchLog.confirm;
+  const facts = useLogFacts(log.lines, log.players);
+  const rows = presentFacts([
+    facts.scorers,
+    facts.ownGoals,
+    facts.cards,
+    facts.row(m.confirmedBy, log.confirmedByName),
+  ]);
+  return (
+    <View style={{ gap: 12 }}>
+      <View>
+        <Hairline />
+        <MatchTimeline lines={log.lines} players={log.players} inset={0} />
+        {rows.length > 0 ? (
+          <>
+            <Hairline />
+            <LogFacts facts={rows} inset={0} />
+          </>
+        ) : null}
+        <Hairline />
+      </View>
+      <Text size="meta" tone="muted">
+        {m.sidesNote(sides[0].name, sides[1].name)}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * Both teams' goals, the winner in full ink, then the Match log as a
+ * timeline, or who scored when there is no log.
+ */
 export function PlayedFootballBoard({
   sides,
   hasWinner,
   scorers,
+  log,
 }: {
   sides: [PlayedFootballSide, PlayedFootballSide];
   hasWinner: boolean;
   scorers: { a: PlayedScorer[]; b: PlayedScorer[] } | null;
+  log?: PlayedMatchLog;
 }) {
   const colors = useColors();
   const m = useMessages();
@@ -164,7 +219,9 @@ export function PlayedFootballBoard({
         </View>
         <SideName side={b} align="right" />
       </View>
-      {scorers ? (
+      {log && log.lines.length > 0 ? (
+        <PlayedLog log={log} sides={sides} />
+      ) : scorers ? (
         <View
           style={{
             flexDirection: "row",
