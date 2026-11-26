@@ -1,15 +1,18 @@
 "use client";
 
+import { bibColors } from "@repo/design-tokens";
 import {
   boardTierCell,
   byKeeperThenLevel,
   lineupName,
+  ofSide,
   ovrLabel,
   ovrSpoken,
   sideOvrAverage,
   slotCode,
   type Bibs,
   type BoardPlayer,
+  type SideCaptains,
 } from "@repo/domain/football-board";
 import type {
   FootballBalanceOn,
@@ -25,6 +28,59 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
 import { BibChip, bibStyle } from "./football-bibs";
+
+/**
+ * The C on a Side captain's picture (ADR-0108), in the bib's colours turned
+ * round so it reads on any bib.
+ */
+export function SideCaptainBadge({ bib }: { bib: FootballBib | null }) {
+  const m = useMessages();
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "absolute -bottom-1 -end-[5px] flex size-4 items-center justify-center rounded-[5px] border-[1.5px] text-[8px] font-semibold leading-none",
+        bib ? null : "bg-control text-on-control border-on-control",
+      )}
+      style={
+        bib
+          ? {
+              backgroundColor: bibColors[bib].on,
+              color: bibColors[bib].fill,
+              borderColor: bibColors[bib].fill,
+            }
+          : undefined
+      }
+    >
+      {m.football.captains.badge}
+    </span>
+  );
+}
+
+/** A player's picture, with the C when they are their side's captain. */
+export function CaptainAvatar({
+  player,
+  bib,
+  sideCaptain,
+  size,
+}: {
+  player: Pick<BoardPlayer, "name" | "image" | "guest">;
+  bib: FootballBib | null;
+  sideCaptain: boolean;
+  size?: "sm" | "default";
+}) {
+  return (
+    <span className="relative flex shrink-0">
+      <UserAvatar
+        name={player.name}
+        image={player.image}
+        size={size}
+        guest={player.guest}
+      />
+      {sideCaptain ? <SideCaptainBadge bib={bib} /> : null}
+    </span>
+  );
+}
 
 /** A player's fish on a paper tile, so it reads on any bib colour. */
 export function TierMark({
@@ -42,9 +98,9 @@ export function TierMark({
 }
 
 /**
- * A player row in their team's bib colour; the viewer's row is ringed.
- * The OVR sits at the end, or with `showTier` the player's fish in a tier
- * Group.
+ * A player row in their team's bib colour; the viewer's row is ringed and a
+ * Side captain carries the C. The OVR sits at the end, or with `showTier`
+ * the player's fish in a tier Group.
  */
 export function BibRow({
   player,
@@ -52,12 +108,14 @@ export function BibRow({
   trailing,
   onPress,
   showTier = false,
+  sideCaptain = false,
 }: {
   player: BoardPlayer;
   bib: FootballBib;
   trailing?: React.ReactNode;
   onPress?: () => void;
   showTier?: boolean;
+  sideCaptain?: boolean;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -67,6 +125,7 @@ export function BibRow({
   const level = ovrLabel(player);
   const label = [
     spoken,
+    sideCaptain ? m.football.captains.spoken : null,
     code,
     tierCell ? tierCell.label : ovrSpoken(player, locale),
     player.unclaimed ? m.group.addPlayer.notOnTembaYet : null,
@@ -76,11 +135,11 @@ export function BibRow({
     .join(m.tournament.listSeparator);
   const body = (
     <>
-      <UserAvatar
-        name={player.name}
-        image={player.image}
+      <CaptainAvatar
+        player={player}
+        bib={bib}
+        sideCaptain={sideCaptain}
         size="sm"
-        guest={player.guest}
       />
       <NicknameName
         name={name}
@@ -173,8 +232,9 @@ export function sideMembers(players: readonly BoardPlayer[], side: 1 | 2) {
 }
 
 /**
- * The two published teams side by side. A row shows the player's OVR, or
- * their fish in a tier Group, as Make teams does.
+ * The two teams side by side, published or a Draft line-up. A row shows the
+ * player's OVR, or their fish in a tier Group, as Make teams does, and each
+ * side's Side captain carries the C.
  */
 export function TeamColumns({
   players,
@@ -182,6 +242,7 @@ export function TeamColumns({
   names,
   balanceOn,
   muted,
+  sideCaptains,
   onOpenPlayer,
 }: {
   players: readonly BoardPlayer[];
@@ -189,6 +250,7 @@ export function TeamColumns({
   names: { slot1: string; slot2: string };
   balanceOn: FootballBalanceOn;
   muted?: string;
+  sideCaptains?: SideCaptains;
   onOpenPlayer?: (userId: string) => void;
 }) {
   const m = useMessages();
@@ -211,6 +273,10 @@ export function TeamColumns({
                 player={player}
                 bib={bib}
                 showTier={balanceOn === "tierPoints"}
+                sideCaptain={
+                  sideCaptains != null &&
+                  ofSide(sideCaptains, side) === player.userId
+                }
                 onPress={
                   onOpenPlayer ? () => onOpenPlayer(player.userId) : undefined
                 }

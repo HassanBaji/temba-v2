@@ -55,6 +55,7 @@ export const football = {
     teamsMethod: {
       manual: "من اختيار المنظّم",
       level: "متوازنة حسب المستوى",
+      captain_pick: "اختيار القائدين",
     },
     nobodyInYet: "لا أحد مشارك بعد.",
     stillToPlace: (n: number) => `${n} لم يُوزَّعوا بعد.`,
@@ -217,6 +218,303 @@ export const football = {
       many: "{n} لاعبًا",
       other: "{n} لاعب",
     })}`,
+  draft: {
+    status: "مسودة، لم تُنشر",
+    statusCaptain: (team: string) => `مسودة، أنت قائد ${team}`,
+    tag: "مسودة",
+    title: "مسودة التشكيلة",
+    savedAt: (day: string, time: string) => `حُفظت ${day} ${time}`,
+    readyToPublish: "وُزّع الجميع. انشر عندما تكون جاهزًا.",
+    visibleToGroupAdmins:
+      "لا يرى اللاعبون هذه الفرق بعد. لا يراها إلا أنت ومشرفو المجموعة.",
+    visibleToYou: "لا يرى اللاعبون هذه الفرق بعد. لا يراها إلا أنت.",
+    visibleToGroupAdminsAndCaptains:
+      "لا يرى اللاعبون هذه الفرق بعد. لا يراها إلا أنت ومشرفو المجموعة والقائدان.",
+    visibleToYouAndCaptains:
+      "لا يرى اللاعبون هذه الفرق بعد. لا يراها إلا أنت والقائدان.",
+    noCaptainsGroup:
+      "لم تختر قائدين، فلا يرى هذه المسودة إلا أنت ومشرفو المجموعة.",
+    noCaptainsYou: "لم تختر قائدين، فلا يرى هذه المسودة إلا أنت.",
+    captainApproved: "وافق القائد على فريقه. انشر عندما تكون جاهزًا.",
+    bothCaptainsApproved: "وافق القائدان على فريقيهما. انشر عندما تكون جاهزًا.",
+    captainsApprovedOf: (approved: number, total: number) =>
+      plural("ar", total, {
+        one: `وافق ${approved} من قائد واحد. يمكنك النشر دون انتظار.`,
+        two: `وافق ${approved} من قائدَين. يمكنك النشر دون انتظار.`,
+        few: `وافق ${approved} من {n} قادة. يمكنك النشر دون انتظار.`,
+        many: `وافق ${approved} من {n} قائدًا. يمكنك النشر دون انتظار.`,
+        other: `وافق ${approved} من {n} قائد. يمكنك النشر دون انتظار.`,
+      }),
+    publishAnyTime:
+      "يمكنك النشر دون انتظار. نقل لاعب إلى فريق أو منه بعد موافقة قائده يعيد السؤال إلى ذلك القائد.",
+    answer: {
+      approved: "وافق",
+      change_asked: "طلب تغييرًا",
+      waiting: "بانتظار الرد",
+      none: "لا أحد لسؤاله",
+    },
+    note: (note: string) => `«${note}»`,
+    captainView: {
+      from: (name: string) => `مسودة من ${name}.`,
+      bothCaptainsAndOrganizers: "لا يراها إلا القائدان والمنظّمون.",
+      bothCaptainsAndOrganizer: "لا يراها إلا القائدان والمنظّم.",
+      youAndOrganizers: "لا يراها إلا أنت والمنظّمون.",
+      youAndOrganizer: "لا يراها إلا أنت والمنظّم.",
+    },
+    captainPanel: {
+      yourTeam: (team: string) => `فريقك، ${team}`,
+      playersAvg: (n: number, avg: string) =>
+        plural("ar", n, {
+          one: `لاعب واحد، المعدل ${avg}`,
+          two: `لاعبان، المعدل ${avg}`,
+          few: `{n} لاعبين، المعدل ${avg}`,
+          many: `{n} لاعبًا، المعدل ${avg}`,
+          other: `{n} لاعب، المعدل ${avg}`,
+        }),
+      ask: (organizer: string) =>
+        `راضٍ عن هذا الفريق؟ وافق ليعرف ${organizer} أن فريقك جاهز. لا شيء نهائي قبل النشر.`,
+      approve: "أوافق على فريقي",
+      askChange: "اطلب تغييرًا",
+      approvedTitle: (team: string) => `وافقت على ${team}`,
+      approvedBody: (organizer: string) => `ينشر ${organizer} حين يكون جاهزًا`,
+      changeTitle: "طلبت تغييرًا",
+      changeBody: (organizer: string) => `يرى ${organizer} ملاحظتك على المسودة`,
+      undo: "تراجع",
+      otherTeam: (team: string, captain: string | null) =>
+        captain ? `${team}، القائد ${captain}` : `${team}، بلا قائد`,
+      ownTeamOnly: (other: string) =>
+        `توافق على فريقك وحده. ترى ${other}، لكن قائده هو من يرد عنه.`,
+      noteSheet: {
+        title: "اطلب تغييرًا",
+        body: (organizer: string) =>
+          `يرى ${organizer} ملاحظتك على المسودة. يبقى فريقك كما هو حتى يغيّره.`,
+        label: "ملاحظتك",
+        placeholder: "من يتبادل مع من، ولماذا؟",
+        send: "أرسل",
+        cancel: "إلغاء",
+      },
+    },
+    notPublished: {
+      title: "لم تُنشر الفرق بعد",
+      body: "المنظّم يكوّنها الآن. سترى فريقك ولون صدريتك هنا فور نشرها.",
+      value: "لم تُنشر",
+    },
+  },
+  captains: {
+    title: "القادة",
+    optional: "اختياري، قائد لكل فريق",
+    add: "أضف قائدًا",
+    sheetBody:
+      "يرى القائد المسودة ويستطيع الموافقة على فريقه قبل أن تنشر. ويبقى هو من يختار الأساسيين يوم المباراة.",
+    noCaptainFor: (team: string) => `بلا قائد لـ${team}`,
+    noneOnTeam:
+      "لا أحد في هذا الفريق يمكن أن يكون قائدًا بعد. لا يصلح لذلك الضيوف ولا من ليس لديه حساب.",
+    done: "تم",
+    badge: "ق",
+    spoken: "القائد",
+    chipSpoken: (team: string, captain: string | null) =>
+      captain ? `قائد ${team}: ${captain}` : `أضف قائدًا لـ${team}`,
+    named: (name: string) => `القائد ${name}`,
+    none: "لم يُختر قائد",
+  },
+  pick: {
+    setup: {
+      intro: "يكوّن قائدان الفريقين بنفسيهما، لاعبًا بعد لاعب، في غرفة مشتركة.",
+      captainsTitle: "القائدان",
+      captainsHint: "قائد لكل فريق",
+      captainChip: (name: string, team: string) => `${name}، ${team}`,
+      addCaptain: (team: string) => `قائد ${team}`,
+      chipSpoken: (team: string, captain: string | null) =>
+        captain ? `قائد ${team}: ${captain}` : `اختر قائدًا لـ${team}`,
+      sheetBody:
+        "يختار القائدان لاعبي الفريقين بالتناوب. يصلح لذلك أي لاعب في القائمة لديه حساب.",
+      noneOnRoster:
+        "لا أحد هنا يمكن أن يكون قائدًا بعد. لا يصلح لذلك الضيوف ولا من ليس لديه حساب.",
+      firstPickTitle: "الاختيار الأول",
+      toss: "القرعة",
+      tossNote:
+        "تُجرى القرعة في الغرفة حين يدخل القائدان. بعدها يختار كل منهما لاعبًا بالتناوب.",
+      sideNote: (team: string) =>
+        `يختار ${team} أولًا. بعدها يختار كل منهما لاعبًا بالتناوب.`,
+      toBePicked: "بانتظار الاختيار",
+      open: "افتح غرفة الاختيار",
+      told: (first: string, second: string) =>
+        `سيُبلَّغ ${first} و${second}. يبدأ الاختيار حين يدخل الاثنان.`,
+      needsCaptains: "اختر قائدًا لكل فريق. يُبلَّغان حين تُفتح الغرفة.",
+      replaceTitle: "استبدال المسودة المحفوظة؟",
+      replaceBody:
+        "فتح غرفة الاختيار يستبدل المسودة المحفوظة لهذه المباراة. يختار القائدان الفريقين من البداية.",
+      replaceConfirm: "افتح غرفة الاختيار",
+      cancel: "إلغاء",
+    },
+    title: "اختيار القائدين",
+    introCaptain: (other: string) =>
+      `تختار أنت و${other} الفريقين بينكما. يبدأ الاختيار حين تكونان معًا في الغرفة.`,
+    introOrganizer: (first: string, second: string) =>
+      `يختار ${first} و${second} الفريقين بينهما. يبدأ الاختيار حين يدخلان الغرفة، أو حين تبدؤه أنت.`,
+    inRoom: "في الغرفة",
+    notHereYet: "لم يصل بعد",
+    presenceSpoken: (team: string, name: string, presence: string) =>
+      `${team}، ${name}: ${presence}`,
+    firstPickLabel: "الاختيار الأول",
+    tossedWhenBothIn: "بالقرعة حين يدخل الاثنان",
+    wonTheToss: (team: string) => `فاز ${team} بالقرعة`,
+    picksFirst: (team: string) => `يختار ${team} أولًا`,
+    orderLabel: "الترتيب",
+    orderValue: "لاعب لكل منهما بالتناوب",
+    toPickLabel: "للاختيار",
+    poolEach: (n: number, each: number) =>
+      `${plural("ar", n, {
+        one: "لاعب واحد",
+        two: "لاعبان",
+        few: "{n} لاعبين",
+        many: "{n} لاعبًا",
+        other: "{n} لاعب",
+      })}، ${each} لكل فريق`,
+    poolSplit: (n: number, more: number, fewer: number) =>
+      `${plural("ar", n, {
+        one: "لاعب واحد",
+        two: "لاعبان",
+        few: "{n} لاعبين",
+        many: "{n} لاعبًا",
+        other: "{n} لاعب",
+      })}، ${more} و${fewer}`,
+    progress: (next: number, total: number) => `الاختيار ${next} من ${total}`,
+    progressWatching: (next: number, total: number) =>
+      `الاختيار ${next} من ${total}، تشاهد`,
+    allPicked: (n: number) => `اكتمل الاختيار: ${n} من ${n}`,
+    yourPick: "دورك في الاختيار",
+    isPicking: (name: string) => `${name} يختار`,
+    yourPickHint: (other: string) =>
+      `اضغط على لاعب ثم أكّد. يراه ${other} بعد لحظة.`,
+    pickAgainHint: (name: string) =>
+      `تختار مجددًا حين ينتهي ${name} من اختياره.`,
+    watchingHint:
+      "لا يرى اللاعبون الاختيار. يمكنك مشاهدته وهو يجري، أو التدخل من الأسفل.",
+    doneSizesEven: (each: number) => `${each} لكل فريق.`,
+    doneSizesSplit: (more: number, fewer: number) =>
+      `فريق من ${more} وآخر من ${fewer}.`,
+    sideCount: (count: number, of: number) => `${count} من ${of}`,
+    sideAverage: (team: string, average: string) => `متوسط ${team} ${average}`,
+    poolLeft: (n: number) =>
+      plural("ar", n, {
+        one: "بقي لاعب واحد",
+        two: "بقي لاعبان",
+        few: "بقي {n} لاعبين",
+        many: "بقي {n} لاعبًا",
+        other: "بقي {n} لاعب",
+      }),
+    nextPick: (n: number) => `الاختيار ${n}`,
+    nextPickSpoken: (team: string, n: number) => `الاختيار ${n} لـ${team}`,
+    pickedSpoken: (n: number, player: string) => `الاختيار ${n}، ${player}`,
+    pickPlayer: (name: string) => `اختر ${name}`,
+    pickPlayerFor: (name: string, captain: string) =>
+      `اختر ${name} عن ${captain}`,
+    tapToPick: "اضغط على لاعب لاختياره",
+    isChoosing: (name: string) => `${name} يختار الآن`,
+    pickFor: (name: string) => `اختر عن ${name}`,
+    pickForHint: (name: string) => `إن خرج ${name} من الغرفة`,
+    undoLast: "تراجع عن آخر اختيار",
+    undoHint: (name: string) => `يعود ${name} إلى قائمة الاختيار`,
+    undoTitle: (n: number) => `التراجع عن الاختيار ${n}؟`,
+    undoBody: (name: string, captain: string) =>
+      `يعود ${name} إلى قائمة الاختيار ويختار ${captain} من جديد.`,
+    undoNothing: "لا يوجد اختيار للتراجع عنه بعد",
+    undoConfirm: "تراجع عن الاختيار",
+    stopTitle: "إيقاف الاختيار؟",
+    stopBody: "يبقى ما اختير مسودةً. تضع بقية اللاعبين بنفسك في تكوين الفرق.",
+    cancel: "إلغاء",
+    undone: (name: string) => `عاد ${name} إلى قائمة الاختيار`,
+    poolTitle: "اللاعبون",
+    poolHead: (n: number) => `${n}، الأعلى مستوى أولًا`,
+    andMore: (n: number) =>
+      plural("ar", n, {
+        one: "ولاعب آخر",
+        two: "ولاعبان آخران",
+        few: "و{n} لاعبين آخرين",
+        many: "و{n} لاعبًا آخر",
+        other: "و{n} لاعب آخر",
+      }),
+    waitingFor: (name: string) => `بانتظار ${name}`,
+    waitingForBoth: "بانتظار القائدين",
+    remind: (name: string) => `ذكّر ${name}`,
+    reminded: (name: string) => `ذُكّر ${name}`,
+    remindedRecently: (name: string) => `ذُكّر ${name} خلال آخر 5 دقائق`,
+    startNow: "ابدأ الاختيار الآن",
+    startNowHint: "ابدأ دون انتظار. يمكنك الاختيار عن قائد غائب.",
+    stop: "أوقف الاختيار",
+    stopHint: "احتفظ بما اختير وأكمل الفريقين بنفسك",
+    doneTitle: "اكتمل اختيار الفريقين",
+    doneBody: "يصلان إلى المنظّم مسودةً، وقد وافق عليهما القائدان.",
+    seeTheDraft: "اعرض المسودة",
+    stopped: "أوقف المنظّم الاختيار",
+    closedTitle: "غرفة الاختيار مغلقة",
+    closedBody: "لا يفتحها إلا القائدان والمنظّمون، وما دام الاختيار جاريًا.",
+    backToGame: "العودة إلى المباراة",
+    loading: "جارٍ تحميل غرفة الاختيار",
+    loadError: "تعذّر تحميل غرفة الاختيار",
+    inProgress: {
+      title: "اختيار القائدين جارٍ",
+      waiting: "الغرفة مفتوحة. يبدأ الاختيار حين يدخل القائدان.",
+      live: "القائدان يختاران الفريقين الآن.",
+      open: "افتح غرفة الاختيار",
+    },
+  },
+  draftShare: {
+    title: "شارك المسودة",
+    bothTeams: "الفريقان",
+    typeLine: (sideSize: string | null) =>
+      sideSize ? `مسودة / كرة القدم / ${sideSize}` : "مسودة / كرة القدم",
+    captain: (name: string) => `القائد ${name}`,
+    noCaptain: "بلا قائد",
+    players: (n: number) =>
+      plural("ar", n, {
+        one: "لاعب واحد",
+        two: "لاعبان",
+        few: "{n} لاعبين",
+        many: "{n} لاعبًا",
+        other: "{n} لاعب",
+      }),
+    sideLine: (captain: string, players: string) => `${captain} / ${players}`,
+    teamLabel: (team: string) => `فريق ${team}`,
+    against: (other: string, sideSize: number | null) =>
+      sideSize
+        ? `ضد ${other}، ${plural("ar", sideSize, {
+            one: "يبدأ لاعب واحد",
+            two: "يبدأ لاعبان",
+            few: "يبدأ {n} لاعبين",
+            many: "يبدأ {n} لاعبًا",
+            other: "يبدأ {n} لاعب",
+          })} ويختارهم القائد`
+        : `ضد ${other}`,
+    andMore: (n: number) =>
+      plural("ar", n, {
+        one: "ولاعب آخر",
+        two: "ولاعبان آخران",
+        few: "و{n} لاعبين آخرين",
+        many: "و{n} لاعبًا آخر",
+        other: "و{n} لاعب آخر",
+      }),
+    stamp: "مسودة، ليست نهائية",
+    noteBothGroup:
+      "الفريقان في صورة واحدة، مختومة بأنها مسودة. في Temba لا يراها إلا المنظّمون والمشرفون والقادة؛ أما الصورة فتصل إلى حيث ترسلها.",
+    noteBoth:
+      "الفريقان في صورة واحدة، مختومة بأنها مسودة. في Temba لا يراها إلا المنظّمون والقادة؛ أما الصورة فتصل إلى حيث ترسلها.",
+    noteOne: (team: string) =>
+      `${team} وحده، لمحادثة ذلك الفريق. مختومة بأنها مسودة؛ أما الصورة فتصل إلى حيث ترسلها.`,
+    message: (game: string | null, when: string | null) => {
+      const subject = [game, when].filter(Boolean).join("، ");
+      return subject
+        ? `مسودة الفرق لـ${subject}. ليست نهائية.`
+        : "مسودة الفرق. ليست نهائية.";
+    },
+    loading: "جارٍ تحميل المسودة",
+    loadError: "تعذّر تحميل المسودة",
+    empty: {
+      title: "لا توجد مسودة للمشاركة",
+      body: "لا يشارك المسودة إلا المنظّمون والقادة، وحتى تُنشر الفرق فقط.",
+    },
+  },
   errors: {
     notFootball: "الفرق والنتيجة لمباريات كرة القدم فقط",
     roleOnFootball: "الدور والمركز لمباريات كرة القدم فقط",
@@ -233,5 +531,26 @@ export const football = {
     scoreOrganizerOrPlayers: "لا يدخل النتيجة إلا المنظّم أو لاعبو الفريقين",
     scorerOnce: "اذكر كل هدّاف مرة واحدة",
     scorersOnTeams: "يجب أن يكون الهدّافون من أحد الفريقين",
+    draftNeedsPlayer: "ضع لاعبًا واحدًا على الأقل لحفظ مسودة",
+    draftChanged: "تغيّرت المسودة. افتحها من جديد.",
+    draftTeamsPublished: "نُشرت الفرق، فلا توجد مسودة لحفظها",
+    captainOnSide: "يجب أن يكون القائد لاعبًا في فريقه",
+    captainNeedsAccount: "لا يمكن أن يكون الضيف أو من ليس لديه حساب قائدًا",
+    draftNotCaptain: "لا يرد عن الفريق إلا قائده",
+    draftNoteLength: (max: number) => `اكتب ملاحظة من 1 إلى ${max} حرفًا`,
+    pickNeedsPlayers: (min: number) =>
+      `يحتاج اختيار القائدين ${min} لاعبين على الأقل`,
+    pickNeedsCaptains: "اختر قائدًا لكل فريق",
+    pickCaptainsDiffer: "اختر قائدين مختلفين",
+    pickRunning: "اختيار القائدين جارٍ. أوقفه أولًا.",
+    pickNotWaiting: "بدأ الاختيار بالفعل",
+    pickNotRunning: "لا يجري اختيار قائدين الآن",
+    pickRemindOtherSide: "تستطيع تذكير القائد الآخر فقط",
+    pickNotLive: "الاختيار ليس جاريًا",
+    pickOnTurnOnly: "لا يختار إلا القائد صاحب الدور",
+    pickNotYourTurn: "الدور للفريق الآخر",
+    pickNotInPool: "هذا اللاعب ليس في قائمة الاختيار",
+    pickMovedOn: "تقدّم الاختيار",
+    pickNothingToUndo: "لا يوجد اختيار للتراجع عنه",
   },
 } satisfies typeof source;

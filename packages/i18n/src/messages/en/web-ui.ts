@@ -165,6 +165,7 @@ export const webUi = {
     checkAgain: "Check again",
     notReady: "The card is not ready yet",
     shareFailed: "Could not share the result",
+    draftShareFailed: "Could not share the draft",
     linkLoading: "The link is still loading",
     linkCopied: "Link copied",
     messageCopied: "Message copied",

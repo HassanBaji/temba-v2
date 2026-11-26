@@ -2,14 +2,19 @@
 
 import { bibColors, colors } from "@repo/design-tokens";
 import {
-  balancedSides,
   boardTierCell,
+  clearSides,
   draftSummary,
   initialTeamsDraft,
   keeperWord,
+  lineupPlayerName,
+  mayBeSideCaptain,
   moveAcross,
+  ofSide,
   ovrLabel,
   placeOn,
+  setSideCaptain,
+  shuffleSides,
   slotCode,
   switchMethod,
   teamsSideAverage,
@@ -17,32 +22,44 @@ import {
   type Side,
   type TeamsDraft,
 } from "@repo/domain/football-board";
+import { captainPickSetupProblem } from "@repo/domain/football-captain-pick";
 import {
   FOOTBALL_TEAMS_METHODS,
   type FootballBib,
+  type FootballFirstPick,
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
 import { isFootballRosterGame } from "@repo/domain/football-game-details";
+import { footballDraftSaveProblem } from "@repo/domain/football-draft";
 import { formatGameStart } from "@repo/domain/format-game-start";
-import { ArrowLeft, ArrowRight, Shuffle } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ChevronDown,
+  Eraser,
+  Shuffle,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 
 import { NicknameName } from "~/components/temba/nickname-name";
+import { ConfirmDialog } from "~/components/common/confirm-dialog";
 import { ErrorState } from "~/components/common/error-state";
-import { UserAvatar } from "~/components/common/user-avatar";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
+import { gamePickRoomHref } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 import { BibChip, BibPicker, bibStyle } from "./football-bibs";
-import { BibRow, TierMark } from "./football-team-columns";
+import { FootballCaptainPickSetup } from "./football-captain-pick-setup";
+import { FootballCaptainsDialog } from "./football-captains-dialog";
+import { BibRow, CaptainAvatar, TierMark } from "./football-team-columns";
 
 /** The Member nickname when the viewer may see one, else the full Temba name. */
 function teamsName(player: Pick<BoardPlayer, "name" | "nickname">) {
@@ -51,9 +68,11 @@ function teamsName(player: Pick<BoardPlayer, "name" | "nickname">) {
 
 function MethodToggle({
   method,
+  methods,
   onChange,
 }: {
   method: FootballTeamsMethod;
+  methods: readonly FootballTeamsMethod[];
   onChange: (method: FootballTeamsMethod) => void;
 }) {
   const m = useMessages();
@@ -63,7 +82,7 @@ function MethodToggle({
       aria-label={m.webTournament.footballTeams.howToMakeTeams}
       className="border-rule flex overflow-hidden rounded-lg border"
     >
-      {FOOTBALL_TEAMS_METHODS.map((value) => {
+      {methods.map((value) => {
         const selected = value === method;
         return (
           <button
@@ -95,9 +114,11 @@ function barColor(bib: FootballBib) {
 function BalanceCard({
   draft,
   summary,
+  canSaveDraft,
 }: {
   draft: TeamsDraft;
   summary: ReturnType<typeof draftSummary>;
+  canSaveDraft: boolean;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -141,8 +162,111 @@ function BalanceCard({
       {row(1)}
       {row(2)}
       <p aria-live="polite" className="text-muted-foreground text-meta">
-        {summary.problem ?? t.readyToPublish(summary.note)}
+        {summary.problem ??
+          (canSaveDraft
+            ? t.readyToPublishOrDraft(summary.note)
+            : t.readyToPublish(summary.note))}
       </p>
+    </section>
+  );
+}
+
+function isSideCaptain(
+  draft: TeamsDraft,
+  side: Side | undefined,
+  userId: string,
+) {
+  return side != null && ofSide(draft.captains, side) === userId;
+}
+
+function CaptainChip({
+  side,
+  team,
+  captain,
+  onOpen,
+}: {
+  side: Side;
+  team: string;
+  captain: BoardPlayer | null;
+  onOpen: (side: Side) => void;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const copy = m.football.captains;
+  const name = lineupPlayerName(captain, locale);
+  return (
+    <button
+      type="button"
+      aria-haspopup="dialog"
+      aria-label={copy.chipSpoken(team, name)}
+      onClick={() => onOpen(side)}
+      className={cn(
+        "focus-visible:ring-ring/50 flex h-[42px] min-w-0 flex-1 items-center gap-2 rounded-md border px-2.5 text-start outline-none focus-visible:ring-[3px]",
+        captain ? "border-rule" : "border-input border-dashed",
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border text-[9px] font-semibold leading-none",
+          captain
+            ? "bg-control text-on-control border-control-edge"
+            : "bg-paper text-muted-foreground border-input",
+        )}
+      >
+        {copy.badge}
+      </span>
+      <span
+        className={cn(
+          "text-meta min-w-0 flex-1 truncate",
+          captain ? null : "text-muted-foreground",
+        )}
+      >
+        {name ?? copy.add}
+      </span>
+      <ChevronDown
+        aria-hidden="true"
+        className="text-muted-foreground size-3.5 shrink-0"
+      />
+    </button>
+  );
+}
+
+/** "Captains, optional, one per team": a chip per side opens the dialog. */
+function CaptainsRow({
+  draft,
+  players,
+  names,
+  onOpen,
+}: {
+  draft: TeamsDraft;
+  players: readonly BoardPlayer[];
+  names: { slot1: string; slot2: string };
+  onOpen: (side: Side) => void;
+}) {
+  const m = useMessages().football.captains;
+  const captain = (userId: string | null) =>
+    players.find((player) => player.userId === userId) ?? null;
+  return (
+    <section className="space-y-2.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-muted-foreground text-meta">{m.title}</h2>
+        <span className="text-muted-foreground text-eyebrow">{m.optional}</span>
+      </div>
+      <div className="flex gap-2.5">
+        <CaptainChip
+          side={1}
+          team={names.slot1}
+          captain={captain(draft.captains.slot1)}
+          onOpen={onOpen}
+        />
+        <CaptainChip
+          side={2}
+          team={names.slot2}
+          captain={captain(draft.captains.slot2)}
+          onOpen={onOpen}
+        />
+      </div>
     </section>
   );
 }
@@ -170,6 +294,7 @@ function LevelColumns({
               player={player}
               bib={bib}
               showTier
+              sideCaptain={isSideCaptain(draft, side, player.userId)}
               trailing={
                 <button
                   type="button"
@@ -264,7 +389,11 @@ function ManualRow({
       )}
       style={bib ? bibStyle(bib) : undefined}
     >
-      <UserAvatar name={player.name} image={player.image} />
+      <CaptainAvatar
+        player={player}
+        bib={bib}
+        sideCaptain={isSideCaptain(draft, side, player.userId)}
+      />
       <div className="min-w-0 flex-1">
         <NicknameName
           name={player.isViewer ? m.common.you : teamsName(player)}
@@ -372,7 +501,14 @@ function ManualLists({
 
 /**
  * The Organizer splits the pool into two teams, by Level or by hand, picks
- * each team's bib colour and publishes.
+ * each team's bib colour and publishes, or saves the split as the Game's
+ * Draft line-up while the teams are not published, with a Side captain per
+ * team or none. Opened from a draft, it starts from it. A save and a publish
+ * name the draft it opened from, or say that there was none, so a draft a
+ * co-Organizer saved meanwhile is not replaced unseen. The captains are
+ * always sent, so clearing one clears it.
+ * While the teams are not published it also opens a Captain pick
+ * (ADR-0109); opened while one runs, it goes to the Pick room.
  */
 export function FootballMakeTeams({ gameId }: { gameId: string }) {
   const m = useMessages();
@@ -387,7 +523,16 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
     { enabled: isFootball === true },
   );
   const [draft, setDraft] = React.useState<TeamsDraft | null>(null);
+  const [openedFromDraftAt, setOpenedFromDraftAt] = React.useState<Date | null>(
+    null,
+  );
+  const [captainsSide, setCaptainsSide] = React.useState<Side | null>(null);
+  const [firstPick, setFirstPick] = React.useState<FootballFirstPick>("toss");
+  const [confirmReplace, setConfirmReplace] = React.useState(false);
   const gameHref = `/dashboard/games/${gameId}`;
+  const pickRoomHref = gamePickRoomHref(gameId);
+  const pickStatus = board.data?.draft?.pick?.status;
+  const pickRunning = pickStatus === "waiting" || pickStatus === "live";
 
   React.useEffect(() => {
     if (isFootball === false) {
@@ -396,21 +541,58 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
   }, [isFootball, router, gameHref]);
 
   React.useEffect(() => {
+    if (pickRunning) {
+      router.replace(pickRoomHref);
+    }
+  }, [pickRunning, router, pickRoomHref]);
+
+  React.useEffect(() => {
     if (board.data && draft == null) {
-      setDraft(initialTeamsDraft(board.data.players, board.data.teams));
+      setDraft(
+        initialTeamsDraft(
+          board.data.players,
+          board.data.teams,
+          board.data.draft,
+        ),
+      );
+      setOpenedFromDraftAt(board.data.draft?.updatedAt ?? null);
     }
   }, [board.data, draft]);
 
+  const closeWith = async (message: string) => {
+    toast.success(message);
+    await Promise.all([
+      utils.games.footballBoard.invalidate({ gameId }),
+      utils.games.byId.invalidate({ id: gameId }),
+      utils.games.listMyGames.invalidate(),
+    ]);
+    router.push(gameHref);
+  };
+  const refetchBoard = () => utils.games.footballBoard.invalidate({ gameId });
+
   const publish = api.games.publishFootballTeams.useMutation({
     meta: OWN_ERROR_UI,
+    onSuccess: () => closeWith(t.publishedToast),
+    onError: refetchBoard,
+  });
+  const saveDraft = api.games.saveFootballDraft.useMutation({
+    meta: OWN_ERROR_UI,
+    onSuccess: () => closeWith(t.draftSavedToast),
+    onError: refetchBoard,
+  });
+  const openRoom = api.games.openFootballPickRoom.useMutation({
+    meta: OWN_ERROR_UI,
     onSuccess: async () => {
-      toast.success(t.publishedToast);
+      setConfirmReplace(false);
       await Promise.all([
         utils.games.footballBoard.invalidate({ gameId }),
-        utils.games.byId.invalidate({ id: gameId }),
-        utils.games.listMyGames.invalidate(),
+        utils.games.footballPickRoom.invalidate({ gameId }),
       ]);
-      router.push(gameHref);
+      router.replace(pickRoomHref);
+    },
+    onError: () => {
+      setConfirmReplace(false);
+      void refetchBoard();
     },
   });
 
@@ -440,7 +622,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
         <p className="text-muted-foreground text-meta">{t.fixedBody}</p>
       </section>
     );
-  } else if (!draft || !summary) {
+  } else if (!draft || !summary || pickRunning) {
     body = <Skeleton className="h-80 w-full rounded-xl" />;
   } else {
     const start = game.data?.windowStart ?? null;
@@ -453,83 +635,224 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
     ]
       .filter(Boolean)
       .join(". ");
+    const canSaveDraft = board.data?.viewer.canSaveDraft ?? false;
+    const method = draft.method;
+    const sides = {
+      method,
+      bibs: draft.bibs,
+      slot1: summary.slot1.map((player) => player.userId),
+      slot2: summary.slot2.map((player) => player.userId),
+      captains: draft.captains,
+    };
+    const saveProblem = footballDraftSaveProblem(
+      sides,
+      players.map((player) => player.userId),
+      locale,
+    );
+    const refusal = publish.error ?? saveDraft.error ?? openRoom.error;
+    const toolLabel = canSaveDraft ? "max-sm:sr-only" : undefined;
+    const pickSetup = m.football.pick.setup;
+    const methods = board.data?.viewer.canOpenPickRoom
+      ? FOOTBALL_TEAMS_METHODS
+      : FOOTBALL_TEAMS_METHODS.filter((method) => method !== "captain_pick");
+    const pickProblem = captainPickSetupProblem(
+      draft.captains,
+      players.map((player) => player.userId),
+      players.filter(mayBeSideCaptain).map((player) => player.userId),
+      locale,
+    );
+    const captainName = (userId: string | null) =>
+      lineupPlayerName(
+        players.find((player) => player.userId === userId),
+        locale,
+      ) ?? "";
+    const openPickRoom = () => {
+      const { slot1, slot2 } = draft.captains;
+      if (slot1 == null || slot2 == null) {
+        return;
+      }
+      openRoom.mutate({
+        gameId,
+        bibs: draft.bibs,
+        captains: { slot1, slot2 },
+        firstPick,
+      });
+    };
+    const how =
+      draft.method === "captain_pick"
+        ? pickSetup.intro
+        : draft.method === "level"
+          ? t.levelHint
+          : t.manualHint;
     body = (
       <div className="space-y-5">
         <p className="text-muted-foreground text-meta">
-          {intro}. {draft.method === "level" ? t.levelHint : t.manualHint}
+          {intro}. {how}
         </p>
         <MethodToggle
           method={draft.method}
+          methods={methods}
           onChange={(method) => setDraft(switchMethod(draft, method, players))}
         />
-        <BibPicker
-          bibs={draft.bibs}
-          onChange={(bibs) => setDraft({ ...draft, bibs })}
-        />
-        <BalanceCard draft={draft} summary={summary} />
-        {draft.method === "level" ? (
-          <LevelColumns
+        {draft.method === "captain_pick" ? (
+          <FootballCaptainPickSetup
             draft={draft}
-            summary={summary}
-            onMove={(userId) => setDraft(moveAcross(draft, userId))}
+            players={players}
+            names={summary.names}
+            balanceOn={board.data?.balanceOn ?? "ovr"}
+            firstPick={firstPick}
+            onChange={setDraft}
+            onFirstPickChange={setFirstPick}
           />
         ) : (
-          <ManualLists
-            draft={draft}
-            summary={summary}
-            onPlace={(userId, side) => setDraft(placeOn(draft, userId, side))}
-          />
+          <>
+            <BibPicker
+              bibs={draft.bibs}
+              onChange={(bibs) => setDraft({ ...draft, bibs })}
+            />
+            <BalanceCard
+              draft={draft}
+              summary={summary}
+              canSaveDraft={canSaveDraft}
+            />
+            <CaptainsRow
+              draft={draft}
+              players={players}
+              names={summary.names}
+              onOpen={setCaptainsSide}
+            />
+            {draft.method === "level" ? (
+              <LevelColumns
+                draft={draft}
+                summary={summary}
+                onMove={(userId) => setDraft(moveAcross(draft, userId))}
+              />
+            ) : (
+              <ManualLists
+                draft={draft}
+                summary={summary}
+                onPlace={(userId, side) =>
+                  setDraft(placeOn(draft, userId, side))
+                }
+              />
+            )}
+          </>
         )}
-        {publish.error ? (
+        {refusal ? (
           <p role="alert" className="text-destructive text-meta">
-            {publish.error.message}
+            {refusal.message}
           </p>
         ) : null}
-        <div className="border-rule bg-background sticky bottom-0 flex gap-2 border-t py-4">
-          {draft.method === "level" ? (
+        {method === "captain_pick" ? (
+          <div className="border-rule bg-background sticky bottom-0 space-y-2 border-t py-4">
             <Button
               type="button"
-              variant="outline"
               size="lg"
+              className="w-full"
+              disabled={pickProblem != null}
+              pending={openRoom.isPending}
               onClick={() =>
-                setDraft({
-                  ...draft,
-                  sides: balancedSides(players, Math.random),
+                board.data?.draft ? setConfirmReplace(true) : openPickRoom()
+              }
+            >
+              {pickSetup.open}
+            </Button>
+            <p
+              aria-live="polite"
+              className="text-muted-foreground text-eyebrow text-center"
+            >
+              {pickProblem ??
+                pickSetup.told(
+                  captainName(draft.captains.slot1),
+                  captainName(draft.captains.slot2),
+                )}
+            </p>
+          </div>
+        ) : (
+          <div className="border-rule bg-background sticky bottom-0 flex gap-2 border-t py-4">
+            {draft.method === "level" ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={() =>
+                  setDraft(shuffleSides(draft, players, Math.random))
+                }
+              >
+                <Shuffle aria-hidden="true" />
+                <span className={toolLabel}>{t.shuffle}</span>
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={() => setDraft(clearSides(draft))}
+              >
+                {canSaveDraft ? <Eraser aria-hidden="true" /> : null}
+                <span className={toolLabel}>{m.common.clear}</span>
+              </Button>
+            )}
+            {canSaveDraft ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                disabled={saveProblem != null || publish.isPending}
+                pending={saveDraft.isPending}
+                onClick={() =>
+                  saveDraft.mutate({
+                    gameId,
+                    ...sides,
+                    method,
+                    draftUpdatedAt: openedFromDraftAt,
+                  })
+                }
+              >
+                {t.saveDraft}
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              size="lg"
+              className="flex-1"
+              disabled={summary.problem != null || saveDraft.isPending}
+              pending={publish.isPending}
+              onClick={() =>
+                publish.mutate({
+                  gameId,
+                  ...sides,
+                  draftUpdatedAt: openedFromDraftAt,
                 })
               }
             >
-              <Shuffle aria-hidden="true" />
-              {t.shuffle}
+              {t.publish}
             </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              onClick={() => setDraft({ ...draft, sides: {} })}
-            >
-              {m.common.clear}
-            </Button>
-          )}
-          <Button
-            type="button"
-            size="lg"
-            className="flex-1"
-            disabled={summary.problem != null}
-            pending={publish.isPending}
-            onClick={() =>
-              publish.mutate({
-                gameId,
-                method: draft.method,
-                bibs: draft.bibs,
-                slot1: summary.slot1.map((player) => player.userId),
-                slot2: summary.slot2.map((player) => player.userId),
-              })
-            }
-          >
-            {t.publish}
-          </Button>
-        </div>
+          </div>
+        )}
+        <FootballCaptainsDialog
+          side={captainsSide}
+          bibs={draft.bibs}
+          names={summary.names}
+          sides={{ slot1: summary.slot1, slot2: summary.slot2 }}
+          captains={draft.captains}
+          onSideChange={setCaptainsSide}
+          onPick={(side, userId) =>
+            setDraft(setSideCaptain(draft, side, userId))
+          }
+          onClose={() => setCaptainsSide(null)}
+        />
+        <ConfirmDialog
+          open={confirmReplace}
+          onOpenChange={setConfirmReplace}
+          title={pickSetup.replaceTitle}
+          description={pickSetup.replaceBody}
+          confirmLabel={pickSetup.replaceConfirm}
+          cancelLabel={pickSetup.cancel}
+          variant="default"
+          pending={openRoom.isPending}
+          onConfirm={openPickRoom}
+        />
       </div>
     );
   }

@@ -70,6 +70,15 @@ import { nameChallengeSquadProcedure as nameChallengeSquad } from "./nameChallen
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
 import { previewPlayerByPhoneProcedure as previewPlayerByPhone } from "./previewPlayerByPhone";
 import { publishFootballTeamsProcedure as publishFootballTeams } from "./publishFootballTeams";
+import { saveFootballDraftProcedure as saveFootballDraft } from "./saveFootballDraft";
+import { answerFootballDraftProcedure as answerFootballDraft } from "./answerFootballDraft";
+import { openFootballPickRoomProcedure as openFootballPickRoom } from "./openFootballPickRoom";
+import { footballPickRoomProcedure as footballPickRoom } from "./footballPickRoom";
+import { startFootballPickProcedure as startFootballPick } from "./startFootballPick";
+import { stopFootballPickProcedure as stopFootballPick } from "./stopFootballPick";
+import { pickFootballPlayerProcedure as pickFootballPlayer } from "./pickFootballPlayer";
+import { undoFootballPickProcedure as undoFootballPick } from "./undoFootballPick";
+import { remindFootballCaptainProcedure as remindFootballCaptain } from "./remindFootballCaptain";
 import { registerProcedure as register } from "./register";
 import { submitLevelChecksProcedure as submitLevelChecks } from "./submitLevelChecks";
 import { submitPerformanceRatingsProcedure as submitPerformanceRatings } from "./submitPerformanceRatings";
@@ -189,6 +198,15 @@ export const gamesRouter = createTRPCRouter({
   resultLink,
   setFootballRole,
   publishFootballTeams,
+  saveFootballDraft,
+  answerFootballDraft,
+  openFootballPickRoom,
+  footballPickRoom,
+  startFootballPick,
+  stopFootballPick,
+  pickFootballPlayer,
+  undoFootballPick,
+  remindFootballCaptain,
   saveFootballScore,
   nameChallengeSquad,
   performanceRatingSheet,

@@ -191,7 +191,6 @@ export const mobileGameDetails = {
     season: "Season",
     pitchCost: "Pitch cost",
     teams: "Teams",
-    organizerMakesTeams: "The organizer makes them",
     bibs: "Bibs",
     youreInAs: (code: string) => `You're in as ${code}`,
     change: "Change",
@@ -210,5 +209,8 @@ export const mobileGameDetails = {
     makeTeams: "Make teams",
     teamsSet: "Set",
     teamsMadeByOrganizer: "Made by the organizer",
+    draftSaved: "A draft is saved, not published.",
+    editDraft: "Edit draft",
+    publishTeams: "Publish teams",
   },
 };

@@ -42,6 +42,8 @@ export type NotifyArgs = {
   dedupeKey?: string | null;
   /** Writes the rows as already emailed, for a Notification shown in the App only: no email Job is enqueued. */
   emailedAt?: Date | null;
+  /** The moment the event happened, for a door that reads it back as a rate limit; the database's clock otherwise. */
+  createdAt?: Date;
 };
 
 function audienceByRecipient(
@@ -110,6 +112,7 @@ export async function notify(
     markKind: args.markKind ?? null,
     dedupeKey: args.dedupeKey ?? null,
     emailedAt: args.emailedAt ?? null,
+    createdAt: args.createdAt,
   }));
 
   const insert = database.insert(notifications).values(rows).returning();

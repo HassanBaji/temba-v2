@@ -133,7 +133,7 @@ function typeNote(rated: boolean, locale: Locale) {
   return rated ? m.ratedMatch : m.friendlyMatch;
 }
 
-function cardVenue(place: PlayedPlace, locale: Locale) {
+export function cardVenue(place: PlayedPlace, locale: Locale) {
   const { common } = messagesFor(locale);
   return (
     [place.venue?.name, place.courtName]
@@ -143,7 +143,7 @@ function cardVenue(place: PlayedPlace, locale: Locale) {
   );
 }
 
-function cardWhen(windowStart: Date | null, locale: Locale) {
+export function cardWhen(windowStart: Date | null, locale: Locale) {
   if (!windowStart) {
     return { when: "", whenShort: "" };
   }

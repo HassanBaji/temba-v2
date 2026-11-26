@@ -209,7 +209,6 @@ export const mobileGameDetails = {
     season: "الموسم",
     pitchCost: "تكلفة الملعب",
     teams: "الفرق",
-    organizerMakesTeams: "يكوّنها المنظّم",
     bibs: "الصدريات",
     youreInAs: (code: string) => `أنت مشارك بمركز ${code}`,
     change: "تغيير",
@@ -228,5 +227,8 @@ export const mobileGameDetails = {
     makeTeams: "تكوين الفرق",
     teamsSet: "محددة",
     teamsMadeByOrganizer: "يكوّنها المنظّم",
+    draftSaved: "حُفظت مسودة، ولم تُنشر.",
+    editDraft: "تعديل المسودة",
+    publishTeams: "نشر الفرق",
   },
 } satisfies typeof source;

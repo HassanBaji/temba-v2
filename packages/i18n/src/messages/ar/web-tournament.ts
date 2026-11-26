@@ -109,7 +109,6 @@ export const webTournament = {
     venueFallback: "النادي",
     seasonRow: "الموسم",
     pitchCost: "تكلفة الملعب",
-    organizerMakesTeams: "المنظّم يشكّلها",
     youreInAs: (code: string) => `أنت مشارك بمركز ${code}`,
     change: "تغيير",
     invitePlayers: "دعوة لاعبين",
@@ -122,6 +121,7 @@ export const webTournament = {
     positionsNote:
       "المراكز تفضيلات لا وعود. المنظّم يشكّل الفريقين، مع حارس في كل جهة.",
     teamsNotSetYet: "غير جاهزة بعد. قسّم المجموعة عندما تكتمل.",
+    draftSaved: "حُفظت مسودة، ولم تُنشر.",
     waitlistHeading: "قائمة الانتظار",
     teamsSet: "جاهزة",
     teamsMadeByOrganizer: "يشكّلها المنظّم",
@@ -142,6 +142,7 @@ export const webTournament = {
     method: {
       level: "حسب المستوى",
       manual: "يدوي",
+      captain_pick: "اختيار القائدين",
     },
     howToMakeTeams: "طريقة تشكيل الفرق",
     avgAndKeepers: (average: string, keepers: string) =>
@@ -149,6 +150,8 @@ export const webTournament = {
     countOfTeamSize: (count: number, teamSize: number) =>
       `${count} من ${teamSize}`,
     readyToPublish: (note: string) => `${note} جاهز للنشر.`,
+    readyToPublishOrDraft: (note: string) =>
+      `${note} جاهز للنشر، أو احفظه مسودة أولًا.`,
     moveToOtherTeam: (name: string) => `انقل ${name} إلى الفريق الآخر`,
     noSubsNote:
       "لا يُحدَّد الاحتياط هنا. كل قائد يختار الأساسيين قبل البداية ويدير التبديلات في الملعب.",
@@ -164,6 +167,7 @@ export const webTournament = {
         other: "تبقّى {n}",
       }),
     publishedToast: "نُشرت الفرق",
+    draftSavedToast: "حُفظت المسودة",
     poolLoadFailed: "تعذّر تحميل المجموعة",
     fixedTitle: "الفرق ثابتة",
     fixedBody: "المنظّم وحده يشكّل الفرق، وحتى تسجيل النتيجة فقط.",
@@ -180,9 +184,13 @@ export const webTournament = {
     manualHint: "اختر لونًا لوضع لاعب؛ الصفوف الموزّعة تأخذ لون فريقها.",
     shuffle: "خلط",
     publish: "نشر الفرق",
+    saveDraft: "حفظ مسودة",
     manualTitle: "فرق يدوية",
     makeTeams: "تشكيل الفرق",
     editTeams: "تعديل الفرق",
+    editDraft: "تعديل المسودة",
+    captainTeam: "الفريق",
+    captainChoices: (team: string) => `قائد ${team}`,
     inThePool: (n: number) =>
       plural("ar", n, {
         zero: "لا أحد في المجموعة",

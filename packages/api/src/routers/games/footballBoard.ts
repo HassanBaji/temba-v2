@@ -48,6 +48,7 @@ import {
   footballScoreSet,
   footballSides,
 } from "#src/games/football-lineup";
+import { loadFootballDraft, sideCaptainOf } from "#src/games/football-draft";
 import {
   matchOrganizerSides,
   matchSlotsActedFor,
@@ -185,7 +186,10 @@ async function loadBoardTiers(
  * with each player's role, position, Level and OVR, Group Tier and team, the
  * two teams and their bibs, the Score with its scorers, and what the viewer
  * may do next. Make teams balances on Tier points in a tier Group and on OVR
- * on any other Game.
+ * on any other Game. `teams` is the published teams only, with each side's
+ * Side captain; the Draft line-up is `draft`, for the Game's Organizers and
+ * the draft's Side captains alone (ADR-0108), with whether a Captain pick
+ * runs on it (ADR-0109).
  */
 export async function footballBoard(
   database: DbClient,
@@ -207,6 +211,7 @@ export async function footballBoard(
   const roster = await database.query.gamePlayers.findMany({
     where: eq(gamePlayers.gameId, game.id),
     columns: {
+      id: true,
       userId: true,
       footballRole: true,
       footballPosition: true,
@@ -339,6 +344,28 @@ export async function footballBoard(
   const viewerSidesConfirmed = viewerSlots.every((slot) =>
     slot === 1 ? slotsConfirmed.slot1 : slotsConfirmed.slot2,
   );
+  const draft =
+    published || reach === "stamp_only"
+      ? null
+      : await loadFootballDraft(database, game, args.userId);
+  const canMakeTeams =
+    !challengeSides &&
+    organizer &&
+    live &&
+    score == null &&
+    userIds.length >= 2;
+  const pickRunning = draft?.pick != null && draft.pick.status !== "done";
+  const userByGamePlayerId = new Map(
+    roster.flatMap((row) => (row.userId ? [[row.id, row.userId]] : [])),
+  );
+  const publishedCaptains = {
+    slot1: sides.slot1?.captainGamePlayerId
+      ? (userByGamePlayerId.get(sides.slot1.captainGamePlayerId) ?? null)
+      : null,
+    slot2: sides.slot2?.captainGamePlayerId
+      ? (userByGamePlayerId.get(sides.slot2.captainGamePlayerId) ?? null)
+      : null,
+  };
   const bib = (side: { bib: FootballBib | null } | null, index: 1 | 2) =>
     side?.bib ??
     (index === 1 ? DEFAULT_FOOTBALL_BIBS.slot1 : DEFAULT_FOOTBALL_BIBS.slot2);
@@ -386,6 +413,20 @@ export async function footballBoard(
       ? {
           method: game.footballTeamsMethod,
           bibs: { slot1: bib(sides.slot1, 1), slot2: bib(sides.slot2, 2) },
+          captains: publishedCaptains,
+        }
+      : null,
+    draft: draft
+      ? {
+          updatedAt: draft.updatedAt,
+          savedAt: draft.savedAt,
+          savedByName: draft.savedByName,
+          method: draft.method,
+          bibs: draft.bibs,
+          sides: draft.sides,
+          captains: draft.captains,
+          answers: draft.answers,
+          pick: draft.pick ? { status: draft.pick.status } : null,
         }
       : null,
     match: match
@@ -400,12 +441,18 @@ export async function footballBoard(
       : null,
     viewer: {
       sideIndex: viewerSide,
-      canMakeTeams:
-        !challengeSides &&
-        organizer &&
-        live &&
-        score == null &&
-        userIds.length >= 2,
+      captainOf: draft
+        ? draft.viewer.sideCaptainOf
+        : published
+          ? sideCaptainOf(publishedCaptains, args.userId)
+          : null,
+      canMakeTeams,
+      canSaveDraft: canMakeTeams && !published && !pickRunning,
+      canOpenPickRoom: canMakeTeams && !published && !pickRunning,
+      canAnswerDraft:
+        draft?.viewer.sideCaptainOf != null &&
+        !draft.viewer.organizer &&
+        !pickRunning,
       canEnterScore:
         published &&
         squadsReady &&

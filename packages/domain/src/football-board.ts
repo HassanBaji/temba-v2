@@ -44,6 +44,14 @@ import type { TierBand } from "./tier-bands";
 
 export type Side = 1 | 2;
 
+/** What a pair keyed by slot holds for a side. */
+export function ofSide<Value>(
+  pair: { slot1: Value; slot2: Value },
+  side: Side,
+): Value {
+  return side === 1 ? pair.slot1 : pair.slot2;
+}
+
 export type BoardPlayer = {
   userId: string;
   name: string;
@@ -146,6 +154,20 @@ export function poolTileName(
   locale: Locale,
 ) {
   return nameOnLineup(player, locale, (name) => tileShortName(name, locale));
+}
+
+/**
+ * `lineupName` as plain text, for a player the roster may no longer hold:
+ * null without one.
+ */
+export function lineupPlayerName(
+  player:
+    | Pick<BoardPlayer, "name" | "nickname" | "isViewer">
+    | null
+    | undefined,
+  locale: Locale,
+) {
+  return player ? lineupName(player, locale).name : null;
 }
 
 function nameOnLineup(
@@ -301,13 +323,23 @@ export function bibNames(bibs: Bibs, locale: Locale) {
   };
 }
 
+/** Each side's Side captain by User (ADR-0108), or none. */
+export type SideCaptains = { slot1: string | null; slot2: string | null };
+
+export const NO_SIDE_CAPTAINS: SideCaptains = { slot1: null, slot2: null };
+
 export type TeamsDraft = {
   method: FootballTeamsMethod;
   bibs: Bibs;
   sides: Record<string, Side>;
+  captains: SideCaptains;
 };
 
-function sidesFromSplit(split: { slot1: string[]; slot2: string[] }) {
+/** Each placed player's side, from the two sides' players. */
+export function sidesFromSplit(split: {
+  slot1: readonly string[];
+  slot2: readonly string[];
+}) {
   const sides: Record<string, Side> = {};
   for (const userId of split.slot1) {
     sides[userId] = 1;
@@ -316,6 +348,41 @@ function sidesFromSplit(split: { slot1: string[]; slot2: string[] }) {
     sides[userId] = 2;
   }
   return sides;
+}
+
+/** A Side captain stays named only while they are on that side. */
+export function captainsOnTheirSides(
+  captains: SideCaptains,
+  sides: Record<string, Side>,
+): SideCaptains {
+  return {
+    slot1:
+      captains.slot1 != null && sides[captains.slot1] === 1
+        ? captains.slot1
+        : null,
+    slot2:
+      captains.slot2 != null && sides[captains.slot2] === 2
+        ? captains.slot2
+        : null,
+  };
+}
+
+function withSides(draft: TeamsDraft, sides: Record<string, Side>): TeamsDraft {
+  return {
+    ...draft,
+    sides,
+    captains: captainsOnTheirSides(draft.captains, sides),
+  };
+}
+
+/**
+ * Who may be named a Side captain: a player with an account. A Guest player
+ * or an Unclaimed player cannot open the draft.
+ */
+export function mayBeSideCaptain(
+  player: Pick<BoardPlayer, "guest" | "unclaimed">,
+) {
+  return !player.guest && !player.unclaimed;
 }
 
 export function balancedSides(
@@ -335,14 +402,43 @@ export function balancedSides(
   );
 }
 
+function byHand(method: FootballTeamsMethod): FootballTeamsMethod {
+  return method === "captain_pick" ? "manual" : method;
+}
+
 /**
- * Where the Make teams screen starts: the published split when there is one,
- * otherwise a balanced split.
+ * Where the Make teams screen starts: the saved Draft line-up when there is
+ * one, else the published split, otherwise a balanced split. The Side
+ * captains come with the draft or the published teams. Teams a Captain pick
+ * made are edited by hand: Captain pick only ever starts from the toggle.
  */
 export function initialTeamsDraft(
   players: readonly BoardPlayer[],
-  teams: { method: FootballTeamsMethod | null; bibs: Bibs } | null,
+  teams: {
+    method: FootballTeamsMethod | null;
+    bibs: Bibs;
+    captains: SideCaptains;
+  } | null,
+  saved: {
+    method: FootballTeamsMethod;
+    bibs: Bibs;
+    sides: { slot1: readonly string[]; slot2: readonly string[] };
+    captains: SideCaptains;
+  } | null,
 ): TeamsDraft {
+  if (saved) {
+    const roster = new Set(players.map((player) => player.userId));
+    const sides = sidesFromSplit({
+      slot1: saved.sides.slot1.filter((userId) => roster.has(userId)),
+      slot2: saved.sides.slot2.filter((userId) => roster.has(userId)),
+    });
+    return {
+      method: byHand(saved.method),
+      bibs: saved.bibs,
+      sides,
+      captains: captainsOnTheirSides(saved.captains, sides),
+    };
+  }
   if (teams) {
     const sides: Record<string, Side> = {};
     for (const player of players) {
@@ -350,27 +446,37 @@ export function initialTeamsDraft(
         sides[player.userId] = player.sideIndex;
       }
     }
-    return { method: teams.method ?? "manual", bibs: teams.bibs, sides };
+    return {
+      method: byHand(teams.method ?? "manual"),
+      bibs: teams.bibs,
+      sides,
+      captains: captainsOnTheirSides(teams.captains, sides),
+    };
   }
   return {
     method: "level",
     bibs: DEFAULT_FOOTBALL_BIBS,
     sides: balancedSides(players),
+    captains: NO_SIDE_CAPTAINS,
   };
 }
 
+/** Moving a Side captain to the other team clears the pick. */
 export function moveAcross(draft: TeamsDraft, userId: string): TeamsDraft {
   const current = draft.sides[userId];
   if (!current) {
     return draft;
   }
-  return {
-    ...draft,
-    sides: { ...draft.sides, [userId]: current === 1 ? 2 : 1 },
-  };
+  return withSides(draft, {
+    ...draft.sides,
+    [userId]: current === 1 ? 2 : 1,
+  });
 }
 
-/** Tapping a side's swatch places a player there; tapping it again unplaces. */
+/**
+ * Tapping a side's swatch places a player there; tapping it again unplaces.
+ * A Side captain moved or unplaced is no longer the captain.
+ */
 export function placeOn(
   draft: TeamsDraft,
   userId: string,
@@ -382,10 +488,13 @@ export function placeOn(
   } else {
     sides[userId] = side;
   }
-  return { ...draft, sides };
+  return withSides(draft, sides);
 }
 
-/** By level and Manual start from different places: a fresh split or empty. */
+/**
+ * By level and Manual start from different places: a fresh split or empty.
+ * Either way both Side captains are cleared.
+ */
 export function switchMethod(
   draft: TeamsDraft,
   method: FootballTeamsMethod,
@@ -398,7 +507,75 @@ export function switchMethod(
     ...draft,
     method,
     sides: method === "level" ? balancedSides(players) : {},
+    captains: NO_SIDE_CAPTAINS,
   };
+}
+
+/** Shuffle deals a fresh balanced split and clears both Side captains. */
+export function shuffleSides(
+  draft: TeamsDraft,
+  players: readonly BoardPlayer[],
+  random?: () => number,
+): TeamsDraft {
+  return {
+    ...draft,
+    sides: balancedSides(players, random),
+    captains: NO_SIDE_CAPTAINS,
+  };
+}
+
+/** Clear unplaces everyone, so no Side captain is left. */
+export function clearSides(draft: TeamsDraft): TeamsDraft {
+  return { ...draft, sides: {}, captains: NO_SIDE_CAPTAINS };
+}
+
+/**
+ * Names a side's Side captain, or none with null. Only a player on that side
+ * can be named; anyone else leaves the draft as it is.
+ */
+export function setSideCaptain(
+  draft: TeamsDraft,
+  side: Side,
+  userId: string | null,
+): TeamsDraft {
+  if (userId != null && draft.sides[userId] !== side) {
+    return draft;
+  }
+  return {
+    ...draft,
+    captains: { ...draft.captains, [side === 1 ? "slot1" : "slot2"]: userId },
+  };
+}
+
+/**
+ * Names a side's Side captain for a Captain pick, from anyone on the roster
+ * (ADR-0109): the two captains are seated on their sides and everyone else
+ * waits to be picked. Naming the other side's captain moves them across;
+ * null leaves the side without one.
+ */
+export function setPickCaptain(
+  draft: TeamsDraft,
+  side: Side,
+  userId: string | null,
+): TeamsDraft {
+  const captains: SideCaptains =
+    side === 1
+      ? {
+          slot1: userId,
+          slot2: draft.captains.slot2 === userId ? null : draft.captains.slot2,
+        }
+      : {
+          slot1: draft.captains.slot1 === userId ? null : draft.captains.slot1,
+          slot2: userId,
+        };
+  const sides: Record<string, Side> = {};
+  if (captains.slot1 != null) {
+    sides[captains.slot1] = 1;
+  }
+  if (captains.slot2 != null) {
+    sides[captains.slot2] = 2;
+  }
+  return { ...draft, sides, captains };
 }
 
 /** Keepers first, then strongest down: the order teams read in. */
@@ -725,6 +902,10 @@ export type HeroLinesInput = {
   pitchName: string | null;
   teamsSet: boolean;
   scored: boolean;
+  /** The viewer reads a saved Draft line-up (ADR-0107). */
+  draftSaved?: boolean;
+  /** The team the viewer captains on that draft, by name (ADR-0108). */
+  draftSideCaptainOf?: string | null;
 };
 
 /** The words around the kick-off time at the top of a football Game. */
@@ -750,13 +931,19 @@ export function footballHeroLines(
         : m.playedScoreMissing
       : live
         ? messagesFor(locale).dates.countdown.liveNow
-        : input.teamsSet
-          ? weekday
-            ? m.teamsSetOn(weekday)
-            : m.teamsSet
-          : weekday
-            ? m.upcomingOn(weekday)
-            : m.upcoming;
+        : input.draftSaved
+          ? input.draftSideCaptainOf
+            ? messagesFor(locale).football.draft.statusCaptain(
+                input.draftSideCaptainOf,
+              )
+            : messagesFor(locale).football.draft.status
+          : input.teamsSet
+            ? weekday
+              ? m.teamsSetOn(weekday)
+              : m.teamsSet
+            : weekday
+              ? m.upcomingOn(weekday)
+              : m.upcoming;
   const kickoff = start ? formatHomeKickoff(start, locale) : null;
   const day = start ? formatGameDay(start, locale, { weekday: "short" }) : null;
   const duration = formatWindowDuration(

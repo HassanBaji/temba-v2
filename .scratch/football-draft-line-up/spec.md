@@ -1,6 +1,7 @@
-Status: planned, not built. The product owner settled the seven open questions on 2026-11-21
-(section 16). The glossary entries are in `CONTEXT.md`, the decisions are ADR-0107, ADR-0108 and
-ADR-0109, and the tickets are in Linear (section 18). No schema or code has been changed.
+Status: built in code, DL-1 to DL-9 (TEM-497 … TEM-505), not yet tried on a device or with two
+signed-in sessions. The product owner settled the seven open questions on 2026-11-21 (section 16).
+The glossary entries are in `CONTEXT.md`, the decisions are ADR-0107, ADR-0108 and ADR-0109, and
+the tickets are in Linear (section 18). Migration 0136 holds the schema.
 
 How a rule below was decided is marked on it: *Settled, 1a* means the design settles it on that
 screen; *Settled by the product owner (decision N)* points at section 16; *Planning decision*
@@ -267,6 +268,12 @@ admins" ("Only you and the captains do"). *Settled by the product owner, 2026-11
   shares or edits from there. *Settled, 4c and design note "When it ends".*
 - **Stopping** keeps the sides as picked, closes the room for everyone ("The organizer stopped the
   pick") and leaves an ordinary Manual draft with players still to place.
+- **After it ends.** "Teams are picked" stays on a screen that read the pick finish, also once
+  the Organizer edits or publishes the draft; that screen moves to a new room when the Organizer
+  opens one. Only a pick that was stopped, or that lost a captain, says "The organizer stopped
+  the pick". A room whose finished pick was edited or published before a screen read it finish
+  shows that screen "This pick room is closed" and the way back to the Game. *Planning decision*
+  (section 6).
 - Players never see the pick. *Settled, 4d.*
 
 ## 6. States and transitions
@@ -302,6 +309,19 @@ Undo removes the answer. Changing the captain removes it.
 Pick room presence: a captain is "In the room" while their room screen has polled in the last 10
 seconds.
 
+What the Pick room reads, and what a screen that was showing it does:
+
+| The Game has | The room reads | A screen that showed the pick waiting or live | A screen that showed it done |
+| --- | --- | --- | --- |
+| A pick waiting, live or done | That pick, with its `pickId` | Shows it | Shows it: a new `pickId` is a new room |
+| A draft whose pick was stopped or lost a captain, edited since or not | `stopped`, with that pick's `pickId` | Says "The organizer stopped the pick" and opens the Game, when it is the pick it showed; otherwise closes | Keeps "Teams are picked" |
+| Any other draft: a finished pick edited since, or one that was never a pick | `closed` | Closes, with the way back to the Game | Keeps "Teams are picked" |
+| No draft (teams published, or nothing saved) | `closed` to an Organizer, not found to anyone else | Closes | Keeps "Teams are picked" |
+
+A draft reads `stopped` from the stop until a new room opens. "Teams are picked" holds only for
+a screen that read the pick done itself: a screen opened afterwards shows what the room reads
+now.
+
 ## 7. Data model (`@repo/db`)
 
 One generated migration per ticket that changes the schema; never edit an existing one. The
@@ -318,6 +338,8 @@ latest is 0134.
 | `pick_status` | new enum `football_pick_status`: `waiting`, `live`, `done`; null when the draft was never a Captain pick or the pick was stopped |
 | `first_pick` | new enum `football_first_pick`: `toss`, `slot1`, `slot2`; null outside a pick |
 | `first_pick_side` | 1 or 2, set when the pick goes live |
+| `pick_id` | uuid, not null, random by default. Written anew each time a Pick room opens and kept until the next one, so a reader tells a new pick from the one it watched. It says nothing on a draft that was never a Captain pick |
+| `pick_stopped_at` | Set when a waiting or live pick is stopped or loses a captain; kept through later saves; null again when a new room opens. A pick that finished never has it |
 | `slot1_captain_seen_at`, `slot2_captain_seen_at` | Pick room presence |
 | `saved_by`, `saved_at`, `created_at`, `updated_at` | `updated_at` is the concurrency token |
 
@@ -362,15 +384,15 @@ answers with copy from `football.errors`.
 | Procedure | Kind | Who | What |
 | --- | --- | --- | --- |
 | `footballBoard` (existing) | query | as today | Gains `draft`, `teams.captains`, `viewer.captainOf`, `viewer.canSaveDraft`, `viewer.canAnswerDraft`, `viewer.canOpenPickRoom`. `draft` is null for everyone but an Organizer and the draft's captains, and null on a `stamp_only` read |
-| `saveFootballDraft` | mutation | Organizer | Creates or replaces the draft: method (`level` or `manual`), bibs, the two sides, the two captains. Refused while a pick is waiting or live. Optional `draftUpdatedAt`: refused with CONFLICT when the stored draft is newer |
-| `publishFootballTeams` (existing) | mutation | Organizer | Gains optional `captains` and optional `draftUpdatedAt`; accepts method `captain_pick`. Writes each side's captain, deletes the draft in the same transaction |
+| `saveFootballDraft` | mutation | Organizer | Creates or replaces the draft: method (`level` or `manual`), bibs, the two sides, the two captains. Refused while a pick is waiting or live. Optional `draftUpdatedAt`: refused with CONFLICT when the stored draft is newer; `null` says there was no draft, and is refused when there is one now. Keeps `pick_stopped_at`, and sets it for a pick that lost a captain and that no read of the room cleared |
+| `publishFootballTeams` (existing) | mutation | Organizer | Gains optional `captains` and optional `draftUpdatedAt`, `null` included as on save; accepts method `captain_pick`. Writes each side's captain, deletes the draft in the same transaction |
 | `answerFootballDraft` | mutation | The side's captain | `answer`: `approved`, `change_asked` with a note, or `null` to undo. Refused while a pick is waiting or live |
-| `openFootballPickRoom` | mutation | Organizer | Bibs, both captains, first pick. Replaces any draft with the two captains seated and `pick_status` `waiting`; tells both captains |
-| `footballPickRoom` | query, polled | Organizer or a captain of the pick | The room: status, bibs, captains with presence, first pick, each side's players with pick numbers, the pool, the side on turn, the next pick number and total, `serverNow`. Records the caller's presence at most every 3 s, and starts the pick (toss included) on the read that finds both captains present, as `liveBoards.snapshot` already writes on read |
+| `openFootballPickRoom` | mutation | Organizer | Bibs, both captains, first pick. Replaces any draft with the two captains seated, `pick_status` `waiting`, a new `pick_id` and no `pick_stopped_at`; tells both captains |
+| `footballPickRoom` | query, polled | Organizer or a captain of the draft | The room: status, `pickId`, bibs, captains with presence, first pick, each side's players with pick numbers, the pool, the side on turn, the next pick number and total, `serverNow`. Records the caller's presence at most every 3 s, and starts the pick (toss included) on the read that finds both captains present, as `liveBoards.snapshot` already writes on read. Finishes a live pick whose pool emptied without a pick (section 10). With no pick waiting, live or done it reads `{ status: "stopped", pickId }` or `{ status: "closed" }` (section 6); with no draft an Organizer reads `closed` and anyone else is told it is not found. Refuses a cancelled Game |
 | `startFootballPick` | mutation | Organizer | Waiting to live without both captains (decision 7) |
-| `pickFootballPlayer` | mutation | The captain on turn, or an Organizer with `forSide` | `userId` and the expected `pickNumber`. Locks the draft row; refuses a pick out of turn, a player not in the pool, and a stale pick number ("The pick moved on"). The pick that empties the pool sets `done`, writes both answers as approved and tells the Organizers |
+| `pickFootballPlayer` | mutation | The captain on turn, or an Organizer with `forSide` | `pickedUserId` and the expected `pickNumber`. Locks the draft row; refuses a pick out of turn, a player not in the pool, and a stale pick number ("The pick moved on"). The pick that empties the pool sets `done`, writes both answers as approved and tells the Organizers |
 | `undoFootballPick` | mutation | Organizer | Returns the highest pick number to the pool, named by the caller so a stale tap is refused. Live only |
-| `stopFootballPick` | mutation | Organizer | Waiting or live: clears the pick fields, sets method `manual`, keeps the sides |
+| `stopFootballPick` | mutation | Organizer | Waiting or live: clears the pick fields, sets method `manual` and `pick_stopped_at`, keeps the sides |
 | `remindFootballCaptain` | mutation | A captain of the pick, or an Organizer | Tells the other captain (or the named side's) once per five minutes; a second tap inside the window succeeds without sending |
 
 `footballBoard.draft`:
@@ -395,7 +417,9 @@ rules; the draft and the room carry user ids only, so neither opens a new view o
 
 - `packages/api/src/games/football-draft.ts`: load a Game's draft with its players and answers;
   who may see it; the guards the doors share (football, not Challenge, not cancelled, not
-  published).
+  published); `captainAnswerState(answer, sidePlayerIds, sideCaptain)`, which only the loader
+  calls; the roster the doors that write sides read; the pool and the next pick number of a
+  Captain pick.
 - `packages/api/src/notifications/notify-football-draft.ts`: the wrappers of section 11, as
   `notify-challenge.ts` does for Challenges.
 - `packages/validators/src/football.ts` gains the bibs, sides and captains input shared by
@@ -409,11 +433,11 @@ Each of these is used by both Apps, or by an App and the server.
 
 | Module | Rule |
 | --- | --- |
-| `football-lineup.ts` | `FOOTBALL_TEAMS_METHODS` gains `captain_pick`; `footballTeamsMethodLabel`; the draft and pick constants (note length, minimum players, poll and presence windows) |
-| `football-board.ts` | `TeamsDraft` gains `captains`; `moveAcross`, `placeOn`, `switchMethod` and Shuffle clear a captain who is no longer on their side; `initialTeamsDraft` starts from the saved draft, then the published split, then a balanced one |
-| `football-draft.ts` (new) | `captainAnswerState(answer, sidePlayerIds, captainIsOrganizer)`; the hub summary line; why a draft cannot be saved; the visibility line by Game kind |
-| `football-captain-pick.ts` (new) | `pickTurn({ slot1, slot2, firstPickSide })`; pick progress ("Pick 6 of 14"); the pool order; whether the pick is done |
-| `football-draft-share.ts` (new) | `draftShareCard(game, board, mode, locale)`: the Draft card for both teams or one side, null when the viewer has no draft |
+| `football-lineup.ts` | `FOOTBALL_TEAMS_METHODS` gains `captain_pick`; `footballTeamsMethodLabel`; the draft and pick constants (note length, minimum players, the poll, finished-pick poll and presence windows) |
+| `football-board.ts` | `TeamsDraft` gains `captains`; `moveAcross`, `placeOn`, `switchMethod` and Shuffle clear a captain who is no longer on their side (`captainsOnTheirSides`, which save and publish call too); `initialTeamsDraft` starts from the saved draft, then the published split, then a balanced one; `ofSide(pair, side)`; `lineupPlayerName` for a captain or a pool player |
+| `football-draft.ts` (new) | The hub summary line; why a draft cannot be saved; the visibility line by Game kind |
+| `football-captain-pick.ts` (new) | `pickTurn({ slot1, slot2, firstPickSide })`; pick progress ("Pick 6 of 14"); the pool order; whether the pick is done; the room with the caller's own pick placed, and the last pick, which Undo takes back; what a room screen shows after a read and whether it says the pick was stopped (`pickRoomAfterRead`), and how often it reads (`pickRoomPollMs`) |
+| `football-draft-share.ts` (new) | `draftShareCard(game, board, mode, locale)`: the Draft card for both teams or one side, null when the viewer has no draft; how its lists are laid out and cut to "and N more" |
 | `notification-copy.ts` | Copy for the new types |
 
 **Pool order and what a captain sees.** The pool sorts by what the viewer is shown for each player:
@@ -432,9 +456,12 @@ falls back to the mean OVR for a viewer without balance strengths.
 | Players allowed is cut below the number joined | The latest joiners move to the Waitlist and fall out of the draft, as leaving does |
 | Side size changes | Allowed, as today before publishing; a draft is two halves of the roster, not a count |
 | A captain leaves or is kicked during a pick | The pick cannot go on: the room reads stopped and the draft becomes an ordinary one, as Stop the pick |
+| A pick finishes and the Organizer edits or publishes the draft before a screen in the room reads it done | That screen reads `closed`, or not found once the draft is gone: it closes with the way back to the Game and does not say the pick was stopped |
+| The Organizer opens a new room while a screen still shows "Teams are picked" | That screen reads the room every 15 seconds and when it comes back in front, and shows the new room |
+| The last player still to be picked leaves or is kicked during a live pick | The pool is empty with no pick left to finish on. The next read of the Pick room finishes the pick as the last pick would: both answers Approved and the Game admins told, with copy that names no picker |
 | The Game is cancelled | The draft is unreadable and every door refuses. The row stays until the Game is deleted |
 | Kick-off passes with a draft unpublished | Nothing automatic. The Score still needs published teams, as today |
-| Two Organizers edit at once | The second save or publish carries a stale `draftUpdatedAt` and is refused: "The draft changed. Open it again." |
+| Two Organizers edit at once | The second save or publish carries a stale `draftUpdatedAt`, or `null` for a draft it never saw, and is refused: "The draft changed. Open it again." |
 | The captain and the Organizer pick at the same moment | The second carries a stale pick number and is refused; the room refreshes |
 | A captain's App goes to the background | Polling stops, so after 10 seconds they read "Not here yet". The pick waits; nothing is lost |
 
@@ -460,7 +487,7 @@ until Phase 7. *Settled by the product owner, 2026-11-21 (decision 2).* Each typ
 | `football_draft_change_asked` | Game admins | A captain asked for a change; once per side as it stands | The Game |
 | `football_pick_room_opened` | Both captains | The Organizer opened the Pick room | The Pick room |
 | `football_pick_reminder` | The other captain | Remind; at most one per five minutes | The Pick room |
-| `football_pick_done` | Game admins | The last pick was made | The Game |
+| `football_pick_done` | Game admins | The last pick was made, or the pool emptied without one | The Game |
 
 Copy names the Game and the actor and no team colour, so the row needs no new column ("Hassan Haji
 saved draft teams for Friday Football. You're a captain: have a look before they are published.").
@@ -484,8 +511,10 @@ Both Apps get every flow; each web ticket follows its mobile one. *Settled by th
 `share-teams` is taken on both Apps by Alone-only Socials, hence `share-draft`.
 
 **Polling.** The Pick room polls `games.footballPickRoom` every 2 seconds while the screen is in
-front, and not in the background. The caller's own pick is applied optimistically. The Game screen
-does not poll: a captain's answer reaches the Organizer on refocus, as everything else there does.
+front, and not in the background. While a finished pick stays on the screen it reads every 15
+seconds, to learn of a new room, and once the room closed it reads only when the screen comes
+back in front. The caller's own pick is applied optimistically. The Game screen does not poll: a
+captain's answer reaches the Organizer on refocus, as everything else there does.
 
 **Mobile design system.** The design maps onto the locked system without exceptions:
 
@@ -642,7 +671,11 @@ Not in that list, and so decided by planning alone:
   starts when both are present, once; the toss sets a side; `startFootballPick`; picks in turn;
   out of turn, not in pool and stale pick number refused; the Organizer picks for a side; undo;
   stop; the last pick writes both answers and tells the Organizers; a captain leaving stops it; a
-  player cannot read the room; remind is limited.
+  player cannot read the room; remind is limited. The room names each opening: one `pickId`
+  through reads, picks, undo and the finish, a new one on the next open. It reads stopped after a
+  stop or a lost captain, also once the draft is saved, and closed after a finished pick is
+  edited or published.
+- `pickRoomAfterRead` and `pickRoomPollMs`: every pair of what a screen showed and what it reads.
 - `football-lineup-parity.test.ts`: the new enum value and the three new enums.
 
 **Apps.** Typecheck and lint; the existing Make teams and Share result flows by hand on both

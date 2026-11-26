@@ -70,7 +70,12 @@ export async function assertKeeperSeatOpen(
 export async function footballSides(database: DbClient, gameId: string) {
   const rows = await database.query.gameTeams.findMany({
     where: eq(gameTeams.gameId, gameId),
-    columns: { id: true, sideIndex: true, bib: true },
+    columns: {
+      id: true,
+      sideIndex: true,
+      bib: true,
+      captainGamePlayerId: true,
+    },
   });
   return {
     slot1: rows.find((row) => row.sideIndex === 1) ?? null,
