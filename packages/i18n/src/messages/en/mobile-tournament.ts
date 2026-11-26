@@ -251,11 +251,6 @@ export const mobileTournament = {
     teamGoalsSr: (name: string, goals: number) => `${name} ${goals}`,
     oneGoalFewer: (name: string) => `One goal fewer for ${name}`,
     oneGoalMore: (name: string) => `One goal more for ${name}`,
-    scorerSr: (name: string, team: string, goals: number) =>
-      `${name}, ${team}, ${goals} goals`,
-    scorerHint: "Tap to add a goal, hold to take one away",
-    addAGoal: "Add a goal",
-    takeAGoalAway: "Take a goal away",
     saved: "Score saved",
     title: "Score",
     loadFailed: "The game could not be loaded",
@@ -263,13 +258,11 @@ export const mobileTournament = {
     closedLine:
       "The score opens at kick-off for players on the teams and the organizer, until both sides confirm it.",
     oneFromConfirms: (team: string) =>
-      `One player from ${team} confirms the score.`,
-    oneFromEachConfirms: "One player from each side confirms the score.",
+      `One player from ${team} confirms the score, the log and the cards.`,
+    oneFromEachConfirms:
+      "One player from each side confirms the score, the log and the cards.",
     saveScore: "Save score",
     editScore: "Edit score",
     scoreMissing: "Score missing",
-    scorersOptional: "Scorers, optional",
-    tapToAdd: "tap to add a goal",
-    holdToRemove: "Hold a name to take a goal away.",
   },
 };

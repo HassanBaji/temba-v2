@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  addGoal,
   balancedSides,
   boardTierCell,
   captainsOnTheirSides,
@@ -28,12 +27,9 @@ import {
   poolTileTier,
   poolLayout,
   poolSections,
-  removeGoal,
   lineupName,
   lineupPlayerName,
   ofSide,
-  scorersNote,
-  scorersPayload,
   setPickCaptain,
   setSideCaptain,
   shortName,
@@ -569,29 +565,12 @@ describe("teams draft outside a tier Group", () => {
   });
 });
 
-describe("score draft", () => {
+describe("score confirmation", () => {
   const players = [
     player("a", { sideIndex: 1 }),
     player("b", { sideIndex: 2 }),
   ];
   const names = { slot1: "Black", slot2: "White" };
-
-  it("raises the side's Score when a goal is named past it", () => {
-    let draft = { slot1: 1, slot2: 0, goals: {} };
-    draft = addGoal(draft, players[0]!, players);
-    expect(draft.slot1).toBe(1);
-    draft = addGoal(draft, players[0]!, players);
-    expect(draft.slot1).toBe(2);
-    expect(draft.goals).toEqual({ a: 2 });
-    expect(scorersNote(draft, players, names, "en")).toBe(
-      "2 of 2 Black goals and 0 of 0 White goals named.",
-    );
-    draft = removeGoal(removeGoal(draft, "a"), "a");
-    expect(draft.goals).toEqual({});
-    expect(scorersPayload({ ...draft, goals: { a: 1, b: 0 } })).toEqual([
-      { userId: "a", goals: 1 },
-    ]);
-  });
 
   it("explains who still has to confirm", () => {
     expect(

@@ -2,6 +2,10 @@ import { spacing } from "@repo/design-tokens";
 import { hubRegisterToast } from "@repo/domain/game-card";
 import { shortPlayerName } from "@repo/domain/player-name";
 import {
+  americanoFixedPartner,
+  type AmericanoPair,
+} from "@repo/domain/tournament-americano";
+import {
   americanoResultMark,
   signedDifference,
   viewerAmericanoMatches,
@@ -79,6 +83,32 @@ function PlayerRow({
   );
 }
 
+/** "with Khalid J" under a player who keeps one partner all day (ADR-0113). */
+function FixedPartnerLine({
+  fixedPairs,
+  playerId,
+  viewerId,
+  nameOf,
+}: {
+  fixedPairs: readonly AmericanoPair[];
+  playerId: string;
+  viewerId: string | null | undefined;
+  nameOf: (gamePlayerId: string) => string;
+}) {
+  const m = useMessages().tournamentAmericano.fixedPairs;
+  const partner = americanoFixedPartner(fixedPairs, playerId);
+  if (!partner) {
+    return null;
+  }
+  return (
+    <Text size="eyebrow" tone="muted" numberOfLines={1}>
+      {partner === viewerId
+        ? m.withYou
+        : m.withPartner(shortPlayerName(nameOf(partner)))}
+    </Text>
+  );
+}
+
 /**
  * An Americano on the mobile App: the players before the Rounds are made,
  * then the one table of players and the viewer's Matches. Making the Rounds,
@@ -114,6 +144,10 @@ export function AmericanoView({
   const players = board.data?.players ?? [];
   const names = new Map(players.map((player) => [player.gamePlayerId, player]));
   const viewerId = board.data?.viewerGamePlayerId ?? null;
+  const fixedPairs: readonly AmericanoPair[] = board.data?.fixedPairs ?? [];
+  const viewerFixedPartner = viewerId
+    ? americanoFixedPartner(fixedPairs, viewerId)
+    : null;
   const seatCount = game.playersAllowed ?? 0;
   const canJoin =
     !drawn && !game.isRegistered && (game.canRegister || game.canWaitlist);
@@ -230,7 +264,7 @@ export function AmericanoView({
         </Text>
         <Text size="body">{game.name ?? m.shape.title}</Text>
         <Text size="meta" tone="muted">
-          {m.lead.standings}
+          {m.lead.standings(fixedPairs.length)}
         </Text>
         <SeriesHeadingLine series={game.series} finished={finished} />
       </View>
@@ -261,6 +295,12 @@ export function AmericanoView({
                       </Text>
                     ) : null}
                   </Text>
+                  <FixedPartnerLine
+                    fixedPairs={fixedPairs}
+                    playerId={row.playerId}
+                    viewerId={viewerId}
+                    nameOf={(id) => names.get(id)?.name ?? ""}
+                  />
                 </View>
                 {seriesBadges && wonSeries(row.playerId) ? (
                   <SeriesBadge
@@ -292,7 +332,14 @@ export function AmericanoView({
       {played.length > 0 ? (
         <Card
           title={finished ? m.yourRounds.finishedTitle : m.yourRounds.title}
-          meta={m.yourRounds.meta(played.length)}
+          meta={
+            viewerFixedPartner
+              ? m.yourRounds.metaFixed(
+                  played.length,
+                  shortPlayerName(names.get(viewerFixedPartner)?.name ?? ""),
+                )
+              : m.yourRounds.meta(played.length)
+          }
         >
           {played.map((entry, index) => (
             <Fragment key={entry.match.matchId}>

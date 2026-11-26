@@ -7,6 +7,7 @@ import type { ResultMarkVariant } from "./result-mark";
 import {
   americanoSlotsPerRound,
   americanoOutcome,
+  americanoWinners,
   type AmericanoOutcome,
   type AmericanoTableRow,
 } from "./tournament-americano";
@@ -118,6 +119,8 @@ export type AmericanoPlayedSummary = {
   winner: {
     markName: string;
     name: string;
+    /** The other winner, when a fixed pair won the day together. */
+    partnerName: string | null;
     gamesWon: number;
     isViewer: boolean;
   } | null;
@@ -146,7 +149,7 @@ export function americanoPlayedSummary(input: {
     input.matches,
     input.viewerGamePlayerId,
   );
-  const top = input.table[0];
+  const [top, topPartner] = americanoWinners(input.table);
   return {
     finished: input.finished,
     place: input.finished ? viewerRow.place : null,
@@ -164,8 +167,11 @@ export function americanoPlayedSummary(input: {
         ? {
             markName: nameOf(top.playerId),
             name: nameOf(top.playerId),
+            partnerName: topPartner ? nameOf(topPartner.playerId) : null,
             gamesWon: top.gamesWon,
-            isViewer: top.playerId === input.viewerGamePlayerId,
+            isViewer: [top, topPartner].some(
+              (row) => row?.playerId === input.viewerGamePlayerId,
+            ),
           }
         : null,
   };
@@ -261,7 +267,12 @@ export function americanoPlayedCardModel(
       ? {
           markName: day.winner.markName,
           isViewer: day.winner.isViewer,
-          line: m.played.wonBy(day.winner.name, day.winner.gamesWon),
+          line: m.played.wonBy(
+            day.winner.partnerName
+              ? m.fixedPairs.pairNames(day.winner.name, day.winner.partnerName)
+              : day.winner.name,
+            day.winner.gamesWon,
+          ),
           trailing: m.played.standings,
         }
       : null,

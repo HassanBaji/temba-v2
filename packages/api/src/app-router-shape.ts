@@ -80,6 +80,7 @@ type ExpectedGames =
   | "americanoBoard"
   | "postAmericanoRounds"
   | "swapAmericanoPlayers"
+  | "setAmericanoFixedPairs"
   | "undoPoolDraw"
   | "tournamentRounds"
   | "generateRounds"

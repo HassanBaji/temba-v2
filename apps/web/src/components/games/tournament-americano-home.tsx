@@ -16,6 +16,9 @@ import { hubRegisterToast } from "@repo/domain/game-card";
 import {
   AMERICANO_PLAYER_MIN,
   americanoCourtCount,
+  americanoWinners,
+  clampAmericanoRounds,
+  type AmericanoPair,
 } from "@repo/domain/tournament-americano";
 import {
   americanoHeroStats,
@@ -65,6 +68,11 @@ import {
   type AmericanoBoardRound,
   type AmericanoNames,
 } from "./tournament-americano-parts";
+import {
+  AmericanoFixedPairsCard,
+  AmericanoFixedPairsSheet,
+  fixedPairNumberByUser,
+} from "./tournament-americano-fixed-pairs";
 import { TournamentDetailRows } from "./tournament-detail-rows";
 import { FinishedShareLink, PlaceChip } from "./tournament-finished-parts";
 import { TournamentHero } from "./tournament-hero";
@@ -99,7 +107,11 @@ export function TournamentAmericanoHome({
 }: {
   data: TournamentDetails & WithGameSeries;
   /** Design preview data: the board is given instead of read from the API. */
-  preview?: { board: AmericanoBoard; drawOpen?: boolean };
+  preview?: {
+    board: AmericanoBoard;
+    drawOpen?: boolean;
+    fixedPairsOpen?: boolean;
+  };
   backHref: string;
   actions?: React.ReactNode;
   album?: React.ReactNode;
@@ -152,6 +164,9 @@ export function TournamentAmericanoHome({
   );
   const board = preview ? { data: preview.board } : query;
   const [drawOpen, setDrawOpen] = React.useState(preview?.drawOpen ?? false);
+  const [fixedOpen, setFixedOpen] = React.useState(
+    preview?.fixedPairsOpen ?? false,
+  );
 
   async function refresh() {
     await Promise.all([
@@ -170,6 +185,12 @@ export function TournamentAmericanoHome({
   const post = api.games.postAmericanoRounds.useMutation({
     onSuccess: async () => {
       toast.success(m.draw.posted);
+      await refresh();
+    },
+  });
+  const saveFixedPairs = api.games.setAmericanoFixedPairs.useMutation({
+    onSuccess: async () => {
+      toast.success(m.fixedPairs.saved);
       await refresh();
     },
   });
@@ -202,15 +223,59 @@ export function TournamentAmericanoHome({
   );
 
   const players = board.data?.players ?? [];
+  const fixedPairs: readonly AmericanoPair[] = board.data?.fixedPairs ?? [];
+  const viewerGamePlayerId = board.data?.viewerGamePlayerId ?? null;
   const firstStart = data.windowStart ? new Date(data.windowStart) : null;
+  // The pairs are set for the Social once it is full, so they are sized on
+  // its seats; making the Rounds checks them against who is actually in.
+  const seats = Math.max(data.playersAllowed ?? 0, players.length);
+  const plannedRounds = clampAmericanoRounds(data.roundCount, seats);
+  const setsFixedPairs = organizer && !drawn;
+  const fixedPairsCard =
+    setsFixedPairs && players.length > 0 ? (
+      <AmericanoFixedPairsCard
+        fixedPairs={fixedPairs}
+        names={new Map(players.map((player) => [player.gamePlayerId, player]))}
+        viewerGamePlayerId={viewerGamePlayerId}
+        players={seats}
+        rounds={plannedRounds}
+        onOpen={() => setFixedOpen(true)}
+      />
+    ) : null;
+  const fixedPairsSheet = setsFixedPairs ? (
+    <AmericanoFixedPairsSheet
+      open={fixedOpen}
+      onOpenChange={setFixedOpen}
+      players={players}
+      saved={fixedPairs}
+      seats={seats}
+      rounds={plannedRounds}
+      viewerGamePlayerId={viewerGamePlayerId}
+      pending={saveFixedPairs.isPending}
+      error={saveFixedPairs.error}
+      onSave={async (pairs) => {
+        if (preview) {
+          return;
+        }
+        await saveFixedPairs.mutateAsync({
+          gameId: data.id,
+          pairs: pairs.map(([firstGamePlayerId, secondGamePlayerId]) => ({
+            firstGamePlayerId,
+            secondGamePlayerId,
+          })),
+        });
+      }}
+    />
+  ) : null;
   const drawSheet =
     data.isOrganizer && !data.cancelledAt && !drawn ? (
       <AmericanoDrawSheet
         open={drawOpen}
         onOpenChange={setDrawOpen}
         players={players}
+        fixedPairs={fixedPairs}
         roundCount={data.roundCount ?? 1}
-        viewerGamePlayerId={board.data?.viewerGamePlayerId ?? null}
+        viewerGamePlayerId={viewerGamePlayerId}
         courtNames={data.recordedCourts.map((court) => court.name)}
         firstStart={firstStart}
         pending={post.isPending}
@@ -251,6 +316,12 @@ export function TournamentAmericanoHome({
           onPlayer={onPlayer}
           onJoin={() => register.mutate({ gameId: data.id })}
           onOpenDraw={() => setDrawOpen(true)}
+          fixedPairsCard={fixedPairsCard}
+          pairOf={
+            setsFixedPairs
+              ? fixedPairNumberByUser(players, fixedPairs)
+              : undefined
+          }
         />
       )}
 
@@ -274,6 +345,7 @@ export function TournamentAmericanoHome({
         tracked={gamePaymentsTracked(data)}
       />
       {drawSheet}
+      {fixedPairsSheet}
       <TournamentPlayerDialog
         player={selected}
         canOpenProfile={linkToPlayers}
@@ -303,6 +375,8 @@ function AmericanoPredraw({
   onPlayer,
   onJoin,
   onOpenDraw,
+  fixedPairsCard,
+  pairOf,
 }: {
   data: TournamentDetails & WithGameSeries;
   backHref: string;
@@ -314,6 +388,9 @@ function AmericanoPredraw({
   onPlayer?: (userId: string) => void;
   onJoin: () => void;
   onOpenDraw: () => void;
+  /** The Organizer's way into fixed pairs, until the Rounds are made. */
+  fixedPairsCard: React.ReactNode;
+  pairOf?: (userId: string) => number | null;
 }) {
   const messages = useMessages();
   const m = messages.tournamentAmericano;
@@ -412,6 +489,8 @@ function AmericanoPredraw({
         </div>
       )}
 
+      {fixedPairsCard}
+
       <section className="space-y-3">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="font-expanded text-title tracking-[-0.03em]">
@@ -434,6 +513,7 @@ function AmericanoPredraw({
           playerLabel={
             organizer ? messages.webTournament.player.openActions : undefined
           }
+          pairOf={pairOf}
         />
         <p className="text-muted-foreground text-meta leading-relaxed">
           {organizer ? m.players.footOrganizer : m.players.footPlayer}
@@ -601,12 +681,17 @@ function AmericanoDrawnHome({
     rounds: m.tabs.rounds,
     table: m.tabs.standings,
   };
+  const fixedPairs = board.fixedPairs;
   const leads: Record<Tab, string> = {
-    players: m.lead.players,
+    players: m.lead.players(fixedPairs.length),
     rounds: board.isOrganizer
-      ? m.lead.roundsOrganizer(board.rounds.length)
+      ? m.lead.roundsOrganizer(
+          board.rounds.length,
+          board.players.length,
+          fixedPairs.length,
+        )
       : m.lead.rounds,
-    table: m.lead.standings,
+    table: m.lead.standings(fixedPairs.length),
   };
 
   function openScore(match: AmericanoBoardMatch, roundNumber: number) {
@@ -727,6 +812,7 @@ function AmericanoDrawnHome({
             )}
             seatCount={board.players.length}
             viewerUserId={data.viewerUserId}
+            pairOf={fixedPairNumberByUser(board.players, fixedPairs)}
             onPlayer={onPlayer}
             playerLabel={
               data.isOrganizer && !data.cancelledAt
@@ -760,6 +846,7 @@ function AmericanoDrawnHome({
                 gameId={data.id}
                 round={round}
                 names={names}
+                fixedPairs={fixedPairs}
                 viewerGamePlayerId={board.viewerGamePlayerId}
                 defaultOpen={roundOpenByDefault(
                   round,
@@ -777,7 +864,7 @@ function AmericanoDrawnHome({
           </div>
           {board.isOrganizer && !finished ? (
             <p className="text-muted-foreground text-meta leading-relaxed">
-              {m.round.swapFoot}
+              {m.round.swapFoot(fixedPairs.length)}
             </p>
           ) : null}
         </TabsContent>
@@ -790,8 +877,10 @@ function AmericanoDrawnHome({
             viewerGamePlayerId={board.viewerGamePlayerId}
             final={finished}
             seriesBadges={seriesBadges}
+            fixedPairs={fixedPairs}
           />
           <AmericanoYourRounds
+            fixedPairs={fixedPairs}
             matches={allMatches}
             names={names}
             viewerGamePlayerId={board.viewerGamePlayerId}
@@ -947,6 +1036,7 @@ function AmericanoRoundCard({
   gameId,
   round,
   names,
+  fixedPairs,
   viewerGamePlayerId,
   defaultOpen,
   current,
@@ -957,6 +1047,7 @@ function AmericanoRoundCard({
   gameId: string;
   round: AmericanoBoardRound;
   names: AmericanoNames;
+  fixedPairs: readonly AmericanoPair[];
   viewerGamePlayerId: string | null;
   defaultOpen: boolean;
   current: boolean;
@@ -1051,6 +1142,7 @@ function AmericanoRoundCard({
                 key={match.matchId}
                 match={match}
                 names={names}
+                fixedPairs={fixedPairs}
                 viewerGamePlayerId={viewerGamePlayerId}
                 onEnter={() => onScore(match)}
                 onConfirm={() => onScore(match)}
@@ -1110,7 +1202,7 @@ function AmericanoFinishedHeader({
   const messages = useMessages();
   const m = messages.tournamentAmericano;
   const locale = useLocale();
-  const winner = board.table[0];
+  const winners = americanoWinners(board.table);
   const viewer = board.table.find(
     (row) => row.playerId === board.viewerGamePlayerId,
   );
@@ -1124,7 +1216,6 @@ function AmericanoFinishedHeader({
     allMatches,
     board.viewerGamePlayerId,
   ).map((game) => game.outcome);
-  const winnerName = winner ? (names.get(winner.playerId)?.name ?? "") : "";
   return (
     <Surface
       as="header"
@@ -1158,40 +1249,44 @@ function AmericanoFinishedHeader({
         )}
       </p>
       <ol className={cn(ROUND_CARD, "divide-rule bg-paper mt-5 divide-y")}>
-        {winner ? (
-          <li
-            className={cn(
-              "flex items-center gap-3 px-4 py-3.5",
-              winner.playerId === board.viewerGamePlayerId && "bg-wash",
-            )}
-          >
-            <PlaceChip place={1} />
-            <InitialsMark
-              name={winnerName}
-              isViewer={winner.playerId === board.viewerGamePlayerId}
-              className="text-meta size-11"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="text-muted-foreground text-meta">
-                {m.finished.wonTheDay}
-              </p>
-              <p
-                dir="auto"
-                className="text-[16px] font-semibold leading-snug tracking-[-0.01em]"
-              >
-                {winnerName}
-              </p>
-              <p className="text-muted-foreground text-meta">
-                {m.finished.winnerLine(
-                  winner.gamesWon,
-                  winner.won,
-                  winner.drawn,
-                  winner.lost,
-                )}
-              </p>
-            </div>
-          </li>
-        ) : null}
+        {winners.map((winner) => {
+          const winnerName = names.get(winner.playerId)?.name ?? "";
+          return (
+            <li
+              key={winner.playerId}
+              className={cn(
+                "flex items-center gap-3 px-4 py-3.5",
+                winner.playerId === board.viewerGamePlayerId && "bg-wash",
+              )}
+            >
+              <PlaceChip place={1} />
+              <InitialsMark
+                name={winnerName}
+                isViewer={winner.playerId === board.viewerGamePlayerId}
+                className="text-meta size-11"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-muted-foreground text-meta">
+                  {m.finished.wonTheDay}
+                </p>
+                <p
+                  dir="auto"
+                  className="text-[16px] font-semibold leading-snug tracking-[-0.01em]"
+                >
+                  {winnerName}
+                </p>
+                <p className="text-muted-foreground text-meta">
+                  {m.finished.winnerLine(
+                    winner.gamesWon,
+                    winner.won,
+                    winner.drawn,
+                    winner.lost,
+                  )}
+                </p>
+              </div>
+            </li>
+          );
+        })}
         {viewer && viewer.place !== 1 ? (
           <li className="bg-wash flex items-center gap-3 px-4 py-3.5">
             <PlaceChip place={viewer.place} />
@@ -1212,7 +1307,7 @@ function AmericanoFinishedHeader({
                   viewer.won,
                   viewer.drawn,
                   viewer.lost,
-                  (winner?.gamesWon ?? 0) - viewer.gamesWon,
+                  (winners[0]?.gamesWon ?? 0) - viewer.gamesWon,
                 )}
               </p>
               <span className="mt-1.5 flex gap-1" aria-hidden="true">

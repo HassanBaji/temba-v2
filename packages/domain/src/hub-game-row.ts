@@ -2,6 +2,15 @@ import type { KingPlayedSummary } from "./tournament-king-view";
 import type { GameAlbumSummary } from "./game-album";
 import type { GameRatingScope } from "./game-rating-scope";
 import type { MarkKind } from "./marks";
+import type { SeriesColour, SeriesEmblem } from "./series";
+
+export type HubGameSeries = {
+  id: string;
+  name: string;
+  emblem: SeriesEmblem;
+  colour: SeriesColour;
+  edition: number;
+};
 
 export type HubGameOccupant = {
   userId: string;
@@ -97,6 +106,8 @@ export type HubGameRow = {
   sport: string | null;
   /** Who the Game is meant for; a label, never a gate. Null or omitted when untagged. */
   genderTag?: string | null;
+  /** The Series the Game is an Edition of. Null or omitted when it is none. */
+  series?: HubGameSeries | null;
   isPublic: boolean;
   rated: boolean;
   ratingScope: GameRatingScope;

@@ -25,6 +25,7 @@ import {
   americanoMatchState,
   americanoResults,
   americanoRoundHasScore,
+  loadAmericanoFixedPairs,
   loadAmericanoMatches,
   loadAmericanoPlayers,
   type AmericanoMatch,
@@ -70,7 +71,7 @@ export type AmericanoBoardRound = {
 /**
  * An Americano's Rounds, each Match's state and what the viewer may do with
  * it, and the one table of players (ADR-0094). Before the Rounds are made it
- * lists the players only.
+ * lists the players only. Both carry the fixed pairs (ADR-0113).
  */
 export async function americanoBoard(
   database: DbClient,
@@ -91,10 +92,11 @@ export async function americanoBoard(
       message: messagesFor(locale).tournamentAmericano.errors.notAmericano,
     });
   }
-  const [organizer, players, rows] = await Promise.all([
+  const [organizer, players, rows, fixedPairs] = await Promise.all([
     isGameOrganizer(database, game, args.userId),
     loadAmericanoPlayers(database, game.id),
     loadAmericanoMatches(database, game.id),
+    loadAmericanoFixedPairs(database, game.id),
   ]);
   const viewer = players.find((player) => player.userId === args.userId);
   const nameOfUser = new Map(
@@ -172,6 +174,7 @@ export async function americanoBoard(
   const table: AmericanoTableRow[] = americanoTable(
     players.map((player) => player.gamePlayerId),
     americanoResults(rows),
+    fixedPairs,
   );
 
   return {
@@ -181,6 +184,8 @@ export async function americanoBoard(
     matchMinutes: tournamentMatchMinutes(game.matchMinutes),
     viewerGamePlayerId: viewer?.gamePlayerId ?? null,
     players,
+    /** Each fixed pair's two Game player ids, pair 1 first. */
+    fixedPairs,
     rounds,
     currentRoundNumber: currentRoundNumber(rounds),
     table,

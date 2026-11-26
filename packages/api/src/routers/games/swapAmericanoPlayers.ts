@@ -15,6 +15,7 @@ import { type db } from "#src/db";
 import { assertGameOrganizer, requireGame } from "#src/games/access";
 import {
   americanoRoundHasScore,
+  loadAmericanoFixedPairs,
   loadAmericanoMatches,
   loadAmericanoPlayers,
 } from "#src/games/americano-matches";
@@ -76,7 +77,8 @@ export function swapPlayersInRound<Pairing extends SeatedPairing>(
  * Swaps two players in one Round of an Americano that has not started: no
  * Match in it has a score or is completed (ADR-0094). Two players on one
  * court swap places there; two on different courts swap courts. Refused when
- * it would give anyone the same partner twice.
+ * it would give anyone the same partner twice, or for a player in a fixed
+ * pair (ADR-0113), which no swap splits.
  */
 export async function swapAmericanoPlayers(
   database: DbClient,
@@ -128,6 +130,15 @@ export async function swapAmericanoPlayers(
     const second = seatOf(args.secondGamePlayerId);
     if (!first || !second) {
       throw new TRPCError({ code: "BAD_REQUEST", message: m.playerNotInRound });
+    }
+    const fixedPlayers = new Set(
+      (await loadAmericanoFixedPairs(tx, game.id)).flat(),
+    );
+    if (
+      fixedPlayers.has(args.firstGamePlayerId) ||
+      fixedPlayers.has(args.secondGamePlayerId)
+    ) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: m.fixedPairSwap });
     }
 
     const pairings = rows.filter(

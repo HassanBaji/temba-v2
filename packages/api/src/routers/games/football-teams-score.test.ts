@@ -765,3 +765,317 @@ describe("football rows in My Games", () => {
     });
   });
 });
+
+describe("football Match log", () => {
+  const testStart = Date.now();
+  const kickoffPlus = (minutes: number) =>
+    new Date(testStart + HOUR + minutes * 60_000);
+
+  it("saves goals, an own goal and cards with their minutes, and reads them back", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await publish(f, [a!, b!], [c!, d!]);
+      await saveFootballScore(
+        f.db,
+        {
+          gameId: f.gameId,
+          userId: f.organizer.id,
+          slot1Goals: 2,
+          slot2Goals: 1,
+          scorers: [{ userId: a!.id, goals: 1 }],
+          log: [
+            {
+              kind: "goal",
+              side: 1,
+              userId: a!.id,
+              minute: 6,
+              loggedAt: kickoffPlus(6),
+              reason: null,
+            },
+            {
+              kind: "warning",
+              side: 2,
+              userId: d!.id,
+              minute: 11,
+              loggedAt: kickoffPlus(11),
+              reason: null,
+            },
+            {
+              kind: "own_goal",
+              side: 1,
+              userId: c!.id,
+              minute: 24,
+              loggedAt: kickoffPlus(24),
+              reason: null,
+            },
+            {
+              kind: "goal",
+              side: 2,
+              userId: null,
+              minute: 31,
+              loggedAt: kickoffPlus(31),
+              reason: null,
+            },
+            {
+              kind: "red_card",
+              side: 2,
+              userId: d!.id,
+              minute: 38,
+              loggedAt: kickoffPlus(38),
+              reason: "serious_foul",
+            },
+          ],
+        },
+        AFTER_KICKOFF(),
+      );
+      const board = await footballBoard(f.db, {
+        gameId: f.gameId,
+        userId: b!.id,
+      });
+      expect(
+        board.match?.log.map((line) => [
+          line.kind,
+          line.side,
+          line.userId,
+          line.minute,
+          line.reason,
+        ]),
+      ).toEqual([
+        ["goal", 1, a!.id, 6, null],
+        ["warning", 2, d!.id, 11, null],
+        ["own_goal", 1, c!.id, 24, null],
+        ["goal", 2, null, 31, null],
+        ["red_card", 2, d!.id, 38, "serious_foul"],
+      ]);
+      expect(board.match?.log[0]?.loggedAt).toEqual(kickoffPlus(6));
+      expect(
+        board.players.find((player) => player.userId === c!.id)?.goals,
+      ).toBe(0);
+    });
+  });
+
+  it("refuses a log that does not add up to the Score or its scorers", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await publish(f, [a!, b!], [c!, d!]);
+      const goal = {
+        kind: "goal" as const,
+        side: 1 as const,
+        userId: a!.id,
+        minute: 6,
+        loggedAt: kickoffPlus(6),
+        reason: null,
+      };
+      const save = (args: {
+        slot1Goals: number;
+        scorers: { userId: string; goals: number }[];
+        log: (typeof goal | (Omit<typeof goal, "kind"> & { kind: string }))[];
+      }) =>
+        saveFootballScore(
+          f.db,
+          {
+            gameId: f.gameId,
+            userId: a!.id,
+            slot2Goals: 0,
+            ...args,
+            log: args.log as never,
+          },
+          AFTER_KICKOFF(),
+        );
+      await expect(
+        save({
+          slot1Goals: 2,
+          scorers: [{ userId: a!.id, goals: 1 }],
+          log: [goal],
+        }),
+      ).rejects.toThrow("The match log must add up to the score");
+      await expect(
+        save({ slot1Goals: 1, scorers: [], log: [goal] }),
+      ).rejects.toThrow("The match log must name the same scorers");
+      await expect(
+        save({
+          slot1Goals: 0,
+          scorers: [],
+          log: [{ ...goal, kind: "warning", side: 2 }],
+        }),
+      ).rejects.toThrow("A line in the match log is on the wrong team");
+    });
+  });
+
+  it("asks the other side again when only the log changes", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await publish(f, [a!, b!], [c!, d!]);
+      const warning = {
+        kind: "warning" as const,
+        side: 2 as const,
+        userId: d!.id,
+        minute: 11,
+        loggedAt: kickoffPlus(11),
+        reason: null,
+      };
+      const save = (userId: string, log: (typeof warning)[]) =>
+        saveFootballScore(
+          f.db,
+          {
+            gameId: f.gameId,
+            userId,
+            slot1Goals: 0,
+            slot2Goals: 0,
+            scorers: [],
+            log,
+          },
+          AFTER_KICKOFF(),
+        );
+      await save(a!.id, [warning]);
+      await save(c!.id, [warning]);
+      const agreed = await footballBoard(f.db, {
+        gameId: f.gameId,
+        userId: a!.id,
+      });
+      expect(agreed.match?.status).toBe("completed");
+      expect(agreed.match?.log).toHaveLength(1);
+    });
+  });
+
+  it("re-asks for confirmation on a changed card and keeps the log when an older client saves the same Score", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await publish(f, [a!, b!], [c!, d!]);
+      const warning = {
+        kind: "warning" as const,
+        side: 2 as const,
+        userId: d!.id,
+        minute: 11,
+        loggedAt: kickoffPlus(11),
+        reason: null,
+      };
+      const base = {
+        gameId: f.gameId,
+        slot1Goals: 0,
+        slot2Goals: 0,
+        scorers: [],
+      };
+      await saveFootballScore(
+        f.db,
+        { ...base, userId: a!.id, log: [warning] },
+        AFTER_KICKOFF(),
+      );
+      await saveFootballScore(
+        f.db,
+        { ...base, userId: a!.id, log: [{ ...warning, minute: 12 }] },
+        AFTER_KICKOFF(),
+      );
+      let board = await footballBoard(f.db, {
+        gameId: f.gameId,
+        userId: a!.id,
+      });
+      expect(board.match?.log.map((line) => line.minute)).toEqual([12]);
+      expect(board.match?.confirmed).toEqual({ slot1: true, slot2: false });
+
+      await saveFootballScore(
+        f.db,
+        { ...base, userId: b!.id },
+        AFTER_KICKOFF(),
+      );
+      board = await footballBoard(f.db, { gameId: f.gameId, userId: a!.id });
+      expect(board.match?.log).toHaveLength(1);
+
+      await saveFootballScore(
+        f.db,
+        { ...base, slot1Goals: 1, userId: b!.id },
+        AFTER_KICKOFF(),
+      );
+      board = await footballBoard(f.db, { gameId: f.gameId, userId: a!.id });
+      expect(board.match?.log).toEqual([]);
+    });
+  });
+
+  it("shows the log to its sides and Organizers until the Score is confirmed, then to everyone on the Game", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await publish(f, [a!, b!], [c!, d!]);
+      const watcher = await insertUser(f.db, "watcher");
+      const game = await f.db.query.games.findFirst({
+        where: eq(games.id, f.gameId),
+        columns: { groupId: true },
+      });
+      await f.db
+        .insert(groupMembers)
+        .values({ groupId: game!.groupId!, userId: watcher.id });
+      await saveFootballScore(
+        f.db,
+        {
+          gameId: f.gameId,
+          userId: a!.id,
+          slot1Goals: 0,
+          slot2Goals: 0,
+          scorers: [],
+          log: [
+            {
+              kind: "warning",
+              side: 2,
+              userId: d!.id,
+              minute: 11,
+              loggedAt: kickoffPlus(11),
+              reason: null,
+            },
+          ],
+        },
+        AFTER_KICKOFF(),
+      );
+      const logSeenBy = async (userId: string) =>
+        (await footballBoard(f.db, { gameId: f.gameId, userId })).match?.log
+          .length;
+      expect(await logSeenBy(c!.id)).toBe(1);
+      expect(await logSeenBy(f.organizer.id)).toBe(1);
+      expect(await logSeenBy(watcher.id)).toBe(0);
+
+      const match = await f.db.query.matches.findFirst({
+        where: eq(matches.gameId, f.gameId),
+      });
+      await confirmMatchResult(f.db, {
+        gameId: f.gameId,
+        matchId: match!.id,
+        userId: c!.id,
+      });
+      expect(await logSeenBy(watcher.id)).toBe(1);
+    });
+  });
+
+  it("refuses two warnings without the red card they give", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await publish(f, [a!, b!], [c!, d!]);
+      const warning = (minute: number) => ({
+        kind: "warning" as const,
+        side: 2 as const,
+        userId: d!.id,
+        minute,
+        loggedAt: kickoffPlus(minute),
+        reason: null,
+      });
+      const save = (log: Parameters<typeof saveFootballScore>[1]["log"]) =>
+        saveFootballScore(
+          f.db,
+          {
+            gameId: f.gameId,
+            userId: a!.id,
+            slot1Goals: 0,
+            slot2Goals: 0,
+            scorers: [],
+            log,
+          },
+          AFTER_KICKOFF(),
+        );
+      await expect(save([warning(11), warning(38)])).rejects.toThrow(
+        "A second warning sends the player off",
+      );
+      await save([
+        warning(11),
+        warning(38),
+        { ...warning(38), kind: "red_card", reason: "second_warning" },
+      ]);
+    });
+  });
+});

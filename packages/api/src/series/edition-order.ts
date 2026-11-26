@@ -1,6 +1,6 @@
-import { isNull, lte, sql, type SQL } from "drizzle-orm";
+import { and, inArray, isNull, lte, sql, type SQL } from "drizzle-orm";
 
-import { games } from "@repo/db";
+import { games, type DbClient } from "@repo/db";
 
 /**
  * The order a Series numbers its Editions in (ADR-0105): window start, then
@@ -37,4 +37,36 @@ export function editionsBefore(gameId: string, windowStart?: Date): SQL {
  */
 export function editionsBeforeNewGame(windowStart: Date) {
   return lte(games.windowStart, windowStart);
+}
+
+/**
+ * Each Game's Edition number among every Game of its Series that is not
+ * cancelled.
+ */
+export async function loadEditionNumbers(
+  database: DbClient,
+  seriesIds: readonly string[],
+) {
+  const rows = await database
+    .select({ id: games.id, edition: editionNumber })
+    .from(games)
+    .where(and(inArray(games.seriesId, [...seriesIds]), isEdition));
+  return new Map(rows.map((row) => [row.id, row.edition]));
+}
+
+/** Each Game with its Edition number, or null when it is no Edition. */
+export async function withSeriesEditions<
+  Row extends { id: string; seriesId?: string | null },
+>(database: DbClient, rows: readonly Row[]) {
+  const seriesIds = new Set(
+    rows.flatMap((row) => (row.seriesId ? [row.seriesId] : [])),
+  );
+  const editions =
+    seriesIds.size > 0
+      ? await loadEditionNumbers(database, [...seriesIds])
+      : new Map<string, number>();
+  return rows.map((row) => ({
+    ...row,
+    seriesEdition: editions.get(row.id) ?? null,
+  }));
 }

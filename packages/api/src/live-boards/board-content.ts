@@ -49,6 +49,7 @@ import {
   americanoDayFinished,
   americanoMatchState,
   americanoResults,
+  loadAmericanoFixedPairs,
   loadAmericanoMatches,
   loadAmericanoPlayers,
 } from "#src/games/americano-matches";
@@ -306,9 +307,10 @@ async function americanoSocialContent(
   game: GameRow,
   now: Date,
 ): Promise<SocialBoardContent> {
-  const [players, rows] = await Promise.all([
+  const [players, rows, fixedPairs] = await Promise.all([
     loadAmericanoPlayers(database, game.id),
     loadAmericanoMatches(database, game.id),
+    loadAmericanoFixedPairs(database, game.id),
   ]);
   if (game.drawPostedAt == null || rows.length === 0) {
     return emptySocial(game, "players");
@@ -360,6 +362,7 @@ async function americanoSocialContent(
   const table = americanoTable(
     players.map((player) => player.gamePlayerId),
     americanoResults(rows.filter((row) => row.roundNumber <= tableRound)),
+    fixedPairs,
   );
   const finished = americanoDayFinished(rows);
   return {
