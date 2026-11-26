@@ -52,13 +52,14 @@ Nothing called Series exists: no table, no procedure, no screen.
 - **A Latest list on the profile.** The design draws one ("Latest, All 8"); the profile has none today, for Marks either. A Series win is news on Home's Latest row, as a Mark is.
 - **A new Notification or Notification email.** The existing Finished Game Notification already brings every player to the Game, which opens on the winners. A stored "you won" notice could not follow a score correction.
 - **New Result cards or stickers.** Share on the winners card opens the existing share screen.
-- **Series on Game cards other than the Social card** (Friendly game and football Game cards, Match cards, Played cards, Home). The Social card shows its Series (8.6); besides it, only the Game screen, the Series page, the Group's tab and the profile show one.
+- **Series on Game cards other than the Social card** (Friendly game and football Game cards, Match cards, Played cards, Home). The Social card shows its Series (8.6); besides it, only the Game screen, the Series page, the Group's Series screen and the profile show one.
 - **A Series across Groups, on a Team, on a Venue, or on a Game with no Group** (Booking Game, Challenge Game, Public Game).
 - **Uploads.** A badge is one of seven emblems in one of six colours.
 - **Hiding a Series win** with its own switch.
 - **A prize, a Level move, Tier points or a Standing change.** A Series win moves nothing.
 - **The Venue console.**
-- **The design's tab order and tab style.** Series is added as a fourth tab to each App's existing tab control.
+- **The design's tab order and tab style.** Series is no tab: it is its own screen, opened from the Group's More menu (8.2).
+- **A Series strip on the Games tab.** The design's background draws one; the Group menu's Series row is the one way in.
 
 ## 5. Decisions
 
@@ -75,7 +76,7 @@ Product copy says series, edition, badge, win. Arabic: سلسلة, نسخة, ش�
 
 | Action | Who | Refused when |
 | --- | --- | --- |
-| See the Series tab and a Series page | Whoever may view the Group (`assertCanViewGroup`) | The Group is not Verified (tab only), or is deleted |
+| See the Group's Series screen and a Series page | Whoever may view the Group (`assertCanViewGroup`) | The Group is not Verified (Series screen and menu row only), or is deleted |
 | Create a Series | A Group approver | The Group is not Verified; the name is taken by a running Series of the Group; the Group already runs 10 |
 | End a Series | A Group approver | Already ended |
 | Attach, change or remove a Game's Series | An Organizer of that Game (`assertGameOrganizer`) | See 5.5 |
@@ -89,10 +90,10 @@ Product copy says series, edition, badge, win. Arabic: سلسلة, نسخة, ش�
 - **Name**: 1 to 40 characters after trimming. Not the name of another running Series of the same Group, compared without case.
 - **Badge**: one emblem of `cup`, `crown`, `star`, `bolt`, `flame`, `moon`, `ball`, and one colour of `gold`, `red`, `blue`, `green`, `purple`, `teal`. The form opens on Cup and Gold.
 - **Running or ended.** A Group runs at most 10 at a time.
-- It has no kind. The same Series may be attached to a Social one week and a Game the next. The tab's "Padel social" or "Padel game" reads the kind of its most recent Edition.
+- It has no kind. The same Series may be attached to a Social one week and a Game the next. The Series screen's "Padel social" or "Padel game" reads the kind of its most recent Edition.
 - **Ending**: stamps `ended_at`. Nothing can be attached to it any more. Games already attached stay attached and their winners still win it. Badges already won stay.
 - **Ending a Series no Game was ever attached to deletes it.** There is nothing to keep, and it would sit under Ended forever.
-- **Verified is checked at each door.** A Group that stops being Verified loses the tab and the pickers, and create and attach are refused. Its Series, their pages and the badges on profiles stay, and a Game already attached is still played for its Series: a Game keeps what it was created with.
+- **Verified is checked at each door.** A Group that stops being Verified loses the menu's Series row and the pickers, and create and attach are refused. Its Series, their pages and the badges on profiles stay, and a Game already attached is still played for its Series: a Game keeps what it was created with.
 
 ### 5.4 Which Games carry a Series
 
@@ -150,7 +151,7 @@ The winners are whoever is seated on the winning Game team when the result is re
 
 ### 5.8 Who sees what
 
-- **Series tab**: on a Verified Group, to everyone who can open the Group home. "New series" only to a Group approver.
+- **Series screen**: on a Verified Group, the Group's More menu offers it to everyone who can open the Group home, so the menu shows on a Verified Group even for a viewer with no other row. "New series" only to a Group approver.
 - **Series page**: whoever may view the Group. A deleted Group's Series page is not found.
 - **Profile**: the Series card follows the Marks cabinet's rule: whoever may open the profile sees it unless the owner's Match history visibility excludes them. There is no switch to hide Series wins. A profile with no Series win shows no card.
 - **From a profile to a Series**: "See the series" and the rows that open a Game show only when the viewer may view that Series' Group (`canOpenSeries`).
@@ -214,7 +215,7 @@ No table for wins, Editions or counts. Nothing is backfilled.
 | `series-copy.ts` | The view-model lines both Apps draw: `seriesRowLine`, `seriesWinnersLine`, `seriesRuleLine`, `seriesWonLastLine`, `seriesWinOrdinal`, `seriesWinTally`, `seriesWinWho`, `seriesWinWithLine` (each takes `locale` last) | both clients |
 | `series-fact-row.ts` | `seriesFactRows(series, messages)` and `withSeriesFactRow(rows, groupLabel, series, messages)`: the "Series" row of a Game's facts | both clients |
 | `home-latest.ts` (extend) | `latestSeriesWin(...)` and `latestUpdate(mark, seriesWin)`; `LatestMark` becomes one arm of a `Latest` union | both clients |
-| `group-home-tab.ts` (extend) | `"series"` joins `GroupHomeTab` | both clients |
+| `group-home-cta.ts`, `group-settings.ts` (extend) | `"series"` joins `GroupHomeOverflowItem` (web) and `GroupMenuItem` (mobile), right after `"edit"`, on a Verified Group; `groupMenuSeriesHint(runningCount, locale)` is its "{n} running" | both clients |
 | `game-edit-form.ts` (extend) | `seriesId` on the draft and the saved Game, a `series` section, a `{ kind: "series"; seriesId }` save step, its changed phrase | both clients |
 
 `series-result.ts` sits in `@repo/domain` beside `pool-table`, `tournament-knockout-view` and `tournament-americano`, the pure rules it composes; five procedures reach it through the one loader of 7.2.
@@ -311,6 +312,7 @@ A new router `series` at `packages/api/src/routers/series/`, one procedure per f
 Changed, additively:
 
 - `games.create` and `games.createTournament`: optional `seriesId`. It is resolved with `resolveGameSeriesLink` before the Game is created, so a refusal creates nothing, and written after, as the Season link is.
+- `groups.byId`: adds `runningSeriesCount: number`, the Group's Series with no `ended_at` (one `count()`), 0 when the Group is not Verified. The Group menu's Series row shows it as "{n} running".
 - `games.byId`: adds `series: { id, name, emblem, colour, edition } | null` and `canChangeSeries: boolean` (Organizer, not cancelled, carries a Series, Group Verified, score not in). `canChangeSeries` says whether the Game may join a Series; removing needs less (5.5), so `seriesScoreLocked: boolean` (the viewer is an Organizer, the Game has a Series and the score is in) is what locks the Edit game row, and an Organizer of a Game whose Group is no longer Verified can still remove its Series.
 
 No procedure path is renamed.
@@ -319,6 +321,7 @@ No procedure path is renamed.
 
 ```ts
 {
+  groupName: string | null;  // the Series screen's title
   enabled: boolean;          // the Group is Verified
   canManage: boolean;        // enabled and the viewer is a Group approver
   running: Row[];            // those with a next Edition first, soonest first; then by name
@@ -464,18 +467,18 @@ Rules for every screen:
 - `count` draws the pill of `badge-geometry.md`: fill `ink`, digits `paper`, a ring in the surface's colour; on the trailing bottom corner, so it mirrors in Arabic. On the mobile App's focused surface, which is still inverted in light (ADR-0084), the pill takes the ink tone's roles instead: fill `onFocus`, digits and ring `focus`, so it never sinks into the card. Digits are Latin and tabular.
 - A gallery of all 42 badges at every size joins the existing design pages: web `/dashboard/design/series`, mobile `(app)/profile/design/series`, beside the Marks set.
 
-### 8.2 1a, the Group's Series tab
+### 8.2 1a, the Group's Series screen
 
-`screens/1a-group-series-tab.png`
+`screens/1a-group-series-tab.png` drew it as a fourth tab; it is now its own screen.
 
-- A fourth tab, **Series**, after Standing, Games and Members, in each App's existing tab control. Shown only when `groups.byId` says `verified`. `?tab=series` on a Group that is not Verified falls back to Standing.
-- Web: `app/dashboard/groups/[id]/page.tsx`, `components/groups/group-home-chrome.tsx`, `lib/group-home-query.ts`. Mobile: `src/groups/group-home-view.tsx`, `group-home-screen.tsx`. On mobile the four tab buttons must fit at 320 points in both Locales; make the row scroll sideways if they do not.
-- The tab's query (`series.listForGroup`) runs when the tab is first opened.
-- **Series**, with "2 running": one card, a row per running Series: badge (`list`), name, the line from `seriesRowLine`, and on the trailing side "Next" over the date. A row opens the Series page.
-- The note under the card: "A series is a social or a game this group plays again and again. Whoever wins one gets its badge on their profile."
+- **The way in**: a **Series** row in the Group's More menu, right after Edit Group, with the Trophy icon and "{n} running" (`groupMenuSeriesHint`) under it while one runs. On a Verified Group only, to everyone who sees the menu. Web `components/groups/group-home-overflow-menu.tsx` (`groupHomeOverflowItems`), mobile `src/groups/group-menu-sheet.tsx` (`groupMenuItems`). There is no Series tab; a stale `?tab=series` opens Standing.
+- **Routes**: web `/dashboard/groups/[id]/series` (`groupSeriesHref`), `components/series/group-series-page.tsx`. Mobile `(app)/groups/series?groupId=` (`groupSeriesPath`), `app/(app)/groups/series/index.tsx` beside the Series page's `series/[id].tsx`, drawing `src/series/group-series-screen.tsx`.
+- **Header**: back to the Group, "Series" centred in the bar, then the Group's name as the page title (`series.listForGroup` returns `groupName`) with the note under it: "A series is a social or a game this group plays again and again. Whoever wins one gets its badge on their profile."
+- **Running**, with its count: one card, a row per running Series: badge (`list`), name, the line from `seriesRowLine`, and on the trailing side "Next" over the date. A row opens the Series page.
 - **Ended**, with its count: the same rows, the line ending "ended in March" (with the year when it is not this year), the trailing side "Badges stay". Hidden when there are none.
-- **New series**: a full-width Solid button at the end, only when `canManage`.
-- Empty: the note, then "No series yet." A Group approver also sees New series.
+- Under the last card, for a Group approver only: "Open a series to end it."
+- **New series**: a full-width Solid button pinned at the bottom of the screen, only when `canManage`.
+- Empty: "No series yet." under the note. A Group approver also sees New series.
 - Line copy: "Padel social. 11 played, next is edition 12", "Padel game. 31 played", and with no Edition yet "Padel series. Not played yet".
 
 ### 8.3 1b, New series
@@ -489,7 +492,7 @@ Rules for every screen:
 - **Colour**: six chips, each a dot of the colour's `disc` value; same selection and trailing name.
 - A three-row card: "In a social / The top team wins it", "In a game / The winning side wins it", "A draw / Nobody wins that one".
 - **Create series**: Solid, pinned at the bottom, disabled while the name is empty; "Attach it to a game or a social when you create one." under it.
-- On success: back to the Group's Series tab, with the list refreshed. A refusal of the name (`nameRequired`, `nameTooLong`, `nameTaken`) shows under the name field: `series.create` throws it with a `ZodError` cause on the `name` path, so it reaches the form as `zodError.fieldErrors.name`, which each App reads with its `splitTrpcFormError`. Other refusals show as a toast.
+- On success: back to the Group's Series screen, with the list refreshed. A refusal of the name (`nameRequired`, `nameTooLong`, `nameTaken`) shows under the name field: `series.create` throws it with a `ZodError` cause on the `name` path, so it reaches the form as `zodError.fieldErrors.name`, which each App reads with its `splitTrpcFormError`. Other refusals show as a toast.
 - The emblem and colour pickers are radio groups for assistive technology, each chip labelled with its name ("Cup", "Gold").
 
 ### 8.4 2a, Create, last step
@@ -576,7 +579,7 @@ When `series.edition` answers `won`, the Game screen leads with the winners.
   - `no_winner`: "Nobody won".
   - `won`: `seriesWinnersLine`.
 - Empty: "No editions yet. Attach this series when you create a game or a social."
-- **Menu**: "End series", only when `canEnd`. It confirms: "End {name}? Nothing can be attached to it any more. Badges already won stay on profiles." When ending would delete the Series (`endRemoves`: no Game was ever attached, 5.3) the confirmation reads "This series has no editions, so it will be removed." After `deleted`, go back to the Group's Series tab. After `ended`, stay; the page shows the ended figure and the menu is gone.
+- **Menu**: "End series", only when `canEnd`. It confirms: "End {name}? Nothing can be attached to it any more. Badges already won stay on profiles." When ending would delete the Series (`endRemoves`: no Game was ever attached, 5.3) the confirmation reads "This series has no editions, so it will be removed." After `deleted`, go back to the Group's Series screen. After `ended`, stay; the page shows the ended figure and the menu is gone.
 
 ### 8.9 4a, 4b and 4c, the profile
 
@@ -627,7 +630,7 @@ Suggested top-level shape:
 series.noun            series, edition, badge
 series.emblems         cup … ball
 series.colours         gold … teal
-series.tab             title, running(n), ended, note, empty, newSeries, badgesStay, next, row lines
+series.tab             title, running(n), runningTitle, ended, note, empty, newSeries, badgesStay, next, endHint, row lines
 series.create          title, namePlaceholder, nameLabel, nameHint, emblem, colour, previewNote, rules, submit, submitNote
 series.attach          title, none, noneHint, willBe(n), wouldBe(n), note(group), review(name, n), locked, edit phrases
 series.game            partOf(name), rule lines, wonLast(winners), seeSeries, facts label, winners, wonBy, draw, tableNote
@@ -639,7 +642,7 @@ series.errors          7.4
 ```
 
 - Ordinals reuse `tournamentRounds.shareCard.ordinal` in both Locales, as `tournament-americano.ts` does.
-- Existing files gain only: the tab label in `web-group.ts` (`home.tab.series`) and `mobile-group.ts` (`home.tabs.series`), and three changed phrases in `create-game.ts` beside the Season ones ("series added", "series changed", "series removed").
+- Existing files gain only three changed phrases in `create-game.ts` beside the Season ones ("series added", "series changed", "series removed").
 - Bib colour names come from the existing football catalog.
 - The Arabic copy is new. Write it in the register of the existing `ar/` files; it is for the owner to confirm.
 
@@ -655,8 +658,8 @@ series.errors          7.4
 
 | Case | Behaviour |
 | --- | --- |
-| The Group is not Verified | No tab, no picker, no mention. `series.create` and attach refuse with `verifiedOnly` |
-| The Group stops being Verified with Series running | The tab and pickers go. Attached Games keep their Series and are still won. Pages and profiles are unchanged. Verified again: everything returns |
+| The Group is not Verified | No menu row, no picker, no mention. `series.create` and attach refuse with `verifiedOnly` |
+| The Group stops being Verified with Series running | The menu row and pickers go. Attached Games keep their Series and are still won. Pages and profiles are unchanged. Verified again: everything returns |
 | The Group is deleted | Its upcoming Games are cancelled (existing rule), so they are no Editions. Wins stay on profiles with the Group's name. `series.byId` is not found; `canOpenSeries` is false |
 | A Series is ended with an upcoming Game attached | The Game stays an Edition and is won as usual. Edit game can still remove the Series, not add an ended one |
 | The Organizer moves the Game's day | Edition numbers follow the new order. Nothing to confirm |
@@ -709,7 +712,7 @@ Made on the owner's behalf, because the design or the request left them open.
 8. An ended Series keeps the Games already attached to it.
 9. Series wins follow the Marks cabinet's visibility: whoever may open the profile, unless Match history visibility excludes them. No separate switch.
 10. The profile gets no Latest list; Home's Latest row carries the news. No Notification is sent.
-11. The Series tab is the fourth tab of the existing tab control, in its existing order and style.
+11. The Group's Series is its own screen, opened from the Group's More menu; Group home has no Series tab.
 12. On a Played game the result hero stays the one focus and the Series win is a paper card under it; on a Social the winners card is the focus.
 13. "Running since" is the month the Series was created.
 14. "All N winners", "All N editions" expand in place; "All series wins" opens the sheet in its all mode. None is a new page.
@@ -718,7 +721,7 @@ Made on the owner's behalf, because the design or the request left them open.
 
 ## 15. Risks
 
-- **Read cost.** Every Series read computes results from Matches. `loadSeriesEditions` must stay at a fixed number of queries. The heaviest reads are the Group's tab (every Game of every Series of the Group) and a Series page, on the scale of the Standing tab's read today. If one is ever slow, the same pure function can fill a table; nothing else changes.
+- **Read cost.** Every Series read computes results from Matches. `loadSeriesEditions` must stay at a fixed number of queries. The heaviest reads are the Group's Series screen (every Game of every Series of the Group) and a Series page, on the scale of the Standing tab's read today. If one is ever slow, the same pure function can fill a table; nothing else changes.
 - **Six shapes, one rule.** `seriesEditionResult` must agree with what each finished screen already shows. The parity tests against `computePoolTables`, `knockoutChampion` and `americanoTable` are the guard.
 - **The profile in the design is not the profile in the code.** The frames draw a Latest list and a four-coin Marks card that do not exist. The Series card is placed against the real profile.
 - **Create step 4 is three variants on two Apps.** The Series field is one component per App, placed three times.

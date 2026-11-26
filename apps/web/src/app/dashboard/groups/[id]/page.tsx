@@ -41,7 +41,6 @@ import {
   standingViewFromQuery,
 } from "@repo/domain/standing-share";
 import { GroupStandingTab } from "~/components/groups/group-standing-tab";
-import { GroupSeriesTab } from "~/components/series/group-series-tab";
 import { InviteDoorDialog } from "~/components/invites/invite-door-dialog";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent } from "~/components/ui/tabs";
@@ -68,10 +67,7 @@ import {
   groupHomeNextJoinableGame,
   groupHomeOverflowItems,
 } from "@repo/domain/group-home-cta";
-import {
-  groupHomeShownTab,
-  groupHomeTabFromQuery,
-} from "@repo/domain/group-home-tab";
+import { groupHomeTabFromQuery } from "@repo/domain/group-home-tab";
 import {
   ENTITY_IMAGE_ACCEPT,
   entityImageFileError,
@@ -98,6 +94,7 @@ import { type WaitingRequest } from "@repo/domain/waiting-requests";
 import {
   groupLeaveBlockedHint,
   groupMenuRoleLine,
+  groupMenuSeriesHint,
   groupSeasonCount,
 } from "@repo/domain/group-settings";
 import { ratingSettingsSummary } from "@repo/domain/group-rating-settings";
@@ -519,7 +516,6 @@ export default function GroupHomePage({
   }
 
   const data = group.data;
-  const shownTab = groupHomeShownTab(tab, data.verified);
   const groupName = data.name ?? m.invite.kind.group;
   const sharedStanding = standingViewFromQuery(
     { season: query.get("season"), view: query.get("view") },
@@ -554,6 +550,7 @@ export default function GroupHomePage({
     canUnlinkVenue: data.canUnlinkFromVenue,
     canManageSeasons: data.canManageSeasons,
     canEdit: data.canEdit,
+    verified: data.verified,
     canChangeRatingSettings: data.ratingSettings != null,
   });
   const leaveConfirm = groupLeaveConfirm(groupName, locale);
@@ -593,6 +590,7 @@ export default function GroupHomePage({
           ? ratingSettingsSummary(data.ratingSettings, locale)
           : null
       }
+      seriesHint={groupMenuSeriesHint(data.runningSeriesCount, locale)}
       venueName={data.venue?.name ?? null}
       triggerRef={
         which === "mobile" ? mobileMenuTriggerRef : desktopMenuTriggerRef
@@ -655,7 +653,7 @@ export default function GroupHomePage({
         <GroupHomeTopBar name={groupName} overflow={overflowMenu("mobile")} />
       </div> */}
 
-      <Tabs value={shownTab} onValueChange={setTab} className="mt-6 gap-0">
+      <Tabs value={tab} onValueChange={setTab} className="mt-6 gap-0">
         <GroupHomeChrome
           groupId={id}
           name={groupName}
@@ -663,8 +661,7 @@ export default function GroupHomePage({
           sport={data.sport ?? null}
           memberCount={data.standing.memberCount}
           createdAt={data.createdAt}
-          tab={shownTab}
-          showSeries={data.verified}
+          tab={tab}
           canInvite={canManageInvites}
           canCreateGame={canShowCreateGame}
           onInvite={() => setInvitesOpen(true)}
@@ -865,11 +862,6 @@ export default function GroupHomePage({
               />
             </div>
           </TabsContent>
-          {data.verified ? (
-            <TabsContent value="series" forceMount className={TAB_PANEL}>
-              <GroupSeriesTab groupId={id} active={shownTab === "series"} />
-            </TabsContent>
-          ) : null}
         </div>
       </Tabs>
 

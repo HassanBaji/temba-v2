@@ -11,6 +11,7 @@ import {
   PlusIcon,
   SlidersHorizontalIcon,
   Trash2Icon,
+  TrophyIcon,
   UnlinkIcon,
   UserRoundPlusIcon,
   type LucideIcon,
@@ -33,6 +34,7 @@ import {
   groupEditHref,
   groupRatingSettingsHref,
   groupSeasonsHref,
+  groupSeriesHref,
 } from "~/lib/dashboard-paths";
 
 const DESTRUCTIVE: ReadonlySet<GroupHomeOverflowItem> = new Set([
@@ -59,6 +61,7 @@ export function GroupHomeOverflowMenu({
   roleLine,
   leaveBlockedHint,
   ratingSettingsHint,
+  seriesHint,
   venueName,
   triggerRef,
   onCopyGroupUrl,
@@ -77,6 +80,8 @@ export function GroupHomeOverflowMenu({
   leaveBlockedHint: string | null;
   /** The current Rating settings, under their row. */
   ratingSettingsHint: string | null;
+  /** "{n} running" under the Series row, or `null` while none runs. */
+  seriesHint: string | null;
   venueName: string | null;
   triggerRef?: RefObject<HTMLButtonElement | null>;
   onCopyGroupUrl: () => void;
@@ -102,6 +107,13 @@ export function GroupHomeOverflowMenu({
           label: groupMenuLabel("edit", locale),
           icon: PencilIcon,
           href: groupEditHref(groupId),
+        };
+      case "series":
+        return {
+          label: groupMenuLabel("series", locale),
+          hint: seriesHint,
+          icon: TrophyIcon,
+          href: groupSeriesHref(groupId),
         };
       case "create_game":
         return {

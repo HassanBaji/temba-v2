@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  groupSeriesTabModel,
+  groupSeriesScreenModel,
   type GroupSeriesList,
-} from "./group-series-tab-model";
+} from "./group-series-screen-model";
 
 const NOW = new Date("2026-11-05T10:00:00Z");
 
@@ -60,6 +60,7 @@ const ramadanNights = row({
 
 function list(overrides: Partial<GroupSeriesList> = {}): GroupSeriesList {
   return {
+    groupName: "Tuesday Night Padel",
     enabled: true,
     canManage: false,
     running: [],
@@ -68,72 +69,87 @@ function list(overrides: Partial<GroupSeriesList> = {}): GroupSeriesList {
   };
 }
 
-describe("groupSeriesTabModel", () => {
+describe("groupSeriesScreenModel", () => {
   it("lists running Series with the next date and ended ones with Badges stay", () => {
-    const model = groupSeriesTabModel(
+    const model = groupSeriesScreenModel(
       list({ running: [sundaySocial, thursdayLadder], ended: [ramadanNights] }),
       "en",
       NOW,
     );
 
-    expect(model.running?.meta).toBe("2 running");
+    expect(model.groupName).toBe("Tuesday Night Padel");
+    expect(model.running?.meta).toBe("2");
     expect(model.running?.rows).toEqual([
       {
         id: "sunday",
-        href: "/dashboard/series/sunday",
         name: "Sunday Social",
         emblem: "cup",
         colour: "gold",
         line: "Padel social. 11 played, next is edition 12",
         trailing: { kind: "next", label: "Next", date: "Mon 9 Nov" },
+        spoken:
+          "Sunday Social. Padel social. 11 played, next is edition 12. Next. Mon 9 Nov",
       },
       {
         id: "thursday",
-        href: "/dashboard/series/thursday",
         name: "Thursday Ladder",
         emblem: "bolt",
         colour: "blue",
         line: "Padel game. 31 played, next is edition 32",
         trailing: { kind: "next", label: "Next", date: "Thu 12 Nov" },
+        spoken:
+          "Thursday Ladder. Padel game. 31 played, next is edition 32. Next. Thu 12 Nov",
       },
     ]);
     expect(model.ended?.meta).toBe("1");
-    expect(model.ended?.rows[0]?.line).toBe(
-      "Padel social. 8 played, ended in March",
-    );
-    expect(model.ended?.rows[0]?.trailing).toEqual({
-      kind: "ended",
-      label: "Badges stay",
+    expect(model.ended?.rows[0]).toMatchObject({
+      line: "Padel social. 8 played, ended in March",
+      trailing: { kind: "ended", label: "Badges stay" },
+      spoken:
+        "Ramadan Nights. Padel social. 8 played, ended in March. Badges stay",
     });
     expect(model.empty).toBeNull();
   });
 
   it("reads a new Series as not played yet, with nothing on the trailing side", () => {
-    const model = groupSeriesTabModel(
+    const model = groupSeriesScreenModel(
       list({ running: [row({ id: "new", name: "Sunday Social" })] }),
       "en",
       NOW,
     );
 
-    expect(model.running?.meta).toBe("1 running");
-    expect(model.running?.rows[0]?.line).toBe("Padel series. Not played yet");
-    expect(model.running?.rows[0]?.trailing).toBeNull();
+    expect(model.running?.meta).toBe("1");
+    expect(model.running?.rows[0]).toMatchObject({
+      line: "Padel series. Not played yet",
+      trailing: null,
+      spoken: "Sunday Social. Padel series. Not played yet",
+    });
     expect(model.ended).toBeNull();
   });
 
   it("is empty with no Series, and offers New series only to a Group approver", () => {
-    const member = groupSeriesTabModel(list(), "en", NOW);
+    const member = groupSeriesScreenModel(list(), "en", NOW);
     expect(member.running).toBeNull();
     expect(member.ended).toBeNull();
     expect(member.empty).toBe("No series yet.");
     expect(member.canCreate).toBe(false);
 
-    const approver = groupSeriesTabModel(list({ canManage: true }), "en", NOW);
+    const approver = groupSeriesScreenModel(
+      list({ canManage: true }),
+      "en",
+      NOW,
+    );
     expect(approver.canCreate).toBe(true);
   });
 
+  it("names a Group without a name", () => {
+    expect(
+      groupSeriesScreenModel(list({ groupName: null }), "en", NOW).groupName,
+    ).toBe("Untitled Group");
+  });
+
   it("is not empty when only ended Series remain", () => {
-    const model = groupSeriesTabModel(
+    const model = groupSeriesScreenModel(
       list({ ended: [ramadanNights] }),
       "en",
       NOW,
@@ -143,12 +159,12 @@ describe("groupSeriesTabModel", () => {
   });
 
   it("writes Arabic", () => {
-    const model = groupSeriesTabModel(
+    const model = groupSeriesScreenModel(
       list({ running: [sundaySocial], ended: [ramadanNights] }),
       "ar",
       NOW,
     );
-    expect(model.running?.meta).toBe("سلسلة جارية");
+    expect(model.running?.meta).toBe("1");
     expect(model.ended?.rows[0]?.trailing).toEqual({
       kind: "ended",
       label: "الشارات تبقى",

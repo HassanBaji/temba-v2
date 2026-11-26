@@ -41,7 +41,6 @@ export function GroupHomeChrome({
   memberCount,
   createdAt,
   tab,
-  showSeries,
   canInvite,
   canCreateGame,
   onInvite,
@@ -55,8 +54,6 @@ export function GroupHomeChrome({
   memberCount: number | null;
   createdAt: Date | string | null;
   tab: GroupHomeTab;
-  /** Only a Verified Group has the Series tab. */
-  showSeries: boolean;
   canInvite: boolean;
   canCreateGame: boolean;
   onInvite: () => void;
@@ -130,9 +127,6 @@ export function GroupHomeChrome({
         </TabsTrigger>
         <TabsTrigger value="games">{m.webGroup.home.tab.games}</TabsTrigger>
         <TabsTrigger value="members">{m.webGroup.home.tab.members}</TabsTrigger>
-        {showSeries ? (
-          <TabsTrigger value="series">{m.webGroup.home.tab.series}</TabsTrigger>
-        ) : null}
       </TabsList>
     </div>
   );

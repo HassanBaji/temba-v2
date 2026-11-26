@@ -22,12 +22,15 @@ type HeaderNav =
   | { nav: "back" | "close"; fallback: Href; onNav?: () => void };
 
 export type ScreenHeaderProps = HeaderNav & {
+  /** A short name centred in the nav row, above a `title` that names the subject. */
+  barTitle?: string;
   title?: string;
   actions?: React.ReactNode;
   children?: React.ReactNode;
 };
 
 export function ScreenHeader({
+  barTitle,
   title,
   nav,
   fallback,
@@ -84,6 +87,24 @@ export function ScreenHeader({
         }}
       >
         <NavButton nav={nav} fallback={fallback} onNav={onNav} />
+        {barTitle ? (
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              left: NAV_BUTTON + ACTION_GAP,
+              right: NAV_BUTTON + ACTION_GAP,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text weight="semibold" numberOfLines={1}>
+              {barTitle}
+            </Text>
+          </View>
+        ) : null}
         {actionRow}
       </View>
       {heading}
