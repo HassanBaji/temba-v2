@@ -68,6 +68,7 @@ const ALLOWED_UNINDEXED: Record<string, string> = {
   "match_result_confirmations.user_id": USER_OWN,
   "game_team_players.side_set_by": USER_ACTOR,
   "match_goals.user_id": USER_OWN,
+  "match_events.user_id": USER_OWN,
   "marks.giver_user_id": USER_OWN,
   "game_mvp_votes.voter_user_id": USER_OWN,
   "game_mvp_votes.candidate_user_id": USER_OWN,

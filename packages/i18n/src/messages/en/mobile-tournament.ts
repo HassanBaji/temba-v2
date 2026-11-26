@@ -227,8 +227,9 @@ export const mobileTournament = {
     closedLine:
       "The score opens at kick-off for players on the teams and the organizer, until both sides confirm it.",
     oneFromConfirms: (team: string) =>
-      `One player from ${team} confirms the score.`,
-    oneFromEachConfirms: "One player from each side confirms the score.",
+      `One player from ${team} confirms the score, the log and the cards.`,
+    oneFromEachConfirms:
+      "One player from each side confirms the score, the log and the cards.",
     saveScore: "Save score",
     editScore: "Edit score",
     scoreMissing: "Score missing",

@@ -7,6 +7,7 @@ import {
   type BoardPlayer,
 } from "@repo/domain/football-board";
 import { footballResultLine } from "@repo/domain/football-lineup";
+import { cardCounts, type MatchLogLine } from "@repo/domain/football-match-log";
 import Link from "next/link";
 
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -14,6 +15,12 @@ import { Button } from "~/components/ui/button";
 import { Hatch } from "~/components/ui/hatch";
 
 import { BibChip } from "./football-bibs";
+import {
+  CardsValue,
+  LogSummaryRows,
+  MatchTimeline,
+  sentOffValue,
+} from "./football-match-timeline";
 
 function SideScore({
   bib,
@@ -62,6 +69,7 @@ export function FootballScoreCard({
     confirmed: { slot1: boolean; slot2: boolean };
     organizerSides?: { slot: 1 | 2; confirmed: boolean }[];
     enteredByName: string | null;
+    log?: MatchLogLine[];
   } | null;
   canEnterScore: boolean;
   canConfirm: boolean;
@@ -83,6 +91,19 @@ export function FootballScoreCard({
   const scorers = players
     .filter((player) => player.goals > 0)
     .sort((a, b) => b.goals - a.goals);
+  const log = match?.log ?? [];
+  const t = m.football.matchLog;
+  const counts = cardCounts(log);
+  const sentOff = sentOffValue(log, players, locale, t.confirm.sentOffAt);
+  const logRows = [
+    match?.enteredByName
+      ? { label: t.confirm.enteredBy, value: match.enteredByName }
+      : null,
+    counts.warnings + counts.redCards > 0
+      ? { label: t.confirm.cards, value: <CardsValue lines={log} /> }
+      : null,
+    sentOff ? { label: t.confirm.sentOff, value: sentOff } : null,
+  ].filter((row) => row != null);
 
   return (
     <section
@@ -173,7 +194,21 @@ export function FootballScoreCard({
               </div>
             ) : null}
           </div>
-          {scorers.length > 0 ? (
+          {log.length > 0 ? (
+            <div className="border-rule space-y-4 border-t pb-5">
+              <div>
+                <h3 className="text-muted-foreground text-meta px-5 pb-2 pt-5">
+                  {t.title}
+                </h3>
+                <MatchTimeline lines={log} players={players} names={names} />
+              </div>
+              {logRows.length > 0 ? (
+                <div className="px-5">
+                  <LogSummaryRows rows={logRows} />
+                </div>
+              ) : null}
+            </div>
+          ) : scorers.length > 0 ? (
             <div className="border-rule space-y-2 border-t p-5">
               <h3 className="text-muted-foreground text-meta">
                 {m.webTournament.footballScore.scorers}

@@ -1,11 +1,12 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
   MatchStatusEnum,
   gameTeamPlayers,
   games,
+  matchEvents,
   matchGoals,
   matchSets,
 } from "@repo/db";
@@ -20,6 +21,18 @@ import {
   footballBibName,
   footballScorersProblem,
 } from "@repo/domain/football-lineup";
+import {
+  MATCH_LOG_KINDS,
+  MATCH_LOG_LINES_MAX,
+  MATCH_LOG_MINUTE_MAX,
+  MATCH_LOG_MINUTE_MIN,
+  RED_CARD_REASONS,
+  logScore,
+  logScorers,
+  matchLogProblem,
+  sameLog,
+  type MatchLogPayloadLine,
+} from "@repo/domain/football-match-log";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
@@ -89,8 +102,39 @@ type ScoreArgs = {
   slot1Goals: number;
   slot2Goals: number;
   scorers: { userId: string; goals: number }[];
+  /**
+   * The Match log, oldest first. Without it the stored log is kept while the
+   * Score and scorers stay the same, and dropped once they change.
+   */
+  log?: MatchLogPayloadLine[];
   locale?: Locale;
 };
+
+async function storedLog(
+  database: DbClient,
+  matchId: string,
+): Promise<MatchLogPayloadLine[]> {
+  const rows = await database.query.matchEvents.findMany({
+    where: eq(matchEvents.matchId, matchId),
+    columns: {
+      kind: true,
+      sideIndex: true,
+      userId: true,
+      minute: true,
+      loggedAt: true,
+      reason: true,
+    },
+    orderBy: asc(matchEvents.position),
+  });
+  return rows.map((row) => ({
+    kind: row.kind,
+    side: row.sideIndex === 1 ? 1 : 2,
+    userId: row.userId,
+    minute: row.minute,
+    loggedAt: row.loggedAt,
+    reason: row.reason,
+  }));
+}
 
 async function checkAndWriteScore(
   database: DbClient,
@@ -164,6 +208,27 @@ async function checkAndWriteScore(
   if (scorersProblem) {
     refuse("BAD_REQUEST", scorersProblem);
   }
+  if (args.log) {
+    const sideOf = (userId: string) =>
+      slot1Users.has(userId) ? 1 : slot2Users.has(userId) ? 2 : null;
+    const logProblem = matchLogProblem(args.log, sideOf, locale);
+    if (logProblem) {
+      refuse("BAD_REQUEST", logProblem);
+    }
+    const logged = logScore(args.log);
+    if (logged.slot1 !== args.slot1Goals || logged.slot2 !== args.slot2Goals) {
+      refuse(
+        "BAD_REQUEST",
+        messagesFor(locale).football.matchLog.errors.logMatchesScore,
+      );
+    }
+    if (!sameScorers(logScorers(args.log), args.scorers)) {
+      refuse(
+        "BAD_REQUEST",
+        messagesFor(locale).football.matchLog.errors.logMatchesScorers,
+      );
+    }
+  }
 
   const existing = await footballScoreSet(database, match.id);
   const scoreChanged =
@@ -177,6 +242,10 @@ async function checkAndWriteScore(
     }),
     args.scorers,
   );
+  // The log and its cards are confirmed with the Score.
+  const logBefore = await storedLog(database, match.id);
+  const nextLog = args.log ?? (scoreChanged || scorersChanged ? [] : logBefore);
+  const logChanged = !sameLog(logBefore, nextLog);
 
   await database.transaction(async (tx) => {
     if (existing) {
@@ -207,7 +276,24 @@ async function checkAndWriteScore(
         })),
       );
     }
-    const changed = scoreChanged || scorersChanged;
+    if (logChanged) {
+      await tx.delete(matchEvents).where(eq(matchEvents.matchId, match.id));
+      if (nextLog.length > 0) {
+        await tx.insert(matchEvents).values(
+          nextLog.map((line, position) => ({
+            matchId: match.id,
+            kind: line.kind,
+            sideIndex: line.side,
+            userId: line.userId,
+            minute: line.minute,
+            loggedAt: line.loggedAt,
+            reason: line.reason,
+            position,
+          })),
+        );
+      }
+    }
+    const changed = scoreChanged || scorersChanged || logChanged;
     if (changed) {
       await clearMatchResultConfirmationsExceptUser(tx, match.id, args.userId);
     }
@@ -242,10 +328,11 @@ async function checkAndWriteScore(
 
 /**
  * Saves a football Match's Score (stored as its one Set, goals as games won)
- * and, optionally, who scored. A player on either side or an Organizer may
+ * and, optionally, who scored and the Match log of goals, own goals and
+ * cards, which must add up to the Score and its scorers. A player on either side or an Organizer may
  * enter it once the Game has kicked off. The player who enters a Score
- * confirms it for their side; a changed Score or a changed list of who
- * scored asks the other side again. On a Public Game that also restarts the
+ * confirms it for their side; a changed Score, list of who scored or Match
+ * log asks the other side again. On a Public Game that also restarts the
  * other side's 24 hours to confirm.
  * On a Challenge Game the Game row is locked first, as `nameChallengeSquad`
  * locks it, so a squad save and a first Score cannot both pass their checks.
@@ -296,6 +383,23 @@ export const saveFootballScoreProcedure = protectedProcedure
           }),
         )
         .max(40),
+      log: z
+        .array(
+          z.object({
+            kind: z.enum(MATCH_LOG_KINDS),
+            side: z.union([z.literal(1), z.literal(2)]),
+            userId: z.string().uuid().nullable(),
+            minute: z
+              .number()
+              .int()
+              .min(MATCH_LOG_MINUTE_MIN)
+              .max(MATCH_LOG_MINUTE_MAX),
+            loggedAt: z.date(),
+            reason: z.enum(RED_CARD_REASONS).nullable(),
+          }),
+        )
+        .max(MATCH_LOG_LINES_MAX)
+        .optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {

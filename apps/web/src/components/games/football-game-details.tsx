@@ -44,6 +44,7 @@ import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { FootballPlayerDialog } from "~/components/games/football-player-dialog";
 import { PoolSections, SeatBar } from "~/components/games/football-pool-grid";
+import { FootballMatchLogCard } from "~/components/games/football-match-timeline";
 import { FootballScoreCard } from "~/components/games/football-score-card";
 import { TeamColumns } from "~/components/games/football-team-columns";
 import { PlayedFootballBoard } from "~/components/games/played/played-football-board";
@@ -897,6 +898,14 @@ export function FootballGameDetails({
             }
             task={
               <>
+                {teams && names && (board.data?.match?.log.length ?? 0) > 0 ? (
+                  <FootballMatchLogCard
+                    lines={board.data?.match?.log ?? []}
+                    players={players}
+                    names={names}
+                    confirmedByName={board.data?.match?.confirmedByName ?? null}
+                  />
+                ) : null}
                 <GamePaymentsSection
                   gameId={gameId}
                   tracked={gamePaymentsTracked(game)}

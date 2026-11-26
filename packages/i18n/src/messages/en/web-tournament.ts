@@ -193,7 +193,8 @@ export const webTournament = {
     selectNameHint: "select a name to add a goal",
     saveScore: "Save score",
     otherConfirms: (team: string) =>
-      `One player from ${team} confirms the score.`,
-    eachSideConfirms: "One player from each side confirms the score.",
+      `One player from ${team} confirms the score, the log and the cards.`,
+    eachSideConfirms:
+      "One player from each side confirms the score, the log and the cards.",
   },
 };

@@ -15,6 +15,7 @@ import {
   MatchStatusEnum,
   matches,
   matchDisputes,
+  matchEvents as matchLogLines,
   matchGoals,
   matchResultConfirmations,
   matchSets,
@@ -470,6 +471,9 @@ export async function reportWrongScore(
         .set({ slot1GamesWon: null, slot2GamesWon: null, updatedAt: now })
         .where(eq(matchSets.matchId, locked.id));
       await tx.delete(matchGoals).where(eq(matchGoals.matchId, locked.id));
+      await tx
+        .delete(matchLogLines)
+        .where(eq(matchLogLines.matchId, locked.id));
     }
     await tx
       .update(matches)

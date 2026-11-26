@@ -236,7 +236,8 @@ export const webTournament = {
     scorersOptional: "المسجّلون، اختياري",
     selectNameHint: "اختر اسمًا لإضافة هدف",
     saveScore: "حفظ النتيجة",
-    otherConfirms: (team: string) => `لاعب واحد من ${team} يؤكّد النتيجة.`,
-    eachSideConfirms: "لاعب واحد من كل فريق يؤكّد النتيجة.",
+    otherConfirms: (team: string) =>
+      `لاعب واحد من ${team} يؤكّد النتيجة والسجل والبطاقات.`,
+    eachSideConfirms: "لاعب واحد من كل فريق يؤكّد النتيجة والسجل والبطاقات.",
   },
 } satisfies typeof source;

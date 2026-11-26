@@ -772,6 +772,11 @@ export function FootballGameDetails({
           sides={playedModel.board}
           hasWinner={playedModel.result.hasWinner}
           scorers={playedModel.scorers}
+          log={{
+            lines: board.data?.match?.log ?? [],
+            players,
+            confirmedByName: board.data?.match?.confirmedByName ?? null,
+          }}
         />
       }
       heroFooter={

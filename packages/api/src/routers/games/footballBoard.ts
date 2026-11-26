@@ -7,6 +7,7 @@ import {
   gamePlayers,
   gameTeamPlayers,
   groups,
+  matchEvents,
   matchGoals,
   matchResultConfirmations,
   ratings,
@@ -18,6 +19,7 @@ import {
   type FootballBalanceOn,
   type FootballBib,
 } from "@repo/domain/football-lineup";
+import { type MatchLogLine } from "@repo/domain/football-match-log";
 import { ovrBalanceStrength, wholeOvrFromMu } from "@repo/domain/football-ovr";
 import { groupHasTier } from "@repo/domain/game-rating-scope";
 import { isProvisional } from "@repo/domain/level";
@@ -184,7 +186,8 @@ async function loadBoardTiers(
 /**
  * Everything the football Game screens read beyond `games.byId`: the roster
  * with each player's role, position, Level and OVR, Group Tier and team, the
- * two teams and their bibs, the Score with its scorers, and what the viewer
+ * two teams and their bibs, the Score with its scorers and Match log (oldest
+ * first), and what the viewer
  * may do next. Make teams balances on Tier points in a tier Group and on OVR
  * on any other Game. `teams` is the published teams only, with each side's
  * Side captain; the Draft line-up is `draft`, for the Game's Organizers and
@@ -308,6 +311,30 @@ export async function footballBoard(
       })
     : [];
   const goalsByUser = new Map(goals.map((row) => [row.userId, row.goals]));
+  const logRows = match
+    ? await database.query.matchEvents.findMany({
+        where: eq(matchEvents.matchId, match.id),
+        columns: {
+          id: true,
+          kind: true,
+          sideIndex: true,
+          userId: true,
+          minute: true,
+          loggedAt: true,
+          reason: true,
+        },
+        orderBy: asc(matchEvents.position),
+      })
+    : [];
+  const log: MatchLogLine[] = logRows.map((row) => ({
+    id: row.id,
+    kind: row.kind,
+    side: row.sideIndex === 1 ? 1 : 2,
+    userId: row.userId,
+    minute: row.minute,
+    loggedAt: row.loggedAt,
+    reason: row.reason,
+  }));
   const confirmations = match
     ? await database.query.matchResultConfirmations.findMany({
         where: eq(matchResultConfirmations.matchId, match.id),
@@ -437,6 +464,8 @@ export async function footballBoard(
           confirmed: slotsConfirmed,
           organizerSides,
           enteredByName: confirmations[0]?.user.name ?? null,
+          confirmedByName: confirmations[1]?.user.name ?? null,
+          log,
         }
       : null,
     viewer: {

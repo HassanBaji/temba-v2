@@ -430,6 +430,122 @@ export const football = {
       body: "Only the organizers and the captains can share a draft, and only until the teams are published.",
     },
   },
+  matchLog: {
+    whatHappened: "What happened",
+    modes: {
+      goal: "Goal",
+      ownGoal: "Own goal",
+      warning: "Warning",
+      redCard: "Red card",
+    },
+    hints: {
+      goal: "tap a name to add a goal",
+      ownGoal: "tap who put it in their own net",
+      warning: "tap who gets a warning",
+      redCard: "tap who is sent off",
+    },
+    entryNote:
+      "Use plus on a side when nobody saw who scored. Goals count toward player form, not rating. Skip all of this if nobody kept track.",
+    title: "Match log",
+    lineCount: (n: number) =>
+      plural("en", n, {
+        one: "1 line, newest first",
+        other: "{n} lines, newest first",
+      }),
+    empty: "Nothing logged yet",
+    logNote:
+      "Each line keeps the time it was tapped. Remove any line with the cross; the score follows. Tap a line to change it.",
+    playerOfTeam: (name: string, team: string) => `${name}, ${team}`,
+    scorerUnknown: "Scorer not known",
+    playerUnknown: "Player not known",
+    addScorer: "Add scorer",
+    undo: "Undo",
+    minute: (minute: number) => `${minute}′`,
+    minuteSpoken: (minute: number) => `minute ${minute}`,
+    sub: {
+      goal: (team: string) => `Goal, ${team}`,
+      ownGoal: (team: string) => `Own goal, counts for ${team}`,
+      warning: (team: string) => `Warning, ${team}`,
+      redCard: (team: string) => `Red card, ${team}`,
+      redCardWhy: (team: string, why: string) => `Red card, ${team}. ${why}`,
+    },
+    kind: {
+      goal: "Goal",
+      ownGoal: "Own goal",
+      warning: "Warning",
+      redCard: "Red card",
+    },
+    ownGoalTag: "own goal",
+    reasons: {
+      second_warning: "Second warning",
+      serious_foul: "Serious foul",
+      violent_conduct: "Violent conduct",
+      dissent: "Dissent",
+      other: "Other",
+    },
+    removed: {
+      goal: (name: string) => `Goal by ${name} removed`,
+      ownGoal: (name: string) => `Own goal by ${name} removed`,
+      warning: (name: string) => `Warning for ${name} removed`,
+      redCard: (name: string) => `Red card for ${name} removed`,
+      unknownGoal: (team: string) => `Goal for ${team} removed`,
+    },
+    removeLine: (what: string) => `Remove: ${what}`,
+    editLine: (what: string) => `Change: ${what}`,
+    redSheet: {
+      title: "Red card",
+      why: "Why, optional",
+      note: "The player is marked as sent off for this game. It shows on the game for everyone once the score is confirmed.",
+      give: "Give red card",
+    },
+    scorerSheet: {
+      title: "Who scored",
+      what: (team: string, minute: number, clock: string) =>
+        `Goal for ${team}, ${minute}′, ${clock}`,
+      ownGoalBy: (team: string) => `Own goal by ${team}`,
+      note: "The line keeps its place in the log. Only the scorer or the minute changes.",
+    },
+    editSheet: {
+      title: "Change the line",
+      who: "Who",
+      minuteLabel: "Minute of the game",
+      earlier: "One minute earlier",
+      later: "One minute later",
+      done: "Done",
+      remove: "Remove line",
+    },
+    cancel: "Cancel",
+    chip: {
+      goals: (n: number) =>
+        plural("en", n, { one: "1 goal", other: "{n} goals" }),
+      warned: "warned",
+      sentOff: "sent off",
+    },
+    confirm: {
+      enteredBy: "Entered by",
+      cards: "Cards",
+      sentOff: "Sent off",
+      sentOffAt: (name: string, minute: number) => `${name}, ${minute}′`,
+      scorers: "Scorers",
+      ownGoals: "Own goal",
+      confirmedBy: "Confirmed by",
+      warningsSpoken: (n: number) =>
+        plural("en", n, { one: "1 warning", other: "{n} warnings" }),
+      redCardsSpoken: (n: number) =>
+        plural("en", n, { one: "1 red card", other: "{n} red cards" }),
+      sidesNote: (team1: string, team2: string) =>
+        `${team1} events on the left, ${team2} on the right. An own goal sits on the side it counted for.`,
+    },
+    errors: {
+      lineSide: "A line in the match log is on the wrong team",
+      linePlayer: "A player in the match log is not on the teams",
+      linePlayerNeeded: "Name the player for every card and own goal",
+      reasonOnRedOnly: "Only a red card has a reason",
+      sentOffOnce: "A player can be sent off once",
+      logMatchesScore: "The match log must add up to the score",
+      logMatchesScorers: "The match log must name the same scorers",
+    },
+  },
   errors: {
     notFootball: "Only a football Game has teams and a Score",
     roleOnFootball: "Only a football Game takes a role and position",

@@ -960,6 +960,13 @@
       "when": 1795612081018,
       "tag": "0136_football_draft_line_up",
       "breakpoints": true
+    },
+    {
+      "idx": 137,
+      "version": "7",
+      "when": 1795677557069,
+      "tag": "0137_football_match_log",
+      "breakpoints": true
     }
   ]
 }

@@ -259,8 +259,9 @@ export const mobileTournament = {
     closed: "تسجيل النتيجة مغلق",
     closedLine:
       "يُفتح تسجيل النتيجة عند البداية للاعبي الفريقين والمنظّم، حتى يؤكدها الطرفان.",
-    oneFromConfirms: (team: string) => `لاعب واحد من ${team} يؤكد النتيجة.`,
-    oneFromEachConfirms: "لاعب واحد من كل طرف يؤكد النتيجة.",
+    oneFromConfirms: (team: string) =>
+      `لاعب واحد من ${team} يؤكد النتيجة والسجل والبطاقات.`,
+    oneFromEachConfirms: "لاعب واحد من كل طرف يؤكد النتيجة والسجل والبطاقات.",
     saveScore: "حفظ النتيجة",
     editScore: "تعديل النتيجة",
     scoreMissing: "النتيجة ناقصة",
