@@ -28,7 +28,10 @@ import { OpenSpotDialog } from "~/components/games/open-spot-dialog";
 import { FootballGameDetails } from "~/components/games/football-game-details";
 import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
-import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
+import {
+  FriendlyGameCtaBar,
+  ScoreReviewBar,
+} from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
 import { ChallengeDetailsBlock } from "~/components/games/challenge-details-block";
 import { ChallengeTag } from "~/components/games/challenge-tag";
@@ -54,6 +57,11 @@ import {
 } from "~/components/games/game-rating-impact-block";
 import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
+import {
+  useScoreReview,
+  type ScoreSetsToSave,
+} from "~/components/games/use-score-review";
+import type { ScoreChangeReason } from "@repo/domain/score-review";
 import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { TournamentHome } from "~/components/games/tournament-home";
 import {
@@ -570,6 +578,17 @@ export default function GameHomePage({
     },
   });
 
+  const saveScore = api.games.saveScore.useMutation({
+    onSuccess: async () => {
+      toast.success(g.toast.setSaved);
+      await refreshGame();
+      await refreshRatings();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
   const completeMatch = api.games.completeMatch.useMutation({
     onSuccess: async () => {
       toast.success(g.toast.matchCompleted);
@@ -800,6 +819,33 @@ export default function GameHomePage({
     tab,
     usesFriendlyChrome,
   ]);
+
+  const reviewMatchId = usesFriendlyChrome ? data?.matches[0]?.id : undefined;
+  const saveScoreSets = (
+    sets: ScoreSetsToSave,
+    reason: ScoreChangeReason | null = null,
+  ) =>
+    reviewMatchId
+      ? saveScore
+          .mutateAsync({
+            gameId: id,
+            matchId: reviewMatchId,
+            sets,
+            reason: reason ?? undefined,
+          })
+          .then(
+            () => true,
+            () => false,
+          )
+      : Promise.resolve(false);
+  const scoreReview = useScoreReview({
+    game: usesFriendlyChrome && data ? data : null,
+    pending: saveScore.isPending || confirmMatchResult.isPending,
+    onConfirm: () =>
+      reviewMatchId &&
+      confirmMatchResult.mutate({ gameId: id, matchId: reviewMatchId }),
+    onSend: saveScoreSets,
+  });
 
   if (isNotFoundError(game.error)) {
     notFound();
@@ -1404,7 +1450,17 @@ export default function GameHomePage({
             <GameTvCardSlot />
           )}
 
-          {usesFriendlyChrome && ctaFamily.kind !== "none" && !playedMatch ? (
+          {usesFriendlyChrome && scoreReview.bar ? (
+            <div className="max-lg:contents">
+              <ScoreReviewBar
+                bar={scoreReview.bar}
+                pending={scoreReview.pending}
+                onAction={scoreReview.onAction}
+              />
+            </div>
+          ) : usesFriendlyChrome &&
+            ctaFamily.kind !== "none" &&
+            !playedMatch ? (
             <div className="max-lg:contents">
               <FriendlyGameCtaBar
                 family={ctaFamily}
@@ -1549,18 +1605,11 @@ export default function GameHomePage({
                       false
                     }
                     courtFull={vacantSeatCount === 0}
-                    scorePending={scoreSet.isPending}
+                    scorePending={saveScore.isPending}
                     confirmPending={confirmMatchResult.isPending}
                     stampPending={stampMatch.isPending}
-                    onScoreSet={(input) =>
-                      scoreSet.mutateAsync({
-                        gameId: id,
-                        matchId: firstMatch.id,
-                        setId: input.setId,
-                        slot1GamesWon: input.slot1GamesWon,
-                        slot2GamesWon: input.slot2GamesWon,
-                      })
-                    }
+                    review={scoreReview}
+                    onSaveSets={(sets) => void saveScoreSets(sets)}
                     onConfirm={() =>
                       confirmMatchResult.mutate({
                         gameId: id,

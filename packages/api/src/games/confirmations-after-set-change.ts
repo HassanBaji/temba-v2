@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import { matchSets } from "@repo/db";
+import { matchScoreChanges, matchSets } from "@repo/db";
 
 import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { matchOutcome } from "@repo/domain/match-outcome";
@@ -42,6 +42,17 @@ export async function askOtherSideToConfirm(
     return;
   }
   await enqueueAt(tx, confirmWindowJob(args.match.id), closesAt);
+  await notifyOtherSideOfScore(tx, args);
+}
+
+/**
+ * Tells the account holders of the side that did not enter the score that
+ * it waits on them. An Organizer who is not seated entered it for both.
+ */
+export async function notifyOtherSideOfScore(
+  tx: Tx,
+  args: { game: GameRow; match: MatchRow; userId: string },
+) {
   const sides = await matchSideSeats(tx, args.match);
   const enteringSide = sides.find((side) => side.userIds.includes(args.userId));
   await notify(tx, {
@@ -81,14 +92,27 @@ export async function keepPublicGameConfirmation(
 }
 
 /**
+ * The note of what a changed score replaced describes the score as it
+ * stands (ADR-0115), so it goes with that score.
+ */
+export async function clearMatchScoreChange(tx: Tx, matchId: string) {
+  await tx
+    .delete(matchScoreChanges)
+    .where(eq(matchScoreChanges.matchId, matchId));
+}
+
+/**
  * ADR-0011: the User who changes a Match's Sets into a result is confirmed
  * automatically, and every other confirmation goes once the score changed, so
  * a changed score needs agreeing again rather than standing on stale ones. A
  * level Knockout Match, or one with no result left, has nothing to confirm.
- * On a Public Game a changed score restarts the other side's 24 hours, and
- * saving the same score again does not move them: it is an agreement with
- * the score, so after the 24 hours it lets the score stand without counting
- * (ADR-0071).
+ * A Set saved with the games it already had confirms nothing: the Apps save
+ * a score one Set at a time, so an unchanged first Set from the other side
+ * would complete the Match before their corrected Set arrived (ADR-0114).
+ * A Public Game is the exception: a changed score restarts the other side's
+ * 24 hours, and saving the same score again does not move them: it is an
+ * agreement with the score, so after the 24 hours it lets the score stand
+ * without counting (ADR-0071).
  */
 export async function settleConfirmationsAfterSetChange(
   tx: Tx,
@@ -103,6 +127,9 @@ export async function settleConfirmationsAfterSetChange(
     where: eq(matchSets.matchId, args.match.id),
     columns: { slot1GamesWon: true, slot2GamesWon: true },
   });
+  if (args.scoreChanged) {
+    await clearMatchScoreChange(tx, args.match.id);
+  }
   const outcome = matchOutcome(sets);
   if (
     outcome.result === "none" ||
@@ -112,6 +139,9 @@ export async function settleConfirmationsAfterSetChange(
     if (isPublicGame(args.game)) {
       await removeJob(tx, confirmWindowJobKey(args.match.id));
     }
+    return;
+  }
+  if (!args.scoreChanged && !isPublicGame(args.game)) {
     return;
   }
   if (args.scoreChanged) {

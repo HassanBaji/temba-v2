@@ -8,7 +8,7 @@ import { MatchStatusEnum, matchSets } from "@repo/db";
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
-import { requireGame, type GameRow } from "#src/games/access";
+import { requireGame } from "#src/games/access";
 import { keepPublicGameConfirmation } from "#src/games/confirmations-after-set-change";
 import { confirmsAsOrganizer } from "#src/games/confirms-as-organizer";
 import {
@@ -19,9 +19,7 @@ import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import { messagesFor } from "@repo/i18n/messages";
 import {
-  confirmsBySide,
   keepMatchResultConfirmation,
-  matchResultConfirmedUserIds,
   matchResultFullyConfirmed,
   matchSideSeats,
   matchSlotsActedFor,
@@ -40,7 +38,7 @@ import { type MatchRow } from "#src/games/utils";
 type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
- * On a Match agreed by one player from each side, a side that already agreed
+ * A Match is agreed by one player from each side, so a side that already agreed
  * has nothing to add: another tap from it must not move the moment its score
  * stands from (ADR-0062). The User's side is the one they are seated on or,
  * on a football Challenge Game they are not named to, each side whose Team
@@ -48,14 +46,10 @@ type DbClient = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
  */
 async function sideAlreadyAgreed(
   database: DbClient,
-  game: GameRow,
   match: MatchRow,
   userId: string,
   actedFor: readonly MatchSlot[],
 ) {
-  if (!confirmsBySide(game)) {
-    return false;
-  }
   const seated = seatedSlot(await matchSideSeats(database, match), userId);
   const slots = seated == null ? actedFor : [seated];
   if (slots.length === 0) {
@@ -67,8 +61,8 @@ async function sideAlreadyAgreed(
 
 /**
  * A User's confirmation that a Match's entered Sets are correct (ADR-0011).
- * A seated User confirms for themselves, and the Match completes once the
- * result is agreed. An Organizer's confirmation is final: it completes the
+ * A seated User confirms for their side, and the Match completes once one
+ * player from each side has agreed (ADR-0114). An Organizer's confirmation is final: it completes the
  * Match at once, without waiting on the players (ADR-0044); the players of a
  * padel Challenge Game organize it but confirm as players, and on a football
  * Challenge Game that counts for Temba Level whoever acts for a Team
@@ -81,8 +75,8 @@ async function sideAlreadyAgreed(
  * clients that still name the side an Organizer confirms for; it is refused
  * from anyone else. The Match must already have a result and must not be
  * cancelled. Idempotent per Match+User: a repeat changes nothing, and a
- * repeat after the Match completed succeeds when the caller's confirmation
- * or Organizer's word already stands.
+ * tap after the Match completed succeeds when the caller's side already
+ * agreed or the caller is an Organizer.
  */
 export async function confirmMatchResult(
   database: DbClient,
@@ -120,8 +114,11 @@ export async function confirmMatchResult(
     : await matchSlotsActedFor(database, match, args.userId);
   const confirmsForSide = seated || actedFor.length > 0;
   if (match.status === MatchStatusEnum.COMPLETED) {
-    const confirmed = await matchResultConfirmedUserIds(database, match.id);
-    if (organizer || (confirmsForSide && confirmed.includes(args.userId))) {
+    if (
+      organizer ||
+      (confirmsForSide &&
+        (await sideAlreadyAgreed(database, match, args.userId, actedFor)))
+    ) {
       return { ok: true as const };
     }
     throw new TRPCError({
@@ -170,7 +167,7 @@ export async function confirmMatchResult(
 
   if (
     confirmsForSide &&
-    !(await sideAlreadyAgreed(database, game, match, args.userId, actedFor))
+    !(await sideAlreadyAgreed(database, match, args.userId, actedFor))
   ) {
     if (isPublicGame(game)) {
       await database.transaction((tx) =>

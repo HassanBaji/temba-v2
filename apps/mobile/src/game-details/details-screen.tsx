@@ -32,6 +32,7 @@ import {
   teamRegisterToast,
 } from "@repo/domain/game-copy";
 import { scoreIncompleteMessage } from "@repo/domain/friendly-game-score";
+import type { ScoreChangeReason } from "@repo/domain/score-review";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import {
   isDrawnTournamentDetails,
@@ -110,6 +111,7 @@ import { ChallengeDetailsCard } from "./challenge-details-card";
 import { gameMenuItems } from "./game-menu";
 import { OrganizerSheets } from "./organizer-sheets";
 import { useOrganizerActions } from "./use-organizer-actions";
+import { useScoreReview } from "./use-score-review";
 import { useShareGame } from "./use-share-game";
 import { useSharePlayedGame } from "./use-share-played-game";
 import {
@@ -333,7 +335,7 @@ export function GameDetailsScreen({
       return refresh();
     },
   });
-  const scoreSet = api.games.scoreSet.useMutation();
+  const saveScore = api.games.saveScore.useMutation();
   const confirmResult = api.games.confirmMatchResult.useMutation({
     onSuccess: () => toast.show(copy.toast.resultConfirmed),
     onError: failure,
@@ -392,32 +394,34 @@ export function GameDetailsScreen({
 
   const saveSets = useCallback(
     async (
-      payloads: {
+      sets: {
         setId: string;
         slot1GamesWon: number;
         slot2GamesWon: number;
       }[],
+      reason: ScoreChangeReason | null = null,
     ) => {
       if (!firstMatchId) {
-        return;
+        return false;
       }
-      if (payloads.length === 0) {
+      if (sets.length === 0) {
         toast.show(scoreIncompleteMessage(locale));
-        return;
+        return false;
       }
       try {
-        for (const payload of payloads) {
-          await scoreSet.mutateAsync({
-            gameId,
-            matchId: firstMatchId,
-            ...payload,
-          });
-        }
+        await saveScore.mutateAsync({
+          gameId,
+          matchId: firstMatchId,
+          sets,
+          reason: reason ?? undefined,
+        });
         toast.show(copy.toast.setSaved);
+        return true;
       } catch (error) {
         toast.show(
           error instanceof Error ? errorText(error) : copy.toast.couldNotSave,
         );
+        return false;
       } finally {
         await refreshWithRatings();
       }
@@ -429,10 +433,17 @@ export function GameDetailsScreen({
       gameId,
       locale,
       refreshWithRatings,
-      scoreSet,
+      saveScore,
       toast,
     ],
   );
+  const scoreReview = useScoreReview({
+    game: friendly && data ? data : null,
+    pending: saveScore.isPending || confirmResult.isPending,
+    onConfirm: () =>
+      firstMatchId && confirmResult.mutate({ gameId, matchId: firstMatchId }),
+    onSend: saveSets,
+  });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -994,7 +1005,7 @@ export function GameDetailsScreen({
   const canTapPlayers = Boolean(onOpenPlayer) || organizer.plan != null;
   const handlers: DetailsHandlers = {
     movePending: moveSeat.isPending,
-    scorePending: scoreSet.isPending,
+    scorePending: saveScore.isPending,
     confirmPending: confirmResult.isPending,
     stampPending: stampMatch.isPending,
     levelRequestPending: requestLevel.isPending,
@@ -1128,6 +1139,7 @@ export function GameDetailsScreen({
               game={details}
               series={data.series}
               handlers={handlers}
+              review={scoreReview}
               organizer={
                 organizer.plan
                   ? { plan: organizer.plan, handlers: organizer.handlers }
@@ -1137,6 +1149,7 @@ export function GameDetailsScreen({
           </Screen>
           <GameDetailsBar
             game={details}
+            review={scoreReview}
             handlers={{
               joinPending: registerSeat.isPending && !joinOpen,
               leaveWaitlistPending: leaveWaitlist.isPending,

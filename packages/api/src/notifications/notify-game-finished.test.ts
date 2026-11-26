@@ -401,7 +401,7 @@ describe("isGameFinishedByResults", () => {
 });
 
 describe("Finished Game Notifications on a Friendly game", () => {
-  it("tells admins and registered players once full confirmation completes the Match, last confirmer included", async () => {
+  it("tells admins and registered players once the other side's confirmation completes the Match, that confirmer included", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const club = await insertClub(db);
@@ -429,17 +429,12 @@ describe("Finished Game Notifications on a Friendly game", () => {
         matchId: match.id,
         userId: p2,
       });
-      await confirmMatchResult(db, {
-        gameId: game.id,
-        matchId: match.id,
-        userId: p3,
-      });
       expect(await finishedRows(db)).toEqual([]);
 
       await confirmMatchResult(db, {
         gameId: game.id,
         matchId: match.id,
-        userId: p4,
+        userId: p3,
       });
 
       expect((await onlyMatch(db, game.id)).status).toBe(
