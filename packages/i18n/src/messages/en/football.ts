@@ -86,7 +86,7 @@ export const football = {
       plural("en", n, { one: "1 keeper", other: "{n} keepers" }),
     notRatedCount: (n: number) =>
       plural("en", n, { one: "1 not rated", other: "{n} not rated" }),
-    tileNew: "New",
+    tileNew: "new",
     tileNewSpoken: "New, not rated yet",
     goalsNote:
       "Goals count toward player form, not rating. Skip if nobody kept track.",

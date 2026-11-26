@@ -2,7 +2,7 @@ import { sizes } from "@repo/design-tokens";
 import { Tag } from "lucide-react-native";
 import { View, type StyleProp, type ViewStyle } from "react-native";
 
-import type { TextWeight } from "./font-family";
+import type { TextWeight, TextWidth } from "./font-family";
 import { useTonePalette } from "./surface-context";
 import { Text, type TextSize, type TextTone } from "./text";
 
@@ -15,6 +15,7 @@ export function NicknameName({
   isNickname,
   size,
   weight = "semibold",
+  width,
   tone,
   iconSize = sizes.iconRow - 2,
   color,
@@ -25,6 +26,7 @@ export function NicknameName({
   isNickname: boolean;
   size?: TextSize;
   weight?: TextWeight;
+  width?: TextWidth;
   tone?: TextTone;
   iconSize?: number;
   /** For a row that sets its own ink, such as a bib-coloured team row. */
@@ -58,6 +60,7 @@ export function NicknameName({
       <Text
         size={size}
         weight={weight}
+        width={width}
         tone={tone}
         numberOfLines={numberOfLines}
         style={{ flexShrink: 1, color }}

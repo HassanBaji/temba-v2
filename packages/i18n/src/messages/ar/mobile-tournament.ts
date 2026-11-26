@@ -223,6 +223,8 @@ export const mobileTournament = {
           many: "لم يُقيَّم بعد، تبقّت {n} مباراة",
           other: "لم يُقيَّم بعد، تبقّت {n} مباراة",
         }),
+      sentences: (first: string, second: string) => `${first}. ${second}`,
+      newValue: "جديد",
       points: "نقاط",
       pointsThisMonth: (delta: string) => `نقاط، ${isolate(delta)} هذا الشهر`,
       pointsAfter: (games: number) =>

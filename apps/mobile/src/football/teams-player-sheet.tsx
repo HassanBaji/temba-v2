@@ -1,12 +1,12 @@
-import { formatTierDelta } from "@repo/domain/tier-adjust";
+import { radii } from "@repo/design-tokens";
+import {
+  ofSide,
+  otherSide,
+  type BoardPlayer,
+  type Side,
+} from "@repo/domain/football-board";
 import type { FootballBalanceOn } from "@repo/domain/football-lineup";
 import type { FormMark } from "@repo/domain/member-form-marks";
-import {
-  slotCode,
-  teamsTileRating,
-  type BoardPlayer,
-} from "@repo/domain/football-board";
-import { TIER_PROVISIONAL_GAMES } from "@repo/domain/tier-points";
 import { Fragment } from "react";
 import { View } from "react-native";
 
@@ -16,13 +16,20 @@ import { Button } from "../primitives/button";
 import { FormSlot } from "../primitives/form-slot";
 import { GuestMark } from "../primitives/guest-mark";
 import { hairline } from "../primitives/hairline-width";
+import { NicknameName } from "../primitives/nickname-name";
 import { Sheet, SheetCloseButton } from "../primitives/sheet";
 import { Skeleton } from "../primitives/skeleton";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import { api } from "../trpc/react";
+import {
+  teamsPlayerCardForm,
+  teamsPlayerCardHead,
+} from "./teams-player-card-model";
 
 const FORM_SLOT = 26;
+/** The rating is the widest figure, so its column takes more of the row. */
+const RATING_COLUMN = 1.4;
 
 function Rule() {
   const colors = useColors();
@@ -32,23 +39,31 @@ function Rule() {
 function Stat({
   value,
   label,
-  pending,
+  pending = false,
+  flex = 1,
 }: {
   value: string;
   label: string;
-  pending: boolean;
+  pending?: boolean;
+  flex?: number;
 }) {
   const m = useMessages().mobileTournament.makeTeams.card;
   return (
     <View
       accessible
       accessibilityLabel={pending ? undefined : m.statSpoken(value, label)}
-      style={{ flex: 1, minWidth: 0, gap: 2 }}
+      style={{ flex, minWidth: 0, gap: 2 }}
     >
       {pending ? (
-        <Skeleton height={26} radius={6} />
+        <Skeleton height={26} radius={radii.sm} />
       ) : (
-        <Text size="h2" width="expanded" ltr>
+        <Text
+          size="h2"
+          width="expanded"
+          ltr
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
           {value}
         </Text>
       )}
@@ -75,12 +90,7 @@ function StatsRow({ children }: { children: React.ReactNode[] }) {
   );
 }
 
-/** The last five results, oldest first, the slots not reached yet hatched. */
-function FormStrip({ form }: { form: readonly FormMark[] }) {
-  const slots: FormMark[] = [
-    ...form,
-    ...Array<FormMark>(Math.max(0, 5 - form.length)).fill("not-played"),
-  ];
+function FormStrip({ slots }: { slots: readonly FormMark[] }) {
   return (
     <View style={{ flexDirection: "row", gap: 4 }}>
       {slots.map((mark, index) => (
@@ -92,41 +102,44 @@ function FormStrip({ form }: { form: readonly FormMark[] }) {
   );
 }
 
+function Action({ children }: { children: React.ReactNode }) {
+  return <View style={{ flex: 1, minWidth: 0 }}>{children}</View>;
+}
+
 /**
  * A pool player's short profile on Make teams: the number the teams balance
  * on and how it moved this month, Games, goals and MVPs in the Group and the
- * last five results. From here the Organizer moves them across, names them
+ * last five results. From here the Organizer puts them on a team, names them
  * their side's captain or opens the full profile.
  */
 export function TeamsPlayerSheet({
   gameId,
   player,
-  sideName,
-  otherSideName,
+  side,
+  names,
   balanceOn,
   isCaptain,
   canBeCaptain,
   onClose,
-  onMove,
+  onPlace,
   onToggleCaptain,
   onOpenProfile,
 }: {
   gameId: string;
   player: BoardPlayer | null;
-  /** The team the player is on; null while not placed. */
-  sideName: string | null;
-  otherSideName: string | null;
+  /** The side the player is on; null while not placed. */
+  side: Side | null;
+  names: { slot1: string; slot2: string };
   balanceOn: FootballBalanceOn;
   isCaptain: boolean;
   canBeCaptain: boolean;
   onClose: () => void;
-  onMove: () => void;
+  onPlace: (side: Side) => void;
   onToggleCaptain: () => void;
   onOpenProfile: () => void;
 }) {
   const locale = useLocale();
-  const messages = useMessages();
-  const m = messages.mobileTournament.makeTeams;
+  const m = useMessages().mobileTournament.makeTeams;
   const card = api.games.footballPlayerCard.useQuery(
     { gameId, userId: player?.userId ?? "" },
     { enabled: player != null },
@@ -139,38 +152,23 @@ export function TeamsPlayerSheet({
     );
   }
 
-  const rating = teamsTileRating(player, balanceOn, locale);
-  const unrated = rating.kind === "new";
-  const code = slotCode(player, locale);
-  const gamesLeft = Math.max(
-    0,
-    TIER_PROVISIONAL_GAMES - (player.tier?.gamesOfFive ?? 0),
-  );
-  const subtitle = [
-    sideName && code
-      ? m.card.sideUsually(sideName, code)
-      : (sideName ??
-        (code ? m.card.sideUsually(m.notPlaced, code) : m.notPlaced)),
-    unrated && balanceOn === "tierPoints"
-      ? m.card.notRatedYet(gamesLeft)
-      : null,
-  ]
-    .filter(Boolean)
-    .join(". ");
-  const delta = card.data?.pointsThisMonth;
-  const ratingLabel = unrated
-    ? balanceOn === "tierPoints"
-      ? m.card.pointsAfter(TIER_PROVISIONAL_GAMES)
-      : m.card.ovr
-    : balanceOn === "ovr"
-      ? m.card.ovr
-      : delta
-        ? m.card.pointsThisMonth(formatTierDelta(delta))
-        : m.card.points;
-  const pending = card.isLoading;
   const stats = card.data;
-  const form = stats?.form ?? [];
-  const name = player.nickname?.name ?? player.name;
+  const pending = card.isLoading;
+  const head = teamsPlayerCardHead(
+    player,
+    {
+      balanceOn,
+      sideName: side ? ofSide(names, side) : null,
+      pointsThisMonth: stats?.pointsThisMonth,
+    },
+    locale,
+  );
+  const form = teamsPlayerCardForm(
+    stats?.form ?? [],
+    stats?.games ?? 0,
+    locale,
+  );
+  const moveTo: Side[] = side ? [otherSide(side)] : [1, 2];
 
   return (
     <Sheet visible onClose={onClose}>
@@ -183,12 +181,18 @@ export function TeamsPlayerSheet({
             guest={player.guest}
           />
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-            <Text size="h2" width="expanded" accessibilityRole="header">
-              {name}
-            </Text>
+            <View accessibilityRole="header">
+              <NicknameName
+                name={head.name}
+                isNickname={head.isNickname}
+                size="h2"
+                width="expanded"
+                numberOfLines={0}
+              />
+            </View>
             {player.guest ? <GuestMark /> : null}
             <Text size="meta" tone="muted">
-              {subtitle}
+              {head.subtitle}
             </Text>
           </View>
           <SheetCloseButton onPress={onClose} />
@@ -198,9 +202,9 @@ export function TeamsPlayerSheet({
           {[
             <Stat
               key="rating"
-              value={rating.value}
-              label={ratingLabel}
-              pending={false}
+              value={head.ratingValue}
+              label={head.ratingLabel}
+              flex={RATING_COLUMN}
             />,
             <Stat
               key="games"
@@ -234,49 +238,48 @@ export function TeamsPlayerSheet({
               alignItems: "center",
               justifyContent: "space-between",
               gap: 12,
+              minHeight: FORM_SLOT,
             }}
           >
-            <Text size="meta" tone="muted" style={{ flexShrink: 1 }}>
-              {pending
-                ? " "
-                : form.length >= 5
-                  ? m.card.lastFive
-                  : form.length === 0
-                    ? m.card.nonePlayed
-                    : m.card.playedSoFar(form.length)}
-            </Text>
-            {pending ? null : <FormStrip form={form} />}
+            {pending ? null : (
+              <>
+                <Text size="meta" tone="muted" style={{ flexShrink: 1 }}>
+                  {form.caption}
+                </Text>
+                <FormStrip slots={form.slots} />
+              </>
+            )}
           </View>
         )}
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          {otherSideName ? (
-            <View style={{ flex: 1 }}>
-              <Button
-                label={m.card.moveTo(otherSideName)}
-                variant="outline"
-                size="lg"
-                onPress={onMove}
-              />
-            </View>
-          ) : null}
-          {canBeCaptain ? (
-            <View style={{ flex: 1 }}>
-              <Button
-                label={isCaptain ? m.card.removeCaptain : m.card.makeCaptain}
-                variant="outline"
-                size="lg"
-                onPress={onToggleCaptain}
-              />
-            </View>
-          ) : null}
+        <View style={{ gap: 8 }}>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {moveTo.map((target) => (
+              <Action key={target}>
+                <Button
+                  label={m.card.moveTo(ofSide(names, target))}
+                  variant="outline"
+                  size="lg"
+                  onPress={() => onPlace(target)}
+                />
+              </Action>
+            ))}
+            {canBeCaptain ? (
+              <Action>
+                <Button
+                  label={isCaptain ? m.card.removeCaptain : m.card.makeCaptain}
+                  variant="outline"
+                  size="lg"
+                  onPress={onToggleCaptain}
+                />
+              </Action>
+            ) : null}
+          </View>
           {player.guest ? null : (
-            <View style={{ flex: 1 }}>
-              <Button
-                label={m.card.fullProfile}
-                size="lg"
-                onPress={onOpenProfile}
-              />
-            </View>
+            <Button
+              label={m.card.fullProfile}
+              size="lg"
+              onPress={onOpenProfile}
+            />
           )}
         </View>
       </View>

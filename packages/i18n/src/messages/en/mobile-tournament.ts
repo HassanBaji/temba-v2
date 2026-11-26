@@ -192,6 +192,8 @@ export const mobileTournament = {
           one: "Not rated yet, 1 more game to go",
           other: "Not rated yet, {n} more games to go",
         }),
+      sentences: (first: string, second: string) => `${first}. ${second}`,
+      newValue: "New",
       points: "points",
       pointsThisMonth: (delta: string) => `points, ${delta} this month`,
       pointsAfter: (games: number) =>

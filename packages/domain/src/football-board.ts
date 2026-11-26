@@ -148,6 +148,18 @@ export function lineupName(
   return nameOnLineup(player, locale, shortName);
 }
 
+/** `lineupName` for a Make teams tile, which shows the Temba name in full. */
+export function teamsTileName(
+  player: Pick<BoardPlayer, "name" | "nickname" | "isViewer">,
+  locale: Locale,
+) {
+  return nameOnLineup(player, locale, (name) => name);
+}
+
+export function otherSide(side: Side): Side {
+  return side === 1 ? 2 : 1;
+}
+
 /** `lineupName` for a pool tile, whose short name is `tileShortName`. */
 export function poolTileName(
   player: Pick<BoardPlayer, "name" | "nickname" | "isViewer">,
@@ -650,22 +662,34 @@ export function draftSummary(
 
 /**
  * A side's mean as Make teams reads it when every player has a balance
- * strength: mean Tier points in a tier Group, the mean OVR elsewhere.
- * Otherwise the mean OVR of the players who have one.
+ * strength: the mean OVR off a tier Group, and in a tier Group the mean Tier
+ * points of its ranked members, a dash while it has none. Provisional members
+ * and Guest players are balanced on a start hint, which is no Tier points,
+ * so the mean leaves them out. Otherwise the mean OVR of the players who
+ * have one.
  */
 export function teamsSideAverage(
-  players: readonly Pick<BoardPlayer, "ovr" | "balanceStrength">[],
+  players: readonly Pick<
+    BoardPlayer,
+    "ovr" | "balanceStrength" | "tier" | "guest"
+  >[],
   locale: Locale,
   balanceOn: FootballBalanceOn = "tierPoints",
 ) {
-  const strengths = players.flatMap((player) =>
-    player.balanceStrength == null ? [] : [player.balanceStrength],
-  );
-  if (strengths.length === 0 || strengths.length < players.length) {
+  if (
+    players.length === 0 ||
+    players.some((player) => player.balanceStrength == null)
+  ) {
     return sideOvrAverage(players, locale);
   }
+  const counted =
+    balanceOn === "ovr" ? players : players.filter(countsInTierAverage);
+  if (counted.length === 0) {
+    return "–";
+  }
   const mean =
-    strengths.reduce((sum, strength) => sum + strength, 0) / strengths.length;
+    counted.reduce((sum, player) => sum + (player.balanceStrength ?? 0), 0) /
+    counted.length;
   const m = messagesFor(locale).rating;
   return balanceOn === "ovr"
     ? m.ovr.value(formatOvr(mean))
@@ -758,52 +782,63 @@ export function keeperWord(
 }
 
 /**
- * Not rated yet on Make teams: still Provisional in a tier Group, or without
- * a football Rating elsewhere. A Guest stands in at the others' Level and is
- * never rated, so never reads New.
+ * A Group Tier still Provisional on a tier Group's Make teams. Their Tier
+ * points have not settled, so the tile reads new and the side's average
+ * leaves them out. A Guest player has no tier at all and is never one.
  */
-export function notRatedYet(
-  player: Pick<BoardPlayer, "tier" | "ovr" | "guest">,
+export function tierProvisionalOnTeams(
+  player: Pick<BoardPlayer, "tier" | "guest">,
   balanceOn: FootballBalanceOn,
 ) {
-  if (player.guest) {
-    return false;
-  }
-  return balanceOn === "tierPoints"
-    ? (player.tier?.provisional ?? true)
-    : player.ovr == null;
+  return (
+    balanceOn === "tierPoints" &&
+    !player.guest &&
+    (player.tier?.provisional ?? true)
+  );
 }
 
-export function notRatedCount(
-  players: readonly Pick<BoardPlayer, "tier" | "ovr" | "guest">[],
+export function tierProvisionalCount(
+  players: readonly Pick<BoardPlayer, "tier" | "guest">[],
   balanceOn: FootballBalanceOn,
 ) {
-  return players.filter((player) => notRatedYet(player, balanceOn)).length;
+  return players.filter((player) => tierProvisionalOnTeams(player, balanceOn))
+    .length;
 }
 
-export type TeamsTileRating = {
-  kind: "rated" | "new";
+/** Tier points a side's average is taken over: a ranked member's, not a Guest player's stand-in. */
+function countsInTierAverage(player: Pick<BoardPlayer, "tier" | "guest">) {
+  return !player.guest && !tierProvisionalOnTeams(player, "tierPoints");
+}
+
+export type TeamsRating = {
+  kind: "rated" | "new" | "guest";
   value: string;
   spoken: string;
 };
 
 /**
- * The number on a Make teams tile: what the side averages are taken over, in
+ * A player's rating on Make teams: what the side averages are taken over, in
  * the same numerals, so "avg 1,224 points" is the mean of the tiles under it.
- * New, with the hatched box, while the player is not rated yet.
+ * New while the Group Tier is Provisional. A Guest player in a tier Group
+ * reads Guest, since their stand-in is no Tier points; elsewhere they show
+ * the mean OVR they play at (ADR-0079).
  */
-export function teamsTileRating(
+export function teamsRating(
   player: Pick<BoardPlayer, "tier" | "ovr" | "guest" | "balanceStrength">,
   balanceOn: FootballBalanceOn,
   locale: Locale,
-): TeamsTileRating {
+): TeamsRating {
   const m = messagesFor(locale);
-  if (notRatedYet(player, balanceOn)) {
+  if (tierProvisionalOnTeams(player, balanceOn)) {
     return {
       kind: "new",
       value: m.football.board.tileNew,
       spoken: m.football.board.tileNewSpoken,
     };
+  }
+  if (player.guest && balanceOn === "tierPoints") {
+    const value = m.group.addPlayer.guest.tag;
+    return { kind: "guest", value, spoken: value };
   }
   const strength = player.balanceStrength ?? null;
   if (strength == null) {
