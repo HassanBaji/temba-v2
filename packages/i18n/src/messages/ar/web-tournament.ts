@@ -225,16 +225,11 @@ export const webTournament = {
     goalsOutput: (team: string) => `أهداف ${team}`,
     oneGoalFewer: (team: string) => `هدف أقل لـ${team}`,
     oneGoalMore: (team: string) => `هدف أكثر لـ${team}`,
-    addGoalLabel: (name: string, team: string, goals: number) =>
-      `أضف هدفًا لـ${name}، ${team}، ${goals} حتى الآن`,
-    takeGoalAway: (name: string) => `احذف هدفًا من ${name}`,
     savedToast: "حُفظت النتيجة",
     loadFailed: "تعذّر تحميل المباراة",
     closedTitle: "النتيجة مغلقة",
     closedBody:
       "تُفتح النتيجة عند البداية للاعبي الفريقين والمنظّم، حتى يؤكّدها الفريقان.",
-    scorersOptional: "المسجّلون، اختياري",
-    selectNameHint: "اختر اسمًا لإضافة هدف",
     saveScore: "حفظ النتيجة",
     otherConfirms: (team: string) =>
       `لاعب واحد من ${team} يؤكّد النتيجة والسجل والبطاقات.`,

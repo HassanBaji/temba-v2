@@ -8,20 +8,14 @@ import {
 import {
   logGoal,
   logOwnGoal,
+  logScorers,
   logUnknownGoal,
   logWarning,
   type MatchLogLine,
 } from "@repo/domain/football-match-log";
 import * as React from "react";
 
-import {
-  MatchLogList,
-  WhatHappened,
-} from "~/components/games/football-log-entry";
-import {
-  LogLineSheet,
-  RedCardSheet,
-} from "~/components/games/football-log-sheets";
+import { MatchLogEntry } from "~/components/games/football-log-entry";
 import { FootballMatchLogCard } from "~/components/games/football-match-timeline";
 import { FootballScoreCard } from "~/components/games/football-score-card";
 import { useMatchLogEditor } from "~/components/games/use-match-log-editor";
@@ -53,50 +47,19 @@ function EntryPreview({ players }: { players: BoardPlayer[] }) {
     kickoff: KICKOFF,
     end: new Date(KICKOFF.getTime() + 60 * 60_000),
   });
-  const [redCardFor, setRedCardFor] = React.useState<BoardPlayer | null>(null);
-  const [openLineId, setOpenLineId] = React.useState<string | null>(null);
   const start = editor.start;
   const lines = editor.lines;
   React.useEffect(() => {
     if (!lines) {
-      start(wholeGame(players));
+      start(wholeGame(players), players);
     }
   }, [start, players, lines]);
-  if (!editor.lines) {
+  if (!lines) {
     return null;
   }
   return (
     <div className="max-w-[390px] space-y-5">
-      <WhatHappened
-        players={players}
-        names={names}
-        editor={editor}
-        onRedCard={setRedCardFor}
-      />
-      <MatchLogList
-        players={players}
-        names={names}
-        editor={editor}
-        onOpenLine={setOpenLineId}
-      />
-      <RedCardSheet
-        player={redCardFor}
-        names={names}
-        onCancel={() => setRedCardFor(null)}
-        onGive={(reason) => {
-          if (redCardFor) {
-            editor.giveRedCard(redCardFor, reason);
-          }
-          setRedCardFor(null);
-        }}
-      />
-      <LogLineSheet
-        line={editor.lines.find((line) => line.id === openLineId) ?? null}
-        players={players}
-        names={names}
-        editor={editor}
-        onClose={() => setOpenLineId(null)}
-      />
+      <MatchLogEntry players={players} names={names} editor={editor} />
     </div>
   );
 }
@@ -114,12 +77,9 @@ export function ScoreLogPreview({
 }) {
   const names = bibNames(BIBS, "en");
   const [log] = React.useState(() => wholeGame(players));
-  const goals = new Map<string, number>();
-  for (const line of log) {
-    if (line.kind === "goal" && line.userId) {
-      goals.set(line.userId, (goals.get(line.userId) ?? 0) + 1);
-    }
-  }
+  const goals = new Map(
+    logScorers(log).map((scorer) => [scorer.userId, scorer.goals]),
+  );
   const scored = players.map((player) => ({
     ...player,
     goals: goals.get(player.userId) ?? 0,

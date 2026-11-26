@@ -1,34 +1,22 @@
-import {
-  changeMinute,
-  changePlayer,
-  changeRedCardReason,
-  logGoal,
-  logOwnGoal,
-  logRedCard,
-  logUnknownGoal,
-  logWarning,
-  removeLatestGoal,
-  removeLine,
-  restoreLines,
-  type Clock,
-  type LogPlayer,
-  type MatchLogKind,
-  type MatchLogLine,
-  type RedCardReason,
-  type Removal,
-} from "@repo/domain/football-match-log";
 import type { Side } from "@repo/domain/football-board";
-import { useRef, useState } from "react";
+import type {
+  Clock,
+  LogPlayer,
+  MatchLogKind,
+  MatchLogLine,
+  RedCardReason,
+} from "@repo/domain/football-match-log";
+import {
+  logEditorReducer,
+  startLogEditor,
+  type LogEditorAction,
+  type LogEditorState,
+} from "@repo/domain/football-match-log-editor";
+import { useCallback, useRef, useState } from "react";
 
-/**
- * The Match log while it is being entered: the lines, what the next tap
- * records (back to a goal after every line), and the lines the last removal
- * took out, which Undo brings back until the next change.
- */
+/** The Match log while it is being entered, on the shared editor rules. */
 export function useMatchLog(clock: Clock) {
-  const [lines, setLines] = useState<MatchLogLine[] | null>(null);
-  const [mode, setMode] = useState<MatchLogKind>("goal");
-  const [removed, setRemoved] = useState<MatchLogLine[]>([]);
+  const [state, setState] = useState<LogEditorState | null>(null);
   const nextId = useRef(0);
 
   const stamp = () => ({
@@ -36,56 +24,37 @@ export function useMatchLog(clock: Clock) {
     at: new Date(),
     ...clock,
   });
-
-  const current = lines ?? [];
-
-  function change(next: MatchLogLine[]) {
-    setLines(next);
-    setRemoved([]);
-  }
-
-  function takeOut(removal: Removal) {
-    if (removal.removed.length === 0) {
-      return;
-    }
-    setLines(removal.lines);
-    setRemoved(removal.removed);
-  }
+  const dispatch = (action: LogEditorAction) =>
+    setState((current) => current && logEditorReducer(current, action));
 
   return {
-    lines,
-    mode,
-    removed,
-    setMode,
-    start: (initial: MatchLogLine[]) => setLines(initial),
-    tapPlayer: (player: LogPlayer) => {
-      if (mode === "goal") {
-        change(logGoal(current, player, stamp()));
-      } else if (mode === "own_goal") {
-        change(logOwnGoal(current, player, stamp()));
-      } else if (mode === "warning") {
-        change(logWarning(current, player, stamp()));
-      }
-      setMode("goal");
-    },
-    giveRedCard: (player: LogPlayer, reason: RedCardReason | null) => {
-      change(logRedCard(current, player, reason, stamp()));
-      setMode("goal");
-    },
+    lines: state?.lines ?? null,
+    mode: state?.mode ?? "goal",
+    redCardFor: state?.redCardFor ?? null,
+    removed: state?.undo?.removed ?? [],
+    start: useCallback(
+      (lines: readonly MatchLogLine[], players: readonly LogPlayer[]) =>
+        setState(startLogEditor(lines, players)),
+      [],
+    ),
+    setMode: (mode: MatchLogKind) => dispatch({ type: "mode", mode }),
+    tapPlayer: (player: LogPlayer) =>
+      dispatch({ type: "tapPlayer", player, stamp: stamp() }),
+    giveRedCard: (reason: RedCardReason | null) =>
+      dispatch({ type: "giveRedCard", reason, stamp: stamp() }),
+    cancelRedCard: () => dispatch({ type: "cancelRedCard" }),
     addUnknownGoal: (side: Side) =>
-      change(logUnknownGoal(current, side, stamp())),
-    removeLatestGoal: (side: Side) => takeOut(removeLatestGoal(current, side)),
-    remove: (id: string) => takeOut(removeLine(current, id)),
-    undo: () => {
-      setLines(restoreLines(current, removed));
-      setRemoved([]);
-    },
+      dispatch({ type: "addUnknownGoal", side, stamp: stamp() }),
+    removeLatestGoal: (side: Side) =>
+      dispatch({ type: "removeLatestGoal", side }),
+    remove: (id: string) => dispatch({ type: "remove", id }),
+    undo: () => dispatch({ type: "undo" }),
     changePlayer: (id: string, player: LogPlayer) =>
-      change(changePlayer(current, id, player)),
+      dispatch({ type: "changePlayer", id, player }),
     changeMinute: (id: string, minute: number) =>
-      change(changeMinute(current, id, minute)),
+      dispatch({ type: "changeMinute", id, minute }),
     changeReason: (id: string, reason: RedCardReason | null) =>
-      change(changeRedCardReason(current, id, reason)),
+      dispatch({ type: "changeReason", id, reason }),
   };
 }
 

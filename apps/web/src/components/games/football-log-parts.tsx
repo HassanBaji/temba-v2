@@ -7,7 +7,7 @@ import { Ban } from "lucide-react";
 import { cn } from "~/lib/utils";
 
 /** A warning or a red card, drawn as the card itself. */
-export function CardMark({
+export function CardShape({
   kind,
   className,
 }: {
@@ -37,7 +37,7 @@ export function LogGlyph({
   className?: string;
 }) {
   if (kind === "warning" || kind === "red_card") {
-    return <CardMark kind={kind} className={className} />;
+    return <CardShape kind={kind} className={className} />;
   }
   if (kind === "own_goal") {
     return <Ban aria-hidden="true" className={cn("size-4", className)} />;
@@ -48,8 +48,4 @@ export function LogGlyph({
       className={cn("bg-ink inline-block size-3 rounded-full", className)}
     />
   );
-}
-
-export function scoreDash(score: { slot1: number; slot2: number }) {
-  return `${score.slot1}–${score.slot2}`;
 }

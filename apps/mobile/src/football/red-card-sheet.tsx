@@ -13,7 +13,7 @@ import { hairline } from "../primitives/hairline-width";
 import { Sheet } from "../primitives/sheet";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
-import { CardMark } from "./log-glyph";
+import { CardShape } from "./log-glyph";
 
 const REASON_HEIGHT = 40;
 
@@ -96,7 +96,7 @@ export function RedCardSheet({
       {player ? (
         <View style={{ gap: 18 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-            <CardMark kind="red_card" size="lg" />
+            <CardShape kind="red_card" size="lg" />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text size="h2" width="expanded" accessibilityRole="header">
                 {m.redSheet.title}

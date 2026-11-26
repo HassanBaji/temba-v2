@@ -13,7 +13,7 @@ const DOT = 10;
 const OWN_GOAL_ICON = 14;
 
 /** A warning or a red card, drawn as the card itself. */
-export function CardMark({
+export function CardShape({
   kind,
   size = "sm",
 }: {
@@ -50,7 +50,7 @@ export function LogGlyph({
   const palette = useTonePalette();
   const ink = color ?? palette.foreground;
   if (kind === "warning" || kind === "red_card") {
-    return <CardMark kind={kind} />;
+    return <CardShape kind={kind} />;
   }
   if (kind === "own_goal") {
     return (
@@ -76,8 +76,4 @@ export function LogGlyph({
       }}
     />
   );
-}
-
-export function scoreDash(score: { slot1: number; slot2: number }) {
-  return `${score.slot1}–${score.slot2}`;
 }

@@ -417,7 +417,7 @@ A player named with the goals they scored in a football Match. Optional, and nev
 _Avoid_: format (that is Friendly game, Americano or Friendly tournament), team size, a-side (bare)
 
 **Match log**:
-The lines a football Score is entered as (ADR-0111): each **goal** (its scorer, or nobody saw who), **own goal** (counts for the other side and is not the player's goal), **warning** and **red card**, with the minute of the game and the clock time it was logged. The Score and the Scorers are what the log adds up to. Whoever may enter the Score may add, change or remove any line until it is confirmed; a second warning adds a red card on its own. The other side confirms the Score, the log and the cards together, and the finished Game shows the log as a timeline to everyone in it. Cards are a record only: no automatic ban, and no effect on rating.
+The lines a football Score is entered as (ADR-0111): each **goal** (its scorer, or nobody saw who), **own goal** (counts for the other side and is not the player's goal), **warning** and **red card**, with the minute of the game and the clock time it was logged. The Score and the Scorers are what the log adds up to. Whoever may enter the Score may add, change or remove any line until it is confirmed; a second warning adds a red card on its own. The other side confirms the Score, the log and the cards together; until then only the players on the two sides and the Organizers see the log, and the finished Game shows it as a timeline to everyone in it. Cards are a record only: no automatic ban, and no effect on rating.
 _Avoid_: event log, timeline (the finished Game's view of it), booking (for a warning), yellow card (product copy says warning)
 
 **Match**:

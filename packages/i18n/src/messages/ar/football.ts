@@ -126,17 +126,6 @@ export const football = {
         many: "{n} حارسًا",
         other: "{n} حارس",
       }),
-    goalsNote:
-      "تُحتسب الأهداف في الأداء الأخير للاعب، لا في التصنيف. تجاوز إن لم يتابع أحد العدّ.",
-    goalsNamed: (
-      named1: number,
-      score1: number,
-      team1: string,
-      named2: number,
-      score2: number,
-      team2: string,
-    ) =>
-      `سُمّي ${named1} من أهداف ${team1} الـ${score1} و${named2} من أهداف ${team2} الـ${score2}.`,
     bothSidesConfirmed: "أكّد الفريقان.",
     confirmedByOrganizer: "أكّده المنظّم.",
     waitingOrganizerFor: (team: string) => `تأكيد المنظّم عن ${team}`,
@@ -564,6 +553,7 @@ export const football = {
       warning: "إنذار",
       redCard: "بطاقة حمراء",
     },
+    ownGoalName: (name: string) => `${name} (هدف عكسي)`,
     ownGoalTag: "هدف عكسي",
     reasons: {
       second_warning: "إنذار ثانٍ",
@@ -651,6 +641,7 @@ export const football = {
       linePlayer: "لاعب في سجل المباراة ليس في أيٍّ من الفريقين",
       linePlayerNeeded: "سمِّ اللاعب لكل بطاقة وكل هدف عكسي",
       reasonOnRedOnly: "السبب للبطاقة الحمراء فقط",
+      secondWarningSendsOff: "الإنذار الثاني يطرد اللاعب",
       sentOffOnce: "يُطرد اللاعب مرة واحدة فقط",
       logMatchesScore: "يجب أن يطابق سجل المباراة النتيجة",
       logMatchesScorers: "يجب أن يسمّي سجل المباراة المسجّلين أنفسهم",

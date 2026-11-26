@@ -1,7 +1,13 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { shortName, type BoardPlayer, type Side } from "./football-board";
+import {
+  ofSide,
+  shortName,
+  type BoardPlayer,
+  type Side,
+} from "./football-board";
+import { FOOTBALL_GOALS_MAX } from "./football-lineup";
 
 export const MATCH_LOG_KINDS = [
   "goal",
@@ -74,13 +80,15 @@ export function matchMinute(clock: Clock, at: Date) {
   return clampMinute(clock.end ? Math.min(minute, minutes(clock.end)) : minute);
 }
 
-/** Oldest first: by minute, then by the time each line was logged. */
+/**
+ * Oldest first: by minute, then by the time each line was logged. Lines level
+ * on both keep the order they are held in, which is the order they are saved
+ * in, so a log reads the same after it is loaded again.
+ */
 export function chronological(lines: readonly MatchLogLine[]) {
   return [...lines].sort(
     (a, b) =>
-      a.minute - b.minute ||
-      a.loggedAt.getTime() - b.loggedAt.getTime() ||
-      a.id.localeCompare(b.id),
+      a.minute - b.minute || a.loggedAt.getTime() - b.loggedAt.getTime(),
   );
 }
 
@@ -100,7 +108,7 @@ export function isGoalLine(line: Pick<MatchLogLine, "kind">) {
   return line.kind === "goal" || line.kind === "own_goal";
 }
 
-export function playerMarks(lines: readonly MatchLogLine[], userId: string) {
+export function playerTally(lines: readonly MatchLogLine[], userId: string) {
   let goals = 0;
   let warnings = 0;
   let sentOff = false;
@@ -119,12 +127,20 @@ export function playerMarks(lines: readonly MatchLogLine[], userId: string) {
   return { goals, warnings, sentOff };
 }
 
+function hasRoom(lines: readonly MatchLogLine[], adding = 1) {
+  return lines.length + adding <= MATCH_LOG_LINES_MAX;
+}
+
+function canScore(lines: readonly MatchLogLine[], side: Side) {
+  return hasRoom(lines) && ofSide(logScore(lines), side) < FOOTBALL_GOALS_MAX;
+}
+
 export function logGoal(
   lines: readonly MatchLogLine[],
   player: LogPlayer,
   stamp: Stamp,
 ): MatchLogLine[] {
-  if (!player.sideIndex) {
+  if (!player.sideIndex || !canScore(lines, player.sideIndex)) {
     return [...lines];
   }
   return [
@@ -145,6 +161,9 @@ export function logUnknownGoal(
   side: Side,
   stamp: Stamp,
 ): MatchLogLine[] {
+  if (!canScore(lines, side)) {
+    return [...lines];
+  }
   return [
     ...lines,
     { ...stamped(stamp), kind: "goal", side, userId: null, reason: null },
@@ -157,7 +176,7 @@ export function logOwnGoal(
   player: LogPlayer,
   stamp: Stamp,
 ): MatchLogLine[] {
-  if (!player.sideIndex) {
+  if (!player.sideIndex || !canScore(lines, otherSide(player.sideIndex))) {
     return [...lines];
   }
   return [
@@ -178,7 +197,11 @@ export function logRedCard(
   reason: RedCardReason | null,
   stamp: Stamp,
 ): MatchLogLine[] {
-  if (!player.sideIndex || playerMarks(lines, player.userId).sentOff) {
+  if (
+    !player.sideIndex ||
+    !hasRoom(lines) ||
+    playerTally(lines, player.userId).sentOff
+  ) {
     return [...lines];
   }
   return [
@@ -193,6 +216,42 @@ export function logRedCard(
   ];
 }
 
+function warningsOf(lines: readonly MatchLogLine[], userId: string) {
+  return chronological(lines).filter(
+    (line) => line.kind === "warning" && line.userId === userId,
+  );
+}
+
+/**
+ * Gives every player with two warnings and no red card their red card, right
+ * after the second warning and at its minute and time.
+ */
+function withSecondWarningReds(lines: readonly MatchLogLine[]) {
+  const next = [...lines];
+  const warned = new Set(
+    lines.flatMap((line) =>
+      line.kind === "warning" && line.userId ? [line.userId] : [],
+    ),
+  );
+  for (const userId of warned) {
+    const second = warningsOf(next, userId)[1];
+    if (!second || playerTally(next, userId).sentOff) {
+      continue;
+    }
+    let id = `${second.id}-red`;
+    while (next.some((line) => line.id === id)) {
+      id = `${id}-red`;
+    }
+    next.splice(next.indexOf(second) + 1, 0, {
+      ...second,
+      id,
+      kind: "red_card",
+      reason: "second_warning",
+    });
+  }
+  return next;
+}
+
 /**
  * A warning. A player's second warning adds a red card on its own, marked
  * second warning; a player already sent off takes no more cards.
@@ -202,11 +261,14 @@ export function logWarning(
   player: LogPlayer,
   stamp: Stamp,
 ): MatchLogLine[] {
-  const marks = playerMarks(lines, player.userId);
-  if (!player.sideIndex || marks.sentOff) {
+  if (
+    !player.sideIndex ||
+    !hasRoom(lines, 2) ||
+    playerTally(lines, player.userId).sentOff
+  ) {
     return [...lines];
   }
-  const warned: MatchLogLine[] = [
+  return withSecondWarningReds([
     ...lines,
     {
       ...stamped(stamp),
@@ -215,21 +277,25 @@ export function logWarning(
       userId: player.userId,
       reason: null,
     },
-  ];
-  if (marks.warnings + 1 < 2) {
-    return warned;
-  }
-  return logRedCard(warned, player, "second_warning", {
-    ...stamp,
-    id: `${stamp.id}-red`,
-  });
+  ]);
 }
 
 export type Removal = { lines: MatchLogLine[]; removed: MatchLogLine[] };
 
+function secondWarningRedOf(lines: readonly MatchLogLine[], userId: string) {
+  return lines.find(
+    (line) =>
+      line.kind === "red_card" &&
+      line.userId === userId &&
+      line.reason === "second_warning",
+  );
+}
+
 /**
- * Takes a line out of the log. Taking out a warning also takes out the red
- * card it gave as a second warning, so Undo brings both back.
+ * Takes a line out of the log, keeping two warnings and their red card
+ * together: taking out a player's second warning takes the red card it gave
+ * with it, and taking out the red card of a player with two warnings takes
+ * their latest warning with it.
  */
 export function removeLine(
   lines: readonly MatchLogLine[],
@@ -240,18 +306,16 @@ export function removeLine(
     return { lines: [...lines], removed: [] };
   }
   const removed = [line];
-  const rest = lines.filter((candidate) => candidate.id !== id);
-  if (line.kind === "warning" && line.userId) {
-    const userId = line.userId;
-    const left = playerMarks(rest, userId).warnings;
-    const secondRed = rest.find(
-      (candidate) =>
-        candidate.kind === "red_card" &&
-        candidate.userId === userId &&
-        candidate.reason === "second_warning",
-    );
-    if (secondRed && left < 2) {
+  if (line.userId && line.kind === "warning") {
+    const secondRed = secondWarningRedOf(lines, line.userId);
+    if (secondRed && warningsOf(lines, line.userId).length === 2) {
       removed.push(secondRed);
+    }
+  }
+  if (line.userId && line.kind === "red_card") {
+    const warnings = warningsOf(lines, line.userId);
+    if (warnings.length >= 2) {
+      removed.push(warnings[warnings.length - 1]!);
     }
   }
   const removedIds = new Set(removed.map((candidate) => candidate.id));
@@ -259,14 +323,6 @@ export function removeLine(
     lines: lines.filter((candidate) => !removedIds.has(candidate.id)),
     removed,
   };
-}
-
-export function restoreLines(
-  lines: readonly MatchLogLine[],
-  removed: readonly MatchLogLine[],
-): MatchLogLine[] {
-  const ids = new Set(lines.map((line) => line.id));
-  return [...lines, ...removed.filter((line) => !ids.has(line.id))];
 }
 
 /** Minus on a side takes out the latest goal that counted for it. */
@@ -294,7 +350,8 @@ function replaceLine(
  * Names who the line is about. On a goal, a player of the side it counted
  * for makes it their goal and a player of the other side makes it an own
  * goal; either way the side, minute and time stay. A card follows the player
- * to their side.
+ * to their side, never onto a player already sent off, and the second
+ * warning rule is settled again for whoever lost or gained the card.
  */
 export function changePlayer(
   lines: readonly MatchLogLine[],
@@ -302,27 +359,34 @@ export function changePlayer(
   player: LogPlayer,
 ): MatchLogLine[] {
   const playerSide = player.sideIndex;
-  if (!playerSide) {
-    return [...lines];
-  }
   const line = lines.find((candidate) => candidate.id === id);
-  if (
-    line?.kind === "red_card" &&
-    line.userId !== player.userId &&
-    playerMarks(lines, player.userId).sentOff
-  ) {
+  if (!playerSide || !line || line.userId === player.userId) {
     return [...lines];
   }
-  return replaceLine(lines, id, (current) => {
-    if (isGoalLine(current)) {
-      return {
-        ...current,
-        userId: player.userId,
-        kind: playerSide === current.side ? "goal" : "own_goal",
-      };
-    }
-    return { ...current, userId: player.userId, side: playerSide };
-  });
+  if (isGoalLine(line)) {
+    return replaceLine(lines, id, (current) => ({
+      ...current,
+      userId: player.userId,
+      kind: playerSide === current.side ? "goal" : "own_goal",
+    }));
+  }
+  if (playerTally(lines, player.userId).sentOff) {
+    return [...lines];
+  }
+  const before = line.userId;
+  const lostSecondWarning =
+    line.kind === "warning" &&
+    before != null &&
+    warningsOf(lines, before).length === 2
+      ? secondWarningRedOf(lines, before)
+      : undefined;
+  const moved = replaceLine(
+    lines.filter((candidate) => candidate.id !== lostSecondWarning?.id),
+    id,
+    (current) => ({ ...current, userId: player.userId, side: playerSide }),
+  );
+  const settled = withSecondWarningReds(moved);
+  return settled.length <= MATCH_LOG_LINES_MAX ? settled : [...lines];
 }
 
 export function changeMinute(
@@ -347,6 +411,11 @@ export function changeRedCardReason(
 }
 
 type CountedLine = Pick<MatchLogLine, "kind" | "side" | "userId">;
+
+/** The Score as a line shows it once its goal is in. */
+export function logScoreLabel(score: { slot1: number; slot2: number }) {
+  return `${score.slot1}–${score.slot2}`;
+}
 
 export function logScore(lines: readonly CountedLine[]) {
   const score = { slot1: 0, slot2: 0 };
@@ -425,6 +494,28 @@ export function seedLogFromScore(
   return lines;
 }
 
+/**
+ * A stored log as the entry screen can save it again, after a player in it
+ * left the Game: their goal and their own goal stay as a goal nobody saw the
+ * scorer of, so the Score holds, and their cards go.
+ */
+export function keepLinesOnSides(
+  lines: readonly MatchLogLine[],
+  sideOf: (userId: string) => Side | null,
+): MatchLogLine[] {
+  return lines.flatMap((line): MatchLogLine[] => {
+    if (!line.userId) {
+      return [line];
+    }
+    const expected =
+      line.kind === "own_goal" ? otherSide(line.side) : line.side;
+    if (sideOf(line.userId) === expected) {
+      return [line];
+    }
+    return isGoalLine(line) ? [{ ...line, kind: "goal", userId: null }] : [];
+  });
+}
+
 export type MatchLogPayloadLine = Omit<MatchLogLine, "id">;
 
 /** What `saveFootballScore` takes: the lines oldest first, without ids. */
@@ -459,7 +550,8 @@ export function sameLog(
 /**
  * Why a saved log cannot stand, or null: each line's player must be on the
  * side the line says, a card and an own goal name their player, only a red
- * card has a reason, and a player is sent off at most once.
+ * card has a reason, a player is sent off at most once, and a player with two
+ * warnings is sent off and takes no third.
  */
 export function matchLogProblem(
   lines: readonly MatchLogPayloadLine[],
@@ -468,6 +560,7 @@ export function matchLogProblem(
 ) {
   const m = messagesFor(locale).football.matchLog.errors;
   const sentOff = new Set<string>();
+  const warnings = new Map<string, number>();
   for (const line of lines) {
     if (line.reason && line.kind !== "red_card") {
       return m.reasonOnRedOnly;
@@ -493,6 +586,14 @@ export function matchLogProblem(
       }
       sentOff.add(line.userId);
     }
+    if (line.kind === "warning") {
+      warnings.set(line.userId, (warnings.get(line.userId) ?? 0) + 1);
+    }
+  }
+  for (const [userId, count] of warnings) {
+    if (count > 2 || (count === 2 && !sentOff.has(userId))) {
+      return m.secondWarningSendsOff;
+    }
   }
   return null;
 }
@@ -517,7 +618,7 @@ export function logLineSub(
   locale: Locale,
 ) {
   const m = messagesFor(locale).football.matchLog;
-  const team = line.side === 1 ? names.slot1 : names.slot2;
+  const team = ofSide(names, line.side);
   switch (line.kind) {
     case "goal":
       return m.sub.goal(team);
@@ -541,7 +642,7 @@ export function removedLabel(
 ) {
   const m = messagesFor(locale).football.matchLog.removed;
   if (!name) {
-    return m.unknownGoal(line.side === 1 ? names.slot1 : names.slot2);
+    return m.unknownGoal(ofSide(names, line.side));
   }
   return m[kindKey(line.kind)](name);
 }
@@ -562,4 +663,86 @@ export function logLineName(
   return line.kind === "goal"
     ? m.football.matchLog.scorerUnknown
     : m.football.matchLog.playerUnknown;
+}
+
+type NamedPlayer = Pick<BoardPlayer, "userId" | "name" | "isViewer">;
+
+/** A log line read aloud: its minute, who, and what it was for which side. */
+export function logLineSpoken(
+  line: MatchLogLine,
+  players: readonly NamedPlayer[],
+  names: { slot1: string; slot2: string },
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
+  return [
+    m.football.matchLog.minuteSpoken(line.minute),
+    logLineName(line, players, locale),
+    logLineSub(line, names, locale),
+  ].join(m.common.listSeparator);
+}
+
+/** A timeline line read aloud: its minute, who, what, and the Score after a goal. */
+export function timelineLineSpoken(
+  line: MatchLogLine,
+  score: { slot1: number; slot2: number } | undefined,
+  players: readonly NamedPlayer[],
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
+  return [
+    m.football.matchLog.minuteSpoken(line.minute),
+    logLineName(line, players, locale),
+    m.football.matchLog.kind[kindKey(line.kind)],
+    score ? logScoreLabel(score) : null,
+  ]
+    .filter(Boolean)
+    .join(m.common.listSeparator);
+}
+
+/** A player's chip read aloud: who, their team, and what the log holds for them. */
+export function playerChipSpoken(
+  player: NamedPlayer,
+  team: string,
+  lines: readonly MatchLogLine[],
+  locale: Locale,
+) {
+  const m = messagesFor(locale);
+  const t = m.football.matchLog;
+  const tally = playerTally(lines, player.userId);
+  return [
+    t.playerOfTeam(player.isViewer ? m.common.you : player.name, team),
+    tally.goals > 0 ? t.chip.goals(tally.goals) : null,
+    tally.warnings > 0 ? t.chip.warned : null,
+    tally.sentOff ? t.chip.sentOff : null,
+  ]
+    .filter(Boolean)
+    .join(m.common.listSeparator);
+}
+
+/** What a log adds up to under its timeline, each list oldest first and named once. */
+export function logFacts(
+  lines: readonly MatchLogLine[],
+  players: readonly NamedPlayer[],
+  locale: Locale,
+) {
+  const m = messagesFor(locale).football.matchLog.confirm;
+  const ordered = chronological(lines);
+  const namesOf = (kept: readonly MatchLogLine[]) => [
+    ...new Set(kept.map((line) => logLineName(line, players, locale))),
+  ];
+  return {
+    scorers: namesOf(
+      ordered.filter((line) => line.kind === "goal" && line.userId),
+    ),
+    ownGoals: namesOf(ordered.filter((line) => line.kind === "own_goal")),
+    sentOff: sentOffLines(lines).map((line) =>
+      m.sentOffAt(logLineName(line, players, locale), line.minute),
+    ),
+    cards: cardCounts(lines),
+    cardsSpoken: [
+      m.warningsSpoken(cardCounts(lines).warnings),
+      m.redCardsSpoken(cardCounts(lines).redCards),
+    ].join(messagesFor(locale).common.listSeparator),
+  };
 }

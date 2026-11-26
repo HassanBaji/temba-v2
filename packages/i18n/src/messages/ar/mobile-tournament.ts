@@ -241,18 +241,6 @@ export const mobileTournament = {
     teamGoalsSr: (name: string, goals: number) => `${name} ${goals}`,
     oneGoalFewer: (name: string) => `هدف أقل لـ${name}`,
     oneGoalMore: (name: string) => `هدف أكثر لـ${name}`,
-    scorerSr: (name: string, team: string, goals: number) =>
-      plural("ar", goals, {
-        zero: `${name}، ${team}، بلا أهداف`,
-        one: `${name}، ${team}، هدف واحد`,
-        two: `${name}، ${team}، هدفان`,
-        few: `${name}، ${team}، {n} أهداف`,
-        many: `${name}، ${team}، {n} هدفًا`,
-        other: `${name}، ${team}، {n} هدف`,
-      }),
-    scorerHint: "انقر لإضافة هدف، واضغط مطوّلًا لإزالة هدف",
-    addAGoal: "أضف هدفًا",
-    takeAGoalAway: "أزل هدفًا",
     saved: "تم حفظ النتيجة",
     title: "النتيجة",
     loadFailed: "تعذّر تحميل المباراة",
@@ -265,8 +253,5 @@ export const mobileTournament = {
     saveScore: "حفظ النتيجة",
     editScore: "تعديل النتيجة",
     scoreMissing: "النتيجة ناقصة",
-    scorersOptional: "المسجّلون، اختياري",
-    tapToAdd: "انقر لإضافة هدف",
-    holdToRemove: "اضغط مطوّلًا على اسم لإزالة هدف.",
   },
 } satisfies typeof source;

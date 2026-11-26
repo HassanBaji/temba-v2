@@ -1,6 +1,10 @@
 "use client";
 
-import { shortName, type BoardPlayer } from "@repo/domain/football-board";
+import {
+  ofSide,
+  shortName,
+  type BoardPlayer,
+} from "@repo/domain/football-board";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import {
   RED_CARD_REASONS,
@@ -26,15 +30,11 @@ import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 
-import { CardMark } from "./football-log-parts";
+import { CardShape } from "./football-log-parts";
 import { sideMembers } from "./football-team-columns";
 import { type MatchLogEditor } from "./use-match-log-editor";
 
 type Names = { slot1: string; slot2: string };
-
-function teamOf(names: Names, side: 1 | 2) {
-  return side === 1 ? names.slot1 : names.slot2;
-}
 
 function ReasonChips({
   value,
@@ -147,7 +147,7 @@ export function RedCardSheet({
   const who = player
     ? t.playerOfTeam(
         player.isViewer ? m.common.you : shortName(player.name),
-        teamOf(names, player.sideIndex ?? 1),
+        ofSide(names, player.sideIndex ?? 1),
       )
     : "";
   return (
@@ -162,7 +162,7 @@ export function RedCardSheet({
       <ResponsiveDialogContent showCloseButton={false}>
         <ResponsiveDialogHeader>
           <div className="flex items-center gap-3.5">
-            <CardMark
+            <CardShape
               kind="red_card"
               className="h-[42px] w-[30px] rounded-[5px]"
             />
@@ -223,20 +223,20 @@ export function LogLineSheet({
     if (goal) {
       title = t.scorerSheet.title;
       description = t.scorerSheet.what(
-        teamOf(names, line.side),
+        ofSide(names, line.side),
         line.minute,
         formatGameClock(line.loggedAt, locale),
       );
       picks = (
         <>
           <PlayerPicks
-            label={teamOf(names, line.side)}
+            label={ofSide(names, line.side)}
             players={sideMembers(players, line.side)}
             selectedUserId={line.kind === "goal" ? line.userId : null}
             onPick={pick}
           />
           <PlayerPicks
-            label={t.scorerSheet.ownGoalBy(teamOf(names, otherSide(line.side)))}
+            label={t.scorerSheet.ownGoalBy(ofSide(names, otherSide(line.side)))}
             players={sideMembers(players, otherSide(line.side))}
             selectedUserId={line.kind === "own_goal" ? line.userId : null}
             onPick={pick}
@@ -248,7 +248,7 @@ export function LogLineSheet({
       picks = ([1, 2] as const).map((side) => (
         <PlayerPicks
           key={side}
-          label={teamOf(names, side)}
+          label={ofSide(names, side)}
           players={sideMembers(players, side)}
           selectedUserId={line.userId}
           onPick={pick}

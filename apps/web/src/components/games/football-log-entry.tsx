@@ -1,19 +1,27 @@
 "use client";
 
-import { shortName, type BoardPlayer } from "@repo/domain/football-board";
+import {
+  ofSide,
+  shortName,
+  type BoardPlayer,
+} from "@repo/domain/football-board";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import {
   LOG_MODES,
   kindKey,
   logLineName,
+  logLineSpoken,
   logLineSub,
+  logScoreLabel,
   newestFirst,
-  playerMarks,
+  playerChipSpoken,
+  playerTally,
   removedLabel,
   runningScores,
   type MatchLogLine,
 } from "@repo/domain/football-match-log";
 import { Plus, X } from "lucide-react";
+import * as React from "react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -22,7 +30,8 @@ import { Hatch } from "~/components/ui/hatch";
 import { RovingRadioGroup } from "~/components/ui/roving-radio-group";
 import { cn } from "~/lib/utils";
 
-import { CardMark, LogGlyph, scoreDash } from "./football-log-parts";
+import { CardShape, LogGlyph } from "./football-log-parts";
+import { LogLineSheet, RedCardSheet } from "./football-log-sheets";
 import { sideMembers } from "./football-team-columns";
 import { type MatchLogEditor } from "./use-match-log-editor";
 
@@ -40,26 +49,18 @@ function LogChip({
   onTap: () => void;
 }) {
   const m = useMessages();
-  const t = m.football.matchLog;
-  const marks = playerMarks(lines, player.userId);
+  const locale = useLocale();
+  const tally = playerTally(lines, player.userId);
   const name = player.isViewer ? m.common.you : shortName(player.name);
-  const spoken = [
-    t.playerOfTeam(player.name, team),
-    marks.goals > 0 ? t.chip.goals(marks.goals) : null,
-    marks.warnings > 0 ? t.chip.warned : null,
-    marks.sentOff ? t.chip.sentOff : null,
-  ]
-    .filter(Boolean)
-    .join(". ");
   return (
     <li>
       <button
         type="button"
-        aria-label={spoken}
+        aria-label={playerChipSpoken(player, team, lines, locale)}
         onClick={onTap}
         className={cn(
           "border-rule bg-paper focus-visible:ring-ring/50 flex h-10 items-center gap-[7px] rounded-full border pe-3 ps-[5px] outline-none focus-visible:ring-[3px]",
-          marks.sentOff && "text-muted-foreground",
+          tally.sentOff && "text-muted-foreground",
         )}
       >
         <UserAvatar
@@ -67,35 +68,33 @@ function LogChip({
           image={player.image}
           size="sm"
           guest={player.guest === true}
-          className={cn(marks.sentOff && "opacity-50")}
+          className={cn(tally.sentOff && "opacity-50")}
         />
         <span className="text-meta whitespace-nowrap font-semibold">
           {name}
         </span>
         <span className="text-muted-foreground text-[12px]">{team}</span>
-        {marks.goals > 0 ? (
+        {tally.goals > 0 ? (
           <span className="bg-control text-on-control flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] font-semibold tabular-nums">
-            {marks.goals}
+            {tally.goals}
           </span>
         ) : null}
-        {marks.warnings > 0 ? <CardMark kind="warning" /> : null}
-        {marks.sentOff ? <CardMark kind="red_card" /> : null}
+        {tally.warnings > 0 ? <CardShape kind="warning" /> : null}
+        {tally.sentOff ? <CardShape kind="red_card" /> : null}
       </button>
     </li>
   );
 }
 
 /** One choice above the names says what the next tap records. */
-export function WhatHappened({
+function WhatHappened({
   players,
   names,
   editor,
-  onRedCard,
 }: {
   players: readonly BoardPlayer[];
   names: Names;
   editor: MatchLogEditor;
-  onRedCard: (player: BoardPlayer) => void;
 }) {
   const t = useMessages().football.matchLog;
   const lines = editor.lines ?? [];
@@ -157,13 +156,9 @@ export function WhatHappened({
           <LogChip
             key={player.userId}
             player={player}
-            team={player.sideIndex === 1 ? names.slot1 : names.slot2}
+            team={ofSide(names, player.sideIndex ?? 1)}
             lines={lines}
-            onTap={() =>
-              editor.mode === "red_card"
-                ? onRedCard(player)
-                : editor.tapPlayer(player)
-            }
+            onTap={() => editor.tapPlayer(player)}
           />
         ))}
       </ul>
@@ -175,7 +170,7 @@ export function WhatHappened({
 }
 
 /** Every line with its minute and clock time, newest first; the cross takes one out. */
-export function MatchLogList({
+function MatchLogList({
   players,
   names,
   editor,
@@ -237,7 +232,7 @@ export function MatchLogList({
             const name = logLineName(line, players, locale);
             const sub = logLineSub(line, names, locale);
             const score = scores.get(line.id);
-            const what = `${t.minute(line.minute)} ${name}, ${sub}`;
+            const what = logLineSpoken(line, players, names, locale);
             return (
               <li
                 key={line.id}
@@ -271,7 +266,7 @@ export function MatchLogList({
                     </span>
                     {score ? (
                       <span className="font-expanded flex-none text-[15px] tabular-nums">
-                        {scoreDash(score)}
+                        {logScoreLabel(score)}
                       </span>
                     ) : null}
                   </button>
@@ -307,5 +302,50 @@ export function MatchLogList({
         {t.logNote}
       </p>
     </section>
+  );
+}
+
+/**
+ * Entering the Match log: what happened and who, the log itself, and the two
+ * sheets a red card and a line open.
+ */
+export function MatchLogEntry({
+  players,
+  names,
+  editor,
+}: {
+  players: readonly BoardPlayer[];
+  names: Names;
+  editor: MatchLogEditor;
+}) {
+  const [openLineId, setOpenLineId] = React.useState<string | null>(null);
+  const lines = editor.lines ?? [];
+  return (
+    <>
+      <WhatHappened players={players} names={names} editor={editor} />
+      <MatchLogList
+        players={players}
+        names={names}
+        editor={editor}
+        onOpenLine={setOpenLineId}
+      />
+      <RedCardSheet
+        player={
+          players.find(
+            (player) => player.userId === editor.redCardFor?.userId,
+          ) ?? null
+        }
+        names={names}
+        onCancel={editor.cancelRedCard}
+        onGive={editor.giveRedCard}
+      />
+      <LogLineSheet
+        line={lines.find((line) => line.id === openLineId) ?? null}
+        players={players}
+        names={names}
+        editor={editor}
+        onClose={() => setOpenLineId(null)}
+      />
+    </>
   );
 }

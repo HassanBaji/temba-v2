@@ -2,12 +2,13 @@
 
 import { type BoardPlayer } from "@repo/domain/football-board";
 import {
-  cardCounts,
   chronological,
   kindKey,
+  logFacts,
   logLineName,
+  logScoreLabel,
   runningScores,
-  sentOffLines,
+  timelineLineSpoken,
   type MatchLogLine,
 } from "@repo/domain/football-match-log";
 import * as React from "react";
@@ -15,7 +16,7 @@ import * as React from "react";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
 
-import { CardMark, LogGlyph, scoreDash } from "./football-log-parts";
+import { CardShape, LogGlyph } from "./football-log-parts";
 
 type Names = { slot1: string; slot2: string };
 
@@ -27,11 +28,9 @@ type Names = { slot1: string; slot2: string };
 export function MatchTimeline({
   lines,
   players,
-  names,
 }: {
   lines: readonly MatchLogLine[];
   players: readonly BoardPlayer[];
-  names: Names;
 }) {
   const locale = useLocale();
   const t = useMessages().football.matchLog;
@@ -41,9 +40,8 @@ export function MatchTimeline({
       {chronological(lines).map((line) => {
         const score = scores.get(line.id);
         const name = logLineName(line, players, locale);
-        const sub = score ? scoreDash(score) : t.kind[kindKey(line.kind)];
         const start = line.side === 1;
-        const event = (
+        const entry = (
           <span
             className={cn(
               "flex min-w-0 items-center gap-2.5",
@@ -53,11 +51,10 @@ export function MatchTimeline({
             {start ? null : <LogGlyph kind={line.kind} />}
             <span className="min-w-0">
               <span className="text-meta block font-semibold">
-                {name}
-                {line.kind === "own_goal" ? ` (${t.ownGoalTag})` : null}
+                {line.kind === "own_goal" ? t.ownGoalName(name) : name}
               </span>
               <span className="text-muted-foreground block text-[11px]">
-                {sub}
+                {score ? logScoreLabel(score) : t.kind[kindKey(line.kind)]}
               </span>
             </span>
             {start ? <LogGlyph kind={line.kind} /> : null}
@@ -66,17 +63,17 @@ export function MatchTimeline({
         return (
           <li
             key={line.id}
-            aria-label={`${t.minuteSpoken(line.minute)}. ${t.playerOfTeam(name, start ? names.slot1 : names.slot2)}. ${t.kind[kindKey(line.kind)]}${score ? `. ${scoreDash(score)}` : ""}`}
+            aria-label={timelineLineSpoken(line, score, players, locale)}
             className="border-rule grid grid-cols-[1fr_48px_1fr] items-center gap-2 border-t px-4 py-2.5"
           >
-            <span aria-hidden="true">{start ? event : null}</span>
+            <span aria-hidden="true">{start ? entry : null}</span>
             <span
               aria-hidden="true"
               className="font-expanded text-center text-[15px] tabular-nums"
             >
               {t.minute(line.minute)}
             </span>
-            <span aria-hidden="true">{start ? null : event}</span>
+            <span aria-hidden="true">{start ? null : entry}</span>
           </li>
         );
       })}
@@ -84,50 +81,62 @@ export function MatchTimeline({
   );
 }
 
-export function CardsValue({ lines }: { lines: readonly MatchLogLine[] }) {
-  const t = useMessages().football.matchLog.confirm;
-  const counts = cardCounts(lines);
+type Facts = ReturnType<typeof logFacts>;
+
+function CardsValue({ facts }: { facts: Facts }) {
   return (
     <span
-      aria-label={`${t.warningsSpoken(counts.warnings)}, ${t.redCardsSpoken(counts.redCards)}`}
+      aria-label={facts.cardsSpoken}
       className="flex items-center gap-3 font-semibold tabular-nums"
     >
       <span aria-hidden="true" className="flex items-center gap-1.5">
-        <CardMark kind="warning" />
-        {counts.warnings}
+        <CardShape kind="warning" />
+        {facts.cards.warnings}
       </span>
       <span aria-hidden="true" className="flex items-center gap-1.5">
-        <CardMark kind="red_card" />
-        {counts.redCards}
+        <CardShape kind="red_card" />
+        {facts.cards.redCards}
       </span>
     </span>
   );
 }
 
-export function sentOffValue(
+type Row = { label: string; value: React.ReactNode };
+
+/** The rows a log adds under its timeline; each shows only when the log has something for it. */
+export function useLogRows(
   lines: readonly MatchLogLine[],
   players: readonly BoardPlayer[],
-  locale: Parameters<typeof logLineName>[2],
-  sentOffAt: (name: string, minute: number) => string,
 ) {
-  const reds = sentOffLines(lines);
-  return reds.length > 0
-    ? reds
-        .map((line) =>
-          sentOffAt(logLineName(line, players, locale), line.minute),
-        )
-        .join(" · ")
-    : null;
+  const locale = useLocale();
+  const m = useMessages();
+  const t = m.football.matchLog.confirm;
+  const facts = logFacts(lines, players, locale);
+  const list = (label: string, values: readonly string[]): Row | null =>
+    values.length > 0
+      ? { label, value: values.join(m.common.listSeparator) }
+      : null;
+  return {
+    scorers: list(t.scorers, facts.scorers),
+    ownGoals: list(t.ownGoals, facts.ownGoals),
+    sentOff: list(t.sentOff, facts.sentOff),
+    cards:
+      facts.cards.warnings + facts.cards.redCards > 0
+        ? { label: t.cards, value: <CardsValue facts={facts} /> }
+        : null,
+    named: (label: string, name: string | null): Row | null =>
+      name ? { label, value: name } : null,
+  };
 }
 
-export function LogSummaryRows({
-  rows,
-}: {
-  rows: readonly { label: string; value: React.ReactNode }[];
-}) {
+export function LogSummaryRows({ rows }: { rows: readonly (Row | null)[] }) {
+  const shown = rows.filter((row) => row != null);
+  if (shown.length === 0) {
+    return null;
+  }
   return (
     <dl className="divide-rule border-rule divide-y overflow-hidden rounded-xl border">
-      {rows.map((row) => (
+      {shown.map((row) => (
         <div
           key={row.label}
           className="flex items-center justify-between gap-3 px-4 py-3"
@@ -152,41 +161,8 @@ export function FootballMatchLogCard({
   names: Names;
   confirmedByName: string | null;
 }) {
-  const locale = useLocale();
-  const m = useMessages();
-  const t = m.football.matchLog;
-  const separator = m.tournament.listSeparator;
-  const scorers = [
-    ...new Set(
-      chronological(lines)
-        .filter((line) => line.kind === "goal" && line.userId)
-        .map((line) => logLineName(line, players, locale)),
-    ),
-  ];
-  const ownGoals = [
-    ...new Set(
-      lines
-        .filter((line) => line.kind === "own_goal")
-        .map((line) => logLineName(line, players, locale)),
-    ),
-  ];
-  const counts = cardCounts(lines);
-  const sentOff = sentOffValue(lines, players, locale, t.confirm.sentOffAt);
-  const rows = [
-    scorers.length > 0
-      ? { label: t.confirm.scorers, value: scorers.join(separator) }
-      : null,
-    ownGoals.length > 0
-      ? { label: t.confirm.ownGoals, value: ownGoals.join(separator) }
-      : null,
-    counts.warnings + counts.redCards > 0
-      ? { label: t.confirm.cards, value: <CardsValue lines={lines} /> }
-      : null,
-    sentOff ? { label: t.confirm.sentOff, value: sentOff } : null,
-    confirmedByName
-      ? { label: t.confirm.confirmedBy, value: confirmedByName }
-      : null,
-  ].filter((row) => row != null);
+  const t = useMessages().football.matchLog;
+  const rows = useLogRows(lines, players);
   return (
     <section
       aria-labelledby="football-match-log-heading"
@@ -199,13 +175,18 @@ export function FootballMatchLogCard({
         >
           {t.title}
         </h2>
-        <MatchTimeline lines={lines} players={players} names={names} />
+        <MatchTimeline lines={lines} players={players} />
       </div>
-      {rows.length > 0 ? (
-        <div className="px-5">
-          <LogSummaryRows rows={rows} />
-        </div>
-      ) : null}
+      <div className="px-5">
+        <LogSummaryRows
+          rows={[
+            rows.scorers,
+            rows.ownGoals,
+            rows.cards,
+            rows.named(t.confirm.confirmedBy, confirmedByName),
+          ]}
+        />
+      </div>
       <p className="text-muted-foreground px-5 text-[12px] leading-normal">
         {t.confirm.sidesNote(names.slot1, names.slot2)}
       </p>

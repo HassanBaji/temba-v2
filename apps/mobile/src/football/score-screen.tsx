@@ -9,7 +9,6 @@ import {
   logPayload,
   logScore,
   logScorers,
-  playerMarks,
   seedLogFromScore,
 } from "@repo/domain/football-match-log";
 import { sideSizeLabel } from "@repo/domain/game-shape";
@@ -39,7 +38,7 @@ import { useMatchLog } from "./use-match-log";
 import {
   bibNames,
   byKeeperThenLevel,
-  type BoardPlayer,
+  ofSide,
   type Side,
 } from "@repo/domain/football-board";
 
@@ -61,7 +60,6 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
   const kickoff = game.data?.windowStart ?? null;
   const end = game.data?.windowEnd ?? null;
   const log = useMatchLog({ kickoff, end });
-  const [redFor, setRedFor] = useState<BoardPlayer | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const gameSettled = game.data != null || game.error != null;
 
@@ -78,6 +76,7 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
             kickoff,
             end,
           }),
+      board.data.players,
     );
   }, [board.data, gameSettled, kickoff, end, log]);
 
@@ -135,15 +134,8 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
     viewerSide === 1 ? names.slot2 : viewerSide === 2 ? names.slot1 : null;
   const step = (side: Side, delta: -1 | 1) =>
     delta > 0 ? log.addUnknownGoal(side) : log.removeLatestGoal(side);
-  const tapPlayer = (player: BoardPlayer) => {
-    if (log.mode !== "red_card") {
-      log.tapPlayer(player);
-    } else if (playerMarks(lines, player.userId).sentOff) {
-      log.setMode("goal");
-    } else {
-      setRedFor(player);
-    }
-  };
+  const redFor =
+    players.find((player) => player.userId === log.redCardFor?.userId) ?? null;
   const start = game.data?.windowStart ?? null;
   const detail = [
     start ? formatGameClock(start, locale) : null,
@@ -239,7 +231,7 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
         names={names}
         lines={lines}
         onMode={log.setMode}
-        onTapPlayer={tapPlayer}
+        onTapPlayer={log.tapPlayer}
       />
 
       <MatchLogSurface
@@ -260,17 +252,9 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
 
       <RedCardSheet
         player={redFor}
-        team={redFor?.sideIndex === 2 ? names.slot2 : names.slot1}
-        onCancel={() => {
-          setRedFor(null);
-          log.setMode("goal");
-        }}
-        onGive={(reason) => {
-          if (redFor) {
-            log.giveRedCard(redFor, reason);
-          }
-          setRedFor(null);
-        }}
+        team={ofSide(names, redFor?.sideIndex ?? 1)}
+        onCancel={log.cancelRedCard}
+        onGive={log.giveRedCard}
       />
       <LogLineSheet
         line={editing}

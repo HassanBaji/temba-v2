@@ -1,29 +1,27 @@
 import { spacing } from "@repo/design-tokens";
 import type { BoardPlayer, Side } from "@repo/domain/football-board";
 import {
-  cardCounts,
   chronological,
-  kindKey,
+  logFacts,
   logLineName,
+  logScoreLabel,
   runningScores,
-  sentOffLines,
+  timelineLineSpoken,
   type MatchLogLine,
 } from "@repo/domain/football-match-log";
-import type { Locale } from "@repo/i18n/locale";
-import type { Messages } from "@repo/i18n/messages";
 import { Fragment } from "react";
 import { View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
-import { CardMark, LogGlyph, scoreDash } from "./log-glyph";
+import { CardShape, LogGlyph } from "./log-glyph";
 
 const MINUTE_COLUMN = 44;
 
 type TimelinePlayer = Pick<BoardPlayer, "userId" | "name" | "isViewer">;
 
-function Event({
+function TimelineLine({
   line,
   side,
   score,
@@ -43,7 +41,7 @@ function Event({
       : line.kind === "red_card"
         ? m.kind.redCard
         : score
-          ? scoreDash(score)
+          ? logScoreLabel(score)
           : null;
   return (
     <View
@@ -82,24 +80,6 @@ function Event({
   );
 }
 
-function spokenLine(
-  line: MatchLogLine,
-  score: { slot1: number; slot2: number } | undefined,
-  players: readonly TimelinePlayer[],
-  locale: Locale,
-  messages: Messages,
-) {
-  const m = messages.football.matchLog;
-  return [
-    m.minuteSpoken(line.minute),
-    logLineName(line, players, locale),
-    m.kind[kindKey(line.kind)],
-    score ? scoreDash(score) : null,
-  ]
-    .filter(Boolean)
-    .join(messages.common.listSeparator);
-}
-
 /**
  * The Match log as a timeline, oldest first: the minute in the middle, the
  * first side's lines at the start and the second side's at the end. An own
@@ -115,27 +95,30 @@ export function MatchTimeline({
   inset?: number;
 }) {
   const locale = useLocale();
-  const messages = useMessages();
-  const m = messages.football.matchLog;
+  const m = useMessages().football.matchLog;
   const scores = runningScores(lines);
   return (
     <View>
       {chronological(lines).map((line, index) => {
         const score = scores.get(line.id);
-        const event = (
-          <Event line={line} side={line.side} score={score} players={players} />
+        const entry = (
+          <TimelineLine
+            line={line}
+            side={line.side}
+            score={score}
+            players={players}
+          />
         );
         return (
           <Fragment key={line.id}>
             {index > 0 ? <Hairline /> : null}
             <View
               accessible
-              accessibilityLabel={spokenLine(
+              accessibilityLabel={timelineLineSpoken(
                 line,
                 score,
                 players,
                 locale,
-                messages,
               )}
               style={{
                 flexDirection: "row",
@@ -146,7 +129,7 @@ export function MatchTimeline({
               }}
             >
               <View style={{ flex: 1, alignItems: "flex-end" }}>
-                {line.side === 1 ? event : null}
+                {line.side === 1 ? entry : null}
               </View>
               <View style={{ width: MINUTE_COLUMN, alignItems: "center" }}>
                 <Text weight="bold" width="expanded">
@@ -154,7 +137,7 @@ export function MatchTimeline({
                 </Text>
               </View>
               <View style={{ flex: 1, alignItems: "flex-start" }}>
-                {line.side === 2 ? event : null}
+                {line.side === 2 ? entry : null}
               </View>
             </View>
           </Fragment>
@@ -223,18 +206,10 @@ function CardCount({
 }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-      <CardMark kind={kind} />
+      <CardShape kind={kind} />
       <Text weight="semibold">{String(count)}</Text>
     </View>
   );
-}
-
-function namesOf(
-  lines: readonly MatchLogLine[],
-  players: readonly TimelinePlayer[],
-  locale: Locale,
-) {
-  return [...new Set(lines.map((line) => logLineName(line, players, locale)))];
 }
 
 /**
@@ -249,38 +224,21 @@ export function useLogFacts(
   const messages = useMessages();
   const m = messages.football.matchLog.confirm;
   const separator = messages.common.listSeparator;
-  const ordered = chronological(lines);
-  const counts = cardCounts(lines);
-  const scorers = namesOf(
-    ordered.filter((line) => line.kind === "goal" && line.userId),
-    players,
-    locale,
-  );
-  const ownGoals = namesOf(
-    ordered.filter((line) => line.kind === "own_goal"),
-    players,
-    locale,
-  );
-  const sentOff = sentOffLines(lines).map((line) =>
-    m.sentOffAt(logLineName(line, players, locale), line.minute),
-  );
+  const facts = logFacts(lines, players, locale);
   const cards: LogFact | null =
-    counts.warnings + counts.redCards > 0
+    facts.cards.warnings + facts.cards.redCards > 0
       ? {
           label: m.cards,
           value: (
             <View style={{ flexDirection: "row", gap: 14 }}>
-              <CardCount kind="warning" count={counts.warnings} />
-              <CardCount kind="red_card" count={counts.redCards} />
+              <CardCount kind="warning" count={facts.cards.warnings} />
+              <CardCount kind="red_card" count={facts.cards.redCards} />
             </View>
           ),
-          spoken: [
-            m.warningsSpoken(counts.warnings),
-            m.redCardsSpoken(counts.redCards),
-          ].join(separator),
+          spoken: facts.cardsSpoken,
         }
       : null;
-  const text = (label: string, values: string[]): LogFact | null =>
+  const text = (label: string, values: readonly string[]): LogFact | null =>
     values.length > 0
       ? {
           label,
@@ -290,9 +248,9 @@ export function useLogFacts(
       : null;
   return {
     cards,
-    scorers: text(m.scorers, scorers),
-    ownGoals: text(m.ownGoals, ownGoals),
-    sentOff: text(m.sentOff, sentOff),
+    scorers: text(m.scorers, facts.scorers),
+    ownGoals: text(m.ownGoals, facts.ownGoals),
+    sentOff: text(m.sentOff, facts.sentOff),
     row: (label: string, value: string | null) =>
       value ? text(label, [value]) : null,
   };

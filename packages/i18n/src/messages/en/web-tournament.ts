@@ -181,16 +181,11 @@ export const webTournament = {
     goalsOutput: (team: string) => `${team} goals`,
     oneGoalFewer: (team: string) => `One goal fewer for ${team}`,
     oneGoalMore: (team: string) => `One goal more for ${team}`,
-    addGoalLabel: (name: string, team: string, goals: number) =>
-      `Add a goal for ${name}, ${team}, ${goals} so far`,
-    takeGoalAway: (name: string) => `Take a goal away from ${name}`,
     savedToast: "Score saved",
     loadFailed: "The game could not be loaded",
     closedTitle: "The score is closed",
     closedBody:
       "The score opens at kick-off for players on the teams and the organizer, until both sides confirm it.",
-    scorersOptional: "Scorers, optional",
-    selectNameHint: "select a name to add a goal",
     saveScore: "Save score",
     otherConfirms: (team: string) =>
       `One player from ${team} confirms the score, the log and the cards.`,

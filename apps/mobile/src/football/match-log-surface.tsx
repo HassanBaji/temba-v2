@@ -3,7 +3,9 @@ import type { BoardPlayer } from "@repo/domain/football-board";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import {
   logLineName,
+  logLineSpoken,
   logLineSub,
+  logScoreLabel,
   newestFirst,
   removedLabel,
   runningScores,
@@ -21,7 +23,7 @@ import { Hatch } from "../primitives/hatch";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
-import { LogGlyph, scoreDash } from "./log-glyph";
+import { LogGlyph } from "./log-glyph";
 
 const MINUTE_COLUMN = 56;
 const GLYPH_COLUMN = 18;
@@ -77,9 +79,7 @@ function LogRow({
   const m = messages.football.matchLog;
   const name = logLineName(line, players, locale);
   const sub = logLineSub(line, names, locale);
-  const what = [m.minuteSpoken(line.minute), name, sub].join(
-    messages.common.listSeparator,
-  );
+  const what = logLineSpoken(line, players, names, locale);
   return (
     <View
       style={{
@@ -127,7 +127,7 @@ function LogRow({
         </View>
         {score ? (
           <Text weight="bold" ltr>
-            {scoreDash(score)}
+            {logScoreLabel(score)}
           </Text>
         ) : null}
       </Pressable>

@@ -6,27 +6,33 @@ import {
   changePlayer,
   changeRedCardReason,
   chronological,
+  keepLinesOnSides,
   logGoal,
+  logFacts,
   logLineName,
+  logLineSpoken,
   logLineSub,
   logOwnGoal,
   logPayload,
   logRedCard,
   logScore,
+  logScoreLabel,
   logScorers,
   logUnknownGoal,
   logWarning,
   matchLogProblem,
   matchMinute,
   newestFirst,
-  playerMarks,
+  playerChipSpoken,
+  playerTally,
   removedLabel,
   removeLatestGoal,
   removeLine,
-  restoreLines,
   runningScores,
   sameLog,
   seedLogFromScore,
+  timelineLineSpoken,
+  MATCH_LOG_LINES_MAX,
   type MatchLogLine,
 } from "./football-match-log";
 
@@ -89,7 +95,7 @@ describe("logging lines", () => {
     expect(lines[0]).toMatchObject({ kind: "own_goal", side: 1 });
     expect(logScore(lines)).toEqual({ slot1: 1, slot2: 0 });
     expect(logScorers(lines)).toEqual([]);
-    expect(playerMarks(lines, "omar").goals).toBe(0);
+    expect(playerTally(lines, "omar").goals).toBe(0);
   });
 
   it("adds a goal nobody saw the scorer of", () => {
@@ -100,7 +106,7 @@ describe("logging lines", () => {
 
   it("gives a red card on its own at a second warning", () => {
     let lines = logWarning([], bader, stamp("w1", 11));
-    expect(playerMarks(lines, "bader")).toEqual({
+    expect(playerTally(lines, "bader")).toEqual({
       goals: 0,
       warnings: 1,
       sentOff: false,
@@ -111,7 +117,7 @@ describe("logging lines", () => {
       ["w2", "warning", null],
       ["w2-red", "red_card", "second_warning"],
     ]);
-    expect(playerMarks(lines, "bader").sentOff).toBe(true);
+    expect(playerTally(lines, "bader").sentOff).toBe(true);
   });
 
   it("gives no more cards to a player already sent off", () => {
@@ -150,7 +156,7 @@ describe("removing and restoring lines", () => {
   it("takes the second-warning red card out with its warning", () => {
     const { lines, removed } = removeLine(game(), "w1");
     expect(removed.map((line) => line.id)).toEqual(["w1", "w2-red"]);
-    expect(playerMarks(lines, "bader")).toMatchObject({
+    expect(playerTally(lines, "bader")).toMatchObject({
       warnings: 1,
       sentOff: false,
     });
@@ -162,12 +168,21 @@ describe("removing and restoring lines", () => {
     expect(removeLine(lines, "w1").removed).toHaveLength(1);
   });
 
-  it("brings removed lines back with Undo", () => {
-    const before = game();
-    const { lines, removed } = removeLine(before, "w2");
-    expect(chronological(restoreLines(lines, removed))).toEqual(
-      chronological(before),
-    );
+  it("takes a player's latest warning out with the red card two warnings gave", () => {
+    const { lines, removed } = removeLine(game(), "w2-red");
+    expect(removed.map((line) => line.id)).toEqual(["w2-red", "w2"]);
+    expect(playerTally(lines, "bader")).toMatchObject({
+      warnings: 1,
+      sentOff: false,
+    });
+  });
+
+  it("takes out a straight red card alone", () => {
+    let lines = logWarning([], bader, stamp("w1", 11));
+    lines = logRedCard(lines, bader, "dissent", stamp("r", 20));
+    expect(removeLine(lines, "r").removed.map((line) => line.id)).toEqual([
+      "r",
+    ]);
   });
 
   it("does nothing for a line that is not there", () => {
@@ -389,5 +404,202 @@ describe("logLineName", () => {
     expect(
       logLineName({ kind: "warning", userId: "gone" }, players, "en"),
     ).toBe("Player not known");
+  });
+});
+
+describe("order", () => {
+  const reloaded = (lines: readonly MatchLogLine[]) =>
+    chronological(lines).map((line, index) => ({
+      ...line,
+      id: `row-${String(1000 - index)}`,
+    }));
+
+  it("keeps a second warning ahead of its red card after the log is loaded again", () => {
+    let lines = logWarning([], bader, stamp("w1", 11));
+    lines = logWarning(lines, bader, stamp("w2", 38));
+    const again = reloaded(lines);
+    expect(chronological(again).map((line) => line.kind)).toEqual([
+      "warning",
+      "warning",
+      "red_card",
+    ]);
+    expect(sameLog(logPayload(lines), logPayload(again))).toBe(true);
+  });
+
+  it("keeps lines seeded at one moment in order across a reload", () => {
+    const lines = seedLogFromScore(
+      { slot1: 3, slot2: 2 },
+      [
+        { ...ali, goals: 2 },
+        { ...omar, goals: 1 },
+      ],
+      { at: at(70), kickoff },
+    );
+    expect(sameLog(logPayload(lines), logPayload(reloaded(lines)))).toBe(true);
+  });
+});
+
+describe("the second warning rule under edits", () => {
+  const twice = () => {
+    let lines = logWarning([], bader, stamp("w1", 11));
+    lines = logWarning(lines, bader, stamp("w2", 38));
+    return lines;
+  };
+  const sideOf = (userId: string) =>
+    (({ ali: 1, you: 1, omar: 2, bader: 2 })[userId] as 1 | 2 | undefined) ??
+    null;
+  const stands = (lines: MatchLogLine[]) =>
+    matchLogProblem(logPayload(lines), sideOf, "en");
+
+  it("takes the red card back when a warning moves to another player", () => {
+    const lines = changePlayer(twice(), "w2", omar);
+    expect(playerTally(lines, "bader")).toMatchObject({
+      warnings: 1,
+      sentOff: false,
+    });
+    expect(playerTally(lines, "omar")).toMatchObject({
+      warnings: 1,
+      sentOff: false,
+    });
+    expect(stands(lines)).toBeNull();
+  });
+
+  it("gives the red card when a moved warning is the player's second", () => {
+    let lines = logWarning([], bader, stamp("w1", 11));
+    lines = logWarning(lines, omar, stamp("w2", 20));
+    lines = changePlayer(lines, "w2", bader);
+    expect(
+      chronological(lines).map((line) => [line.kind, line.userId]),
+    ).toEqual([
+      ["warning", "bader"],
+      ["warning", "bader"],
+      ["red_card", "bader"],
+    ]);
+    expect(lines[2]).toMatchObject({ reason: "second_warning", minute: 20 });
+    expect(stands(lines)).toBeNull();
+  });
+
+  it("does not move a warning onto a player already sent off", () => {
+    let lines = logRedCard([], bader, "dissent", stamp("r", 10));
+    lines = logWarning(lines, omar, stamp("w", 12));
+    expect(changePlayer(lines, "w", bader)).toEqual(lines);
+  });
+
+  it("gives a player with two warnings a red card again when theirs moves away", () => {
+    const lines = changePlayer(twice(), "w2-red", omar);
+    expect(playerTally(lines, "omar").sentOff).toBe(true);
+    expect(playerTally(lines, "bader")).toMatchObject({
+      warnings: 2,
+      sentOff: true,
+    });
+    expect(new Set(lines.map((line) => line.id)).size).toBe(lines.length);
+    expect(stands(lines)).toBeNull();
+  });
+
+  it("is checked on save", () => {
+    const [first, second] = twice();
+    expect(stands([first!, second!])).toBe(
+      "A second warning sends the player off",
+    );
+    expect(stands([...twice(), { ...first!, id: "w3", minute: 50 }])).toBe(
+      "A second warning sends the player off",
+    );
+    expect(stands(twice())).toBeNull();
+  });
+});
+
+describe("what a log can hold", () => {
+  it("stops a side at 99 goals", () => {
+    let lines: MatchLogLine[] = [];
+    for (let goal = 0; goal < 105; goal += 1) {
+      lines = logUnknownGoal(lines, 1, stamp(`g${String(goal)}`, 5));
+    }
+    expect(logScore(lines).slot1).toBe(99);
+    expect(logGoal(lines, ali, stamp("x", 6))).toHaveLength(99);
+    expect(logOwnGoal(lines, omar, stamp("y", 6))).toHaveLength(99);
+    expect(logGoal(lines, omar, stamp("z", 6))).toHaveLength(100);
+  });
+
+  it("stops at the most lines a save takes, leaving room for a second warning's red card", () => {
+    let lines: MatchLogLine[] = [];
+    for (let goal = 0; goal < 99; goal += 1) {
+      lines = logUnknownGoal(lines, 1, stamp(`a${String(goal)}`, 5));
+      lines = logUnknownGoal(lines, 2, stamp(`b${String(goal)}`, 5));
+    }
+    lines = logWarning(lines, ali, stamp("w", 6));
+    expect(lines).toHaveLength(MATCH_LOG_LINES_MAX - 1);
+    expect(logWarning(lines, bader, stamp("w2", 7))).toHaveLength(
+      MATCH_LOG_LINES_MAX - 1,
+    );
+    lines = logRedCard(lines, bader, null, stamp("r", 8));
+    expect(lines).toHaveLength(MATCH_LOG_LINES_MAX);
+    expect(logRedCard(lines, omar, null, stamp("r2", 9))).toHaveLength(
+      MATCH_LOG_LINES_MAX,
+    );
+  });
+
+  it("keeps the Score when a player in the log has left the Game", () => {
+    let lines = logGoal([], ali, stamp("g", 6));
+    lines = logOwnGoal(lines, omar, stamp("og", 9));
+    lines = logWarning(lines, omar, stamp("w", 12));
+    lines = logGoal(lines, bader, stamp("g2", 20));
+    const kept = keepLinesOnSides(lines, (userId) =>
+      userId === "bader" ? 2 : null,
+    );
+    expect(kept.map((line) => [line.kind, line.userId])).toEqual([
+      ["goal", null],
+      ["goal", null],
+      ["goal", "bader"],
+    ]);
+    expect(logScore(kept)).toEqual(logScore(lines));
+  });
+});
+
+describe("read aloud and added up", () => {
+  const players = [
+    { userId: "ali", name: "Ali Khalil", isViewer: false },
+    { userId: "omar", name: "Omar Malik", isViewer: false },
+    { userId: "bader", name: "Bader Hasan", isViewer: false },
+  ];
+  const game = () => {
+    let lines = logGoal([], ali, stamp("a", 6));
+    lines = logOwnGoal(lines, omar, stamp("b", 24));
+    lines = logWarning(lines, bader, stamp("w1", 30));
+    lines = logWarning(lines, bader, stamp("w2", 38));
+    lines = logGoal(lines, ali, stamp("c", 47));
+    return lines;
+  };
+
+  it("reads a log line and a timeline line", () => {
+    const lines = game();
+    expect(logLineSpoken(lines[1]!, players, names, "en")).toBe(
+      "minute 24, Omar M, Own goal, counts for Black",
+    );
+    expect(
+      timelineLineSpoken(lines[0]!, { slot1: 1, slot2: 0 }, players, "en"),
+    ).toBe("minute 6, Ali K, Goal, 1–0");
+    expect(timelineLineSpoken(lines[2]!, undefined, players, "ar")).toContain(
+      "، ",
+    );
+    expect(logScoreLabel({ slot1: 2, slot2: 1 })).toBe("2–1");
+  });
+
+  it("reads a player's chip", () => {
+    expect(playerChipSpoken(players[2]!, "White", game(), "en")).toBe(
+      "Bader Hasan, White, warned, sent off",
+    );
+    expect(playerChipSpoken(players[0]!, "Black", game(), "en")).toBe(
+      "Ali Khalil, Black, 2 goals",
+    );
+  });
+
+  it("adds the log up, each name once and oldest first", () => {
+    expect(logFacts(game(), players, "en")).toEqual({
+      scorers: ["Ali K"],
+      ownGoals: ["Omar M"],
+      sentOff: ["Bader H, 38′"],
+      cards: { warnings: 2, redCards: 1 },
+      cardsSpoken: "2 warnings, 1 red card",
+    });
   });
 });

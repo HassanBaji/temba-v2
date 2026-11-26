@@ -990,4 +990,92 @@ describe("football Match log", () => {
       expect(board.match?.log).toEqual([]);
     });
   });
+
+  it("shows the log to its sides and Organizers until the Score is confirmed, then to everyone on the Game", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await publish(f, [a!, b!], [c!, d!]);
+      const watcher = await insertUser(f.db, "watcher");
+      const game = await f.db.query.games.findFirst({
+        where: eq(games.id, f.gameId),
+        columns: { groupId: true },
+      });
+      await f.db
+        .insert(groupMembers)
+        .values({ groupId: game!.groupId!, userId: watcher.id });
+      await saveFootballScore(
+        f.db,
+        {
+          gameId: f.gameId,
+          userId: a!.id,
+          slot1Goals: 0,
+          slot2Goals: 0,
+          scorers: [],
+          log: [
+            {
+              kind: "warning",
+              side: 2,
+              userId: d!.id,
+              minute: 11,
+              loggedAt: kickoffPlus(11),
+              reason: null,
+            },
+          ],
+        },
+        AFTER_KICKOFF(),
+      );
+      const logSeenBy = async (userId: string) =>
+        (await footballBoard(f.db, { gameId: f.gameId, userId })).match?.log
+          .length;
+      expect(await logSeenBy(c!.id)).toBe(1);
+      expect(await logSeenBy(f.organizer.id)).toBe(1);
+      expect(await logSeenBy(watcher.id)).toBe(0);
+
+      const match = await f.db.query.matches.findFirst({
+        where: eq(matches.gameId, f.gameId),
+      });
+      await confirmMatchResult(f.db, {
+        gameId: f.gameId,
+        matchId: match!.id,
+        userId: c!.id,
+      });
+      expect(await logSeenBy(watcher.id)).toBe(1);
+    });
+  });
+
+  it("refuses two warnings without the red card they give", async () => {
+    await withFootballGame(async (f) => {
+      const [a, b, c, d] = await addPlayers(f, 4);
+      await publish(f, [a!, b!], [c!, d!]);
+      const warning = (minute: number) => ({
+        kind: "warning" as const,
+        side: 2 as const,
+        userId: d!.id,
+        minute,
+        loggedAt: kickoffPlus(minute),
+        reason: null,
+      });
+      const save = (log: Parameters<typeof saveFootballScore>[1]["log"]) =>
+        saveFootballScore(
+          f.db,
+          {
+            gameId: f.gameId,
+            userId: a!.id,
+            slot1Goals: 0,
+            slot2Goals: 0,
+            scorers: [],
+            log,
+          },
+          AFTER_KICKOFF(),
+        );
+      await expect(save([warning(11), warning(38)])).rejects.toThrow(
+        "A second warning sends the player off",
+      );
+      await save([
+        warning(11),
+        warning(38),
+        { ...warning(38), kind: "red_card", reason: "second_warning" },
+      ]);
+    });
+  });
 });

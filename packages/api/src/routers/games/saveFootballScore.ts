@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { asc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -38,6 +38,7 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { isGameOrganizer, requireGame, type GameRow } from "#src/games/access";
 import { loadChallengeSides } from "#src/games/challenge-squad";
+import { loadMatchLog } from "#src/games/football-match-log";
 import {
   FOOTBALL_SCORE_SET_NUMBER,
   assertFootballGame,
@@ -109,32 +110,6 @@ type ScoreArgs = {
   log?: MatchLogPayloadLine[];
   locale?: Locale;
 };
-
-async function storedLog(
-  database: DbClient,
-  matchId: string,
-): Promise<MatchLogPayloadLine[]> {
-  const rows = await database.query.matchEvents.findMany({
-    where: eq(matchEvents.matchId, matchId),
-    columns: {
-      kind: true,
-      sideIndex: true,
-      userId: true,
-      minute: true,
-      loggedAt: true,
-      reason: true,
-    },
-    orderBy: asc(matchEvents.position),
-  });
-  return rows.map((row) => ({
-    kind: row.kind,
-    side: row.sideIndex === 1 ? 1 : 2,
-    userId: row.userId,
-    minute: row.minute,
-    loggedAt: row.loggedAt,
-    reason: row.reason,
-  }));
-}
 
 async function checkAndWriteScore(
   database: DbClient,
@@ -243,7 +218,7 @@ async function checkAndWriteScore(
     args.scorers,
   );
   // The log and its cards are confirmed with the Score.
-  const logBefore = await storedLog(database, match.id);
+  const logBefore = await loadMatchLog(database, match.id);
   const nextLog = args.log ?? (scoreChanged || scorersChanged ? [] : logBefore);
   const logChanged = !sameLog(logBefore, nextLog);
 

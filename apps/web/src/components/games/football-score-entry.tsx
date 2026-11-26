@@ -37,8 +37,7 @@ import { api } from "~/trpc/react";
 import { OWN_ERROR_UI } from "~/trpc/query-client";
 
 import { BibChip } from "./football-bibs";
-import { MatchLogList, WhatHappened } from "./football-log-entry";
-import { LogLineSheet, RedCardSheet } from "./football-log-sheets";
+import { MatchLogEntry } from "./football-log-entry";
 import { sideMembers } from "./football-team-columns";
 import { useMatchLogEditor } from "./use-match-log-editor";
 
@@ -118,8 +117,6 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
     kickoff: game.data?.windowStart ?? null,
     end: game.data?.windowEnd ?? null,
   });
-  const [redCardFor, setRedCardFor] = React.useState<BoardPlayer | null>(null);
-  const [openLineId, setOpenLineId] = React.useState<string | null>(null);
   const gameHref = `/dashboard/games/${gameId}`;
 
   React.useEffect(() => {
@@ -144,6 +141,7 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
                 end: game.data.windowEnd,
               },
             ),
+        board.data.players,
       );
     }
   }, [board.data, game.data, editor.lines, startLog]);
@@ -220,7 +218,6 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
     const score = logScore(lines);
     const step = (side: Side, delta: -1 | 1) =>
       delta === 1 ? editor.addUnknownGoal(side) : editor.removeLatestGoal(side);
-    const openLine = lines.find((line) => line.id === openLineId) ?? null;
     body = (
       <div className="space-y-5">
         <section className="border-rule bg-paper overflow-hidden rounded-xl border">
@@ -245,38 +242,7 @@ export function FootballScoreEntry({ gameId }: { gameId: string }) {
           </p>
         </section>
 
-        <WhatHappened
-          players={players}
-          names={names}
-          editor={editor}
-          onRedCard={setRedCardFor}
-        />
-
-        <MatchLogList
-          players={players}
-          names={names}
-          editor={editor}
-          onOpenLine={setOpenLineId}
-        />
-
-        <RedCardSheet
-          player={redCardFor}
-          names={names}
-          onCancel={() => setRedCardFor(null)}
-          onGive={(reason) => {
-            if (redCardFor) {
-              editor.giveRedCard(redCardFor, reason);
-            }
-            setRedCardFor(null);
-          }}
-        />
-        <LogLineSheet
-          line={openLine}
-          players={players}
-          names={names}
-          editor={editor}
-          onClose={() => setOpenLineId(null)}
-        />
+        <MatchLogEntry players={players} names={names} editor={editor} />
 
         {save.error ? (
           <p role="alert" className="text-destructive text-meta">

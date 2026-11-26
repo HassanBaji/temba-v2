@@ -84,17 +84,6 @@ export const football = {
     ) => `Everyone placed. ${team1} avg ${average1}, ${team2} avg ${average2}.`,
     keeperCount: (n: number) =>
       plural("en", n, { one: "1 keeper", other: "{n} keepers" }),
-    goalsNote:
-      "Goals count toward player form, not rating. Skip if nobody kept track.",
-    goalsNamed: (
-      named1: number,
-      score1: number,
-      team1: string,
-      named2: number,
-      score2: number,
-      team2: string,
-    ) =>
-      `${named1} of ${score1} ${team1} goals and ${named2} of ${score2} ${team2} goals named.`,
     bothSidesConfirmed: "Both sides confirmed.",
     confirmedByOrganizer: "Confirmed by the Organizer.",
     waitingOrganizerFor: (team: string) =>
@@ -475,6 +464,7 @@ export const football = {
       warning: "Warning",
       redCard: "Red card",
     },
+    ownGoalName: (name: string) => `${name} (own goal)`,
     ownGoalTag: "own goal",
     reasons: {
       second_warning: "Second warning",
@@ -541,6 +531,7 @@ export const football = {
       linePlayer: "A player in the match log is not on the teams",
       linePlayerNeeded: "Name the player for every card and own goal",
       reasonOnRedOnly: "Only a red card has a reason",
+      secondWarningSendsOff: "A second warning sends the player off",
       sentOffOnce: "A player can be sent off once",
       logMatchesScore: "The match log must add up to the score",
       logMatchesScorers: "The match log must name the same scorers",

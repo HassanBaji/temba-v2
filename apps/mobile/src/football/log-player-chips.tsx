@@ -3,20 +3,21 @@ import { shortName, type BoardPlayer } from "@repo/domain/football-board";
 import {
   LOG_MODES,
   kindKey,
-  playerMarks,
+  playerChipSpoken,
+  playerTally,
   type MatchLogKind,
   type MatchLogLine,
 } from "@repo/domain/football-match-log";
 import { Pressable, View } from "react-native";
 
-import { useMessages } from "../i18n/locale-provider";
+import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
-import { CardMark, LogGlyph } from "./log-glyph";
+import { CardShape, LogGlyph } from "./log-glyph";
 
 const MODE_HEIGHT = 52;
 const BADGE = 18;
@@ -106,22 +107,14 @@ function LogPlayerChip({
   onPress: () => void;
 }) {
   const messages = useMessages();
+  const locale = useLocale();
   const colors = useColors();
-  const m = messages.football.matchLog;
-  const marks = playerMarks(lines, player.userId);
+  const tally = playerTally(lines, player.userId);
   const name = player.isViewer ? messages.common.you : shortName(player.name);
-  const spoken = [
-    m.playerOfTeam(player.isViewer ? messages.common.you : player.name, team),
-    marks.goals > 0 ? m.chip.goals(marks.goals) : null,
-    marks.warnings > 0 ? m.chip.warned : null,
-    marks.sentOff ? m.chip.sentOff : null,
-  ]
-    .filter(Boolean)
-    .join(messages.common.listSeparator);
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={spoken}
+      accessibilityLabel={playerChipSpoken(player, team, lines, locale)}
       accessibilityHint={hint}
       onPress={onPress}
       style={({ pressed }) => ({
@@ -135,7 +128,7 @@ function LogPlayerChip({
         borderWidth: hairline,
         borderColor: colors.rule,
         backgroundColor: colors.paper,
-        opacity: pressed ? 0.8 : marks.sentOff ? SENT_OFF_OPACITY : 1,
+        opacity: pressed ? 0.8 : tally.sentOff ? SENT_OFF_OPACITY : 1,
       })}
     >
       <Avatar
@@ -150,9 +143,9 @@ function LogPlayerChip({
       <Text size="eyebrow" tone="muted">
         {team}
       </Text>
-      {marks.goals > 0 ? <GoalBadge goals={marks.goals} /> : null}
-      {marks.warnings > 0 ? <CardMark kind="warning" /> : null}
-      {marks.sentOff ? <CardMark kind="red_card" /> : null}
+      {tally.goals > 0 ? <GoalBadge goals={tally.goals} /> : null}
+      {tally.warnings > 0 ? <CardShape kind="warning" /> : null}
+      {tally.sentOff ? <CardShape kind="red_card" /> : null}
     </Pressable>
   );
 }

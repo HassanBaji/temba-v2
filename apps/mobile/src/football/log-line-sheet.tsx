@@ -1,5 +1,9 @@
 import { radii } from "@repo/design-tokens";
-import { shortName, type BoardPlayer } from "@repo/domain/football-board";
+import {
+  ofSide,
+  shortName,
+  type BoardPlayer,
+} from "@repo/domain/football-board";
 import { formatGameClock } from "@repo/domain/format-game-start";
 import {
   MATCH_LOG_MINUTE_MAX,
@@ -199,7 +203,6 @@ export function LogLineSheet({
   const locale = useLocale();
   const m = useMessages().football.matchLog;
   const goal = line ? isGoalLine(line) : false;
-  const nameOf = (side: 1 | 2) => (side === 1 ? names.slot1 : names.slot2);
   const sideOf = (side: 1 | 2) =>
     players.filter((player) => player.sideIndex === side);
 
@@ -215,7 +218,7 @@ export function LogLineSheet({
         line
           ? goal
             ? m.scorerSheet.what(
-                nameOf(line.side),
+                ofSide(names, line.side),
                 line.minute,
                 formatGameClock(line.loggedAt, locale),
               )
@@ -229,13 +232,15 @@ export function LogLineSheet({
           {goal ? (
             <>
               <PlayerGroup
-                label={nameOf(line.side)}
+                label={ofSide(names, line.side)}
                 players={sideOf(line.side)}
                 selectedId={line.kind === "goal" ? line.userId : null}
                 onPick={(player) => onChangePlayer(line.id, player)}
               />
               <PlayerGroup
-                label={m.scorerSheet.ownGoalBy(nameOf(otherSide(line.side)))}
+                label={m.scorerSheet.ownGoalBy(
+                  ofSide(names, otherSide(line.side)),
+                )}
                 players={sideOf(otherSide(line.side))}
                 selectedId={line.kind === "own_goal" ? line.userId : null}
                 onPick={(player) => onChangePlayer(line.id, player)}
@@ -247,7 +252,7 @@ export function LogLineSheet({
               {([1, 2] as const).map((side) => (
                 <PlayerGroup
                   key={side}
-                  label={nameOf(side)}
+                  label={ofSide(names, side)}
                   players={sideOf(side)}
                   selectedId={line.userId}
                   onPick={(player) => onChangePlayer(line.id, player)}
