@@ -1,7 +1,12 @@
 import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
-import { formatMonth } from "./format-game-start";
+import {
+  formatGameClock,
+  formatGameDay,
+  formatMonth,
+  gameDayProximity,
+} from "./format-game-start";
 import type { FootballBib } from "./football-lineup";
 import { firstName } from "./game-card";
 import { shortPlayerName } from "./player-name";
@@ -55,7 +60,7 @@ export function seriesRowLine(
 }
 
 /**
- * The Series page's third figure (design 3b): the month the Series was
+ * The Series page's third figure (design 05): the month the Series was
  * created, "running since", or the month it ended; the year too when it is
  * not this year.
  */
@@ -199,4 +204,122 @@ export function seriesWinWho(
 export function seriesWinWithLine(partners: SeriesWinWith, locale: Locale) {
   const who = seriesWinWho(partners, "full", locale);
   return who ? messagesFor(locale).series.profile.with(who) : null;
+}
+
+/** A winner's line on the Series page: "Won edition 1" for one win, else the latest. */
+export function seriesWinnerLine(
+  winner: { wins: number; lastWonEdition: number },
+  locale: Locale,
+) {
+  const m = messagesFor(locale).series.page;
+  return winner.wins === 1
+    ? m.wonEdition(winner.lastWonEdition)
+    : m.lastWon(winner.lastWonEdition);
+}
+
+export type SeriesEditionField = {
+  field: { unit: "teams" | "players"; count: number } | null;
+  points: number | null;
+  score: { winner: number; loser: number } | null;
+};
+
+/**
+ * How big an Edition's field was, with the winners' points where the result
+ * is a table ("8 teams, 19 points"; games won on an Americano), or a football
+ * Game's score from the winning side. Null with none of them.
+ */
+export function seriesEditionFieldLine(
+  edition: SeriesEditionField,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).series.page;
+  if (edition.score) {
+    return m.score(edition.score.winner, edition.score.loser);
+  }
+  if (!edition.field) {
+    return null;
+  }
+  const players = edition.field.unit === "players";
+  const field = players
+    ? m.players(edition.field.count)
+    : m.teams(edition.field.count);
+  if (edition.points === null) {
+    return field;
+  }
+  return m.fieldWithPoints(
+    field,
+    players ? m.gamesWon(edition.points) : m.points(edition.points),
+  );
+}
+
+export type SeriesNextEdition = {
+  edition: number;
+  startsAt: Date | null;
+  state: "upcoming" | "live" | "awaiting";
+  venueName: string | null;
+  taken: number;
+  capacity: number | null;
+};
+
+/**
+ * The next Edition's card (design 05): which Edition and when, or that it is
+ * on now or waiting for its result; then where and how full it is, or that
+ * its winners become the holders.
+ */
+export function seriesNextEditionLines(
+  next: SeriesNextEdition,
+  locale: Locale,
+  now: Date = new Date(),
+) {
+  const messages = messagesFor(locale);
+  const m = messages.series.page;
+  const day = next.startsAt
+    ? gameDayProximity(next.startsAt, now) === "today"
+      ? messages.common.today
+      : formatGameDay(next.startsAt, locale, { weekday: "short" })
+    : null;
+  const time = next.startsAt ? formatGameClock(next.startsAt, locale) : null;
+  if (next.state === "upcoming") {
+    const where =
+      time && next.venueName
+        ? m.nextWhere(time, next.venueName)
+        : (time ?? next.venueName);
+    return {
+      title: day ? m.nextOn(next.edition, day) : m.edition(next.edition),
+      line: m.sentences(
+        [where, m.nextFill(next.taken, next.capacity)].filter(
+          (part): part is string => part !== null,
+        ),
+      ),
+    };
+  }
+  const when = day && time ? m.nextWhen(day, time) : null;
+  return {
+    title:
+      next.state === "live"
+        ? m.nextLive(next.edition)
+        : m.nextAwaiting(next.edition),
+    line: m.sentences(
+      [when, m.becomeHolders].filter((part): part is string => part !== null),
+    ),
+  };
+}
+
+/** The viewer's own line on the Series page: what they won and played of it. */
+export function seriesViewerLine(
+  viewer: {
+    played: number;
+    decided: number;
+    wins: number;
+    lastWonEdition: number | null;
+  },
+  locale: Locale,
+) {
+  const m = messagesFor(locale).series.page;
+  if (viewer.wins > 0 && viewer.lastWonEdition !== null) {
+    return m.youWon(viewer.wins, viewer.played, viewer.lastWonEdition);
+  }
+  return viewer.played > 0
+    ? m.youPlayed(viewer.played, viewer.decided)
+    : m.youNotPlayed;
 }

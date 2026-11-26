@@ -11,7 +11,8 @@ export type ButtonVariant =
   | "default"
   | "outline"
   | "inverse"
-  | "outline-inverse";
+  | "outline-inverse"
+  | "ink";
 
 export type ButtonProps = {
   label: string;
@@ -53,6 +54,11 @@ function colorways(colors: Palette): Record<ButtonVariant, Colorway> {
       background: colors.focus,
       foreground: colors.onFocus,
       border: colors.dimrule,
+    },
+    ink: {
+      background: colors.ink,
+      foreground: colors.paper,
+      border: null,
     },
   };
 }

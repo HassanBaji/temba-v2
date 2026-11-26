@@ -131,6 +131,7 @@ Order is the picker's order. Cup is the default. In each block the `<g transform
 
 | Token     | px  | Where                                                              |
 | --------- | --- | ------------------------------------------------------------------ |
+| `tally`   | 12  | one per win beside a count on the Series page (05), up to three    |
 | `line`    | 22  | the series line on a Game's lifted card, the winner's table row    |
 | `row`     | 28  | the picker's emblem chips                                          |
 | `latest`  | 38  | the Latest row, the "how it sits on a profile" preview             |

@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
-import { groupSeries, groups } from "@repo/db/schema";
+import { games, groupSeries, groups } from "@repo/db/schema";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { cancelGame } from "#src/routers/games/cancel";
@@ -19,6 +19,7 @@ import {
   playFriendly,
   playRound,
   roundsSocial,
+  seatTeams,
   seriesFixture,
   seriesTestWindow,
   setMatchScore,
@@ -168,6 +169,9 @@ describe("Series results end to end", () => {
     expect(result.editions[0]).toMatchObject({
       state: "won",
       winnerBib: "navy",
+      field: null,
+      points: null,
+      score: { winner: 5, loser: 3 },
     });
     expect(winnerNames(result.editions[0]!)).toEqual([
       "Guest Gamer",
@@ -197,7 +201,12 @@ describe("Series results end to end", () => {
 
     await playLastRound(f, gameId, teams, completedAt);
     const won = await page(f, seriesId, BEFORE_DECEMBER);
-    expect(won.editions[0]?.state).toBe("won");
+    expect(won.editions[0]).toMatchObject({
+      state: "won",
+      field: { unit: "teams", count: 4 },
+      points: 9,
+      score: null,
+    });
     expect(winnerNames(won.editions[0]!)).toEqual([
       "Ahmed Buhazza",
       "Qasim Albaqali",
@@ -418,12 +427,163 @@ describe("series.byId", () => {
     const second = result.editions.find((row) => row.gameId === s.second);
     expect(second?.winners).toEqual(
       expect.arrayContaining([
-        { userId: f.guest.id, name: "Guest Gamer", isGuest: true },
-        { userId: f.layla.id, name: "Layla Haddad", isGuest: false },
+        {
+          userId: f.guest.id,
+          name: "Guest Gamer",
+          image: null,
+          isGuest: true,
+          isViewer: false,
+        },
+        {
+          userId: f.layla.id,
+          name: "Layla Haddad",
+          image: null,
+          isGuest: false,
+          isViewer: false,
+        },
       ]),
     );
     expect(result.mostWins.map((row) => row.userId)).not.toContain(f.guest.id);
     expect(result.differentWinners).toBe(4);
+  });
+
+  it("names the latest winners as holders, and a later draw does not clear them", async () => {
+    const f = await seriesFixture();
+    const s = await playedSeries(f);
+    const result = await page(f, s.seriesId, DECEMBER_10, f.layla.id);
+    expect(result.holders?.edition).toBe(3);
+    expect(
+      [...(result.holders?.players ?? [])].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    ).toEqual([
+      {
+        userId: f.ahmed.id,
+        name: "Ahmed Buhazza",
+        image: null,
+        isViewer: false,
+      },
+      { userId: f.layla.id, name: "Layla Haddad", image: null, isViewer: true },
+    ]);
+  });
+
+  it("leaves a Guest player out of the holders, and has none before a win", async () => {
+    const f = await seriesFixture();
+    const seriesId = await newSeries(f, f.padel.id, "Sunday Social");
+    const gameId = await padelGame(f, "2026-12-01", seriesId);
+    expect((await page(f, seriesId, DECEMBER_10)).holders).toBeNull();
+
+    await playFriendly(
+      f.db,
+      gameId,
+      [{ userIds: [f.layla.id, f.guest.id] }, { userIds: [f.qasim.id] }],
+      [[6, 2]],
+      finished("2026-12-01"),
+    );
+    expect((await page(f, seriesId, DECEMBER_10)).holders).toEqual({
+      edition: 1,
+      players: [
+        {
+          userId: f.layla.id,
+          name: "Layla Haddad",
+          image: null,
+          isViewer: false,
+        },
+      ],
+    });
+  });
+
+  it("names the earliest Edition still to be decided as the next one, before, during and after its window", async () => {
+    const f = await seriesFixture();
+    const s = await playedSeries(f);
+    await f.db
+      .update(games)
+      .set({ playersAllowed: 4 })
+      .where(eq(games.id, s.awaiting));
+    await seatTeams(f.db, s.awaiting, [
+      { userIds: [f.qasim.id, f.ahmed.id], sideIndex: 1 },
+      { userIds: [f.layla.id], sideIndex: 2 },
+    ]);
+    const window = seriesTestWindow("2026-12-05");
+    const next = (now: Date) =>
+      page(f, s.seriesId, now).then((result) => result.nextEdition);
+
+    expect(await next(new Date("2026-12-05T10:00:00Z"))).toEqual({
+      gameId: s.awaiting,
+      edition: 5,
+      startsAt: window.windowStart,
+      endsAt: window.windowEnd,
+      state: "upcoming",
+      venueName: "Seef Padel",
+      taken: 3,
+      capacity: 4,
+    });
+    expect((await next(new Date("2026-12-05T18:30:00Z")))?.state).toBe("live");
+    expect((await next(DECEMBER_10))?.state).toBe("awaiting");
+
+    await endSeries(f.db, {
+      id: s.seriesId,
+      userId: f.owner.id,
+      now: DECEMBER_10,
+    });
+    expect(await next(DECEMBER_10)).toBeNull();
+  });
+
+  it("has no next Edition once every Edition is decided", async () => {
+    const f = await seriesFixture();
+    const seriesId = await newSeries(f, f.padel.id, "Sunday Social");
+    const gameId = await padelGame(f, "2026-12-01", seriesId);
+    await playFriendly(
+      f.db,
+      gameId,
+      [{ userIds: [f.layla.id, f.nora.id] }, { userIds: [f.qasim.id] }],
+      [[6, 2]],
+      finished("2026-12-01"),
+    );
+    expect((await page(f, seriesId, DECEMBER_10)).nextEdition).toBeNull();
+  });
+
+  it("gives the viewer their own record: played and won of the decided Editions", async () => {
+    const f = await seriesFixture();
+    const s = await playedSeries(f);
+    const layla = await page(f, s.seriesId, DECEMBER_10, f.layla.id);
+    expect(layla.viewer).toEqual({
+      name: "Layla Haddad",
+      image: null,
+      played: 2,
+      decided: 4,
+      wins: 2,
+      lastWonEdition: 3,
+    });
+    expect(
+      layla.editions
+        .find((row) => row.gameId === s.third)
+        ?.winners.find((winner) => winner.userId === f.layla.id)?.isViewer,
+    ).toBe(true);
+    const qasim = await page(f, s.seriesId, DECEMBER_10, f.qasim.id);
+    expect(qasim.viewer).toMatchObject({ played: 3, decided: 4, wins: 0 });
+    expect(qasim.viewer.lastWonEdition).toBeNull();
+    const owner = await page(f, s.seriesId, DECEMBER_10);
+    expect(owner.viewer).toMatchObject({
+      name: "Hassan Haji",
+      played: 0,
+      wins: 0,
+    });
+  });
+
+  it("gives each Edition the size of its field, and no points on a Friendly game", async () => {
+    const f = await seriesFixture();
+    const s = await playedSeries(f);
+    const result = await page(f, s.seriesId, DECEMBER_10);
+    const third = result.editions.find((row) => row.gameId === s.third);
+    expect(third).toMatchObject({
+      field: { unit: "teams", count: 2 },
+      points: null,
+      score: null,
+    });
+    expect(
+      result.editions.find((row) => row.gameId === s.upcoming)?.field,
+    ).toEqual({ unit: "teams", count: 0 });
   });
 
   it("lets a Group approver end a running Series, and nobody an ended one", async () => {

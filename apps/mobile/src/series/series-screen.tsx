@@ -1,7 +1,12 @@
 import { radii, sizes, typeScale } from "@repo/design-tokens";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
+import type { SeriesColour, SeriesEmblem } from "@repo/domain/series";
 import { useLocalSearchParams, useRouter, useSegments } from "expo-router";
-import { ArrowRight, EllipsisVertical } from "lucide-react-native";
+import {
+  ArrowRight,
+  ChevronRight,
+  EllipsisVertical,
+} from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 
@@ -16,6 +21,7 @@ import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
 import { playerPath } from "../player-profile/player-path";
 import { Avatar } from "../primitives/avatar";
+import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
 import { InitialsTile } from "../primitives/initials-tile";
@@ -36,19 +42,126 @@ import { SectionHead } from "../profile/profile-parts";
 import { api } from "../trpc/react";
 import { SeriesBadge } from "./series-badge";
 import {
+  seriesEndConfirmation,
   seriesScreenModel,
   type SeriesEditionRow,
   type SeriesFigure,
+  type SeriesHolders,
+  type SeriesNextCard,
+  type SeriesPerson,
   type SeriesScreenData,
   type SeriesScreenExpanded,
-  type SeriesScreenModel,
   type SeriesWinnerRow,
+  type SeriesYouCard,
 } from "./series-screen-model";
 
 const REFETCH_ON_FOREGROUND = { refetchOnWindowFocus: "always" as const };
-const MONOGRAM_SLOT = 34;
-const EDITION_NUMBER_WIDTH = 22;
+const RANK_WIDTH = 16;
+const EDITION_NUMBER_WIDTH = 26;
+const NEXT_BLOCK_WIDTH = 62;
+const SINCE_WIDTH = 64;
+const SQUARE_OVERLAP = -5;
 const GROUP_LINK_HIT_SLOP = (sizes.touchTarget - typeScale.meta.lineHeight) / 2;
+
+type SquareSize = "md" | "xs";
+
+const AVATAR_SIZE = { md: "default", xs: "sm" } as const;
+const SQUARE_SLOT = { md: 34, xs: 28 } as const;
+
+/** A player's photo, or their initials; solid for the viewer. */
+function PersonSquare({
+  person,
+  size,
+  onFocus = false,
+}: {
+  person: SeriesPerson;
+  size: SquareSize;
+  onFocus?: boolean;
+}) {
+  return (
+    <View
+      style={{
+        width: SQUARE_SLOT[size],
+        height: SQUARE_SLOT[size],
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {person.isViewer ? (
+        <InitialsTile
+          name={person.name}
+          uri={person.image}
+          size={size}
+          tone={onFocus ? "inverse" : "ink"}
+        />
+      ) : (
+        <Avatar
+          name={person.name}
+          uri={person.image}
+          size={AVATAR_SIZE[size]}
+          radius={size === "md" ? radii.md : radii.sm}
+        />
+      )}
+    </View>
+  );
+}
+
+function Squares({
+  people,
+  size,
+  onFocus,
+}: {
+  people: SeriesPerson[];
+  size: SquareSize;
+  onFocus?: boolean;
+}) {
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ flexDirection: "row" }}
+    >
+      {people.map((person, index) => (
+        <View
+          key={person.key}
+          style={{ marginStart: index > 0 ? SQUARE_OVERLAP : 0 }}
+        >
+          <PersonSquare person={person} size={size} onFocus={onFocus} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** One small Series badge per win, up to three, then the count alone. */
+function WinTally({
+  emblem,
+  colour,
+  badges,
+  wins,
+}: {
+  emblem: SeriesEmblem;
+  colour: SeriesColour;
+  badges: number;
+  wins: string;
+}) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+      {Array.from({ length: badges }, (_, index) => (
+        <SeriesBadge key={index} emblem={emblem} colour={colour} size="tally" />
+      ))}
+      <Text
+        size="title"
+        width="expanded"
+        weight="bold"
+        ltr
+        style={{ marginStart: 5 }}
+      >
+        {wins}
+      </Text>
+    </View>
+  );
+}
 
 function Figures({ figures }: { figures: SeriesFigure[] }) {
   const palette = useTonePalette();
@@ -70,7 +183,7 @@ function Figures({ figures }: { figures: SeriesFigure[] }) {
             minWidth: 0,
             borderStartWidth: index > 0 ? hairline : 0,
             borderColor: palette.rule,
-            paddingStart: index > 0 ? 16 : 0,
+            paddingStart: index > 0 ? 14 : 0,
           }}
         >
           <Text size="h2" width="expanded" weight="bold" numberOfLines={1}>
@@ -85,12 +198,52 @@ function Figures({ figures }: { figures: SeriesFigure[] }) {
   );
 }
 
+function HoldersRow({ holders }: { holders: SeriesHolders }) {
+  const m = useMessages();
+  const palette = useTonePalette();
+  return (
+    <View
+      accessible
+      accessibilityLabel={holders.spoken}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        borderTopWidth: hairline,
+        borderColor: palette.rule,
+        paddingTop: 14,
+      }}
+    >
+      <Squares people={holders.people} size="md" onFocus />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text size="eyebrow" tone="muted">
+          {m.series.page.holders}
+        </Text>
+        {holders.names.map((name, index) => (
+          <Text key={`${index}-${name}`} weight="semibold">
+            {name}
+          </Text>
+        ))}
+      </View>
+      <Text
+        size="eyebrow"
+        tone="muted"
+        style={{ width: SINCE_WIDTH, textAlign: "right" }}
+      >
+        {holders.since}
+      </Text>
+    </View>
+  );
+}
+
 function SeriesCard({
   series,
+  holders,
   figures,
   onOpenGroup,
 }: {
   series: SeriesScreenData;
+  holders: SeriesHolders | null;
   figures: SeriesFigure[];
   onOpenGroup: () => void;
 }) {
@@ -130,7 +283,130 @@ function SeriesCard({
           ) : null}
         </View>
       </View>
+      {holders ? <HoldersRow holders={holders} /> : null}
       <Figures figures={figures} />
+    </Surface>
+  );
+}
+
+function HatchLabel({
+  radius,
+  children,
+}: {
+  radius: number;
+  children: React.ReactNode;
+}) {
+  const palette = useTonePalette();
+  return (
+    <View
+      style={{
+        backgroundColor: palette.background,
+        borderRadius: radius,
+        paddingHorizontal: 5,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+function NextEditionCard({
+  next,
+  onOpen,
+}: {
+  next: SeriesNextCard;
+  onOpen: (gameId: string) => void;
+}) {
+  const palette = useTonePalette();
+  return (
+    <Surface
+      padded={false}
+      radius="card"
+      style={{ overflow: "hidden", flexDirection: "row" }}
+    >
+      <View
+        style={{
+          width: NEXT_BLOCK_WIDTH,
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 2,
+          borderEndWidth: hairline,
+          borderColor: palette.rule,
+        }}
+      >
+        <Hatch radius={0} bordered={false} />
+        <HatchLabel radius={radii.slot}>
+          <Text size="eyebrow" tone="muted">
+            {next.editionWord}
+          </Text>
+        </HatchLabel>
+        <HatchLabel radius={radii.sm}>
+          <Text size="figure" width="expanded" weight="bold" ltr>
+            {next.edition}
+          </Text>
+        </HatchLabel>
+      </View>
+      <View
+        style={{
+          flex: 1,
+          minWidth: 0,
+          paddingHorizontal: 14,
+          paddingVertical: 13,
+        }}
+      >
+        <Text weight="semibold">{next.title}</Text>
+        <Text size="eyebrow" tone="muted">
+          {next.line}
+        </Text>
+      </View>
+      <View style={{ justifyContent: "center", paddingEnd: 12 }}>
+        <Button
+          label={next.action}
+          variant="ink"
+          size="sm"
+          onPress={() => onOpen(next.gameId)}
+        />
+      </View>
+    </Surface>
+  );
+}
+
+function YouInSeries({
+  you,
+  emblem,
+  colour,
+}: {
+  you: SeriesYouCard;
+  emblem: SeriesEmblem;
+  colour: SeriesColour;
+}) {
+  return (
+    <Surface radius="card" padded={false}>
+      <View
+        accessible
+        accessibilityLabel={you.spoken}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          paddingHorizontal: 16,
+          paddingVertical: 13,
+        }}
+      >
+        <PersonSquare person={you.person} size="md" />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text weight="semibold">{you.title}</Text>
+          <Text size="eyebrow" tone="muted">
+            {you.line}
+          </Text>
+        </View>
+        <WinTally
+          emblem={emblem}
+          colour={colour}
+          badges={you.badges}
+          wins={you.wins}
+        />
+      </View>
     </Surface>
   );
 }
@@ -189,10 +465,14 @@ function FoldedList({
 function WinnerRow({
   row,
   first,
+  emblem,
+  colour,
   onOpen,
 }: {
   row: SeriesWinnerRow;
   first: boolean;
+  emblem: SeriesEmblem;
+  colour: SeriesColour;
   onOpen: (userId: string) => void;
 }) {
   const palette = useTonePalette();
@@ -208,20 +488,10 @@ function WinnerRow({
           pressed || row.isViewer ? palette.wash : palette.background,
       })}
     >
-      <View
-        style={{
-          width: MONOGRAM_SLOT,
-          height: MONOGRAM_SLOT,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {row.isViewer ? (
-          <InitialsTile name={row.name} uri={row.image} size="md" />
-        ) : (
-          <Avatar name={row.name} uri={row.image} radius={radii.md} />
-        )}
-      </View>
+      <Text size="eyebrow" tone="muted" mono ltr style={{ width: RANK_WIDTH }}>
+        {row.rank}
+      </Text>
+      <PersonSquare person={row.person} size="md" />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text weight="semibold" numberOfLines={1}>
           {row.name}
@@ -230,27 +500,13 @@ function WinnerRow({
           {row.line}
         </Text>
       </View>
-      <Text size="figure" width="expanded" weight="bold" ltr>
-        {row.wins}
-      </Text>
+      <WinTally
+        emblem={emblem}
+        colour={colour}
+        badges={row.badges}
+        wins={row.wins}
+      />
     </Pressable>
-  );
-}
-
-function HatchChip({ children }: { children: React.ReactNode }) {
-  const palette = useTonePalette();
-  return (
-    <View
-      style={{
-        maxWidth: "100%",
-        backgroundColor: palette.background,
-        borderRadius: radii.slot,
-        paddingHorizontal: 5,
-        paddingVertical: 1,
-      }}
-    >
-      {children}
-    </View>
   );
 }
 
@@ -264,16 +520,6 @@ function EditionRow({
   onOpen: (gameId: string) => void;
 }) {
   const palette = useTonePalette();
-  const line = (
-    <Text weight="semibold" numberOfLines={1}>
-      {row.line}
-    </Text>
-  );
-  const date = (
-    <Text size="eyebrow" tone="muted">
-      {row.date}
-    </Text>
-  );
   return (
     <Pressable
       accessibilityRole="button"
@@ -282,68 +528,105 @@ function EditionRow({
       style={({ pressed }) => ({
         ...rowStyle(first, palette.rule),
         paddingVertical: 12,
+        paddingEnd: 14,
         backgroundColor: pressed ? palette.wash : palette.background,
       })}
     >
-      {row.hatched ? <Hatch radius={0} bordered={false} /> : null}
       <Text
-        size="eyebrow"
-        tone="muted"
-        mono
+        size="lead"
+        width="expanded"
+        weight="bold"
         ltr
-        style={{ minWidth: EDITION_NUMBER_WIDTH }}
+        style={{ width: EDITION_NUMBER_WIDTH }}
       >
         {row.edition}
       </Text>
-      <View style={{ flex: 1, minWidth: 0, alignItems: "flex-start" }}>
-        {row.hatched ? <HatchChip>{line}</HatchChip> : line}
+      {row.people.length > 0 ? <Squares people={row.people} size="xs" /> : null}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        {row.names.map((name, index) => (
+          <Text key={`${index}-${name}`} weight="semibold" numberOfLines={1}>
+            {name}
+          </Text>
+        ))}
+        {row.meta ? (
+          <Text size="eyebrow" tone="muted" numberOfLines={1}>
+            {row.meta}
+          </Text>
+        ) : null}
       </View>
-      {row.hatched && row.date ? <HatchChip>{date}</HatchChip> : null}
-      {!row.hatched && row.date ? date : null}
+      <ChevronRight
+        size={sizes.iconRow}
+        color={palette.muted}
+        style={mirrorInRtl}
+      />
     </Pressable>
   );
 }
 
-function SeriesBody({
+/**
+ * The Series screen (design 05) for the data of `series.byId`: the holders,
+ * the next Edition, the viewer's line, Winners and the decided Editions.
+ */
+export function SeriesScreenView({
   series,
-  model,
-  onExpand,
+  now,
   onOpenGroup,
   onOpenPlayer,
   onOpenGame,
 }: {
   series: SeriesScreenData;
-  model: SeriesScreenModel;
-  onExpand: (list: keyof SeriesScreenExpanded) => void;
+  now?: Date;
   onOpenGroup: () => void;
   onOpenPlayer: (userId: string) => void;
   onOpenGame: (gameId: string) => void;
 }) {
   const m = useMessages();
+  const locale = useLocale();
+  const [expanded, setExpanded] = useState<SeriesScreenExpanded>({
+    winners: false,
+    editions: false,
+  });
+  const model = seriesScreenModel(series, expanded, locale, now);
+  const expand = (list: keyof SeriesScreenExpanded) =>
+    setExpanded((current) => ({ ...current, [list]: true }));
 
   return (
     <>
       <SeriesCard
         series={series}
+        holders={model.holders}
         figures={model.figures}
         onOpenGroup={onOpenGroup}
       />
 
-      {model.mostWins ? (
+      <View style={{ gap: 8 }}>
+        {model.next ? (
+          <NextEditionCard next={model.next} onOpen={onOpenGame} />
+        ) : null}
+        <YouInSeries
+          you={model.you}
+          emblem={series.emblem}
+          colour={series.colour}
+        />
+      </View>
+
+      {model.winners ? (
         <View style={{ gap: 10 }}>
           <SectionHead
-            title={m.series.page.mostWins}
-            meta={model.mostWins.of}
+            title={m.series.page.winners}
+            meta={model.winners.meta}
           />
           <FoldedList
-            more={model.mostWins.more}
-            onExpand={() => onExpand("winners")}
+            more={model.winners.more}
+            onExpand={() => expand("winners")}
           >
-            {model.mostWins.rows.map((row, index) => (
+            {model.winners.rows.map((row, index) => (
               <WinnerRow
                 key={row.userId}
                 row={row}
                 first={index === 0}
+                emblem={series.emblem}
+                colour={series.colour}
                 onOpen={onOpenPlayer}
               />
             ))}
@@ -351,15 +634,15 @@ function SeriesBody({
         </View>
       ) : null}
 
-      <View style={{ gap: 10 }}>
-        <SectionHead
-          title={m.series.page.editions}
-          meta={model.editions ? m.series.page.newestFirst : undefined}
-        />
-        {model.editions ? (
+      {model.editions ? (
+        <View style={{ gap: 10 }}>
+          <SectionHead
+            title={m.series.page.editions}
+            meta={model.editions.meta}
+          />
           <FoldedList
             more={model.editions.more}
-            onExpand={() => onExpand("editions")}
+            onExpand={() => expand("editions")}
           >
             {model.editions.rows.map((row, index) => (
               <EditionRow
@@ -370,19 +653,24 @@ function SeriesBody({
               />
             ))}
           </FoldedList>
-        ) : (
+        </View>
+      ) : null}
+
+      {model.empty ? (
+        <View style={{ gap: 10 }}>
+          <SectionHead title={m.series.page.editions} />
           <Surface radius="card">
             <Text size="meta" tone="muted">
               {model.empty}
             </Text>
           </Surface>
-        )}
-      </View>
+        </View>
+      ) : null}
     </>
   );
 }
 
-/** The Series page (3b): the badge and Group, Most wins, every Edition. */
+/** The Series screen: loads `series.byId` and ends the Series from its menu. */
 export function SeriesScreen({ seriesId }: { seriesId: string }) {
   const m = useMessages();
   const locale = useLocale();
@@ -393,10 +681,6 @@ export function SeriesScreen({ seriesId }: { seriesId: string }) {
   const [refreshing, setRefreshing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
-  const [expanded, setExpanded] = useState<SeriesScreenExpanded>({
-    winners: false,
-    editions: false,
-  });
   const query = api.series.byId.useQuery(
     { id: seriesId },
     REFETCH_ON_FOREGROUND,
@@ -472,8 +756,7 @@ export function SeriesScreen({ seriesId }: { seriesId: string }) {
     );
   }
 
-  const model = seriesScreenModel(series, expanded, locale);
-  const end = model.end;
+  const end = seriesEndConfirmation(series, locale);
 
   return (
     <Screen refreshing={refreshing} onRefresh={onRefresh}>
@@ -492,12 +775,8 @@ export function SeriesScreen({ seriesId }: { seriesId: string }) {
           ) : null
         }
       />
-      <SeriesBody
+      <SeriesScreenView
         series={series}
-        model={model}
-        onExpand={(list) =>
-          setExpanded((current) => ({ ...current, [list]: true }))
-        }
         onOpenGroup={() => router.push(groupPath(series.group.id))}
         onOpenPlayer={(userId) => router.push(playerPath(segments, userId))}
         onOpenGame={(gameId) => router.push(gamePath(gameId))}

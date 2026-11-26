@@ -18,6 +18,7 @@ export const seriesBadgeHex = {
 } as const;
 
 export const seriesBadgeSizes = {
+  tally: 12,
   line: 22,
   row: 28,
   latest: 38,

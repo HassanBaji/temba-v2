@@ -227,7 +227,7 @@ export const series = {
   page: {
     title: "السلسلة",
     loadError: "تعذّر تحميل هذه السلسلة",
-    played: (n: number) =>
+    editionsPlayed: (n: number) =>
       plural("ar", n, {
         zero: "نسخ لُعبت",
         one: "نسخة لُعبت",
@@ -236,21 +236,54 @@ export const series = {
         many: "نسخة لُعبت",
         other: "نسخة لُعبت",
       }),
-    differentWinners: (n: number) =>
+    playersWon: (n: number) =>
       plural("ar", n, {
-        zero: "فائزين مختلفين",
-        one: "فائز",
-        two: "فائزان مختلفان",
-        few: "فائزين مختلفين",
-        many: "فائزًا مختلفًا",
-        other: "فائز مختلف",
+        zero: "لاعبين فازوا بها",
+        one: "لاعب فاز بها",
+        two: "لاعبان فازا بها",
+        few: "لاعبين فازوا بها",
+        many: "لاعبًا فازوا بها",
+        other: "لاعب فازوا بها",
       }),
     runningSince: "جارية منذ",
     ended: "انتهت",
-    mostWins: "الأكثر فوزًا",
-    of: (played: number) => `من ${played}`,
+    holders: "حاملو اللقب",
+    sinceEdition: (edition: number) => `منذ النسخة ${edition}`,
+    holdersLabel: (names: readonly string[], edition: number) =>
+      `حاملو اللقب: ${names.map(isolate).join("، ")}، منذ النسخة ${edition}`,
+    nextOn: (edition: number, day: string) => `النسخة ${edition}، ${day}`,
+    nextLive: (edition: number) => `النسخة ${edition} تُلعب الآن`,
+    nextAwaiting: (edition: number) => `النسخة ${edition} بانتظار نتيجتها`,
+    nextWhere: (time: string, venue: string) => `${time}، ${isolate(venue)}`,
+    nextFill: (taken: number, capacity: number | null) =>
+      capacity === null
+        ? `${taken} مشاركين`
+        : `${taken} من ${capacity} مشاركين`,
+    nextWhen: (day: string, time: string) => `${day}، ${time}`,
+    becomeHolders: "الفائزون يحملون اللقب",
+    sentences: (parts: readonly string[]) =>
+      parts.map((part) => `${part}.`).join(" "),
+    openGame: "افتح المباراة",
+    you: "أنت في هذه السلسلة",
+    youWon: (wins: number, played: number, lastEdition: number) =>
+      `فزت ${wins} من ${played} لعبتها. آخرها النسخة ${lastEdition}.`,
+    youPlayed: (played: number, decided: number) =>
+      `لعبت ${played} من ${decided}. لا فوز بعد.`,
+    youNotPlayed: "لم تلعب بعد.",
+    winners: "الفائزون",
+    winnersMeta: (n: number) =>
+      plural("ar", n, {
+        zero: "لا نسخ بعد",
+        one: "نسخة واحدة حتى الآن",
+        two: "نسختان",
+        few: "{n} نسخ",
+        many: "{n} نسخة",
+        other: "{n} نسخة",
+      }),
+    rank: (n: number) => `المركز ${n}`,
+    viewerName: (name: string) => `${isolate(name)} (أنت)`,
+    wonEdition: (edition: number) => `فاز بالنسخة ${edition}`,
     lastWon: (edition: number) => `آخر فوز في النسخة ${edition}`,
-    youLastWon: (edition: number) => `أنت. آخر فوز في النسخة ${edition}`,
     wins: (n: number) =>
       plural("ar", n, {
         zero: "لا انتصارات",
@@ -270,10 +303,56 @@ export const series = {
       }),
     editions: "النسخ",
     newestFirst: "الأحدث أولًا",
+    editionsMeta: (n: number) =>
+      plural("ar", n, {
+        zero: "لا نسخ لُعبت",
+        one: "نسخة لُعبت",
+        two: "نسختان لُعبتا",
+        few: "{n} نسخ لُعبت",
+        many: "{n} نسخة لُعبت",
+        other: "{n} نسخة لُعبت",
+      }),
     edition: (edition: number) => `النسخة ${edition}`,
-    notPlayedYet: "لم تُلعب بعد",
-    noResultYet: "لا نتيجة بعد",
     nobodyWon: "لم يفز أحد",
+    teams: (n: number) =>
+      plural("ar", n, {
+        zero: "لا فرق",
+        one: "فريق واحد",
+        two: "فريقان",
+        few: "{n} فرق",
+        many: "{n} فريقًا",
+        other: "{n} فريق",
+      }),
+    players: (n: number) =>
+      plural("ar", n, {
+        zero: "لا لاعبين",
+        one: "لاعب واحد",
+        two: "لاعبان",
+        few: "{n} لاعبين",
+        many: "{n} لاعبًا",
+        other: "{n} لاعب",
+      }),
+    points: (n: number) =>
+      plural("ar", n, {
+        zero: "لا نقاط",
+        one: "نقطة واحدة",
+        two: "نقطتان",
+        few: "{n} نقاط",
+        many: "{n} نقطة",
+        other: "{n} نقطة",
+      }),
+    gamesWon: (n: number) =>
+      plural("ar", n, {
+        zero: "لا أشواط مكسوبة",
+        one: "شوط واحد مكسوب",
+        two: "شوطان مكسوبان",
+        few: "{n} أشواط مكسوبة",
+        many: "{n} شوطًا مكسوبًا",
+        other: "{n} شوط مكسوب",
+      }),
+    fieldWithPoints: (field: string, points: string) => `${field}، ${points}`,
+    score: (winner: number, loser: number) => isolate(`${winner}–${loser}`),
+    editionMeta: (day: string, field: string) => `${day}. ${field}`,
     allEditions: (n: number) =>
       plural("ar", n, {
         one: "النسخة الوحيدة",

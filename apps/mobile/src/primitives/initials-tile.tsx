@@ -39,8 +39,9 @@ const TEXT_SIZES = {
 
 /**
  * A solid square with the User's initials: the design's "initials tile".
- * `inverse` is the paper tile that sits on an ink card. With `uri`, the image
- * fills the tile, back to the initials if it fails to load.
+ * `inverse` is the paper tile that sits on an ink card; `ink` is drawn in the
+ * text colour, light on dark. With `uri`, the image fills the tile, back to
+ * the initials if it fails to load.
  */
 export function InitialsTile({
   name,
@@ -51,11 +52,15 @@ export function InitialsTile({
   name: string;
   uri?: string | null;
   size?: TileSize;
-  tone?: "control" | "inverse";
+  tone?: "control" | "inverse" | "ink";
 }) {
   const dimension = SIZES[size];
   const colors = useColors();
-  const inverse = tone === "inverse";
+  const fill = {
+    control: { background: colors.control, text: colors.onControl },
+    inverse: { background: colors.focusControl, text: colors.onFocusControl },
+    ink: { background: colors.ink, text: colors.paper },
+  }[tone];
   const [failed, setFailed] = useState<string | null>(null);
   const showImage = uri != null && uri.length > 0 && failed !== uri;
   return (
@@ -68,7 +73,7 @@ export function InitialsTile({
           width: dimension,
           height: dimension,
           borderRadius: RADII[size],
-          backgroundColor: inverse ? colors.focusControl : colors.control,
+          backgroundColor: fill.background,
           alignItems: "center",
           justifyContent: "center",
           overflow: "hidden",
@@ -87,9 +92,7 @@ export function InitialsTile({
             weight="semibold"
             numberOfLines={1}
             adjustsFontSizeToFit
-            style={{
-              color: inverse ? colors.onFocusControl : colors.onControl,
-            }}
+            style={{ color: fill.text }}
             accessibilityElementsHidden
             importantForAccessibility="no"
           >

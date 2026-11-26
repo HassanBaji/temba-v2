@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  seriesEditionFieldLine,
+  seriesNextEditionLines,
   seriesPageSince,
   seriesRowLine,
   seriesRuleLine,
+  seriesViewerLine,
   seriesWinOrdinal,
   seriesWinTally,
   seriesWinWho,
   seriesWinWithLine,
+  seriesWinnerLine,
   seriesWinnersLine,
   seriesWonLastLine,
 } from "./series-copy";
@@ -367,5 +371,131 @@ describe("seriesWinWithLine", () => {
   it("is null on an Americano", () => {
     expect(seriesWinWithLine(alone, "en")).toBeNull();
     expect(seriesWinWithLine(alone, "ar")).toBeNull();
+  });
+});
+
+describe("seriesWinnerLine", () => {
+  it("names the one Edition won, else the latest", () => {
+    expect(seriesWinnerLine({ wins: 1, lastWonEdition: 1 }, "en")).toBe(
+      "Won edition 1",
+    );
+    expect(seriesWinnerLine({ wins: 3, lastWonEdition: 12 }, "en")).toBe(
+      "Last won edition 12",
+    );
+    expect(seriesWinnerLine({ wins: 1, lastWonEdition: 4 }, "ar")).toBe(
+      "فاز بالنسخة 4",
+    );
+  });
+});
+
+describe("seriesEditionFieldLine", () => {
+  it("counts teams, with the winners' points on a table", () => {
+    expect(
+      seriesEditionFieldLine(
+        { field: { unit: "teams", count: 8 }, points: 19, score: null },
+        "en",
+      ),
+    ).toBe("8 teams, 19 points");
+    expect(
+      seriesEditionFieldLine(
+        { field: { unit: "teams", count: 6 }, points: null, score: null },
+        "en",
+      ),
+    ).toBe("6 teams");
+  });
+
+  it("counts players and games won on an Americano", () => {
+    expect(
+      seriesEditionFieldLine(
+        { field: { unit: "players", count: 8 }, points: 32, score: null },
+        "en",
+      ),
+    ).toBe("8 players, 32 games won");
+  });
+
+  it("gives a football Game's score from the winning side, and nothing with neither", () => {
+    expect(
+      seriesEditionFieldLine(
+        { field: null, points: null, score: { winner: 5, loser: 3 } },
+        "en",
+      ),
+    ).toBe("5–3");
+    expect(
+      seriesEditionFieldLine({ field: null, points: null, score: null }, "en"),
+    ).toBeNull();
+    expect(
+      seriesEditionFieldLine(
+        { field: { unit: "teams", count: 2 }, points: null, score: null },
+        "ar",
+      ),
+    ).toBe("فريقان");
+  });
+});
+
+describe("seriesNextEditionLines", () => {
+  const next = {
+    edition: 13,
+    startsAt: new Date("2026-12-06T08:00:00Z"),
+    state: "upcoming" as const,
+    venueName: "World Padel Academy",
+    taken: 9,
+    capacity: 16,
+  };
+
+  it("says which Edition and when, where, and how full it is", () => {
+    expect(seriesNextEditionLines(next, "en", NOW)).toEqual({
+      title: "Edition 13, Sun 6 Dec",
+      line: "11:00 AM, World Padel Academy. 9 of 16 in.",
+    });
+    expect(
+      seriesNextEditionLines(
+        { ...next, venueName: null, capacity: null },
+        "en",
+        NOW,
+      ).line,
+    ).toBe("11:00 AM. 9 in.");
+  });
+
+  it("says it is on now, today, and that its winners become holders", () => {
+    const today = new Date("2026-11-21T17:00:00Z");
+    expect(
+      seriesNextEditionLines(
+        { ...next, edition: 2, startsAt: today, state: "live" },
+        "en",
+        new Date("2026-11-21T17:30:00Z"),
+      ),
+    ).toEqual({
+      title: "Edition 2 is on now",
+      line: "Today, 8:00 PM. Winners become holders.",
+    });
+  });
+
+  it("says it is waiting for its result once its window is over", () => {
+    expect(
+      seriesNextEditionLines({ ...next, state: "awaiting" }, "en", NOW).title,
+    ).toBe("Edition 13 is waiting for its result");
+  });
+});
+
+describe("seriesViewerLine", () => {
+  it("reads what the viewer won and played", () => {
+    expect(
+      seriesViewerLine(
+        { played: 9, decided: 12, wins: 2, lastWonEdition: 10 },
+        "en",
+      ),
+    ).toBe("Won 2 of 9 played. Last in edition 10.");
+    expect(
+      seriesViewerLine(
+        { played: 1, decided: 1, wins: 0, lastWonEdition: null },
+        "en",
+      ),
+    ).toBe("Played 1 of 1. No win yet.");
+    expect(
+      seriesViewerLine(
+        { played: 0, decided: 3, wins: 0, lastWonEdition: null },
+        "en",
+      ),
+    ).toBe("Not played yet.");
   });
 });

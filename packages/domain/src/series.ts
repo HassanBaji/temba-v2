@@ -124,3 +124,16 @@ export function seriesWinRule(game: {
   }
   return (game.poolCount ?? 1) > 1 ? "tables" : "table";
 }
+
+/** A winner's wins show as this many small badges at most; beyond it, only the count. */
+export const SERIES_SMALL_BADGES_MAX = 3;
+
+/** How many small badges stand for these wins: one per win, none past the most. */
+export function seriesSmallBadgeCount(wins: number) {
+  return wins <= SERIES_SMALL_BADGES_MAX ? Math.max(0, wins) : 0;
+}
+
+/** Ranks of winners listed by wins, most first: ties share a rank (1, 1, 3, 3). */
+export function seriesWinnerRanks(wins: readonly number[]) {
+  return wins.map((count) => wins.indexOf(count) + 1);
+}
