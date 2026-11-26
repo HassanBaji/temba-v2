@@ -21,6 +21,7 @@ import { decideDisputeProcedure as decideDispute } from "./decideDispute";
 import { disputeMatchResultProcedure as disputeMatchResult } from "./disputeMatchResult";
 import { drawPoolsProcedure as drawPools } from "./drawPools";
 import { footballBoardProcedure as footballBoard } from "./footballBoard";
+import { footballPlayerCardProcedure as footballPlayerCard } from "./footballPlayerCard";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
 import { joinGroupFromInviteLinkProcedure as joinGroupFromInviteLink } from "./joinGroupFromInviteLink";
 import { kickProcedure as kick } from "./kick";
@@ -56,6 +57,7 @@ import { postKingFinalOrderProcedure as postKingFinalOrder } from "./postKingFin
 import { americanoBoardProcedure as americanoBoard } from "./americanoBoard";
 import { postAmericanoRoundsProcedure as postAmericanoRounds } from "./postAmericanoRounds";
 import { swapAmericanoPlayersProcedure as swapAmericanoPlayers } from "./swapAmericanoPlayers";
+import { setAmericanoFixedPairsProcedure as setAmericanoFixedPairs } from "./setAmericanoFixedPairs";
 import { enterTournamentScoreProcedure as enterTournamentScore } from "./enterTournamentScore";
 import { addRoundProcedure as addRound } from "./addRound";
 import { cancelRoundProcedure as cancelRound } from "./cancelRound";
@@ -132,6 +134,7 @@ export const gamesRouter = createTRPCRouter({
   americanoBoard,
   postAmericanoRounds,
   swapAmericanoPlayers,
+  setAmericanoFixedPairs,
   undoPoolDraw,
   tournamentRounds,
   generateRounds,
@@ -199,6 +202,7 @@ export const gamesRouter = createTRPCRouter({
   decideDispute,
   reportWrongScore,
   footballBoard,
+  footballPlayerCard,
   resultLink,
   setFootballRole,
   publishFootballTeams,

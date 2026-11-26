@@ -1,5 +1,5 @@
 {
-  "id": "a7fd2d4e-8fa9-4180-8346-97e28cd004b8",
+  "id": "6f121456-6ce3-4ba5-8a04-98c04a4c611a",
   "prevId": "16d1afc4-5cf0-4bd7-afce-69fc96b34d45",
   "version": "7",
   "dialect": "postgresql",
@@ -1838,6 +1838,156 @@
           "tableTo": "game_players",
           "columnsFrom": [
             "game_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.americano_fixed_pairs": {
+      "name": "americano_fixed_pairs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "game_id": {
+          "name": "game_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_game_player_id": {
+          "name": "first_game_player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "second_game_player_id": {
+          "name": "second_game_player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "americano_fixed_pairs_game_id_position_unique": {
+          "name": "americano_fixed_pairs_game_id_position_unique",
+          "columns": [
+            {
+              "expression": "game_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "position",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "americano_fixed_pairs_first_game_player_id_idx": {
+          "name": "americano_fixed_pairs_first_game_player_id_idx",
+          "columns": [
+            {
+              "expression": "first_game_player_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "americano_fixed_pairs_second_game_player_id_idx": {
+          "name": "americano_fixed_pairs_second_game_player_id_idx",
+          "columns": [
+            {
+              "expression": "second_game_player_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "americano_fixed_pairs_game_id_games_id_fk": {
+          "name": "americano_fixed_pairs_game_id_games_id_fk",
+          "tableFrom": "americano_fixed_pairs",
+          "tableTo": "games",
+          "columnsFrom": [
+            "game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "americano_fixed_pairs_first_game_player_id_game_players_id_fk": {
+          "name": "americano_fixed_pairs_first_game_player_id_game_players_id_fk",
+          "tableFrom": "americano_fixed_pairs",
+          "tableTo": "game_players",
+          "columnsFrom": [
+            "first_game_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "americano_fixed_pairs_second_game_player_id_game_players_id_fk": {
+          "name": "americano_fixed_pairs_second_game_player_id_game_players_id_fk",
+          "tableFrom": "americano_fixed_pairs",
+          "tableTo": "game_players",
+          "columnsFrom": [
+            "second_game_player_id"
           ],
           "columnsTo": [
             "id"
@@ -6025,93 +6175,6 @@
           "columns": [
             "match_id",
             "user_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.match_score_changes": {
-      "name": "match_score_changes",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "match_id": {
-          "name": "match_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "changed_by_user_id": {
-          "name": "changed_by_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reason": {
-          "name": "reason",
-          "type": "score_change_reason",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "previous_sets": {
-          "name": "previous_sets",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "match_score_changes_match_id_matches_id_fk": {
-          "name": "match_score_changes_match_id_matches_id_fk",
-          "tableFrom": "match_score_changes",
-          "tableTo": "matches",
-          "columnsFrom": [
-            "match_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "match_score_changes_changed_by_user_id_user_id_fk": {
-          "name": "match_score_changes_changed_by_user_id_user_id_fk",
-          "tableFrom": "match_score_changes",
-          "tableTo": "user",
-          "columnsFrom": [
-            "changed_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "match_score_changes_match_id_unique": {
-          "name": "match_score_changes_match_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "match_id"
           ]
         }
       },
@@ -13385,16 +13448,6 @@
         "king_of_the_court",
         "rounds",
         "americano"
-      ]
-    },
-    "public.score_change_reason": {
-      "name": "score_change_reason",
-      "schema": "public",
-      "values": [
-        "set_score_wrong",
-        "sets_swapped",
-        "not_finished",
-        "other"
       ]
     },
     "public.match_dispute_status": {

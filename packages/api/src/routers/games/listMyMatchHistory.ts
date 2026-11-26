@@ -52,6 +52,7 @@ import {
   americanoDayFinished,
   americanoMatchState,
   americanoResults,
+  loadAmericanoFixedPairs,
   loadAmericanoMatches,
   loadAmericanoPlayers,
 } from "#src/games/americano-matches";
@@ -622,9 +623,10 @@ async function americanoRows(
     if (!viewerGamePlayerId) {
       continue;
     }
-    const [players, matchRows] = await Promise.all([
+    const [players, matchRows, fixedPairs] = await Promise.all([
       loadAmericanoPlayers(database, game.id),
       loadAmericanoMatches(database, game.id),
+      loadAmericanoFixedPairs(database, game.id),
     ]);
     const viewMatches = matchRows.map((row) => ({
       roundNumber: row.roundNumber,
@@ -648,6 +650,7 @@ async function americanoRows(
       table: americanoTable(
         players.map((player) => player.gamePlayerId),
         americanoResults(matchRows),
+        fixedPairs,
       ),
       viewerGamePlayerId,
       roundCount: game.roundCount ?? 0,

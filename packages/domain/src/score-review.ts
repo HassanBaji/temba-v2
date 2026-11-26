@@ -15,7 +15,7 @@ import { matchOutcome } from "./match-outcome";
 import { setWinsForGames } from "./set-wins-for-games";
 
 /**
- * Why a player changed an entered padel score (ADR-0114). Optional: the
+ * Why a player changed an entered padel score (ADR-0115). Optional: the
  * change itself is what the other side confirms.
  */
 export const SCORE_CHANGE_REASONS = [
@@ -283,7 +283,7 @@ function viewerResultLine(
 }
 
 /**
- * The bottom bar once a padel score is in (ADR-0114). A player whose side
+ * The bottom bar once a padel score is in (ADR-0115). A player whose side
  * has yet to confirm gets two actions: confirm the score, or dispute it and
  * send a corrected one. A player whose side is confirmed waits and may still
  * edit. While a change is being made the bar cancels it or sends it, and

@@ -37,7 +37,7 @@ export type ScoreReview = {
 };
 
 /**
- * The confirm-or-dispute flow of an entered padel score (ADR-0114), shared
+ * The confirm-or-dispute flow of an entered padel score (ADR-0115), shared
  * by the score card, which shows the boxes and the reason, and the bottom
  * bar, which holds the actions.
  */

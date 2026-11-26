@@ -379,6 +379,7 @@ export const game = {
   share: {
     ratedMatch: "RATED MATCH",
     friendlyMatch: "FRIENDLY MATCH",
+    unconfirmedMatch: "NOT CONFIRMED YET",
     padelTypeLine: "FRIENDLY · PADEL",
     footballTypeLine: (sideSize: string | null) =>
       sideSize ? `FRIENDLY · FOOTBALL · ${sideSize}` : "FRIENDLY · FOOTBALL",
@@ -392,6 +393,7 @@ export const game = {
     beat: (winners: string, losers: string, won: number, lost: number) =>
       `🏆 ${winners} beat ${losers} ${won}–${lost}`,
     footballResult: "⚽ Football result",
+    unconfirmedLine: "⏳ Score not confirmed yet",
   },
   hubEmpty: {
     noGamesYet: "No Games yet",

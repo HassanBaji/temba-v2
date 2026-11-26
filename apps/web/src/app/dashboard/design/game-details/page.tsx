@@ -218,7 +218,7 @@ export default function GameDetailsDesignPreviewPage() {
           <p className="text-muted-foreground text-meta max-w-prose">
             Needs a score, partially confirmed — one Set entered (the entering
             User auto-confirmed per ADR-0011), one confirmation from the other
-            side still outstanding (ADR-0113).
+            side still outstanding (ADR-0114).
           </p>
           <div className="grid gap-4 lg:grid-cols-3">
             <GameDetailsStateColumn

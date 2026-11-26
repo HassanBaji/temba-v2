@@ -11,6 +11,7 @@ import {
   gameCanShareInviteLink,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
+import { padelScoreAwaitsConfirmation } from "@repo/domain/game-result-share";
 import {
   friendlyGameDetailsPlan,
   seatedPlayerCanRename,
@@ -60,7 +61,10 @@ import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { InviteEntry } from "../invites/invite-entry";
 import { slotOf } from "../lib/slot-of";
 import { GamePaymentsSection } from "../game-payments/game-payments-section";
-import { PlayedFriendlyGame } from "../played-game/played-friendly-game";
+import {
+  PlayedFriendlyGame,
+  sharePath,
+} from "../played-game/played-friendly-game";
 import {
   PlayedMenuSheet,
   type PlayedMenuItem,
@@ -545,6 +549,10 @@ export function GameDetailsScreen({
         canMintInvite: gameCanShareInviteLink(data),
         cancelled: data.cancelledAt != null,
         phase: data.phase ?? null,
+        scoreAwaitsConfirmation: padelScoreAwaitsConfirmation(
+          data.phase ?? null,
+          data.matches[0],
+        ),
       })
     : null;
   const inviteEntry = inviteAccess?.canManage ? (
@@ -1100,9 +1108,11 @@ export function GameDetailsScreen({
                   tag={data.challenge ? m.challenge.gameDetails.tag : undefined}
                   genderTag={data.genderTag}
                   onShare={
-                    shareLink && shareContext
-                      ? () => void shareGame(shareContext, shareLink)
-                      : undefined
+                    shareLink === "result"
+                      ? () => router.push(sharePath(gameId))
+                      : shareLink && shareContext
+                        ? () => void shareGame(shareContext, shareLink)
+                        : undefined
                   }
                   onMore={
                     menuItems.length > 0 ? () => setMenuOpen(true) : undefined

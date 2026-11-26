@@ -8,7 +8,7 @@ import { user } from "./user";
  * A seated User's acknowledgement that a Match's entered Sets are correct
  * (ADR-0011). One row per Match per User; the User who enters the Set that
  * first produces a Match result is confirmed automatically, and one player
- * from the other side confirms via the `confirmMatchResult` door (ADR-0113).
+ * from the other side confirms via the `confirmMatchResult` door (ADR-0114).
  */
 export const matchResultConfirmations = pgTable(
   "match_result_confirmations",

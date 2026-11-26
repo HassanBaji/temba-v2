@@ -3,7 +3,12 @@ import { DEFAULT_LOCALE } from "@repo/i18n/locale";
 import { matchOutcome } from "./match-outcome";
 import { computePoolTables } from "./pool-table";
 import { carriesSeries, seriesWinRule } from "./series";
-import { americanoTable, type AmericanoResult } from "./tournament-americano";
+import {
+  americanoTable,
+  americanoWinners,
+  type AmericanoPair,
+  type AmericanoResult,
+} from "./tournament-americano";
 import {
   knockoutChampion,
   postedKnockoutRounds,
@@ -43,6 +48,8 @@ export type SeriesResultAmericano = {
   userIdByPlayerId: Readonly<Record<string, string | null>>;
   /** `americanoResults` over the Game's Matches. */
   results: readonly AmericanoResult[];
+  /** The Game's fixed pairs: a pair at the top of the table both win. */
+  fixedPairs: readonly AmericanoPair[];
 };
 
 export type SeriesResultGame = {
@@ -168,14 +175,20 @@ function americanoResult(game: SeriesResultGame): SeriesEditionResult {
   if (!americano?.finished) {
     return UPCOMING;
   }
-  const first = americanoTable(americano.playerIds, americano.results).find(
-    (row) => row.place === 1,
-  );
-  const userId = first ? americano.userIdByPlayerId[first.playerId] : null;
-  if (!userId) {
+  const userIds = americanoWinners(
+    americanoTable(
+      americano.playerIds,
+      americano.results,
+      americano.fixedPairs,
+    ),
+  ).flatMap((row) => {
+    const userId = americano.userIdByPlayerId[row.playerId];
+    return userId ? [userId] : [];
+  });
+  if (userIds.length === 0) {
     return NO_WINNER;
   }
-  return { state: "won", gameTeamIds: [], userIds: [userId] };
+  return { state: "won", gameTeamIds: [], userIds };
 }
 
 /**

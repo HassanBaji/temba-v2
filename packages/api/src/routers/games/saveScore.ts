@@ -44,7 +44,7 @@ type ScoreToSave = {
 
 /**
  * Saves a padel Match's Sets in one call, so the score is entered or changed
- * as a whole and never confirmed half-way through (ADR-0114). Whoever saves
+ * as a whole and never confirmed half-way through (ADR-0115). Whoever saves
  * it is confirmed, which confirms their side, and every other confirmation
  * goes. Changing a score that already had a result keeps what it replaced
  * and the optional reason, and asks the other side to confirm the new one.

@@ -62,7 +62,7 @@ async function sideAlreadyAgreed(
 /**
  * A User's confirmation that a Match's entered Sets are correct (ADR-0011).
  * A seated User confirms for their side, and the Match completes once one
- * player from each side has agreed (ADR-0113). An Organizer's confirmation is final: it completes the
+ * player from each side has agreed (ADR-0114). An Organizer's confirmation is final: it completes the
  * Match at once, without waiting on the players (ADR-0044); the players of a
  * padel Challenge Game organize it but confirm as players, and on a football
  * Challenge Game that counts for Temba Level whoever acts for a Team

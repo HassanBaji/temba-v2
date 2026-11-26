@@ -166,7 +166,7 @@ export function scoreFooterNote(
 export type ScoreOrganizerSide = { slot: 1 | 2; confirmed: boolean };
 
 /**
- * One player from each side confirms a Match (ADR-0113).
+ * One player from each side confirms a Match (ADR-0114).
  * `sideConfirmedUserIds` are the account holders whose side is confirmed, by
  * their own tap or a partner's; `requiredUserIds` are all who may confirm.
  */

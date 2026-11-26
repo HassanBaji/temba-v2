@@ -109,7 +109,7 @@ export function BottomBar({
 
 /**
  * The bar once a padel score is in: who entered it and what it means for
- * the viewer, over the two actions (ADR-0114).
+ * the viewer, over the two actions (ADR-0115).
  */
 export function ScoreReviewBar({
   bar,

@@ -39,6 +39,7 @@ import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-she
 import { FriendlyGameMenu } from "~/components/games/friendly-game-menu";
 import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { PlayedFriendlyGame } from "~/components/games/played/played-friendly-game";
+import { shareResultHref } from "~/components/games/played/played-game-view";
 import { PlayedPlayerDialog } from "~/components/games/played/played-player-dialog";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
@@ -110,6 +111,7 @@ import {
   type FriendlyGameJoinSeat,
   type FriendlyGameShareLink,
 } from "@repo/domain/friendly-game-cta";
+import { padelScoreAwaitsConfirmation } from "@repo/domain/game-result-share";
 import {
   lineupSidesNote,
   viewerSideOpenLine,
@@ -1007,11 +1009,17 @@ export default function GameHomePage({
       ? shareInviteLink
       : link === "game_page"
         ? shareGamePage
-        : undefined;
+        : link === "result"
+          ? () => router.push(shareResultHref(id))
+          : undefined;
   const shareLink = friendlyGameShareLink({
     canMintInvite: canShareInviteLink,
     cancelled: data.cancelledAt != null,
     phase: data.phase ?? null,
+    scoreAwaitsConfirmation: padelScoreAwaitsConfirmation(
+      data.phase ?? null,
+      data.matches[0],
+    ),
   });
   const heroActions = (
     <>

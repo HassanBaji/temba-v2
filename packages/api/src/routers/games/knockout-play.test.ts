@@ -321,7 +321,7 @@ describe("Knockout advance on completion", () => {
         });
       }
 
-      // A partner's tap after their side confirmed adds nothing (ADR-0113).
+      // A partner's tap after their side confirmed adds nothing (ADR-0114).
       await expect(
         confirmMatchResult(db, {
           gameId: seeded.gameId,

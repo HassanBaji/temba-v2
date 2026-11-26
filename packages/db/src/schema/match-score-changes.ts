@@ -32,7 +32,7 @@ export type ScoreChangeSet = {
 };
 
 /**
- * What the score a padel Match is waiting on replaced (ADR-0114): who changed
+ * What the score a padel Match is waiting on replaced (ADR-0115): who changed
  * an entered score, the Sets it had before, and the optional reason. One row
  * per Match, for the score as it stands: the next change replaces it, and it
  * goes when the score is entered afresh or the Match is reopened.

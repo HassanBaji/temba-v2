@@ -8,6 +8,7 @@ export * from "./king-place-awards";
 export * from "./level-checks";
 export * from "./rating-replay";
 export * from "./americano-seats";
+export * from "./americano-fixed-pairs";
 export * from "./group-ratings";
 export * from "./group-tiers";
 export * from "./verification";

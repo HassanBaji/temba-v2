@@ -460,7 +460,7 @@ export function GameScoreSection({
   scorePending: boolean;
   confirmPending: boolean;
   stampPending?: boolean;
-  /** Once a score is in: confirm or dispute it, from the action bar (ADR-0114). */
+  /** Once a score is in: confirm or dispute it, from the action bar (ADR-0115). */
   review?: ScoreReview | null;
   onSaveSets: (sets: ScoreSetsToSave) => void;
   onConfirm: () => void;

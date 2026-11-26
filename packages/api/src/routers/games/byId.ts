@@ -1065,14 +1065,14 @@ export async function gameById(
     confirmedUserIds: string[];
     // Every account holder seated on the Match: who may confirm. The name
     // is from when all of them had to (ADR-0011); one per side is enough
-    // now (ADR-0113).
+    // now (ADR-0114).
     requiredUserIds: string[];
     viewerHasConfirmed: boolean;
     // Account holders whose side is confirmed, by their own tap or a
-    // partner's: one player from each side confirms a Match (ADR-0113).
+    // partner's: one player from each side confirms a Match (ADR-0114).
     sideConfirmedUserIds: string[];
     // Who put in the score the Match waits on, and what it replaced when it
-    // was a change to an entered score (ADR-0114).
+    // was a change to an entered score (ADR-0115).
     scoreEntry: ScoreEntry | null;
     // Final-phase-only Score section footer copy (TEM-181): "Confirmed by
     // both sides on [date]." The latest confirmation row's timestamp,

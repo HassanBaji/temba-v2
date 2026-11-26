@@ -129,7 +129,7 @@ export function sideHasNoAccountHolder(side: MatchSideSeats): boolean {
 
 /**
  * The seated User ids with an account on a Match's two Game teams: the
- * players who may confirm, one of whom per side is enough (ADR-0113).
+ * players who may confirm, one of whom per side is enough (ADR-0114).
  * Unclaimed players never confirm.
  */
 export async function matchSeatedUserIds(
@@ -255,7 +255,7 @@ export async function matchResultConfirmedUserIds(
 /**
  * Who put in the score a Match is waiting on: its earliest confirmation,
  * since a changed score keeps only its enterer's. With it, what the score
- * replaced when that User changed an entered one (ADR-0114). `null` while
+ * replaced when that User changed an entered one (ADR-0115). `null` while
  * nobody has confirmed.
  */
 export async function scoreEntryOf(
@@ -488,7 +488,7 @@ export async function matchSlotsConfirmed(
 
 /**
  * Whether the Match's result is agreed: one player with an account from each
- * side (ADR-0113). A side with no account holder is agreed by an Organizer's
+ * side (ADR-0114). A side with no account holder is agreed by an Organizer's
  * confirmation. A Verifier stamp is a final confirmation on its own
  * (ADR-0072).
  */

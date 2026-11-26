@@ -51,7 +51,7 @@ function draftSets(match: Match, drafts: Record<string, ScoreSetDraft>) {
 }
 
 /**
- * The confirm-or-dispute flow of an entered padel score (ADR-0114), shared
+ * The confirm-or-dispute flow of an entered padel score (ADR-0115), shared
  * by the score section, which shows the boxes and the reason, and the
  * action bar, which holds the actions.
  */

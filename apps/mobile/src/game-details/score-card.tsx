@@ -488,7 +488,7 @@ export function ScoreCard({
   scorePending: boolean;
   confirmPending: boolean;
   stampPending?: boolean;
-  /** Once a score is in: confirm or dispute it, from the bottom bar (ADR-0114). */
+  /** Once a score is in: confirm or dispute it, from the bottom bar (ADR-0115). */
   review?: ScoreReview | null;
   onSaveSets: (payloads: ReturnType<typeof setsToSave>) => void;
   onConfirm: () => void;

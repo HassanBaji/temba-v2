@@ -978,8 +978,15 @@
     {
       "idx": 139,
       "version": "7",
-      "when": 1795693958594,
-      "tag": "0139_score_change",
+      "when": 1795689731416,
+      "tag": "0139_americano_fixed_pairs",
+      "breakpoints": true
+    },
+    {
+      "idx": 140,
+      "version": "7",
+      "when": 1795696044920,
+      "tag": "0140_score_change",
       "breakpoints": true
     }
   ]

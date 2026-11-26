@@ -93,7 +93,7 @@ export async function keepPublicGameConfirmation(
 
 /**
  * The note of what a changed score replaced describes the score as it
- * stands (ADR-0114), so it goes with that score.
+ * stands (ADR-0115), so it goes with that score.
  */
 export async function clearMatchScoreChange(tx: Tx, matchId: string) {
   await tx
@@ -108,7 +108,7 @@ export async function clearMatchScoreChange(tx: Tx, matchId: string) {
  * level Knockout Match, or one with no result left, has nothing to confirm.
  * A Set saved with the games it already had confirms nothing: the Apps save
  * a score one Set at a time, so an unchanged first Set from the other side
- * would complete the Match before their corrected Set arrived (ADR-0113).
+ * would complete the Match before their corrected Set arrived (ADR-0114).
  * A Public Game is the exception: a changed score restarts the other side's
  * 24 hours, and saving the same score again does not move them: it is an
  * agreement with the score, so after the 24 hours it lets the score stand

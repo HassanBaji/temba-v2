@@ -312,6 +312,35 @@ describe("friendlyGameShareLink", () => {
     );
     assert.equal(friendlyGameShareLink({ ...base, phase: "final" }), null);
   });
+
+  it("shares the result of a played Game whose score awaits confirmation", () => {
+    assert.equal(
+      friendlyGameShareLink({
+        ...base,
+        canMintInvite: true,
+        phase: "needs_results",
+        scoreAwaitsConfirmation: true,
+      }),
+      "result",
+    );
+    assert.equal(
+      friendlyGameShareLink({
+        ...base,
+        cancelled: true,
+        phase: "needs_results",
+        scoreAwaitsConfirmation: true,
+      }),
+      null,
+    );
+    assert.equal(
+      friendlyGameShareLink({
+        ...base,
+        phase: "ongoing",
+        scoreAwaitsConfirmation: true,
+      }),
+      "game_page",
+    );
+  });
 });
 
 describe("friendlyGameCanMintInvite", () => {

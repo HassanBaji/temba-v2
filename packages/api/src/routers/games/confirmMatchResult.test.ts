@@ -178,7 +178,7 @@ async function confirmedUserIds(database: TestDatabase, matchId: string) {
 }
 
 describe("Match result confirmation (ADR-0011)", () => {
-  it("auto-confirms the Set-entering User's side, and completes+rates on one confirmation from the other side (ADR-0113)", async () => {
+  it("auto-confirms the Set-entering User's side, and completes+rates on one confirmation from the other side (ADR-0114)", async () => {
     const { db, close } = await createPgliteDb();
     try {
       const { game, matchId, sets, a, b, c, d } =

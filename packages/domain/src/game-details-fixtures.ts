@@ -149,7 +149,7 @@ function baseFixture(args: {
  * - `needsScore` — fully seated, window ended, no Set entered yet.
  * - `needsScorePartiallyConfirmed` — fully seated, one Set entered (the
  *   entering User auto-confirmed per ADR-0011), one confirmation from the
- *   other side outstanding (ADR-0113).
+ *   other side outstanding (ADR-0114).
  * - `final` — fully seated, Match completed and rated, viewer-scoped
  *   rating-impact fields populated.
  */

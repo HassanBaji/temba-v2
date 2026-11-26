@@ -176,7 +176,7 @@ async function setUpSeatedFriendlyMatch(database: TestDatabase) {
  * Drives a freshly seated Match to `completed`/rated purely through the
  * ADR-0011 confirmation flow: the Set-entering User (`a`) auto-confirms
  * their side, and `c`'s confirmation for the other side runs the
- * complete-and-rate effect (ADR-0113).
+ * complete-and-rate effect (ADR-0114).
  */
 async function completeAndRateViaConfirmation(
   database: TestDatabase,
