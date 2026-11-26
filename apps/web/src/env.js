@@ -15,6 +15,10 @@ export const env = createEnv({
       .default("development"),
     WEB_ORIGIN: z.string().url(),
     API_ORIGIN: z.string().url(),
+    APPLE_APP_ID: z
+      .string()
+      .regex(/^[A-Z0-9]{10}\.[\w.-]+$/)
+      .optional(),
   },
 
   /**
@@ -39,6 +43,7 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     WEB_ORIGIN: process.env.WEB_ORIGIN,
     API_ORIGIN: toApiOrigin(process.env.API_ORIGIN),
+    APPLE_APP_ID: process.env.APPLE_APP_ID,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
