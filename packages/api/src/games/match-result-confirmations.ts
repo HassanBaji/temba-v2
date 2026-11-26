@@ -11,7 +11,6 @@ import {
 
 import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { isFootballGame } from "@repo/domain/game-shape";
-import { isDrawnTournament } from "@repo/domain/tournament-rounds";
 
 import { type db } from "#src/db";
 import { mayHaveAmericanoSeats } from "#src/games/americano-matches";
@@ -387,7 +386,7 @@ export async function matchSlotsActedFor(
 
 /**
  * The sides of a Match whose players have confirmed its result, by slot.
- * A football Match is agreed once one player from each side confirms; a side
+ * A Match is agreed once one player from each side confirms; a side
  * with no account holder counts once an Organizer confirms for it. On a
  * football Challenge Game a side also counts once someone who acts for its
  * Team confirms, and one User's confirmation counts for one side only, so
@@ -442,31 +441,10 @@ export async function matchSlotsConfirmed(
 }
 
 /**
- * One player from each side agrees a football Match, a drawn tournament's
- * Match (ADR-0062) and a Public Game's Match (ADR-0071): the side that
- * entered the score, then one tap from the other side.
- */
-export function confirmsBySide(game: {
-  sport: string | null;
-  format: string;
-  poolCount: number | null;
-  tournamentShape: string | null;
-  isPublic: boolean;
-  groupId: string | null;
-}) {
-  return (
-    isPublicGame(game) ||
-    isFootballGame(game) ||
-    isDrawnTournament(game.format, game.poolCount, game.tournamentShape)
-  );
-}
-
-/**
- * Whether the Match's result is agreed: every seated User with an account on
- * a padel Match's two Game teams, or one player from each side of a football,
- * drawn tournament or Public Game Match. A side with no account holder is
- * agreed by an Organizer's confirmation. A Verifier stamp is a final
- * confirmation on its own (ADR-0072).
+ * Whether the Match's result is agreed: one player with an account from each
+ * side (ADR-0113). A side with no account holder is agreed by an Organizer's
+ * confirmation. A Verifier stamp is a final confirmation on its own
+ * (ADR-0072).
  */
 export async function matchResultFullyConfirmed(
   database: DbClient,
@@ -475,33 +453,8 @@ export async function matchResultFullyConfirmed(
   if (await matchVerifierStampOf(database, match.id)) {
     return true;
   }
-  const game = await database.query.games.findFirst({
-    where: eq(games.id, match.gameId),
-    columns: {
-      sport: true,
-      format: true,
-      poolCount: true,
-      tournamentShape: true,
-      isPublic: true,
-      groupId: true,
-    },
-  });
-  if (game && confirmsBySide(game)) {
-    const sides = await matchSlotsConfirmed(database, match);
-    return sides.slot1 && sides.slot2;
-  }
-  const sides = await matchSideSeats(database, match);
-  if (sides.every((side) => side.userIds.length === 0)) {
-    return false;
-  }
-  const confirmedUserIds = new Set(
-    await matchResultConfirmedUserIds(database, match.id),
-  );
-  return sides.every((side) =>
-    sideHasNoAccountHolder(side)
-      ? side.userIds.some((userId) => confirmedUserIds.has(userId))
-      : side.accountHolderIds.every((userId) => confirmedUserIds.has(userId)),
-  );
+  const sides = await matchSlotsConfirmed(database, match);
+  return sides.slot1 && sides.slot2;
 }
 
 export const PUBLIC_GAME_CONFIRM_WINDOW_MS = 24 * 60 * 60 * 1000;

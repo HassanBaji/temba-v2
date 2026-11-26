@@ -76,6 +76,7 @@ export type FriendlyGameDetailsConfirmation = {
   confirmedUserIds: string[];
   requiredUserIds: string[];
   viewerHasConfirmed: boolean;
+  sideAgreedUserIds?: string[];
   confirmedAt: Date | null;
   organizerSides?: { slot: 1 | 2; confirmed: boolean }[];
   confirmedByOrganizer?: boolean;

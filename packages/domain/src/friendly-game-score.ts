@@ -164,10 +164,16 @@ export function scoreFooterNote(
 
 export type ScoreOrganizerSide = { slot: 1 | 2; confirmed: boolean };
 
+/**
+ * One player from each side agrees a Match (ADR-0113). `sideAgreedUserIds`
+ * are the account holders whose side has agreed, by their own tap or a
+ * partner's.
+ */
 export type ScoreConfirmation = {
   confirmedUserIds: string[];
   requiredUserIds: string[];
   viewerHasConfirmed: boolean;
+  sideAgreedUserIds?: string[];
   organizerSides?: ScoreOrganizerSide[];
 };
 
@@ -179,13 +185,18 @@ export function scoreConfirmationRows(
 ) {
   const m = messagesFor(locale).game.score;
   const confirmed = new Set(confirmation.confirmedUserIds);
+  const sideAgreed = new Set(confirmation.sideAgreedUserIds ?? []);
   return confirmation.requiredUserIds.map((userId) => {
     const name = names.get(userId) ?? m.player;
     return {
       userId,
       label: userId === viewerUserId ? m.youSuffix(name) : name,
       confirmed: confirmed.has(userId),
-      status: confirmed.has(userId) ? m.confirmed : m.waiting,
+      status: confirmed.has(userId)
+        ? m.confirmed
+        : sideAgreed.has(userId)
+          ? m.partnerConfirmed
+          : m.waiting,
     };
   });
 }
@@ -196,9 +207,7 @@ export function scoreShowsConfirmations(input: {
   phase: FriendlyScorePhase;
 }) {
   return (
-    input.confirmation != null &&
-    input.hasResult &&
-    scoreIsOpen(input.phase)
+    input.confirmation != null && input.hasResult && scoreIsOpen(input.phase)
   );
 }
 
@@ -222,6 +231,7 @@ export function scoreCanConfirm(input: {
     input.phase !== "final" &&
     input.confirmation.requiredUserIds.includes(input.viewerUserId) &&
     !input.confirmation.viewerHasConfirmed &&
+    !input.confirmation.sideAgreedUserIds?.includes(input.viewerUserId) &&
     (input.confirmWindow?.viewerMayConfirm ?? true)
   );
 }

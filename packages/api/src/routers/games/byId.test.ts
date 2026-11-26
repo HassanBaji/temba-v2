@@ -530,8 +530,14 @@ describe("gameById ratingImpact (TEM-177)", () => {
 
       const afterFinal = await gameById(db, { gameId: game.id, userId: a.id });
       expect(afterFinal.phase).toBe("final");
-      expect(afterFinal.matchResultConfirmation?.confirmedUserIds).toHaveLength(
-        4,
+      expect(
+        afterFinal.matchResultConfirmation?.confirmedUserIds.sort(),
+      ).toEqual([a.id, c.id].sort());
+      expect(
+        afterFinal.matchResultConfirmation?.sideAgreedUserIds.sort(),
+      ).toEqual([a.id, b.id, c.id, d.id].sort());
+      expect(afterFinal.matchResultConfirmation?.confirmedByOrganizer).toBe(
+        false,
       );
       expect(afterFinal.matchResultConfirmation?.confirmedAt).toBeInstanceOf(
         Date,

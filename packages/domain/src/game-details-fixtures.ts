@@ -226,6 +226,7 @@ export function createGameDetailsFixtures(now = new Date()): {
       confirmedUserIds: [VIEWER_ID],
       requiredUserIds: [VIEWER_ID, PARTNER_ID, OPPONENT_1_ID, OPPONENT_2_ID],
       viewerHasConfirmed: true,
+      sideAgreedUserIds: [VIEWER_ID, PARTNER_ID],
       confirmedAt: null,
     },
     ratingImpact: null,
@@ -250,9 +251,10 @@ export function createGameDetailsFixtures(now = new Date()): {
     ],
     phase: "final",
     matchResultConfirmation: {
-      confirmedUserIds: [VIEWER_ID, PARTNER_ID, OPPONENT_1_ID, OPPONENT_2_ID],
+      confirmedUserIds: [VIEWER_ID, OPPONENT_1_ID],
       requiredUserIds: [VIEWER_ID, PARTNER_ID, OPPONENT_1_ID, OPPONENT_2_ID],
       viewerHasConfirmed: true,
+      sideAgreedUserIds: [VIEWER_ID, PARTNER_ID, OPPONENT_1_ID, OPPONENT_2_ID],
       confirmedAt: isoMinutesFrom(now, -2 * 24 * 60 + 90),
     },
     ratingImpact: {

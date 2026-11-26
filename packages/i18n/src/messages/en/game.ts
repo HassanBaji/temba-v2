@@ -261,15 +261,16 @@ export const game = {
     notEntered: (label: string) => `${label}: not entered yet`,
     confirmedByOrganizer: "Confirmed by the Organizer. Nothing else needed.",
     confirmedByAllOn: (date: string) =>
-      `Confirmed by all four players on ${date}. Nothing else needed.`,
-    confirmedByAll: "Confirmed by all four players. Nothing else needed.",
+      `Confirmed by both sides on ${date}. Nothing else needed.`,
+    confirmedByAll: "Confirmed by both sides. Nothing else needed.",
     noScoreYet:
-      "No score yet. Anyone who played can add it. The other three confirm before it counts towards your level.",
+      "No score yet. Anyone who played can add it. One player from the other side confirms before it counts towards your level.",
     scoringOpens:
       "Scoring opens when the court is full. Fill the last spot and you'll be able to enter a result after the game.",
     player: "Player",
     youSuffix: (name: string) => `${name} (You)`,
     confirmed: "Confirmed",
+    partnerConfirmed: "Partner confirmed",
     waiting: "Waiting",
     organizerWaiting: (team: string) =>
       `Waiting for the Organizer to confirm for ${team}.`,

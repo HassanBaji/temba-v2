@@ -1063,15 +1063,18 @@ export async function gameById(
     confirmedUserIds: string[];
     requiredUserIds: string[];
     viewerHasConfirmed: boolean;
+    // Account holders whose side has agreed, by their own tap or a
+    // partner's: one player from each side agrees a Match (ADR-0113).
+    sideAgreedUserIds: string[];
     // Final-phase-only Score section footer copy (TEM-181): "Confirmed by
-    // all four players on [date]." The latest confirmation row's timestamp,
+    // both sides on [date]." The latest confirmation row's timestamp,
     // not a proxy off `match.updatedAt` (which any unrelated Match edit,
     // e.g. a court change, could also touch) — additive read of an existing
     // column, no schema change.
     confirmedAt: Date | null;
     organizerSides?: { slot: MatchSlot; confirmed: boolean }[];
-    // A final Match that not every required player confirmed was confirmed
-    // by an Organizer (ADR-0044).
+    // A final Match that a side's players did not agree was confirmed by an
+    // Organizer (ADR-0044).
     confirmedByOrganizer: boolean;
     // Whether the viewer's confirmation is final. A padel Challenge Game's
     // players organize it but confirm as players.
@@ -1118,18 +1121,27 @@ export async function gameById(
   }
 
   if (isIndividualFriendlyGame && friendlyMatch) {
-    const [requiredUserIds, confirmedUserIds, organizerSides] =
+    const [sides, agreedSlots, confirmedUserIds, organizerSides] =
       await Promise.all([
-        matchSeatedUserIds(database, friendlyMatch),
+        matchSideSeats(database, friendlyMatch),
+        matchSlotsConfirmed(database, friendlyMatch),
         matchResultConfirmedUserIds(database, friendlyMatch.id),
         matchOrganizerSides(database, friendlyMatch),
       ]);
+    const requiredUserIds = [
+      ...new Set(sides.flatMap((side) => side.accountHolderIds)),
+    ];
+    const sideAgreedUserIds = sides.flatMap((side) =>
+      (side.slot === 1 ? agreedSlots.slot1 : agreedSlots.slot2)
+        ? side.accountHolderIds
+        : [],
+    );
     const confirmedByOrganizer =
       phase === "final" &&
       !isPublicGame(game) &&
       !stampByMatchId.has(friendlyMatch.id) &&
       (requiredUserIds.length === 0 ||
-        requiredUserIds.some((userId) => !confirmedUserIds.includes(userId)));
+        !(agreedSlots.slot1 && agreedSlots.slot2));
     const confirmedAt =
       phase === "final" && !confirmedByOrganizer
         ? await matchResultConfirmationCompletedAt(database, friendlyMatch.id)
@@ -1138,6 +1150,7 @@ export async function gameById(
       confirmedUserIds,
       requiredUserIds,
       viewerHasConfirmed: confirmedUserIds.includes(args.userId),
+      sideAgreedUserIds,
       confirmedAt,
       organizerSides,
       confirmedByOrganizer,
