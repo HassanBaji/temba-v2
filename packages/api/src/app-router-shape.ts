@@ -146,6 +146,7 @@ type ExpectedGames =
   | "listDisputesForOperator"
   | "decideDispute"
   | "footballBoard"
+  | "footballPlayerCard"
   | "resultLink"
   | "setFootballRole"
   | "publishFootballTeams"

@@ -21,6 +21,7 @@ import { decideDisputeProcedure as decideDispute } from "./decideDispute";
 import { disputeMatchResultProcedure as disputeMatchResult } from "./disputeMatchResult";
 import { drawPoolsProcedure as drawPools } from "./drawPools";
 import { footballBoardProcedure as footballBoard } from "./footballBoard";
+import { footballPlayerCardProcedure as footballPlayerCard } from "./footballPlayerCard";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
 import { joinGroupFromInviteLinkProcedure as joinGroupFromInviteLink } from "./joinGroupFromInviteLink";
 import { kickProcedure as kick } from "./kick";
@@ -199,6 +200,7 @@ export const gamesRouter = createTRPCRouter({
   decideDispute,
   reportWrongScore,
   footballBoard,
+  footballPlayerCard,
   resultLink,
   setFootballRole,
   publishFootballTeams,
