@@ -226,6 +226,19 @@ export function TournamentPreviewStates({
         <div className="grid items-start gap-10 lg:grid-cols-2 xl:grid-cols-4">
           <CardPreviewColumn title="Open" game={cardFixtures.open} />
           <CardPreviewColumn
+            title="Open, an Edition of a Series"
+            game={{
+              ...cardFixtures.open,
+              series: {
+                id: "series-preview",
+                name: "Sunday Social",
+                emblem: "cup",
+                colour: "gold",
+                edition: 4,
+              },
+            }}
+          />
+          <CardPreviewColumn
             title="In with a half team"
             game={cardFixtures.inWithHalfTeam}
           />

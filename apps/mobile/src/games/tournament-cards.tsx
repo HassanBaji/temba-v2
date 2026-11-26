@@ -45,6 +45,7 @@ import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
 import { Text } from "../primitives/text";
+import { SeriesHeadingLine } from "../series/series-hero-line";
 import { CardBand, CardFooter, CardShell } from "./card-parts";
 import type { GameCardActions } from "./game-card";
 import { GenderTag } from "./gender-tag";
@@ -352,6 +353,7 @@ export function TournamentCard({
             {subLine}
           </Text>
         ) : null}
+        <SeriesHeadingLine series={game.series} />
         {knockoutLine ? (
           <Text weight="semibold" numberOfLines={1}>
             {knockoutLine}

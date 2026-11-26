@@ -29,7 +29,7 @@ import {
   americanoPlayersOf,
   americanoResults,
 } from "#src/games/americano-matches";
-import { editionNumber, isEdition } from "#src/series/edition-order";
+import { isEdition, loadEditionNumbers } from "#src/series/edition-order";
 
 type DbClient =
   | typeof db
@@ -115,21 +115,6 @@ async function loadGames(database: DbClient, scope: SeriesEditionsScope) {
     })
     .from(games)
     .where(and(inScope, isNotNull(games.seriesId), isEdition));
-}
-
-/**
- * Each Game's Edition number among every Game of its Series that is not
- * cancelled, in `edition-order`.
- */
-async function loadEditionNumbers(
-  database: DbClient,
-  seriesIds: readonly string[],
-) {
-  const rows = await database
-    .select({ id: games.id, edition: editionNumber })
-    .from(games)
-    .where(and(inArray(games.seriesId, [...seriesIds]), isEdition));
-  return new Map(rows.map((row) => [row.id, row.edition]));
 }
 
 function latest(dates: readonly (Date | null)[]) {

@@ -52,7 +52,7 @@ Nothing called Series exists: no table, no procedure, no screen.
 - **A Latest list on the profile.** The design draws one ("Latest, All 8"); the profile has none today, for Marks either. A Series win is news on Home's Latest row, as a Mark is.
 - **A new Notification or Notification email.** The existing Finished Game Notification already brings every player to the Game, which opens on the winners. A stored "you won" notice could not follow a score correction.
 - **New Result cards or stickers.** Share on the winners card opens the existing share screen.
-- **Series on game cards** (Games hub, Group Games tab, Home). Only the Game screen, the Series page, the Group's tab and the profile show a Series.
+- **Series on Game cards other than the Social card** (Friendly game and football Game cards, Match cards, Played cards, Home). The Social card shows its Series (8.6); besides it, only the Game screen, the Series page, the Group's tab and the profile show one.
 - **A Series across Groups, on a Team, on a Venue, or on a Game with no Group** (Booking Game, Challenge Game, Public Game).
 - **Uploads.** A badge is one of seven emblems in one of six colours.
 - **Hiding a Series win** with its own switch.
@@ -287,7 +287,7 @@ Each is used by two or more procedures, so it is a shared module, not a twin of 
 | Module | Holds | Used by |
 | --- | --- | --- |
 | `series-link.ts` | `requireSeries(db, id, locale)`; `seriesLinkLocked(db, game)` (the score is in); `resolveGameSeriesLink(db, { game, group, seriesId, locale })`, which applies 5.5 and throws the localized refusal; `gameSeriesSummary(db, game)`, the Game's Series with its Edition number, or null; `seriesEditionAt(db, { seriesId, windowStart, excludeGameId? })`, the number a Game starting then would hold | `games.create`, `games.createTournament`, `games.updateSeries`, `games.byId`, `series.attachOptions` |
-| `edition-order.ts` | The order Editions are numbered in (5.6), as SQL: `editionNumber` (the row number inside a Series), `editionsBefore(gameId, windowStart?)`, `editionsBeforeNewGame(windowStart)` and `isEdition` (not cancelled). The one place the order is written | `series-link.ts`, `load-series-editions.ts` |
+| `edition-order.ts` | The order Editions are numbered in (5.6), as SQL: `editionNumber` (the row number inside a Series), `editionsBefore(gameId, windowStart?)`, `editionsBeforeNewGame(windowStart)` and `isEdition` (not cancelled); `loadEditionNumbers(db, seriesIds)` and `withSeriesEditions(db, rows)`, which give many Games their numbers in one query. The one place the order is written | `series-link.ts`, `load-series-editions.ts`, `games/helpers/hub-list.ts`, `groups.byId` |
 | `load-series-editions.ts` | `loadSeriesEditions(db, { seriesIds } \| { gameIds })`: in a fixed number of queries, the Games (not cancelled), their Game teams with players, Matches with Sets, and Americano seats; then per Game its Edition number, `seriesEditionResult`, the winners' names and images, the winning side's Bib, the single Match's score, and the moment it was decided | `series.listForGroup`, `series.byId`, `series.edition`, `series.forPlayer`, `series.playerWins` |
 
 `loadSeriesEditions` never loops a query per Game. `packages/api/src/live-boards/board-content.ts` and `routers/games/poolTables.ts` show how the rows feed `computePoolTables` and `americanoTable`. When it is given `gameIds`, it still numbers Editions against every Game of their Series, from one light query of `(id, series_id, window_start, created_at)`.
@@ -539,6 +539,8 @@ The rule line (`seriesRuleLine`):
 When `lastWinners` is set, the line gains a second sentence: "{winners} won the last one." (`seriesWonLastLine`, through `seriesWinnersLine`).
 
 "See series" opens the Series page; it is hidden when `canOpenSeries` is false. The card is never shown on a cancelled Game.
+
+**The Social card** (the Games hub and a Group's Scheduled list) shows the same series line under its venue line, above "Final order to come" and the hairline. A hub row carries `series` (`id`, `name`, `emblem`, `colour`, `edition`), or null when the Game is no Edition; `queryHubGames` and `groups.byId` read the numbers through `withSeriesEditions`. The line is not a link: the card opens the Game. Web `tournament-summary-card.tsx`, mobile `src/games/tournament-cards.tsx`.
 
 Where: web `app/dashboard/games/[id]/page.tsx` and `friendly-game-details-hero.tsx` (padel), `football-game-details.tsx` and `football-game-hero.tsx`, `tournament-home.tsx` and `tournament-hero.tsx`, with the facts in `game-overview-panel.tsx`, `football-info-rows.tsx`, `tournament-detail-rows.tsx`. Mobile `src/game-details/details-screen.tsx`, `game-hero.tsx`, `details-content.tsx`, `football-details-screen.tsx`, `football-hero.tsx`, `src/tournament/tournament-content.tsx` and its views (`predraw-view.tsx`, `alone-social.tsx`, `standings-view.tsx`, `king-view.tsx`, `americano-view.tsx`).
 

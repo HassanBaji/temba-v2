@@ -133,6 +133,7 @@ import { youRatingViewAfterIdle } from "@repo/domain/idle";
 import { startOfProductDay } from "@repo/domain/product-timezone";
 import { seasonStandingPosition } from "@repo/domain/season-standing";
 import { canManageSeasons } from "#src/groups/helpers/season-access";
+import { withSeriesEditions } from "#src/series/edition-order";
 import { loadGroupStandings } from "#src/standing/load-group-standing";
 import { visibleMemberNickname } from "#src/groups/helpers/visible-member-nickname";
 import { isUnclaimed } from "#src/unclaimed-players/is-unclaimed";
@@ -1126,10 +1127,9 @@ export async function groupById(
     args.userId,
     args.locale ?? DEFAULT_LOCALE,
   );
-  const upcomingRows = filterAndSortHomeUpcomingGames(
-    groupGameRows,
-    new Set([group.id]),
-    now,
+  const upcomingRows = await withSeriesEditions(
+    database,
+    filterAndSortHomeUpcomingGames(groupGameRows, new Set([group.id]), now),
   );
   const upcomingGames = await applyViewerLevelRangeToHubRows(
     database,
