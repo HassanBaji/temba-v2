@@ -56,10 +56,6 @@ export function groupLinkRequestDeclineConfirm(
   };
 }
 
-export function groupPartOfVenueLine(venueName: string, locale: Locale) {
-  return messagesFor(locale).group.linkRequest.partOf(venueName);
-}
-
 export function groupLeaveVenueActionLabel(venueName: string, locale: Locale) {
   return messagesFor(locale).group.linkRequest.leaveVenueLabel(venueName);
 }
