@@ -33,7 +33,7 @@ import {
 } from "@repo/domain/game-card";
 import { gameCustomName } from "@repo/domain/game-custom-name";
 import { gameCardFormatLabel } from "@repo/domain/game-format-label";
-import { ratingScopeTag } from "@repo/domain/game-rating-impact";
+import { gameCardRatingTag } from "@repo/domain/game-rating-impact";
 import type { GameRatingScope } from "@repo/domain/game-rating-scope";
 import {
   gameCardActionLabel,
@@ -378,7 +378,7 @@ export function GameSummaryCard({
   const [startAtPartner, setStartAtPartner] = React.useState(false);
   const [now, setNow] = React.useState(() => new Date());
   const startDate = startTime instanceof Date ? startTime : new Date(startTime);
-  const ratingTag = ratingScopeTag(
+  const ratingTag = gameCardRatingTag(
     { rated, ratingScope, sport, publicGame },
     locale,
   );

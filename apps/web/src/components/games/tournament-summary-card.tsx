@@ -28,7 +28,7 @@ import {
   formatHomeCountdown,
   formatHomeKickoff,
 } from "@repo/domain/home-countdown";
-import { ratingScopeTag } from "@repo/domain/game-rating-impact";
+import { gameCardRatingTag } from "@repo/domain/game-rating-impact";
 import { hubRegisterToast } from "@repo/domain/game-card";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
@@ -103,7 +103,7 @@ function CardBand({ label, meta }: { label: string; meta: string | null }) {
 
 function RatingScopeBadge({ game }: { game: TournamentCardGame }) {
   const locale = useLocale();
-  const tag = ratingScopeTag(game, locale);
+  const tag = gameCardRatingTag(game, locale);
   return tag ? (
     <Badge variant="outline" data-slot="game-card-rating-scope">
       {tag}
