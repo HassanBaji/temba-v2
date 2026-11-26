@@ -368,6 +368,7 @@ export const game = {
   share: {
     ratedMatch: "مباراة مصنّفة",
     friendlyMatch: "مباراة ودية",
+    unconfirmedMatch: "لم تُؤكَّد بعد",
     padelTypeLine: "ودية · بادل",
     footballTypeLine: (sideSize: string | null) =>
       sideSize ? `ودية · كرة القدم · ${sideSize}` : "ودية · كرة القدم",
@@ -381,6 +382,7 @@ export const game = {
     beat: (winners: string, losers: string, won: number, lost: number) =>
       `🏆 ${winners} تغلّبوا على ${losers} ${won}–${lost}`,
     footballResult: "⚽ نتيجة كرة القدم",
+    unconfirmedLine: "⏳ النتيجة لم تُؤكَّد بعد",
   },
   hubEmpty: {
     noGamesYet: "لا مباريات بعد",

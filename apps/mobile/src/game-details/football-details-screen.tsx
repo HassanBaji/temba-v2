@@ -87,6 +87,7 @@ import { GameAlbumSections } from "../game-album/game-album-sections";
 import { GamePaymentsSection } from "../game-payments/game-payments-section";
 import { useGameAlbum } from "../game-album/use-game-album";
 import { PlayedFootballBoard } from "../played-game/played-football-board";
+import { footballScoreAwaitsConfirmation } from "@repo/domain/game-result-share";
 import { sharePath } from "../played-game/played-friendly-game";
 import { shareDraftPath } from "../share-draft/share-draft-screen";
 import { MatchDisputeSection } from "../played-game/match-dispute-section";
@@ -851,7 +852,15 @@ export function FootballGameDetails({
                 : undefined
           }
           actions={
-            challenge && !game.cancelledAt ? (
+            !game.cancelledAt &&
+            footballScoreAwaitsConfirmation(board.data?.match) ? (
+              <HeaderIconButton
+                framed
+                icon={Share}
+                accessibilityLabel={m.game.cta.shareResult}
+                onPress={() => router.push(sharePath(gameId))}
+              />
+            ) : challenge && !game.cancelledAt ? (
               <HeaderIconButton
                 framed
                 icon={Share}
