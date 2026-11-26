@@ -87,6 +87,7 @@ import { GameAlbumSections } from "../game-album/game-album-sections";
 import { GamePaymentsSection } from "../game-payments/game-payments-section";
 import { useGameAlbum } from "../game-album/use-game-album";
 import { PlayedFootballBoard } from "../played-game/played-football-board";
+import { footballScoreAwaitsConfirmation } from "@repo/domain/game-result-share";
 import { sharePath } from "../played-game/played-friendly-game";
 import { shareDraftPath } from "../share-draft/share-draft-screen";
 import { MatchDisputeSection } from "../played-game/match-dispute-section";
@@ -126,6 +127,7 @@ import { challengeInfoRows } from "./challenge-details-card";
 import { NameSquadSheet } from "./name-squad-sheet";
 import { ChallengeSquads } from "./squad-grid";
 import { useShareGame } from "./use-share-game";
+import { useSharePlayedGame } from "./use-share-played-game";
 import { TeamVsTeamRow } from "./team-vs-team-row";
 import { useGameEdit } from "./use-game-edit";
 import { useRequestDecisions } from "./use-request-decisions";
@@ -259,6 +261,7 @@ export function FootballGameDetails({
       }
     : baseLines;
   const shareGame = useShareGame(gameId);
+  const sharePlayedGame = useSharePlayedGame(gameId);
 
   const refresh = () =>
     Promise.all([
@@ -780,6 +783,11 @@ export function FootballGameDetails({
           sides={playedModel.board}
           hasWinner={playedModel.result.hasWinner}
           scorers={playedModel.scorers}
+          log={{
+            lines: board.data?.match?.log ?? [],
+            players,
+            confirmedByName: board.data?.match?.confirmedByName ?? null,
+          }}
         />
       }
       heroFooter={
@@ -846,7 +854,22 @@ export function FootballGameDetails({
                 : undefined
           }
           actions={
-            challenge && !game.cancelledAt ? (
+            !game.cancelledAt &&
+            footballScoreAwaitsConfirmation(board.data?.match) ? (
+              <HeaderIconButton
+                framed
+                icon={Share}
+                accessibilityLabel={m.game.cta.shareResult}
+                onPress={() => router.push(sharePath(gameId))}
+              />
+            ) : !game.cancelledAt && game.phase === "needs_results" ? (
+              <HeaderIconButton
+                framed
+                icon={Share}
+                accessibilityLabel={m.mobileGameDetails.hero.shareGame}
+                onPress={() => void sharePlayedGame(game)}
+              />
+            ) : challenge && !game.cancelledAt ? (
               <HeaderIconButton
                 framed
                 icon={Share}

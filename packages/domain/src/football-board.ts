@@ -148,6 +148,18 @@ export function lineupName(
   return nameOnLineup(player, locale, shortName);
 }
 
+/** `lineupName` for a Make teams tile, which shows the Temba name in full. */
+export function teamsTileName(
+  player: Pick<BoardPlayer, "name" | "nickname" | "isViewer">,
+  locale: Locale,
+) {
+  return nameOnLineup(player, locale, (name) => name);
+}
+
+export function otherSide(side: Side): Side {
+  return side === 1 ? 2 : 1;
+}
+
 /** `lineupName` for a pool tile, whose short name is `tileShortName`. */
 export function poolTileName(
   player: Pick<BoardPlayer, "name" | "nickname" | "isViewer">,
@@ -650,22 +662,34 @@ export function draftSummary(
 
 /**
  * A side's mean as Make teams reads it when every player has a balance
- * strength: mean Tier points in a tier Group, the mean OVR elsewhere.
- * Otherwise the mean OVR of the players who have one.
+ * strength: the mean OVR off a tier Group, and in a tier Group the mean Tier
+ * points of its ranked members, a dash while it has none. Provisional members
+ * and Guest players are balanced on a start hint, which is no Tier points,
+ * so the mean leaves them out. Otherwise the mean OVR of the players who
+ * have one.
  */
 export function teamsSideAverage(
-  players: readonly Pick<BoardPlayer, "ovr" | "balanceStrength">[],
+  players: readonly Pick<
+    BoardPlayer,
+    "ovr" | "balanceStrength" | "tier" | "guest"
+  >[],
   locale: Locale,
   balanceOn: FootballBalanceOn = "tierPoints",
 ) {
-  const strengths = players.flatMap((player) =>
-    player.balanceStrength == null ? [] : [player.balanceStrength],
-  );
-  if (strengths.length === 0 || strengths.length < players.length) {
+  if (
+    players.length === 0 ||
+    players.some((player) => player.balanceStrength == null)
+  ) {
     return sideOvrAverage(players, locale);
   }
+  const counted =
+    balanceOn === "ovr" ? players : players.filter(countsInTierAverage);
+  if (counted.length === 0) {
+    return "–";
+  }
   const mean =
-    strengths.reduce((sum, strength) => sum + strength, 0) / strengths.length;
+    counted.reduce((sum, player) => sum + (player.balanceStrength ?? 0), 0) /
+    counted.length;
   const m = messagesFor(locale).rating;
   return balanceOn === "ovr"
     ? m.ovr.value(formatOvr(mean))
@@ -757,88 +781,80 @@ export function keeperWord(
   return messagesFor(locale).football.board.keeperCount(keepersIn(players));
 }
 
-export type ScoreDraft = {
-  slot1: number;
-  slot2: number;
-  goals: Record<string, number>;
-};
-
-export function namedGoals(draft: ScoreDraft, players: readonly BoardPlayer[]) {
-  const named = { slot1: 0, slot2: 0 };
-  for (const player of players) {
-    const goals = draft.goals[player.userId] ?? 0;
-    if (player.sideIndex === 1) {
-      named.slot1 += goals;
-    } else if (player.sideIndex === 2) {
-      named.slot2 += goals;
-    }
-  }
-  return named;
-}
-
 /**
- * Tapping a scorer adds a goal, and raises their side's Score with it when
- * the side has no unnamed goals left.
+ * A Group Tier still Provisional on a tier Group's Make teams. Their Tier
+ * points have not settled, so the tile reads new and the side's average
+ * leaves them out. A Guest player has no tier at all and is never one.
  */
-export function addGoal(
-  draft: ScoreDraft,
-  player: Pick<BoardPlayer, "userId" | "sideIndex">,
-  players: readonly BoardPlayer[],
-): ScoreDraft {
-  if (!player.sideIndex) {
-    return draft;
-  }
-  const key = player.sideIndex === 1 ? "slot1" : "slot2";
-  const named = namedGoals(draft, players)[key];
-  return {
-    ...draft,
-    [key]: Math.max(draft[key], named + 1),
-    goals: {
-      ...draft.goals,
-      [player.userId]: (draft.goals[player.userId] ?? 0) + 1,
-    },
-  };
-}
-
-export function removeGoal(draft: ScoreDraft, userId: string): ScoreDraft {
-  const current = draft.goals[userId] ?? 0;
-  if (current === 0) {
-    return draft;
-  }
-  const goals = { ...draft.goals };
-  if (current === 1) {
-    delete goals[userId];
-  } else {
-    goals[userId] = current - 1;
-  }
-  return { ...draft, goals };
-}
-
-export function scorersNote(
-  draft: ScoreDraft,
-  players: readonly BoardPlayer[],
-  names: { slot1: string; slot2: string },
-  locale: Locale,
+export function tierProvisionalOnTeams(
+  player: Pick<BoardPlayer, "tier" | "guest">,
+  balanceOn: FootballBalanceOn,
 ) {
-  const m = messagesFor(locale).football.board;
-  const named = namedGoals(draft, players);
-  if (named.slot1 + named.slot2 === 0) {
-    return m.goalsNote;
-  }
-  return m.goalsNamed(
-    named.slot1,
-    draft.slot1,
-    names.slot1,
-    named.slot2,
-    draft.slot2,
-    names.slot2,
+  return (
+    balanceOn === "tierPoints" &&
+    !player.guest &&
+    (player.tier?.provisional ?? true)
   );
 }
 
-export function scorersPayload(draft: ScoreDraft) {
-  return Object.entries(draft.goals)
-    .filter(([, goals]) => goals > 0)
-    .map(([userId, goals]) => ({ userId, goals }));
+export function tierProvisionalCount(
+  players: readonly Pick<BoardPlayer, "tier" | "guest">[],
+  balanceOn: FootballBalanceOn,
+) {
+  return players.filter((player) => tierProvisionalOnTeams(player, balanceOn))
+    .length;
+}
+
+/** Tier points a side's average is taken over: a ranked member's, not a Guest player's stand-in. */
+function countsInTierAverage(player: Pick<BoardPlayer, "tier" | "guest">) {
+  return !player.guest && !tierProvisionalOnTeams(player, "tierPoints");
+}
+
+export type TeamsRating = {
+  kind: "rated" | "new" | "guest";
+  value: string;
+  spoken: string;
+};
+
+/**
+ * A player's rating on Make teams: what the side averages are taken over, in
+ * the same numerals, so "avg 1,224 points" is the mean of the tiles under it.
+ * New while the Group Tier is Provisional. A Guest player in a tier Group
+ * reads Guest, since their stand-in is no Tier points; elsewhere they show
+ * the mean OVR they play at (ADR-0079).
+ */
+export function teamsRating(
+  player: Pick<BoardPlayer, "tier" | "ovr" | "guest" | "balanceStrength">,
+  balanceOn: FootballBalanceOn,
+  locale: Locale,
+): TeamsRating {
+  const m = messagesFor(locale);
+  if (tierProvisionalOnTeams(player, balanceOn)) {
+    return {
+      kind: "new",
+      value: m.football.board.tileNew,
+      spoken: m.football.board.tileNewSpoken,
+    };
+  }
+  if (player.guest && balanceOn === "tierPoints") {
+    const value = m.group.addPlayer.guest.tag;
+    return { kind: "guest", value, spoken: value };
+  }
+  const strength = player.balanceStrength ?? null;
+  if (strength == null) {
+    const value = ovrLabel(player);
+    return { kind: "rated", value, spoken: ovrSpoken(player, locale) ?? value };
+  }
+  if (balanceOn === "ovr") {
+    const value = formatOvr(strength);
+    return { kind: "rated", value, spoken: m.level.ovr(value) };
+  }
+  const value = formatTierPoints(strength);
+  return {
+    kind: "rated",
+    value,
+    spoken: m.rating.tier.points(value, tierPointsCount(strength)),
+  };
 }
 
 export function confirmationLine(

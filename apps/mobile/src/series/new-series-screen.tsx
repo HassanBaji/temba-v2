@@ -11,7 +11,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View, type ScrollView, type TextInput } from "react-native";
 
-import { groupSeriesTabPath } from "../groups/groups-model";
+import { groupSeriesPath } from "../groups/groups-model";
 import { Notice } from "../groups/notice";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { splitTrpcFormError } from "../lib/form-error";
@@ -158,7 +158,7 @@ function NewSeriesForm({
   const locale = useLocale();
   const toast = useToast();
   const utils = api.useUtils();
-  const leave = useLeaveScreen(groupSeriesTabPath(groupId));
+  const leave = useLeaveScreen(groupSeriesPath(groupId));
   const scrollRef = useRef<ScrollView>(null);
   const nameRef = useRef<TextInput>(null);
   const nameTop = useRef(0);
@@ -192,6 +192,7 @@ function NewSeriesForm({
       await Promise.all([
         utils.series.listForGroup.invalidate({ groupId }),
         utils.series.attachOptions.invalidate({ groupId }),
+        utils.groups.byId.invalidate({ id: groupId }),
       ]);
       leave();
     },
@@ -237,7 +238,7 @@ function NewSeriesForm({
     >
       <ScreenHeader
         nav="back"
-        fallback={groupSeriesTabPath(groupId)}
+        fallback={groupSeriesPath(groupId)}
         title={m.series.create.title}
       />
       <Preview
@@ -301,7 +302,7 @@ export function NewSeriesScreen({ groupId }: { groupId: string }) {
   const locale = useLocale();
   const list = api.series.listForGroup.useQuery({ groupId });
   const group = api.groups.byId.useQuery({ id: groupId });
-  const leave = useLeaveScreen(groupSeriesTabPath(groupId));
+  const leave = useLeaveScreen(groupSeriesPath(groupId));
   const left = useRef(false);
   const refused = list.data
     ? !list.data.enabled || !list.data.canManage
@@ -317,7 +318,7 @@ export function NewSeriesScreen({ groupId }: { groupId: string }) {
   const header = (
     <ScreenHeader
       nav="back"
-      fallback={groupSeriesTabPath(groupId)}
+      fallback={groupSeriesPath(groupId)}
       title={m.series.create.title}
     />
   );

@@ -209,6 +209,72 @@ export const mobileTournament = {
     saveDraft: "حفظ مسودة",
     draftSaved: "حُفظت المسودة",
     inThePool: (n: number) => `${n} في القائمة`,
+    players: "اللاعبون",
+    tapToOpen: "اضغط على لاعب لفتحه",
+    card: {
+      sideUsually: (team: string, code: string) =>
+        `${team}، عادةً ${isolate(code)}`,
+      notRatedYet: (left: number) =>
+        plural("ar", left, {
+          zero: "لم يُقيَّم بعد",
+          one: "لم يُقيَّم بعد، تبقّت مباراة واحدة",
+          two: "لم يُقيَّم بعد، تبقّت مباراتان",
+          few: "لم يُقيَّم بعد، تبقّت {n} مباريات",
+          many: "لم يُقيَّم بعد، تبقّت {n} مباراة",
+          other: "لم يُقيَّم بعد، تبقّت {n} مباراة",
+        }),
+      sentences: (first: string, second: string) => `${first}. ${second}`,
+      newValue: "جديد",
+      points: "نقاط",
+      pointsThisMonth: (delta: string) => `نقاط، ${isolate(delta)} هذا الشهر`,
+      pointsAfter: (games: number) =>
+        plural("ar", games, {
+          zero: "نقاط",
+          one: "نقاط، بعد مباراة واحدة",
+          two: "نقاط، بعد مباراتين",
+          few: "نقاط، بعد {n} مباريات",
+          many: "نقاط، بعد {n} مباراة",
+          other: "نقاط، بعد {n} مباراة",
+        }),
+      ovr: "OVR",
+      games: (n: number) =>
+        plural("ar", n, {
+          zero: "مباراة",
+          one: "مباراة",
+          two: "مباراتان",
+          few: "مباريات",
+          many: "مباراة",
+          other: "مباراة",
+        }),
+      goals: (n: number) =>
+        plural("ar", n, {
+          zero: "هدف",
+          one: "هدف",
+          two: "هدفان",
+          few: "أهداف",
+          many: "هدفًا",
+          other: "هدف",
+        }),
+      mvps: "أفضل لاعب",
+      statSpoken: (value: string, label: string) =>
+        `${isolate(value)} ${label}`,
+      lastFive: "آخر خمس، الأقدم أولاً",
+      playedSoFar: (n: number) =>
+        plural("ar", n, {
+          zero: "لم يلعب بعد",
+          one: "لعب مباراة واحدة حتى الآن",
+          two: "لعب مباراتين حتى الآن",
+          few: "لعب {n} مباريات حتى الآن",
+          many: "لعب {n} مباراة حتى الآن",
+          other: "لعب {n} مباراة حتى الآن",
+        }),
+      nonePlayed: "لم يلعب بعد",
+      moveTo: (team: string) => `انقله إلى ${team}`,
+      makeCaptain: "اجعله القائد",
+      removeCaptain: "أزل القائد",
+      fullProfile: "الملف الكامل",
+      statsFailed: "تعذّر تحميل الأرقام",
+    },
   },
   aloneTeams: {
     loading: "جارٍ تحميل الفرق",
@@ -241,31 +307,17 @@ export const mobileTournament = {
     teamGoalsSr: (name: string, goals: number) => `${name} ${goals}`,
     oneGoalFewer: (name: string) => `هدف أقل لـ${name}`,
     oneGoalMore: (name: string) => `هدف أكثر لـ${name}`,
-    scorerSr: (name: string, team: string, goals: number) =>
-      plural("ar", goals, {
-        zero: `${name}، ${team}، بلا أهداف`,
-        one: `${name}، ${team}، هدف واحد`,
-        two: `${name}، ${team}، هدفان`,
-        few: `${name}، ${team}، {n} أهداف`,
-        many: `${name}، ${team}، {n} هدفًا`,
-        other: `${name}، ${team}، {n} هدف`,
-      }),
-    scorerHint: "انقر لإضافة هدف، واضغط مطوّلًا لإزالة هدف",
-    addAGoal: "أضف هدفًا",
-    takeAGoalAway: "أزل هدفًا",
     saved: "تم حفظ النتيجة",
     title: "النتيجة",
     loadFailed: "تعذّر تحميل المباراة",
     closed: "تسجيل النتيجة مغلق",
     closedLine:
       "يُفتح تسجيل النتيجة عند البداية للاعبي الفريقين والمنظّم، حتى يؤكدها الطرفان.",
-    oneFromConfirms: (team: string) => `لاعب واحد من ${team} يؤكد النتيجة.`,
-    oneFromEachConfirms: "لاعب واحد من كل طرف يؤكد النتيجة.",
+    oneFromConfirms: (team: string) =>
+      `لاعب واحد من ${team} يؤكد النتيجة والسجل والبطاقات.`,
+    oneFromEachConfirms: "لاعب واحد من كل طرف يؤكد النتيجة والسجل والبطاقات.",
     saveScore: "حفظ النتيجة",
     editScore: "تعديل النتيجة",
     scoreMissing: "النتيجة ناقصة",
-    scorersOptional: "المسجّلون، اختياري",
-    tapToAdd: "انقر لإضافة هدف",
-    holdToRemove: "اضغط مطوّلًا على اسم لإزالة هدف.",
   },
 } satisfies typeof source;

@@ -31,7 +31,7 @@ import {
   fieldErrorMessage,
   toastGlobalFormError,
 } from "~/lib/form-mutation-error";
-import { groupHomeHref, groupSeriesTabHref } from "~/lib/dashboard-paths";
+import { groupHomeHref, groupSeriesHref } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
 
@@ -51,7 +51,7 @@ function NewSeriesFrame({
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-[560px] flex-col gap-6">
       <header className="mt-6 flex items-center justify-between gap-3 lg:mt-2">
-        <BackButton variant="boxed" href={groupSeriesTabHref(groupId)} />
+        <BackButton variant="boxed" href={groupSeriesHref(groupId)} />
         <h1 className="text-body font-semibold">{m.series.create.title}</h1>
         <span aria-hidden="true" className="size-11 shrink-0" />
       </header>
@@ -157,8 +157,9 @@ function NewSeriesForm({
       await Promise.all([
         utils.series.listForGroup.invalidate({ groupId }),
         utils.series.attachOptions.invalidate({ groupId }),
+        utils.groups.byId.invalidate({ id: groupId }),
       ]);
-      router.push(groupSeriesTabHref(groupId));
+      router.push(groupSeriesHref(groupId));
     },
     onError: (error) => {
       const fieldError = fieldErrorMessage(error, "name");

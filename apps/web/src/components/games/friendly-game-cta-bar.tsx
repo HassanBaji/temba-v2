@@ -5,8 +5,63 @@ import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { friendlyGameCtaCopy } from "@repo/domain/friendly-game-actions";
 import type { FriendlyGameCtaFamily } from "@repo/domain/friendly-game-cta";
+import type {
+  ScoreReviewActionKind,
+  ScoreReviewBar as ScoreReviewBarModel,
+} from "@repo/domain/score-review";
 import { useLocale } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
+
+const BAR_FRAME = cn(
+  "bg-background border-border max-lg:border-t max-lg:px-4 max-lg:py-3 max-lg:pb-6",
+  "max-lg:fixed max-lg:inset-x-0 max-lg:z-40",
+  "lg:bg-card lg:static lg:bottom-auto lg:rounded-2xl lg:border lg:p-4",
+);
+
+/**
+ * The action bar once a padel score is in: who entered it and what it means
+ * for the viewer, over the two actions (ADR-0115).
+ */
+export function ScoreReviewBar({
+  bar,
+  pending,
+  onAction,
+}: {
+  bar: ScoreReviewBarModel;
+  pending: boolean;
+  onAction: (kind: ScoreReviewActionKind) => void;
+}) {
+  return (
+    <div
+      data-slot="score-review-bar"
+      className={cn(BAR_FRAME, "space-y-3")}
+      style={{ bottom: "env(safe-area-inset-bottom, 0px)" }}
+    >
+      <div>
+        <p className="text-body font-semibold">{bar.title}</p>
+        {bar.subline ? (
+          <p className="text-muted-foreground text-meta">{bar.subline}</p>
+        ) : null}
+      </div>
+      {bar.actions.length > 0 ? (
+        <div className="flex gap-2">
+          {bar.actions.map((action) => (
+            <Button
+              key={action.kind}
+              type="button"
+              variant={action.primary ? "default" : "outline"}
+              className="h-[52px] flex-1"
+              disabled={!action.enabled || pending}
+              onClick={() => onAction(action.kind)}
+            >
+              {action.label}
+            </Button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 /**
  * Sticky bottom action bar (game-details redesign, TEM-183). Renders one of
@@ -51,11 +106,7 @@ export function FriendlyGameCtaBar({
   return (
     <div
       data-slot="friendly-game-cta-bar"
-      className={cn(
-        "bg-background border-border max-lg:border-t max-lg:px-4 max-lg:py-3 max-lg:pb-6",
-        "max-lg:fixed max-lg:inset-x-0 max-lg:z-40",
-        "lg:bg-card lg:static lg:bottom-auto lg:rounded-2xl lg:border lg:p-4",
-      )}
+      className={BAR_FRAME}
       style={{
         bottom: "env(safe-area-inset-bottom, 0px)",
       }}

@@ -363,17 +363,15 @@ describe("Unrated Games", () => {
     }
   });
 
-  it("writes no rating events and leaves ratings untouched when the last confirmation completes", async () => {
+  it("writes no rating events and leaves ratings untouched when the other side's confirmation completes", async () => {
     const { db, close } = await createPgliteDb();
     try {
-      const { gameId, matchId, b, c, d } = await setUpMatch(db, {
+      const { gameId, matchId, b, c } = await setUpMatch(db, {
         rated: false,
       });
       const before = await seedRating(db, b.id);
 
-      await confirmMatchResult(db, { gameId, matchId, userId: b.id });
       await confirmMatchResult(db, { gameId, matchId, userId: c.id });
-      await confirmMatchResult(db, { gameId, matchId, userId: d.id });
 
       const match = await db.query.matches.findFirst({
         where: eq(matches.id, matchId),

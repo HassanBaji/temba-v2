@@ -23,6 +23,19 @@ export function releaseApiOriginProblem(env: {
   return null;
 }
 
+/**
+ * The domain whose Game page links open in the App (universal links). The web
+ * App serves the matching Apple App Site Association file. A plain http
+ * origin, as in local development, cannot carry universal links.
+ */
+export function associatedDomains(env: {
+  EXPO_PUBLIC_WEB_ORIGIN?: string;
+}): string[] {
+  const origin = env.EXPO_PUBLIC_WEB_ORIGIN?.trim().replace(/\/+$/, "");
+  const host = origin ? /^https:\/\/([^/\s]+)$/.exec(origin)?.[1] : undefined;
+  return host ? [`applinks:${host}`] : [];
+}
+
 export default function appConfig({ config }: ConfigContext): ExpoConfig {
   const env = process.env as Record<string, string | undefined>;
   const problem = releaseApiOriginProblem({
@@ -32,5 +45,18 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
   if (problem) {
     throw new Error(problem);
   }
-  return config as ExpoConfig;
+  const domains = associatedDomains({
+    EXPO_PUBLIC_WEB_ORIGIN: env.EXPO_PUBLIC_WEB_ORIGIN,
+  });
+  const expo = config as ExpoConfig;
+  if (domains.length === 0) {
+    return expo;
+  }
+  return {
+    ...expo,
+    ios: {
+      ...expo.ios,
+      associatedDomains: [...(expo.ios?.associatedDomains ?? []), ...domains],
+    },
+  };
 }

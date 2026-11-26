@@ -199,6 +199,44 @@ describe("groupHomeOverflowItems", () => {
     );
   });
 
+  it("opens the Series right after Edit Group on a Verified Group, for anyone", () => {
+    const viewer = {
+      family: { kind: "none" as const },
+      canShowCreateGame: false,
+      isLoosePublic: true,
+      canManageInvites: false,
+      canManageImage: false,
+      hasImage: false,
+      isMember: false,
+      canDelete: false,
+    };
+    assert.deepEqual(groupHomeOverflowItems({ ...viewer, verified: true }), [
+      "series",
+      "copy_group_url",
+    ]);
+    assert.deepEqual(groupHomeOverflowItems({ ...viewer, verified: false }), [
+      "copy_group_url",
+    ]);
+    assert.deepEqual(
+      groupHomeOverflowItems({
+        ...viewer,
+        isLoosePublic: false,
+        verified: true,
+      }),
+      ["series"],
+    );
+    assert.deepEqual(
+      groupHomeOverflowItems({
+        ...viewer,
+        isMember: true,
+        canEdit: true,
+        canManageSeasons: true,
+        verified: true,
+      }),
+      ["edit", "series", "copy_group_url", "seasons", "leave"],
+    );
+  });
+
   it("hides overflow when nothing is available", () => {
     assert.deepEqual(
       groupHomeOverflowItems({

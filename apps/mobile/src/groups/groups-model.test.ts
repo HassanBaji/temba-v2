@@ -8,7 +8,7 @@ import {
   groupPath,
   groupRowView,
   groupSeasonsPath,
-  groupSeriesTabPath,
+  groupSeriesPath,
   publicGroupRowView,
 } from "./groups-model";
 
@@ -126,9 +126,12 @@ describe("groupSeasonsPath", () => {
   });
 });
 
-describe("groupSeriesTabPath", () => {
-  it("opens the Group's Series tab and the New series form", () => {
-    expect(groupSeriesTabPath("g1")).toBe("/groups/g1?tab=series");
+describe("groupSeriesPath", () => {
+  it("opens the Group's Series screen and the New series form", () => {
+    expect(groupSeriesPath("g1")).toEqual({
+      pathname: "/groups/series",
+      params: { groupId: "g1" },
+    });
     expect(groupNewSeriesPath("g1")).toEqual({
       pathname: "/groups/new-series",
       params: { groupId: "g1" },

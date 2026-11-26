@@ -18,6 +18,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import { SERIES_RUNNING_MAX } from "@repo/domain/series";
 
+import { groupById } from "#src/routers/groups/byId";
 import { createSeries } from "#src/routers/series/create";
 import { endSeries } from "#src/routers/series/end";
 import { requireSeries } from "#src/series/series-link";
@@ -384,6 +385,66 @@ describe("series.end", () => {
       expect(await endSeries(db, { id, userId: owner.id, now: NOW })).toEqual({
         ended: true,
       });
+    } finally {
+      await close();
+    }
+  });
+});
+
+describe("groups.byId runningSeriesCount", () => {
+  it("counts the running Series only, for anyone who may view the Group", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { owner, member, venue, group } = await setUp(db, "operator");
+      expect(
+        (
+          await groupById(db, {
+            groupId: group.id,
+            userId: member.id,
+            now: NOW,
+          })
+        ).runningSeriesCount,
+      ).toBe(0);
+
+      await createSeries(db, seriesArgs(group.id, owner.id, "Sunday Social"));
+      await createSeries(db, seriesArgs(group.id, owner.id, "Friday Classic"));
+      const ended = await createSeries(
+        db,
+        seriesArgs(group.id, owner.id, "Old Autumn"),
+      );
+      await attachGame(db, {
+        seriesId: ended.id,
+        groupId: group.id,
+        venueId: venue.id,
+        createdBy: owner.id,
+      });
+      await endSeries(db, { id: ended.id, userId: owner.id, now: NOW });
+
+      for (const userId of [owner.id, member.id]) {
+        expect(
+          (await groupById(db, { groupId: group.id, userId, now: NOW }))
+            .runningSeriesCount,
+        ).toBe(2);
+      }
+    } finally {
+      await close();
+    }
+  });
+
+  it("is 0 on a Group that is not Verified, even with Series left from before", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const { owner, group } = await setUp(db, "operator");
+      await createSeries(db, seriesArgs(group.id, owner.id));
+      await db
+        .update(groups)
+        .set({ verifiedAt: null })
+        .where(eq(groups.id, group.id));
+
+      expect(
+        (await groupById(db, { groupId: group.id, userId: owner.id, now: NOW }))
+          .runningSeriesCount,
+      ).toBe(0);
     } finally {
       await close();
     }

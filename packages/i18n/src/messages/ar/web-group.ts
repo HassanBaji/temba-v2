@@ -94,7 +94,6 @@ export const webGroup = {
       standing: "الترتيب",
       games: "المباريات",
       members: "الأعضاء",
-      series: "السلاسل",
     },
   },
   requests: {

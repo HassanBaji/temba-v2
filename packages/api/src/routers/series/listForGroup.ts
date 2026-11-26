@@ -74,9 +74,9 @@ function byNextThenName(left: SeriesRow, right: SeriesRow) {
 }
 
 /**
- * The Group's Series tab (design 1a): its running Series, the next Edition
+ * The Group's Series screen (design 1a): its running Series, the next Edition
  * first, then its ended ones, most recently ended first. Whoever may view the
- * Group may read it; a Group that is not Verified has no Series tab.
+ * Group may read it; a Group that is not Verified has no Series.
  */
 export async function listSeriesForGroup(
   database: DbClient,
@@ -98,6 +98,7 @@ export async function listSeriesForGroup(
   );
   if (!groupIsVerified(group)) {
     return {
+      groupName: group.name,
       enabled: false,
       canManage: false,
       running: [] as SeriesRow[],
@@ -138,6 +139,7 @@ export async function listSeriesForGroup(
   });
 
   return {
+    groupName: group.name,
     enabled: true,
     canManage: approver,
     running: rows.filter((row) => row.endedAt === null).sort(byNextThenName),

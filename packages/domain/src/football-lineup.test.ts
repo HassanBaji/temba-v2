@@ -13,7 +13,6 @@ import {
   keepersInLine,
   pickFootballBib,
   positionCountsLine,
-  stepFootballGoals,
 } from "./football-lineup";
 
 describe("footballSlotCode", () => {
@@ -267,12 +266,6 @@ describe("footballSidesProblem", () => {
 
 describe("score", () => {
   const names = { slot1: "Black", slot2: "White" };
-
-  it("steps goals within bounds", () => {
-    expect(stepFootballGoals(0, -1)).toBe(0);
-    expect(stepFootballGoals(4, 1)).toBe(5);
-    expect(stepFootballGoals(99, 1)).toBe(99);
-  });
 
   it("reads the winner and the margin", () => {
     expect(footballResultLine({ slot1: 4, slot2: 3 }, names, "en")).toBe(

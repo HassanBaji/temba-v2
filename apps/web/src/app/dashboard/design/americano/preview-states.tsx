@@ -118,6 +118,23 @@ export function AmericanoPreviewStates() {
     rounds: [],
   };
 
+  // You and Khalid, then Sara and Reem: the design's two fixed pairs.
+  const fixedPairs = [
+    [2, 3],
+    [10, 15],
+  ] as const;
+  const fixedPredrawBoard = {
+    ...americanoPreviewBoard({
+      isOrganizer: true,
+      played: 0,
+      liveRound: false,
+      start: later,
+      fixedPairs: fixedPairs.slice(0, 1),
+    }),
+    posted: false,
+    rounds: [],
+  };
+
   const fullDetails = americanoPreviewDetails({
     isOrganizer: false,
     taken: 16,
@@ -168,6 +185,58 @@ export function AmericanoPreviewStates() {
             start: later,
           })}
           preview={{ board: predrawBoard }}
+        />
+      </Column>
+      <Column title="1b organizer, fixed pairs (one picked)">
+        <TournamentAmericanoHome
+          {...common}
+          data={americanoPreviewDetails({
+            isOrganizer: true,
+            taken: 16,
+            drawn: false,
+            start: later,
+          })}
+          preview={{ board: fixedPredrawBoard, fixedPairsOpen: true }}
+        />
+      </Column>
+      <Column title="1c organizer, rounds with two fixed pairs">
+        <TournamentAmericanoHome
+          {...common}
+          data={americanoPreviewDetails({
+            isOrganizer: true,
+            taken: 16,
+            drawn: true,
+            start: started,
+          })}
+          preview={{
+            board: americanoPreviewBoard({
+              isOrganizer: true,
+              played: 0,
+              liveRound: true,
+              start: started,
+              fixedPairs,
+            }),
+          }}
+        />
+      </Column>
+      <Column title="1d player, standings with fixed partners">
+        <TournamentAmericanoHome
+          {...common}
+          data={americanoPreviewDetails({
+            isOrganizer: false,
+            taken: 16,
+            drawn: true,
+            start: started,
+          })}
+          preview={{
+            board: americanoPreviewBoard({
+              isOrganizer: false,
+              played: 3,
+              liveRound: false,
+              start: started,
+              fixedPairs,
+            }),
+          }}
         />
       </Column>
       <Column title="2b player, 11 of 16">

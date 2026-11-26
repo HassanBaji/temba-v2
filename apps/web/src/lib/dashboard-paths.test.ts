@@ -7,7 +7,7 @@ import {
   detailBackHref,
   groupMembersTabHref,
   groupNewSeriesHref,
-  groupSeriesTabHref,
+  groupSeriesHref,
   pageHidesBottomNav,
   pageHidesMobileTopBar,
   playerMarkPath,
@@ -153,6 +153,7 @@ describe("pageHidesBottomNav", () => {
     "/dashboard/groups/abc",
     "/dashboard/groups/abc/edit",
     "/dashboard/groups/abc/seasons/new",
+    "/dashboard/groups/abc/series",
     "/dashboard/groups/abc/series/new",
     "/dashboard/groups/abc/members/user_1",
   ])("hides the bottom nav on %s", (pathname) => {
@@ -311,11 +312,11 @@ describe("Series page path", () => {
 describe("Group Series paths", () => {
   const groupId = "8a3f1c2e-0000-4000-8000-000000000002";
 
-  it("opens the Group home on its Series tab", () => {
-    assert.equal(
-      groupSeriesTabHref(groupId),
-      `/dashboard/groups/${groupId}?tab=series`,
-    );
+  it("builds the Group's Series, titles it and hides the mobile top bar", () => {
+    const path = groupSeriesHref(groupId);
+    assert.equal(path, `/dashboard/groups/${groupId}/series`);
+    assert.equal(titleFromPath(path, en), "Series");
+    assert.equal(pageHidesMobileTopBar(path), true);
   });
 
   it("builds New series, titles it and hides the mobile top bar", () => {

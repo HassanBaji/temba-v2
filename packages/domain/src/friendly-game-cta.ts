@@ -86,19 +86,30 @@ export function gameCanShareInviteLink(game: {
   );
 }
 
-export type FriendlyGameShareLink = "invite_link" | "game_page";
+export type FriendlyGameShareLink =
+  | "invite_link"
+  | "game_page"
+  | "result"
+  | "played";
 
 /**
- * What the hero's share sends. Whoever may mint an Invite link shares one,
- * since it opens for anyone; every other viewer shares the Game page, which
- * opens only for whoever may already see the Game. A cancelled or played Game
- * has nothing to share here: a played result has its own share.
+ * What the hero's share sends. A played Game whose score is entered but not
+ * yet confirmed opens the result share, marked as not confirmed; one with no
+ * score yet shares a played message with the Game page. Otherwise whoever may
+ * mint an Invite link shares one, since it opens for anyone; every other
+ * viewer shares the Game page, which opens only for whoever may already see
+ * the Game. A cancelled Game and a final one have nothing to share here: a
+ * final result has its own share.
  */
 export function friendlyGameShareLink(game: {
   canMintInvite: boolean;
   cancelled: boolean;
   phase: FriendlyGameCtaPhase | null;
+  scoreAwaitsConfirmation?: boolean;
 }): FriendlyGameShareLink | null {
+  if (!game.cancelled && game.phase === "needs_results") {
+    return game.scoreAwaitsConfirmation ? "result" : "played";
+  }
   if (game.canMintInvite) {
     return "invite_link";
   }

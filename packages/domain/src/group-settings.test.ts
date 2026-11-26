@@ -10,6 +10,7 @@ import {
   groupMenuItems,
   groupMenuLabel,
   groupMenuRoleLine,
+  groupMenuSeriesHint,
   groupSeasonCount,
   groupTransferCandidates,
   groupTransferConfirmLabel,
@@ -51,6 +52,38 @@ describe("groupMenuItems", () => {
     expect(groupMenuLabel("rating_settings", "ar")).toBe("إعدادات التقييم");
   });
 
+  it("opens the Series right after Edit Group on a Verified Group, for anyone", () => {
+    expect(
+      groupMenuItems({
+        isMember: true,
+        canEdit: true,
+        canInvite: true,
+        canCopyLink: true,
+        verified: true,
+      }),
+    ).toEqual(["edit", "series", "invite", "copy_link", "leave"]);
+    expect(
+      groupMenuItems({
+        isMember: false,
+        canEdit: false,
+        canInvite: false,
+        canCopyLink: false,
+        verified: true,
+      }),
+    ).toEqual(["series"]);
+    expect(
+      groupMenuItems({
+        isMember: true,
+        canEdit: true,
+        canInvite: false,
+        canCopyLink: false,
+        verified: false,
+      }),
+    ).toEqual(["edit", "leave"]);
+    expect(groupMenuLabel("series", "en")).toBe("Series");
+    expect(groupMenuLabel("series", "ar")).toBe("السلاسل");
+  });
+
   it("is empty for someone outside the Group with no powers", () => {
     expect(
       groupMenuItems({
@@ -60,6 +93,14 @@ describe("groupMenuItems", () => {
         canCopyLink: false,
       }),
     ).toEqual([]);
+  });
+});
+
+describe("groupMenuSeriesHint", () => {
+  it("counts the running Series, and says nothing while none runs", () => {
+    expect(groupMenuSeriesHint(2, "en")).toBe("2 running");
+    expect(groupMenuSeriesHint(1, "en")).toBe("1 running");
+    expect(groupMenuSeriesHint(0, "en")).toBeNull();
   });
 });
 

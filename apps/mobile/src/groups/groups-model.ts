@@ -32,9 +32,9 @@ export function groupMembersPath(groupId: string) {
   return `/groups/${groupId}?tab=members`;
 }
 
-/** Group home opened on its Series tab. */
-export function groupSeriesTabPath(groupId: string) {
-  return `/groups/${groupId}?tab=series`;
+/** The Group's Series (1a), opened from its More menu. */
+export function groupSeriesPath(groupId: string) {
+  return { pathname: "/groups/series", params: { groupId } } as const;
 }
 
 export function groupSeasonsPath(groupId: string) {

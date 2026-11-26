@@ -34,12 +34,7 @@ export const mobileGroup = {
     },
   },
   home: {
-    tabs: {
-      standing: "Standing",
-      games: "Games",
-      members: "Members",
-      series: "Series",
-    },
+    tabs: { standing: "Standing", games: "Games", members: "Members" },
     notFound: {
       title: "Group not found",
       description: "It may have been removed, or you may not have access.",

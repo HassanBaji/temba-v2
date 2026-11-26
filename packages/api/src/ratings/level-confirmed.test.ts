@@ -87,18 +87,16 @@ async function clubFootballGame(db: TestDatabase) {
   return f;
 }
 
-/** Every other seated player confirms the Score, which completes the Match. */
-async function confirmAll(
+/** A player of the other side confirms the Score, which completes the Match. */
+async function confirmOtherSide(
   db: TestDatabase,
   m: Awaited<ReturnType<typeof setUpMatch>>,
 ) {
-  for (const player of [m.b, m.c, m.d]) {
-    await confirmMatchResult(apiDb(db), {
-      gameId: m.gameId,
-      matchId: m.matchId,
-      userId: player.id,
-    });
-  }
+  await confirmMatchResult(apiDb(db), {
+    gameId: m.gameId,
+    matchId: m.matchId,
+    userId: m.c.id,
+  });
 }
 
 type PadelClub = Awaited<ReturnType<typeof padelClub>>;
@@ -296,7 +294,7 @@ describe("Level confirmed", () => {
       const gameIds: string[] = [];
       for (let played = 1; played <= 6; played++) {
         const m = await nextPadelMatch(db, f);
-        await confirmAll(db, m);
+        await confirmOtherSide(db, m);
         gameIds.push(m.gameId);
         const me = await padelLevel(db, f.players[0].id);
         expect(me?.provisional).toBe(played < 5);
@@ -326,7 +324,7 @@ describe("Level confirmed", () => {
       const f = await padelClub(db);
       const player = f.players[0].id;
       for (let played = 1; played <= 4; played++) {
-        await confirmAll(db, await nextPadelMatch(db, f));
+        await confirmOtherSide(db, await nextPadelMatch(db, f));
       }
       for (let played = 1; played <= 3; played++) {
         const publicMatch = await nextPadelMatch(db, f);
@@ -358,7 +356,7 @@ describe("Level confirmed", () => {
           venueId: f.venueId,
         },
       );
-      await confirmAll(db, loose);
+      await confirmOtherSide(db, loose);
 
       const events = await db.query.ratingEvents.findMany({
         where: eq(ratingEvents.userId, player),
@@ -372,7 +370,7 @@ describe("Level confirmed", () => {
       expect(await confirmedLines(db, player, "padel")).toEqual([]);
 
       const fifth = await nextPadelMatch(db, f);
-      await confirmAll(db, fifth);
+      await confirmOtherSide(db, fifth);
       expect(await padelLevel(db, player)).toMatchObject({
         provisional: false,
         ratedMatchesRemaining: 0,
@@ -389,7 +387,7 @@ describe("Level confirmed", () => {
       let last: Awaited<ReturnType<typeof nextPadelMatch>> | null = null;
       for (let played = 1; played <= 5; played++) {
         last = await nextPadelMatch(db, f);
-        await confirmAll(db, last);
+        await confirmOtherSide(db, last);
       }
       expect((await padelLevel(db, player))?.provisional).toBe(false);
 
@@ -405,7 +403,7 @@ describe("Level confirmed", () => {
       expect(await confirmedLines(db, player, "padel")).toEqual([]);
 
       const again = await nextPadelMatch(db, f);
-      await confirmAll(db, again);
+      await confirmOtherSide(db, again);
       expect((await padelLevel(db, player))?.provisional).toBe(false);
       const lines = await confirmedLines(db, player, "padel");
       expect(lines).toHaveLength(1);
@@ -418,7 +416,7 @@ describe("Level confirmed", () => {
     await withDb(async (db) => {
       const f = await padelClub(db);
       const player = f.players[0].id;
-      await confirmAll(db, await nextPadelMatch(db, f));
+      await confirmOtherSide(db, await nextPadelMatch(db, f));
       await applyLevelOverride(apiDb(db), {
         sport: "padel",
         setterUserId: f.players[1].id,
@@ -433,7 +431,7 @@ describe("Level confirmed", () => {
         ratedMatchesRemaining: 0,
       });
       for (let played = 2; played <= 6; played++) {
-        await confirmAll(db, await nextPadelMatch(db, f));
+        await confirmOtherSide(db, await nextPadelMatch(db, f));
       }
       expect((await padelLevel(db, player))?.provisional).toBe(false);
       expect(await confirmedLines(db, player, "padel")).toEqual([]);

@@ -36,19 +36,17 @@ async function withDb(run: (db: TestDatabase) => Promise<void>) {
   }
 }
 
-/** A padel Match on a Game that counts for Temba Level, confirmed by all four. */
+/** A padel Match on a Game that counts for Temba Level, confirmed by both sides. */
 async function countedPadelMatch(
   db: TestDatabase,
   flags = { rated: true, groupRated: false },
 ) {
   const m = await setUpMatch(db, flags);
-  for (const player of [m.b, m.c, m.d]) {
-    await confirmMatchResult(db, {
-      gameId: m.gameId,
-      matchId: m.matchId,
-      userId: player.id,
-    });
-  }
+  await confirmMatchResult(db, {
+    gameId: m.gameId,
+    matchId: m.matchId,
+    userId: m.c.id,
+  });
   const match = await db.query.matches.findFirst({
     where: eq(matches.id, m.matchId),
   });

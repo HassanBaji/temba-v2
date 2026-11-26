@@ -29,8 +29,13 @@ const config = {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
   async rewrites() {
-    if (!env.API_ORIGIN) return [];
+    const appSiteAssociation = {
+      source: "/.well-known/apple-app-site-association",
+      destination: "/apple-app-site-association",
+    };
+    if (!env.API_ORIGIN) return [appSiteAssociation];
     return [
+      appSiteAssociation,
       {
         source: "/api/:path*",
         destination: `${env.API_ORIGIN}/api/:path*`,

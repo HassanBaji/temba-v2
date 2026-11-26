@@ -174,9 +174,9 @@ async function setUpSeatedFriendlyMatch(database: TestDatabase) {
 
 /**
  * Drives a freshly seated Match to `completed`/rated purely through the
- * ADR-0011 confirmation flow: the Set-entering User (`a`) auto-confirms,
- * then `b`, `c`, `d` confirm in turn, and the last confirmation runs the
- * complete-and-rate effect.
+ * ADR-0011 confirmation flow: the Set-entering User (`a`) auto-confirms
+ * their side, and `c`'s confirmation for the other side runs the
+ * complete-and-rate effect (ADR-0114).
  */
 async function completeAndRateViaConfirmation(
   database: TestDatabase,
@@ -201,17 +201,7 @@ async function completeAndRateViaConfirmation(
   await confirmMatchResult(database, {
     gameId: args.gameId,
     matchId: args.matchId,
-    userId: args.b.id,
-  });
-  await confirmMatchResult(database, {
-    gameId: args.gameId,
-    matchId: args.matchId,
     userId: args.c.id,
-  });
-  await confirmMatchResult(database, {
-    gameId: args.gameId,
-    matchId: args.matchId,
-    userId: args.d.id,
   });
 }
 
@@ -621,7 +611,7 @@ describe("reportWrongScore (Option A wrong-score reversal, TEM-185)", () => {
           // No partial reversal: the first Match's rating events, Ratings,
           // confirmations, and status are all untouched.
           expect(await ratingEventsFor(db, first.matchId)).toHaveLength(4);
-          expect(await confirmationsFor(db, first.matchId)).toHaveLength(4);
+          expect(await confirmationsFor(db, first.matchId)).toHaveLength(2);
           const match = await db.query.matches.findFirst({
             where: eq(matches.id, first.matchId),
           });
