@@ -8,7 +8,11 @@ import type {
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { games, matches } from "@repo/db";
 
-import type { HubGameFootball, MyTournament } from "@repo/domain/hub-game-row";
+import type {
+  HubGameFootball,
+  HubGameSeries,
+  MyTournament,
+} from "@repo/domain/hub-game-row";
 import type { Sport } from "@repo/domain/sport";
 import type { GameRatingScope } from "@repo/domain/game-rating-scope";
 import type { GameGenderTag } from "@repo/domain/game-gender-tag";
@@ -103,6 +107,8 @@ export type HubListRow = {
   sport: GameSportEnum | string | null;
   /** Null or omitted on a Game with no Gender tag. */
   genderTag?: string | null;
+  /** Null or omitted on a Game that is no Edition of a Series. */
+  series?: HubGameSeries | null;
   isPublic: boolean;
   rated: boolean;
   ratingScope: GameRatingScope;

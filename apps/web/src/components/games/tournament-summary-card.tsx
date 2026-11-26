@@ -15,6 +15,7 @@ import {
   SummaryCardShell,
 } from "~/components/games/summary-card-shell";
 import { GenderTagBadge } from "~/components/games/gender-tag";
+import { SeriesHeroLine } from "~/components/series/series-hero-line";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { HatchFlag } from "~/components/temba/seat";
 import { Badge } from "~/components/ui/badge";
@@ -418,6 +419,13 @@ export function TournamentSummaryCard({
             <p className="text-muted-foreground text-meta mt-0.5 truncate">
               {subLine}
             </p>
+          ) : null}
+          {game.series ? (
+            <SeriesHeroLine
+              series={game.series}
+              tone="paper"
+              className="mt-2.5"
+            />
           ) : null}
           {knockoutLine ? (
             <p className="text-body mt-2.5 truncate font-semibold">
