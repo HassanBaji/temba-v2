@@ -9,10 +9,13 @@ import { cn } from "~/lib/utils";
 export function NicknameName({
   name,
   isNickname,
+  wrap = false,
   className,
 }: {
   name: string;
   isNickname: boolean;
+  /** Lets a full name wrap instead of cutting it with dots. */
+  wrap?: boolean;
   className?: string;
 }) {
   return (
@@ -20,7 +23,7 @@ export function NicknameName({
       {isNickname ? (
         <Tag aria-hidden="true" className="size-[0.85em] shrink-0" />
       ) : null}
-      <span dir="auto" className="truncate">
+      <span dir="auto" className={wrap ? "min-w-0 break-words" : "truncate"}>
         {name}
       </span>
     </span>

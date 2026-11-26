@@ -398,7 +398,9 @@ function LevelColumns({
   onOpen: (userId: string) => void;
   onMove: (userId: string) => void;
 }) {
-  const m = useMessages().mobileTournament.makeTeams;
+  const messages = useMessages();
+  const m = messages.mobileTournament.makeTeams;
+  const teamsCard = messages.football.teamsCard;
   const column = (side: Side) => {
     const bib = side === 1 ? draft.bibs.slot1 : draft.bibs.slot2;
     const members = side === 1 ? summary.slot1 : summary.slot2;
@@ -430,10 +432,10 @@ function LevelColumns({
         }}
       >
         <Text size="meta" tone="muted">
-          {m.players}
+          {teamsCard.players}
         </Text>
         <Text size="eyebrow" tone="muted">
-          {m.tapToOpen}
+          {teamsCard.tapToOpen}
         </Text>
       </View>
       <View style={{ flexDirection: "row", gap: 8 }}>

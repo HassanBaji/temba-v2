@@ -1,10 +1,10 @@
-import type { BoardPlayer } from "@repo/domain/football-board";
 import { describe, expect, it } from "vitest";
 
+import type { BoardPlayer } from "./football-board";
 import {
   teamsPlayerCardForm,
   teamsPlayerCardHead,
-} from "./teams-player-card-model";
+} from "./football-teams-card";
 
 const ranked = {
   band: "hamour" as const,

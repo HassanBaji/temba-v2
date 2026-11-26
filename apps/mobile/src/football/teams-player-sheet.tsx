@@ -6,6 +6,10 @@ import {
   type Side,
 } from "@repo/domain/football-board";
 import type { FootballBalanceOn } from "@repo/domain/football-lineup";
+import {
+  teamsPlayerCardForm,
+  teamsPlayerCardHead,
+} from "@repo/domain/football-teams-card";
 import type { FormMark } from "@repo/domain/member-form-marks";
 import { Fragment } from "react";
 import { View } from "react-native";
@@ -22,10 +26,6 @@ import { Skeleton } from "../primitives/skeleton";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import { api } from "../trpc/react";
-import {
-  teamsPlayerCardForm,
-  teamsPlayerCardHead,
-} from "./teams-player-card-model";
 
 const FORM_SLOT = 26;
 /** The rating is the widest figure, so its column takes more of the row. */
@@ -47,7 +47,7 @@ function Stat({
   pending?: boolean;
   flex?: number;
 }) {
-  const m = useMessages().mobileTournament.makeTeams.card;
+  const m = useMessages().football.teamsCard;
   return (
     <View
       accessible
@@ -139,7 +139,7 @@ export function TeamsPlayerSheet({
   onOpenProfile: () => void;
 }) {
   const locale = useLocale();
-  const m = useMessages().mobileTournament.makeTeams;
+  const m = useMessages().football.teamsCard;
   const card = api.games.footballPlayerCard.useQuery(
     { gameId, userId: player?.userId ?? "" },
     { enabled: player != null },
@@ -209,19 +209,19 @@ export function TeamsPlayerSheet({
             <Stat
               key="games"
               value={String(stats?.games ?? 0)}
-              label={m.card.games(stats?.games ?? 0)}
+              label={m.games(stats?.games ?? 0)}
               pending={pending}
             />,
             <Stat
               key="goals"
               value={String(stats?.goals ?? 0)}
-              label={m.card.goals(stats?.goals ?? 0)}
+              label={m.goals(stats?.goals ?? 0)}
               pending={pending}
             />,
             <Stat
               key="mvps"
               value={String(stats?.mvps ?? 0)}
-              label={m.card.mvps}
+              label={m.mvps}
               pending={pending}
             />,
           ]}
@@ -229,7 +229,7 @@ export function TeamsPlayerSheet({
         <Rule />
         {card.error ? (
           <Text size="meta" tone="muted" accessibilityRole="alert">
-            {m.card.statsFailed}
+            {m.statsFailed}
           </Text>
         ) : (
           <View
@@ -256,7 +256,7 @@ export function TeamsPlayerSheet({
             {moveTo.map((target) => (
               <Action key={target}>
                 <Button
-                  label={m.card.moveTo(ofSide(names, target))}
+                  label={m.moveTo(ofSide(names, target))}
                   variant="outline"
                   size="lg"
                   onPress={() => onPlace(target)}
@@ -266,7 +266,7 @@ export function TeamsPlayerSheet({
             {canBeCaptain ? (
               <Action>
                 <Button
-                  label={isCaptain ? m.card.removeCaptain : m.card.makeCaptain}
+                  label={isCaptain ? m.removeCaptain : m.makeCaptain}
                   variant="outline"
                   size="lg"
                   onPress={onToggleCaptain}
@@ -275,11 +275,7 @@ export function TeamsPlayerSheet({
             ) : null}
           </View>
           {player.guest ? null : (
-            <Button
-              label={m.card.fullProfile}
-              size="lg"
-              onPress={onOpenProfile}
-            />
+            <Button label={m.fullProfile} size="lg" onPress={onOpenProfile} />
           )}
         </View>
       </View>

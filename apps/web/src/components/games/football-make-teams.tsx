@@ -17,7 +17,10 @@ import {
   shuffleSides,
   slotCode,
   switchMethod,
+  teamsRating,
   teamsSideAverage,
+  teamsTileName,
+  tierProvisionalCount,
   type BoardPlayer,
   type Side,
   type TeamsDraft,
@@ -25,6 +28,7 @@ import {
 import { captainPickSetupProblem } from "@repo/domain/football-captain-pick";
 import {
   FOOTBALL_TEAMS_METHODS,
+  type FootballBalanceOn,
   type FootballBib,
   type FootballFirstPick,
   type FootballTeamsMethod,
@@ -50,6 +54,7 @@ import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { Button } from "~/components/ui/button";
+import { Hatch } from "~/components/ui/hatch";
 import { Skeleton } from "~/components/ui/skeleton";
 import { gamePickRoomHref } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
@@ -59,7 +64,8 @@ import { OWN_ERROR_UI } from "~/trpc/query-client";
 import { BibChip, BibPicker, bibStyle } from "./football-bibs";
 import { FootballCaptainPickSetup } from "./football-captain-pick-setup";
 import { FootballCaptainsDialog } from "./football-captains-dialog";
-import { BibRow, CaptainAvatar, TierMark } from "./football-team-columns";
+import { CaptainAvatar, TierMark } from "./football-team-columns";
+import { FootballTeamsPlayerSheet } from "./football-teams-player-sheet";
 
 /** The Member nickname when the viewer may see one, else the full Temba name. */
 function teamsName(player: Pick<BoardPlayer, "name" | "nickname">) {
@@ -128,6 +134,7 @@ function BalanceCard({
     const members = side === 1 ? summary.slot1 : summary.slot2;
     const name = side === 1 ? summary.names.slot1 : summary.names.slot2;
     const share = Math.min(1, members.length / Math.max(1, summary.teamSize));
+    const provisional = tierProvisionalCount(members, summary.balanceOn);
     return (
       <div className="space-y-1.5">
         <div className="flex items-center gap-2">
@@ -136,7 +143,14 @@ function BalanceCard({
           <span className="text-muted-foreground text-meta flex-1">
             {t.avgAndKeepers(
               teamsSideAverage(members, locale, summary.balanceOn),
-              keeperWord(members, locale),
+              [
+                keeperWord(members, locale),
+                provisional > 0
+                  ? m.football.board.notRatedCount(provisional)
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(m.common.listSeparator),
             )}
           </span>
           <span className="font-expanded tabular-nums">
@@ -271,46 +285,146 @@ function CaptainsRow({
   );
 }
 
+/** The hatched box and "new", while a player's Group Tier is Provisional. */
+function NewMark({ label }: { label: string }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="bg-paper rounded-xs relative block h-4 w-[34px] overflow-hidden border">
+        <Hatch className="absolute inset-0" />
+      </span>
+      <span className="text-eyebrow opacity-60">{label}</span>
+    </span>
+  );
+}
+
+/**
+ * A pool player on Make teams by Level: the full name on top, wrapping
+ * rather than cut, then the position, the number the teams balance on and
+ * the arrow that moves them across. Clicking the tile opens their profile,
+ * and the tile is ringed while it is open.
+ */
+function TeamsTile({
+  player,
+  side,
+  bib,
+  balanceOn,
+  sideCaptain,
+  open,
+  onOpen,
+  onMove,
+}: {
+  player: BoardPlayer;
+  side: Side;
+  bib: FootballBib;
+  balanceOn: FootballBalanceOn;
+  sideCaptain: boolean;
+  open: boolean;
+  onOpen: () => void;
+  onMove: () => void;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const code = slotCode(player, locale);
+  const rating = teamsRating(player, balanceOn, locale);
+  const { name, spoken, isNickname } = teamsTileName(player, locale);
+  const Icon = side === 1 ? ArrowRight : ArrowLeft;
+  const { fill, on } = bibColors[bib];
+  return (
+    <div
+      className={cn(
+        "rounded-card relative min-w-0 border",
+        open && "ring-ink ring-offset-background ring-2 ring-offset-2",
+      )}
+      style={bibStyle(bib)}
+    >
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={[
+          spoken,
+          sideCaptain ? m.football.captains.spoken : null,
+          code,
+          rating.spoken,
+        ]
+          .filter(Boolean)
+          .join(m.common.listSeparator)}
+        onClick={onOpen}
+        className="focus-visible:ring-ring/50 rounded-card flex w-full flex-col gap-2.5 p-2.5 text-start outline-none focus-visible:ring-[3px]"
+      >
+        <span className="flex w-full min-w-0 items-center gap-2">
+          <CaptainAvatar
+            player={player}
+            bib={bib}
+            sideCaptain={sideCaptain}
+            size="sm"
+          />
+          <NicknameName
+            name={name}
+            isNickname={isNickname}
+            wrap
+            className="text-meta flex-1 font-semibold"
+          />
+        </span>
+        <span className="flex min-h-7 items-center gap-2 pe-9">
+          <span className="w-6 text-center font-mono text-[11px] opacity-60">
+            {code}
+          </span>
+          {rating.kind === "new" ? (
+            <NewMark label={rating.value} />
+          ) : rating.kind === "guest" ? (
+            <span className="text-meta opacity-60">{rating.value}</span>
+          ) : (
+            <span dir="ltr" className="font-expanded text-lead">
+              {rating.value}
+            </span>
+          )}
+        </span>
+      </button>
+      <button
+        type="button"
+        aria-label={m.webTournament.footballTeams.moveToOtherTeam(name)}
+        onClick={onMove}
+        className="focus-visible:ring-ring/50 absolute bottom-2.5 end-2.5 flex size-7 items-center justify-center rounded-sm outline-none focus-visible:ring-[3px]"
+        style={{ backgroundColor: on, color: fill }}
+      >
+        <Icon aria-hidden="true" className="size-4 rtl:-scale-x-100" />
+      </button>
+    </div>
+  );
+}
+
 function LevelColumns({
   draft,
   summary,
+  openUserId,
+  onOpen,
   onMove,
 }: {
   draft: TeamsDraft;
   summary: ReturnType<typeof draftSummary>;
+  openUserId: string | null;
+  onOpen: (userId: string) => void;
   onMove: (userId: string) => void;
 }) {
   const m = useMessages();
+  const teamsCard = m.football.teamsCard;
   const column = (side: Side) => {
     const bib = side === 1 ? draft.bibs.slot1 : draft.bibs.slot2;
     const members = side === 1 ? summary.slot1 : summary.slot2;
-    const Icon = side === 1 ? ArrowRight : ArrowLeft;
-    const { fill, on } = bibColors[bib];
     return (
       <ul className="min-w-0 flex-1 space-y-2">
         {members.map((player) => (
           <li key={player.userId}>
-            <BibRow
+            <TeamsTile
               player={player}
+              side={side}
               bib={bib}
-              showTier
+              balanceOn={summary.balanceOn}
               sideCaptain={isSideCaptain(draft, side, player.userId)}
-              trailing={
-                <button
-                  type="button"
-                  aria-label={m.webTournament.footballTeams.moveToOtherTeam(
-                    teamsName(player),
-                  )}
-                  onClick={() => onMove(player.userId)}
-                  className="focus-visible:ring-ring/50 flex size-[26px] shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
-                  style={{ backgroundColor: on, color: fill }}
-                >
-                  <Icon
-                    aria-hidden="true"
-                    className="size-3.5 rtl:-scale-x-100"
-                  />
-                </button>
-              }
+              open={openUserId === player.userId}
+              onOpen={() => onOpen(player.userId)}
+              onMove={() => onMove(player.userId)}
             />
           </li>
         ))}
@@ -318,15 +432,21 @@ function LevelColumns({
     );
   };
   return (
-    <div className="space-y-3">
-      <div className="flex gap-2">
+    <section className="space-y-2.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-muted-foreground text-meta">{teamsCard.players}</h2>
+        <span className="text-muted-foreground text-eyebrow">
+          {teamsCard.tapToOpen}
+        </span>
+      </div>
+      <div className="flex gap-2.5">
         {column(1)}
         {column(2)}
       </div>
       <p className="text-muted-foreground text-meta">
         {m.webTournament.footballTeams.noSubsNote}
       </p>
-    </div>
+    </section>
   );
 }
 
@@ -367,15 +487,18 @@ function ManualRow({
   player,
   draft,
   names,
+  onOpen,
   onPlace,
 }: {
   player: BoardPlayer;
   draft: TeamsDraft;
   names: { slot1: string; slot2: string };
+  onOpen: () => void;
   onPlace: (side: Side) => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
+  const { name, spoken, isNickname } = teamsTileName(player, locale);
   const side = draft.sides[player.userId];
   const bib =
     side === 1 ? draft.bibs.slot1 : side === 2 ? draft.bibs.slot2 : null;
@@ -389,21 +512,27 @@ function ManualRow({
       )}
       style={bib ? bibStyle(bib) : undefined}
     >
-      <CaptainAvatar
-        player={player}
-        bib={bib}
-        sideCaptain={isSideCaptain(draft, side, player.userId)}
-      />
-      <div className="min-w-0 flex-1">
-        <NicknameName
-          name={player.isViewer ? m.common.you : teamsName(player)}
-          isNickname={!player.isViewer && player.nickname != null}
-          className="[text-align:match-parent]"
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-label={[spoken, code].filter(Boolean).join(m.common.listSeparator)}
+        onClick={onOpen}
+        className="focus-visible:ring-ring/50 flex min-w-0 flex-1 items-center gap-2.5 rounded-sm text-start outline-none focus-visible:ring-[3px]"
+      >
+        <CaptainAvatar
+          player={player}
+          bib={bib}
+          sideCaptain={isSideCaptain(draft, side, player.userId)}
         />
-        {code ? (
-          <p className="font-mono text-[11px] opacity-70">{code}</p>
-        ) : null}
-      </div>
+        <span className="min-w-0 flex-1">
+          <NicknameName name={name} isNickname={isNickname} wrap />
+          {code ? (
+            <span className="block font-mono text-[11px] opacity-70">
+              {code}
+            </span>
+          ) : null}
+        </span>
+      </button>
       {tierCell ? (
         <TierMark cell={tierCell} />
       ) : (
@@ -436,10 +565,12 @@ function ManualRow({
 function ManualLists({
   draft,
   summary,
+  onOpen,
   onPlace,
 }: {
   draft: TeamsDraft;
   summary: ReturnType<typeof draftSummary>;
+  onOpen: (userId: string) => void;
   onPlace: (userId: string, side: Side) => void;
 }) {
   const m = useMessages();
@@ -463,6 +594,7 @@ function ManualLists({
               player={player}
               draft={draft}
               names={summary.names}
+              onOpen={() => onOpen(player.userId)}
               onPlace={(side) => onPlace(player.userId, side)}
             />
           ))}
@@ -527,6 +659,7 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
     null,
   );
   const [captainsSide, setCaptainsSide] = React.useState<Side | null>(null);
+  const [openUserId, setOpenUserId] = React.useState<string | null>(null);
   const [firstPick, setFirstPick] = React.useState<FootballFirstPick>("toss");
   const [confirmReplace, setConfirmReplace] = React.useState(false);
   const gameHref = `/dashboard/games/${gameId}`;
@@ -678,6 +811,16 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
         firstPick,
       });
     };
+    const openPlayer =
+      draft.method === "captain_pick"
+        ? null
+        : (players.find((player) => player.userId === openUserId) ?? null);
+    const openSide = openPlayer
+      ? (draft.sides[openPlayer.userId] ?? null)
+      : null;
+    const openIsCaptain =
+      openPlayer != null &&
+      isSideCaptain(draft, openSide ?? undefined, openPlayer.userId);
     const how =
       draft.method === "captain_pick"
         ? pickSetup.intro
@@ -725,12 +868,15 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
               <LevelColumns
                 draft={draft}
                 summary={summary}
+                openUserId={openPlayer?.userId ?? null}
+                onOpen={setOpenUserId}
                 onMove={(userId) => setDraft(moveAcross(draft, userId))}
               />
             ) : (
               <ManualLists
                 draft={draft}
                 summary={summary}
+                onOpen={setOpenUserId}
                 onPlace={(userId, side) =>
                   setDraft(placeOn(draft, userId, side))
                 }
@@ -830,6 +976,36 @@ export function FootballMakeTeams({ gameId }: { gameId: string }) {
             </Button>
           </div>
         )}
+        <FootballTeamsPlayerSheet
+          gameId={gameId}
+          player={openPlayer}
+          side={openSide}
+          names={summary.names}
+          balanceOn={summary.balanceOn}
+          isCaptain={openIsCaptain}
+          canBeCaptain={
+            openSide != null &&
+            openPlayer != null &&
+            mayBeSideCaptain(openPlayer)
+          }
+          onClose={() => setOpenUserId(null)}
+          onPlace={(side) => {
+            if (openPlayer) {
+              setDraft(placeOn(draft, openPlayer.userId, side));
+            }
+          }}
+          onToggleCaptain={() => {
+            if (openPlayer && openSide) {
+              setDraft(
+                setSideCaptain(
+                  draft,
+                  openSide,
+                  openIsCaptain ? null : openPlayer.userId,
+                ),
+              );
+            }
+          }}
+        />
         <FootballCaptainsDialog
           side={captainsSide}
           bibs={draft.bibs}

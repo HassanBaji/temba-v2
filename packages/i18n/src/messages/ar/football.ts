@@ -1,3 +1,4 @@
+import { isolate } from "../../bidi";
 import { plural } from "../../plural";
 import type { football as source } from "../en/football";
 
@@ -695,5 +696,71 @@ export const football = {
     pickNotInPool: "هذا اللاعب ليس في قائمة الاختيار",
     pickMovedOn: "تقدّم الاختيار",
     pickNothingToUndo: "لا يوجد اختيار للتراجع عنه",
+  },
+  teamsCard: {
+    players: "اللاعبون",
+    tapToOpen: "اضغط على لاعب لفتحه",
+    notPlaced: "غير موزَّع",
+    sideUsually: (team: string, code: string) =>
+      `${team}، عادةً ${isolate(code)}`,
+    notRatedYet: (left: number) =>
+      plural("ar", left, {
+        zero: "لم يُقيَّم بعد",
+        one: "لم يُقيَّم بعد، تبقّت مباراة واحدة",
+        two: "لم يُقيَّم بعد، تبقّت مباراتان",
+        few: "لم يُقيَّم بعد، تبقّت {n} مباريات",
+        many: "لم يُقيَّم بعد، تبقّت {n} مباراة",
+        other: "لم يُقيَّم بعد، تبقّت {n} مباراة",
+      }),
+    sentences: (first: string, second: string) => `${first}. ${second}`,
+    newValue: "جديد",
+    points: "نقاط",
+    pointsThisMonth: (delta: string) => `نقاط، ${isolate(delta)} هذا الشهر`,
+    pointsAfter: (games: number) =>
+      plural("ar", games, {
+        zero: "نقاط",
+        one: "نقاط، بعد مباراة واحدة",
+        two: "نقاط، بعد مباراتين",
+        few: "نقاط، بعد {n} مباريات",
+        many: "نقاط، بعد {n} مباراة",
+        other: "نقاط، بعد {n} مباراة",
+      }),
+    ovr: "OVR",
+    games: (n: number) =>
+      plural("ar", n, {
+        zero: "مباراة",
+        one: "مباراة",
+        two: "مباراتان",
+        few: "مباريات",
+        many: "مباراة",
+        other: "مباراة",
+      }),
+    goals: (n: number) =>
+      plural("ar", n, {
+        zero: "هدف",
+        one: "هدف",
+        two: "هدفان",
+        few: "أهداف",
+        many: "هدفًا",
+        other: "هدف",
+      }),
+    mvps: "أفضل لاعب",
+    statSpoken: (value: string, label: string) => `${isolate(value)} ${label}`,
+    lastFive: "آخر خمس، الأقدم أولاً",
+    playedSoFar: (n: number) =>
+      plural("ar", n, {
+        zero: "لم يلعب بعد",
+        one: "لعب مباراة واحدة حتى الآن",
+        two: "لعب مباراتين حتى الآن",
+        few: "لعب {n} مباريات حتى الآن",
+        many: "لعب {n} مباراة حتى الآن",
+        other: "لعب {n} مباراة حتى الآن",
+      }),
+    nonePlayed: "لم يلعب بعد",
+    moveTo: (team: string) => `انقله إلى ${team}`,
+    makeCaptain: "اجعله القائد",
+    removeCaptain: "أزل القائد",
+    fullProfile: "الملف الكامل",
+    statsFailed: "تعذّر تحميل الأرقام",
   },
 } satisfies typeof source;
