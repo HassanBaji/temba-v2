@@ -136,6 +136,7 @@ type ExpectedGames =
   | "updateMatch"
   | "addSet"
   | "scoreSet"
+  | "saveScore"
   | "removeSet"
   | "completeMatch"
   | "confirmMatchResult"

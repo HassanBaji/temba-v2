@@ -974,6 +974,13 @@
       "when": 1795685175859,
       "tag": "0138_football_match_log",
       "breakpoints": true
+    },
+    {
+      "idx": 139,
+      "version": "7",
+      "when": 1795693958594,
+      "tag": "0139_score_change",
+      "breakpoints": true
     }
   ]
 }

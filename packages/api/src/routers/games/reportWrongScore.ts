@@ -36,6 +36,7 @@ import {
   takeBackKnockoutQualifiers,
   takeBackKnockoutWinner,
 } from "#src/games/knockout-advance";
+import { clearMatchScoreChange } from "#src/games/confirmations-after-set-change";
 import { clearMatchVerifierStamp } from "#src/games/match-result-confirmations";
 import { requireMatchOnGame } from "#src/games/require-match-on-game";
 import { suspendMvp } from "#src/marks/settle-mvp";
@@ -464,6 +465,7 @@ export async function reportWrongScore(
     await tx
       .delete(matchResultConfirmations)
       .where(eq(matchResultConfirmations.matchId, locked.id));
+    await clearMatchScoreChange(tx, locked.id);
     await clearMatchVerifierStamp(tx, locked.id);
     if (clearsScore) {
       await tx

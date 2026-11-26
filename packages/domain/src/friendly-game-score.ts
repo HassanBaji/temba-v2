@@ -2,6 +2,7 @@ import type { Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { formatMatchSlotLabel } from "./game-side-label";
+import type { ScoreEntry } from "./score-review";
 
 export type FriendlyScorePhase =
   | "upcoming"
@@ -175,8 +176,15 @@ export type ScoreConfirmation = {
   viewerHasConfirmed: boolean;
   sideConfirmedUserIds?: string[];
   organizerSides?: ScoreOrganizerSide[];
+  scoreEntry?: ScoreEntry | null;
 };
 
+/**
+ * One row per player who may confirm. Whoever put the score in reads
+ * "Entered it", or "Changed it" when it replaced an earlier one; their
+ * partner is covered by them. On the other side the viewer reads "Your
+ * turn", and the rest wait, "Asked again" once the score was changed.
+ */
 export function scoreConfirmationRows(
   confirmation: ScoreConfirmation,
   viewerUserId: string,
@@ -184,19 +192,37 @@ export function scoreConfirmationRows(
   locale: Locale,
 ) {
   const m = messagesFor(locale).game.score;
+  const review = messagesFor(locale).game.scoreReview;
   const confirmed = new Set(confirmation.confirmedUserIds);
   const sideConfirmed = new Set(confirmation.sideConfirmedUserIds ?? []);
+  const entry = confirmation.scoreEntry ?? null;
+  const status = (userId: string) => {
+    if (userId === entry?.enteredByUserId) {
+      return {
+        confirmed: true,
+        status: entry.change ? review.changedIt : review.enteredIt,
+      };
+    }
+    if (confirmed.has(userId)) {
+      return { confirmed: true, status: m.confirmed };
+    }
+    if (sideConfirmed.has(userId)) {
+      return { confirmed: false, status: m.partnerConfirmed };
+    }
+    if (entry && userId === viewerUserId) {
+      return { confirmed: true, status: review.yourTurn };
+    }
+    return {
+      confirmed: false,
+      status: entry?.change ? review.askedAgain : m.waiting,
+    };
+  };
   return confirmation.requiredUserIds.map((userId) => {
     const name = names.get(userId) ?? m.player;
     return {
       userId,
       label: userId === viewerUserId ? m.youSuffix(name) : name,
-      confirmed: confirmed.has(userId),
-      status: confirmed.has(userId)
-        ? m.confirmed
-        : sideConfirmed.has(userId)
-          ? m.partnerConfirmed
-          : m.waiting,
+      ...status(userId),
     };
   });
 }

@@ -275,6 +275,70 @@ export const game = {
     organizerWaiting: (team: string) =>
       `Waiting for the Organizer to confirm for ${team}.`,
   },
+  scoreReview: {
+    enteredTitle: (name: string) => `${name} entered the score`,
+    changedTitle: (name: string) => `${name} changed the score`,
+    youEnteredTitle: "You entered this score",
+    youChangedTitle: "You changed the score",
+    editTitle: "Change the score",
+    confirmOrChange: (result: string) =>
+      `${result} Confirm it, or change it if it is wrong.`,
+    confirmNewOrChangeBack: (result: string) =>
+      `${result} Confirm the new score, or change it back.`,
+    teamWon: (tally: string) => `Your team won ${tally}.`,
+    teamStillWon: (tally: string) => `Your team still won ${tally}.`,
+    teamLost: (tally: string) => `Your team lost ${tally}.`,
+    teamStillLost: (tally: string) => `Your team still lost ${tally}.`,
+    levelAt: (tally: string) => `It is level at ${tally}.`,
+    sideWon: (team: string, tally: string) => `${team} won ${tally}.`,
+    levelInSets: (tally: string) => `Level at ${tally} in sets.`,
+    nothingChanged: "Nothing changed yet. Change a box above.",
+    setsChanged: (n: number, firstSet: number) =>
+      plural("en", n, {
+        one: `Set ${firstSet} changed. The other side will be asked to confirm.`,
+        other: "{n} sets changed. The other side will be asked to confirm.",
+      }),
+    dispute: "Dispute and edit",
+    confirm: "Confirm score",
+    editScore: "Edit score",
+    cancel: "Cancel",
+    send: "Send new score",
+    enteredBy: (name: string, time: string) => `Entered by ${name} at ${time}.`,
+    enteredByYou: (time: string) => `Entered by you at ${time}.`,
+    changedBy: (name: string, time: string) => `Changed by ${name} at ${time}.`,
+    changedByYou: (time: string) => `Changed by you at ${time}.`,
+    changing: (name: string) => `You are changing the score ${name} entered.`,
+    changingOwn: "You are changing the score you entered.",
+    changedSet: (name: string, set: number, from: string, to: string) =>
+      `${name} changed set ${set} from ${from} to ${to}`,
+    youChangedSet: (set: number, from: string, to: string) =>
+      `You changed set ${set} from ${from} to ${to}`,
+    changedScore: (name: string, from: string, to: string) =>
+      `${name} changed it from ${from} to ${to}`,
+    youChangedScore: (from: string, to: string) =>
+      `You changed it from ${from} to ${to}`,
+    reasonGiven: (reason: string) => `Reason given: ${reason}.`,
+    otherSideAsked: "The other side is asked to confirm the new score.",
+    whatIsWrong: "What is wrong, optional",
+    editHint: "Change the boxes that are wrong.",
+    reasons: {
+      set_score_wrong: "A set score is wrong",
+      sets_swapped: "Sets are swapped",
+      not_finished: "We did not finish",
+      other: "Other",
+    },
+    reasonPhrases: {
+      set_score_wrong: "a set score is wrong",
+      sets_swapped: "sets are swapped",
+      not_finished: "we did not finish",
+      other: "other",
+    },
+    changedBox: (label: string) => `${label}, changed`,
+    enteredIt: "Entered it",
+    changedIt: "Changed it",
+    yourTurn: "Your turn",
+    askedAgain: "Asked again",
+  },
   kick: {
     fallbackName: "this player",
     spotConfirm: "Their spot can open for someone else.",

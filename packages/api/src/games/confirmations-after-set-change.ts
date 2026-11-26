@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import { matchSets } from "@repo/db";
+import { matchScoreChanges, matchSets } from "@repo/db";
 
 import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { matchOutcome } from "@repo/domain/match-outcome";
@@ -42,6 +42,17 @@ export async function askOtherSideToConfirm(
     return;
   }
   await enqueueAt(tx, confirmWindowJob(args.match.id), closesAt);
+  await notifyOtherSideOfScore(tx, args);
+}
+
+/**
+ * Tells the account holders of the side that did not enter the score that
+ * it waits on them. An Organizer who is not seated entered it for both.
+ */
+export async function notifyOtherSideOfScore(
+  tx: Tx,
+  args: { game: GameRow; match: MatchRow; userId: string },
+) {
   const sides = await matchSideSeats(tx, args.match);
   const enteringSide = sides.find((side) => side.userIds.includes(args.userId));
   await notify(tx, {
@@ -81,6 +92,16 @@ export async function keepPublicGameConfirmation(
 }
 
 /**
+ * The note of what a changed score replaced describes the score as it
+ * stands (ADR-0114), so it goes with that score.
+ */
+export async function clearMatchScoreChange(tx: Tx, matchId: string) {
+  await tx
+    .delete(matchScoreChanges)
+    .where(eq(matchScoreChanges.matchId, matchId));
+}
+
+/**
  * ADR-0011: the User who changes a Match's Sets into a result is confirmed
  * automatically, and every other confirmation goes once the score changed, so
  * a changed score needs agreeing again rather than standing on stale ones. A
@@ -106,6 +127,9 @@ export async function settleConfirmationsAfterSetChange(
     where: eq(matchSets.matchId, args.match.id),
     columns: { slot1GamesWon: true, slot2GamesWon: true },
   });
+  if (args.scoreChanged) {
+    await clearMatchScoreChange(tx, args.match.id);
+  }
   const outcome = matchOutcome(sets);
   if (
     outcome.result === "none" ||

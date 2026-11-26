@@ -45,9 +45,17 @@ import {
   type ScoreConfirmWindow,
   type SetBoxState,
 } from "@repo/domain/friendly-game-score";
+import {
+  scoreChangeNote,
+  scoreChangeReasonOptions,
+  scoreEntryLine,
+  scoreResultLine,
+  scoreReviewBoxState,
+} from "@repo/domain/score-review";
 import { useNow } from "~/hooks/use-now";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
+import type { ScoreReview, ScoreSetsToSave } from "./use-score-review";
 
 type GameScoreSectionSide = RouterOutputs["games"]["byId"]["sides"][number];
 type GameScoreSectionMatch = RouterOutputs["games"]["byId"]["matches"][number];
@@ -76,15 +84,19 @@ function SetBox({
   value,
   label,
   saving,
+  changed = false,
   onChange,
 }: {
   state: SetBoxState;
   value: number | null;
   label: string;
   saving?: boolean;
+  /** The viewer changed this box from the entered score. */
+  changed?: boolean;
   onChange?: (value: number | null, capped: boolean) => void;
 }) {
   const locale = useLocale();
+  const m = useMessages();
   if (state === "locked" || state === "unplayed") {
     return (
       <span
@@ -135,7 +147,7 @@ function SetBox({
       max={FRIENDLY_SET_GAMES_MAX}
       value={value ?? ""}
       readOnly={saving}
-      aria-label={label}
+      aria-label={changed ? m.game.scoreReview.changedBox(label) : label}
       onChange={(event) => {
         const raw = event.target.value;
         if (raw === "") {
@@ -153,6 +165,7 @@ function SetBox({
       className={cn(
         "h-12 w-14 shrink-0 rounded-lg p-0 text-center text-xl font-bold tabular-nums",
         value == null ? "border-rule" : "border-ink border-[1.5px]",
+        changed && "ring-ink ring-offset-paper ring-2 ring-offset-2",
         "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
       )}
     />
@@ -336,6 +349,78 @@ function LockedScore({ courtFull }: { courtFull: boolean }) {
   );
 }
 
+/** Under the boxes once a score is in: who won, and who entered or changed it. */
+function ReviewSummary({
+  match,
+  sides,
+  viewerUserId,
+  confirmation,
+  editing,
+}: {
+  match: GameScoreSectionMatch;
+  sides: GameScoreSectionSide[];
+  viewerUserId: string;
+  confirmation: GameScoreSectionConfirmation | null;
+  editing: boolean;
+}) {
+  const locale = useLocale();
+  const entry = confirmation?.scoreEntry ?? null;
+  const resultLine = scoreResultLine(match.sets, sides, locale);
+  const entryLine = scoreEntryLine({ entry, viewerUserId, editing }, locale);
+  const note = editing
+    ? null
+    : scoreChangeNote({ entry, viewerUserId, sets: match.sets }, locale);
+  return (
+    <div className="space-y-2.5 pt-1.5">
+      <div>
+        {resultLine ? (
+          <p className="text-sm font-semibold">{resultLine}</p>
+        ) : null}
+        {entryLine ? (
+          <p className="text-muted-foreground text-meta">{entryLine}</p>
+        ) : null}
+      </div>
+      {note ? (
+        <div className="border-rule bg-muted rounded-[10px] border p-3">
+          <p className="text-meta font-semibold">{note.title}</p>
+          <p className="text-muted-foreground text-meta">{note.subline}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** While a score is being changed: the optional reason, as chips. */
+function ChangeReason({ review }: { review: ScoreReview }) {
+  const locale = useLocale();
+  const m = useMessages();
+  return (
+    <div className="border-rule space-y-2.5 border-t pt-4">
+      <p className="text-muted-foreground text-meta">
+        {m.game.scoreReview.whatIsWrong}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {scoreChangeReasonOptions(locale).map((option) => (
+          <Button
+            key={option.value}
+            type="button"
+            size="sm"
+            variant={review.reason === option.value ? "default" : "outline"}
+            aria-pressed={review.reason === option.value}
+            disabled={review.pending}
+            onClick={() => review.onToggleReason(option.value)}
+          >
+            {option.label}
+          </Button>
+        ))}
+      </div>
+      <p className="text-muted-foreground text-meta">
+        {m.game.scoreReview.editHint}
+      </p>
+    </div>
+  );
+}
+
 /**
  * Score section (game-details redesign, TEM-181): replaces the old
  * `FriendlyGameResultsPanel` for the individual Friendly game details page,
@@ -357,7 +442,8 @@ export function GameScoreSection({
   scorePending,
   confirmPending,
   stampPending = false,
-  onScoreSet,
+  review = null,
+  onSaveSets,
   onConfirm,
   onStamp,
 }: {
@@ -374,11 +460,9 @@ export function GameScoreSection({
   scorePending: boolean;
   confirmPending: boolean;
   stampPending?: boolean;
-  onScoreSet: (input: {
-    setId: string;
-    slot1GamesWon: number;
-    slot2GamesWon: number;
-  }) => void | Promise<unknown>;
+  /** Once a score is in: confirm or dispute it, from the action bar (ADR-0114). */
+  review?: ScoreReview | null;
+  onSaveSets: (sets: ScoreSetsToSave) => void;
   onConfirm: () => void;
   onStamp?: () => void;
 }) {
@@ -401,12 +485,15 @@ export function GameScoreSection({
     return <LockedScore courtFull={courtFull} />;
   }
 
-  const canEnter = scoreCanEnter(phase, match.canScoreSets);
+  const inReview = review?.active ?? false;
+  const editing = review?.editing ?? false;
+  const boxDrafts = editing && review ? review.drafts : drafts;
+  const canEnter = !inReview && scoreCanEnter(phase, match.canScoreSets);
   const shownSets = scoreShownSets(phase, match.sets);
   const hasResult = match.outcome.result !== "none";
   const names = scoreNameByUserId(sides);
 
-  async function saveSets() {
+  function saveSets() {
     const payloads = friendlyGameResultsSaveSets(
       match.sets.map((set) => ({
         id: set.id,
@@ -418,28 +505,27 @@ export function GameScoreSection({
       toast.error(scoreIncompleteMessage(locale));
       return;
     }
-    try {
-      for (const payload of payloads) {
-        await onScoreSet(payload);
-      }
-    } catch {
-      // The score mutation reports its own failure; stop at the first one.
-    }
+    onSaveSets(payloads);
   }
 
-  const canConfirm = scoreCanConfirm({
-    confirmation: matchResultConfirmation,
-    hasResult,
-    phase,
-    viewerUserId,
-    confirmWindow,
-  });
-  const organizerCanConfirm = scoreOrganizerCanConfirm({
-    confirmation: matchResultConfirmation,
-    hasResult,
-    phase,
-    isOrganizer,
-  });
+  // In review the action bar holds Confirm; the section only lists who is in.
+  const canConfirm =
+    !inReview &&
+    scoreCanConfirm({
+      confirmation: matchResultConfirmation,
+      hasResult,
+      phase,
+      viewerUserId,
+      confirmWindow,
+    });
+  const organizerCanConfirm =
+    !inReview &&
+    scoreOrganizerCanConfirm({
+      confirmation: matchResultConfirmation,
+      hasResult,
+      phase,
+      isOrganizer,
+    });
 
   const deciderNote = canEnter
     ? scoreDeciderNote(match.sets.length, locale)
@@ -450,7 +536,7 @@ export function GameScoreSection({
     index: number,
     side: GameScoreSectionSide,
   ) {
-    const draft = drafts[set.id] ?? {
+    const draft = boxDrafts[set.id] ?? {
       slot1: set.slot1GamesWon,
       slot2: set.slot2GamesWon,
     };
@@ -459,13 +545,15 @@ export function GameScoreSection({
       formatGameSideLabel("friendly_game", side.sideIndex, locale),
       setName,
     );
-    const state = scoreSetBoxState({
-      phase,
-      neverPlayed: scoreSetNeverPlayed(set),
-      canEnter,
-      isWinningSide:
-        side.gameTeamId != null && side.gameTeamId === winningGameTeamId,
-    });
+    const state = inReview
+      ? scoreReviewBoxState({ set, sideIndex: side.sideIndex, editing })
+      : scoreSetBoxState({
+          phase,
+          neverPlayed: scoreSetNeverPlayed(set),
+          canEnter,
+          isWinningSide:
+            side.gameTeamId != null && side.gameTeamId === winningGameTeamId,
+        });
     if (state === "locked" || state === "unplayed") {
       return (
         <SetBox key={set.id} state={state} value={null} label={boxLabel} />
@@ -493,16 +581,23 @@ export function GameScoreSection({
         state="enterable"
         value={value}
         label={boxLabel}
-        saving={scorePending}
+        saving={editing ? review?.pending : scorePending}
+        changed={
+          editing &&
+          value != null &&
+          value !== scoreGamesWonForSide(set, side.sideIndex)
+        }
         onChange={(next, wasCapped) => {
           setCapped(wasCapped);
-          setDrafts((current) => ({
-            ...current,
-            [set.id]: {
-              slot1: side.sideIndex === 1 ? next : draft.slot1,
-              slot2: side.sideIndex === 2 ? next : draft.slot2,
-            },
-          }));
+          const nextDraft = {
+            slot1: side.sideIndex === 1 ? next : draft.slot1,
+            slot2: side.sideIndex === 2 ? next : draft.slot2,
+          };
+          if (editing && review) {
+            review.onChangeDraft(set.id, nextDraft);
+          } else {
+            setDrafts((current) => ({ ...current, [set.id]: nextDraft }));
+          }
         }}
       />
     );
@@ -546,7 +641,7 @@ export function GameScoreSection({
           </div>
         ))}
 
-        {canEnter && capped ? (
+        {(canEnter || editing) && capped ? (
           <p role="alert" className="text-meta text-ink font-medium">
             {scoreGamesRangeNote(locale)}
           </p>
@@ -559,9 +654,7 @@ export function GameScoreSection({
               type="button"
               size="sm"
               className="shrink-0"
-              onClick={() => {
-                void saveSets();
-              }}
+              onClick={saveSets}
               pending={scorePending}
               pendingLabel={m.common.saving}
             >
@@ -569,6 +662,18 @@ export function GameScoreSection({
             </Button>
           </div>
         ) : null}
+
+        {inReview ? (
+          <ReviewSummary
+            match={match}
+            sides={sides}
+            viewerUserId={viewerUserId}
+            confirmation={matchResultConfirmation}
+            editing={editing}
+          />
+        ) : null}
+
+        {editing && review ? <ChangeReason review={review} /> : null}
 
         {matchResultConfirmation &&
         scoreShowsConfirmations({
@@ -592,7 +697,7 @@ export function GameScoreSection({
           <VerifierStamp pending={stampPending} onStamp={onStamp} />
         ) : null}
 
-        {canEnter ? null : (
+        {canEnter || inReview ? null : (
           <ScoreFooterNote
             phase={phase}
             confirmedAtLabel={

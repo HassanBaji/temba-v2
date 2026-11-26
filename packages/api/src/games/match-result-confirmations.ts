@@ -1,4 +1,4 @@
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, eq, inArray, ne } from "drizzle-orm";
 
 import {
   americanoSeats,
@@ -6,11 +6,13 @@ import {
   gameTeams,
   games,
   matchResultConfirmations,
+  matchScoreChanges,
   matchVerifierStamps,
 } from "@repo/db";
 
 import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { isFootballGame } from "@repo/domain/game-shape";
+import type { ScoreEntry } from "@repo/domain/score-review";
 
 import { type db } from "#src/db";
 import { mayHaveAmericanoSeats } from "#src/games/americano-matches";
@@ -248,6 +250,49 @@ export async function matchResultConfirmedUserIds(
     columns: { userId: true },
   });
   return confirmations.map((row) => row.userId);
+}
+
+/**
+ * Who put in the score a Match is waiting on: its earliest confirmation,
+ * since a changed score keeps only its enterer's. With it, what the score
+ * replaced when that User changed an entered one (ADR-0114). `null` while
+ * nobody has confirmed.
+ */
+export async function scoreEntryOf(
+  database: DbClient,
+  match: MatchRow,
+): Promise<ScoreEntry | null> {
+  const [first, change] = await Promise.all([
+    database.query.matchResultConfirmations.findFirst({
+      where: eq(matchResultConfirmations.matchId, match.id),
+      orderBy: asc(matchResultConfirmations.confirmedAt),
+      columns: { userId: true, confirmedAt: true },
+      with: { user: { columns: { name: true } } },
+    }),
+    database.query.matchScoreChanges.findFirst({
+      where: eq(matchScoreChanges.matchId, match.id),
+    }),
+  ]);
+  if (!first) {
+    return null;
+  }
+  return {
+    enteredByUserId: first.userId,
+    enteredByName: first.user.name,
+    enteredAt: first.confirmedAt,
+    change:
+      change?.changedByUserId === first.userId
+        ? {
+            reason: change.reason,
+            previousSets: [...change.previousSets]
+              .sort((left, right) => left.setNumber - right.setNumber)
+              .map((set) => ({
+                slot1GamesWon: set.slot1GamesWon,
+                slot2GamesWon: set.slot2GamesWon,
+              })),
+          }
+        : null,
+  };
 }
 
 /**
