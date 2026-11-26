@@ -4,11 +4,12 @@ import { captainPickSetupProblem } from "@repo/domain/football-captain-pick";
 import { footballDraftSaveProblem } from "@repo/domain/football-draft";
 import {
   FOOTBALL_TEAMS_METHODS,
+  type FootballBalanceOn,
   type FootballBib,
   type FootballFirstPick,
   type FootballTeamsMethod,
 } from "@repo/domain/football-lineup";
-import { useRouter, type Href } from "expo-router";
+import { useRouter, useSegments, type Href } from "expo-router";
 import {
   ArrowLeft,
   ArrowRight,
@@ -24,8 +25,10 @@ import { footballPickRoomPath } from "../games/games-model";
 import { NicknameName } from "../primitives/nickname-name";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { mirrorInRtl } from "../i18n/rtl";
+import { playerPath } from "../player-profile/player-path";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
+import { Hatch } from "../primitives/hatch";
 import { Screen } from "../primitives/screen";
 import { ScreenHeader } from "../primitives/screen-header";
 import { Skeleton } from "../primitives/skeleton";
@@ -45,6 +48,7 @@ import {
   lineupPlayerName,
   mayBeSideCaptain,
   moveAcross,
+  notRatedCount,
   ofSide,
   ovrLabel,
   placeOn,
@@ -53,16 +57,21 @@ import {
   slotCode,
   switchMethod,
   teamsSideAverage,
+  teamsTileRating,
   type BoardPlayer,
   type Side,
   type TeamsDraft,
 } from "@repo/domain/football-board";
 import { CaptainPickSetup } from "./captain-pick-setup";
 import { CaptainsSheet } from "./captains-sheet";
-import { BibRow, CaptainAvatar, TierMark } from "./team-columns";
+import { CaptainAvatar, TierMark } from "./team-columns";
+import { TeamsPlayerSheet } from "./teams-player-sheet";
 
 const BAR_HEIGHT = 6;
 const SWATCH_BUTTON = 34;
+const ARROW_BUTTON = 28;
+const TILE_LEAD = 24;
+const NEW_BOX = 14;
 
 /** The Member nickname when the viewer may see one, else the full Temba name. */
 function teamsName(player: Pick<BoardPlayer, "name" | "nickname">) {
@@ -161,7 +170,8 @@ function BalanceCard({
   canSaveDraft: boolean;
 }) {
   const locale = useLocale();
-  const m = useMessages().mobileTournament.makeTeams;
+  const messages = useMessages();
+  const m = messages.mobileTournament.makeTeams;
   const row = (side: Side) => {
     const bib = side === 1 ? draft.bibs.slot1 : draft.bibs.slot2;
     const members = side === 1 ? summary.slot1 : summary.slot2;
@@ -174,7 +184,16 @@ function BalanceCard({
           <Text size="meta" tone="muted" style={{ flex: 1 }}>
             {m.avgAndKeepers(
               teamsSideAverage(members, locale, summary.balanceOn),
-              keeperWord(members, locale),
+              [
+                keeperWord(members, locale),
+                notRatedCount(members, summary.balanceOn) > 0
+                  ? messages.football.board.notRatedCount(
+                      notRatedCount(members, summary.balanceOn),
+                    )
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(messages.common.listSeparator),
             )}
           </Text>
           <Text weight="bold" width="expanded">
@@ -222,15 +241,139 @@ function ArrowButton({
       hitSlop={6}
       onPress={onPress}
       style={{
-        width: 26,
-        height: 26,
-        borderRadius: 6,
+        width: ARROW_BUTTON,
+        height: ARROW_BUTTON,
+        borderRadius: radii.sm,
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: on,
       }}
     >
-      <Icon size={14} color={fill} style={mirrorInRtl} />
+      <Icon size={16} color={fill} style={mirrorInRtl} />
+    </Pressable>
+  );
+}
+
+/** The hatched box and New, for a player not rated yet. */
+function NewMark({ label, color }: { label: string; color: string }) {
+  const colors = useColors();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+      <View
+        style={{
+          width: NEW_BOX,
+          height: NEW_BOX,
+          borderRadius: 3,
+          overflow: "hidden",
+          backgroundColor: colors.paper,
+        }}
+      >
+        <Hatch radius={3} />
+      </View>
+      <Text size="lead" width="expanded" weight="bold" style={{ color }}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * A pool player on Make teams by Level: the full name on top, wrapping
+ * rather than cut, then the position, the number the teams balance on and
+ * the arrow that moves them across. Tapping the tile opens their profile.
+ */
+function TeamsTile({
+  player,
+  side,
+  bib,
+  balanceOn,
+  sideCaptain,
+  onOpen,
+  onMove,
+}: {
+  player: BoardPlayer;
+  side: Side;
+  bib: FootballBib;
+  balanceOn: FootballBalanceOn;
+  sideCaptain: boolean;
+  onOpen: () => void;
+  onMove: () => void;
+}) {
+  const colors = useColors();
+  const scheme = useColorSchemeName();
+  const messages = useMessages();
+  const locale = useLocale();
+  const { fill, on } = bibColors[bib];
+  const code = slotCode(player, locale);
+  const rating = teamsTileRating(player, balanceOn, locale);
+  const name = player.isViewer ? messages.common.you : teamsName(player);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={[
+        name,
+        sideCaptain ? messages.football.captains.spoken : null,
+        code,
+        rating.spoken,
+        player.guest ? messages.group.addPlayer.guest.tag : null,
+      ]
+        .filter(Boolean)
+        .join(messages.tournament.listSeparator)}
+      onPress={onOpen}
+      style={({ pressed }) => ({
+        gap: 10,
+        padding: 10,
+        borderRadius: radii.card,
+        backgroundColor: fill,
+        borderWidth: player.isViewer ? 2 : hairline,
+        borderColor: player.isViewer
+          ? colors.ink
+          : bibEdge(fill, colors, scheme),
+        opacity: pressed ? 0.8 : 1,
+      })}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <CaptainAvatar
+          player={player}
+          bib={bib}
+          sideCaptain={sideCaptain}
+          size="sm"
+        />
+        <NicknameName
+          name={name}
+          isNickname={!player.isViewer && player.nickname != null}
+          size="meta"
+          weight="semibold"
+          color={on}
+          numberOfLines={0}
+          style={{ flex: 1 }}
+        />
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View style={{ width: TILE_LEAD, alignItems: "center" }}>
+          {code ? (
+            <Text size="eyebrow" mono style={{ color: on, opacity: 0.6 }}>
+              {code}
+            </Text>
+          ) : null}
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          {rating.kind === "new" ? (
+            <NewMark label={rating.value} color={on} />
+          ) : (
+            <Text
+              size="lead"
+              width="expanded"
+              weight="bold"
+              ltr
+              style={{ color: on }}
+            >
+              {rating.value}
+            </Text>
+          )}
+        </View>
+        <ArrowButton side={side} bib={bib} name={name} onPress={onMove} />
+      </View>
     </Pressable>
   );
 }
@@ -238,10 +381,12 @@ function ArrowButton({
 function LevelColumns({
   draft,
   summary,
+  onOpen,
   onMove,
 }: {
   draft: TeamsDraft;
   summary: ReturnType<typeof draftSummary>;
+  onOpen: (userId: string) => void;
   onMove: (userId: string) => void;
 }) {
   const m = useMessages().mobileTournament.makeTeams;
@@ -251,27 +396,36 @@ function LevelColumns({
     return (
       <View style={{ flex: 1, gap: 8 }}>
         {members.map((player) => (
-          <BibRow
+          <TeamsTile
             key={player.userId}
             player={player}
+            side={side}
             bib={bib}
-            showTier
+            balanceOn={summary.balanceOn}
             sideCaptain={ofSide(draft.captains, side) === player.userId}
-            trailing={
-              <ArrowButton
-                side={side}
-                bib={bib}
-                name={teamsName(player)}
-                onPress={() => onMove(player.userId)}
-              />
-            }
+            onOpen={() => onOpen(player.userId)}
+            onMove={() => onMove(player.userId)}
           />
         ))}
       </View>
     );
   };
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: 10 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+        }}
+      >
+        <Text size="meta" tone="muted">
+          {m.players}
+        </Text>
+        <Text size="eyebrow" tone="muted">
+          {m.tapToOpen}
+        </Text>
+      </View>
       <View style={{ flexDirection: "row", gap: 8 }}>
         {column(1)}
         {column(2)}
@@ -330,11 +484,13 @@ function ManualRow({
   player,
   draft,
   names,
+  onOpen,
   onPlace,
 }: {
   player: BoardPlayer;
   draft: TeamsDraft;
   names: { slot1: string; slot2: string };
+  onOpen: () => void;
   onPlace: (side: Side) => void;
 }) {
   const colors = useColors();
@@ -364,26 +520,45 @@ function ManualRow({
         borderColor: bib ? bibEdge(fill, colors, scheme) : colors.inputBorder,
       }}
     >
-      <CaptainAvatar
-        player={player}
-        bib={bib}
-        sideCaptain={
-          side != null && ofSide(draft.captains, side) === player.userId
-        }
-      />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <NicknameName
-          name={player.isViewer ? messages.common.you : teamsName(player)}
-          isNickname={!player.isViewer && player.nickname != null}
-          weight="regular"
-          color={on}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={[
+          player.isViewer ? messages.common.you : teamsName(player),
+          code,
+        ]
+          .filter(Boolean)
+          .join(messages.tournament.listSeparator)}
+        onPress={onOpen}
+        style={{
+          flex: 1,
+          minWidth: 0,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        <CaptainAvatar
+          player={player}
+          bib={bib}
+          sideCaptain={
+            side != null && ofSide(draft.captains, side) === player.userId
+          }
         />
-        {code ? (
-          <Text size="eyebrow" mono style={{ color: on, opacity: 0.7 }}>
-            {code}
-          </Text>
-        ) : null}
-      </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <NicknameName
+            name={player.isViewer ? messages.common.you : teamsName(player)}
+            isNickname={!player.isViewer && player.nickname != null}
+            weight="regular"
+            color={on}
+            numberOfLines={0}
+          />
+          {code ? (
+            <Text size="eyebrow" mono style={{ color: on, opacity: 0.7 }}>
+              {code}
+            </Text>
+          ) : null}
+        </View>
+      </Pressable>
       {tierCell ? (
         <TierMark cell={tierCell} />
       ) : (
@@ -410,10 +585,12 @@ function ManualRow({
 function ManualLists({
   draft,
   summary,
+  onOpen,
   onPlace,
 }: {
   draft: TeamsDraft;
   summary: ReturnType<typeof draftSummary>;
+  onOpen: (userId: string) => void;
   onPlace: (userId: string, side: Side) => void;
 }) {
   const m = useMessages().mobileTournament.makeTeams;
@@ -442,6 +619,7 @@ function ManualLists({
             player={player}
             draft={draft}
             names={summary.names}
+            onOpen={() => onOpen(player.userId)}
             onPlace={(side) => onPlace(player.userId, side)}
           />
         ))}
@@ -607,6 +785,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
   const messages = useMessages();
   const m = messages.mobileTournament.makeTeams;
   const router = useRouter();
+  const segments = useSegments();
   const toast = useToast();
   const utils = api.useUtils();
   const game = api.games.byId.useQuery({ id: gameId });
@@ -614,6 +793,7 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
   const [draft, setDraft] = useState<TeamsDraft | null>(null);
   const [openedFromDraftAt, setOpenedFromDraftAt] = useState<Date | null>(null);
   const [captainsSide, setCaptainsSide] = useState<Side | null>(null);
+  const [openUserId, setOpenUserId] = useState<string | null>(null);
   const [firstPick, setFirstPick] = useState<FootballFirstPick>("toss");
   const [confirmReplace, setConfirmReplace] = useState(false);
   const pickStatus = board.data?.draft?.pick?.status;
@@ -744,6 +924,11 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
       firstPick,
     });
   };
+  const openPlayer =
+    draft.method === "captain_pick"
+      ? null
+      : (players.find((player) => player.userId === openUserId) ?? null);
+  const openSide = openPlayer ? (draft.sides[openPlayer.userId] ?? null) : null;
   const method = draft.method;
   const sides = {
     method,
@@ -894,12 +1079,14 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
             <LevelColumns
               draft={draft}
               summary={summary}
+              onOpen={setOpenUserId}
               onMove={(userId) => setDraft(moveAcross(draft, userId))}
             />
           ) : (
             <ManualLists
               draft={draft}
               summary={summary}
+              onOpen={setOpenUserId}
               onPlace={(userId, side) => setDraft(placeOn(draft, userId, side))}
             />
           )}
@@ -910,6 +1097,47 @@ export function MakeTeamsScreen({ gameId }: { gameId: string }) {
           {(publish.error ?? saveDraft.error ?? openRoom.error)?.message}
         </Text>
       ) : null}
+      <TeamsPlayerSheet
+        gameId={gameId}
+        player={openPlayer}
+        sideName={openSide ? ofSide(summary.names, openSide) : null}
+        otherSideName={
+          openSide ? ofSide(summary.names, openSide === 1 ? 2 : 1) : null
+        }
+        balanceOn={summary.balanceOn}
+        isCaptain={
+          openSide != null &&
+          ofSide(draft.captains, openSide) === openPlayer?.userId
+        }
+        canBeCaptain={
+          openSide != null && openPlayer != null && mayBeSideCaptain(openPlayer)
+        }
+        onClose={() => setOpenUserId(null)}
+        onMove={() => {
+          if (openPlayer && openSide) {
+            setDraft(placeOn(draft, openPlayer.userId, openSide === 1 ? 2 : 1));
+          }
+        }}
+        onToggleCaptain={() => {
+          if (openPlayer && openSide) {
+            setDraft(
+              setSideCaptain(
+                draft,
+                openSide,
+                ofSide(draft.captains, openSide) === openPlayer.userId
+                  ? null
+                  : openPlayer.userId,
+              ),
+            );
+          }
+        }}
+        onOpenProfile={() => {
+          if (openPlayer) {
+            setOpenUserId(null);
+            router.push(playerPath(segments, openPlayer.userId, "football"));
+          }
+        }}
+      />
       <CaptainsSheet
         side={captainsSide}
         bibs={draft.bibs}

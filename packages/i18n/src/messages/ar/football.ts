@@ -126,6 +126,17 @@ export const football = {
         many: "{n} حارسًا",
         other: "{n} حارس",
       }),
+    notRatedCount: (n: number) =>
+      plural("ar", n, {
+        zero: "الكل مقيَّم",
+        one: "واحد بلا تقييم",
+        two: "اثنان بلا تقييم",
+        few: "{n} بلا تقييم",
+        many: "{n} بلا تقييم",
+        other: "{n} بلا تقييم",
+      }),
+    tileNew: "جديد",
+    tileNewSpoken: "جديد، لم يُقيَّم بعد",
     goalsNote:
       "تُحتسب الأهداف في الأداء الأخير للاعب، لا في التصنيف. تجاوز إن لم يتابع أحد العدّ.",
     goalsNamed: (

@@ -17,6 +17,8 @@ import {
   mayBeSideCaptain,
   moveAcross,
   NO_SIDE_CAPTAINS,
+  notRatedCount,
+  teamsTileRating,
   ovrLabel,
   ovrSpoken,
   placeOn,
@@ -823,5 +825,71 @@ describe("setPickCaptain", () => {
     });
     expect(setPickCaptain(named, 2, "d").sides).toEqual({ a: 1, d: 2 });
     expect(setPickCaptain(named, 1, null).sides).toEqual({ c: 2 });
+  });
+});
+
+describe("teamsTileRating", () => {
+  const ranked = {
+    band: "hamour" as const,
+    place: 3,
+    points: 1310,
+    provisional: false,
+    gamesOfFive: 5,
+  };
+
+  it("shows the Tier points the averages are taken over", () => {
+    expect(
+      teamsTileRating(
+        player("a", { tier: ranked, balanceStrength: 1310 }),
+        "tierPoints",
+        "en",
+      ),
+    ).toEqual({ kind: "rated", value: "1,310", spoken: "1,310 points" });
+  });
+
+  it("shows the OVR off a tier Group", () => {
+    expect(
+      teamsTileRating(
+        player("a", { ovr: 72, balanceStrength: 72.4 }),
+        "ovr",
+        "en",
+      ),
+    ).toMatchObject({ kind: "rated", value: "72", spoken: "OVR 72" });
+  });
+
+  it("reads New while Provisional in a tier Group, or with no Rating elsewhere", () => {
+    const provisional = player("a", {
+      tier: { ...ranked, provisional: true, place: null, gamesOfFive: 2 },
+      balanceStrength: 1349,
+    });
+    expect(teamsTileRating(provisional, "tierPoints", "en")).toMatchObject({
+      kind: "new",
+      value: "New",
+    });
+    expect(teamsTileRating(player("b"), "ovr", "en").kind).toBe("new");
+  });
+
+  it("never reads New for a Guest", () => {
+    expect(
+      teamsTileRating(
+        player("g", { guest: true, balanceStrength: 1200 }),
+        "tierPoints",
+        "en",
+      ),
+    ).toMatchObject({ kind: "rated", value: "1,200" });
+  });
+
+  it("counts a side's players not rated yet", () => {
+    expect(
+      notRatedCount(
+        [
+          player("a", { tier: ranked }),
+          player("b", { tier: { ...ranked, provisional: true } }),
+          player("c", { tier: null }),
+          player("g", { guest: true }),
+        ],
+        "tierPoints",
+      ),
+    ).toBe(2);
   });
 });

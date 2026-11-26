@@ -757,6 +757,71 @@ export function keeperWord(
   return messagesFor(locale).football.board.keeperCount(keepersIn(players));
 }
 
+/**
+ * Not rated yet on Make teams: still Provisional in a tier Group, or without
+ * a football Rating elsewhere. A Guest stands in at the others' Level and is
+ * never rated, so never reads New.
+ */
+export function notRatedYet(
+  player: Pick<BoardPlayer, "tier" | "ovr" | "guest">,
+  balanceOn: FootballBalanceOn,
+) {
+  if (player.guest) {
+    return false;
+  }
+  return balanceOn === "tierPoints"
+    ? (player.tier?.provisional ?? true)
+    : player.ovr == null;
+}
+
+export function notRatedCount(
+  players: readonly Pick<BoardPlayer, "tier" | "ovr" | "guest">[],
+  balanceOn: FootballBalanceOn,
+) {
+  return players.filter((player) => notRatedYet(player, balanceOn)).length;
+}
+
+export type TeamsTileRating = {
+  kind: "rated" | "new";
+  value: string;
+  spoken: string;
+};
+
+/**
+ * The number on a Make teams tile: what the side averages are taken over, in
+ * the same numerals, so "avg 1,224 points" is the mean of the tiles under it.
+ * New, with the hatched box, while the player is not rated yet.
+ */
+export function teamsTileRating(
+  player: Pick<BoardPlayer, "tier" | "ovr" | "guest" | "balanceStrength">,
+  balanceOn: FootballBalanceOn,
+  locale: Locale,
+): TeamsTileRating {
+  const m = messagesFor(locale);
+  if (notRatedYet(player, balanceOn)) {
+    return {
+      kind: "new",
+      value: m.football.board.tileNew,
+      spoken: m.football.board.tileNewSpoken,
+    };
+  }
+  const strength = player.balanceStrength ?? null;
+  if (strength == null) {
+    const value = ovrLabel(player);
+    return { kind: "rated", value, spoken: ovrSpoken(player, locale) ?? value };
+  }
+  if (balanceOn === "ovr") {
+    const value = formatOvr(strength);
+    return { kind: "rated", value, spoken: m.level.ovr(value) };
+  }
+  const value = formatTierPoints(strength);
+  return {
+    kind: "rated",
+    value,
+    spoken: m.rating.tier.points(value, tierPointsCount(strength)),
+  };
+}
+
 export type ScoreDraft = {
   slot1: number;
   slot2: number;

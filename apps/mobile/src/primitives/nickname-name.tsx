@@ -18,6 +18,7 @@ export function NicknameName({
   tone,
   iconSize = sizes.iconRow - 2,
   color,
+  numberOfLines = 1,
   style,
 }: {
   name: string;
@@ -28,6 +29,8 @@ export function NicknameName({
   iconSize?: number;
   /** For a row that sets its own ink, such as a bib-coloured team row. */
   color?: string;
+  /** 0 lets a full name wrap instead of cutting it with dots. */
+  numberOfLines?: number;
   style?: StyleProp<ViewStyle>;
 }) {
   const palette = useTonePalette();
@@ -56,7 +59,7 @@ export function NicknameName({
         size={size}
         weight={weight}
         tone={tone}
-        numberOfLines={1}
+        numberOfLines={numberOfLines}
         style={{ flexShrink: 1, color }}
       >
         {name}

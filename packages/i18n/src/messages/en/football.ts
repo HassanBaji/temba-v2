@@ -84,6 +84,10 @@ export const football = {
     ) => `Everyone placed. ${team1} avg ${average1}, ${team2} avg ${average2}.`,
     keeperCount: (n: number) =>
       plural("en", n, { one: "1 keeper", other: "{n} keepers" }),
+    notRatedCount: (n: number) =>
+      plural("en", n, { one: "1 not rated", other: "{n} not rated" }),
+    tileNew: "New",
+    tileNewSpoken: "New, not rated yet",
     goalsNote:
       "Goals count toward player form, not rating. Skip if nobody kept track.",
     goalsNamed: (
