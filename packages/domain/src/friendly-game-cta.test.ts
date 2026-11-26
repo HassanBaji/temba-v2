@@ -301,16 +301,35 @@ describe("friendlyGameShareLink", () => {
     assert.equal(friendlyGameShareLink(base), "game_page");
   });
 
-  it("shares nothing once the Game is cancelled or played", () => {
+  it("shares nothing once the Game is cancelled or final", () => {
     assert.equal(
       friendlyGameShareLink({ ...base, cancelled: true, phase: "upcoming" }),
       null,
     );
     assert.equal(
-      friendlyGameShareLink({ ...base, phase: "needs_results" }),
+      friendlyGameShareLink({
+        ...base,
+        cancelled: true,
+        phase: "needs_results",
+      }),
       null,
     );
     assert.equal(friendlyGameShareLink({ ...base, phase: "final" }), null);
+  });
+
+  it("shares a played Game with no score as played, not as an invite", () => {
+    assert.equal(
+      friendlyGameShareLink({ ...base, phase: "needs_results" }),
+      "played",
+    );
+    assert.equal(
+      friendlyGameShareLink({
+        ...base,
+        canMintInvite: true,
+        phase: "needs_results",
+      }),
+      "played",
+    );
   });
 
   it("shares the result of a played Game whose score awaits confirmation", () => {

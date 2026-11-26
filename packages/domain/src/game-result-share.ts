@@ -399,6 +399,51 @@ export function formatFootballResultShareMessage(
   return lines.join("\n");
 }
 
+/**
+ * The message for a played Game with no score entered yet: there is no result
+ * to put on a card, so it names who played, says the score is still to come
+ * and links the Game page.
+ */
+export function playedGameShareMessage(
+  game: ResultShareGame,
+  url: string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).game.share;
+  const football = isFootballRosterGame(game);
+  const lines = [football ? m.footballPlayed : m.padelPlayed];
+  if (!football) {
+    const { a, b } = padelSidesInOrder(game.sides, game.viewerUserId);
+    if (a && b) {
+      lines.push(
+        m.versus(
+          padelPairLine(a, game.viewerUserId, locale, "first"),
+          padelPairLine(b, game.viewerUserId, locale, "first"),
+        ),
+      );
+    }
+  }
+  lines.push(m.noScoreLine);
+  const venue = cardVenue(
+    {
+      ...game,
+      courtName: football
+        ? (game.recordedCourts[0]?.name ?? null)
+        : (game.matches[0]?.courtName ?? null),
+    },
+    locale,
+  );
+  if (venue) {
+    lines.push(`📍 ${venue}`);
+  }
+  const { when } = cardWhen(game.windowStart, locale);
+  if (when) {
+    lines.push(`📅 ${when}`);
+  }
+  lines.push(`🔗 ${url}`);
+  return lines.join("\n");
+}
+
 export function formatResultShareMessage(
   card: ResultCard,
   url: string,
