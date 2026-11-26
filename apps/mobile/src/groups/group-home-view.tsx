@@ -14,7 +14,6 @@ import {
 import {
   groupLeaveVenueActionLabel,
   groupLinkRequestBannerText,
-  groupPartOfVenueLine,
 } from "@repo/domain/group-link-request";
 import { groupMemberRowsLink } from "@repo/domain/player-profile";
 import { groupDisplayName, type GroupJoinDoor } from "@repo/domain/group-join";
@@ -184,12 +183,6 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           </View>
         </View>
       </ScreenHeader>
-
-      {data.venue ? (
-        <Text size="meta" tone="muted">
-          {groupPartOfVenueLine(data.venue.name, locale)}
-        </Text>
-      ) : null}
 
       {data.canUnlinkFromVenue && data.venue ? (
         <View style={{ flexDirection: "row" }}>
