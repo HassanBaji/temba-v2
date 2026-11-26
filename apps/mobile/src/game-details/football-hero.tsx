@@ -12,6 +12,10 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import {
+  SeriesHeadingLine,
+  type SeriesHeroLineSeries,
+} from "../series/series-hero-line";
 import { ChallengeTag } from "./challenge-tag";
 import { HeroTopLine } from "./hero-top-line";
 
@@ -65,12 +69,14 @@ export function FootballHero({
   tone,
   lines,
   tag,
+  series,
   genderTag,
   actions,
   children,
 }: {
   tone: SurfaceTone;
   lines: ReturnType<typeof footballHeroLines>;
+  series?: SeriesHeroLineSeries | null;
   /** "Challenge" on a Challenge Game: beside share, its format moved to the sub line. */
   tag?: string;
   genderTag?: string | null;
@@ -156,6 +162,7 @@ export function FootballHero({
                 </Text>
               ) : null}
             </View>
+            <SeriesHeadingLine series={series} />
           </View>
         </View>
         {children}

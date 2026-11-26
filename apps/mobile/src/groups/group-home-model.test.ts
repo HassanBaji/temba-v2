@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   groupHomeHeader,
+  groupHomeTabs,
   groupJoinCta,
   memberIsRemovable,
   memberList,
@@ -23,6 +24,23 @@ describe("groupHomeHeader", () => {
         "https://api.example.com/api/media/group-images/group-bromma/image?v=1",
       meta: "Padel, 4 members, since Jan",
     });
+  });
+});
+
+describe("groupHomeTabs", () => {
+  it("adds Series as the fourth tab on a Verified Group", () => {
+    expect(groupHomeTabs("series", true)).toEqual({
+      tabs: ["standing", "games", "members", "series"],
+      shown: "series",
+    });
+  });
+
+  it("has no Series tab elsewhere and shows Standing when it is asked for", () => {
+    expect(groupHomeTabs("series", false)).toEqual({
+      tabs: ["standing", "games", "members"],
+      shown: "standing",
+    });
+    expect(groupHomeTabs("members", false).shown).toBe("members");
   });
 });
 

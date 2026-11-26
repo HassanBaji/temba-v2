@@ -238,11 +238,15 @@ export function GroupHomeScreen({ groupId }: { groupId: string }) {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([group.refetch(), admin.refetchRequests()]);
+      await Promise.all([
+        group.refetch(),
+        admin.refetchRequests(),
+        utils.series.listForGroup.invalidate({ groupId }),
+      ]);
     } finally {
       setRefreshing(false);
     }
-  }, [group, admin]);
+  }, [group, admin, utils, groupId]);
 
   const openSetLevelScreen = useCallback(
     (userId: string) => router.push(setLevelPath(groupId, userId)),

@@ -17,6 +17,11 @@ import { Card } from "../home/card";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Hairline } from "../primitives/hairline";
 import { Text } from "../primitives/text";
+import { SeriesGameCard } from "../series/series-game-card";
+import {
+  SeriesHeadingLine,
+  type WithGameSeries,
+} from "../series/series-hero-line";
 import { useColors } from "../theme/theme-provider";
 
 const ICON = 16;
@@ -68,7 +73,11 @@ function Row({ children }: { children: React.ReactNode }) {
  * the viewer starts, and every starting court. Read only: the Organizer
  * draws the courts and posts the order on the web for now (ADR-0087).
  */
-export function KingView({ game }: { game: TournamentDetails }) {
+export function KingView({
+  game,
+}: {
+  game: TournamentDetails & WithGameSeries;
+}) {
   const locale = useLocale();
   const colors = useColors();
   const messages = useMessages();
@@ -102,7 +111,9 @@ export function KingView({ game }: { game: TournamentDetails }) {
         <Text size="meta" tone="muted">
           {finished ? finished.summary : m.lead.courts}
         </Text>
+        <SeriesHeadingLine series={game.series} finished={Boolean(finished)} />
       </View>
+      {game.series ? <SeriesGameCard gameId={game.id} game="social" /> : null}
 
       {finished ? (
         <View style={{ gap: 8 }}>

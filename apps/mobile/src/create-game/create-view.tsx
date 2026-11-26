@@ -28,6 +28,7 @@ import {
   FootballDetailsStep,
   GameDetailsStep,
   TournamentDetailsStep,
+  type CreateSeries,
 } from "./details-step";
 import { StepFooter, StepShell } from "./step-shell";
 import { TypeStep } from "./type-step";
@@ -42,6 +43,7 @@ export type CreateViewProps = {
   formMessage: string | null;
   groups: Slot<CreateGroupOption[]>;
   picker: Slot<CreateVenuePicker> | null;
+  series: CreateSeries;
   pending: boolean;
   dispatch: (action: CreateAction) => void;
   onBack: () => void;
@@ -264,6 +266,7 @@ export function CreateView(props: CreateViewProps) {
             groupName={groupName}
             groupVerified={groupVerified}
             picker={pickerData}
+            series={props.series}
           />
         ) : state.sport === "football" ? (
           <FootballDetailsStep
@@ -271,6 +274,7 @@ export function CreateView(props: CreateViewProps) {
             groupName={groupName}
             groupVerified={groupVerified}
             picker={pickerData}
+            series={props.series}
           />
         ) : (
           <GameDetailsStep
@@ -278,6 +282,7 @@ export function CreateView(props: CreateViewProps) {
             groupName={groupName}
             groupVerified={groupVerified}
             picker={pickerData}
+            series={props.series}
           />
         )
       ) : null}

@@ -4,15 +4,16 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 import { MarkCoin } from "~/components/marks/mark-coin";
-import type { LatestMark } from "@repo/domain/home-latest";
+import { SeriesBadge } from "~/components/series/series-badge";
+import type { Latest } from "@repo/domain/home-latest";
 
-/** The newest thing that happened to the User; it opens Latest on the profile. */
+/** The newest thing that happened to the User: a Mark opens Latest on the profile, a Series win its Game. */
 export function LatestRow({
   latest,
   href,
   onOpen,
 }: {
-  latest: LatestMark;
+  latest: Latest;
   href: string;
   onOpen: () => void;
 }) {
@@ -22,7 +23,15 @@ export function LatestRow({
       onClick={onOpen}
       className="border-rule bg-paper hover:bg-wash focus-visible:ring-ring/50 rounded-card flex min-h-[60px] items-center gap-3 border px-4 py-3 outline-none transition-colors focus-visible:ring-[3px]"
     >
-      <MarkCoin kind={latest.kind} size="cabinet" />
+      {latest.type === "series" ? (
+        <SeriesBadge
+          emblem={latest.emblem}
+          colour={latest.colour}
+          size="latest"
+        />
+      ) : (
+        <MarkCoin kind={latest.kind} size="cabinet" />
+      )}
       <span className="min-w-0 flex-1">
         <span className="block truncate font-semibold">{latest.title}</span>
         <span className="text-eyebrow text-muted-foreground block truncate">

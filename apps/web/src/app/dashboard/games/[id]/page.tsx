@@ -71,6 +71,9 @@ import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { useGameEdit } from "~/components/games/use-game-edit";
+import { useGameEditSeries } from "~/components/games/use-game-edit-series";
+import { SeriesFactRows } from "~/components/series/series-fact-rows";
+import { SeriesGameCard } from "~/components/series/series-game-card";
 import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import {
@@ -403,6 +406,7 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(m.tournamentKing.finalOrder.posted);
       await utils.games.byId.invalidate({ id });
+      await utils.series.edition.invalidate({ gameId: id });
       await utils.games.listMyGames.invalidate();
       await utils.games.listMyMatchHistory.invalidate();
       await utils.users.home.invalidate();
@@ -480,6 +484,7 @@ export default function GameHomePage({
 
   async function refreshGame() {
     await utils.games.byId.invalidate({ id });
+    await utils.series.edition.invalidate({ gameId: id });
     await utils.users.home.invalidate();
     await utils.games.listPublicPickup.invalidate();
     await utils.games.listMyGames.invalidate();
@@ -663,6 +668,7 @@ export default function GameHomePage({
   }
 
   const data = game.data;
+  const editSeries = useGameEditSeries(data);
   const editSections = gameEditSectionsFor({
     format: data?.format ?? "friendly_game",
     sport: data?.sport,
@@ -673,6 +679,7 @@ export default function GameHomePage({
     drawPosted: data?.drawPostedAt != null,
     americano: isAmericano(data?.format, data?.tournamentShape),
     king: isKingOfTheCourt(data?.format, data?.tournamentShape),
+    series: editSeries.shown,
   });
   const edit = useGameEdit({
     gameId: id,
@@ -1338,13 +1345,19 @@ export default function GameHomePage({
             <>
               <h1 className="sr-only">{g.friendlyGameHeading}</h1>
               {heroInput && !playedMatch ? (
-                <FriendlyGameDetailsHero
-                  input={heroInput}
-                  place={heroPlace}
-                  figures={heroFigures}
-                  genderTag={data.genderTag}
-                  actions={heroActions}
-                />
+                <>
+                  <FriendlyGameDetailsHero
+                    input={heroInput}
+                    place={heroPlace}
+                    figures={heroFigures}
+                    series={data.series}
+                    genderTag={data.genderTag}
+                    actions={heroActions}
+                  />
+                  {data.series ? (
+                    <SeriesGameCard gameId={id} game="played" />
+                  ) : null}
+                </>
               ) : playedMatch ? null : (
                 <HeroNavRow tone="paper" actions={gameMenu(false)} />
               )}
@@ -1408,6 +1421,7 @@ export default function GameHomePage({
               gameId={id}
               game={data}
               match={playedMatch}
+              series={data.series}
               linkToPlayers={gamePlayersLink(data)}
               onKick={(userId) => requestKick({ userId })}
               onRename={data.isOrganizer ? setRenaming : undefined}
@@ -1443,6 +1457,7 @@ export default function GameHomePage({
                   publicGame={isPublicGame(data)}
                 />
               )}
+              <SeriesFactRows series={data.series} />
               <GameLineupSection
                 sides={data.sides}
                 viewerUserId={data.viewerUserId}
@@ -1682,6 +1697,7 @@ export default function GameHomePage({
                   : null,
               seasons: data.groupSeasons,
               canChangeSeason: data.canChangeSeason,
+              series: editSeries.context,
               rounds: roundsPlan
                 ? {
                     poolSizes: roundsPlan.poolSizes,

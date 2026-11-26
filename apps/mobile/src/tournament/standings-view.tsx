@@ -26,6 +26,15 @@ import { ResultMark } from "../primitives/result-mark";
 import { useTonePalette } from "../primitives/surface-context";
 import { ScoreLine } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
+import { SeriesBadge } from "../series/series-badge";
+import type { SeriesTableBadges } from "../series/series-edition-card-model";
+import { SeriesGameCard } from "../series/series-game-card";
+import {
+  SeriesHeadingLine,
+  type SeriesHeroLineSeries,
+  type WithGameSeries,
+} from "../series/series-hero-line";
+import { useSeriesTableBadges } from "../series/use-series-table-badges";
 import {
   GameTeamSheet,
   type GameTeamLinks,
@@ -64,10 +73,12 @@ function RecordTable({
   rows,
   finished,
   links,
+  seriesBadges,
 }: {
   rows: Pool["rows"];
   finished: boolean;
   links?: GameTeamLinks;
+  seriesBadges: SeriesTableBadges | null;
 }) {
   const messages = useMessages();
   const m = messages.mobileTournament.standings;
@@ -160,6 +171,13 @@ function RecordTable({
                 </View>
               ) : null}
             </View>
+            {seriesBadges?.gameTeamIds.has(row.gameTeamId) ? (
+              <SeriesBadge
+                emblem={seriesBadges.emblem}
+                colour={seriesBadges.colour}
+                size="line"
+              />
+            ) : null}
             {stats.map((value, index) => (
               <Text
                 key={heads[index]}
@@ -352,9 +370,11 @@ function RoundResults({
 function PoolTablesSection({
   poolTables,
   links,
+  seriesBadges,
 }: {
   poolTables: PoolTables;
   links?: GameTeamLinks;
+  seriesBadges: SeriesTableBadges | null;
 }) {
   const locale = useLocale();
   const messages = useMessages();
@@ -389,7 +409,19 @@ function PoolTablesSection({
           />
         ))}
       </View>
-      <RecordTable rows={pool.rows} finished={pool.finished} links={links} />
+      <View style={{ gap: 8 }}>
+        <RecordTable
+          rows={pool.rows}
+          finished={pool.finished}
+          links={links}
+          seriesBadges={seriesBadges}
+        />
+        {seriesBadges ? (
+          <Text size="meta" tone="muted">
+            {seriesBadges.note}
+          </Text>
+        ) : null}
+      </View>
       <ViewerRounds rounds={viewerRounds} />
       <RoundResults
         matches={pool.matches}
@@ -406,8 +438,10 @@ function PoolTablesSection({
 
 export function StandingsHeader({
   standings,
+  series,
 }: {
   standings: TournamentStandingsView;
+  series?: SeriesHeroLineSeries | null;
 }) {
   const messages = useMessages();
   return (
@@ -449,6 +483,7 @@ export function StandingsHeader({
           </Text>
         </View>
       ) : null}
+      <SeriesHeadingLine series={series} finished={standings.finished} />
     </View>
   );
 }
@@ -460,7 +495,7 @@ export function StandingsView({
   onOpenPlayer,
   playerOpensActions,
 }: {
-  game: TournamentDetails;
+  game: TournamentDetails & WithGameSeries;
   standings: TournamentStandingsView;
   onCancelMatch?: ComponentProps<typeof KnockoutTree>["onCancelMatch"];
   onOpenPlayer?: (userId: string) => void;
@@ -469,12 +504,14 @@ export function StandingsView({
   const messages = useMessages();
   const { poolTables, knockout } = game;
   const [openTeam, setOpenTeam] = useState<GameTeamSheetTeam | null>(null);
+  const seriesBadges = useSeriesTableBadges(game.id, game.series != null);
   const links = onOpenPlayer
     ? { gameTeams: game.gameTeams, onOpenTeam: setOpenTeam }
     : undefined;
   return (
     <View style={{ gap: 24 }}>
-      <StandingsHeader standings={standings} />
+      <StandingsHeader standings={standings} series={game.series} />
+      {game.series ? <SeriesGameCard gameId={game.id} game="social" /> : null}
       {standings.showKnockoutTree && knockout ? (
         <KnockoutTree
           rounds={knockout}
@@ -483,7 +520,11 @@ export function StandingsView({
         />
       ) : null}
       {standings.showPoolTables && poolTables ? (
-        <PoolTablesSection poolTables={poolTables} links={links} />
+        <PoolTablesSection
+          poolTables={poolTables}
+          links={links}
+          seriesBadges={seriesBadges}
+        />
       ) : null}
       {standings.knockoutSectionTitle && knockout ? (
         <View style={{ gap: 12 }}>

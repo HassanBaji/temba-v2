@@ -18,6 +18,7 @@ import { cabinetRowModel } from "../marks/cabinet-model";
 import { CabinetRow } from "../marks/cabinet-row";
 import { playerMarksPath, playerPath } from "../player-profile/player-path";
 import { Screen } from "../primitives/screen";
+import { ProfileSeriesCard } from "../series/profile-series-card";
 import { api } from "../trpc/react";
 import { FootballTab } from "./football-tab";
 import { LevelHero } from "./level-hero";
@@ -160,6 +161,10 @@ export function ProfileScreen() {
     { userId: details.data?.id ?? "" },
     { ...REFETCH_ON_FOREGROUND, enabled: sport !== null && !!details.data },
   );
+  const seriesWins = api.series.forPlayer.useQuery(
+    { userId: details.data?.id ?? "" },
+    { ...REFETCH_ON_FOREGROUND, enabled: !!details.data },
+  );
   const toStamp = api.games.listMatchesToStamp.useQuery(
     undefined,
     REFETCH_ON_FOREGROUND,
@@ -174,6 +179,7 @@ export function ProfileScreen() {
         sport === "football" ? football.refetch() : null,
         sport === "football" ? teammates.refetch() : null,
         sport ? cabinet.refetch() : null,
+        details.data ? seriesWins.refetch() : null,
         toStamp.refetch(),
         user?.reload(),
       ]),
@@ -185,6 +191,7 @@ export function ProfileScreen() {
       football,
       teammates,
       cabinet,
+      seriesWins,
       toStamp,
       user,
     ],
@@ -227,6 +234,9 @@ export function ProfileScreen() {
         onOpenGame={(gameId) => open(gamePath(gameId))}
       />
       <MyNotesRow onOpen={() => open("/profile/notes")} />
+      {details.data ? (
+        <ProfileSeriesCard userId={details.data.id} data={seriesWins.data} />
+      ) : null}
       <Block
         slot={slotOf(details)}
         title={m.common.profile}

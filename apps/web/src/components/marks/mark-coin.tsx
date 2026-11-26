@@ -27,7 +27,7 @@ const THEME_GREYS: CoinGreys = {
   focus: "var(--color-focus)",
 };
 
-function CoinShape({
+export function CoinShape({
   element,
   colour,
 }: {

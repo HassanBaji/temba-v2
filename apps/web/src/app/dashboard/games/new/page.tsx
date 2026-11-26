@@ -19,6 +19,8 @@ import { ErrorState } from "~/components/common/error-state";
 import { DashboardShell } from "~/components/dashboard-shell";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { PageTitle } from "~/components/layout/page-title";
+import { seriesAttachPick } from "~/components/series/series-field";
+import { useSeriesAttachOptions } from "~/components/series/use-series-attach-options";
 import { Button } from "~/components/ui/button";
 import { FormErrorSummary } from "~/components/ui/form-error-summary";
 import {
@@ -179,6 +181,7 @@ function NewGameForm() {
   const [trackPayments, setTrackPayments] = React.useState(false);
   const [keepersPlayFree, setKeepersPlayFree] = React.useState(true);
   const [mvpMode, setMvpMode] = React.useState<MvpMode>("vote");
+  const [seriesId, setSeriesId] = React.useState<string | null>(null);
   const [genderTag, setGenderTag] = React.useState<GameGenderTag | null>(null);
   const [errors, setErrors] = React.useState<
     Record<string, string | undefined>
@@ -264,6 +267,26 @@ function NewGameForm() {
   });
   const displayedStep = Math.max(resolvedStep, firstStep) as CreateFlowStep;
   const groupVerified = selectedGroup?.verified ?? false;
+  const seriesWhen = validateFriendlyGameWhen(
+    day,
+    startTime,
+    finishTime,
+    locale,
+    session.now,
+  );
+  const seriesAttach = useSeriesAttachOptions({
+    groupId: selectedGroupId,
+    windowStart: seriesWhen.ok ? seriesWhen.windowStart : null,
+    enabled: groupVerified && !publicGame,
+  });
+  const pickedSeries = seriesAttachPick(seriesAttach.options, seriesId);
+  const seriesInput = pickedSeries ? { seriesId: pickedSeries.id } : {};
+
+  React.useEffect(() => {
+    if (seriesAttach.loaded && seriesId && !pickedSeries) {
+      setSeriesId(null);
+    }
+  }, [pickedSeries, seriesAttach.loaded, seriesId]);
   const venuesWanted = Boolean(selectedGroupId) || publicGame;
   const picker = api.games.listCreateVenues.useQuery(
     publicGame ? { publicGame: true, sport } : { groupId: selectedGroupId },
@@ -393,6 +416,9 @@ function NewGameForm() {
       if (selectedGroupId) {
         await utils.groups.byId.invalidate({ id: selectedGroupId });
       }
+      if (pickedSeries) {
+        await utils.series.invalidate();
+      }
       router.push(`/dashboard/games/${game.id}`);
     },
     onError: (error) => {
@@ -408,6 +434,9 @@ function NewGameForm() {
       await utils.games.listMyGames.invalidate();
       if (selectedGroupId) {
         await utils.groups.byId.invalidate({ id: selectedGroupId });
+      }
+      if (pickedSeries) {
+        await utils.series.invalidate();
       }
       router.push(`/dashboard/games/${game.id}`);
     },
@@ -461,6 +490,9 @@ function NewGameForm() {
 
   function onCreateError(error: FormFailure) {
     toastGlobalFormError(error);
+    if (pickedSeries) {
+      void seriesAttach.refetch();
+    }
     const firstField = Object.keys(splitTrpcFormError(error).fieldErrors)[0];
     if (!firstField) {
       summaryRef.current?.focus();
@@ -682,7 +714,7 @@ function NewGameForm() {
       reportSubmitIssue(result);
       return;
     }
-    createTournament.mutate(result.input);
+    createTournament.mutate({ ...result.input, ...seriesInput });
   }
 
   function onCreate() {
@@ -730,7 +762,7 @@ function NewGameForm() {
         reportSubmitIssue(footballResult);
         return;
       }
-      createGame.mutate({ ...footballResult.input, mvpMode });
+      createGame.mutate({ ...footballResult.input, mvpMode, ...seriesInput });
       return;
     }
     const result = validateFriendlyGameSubmit(
@@ -757,7 +789,7 @@ function NewGameForm() {
       reportSubmitIssue(result);
       return;
     }
-    createGame.mutate({ ...result.input, mvpMode });
+    createGame.mutate({ ...result.input, mvpMode, ...seriesInput });
   }
 
   const cancelHref = selectedGroupId
@@ -849,6 +881,18 @@ function NewGameForm() {
     : publicGame
       ? m.rating.publicGame.label
       : m.invite.kind.group;
+  const seriesChoice =
+    seriesAttach.options.length > 0
+      ? {
+          options: seriesAttach.options,
+          value: pickedSeries?.id ?? null,
+          onChange: setSeriesId,
+          groupName: reviewGroupName,
+        }
+      : null;
+  const seriesReview = pickedSeries
+    ? m.series.attach.review(pickedSeries.name, pickedSeries.edition)
+    : null;
 
   if (createGroups.isLoading || !draftRestored) {
     return (
@@ -1079,6 +1123,7 @@ function NewGameForm() {
               groupError={groupError}
               onGroupId={(groupId) => {
                 applyDraft(changeCreateGroup(createDraft, groupId));
+                setSeriesId(null);
                 setGroupFieldError(undefined);
                 clearField("groupId");
               }}
@@ -1243,6 +1288,8 @@ function NewGameForm() {
               groupVerified={groupVerified}
               rated={rated}
               onRated={setRated}
+              series={seriesChoice}
+              seriesReview={seriesReview}
             />
           ) : (
             <FriendlyGameSteps
@@ -1283,6 +1330,7 @@ function NewGameForm() {
               groupError={groupError}
               onGroupId={(groupId) => {
                 applyDraft(changeCreateGroup(createDraft, groupId));
+                setSeriesId(null);
                 setGroupFieldError(undefined);
                 clearField("groupId");
               }}
@@ -1299,6 +1347,7 @@ function NewGameForm() {
                       },
                       onSelect: () => {
                         applyDraft(choosePublicGame(createDraft));
+                        setSeriesId(null);
                         setGroupFieldError(undefined);
                         clearField("groupId");
                         if (typeParam !== "friendly_game") {
@@ -1401,6 +1450,8 @@ function NewGameForm() {
               onRated={setRated}
               mvpMode={mvpMode}
               onMvpMode={setMvpMode}
+              series={seriesChoice}
+              seriesReview={seriesReview}
               genderTag={genderTag}
               onGenderTag={setGenderTag}
               reviewVenue={

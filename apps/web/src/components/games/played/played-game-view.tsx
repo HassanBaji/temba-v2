@@ -26,6 +26,8 @@ export type PlayedGameViewProps = {
   board: React.ReactNode;
   /** The MVP row, last in the hero. */
   heroFooter?: React.ReactNode;
+  /** The Series card, directly under the hero. */
+  seriesCard?: React.ReactNode;
   /** A task that closes soon, such as Rate the game, first under the hero. */
   task?: React.ReactNode;
   /** The marks rows, between the columns and the facts. */
@@ -47,6 +49,7 @@ export function PlayedGameView({
   menu,
   board,
   heroFooter,
+  seriesCard,
   task,
   marks,
   album,
@@ -81,6 +84,7 @@ export function PlayedGameView({
       >
         {board}
       </PlayedHero>
+      {seriesCard}
       {task}
       <PlayedColumns
         columns={columns}

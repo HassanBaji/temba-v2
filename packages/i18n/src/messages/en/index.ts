@@ -56,6 +56,7 @@ import { editTeams } from "./edit-teams";
 import { gamePayments } from "./game-payments";
 import { liveBoard } from "./live-board";
 import { aloneTeams } from "./alone-teams";
+import { series } from "./series";
 
 export const en = {
   common,
@@ -116,4 +117,5 @@ export const en = {
   gamePayments,
   liveBoard,
   aloneTeams,
+  series,
 };

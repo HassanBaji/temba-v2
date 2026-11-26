@@ -92,7 +92,7 @@ A set of people who play Games of one sport. Every Group is either a Club Group 
 _Avoid_: Team, lobby, channel, club (when you mean a Group)
 
 **Verified Group**:
-A Group that may host Rated Games and public Games: one an Operator verified, or a Club Group. A new Group is never Verified at create, whoever creates it (ADR-0088). Every other Group's new Games are private. A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; a Club Group's verification is derived from its Venue link, not stored.
+A Group that may host Rated Games and public Games, and run Series: one an Operator verified, or a Club Group. A new Group is never Verified at create, whoever creates it (ADR-0088). Every other Group's new Games are private. A Game keeps the rated and public values it was created with, whatever later happens to its Group. Stored as `groups.verified_at`; a Club Group's verification is derived from its Venue link, not stored.
 _Avoid_: ranked Group, official Group, premium Group, permitted Group, groupCreator (that is a Clerk key)
 
 **Club Group**:
@@ -136,7 +136,7 @@ A Group join request a Group approver rejected with "Reject and block". A blocke
 _Avoid_: ban (when you mean this Group-level refusal)
 
 **Group approver**:
-Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, make or unmake Appointed Organizers and, on a tier Group, make a Tier adjustment for any member, themselves included, and change the Rating settings: the Group creator and Appointed Organizers, on a Loose Group and a Club Group alike. Removing a player never removes the Group creator; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. A Group approver also sees every member's full phone number, in the member menu on the Members tab and in the player dialog on the Group's Games, with doors to call them or message them on WhatsApp, and no one else in the Group does (ADR-0078, ADR-0087).
+Who may set Require approval, decide Group join requests, add players by phone, remove players, change the Group image, create and end Series on a Verified Group, make or unmake Appointed Organizers and, on a tier Group, make a Tier adjustment for any member, themselves included, and change the Rating settings: the Group creator and Appointed Organizers, on a Loose Group and a Club Group alike. Removing a player never removes the Group creator; the removed player's Games stay in history. Adding by phone sends a User with an account a Lookup invite; any other number becomes or reuses an Unclaimed player who joins at once. A Group approver also sees every member's full phone number, in the member menu on the Members tab and in the player dialog on the Group's Games, with doors to call them or message them on WhatsApp, and no one else in the Group does (ADR-0078, ADR-0087).
 _Avoid_: organizer (when you mean this write permission), group admin, Group owner (when you mean this permission rather than the one User who owns the Group)
 
 **Member nickname**:
@@ -387,7 +387,7 @@ One of the two halves an Organizer splits a football Game's roster into, by Leve
 _Avoid_: Team (the persistent roster), squad (in copy too: say team)
 
 **Bib**:
-The colour a Football side wears: black, white, red, dark blue, light blue, green, yellow, orange, purple, pink or grey. The two sides never share one. One of the two places colour appears in the product; the other is a Mark coin (ADR-0056).
+The colour a Football side wears: black, white, red, dark blue, light blue, green, yellow, orange, purple, pink or grey. The two sides never share one. One of the three places colour appears in the product; the others are a Mark coin (ADR-0056) and a Series badge (ADR-0106).
 
 **Draft line-up**:
 The two Football sides an Organizer saved without publishing them (ADR-0107): who is on each, the Bib colours and the Side captains. A football Game has at most one, and only until its Football sides are published; publishing it removes it. It may be incomplete. It is no Game team and makes no Match, so nothing that reads a Game's teams sees it. Only the Game's Organizers and the Side captains named on it can see it; every other viewer sees a Game whose teams are not set. A player who leaves the Game leaves it; a player who joins is on neither side until the Organizer places them. Never on a Challenge Game.
@@ -417,7 +417,7 @@ A player named with the goals they scored in a football Match. Optional, and nev
 _Avoid_: format (that is Friendly game, Americano or Friendly tournament), team size, a-side (bare)
 
 **Match log**:
-The lines a football Score is entered as (ADR-0111): each **goal** (its scorer, or nobody saw who), **own goal** (counts for the other side and is not the player's goal), **warning** and **red card**, with the minute of the game and the clock time it was logged. The Score and the Scorers are what the log adds up to. Whoever may enter the Score may add, change or remove any line until it is confirmed; a second warning adds a red card on its own. The other side confirms the Score, the log and the cards together; until then only the players on the two sides and the Organizers see the log, and the finished Game shows it as a timeline to everyone in it. Cards are a record only: no automatic ban, and no effect on rating.
+The lines a football Score is entered as (ADR-0112): each **goal** (its scorer, or nobody saw who), **own goal** (counts for the other side and is not the player's goal), **warning** and **red card**, with the minute of the game and the clock time it was logged. The Score and the Scorers are what the log adds up to. Whoever may enter the Score may add, change or remove any line until it is confirmed; a second warning adds a red card on its own. The other side confirms the Score, the log and the cards together; until then only the players on the two sides and the Organizers see the log, and the finished Game shows it as a timeline to everyone in it. Cards are a record only: no automatic ban, and no effect on rating.
 _Avoid_: event log, timeline (the finished Game's view of it), booking (for a warning), yellow card (product copy says warning)
 
 **Match**:
@@ -446,7 +446,7 @@ _Avoid_: finished game, past game, archived game
 
 **Mark**:
 One of twelve honours a player gives another on a completed Friendly game, during the Marks window: a coin with a name, a description, a Giver group and the sports it applies to. Each giver gives at most three per Game and at most one to any one player, never to themselves, and may take one back while the window is open. Givers are seated account holders; anyone seated receives, Unclaimed players included. A Mark is a Match fact that hangs off both Users' rows. Product copy says mark.
-_Avoid_: badge, trophy, award, honor (bare), ResultMark or form mark (those are the W/L glyphs), sticker
+_Avoid_: badge (that is a Series badge), trophy, award, honor (bare), ResultMark or form mark (those are the W/L glyphs), sticker
 
 **Roast**:
 A Mark that teases rather than praises: Mr Fumble and Sayed Malek. Counts like any Mark on the Game screen. Its receiver may hide every Roast from their Player profile with one setting; hidden Roasts still show to everyone who can open that Game.
@@ -795,6 +795,22 @@ _Avoid_: export (as the feature name), download, report
 **Season**:
 An optional date window the Group owner (or Owner and Admin on a Club Group) sets on a Group, inclusive on both product-timezone days. A Group Game links to at most one Season of its Group, and the Standing for a Season reads the completed Matches of the Games linked to it (ADR-0082); a Game with no Season is a friendly that updates Levels but no Standing. A new Game starts in the open Season that holds its day; an Organizer may link, move or unlink it in Edit game while the Season holds the game day and no score is confirmed. A Season is Upcoming before its first day, Active until its last day, and Closed after it or once closed early, which moves its last day to the closing day; closing re-homes its Games that start after the close, later that day included. Seasons never overlap. A Level is never reset by a Season. The Standing tab opens on the Active Season, else the next one to start, else the latest Closed one, else All-time.
 _Avoid_: league, campaign, term, period (when you mean this entity), reset (a Season does not reset Levels)
+
+**Series**:
+A named run of the same Social or Game that a Verified Group plays again and again, with a Series badge (ADR-0105). A Group approver creates it and ends it; an Organizer attaches it to a Game at create or in Edit game, until the score is in. It belongs to one Group, has that Group's sport, and has no kind of its own: it may be attached to a Social one week and a Friendly game the next. Every Game kind a Group can create carries one; a Game with no Group does not. Running or ended: an ended Series takes no new Game and keeps the Games and the wins it has, and ending one that was never attached removes it. A Group runs at most ten. Shown on the Group's Series tab, in Verified Groups only. Its name and badge are fixed at create.
+_Avoid_: league, tournament, competition, Season (that is a date window on the Standing), cup, event
+
+**Edition**:
+One Game attached to a Series, numbered inside that Series: its place among the Series' Games that are not cancelled, in order of start. Computed, never stored, so a cancelled or detached Game leaves no gap and the numbers after it move up (ADR-0105). An Edition is upcoming, waiting for a result, won, or decided with no winner.
+_Avoid_: round (that is a Round of a Social), week, instalment, episode, Match
+
+**Series badge**:
+The six-sided coin of a Series: one of seven emblems (Cup, Crown, Star, Bolt, Flame, Moon, Ball) in one of six colours (Gold, Red, Blue, Green, Purple, Teal), picked by the Group approver who creates the Series. Never uploaded. One of the three places colour appears in the product (ADR-0106). A player's profile shows one per Series they have won, with the number of wins on it. Product copy says badge.
+_Avoid_: coin (that is a Mark's), Mark, trophy, medal, logo, icon
+
+**Series win**:
+A player being among the winners of an Edition: both players of the winning Game team on a padel Friendly game, everyone on the winning Football side, the Game team on top of each finished Pool table of a Social, the Champion of a Social with a Knockout, the king of a King of the court, the first place of an Americano table. A drawn Match gives the Edition to nobody. Computed from the Game's result, never stored, so it follows a corrected score, a cancelled Match and a changed line-up (ADR-0105). It moves no Level, Tier points or Standing and sends no Notification. Shown on the Player profile to whoever the Marks cabinet shows to, and as Home's Latest for 14 days.
+_Avoid_: award, prize, title, trophy, Mark, Place award (that is King of the court's Level move), Champion (that is the Game team that wins a Final)
 
 **Rating**:
 A User’s sport-keyed skill state (μ, φ, σ). Not shown raw in the App. A padel Rating moves by Glicko-2; a football Rating moves by the OVR step, the sum of its parts in OVR points (only the result part so far), and its φ only carries Provisional, set from the count of counting Matches, so idle time never grows it (ADR-0069). A padel Rating starts at the φ its Declared band sets, φ 350 when there is none; a football one always starts at φ 350 (ADR-0098).

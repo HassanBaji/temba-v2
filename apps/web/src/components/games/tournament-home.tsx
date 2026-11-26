@@ -77,6 +77,10 @@ import {
 } from "~/components/games/tournament-standings-section";
 import { TournamentTeamsSection } from "~/components/games/tournament-teams-section";
 import { TournamentYourRounds } from "~/components/games/tournament-your-rounds";
+import { withSeriesFactRow } from "@repo/domain/series-fact-row";
+import { SeriesGameCard } from "~/components/series/series-game-card";
+import { SeriesWinnersCard } from "~/components/series/series-winners-card";
+import type { WithGameSeries } from "~/components/series/series-hero-line";
 import { Button } from "~/components/ui/button";
 import { Field, FieldLabel } from "~/components/ui/field";
 import {
@@ -122,7 +126,7 @@ type GameDetail = TournamentDetails & {
     count: number;
     cap: number | null;
   } | null;
-};
+} & WithGameSeries;
 
 /** An Alone-only Social whose teams are posted, until the draw (ADR-0096). */
 type AlonePosted = {
@@ -508,6 +512,8 @@ export function TournamentHome({
         ) : drawn ? (
           <TournamentStandingsTree
             gameId={data.id}
+            hasSeries={data.series != null}
+            windowStart={data.windowStart}
             finished={finished}
             album={album}
             standings={tournamentStandingsView(data, locale)}
@@ -535,6 +541,7 @@ export function TournamentHome({
               sizeLine={view.hero.sizeLine}
               statusLine={view.hero.statusLine}
               stats={view.hero.stats}
+              series={data.series}
               viewerUserId={data.viewerUserId}
               left={view.viewerSide?.left ?? null}
               right={view.viewerSide?.right ?? null}
@@ -546,6 +553,9 @@ export function TournamentHome({
               tags={alonePosted ? <HeroPadelTag /> : undefined}
               actions={actionsMenu(true)}
             />
+            {data.series ? (
+              <SeriesGameCard gameId={data.id} game="social" />
+            ) : null}
             <GameTvCardSlot />
             <TournamentPredrawTree
               alonePosted={alonePosted}
@@ -597,7 +607,14 @@ export function TournamentHome({
           </>
         )}
 
-        <TournamentDetailRows rows={view.detailRows} />
+        <TournamentDetailRows
+          rows={withSeriesFactRow(
+            view.detailRows,
+            m.tournament.home.groupRow,
+            data.series,
+            m,
+          )}
+        />
         {finished || king ? null : (
           <p className="text-muted-foreground text-meta leading-relaxed">
             {m.tournament.home.closingLine}
@@ -879,6 +896,8 @@ function AlonePostedNotes({ posted }: { posted: AlonePosted }) {
 
 function TournamentStandingsTree({
   gameId,
+  hasSeries,
+  windowStart,
   finished,
   album,
   standings,
@@ -895,6 +914,8 @@ function TournamentStandingsTree({
   actions,
 }: {
   gameId: string;
+  hasSeries: boolean;
+  windowStart: GameDetail["windowStart"];
   finished: TournamentFinishedView | null;
   album: ReactNode;
   standings: TournamentStandingsView;
@@ -921,6 +942,11 @@ function TournamentStandingsTree({
             backHref={backHref}
             chip={null}
             actions={actions}
+            lead={
+              hasSeries ? (
+                <SeriesWinnersCard gameId={gameId} windowStart={windowStart} />
+              ) : null
+            }
           />
         ) : (
           <TournamentStandingsHeader
@@ -934,6 +960,9 @@ function TournamentStandingsTree({
             championLine={standings.championLine}
           />
         )}
+        {hasSeries ? (
+          <SeriesGameCard gameId={gameId} game="social" className="mt-[18px]" />
+        ) : null}
         <GameTvCardSlot className="pt-[18px]" />
         {standings.showKnockoutTree && knockout ? (
           <div className="pt-[18px]">

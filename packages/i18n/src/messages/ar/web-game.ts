@@ -209,6 +209,7 @@ export const webGame = {
       genderTag: "الفئة",
       rounds: "الجولات",
       season: "الموسم",
+      series: "السلسلة",
       mvp: "نجم المباراة",
       teams: "الفرق",
       courts: "الملاعب",

@@ -32,6 +32,11 @@ export function groupMembersPath(groupId: string) {
   return `/groups/${groupId}?tab=members`;
 }
 
+/** Group home opened on its Series tab. */
+export function groupSeriesTabPath(groupId: string) {
+  return `/groups/${groupId}?tab=series`;
+}
+
 export function groupSeasonsPath(groupId: string) {
   return { pathname: "/groups/seasons", params: { groupId } } as const;
 }
@@ -54,6 +59,10 @@ export function groupRatingSettingsPath(groupId: string) {
 
 export function groupNewSeasonPath(groupId: string) {
   return { pathname: "/groups/new-season", params: { groupId } } as const;
+}
+
+export function groupNewSeriesPath(groupId: string) {
+  return { pathname: "/groups/new-series", params: { groupId } } as const;
 }
 
 export type GroupRowView = {

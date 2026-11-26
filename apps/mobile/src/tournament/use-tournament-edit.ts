@@ -9,6 +9,7 @@ import { useState } from "react";
 
 import type { GameEditContext } from "../game-details/game-edit-sheet";
 import { useGameEdit } from "../game-details/use-game-edit";
+import { useGameEditSeries } from "../game-details/use-game-edit-series";
 import type { RouterOutputs } from "../trpc/react";
 
 type TournamentGame = RouterOutputs["games"]["byId"];
@@ -41,6 +42,7 @@ export function useTournamentEdit({
   refresh: () => Promise<unknown>;
 }) {
   const [open, setOpen] = useState(false);
+  const editSeries = useGameEditSeries(game);
   const sections = {
     ...gameEditSectionsFor({
       format: "friendly_tournament",
@@ -50,6 +52,7 @@ export function useTournamentEdit({
       drawPosted: game?.drawPostedAt != null,
       americano: isAmericano(game?.format, game?.tournamentShape),
       king: isKingOfTheCourt(game?.format, game?.tournamentShape),
+      series: editSeries.shown,
     }),
     rounds: false,
   };
@@ -77,6 +80,7 @@ export function useTournamentEdit({
         },
         seasons: game.groupSeasons,
         canChangeSeason: game.canChangeSeason,
+        series: editSeries.context,
       }
     : null;
   return {

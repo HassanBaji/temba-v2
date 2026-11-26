@@ -17,6 +17,10 @@ import { ResultMark } from "../primitives/result-mark";
 import { HeaderIconButton, ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import {
+  SeriesHeroLine,
+  type SeriesHeroLineSeries,
+} from "../series/series-hero-line";
 import { useColors } from "../theme/theme-provider";
 
 const HERO_PADDING_BOTTOM = 22;
@@ -61,6 +65,8 @@ export type PlayedHeroProps = {
   whenLine: string | null;
   you: PlayedYouLine | null;
   avatar: { name: string; image: string | null } | null;
+  /** The Game's Series and Edition, under where it was played. */
+  series?: SeriesHeroLineSeries | null;
   onShare: () => void;
   onMore?: () => void;
   /** Under everything else on black: the MVP row while there is one. */
@@ -81,6 +87,7 @@ export function PlayedHero({
   whenLine,
   you,
   avatar,
+  series,
   onShare,
   onMore,
   footer,
@@ -174,6 +181,8 @@ export function PlayedHero({
             ) : null}
           </View>
         ) : null}
+
+        {series ? <SeriesHeroLine series={series} /> : null}
 
         {you ? (
           <View style={{ gap: 16, marginTop: 6 }}>

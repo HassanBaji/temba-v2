@@ -22,6 +22,7 @@ type ExpectedTopLevel =
   | "marks"
   | "notifications"
   | "ratings"
+  | "series"
   | "teams"
   | "users"
   | "venues";
@@ -122,6 +123,7 @@ type ExpectedGames =
   | "updateRoundCount"
   | "updateMatchMinutes"
   | "updateSeason"
+  | "updateSeries"
   | "requestLevelRange"
   | "listLevelRangeRequests"
   | "approveLevelRangeRequest"
@@ -283,6 +285,16 @@ type ExpectedRatings =
   | "listLevelDisputesForOperator"
   | "decideLevelDispute";
 
+type ExpectedSeries =
+  | "attachOptions"
+  | "byId"
+  | "create"
+  | "edition"
+  | "end"
+  | "forPlayer"
+  | "listForGroup"
+  | "playerWins";
+
 type ExpectedTeams =
   | "create"
   | "mine"
@@ -404,6 +416,7 @@ type _Notifications = AssertTrue<
 type _Ratings = AssertTrue<
   Equal<keyof RouterInputs["ratings"], ExpectedRatings>
 >;
+type _Series = AssertTrue<Equal<keyof RouterInputs["series"], ExpectedSeries>>;
 type _Teams = AssertTrue<Equal<keyof RouterInputs["teams"], ExpectedTeams>>;
 type _Users = AssertTrue<Equal<keyof RouterInputs["users"], ExpectedUsers>>;
 type _Venues = AssertTrue<Equal<keyof RouterInputs["venues"], ExpectedVenues>>;
@@ -420,6 +433,7 @@ export type AppRouterShapeChecks = [
   _Marks,
   _Notifications,
   _Ratings,
+  _Series,
   _Teams,
   _Users,
   _Venues,

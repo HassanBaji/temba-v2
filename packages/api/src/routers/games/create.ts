@@ -28,6 +28,7 @@ import { linkNewGameToSeason } from "#src/games/season-link";
 import { requireGroup } from "#src/games/helpers/require-group";
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import type { CreateGameInput } from "#src/games/utils";
+import { resolveGameSeriesLink } from "#src/series/series-link";
 import {
   levelRangeInvertedMessage,
   LEVEL_TENTHS_MAX,
@@ -114,6 +115,8 @@ export const createGameInputSchema = z
     trackPayments: z.boolean().optional(),
     /** Football only: keepers owe nothing while payments are tracked. */
     keepersPlayFree: z.boolean().optional(),
+    /** One of the Group's running Series; the Game becomes its next Edition. */
+    seriesId: z.string().uuid().optional(),
   })
   .refine((value) => value.windowEnd.getTime() >= value.windowStart.getTime(), {
     message: "Finish time must be at or after start time",
@@ -282,6 +285,21 @@ async function createFootballGameOnGroup(
   return { id: created.game.id, matchId: null as string | null };
 }
 
+/** What `carriesSeries` reads of a Game this door is about to create. */
+function seriesCarrierAtCreate(
+  input: Pick<CreateGameInput, "format" | "windowStart">,
+  groupId: string | null,
+) {
+  return {
+    format: input.format,
+    groupId,
+    challengeId: null,
+    poolCount: null,
+    tournamentShape: null,
+    windowStart: input.windowStart,
+  };
+}
+
 /** A Game may start a little before it is saved, never earlier. */
 const WINDOW_START_GRACE_MS = 15 * 60 * 1000;
 
@@ -311,6 +329,12 @@ export async function createGame(
     groupId: input.groupId ?? null,
     windowStart: input.windowStart,
   });
+  if (input.seriesId) {
+    await database
+      .update(games)
+      .set({ seriesId: input.seriesId })
+      .where(eq(games.id, created.id));
+  }
   return created;
 }
 
@@ -371,6 +395,14 @@ async function createPublicGame(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: messagesFor(locale).game.errors.publicGameOnly,
+    });
+  }
+  if (input.seriesId) {
+    await resolveGameSeriesLink(database, {
+      game: seriesCarrierAtCreate(input, null),
+      group: null,
+      seriesId: input.seriesId,
+      locale,
     });
   }
   const sport = input.sport ?? DEFAULT_SPORT;
@@ -441,6 +473,14 @@ async function createGameOnGroup(
 ) {
   const group = await requireGroup(database, input.groupId, locale);
   await assertMayCreateGameOnGroup(database, group, input.createdBy, locale);
+  if (input.seriesId) {
+    await resolveGameSeriesLink(database, {
+      game: seriesCarrierAtCreate(input, input.groupId),
+      group,
+      seriesId: input.seriesId,
+      locale,
+    });
+  }
 
   const isAmericano = input.format === "americano";
   const isTournament = input.format === "friendly_tournament";

@@ -1,4 +1,5 @@
 import { challengesTabQuery } from "@repo/domain/challenges-tab";
+import { groupHomeTabQuery } from "@repo/domain/group-home-tab";
 import { isCoinKind, type CoinKind } from "@repo/domain/marks";
 import type { Sport } from "@repo/domain/sport";
 import type { Messages } from "@repo/i18n/messages";
@@ -7,6 +8,8 @@ const PLAYER_PROFILE = /^\/dashboard\/players\/[^/]+\/?$/;
 const PLAYER_MATCHES = /^\/dashboard\/players\/([^/]+)\/matches\/?$/;
 const PLAYER_MARKS = /^\/dashboard\/players\/([^/]+)\/marks\/?$/;
 const PLAYER_MARK = /^\/dashboard\/players\/([^/]+)\/marks\/([^/]+)\/?$/;
+
+const SERIES_PAGE = /^\/dashboard\/series\/[^/]+\/?$/;
 
 const YOU_RATINGS_HREF = "/dashboard/you/ratings";
 
@@ -45,6 +48,11 @@ export function playerMarkPath(userId: string, kind: CoinKind, sport: Sport) {
   return `/dashboard/players/${userId}/marks/${kind}?sport=${sport}`;
 }
 
+/** A Series page (3b). */
+export function seriesPagePath(seriesId: string) {
+  return `/dashboard/series/${seriesId}`;
+}
+
 export function titleFromPath(pathname: string, m: Messages) {
   const titles = m.webUi.pageTitle;
   if (pathname === "/dashboard") {
@@ -62,6 +70,9 @@ export function titleFromPath(pathname: string, m: Messages) {
   }
   if (pathname.startsWith("/dashboard/players/")) {
     return titles.player;
+  }
+  if (SERIES_PAGE.test(pathname)) {
+    return m.series.page.title;
   }
   if (pathname.startsWith("/dashboard/you/settings")) {
     return m.common.settings;
@@ -104,6 +115,9 @@ export function titleFromPath(pathname: string, m: Messages) {
   }
   if (/^\/dashboard\/groups\/[^/]+\/seasons\/new/.test(pathname)) {
     return titles.newSeason;
+  }
+  if (/^\/dashboard\/groups\/[^/]+\/series\/new/.test(pathname)) {
+    return m.series.create.title;
   }
   if (/^\/dashboard\/groups\/[^/]+\/edit/.test(pathname)) {
     return titles.editGroup;
@@ -149,6 +163,7 @@ export function pageHidesMobileTopBar(pathname: string) {
     pathname.startsWith("/dashboard/you/") ||
     pathname.startsWith("/dashboard/games/new") ||
     PLAYER_PROFILE.test(pathname) ||
+    SERIES_PAGE.test(pathname) ||
     /^\/dashboard\/groups\/(?!new$)[^/]+/.test(pathname)
   );
 }
@@ -253,6 +268,16 @@ export function groupRatingSettingsHref(groupId: string) {
 
 export function groupNewSeasonHref(groupId: string) {
   return `/dashboard/groups/${groupId}/seasons/new`;
+}
+
+/** The Group home opened on its Series tab (1a). */
+export function groupSeriesTabHref(groupId: string) {
+  return `${groupHomeHref(groupId)}${groupHomeTabQuery("series")}`;
+}
+
+/** New series (1b). */
+export function groupNewSeriesHref(groupId: string) {
+  return `/dashboard/groups/${groupId}/series/new`;
 }
 
 /** Points and history; without `userId`, the viewer's own. */
