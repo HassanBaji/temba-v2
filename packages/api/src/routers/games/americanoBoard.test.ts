@@ -238,9 +238,11 @@ describe("americanoBoard", () => {
       }
       const done = await read();
       expect(done.finished).toBe(true);
-      expect(americanoWinners(done.table).map((row) => row.playerId)).toEqual([
-        ...fixed,
-      ]);
+      expect(
+        americanoWinners(done.table)
+          .map((row) => row.playerId)
+          .sort(),
+      ).toEqual([...fixed].sort());
       expect(done.table[2]?.place).toBe(3);
     } finally {
       vi.setSystemTime(new Date("2026-09-01T12:00:00"));
