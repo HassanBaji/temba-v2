@@ -2,7 +2,7 @@
 
 import { CrownIcon } from "lucide-react";
 
-import { ratingScopeTag } from "@repo/domain/game-rating-impact";
+import { gameCardRatingTag } from "@repo/domain/game-rating-impact";
 import type { GameRatingScope } from "@repo/domain/game-rating-scope";
 import {
   kingPlayedCardModel,
@@ -31,7 +31,7 @@ type KingPlayedGame = {
 export function KingPlayedCard({ game }: { game: KingPlayedGame }) {
   const locale = useLocale();
   const view = kingPlayedCardModel(game, locale);
-  const scopeTag = ratingScopeTag(
+  const scopeTag = gameCardRatingTag(
     {
       rated: game.rated ?? false,
       ratingScope: game.ratingScope ?? "unrated",

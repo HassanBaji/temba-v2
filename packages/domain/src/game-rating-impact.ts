@@ -62,6 +62,16 @@ export function ratingScopeTag(
     : gameRatingScopeLabel(scope, locale, game.sport);
 }
 
+/** A Game card names a scope only when the Game counts somewhere; an Unrated Game carries no tag. */
+export function gameCardRatingTag(
+  game: Parameters<typeof ratingScopeTag>[0],
+  locale: Locale,
+): string | null {
+  return ratingScopeOf(game) === "unrated"
+    ? null
+    : ratingScopeTag(game, locale);
+}
+
 /**
  * The Game details notice for a Game that does not move the Temba Level, and
  * for a football Game or a Public Game that does.

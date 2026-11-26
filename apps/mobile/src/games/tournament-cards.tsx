@@ -7,7 +7,7 @@ import {
   formatHomeCountdown,
   formatHomeKickoff,
 } from "@repo/domain/home-countdown";
-import { ratingScopeTag } from "@repo/domain/game-rating-impact";
+import { gameCardRatingTag } from "@repo/domain/game-rating-impact";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
@@ -203,7 +203,7 @@ function AlonePlayers({
 
 function RatingScopeTag({ game }: { game: HubGameRow }) {
   const locale = useLocale();
-  const tag = ratingScopeTag(game, locale);
+  const tag = gameCardRatingTag(game, locale);
   return tag ? (
     <Text size="meta" weight="semibold" numberOfLines={1}>
       {tag}

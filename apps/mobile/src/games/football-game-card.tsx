@@ -10,7 +10,7 @@ import {
   type FootballBib,
 } from "@repo/domain/football-lineup";
 import { gameCustomName } from "@repo/domain/game-custom-name";
-import { ratingScopeTag } from "@repo/domain/game-rating-impact";
+import { gameCardRatingTag } from "@repo/domain/game-rating-impact";
 import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { sideSizeLabel } from "@repo/domain/game-shape";
 import { footballSection } from "@repo/domain/football-hub";
@@ -224,7 +224,7 @@ function ResultBody({ game }: { game: HubGameRow }) {
 function ScopeLine({ game }: { game: HubGameRow }) {
   const locale = useLocale();
   const tag = isPublicGame(game)
-    ? ratingScopeTag({ ...game, publicGame: true }, locale)
+    ? gameCardRatingTag({ ...game, publicGame: true }, locale)
     : null;
   const range = formatLevelRangeLabel(
     game.levelMinTenths,
