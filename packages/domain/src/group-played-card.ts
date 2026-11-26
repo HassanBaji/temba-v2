@@ -14,7 +14,7 @@ import {
   type FootballBib,
 } from "./football-lineup";
 import { formatGameDay, formatMonth } from "./format-game-start";
-import type { GroupPlayedGameData } from "./group-data";
+import type { GroupPlayedGameData, GroupPlayedSocialData } from "./group-data";
 import {
   GROUP_PLAYED_FILTERS,
   groupPlayedStatus,
@@ -26,6 +26,8 @@ import { shortPlayerName } from "./player-name";
 import { zonedParts } from "./product-timezone";
 import { resultMarkLabel, type MatchOutcome } from "./result-mark";
 import { standingShowsDraws } from "./season-standing";
+import { isAmericano } from "./tournament-americano";
+import { isKingOfTheCourt } from "./tournament-king";
 
 export type GroupPlayedCell = { value: string; strong: boolean };
 
@@ -39,6 +41,18 @@ export type GroupPlayedSide = {
   cells: GroupPlayedCell[];
 };
 
+/** A drawn Social reads as its whole day, not as one of its Matches. */
+export type GroupPlayedSocial = {
+  /** "Social", then its Tournament shape. */
+  tags: string[];
+  headline: string;
+  day: string;
+  /** Players on an Americano, teams on every other shape. */
+  entrants: string;
+  summary: string;
+  winner: { markName: string; isViewer: boolean; line: string } | null;
+};
+
 export type GroupPlayedCard = {
   id: string;
   status: GroupPlayedStatus;
@@ -47,6 +61,7 @@ export type GroupPlayedCard = {
   whenLine: string;
   result: { mark: MatchOutcome; label: string } | null;
   sides: [GroupPlayedSide, GroupPlayedSide] | null;
+  social: GroupPlayedSocial | null;
   cancelledLine: string | null;
   accessibilityLabel: string;
 };
@@ -137,6 +152,73 @@ function playedTitle(
   return game.name ?? game.venueName ?? m.group.played.untitled;
 }
 
+function shapeTag(tournamentShape: string | null, locale: Locale) {
+  const m = messagesFor(locale);
+  const shapes = m.createGame.shapes;
+  switch (tournamentShape) {
+    case "americano":
+      return m.tournamentAmericano.chip;
+    case "king_of_the_court":
+      return m.tournamentKing.shape.title;
+    case "rounds":
+      return shapes.rounds.title;
+    case "groups_only":
+      return shapes.groupsOnly.title;
+    case "knockout_only":
+      return shapes.knockoutOnly.title;
+    case "groups_then_knockout":
+      return shapes.groupsThenKnockout.title;
+    default:
+      return null;
+  }
+}
+
+function playedSocial(
+  game: GroupPlayedGameData,
+  social: GroupPlayedSocialData,
+  locale: Locale,
+): GroupPlayedSocial {
+  const m = messagesFor(locale);
+  const copy = m.group.played;
+  const americano = isAmericano("friendly_tournament", social.tournamentShape);
+  const king = isKingOfTheCourt("friendly_tournament", social.tournamentShape);
+  const tag = shapeTag(social.tournamentShape, locale);
+  const winnerNames = social.winner?.names ?? [];
+  const entrants = americano
+    ? copy.social.players(social.entrantCount)
+    : copy.social.teams(social.entrantCount);
+  return {
+    tags: [m.tournament.home.eyebrowPrefix, ...(tag ? [tag] : [])],
+    headline: social.finished
+      ? copy.social.finished
+      : king
+        ? m.tournamentKing.card.toCome
+        : copy.social.toCome,
+    day: formatGameDay(game.displayTime, locale, { weekday: "short" }),
+    entrants,
+    summary: [game.venueName, entrants]
+      .filter(Boolean)
+      .join(m.group.metaSeparator),
+    winner:
+      social.winner && winnerNames.length > 0
+        ? {
+            markName: social.winner.names[0]!,
+            isViewer: social.winner.isViewer,
+            line: social.winner.isViewer
+              ? copy.social.youWonIt
+              : copy.social.wonBy(
+                  winnerNames.length === 2
+                    ? copy.pair(
+                        shortPlayerName(winnerNames[0]!),
+                        shortPlayerName(winnerNames[1]!),
+                      )
+                    : winnerNames.join(m.group.metaSeparator),
+                ),
+          }
+        : null,
+  };
+}
+
 export function groupPlayedCard(
   game: GroupPlayedGameData,
   locale: Locale,
@@ -145,14 +227,17 @@ export function groupPlayedCard(
   const copy = m.group.played;
   const status = groupPlayedStatus(game);
   const isFootball = game.sport === "football";
+  const social =
+    status !== "cancelled" && game.social
+      ? playedSocial(game, game.social, locale)
+      : null;
   const sides =
-    status === "cancelled"
+    status === "cancelled" || social
       ? null
       : playedSides(game, isFootball, status, locale);
   const title = playedTitle(game, sides, isFootball, locale);
-  const place = isFootball
-    ? game.venueName
-    : (game.courtName ?? game.venueName);
+  const place =
+    isFootball || social ? game.venueName : (game.courtName ?? game.venueName);
   const whenLine = [
     formatGameDay(game.displayTime, locale, { weekday: "short" }),
     place,
@@ -160,7 +245,7 @@ export function groupPlayedCard(
     .filter(Boolean)
     .join(m.group.metaSeparator);
   const result =
-    status === "finished" && game.outcome
+    status === "finished" && game.outcome && !social
       ? { mark: game.outcome, label: resultMarkLabel(game.outcome, locale) }
       : null;
   const cancelledLine =
@@ -177,9 +262,11 @@ export function groupPlayedCard(
   const statusLabel =
     status === "cancelled"
       ? copy.cancelled
-      : status === "needs_score"
-        ? copy.noScoreYet
-        : result?.label;
+      : social
+        ? social.headline
+        : status === "needs_score"
+          ? copy.noScoreYet
+          : result?.label;
   return {
     id: game.id,
     status,
@@ -188,12 +275,15 @@ export function groupPlayedCard(
     whenLine,
     result,
     sides,
+    social,
     cancelledLine,
     accessibilityLabel: copy.card(
       [
         title,
         whenLine,
         statusLabel,
+        social?.entrants,
+        social?.winner?.line,
         ...(status === "finished" && sides
           ? sides.map((side) =>
               copy.sideSpoken(

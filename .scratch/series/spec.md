@@ -170,7 +170,7 @@ The Series badge is data a player earned, like a Mark coin and a Bib: its colour
 
 ## 6. Data model
 
-One migration (the next number, 0135), generated with `pnpm exec turbo run db:generate`. Never edit an existing migration.
+One migration (0137), generated with `pnpm exec turbo run db:generate`. Never edit an existing migration.
 
 ### 6.1 `group_series` (new)
 

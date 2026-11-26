@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 
 import { games, groups, user, venues } from "@repo/db/schema";
 
+import { listMyGamesHubRows } from "#src/games/list-my-games";
+import { gameById } from "#src/routers/games/byId";
 import { createGame, createGameInputSchema } from "#src/routers/games/create";
 import { createPgliteDb, type TestDatabase } from "@repo/db/testing";
 import { messagesFor } from "@repo/i18n/messages";
@@ -341,5 +343,65 @@ describe("createGame MVP mode", () => {
         mvpMode: "organizer",
       }).success,
     ).toBe(true);
+  });
+});
+
+describe("createGame Gender tag", () => {
+  it("stores the tag the Organizer picked and shows it on Game details and the Games list", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "create-gender-tag@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, { createdBy: owner.id });
+      const base = {
+        createdBy: owner.id,
+        groupId: group.id,
+        isPublic: false,
+        format: "friendly_game" as const,
+        registrationMode: "individual" as const,
+        venueId: venue.id,
+        ...window(),
+      };
+
+      const tagged = await createGame(db, { ...base, genderTag: "women" });
+      const untagged = await createGame(db, base);
+
+      const detailsOf = (gameId: string) =>
+        gameById(db, { gameId, userId: owner.id });
+      expect((await detailsOf(tagged.id)).genderTag).toBe("women");
+      expect((await detailsOf(untagged.id)).genderTag).toBeNull();
+
+      const rows = await listMyGamesHubRows(db, owner.id);
+      expect(rows.find((row) => row.id === tagged.id)?.genderTag).toBe("women");
+      expect(rows.find((row) => row.id === untagged.id)?.genderTag).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+
+  it("refuses a tag outside men, women and mixed", () => {
+    const input = {
+      groupId: crypto.randomUUID(),
+      isPublic: false,
+      format: "friendly_game",
+      registrationMode: "individual",
+      windowStart: new Date(),
+      windowEnd: new Date(Date.now() + 60 * 60 * 1000),
+      venueId: crypto.randomUUID(),
+    };
+    for (const genderTag of ["men", "women", "mixed", null]) {
+      expect(
+        createGameInputSchema.safeParse({ ...input, genderTag }).success,
+      ).toBe(true);
+    }
+    const parsed = createGameInputSchema.safeParse({
+      ...input,
+      genderTag: "everyone",
+    });
+    expect(parsed.success).toBe(false);
+    if (parsed.success) {
+      return;
+    }
+    expect(parsed.error.flatten().fieldErrors.genderTag).toBeDefined();
   });
 });

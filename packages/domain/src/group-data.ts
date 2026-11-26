@@ -1,7 +1,8 @@
 import type { FootballBib } from "./football-lineup";
 import type { GroupPlayedCounts } from "./group-played-filter";
+import type { GameRatingScope } from "./game-rating-scope";
 import type { GroupRatingSettings } from "./group-rating-settings";
-import type { HubGameRow } from "./hub-game-row";
+import type { HubGameRow, MyTournament } from "./hub-game-row";
 import type { LevelBand } from "./level-bands";
 import type { LevelOverrideReason } from "./level-slider";
 import type { MatchSlotMember } from "./match-slots";
@@ -9,6 +10,8 @@ import type { FormMark } from "./member-form-marks";
 import type { MemberNicknameData } from "./member-nickname";
 import type { ResultMarkVariant } from "./result-mark";
 import type { TierBand } from "./tier-bands";
+import type { AmericanoPlayedSummary } from "./tournament-americano-view";
+import type { KingPlayedSummary } from "./tournament-king-view";
 
 export type GroupMineRowData = {
   id: string;
@@ -134,6 +137,27 @@ export type GroupLeaderboardEntryData = GroupStandingRowData & {
   canRename?: boolean;
 };
 
+/**
+ * A drawn Social on the Played list. Its whole day is one card, so the row
+ * carries the day on top of its latest Match.
+ */
+export type GroupPlayedSocialData = {
+  tournamentShape: string | null;
+  /** Players on an Americano, Game teams on every other shape. */
+  entrantCount: number;
+  finished: boolean;
+  /** Who won the day, once it is finished and one entrant did. */
+  winner: { names: string[]; isViewer: boolean } | null;
+  /** The viewer's day on an Americano they played. */
+  americano: AmericanoPlayedSummary | null;
+  /** The viewer's Pool on a Groups only or Rounds Social they played. */
+  myTournament: MyTournament | null;
+  /** The viewer's place on a King of the court they played. */
+  king: KingPlayedSummary | null;
+  /** Whether the day counted for Temba Level, a Group rating, or neither. */
+  ratingScope: GameRatingScope;
+};
+
 export type GroupPlayedGameData = {
   id: string;
   name: string | null;
@@ -152,6 +176,9 @@ export type GroupPlayedGameData = {
   scoredSets: { slot1GamesWon: number; slot2GamesWon: number }[];
   viewerSlot: 1 | 2 | null;
   outcome: "won" | "lost" | "draw" | null;
+  /** Set on a day with no Matches: its final order is posted. */
+  resultPosted?: boolean;
+  social?: GroupPlayedSocialData | null;
 };
 
 /** A Team tagged to the Group. The Group does not own it. */

@@ -319,6 +319,12 @@ describe("tournamentShareCard", () => {
     ).toEqual(["A", "B", "C"]);
   });
 
+  it("shares the table instead of the placing when the viewer chooses it", () => {
+    expect(
+      tournamentShareCard(singlePool(pools.finished), "en", "table"),
+    ).toMatchObject({ kind: "table", title: "Final table" });
+  });
+
   it("is null until the day is over", () => {
     expect(tournamentShareCard(pools.postedMid, "en")).toBeNull();
   });

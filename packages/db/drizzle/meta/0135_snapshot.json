@@ -1,5 +1,5 @@
 {
-  "id": "f813cc90-f724-4730-bc59-a304df0aab56",
+  "id": "89fb3712-3f84-46e6-8cf5-9d3c9f858a31",
   "prevId": "44c8c7b9-cc13-4a2f-b24f-d9061167bd15",
   "version": "7",
   "dialect": "postgresql",
@@ -4928,12 +4928,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "series_id": {
-          "name": "series_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "venue_id": {
           "name": "venue_id",
           "type": "uuid",
@@ -5086,6 +5080,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "gender_tag": {
+          "name": "gender_tag",
+          "type": "game_gender_tag",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
         "sport": {
           "name": "sport",
           "type": "game_sport",
@@ -5195,27 +5196,6 @@
           "method": "btree",
           "with": {}
         },
-        "games_series_id_window_start_idx": {
-          "name": "games_series_id_window_start_idx",
-          "columns": [
-            {
-              "expression": "series_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "window_start",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "games_group_id_window_start_idx": {
           "name": "games_group_id_window_start_idx",
           "columns": [
@@ -5303,19 +5283,6 @@
           "tableTo": "group_seasons",
           "columnsFrom": [
             "season_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "games_series_id_group_series_id_fk": {
-          "name": "games_series_id_group_series_id_fk",
-          "tableFrom": "games",
-          "tableTo": "group_series",
-          "columnsFrom": [
-            "series_id"
           ],
           "columnsTo": [
             "id"
@@ -9687,140 +9654,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.group_series": {
-      "name": "group_series",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "group_id": {
-          "name": "group_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(40)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "emblem": {
-          "name": "emblem",
-          "type": "series_emblem",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "colour": {
-          "name": "colour",
-          "type": "series_colour",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ended_at": {
-          "name": "ended_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ended_by": {
-          "name": "ended_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "group_series_group_id_idx": {
-          "name": "group_series_group_id_idx",
-          "columns": [
-            {
-              "expression": "group_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "group_series_group_id_groups_id_fk": {
-          "name": "group_series_group_id_groups_id_fk",
-          "tableFrom": "group_series",
-          "tableTo": "groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "group_series_ended_by_user_id_fk": {
-          "name": "group_series_ended_by_user_id_fk",
-          "tableFrom": "group_series",
-          "tableTo": "user",
-          "columnsFrom": [
-            "ended_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "group_series_created_by_user_id_fk": {
-          "name": "group_series_created_by_user_id_fk",
-          "tableFrom": "group_series",
-          "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.teams": {
       "name": "teams",
       "schema": "",
@@ -12515,6 +12348,15 @@
         "friendly_tournament"
       ]
     },
+    "public.game_gender_tag": {
+      "name": "game_gender_tag",
+      "schema": "public",
+      "values": [
+        "men",
+        "women",
+        "mixed"
+      ]
+    },
     "public.game_position": {
       "name": "game_position",
       "schema": "public",
@@ -12727,31 +12569,6 @@
         "off",
         "organizer",
         "everyone"
-      ]
-    },
-    "public.series_colour": {
-      "name": "series_colour",
-      "schema": "public",
-      "values": [
-        "gold",
-        "red",
-        "blue",
-        "green",
-        "purple",
-        "teal"
-      ]
-    },
-    "public.series_emblem": {
-      "name": "series_emblem",
-      "schema": "public",
-      "values": [
-        "cup",
-        "crown",
-        "star",
-        "bolt",
-        "flame",
-        "moon",
-        "ball"
       ]
     },
     "public.challenge_status": {

@@ -24,6 +24,7 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { Card } from "../home/card";
+import { ChallengeTag } from "../game-details/challenge-tag";
 import { LevelRequestCard } from "../game-details/level-request-card";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Avatar } from "../primitives/avatar";
@@ -155,7 +156,10 @@ function Hero({
         <Text size="meta" tone="muted" style={{ flexShrink: 1 }}>
           {hero.eyebrow}
         </Text>
-        {view.aloneOnly ? <AloneTag /> : null}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {hero.genderTag ? <ChallengeTag label={hero.genderTag} /> : null}
+          {view.aloneOnly ? <AloneTag /> : null}
+        </View>
       </View>
       <Text
         size="display"

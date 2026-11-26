@@ -5,6 +5,7 @@ import { ShareIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { UserAvatar } from "~/components/common/user-avatar";
+import { ChallengeTag } from "~/components/games/challenge-tag";
 import { PageTitle } from "~/components/layout/page-title";
 import {
   SeriesHeroLine,
@@ -93,6 +94,7 @@ export function TournamentHero({
   sharePending,
   onInvite,
   tags,
+  genderTag,
   actions,
 }: {
   name: string;
@@ -112,6 +114,8 @@ export function TournamentHero({
   sharePending?: boolean;
   onInvite?: () => void;
   tags?: ReactNode;
+  /** "Women only" and the like, beside the eyebrow. */
+  genderTag?: string | null;
   actions?: ReactNode;
 }) {
   const m = useMessages();
@@ -144,7 +148,10 @@ export function TournamentHero({
         )}
       </div>
 
-      <p className="text-dim text-meta mt-7">{eyebrow}</p>
+      <div className="mt-7 flex items-center justify-between gap-3">
+        <p className="text-dim text-meta min-w-0">{eyebrow}</p>
+        {genderTag ? <ChallengeTag label={genderTag} tone="ink" /> : null}
+      </div>
       <PageTitle variant="hero" className="mt-2.5">
         {name}
       </PageTitle>

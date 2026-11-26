@@ -6,6 +6,7 @@ import {
   groupPlayedRecordLine,
   type GroupPlayedCard,
   type GroupPlayedSide,
+  type GroupPlayedSocial,
 } from "@repo/domain/group-played-card";
 import type {
   GroupPlayedCounts,
@@ -16,10 +17,16 @@ import {
   seasonForDate,
   type GroupSeasonData,
 } from "@repo/domain/group-season";
+import { Trophy } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
 import { BibChip } from "~/components/games/football-bibs";
+import { SummaryCardShell } from "~/components/games/summary-card-shell";
+import { AmericanoPlayedCard } from "~/components/games/tournament-americano-played-card";
+import { TournamentPlayedCard } from "~/components/games/tournament-games-card";
+import { KingPlayedCard } from "~/components/games/tournament-king-played-card";
+import { InitialsMark } from "~/components/games/tournament-round-parts";
 import { useLocale, useMessages } from "~/components/locale-provider";
 import { ResultMark } from "~/components/temba/result-mark";
 import { Button } from "~/components/ui/button";
@@ -150,6 +157,129 @@ function PlayedCard({ card }: { card: GroupPlayedCard }) {
   );
 }
 
+/**
+ * A drawn Social the viewer has no Played card of their own for: the Games
+ * hub card's bands, with the day's winner where the viewer's place would be.
+ */
+function SocialDayCard({
+  card,
+  social,
+}: {
+  card: GroupPlayedCard;
+  social: GroupPlayedSocial;
+}) {
+  return (
+    <li data-slot="group-social-played-card">
+      <SummaryCardShell
+        href={gameHref(card.id)}
+        linkLabel={card.accessibilityLabel}
+      >
+        <div className="border-rule pointer-events-none relative z-10 flex items-center justify-between gap-3 border-b px-4 py-3">
+          <span className="flex min-w-0 items-center gap-2 font-semibold">
+            <Trophy aria-hidden="true" className="size-4 shrink-0" />
+            <span className="truncate">{social.headline}</span>
+          </span>
+          <span className="text-muted-foreground text-meta shrink-0">
+            {social.day}
+          </span>
+        </div>
+        <div className="pointer-events-none relative z-10 flex flex-col gap-3 px-4 py-3.5">
+          <p className="text-muted-foreground text-eyebrow flex items-center gap-1.5 uppercase tracking-[0.06em]">
+            {social.tags.map((tag) => (
+              <span
+                key={tag}
+                className="border-rule rounded-sm border px-1.5 py-0.5"
+              >
+                {tag}
+              </span>
+            ))}
+          </p>
+          <div>
+            <p
+              dir="auto"
+              className="font-expanded text-title leading-tight tracking-[-0.03em]"
+            >
+              {card.title}
+            </p>
+            <p className="text-muted-foreground text-meta mt-0.5">
+              {social.summary}
+            </p>
+          </div>
+        </div>
+        {social.winner ? (
+          <div className="border-rule pointer-events-none relative z-10 flex items-center gap-3 border-t px-4 py-3">
+            <InitialsMark
+              name={social.winner.markName}
+              isViewer={social.winner.isViewer}
+              className="size-7 text-[11px]"
+            />
+            <span dir="auto" className="text-meta min-w-0 flex-1 truncate">
+              {social.winner.line}
+            </span>
+          </div>
+        ) : null}
+      </SummaryCardShell>
+    </li>
+  );
+}
+
+/** A drawn Social is the Games hub's Played card for the day, where the viewer has one. */
+function SocialPlayedCard({
+  game,
+  card,
+  social,
+}: {
+  game: PlayedGame;
+  card: GroupPlayedCard;
+  social: GroupPlayedSocial;
+}) {
+  const day = {
+    id: game.id,
+    name: game.name,
+    windowStart: game.windowStart,
+    displayTime: game.displayTime,
+  };
+  if (game.social?.americano) {
+    return (
+      <AmericanoPlayedCard
+        game={{
+          ...day,
+          groupName: null,
+          venue: { name: game.venueName ?? "" },
+          americano: game.social.americano,
+        }}
+      />
+    );
+  }
+  if (game.social?.king) {
+    return (
+      <KingPlayedCard
+        game={{
+          ...day,
+          groupName: null,
+          venue: { name: game.venueName ?? "" },
+          rated: game.social.ratingScope === "temba",
+          ratingScope: game.social.ratingScope,
+          kingOfTheCourt: game.social.king,
+        }}
+      />
+    );
+  }
+  if (game.social?.myTournament) {
+    return (
+      <TournamentPlayedCard
+        game={{
+          ...day,
+          format: game.format,
+          venue: game.venueName ? { name: game.venueName } : null,
+          myTournament: game.social.myTournament,
+        }}
+      />
+    );
+  }
+  return <SocialDayCard card={card} social={social} />;
+}
+
 /** The Season a Game opens when it starts a new one after the previous Game. */
 function seasonBoundaries(games: PlayedGame[], seasons: GroupSeasonData[]) {
   const boundaries = new Map<string, GroupSeasonData>();
@@ -197,6 +327,7 @@ export function GroupPlayedGames({
   const chips = groupPlayedFilterChips(counts, filter, locale);
   const items = groupPlayedListItems(games, locale);
   const boundaries = seasonBoundaries(games, seasons);
+  const gamesById = new Map(games.map((game) => [game.id, game]));
 
   return (
     <section className="flex flex-col gap-3">
@@ -271,6 +402,7 @@ export function GroupPlayedGames({
             );
           }
           const boundary = boundaries.get(item.card.id) ?? null;
+          const game = gamesById.get(item.card.id);
           return (
             <React.Fragment key={item.key}>
               {boundary ? (
@@ -285,7 +417,15 @@ export function GroupPlayedGames({
                   <span aria-hidden="true" className="bg-rule h-px flex-1" />
                 </li>
               ) : null}
-              <PlayedCard card={item.card} />
+              {game && item.card.social ? (
+                <SocialPlayedCard
+                  game={game}
+                  card={item.card}
+                  social={item.card.social}
+                />
+              ) : (
+                <PlayedCard card={item.card} />
+              )}
             </React.Fragment>
           );
         })}

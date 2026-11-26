@@ -93,6 +93,13 @@ export function notificationEmailDestination(
     return { kind: "game", path: `/dashboard/games/${item.game.id}/payments` };
   }
   if (
+    (item.type === "football_pick_room_opened" ||
+      item.type === "football_pick_reminder") &&
+    item.game
+  ) {
+    return { kind: "game", path: `/dashboard/games/${item.game.id}/pick` };
+  }
+  if (
     (item.type === "group_member_joined" ||
       item.type === "tier_points_adjusted" ||
       item.type === "tier_band_changed" ||
@@ -132,7 +139,12 @@ export function notificationEmailDestination(
       item.type === "game_level_range_declined" ||
       item.type === "challenge_proposal_confirmed" ||
       item.type === "challenge_squad_due" ||
-      item.type === "challenge_squad_named") &&
+      item.type === "challenge_squad_named" ||
+      item.type === "football_draft_shared" ||
+      item.type === "football_draft_changed" ||
+      item.type === "football_draft_approved" ||
+      item.type === "football_draft_change_asked" ||
+      item.type === "football_pick_done") &&
     item.game
   ) {
     return { kind: "game", path: `/dashboard/games/${item.game.id}` };

@@ -14,6 +14,7 @@ import { gameTeamPlayers } from "./game-team-players";
 import { teams } from "./teams";
 import { matches } from "./matches";
 import { footballBibs } from "./game-enums";
+import { gamePlayers } from "./game-players";
 
 export const gameTeams = pgTable(
   "game_teams",
@@ -34,6 +35,11 @@ export const gameTeams = pgTable(
     /** King of the court: the place the Organizer posted, null when not placed. */
     finalPlace: integer("final_place"),
     bib: footballBibs("bib"),
+    /** A Football side's Side captain (ADR-0108); cleared when they leave the Game. */
+    captainGamePlayerId: uuid("captain_game_player_id").references(
+      () => gamePlayers.id,
+      { onDelete: "set null" },
+    ),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -46,6 +52,9 @@ export const gameTeams = pgTable(
       .where(sql`${table.sideIndex} is not null`),
     gameIdx: index("game_teams_game_id_idx").on(table.gameId),
     teamIdx: index("game_teams_team_id_idx").on(table.teamId),
+    captainIdx: index("game_teams_captain_game_player_id_idx").on(
+      table.captainGamePlayerId,
+    ),
   }),
 );
 

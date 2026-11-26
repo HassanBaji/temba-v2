@@ -41,6 +41,7 @@ import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import { DEFAULT_SPORT, sportOrDefault, type Sport } from "@repo/domain/sport";
 import { sportSchema } from "@repo/validators/sport";
 import { ratingFlagsAtCreate } from "@repo/domain/game-rating-scope";
+import { GAME_GENDER_TAGS } from "@repo/domain/game-gender-tag";
 import { MVP_MODES } from "@repo/domain/marks";
 import {
   GAME_CUSTOM_NAME_MAX_LENGTH,
@@ -108,6 +109,8 @@ export const createGameInputSchema = z
       .optional(),
     /** How the MVP is decided; Friendly game only. Omitted = players vote. */
     mvpMode: z.enum(MVP_MODES).optional(),
+    /** A label only: it gates no join. Omitted = no Gender tag. */
+    genderTag: z.enum(GAME_GENDER_TAGS).nullable().optional(),
     /** Only with a price above zero. */
     trackPayments: z.boolean().optional(),
     /** Football only: keepers owe nothing while payments are tracked. */
@@ -270,6 +273,7 @@ async function createFootballGameOnGroup(
       sideSize,
       playersAllowed: input.playersAllowed ?? 2 * sideSize,
       mvpMode: input.mvpMode,
+      genderTag: input.genderTag,
       levelMinTenths: input.levelMinTenths ?? null,
       levelMaxTenths: input.levelMaxTenths ?? null,
       trackPayments: input.trackPayments,
@@ -427,6 +431,7 @@ async function createPublicGame(
         sideSize,
         playersAllowed: input.playersAllowed ?? 2 * sideSize,
         mvpMode: input.mvpMode,
+        genderTag: input.genderTag,
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         trackPayments: input.trackPayments,
@@ -453,6 +458,7 @@ async function createPublicGame(
       levelMaxTenths: input.levelMaxTenths ?? null,
       ...flags,
       mvpMode: input.mvpMode,
+      genderTag: input.genderTag,
       trackPayments: input.trackPayments,
     },
     locale,
@@ -511,6 +517,7 @@ async function createGameOnGroup(
         rated,
         groupRated,
         mvpMode: input.mvpMode,
+        genderTag: input.genderTag,
         trackPayments: input.trackPayments,
       },
       locale,
@@ -556,6 +563,7 @@ async function createGameOnGroup(
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
+        genderTag: input.genderTag ?? null,
         rated,
         groupRated,
         createdBy: input.createdBy,

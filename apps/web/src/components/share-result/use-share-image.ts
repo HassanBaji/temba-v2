@@ -37,6 +37,7 @@ export function useShareImage({
   fileName,
   url,
   message,
+  failedMessage,
 }: {
   /** Renders the card to a PNG data URL. */
   capture: () => Promise<string>;
@@ -44,6 +45,8 @@ export function useShareImage({
   url: string | null;
   /** The text a Message share sends, read when the action runs. */
   message: () => string;
+  /** The toast for a failure with no message of its own. */
+  failedMessage?: string;
 }) {
   const locale = useLocale();
   const m = useMessages().webUi.shareResult;
@@ -56,7 +59,11 @@ export function useShareImage({
     setPending(action);
     void task()
       .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : m.shareFailed);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : (failedMessage ?? m.shareFailed),
+        );
       })
       .finally(() => setPending(null));
   }

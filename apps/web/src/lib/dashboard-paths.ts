@@ -226,6 +226,11 @@ export function gameBoardHref(gameId: string) {
   return `/dashboard/games/${gameId}/board`;
 }
 
+/** The Pick room of a Game's Captain pick (ADR-0109). */
+export function gamePickRoomHref(gameId: string) {
+  return `/dashboard/games/${gameId}/pick`;
+}
+
 export function gamePaymentsHref(gameId: string) {
   return `/dashboard/games/${gameId}/payments`;
 }

@@ -78,6 +78,16 @@ export const group = {
     joinedOpen: (joined: number) => `${joined} joined`,
     sideSpoken: (name: string, score: string) => `${name} ${score}`,
     card: (parts: string[]) => parts.join(". "),
+    social: {
+      finished: "Finished",
+      toCome: "Results to come",
+      players: (n: number) =>
+        plural("en", n, { one: "1 player", other: "{n} players" }),
+      teams: (n: number) =>
+        plural("en", n, { one: "1 team", other: "{n} teams" }),
+      wonBy: (name: string) => `Won by ${name}`,
+      youWonIt: "You won it",
+    },
   },
   empty: {
     standingAfterFirstResult: "Standings appear after the first result.",

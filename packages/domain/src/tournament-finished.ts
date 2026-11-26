@@ -530,6 +530,12 @@ export type TournamentTableCard = ShareCardBase & {
 
 export type TournamentShareCard = TournamentPlacingCard | TournamentTableCard;
 
+/**
+ * What a player who placed puts on the card: their own place, or the top of
+ * the table as someone who did not play would share it.
+ */
+export type TournamentShareFocus = "me" | "table";
+
 const TABLE_CARD_ROWS = 6;
 
 function placingCard(
@@ -624,17 +630,18 @@ function tableRows(
 
 /**
  * The square card a finished tournament shares: the viewer's placing, or the
- * final table (see `shareKindOf`).
+ * final table (see `shareKindOf`). With `focus` "table" it is always the table.
  */
 export function tournamentShareCard(
   game: FinishedGame,
   locale: Locale,
+  focus: TournamentShareFocus = "me",
 ): TournamentShareCard | null {
   if (!isTournamentFinished(game)) {
     return null;
   }
   if (isKingOfTheCourt(game.format, game.tournamentShape)) {
-    return kingShareCard(game, locale);
+    return kingShareCard(game, locale, focus);
   }
   const m = messagesFor(locale).tournamentRounds.shareCard;
   const podium = tournamentFinishedPodium(game, locale);
@@ -647,7 +654,7 @@ export function tournamentShareCard(
       game.venue?.name ?? null,
     ),
   };
-  if (shareKindOf(game, podium) === "placing") {
+  if (focus === "me" && shareKindOf(game, podium) === "placing") {
     const subject = podium.find(
       (row): row is FinishedPodiumRow & { place: number } =>
         row.isViewer && row.place != null,

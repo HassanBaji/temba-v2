@@ -31,6 +31,7 @@ import { ScorePair } from "../primitives/score-pair";
 import { Text } from "../primitives/text";
 import { useColors } from "../theme/theme-provider";
 import { CardFooter, CardShell, ChallengeMarker } from "./card-parts";
+import { GenderTag } from "./gender-tag";
 import { useNow } from "./use-now";
 
 export type FootballCardActions = {
@@ -219,7 +220,7 @@ function ResultBody({ game }: { game: HubGameRow }) {
   );
 }
 
-/** A Public Game says it counts for Temba Level; any Game says who may join. */
+/** A Public Game says it counts for Temba Level; any Game says who it is for and who may join. */
 function ScopeLine({ game }: { game: HubGameRow }) {
   const locale = useLocale();
   const tag = isPublicGame(game)
@@ -231,16 +232,35 @@ function ScopeLine({ game }: { game: HubGameRow }) {
     locale,
     game.sport,
   );
-  if (!tag && !range) {
+  if (!tag && !range && !game.genderTag) {
     return null;
   }
   return (
     <View
-      style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+      }}
     >
-      <Text size="meta" weight="semibold" numberOfLines={1}>
-        {tag ?? ""}
-      </Text>
+      <View
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          alignItems: "center",
+          flexShrink: 1,
+          columnGap: 8,
+          rowGap: 4,
+        }}
+      >
+        {tag ? (
+          <Text size="meta" weight="semibold" numberOfLines={1}>
+            {tag}
+          </Text>
+        ) : null}
+        <GenderTag genderTag={game.genderTag} />
+      </View>
       {range ? (
         <Text size="meta" tone="muted" numberOfLines={1}>
           {range}

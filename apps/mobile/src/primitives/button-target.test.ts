@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { buttonGeometry, type ButtonSize } from "./button-target";
 
 describe("buttonGeometry", () => {
-  it.each(["sm", "default", "lg", "icon"] as ButtonSize[])(
+  it.each(["sm", "default", "lg", "icon", "icon-lg"] as ButtonSize[])(
     "keeps the %s button touchable at the 44-point target",
     (size) => {
       const { height, hitSlop } = buttonGeometry(size);

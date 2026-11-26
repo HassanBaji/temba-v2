@@ -52,6 +52,7 @@ import type {
   HubListTournamentTeam,
 } from "#src/games/utils";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
+import type { GameGenderTag } from "@repo/domain/game-gender-tag";
 import { gameRatingScope } from "@repo/domain/game-rating-scope";
 
 export type HubListDb = DbClient;
@@ -77,6 +78,7 @@ export const hubListColumns = {
   format: true,
   registrationMode: true,
   sport: true,
+  genderTag: true,
   playersAllowed: true,
   teamsAllowed: true,
   poolCount: true,
@@ -217,6 +219,7 @@ export type HubQueryRow = {
   format: string;
   registrationMode: string;
   sport: string | null;
+  genderTag?: GameGenderTag | null;
   playersAllowed: number | null;
   teamsAllowed: number | null;
   poolCount: number | null;
@@ -728,6 +731,7 @@ export function toHubListRow(
     format: row.format,
     registrationMode: row.registrationMode,
     sport: row.sport,
+    genderTag: row.genderTag ?? null,
     isPublic: row.isPublic,
     rated: row.rated,
     ratingScope: gameRatingScope(row),
@@ -817,7 +821,7 @@ function isOpenMatch(match: HubQueryRow["matches"][number]) {
   return match.status !== "completed" && match.status !== "cancelled";
 }
 
-function poolTablesFromRow(
+export function poolTablesFromRow(
   row: HubQueryRow,
   viewerUserId: string,
   locale: Locale,

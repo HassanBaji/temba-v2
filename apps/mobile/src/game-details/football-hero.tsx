@@ -4,6 +4,7 @@ import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
 import type { footballHeroLines } from "@repo/domain/football-board";
+import { GenderTag } from "../games/gender-tag";
 import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
@@ -69,6 +70,7 @@ export function FootballHero({
   lines,
   tag,
   series,
+  genderTag,
   actions,
   children,
 }: {
@@ -77,6 +79,7 @@ export function FootballHero({
   series?: SeriesHeroLineSeries | null;
   /** "Challenge" on a Challenge Game: beside share, its format moved to the sub line. */
   tag?: string;
+  genderTag?: string | null;
   actions?: React.ReactNode;
   children?: React.ReactNode;
 }) {
@@ -113,11 +116,14 @@ export function FootballHero({
             <HeroTopLine
               left={lines.status}
               right={
-                !tag && lines.sizeTag ? (
-                  <Text size="eyebrow" tone="muted" mono>
-                    {lines.sizeTag}
-                  </Text>
-                ) : null
+                <>
+                  <GenderTag genderTag={genderTag} />
+                  {!tag && lines.sizeTag ? (
+                    <Text size="eyebrow" tone="muted" mono>
+                      {lines.sizeTag}
+                    </Text>
+                  ) : null}
+                </>
               }
             />
             {lines.time ? (

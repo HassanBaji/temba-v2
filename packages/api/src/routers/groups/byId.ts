@@ -36,9 +36,10 @@ import {
 
 import type {
   GroupMemberTierData,
+  GroupPlayedSocialData,
   GroupTierSummaryData,
 } from "@repo/domain/group-data";
-import { groupHasTier } from "@repo/domain/game-rating-scope";
+import { gameRatingScope, groupHasTier } from "@repo/domain/game-rating-scope";
 import {
   ratingSettingsLine,
   type GroupRatingSettings,
@@ -52,12 +53,38 @@ import { resolveAppUser } from "#src/auth/resolve-app-user";
 import { type db } from "#src/db";
 import { mayCreateGameOnGroup } from "#src/games/access";
 import {
+  americanoDayFinished,
+  americanoMatchState,
+  americanoResults,
+  loadAmericanoMatches,
+  loadAmericanoPlayers,
+} from "#src/games/americano-matches";
+import {
   applyViewerLevelRangeToHubRows,
   hubListColumns,
   hubListWith,
+  myTournamentFromRow,
+  poolTablesFromRow,
   toHubListRow,
   viewerHubContext,
+  type HubQueryRow,
 } from "#src/games/helpers/hub-list";
+import { americanoTable, isAmericano } from "@repo/domain/tournament-americano";
+import { americanoPlayedSummary } from "@repo/domain/tournament-americano-view";
+import {
+  isKingOfTheCourt,
+  kingFinalOrderOf,
+} from "@repo/domain/tournament-king";
+import {
+  kingFieldTeams,
+  kingPlayedSummary,
+} from "@repo/domain/tournament-king-view";
+import {
+  knockoutChampion,
+  postedKnockoutRounds,
+} from "@repo/domain/tournament-knockout-view";
+import { hasKnockout, isDrawnTournament } from "@repo/domain/tournament-rounds";
+import { tournamentMatchMinutes } from "@repo/domain/tournament-sizing";
 import { matchOutcome } from "@repo/domain/match-outcome";
 import { isFootballBib, type FootballBib } from "@repo/domain/football-lineup";
 import {
@@ -177,6 +204,10 @@ export type GroupPlayedGame = {
   scoredSets: { slot1GamesWon: number; slot2GamesWon: number }[];
   viewerSlot: 1 | 2 | null;
   outcome: "won" | "lost" | "draw" | null;
+  /** Set on a day with no Matches: its final order is posted. */
+  resultPosted?: boolean;
+  /** Set on the rows of the page sent, never on the ones only counted. */
+  social: GroupPlayedSocialData | null;
 };
 
 function slotBib(team: GroupSlotTeam): FootballBib | null {
@@ -265,6 +296,8 @@ function toGroupPlayedGame(
     windowEnd: Date | null;
     createdAt: Date;
     format: string;
+    tournamentShape: string | null;
+    finalOrderPostedAt: Date | null;
     sport: string | null;
     playersAllowed: number | null;
     players: readonly unknown[];
@@ -307,6 +340,216 @@ function toGroupPlayedGame(
     scoredSets,
     viewerSlot,
     outcome,
+    ...(isKingOfTheCourt(game.format, game.tournamentShape)
+      ? { resultPosted: game.finalOrderPostedAt != null }
+      : {}),
+    social: null,
+  };
+}
+
+type PlayedSocialRow = Omit<HubQueryRow, "teams"> & {
+  matchMinutes: number | null;
+  teams: (HubQueryRow["teams"][number] & {
+    startCourt: number | null;
+    finalPlace: number | null;
+    players: {
+      position: "left" | "right" | null;
+      gamePlayer: {
+        user: {
+          id: string;
+          name: string;
+          image: string | null;
+          guestAt?: Date | null;
+        } | null;
+      } | null;
+    }[];
+  })[];
+};
+
+function teamMemberNames(team: HubQueryRow["teams"][number]) {
+  return team.players.flatMap((link) =>
+    link.gamePlayer?.user ? [link.gamePlayer.user] : [],
+  );
+}
+
+function teamWinner(
+  game: PlayedSocialRow,
+  gameTeamId: string | null | undefined,
+  userId: string,
+): GroupPlayedSocialData["winner"] {
+  const team = game.teams.find((item) => item.id === gameTeamId);
+  const members = team ? teamMemberNames(team) : [];
+  return members.length > 0
+    ? {
+        names: members.map((member) => member.name),
+        isViewer: members.some((member) => member.id === userId),
+      }
+    : null;
+}
+
+async function americanoPlayedSocial(
+  database: DbClient,
+  game: PlayedSocialRow,
+  userId: string,
+  now: Date,
+): Promise<GroupPlayedSocialData | null> {
+  const [players, matchRows] = await Promise.all([
+    loadAmericanoPlayers(database, game.id),
+    loadAmericanoMatches(database, game.id),
+  ]);
+  if (matchRows.length === 0) {
+    return null;
+  }
+  const finished = americanoDayFinished(matchRows);
+  const table = americanoTable(
+    players.map((player) => player.gamePlayerId),
+    americanoResults(matchRows),
+  );
+  const viewer = players.find((player) => player.userId === userId);
+  const top = finished
+    ? players.find((player) => player.gamePlayerId === table[0]?.playerId)
+    : undefined;
+  return {
+    tournamentShape: game.tournamentShape,
+    entrantCount: players.length,
+    finished,
+    winner: top ? { names: [top.name], isViewer: top.userId === userId } : null,
+    americano: viewer
+      ? americanoPlayedSummary({
+          players,
+          matches: matchRows.map((row) => ({
+            roundNumber: row.roundNumber,
+            courtName: row.court?.name ?? null,
+            startTime: row.startTime,
+            state: americanoMatchState(row, now),
+            slot1PlayerIds: row.slot1,
+            slot2PlayerIds: row.slot2,
+            slot1GamesWon: row.sets[0]?.slot1GamesWon ?? null,
+            slot2GamesWon: row.sets[0]?.slot2GamesWon ?? null,
+          })),
+          table,
+          viewerGamePlayerId: viewer.gamePlayerId,
+          roundCount: game.roundCount ?? 0,
+          matchMinutes: tournamentMatchMinutes(game.matchMinutes),
+          finished,
+        })
+      : null,
+    myTournament: null,
+    king: null,
+    ratingScope: gameRatingScope(game),
+  };
+}
+
+/** Where each team finished; the king is first once the order is posted. */
+function kingPlayedSocial(
+  game: PlayedSocialRow,
+  userId: string,
+  locale: Locale,
+): GroupPlayedSocialData {
+  const gameTeams = game.teams.map((team) => ({
+    id: team.id,
+    sideIndex: team.sideIndex,
+    startCourt: team.startCourt,
+    finalPlace: team.finalPlace,
+    members: slotMembers(team, userId),
+  }));
+  const field = kingFieldTeams(gameTeams);
+  const posted = game.finalOrderPostedAt != null;
+  const king = posted ? kingFinalOrderOf(field).king : null;
+  return {
+    tournamentShape: game.tournamentShape,
+    entrantCount: field.length,
+    finished: posted,
+    winner:
+      king && king.members.length > 0
+        ? {
+            names: king.members.map((member) => member.name),
+            isViewer: king.members.some((member) => member.isViewer),
+          }
+        : null,
+    americano: null,
+    myTournament: null,
+    king: kingPlayedSummary(
+      {
+        teamsAllowed: game.teamsAllowed,
+        viewerUserId: userId,
+        finalOrderPostedAt: game.finalOrderPostedAt,
+        gameTeams,
+      },
+      locale,
+    ),
+    ratingScope: gameRatingScope(game),
+  };
+}
+
+/**
+ * A drawn Social's whole day for the Played list: who won it, and the
+ * viewer's own day where the Games hub has a Played card for it.
+ */
+async function playedSocial(
+  database: DbClient,
+  game: PlayedSocialRow,
+  userId: string,
+  now: Date,
+  locale: Locale,
+): Promise<GroupPlayedSocialData | null> {
+  if (
+    game.cancelledAt != null ||
+    game.drawPostedAt == null ||
+    !isDrawnTournament(game.format, game.poolCount, game.tournamentShape)
+  ) {
+    return null;
+  }
+  if (isKingOfTheCourt(game.format, game.tournamentShape)) {
+    return kingPlayedSocial(game, userId, locale);
+  }
+  if (isAmericano(game.format, game.tournamentShape)) {
+    return americanoPlayedSocial(database, game, userId, now);
+  }
+  const entrantCount = game.teams.filter(
+    (team) => teamMemberNames(team).length > 0,
+  ).length;
+  if (hasKnockout(game.format, game.tournamentShape)) {
+    const champion = knockoutChampion(
+      postedKnockoutRounds({
+        viewerUserId: userId,
+        locale,
+        gameTeams: game.teams.map((team) => ({
+          id: team.id,
+          name: null,
+          members: teamMemberNames(team),
+        })),
+        matches: game.matches.map((match) => ({
+          ...match,
+          courtName: match.court?.name ?? null,
+          result: matchOutcome(match.sets).result,
+        })),
+      }),
+    );
+    return {
+      tournamentShape: game.tournamentShape,
+      entrantCount,
+      finished: champion != null,
+      winner: teamWinner(game, champion?.gameTeamId, userId),
+      americano: null,
+      myTournament: null,
+      king: null,
+      ratingScope: gameRatingScope(game),
+    };
+  }
+  const tables = poolTablesFromRow(game, userId, locale);
+  const onlyPool = tables?.pools.length === 1 ? tables.pools[0] : undefined;
+  return {
+    tournamentShape: game.tournamentShape,
+    entrantCount,
+    finished: tables?.finished ?? false,
+    winner: onlyPool?.finished
+      ? teamWinner(game, onlyPool.winnerGameTeamId, userId)
+      : null,
+    americano: null,
+    myTournament: myTournamentFromRow(game, userId, locale),
+    king: null,
+    ratingScope: gameRatingScope(game),
   };
 }
 
@@ -767,9 +1010,36 @@ export async function groupById(
     // column set (`#src/games/helpers/hub-list`) and hands it to the same
     // `toHubListRow`. Matches carry their slot rosters and Sets on top, for
     // the W-L, form-mark and Played derivations below (spec §4, §6).
-    columns: hubListColumns,
+    columns: { ...hubListColumns, matchMinutes: true },
     with: {
       ...hubListWith,
+      teams: {
+        ...hubListWith.teams,
+        columns: {
+          ...hubListWith.teams.columns,
+          startCourt: true,
+          finalPlace: true,
+        },
+        with: {
+          players: {
+            ...hubListWith.teams.with.players,
+            with: {
+              gamePlayer: {
+                with: {
+                  user: {
+                    columns: {
+                      id: true,
+                      name: true,
+                      image: true,
+                      guestAt: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       matches: {
         columns: {
           id: true,
@@ -893,13 +1163,25 @@ export async function groupById(
     ? gameHistoryCandidates.findIndex((game) => game.id === historyCursor.id) +
       1
     : 0;
-  const gameHistory =
+  const gameHistoryPage =
     historyCursor && historyStart === 0
       ? []
       : gameHistoryCandidates.slice(
           historyStart,
           historyStart + (args.gameHistory?.limit ?? GROUP_GAME_HISTORY_LIMIT),
         );
+  const groupGameRowById = new Map(groupGameRows.map((row) => [row.id, row]));
+  const gameHistory = await Promise.all(
+    gameHistoryPage.map(async (game) => {
+      const row = groupGameRowById.get(game.id);
+      return {
+        ...game,
+        social: row
+          ? await playedSocial(database, row, args.userId, now, locale)
+          : null,
+      };
+    }),
+  );
 
   // Form marks derive over the Matches already loaded above
   // (`.scratch/groups-redesign/spec.md` §6.2). A cancelled Game never

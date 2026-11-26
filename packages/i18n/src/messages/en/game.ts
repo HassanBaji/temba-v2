@@ -526,6 +526,8 @@ export const game = {
     editCancelled: "Cannot edit a cancelled Game",
     notOpen: "This Game is not open for registration",
     organizerOnly: "Only an organizer can do that",
+    invitePlayersOnly:
+      "Only the organizer and players on this Game can share its Invite link",
     groupCreatorOrOrganizerCreates:
       "Only the Group creator or an Organizer can create a Game on this Group",
     groupMembersRegister: "Only Group members can register on this Game",

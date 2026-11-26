@@ -9,6 +9,7 @@ import {
   type PublicGameChoice,
 } from "~/app/dashboard/games/new/_parts/group-field";
 import { LevelBandRow } from "~/app/dashboard/games/new/_parts/level-band-row";
+import { GenderTagField } from "~/app/dashboard/games/new/_parts/gender-tag-field";
 import { MvpModeField } from "~/app/dashboard/games/new/_parts/mvp-mode-field";
 import {
   PaymentTrackingField,
@@ -71,6 +72,10 @@ import {
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
 import { gameRatingScopeLabel } from "@repo/domain/game-rating-scope";
+import {
+  gameGenderTagLabel,
+  type GameGenderTag,
+} from "@repo/domain/game-gender-tag";
 import { mvpModeCopy, type MvpMode } from "@repo/domain/marks";
 import { DEFAULT_SPORT, type Sport } from "@repo/domain/sport";
 
@@ -136,6 +141,8 @@ export function FriendlyGameSteps({
   onMvpMode,
   series,
   seriesReview,
+  genderTag,
+  onGenderTag,
 }: {
   sport?: Sport;
   sideSize: number;
@@ -200,6 +207,8 @@ export function FriendlyGameSteps({
   /** Shown only when the Group runs a Series the Game may join. */
   series: CreateSeriesChoice | null;
   seriesReview: string | null;
+  genderTag: GameGenderTag | null;
+  onGenderTag: (genderTag: GameGenderTag | null) => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -775,6 +784,12 @@ export function FriendlyGameSteps({
             onKeepersPlayFree={onKeepersPlayFree}
           />
 
+          <GenderTagField
+            idPrefix="game"
+            genderTag={genderTag}
+            onGenderTag={onGenderTag}
+          />
+
           <MvpModeField idPrefix="game" mode={mvpMode} onMode={onMvpMode} />
 
           {ratingShown ? (
@@ -816,6 +831,12 @@ export function FriendlyGameSteps({
               <ReviewRow
                 label={m.gamePayments.create.reviewLabel}
                 value={paymentReview}
+              />
+            ) : null}
+            {genderTag ? (
+              <ReviewRow
+                label={m.createGame.genderTag.title}
+                value={gameGenderTagLabel(genderTag, locale) ?? ""}
               />
             ) : null}
             <ReviewRow

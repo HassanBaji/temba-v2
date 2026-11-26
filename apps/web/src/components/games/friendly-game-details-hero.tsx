@@ -10,6 +10,7 @@ import {
   type FriendlyGameHeroModel,
 } from "@repo/domain/friendly-game-hero";
 
+import { GenderHeroTag } from "~/components/games/gender-tag";
 import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { HeroTopLine } from "~/components/games/hero-top-line";
 import { DividedFigurePair } from "~/components/home/home-all-time";
@@ -172,6 +173,7 @@ export function FriendlyGameDetailsHero({
   figures,
   tag,
   series,
+  genderTag,
   actions,
 }: {
   input: FriendlyGameHeroInput;
@@ -180,6 +182,7 @@ export function FriendlyGameDetailsHero({
   series?: SeriesHeroLineSeries | null;
   /** "Challenge" on a Challenge Game. */
   tag?: string;
+  genderTag?: string | null;
   /** Share and the Game's menu, top right across from back. */
   actions?: React.ReactNode;
 }) {
@@ -226,6 +229,11 @@ export function FriendlyGameDetailsHero({
                 label={model.statusLabel}
                 solid={model.phase !== "upcoming"}
               />
+            ) : null}
+            {genderTag ? (
+              <span className="ms-auto shrink-0">
+                <GenderHeroTag genderTag={genderTag} tone="ink" />
+              </span>
             ) : null}
           </div>
           {model.partnerName ? (

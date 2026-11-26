@@ -30,9 +30,9 @@ export const createGame = {
       }),
   },
   typeCards: {
-    countsNote: "ودية، لكنها تُحتسب في مستواك.",
+    countsNote: "كلاهما يُحتسب في مستواك.",
     friendlyGame: {
-      title: "مباراة ودية",
+      title: "مباراة",
       description: "مباراة واحدة، ويساعدك Temba في ملء الأماكن الشاغرة.",
       rating: "تُحتسب في مستواك",
     },
@@ -124,6 +124,13 @@ export const createGame = {
     marks: "الأوسمة",
     lockedNote: "النتيجة مؤكَّدة، لذا لا يمكن تغيير طريقة اختيار نجم المباراة.",
   },
+  genderTag: {
+    title: "الفئة",
+    men: "رجال فقط",
+    women: "سيدات فقط",
+    mixed: "مختلط",
+    help: "تظهر كوسم فقط، ولا تمنع أحدًا من الانضمام.",
+  },
   tournament: {
     defaultName: (day: string) => `سوشيال · ${day}`,
     defaultNameNoDay: "سوشيال",
@@ -159,6 +166,7 @@ export const createGame = {
   },
   format: {
     friendlyGame: "مباراة ودية",
+    rankedGame: "مباراة مصنّفة",
     americano: "أمريكانو",
     friendlyTournament: "سوشيال",
   },
@@ -248,6 +256,7 @@ export const createGame = {
       aside: "حجم الفريق",
       price: "السعر",
       levelRange: "نطاق المستوى",
+      genderTag: "الفئة",
       rounds: "الجولات",
       teams: "الفرق",
       courts: "الملاعب",

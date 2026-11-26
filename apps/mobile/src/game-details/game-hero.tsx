@@ -5,6 +5,7 @@ import { MoreVertical, Navigation, Share } from "lucide-react-native";
 import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
+import { GenderTag } from "../games/gender-tag";
 import { useMessages } from "../i18n/locale-provider";
 import { Button } from "../primitives/button";
 import { hairline } from "../primitives/hairline-width";
@@ -122,6 +123,7 @@ export function GameHero({
   figures,
   series,
   tag,
+  genderTag,
   onShare,
   onMore,
 }: {
@@ -131,6 +133,7 @@ export function GameHero({
   series?: SeriesHeroLineSeries | null;
   /** "Challenge" on a Challenge Game, beside share. */
   tag?: string;
+  genderTag?: string | null;
   onShare?: () => void;
   onMore?: () => void;
 }) {
@@ -175,7 +178,7 @@ export function GameHero({
             ) : undefined
           }
         />
-        <HeroBody model={model} />
+        <HeroBody model={model} genderTag={genderTag} />
         {model.kind !== "final" && place && (place.name || place.line) ? (
           <PlaceRow place={place} />
         ) : null}
@@ -188,7 +191,13 @@ export function GameHero({
   );
 }
 
-function HeroBody({ model }: { model: FriendlyGameHeroModel }) {
+function HeroBody({
+  model,
+  genderTag,
+}: {
+  model: FriendlyGameHeroModel;
+  genderTag?: string | null;
+}) {
   const m = useMessages();
   if (model.kind === "time_unset") {
     return (
@@ -256,6 +265,11 @@ function HeroBody({ model }: { model: FriendlyGameHeroModel }) {
             label={model.statusLabel}
             solid={model.phase !== "upcoming"}
           />
+        ) : null}
+        {genderTag ? (
+          <View style={{ marginStart: "auto" }}>
+            <GenderTag genderTag={genderTag} />
+          </View>
         ) : null}
       </View>
       {model.partnerName ? (
