@@ -856,6 +856,7 @@ function NewGameForm() {
         title={m.webDashboard.games.createAction}
         hidePageHeader
         hideMobileTopBar
+        hideNav
       >
         <CreateFlowSkeleton />
       </DashboardShell>
@@ -996,6 +997,7 @@ function NewGameForm() {
       title={m.webDashboard.games.createAction}
       hidePageHeader
       hideMobileTopBar
+      hideNav
     >
       <form
         onSubmit={(event) => {
@@ -1440,6 +1442,7 @@ export default function NewGamePage() {
           title={m.webDashboard.games.createAction}
           hidePageHeader
           hideMobileTopBar
+          hideNav
         >
           <CreateFlowSkeleton />
         </DashboardShell>
