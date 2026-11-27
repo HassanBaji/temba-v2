@@ -1,9 +1,15 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 
 import {
   ACTION_MENU_PAPER_BOXED_TRIGGER,
@@ -11,15 +17,17 @@ import {
   ActionMenuItem,
 } from "~/components/common/action-menu";
 import { ConfirmDialog } from "~/components/common/confirm-dialog";
-import { EntityMonogram } from "~/components/common/entity-monogram";
 import { ErrorState } from "~/components/common/error-state";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Hatch } from "~/components/ui/hatch";
 import { BackButton } from "~/components/ui/nav-icon-button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Surface } from "~/components/ui/surface";
 import { YouCard, YouSection } from "~/components/you/you-section";
+import { initials } from "@repo/domain/initials";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
+import type { SeriesColour, SeriesEmblem } from "@repo/domain/series";
 import { groupHomeHref, groupSeriesHref } from "~/lib/dashboard-paths";
 import { cn } from "~/lib/utils";
 import { api } from "~/trpc/react";
@@ -27,16 +35,118 @@ import { api } from "~/trpc/react";
 import { SeriesBadge } from "./series-badge";
 import {
   SERIES_PAGE_ROWS,
+  seriesEndConfirmation,
   seriesPageModel,
   type SeriesEditionRow,
   type SeriesFigure,
+  type SeriesHolders,
+  type SeriesNextCard,
   type SeriesPageData,
   type SeriesPageExpanded,
+  type SeriesPerson,
   type SeriesWinnerRow,
+  type SeriesYouCard,
 } from "./series-page-model";
 
 const rowLink =
   "hover:bg-wash focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px] focus-visible:ring-inset";
+
+type SquareSize = "lg" | "md" | "sm";
+
+const SQUARE_SIZE: Record<SquareSize, string> = {
+  lg: "size-9 rounded-[10px] text-eyebrow",
+  md: "size-8.5 rounded-[9px] text-eyebrow",
+  sm: "size-7 rounded-lg text-[10px]",
+};
+
+/** A player's photo, or their initials; solid for the viewer. */
+function PersonSquare({
+  person,
+  size,
+  surface = "paper",
+  className,
+}: {
+  person: SeriesPerson;
+  size: SquareSize;
+  surface?: "paper" | "focus";
+  className?: string;
+}) {
+  const src = person.image && person.image.length > 0 ? person.image : null;
+  return (
+    <Avatar
+      aria-hidden="true"
+      className={cn(
+        "border font-semibold",
+        SQUARE_SIZE[size],
+        person.isViewer
+          ? "border-ink bg-ink text-paper"
+          : surface === "focus"
+            ? "border-dimrule bg-raised text-on-focus"
+            : "border-rule bg-paper text-ink",
+        className,
+      )}
+    >
+      {src ? <AvatarImage alt="" src={src} /> : null}
+      <AvatarFallback className="rounded-[inherit] bg-transparent text-current [font-size:inherit]">
+        {initials(person.name)}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
+function Squares({
+  people,
+  size,
+  surface,
+}: {
+  people: SeriesPerson[];
+  size: SquareSize;
+  surface?: "paper" | "focus";
+}) {
+  return (
+    <span className="flex shrink-0">
+      {people.map((person, index) => (
+        <PersonSquare
+          key={person.key}
+          person={person}
+          size={size}
+          surface={surface}
+          className={index > 0 ? "-ms-[5px]" : undefined}
+        />
+      ))}
+    </span>
+  );
+}
+
+/** One small Series badge per win, up to three, then the count alone. */
+function WinTally({
+  emblem,
+  colour,
+  badges,
+  wins,
+  winsSpoken,
+}: {
+  emblem: SeriesEmblem;
+  colour: SeriesColour;
+  badges: number;
+  wins: string;
+  winsSpoken: string;
+}) {
+  return (
+    <span className="flex shrink-0 items-center gap-[3px]">
+      {Array.from({ length: badges }, (_, index) => (
+        <SeriesBadge key={index} emblem={emblem} colour={colour} size="tally" />
+      ))}
+      <span
+        aria-hidden="true"
+        className="font-expanded text-title ms-[5px] min-w-3 text-end font-bold tabular-nums"
+      >
+        {wins}
+      </span>
+      <span className="sr-only">{winsSpoken}</span>
+    </span>
+  );
+}
 
 function Header({ backHref, menu }: { backHref: string; menu: ReactNode }) {
   const m = useMessages();
@@ -56,23 +166,51 @@ function Figures({ figures }: { figures: SeriesFigure[] }) {
         <div
           key={figure.label}
           className={cn(
-            "flex min-w-0 flex-col-reverse",
-            index > 0 && "border-dimrule border-s ps-4",
+            "flex min-w-0 flex-col-reverse justify-end",
+            index > 0 && "border-dimrule border-s ps-3.5",
           )}
         >
-          <dt className="text-eyebrow text-dim">{figure.label}</dt>
-          <dd className="font-expanded text-h2 truncate">{figure.value}</dd>
+          <dt className="text-eyebrow text-dim mt-1 leading-[1.3]">
+            {figure.label}
+          </dt>
+          <dd className="font-expanded text-h2 truncate leading-none">
+            {figure.value}
+          </dd>
         </div>
       ))}
     </dl>
   );
 }
 
+function Holders({ holders }: { holders: SeriesHolders }) {
+  const m = useMessages();
+  return (
+    <div className="border-dimrule flex items-center gap-3 border-t pt-3.5">
+      <Squares people={holders.people} size="lg" surface="focus" />
+      <div className="min-w-0 flex-1">
+        <p className="text-eyebrow text-dim">{m.series.page.holders}</p>
+        <ul className="text-body mt-0.5 font-semibold leading-tight">
+          {holders.names.map((name, index) => (
+            <li key={`${index}-${name}`} className="break-words">
+              {name}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <p className="text-eyebrow text-dim w-16 shrink-0 text-end leading-[1.4]">
+        {holders.since}
+      </p>
+    </div>
+  );
+}
+
 function SeriesCard({
   series,
+  holders,
   figures,
 }: {
   series: SeriesPageData;
+  holders: SeriesHolders | null;
   figures: SeriesFigure[];
 }) {
   return (
@@ -85,7 +223,9 @@ function SeriesCard({
           surface="focus"
         />
         <div className="min-w-0">
-          <h1 className="font-expanded text-h1 break-words">{series.name}</h1>
+          <h1 className="font-expanded text-h1 break-words leading-[1.05]">
+            {series.name}
+          </h1>
           <Link
             href={groupHomeHref(series.group.id)}
             className="text-meta text-dim focus-visible:ring-ring/50 rounded-xs mt-1.5 inline-block outline-none hover:underline focus-visible:ring-[3px]"
@@ -94,8 +234,66 @@ function SeriesCard({
           </Link>
         </div>
       </div>
+      {holders ? <Holders holders={holders} /> : null}
       <Figures figures={figures} />
     </Surface>
+  );
+}
+
+function NextEditionCard({ next }: { next: SeriesNextCard }) {
+  return (
+    <YouCard className="flex items-stretch">
+      <div className="border-rule relative flex w-[62px] shrink-0 flex-col items-center justify-center gap-0.5 border-e">
+        <Hatch className="absolute inset-0" />
+        <span className="text-muted-foreground bg-paper rounded-xs relative px-1 text-[10px]">
+          {next.editionWord}
+        </span>
+        <span className="font-expanded bg-paper relative rounded-md px-1.5 text-[22px] font-bold tabular-nums leading-tight">
+          {next.edition}
+        </span>
+      </div>
+      <div className="min-w-0 flex-1 px-3 py-[13px]">
+        <p className="text-[14px] font-semibold">{next.title}</p>
+        <p className="text-eyebrow text-muted-foreground mt-0.5 leading-[1.45]">
+          {next.line}
+        </p>
+      </div>
+      <Link
+        href={next.href}
+        className="bg-ink text-paper hover:bg-ink/90 focus-visible:ring-ring/50 me-3 inline-flex h-10 shrink-0 items-center self-center whitespace-nowrap rounded-[11px] px-3.5 text-[13px] font-semibold outline-none focus-visible:ring-[3px]"
+      >
+        {next.action}
+      </Link>
+    </YouCard>
+  );
+}
+
+function YouInSeries({
+  you,
+  emblem,
+  colour,
+}: {
+  you: SeriesYouCard;
+  emblem: SeriesEmblem;
+  colour: SeriesColour;
+}) {
+  return (
+    <YouCard className="flex items-center gap-3 px-4 py-[13px]">
+      <PersonSquare person={you.person} size="lg" />
+      <div className="min-w-0 flex-1">
+        <p className="text-[14px] font-semibold">{you.title}</p>
+        <p className="text-eyebrow text-muted-foreground leading-[1.45]">
+          {you.line}
+        </p>
+      </div>
+      <WinTally
+        emblem={emblem}
+        colour={colour}
+        badges={you.badges}
+        wins={you.wins}
+        winsSpoken={you.winsSpoken}
+      />
+    </YouCard>
   );
 }
 
@@ -149,7 +347,15 @@ function FoldedList({
   );
 }
 
-function WinnerRow({ row }: { row: SeriesWinnerRow }) {
+function WinnerRow({
+  row,
+  emblem,
+  colour,
+}: {
+  row: SeriesWinnerRow;
+  emblem: SeriesEmblem;
+  colour: SeriesColour;
+}) {
   return (
     <li>
       <Link
@@ -160,59 +366,70 @@ function WinnerRow({ row }: { row: SeriesWinnerRow }) {
           rowLink,
         )}
       >
-        <EntityMonogram
-          name={row.name}
-          image={row.image}
-          size="md"
-          tone={row.isViewer ? "control" : "muted"}
-        />
+        <span
+          aria-hidden="true"
+          className="text-muted-foreground w-4 shrink-0 font-mono text-[11px] tabular-nums"
+        >
+          {row.rank}
+        </span>
+        <span className="sr-only">{row.rankSpoken}</span>
+        <PersonSquare person={row.person} size="md" />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[14px] font-semibold">
+          <span className="block truncate text-[14px] font-semibold leading-tight">
             {row.name}
           </span>
           <span className="text-eyebrow text-muted-foreground block truncate">
             {row.line}
           </span>
         </span>
-        <span
-          aria-hidden="true"
-          className="font-expanded text-title shrink-0 font-bold tabular-nums"
-        >
-          {row.wins}
-        </span>
-        <span className="sr-only">{row.winsSpoken}</span>
+        <WinTally
+          emblem={emblem}
+          colour={colour}
+          badges={row.badges}
+          wins={row.wins}
+          winsSpoken={row.winsSpoken}
+        />
       </Link>
     </li>
   );
 }
 
 function EditionRow({ row }: { row: SeriesEditionRow }) {
-  const chip = row.hatched ? "bg-paper rounded-xs px-[5px] py-px" : null;
   return (
     <li>
       <Link
         href={row.href}
-        className={cn("relative flex items-center gap-3 px-4 py-3", rowLink)}
+        className={cn("flex items-center gap-3 py-3 pe-3.5 ps-4", rowLink)}
       >
-        {row.hatched ? <Hatch className="absolute inset-0" /> : null}
         <span
           aria-hidden="true"
-          className="text-eyebrow text-muted-foreground relative min-w-[22px] shrink-0 font-mono tabular-nums"
+          className="font-expanded w-[26px] shrink-0 text-[18px] font-bold tabular-nums"
         >
           {row.edition}
         </span>
         <span className="sr-only">{row.editionSpoken}</span>
-        <span className="relative min-w-0 flex-1 truncate text-[14px] font-semibold">
-          {chip ? <span className={chip}>{row.line}</span> : row.line}
+        {row.people.length > 0 ? (
+          <Squares people={row.people} size="sm" />
+        ) : null}
+        <span className="min-w-0 flex-1">
+          {row.names.map((name, index) => (
+            <span
+              key={`${index}-${name}`}
+              className="block truncate text-[14px] font-semibold leading-tight"
+            >
+              {name}
+            </span>
+          ))}
+          {row.meta ? (
+            <span className="text-eyebrow text-muted-foreground mt-0.5 block truncate">
+              {row.meta}
+            </span>
+          ) : null}
         </span>
-        <span
-          className={cn(
-            "text-eyebrow text-muted-foreground relative shrink-0",
-            chip,
-          )}
-        >
-          {row.date}
-        </span>
+        <ChevronRight
+          aria-hidden="true"
+          className="text-muted-foreground size-4 shrink-0 rtl:-scale-x-100"
+        />
       </Link>
     </li>
   );
@@ -220,10 +437,10 @@ function EditionRow({ row }: { row: SeriesEditionRow }) {
 
 function SeriesPageSkeleton() {
   return (
-    <div aria-busy="true" className="flex flex-col gap-[26px]">
-      <Skeleton className="h-[200px] w-full rounded-xl" />
+    <div aria-busy="true" className="flex flex-col gap-[22px]">
+      <Skeleton className="h-[280px] w-full rounded-xl" />
+      <Skeleton className="rounded-card h-[140px] w-full" />
       <Skeleton className="rounded-card h-[240px] w-full" />
-      <Skeleton className="rounded-card h-[200px] w-full" />
     </div>
   );
 }
@@ -245,7 +462,113 @@ function SeriesPageFrame({
   );
 }
 
-/** The Series page (3b): the badge and Group, Most wins, every Edition. */
+/**
+ * The Series page (design 05) for the data of `series.byId`: the holders,
+ * the next Edition, the viewer's line, Winners and the decided Editions.
+ */
+export function SeriesPageView({
+  series,
+  now,
+  menuRef,
+  onEnd,
+}: {
+  series: SeriesPageData;
+  now?: Date;
+  menuRef?: RefObject<HTMLButtonElement | null>;
+  onEnd?: () => void;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const [expanded, setExpanded] = useState<SeriesPageExpanded>({
+    winners: false,
+    editions: false,
+  });
+  const model = seriesPageModel(series, expanded, locale, now);
+  const end = model.end;
+
+  return (
+    <SeriesPageFrame
+      backHref={groupHomeHref(series.group.id)}
+      menu={
+        end && onEnd ? (
+          <ActionMenu
+            label={m.series.page.actions}
+            triggerRef={menuRef}
+            triggerClassName={ACTION_MENU_PAPER_BOXED_TRIGGER}
+          >
+            <ActionMenuItem variant="destructive" onSelect={onEnd}>
+              {end.confirm}
+            </ActionMenuItem>
+          </ActionMenu>
+        ) : null
+      }
+    >
+      <div className="flex flex-col gap-[22px]">
+        <SeriesCard
+          series={series}
+          holders={model.holders}
+          figures={model.figures}
+        />
+
+        <div className="flex flex-col gap-2">
+          {model.next ? <NextEditionCard next={model.next} /> : null}
+          <YouInSeries
+            you={model.you}
+            emblem={series.emblem}
+            colour={series.colour}
+          />
+        </div>
+
+        {model.winners ? (
+          <YouSection title={m.series.page.winners} meta={model.winners.meta}>
+            <FoldedList
+              more={model.winners.more}
+              onExpand={() =>
+                setExpanded((current) => ({ ...current, winners: true }))
+              }
+            >
+              {model.winners.rows.map((row) => (
+                <WinnerRow
+                  key={row.userId}
+                  row={row}
+                  emblem={series.emblem}
+                  colour={series.colour}
+                />
+              ))}
+            </FoldedList>
+          </YouSection>
+        ) : null}
+
+        {model.editions ? (
+          <YouSection title={m.series.page.editions} meta={model.editions.meta}>
+            <FoldedList
+              more={model.editions.more}
+              onExpand={() =>
+                setExpanded((current) => ({ ...current, editions: true }))
+              }
+            >
+              {model.editions.rows.map((row) => (
+                <EditionRow key={row.gameId} row={row} />
+              ))}
+            </FoldedList>
+          </YouSection>
+        ) : null}
+
+        {model.empty ? (
+          <YouSection title={m.series.page.editions}>
+            <YouCard>
+              <p className="text-meta text-muted-foreground px-4 py-4">
+                {model.empty}
+              </p>
+            </YouCard>
+          </YouSection>
+        ) : null}
+      </div>
+    </SeriesPageFrame>
+  );
+}
+
+/** The Series page: loads `series.byId` and ends the Series from its menu. */
 export function SeriesPage({ id }: { id: string }) {
   const m = useMessages();
   const locale = useLocale();
@@ -254,10 +577,6 @@ export function SeriesPage({ id }: { id: string }) {
   const query = api.series.byId.useQuery({ id });
   const endSeries = api.series.end.useMutation();
   const menuRef = useRef<HTMLButtonElement>(null);
-  const [expanded, setExpanded] = useState<SeriesPageExpanded>({
-    winners: false,
-    editions: false,
-  });
   const [ending, setEnding] = useState(false);
 
   if (isNotFoundError(query.error)) {
@@ -283,9 +602,7 @@ export function SeriesPage({ id }: { id: string }) {
   }
 
   const series = query.data;
-  const groupHref = groupHomeHref(series.group.id);
-  const model = seriesPageModel(series, expanded, locale);
-  const end = model.end;
+  const end = seriesEndConfirmation(series, locale);
 
   async function confirmEnd() {
     const result = await endSeries.mutateAsync({ id });
@@ -303,68 +620,12 @@ export function SeriesPage({ id }: { id: string }) {
   }
 
   return (
-    <SeriesPageFrame
-      backHref={groupHref}
-      menu={
-        end ? (
-          <ActionMenu
-            label={m.series.page.actions}
-            triggerRef={menuRef}
-            triggerClassName={ACTION_MENU_PAPER_BOXED_TRIGGER}
-          >
-            <ActionMenuItem
-              variant="destructive"
-              onSelect={() => setEnding(true)}
-            >
-              {end.confirm}
-            </ActionMenuItem>
-          </ActionMenu>
-        ) : null
-      }
-    >
-      <div className="flex flex-col gap-[26px]">
-        <SeriesCard series={series} figures={model.figures} />
-
-        {model.mostWins ? (
-          <YouSection title={m.series.page.mostWins} meta={model.mostWins.of}>
-            <FoldedList
-              more={model.mostWins.more}
-              onExpand={() =>
-                setExpanded((current) => ({ ...current, winners: true }))
-              }
-            >
-              {model.mostWins.rows.map((row) => (
-                <WinnerRow key={row.userId} row={row} />
-              ))}
-            </FoldedList>
-          </YouSection>
-        ) : null}
-
-        <YouSection
-          title={m.series.page.editions}
-          meta={model.editions ? m.series.page.newestFirst : undefined}
-        >
-          {model.editions ? (
-            <FoldedList
-              more={model.editions.more}
-              onExpand={() =>
-                setExpanded((current) => ({ ...current, editions: true }))
-              }
-            >
-              {model.editions.rows.map((row) => (
-                <EditionRow key={row.gameId} row={row} />
-              ))}
-            </FoldedList>
-          ) : (
-            <YouCard>
-              <p className="text-meta text-muted-foreground px-4 py-4">
-                {model.empty}
-              </p>
-            </YouCard>
-          )}
-        </YouSection>
-      </div>
-
+    <>
+      <SeriesPageView
+        series={series}
+        menuRef={menuRef}
+        onEnd={() => setEnding(true)}
+      />
       {end ? (
         <ConfirmDialog
           open={ending}
@@ -377,6 +638,6 @@ export function SeriesPage({ id }: { id: string }) {
           restoreFocusRef={menuRef}
         />
       ) : null}
-    </SeriesPageFrame>
+    </>
   );
 }

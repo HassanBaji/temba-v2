@@ -171,6 +171,15 @@ describe("loadSeriesEditions", () => {
     expect(new Set(edition?.seatedUserIds)).toEqual(
       new Set([f.qasim.id, f.ahmed.id, f.layla.id, f.guest.id]),
     );
+    expect(new Set(edition?.playedUserIds)).toEqual(
+      new Set(edition?.seatedUserIds),
+    );
+    expect(edition).toMatchObject({
+      teamCount: 2,
+      playerCount: 4,
+      winnerPoints: null,
+    });
+    expect(edition?.game.venueName).toBe("Seef Padel");
   });
 
   it("leaves an undecided Edition without a score or a moment", async () => {
@@ -279,5 +288,7 @@ describe("loadSeriesEditions", () => {
     expect(won?.winners.map((winner) => winner.name)).toEqual([
       players[4]!.name,
     ]);
+    expect(won).toMatchObject({ winnerPoints: 16, playerCount: 8 });
+    expect(won?.playedUserIds).toHaveLength(8);
   });
 });

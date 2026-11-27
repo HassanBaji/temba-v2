@@ -10,7 +10,9 @@ import {
   SERIES_NAME_MAX_LENGTH,
   carriesSeries,
   seriesNameError,
+  seriesSmallBadgeCount,
   seriesWinRule,
+  seriesWinnerRanks,
   type SeriesCarrierGame,
 } from "./series";
 
@@ -136,5 +138,21 @@ describe("seriesWinRule", () => {
     ["an Americano", social("americano", null), "americano"],
   ] as const)("reads the rule of %s", (_kind, game, rule) => {
     expect(seriesWinRule(game)).toBe(rule);
+  });
+});
+
+describe("seriesSmallBadgeCount", () => {
+  it("draws one small badge per win up to three, then none", () => {
+    expect([0, 1, 2, 3, 4, 12].map(seriesSmallBadgeCount)).toEqual([
+      0, 1, 2, 3, 0, 0,
+    ]);
+  });
+});
+
+describe("seriesWinnerRanks", () => {
+  it("lets ties share a rank and skips the places they take", () => {
+    expect(seriesWinnerRanks([3, 3, 2, 2, 1])).toEqual([1, 1, 3, 3, 5]);
+    expect(seriesWinnerRanks([1, 1])).toEqual([1, 1]);
+    expect(seriesWinnerRanks([])).toEqual([]);
   });
 });

@@ -1,4 +1,4 @@
-import { and, asc, inArray, isNotNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
 
 import {
   americanoFixedPairs,
@@ -7,8 +7,11 @@ import {
   games,
   matchSets,
   matches,
+  venues,
   type DbClient as RepoDbClient,
 } from "@repo/db";
+
+import { DEFAULT_LOCALE } from "@repo/i18n/locale";
 
 import {
   DEFAULT_FOOTBALL_BIBS,
@@ -16,12 +19,19 @@ import {
 } from "@repo/domain/football-lineup";
 import { isFootballGame } from "@repo/domain/game-shape";
 import { MATCH_STATUS } from "@repo/domain/match-status";
+import { computePoolTables } from "@repo/domain/pool-table";
+import { seriesWinRule } from "@repo/domain/series";
 import {
   seriesEditionResult,
   type SeriesEditionResult,
   type SeriesResultAmericano,
+  type SeriesResultGame,
 } from "@repo/domain/series-result";
-import { isAmericano } from "@repo/domain/tournament-americano";
+import {
+  americanoTable,
+  americanoWinners,
+  isAmericano,
+} from "@repo/domain/tournament-americano";
 
 import { type db } from "#src/db";
 import {
@@ -63,6 +73,9 @@ export type SeriesEdition = {
     name: string | null;
     windowStart: Date | null;
     windowEnd: Date | null;
+    venueName: string | null;
+    playersAllowed: number | null;
+    teamsAllowed: number | null;
   };
   edition: number;
   result: SeriesEditionResult;
@@ -78,6 +91,12 @@ export type SeriesEdition = {
   /** When the result was read as decided: the latest completed Match, or the posted Final order. */
   decidedAt: Date | null;
   seatedUserIds: string[];
+  /** Who played it: on a Game team (a Football side included), or in an Americano seat. */
+  playedUserIds: string[];
+  teamCount: number;
+  playerCount: number;
+  /** The winners' points on a won Rounds table, or their games won on a won Americano. */
+  winnerPoints: number | null;
 };
 
 function groupBy<Row, Key>(rows: readonly Row[], keyOf: (row: Row) => Key) {
@@ -110,12 +129,56 @@ async function loadGames(database: DbClient, scope: SeriesEditionsScope) {
       name: games.name,
       windowStart: games.windowStart,
       windowEnd: games.windowEnd,
+      venueName: venues.name,
+      playersAllowed: games.playersAllowed,
+      teamsAllowed: games.teamsAllowed,
       cancelledAt: games.cancelledAt,
       drawPostedAt: games.drawPostedAt,
       finalOrderPostedAt: games.finalOrderPostedAt,
     })
     .from(games)
+    .leftJoin(venues, eq(venues.id, games.venueId))
     .where(and(inScope, isNotNull(games.seriesId), isEdition));
+}
+
+function winnerPoints(
+  game: SeriesResultGame,
+  result: SeriesEditionResult,
+): number | null {
+  if (result.state !== "won") {
+    return null;
+  }
+  const rule = seriesWinRule(game);
+  if (rule === "americano" && game.americano) {
+    const [winner] = americanoWinners(
+      americanoTable(
+        game.americano.playerIds,
+        game.americano.results,
+        game.americano.fixedPairs,
+      ),
+    );
+    return winner?.gamesWon ?? null;
+  }
+  if (rule !== "table") {
+    return null;
+  }
+  const tables = computePoolTables({
+    format: game.format,
+    poolCount: game.poolCount,
+    gameTeams: game.gameTeams.map((team) => ({
+      id: team.id,
+      name: null,
+      sideIndex: team.sideIndex,
+      poolIndex: team.poolIndex,
+      members: [],
+    })),
+    matches: game.matches,
+    viewerUserId: "",
+    locale: DEFAULT_LOCALE,
+    storedRoundCount: game.roundCount,
+  });
+  const winner = tables?.pools[0]?.rows.find((row) => row.isWinner);
+  return winner?.points ?? null;
 }
 
 function latest(dates: readonly (Date | null)[]) {
@@ -131,7 +194,8 @@ function latest(dates: readonly (Date | null)[]) {
 /**
  * Every Edition of the given Series, or of the given Games, that is not
  * cancelled, with its number, its result (`seriesEditionResult`) and what the
- * Series reads need around it. Six queries however many Games: the Games,
+ * Series reads need around it. Six queries however many Games: the Games
+ * with their Venue,
  * their Series' numbering, Game teams, Game players with Users, Matches with
  * Sets and Americano seats, and Americano fixed pairs.
  */
@@ -246,12 +310,13 @@ export async function loadSeriesEditions(
       };
     }
 
-    const result = seriesEditionResult({
+    const resultGame = {
       ...game,
       gameTeams: teams,
       matches: gameMatches,
       americano,
-    });
+    };
+    const result = seriesEditionResult(resultGame);
     const decided = result.state !== "upcoming";
     const winningTeams =
       result.state === "won"
@@ -284,6 +349,9 @@ export async function loadSeriesEditions(
             ? DEFAULT_FOOTBALL_BIBS.slot2
             : DEFAULT_FOOTBALL_BIBS.slot1))
         : null;
+    const seatedUserIds = [
+      ...new Set(players.flatMap((row) => (row.userId ? [row.userId] : []))),
+    ];
     const single =
       game.format === "friendly_game"
         ? (gameMatches.find(
@@ -303,6 +371,9 @@ export async function loadSeriesEditions(
           name: game.name,
           windowStart: game.windowStart,
           windowEnd: game.windowEnd,
+          venueName: game.venueName,
+          playersAllowed: game.playersAllowed,
+          teamsAllowed: game.teamsAllowed,
         },
         edition,
         result,
@@ -320,11 +391,13 @@ export async function loadSeriesEditions(
           ? (game.finalOrderPostedAt ??
             latest(gameMatches.map((match) => match.completedAt)))
           : null,
-        seatedUserIds: [
-          ...new Set(
-            players.flatMap((row) => (row.userId ? [row.userId] : [])),
-          ),
-        ],
+        seatedUserIds,
+        playedUserIds: americano
+          ? seatedUserIds
+          : [...new Set(teams.flatMap((team) => team.userIds))],
+        teamCount: teams.length,
+        playerCount: players.length,
+        winnerPoints: winnerPoints(resultGame, result),
       },
     ];
   });

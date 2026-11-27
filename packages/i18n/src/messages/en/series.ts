@@ -172,27 +172,64 @@ export const series = {
   page: {
     title: "Series",
     loadError: "This series could not be loaded",
-    played: (n: number) => plural("en", n, { one: "played", other: "played" }),
-    differentWinners: (n: number) =>
+    editionsPlayed: (n: number) =>
+      plural("en", n, { one: "edition played", other: "editions played" }),
+    playersWon: (n: number) =>
       plural("en", n, {
-        one: "different winner",
-        other: "different winners",
+        one: "player has won it",
+        other: "players have won it",
       }),
     runningSince: "running since",
     ended: "ended",
-    mostWins: "Most wins",
-    of: (played: number) => `of ${played}`,
+    holders: "Holders",
+    sinceEdition: (edition: number) => `since edition ${edition}`,
+    holdersLabel: (names: readonly string[], edition: number) =>
+      `Holders: ${names.join(", ")}, since edition ${edition}`,
+    nextOn: (edition: number, day: string) => `Edition ${edition}, ${day}`,
+    nextLive: (edition: number) => `Edition ${edition} is on now`,
+    nextAwaiting: (edition: number) =>
+      `Edition ${edition} is waiting for its result`,
+    nextWhere: (time: string, venue: string) => `${time}, ${venue}`,
+    nextFill: (taken: number, capacity: number | null) =>
+      capacity === null ? `${taken} in` : `${taken} of ${capacity} in`,
+    nextWhen: (day: string, time: string) => `${day}, ${time}`,
+    becomeHolders: "Winners become holders",
+    sentences: (parts: readonly string[]) =>
+      parts.map((part) => `${part}.`).join(" "),
+    openGame: "Open game",
+    you: "You in this series",
+    youWon: (wins: number, played: number, lastEdition: number) =>
+      `Won ${wins} of ${played} played. Last in edition ${lastEdition}.`,
+    youPlayed: (played: number, decided: number) =>
+      `Played ${played} of ${decided}. No win yet.`,
+    youNotPlayed: "Not played yet.",
+    winners: "Winners",
+    winnersMeta: (n: number) =>
+      plural("en", n, { one: "{n} edition so far", other: "{n} editions" }),
+    rank: (n: number) => `Rank ${n}`,
+    viewerName: (name: string) => `${name} (You)`,
+    wonEdition: (edition: number) => `Won edition ${edition}`,
     lastWon: (edition: number) => `Last won edition ${edition}`,
-    youLastWon: (edition: number) => `You. Last won edition ${edition}`,
     wins: (n: number) => plural("en", n, { one: "{n} win", other: "{n} wins" }),
     allWinners: (n: number) =>
       plural("en", n, { one: "All {n} winner", other: "All {n} winners" }),
     editions: "Editions",
     newestFirst: "newest first",
+    editionsMeta: (n: number) =>
+      plural("en", n, { one: "{n} played", other: "{n} played" }),
     edition: (edition: number) => `Edition ${edition}`,
-    notPlayedYet: "Not played yet",
-    noResultYet: "No result yet",
     nobodyWon: "Nobody won",
+    teams: (n: number) =>
+      plural("en", n, { one: "{n} team", other: "{n} teams" }),
+    players: (n: number) =>
+      plural("en", n, { one: "{n} player", other: "{n} players" }),
+    points: (n: number) =>
+      plural("en", n, { one: "{n} point", other: "{n} points" }),
+    gamesWon: (n: number) =>
+      plural("en", n, { one: "{n} game won", other: "{n} games won" }),
+    fieldWithPoints: (field: string, points: string) => `${field}, ${points}`,
+    score: (winner: number, loser: number) => `${winner}–${loser}`,
+    editionMeta: (day: string, field: string) => `${day}. ${field}`,
     allEditions: (n: number) =>
       plural("en", n, { one: "All {n} edition", other: "All {n} editions" }),
     empty:

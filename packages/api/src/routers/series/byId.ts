@@ -1,10 +1,13 @@
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
+import { user } from "@repo/db";
 import { DEFAULT_LOCALE, type Locale } from "@repo/i18n/locale";
 import { messagesFor } from "@repo/i18n/messages";
 
 import { sportOrDefault } from "@repo/domain/sport";
+import { isAmericano } from "@repo/domain/tournament-americano";
 
 import { protectedProcedure } from "#src/trpc";
 import { resolveAppUser } from "#src/auth/resolve-app-user";
@@ -16,6 +19,7 @@ import {
   seriesEditionWindowEnded,
   type SeriesEdition,
 } from "#src/series/load-series-editions";
+import { playerWinWith } from "#src/series/player-series-wins";
 import { requireSeries, seriesHasGame } from "#src/series/series-link";
 
 type DbClient = typeof db;
@@ -41,6 +45,83 @@ function editionState(
     return edition.result.state;
   }
   return seriesEditionWindowEnded(edition.game, now) ? "awaiting" : "upcoming";
+}
+
+function isDecided(edition: SeriesEdition) {
+  return edition.result.state !== "upcoming";
+}
+
+/** The latest won Edition's winners hold the Series until another is won. */
+function holdersOf(editions: readonly SeriesEdition[], viewerUserId: string) {
+  const latest = [...editions]
+    .reverse()
+    .find((edition) => edition.result.state === "won");
+  const players = (latest?.winners ?? []).flatMap((winner) =>
+    winner.isGuest
+      ? []
+      : [
+          {
+            userId: winner.userId,
+            name: winner.name,
+            image: winner.image,
+            isViewer: winner.userId === viewerUserId,
+          },
+        ],
+  );
+  return latest && players.length > 0
+    ? { edition: latest.edition, players }
+    : null;
+}
+
+/** The earliest Edition still to be decided, and whether its window is ahead, on, or over. */
+function nextEditionOf(editions: readonly SeriesEdition[], now: Date) {
+  const next = editions.find((edition) => !isDecided(edition));
+  if (!next) {
+    return null;
+  }
+  const { game } = next;
+  const started =
+    game.windowStart !== null && game.windowStart.getTime() <= now.getTime();
+  const state: "upcoming" | "live" | "awaiting" = seriesEditionWindowEnded(
+    game,
+    now,
+  )
+    ? "awaiting"
+    : started
+      ? "live"
+      : "upcoming";
+  return {
+    gameId: game.id,
+    edition: next.edition,
+    startsAt: game.windowStart,
+    endsAt: game.windowEnd,
+    state,
+    venueName: game.venueName,
+    taken: next.playerCount,
+    capacity:
+      game.playersAllowed ??
+      (game.teamsAllowed === null ? null : game.teamsAllowed * 2),
+  };
+}
+
+/** How big the Edition's field was: players on an Americano, teams otherwise; none on football. */
+function fieldOf(edition: SeriesEdition) {
+  if (edition.game.sport === "football") {
+    return null;
+  }
+  return isAmericano(edition.game.format, edition.game.tournamentShape)
+    ? { unit: "players" as const, count: edition.playerCount }
+    : { unit: "teams" as const, count: edition.teamCount };
+}
+
+/** A won football Edition's score, from the winning side. */
+function winnerScore(edition: SeriesEdition) {
+  const [winner] = edition.winners;
+  if (edition.game.sport !== "football" || !winner) {
+    return null;
+  }
+  const score = playerWinWith(edition, winner.userId).score;
+  return score ? { winner: score.mine, loser: score.theirs } : null;
 }
 
 /** Every winner with an account, by wins, then the more recent win, then name. */
@@ -73,10 +154,11 @@ function mostWins(editions: readonly SeriesEdition[], viewerUserId: string) {
 }
 
 /**
- * A Series' page (design 3b): its badge and Group, how many Editions were
- * played and by how many different winners, who has won it most, and every
- * Edition newest first. Whoever may view the Group may read it; a Guest
- * player is named on their Edition and nowhere else.
+ * A Series' page (design 05): its badge and Group, who holds it, how many
+ * Editions were played and by how many different winners, the next Edition,
+ * the viewer's own record, who has won it most, and every Edition newest
+ * first. Whoever may view the Group may read it; a Guest player is named on
+ * their Edition and nowhere else.
  */
 export async function seriesById(
   database: DbClient,
@@ -106,12 +188,18 @@ export async function seriesById(
   });
   const now = args.now ?? new Date();
 
-  const [approver, editions, hasGame] = await Promise.all([
+  const [approver, editions, hasGame, viewer] = await Promise.all([
     isGroupApprover(database, series.group, args.userId),
     loadSeriesEditions(database, { seriesIds: [series.id] }),
     seriesHasGame(database, series.id),
+    database.query.user.findFirst({
+      where: eq(user.id, args.userId),
+      columns: { name: true, image: true },
+    }),
   ]);
   const winners = mostWins(editions, args.userId);
+  const decided = editions.filter(isDecided);
+  const viewerWins = winners.find((winner) => winner.isViewer);
 
   return {
     id: series.id,
@@ -124,11 +212,21 @@ export async function seriesById(
     createdAt: series.createdAt,
     canEnd: approver && series.endedAt === null,
     endRemoves: !hasGame,
-    playedCount: editions.filter(
-      (edition) => edition.result.state !== "upcoming",
-    ).length,
+    playedCount: decided.length,
     differentWinners: winners.length,
     mostWins: winners,
+    holders: holdersOf(editions, args.userId),
+    nextEdition: series.endedAt === null ? nextEditionOf(editions, now) : null,
+    viewer: {
+      name: viewer?.name ?? "",
+      image: viewer?.image ?? null,
+      played: decided.filter((edition) =>
+        edition.playedUserIds.includes(args.userId),
+      ).length,
+      decided: decided.length,
+      wins: viewerWins?.wins ?? 0,
+      lastWonEdition: viewerWins?.lastWonEdition ?? null,
+    },
     editions: [...editions]
       .sort((left, right) => right.edition - left.edition)
       .map((edition) => ({
@@ -139,9 +237,14 @@ export async function seriesById(
         winners: edition.winners.map((winner) => ({
           userId: winner.userId,
           name: winner.name,
+          image: winner.image,
           isGuest: winner.isGuest,
+          isViewer: winner.userId === args.userId,
         })),
         winnerBib: edition.winnerBib,
+        field: fieldOf(edition),
+        points: edition.winnerPoints,
+        score: winnerScore(edition),
       })),
   };
 }

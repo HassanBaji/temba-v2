@@ -139,7 +139,7 @@ The winners are whoever is seated on the winning Game team when the result is re
 - A cancelled Game is no Edition and holds no number. Removing a Game's Series frees its number.
 - So numbers have no gaps, and "11 played, next is edition 12" stays true after an Organizer cancels and recreates next week's Game.
 - A played Edition keeps its number in practice: the link is locked once the score is in, a Friendly game with a completed Match cannot be cancelled, and a new Friendly game cannot start in the past. It moves only if an earlier Game is later cancelled (a Social can be cancelled after it was played) or an earlier Game that was never scored is detached.
-- A Game whose window ended without a score still holds its number and reads "No result yet". An Organizer who abandoned it cancels it or removes its Series.
+- A Game whose window ended without a score still holds its number; the Series page's next edition card reads "Edition N is waiting for its result". An Organizer who abandoned it cancels it or removes its Series.
 - The create picker's "This will be edition N" is the number the new Game would hold on its day: one more than the Series' Games that start before it.
 
 ### 5.7 Series wins
@@ -289,7 +289,7 @@ Each is used by two or more procedures, so it is a shared module, not a twin of 
 | --- | --- | --- |
 | `series-link.ts` | `requireSeries(db, id, locale)`; `seriesLinkLocked(db, game)` (the score is in); `resolveGameSeriesLink(db, { game, group, seriesId, locale })`, which applies 5.5 and throws the localized refusal; `gameSeriesSummary(db, game)`, the Game's Series with its Edition number, or null; `seriesEditionAt(db, { seriesId, windowStart, excludeGameId? })`, the number a Game starting then would hold | `games.create`, `games.createTournament`, `games.updateSeries`, `games.byId`, `series.attachOptions` |
 | `edition-order.ts` | The order Editions are numbered in (5.6), as SQL: `editionNumber` (the row number inside a Series), `editionsBefore(gameId, windowStart?)`, `editionsBeforeNewGame(windowStart)` and `isEdition` (not cancelled); `loadEditionNumbers(db, seriesIds)` and `withSeriesEditions(db, rows)`, which give many Games their numbers in one query. The one place the order is written | `series-link.ts`, `load-series-editions.ts`, `games/helpers/hub-list.ts`, `groups.byId` |
-| `load-series-editions.ts` | `loadSeriesEditions(db, { seriesIds } \| { gameIds })`: in a fixed number of queries, the Games (not cancelled), their Game teams with players, Matches with Sets, and Americano seats; then per Game its Edition number, `seriesEditionResult`, the winners' names and images, the winning side's Bib, the single Match's score, and the moment it was decided | `series.listForGroup`, `series.byId`, `series.edition`, `series.forPlayer`, `series.playerWins` |
+| `load-series-editions.ts` | `loadSeriesEditions(db, { seriesIds } \| { gameIds })`: in a fixed number of queries, the Games (not cancelled), their Game teams with players, Matches with Sets, and Americano seats; then per Game its Edition number, `seriesEditionResult`, the winners' names and images, the winning side's Bib, the Venue's name, the Game's caps, the field's size, who played, the winners' points on a Rounds table or an Americano, the single Match's score, and the moment it was decided | `series.listForGroup`, `series.byId`, `series.edition`, `series.forPlayer`, `series.playerWins` |
 
 `loadSeriesEditions` never loops a query per Game. `packages/api/src/live-boards/board-content.ts` and `routers/games/poolTables.ts` show how the rows feed `computePoolTables` and `americanoTable`. When it is given `gameIds`, it still numbers Editions against every Game of their Series, from one light query of `(id, series_id, window_start, created_at)`.
 
@@ -349,20 +349,44 @@ type Row = {
   createdAt: Date;                     // "running since"
   canEnd: boolean;                     // Group approver and still running
   endRemoves: boolean;                 // no Game points at it, cancelled ones included: ending deletes it (5.3)
-  playedCount: number;
+  playedCount: number;                 // decided Editions
   differentWinners: number;            // distinct Users with a win, Guest players left out
   mostWins: { userId; name; image; wins; lastWonEdition; isViewer }[];
+  holders: {                           // the latest won Edition's winners, Guest players left out; null before a win
+    edition: number;
+    players: { userId; name; image; isViewer }[];
+  } | null;
+  nextEdition: {                       // the earliest Edition not decided; null with none, or once ended
+    gameId; edition;
+    startsAt: Date | null; endsAt: Date | null;
+    state: "upcoming" | "live" | "awaiting";
+    venueName: string | null;
+    taken: number;                     // Game players
+    capacity: number | null;           // players allowed, else two per team allowed
+  } | null;
+  viewer: {
+    name; image;
+    played: number;                    // decided Editions the viewer played: on a Game team, a Football side or an Americano seat
+    decided: number;
+    wins: number;
+    lastWonEdition: number | null;
+  };
   editions: {
     gameId; edition; startsAt;
     state: "upcoming" | "awaiting" | "no_winner" | "won";
-    winners: { userId; name; isGuest }[];
+    winners: { userId; name; image; isGuest; isViewer }[];
     winnerBib: FootballBib | null;
+    field: { unit: "teams" | "players"; count: number } | null;  // players on an Americano, teams otherwise, null on football
+    points: number | null;             // the winners' points on a Rounds table, games won on an Americano
+    score: { winner: number; loser: number } | null;             // a won football Game, from the winning side
   }[];                                  // newest first
 }
 ```
 
-- `awaiting`: the result is `upcoming` and the Game's window has ended.
+- `awaiting`: the result is `upcoming` and the Game's window has ended. On `nextEdition`, `live` means its window has started and not ended.
+- A later `no_winner` Edition does not clear the holders.
 - `mostWins` is ordered by wins, then the higher `lastWonEdition`, then name. It lists every winner; the clients show four and expand.
+- Every field is additive to the first shape; nothing was removed or renamed.
 
 **`series.edition`** (the Game screen's card)
 
@@ -565,21 +589,27 @@ When `series.edition` answers `won`, the Game screen leads with the winners.
 - The note under the table: "The series goes to the top of the table once the last round is saved. If the organizer corrects a score, it follows the table." (the `table`, `tables` and `americano` rules only).
 - The "Part of" card of 8.6 is replaced by these once the Edition is decided.
 
-### 8.8 3b, the Series page
+### 8.8 05, the Series page
 
-`screens/3b-series-page.png`
+`design/` section 05 (frames 5a, 5b, 5c). It replaced design 3b.
 
 - Web route `/dashboard/series/[id]`. Mobile route `series/[id]` in every tab stack (`(home)`, `games`, `groups`, `challenges`, `profile`), each a one-line re-export of `src/series/series-screen.tsx`, with a `seriesPath(segments, id)` helper modelled on `playerPath` so Back returns to the row that opened it.
+- Each App splits the page into a loading wrapper and a view that takes the `series.byId` data (`SeriesPageView`, `SeriesScreenView`). The web view is previewed with 5a and 5b fixtures on the dev-only `/dashboard/design/series` page.
 - Header: back, the title "Series", and a menu.
-- A lifted card: the badge (`page`), the name, the Group's name (opens the Group), and three figures: "{n} played", "{n} different winners", and "{Mon} running since" (the month the Series was created; the year too when it is not this year). An ended Series reads "{Mon} ended" as its third figure.
-- **Most wins**, "of {played}": avatar, name, "Last won edition N" (the viewer's row is marked and reads "You. Last won edition N"), the count. Four rows, then "All N winners", which expands the list in place. A row opens the Player profile. Hidden when nobody has won.
-- **Editions**, "newest first": the Edition number in mono, the winners line, the date. Four rows, then "All N editions", which expands in place. A row opens the Game.
-  - `upcoming`: the row is hatched and reads "Not played yet".
-  - `awaiting`: "No result yet".
-  - `no_winner`: "Nobody won".
-  - `won`: `seriesWinnersLine`.
-- Empty: "No editions yet. Attach this series when you create a game or a social."
-- **Menu**: "End series", only when `canEnd`. It confirms: "End {name}? Nothing can be attached to it any more. Badges already won stay on profiles." When ending would delete the Series (`endRemoves`: no Game was ever attached, 5.3) the confirmation reads "This series has no editions, so it will be removed." After `deleted`, go back to the Group's Series screen. After `ended`, stay; the page shows the ended figure and the menu is gone.
+- **The lifted card**, the screen's one focus: the badge (`page`), the name, the Group's name (opens the Group).
+  - **Holders** (`holders`), under a hairline: the holders' squares, overlapping (the photo, else initials; solid for the viewer); "Holders"; each holder's full name on its own line ("(You)" after the viewer's); "since edition N" on the trailing side. No row before a win.
+  - Three figures: "{n} editions played" ("edition played" for 1), "{n} players have won it" ("player has won it" for 1), and "{Mon} running since" (the year too when it is not this year). An ended Series reads "{Mon} ended" as its third figure.
+- **The next edition** (`nextEdition`), a paper card: a hatched block on the leading side with "edition" over the number; the title and a muted line from `seriesNextEditionLines`; "Open game" (solid in `ink`), which opens the Game.
+  - `upcoming`: "Edition 13, Sun 6 Dec" and "11:00 AM, World Padel Academy. 9 of 16 in." ("9 in" with no cap).
+  - `live`: "Edition 2 is on now" and "Today, 8:00 PM. Winners become holders."
+  - `awaiting`: "Edition N is waiting for its result" and the day and time, "Winners become holders."
+  - No card with no undecided Edition, or once the Series ended. It leaves the Editions list.
+- **You in this series** (`viewer`), a paper card shown to every viewer: the viewer's square, "You in this series", the line from `seriesViewerLine` ("Won 2 of 9 played. Last in edition 10.", "Played 1 of 1. No win yet.", "Not played yet."), and on the trailing side the small badges and the win count.
+- **Small badges**: the Series' own badge at `tally` (12px), one per win up to three (`seriesSmallBadgeCount`), then only the count.
+- **Winners**, meta "{n} editions" ("1 edition so far"): the rank (`seriesWinnerRanks`: ties share it, 1, 1, 3, 3), the square, the full name ("(You)" after the viewer's, whose row is on the wash), "Last won edition N" ("Won edition N" for one win, `seriesWinnerLine`), the small badges and the count. Four rows, then "All N winners", which expands the list in place. A row opens the Player profile. Hidden when nobody has won. Guest players stay out.
+- **Editions**, the decided ones only, meta "newest first" ("{n} played" with one row): the Edition number, the winners' squares (three at most), their full names one per line, then "{day}. {field}" from `seriesEditionFieldLine`: "8 teams, 19 points" on a Rounds table, "8 players, 32 games won" on an Americano, "6 teams" otherwise, the score from the winning side ("5–3") on a football Game, whose names line is its Bib colour. `no_winner` reads "Nobody won". Four rows, then "All N editions", which expands in place. A row opens the Game.
+- Empty, with neither a decided nor a next Edition: "No editions yet. Attach this series when you create a game or a social."
+- **Menu**: "End series", only when `canEnd`. It confirms: "End {name}? Nothing can be attached to it any more. Badges already won stay on profiles." When ending would delete the Series (`endRemoves`: no Game was ever attached, 5.3) the confirmation reads "This series has no editions, so it will be removed." After `deleted`, go back to the Group's Series screen. After `ended`, stay; the page shows the ended figure, the next edition card and the menu are gone.
 
 ### 8.9 4a, 4b and 4c, the profile
 
@@ -635,7 +665,7 @@ series.create          title, namePlaceholder, nameLabel, nameHint, emblem, colo
 series.attach          title, none, noneHint, willBe(n), wouldBe(n), note(group), review(name, n), locked, edit phrases
 series.game            partOf(name), rule lines, wonLast(winners), seeSeries, facts label, winners, wonBy, draw, tableNote
 series.win             ordinal(name, n), yourOrdinal(n), tally lines
-series.page            title, played, differentWinners, runningSince, ended, mostWins, of(n), lastWon(n), you, allWinners(n), editions, newestFirst, notPlayedYet, noResultYet, nobodyWon, allEditions(n), empty, end, endConfirm, endRemoves
+series.page            title, editionsPlayed(n), playersWon(n), runningSince, ended, holders, sinceEdition(n), next lines, openGame, you lines, winners, winnersMeta(n), rank(n), viewerName, wonEdition(n), lastWon(n), allWinners(n), editions, newestFirst, editionsMeta(n), nobodyWon, field lines, allEditions(n), empty, end, endConfirm, endRemoves
 series.profile         title, meta(wins, series), allWins, sheetWon(wins, of), played(n), with(name), withBib(bib, score), seeSeries, winsTitle
 series.latest          title(name), line
 series.errors          7.4
@@ -669,10 +699,10 @@ series.errors          7.4
 | A football side has substitutes | Everyone on the winning side wins |
 | The Organizer adds or removes a player on a Played game | The winners are whoever is on the winning side now |
 | A winner is an Unclaimed player | They win like anyone; claiming the row keeps the wins |
-| A winner is a Guest player | Named on the Game and the Series page's Edition. No profile, not in Most wins |
+| A winner is a Guest player | Named on the Game and the Series page's Edition. No profile, not in Winners or the holders |
 | King of the court: the Final order is corrected inside its 24 hours | The win follows the team placed first |
 | A Groups only Social is drawn into several Pools | One winning team per Pool |
-| A Game's window ended and nobody entered a score | "No result yet"; it holds its Edition number until it is scored, cancelled or detached |
+| A Game's window ended and nobody entered a score | The next edition card reads "Edition N is waiting for its result"; it holds its Edition number until it is scored, cancelled or detached |
 | Two Organizers create a Series with the same name at once | The Group row lock makes the second fail with `nameTaken` |
 | The viewer may open a profile but not the Series' Group | The badge and its sheet show; "See the series" and the Game links do not |
 | The owner's Match history visibility excludes the viewer | No Series card |

@@ -92,8 +92,9 @@ describe("the badge's geometry", () => {
     });
   });
 
-  it("has the eight sizes the design draws", () => {
+  it("has the nine sizes the design draws", () => {
     expect(seriesBadgeSizes).toEqual({
+      tally: 12,
       line: 22,
       row: 28,
       latest: 38,
