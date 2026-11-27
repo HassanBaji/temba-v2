@@ -129,19 +129,19 @@ describe("score helpers", () => {
     );
     assert.match(
       scoreFooterNote("ongoing", null, "en"),
-      /The other three confirm/,
+      /One player from the other side confirms/,
     );
     assert.match(
       scoreFooterNote("needs_results", null, "en"),
-      /The other three confirm/,
+      /One player from the other side confirms/,
     );
     assert.equal(
       scoreFooterNote("final", "Mon 5 Oct", "en"),
-      "Confirmed by all four players on Mon 5 Oct. Nothing else needed.",
+      "Confirmed by both sides on Mon 5 Oct. Nothing else needed.",
     );
     assert.equal(
       scoreFooterNote("final", null, "en"),
-      "Confirmed by all four players. Nothing else needed.",
+      "Confirmed by both sides. Nothing else needed.",
     );
     assert.equal(
       scoreFooterNote("final", "Mon 5 Oct", "en", true),
@@ -185,6 +185,36 @@ describe("confirmations", () => {
         ["Riley", "Waiting"],
       ],
     );
+  });
+
+  it("marks a partner whose side is already confirmed", () => {
+    assert.deepEqual(
+      scoreConfirmationRows(
+        { ...confirmation, sideConfirmedUserIds: ["u1", "u2"] },
+        "u2",
+        scoreNameByUserId(sides),
+        "en",
+      ).map((row) => [row.label, row.status, row.confirmed]),
+      [
+        ["Alex", "Confirmed", true],
+        ["Sam (You)", "Partner confirmed", false],
+        ["Riley", "Waiting", false],
+      ],
+    );
+  });
+
+  it("does not offer Confirm to a partner whose side is already confirmed", () => {
+    const input = {
+      confirmation: {
+        ...confirmation,
+        viewerHasConfirmed: false,
+        sideConfirmedUserIds: ["u1", "u2"],
+      },
+      hasResult: true,
+      phase: "needs_results" as const,
+    };
+    assert.equal(scoreCanConfirm({ ...input, viewerUserId: "u2" }), false);
+    assert.equal(scoreCanConfirm({ ...input, viewerUserId: "u3" }), true);
   });
 
   it("names an unknown player generically", () => {

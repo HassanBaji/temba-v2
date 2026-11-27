@@ -4,8 +4,13 @@ import type { footballHeroLines } from "@repo/domain/football-board";
 import type { SurfaceTone } from "@repo/domain/surface-tone";
 
 import { ChallengeTag } from "~/components/games/challenge-tag";
+import { GenderHeroTag } from "~/components/games/gender-tag";
 import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { HeroTopLine } from "~/components/games/hero-top-line";
+import {
+  SeriesHeroLine,
+  type SeriesHeroLineSeries,
+} from "~/components/series/series-hero-line";
 import { Surface } from "~/components/ui/surface";
 import { useMessages } from "~/components/locale-provider";
 import { cn } from "~/lib/utils";
@@ -23,13 +28,17 @@ export function FootballGameHeroCard({
   tone,
   lines,
   tag,
+  series,
+  genderTag,
   actions,
   children,
 }: {
   tone: SurfaceTone;
   lines: ReturnType<typeof footballHeroLines>;
+  series?: SeriesHeroLineSeries | null;
   /** "Challenge" on a Challenge Game: beside share, its format moved to the sub line. */
   tag?: string;
+  genderTag?: string | null;
   actions?: React.ReactNode;
   children?: React.ReactNode;
 }) {
@@ -62,9 +71,14 @@ export function FootballGameHeroCard({
           tone={tone}
           left={lines.status}
           right={
-            !tag && lines.sizeTag ? (
-              <p className="shrink-0 font-mono text-[11px]">{lines.sizeTag}</p>
-            ) : null
+            <>
+              <GenderHeroTag genderTag={genderTag} tone={tone} />
+              {!tag && lines.sizeTag ? (
+                <p className="shrink-0 font-mono text-[11px]">
+                  {lines.sizeTag}
+                </p>
+              ) : null}
+            </>
           }
         />
       </div>
@@ -89,6 +103,9 @@ export function FootballGameHeroCard({
       ) : null}
       {lines.subLine ? (
         <p className={`${muted} text-meta`}>{lines.subLine}</p>
+      ) : null}
+      {series ? (
+        <SeriesHeroLine series={series} tone={tone} className="mt-3" />
       ) : null}
       {children ? <div className="mt-5">{children}</div> : null}
     </Surface>

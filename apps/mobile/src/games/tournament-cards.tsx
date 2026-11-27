@@ -7,7 +7,7 @@ import {
   formatHomeCountdown,
   formatHomeKickoff,
 } from "@repo/domain/home-countdown";
-import { ratingScopeTag } from "@repo/domain/game-rating-impact";
+import { gameCardRatingTag } from "@repo/domain/game-rating-impact";
 import type { HubGameRow } from "@repo/domain/hub-game-row";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
@@ -45,8 +45,10 @@ import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
 import { Text } from "../primitives/text";
+import { SeriesHeadingLine } from "../series/series-hero-line";
 import { CardBand, CardFooter, CardShell } from "./card-parts";
 import type { GameCardActions } from "./game-card";
+import { GenderTag } from "./gender-tag";
 import { useNow } from "./use-now";
 
 type Occupant = HubGameRow["sides"][number]["left"];
@@ -202,7 +204,7 @@ function AlonePlayers({
 
 function RatingScopeTag({ game }: { game: HubGameRow }) {
   const locale = useLocale();
-  const tag = ratingScopeTag(game, locale);
+  const tag = gameCardRatingTag(game, locale);
   return tag ? (
     <Text size="meta" weight="semibold" numberOfLines={1}>
       {tag}
@@ -331,12 +333,27 @@ export function TournamentCard({
         <Text size="h2" width="expanded" weight="bold" numberOfLines={2}>
           {title}
         </Text>
-        {dateLine ? <Text>{dateLine}</Text> : null}
+        {dateLine || game.genderTag ? (
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+              columnGap: 12,
+              rowGap: 6,
+            }}
+          >
+            {dateLine ? <Text>{dateLine}</Text> : null}
+            <GenderTag genderTag={game.genderTag} />
+          </View>
+        ) : null}
         {subLine ? (
           <Text size="meta" tone="muted" numberOfLines={1}>
             {subLine}
           </Text>
         ) : null}
+        <SeriesHeadingLine series={game.series} />
         {knockoutLine ? (
           <Text weight="semibold" numberOfLines={1}>
             {knockoutLine}

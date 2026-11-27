@@ -22,7 +22,7 @@ export const ACTION_BOX =
   "border-rule text-ink focus-visible:ring-ring/50 inline-flex size-11 shrink-0 items-center justify-center rounded-md border outline-none focus-visible:ring-[3px]";
 
 /**
- * The one Group home header, shared by Standing, Games, and Members: back, a
+ * The one Group home header, shared by every tab: back, a
  * single tab-dependent action box, the Group name, the meta line, and the
  * segmented tab control, all above a hairline.
  *

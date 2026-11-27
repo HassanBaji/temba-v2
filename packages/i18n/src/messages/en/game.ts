@@ -67,7 +67,7 @@ export const game = {
     youreIn: "You're in",
     inviteAPlayer: "Invite a player",
     addTheScore: "Add the score",
-    countsOnceOthersConfirm: "Counts once the others confirm",
+    countsOnceOtherSideConfirms: "Counts once the other side confirms",
     addResult: "Add result",
     levelUpdated: "Level updated",
     shareResult: "Share result",
@@ -260,19 +260,84 @@ export const game = {
     entered: (label: string, games: number) => `${label}: ${games}`,
     notEntered: (label: string) => `${label}: not entered yet`,
     confirmedByOrganizer: "Confirmed by the Organizer. Nothing else needed.",
-    confirmedByAllOn: (date: string) =>
-      `Confirmed by all four players on ${date}. Nothing else needed.`,
-    confirmedByAll: "Confirmed by all four players. Nothing else needed.",
+    confirmedByBothSidesOn: (date: string) =>
+      `Confirmed by both sides on ${date}. Nothing else needed.`,
+    confirmedByBothSides: "Confirmed by both sides. Nothing else needed.",
     noScoreYet:
-      "No score yet. Anyone who played can add it. The other three confirm before it counts towards your level.",
+      "No score yet. Anyone who played can add it. One player from the other side confirms before it counts towards your level.",
     scoringOpens:
       "Scoring opens when the court is full. Fill the last spot and you'll be able to enter a result after the game.",
     player: "Player",
     youSuffix: (name: string) => `${name} (You)`,
     confirmed: "Confirmed",
+    partnerConfirmed: "Partner confirmed",
     waiting: "Waiting",
     organizerWaiting: (team: string) =>
       `Waiting for the Organizer to confirm for ${team}.`,
+  },
+  scoreReview: {
+    enteredTitle: (name: string) => `${name} entered the score`,
+    changedTitle: (name: string) => `${name} changed the score`,
+    youEnteredTitle: "You entered this score",
+    youChangedTitle: "You changed the score",
+    editTitle: "Change the score",
+    confirmOrChange: (result: string) =>
+      `${result} Confirm it, or change it if it is wrong.`,
+    confirmNewOrChangeBack: (result: string) =>
+      `${result} Confirm the new score, or change it back.`,
+    teamWon: (tally: string) => `Your team won ${tally}.`,
+    teamStillWon: (tally: string) => `Your team still won ${tally}.`,
+    teamLost: (tally: string) => `Your team lost ${tally}.`,
+    teamStillLost: (tally: string) => `Your team still lost ${tally}.`,
+    levelAt: (tally: string) => `It is level at ${tally}.`,
+    sideWon: (team: string, tally: string) => `${team} won ${tally}.`,
+    levelInSets: (tally: string) => `Level at ${tally} in sets.`,
+    nothingChanged: "Nothing changed yet. Change a box above.",
+    setsChanged: (n: number, firstSet: number) =>
+      plural("en", n, {
+        one: `Set ${firstSet} changed. The other side will be asked to confirm.`,
+        other: "{n} sets changed. The other side will be asked to confirm.",
+      }),
+    dispute: "Dispute and edit",
+    confirm: "Confirm score",
+    editScore: "Edit score",
+    cancel: "Cancel",
+    send: "Send new score",
+    enteredBy: (name: string, time: string) => `Entered by ${name} at ${time}.`,
+    enteredByYou: (time: string) => `Entered by you at ${time}.`,
+    changedBy: (name: string, time: string) => `Changed by ${name} at ${time}.`,
+    changedByYou: (time: string) => `Changed by you at ${time}.`,
+    changing: (name: string) => `You are changing the score ${name} entered.`,
+    changingOwn: "You are changing the score you entered.",
+    changedSet: (name: string, set: number, from: string, to: string) =>
+      `${name} changed set ${set} from ${from} to ${to}`,
+    youChangedSet: (set: number, from: string, to: string) =>
+      `You changed set ${set} from ${from} to ${to}`,
+    changedScore: (name: string, from: string, to: string) =>
+      `${name} changed it from ${from} to ${to}`,
+    youChangedScore: (from: string, to: string) =>
+      `You changed it from ${from} to ${to}`,
+    reasonGiven: (reason: string) => `Reason given: ${reason}.`,
+    otherSideAsked: "The other side is asked to confirm the new score.",
+    whatIsWrong: "What is wrong, optional",
+    editHint: "Change the boxes that are wrong.",
+    reasons: {
+      set_score_wrong: "A set score is wrong",
+      sets_swapped: "Sets are swapped",
+      not_finished: "We did not finish",
+      other: "Other",
+    },
+    reasonPhrases: {
+      set_score_wrong: "a set score is wrong",
+      sets_swapped: "sets are swapped",
+      not_finished: "we did not finish",
+      other: "other",
+    },
+    changedBox: (label: string) => `${label}, changed`,
+    enteredIt: "Entered it",
+    changedIt: "Changed it",
+    yourTurn: "Your turn",
+    askedAgain: "Asked again",
   },
   kick: {
     fallbackName: "this player",
@@ -314,6 +379,7 @@ export const game = {
   share: {
     ratedMatch: "RATED MATCH",
     friendlyMatch: "FRIENDLY MATCH",
+    unconfirmedMatch: "NOT CONFIRMED YET",
     padelTypeLine: "FRIENDLY · PADEL",
     footballTypeLine: (sideSize: string | null) =>
       sideSize ? `FRIENDLY · FOOTBALL · ${sideSize}` : "FRIENDLY · FOOTBALL",
@@ -327,6 +393,11 @@ export const game = {
     beat: (winners: string, losers: string, won: number, lost: number) =>
       `🏆 ${winners} beat ${losers} ${won}–${lost}`,
     footballResult: "⚽ Football result",
+    unconfirmedLine: "⏳ Score not confirmed yet",
+    padelPlayed: "🎾 Padel game played",
+    footballPlayed: "⚽ Football game played",
+    versus: (first: string, second: string) => `👥 ${first} vs ${second}`,
+    noScoreLine: "⏳ Score not entered yet",
   },
   hubEmpty: {
     noGamesYet: "No Games yet",
@@ -526,6 +597,8 @@ export const game = {
     editCancelled: "Cannot edit a cancelled Game",
     notOpen: "This Game is not open for registration",
     organizerOnly: "Only an organizer can do that",
+    invitePlayersOnly:
+      "Only the organizer and players on this Game can share its Invite link",
     groupCreatorOrOrganizerCreates:
       "Only the Group creator or an Organizer can create a Game on this Group",
     groupMembersRegister: "Only Group members can register on this Game",

@@ -7,6 +7,7 @@ import {
   advance,
   continueBlocked,
   createReducer,
+  createWindowStart,
   howPeopleJoin,
   initialCreateState,
   serverFailure,
@@ -29,6 +30,7 @@ function stateAt(
     step,
     draft: { ...draft, day: "2026-10-09" },
     mvpMode: "vote",
+    seriesId: null,
     locale: "en",
   };
 }
@@ -317,6 +319,30 @@ describe("submitRequest", () => {
     },
   );
 
+  it.each(["friendly_game", "friendly_tournament"] as const)(
+    "sends a picked Gender tag with a %s and nothing once it is cleared",
+    (type) => {
+      const draft =
+        type === "friendly_game"
+          ? fixtures.drafts.gameReview
+          : fixtures.drafts.tournamentGroupsOnly;
+      const tagged = createReducer(stateAt(4, type, draft), {
+        kind: "setGenderTag",
+        genderTag: "women",
+      });
+      expect(tagged.draft.genderTag).toBe("women");
+      const sent = submitRequest(tagged, NOW, false);
+      expect(sent.ok && sent.request.input.genderTag).toBe("women");
+
+      const cleared = createReducer(tagged, {
+        kind: "setGenderTag",
+        genderTag: null,
+      });
+      const unsent = submitRequest(cleared, NOW, false);
+      expect(unsent.ok && "genderTag" in unsent.request.input).toBe(false);
+    },
+  );
+
   it("sends Track payments only once the Game has a price", () => {
     const priced = createReducer(
       createReducer(stateAt(4, "friendly_game", fixtures.drafts.gameReview), {
@@ -435,6 +461,84 @@ describe("submitRequest", () => {
       false,
     );
     expect(result.ok && result.request.input.isPublic).toBe(false);
+  });
+});
+
+describe("Series pick", () => {
+  const SERIES_ID = "6a1b0c9e-1d2f-4c3b-8a7d-5e6f7a8b9c0d";
+
+  it("starts with no Series and picks one", () => {
+    expect(initialCreateState(NOW, "en").seriesId).toBeNull();
+    const picked = createReducer(
+      stateAt(4, "friendly_game", fixtures.drafts.gameReview),
+      { kind: "setSeries", seriesId: SERIES_ID },
+    );
+    expect(picked.seriesId).toBe(SERIES_ID);
+    expect("seriesId" in picked.draft).toBe(false);
+    const cleared = createReducer(picked, {
+      kind: "setSeries",
+      seriesId: null,
+    });
+    expect(cleared.seriesId).toBeNull();
+  });
+
+  it("clears the pick when the Group changes, padel or football", () => {
+    const picked = createReducer(
+      stateAt(4, "friendly_game", fixtures.drafts.gameReview),
+      { kind: "setSeries", seriesId: SERIES_ID },
+    );
+    expect(
+      createReducer(picked, { kind: "setGroup", groupId: "other" }).seriesId,
+    ).toBeNull();
+    expect(
+      createReducer(picked, {
+        kind: "setGroup",
+        groupId: "group-football",
+        sport: "football",
+      }).seriesId,
+    ).toBeNull();
+  });
+
+  it("clears the pick when Public is chosen", () => {
+    const picked = createReducer(
+      stateAt(4, "friendly_game", fixtures.drafts.gameReview),
+      { kind: "setSeries", seriesId: SERIES_ID },
+    );
+    expect(createReducer(picked, { kind: "choosePublic" }).seriesId).toBeNull();
+  });
+
+  it.each([
+    ["friendly_game", "padel", "gameReview"],
+    ["football_game", "football", "gameReview"],
+    ["friendly_tournament", "padel", "tournamentGroupsOnly"],
+  ] as const)("sends the picked Series with a %s", (kind, sport, key) => {
+    const type = kind === "friendly_tournament" ? kind : "friendly_game";
+    const state: CreateState = {
+      ...stateAt(4, type, fixtures.drafts[key]),
+      sport,
+      seriesId: SERIES_ID,
+    };
+    const result = submitRequest(state, NOW, true);
+    expect(result.ok && result.request.kind).toBe(kind);
+    expect(result.ok && result.request.input).toMatchObject({
+      seriesId: SERIES_ID,
+    });
+    const none = submitRequest({ ...state, seriesId: null }, NOW, true);
+    expect(none.ok && "seriesId" in none.request.input).toBe(false);
+  });
+
+  it("numbers the Edition from the day and start time once both are valid", () => {
+    const state = stateAt(4, "friendly_game", fixtures.drafts.gameReview);
+    const result = submitRequest(state, NOW, true);
+    expect(createWindowStart(state, NOW)).toEqual(
+      result.ok ? result.request.input.windowStart : undefined,
+    );
+    expect(
+      createWindowStart(
+        { ...state, draft: { ...state.draft, startTime: "" } },
+        NOW,
+      ),
+    ).toBeNull();
   });
 });
 

@@ -10,11 +10,16 @@ import {
   type FriendlyGameHeroModel,
 } from "@repo/domain/friendly-game-hero";
 
+import { GenderHeroTag } from "~/components/games/gender-tag";
 import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { HeroTopLine } from "~/components/games/hero-top-line";
 import { DividedFigurePair } from "~/components/home/home-all-time";
 import { WinLossMark } from "~/components/home/home-recent-form-row";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import {
+  SeriesHeroLine,
+  type SeriesHeroLineSeries,
+} from "~/components/series/series-hero-line";
 import { Button } from "~/components/ui/button";
 import { Surface } from "~/components/ui/surface";
 import { cn } from "~/lib/utils";
@@ -167,13 +172,17 @@ export function FriendlyGameDetailsHero({
   place,
   figures,
   tag,
+  series,
+  genderTag,
   actions,
 }: {
   input: FriendlyGameHeroInput;
   place: FriendlyGameHeroPlace | null;
   figures: CourtFigure[];
+  series?: SeriesHeroLineSeries | null;
   /** "Challenge" on a Challenge Game. */
   tag?: string;
+  genderTag?: string | null;
   /** Share and the Game's menu, top right across from back. */
   actions?: React.ReactNode;
 }) {
@@ -221,6 +230,11 @@ export function FriendlyGameDetailsHero({
                 solid={model.phase !== "upcoming"}
               />
             ) : null}
+            {genderTag ? (
+              <span className="ms-auto shrink-0">
+                <GenderHeroTag genderTag={genderTag} tone="ink" />
+              </span>
+            ) : null}
           </div>
           {model.partnerName ? (
             <>
@@ -242,6 +256,9 @@ export function FriendlyGameDetailsHero({
         </>
       )}
       {place && (place.name || place.line) ? <PlaceRow place={place} /> : null}
+      {series ? (
+        <SeriesHeroLine series={series} tone="ink" className="mt-3" />
+      ) : null}
       <Figures figures={figures} />
     </Surface>
   );

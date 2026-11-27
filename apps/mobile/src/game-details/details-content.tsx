@@ -35,9 +35,12 @@ import { View } from "react-native";
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
+import { SeriesFactRows } from "../series/series-fact-rows";
+import type { SeriesHeroLineSeries } from "../series/series-hero-line";
 import { BookedCard } from "./booked-card";
 import {
   BottomBar,
+  ScoreReviewBar,
   type BottomBarHandlers,
   type BottomBarLines,
 } from "./bottom-bar";
@@ -52,6 +55,7 @@ import {
 } from "./organizer-card";
 import { RatingImpactCard, RatingScopeCard } from "./rating-impact-card";
 import { ScoreCard } from "./score-card";
+import type { ScoreReview } from "./use-score-review";
 
 const SECTION_GAP = 16;
 
@@ -138,12 +142,16 @@ function openSeatActionFor(
 
 export function GameDetailsContent({
   game,
+  series = null,
   handlers,
   organizer = null,
+  review = null,
 }: {
   game: FriendlyGameDetails;
+  series?: SeriesHeroLineSeries | null;
   handlers: DetailsHandlers;
   organizer?: DetailsOrganizer | null;
+  review?: ScoreReview | null;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -182,6 +190,7 @@ export function GameDetailsContent({
           publicGame={isPublicGame(game)}
         />
       )}
+      <SeriesFactRows series={series} />
       {levelCard ? (
         <LevelRequestCard
           card={levelCard}
@@ -220,6 +229,7 @@ export function GameDetailsContent({
           scorePending={handlers.scorePending}
           confirmPending={handlers.confirmPending}
           stampPending={handlers.stampPending}
+          review={review}
           onSaveSets={handlers.onSaveSets}
           onConfirm={handlers.onConfirm}
           onStamp={handlers.onStamp}
@@ -247,15 +257,27 @@ export function gameHeroModel(
 export function GameDetailsBar({
   game,
   handlers,
+  review = null,
   inset = true,
 }: {
   game: FriendlyGameDetails;
   handlers: BottomBarHandlers;
+  review?: ScoreReview | null;
   inset?: boolean;
 }) {
   const m = useMessages();
   const locale = useLocale();
   const plan = friendlyGameDetailsPlan(game);
+  if (review?.bar) {
+    return (
+      <ScoreReviewBar
+        bar={review.bar}
+        pending={review.pending}
+        onAction={review.onAction}
+        inset={inset}
+      />
+    );
+  }
   return (
     <BottomBar
       family={plan.ctaFamily}

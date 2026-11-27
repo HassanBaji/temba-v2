@@ -4,6 +4,7 @@ import { View } from "react-native";
 
 import { useLightStatusBar } from "../create-game/step-shell";
 import type { footballHeroLines } from "@repo/domain/football-board";
+import { GenderTag } from "../games/gender-tag";
 import { useMessages } from "../i18n/locale-provider";
 import { hairline } from "../primitives/hairline-width";
 import { Hatch } from "../primitives/hatch";
@@ -11,6 +12,10 @@ import { ScreenHeader } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { useTonePalette } from "../primitives/surface-context";
 import { Text } from "../primitives/text";
+import {
+  SeriesHeadingLine,
+  type SeriesHeroLineSeries,
+} from "../series/series-hero-line";
 import { ChallengeTag } from "./challenge-tag";
 import { HeroTopLine } from "./hero-top-line";
 
@@ -64,13 +69,17 @@ export function FootballHero({
   tone,
   lines,
   tag,
+  series,
+  genderTag,
   actions,
   children,
 }: {
   tone: SurfaceTone;
   lines: ReturnType<typeof footballHeroLines>;
+  series?: SeriesHeroLineSeries | null;
   /** "Challenge" on a Challenge Game: beside share, its format moved to the sub line. */
   tag?: string;
+  genderTag?: string | null;
   actions?: React.ReactNode;
   children?: React.ReactNode;
 }) {
@@ -107,11 +116,14 @@ export function FootballHero({
             <HeroTopLine
               left={lines.status}
               right={
-                !tag && lines.sizeTag ? (
-                  <Text size="eyebrow" tone="muted" mono>
-                    {lines.sizeTag}
-                  </Text>
-                ) : null
+                <>
+                  <GenderTag genderTag={genderTag} />
+                  {!tag && lines.sizeTag ? (
+                    <Text size="eyebrow" tone="muted" mono>
+                      {lines.sizeTag}
+                    </Text>
+                  ) : null}
+                </>
               }
             />
             {lines.time ? (
@@ -150,6 +162,7 @@ export function FootballHero({
                 </Text>
               ) : null}
             </View>
+            <SeriesHeadingLine series={series} />
           </View>
         </View>
         {children}

@@ -146,8 +146,12 @@ function GameDetailsStateColumn({
         {confirmation ? (
           <>
             <Field
-              label="Confirmed"
-              value={`${confirmation.confirmedUserIds.length} / ${confirmation.requiredUserIds.length}`}
+              label="Players confirmed"
+              value={String(confirmation.confirmedUserIds.length)}
+            />
+            <Field
+              label="Players whose side is confirmed"
+              value={`${confirmation.sideConfirmedUserIds?.length ?? 0} / ${confirmation.requiredUserIds.length}`}
             />
             <Field
               label="Viewer confirmed"
@@ -213,8 +217,8 @@ export default function GameDetailsDesignPreviewPage() {
           </h2>
           <p className="text-muted-foreground text-meta max-w-prose">
             Needs a score, partially confirmed — one Set entered (the entering
-            User auto-confirmed per ADR-0011), three confirmations still
-            outstanding.
+            User auto-confirmed per ADR-0011), one confirmation from the other
+            side still outstanding (ADR-0114).
           </p>
           <div className="grid gap-4 lg:grid-cols-3">
             <GameDetailsStateColumn

@@ -2,6 +2,10 @@ import { spacing } from "@repo/design-tokens";
 import { hubRegisterToast } from "@repo/domain/game-card";
 import { shortPlayerName } from "@repo/domain/player-name";
 import {
+  americanoFixedPartner,
+  type AmericanoPair,
+} from "@repo/domain/tournament-americano";
+import {
   americanoResultMark,
   signedDifference,
   viewerAmericanoMatches,
@@ -17,6 +21,13 @@ import { Hairline } from "../primitives/hairline";
 import { ResultMark } from "../primitives/result-mark";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { SeriesBadge } from "../series/series-badge";
+import { SeriesGameCard } from "../series/series-game-card";
+import {
+  SeriesHeadingLine,
+  type WithGameSeries,
+} from "../series/series-hero-line";
+import { useSeriesTableBadges } from "../series/use-series-table-badges";
 import { api } from "../trpc/react";
 
 function Row({ children }: { children: React.ReactNode }) {
@@ -72,6 +83,32 @@ function PlayerRow({
   );
 }
 
+/** "with Khalid J" under a player who keeps one partner all day (ADR-0113). */
+function FixedPartnerLine({
+  fixedPairs,
+  playerId,
+  viewerId,
+  nameOf,
+}: {
+  fixedPairs: readonly AmericanoPair[];
+  playerId: string;
+  viewerId: string | null | undefined;
+  nameOf: (gamePlayerId: string) => string;
+}) {
+  const m = useMessages().tournamentAmericano.fixedPairs;
+  const partner = americanoFixedPartner(fixedPairs, playerId);
+  if (!partner) {
+    return null;
+  }
+  return (
+    <Text size="eyebrow" tone="muted" numberOfLines={1}>
+      {partner === viewerId
+        ? m.withYou
+        : m.withPartner(shortPlayerName(nameOf(partner)))}
+    </Text>
+  );
+}
+
 /**
  * An Americano on the mobile App: the players before the Rounds are made,
  * then the one table of players and the viewer's Matches. Making the Rounds,
@@ -82,7 +119,7 @@ export function AmericanoView({
   onOpenPlayer,
   playerOpensActions,
 }: {
-  game: TournamentDetails;
+  game: TournamentDetails & WithGameSeries;
   onOpenPlayer?: (userId: string) => void;
   playerOpensActions?: (userId: string) => boolean;
 }) {
@@ -92,6 +129,7 @@ export function AmericanoView({
   const toast = useToast();
   const utils = api.useUtils();
   const board = api.games.americanoBoard.useQuery({ gameId: game.id });
+  const seriesBadges = useSeriesTableBadges(game.id, game.series != null);
   const register = api.games.register.useMutation({
     onSuccess: (result) =>
       toast.show(hubRegisterToast(result.waitlisted, locale)),
@@ -106,9 +144,16 @@ export function AmericanoView({
   const players = board.data?.players ?? [];
   const names = new Map(players.map((player) => [player.gamePlayerId, player]));
   const viewerId = board.data?.viewerGamePlayerId ?? null;
+  const fixedPairs: readonly AmericanoPair[] = board.data?.fixedPairs ?? [];
+  const viewerFixedPartner = viewerId
+    ? americanoFixedPartner(fixedPairs, viewerId)
+    : null;
   const seatCount = game.playersAllowed ?? 0;
   const canJoin =
     !drawn && !game.isRegistered && (game.canRegister || game.canWaitlist);
+  const seriesCard = game.series ? (
+    <SeriesGameCard gameId={game.id} game="social" />
+  ) : null;
 
   if (!drawn) {
     return (
@@ -126,7 +171,9 @@ export function AmericanoView({
             {m.hero.seats(game.registeredPlayers.length, seatCount)}.{" "}
             {m.drawEntry.waitingCopy(seatCount)}
           </Text>
+          <SeriesHeadingLine series={game.series} />
         </View>
+        {seriesCard}
         <Card
           title={m.players.title}
           meta={m.players.count(game.registeredPlayers.length, seatCount)}
@@ -199,6 +246,10 @@ export function AmericanoView({
       ? messages.common.you
       : shortPlayerName(names.get(id)?.name ?? "");
   const finished = board.data?.finished ?? false;
+  const wonSeries = (playerId: string) => {
+    const userId = names.get(playerId)?.userId;
+    return userId != null && seriesBadges?.userIds.has(userId) === true;
+  };
 
   return (
     <View style={{ gap: 24 }}>
@@ -213,9 +264,11 @@ export function AmericanoView({
         </Text>
         <Text size="body">{game.name ?? m.shape.title}</Text>
         <Text size="meta" tone="muted">
-          {m.lead.standings}
+          {m.lead.standings(fixedPairs.length)}
         </Text>
+        <SeriesHeadingLine series={game.series} finished={finished} />
       </View>
+      {seriesCard}
 
       <View style={{ gap: 8 }}>
         <Card title={m.tabs.standings}>
@@ -242,7 +295,20 @@ export function AmericanoView({
                       </Text>
                     ) : null}
                   </Text>
+                  <FixedPartnerLine
+                    fixedPairs={fixedPairs}
+                    playerId={row.playerId}
+                    viewerId={viewerId}
+                    nameOf={(id) => names.get(id)?.name ?? ""}
+                  />
                 </View>
+                {seriesBadges && wonSeries(row.playerId) ? (
+                  <SeriesBadge
+                    emblem={seriesBadges.emblem}
+                    colour={seriesBadges.colour}
+                    size="line"
+                  />
+                ) : null}
                 <Text size="meta" tone="muted">
                   {signedDifference(row.difference)}
                 </Text>
@@ -256,12 +322,24 @@ export function AmericanoView({
         <Text size="meta" tone="muted">
           {finished ? m.table.final : m.table.live}
         </Text>
+        {seriesBadges ? (
+          <Text size="meta" tone="muted">
+            {seriesBadges.note}
+          </Text>
+        ) : null}
       </View>
 
       {played.length > 0 ? (
         <Card
           title={finished ? m.yourRounds.finishedTitle : m.yourRounds.title}
-          meta={m.yourRounds.meta(played.length)}
+          meta={
+            viewerFixedPartner
+              ? m.yourRounds.metaFixed(
+                  played.length,
+                  shortPlayerName(names.get(viewerFixedPartner)?.name ?? ""),
+                )
+              : m.yourRounds.meta(played.length)
+          }
         >
           {played.map((entry, index) => (
             <Fragment key={entry.match.matchId}>

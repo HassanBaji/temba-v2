@@ -187,7 +187,7 @@ export function friendlyGameCtaCopy(
     case "needs_score":
       return {
         title: m.cta.addTheScore,
-        subline: m.cta.countsOnceOthersConfirm,
+        subline: m.cta.countsOnceOtherSideConfirms,
         actionLabel: m.cta.addResult,
         pendingLabel: null,
       };

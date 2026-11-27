@@ -44,6 +44,14 @@ import type { TierBand } from "./tier-bands";
 
 export type Side = 1 | 2;
 
+/** What a pair keyed by slot holds for a side. */
+export function ofSide<Value>(
+  pair: { slot1: Value; slot2: Value },
+  side: Side,
+): Value {
+  return side === 1 ? pair.slot1 : pair.slot2;
+}
+
 export type BoardPlayer = {
   userId: string;
   name: string;
@@ -140,12 +148,38 @@ export function lineupName(
   return nameOnLineup(player, locale, shortName);
 }
 
+/** `lineupName` for a Make teams tile, which shows the Temba name in full. */
+export function teamsTileName(
+  player: Pick<BoardPlayer, "name" | "nickname" | "isViewer">,
+  locale: Locale,
+) {
+  return nameOnLineup(player, locale, (name) => name);
+}
+
+export function otherSide(side: Side): Side {
+  return side === 1 ? 2 : 1;
+}
+
 /** `lineupName` for a pool tile, whose short name is `tileShortName`. */
 export function poolTileName(
   player: Pick<BoardPlayer, "name" | "nickname" | "isViewer">,
   locale: Locale,
 ) {
   return nameOnLineup(player, locale, (name) => tileShortName(name, locale));
+}
+
+/**
+ * `lineupName` as plain text, for a player the roster may no longer hold:
+ * null without one.
+ */
+export function lineupPlayerName(
+  player:
+    | Pick<BoardPlayer, "name" | "nickname" | "isViewer">
+    | null
+    | undefined,
+  locale: Locale,
+) {
+  return player ? lineupName(player, locale).name : null;
 }
 
 function nameOnLineup(
@@ -301,13 +335,23 @@ export function bibNames(bibs: Bibs, locale: Locale) {
   };
 }
 
+/** Each side's Side captain by User (ADR-0108), or none. */
+export type SideCaptains = { slot1: string | null; slot2: string | null };
+
+export const NO_SIDE_CAPTAINS: SideCaptains = { slot1: null, slot2: null };
+
 export type TeamsDraft = {
   method: FootballTeamsMethod;
   bibs: Bibs;
   sides: Record<string, Side>;
+  captains: SideCaptains;
 };
 
-function sidesFromSplit(split: { slot1: string[]; slot2: string[] }) {
+/** Each placed player's side, from the two sides' players. */
+export function sidesFromSplit(split: {
+  slot1: readonly string[];
+  slot2: readonly string[];
+}) {
   const sides: Record<string, Side> = {};
   for (const userId of split.slot1) {
     sides[userId] = 1;
@@ -316,6 +360,41 @@ function sidesFromSplit(split: { slot1: string[]; slot2: string[] }) {
     sides[userId] = 2;
   }
   return sides;
+}
+
+/** A Side captain stays named only while they are on that side. */
+export function captainsOnTheirSides(
+  captains: SideCaptains,
+  sides: Record<string, Side>,
+): SideCaptains {
+  return {
+    slot1:
+      captains.slot1 != null && sides[captains.slot1] === 1
+        ? captains.slot1
+        : null,
+    slot2:
+      captains.slot2 != null && sides[captains.slot2] === 2
+        ? captains.slot2
+        : null,
+  };
+}
+
+function withSides(draft: TeamsDraft, sides: Record<string, Side>): TeamsDraft {
+  return {
+    ...draft,
+    sides,
+    captains: captainsOnTheirSides(draft.captains, sides),
+  };
+}
+
+/**
+ * Who may be named a Side captain: a player with an account. A Guest player
+ * or an Unclaimed player cannot open the draft.
+ */
+export function mayBeSideCaptain(
+  player: Pick<BoardPlayer, "guest" | "unclaimed">,
+) {
+  return !player.guest && !player.unclaimed;
 }
 
 export function balancedSides(
@@ -335,14 +414,43 @@ export function balancedSides(
   );
 }
 
+function byHand(method: FootballTeamsMethod): FootballTeamsMethod {
+  return method === "captain_pick" ? "manual" : method;
+}
+
 /**
- * Where the Make teams screen starts: the published split when there is one,
- * otherwise a balanced split.
+ * Where the Make teams screen starts: the saved Draft line-up when there is
+ * one, else the published split, otherwise a balanced split. The Side
+ * captains come with the draft or the published teams. Teams a Captain pick
+ * made are edited by hand: Captain pick only ever starts from the toggle.
  */
 export function initialTeamsDraft(
   players: readonly BoardPlayer[],
-  teams: { method: FootballTeamsMethod | null; bibs: Bibs } | null,
+  teams: {
+    method: FootballTeamsMethod | null;
+    bibs: Bibs;
+    captains: SideCaptains;
+  } | null,
+  saved: {
+    method: FootballTeamsMethod;
+    bibs: Bibs;
+    sides: { slot1: readonly string[]; slot2: readonly string[] };
+    captains: SideCaptains;
+  } | null,
 ): TeamsDraft {
+  if (saved) {
+    const roster = new Set(players.map((player) => player.userId));
+    const sides = sidesFromSplit({
+      slot1: saved.sides.slot1.filter((userId) => roster.has(userId)),
+      slot2: saved.sides.slot2.filter((userId) => roster.has(userId)),
+    });
+    return {
+      method: byHand(saved.method),
+      bibs: saved.bibs,
+      sides,
+      captains: captainsOnTheirSides(saved.captains, sides),
+    };
+  }
   if (teams) {
     const sides: Record<string, Side> = {};
     for (const player of players) {
@@ -350,27 +458,37 @@ export function initialTeamsDraft(
         sides[player.userId] = player.sideIndex;
       }
     }
-    return { method: teams.method ?? "manual", bibs: teams.bibs, sides };
+    return {
+      method: byHand(teams.method ?? "manual"),
+      bibs: teams.bibs,
+      sides,
+      captains: captainsOnTheirSides(teams.captains, sides),
+    };
   }
   return {
     method: "level",
     bibs: DEFAULT_FOOTBALL_BIBS,
     sides: balancedSides(players),
+    captains: NO_SIDE_CAPTAINS,
   };
 }
 
+/** Moving a Side captain to the other team clears the pick. */
 export function moveAcross(draft: TeamsDraft, userId: string): TeamsDraft {
   const current = draft.sides[userId];
   if (!current) {
     return draft;
   }
-  return {
-    ...draft,
-    sides: { ...draft.sides, [userId]: current === 1 ? 2 : 1 },
-  };
+  return withSides(draft, {
+    ...draft.sides,
+    [userId]: current === 1 ? 2 : 1,
+  });
 }
 
-/** Tapping a side's swatch places a player there; tapping it again unplaces. */
+/**
+ * Tapping a side's swatch places a player there; tapping it again unplaces.
+ * A Side captain moved or unplaced is no longer the captain.
+ */
 export function placeOn(
   draft: TeamsDraft,
   userId: string,
@@ -382,10 +500,13 @@ export function placeOn(
   } else {
     sides[userId] = side;
   }
-  return { ...draft, sides };
+  return withSides(draft, sides);
 }
 
-/** By level and Manual start from different places: a fresh split or empty. */
+/**
+ * By level and Manual start from different places: a fresh split or empty.
+ * Either way both Side captains are cleared.
+ */
 export function switchMethod(
   draft: TeamsDraft,
   method: FootballTeamsMethod,
@@ -398,7 +519,75 @@ export function switchMethod(
     ...draft,
     method,
     sides: method === "level" ? balancedSides(players) : {},
+    captains: NO_SIDE_CAPTAINS,
   };
+}
+
+/** Shuffle deals a fresh balanced split and clears both Side captains. */
+export function shuffleSides(
+  draft: TeamsDraft,
+  players: readonly BoardPlayer[],
+  random?: () => number,
+): TeamsDraft {
+  return {
+    ...draft,
+    sides: balancedSides(players, random),
+    captains: NO_SIDE_CAPTAINS,
+  };
+}
+
+/** Clear unplaces everyone, so no Side captain is left. */
+export function clearSides(draft: TeamsDraft): TeamsDraft {
+  return { ...draft, sides: {}, captains: NO_SIDE_CAPTAINS };
+}
+
+/**
+ * Names a side's Side captain, or none with null. Only a player on that side
+ * can be named; anyone else leaves the draft as it is.
+ */
+export function setSideCaptain(
+  draft: TeamsDraft,
+  side: Side,
+  userId: string | null,
+): TeamsDraft {
+  if (userId != null && draft.sides[userId] !== side) {
+    return draft;
+  }
+  return {
+    ...draft,
+    captains: { ...draft.captains, [side === 1 ? "slot1" : "slot2"]: userId },
+  };
+}
+
+/**
+ * Names a side's Side captain for a Captain pick, from anyone on the roster
+ * (ADR-0109): the two captains are seated on their sides and everyone else
+ * waits to be picked. Naming the other side's captain moves them across;
+ * null leaves the side without one.
+ */
+export function setPickCaptain(
+  draft: TeamsDraft,
+  side: Side,
+  userId: string | null,
+): TeamsDraft {
+  const captains: SideCaptains =
+    side === 1
+      ? {
+          slot1: userId,
+          slot2: draft.captains.slot2 === userId ? null : draft.captains.slot2,
+        }
+      : {
+          slot1: draft.captains.slot1 === userId ? null : draft.captains.slot1,
+          slot2: userId,
+        };
+  const sides: Record<string, Side> = {};
+  if (captains.slot1 != null) {
+    sides[captains.slot1] = 1;
+  }
+  if (captains.slot2 != null) {
+    sides[captains.slot2] = 2;
+  }
+  return { ...draft, sides, captains };
 }
 
 /** Keepers first, then strongest down: the order teams read in. */
@@ -473,22 +662,34 @@ export function draftSummary(
 
 /**
  * A side's mean as Make teams reads it when every player has a balance
- * strength: mean Tier points in a tier Group, the mean OVR elsewhere.
- * Otherwise the mean OVR of the players who have one.
+ * strength: the mean OVR off a tier Group, and in a tier Group the mean Tier
+ * points of its ranked members, a dash while it has none. Provisional members
+ * and Guest players are balanced on a start hint, which is no Tier points,
+ * so the mean leaves them out. Otherwise the mean OVR of the players who
+ * have one.
  */
 export function teamsSideAverage(
-  players: readonly Pick<BoardPlayer, "ovr" | "balanceStrength">[],
+  players: readonly Pick<
+    BoardPlayer,
+    "ovr" | "balanceStrength" | "tier" | "guest"
+  >[],
   locale: Locale,
   balanceOn: FootballBalanceOn = "tierPoints",
 ) {
-  const strengths = players.flatMap((player) =>
-    player.balanceStrength == null ? [] : [player.balanceStrength],
-  );
-  if (strengths.length === 0 || strengths.length < players.length) {
+  if (
+    players.length === 0 ||
+    players.some((player) => player.balanceStrength == null)
+  ) {
     return sideOvrAverage(players, locale);
   }
+  const counted =
+    balanceOn === "ovr" ? players : players.filter(countsInTierAverage);
+  if (counted.length === 0) {
+    return "–";
+  }
   const mean =
-    strengths.reduce((sum, strength) => sum + strength, 0) / strengths.length;
+    counted.reduce((sum, player) => sum + (player.balanceStrength ?? 0), 0) /
+    counted.length;
   const m = messagesFor(locale).rating;
   return balanceOn === "ovr"
     ? m.ovr.value(formatOvr(mean))
@@ -580,88 +781,80 @@ export function keeperWord(
   return messagesFor(locale).football.board.keeperCount(keepersIn(players));
 }
 
-export type ScoreDraft = {
-  slot1: number;
-  slot2: number;
-  goals: Record<string, number>;
-};
-
-export function namedGoals(draft: ScoreDraft, players: readonly BoardPlayer[]) {
-  const named = { slot1: 0, slot2: 0 };
-  for (const player of players) {
-    const goals = draft.goals[player.userId] ?? 0;
-    if (player.sideIndex === 1) {
-      named.slot1 += goals;
-    } else if (player.sideIndex === 2) {
-      named.slot2 += goals;
-    }
-  }
-  return named;
-}
-
 /**
- * Tapping a scorer adds a goal, and raises their side's Score with it when
- * the side has no unnamed goals left.
+ * A Group Tier still Provisional on a tier Group's Make teams. Their Tier
+ * points have not settled, so the tile reads new and the side's average
+ * leaves them out. A Guest player has no tier at all and is never one.
  */
-export function addGoal(
-  draft: ScoreDraft,
-  player: Pick<BoardPlayer, "userId" | "sideIndex">,
-  players: readonly BoardPlayer[],
-): ScoreDraft {
-  if (!player.sideIndex) {
-    return draft;
-  }
-  const key = player.sideIndex === 1 ? "slot1" : "slot2";
-  const named = namedGoals(draft, players)[key];
-  return {
-    ...draft,
-    [key]: Math.max(draft[key], named + 1),
-    goals: {
-      ...draft.goals,
-      [player.userId]: (draft.goals[player.userId] ?? 0) + 1,
-    },
-  };
-}
-
-export function removeGoal(draft: ScoreDraft, userId: string): ScoreDraft {
-  const current = draft.goals[userId] ?? 0;
-  if (current === 0) {
-    return draft;
-  }
-  const goals = { ...draft.goals };
-  if (current === 1) {
-    delete goals[userId];
-  } else {
-    goals[userId] = current - 1;
-  }
-  return { ...draft, goals };
-}
-
-export function scorersNote(
-  draft: ScoreDraft,
-  players: readonly BoardPlayer[],
-  names: { slot1: string; slot2: string },
-  locale: Locale,
+export function tierProvisionalOnTeams(
+  player: Pick<BoardPlayer, "tier" | "guest">,
+  balanceOn: FootballBalanceOn,
 ) {
-  const m = messagesFor(locale).football.board;
-  const named = namedGoals(draft, players);
-  if (named.slot1 + named.slot2 === 0) {
-    return m.goalsNote;
-  }
-  return m.goalsNamed(
-    named.slot1,
-    draft.slot1,
-    names.slot1,
-    named.slot2,
-    draft.slot2,
-    names.slot2,
+  return (
+    balanceOn === "tierPoints" &&
+    !player.guest &&
+    (player.tier?.provisional ?? true)
   );
 }
 
-export function scorersPayload(draft: ScoreDraft) {
-  return Object.entries(draft.goals)
-    .filter(([, goals]) => goals > 0)
-    .map(([userId, goals]) => ({ userId, goals }));
+export function tierProvisionalCount(
+  players: readonly Pick<BoardPlayer, "tier" | "guest">[],
+  balanceOn: FootballBalanceOn,
+) {
+  return players.filter((player) => tierProvisionalOnTeams(player, balanceOn))
+    .length;
+}
+
+/** Tier points a side's average is taken over: a ranked member's, not a Guest player's stand-in. */
+function countsInTierAverage(player: Pick<BoardPlayer, "tier" | "guest">) {
+  return !player.guest && !tierProvisionalOnTeams(player, "tierPoints");
+}
+
+export type TeamsRating = {
+  kind: "rated" | "new" | "guest";
+  value: string;
+  spoken: string;
+};
+
+/**
+ * A player's rating on Make teams: what the side averages are taken over, in
+ * the same numerals, so "avg 1,224 points" is the mean of the tiles under it.
+ * New while the Group Tier is Provisional. A Guest player in a tier Group
+ * reads Guest, since their stand-in is no Tier points; elsewhere they show
+ * the mean OVR they play at (ADR-0079).
+ */
+export function teamsRating(
+  player: Pick<BoardPlayer, "tier" | "ovr" | "guest" | "balanceStrength">,
+  balanceOn: FootballBalanceOn,
+  locale: Locale,
+): TeamsRating {
+  const m = messagesFor(locale);
+  if (tierProvisionalOnTeams(player, balanceOn)) {
+    return {
+      kind: "new",
+      value: m.football.board.tileNew,
+      spoken: m.football.board.tileNewSpoken,
+    };
+  }
+  if (player.guest && balanceOn === "tierPoints") {
+    const value = m.group.addPlayer.guest.tag;
+    return { kind: "guest", value, spoken: value };
+  }
+  const strength = player.balanceStrength ?? null;
+  if (strength == null) {
+    const value = ovrLabel(player);
+    return { kind: "rated", value, spoken: ovrSpoken(player, locale) ?? value };
+  }
+  if (balanceOn === "ovr") {
+    const value = formatOvr(strength);
+    return { kind: "rated", value, spoken: m.level.ovr(value) };
+  }
+  const value = formatTierPoints(strength);
+  return {
+    kind: "rated",
+    value,
+    spoken: m.rating.tier.points(value, tierPointsCount(strength)),
+  };
 }
 
 export function confirmationLine(
@@ -725,6 +918,10 @@ export type HeroLinesInput = {
   pitchName: string | null;
   teamsSet: boolean;
   scored: boolean;
+  /** The viewer reads a saved Draft line-up (ADR-0107). */
+  draftSaved?: boolean;
+  /** The team the viewer captains on that draft, by name (ADR-0108). */
+  draftSideCaptainOf?: string | null;
 };
 
 /** The words around the kick-off time at the top of a football Game. */
@@ -750,13 +947,19 @@ export function footballHeroLines(
         : m.playedScoreMissing
       : live
         ? messagesFor(locale).dates.countdown.liveNow
-        : input.teamsSet
-          ? weekday
-            ? m.teamsSetOn(weekday)
-            : m.teamsSet
-          : weekday
-            ? m.upcomingOn(weekday)
-            : m.upcoming;
+        : input.draftSaved
+          ? input.draftSideCaptainOf
+            ? messagesFor(locale).football.draft.statusCaptain(
+                input.draftSideCaptainOf,
+              )
+            : messagesFor(locale).football.draft.status
+          : input.teamsSet
+            ? weekday
+              ? m.teamsSetOn(weekday)
+              : m.teamsSet
+            : weekday
+              ? m.upcomingOn(weekday)
+              : m.upcoming;
   const kickoff = start ? formatHomeKickoff(start, locale) : null;
   const day = start ? formatGameDay(start, locale, { weekday: "short" }) : null;
   const duration = formatWindowDuration(

@@ -11,6 +11,7 @@ import {
   friendlyGameShareLink,
   friendlyGameVacantSeatLine,
   friendlyGameWaitlistLine,
+  gameCanShareInviteLink,
   isTakeableJoinSeat,
   offersEitherSide,
   vacantJoinSeats,
@@ -221,6 +222,56 @@ describe("friendlyGameLevelUpdatedLine", () => {
   });
 });
 
+describe("gameCanShareInviteLink", () => {
+  const base = {
+    isOrganizer: false,
+    isRegistered: false,
+    isChallengeGame: false,
+    registrationStatus: "open",
+  } as const;
+
+  it("lets the Organizer and a registered player mint while the Game takes players", () => {
+    assert.equal(gameCanShareInviteLink({ ...base, isOrganizer: true }), true);
+    assert.equal(gameCanShareInviteLink({ ...base, isRegistered: true }), true);
+    assert.equal(
+      gameCanShareInviteLink({
+        ...base,
+        isRegistered: true,
+        registrationStatus: "full",
+      }),
+      true,
+    );
+  });
+
+  it("refuses a viewer who is neither", () => {
+    assert.equal(gameCanShareInviteLink(base), false);
+  });
+
+  it("refuses once registration is closed or the Game is cancelled", () => {
+    for (const registrationStatus of ["closed", "cancelled"]) {
+      assert.equal(
+        gameCanShareInviteLink({
+          ...base,
+          isRegistered: true,
+          registrationStatus,
+        }),
+        false,
+      );
+    }
+  });
+
+  it("refuses on a Challenge Game", () => {
+    assert.equal(
+      gameCanShareInviteLink({
+        ...base,
+        isOrganizer: true,
+        isChallengeGame: true,
+      }),
+      false,
+    );
+  });
+});
+
 describe("friendlyGameShareLink", () => {
   const base = { canMintInvite: false, cancelled: false, phase: null } as const;
 
@@ -250,16 +301,64 @@ describe("friendlyGameShareLink", () => {
     assert.equal(friendlyGameShareLink(base), "game_page");
   });
 
-  it("shares nothing once the Game is cancelled or played", () => {
+  it("shares nothing once the Game is cancelled or final", () => {
     assert.equal(
       friendlyGameShareLink({ ...base, cancelled: true, phase: "upcoming" }),
       null,
     );
     assert.equal(
-      friendlyGameShareLink({ ...base, phase: "needs_results" }),
+      friendlyGameShareLink({
+        ...base,
+        cancelled: true,
+        phase: "needs_results",
+      }),
       null,
     );
     assert.equal(friendlyGameShareLink({ ...base, phase: "final" }), null);
+  });
+
+  it("shares a played Game with no score as played, not as an invite", () => {
+    assert.equal(
+      friendlyGameShareLink({ ...base, phase: "needs_results" }),
+      "played",
+    );
+    assert.equal(
+      friendlyGameShareLink({
+        ...base,
+        canMintInvite: true,
+        phase: "needs_results",
+      }),
+      "played",
+    );
+  });
+
+  it("shares the result of a played Game whose score awaits confirmation", () => {
+    assert.equal(
+      friendlyGameShareLink({
+        ...base,
+        canMintInvite: true,
+        phase: "needs_results",
+        scoreAwaitsConfirmation: true,
+      }),
+      "result",
+    );
+    assert.equal(
+      friendlyGameShareLink({
+        ...base,
+        cancelled: true,
+        phase: "needs_results",
+        scoreAwaitsConfirmation: true,
+      }),
+      null,
+    );
+    assert.equal(
+      friendlyGameShareLink({
+        ...base,
+        phase: "ongoing",
+        scoreAwaitsConfirmation: true,
+      }),
+      "game_page",
+    );
   });
 });
 

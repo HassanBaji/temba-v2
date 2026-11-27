@@ -10,6 +10,7 @@ import {
 } from "./friendly-game-cta";
 import { viewerSidePartnerName } from "./friendly-game-partner";
 import type { ProveItImpact } from "./game-rating-impact";
+import type { ScoreEntry } from "./score-review";
 import type { GameRatingScope } from "./game-rating-scope";
 import type { LevelBand } from "./level-bands";
 import type { MemberNicknameData } from "./member-nickname";
@@ -76,6 +77,8 @@ export type FriendlyGameDetailsConfirmation = {
   confirmedUserIds: string[];
   requiredUserIds: string[];
   viewerHasConfirmed: boolean;
+  sideConfirmedUserIds?: string[];
+  scoreEntry?: ScoreEntry | null;
   confirmedAt: Date | null;
   organizerSides?: { slot: 1 | 2; confirmed: boolean }[];
   confirmedByOrganizer?: boolean;
@@ -125,6 +128,7 @@ export type FriendlyGameDetails = {
   trackPayments: boolean;
   levelMinTenths: number | null;
   levelMaxTenths: number | null;
+  genderTag?: string | null;
   playersAllowed: number | null;
   cancelledAt: Date | null;
   registrationClosedAt: Date | null;

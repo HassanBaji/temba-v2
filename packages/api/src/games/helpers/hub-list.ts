@@ -52,6 +52,9 @@ import type {
   HubListTournamentTeam,
 } from "#src/games/utils";
 import { userAllowedByLevelRange } from "#src/games/user-allowed-by-level-range";
+import { withSeriesEditions } from "#src/series/edition-order";
+import type { GameGenderTag } from "@repo/domain/game-gender-tag";
+import type { HubGameSeries } from "@repo/domain/hub-game-row";
 import { gameRatingScope } from "@repo/domain/game-rating-scope";
 
 export type HubListDb = DbClient;
@@ -77,6 +80,8 @@ export const hubListColumns = {
   format: true,
   registrationMode: true,
   sport: true,
+  genderTag: true,
+  seriesId: true,
   playersAllowed: true,
   teamsAllowed: true,
   poolCount: true,
@@ -97,6 +102,14 @@ export const hubListWith = {
     columns: {
       id: true,
       name: true,
+    },
+  },
+  series: {
+    columns: {
+      id: true,
+      name: true,
+      emblem: true,
+      colour: true,
     },
   },
   venue: {
@@ -217,6 +230,10 @@ export type HubQueryRow = {
   format: string;
   registrationMode: string;
   sport: string | null;
+  genderTag?: GameGenderTag | null;
+  series?: Omit<HubGameSeries, "edition"> | null;
+  /** From `withSeriesEditions`; a row read without it shows no Series. */
+  seriesEdition?: number | null;
   playersAllowed: number | null;
   teamsAllowed: number | null;
   poolCount: number | null;
@@ -728,6 +745,11 @@ export function toHubListRow(
     format: row.format,
     registrationMode: row.registrationMode,
     sport: row.sport,
+    genderTag: row.genderTag ?? null,
+    series:
+      row.series && row.seriesEdition != null
+        ? { ...row.series, edition: row.seriesEdition }
+        : null,
     isPublic: row.isPublic,
     rated: row.rated,
     ratingScope: gameRatingScope(row),
@@ -1088,9 +1110,10 @@ export async function queryHubGames(
   database: HubListDb,
   where: SQL | undefined,
 ) {
-  return database.query.games.findMany({
+  const rows = await database.query.games.findMany({
     where,
     columns: hubListColumns,
     with: hubListWith,
   });
+  return withSeriesEditions(database, rows);
 }

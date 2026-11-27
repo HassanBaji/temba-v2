@@ -22,6 +22,7 @@ type ExpectedTopLevel =
   | "marks"
   | "notifications"
   | "ratings"
+  | "series"
   | "teams"
   | "users"
   | "venues";
@@ -79,6 +80,7 @@ type ExpectedGames =
   | "americanoBoard"
   | "postAmericanoRounds"
   | "swapAmericanoPlayers"
+  | "setAmericanoFixedPairs"
   | "undoPoolDraw"
   | "tournamentRounds"
   | "generateRounds"
@@ -115,12 +117,14 @@ type ExpectedGames =
   | "cancel"
   | "cancelMatch"
   | "updateWindow"
+  | "updateGenderTag"
   | "updateName"
   | "updatePricePerPlayer"
   | "updateLevelRange"
   | "updateRoundCount"
   | "updateMatchMinutes"
   | "updateSeason"
+  | "updateSeries"
   | "requestLevelRange"
   | "listLevelRangeRequests"
   | "approveLevelRangeRequest"
@@ -133,6 +137,7 @@ type ExpectedGames =
   | "updateMatch"
   | "addSet"
   | "scoreSet"
+  | "saveScore"
   | "removeSet"
   | "completeMatch"
   | "confirmMatchResult"
@@ -142,9 +147,19 @@ type ExpectedGames =
   | "listDisputesForOperator"
   | "decideDispute"
   | "footballBoard"
+  | "footballPlayerCard"
   | "resultLink"
   | "setFootballRole"
   | "publishFootballTeams"
+  | "saveFootballDraft"
+  | "answerFootballDraft"
+  | "openFootballPickRoom"
+  | "footballPickRoom"
+  | "startFootballPick"
+  | "stopFootballPick"
+  | "pickFootballPlayer"
+  | "undoFootballPick"
+  | "remindFootballCaptain"
   | "saveFootballScore"
   | "nameChallengeSquad"
   | "performanceRatingSheet"
@@ -273,6 +288,16 @@ type ExpectedRatings =
   | "listLevelDisputesForOperator"
   | "decideLevelDispute";
 
+type ExpectedSeries =
+  | "attachOptions"
+  | "byId"
+  | "create"
+  | "edition"
+  | "end"
+  | "forPlayer"
+  | "listForGroup"
+  | "playerWins";
+
 type ExpectedTeams =
   | "create"
   | "mine"
@@ -394,6 +419,7 @@ type _Notifications = AssertTrue<
 type _Ratings = AssertTrue<
   Equal<keyof RouterInputs["ratings"], ExpectedRatings>
 >;
+type _Series = AssertTrue<Equal<keyof RouterInputs["series"], ExpectedSeries>>;
 type _Teams = AssertTrue<Equal<keyof RouterInputs["teams"], ExpectedTeams>>;
 type _Users = AssertTrue<Equal<keyof RouterInputs["users"], ExpectedUsers>>;
 type _Venues = AssertTrue<Equal<keyof RouterInputs["venues"], ExpectedVenues>>;
@@ -410,6 +436,7 @@ export type AppRouterShapeChecks = [
   _Marks,
   _Notifications,
   _Ratings,
+  _Series,
   _Teams,
   _Users,
   _Venues,

@@ -30,6 +30,8 @@ import { RateGameCard } from "~/components/games/rate-game-card";
 import { MarksSection } from "~/components/marks/marks-section";
 import { MvpRow } from "~/components/marks/mvp-row";
 import { useGameMarks } from "~/components/marks/use-game-marks";
+import { SeriesGameCard } from "~/components/series/series-game-card";
+import type { SeriesHeroLineSeries } from "~/components/series/series-hero-line";
 
 import { MatchDisputeRow } from "./match-dispute-row";
 import { PlayedGameView } from "./played-game-view";
@@ -41,6 +43,7 @@ export function PlayedFriendlyGame({
   gameId,
   game,
   match,
+  series,
   linkToPlayers,
   onKick,
   onRename,
@@ -50,6 +53,7 @@ export function PlayedFriendlyGame({
   gameId: string;
   game: FriendlyGameDetails;
   match: FriendlyGameDetailsMatch;
+  series: SeriesHeroLineSeries | null | undefined;
   linkToPlayers: boolean;
   onKick: (userId: string) => void;
   onRename?: (player: { userId: string; name: string }) => void;
@@ -72,6 +76,7 @@ export function PlayedFriendlyGame({
           venue: game.venue,
           courtName: match.courtName,
           groupName: game.groupName,
+          genderTag: game.genderTag,
           rated: game.rated,
           ratingScope: game.ratingScope,
           publicGame: isPublicGame(game),
@@ -150,12 +155,16 @@ export function PlayedFriendlyGame({
           avatar: viewerSeat
             ? { name: viewerSeat.name, image: viewerSeat.image }
             : null,
+          series,
         }}
         menu={menu}
         board={
           <PlayedPadelBoard setLabels={model.setLabels} rows={model.board} />
         }
         heroFooter={<MvpRow marks={marks} canOpenProfile={linkToPlayers} />}
+        seriesCard={
+          series ? <SeriesGameCard gameId={gameId} game="played" /> : null
+        }
         task={
           <>
             <GamePaymentsSection

@@ -71,9 +71,8 @@ export function CreateFlowShell({
 
       <div
         className={cn(
-          "bg-paper border-rule fixed inset-x-0 z-40 border-t py-3.5 lg:static lg:inset-auto lg:z-auto lg:border-0 lg:px-0 lg:py-0",
+          "bg-paper border-rule fixed inset-x-0 bottom-0 z-40 border-t pb-[max(0.875rem,env(safe-area-inset-bottom))] pt-3.5 lg:static lg:inset-auto lg:z-auto lg:border-0 lg:px-0 lg:pb-0 lg:pt-0",
           pageGutterX,
-          "bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom,0px))] lg:bottom-auto",
         )}
       >
         {footer}

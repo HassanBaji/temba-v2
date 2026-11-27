@@ -171,15 +171,55 @@ export function pickFootballBib(
   };
 }
 
-export const FOOTBALL_TEAMS_METHODS = ["level", "manual"] as const;
+export const FOOTBALL_TEAMS_METHODS = [
+  "level",
+  "manual",
+  "captain_pick",
+] as const;
 
 export type FootballTeamsMethod = (typeof FOOTBALL_TEAMS_METHODS)[number];
+
+/** Where a Captain pick stands (ADR-0109); null outside one. */
+export const FOOTBALL_PICK_STATUSES = ["waiting", "live", "done"] as const;
+
+export type FootballPickStatus = (typeof FOOTBALL_PICK_STATUSES)[number];
+
+/** Who picks first: a toss made when the pick starts, or one side. */
+export const FOOTBALL_FIRST_PICKS = ["toss", "slot1", "slot2"] as const;
+
+export type FootballFirstPick = (typeof FOOTBALL_FIRST_PICKS)[number];
+
+/** Two Side captains and at least two players for them to pick. */
+export const CAPTAIN_PICK_MIN_PLAYERS = 4;
+
+/** How often a Pick room screen reads the room while it is in front. */
+export const PICK_ROOM_POLL_MS = 2_000;
+
+/**
+ * How often a Pick room screen reads the room while a finished pick stays on
+ * it, to learn that the Organizer opened a new room.
+ */
+export const PICK_ROOM_FINISHED_POLL_MS = 15_000;
+
+/** A Side captain is in the Pick room while their screen read it this recently. */
+export const PICK_ROOM_PRESENCE_MS = 10_000;
+
+/** A Side captain's word on their own side of a Draft line-up (ADR-0108). */
+export const FOOTBALL_DRAFT_ANSWERS = ["approved", "change_asked"] as const;
+
+export type FootballDraftAnswer = (typeof FOOTBALL_DRAFT_ANSWERS)[number];
+
+/** The longest note a Side captain sends with a change asked. */
+export const FOOTBALL_DRAFT_NOTE_MAX_LENGTH = 140;
 
 export function footballTeamsMethodLabel(
   method: FootballTeamsMethod | null,
   locale: Locale,
 ) {
   const m = messagesFor(locale).football.lineup.teamsMethod;
+  if (method === "captain_pick") {
+    return m.captain_pick;
+  }
   return method === "manual" ? m.manual : m.level;
 }
 
@@ -292,13 +332,6 @@ export function footballSidesProblem(
 
 export const FOOTBALL_GOALS_MIN = 0;
 export const FOOTBALL_GOALS_MAX = 99;
-
-export function stepFootballGoals(current: number, delta: -1 | 1) {
-  return Math.min(
-    FOOTBALL_GOALS_MAX,
-    Math.max(FOOTBALL_GOALS_MIN, current + delta),
-  );
-}
 
 export function footballResultLine(
   score: { slot1: number; slot2: number },

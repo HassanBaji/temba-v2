@@ -42,10 +42,13 @@ const saved: GameEditDraft = {
   levelMax: "none",
   roundCount: null,
   seasonId: "s3",
+  seriesId: null,
   venueId: "v1",
   courtId: "pitch-1",
   teamCount: null,
   courtIds: [],
+  matchMinutes: null,
+  genderTag: null,
 };
 
 const s3: GroupSeasonData = {
@@ -92,11 +95,13 @@ describe("gameEditDraftFrom", () => {
       levelMax: "none",
       roundCount: null,
       seasonId: "s3",
+      seriesId: null,
       venueId: "v1",
       courtId: "pitch-1",
       teamCount: null,
       courtIds: ["pitch-1"],
       matchMinutes: null,
+      genderTag: null,
     });
   });
 
@@ -135,8 +140,10 @@ describe("gameEditDraftFrom", () => {
       matchLength: false,
       price: true,
       level: false,
+      genderTag: true,
       rounds: false,
       season: true,
+      series: false,
     });
     expect(
       gameEditSectionsFor({
@@ -157,9 +164,66 @@ describe("gameEditDraftFrom", () => {
       matchLength: true,
       price: true,
       level: true,
+      genderTag: true,
       rounds: true,
       season: false,
+      series: false,
     });
+  });
+});
+
+describe("Gender tag section", () => {
+  const source = {
+    name: null,
+    windowStart: null,
+    windowEnd: null,
+    pricePerPlayerFils: null,
+    playersAllowed: 4,
+    sideSize: null,
+    levelMinTenths: null,
+    levelMaxTenths: null,
+    roundCount: null,
+    seasonId: null,
+  };
+
+  it("starts from the Game's tag and reads an unknown value as untagged", () => {
+    expect(gameEditDraftFrom({ ...source, genderTag: "women" }).genderTag).toBe(
+      "women",
+    );
+    expect(gameEditDraftFrom(source).genderTag).toBeNull();
+    expect(
+      gameEditDraftFrom({ ...source, genderTag: "anyone" }).genderTag,
+    ).toBeNull();
+  });
+
+  it("sends one step when the tag is picked, changed or cleared", () => {
+    const picked = { ...saved, genderTag: "mixed" as const };
+    expect(gameEditPlan(saved, picked, football, "en")).toEqual({
+      ok: true,
+      steps: [{ kind: "genderTag", genderTag: "mixed" }],
+      changed: ["genderTag"],
+    });
+    expect(gameEditChangeNote(saved, picked, football, "en")).toBe(
+      "Who it’s for",
+    );
+    expect(gameEditPlan(picked, saved, football, "en")).toMatchObject({
+      ok: true,
+      steps: [{ kind: "genderTag", genderTag: null }],
+    });
+  });
+
+  it("is hidden on a Challenge Game, where nobody joins", () => {
+    const challenge = gameEditSectionsFor({
+      format: "friendly_game",
+      sport: "padel",
+      groupId: null,
+      tournamentRounds: false,
+      challenge: true,
+    });
+    expect(challenge.genderTag).toBe(false);
+    expect(
+      gameEditPlan(saved, { ...saved, genderTag: "men" }, challenge, "en"),
+    ).toMatchObject({ ok: true, steps: [] });
   });
 });
 
@@ -351,6 +415,105 @@ describe("gameEditPlan", () => {
       field: "window",
       message: "Pick a day, a start time and a finish time",
     });
+  });
+});
+
+describe("series section", () => {
+  const withSeries = gameEditSectionsFor({
+    format: "friendly_game",
+    sport: "football",
+    groupId: "g1",
+    tournamentRounds: false,
+    series: true,
+  });
+
+  it("reads the Game's Series into the draft", () => {
+    const source = {
+      name: null,
+      windowStart: null,
+      windowEnd: null,
+      pricePerPlayerFils: null,
+      playersAllowed: 4,
+      sideSize: null,
+      levelMinTenths: null,
+      levelMaxTenths: null,
+      roundCount: null,
+      seasonId: null,
+    };
+    expect(
+      gameEditDraftFrom({ ...source, series: { id: "sunday" } }).seriesId,
+    ).toBe("sunday");
+    expect(gameEditDraftFrom({ ...source, series: null }).seriesId).toBeNull();
+    expect(gameEditDraftFrom(source).seriesId).toBeNull();
+  });
+
+  it("shows the section only when the caller says it applies", () => {
+    expect(withSeries.series).toBe(true);
+    expect(football.series).toBe(false);
+  });
+
+  it("sends exactly one series step when only the Series changes", () => {
+    const draft = { ...saved, seriesId: "sunday" };
+    expect(gameEditPlan(saved, draft, withSeries, "en")).toEqual({
+      ok: true,
+      steps: [{ kind: "series", seriesId: "sunday" }],
+      changed: ["series"],
+    });
+  });
+
+  it("sends nothing for a Series change while the section is off", () => {
+    const draft = { ...saved, seriesId: "sunday" };
+    expect(gameEditPlan(saved, draft, football, "en")).toEqual({
+      ok: true,
+      steps: [],
+      changed: [],
+    });
+  });
+
+  it("sends the series step beside a moved day, which needs no fix", () => {
+    const draft = { ...saved, day: "2026-11-09", seriesId: "sunday" };
+    const plan = gameEditPlan(saved, draft, withSeries, "en");
+    expect(plan.ok && plan.steps.map((step) => step.kind)).toEqual([
+      "window",
+      "series",
+    ]);
+    expect(plan.ok && plan.steps[0]).not.toHaveProperty("seriesId");
+  });
+
+  it("says series added, changed or removed", () => {
+    const attached = { ...saved, seriesId: "sunday" };
+    expect(gameEditChangeNote(saved, attached, withSeries, "en")).toBe(
+      "Series added",
+    );
+    expect(
+      gameEditChangeNote(
+        attached,
+        { ...saved, seriesId: "friday" },
+        withSeries,
+        "en",
+      ),
+    ).toBe("Series changed");
+    expect(gameEditChangeNote(attached, saved, withSeries, "en")).toBe(
+      "Series removed",
+    );
+  });
+
+  it("says them in Arabic", () => {
+    const attached = { ...saved, seriesId: "sunday" };
+    expect(gameEditChangeNote(saved, attached, withSeries, "ar")).toBe(
+      "أُضيفت السلسلة",
+    );
+    expect(
+      gameEditChangeNote(
+        attached,
+        { ...saved, seriesId: "friday" },
+        withSeries,
+        "ar",
+      ),
+    ).toBe("تغيّرت السلسلة");
+    expect(gameEditChangeNote(attached, saved, withSeries, "ar")).toBe(
+      "أُزيلت السلسلة",
+    );
   });
 });
 

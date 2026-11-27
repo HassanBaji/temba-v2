@@ -2,6 +2,7 @@ import { asc, eq } from "drizzle-orm";
 
 import {
   MatchStatusEnum,
+  americanoFixedPairs,
   gamePlayers,
   matchSets,
   matches,
@@ -41,17 +42,17 @@ export type AmericanoSeatPlayer = {
   image: string | null;
 };
 
-/** Every player on an Americano, in the order they took a seat. */
-export async function loadAmericanoPlayers(
-  database: DbClient,
-  gameId: string,
-): Promise<AmericanoSeatPlayer[]> {
-  const rows = await database.query.gamePlayers.findMany({
-    where: eq(gamePlayers.gameId, gameId),
-    orderBy: [asc(gamePlayers.createdAt), asc(gamePlayers.id)],
-    columns: { id: true, userId: true },
-    with: { user: { columns: { id: true, name: true, image: true } } },
-  });
+/**
+ * The Americano's players from its Game player rows, already ordered by when
+ * each took a seat (`createdAt`, then `id`).
+ */
+export function americanoPlayersOf(
+  rows: readonly {
+    id: string;
+    userId: string | null;
+    user: { name: string; image: string | null } | null;
+  }[],
+): AmericanoSeatPlayer[] {
   return rows.flatMap((row) =>
     row.user
       ? [
@@ -64,6 +65,36 @@ export async function loadAmericanoPlayers(
         ]
       : [],
   );
+}
+
+/** Every player on an Americano, in the order they took a seat. */
+export async function loadAmericanoPlayers(
+  database: DbClient,
+  gameId: string,
+): Promise<AmericanoSeatPlayer[]> {
+  const rows = await database.query.gamePlayers.findMany({
+    where: eq(gamePlayers.gameId, gameId),
+    orderBy: [asc(gamePlayers.createdAt), asc(gamePlayers.id)],
+    columns: { id: true, userId: true },
+    with: { user: { columns: { id: true, name: true, image: true } } },
+  });
+  return americanoPlayersOf(rows);
+}
+
+/**
+ * An Americano's fixed pairs in pair-number order, each as its two Game
+ * player ids (ADR-0113).
+ */
+export async function loadAmericanoFixedPairs(
+  database: DbClient,
+  gameId: string,
+): Promise<[string, string][]> {
+  const rows = await database.query.americanoFixedPairs.findMany({
+    where: eq(americanoFixedPairs.gameId, gameId),
+    orderBy: [asc(americanoFixedPairs.position)],
+    columns: { firstGamePlayerId: true, secondGamePlayerId: true },
+  });
+  return rows.map((row) => [row.firstGamePlayerId, row.secondGamePlayerId]);
 }
 
 /**
@@ -85,6 +116,24 @@ export async function loadAmericanoMatches(database: DbClient, gameId: string) {
       court: { columns: { id: true, name: true } },
     },
   });
+  return americanoMatchesOf(rows);
+}
+
+type AmericanoMatchRow = {
+  id: string;
+  roundNumber: number | null;
+  startTime: Date | null;
+  americanoSeats: readonly { gamePlayerId: string; slot: number }[];
+  court?: { name: string } | null;
+};
+
+/**
+ * An Americano's posted Matches from its Match rows with their seats, Round by
+ * Round and Court by Court; a row without seats is not an Americano Match.
+ */
+export function americanoMatchesOf<Row extends AmericanoMatchRow>(
+  rows: readonly Row[],
+) {
   return rows
     .filter((row) => row.roundNumber != null && row.americanoSeats.length > 0)
     .map((row) => ({
@@ -154,7 +203,7 @@ export function americanoDayFinished(
 
 /** The confirmed results the Americano table counts: completed Matches with a score. */
 export function americanoResults(
-  rows: readonly AmericanoMatch[],
+  rows: readonly Pick<AmericanoMatch, "status" | "sets" | "slot1" | "slot2">[],
 ): AmericanoResult[] {
   return rows.flatMap((row) => {
     const slot1GamesWon = row.sets[0]?.slot1GamesWon;

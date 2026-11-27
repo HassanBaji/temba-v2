@@ -20,6 +20,8 @@ import { FootballScoreCard } from "~/components/games/football-score-card";
 import { TeamColumns } from "~/components/games/football-team-columns";
 import { Button } from "~/components/ui/button";
 
+import { ScoreLogPreview } from "./score-log-preview";
+
 const ROSTER: [
   string,
   LevelBand,
@@ -300,6 +302,8 @@ export function FootballPreviewStates() {
           onConfirm={() => undefined}
         />
       </Block>
+
+      <ScoreLogPreview players={players(true)} Block={Block} />
 
       <FootballJoinDialog
         open={joinOpen}

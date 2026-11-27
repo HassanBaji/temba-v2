@@ -4,6 +4,7 @@ import { describe, it } from "vitest";
 import {
   UNTOUCHED_SELECTION,
   digitsOnly,
+  draftSetGames,
   draftsOutOfRange,
   draftsFromSets,
   gameTitle,
@@ -130,6 +131,15 @@ describe("score drafts", () => {
     assert.deepEqual(setsToSave(sets, drafts), [
       { setId: "s1", slot1GamesWon: 6, slot2GamesWon: 8 },
     ]);
+  });
+
+  it("reads the score as the boxes show it: an emptied box keeps the stored games", () => {
+    const changed = withDraftChange(draftsFromSets(sets), sets[0]!, 2, "3");
+    const emptied = withDraftChange(changed, sets[0]!, 1, "");
+    assert.deepEqual(draftSetGames(sets, emptied)[0], {
+      slot1GamesWon: sets[0]!.slot1GamesWon,
+      slot2GamesWon: 3,
+    });
   });
 
   it("flags a box above 7 so the card can say why it will not save", () => {

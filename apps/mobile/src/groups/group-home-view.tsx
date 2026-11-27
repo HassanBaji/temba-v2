@@ -14,7 +14,6 @@ import {
 import {
   groupLeaveVenueActionLabel,
   groupLinkRequestBannerText,
-  groupPartOfVenueLine,
 } from "@repo/domain/group-link-request";
 import { groupMemberRowsLink } from "@repo/domain/player-profile";
 import { groupDisplayName, type GroupJoinDoor } from "@repo/domain/group-join";
@@ -63,6 +62,8 @@ export type GroupMenuProps = {
   leaveBlockedHint: string | null;
   /** The current Rating settings, under their row. */
   ratingSettingsHint: string | null;
+  /** "{n} running" under the Series row, or `null` while none runs. */
+  seriesHint: string | null;
   copyPending: boolean;
   onOpen: () => void;
   onPick: (item: GroupMenuItem) => void;
@@ -180,12 +181,6 @@ export function GroupHomeView(props: GroupHomeViewProps) {
           </View>
         </View>
       </ScreenHeader>
-
-      {data.venue ? (
-        <Text size="meta" tone="muted">
-          {groupPartOfVenueLine(data.venue.name, locale)}
-        </Text>
-      ) : null}
 
       {data.canUnlinkFromVenue && data.venue ? (
         <View style={{ flexDirection: "row" }}>
@@ -382,6 +377,7 @@ export function GroupHomeView(props: GroupHomeViewProps) {
         items={props.menu.items}
         leaveBlockedHint={props.menu.leaveBlockedHint}
         ratingSettingsHint={props.menu.ratingSettingsHint}
+        seriesHint={props.menu.seriesHint}
         copyPending={props.menu.copyPending}
         onPick={props.menu.onPick}
         onClose={props.menu.onClose}

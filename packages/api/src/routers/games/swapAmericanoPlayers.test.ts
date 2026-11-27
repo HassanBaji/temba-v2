@@ -21,6 +21,7 @@ import {
 import { americanoBoard } from "#src/routers/games/americanoBoard";
 import { enterTournamentScore } from "#src/routers/games/enterTournamentScore";
 import { postAmericanoRounds } from "#src/routers/games/postAmericanoRounds";
+import { setAmericanoFixedPairs } from "#src/routers/games/setAmericanoFixedPairs";
 import {
   repeatedPartners,
   swapAmericanoPlayers,
@@ -236,5 +237,49 @@ describe("swapAmericanoPlayers", () => {
     )!;
     expect(after.slot2PlayerIds).toContain(first);
     expect(after.slot1PlayerIds).toContain(second);
+  });
+
+  it("refuses a swap that would split a fixed pair", async () => {
+    const { db: database, close } = await createPgliteDb();
+    onTestFinished(close);
+    const organizer = await insertAmericanoUser(database, "Hassan Haji");
+    const gameId = await insertAmericano(database, {
+      createdBy: organizer.id,
+      players: 8,
+      rounds: 3,
+      windowStart: START,
+      windowEnd: END,
+    });
+    const gamePlayerIds = await registerAmericanoPlayers(
+      database,
+      gameId,
+      await insertAmericanoPlayers(database, 8),
+    );
+    await setAmericanoFixedPairs(asDb(database), {
+      gameId,
+      organizerUserId: organizer.id,
+      pairs: [
+        {
+          firstGamePlayerId: gamePlayerIds[0]!,
+          secondGamePlayerId: gamePlayerIds[1]!,
+        },
+      ],
+    });
+    await postAmericanoRounds(asDb(database), {
+      gameId,
+      organizerUserId: organizer.id,
+      gamePlayerIds,
+    });
+    await expectRefused(
+      () =>
+        swapAmericanoPlayers(asDb(database), {
+          gameId,
+          organizerUserId: organizer.id,
+          roundNumber: 2,
+          firstGamePlayerId: gamePlayerIds[0]!,
+          secondGamePlayerId: gamePlayerIds[2]!,
+        }),
+      /cannot be split/,
+    );
   });
 });

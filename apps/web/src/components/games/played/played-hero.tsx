@@ -7,6 +7,10 @@ import {
 } from "@repo/domain/played-game";
 
 import { UserAvatar } from "~/components/common/user-avatar";
+import {
+  SeriesHeroLine,
+  type SeriesHeroLineSeries,
+} from "~/components/series/series-hero-line";
 import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { HeroTopLine } from "~/components/games/hero-top-line";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -60,6 +64,8 @@ export type PlayedHeroProps = {
   whenLine: string | null;
   you: PlayedYouLine | null;
   avatar: { name: string; image: string | null } | null;
+  /** The Game's Series and Edition, under where it was played. */
+  series?: SeriesHeroLineSeries | null;
   /** Share and the organizer's menu, top right across from back. */
   actions?: React.ReactNode;
   /** The MVP row, last in the hero; it sets its own top margin. */
@@ -80,6 +86,7 @@ export function PlayedHero({
   whenLine,
   you,
   avatar,
+  series,
   actions,
   footer,
   children,
@@ -119,6 +126,10 @@ export function PlayedHero({
           {venueLine ? <p className="text-lead">{venueLine}</p> : null}
           {whenLine ? <p className="text-dim text-meta">{whenLine}</p> : null}
         </div>
+      ) : null}
+
+      {series ? (
+        <SeriesHeroLine series={series} tone="ink" className="mt-3" />
       ) : null}
 
       {you ? (

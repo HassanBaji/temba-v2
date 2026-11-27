@@ -23,8 +23,9 @@ show them to a few people, share a picture of them, and publish later.
 - **Only the Game's Organizers and the Side captains named on it read it**, through
   `games.footballBoard`. Everyone else gets null, and a Game screen that looks the same whether or
   not a draft exists. On a Booking Game or a Public Game the only Organizer is the creator.
-- **A save or a publish names the draft it was made from** (`updatedAt`). One that names an older
-  draft is refused, so two Organizers do not overwrite each other.
+- **A save or a publish names the draft it was made from** (`updatedAt`), or says that there was
+  none. One that names an older draft, or saw none where there is one now, is refused, so two
+  Organizers do not overwrite each other.
 - **The Draft card carries names, positions and Side captains only.** No Level leaves the app on
   it, it is stamped "Draft, not final", and nobody is highlighted. It is made on the Share result
   screen.

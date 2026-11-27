@@ -1,21 +1,22 @@
-import { radii, spacing } from "@repo/design-tokens";
+import { spacing } from "@repo/design-tokens";
 import {
   formatGameDay,
   formatGameClock,
   formatWindowDuration,
 } from "@repo/domain/format-game-start";
+import { footballResultLine } from "@repo/domain/football-lineup";
 import {
-  footballResultLine,
-  stepFootballGoals,
-} from "@repo/domain/football-lineup";
+  logPayload,
+  logScore,
+  logScorers,
+  seedLogFromScore,
+} from "@repo/domain/football-match-log";
 import { sideSizeLabel } from "@repo/domain/game-shape";
 import { useRouter, type Href } from "expo-router";
-import { Minus, Plus } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
-import { Avatar } from "../primitives/avatar";
 import { Button } from "../primitives/button";
 import { Hairline } from "../primitives/hairline";
 import { hairline } from "../primitives/hairline-width";
@@ -28,182 +29,23 @@ import { useToast } from "../primitives/toast";
 import { useColors } from "../theme/theme-provider";
 import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api } from "../trpc/react";
-import { BibChip } from "./bib-picker";
+import { LogLineSheet } from "./log-line-sheet";
+import { WhatHappenedSurface } from "./log-player-chips";
+import { MatchLogSurface } from "./match-log-surface";
+import { RedCardSheet } from "./red-card-sheet";
+import { SideStepper } from "./score-steppers";
+import { useMatchLog } from "./use-match-log";
 import {
-  addGoal,
   bibNames,
   byKeeperThenLevel,
-  removeGoal,
-  scorersNote,
-  scorersPayload,
-  shortName,
-  sideOvrAverage,
-  type Bibs,
-  type BoardPlayer,
-  type ScoreDraft,
+  ofSide,
   type Side,
 } from "@repo/domain/football-board";
 
-const STEP = 44;
-
-function StepButton({
-  kind,
-  label,
-  onPress,
-}: {
-  kind: "down" | "up";
-  label: string;
-  onPress: () => void;
-}) {
-  const colors = useColors();
-  const up = kind === "up";
-  const Icon = up ? Plus : Minus;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        width: STEP,
-        height: STEP,
-        borderRadius: radii.md,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: up ? colors.control : colors.paper,
-        borderWidth: hairline,
-        borderColor: up ? colors.controlEdge : colors.inputBorder,
-        opacity: pressed ? 0.8 : 1,
-      })}
-    >
-      <Icon size={18} color={up ? colors.onControl : colors.ink} />
-    </Pressable>
-  );
-}
-
-function SideStepper({
-  bib,
-  name,
-  goals,
-  members,
-  onStep,
-}: {
-  bib: Bibs["slot1"];
-  name: string;
-  goals: number;
-  members: readonly BoardPlayer[];
-  onStep: (delta: -1 | 1) => void;
-}) {
-  const messages = useMessages();
-  const locale = useLocale();
-  const m = messages.mobileTournament.scoreScreen;
-  return (
-    <View
-      style={{ flex: 1, alignItems: "center", gap: 10, paddingVertical: 18 }}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-        <BibChip bib={bib} size={14} />
-        <Text size="meta" weight="semibold">
-          {name}
-        </Text>
-      </View>
-      <Text
-        size="heroTime"
-        width="expanded"
-        weight="bold"
-        accessibilityLabel={m.teamGoalsSr(name, goals)}
-      >
-        {String(goals)}
-      </Text>
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <StepButton
-          kind="down"
-          label={m.oneGoalFewer(name)}
-          onPress={() => onStep(-1)}
-        />
-        <StepButton
-          kind="up"
-          label={m.oneGoalMore(name)}
-          onPress={() => onStep(1)}
-        />
-      </View>
-      <Text size="meta" tone="muted">
-        {messages.game.played.avg(sideOvrAverage(members, locale))}
-      </Text>
-    </View>
-  );
-}
-
-function ScorerChip({
-  player,
-  goals,
-  team,
-  onAdd,
-  onRemove,
-}: {
-  player: BoardPlayer;
-  goals: number;
-  team: string;
-  onAdd: () => void;
-  onRemove: () => void;
-}) {
-  const messages = useMessages();
-  const colors = useColors();
-  const m = messages.mobileTournament.scoreScreen;
-  const scored = goals > 0;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={m.scorerSr(player.name, team, goals)}
-      accessibilityHint={m.scorerHint}
-      accessibilityActions={[
-        { name: "increment", label: m.addAGoal },
-        { name: "decrement", label: m.takeAGoalAway },
-      ]}
-      onAccessibilityAction={(event) =>
-        event.nativeEvent.actionName === "decrement" ? onRemove() : onAdd()
-      }
-      onPress={onAdd}
-      onLongPress={onRemove}
-      style={({ pressed }) => ({
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-        paddingVertical: 4,
-        paddingStart: 4,
-        paddingEnd: 10,
-        borderRadius: radii.lg,
-        borderWidth: hairline,
-        borderColor: scored ? colors.ink : colors.rule,
-        backgroundColor: scored ? colors.control : colors.paper,
-        opacity: pressed ? 0.8 : 1,
-      })}
-    >
-      <Avatar
-        name={player.name}
-        uri={player.image}
-        size="sm"
-        guest={player.guest === true}
-      />
-      <Text
-        size="meta"
-        weight="semibold"
-        style={{ color: scored ? colors.onControl : colors.ink }}
-      >
-        {player.isViewer ? messages.common.you : shortName(player.name)}
-      </Text>
-      <Text
-        size="eyebrow"
-        style={{ color: scored ? colors.onControlMuted : colors.muted }}
-      >
-        {scored ? messages.game.played.goals(goals) : team}
-      </Text>
-    </Pressable>
-  );
-}
-
 /**
- * Either side, or an Organizer, enters the goals after the game and may name
- * who scored. The other side confirms the Score from the Game.
+ * Either side, or an Organizer, enters the goals after the game and may log
+ * who scored, own goals and cards. The other side confirms the Score and its
+ * Match log from the Game.
  */
 export function FootballScoreScreen({ gameId }: { gameId: string }) {
   const colors = useColors();
@@ -215,23 +57,28 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
   const utils = api.useUtils();
   const game = api.games.byId.useQuery({ id: gameId });
   const board = api.games.footballBoard.useQuery({ gameId });
-  const [draft, setDraft] = useState<ScoreDraft | null>(null);
+  const kickoff = game.data?.windowStart ?? null;
+  const end = game.data?.windowEnd ?? null;
+  const log = useMatchLog({ kickoff, end });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const gameSettled = game.data != null || game.error != null;
 
   useEffect(() => {
-    if (board.data && draft == null) {
-      const goals: Record<string, number> = {};
-      for (const player of board.data.players) {
-        if (player.goals > 0) {
-          goals[player.userId] = player.goals;
-        }
-      }
-      setDraft({
-        slot1: board.data.match?.score?.slot1 ?? 0,
-        slot2: board.data.match?.score?.slot2 ?? 0,
-        goals,
-      });
+    if (!board.data || !gameSettled || log.lines != null) {
+      return;
     }
-  }, [board.data, draft]);
+    const match = board.data.match;
+    log.start(
+      match?.log.length
+        ? match.log
+        : seedLogFromScore(match?.score ?? null, board.data.players, {
+            at: new Date(),
+            kickoff,
+            end,
+          }),
+      board.data.players,
+    );
+  }, [board.data, gameSettled, kickoff, end, log]);
 
   const save = api.games.saveFootballScore.useMutation({
     onSuccess: async () => {
@@ -239,6 +86,7 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
       await Promise.all([
         utils.games.footballBoard.invalidate({ gameId }),
         utils.games.byId.invalidate({ id: gameId }),
+        utils.series.edition.invalidate({ gameId }),
         utils.games.listMyGames.invalidate(),
         invalidateRatingReads(utils),
       ]);
@@ -264,7 +112,7 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
       </Screen>
     );
   }
-  if (!board.data || !teams || !draft) {
+  if (!board.data || !teams || !log.lines) {
     return (
       <Screen>
         <ScreenHeader nav="back" fallback={fallback} title={m.title} />
@@ -273,23 +121,22 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
     );
   }
 
+  const lines = log.lines;
   const players = board.data.players;
   const names = bibNames(teams.bibs, locale);
   const members = (side: Side) =>
     players
       .filter((player) => player.sideIndex === side)
       .sort(byKeeperThenLevel);
+  const everyone = [...members(1), ...members(2)];
+  const score = logScore(lines);
   const viewerSide = board.data.viewer.sideIndex;
   const otherName =
     viewerSide === 1 ? names.slot2 : viewerSide === 2 ? names.slot1 : null;
   const step = (side: Side, delta: -1 | 1) =>
-    setDraft({
-      ...draft,
-      [side === 1 ? "slot1" : "slot2"]: stepFootballGoals(
-        side === 1 ? draft.slot1 : draft.slot2,
-        delta,
-      ),
-    });
+    delta > 0 ? log.addUnknownGoal(side) : log.removeLatestGoal(side);
+  const redFor =
+    players.find((player) => player.userId === log.redCardFor?.userId) ?? null;
   const start = game.data?.windowStart ?? null;
   const detail = [
     start ? formatGameClock(start, locale) : null,
@@ -298,12 +145,10 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
   ]
     .filter(Boolean)
     .join(messages.tournament.listSeparator);
-  const scorers = [...members(1), ...members(2)].filter(
-    (player) => player.role !== "keeper",
-  );
   const confirmLine = otherName
     ? m.oneFromConfirms(otherName)
     : m.oneFromEachConfirms;
+  const editing = lines.find((line) => line.id === editingId) ?? null;
 
   return (
     <Screen
@@ -316,9 +161,10 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
             onPress={() =>
               save.mutate({
                 gameId,
-                slot1Goals: draft.slot1,
-                slot2Goals: draft.slot2,
-                scorers: scorersPayload(draft),
+                slot1Goals: score.slot1,
+                slot2Goals: score.slot2,
+                scorers: logScorers(lines),
+                log: logPayload(lines),
               })
             }
           />
@@ -359,7 +205,7 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
           <SideStepper
             bib={teams.bibs.slot1}
             name={names.slot1}
-            goals={draft.slot1}
+            goals={score.slot1}
             members={members(1)}
             onStep={(delta) => step(1, delta)}
           />
@@ -367,7 +213,7 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
           <SideStepper
             bib={teams.bibs.slot2}
             name={names.slot2}
-            goals={draft.slot2}
+            goals={score.slot2}
             members={members(2)}
             onStep={(delta) => step(2, delta)}
           />
@@ -375,58 +221,55 @@ export function FootballScoreScreen({ gameId }: { gameId: string }) {
         <Hairline />
         <View style={{ padding: spacing.surface }}>
           <Text accessibilityLiveRegion="polite">
-            {footballResultLine(draft, names, locale)}
+            {footballResultLine(score, names, locale)}
           </Text>
         </View>
       </Surface>
 
-      <Surface padded={false} style={{ overflow: "hidden" }}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            padding: spacing.surface,
-            paddingBottom: 12,
-          }}
-        >
-          <Text tone="muted">{m.scorersOptional}</Text>
-          <Text size="meta" tone="muted">
-            {m.tapToAdd}
-          </Text>
-        </View>
-        <Hairline />
-        <View
-          style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            gap: 8,
-            padding: spacing.surface,
-          }}
-        >
-          {scorers.map((player) => (
-            <ScorerChip
-              key={player.userId}
-              player={player}
-              goals={draft.goals[player.userId] ?? 0}
-              team={player.sideIndex === 1 ? names.slot1 : names.slot2}
-              onAdd={() => setDraft(addGoal(draft, player, players))}
-              onRemove={() => setDraft(removeGoal(draft, player.userId))}
-            />
-          ))}
-        </View>
-        <Hairline />
-        <View style={{ padding: spacing.surface }}>
-          <Text size="meta" tone="muted">
-            {scorersNote(draft, players, names, locale)} {m.holdToRemove}
-          </Text>
-        </View>
-      </Surface>
+      <WhatHappenedSurface
+        mode={log.mode}
+        players={everyone}
+        names={names}
+        lines={lines}
+        onMode={log.setMode}
+        onTapPlayer={log.tapPlayer}
+      />
+
+      <MatchLogSurface
+        lines={lines}
+        removed={log.removed}
+        players={players}
+        names={names}
+        onOpen={setEditingId}
+        onRemove={log.remove}
+        onUndo={log.undo}
+      />
 
       {save.error ? (
         <Text size="meta" accessibilityRole="alert">
           {save.error.message}
         </Text>
       ) : null}
+
+      <RedCardSheet
+        player={redFor}
+        team={ofSide(names, redFor?.sideIndex ?? 1)}
+        onCancel={log.cancelRedCard}
+        onGive={log.giveRedCard}
+      />
+      <LogLineSheet
+        line={editing}
+        players={everyone}
+        names={names}
+        onClose={() => setEditingId(null)}
+        onChangePlayer={log.changePlayer}
+        onChangeMinute={log.changeMinute}
+        onChangeReason={log.changeReason}
+        onRemove={(id) => {
+          log.remove(id);
+          setEditingId(null);
+        }}
+      />
     </Screen>
   );
 }

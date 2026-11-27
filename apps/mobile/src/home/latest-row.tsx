@@ -6,17 +6,21 @@ import { mirrorInRtl } from "../i18n/rtl";
 import { MarkCoin } from "../marks/mark-coin";
 import { hairline } from "../primitives/hairline-width";
 import { Text } from "../primitives/text";
+import { SeriesBadge } from "../series/series-badge";
 import { useColors } from "../theme/theme-provider";
-import type { LatestMark } from "@repo/domain/home-latest";
+import type { Latest } from "@repo/domain/home-latest";
 
 const ARROW_ICON = 16;
 
-/** The newest thing that happened to the User; it opens Latest on the profile. */
+/**
+ * The newest thing that happened to the User: a Mark opens Latest on the
+ * profile, a Series win its Game.
+ */
 export function LatestRow({
   latest,
   onPress,
 }: {
-  latest: LatestMark;
+  latest: Latest;
   onPress: () => void;
 }) {
   const colors = useColors();
@@ -39,12 +43,20 @@ export function LatestRow({
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <View
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <MarkCoin kind={latest.kind} size="cabinet" />
-      </View>
+      {latest.type === "series" ? (
+        <SeriesBadge
+          emblem={latest.emblem}
+          colour={latest.colour}
+          size="latest"
+        />
+      ) : (
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <MarkCoin kind={latest.kind} size="cabinet" />
+        </View>
+      )}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text weight="semibold" numberOfLines={1}>
           {latest.title}

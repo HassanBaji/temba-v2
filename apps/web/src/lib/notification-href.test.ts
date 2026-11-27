@@ -143,6 +143,11 @@ describe("notificationHref", () => {
       "challenge_proposal_confirmed",
       "challenge_squad_due",
       "challenge_squad_named",
+      "football_draft_shared",
+      "football_draft_changed",
+      "football_draft_approved",
+      "football_draft_change_asked",
+      "football_pick_done",
     ]) {
       assert.equal(
         notificationHref({
@@ -152,6 +157,15 @@ describe("notificationHref", () => {
           challenge: { id: "c1" },
         }),
         "/dashboard/games/g1",
+      );
+    }
+    for (const type of [
+      "football_pick_room_opened",
+      "football_pick_reminder",
+    ]) {
+      assert.equal(
+        notificationHref({ type, group: null, game: { id: "g1" } }),
+        "/dashboard/games/g1/pick",
       );
     }
     assert.equal(

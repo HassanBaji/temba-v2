@@ -28,6 +28,7 @@ import { linkNewGameToSeason } from "#src/games/season-link";
 import { requireGroup } from "#src/games/helpers/require-group";
 import { groupIsVerified } from "#src/groups/group-is-verified";
 import type { CreateGameInput } from "#src/games/utils";
+import { resolveGameSeriesLink } from "#src/series/series-link";
 import {
   levelRangeInvertedMessage,
   LEVEL_TENTHS_MAX,
@@ -40,6 +41,7 @@ import { PRICE_PER_PLAYER_MAX_FILS } from "@repo/domain/price-per-player";
 import { DEFAULT_SPORT, sportOrDefault, type Sport } from "@repo/domain/sport";
 import { sportSchema } from "@repo/validators/sport";
 import { ratingFlagsAtCreate } from "@repo/domain/game-rating-scope";
+import { GAME_GENDER_TAGS } from "@repo/domain/game-gender-tag";
 import { MVP_MODES } from "@repo/domain/marks";
 import {
   GAME_CUSTOM_NAME_MAX_LENGTH,
@@ -107,10 +109,14 @@ export const createGameInputSchema = z
       .optional(),
     /** How the MVP is decided; Friendly game only. Omitted = players vote. */
     mvpMode: z.enum(MVP_MODES).optional(),
+    /** A label only: it gates no join. Omitted = no Gender tag. */
+    genderTag: z.enum(GAME_GENDER_TAGS).nullable().optional(),
     /** Only with a price above zero. */
     trackPayments: z.boolean().optional(),
     /** Football only: keepers owe nothing while payments are tracked. */
     keepersPlayFree: z.boolean().optional(),
+    /** One of the Group's running Series; the Game becomes its next Edition. */
+    seriesId: z.string().uuid().optional(),
   })
   .refine((value) => value.windowEnd.getTime() >= value.windowStart.getTime(), {
     message: "Finish time must be at or after start time",
@@ -267,6 +273,7 @@ async function createFootballGameOnGroup(
       sideSize,
       playersAllowed: input.playersAllowed ?? 2 * sideSize,
       mvpMode: input.mvpMode,
+      genderTag: input.genderTag,
       levelMinTenths: input.levelMinTenths ?? null,
       levelMaxTenths: input.levelMaxTenths ?? null,
       trackPayments: input.trackPayments,
@@ -276,6 +283,21 @@ async function createFootballGameOnGroup(
     locale,
   );
   return { id: created.game.id, matchId: null as string | null };
+}
+
+/** What `carriesSeries` reads of a Game this door is about to create. */
+function seriesCarrierAtCreate(
+  input: Pick<CreateGameInput, "format" | "windowStart">,
+  groupId: string | null,
+) {
+  return {
+    format: input.format,
+    groupId,
+    challengeId: null,
+    poolCount: null,
+    tournamentShape: null,
+    windowStart: input.windowStart,
+  };
 }
 
 /** A Game may start a little before it is saved, never earlier. */
@@ -307,6 +329,12 @@ export async function createGame(
     groupId: input.groupId ?? null,
     windowStart: input.windowStart,
   });
+  if (input.seriesId) {
+    await database
+      .update(games)
+      .set({ seriesId: input.seriesId })
+      .where(eq(games.id, created.id));
+  }
   return created;
 }
 
@@ -369,6 +397,14 @@ async function createPublicGame(
       message: messagesFor(locale).game.errors.publicGameOnly,
     });
   }
+  if (input.seriesId) {
+    await resolveGameSeriesLink(database, {
+      game: seriesCarrierAtCreate(input, null),
+      group: null,
+      seriesId: input.seriesId,
+      locale,
+    });
+  }
   const sport = input.sport ?? DEFAULT_SPORT;
   await assertPublicGameVenue(database, input.venueId, sport, locale);
   const flags = ratingFlagsAtCreate({
@@ -395,6 +431,7 @@ async function createPublicGame(
         sideSize,
         playersAllowed: input.playersAllowed ?? 2 * sideSize,
         mvpMode: input.mvpMode,
+        genderTag: input.genderTag,
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         trackPayments: input.trackPayments,
@@ -421,6 +458,7 @@ async function createPublicGame(
       levelMaxTenths: input.levelMaxTenths ?? null,
       ...flags,
       mvpMode: input.mvpMode,
+      genderTag: input.genderTag,
       trackPayments: input.trackPayments,
     },
     locale,
@@ -435,6 +473,14 @@ async function createGameOnGroup(
 ) {
   const group = await requireGroup(database, input.groupId, locale);
   await assertMayCreateGameOnGroup(database, group, input.createdBy, locale);
+  if (input.seriesId) {
+    await resolveGameSeriesLink(database, {
+      game: seriesCarrierAtCreate(input, input.groupId),
+      group,
+      seriesId: input.seriesId,
+      locale,
+    });
+  }
 
   const isAmericano = input.format === "americano";
   const isTournament = input.format === "friendly_tournament";
@@ -471,6 +517,7 @@ async function createGameOnGroup(
         rated,
         groupRated,
         mvpMode: input.mvpMode,
+        genderTag: input.genderTag,
         trackPayments: input.trackPayments,
       },
       locale,
@@ -516,6 +563,7 @@ async function createGameOnGroup(
         levelMinTenths: input.levelMinTenths ?? null,
         levelMaxTenths: input.levelMaxTenths ?? null,
         sport: GameSportEnum.PADEL,
+        genderTag: input.genderTag ?? null,
         rated,
         groupRated,
         createdBy: input.createdBy,

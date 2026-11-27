@@ -3,6 +3,7 @@ import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { GameOccupancyCard } from "~/components/games/game-occupancy-card";
 import { GameVenueCard } from "~/components/games/game-venue-card";
 import { useLocale, useMessages } from "~/components/locale-provider";
+import { SeriesFactRows } from "~/components/series/series-fact-rows";
 import { Card } from "~/components/ui/card";
 import { tournamentRoundCount } from "@repo/domain/tournament-home";
 import { tournamentRoundSummary } from "@repo/domain/tournament-rounds";
@@ -80,6 +81,8 @@ export function GameOverviewPanel({ game }: { game: GameDetail }) {
       ) : null}
 
       <GameVenueCard venue={game.venue} courtNames={courtNames} />
+
+      <SeriesFactRows series={game.series} />
 
       <GameLevelRangePanel game={game} />
     </div>

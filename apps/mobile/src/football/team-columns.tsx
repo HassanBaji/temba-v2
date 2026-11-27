@@ -15,20 +15,83 @@ import { useTonePalette } from "../primitives/surface-context";
 import { useColors, useColorSchemeName } from "../theme/theme-provider";
 import { Text } from "../primitives/text";
 import { TierCell } from "../groups/tier-fish";
+import { bibBlendsIn } from "./bib-edge";
 import { BibChip } from "./bib-picker";
 import {
   boardTierCell,
   byKeeperThenLevel,
   lineupName,
+  ofSide,
   ovrLabel,
   ovrSpoken,
   sideOvrAverage,
   slotCode,
   type Bibs,
   type BoardPlayer,
+  type SideCaptains,
 } from "@repo/domain/football-board";
 
 const ROW_HEIGHT = 44;
+const CAPTAIN_BADGE = 16;
+
+/**
+ * The C on a Side captain's picture (ADR-0108), in the row's colours turned
+ * round so it reads on any bib.
+ */
+export function SideCaptainBadge({ bib }: { bib: FootballBib | null }) {
+  const colors = useColors();
+  const m = useMessages().football.captains;
+  const fill = bib ? bibColors[bib].on : colors.control;
+  const on = bib ? bibColors[bib].fill : colors.onControl;
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        position: "absolute",
+        end: -5,
+        bottom: -4,
+        width: CAPTAIN_BADGE,
+        height: CAPTAIN_BADGE,
+        borderRadius: radii.sm,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: fill,
+        borderWidth: hairline,
+        borderColor: on,
+      }}
+    >
+      <Text size="eyebrow" weight="semibold" style={{ color: on }}>
+        {m.badge}
+      </Text>
+    </View>
+  );
+}
+
+/** A player's picture, with the C when they are their side's captain. */
+export function CaptainAvatar({
+  player,
+  bib,
+  sideCaptain,
+  size,
+}: {
+  player: Pick<BoardPlayer, "name" | "image" | "guest">;
+  bib: FootballBib | null;
+  sideCaptain: boolean;
+  size?: "sm" | "default";
+}) {
+  return (
+    <View>
+      <Avatar
+        name={player.name}
+        uri={player.image}
+        size={size}
+        guest={player.guest}
+      />
+      {sideCaptain ? <SideCaptainBadge bib={bib} /> : null}
+    </View>
+  );
+}
 
 /** A player's fish on a paper tile, so it reads on any bib colour. */
 export function TierMark({
@@ -54,9 +117,9 @@ export function TierMark({
 }
 
 /**
- * A player row in their team's bib colour; the viewer's row is ringed.
- * The OVR sits at the end, or with `showTier` the player's fish in a tier
- * Group.
+ * A player row in their team's bib colour; the viewer's row is ringed and a
+ * Side captain carries the C. The OVR sits at the end, or with `showTier`
+ * the player's fish in a tier Group.
  */
 export function BibRow({
   player,
@@ -64,21 +127,21 @@ export function BibRow({
   trailing,
   onPress,
   showTier = false,
+  sideCaptain = false,
 }: {
   player: BoardPlayer;
   bib: FootballBib;
   trailing?: React.ReactNode;
   onPress?: () => void;
   showTier?: boolean;
+  sideCaptain?: boolean;
 }) {
   const messages = useMessages();
   const locale = useLocale();
   const palette = useTonePalette();
   const { fill, on } = bibColors[bib];
   const scheme = useColorSchemeName();
-  // In dark the black bib sinks into both the page and the lifted hero.
-  const blendsIn =
-    scheme === "dark" ? bib === "black" : fill === palette.background;
+  const blendsIn = bibBlendsIn(fill, palette.background, scheme);
   const edge = blendsIn ? palette.muted : fill;
   const { name, spoken, isNickname } = lineupName(player, locale);
   const code = slotCode(player, locale);
@@ -89,6 +152,7 @@ export function BibRow({
       accessibilityRole={onPress ? "button" : undefined}
       accessibilityLabel={[
         spoken,
+        sideCaptain ? messages.football.captains.spoken : null,
         code,
         tierCell ? tierCell.label : ovrSpoken(player, locale),
         player.guest ? messages.group.addPlayer.guest.tag : null,
@@ -109,11 +173,11 @@ export function BibRow({
         borderColor: player.isViewer ? palette.foreground : edge,
       }}
     >
-      <Avatar
-        name={player.name}
-        uri={player.image}
+      <CaptainAvatar
+        player={player}
+        bib={bib}
+        sideCaptain={sideCaptain}
         size="sm"
-        guest={player.guest}
       />
       <NicknameName
         name={name}
@@ -189,20 +253,23 @@ export function TeamHeader({
 }
 
 /**
- * The two published teams side by side. A row shows the player's OVR, or
- * their fish in a tier Group, as Make teams does.
+ * The two teams side by side, published or a Draft line-up. A row shows the
+ * player's OVR, or their fish in a tier Group, as Make teams does, and each
+ * side's Side captain carries the C.
  */
 export function TeamColumns({
   players,
   bibs,
   names,
   balanceOn,
+  sideCaptains,
   onOpenPlayer,
 }: {
   players: readonly BoardPlayer[];
   bibs: Bibs;
   names: { slot1: string; slot2: string };
   balanceOn: FootballBalanceOn;
+  sideCaptains?: SideCaptains;
   onOpenPlayer?: (userId: string) => void;
 }) {
   const m = useMessages().mobileTournament.card;
@@ -227,6 +294,10 @@ export function TeamColumns({
             player={player}
             bib={bib}
             showTier={balanceOn === "tierPoints"}
+            sideCaptain={
+              sideCaptains != null &&
+              ofSide(sideCaptains, index) === player.userId
+            }
             onPress={
               onOpenPlayer ? () => onOpenPlayer(player.userId) : undefined
             }

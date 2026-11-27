@@ -27,6 +27,8 @@ import { useGameMarks } from "../marks/use-game-marks";
 import { GamePaymentsSection } from "../game-payments/game-payments-section";
 import { MatchDisputeSection } from "./match-dispute-section";
 import { GameAlbumSections } from "../game-album/game-album-sections";
+import { SeriesGameCard } from "../series/series-game-card";
+import type { SeriesHeroLineSeries } from "../series/series-hero-line";
 import { useGameAlbum } from "../game-album/use-game-album";
 import { PlayedGameView } from "./played-game-view";
 import { PlayedMenuSheet, type PlayedMenuItem } from "./played-menu-sheet";
@@ -44,6 +46,7 @@ export function PlayedFriendlyGame({
   gameId,
   game,
   match,
+  series,
   refreshing,
   onRefresh,
   organizer,
@@ -54,6 +57,7 @@ export function PlayedFriendlyGame({
   gameId: string;
   game: FriendlyGameDetails;
   match: FriendlyGameDetailsMatch;
+  series: SeriesHeroLineSeries | null | undefined;
   refreshing: boolean;
   onRefresh: () => void;
   organizer: Organizer;
@@ -82,6 +86,7 @@ export function PlayedFriendlyGame({
           venue: game.venue,
           courtName: match.courtName,
           groupName: game.groupName,
+          genderTag: game.genderTag,
           rated: game.rated,
           ratingScope: game.ratingScope,
           publicGame: isPublicGame(game),
@@ -143,11 +148,15 @@ export function PlayedFriendlyGame({
           avatar: viewerSeat
             ? { name: viewerSeat.name, image: viewerSeat.image }
             : null,
+          series,
         }}
         board={
           <PlayedPadelBoard setLabels={model.setLabels} rows={model.board} />
         }
         heroFooter={<MvpRow marks={marks} onOpenPlayer={onOpenPlayer} />}
+        seriesCard={
+          series ? <SeriesGameCard gameId={gameId} game="played" /> : null
+        }
         marks={<MarksSection marks={marks} />}
         album={
           <GameAlbumSections

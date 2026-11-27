@@ -22,7 +22,7 @@ export type MarkCoinProps = {
   state?: CoinState;
 };
 
-function CoinShape({
+export function CoinShape({
   element,
   colour,
 }: {

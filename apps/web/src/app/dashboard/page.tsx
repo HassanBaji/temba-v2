@@ -30,7 +30,11 @@ import {
 import { upNextItems, upNextWeekLabel } from "~/components/home/up-next-model";
 import { useLatestSeen } from "~/components/home/use-latest-seen";
 import { formatDayMonth } from "@repo/domain/format-game-start";
-import { latestMark } from "@repo/domain/home-latest";
+import {
+  latestMark,
+  latestSeriesWin,
+  latestUpdate,
+} from "@repo/domain/home-latest";
 import {
   deriveRecentForm,
   RECENT_FORM_MATCH_COUNT,
@@ -43,7 +47,7 @@ import { profileChecklist } from "@repo/domain/profile-checklist";
 import { sportSwitchLevel } from "@repo/domain/ratings-screen";
 import type { Sport } from "@repo/domain/sport";
 import { useNow } from "~/hooks/use-now";
-import { playerMarksPath } from "~/lib/dashboard-paths";
+import { gameHomeHref, playerMarksPath } from "~/lib/dashboard-paths";
 import { profileChecklistInputFrom } from "~/lib/profile-checklist-input";
 import { api } from "~/trpc/react";
 
@@ -85,6 +89,10 @@ export default function HomePage() {
     { userId: details.data?.id ?? "" },
     { enabled: !!details.data },
   );
+  const seriesWins = api.series.forPlayer.useQuery(
+    { userId: details.data?.id ?? "" },
+    { enabled: !!details.data },
+  );
   const nothingNext = upNext.status === "ready" && upNext.value.length === 0;
   const myGames = api.games.listMyGames.useQuery(undefined, {
     enabled: nothingNext,
@@ -111,7 +119,10 @@ export default function HomePage() {
   });
   const openGames = myGames.data ? openWeekRows(myGames.data, now, locale) : [];
   const newest = seenReady
-    ? latestMark(cabinet.data, sports, now, locale)
+    ? latestUpdate(
+        latestMark(cabinet.data, sports, now, locale),
+        latestSeriesWin(seriesWins.data, now, locale),
+      )
     : null;
   const latest = newest && newest.key !== seen ? newest : null;
 
@@ -165,7 +176,11 @@ export default function HomePage() {
         {latest && details.data ? (
           <LatestRow
             latest={latest}
-            href={playerMarksPath(details.data.id, latest.sport)}
+            href={
+              latest.type === "series"
+                ? gameHomeHref(latest.gameId)
+                : playerMarksPath(details.data.id, latest.sport)
+            }
             onOpen={() => markSeen(latest.key)}
           />
         ) : null}

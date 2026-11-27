@@ -14,6 +14,8 @@ import {
   SummaryCardFooter,
   SummaryCardShell,
 } from "~/components/games/summary-card-shell";
+import { GenderTagBadge } from "~/components/games/gender-tag";
+import { SeriesHeroLine } from "~/components/series/series-hero-line";
 import { GameStatusBadge } from "~/components/temba/game-status-badge";
 import { HatchFlag } from "~/components/temba/seat";
 import { Badge } from "~/components/ui/badge";
@@ -27,7 +29,7 @@ import {
   formatHomeCountdown,
   formatHomeKickoff,
 } from "@repo/domain/home-countdown";
-import { ratingScopeTag } from "@repo/domain/game-rating-impact";
+import { gameCardRatingTag } from "@repo/domain/game-rating-impact";
 import { hubRegisterToast } from "@repo/domain/game-card";
 import { formatLevelRangeLabel } from "@repo/domain/level-range";
 import { formatPricePerPlayerFils } from "@repo/domain/price-per-player";
@@ -102,7 +104,7 @@ function CardBand({ label, meta }: { label: string; meta: string | null }) {
 
 function RatingScopeBadge({ game }: { game: TournamentCardGame }) {
   const locale = useLocale();
-  const tag = ratingScopeTag(game, locale);
+  const tag = gameCardRatingTag(game, locale);
   return tag ? (
     <Badge variant="outline" data-slot="game-card-rating-scope">
       {tag}
@@ -407,11 +409,23 @@ export function TournamentSummaryCard({
           <h3 className="font-expanded text-h1-lg mt-4 line-clamp-2 leading-none tracking-[-0.035em]">
             {title}
           </h3>
-          {dateLine ? <p className="text-body mt-2.5">{dateLine}</p> : null}
+          {dateLine || game.genderTag ? (
+            <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+              {dateLine ? <p className="text-body">{dateLine}</p> : null}
+              <GenderTagBadge genderTag={game.genderTag} />
+            </div>
+          ) : null}
           {subLine ? (
             <p className="text-muted-foreground text-meta mt-0.5 truncate">
               {subLine}
             </p>
+          ) : null}
+          {game.series ? (
+            <SeriesHeroLine
+              series={game.series}
+              tone="paper"
+              className="mt-2.5"
+            />
           ) : null}
           {knockoutLine ? (
             <p className="text-body mt-2.5 truncate font-semibold">

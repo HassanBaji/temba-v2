@@ -1,0 +1,158 @@
+import { LOCALES } from "@repo/i18n/locale";
+import { messagesFor } from "@repo/i18n/messages";
+import { describe, expect, it } from "vitest";
+
+import {
+  DEFAULT_SERIES_COLOUR,
+  DEFAULT_SERIES_EMBLEM,
+  SERIES_COLOURS,
+  SERIES_EMBLEMS,
+  SERIES_NAME_MAX_LENGTH,
+  carriesSeries,
+  seriesNameError,
+  seriesSmallBadgeCount,
+  seriesWinRule,
+  seriesWinnerRanks,
+  type SeriesCarrierGame,
+} from "./series";
+
+describe("Series badge lists", () => {
+  it("opens the picker on Cup and Gold", () => {
+    expect(SERIES_EMBLEMS[0]).toBe(DEFAULT_SERIES_EMBLEM);
+    expect(SERIES_COLOURS[0]).toBe(DEFAULT_SERIES_COLOUR);
+    expect(DEFAULT_SERIES_EMBLEM).toBe("cup");
+    expect(DEFAULT_SERIES_COLOUR).toBe("gold");
+  });
+
+  it.each(LOCALES)("names every emblem and colour in %s", (locale) => {
+    const { emblems, colours } = messagesFor(locale).series;
+    expect(Object.keys(emblems)).toEqual([...SERIES_EMBLEMS]);
+    expect(Object.keys(colours)).toEqual([...SERIES_COLOURS]);
+  });
+});
+
+describe("seriesNameError", () => {
+  const errors = messagesFor("en").series.errors;
+
+  it("accepts a free name", () => {
+    expect(seriesNameError("Sunday Social", ["Friday Classic"], "en")).toBe(
+      null,
+    );
+  });
+
+  it("refuses an empty name", () => {
+    expect(seriesNameError("   ", [], "en")).toBe(errors.nameRequired);
+  });
+
+  it("refuses a name over the limit, counted after trimming", () => {
+    const longest = "a".repeat(SERIES_NAME_MAX_LENGTH);
+    expect(seriesNameError(`  ${longest}  `, [], "en")).toBe(null);
+    expect(seriesNameError(`${longest}a`, [], "en")).toBe(
+      errors.nameTooLong(SERIES_NAME_MAX_LENGTH),
+    );
+  });
+
+  it("refuses a running Series' name, trimmed and without case", () => {
+    expect(seriesNameError(" sunday social ", ["Sunday Social"], "en")).toBe(
+      errors.nameTaken,
+    );
+  });
+
+  it("answers in Arabic", () => {
+    expect(seriesNameError("", [], "ar")).toBe(
+      messagesFor("ar").series.errors.nameRequired,
+    );
+  });
+});
+
+describe("carriesSeries", () => {
+  const groupGame: SeriesCarrierGame = {
+    format: "friendly_game",
+    groupId: "group-1",
+    challengeId: null,
+    poolCount: null,
+    tournamentShape: null,
+  };
+  const social = (
+    tournamentShape: string | null,
+    poolCount: number | null,
+  ): SeriesCarrierGame => ({
+    ...groupGame,
+    format: "friendly_tournament",
+    tournamentShape,
+    poolCount,
+  });
+
+  it.each([
+    ["a padel Friendly game", groupGame],
+    ["a football Game", groupGame],
+    ["a Rounds Social", social("rounds", 1)],
+    ["a Groups only Social", social("groups_only", 2)],
+    ["a Groups then knockout Social", social("groups_then_knockout", 2)],
+    ["a Knockout only Social", social("knockout_only", null)],
+    ["a King of the court Social", social("king_of_the_court", null)],
+    ["an Americano Social", social("americano", null)],
+    ["a drawn tournament from before Tournament shapes", social(null, 2)],
+  ])("carries a Series on %s", (_kind, game) => {
+    expect(carriesSeries(game)).toBe(true);
+  });
+
+  it.each([
+    ["the legacy Americano Game format", { ...groupGame, format: "americano" }],
+    ["a hand-built legacy tournament", social(null, null)],
+    ["a Challenge Game", { ...groupGame, challengeId: "challenge-1" }],
+    ["a Booking Game", { ...groupGame, groupId: null }],
+    ["a Public Game", { ...groupGame, groupId: null }],
+    ["a groupless Social", { ...social("rounds", 1), groupId: null }],
+  ])("carries no Series on %s", (_kind, game) => {
+    expect(carriesSeries(game)).toBe(false);
+  });
+});
+
+describe("seriesWinRule", () => {
+  const social = (
+    tournamentShape: string | null,
+    poolCount: number | null,
+  ) => ({
+    format: "friendly_tournament",
+    tournamentShape,
+    poolCount,
+  });
+
+  it.each([
+    [
+      "a Friendly game",
+      { format: "friendly_game", tournamentShape: null, poolCount: null },
+      "side",
+    ],
+    ["a Rounds Social", social("rounds", 1), "table"],
+    ["a Groups only Social with one Pool", social("groups_only", 1), "table"],
+    ["a Groups only Social with two Pools", social("groups_only", 2), "tables"],
+    [
+      "a Groups then knockout Social",
+      social("groups_then_knockout", 2),
+      "champion",
+    ],
+    ["a Knockout only Social", social("knockout_only", null), "champion"],
+    ["King of the court", social("king_of_the_court", null), "king"],
+    ["an Americano", social("americano", null), "americano"],
+  ] as const)("reads the rule of %s", (_kind, game, rule) => {
+    expect(seriesWinRule(game)).toBe(rule);
+  });
+});
+
+describe("seriesSmallBadgeCount", () => {
+  it("draws one small badge per win up to three, then none", () => {
+    expect([0, 1, 2, 3, 4, 12].map(seriesSmallBadgeCount)).toEqual([
+      0, 1, 2, 3, 0, 0,
+    ]);
+  });
+});
+
+describe("seriesWinnerRanks", () => {
+  it("lets ties share a rank and skips the places they take", () => {
+    expect(seriesWinnerRanks([3, 3, 2, 2, 1])).toEqual([1, 1, 3, 3, 5]);
+    expect(seriesWinnerRanks([1, 1])).toEqual([1, 1]);
+    expect(seriesWinnerRanks([])).toEqual([]);
+  });
+});

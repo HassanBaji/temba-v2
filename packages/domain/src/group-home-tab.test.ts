@@ -19,6 +19,10 @@ describe("groupHomeTabFromQuery", () => {
     assert.equal(groupHomeTabFromQuery("standing"), "standing");
     assert.equal(groupHomeTabFromQuery("score"), "standing");
   });
+
+  it("opens Standing for a stale tab=series, now its own screen", () => {
+    assert.equal(groupHomeTabFromQuery("series"), "standing");
+  });
 });
 
 describe("groupHomeTabQuery", () => {

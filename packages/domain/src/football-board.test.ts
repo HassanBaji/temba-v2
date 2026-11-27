@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  addGoal,
   balancedSides,
   boardTierCell,
+  captainsOnTheirSides,
+  clearSides,
   confirmationLine,
   draftSummary,
   footballHeroLines,
@@ -12,7 +13,13 @@ import {
   joinActionLabel,
   keeperNote,
   keeperSub,
+  mayBeSideCaptain,
   moveAcross,
+  NO_SIDE_CAPTAINS,
+  otherSide,
+  teamsRating,
+  teamsTileName,
+  tierProvisionalCount,
   ovrLabel,
   ovrSpoken,
   placeOn,
@@ -20,11 +27,14 @@ import {
   poolTileTier,
   poolLayout,
   poolSections,
-  removeGoal,
   lineupName,
-  scorersNote,
-  scorersPayload,
+  lineupPlayerName,
+  ofSide,
+  setPickCaptain,
+  setSideCaptain,
   shortName,
+  shuffleSides,
+  sidesFromSplit,
   switchMethod,
   tileShortName,
   sideOvrAverage,
@@ -150,7 +160,7 @@ describe("teams draft", () => {
   ];
 
   it("starts from a split by Level, or from the published teams", () => {
-    const fresh = initialTeamsDraft(players, null);
+    const fresh = initialTeamsDraft(players, null, null);
     expect(fresh.method).toBe("level");
     expect(fresh.bibs).toEqual({ slot1: "black", slot2: "white" });
     expect(Object.keys(fresh.sides)).toHaveLength(4);
@@ -160,14 +170,42 @@ describe("teams draft", () => {
         ...row,
         sideIndex: index % 2 === 0 ? 1 : 2,
       })),
-      { method: "manual", bibs: { slot1: "red", slot2: "sky" } },
+      {
+        method: "manual",
+        bibs: { slot1: "red", slot2: "sky" },
+        captains: NO_SIDE_CAPTAINS,
+      },
+      null,
     );
     expect(published.sides).toEqual({ k: 1, a: 2, b: 1, c: 2 });
     expect(published.bibs).toEqual({ slot1: "red", slot2: "sky" });
   });
 
+  it("starts from the saved Draft line-up before the published teams", () => {
+    const saved = initialTeamsDraft(
+      players.map((row) => ({ ...row, sideIndex: 1 as const })),
+      {
+        method: "level",
+        bibs: { slot1: "black", slot2: "white" },
+        captains: NO_SIDE_CAPTAINS,
+      },
+      {
+        method: "manual",
+        bibs: { slot1: "green", slot2: "pink" },
+        sides: { slot1: ["k", "gone"], slot2: ["a"] },
+        captains: NO_SIDE_CAPTAINS,
+      },
+    );
+    expect(saved).toEqual({
+      method: "manual",
+      bibs: { slot1: "green", slot2: "pink" },
+      sides: { k: 1, a: 2 },
+      captains: { slot1: null, slot2: null },
+    });
+  });
+
   it("moves players across and places them by swatch", () => {
-    const draft = initialTeamsDraft(players, null);
+    const draft = initialTeamsDraft(players, null, null);
     const moved = moveAcross(draft, "k");
     expect(moved.sides.k).not.toBe(draft.sides.k);
     const manual = switchMethod(draft, "manual", players);
@@ -180,7 +218,7 @@ describe("teams draft", () => {
   it("summarises the split with keepers first and blocks unplaced players", () => {
     const manual = placeOn(
       placeOn(
-        switchMethod(initialTeamsDraft(players, null), "manual", players),
+        switchMethod(initialTeamsDraft(players, null, null), "manual", players),
         "a",
         1,
       ),
@@ -199,14 +237,130 @@ describe("teams draft", () => {
   });
 });
 
+describe("Side captains on the teams draft (ADR-0108)", () => {
+  const players = [
+    player("k", { role: "keeper", levelBand: "C1", ovr: 70 }),
+    player("a", { levelBand: "A", ovr: 92 }),
+    player("b", { levelBand: "B2", ovr: 80 }),
+    player("c", { levelBand: "C2", ovr: 66 }),
+  ];
+  const split = {
+    method: "manual" as const,
+    bibs: { slot1: "black", slot2: "white" } as const,
+    sides: { slot1: ["k", "a"], slot2: ["b", "c"] },
+    captains: NO_SIDE_CAPTAINS,
+  };
+
+  function named() {
+    return setSideCaptain(
+      setSideCaptain(initialTeamsDraft(players, null, split), 1, "a"),
+      2,
+      "b",
+    );
+  }
+
+  it("names one captain per side, from that side's players only, or none", () => {
+    const draft = named();
+    expect(draft.captains).toEqual({ slot1: "a", slot2: "b" });
+    expect(setSideCaptain(draft, 1, "c")).toBe(draft);
+    expect(setSideCaptain(draft, 1, "k").captains).toEqual({
+      slot1: "k",
+      slot2: "b",
+    });
+    expect(setSideCaptain(draft, 2, null).captains).toEqual({
+      slot1: "a",
+      slot2: null,
+    });
+  });
+
+  it("clears a captain moved to the other team, and keeps the other side's", () => {
+    expect(moveAcross(named(), "a").captains).toEqual({
+      slot1: null,
+      slot2: "b",
+    });
+    expect(moveAcross(named(), "k").captains).toEqual({
+      slot1: "a",
+      slot2: "b",
+    });
+  });
+
+  it("clears a captain unplaced or placed on the other side", () => {
+    expect(placeOn(named(), "a", 1).captains).toEqual({
+      slot1: null,
+      slot2: "b",
+    });
+    expect(placeOn(named(), "b", 1).captains).toEqual({
+      slot1: "a",
+      slot2: null,
+    });
+  });
+
+  it("clears both on Shuffle, Clear and a method switch", () => {
+    const none = { slot1: null, slot2: null };
+    expect(shuffleSides(named(), players, () => 0.5).captains).toEqual(none);
+    expect(clearSides(named())).toMatchObject({ sides: {}, captains: none });
+    expect(switchMethod(named(), "level", players).captains).toEqual(none);
+  });
+
+  it("starts from the saved draft's captains, or the published teams', while they are on their side", () => {
+    expect(
+      initialTeamsDraft(players, null, {
+        ...split,
+        captains: { slot1: "a", slot2: "k" },
+      }).captains,
+    ).toEqual({ slot1: "a", slot2: null });
+    expect(
+      initialTeamsDraft(
+        players.map((row) => ({
+          ...row,
+          sideIndex: row.userId === "k" || row.userId === "a" ? 1 : 2,
+        })),
+        {
+          method: "level",
+          bibs: split.bibs,
+          captains: { slot1: "k", slot2: "c" },
+        },
+        null,
+      ).captains,
+    ).toEqual({ slot1: "k", slot2: "c" });
+    expect(initialTeamsDraft(players, null, null).captains).toEqual({
+      slot1: null,
+      slot2: null,
+    });
+  });
+
+  it("offers only players with an account", () => {
+    expect(mayBeSideCaptain(player("a"))).toBe(true);
+    expect(mayBeSideCaptain(player("g", { guest: true }))).toBe(false);
+    expect(mayBeSideCaptain(player("u", { unclaimed: true }))).toBe(false);
+  });
+});
+
 describe("teams draft in a tier Group", () => {
+  const ranked = {
+    band: "hamour" as const,
+    place: 1,
+    points: 1200,
+    provisional: false,
+    gamesOfFive: 5,
+  };
   const tierPlayers = [
-    player("k1", { role: "keeper", levelBand: "A", balanceStrength: 1180 }),
-    player("k2", { role: "keeper", levelBand: "D3", balanceStrength: 1214 }),
-    player("a", { levelBand: "D3", balanceStrength: 1412 }),
-    player("b", { levelBand: "D3", balanceStrength: 1356 }),
-    player("c", { levelBand: "A", balanceStrength: 1301 }),
-    player("d", { levelBand: "A", balanceStrength: 1248 }),
+    player("k1", {
+      role: "keeper",
+      levelBand: "A",
+      balanceStrength: 1180,
+      tier: ranked,
+    }),
+    player("k2", {
+      role: "keeper",
+      levelBand: "D3",
+      balanceStrength: 1214,
+      tier: ranked,
+    }),
+    player("a", { levelBand: "D3", balanceStrength: 1412, tier: ranked }),
+    player("b", { levelBand: "D3", balanceStrength: 1356, tier: ranked }),
+    player("c", { levelBand: "A", balanceStrength: 1301, tier: ranked }),
+    player("d", { levelBand: "A", balanceStrength: 1248, tier: ranked }),
   ];
 
   it("splits on balance strength, not on the Level band", () => {
@@ -221,7 +375,7 @@ describe("teams draft in a tier Group", () => {
   });
 
   it("lists each side strongest down and reads its mean in points", () => {
-    const draft = initialTeamsDraft(tierPlayers, null);
+    const draft = initialTeamsDraft(tierPlayers, null, null);
     const summary = draftSummary(draft, tierPlayers, "en");
     expect(summary.slot1.map((row) => row.userId)).toEqual(["k1", "b", "c"]);
     expect(summary.slot2.map((row) => row.userId)).toEqual(["k2", "a", "d"]);
@@ -388,7 +542,7 @@ describe("teams draft outside a tier Group", () => {
   ];
 
   it("splits on OVR and reads each side's mean OVR", () => {
-    const draft = initialTeamsDraft(ovrPlayers, null);
+    const draft = initialTeamsDraft(ovrPlayers, null, null);
     expect(draft.sides).toEqual({ k1: 1, k2: 2, a: 2, b: 1, c: 1, d: 2 });
     const summary = draftSummary(draft, ovrPlayers, "en", "ovr");
     expect(summary.slot2.map((row) => row.userId)).toEqual(["k2", "a", "d"]);
@@ -411,29 +565,12 @@ describe("teams draft outside a tier Group", () => {
   });
 });
 
-describe("score draft", () => {
+describe("score confirmation", () => {
   const players = [
     player("a", { sideIndex: 1 }),
     player("b", { sideIndex: 2 }),
   ];
   const names = { slot1: "Black", slot2: "White" };
-
-  it("raises the side's Score when a goal is named past it", () => {
-    let draft = { slot1: 1, slot2: 0, goals: {} };
-    draft = addGoal(draft, players[0]!, players);
-    expect(draft.slot1).toBe(1);
-    draft = addGoal(draft, players[0]!, players);
-    expect(draft.slot1).toBe(2);
-    expect(draft.goals).toEqual({ a: 2 });
-    expect(scorersNote(draft, players, names, "en")).toBe(
-      "2 of 2 Black goals and 0 of 0 White goals named.",
-    );
-    draft = removeGoal(removeGoal(draft, "a"), "a");
-    expect(draft.goals).toEqual({});
-    expect(scorersPayload({ ...draft, goals: { a: 1, b: 0 } })).toEqual([
-      { userId: "a", goals: 1 },
-    ]);
-  });
 
   it("explains who still has to confirm", () => {
     expect(
@@ -533,6 +670,27 @@ describe("footballHeroLines", () => {
       footballHeroLines({ ...input, scored: true }, at(120), "ar").status,
     ).toBe("لُعبت");
   });
+
+  it("reads the draft to the Organizer who has one, until kick-off", () => {
+    const draft = { ...input, draftSaved: true };
+    expect(footballHeroLines(draft, at(-15), "en").status).toBe(
+      "Draft, not published",
+    );
+    expect(footballHeroLines(draft, at(-15), "ar").status).toBe(
+      "مسودة، لم تُنشر",
+    );
+    expect(footballHeroLines(draft, at(42), "en").status).toBe("Live now");
+  });
+
+  it("names the team a Side captain captains on the draft", () => {
+    const draft = { ...input, draftSaved: true, draftSideCaptainOf: "Black" };
+    expect(footballHeroLines(draft, at(-15), "en").status).toBe(
+      "Draft, you captain Black",
+    );
+    expect(footballHeroLines(draft, at(-15), "ar").status).toBe(
+      "مسودة، أنت قائد Black",
+    );
+  });
 });
 
 describe("lineupName", () => {
@@ -570,5 +728,216 @@ describe("lineupName", () => {
         "en",
       ).name,
     ).toBe("You");
+  });
+});
+
+describe("lineupPlayerName", () => {
+  it("reads You for the viewer, a nickname, or the short name", () => {
+    expect(
+      lineupPlayerName({ name: "Rashid Nasser", isViewer: true }, "en"),
+    ).toBe("You");
+    expect(
+      lineupPlayerName(
+        {
+          name: "Rashid Nasser",
+          isViewer: false,
+          nickname: { name: "Rash", visibility: "group" },
+        },
+        "en",
+      ),
+    ).toBe("Rash");
+    expect(
+      lineupPlayerName({ name: "Rashid Nasser", isViewer: false }, "en"),
+    ).toBe("Rashid N");
+  });
+
+  it("is null without a player", () => {
+    expect(lineupPlayerName(undefined, "en")).toBeNull();
+    expect(lineupPlayerName(null, "en")).toBeNull();
+  });
+});
+
+describe("ofSide", () => {
+  it("reads a pair by side", () => {
+    const names = { slot1: "Black", slot2: "White" };
+    expect(ofSide(names, 1)).toBe("Black");
+    expect(ofSide(names, 2)).toBe("White");
+  });
+});
+
+describe("captainsOnTheirSides", () => {
+  it("keeps a Side captain only while they are on that side", () => {
+    const sides = sidesFromSplit({ slot1: ["a", "b"], slot2: ["c"] });
+    expect(sides).toEqual({ a: 1, b: 1, c: 2 });
+    expect(captainsOnTheirSides({ slot1: "a", slot2: "c" }, sides)).toEqual({
+      slot1: "a",
+      slot2: "c",
+    });
+    expect(captainsOnTheirSides({ slot1: "c", slot2: "gone" }, sides)).toEqual({
+      slot1: null,
+      slot2: null,
+    });
+    expect(captainsOnTheirSides(NO_SIDE_CAPTAINS, sides)).toEqual(
+      NO_SIDE_CAPTAINS,
+    );
+  });
+});
+
+describe("setPickCaptain", () => {
+  const roster = ["a", "b", "c", "d"].map((id) => player(id));
+  const setup = switchMethod(
+    initialTeamsDraft(roster, null, null),
+    "captain_pick",
+    roster,
+  );
+
+  it("opens teams a Captain pick made by hand", () => {
+    const picked = initialTeamsDraft(roster, null, {
+      method: "captain_pick",
+      bibs: { slot1: "black", slot2: "white" },
+      sides: { slot1: ["a", "b"], slot2: ["c", "d"] },
+      captains: { slot1: "a", slot2: "c" },
+    });
+    expect(picked.method).toBe("manual");
+    expect(picked.sides).toEqual({ a: 1, b: 1, c: 2, d: 2 });
+    expect(picked.captains).toEqual({ slot1: "a", slot2: "c" });
+  });
+
+  it("starts a Captain pick with nobody placed and no captains", () => {
+    expect(setup.method).toBe("captain_pick");
+    expect(setup.sides).toEqual({});
+    expect(setup.captains).toEqual({ slot1: null, slot2: null });
+  });
+
+  it("seats each captain on their side and leaves everyone else to be picked", () => {
+    const named = setPickCaptain(setPickCaptain(setup, 1, "a"), 2, "c");
+    expect(named.captains).toEqual({ slot1: "a", slot2: "c" });
+    expect(named.sides).toEqual({ a: 1, c: 2 });
+  });
+
+  it("moves the other side's captain across, and replaces or clears one", () => {
+    const named = setPickCaptain(setPickCaptain(setup, 1, "a"), 2, "c");
+    expect(setPickCaptain(named, 1, "c").captains).toEqual({
+      slot1: "c",
+      slot2: null,
+    });
+    expect(setPickCaptain(named, 2, "d").sides).toEqual({ a: 1, d: 2 });
+    expect(setPickCaptain(named, 1, null).sides).toEqual({ c: 2 });
+  });
+});
+
+const rankedTier = {
+  band: "hamour" as const,
+  place: 3,
+  points: 1310,
+  provisional: false,
+  gamesOfFive: 5,
+};
+
+describe("teamsRating", () => {
+  it("shows the Tier points the averages are taken over", () => {
+    expect(
+      teamsRating(
+        player("a", { tier: rankedTier, balanceStrength: 1310 }),
+        "tierPoints",
+        "en",
+      ),
+    ).toEqual({ kind: "rated", value: "1,310", spoken: "1,310 points" });
+  });
+
+  it("shows the OVR off a tier Group, a dash without one", () => {
+    expect(
+      teamsRating(player("a", { ovr: 72, balanceStrength: 72.4 }), "ovr", "en"),
+    ).toMatchObject({ kind: "rated", value: "72", spoken: "OVR 72" });
+    expect(teamsRating(player("b"), "ovr", "en")).toMatchObject({
+      kind: "rated",
+      value: "–",
+    });
+  });
+
+  it("reads new while the Group Tier is Provisional, or not started", () => {
+    const provisional = player("a", {
+      tier: { ...rankedTier, provisional: true, place: null, gamesOfFive: 2 },
+      balanceStrength: 1349,
+    });
+    expect(teamsRating(provisional, "tierPoints", "en")).toMatchObject({
+      kind: "new",
+      value: "new",
+    });
+    expect(
+      teamsRating(player("b", { tier: null }), "tierPoints", "en").kind,
+    ).toBe("new");
+  });
+
+  it("reads Guest in a tier Group, and the stand-in OVR elsewhere", () => {
+    const guest = player("g", { guest: true, ovr: 70, balanceStrength: 1231 });
+    expect(teamsRating(guest, "tierPoints", "en")).toEqual({
+      kind: "guest",
+      value: "Guest",
+      spoken: "Guest",
+    });
+    expect(
+      teamsRating({ ...guest, balanceStrength: 70 }, "ovr", "en"),
+    ).toMatchObject({ kind: "rated", value: "70" });
+  });
+
+  it("counts a side's Provisional members, never a Guest player", () => {
+    const side = [
+      player("a", { tier: rankedTier }),
+      player("b", { tier: { ...rankedTier, provisional: true } }),
+      player("c", { tier: null }),
+      player("g", { guest: true }),
+    ];
+    expect(tierProvisionalCount(side, "tierPoints")).toBe(2);
+    expect(tierProvisionalCount(side, "ovr")).toBe(0);
+  });
+});
+
+describe("teamsSideAverage in a tier Group", () => {
+  const side = [
+    player("a", { tier: rankedTier, balanceStrength: 1296 }),
+    player("b", { tier: rankedTier, balanceStrength: 1270 }),
+    player("c", { tier: rankedTier, balanceStrength: 1240 }),
+    player("d", { tier: rankedTier, balanceStrength: 1205 }),
+  ];
+
+  it("leaves a Provisional member's start hint out of the mean", () => {
+    const provisional = player("e", {
+      tier: { ...rankedTier, provisional: true },
+      balanceStrength: 1164,
+    });
+    expect(teamsSideAverage([...side, provisional], "en")).toBe("1,253 points");
+  });
+
+  it("leaves a Guest player's stand-in out of the mean", () => {
+    const guest = player("g", { guest: true, balanceStrength: 900 });
+    expect(teamsSideAverage([...side, guest], "en")).toBe("1,253 points");
+  });
+
+  it("reads a dash while nobody on the side is ranked", () => {
+    expect(
+      teamsSideAverage(
+        [player("e", { tier: null, balanceStrength: 1200 })],
+        "en",
+      ),
+    ).toBe("–");
+  });
+});
+
+describe("teamsTileName", () => {
+  it("keeps the Temba name whole, and says You for the viewer", () => {
+    expect(
+      teamsTileName(player("a", { name: "Abdulrahman Al-Mansoor" }), "en").name,
+    ).toBe("Abdulrahman Al-Mansoor");
+    expect(teamsTileName(player("a", { isViewer: true }), "en").name).toBe(
+      "You",
+    );
+  });
+});
+
+describe("otherSide", () => {
+  it("names the side across", () => {
+    expect(otherSide(1)).toBe(2);
+    expect(otherSide(2)).toBe(1);
   });
 });

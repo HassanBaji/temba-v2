@@ -153,9 +153,12 @@ export const mobileTournament = {
   makeTeams: {
     methodByLevel: "By level",
     methodManual: "Manual",
+    methodCaptainPick: "Captain pick",
     avgAndKeepers: (avg: string, keepers: string) => `avg ${avg}, ${keepers}`,
     ofTeamSize: (n: number, size: number) => `${n} of ${size}`,
     readyToPublish: (note: string) => `${note} Ready to publish.`,
+    readyToPublishOrDraft: (note: string) =>
+      `${note} Ready to publish, or save it as a draft first.`,
     moveToOtherTeam: (name: string) => `Move ${name} to the other team`,
     noSubs:
       "No subs are set here. Each captain picks starters before kick-off and runs the swaps on the pitch.",
@@ -177,7 +180,45 @@ export const mobileTournament = {
       "Tap a swatch to place a player; placed rows take their team colour.",
     shuffle: "Shuffle",
     publish: "Publish teams",
+    saveDraft: "Save draft",
+    draftSaved: "Draft saved",
     inThePool: (n: number) => `${n} in the pool`,
+    players: "Players",
+    tapToOpen: "tap a player to open them",
+    card: {
+      sideUsually: (team: string, code: string) => `${team}, usually ${code}`,
+      notRatedYet: (left: number) =>
+        plural("en", left, {
+          one: "Not rated yet, 1 more game to go",
+          other: "Not rated yet, {n} more games to go",
+        }),
+      sentences: (first: string, second: string) => `${first}. ${second}`,
+      newValue: "New",
+      points: "points",
+      pointsThisMonth: (delta: string) => `points, ${delta} this month`,
+      pointsAfter: (games: number) =>
+        plural("en", games, {
+          one: "points, after 1 game",
+          other: "points, after {n} games",
+        }),
+      ovr: "OVR",
+      games: (n: number) => plural("en", n, { one: "game", other: "games" }),
+      goals: (n: number) => plural("en", n, { one: "goal", other: "goals" }),
+      mvps: "MVP",
+      statSpoken: (value: string, label: string) => `${value} ${label}`,
+      lastFive: "Last five, oldest first",
+      playedSoFar: (n: number) =>
+        plural("en", n, {
+          one: "1 played so far",
+          other: "{n} played so far",
+        }),
+      nonePlayed: "Nothing played yet",
+      moveTo: (team: string) => `Move to ${team}`,
+      makeCaptain: "Make captain",
+      removeCaptain: "Remove captain",
+      fullProfile: "Full profile",
+      statsFailed: "The numbers could not be loaded",
+    },
   },
   aloneTeams: {
     loading: "Loading the teams",
@@ -210,11 +251,6 @@ export const mobileTournament = {
     teamGoalsSr: (name: string, goals: number) => `${name} ${goals}`,
     oneGoalFewer: (name: string) => `One goal fewer for ${name}`,
     oneGoalMore: (name: string) => `One goal more for ${name}`,
-    scorerSr: (name: string, team: string, goals: number) =>
-      `${name}, ${team}, ${goals} goals`,
-    scorerHint: "Tap to add a goal, hold to take one away",
-    addAGoal: "Add a goal",
-    takeAGoalAway: "Take a goal away",
     saved: "Score saved",
     title: "Score",
     loadFailed: "The game could not be loaded",
@@ -222,13 +258,11 @@ export const mobileTournament = {
     closedLine:
       "The score opens at kick-off for players on the teams and the organizer, until both sides confirm it.",
     oneFromConfirms: (team: string) =>
-      `One player from ${team} confirms the score.`,
-    oneFromEachConfirms: "One player from each side confirms the score.",
+      `One player from ${team} confirms the score, the log and the cards.`,
+    oneFromEachConfirms:
+      "One player from each side confirms the score, the log and the cards.",
     saveScore: "Save score",
     editScore: "Edit score",
     scoreMissing: "Score missing",
-    scorersOptional: "Scorers, optional",
-    tapToAdd: "tap to add a goal",
-    holdToRemove: "Hold a name to take a goal away.",
   },
 };

@@ -4,7 +4,6 @@ import {
   groupLeaveVenueConfirm,
   groupLeftVenueToast,
   groupLinkRequestBannerText,
-  groupPartOfVenueLine,
 } from "@repo/domain/group-link-request";
 import { notFound, useRouter, useSearchParams } from "next/navigation";
 import { use, useRef, useState, type ChangeEvent } from "react";
@@ -94,6 +93,7 @@ import { type WaitingRequest } from "@repo/domain/waiting-requests";
 import {
   groupLeaveBlockedHint,
   groupMenuRoleLine,
+  groupMenuSeriesHint,
   groupSeasonCount,
 } from "@repo/domain/group-settings";
 import { ratingSettingsSummary } from "@repo/domain/group-rating-settings";
@@ -480,6 +480,7 @@ export default function GroupHomePage({
         title={m.invite.kind.group}
         hidePageHeader
         hideMobileTopBar
+        hideNav
       >
         <GroupHomeSkeleton />
       </DashboardShell>
@@ -548,6 +549,7 @@ export default function GroupHomePage({
     canUnlinkVenue: data.canUnlinkFromVenue,
     canManageSeasons: data.canManageSeasons,
     canEdit: data.canEdit,
+    verified: data.verified,
     canChangeRatingSettings: data.ratingSettings != null,
   });
   const leaveConfirm = groupLeaveConfirm(groupName, locale);
@@ -587,6 +589,7 @@ export default function GroupHomePage({
           ? ratingSettingsSummary(data.ratingSettings, locale)
           : null
       }
+      seriesHint={groupMenuSeriesHint(data.runningSeriesCount, locale)}
       venueName={data.venue?.name ?? null}
       triggerRef={
         which === "mobile" ? mobileMenuTriggerRef : desktopMenuTriggerRef
@@ -643,6 +646,7 @@ export default function GroupHomePage({
       hidePageHeader
       hideMobileTopBar
       hidePageTitle
+      hideNav
     >
       {/* <div className="md:-mt-6 lg:mt-0">
         <GroupHomeTopBar name={groupName} overflow={overflowMenu("mobile")} />
@@ -666,11 +670,6 @@ export default function GroupHomePage({
 
         <div className="space-y-6 pt-6">
           {venueRequestBanners}
-          {data.venue ? (
-            <p className="text-body text-muted-foreground">
-              {groupPartOfVenueLine(data.venue.name, locale)}
-            </p>
-          ) : null}
 
           {ctaFamily.kind === "join_group" ? (
             <Button

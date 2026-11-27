@@ -18,7 +18,7 @@ export const mobileCreateGame = {
       "Both start with a Venue and a time. The rest of the form follows your pick.",
     tournamentTitle: "Social",
     teamRange: (min: number, max: number) => `${min} to ${max} Game teams`,
-    gameTitle: "Friendly\ngame",
+    gameTitle: "Game",
     startWithGroup: "Start with the Group. Venue rules depend on it.",
     linkedVenue: "Linked Venue",
     venueCount: (n: number) =>

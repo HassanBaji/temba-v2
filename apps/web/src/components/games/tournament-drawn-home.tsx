@@ -20,6 +20,13 @@ import { poolLabel } from "@repo/domain/tournament-pool-draw";
 
 import { GameTvCardSlot } from "~/components/live-board/game-tv";
 import { PageTitle } from "~/components/layout/page-title";
+import { SeriesGameCard } from "~/components/series/series-game-card";
+import { SeriesWinnersCard } from "~/components/series/series-winners-card";
+import { useSeriesTableBadges } from "~/components/series/use-series-table-badges";
+import {
+  SeriesHeroLine,
+  type WithGameSeries,
+} from "~/components/series/series-hero-line";
 import { Surface } from "~/components/ui/surface";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useLocale, useMessages } from "~/components/locale-provider";
@@ -58,7 +65,7 @@ import {
   type TournamentRoundsActions,
 } from "./use-tournament-rounds";
 
-type GameDetail = TournamentDetails;
+type GameDetail = TournamentDetails & WithGameSeries;
 type Tab = "teams" | "rounds" | "standings" | "bracket";
 
 function roundsLead(
@@ -142,6 +149,7 @@ export function TournamentDrawnHome({
   );
   const [swapTarget, setSwapTarget] = React.useState<SwapTarget | null>(null);
   const [pairRound, setPairRound] = React.useState<number | null>(null);
+  const seriesBadges = useSeriesTableBadges(data.id, data.series != null);
 
   const teams = React.useMemo(
     () =>
@@ -211,6 +219,14 @@ export function TournamentDrawnHome({
           backHref={backHref}
           chip={chip}
           actions={actions}
+          lead={
+            data.series ? (
+              <SeriesWinnersCard
+                gameId={data.id}
+                windowStart={data.windowStart}
+              />
+            ) : null
+          }
         />
       ) : (
         <Surface
@@ -240,8 +256,14 @@ export function TournamentDrawnHome({
               {standings.championLine}
             </p>
           ) : null}
+          {data.series ? (
+            <SeriesHeroLine series={data.series} tone="ink" className="mt-3" />
+          ) : null}
         </Surface>
       )}
+      {data.series ? (
+        <SeriesGameCard gameId={data.id} game="social" className="my-[18px]" />
+      ) : null}
       <GameTvCardSlot className="pt-[18px]" />
 
       <Tabs
@@ -324,6 +346,7 @@ export function TournamentDrawnHome({
               viewerUserId={data.viewerUserId}
               onEnterScore={setScoreTarget}
               finished={finished}
+              seriesBadges={seriesBadges}
             />
           ) : null}
         </TabsContent>

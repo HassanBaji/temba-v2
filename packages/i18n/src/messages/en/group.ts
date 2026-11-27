@@ -249,7 +249,6 @@ export const group = {
       confirmLabel: "Decline request",
       cancelLabel: "Keep request",
     },
-    partOf: (venue: string) => `Linked to ${venue}`,
     unlinkLabel: "Unlink",
     leaveVenueLabel: (venue: string) => `Unlink from ${venue}`,
     leaveVenueConfirm: {

@@ -1,6 +1,7 @@
 import { radii, spacing } from "@repo/design-tokens";
 import { footballResultLine } from "@repo/domain/football-lineup";
 import { organizerConfirmNote } from "@repo/domain/friendly-game-score";
+import type { MatchLogLine } from "@repo/domain/football-match-log";
 import { View } from "react-native";
 
 import { Card } from "../home/card";
@@ -10,6 +11,12 @@ import { Hairline } from "../primitives/hairline";
 import { Hatch } from "../primitives/hatch";
 import { Text } from "../primitives/text";
 import { BibChip } from "./bib-picker";
+import {
+  LogFacts,
+  MatchTimeline,
+  presentFacts,
+  useLogFacts,
+} from "./match-timeline";
 import {
   confirmationLine,
   shortName,
@@ -90,6 +97,36 @@ function Scorers({ players }: { players: readonly BoardPlayer[] }) {
   );
 }
 
+function ConfirmLog({
+  lines,
+  players,
+  enteredByName,
+}: {
+  lines: readonly MatchLogLine[];
+  players: readonly BoardPlayer[];
+  enteredByName: string | null;
+}) {
+  const m = useMessages().football.matchLog.confirm;
+  const facts = useLogFacts(lines, players);
+  const rows = presentFacts([
+    facts.row(m.enteredBy, enteredByName),
+    facts.cards,
+    facts.sentOff,
+  ]);
+  return (
+    <>
+      <Hairline />
+      <MatchTimeline lines={lines} players={players} />
+      {rows.length > 0 ? (
+        <>
+          <Hairline />
+          <LogFacts facts={rows} />
+        </>
+      ) : null}
+    </>
+  );
+}
+
 export type FootballScoreCardProps = {
   bibs: Bibs;
   names: { slot1: string; slot2: string };
@@ -100,6 +137,8 @@ export type FootballScoreCardProps = {
     confirmed: { slot1: boolean; slot2: boolean };
     organizerSides?: { slot: 1 | 2; confirmed: boolean }[];
     enteredByName: string | null;
+    /** The Match log, oldest first. */
+    log?: readonly MatchLogLine[];
   } | null;
   canEnterScore: boolean;
   canConfirm: boolean;
@@ -128,6 +167,7 @@ export function FootballScoreCard(props: FootballScoreCardProps) {
   const stampCopy = messages.rating.verifier.stamp;
   const score = props.match?.score ?? null;
   const completed = props.match?.status === "completed";
+  const log = props.match?.log ?? [];
   if (!score) {
     return (
       <Card title={m.title}>
@@ -177,6 +217,13 @@ export function FootballScoreCard(props: FootballScoreCardProps) {
           goals={score.slot2}
         />
       </View>
+      {log.length > 0 ? (
+        <ConfirmLog
+          lines={log}
+          players={props.players}
+          enteredByName={props.match?.enteredByName ?? null}
+        />
+      ) : null}
       <Hairline />
       <View style={{ padding: spacing.surface, gap: 12 }}>
         <View style={{ gap: 2 }}>
@@ -191,7 +238,7 @@ export function FootballScoreCard(props: FootballScoreCardProps) {
               locale,
               props.match?.organizerSides,
             )}
-            {props.match?.enteredByName
+            {props.match?.enteredByName && log.length === 0
               ? ` ${m.enteredBy(props.match.enteredByName)}`
               : ""}
           </Text>
@@ -247,7 +294,7 @@ export function FootballScoreCard(props: FootballScoreCardProps) {
           </Text>
         ) : null}
       </View>
-      <Scorers players={props.players} />
+      {log.length === 0 ? <Scorers players={props.players} /> : null}
     </Card>
   );
 }

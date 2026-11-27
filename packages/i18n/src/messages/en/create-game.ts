@@ -10,9 +10,9 @@ export const createGame = {
       plural("en", n, { one: "1 Court", other: "{n} Courts" }),
   },
   typeCards: {
-    countsNote: "Friendly, but it counts toward your Level.",
+    countsNote: "Both count toward your Level.",
     friendlyGame: {
-      title: "Friendly game",
+      title: "Game",
       description: "One Match. Temba fills the open seats.",
       rating: "Counts for your rating",
     },
@@ -106,6 +106,13 @@ export const createGame = {
     lockedNote:
       "The score is confirmed, so how the MVP is decided can’t change.",
   },
+  genderTag: {
+    title: "Who it’s for",
+    men: "Men only",
+    women: "Women only",
+    mixed: "Mixed",
+    help: "Shown as a tag only. It does not stop anyone from joining.",
+  },
   tournament: {
     defaultName: (day: string) => `Social · ${day}`,
     defaultNameNoDay: "Social",
@@ -126,6 +133,7 @@ export const createGame = {
   },
   format: {
     friendlyGame: "Friendly game",
+    rankedGame: "Ranked game",
     americano: "Americano",
     friendlyTournament: "Social",
   },
@@ -214,6 +222,7 @@ export const createGame = {
       aside: "a-side",
       price: "price",
       levelRange: "level range",
+      genderTag: "who it’s for",
       rounds: "rounds",
       teams: "teams",
       courts: "courts",
@@ -221,6 +230,9 @@ export const createGame = {
       seasonUnlinked: "season unlinked",
       seasonLinked: "season linked",
       seasonChanged: "season changed",
+      seriesAdded: "series added",
+      seriesRemoved: "series removed",
+      seriesChanged: "series changed",
       mvp: "MVP",
     },
     listSeparator: ", ",

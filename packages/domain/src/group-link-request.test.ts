@@ -8,7 +8,6 @@ import {
   groupLeaveVenueActionLabel,
   groupLeaveVenueConfirm,
   groupLinkRequestRowTitle,
-  groupPartOfVenueLine,
   venueUnlinkGroupConfirm,
 } from "./group-link-request";
 
@@ -51,12 +50,7 @@ describe("group link request copy", () => {
     );
   });
 
-  it("linked-to line", () => {
-    expect(groupPartOfVenueLine("Padel Hub", "en")).toBe("Linked to Padel Hub");
-  });
-
   it("reads in Arabic", () => {
-    expect(groupPartOfVenueLine("Padel Hub", "ar")).toBe("مرتبطة بـ Padel Hub");
     expect(groupLinkRequestAcceptConfirm(null, "Padel Hub", "ar").title).toBe(
       "ربط هذه المجموعة بـ Padel Hub؟",
     );

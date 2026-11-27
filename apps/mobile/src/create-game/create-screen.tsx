@@ -13,10 +13,13 @@ import { slotOf } from "../lib/slot-of";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { seriesAttachPick } from "../series/series-attach";
+import { useSeriesAttachOptions } from "../series/use-series-attach-options";
 import { api } from "../trpc/react";
 import {
   advance,
   createReducer,
+  createWindowStart,
   initialCreateState,
   serverFailure,
   submitRequest,
@@ -70,6 +73,13 @@ export function CreateGameScreen({
       : { groupId: state.draft.groupId },
     { ...REFETCH_ON_FOREGROUND, enabled: venuesWanted },
   );
+  const seriesAttach = useSeriesAttachOptions({
+    groupId: state.draft.groupId,
+    windowStart: createWindowStart(state, now),
+    enabled: state.type !== null && groupVerified && !publicGame,
+  });
+  const pickedSeries = seriesAttachPick(seriesAttach.options, state.seriesId);
+  const refetchSeries = seriesAttach.refetch;
   const linkedVenueId = picker.data?.locked
     ? picker.data.venues[0]?.id
     : undefined;
@@ -97,6 +107,12 @@ export function CreateGameScreen({
   }, [groups.data, groupId, m]);
 
   useEffect(() => {
+    if (seriesAttach.loaded && state.seriesId && !pickedSeries) {
+      rawDispatch({ kind: "setSeries", seriesId: null });
+    }
+  }, [seriesAttach.loaded, state.seriesId, pickedSeries]);
+
+  useEffect(() => {
     if (linkedVenueId) {
       rawDispatch({ kind: "setVenue", venueId: linkedVenueId });
     }
@@ -112,10 +128,11 @@ export function CreateGameScreen({
         state.draft.groupId
           ? utils.groups.byId.invalidate({ id: state.draft.groupId })
           : Promise.resolve(),
+        state.seriesId ? utils.series.invalidate() : Promise.resolve(),
       ]);
       router.replace(gamePath(gameId));
     },
-    [router, toast, utils, state.draft.groupId],
+    [router, toast, utils, state.draft.groupId, state.seriesId],
   );
 
   const onFailed = useCallback(
@@ -125,8 +142,11 @@ export function CreateGameScreen({
       setFormMessage(failure.globalMessage);
       toast.show(failure.globalMessage ?? error.message);
       rawDispatch({ kind: "setStep", step: failure.step });
+      if (state.seriesId) {
+        void refetchSeries();
+      }
     },
-    [state.step, toast],
+    [state.step, state.seriesId, refetchSeries, toast],
   );
 
   const createGame = api.games.create.useMutation({
@@ -163,7 +183,11 @@ export function CreateGameScreen({
       }
       return;
     }
-    const result = submitRequest(state, now, groupVerified);
+    const result = submitRequest(
+      pickedSeries ? state : { ...state, seriesId: null },
+      now,
+      groupVerified,
+    );
     if (!result.ok) {
       setClientErrors(result.errors);
       if (result.step !== state.step) {
@@ -187,6 +211,7 @@ export function CreateGameScreen({
     picker.data,
     groupFieldError,
     groupVerified,
+    pickedSeries,
     createTournament,
     createGame,
   ]);
@@ -231,6 +256,7 @@ export function CreateGameScreen({
       formMessage={formMessage}
       groups={slotOf(groups)}
       picker={venuesWanted ? slotOf(picker) : null}
+      series={{ options: seriesAttach.options, picked: pickedSeries }}
       pending={pending}
       dispatch={dispatch}
       onBack={onBack}

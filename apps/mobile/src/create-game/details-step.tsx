@@ -35,9 +35,12 @@ import { View } from "react-native";
 
 import { useLocale, useMessages } from "../i18n/locale-provider";
 import { TextField } from "../primitives/text-field";
+import type { SeriesAttachOption } from "../series/series-attach";
+import { SeriesField } from "../series/series-field";
 import { ChipGrid } from "./chips";
 import { howPeopleJoin, type HowPeopleJoin } from "./create-model";
 import { FootballSizeFields } from "./football-size-fields";
+import { GenderTagField, genderTagReviewRows } from "./gender-tag-field";
 import {
   LevelRangeField,
   LevelRangeHelper,
@@ -57,11 +60,48 @@ import { HelperNote, StepSection } from "./step-section";
 const PRICE_COLUMNS = 4;
 const SEGMENT_COLUMNS = 2;
 
+/** The running Series the Game may join, and the one picked while offered. */
+export type CreateSeries = {
+  options: readonly SeriesAttachOption[];
+  picked: SeriesAttachOption | null;
+};
+
 type DetailsProps = StepProps & {
   groupName: string | null;
   groupVerified: boolean;
   picker: CreateVenuePicker | null;
+  series: CreateSeries;
 };
+
+/** Shown only when the Group runs a Series the Game may join. */
+function SeriesSection({ series, groupName, dispatch }: DetailsProps) {
+  const m = useMessages();
+  if (series.options.length === 0) {
+    return null;
+  }
+  return (
+    <StepSection title={m.series.attach.title} note={m.common.optional}>
+      <SeriesField
+        label={m.series.attach.title}
+        options={series.options}
+        value={series.picked?.id ?? null}
+        onChange={(seriesId) => dispatch({ kind: "setSeries", seriesId })}
+        groupName={groupName ?? m.mobileGameDetails.edit.thisGroup}
+      />
+    </StepSection>
+  );
+}
+
+function seriesReviewRows(series: CreateSeries, locale: Locale): ReviewRow[] {
+  const { picked } = series;
+  if (!picked) {
+    return [];
+  }
+  const copy = messagesFor(locale).series.attach;
+  return [
+    { label: copy.title, value: copy.review(picked.name, picked.edition) },
+  ];
+}
 
 function PriceField({
   state,
@@ -190,6 +230,7 @@ export function FootballDetailsStep(props: DetailsProps) {
       <CustomNameField {...props} />
       <FootballSizeFields {...props} />
       {ratingShown ? <DetailsRatingField {...props} sport="football" /> : null}
+      <SeriesSection {...props} />
       {levelRangeShown ? (
         <LevelRangeField {...props} sport="football" encouraged={publicGame} />
       ) : null}
@@ -199,6 +240,7 @@ export function FootballDetailsStep(props: DetailsProps) {
         football
         playersAllowed={draft.playersAllowed}
       />
+      <GenderTagField {...props} />
       <FriendlyMvpField {...props} />
       <ReviewCard
         rows={[
@@ -215,12 +257,14 @@ export function FootballDetailsStep(props: DetailsProps) {
             label: review.size,
             value: createFlowSeatsLabel("football", draft, locale),
           },
+          ...seriesReviewRows(props.series, locale),
           publicGame
             ? publicGameRatingReviewRow(locale, "football")
             : ratingShown
               ? ratingReviewRow(props, locale, "football")
               : { label: review.rating, value: unratedLabel(locale) },
           ...optionalRow(paymentReviewValue(draft, true, m, locale)),
+          ...genderTagReviewRows(draft.genderTag, locale),
           ...mvpReviewRows(state.mvpMode, locale),
         ]}
       />
@@ -285,12 +329,14 @@ export function GameDetailsStep(props: DetailsProps) {
   return (
     <View style={{ gap: spacing.section }}>
       <CustomNameField {...props} />
+      <SeriesSection {...props} />
       <LevelRangeField {...props} encouraged={isPublicGameDraft(draft)} />
       <PriceField {...props} />
       <PaymentTrackingField
         {...props}
         playersAllowed={PADEL_FRIENDLY_GAME_PLAYERS}
       />
+      <GenderTagField {...props} />
       <FriendlyMvpField {...props} />
       <DetailsRatingField {...props} />
       <ReviewCard
@@ -307,10 +353,12 @@ export function GameDetailsStep(props: DetailsProps) {
             label: review.seats,
             value: createFlowSeatsLabel("padel", draft, locale),
           },
+          ...seriesReviewRows(props.series, locale),
           isPublicGameDraft(draft)
             ? publicGameRatingReviewRow(locale, "padel")
             : ratingReviewRow(props, locale),
           ...optionalRow(paymentReviewValue(draft, false, m, locale)),
+          ...genderTagReviewRows(draft.genderTag, locale),
           ...mvpReviewRows(state.mvpMode, locale),
         ]}
       />
@@ -418,6 +466,7 @@ function tournamentReviewRows(
       label: review.gameLength,
       value: minutes.ok ? m.dates.minutes(minutes.minutes) : review.gameLength,
     },
+    ...seriesReviewRows(props.series, locale),
     ratingReviewRow(props, locale),
     ...(draft.organizerMakesTeams
       ? [
@@ -428,6 +477,7 @@ function tournamentReviewRows(
         ]
       : []),
     ...optionalRow(paymentReviewValue(draft, false, m, locale)),
+    ...genderTagReviewRows(draft.genderTag, locale),
   ];
 }
 
@@ -472,9 +522,11 @@ export function TournamentDetailsStep(props: DetailsProps) {
 
   return (
     <View style={{ gap: spacing.section }}>
+      <SeriesSection {...props} />
       <WhoCanEnter {...props} />
       <PriceField {...props} teamPrice={!draft.organizerMakesTeams} />
       <PaymentTrackingField {...props} playersAllowed={draft.teamCount * 2} />
+      <GenderTagField {...props} />
       <StepSection title={m.mobileCreateGame.name.title}>
         <TextField
           label={m.mobileCreateGame.name.tournamentLabel}

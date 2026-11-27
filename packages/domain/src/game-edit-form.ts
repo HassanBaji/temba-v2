@@ -10,6 +10,7 @@ import { messagesFor } from "@repo/i18n/messages";
 
 import { gameLevelRangeSaveInput, gameWindowSaveInput } from "./game-edit-save";
 import { gameCustomName, normalizeGameCustomName } from "./game-custom-name";
+import { isGameGenderTag, type GameGenderTag } from "./game-gender-tag";
 import { gameSeasonFix } from "./game-season-link";
 import {
   FOOTBALL_SIDE_SIZES,
@@ -71,6 +72,7 @@ export type GameEditDraft = {
   levelMax: LevelBandSelectValue;
   roundCount: number | null;
   seasonId: string | null;
+  seriesId: string | null;
   venueId: string | null;
   courtId: string | null;
   /** A Friendly tournament's Game team count. */
@@ -79,6 +81,7 @@ export type GameEditDraft = {
   courtIds: string[];
   /** A Social's match length. */
   matchMinutes: number | null;
+  genderTag: GameGenderTag | null;
 };
 
 export type GameEditSource = {
@@ -94,8 +97,10 @@ export type GameEditSource = {
   sideSize: number | null;
   levelMinTenths: number | null;
   levelMaxTenths: number | null;
+  genderTag?: string | null;
   roundCount: number | null;
   seasonId: string | null;
+  series?: { id: string } | null;
   groupId?: string | null;
   sport?: string | null;
   venueId?: string | null;
@@ -189,11 +194,13 @@ export function gameEditDraftFrom(game: GameEditSource): GameEditDraft {
     levelMax: tenthsToLevelBandSelectValue(game.levelMaxTenths),
     roundCount: game.roundCount,
     seasonId: game.seasonId,
+    seriesId: game.series?.id ?? null,
     venueId: game.venueId ?? null,
     courtId: gameEditCourtId(game),
     teamCount: game.teamsAllowed ?? null,
     courtIds: sortedCourtIds(game.recordedCourts?.map((court) => court.id)),
     matchMinutes: game.matchMinutes ?? null,
+    genderTag: isGameGenderTag(game.genderTag) ? game.genderTag : null,
   };
 }
 
@@ -208,8 +215,10 @@ export const GAME_EDIT_SECTION_KEYS = [
   "matchLength",
   "price",
   "level",
+  "genderTag",
   "rounds",
   "season",
+  "series",
 ] as const;
 
 export type GameEditSectionKey = (typeof GAME_EDIT_SECTION_KEYS)[number];
@@ -237,6 +246,8 @@ export function gameEditSectionsFor(game: {
   americano?: boolean;
   /** King of the court plays no timed Matches. */
   king?: boolean;
+  /** The caller decides whether the Game's Series can be shown or changed. */
+  series?: boolean;
 }): GameEditSections {
   const friendly = game.format === "friendly_game";
   const tournament = game.format === "friendly_tournament";
@@ -256,8 +267,11 @@ export function gameEditSectionsFor(game: {
     matchLength: beforeDraw && !game.king,
     price: true,
     level: !football,
+    // Nobody joins a Challenge Game, so it has nobody to tell who it is for.
+    genderTag: !game.challenge,
     rounds: game.tournamentRounds && !game.americano,
     season: game.groupId != null,
+    series: game.series === true,
   };
 }
 
@@ -288,8 +302,10 @@ export type GameEditStep =
       levelMinTenths: number | null;
       levelMaxTenths: number | null;
     }
+  | { kind: "genderTag"; genderTag: GameGenderTag | null }
   | { kind: "rounds"; roundCount: number | null }
-  | { kind: "season"; seasonId: string | null };
+  | { kind: "season"; seasonId: string | null }
+  | { kind: "series"; seriesId: string | null };
 
 export type GameEditPlan =
   | { ok: true; steps: GameEditStep[]; changed: GameEditSectionKey[] }
@@ -366,11 +382,17 @@ export function gameEditChangedSections(
   if (sections.level && !sameLevel(saved, draft)) {
     changed.push("level");
   }
+  if (sections.genderTag && saved.genderTag !== draft.genderTag) {
+    changed.push("genderTag");
+  }
   if (sections.rounds && saved.roundCount !== draft.roundCount) {
     changed.push("rounds");
   }
   if (sections.season && saved.seasonId !== draft.seasonId) {
     changed.push("season");
+  }
+  if (sections.series && saved.seriesId !== draft.seriesId) {
+    changed.push("series");
   }
   return changed;
 }
@@ -481,11 +503,17 @@ export function gameEditPlan(
     }
     steps.push({ kind: "level", ...result.input });
   }
+  if (has("genderTag")) {
+    steps.push({ kind: "genderTag", genderTag: draft.genderTag });
+  }
   if (has("rounds")) {
     steps.push({ kind: "rounds", roundCount: draft.roundCount });
   }
   if (has("season") && !has("window")) {
     steps.push({ kind: "season", seasonId: draft.seasonId });
+  }
+  if (has("series")) {
+    steps.push({ kind: "series", seriesId: draft.seriesId });
   }
   return { ok: true, steps, changed };
 }
@@ -529,6 +557,8 @@ function changePhrase(
       return [m.price];
     case "level":
       return [m.levelRange];
+    case "genderTag":
+      return [m.genderTag];
     case "rounds":
       return [m.rounds];
     case "season":
@@ -538,6 +568,14 @@ function changePhrase(
           : saved.seasonId === null
             ? m.seasonLinked
             : m.seasonChanged,
+      ];
+    case "series":
+      return [
+        draft.seriesId === null
+          ? m.seriesRemoved
+          : saved.seriesId === null
+            ? m.seriesAdded
+            : m.seriesChanged,
       ];
   }
 }

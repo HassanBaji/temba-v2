@@ -348,6 +348,38 @@ describe("createTournament", () => {
     }
   });
 
+  it("stores a Gender tag and leaves a Social without one untagged", async () => {
+    const { db, close } = await createPgliteDb();
+    try {
+      const owner = await insertUser(db, "tournament-gender-tag@example.com");
+      const venue = await insertVenue(db);
+      const group = await insertGroup(db, { createdBy: owner.id });
+      const base = {
+        createdBy: owner.id,
+        name: "Ladies Social",
+        groupId: group.id,
+        isPublic: false,
+        teamCount: 8,
+        poolCount: 2,
+        venueId: venue.id,
+        ...windowTimes(),
+      };
+
+      const tagged = await createTournament(db, {
+        ...base,
+        genderTag: "mixed",
+      });
+      const untagged = await createTournament(db, base);
+
+      const detailsOf = (gameId: string) =>
+        gameById(db, { gameId, userId: owner.id });
+      expect((await detailsOf(tagged.id)).genderTag).toBe("mixed");
+      expect((await detailsOf(untagged.id)).genderTag).toBeNull();
+    } finally {
+      await close();
+    }
+  });
+
   it("refuses Complete Teams and stores Allow registering alone", async () => {
     const refused = createTournamentInputSchema.safeParse({
       name: "Team Cup",

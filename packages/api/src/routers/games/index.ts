@@ -21,6 +21,7 @@ import { decideDisputeProcedure as decideDispute } from "./decideDispute";
 import { disputeMatchResultProcedure as disputeMatchResult } from "./disputeMatchResult";
 import { drawPoolsProcedure as drawPools } from "./drawPools";
 import { footballBoardProcedure as footballBoard } from "./footballBoard";
+import { footballPlayerCardProcedure as footballPlayerCard } from "./footballPlayerCard";
 import { getInviteLinkProcedure as getInviteLink } from "./getInviteLink";
 import { joinGroupFromInviteLinkProcedure as joinGroupFromInviteLink } from "./joinGroupFromInviteLink";
 import { kickProcedure as kick } from "./kick";
@@ -56,6 +57,7 @@ import { postKingFinalOrderProcedure as postKingFinalOrder } from "./postKingFin
 import { americanoBoardProcedure as americanoBoard } from "./americanoBoard";
 import { postAmericanoRoundsProcedure as postAmericanoRounds } from "./postAmericanoRounds";
 import { swapAmericanoPlayersProcedure as swapAmericanoPlayers } from "./swapAmericanoPlayers";
+import { setAmericanoFixedPairsProcedure as setAmericanoFixedPairs } from "./setAmericanoFixedPairs";
 import { enterTournamentScoreProcedure as enterTournamentScore } from "./enterTournamentScore";
 import { addRoundProcedure as addRound } from "./addRound";
 import { cancelRoundProcedure as cancelRound } from "./cancelRound";
@@ -70,6 +72,15 @@ import { nameChallengeSquadProcedure as nameChallengeSquad } from "./nameChallen
 import { previewInviteLinkProcedure as previewInviteLink } from "./previewInviteLink";
 import { previewPlayerByPhoneProcedure as previewPlayerByPhone } from "./previewPlayerByPhone";
 import { publishFootballTeamsProcedure as publishFootballTeams } from "./publishFootballTeams";
+import { saveFootballDraftProcedure as saveFootballDraft } from "./saveFootballDraft";
+import { answerFootballDraftProcedure as answerFootballDraft } from "./answerFootballDraft";
+import { openFootballPickRoomProcedure as openFootballPickRoom } from "./openFootballPickRoom";
+import { footballPickRoomProcedure as footballPickRoom } from "./footballPickRoom";
+import { startFootballPickProcedure as startFootballPick } from "./startFootballPick";
+import { stopFootballPickProcedure as stopFootballPick } from "./stopFootballPick";
+import { pickFootballPlayerProcedure as pickFootballPlayer } from "./pickFootballPlayer";
+import { undoFootballPickProcedure as undoFootballPick } from "./undoFootballPick";
+import { remindFootballCaptainProcedure as remindFootballCaptain } from "./remindFootballCaptain";
 import { registerProcedure as register } from "./register";
 import { submitLevelChecksProcedure as submitLevelChecks } from "./submitLevelChecks";
 import { submitPerformanceRatingsProcedure as submitPerformanceRatings } from "./submitPerformanceRatings";
@@ -84,6 +95,7 @@ import { resultLinkProcedure as resultLink } from "./resultLink";
 import { requestLevelRangeProcedure as requestLevelRange } from "./requestLevelRange";
 import { revokeLookupInviteProcedure as revokeLookupInvite } from "./revokeLookupInvite";
 import { saveFootballScoreProcedure as saveFootballScore } from "./saveFootballScore";
+import { saveScoreProcedure as saveScore } from "./saveScore";
 import { scoreSetProcedure as scoreSet } from "./scoreSet";
 import { searchLookupUsersProcedure as searchLookupUsers } from "./searchLookupUsers";
 import { searchPartnerUsersProcedure as searchPartnerUsers } from "./searchPartnerUsers";
@@ -97,10 +109,12 @@ import { updatePlace } from "./updatePlace";
 import { updateLevelRange } from "./updateLevelRange";
 import { updateMatchMinutes } from "./updateMatchMinutes";
 import { updateMatchProcedure as updateMatch } from "./updateMatch";
+import { updateGenderTag } from "./updateGenderTag";
 import { updateName } from "./updateName";
 import { updatePricePerPlayer } from "./updatePricePerPlayer";
 import { updateRoundCount } from "./updateRoundCount";
 import { updateSeason } from "./updateSeason";
+import { updateSeries } from "./updateSeries";
 import { updateWindow } from "./updateWindow";
 
 export const gamesRouter = createTRPCRouter({
@@ -120,6 +134,7 @@ export const gamesRouter = createTRPCRouter({
   americanoBoard,
   postAmericanoRounds,
   swapAmericanoPlayers,
+  setAmericanoFixedPairs,
   undoPoolDraw,
   tournamentRounds,
   generateRounds,
@@ -156,12 +171,14 @@ export const gamesRouter = createTRPCRouter({
   cancel,
   cancelMatch,
   updateWindow,
+  updateGenderTag,
   updateName,
   updatePricePerPlayer,
   updateLevelRange,
   updateRoundCount,
   updateMatchMinutes,
   updateSeason,
+  updateSeries,
   requestLevelRange,
   listLevelRangeRequests,
   approveLevelRangeRequest,
@@ -174,6 +191,7 @@ export const gamesRouter = createTRPCRouter({
   updateMatch,
   addSet,
   scoreSet,
+  saveScore,
   removeSet,
   completeMatch,
   confirmMatchResult,
@@ -184,9 +202,19 @@ export const gamesRouter = createTRPCRouter({
   decideDispute,
   reportWrongScore,
   footballBoard,
+  footballPlayerCard,
   resultLink,
   setFootballRole,
   publishFootballTeams,
+  saveFootballDraft,
+  answerFootballDraft,
+  openFootballPickRoom,
+  footballPickRoom,
+  startFootballPick,
+  stopFootballPick,
+  pickFootballPlayer,
+  undoFootballPick,
+  remindFootballCaptain,
   saveFootballScore,
   nameChallengeSquad,
   performanceRatingSheet,

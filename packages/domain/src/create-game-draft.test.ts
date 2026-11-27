@@ -115,6 +115,25 @@ describe("create game draft", () => {
     );
   });
 
+  it("starts untagged, round-trips a Gender tag and reads an older draft as untagged", () => {
+    assert.equal(initialCreateGameDraft(now, "en").genderTag, null);
+    const draft = { ...filledDraft(), genderTag: "women" as const };
+    assert.deepEqual(
+      parseCreateGameDraft(serializeCreateGameDraft(draft)),
+      draft,
+    );
+    const stored = JSON.parse(serializeCreateGameDraft(draft)) as Record<
+      string,
+      unknown
+    >;
+    delete stored.genderTag;
+    assert.equal(parseCreateGameDraft(JSON.stringify(stored))?.genderTag, null);
+    assert.equal(
+      parseCreateGameDraft(JSON.stringify({ ...stored, genderTag: "anyone" })),
+      null,
+    );
+  });
+
   it("round-trips a Public Game's sport and reads an older draft as padel", () => {
     assert.equal(initialCreateGameDraft(now, "en").publicSport, "padel");
     const draft = {

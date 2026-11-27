@@ -31,23 +31,37 @@ import { ChallengeSquads } from "~/components/games/challenge-squad-grid";
 import { ChallengeTeamVsTeam } from "~/components/games/challenge-team-vs-team";
 import { NameSquadDialog } from "~/components/games/name-squad-dialog";
 import { FootballGameHeroCard } from "~/components/games/football-game-hero";
+import { seriesFactRows } from "@repo/domain/series-fact-row";
+import { SeriesGameCard } from "~/components/series/series-game-card";
 import {
   FootballInfoRows,
   type FootballInfoRow,
 } from "~/components/games/football-info-rows";
+import { FootballCaptainDraftPanel } from "~/components/games/football-captain-draft-panel";
+import { FootballDraftCard } from "~/components/games/football-draft-card";
+import { withDraftSides } from "~/components/games/football-draft-view";
+import { FootballPickInProgressCard } from "~/components/games/football-pick-in-progress-card";
 import { FootballJoinDialog } from "~/components/games/football-join-dialog";
 import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
 import { GameLevelRangePanel } from "~/components/games/game-level-range-panel";
 import { FootballPlayerDialog } from "~/components/games/football-player-dialog";
 import { PoolSections, SeatBar } from "~/components/games/football-pool-grid";
+import { FootballMatchLogCard } from "~/components/games/football-match-timeline";
 import { FootballScoreCard } from "~/components/games/football-score-card";
 import { TeamColumns } from "~/components/games/football-team-columns";
 import { PlayedFootballBoard } from "~/components/games/played/played-football-board";
 import { MatchDisputeRow } from "~/components/games/played/match-dispute-row";
-import { PlayedGameView } from "~/components/games/played/played-game-view";
+import {
+  PlayedGameView,
+  shareResultHref,
+} from "~/components/games/played/played-game-view";
 import { OvrImpactCard } from "~/components/games/ovr-impact-card";
 import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { gamePaymentsTracked } from "@repo/domain/game-payments";
+import {
+  footballScoreAwaitsConfirmation,
+  playedGameShareMessage,
+} from "@repo/domain/game-result-share";
 import { PerformanceResultCard } from "~/components/games/performance-result-card";
 import { RateGameCard } from "~/components/games/rate-game-card";
 import { RatingSummaryCard } from "~/components/games/rating-summary-card";
@@ -67,9 +81,10 @@ import { MarksSection } from "~/components/marks/marks-section";
 import { MvpRow } from "~/components/marks/mvp-row";
 import { useGameMarks } from "~/components/marks/use-game-marks";
 import { Button } from "~/components/ui/button";
-import { playerProfilePath } from "~/lib/dashboard-paths";
+import { gamePickRoomHref, playerProfilePath } from "~/lib/dashboard-paths";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { useGameEdit } from "~/components/games/use-game-edit";
+import { useGameEditSeries } from "~/components/games/use-game-edit-series";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import { gamePlayersLink } from "~/lib/game-player-links";
 import { shareLinkWithFeedback } from "~/lib/share-link";
@@ -77,6 +92,7 @@ import { cn } from "~/lib/utils";
 import {
   bibNames,
   footballHeroLines,
+  ofSide,
   poolLayout,
   slotCode,
   viewerSideLine,
@@ -86,6 +102,10 @@ import {
   footballGameDetailsModel,
   type FootballGameDetailsInput,
 } from "@repo/domain/football-game-details";
+import {
+  footballDraftCaptainViewLine,
+  footballDraftVisibilityLine,
+} from "@repo/domain/football-draft";
 import {
   footballTeamsMethodLabel,
   type FootballPosition,
@@ -119,6 +139,7 @@ import {
   type GameKickRequest,
   type GameKickTarget,
 } from "@repo/domain/game-kick-confirm";
+import { gameCanShareInviteLink } from "@repo/domain/friendly-game-cta";
 import { gameInviteClipboardText } from "@repo/domain/game-invite-share-message";
 import { gameInviteAccess } from "@repo/domain/invites";
 import { gameIsPlayed, playedFootballModel } from "@repo/domain/played-game";
@@ -177,7 +198,15 @@ export function FootballGameDetails({
   const board = api.games.footballBoard.useQuery({ gameId });
   const players = board.data?.players ?? [];
   const teams = board.data?.teams ?? null;
+  const draft = teams ? null : (board.data?.draft ?? null);
   const names = teams ? bibNames(teams.bibs, locale) : null;
+  const draftSideCaptainOf =
+    draft && !board.data?.isOrganizer
+      ? (board.data?.viewer.captainOf ?? null)
+      : null;
+  const pickStatus = draft?.pick?.status;
+  const runningPick =
+    pickStatus === "waiting" || pickStatus === "live" ? pickStatus : null;
   const viewer = players.find((player) => player.isViewer) ?? null;
   const marks = useGameMarks(gameId, board.data?.match?.status === "completed");
 
@@ -202,6 +231,11 @@ export function FootballGameDetails({
       pitchName: game.recordedCourts[0]?.name ?? null,
       teamsSet: teams != null && !challenge,
       scored: board.data?.match?.score != null,
+      draftSaved: draft != null,
+      draftSideCaptainOf:
+        draft && draftSideCaptainOf
+          ? ofSide(bibNames(draft.bibs, locale), draftSideCaptainOf)
+          : null,
     },
     now,
     locale,
@@ -225,6 +259,7 @@ export function FootballGameDetails({
 
   async function refreshGame() {
     await utils.games.byId.invalidate({ id: gameId });
+    await utils.series.edition.invalidate({ gameId });
     await utils.games.footballBoard.invalidate({ gameId });
     await utils.users.home.invalidate();
     await utils.games.listPublicPickup.invalidate();
@@ -309,6 +344,17 @@ export function FootballGameDetails({
     },
     onError,
   });
+  const publishDraft = api.games.publishFootballTeams.useMutation({
+    onSuccess: () => {
+      toast.success(m.webTournament.footballTeams.publishedToast);
+    },
+    onError,
+    onSettled: refreshGame,
+  });
+  const answerDraft = api.games.answerFootballDraft.useMutation({
+    onError,
+    onSettled: () => utils.games.footballBoard.invalidate({ gameId }),
+  });
   const reportWrongScore = api.games.reportWrongScore.useMutation({
     onSuccess: async () => {
       toast.success(m.webDashboard.game.toast.scoreReopened);
@@ -317,6 +363,7 @@ export function FootballGameDetails({
     },
     onError,
   });
+  const editSeries = useGameEditSeries(game);
   const editSections = gameEditSectionsFor({
     format: game.format,
     sport: game.sport,
@@ -324,6 +371,7 @@ export function FootballGameDetails({
     tournamentRounds: false,
     booked: game.booking != null,
     challenge: game.challenge != null,
+    series: editSeries.shown,
   });
   const edit = useGameEdit({
     gameId,
@@ -349,14 +397,42 @@ export function FootballGameDetails({
         partnerRequired: false,
       })
     : { canManage: false, canSendLookup: false };
-  function shareGamePage() {
-    const text = utils.games.resultLink
-      .fetch({ gameId })
-      .then((result) => ({ text: inviteShareText(result.url) }))
-      .catch(() => null);
+  const createInviteLink = api.games.createInviteLink.useMutation({
+    onSuccess: () => utils.games.getInviteLink.invalidate({ gameId }),
+    onError,
+  });
+  // An Invite link opens for anyone, the Game page only for whoever may
+  // already see the Game, so whoever may mint one shares it (ADR-0110). A
+  // played Game shares its result instead, or that it was played while no
+  // Score is entered.
+  function shareGame() {
+    if (footballScoreAwaitsConfirmation(board.data?.match)) {
+      router.push(shareResultHref(gameId));
+      return;
+    }
+    if (game.phase === "needs_results") {
+      void shareLinkWithFeedback(
+        utils.games.resultLink
+          .fetch({ gameId })
+          .then((page) => ({
+            text: playedGameShareMessage(game, page.url, locale),
+          }))
+          .catch(() => null),
+        m.webUi.shareResult.messageCopied,
+        locale,
+      );
+      return;
+    }
+    const mints = gameCanShareInviteLink(game);
+    const url = mints
+      ? createInviteLink
+          .mutateAsync({ gameId })
+          .then((link) => link.shortUrl ?? link.inviteUrl)
+      : utils.games.resultLink.fetch({ gameId }).then((page) => page.url);
+    const toasts = m.webDashboard.game.toast;
     void shareLinkWithFeedback(
-      text,
-      m.webDashboard.game.toast.linkCopied,
+      url.then((link) => ({ text: inviteShareText(link) })).catch(() => null),
+      mints ? toasts.inviteLinkCopied : toasts.linkCopied,
       locale,
     );
   }
@@ -441,6 +517,8 @@ export function FootballGameDetails({
   }
   const pressPlayer = organizer || canOpenProfiles ? onPressPlayer : undefined;
   const teamsHref = `/dashboard/games/${gameId}/teams`;
+  const pickRoomHref = gamePickRoomHref(gameId);
+  const shareDraftHref = `/dashboard/games/${gameId}/share-draft`;
   const scoreHref = `/dashboard/games/${gameId}/score`;
   const canMakeTeams =
     game.canMakeTeams && (board.data?.viewer.canMakeTeams ?? false);
@@ -458,6 +536,7 @@ export function FootballGameDetails({
     ...(game.groupName
       ? [{ label: m.game.played.group, value: game.groupName }]
       : []),
+    ...seriesFactRows(game.series, m),
     ...(game.season ? [{ label: t.seasonRow, value: game.season.name }] : []),
     ...(price
       ? [
@@ -474,7 +553,7 @@ export function FootballGameDetails({
       label: m.common.teams,
       value: teams
         ? footballTeamsMethodLabel(teams.method, locale)
-        : t.organizerMakesTeams,
+        : m.football.draft.notPublished.value,
     },
     ...(names
       ? [
@@ -580,6 +659,7 @@ export function FootballGameDetails({
           names={names}
           balanceOn={board.data?.balanceOn ?? "ovr"}
           muted={heroMuted}
+          sideCaptains={teams.captains}
           onOpenPlayer={pressPlayer}
         />
         <p className={`${heroMuted} text-meta mt-3`}>
@@ -678,6 +758,7 @@ export function FootballGameDetails({
             venue: game.venue,
             courtName: game.recordedCourts[0]?.name ?? null,
             groupName: game.groupName,
+            genderTag: game.genderTag,
             rated: game.rated,
             ratingImpact: game.ratingImpact,
             stoodUnconfirmed: boardMatch?.stoodUnconfirmed ?? false,
@@ -714,9 +795,13 @@ export function FootballGameDetails({
                   key: "teams",
                   label: teams
                     ? m.webTournament.footballTeams.editTeams
-                    : m.webTournament.footballTeams.makeTeams,
+                    : runningPick
+                      ? m.football.pick.inProgress.open
+                      : draft
+                        ? m.webTournament.footballTeams.editDraft
+                        : m.webTournament.footballTeams.makeTeams,
                   icon: ShirtIcon,
-                  href: teamsHref,
+                  href: runningPick ? pickRoomHref : teamsHref,
                 },
               ]
             : []),
@@ -833,6 +918,7 @@ export function FootballGameDetails({
               avatar: viewer
                 ? { name: viewer.name, image: viewer.image }
                 : null,
+              series: game.series,
             }}
             board={
               <PlayedFootballBoard
@@ -844,8 +930,21 @@ export function FootballGameDetails({
             heroFooter={
               <MvpRow marks={marks} canOpenProfile={canOpenProfiles} />
             }
+            seriesCard={
+              game.series ? (
+                <SeriesGameCard gameId={gameId} game="played" />
+              ) : null
+            }
             task={
               <>
+                {teams && names && (board.data?.match?.log.length ?? 0) > 0 ? (
+                  <FootballMatchLogCard
+                    lines={board.data?.match?.log ?? []}
+                    players={players}
+                    names={names}
+                    confirmedByName={board.data?.match?.confirmedByName ?? null}
+                  />
+                ) : null}
                 <GamePaymentsSection
                   gameId={gameId}
                   tracked={gamePaymentsTracked(game)}
@@ -883,6 +982,8 @@ export function FootballGameDetails({
           <FootballGameHeroCard
             tone={model.hero.tone}
             lines={lines}
+            series={game.series}
+            genderTag={game.genderTag}
             tag={
               ratingScopeOf(game) === "temba"
                 ? (ratingScopeTag(game, locale) ?? undefined)
@@ -895,10 +996,7 @@ export function FootballGameDetails({
                 menu
               ) : (
                 <>
-                  <GameShareButton
-                    onShare={shareGamePage}
-                    tone={model.hero.tone}
-                  />
+                  <GameShareButton onShare={shareGame} tone={model.hero.tone} />
                   {menu}
                 </>
               )
@@ -907,6 +1005,9 @@ export function FootballGameDetails({
             {heroBody}
           </FootballGameHeroCard>
         )}
+        {!playedModel && game.series ? (
+          <SeriesGameCard gameId={gameId} game="played" />
+        ) : null}
         <GameTvCardSlot />
 
         {joinFamily && !playedModel ? (
@@ -950,7 +1051,88 @@ export function FootballGameDetails({
           </p>
         ) : null}
 
-        {!teams ? (
+        {board.data &&
+        !teams &&
+        !draft &&
+        !game.isOrganizer &&
+        !challenge &&
+        !game.cancelledAt ? (
+          <section className="border-rule bg-paper space-y-1 rounded-xl border p-5">
+            <h2 className="font-semibold">
+              {m.football.draft.notPublished.title}
+            </h2>
+            <p className="text-muted-foreground text-meta">
+              {m.football.draft.notPublished.body}
+            </p>
+          </section>
+        ) : null}
+
+        {draft ? (
+          <section className="space-y-3">
+            <TeamColumns
+              players={withDraftSides(players, draft.sides)}
+              bibs={draft.bibs}
+              names={bibNames(draft.bibs, locale)}
+              balanceOn={board.data?.balanceOn ?? "ovr"}
+              sideCaptains={draft.captains}
+              onOpenPlayer={pressPlayer}
+            />
+            <p className="text-muted-foreground text-meta">
+              {draftSideCaptainOf
+                ? footballDraftCaptainViewLine(draft, game, locale)
+                : footballDraftVisibilityLine(
+                    game,
+                    draft.captains.slot1 != null ||
+                      draft.captains.slot2 != null,
+                    locale,
+                  )}
+            </p>
+            {runningPick ? (
+              <FootballPickInProgressCard
+                status={runningPick}
+                href={pickRoomHref}
+              />
+            ) : draftSideCaptainOf ? (
+              <FootballCaptainDraftPanel
+                draft={draft}
+                side={draftSideCaptainOf}
+                players={players}
+                balanceOn={board.data?.balanceOn ?? "ovr"}
+                pending={
+                  answerDraft.isPending
+                    ? (answerDraft.variables?.answer ?? "undo")
+                    : null
+                }
+                onAnswer={(answer, note) =>
+                  answerDraft.mutate({ gameId, answer, note })
+                }
+                shareHref={shareDraftHref}
+              />
+            ) : (
+              <FootballDraftCard
+                draft={draft}
+                players={players}
+                game={game}
+                publishPending={publishDraft.isPending}
+                onPublish={() =>
+                  publishDraft.mutate({
+                    gameId,
+                    method: draft.method,
+                    bibs: draft.bibs,
+                    slot1: draft.sides.slot1,
+                    slot2: draft.sides.slot2,
+                    captains: draft.captains,
+                    draftUpdatedAt: draft.updatedAt,
+                  })
+                }
+                shareHref={shareDraftHref}
+                editHref={teamsHref}
+              />
+            )}
+          </section>
+        ) : null}
+
+        {!teams && !draft ? (
           <section
             aria-labelledby="football-players-heading"
             className="space-y-3"
@@ -1015,14 +1197,22 @@ export function FootballGameDetails({
               <p className="text-muted-foreground text-meta">
                 {teams
                   ? footballTeamsMethodLabel(teams.method, locale)
-                  : t.teamsNotSetYet}
+                  : runningPick
+                    ? m.football.pick.inProgress.title
+                    : draft
+                      ? t.draftSaved
+                      : t.teamsNotSetYet}
               </p>
             </div>
             <Button asChild>
-              <Link href={teamsHref}>
+              <Link href={runningPick ? pickRoomHref : teamsHref}>
                 {teams
                   ? m.webTournament.footballTeams.editTeams
-                  : m.webTournament.footballTeams.makeTeams}
+                  : runningPick
+                    ? m.football.pick.inProgress.open
+                    : draft
+                      ? m.webTournament.footballTeams.editDraft
+                      : m.webTournament.footballTeams.makeTeams}
               </Link>
             </Button>
           </section>
@@ -1148,6 +1338,7 @@ export function FootballGameDetails({
             teams: null,
             seasons: game.groupSeasons,
             canChangeSeason: game.canChangeSeason,
+            series: editSeries.context,
             rounds: null,
           }}
         />

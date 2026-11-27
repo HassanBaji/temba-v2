@@ -8,9 +8,14 @@ import type {
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { games, matches } from "@repo/db";
 
-import type { HubGameFootball, MyTournament } from "@repo/domain/hub-game-row";
+import type {
+  HubGameFootball,
+  HubGameSeries,
+  MyTournament,
+} from "@repo/domain/hub-game-row";
 import type { Sport } from "@repo/domain/sport";
 import type { GameRatingScope } from "@repo/domain/game-rating-scope";
+import type { GameGenderTag } from "@repo/domain/game-gender-tag";
 import type { MvpMode } from "@repo/domain/marks";
 
 export type RegistrationStatus = "open" | "full" | "closed" | "cancelled";
@@ -100,6 +105,10 @@ export type HubListRow = {
   format: GameFormatEnum | string;
   registrationMode: GameRegistrationModeEnum | string;
   sport: GameSportEnum | string | null;
+  /** Null or omitted on a Game with no Gender tag. */
+  genderTag?: string | null;
+  /** Null or omitted on a Game that is no Edition of a Series. */
+  series?: HubGameSeries | null;
   isPublic: boolean;
   rated: boolean;
   ratingScope: GameRatingScope;
@@ -188,6 +197,8 @@ export type CreateFriendlyGameInput = {
   levelMaxTenths?: number | null;
   /** How the MVP is decided. Omitted = players vote. */
   mvpMode?: MvpMode;
+  /** Omitted or null = no Gender tag. */
+  genderTag?: GameGenderTag | null;
   /** Only with a price above zero. Omitted = not tracked. */
   trackPayments?: boolean;
 };
@@ -209,6 +220,8 @@ export type CreateFootballGameInput = {
   playersAllowed: number;
   /** How the MVP is decided. Omitted = players vote. */
   mvpMode?: MvpMode;
+  /** Omitted or null = no Gender tag. */
+  genderTag?: GameGenderTag | null;
   /** From `ratingFlagsAtCreate`. Omitted = moves nothing. */
   rated?: boolean;
   groupRated?: boolean;
@@ -251,10 +264,14 @@ export type CreateGameInput = {
   levelMaxTenths?: number | null;
   /** Friendly game only. Omitted = players vote. */
   mvpMode?: MvpMode;
+  /** Omitted or null = no Gender tag. */
+  genderTag?: GameGenderTag | null;
   /** Only with a price above zero. */
   trackPayments?: boolean;
   /** Football only, with tracking. */
   keepersPlayFree?: boolean;
+  /** One of the Group's running Series. */
+  seriesId?: string;
 };
 
 export type SeatPosition = "left" | "right";

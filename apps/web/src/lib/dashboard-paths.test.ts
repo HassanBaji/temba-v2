@@ -6,11 +6,15 @@ import { messagesFor } from "@repo/i18n/messages";
 import {
   detailBackHref,
   groupMembersTabHref,
+  groupNewSeriesHref,
+  groupSeriesHref,
+  pageHidesBottomNav,
   pageHidesMobileTopBar,
   playerMarkPath,
   playerMarksPath,
   playerMatchesPath,
   playerProfilePath,
+  seriesPagePath,
   titleFromPath,
 } from "./dashboard-paths";
 
@@ -143,6 +147,30 @@ describe("pageHidesMobileTopBar", () => {
   });
 });
 
+describe("pageHidesBottomNav", () => {
+  it.each([
+    "/dashboard/games/new",
+    "/dashboard/groups/abc",
+    "/dashboard/groups/abc/edit",
+    "/dashboard/groups/abc/seasons/new",
+    "/dashboard/groups/abc/series",
+    "/dashboard/groups/abc/series/new",
+    "/dashboard/groups/abc/members/user_1",
+  ])("hides the bottom nav on %s", (pathname) => {
+    assert.equal(pageHidesBottomNav(pathname), true);
+  });
+
+  it.each([
+    "/dashboard",
+    "/dashboard/games",
+    "/dashboard/groups",
+    "/dashboard/groups/new",
+    "/dashboard/challenges",
+  ])("keeps the bottom nav on %s", (pathname) => {
+    assert.equal(pageHidesBottomNav(pathname), false);
+  });
+});
+
 describe("groupMembersTabHref", () => {
   it("opens the Members tab", () => {
     assert.equal(
@@ -267,5 +295,34 @@ describe("Player marks paths", () => {
       pageHidesMobileTopBar(`/dashboard/players/${userId}/marks/clutch`),
       false,
     );
+  });
+});
+
+describe("Series page path", () => {
+  const seriesId = "8a3f1c2e-0000-4000-8000-000000000001";
+
+  it("builds the path, titles it and hides the mobile top bar", () => {
+    const path = seriesPagePath(seriesId);
+    assert.equal(path, `/dashboard/series/${seriesId}`);
+    assert.equal(titleFromPath(path, en), "Series");
+    assert.equal(pageHidesMobileTopBar(path), true);
+  });
+});
+
+describe("Group Series paths", () => {
+  const groupId = "8a3f1c2e-0000-4000-8000-000000000002";
+
+  it("builds the Group's Series, titles it and hides the mobile top bar", () => {
+    const path = groupSeriesHref(groupId);
+    assert.equal(path, `/dashboard/groups/${groupId}/series`);
+    assert.equal(titleFromPath(path, en), "Series");
+    assert.equal(pageHidesMobileTopBar(path), true);
+  });
+
+  it("builds New series, titles it and hides the mobile top bar", () => {
+    const path = groupNewSeriesHref(groupId);
+    assert.equal(path, `/dashboard/groups/${groupId}/series/new`);
+    assert.equal(titleFromPath(path, en), "New series");
+    assert.equal(pageHidesMobileTopBar(path), true);
   });
 });

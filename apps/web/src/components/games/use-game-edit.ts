@@ -104,6 +104,9 @@ export function useGameEdit({
   const updateLevel = api.games.updateLevelRange.useMutation({
     meta: OWN_ERROR_UI,
   });
+  const updateGenderTag = api.games.updateGenderTag.useMutation({
+    meta: OWN_ERROR_UI,
+  });
   const updateRounds = api.games.updateRoundCount.useMutation({
     meta: OWN_ERROR_UI,
   });
@@ -111,6 +114,9 @@ export function useGameEdit({
     meta: OWN_ERROR_UI,
   });
   const updateSeason = api.games.updateSeason.useMutation({
+    meta: OWN_ERROR_UI,
+  });
+  const updateSeries = api.games.updateSeries.useMutation({
     meta: OWN_ERROR_UI,
   });
   const setMvpMode = api.marks.setMvpMode.useMutation({ meta: OWN_ERROR_UI });
@@ -181,11 +187,20 @@ export function useGameEdit({
           levelMaxTenths: step.levelMaxTenths,
         });
         return 0;
+      case "genderTag":
+        await updateGenderTag.mutateAsync({
+          gameId,
+          genderTag: step.genderTag,
+        });
+        return 0;
       case "rounds":
         await updateRounds.mutateAsync({ gameId, roundCount: step.roundCount });
         return 0;
       case "season":
         await updateSeason.mutateAsync({ gameId, seasonId: step.seasonId });
+        return 0;
+      case "series":
+        await updateSeries.mutateAsync({ gameId, seriesId: step.seriesId });
         return 0;
     }
   }
@@ -249,9 +264,11 @@ export function useGameEdit({
         };
       }
     }
+    const seriesStepRan = plan.steps.some((step) => step.kind === "series");
     await Promise.all([
       onSaved(),
       mvpChanged ? utils.marks.forGame.invalidate({ gameId }) : null,
+      seriesStepRan ? utils.series.invalidate() : null,
     ]);
     setPending(false);
     if (failed) {

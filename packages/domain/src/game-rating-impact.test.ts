@@ -8,6 +8,7 @@ import {
   ratingImpactChangeMagnitude,
   ratingImpactStandingSentence,
   ratingImpactView,
+  gameCardRatingTag,
   ratingScopeNotice,
   ratingScopeOf,
   ratingScopeTag,
@@ -243,6 +244,27 @@ describe("ratingScopeTag", () => {
   it("tags a football Game that counts for Temba Level", () => {
     assert.equal(
       ratingScopeTag(
+        { rated: true, ratingScope: "temba", sport: "football" },
+        "en",
+      ),
+      "Counts for Temba Level",
+    );
+  });
+});
+
+describe("gameCardRatingTag", () => {
+  it("leaves an Unrated Game untagged and keeps every other scope's tag", () => {
+    assert.equal(
+      gameCardRatingTag({ rated: false, ratingScope: "unrated" }, "en"),
+      null,
+    );
+    assert.equal(gameCardRatingTag({ rated: false }, "en"), null);
+    assert.equal(
+      gameCardRatingTag({ rated: false, ratingScope: "group" }, "en"),
+      "Did not count for Temba Level",
+    );
+    assert.equal(
+      gameCardRatingTag(
         { rated: true, ratingScope: "temba", sport: "football" },
         "en",
       ),

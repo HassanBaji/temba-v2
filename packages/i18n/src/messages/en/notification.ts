@@ -175,6 +175,50 @@ export const notification = {
       plain(" hasn’t received your payment for "),
       strong(game),
     ],
+    footballDraftShared: (actor: string, game: string) => [
+      strong(actor),
+      plain(" saved draft teams for "),
+      strong(game),
+      plain(". You’re a captain: have a look before they are published"),
+    ],
+    footballDraftChanged: (actor: string, game: string) => [
+      strong(actor),
+      plain(" changed your team on the draft for "),
+      strong(game),
+      plain(". Have another look"),
+    ],
+    footballDraftApproved: (actor: string, game: string) => [
+      strong(actor),
+      plain(" approved their team on the draft for "),
+      strong(game),
+    ],
+    footballDraftChangeAsked: (actor: string, game: string) => [
+      strong(actor),
+      plain(" asked for a change to their team on the draft for "),
+      strong(game),
+    ],
+    footballPickRoomOpened: (actor: string, game: string) => [
+      strong(actor),
+      plain(" opened the pick room for "),
+      strong(game),
+      plain(". You’re a captain: come in to pick your team"),
+    ],
+    footballPickReminder: (actor: string, game: string) => [
+      strong(actor),
+      plain(" is waiting for you in the pick room for "),
+      strong(game),
+    ],
+    footballPickDone: (actor: string, game: string) => [
+      strong(actor),
+      plain(" made the last pick for "),
+      strong(game),
+      plain(". The teams are ready as a draft"),
+    ],
+    footballPickDoneWithoutPick: (game: string) => [
+      plain("The teams for "),
+      strong(game),
+      plain(" are picked and ready as a draft"),
+    ],
     markReceived: (actor: string, kind: string, game: string) => [
       strong(actor),
       plain(" gave you "),

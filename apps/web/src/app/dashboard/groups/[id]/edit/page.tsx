@@ -90,6 +90,7 @@ function EditGroupFrame({
       title={m.group.settings.edit.title}
       hidePageHeader
       hideMobileTopBar
+      hideNav
     >
       <div className="mx-auto flex w-full max-w-[560px] flex-col gap-[26px] pb-6">
         <header className="mt-6 flex flex-col gap-[18px] lg:mt-2">

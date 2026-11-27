@@ -12,6 +12,7 @@ import {
 import type { FootballBib } from "./football-lineup";
 import { isFootballRosterGame } from "./football-game-details";
 import { formatGameClock, formatGameDay } from "./format-game-start";
+import { friendlyGameResultsIsPending } from "./friendly-game-results";
 import type { FriendlyGameDetailsSide } from "./friendly-game-details";
 import type { FriendlyGameHeroMatch } from "./friendly-game-hero";
 import { sideSizeLabel } from "./game-shape";
@@ -49,8 +50,10 @@ export type ResultCardMvp = {
 type ResultCardBase = {
   /** "FRIENDLY · PADEL" at the top of the card. */
   typeLine: string;
-  /** "RATED MATCH" or "FRIENDLY MATCH" in the card's foot. */
+  /** "RATED MATCH", "FRIENDLY MATCH" or "NOT CONFIRMED YET" in the card's foot. */
   typeNote: string;
+  /** The score is entered but the other side has not confirmed it yet. */
+  unconfirmed: boolean;
   venue: string;
   when: string;
   whenShort: string;
@@ -128,12 +131,15 @@ export type FootballResultCard = ResultCardBase & {
 
 export type ResultCard = PadelResultCard | FootballResultCard;
 
-function typeNote(rated: boolean, locale: Locale) {
+function typeNote(rated: boolean, unconfirmed: boolean, locale: Locale) {
   const m = messagesFor(locale).game.share;
+  if (unconfirmed) {
+    return m.unconfirmedMatch;
+  }
   return rated ? m.ratedMatch : m.friendlyMatch;
 }
 
-function cardVenue(place: PlayedPlace, locale: Locale) {
+export function cardVenue(place: PlayedPlace, locale: Locale) {
   const { common } = messagesFor(locale);
   return (
     [place.venue?.name, place.courtName]
@@ -143,7 +149,7 @@ function cardVenue(place: PlayedPlace, locale: Locale) {
   );
 }
 
-function cardWhen(windowStart: Date | null, locale: Locale) {
+export function cardWhen(windowStart: Date | null, locale: Locale) {
   if (!windowStart) {
     return { when: "", whenShort: "" };
   }
@@ -189,6 +195,7 @@ export type PadelResultCardInput = PlayedPlace & {
   viewerUserId: string;
   match: FriendlyGameHeroMatch;
   rated: boolean;
+  unconfirmed?: boolean;
   mvp?: ResultCardMvp | null;
 };
 
@@ -225,7 +232,8 @@ export function padelResultCard(
   return {
     kind: "padel",
     typeLine: m.padelTypeLine,
-    typeNote: typeNote(input.rated, locale),
+    typeNote: typeNote(input.rated, input.unconfirmed ?? false, locale),
+    unconfirmed: input.unconfirmed ?? false,
     winners,
     losers,
     winCount: setRows.filter((row) => row.w > row.l).length,
@@ -248,6 +256,7 @@ export type FootballResultCardInput = PlayedPlace & {
   score: { slot1: number; slot2: number };
   sideSize: number | null;
   rated: boolean;
+  unconfirmed?: boolean;
   mvp?: ResultCardMvp | null;
 };
 
@@ -299,7 +308,8 @@ export function footballResultCard(
         ? sideSizeLabel(input.sideSize, locale).toUpperCase()
         : null,
     ),
-    typeNote: typeNote(input.rated, locale),
+    typeNote: typeNote(input.rated, input.unconfirmed ?? false, locale),
+    unconfirmed: input.unconfirmed ?? false,
     draw: input.score.slot1 === input.score.slot2,
     win: sideOf(winSlot),
     lose: sideOf(loseSlot),
@@ -347,6 +357,9 @@ export function formatPadelResultShareMessage(
       card.setRows.map((row) => `${row.label} ${row.w}–${row.l}`).join(" · "),
     );
   }
+  if (card.unconfirmed) {
+    lines.push(m.unconfirmedLine);
+  }
   lines.push(`📍 ${card.venue}`);
   if (card.when) {
     lines.push(`📅 ${card.when}`);
@@ -375,9 +388,57 @@ export function formatFootballResultShareMessage(
         .join(messagesFor(locale).common.listSeparator)}`,
     );
   }
+  if (card.unconfirmed) {
+    lines.push(messagesFor(locale).game.share.unconfirmedLine);
+  }
   lines.push(`📍 ${card.venue}`);
   if (card.when) {
     lines.push(`📅 ${card.when}`);
+  }
+  lines.push(`🔗 ${url}`);
+  return lines.join("\n");
+}
+
+/**
+ * The message for a played Game with no score entered yet: there is no result
+ * to put on a card, so it names who played, says the score is still to come
+ * and links the Game page.
+ */
+export function playedGameShareMessage(
+  game: ResultShareGame,
+  url: string,
+  locale: Locale,
+) {
+  const m = messagesFor(locale).game.share;
+  const football = isFootballRosterGame(game);
+  const lines = [football ? m.footballPlayed : m.padelPlayed];
+  if (!football) {
+    const { a, b } = padelSidesInOrder(game.sides, game.viewerUserId);
+    if (a && b) {
+      lines.push(
+        m.versus(
+          padelPairLine(a, game.viewerUserId, locale, "first"),
+          padelPairLine(b, game.viewerUserId, locale, "first"),
+        ),
+      );
+    }
+  }
+  lines.push(m.noScoreLine);
+  const venue = cardVenue(
+    {
+      ...game,
+      courtName: football
+        ? (game.recordedCourts[0]?.name ?? null)
+        : (game.matches[0]?.courtName ?? null),
+    },
+    locale,
+  );
+  if (venue) {
+    lines.push(`📍 ${venue}`);
+  }
+  const { when } = cardWhen(game.windowStart, locale);
+  if (when) {
+    lines.push(`📅 ${when}`);
   }
   lines.push(`🔗 ${url}`);
   return lines.join("\n");
@@ -417,7 +478,36 @@ export type ResultShareBoard = {
   } | null;
 };
 
-/** The result card for a finished Game, or null while there is nothing final. */
+/**
+ * A padel Match whose time is over and whose score is entered but not yet
+ * confirmed by the other side: it can be shared, marked as not confirmed.
+ */
+export function padelScoreAwaitsConfirmation(
+  phase: string | null,
+  match: { sets: FriendlyGameHeroMatch["sets"] } | null | undefined,
+) {
+  return (
+    phase === "needs_results" &&
+    match != null &&
+    !friendlyGameResultsIsPending(match.sets)
+  );
+}
+
+/** A football Match with a Score entered that the other side has not confirmed. */
+export function footballScoreAwaitsConfirmation(
+  match: ResultShareBoard["match"] | null | undefined,
+) {
+  return (
+    match?.score != null &&
+    match.status !== "completed" &&
+    match.status !== "cancelled"
+  );
+}
+
+/**
+ * The result card for a played Game: final, or entered and waiting on the
+ * other side's confirmation (marked so). Null while there is no score.
+ */
 export function resultShareCard(
   game: ResultShareGame,
   board: ResultShareBoard | null,
@@ -430,10 +520,11 @@ export function resultShareCard(
     venue: game.venue,
   };
   if (isFootballRosterGame(game)) {
+    const unconfirmed = footballScoreAwaitsConfirmation(board?.match);
     if (
       !board?.teams ||
       !board.match?.score ||
-      board.match.status !== "completed"
+      (board.match.status !== "completed" && !unconfirmed)
     ) {
       return null;
     }
@@ -446,13 +537,15 @@ export function resultShareCard(
         sideSize: game.sideSize,
         courtName: game.recordedCourts[0]?.name ?? null,
         rated: game.rated,
+        unconfirmed,
         mvp,
       },
       locale,
     );
   }
   const match = game.matches[0];
-  if (game.phase !== "final" || !match) {
+  const unconfirmed = padelScoreAwaitsConfirmation(game.phase, match);
+  if (!match || (game.phase !== "final" && !unconfirmed)) {
     return null;
   }
   return padelResultCard(
@@ -463,6 +556,7 @@ export function resultShareCard(
       match,
       courtName: match.courtName,
       rated: game.rated,
+      unconfirmed,
       mvp,
     },
     locale,

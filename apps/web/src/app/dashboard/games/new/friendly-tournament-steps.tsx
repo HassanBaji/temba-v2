@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { DayField } from "~/app/dashboard/games/new/_parts/day-field";
+import { GenderTagField } from "~/app/dashboard/games/new/_parts/gender-tag-field";
 import {
   GroupField,
   type CreateGroup,
@@ -14,6 +15,10 @@ import {
 } from "~/app/dashboard/games/new/_parts/payment-tracking-field";
 import { RatingField } from "~/app/dashboard/games/new/_parts/rating-field";
 import { ReviewRow } from "~/app/dashboard/games/new/_parts/review-row";
+import {
+  SeriesSection,
+  type CreateSeriesChoice,
+} from "~/app/dashboard/games/new/_parts/series-section";
 import { SectionHeading } from "~/app/dashboard/games/new/_parts/section-heading";
 import {
   VenueField,
@@ -51,6 +56,10 @@ import {
   upcomingGameWindowFinishSlots,
   upcomingGameWindowTimeSlots,
 } from "@repo/domain/game-window";
+import {
+  gameGenderTagLabel,
+  type GameGenderTag,
+} from "@repo/domain/game-gender-tag";
 import { type LevelBandSelectValue } from "@repo/domain/level-range";
 import {
   groupsThenKnockoutReviewValue,
@@ -161,6 +170,8 @@ export function FriendlyTournamentSteps({
   onPrice,
   trackPayments,
   onTrackPayments,
+  genderTag,
+  onGenderTag,
   isPublic,
   onIsPublic,
   allowSoloRegister,
@@ -171,6 +182,8 @@ export function FriendlyTournamentSteps({
   groupVerified,
   rated,
   onRated,
+  series,
+  seriesReview,
 }: {
   step: 2 | 3 | 4;
   now: Date;
@@ -233,6 +246,8 @@ export function FriendlyTournamentSteps({
   onPrice: (price: string) => void;
   trackPayments: boolean;
   onTrackPayments: (value: boolean) => void;
+  genderTag: GameGenderTag | null;
+  onGenderTag: (genderTag: GameGenderTag | null) => void;
   isPublic: boolean;
   onIsPublic: (isPublic: boolean) => void;
   allowSoloRegister: boolean;
@@ -243,6 +258,9 @@ export function FriendlyTournamentSteps({
   groupVerified: boolean;
   rated: boolean;
   onRated: (rated: boolean) => void;
+  /** Shown only when the Group runs a Series the Social may join. */
+  series: CreateSeriesChoice | null;
+  seriesReview: string | null;
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -966,6 +984,10 @@ export function FriendlyTournamentSteps({
 
       {step === 4 ? (
         <>
+          {series ? (
+            <SeriesSection idPrefix="tournament" choice={series} />
+          ) : null}
+
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="tournament-name-label"
@@ -1148,6 +1170,12 @@ export function FriendlyTournamentSteps({
             onKeepersPlayFree={() => undefined}
           />
 
+          <GenderTagField
+            idPrefix="tournament"
+            genderTag={genderTag}
+            onGenderTag={onGenderTag}
+          />
+
           <section className="flex flex-col gap-3">
             <SectionHeading
               id="tournament-public-label"
@@ -1317,6 +1345,9 @@ export function FriendlyTournamentSteps({
                 value={am.create.reviewPlayers(americanoPlayers)}
               />
             ) : null}
+            {seriesReview ? (
+              <ReviewRow label={m.series.attach.title} value={seriesReview} />
+            ) : null}
             <ReviewRow
               label={americano ? am.create.rating : ratingChoice.title}
               value={
@@ -1327,6 +1358,12 @@ export function FriendlyTournamentSteps({
               <ReviewRow
                 label={m.gamePayments.create.reviewLabel}
                 value={paymentReview}
+              />
+            ) : null}
+            {genderTag ? (
+              <ReviewRow
+                label={m.createGame.genderTag.title}
+                value={gameGenderTagLabel(genderTag, locale) ?? ""}
               />
             ) : null}
           </div>

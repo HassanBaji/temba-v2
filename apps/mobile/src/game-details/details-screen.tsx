@@ -8,8 +8,10 @@ import { friendlyGameFooterActions } from "@repo/domain/friendly-game-actions";
 import { courtFigures } from "@repo/domain/friendly-game-court";
 import {
   friendlyGameShareLink,
+  gameCanShareInviteLink,
   type FriendlyGameJoinSeat,
 } from "@repo/domain/friendly-game-cta";
+import { padelScoreAwaitsConfirmation } from "@repo/domain/game-result-share";
 import {
   friendlyGameDetailsPlan,
   seatedPlayerCanRename,
@@ -30,6 +32,7 @@ import {
   teamRegisterToast,
 } from "@repo/domain/game-copy";
 import { scoreIncompleteMessage } from "@repo/domain/friendly-game-score";
+import type { ScoreChangeReason } from "@repo/domain/score-review";
 import { isNotFoundError } from "@repo/domain/is-not-found-error";
 import {
   isDrawnTournamentDetails,
@@ -58,7 +61,10 @@ import { InviteDoorSheet } from "../invites/invite-door-sheet";
 import { InviteEntry } from "../invites/invite-entry";
 import { slotOf } from "../lib/slot-of";
 import { GamePaymentsSection } from "../game-payments/game-payments-section";
-import { PlayedFriendlyGame } from "../played-game/played-friendly-game";
+import {
+  PlayedFriendlyGame,
+  sharePath,
+} from "../played-game/played-friendly-game";
 import {
   PlayedMenuSheet,
   type PlayedMenuItem,
@@ -72,6 +78,8 @@ import { Skeleton } from "../primitives/skeleton";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { SeriesGameCard } from "../series/series-game-card";
+import type { WithGameSeries } from "../series/series-hero-line";
 import { AloneJoinSheet } from "../tournament/alone-join-sheet";
 import type { AloneSocialHandlers } from "../tournament/alone-social";
 import { TournamentBar } from "../tournament/tournament-bar";
@@ -103,7 +111,9 @@ import { ChallengeDetailsCard } from "./challenge-details-card";
 import { gameMenuItems } from "./game-menu";
 import { OrganizerSheets } from "./organizer-sheets";
 import { useOrganizerActions } from "./use-organizer-actions";
+import { useScoreReview } from "./use-score-review";
 import { useShareGame } from "./use-share-game";
+import { useSharePlayedGame } from "./use-share-played-game";
 import {
   gameTitle,
   isFriendlyGameDetails,
@@ -206,6 +216,7 @@ export function GameDetailsScreen({
   const [editTeamsOpen, setEditTeamsOpen] = useState(false);
   const [addSide, setAddSide] = useState<number | null>(null);
   const shareGame = useShareGame(gameId);
+  const sharePlayedGame = useSharePlayedGame(gameId);
 
   const game = api.games.byId.useQuery({ id: gameId }, REFETCH_ON_FOREGROUND);
   const data = game.data;
@@ -240,6 +251,7 @@ export function GameDetailsScreen({
     () =>
       Promise.all([
         utils.games.byId.invalidate({ id: gameId }),
+        utils.series.edition.invalidate({ gameId }),
         utils.games.listMyGames.invalidate(),
         utils.games.listMyMatchHistory.invalidate(),
         utils.users.home.invalidate(),
@@ -323,7 +335,7 @@ export function GameDetailsScreen({
       return refresh();
     },
   });
-  const scoreSet = api.games.scoreSet.useMutation();
+  const saveScore = api.games.saveScore.useMutation();
   const confirmResult = api.games.confirmMatchResult.useMutation({
     onSuccess: () => toast.show(copy.toast.resultConfirmed),
     onError: failure,
@@ -382,32 +394,34 @@ export function GameDetailsScreen({
 
   const saveSets = useCallback(
     async (
-      payloads: {
+      sets: {
         setId: string;
         slot1GamesWon: number;
         slot2GamesWon: number;
       }[],
+      reason: ScoreChangeReason | null = null,
     ) => {
       if (!firstMatchId) {
-        return;
+        return false;
       }
-      if (payloads.length === 0) {
+      if (sets.length === 0) {
         toast.show(scoreIncompleteMessage(locale));
-        return;
+        return false;
       }
       try {
-        for (const payload of payloads) {
-          await scoreSet.mutateAsync({
-            gameId,
-            matchId: firstMatchId,
-            ...payload,
-          });
-        }
+        await saveScore.mutateAsync({
+          gameId,
+          matchId: firstMatchId,
+          sets,
+          reason: reason ?? undefined,
+        });
         toast.show(copy.toast.setSaved);
+        return true;
       } catch (error) {
         toast.show(
           error instanceof Error ? errorText(error) : copy.toast.couldNotSave,
         );
+        return false;
       } finally {
         await refreshWithRatings();
       }
@@ -419,19 +433,29 @@ export function GameDetailsScreen({
       gameId,
       locale,
       refreshWithRatings,
-      scoreSet,
+      saveScore,
       toast,
     ],
   );
+  const scoreReview = useScoreReview({
+    game: friendly && data ? data : null,
+    pending: saveScore.isPending || confirmResult.isPending,
+    onConfirm: () =>
+      firstMatchId && confirmResult.mutate({ gameId, matchId: firstMatchId }),
+    onSend: saveSets,
+  });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await game.refetch();
+      await Promise.all([
+        game.refetch(),
+        utils.series.edition.invalidate({ gameId }),
+      ]);
     } finally {
       setRefreshing(false);
     }
-  }, [game]);
+  }, [game, gameId, utils]);
 
   function openJoin(seat?: { sideIndex: number; position: "left" | "right" }) {
     setInitialSeat(seat ?? null);
@@ -524,9 +548,13 @@ export function GameDetailsScreen({
     : null;
   const shareLink = data
     ? friendlyGameShareLink({
-        canMintInvite: inviteAccess?.canManage ?? false,
+        canMintInvite: gameCanShareInviteLink(data),
         cancelled: data.cancelledAt != null,
         phase: data.phase ?? null,
+        scoreAwaitsConfirmation: padelScoreAwaitsConfirmation(
+          data.phase ?? null,
+          data.matches[0],
+        ),
       })
     : null;
   const inviteEntry = inviteAccess?.canManage ? (
@@ -663,7 +691,7 @@ export function GameDetailsScreen({
   }
 
   if (tournament) {
-    const details: TournamentDetails = data;
+    const details: TournamentDetails & WithGameSeries = data;
     const addPlayerToSide = (sideIndex: number) => {
       setAddSide(sideIndex);
       tournamentOrganizer.addPlayer.onOpen();
@@ -977,7 +1005,7 @@ export function GameDetailsScreen({
   const canTapPlayers = Boolean(onOpenPlayer) || organizer.plan != null;
   const handlers: DetailsHandlers = {
     movePending: moveSeat.isPending,
-    scorePending: scoreSet.isPending,
+    scorePending: saveScore.isPending,
     confirmPending: confirmResult.isPending,
     stampPending: stampMatch.isPending,
     levelRequestPending: requestLevel.isPending,
@@ -1058,6 +1086,7 @@ export function GameDetailsScreen({
           gameId={gameId}
           game={details}
           match={playedMatch}
+          series={data.series}
           refreshing={refreshing}
           onRefresh={onRefresh}
           organizer={organizer}
@@ -1077,11 +1106,17 @@ export function GameDetailsScreen({
                   model={hero}
                   place={heroPlace}
                   figures={heroFigures}
+                  series={data.series}
                   tag={data.challenge ? m.challenge.gameDetails.tag : undefined}
+                  genderTag={data.genderTag}
                   onShare={
-                    shareLink && shareContext
-                      ? () => void shareGame(shareContext, shareLink)
-                      : undefined
+                    shareLink === "result"
+                      ? () => router.push(sharePath(gameId))
+                      : shareLink === "played"
+                        ? () => void sharePlayedGame(data)
+                        : shareLink && shareContext
+                          ? () => void shareGame(shareContext, shareLink)
+                          : undefined
                   }
                   onMore={
                     menuItems.length > 0 ? () => setMenuOpen(true) : undefined
@@ -1090,6 +1125,9 @@ export function GameDetailsScreen({
               ) : undefined
             }
           >
+            {data.series ? (
+              <SeriesGameCard gameId={gameId} game="played" />
+            ) : null}
             {data.challenge ? (
               <ChallengeDetailsCard
                 challenge={data.challenge}
@@ -1099,7 +1137,9 @@ export function GameDetailsScreen({
             ) : null}
             <GameDetailsContent
               game={details}
+              series={data.series}
               handlers={handlers}
+              review={scoreReview}
               organizer={
                 organizer.plan
                   ? { plan: organizer.plan, handlers: organizer.handlers }
@@ -1109,6 +1149,7 @@ export function GameDetailsScreen({
           </Screen>
           <GameDetailsBar
             game={details}
+            review={scoreReview}
             handlers={{
               joinPending: registerSeat.isPending && !joinOpen,
               leaveWaitlistPending: leaveWaitlist.isPending,

@@ -8,6 +8,8 @@ const PLAYER_MATCHES = /^\/dashboard\/players\/([^/]+)\/matches\/?$/;
 const PLAYER_MARKS = /^\/dashboard\/players\/([^/]+)\/marks\/?$/;
 const PLAYER_MARK = /^\/dashboard\/players\/([^/]+)\/marks\/([^/]+)\/?$/;
 
+const SERIES_PAGE = /^\/dashboard\/series\/[^/]+\/?$/;
+
 const YOU_RATINGS_HREF = "/dashboard/you/ratings";
 
 /** All requests: every request waiting on the viewer as an Organizer or Group approver. */
@@ -45,6 +47,11 @@ export function playerMarkPath(userId: string, kind: CoinKind, sport: Sport) {
   return `/dashboard/players/${userId}/marks/${kind}?sport=${sport}`;
 }
 
+/** A Series page (3b). */
+export function seriesPagePath(seriesId: string) {
+  return `/dashboard/series/${seriesId}`;
+}
+
 export function titleFromPath(pathname: string, m: Messages) {
   const titles = m.webUi.pageTitle;
   if (pathname === "/dashboard") {
@@ -62,6 +69,9 @@ export function titleFromPath(pathname: string, m: Messages) {
   }
   if (pathname.startsWith("/dashboard/players/")) {
     return titles.player;
+  }
+  if (SERIES_PAGE.test(pathname)) {
+    return m.series.page.title;
   }
   if (pathname.startsWith("/dashboard/you/settings")) {
     return m.common.settings;
@@ -104,6 +114,12 @@ export function titleFromPath(pathname: string, m: Messages) {
   }
   if (/^\/dashboard\/groups\/[^/]+\/seasons\/new/.test(pathname)) {
     return titles.newSeason;
+  }
+  if (/^\/dashboard\/groups\/[^/]+\/series\/new/.test(pathname)) {
+    return m.series.create.title;
+  }
+  if (/^\/dashboard\/groups\/[^/]+\/series/.test(pathname)) {
+    return m.series.tab.title;
   }
   if (/^\/dashboard\/groups\/[^/]+\/edit/.test(pathname)) {
     return titles.editGroup;
@@ -149,6 +165,14 @@ export function pageHidesMobileTopBar(pathname: string) {
     pathname.startsWith("/dashboard/you/") ||
     pathname.startsWith("/dashboard/games/new") ||
     PLAYER_PROFILE.test(pathname) ||
+    SERIES_PAGE.test(pathname) ||
+    /^\/dashboard\/groups\/(?!new$)[^/]+/.test(pathname)
+  );
+}
+
+export function pageHidesBottomNav(pathname: string) {
+  return (
+    pathname.startsWith("/dashboard/games/new") ||
     /^\/dashboard\/groups\/(?!new$)[^/]+/.test(pathname)
   );
 }
@@ -211,6 +235,11 @@ export function gameBoardHref(gameId: string) {
   return `/dashboard/games/${gameId}/board`;
 }
 
+/** The Pick room of a Game's Captain pick (ADR-0109). */
+export function gamePickRoomHref(gameId: string) {
+  return `/dashboard/games/${gameId}/pick`;
+}
+
 export function gamePaymentsHref(gameId: string) {
   return `/dashboard/games/${gameId}/payments`;
 }
@@ -241,6 +270,16 @@ export function groupRatingSettingsHref(groupId: string) {
 
 export function groupNewSeasonHref(groupId: string) {
   return `/dashboard/groups/${groupId}/seasons/new`;
+}
+
+/** The Group's Series (1a), opened from its More menu. */
+export function groupSeriesHref(groupId: string) {
+  return `/dashboard/groups/${groupId}/series`;
+}
+
+/** New series (1b). */
+export function groupNewSeriesHref(groupId: string) {
+  return `/dashboard/groups/${groupId}/series/new`;
 }
 
 /** Points and history; without `userId`, the viewer's own. */

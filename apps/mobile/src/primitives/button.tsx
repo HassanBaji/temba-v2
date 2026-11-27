@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, View } from "react-native";
 
 import { useColors } from "../theme/theme-provider";
 import { hairline } from "./hairline-width";
-import { buttonGeometry, type ButtonSize } from "./button-target";
+import { buttonGeometry, isIconOnly, type ButtonSize } from "./button-target";
 import { useSurfaceTone } from "./surface-context";
 import { Text } from "./text";
 
@@ -11,7 +11,8 @@ export type ButtonVariant =
   | "default"
   | "outline"
   | "inverse"
-  | "outline-inverse";
+  | "outline-inverse"
+  | "ink";
 
 export type ButtonProps = {
   label: string;
@@ -54,6 +55,11 @@ function colorways(colors: Palette): Record<ButtonVariant, Colorway> {
       foreground: colors.onFocus,
       border: colors.dimrule,
     },
+    ink: {
+      background: colors.ink,
+      foreground: colors.paper,
+      border: null,
+    },
   };
 }
 
@@ -74,6 +80,7 @@ export function Button({
   const colorway = colorways(useColors())[resolved];
   const { height, hitSlop } = buttonGeometry(size);
   const inactive = disabled || pending;
+  const iconOnly = isIconOnly(size);
 
   return (
     <Pressable
@@ -85,14 +92,17 @@ export function Button({
       onPress={onPress}
       style={({ pressed }) => ({
         height,
-        minWidth: size === "icon" ? height : undefined,
-        paddingHorizontal:
-          size === "icon" ? 0 : size === "lg" ? 24 : spacing.compact - 2,
+        minWidth: iconOnly ? height : undefined,
+        paddingHorizontal: iconOnly
+          ? 0
+          : size === "lg"
+            ? 24
+            : spacing.compact - 2,
         alignItems: "center",
         justifyContent: "center",
         flexDirection: "row",
         gap: 8,
-        borderRadius: size === "lg" ? radii.lg : radii.md,
+        borderRadius: size === "lg" || size === "icon-lg" ? radii.lg : radii.md,
         backgroundColor: colorway.background,
         borderWidth: colorway.border ? hairline : 0,
         borderColor: colorway.border ?? undefined,
@@ -104,7 +114,7 @@ export function Button({
       ) : (
         <>
           {icon && iconPlacement === "leading" ? <View>{icon}</View> : null}
-          {size === "icon" ? null : (
+          {iconOnly ? null : (
             <Text
               weight="medium"
               style={{ color: colorway.foreground }}

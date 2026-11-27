@@ -28,7 +28,10 @@ import { OpenSpotDialog } from "~/components/games/open-spot-dialog";
 import { FootballGameDetails } from "~/components/games/football-game-details";
 import { GameActionsSheet } from "~/components/games/game-actions-sheet";
 import { GameDetailsSkeleton } from "~/components/games/game-details-skeleton";
-import { FriendlyGameCtaBar } from "~/components/games/friendly-game-cta-bar";
+import {
+  FriendlyGameCtaBar,
+  ScoreReviewBar,
+} from "~/components/games/friendly-game-cta-bar";
 import { FriendlyGameDetailsHero } from "~/components/games/friendly-game-details-hero";
 import { ChallengeDetailsBlock } from "~/components/games/challenge-details-block";
 import { ChallengeTag } from "~/components/games/challenge-tag";
@@ -36,6 +39,7 @@ import { FriendlyGameJoinSheet } from "~/components/games/friendly-game-join-she
 import { FriendlyGameMenu } from "~/components/games/friendly-game-menu";
 import { HeroNavRow } from "~/components/games/hero-nav-row";
 import { PlayedFriendlyGame } from "~/components/games/played/played-friendly-game";
+import { shareResultHref } from "~/components/games/played/played-game-view";
 import { PlayedPlayerDialog } from "~/components/games/played/played-player-dialog";
 import { GameEditDialog } from "~/components/games/game-edit-dialog";
 import { GameHomeHeader } from "~/components/games/game-home-header";
@@ -53,6 +57,11 @@ import {
 } from "~/components/games/game-rating-impact-block";
 import { GameResultsPanel } from "~/components/games/game-results-panel";
 import { GameScoreSection } from "~/components/games/game-score-section";
+import {
+  useScoreReview,
+  type ScoreSetsToSave,
+} from "~/components/games/use-score-review";
+import type { ScoreChangeReason } from "@repo/domain/score-review";
 import { GamePaymentsSection } from "~/components/game-payments/game-payments-section";
 import { TournamentHome } from "~/components/games/tournament-home";
 import {
@@ -71,6 +80,9 @@ import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { toastGlobalFormError } from "~/lib/form-mutation-error";
 import { useGameEdit } from "~/components/games/use-game-edit";
+import { useGameEditSeries } from "~/components/games/use-game-edit-series";
+import { SeriesFactRows } from "~/components/series/series-fact-rows";
+import { SeriesGameCard } from "~/components/series/series-game-card";
 import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { gameEditSectionsFor } from "@repo/domain/game-edit-form";
 import {
@@ -93,11 +105,16 @@ import {
 import {
   friendlyGameCanMintInvite,
   friendlyGameShareLink,
+  gameCanShareInviteLink,
   friendlyGameVacantSeatLine,
   vacantJoinSeats,
   type FriendlyGameJoinSeat,
   type FriendlyGameShareLink,
 } from "@repo/domain/friendly-game-cta";
+import {
+  padelScoreAwaitsConfirmation,
+  playedGameShareMessage,
+} from "@repo/domain/game-result-share";
 import {
   lineupSidesNote,
   viewerSideOpenLine,
@@ -402,6 +419,7 @@ export default function GameHomePage({
     onSuccess: async () => {
       toast.success(m.tournamentKing.finalOrder.posted);
       await utils.games.byId.invalidate({ id });
+      await utils.series.edition.invalidate({ gameId: id });
       await utils.games.listMyGames.invalidate();
       await utils.games.listMyMatchHistory.invalidate();
       await utils.users.home.invalidate();
@@ -479,6 +497,7 @@ export default function GameHomePage({
 
   async function refreshGame() {
     await utils.games.byId.invalidate({ id });
+    await utils.series.edition.invalidate({ gameId: id });
     await utils.users.home.invalidate();
     await utils.games.listPublicPickup.invalidate();
     await utils.games.listMyGames.invalidate();
@@ -549,6 +568,17 @@ export default function GameHomePage({
   });
 
   const scoreSet = api.games.scoreSet.useMutation({
+    onSuccess: async () => {
+      toast.success(g.toast.setSaved);
+      await refreshGame();
+      await refreshRatings();
+    },
+    onError: (error) => {
+      toastGlobalFormError(error);
+    },
+  });
+
+  const saveScore = api.games.saveScore.useMutation({
     onSuccess: async () => {
       toast.success(g.toast.setSaved);
       await refreshGame();
@@ -662,6 +692,7 @@ export default function GameHomePage({
   }
 
   const data = game.data;
+  const editSeries = useGameEditSeries(data);
   const editSections = gameEditSectionsFor({
     format: data?.format ?? "friendly_game",
     sport: data?.sport,
@@ -672,6 +703,7 @@ export default function GameHomePage({
     drawPosted: data?.drawPostedAt != null,
     americano: isAmericano(data?.format, data?.tournamentShape),
     king: isKingOfTheCourt(data?.format, data?.tournamentShape),
+    series: editSeries.shown,
   });
   const edit = useGameEdit({
     gameId: id,
@@ -729,6 +761,7 @@ export default function GameHomePage({
     : { canManage: false, canSendLookup: false };
   const canMintInvite = data ? friendlyGameCanMintInvite(data) : false;
   const canManageGameInvites = inviteAccess.canManage;
+  const canShareInviteLink = data ? gameCanShareInviteLink(data) : false;
   const canSendGameLookup = inviteAccess.canSendLookup;
   const canPartnerPick = Boolean(
     data &&
@@ -786,6 +819,33 @@ export default function GameHomePage({
     tab,
     usesFriendlyChrome,
   ]);
+
+  const reviewMatchId = usesFriendlyChrome ? data?.matches[0]?.id : undefined;
+  const saveScoreSets = (
+    sets: ScoreSetsToSave,
+    reason: ScoreChangeReason | null = null,
+  ) =>
+    reviewMatchId
+      ? saveScore
+          .mutateAsync({
+            gameId: id,
+            matchId: reviewMatchId,
+            sets,
+            reason: reason ?? undefined,
+          })
+          .then(
+            () => true,
+            () => false,
+          )
+      : Promise.resolve(false);
+  const scoreReview = useScoreReview({
+    game: usesFriendlyChrome && data ? data : null,
+    pending: saveScore.isPending || confirmMatchResult.isPending,
+    onConfirm: () =>
+      reviewMatchId &&
+      confirmMatchResult.mutate({ gameId: id, matchId: reviewMatchId }),
+    onSend: saveScoreSets,
+  });
 
   if (isNotFoundError(game.error)) {
     notFound();
@@ -947,16 +1007,33 @@ export default function GameHomePage({
         tvRow={tv.menuRow}
       />
     ) : null;
+  const sharePlayedGame = () => {
+    const text = utils.games.resultLink
+      .fetch({ gameId: id })
+      .then((result) => ({
+        text: playedGameShareMessage(data, result.url, locale),
+      }))
+      .catch(() => null);
+    void shareLinkWithFeedback(text, m.webUi.shareResult.messageCopied, locale);
+  };
   const shareLinkHandler = (link: FriendlyGameShareLink | null) =>
     link === "invite_link"
       ? shareInviteLink
       : link === "game_page"
         ? shareGamePage
-        : undefined;
+        : link === "result"
+          ? () => router.push(shareResultHref(id))
+          : link === "played"
+            ? sharePlayedGame
+            : undefined;
   const shareLink = friendlyGameShareLink({
-    canMintInvite: canManageGameInvites,
+    canMintInvite: canShareInviteLink,
     cancelled: data.cancelledAt != null,
     phase: data.phase ?? null,
+    scoreAwaitsConfirmation: padelScoreAwaitsConfirmation(
+      data.phase ?? null,
+      data.matches[0],
+    ),
   });
   const heroActions = (
     <>
@@ -1227,8 +1304,7 @@ export default function GameHomePage({
                 onShareGame={shareLinkHandler(
                   friendlyGameShareLink({
                     canMintInvite:
-                      canManageGameInvites &&
-                      data.registrationStatus === "open",
+                      canShareInviteLink && data.registrationStatus === "open",
                     cancelled: data.cancelledAt != null,
                     phase: null,
                   }),
@@ -1285,7 +1361,7 @@ export default function GameHomePage({
                     });
                   },
                 }}
-                onShare={canManageGameInvites ? shareInviteLink : undefined}
+                onShare={canShareInviteLink ? shareInviteLink : undefined}
                 onInvite={
                   canManageGameInvites ? () => setInvitesOpen(true) : undefined
                 }
@@ -1337,12 +1413,19 @@ export default function GameHomePage({
             <>
               <h1 className="sr-only">{g.friendlyGameHeading}</h1>
               {heroInput && !playedMatch ? (
-                <FriendlyGameDetailsHero
-                  input={heroInput}
-                  place={heroPlace}
-                  figures={heroFigures}
-                  actions={heroActions}
-                />
+                <>
+                  <FriendlyGameDetailsHero
+                    input={heroInput}
+                    place={heroPlace}
+                    figures={heroFigures}
+                    series={data.series}
+                    genderTag={data.genderTag}
+                    actions={heroActions}
+                  />
+                  {data.series ? (
+                    <SeriesGameCard gameId={id} game="played" />
+                  ) : null}
+                </>
               ) : playedMatch ? null : (
                 <HeroNavRow tone="paper" actions={gameMenu(false)} />
               )}
@@ -1367,7 +1450,17 @@ export default function GameHomePage({
             <GameTvCardSlot />
           )}
 
-          {usesFriendlyChrome && ctaFamily.kind !== "none" && !playedMatch ? (
+          {usesFriendlyChrome && scoreReview.bar ? (
+            <div className="max-lg:contents">
+              <ScoreReviewBar
+                bar={scoreReview.bar}
+                pending={scoreReview.pending}
+                onAction={scoreReview.onAction}
+              />
+            </div>
+          ) : usesFriendlyChrome &&
+            ctaFamily.kind !== "none" &&
+            !playedMatch ? (
             <div className="max-lg:contents">
               <FriendlyGameCtaBar
                 family={ctaFamily}
@@ -1406,6 +1499,7 @@ export default function GameHomePage({
               gameId={id}
               game={data}
               match={playedMatch}
+              series={data.series}
               linkToPlayers={gamePlayersLink(data)}
               onKick={(userId) => requestKick({ userId })}
               onRename={data.isOrganizer ? setRenaming : undefined}
@@ -1441,6 +1535,7 @@ export default function GameHomePage({
                   publicGame={isPublicGame(data)}
                 />
               )}
+              <SeriesFactRows series={data.series} />
               <GameLineupSection
                 sides={data.sides}
                 viewerUserId={data.viewerUserId}
@@ -1510,18 +1605,11 @@ export default function GameHomePage({
                       false
                     }
                     courtFull={vacantSeatCount === 0}
-                    scorePending={scoreSet.isPending}
+                    scorePending={saveScore.isPending}
                     confirmPending={confirmMatchResult.isPending}
                     stampPending={stampMatch.isPending}
-                    onScoreSet={(input) =>
-                      scoreSet.mutateAsync({
-                        gameId: id,
-                        matchId: firstMatch.id,
-                        setId: input.setId,
-                        slot1GamesWon: input.slot1GamesWon,
-                        slot2GamesWon: input.slot2GamesWon,
-                      })
-                    }
+                    review={scoreReview}
+                    onSaveSets={(sets) => void saveScoreSets(sets)}
                     onConfirm={() =>
                       confirmMatchResult.mutate({
                         gameId: id,
@@ -1680,6 +1768,7 @@ export default function GameHomePage({
                   : null,
               seasons: data.groupSeasons,
               canChangeSeason: data.canChangeSeason,
+              series: editSeries.context,
               rounds: roundsPlan
                 ? {
                     poolSizes: roundsPlan.poolSizes,

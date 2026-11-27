@@ -37,6 +37,7 @@ export function useTournamentRounds(gameId: string, enabled: boolean) {
     await Promise.all([
       utils.games.tournamentRounds.invalidate({ gameId }),
       utils.games.byId.invalidate({ id: gameId }),
+      utils.series.edition.invalidate({ gameId }),
     ]);
   }
   const options = {

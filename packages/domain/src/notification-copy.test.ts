@@ -1,7 +1,7 @@
 import { bahrainDate } from "./bahrain-date.test-support";
 import assert from "node:assert/strict";
 import { isolate } from "@repo/i18n/bidi";
-import { describe, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   formatNotificationTime,
@@ -1782,5 +1782,130 @@ describe("notificationCopy for payment tracking", () => {
       text("game_payment_not_received", "player", { game: null }),
       null,
     );
+  });
+});
+
+describe("notificationCopy for a Draft line-up (ADR-0108)", () => {
+  const game = {
+    name: "Friday Football",
+    format: "friendly_game",
+    windowStart: bahrainDate(2026, 9, 11, 19, 0, 0),
+  };
+
+  function text(
+    type: string,
+    audience: string,
+    locale: "en" | "ar" = "en",
+    item: Partial<NotificationCopyInput> = {},
+  ) {
+    const copy = notificationCopy(
+      {
+        type,
+        audience,
+        actor: { name: "Hassan" },
+        group: null,
+        game,
+        ...item,
+      },
+      locale,
+    );
+    return copy
+      ? {
+          title: copy.title.map((part) => part.text).join(""),
+          subline: copy.subline,
+        }
+      : null;
+  }
+
+  it("tells a Side captain they were named, and when their side changed", () => {
+    expect(text("football_draft_shared", "player")).toEqual({
+      title:
+        "Hassan saved draft teams for Friday Football. You’re a captain: have a look before they are published",
+      subline: null,
+    });
+    expect(text("football_draft_changed", "player")).toEqual({
+      title:
+        "Hassan changed your team on the draft for Friday Football. Have another look",
+      subline: null,
+    });
+  });
+
+  it("tells the Game admins of each Captain's answer", () => {
+    expect(text("football_draft_approved", "admin")).toEqual({
+      title: "Hassan approved their team on the draft for Friday Football",
+      subline: null,
+    });
+    expect(text("football_draft_change_asked", "admin")).toEqual({
+      title:
+        "Hassan asked for a change to their team on the draft for Friday Football",
+      subline: null,
+    });
+  });
+
+  it("reads all four in Arabic", () => {
+    expect(text("football_draft_shared", "player", "ar")?.title).toContain(
+      "مسودة الفرق",
+    );
+    expect(text("football_draft_changed", "player", "ar")?.title).toContain(
+      `غيّر ${isolate("Hassan")} فريقك`,
+    );
+    expect(text("football_draft_approved", "admin", "ar")?.title).toContain(
+      `وافق ${isolate("Hassan")}`,
+    );
+    expect(text("football_draft_change_asked", "admin", "ar")?.title).toContain(
+      `طلب ${isolate("Hassan")} تغييرًا`,
+    );
+  });
+
+  it("returns null for the wrong audience or without the Game", () => {
+    expect(text("football_draft_shared", "admin")).toBeNull();
+    expect(text("football_draft_approved", "player")).toBeNull();
+    expect(
+      text("football_draft_change_asked", "admin", "en", { game: null }),
+    ).toBeNull();
+  });
+
+  it("tells a Side captain the Pick room opened, and reminds them", () => {
+    expect(text("football_pick_room_opened", "player")).toEqual({
+      title:
+        "Hassan opened the pick room for Friday Football. You’re a captain: come in to pick your team",
+      subline: null,
+    });
+    expect(text("football_pick_reminder", "player")).toEqual({
+      title: "Hassan is waiting for you in the pick room for Friday Football",
+      subline: null,
+    });
+  });
+
+  it("tells the Game admins the last pick was made", () => {
+    expect(text("football_pick_done", "admin")).toEqual({
+      title:
+        "Hassan made the last pick for Friday Football. The teams are ready as a draft",
+      subline: null,
+    });
+  });
+
+  it("names nobody when the pick finished because its last player left", () => {
+    expect(text("football_pick_done", "admin", "en", { actor: null })).toEqual({
+      title: "The teams for Friday Football are picked and ready as a draft",
+      subline: null,
+    });
+    expect(
+      text("football_pick_done", "admin", "ar", { actor: null })?.title,
+    ).toContain("اكتمل اختيار فريقَي");
+  });
+
+  it("reads the three pick types in Arabic, and needs the right audience", () => {
+    expect(text("football_pick_room_opened", "player", "ar")?.title).toContain(
+      `فتح ${isolate("Hassan")} غرفة الاختيار`,
+    );
+    expect(text("football_pick_reminder", "player", "ar")?.title).toContain(
+      "بانتظارك في غرفة الاختيار",
+    );
+    expect(text("football_pick_done", "admin", "ar")?.title).toContain(
+      `أجرى ${isolate("Hassan")} آخر اختيار`,
+    );
+    expect(text("football_pick_room_opened", "admin")).toBeNull();
+    expect(text("football_pick_done", "player")).toBeNull();
   });
 });

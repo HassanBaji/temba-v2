@@ -14,6 +14,10 @@ import {
   type FootballGameDetailsInput,
 } from "@repo/domain/football-game-details";
 import {
+  footballDraftCaptainViewLine,
+  footballDraftVisibilityLine,
+} from "@repo/domain/football-draft";
+import {
   footballTeamsMethodLabel,
   type FootballPosition,
   type FootballRole,
@@ -55,11 +59,17 @@ import { View } from "react-native";
 import {
   bibNames,
   footballHeroLines,
+  ofSide,
   poolLayout,
   slotCode,
   viewerSideLine,
   type BoardPlayer,
 } from "@repo/domain/football-board";
+import { seriesFactRows } from "@repo/domain/series-fact-row";
+import { CaptainDraftPanel } from "../football/captain-draft-panel";
+import { DraftCard } from "../football/draft-card";
+import { PickInProgressCard } from "../football/pick-in-progress-card";
+import { footballPickRoomPath } from "../games/games-model";
 import { InfoRows, type InfoRow } from "../football/info-rows";
 import { FootballJoinSheet } from "../football/join-sheet";
 import { PlayerSheet } from "../football/player-sheet";
@@ -77,7 +87,9 @@ import { GameAlbumSections } from "../game-album/game-album-sections";
 import { GamePaymentsSection } from "../game-payments/game-payments-section";
 import { useGameAlbum } from "../game-album/use-game-album";
 import { PlayedFootballBoard } from "../played-game/played-football-board";
+import { footballScoreAwaitsConfirmation } from "@repo/domain/game-result-share";
 import { sharePath } from "../played-game/played-friendly-game";
+import { shareDraftPath } from "../share-draft/share-draft-screen";
 import { MatchDisputeSection } from "../played-game/match-dispute-section";
 import { PlayedGameView } from "../played-game/played-game-view";
 import {
@@ -94,6 +106,7 @@ import { HeaderIconButton } from "../primitives/screen-header";
 import { Surface } from "../primitives/surface";
 import { Text } from "../primitives/text";
 import { useToast } from "../primitives/toast";
+import { SeriesGameCard } from "../series/series-game-card";
 import { invalidateRatingReads } from "../trpc/invalidate-rating-reads";
 import { api, type RouterOutputs } from "../trpc/react";
 import { AddPlayerSheet } from "./add-player-sheet";
@@ -108,11 +121,13 @@ import { PerformanceResultCard } from "./performance-result-card";
 import { RateGameCard } from "./rate-game-card";
 import { RatingSummaryCard } from "./rating-summary-card";
 import { GameEditSheet } from "./game-edit-sheet";
+import { useGameEditSeries } from "./use-game-edit-series";
 import { LevelRequestCard } from "./level-request-card";
 import { challengeInfoRows } from "./challenge-details-card";
 import { NameSquadSheet } from "./name-squad-sheet";
 import { ChallengeSquads } from "./squad-grid";
 import { useShareGame } from "./use-share-game";
+import { useSharePlayedGame } from "./use-share-played-game";
 import { TeamVsTeamRow } from "./team-vs-team-row";
 import { useGameEdit } from "./use-game-edit";
 import { useRequestDecisions } from "./use-request-decisions";
@@ -186,7 +201,15 @@ export function FootballGameDetails({
   );
   const players = board.data?.players ?? [];
   const teams = board.data?.teams ?? null;
+  const draft = teams ? null : (board.data?.draft ?? null);
   const names = teams ? bibNames(teams.bibs, locale) : null;
+  const draftSideCaptainOf =
+    draft && !board.data?.isOrganizer
+      ? (board.data?.viewer.captainOf ?? null)
+      : null;
+  const pickStatus = draft?.pick?.status;
+  const runningPick =
+    pickStatus === "waiting" || pickStatus === "live" ? pickStatus : null;
   const viewer = players.find((player) => player.isViewer) ?? null;
   const preferences = api.users.onboardingState.useQuery().data;
   const marks = useGameMarks(gameId, board.data?.match?.status === "completed");
@@ -214,6 +237,11 @@ export function FootballGameDetails({
       pitchName: game.recordedCourts[0]?.name ?? null,
       teamsSet: teams != null && !challenge,
       scored: board.data?.match?.score != null,
+      draftSaved: draft != null,
+      draftSideCaptainOf:
+        draft && draftSideCaptainOf
+          ? ofSide(bibNames(draft.bibs, locale), draftSideCaptainOf)
+          : null,
     },
     now,
     locale,
@@ -233,10 +261,12 @@ export function FootballGameDetails({
       }
     : baseLines;
   const shareGame = useShareGame(gameId);
+  const sharePlayedGame = useSharePlayedGame(gameId);
 
   const refresh = () =>
     Promise.all([
       utils.games.byId.invalidate({ id: gameId }),
+      utils.series.edition.invalidate({ gameId }),
       utils.games.footballBoard.invalidate({ gameId }),
       utils.games.listMyGames.invalidate(),
       utils.games.listPublicPickup.invalidate(),
@@ -322,6 +352,15 @@ export function FootballGameDetails({
   const levelCard = game.cancelledAt
     ? null
     : levelRangeRequestCard(game, locale);
+  const publishDraft = api.games.publishFootballTeams.useMutation({
+    onSuccess: () => toast.show(m.mobileTournament.makeTeams.published),
+    onError: failure,
+    onSettled: refresh,
+  });
+  const answerDraft = api.games.answerFootballDraft.useMutation({
+    onError: failure,
+    onSettled: () => utils.games.footballBoard.invalidate({ gameId }),
+  });
   const reportWrongScore = api.games.reportWrongScore.useMutation({
     onSuccess: () => toast.show(copy.toast.scoreReopened),
     onError: failure,
@@ -330,6 +369,7 @@ export function FootballGameDetails({
       await refreshRatings();
     },
   });
+  const editSeries = useGameEditSeries(game);
   const editSections = gameEditSectionsFor({
     format: game.format,
     sport: game.sport,
@@ -337,6 +377,7 @@ export function FootballGameDetails({
     tournamentRounds: false,
     booked: game.booking != null,
     challenge: game.challenge != null,
+    series: editSeries.shown,
   });
   const edit = useGameEdit({
     gameId,
@@ -457,6 +498,7 @@ export function FootballGameDetails({
     }
   };
   const teamsPath = `/games/${gameId}/teams` as Href;
+  const pickRoomPath = footballPickRoomPath(gameId) as Href;
   const scorePath = `/games/${gameId}/score` as Href;
   const viewerCode = viewer ? slotCode(viewer, locale) : null;
   const subtitle = [
@@ -471,6 +513,7 @@ export function FootballGameDetails({
     ...(game.groupName
       ? [{ label: copy.football.group, value: game.groupName }]
       : []),
+    ...seriesFactRows(game.series, m),
     ...(game.season
       ? [{ label: copy.football.season, value: game.season.name }]
       : []),
@@ -489,7 +532,7 @@ export function FootballGameDetails({
       label: copy.football.teams,
       value: teams
         ? footballTeamsMethodLabel(teams.method, locale)
-        : copy.football.organizerMakesTeams,
+        : m.football.draft.notPublished.value,
     },
     ...(names
       ? [
@@ -587,6 +630,7 @@ export function FootballGameDetails({
           bibs={teams.bibs}
           names={names}
           balanceOn={board.data?.balanceOn ?? "ovr"}
+          sideCaptains={teams.captains}
           onOpenPlayer={onPressPlayer}
         />
         <Text size="meta" tone="muted">
@@ -679,6 +723,7 @@ export function FootballGameDetails({
             venue: game.venue,
             courtName: game.recordedCourts[0]?.name ?? null,
             groupName: game.groupName,
+            genderTag: game.genderTag,
             rated: game.rated,
             ratingImpact: game.ratingImpact,
             stoodUnconfirmed: boardMatch?.stoodUnconfirmed ?? false,
@@ -731,12 +776,18 @@ export function FootballGameDetails({
         whenLine: playedModel.whenLine,
         you: playedModel.you,
         avatar: viewer ? { name: viewer.name, image: viewer.image } : null,
+        series: game.series,
       }}
       board={
         <PlayedFootballBoard
           sides={playedModel.board}
           hasWinner={playedModel.result.hasWinner}
           scorers={playedModel.scorers}
+          log={{
+            lines: board.data?.match?.log ?? [],
+            players,
+            confirmedByName: board.data?.match?.confirmedByName ?? null,
+          }}
         />
       }
       heroFooter={
@@ -744,6 +795,9 @@ export function FootballGameDetails({
           marks={marks}
           onOpenPlayer={canOpenProfile ? openProfile : undefined}
         />
+      }
+      seriesCard={
+        game.series ? <SeriesGameCard gameId={gameId} game="played" /> : null
       }
       task={
         <>
@@ -790,6 +844,8 @@ export function FootballGameDetails({
         <FootballHero
           tone={model.hero.tone}
           lines={lines}
+          series={game.series}
+          genderTag={game.genderTag}
           tag={
             ratingScopeOf(game) === "temba"
               ? (ratingScopeTag(game, locale) ?? undefined)
@@ -798,7 +854,22 @@ export function FootballGameDetails({
                 : undefined
           }
           actions={
-            challenge && !game.cancelledAt ? (
+            !game.cancelledAt &&
+            footballScoreAwaitsConfirmation(board.data?.match) ? (
+              <HeaderIconButton
+                framed
+                icon={Share}
+                accessibilityLabel={m.game.cta.shareResult}
+                onPress={() => router.push(sharePath(gameId))}
+              />
+            ) : !game.cancelledAt && game.phase === "needs_results" ? (
+              <HeaderIconButton
+                framed
+                icon={Share}
+                accessibilityLabel={m.mobileGameDetails.hero.shareGame}
+                onPress={() => void sharePlayedGame(game)}
+              />
+            ) : challenge && !game.cancelledAt ? (
               <HeaderIconButton
                 framed
                 icon={Share}
@@ -830,6 +901,7 @@ export function FootballGameDetails({
       }
     >
       <View style={{ gap: SECTION_GAP }}>
+        {game.series ? <SeriesGameCard gameId={gameId} game="played" /> : null}
         {game.cancelledAt ? (
           <Surface accessibilityRole="alert">
             <Text size="title" weight="semibold">
@@ -860,7 +932,86 @@ export function FootballGameDetails({
             </Text>
           </Surface>
         ) : null}
-        {!teams ? (
+        {!teams &&
+        !draft &&
+        !game.isOrganizer &&
+        !challenge &&
+        !game.cancelledAt ? (
+          <Surface style={{ gap: 4 }}>
+            <Text weight="semibold">{m.football.draft.notPublished.title}</Text>
+            <Text size="meta" tone="muted">
+              {m.football.draft.notPublished.body}
+            </Text>
+          </Surface>
+        ) : null}
+        {draft ? (
+          <View style={{ gap: 12 }}>
+            <TeamColumns
+              players={players.map((player) => ({
+                ...player,
+                sideIndex: draft.sides.slot1.includes(player.userId)
+                  ? (1 as const)
+                  : draft.sides.slot2.includes(player.userId)
+                    ? (2 as const)
+                    : null,
+              }))}
+              bibs={draft.bibs}
+              names={bibNames(draft.bibs, locale)}
+              balanceOn={board.data?.balanceOn ?? "ovr"}
+              sideCaptains={draft.captains}
+              onOpenPlayer={onPressPlayer}
+            />
+            <Text size="meta" tone="muted">
+              {draftSideCaptainOf
+                ? footballDraftCaptainViewLine(draft, game, locale)
+                : footballDraftVisibilityLine(
+                    game,
+                    draft.captains.slot1 != null ||
+                      draft.captains.slot2 != null,
+                    locale,
+                  )}
+            </Text>
+            {runningPick ? (
+              <PickInProgressCard
+                status={runningPick}
+                onOpen={() => router.push(pickRoomPath)}
+              />
+            ) : draftSideCaptainOf ? (
+              <CaptainDraftPanel
+                draft={draft}
+                side={draftSideCaptainOf}
+                players={players}
+                balanceOn={board.data?.balanceOn ?? "ovr"}
+                pending={answerDraft.isPending}
+                onAnswer={(answer, note) =>
+                  answerDraft.mutate({ gameId, answer, note })
+                }
+                onShare={() => router.push(shareDraftPath(gameId))}
+              />
+            ) : (
+              <DraftCard
+                draft={draft}
+                players={players}
+                game={game}
+                publishPending={publishDraft.isPending}
+                onPublish={() =>
+                  publishDraft.mutate({
+                    gameId,
+                    method: draft.method,
+                    bibs: draft.bibs,
+                    slot1: draft.sides.slot1,
+                    slot2: draft.sides.slot2,
+                    captains: draft.captains,
+                    draftUpdatedAt: draft.updatedAt,
+                  })
+                }
+                onShare={() => router.push(shareDraftPath(gameId))}
+                onEdit={() => router.push(teamsPath)}
+              />
+            )}
+          </View>
+        ) : null}
+        {!teams && !draft ? (
           <View style={{ gap: 12 }}>
             {players.length === 0 && layout.openSeats === 0 ? (
               <>
@@ -928,10 +1079,18 @@ export function FootballGameDetails({
                 ? {
                     status: teams
                       ? footballTeamsMethodLabel(teams.method, locale)
-                      : copy.football.teamsNotSet,
+                      : runningPick
+                        ? m.football.pick.inProgress.title
+                        : draft
+                          ? copy.football.draftSaved
+                          : copy.football.teamsNotSet,
                     actionLabel: teams
                       ? copy.football.editTeams
-                      : copy.football.makeTeams,
+                      : runningPick
+                        ? m.football.pick.inProgress.open
+                        : draft
+                          ? copy.football.editDraft
+                          : copy.football.makeTeams,
                   }
                 : null
             }
@@ -950,7 +1109,8 @@ export function FootballGameDetails({
               onAddPlayer: canAddPlayer
                 ? () => setAddPlayerOpen(true)
                 : undefined,
-              onMakeTeams: () => router.push(teamsPath),
+              onMakeTeams: () =>
+                router.push(runningPick ? pickRoomPath : teamsPath),
             }}
           />
         ) : null}
@@ -1112,6 +1272,7 @@ export function FootballGameDetails({
             joined: game.registeredUserCount,
             seasons: game.groupSeasons,
             canChangeSeason: game.canChangeSeason,
+            series: editSeries.context,
           }}
         />
       ) : null}

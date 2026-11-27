@@ -12,7 +12,7 @@ import {
   type FootballBib,
 } from "@repo/domain/football-lineup";
 import { gameCustomName } from "@repo/domain/game-custom-name";
-import { ratingScopeTag } from "@repo/domain/game-rating-impact";
+import { gameCardRatingTag } from "@repo/domain/game-rating-impact";
 import { isPublicGame } from "@repo/domain/game-rating-scope";
 import { sideSizeLabel } from "@repo/domain/game-shape";
 import { formatHomeKickoff } from "@repo/domain/home-countdown";
@@ -30,6 +30,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 
 import { BibChip, bibStyle } from "./football-bibs";
+import { GenderTagBadge } from "./gender-tag";
 import { SeatBar } from "./football-pool-grid";
 import {
   SUMMARY_CARD_ACTION_CLASS,
@@ -197,11 +198,11 @@ function ResultBody({ game }: { game: HubGameRow }) {
   );
 }
 
-/** A Public Game says it counts for Temba Level; any Game says who may join. */
+/** A Public Game says it counts for Temba Level; any Game says who it is for and who may join. */
 function ScopeLine({ game }: { game: HubGameRow }) {
   const locale = useLocale();
   const tag = isPublicGame(game)
-    ? ratingScopeTag({ ...game, publicGame: true }, locale)
+    ? gameCardRatingTag({ ...game, publicGame: true }, locale)
     : null;
   const range = formatLevelRangeLabel(
     game.levelMinTenths,
@@ -209,18 +210,19 @@ function ScopeLine({ game }: { game: HubGameRow }) {
     locale,
     game.sport,
   );
-  if (!tag && !range) {
+  if (!tag && !range && !game.genderTag) {
     return null;
   }
   return (
     <div className="text-meta flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-      {tag ? (
-        <Badge variant="outline" data-slot="game-card-rating-scope">
-          {tag}
-        </Badge>
-      ) : (
-        <span />
-      )}
+      <span className="flex flex-wrap items-center gap-1.5">
+        {tag ? (
+          <Badge variant="outline" data-slot="game-card-rating-scope">
+            {tag}
+          </Badge>
+        ) : null}
+        <GenderTagBadge genderTag={game.genderTag} />
+      </span>
       {range ? (
         <span className="text-muted-foreground tabular-nums">{range}</span>
       ) : null}

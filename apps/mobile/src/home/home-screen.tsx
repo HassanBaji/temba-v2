@@ -1,7 +1,6 @@
 import { useUser } from "@clerk/expo";
 import { formatDayMonth } from "@repo/domain/format-game-start";
 import { RECENT_FORM_MATCH_COUNT } from "@repo/domain/home-recent-form";
-import { latestMark } from "@repo/domain/home-latest";
 import { homeNoGamesCreateAction } from "@repo/domain/home-no-games";
 import { openWeekRows } from "@repo/domain/home-open-week";
 import { homeSport, homeSports } from "@repo/domain/home-sports";
@@ -19,6 +18,8 @@ import { checklistFrom } from "../profile-tasks/profile-tasks-model";
 import { api } from "../trpc/react";
 import {
   homeChecklist,
+  homeLatest,
+  latestTarget,
   levelFromApi,
   recentFormFromHistory,
   standingInSport,
@@ -124,6 +125,10 @@ export function HomeScreen() {
     { userId: details.data?.id ?? "" },
     { ...REFETCH_ON_FOREGROUND, enabled: !!details.data },
   );
+  const seriesWins = api.series.forPlayer.useQuery(
+    { userId: details.data?.id ?? "" },
+    { ...REFETCH_ON_FOREGROUND, enabled: !!details.data },
+  );
 
   const nothingNext = upNext.status === "ready" && upNext.value.length === 0;
   const myGames = api.games.listMyGames.useQuery(undefined, {
@@ -131,7 +136,16 @@ export function HomeScreen() {
   });
 
   const latest = seenReady
-    ? latestMark(cabinet.data, sports, now, locale)
+    ? homeLatest(
+        {
+          cabinet: cabinet.data,
+          seriesWins: seriesWins.data,
+          sports,
+          seen,
+          now,
+        },
+        locale,
+      )
     : null;
 
   const model: HomeModel = {
@@ -149,7 +163,7 @@ export function HomeScreen() {
       locale,
     }),
     openGames: myGames.data ? openWeekRows(myGames.data, now, locale) : [],
-    latest: latest && latest.key !== seen ? latest : null,
+    latest,
     dateLine: formatDayMonth(now, locale, { weekday: "long", month: "long" }),
     sports: twoSports ? sports : [sport],
     sport,
@@ -175,6 +189,7 @@ export function HomeScreen() {
         history.refetch(),
         profile.refetch(),
         cabinet.refetch(),
+        seriesWins.refetch(),
         createGroups.refetch(),
         onboarding.refetch(),
         details.refetch(),
@@ -190,6 +205,7 @@ export function HomeScreen() {
       history,
       profile,
       cabinet,
+      seriesWins,
       createGroups,
       onboarding,
       details,
@@ -218,7 +234,7 @@ export function HomeScreen() {
       return;
     }
     markSeen(latest.key);
-    onNavigate({ kind: "marks", userId: details.data.id, sport: latest.sport });
+    onNavigate(latestTarget(latest, details.data.id));
   }, [latest, details.data, markSeen, onNavigate]);
 
   return (

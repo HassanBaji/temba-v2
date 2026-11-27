@@ -65,13 +65,14 @@ describe("tabBarHidden", () => {
     );
   });
 
-  it("keeps the tab bar on the Challenges segments, Teams and Player profiles", () => {
+  it("keeps the tab bar on the Challenges segments, Teams, Player profiles and Series pages", () => {
     expect(tabBarHidden(["(app)", "challenges"])).toBe(false);
     expect(tabBarHidden(["(app)", "challenges", "teams", "[id]"])).toBe(false);
     expect(tabBarHidden(["(app)", "challenges", "teams", "new"])).toBe(false);
     expect(
       tabBarHidden(["(app)", "challenges", "players", "[userId]", "matches"]),
     ).toBe(false);
+    expect(tabBarHidden(["(app)", "challenges", "series", "[id]"])).toBe(false);
   });
 
   it("hides the tab bar on a Challenge's own screens", () => {

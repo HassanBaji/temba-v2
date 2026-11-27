@@ -64,7 +64,7 @@ export const game = {
     youreIn: "أنت في التشكيلة",
     inviteAPlayer: "ادعُ لاعبًا",
     addTheScore: "أضف النتيجة",
-    countsOnceOthersConfirm: "تُحتسب بعد تأكيد الآخرين",
+    countsOnceOtherSideConfirms: "تُحتسب بعد تأكيد الفريق الآخر",
     addResult: "إضافة النتيجة",
     levelUpdated: "تم تحديث المستوى",
     shareResult: "مشاركة النتيجة",
@@ -310,18 +310,90 @@ export const game = {
     entered: (label: string, games: number) => `${label}: ${games}`,
     notEntered: (label: string) => `${label}: لم تُدخل بعد`,
     confirmedByOrganizer: "أكّدها المنظّم. لا حاجة إلى شيء آخر.",
-    confirmedByAllOn: (date: string) =>
-      `أكّدها اللاعبون الأربعة في ${date}. لا حاجة إلى شيء آخر.`,
-    confirmedByAll: "أكّدها اللاعبون الأربعة. لا حاجة إلى شيء آخر.",
+    confirmedByBothSidesOn: (date: string) =>
+      `أكّدها الفريقان في ${date}. لا حاجة إلى شيء آخر.`,
+    confirmedByBothSides: "أكّدها الفريقان. لا حاجة إلى شيء آخر.",
     noScoreYet:
-      "لا نتيجة بعد. يمكن لأي لاعب شارك إضافتها. يؤكدها الثلاثة الآخرون قبل أن تُحتسب في مستواك.",
+      "لا نتيجة بعد. يمكن لأي لاعب شارك إضافتها. يؤكدها لاعب واحد من الفريق الآخر قبل أن تُحتسب في مستواك.",
     scoringOpens:
       "يُفتح تسجيل النتيجة عند امتلاء الملعب. املأ المكان الأخير وستتمكن من إدخال النتيجة بعد المباراة.",
     player: "لاعب",
     youSuffix: (name: string) => `${name} (أنت)`,
     confirmed: "تم التأكيد",
+    partnerConfirmed: "أكّد الشريك",
     waiting: "في الانتظار",
     organizerWaiting: (team: string) => `في انتظار تأكيد المنظّم عن ${team}.`,
+  },
+  scoreReview: {
+    enteredTitle: (name: string) => `${isolate(name)} أدخل النتيجة`,
+    changedTitle: (name: string) => `${isolate(name)} غيّر النتيجة`,
+    youEnteredTitle: "أنت أدخلت هذه النتيجة",
+    youChangedTitle: "أنت غيّرت النتيجة",
+    editTitle: "غيّر النتيجة",
+    confirmOrChange: (result: string) =>
+      `${result} أكّدها، أو غيّرها إن كانت خاطئة.`,
+    confirmNewOrChangeBack: (result: string) =>
+      `${result} أكّد النتيجة الجديدة، أو أعدها كما كانت.`,
+    teamWon: (tally: string) => `فاز فريقك ${isolate(tally)}.`,
+    teamStillWon: (tally: string) => `ما زال فريقك فائزًا ${isolate(tally)}.`,
+    teamLost: (tally: string) => `خسر فريقك ${isolate(tally)}.`,
+    teamStillLost: (tally: string) => `ما زال فريقك خاسرًا ${isolate(tally)}.`,
+    levelAt: (tally: string) => `النتيجة متعادلة ${isolate(tally)}.`,
+    sideWon: (team: string, tally: string) =>
+      `فاز ${isolate(team)} ${isolate(tally)}.`,
+    levelInSets: (tally: string) => `تعادل ${isolate(tally)} في الأشواط.`,
+    nothingChanged: "لم يتغيّر شيء بعد. غيّر خانة في الأعلى.",
+    setsChanged: (n: number, firstSet: number) =>
+      plural("ar", n, {
+        one: `تغيّر الشوط ${firstSet}. سيُطلب من الفريق الآخر التأكيد.`,
+        two: "تغيّر شوطان. سيُطلب من الفريق الآخر التأكيد.",
+        few: "تغيّرت {n} أشواط. سيُطلب من الفريق الآخر التأكيد.",
+        many: "تغيّر {n} شوطًا. سيُطلب من الفريق الآخر التأكيد.",
+        other: "تغيّر {n} شوط. سيُطلب من الفريق الآخر التأكيد.",
+      }),
+    dispute: "اعترض وعدّل",
+    confirm: "أكّد النتيجة",
+    editScore: "عدّل النتيجة",
+    cancel: "إلغاء",
+    send: "أرسل النتيجة الجديدة",
+    enteredBy: (name: string, time: string) =>
+      `أدخلها ${isolate(name)} الساعة ${isolate(time)}.`,
+    enteredByYou: (time: string) => `أدخلتها أنت الساعة ${isolate(time)}.`,
+    changedBy: (name: string, time: string) =>
+      `غيّرها ${isolate(name)} الساعة ${isolate(time)}.`,
+    changedByYou: (time: string) => `غيّرتها أنت الساعة ${isolate(time)}.`,
+    changing: (name: string) =>
+      `أنت تغيّر النتيجة التي أدخلها ${isolate(name)}.`,
+    changingOwn: "أنت تغيّر النتيجة التي أدخلتها.",
+    changedSet: (name: string, set: number, from: string, to: string) =>
+      `${isolate(name)} غيّر الشوط ${set} من ${isolate(from)} إلى ${isolate(to)}`,
+    youChangedSet: (set: number, from: string, to: string) =>
+      `غيّرت الشوط ${set} من ${isolate(from)} إلى ${isolate(to)}`,
+    changedScore: (name: string, from: string, to: string) =>
+      `${isolate(name)} غيّرها من ${isolate(from)} إلى ${isolate(to)}`,
+    youChangedScore: (from: string, to: string) =>
+      `غيّرتها من ${isolate(from)} إلى ${isolate(to)}`,
+    reasonGiven: (reason: string) => `السبب: ${reason}.`,
+    otherSideAsked: "طُلب من الفريق الآخر تأكيد النتيجة الجديدة.",
+    whatIsWrong: "ما الخطأ؟ اختياري",
+    editHint: "غيّر الخانات الخاطئة.",
+    reasons: {
+      set_score_wrong: "نتيجة شوط خاطئة",
+      sets_swapped: "الأشواط معكوسة",
+      not_finished: "لم نُكمل المباراة",
+      other: "سبب آخر",
+    },
+    reasonPhrases: {
+      set_score_wrong: "نتيجة شوط خاطئة",
+      sets_swapped: "الأشواط معكوسة",
+      not_finished: "لم نُكمل المباراة",
+      other: "سبب آخر",
+    },
+    changedBox: (label: string) => `${label}، تغيّرت`,
+    enteredIt: "أدخلها",
+    changedIt: "غيّرها",
+    yourTurn: "دورك",
+    askedAgain: "طُلب منه مجددًا",
   },
   kick: {
     fallbackName: "هذا اللاعب",
@@ -368,6 +440,7 @@ export const game = {
   share: {
     ratedMatch: "مباراة مصنّفة",
     friendlyMatch: "مباراة ودية",
+    unconfirmedMatch: "لم تُؤكَّد بعد",
     padelTypeLine: "ودية · بادل",
     footballTypeLine: (sideSize: string | null) =>
       sideSize ? `ودية · كرة القدم · ${sideSize}` : "ودية · كرة القدم",
@@ -381,6 +454,11 @@ export const game = {
     beat: (winners: string, losers: string, won: number, lost: number) =>
       `🏆 ${winners} تغلّبوا على ${losers} ${won}–${lost}`,
     footballResult: "⚽ نتيجة كرة القدم",
+    unconfirmedLine: "⏳ النتيجة لم تُؤكَّد بعد",
+    padelPlayed: "🎾 لُعبت مباراة بادل",
+    footballPlayed: "⚽ لُعبت مباراة كرة قدم",
+    versus: (first: string, second: string) => `👥 ${first} ضد ${second}`,
+    noScoreLine: "⏳ لم تُدخَل النتيجة بعد",
   },
   hubEmpty: {
     noGamesYet: "لا مباريات بعد",
@@ -617,6 +695,7 @@ export const game = {
     editCancelled: "لا يمكن تعديل مباراة ملغاة",
     notOpen: "هذه المباراة غير مفتوحة للتسجيل",
     organizerOnly: "هذا للمنظّم فقط",
+    invitePlayersOnly: "رابط الدعوة يشاركه المنظّم ولاعبو هذه المباراة فقط",
     groupCreatorOrOrganizerCreates:
       "لا يُنشئ مباراة في هذه المجموعة إلا منشئ المجموعة أو أحد منظّميها",
     groupMembersRegister: "التسجيل في هذه المباراة لأعضاء المجموعة فقط",

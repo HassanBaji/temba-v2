@@ -99,6 +99,7 @@ export async function createFootballGame(
         rated: input.rated ?? false,
         groupRated: input.groupRated ?? false,
         mvpMode: input.mvpMode ?? "vote",
+        genderTag: input.genderTag ?? null,
         createdBy: input.createdBy,
       })
       .returning();
@@ -200,6 +201,7 @@ export async function createFriendlyGame(
         rated: input.rated ?? true,
         groupRated: input.groupRated ?? false,
         mvpMode: input.mvpMode ?? "vote",
+        genderTag: input.genderTag ?? null,
         createdBy: input.createdBy,
       })
       .returning();
